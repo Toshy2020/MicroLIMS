@@ -1,0 +1,16 @@
+# Backend
+backend/**/bin/
+backend/**/obj/
+backend/**/*.user
+backend/MicroLIMS.API/appsettings.Development.json
+storage/
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/.env
+
+# OS/editor
+.vs/
+.vscode/
+.DS_Store

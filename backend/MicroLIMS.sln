@@ -1,0 +1,52 @@
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MicroLIMS.API", "MicroLIMS.API\MicroLIMS.API.csproj", "{84E016A4-9784-41C0-A2AE-A2D5E0A397D3}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MicroLIMS.Application", "MicroLIMS.Application\MicroLIMS.Application.csproj", "{95AD6AFB-C261-4A56-8729-400D9CCCCC5B}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MicroLIMS.Domain", "MicroLIMS.Domain\MicroLIMS.Domain.csproj", "{9BD20952-3B03-4502-9157-18DB148C7971}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MicroLIMS.Infrastructure", "MicroLIMS.Infrastructure\MicroLIMS.Infrastructure.csproj", "{9B4C9355-C63C-4495-A192-0EF555939A97}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MicroLIMS.Persistence", "MicroLIMS.Persistence\MicroLIMS.Persistence.csproj", "{DAC9D704-3D83-4791-A9A5-D4CEF047627B}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MicroLIMS.Shared", "MicroLIMS.Shared\MicroLIMS.Shared.csproj", "{130ACE22-DAB5-49C6-8219-B4BEE41FB9FD}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MicroLIMS.Tests", "MicroLIMS.Tests\MicroLIMS.Tests.csproj", "{47AD0311-8C0E-4FC1-A544-40475E6C03CE}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{84E016A4-9784-41C0-A2AE-A2D5E0A397D3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{84E016A4-9784-41C0-A2AE-A2D5E0A397D3}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{84E016A4-9784-41C0-A2AE-A2D5E0A397D3}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{84E016A4-9784-41C0-A2AE-A2D5E0A397D3}.Release|Any CPU.Build.0 = Release|Any CPU
+		{95AD6AFB-C261-4A56-8729-400D9CCCCC5B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{95AD6AFB-C261-4A56-8729-400D9CCCCC5B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{95AD6AFB-C261-4A56-8729-400D9CCCCC5B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{95AD6AFB-C261-4A56-8729-400D9CCCCC5B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9BD20952-3B03-4502-9157-18DB148C7971}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9BD20952-3B03-4502-9157-18DB148C7971}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9BD20952-3B03-4502-9157-18DB148C7971}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9BD20952-3B03-4502-9157-18DB148C7971}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9B4C9355-C63C-4495-A192-0EF555939A97}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9B4C9355-C63C-4495-A192-0EF555939A97}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9B4C9355-C63C-4495-A192-0EF555939A97}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9B4C9355-C63C-4495-A192-0EF555939A97}.Release|Any CPU.Build.0 = Release|Any CPU
+		{DAC9D704-3D83-4791-A9A5-D4CEF047627B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DAC9D704-3D83-4791-A9A5-D4CEF047627B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DAC9D704-3D83-4791-A9A5-D4CEF047627B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DAC9D704-3D83-4791-A9A5-D4CEF047627B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{130ACE22-DAB5-49C6-8219-B4BEE41FB9FD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{130ACE22-DAB5-49C6-8219-B4BEE41FB9FD}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{130ACE22-DAB5-49C6-8219-B4BEE41FB9FD}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{130ACE22-DAB5-49C6-8219-B4BEE41FB9FD}.Release|Any CPU.Build.0 = Release|Any CPU
+		{47AD0311-8C0E-4FC1-A544-40475E6C03CE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{47AD0311-8C0E-4FC1-A544-40475E6C03CE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{47AD0311-8C0E-4FC1-A544-40475E6C03CE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{47AD0311-8C0E-4FC1-A544-40475E6C03CE}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal

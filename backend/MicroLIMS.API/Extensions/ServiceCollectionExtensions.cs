@@ -1,0 +1,97 @@
+using MicroLIMS.Application.Interfaces;
+using MicroLIMS.Application.Services;
+using MicroLIMS.Application.Validators;
+using MicroLIMS.Application.Workflows;
+using MicroLIMS.Infrastructure.Authentication;
+using MicroLIMS.Infrastructure.Email;
+using MicroLIMS.Infrastructure.Notifications;
+using MicroLIMS.Infrastructure.Pdf;
+using MicroLIMS.Infrastructure.Storage;
+using MicroLIMS.Persistence.Repositories;
+
+namespace MicroLIMS.API.Extensions;
+
+// Central place all DI registrations live - Program.cs stays thin and
+// just calls builder.Services.AddApplicationServices(config).
+public static class ServiceCollectionExtensions
+{
+    public static IServiceCollection AddApplicationServices(this IServiceCollection services, IConfiguration config)
+    {
+        // Workflows (the frozen laboratory logic - now real state machines)
+        services.AddScoped<IProductWorkflowEngine, ProductWorkflowEngine>();
+        services.AddScoped<IWaterWorkflowEngine, WaterWorkflowEngine>();
+        services.AddScoped<IEMWorkflowEngine, EMWorkflowEngine>();
+        services.AddScoped<IAfterCleaningWorkflowEngine, AfterCleaningWorkflowEngine>();
+        services.AddScoped<IPathogenWorkflowEngine, PathogenWorkflowEngine>();
+        services.AddScoped<IGptWorkflowEngine, GptWorkflowEngine>();
+
+        // Application services
+        services.AddScoped<IReceivingService, ReceivingService>();
+        services.AddScoped<ITestWorkspaceService, TestingWorkspaceService>();
+        services.AddScoped<IResultService, ResultService>();
+        services.AddScoped<IReportService, ReportService>();
+        services.AddScoped<IAuthenticationService, AuthenticationService>();
+        services.AddScoped<ReviewService>();
+        services.AddScoped<ApprovalService>();
+        services.AddScoped<DashboardService>();
+        services.AddScoped<DashboardNotificationService>();
+        services.AddScoped<RecentActivityService>();
+        services.AddScoped<KpiService>();
+        services.AddScoped<ReferenceStrainService>();
+        services.AddScoped<SamplePreparationService>();
+        services.AddScoped<MediaPreparationService>();
+        services.AddScoped<WaterService>();
+        services.AddScoped<EMService>();
+        services.AddScoped<AfterCleaningService>();
+        services.AddScoped<PathogenService>();
+        services.AddScoped<GptService>();
+        services.AddScoped<ItemService>();
+        services.AddScoped<SpecificationService>();
+        services.AddScoped<UserService>();
+        services.AddScoped<AuditService>();
+        services.AddScoped<PermissionService>();
+        services.AddScoped<ReferenceNumberGenerator>();
+        services.AddScoped<AuditSearchService>();
+        services.AddScoped<MaterialService>();
+        services.AddScoped<EquipmentInventoryService>();
+
+        // Validators
+        services.AddScoped<ReceiveSampleValidator>();
+        services.AddScoped<WaterValidator>();
+        services.AddScoped<EMValidator>();
+        services.AddScoped<ProductValidator>();
+        services.AddScoped<PathogenValidator>();
+
+        // Repositories
+        services.AddScoped<IItemRepository, ItemRepository>();
+        services.AddScoped<ISampleRepository, SampleRepository>();
+        services.AddScoped<IUserRepository, UserRepository>();
+        services.AddScoped<IMediaRepository, MediaRepository>();
+
+        // Infrastructure
+        services.AddScoped<IPdfGenerator, PdfGenerator>();
+        services.AddScoped<IEmailSender>(_ => new EmailSender(
+            config["Smtp:Host"] ?? "",
+            int.TryParse(config["Smtp:Port"], out var p) ? p : 587,
+            config["Smtp:Username"] ?? "",
+            config["Smtp:Password"] ?? "",
+            config["Smtp:FromAddress"] ?? "no-reply@microlims.local",
+            bool.TryParse(config["Smtp:EnableSsl"], out var ssl) && ssl));
+        services.AddSingleton<NotificationService>();
+        services.AddSingleton<INotificationService>(sp => sp.GetRequiredService<NotificationService>());
+        services.AddScoped<IFileStorageService>(_ => new LocalFileStorageService(config["Storage:BasePath"] ?? "storage"));
+
+        services.AddSingleton<IJwtTokenService>(_ => new JwtTokenService(
+            config["Jwt:Key"]!, config["Jwt:Issuer"]!, config["Jwt:Audience"]!));
+
+        // AuthenticationService needs a token-issuing delegate - wire it
+        // from IJwtTokenService so Application does not reference Infrastructure directly.
+        services.AddScoped<Func<string, string, string>>(sp =>
+        {
+            var jwt = sp.GetRequiredService<IJwtTokenService>();
+            return (userId, role) => jwt.IssueToken(userId, role);
+        });
+
+        return services;
+    }
+}

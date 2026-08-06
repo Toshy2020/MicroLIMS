@@ -14,12 +14,14 @@ public class DashboardController : ControllerBase
     private readonly DashboardService _dashboardService;
     private readonly DashboardNotificationService _notificationService;
     private readonly RecentActivityService _activityService;
+    private readonly MyTasksService _myTasksService;
 
-    public DashboardController(DashboardService dashboardService, DashboardNotificationService notificationService, RecentActivityService activityService)
+    public DashboardController(DashboardService dashboardService, DashboardNotificationService notificationService, RecentActivityService activityService, MyTasksService myTasksService)
     {
         _dashboardService = dashboardService;
         _notificationService = notificationService;
         _activityService = activityService;
+        _myTasksService = myTasksService;
     }
 
     private int CurrentUserId => int.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)!.Value);
@@ -52,4 +54,19 @@ public class DashboardController : ControllerBase
 
     [HttpGet("recent-activity")]
     public async Task<IActionResult> GetRecentActivity([FromQuery] int take = 25) => Ok(ApiResponse<object>.Ok(await _activityService.GetRecentAsync(take)));
+
+    // Analyst-only personal task list - not meaningful for lab-wide roles,
+    // so it's rejected server-side rather than just hidden client-side.
+    [HttpGet("my-tasks")]
+    public async Task<IActionResult> GetMyTasks()
+    {
+        if (CurrentRole != RoleType.Analyst) return Forbid();
+        return Ok(ApiResponse<object>.Ok(await _myTasksService.GetMyTasksAsync(CurrentUserId)));
+    }
+
+    [HttpGet("todays-work")]
+    public async Task<IActionResult> GetTodaysWork() => Ok(ApiResponse<object>.Ok(await _dashboardService.GetTodaysWorkAsync(CurrentRole, CurrentUserId)));
+
+    [HttpGet("incubation-overview")]
+    public async Task<IActionResult> GetIncubationOverview() => Ok(ApiResponse<object>.Ok(await _dashboardService.GetIncubationOverviewAsync()));
 }

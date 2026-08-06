@@ -19,19 +19,23 @@ public class MicroLimsDbContext : Microsoft.EntityFrameworkCore.DbContext
     public DbSet<LoginHistory> LoginHistories => Set<LoginHistory>();
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
     public DbSet<PasswordResetToken> PasswordResetTokens => Set<PasswordResetToken>();
+    public DbSet<PasswordHistory> PasswordHistories => Set<PasswordHistory>();
+    public DbSet<ElectronicSignature> ElectronicSignatures => Set<ElectronicSignature>();
     public DbSet<Item> Items => Set<Item>();
     public DbSet<Specification> Specifications => Set<Specification>();
     public DbSet<Media> Media => Set<Media>();
-    public DbSet<GptChallengeResult> GptChallengeResults => Set<GptChallengeResult>();
-    public DbSet<ReferenceStrain> ReferenceStrains => Set<ReferenceStrain>();
+    public DbSet<MediaEvaluation> MediaEvaluations => Set<MediaEvaluation>();
+    public DbSet<MediaEvaluationChallenge> MediaEvaluationChallenges => Set<MediaEvaluationChallenge>();
     public DbSet<Cryovial> Cryovials => Set<Cryovial>();
-    public DbSet<PassageEvent> PassageEvents => Set<PassageEvent>();
+    public DbSet<IdentityConfirmationEntry> IdentityConfirmationEntries => Set<IdentityConfirmationEntry>();
+    public DbSet<ThawEvent> ThawEvents => Set<ThawEvent>();
     public DbSet<NotificationLog> NotificationLogs => Set<NotificationLog>();
     public DbSet<Sample> Samples => Set<Sample>();
     public DbSet<SampleTest> SampleTests => Set<SampleTest>();
     public DbSet<TestOrder> TestOrders => Set<TestOrder>();
     public DbSet<Result> Results => Set<Result>();
     public DbSet<Incubation> Incubations => Set<Incubation>();
+    public DbSet<CountTestReading> CountTestReadings => Set<CountTestReading>();
     public DbSet<Department> Departments => Set<Department>();
     public DbSet<Room> Rooms => Set<Room>();
     public DbSet<Machine> Machines => Set<Machine>();
@@ -41,12 +45,17 @@ public class MicroLimsDbContext : Microsoft.EntityFrameworkCore.DbContext
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
     public DbSet<Report> Reports => Set<Report>();
     public DbSet<WorkflowHistory> WorkflowHistories => Set<WorkflowHistory>();
+    public DbSet<ReviewWorkflowEvent> ReviewWorkflowEvents => Set<ReviewWorkflowEvent>();
+    public DbSet<ArchivedRecord> ArchivedRecords => Set<ArchivedRecord>();
     public DbSet<MediaUsage> MediaUsages => Set<MediaUsage>();
     public DbSet<RoomMonitoring> RoomMonitorings => Set<RoomMonitoring>();
+    public DbSet<SampleLocation> SampleLocations => Set<SampleLocation>();
     public DbSet<MachinePartConfiguration> MachinePartConfigurations => Set<MachinePartConfiguration>();
     public DbSet<SamplingConfiguration> SamplingConfigurations => Set<SamplingConfiguration>();
     public DbSet<PathogenObservation> PathogenObservations => Set<PathogenObservation>();
     public DbSet<ReportSnapshot> ReportSnapshots => Set<ReportSnapshot>();
+    public DbSet<ResultRecord> ResultRecords => Set<ResultRecord>();
+    public DbSet<DataExportLog> DataExportLogs => Set<DataExportLog>();
 
     // Phase 1 additions
     public DbSet<CauseOfTesting> CausesOfTesting => Set<CauseOfTesting>();
@@ -56,11 +65,17 @@ public class MicroLimsDbContext : Microsoft.EntityFrameworkCore.DbContext
     public DbSet<MediaType> MediaTypes => Set<MediaType>();
     public DbSet<RoomTestConfiguration> RoomTestConfigurations => Set<RoomTestConfiguration>();
     public DbSet<SamplePreparation> SamplePreparations => Set<SamplePreparation>();
-    public DbSet<ExpectedIndicationResult> ExpectedIndicationResults => Set<ExpectedIndicationResult>();
+    public DbSet<MediaChallengeSpec> MediaChallengeSpecs => Set<MediaChallengeSpec>();
+    public DbSet<Organism> Organisms => Set<Organism>();
 
     // Inventory module
     public DbSet<Material> Materials => Set<Material>();
     public DbSet<EquipmentInventory> EquipmentInventories => Set<EquipmentInventory>();
+
+    // Test Master
+    public DbSet<TestDefinition> TestDefinitions => Set<TestDefinition>();
+    public DbSet<TestDefinitionMedia> TestDefinitionMedias => Set<TestDefinitionMedia>();
+    public DbSet<TestWorkflowStep> TestWorkflowSteps => Set<TestWorkflowStep>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -132,7 +147,7 @@ public class MicroLimsDbContext : Microsoft.EntityFrameworkCore.DbContext
                 ControlNumber = GetPropertyAsString(entry, "ControlNumber"),
                 SampleReferenceNumber = GetPropertyAsString(entry, "ReferenceNumber"),
                 MediaLotNumber = GetPropertyAsString(entry, "LotNumber"),
-                ReferenceStrainCode = entry.Entity is Cryovial or ReferenceStrain ? GetPropertyAsString(entry, "Code") : null,
+                ReferenceStrainCode = entry.Entity is Cryovial ? GetPropertyAsString(entry, "Code") : null,
                 CryovialCode = entry.Entity is Cryovial ? GetPropertyAsString(entry, "Code") : null,
                 SampleId = GetPropertyAsInt(entry, "SampleId") ?? (entry.Entity is Sample ? int.TryParse(idProperty?.CurrentValue?.ToString(), out var sid) ? sid : null : null),
                 TestOrderId = GetPropertyAsInt(entry, "TestOrderId") ?? (entry.Entity is TestOrder ? int.TryParse(idProperty?.CurrentValue?.ToString(), out var tid) ? tid : null : null)

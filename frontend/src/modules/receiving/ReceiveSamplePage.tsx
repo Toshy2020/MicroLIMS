@@ -4,6 +4,7 @@ import { PageHeader } from "../../components/PageHeader";
 import { SectionTitle } from "../../components/SectionTitle";
 import { SearchBar } from "../../components/SearchBar";
 import { StatusBadge, CauseBadge, CategoryBadge } from "../../components/StatusBadge";
+import { SampleLifecycleBadge } from "../testingWorkspace/SampleLifecycleBadge";
 import { ReceiveService } from "./services/ReceiveService";
 import { masterDataOptions, SAMPLED_BY_SUGGESTIONS, PRODUCTION_STAGES } from "../../services/masterDataOptions";
 import { SampleRecord } from "./types/receivingTypes";
@@ -30,6 +31,8 @@ export function ReceiveSamplePage() {
   const [message, setMessage] = useState<{ text: string; ok: boolean } | null>(null);
   const [records, setRecords] = useState<SampleRecord[] | null>(null);
   const [filter, setFilter] = useState("");
+  const [fromDate, setFromDate] = useState("");
+  const [toDate, setToDate] = useState("");
 
   useEffect(() => {
     masterDataOptions.getCausesOfTesting().then(setCauses);
@@ -56,7 +59,7 @@ export function ReceiveSamplePage() {
         await ReceiveService.receiveItemBased({
           itemId: form.itemId, causeOfTestingId: form.causeOfTestingId, sampleQuantity: form.sampleQuantity ?? "",
           sampledBy: form.sampledBy ?? "", batchNumber: form.batchNumber ?? "", controlNumber: form.controlNumber ?? "",
-          mfgDate: form.mfgDate ?? "", expDate: form.expDate ?? "", productionStage: category === "product" ? form.productionStage : null
+          mfgDate: form.mfgDate || null, expDate: form.expDate || null, productionStage: category === "product" ? form.productionStage : null
         });
       } else if (category === "water") {
         await ReceiveService.receiveWater({
@@ -82,9 +85,13 @@ export function ReceiveSamplePage() {
     }
   };
 
-  const filteredRecords = records?.filter((r) =>
-    !filter || Object.values(r).some((v) => String(v).toLowerCase().includes(filter.toLowerCase()))
-  );
+  const filteredRecords = records?.filter((r) => {
+    if (filter && !Object.values(r).some((v) => String(v).toLowerCase().includes(filter.toLowerCase()))) return false;
+    const receivedDate = r.receivedAt.slice(0, 10); // YYYY-MM-DD, matches <input type="date">
+    if (fromDate && receivedDate < fromDate) return false;
+    if (toDate && receivedDate > toDate) return false;
+    return true;
+  });
 
   const itemBased = category === "product" || category === "rm" || category === "pm";
 
@@ -196,6 +203,10 @@ export function ReceiveSamplePage() {
 
       <SectionTitle tabs={[{ label: "Refresh", onClick: loadRecords }]}>Records</SectionTitle>
       <SearchBar value={filter} onChange={setFilter} placeholder="Filter records by any field..." />
+      <Box sx={{ display: "flex", gap: 1.5, mb: 2.25, mt: -1.25 }}>
+        <TextField size="small" type="date" label="From" InputLabelProps={{ shrink: true }} value={fromDate} onChange={(e) => setFromDate(e.target.value)} />
+        <TextField size="small" type="date" label="To" InputLabelProps={{ shrink: true }} value={toDate} onChange={(e) => setToDate(e.target.value)} />
+      </Box>
 
       {!filteredRecords ? (
         <Typography color="text.secondary">Loading...</Typography>
@@ -203,23 +214,32 @@ export function ReceiveSamplePage() {
         <Typography sx={{ color: "#9ca3af", fontSize: 13, p: 2 }}>No samples recorded yet.</Typography>
       ) : (
         filteredRecords.map((r) => (
-          <Paper key={r.sampleId} sx={{ p: 2, mb: 1.25, display: "grid", gridTemplateColumns: "60px 1.6fr 1.2fr 1fr auto", gap: 2 }}>
+          <Paper key={r.sampleId} sx={{ p: 2, mb: 1.25, display: "grid", gridTemplateColumns: "60px 1.6fr 1.6fr auto", gap: 2 }}>
             <Typography sx={{ color: "text.secondary", fontWeight: 600, fontSize: 13 }}>#{r.sampleId}</Typography>
             <Box>
               <Typography sx={{ fontWeight: 600, fontSize: 13 }}>{r.displayName}{r.batchNumber ? ` — ${r.batchNumber}` : ""}</Typography>
               <Box sx={{ display: "flex", gap: 0.75, mt: 0.75 }}>
                 <CategoryBadge category={r.category} />
                 <CauseBadge label={r.causeOfTesting} />
+                {r.preparationStatus === "NeedsPreparation" && <StatusBadge status="Needs Preparation" />}
+                <SampleLifecycleBadge status={r.status} role={null} interactive={false} />
               </Box>
+              <Typography sx={{ fontSize: 11, color: "#9ca3af", mt: 0.5 }}>{r.referenceNumber}</Typography>
             </Box>
             <Box>
-              <Typography sx={{ fontSize: 11, color: "#9ca3af" }}>Reference / Tests</Typography>
-              <Typography sx={{ fontWeight: 600, fontSize: 13 }}>{r.referenceNumber}</Typography>
-              <Typography sx={{ fontSize: 12, color: "text.secondary" }}>{r.assignedTests.map((t) => t.testCode).join(", ") || "—"}</Typography>
-            </Box>
-            <Box>
-              <StatusBadge status={r.status} />
-              {r.preparationStatus === "NeedsPreparation" && <Box sx={{ mt: 0.5 }}><StatusBadge status="Needs Preparation" /></Box>}
+              <Typography sx={{ fontSize: 11, color: "#9ca3af", mb: 0.5 }}>Test Status</Typography>
+              {r.assignedTests.length === 0 ? (
+                <Typography sx={{ fontSize: 12, color: "text.secondary" }}>—</Typography>
+              ) : (
+                <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
+                  {r.assignedTests.map((t) => (
+                    <Box key={t.testOrderId} sx={{ display: "flex", alignItems: "center", gap: 0.5, bgcolor: "#f3e8ff", borderRadius: 1.5, px: 0.75, py: 0.25 }}>
+                      <Typography sx={{ fontSize: 11, fontWeight: 600 }}>{t.testCode}</Typography>
+                      <StatusBadge status={t.status} />
+                    </Box>
+                  ))}
+                </Box>
+              )}
             </Box>
             <Typography sx={{ fontSize: 11, color: "#9ca3af", textAlign: "right" }}>{new Date(r.receivedAt).toLocaleString()}</Typography>
           </Paper>

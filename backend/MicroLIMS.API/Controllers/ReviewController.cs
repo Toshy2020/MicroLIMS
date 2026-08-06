@@ -6,12 +6,16 @@ using MicroLIMS.Shared.Responses;
 
 namespace MicroLIMS.API.Controllers;
 
-public record ReviewRequest(int TestOrderId, string? Comment, ReviewMode Mode = ReviewMode.Detailed);
-public record QuickReviewBatchRequest(List<int> TestOrderIds);
+public record ReviewRequest(int TestOrderId, string? Comment, string Password, ReviewMode Mode = ReviewMode.Detailed);
+public record QuickReviewBatchRequest(List<int> TestOrderIds, string Password);
 
+// TestOrder-level review - superseded by SampleReviewController/
+// SampleReviewService for the main workflow (no nav entry reaches this
+// anymore), but kept because ReviewService is still exercised directly
+// by SegregationOfDutiesTests/ElectronicSignatureTests.
 [ApiController]
 [Route("api/review")]
-[Authorize(Roles = RoleConstants.Reviewer + "," + RoleConstants.SectionHead)]
+[Authorize(Roles = RoleConstants.Reviewer + "," + RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
 public class ReviewController : ControllerBase
 {
     private readonly ReviewService _reviewService;
@@ -25,7 +29,8 @@ public class ReviewController : ControllerBase
     public async Task<IActionResult> Review(ReviewRequest request)
     {
         var reviewerId = int.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)!.Value);
-        await _reviewService.MarkReviewedAsync(request.TestOrderId, reviewerId, request.Comment, request.Mode);
+        var ip = HttpContext.Connection.RemoteIpAddress?.ToString();
+        await _reviewService.MarkReviewedAsync(request.TestOrderId, reviewerId, request.Comment, request.Password, ip, request.Mode);
         return Ok(ApiResponse<object>.Ok(new { }));
     }
 
@@ -34,7 +39,8 @@ public class ReviewController : ControllerBase
     public async Task<IActionResult> ReviewBatch(QuickReviewBatchRequest request)
     {
         var reviewerId = int.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)!.Value);
-        var reviewed = await _reviewService.QuickReviewBatchAsync(request.TestOrderIds, reviewerId);
-        return Ok(ApiResponse<object>.Ok(new { reviewed }));
+        var ip = HttpContext.Connection.RemoteIpAddress?.ToString();
+        var result = await _reviewService.QuickReviewBatchAsync(request.TestOrderIds, reviewerId, request.Password, ip);
+        return Ok(ApiResponse<object>.Ok(new { reviewed = result.Reviewed, skipped = result.Skipped }));
     }
 }

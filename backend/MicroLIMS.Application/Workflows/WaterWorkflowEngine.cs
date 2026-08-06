@@ -53,7 +53,7 @@ public class WaterWorkflowEngine : IWaterWorkflowEngine
             ControlNumber = request.ControlNumber,
             ReceivedByUserId = request.ReceivedByUserId,
             Status = SampleStatus.Received,
-            PreparationStatus = SamplePreparationStatus.Ready
+            PreparationStatus = SamplePreparationStatus.NeedsPreparation
         };
 
         foreach (var testCode in point.AssignedTestCodes)

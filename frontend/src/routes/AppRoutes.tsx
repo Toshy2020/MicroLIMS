@@ -3,29 +3,28 @@ import { PublicRoutes } from "./PublicRoutes";
 import { AuthenticatedRoutes } from "./AuthenticatedRoutes";
 import { SystemAdministratorRoutes } from "./SystemAdministratorRoutes";
 import { SectionHeadRoutes } from "./SectionHeadRoutes";
-import { ReviewerRoutes } from "./ReviewerRoutes";
-import { AnalystRoutes } from "./AnalystRoutes";
 import { LoginPage } from "../pages/Login";
-import { DashboardPage } from "../pages/Dashboard";
+import { DashboardPage } from "../modules/dashboard/DashboardPage";
 import { ProfilePage } from "../pages/Profile";
+import { ChangePasswordPage } from "../pages/ChangePassword";
 import { ReportsPage } from "../pages/Reports";
 import { ReceiveSamplePage } from "../modules/receiving/ReceiveSamplePage";
 import { TestingWorkspacePage } from "../modules/testingWorkspace/TestingWorkspacePage";
-import { EMPreparationPage } from "../modules/laboratoryConfiguration/environmentalMonitoring/EMPreparationPage";
-import { AfterCleaningPreparationPage } from "../modules/laboratoryConfiguration/afterCleaning/AfterCleaningPreparationPage";
-import { TestPreparationPage } from "../modules/testPreparation/TestPreparationPage";
-import { ReviewPage } from "../modules/review/ReviewPage";
-import { ApprovalPage } from "../modules/approval/ApprovalPage";
+import { SampleReportPage } from "../modules/testingWorkspace/SampleReportPage";
+import { MediaReportPage } from "../modules/laboratoryConfiguration/media/MediaReportPage";
+import { CryovialReportPage } from "../modules/laboratoryConfiguration/cryovials/CryovialReportPage";
 import { ItemsPage } from "../modules/laboratoryConfiguration/items/ItemsPage";
+import { TestMasterPage } from "../modules/laboratoryConfiguration/masterDataSimple/TestMasterPage";
+import { OrganismsPage } from "../modules/laboratoryConfiguration/masterDataSimple/OrganismsPage";
 import { SpecificationsPage } from "../modules/laboratoryConfiguration/specifications/SpecificationsPage";
 import { MediaPage } from "../modules/laboratoryConfiguration/media/MediaPage";
 import { MediaTypesPage } from "../modules/laboratoryConfiguration/media/MediaTypesPage";
-import { GptPage } from "../modules/laboratoryConfiguration/gpt/GptPage";
+import { MediaChallengeSpecsPage } from "../modules/laboratoryConfiguration/media/MediaChallengeSpecsPage";
+import { MediaEvaluationPage } from "../modules/laboratoryConfiguration/mediaEvaluation/MediaEvaluationPage";
 import { WaterConfigPage } from "../modules/laboratoryConfiguration/water/WaterConfigPage";
 import { EMConfigPage } from "../modules/laboratoryConfiguration/environmentalMonitoring/EMConfigPage";
 import { AfterCleaningConfigPage } from "../modules/laboratoryConfiguration/afterCleaning/AfterCleaningConfigPage";
-import { ReferenceStrainsPage } from "../modules/laboratoryConfiguration/referenceStrains/ReferenceStrainsPage";
-import { CryovialsPage } from "../modules/laboratoryConfiguration/referenceStrains/CryovialsPage";
+import { CryovialsPage } from "../modules/laboratoryConfiguration/cryovials/CryovialsPage";
 import { CauseOfTestingPage } from "../modules/laboratoryConfiguration/masterDataSimple/CauseOfTestingPage";
 import { DiluentsPage } from "../modules/laboratoryConfiguration/masterDataSimple/DiluentsPage";
 import { EquipmentPage } from "../modules/laboratoryConfiguration/masterDataSimple/EquipmentPage";
@@ -48,34 +47,35 @@ export function AppRoutes() {
       </Route>
 
       <Route element={<AuthenticatedRoutes />}>
+        {/* Deliberately outside MainLayout: the report is a printable
+            controlled document, so it must render without the app's nav
+            chrome. Opened in a new tab from the Sample Summary dialog. */}
+        <Route path="/samples/:id/report" element={<SampleReportPage />} />
+        <Route path="/media/:id/report" element={<MediaReportPage />} />
+        <Route path="/cryovials/:id/report" element={<CryovialReportPage />} />
+
         <Route element={<MainLayout />}>
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
           <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/profile" element={<ProfilePage />} />
+          <Route path="/change-password" element={<ChangePasswordPage />} />
           <Route path="/reports" element={<ReportsPage />} />
 
-          <Route element={<AnalystRoutes />}>
-            <Route path="/receiving" element={<ReceiveSamplePage />} />
-            <Route path="/testing-workspace" element={<TestingWorkspacePage />} />
-            <Route path="/em-preparation" element={<EMPreparationPage />} />
-            <Route path="/aftercleaning-preparation" element={<AfterCleaningPreparationPage />} />
-            <Route path="/test-preparation" element={<TestPreparationPage />} />
-          </Route>
-
-          <Route element={<ReviewerRoutes />}>
-            <Route path="/review" element={<ReviewPage />} />
-          </Route>
+          {/* Available to every role - see menuConfig.ts */}
+          <Route path="/receiving" element={<ReceiveSamplePage />} />
+          <Route path="/testing-workspace" element={<TestingWorkspacePage />} />
+          <Route path="/laboratory-configuration/media" element={<MediaPage />} />
+          <Route path="/laboratory-configuration/media-evaluation" element={<MediaEvaluationPage />} />
+          <Route path="/laboratory-configuration/cryovials" element={<CryovialsPage />} />
 
           <Route element={<SectionHeadRoutes />}>
-            <Route path="/approval" element={<ApprovalPage />} />
             <Route path="/audit-search" element={<AuditSearchPage />} />
+            <Route path="/laboratory-configuration/test-master" element={<TestMasterPage />} />
+            <Route path="/laboratory-configuration/organisms" element={<OrganismsPage />} />
             <Route path="/laboratory-configuration/items" element={<ItemsPage />} />
             <Route path="/laboratory-configuration/specifications" element={<SpecificationsPage />} />
             <Route path="/laboratory-configuration/media-types" element={<MediaTypesPage />} />
-            <Route path="/laboratory-configuration/media" element={<MediaPage />} />
-            <Route path="/laboratory-configuration/gpt" element={<GptPage />} />
-            <Route path="/laboratory-configuration/reference-strains" element={<ReferenceStrainsPage />} />
-            <Route path="/laboratory-configuration/cryovials" element={<CryovialsPage />} />
+            <Route path="/laboratory-configuration/media-challenge-specs" element={<MediaChallengeSpecsPage />} />
             <Route path="/laboratory-configuration/water" element={<WaterConfigPage />} />
             <Route path="/laboratory-configuration/environmental-monitoring" element={<EMConfigPage />} />
             <Route path="/laboratory-configuration/after-cleaning" element={<AfterCleaningConfigPage />} />

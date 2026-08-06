@@ -7,8 +7,7 @@ using MicroLIMS.Shared.Responses;
 namespace MicroLIMS.API.Controllers;
 
 public record ReceiveAfterCleaningRequest(int MachineId, int CauseOfTestingId, string SampledBy, string ControlNumber);
-public record PrepareAfterCleaningRequest(int SampleId, List<AfterCleaningPreparationSelection> Selections);
-public record CompleteAfterCleaningRequest(int TestOrderId, int FinalCount);
+public record PrepareAfterCleaningRequest(int SampleId, List<int> MachinePartConfigurationIds);
 
 [ApiController]
 [Route("api/aftercleaning")]
@@ -29,25 +28,9 @@ public class AfterCleaningController : ControllerBase
         Ok(ApiResponse<object>.Ok(await _afterCleaningService.ReceiveAsync(new AfterCleaningReceiveRequest(
             request.MachineId, request.CauseOfTestingId, request.SampledBy, request.ControlNumber, CurrentUserId))));
 
+    // The checklist screen - selecting which machine parts are included
+    // in this batch generates the batch TestOrders + SampleLocations.
     [HttpPost("prepare")]
     public async Task<IActionResult> Prepare(PrepareAfterCleaningRequest request) =>
-        Ok(ApiResponse<object>.Ok(await _afterCleaningService.PrepareAsync(request.SampleId, request.Selections, CurrentUserId)));
-
-    [HttpPost("step1/start/{testOrderId}")]
-    public async Task<IActionResult> StartStep1(int testOrderId)
-    {
-        await _afterCleaningService.StartStep1Async(testOrderId, CurrentUserId);
-        return Ok(ApiResponse<object>.Ok(new { }));
-    }
-
-    [HttpPost("step2/start/{testOrderId}")]
-    public async Task<IActionResult> StartStep2(int testOrderId)
-    {
-        await _afterCleaningService.StartStep2Async(testOrderId, CurrentUserId);
-        return Ok(ApiResponse<object>.Ok(new { }));
-    }
-
-    [HttpPost("complete")]
-    public async Task<IActionResult> Complete(CompleteAfterCleaningRequest request) =>
-        Ok(ApiResponse<object>.Ok(await _afterCleaningService.CompleteAsync(request.TestOrderId, request.FinalCount, CurrentUserId)));
+        Ok(ApiResponse<object>.Ok(await _afterCleaningService.PrepareAsync(request.SampleId, request.MachinePartConfigurationIds, CurrentUserId)));
 }

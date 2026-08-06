@@ -29,7 +29,7 @@ public class AuthenticationController : ControllerBase
         var ip = HttpContext.Connection.RemoteIpAddress?.ToString();
         var outcome = await _authService.LoginAsync(request.Username, request.Password, ip);
         if (!outcome.Success) return Unauthorized(ApiResponse<object>.Fail(outcome.FailureReason ?? "Login failed."));
-        return Ok(ApiResponse<object>.Ok(new { token = outcome.Token, refreshToken = outcome.RefreshToken }));
+        return Ok(ApiResponse<object>.Ok(new { token = outcome.Token, refreshToken = outcome.RefreshToken, mustChangePassword = outcome.MustChangePassword }));
     }
 
     [HttpPost("refresh")]
@@ -47,15 +47,16 @@ public class AuthenticationController : ControllerBase
     {
         try
         {
-            var rawToken = await _authService.RequestPasswordResetAsync(request.Username);
-            // TODO: send `rawToken` via IEmailSender instead of returning it directly once email is wired up.
-            return Ok(ApiResponse<object>.Ok(new { message = "If that account exists, a reset link has been generated.", resetToken = rawToken }));
+            await _authService.RequestPasswordResetAsync(request.Username);
         }
         catch (InvalidOperationException)
         {
             // Don't leak whether the account exists.
-            return Ok(ApiResponse<object>.Ok(new { message = "If that account exists, a reset link has been generated." }));
         }
+
+        // Same generic message regardless of outcome - doesn't leak
+        // whether the account exists or whether it has an email on file.
+        return Ok(ApiResponse<object>.Ok(new { message = "If that account exists, a reset link has been generated." }));
     }
 
     [HttpPost("password-reset/confirm")]
@@ -81,10 +82,21 @@ public class AuthenticationController : ControllerBase
 
     [HttpGet("me")]
     [Authorize]
-    public IActionResult Me()
+    public async Task<IActionResult> Me()
     {
-        var username = User.Identity?.Name;
-        var role = User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value;
-        return Ok(ApiResponse<object>.Ok(new { username, role }));
+        var userId = int.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)!.Value);
+        var info = await _authService.GetCurrentUserAsync(userId);
+        if (info is null) return Unauthorized(ApiResponse<object>.Fail("User not found."));
+
+        return Ok(ApiResponse<object>.Ok(new
+        {
+            userId = info.UserId,
+            username = info.Username,
+            fullName = info.FullName,
+            role = info.Role,
+            lastLoginAt = info.LastLoginAt,
+            passwordChangedAt = info.PasswordChangedAt,
+            mustChangePassword = info.MustChangePassword
+        }));
     }
 }

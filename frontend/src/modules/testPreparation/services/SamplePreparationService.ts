@@ -3,7 +3,8 @@ import { apiClient } from "../../../services/apiClient";
 export const SamplePreparationService = {
   getNeedsPreparation: () => apiClient.get("/testorders").then((r) =>
     r.data.data.filter((s: any) =>
-      ["FinishedProduct", "RawMaterial", "PackagingMaterial", "Water"].includes(s.category))),
+      ["FinishedProduct", "RawMaterial", "PackagingMaterial", "Water"].includes(s.category) &&
+      s.preparationStatus === "NeedsPreparation")),
   prepare: (payload: {
     sampleId: number; amount: number; unit: string; technique: string;
     filtrationVolume?: number; washingVolume?: number; diluentTypeId: number; diluentMediaId?: number;

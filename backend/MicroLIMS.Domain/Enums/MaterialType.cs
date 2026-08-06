@@ -4,13 +4,13 @@ namespace MicroLIMS.Domain.Enums;
 // default Unit suggested on the Materials Stock form (see
 // MaterialService.DefaultUnitFor).
 //
-// LyophilizedMicroorganism is deliberately absent - reference strains
-// are tracked as their own ReferenceStrain entity (identity confirmation,
-// approval gate, DiscsRemaining), not as a generic Material row. See
-// Material.cs for why.
+// Lyophilized microorganism packs are received into Materials Stock
+// like any other material, and cryovial batches are prepared directly
+// from them - see CryovialService.PrepareCryovialsAsync.
 public enum MaterialType
 {
     DehydratedMedia,
+    LyophilizedMicroorganism,
     Supplement,
     AntibioticDisc,
     IdentificationKit,

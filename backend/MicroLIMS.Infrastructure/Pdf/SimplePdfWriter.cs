@@ -1,4 +1,3 @@
-using System.Globalization;
 using System.Text;
 
 namespace MicroLIMS.Infrastructure.Pdf;
@@ -11,41 +10,46 @@ namespace MicroLIMS.Infrastructure.Pdf;
 // isolated behind IPdfGenerator so that swap is a one-file change.
 public static class SimplePdfWriter
 {
+    private const int PageWidth = 612;   // Letter size in points
+    private const int PageHeight = 792;
+    private const int LeftMargin = 50;
+    private const int TopMargin = 740;
+    private const int BottomMargin = 40;
+    private const int LineHeight = 16;
+
+    // Paginates automatically instead of truncating - a report with more
+    // lines than fit on one page continues onto additional Page objects
+    // rather than silently dropping content.
     public static byte[] WriteTextDocument(string title, IEnumerable<string> lines)
     {
-        const int pageWidth = 612;   // Letter size in points
-        const int pageHeight = 792;
-        const int leftMargin = 50;
-        const int topMargin = 740;
-        const int lineHeight = 16;
+        var pageContents = BuildPageContentStreams(title, lines);
 
-        var content = new StringBuilder();
-        content.AppendLine("BT");
-        content.AppendLine("/F1 14 Tf");
-        content.AppendLine($"{leftMargin} {topMargin} Td");
-        content.AppendLine($"({Escape(title)}) Tj");
-        content.AppendLine("/F1 10 Tf");
+        // Object numbering: 1=Catalog, 2=Pages, 3=Font, then one Page +
+        // one Contents object per page, interleaved (4,5), (6,7), ...
+        var objects = new List<string>();
+        var pageObjectIds = new List<int>();
+        var contentBytesByObjectIndex = new Dictionary<int, byte[]>();
 
-        var y = topMargin - lineHeight * 2;
-        foreach (var line in lines)
+        var catalogIndex = objects.Count; objects.Add(""); // placeholder, filled after we know Pages id
+        var pagesIndex = objects.Count; objects.Add("");
+        var fontIndex = objects.Count; objects.Add("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>");
+
+        foreach (var content in pageContents)
         {
-            if (y < 40) break; // single-page writer - truncate gracefully rather than corrupt the PDF
-            content.AppendLine($"1 0 0 1 {leftMargin} {y} Tm");
-            content.AppendLine($"({Escape(line)}) Tj");
-            y -= lineHeight;
+            var pageIndex = objects.Count;
+            objects.Add(""); // filled below once we know the content object's id
+            var contentIndex = objects.Count;
+            objects.Add($"<< /Length {content.Length} >>");
+            contentBytesByObjectIndex[contentIndex] = content;
+
+            objects[pageIndex] =
+                $"<< /Type /Page /Parent {pagesIndex + 1} 0 R /MediaBox [0 0 {PageWidth} {PageHeight}] " +
+                $"/Resources << /Font << /F1 {fontIndex + 1} 0 R >> >> /Contents {contentIndex + 1} 0 R >>";
+            pageObjectIds.Add(pageIndex + 1);
         }
-        content.AppendLine("ET");
 
-        var contentBytes = Encoding.ASCII.GetBytes(content.ToString());
-
-        var objects = new List<string>
-        {
-            "<< /Type /Catalog /Pages 2 0 R >>",
-            "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
-            $"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 {pageWidth} {pageHeight}] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>",
-            "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
-            $"<< /Length {contentBytes.Length} >>"
-        };
+        objects[catalogIndex] = $"<< /Type /Catalog /Pages {pagesIndex + 1} 0 R >>";
+        objects[pagesIndex] = $"<< /Type /Pages /Kids [{string.Join(" ", pageObjectIds.Select(id => $"{id} 0 R"))}] /Count {pageObjectIds.Count} >>";
 
         using var ms = new MemoryStream();
         void Write(string s) => ms.Write(Encoding.ASCII.GetBytes(s));
@@ -57,7 +61,7 @@ public static class SimplePdfWriter
         {
             offsets.Add(ms.Position);
             Write($"{i + 1} 0 obj\n{objects[i]}\n");
-            if (i == 4) // the content stream object
+            if (contentBytesByObjectIndex.TryGetValue(i, out var contentBytes))
             {
                 Write("stream\n");
                 ms.Write(contentBytes);
@@ -72,9 +76,58 @@ public static class SimplePdfWriter
         for (int i = 1; i <= objects.Count; i++)
             Write($"{offsets[i]:D10} 00000 n \n");
 
-        Write($"trailer\n<< /Size {objects.Count + 1} /Root 1 0 R >>\nstartxref\n{xrefStart}\n%%EOF");
+        Write($"trailer\n<< /Size {objects.Count + 1} /Root {catalogIndex + 1} 0 R >>\nstartxref\n{xrefStart}\n%%EOF");
 
         return ms.ToArray();
+    }
+
+    private static List<byte[]> BuildPageContentStreams(string title, IEnumerable<string> lines)
+    {
+        var pages = new List<byte[]>();
+        var content = new StringBuilder();
+        var y = TopMargin;
+
+        void StartPage(bool withTitle)
+        {
+            content.Clear();
+            content.AppendLine("BT");
+            if (withTitle)
+            {
+                content.AppendLine("/F1 14 Tf");
+                content.AppendLine($"{LeftMargin} {TopMargin} Td");
+                content.AppendLine($"({Escape(title)}) Tj");
+                content.AppendLine("/F1 10 Tf");
+                y = TopMargin - LineHeight * 2;
+            }
+            else
+            {
+                content.AppendLine("/F1 10 Tf");
+                y = TopMargin;
+            }
+        }
+
+        void EndPage()
+        {
+            content.AppendLine("ET");
+            pages.Add(Encoding.ASCII.GetBytes(content.ToString()));
+        }
+
+        StartPage(withTitle: true);
+        foreach (var line in lines)
+        {
+            if (y < BottomMargin)
+            {
+                EndPage();
+                StartPage(withTitle: false);
+            }
+
+            content.AppendLine($"1 0 0 1 {LeftMargin} {y} Tm");
+            content.AppendLine($"({Escape(line)}) Tj");
+            y -= LineHeight;
+        }
+        EndPage();
+
+        return pages;
     }
 
     private static string Escape(string s) =>

@@ -13,7 +13,10 @@ export function ApprovalPage() {
     const flat = res.data.data.flatMap((s: any) =>
       s.assignedTests.map((t: { testOrderId: number; testCode: string; status: string }) => t)
     );
-    setRows(flat);
+    // Only Reviewed test orders are actually decidable - see
+    // ApprovalService.DecideAsync's gate. Everything else would just
+    // fail with "must be reviewed before a decision can be made."
+    setRows(flat.filter((t: { status: string }) => t.status === "Reviewed"));
   });
 
   useEffect(() => { load(); }, []);

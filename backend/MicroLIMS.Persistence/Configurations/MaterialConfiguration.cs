@@ -14,6 +14,7 @@ public class MaterialConfiguration : IEntityTypeConfiguration<Material>
         builder.Property(m => m.BatchNumber).HasMaxLength(100);
         builder.Property(m => m.Code).HasMaxLength(50);
         builder.Property(m => m.Location).HasMaxLength(150);
+        builder.Property(m => m.AtccNumber).HasMaxLength(50);
         builder.Property(m => m.QuantityReceived).HasColumnType("decimal(18,3)");
         builder.Property(m => m.QuantityRemaining).HasColumnType("decimal(18,3)");
         builder.Property(m => m.MinimumStockLevel).HasColumnType("decimal(18,3)");
@@ -22,6 +23,7 @@ public class MaterialConfiguration : IEntityTypeConfiguration<Material>
         // received again under a new batch/lot, exactly like the source list.
         builder.HasIndex(m => m.Code);
         builder.HasIndex(m => m.MaterialType);
+        builder.HasOne(m => m.Organism).WithMany().HasForeignKey(m => m.OrganismId).OnDelete(DeleteBehavior.Restrict);
 
         builder.Ignore(m => m.Status);
         builder.Ignore(m => m.IsUsable);

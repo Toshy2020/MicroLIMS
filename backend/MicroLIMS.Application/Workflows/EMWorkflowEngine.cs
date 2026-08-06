@@ -6,7 +6,6 @@ using MicroLIMS.Persistence.DbContext;
 namespace MicroLIMS.Application.Workflows;
 
 public record EMReceiveRequest(int DepartmentId, int CauseOfTestingId, string SampledBy, string ControlNumber, int ReceivedByUserId);
-public record EMPreparationSelection(int RoomId, List<string> TestTypes); // "PassiveAirSample" / "SurfaceAirSample"
 
 public interface IEMWorkflowEngine : IStatefulWorkflowEngine
 {
@@ -14,16 +13,11 @@ public interface IEMWorkflowEngine : IStatefulWorkflowEngine
     // preparation" shell with no TestOrders yet.
     Task<Sample> ReceiveAsync(EMReceiveRequest request);
 
-    // The checkbox screen: selecting (Room x TestType) pairs is what
-    // actually generates the TestOrders, one per checked combination.
-    Task<Sample> PrepareAsync(int sampleId, List<EMPreparationSelection> selections, int userId);
-
-    // Single-stage-looking API, but internally Step 1 and Step 2 are
-    // just two sequential incubation time windows - only ONE final
-    // colony count is entered, after both windows have elapsed.
-    Task StartStep1Async(int testOrderId, int userId);
-    Task StartStep2Async(int testOrderId, int userId);
-    Task<RoomMonitoring> CompleteAsync(int testOrderId, int finalCount, int userId, int actionLimit);
+    // The checklist screen: selecting which rooms are included in this
+    // monitoring session is what generates the TestOrders (one per
+    // distinct TestCode across the selected rooms' configurations) and
+    // the SampleLocation rows (one per selected RoomTestConfiguration).
+    Task<Sample> PrepareAsync(int sampleId, List<int> roomTestConfigurationIds, int userId);
 }
 
 public class EMWorkflowEngine : IEMWorkflowEngine
@@ -60,93 +54,59 @@ public class EMWorkflowEngine : IEMWorkflowEngine
         return sample;
     }
 
-    public async Task<Sample> PrepareAsync(int sampleId, List<EMPreparationSelection> selections, int userId)
+    public async Task<Sample> PrepareAsync(int sampleId, List<int> roomTestConfigurationIds, int userId)
     {
-        var sample = await _db.Samples.Include(s => s.TestOrders).FirstOrDefaultAsync(s => s.Id == sampleId)
+        var sample = await _db.Samples.Include(s => s.TestOrders).Include(s => s.Locations).FirstOrDefaultAsync(s => s.Id == sampleId)
             ?? throw new InvalidOperationException($"Sample {sampleId} not found.");
 
         if (sample.PreparationStatus != SamplePreparationStatus.NeedsPreparation)
             throw new InvalidOperationException("This sample has already been prepared.");
 
-        if (selections.Count == 0 || selections.All(s => s.TestTypes.Count == 0))
-            throw new InvalidOperationException("At least one Room/test-type combination must be selected.");
+        if (roomTestConfigurationIds.Count == 0)
+            throw new InvalidOperationException("At least one room must be selected.");
 
-        foreach (var selection in selections)
+        var configs = await _db.RoomTestConfigurations
+            .Include(c => c.Room)
+            .Where(c => roomTestConfigurationIds.Contains(c.Id))
+            .ToListAsync();
+
+        var missing = roomTestConfigurationIds.Except(configs.Select(c => c.Id)).ToList();
+        if (missing.Count > 0)
+            throw new InvalidOperationException($"Room test configuration(s) not found: {string.Join(", ", missing)}.");
+
+        var wrongDepartment = configs.Where(c => c.Room?.DepartmentId != sample.DepartmentId).ToList();
+        if (wrongDepartment.Count > 0)
+            throw new InvalidOperationException(
+                $"Room(s) {string.Join(", ", wrongDepartment.Select(c => c.Room?.Name))} do not belong to this sample's department.");
+
+        // One TestOrder per distinct TestCode across every selected room -
+        // the whole batch shares a single incubation setup per test type.
+        var testOrdersByCode = new Dictionary<string, TestOrder>();
+        foreach (var config in configs)
         {
-            var configs = await _db.RoomTestConfigurations
-                .Where(c => c.RoomId == selection.RoomId && selection.TestTypes.Contains(c.TestType))
-                .ToListAsync();
-
-            foreach (var config in configs)
+            if (!testOrdersByCode.TryGetValue(config.TestCode, out var order))
             {
-                sample.TestOrders.Add(new TestOrder
+                order = new TestOrder
                 {
                     TestCode = config.TestCode,
                     Status = ApprovalStatus.Pending,
                     CurrentStep = WorkflowStep.Waiting
-                });
+                };
+                sample.TestOrders.Add(order);
+                testOrdersByCode[config.TestCode] = order;
             }
+
+            sample.Locations.Add(new SampleLocation
+            {
+                TestOrder = order,
+                LocationType = LocationType.Room,
+                RoomTestConfigurationId = config.Id
+            });
         }
 
         sample.PreparationStatus = SamplePreparationStatus.Ready;
         await _db.SaveChangesAsync();
         return sample;
-    }
-
-    public async Task StartStep1Async(int testOrderId, int userId)
-    {
-        var order = await WorkflowStateMachine.LoadOrThrowAsync(_db, testOrderId);
-        if (order.CurrentStep != WorkflowStep.Waiting)
-            throw new InvalidOperationException("Step 1 can only start from the Waiting state.");
-
-        order.Incubations.Add(new Incubation { StepNumber = 1, StepName = "Step 1 window", StartedAt = DateTime.UtcNow });
-        await WorkflowStateMachine.TransitionAsync(_db, order, WorkflowStep.Incubating, userId, "Started Step 1 incubation window");
-    }
-
-    // Step 1 and Step 2 are sequential incubation TIME WINDOWS, not two
-    // separate counts - starting Step 2 just closes the Step 1 window
-    // and opens the Step 2 window. No count is entered until CompleteAsync.
-    public async Task StartStep2Async(int testOrderId, int userId)
-    {
-        var order = await WorkflowStateMachine.LoadOrThrowAsync(_db, testOrderId);
-        var step1 = order.Incubations.Where(i => i.StepNumber == 1).OrderByDescending(i => i.StartedAt).FirstOrDefault()
-            ?? throw new InvalidOperationException("Step 1 was never started.");
-
-        if (step1.CompletedAt is null)
-            step1.CompletedAt = DateTime.UtcNow;
-
-        order.Incubations.Add(new Incubation { StepNumber = 2, StepName = "Step 2 window", StartedAt = DateTime.UtcNow });
-        await _db.SaveChangesAsync();
-    }
-
-    public async Task<RoomMonitoring> CompleteAsync(int testOrderId, int finalCount, int userId, int actionLimit)
-    {
-        var order = await WorkflowStateMachine.LoadOrThrowAsync(_db, testOrderId);
-        var step2 = order.Incubations.Where(i => i.StepNumber == 2).OrderByDescending(i => i.StartedAt).FirstOrDefault()
-            ?? throw new InvalidOperationException("Step 2 window was never started.");
-
-        if (step2.CompletedAt is not null)
-            throw new InvalidOperationException("This test order has already been completed - workflow order violation.");
-
-        step2.CompletedAt = DateTime.UtcNow;
-        step2.Outcome = finalCount.ToString();
-
-        var isOutOfTrend = finalCount > actionLimit;
-
-        var monitoring = new RoomMonitoring
-        {
-            TestOrderId = testOrderId,
-            Step1Count = 0, // Step 1/2 are time windows only - no intermediate count is recorded
-            Step2Count = finalCount,
-            IsOutOfTrend = isOutOfTrend,
-            SampledAt = DateTime.UtcNow
-        };
-        _db.RoomMonitorings.Add(monitoring);
-
-        await WorkflowStateMachine.TransitionAsync(_db, order, WorkflowStep.Ready, userId,
-            isOutOfTrend ? $"Final count {finalCount} - OUT OF TREND" : $"Final count {finalCount} - within trend");
-
-        return monitoring;
     }
 
     public async Task<WorkflowStep> AdvanceAsync(int testOrderId, int performedByUserId, string? note = null)
@@ -169,7 +129,7 @@ public class EMWorkflowEngine : IEMWorkflowEngine
         var order = await WorkflowStateMachine.LoadOrThrowAsync(_db, testOrderId);
         var errors = new List<string>();
         if (order.CurrentStep is WorkflowStep.Waiting or WorkflowStep.Running or WorkflowStep.Incubating)
-            errors.Add("Both incubation windows must complete and a final count be entered before this test order can proceed.");
+            errors.Add("Batch results must be entered for every location before this test order can proceed.");
         return errors;
     }
 

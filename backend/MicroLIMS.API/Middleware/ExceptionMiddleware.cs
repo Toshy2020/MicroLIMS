@@ -9,6 +9,16 @@ namespace MicroLIMS.API.Middleware;
 // consistent ApiResponse envelope instead of leaking stack traces.
 public class ExceptionMiddleware
 {
+    // Matches the camelCase policy AddJsonOptions applies to normal
+    // controller responses - this middleware serializes manually
+    // (bypassing MVC's formatter), so without this every error payload
+    // came back PascalCase ("Message") while success payloads are
+    // camelCase ("data"), breaking every frontend `err.response.data.message` read.
+    private static readonly JsonSerializerOptions SerializerOptions = new()
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+    };
+
     private readonly RequestDelegate _next;
     private readonly ILogger<ExceptionMiddleware> _logger;
 
@@ -31,7 +41,7 @@ public class ExceptionMiddleware
         }
         catch (InvalidOperationException ex)
         {
-            // The services (ReferenceStrainService, MediaPreparationService,
+            // The services (CryovialService, MediaPreparationService,
             // MaterialService's stock guards, etc.) throw this for business
             // rule violations - "not found", "insufficient stock", "expired",
             // "must be approved first". These messages are meant to reach
@@ -50,6 +60,6 @@ public class ExceptionMiddleware
     private static Task WriteResponse(HttpContext context, object payload)
     {
         context.Response.ContentType = "application/json";
-        return context.Response.WriteAsync(JsonSerializer.Serialize(payload));
+        return context.Response.WriteAsync(JsonSerializer.Serialize(payload, SerializerOptions));
     }
 }

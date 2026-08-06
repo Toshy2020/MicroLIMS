@@ -34,7 +34,7 @@ public class ReferenceNumberGenerator
         var yy = now.ToString("yy");
         var prefix = $"{code}{mm}{yy}";
 
-        var monthStart = new DateTime(now.Year, now.Month, 1);
+        var monthStart = new DateTime(now.Year, now.Month, 1, 0, 0, 0, DateTimeKind.Utc);
         var monthEnd = monthStart.AddMonths(1);
 
         var countThisMonth = await _db.Samples.CountAsync(s =>

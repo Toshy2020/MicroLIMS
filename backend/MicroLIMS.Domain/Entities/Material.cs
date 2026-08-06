@@ -3,21 +3,17 @@ using MicroLIMS.Domain.Enums;
 namespace MicroLIMS.Domain.Entities;
 
 // Materials Stock register under Inventory - one row per received batch/lot
-// of a lab material (dehydrated media, discs, kits, reagents, chemicals,
-// indicators, reference buffers, disposable tools). Mirrors the existing
-// paper/Excel "List of materials in Microbiology Lab".
-//
-// Reference strains are intentionally NOT a MaterialType here (design
-// fork resolved as Option B - separate tables, unified only in the
-// Inventory UI): ReferenceStrain keeps its own QC lifecycle (identity
-// confirmation, approval gate, passage history) and its own
-// DiscsRemaining consumption field. See ReferenceStrain.cs.
+// of a lab material (dehydrated media, lyophilized microorganisms, discs,
+// kits, reagents, chemicals, indicators, reference buffers, disposable
+// tools). Mirrors the existing paper/Excel "List of materials in
+// Microbiology Lab".
 //
 // QuantityReceived is set once at receiving and never changes -
 // QuantityRemaining is the live, decrementable balance. Consumption
 // happens through MaterialService.ConsumeAsync (called from
-// MediaPreparationService.PrepareAsync for DehydratedMedia), never by
-// editing QuantityRemaining directly from the list screen.
+// MediaPreparationService.PrepareAsync for DehydratedMedia and
+// CryovialService.PrepareCryovialsAsync for LyophilizedMicroorganism),
+// never by editing QuantityRemaining directly from the list screen.
 //
 // Every insert/update is captured automatically by
 // MicroLimsDbContext.SaveChanges into AuditLog (Frozen Principle #5).
@@ -39,6 +35,15 @@ public class Material
     public DateTime? ExpiryDate { get; set; } // nullable - a few rows in the source list have no expiry (e.g. NaCl)
     public string? Code { get; set; }
     public string Location { get; set; } = string.Empty;
+
+    // Only meaningful for LyophilizedMicroorganism rows. AtccNumber is
+    // kept as a transitional snapshot (pre-Organism-master data) - the
+    // canonical source going forward is OrganismId; CryovialService
+    // requires OrganismId to be set before it will prepare cryovials from
+    // a material.
+    public string? AtccNumber { get; set; }
+    public int? OrganismId { get; set; }
+    public Organism? Organism { get; set; }
 
     public decimal QuantityReceived { get; set; }
     public decimal QuantityRemaining { get; set; }

@@ -7,6 +7,6 @@ export const EMPreparationService = {
     apiClient.get("/masterdata/rooms").then((r) => r.data.data.filter((room: any) => room.departmentId === departmentId)),
   getRoomTestConfigurations: (roomId: number) =>
     apiClient.get(`/masterdata/room-test-configurations?roomId=${roomId}`).then((r) => r.data.data),
-  prepare: (sampleId: number, selections: { roomId: number; testTypes: string[] }[]) =>
-    apiClient.post("/em/prepare", { sampleId, selections }).then((r) => r.data.data)
+  prepare: (sampleId: number, roomTestConfigurationIds: number[]) =>
+    apiClient.post("/em/prepare", { sampleId, roomTestConfigurationIds }).then((r) => r.data.data)
 };

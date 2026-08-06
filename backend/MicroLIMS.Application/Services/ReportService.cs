@@ -38,7 +38,7 @@ public class ReportService : IReportService
             $"Status: {sample.Status}",
             ""
         };
-        AppendTestLines(sample, lines);
+        await AppendTestLinesAsync(sample, lines);
 
         await SaveSnapshotAsync(sample.Category, sample.Id, SnapshotPayload(sample));
         return await _pdfGenerator.GenerateFromLinesAsync($"Product Report - {sample.ReferenceNumber}", lines);
@@ -97,7 +97,7 @@ public class ReportService : IReportService
             $"Cause: {sample.CauseOfTesting?.Name}   Received: {sample.ReceivedAt:dd-MMM-yyyy HH:mm}",
             ""
         };
-        AppendTestLines(sample, lines);
+        await AppendTestLinesAsync(sample, lines);
 
         await SaveSnapshotAsync(SampleCategory.AfterCleaning, sample.Id, SnapshotPayload(sample));
         return await _pdfGenerator.GenerateFromLinesAsync($"After Cleaning Report - {sample.ReferenceNumber}", lines);
@@ -114,12 +114,27 @@ public class ReportService : IReportService
             .FirstOrDefaultAsync(s => s.Id == sampleId)
             ?? throw new InvalidOperationException($"Sample {sampleId} not found.");
 
-    private static void AppendTestLines(Sample sample, List<string> lines)
+    // Per 11.50(b): a signed record must display the printed name,
+    // date/time, and meaning of each signature - so every TestOrder line
+    // on a Product/After Cleaning report is followed by its full
+    // signature trail (Review, Approve/Reject/etc.), not just the result.
+    private async Task AppendTestLinesAsync(Sample sample, List<string> lines)
     {
         foreach (var order in sample.TestOrders)
         {
             var latest = order.Results.OrderByDescending(r => r.EnteredAt).FirstOrDefault();
             lines.Add($"{order.TestCode}: {order.Status} - Result: {latest?.InterpretedValue ?? latest?.RawValue ?? "(pending)"}");
+
+            var signatures = await _db.ElectronicSignatures
+                .Where(s => s.EntityType == "TestOrder" && s.EntityId == order.Id)
+                .OrderBy(s => s.SignedAt)
+                .ToListAsync();
+
+            foreach (var sig in signatures)
+            {
+                var commentSuffix = string.IsNullOrWhiteSpace(sig.Comment) ? "" : $" - \"{sig.Comment}\"";
+                lines.Add($"    Signed: {sig.UserFullNameSnapshot} ({sig.RoleSnapshot}) - {sig.MeaningOfSignature} - {sig.SignedAt:dd-MMM-yyyy HH:mm}{commentSuffix}");
+            }
         }
     }
 

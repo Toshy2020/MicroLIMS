@@ -8,27 +8,26 @@ import { StatusBadge } from "../../../components/StatusBadge";
 import { PrintButton } from "../../../components/PrintButton";
 import { PrintableTable } from "../../../components/PrintableTable";
 import { AuditHistoryDialog } from "../../../components/AuditHistoryDialog";
+import { OrganismPicker } from "../../../components/OrganismPicker";
 import { formatLabDate } from "../../../utils/formatDate";
 import { useAuth } from "../../../contexts/AuthContext";
 import { MaterialService } from "./services/MaterialService";
 
 const MATERIAL_TYPES = [
-  "DehydratedMedia", "Supplement", "AntibioticDisc", "IdentificationKit",
+  "DehydratedMedia", "LyophilizedMicroorganism", "Supplement", "AntibioticDisc", "IdentificationKit",
   "IdentificationReagent", "Chemical", "Indicator", "ReferenceBuffer", "DisposableTool", "Other"
 ];
 const UNITS = ["Gram", "Kilogram", "Milliliter", "Liter", "Disc", "Vial", "Kit", "Piece", "Bottle", "Pack"];
 
 // Materials Stock register under Inventory - mirrors the paper/Excel
-// "List of materials in Microbiology Lab". Reference strains are shown
-// separately (see ApprovedCryovialListPage / the Reference Strains
-// module) - they carry their own QC lifecycle and their own
-// DiscsRemaining, not a Material row (design fork resolved as Option B:
-// separate tables, unified only at the Inventory nav level).
+// "List of materials in Microbiology Lab". Cryovial batches (see the
+// Cryovials module) are prepared directly from LyophilizedMicroorganism
+// rows here, same as Media Preparation consumes DehydratedMedia rows.
 //
 // QuantityReceived is fixed at receiving; QuantityRemaining is the live
-// balance that MediaPreparationService.PrepareAsync decrements whenever
-// a dehydrated media lot is prepared from a row here - it is never
-// edited directly from this screen.
+// balance that MediaPreparationService.PrepareAsync / CryovialService.
+// PrepareCryovialsAsync decrement whenever a lot is prepared from a row
+// here - it is never edited directly from this screen.
 export function MaterialsPage() {
   const { role } = useAuth();
   const canSeeHistory = role === "SectionHead" || role === "SystemAdministrator";
@@ -57,7 +56,7 @@ export function MaterialsPage() {
       materialType: row.materialType, materialName: row.materialName, manufacturerName: row.manufacturerName,
       batchNumber: row.batchNumber, receivingDate: row.receivingDate?.slice(0, 10), expiryDate: row.expiryDate?.slice(0, 10) ?? "",
       code: row.code ?? "", location: row.location, quantityReceived: row.quantityReceived, unit: row.unit,
-      minimumStockLevel: row.minimumStockLevel ?? ""
+      minimumStockLevel: row.minimumStockLevel ?? "", atccNumber: row.atccNumber ?? "", organismId: row.organismId ?? null
     });
   };
 
@@ -73,7 +72,9 @@ export function MaterialsPage() {
       materialType: form.materialType, materialName: form.materialName, manufacturerName: form.manufacturerName ?? "",
       batchNumber: form.batchNumber, receivingDate: form.receivingDate, expiryDate: form.expiryDate || null,
       code: form.code || null, location: form.location, quantityReceived: Number(form.quantityReceived),
-      unit: form.unit, minimumStockLevel: form.minimumStockLevel === "" ? null : Number(form.minimumStockLevel)
+      unit: form.unit, minimumStockLevel: form.minimumStockLevel === "" ? null : Number(form.minimumStockLevel),
+      atccNumber: form.materialType === "LyophilizedMicroorganism" ? (form.atccNumber || null) : null,
+      organismId: form.materialType === "LyophilizedMicroorganism" ? (form.organismId || null) : null
     };
     try {
       if (editingId) {
@@ -109,6 +110,12 @@ export function MaterialsPage() {
             <TextField size="small" type="date" label="Expiry Date" InputLabelProps={{ shrink: true }} value={form.expiryDate ?? ""} onChange={(e) => setForm({ ...form, expiryDate: e.target.value })} />
             <TextField size="small" label="Code" value={form.code ?? ""} onChange={(e) => setForm({ ...form, code: e.target.value })} />
             <TextField size="small" label="Location" value={form.location ?? ""} onChange={(e) => setForm({ ...form, location: e.target.value })} />
+            {form.materialType === "LyophilizedMicroorganism" && (
+              <>
+                <OrganismPicker value={form.organismId ?? null} onChange={(id) => setForm({ ...form, organismId: id })} />
+                <TextField size="small" label="ATCC No." value={form.atccNumber ?? ""} onChange={(e) => setForm({ ...form, atccNumber: e.target.value })} />
+              </>
+            )}
             <TextField size="small" type="number" label={editingId ? "Quantity Received" : "Quantity Received"} value={form.quantityReceived ?? ""} onChange={(e) => setForm({ ...form, quantityReceived: e.target.value })} />
             <Select size="small" value={form.unit ?? "Gram"} onChange={(e) => setForm({ ...form, unit: e.target.value })}>
               {UNITS.map((u) => <MenuItem key={u} value={u}>{u}</MenuItem>)}
@@ -136,7 +143,7 @@ export function MaterialsPage() {
             <TableHead>
               <TableRow>
                 <TableCell>Type</TableCell><TableCell>Name</TableCell><TableCell>Manufacturer</TableCell><TableCell>Batch/Lot</TableCell>
-                <TableCell>Received</TableCell><TableCell>Expiry</TableCell><TableCell>Code</TableCell><TableCell>Location</TableCell>
+                <TableCell>Received</TableCell><TableCell>Expiry</TableCell><TableCell>Code</TableCell><TableCell>Organism</TableCell><TableCell>ATCC</TableCell><TableCell>Location</TableCell>
                 <TableCell>Qty Received</TableCell><TableCell>Qty Remaining</TableCell><TableCell>Status</TableCell><TableCell></TableCell>
               </TableRow>
             </TableHead>
@@ -146,7 +153,7 @@ export function MaterialsPage() {
                   <TableCell>{m.materialType}</TableCell><TableCell>{m.materialName}</TableCell><TableCell>{m.manufacturerName}</TableCell>
                   <TableCell>{m.batchNumber}</TableCell><TableCell>{formatLabDate(m.receivingDate)}</TableCell>
                   <TableCell>{m.expiryDate ? formatLabDate(m.expiryDate) : "—"}</TableCell>
-                  <TableCell>{m.code ?? "—"}</TableCell><TableCell>{m.location}</TableCell>
+                  <TableCell>{m.code ?? "—"}</TableCell><TableCell>{m.organism?.scientificName ?? "—"}</TableCell><TableCell>{m.atccNumber ?? "—"}</TableCell><TableCell>{m.location}</TableCell>
                   <TableCell>{m.quantityReceived} {m.unit}</TableCell>
                   <TableCell>{m.quantityRemaining} {m.unit}</TableCell>
                   <TableCell><StatusBadge status={m.status} /></TableCell>

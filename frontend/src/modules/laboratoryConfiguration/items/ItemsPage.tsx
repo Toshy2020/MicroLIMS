@@ -1,10 +1,10 @@
-import { useState } from "react";
-import { Box, Paper, TextField, Select, MenuItem, Button, Stack, Typography, Alert, IconButton } from "@mui/material";
-import CloseIcon from "@mui/icons-material/Close";
+import { useEffect, useState } from "react";
+import { Box, Paper, TextField, Select, MenuItem, Button, Stack, Typography, Alert } from "@mui/material";
 import { PageHeader } from "../../../components/PageHeader";
 import { SectionTitle } from "../../../components/SectionTitle";
+import { TestCodePickerMulti } from "../../../components/TestCodePickerMulti";
 import { ItemTable } from "./ItemTable";
-import { ItemService } from "./services/ItemService";
+import { ItemService, Item } from "./services/ItemService";
 
 const CATEGORIES = [
   { value: "FinishedProduct", label: "Product" },
@@ -21,32 +21,80 @@ const CATEGORIES = [
 // setup (Specifications, Sampling Points, Rooms, Machine Parts) lives in
 // its own page under Laboratory Configuration.
 export function ItemsPage() {
+  const [items, setItems] = useState<Item[]>([]);
   const [name, setName] = useState("");
   const [code, setCode] = useState("");
   const [sopNumber, setSopNumber] = useState("");
   const [category, setCategory] = useState("FinishedProduct");
-  const [testCodes, setTestCodes] = useState<string[]>([""]);
+  const [testCodes, setTestCodes] = useState<string[]>([]);
+  const [editingId, setEditingId] = useState<number | null>(null);
   const [message, setMessage] = useState<{ text: string; ok: boolean } | null>(null);
-  const [refreshKey, setRefreshKey] = useState(0);
 
-  const updateTestCode = (i: number, value: string) => setTestCodes((t) => t.map((v, idx) => (idx === i ? value : v)));
-  const addTestCode = () => setTestCodes((t) => [...t, ""]);
-  const removeTestCode = (i: number) => setTestCodes((t) => (t.length > 1 ? t.filter((_, idx) => idx !== i) : t));
+  const load = () => { ItemService.getAll().then(setItems); };
+  useEffect(() => { load(); }, []);
 
-  const createItem = async () => {
+  const startEdit = (item: Item) => {
+    setEditingId(item.id);
+    setName(item.name);
+    setCode(item.code);
+    setSopNumber(item.sopNumber);
+    setCategory(item.category);
+    setTestCodes(item.assignedTests.map((t) => t.testCode));
     setMessage(null);
-    const codes = testCodes.filter(Boolean);
-    if (!name || !code || codes.length === 0) {
+  };
+
+  const cancelEdit = () => {
+    setEditingId(null);
+    setName(""); setCode(""); setSopNumber(""); setCategory("FinishedProduct"); setTestCodes([]);
+  };
+
+  const save = async () => {
+    setMessage(null);
+    if (!name || !code || testCodes.length === 0) {
       setMessage({ text: "Name, Code, and at least one assigned test are required.", ok: false });
       return;
     }
+    const payload = { name, code, category, sopNumber, assignedTests: testCodes.map((tc) => ({ testCode: tc, displayName: tc })) };
     try {
-      await ItemService.create({ name, code, category, sopNumber, assignedTests: codes.map((tc) => ({ testCode: tc, displayName: tc })) });
-      setMessage({ text: `Item "${name}" created.`, ok: true });
-      setName(""); setCode(""); setSopNumber(""); setTestCodes([""]);
-      setRefreshKey((k) => k + 1);
+      if (editingId) {
+        await ItemService.update(editingId, payload);
+        setMessage({ text: `Item "${name}" updated.`, ok: true });
+      } else {
+        await ItemService.create(payload);
+        setMessage({ text: `Item "${name}" created.`, ok: true });
+      }
+      cancelEdit();
+      load();
     } catch (e: any) {
-      setMessage({ text: e?.response?.data?.message ?? "Could not create item.", ok: false });
+      setMessage({ text: e?.response?.data?.message ?? `Could not ${editingId ? "update" : "create"} item.`, ok: false });
+    }
+  };
+
+  const remove = async (item: Item) => {
+    setMessage(null);
+    try {
+      await ItemService.remove(item.id);
+      setMessage({ text: `Item "${item.name}" deleted.`, ok: true });
+      if (editingId === item.id) cancelEdit();
+      load();
+    } catch (e: any) {
+      setMessage({ text: e?.response?.data?.message ?? "Could not delete item.", ok: false });
+    }
+  };
+
+  const toggleFreeze = async (item: Item) => {
+    setMessage(null);
+    try {
+      if (item.isActive) {
+        await ItemService.freeze(item.id);
+        setMessage({ text: `Item "${item.name}" frozen.`, ok: true });
+      } else {
+        await ItemService.unfreeze(item.id);
+        setMessage({ text: `Item "${item.name}" unfrozen.`, ok: true });
+      }
+      load();
+    } catch (e: any) {
+      setMessage({ text: e?.response?.data?.message ?? "Could not update item status.", ok: false });
     }
   };
 
@@ -55,7 +103,7 @@ export function ItemsPage() {
       <PageHeader title="Items" subtitle="Configure which tests are auto-assigned when a sample is received." />
       {message && <Alert severity={message.ok ? "success" : "error"} sx={{ mb: 2 }}>{message.text}</Alert>}
 
-      <SectionTitle>New Item</SectionTitle>
+      <SectionTitle>{editingId ? "Edit Item" : "New Item"}</SectionTitle>
       <Paper sx={{ p: 2.5, mb: 3 }}>
         <Stack spacing={2}>
           <Stack direction="row" spacing={2} flexWrap="wrap">
@@ -69,23 +117,18 @@ export function ItemsPage() {
 
           <Box>
             <Typography variant="body2" sx={{ mb: 1 }}>Assigned Tests (auto-created on sample receipt)</Typography>
-            <Stack spacing={1}>
-              {testCodes.map((tc, i) => (
-                <Stack direction="row" spacing={1} key={i} alignItems="center">
-                  <TextField size="small" placeholder="e.g. TAMC, TYMC, PATHOGEN_ECOLI" value={tc} onChange={(e) => updateTestCode(i, e.target.value)} sx={{ minWidth: 260 }} />
-                  <IconButton size="small" onClick={() => removeTestCode(i)}><CloseIcon fontSize="small" /></IconButton>
-                </Stack>
-              ))}
-            </Stack>
-            <Button size="small" onClick={addTestCode} sx={{ mt: 1 }}>+ Add Test</Button>
+            <TestCodePickerMulti value={testCodes} onChange={setTestCodes} label="Assigned Tests" sx={{ minWidth: 320 }} />
           </Box>
 
-          <Box><Button variant="contained" onClick={createItem}>Save Item</Button></Box>
+          <Box sx={{ display: "flex", justifyContent: "flex-end", gap: 1 }}>
+            {editingId && <Button onClick={cancelEdit}>Cancel</Button>}
+            <Button variant="contained" onClick={save}>{editingId ? "Save Changes" : "Save Item"}</Button>
+          </Box>
         </Stack>
       </Paper>
 
       <SectionTitle>Configured Items</SectionTitle>
-      <ItemTable key={refreshKey} />
+      <ItemTable items={items} onEdit={startEdit} onDelete={remove} onToggleFreeze={toggleFreeze} />
     </>
   );
 }

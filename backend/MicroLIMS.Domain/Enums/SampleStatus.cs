@@ -5,6 +5,7 @@ public enum SampleStatus
     Received,
     InTesting,
     UnderReview,
+    UnderApproval,
     Approved,
     Rejected,
     RetestRequested

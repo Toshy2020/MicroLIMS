@@ -12,11 +12,9 @@ export interface MenuItem {
 const dashboardItem: MenuItem = { label: "Dashboard", path: "/dashboard" };
 const receivingItem: MenuItem = { label: "Sample Receiving", path: "/receiving" };
 const testingWorkspaceItem: MenuItem = { label: "Testing Workspace", path: "/testing-workspace" };
-const emPrepItem: MenuItem = { label: "EM Preparation", path: "/em-preparation" };
-const acPrepItem: MenuItem = { label: "After Cleaning Prep", path: "/aftercleaning-preparation" };
-const testPrepItem: MenuItem = { label: "Test Preparation", path: "/test-preparation" };
-const reviewItem: MenuItem = { label: "Review", path: "/review" };
-const approvalItem: MenuItem = { label: "Approval", path: "/approval" };
+const mediaPreparationItem: MenuItem = { label: "Media Preparation", path: "/laboratory-configuration/media" };
+const mediaEvaluationItem: MenuItem = { label: "Media Evaluation", path: "/laboratory-configuration/media-evaluation" };
+const cryovialsItem: MenuItem = { label: "Cryovials", path: "/laboratory-configuration/cryovials" };
 const reportsItem: MenuItem = { label: "Reports", path: "/reports" };
 const auditSearchItem: MenuItem = { label: "Audit Search", path: "/audit-search" };
 
@@ -30,17 +28,20 @@ const inventoryItem: MenuItem = {
   ]
 };
 
-// One collapsible menu instead of many separate top-level items.
+// One collapsible menu instead of many separate top-level items. Only
+// the admin/master-data pages live here - Media Preparation, Media
+// Evaluation, and Cryovials are day-to-day workflow pages like Sample
+// Receiving/Testing Workspace, so they're standalone items available to
+// every role instead of nested under this Section-Head-only menu.
 const laboratoryConfigurationItem: MenuItem = {
   label: "Laboratory Configuration",
   children: [
+    { label: "Test Master", path: "/laboratory-configuration/test-master" },
+    { label: "Organisms", path: "/laboratory-configuration/organisms" },
     { label: "Items", path: "/laboratory-configuration/items" },
     { label: "Specifications", path: "/laboratory-configuration/specifications" },
     { label: "Media Types", path: "/laboratory-configuration/media-types" },
-    { label: "Media Preparation", path: "/laboratory-configuration/media" },
-    { label: "GPT", path: "/laboratory-configuration/gpt" },
-    { label: "Reference Strains", path: "/laboratory-configuration/reference-strains" },
-    { label: "Cryovials", path: "/laboratory-configuration/cryovials" },
+    { label: "Media Challenge Specs", path: "/laboratory-configuration/media-challenge-specs" },
     { label: "Water", path: "/laboratory-configuration/water" },
     { label: "Environmental Monitoring", path: "/laboratory-configuration/environmental-monitoring" },
     { label: "After Cleaning", path: "/laboratory-configuration/after-cleaning" },
@@ -53,16 +54,23 @@ const laboratoryConfigurationItem: MenuItem = {
 const usersItem: MenuItem = { label: "Users", path: "/users" };
 const rolesItem: MenuItem = { label: "Roles", path: "/roles" };
 
+// Sample Receiving, Testing Workspace, Media Preparation, Media
+// Evaluation, and Cryovials are shop-floor workflow pages available to
+// every role, regardless of what else that role can reach.
+const sharedWorkflowItems: MenuItem[] = [receivingItem, testingWorkspaceItem, mediaPreparationItem, mediaEvaluationItem, cryovialsItem];
+
 const menuByRole: Record<Role, MenuItem[]> = {
-  Analyst: [dashboardItem, receivingItem, testingWorkspaceItem, emPrepItem, acPrepItem, testPrepItem, inventoryItem, reportsItem],
-  Reviewer: [dashboardItem, testingWorkspaceItem, reviewItem, reportsItem],
+  Analyst: [dashboardItem, ...sharedWorkflowItems, inventoryItem, reportsItem],
+  // Reviewer's "Under Review" work happens by clicking a badge in the
+  // Testing Workspace now - no separate Review menu item.
+  Reviewer: [dashboardItem, ...sharedWorkflowItems, reportsItem],
   SectionHead: [
-    dashboardItem, receivingItem, testingWorkspaceItem, emPrepItem, acPrepItem, testPrepItem,
-    reviewItem, approvalItem, laboratoryConfigurationItem, inventoryItem, reportsItem, auditSearchItem
+    dashboardItem, ...sharedWorkflowItems,
+    laboratoryConfigurationItem, inventoryItem, reportsItem, auditSearchItem
   ],
   SystemAdministrator: [
-    dashboardItem, receivingItem, testingWorkspaceItem, emPrepItem, acPrepItem, testPrepItem,
-    reviewItem, approvalItem, laboratoryConfigurationItem, inventoryItem, usersItem, rolesItem, reportsItem, auditSearchItem
+    dashboardItem, ...sharedWorkflowItems,
+    laboratoryConfigurationItem, inventoryItem, usersItem, rolesItem, reportsItem, auditSearchItem
   ]
 };
 

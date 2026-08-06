@@ -7,6 +7,7 @@ using MicroLIMS.Infrastructure.Email;
 using MicroLIMS.Infrastructure.Notifications;
 using MicroLIMS.Infrastructure.Pdf;
 using MicroLIMS.Infrastructure.Storage;
+using MicroLIMS.Infrastructure.Word;
 using MicroLIMS.Persistence.Repositories;
 
 namespace MicroLIMS.API.Extensions;
@@ -22,8 +23,8 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IWaterWorkflowEngine, WaterWorkflowEngine>();
         services.AddScoped<IEMWorkflowEngine, EMWorkflowEngine>();
         services.AddScoped<IAfterCleaningWorkflowEngine, AfterCleaningWorkflowEngine>();
-        services.AddScoped<IPathogenWorkflowEngine, PathogenWorkflowEngine>();
-        services.AddScoped<IGptWorkflowEngine, GptWorkflowEngine>();
+        services.AddScoped<IMediaEvaluationEngine, MediaEvaluationEngine>();
+        services.AddScoped<ITestWorkflowEngine, TestWorkflowEngine>();
 
         // Application services
         services.AddScoped<IReceivingService, ReceivingService>();
@@ -31,20 +32,32 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IResultService, ResultService>();
         services.AddScoped<IReportService, ReportService>();
         services.AddScoped<IAuthenticationService, AuthenticationService>();
+        services.AddScoped<IElectronicSignatureService, ElectronicSignatureService>();
+        services.AddScoped<SegregationOfDutiesGuard>();
         services.AddScoped<ReviewService>();
         services.AddScoped<ApprovalService>();
+        services.AddScoped<ReviewGateService>();
+        services.AddScoped<RecordArchiveService>();
+        services.AddScoped<MediaReleaseService>();
+        services.AddScoped<MediaSummaryService>();
+        services.AddScoped<CryovialSummaryService>();
+        services.AddScoped<SampleReviewService>();
+        services.AddScoped<SampleApprovalService>();
+        services.AddScoped<SampleSummaryService>();
         services.AddScoped<DashboardService>();
         services.AddScoped<DashboardNotificationService>();
         services.AddScoped<RecentActivityService>();
+        services.AddScoped<MyTasksService>();
+        services.AddScoped<MediaExpiryService>();
         services.AddScoped<KpiService>();
-        services.AddScoped<ReferenceStrainService>();
+        services.AddScoped<CryovialService>();
         services.AddScoped<SamplePreparationService>();
+        services.AddScoped<SampleCorrectionService>();
         services.AddScoped<MediaPreparationService>();
         services.AddScoped<WaterService>();
         services.AddScoped<EMService>();
         services.AddScoped<AfterCleaningService>();
-        services.AddScoped<PathogenService>();
-        services.AddScoped<GptService>();
+        services.AddScoped<MediaEvaluationService>();
         services.AddScoped<ItemService>();
         services.AddScoped<SpecificationService>();
         services.AddScoped<UserService>();
@@ -54,13 +67,15 @@ public static class ServiceCollectionExtensions
         services.AddScoped<AuditSearchService>();
         services.AddScoped<MaterialService>();
         services.AddScoped<EquipmentInventoryService>();
+        services.AddScoped<ResultProjectionService>();
+        services.AddScoped<ReportingQueryService>();
+        services.AddScoped<DataExportAuditService>();
 
         // Validators
         services.AddScoped<ReceiveSampleValidator>();
         services.AddScoped<WaterValidator>();
         services.AddScoped<EMValidator>();
         services.AddScoped<ProductValidator>();
-        services.AddScoped<PathogenValidator>();
 
         // Repositories
         services.AddScoped<IItemRepository, ItemRepository>();
@@ -70,6 +85,7 @@ public static class ServiceCollectionExtensions
 
         // Infrastructure
         services.AddScoped<IPdfGenerator, PdfGenerator>();
+        services.AddScoped<IWordGenerator, WordGenerator>();
         services.AddScoped<IEmailSender>(_ => new EmailSender(
             config["Smtp:Host"] ?? "",
             int.TryParse(config["Smtp:Port"], out var p) ? p : 587,

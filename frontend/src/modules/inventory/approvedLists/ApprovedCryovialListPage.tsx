@@ -5,33 +5,28 @@ import { SectionTitle } from "../../../components/SectionTitle";
 import { PrintButton } from "../../../components/PrintButton";
 import { PrintableTable } from "../../../components/PrintableTable";
 import { formatLabDate } from "../../../utils/formatDate";
-import { ReferenceStrainService } from "../../laboratoryConfiguration/referenceStrains/services/ReferenceStrainService";
+import { CryovialService } from "../../laboratoryConfiguration/cryovials/services/CryovialService";
 
-// Read-only view/print of approved cryovials that are not destroyed and
-// not expired - computed client-side from GET /reference-strains, the
-// same source CryovialsPage.tsx already uses for "approvedStrains".
+// Read-only view/print of approved cryovial batches that are not
+// destroyed and not expired - computed client-side from GET /cryovials.
 // No backend change needed for this list.
 export function ApprovedCryovialListPage() {
   const [cryovials, setCryovials] = useState<any[]>([]);
 
   useEffect(() => {
-    ReferenceStrainService.getAll().then((strains: any[]) => {
+    CryovialService.getAll().then((all: any[]) => {
       const now = new Date();
-      const approved = strains.flatMap((s) =>
-        (s.cryovials ?? [])
-          .filter((c: any) => c.approvalStatus === "Approved" && !c.isDestroyed && new Date(c.expiryDate) > now)
-          .map((c: any) => ({ ...c, strainCode: s.code, organismName: s.organismName }))
-      );
-      setCryovials(approved);
+      setCryovials(all.filter((c) => c.approvalStatus === "Approved" && !c.isDestroyed && new Date(c.expiryDate) > now));
     });
   }, []);
 
   const columns = [
     { label: "Cryovial Code", render: (c: any) => c.code },
-    { label: "Reference Strain", render: (c: any) => `${c.strainCode} — ${c.organismName}` },
-    { label: "Passage No.", render: (c: any) => c.passageNumber },
+    { label: "Organism", render: (c: any) => c.organism?.scientificName ?? c.organismNameSnapshot },
+    { label: "ATCC No.", render: (c: any) => c.organism?.atccNumber ?? "—" },
     { label: "Manufacturer", render: (c: any) => c.manufacturerName },
     { label: "Storage", render: (c: any) => c.storageCondition },
+    { label: "Vials Remaining", render: (c: any) => `${c.vialsRemaining} of ${c.numberOfVialsPrepared}` },
     { label: "Expiry", render: (c: any) => formatLabDate(c.expiryDate) }
   ];
 

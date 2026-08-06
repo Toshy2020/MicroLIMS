@@ -7,7 +7,7 @@ namespace MicroLIMS.Application.Workflows;
 
 public record ItemBasedReceiveRequest(
     int ItemId, int CauseOfTestingId, string SampleQuantity, string SampledBy,
-    string BatchNumber, string ControlNumber, DateTime MfgDate, DateTime ExpDate,
+    string BatchNumber, string ControlNumber, DateTime? MfgDate, DateTime? ExpDate,
     string? ProductionStage, int ReceivedByUserId);
 
 public interface IProductWorkflowEngine : IStatefulWorkflowEngine
@@ -40,6 +40,9 @@ public class ProductWorkflowEngine : IProductWorkflowEngine
             .FirstOrDefaultAsync(i => i.Id == request.ItemId)
             ?? throw new InvalidOperationException($"Item {request.ItemId} not found or not configured.");
 
+        if (!item.IsActive)
+            throw new InvalidOperationException($"Item '{item.Name}' is frozen and cannot be used to receive new samples.");
+
         if (item.AssignedTests.Count == 0)
             throw new InvalidOperationException(
                 $"Item '{item.Name}' has no assigned tests. Configuration must be completed " +
@@ -60,7 +63,7 @@ public class ProductWorkflowEngine : IProductWorkflowEngine
             ExpDate = request.ExpDate,
             ReceivedByUserId = request.ReceivedByUserId,
             Status = SampleStatus.Received,
-            PreparationStatus = SamplePreparationStatus.Ready
+            PreparationStatus = SamplePreparationStatus.NeedsPreparation
         };
 
         foreach (var test in item.AssignedTests)

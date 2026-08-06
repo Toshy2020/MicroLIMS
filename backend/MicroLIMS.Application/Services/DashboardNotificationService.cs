@@ -57,13 +57,13 @@ public class DashboardNotificationService
         var now = DateTime.UtcNow;
 
         var expiringMedia = await _db.Media
-            .Include(m => m.MediaType)
+            .Include(m => m.Material)
             .Where(m => m.Status == MediaStatus.Active && m.ExpiryDate <= now.Add(ExpiryWarningWindow))
             .ToListAsync();
         foreach (var m in expiringMedia)
         {
             var expired = m.ExpiryDate <= now;
-            results.Add(("MediaExpiry", $"{m.MediaType?.Name} (Lot {m.LotNumber}) {(expired ? "has expired" : $"expires {m.ExpiryDate:dd-MMM-yyyy}")}.", expired ? "error" : "warning"));
+            results.Add(("MediaExpiry", $"{m.Material?.MaterialName} (Lot {m.LotNumber}) {(expired ? "has expired" : $"expires {m.ExpiryDate:dd-MMM-yyyy}")}.", expired ? "error" : "warning"));
         }
 
         var readyIncubations = await _db.Incubations

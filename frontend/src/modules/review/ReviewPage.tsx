@@ -13,7 +13,10 @@ export function ReviewPage() {
     const flat = res.data.data.flatMap((s: any) =>
       s.assignedTests.map((t: { testOrderId: number; testCode: string; status: string }) => t)
     );
-    setRows(flat);
+    // Only ResultEntered test orders are actually reviewable - see
+    // ReviewService.MarkReviewedAsync's gate. Everything else (Pending,
+    // InProgress, ...) would just fail with "results not entered yet."
+    setRows(flat.filter((t: { status: string }) => t.status === "ResultEntered"));
   });
 
   useEffect(() => { load(); }, []);

@@ -8,10 +8,10 @@ using Xunit;
 namespace MicroLIMS.Tests.InventoryTests;
 
 // Confirms the Inventory consumption guards added to MediaPreparationService
-// and ReferenceStrainService actually block on expiry/insufficient
-// quantity, and - critically for a GMP system - leave no partial write
-// behind when they do (no Media row, no decremented stock, no Cryovial
-// row, no decremented discs).
+// and CryovialService actually block on expiry/insufficient quantity,
+// and - critically for a GMP system - leave no partial write behind
+// when they do (no Media row, no decremented stock, no Cryovial row,
+// no decremented discs).
 public class MaterialConsumptionTests
 {
     private static MicroLimsDbContext NewDb()
@@ -27,7 +27,7 @@ public class MaterialConsumptionTests
     {
         var mediaType = new MediaType
         {
-            Name = "Tryptic Soy Agar", Code = "TSA", Class = MediaClass.GeneralAgar,
+            Class = MediaClass.GeneralAgar,
             IncubationMinHours = 24, IncubationMaxHours = 48,
             RequiredTemperatureMin = 30, RequiredTemperatureMax = 35
         };
@@ -36,7 +36,7 @@ public class MaterialConsumptionTests
         {
             MaterialType = MaterialType.DehydratedMedia, MaterialName = "TSA Powder", ManufacturerName = "Himedia",
             BatchNumber = "LOT-001", ReceivingDate = DateTime.UtcNow.AddDays(-10),
-            ExpiryDate = materialExpiry ?? DateTime.UtcNow.AddYears(1),
+            ExpiryDate = materialExpiry ?? DateTime.UtcNow.AddYears(1), Code = "TSA",
             Location = "Micro Lab", QuantityReceived = materialQuantity, QuantityRemaining = materialQuantity,
             Unit = MaterialUnit.Gram
         };
@@ -55,7 +55,7 @@ public class MaterialConsumptionTests
         var service = new MediaPreparationService(db, new MaterialService(db));
 
         var request = new PrepareMediaRequest(
-            MediaTypeId: mediaType.Id, MaterialId: material.Id, ManufacturerLot: "MFG-LOT", ManufacturerName: "Himedia",
+            MediaTypeId: mediaType.Id, MaterialId: material.Id,
             TotalWeight: 100m, TotalVolume: "500 ml", AutoclaveEquipmentId: autoclave.Id, AutoclaveProgram: "Program A",
             LoadType: "agar", Temperature: 121m, CycleTime: 15, CycleNumber: 1,
             Ph: 7.2m, ExpiryDate: DateTime.UtcNow.AddMonths(1), UserId: 1);
@@ -75,7 +75,7 @@ public class MaterialConsumptionTests
         var service = new MediaPreparationService(db, new MaterialService(db));
 
         var request = new PrepareMediaRequest(
-            MediaTypeId: mediaType.Id, MaterialId: material.Id, ManufacturerLot: "MFG-LOT", ManufacturerName: "Himedia",
+            MediaTypeId: mediaType.Id, MaterialId: material.Id,
             TotalWeight: 100m, TotalVolume: "500 ml", AutoclaveEquipmentId: autoclave.Id, AutoclaveProgram: "Program A",
             LoadType: "agar", Temperature: 121m, CycleTime: 15, CycleNumber: 1,
             Ph: 7.2m, ExpiryDate: DateTime.UtcNow.AddMonths(1), UserId: 1);
@@ -95,7 +95,7 @@ public class MaterialConsumptionTests
         var service = new MediaPreparationService(db, new MaterialService(db));
 
         var request = new PrepareMediaRequest(
-            MediaTypeId: mediaType.Id, MaterialId: material.Id, ManufacturerLot: "MFG-LOT", ManufacturerName: "Himedia",
+            MediaTypeId: mediaType.Id, MaterialId: material.Id,
             TotalWeight: 100m, TotalVolume: "500 ml", AutoclaveEquipmentId: autoclave.Id, AutoclaveProgram: "Program A",
             LoadType: "agar", Temperature: 121m, CycleTime: 15, CycleNumber: 1,
             Ph: 7.2m, ExpiryDate: DateTime.UtcNow.AddMonths(1), UserId: 1);
@@ -106,77 +106,124 @@ public class MaterialConsumptionTests
         var reloaded = await db.Materials.FindAsync(material.Id);
         Assert.Equal(400m, reloaded!.QuantityRemaining); // 500 - 100
         Assert.Equal(100m, media.TotalWeight);
+        Assert.Equal(material.Id, media.MaterialId);
+        Assert.Equal(material.BatchNumber, media.ManufacturerLot);
+        Assert.Equal(material.ManufacturerName, media.ManufacturerName);
     }
 
-    private static async Task<ReferenceStrain> SeedApprovedStrain(MicroLimsDbContext db, int discs, DateTime? expiry = null)
+    private static async Task<Material> SeedLyophilizedMaterial(MicroLimsDbContext db, decimal discs, DateTime? expiry = null)
     {
-        var strain = new ReferenceStrain
-        {
-            Code = "RS 01/07/26", OrganismName = "E. coli", AtccNumber = "8739", PassageNumber = 1,
-            NumberOfDiscs = discs, DiscsRemaining = discs, ManufacturerName = "Tody laboratories",
-            ExpiryDate = expiry ?? DateTime.UtcNow.AddYears(1), StorageCondition = "Micro refrigerator",
-            ApprovalStatus = ApprovalGateStatus.Approved
-        };
-        db.ReferenceStrains.Add(strain);
+        var organism = new Organism { ScientificName = "E. coli", AtccNumber = "8739" };
+        db.Organisms.Add(organism);
         await db.SaveChangesAsync();
-        return strain;
+
+        var material = new Material
+        {
+            MaterialType = MaterialType.LyophilizedMicroorganism, MaterialName = "E. coli", ManufacturerName = "Tody laboratories",
+            BatchNumber = "LOT-EC-01", ReceivingDate = DateTime.UtcNow.AddDays(-10),
+            ExpiryDate = expiry ?? DateTime.UtcNow.AddYears(1), Code = "ECOLI", AtccNumber = "8739", OrganismId = organism.Id,
+            Location = "Micro refrigerator", QuantityReceived = discs, QuantityRemaining = discs,
+            Unit = MaterialUnit.Disc
+        };
+        db.Materials.Add(material);
+        await db.SaveChangesAsync();
+        return material;
     }
+
+    // A released Media lot + Incubator, needed for the identity-confirmation
+    // panel row that PrepareCryovialsAsync now requires (at least one row).
+    private static async Task<(Media media, Equipment incubator)> SeedReleasedMediaFixtures(MicroLimsDbContext db)
+    {
+        var mediaType = new MediaType { Class = MediaClass.GeneralAgar, IncubationMinHours = 24, IncubationMaxHours = 48, RequiredTemperatureMin = 30, RequiredTemperatureMax = 35 };
+        var mediaMaterial = new Material
+        {
+            MaterialType = MaterialType.DehydratedMedia, MaterialName = "TSA Powder", ManufacturerName = "Himedia",
+            BatchNumber = "LOT-TSA", ReceivingDate = DateTime.UtcNow.AddDays(-30), ExpiryDate = DateTime.UtcNow.AddYears(1),
+            Code = "TSA", Location = "Micro Lab", QuantityReceived = 500, QuantityRemaining = 500, Unit = MaterialUnit.Gram
+        };
+        var incubator = new Equipment { Name = "Incubator 1", Code = "INC-01", Type = EquipmentType.Incubator };
+        db.MediaTypes.Add(mediaType);
+        db.Materials.Add(mediaMaterial);
+        db.Equipment.Add(incubator);
+        await db.SaveChangesAsync();
+
+        var media = new Media
+        {
+            MediaTypeId = mediaType.Id, MaterialId = mediaMaterial.Id, LotNumber = "TSA/01/26",
+            IsReleasedForUse = true, Status = MediaStatus.Active, ExpiryDate = DateTime.UtcNow.AddYears(1)
+        };
+        db.Media.Add(media);
+        await db.SaveChangesAsync();
+        return (media, incubator);
+    }
+
+    private static List<IdentityConfirmationRow> OnePanelRow(Media media, Equipment incubator) => new()
+    {
+        new IdentityConfirmationRow(media.Id, incubator.Id, DateTime.UtcNow.AddDays(-2), DateTime.UtcNow.AddDays(-1), "Typical colonies")
+    };
 
     [Fact]
     public async Task PrepareCryovials_InsufficientDiscs_ThrowsAndWritesNothing()
     {
         await using var db = NewDb();
-        var strain = await SeedApprovedStrain(db, discs: 2);
-        var service = new ReferenceStrainService(db);
+        var material = await SeedLyophilizedMaterial(db, discs: 2);
+        var (media, incubator) = await SeedReleasedMediaFixtures(db);
+        var service = TestServiceFactory.Cryovial(db);
 
         var request = new PrepareCryovialsRequest(
-            strain.Id, "Tody laboratories", DateTime.UtcNow.AddMonths(6), NumberOfVialsPrepared: 5,
+            material.Id, NumberOfVialsPrepared: 5, ExpiryDate: DateTime.UtcNow.AddMonths(6),
             StorageCondition: "Freezer -15 to -25", PhysicalCheckText: "OK",
-            Panel: new List<IdentityConfirmationRow>(), DiscsUsed: 3, UserId: 1);
+            Panel: OnePanelRow(media, incubator), DiscsUsed: 3, UserId: 1);
 
         await Assert.ThrowsAsync<InvalidOperationException>(() => service.PrepareCryovialsAsync(request));
 
         Assert.Empty(await db.Cryovials.ToListAsync());
-        var reloaded = await db.ReferenceStrains.FindAsync(strain.Id);
-        Assert.Equal(2, reloaded!.DiscsRemaining); // unchanged
+        var reloaded = await db.Materials.FindAsync(material.Id);
+        Assert.Equal(2m, reloaded!.QuantityRemaining); // unchanged
     }
 
     [Fact]
-    public async Task PrepareCryovials_ExpiredStrain_ThrowsAndWritesNothing()
+    public async Task PrepareCryovials_ExpiredMaterial_ThrowsAndWritesNothing()
     {
         await using var db = NewDb();
-        var strain = await SeedApprovedStrain(db, discs: 10, expiry: DateTime.UtcNow.AddDays(-1));
-        var service = new ReferenceStrainService(db);
+        var material = await SeedLyophilizedMaterial(db, discs: 10, expiry: DateTime.UtcNow.AddDays(-1));
+        var (media, incubator) = await SeedReleasedMediaFixtures(db);
+        var service = TestServiceFactory.Cryovial(db);
 
         var request = new PrepareCryovialsRequest(
-            strain.Id, "Tody laboratories", DateTime.UtcNow.AddMonths(6), NumberOfVialsPrepared: 5,
+            material.Id, NumberOfVialsPrepared: 5, ExpiryDate: DateTime.UtcNow.AddMonths(6),
             StorageCondition: "Freezer -15 to -25", PhysicalCheckText: "OK",
-            Panel: new List<IdentityConfirmationRow>(), DiscsUsed: 2, UserId: 1);
+            Panel: OnePanelRow(media, incubator), DiscsUsed: 2, UserId: 1);
 
         await Assert.ThrowsAsync<InvalidOperationException>(() => service.PrepareCryovialsAsync(request));
 
         Assert.Empty(await db.Cryovials.ToListAsync());
-        var reloaded = await db.ReferenceStrains.FindAsync(strain.Id);
-        Assert.Equal(10, reloaded!.DiscsRemaining); // unchanged
+        var reloaded = await db.Materials.FindAsync(material.Id);
+        Assert.Equal(10m, reloaded!.QuantityRemaining); // unchanged
     }
 
     [Fact]
     public async Task PrepareCryovials_SufficientDiscs_DecrementsAndCreatesCryovial()
     {
         await using var db = NewDb();
-        var strain = await SeedApprovedStrain(db, discs: 10);
-        var service = new ReferenceStrainService(db);
+        var material = await SeedLyophilizedMaterial(db, discs: 10);
+        var (media, incubator) = await SeedReleasedMediaFixtures(db);
+        var service = TestServiceFactory.Cryovial(db);
 
         var request = new PrepareCryovialsRequest(
-            strain.Id, "Tody laboratories", DateTime.UtcNow.AddMonths(6), NumberOfVialsPrepared: 5,
+            material.Id, NumberOfVialsPrepared: 5, ExpiryDate: DateTime.UtcNow.AddMonths(6),
             StorageCondition: "Freezer -15 to -25", PhysicalCheckText: "OK",
-            Panel: new List<IdentityConfirmationRow>(), DiscsUsed: 3, UserId: 1);
+            Panel: OnePanelRow(media, incubator), DiscsUsed: 3, UserId: 1);
 
         var cryovial = await service.PrepareCryovialsAsync(request);
 
         Assert.Single(await db.Cryovials.ToListAsync());
-        var reloaded = await db.ReferenceStrains.FindAsync(strain.Id);
-        Assert.Equal(7, reloaded!.DiscsRemaining); // 10 - 3
+        var reloaded = await db.Materials.FindAsync(material.Id);
+        Assert.Equal(7m, reloaded!.QuantityRemaining); // 10 - 3
         Assert.Equal(5, cryovial.NumberOfVialsPrepared);
+        Assert.Equal(5, cryovial.VialsRemaining);
+        Assert.Equal(material.Id, cryovial.MaterialId);
+        Assert.Equal(material.OrganismId, cryovial.OrganismId);
+        Assert.Equal("E. coli", cryovial.OrganismNameSnapshot);
     }
 }

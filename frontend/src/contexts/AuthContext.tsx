@@ -1,42 +1,114 @@
 import { createContext, useContext, useState, ReactNode } from "react";
+import { apiClient } from "../services/apiClient";
+import { authenticationService } from "../modules/authentication/services/authenticationService";
 
 export type Role = "SystemAdministrator" | "SectionHead" | "Reviewer" | "Analyst";
+
+export interface LoginData {
+  token: string;
+  refreshToken: string;
+  username: string;
+  role: Role;
+  fullName: string;
+  userId: number;
+  mustChangePassword: boolean;
+}
 
 interface AuthState {
   username: string | null;
   role: Role | null;
   token: string | null;
-  login: (token: string, username: string, role: Role) => void;
+  refreshToken: string | null;
+  fullName: string | null;
+  userId: number | null;
+  mustChangePassword: boolean;
+  login: (data: LoginData) => void;
   logout: () => void;
+  refresh: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthState | undefined>(undefined);
 
+function readStored<T>(key: string, fallback: T, parse: (raw: string) => T = (raw) => raw as unknown as T): T {
+  const raw = localStorage.getItem(key);
+  if (raw === null) return fallback;
+  try {
+    return parse(raw);
+  } catch {
+    return fallback;
+  }
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [token, setToken] = useState<string | null>(localStorage.getItem("microlims_token"));
+  const [refreshToken, setRefreshToken] = useState<string | null>(localStorage.getItem("microlims_refresh_token"));
   const [username, setUsername] = useState<string | null>(localStorage.getItem("microlims_username"));
   const [role, setRole] = useState<Role | null>(localStorage.getItem("microlims_role") as Role | null);
+  const [fullName, setFullName] = useState<string | null>(localStorage.getItem("microlims_full_name"));
+  const [userId, setUserId] = useState<number | null>(readStored<number | null>("microlims_user_id", null, Number));
+  const [mustChangePassword, setMustChangePassword] = useState<boolean>(
+    readStored<boolean>("microlims_must_change_password", false, (raw) => raw === "true")
+  );
 
-  const login = (newToken: string, newUsername: string, newRole: Role) => {
-    localStorage.setItem("microlims_token", newToken);
-    localStorage.setItem("microlims_username", newUsername);
-    localStorage.setItem("microlims_role", newRole);
-    setToken(newToken);
-    setUsername(newUsername);
-    setRole(newRole);
+  const login = (data: LoginData) => {
+    localStorage.setItem("microlims_token", data.token);
+    localStorage.setItem("microlims_refresh_token", data.refreshToken);
+    localStorage.setItem("microlims_username", data.username);
+    localStorage.setItem("microlims_role", data.role);
+    localStorage.setItem("microlims_full_name", data.fullName);
+    localStorage.setItem("microlims_user_id", String(data.userId));
+    localStorage.setItem("microlims_must_change_password", String(data.mustChangePassword));
+
+    setToken(data.token);
+    setRefreshToken(data.refreshToken);
+    setUsername(data.username);
+    setRole(data.role);
+    setFullName(data.fullName);
+    setUserId(data.userId);
+    setMustChangePassword(data.mustChangePassword);
+  };
+
+  const clearLocalState = () => {
+    localStorage.removeItem("microlims_token");
+    localStorage.removeItem("microlims_refresh_token");
+    localStorage.removeItem("microlims_username");
+    localStorage.removeItem("microlims_role");
+    localStorage.removeItem("microlims_full_name");
+    localStorage.removeItem("microlims_user_id");
+    localStorage.removeItem("microlims_must_change_password");
+    setToken(null);
+    setRefreshToken(null);
+    setUsername(null);
+    setRole(null);
+    setFullName(null);
+    setUserId(null);
+    setMustChangePassword(false);
   };
 
   const logout = () => {
-    localStorage.removeItem("microlims_token");
-    localStorage.removeItem("microlims_username");
-    localStorage.removeItem("microlims_role");
-    setToken(null);
-    setUsername(null);
-    setRole(null);
+    // Fire-and-forget: a network failure must never trap someone logged in.
+    // The Authorization header is attached explicitly (rather than relying
+    // on apiClient's request interceptor) because that interceptor reads
+    // localStorage on a later microtask - by then clearLocalState() below
+    // would already have removed the token, sending the call unauthenticated.
+    if (token) {
+      apiClient.post("/auth/logout", null, { headers: { Authorization: `Bearer ${token}` } }).catch(() => {});
+    }
+    clearLocalState();
+  };
+
+  const refresh = async () => {
+    const info = await authenticationService.me();
+    localStorage.setItem("microlims_full_name", info.fullName);
+    localStorage.setItem("microlims_must_change_password", String(info.mustChangePassword));
+    setFullName(info.fullName);
+    setMustChangePassword(info.mustChangePassword);
   };
 
   return (
-    <AuthContext.Provider value={{ token, username, role, login, logout }}>
+    <AuthContext.Provider
+      value={{ token, refreshToken, username, role, fullName, userId, mustChangePassword, login, logout, refresh }}
+    >
       {children}
     </AuthContext.Provider>
   );

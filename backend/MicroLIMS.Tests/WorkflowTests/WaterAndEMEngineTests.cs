@@ -41,33 +41,42 @@ public class WaterAndEMEngineTests
         Assert.Equal("OutOfSpecification", result.Status);
     }
 
+    // EM/After Cleaning batch preparation (multiple rooms/parts -> one
+    // TestOrder per TestCode + SampleLocation rows) is covered by
+    // EMBatchLocationTests.cs, replacing the old per-location model this
+    // file used to exercise here.
+
     [Fact]
-    public async Task EM_CombinedCountExceedsActionLimit_FlagsOutOfTrend()
+    public async Task Water_ReceiveAsync_StartsAsNeedsPreparation()
     {
         await using var db = NewDb();
-        var dept = new Department { Name = "Filling" };
-        var room = new Room { Name = "Grade A Filling", Department = dept, GradeClassification = "A" };
-        db.Departments.Add(dept);
-        db.Rooms.Add(room);
+        var point = new WaterSamplingPoint { Code = "WP-02", Location = "Utility Room", AssignedTestCodes = new() { "TAMC" } };
+        db.WaterSamplingPoints.Add(point);
         await db.SaveChangesAsync();
 
-        db.RoomTestConfigurations.Add(new RoomTestConfiguration
-        {
-            RoomId = room.Id, TestType = "PassiveAirSample", TestCode = "EM_TAMC",
-            AlertLimit = "1", ActionLimit = "3", SpecLimit = "5"
-        });
+        var engine = new WaterWorkflowEngine(db, new ReferenceNumberGenerator(db));
+        var sample = await engine.ReceiveAsync(new WaterReceiveRequest(point.Id, 0, "500ml", "Analyst", "CTRL-2", 1));
+
+        Assert.Equal(SamplePreparationStatus.NeedsPreparation, sample.PreparationStatus);
+    }
+
+    [Fact]
+    public async Task SamplePreparationService_PrepareAsync_FlipsSampleToReady()
+    {
+        await using var db = NewDb();
+        var diluent = new DiluentType { Name = "Buffer", RequiresBatchTracking = false };
+        var neutralizer = new Neutralizer { Name = "Tween" };
+        db.DiluentTypes.Add(diluent);
+        db.Neutralizers.Add(neutralizer);
+        var sample = new Sample { Category = SampleCategory.FinishedProduct, ControlNumber = "CTRL-3", Status = SampleStatus.Received, PreparationStatus = SamplePreparationStatus.NeedsPreparation };
+        db.Samples.Add(sample);
         await db.SaveChangesAsync();
 
-        var engine = new EMWorkflowEngine(db, new ReferenceNumberGenerator(db));
-        var sample = await engine.ReceiveAsync(new EMReceiveRequest(dept.Id, 0, "Analyst", "Position-1", 1));
-        var prepared = await engine.PrepareAsync(sample.Id,
-            new List<EMPreparationSelection> { new(room.Id, new List<string> { "PassiveAirSample" }) }, 1);
-        var order = prepared.TestOrders.First();
+        var service = new SamplePreparationService(db);
+        await service.PrepareAsync(new PrepareSampleRequest(
+            sample.Id, 10m, "ml", "PourPlate", null, null, diluent.Id, null, neutralizer.Id, UserId: 5, null, null));
 
-        await engine.StartStep1Async(order.Id, 1);
-        await engine.StartStep2Async(order.Id, 1);
-        var monitoring = await engine.CompleteAsync(order.Id, 4, 1, actionLimit: 3);
-
-        Assert.True(monitoring.IsOutOfTrend); // final count 4 > action limit of 3
+        var reloaded = await db.Samples.FirstAsync(s => s.Id == sample.Id);
+        Assert.Equal(SamplePreparationStatus.Ready, reloaded.PreparationStatus);
     }
 }

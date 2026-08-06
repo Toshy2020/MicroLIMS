@@ -5,7 +5,7 @@ import { SectionTitle } from "../../../components/SectionTitle";
 import { PrintButton } from "../../../components/PrintButton";
 import { PrintableTable } from "../../../components/PrintableTable";
 import { formatLabDate } from "../../../utils/formatDate";
-import { masterDataOptions } from "../../../services/masterDataOptions";
+import { masterDataOptions, mediaClassLabel } from "../../../services/masterDataOptions";
 
 // Read-only view/print of prepared media that has passed GPT and is
 // released for use - reuses GET /media/released (MediaPreparationService.
@@ -17,7 +17,7 @@ export function ApprovedMediaListPage() {
 
   const columns = [
     { label: "Lot Number", render: (m: any) => m.lotNumber },
-    { label: "Media Type", render: (m: any) => m.mediaType?.name ?? "—" },
+    { label: "Media Type", render: (m: any) => m.material?.materialName ?? mediaClassLabel(m.mediaType?.class) ?? "—" },
     { label: "Manufacturer Lot", render: (m: any) => m.manufacturerLot },
     { label: "Manufacturer", render: (m: any) => m.manufacturerName },
     { label: "Prepared", render: (m: any) => formatLabDate(m.preparedAt) },

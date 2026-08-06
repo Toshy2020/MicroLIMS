@@ -1,98 +1,112 @@
 import { useEffect, useState } from "react";
-import { Paper, Box, TextField, Select, MenuItem, Button, Table, TableHead, TableRow, TableCell, TableBody, Alert } from "@mui/material";
+import { Paper, Box, TextField, Button, Table, TableHead, TableRow, TableCell, TableBody, Alert, IconButton } from "@mui/material";
+import EditIcon from "@mui/icons-material/Edit";
 import { PageHeader } from "../../../components/PageHeader";
 import { SectionTitle } from "../../../components/SectionTitle";
-import { masterDataOptions } from "../../../services/masterDataOptions";
-import { apiClient } from "../../../services/apiClient";
+import { masterDataOptions, mediaClassLabel } from "../../../services/masterDataOptions";
 
-const CLASSES = ["GeneralAgar", "GeneralBroth", "SelectiveAgar", "SelectiveBroth"];
-
+// MediaType is a fixed set of 4 rows, one per MediaClass - no create/
+// delete here, only editing the GPT pass/fail rules for each class.
+// Per-organism challenge specs now live on the Media Challenge Specs
+// page (they're keyed by Material, not MediaType - see MediaChallengeSpec.cs).
 export function MediaTypesPage() {
   const [list, setList] = useState<any[]>([]);
-  const [form, setForm] = useState<Record<string, any>>({ class: "GeneralAgar" });
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [editForm, setEditForm] = useState<Record<string, any>>({});
   const [message, setMessage] = useState<{ text: string; ok: boolean } | null>(null);
-  const [indicForm, setIndicForm] = useState<Record<string, any>>({});
 
   const load = () => masterDataOptions.getMediaTypes().then(setList);
   useEffect(() => { load(); }, []);
 
-  const save = async () => {
+  const startEdit = (m: any) => {
+    setEditingId(m.id);
+    setEditForm({
+      incubationMinHours: m.incubationMinHours, incubationMaxHours: m.incubationMaxHours,
+      requiredTemperatureMin: m.requiredTemperatureMin, requiredTemperatureMax: m.requiredTemperatureMax,
+      approvedTestCodes: (m.approvedTestCodes ?? []).join(", "),
+      recoveryPercentMin: m.recoveryPercentMin ?? "", recoveryPercentMax: m.recoveryPercentMax ?? ""
+    });
+    setMessage(null);
+  };
+  const cancelEdit = () => { setEditingId(null); setEditForm({}); };
+
+  const save = async (m: any) => {
     try {
-      await apiClient.post("/masterdata/media-types", {
-        name: form.name, code: form.code, class: form.class,
-        incubationMinHours: Number(form.incubationMinHours), incubationMaxHours: Number(form.incubationMaxHours),
-        requiredTemperatureMin: Number(form.requiredTemperatureMin), requiredTemperatureMax: Number(form.requiredTemperatureMax),
-        approvedTestCodes: (form.approvedTestCodes ?? "").split(",").map((s: string) => s.trim()).filter(Boolean),
-        recoveryPercentMin: form.recoveryPercentMin ? Number(form.recoveryPercentMin) : null,
-        recoveryPercentMax: form.recoveryPercentMax ? Number(form.recoveryPercentMax) : null
+      await masterDataOptions.updateMediaType(m.id, {
+        incubationMinHours: Number(editForm.incubationMinHours), incubationMaxHours: Number(editForm.incubationMaxHours),
+        requiredTemperatureMin: Number(editForm.requiredTemperatureMin), requiredTemperatureMax: Number(editForm.requiredTemperatureMax),
+        approvedTestCodes: (editForm.approvedTestCodes ?? "").split(",").map((s: string) => s.trim()).filter(Boolean),
+        recoveryPercentMin: editForm.recoveryPercentMin === "" ? null : Number(editForm.recoveryPercentMin),
+        recoveryPercentMax: editForm.recoveryPercentMax === "" ? null : Number(editForm.recoveryPercentMax)
       });
       setMessage({ text: "Media type saved.", ok: true });
-      setForm({ class: "GeneralAgar" });
+      cancelEdit();
       load();
     } catch (e: any) {
       setMessage({ text: e?.response?.data?.message ?? "Could not save.", ok: false });
     }
   };
 
-  const saveIndication = async () => {
-    await apiClient.post("/masterdata/expected-indication-results", {
-      mediaTypeId: indicForm.mediaTypeId, organismName: indicForm.organismName, expectedDescription: indicForm.expectedDescription
-    });
-    setIndicForm({});
-    setMessage({ text: "Expected indication result saved.", ok: true });
-  };
-
   return (
     <>
-      <PageHeader title="Media Types" subtitle="The reusable media definitions Media Preparation lots reference." />
+      <PageHeader title="Media Types" subtitle="The GPT pass/fail rules for each of the 4 media classes." />
       {message && <Alert severity={message.ok ? "success" : "error"} sx={{ mb: 2 }}>{message.text}</Alert>}
 
-      <SectionTitle>New Media Type</SectionTitle>
-      <Paper sx={{ p: 2.5, mb: 3 }}>
-        <Box sx={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 2 }}>
-          <TextField placeholder="Name" value={form.name ?? ""} onChange={(e) => setForm({ ...form, name: e.target.value })} />
-          <TextField placeholder="Code" value={form.code ?? ""} onChange={(e) => setForm({ ...form, code: e.target.value })} />
-          <Select value={form.class} onChange={(e) => setForm({ ...form, class: e.target.value })}>
-            {CLASSES.map((c) => <MenuItem key={c} value={c}>{c}</MenuItem>)}
-          </Select>
-          <TextField placeholder="Approved Test Codes (comma sep)" value={form.approvedTestCodes ?? ""} onChange={(e) => setForm({ ...form, approvedTestCodes: e.target.value })} />
-          <TextField placeholder="Incubation Min (hrs)" value={form.incubationMinHours ?? ""} onChange={(e) => setForm({ ...form, incubationMinHours: e.target.value })} />
-          <TextField placeholder="Incubation Max (hrs)" value={form.incubationMaxHours ?? ""} onChange={(e) => setForm({ ...form, incubationMaxHours: e.target.value })} />
-          <TextField placeholder="Required Temp Min" value={form.requiredTemperatureMin ?? ""} onChange={(e) => setForm({ ...form, requiredTemperatureMin: e.target.value })} />
-          <TextField placeholder="Required Temp Max" value={form.requiredTemperatureMax ?? ""} onChange={(e) => setForm({ ...form, requiredTemperatureMax: e.target.value })} />
-          {form.class === "GeneralAgar" && (
-            <>
-              <TextField placeholder="Recovery% Min" value={form.recoveryPercentMin ?? ""} onChange={(e) => setForm({ ...form, recoveryPercentMin: e.target.value })} />
-              <TextField placeholder="Recovery% Max" value={form.recoveryPercentMax ?? ""} onChange={(e) => setForm({ ...form, recoveryPercentMax: e.target.value })} />
-            </>
-          )}
-        </Box>
-        <Box sx={{ display: "flex", justifyContent: "flex-end", mt: 2 }}><Button variant="contained" onClick={save}>Save</Button></Box>
-      </Paper>
-
-      <SectionTitle>Expected Indication Results (Selective Media)</SectionTitle>
-      <Paper sx={{ p: 2.5, mb: 3 }}>
-        <Box sx={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 2 }}>
-          <Select displayEmpty value={indicForm.mediaTypeId ?? ""} onChange={(e) => setIndicForm({ ...indicForm, mediaTypeId: e.target.value })}>
-            <MenuItem value=""><em>Media Type</em></MenuItem>
-            {list.filter((m) => m.class?.includes("Selective")).map((m) => <MenuItem key={m.id} value={m.id}>{m.name}</MenuItem>)}
-          </Select>
-          <TextField placeholder="Organism" value={indicForm.organismName ?? ""} onChange={(e) => setIndicForm({ ...indicForm, organismName: e.target.value })} />
-          <TextField placeholder="Expected Description" value={indicForm.expectedDescription ?? ""} onChange={(e) => setIndicForm({ ...indicForm, expectedDescription: e.target.value })} />
-        </Box>
-        <Box sx={{ display: "flex", justifyContent: "flex-end", mt: 2 }}><Button variant="outlined" onClick={saveIndication}>Add</Button></Box>
-      </Paper>
-
       <SectionTitle>Media Types</SectionTitle>
-      <Paper sx={{ p: 2.5 }}>
+      <Paper sx={{ p: 2.5, mb: 3 }}>
         <Table>
-          <TableHead><TableRow><TableCell>Name</TableCell><TableCell>Code</TableCell><TableCell>Class</TableCell><TableCell>Incubation</TableCell><TableCell>Temp Range</TableCell></TableRow></TableHead>
+          <TableHead>
+            <TableRow>
+              <TableCell>Class</TableCell><TableCell>Approved Test Codes</TableCell><TableCell>Incubation</TableCell>
+              <TableCell>Temp Range</TableCell><TableCell>Recovery% Band</TableCell><TableCell></TableCell>
+            </TableRow>
+          </TableHead>
           <TableBody>
             {list.map((m) => (
               <TableRow key={m.id}>
-                <TableCell>{m.name}</TableCell><TableCell>{m.code}</TableCell><TableCell>{m.class}</TableCell>
-                <TableCell>{m.incubationMinHours}–{m.incubationMaxHours}h</TableCell>
-                <TableCell>{m.requiredTemperatureMin}–{m.requiredTemperatureMax}°C</TableCell>
+                {editingId === m.id ? (
+                  <>
+                    <TableCell>{mediaClassLabel(m.class)}</TableCell>
+                    <TableCell>
+                      <TextField size="small" placeholder="Comma sep" value={editForm.approvedTestCodes ?? ""} onChange={(e) => setEditForm({ ...editForm, approvedTestCodes: e.target.value })} />
+                    </TableCell>
+                    <TableCell>
+                      <Box sx={{ display: "flex", gap: 1 }}>
+                        <TextField size="small" placeholder="Min hrs" sx={{ width: 90 }} value={editForm.incubationMinHours ?? ""} onChange={(e) => setEditForm({ ...editForm, incubationMinHours: e.target.value })} />
+                        <TextField size="small" placeholder="Max hrs" sx={{ width: 90 }} value={editForm.incubationMaxHours ?? ""} onChange={(e) => setEditForm({ ...editForm, incubationMaxHours: e.target.value })} />
+                      </Box>
+                    </TableCell>
+                    <TableCell>
+                      <Box sx={{ display: "flex", gap: 1 }}>
+                        <TextField size="small" placeholder="Min °C" sx={{ width: 90 }} value={editForm.requiredTemperatureMin ?? ""} onChange={(e) => setEditForm({ ...editForm, requiredTemperatureMin: e.target.value })} />
+                        <TextField size="small" placeholder="Max °C" sx={{ width: 90 }} value={editForm.requiredTemperatureMax ?? ""} onChange={(e) => setEditForm({ ...editForm, requiredTemperatureMax: e.target.value })} />
+                      </Box>
+                    </TableCell>
+                    <TableCell>
+                      {m.class === "GeneralAgar" ? (
+                        <Box sx={{ display: "flex", gap: 1 }}>
+                          <TextField size="small" placeholder="Min %" sx={{ width: 90 }} value={editForm.recoveryPercentMin ?? ""} onChange={(e) => setEditForm({ ...editForm, recoveryPercentMin: e.target.value })} />
+                          <TextField size="small" placeholder="Max %" sx={{ width: 90 }} value={editForm.recoveryPercentMax ?? ""} onChange={(e) => setEditForm({ ...editForm, recoveryPercentMax: e.target.value })} />
+                        </Box>
+                      ) : <em>N/A</em>}
+                    </TableCell>
+                    <TableCell align="right">
+                      <Button size="small" onClick={cancelEdit} sx={{ mr: 1 }}>Cancel</Button>
+                      <Button size="small" variant="contained" onClick={() => save(m)}>Save</Button>
+                    </TableCell>
+                  </>
+                ) : (
+                  <>
+                    <TableCell>{mediaClassLabel(m.class)}</TableCell>
+                    <TableCell>{(m.approvedTestCodes ?? []).join(", ")}</TableCell>
+                    <TableCell>{m.incubationMinHours}–{m.incubationMaxHours}h</TableCell>
+                    <TableCell>{m.requiredTemperatureMin}–{m.requiredTemperatureMax}°C</TableCell>
+                    <TableCell>{m.class === "GeneralAgar" ? `${m.recoveryPercentMin ?? "—"}–${m.recoveryPercentMax ?? "—"}%` : <em>N/A</em>}</TableCell>
+                    <TableCell align="right">
+                      <IconButton size="small" onClick={() => startEdit(m)} title="Edit"><EditIcon fontSize="small" /></IconButton>
+                    </TableCell>
+                  </>
+                )}
               </TableRow>
             ))}
           </TableBody>

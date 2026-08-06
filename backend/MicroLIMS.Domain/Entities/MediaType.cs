@@ -2,15 +2,14 @@ using MicroLIMS.Domain.Enums;
 
 namespace MicroLIMS.Domain.Entities;
 
-// The reusable definition of a media (TSA, TSB, MAR, XLD, ...) - Section
-// Head master data. Individual prepared lots are Media, which reference
-// this. Incubation range and required temperature live here because
-// they are the same for every lot of this media type.
+// The GPT pass/fail rules for one of the 4 fixed MediaClass values -
+// exactly one row per class, enforced by a unique index on Class (see
+// MediaTypeConfiguration). Individual prepared lots are Media, which
+// reference this by MediaTypeId (i.e. by class) but get their actual
+// product identity from the linked Material (see Media.MaterialId).
 public class MediaType
 {
     public int Id { get; set; }
-    public string Name { get; set; } = string.Empty;
-    public string Code { get; set; } = string.Empty; // short code used in lot numbers, e.g. "TSA"
     public MediaClass Class { get; set; }
     public int IncubationMinHours { get; set; }
     public int IncubationMaxHours { get; set; }

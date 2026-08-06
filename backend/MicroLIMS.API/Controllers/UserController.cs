@@ -7,7 +7,8 @@ using MicroLIMS.Shared.Responses;
 
 namespace MicroLIMS.API.Controllers;
 
-public record CreateUserRequest(string FullName, string Username, string Password, int RoleId);
+public record CreateUserRequest(string FullName, string Username, string Password, int RoleId, string? Email = null);
+public record UpdateEmailRequest(string? Email);
 
 [ApiController]
 [Route("api/users")]
@@ -29,7 +30,7 @@ public class UserController : ControllerBase
     {
         try
         {
-            var user = new User { FullName = request.FullName, Username = request.Username, RoleId = request.RoleId };
+            var user = new User { FullName = request.FullName, Username = request.Username, RoleId = request.RoleId, Email = request.Email };
             var created = await _userService.CreateAsync(user, request.Password);
             return Ok(ApiResponse<object>.Ok(created));
         }
@@ -44,5 +45,19 @@ public class UserController : ControllerBase
     {
         await _userService.DeactivateAsync(id);
         return Ok(ApiResponse<object>.Ok(new { }));
+    }
+
+    [HttpPut("{id}/email")]
+    public async Task<IActionResult> UpdateEmail(int id, UpdateEmailRequest request)
+    {
+        try
+        {
+            await _userService.UpdateEmailAsync(id, request.Email);
+            return Ok(ApiResponse<object>.Ok(new { }));
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(ApiResponse<object>.Fail(ex.Message));
+        }
     }
 }

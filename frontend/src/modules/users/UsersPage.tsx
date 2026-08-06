@@ -1,6 +1,9 @@
 import { useEffect, useState } from "react";
 import { Paper, TextField, Select, MenuItem, Button, Stack, Typography, Alert, Box, IconButton } from "@mui/material";
 import BlockIcon from "@mui/icons-material/Block";
+import EditIcon from "@mui/icons-material/Edit";
+import CheckIcon from "@mui/icons-material/Check";
+import CloseIcon from "@mui/icons-material/Close";
 import { PageHeader } from "../../components/PageHeader";
 import { SectionTitle } from "../../components/SectionTitle";
 import { UserService, UserRecord } from "./services/UserService";
@@ -14,8 +17,12 @@ export function UsersPage() {
   const [fullName, setFullName] = useState("");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [email, setEmail] = useState("");
   const [roleId, setRoleId] = useState("");
   const [message, setMessage] = useState<{ text: string; ok: boolean } | null>(null);
+
+  const [editingEmailId, setEditingEmailId] = useState<number | null>(null);
+  const [editingEmailValue, setEditingEmailValue] = useState("");
 
   const load = () => {
     UserService.getAll().then(setUsers);
@@ -31,9 +38,9 @@ export function UsersPage() {
       return;
     }
     try {
-      await UserService.create(fullName, username, password, Number(roleId));
+      await UserService.create(fullName, username, password, Number(roleId), email);
       setMessage({ text: `User "${username}" created.`, ok: true });
-      setFullName(""); setUsername(""); setPassword(""); setRoleId("");
+      setFullName(""); setUsername(""); setPassword(""); setEmail(""); setRoleId("");
       load();
     } catch (e: any) {
       setMessage({ text: e?.response?.data?.message ?? "Could not create user.", ok: false });
@@ -42,6 +49,22 @@ export function UsersPage() {
 
   const deactivate = async (id: number) => {
     await UserService.deactivate(id);
+    load();
+  };
+
+  const startEditEmail = (u: UserRecord) => {
+    setEditingEmailId(u.id);
+    setEditingEmailValue(u.email ?? "");
+  };
+
+  const cancelEditEmail = () => {
+    setEditingEmailId(null);
+    setEditingEmailValue("");
+  };
+
+  const saveEmail = async (id: number) => {
+    await UserService.updateEmail(id, editingEmailValue || null);
+    cancelEditEmail();
     load();
   };
 
@@ -55,6 +78,7 @@ export function UsersPage() {
         <Stack direction="row" spacing={2} flexWrap="wrap" alignItems="center">
           <TextField size="small" label="Full Name" value={fullName} onChange={(e) => setFullName(e.target.value)} />
           <TextField size="small" label="Username" value={username} onChange={(e) => setUsername(e.target.value)} />
+          <TextField size="small" label="Email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} helperText="Needed for password reset" />
           <TextField size="small" label="Password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} helperText="Min. 8 characters" />
           <Select size="small" displayEmpty value={roleId} onChange={(e) => setRoleId(e.target.value)} sx={{ minWidth: 200 }}>
             <MenuItem value=""><em>Select role</em></MenuItem>
@@ -73,6 +97,21 @@ export function UsersPage() {
                 {u.fullName} <Typography component="span" sx={{ color: "text.secondary", fontWeight: 400, fontSize: 12 }}>@{u.username}</Typography>
               </Typography>
               <Typography sx={{ fontSize: 12, color: "text.secondary" }}>{u.role?.name ?? "No role"}</Typography>
+
+              {editingEmailId === u.id ? (
+                <Stack direction="row" spacing={0.5} alignItems="center" sx={{ mt: 0.5 }}>
+                  <TextField size="small" type="email" value={editingEmailValue} onChange={(e) => setEditingEmailValue(e.target.value)} placeholder="Email" />
+                  <IconButton size="small" color="success" onClick={() => saveEmail(u.id)} title="Save"><CheckIcon fontSize="small" /></IconButton>
+                  <IconButton size="small" onClick={cancelEditEmail} title="Cancel"><CloseIcon fontSize="small" /></IconButton>
+                </Stack>
+              ) : (
+                <Stack direction="row" spacing={0.5} alignItems="center" sx={{ mt: 0.5 }}>
+                  <Typography sx={{ fontSize: 12, color: u.email ? "text.primary" : "text.secondary", fontStyle: u.email ? "normal" : "italic" }}>
+                    {u.email ?? "No email on file"}
+                  </Typography>
+                  <IconButton size="small" onClick={() => startEditEmail(u)} title="Edit email"><EditIcon sx={{ fontSize: 14 }} /></IconButton>
+                </Stack>
+              )}
             </Box>
             <Stack direction="row" spacing={1.5} alignItems="center">
               <StatusBadge status={u.isActive ? "Active" : "Inactive"} />

@@ -13,4 +13,8 @@ public class Item
     public string SopNumber { get; set; } = string.Empty;
     public List<Specification> Specifications { get; set; } = new();
     public List<SampleTest> AssignedTests { get; set; } = new();
+
+    // Frozen items are kept for historical Sample traceability but can no
+    // longer be used to receive new samples (see ProductWorkflowEngine.ReceiveAsync).
+    public bool IsActive { get; set; } = true;
 }

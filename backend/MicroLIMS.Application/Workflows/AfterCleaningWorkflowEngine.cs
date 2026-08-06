@@ -6,20 +6,16 @@ using MicroLIMS.Persistence.DbContext;
 namespace MicroLIMS.Application.Workflows;
 
 public record AfterCleaningReceiveRequest(int MachineId, int CauseOfTestingId, string SampledBy, string ControlNumber, int ReceivedByUserId);
-public record AfterCleaningPreparationSelection(int MachinePartId, List<string> TestTypes); // "Swab" / "Rinse" / a pathogen TestCode
 
 public interface IAfterCleaningWorkflowEngine : IStatefulWorkflowEngine
 {
     Task<Sample> ReceiveAsync(AfterCleaningReceiveRequest request);
 
-    // Checking (Part x TestType) is what generates the TestOrders - one
-    // per checked combination, no "collective sample" grouping at all.
-    Task<Sample> PrepareAsync(int sampleId, List<AfterCleaningPreparationSelection> selections, int userId);
-
-    // Swab and Rinse TAMC both use the same two-window incubation as EM.
-    Task StartStep1Async(int testOrderId, int userId);
-    Task StartStep2Async(int testOrderId, int userId);
-    Task<Result> CompleteAsync(int testOrderId, int finalCount, int userId);
+    // The checklist screen: selecting which machine parts are included
+    // in this batch is what generates the TestOrders (one per distinct
+    // TestCode across the selected parts' configurations) and the
+    // SampleLocation rows (one per selected MachinePartConfiguration).
+    Task<Sample> PrepareAsync(int sampleId, List<int> machinePartConfigurationIds, int userId);
 }
 
 public class AfterCleaningWorkflowEngine : IAfterCleaningWorkflowEngine
@@ -56,82 +52,59 @@ public class AfterCleaningWorkflowEngine : IAfterCleaningWorkflowEngine
         return sample;
     }
 
-    public async Task<Sample> PrepareAsync(int sampleId, List<AfterCleaningPreparationSelection> selections, int userId)
+    public async Task<Sample> PrepareAsync(int sampleId, List<int> machinePartConfigurationIds, int userId)
     {
-        var sample = await _db.Samples.Include(s => s.TestOrders).FirstOrDefaultAsync(s => s.Id == sampleId)
+        var sample = await _db.Samples.Include(s => s.TestOrders).Include(s => s.Locations).FirstOrDefaultAsync(s => s.Id == sampleId)
             ?? throw new InvalidOperationException($"Sample {sampleId} not found.");
 
         if (sample.PreparationStatus != SamplePreparationStatus.NeedsPreparation)
             throw new InvalidOperationException("This sample has already been prepared.");
 
-        if (selections.Count == 0 || selections.All(s => s.TestTypes.Count == 0))
-            throw new InvalidOperationException("At least one Part/test-type combination must be selected.");
+        if (machinePartConfigurationIds.Count == 0)
+            throw new InvalidOperationException("At least one machine part must be selected.");
 
-        foreach (var selection in selections)
+        var configs = await _db.MachinePartConfigurations
+            .Include(c => c.MachinePart)
+            .Where(c => machinePartConfigurationIds.Contains(c.Id))
+            .ToListAsync();
+
+        var missing = machinePartConfigurationIds.Except(configs.Select(c => c.Id)).ToList();
+        if (missing.Count > 0)
+            throw new InvalidOperationException($"Machine part configuration(s) not found: {string.Join(", ", missing)}.");
+
+        var wrongMachine = configs.Where(c => c.MachinePart?.MachineId != sample.MachineId).ToList();
+        if (wrongMachine.Count > 0)
+            throw new InvalidOperationException(
+                $"Part(s) {string.Join(", ", wrongMachine.Select(c => c.MachinePart?.Name))} do not belong to this sample's machine.");
+
+        // One TestOrder per distinct TestCode across every selected part -
+        // the whole batch shares a single incubation setup per test type.
+        var testOrdersByCode = new Dictionary<string, TestOrder>();
+        foreach (var config in configs)
         {
-            var configs = await _db.MachinePartConfigurations
-                .Where(c => c.MachinePartId == selection.MachinePartId && selection.TestTypes.Contains(c.TestType))
-                .ToListAsync();
-
-            // Checking a part's Swab/Rinse also pulls in any pathogen
-            // tests configured for that same part - TAMC + whatever
-            // pathogens are configured, per part.
-            foreach (var config in configs)
+            if (!testOrdersByCode.TryGetValue(config.TestCode, out var order))
             {
-                sample.TestOrders.Add(new TestOrder
+                order = new TestOrder
                 {
                     TestCode = config.TestCode,
                     Status = ApprovalStatus.Pending,
                     CurrentStep = WorkflowStep.Waiting
-                });
+                };
+                sample.TestOrders.Add(order);
+                testOrdersByCode[config.TestCode] = order;
             }
+
+            sample.Locations.Add(new SampleLocation
+            {
+                TestOrder = order,
+                LocationType = LocationType.MachinePart,
+                MachinePartConfigurationId = config.Id
+            });
         }
 
         sample.PreparationStatus = SamplePreparationStatus.Ready;
         await _db.SaveChangesAsync();
         return sample;
-    }
-
-    public async Task StartStep1Async(int testOrderId, int userId)
-    {
-        var order = await WorkflowStateMachine.LoadOrThrowAsync(_db, testOrderId);
-        if (order.CurrentStep != WorkflowStep.Waiting)
-            throw new InvalidOperationException("Step 1 can only start from the Waiting state.");
-
-        order.Incubations.Add(new Incubation { StepNumber = 1, StepName = "Step 1 window", StartedAt = DateTime.UtcNow });
-        await WorkflowStateMachine.TransitionAsync(_db, order, WorkflowStep.Incubating, userId, "Started Step 1 incubation window");
-    }
-
-    public async Task StartStep2Async(int testOrderId, int userId)
-    {
-        var order = await WorkflowStateMachine.LoadOrThrowAsync(_db, testOrderId);
-        var step1 = order.Incubations.Where(i => i.StepNumber == 1).OrderByDescending(i => i.StartedAt).FirstOrDefault()
-            ?? throw new InvalidOperationException("Step 1 was never started.");
-
-        if (step1.CompletedAt is null)
-            step1.CompletedAt = DateTime.UtcNow;
-
-        order.Incubations.Add(new Incubation { StepNumber = 2, StepName = "Step 2 window", StartedAt = DateTime.UtcNow });
-        await _db.SaveChangesAsync();
-    }
-
-    public async Task<Result> CompleteAsync(int testOrderId, int finalCount, int userId)
-    {
-        var order = await WorkflowStateMachine.LoadOrThrowAsync(_db, testOrderId);
-        var step2 = order.Incubations.Where(i => i.StepNumber == 2).OrderByDescending(i => i.StartedAt).FirstOrDefault()
-            ?? throw new InvalidOperationException("Step 2 window was never started.");
-
-        if (step2.CompletedAt is not null)
-            throw new InvalidOperationException("This test order has already been completed - workflow order violation.");
-
-        step2.CompletedAt = DateTime.UtcNow;
-        step2.Outcome = finalCount.ToString();
-
-        var result = new Result { TestOrderId = testOrderId, RawValue = finalCount.ToString(), EnteredByUserId = userId, Type = ResultType.Numeric };
-        _db.Results.Add(result);
-
-        await WorkflowStateMachine.TransitionAsync(_db, order, WorkflowStep.Ready, userId, $"Final count {finalCount}");
-        return result;
     }
 
     public async Task<WorkflowStep> AdvanceAsync(int testOrderId, int performedByUserId, string? note = null)
@@ -154,7 +127,7 @@ public class AfterCleaningWorkflowEngine : IAfterCleaningWorkflowEngine
         var order = await WorkflowStateMachine.LoadOrThrowAsync(_db, testOrderId);
         var errors = new List<string>();
         if (order.CurrentStep is WorkflowStep.Waiting or WorkflowStep.Running or WorkflowStep.Incubating)
-            errors.Add("Incubation must complete and a final count be entered before this test order can proceed.");
+            errors.Add("Batch results must be entered for every location before this test order can proceed.");
         return errors;
     }
 

@@ -30,8 +30,31 @@ public class ItemController : ControllerBase
     [Authorize(Roles = RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
     public async Task<IActionResult> Update(int id, [FromBody] Item item)
     {
-        item.Id = id;
-        await _itemService.UpdateAsync(item);
+        await _itemService.UpdateAsync(id, item);
+        return Ok(ApiResponse<object>.Ok(new { }));
+    }
+
+    [HttpPut("{id}/freeze")]
+    [Authorize(Roles = RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
+    public async Task<IActionResult> Freeze(int id)
+    {
+        await _itemService.SetActiveAsync(id, false);
+        return Ok(ApiResponse<object>.Ok(new { }));
+    }
+
+    [HttpPut("{id}/unfreeze")]
+    [Authorize(Roles = RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
+    public async Task<IActionResult> Unfreeze(int id)
+    {
+        await _itemService.SetActiveAsync(id, true);
+        return Ok(ApiResponse<object>.Ok(new { }));
+    }
+
+    [HttpDelete("{id}")]
+    [Authorize(Roles = RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
+    public async Task<IActionResult> Delete(int id)
+    {
+        await _itemService.DeleteAsync(id);
         return Ok(ApiResponse<object>.Ok(new { }));
     }
 }

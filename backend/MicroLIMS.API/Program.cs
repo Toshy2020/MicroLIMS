@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using MicroLIMS.API.Extensions;
 using MicroLIMS.API.Filters;
+using MicroLIMS.API.Json;
 using MicroLIMS.Persistence.DbContext;
 using System.Text;
 
@@ -39,7 +40,11 @@ builder.Services.AddAuthentication(options =>
 builder.Services.AddAuthorization();
 builder.Services.AddControllers(options => options.Filters.Add<ValidationFilter>())
     .AddJsonOptions(options =>
-        options.JsonSerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter()));
+    {
+        options.JsonSerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter());
+        options.JsonSerializerOptions.Converters.Add(new UtcDateTimeConverter());
+        options.JsonSerializerOptions.Converters.Add(new UtcNullableDateTimeConverter());
+    });
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
@@ -52,6 +57,14 @@ builder.Services.AddCors(options =>
 });
 
 var app = builder.Build();
+
+// Not fatal - the app keeps working (EmailSender no-ops sending) - but
+// this must be obvious in the console, since otherwise "password reset"
+// silently does nothing and looks like a bug rather than missing config.
+if (string.IsNullOrWhiteSpace(builder.Configuration["Smtp:Host"]))
+{
+    app.Logger.LogWarning("Smtp:Host is not configured - password reset emails will not actually be sent. Set the Smtp section in appsettings to enable delivery.");
+}
 
 if (app.Environment.IsDevelopment())
 {

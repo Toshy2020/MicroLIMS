@@ -30,8 +30,8 @@ export interface ItemBasedReceiveRequest {
   sampledBy: string;
   batchNumber: string;
   controlNumber: string;
-  mfgDate: string;
-  expDate: string;
+  mfgDate: string | null;
+  expDate: string | null;
   productionStage?: string | null;
 }
 

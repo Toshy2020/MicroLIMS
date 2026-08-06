@@ -3,7 +3,7 @@ import { Paper, TextField, Button, Table, TableHead, TableRow, TableCell, TableB
 import { PageHeader } from "../../../components/PageHeader";
 import { SectionTitle } from "../../../components/SectionTitle";
 import { StatusBadge } from "../../../components/StatusBadge";
-import { masterDataOptions } from "../../../services/masterDataOptions";
+import { masterDataOptions, mediaClassLabel } from "../../../services/masterDataOptions";
 import { apiClient } from "../../../services/apiClient";
 
 export function DiluentsPage() {
@@ -44,7 +44,7 @@ export function DiluentsPage() {
           {tracked === "Yes" && (
             <Select size="small" displayEmpty value={mediaTypeId} onChange={(e) => setMediaTypeId(e.target.value)}>
               <MenuItem value=""><em>Media Type</em></MenuItem>
-              {mediaTypes.map((m) => <MenuItem key={m.id} value={m.id}>{m.name}</MenuItem>)}
+              {mediaTypes.map((m) => <MenuItem key={m.id} value={m.id}>{mediaClassLabel(m.class)}</MenuItem>)}
             </Select>
           )}
           <Button variant="outlined" onClick={addDiluent}>Add</Button>

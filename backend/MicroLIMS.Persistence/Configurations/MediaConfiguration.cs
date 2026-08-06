@@ -16,5 +16,9 @@ public class MediaConfiguration : IEntityTypeConfiguration<Media>
 
         builder.HasOne(m => m.MediaType).WithMany().HasForeignKey(m => m.MediaTypeId).OnDelete(DeleteBehavior.Restrict);
         builder.HasOne(m => m.AutoclaveEquipment).WithMany().HasForeignKey(m => m.AutoclaveEquipmentId).OnDelete(DeleteBehavior.Restrict);
+
+        // Never let deleting a Material cascade into deleting Media history -
+        // same reasoning as the Incubation FKs (see IncubationConfiguration).
+        builder.HasOne(m => m.Material).WithMany().HasForeignKey(m => m.MaterialId).OnDelete(DeleteBehavior.Restrict);
     }
 }

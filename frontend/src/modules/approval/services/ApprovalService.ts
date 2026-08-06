@@ -10,7 +10,7 @@ export type ApprovalDecision =
   | "OOSInvestigation";
 
 export const ApprovalService = {
-  async decide(testOrderId: number, decision: ApprovalDecision, comment?: string) {
-    return (await apiClient.post("/approval", { testOrderId, decision, comment })).data.data;
+  async decide(testOrderId: number, decision: ApprovalDecision, comment: string | undefined, password: string) {
+    return (await apiClient.post("/approval", { testOrderId, decision, comment, password })).data.data;
   }
 };

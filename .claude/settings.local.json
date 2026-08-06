@@ -2,7 +2,29 @@
   "permissions": {
     "allow": [
       "PowerShell(dotnet build *)",
-      "PowerShell(dotnet test *)"
+      "PowerShell(dotnet test *)",
+      "Bash(dotnet build *)",
+      "Bash(dotnet test *)",
+      "Bash(powershell -NoProfile -Command \"Get-Process MicroLIMS.API -ErrorAction SilentlyContinue | Stop-Process -Force\")",
+      "Bash(dotnet ef *)",
+      "Bash(npx tsc *)",
+      "Bash(echo \"tsc exit: $?\")",
+      "Bash(grep -vE \"^namespace|^$|^//\")",
+      "Bash(cp /tmp/sample25.pdf /tmp/media23.pdf /tmp/cryo13.pdf \"E:/MicroLIMS/MicroLIMS/frontend/public/\" && ls -la \"E:/MicroLIMS/MicroLIMS/frontend/public/\" | grep pdf)",
+      "Bash(cd /tmp)",
+      "Bash(cygpath -w /tmp/sample25.pdf)",
+      "Bash(wslpath -w /tmp/sample25.pdf)",
+      "Bash(where psql *)",
+      "Bash(where docker *)",
+      "Bash(where python *)",
+      "Bash(where python3 *)",
+      "Read(//c/Program Files/PostgreSQL/**)",
+      "Read(//c/Program Files \\\\\\(x86\\\\\\)/**)",
+      "Bash(export PGPASSWORD='0125598369@Mt')",
+      "Bash(\"/c/Program Files/PostgreSQL/18/bin/psql.exe\" -h localhost -p 5432 -U postgres -d LIMSV2 -c \"SELECT \\\\\"Category\\\\\", COUNT\\(*\\) FROM \\\\\"Samples\\\\\" WHERE \\\\\"Category\\\\\" IN \\(4,5\\) GROUP BY \\\\\"Category\\\\\";\")",
+      "Bash(git status *)",
+      "Bash(git add *)",
+      "Bash(git commit *)"
     ]
   }
 }

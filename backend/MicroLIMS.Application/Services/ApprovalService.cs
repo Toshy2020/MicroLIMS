@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.DTOs;
+using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Persistence.DbContext;
 
@@ -11,19 +12,61 @@ namespace MicroLIMS.Application.Services;
 public class ApprovalService
 {
     private readonly MicroLimsDbContext _db;
+    private readonly SegregationOfDutiesGuard _segregationOfDuties;
+    private readonly IElectronicSignatureService _signatureService;
 
-    public ApprovalService(MicroLimsDbContext db)
+    public ApprovalService(MicroLimsDbContext db, SegregationOfDutiesGuard segregationOfDuties, IElectronicSignatureService signatureService)
     {
         _db = db;
+        _segregationOfDuties = segregationOfDuties;
+        _signatureService = signatureService;
     }
 
-    public async Task<ApprovalDto> DecideAsync(int testOrderId, ApprovalDecision decision, string? comment, int decidedByUserId)
+    public async Task<ApprovalDto> DecideAsync(int testOrderId, ApprovalDecision decision, string? comment, int decidedByUserId, string password, string? ipAddress)
     {
         var order = await _db.TestOrders.FirstOrDefaultAsync(t => t.Id == testOrderId)
             ?? throw new InvalidOperationException($"Test order {testOrderId} not found.");
 
         if (order.Status != ApprovalStatus.Reviewed)
             throw new InvalidOperationException("Test order must be reviewed before a decision can be made.");
+
+        if (await _segregationOfDuties.DidUserPerformTestAsync(testOrderId, decidedByUserId))
+            throw new InvalidOperationException("You cannot approve a test you performed. Approval must be done by a different person.");
+
+        var reviewerId = await _db.WorkflowHistories
+            .Where(w => w.TestOrderId == testOrderId && w.ToStep == WorkflowStep.Reviewed)
+            .OrderByDescending(w => w.Timestamp)
+            .Select(w => (int?)w.PerformedByUserId)
+            .FirstOrDefaultAsync();
+
+        if (reviewerId is not null && reviewerId == decidedByUserId)
+            throw new InvalidOperationException("You cannot approve a test you reviewed. Approval must be done by a different person.");
+
+        if (decision == ApprovalDecision.Investigation || decision == ApprovalDecision.OOSInvestigation)
+        {
+            // OOS/Investigation decisions require a documented reason -
+            // GMP requirement, not optional even if the UI allows blank
+            // comments elsewhere. Checked before signing so a doomed
+            // request never even prompts for password verification.
+            if (string.IsNullOrWhiteSpace(comment))
+                throw new InvalidOperationException($"{decision} requires a documented comment/justification.");
+        }
+
+        var meaning = decision switch
+        {
+            ApprovalDecision.Approve => SignatureMeaning.Approved,
+            ApprovalDecision.Reject => SignatureMeaning.Rejected,
+            ApprovalDecision.RetestRetainedSample => SignatureMeaning.RetestRequested,
+            ApprovalDecision.NewSampleRequest => SignatureMeaning.RetestRequested,
+            ApprovalDecision.Investigation => SignatureMeaning.InvestigationOrdered,
+            ApprovalDecision.OOSInvestigation => SignatureMeaning.InvestigationOrdered,
+            _ => throw new InvalidOperationException($"Unknown decision '{decision}'.")
+        };
+
+        // Signs first - if password verification fails, nothing below is
+        // written (the signature and the state change below commit
+        // together in the single SaveChangesAsync at the end).
+        await _signatureService.SignAsync(decidedByUserId, password, meaning, "TestOrder", testOrderId, comment, ipAddress);
 
         order.Status = decision switch
         {
@@ -35,14 +78,6 @@ public class ApprovalService
             ApprovalDecision.OOSInvestigation => ApprovalStatus.RetestRequested,
             _ => throw new InvalidOperationException($"Unknown decision '{decision}'.")
         };
-
-        if (decision == ApprovalDecision.Investigation || decision == ApprovalDecision.OOSInvestigation)
-        {
-            // OOS/Investigation decisions require a documented reason -
-            // GMP requirement, not optional even if the UI allows blank comments elsewhere.
-            if (string.IsNullOrWhiteSpace(comment))
-                throw new InvalidOperationException($"{decision} requires a documented comment/justification.");
-        }
 
         RecordDecisionHistory(order.Id, decision, comment, decidedByUserId);
 

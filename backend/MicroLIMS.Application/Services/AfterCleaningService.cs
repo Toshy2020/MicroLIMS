@@ -1,6 +1,5 @@
 using MicroLIMS.Application.DTOs;
 using MicroLIMS.Application.Workflows;
-using MicroLIMS.Domain.Entities;
 
 namespace MicroLIMS.Application.Services;
 
@@ -19,15 +18,9 @@ public class AfterCleaningService
         return TestingWorkspaceService.ToDto(sample);
     }
 
-    public async Task<SampleDto> PrepareAsync(int sampleId, List<AfterCleaningPreparationSelection> selections, int userId)
+    public async Task<SampleDto> PrepareAsync(int sampleId, List<int> machinePartConfigurationIds, int userId)
     {
-        var sample = await _workflow.PrepareAsync(sampleId, selections, userId);
+        var sample = await _workflow.PrepareAsync(sampleId, machinePartConfigurationIds, userId);
         return TestingWorkspaceService.ToDto(sample);
     }
-
-    public Task StartStep1Async(int testOrderId, int userId) => _workflow.StartStep1Async(testOrderId, userId);
-    public Task StartStep2Async(int testOrderId, int userId) => _workflow.StartStep2Async(testOrderId, userId);
-
-    public Task<Result> CompleteAsync(int testOrderId, int finalCount, int userId) =>
-        _workflow.CompleteAsync(testOrderId, finalCount, userId);
 }

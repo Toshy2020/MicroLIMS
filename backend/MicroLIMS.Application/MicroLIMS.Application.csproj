@@ -12,5 +12,6 @@
     <ProjectReference Include="..\MicroLIMS.Domain\MicroLIMS.Domain.csproj" />
     <ProjectReference Include="..\MicroLIMS.Persistence\MicroLIMS.Persistence.csproj" />
     <ProjectReference Include="..\MicroLIMS.Infrastructure\MicroLIMS.Infrastructure.csproj" />
+    <ProjectReference Include="..\MicroLIMS.Shared\MicroLIMS.Shared.csproj" />
   </ItemGroup>
 </Project>

@@ -20,6 +20,11 @@ public class SampleConfiguration : IEntityTypeConfiguration<Sample>
         builder.HasOne(s => s.Machine).WithMany().HasForeignKey(s => s.MachineId).OnDelete(DeleteBehavior.Restrict);
         builder.HasOne(s => s.CauseOfTesting).WithMany().HasForeignKey(s => s.CauseOfTestingId).OnDelete(DeleteBehavior.Restrict);
 
+        // Never let deleting/reassigning the reviewer or approver cascade
+        // into deleting the Sample - same reasoning as the other actor FKs.
+        builder.HasOne<User>().WithMany().HasForeignKey(s => s.ReviewedByUserId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasOne<User>().WithMany().HasForeignKey(s => s.ApprovedByUserId).OnDelete(DeleteBehavior.Restrict);
+
         builder.HasMany(s => s.TestOrders)
                .WithOne(t => t.Sample)
                .HasForeignKey(t => t.SampleId);

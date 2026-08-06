@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Domain.Entities;
+using MicroLIMS.Domain.Enums;
 using MicroLIMS.Persistence.DbContext;
 
 namespace MicroLIMS.Application.Services;
@@ -74,8 +75,23 @@ public class SamplePreparationService
             PreparedByUserId = request.UserId
         };
 
+        sample.PreparationStatus = SamplePreparationStatus.Ready;
+
         _db.SamplePreparations.Add(prep);
         await _db.SaveChangesAsync();
+
+        // "Start Testing" - the person who completes preparation is
+        // assigned as the analyst for every test on this sample that
+        // hasn't started yet. Tests already past Waiting keep whoever's
+        // already on them.
+        var waitingOrders = await _db.TestOrders
+            .Where(t => t.SampleId == request.SampleId && t.CurrentStep == WorkflowStep.Waiting)
+            .ToListAsync();
+        foreach (var order in waitingOrders)
+            order.AssignedAnalystId = request.UserId;
+        if (waitingOrders.Count > 0)
+            await _db.SaveChangesAsync();
+
         return prep;
     }
 

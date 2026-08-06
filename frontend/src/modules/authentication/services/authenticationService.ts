@@ -1,15 +1,15 @@
 import { apiClient } from "../../../services/apiClient";
-import { LoginResult } from "../types/authTypes";
+import { CurrentUserInfo, LoginResult } from "../types/authTypes";
 
 // Every module service calls the backend and does no business logic
 // of its own (Frozen Principle #3).
 export const authenticationService = {
   async login(username: string, password: string): Promise<LoginResult> {
     const res = await apiClient.post("/auth/login", { username, password });
-    const { token, refreshToken } = res.data.data as { token: string; refreshToken: string };
+    const { token, refreshToken, mustChangePassword } = res.data.data as { token: string; refreshToken: string; mustChangePassword: boolean };
     const payload = JSON.parse(atob(token.split(".")[1]));
     const role = payload["http://schemas.microsoft.com/ws/2008/06/identity/claims/role"] ?? payload.role;
-    return { token, refreshToken, role };
+    return { token, refreshToken, role, mustChangePassword };
   },
 
   async refresh(refreshToken: string) {
@@ -29,8 +29,8 @@ export const authenticationService = {
     return (await apiClient.post("/auth/change-password", { currentPassword, newPassword })).data.data;
   },
 
-  async me() {
+  async me(): Promise<CurrentUserInfo> {
     const res = await apiClient.get("/auth/me");
-    return res.data.data;
+    return res.data.data as CurrentUserInfo;
   }
 };

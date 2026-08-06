@@ -19,4 +19,9 @@ public class PdfGenerator : IPdfGenerator
     {
         return Task.FromResult(SimplePdfWriter.WriteTextDocument(title, lines));
     }
+
+    public Task<byte[]> GenerateReportAsync(ReportDocument document)
+    {
+        return Task.FromResult(new ReportPdfRenderer().Render(document));
+    }
 }

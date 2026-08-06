@@ -8,7 +8,7 @@ namespace MicroLIMS.Application.Services;
 public record SaveMaterialRequest(
     MaterialType MaterialType, string MaterialName, string ManufacturerName, string BatchNumber,
     DateTime ReceivingDate, DateTime? ExpiryDate, string? Code, string Location,
-    decimal QuantityReceived, MaterialUnit Unit, decimal? MinimumStockLevel);
+    decimal QuantityReceived, MaterialUnit Unit, decimal? MinimumStockLevel, string? AtccNumber, int? OrganismId);
 
 // Materials Stock register (Inventory module) - dehydrated media, discs,
 // ID kits/reagents, chemicals, indicators, reference buffers, disposable
@@ -35,6 +35,7 @@ public class MaterialService
     public static MaterialUnit DefaultUnitFor(MaterialType type) => type switch
     {
         MaterialType.DehydratedMedia => MaterialUnit.Gram,
+        MaterialType.LyophilizedMicroorganism => MaterialUnit.Disc,
         MaterialType.Supplement => MaterialUnit.Milliliter,
         MaterialType.AntibioticDisc => MaterialUnit.Disc,
         MaterialType.IdentificationKit => MaterialUnit.Kit,
@@ -48,7 +49,7 @@ public class MaterialService
 
     public async Task<List<Material>> GetAllAsync(MaterialType? type = null)
     {
-        var query = _db.Materials.AsQueryable();
+        var query = _db.Materials.Include(m => m.Organism).AsQueryable();
         if (type.HasValue) query = query.Where(m => m.MaterialType == type.Value);
         return await query.OrderBy(m => m.MaterialType).ThenBy(m => m.MaterialName).ToListAsync();
     }
@@ -66,7 +67,7 @@ public class MaterialService
         {
             MaterialType = r.MaterialType, MaterialName = r.MaterialName, ManufacturerName = r.ManufacturerName,
             BatchNumber = r.BatchNumber, ReceivingDate = r.ReceivingDate, ExpiryDate = r.ExpiryDate,
-            Code = r.Code, Location = r.Location,
+            Code = r.Code, Location = r.Location, AtccNumber = r.AtccNumber, OrganismId = r.OrganismId,
             QuantityReceived = r.QuantityReceived, QuantityRemaining = r.QuantityReceived, // full balance at receipt
             Unit = r.Unit, MinimumStockLevel = r.MinimumStockLevel,
             CreatedByUserId = currentUserId, CreatedAt = DateTime.UtcNow,
@@ -97,6 +98,8 @@ public class MaterialService
         entity.ExpiryDate = r.ExpiryDate;
         entity.Code = r.Code;
         entity.Location = r.Location;
+        entity.AtccNumber = r.AtccNumber;
+        entity.OrganismId = r.OrganismId;
         entity.QuantityReceived = r.QuantityReceived;
         entity.QuantityRemaining += receivedDelta;
         entity.Unit = r.Unit;

@@ -1,0 +1,162 @@
+import { useState } from "react";
+import { TableRow, TableCell, Box, Typography, Collapse, IconButton, Stack } from "@mui/material";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import ExpandLessIcon from "@mui/icons-material/ExpandLess";
+import { SampleCard as SampleCardType, TestOrderSummary } from "./types/workspaceTypes";
+import { EditableCell } from "./EditableCell";
+import { WorkspaceService } from "./services/WorkspaceService";
+import { CategoryBadge, StatusBadge } from "../../components/StatusBadge";
+import { SampleLifecycleBadge } from "./SampleLifecycleBadge";
+import { useAuth } from "../../contexts/AuthContext";
+
+interface Props {
+  sample: SampleCardType;
+  onTestClick: (test: TestOrderSummary, sample: SampleCardType) => void;
+  onNeedsPreparationClick: () => void;
+  onCorrected: () => void;
+  onLifecycleBadgeClick: (sampleId: number) => void;
+  visibleColumns: Set<string>;
+  colSpan: number;
+}
+
+const PRODUCT_LIKE = ["FinishedProduct", "RawMaterial", "PackagingMaterial"];
+const formatDate = (d: string | null) => (d ? new Date(d).toLocaleDateString() : "");
+
+// Assignment lives per-TestOrder, but this row shows one value per
+// sample - if every test that has an assignee agrees, show that name;
+// otherwise show the first plus a "+N" count of the rest.
+function assignedToLabel(tests: TestOrderSummary[]): string {
+  const names = Array.from(new Set(tests.map((t) => t.assignedAnalystName).filter((n): n is string => !!n)));
+  if (names.length === 0) return "Unassigned";
+  if (names.length === 1) return names[0];
+  return `${names[0]} +${names.length - 1}`;
+}
+
+// One row (plus an optional expandable detail row for the
+// category-specific fields that don't fit a compact table) per sample -
+// the grid/table replacement for the old card layout.
+export function SampleTableRow({ sample, onTestClick, onNeedsPreparationClick, onCorrected, onLifecycleBadgeClick, visibleColumns, colSpan }: Props) {
+  const { role } = useAuth();
+  const [expanded, setExpanded] = useState(false);
+  const needsPreparation = sample.preparationStatus === "NeedsPreparation";
+  const isProductLike = PRODUCT_LIKE.includes(sample.category);
+  const isWater = sample.category === "Water";
+  const isEmOrAfterCleaning = sample.category === "EnvironmentalMonitoring" || sample.category === "AfterCleaning";
+  const hasDetails = isProductLike || isWater || (!isEmOrAfterCleaning && sample.sampleQuantity) || sample.sampledBy;
+
+  const correct = async (field: "batchNumber" | "controlNumber", value: string) => {
+    await WorkspaceService.correctSample(sample.sampleId, field === "batchNumber" ? value : undefined, field === "controlNumber" ? value : undefined);
+    onCorrected();
+  };
+
+  return (
+    <>
+      <TableRow hover sx={{ borderLeft: needsPreparation ? "3px solid #f59e0b" : "3px solid transparent" }}>
+        <TableCell sx={{ width: 36 }}>
+          {hasDetails && (
+            <IconButton size="small" onClick={() => setExpanded((e) => !e)}>
+              {expanded ? <ExpandLessIcon fontSize="small" /> : <ExpandMoreIcon fontSize="small" />}
+            </IconButton>
+          )}
+        </TableCell>
+        <TableCell>
+          <Typography sx={{ fontWeight: 700, fontSize: 13 }}>{sample.displayName}</Typography>
+          <Typography sx={{ fontSize: 11, color: "text.secondary" }}>{sample.referenceNumber}</Typography>
+        </TableCell>
+        {visibleColumns.has("category") && <TableCell><CategoryBadge category={sample.category} /></TableCell>}
+        {visibleColumns.has("batch") && (
+          <TableCell>
+            {isProductLike ? (
+              <EditableCell value={sample.batchNumber ?? ""} editable={!sample.incubationStarted} onSave={(v) => correct("batchNumber", v)} />
+            ) : "—"}
+          </TableCell>
+        )}
+        {visibleColumns.has("control") && (
+          <TableCell>
+            <EditableCell value={sample.controlNumber} editable={!sample.incubationStarted} onSave={(v) => correct("controlNumber", v)} />
+          </TableCell>
+        )}
+        {visibleColumns.has("cause") && <TableCell sx={{ fontSize: 12 }}>{sample.causeOfTesting}</TableCell>}
+        {visibleColumns.has("receivedAt") && <TableCell sx={{ fontSize: 12, whiteSpace: "nowrap" }}>{formatDate(sample.receivedAt)}</TableCell>}
+        {visibleColumns.has("tests") && (
+          <TableCell sx={{ minWidth: 220 }}>
+            {needsPreparation ? (
+              <Box
+                onClick={onNeedsPreparationClick}
+                sx={{
+                  cursor: "pointer", display: "inline-block", px: 1.25, py: 0.5, borderRadius: 5, fontSize: 12, fontWeight: 700,
+                  border: "1px solid #f59e0b", bgcolor: "#fef3c7", color: "#92400e", "&:hover": { bgcolor: "#fde68a" }
+                }}
+              >
+                Needs Preparation
+              </Box>
+            ) : (
+              <Stack direction="row" spacing={0.5} flexWrap="wrap" useFlexGap>
+                {sample.assignedTests.map((test) => {
+                  const unitLabel = sample.category === "EnvironmentalMonitoring" ? "rooms" : "parts";
+                  const label = test.locationCount > 0 ? `${test.testCode} (${test.locationCount} ${unitLabel})` : test.testCode;
+                  return (
+                    <Box
+                      key={test.testOrderId}
+                      onClick={() => onTestClick(test, sample)}
+                      sx={{
+                        cursor: "pointer", display: "flex", alignItems: "center", gap: 0.5,
+                        px: 0.75, py: 0.25, borderRadius: 1.5, bgcolor: "#f3e8ff", "&:hover": { bgcolor: "#e9d5ff" }
+                      }}
+                    >
+                      <Typography sx={{ fontSize: 11, fontWeight: 600 }}>{label}</Typography>
+                      <StatusBadge status={test.status} />
+                    </Box>
+                  );
+                })}
+              </Stack>
+            )}
+          </TableCell>
+        )}
+        {visibleColumns.has("assignedTo") && (
+          <TableCell sx={{ fontSize: 12 }}>{assignedToLabel(sample.assignedTests)}</TableCell>
+        )}
+        {visibleColumns.has("status") && (
+          <TableCell>
+            <SampleLifecycleBadge status={sample.status} role={role} onClick={() => onLifecycleBadgeClick(sample.sampleId)} />
+          </TableCell>
+        )}
+      </TableRow>
+      {hasDetails && (
+        <TableRow>
+          <TableCell sx={{ p: 0, border: 0 }} colSpan={colSpan}>
+            <Collapse in={expanded} unmountOnExit>
+              <Box sx={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 1, p: 1.5, bgcolor: "#faf9fc" }}>
+                {sample.category === "FinishedProduct" && sample.productionStage && (
+                  <DetailField label="Production Stage" value={sample.productionStage} />
+                )}
+                {!isEmOrAfterCleaning && sample.sampleQuantity && <DetailField label="Sample Quantity" value={sample.sampleQuantity} />}
+                <DetailField label="Sampled By" value={sample.sampledBy} />
+                {isProductLike && <DetailField label="Mfg Date" value={formatDate(sample.mfgDate)} />}
+                {isProductLike && <DetailField label="Exp Date" value={formatDate(sample.expDate)} />}
+                {isWater && (
+                  <DetailField label="Sampling Point" value={sample.waterSamplingPointCode ? `${sample.waterSamplingPointCode} — ${sample.waterSamplingPointLocation}` : ""} />
+                )}
+                {isWater && sample.storageCondition && (
+                  <DetailField
+                    label="Storage Condition"
+                    value={sample.storageCondition === "Refrigerator" ? `Refrigerator (${sample.storageTimeHours ?? "?"}h)` : sample.storageCondition}
+                  />
+                )}
+              </Box>
+            </Collapse>
+          </TableCell>
+        </TableRow>
+      )}
+    </>
+  );
+}
+
+function DetailField({ label, value }: { label: string; value: string }) {
+  return (
+    <Box>
+      <Typography sx={{ fontSize: 10, color: "text.secondary" }}>{label}</Typography>
+      <Typography sx={{ fontSize: 12, fontWeight: 600 }}>{value || "—"}</Typography>
+    </Box>
+  );
+}

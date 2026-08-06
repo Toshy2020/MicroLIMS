@@ -46,5 +46,12 @@ public class Sample
     public string? StorageCondition { get; set; } // "Refrigerator" or "RoomTemperature"
     public int? StorageTimeHours { get; set; }     // only if refrigerated
 
+    public int? ReviewedByUserId { get; set; }
+    public DateTime? ReviewedAt { get; set; }
+    public int? ApprovedByUserId { get; set; }
+    public DateTime? ApprovedAt { get; set; }
+    public ApprovalDecision? ApprovalDecision { get; set; }
+
     public List<TestOrder> TestOrders { get; set; } = new();
+    public List<SampleLocation> Locations { get; set; } = new();
 }

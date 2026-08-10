@@ -14,3 +14,7 @@ frontend/.env
 .vs/
 .vscode/
 .DS_Store
+
+# Claude Code worktrees and SDD scratch (git-ignored working state)
+.claude/worktrees/
+.superpowers/

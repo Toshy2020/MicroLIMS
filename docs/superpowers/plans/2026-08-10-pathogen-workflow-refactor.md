@@ -2382,20 +2382,22 @@ This is the single place a pathogen workflow reaches a final result. It reuses t
             Type = ResultType.Qualitative, EnteredByUserId = userId
         });
 
-        _db.WorkflowHistories.Add(new WorkflowHistory
-        {
-            TestOrderId = testOrderId, FromStep = order.CurrentStep, ToStep = WorkflowStep.Ready,
-            Note = $"Pathogen workflow completed: {finalResult}.", PerformedByUserId = userId
-        });
-
-        order.CurrentStep = WorkflowStep.Ready;
-        order.Status = ApprovalStatus.ResultEntered;
         await _db.SaveChangesAsync();
 
-        await _resultProjection.UpsertFromPathogenResultAsync(testOrderId);
+        // TransitionAsync owns the WorkflowStep -> ApprovalStatus mapping
+        // and the WorkflowHistory row. Setting CurrentStep/Status inline
+        // here would duplicate that mapping and let the two copies drift.
+        await WorkflowStateMachine.TransitionAsync(
+            _db, order, WorkflowStep.Ready, userId, $"Workflow complete: {finalResult}");
 
-        var sampleId = await _db.TestOrders.Where(t => t.Id == testOrderId).Select(t => t.SampleId).FirstAsync();
-        await _sampleReviewService.AutoSubmitForReviewIfReadyAsync(sampleId, userId);
+        await _resultProjection.UpsertFromPathogenResultAsync(testOrderId);
+        await _sampleReviewService.AutoSubmitForReviewIfReadyAsync(order.SampleId, userId);
+
+        // Both calls above only stage their changes - the ResultRecord
+        // projection and the sample's submit-for-review transition. The
+        // sibling finalization paths all flush them here; without this
+        // save both are silently discarded.
+        await _db.SaveChangesAsync();
     }
 ```
 

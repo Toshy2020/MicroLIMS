@@ -3,7 +3,11 @@ backend/**/bin/
 backend/**/obj/
 backend/**/*.user
 backend/MicroLIMS.API/appsettings.Development.json
-storage/
+# Runtime file-storage output at the repo root only. Anchored with a
+# leading slash: a bare "storage/" also matched
+# backend/MicroLIMS.Infrastructure/Storage/ on case-insensitive
+# filesystems, which silently kept two source files out of the repo.
+/storage/
 
 # Frontend
 frontend/node_modules/

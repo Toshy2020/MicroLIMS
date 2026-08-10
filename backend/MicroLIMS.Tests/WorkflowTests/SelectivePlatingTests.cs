@@ -93,4 +93,22 @@ public class SelectivePlatingTests
         Assert.Equal(GrowthObservation.NoGrowth, observation.Observation);
         Assert.Equal(4, observation.ObservedByUserId);
     }
+
+    [Fact]
+    public async Task Submission_ProjectsAResultRecordForTheFinalizedWorkflow()
+    {
+        var (orderId, media, incubatorId, engine, db) = await ReadyForPlatingAsync();
+        await using var _ = db;
+
+        // A NoGrowth call finalizes the workflow as NotDetected -
+        // FinalizeWorkflowAsync must flush the ResultProjectionService
+        // and SampleReviewService calls it makes, both of which only
+        // stage their changes and rely on the caller to save.
+        await engine.SubmitSelectivePlatingAsync(orderId, "Selective Plating",
+            media.SelectivePlatingLotId, incubatorId, DateTime.UtcNow.AddHours(-30), DateTime.UtcNow.AddHours(-6),
+            GrowthObservation.NoGrowth, userId: 4);
+
+        var record = await db.ResultRecords.SingleAsync(r => r.TestOrderId == orderId);
+        Assert.Equal("Not Detected", record.ReportedValue);
+    }
 }

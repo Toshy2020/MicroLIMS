@@ -905,6 +905,12 @@ public class TestWorkflowEngine : ITestWorkflowEngine
 
         await _resultProjection.UpsertFromPathogenResultAsync(testOrderId);
         await _sampleReviewService.AutoSubmitForReviewIfReadyAsync(order.SampleId, userId);
+
+        // Both calls above only stage their changes - the ResultRecord
+        // projection and the sample's submit-for-review transition. The
+        // sibling finalization paths all flush them here; without this
+        // save both are silently discarded.
+        await _db.SaveChangesAsync();
     }
 
     public async Task<WorkflowStep> AdvanceAsync(int testOrderId, int performedByUserId, string? note = null)

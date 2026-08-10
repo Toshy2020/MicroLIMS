@@ -895,20 +895,16 @@ public class TestWorkflowEngine : ITestWorkflowEngine
             Type = ResultType.Interpretive, EnteredByUserId = userId
         });
 
-        _db.WorkflowHistories.Add(new WorkflowHistory
-        {
-            TestOrderId = testOrderId, FromStep = order.CurrentStep, ToStep = WorkflowStep.Ready,
-            Note = $"Pathogen workflow completed: {finalResult}.", PerformedByUserId = userId
-        });
-
-        order.CurrentStep = WorkflowStep.Ready;
-        order.Status = ApprovalStatus.ResultEntered;
         await _db.SaveChangesAsync();
 
-        await _resultProjection.UpsertFromPathogenResultAsync(testOrderId);
+        // TransitionAsync owns the WorkflowStep -> ApprovalStatus mapping
+        // and the WorkflowHistory row. Setting CurrentStep/Status inline
+        // here would duplicate that mapping and let the two copies drift.
+        await WorkflowStateMachine.TransitionAsync(
+            _db, order, WorkflowStep.Ready, userId, $"Workflow complete: {finalResult}");
 
-        var sampleId = await _db.TestOrders.Where(t => t.Id == testOrderId).Select(t => t.SampleId).FirstAsync();
-        await _sampleReviewService.AutoSubmitForReviewIfReadyAsync(sampleId, userId);
+        await _resultProjection.UpsertFromPathogenResultAsync(testOrderId);
+        await _sampleReviewService.AutoSubmitForReviewIfReadyAsync(order.SampleId, userId);
     }
 
     public async Task<WorkflowStep> AdvanceAsync(int testOrderId, int performedByUserId, string? note = null)

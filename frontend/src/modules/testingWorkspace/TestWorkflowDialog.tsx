@@ -13,6 +13,44 @@ interface Props { testOrderId: number; testCode: string; category: string; displ
 
 type Phase = "loading" | "select-media" | "awaiting-result" | "enter-result" | "step-complete" | "all-complete";
 
+// Read-only progress strip above the phase content - one chip per step
+// in the template, sourced from current-step's allSteps/completedSteps/
+// step fields. No click actions.
+function StepChainStrip({ current }: { current: any }) {
+  const completedByOrder = new Map<number, any>((current.completedSteps ?? []).map((s: any) => [s.stepOrder, s]));
+  const currentOrder = current.step?.stepOrder ?? null;
+
+  return (
+    <Stack direction="row" spacing={1} sx={{ mb: 2, flexWrap: "wrap" }}>
+      {(current.allSteps ?? []).map((s: any) => {
+        const done = completedByOrder.get(s.stepOrder);
+        const isCurrent = s.stepOrder === currentOrder;
+        const isInconclusive = done?.outcome?.startsWith("Inconclusive");
+
+        let bg = "#eef0f4", color = "#6b7280", border = "1px solid #d9dce3";
+        let label = s.stepName;
+        if (done) {
+          label = `${s.stepName}: ${done.outcome}`;
+          bg = isInconclusive ? "#fdecea" : "#e8f6ec";
+          color = isInconclusive ? "#b3261e" : "#1e7a34";
+          border = `1px solid ${isInconclusive ? "#f3b7b2" : "#a8ddb5"}`;
+        } else if (isCurrent) {
+          label = `${s.stepName}: In progress`;
+          bg = "#eaf1fd";
+          color = "#1a56db";
+          border = "1px solid #a9c6f5";
+        }
+
+        return (
+          <Box key={s.stepOrder} sx={{ px: 1.25, py: 0.5, borderRadius: 999, fontSize: 12, fontWeight: 600, bgcolor: bg, color, border }}>
+            {done ? (isInconclusive ? "✗ " : "✓ ") : ""}{label}
+          </Box>
+        );
+      })}
+    </Stack>
+  );
+}
+
 // Universal workflow dialog for any TestDefinition with a configured
 // step template (WorkflowType + TestWorkflowStep) - reads
 // GET current-step to find out what phase to render, instead of
@@ -32,6 +70,13 @@ export function TestWorkflowDialog({ testOrderId, testCode, category, displayNam
   const [releasedMedia, setReleasedMedia] = useState<any[]>([]);
   const [incubators, setIncubators] = useState<any[]>([]);
 
+  // Phase A dual-plate (DualGrowth) media selection - independent from
+  // the single mediaId/incubatorId above, which stays plate 1's lot for
+  // a dual step (the incubator picker itself is shared, unchanged).
+  const [plate2MediaId, setPlate2MediaId] = useState<number | "">("");
+  const [plate1Label, setPlate1Label] = useState("");
+  const [plate2Label, setPlate2Label] = useState("");
+
   const [readings, setReadings] = useState<string[]>([""]);
   const [dilutionFactor, setDilutionFactor] = useState("1");
   const [growthObserved, setGrowthObserved] = useState<"yes" | "no" | "">("");
@@ -45,7 +90,8 @@ export function TestWorkflowDialog({ testOrderId, testCode, category, displayNam
     try {
       const data = await TestWorkflowService.getCurrentStep(testOrderId);
       setCurrent(data);
-      setMediaId(""); setIncubatorId("");
+      setMediaId(""); setIncubatorId(""); setPlate2MediaId("");
+      setPlate1Label(data.step?.plate1DefaultLabel ?? ""); setPlate2Label(data.step?.plate2DefaultLabel ?? "");
       setReadings([""]); setDilutionFactor("1");
       setGrowthObserved(""); setPlate1Growth(""); setPlate2Growth("");
       setPhase(data.allStepsComplete ? "all-complete" : data.incubation ? "awaiting-result" : "select-media");
@@ -63,6 +109,8 @@ export function TestWorkflowDialog({ testOrderId, testCode, category, displayNam
   }, [phase]);
 
   const step = current?.step;
+  const isDualGrowth = step?.stepResultType === "DualGrowth";
+  const samePlateLot = isDualGrowth && mediaId !== "" && plate2MediaId !== "" && mediaId === plate2MediaId;
   const classMedia = releasedMedia.filter((m) => m.mediaTypeId === step?.mediaTypeId || m.mediaType?.id === step?.mediaTypeId);
   // Some steps are named after the exact material they require (e.g.
   // "MSA", "TSB", "RVS") - when that's the case, narrow down to just
@@ -92,8 +140,14 @@ export function TestWorkflowDialog({ testOrderId, testCode, category, displayNam
   const startIncubation = async () => {
     setError(null);
     if (!mediaId || !incubatorId) return;
+    if (isDualGrowth && (!plate2MediaId || !plate1Label.trim() || !plate2Label.trim() || samePlateLot)) return;
     try {
-      await TestWorkflowService.selectMedia(testOrderId, step.stepName, Number(mediaId), Number(incubatorId));
+      await TestWorkflowService.selectMedia(
+        testOrderId, step.stepName, Number(mediaId), Number(incubatorId),
+        isDualGrowth ? Number(plate2MediaId) : undefined,
+        isDualGrowth ? plate1Label.trim() : undefined,
+        isDualGrowth ? plate2Label.trim() : undefined
+      );
       await load();
     } catch (e: any) {
       setError(e?.response?.data?.message ?? "Could not start incubation for this step.");
@@ -122,9 +176,12 @@ export function TestWorkflowDialog({ testOrderId, testCode, category, displayNam
         const parsed = readings.map(Number).filter((n) => !Number.isNaN(n));
         if (parsed.length === 0) { setError("Enter at least one plate reading."); return; }
         payload = { stepName: step.stepName, plateReadings: parsed, dilutionFactor: Number(dilutionFactor) };
-      } else if (step.isDualPlate) {
+      } else if (isDualGrowth) {
         if (!plate1Growth || !plate2Growth) { setError("Record both plates' growth observation."); return; }
-        payload = { stepName: step.stepName, plate1GrowthObserved: plate1Growth === "yes", plate2GrowthObserved: plate2Growth === "yes" };
+        payload = {
+          stepName: step.stepName, plate1GrowthObserved: plate1Growth === "yes", plate2GrowthObserved: plate2Growth === "yes",
+          plate1Label, plate2Label
+        };
       } else {
         if (!growthObserved) { setError("Record whether growth was observed."); return; }
         payload = { stepName: step.stepName, growthObserved: growthObserved === "yes" };
@@ -154,6 +211,7 @@ export function TestWorkflowDialog({ testOrderId, testCode, category, displayNam
     const outcome = lastOutcome?.finalResult ?? current.finalResult;
     return (
       <Box>
+        <StepChainStrip current={current} />
         <Alert severity={outcome === "Detected" ? "error" : "success"} sx={{ mb: 1 }}>
           Final result: <strong>{outcome}</strong>
         </Alert>
@@ -164,6 +222,7 @@ export function TestWorkflowDialog({ testOrderId, testCode, category, displayNam
 
   return (
     <Box>
+      <StepChainStrip current={current} />
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
 
       <Typography sx={{ fontWeight: 700, mb: 0.5 }}>
@@ -176,10 +235,35 @@ export function TestWorkflowDialog({ testOrderId, testCode, category, displayNam
           <Typography variant="body2" color="text.secondary">
             Requires {mediaClassLabel(step.mediaType?.class)} media.
           </Typography>
-          <Select displayEmpty size="small" value={mediaId} onChange={(e) => setMediaId(Number(e.target.value))}>
-            <MenuItem value=""><em>Media Batch ({mediaClassLabel(step.mediaType?.class)} lots only)</em></MenuItem>
-            {matchingMedia.map((m) => <MenuItem key={m.id} value={m.id}>{m.lotNumber} — expires {new Date(m.expiryDate).toLocaleDateString()}</MenuItem>)}
-          </Select>
+
+          {isDualGrowth ? (
+            <Stack direction="row" spacing={2}>
+              <Stack spacing={1} sx={{ flex: 1 }}>
+                <TextField size="small" label="Plate 1 Label" value={plate1Label} onChange={(e) => setPlate1Label(e.target.value)} />
+                <Select displayEmpty size="small" value={mediaId} onChange={(e) => setMediaId(Number(e.target.value))}>
+                  <MenuItem value=""><em>Plate 1 Media Batch ({mediaClassLabel(step.mediaType?.class)} lots only)</em></MenuItem>
+                  {matchingMedia.map((m) => <MenuItem key={m.id} value={m.id}>{m.lotNumber} — expires {new Date(m.expiryDate).toLocaleDateString()}</MenuItem>)}
+                </Select>
+              </Stack>
+              <Stack spacing={1} sx={{ flex: 1 }}>
+                <TextField size="small" label="Plate 2 Label" value={plate2Label} onChange={(e) => setPlate2Label(e.target.value)} />
+                <Select displayEmpty size="small" value={plate2MediaId} onChange={(e) => setPlate2MediaId(Number(e.target.value))}>
+                  <MenuItem value=""><em>Plate 2 Media Batch ({mediaClassLabel(step.mediaType?.class)} lots only)</em></MenuItem>
+                  {matchingMedia.map((m) => <MenuItem key={m.id} value={m.id}>{m.lotNumber} — expires {new Date(m.expiryDate).toLocaleDateString()}</MenuItem>)}
+                </Select>
+              </Stack>
+            </Stack>
+          ) : (
+            <Select displayEmpty size="small" value={mediaId} onChange={(e) => setMediaId(Number(e.target.value))}>
+              <MenuItem value=""><em>Media Batch ({mediaClassLabel(step.mediaType?.class)} lots only)</em></MenuItem>
+              {matchingMedia.map((m) => <MenuItem key={m.id} value={m.id}>{m.lotNumber} — expires {new Date(m.expiryDate).toLocaleDateString()}</MenuItem>)}
+            </Select>
+          )}
+
+          {samePlateLot && (
+            <Alert severity="warning">Both plates must use different media lots.</Alert>
+          )}
+
           <Select displayEmpty size="small" value={incubatorId} onChange={(e) => setIncubatorId(Number(e.target.value))}>
             <MenuItem value=""><em>Incubator ({step.temperatureMin}-{step.temperatureMax} °C)</em></MenuItem>
             {matchingIncubators.map((i) => <MenuItem key={i.id} value={i.id}>{i.name} ({i.code}) — {i.setPointTemperature}°C</MenuItem>)}
@@ -189,12 +273,18 @@ export function TestWorkflowDialog({ testOrderId, testCode, category, displayNam
           )}
           {mediaId && incubatorId && (
             <Typography variant="body2" color="text.secondary">
-              Required Temperature: <strong>{step.temperatureMin}-{step.temperatureMax} °C</strong>
-              {" — "}Incubation Period: <strong>{step.incubationMinHours}-{step.incubationMaxHours} hours</strong>
+              Required Temperature (locked by workflow template): <strong>{step.temperatureMin}-{step.temperatureMax} °C</strong>
+              {" — "}Incubation Period (locked by workflow template): <strong>{step.incubationMinHours}-{step.incubationMaxHours} hours</strong>
             </Typography>
           )}
           <Stack direction="row" justifyContent="flex-end">
-            <Button variant="contained" disabled={!mediaId || !incubatorId} onClick={startIncubation}>Start Incubation</Button>
+            <Button
+              variant="contained"
+              disabled={!mediaId || !incubatorId || (isDualGrowth && (!plate2MediaId || !plate1Label.trim() || !plate2Label.trim() || samePlateLot))}
+              onClick={startIncubation}
+            >
+              Start Incubation
+            </Button>
           </Stack>
         </Stack>
       )}
@@ -260,7 +350,7 @@ export function TestWorkflowDialog({ testOrderId, testCode, category, displayNam
             </>
           )}
 
-          {current.workflowType !== "CountTest" && !step.isDualPlate && (
+          {current.workflowType !== "CountTest" && !isDualGrowth && (
             <RadioGroup value={growthObserved} onChange={(e) => setGrowthObserved(e.target.value as "yes" | "no")}>
               <Typography variant="body2" sx={{ fontWeight: 600 }}>Growth Observed?</Typography>
               <FormControlLabel value="yes" control={<Radio />} label="Yes" />
@@ -268,17 +358,31 @@ export function TestWorkflowDialog({ testOrderId, testCode, category, displayNam
             </RadioGroup>
           )}
 
-          {step.isDualPlate && (
+          {isDualGrowth && (
             <Stack spacing={2}>
               <Box>
-                <Typography variant="body2" sx={{ fontWeight: 600 }}>Plate 1 (e.g. XLD)</Typography>
+                <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                  Plate 1{plate1Label ? ` (${plate1Label})` : ""}
+                  {current.incubation?.mediaId && (
+                    <Typography component="span" variant="caption" color="text.secondary">
+                      {" — lot "}{releasedMedia.find((m) => m.id === current.incubation.mediaId)?.lotNumber ?? current.incubation.mediaId}
+                    </Typography>
+                  )}
+                </Typography>
                 <RadioGroup row value={plate1Growth} onChange={(e) => setPlate1Growth(e.target.value as "yes" | "no")}>
                   <FormControlLabel value="yes" control={<Radio />} label="Growth" />
                   <FormControlLabel value="no" control={<Radio />} label="No Growth" />
                 </RadioGroup>
               </Box>
               <Box>
-                <Typography variant="body2" sx={{ fontWeight: 600 }}>Plate 2 (e.g. TSI)</Typography>
+                <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                  Plate 2{plate2Label ? ` (${plate2Label})` : ""}
+                  {current.incubation?.plate2MediaId && (
+                    <Typography component="span" variant="caption" color="text.secondary">
+                      {" — lot "}{releasedMedia.find((m) => m.id === current.incubation.plate2MediaId)?.lotNumber ?? current.incubation.plate2MediaId}
+                    </Typography>
+                  )}
+                </Typography>
                 <RadioGroup row value={plate2Growth} onChange={(e) => setPlate2Growth(e.target.value as "yes" | "no")}>
                   <FormControlLabel value="yes" control={<Radio />} label="Growth" />
                   <FormControlLabel value="no" control={<Radio />} label="No Growth" />

@@ -37,8 +37,8 @@ public record UpdateTestDefinitionRequest(string Code, string DisplayName);
 public record CreateTestDefinitionMediaRequest(int TestDefinitionId, int MediaTypeId, string? StepName);
 public record UpdateTestDefinitionMediaRequest(int MediaTypeId, string? StepName);
 public record UpdateWorkflowTypeRequest(WorkflowType WorkflowType);
-public record CreateTestWorkflowStepRequest(string StepName, int MediaTypeId, int IncubationMinHours, int IncubationMaxHours, decimal TemperatureMin, decimal TemperatureMax, bool IsFinalStep, bool IsDualPlate);
-public record UpdateTestWorkflowStepRequest(string StepName, int MediaTypeId, int IncubationMinHours, int IncubationMaxHours, decimal TemperatureMin, decimal TemperatureMax, bool IsFinalStep, bool IsDualPlate);
+public record CreateTestWorkflowStepRequest(string StepName, int MediaTypeId, int IncubationMinHours, int IncubationMaxHours, decimal TemperatureMin, decimal TemperatureMax, bool IsFinalStep, StepResultType StepResultType, string? Plate1DefaultLabel = null, string? Plate2DefaultLabel = null);
+public record UpdateTestWorkflowStepRequest(string StepName, int MediaTypeId, int IncubationMinHours, int IncubationMaxHours, decimal TemperatureMin, decimal TemperatureMax, bool IsFinalStep, StepResultType StepResultType, string? Plate1DefaultLabel = null, string? Plate2DefaultLabel = null);
 public record MoveTestWorkflowStepRequest(string Direction);
 
 // Backs the Items Master's category-dependent dynamic forms: Product ->
@@ -814,19 +814,60 @@ public class MasterDataController : ControllerBase
             .OrderBy(s => s.StepOrder)
             .ToListAsync()));
 
+    // Gap 4's four structural rules, shared by Create/Update. IsDualPlate
+    // is derived here (not trusted from the client) so it can never drift
+    // out of sync with StepResultType - the frontend's checkbox mirrors
+    // StepResultType for display only.
+    private async Task ValidateStepRulesAsync(int testDefinitionId, int? excludeStepId, bool isFinalStep, StepResultType stepResultType, string? plate1Label, string? plate2Label)
+    {
+        if (stepResultType == StepResultType.DualGrowth)
+        {
+            if (!isFinalStep)
+                throw new InvalidOperationException("A dual-growth step must be the final step.");
+            if (string.IsNullOrWhiteSpace(plate1Label) || string.IsNullOrWhiteSpace(plate2Label))
+                throw new InvalidOperationException("A dual-growth step requires both a Plate 1 and a Plate 2 default label.");
+        }
+        else if (!string.IsNullOrWhiteSpace(plate1Label) || !string.IsNullOrWhiteSpace(plate2Label))
+        {
+            throw new InvalidOperationException("Plate default labels can only be set on a dual-growth step.");
+        }
+
+        if (isFinalStep)
+        {
+            var otherFinalExists = await _db.TestWorkflowSteps
+                .AnyAsync(s => s.TestDefinitionId == testDefinitionId && s.IsFinalStep && s.Id != (excludeStepId ?? -1));
+            if (otherFinalExists)
+                throw new InvalidOperationException("Only one step per test can be marked as the final step.");
+        }
+    }
+
+    // Post-condition guard for the "no gaps, no duplicates" invariant -
+    // Create always appends and Move always swaps two adjacent orders,
+    // both of which preserve contiguity by construction, but this makes
+    // that invariant an enforced, checked fact rather than an assumption.
+    private async Task ValidateContiguousStepOrderAsync(int testDefinitionId)
+    {
+        var orders = await _db.TestWorkflowSteps.Where(s => s.TestDefinitionId == testDefinitionId)
+            .OrderBy(s => s.StepOrder).Select(s => s.StepOrder).ToListAsync();
+        for (var i = 0; i < orders.Count; i++)
+        {
+            if (orders[i] != i + 1)
+                throw new InvalidOperationException("Workflow steps must have contiguous step numbers starting from 1.");
+        }
+    }
+
     [Authorize(Roles = RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
     [HttpPost("test-definitions/{id}/steps")]
     public async Task<IActionResult> CreateTestWorkflowStep(int id, CreateTestWorkflowStepRequest request)
     {
-        if (!await _db.TestDefinitions.AnyAsync(t => t.Id == id))
-            throw new InvalidOperationException($"Test {id} not found.");
+        var testDefinition = await _db.TestDefinitions.FirstOrDefaultAsync(t => t.Id == id)
+            ?? throw new InvalidOperationException($"Test {id} not found.");
 
-        if (request.IsDualPlate)
-        {
-            var testDefinition = await _db.TestDefinitions.FirstAsync(t => t.Id == id);
-            if (testDefinition.WorkflowType != WorkflowType.DualPlate)
-                throw new InvalidOperationException("A dual-plate step can only be added to a test whose Workflow Type is DualPlate.");
-        }
+        var isDualPlate = request.StepResultType == StepResultType.DualGrowth;
+        if (isDualPlate && testDefinition.WorkflowType != WorkflowType.DualPlate)
+            throw new InvalidOperationException("A dual-growth step can only be added to a test whose Workflow Type is DualPlate.");
+
+        await ValidateStepRulesAsync(id, excludeStepId: null, request.IsFinalStep, request.StepResultType, request.Plate1DefaultLabel, request.Plate2DefaultLabel);
 
         var nextOrder = 1 + await _db.TestWorkflowSteps.Where(s => s.TestDefinitionId == id)
             .Select(s => (int?)s.StepOrder).MaxAsync() ?? 1;
@@ -836,10 +877,12 @@ public class MasterDataController : ControllerBase
             TestDefinitionId = id, StepOrder = nextOrder, StepName = request.StepName, MediaTypeId = request.MediaTypeId,
             IncubationMinHours = request.IncubationMinHours, IncubationMaxHours = request.IncubationMaxHours,
             TemperatureMin = request.TemperatureMin, TemperatureMax = request.TemperatureMax,
-            IsFinalStep = request.IsFinalStep, IsDualPlate = request.IsDualPlate
+            IsFinalStep = request.IsFinalStep, IsDualPlate = isDualPlate, StepResultType = request.StepResultType,
+            Plate1DefaultLabel = request.Plate1DefaultLabel, Plate2DefaultLabel = request.Plate2DefaultLabel
         };
         _db.TestWorkflowSteps.Add(entity);
         await _db.SaveChangesAsync();
+        await ValidateContiguousStepOrderAsync(id);
         return Ok(ApiResponse<object>.Ok(entity));
     }
 
@@ -854,8 +897,11 @@ public class MasterDataController : ControllerBase
         var step = await _db.TestWorkflowSteps.Include(s => s.TestDefinition).FirstOrDefaultAsync(s => s.Id == stepId)
             ?? throw new InvalidOperationException($"Workflow step {stepId} not found.");
 
-        if (request.IsDualPlate && step.TestDefinition!.WorkflowType != WorkflowType.DualPlate)
-            throw new InvalidOperationException("A dual-plate step can only be set on a test whose Workflow Type is DualPlate.");
+        var isDualPlate = request.StepResultType == StepResultType.DualGrowth;
+        if (isDualPlate && step.TestDefinition!.WorkflowType != WorkflowType.DualPlate)
+            throw new InvalidOperationException("A dual-growth step can only be set on a test whose Workflow Type is DualPlate.");
+
+        await ValidateStepRulesAsync(step.TestDefinitionId, excludeStepId: stepId, request.IsFinalStep, request.StepResultType, request.Plate1DefaultLabel, request.Plate2DefaultLabel);
 
         step.StepName = request.StepName;
         step.MediaTypeId = request.MediaTypeId;
@@ -864,7 +910,10 @@ public class MasterDataController : ControllerBase
         step.TemperatureMin = request.TemperatureMin;
         step.TemperatureMax = request.TemperatureMax;
         step.IsFinalStep = request.IsFinalStep;
-        step.IsDualPlate = request.IsDualPlate;
+        step.IsDualPlate = isDualPlate;
+        step.StepResultType = request.StepResultType;
+        step.Plate1DefaultLabel = request.Plate1DefaultLabel;
+        step.Plate2DefaultLabel = request.Plate2DefaultLabel;
         await _db.SaveChangesAsync();
 
         // Shaped to avoid the TestWorkflowStep <-> TestDefinition.Steps
@@ -874,7 +923,7 @@ public class MasterDataController : ControllerBase
         {
             step.Id, step.TestDefinitionId, step.StepOrder, step.StepName, step.MediaTypeId,
             step.IncubationMinHours, step.IncubationMaxHours, step.TemperatureMin, step.TemperatureMax,
-            step.IsFinalStep, step.IsDualPlate
+            step.IsFinalStep, step.IsDualPlate, step.StepResultType, step.Plate1DefaultLabel, step.Plate2DefaultLabel
         }));
     }
 
@@ -907,6 +956,7 @@ public class MasterDataController : ControllerBase
         neighbor.StepOrder = stepOrder;
         step.StepOrder = neighborStepOrder;
         await _db.SaveChangesAsync();
+        await ValidateContiguousStepOrderAsync(step.TestDefinitionId);
 
         return Ok(ApiResponse<object>.Ok(new { }));
     }
@@ -927,6 +977,16 @@ public class MasterDataController : ControllerBase
             throw new InvalidOperationException($"Cannot delete step \"{step.StepName}\" - it has already been used by a test order.");
 
         _db.TestWorkflowSteps.Remove(step);
+
+        // Close the gap left behind so "contiguous from 1" (Gap 4) stays
+        // true afterward instead of only being checked at create/move time.
+        var laterSteps = await _db.TestWorkflowSteps
+            .Where(s => s.TestDefinitionId == step.TestDefinitionId && s.StepOrder > step.StepOrder)
+            .OrderBy(s => s.StepOrder)
+            .ToListAsync();
+        foreach (var laterStep in laterSteps)
+            laterStep.StepOrder -= 1;
+
         await _db.SaveChangesAsync();
         return Ok(ApiResponse<object>.Ok(new { }));
     }

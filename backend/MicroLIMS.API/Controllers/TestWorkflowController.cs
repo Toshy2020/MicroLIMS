@@ -1,16 +1,20 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using MicroLIMS.Application.Workflows;
+using MicroLIMS.Shared.Constants;
 using MicroLIMS.Shared.Responses;
 
 namespace MicroLIMS.API.Controllers;
 
-public record SelectMediaRequest(string StepName, int MediaLotId, int IncubatorId);
+// Plate2MediaId/Plate1Label/Plate2Label are only sent (and required) for
+// a DualGrowth step - see TestWorkflowEngine.SelectMediaAsync.
+public record SelectMediaRequest(string StepName, int MediaLotId, int IncubatorId, int? Plate2MediaId = null, string? Plate1Label = null, string? Plate2Label = null);
 public record RecordTestResultRequest(
     string StepName,
     List<decimal>? PlateReadings, decimal? DilutionFactor,
     bool? GrowthObserved,
-    bool? Plate1GrowthObserved, bool? Plate2GrowthObserved);
+    bool? Plate1GrowthObserved, bool? Plate2GrowthObserved,
+    string? Plate1Label, string? Plate2Label);
 public record BatchResultLocationRequest(int SampleLocationId, decimal CFUResult);
 public record BatchResultsRequest(decimal DilutionFactor, List<BatchResultLocationRequest> Locations);
 public record BatchPathogenLocationRequest(int SampleLocationId, bool? GrowthObserved, bool? Plate1GrowthObserved, bool? Plate2GrowthObserved);
@@ -22,7 +26,7 @@ public record BatchPathogenResultsRequest(List<BatchPathogenLocationRequest> Loc
 // TestWorkflowEngine; nothing here branches on a specific test code.
 [ApiController]
 [Route("api/test-workflow")]
-[Authorize]
+[Authorize(Roles = RoleConstants.Analyst + "," + RoleConstants.Reviewer + "," + RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
 public class TestWorkflowController : ControllerBase
 {
     private readonly ITestWorkflowEngine _engine;
@@ -49,24 +53,36 @@ public class TestWorkflowController : ControllerBase
                 mediaType = current.Step.MediaType is null ? null : new { current.Step.MediaType.Id, current.Step.MediaType.Class },
                 current.Step.IncubationMinHours, current.Step.IncubationMaxHours,
                 current.Step.TemperatureMin, current.Step.TemperatureMax,
-                current.Step.IsFinalStep, current.Step.IsDualPlate
+                current.Step.IsFinalStep, current.Step.IsDualPlate, current.Step.StepResultType,
+                current.Step.Plate1DefaultLabel, current.Step.Plate2DefaultLabel
             },
             workflowType = current.WorkflowType,
             incubation = current.OpenIncubation is null ? null : new
             {
-                current.OpenIncubation.Id, current.OpenIncubation.MediaId, current.OpenIncubation.IncubatorEquipmentId,
+                current.OpenIncubation.Id, current.OpenIncubation.MediaId, current.OpenIncubation.Plate2MediaId,
+                current.OpenIncubation.IncubatorEquipmentId,
                 current.OpenIncubation.Temperature, current.OpenIncubation.Duration,
                 current.OpenIncubation.StartedAt, current.OpenIncubation.ExpectedReadingAt
             },
             allStepsComplete = current.AllStepsComplete,
-            finalResult = current.FinalResult
+            finalResult = current.FinalResult,
+            totalSteps = current.TotalSteps,
+            allSteps = current.AllSteps.Select(s => new { s.StepOrder, s.StepName }),
+            completedSteps = current.CompletedSteps.Select(s => new
+            {
+                s.StepOrder, s.StepName, s.StepResultType, s.IsFinalStep, s.Outcome, s.ObservedAt,
+                s.Plate1Label, s.Plate1GrowthObserved, s.Plate1MediaLotNumber,
+                s.Plate2Label, s.Plate2GrowthObserved, s.Plate2MediaLotNumber,
+                s.ReportedResult, s.CalculatedResult, s.Status
+            })
         }));
     }
 
     [HttpPost("{testOrderId}/select-media")]
     public async Task<IActionResult> SelectMedia(int testOrderId, SelectMediaRequest request)
     {
-        var incubation = await _engine.SelectMediaAsync(testOrderId, request.StepName, request.MediaLotId, request.IncubatorId, CurrentUserId);
+        var incubation = await _engine.SelectMediaAsync(testOrderId, request.StepName, request.MediaLotId, request.IncubatorId, CurrentUserId,
+            request.Plate2MediaId, request.Plate1Label, request.Plate2Label);
         return Ok(ApiResponse<object>.Ok(new
         {
             incubation.Id, incubation.StepName, incubation.Temperature, incubation.Duration,
@@ -80,8 +96,11 @@ public class TestWorkflowController : ControllerBase
         ResultPayload payload = request.PlateReadings is not null
             ? new CountTestPayload(request.PlateReadings, request.DilutionFactor ?? 1)
             : request.Plate1GrowthObserved is not null
-                ? new DualPlatePayload(request.Plate1GrowthObserved.Value, request.Plate2GrowthObserved
-                    ?? throw new InvalidOperationException("Plate 2's result is required for a dual-plate step."))
+                ? new DualPlatePayload(
+                    request.Plate1GrowthObserved.Value,
+                    request.Plate2GrowthObserved ?? throw new InvalidOperationException("Plate 2's result is required for a dual-plate step."),
+                    request.Plate1Label ?? throw new InvalidOperationException("Plate 1's label is required for a dual-plate step."),
+                    request.Plate2Label ?? throw new InvalidOperationException("Plate 2's label is required for a dual-plate step."))
                 : new ObservationPayload(request.GrowthObserved
                     ?? throw new InvalidOperationException("A growth observation, plate readings, or dual-plate result is required."));
 

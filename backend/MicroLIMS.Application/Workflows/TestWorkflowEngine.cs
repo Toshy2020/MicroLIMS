@@ -12,13 +12,39 @@ namespace MicroLIMS.Application.Workflows;
 public abstract record ResultPayload;
 public sealed record CountTestPayload(List<decimal> PlateReadings, decimal DilutionFactor) : ResultPayload;
 public sealed record ObservationPayload(bool GrowthObserved) : ResultPayload;
-public sealed record DualPlatePayload(bool Plate1GrowthObserved, bool Plate2GrowthObserved) : ResultPayload;
+// Plate1Label/Plate2Label are resent here (rather than carried via the
+// Incubation row the way Plate2MediaId is) because they're only needed
+// at result-entry time to stamp the two PathogenObservation rows - the
+// frontend already holds both labels in its own state from the media-
+// selection phase and just resends them at submit.
+public sealed record DualPlatePayload(bool Plate1GrowthObserved, bool Plate2GrowthObserved, string Plate1Label, string Plate2Label) : ResultPayload;
+
+// One already-completed step for the step-chain strip - Outcome is
+// always the same summary string RecordResultAsync already computed
+// and persisted onto that step's Incubation.Outcome, never recomputed
+// here. Plate1/2* fields are populated only for a completed DualGrowth
+// step; ReportedResult/CalculatedResult/Status only for PlateCount.
+public record CompletedStepSummary(
+    int StepOrder, string StepName, StepResultType StepResultType, bool IsFinalStep,
+    string Outcome, DateTime? ObservedAt,
+    string? Plate1Label, bool? Plate1GrowthObserved, string? Plate1MediaLotNumber,
+    string? Plate2Label, bool? Plate2GrowthObserved, string? Plate2MediaLotNumber,
+    string? ReportedResult, decimal? CalculatedResult, string? Status);
 
 // What GET current-step needs to render any phase of the workflow
 // dialog: the step template (null once every step is done), whether an
-// incubation is already open for it (Phase A vs B), and the final
-// result once AllStepsComplete.
-public record CurrentStepResult(TestWorkflowStep? Step, WorkflowType WorkflowType, Incubation? OpenIncubation, bool AllStepsComplete, string? FinalResult);
+// incubation is already open for it (Phase A vs B), the final result
+// once AllStepsComplete, and (for the step-chain strip) every already-
+// completed step plus the template's total step count.
+// StepOrder/StepName only for every step in the template, regardless of
+// completion state - the step-chain strip needs this to label the
+// remaining (not-yet-reached) chips, which CompletedSteps/Step alone
+// don't cover.
+public record StepOutline(int StepOrder, string StepName);
+
+public record CurrentStepResult(
+    TestWorkflowStep? Step, WorkflowType WorkflowType, Incubation? OpenIncubation, bool AllStepsComplete, string? FinalResult,
+    List<CompletedStepSummary> CompletedSteps, int TotalSteps, List<StepOutline> AllSteps);
 
 public record TestWorkflowResult(
     string OutcomeSummary, bool IsDefinitive, bool AllStepsComplete, string? FinalResult,
@@ -40,7 +66,12 @@ public record BatchLocationDualPlateObservation(int SampleLocationId, bool Plate
 public interface ITestWorkflowEngine : IStatefulWorkflowEngine
 {
     Task<CurrentStepResult> GetCurrentStepAsync(int testOrderId);
-    Task<Incubation> SelectMediaAsync(int testOrderId, string stepName, int mediaLotId, int incubatorEquipmentId, int userId);
+    // plate2MediaId/plate1Label/plate2Label are only used (and required)
+    // for a DualGrowth step - mediaLotId/plate1Label together describe
+    // plate 1. Left null, the call behaves exactly as before for every
+    // other step shape.
+    Task<Incubation> SelectMediaAsync(int testOrderId, string stepName, int mediaLotId, int incubatorEquipmentId, int userId,
+        int? plate2MediaId = null, string? plate1Label = null, string? plate2Label = null);
     Task<TestWorkflowResult> RecordResultAsync(int testOrderId, string stepName, ResultPayload payload, int userId);
     Task<List<SampleLocation>> GetLocationsAsync(int testOrderId);
     Task<Incubation> CloseCurrentIncubationWindowAsync(int testOrderId, int userId);
@@ -105,17 +136,42 @@ public class TestWorkflowEngine : ITestWorkflowEngine
         if (workflowType == WorkflowType.CountTest)
             return await _db.CountTestReadings.AnyAsync(r => r.TestOrderId == testOrderId && r.StepName == step.StepName);
 
-        if (step.IsDualPlate)
+        if (step.StepResultType == StepResultType.DualGrowth)
         {
-            var latestTwo = await _db.PathogenObservations
-                .Where(o => o.TestOrderId == testOrderId && o.StepName == step.StepName)
-                .OrderByDescending(o => o.ObservedAt)
-                .Take(2)
-                .ToListAsync();
-            return latestTwo.Count == 2 && latestTwo[0].GrowthObserved == latestTwo[1].GrowthObserved;
+            var pair = await LoadLatestDualPlateObservationsAsync(testOrderId, step.StepName);
+            return pair.Count == 2 && pair[0].GrowthObserved == pair[1].GrowthObserved;
         }
 
         return await _db.PathogenObservations.AnyAsync(o => o.TestOrderId == testOrderId && o.StepName == step.StepName);
+    }
+
+    // The two observations belonging to a DualGrowth step's MOST RECENT
+    // attempt, keyed by PlateLabel rather than insertion order/array
+    // position - a prior inconclusive attempt leaves its own two rows
+    // behind as history, so scoping to the latest Incubation window (and
+    // requiring two distinct, non-empty PlateLabels) is what actually
+    // identifies "this attempt's pair", not just taking the newest two
+    // rows by timestamp. Used by IsStepDoneAsync (agreement check) and
+    // GetCurrentStepAsync (step-chain strip detail).
+    private async Task<List<PathogenObservation>> LoadLatestDualPlateObservationsAsync(int testOrderId, string stepName)
+    {
+        var latestIncubation = await _db.Incubations
+            .Where(i => i.TestOrderId == testOrderId && i.StepName == stepName)
+            .OrderByDescending(i => i.StartedAt)
+            .FirstOrDefaultAsync();
+        if (latestIncubation is null) return new();
+
+        var candidates = await _db.PathogenObservations
+            .Include(o => o.Media)
+            .Where(o => o.TestOrderId == testOrderId && o.StepName == stepName && o.ObservedAt >= latestIncubation.StartedAt)
+            .OrderBy(o => o.Id)
+            .ToListAsync();
+
+        if (candidates.Count != 2) return new();
+        if (candidates.Any(o => string.IsNullOrEmpty(o.PlateLabel))) return new();
+        if (candidates[0].PlateLabel == candidates[1].PlateLabel) return new();
+
+        return candidates;
     }
 
 // Finds the lowest-StepOrder step that isn't done yet, or null if the
@@ -136,6 +192,8 @@ public class TestWorkflowEngine : ITestWorkflowEngine
     public async Task<CurrentStepResult> GetCurrentStepAsync(int testOrderId)
     {
         var (order, definition) = await LoadWithTemplateAsync(testOrderId);
+        var totalSteps = definition.Steps.Count;
+        var allSteps = definition.Steps.OrderBy(s => s.StepOrder).Select(s => new StepOutline(s.StepOrder, s.StepName)).ToList();
 
         // Once a TestOrder is at Ready or beyond, its workflow is done -
         // short-circuit rather than walking the step template. Needed for
@@ -147,7 +205,8 @@ public class TestWorkflowEngine : ITestWorkflowEngine
         {
             var doneResult = order.Results.OrderByDescending(r => r.Id).FirstOrDefault()?.InterpretedValue
                 ?? order.Results.OrderByDescending(r => r.Id).FirstOrDefault()?.RawValue;
-            return new CurrentStepResult(null, definition.WorkflowType, null, true, doneResult);
+            var completed = await BuildCompletedStepsAsync(testOrderId, definition, currentStep: null);
+            return new CurrentStepResult(null, definition.WorkflowType, null, true, doneResult, completed, totalSteps, allSteps);
         }
 
         var step = await FindFirstIncompleteStepAsync(testOrderId, definition);
@@ -158,15 +217,81 @@ public class TestWorkflowEngine : ITestWorkflowEngine
                 .OrderByDescending(i => i.StartedAt)
                 .FirstOrDefaultAsync();
 
-            return new CurrentStepResult(step, definition.WorkflowType, openIncubation, false, null);
+            var completed = await BuildCompletedStepsAsync(testOrderId, definition, currentStep: step);
+            return new CurrentStepResult(step, definition.WorkflowType, openIncubation, false, null, completed, totalSteps, allSteps);
         }
 
         var finalResult = order.Results.OrderByDescending(r => r.Id).FirstOrDefault()?.InterpretedValue
             ?? order.Results.OrderByDescending(r => r.Id).FirstOrDefault()?.RawValue;
-        return new CurrentStepResult(null, definition.WorkflowType, null, true, finalResult);
+        var allCompleted = await BuildCompletedStepsAsync(testOrderId, definition, currentStep: null);
+        return new CurrentStepResult(null, definition.WorkflowType, null, true, finalResult, allCompleted, totalSteps, allSteps);
     }
 
-    public async Task<Incubation> SelectMediaAsync(int testOrderId, string stepName, int mediaLotId, int incubatorEquipmentId, int userId)
+    // Every step ordered before currentStep (or every step, once the
+    // whole template is done) that IsStepDoneAsync confirms is actually
+    // complete - drives the frontend's step-chain strip. Outcome is
+    // always read back from that step's own closed Incubation.Outcome
+    // (the summary RecordResultAsync/RecordBatchResultsAsync already
+    // computed), never recomputed here.
+    private async Task<List<CompletedStepSummary>> BuildCompletedStepsAsync(int testOrderId, TestDefinition definition, TestWorkflowStep? currentStep)
+    {
+        var summaries = new List<CompletedStepSummary>();
+        foreach (var step in definition.Steps.OrderBy(s => s.StepOrder))
+        {
+            if (currentStep is not null && step.StepOrder >= currentStep.StepOrder) break;
+            if (!await IsStepDoneAsync(testOrderId, definition.WorkflowType, step)) continue;
+
+            var latestIncubation = await _db.Incubations
+                .Where(i => i.TestOrderId == testOrderId && i.StepName == step.StepName && i.CompletedAt != null)
+                .OrderByDescending(i => i.CompletedAt)
+                .FirstOrDefaultAsync();
+            var outcome = latestIncubation?.Outcome ?? string.Empty;
+            var observedAt = latestIncubation?.CompletedAt;
+
+            string? plate1Label = null, plate2Label = null, plate1Lot = null, plate2Lot = null;
+            bool? plate1Growth = null, plate2Growth = null;
+            string? reportedResult = null, status = null;
+            decimal? calculatedResult = null;
+
+            if (step.StepResultType == StepResultType.DualGrowth)
+            {
+                // Ascending Id order = insertion order, and RecordDualPlateAsync
+                // always adds plate 1's observation before plate 2's - safe to
+                // rely on here since both rows are ours, never user-supplied.
+                var pair = await LoadLatestDualPlateObservationsAsync(testOrderId, step.StepName);
+                if (pair.Count == 2)
+                {
+                    plate1Label = pair[0].PlateLabel; plate1Growth = pair[0].GrowthObserved; plate1Lot = pair[0].Media?.LotNumber;
+                    plate2Label = pair[1].PlateLabel; plate2Growth = pair[1].GrowthObserved; plate2Lot = pair[1].Media?.LotNumber;
+                }
+            }
+            else if (step.StepResultType == StepResultType.PlateCount)
+            {
+                var reading = await _db.CountTestReadings
+                    .Where(r => r.TestOrderId == testOrderId && r.StepName == step.StepName)
+                    .OrderByDescending(r => r.Id)
+                    .FirstOrDefaultAsync();
+                if (reading is not null)
+                {
+                    reportedResult = reading.ReportedResult;
+                    calculatedResult = reading.CalculatedResult;
+                    status = reading.Status;
+                    observedAt = reading.EnteredAt;
+                }
+            }
+
+            summaries.Add(new CompletedStepSummary(
+                step.StepOrder, step.StepName, step.StepResultType, step.IsFinalStep,
+                outcome, observedAt,
+                plate1Label, plate1Growth, plate1Lot,
+                plate2Label, plate2Growth, plate2Lot,
+                reportedResult, calculatedResult, status));
+        }
+        return summaries;
+    }
+
+    public async Task<Incubation> SelectMediaAsync(int testOrderId, string stepName, int mediaLotId, int incubatorEquipmentId, int userId,
+        int? plate2MediaId = null, string? plate1Label = null, string? plate2Label = null)
     {
         var (order, definition) = await LoadWithTemplateAsync(testOrderId);
         var step = definition.Steps.FirstOrDefault(s => s.StepName == stepName)
@@ -200,12 +325,42 @@ public class TestWorkflowEngine : ITestWorkflowEngine
             throw new InvalidOperationException(
                 $"This step requires {step.MediaType!.Class} media. The selected lot is {media.MediaType!.Class}.");
 
+        // DualGrowth steps read two plates together, each on its own lot -
+        // validated the same way as plate 1 above, plus the two lots must
+        // actually differ and both need a label. One Incubation row still
+        // covers the whole step (both plates incubate together); the
+        // second lot rides along on Plate2MediaId until RecordResultAsync
+        // writes it onto the second PathogenObservation row.
+        int? plate2MediaIdToStore = null;
+        if (step.StepResultType == StepResultType.DualGrowth)
+        {
+            if (plate2MediaId is null)
+                throw new InvalidOperationException($"Step \"{stepName}\" requires a media lot for both plates.");
+            if (plate2MediaId.Value == mediaLotId)
+                throw new InvalidOperationException("Both plates must use different media lots.");
+            if (string.IsNullOrWhiteSpace(plate1Label) || string.IsNullOrWhiteSpace(plate2Label))
+                throw new InvalidOperationException($"Step \"{stepName}\" requires a label for both plates.");
+            if (!media.IsReleasedForUse)
+                throw new InvalidOperationException($"Media lot {media.LotNumber} is not released for use.");
+
+            var plate2Media = await _db.Media.Include(m => m.MediaType).FirstOrDefaultAsync(m => m.Id == plate2MediaId.Value)
+                ?? throw new InvalidOperationException($"Media lot {plate2MediaId} not found.");
+            if (!plate2Media.IsReleasedForUse)
+                throw new InvalidOperationException($"Media lot {plate2Media.LotNumber} is not released for use.");
+            if (plate2Media.MediaTypeId != step.MediaTypeId)
+                throw new InvalidOperationException(
+                    $"This step requires {step.MediaType!.Class} media. The selected lot for plate 2 is {plate2Media.MediaType!.Class}.");
+
+            plate2MediaIdToStore = plate2Media.Id;
+        }
+
         var startedAt = DateTime.UtcNow;
         var incubation = new Incubation
         {
             TestOrderId = testOrderId,
             StepName = stepName,
             MediaId = mediaLotId,
+            Plate2MediaId = plate2MediaIdToStore,
             IncubatorEquipmentId = incubatorEquipmentId,
             Temperature = $"{step.TemperatureMin}-{step.TemperatureMax} °C",
             Duration = $"{step.IncubationMinHours}-{step.IncubationMaxHours} hours",
@@ -267,13 +422,13 @@ public class TestWorkflowEngine : ITestWorkflowEngine
             case DualPlatePayload dualPayload:
                 if (!step.IsDualPlate)
                     throw new InvalidOperationException($"Step \"{stepName}\" is not a dual-plate step.");
-                (outcomeSummary, isDefinitive) = await RecordDualPlateAsync(testOrderId, step, dualPayload, userId);
+                (outcomeSummary, isDefinitive) = await RecordDualPlateAsync(testOrderId, step, dualPayload, userId, openIncubation.MediaId, openIncubation.Plate2MediaId);
                 break;
 
             case ObservationPayload obsPayload:
                 if (step.IsDualPlate || definition.WorkflowType == WorkflowType.CountTest)
                     throw new InvalidOperationException($"Step \"{stepName}\" does not accept a simple growth observation.");
-                outcomeSummary = await RecordObservationAsync(testOrderId, step, obsPayload, userId);
+                outcomeSummary = await RecordObservationAsync(testOrderId, step, obsPayload, userId, openIncubation.MediaId);
                 break;
 
             default:
@@ -652,12 +807,12 @@ public class TestWorkflowEngine : ITestWorkflowEngine
         return (reported, average, calculated, status, reading);
     }
 
-    private async Task<string> RecordObservationAsync(int testOrderId, TestWorkflowStep step, ObservationPayload payload, int userId)
+    private async Task<string> RecordObservationAsync(int testOrderId, TestWorkflowStep step, ObservationPayload payload, int userId, int? mediaId)
     {
         _db.PathogenObservations.Add(new PathogenObservation
         {
             TestOrderId = testOrderId, StepName = step.StepName, StepOrder = step.StepOrder,
-            GrowthObserved = payload.GrowthObserved, ObservedByUserId = userId
+            GrowthObserved = payload.GrowthObserved, ObservedByUserId = userId, MediaId = mediaId
         });
         await Task.CompletedTask;
         return step.IsFinalStep
@@ -665,17 +820,25 @@ public class TestWorkflowEngine : ITestWorkflowEngine
             : (payload.GrowthObserved ? "Growth" : "No Growth");
     }
 
-    private async Task<(string outcome, bool isDefinitive)> RecordDualPlateAsync(int testOrderId, TestWorkflowStep step, DualPlatePayload payload, int userId)
+    private async Task<(string outcome, bool isDefinitive)> RecordDualPlateAsync(
+        int testOrderId, TestWorkflowStep step, DualPlatePayload payload, int userId, int? plate1MediaId, int? plate2MediaId)
     {
+        // Insertion order matters here (plate 1's row always added first) -
+        // LoadLatestDualPlateObservationsAsync/BuildCompletedStepsAsync
+        // rely on ascending Id order to tell the two rows apart for display,
+        // since both share one StepName and PlateLabel is analyst-entered
+        // free text, not a stable enum.
         _db.PathogenObservations.Add(new PathogenObservation
         {
             TestOrderId = testOrderId, StepName = step.StepName, StepOrder = step.StepOrder,
-            GrowthObserved = payload.Plate1GrowthObserved, ObservedByUserId = userId
+            GrowthObserved = payload.Plate1GrowthObserved, ObservedByUserId = userId,
+            MediaId = plate1MediaId, PlateLabel = payload.Plate1Label
         });
         _db.PathogenObservations.Add(new PathogenObservation
         {
             TestOrderId = testOrderId, StepName = step.StepName, StepOrder = step.StepOrder,
-            GrowthObserved = payload.Plate2GrowthObserved, ObservedByUserId = userId
+            GrowthObserved = payload.Plate2GrowthObserved, ObservedByUserId = userId,
+            MediaId = plate2MediaId, PlateLabel = payload.Plate2Label
         });
         await Task.CompletedTask;
 

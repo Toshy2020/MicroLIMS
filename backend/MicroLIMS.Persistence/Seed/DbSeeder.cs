@@ -182,19 +182,22 @@ public static class DbSeeder
     }
 
     // The three core TestWorkflowEngine templates (TAMC/TYMC's single
-    // count step, a generic 2-step pathogen chain, Salmonella's 3-step
+    // count step, a generic 2-step pathogen chain applied to EVERY
+    // Observation-typed test with no steps yet, Salmonella's 3-step
     // dual-plate chain) - only for TestDefinition codes that already
     // exist (the analyst adds those via Test Master; this never creates
-    // a TestDefinition row itself). Safe to call on every startup - each
-    // template is only inserted once (TestWorkflowSteps is empty check).
+    // a TestDefinition row itself). Each seed action is idempotent per
+    // TestDefinition (checked individually, not behind one global "any
+    // step exists anywhere" gate) so this keeps picking up newly-added
+    // pathogen test codes on every startup instead of only running once.
     private static void SeedWorkflowTemplates(MicroLimsDbContext db)
     {
-        if (db.TestWorkflowSteps.Any()) return;
-
         var generalAgar = db.MediaTypes.First(m => m.Class == MediaClass.GeneralAgar);
         var generalBroth = db.MediaTypes.First(m => m.Class == MediaClass.GeneralBroth);
         var selectiveAgar = db.MediaTypes.First(m => m.Class == MediaClass.SelectiveAgar);
         var selectiveBroth = db.MediaTypes.First(m => m.Class == MediaClass.SelectiveBroth);
+
+        bool HasSteps(int testDefinitionId) => db.TestWorkflowSteps.Any(s => s.TestDefinitionId == testDefinitionId);
 
         void SeedCountTestTemplate(string code)
         {
@@ -204,45 +207,32 @@ public static class DbSeeder
                 Console.WriteLine($"[DbSeeder] Skipping workflow template for \"{code}\" - not in Test Master yet.");
                 return;
             }
+            if (HasSteps(test.Id))
+            {
+                Console.WriteLine($"[DbSeeder] Skipping workflow template for \"{code}\" - already has steps configured.");
+                return;
+            }
             test.WorkflowType = WorkflowType.CountTest;
             db.TestWorkflowSteps.Add(new TestWorkflowStep
             {
                 TestDefinitionId = test.Id, StepOrder = 1, StepName = "CountIncubation", MediaTypeId = generalAgar.Id,
                 IncubationMinHours = 72, IncubationMaxHours = 120, TemperatureMin = 30, TemperatureMax = 35,
-                IsFinalStep = true, IsDualPlate = false
+                IsFinalStep = true, IsDualPlate = false, StepResultType = StepResultType.PlateCount
             });
+            Console.WriteLine($"[DbSeeder] Seeded CountTest workflow template for \"{code}\".");
         }
 
         SeedCountTestTemplate("TAMC");
         SeedCountTestTemplate("TYMC");
 
-        var ecoli = db.TestDefinitions.FirstOrDefault(t => t.Code == "PATHOGEN_ECOLI");
-        if (ecoli is null)
-        {
-            Console.WriteLine("[DbSeeder] Skipping workflow template for \"PATHOGEN_ECOLI\" - not in Test Master yet.");
-        }
-        else
-        {
-            ecoli.WorkflowType = WorkflowType.Observation;
-            db.TestWorkflowSteps.AddRange(
-                new TestWorkflowStep
-                {
-                    TestDefinitionId = ecoli.Id, StepOrder = 1, StepName = "TSB", MediaTypeId = generalBroth.Id,
-                    IncubationMinHours = 24, IncubationMaxHours = 72, TemperatureMin = 35, TemperatureMax = 37,
-                    IsFinalStep = false, IsDualPlate = false
-                },
-                new TestWorkflowStep
-                {
-                    TestDefinitionId = ecoli.Id, StepOrder = 2, StepName = "Detection", MediaTypeId = selectiveAgar.Id,
-                    IncubationMinHours = 24, IncubationMaxHours = 72, TemperatureMin = 35, TemperatureMax = 37,
-                    IsFinalStep = true, IsDualPlate = false
-                });
-        }
-
         var salmonella = db.TestDefinitions.FirstOrDefault(t => t.Code == "PATHOGEN_SALMONELLA");
         if (salmonella is null)
         {
             Console.WriteLine("[DbSeeder] Skipping workflow template for \"PATHOGEN_SALMONELLA\" - not in Test Master yet.");
+        }
+        else if (HasSteps(salmonella.Id))
+        {
+            Console.WriteLine("[DbSeeder] Skipping workflow template for \"PATHOGEN_SALMONELLA\" - already has steps configured.");
         }
         else
         {
@@ -252,20 +242,61 @@ public static class DbSeeder
                 {
                     TestDefinitionId = salmonella.Id, StepOrder = 1, StepName = "TSB", MediaTypeId = generalBroth.Id,
                     IncubationMinHours = 24, IncubationMaxHours = 24, TemperatureMin = 35, TemperatureMax = 37,
-                    IsFinalStep = false, IsDualPlate = false
+                    IsFinalStep = false, IsDualPlate = false, StepResultType = StepResultType.Growth
                 },
                 new TestWorkflowStep
                 {
                     TestDefinitionId = salmonella.Id, StepOrder = 2, StepName = "RVS", MediaTypeId = selectiveBroth.Id,
                     IncubationMinHours = 24, IncubationMaxHours = 24, TemperatureMin = 42, TemperatureMax = 43,
-                    IsFinalStep = false, IsDualPlate = false
+                    IsFinalStep = false, IsDualPlate = false, StepResultType = StepResultType.Growth
                 },
                 new TestWorkflowStep
                 {
                     TestDefinitionId = salmonella.Id, StepOrder = 3, StepName = "XLD_TSI", MediaTypeId = selectiveAgar.Id,
                     IncubationMinHours = 24, IncubationMaxHours = 48, TemperatureMin = 35, TemperatureMax = 37,
-                    IsFinalStep = true, IsDualPlate = true
+                    IsFinalStep = true, IsDualPlate = true, StepResultType = StepResultType.DualGrowth,
+                    Plate1DefaultLabel = "XLD", Plate2DefaultLabel = "TSI"
                 });
+            Console.WriteLine("[DbSeeder] Seeded DualPlate workflow template for \"PATHOGEN_SALMONELLA\".");
+        }
+
+        // Flush the CountTest/DualPlate WorkflowType assignments above -
+        // the Observation query below runs against the database, which
+        // (unlike the change tracker) won't see those pending edits until
+        // they're saved, and would otherwise wrongly re-seed TAMC/TYMC/
+        // Salmonella with the generic TSB -> Detection template too.
+        db.SaveChanges();
+
+        // Any test code left at WorkflowType.Observation (the entity's
+        // default, so this also covers every pathogen test added after
+        // PATHOGEN_ECOLI without further code changes here) that has no
+        // steps yet gets the same generic TSB -> Detection template.
+        var observationTestsPending = db.TestDefinitions
+            .Where(t => t.WorkflowType == WorkflowType.Observation)
+            .ToList()
+            .Where(t => !HasSteps(t.Id))
+            .ToList();
+
+        if (observationTestsPending.Count == 0)
+        {
+            Console.WriteLine("[DbSeeder] No WorkflowType.Observation test codes without a template yet - nothing to seed.");
+        }
+        foreach (var test in observationTestsPending)
+        {
+            db.TestWorkflowSteps.AddRange(
+                new TestWorkflowStep
+                {
+                    TestDefinitionId = test.Id, StepOrder = 1, StepName = "TSB", MediaTypeId = generalBroth.Id,
+                    IncubationMinHours = 24, IncubationMaxHours = 72, TemperatureMin = 35, TemperatureMax = 37,
+                    IsFinalStep = false, IsDualPlate = false, StepResultType = StepResultType.Growth
+                },
+                new TestWorkflowStep
+                {
+                    TestDefinitionId = test.Id, StepOrder = 2, StepName = "Detection", MediaTypeId = selectiveAgar.Id,
+                    IncubationMinHours = 24, IncubationMaxHours = 72, TemperatureMin = 35, TemperatureMax = 37,
+                    IsFinalStep = true, IsDualPlate = false, StepResultType = StepResultType.Growth
+                });
+            Console.WriteLine($"[DbSeeder] Seeded Observation workflow template (TSB -> Detection) for \"{test.Code}\".");
         }
 
         db.SaveChanges();

@@ -3,8 +3,13 @@ import { apiClient } from "../../../services/apiClient";
 export const TestWorkflowService = {
   getCurrentStep: (testOrderId: number) =>
     apiClient.get(`/test-workflow/${testOrderId}/current-step`).then((r) => r.data.data),
-  selectMedia: (testOrderId: number, stepName: string, mediaLotId: number, incubatorId: number) =>
-    apiClient.post(`/test-workflow/${testOrderId}/select-media`, { stepName, mediaLotId, incubatorId }).then((r) => r.data.data),
+  selectMedia: (
+    testOrderId: number, stepName: string, mediaLotId: number, incubatorId: number,
+    plate2MediaId?: number, plate1Label?: string, plate2Label?: string
+  ) =>
+    apiClient.post(`/test-workflow/${testOrderId}/select-media`, {
+      stepName, mediaLotId, incubatorId, plate2MediaId, plate1Label, plate2Label
+    }).then((r) => r.data.data),
   recordResult: (testOrderId: number, payload: Record<string, unknown>) =>
     apiClient.post(`/test-workflow/${testOrderId}/record-result`, payload).then((r) => r.data.data),
   getLocations: (testOrderId: number) =>

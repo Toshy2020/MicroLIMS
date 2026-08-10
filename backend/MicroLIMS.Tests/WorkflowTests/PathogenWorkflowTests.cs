@@ -63,8 +63,8 @@ public class PathogenWorkflowTests
         await db.SaveChangesAsync();
 
         db.TestWorkflowSteps.AddRange(
-            new TestWorkflowStep { TestDefinitionId = testDefinition.Id, StepOrder = 1, StepName = "TSB", MediaTypeId = generalBroth.Id, IncubationMinHours = 24, IncubationMaxHours = 72, TemperatureMin = 35, TemperatureMax = 37, IsFinalStep = false, IsDualPlate = false },
-            new TestWorkflowStep { TestDefinitionId = testDefinition.Id, StepOrder = 2, StepName = "Detection", MediaTypeId = selectiveAgar.Id, IncubationMinHours = 24, IncubationMaxHours = 72, TemperatureMin = 35, TemperatureMax = 37, IsFinalStep = true, IsDualPlate = false });
+            new TestWorkflowStep { TestDefinitionId = testDefinition.Id, StepOrder = 1, StepName = "TSB", MediaTypeId = generalBroth.Id, IncubationMinHours = 24, IncubationMaxHours = 72, TemperatureMin = 35, TemperatureMax = 37, IsFinalStep = false, IsDualPlate = false, StepResultType = StepResultType.Growth },
+            new TestWorkflowStep { TestDefinitionId = testDefinition.Id, StepOrder = 2, StepName = "Detection", MediaTypeId = selectiveAgar.Id, IncubationMinHours = 24, IncubationMaxHours = 72, TemperatureMin = 35, TemperatureMax = 37, IsFinalStep = true, IsDualPlate = false, StepResultType = StepResultType.Growth });
         await db.SaveChangesAsync();
 
         var tsbMedia = await AddReleasedMediaAsync(db, generalBroth, "TSB/1/26");
@@ -161,7 +161,7 @@ public class PathogenWorkflowTests
 
     // ---- DualPlate (Salmonella): TSB -> RVS -> XLD_TSI (dual plate) ----
 
-    private static async Task<(TestOrder order, Media tsbMedia, Media rvsMedia, Media xldTsiMedia)> SeedDualPlateOrderAsync(MicroLimsDbContext db)
+    private static async Task<(TestOrder order, Media tsbMedia, Media rvsMedia, Media xldMedia, Media tsiMedia)> SeedDualPlateOrderAsync(MicroLimsDbContext db)
     {
         var generalBroth = await AddMediaTypeAsync(db, MediaClass.GeneralBroth, 35, 37);
         var selectiveBroth = await AddMediaTypeAsync(db, MediaClass.SelectiveBroth, 42, 43);
@@ -172,14 +172,15 @@ public class PathogenWorkflowTests
         await db.SaveChangesAsync();
 
         db.TestWorkflowSteps.AddRange(
-            new TestWorkflowStep { TestDefinitionId = testDefinition.Id, StepOrder = 1, StepName = "TSB", MediaTypeId = generalBroth.Id, IncubationMinHours = 24, IncubationMaxHours = 24, TemperatureMin = 35, TemperatureMax = 37, IsFinalStep = false, IsDualPlate = false },
-            new TestWorkflowStep { TestDefinitionId = testDefinition.Id, StepOrder = 2, StepName = "RVS", MediaTypeId = selectiveBroth.Id, IncubationMinHours = 24, IncubationMaxHours = 24, TemperatureMin = 42, TemperatureMax = 43, IsFinalStep = false, IsDualPlate = false },
-            new TestWorkflowStep { TestDefinitionId = testDefinition.Id, StepOrder = 3, StepName = "XLD_TSI", MediaTypeId = selectiveAgar.Id, IncubationMinHours = 24, IncubationMaxHours = 48, TemperatureMin = 35, TemperatureMax = 37, IsFinalStep = true, IsDualPlate = true });
+            new TestWorkflowStep { TestDefinitionId = testDefinition.Id, StepOrder = 1, StepName = "TSB", MediaTypeId = generalBroth.Id, IncubationMinHours = 24, IncubationMaxHours = 24, TemperatureMin = 35, TemperatureMax = 37, IsFinalStep = false, IsDualPlate = false, StepResultType = StepResultType.Growth },
+            new TestWorkflowStep { TestDefinitionId = testDefinition.Id, StepOrder = 2, StepName = "RVS", MediaTypeId = selectiveBroth.Id, IncubationMinHours = 24, IncubationMaxHours = 24, TemperatureMin = 42, TemperatureMax = 43, IsFinalStep = false, IsDualPlate = false, StepResultType = StepResultType.Growth },
+            new TestWorkflowStep { TestDefinitionId = testDefinition.Id, StepOrder = 3, StepName = "XLD_TSI", MediaTypeId = selectiveAgar.Id, IncubationMinHours = 24, IncubationMaxHours = 48, TemperatureMin = 35, TemperatureMax = 37, IsFinalStep = true, IsDualPlate = true, StepResultType = StepResultType.DualGrowth, Plate1DefaultLabel = "XLD", Plate2DefaultLabel = "TSI" });
         await db.SaveChangesAsync();
 
         var tsbMedia = await AddReleasedMediaAsync(db, generalBroth, "TSB/2/26");
         var rvsMedia = await AddReleasedMediaAsync(db, selectiveBroth, "RVS/2/26");
-        var xldTsiMedia = await AddReleasedMediaAsync(db, selectiveAgar, "XLD/2/26");
+        var xldMedia = await AddReleasedMediaAsync(db, selectiveAgar, "XLD/2/26");
+        var tsiMedia = await AddReleasedMediaAsync(db, selectiveAgar, "TSI/2/26");
 
         var sample = new Sample { Category = SampleCategory.FinishedProduct, ControlNumber = "CTRL-2", Status = SampleStatus.Received };
         var order = new TestOrder { TestCode = "PATHOGEN_SALMONELLA", Status = ApprovalStatus.Pending, CurrentStep = WorkflowStep.Waiting };
@@ -187,7 +188,7 @@ public class PathogenWorkflowTests
         db.Samples.Add(sample);
         await db.SaveChangesAsync();
 
-        return (order, tsbMedia, rvsMedia, xldTsiMedia);
+        return (order, tsbMedia, rvsMedia, xldMedia, tsiMedia);
     }
 
     private static async Task RunTsbAndRvsAsync(TestWorkflowEngine engine, TestOrder order, Media tsbMedia, Media rvsMedia)
@@ -202,12 +203,12 @@ public class PathogenWorkflowTests
     public async Task DualPlate_BothPlatesGrowth_InterpretsAsDetectedAndTransitionsToReady()
     {
         await using var db = NewDb();
-        var (order, tsbMedia, rvsMedia, xldTsiMedia) = await SeedDualPlateOrderAsync(db);
+        var (order, tsbMedia, rvsMedia, xldMedia, tsiMedia) = await SeedDualPlateOrderAsync(db);
         var engine = TestServiceFactory.TestWorkflow(db);
         await RunTsbAndRvsAsync(engine, order, tsbMedia, rvsMedia);
 
-        await engine.SelectMediaAsync(order.Id, "XLD_TSI", xldTsiMedia.Id, incubatorEquipmentId: 1, userId: 1);
-        var result = await engine.RecordResultAsync(order.Id, "XLD_TSI", new DualPlatePayload(true, true), userId: 1);
+        await engine.SelectMediaAsync(order.Id, "XLD_TSI", xldMedia.Id, incubatorEquipmentId: 1, userId: 1, tsiMedia.Id, "XLD", "TSI");
+        var result = await engine.RecordResultAsync(order.Id, "XLD_TSI", new DualPlatePayload(true, true, "XLD", "TSI"), userId: 1);
 
         Assert.Equal("Detected", result.FinalResult);
         Assert.True(result.AllStepsComplete);
@@ -219,29 +220,33 @@ public class PathogenWorkflowTests
     }
 
     [Fact]
-    public async Task DualPlate_BothPlatesNoGrowth_InterpretsAsAbsent()
+    public async Task DualPlate_BothPlatesNoGrowth_InterpretsAsAbsentAndTransitionsToReady()
     {
         await using var db = NewDb();
-        var (order, tsbMedia, rvsMedia, xldTsiMedia) = await SeedDualPlateOrderAsync(db);
+        var (order, tsbMedia, rvsMedia, xldMedia, tsiMedia) = await SeedDualPlateOrderAsync(db);
         var engine = TestServiceFactory.TestWorkflow(db);
         await RunTsbAndRvsAsync(engine, order, tsbMedia, rvsMedia);
 
-        await engine.SelectMediaAsync(order.Id, "XLD_TSI", xldTsiMedia.Id, incubatorEquipmentId: 1, userId: 1);
-        var result = await engine.RecordResultAsync(order.Id, "XLD_TSI", new DualPlatePayload(false, false), userId: 1);
+        await engine.SelectMediaAsync(order.Id, "XLD_TSI", xldMedia.Id, incubatorEquipmentId: 1, userId: 1, tsiMedia.Id, "XLD", "TSI");
+        var result = await engine.RecordResultAsync(order.Id, "XLD_TSI", new DualPlatePayload(false, false, "XLD", "TSI"), userId: 1);
 
         Assert.Equal("Absent", result.FinalResult);
+        Assert.True(result.AllStepsComplete);
+
+        var reloadedOrder = await db.TestOrders.FirstAsync(t => t.Id == order.Id);
+        Assert.Equal(WorkflowStep.Ready, reloadedOrder.CurrentStep);
     }
 
     [Fact]
     public async Task DualPlate_DisagreeingPlates_LeavesIncubatingWithInconclusiveHistoryNote()
     {
         await using var db = NewDb();
-        var (order, tsbMedia, rvsMedia, xldTsiMedia) = await SeedDualPlateOrderAsync(db);
+        var (order, tsbMedia, rvsMedia, xldMedia, tsiMedia) = await SeedDualPlateOrderAsync(db);
         var engine = TestServiceFactory.TestWorkflow(db);
         await RunTsbAndRvsAsync(engine, order, tsbMedia, rvsMedia);
 
-        await engine.SelectMediaAsync(order.Id, "XLD_TSI", xldTsiMedia.Id, incubatorEquipmentId: 1, userId: 1);
-        var result = await engine.RecordResultAsync(order.Id, "XLD_TSI", new DualPlatePayload(true, false), userId: 1);
+        await engine.SelectMediaAsync(order.Id, "XLD_TSI", xldMedia.Id, incubatorEquipmentId: 1, userId: 1, tsiMedia.Id, "XLD", "TSI");
+        var result = await engine.RecordResultAsync(order.Id, "XLD_TSI", new DualPlatePayload(true, false, "XLD", "TSI"), userId: 1);
 
         Assert.False(result.IsDefinitive);
         Assert.False(result.AllStepsComplete);
@@ -263,11 +268,49 @@ public class PathogenWorkflowTests
     public async Task DualPlate_OutOfOrderStep_ThrowsWorkflowOrderViolation()
     {
         await using var db = NewDb();
-        var (order, _, _, xldTsiMedia) = await SeedDualPlateOrderAsync(db);
+        var (order, _, _, xldMedia, tsiMedia) = await SeedDualPlateOrderAsync(db);
         var engine = TestServiceFactory.TestWorkflow(db);
 
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            engine.SelectMediaAsync(order.Id, "XLD_TSI", xldTsiMedia.Id, incubatorEquipmentId: 1, userId: 1));
+            engine.SelectMediaAsync(order.Id, "XLD_TSI", xldMedia.Id, incubatorEquipmentId: 1, userId: 1, tsiMedia.Id, "XLD", "TSI"));
         Assert.Contains("Workflow order violation", ex.Message);
+    }
+
+    [Fact]
+    public async Task DualPlate_SameLotForBothPlates_Throws()
+    {
+        await using var db = NewDb();
+        var (order, tsbMedia, rvsMedia, xldMedia, _) = await SeedDualPlateOrderAsync(db);
+        var engine = TestServiceFactory.TestWorkflow(db);
+        await RunTsbAndRvsAsync(engine, order, tsbMedia, rvsMedia);
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            engine.SelectMediaAsync(order.Id, "XLD_TSI", xldMedia.Id, incubatorEquipmentId: 1, userId: 1, xldMedia.Id, "XLD", "TSI"));
+        Assert.Contains("different media lots", ex.Message);
+    }
+
+    [Fact]
+    public async Task DualPlate_OnlyPlate1Recorded_StepNotComplete()
+    {
+        await using var db = NewDb();
+        var (order, tsbMedia, rvsMedia, xldMedia, tsiMedia) = await SeedDualPlateOrderAsync(db);
+        var engine = TestServiceFactory.TestWorkflow(db);
+        await RunTsbAndRvsAsync(engine, order, tsbMedia, rvsMedia);
+        await engine.SelectMediaAsync(order.Id, "XLD_TSI", xldMedia.Id, incubatorEquipmentId: 1, userId: 1, tsiMedia.Id, "XLD", "TSI");
+
+        // Simulate only plate 1 having been observed so far - no
+        // RecordResultAsync call has happened yet, so directly seed a
+        // single PathogenObservation the way a half-finished dual-plate
+        // read would leave behind.
+        db.PathogenObservations.Add(new PathogenObservation
+        {
+            TestOrderId = order.Id, StepName = "XLD_TSI", StepOrder = 3,
+            GrowthObserved = true, ObservedByUserId = 1, MediaId = xldMedia.Id, PlateLabel = "XLD"
+        });
+        await db.SaveChangesAsync();
+
+        var current = await engine.GetCurrentStepAsync(order.Id);
+        Assert.False(current.AllStepsComplete);
+        Assert.Equal("XLD_TSI", current.Step!.StepName);
     }
 }

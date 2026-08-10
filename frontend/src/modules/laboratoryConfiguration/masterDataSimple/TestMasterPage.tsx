@@ -15,6 +15,7 @@ import { useTestDefinitions, TestDefinitionOption } from "../../../hooks/useTest
 import { masterDataOptions, mediaClassLabel } from "../../../services/masterDataOptions";
 
 const WORKFLOW_TYPES = ["CountTest", "Observation", "DualPlate"];
+const STEP_RESULT_TYPES = ["PlateCount", "Growth", "DualGrowth"];
 
 // Shown when a Test Master row is expanded, alongside Approved Media -
 // the configurable workflow template TestWorkflowEngine reads instead
@@ -24,7 +25,7 @@ const WORKFLOW_TYPES = ["CountTest", "Observation", "DualPlate"];
 function WorkflowStepsSection({ test, onWorkflowTypeChanged }: { test: TestDefinitionOption; onWorkflowTypeChanged: () => void }) {
   const [steps, setSteps] = useState<any[]>([]);
   const [mediaTypes, setMediaTypes] = useState<any[]>([]);
-  const [form, setForm] = useState<Record<string, any>>({ isFinalStep: false, isDualPlate: false });
+  const [form, setForm] = useState<Record<string, any>>({ isFinalStep: false, stepResultType: "Growth" });
   const [editingStepId, setEditingStepId] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -49,12 +50,17 @@ function WorkflowStepsSection({ test, onWorkflowTypeChanged }: { test: TestDefin
     setEditingStepId(s.id);
     setForm({
       stepName: s.stepName, mediaTypeId: s.mediaTypeId, incubationMinHours: s.incubationMinHours, incubationMaxHours: s.incubationMaxHours,
-      temperatureMin: s.temperatureMin, temperatureMax: s.temperatureMax, isFinalStep: s.isFinalStep, isDualPlate: s.isDualPlate
+      temperatureMin: s.temperatureMin, temperatureMax: s.temperatureMax, isFinalStep: s.isFinalStep, stepResultType: s.stepResultType,
+      plate1DefaultLabel: s.plate1DefaultLabel ?? "", plate2DefaultLabel: s.plate2DefaultLabel ?? ""
     });
     setError(null);
   };
 
-  const cancelEditStep = () => { setEditingStepId(null); setForm({ isFinalStep: false, isDualPlate: false }); };
+  const cancelEditStep = () => { setEditingStepId(null); setForm({ isFinalStep: false, stepResultType: "Growth" }); };
+
+  // IsDualPlate is no longer sent - the server derives it from
+  // stepResultType so the two can never disagree (Gap 4/10).
+  const isDualGrowthForm = form.stepResultType === "DualGrowth";
 
   const saveStep = async () => {
     setError(null);
@@ -62,11 +68,17 @@ function WorkflowStepsSection({ test, onWorkflowTypeChanged }: { test: TestDefin
       setError("Step Name and Media Type are required.");
       return;
     }
+    if (isDualGrowthForm && (!form.plate1DefaultLabel?.trim() || !form.plate2DefaultLabel?.trim())) {
+      setError("A dual-growth step requires both a Plate 1 and a Plate 2 default label.");
+      return;
+    }
     const payload = {
       stepName: form.stepName, mediaTypeId: Number(form.mediaTypeId),
       incubationMinHours: Number(form.incubationMinHours) || 0, incubationMaxHours: Number(form.incubationMaxHours) || 0,
       temperatureMin: Number(form.temperatureMin) || 0, temperatureMax: Number(form.temperatureMax) || 0,
-      isFinalStep: !!form.isFinalStep, isDualPlate: !!form.isDualPlate
+      isFinalStep: !!form.isFinalStep, stepResultType: form.stepResultType ?? "Growth",
+      plate1DefaultLabel: isDualGrowthForm ? form.plate1DefaultLabel.trim() : null,
+      plate2DefaultLabel: isDualGrowthForm ? form.plate2DefaultLabel.trim() : null
     };
     try {
       if (editingStepId) {
@@ -116,8 +128,8 @@ function WorkflowStepsSection({ test, onWorkflowTypeChanged }: { test: TestDefin
           <TableHead>
             <TableRow>
               <TableCell>#</TableCell><TableCell>Step</TableCell><TableCell>Media Class</TableCell><TableCell>Incubation</TableCell>
-              <TableCell>Temp °C</TableCell><TableCell>Final</TableCell><TableCell>Dual Plate</TableCell><TableCell />
-            </TableRow>
+              <TableCell>Temp °C</TableCell><TableCell>Result Type</TableCell><TableCell>Plate Labels</TableCell>
+              <TableCell>Final</TableCell><TableCell /></TableRow>
           </TableHead>
           <TableBody>
             {steps.map((s, i) => (
@@ -127,8 +139,9 @@ function WorkflowStepsSection({ test, onWorkflowTypeChanged }: { test: TestDefin
                 <TableCell>{mediaClassLabel(s.mediaType?.class)}</TableCell>
                 <TableCell>{s.incubationMinHours}-{s.incubationMaxHours}h</TableCell>
                 <TableCell>{s.temperatureMin}-{s.temperatureMax}</TableCell>
+                <TableCell>{s.stepResultType}</TableCell>
+                <TableCell>{s.stepResultType === "DualGrowth" ? `${s.plate1DefaultLabel} / ${s.plate2DefaultLabel}` : <em>—</em>}</TableCell>
                 <TableCell>{s.isFinalStep ? "Yes" : "—"}</TableCell>
-                <TableCell>{s.isDualPlate ? "Yes" : "—"}</TableCell>
                 <TableCell align="right">
                   <IconButton size="small" disabled={i === 0} onClick={() => move(s.id, "up")} title="Move up"><ArrowUpwardIcon fontSize="small" /></IconButton>
                   <IconButton size="small" disabled={i === steps.length - 1} onClick={() => move(s.id, "down")} title="Move down"><ArrowDownwardIcon fontSize="small" /></IconButton>
@@ -154,14 +167,26 @@ function WorkflowStepsSection({ test, onWorkflowTypeChanged }: { test: TestDefin
         <TextField size="small" type="number" label="Max Hours" value={form.incubationMaxHours ?? ""} onChange={(e) => setForm({ ...form, incubationMaxHours: e.target.value })} sx={{ width: 100 }} />
         <TextField size="small" type="number" label="Temp Min" value={form.temperatureMin ?? ""} onChange={(e) => setForm({ ...form, temperatureMin: e.target.value })} sx={{ width: 90 }} />
         <TextField size="small" type="number" label="Temp Max" value={form.temperatureMax ?? ""} onChange={(e) => setForm({ ...form, temperatureMax: e.target.value })} sx={{ width: 90 }} />
+        <Select size="small" value={form.stepResultType ?? "Growth"} onChange={(e) => setForm({ ...form, stepResultType: e.target.value })} sx={{ minWidth: 140 }}>
+          {STEP_RESULT_TYPES.map((t) => <MenuItem key={t} value={t}>{t}</MenuItem>)}
+        </Select>
         <FormControlLabel
           control={<Checkbox checked={!!form.isFinalStep} onChange={(e) => setForm({ ...form, isFinalStep: e.target.checked })} />}
           label="Final Step"
         />
+        {/* Not sent to the server - the server derives IsDualPlate from
+            StepResultType (Gap 4/10), so this just mirrors it read-only
+            instead of asking the user to keep two fields in sync. */}
         <FormControlLabel
-          control={<Checkbox checked={!!form.isDualPlate} disabled={test.workflowType !== "DualPlate"} onChange={(e) => setForm({ ...form, isDualPlate: e.target.checked })} />}
-          label="Dual Plate"
+          control={<Checkbox checked={isDualGrowthForm} disabled />}
+          label="Dual Plate (from Result Type)"
         />
+        {isDualGrowthForm && (
+          <>
+            <TextField size="small" label="Plate 1 Default Label" placeholder="e.g. XLD" value={form.plate1DefaultLabel ?? ""} onChange={(e) => setForm({ ...form, plate1DefaultLabel: e.target.value })} sx={{ minWidth: 160 }} />
+            <TextField size="small" label="Plate 2 Default Label" placeholder="e.g. TSI" value={form.plate2DefaultLabel ?? ""} onChange={(e) => setForm({ ...form, plate2DefaultLabel: e.target.value })} sx={{ minWidth: 160 }} />
+          </>
+        )}
         {editingStepId && <Button onClick={cancelEditStep}>Cancel</Button>}
         <Button variant="contained" onClick={saveStep}>{editingStepId ? "Save Changes" : "Add Step"}</Button>
       </Stack>

@@ -614,6 +614,9 @@ namespace MicroLIMS.Persistence.Migrations
                     b.Property<string>("Outcome")
                         .HasColumnType("text");
 
+                    b.Property<int?>("Plate2MediaId")
+                        .HasColumnType("integer");
+
                     b.Property<DateTime>("StartedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -635,6 +638,8 @@ namespace MicroLIMS.Persistence.Migrations
                     b.HasIndex("IncubatorEquipmentId");
 
                     b.HasIndex("MediaId");
+
+                    b.HasIndex("Plate2MediaId");
 
                     b.HasIndex("TestOrderId");
 
@@ -1333,11 +1338,18 @@ namespace MicroLIMS.Persistence.Migrations
                     b.Property<bool>("GrowthObserved")
                         .HasColumnType("boolean");
 
+                    b.Property<int?>("MediaId")
+                        .HasColumnType("integer");
+
                     b.Property<DateTime>("ObservedAt")
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<int>("ObservedByUserId")
                         .HasColumnType("integer");
+
+                    b.Property<string>("PlateLabel")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
 
                     b.Property<string>("StepName")
                         .IsRequired()
@@ -1350,6 +1362,8 @@ namespace MicroLIMS.Persistence.Migrations
                         .HasColumnType("integer");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("MediaId");
 
                     b.HasIndex("TestOrderId");
 
@@ -2278,12 +2292,23 @@ namespace MicroLIMS.Persistence.Migrations
                     b.Property<int>("MediaTypeId")
                         .HasColumnType("integer");
 
+                    b.Property<string>("Plate1DefaultLabel")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<string>("Plate2DefaultLabel")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
                     b.Property<string>("StepName")
                         .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
 
                     b.Property<int>("StepOrder")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("StepResultType")
                         .HasColumnType("integer");
 
                     b.Property<decimal>("TemperatureMax")
@@ -2545,6 +2570,11 @@ namespace MicroLIMS.Persistence.Migrations
                         .HasForeignKey("MediaId")
                         .OnDelete(DeleteBehavior.Restrict);
 
+                    b.HasOne("MicroLIMS.Domain.Entities.Media", "Plate2Media")
+                        .WithMany()
+                        .HasForeignKey("Plate2MediaId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("MicroLIMS.Domain.Entities.TestOrder", "TestOrder")
                         .WithMany("Incubations")
                         .HasForeignKey("TestOrderId");
@@ -2552,6 +2582,8 @@ namespace MicroLIMS.Persistence.Migrations
                     b.Navigation("IncubatorEquipment");
 
                     b.Navigation("Media");
+
+                    b.Navigation("Plate2Media");
 
                     b.Navigation("TestOrder");
                 });
@@ -2712,11 +2744,18 @@ namespace MicroLIMS.Persistence.Migrations
 
             modelBuilder.Entity("MicroLIMS.Domain.Entities.PathogenObservation", b =>
                 {
+                    b.HasOne("MicroLIMS.Domain.Entities.Media", "Media")
+                        .WithMany()
+                        .HasForeignKey("MediaId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("MicroLIMS.Domain.Entities.TestOrder", "TestOrder")
                         .WithMany()
                         .HasForeignKey("TestOrderId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.Navigation("Media");
 
                     b.Navigation("TestOrder");
                 });

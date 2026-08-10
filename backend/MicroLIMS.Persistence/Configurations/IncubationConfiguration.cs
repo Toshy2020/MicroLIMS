@@ -13,6 +13,7 @@ public class IncubationConfiguration : IEntityTypeConfiguration<Incubation>
         // Deleting a Media lot or Equipment record can never cascade-delete
         // incubation history - it's part of the audit trail.
         builder.HasOne(i => i.Media).WithMany().HasForeignKey(i => i.MediaId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasOne(i => i.Plate2Media).WithMany().HasForeignKey(i => i.Plate2MediaId).OnDelete(DeleteBehavior.Restrict);
         builder.HasOne(i => i.IncubatorEquipment).WithMany().HasForeignKey(i => i.IncubatorEquipmentId).OnDelete(DeleteBehavior.Restrict);
     }
 }

@@ -22,6 +22,14 @@ public class Incubation
     // editable by the analyst afterward.
     public int? MediaId { get; set; }
     public Media? Media { get; set; }
+
+    // DualGrowth steps only - the second plate's lot, carried from
+    // SelectMediaAsync (which creates one Incubation row per step, not
+    // per plate) through to RecordResultAsync, where it gets written
+    // onto the second PathogenObservation row. Null for every other step.
+    public int? Plate2MediaId { get; set; }
+    public Media? Plate2Media { get; set; }
+
     public int? IncubatorEquipmentId { get; set; }
     public Equipment? IncubatorEquipment { get; set; }
     public string? Temperature { get; set; }

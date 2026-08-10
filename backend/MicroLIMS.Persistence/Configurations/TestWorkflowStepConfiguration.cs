@@ -12,6 +12,8 @@ public class TestWorkflowStepConfiguration : IEntityTypeConfiguration<TestWorkfl
         builder.Property(s => s.StepName).IsRequired().HasMaxLength(100);
         builder.Property(s => s.TemperatureMin).HasColumnType("decimal(5,2)");
         builder.Property(s => s.TemperatureMax).HasColumnType("decimal(5,2)");
+        builder.Property(s => s.Plate1DefaultLabel).HasMaxLength(20);
+        builder.Property(s => s.Plate2DefaultLabel).HasMaxLength(20);
 
         builder.HasIndex(s => new { s.TestDefinitionId, s.StepOrder }).IsUnique();
 

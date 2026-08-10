@@ -162,11 +162,24 @@ public class ResultProjectionService
         var finalStep = testDefinition.Steps.FirstOrDefault(s => s.IsFinalStep)
             ?? throw new InvalidOperationException($"Test code \"{order.TestCode}\" has no final step configured.");
 
-        var observations = await _db.PathogenObservations
-            .Where(o => o.TestOrderId == testOrderId && o.StepName == finalStep.StepName)
-            .OrderByDescending(o => o.ObservedAt)
-            .Take(2)
-            .ToListAsync();
+        // Scoped to the final step's most recent Incubation window rather
+        // than a bare "latest N by ObservedAt" - a prior inconclusive
+        // dual-plate attempt leaves its own two rows behind as history,
+        // so without this the wrong pair could be projected. Within that
+        // window, ascending Id order matches TestWorkflowEngine.
+        // RecordDualPlateAsync's insertion order (plate 1 row, then plate 2).
+        var latestIncubation = await _db.Incubations
+            .Where(i => i.TestOrderId == testOrderId && i.StepName == finalStep.StepName)
+            .OrderByDescending(i => i.StartedAt)
+            .FirstOrDefaultAsync();
+
+        var observations = latestIncubation is null
+            ? new List<PathogenObservation>()
+            : await _db.PathogenObservations
+                .Where(o => o.TestOrderId == testOrderId && o.StepName == finalStep.StepName && o.ObservedAt >= latestIncubation.StartedAt)
+                .OrderBy(o => o.Id)
+                .ToListAsync();
+
         if (observations.Count == 0)
             throw new InvalidOperationException($"TestOrder {testOrderId} has no observation recorded for its final step \"{finalStep.StepName}\".");
 
@@ -174,9 +187,9 @@ public class ResultProjectionService
         int enteredByUserId;
         DateTime enteredAt;
 
-        if (finalStep.IsDualPlate)
+        if (finalStep.StepResultType == StepResultType.DualGrowth)
         {
-            if (observations.Count < 2)
+            if (observations.Count < 2 || observations.Any(o => string.IsNullOrEmpty(o.PlateLabel)) || observations[0].PlateLabel == observations[1].PlateLabel)
                 throw new InvalidOperationException($"TestOrder {testOrderId}'s final dual-plate step is missing one of its two plate observations.");
             reportedValue = observations[0].GrowthObserved == observations[1].GrowthObserved
                 ? (observations[0].GrowthObserved ? "Detected" : "Absent")

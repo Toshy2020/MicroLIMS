@@ -55,11 +55,13 @@ export const masterDataOptions = {
     apiClient.get(`/masterdata/test-definitions/${testDefinitionId}/steps`).then((r) => r.data.data),
   createTestWorkflowStep: (testDefinitionId: number, payload: {
     stepName: string; mediaTypeId: number; incubationMinHours: number; incubationMaxHours: number;
-    temperatureMin: number; temperatureMax: number; isFinalStep: boolean; isDualPlate: boolean;
+    temperatureMin: number; temperatureMax: number; isFinalStep: boolean; stepResultType: string;
+    plate1DefaultLabel?: string | null; plate2DefaultLabel?: string | null;
   }) => apiClient.post(`/masterdata/test-definitions/${testDefinitionId}/steps`, payload).then((r) => r.data.data),
   updateTestWorkflowStep: (stepId: number, payload: {
     stepName: string; mediaTypeId: number; incubationMinHours: number; incubationMaxHours: number;
-    temperatureMin: number; temperatureMax: number; isFinalStep: boolean; isDualPlate: boolean;
+    temperatureMin: number; temperatureMax: number; isFinalStep: boolean; stepResultType: string;
+    plate1DefaultLabel?: string | null; plate2DefaultLabel?: string | null;
   }) => apiClient.put(`/masterdata/test-definitions/steps/${stepId}`, payload).then((r) => r.data.data),
   moveTestWorkflowStep: (stepId: number, direction: "up" | "down") =>
     apiClient.put(`/masterdata/test-definitions/steps/${stepId}/move`, { direction }).then((r) => r.data.data),

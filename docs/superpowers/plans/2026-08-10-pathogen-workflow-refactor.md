@@ -3158,14 +3158,12 @@ This writes a second `WorkflowStepResult` against the confirmatory step's incuba
         result.ReturnedAtUtc = DateTime.UtcNow;
         result.ReturnedByUserId = reviewerUserId;
 
-        order.CurrentStep = WorkflowStep.Incubating;
-        order.Status = ApprovalStatus.InProgress;
-
-        _db.WorkflowHistories.Add(new WorkflowHistory
-        {
-            TestOrderId = result.TestOrderId, FromStep = WorkflowStep.Reviewed, ToStep = WorkflowStep.Incubating,
-            Note = $"Returned for biochemical confirmation: {comment}", PerformedByUserId = reviewerUserId
-        });
+        // TransitionAsync reads the real FromStep off the order and owns
+        // the WorkflowStep -> ApprovalStatus mapping. Hardcoding
+        // FromStep here would record a transition that never happened:
+        // FinalizeWorkflowAsync leaves the order at Ready, not Reviewed.
+        await WorkflowStateMachine.TransitionAsync(_db, order, WorkflowStep.Incubating, reviewerUserId,
+            $"Returned for biochemical confirmation: {comment}");
 
         await _reviewGate.LogEventAsync(ReviewEntityTypes.Sample, order.SampleId, reviewerUserId,
             ReviewWorkflowEventType.ReviewCompleted, comment, ApprovalDecision.Investigation);

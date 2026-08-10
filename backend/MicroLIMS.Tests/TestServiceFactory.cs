@@ -59,4 +59,6 @@ public static class TestServiceFactory
     public static CryovialService Cryovial(MicroLimsDbContext db, IFileStorageService? storage = null) =>
         new(db, new MaterialService(db), new SegregationOfDutiesGuard(db), ReviewGate(db),
             CryovialSummary(db), Archive(db, storage));
+
+    public static IncubatorEligibilityService IncubatorEligibility(MicroLimsDbContext db) => new(db);
 }

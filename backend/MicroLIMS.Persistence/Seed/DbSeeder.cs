@@ -181,15 +181,14 @@ public static class DbSeeder
         SeedWorkflowTemplates(db);
     }
 
-    // The three core TestWorkflowEngine templates (TAMC/TYMC's single
-    // count step, a generic 2-step pathogen chain applied to EVERY
-    // Observation-typed test with no steps yet, Salmonella's 3-step
-    // dual-plate chain) - only for TestDefinition codes that already
+    // The TestWorkflowEngine templates (TAMC/TYMC's single count step,
+    // Salmonella's five-stage confirmatory chain, and the same five-stage
+    // shape applied generically to every other Observation-typed test
+    // with no steps yet) - only for TestDefinition codes that already
     // exist (the analyst adds those via Test Master; this never creates
     // a TestDefinition row itself). Each seed action is idempotent per
-    // TestDefinition (checked individually, not behind one global "any
-    // step exists anywhere" gate) so this keeps picking up newly-added
-    // pathogen test codes on every startup instead of only running once.
+    // TestDefinition so this keeps picking up newly-added pathogen test
+    // codes on every startup instead of only running once.
     private static void SeedWorkflowTemplates(MicroLimsDbContext db)
     {
         var generalAgar = db.MediaTypes.First(m => m.Class == MediaClass.GeneralAgar);
@@ -197,108 +196,117 @@ public static class DbSeeder
         var selectiveAgar = db.MediaTypes.First(m => m.Class == MediaClass.SelectiveAgar);
         var selectiveBroth = db.MediaTypes.First(m => m.Class == MediaClass.SelectiveBroth);
 
-        bool HasSteps(int testDefinitionId) => db.TestWorkflowSteps.Any(s => s.TestDefinitionId == testDefinitionId);
+        SeedCountTestTemplate(db, "TAMC", generalAgar.Id);
+        SeedCountTestTemplate(db, "TYMC", generalAgar.Id);
 
-        void SeedCountTestTemplate(string code)
-        {
-            var test = db.TestDefinitions.FirstOrDefault(t => t.Code == code);
-            if (test is null)
-            {
-                Console.WriteLine($"[DbSeeder] Skipping workflow template for \"{code}\" - not in Test Master yet.");
-                return;
-            }
-            if (HasSteps(test.Id))
-            {
-                Console.WriteLine($"[DbSeeder] Skipping workflow template for \"{code}\" - already has steps configured.");
-                return;
-            }
-            test.WorkflowType = WorkflowType.CountTest;
-            db.TestWorkflowSteps.Add(new TestWorkflowStep
-            {
-                TestDefinitionId = test.Id, StepOrder = 1, StepName = "CountIncubation", MediaTypeId = generalAgar.Id,
-                IncubationMinHours = 72, IncubationMaxHours = 120, TemperatureMin = 30, TemperatureMax = 35,
-                IsFinalStep = true, IsDualPlate = false, StepResultType = StepResultType.PlateCount
-            });
-            Console.WriteLine($"[DbSeeder] Seeded CountTest workflow template for \"{code}\".");
-        }
+        SeedPathogenTemplate(db, "PATHOGEN_SALMONELLA", "Salmonella enterica",
+            generalBroth.Id, selectiveBroth.Id, selectiveAgar.Id,
+            selectivePlatingMedium: "XLD Agar",
+            confirmatoryMedia: new[] { ("XLD Agar", 35m, 37m), ("TSI Agar", 35m, 37m) });
 
-        SeedCountTestTemplate("TAMC");
-        SeedCountTestTemplate("TYMC");
+        foreach (var test in db.TestDefinitions
+            .Where(t => t.WorkflowType == WorkflowType.Observation && !db.TestWorkflowSteps.Any(s => s.TestDefinitionId == t.Id))
+            .ToList())
+        {
+            SeedPathogenTemplate(db, test.Code, organismScientificName: null,
+                generalBroth.Id, selectiveBroth.Id, selectiveAgar.Id,
+                selectivePlatingMedium: "Selective Agar",
+                confirmatoryMedia: new[] { ("Selective Agar", 35m, 37m) });
+        }
+    }
 
-        var salmonella = db.TestDefinitions.FirstOrDefault(t => t.Code == "PATHOGEN_SALMONELLA");
-        if (salmonella is null)
-        {
-            Console.WriteLine("[DbSeeder] Skipping workflow template for \"PATHOGEN_SALMONELLA\" - not in Test Master yet.");
-        }
-        else if (HasSteps(salmonella.Id))
-        {
-            Console.WriteLine("[DbSeeder] Skipping workflow template for \"PATHOGEN_SALMONELLA\" - already has steps configured.");
-        }
-        else
-        {
-            salmonella.WorkflowType = WorkflowType.DualPlate;
-            db.TestWorkflowSteps.AddRange(
-                new TestWorkflowStep
-                {
-                    TestDefinitionId = salmonella.Id, StepOrder = 1, StepName = "TSB", MediaTypeId = generalBroth.Id,
-                    IncubationMinHours = 24, IncubationMaxHours = 24, TemperatureMin = 35, TemperatureMax = 37,
-                    IsFinalStep = false, IsDualPlate = false, StepResultType = StepResultType.Growth
-                },
-                new TestWorkflowStep
-                {
-                    TestDefinitionId = salmonella.Id, StepOrder = 2, StepName = "RVS", MediaTypeId = selectiveBroth.Id,
-                    IncubationMinHours = 24, IncubationMaxHours = 24, TemperatureMin = 42, TemperatureMax = 43,
-                    IsFinalStep = false, IsDualPlate = false, StepResultType = StepResultType.Growth
-                },
-                new TestWorkflowStep
-                {
-                    TestDefinitionId = salmonella.Id, StepOrder = 3, StepName = "XLD_TSI", MediaTypeId = selectiveAgar.Id,
-                    IncubationMinHours = 24, IncubationMaxHours = 48, TemperatureMin = 35, TemperatureMax = 37,
-                    IsFinalStep = true, IsDualPlate = true, StepResultType = StepResultType.DualGrowth,
-                    Plate1DefaultLabel = "XLD", Plate2DefaultLabel = "TSI"
-                });
-            Console.WriteLine("[DbSeeder] Seeded DualPlate workflow template for \"PATHOGEN_SALMONELLA\".");
-        }
+    private static void SeedCountTestTemplate(MicroLimsDbContext db, string testCode, int generalAgarId)
+    {
+        var test = db.TestDefinitions.FirstOrDefault(t => t.Code == testCode);
+        if (test is null) { Console.WriteLine($"Seed: {testCode} not in Test Master - workflow template skipped."); return; }
+        if (db.TestWorkflowSteps.Any(s => s.TestDefinitionId == test.Id)) return;
 
-        // Flush the CountTest/DualPlate WorkflowType assignments above -
-        // the Observation query below runs against the database, which
-        // (unlike the change tracker) won't see those pending edits until
-        // they're saved, and would otherwise wrongly re-seed TAMC/TYMC/
-        // Salmonella with the generic TSB -> Detection template too.
+        test.WorkflowType = WorkflowType.CountTest;
+        db.TestWorkflowSteps.Add(new TestWorkflowStep
+        {
+            TestDefinitionId = test.Id, StepOrder = 1, StepName = "CountIncubation", MediaTypeId = generalAgarId,
+            IncubationMinHours = 72, IncubationMaxHours = 120, TemperatureMin = 30, TemperatureMax = 35,
+            IsFinalStep = true, StepType = StepType.PlateCount
+        });
+        db.SaveChanges();
+    }
+
+    // Five-stage pathogen chain. Every step gets exactly the StepMedia
+    // rows its StepType requires (see WorkflowTemplateValidator's rules).
+    private static void SeedPathogenTemplate(
+        MicroLimsDbContext db, string testCode, string? organismScientificName,
+        int generalBrothId, int selectiveBrothId, int selectiveAgarId,
+        string selectivePlatingMedium, (string Name, decimal TempMin, decimal TempMax)[] confirmatoryMedia)
+    {
+        var test = db.TestDefinitions.FirstOrDefault(t => t.Code == testCode);
+        if (test is null) { Console.WriteLine($"Seed: {testCode} not in Test Master - workflow template skipped."); return; }
+        if (db.TestWorkflowSteps.Any(s => s.TestDefinitionId == test.Id)) return;
+
+        var organismId = organismScientificName is null
+            ? db.Organisms.Select(o => (int?)o.Id).FirstOrDefault()
+            : db.Organisms.Where(o => o.ScientificName == organismScientificName).Select(o => (int?)o.Id).FirstOrDefault();
+        if (organismId is null) { Console.WriteLine($"Seed: no Organism for {testCode} - workflow template skipped."); return; }
+
+        test.WorkflowType = WorkflowType.Observation;
+
+        var tsb = new TestWorkflowStep
+        {
+            TestDefinitionId = test.Id, StepOrder = 1, StepName = "Broth Enrichment", MediaTypeId = generalBrothId,
+            IncubationMinHours = 18, IncubationMaxHours = 24, TemperatureMin = 35, TemperatureMax = 37,
+            IsFinalStep = false, StepType = StepType.BrothEnrichment
+        };
+        var selectiveBroth = new TestWorkflowStep
+        {
+            TestDefinitionId = test.Id, StepOrder = 2, StepName = "Selective Broth", MediaTypeId = selectiveBrothId,
+            IncubationMinHours = 18, IncubationMaxHours = 24, TemperatureMin = 41, TemperatureMax = 43,
+            IsFinalStep = false, StepType = StepType.SelectiveBroth
+        };
+        var selectivePlating = new TestWorkflowStep
+        {
+            TestDefinitionId = test.Id, StepOrder = 3, StepName = "Selective Plating", MediaTypeId = selectiveAgarId,
+            IncubationMinHours = 18, IncubationMaxHours = 24, TemperatureMin = 35, TemperatureMax = 37,
+            IsFinalStep = false, StepType = StepType.SelectivePlating, TargetOrganismId = organismId
+        };
+        var confirmatory = new TestWorkflowStep
+        {
+            TestDefinitionId = test.Id, StepOrder = 4, StepName = "Confirmatory Plating", MediaTypeId = selectiveAgarId,
+            IncubationMinHours = 18, IncubationMaxHours = 24, TemperatureMin = 35, TemperatureMax = 37,
+            IsFinalStep = false, StepType = StepType.ConfirmatoryPlating, TargetOrganismId = organismId
+        };
+        var biochemical = new TestWorkflowStep
+        {
+            TestDefinitionId = test.Id, StepOrder = 5, StepName = "Biochemical Test", MediaTypeId = selectiveAgarId,
+            IncubationMinHours = 0, IncubationMaxHours = 0, TemperatureMin = 35, TemperatureMax = 37,
+            IsFinalStep = true, StepType = StepType.BiochemicalTest
+        };
+        db.TestWorkflowSteps.AddRange(tsb, selectiveBroth, selectivePlating, confirmatory, biochemical);
         db.SaveChanges();
 
-        // Any test code left at WorkflowType.Observation (the entity's
-        // default, so this also covers every pathogen test added after
-        // PATHOGEN_ECOLI without further code changes here) that has no
-        // steps yet gets the same generic TSB -> Detection template.
-        var observationTestsPending = db.TestDefinitions
-            .Where(t => t.WorkflowType == WorkflowType.Observation)
-            .ToList()
-            .Where(t => !HasSteps(t.Id))
-            .ToList();
-
-        if (observationTestsPending.Count == 0)
+        AddStepMedium(db, tsb.Id, "Tryptone Soya Broth", 35, 37, isRequired: true, order: 1);
+        AddStepMedium(db, selectiveBroth.Id, "Rappaport Vassiliadis Broth", 41, 43, isRequired: true, order: 1);
+        AddStepMedium(db, selectivePlating.Id, selectivePlatingMedium, 35, 37, isRequired: true, order: 1);
+        for (var i = 0; i < confirmatoryMedia.Length; i++)
         {
-            Console.WriteLine("[DbSeeder] No WorkflowType.Observation test codes without a template yet - nothing to seed.");
+            var (name, tempMin, tempMax) = confirmatoryMedia[i];
+            AddStepMedium(db, confirmatory.Id, name, tempMin, tempMax, isRequired: false, order: i + 1);
         }
-        foreach (var test in observationTestsPending)
-        {
-            db.TestWorkflowSteps.AddRange(
-                new TestWorkflowStep
-                {
-                    TestDefinitionId = test.Id, StepOrder = 1, StepName = "TSB", MediaTypeId = generalBroth.Id,
-                    IncubationMinHours = 24, IncubationMaxHours = 72, TemperatureMin = 35, TemperatureMax = 37,
-                    IsFinalStep = false, IsDualPlate = false, StepResultType = StepResultType.Growth
-                },
-                new TestWorkflowStep
-                {
-                    TestDefinitionId = test.Id, StepOrder = 2, StepName = "Detection", MediaTypeId = selectiveAgar.Id,
-                    IncubationMinHours = 24, IncubationMaxHours = 72, TemperatureMin = 35, TemperatureMax = 37,
-                    IsFinalStep = true, IsDualPlate = false, StepResultType = StepResultType.Growth
-                });
-            Console.WriteLine($"[DbSeeder] Seeded Observation workflow template (TSB -> Detection) for \"{test.Code}\".");
-        }
-
         db.SaveChanges();
+    }
+
+    // Resolves the medium by Material name, creating nothing - a missing
+    // material means that medium simply is not offered, which the
+    // template validator will surface the next time the step is saved.
+    private static void AddStepMedium(MicroLimsDbContext db, int stepId, string materialName, decimal tempMin, decimal tempMax, bool isRequired, int order)
+    {
+        var materialId = db.Materials
+            .Where(m => m.MaterialType == MaterialType.DehydratedMedia && m.MaterialName == materialName)
+            .Select(m => (int?)m.Id).FirstOrDefault();
+        if (materialId is null) { Console.WriteLine($"Seed: material '{materialName}' not found - step media skipped."); return; }
+
+        db.TestWorkflowStepMedias.Add(new TestWorkflowStepMedia
+        {
+            TestWorkflowStepId = stepId, MaterialId = materialId.Value,
+            TempMin = tempMin, TempMax = tempMax, IsRequired = isRequired, DisplayOrder = order
+        });
     }
 }

@@ -1,10 +1,7 @@
+using System.ComponentModel.DataAnnotations.Schema;
+
 namespace MicroLIMS.Domain.Entities;
 
-// Supports multi-step incubation workflows (EM Step 1/Step 2, Salmonella
-// TSB -> RVS -> XLD+TSI chain). TestOrderId is nullable because Media
-// Evaluation challenges also create Incubation rows (locked Temperature/
-// Duration from the Media's MediaType) with no TestOrder involved - see
-// MediaEvaluationEngine.RecordIncubationAsync.
 public class Incubation
 {
     public int Id { get; set; }
@@ -16,23 +13,21 @@ public class Incubation
     public DateTime? CompletedAt { get; set; }
     public string? Outcome { get; set; }
 
-    // Count Test (TAMC/TYMC) and Pathogen incubation setup: which prepared
-    // Media lot and Incubator were used, and the Temperature/Duration
-    // ranges hard-locked from that lot's MediaType at setup time - never
-    // editable by the analyst afterward.
     public int? MediaId { get; set; }
     public Media? Media { get; set; }
-
-    // DualGrowth steps only - the second plate's lot, carried from
-    // SelectMediaAsync (which creates one Incubation row per step, not
-    // per plate) through to RecordResultAsync, where it gets written
-    // onto the second PathogenObservation row. Null for every other step.
-    public int? Plate2MediaId { get; set; }
-    public Media? Plate2Media { get; set; }
 
     public int? IncubatorEquipmentId { get; set; }
     public Equipment? IncubatorEquipment { get; set; }
     public string? Temperature { get; set; }
     public string? Duration { get; set; }
     public DateTime? ExpectedReadingAt { get; set; }
+
+    // Analyst-declared incubation window. The lock in Task 8 is
+    // enforced against IncubationEndUtc.
+    public DateTime? IncubationStartUtc { get; set; }
+    public DateTime? IncubationEndUtc { get; set; }
+
+    [NotMapped]
+    public bool IsIncubationComplete =>
+        IncubationEndUtc.HasValue && DateTime.UtcNow >= IncubationEndUtc.Value;
 }

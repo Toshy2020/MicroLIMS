@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Services;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
+using MicroLIMS.Infrastructure.Notifications;
 using MicroLIMS.Persistence.DbContext;
 using MicroLIMS.Shared.Constants;
 
@@ -105,6 +106,12 @@ public interface ITestWorkflowEngine : IStatefulWorkflowEngine
 
     Task<ConfirmatoryOutcomeDto> SubmitConfirmatoryObservationsAsync(int testOrderId, string stepName,
         IReadOnlyList<ConfirmatoryObservationInput> observations, int userId);
+
+    Task<StepResultDto> RecordAnalystDecisionAsync(int testOrderId, AnalystDecision decision, int userId);
+
+    Task<StepResultDto> SubmitBiochemicalAsync(int testOrderId, string stepName, string biochemicalResultText, int? attachmentId, int userId);
+
+    Task<StepResultDto> RecordBiochemicalReviewDecisionAsync(int workflowStepResultId, bool approve, string comment, int reviewerUserId);
 }
 
 // Generic step-runner replacing PathogenWorkflowEngine and
@@ -121,16 +128,23 @@ public class TestWorkflowEngine : ITestWorkflowEngine
     private readonly ResultProjectionService _resultProjection;
     private readonly IncubatorEligibilityService _incubatorEligibility;
     private readonly MediaAppearanceSnapshotService _appearanceSnapshot;
+    private readonly SegregationOfDutiesGuard _sodGuard;
+    private readonly ReviewGateService _reviewGate;
+    private readonly INotificationService _notifications;
 
     public TestWorkflowEngine(
         MicroLimsDbContext db, SampleReviewService sampleReviewService, ResultProjectionService resultProjection,
-        IncubatorEligibilityService incubatorEligibility, MediaAppearanceSnapshotService appearanceSnapshot)
+        IncubatorEligibilityService incubatorEligibility, MediaAppearanceSnapshotService appearanceSnapshot,
+        SegregationOfDutiesGuard sodGuard, ReviewGateService reviewGate, INotificationService notifications)
     {
         _db = db;
         _sampleReviewService = sampleReviewService;
         _resultProjection = resultProjection;
         _incubatorEligibility = incubatorEligibility;
         _appearanceSnapshot = appearanceSnapshot;
+        _sodGuard = sodGuard;
+        _reviewGate = reviewGate;
+        _notifications = notifications;
     }
 
     private async Task<(TestOrder order, TestDefinition definition)> LoadWithTemplateAsync(int testOrderId)
@@ -1016,6 +1030,135 @@ public class TestWorkflowEngine : ITestWorkflowEngine
             result.ConfirmatoryResult.ToString()!,
             AnalystDecisionRequired: allConforming,
             Flags: allConforming ? new List<string>() : new List<string> { "InconclusiveResult" });
+    }
+
+    // Offered only once confirmatory plating came back AllConforming.
+    // Submitting as Detected is allowed but is permanently flagged so a
+    // reviewer sees that no biochemical confirmation was performed.
+    public async Task<StepResultDto> RecordAnalystDecisionAsync(int testOrderId, AnalystDecision decision, int userId)
+    {
+        var confirmatory = await _db.WorkflowStepResults
+            .Where(r => r.TestOrderId == testOrderId && r.StepType == StepType.ConfirmatoryPlating)
+            .OrderByDescending(r => r.Id)
+            .FirstOrDefaultAsync()
+            ?? throw new InvalidOperationException("Confirmatory plating has not been completed for this test order.");
+
+        if (confirmatory.ConfirmatoryResult != ConfirmatoryResult.AllConforming)
+            throw new InvalidOperationException("An analyst decision is only available after an all-conforming confirmatory result.");
+
+        if (decision == AnalystDecision.ProceedToBiochemical)
+            return new StepResultDto(confirmatory.IncubationId, StepType.ConfirmatoryPlating.ToString(), "Complete",
+                userId, confirmatory.SubmittedAtUtc, NextStepUnlocked: true, WorkflowFinalResult: null, Flags: new List<string>());
+
+        confirmatory.SkippedBiochemical = true;
+        await _db.SaveChangesAsync();
+
+        await FinalizeWorkflowAsync(testOrderId, "Detected", userId);
+
+        return new StepResultDto(confirmatory.IncubationId, StepType.ConfirmatoryPlating.ToString(), "Complete",
+            userId, confirmatory.SubmittedAtUtc, NextStepUnlocked: false, WorkflowFinalResult: "Detected",
+            Flags: new List<string> { "BiochemicalNotPerformed" });
+    }
+
+    // Free-text confirmation with an optional attachment. There is no
+    // incubation lock and no media on this step.
+    public async Task<StepResultDto> SubmitBiochemicalAsync(
+        int testOrderId, string stepName, string biochemicalResultText, int? attachmentId, int userId)
+    {
+        var step = await LoadStepAsync(testOrderId, stepName);
+        if (step.StepType != StepType.BiochemicalTest)
+            throw new InvalidOperationException($"Step '{stepName}' is not a biochemical test step.");
+
+        if (string.IsNullOrWhiteSpace(biochemicalResultText))
+            throw new WorkflowStepException(WorkflowErrorCodes.BiochemicalResultRequired,
+                "A biochemical result is required.");
+
+        var confirmatory = await _db.WorkflowStepResults
+            .Where(r => r.TestOrderId == testOrderId && r.StepType == StepType.ConfirmatoryPlating)
+            .OrderByDescending(r => r.Id)
+            .FirstOrDefaultAsync()
+            ?? throw new InvalidOperationException("Confirmatory plating has not been completed for this test order.");
+
+        if (confirmatory.ConfirmatoryResult != ConfirmatoryResult.AllConforming)
+            throw new InvalidOperationException("A biochemical test is only available after an all-conforming confirmatory result.");
+
+        // Reuses the confirmatory step's incubation as the step instance
+        // - a biochemical test has no incubation window of its own.
+        var result = new WorkflowStepResult
+        {
+            IncubationId = confirmatory.IncubationId, TestOrderId = testOrderId,
+            StepName = step.StepName, StepType = step.StepType,
+            BiochemicalResultText = biochemicalResultText, BiochemicalAttachmentId = attachmentId,
+            SkippedBiochemical = false,
+            SubmittedByUserId = userId, SubmittedAtUtc = DateTime.UtcNow
+        };
+        _db.WorkflowStepResults.Add(result);
+
+        // Clears a reviewer's outstanding send-back, if there was one.
+        confirmatory.RequiresBiochemical = false;
+        confirmatory.SkippedBiochemical = false;
+        await _db.SaveChangesAsync();
+
+        await FinalizeWorkflowAsync(testOrderId, "Detected", userId);
+
+        return new StepResultDto(result.IncubationId, step.StepType.ToString(), "Complete",
+            userId, result.SubmittedAtUtc, NextStepUnlocked: false, WorkflowFinalResult: "Detected", Flags: new List<string>());
+    }
+
+    // Reviewer action on a result flagged BiochemicalNotPerformed.
+    // Returning re-opens the biochemical step for the analyst; the
+    // signature/timeline entry goes through the existing review gate.
+    public async Task<StepResultDto> RecordBiochemicalReviewDecisionAsync(
+        int workflowStepResultId, bool approve, string comment, int reviewerUserId)
+    {
+        var result = await _db.WorkflowStepResults.FirstOrDefaultAsync(r => r.Id == workflowStepResultId)
+            ?? throw new InvalidOperationException($"Workflow step result {workflowStepResultId} not found.");
+
+        if (await _sodGuard.DidUserPerformTestAsync(result.TestOrderId, reviewerUserId))
+            throw new WorkflowStepException(WorkflowErrorCodes.SegregationOfDutiesViolation,
+                "A reviewer cannot decide on a result they performed.");
+
+        if (!approve && string.IsNullOrWhiteSpace(comment))
+            throw new InvalidOperationException("A reason is required when returning a result for biochemical confirmation.");
+
+        var order = await _db.TestOrders.FirstAsync(t => t.Id == result.TestOrderId);
+
+        if (approve)
+        {
+            result.RequiresBiochemical = false;
+            await _reviewGate.LogEventAsync(ReviewEntityTypes.Sample, order.SampleId, reviewerUserId,
+                ReviewWorkflowEventType.ReviewCompleted, comment, ApprovalDecision.Approve);
+            await _db.SaveChangesAsync();
+
+            return new StepResultDto(result.IncubationId, result.StepType.ToString(), "Approved",
+                result.SubmittedByUserId, result.SubmittedAtUtc, NextStepUnlocked: false,
+                WorkflowFinalResult: "Detected", Flags: new List<string>());
+        }
+
+        result.RequiresBiochemical = true;
+        result.ReturnReason = comment;
+        result.ReturnedAtUtc = DateTime.UtcNow;
+        result.ReturnedByUserId = reviewerUserId;
+
+        // Routes through the shared state machine (rather than setting
+        // CurrentStep/Status inline) so this transition lands in
+        // WorkflowHistory with the order's real prior step, not a
+        // hardcoded guess - the order is at Ready at this point (it was
+        // finalized by SubmitAsDetected), never Reviewed.
+        await WorkflowStateMachine.TransitionAsync(_db, order, WorkflowStep.Incubating, reviewerUserId,
+            $"Returned for biochemical confirmation: {comment}");
+
+        await _reviewGate.LogEventAsync(ReviewEntityTypes.Sample, order.SampleId, reviewerUserId,
+            ReviewWorkflowEventType.ReviewCompleted, comment, ApprovalDecision.Investigation);
+        await _db.SaveChangesAsync();
+
+        if (order.AssignedAnalystId is int analystId)
+            await _notifications.NotifyAsync(analystId,
+                $"Test order #{result.TestOrderId} was returned for biochemical confirmation.");
+
+        return new StepResultDto(result.IncubationId, result.StepType.ToString(), "ReturnedForBiochemical",
+            result.SubmittedByUserId, result.SubmittedAtUtc, NextStepUnlocked: true,
+            WorkflowFinalResult: null, Flags: new List<string> { "ReturnedForBiochemical" });
     }
 
     // One exit point for a finished pathogen workflow: write the Result

@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Logging.Abstractions;
 using MicroLIMS.Application.Services;
 using MicroLIMS.Application.Workflows;
+using MicroLIMS.Infrastructure.Notifications;
 using MicroLIMS.Infrastructure.Pdf;
 using MicroLIMS.Infrastructure.Storage;
 using MicroLIMS.Persistence.DbContext;
@@ -19,6 +20,12 @@ public class InMemoryFileStorageService : IFileStorageService
     }
 
     public Task<byte[]> ReadAsync(string path) => Task.FromResult(Files[path]);
+}
+
+// Tests assert on persisted state, not on delivery.
+public class NoOpNotificationService : INotificationService
+{
+    public Task NotifyAsync(int userId, string message) => Task.CompletedTask;
 }
 
 // Builds the real service graph for tests. Centralised so adding a
@@ -48,7 +55,8 @@ public static class TestServiceFactory
         new(db, NullLogger<ResultProjectionService>.Instance);
 
     public static TestWorkflowEngine TestWorkflow(MicroLimsDbContext db) =>
-        new(db, SampleReview(db), ResultProjection(db), IncubatorEligibility(db), AppearanceSnapshot(db));
+        new(db, SampleReview(db), ResultProjection(db), IncubatorEligibility(db), AppearanceSnapshot(db),
+            new SegregationOfDutiesGuard(db), ReviewGate(db), new NoOpNotificationService());
 
     public static SampleApprovalService SampleApproval(MicroLimsDbContext db, IFileStorageService? storage = null) =>
         new(db, ReviewGate(db), SampleSummary(db), Archive(db, storage), ResultProjection(db));

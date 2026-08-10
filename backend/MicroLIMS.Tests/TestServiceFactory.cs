@@ -61,4 +61,7 @@ public static class TestServiceFactory
             CryovialSummary(db), Archive(db, storage));
 
     public static IncubatorEligibilityService IncubatorEligibility(MicroLimsDbContext db) => new(db);
+
+    public static MediaAppearanceSnapshotService AppearanceSnapshot(MicroLimsDbContext db) =>
+        new(db, NullLogger<MediaAppearanceSnapshotService>.Instance);
 }

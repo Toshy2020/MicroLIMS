@@ -69,6 +69,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<EquipmentInventoryService>();
         services.AddScoped<ResultProjectionService>();
         services.AddScoped<IncubatorEligibilityService>();
+        services.AddScoped<MediaAppearanceSnapshotService>();
         services.AddScoped<ReportingQueryService>();
         services.AddScoped<DataExportAuditService>();
 

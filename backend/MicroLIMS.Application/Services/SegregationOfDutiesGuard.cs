@@ -18,10 +18,11 @@ public class SegregationOfDutiesGuard
     }
 
     // "Performed" = assigned as the analyst, or entered/observed any raw
-    // result for this test order - Result, CountTestReading, and
-    // PathogenObservation are the only result-bearing tables tied to a
-    // TestOrder with a *ByUserId column (MediaEvaluationChallenge.
-    // ReadByUserId belongs to a Media lot, not a TestOrder, so it doesn't apply here).
+    // result for this test order - Result, CountTestReading,
+    // PathogenObservation, and WorkflowStepResult are the only result-
+    // bearing tables tied to a TestOrder with a *ByUserId column
+    // (MediaEvaluationChallenge.ReadByUserId belongs to a Media lot, not
+    // a TestOrder, so it doesn't apply here).
     public async Task<bool> DidUserPerformTestAsync(int testOrderId, int userId)
     {
         var assignedAnalystId = await _db.TestOrders
@@ -34,6 +35,7 @@ public class SegregationOfDutiesGuard
         if (await _db.Results.AnyAsync(r => r.TestOrderId == testOrderId && r.EnteredByUserId == userId)) return true;
         if (await _db.CountTestReadings.AnyAsync(r => r.TestOrderId == testOrderId && r.EnteredByUserId == userId)) return true;
         if (await _db.PathogenObservations.AnyAsync(p => p.TestOrderId == testOrderId && p.ObservedByUserId == userId)) return true;
+        if (await _db.WorkflowStepResults.AnyAsync(r => r.TestOrderId == testOrderId && r.SubmittedByUserId == userId)) return true;
 
         return false;
     }

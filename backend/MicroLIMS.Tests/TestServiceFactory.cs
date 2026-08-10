@@ -48,7 +48,7 @@ public static class TestServiceFactory
         new(db, NullLogger<ResultProjectionService>.Instance);
 
     public static TestWorkflowEngine TestWorkflow(MicroLimsDbContext db) =>
-        new(db, SampleReview(db), ResultProjection(db));
+        new(db, SampleReview(db), ResultProjection(db), IncubatorEligibility(db), AppearanceSnapshot(db));
 
     public static SampleApprovalService SampleApproval(MicroLimsDbContext db, IFileStorageService? storage = null) =>
         new(db, ReviewGate(db), SampleSummary(db), Archive(db, storage), ResultProjection(db));

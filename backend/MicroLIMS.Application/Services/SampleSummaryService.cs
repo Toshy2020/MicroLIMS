@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.DTOs;
 using MicroLIMS.Domain.Entities;
+using MicroLIMS.Domain.Enums;
 using MicroLIMS.Infrastructure.Pdf;
 using MicroLIMS.Infrastructure.Word;
 using MicroLIMS.Persistence.DbContext;
@@ -180,7 +181,7 @@ public class SampleSummaryService
                 {
                     StepName = p.StepName,
                     StepOrder = p.StepOrder,
-                    GrowthObserved = p.GrowthObserved,
+                    GrowthObserved = p.Observation != GrowthObservation.NoGrowth,
                     ObservedByName = NameOf(p.ObservedByUserId),
                     ObservedAt = p.ObservedAt
                 }).ToList(),

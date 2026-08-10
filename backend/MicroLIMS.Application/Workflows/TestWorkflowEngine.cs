@@ -362,6 +362,19 @@ public class TestWorkflowEngine : ITestWorkflowEngine
         if (await _db.SampleLocations.AnyAsync(l => l.TestOrderId == testOrderId))
             throw new InvalidOperationException("EM/After Cleaning results must be submitted via the batch results endpoint.");
 
+        // This path's ObservationPayload branch below stages a Result but
+        // never writes a WorkflowStepResult row - only the dedicated
+        // pathogen Submit*Async methods (Tasks 8-11) do that. If it ever
+        // ran for a pathogen step, UpsertFromPathogenResultAsync would
+        // throw a confusing internal error trying to read a row that was
+        // never created. record-result now serves CountTest (PlateCount)
+        // steps only, so reject the mismatch here with a clear pointer to
+        // the real entry points instead of letting it fail downstream.
+        if (step.StepType != StepType.PlateCount)
+            throw new InvalidOperationException(
+                $"Step \"{stepName}\" is a pathogen workflow step - use the dedicated pathogen endpoints " +
+                "(submit-broth, submit-selective-plating, submit-confirmatory-setup, etc.), not record-result.");
+
         var openIncubation = await _db.Incubations
             .Where(i => i.TestOrderId == testOrderId && i.StepName == stepName && i.CompletedAt == null)
             .OrderByDescending(i => i.StartedAt)

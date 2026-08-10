@@ -7,7 +7,7 @@ namespace MicroLIMS.Tests.WorkflowTests;
 
 public record SeededMedia(int BrothLotId, int SelectiveBrothLotId, int SelectivePlatingLotId, int XldLotId, int TsiLotId,
     int BrothMaterialId, int SelectiveBrothMaterialId, int SelectivePlatingMaterialId, int XldMaterialId, int TsiMaterialId,
-    int XldStepMediaId, int TsiStepMediaId);
+    int XldStepMediaId, int TsiStepMediaId, int SelectiveBrothIncubatorId);
 
 // Builds the canonical five-stage pathogen template plus every master
 // row it depends on. Mirrors DbSeeder.SeedPathogenTemplate.
@@ -31,7 +31,11 @@ public static class PathogenTestData
         db.Organisms.Add(organism);
 
         var incubator = new Equipment { Name = "INC-03", Code = "INC-03", Type = EquipmentType.Incubator, SetPointTemperature = 36 };
-        db.Equipment.Add(incubator);
+        // Selective Broth's 41-43C range is disjoint from every other
+        // step's 35-37C - a real incubator can't serve both, so this
+        // fixture needs a second one rather than one shared set point.
+        var selectiveBrothIncubator = new Equipment { Name = "INC-07", Code = "INC-07", Type = EquipmentType.Incubator, SetPointTemperature = 42 };
+        db.Equipment.AddRange(incubator, selectiveBrothIncubator);
 
         var test = new TestDefinition { Code = "PATHOGEN_SALMONELLA", DisplayName = "Salmonella", WorkflowType = WorkflowType.Observation };
         db.TestDefinitions.Add(test);
@@ -74,7 +78,7 @@ public static class PathogenTestData
 
         var media = new SeededMedia(brothLot.Id, selBrothLot.Id, platingLot.Id, platingLot.Id, tsiLot.Id,
             brothMaterial.Id, selBrothMaterial.Id, platingMaterial.Id, platingMaterial.Id, tsiMaterial.Id,
-            xldStepMedia.Id, tsiStepMedia.Id);
+            xldStepMedia.Id, tsiStepMedia.Id, selectiveBrothIncubator.Id);
         return (order, media, incubator);
     }
 

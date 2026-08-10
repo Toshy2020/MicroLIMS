@@ -40,6 +40,10 @@ public record StepResultDto(
     int SubmittedByUserId, DateTime SubmittedAtUtc,
     bool NextStepUnlocked, string? WorkflowFinalResult, List<string> Flags);
 
+public record ConfirmatorySelectionInput(int StepMediaId, int MediaLotId, int EquipmentId);
+public record ConfirmatoryObservationInput(int MaterialId, GrowthObservation Observation);
+public record ConfirmatoryOutcomeDto(int StepInstanceId, string ConfirmatoryResult, bool AnalystDecisionRequired, List<string> Flags);
+
 // One already-completed step for the step-chain strip - Outcome is
 // always the same summary string RecordResultAsync already computed
 // and persisted onto that step's Incubation.Outcome, never recomputed
@@ -95,6 +99,12 @@ public interface ITestWorkflowEngine : IStatefulWorkflowEngine
 
     Task<StepResultDto> SubmitSelectivePlatingAsync(int testOrderId, string stepName, int mediaLotId, int equipmentId,
         DateTime incubationStartUtc, DateTime incubationEndUtc, GrowthObservation observation, int userId);
+
+    Task<StepResultDto> SubmitConfirmatorySetupAsync(int testOrderId, string stepName,
+        IReadOnlyList<ConfirmatorySelectionInput> selections, DateTime incubationStartUtc, DateTime incubationEndUtc, int userId);
+
+    Task<ConfirmatoryOutcomeDto> SubmitConfirmatoryObservationsAsync(int testOrderId, string stepName,
+        IReadOnlyList<ConfirmatoryObservationInput> observations, int userId);
 }
 
 // Generic step-runner replacing PathogenWorkflowEngine and
@@ -878,6 +888,134 @@ public class TestWorkflowEngine : ITestWorkflowEngine
         await FinalizeWorkflowAsync(testOrderId, "NotDetected", userId);
         return new StepResultDto(incubation.Id, step.StepType.ToString(), "Complete",
             userId, result.SubmittedAtUtc, NextStepUnlocked: false, WorkflowFinalResult: "NotDetected", Flags: new List<string>());
+    }
+
+    // The analyst's media panel for this run. Every chosen medium must be
+    // on the step's permitted list, with a released lot and an in-range
+    // incubator, before any plate goes into an incubator.
+    public async Task<StepResultDto> SubmitConfirmatorySetupAsync(
+        int testOrderId, string stepName, IReadOnlyList<ConfirmatorySelectionInput> selections,
+        DateTime incubationStartUtc, DateTime incubationEndUtc, int userId)
+    {
+        var step = await LoadStepAsync(testOrderId, stepName);
+        if (step.StepType != StepType.ConfirmatoryPlating)
+            throw new InvalidOperationException($"Step '{stepName}' is not a confirmatory plating step.");
+
+        if (selections.Count == 0)
+            throw new WorkflowStepException(WorkflowErrorCodes.NoMediaSelected,
+                "At least one confirmatory medium must be selected.");
+
+        var permitted = await _db.TestWorkflowStepMedias
+            .Where(m => m.TestWorkflowStepId == step.Id)
+            .ToDictionaryAsync(m => m.Id);
+
+        var resolved = new List<(TestWorkflowStepMedia Medium, Media Lot, int EquipmentId)>();
+        foreach (var selection in selections)
+        {
+            if (!permitted.TryGetValue(selection.StepMediaId, out var medium))
+                throw new WorkflowStepException(WorkflowErrorCodes.MediaNotInPermittedList,
+                    "That medium is not on this step's permitted list.");
+            if (selection.MediaLotId <= 0 || selection.EquipmentId <= 0)
+                throw new WorkflowStepException(WorkflowErrorCodes.IncompleteConfirmatorySetup,
+                    "Every selected medium needs a lot and an incubator.");
+
+            var lot = await LoadReleasedLotAsync(selection.MediaLotId, medium.MaterialId, step.MediaTypeId);
+            await RequireEligibleIncubatorAsync(medium.Id, selection.EquipmentId);
+            resolved.Add((medium, lot, selection.EquipmentId));
+        }
+
+        var incubation = new Incubation
+        {
+            TestOrderId = testOrderId, StepNumber = step.StepOrder, StepName = step.StepName,
+            MediaId = resolved[0].Lot.Id, IncubatorEquipmentId = resolved[0].EquipmentId,
+            Temperature = $"{step.TemperatureMin}-{step.TemperatureMax}",
+            Duration = $"{step.IncubationMinHours}-{step.IncubationMaxHours}h",
+            IncubationStartUtc = incubationStartUtc, IncubationEndUtc = incubationEndUtc,
+            ExpectedReadingAt = incubationEndUtc
+        };
+        _db.Incubations.Add(incubation);
+        await _db.SaveChangesAsync();
+
+        var result = new WorkflowStepResult
+        {
+            IncubationId = incubation.Id, TestOrderId = testOrderId,
+            StepName = step.StepName, StepType = step.StepType,
+            SubmittedByUserId = userId, SubmittedAtUtc = DateTime.UtcNow
+        };
+        foreach (var (medium, lot, equipmentId) in resolved)
+            result.Selections.Add(new ConfirmatoryMediaSelection
+            {
+                MaterialId = medium.MaterialId, MediaId = lot.Id, EquipmentId = equipmentId, WasAnalystAdded = false
+            });
+        _db.WorkflowStepResults.Add(result);
+        await _db.SaveChangesAsync();
+
+        return new StepResultDto(incubation.Id, step.StepType.ToString(), "Incubating",
+            userId, result.SubmittedAtUtc, NextStepUnlocked: false, WorkflowFinalResult: null, Flags: new List<string>());
+    }
+
+    // Every selected medium must be read, and every reading must be
+    // conforming, before the analyst is offered a decision. Anything
+    // else is Inconclusive and is flagged for investigation - there is
+    // no path from here to Detected.
+    public async Task<ConfirmatoryOutcomeDto> SubmitConfirmatoryObservationsAsync(
+        int testOrderId, string stepName, IReadOnlyList<ConfirmatoryObservationInput> observations, int userId)
+    {
+        var step = await LoadStepAsync(testOrderId, stepName);
+        if (step.StepType != StepType.ConfirmatoryPlating)
+            throw new InvalidOperationException($"Step '{stepName}' is not a confirmatory plating step.");
+
+        var result = await _db.WorkflowStepResults
+            .Include(r => r.Selections)
+            .Include(r => r.ConfirmatoryObservations)
+            .Where(r => r.TestOrderId == testOrderId && r.StepName == stepName)
+            .OrderByDescending(r => r.Id)
+            .FirstOrDefaultAsync()
+            ?? throw new WorkflowStepException(WorkflowErrorCodes.IncompleteConfirmatorySetup,
+                "This step's media selection has not been submitted yet.");
+
+        var incubation = await _db.Incubations.FirstAsync(i => i.Id == result.IncubationId);
+        RequireIncubationComplete(incubation.IncubationEndUtc
+            ?? throw new WorkflowStepException(WorkflowErrorCodes.IncompleteConfirmatorySetup,
+                "This step has no recorded incubation window."));
+
+        var selectedMaterialIds = result.Selections.Select(s => s.MaterialId).ToHashSet();
+        var observedMaterialIds = observations.Select(o => o.MaterialId).ToHashSet();
+        if (!selectedMaterialIds.SetEquals(observedMaterialIds))
+            throw new WorkflowStepException(WorkflowErrorCodes.IncompleteConfirmatorySetup,
+                "Exactly one observation is required for each selected medium.");
+
+        foreach (var observation in observations)
+        {
+            var snapshot = await _appearanceSnapshot.GetExpectedAppearanceSnapshotAsync(
+                observation.MaterialId, step.TargetOrganismId!.Value);
+
+            result.ConfirmatoryObservations.Add(new ConfirmatoryPlateObservation
+            {
+                MaterialId = observation.MaterialId, Observation = observation.Observation,
+                ExpectedAppearanceSnapshot = snapshot, RecordedByUserId = userId, RecordedAtUtc = DateTime.UtcNow
+            });
+        }
+
+        var allConforming = observations.All(o => o.Observation == GrowthObservation.GrowthConforming);
+        result.ConfirmatoryResult = allConforming ? ConfirmatoryResult.AllConforming : ConfirmatoryResult.Inconclusive;
+        incubation.CompletedAt = DateTime.UtcNow;
+        incubation.Outcome = result.ConfirmatoryResult.ToString();
+
+        if (!allConforming)
+            _db.WorkflowHistories.Add(new WorkflowHistory
+            {
+                TestOrderId = testOrderId, FromStep = WorkflowStep.Incubating, ToStep = WorkflowStep.Incubating,
+                Note = "Confirmatory plating inconclusive - flagged for investigation.", PerformedByUserId = userId
+            });
+
+        await _db.SaveChangesAsync();
+
+        return new ConfirmatoryOutcomeDto(
+            result.IncubationId,
+            result.ConfirmatoryResult.ToString()!,
+            AnalystDecisionRequired: allConforming,
+            Flags: allConforming ? new List<string>() : new List<string> { "InconclusiveResult" });
     }
 
     // One exit point for a finished pathogen workflow: write the Result

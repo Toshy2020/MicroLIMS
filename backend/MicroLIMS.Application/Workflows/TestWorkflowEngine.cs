@@ -92,6 +92,9 @@ public interface ITestWorkflowEngine : IStatefulWorkflowEngine
     // window elapsing plus the analyst submitting the form.
     Task<StepResultDto> SubmitBrothAsync(int testOrderId, string stepName, int mediaLotId, int equipmentId,
         DateTime incubationStartUtc, DateTime incubationEndUtc, string? observation, int userId);
+
+    Task<StepResultDto> SubmitSelectivePlatingAsync(int testOrderId, string stepName, int mediaLotId, int equipmentId,
+        DateTime incubationStartUtc, DateTime incubationEndUtc, GrowthObservation observation, int userId);
 }
 
 // Generic step-runner replacing PathogenWorkflowEngine and
@@ -817,6 +820,95 @@ public class TestWorkflowEngine : ITestWorkflowEngine
 
         return new StepResultDto(incubation.Id, step.StepType.ToString(), "Complete",
             userId, result.SubmittedAtUtc, NextStepUnlocked: true, WorkflowFinalResult: null, Flags: new List<string>());
+    }
+
+    // Growth that is absent or does not match the expected appearance
+    // means the organism being sought is not there - the workflow ends
+    // as NotDetected without running confirmatory plating.
+    public async Task<StepResultDto> SubmitSelectivePlatingAsync(
+        int testOrderId, string stepName, int mediaLotId, int equipmentId,
+        DateTime incubationStartUtc, DateTime incubationEndUtc, GrowthObservation observation, int userId)
+    {
+        var step = await LoadStepAsync(testOrderId, stepName);
+        if (step.StepType != StepType.SelectivePlating)
+            throw new InvalidOperationException($"Step '{stepName}' is not a selective plating step.");
+
+        var stepMedium = await _db.TestWorkflowStepMedias.FirstOrDefaultAsync(m => m.TestWorkflowStepId == step.Id)
+            ?? throw new InvalidOperationException($"Step '{stepName}' has no assigned medium.");
+        var lot = await LoadReleasedLotAsync(mediaLotId, stepMedium.MaterialId, step.MediaTypeId);
+        await RequireEligibleIncubatorAsync(stepMedium.Id, equipmentId);
+
+        var incubation = new Incubation
+        {
+            TestOrderId = testOrderId, StepNumber = step.StepOrder, StepName = step.StepName,
+            MediaId = lot.Id, IncubatorEquipmentId = equipmentId,
+            Temperature = $"{step.TemperatureMin}-{step.TemperatureMax}",
+            Duration = $"{step.IncubationMinHours}-{step.IncubationMaxHours}h",
+            IncubationStartUtc = incubationStartUtc, IncubationEndUtc = incubationEndUtc,
+            ExpectedReadingAt = incubationEndUtc, CompletedAt = DateTime.UtcNow,
+            Outcome = observation.ToString()
+        };
+        _db.Incubations.Add(incubation);
+        await _db.SaveChangesAsync();
+
+        // Snapshot taken at submission, never afterwards (ALCOA+).
+        var snapshot = await _appearanceSnapshot.GetExpectedAppearanceSnapshotAsync(
+            stepMedium.MaterialId, step.TargetOrganismId!.Value);
+
+        var result = new WorkflowStepResult
+        {
+            IncubationId = incubation.Id, TestOrderId = testOrderId,
+            StepName = step.StepName, StepType = step.StepType,
+            SelectivePlatingObservation = observation, ExpectedAppearanceSnapshot = snapshot,
+            SubmittedByUserId = userId, SubmittedAtUtc = DateTime.UtcNow
+        };
+        _db.WorkflowStepResults.Add(result);
+
+        _db.PathogenObservations.Add(new PathogenObservation
+        {
+            TestOrderId = testOrderId, StepName = step.StepName, StepOrder = step.StepOrder,
+            Observation = observation, ObservedByUserId = userId, MediaId = lot.Id
+        });
+        await _db.SaveChangesAsync();
+
+        if (observation == GrowthObservation.GrowthConforming)
+            return new StepResultDto(incubation.Id, step.StepType.ToString(), "Complete",
+                userId, result.SubmittedAtUtc, NextStepUnlocked: true, WorkflowFinalResult: null, Flags: new List<string>());
+
+        await FinalizeWorkflowAsync(testOrderId, "NotDetected", userId);
+        return new StepResultDto(incubation.Id, step.StepType.ToString(), "Complete",
+            userId, result.SubmittedAtUtc, NextStepUnlocked: false, WorkflowFinalResult: "NotDetected", Flags: new List<string>());
+    }
+
+    // One exit point for a finished pathogen workflow: write the Result
+    // row, project it, move the order to Ready, and let the existing
+    // sample review service decide whether the sample can now be
+    // submitted for review.
+    private async Task FinalizeWorkflowAsync(int testOrderId, string finalResult, int userId)
+    {
+        var order = await _db.TestOrders.FirstOrDefaultAsync(t => t.Id == testOrderId)
+            ?? throw new InvalidOperationException($"Test order {testOrderId} not found.");
+
+        _db.Results.Add(new Result
+        {
+            TestOrderId = testOrderId, RawValue = finalResult, InterpretedValue = finalResult,
+            Type = ResultType.Interpretive, EnteredByUserId = userId
+        });
+
+        _db.WorkflowHistories.Add(new WorkflowHistory
+        {
+            TestOrderId = testOrderId, FromStep = order.CurrentStep, ToStep = WorkflowStep.Ready,
+            Note = $"Pathogen workflow completed: {finalResult}.", PerformedByUserId = userId
+        });
+
+        order.CurrentStep = WorkflowStep.Ready;
+        order.Status = ApprovalStatus.ResultEntered;
+        await _db.SaveChangesAsync();
+
+        await _resultProjection.UpsertFromPathogenResultAsync(testOrderId);
+
+        var sampleId = await _db.TestOrders.Where(t => t.Id == testOrderId).Select(t => t.SampleId).FirstAsync();
+        await _sampleReviewService.AutoSubmitForReviewIfReadyAsync(sampleId, userId);
     }
 
     public async Task<WorkflowStep> AdvanceAsync(int testOrderId, int performedByUserId, string? note = null)

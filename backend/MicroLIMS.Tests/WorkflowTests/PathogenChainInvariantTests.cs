@@ -233,6 +233,47 @@ public class PathogenChainInvariantTests
         Assert.Equal(WorkflowErrorCodes.ConfirmatoryAlreadyRecorded, ex.ErrorCode);
     }
 
+    // The same hole as B2 one step earlier: before any plate is read the
+    // ConfirmatoryResult guard cannot fire, and IsStepDoneAsync
+    // deliberately reports an un-read-out setup as "not done" so the
+    // chain-order guard leaves the step current. A second setup used to
+    // be accepted outright, minting a second Incubation +
+    // WorkflowStepResult with a different media panel and silently
+    // abandoning the first - SubmitConfirmatoryObservationsAsync then
+    // reads out only the newest row.
+    [Fact]
+    public async Task ConfirmatorySetup_SubmittedTwiceBeforeReadOut_IsRejectedAndLeavesOneSetup()
+    {
+        var (order, media, incubator, engine, db) = await NewChainAsync();
+        await using var _ = db;
+        await BothBrothStepsAsync(engine, order, media, incubator);
+        await engine.SubmitSelectivePlatingAsync(order.Id, "Selective Plating", media.SelectivePlatingLotId, incubator.Id,
+            Start, End, GrowthObservation.GrowthConforming, AnalystId);
+
+        await engine.SubmitConfirmatorySetupAsync(order.Id, "Confirmatory Plating",
+            BothMedia(media, incubator.Id), Start, End, AnalystId);
+
+        // A different panel, as an analyst changing their mind would send.
+        var ex = await Assert.ThrowsAsync<WorkflowStepException>(() => engine.SubmitConfirmatorySetupAsync(
+            order.Id, "Confirmatory Plating",
+            new[] { new ConfirmatorySelectionInput(media.XldStepMediaId, media.XldLotId, incubator.Id) },
+            Start, End, AnalystId));
+
+        Assert.Equal(WorkflowErrorCodes.ConfirmatorySetupAlreadySubmitted, ex.ErrorCode);
+        Assert.Contains("already been selected", ex.Message);
+        Assert.Contains("Confirmatory Plating", ex.Message);
+
+        var results = await db.WorkflowStepResults
+            .Include(r => r.Selections)
+            .Where(r => r.TestOrderId == order.Id && r.StepName == "Confirmatory Plating").ToListAsync();
+        var onlyResult = Assert.Single(results);
+        Assert.Null(onlyResult.ConfirmatoryResult);
+        Assert.Equal(2, onlyResult.Selections.Count);
+
+        Assert.Single(await db.Incubations
+            .Where(i => i.TestOrderId == order.Id && i.StepName == "Confirmatory Plating").ToListAsync());
+    }
+
     // The unique index on (WorkflowStepResultId, MaterialId) is not
     // enforced by the InMemory provider, so this has to be a code rule or
     // it becomes a DbUpdateException/500 on PostgreSQL only.

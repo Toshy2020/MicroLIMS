@@ -1042,22 +1042,42 @@ public class TestWorkflowEngine : ITestWorkflowEngine
         int testOrderId, string stepName, IReadOnlyList<ConfirmatorySelectionInput> selections,
         DateTime incubationStartUtc, DateTime incubationEndUtc, int userId)
     {
-        // A second setup for a step that has already been read out mints a
+        // A second setup for a step that already has a result row mints a
         // fresh Incubation and WorkflowStepResult, and every downstream
-        // reader takes the newest row - so an Inconclusive run could be
-        // buried under a re-run and reported as Detected with nothing in
-        // the audit trail saying a re-run happened. Blocked outright; a
-        // documented, reason-bearing repeat is a separate feature.
+        // reader takes the newest row - so the earlier run is silently
+        // replaced with nothing in the audit trail saying it happened.
+        // Two shapes of the same hole, both blocked here:
+        //   - already read out: an Inconclusive run could be buried under
+        //     a re-run and reported as Detected.
+        //   - set up but not yet read out: nothing else catches this. The
+        //     chain-order guard cannot, because IsStepDoneAsync
+        //     deliberately treats an un-read-out setup as "not done" so
+        //     the analyst still sees the step as current, and the
+        //     ConfirmatoryResult test below is still null at that point.
+        //     The abandoned panel's plates would just sit in an incubator
+        //     unrecorded.
+        // Changing a panel after submission needs a documented,
+        // reason-bearing edit path; that is a separate feature.
         //
-        // Checked ahead of LoadStepAsync purely so this case gets its own
-        // error code and message: the chain-order guard in there would
-        // otherwise reject it first as a generic order violation, which
-        // tells the analyst nothing about why.
-        var alreadyRead = await _db.WorkflowStepResults.AnyAsync(r =>
-            r.TestOrderId == testOrderId && r.StepName == stepName && r.ConfirmatoryResult != null);
-        if (alreadyRead)
-            throw new WorkflowStepException(WorkflowErrorCodes.ConfirmatoryAlreadyRecorded,
-                $"Confirmatory plating for step \"{stepName}\" has already been read out and cannot be set up again.");
+        // Resolved from one query and one throw so the analyst always
+        // gets exactly one message, with the read-out case winning when
+        // rows of both shapes somehow exist.
+        //
+        // Checked ahead of LoadStepAsync purely so these cases get their
+        // own error codes and messages: the chain-order guard in there
+        // would otherwise reject the read-out case first as a generic
+        // order violation, which tells the analyst nothing about why.
+        var existingSetups = await _db.WorkflowStepResults
+            .Where(r => r.TestOrderId == testOrderId && r.StepName == stepName)
+            .Select(r => r.ConfirmatoryResult)
+            .ToListAsync();
+        if (existingSetups.Count > 0)
+            throw existingSetups.Any(r => r != null)
+                ? new WorkflowStepException(WorkflowErrorCodes.ConfirmatoryAlreadyRecorded,
+                    $"Confirmatory plating for step \"{stepName}\" has already been read out and cannot be set up again.")
+                : new WorkflowStepException(WorkflowErrorCodes.ConfirmatorySetupAlreadySubmitted,
+                    $"Confirmatory media have already been selected for step \"{stepName}\" - awaiting their plate readings. " +
+                    "The submitted panel and its incubation are shown on this test order's current step.");
 
         var step = await LoadStepAsync(testOrderId, stepName);
         if (step.StepType != StepType.ConfirmatoryPlating)

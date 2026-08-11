@@ -16,6 +16,12 @@ public static class WorkflowErrorCodes
     // A confirmatory plating run has already been read out for this step.
     public const string ConfirmatoryAlreadyRecorded = "CONFIRMATORY_ALREADY_RECORDED";
 
+    // A confirmatory media panel is already set up for this step and is
+    // still awaiting its plate readings. Distinct from
+    // ConfirmatoryAlreadyRecorded so the frontend can tell "read out, done"
+    // apart from "incubating, go and read it".
+    public const string ConfirmatorySetupAlreadySubmitted = "CONFIRMATORY_SETUP_ALREADY_SUBMITTED";
+
     public const string MediaNotInPermittedList = "MEDIA_NOT_IN_PERMITTED_LIST";
     public const string NoMediaSelected = "NO_MEDIA_SELECTED";
     public const string IncompleteConfirmatorySetup = "INCOMPLETE_CONFIRMATORY_SETUP";

@@ -161,6 +161,72 @@ public class BiochemicalReviewTests
             () => engine.RecordBiochemicalReviewDecisionAsync(resultId, approve: false, "  ", ReviewerId));
     }
 
+    // The send-back accepted ANY WorkflowStepResult id. Returning a
+    // selective plating row on a NotDetected order moved it back to
+    // Incubating, and SubmitBiochemicalAsync then refused it - no path
+    // could advance the order again, stranding it permanently.
+    [Fact]
+    public async Task ReviewerReturn_OnASelectivePlatingResult_IsRejectedAndLeavesTheOrderFinalized()
+    {
+        await using var db = PathogenTestData.NewDb();
+        var (order, media, incubator) = await PathogenTestData.SeedFiveStageOrderAsync(db);
+        var engine = TestServiceFactory.TestWorkflow(db);
+        var start = DateTime.UtcNow.AddHours(-30);
+        var end = DateTime.UtcNow.AddHours(-6);
+
+        await engine.SubmitBrothAsync(order.Id, "Broth Enrichment", media.BrothLotId, incubator.Id, start, end, null, AnalystId);
+        await engine.SubmitBrothAsync(order.Id, "Selective Broth", media.SelectiveBrothLotId, media.SelectiveBrothIncubatorId, start, end, null, AnalystId);
+        await engine.SubmitSelectivePlatingAsync(order.Id, "Selective Plating", media.SelectivePlatingLotId, incubator.Id,
+            start, end, GrowthObservation.NoGrowth, AnalystId);
+
+        var platingResult = await db.WorkflowStepResults.SingleAsync(r => r.StepType == StepType.SelectivePlating);
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+            () => engine.RecordBiochemicalReviewDecisionAsync(platingResult.Id, approve: false, "Do it properly.", ReviewerId));
+        Assert.Contains("SelectivePlating", ex.Message);
+
+        var reloaded = await db.TestOrders.SingleAsync(t => t.Id == order.Id);
+        Assert.Equal(WorkflowStep.Ready, reloaded.CurrentStep);
+    }
+
+    // Only a result submitted as Detected WITHOUT biochemical
+    // confirmation is a decidable subject here.
+    [Fact]
+    public async Task ReviewerReturn_OnAConfirmatoryResultThatWasBiochemicallyConfirmed_IsRejected()
+    {
+        var (orderId, engine, db) = await AllConformingAsync();
+        await using var _ = db;
+        await engine.RecordAnalystDecisionAsync(orderId, AnalystDecision.ProceedToBiochemical, AnalystId);
+        await engine.SubmitBiochemicalAsync(orderId, "Biochemical Test", "IMViC: + + - -", null, AnalystId);
+
+        var confirmatory = await db.WorkflowStepResults.SingleAsync(r => r.StepName == "Confirmatory Plating");
+        Assert.False(confirmatory.SkippedBiochemical);
+
+        await Assert.ThrowsAsync<InvalidOperationException>(
+            () => engine.RecordBiochemicalReviewDecisionAsync(confirmatory.Id, approve: false, "Not convinced.", ReviewerId));
+
+        var reloaded = await db.TestOrders.SingleAsync(t => t.Id == orderId);
+        Assert.Equal(WorkflowStep.Ready, reloaded.CurrentStep);
+    }
+
+    // After a legitimate send-back the analyst can still finish the job -
+    // proves the guards above did not close the real path.
+    [Fact]
+    public async Task ReviewerReturn_ThenBiochemicalSubmission_CompletesTheOrder()
+    {
+        var (orderId, engine, db) = await AllConformingAsync();
+        await using var _ = db;
+        await engine.RecordAnalystDecisionAsync(orderId, AnalystDecision.SubmitAsDetected, AnalystId);
+        var resultId = (await db.WorkflowStepResults.SingleAsync(r => r.StepName == "Confirmatory Plating")).Id;
+
+        await engine.RecordBiochemicalReviewDecisionAsync(resultId, approve: false, "Required per SOP-MB-007.", ReviewerId);
+        var final = await engine.SubmitBiochemicalAsync(orderId, "Biochemical Test", "IMViC: + + - -", null, AnalystId);
+
+        Assert.Equal("Detected", final.WorkflowFinalResult);
+        var reloaded = await db.TestOrders.SingleAsync(t => t.Id == orderId);
+        Assert.Equal(WorkflowStep.Ready, reloaded.CurrentStep);
+    }
+
     [Fact]
     public async Task ReviewerCannotDecideOnTheirOwnResult()
     {

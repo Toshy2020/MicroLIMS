@@ -279,6 +279,45 @@ public class PathogenChainInvariantTests
             .ToListAsync());
     }
 
+    // The decision itself is single-shot, independently of the order
+    // being finalized: ProceedToBiochemical leaves the order mid-chain,
+    // so nothing else stops it being answered twice.
+    [Fact]
+    public async Task AnalystDecision_ProceedToBiochemicalTwice_IsRejectedAndRecordsOneDecision()
+    {
+        var (order, media, incubator, engine, db) = await NewChainAsync();
+        await using var _ = db;
+        await ThroughConfirmatoryAsync(engine, order, media, incubator);
+
+        await engine.RecordAnalystDecisionAsync(order.Id, AnalystDecision.ProceedToBiochemical, AnalystId);
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+            () => engine.RecordAnalystDecisionAsync(order.Id, AnalystDecision.ProceedToBiochemical, AnalystId));
+        Assert.Contains("already recorded", ex.Message);
+
+        Assert.Single(await db.WorkflowHistories
+            .Where(h => h.TestOrderId == order.Id && h.Note != null && h.Note.Contains("proceed to biochemical"))
+            .ToListAsync());
+    }
+
+    // And a decision cannot be changed after the fact by asking for the
+    // other branch.
+    [Fact]
+    public async Task AnalystDecision_CannotBeSwitchedAfterProceedingToBiochemical()
+    {
+        var (order, media, incubator, engine, db) = await NewChainAsync();
+        await using var _ = db;
+        await ThroughConfirmatoryAsync(engine, order, media, incubator);
+        await engine.RecordAnalystDecisionAsync(order.Id, AnalystDecision.ProceedToBiochemical, AnalystId);
+
+        await Assert.ThrowsAsync<InvalidOperationException>(
+            () => engine.RecordAnalystDecisionAsync(order.Id, AnalystDecision.SubmitAsDetected, AnalystId));
+
+        Assert.Empty(await db.Results.Where(r => r.TestOrderId == order.Id).ToListAsync());
+        var confirmatory = await db.WorkflowStepResults.SingleAsync(r => r.StepName == "Confirmatory Plating");
+        Assert.False(confirmatory.SkippedBiochemical);
+    }
+
     // The ProceedToBiochemical branch used to persist nothing at all - a
     // GMP decision point with no contemporaneous record.
     [Fact]

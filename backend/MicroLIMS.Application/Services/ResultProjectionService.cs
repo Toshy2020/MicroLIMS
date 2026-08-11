@@ -37,6 +37,27 @@ public class ResultProjectionService
         return created;
     }
 
+    // A pathogen TestOrder has exactly one reportable outcome per round,
+    // whichever step ended up concluding it - so its projection row is
+    // identified by TestOrder+Round rather than by source row id.
+    // Checks the change tracker before the database because a row staged
+    // in the same unit of work is not yet visible to a LINQ query, and
+    // missing it would add a duplicate.
+    private async Task<ResultRecord> GetOrCreatePathogenRecordAsync(int testOrderId, int round)
+    {
+        var staged = _db.ResultRecords.Local
+            .FirstOrDefault(r => r.SourceTable == "WorkflowStepResult" && r.TestOrderId == testOrderId && r.Round == round);
+        if (staged is not null) return staged;
+
+        var existing = await _db.ResultRecords
+            .FirstOrDefaultAsync(r => r.SourceTable == "WorkflowStepResult" && r.TestOrderId == testOrderId && r.Round == round);
+        if (existing is not null) return existing;
+
+        var created = new ResultRecord { SourceTable = "WorkflowStepResult", TestOrderId = testOrderId, Round = round };
+        _db.ResultRecords.Add(created);
+        return created;
+    }
+
     // A TestOrder's "round" is its 1-based ordinal position among every
     // TestOrder ever created for the same Sample+TestCode, oldest first -
     // round 1 is the original order, round 2 the one SampleApprovalService's
@@ -179,18 +200,30 @@ public class ResultProjectionService
         // and the biochemical submission path) - a step that ended the
         // chain WITHOUT either (e.g. a non-conforming/no-growth selective-
         // plating result) is a negative outcome.
-        var reportedValue = finalResult.SkippedBiochemical || finalResult.BiochemicalResultText is not null
-            ? "Detected"
-            : "Not Detected";
+        // A reviewer send-back (RequiresBiochemical) puts the order back
+        // into testing: the detection call it carried is no longer a
+        // reportable outcome, and reporting it as "Detected" would state
+        // a result the reviewer explicitly refused to accept.
+        var reportedValue = finalResult.RequiresBiochemical
+            ? "Pending Confirmation"
+            : finalResult.SkippedBiochemical || finalResult.BiochemicalResultText is not null
+                ? "Detected"
+                : "Not Detected";
         var enteredByUserId = finalResult.SubmittedByUserId;
         var enteredAt = finalResult.SubmittedAtUtc;
 
         var enteredBy = await _db.Users.FirstOrDefaultAsync(u => u.Id == enteredByUserId);
         var round = await ComputeRoundAsync(sample.Id, order.TestCode, order.Id);
 
-        // Sourced from the final WorkflowStepResult - the one row whose id
-        // uniquely identifies this TestOrder's reportable outcome.
-        var record = await GetOrCreateAsync("WorkflowStepResult", finalResult.Id, round);
+        // Keyed on TestOrder+Round, NOT on the concluding
+        // WorkflowStepResult's id: which step concludes a pathogen chain
+        // can change (a send-back and a later biochemical submission both
+        // move the concluding row), and keying on SourceId would leave
+        // the superseded row standing as a second, contradictory
+        // ResultRecord for the same test order. SourceId still records
+        // which row the current projection came from.
+        var record = await GetOrCreatePathogenRecordAsync(order.Id, round);
+        record.SourceId = finalResult.Id;
         record.SampleId = sample.Id;
         record.TestOrderId = order.Id;
         record.ReferenceNumber = sample.ReferenceNumber;

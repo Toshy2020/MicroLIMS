@@ -262,6 +262,57 @@ public class ResultProjectionTests
         Assert.Contains("qualitative", ex.Message);
     }
 
+    // A pathogen chain has exactly one reportable outcome per round no
+    // matter which step concluded it. Keying the projection on the
+    // concluding WorkflowStepResult's id meant a send-back followed by a
+    // biochemical submission left TWO ResultRecords for the same test
+    // order, and the send-back itself left the reviewer-refused
+    // "Detected" standing untouched.
+    [Fact]
+    public async Task PathogenProjection_SurvivesASendBack_AsOneRecordPerTestOrder()
+    {
+        await using var db = PathogenTestData.NewDb();
+        var (order, media, incubator) = await PathogenTestData.SeedFiveStageOrderAsync(db);
+        var engine = TestServiceFactory.TestWorkflow(db);
+        var start = DateTime.UtcNow.AddHours(-30);
+        var end = DateTime.UtcNow.AddHours(-6);
+        const int analystId = 4;
+        const int reviewerId = 9;
+
+        await engine.SubmitBrothAsync(order.Id, "Broth Enrichment", media.BrothLotId, incubator.Id, start, end, null, analystId);
+        await engine.SubmitBrothAsync(order.Id, "Selective Broth", media.SelectiveBrothLotId, media.SelectiveBrothIncubatorId, start, end, null, analystId);
+        await engine.SubmitSelectivePlatingAsync(order.Id, "Selective Plating", media.SelectivePlatingLotId, incubator.Id,
+            start, end, GrowthObservation.GrowthConforming, analystId);
+        await engine.SubmitConfirmatorySetupAsync(order.Id, "Confirmatory Plating", new[]
+        {
+            new ConfirmatorySelectionInput(media.XldStepMediaId, media.XldLotId, incubator.Id),
+            new ConfirmatorySelectionInput(media.TsiStepMediaId, media.TsiLotId, incubator.Id)
+        }, start, end, analystId);
+        await engine.SubmitConfirmatoryObservationsAsync(order.Id, "Confirmatory Plating", new[]
+        {
+            new ConfirmatoryObservationInput(media.XldMaterialId, GrowthObservation.GrowthConforming),
+            new ConfirmatoryObservationInput(media.TsiMaterialId, GrowthObservation.GrowthConforming)
+        }, analystId);
+        await engine.RecordAnalystDecisionAsync(order.Id, AnalystDecision.SubmitAsDetected, analystId);
+
+        var detected = Assert.Single(await db.ResultRecords.Where(r => r.TestOrderId == order.Id).ToListAsync());
+        Assert.Equal("Detected", detected.ReportedValue);
+
+        var confirmatoryId = (await db.WorkflowStepResults.SingleAsync(r => r.StepName == "Confirmatory Plating")).Id;
+        await engine.RecordBiochemicalReviewDecisionAsync(confirmatoryId, approve: false, "Required per SOP-MB-007.", reviewerId);
+
+        // The order is back in testing, so the refused call must not stand.
+        var returned = Assert.Single(await db.ResultRecords.Where(r => r.TestOrderId == order.Id).ToListAsync());
+        Assert.NotEqual("Detected", returned.ReportedValue);
+
+        // Answering the send-back updates that same row, rather than
+        // adding a second reportable result for the order.
+        await engine.SubmitBiochemicalAsync(order.Id, "Biochemical Test", "IMViC: + + - -", null, analystId);
+
+        var confirmed = Assert.Single(await db.ResultRecords.Where(r => r.TestOrderId == order.Id).ToListAsync());
+        Assert.Equal("Detected", confirmed.ReportedValue);
+    }
+
     [Fact]
     public async Task GetTrendAsync_CountTestCode_ReturnsOrderedPointsWithImputedStatistics()
     {

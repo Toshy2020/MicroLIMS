@@ -395,12 +395,12 @@ namespace MicroLIMS.Persistence.Migrations
                 nullable: false,
                 defaultValue: false);
 
-            // Best-effort inverse: GrowthConforming (2) -> true, everything else -> false.
-            // The old boolean cannot distinguish "no growth" (NoGrowth, 0) from "growth
-            // of something other than the target organism" (GrowthNonConforming, 1) -
-            // both collapse to false. Rows recorded as GrowthNonConforming lose that
-            // distinction on rollback; there is no bool value that means "conflicting".
-            migrationBuilder.Sql(@"UPDATE ""PathogenObservations"" SET ""GrowthObserved"" = (""Observation"" = 2);");
+            // No data restore: Up() no longer converts historical data into Observation
+            // (see the comment there), so there is nothing here to convert back either.
+            // GrowthObserved is simply added at its default (false) for consistency with
+            // that decision - not because rollback couldn't collapse Observation onto a
+            // bool, but because this migration no longer asserts data across that
+            // boundary in either direction.
 
             migrationBuilder.AddColumn<string>(
                 name: "PlateLabel",

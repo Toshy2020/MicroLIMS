@@ -32,6 +32,16 @@ public class WorkflowStepResult
     // Analyst submitted Detected straight off confirmatory plating.
     public bool SkippedBiochemical { get; set; }
 
+    // The decision point after an all-conforming confirmatory result.
+    // Recorded for BOTH branches (not just the skip), because "the
+    // analyst chose to proceed to biochemical confirmation" is itself a
+    // GMP decision that needs a contemporaneous record. Non-null also
+    // means the decision has already been taken, which is what makes
+    // RecordAnalystDecisionAsync single-shot.
+    public AnalystDecision? AnalystDecision { get; set; }
+    public DateTime? AnalystDecisionAtUtc { get; set; }
+    public int? AnalystDecisionByUserId { get; set; }
+
     // Set when a reviewer returns the result for biochemical confirmation.
     public bool RequiresBiochemical { get; set; }
     public string? ReturnReason { get; set; }

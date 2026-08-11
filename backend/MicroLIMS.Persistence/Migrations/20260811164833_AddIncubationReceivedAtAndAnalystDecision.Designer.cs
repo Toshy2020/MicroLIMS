@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using MicroLIMS.Persistence.DbContext;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -12,9 +13,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace MicroLIMS.Persistence.Migrations
 {
     [DbContext(typeof(MicroLimsDbContext))]
-    partial class MicroLimsDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260811164833_AddIncubationReceivedAtAndAnalystDecision")]
+    partial class AddIncubationReceivedAtAndAnalystDecision
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

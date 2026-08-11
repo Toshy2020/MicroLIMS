@@ -27,6 +27,14 @@ public class Incubation
     public DateTime? IncubationStartUtc { get; set; }
     public DateTime? IncubationEndUtc { get; set; }
 
+    // Server clock reading taken when the declared window above was
+    // received. The window is analyst-supplied and therefore a claim;
+    // this is the one timestamp on the row the analyst cannot influence,
+    // so a reviewer can always see what was claimed AND when it was
+    // actually submitted (ALCOA+ Contemporaneous/Attributable). Never
+    // used to gate anything - it is evidence, not a control.
+    public DateTime? WindowReceivedAtUtc { get; set; }
+
     [NotMapped]
     public bool IsIncubationComplete =>
         IncubationEndUtc.HasValue && DateTime.UtcNow >= IncubationEndUtc.Value;

@@ -94,11 +94,14 @@ namespace MicroLIMS.Persistence.Migrations
                 nullable: false,
                 defaultValue: 0);
 
-            // true becomes GrowthConforming (2), false becomes NoGrowth (0). The old
-            // boolean had no way to express GrowthNonConforming (1) - growth that does
-            // not match the target organism's expected appearance - so no historical
-            // row can be mapped to it; that distinction only starts existing from here.
-            migrationBuilder.Sql(@"UPDATE ""PathogenObservations"" SET ""Observation"" = CASE WHEN ""GrowthObserved"" THEN 2 ELSE 0 END;");
+            // No data remap: the old boolean recorded only "something grew" and had
+            // no way to express GrowthNonConforming - growth that does not match the
+            // target organism's expected appearance. Mapping true -> GrowthConforming
+            // would assert a morphology judgement the analyst was never shown and
+            // never made, which is a fabricated record under ALCOA+. The table held
+            // only pre-release development data (no signed or approved records, system
+            // not yet in operational use) and has been emptied, so there is nothing to
+            // migrate - the column is simply added empty.
 
             migrationBuilder.DropColumn(
                 name: "GrowthObserved",

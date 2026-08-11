@@ -28,6 +28,19 @@ public class NoOpNotificationService : INotificationService
     public Task NotifyAsync(int userId, string message) => Task.CompletedTask;
 }
 
+// For the handful of tests that DO need to assert delivery (e.g. the
+// reviewer send-back notifying the analyst).
+public class SpyNotificationService : INotificationService
+{
+    public List<(int UserId, string Message)> Sent { get; } = new();
+
+    public Task NotifyAsync(int userId, string message)
+    {
+        Sent.Add((userId, message));
+        return Task.CompletedTask;
+    }
+}
+
 // Builds the real service graph for tests. Centralised so adding a
 // dependency to a service does not mean editing every test file that
 // constructs it.
@@ -54,9 +67,9 @@ public static class TestServiceFactory
     public static ResultProjectionService ResultProjection(MicroLimsDbContext db) =>
         new(db, NullLogger<ResultProjectionService>.Instance);
 
-    public static TestWorkflowEngine TestWorkflow(MicroLimsDbContext db) =>
+    public static TestWorkflowEngine TestWorkflow(MicroLimsDbContext db, INotificationService? notifications = null) =>
         new(db, SampleReview(db), ResultProjection(db), IncubatorEligibility(db), AppearanceSnapshot(db),
-            new SegregationOfDutiesGuard(db), ReviewGate(db), new NoOpNotificationService());
+            new SegregationOfDutiesGuard(db), ReviewGate(db), notifications ?? new NoOpNotificationService());
 
     public static SampleApprovalService SampleApproval(MicroLimsDbContext db, IFileStorageService? storage = null) =>
         new(db, ReviewGate(db), SampleSummary(db), Archive(db, storage), ResultProjection(db));

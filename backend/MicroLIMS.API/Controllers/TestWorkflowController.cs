@@ -72,7 +72,7 @@ public class TestWorkflowController : ControllerBase
     {
         try
         {
-            return Ok(ApiResponse<object>.Ok(await action()!));
+            return Ok(ApiResponse<object>.Ok((await action())!));
         }
         catch (WorkflowStepException ex)
         {

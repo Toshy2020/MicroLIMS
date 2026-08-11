@@ -117,11 +117,13 @@ public class EMBatchLocationTests
     private static TestWorkflowEngine NewTestWorkflowEngine(MicroLimsDbContext db) =>
         TestServiceFactory.TestWorkflow(db);
 
-    // Seeds a single-step pathogen workflow template (Observation or
-    // DualPlate) for the given test code, plus a released media lot and
-    // incubator - mirrors SeedCountTestWorkflowAsync but for the
-    // per-location Detected/Absent grid instead of CFU.
-    private static async Task<(Media media, Equipment equipment)> SeedPathogenWorkflowAsync(MicroLimsDbContext db, string testCode, bool isDualPlate)
+    // Seeds a single-step Observation pathogen workflow template for the
+    // given test code, plus a released media lot and incubator - mirrors
+    // SeedCountTestWorkflowAsync but for the per-location Detected/Absent
+    // grid instead of CFU. DualPlate no longer exists as a WorkflowType;
+    // the batch pathogen path only ever records one growth observation
+    // per location (RecordBatchPathogenResultsAsync).
+    private static async Task<(Media media, Equipment equipment)> SeedPathogenWorkflowAsync(MicroLimsDbContext db, string testCode)
     {
         var mediaType = new MediaType
         {
@@ -130,8 +132,7 @@ public class EMBatchLocationTests
         };
         var testDefinition = new TestDefinition
         {
-            Code = testCode, DisplayName = testCode,
-            WorkflowType = isDualPlate ? WorkflowType.DualPlate : WorkflowType.Observation
+            Code = testCode, DisplayName = testCode, WorkflowType = WorkflowType.Observation
         };
         db.MediaTypes.Add(mediaType);
         db.TestDefinitions.Add(testDefinition);
@@ -141,7 +142,7 @@ public class EMBatchLocationTests
         {
             TestDefinitionId = testDefinition.Id, StepOrder = 1, StepName = "Detection", MediaTypeId = mediaType.Id,
             IncubationMinHours = 0, IncubationMaxHours = 24, TemperatureMin = 35, TemperatureMax = 37,
-            IsFinalStep = true, IsDualPlate = isDualPlate
+            IsFinalStep = true
         });
 
         var material = new Material
@@ -464,7 +465,7 @@ public class EMBatchLocationTests
         db.RoomTestConfigurations.AddRange(configA, configB);
         await db.SaveChangesAsync();
 
-        var (media, equipment) = await SeedPathogenWorkflowAsync(db, "E.coli", isDualPlate: false);
+        var (media, equipment) = await SeedPathogenWorkflowAsync(db, "E.coli");
 
         var emEngine = new EMWorkflowEngine(db, new ReferenceNumberGenerator(db));
         var sample = await emEngine.ReceiveAsync(new EMReceiveRequest(dept.Id, 0, "Analyst", "CTRL-9", 1));
@@ -481,7 +482,7 @@ public class EMBatchLocationTests
             new(locations[1].Id, GrowthObserved: false)
         };
 
-        var result = await workflowEngine.RecordBatchPathogenResultsAsync(order.Id, observations, null, 1);
+        var result = await workflowEngine.RecordBatchPathogenResultsAsync(order.Id, observations, 1);
         Assert.Equal("Detected", result.FinalResult); // overall result is Detected if ANY location is
 
         var reloaded = await db.SampleLocations.Where(l => l.TestOrderId == order.Id).ToListAsync();
@@ -490,47 +491,5 @@ public class EMBatchLocationTests
 
         var reloadedOrder = await db.TestOrders.FirstAsync(t => t.Id == order.Id);
         Assert.Equal(WorkflowStep.Ready, reloadedOrder.CurrentStep);
-    }
-
-    [Fact]
-    public async Task RecordBatchPathogenResultsAsync_DualPlateInconclusiveAtOneLocation_ThrowsAndRejectsWholeSubmission()
-    {
-        await using var db = NewDb();
-        var dept = new Department { Name = "Filling" };
-        var roomA = new Room { Name = "Room A", Department = dept, GradeClassification = "A" };
-        var roomB = new Room { Name = "Room B", Department = dept, GradeClassification = "A" };
-        db.Departments.Add(dept);
-        db.Rooms.AddRange(roomA, roomB);
-        await db.SaveChangesAsync();
-
-        var configA = new RoomTestConfiguration { RoomId = roomA.Id, TestType = "PassiveAirSample", TestCode = "Salmonella", AlertLimit = "0", ActionLimit = "0", SpecLimit = "0" };
-        var configB = new RoomTestConfiguration { RoomId = roomB.Id, TestType = "PassiveAirSample", TestCode = "Salmonella", AlertLimit = "0", ActionLimit = "0", SpecLimit = "0" };
-        db.RoomTestConfigurations.AddRange(configA, configB);
-        await db.SaveChangesAsync();
-
-        var (media, equipment) = await SeedPathogenWorkflowAsync(db, "Salmonella", isDualPlate: true);
-
-        var emEngine = new EMWorkflowEngine(db, new ReferenceNumberGenerator(db));
-        var sample = await emEngine.ReceiveAsync(new EMReceiveRequest(dept.Id, 0, "Analyst", "CTRL-10", 1));
-        var prepared = await emEngine.PrepareAsync(sample.Id, new List<int> { configA.Id, configB.Id }, 1);
-        var order = prepared.TestOrders.Single();
-
-        var workflowEngine = NewTestWorkflowEngine(db);
-        await workflowEngine.SelectMediaAsync(order.Id, "Detection", media.Id, equipment.Id, 1);
-
-        var locations = await workflowEngine.GetLocationsAsync(order.Id);
-        var dualPlate = new List<BatchLocationDualPlateObservation>
-        {
-            new(locations[0].Id, Plate1GrowthObserved: true, Plate2GrowthObserved: true), // agrees - Detected
-            new(locations[1].Id, Plate1GrowthObserved: true, Plate2GrowthObserved: false)  // disagrees - inconclusive
-        };
-
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            workflowEngine.RecordBatchPathogenResultsAsync(order.Id, null, dualPlate, 1));
-        Assert.Contains(locations[1].RoomTestConfiguration!.Room!.Name, ex.Message);
-
-        // Rejected as a whole - even the agreeing location must not be saved.
-        var reloaded = await db.SampleLocations.Where(l => l.TestOrderId == order.Id).ToListAsync();
-        Assert.All(reloaded, l => Assert.Null(l.Status));
     }
 }

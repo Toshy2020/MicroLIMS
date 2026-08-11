@@ -71,7 +71,11 @@ public static class PathogenTestData
         await db.SaveChangesAsync();
 
         var sample = new Sample { Category = SampleCategory.FinishedProduct, ControlNumber = "CTRL-1", Status = SampleStatus.Received };
-        var order = new TestOrder { TestCode = "PATHOGEN_SALMONELLA", Status = ApprovalStatus.Pending, CurrentStep = WorkflowStep.Waiting };
+        // Set so the reviewer-send-back notification path (which notifies
+        // AssignedAnalystId) is actually reachable from this fixture -
+        // without it, RecordBiochemicalReviewDecisionAsync's notify call is
+        // silently skipped and a test named for it exercises nothing.
+        var order = new TestOrder { TestCode = "PATHOGEN_SALMONELLA", Status = ApprovalStatus.Pending, CurrentStep = WorkflowStep.Waiting, AssignedAnalystId = 4 };
         sample.TestOrders.Add(order);
         db.Samples.Add(sample);
         await db.SaveChangesAsync();

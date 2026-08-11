@@ -130,13 +130,23 @@ public class BiochemicalReviewTests
         await engine.RecordAnalystDecisionAsync(orderId, AnalystDecision.SubmitAsDetected, AnalystId);
         var resultId = (await db.WorkflowStepResults.SingleAsync(r => r.StepName == "Confirmatory Plating")).Id;
 
-        await engine.RecordBiochemicalReviewDecisionAsync(resultId, approve: false, "Required per SOP-MB-007.", ReviewerId);
+        // A fresh engine sharing the same db, wired to a spy so the
+        // "NotifiesTheAnalyst" half of this test's name is actually
+        // checked - PathogenTestData.SeedFiveStageOrderAsync sets
+        // AssignedAnalystId = AnalystId specifically for this.
+        var spy = new SpyNotificationService();
+        var notifyingEngine = TestServiceFactory.TestWorkflow(db, spy);
+        await notifyingEngine.RecordBiochemicalReviewDecisionAsync(resultId, approve: false, "Required per SOP-MB-007.", ReviewerId);
 
         var stored = await db.WorkflowStepResults.SingleAsync(r => r.Id == resultId);
         Assert.True(stored.RequiresBiochemical);
         Assert.Equal("Required per SOP-MB-007.", stored.ReturnReason);
         Assert.Equal(ReviewerId, stored.ReturnedByUserId);
         Assert.NotNull(stored.ReturnedAtUtc);
+
+        var notification = Assert.Single(spy.Sent);
+        Assert.Equal(AnalystId, notification.UserId);
+        Assert.Contains("biochemical", notification.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]

@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Services;
+using MicroLIMS.Application.Workflows;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Persistence.DbContext;
@@ -152,6 +153,45 @@ public class SegregationOfDutiesTests
         var review = new ReviewService(db, new SegregationOfDutiesGuard(db), new ElectronicSignatureService(db));
 
         await Assert.ThrowsAsync<InvalidOperationException>(() => review.MarkReviewedAsync(order.Id, reviewerId: 1, "comment", Password, null));
+    }
+
+    // Confirmatory plate readings are appended to a result row submitted
+    // by whoever ran the SETUP, so a second analyst who only read the
+    // plates was invisible to the guard and could review and approve
+    // their own reading.
+    [Fact]
+    public async Task DidUserPerformTest_IsTrue_ForTheAnalystWhoOnlyReadTheConfirmatoryPlates()
+    {
+        await using var db = PathogenTestData.NewDb();
+        var (order, media, incubator) = await PathogenTestData.SeedFiveStageOrderAsync(db);
+        var engine = TestServiceFactory.TestWorkflow(db);
+        var start = DateTime.UtcNow.AddHours(-30);
+        var end = DateTime.UtcNow.AddHours(-6);
+        const int setupAnalystId = 4;   // also the order's AssignedAnalystId
+        const int plateReaderId = 77;
+
+        await engine.SubmitBrothAsync(order.Id, "Broth Enrichment", media.BrothLotId, incubator.Id, start, end, null, setupAnalystId);
+        await engine.SubmitBrothAsync(order.Id, "Selective Broth", media.SelectiveBrothLotId, media.SelectiveBrothIncubatorId, start, end, null, setupAnalystId);
+        await engine.SubmitSelectivePlatingAsync(order.Id, "Selective Plating", media.SelectivePlatingLotId, incubator.Id,
+            start, end, GrowthObservation.GrowthConforming, setupAnalystId);
+        await engine.SubmitConfirmatorySetupAsync(order.Id, "Confirmatory Plating", new[]
+        {
+            new ConfirmatorySelectionInput(media.XldStepMediaId, media.XldLotId, incubator.Id),
+            new ConfirmatorySelectionInput(media.TsiStepMediaId, media.TsiLotId, incubator.Id)
+        }, start, end, setupAnalystId);
+
+        // Only this user's contribution is the plate reading itself.
+        await engine.SubmitConfirmatoryObservationsAsync(order.Id, "Confirmatory Plating", new[]
+        {
+            new ConfirmatoryObservationInput(media.XldMaterialId, GrowthObservation.GrowthConforming),
+            new ConfirmatoryObservationInput(media.TsiMaterialId, GrowthObservation.GrowthConforming)
+        }, plateReaderId);
+
+        var guard = new SegregationOfDutiesGuard(db);
+        Assert.True(await guard.DidUserPerformTestAsync(order.Id, plateReaderId));
+
+        // An analyst with no involvement at all is still clear.
+        Assert.False(await guard.DidUserPerformTestAsync(order.Id, 88));
     }
 
     [Fact]

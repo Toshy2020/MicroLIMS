@@ -9,8 +9,8 @@ import { BrothStepPanel } from "./pathogenSteps/BrothStepPanel";
 import { SelectivePlatingPanel } from "./pathogenSteps/SelectivePlatingPanel";
 import { UnsupportedStepPanel } from "./pathogenSteps/UnsupportedStepPanel";
 import { InconclusiveTerminalPanel } from "./pathogenSteps/InconclusiveTerminalPanel";
-// Tasks 7-8 add these imports and switch branches:
-// import { ConfirmatoryPlatingPanel } from "./pathogenSteps/ConfirmatoryPlatingPanel";
+import { ConfirmatoryPlatingPanel } from "./pathogenSteps/ConfirmatoryPlatingPanel";
+// Task 8 adds this import and switch branch:
 // import { BiochemicalTestPanel } from "./pathogenSteps/BiochemicalTestPanel";
 
 interface Props { testOrderId: number; testCode: string; displayName: string; }
@@ -120,7 +120,7 @@ export function PathogenStepDialog({ testOrderId }: Props) {
       ) : step.stepType === "SelectivePlating" ? (
         <SelectivePlatingPanel testOrderId={testOrderId} step={step} onSubmitted={handleSubmitted} />
       ) : step.stepType === "ConfirmatoryPlating" ? (
-        <UnsupportedStepPanel stepType={step.stepType} /> /* Task 7 replaces this branch */
+        <ConfirmatoryPlatingPanel testOrderId={testOrderId} step={step} onSubmitted={handleSubmitted} />
       ) : step.stepType === "BiochemicalTest" ? (
         <UnsupportedStepPanel stepType={step.stepType} /> /* Task 8 replaces this branch */
       ) : (

@@ -2,7 +2,7 @@
 
 GMP-compliant Laboratory Information Management System for a pharmaceutical
 microbiology laboratory. Rebuilt from the `MicroLIMS_v2` architecture
-document after the original project data was lost — **back this up
+document  — **back this up
 immediately** (git remote, or synced cloud storage).
 
 ## Structure

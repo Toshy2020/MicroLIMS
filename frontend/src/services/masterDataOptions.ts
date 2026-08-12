@@ -53,15 +53,19 @@ export const masterDataOptions = {
     apiClient.put(`/masterdata/test-definitions/${testDefinitionId}/workflow-type`, { workflowType }).then((r) => r.data.data),
   getTestWorkflowSteps: (testDefinitionId: number) =>
     apiClient.get(`/masterdata/test-definitions/${testDefinitionId}/steps`).then((r) => r.data.data),
+  getMaterials: (type?: string) =>
+    apiClient.get("/inventory/materials", { params: type ? { type } : {} }).then((r) => r.data.data),
   createTestWorkflowStep: (testDefinitionId: number, payload: {
     stepName: string; mediaTypeId: number; incubationMinHours: number; incubationMaxHours: number;
-    temperatureMin: number; temperatureMax: number; isFinalStep: boolean; stepResultType: string;
-    plate1DefaultLabel?: string | null; plate2DefaultLabel?: string | null;
+    temperatureMin: number; temperatureMax: number; isFinalStep: boolean; stepType: string;
+    targetOrganismId: number | null;
+    stepMedia: { materialId: number; tempMin: number; tempMax: number; isRequired: boolean; displayOrder: number }[];
   }) => apiClient.post(`/masterdata/test-definitions/${testDefinitionId}/steps`, payload).then((r) => r.data.data),
   updateTestWorkflowStep: (stepId: number, payload: {
     stepName: string; mediaTypeId: number; incubationMinHours: number; incubationMaxHours: number;
-    temperatureMin: number; temperatureMax: number; isFinalStep: boolean; stepResultType: string;
-    plate1DefaultLabel?: string | null; plate2DefaultLabel?: string | null;
+    temperatureMin: number; temperatureMax: number; isFinalStep: boolean; stepType: string;
+    targetOrganismId: number | null;
+    stepMedia: { materialId: number; tempMin: number; tempMax: number; isRequired: boolean; displayOrder: number }[];
   }) => apiClient.put(`/masterdata/test-definitions/steps/${stepId}`, payload).then((r) => r.data.data),
   moveTestWorkflowStep: (stepId: number, direction: "up" | "down") =>
     apiClient.put(`/masterdata/test-definitions/steps/${stepId}/move`, { direction }).then((r) => r.data.data),

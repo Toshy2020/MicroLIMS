@@ -481,6 +481,12 @@ export function useIncubationCountdown(lock: IncubationLock | null, onUnlocked?:
   const [remainingSeconds, setRemainingSeconds] = useState(lock?.remainingSeconds ?? 0);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const firedRef = useRef(false);
+  // Kept fresh every render (not a dependency) so the interval always
+  // calls the caller's current onUnlocked, never a stale closure from
+  // whenever the effect last ran - same fix useIdleTimeout.ts already
+  // applies to its own onTimeout callback via onTimeoutRef.
+  const onUnlockedRef = useRef(onUnlocked);
+  onUnlockedRef.current = onUnlocked;
 
   useEffect(() => {
     setRemainingSeconds(lock?.remainingSeconds ?? 0);
@@ -495,7 +501,8 @@ export function useIncubationCountdown(lock: IncubationLock | null, onUnlocked?:
       setRemainingSeconds(remaining);
       if (remaining === 0 && !firedRef.current) {
         firedRef.current = true;
-        onUnlocked?.();
+        onUnlockedRef.current?.();
+        if (intervalRef.current) clearInterval(intervalRef.current);
       }
     }, 1000);
 

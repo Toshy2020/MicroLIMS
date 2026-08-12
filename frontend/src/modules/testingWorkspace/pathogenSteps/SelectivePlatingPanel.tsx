@@ -16,7 +16,10 @@ interface Props {
 // SelectivePlating: this IS the growth-interpretation decision point (unlike
 // BrothStepPanel's preparation-only steps). The analyst reads the plate
 // against the medium's expected appearance and records one of three
-// GrowthObservation states.
+// GrowthObservation states. No option is pre-selected - matches the
+// pre-refactor TestWorkflowDialog.tsx convention for this kind of GMP
+// pass/fail radio (useState<"yes"|"no"|"">("")  plus a submit-time guard)
+// so an analyst can't submit a growth call by leaving a default untouched.
 //
 // Known API gap: the original spec called for a required observed-appearance
 // note whenever growth is recorded, but submit-selective-plating's request
@@ -30,7 +33,7 @@ export function SelectivePlatingPanel({ testOrderId, step, onSubmitted }: Props)
   const [mediaLotId, setMediaLotId] = useState<number | "">("");
   const [equipmentId, setEquipmentId] = useState<number | "">("");
   const [durationHours, setDurationHours] = useState(String(step.incubationMinHours));
-  const [observation, setObservation] = useState<GrowthObservation>("NoGrowth");
+  const [observation, setObservation] = useState<GrowthObservation | "">("");
   const [appearanceNote, setAppearanceNote] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -54,6 +57,7 @@ export function SelectivePlatingPanel({ testOrderId, step, onSubmitted }: Props)
   const submit = async () => {
     setError(null);
     if (!medium || !mediaLotId || !equipmentId) { setError("Select a media lot and an incubator."); return; }
+    if (observation === "") { setError("Select an observation."); return; }
     if (observation !== "NoGrowth" && !appearanceNote.trim()) {
       setError("Describe the observed appearance before submitting a growth result.");
       return;
@@ -73,22 +77,21 @@ export function SelectivePlatingPanel({ testOrderId, step, onSubmitted }: Props)
 
   if (loading) return <Typography variant="body2">Loading step configuration…</Typography>;
   if (!medium) return <Alert severity="error">This step has no assigned medium configured in Test Master.</Alert>;
-  if (medium.expectedAppearance === null) {
-    return (
-      <Alert severity="error">
-        This medium has no expected appearance configured in Test Master. An observation cannot be
-        safely interpreted without it - contact your supervisor before proceeding.
-      </Alert>
-    );
-  }
 
   return (
     <Stack spacing={1.5}>
       {error && <Alert severity="error">{error}</Alert>}
       <Typography variant="body2">Medium: <strong>{medium.mediaName}</strong></Typography>
-      <Alert severity="info">
-        Expected appearance of a target-positive colony: <strong>{medium.expectedAppearance}</strong>
-      </Alert>
+      {medium.expectedAppearance === null ? (
+        <Alert severity="warning">
+          Expected appearance not configured in Test Master. Growth vs. no-growth can still be recorded,
+          but a conforming/non-conforming judgment is unreliable until Test Master is fixed.
+        </Alert>
+      ) : (
+        <Alert severity="info">
+          Expected appearance of a target-positive colony: <strong>{medium.expectedAppearance}</strong>
+        </Alert>
+      )}
       <Select displayEmpty size="small" value={mediaLotId} onChange={(e) => setMediaLotId(Number(e.target.value))}>
         <MenuItem value=""><em>Media Lot</em></MenuItem>
         {medium.availableLots.map((l) => (
@@ -110,7 +113,7 @@ export function SelectivePlatingPanel({ testOrderId, step, onSubmitted }: Props)
         <FormControlLabel value="GrowthNonConforming" control={<Radio />} label="Growth present, does not match expected appearance — target absent" />
         <FormControlLabel value="GrowthConforming" control={<Radio />} label="Growth matching expected appearance — presumptive positive" />
       </RadioGroup>
-      {observation !== "NoGrowth" && (
+      {(observation === "GrowthNonConforming" || observation === "GrowthConforming") && (
         <TextField
           size="small" multiline minRows={2} required
           label="Observed Appearance Note"

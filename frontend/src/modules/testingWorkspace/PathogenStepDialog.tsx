@@ -6,10 +6,10 @@ import { CurrentStepResponse, StepResultDto } from "./types/testWorkflowTypes";
 import { parseWorkflowError, workflowErrorDisplayMessage } from "./utils/workflowErrors";
 import { useIncubationCountdown } from "./hooks/useIncubationCountdown";
 import { BrothStepPanel } from "./pathogenSteps/BrothStepPanel";
+import { SelectivePlatingPanel } from "./pathogenSteps/SelectivePlatingPanel";
 import { UnsupportedStepPanel } from "./pathogenSteps/UnsupportedStepPanel";
 import { InconclusiveTerminalPanel } from "./pathogenSteps/InconclusiveTerminalPanel";
-// Tasks 6-8 add these imports and switch branches:
-// import { SelectivePlatingPanel } from "./pathogenSteps/SelectivePlatingPanel";
+// Tasks 7-8 add these imports and switch branches:
 // import { ConfirmatoryPlatingPanel } from "./pathogenSteps/ConfirmatoryPlatingPanel";
 // import { BiochemicalTestPanel } from "./pathogenSteps/BiochemicalTestPanel";
 
@@ -118,7 +118,7 @@ export function PathogenStepDialog({ testOrderId }: Props) {
       {step.stepType === "BrothEnrichment" || step.stepType === "SelectiveBroth" ? (
         <BrothStepPanel testOrderId={testOrderId} step={step} onSubmitted={handleSubmitted} />
       ) : step.stepType === "SelectivePlating" ? (
-        <UnsupportedStepPanel stepType={step.stepType} /> /* Task 6 replaces this branch */
+        <SelectivePlatingPanel testOrderId={testOrderId} step={step} onSubmitted={handleSubmitted} />
       ) : step.stepType === "ConfirmatoryPlating" ? (
         <UnsupportedStepPanel stepType={step.stepType} /> /* Task 7 replaces this branch */
       ) : step.stepType === "BiochemicalTest" ? (

@@ -5,15 +5,15 @@ import {
 } from "@mui/material";
 import { TestWorkflowService } from "../services/TestWorkflowService";
 import {
-  TestWorkflowStepDto, PermittedConfirmatoryMediaEntry, StepResultDto,
-  GrowthObservation, ConfirmatoryOutcomeDto, AnalystDecision
+  TestWorkflowStepDto, PermittedConfirmatoryMediaEntry,
+  GrowthObservation, AnalystDecision
 } from "../types/testWorkflowTypes";
 import { parseWorkflowError, workflowErrorDisplayMessage } from "../utils/workflowErrors";
 
 interface Props {
   testOrderId: number;
   step: TestWorkflowStepDto;
-  onSubmitted: (result: StepResultDto) => void;
+  onSubmitted: () => void;
 }
 
 type Phase = "setup" | "readout" | "decision";
@@ -33,27 +33,6 @@ interface ReadoutMedium {
   materialId: number;
   mediaName: string;
   expectedAppearance: string | null;
-}
-
-// submit-confirmatory-observations returns a ConfirmatoryOutcomeDto, and
-// analyst-decision's server call is what actually completes the panel in
-// the decision-required path - but PathogenStepDialog's onSubmitted only
-// ever uses its argument to trigger a reload (handleSubmitted ignores the
-// value: `(_result) => load()`). This stub carries the one real field we
-// have (stepInstanceId, flags) and inert defaults for the rest, purely to
-// satisfy the shared StepResultDto prop type without inventing data the
-// server never sent.
-function toStepResultStub(outcome: ConfirmatoryOutcomeDto): StepResultDto {
-  return {
-    stepInstanceId: outcome.stepInstanceId,
-    stepType: "ConfirmatoryPlating",
-    status: "Complete",
-    submittedByUserId: 0,
-    submittedAtUtc: new Date().toISOString(),
-    nextStepUnlocked: false,
-    workflowFinalResult: null,
-    flags: outcome.flags
-  };
 }
 
 // ConfirmatoryPlating: the most complex pathogen step. One template step
@@ -170,15 +149,17 @@ export function ConfirmatoryPlatingPanel({ testOrderId, step, onSubmitted }: Pro
       const parsed = parseWorkflowError(e);
       if (parsed.code === "CONFIRMATORY_SETUP_ALREADY_SUBMITTED") {
         // Media were already selected in an earlier session. There is no
-        // read endpoint that reports which ones - the best available
-        // signal is whatever the analyst just checked in this attempt; if
-        // they hadn't checked anything yet, fall back to every permitted
-        // medium and let them uncheck what wasn't actually plated. Either
-        // way this is a guess, flagged via readoutUncertain, and the
-        // server still validates the real selection on submit.
-        const guessSource = checkedRows.length > 0 ? checkedRows.map((r) => r.entry) : permitted;
-        setReadoutMedia(guessSource.map((m) => ({
-          stepMediaId: m.stepMediaId, materialId: m.materialId, mediaName: m.mediaName, expectedAppearance: m.expectedAppearance
+        // read endpoint that reports which ones - checkedRows is
+        // guaranteed non-empty and lot/incubator-complete at this point
+        // (both validated above, before submitConfirmatorySetup was ever
+        // called), so the best available signal is exactly what the
+        // analyst just selected in this attempt. Flagged via
+        // readoutUncertain so read-out makes the analyst explicitly
+        // re-confirm each medium (unchecked by default) rather than
+        // presenting this guess as fact; the server still validates the
+        // real selection on submit.
+        setReadoutMedia(checkedRows.map((r) => ({
+          stepMediaId: r.entry.stepMediaId, materialId: r.entry.materialId, mediaName: r.entry.mediaName, expectedAppearance: r.entry.expectedAppearance
         })));
         setReadoutUncertain(true);
         setObservations({});
@@ -194,9 +175,19 @@ export function ConfirmatoryPlatingPanel({ testOrderId, step, onSubmitted }: Pro
     }
   };
 
+  // In the normal (non-resumption) path every entry in readoutMedia is
+  // exactly what the analyst already submitted for setup, so there is
+  // nothing to re-affirm and no checkbox is shown - always active. Only
+  // the resumption/guess path (readoutUncertain) needs the analyst to
+  // explicitly confirm each medium, so it defaults unchecked - never
+  // pre-affirmed - matching the "no pre-selected GMP control" rule
+  // already applied to the observation radios below.
+  const isReadoutActive = (materialId: number) =>
+    readoutUncertain ? (readoutChecked[materialId] ?? false) : true;
+
   const submitReadout = async () => {
     setError(null);
-    const active = readoutMedia.filter((m) => readoutChecked[m.materialId] ?? true);
+    const active = readoutMedia.filter((m) => isReadoutActive(m.materialId));
     if (active.length === 0) { setError("At least one medium must be recorded."); return; }
     const missing = active.filter((m) => !observations[m.materialId]);
     if (missing.length > 0) {
@@ -212,7 +203,7 @@ export function ConfirmatoryPlatingPanel({ testOrderId, step, onSubmitted }: Pro
       if (outcome.analystDecisionRequired) {
         setPhase("decision");
       } else {
-        onSubmitted(toStepResultStub(outcome));
+        onSubmitted();
       }
     } catch (e) {
       setError(workflowErrorDisplayMessage(parseWorkflowError(e)));
@@ -222,18 +213,12 @@ export function ConfirmatoryPlatingPanel({ testOrderId, step, onSubmitted }: Pro
   const decide = async (decision: AnalystDecision) => {
     setError(null);
     try {
-      const result = await TestWorkflowService.recordAnalystDecision(testOrderId, decision);
-      onSubmitted(result);
+      await TestWorkflowService.recordAnalystDecision(testOrderId, decision);
+      onSubmitted();
     } catch (e) {
       setError(workflowErrorDisplayMessage(parseWorkflowError(e)));
     }
   };
-
-  const triggerRefresh = () => onSubmitted({
-    stepInstanceId: 0, stepType: "ConfirmatoryPlating", status: "Complete",
-    submittedByUserId: 0, submittedAtUtc: new Date().toISOString(),
-    nextStepUnlocked: true, workflowFinalResult: null, flags: []
-  });
 
   if (loading) return <Typography variant="body2">Loading step configuration…</Typography>;
 
@@ -242,11 +227,20 @@ export function ConfirmatoryPlatingPanel({ testOrderId, step, onSubmitted }: Pro
       <Stack spacing={1.5}>
         <Alert severity="info">{alreadyRecordedMessage}</Alert>
         <Stack direction="row" justifyContent="flex-end">
-          <Button variant="outlined" onClick={triggerRefresh}>Refresh</Button>
+          <Button variant="outlined" onClick={onSubmitted}>Refresh</Button>
         </Stack>
       </Stack>
     );
   }
+
+  // Checked ahead of the "no permitted media" empty state: an empty
+  // `permitted` list is also what a failed fetch leaves behind (the
+  // getPermittedConfirmatoryMedia call itself, or any one of the
+  // parallel getEligibleIncubators calls rejecting the Promise.all), so
+  // without this check a network/500/403 error would be misreported to
+  // the analyst as a Test Master configuration problem, discarding the
+  // real server message already parsed into `error`.
+  if (error && permitted.length === 0) return <Alert severity="error">{error}</Alert>;
 
   if (permitted.length === 0) {
     return <Alert severity="error">This step has no permitted confirmatory media configured in Test Master.</Alert>;
@@ -322,14 +316,15 @@ export function ConfirmatoryPlatingPanel({ testOrderId, step, onSubmitted }: Pro
           {readoutUncertain ? (
             <Alert severity="warning">
               Confirmatory media for this step were already selected in a previous session, and there is no way to
-              retrieve exactly which ones from here. The media below are a best guess - uncheck anything that was
-              not actually plated before recording observations; the server will still reject an incorrect selection.
+              retrieve exactly which ones from here. These are the media you just selected on this attempt - confirm
+              they match what was actually plated earlier by checking each one before recording its observation; the
+              server will still reject an incorrect selection.
             </Alert>
           ) : (
             <Alert severity="info">Read each plate and record what you observe against the expected appearance.</Alert>
           )}
           {readoutMedia.map((m) => {
-            const checked = readoutChecked[m.materialId] ?? true;
+            const checked = isReadoutActive(m.materialId);
             const value = observations[m.materialId] ?? "";
             return (
               <Box key={m.materialId} sx={{ border: "1px solid #e0e0e0", borderRadius: 1, p: 1.5 }}>

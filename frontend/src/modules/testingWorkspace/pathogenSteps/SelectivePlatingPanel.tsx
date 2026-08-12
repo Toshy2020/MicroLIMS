@@ -4,13 +4,13 @@ import {
   RadioGroup, FormControlLabel, Radio
 } from "@mui/material";
 import { TestWorkflowService } from "../services/TestWorkflowService";
-import { TestWorkflowStepDto, PermittedConfirmatoryMediaEntry, StepResultDto, GrowthObservation } from "../types/testWorkflowTypes";
+import { TestWorkflowStepDto, PermittedConfirmatoryMediaEntry, GrowthObservation } from "../types/testWorkflowTypes";
 import { parseWorkflowError, workflowErrorDisplayMessage } from "../utils/workflowErrors";
 
 interface Props {
   testOrderId: number;
   step: TestWorkflowStepDto;
-  onSubmitted: (result: StepResultDto) => void;
+  onSubmitted: () => void;
 }
 
 // SelectivePlating: this IS the growth-interpretation decision point (unlike
@@ -65,17 +65,18 @@ export function SelectivePlatingPanel({ testOrderId, step, onSubmitted }: Props)
     const startUtc = new Date().toISOString();
     const endUtc = new Date(Date.now() + Number(durationHours) * 3600 * 1000).toISOString();
     try {
-      const result = await TestWorkflowService.submitSelectivePlating(
+      await TestWorkflowService.submitSelectivePlating(
         testOrderId, step.stepName, Number(mediaLotId), Number(equipmentId),
         startUtc, endUtc, observation
       );
-      onSubmitted(result);
+      onSubmitted();
     } catch (e) {
       setError(workflowErrorDisplayMessage(parseWorkflowError(e)));
     }
   };
 
   if (loading) return <Typography variant="body2">Loading step configuration…</Typography>;
+  if (error && !medium) return <Alert severity="error">{error}</Alert>;
   if (!medium) return <Alert severity="error">This step has no assigned medium configured in Test Master.</Alert>;
 
   return (

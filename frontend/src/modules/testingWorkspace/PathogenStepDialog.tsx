@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Box, Typography, Stack, Alert } from "@mui/material";
 import { LoadingSpinner } from "../../components/LoadingSpinner";
 import { TestWorkflowService } from "./services/TestWorkflowService";
-import { CurrentStepResponse, StepResultDto } from "./types/testWorkflowTypes";
+import { CurrentStepResponse } from "./types/testWorkflowTypes";
 import { parseWorkflowError, workflowErrorDisplayMessage } from "./utils/workflowErrors";
 import { useIncubationCountdown } from "./hooks/useIncubationCountdown";
 import { BrothStepPanel } from "./pathogenSteps/BrothStepPanel";
@@ -73,7 +73,7 @@ export function PathogenStepDialog({ testOrderId }: Props) {
 
   const countdown = useIncubationCountdown(current?.incubationLock ?? null, load);
 
-  const handleSubmitted = (_result: StepResultDto) => load();
+  const handleSubmitted = () => load();
 
   if (error && !current) return <Alert severity="error">{error}</Alert>;
   if (!current) return <Box sx={{ py: 4 }}><LoadingSpinner /></Box>;

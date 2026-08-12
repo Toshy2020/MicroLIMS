@@ -1,13 +1,13 @@
 import { useEffect, useState } from "react";
 import { Typography, Select, MenuItem, TextField, Button, Stack, Alert } from "@mui/material";
 import { TestWorkflowService } from "../services/TestWorkflowService";
-import { TestWorkflowStepDto, PermittedConfirmatoryMediaEntry, StepResultDto } from "../types/testWorkflowTypes";
+import { TestWorkflowStepDto, PermittedConfirmatoryMediaEntry } from "../types/testWorkflowTypes";
 import { parseWorkflowError, workflowErrorDisplayMessage } from "../utils/workflowErrors";
 
 interface Props {
   testOrderId: number;
   step: TestWorkflowStepDto;
-  onSubmitted: (result: StepResultDto) => void;
+  onSubmitted: () => void;
 }
 
 // BrothEnrichment/SelectiveBroth: preparation only. There is deliberately
@@ -46,17 +46,18 @@ export function BrothStepPanel({ testOrderId, step, onSubmitted }: Props) {
     const startUtc = new Date().toISOString();
     const endUtc = new Date(Date.now() + Number(durationHours) * 3600 * 1000).toISOString();
     try {
-      const result = await TestWorkflowService.submitBroth(
+      await TestWorkflowService.submitBroth(
         testOrderId, step.stepName, Number(mediaLotId), Number(equipmentId),
         startUtc, endUtc, observation.trim() || null
       );
-      onSubmitted(result);
+      onSubmitted();
     } catch (e) {
       setError(workflowErrorDisplayMessage(parseWorkflowError(e)));
     }
   };
 
   if (loading) return <Typography variant="body2">Loading step configuration…</Typography>;
+  if (error && !medium) return <Alert severity="error">{error}</Alert>;
   if (!medium) return <Alert severity="error">This step has no assigned medium configured in Test Master.</Alert>;
 
   return (

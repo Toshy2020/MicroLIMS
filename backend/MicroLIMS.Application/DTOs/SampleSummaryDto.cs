@@ -127,7 +127,15 @@ public class PathogenObservationDetailDto
 {
     public string StepName { get; set; } = string.Empty;
     public int StepOrder { get; set; }
-    public bool GrowthObserved { get; set; }
+
+    // The GrowthObservation enum's own name (NoGrowth /
+    // GrowthNonConforming / GrowthConforming). Deliberately not a
+    // boolean: collapsing it to "growth yes/no" merges the two negative
+    // states with the positive one, and a GrowthNonConforming chain (the
+    // target organism is absent, something else grew) then reports as
+    // Detected on the GMP summary and its archived PDF.
+    public string Observation { get; set; } = string.Empty;
+
     public string ObservedByName { get; set; } = string.Empty;
     public DateTime ObservedAt { get; set; }
 }

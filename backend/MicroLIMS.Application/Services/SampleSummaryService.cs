@@ -181,7 +181,7 @@ public class SampleSummaryService
                 {
                     StepName = p.StepName,
                     StepOrder = p.StepOrder,
-                    GrowthObserved = p.Observation != GrowthObservation.NoGrowth,
+                    Observation = p.Observation.ToString(),
                     ObservedByName = NameOf(p.ObservedByUserId),
                     ObservedAt = p.ObservedAt
                 }).ToList(),
@@ -314,7 +314,7 @@ public class SampleSummaryService
             }
 
             foreach (var p in order.PathogenObservations)
-                lines.Add($"  {p.StepName}: Growth Observed = {(p.GrowthObserved ? "Yes" : "No")} - {p.ObservedByName} - {p.ObservedAt:dd-MMM-yyyy HH:mm}");
+                lines.Add($"  {p.StepName}: Observation = {p.Observation} - {p.ObservedByName} - {p.ObservedAt:dd-MMM-yyyy HH:mm}");
 
             foreach (var r in order.Results)
                 lines.Add($"  Result: {r.InterpretedValue ?? r.RawValue} - Entered By {r.EnteredByName} - {r.EnteredAt:dd-MMM-yyyy HH:mm}");

@@ -21,6 +21,20 @@ public static class ReportDocumentMapper
         return System.Text.RegularExpressions.Regex.Replace(spaced, @"\s+(.)", m => " " + char.ToLowerInvariant(m.Groups[1].Value[0]));
     }
 
+    // Humanize would render these as "No growth" / "Growth non
+    // conforming" / "Growth conforming", which reads as a grading of the
+    // growth rather than a statement about the target organism. A
+    // reviewer has to be able to tell at a glance that growth occurred
+    // but was not the organism under test, so each state gets its own
+    // sentence instead.
+    private static string ObservationText(string? observation) => observation switch
+    {
+        "NoGrowth" => "No growth",
+        "GrowthNonConforming" => "Growth observed - does not match target organism",
+        "GrowthConforming" => "Growth observed - matches target organism",
+        _ => Humanize(observation)
+    };
+
     // 11.50(b) wants the meaning attested to, not the signature's type.
     private static readonly Dictionary<string, string> MeaningText = new()
     {
@@ -144,7 +158,11 @@ public static class ReportDocumentMapper
         var reading = t.CountTestReadings.LastOrDefault();
         var incubation = t.Incubations.LastOrDefault();
         var lastResult = t.Results.LastOrDefault();
-        var detected = t.PathogenObservations.Any(p => p.GrowthObserved);
+        // Only conforming growth is the target organism. NoGrowth and
+        // GrowthNonConforming are both "absent" - something growing that
+        // is not the organism under test is not a detection, and reading
+        // it as one puts a false positive on a released GMP record.
+        var detected = t.PathogenObservations.Any(p => p.Observation == "GrowthConforming");
         var outOfSpec = reading?.Status == "OutOfSpecification";
         var hasNonConformingLocation = t.Locations.Any(l => l.Status is not (null or "WithinLimits" or "Absent"));
 
@@ -211,7 +229,7 @@ public static class ReportDocumentMapper
         }
 
         foreach (var p in t.PathogenObservations.OrderBy(p => p.StepOrder))
-            card.Rows.Add((Humanize(p.StepName), $"{(p.GrowthObserved ? "Growth observed" : "No growth")}  |  {p.ObservedByName}  |  {Dt(p.ObservedAt)}"));
+            card.Rows.Add((Humanize(p.StepName), $"{ObservationText(p.Observation)}  |  {p.ObservedByName}  |  {Dt(p.ObservedAt)}"));
 
         // EM/After Cleaning batch results - a genuine table, one row per
         // location, mirroring SampleSummaryDialog's LocationResultsTable

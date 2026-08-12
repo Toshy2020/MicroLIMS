@@ -29,4 +29,10 @@ public static class WorkflowErrorCodes
     public const string BiochemicalResultRequired = "BIOCHEMICAL_RESULT_REQUIRED";
     public const string SegregationOfDutiesViolation = "SEGREGATION_OF_DUTIES_VIOLATION";
     public const string TemplateValidationFailed = "TEMPLATE_VALIDATION_FAILED";
+
+    // The SubmitAsDetected/ProceedToBiochemical choice after an
+    // all-conforming confirmatory result is single-shot. Distinct from
+    // ConfirmatoryAlreadyRecorded, which guards the plate read-out itself
+    // rather than the decision made after it.
+    public const string AnalystDecisionAlreadyRecorded = "ANALYST_DECISION_ALREADY_RECORDED";
 }

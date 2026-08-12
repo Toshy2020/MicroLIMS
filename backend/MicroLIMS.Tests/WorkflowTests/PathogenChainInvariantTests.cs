@@ -332,8 +332,9 @@ public class PathogenChainInvariantTests
 
         await engine.RecordAnalystDecisionAsync(order.Id, AnalystDecision.ProceedToBiochemical, AnalystId);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+        var ex = await Assert.ThrowsAsync<WorkflowStepException>(
             () => engine.RecordAnalystDecisionAsync(order.Id, AnalystDecision.ProceedToBiochemical, AnalystId));
+        Assert.Equal(WorkflowErrorCodes.AnalystDecisionAlreadyRecorded, ex.ErrorCode);
         Assert.Contains("already recorded", ex.Message);
 
         Assert.Single(await db.WorkflowHistories
@@ -351,8 +352,11 @@ public class PathogenChainInvariantTests
         await ThroughConfirmatoryAsync(engine, order, media, incubator);
         await engine.RecordAnalystDecisionAsync(order.Id, AnalystDecision.ProceedToBiochemical, AnalystId);
 
-        await Assert.ThrowsAsync<InvalidOperationException>(
+        // Also hits the already-recorded guard (ProceedToBiochemical leaves
+        // the order mid-chain, so this isn't caught by RequireOrderNotFinalized).
+        var ex = await Assert.ThrowsAsync<WorkflowStepException>(
             () => engine.RecordAnalystDecisionAsync(order.Id, AnalystDecision.SubmitAsDetected, AnalystId));
+        Assert.Equal(WorkflowErrorCodes.AnalystDecisionAlreadyRecorded, ex.ErrorCode);
 
         Assert.Empty(await db.Results.Where(r => r.TestOrderId == order.Id).ToListAsync());
         var confirmatory = await db.WorkflowStepResults.SingleAsync(r => r.StepName == "Confirmatory Plating");

@@ -1245,7 +1245,7 @@ public class TestWorkflowEngine : ITestWorkflowEngine
         // and a Ready -> Ready history entry, leaving two contradictory
         // "final" results on one test order.
         if (confirmatory.AnalystDecision is not null)
-            throw new InvalidOperationException(
+            throw new WorkflowStepException(WorkflowErrorCodes.AnalystDecisionAlreadyRecorded,
                 $"An analyst decision ({confirmatory.AnalystDecision}) was already recorded for this confirmatory result.");
 
         confirmatory.AnalystDecision = decision;

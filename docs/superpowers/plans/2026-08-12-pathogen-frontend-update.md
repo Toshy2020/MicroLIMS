@@ -1047,8 +1047,20 @@ git commit -m "feat: add confirmatory plating panel with setup, read-out, and an
 - Modify: `frontend/src/modules/testingWorkspace/PathogenStepDialog.tsx` (final ternary arm)
 
 **Interfaces:**
-- Consumes: `TestWorkflowService.submitBiochemical` (Task 2).
-- Produces: `BiochemicalTestPanel({ testOrderId, step, onSubmitted })`.
+- Consumes: `TestWorkflowService.submitBiochemical` and `TestWorkflowService.recordAnalystDecision` (Task 2).
+- Produces: `BiochemicalTestPanel({ testOrderId, step, confirmatoryOutcome, onSubmitted })` — note `onSubmitted` is a **no-argument** callback (`() => void`), per the Task 7 review fix that removed fabricated `StepResultDto` stubs across all panels. Match the sibling panels' current signature; read `BrothStepPanel.tsx` for the established shape rather than the older code block below, which predates that fix.
+
+### REQUIRED SCOPE ADDITION (human ruling, added after the Task 7 review — this is not optional)
+
+The Task 7 review found a **lost GMP decision record**: after confirmatory observations return `AllConforming`, the analyst decision point (`SubmitAsDetected` vs `ProceedToBiochemical`) lives only in `ConfirmatoryPlatingPanel`'s local React state. Submitting the observations already wrote `ConfirmatoryResult` server-side, so the current step becomes `BiochemicalTest` and that panel never mounts again. An analyst who closes or refreshes the dialog before choosing can **never** record the decision: `SubmitAsDetected` becomes permanently unreachable, and `SubmitBiochemicalAsync` does not require `AnalystDecision`, so the workflow completes normally with `AnalystDecision`/`AnalystDecisionByUserId` null and no "proceed to biochemical" `WorkflowHistory` entry. Nothing errors; the record is silently lost.
+
+The human partner ruled this is to be fixed **frontend-only, here in Task 8**. `BiochemicalTestPanel` must therefore:
+
+1. Determine whether the confirmatory step for this order came back `AllConforming`. The caller (`PathogenStepDialog`) already computes this — it finds the `completedSteps` entry with `stepType === "ConfirmatoryPlating"` and reads its `outcome`, which the backend sets to literally `"AllConforming"` or `"Inconclusive"`. Pass that outcome into this panel as a prop rather than re-deriving it here.
+2. When that outcome is `"AllConforming"`, render the **analyst decision first** — the same two options and the same prominent "submitting as Detected without biochemical confirmation will be flagged for the reviewer" warning that `ConfirmatoryPlatingPanel`'s decision phase shows (read that file and mirror its wording and layout; do not invent different copy for the same decision).
+3. On `ProceedToBiochemical`, fall through to the biochemical free-text form. On `SubmitAsDetected`, call the parent `onSubmitted()` — the workflow finalizes and this panel is done.
+4. **If `recordAnalystDecision` fails with an "already recorded" error, treat that as the signal that the decision was made in an earlier session and fall through to the biochemical form** — do not surface it as an error. This is the same error-code-driven resumption pattern already proven for confirmatory setup in Task 7. Use `parseWorkflowError` and branch on the code; do not string-match the message. Read `WorkflowErrorCodes.cs` to confirm the exact code the backend throws for an already-recorded decision, and if no dedicated code exists for it (the backend may throw a plain `InvalidOperationException` here rather than a coded `WorkflowStepException`), **stop and report that** rather than falling back to message matching — it would mean this recovery path needs a backend error code that does not exist yet.
+5. When the confirmatory outcome is not `"AllConforming"`, skip the decision UI entirely and render only the biochemical form (an `Inconclusive` order should never reach this panel at all — `PathogenStepDialog` intercepts it with `InconclusiveTerminalPanel` — but do not rely on that as the only guard).
 
 - [ ] **Step 1: Write `BiochemicalTestPanel.tsx`**
 

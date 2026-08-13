@@ -39,7 +39,7 @@ export interface CountTestReadingDetail {
 export interface PathogenObservationDetail {
   stepName: string;
   stepOrder: number;
-  growthObserved: boolean;
+  observation: "NoGrowth" | "GrowthNonConforming" | "GrowthConforming";
   observedByName: string;
   observedAt: string;
 }

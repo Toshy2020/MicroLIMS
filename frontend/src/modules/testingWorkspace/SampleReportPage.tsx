@@ -5,6 +5,7 @@ import { ArchivedRecordsService, ArchivedRecordSummary } from "./services/Archiv
 import { ArchivedCopiesSection } from "./reportPrimitives";
 import { SampleSummary, TestOrderSummaryDetail } from "./types/sampleSummaryTypes";
 import { reportStyles } from "./reportStyles";
+import { pathogenObservationLabel } from "./utils/pathogenObservationLabel";
 
 const CheckIcon = ({ strokeWidth = 2.5 }: { strokeWidth?: number }) => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round">
@@ -307,7 +308,11 @@ function TestCard({ test }: { test: TestOrderSummaryDetail }) {
   const nonConformingLocation = test.locations.some((l) => l.status && l.status !== "WithinLimits" && l.status !== "Absent");
 
   const outOfSpec = reading?.status === "OutOfSpecification";
-  const detected = test.pathogenObservations.some((p) => p.growthObserved);
+  // Only conforming growth is the target organism. NoGrowth and
+  // GrowthNonConforming are both "absent" - something growing that is not
+  // the organism under test is not a detection, and reading it as one puts
+  // a false positive on a released GMP record. Mirrors ReportDocumentMapper.
+  const detected = test.pathogenObservations.some((p) => p.observation === "GrowthConforming");
   const tone = test.isSuperseded ? "is-neutral" : outOfSpec || detected || nonConformingLocation ? "is-danger" : "";
 
   // Worst status across all locations, for the compact headline slot -
@@ -418,7 +423,7 @@ function TestCard({ test }: { test: TestOrderSummaryDetail }) {
               <div className="observation-item" key={i}>
                 <span className="obs-step">{p.stepName}</span>
                 <span>
-                  <strong>{p.growthObserved ? "Growth observed" : "No growth"}</strong>
+                  <strong>{pathogenObservationLabel(p.observation)}</strong>
                   <span className="obs-meta"> · {p.observedByName} · {dt(p.observedAt)}</span>
                 </span>
               </div>

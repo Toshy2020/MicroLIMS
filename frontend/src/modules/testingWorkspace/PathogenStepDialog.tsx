@@ -10,8 +10,7 @@ import { SelectivePlatingPanel } from "./pathogenSteps/SelectivePlatingPanel";
 import { UnsupportedStepPanel } from "./pathogenSteps/UnsupportedStepPanel";
 import { InconclusiveTerminalPanel } from "./pathogenSteps/InconclusiveTerminalPanel";
 import { ConfirmatoryPlatingPanel } from "./pathogenSteps/ConfirmatoryPlatingPanel";
-// Task 8 adds this import and switch branch:
-// import { BiochemicalTestPanel } from "./pathogenSteps/BiochemicalTestPanel";
+import { BiochemicalTestPanel } from "./pathogenSteps/BiochemicalTestPanel";
 
 interface Props { testOrderId: number; testCode: string; displayName: string; }
 
@@ -21,10 +20,17 @@ interface Props { testOrderId: number; testCode: string; displayName: string; }
 // outcome field is exactly "AllConforming" or "Inconclusive" with no surrounding text.
 const INCONCLUSIVE_OUTCOME_MARKER = "Inconclusive";
 
+// Shared lookup so the Inconclusive-terminal check and the BiochemicalTest
+// panel's confirmatoryOutcome prop can never drift apart - both read the
+// same completedSteps entry.
+function getConfirmatoryOutcome(current: CurrentStepResponse): string | null {
+  const confirmatoryStep = current.completedSteps.find((s) => s.stepType === "ConfirmatoryPlating");
+  return confirmatoryStep?.outcome ?? null;
+}
+
 function isInconclusiveTerminal(current: CurrentStepResponse): boolean {
   if (current.step?.stepType !== "BiochemicalTest") return false;
-  const confirmatoryStep = current.completedSteps.find((s) => s.stepType === "ConfirmatoryPlating");
-  return !!confirmatoryStep?.outcome?.includes(INCONCLUSIVE_OUTCOME_MARKER);
+  return !!getConfirmatoryOutcome(current)?.includes(INCONCLUSIVE_OUTCOME_MARKER);
 }
 
 function StepChainStrip({ current }: { current: CurrentStepResponse }) {
@@ -122,7 +128,11 @@ export function PathogenStepDialog({ testOrderId }: Props) {
       ) : step.stepType === "ConfirmatoryPlating" ? (
         <ConfirmatoryPlatingPanel testOrderId={testOrderId} step={step} onSubmitted={handleSubmitted} />
       ) : step.stepType === "BiochemicalTest" ? (
-        <UnsupportedStepPanel stepType={step.stepType} /> /* Task 8 replaces this branch */
+        <BiochemicalTestPanel
+          testOrderId={testOrderId} step={step}
+          confirmatoryOutcome={getConfirmatoryOutcome(current)}
+          onSubmitted={handleSubmitted}
+        />
       ) : (
         <UnsupportedStepPanel stepType={step.stepType} />
       )}

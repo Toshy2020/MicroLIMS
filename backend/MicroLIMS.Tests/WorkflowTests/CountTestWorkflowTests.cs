@@ -34,7 +34,7 @@ public class CountTestWorkflowTests
         {
             TestDefinitionId = testDefinition.Id, StepOrder = 1, StepName = "CountIncubation", MediaTypeId = generalAgar.Id,
             IncubationMinHours = 72, IncubationMaxHours = 120, TemperatureMin = 30, TemperatureMax = 35,
-            IsFinalStep = true, IsDualPlate = false, StepResultType = StepResultType.PlateCount
+            IsFinalStep = true, StepType = StepType.PlateCount
         });
 
         var material = new Material
@@ -162,7 +162,7 @@ public class CountTestWorkflowTests
         {
             TestDefinitionId = testDefinition.Id, StepOrder = 2, StepName = "transfer", MediaTypeId = generalAgarMedia.MediaTypeId,
             IncubationMinHours = 48, IncubationMaxHours = 72, TemperatureMin = 20, TemperatureMax = 25,
-            IsFinalStep = true, IsDualPlate = false, StepResultType = StepResultType.PlateCount
+            IsFinalStep = true, StepType = StepType.PlateCount
         });
         await db.SaveChangesAsync();
 

@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using MicroLIMS.Application.Services;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Persistence.DbContext;
@@ -37,8 +38,9 @@ public record UpdateTestDefinitionRequest(string Code, string DisplayName);
 public record CreateTestDefinitionMediaRequest(int TestDefinitionId, int MediaTypeId, string? StepName);
 public record UpdateTestDefinitionMediaRequest(int MediaTypeId, string? StepName);
 public record UpdateWorkflowTypeRequest(WorkflowType WorkflowType);
-public record CreateTestWorkflowStepRequest(string StepName, int MediaTypeId, int IncubationMinHours, int IncubationMaxHours, decimal TemperatureMin, decimal TemperatureMax, bool IsFinalStep, StepResultType StepResultType, string? Plate1DefaultLabel = null, string? Plate2DefaultLabel = null);
-public record UpdateTestWorkflowStepRequest(string StepName, int MediaTypeId, int IncubationMinHours, int IncubationMaxHours, decimal TemperatureMin, decimal TemperatureMax, bool IsFinalStep, StepResultType StepResultType, string? Plate1DefaultLabel = null, string? Plate2DefaultLabel = null);
+public record StepMediaRequest(int MaterialId, decimal TempMin, decimal TempMax, bool IsRequired, int DisplayOrder);
+public record CreateTestWorkflowStepRequest(string StepName, int MediaTypeId, int IncubationMinHours, int IncubationMaxHours, decimal TemperatureMin, decimal TemperatureMax, bool IsFinalStep, StepType StepType, int? TargetOrganismId, List<StepMediaRequest> StepMedia);
+public record UpdateTestWorkflowStepRequest(string StepName, int MediaTypeId, int IncubationMinHours, int IncubationMaxHours, decimal TemperatureMin, decimal TemperatureMax, bool IsFinalStep, StepType StepType, int? TargetOrganismId, List<StepMediaRequest> StepMedia);
 public record MoveTestWorkflowStepRequest(string Direction);
 
 // Backs the Items Master's category-dependent dynamic forms: Product ->
@@ -810,29 +812,37 @@ public class MasterDataController : ControllerBase
     public async Task<IActionResult> GetTestWorkflowSteps(int id) =>
         Ok(ApiResponse<object>.Ok(await _db.TestWorkflowSteps
             .Include(s => s.MediaType)
+            .Include(s => s.TargetOrganism)
+            .Include(s => s.StepMedia).ThenInclude(m => m.Material)
             .Where(s => s.TestDefinitionId == id)
             .OrderBy(s => s.StepOrder)
+            .Select(s => new
+            {
+                s.Id, s.StepOrder, s.StepName, s.MediaTypeId,
+                mediaType = s.MediaType == null ? null : new { s.MediaType.Id, s.MediaType.Class },
+                s.IncubationMinHours, s.IncubationMaxHours, s.TemperatureMin, s.TemperatureMax,
+                s.IsFinalStep,
+                stepType = s.StepType.ToString(),
+                s.TargetOrganismId,
+                targetOrganism = s.TargetOrganism == null ? null : new { s.TargetOrganism.Id, name = s.TargetOrganism.ScientificName },
+                stepMedia = s.StepMedia.OrderBy(m => m.DisplayOrder).Select(m => new
+                {
+                    stepMediaId = m.Id, m.MaterialId, materialName = m.Material!.MaterialName,
+                    m.TempMin, m.TempMax, m.IsRequired, m.DisplayOrder
+                })
+            })
             .ToListAsync()));
 
-    // Gap 4's four structural rules, shared by Create/Update. IsDualPlate
-    // is derived here (not trusted from the client) so it can never drift
-    // out of sync with StepResultType - the frontend's checkbox mirrors
-    // StepResultType for display only.
-    private async Task ValidateStepRulesAsync(int testDefinitionId, int? excludeStepId, bool isFinalStep, StepResultType stepResultType, string? plate1Label, string? plate2Label)
+    // Structural rules come from WorkflowTemplateValidator; this adds the
+    // one rule that spans the whole template rather than a single step.
+    private async Task ValidateStepRulesAsync(int testDefinitionId, int? excludeStepId, TestWorkflowStep candidate)
     {
-        if (stepResultType == StepResultType.DualGrowth)
-        {
-            if (!isFinalStep)
-                throw new InvalidOperationException("A dual-growth step must be the final step.");
-            if (string.IsNullOrWhiteSpace(plate1Label) || string.IsNullOrWhiteSpace(plate2Label))
-                throw new InvalidOperationException("A dual-growth step requires both a Plate 1 and a Plate 2 default label.");
-        }
-        else if (!string.IsNullOrWhiteSpace(plate1Label) || !string.IsNullOrWhiteSpace(plate2Label))
-        {
-            throw new InvalidOperationException("Plate default labels can only be set on a dual-growth step.");
-        }
+        var errors = WorkflowTemplateValidator.Validate(candidate);
+        if (errors.Count > 0)
+            throw new InvalidOperationException(string.Join(" ",
+                errors.Select(e => $"Rule {e.RuleNumber} ({e.StepName}): {e.Message}")));
 
-        if (isFinalStep)
+        if (candidate.IsFinalStep)
         {
             var otherFinalExists = await _db.TestWorkflowSteps
                 .AnyAsync(s => s.TestDefinitionId == testDefinitionId && s.IsFinalStep && s.Id != (excludeStepId ?? -1));
@@ -860,14 +870,8 @@ public class MasterDataController : ControllerBase
     [HttpPost("test-definitions/{id}/steps")]
     public async Task<IActionResult> CreateTestWorkflowStep(int id, CreateTestWorkflowStepRequest request)
     {
-        var testDefinition = await _db.TestDefinitions.FirstOrDefaultAsync(t => t.Id == id)
+        _ = await _db.TestDefinitions.FirstOrDefaultAsync(t => t.Id == id)
             ?? throw new InvalidOperationException($"Test {id} not found.");
-
-        var isDualPlate = request.StepResultType == StepResultType.DualGrowth;
-        if (isDualPlate && testDefinition.WorkflowType != WorkflowType.DualPlate)
-            throw new InvalidOperationException("A dual-growth step can only be added to a test whose Workflow Type is DualPlate.");
-
-        await ValidateStepRulesAsync(id, excludeStepId: null, request.IsFinalStep, request.StepResultType, request.Plate1DefaultLabel, request.Plate2DefaultLabel);
 
         var nextOrder = 1 + await _db.TestWorkflowSteps.Where(s => s.TestDefinitionId == id)
             .Select(s => (int?)s.StepOrder).MaxAsync() ?? 1;
@@ -877,13 +881,20 @@ public class MasterDataController : ControllerBase
             TestDefinitionId = id, StepOrder = nextOrder, StepName = request.StepName, MediaTypeId = request.MediaTypeId,
             IncubationMinHours = request.IncubationMinHours, IncubationMaxHours = request.IncubationMaxHours,
             TemperatureMin = request.TemperatureMin, TemperatureMax = request.TemperatureMax,
-            IsFinalStep = request.IsFinalStep, IsDualPlate = isDualPlate, StepResultType = request.StepResultType,
-            Plate1DefaultLabel = request.Plate1DefaultLabel, Plate2DefaultLabel = request.Plate2DefaultLabel
+            IsFinalStep = request.IsFinalStep, StepType = request.StepType, TargetOrganismId = request.TargetOrganismId
         };
+        entity.StepMedia.AddRange(request.StepMedia.Select(m => new TestWorkflowStepMedia
+        {
+            MaterialId = m.MaterialId, TempMin = m.TempMin, TempMax = m.TempMax,
+            IsRequired = m.IsRequired, DisplayOrder = m.DisplayOrder
+        }));
+
+        await ValidateStepRulesAsync(id, excludeStepId: null, entity);
+
         _db.TestWorkflowSteps.Add(entity);
         await _db.SaveChangesAsync();
         await ValidateContiguousStepOrderAsync(id);
-        return Ok(ApiResponse<object>.Ok(entity));
+        return Ok(ApiResponse<object>.Ok(new { entity.Id, entity.StepOrder, entity.StepName }));
     }
 
     // Editing is always allowed, even for a step already used by a real
@@ -894,14 +905,9 @@ public class MasterDataController : ControllerBase
     [HttpPut("test-definitions/steps/{stepId}")]
     public async Task<IActionResult> UpdateTestWorkflowStep(int stepId, UpdateTestWorkflowStepRequest request)
     {
-        var step = await _db.TestWorkflowSteps.Include(s => s.TestDefinition).FirstOrDefaultAsync(s => s.Id == stepId)
+        var step = await _db.TestWorkflowSteps.Include(s => s.StepMedia)
+            .FirstOrDefaultAsync(s => s.Id == stepId)
             ?? throw new InvalidOperationException($"Workflow step {stepId} not found.");
-
-        var isDualPlate = request.StepResultType == StepResultType.DualGrowth;
-        if (isDualPlate && step.TestDefinition!.WorkflowType != WorkflowType.DualPlate)
-            throw new InvalidOperationException("A dual-growth step can only be set on a test whose Workflow Type is DualPlate.");
-
-        await ValidateStepRulesAsync(step.TestDefinitionId, excludeStepId: stepId, request.IsFinalStep, request.StepResultType, request.Plate1DefaultLabel, request.Plate2DefaultLabel);
 
         step.StepName = request.StepName;
         step.MediaTypeId = request.MediaTypeId;
@@ -910,21 +916,24 @@ public class MasterDataController : ControllerBase
         step.TemperatureMin = request.TemperatureMin;
         step.TemperatureMax = request.TemperatureMax;
         step.IsFinalStep = request.IsFinalStep;
-        step.IsDualPlate = isDualPlate;
-        step.StepResultType = request.StepResultType;
-        step.Plate1DefaultLabel = request.Plate1DefaultLabel;
-        step.Plate2DefaultLabel = request.Plate2DefaultLabel;
+        step.StepType = request.StepType;
+        step.TargetOrganismId = request.TargetOrganismId;
+
+        // StepMedia is replaced wholesale on update - the analyst edits the
+        // panel as a set, and the unique index makes incremental merging
+        // error-prone for no benefit.
+        _db.TestWorkflowStepMedias.RemoveRange(step.StepMedia);
+        step.StepMedia.Clear();
+        step.StepMedia.AddRange(request.StepMedia.Select(m => new TestWorkflowStepMedia
+        {
+            TestWorkflowStepId = step.Id, MaterialId = m.MaterialId, TempMin = m.TempMin, TempMax = m.TempMax,
+            IsRequired = m.IsRequired, DisplayOrder = m.DisplayOrder
+        }));
+
+        await ValidateStepRulesAsync(step.TestDefinitionId, excludeStepId: stepId, step);
         await _db.SaveChangesAsync();
 
-        // Shaped to avoid the TestWorkflowStep <-> TestDefinition.Steps
-        // navigation cycle (loaded above for the dual-plate check) that
-        // crashes JSON serialization - same pattern as GetRooms/GetMachines.
-        return Ok(ApiResponse<object>.Ok(new
-        {
-            step.Id, step.TestDefinitionId, step.StepOrder, step.StepName, step.MediaTypeId,
-            step.IncubationMinHours, step.IncubationMaxHours, step.TemperatureMin, step.TemperatureMax,
-            step.IsFinalStep, step.IsDualPlate, step.StepResultType, step.Plate1DefaultLabel, step.Plate2DefaultLabel
-        }));
+        return Ok(ApiResponse<object>.Ok(new { step.Id, step.StepOrder, step.StepName }));
     }
 
     // Swaps StepOrder with the adjacent step - simpler and safer than

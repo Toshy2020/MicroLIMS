@@ -1846,7 +1846,7 @@ namespace MicroLIMS.Tests.WorkflowTests;
 
 public record SeededMedia(int BrothLotId, int SelectiveBrothLotId, int SelectivePlatingLotId, int XldLotId, int TsiLotId,
     int BrothMaterialId, int SelectiveBrothMaterialId, int SelectivePlatingMaterialId, int XldMaterialId, int TsiMaterialId,
-    int XldStepMediaId, int TsiStepMediaId);
+    int XldStepMediaId, int TsiStepMediaId, int SelectiveBrothIncubatorId);
 
 // Builds the canonical five-stage pathogen template plus every master
 // row it depends on. Mirrors DbSeeder.SeedPathogenTemplate.
@@ -1870,7 +1870,11 @@ public static class PathogenTestData
         db.Organisms.Add(organism);
 
         var incubator = new Equipment { Name = "INC-03", Code = "INC-03", Type = EquipmentType.Incubator, SetPointTemperature = 36 };
-        db.Equipment.Add(incubator);
+        // Selective Broth's 41-43C range is disjoint from every other
+        // step's 35-37C - a real incubator can't serve both, so this
+        // fixture needs a second one rather than one shared set point.
+        var selectiveBrothIncubator = new Equipment { Name = "INC-07", Code = "INC-07", Type = EquipmentType.Incubator, SetPointTemperature = 42 };
+        db.Equipment.AddRange(incubator, selectiveBrothIncubator);
 
         var test = new TestDefinition { Code = "PATHOGEN_SALMONELLA", DisplayName = "Salmonella", WorkflowType = WorkflowType.Observation };
         db.TestDefinitions.Add(test);
@@ -1913,7 +1917,7 @@ public static class PathogenTestData
 
         var media = new SeededMedia(brothLot.Id, selBrothLot.Id, platingLot.Id, platingLot.Id, tsiLot.Id,
             brothMaterial.Id, selBrothMaterial.Id, platingMaterial.Id, platingMaterial.Id, tsiMaterial.Id,
-            xldStepMedia.Id, tsiStepMedia.Id);
+            xldStepMedia.Id, tsiStepMedia.Id, selectiveBrothIncubator.Id);
         return (order, media, incubator);
     }
 
@@ -2199,7 +2203,7 @@ public class SelectivePlatingTests
         var start = DateTime.UtcNow.AddHours(-30);
         var end = DateTime.UtcNow.AddHours(-6);
         await engine.SubmitBrothAsync(order.Id, "Broth Enrichment", media.BrothLotId, incubator.Id, start, end, null, userId: 4);
-        await engine.SubmitBrothAsync(order.Id, "Selective Broth", media.SelectiveBrothLotId, incubator.Id, start, end, null, userId: 4);
+        await engine.SubmitBrothAsync(order.Id, "Selective Broth", media.SelectiveBrothLotId, media.SelectiveBrothIncubatorId, start, end, null, userId: 4);
         return (order.Id, media, incubator.Id, engine, db);
     }
 
@@ -2378,20 +2382,22 @@ This is the single place a pathogen workflow reaches a final result. It reuses t
             Type = ResultType.Qualitative, EnteredByUserId = userId
         });
 
-        _db.WorkflowHistories.Add(new WorkflowHistory
-        {
-            TestOrderId = testOrderId, FromStep = order.CurrentStep, ToStep = WorkflowStep.Ready,
-            Note = $"Pathogen workflow completed: {finalResult}.", PerformedByUserId = userId
-        });
-
-        order.CurrentStep = WorkflowStep.Ready;
-        order.Status = ApprovalStatus.ResultEntered;
         await _db.SaveChangesAsync();
 
-        await _resultProjection.UpsertFromPathogenResultAsync(testOrderId);
+        // TransitionAsync owns the WorkflowStep -> ApprovalStatus mapping
+        // and the WorkflowHistory row. Setting CurrentStep/Status inline
+        // here would duplicate that mapping and let the two copies drift.
+        await WorkflowStateMachine.TransitionAsync(
+            _db, order, WorkflowStep.Ready, userId, $"Workflow complete: {finalResult}");
 
-        var sampleId = await _db.TestOrders.Where(t => t.Id == testOrderId).Select(t => t.SampleId).FirstAsync();
-        await _sampleReviewService.AutoSubmitForReviewIfReadyAsync(sampleId, userId);
+        await _resultProjection.UpsertFromPathogenResultAsync(testOrderId);
+        await _sampleReviewService.AutoSubmitForReviewIfReadyAsync(order.SampleId, userId);
+
+        // Both calls above only stage their changes - the ResultRecord
+        // projection and the sample's submit-for-review transition. The
+        // sibling finalization paths all flush them here; without this
+        // save both are silently discarded.
+        await _db.SaveChangesAsync();
     }
 ```
 
@@ -2457,7 +2463,7 @@ public class ConfirmatoryPlatingTests
         var end = DateTime.UtcNow.AddHours(-6);
 
         await engine.SubmitBrothAsync(order.Id, "Broth Enrichment", media.BrothLotId, incubator.Id, start, end, null, 4);
-        await engine.SubmitBrothAsync(order.Id, "Selective Broth", media.SelectiveBrothLotId, incubator.Id, start, end, null, 4);
+        await engine.SubmitBrothAsync(order.Id, "Selective Broth", media.SelectiveBrothLotId, media.SelectiveBrothIncubatorId, start, end, null, 4);
         await engine.SubmitSelectivePlatingAsync(order.Id, "Selective Plating", media.SelectivePlatingLotId, incubator.Id,
             start, end, GrowthObservation.GrowthConforming, 4);
         return (order.Id, media, incubator.Id, engine, db);
@@ -2839,7 +2845,7 @@ public class BiochemicalReviewTests
         var end = DateTime.UtcNow.AddHours(-6);
 
         await engine.SubmitBrothAsync(order.Id, "Broth Enrichment", media.BrothLotId, incubator.Id, start, end, null, AnalystId);
-        await engine.SubmitBrothAsync(order.Id, "Selective Broth", media.SelectiveBrothLotId, incubator.Id, start, end, null, AnalystId);
+        await engine.SubmitBrothAsync(order.Id, "Selective Broth", media.SelectiveBrothLotId, media.SelectiveBrothIncubatorId, start, end, null, AnalystId);
         await engine.SubmitSelectivePlatingAsync(order.Id, "Selective Plating", media.SelectivePlatingLotId, incubator.Id,
             start, end, GrowthObservation.GrowthConforming, AnalystId);
         await engine.SubmitConfirmatorySetupAsync(order.Id, "Confirmatory Plating", new[]
@@ -3152,14 +3158,12 @@ This writes a second `WorkflowStepResult` against the confirmatory step's incuba
         result.ReturnedAtUtc = DateTime.UtcNow;
         result.ReturnedByUserId = reviewerUserId;
 
-        order.CurrentStep = WorkflowStep.Incubating;
-        order.Status = ApprovalStatus.InProgress;
-
-        _db.WorkflowHistories.Add(new WorkflowHistory
-        {
-            TestOrderId = result.TestOrderId, FromStep = WorkflowStep.Reviewed, ToStep = WorkflowStep.Incubating,
-            Note = $"Returned for biochemical confirmation: {comment}", PerformedByUserId = reviewerUserId
-        });
+        // TransitionAsync reads the real FromStep off the order and owns
+        // the WorkflowStep -> ApprovalStatus mapping. Hardcoding
+        // FromStep here would record a transition that never happened:
+        // FinalizeWorkflowAsync leaves the order at Ready, not Reviewed.
+        await WorkflowStateMachine.TransitionAsync(_db, order, WorkflowStep.Incubating, reviewerUserId,
+            $"Returned for biochemical confirmation: {comment}");
 
         await _reviewGate.LogEventAsync(ReviewEntityTypes.Sample, order.SampleId, reviewerUserId,
             ReviewWorkflowEventType.ReviewCompleted, comment, ApprovalDecision.Investigation);
@@ -3689,7 +3693,7 @@ public class PathogenWorkflowTests
         var end = DateTime.UtcNow.AddHours(-6);
 
         await engine.SubmitBrothAsync(order.Id, "Broth Enrichment", media.BrothLotId, incubator.Id, start, end, "Turbid.", AnalystId);
-        await engine.SubmitBrothAsync(order.Id, "Selective Broth", media.SelectiveBrothLotId, incubator.Id, start, end, null, AnalystId);
+        await engine.SubmitBrothAsync(order.Id, "Selective Broth", media.SelectiveBrothLotId, media.SelectiveBrothIncubatorId, start, end, null, AnalystId);
         await engine.SubmitSelectivePlatingAsync(order.Id, "Selective Plating", media.SelectivePlatingLotId, incubator.Id,
             start, end, GrowthObservation.GrowthConforming, AnalystId);
         await engine.SubmitConfirmatorySetupAsync(order.Id, "Confirmatory Plating", new[]
@@ -3722,7 +3726,7 @@ public class PathogenWorkflowTests
         var end = DateTime.UtcNow.AddHours(-6);
 
         await engine.SubmitBrothAsync(order.Id, "Broth Enrichment", media.BrothLotId, incubator.Id, start, end, null, AnalystId);
-        await engine.SubmitBrothAsync(order.Id, "Selective Broth", media.SelectiveBrothLotId, incubator.Id, start, end, null, AnalystId);
+        await engine.SubmitBrothAsync(order.Id, "Selective Broth", media.SelectiveBrothLotId, media.SelectiveBrothIncubatorId, start, end, null, AnalystId);
         var result = await engine.SubmitSelectivePlatingAsync(order.Id, "Selective Plating", media.SelectivePlatingLotId,
             incubator.Id, start, end, GrowthObservation.GrowthNonConforming, AnalystId);
 

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Box, Typography, TextField, Button, Stack, Alert, Select, MenuItem, IconButton, RadioGroup, FormControlLabel, Radio } from "@mui/material";
+import { Box, Typography, TextField, Button, Stack, Alert, Select, MenuItem, IconButton } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import CloseIcon from "@mui/icons-material/Close";
 import { StatusBadge } from "../../components/StatusBadge";
@@ -8,6 +8,7 @@ import { TestWorkflowService } from "./services/TestWorkflowService";
 import { LoadingSpinner } from "../../components/LoadingSpinner";
 import { LocationResultGridDialog } from "./LocationResultGridDialog";
 import { PathogenLocationResultGridDialog } from "./PathogenLocationResultGridDialog";
+import { PathogenStepDialog } from "./PathogenStepDialog";
 
 interface Props { testOrderId: number; testCode: string; category: string; displayName: string; }
 
@@ -56,8 +57,14 @@ function StepChainStrip({ current }: { current: any }) {
 // GET current-step to find out what phase to render, instead of
 // routing by test code the way the old Pathogen/CountTest dialogs did.
 // Nothing here is specific to any test - the step template drives the
-// media-class filter, locked temperature/duration, and which result
-// shape (CountTest/Observation/DualPlate) to collect.
+// media-class filter and locked temperature/duration.
+//
+// CountTest keeps its own select-media/awaiting-result/enter-result
+// phases below. Any other workflow (the five-stage pathogen chain) is
+// handed off entirely to PathogenStepDialog, except for EM/AfterCleaning
+// samples, which still incubate through this component's phases and
+// only hand off to LocationResultGridDialog/PathogenLocationResultGrid-
+// Dialog for their per-location batch result entry, exactly as today.
 export function TestWorkflowDialog({ testOrderId, testCode, category, displayName }: Props) {
   const isEmOrAfterCleaning = category === "EnvironmentalMonitoring" || category === "AfterCleaning";
   const [phase, setPhase] = useState<Phase>("loading");
@@ -70,18 +77,8 @@ export function TestWorkflowDialog({ testOrderId, testCode, category, displayNam
   const [releasedMedia, setReleasedMedia] = useState<any[]>([]);
   const [incubators, setIncubators] = useState<any[]>([]);
 
-  // Phase A dual-plate (DualGrowth) media selection - independent from
-  // the single mediaId/incubatorId above, which stays plate 1's lot for
-  // a dual step (the incubator picker itself is shared, unchanged).
-  const [plate2MediaId, setPlate2MediaId] = useState<number | "">("");
-  const [plate1Label, setPlate1Label] = useState("");
-  const [plate2Label, setPlate2Label] = useState("");
-
   const [readings, setReadings] = useState<string[]>([""]);
   const [dilutionFactor, setDilutionFactor] = useState("1");
-  const [growthObserved, setGrowthObserved] = useState<"yes" | "no" | "">("");
-  const [plate1Growth, setPlate1Growth] = useState<"yes" | "no" | "">("");
-  const [plate2Growth, setPlate2Growth] = useState<"yes" | "no" | "">("");
 
   const [lastOutcome, setLastOutcome] = useState<any | null>(null);
 
@@ -90,10 +87,8 @@ export function TestWorkflowDialog({ testOrderId, testCode, category, displayNam
     try {
       const data = await TestWorkflowService.getCurrentStep(testOrderId);
       setCurrent(data);
-      setMediaId(""); setIncubatorId(""); setPlate2MediaId("");
-      setPlate1Label(data.step?.plate1DefaultLabel ?? ""); setPlate2Label(data.step?.plate2DefaultLabel ?? "");
+      setMediaId(""); setIncubatorId("");
       setReadings([""]); setDilutionFactor("1");
-      setGrowthObserved(""); setPlate1Growth(""); setPlate2Growth("");
       setPhase(data.allStepsComplete ? "all-complete" : data.incubation ? "awaiting-result" : "select-media");
     } catch (e: any) {
       setError(e?.response?.data?.message ?? "Could not load this test's workflow.");
@@ -109,8 +104,6 @@ export function TestWorkflowDialog({ testOrderId, testCode, category, displayNam
   }, [phase]);
 
   const step = current?.step;
-  const isDualGrowth = step?.stepResultType === "DualGrowth";
-  const samePlateLot = isDualGrowth && mediaId !== "" && plate2MediaId !== "" && mediaId === plate2MediaId;
   const classMedia = releasedMedia.filter((m) => m.mediaTypeId === step?.mediaTypeId || m.mediaType?.id === step?.mediaTypeId);
   // Some steps are named after the exact material they require (e.g.
   // "MSA", "TSB", "RVS") - when that's the case, narrow down to just
@@ -140,14 +133,8 @@ export function TestWorkflowDialog({ testOrderId, testCode, category, displayNam
   const startIncubation = async () => {
     setError(null);
     if (!mediaId || !incubatorId) return;
-    if (isDualGrowth && (!plate2MediaId || !plate1Label.trim() || !plate2Label.trim() || samePlateLot)) return;
     try {
-      await TestWorkflowService.selectMedia(
-        testOrderId, step.stepName, Number(mediaId), Number(incubatorId),
-        isDualGrowth ? Number(plate2MediaId) : undefined,
-        isDualGrowth ? plate1Label.trim() : undefined,
-        isDualGrowth ? plate2Label.trim() : undefined
-      );
+      await TestWorkflowService.selectMedia(testOrderId, step.stepName, Number(mediaId), Number(incubatorId));
       await load();
     } catch (e: any) {
       setError(e?.response?.data?.message ?? "Could not start incubation for this step.");
@@ -171,21 +158,9 @@ export function TestWorkflowDialog({ testOrderId, testCode, category, displayNam
   const submitResult = async () => {
     setError(null);
     try {
-      let payload: Record<string, unknown>;
-      if (current.workflowType === "CountTest") {
-        const parsed = readings.map(Number).filter((n) => !Number.isNaN(n));
-        if (parsed.length === 0) { setError("Enter at least one plate reading."); return; }
-        payload = { stepName: step.stepName, plateReadings: parsed, dilutionFactor: Number(dilutionFactor) };
-      } else if (isDualGrowth) {
-        if (!plate1Growth || !plate2Growth) { setError("Record both plates' growth observation."); return; }
-        payload = {
-          stepName: step.stepName, plate1GrowthObserved: plate1Growth === "yes", plate2GrowthObserved: plate2Growth === "yes",
-          plate1Label, plate2Label
-        };
-      } else {
-        if (!growthObserved) { setError("Record whether growth was observed."); return; }
-        payload = { stepName: step.stepName, growthObserved: growthObserved === "yes" };
-      }
+      const parsed = readings.map(Number).filter((n) => !Number.isNaN(n));
+      if (parsed.length === 0) { setError("Enter at least one plate reading."); return; }
+      const payload = { stepName: step.stepName, plateReadings: parsed, dilutionFactor: Number(dilutionFactor) };
 
       const result = await TestWorkflowService.recordResult(testOrderId, payload);
       setLastOutcome(result);
@@ -205,6 +180,13 @@ export function TestWorkflowDialog({ testOrderId, testCode, category, displayNam
         {error ? <Alert severity="error">{error}</Alert> : <LoadingSpinner />}
       </Box>
     );
+  }
+
+  // Five-stage pathogen chain, except EM/AfterCleaning (which still uses
+  // this component's own incubation phases below, only handing off to
+  // the location-grid dialogs for its final per-location result entry).
+  if (current.workflowType !== "CountTest" && !isEmOrAfterCleaning) {
+    return <PathogenStepDialog testOrderId={testOrderId} testCode={testCode} displayName={displayName} />;
   }
 
   if (phase === "all-complete") {
@@ -236,33 +218,10 @@ export function TestWorkflowDialog({ testOrderId, testCode, category, displayNam
             Requires {mediaClassLabel(step.mediaType?.class)} media.
           </Typography>
 
-          {isDualGrowth ? (
-            <Stack direction="row" spacing={2}>
-              <Stack spacing={1} sx={{ flex: 1 }}>
-                <TextField size="small" label="Plate 1 Label" value={plate1Label} onChange={(e) => setPlate1Label(e.target.value)} />
-                <Select displayEmpty size="small" value={mediaId} onChange={(e) => setMediaId(Number(e.target.value))}>
-                  <MenuItem value=""><em>Plate 1 Media Batch ({mediaClassLabel(step.mediaType?.class)} lots only)</em></MenuItem>
-                  {matchingMedia.map((m) => <MenuItem key={m.id} value={m.id}>{m.lotNumber} — expires {new Date(m.expiryDate).toLocaleDateString()}</MenuItem>)}
-                </Select>
-              </Stack>
-              <Stack spacing={1} sx={{ flex: 1 }}>
-                <TextField size="small" label="Plate 2 Label" value={plate2Label} onChange={(e) => setPlate2Label(e.target.value)} />
-                <Select displayEmpty size="small" value={plate2MediaId} onChange={(e) => setPlate2MediaId(Number(e.target.value))}>
-                  <MenuItem value=""><em>Plate 2 Media Batch ({mediaClassLabel(step.mediaType?.class)} lots only)</em></MenuItem>
-                  {matchingMedia.map((m) => <MenuItem key={m.id} value={m.id}>{m.lotNumber} — expires {new Date(m.expiryDate).toLocaleDateString()}</MenuItem>)}
-                </Select>
-              </Stack>
-            </Stack>
-          ) : (
-            <Select displayEmpty size="small" value={mediaId} onChange={(e) => setMediaId(Number(e.target.value))}>
-              <MenuItem value=""><em>Media Batch ({mediaClassLabel(step.mediaType?.class)} lots only)</em></MenuItem>
-              {matchingMedia.map((m) => <MenuItem key={m.id} value={m.id}>{m.lotNumber} — expires {new Date(m.expiryDate).toLocaleDateString()}</MenuItem>)}
-            </Select>
-          )}
-
-          {samePlateLot && (
-            <Alert severity="warning">Both plates must use different media lots.</Alert>
-          )}
+          <Select displayEmpty size="small" value={mediaId} onChange={(e) => setMediaId(Number(e.target.value))}>
+            <MenuItem value=""><em>Media Batch ({mediaClassLabel(step.mediaType?.class)} lots only)</em></MenuItem>
+            {matchingMedia.map((m) => <MenuItem key={m.id} value={m.id}>{m.lotNumber} — expires {new Date(m.expiryDate).toLocaleDateString()}</MenuItem>)}
+          </Select>
 
           <Select displayEmpty size="small" value={incubatorId} onChange={(e) => setIncubatorId(Number(e.target.value))}>
             <MenuItem value=""><em>Incubator ({step.temperatureMin}-{step.temperatureMax} °C)</em></MenuItem>
@@ -280,7 +239,7 @@ export function TestWorkflowDialog({ testOrderId, testCode, category, displayNam
           <Stack direction="row" justifyContent="flex-end">
             <Button
               variant="contained"
-              disabled={!mediaId || !incubatorId || (isDualGrowth && (!plate2MediaId || !plate1Label.trim() || !plate2Label.trim() || samePlateLot))}
+              disabled={!mediaId || !incubatorId}
               onClick={startIncubation}
             >
               Start Incubation
@@ -326,7 +285,6 @@ export function TestWorkflowDialog({ testOrderId, testCode, category, displayNam
           testOrderId={testOrderId}
           testCode={testCode}
           displayName={displayName}
-          isDualPlate={!!step?.isDualPlate}
           minReadyAt={minReadyAt}
           onClose={() => setShowLocationGrid(false)}
           onSubmitted={() => { setShowLocationGrid(false); load(); }}
@@ -348,50 +306,6 @@ export function TestWorkflowDialog({ testOrderId, testCode, category, displayNam
               <Button startIcon={<AddIcon />} onClick={addReading} sx={{ alignSelf: "flex-start" }}>Add Plate</Button>
               <TextField size="small" type="number" label="Dilution Factor" value={dilutionFactor} onChange={(e) => setDilutionFactor(e.target.value)} sx={{ maxWidth: 200 }} />
             </>
-          )}
-
-          {current.workflowType !== "CountTest" && !isDualGrowth && (
-            <RadioGroup value={growthObserved} onChange={(e) => setGrowthObserved(e.target.value as "yes" | "no")}>
-              <Typography variant="body2" sx={{ fontWeight: 600 }}>Growth Observed?</Typography>
-              <FormControlLabel value="yes" control={<Radio />} label="Yes" />
-              <FormControlLabel value="no" control={<Radio />} label="No" />
-            </RadioGroup>
-          )}
-
-          {isDualGrowth && (
-            <Stack spacing={2}>
-              <Box>
-                <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                  Plate 1{plate1Label ? ` (${plate1Label})` : ""}
-                  {current.incubation?.mediaId && (
-                    <Typography component="span" variant="caption" color="text.secondary">
-                      {" — lot "}{releasedMedia.find((m) => m.id === current.incubation.mediaId)?.lotNumber ?? current.incubation.mediaId}
-                    </Typography>
-                  )}
-                </Typography>
-                <RadioGroup row value={plate1Growth} onChange={(e) => setPlate1Growth(e.target.value as "yes" | "no")}>
-                  <FormControlLabel value="yes" control={<Radio />} label="Growth" />
-                  <FormControlLabel value="no" control={<Radio />} label="No Growth" />
-                </RadioGroup>
-              </Box>
-              <Box>
-                <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                  Plate 2{plate2Label ? ` (${plate2Label})` : ""}
-                  {current.incubation?.plate2MediaId && (
-                    <Typography component="span" variant="caption" color="text.secondary">
-                      {" — lot "}{releasedMedia.find((m) => m.id === current.incubation.plate2MediaId)?.lotNumber ?? current.incubation.plate2MediaId}
-                    </Typography>
-                  )}
-                </Typography>
-                <RadioGroup row value={plate2Growth} onChange={(e) => setPlate2Growth(e.target.value as "yes" | "no")}>
-                  <FormControlLabel value="yes" control={<Radio />} label="Growth" />
-                  <FormControlLabel value="no" control={<Radio />} label="No Growth" />
-                </RadioGroup>
-              </Box>
-              {plate1Growth && plate2Growth && plate1Growth !== plate2Growth && (
-                <Alert severity="warning">Inconclusive - the two plates disagree. Recording this will require a retest.</Alert>
-              )}
-            </Stack>
           )}
 
           {!isTimeReady && minReadyAt && (

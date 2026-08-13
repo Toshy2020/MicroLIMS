@@ -18,10 +18,11 @@ public class SegregationOfDutiesGuard
     }
 
     // "Performed" = assigned as the analyst, or entered/observed any raw
-    // result for this test order - Result, CountTestReading, and
-    // PathogenObservation are the only result-bearing tables tied to a
-    // TestOrder with a *ByUserId column (MediaEvaluationChallenge.
-    // ReadByUserId belongs to a Media lot, not a TestOrder, so it doesn't apply here).
+    // result for this test order - Result, CountTestReading,
+    // PathogenObservation, WorkflowStepResult and ConfirmatoryPlate-
+    // Observation are the only result-bearing tables tied to a TestOrder
+    // with a *ByUserId column (MediaEvaluationChallenge.ReadByUserId
+    // belongs to a Media lot, not a TestOrder, so it doesn't apply here).
     public async Task<bool> DidUserPerformTestAsync(int testOrderId, int userId)
     {
         var assignedAnalystId = await _db.TestOrders
@@ -34,6 +35,16 @@ public class SegregationOfDutiesGuard
         if (await _db.Results.AnyAsync(r => r.TestOrderId == testOrderId && r.EnteredByUserId == userId)) return true;
         if (await _db.CountTestReadings.AnyAsync(r => r.TestOrderId == testOrderId && r.EnteredByUserId == userId)) return true;
         if (await _db.PathogenObservations.AnyAsync(p => p.TestOrderId == testOrderId && p.ObservedByUserId == userId)) return true;
+        if (await _db.WorkflowStepResults.AnyAsync(r => r.TestOrderId == testOrderId && r.SubmittedByUserId == userId)) return true;
+
+        // Confirmatory plate readings are APPENDED to a result row that
+        // whoever ran the setup submitted, so the WorkflowStepResult
+        // check above never sees the second analyst who actually read the
+        // plates - without this they could review and approve their own
+        // reading. Joined through the parent row, since the observation
+        // carries no TestOrderId of its own.
+        if (await _db.ConfirmatoryPlateObservations
+            .AnyAsync(o => o.RecordedByUserId == userId && o.WorkflowStepResult!.TestOrderId == testOrderId)) return true;
 
         return false;
     }

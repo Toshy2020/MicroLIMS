@@ -37,6 +37,27 @@ public class ResultProjectionService
         return created;
     }
 
+    // A pathogen TestOrder has exactly one reportable outcome per round,
+    // whichever step ended up concluding it - so its projection row is
+    // identified by TestOrder+Round rather than by source row id.
+    // Checks the change tracker before the database because a row staged
+    // in the same unit of work is not yet visible to a LINQ query, and
+    // missing it would add a duplicate.
+    private async Task<ResultRecord> GetOrCreatePathogenRecordAsync(int testOrderId, int round)
+    {
+        var staged = _db.ResultRecords.Local
+            .FirstOrDefault(r => r.SourceTable == "WorkflowStepResult" && r.TestOrderId == testOrderId && r.Round == round);
+        if (staged is not null) return staged;
+
+        var existing = await _db.ResultRecords
+            .FirstOrDefaultAsync(r => r.SourceTable == "WorkflowStepResult" && r.TestOrderId == testOrderId && r.Round == round);
+        if (existing is not null) return existing;
+
+        var created = new ResultRecord { SourceTable = "WorkflowStepResult", TestOrderId = testOrderId, Round = round };
+        _db.ResultRecords.Add(created);
+        return created;
+    }
+
     // A TestOrder's "round" is its 1-based ordinal position among every
     // TestOrder ever created for the same Sample+TestCode, oldest first -
     // round 1 is the original order, round 2 the one SampleApprovalService's
@@ -146,8 +167,15 @@ public class ResultProjectionService
     }
 
     // Projects only the FINAL workflow step's outcome for a pathogen
-    // TestOrder - intermediate enrichment steps (TSB, RVS, ...) are not
-    // independently reportable results, just chain plumbing.
+    // TestOrder - intermediate stages (enrichment/selective/confirmatory
+    // setup) are not independently reportable results, just chain
+    // plumbing. Sourced from WorkflowStepResult rather than
+    // PathogenObservation because a pathogen chain can now conclude on
+    // any of several steps (a non-conforming/no-growth selective-plating
+    // call ends the chain early; a confirmed detection ends it on
+    // Confirmatory Plating or Biochemical Test) - the most recently
+    // submitted WorkflowStepResult for this TestOrder IS whichever step
+    // actually concluded it, not necessarily the template's IsFinalStep row.
     public async Task UpsertFromPathogenResultAsync(int testOrderId)
     {
         var order = await _db.TestOrders
@@ -157,60 +185,45 @@ public class ResultProjectionService
             ?? throw new InvalidOperationException($"TestOrder {testOrderId} not found.");
         var sample = order.Sample ?? throw new InvalidOperationException($"TestOrder {testOrderId} has no Sample.");
 
-        var testDefinition = await _db.TestDefinitions.Include(t => t.Steps).FirstOrDefaultAsync(t => t.Code == order.TestCode)
+        var testDefinition = await _db.TestDefinitions.FirstOrDefaultAsync(t => t.Code == order.TestCode)
             ?? throw new InvalidOperationException($"Test code \"{order.TestCode}\" has no workflow template configured.");
-        var finalStep = testDefinition.Steps.FirstOrDefault(s => s.IsFinalStep)
-            ?? throw new InvalidOperationException($"Test code \"{order.TestCode}\" has no final step configured.");
 
-        // Scoped to the final step's most recent Incubation window rather
-        // than a bare "latest N by ObservedAt" - a prior inconclusive
-        // dual-plate attempt leaves its own two rows behind as history,
-        // so without this the wrong pair could be projected. Within that
-        // window, ascending Id order matches TestWorkflowEngine.
-        // RecordDualPlateAsync's insertion order (plate 1 row, then plate 2).
-        var latestIncubation = await _db.Incubations
-            .Where(i => i.TestOrderId == testOrderId && i.StepName == finalStep.StepName)
-            .OrderByDescending(i => i.StartedAt)
-            .FirstOrDefaultAsync();
+        var finalResult = await _db.WorkflowStepResults
+            .Where(r => r.TestOrderId == testOrderId)
+            .OrderByDescending(r => r.Id)
+            .FirstOrDefaultAsync()
+            ?? throw new InvalidOperationException($"TestOrder {testOrderId} has no workflow step result recorded yet.");
 
-        var observations = latestIncubation is null
-            ? new List<PathogenObservation>()
-            : await _db.PathogenObservations
-                .Where(o => o.TestOrderId == testOrderId && o.StepName == finalStep.StepName && o.ObservedAt >= latestIncubation.StartedAt)
-                .OrderBy(o => o.Id)
-                .ToListAsync();
-
-        if (observations.Count == 0)
-            throw new InvalidOperationException($"TestOrder {testOrderId} has no observation recorded for its final step \"{finalStep.StepName}\".");
-
-        string reportedValue;
-        int enteredByUserId;
-        DateTime enteredAt;
-
-        if (finalStep.StepResultType == StepResultType.DualGrowth)
-        {
-            if (observations.Count < 2 || observations.Any(o => string.IsNullOrEmpty(o.PlateLabel)) || observations[0].PlateLabel == observations[1].PlateLabel)
-                throw new InvalidOperationException($"TestOrder {testOrderId}'s final dual-plate step is missing one of its two plate observations.");
-            reportedValue = observations[0].GrowthObserved == observations[1].GrowthObserved
-                ? (observations[0].GrowthObserved ? "Detected" : "Absent")
-                : "Inconclusive";
-            enteredByUserId = observations[0].ObservedByUserId;
-            enteredAt = observations.Max(o => o.ObservedAt);
-        }
-        else
-        {
-            reportedValue = observations[0].GrowthObserved ? "Detected" : "Absent";
-            enteredByUserId = observations[0].ObservedByUserId;
-            enteredAt = observations[0].ObservedAt;
-        }
+        // SkippedBiochemical/BiochemicalResultText are the only fields a
+        // concluding WorkflowStepResult can carry that represent a
+        // positive detection call (see AnalystDecision.SubmitAsDetected
+        // and the biochemical submission path) - a step that ended the
+        // chain WITHOUT either (e.g. a non-conforming/no-growth selective-
+        // plating result) is a negative outcome.
+        // A reviewer send-back (RequiresBiochemical) puts the order back
+        // into testing: the detection call it carried is no longer a
+        // reportable outcome, and reporting it as "Detected" would state
+        // a result the reviewer explicitly refused to accept.
+        var reportedValue = finalResult.RequiresBiochemical
+            ? "Pending Confirmation"
+            : finalResult.SkippedBiochemical || finalResult.BiochemicalResultText is not null
+                ? "Detected"
+                : "Not Detected";
+        var enteredByUserId = finalResult.SubmittedByUserId;
+        var enteredAt = finalResult.SubmittedAtUtc;
 
         var enteredBy = await _db.Users.FirstOrDefaultAsync(u => u.Id == enteredByUserId);
         var round = await ComputeRoundAsync(sample.Id, order.TestCode, order.Id);
 
-        // Sourced from the final step's most recent observation row - the
-        // one PathogenObservation whose id uniquely identifies this
-        // TestOrder's reportable outcome.
-        var record = await GetOrCreateAsync("PathogenObservation", observations[0].Id, round);
+        // Keyed on TestOrder+Round, NOT on the concluding
+        // WorkflowStepResult's id: which step concludes a pathogen chain
+        // can change (a send-back and a later biochemical submission both
+        // move the concluding row), and keying on SourceId would leave
+        // the superseded row standing as a second, contradictory
+        // ResultRecord for the same test order. SourceId still records
+        // which row the current projection came from.
+        var record = await GetOrCreatePathogenRecordAsync(order.Id, round);
+        record.SourceId = finalResult.Id;
         record.SampleId = sample.Id;
         record.TestOrderId = order.Id;
         record.ReferenceNumber = sample.ReferenceNumber;
@@ -369,18 +382,18 @@ public class ResultProjectionService
             }
         }
 
-        // Only TestOrders that actually have a final-step observation are
-        // reportable - an in-progress or never-started pathogen chain has
-        // nothing to project yet.
+        // Only TestOrders that have reached at least one WorkflowStepResult
+        // are reportable - an in-progress or never-started pathogen chain
+        // has nothing to project yet.
         var pathogenOrderIds = await _db.TestOrders
-            .Where(o => _db.PathogenObservations.Any(p => p.TestOrderId == o.Id))
+            .Where(o => _db.WorkflowStepResults.Any(r => r.TestOrderId == o.Id))
             .Select(o => o.Id)
             .Distinct()
             .ToListAsync();
         _logger.LogInformation("ResultRecord backfill: projecting {Count} pathogen TestOrder rows.", pathogenOrderIds.Count);
         foreach (var id in pathogenOrderIds)
         {
-            var existedBefore = await _db.ResultRecords.AnyAsync(r => r.SourceTable == "PathogenObservation" && r.TestOrderId == id);
+            var existedBefore = await _db.ResultRecords.AnyAsync(r => r.SourceTable == "WorkflowStepResult" && r.TestOrderId == id);
             try
             {
                 await UpsertFromPathogenResultAsync(id);

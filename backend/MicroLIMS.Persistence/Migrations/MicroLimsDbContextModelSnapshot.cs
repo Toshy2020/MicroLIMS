@@ -166,6 +166,79 @@ namespace MicroLIMS.Persistence.Migrations
                     b.ToTable("CausesOfTesting");
                 });
 
+            modelBuilder.Entity("MicroLIMS.Domain.Entities.ConfirmatoryMediaSelection", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("EquipmentId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("MaterialId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("MediaId")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("WasAnalystAdded")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("WorkflowStepResultId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("EquipmentId");
+
+                    b.HasIndex("MaterialId");
+
+                    b.HasIndex("MediaId");
+
+                    b.HasIndex("WorkflowStepResultId", "MaterialId")
+                        .IsUnique();
+
+                    b.ToTable("ConfirmatoryMediaSelections");
+                });
+
+            modelBuilder.Entity("MicroLIMS.Domain.Entities.ConfirmatoryPlateObservation", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("ExpectedAppearanceSnapshot")
+                        .HasColumnType("text");
+
+                    b.Property<int>("MaterialId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Observation")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("RecordedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("RecordedByUserId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("WorkflowStepResultId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("MaterialId");
+
+                    b.HasIndex("WorkflowStepResultId", "MaterialId")
+                        .IsUnique();
+
+                    b.ToTable("ConfirmatoryPlateObservations");
+                });
+
             modelBuilder.Entity("MicroLIMS.Domain.Entities.CountTestReading", b =>
                 {
                     b.Property<int>("Id")
@@ -605,6 +678,12 @@ namespace MicroLIMS.Persistence.Migrations
                     b.Property<DateTime?>("ExpectedReadingAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<DateTime?>("IncubationEndUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("IncubationStartUtc")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<int?>("IncubatorEquipmentId")
                         .HasColumnType("integer");
 
@@ -613,9 +692,6 @@ namespace MicroLIMS.Persistence.Migrations
 
                     b.Property<string>("Outcome")
                         .HasColumnType("text");
-
-                    b.Property<int?>("Plate2MediaId")
-                        .HasColumnType("integer");
 
                     b.Property<DateTime>("StartedAt")
                         .HasColumnType("timestamp with time zone");
@@ -633,13 +709,14 @@ namespace MicroLIMS.Persistence.Migrations
                     b.Property<int?>("TestOrderId")
                         .HasColumnType("integer");
 
+                    b.Property<DateTime?>("WindowReceivedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
                     b.HasKey("Id");
 
                     b.HasIndex("IncubatorEquipmentId");
 
                     b.HasIndex("MediaId");
-
-                    b.HasIndex("Plate2MediaId");
 
                     b.HasIndex("TestOrderId");
 
@@ -1335,10 +1412,10 @@ namespace MicroLIMS.Persistence.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
-                    b.Property<bool>("GrowthObserved")
-                        .HasColumnType("boolean");
-
                     b.Property<int?>("MediaId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Observation")
                         .HasColumnType("integer");
 
                     b.Property<DateTime>("ObservedAt")
@@ -1346,10 +1423,6 @@ namespace MicroLIMS.Persistence.Migrations
 
                     b.Property<int>("ObservedByUserId")
                         .HasColumnType("integer");
-
-                    b.Property<string>("PlateLabel")
-                        .HasMaxLength(20)
-                        .HasColumnType("character varying(20)");
 
                     b.Property<string>("StepName")
                         .IsRequired()
@@ -2283,22 +2356,11 @@ namespace MicroLIMS.Persistence.Migrations
                     b.Property<int>("IncubationMinHours")
                         .HasColumnType("integer");
 
-                    b.Property<bool>("IsDualPlate")
-                        .HasColumnType("boolean");
-
                     b.Property<bool>("IsFinalStep")
                         .HasColumnType("boolean");
 
                     b.Property<int>("MediaTypeId")
                         .HasColumnType("integer");
-
-                    b.Property<string>("Plate1DefaultLabel")
-                        .HasMaxLength(20)
-                        .HasColumnType("character varying(20)");
-
-                    b.Property<string>("Plate2DefaultLabel")
-                        .HasMaxLength(20)
-                        .HasColumnType("character varying(20)");
 
                     b.Property<string>("StepName")
                         .IsRequired()
@@ -2308,7 +2370,10 @@ namespace MicroLIMS.Persistence.Migrations
                     b.Property<int>("StepOrder")
                         .HasColumnType("integer");
 
-                    b.Property<int>("StepResultType")
+                    b.Property<int>("StepType")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("TargetOrganismId")
                         .HasColumnType("integer");
 
                     b.Property<decimal>("TemperatureMax")
@@ -2324,10 +2389,48 @@ namespace MicroLIMS.Persistence.Migrations
 
                     b.HasIndex("MediaTypeId");
 
+                    b.HasIndex("TargetOrganismId");
+
                     b.HasIndex("TestDefinitionId", "StepOrder")
                         .IsUnique();
 
                     b.ToTable("TestWorkflowSteps");
+                });
+
+            modelBuilder.Entity("MicroLIMS.Domain.Entities.TestWorkflowStepMedia", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("DisplayOrder")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("IsRequired")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("MaterialId")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal>("TempMax")
+                        .HasColumnType("decimal(5,2)");
+
+                    b.Property<decimal>("TempMin")
+                        .HasColumnType("decimal(5,2)");
+
+                    b.Property<int>("TestWorkflowStepId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("MaterialId");
+
+                    b.HasIndex("TestWorkflowStepId", "MaterialId")
+                        .IsUnique();
+
+                    b.ToTable("TestWorkflowStepMedias");
                 });
 
             modelBuilder.Entity("MicroLIMS.Domain.Entities.ThawEvent", b =>
@@ -2470,6 +2573,137 @@ namespace MicroLIMS.Persistence.Migrations
                     b.ToTable("WorkflowHistories");
                 });
 
+            modelBuilder.Entity("MicroLIMS.Domain.Entities.WorkflowStepResult", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int?>("AnalystDecision")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("AnalystDecisionAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("AnalystDecisionByUserId")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("BiochemicalAttachmentId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("BiochemicalResultText")
+                        .HasColumnType("text");
+
+                    b.Property<int?>("ConfirmatoryResult")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("ExpectedAppearanceSnapshot")
+                        .HasColumnType("text");
+
+                    b.Property<int>("IncubationId")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("RequiresBiochemical")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("ReturnReason")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<DateTime?>("ReturnedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("ReturnedByUserId")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("SelectivePlatingObservation")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("SkippedBiochemical")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("StepName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<int>("StepType")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("SubmittedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("SubmittedByUserId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("TestOrderId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("IncubationId");
+
+                    b.HasIndex("TestOrderId");
+
+                    b.ToTable("WorkflowStepResults");
+                });
+
+            modelBuilder.Entity("MicroLIMS.Domain.Entities.ConfirmatoryMediaSelection", b =>
+                {
+                    b.HasOne("MicroLIMS.Domain.Entities.Equipment", "Equipment")
+                        .WithMany()
+                        .HasForeignKey("EquipmentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("MicroLIMS.Domain.Entities.Material", "Material")
+                        .WithMany()
+                        .HasForeignKey("MaterialId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("MicroLIMS.Domain.Entities.Media", "Media")
+                        .WithMany()
+                        .HasForeignKey("MediaId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("MicroLIMS.Domain.Entities.WorkflowStepResult", "WorkflowStepResult")
+                        .WithMany("Selections")
+                        .HasForeignKey("WorkflowStepResultId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Equipment");
+
+                    b.Navigation("Material");
+
+                    b.Navigation("Media");
+
+                    b.Navigation("WorkflowStepResult");
+                });
+
+            modelBuilder.Entity("MicroLIMS.Domain.Entities.ConfirmatoryPlateObservation", b =>
+                {
+                    b.HasOne("MicroLIMS.Domain.Entities.Material", "Material")
+                        .WithMany()
+                        .HasForeignKey("MaterialId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("MicroLIMS.Domain.Entities.WorkflowStepResult", "WorkflowStepResult")
+                        .WithMany("ConfirmatoryObservations")
+                        .HasForeignKey("WorkflowStepResultId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Material");
+
+                    b.Navigation("WorkflowStepResult");
+                });
+
             modelBuilder.Entity("MicroLIMS.Domain.Entities.CountTestReading", b =>
                 {
                     b.HasOne("MicroLIMS.Domain.Entities.TestOrder", "TestOrder")
@@ -2570,11 +2804,6 @@ namespace MicroLIMS.Persistence.Migrations
                         .HasForeignKey("MediaId")
                         .OnDelete(DeleteBehavior.Restrict);
 
-                    b.HasOne("MicroLIMS.Domain.Entities.Media", "Plate2Media")
-                        .WithMany()
-                        .HasForeignKey("Plate2MediaId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
                     b.HasOne("MicroLIMS.Domain.Entities.TestOrder", "TestOrder")
                         .WithMany("Incubations")
                         .HasForeignKey("TestOrderId");
@@ -2582,8 +2811,6 @@ namespace MicroLIMS.Persistence.Migrations
                     b.Navigation("IncubatorEquipment");
 
                     b.Navigation("Media");
-
-                    b.Navigation("Plate2Media");
 
                     b.Navigation("TestOrder");
                 });
@@ -3072,6 +3299,11 @@ namespace MicroLIMS.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("MicroLIMS.Domain.Entities.Organism", "TargetOrganism")
+                        .WithMany()
+                        .HasForeignKey("TargetOrganismId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("MicroLIMS.Domain.Entities.TestDefinition", "TestDefinition")
                         .WithMany("Steps")
                         .HasForeignKey("TestDefinitionId")
@@ -3080,7 +3312,28 @@ namespace MicroLIMS.Persistence.Migrations
 
                     b.Navigation("MediaType");
 
+                    b.Navigation("TargetOrganism");
+
                     b.Navigation("TestDefinition");
+                });
+
+            modelBuilder.Entity("MicroLIMS.Domain.Entities.TestWorkflowStepMedia", b =>
+                {
+                    b.HasOne("MicroLIMS.Domain.Entities.Material", "Material")
+                        .WithMany()
+                        .HasForeignKey("MaterialId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("MicroLIMS.Domain.Entities.TestWorkflowStep", "TestWorkflowStep")
+                        .WithMany("StepMedia")
+                        .HasForeignKey("TestWorkflowStepId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Material");
+
+                    b.Navigation("TestWorkflowStep");
                 });
 
             modelBuilder.Entity("MicroLIMS.Domain.Entities.ThawEvent", b =>
@@ -3112,6 +3365,25 @@ namespace MicroLIMS.Persistence.Migrations
                         .HasForeignKey("TestOrderId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.Navigation("TestOrder");
+                });
+
+            modelBuilder.Entity("MicroLIMS.Domain.Entities.WorkflowStepResult", b =>
+                {
+                    b.HasOne("MicroLIMS.Domain.Entities.Incubation", "Incubation")
+                        .WithMany()
+                        .HasForeignKey("IncubationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("MicroLIMS.Domain.Entities.TestOrder", "TestOrder")
+                        .WithMany()
+                        .HasForeignKey("TestOrderId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Incubation");
 
                     b.Navigation("TestOrder");
                 });
@@ -3179,6 +3451,18 @@ namespace MicroLIMS.Persistence.Migrations
                     b.Navigation("Results");
 
                     b.Navigation("WorkflowHistory");
+                });
+
+            modelBuilder.Entity("MicroLIMS.Domain.Entities.TestWorkflowStep", b =>
+                {
+                    b.Navigation("StepMedia");
+                });
+
+            modelBuilder.Entity("MicroLIMS.Domain.Entities.WorkflowStepResult", b =>
+                {
+                    b.Navigation("ConfirmatoryObservations");
+
+                    b.Navigation("Selections");
                 });
 #pragma warning restore 612, 618
         }

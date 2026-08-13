@@ -76,6 +76,10 @@ public class MicroLimsDbContext : Microsoft.EntityFrameworkCore.DbContext
     public DbSet<TestDefinition> TestDefinitions => Set<TestDefinition>();
     public DbSet<TestDefinitionMedia> TestDefinitionMedias => Set<TestDefinitionMedia>();
     public DbSet<TestWorkflowStep> TestWorkflowSteps => Set<TestWorkflowStep>();
+    public DbSet<TestWorkflowStepMedia> TestWorkflowStepMedias => Set<TestWorkflowStepMedia>();
+    public DbSet<WorkflowStepResult> WorkflowStepResults => Set<WorkflowStepResult>();
+    public DbSet<ConfirmatoryMediaSelection> ConfirmatoryMediaSelections => Set<ConfirmatoryMediaSelection>();
+    public DbSet<ConfirmatoryPlateObservation> ConfirmatoryPlateObservations => Set<ConfirmatoryPlateObservation>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

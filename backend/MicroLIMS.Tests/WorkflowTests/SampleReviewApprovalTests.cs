@@ -37,9 +37,6 @@ public class SampleReviewApprovalTests
         return user;
     }
 
-    private static TestWorkflowEngine NewEngine(MicroLimsDbContext db, SampleReviewService reviewService) =>
-        new(db, reviewService, TestServiceFactory.ResultProjection(db));
-
     private static SampleReviewService NewReviewService(MicroLimsDbContext db) => TestServiceFactory.SampleReview(db);
 
     private static SampleApprovalService NewApprovalService(MicroLimsDbContext db) => TestServiceFactory.SampleApproval(db);
@@ -58,7 +55,7 @@ public class SampleReviewApprovalTests
         {
             TestDefinitionId = testDefinition.Id, StepOrder = 1, StepName = "CountIncubation", MediaTypeId = generalAgar.Id,
             IncubationMinHours = 72, IncubationMaxHours = 120, TemperatureMin = 30, TemperatureMax = 35,
-            IsFinalStep = true, IsDualPlate = false
+            IsFinalStep = true
         });
 
         var material = new Material
@@ -92,8 +89,7 @@ public class SampleReviewApprovalTests
     // point where AutoSubmitForReviewIfReadyAsync fires.
     private static async Task CompleteTestAsync(MicroLimsDbContext db, TestOrder order, Media media, int analystId)
     {
-        var reviewService = NewReviewService(db);
-        var engine = NewEngine(db, reviewService);
+        var engine = TestServiceFactory.TestWorkflow(db);
         await engine.SelectMediaAsync(order.Id, "CountIncubation", media.Id, incubatorEquipmentId: 1, userId: analystId);
         await engine.RecordResultAsync(order.Id, "CountIncubation", new CountTestPayload(new List<decimal> { 10 }, 1), userId: analystId);
     }

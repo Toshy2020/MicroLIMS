@@ -38,7 +38,7 @@ public class ResultProjectionTests
         {
             TestDefinitionId = testDefinition.Id, StepOrder = 1, StepName = "CountIncubation", MediaTypeId = generalAgar.Id,
             IncubationMinHours = 0, IncubationMaxHours = 120, TemperatureMin = 30, TemperatureMax = 35,
-            IsFinalStep = true, IsDualPlate = false
+            IsFinalStep = true, StepType = StepType.PlateCount
         });
 
         var material = new Material
@@ -116,73 +116,33 @@ public class ResultProjectionTests
         Assert.Single(records);
     }
 
-    // Single-step Observation pathogen (TSB -> Detection) TestOrder -
-    // mirrors PathogenWorkflowTests.SeedObservationOrderAsync.
-    private static async Task<(TestOrder order, Media tsbMedia, Media detectionMedia)> SeedObservationOrderAsync(MicroLimsDbContext db)
-    {
-        var generalBroth = new MediaType { Class = MediaClass.GeneralBroth, IncubationMinHours = 18, IncubationMaxHours = 24, RequiredTemperatureMin = 35, RequiredTemperatureMax = 37 };
-        var selectiveAgar = new MediaType { Class = MediaClass.SelectiveAgar, IncubationMinHours = 18, IncubationMaxHours = 24, RequiredTemperatureMin = 35, RequiredTemperatureMax = 37 };
-        db.MediaTypes.AddRange(generalBroth, selectiveAgar);
-
-        var testDefinition = new TestDefinition { Code = "PATHOGEN_ECOLI", DisplayName = "E. coli", WorkflowType = WorkflowType.Observation };
-        db.TestDefinitions.Add(testDefinition);
-        await db.SaveChangesAsync();
-
-        db.TestWorkflowSteps.AddRange(
-            new TestWorkflowStep { TestDefinitionId = testDefinition.Id, StepOrder = 1, StepName = "TSB", MediaTypeId = generalBroth.Id, IncubationMinHours = 0, IncubationMaxHours = 72, TemperatureMin = 35, TemperatureMax = 37, IsFinalStep = false, IsDualPlate = false },
-            new TestWorkflowStep { TestDefinitionId = testDefinition.Id, StepOrder = 2, StepName = "Detection", MediaTypeId = selectiveAgar.Id, IncubationMinHours = 0, IncubationMaxHours = 72, TemperatureMin = 35, TemperatureMax = 37, IsFinalStep = true, IsDualPlate = false });
-        await db.SaveChangesAsync();
-
-        var materialA = new Material
-        {
-            MaterialType = MaterialType.DehydratedMedia, MaterialName = "GB Powder", ManufacturerName = "Himedia",
-            BatchNumber = "LOT-GB", ReceivingDate = DateTime.UtcNow.AddDays(-10), Code = "GB",
-            Location = "Micro Lab", QuantityReceived = 500, QuantityRemaining = 500, Unit = MaterialUnit.Gram
-        };
-        var materialB = new Material
-        {
-            MaterialType = MaterialType.DehydratedMedia, MaterialName = "SA Powder", ManufacturerName = "Himedia",
-            BatchNumber = "LOT-SA", ReceivingDate = DateTime.UtcNow.AddDays(-10), Code = "SA",
-            Location = "Micro Lab", QuantityReceived = 500, QuantityRemaining = 500, Unit = MaterialUnit.Gram
-        };
-        db.Materials.AddRange(materialA, materialB);
-        await db.SaveChangesAsync();
-
-        var tsbMedia = new Media { MediaTypeId = generalBroth.Id, MaterialId = materialA.Id, LotNumber = "TSB/1/26", IsReleasedForUse = true, Status = MediaStatus.Active, ExpiryDate = DateTime.UtcNow.AddDays(30) };
-        var detectionMedia = new Media { MediaTypeId = selectiveAgar.Id, MaterialId = materialB.Id, LotNumber = "DET/1/26", IsReleasedForUse = true, Status = MediaStatus.Active, ExpiryDate = DateTime.UtcNow.AddDays(30) };
-        db.Media.AddRange(tsbMedia, detectionMedia);
-
-        var sample = new Sample { Category = SampleCategory.FinishedProduct, ControlNumber = "CTRL-2", Status = SampleStatus.InTesting };
-        var order = new TestOrder { TestCode = "PATHOGEN_ECOLI", Status = ApprovalStatus.Pending, CurrentStep = WorkflowStep.Waiting };
-        sample.TestOrders.Add(order);
-        db.Samples.Add(sample);
-        await db.SaveChangesAsync();
-
-        return (order, tsbMedia, detectionMedia);
-    }
-
     // 6.2: only the final step's outcome is projected for a pathogen chain
-    // - the intermediate TSB step never gets its own ResultRecord.
+    // - the two intermediate broth steps never get their own ResultRecord,
+    // even though each is submitted (and saved) separately.
     [Fact]
     public async Task UpsertFromPathogenResultAsync_ProjectsOnlyFinalStep_QualitativeNotApplicable()
     {
-        await using var db = NewDb();
-        var (order, tsbMedia, detectionMedia) = await SeedObservationOrderAsync(db);
+        await using var db = PathogenTestData.NewDb();
+        var (order, media, incubator) = await PathogenTestData.SeedFiveStageOrderAsync(db);
         var engine = TestServiceFactory.TestWorkflow(db);
+        var start = DateTime.UtcNow.AddHours(-30);
+        var end = DateTime.UtcNow.AddHours(-6);
 
-        await engine.SelectMediaAsync(order.Id, "TSB", tsbMedia.Id, incubatorEquipmentId: 1, userId: 1);
-        await engine.RecordResultAsync(order.Id, "TSB", new ObservationPayload(true), userId: 1);
-
-        await engine.SelectMediaAsync(order.Id, "Detection", detectionMedia.Id, incubatorEquipmentId: 1, userId: 1);
-        await engine.RecordResultAsync(order.Id, "Detection", new ObservationPayload(true), userId: 1);
+        await engine.SubmitBrothAsync(order.Id, "Broth Enrichment", media.BrothLotId, incubator.Id, start, end, null, userId: 1);
+        await engine.SubmitBrothAsync(order.Id, "Selective Broth", media.SelectiveBrothLotId, media.SelectiveBrothIncubatorId, start, end, null, userId: 1);
+        // NoGrowth at selective plating finalizes the chain as NotDetected
+        // without ever reaching confirmatory plating or biochemical - the
+        // shortest path to a projected final result.
+        await engine.SubmitSelectivePlatingAsync(order.Id, "Selective Plating", media.SelectivePlatingLotId, incubator.Id,
+            start, end, GrowthObservation.NoGrowth, userId: 1);
 
         var records = await db.ResultRecords.Where(r => r.TestOrderId == order.Id).ToListAsync();
-        var record = Assert.Single(records); // TSB never produces its own row
+        var record = Assert.Single(records); // neither broth step produces its own row
 
-        Assert.Equal("PathogenObservation", record.SourceTable);
+        Assert.Equal("WorkflowStepResult", record.SourceTable);
         Assert.Equal(ResultKind.Qualitative, record.ResultKind);
         Assert.Equal(ResultLevel.NotApplicable, record.ResultLevel);
-        Assert.Equal("Detected", record.ReportedValue);
+        Assert.Equal("Not Detected", record.ReportedValue);
         Assert.Null(record.NumericValue);
     }
 
@@ -300,6 +260,57 @@ public class ResultProjectionTests
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
             query.GetTrendAsync("PATHOGEN_ECOLI", "Item A", null, null));
         Assert.Contains("qualitative", ex.Message);
+    }
+
+    // A pathogen chain has exactly one reportable outcome per round no
+    // matter which step concluded it. Keying the projection on the
+    // concluding WorkflowStepResult's id meant a send-back followed by a
+    // biochemical submission left TWO ResultRecords for the same test
+    // order, and the send-back itself left the reviewer-refused
+    // "Detected" standing untouched.
+    [Fact]
+    public async Task PathogenProjection_SurvivesASendBack_AsOneRecordPerTestOrder()
+    {
+        await using var db = PathogenTestData.NewDb();
+        var (order, media, incubator) = await PathogenTestData.SeedFiveStageOrderAsync(db);
+        var engine = TestServiceFactory.TestWorkflow(db);
+        var start = DateTime.UtcNow.AddHours(-30);
+        var end = DateTime.UtcNow.AddHours(-6);
+        const int analystId = 4;
+        const int reviewerId = 9;
+
+        await engine.SubmitBrothAsync(order.Id, "Broth Enrichment", media.BrothLotId, incubator.Id, start, end, null, analystId);
+        await engine.SubmitBrothAsync(order.Id, "Selective Broth", media.SelectiveBrothLotId, media.SelectiveBrothIncubatorId, start, end, null, analystId);
+        await engine.SubmitSelectivePlatingAsync(order.Id, "Selective Plating", media.SelectivePlatingLotId, incubator.Id,
+            start, end, GrowthObservation.GrowthConforming, analystId);
+        await engine.SubmitConfirmatorySetupAsync(order.Id, "Confirmatory Plating", new[]
+        {
+            new ConfirmatorySelectionInput(media.XldStepMediaId, media.XldLotId, incubator.Id),
+            new ConfirmatorySelectionInput(media.TsiStepMediaId, media.TsiLotId, incubator.Id)
+        }, start, end, analystId);
+        await engine.SubmitConfirmatoryObservationsAsync(order.Id, "Confirmatory Plating", new[]
+        {
+            new ConfirmatoryObservationInput(media.XldMaterialId, GrowthObservation.GrowthConforming),
+            new ConfirmatoryObservationInput(media.TsiMaterialId, GrowthObservation.GrowthConforming)
+        }, analystId);
+        await engine.RecordAnalystDecisionAsync(order.Id, AnalystDecision.SubmitAsDetected, analystId);
+
+        var detected = Assert.Single(await db.ResultRecords.Where(r => r.TestOrderId == order.Id).ToListAsync());
+        Assert.Equal("Detected", detected.ReportedValue);
+
+        var confirmatoryId = (await db.WorkflowStepResults.SingleAsync(r => r.StepName == "Confirmatory Plating")).Id;
+        await engine.RecordBiochemicalReviewDecisionAsync(confirmatoryId, approve: false, "Required per SOP-MB-007.", reviewerId);
+
+        // The order is back in testing, so the refused call must not stand.
+        var returned = Assert.Single(await db.ResultRecords.Where(r => r.TestOrderId == order.Id).ToListAsync());
+        Assert.NotEqual("Detected", returned.ReportedValue);
+
+        // Answering the send-back updates that same row, rather than
+        // adding a second reportable result for the order.
+        await engine.SubmitBiochemicalAsync(order.Id, "Biochemical Test", "IMViC: + + - -", null, analystId);
+
+        var confirmed = Assert.Single(await db.ResultRecords.Where(r => r.TestOrderId == order.Id).ToListAsync());
+        Assert.Equal("Detected", confirmed.ReportedValue);
     }
 
     [Fact]

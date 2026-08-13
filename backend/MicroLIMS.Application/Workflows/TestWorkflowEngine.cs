@@ -2,33 +2,57 @@ using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Services;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
+using MicroLIMS.Infrastructure.Notifications;
 using MicroLIMS.Persistence.DbContext;
+using MicroLIMS.Shared.Constants;
 
 namespace MicroLIMS.Application.Workflows;
 
 // Result payload union for RecordResultAsync - which record is passed
-// depends on the TestDefinition's WorkflowType (CountTest) or the
-// current step's IsDualPlate flag (DualPlate vs plain Observation).
+// depends on the TestDefinition's WorkflowType (CountTest) or plain
+// Observation otherwise.
 public abstract record ResultPayload;
 public sealed record CountTestPayload(List<decimal> PlateReadings, decimal DilutionFactor) : ResultPayload;
-public sealed record ObservationPayload(bool GrowthObserved) : ResultPayload;
-// Plate1Label/Plate2Label are resent here (rather than carried via the
-// Incubation row the way Plate2MediaId is) because they're only needed
-// at result-entry time to stamp the two PathogenObservation rows - the
-// frontend already holds both labels in its own state from the media-
-// selection phase and just resends them at submit.
-public sealed record DualPlatePayload(bool Plate1GrowthObserved, bool Plate2GrowthObserved, string Plate1Label, string Plate2Label) : ResultPayload;
+public sealed record ObservationPayload(GrowthObservation Observation) : ResultPayload;
+
+// A business-rule failure that carries a machine-readable code for the
+// frontend. Derives from InvalidOperationException so that if a call
+// site does not special-case it, ExceptionMiddleware still returns 400
+// with the message rather than a 500.
+public class WorkflowStepException : InvalidOperationException
+{
+    public string ErrorCode { get; }
+    public long? RemainingSeconds { get; }
+
+    public WorkflowStepException(string errorCode, string message, long? remainingSeconds = null) : base(message)
+    {
+        ErrorCode = errorCode;
+        RemainingSeconds = remainingSeconds;
+    }
+}
+
+// The outcome of any single pathogen step submission (Tasks 8-11) -
+// StepType is sent as its string name since the frontend has no reason
+// to know the C# enum. WorkflowFinalResult/NextStepUnlocked are mutually
+// informative: a non-null final result always means NextStepUnlocked is
+// false, and vice versa for an in-progress chain.
+public record StepResultDto(
+    int StepInstanceId, string StepType, string Status,
+    int SubmittedByUserId, DateTime SubmittedAtUtc,
+    bool NextStepUnlocked, string? WorkflowFinalResult, List<string> Flags);
+
+public record ConfirmatorySelectionInput(int StepMediaId, int MediaLotId, int EquipmentId);
+public record ConfirmatoryObservationInput(int MaterialId, GrowthObservation Observation);
+public record ConfirmatoryOutcomeDto(int StepInstanceId, string ConfirmatoryResult, bool AnalystDecisionRequired, List<string> Flags);
 
 // One already-completed step for the step-chain strip - Outcome is
 // always the same summary string RecordResultAsync already computed
 // and persisted onto that step's Incubation.Outcome, never recomputed
-// here. Plate1/2* fields are populated only for a completed DualGrowth
-// step; ReportedResult/CalculatedResult/Status only for PlateCount.
+// here. ReportedResult/CalculatedResult/Status only populated for
+// PlateCount.
 public record CompletedStepSummary(
-    int StepOrder, string StepName, StepResultType StepResultType, bool IsFinalStep,
+    int StepOrder, string StepName, StepType StepType, bool IsFinalStep,
     string Outcome, DateTime? ObservedAt,
-    string? Plate1Label, bool? Plate1GrowthObserved, string? Plate1MediaLotNumber,
-    string? Plate2Label, bool? Plate2GrowthObserved, string? Plate2MediaLotNumber,
     string? ReportedResult, decimal? CalculatedResult, string? Status);
 
 // What GET current-step needs to render any phase of the workflow
@@ -56,47 +80,71 @@ public record TestWorkflowResult(
 public record BatchLocationResult(int SampleLocationId, decimal CFUResult);
 
 // EM/After Cleaning batch pathogen results - the final step's per-
-// location call, either a plain growth observation or (when the final
-// step is dual-plate) a pair that must agree before that location can
-// be finalized. Exactly one of the two lists is used per submission,
-// matching whether the TestDefinition's final step IsDualPlate.
+// location growth observation call.
 public record BatchLocationObservation(int SampleLocationId, bool GrowthObserved);
-public record BatchLocationDualPlateObservation(int SampleLocationId, bool Plate1GrowthObserved, bool Plate2GrowthObserved);
 
 public interface ITestWorkflowEngine : IStatefulWorkflowEngine
 {
     Task<CurrentStepResult> GetCurrentStepAsync(int testOrderId);
-    // plate2MediaId/plate1Label/plate2Label are only used (and required)
-    // for a DualGrowth step - mediaLotId/plate1Label together describe
-    // plate 1. Left null, the call behaves exactly as before for every
-    // other step shape.
-    Task<Incubation> SelectMediaAsync(int testOrderId, string stepName, int mediaLotId, int incubatorEquipmentId, int userId,
-        int? plate2MediaId = null, string? plate1Label = null, string? plate2Label = null);
+    Task<Incubation> SelectMediaAsync(int testOrderId, string stepName, int mediaLotId, int incubatorEquipmentId, int userId);
     Task<TestWorkflowResult> RecordResultAsync(int testOrderId, string stepName, ResultPayload payload, int userId);
     Task<List<SampleLocation>> GetLocationsAsync(int testOrderId);
     Task<Incubation> CloseCurrentIncubationWindowAsync(int testOrderId, int userId);
     Task<TestWorkflowResult> RecordBatchResultsAsync(int testOrderId, decimal dilutionFactor, List<BatchLocationResult> locations, int userId);
-    Task<TestWorkflowResult> RecordBatchPathogenResultsAsync(int testOrderId, List<BatchLocationObservation>? observations, List<BatchLocationDualPlateObservation>? dualPlateObservations, int userId);
+    Task<TestWorkflowResult> RecordBatchPathogenResultsAsync(int testOrderId, List<BatchLocationObservation>? observations, int userId);
+
+    // Broth steps carry no result logic - completion is the incubation
+    // window elapsing plus the analyst submitting the form.
+    Task<StepResultDto> SubmitBrothAsync(int testOrderId, string stepName, int mediaLotId, int equipmentId,
+        DateTime incubationStartUtc, DateTime incubationEndUtc, string? observation, int userId);
+
+    Task<StepResultDto> SubmitSelectivePlatingAsync(int testOrderId, string stepName, int mediaLotId, int equipmentId,
+        DateTime incubationStartUtc, DateTime incubationEndUtc, GrowthObservation observation, int userId);
+
+    Task<StepResultDto> SubmitConfirmatorySetupAsync(int testOrderId, string stepName,
+        IReadOnlyList<ConfirmatorySelectionInput> selections, DateTime incubationStartUtc, DateTime incubationEndUtc, int userId);
+
+    Task<ConfirmatoryOutcomeDto> SubmitConfirmatoryObservationsAsync(int testOrderId, string stepName,
+        IReadOnlyList<ConfirmatoryObservationInput> observations, int userId);
+
+    Task<StepResultDto> RecordAnalystDecisionAsync(int testOrderId, AnalystDecision decision, int userId);
+
+    Task<StepResultDto> SubmitBiochemicalAsync(int testOrderId, string stepName, string biochemicalResultText, int? attachmentId, int userId);
+
+    Task<StepResultDto> RecordBiochemicalReviewDecisionAsync(int workflowStepResultId, bool approve, string comment, int reviewerUserId);
 }
 
 // Generic step-runner replacing PathogenWorkflowEngine and
 // CountTestWorkflowEngine: every test's chain (TAMC's single count
-// step, a pathogen's TSB->Detection chain, Salmonella's TSB->RVS->
-// XLD_TSI dual-plate chain) is read from TestDefinition.WorkflowType +
-// TestWorkflowStep, never hardcoded here. Nothing in this file compares
-// against a literal test code or step name - that logic lives entirely
-// in master data now.
+// step, a pathogen's five-stage Broth->Selective Broth->Selective
+// Plating->Confirmatory Plating->Biochemical Test chain) is read from
+// TestDefinition.WorkflowType + TestWorkflowStep, never hardcoded here.
+// Nothing in this file compares against a literal test code or step
+// name - that logic lives entirely in master data now.
 public class TestWorkflowEngine : ITestWorkflowEngine
 {
     private readonly MicroLimsDbContext _db;
     private readonly SampleReviewService _sampleReviewService;
     private readonly ResultProjectionService _resultProjection;
+    private readonly IncubatorEligibilityService _incubatorEligibility;
+    private readonly MediaAppearanceSnapshotService _appearanceSnapshot;
+    private readonly SegregationOfDutiesGuard _sodGuard;
+    private readonly ReviewGateService _reviewGate;
+    private readonly INotificationService _notifications;
 
-    public TestWorkflowEngine(MicroLimsDbContext db, SampleReviewService sampleReviewService, ResultProjectionService resultProjection)
+    public TestWorkflowEngine(
+        MicroLimsDbContext db, SampleReviewService sampleReviewService, ResultProjectionService resultProjection,
+        IncubatorEligibilityService incubatorEligibility, MediaAppearanceSnapshotService appearanceSnapshot,
+        SegregationOfDutiesGuard sodGuard, ReviewGateService reviewGate, INotificationService notifications)
     {
         _db = db;
         _sampleReviewService = sampleReviewService;
         _resultProjection = resultProjection;
+        _incubatorEligibility = incubatorEligibility;
+        _appearanceSnapshot = appearanceSnapshot;
+        _sodGuard = sodGuard;
+        _reviewGate = reviewGate;
+        _notifications = notifications;
     }
 
     private async Task<(TestOrder order, TestDefinition definition)> LoadWithTemplateAsync(int testOrderId)
@@ -113,12 +161,21 @@ public class TestWorkflowEngine : ITestWorkflowEngine
         return (order, definition);
     }
 
+    // The five pathogen step types record their completion as a
+    // WorkflowStepResult row, not a PathogenObservation - only
+    // SubmitSelectivePlatingAsync writes an observation, so a
+    // PathogenObservations-only "done" test can never see a broth,
+    // confirmatory or biochemical step finish. Legacy Observation-type
+    // steps (StepType.PlateCount aside, anything driven through
+    // RecordResultAsync) still go through PathogenObservations.
+    private static bool IsPathogenStepType(StepType stepType) =>
+        stepType is StepType.BrothEnrichment or StepType.SelectiveBroth or StepType.SelectivePlating
+            or StepType.ConfirmatoryPlating or StepType.BiochemicalTest;
+
     // A step is "done" once a definitive result has been recorded for
     // it: a CountTestReading for CountTest workflows (always one step),
-    // any observation for a plain Observation step, or a pair of
-    // agreeing observations for a dual-plate step. An inconclusive
-    // dual-plate pair does NOT count as done - GetCurrentStepAsync
-    // keeps returning the same step so the analyst can retry.
+    // a WorkflowStepResult for a pathogen step, or any observation for a
+    // plain Observation step.
     private async Task<bool> IsStepDoneAsync(int testOrderId, WorkflowType workflowType, TestWorkflowStep step)
     {
         // EM/After Cleaning batch orders never write a CountTestReading or
@@ -136,45 +193,25 @@ public class TestWorkflowEngine : ITestWorkflowEngine
         if (workflowType == WorkflowType.CountTest)
             return await _db.CountTestReadings.AnyAsync(r => r.TestOrderId == testOrderId && r.StepName == step.StepName);
 
-        if (step.StepResultType == StepResultType.DualGrowth)
+        if (IsPathogenStepType(step.StepType))
         {
-            var pair = await LoadLatestDualPlateObservationsAsync(testOrderId, step.StepName);
-            return pair.Count == 2 && pair[0].GrowthObserved == pair[1].GrowthObserved;
+            // Confirmatory plating is the one pathogen step whose result
+            // row is written in two passes - setup first, plate readings
+            // afterwards. It is only done once the readings have produced
+            // a ConfirmatoryResult; treating the setup row as "done"
+            // would push the chain past the step the analyst still has to
+            // read out.
+            if (step.StepType == StepType.ConfirmatoryPlating)
+                return await _db.WorkflowStepResults.AnyAsync(r =>
+                    r.TestOrderId == testOrderId && r.StepName == step.StepName && r.ConfirmatoryResult != null);
+
+            return await _db.WorkflowStepResults.AnyAsync(r => r.TestOrderId == testOrderId && r.StepName == step.StepName);
         }
 
         return await _db.PathogenObservations.AnyAsync(o => o.TestOrderId == testOrderId && o.StepName == step.StepName);
     }
 
-    // The two observations belonging to a DualGrowth step's MOST RECENT
-    // attempt, keyed by PlateLabel rather than insertion order/array
-    // position - a prior inconclusive attempt leaves its own two rows
-    // behind as history, so scoping to the latest Incubation window (and
-    // requiring two distinct, non-empty PlateLabels) is what actually
-    // identifies "this attempt's pair", not just taking the newest two
-    // rows by timestamp. Used by IsStepDoneAsync (agreement check) and
-    // GetCurrentStepAsync (step-chain strip detail).
-    private async Task<List<PathogenObservation>> LoadLatestDualPlateObservationsAsync(int testOrderId, string stepName)
-    {
-        var latestIncubation = await _db.Incubations
-            .Where(i => i.TestOrderId == testOrderId && i.StepName == stepName)
-            .OrderByDescending(i => i.StartedAt)
-            .FirstOrDefaultAsync();
-        if (latestIncubation is null) return new();
-
-        var candidates = await _db.PathogenObservations
-            .Include(o => o.Media)
-            .Where(o => o.TestOrderId == testOrderId && o.StepName == stepName && o.ObservedAt >= latestIncubation.StartedAt)
-            .OrderBy(o => o.Id)
-            .ToListAsync();
-
-        if (candidates.Count != 2) return new();
-        if (candidates.Any(o => string.IsNullOrEmpty(o.PlateLabel))) return new();
-        if (candidates[0].PlateLabel == candidates[1].PlateLabel) return new();
-
-        return candidates;
-    }
-
-// Finds the lowest-StepOrder step that isn't done yet, or null if the
+    // Finds the lowest-StepOrder step that isn't done yet, or null if the
     // whole template is complete. Shared by GetCurrentStepAsync (to know
     // what to show) and SelectMediaAsync (to reject an out-of-order
     // start attempt - the equivalent of the old PathogenWorkflowEngine's
@@ -248,24 +285,10 @@ public class TestWorkflowEngine : ITestWorkflowEngine
             var outcome = latestIncubation?.Outcome ?? string.Empty;
             var observedAt = latestIncubation?.CompletedAt;
 
-            string? plate1Label = null, plate2Label = null, plate1Lot = null, plate2Lot = null;
-            bool? plate1Growth = null, plate2Growth = null;
             string? reportedResult = null, status = null;
             decimal? calculatedResult = null;
 
-            if (step.StepResultType == StepResultType.DualGrowth)
-            {
-                // Ascending Id order = insertion order, and RecordDualPlateAsync
-                // always adds plate 1's observation before plate 2's - safe to
-                // rely on here since both rows are ours, never user-supplied.
-                var pair = await LoadLatestDualPlateObservationsAsync(testOrderId, step.StepName);
-                if (pair.Count == 2)
-                {
-                    plate1Label = pair[0].PlateLabel; plate1Growth = pair[0].GrowthObserved; plate1Lot = pair[0].Media?.LotNumber;
-                    plate2Label = pair[1].PlateLabel; plate2Growth = pair[1].GrowthObserved; plate2Lot = pair[1].Media?.LotNumber;
-                }
-            }
-            else if (step.StepResultType == StepResultType.PlateCount)
+            if (step.StepType == StepType.PlateCount)
             {
                 var reading = await _db.CountTestReadings
                     .Where(r => r.TestOrderId == testOrderId && r.StepName == step.StepName)
@@ -281,17 +304,14 @@ public class TestWorkflowEngine : ITestWorkflowEngine
             }
 
             summaries.Add(new CompletedStepSummary(
-                step.StepOrder, step.StepName, step.StepResultType, step.IsFinalStep,
+                step.StepOrder, step.StepName, step.StepType, step.IsFinalStep,
                 outcome, observedAt,
-                plate1Label, plate1Growth, plate1Lot,
-                plate2Label, plate2Growth, plate2Lot,
                 reportedResult, calculatedResult, status));
         }
         return summaries;
     }
 
-    public async Task<Incubation> SelectMediaAsync(int testOrderId, string stepName, int mediaLotId, int incubatorEquipmentId, int userId,
-        int? plate2MediaId = null, string? plate1Label = null, string? plate2Label = null)
+    public async Task<Incubation> SelectMediaAsync(int testOrderId, string stepName, int mediaLotId, int incubatorEquipmentId, int userId)
     {
         var (order, definition) = await LoadWithTemplateAsync(testOrderId);
         var step = definition.Steps.FirstOrDefault(s => s.StepName == stepName)
@@ -325,42 +345,12 @@ public class TestWorkflowEngine : ITestWorkflowEngine
             throw new InvalidOperationException(
                 $"This step requires {step.MediaType!.Class} media. The selected lot is {media.MediaType!.Class}.");
 
-        // DualGrowth steps read two plates together, each on its own lot -
-        // validated the same way as plate 1 above, plus the two lots must
-        // actually differ and both need a label. One Incubation row still
-        // covers the whole step (both plates incubate together); the
-        // second lot rides along on Plate2MediaId until RecordResultAsync
-        // writes it onto the second PathogenObservation row.
-        int? plate2MediaIdToStore = null;
-        if (step.StepResultType == StepResultType.DualGrowth)
-        {
-            if (plate2MediaId is null)
-                throw new InvalidOperationException($"Step \"{stepName}\" requires a media lot for both plates.");
-            if (plate2MediaId.Value == mediaLotId)
-                throw new InvalidOperationException("Both plates must use different media lots.");
-            if (string.IsNullOrWhiteSpace(plate1Label) || string.IsNullOrWhiteSpace(plate2Label))
-                throw new InvalidOperationException($"Step \"{stepName}\" requires a label for both plates.");
-            if (!media.IsReleasedForUse)
-                throw new InvalidOperationException($"Media lot {media.LotNumber} is not released for use.");
-
-            var plate2Media = await _db.Media.Include(m => m.MediaType).FirstOrDefaultAsync(m => m.Id == plate2MediaId.Value)
-                ?? throw new InvalidOperationException($"Media lot {plate2MediaId} not found.");
-            if (!plate2Media.IsReleasedForUse)
-                throw new InvalidOperationException($"Media lot {plate2Media.LotNumber} is not released for use.");
-            if (plate2Media.MediaTypeId != step.MediaTypeId)
-                throw new InvalidOperationException(
-                    $"This step requires {step.MediaType!.Class} media. The selected lot for plate 2 is {plate2Media.MediaType!.Class}.");
-
-            plate2MediaIdToStore = plate2Media.Id;
-        }
-
         var startedAt = DateTime.UtcNow;
         var incubation = new Incubation
         {
             TestOrderId = testOrderId,
             StepName = stepName,
             MediaId = mediaLotId,
-            Plate2MediaId = plate2MediaIdToStore,
             IncubatorEquipmentId = incubatorEquipmentId,
             Temperature = $"{step.TemperatureMin}-{step.TemperatureMax} °C",
             Duration = $"{step.IncubationMinHours}-{step.IncubationMaxHours} hours",
@@ -399,6 +389,19 @@ public class TestWorkflowEngine : ITestWorkflowEngine
         if (await _db.SampleLocations.AnyAsync(l => l.TestOrderId == testOrderId))
             throw new InvalidOperationException("EM/After Cleaning results must be submitted via the batch results endpoint.");
 
+        // This path's ObservationPayload branch below stages a Result but
+        // never writes a WorkflowStepResult row - only the dedicated
+        // pathogen Submit*Async methods (Tasks 8-11) do that. If it ever
+        // ran for a pathogen step, UpsertFromPathogenResultAsync would
+        // throw a confusing internal error trying to read a row that was
+        // never created. record-result now serves CountTest (PlateCount)
+        // steps only, so reject the mismatch here with a clear pointer to
+        // the real entry points instead of letting it fail downstream.
+        if (step.StepType != StepType.PlateCount)
+            throw new InvalidOperationException(
+                $"Step \"{stepName}\" is a pathogen workflow step - use the dedicated pathogen endpoints " +
+                "(submit-broth, submit-selective-plating, submit-confirmatory-setup, etc.), not record-result.");
+
         var openIncubation = await _db.Incubations
             .Where(i => i.TestOrderId == testOrderId && i.StepName == stepName && i.CompletedAt == null)
             .OrderByDescending(i => i.StartedAt)
@@ -406,7 +409,6 @@ public class TestWorkflowEngine : ITestWorkflowEngine
             ?? throw new InvalidOperationException($"Media must be selected for step \"{stepName}\" before a result can be recorded.");
 
         string outcomeSummary;
-        bool isDefinitive = true;
         decimal? average = null, calculatedResult = null;
         string? status = null;
         CountTestReading? countTestReading = null;
@@ -419,14 +421,8 @@ public class TestWorkflowEngine : ITestWorkflowEngine
                 (outcomeSummary, average, calculatedResult, status, countTestReading) = await RecordCountTestAsync(order, step, countPayload, userId);
                 break;
 
-            case DualPlatePayload dualPayload:
-                if (!step.IsDualPlate)
-                    throw new InvalidOperationException($"Step \"{stepName}\" is not a dual-plate step.");
-                (outcomeSummary, isDefinitive) = await RecordDualPlateAsync(testOrderId, step, dualPayload, userId, openIncubation.MediaId, openIncubation.Plate2MediaId);
-                break;
-
             case ObservationPayload obsPayload:
-                if (step.IsDualPlate || definition.WorkflowType == WorkflowType.CountTest)
+                if (definition.WorkflowType == WorkflowType.CountTest)
                     throw new InvalidOperationException($"Step \"{stepName}\" does not accept a simple growth observation.");
                 outcomeSummary = await RecordObservationAsync(testOrderId, step, obsPayload, userId, openIncubation.MediaId);
                 break;
@@ -451,22 +447,11 @@ public class TestWorkflowEngine : ITestWorkflowEngine
             await _db.SaveChangesAsync();
         }
 
-        if (!isDefinitive)
-        {
-            _db.WorkflowHistories.Add(new WorkflowHistory
-            {
-                TestOrderId = testOrderId, FromStep = order.CurrentStep, ToStep = order.CurrentStep,
-                Note = $"Inconclusive dual-plate result on step \"{stepName}\" - retest required.", PerformedByUserId = userId
-            });
-            await _db.SaveChangesAsync();
-            return new TestWorkflowResult(outcomeSummary, false, false, null, average, calculatedResult, status);
-        }
-
         if (!step.IsFinalStep)
             return new TestWorkflowResult(outcomeSummary, true, false, null, average, calculatedResult, status);
 
         // Final step - CountTest already wrote its own Result row above;
-        // Observation/DualPlate need one written here with the definitive call.
+        // Observation needs one written here with the definitive call.
         if (definition.WorkflowType != WorkflowType.CountTest)
         {
             _db.Results.Add(new Result
@@ -645,13 +630,8 @@ public class TestWorkflowEngine : ITestWorkflowEngine
     // elapsed (same window mechanism as RecordBatchResultsAsync; every
     // intermediate step was just a shared incubation window closed via
     // CloseCurrentIncubationWindowAsync, no per-location judgment call).
-    // A dual-plate final step requires every location's pair to agree -
-    // if any location is inconclusive, the whole submission is rejected
-    // (same all-or-nothing invariant as the missing-location check) so
-    // the analyst re-reads just the disagreeing plates and resubmits
-    // everyone together, rather than leaving some locations half-saved.
     public async Task<TestWorkflowResult> RecordBatchPathogenResultsAsync(
-        int testOrderId, List<BatchLocationObservation>? observations, List<BatchLocationDualPlateObservation>? dualPlateObservations, int userId)
+        int testOrderId, List<BatchLocationObservation>? observations, int userId)
     {
         var (order, definition) = await LoadWithTemplateAsync(testOrderId);
         if (order.CurrentStep != WorkflowStep.Incubating)
@@ -667,56 +647,27 @@ public class TestWorkflowEngine : ITestWorkflowEngine
         if (sampleLocations.Count == 0)
             throw new InvalidOperationException("No locations are assigned to this test order.");
 
-        string summary;
         var detectedCount = 0;
 
-        if (step.IsDualPlate)
+        if (observations is null || observations.Count == 0)
+            throw new InvalidOperationException($"Step \"{step.StepName}\" requires a growth observation for every location.");
+
+        var submitted = observations.ToDictionary(o => o.SampleLocationId);
+        var missing = sampleLocations.Where(l => !submitted.ContainsKey(l.Id)).ToList();
+        if (missing.Count > 0)
+            throw new InvalidOperationException($"Results are missing for: {string.Join(", ", missing.Select(LocationName))}.");
+
+        foreach (var location in sampleLocations)
         {
-            if (dualPlateObservations is null || dualPlateObservations.Count == 0)
-                throw new InvalidOperationException($"Step \"{step.StepName}\" requires a dual-plate observation for every location.");
-
-            var submitted = dualPlateObservations.ToDictionary(o => o.SampleLocationId);
-            var missing = sampleLocations.Where(l => !submitted.ContainsKey(l.Id)).ToList();
-            if (missing.Count > 0)
-                throw new InvalidOperationException($"Results are missing for: {string.Join(", ", missing.Select(LocationName))}.");
-
-            var inconclusive = sampleLocations.Where(l => submitted[l.Id].Plate1GrowthObserved != submitted[l.Id].Plate2GrowthObserved).ToList();
-            if (inconclusive.Count > 0)
-                throw new InvalidOperationException(
-                    $"Inconclusive - the two plates disagree for: {string.Join(", ", inconclusive.Select(LocationName))}. Re-read those plates and resubmit all locations.");
-
-            foreach (var location in sampleLocations)
-            {
-                var growth = submitted[location.Id].Plate1GrowthObserved;
-                location.Status = growth ? "Detected" : "Absent";
-                location.ReportedResult = location.Status;
-                location.EnteredAt = DateTime.UtcNow;
-                location.EnteredByUserId = userId;
-                if (growth) detectedCount++;
-            }
-        }
-        else
-        {
-            if (observations is null || observations.Count == 0)
-                throw new InvalidOperationException($"Step \"{step.StepName}\" requires a growth observation for every location.");
-
-            var submitted = observations.ToDictionary(o => o.SampleLocationId);
-            var missing = sampleLocations.Where(l => !submitted.ContainsKey(l.Id)).ToList();
-            if (missing.Count > 0)
-                throw new InvalidOperationException($"Results are missing for: {string.Join(", ", missing.Select(LocationName))}.");
-
-            foreach (var location in sampleLocations)
-            {
-                var growth = submitted[location.Id].GrowthObserved;
-                location.Status = growth ? "Detected" : "Absent";
-                location.ReportedResult = location.Status;
-                location.EnteredAt = DateTime.UtcNow;
-                location.EnteredByUserId = userId;
-                if (growth) detectedCount++;
-            }
+            var growth = submitted[location.Id].GrowthObserved;
+            location.Status = growth ? "Detected" : "Absent";
+            location.ReportedResult = location.Status;
+            location.EnteredAt = DateTime.UtcNow;
+            location.EnteredByUserId = userId;
+            if (growth) detectedCount++;
         }
 
-        summary = $"{sampleLocations.Count} locations: {sampleLocations.Count - detectedCount} absent, {detectedCount} detected";
+        var summary = $"{sampleLocations.Count} locations: {sampleLocations.Count - detectedCount} absent, {detectedCount} detected";
         var overallResult = detectedCount > 0 ? "Detected" : "Absent";
 
         _db.Results.Add(new Result
@@ -807,46 +758,22 @@ public class TestWorkflowEngine : ITestWorkflowEngine
         return (reported, average, calculated, status, reading);
     }
 
+    // GrowthObservation != NoGrowth mirrors the old GrowthObserved bool -
+    // GrowthNonConforming still counts as "growth" for this generic
+    // Observation path (conformance judgment belongs to the pathogen-
+    // specific step methods added in Tasks 9-11, not here).
     private async Task<string> RecordObservationAsync(int testOrderId, TestWorkflowStep step, ObservationPayload payload, int userId, int? mediaId)
     {
         _db.PathogenObservations.Add(new PathogenObservation
         {
             TestOrderId = testOrderId, StepName = step.StepName, StepOrder = step.StepOrder,
-            GrowthObserved = payload.GrowthObserved, ObservedByUserId = userId, MediaId = mediaId
+            Observation = payload.Observation, ObservedByUserId = userId, MediaId = mediaId
         });
         await Task.CompletedTask;
+        var growthObserved = payload.Observation != GrowthObservation.NoGrowth;
         return step.IsFinalStep
-            ? (payload.GrowthObserved ? "Detected" : "Absent")
-            : (payload.GrowthObserved ? "Growth" : "No Growth");
-    }
-
-    private async Task<(string outcome, bool isDefinitive)> RecordDualPlateAsync(
-        int testOrderId, TestWorkflowStep step, DualPlatePayload payload, int userId, int? plate1MediaId, int? plate2MediaId)
-    {
-        // Insertion order matters here (plate 1's row always added first) -
-        // LoadLatestDualPlateObservationsAsync/BuildCompletedStepsAsync
-        // rely on ascending Id order to tell the two rows apart for display,
-        // since both share one StepName and PlateLabel is analyst-entered
-        // free text, not a stable enum.
-        _db.PathogenObservations.Add(new PathogenObservation
-        {
-            TestOrderId = testOrderId, StepName = step.StepName, StepOrder = step.StepOrder,
-            GrowthObserved = payload.Plate1GrowthObserved, ObservedByUserId = userId,
-            MediaId = plate1MediaId, PlateLabel = payload.Plate1Label
-        });
-        _db.PathogenObservations.Add(new PathogenObservation
-        {
-            TestOrderId = testOrderId, StepName = step.StepName, StepOrder = step.StepOrder,
-            GrowthObserved = payload.Plate2GrowthObserved, ObservedByUserId = userId,
-            MediaId = plate2MediaId, PlateLabel = payload.Plate2Label
-        });
-        await Task.CompletedTask;
-
-        if (payload.Plate1GrowthObserved != payload.Plate2GrowthObserved)
-            return ("Inconclusive - Retest Required", false);
-
-        var bothGrowth = payload.Plate1GrowthObserved;
-        return (bothGrowth ? "Detected" : "Absent", true);
+            ? (growthObserved ? "Detected" : "Absent")
+            : (growthObserved ? "Growth" : "No Growth");
     }
 
     // Same Spec -> Action -> Alert precedence (most severe first) as
@@ -860,6 +787,657 @@ public class TestWorkflowEngine : ITestWorkflowEngine
         if (decimal.TryParse(alert, out var alertLimit) && value > alertLimit)
             return ("AlertLimitExceeded", "Alert");
         return ("WithinLimits", null);
+    }
+
+    // Resolves the step template by name and guards workflow order,
+    // reusing the existing order-violation message.
+    //
+    // Every pathogen Submit* method comes through here, so the two
+    // invariants that span the whole chain live here rather than being
+    // re-derived per step: the order must not already be finalized, and
+    // the step being submitted must be the chain's first incomplete one.
+    // Without the latter, each Submit* method only ever validated its own
+    // caller-supplied inputs and a chain could be entered anywhere (and
+    // any step re-submitted on top of itself). Mirrors the guard
+    // SelectMediaAsync has always applied to the legacy path.
+    private async Task<TestWorkflowStep> LoadStepAsync(int testOrderId, string stepName)
+    {
+        var (_, step) = await LoadOrderAndStepAsync(testOrderId, stepName);
+        return step;
+    }
+
+    private async Task<(TestOrder order, TestWorkflowStep step)> LoadOrderAndStepAsync(int testOrderId, string stepName)
+    {
+        var order = await _db.TestOrders.FirstOrDefaultAsync(t => t.Id == testOrderId)
+            ?? throw new InvalidOperationException($"Test order {testOrderId} not found.");
+        var test = await _db.TestDefinitions
+            .Include(t => t.Steps).ThenInclude(s => s.StepMedia)
+            .FirstOrDefaultAsync(t => t.Code == order.TestCode)
+            ?? throw new InvalidOperationException($"No test definition for {order.TestCode}.");
+        var step = test.Steps.FirstOrDefault(s => s.StepName == stepName)
+            ?? throw new InvalidOperationException($"Step '{stepName}' is not part of {order.TestCode}.");
+
+        RequireOrderNotFinalized(order);
+
+        var currentStep = await FindFirstIncompleteStepAsync(testOrderId, test);
+        if (currentStep is null)
+            throw new InvalidOperationException($"All workflow steps for \"{order.TestCode}\" are already complete.");
+        if (currentStep.StepName != stepName)
+            throw new InvalidOperationException(
+                $"Workflow order violation: step \"{currentStep.StepName}\" must be completed before \"{stepName}\".");
+
+        return (order, step);
+    }
+
+    // A TestOrder at Ready or beyond has had its result reported and (for
+    // Reviewed/Approved) signed. Re-submitting a step against it would
+    // silently append a second, contradictory result behind the reported
+    // one - the same class of falsification B2 blocks for confirmatory
+    // re-runs, at order level.
+    private static void RequireOrderNotFinalized(TestOrder order)
+    {
+        if (order.CurrentStep is WorkflowStep.Ready or WorkflowStep.Reviewed or WorkflowStep.Approved)
+            throw new InvalidOperationException(
+                $"Test order {order.Id} is already at {order.CurrentStep} - its workflow can no longer be submitted against.");
+    }
+
+    // A migrated template can carry a pathogen StepType without the
+    // target organism the appearance snapshot needs (the remap in
+    // AddPathogenWorkflowRefactor types legacy steps but cannot invent
+    // master data for them). Fail with a clear instruction rather than
+    // letting step.TargetOrganismId!.Value throw an unhandled
+    // NullReferenceException and surface as a 500.
+    private static int RequireTargetOrganism(TestWorkflowStep step) =>
+        step.TargetOrganismId
+        ?? throw new InvalidOperationException(
+            $"Step \"{step.StepName}\" has no target organism configured - complete this step's template in Test Master before recording results.");
+
+    // Same reasoning as RequireTargetOrganism, for the step's permitted
+    // media list.
+    private async Task<TestWorkflowStepMedia> RequireSingleStepMediumAsync(TestWorkflowStep step)
+    {
+        return step.StepMedia.FirstOrDefault()
+            ?? await _db.TestWorkflowStepMedias.FirstOrDefaultAsync(m => m.TestWorkflowStepId == step.Id)
+            ?? throw new InvalidOperationException(
+                $"Step \"{step.StepName}\" has no assigned medium - complete this step's template in Test Master before recording results.");
+    }
+
+    private async Task<TestWorkflowStepMedia> LoadStepMediumAsync(int stepId, int materialId)
+    {
+        return await _db.TestWorkflowStepMedias
+            .FirstOrDefaultAsync(m => m.TestWorkflowStepId == stepId && m.MaterialId == materialId)
+            ?? throw new WorkflowStepException(WorkflowErrorCodes.MediaNotInPermittedList,
+                "That medium is not on this step's permitted list.");
+    }
+
+    private async Task RequireEligibleIncubatorAsync(int stepMediaId, int equipmentId)
+    {
+        if (!await _incubatorEligibility.IsWithinRangeAsync(stepMediaId, equipmentId))
+            throw new WorkflowStepException(WorkflowErrorCodes.IncubatorTempOutOfRange,
+                "The selected incubator's set point is outside this medium's temperature range.");
+    }
+
+    private static void RequireIncubationComplete(DateTime incubationEndUtc)
+    {
+        var remaining = (long)Math.Ceiling((incubationEndUtc - DateTime.UtcNow).TotalSeconds);
+        if (remaining > 0)
+            throw new WorkflowStepException(WorkflowErrorCodes.IncubationNotComplete,
+                "This step's incubation period has not finished yet.", remaining);
+    }
+
+    // RequireIncubationComplete only asks "has the declared end passed?",
+    // which a one-second window satisfies as readily as a real 18-24h
+    // one - and a window that ends before it starts satisfies it too.
+    // The window is analyst-supplied, so it has to be checked against the
+    // step template the same way RequireMinimumDurationElapsed checks a
+    // server-recorded window against it.
+    //
+    // Deliberately no upper bound: over-incubation happens in real labs
+    // and is handled by explanation/deviation, not by refusing the
+    // record. Under-incubation is the falsification risk.
+    private static void RequireValidIncubationWindow(TestWorkflowStep step, DateTime incubationStartUtc, DateTime incubationEndUtc)
+    {
+        if (incubationEndUtc < incubationStartUtc)
+            throw new WorkflowStepException(WorkflowErrorCodes.IncubationWindowInvalid,
+                $"The incubation window ends before it starts ({incubationStartUtc:yyyy-MM-dd HH:mm} to {incubationEndUtc:yyyy-MM-dd HH:mm} UTC).");
+
+        var declaredHours = (incubationEndUtc - incubationStartUtc).TotalHours;
+        if (declaredHours < step.IncubationMinHours)
+            throw new WorkflowStepException(WorkflowErrorCodes.IncubationWindowTooShort,
+                $"Step \"{step.StepName}\" requires at least {step.IncubationMinHours} hours of incubation - " +
+                $"the declared window is {declaredHours:0.##} hours.");
+    }
+
+    // The lot the analyst picked must be a released lot of the permitted
+    // material and of the class the step template locks the step to.
+    private async Task<Media> LoadReleasedLotAsync(int mediaLotId, int materialId, int mediaTypeId)
+    {
+        var lot = await _db.Media.FirstOrDefaultAsync(m => m.Id == mediaLotId)
+            ?? throw new InvalidOperationException($"Media lot {mediaLotId} not found.");
+        if (!lot.IsReleasedForUse)
+            throw new InvalidOperationException($"Media lot {lot.LotNumber} has not been released for use.");
+        if (lot.MaterialId != materialId)
+            throw new WorkflowStepException(WorkflowErrorCodes.MediaNotInPermittedList,
+                $"Media lot {lot.LotNumber} is not a lot of the permitted medium for this step.");
+        if (lot.MediaTypeId != mediaTypeId)
+            throw new InvalidOperationException($"Media lot {lot.LotNumber} is the wrong media class for this step.");
+        return lot;
+    }
+
+    // Broth steps carry no result logic - completion is the incubation
+    // window elapsing plus the analyst submitting the form. The free-text
+    // observation is recorded but never branches the workflow.
+    public async Task<StepResultDto> SubmitBrothAsync(
+        int testOrderId, string stepName, int mediaLotId, int equipmentId,
+        DateTime incubationStartUtc, DateTime incubationEndUtc, string? observation, int userId)
+    {
+        var step = await LoadStepAsync(testOrderId, stepName);
+        if (step.StepType is not (StepType.BrothEnrichment or StepType.SelectiveBroth))
+            throw new InvalidOperationException($"Step '{stepName}' is not a broth step.");
+
+        var stepMedium = await RequireSingleStepMediumAsync(step);
+
+        var lot = await LoadReleasedLotAsync(mediaLotId, stepMedium.MaterialId, step.MediaTypeId);
+        await RequireEligibleIncubatorAsync(stepMedium.Id, equipmentId);
+        RequireValidIncubationWindow(step, incubationStartUtc, incubationEndUtc);
+        RequireIncubationComplete(incubationEndUtc);
+
+        var incubation = new Incubation
+        {
+            TestOrderId = testOrderId, StepNumber = step.StepOrder, StepName = step.StepName,
+            MediaId = lot.Id, IncubatorEquipmentId = equipmentId,
+            Temperature = $"{step.TemperatureMin}-{step.TemperatureMax}",
+            Duration = $"{step.IncubationMinHours}-{step.IncubationMaxHours}h",
+            IncubationStartUtc = incubationStartUtc, IncubationEndUtc = incubationEndUtc,
+            WindowReceivedAtUtc = DateTime.UtcNow,
+            ExpectedReadingAt = incubationEndUtc,
+            CompletedAt = DateTime.UtcNow, Outcome = observation
+        };
+        _db.Incubations.Add(incubation);
+        await _db.SaveChangesAsync();
+
+        var result = new WorkflowStepResult
+        {
+            IncubationId = incubation.Id, TestOrderId = testOrderId,
+            StepName = step.StepName, StepType = step.StepType,
+            SubmittedByUserId = userId, SubmittedAtUtc = DateTime.UtcNow
+        };
+        _db.WorkflowStepResults.Add(result);
+        await _db.SaveChangesAsync();
+
+        return new StepResultDto(incubation.Id, step.StepType.ToString(), "Complete",
+            userId, result.SubmittedAtUtc, NextStepUnlocked: true, WorkflowFinalResult: null, Flags: new List<string>());
+    }
+
+    // Growth that is absent or does not match the expected appearance
+    // means the organism being sought is not there - the workflow ends
+    // as NotDetected without running confirmatory plating.
+    public async Task<StepResultDto> SubmitSelectivePlatingAsync(
+        int testOrderId, string stepName, int mediaLotId, int equipmentId,
+        DateTime incubationStartUtc, DateTime incubationEndUtc, GrowthObservation observation, int userId)
+    {
+        var step = await LoadStepAsync(testOrderId, stepName);
+        if (step.StepType != StepType.SelectivePlating)
+            throw new InvalidOperationException($"Step '{stepName}' is not a selective plating step.");
+
+        var stepMedium = await RequireSingleStepMediumAsync(step);
+        var targetOrganismId = RequireTargetOrganism(step);
+        var lot = await LoadReleasedLotAsync(mediaLotId, stepMedium.MaterialId, step.MediaTypeId);
+        await RequireEligibleIncubatorAsync(stepMedium.Id, equipmentId);
+
+        // Selective plating is read off plates the previous step
+        // incubated, so it carries no "has the window elapsed" lock (see
+        // TestWorkflowStep.RequiresIncubationLock) - but the window it
+        // records is still analyst-declared and still has to be a
+        // possible one.
+        RequireValidIncubationWindow(step, incubationStartUtc, incubationEndUtc);
+
+        var incubation = new Incubation
+        {
+            TestOrderId = testOrderId, StepNumber = step.StepOrder, StepName = step.StepName,
+            MediaId = lot.Id, IncubatorEquipmentId = equipmentId,
+            Temperature = $"{step.TemperatureMin}-{step.TemperatureMax}",
+            Duration = $"{step.IncubationMinHours}-{step.IncubationMaxHours}h",
+            IncubationStartUtc = incubationStartUtc, IncubationEndUtc = incubationEndUtc,
+            WindowReceivedAtUtc = DateTime.UtcNow,
+            ExpectedReadingAt = incubationEndUtc, CompletedAt = DateTime.UtcNow,
+            Outcome = observation.ToString()
+        };
+        _db.Incubations.Add(incubation);
+        await _db.SaveChangesAsync();
+
+        // Snapshot taken at submission, never afterwards (ALCOA+).
+        var snapshot = await _appearanceSnapshot.GetExpectedAppearanceSnapshotAsync(
+            stepMedium.MaterialId, targetOrganismId);
+
+        var result = new WorkflowStepResult
+        {
+            IncubationId = incubation.Id, TestOrderId = testOrderId,
+            StepName = step.StepName, StepType = step.StepType,
+            SelectivePlatingObservation = observation, ExpectedAppearanceSnapshot = snapshot,
+            SubmittedByUserId = userId, SubmittedAtUtc = DateTime.UtcNow
+        };
+        _db.WorkflowStepResults.Add(result);
+
+        _db.PathogenObservations.Add(new PathogenObservation
+        {
+            TestOrderId = testOrderId, StepName = step.StepName, StepOrder = step.StepOrder,
+            Observation = observation, ObservedByUserId = userId, MediaId = lot.Id
+        });
+        await _db.SaveChangesAsync();
+
+        if (observation == GrowthObservation.GrowthConforming)
+            return new StepResultDto(incubation.Id, step.StepType.ToString(), "Complete",
+                userId, result.SubmittedAtUtc, NextStepUnlocked: true, WorkflowFinalResult: null, Flags: new List<string>());
+
+        await FinalizeWorkflowAsync(testOrderId, "NotDetected", userId);
+        return new StepResultDto(incubation.Id, step.StepType.ToString(), "Complete",
+            userId, result.SubmittedAtUtc, NextStepUnlocked: false, WorkflowFinalResult: "NotDetected", Flags: new List<string>());
+    }
+
+    // The analyst's media panel for this run. Every chosen medium must be
+    // on the step's permitted list, with a released lot and an in-range
+    // incubator, before any plate goes into an incubator.
+    public async Task<StepResultDto> SubmitConfirmatorySetupAsync(
+        int testOrderId, string stepName, IReadOnlyList<ConfirmatorySelectionInput> selections,
+        DateTime incubationStartUtc, DateTime incubationEndUtc, int userId)
+    {
+        // A second setup for a step that already has a result row mints a
+        // fresh Incubation and WorkflowStepResult, and every downstream
+        // reader takes the newest row - so the earlier run is silently
+        // replaced with nothing in the audit trail saying it happened.
+        // Two shapes of the same hole, both blocked here:
+        //   - already read out: an Inconclusive run could be buried under
+        //     a re-run and reported as Detected.
+        //   - set up but not yet read out: nothing else catches this. The
+        //     chain-order guard cannot, because IsStepDoneAsync
+        //     deliberately treats an un-read-out setup as "not done" so
+        //     the analyst still sees the step as current, and the
+        //     ConfirmatoryResult test below is still null at that point.
+        //     The abandoned panel's plates would just sit in an incubator
+        //     unrecorded.
+        // Changing a panel after submission needs a documented,
+        // reason-bearing edit path; that is a separate feature.
+        //
+        // Resolved from one query and one throw so the analyst always
+        // gets exactly one message, with the read-out case winning when
+        // rows of both shapes somehow exist.
+        //
+        // Checked ahead of LoadStepAsync purely so these cases get their
+        // own error codes and messages: the chain-order guard in there
+        // would otherwise reject the read-out case first as a generic
+        // order violation, which tells the analyst nothing about why.
+        var existingSetups = await _db.WorkflowStepResults
+            .Where(r => r.TestOrderId == testOrderId && r.StepName == stepName)
+            .Select(r => r.ConfirmatoryResult)
+            .ToListAsync();
+        if (existingSetups.Count > 0)
+            throw existingSetups.Any(r => r != null)
+                ? new WorkflowStepException(WorkflowErrorCodes.ConfirmatoryAlreadyRecorded,
+                    $"Confirmatory plating for step \"{stepName}\" has already been read out and cannot be set up again.")
+                : new WorkflowStepException(WorkflowErrorCodes.ConfirmatorySetupAlreadySubmitted,
+                    $"Confirmatory media have already been selected for step \"{stepName}\" - awaiting their plate readings. " +
+                    "The submitted panel and its incubation are shown on this test order's current step.");
+
+        var step = await LoadStepAsync(testOrderId, stepName);
+        if (step.StepType != StepType.ConfirmatoryPlating)
+            throw new InvalidOperationException($"Step '{stepName}' is not a confirmatory plating step.");
+
+        if (selections.Count == 0)
+            throw new WorkflowStepException(WorkflowErrorCodes.NoMediaSelected,
+                "At least one confirmatory medium must be selected.");
+
+        RequireValidIncubationWindow(step, incubationStartUtc, incubationEndUtc);
+
+        var permitted = await _db.TestWorkflowStepMedias
+            .Where(m => m.TestWorkflowStepId == step.Id)
+            .ToDictionaryAsync(m => m.Id);
+
+        if (permitted.Count == 0)
+            throw new InvalidOperationException(
+                $"Step \"{step.StepName}\" has no permitted media configured - complete this step's template in Test Master before recording results.");
+
+        var resolved = new List<(TestWorkflowStepMedia Medium, Media Lot, int EquipmentId)>();
+        foreach (var selection in selections)
+        {
+            if (!permitted.TryGetValue(selection.StepMediaId, out var medium))
+                throw new WorkflowStepException(WorkflowErrorCodes.MediaNotInPermittedList,
+                    "That medium is not on this step's permitted list.");
+            if (selection.MediaLotId <= 0 || selection.EquipmentId <= 0)
+                throw new WorkflowStepException(WorkflowErrorCodes.IncompleteConfirmatorySetup,
+                    "Every selected medium needs a lot and an incubator.");
+
+            var lot = await LoadReleasedLotAsync(selection.MediaLotId, medium.MaterialId, step.MediaTypeId);
+            await RequireEligibleIncubatorAsync(medium.Id, selection.EquipmentId);
+            resolved.Add((medium, lot, selection.EquipmentId));
+        }
+
+        var incubation = new Incubation
+        {
+            TestOrderId = testOrderId, StepNumber = step.StepOrder, StepName = step.StepName,
+            MediaId = resolved[0].Lot.Id, IncubatorEquipmentId = resolved[0].EquipmentId,
+            Temperature = $"{step.TemperatureMin}-{step.TemperatureMax}",
+            Duration = $"{step.IncubationMinHours}-{step.IncubationMaxHours}h",
+            IncubationStartUtc = incubationStartUtc, IncubationEndUtc = incubationEndUtc,
+            WindowReceivedAtUtc = DateTime.UtcNow,
+            ExpectedReadingAt = incubationEndUtc
+        };
+        _db.Incubations.Add(incubation);
+        await _db.SaveChangesAsync();
+
+        var result = new WorkflowStepResult
+        {
+            IncubationId = incubation.Id, TestOrderId = testOrderId,
+            StepName = step.StepName, StepType = step.StepType,
+            SubmittedByUserId = userId, SubmittedAtUtc = DateTime.UtcNow
+        };
+        foreach (var (medium, lot, equipmentId) in resolved)
+            result.Selections.Add(new ConfirmatoryMediaSelection
+            {
+                MaterialId = medium.MaterialId, MediaId = lot.Id, EquipmentId = equipmentId, WasAnalystAdded = false
+            });
+        _db.WorkflowStepResults.Add(result);
+        await _db.SaveChangesAsync();
+
+        return new StepResultDto(incubation.Id, step.StepType.ToString(), "Incubating",
+            userId, result.SubmittedAtUtc, NextStepUnlocked: false, WorkflowFinalResult: null, Flags: new List<string>());
+    }
+
+    // Every selected medium must be read, and every reading must be
+    // conforming, before the analyst is offered a decision. Anything
+    // else is Inconclusive and is flagged for investigation - there is
+    // no path from here to Detected.
+    public async Task<ConfirmatoryOutcomeDto> SubmitConfirmatoryObservationsAsync(
+        int testOrderId, string stepName, IReadOnlyList<ConfirmatoryObservationInput> observations, int userId)
+    {
+        var step = await LoadStepAsync(testOrderId, stepName);
+        if (step.StepType != StepType.ConfirmatoryPlating)
+            throw new InvalidOperationException($"Step '{stepName}' is not a confirmatory plating step.");
+
+        // The run still awaiting its plate readings - never simply "the
+        // newest row for this step", which would let an already-read-out
+        // run be silently overwritten.
+        var result = await _db.WorkflowStepResults
+            .Include(r => r.Selections)
+            .Include(r => r.ConfirmatoryObservations)
+            .Where(r => r.TestOrderId == testOrderId && r.StepName == stepName && r.ConfirmatoryResult == null)
+            .OrderByDescending(r => r.Id)
+            .FirstOrDefaultAsync()
+            ?? throw new WorkflowStepException(WorkflowErrorCodes.IncompleteConfirmatorySetup,
+                "This step's media selection has not been submitted yet.");
+
+        var targetOrganismId = RequireTargetOrganism(step);
+
+        var incubation = await _db.Incubations.FirstAsync(i => i.Id == result.IncubationId);
+        RequireIncubationComplete(incubation.IncubationEndUtc
+            ?? throw new WorkflowStepException(WorkflowErrorCodes.IncompleteConfirmatorySetup,
+                "This step has no recorded incubation window."));
+
+        // Enforced here as well as by the unique index on
+        // (WorkflowStepResultId, MaterialId): a duplicate would otherwise
+        // reach PostgreSQL as a DbUpdateException/500 instead of a
+        // business-rule message, and the SetEquals check below cannot see
+        // duplicates at all once both sides are sets.
+        var duplicateMaterialIds = observations
+            .GroupBy(o => o.MaterialId).Where(g => g.Count() > 1).Select(g => g.Key).ToList();
+        if (duplicateMaterialIds.Count > 0)
+            throw new WorkflowStepException(WorkflowErrorCodes.IncompleteConfirmatorySetup,
+                "Exactly one observation is required for each selected medium - one was submitted more than once.");
+
+        var selectedMaterialIds = result.Selections.Select(s => s.MaterialId).ToHashSet();
+        var observedMaterialIds = observations.Select(o => o.MaterialId).ToHashSet();
+        if (!selectedMaterialIds.SetEquals(observedMaterialIds))
+            throw new WorkflowStepException(WorkflowErrorCodes.IncompleteConfirmatorySetup,
+                "Exactly one observation is required for each selected medium.");
+
+        foreach (var observation in observations)
+        {
+            var snapshot = await _appearanceSnapshot.GetExpectedAppearanceSnapshotAsync(
+                observation.MaterialId, targetOrganismId);
+
+            result.ConfirmatoryObservations.Add(new ConfirmatoryPlateObservation
+            {
+                MaterialId = observation.MaterialId, Observation = observation.Observation,
+                ExpectedAppearanceSnapshot = snapshot, RecordedByUserId = userId, RecordedAtUtc = DateTime.UtcNow
+            });
+        }
+
+        var allConforming = observations.All(o => o.Observation == GrowthObservation.GrowthConforming);
+        result.ConfirmatoryResult = allConforming ? ConfirmatoryResult.AllConforming : ConfirmatoryResult.Inconclusive;
+        incubation.CompletedAt = DateTime.UtcNow;
+        incubation.Outcome = result.ConfirmatoryResult.ToString();
+
+        if (!allConforming)
+            _db.WorkflowHistories.Add(new WorkflowHistory
+            {
+                TestOrderId = testOrderId, FromStep = WorkflowStep.Incubating, ToStep = WorkflowStep.Incubating,
+                Note = "Confirmatory plating inconclusive - flagged for investigation.", PerformedByUserId = userId
+            });
+
+        await _db.SaveChangesAsync();
+
+        return new ConfirmatoryOutcomeDto(
+            result.IncubationId,
+            result.ConfirmatoryResult.ToString()!,
+            AnalystDecisionRequired: allConforming,
+            Flags: allConforming ? new List<string>() : new List<string> { "InconclusiveResult" });
+    }
+
+    // Offered only once confirmatory plating came back AllConforming.
+    // Submitting as Detected is allowed but is permanently flagged so a
+    // reviewer sees that no biochemical confirmation was performed.
+    public async Task<StepResultDto> RecordAnalystDecisionAsync(int testOrderId, AnalystDecision decision, int userId)
+    {
+        var order = await _db.TestOrders.FirstOrDefaultAsync(t => t.Id == testOrderId)
+            ?? throw new InvalidOperationException($"Test order {testOrderId} not found.");
+        RequireOrderNotFinalized(order);
+
+        var confirmatory = await _db.WorkflowStepResults
+            .Where(r => r.TestOrderId == testOrderId && r.StepType == StepType.ConfirmatoryPlating)
+            .OrderByDescending(r => r.Id)
+            .FirstOrDefaultAsync()
+            ?? throw new InvalidOperationException("Confirmatory plating has not been completed for this test order.");
+
+        if (confirmatory.ConfirmatoryResult != ConfirmatoryResult.AllConforming)
+            throw new InvalidOperationException("An analyst decision is only available after an all-conforming confirmatory result.");
+
+        // Single-shot. Re-running it used to append a second Result row
+        // and a Ready -> Ready history entry, leaving two contradictory
+        // "final" results on one test order.
+        if (confirmatory.AnalystDecision is not null)
+            throw new WorkflowStepException(WorkflowErrorCodes.AnalystDecisionAlreadyRecorded,
+                $"An analyst decision ({confirmatory.AnalystDecision}) was already recorded for this confirmatory result.");
+
+        confirmatory.AnalystDecision = decision;
+        confirmatory.AnalystDecisionAtUtc = DateTime.UtcNow;
+        confirmatory.AnalystDecisionByUserId = userId;
+
+        if (decision == AnalystDecision.ProceedToBiochemical)
+        {
+            // The decision point needs a contemporaneous record even when
+            // it changes no state - previously this branch persisted
+            // nothing at all, so "the analyst chose to confirm
+            // biochemically" left no trace anywhere. Same in-place
+            // history entry the inconclusive branch above uses; the
+            // order's step is genuinely unchanged, so this is not a
+            // transition and must not go through the state machine.
+            _db.WorkflowHistories.Add(new WorkflowHistory
+            {
+                TestOrderId = testOrderId, FromStep = order.CurrentStep, ToStep = order.CurrentStep,
+                Note = "Analyst decision: proceed to biochemical confirmation.", PerformedByUserId = userId
+            });
+            await _db.SaveChangesAsync();
+
+            return new StepResultDto(confirmatory.IncubationId, StepType.ConfirmatoryPlating.ToString(), "Complete",
+                userId, confirmatory.SubmittedAtUtc, NextStepUnlocked: true, WorkflowFinalResult: null, Flags: new List<string>());
+        }
+
+        confirmatory.SkippedBiochemical = true;
+        _db.WorkflowHistories.Add(new WorkflowHistory
+        {
+            TestOrderId = testOrderId, FromStep = order.CurrentStep, ToStep = order.CurrentStep,
+            Note = "Analyst decision: submitted as Detected without biochemical confirmation.", PerformedByUserId = userId
+        });
+        await _db.SaveChangesAsync();
+
+        await FinalizeWorkflowAsync(testOrderId, "Detected", userId);
+
+        return new StepResultDto(confirmatory.IncubationId, StepType.ConfirmatoryPlating.ToString(), "Complete",
+            userId, confirmatory.SubmittedAtUtc, NextStepUnlocked: false, WorkflowFinalResult: "Detected",
+            Flags: new List<string> { "BiochemicalNotPerformed" });
+    }
+
+    // Free-text confirmation with an optional attachment. There is no
+    // incubation lock and no media on this step.
+    public async Task<StepResultDto> SubmitBiochemicalAsync(
+        int testOrderId, string stepName, string biochemicalResultText, int? attachmentId, int userId)
+    {
+        var step = await LoadStepAsync(testOrderId, stepName);
+        if (step.StepType != StepType.BiochemicalTest)
+            throw new InvalidOperationException($"Step '{stepName}' is not a biochemical test step.");
+
+        if (string.IsNullOrWhiteSpace(biochemicalResultText))
+            throw new WorkflowStepException(WorkflowErrorCodes.BiochemicalResultRequired,
+                "A biochemical result is required.");
+
+        var confirmatory = await _db.WorkflowStepResults
+            .Where(r => r.TestOrderId == testOrderId && r.StepType == StepType.ConfirmatoryPlating)
+            .OrderByDescending(r => r.Id)
+            .FirstOrDefaultAsync()
+            ?? throw new InvalidOperationException("Confirmatory plating has not been completed for this test order.");
+
+        if (confirmatory.ConfirmatoryResult != ConfirmatoryResult.AllConforming)
+            throw new InvalidOperationException("A biochemical test is only available after an all-conforming confirmatory result.");
+
+        // Reuses the confirmatory step's incubation as the step instance
+        // - a biochemical test has no incubation window of its own.
+        var result = new WorkflowStepResult
+        {
+            IncubationId = confirmatory.IncubationId, TestOrderId = testOrderId,
+            StepName = step.StepName, StepType = step.StepType,
+            BiochemicalResultText = biochemicalResultText, BiochemicalAttachmentId = attachmentId,
+            SkippedBiochemical = false,
+            SubmittedByUserId = userId, SubmittedAtUtc = DateTime.UtcNow
+        };
+        _db.WorkflowStepResults.Add(result);
+
+        // Clears a reviewer's outstanding send-back, if there was one.
+        confirmatory.RequiresBiochemical = false;
+        confirmatory.SkippedBiochemical = false;
+        await _db.SaveChangesAsync();
+
+        await FinalizeWorkflowAsync(testOrderId, "Detected", userId);
+
+        return new StepResultDto(result.IncubationId, step.StepType.ToString(), "Complete",
+            userId, result.SubmittedAtUtc, NextStepUnlocked: false, WorkflowFinalResult: "Detected", Flags: new List<string>());
+    }
+
+    // Reviewer action on a result flagged BiochemicalNotPerformed.
+    // Returning re-opens the biochemical step for the analyst; the
+    // signature/timeline entry goes through the existing review gate.
+    public async Task<StepResultDto> RecordBiochemicalReviewDecisionAsync(
+        int workflowStepResultId, bool approve, string comment, int reviewerUserId)
+    {
+        var result = await _db.WorkflowStepResults.FirstOrDefaultAsync(r => r.Id == workflowStepResultId)
+            ?? throw new InvalidOperationException($"Workflow step result {workflowStepResultId} not found.");
+
+        if (await _sodGuard.DidUserPerformTestAsync(result.TestOrderId, reviewerUserId))
+            throw new WorkflowStepException(WorkflowErrorCodes.SegregationOfDutiesViolation,
+                "A reviewer cannot decide on a result they performed.");
+
+        // This endpoint decides exactly one thing: whether a confirmatory
+        // result submitted as Detected WITHOUT biochemical confirmation
+        // stands. Any other row is not a decidable subject, and returning
+        // one strands the order - it moves to Incubating while
+        // SubmitBiochemicalAsync still refuses it, with no path onwards.
+        if (result.StepType != StepType.ConfirmatoryPlating)
+            throw new InvalidOperationException(
+                $"Workflow step result {workflowStepResultId} is a {result.StepType} result - only a confirmatory plating result carries a biochemical decision.");
+        if (!result.SkippedBiochemical)
+            throw new InvalidOperationException(
+                $"Workflow step result {workflowStepResultId} was not submitted as Detected without biochemical confirmation - there is no biochemical decision to make on it.");
+
+        if (!approve && string.IsNullOrWhiteSpace(comment))
+            throw new InvalidOperationException("A reason is required when returning a result for biochemical confirmation.");
+
+        var order = await _db.TestOrders.FirstAsync(t => t.Id == result.TestOrderId);
+
+        if (approve)
+        {
+            result.RequiresBiochemical = false;
+            await _reviewGate.LogEventAsync(ReviewEntityTypes.Sample, order.SampleId, reviewerUserId,
+                ReviewWorkflowEventType.ReviewCompleted, comment, ApprovalDecision.Approve);
+            await _db.SaveChangesAsync();
+
+            return new StepResultDto(result.IncubationId, result.StepType.ToString(), "Approved",
+                result.SubmittedByUserId, result.SubmittedAtUtc, NextStepUnlocked: false,
+                WorkflowFinalResult: "Detected", Flags: new List<string>());
+        }
+
+        result.RequiresBiochemical = true;
+        result.ReturnReason = comment;
+        result.ReturnedAtUtc = DateTime.UtcNow;
+        result.ReturnedByUserId = reviewerUserId;
+
+        // Routes through the shared state machine (rather than setting
+        // CurrentStep/Status inline) so this transition lands in
+        // WorkflowHistory with the order's real prior step, not a
+        // hardcoded guess - the order is at Ready at this point (it was
+        // finalized by SubmitAsDetected), never Reviewed.
+        await WorkflowStateMachine.TransitionAsync(_db, order, WorkflowStep.Incubating, reviewerUserId,
+            $"Returned for biochemical confirmation: {comment}");
+
+        // The order has gone back into testing, so the "Detected" the
+        // reporting read-model is carrying for it is no longer a
+        // reportable result. Re-projecting here (rather than leaving the
+        // stale row standing until the biochemical submission happens to
+        // refresh it) keeps Reports consistent with the workflow state.
+        await _resultProjection.UpsertFromPathogenResultAsync(result.TestOrderId);
+
+        await _reviewGate.LogEventAsync(ReviewEntityTypes.Sample, order.SampleId, reviewerUserId,
+            ReviewWorkflowEventType.ReviewCompleted, comment, ApprovalDecision.Investigation);
+        await _db.SaveChangesAsync();
+
+        if (order.AssignedAnalystId is int analystId)
+            await _notifications.NotifyAsync(analystId,
+                $"Test order #{result.TestOrderId} was returned for biochemical confirmation.");
+
+        return new StepResultDto(result.IncubationId, result.StepType.ToString(), "ReturnedForBiochemical",
+            result.SubmittedByUserId, result.SubmittedAtUtc, NextStepUnlocked: true,
+            WorkflowFinalResult: null, Flags: new List<string> { "ReturnedForBiochemical" });
+    }
+
+    // One exit point for a finished pathogen workflow: write the Result
+    // row, project it, move the order to Ready, and let the existing
+    // sample review service decide whether the sample can now be
+    // submitted for review.
+    private async Task FinalizeWorkflowAsync(int testOrderId, string finalResult, int userId)
+    {
+        var order = await _db.TestOrders.FirstOrDefaultAsync(t => t.Id == testOrderId)
+            ?? throw new InvalidOperationException($"Test order {testOrderId} not found.");
+
+        _db.Results.Add(new Result
+        {
+            TestOrderId = testOrderId, RawValue = finalResult, InterpretedValue = finalResult,
+            Type = ResultType.Interpretive, EnteredByUserId = userId
+        });
+
+        await _db.SaveChangesAsync();
+
+        // TransitionAsync owns the WorkflowStep -> ApprovalStatus mapping
+        // and the WorkflowHistory row. Setting CurrentStep/Status inline
+        // here would duplicate that mapping and let the two copies drift.
+        await WorkflowStateMachine.TransitionAsync(
+            _db, order, WorkflowStep.Ready, userId, $"Workflow complete: {finalResult}");
+
+        await _resultProjection.UpsertFromPathogenResultAsync(testOrderId);
+        await _sampleReviewService.AutoSubmitForReviewIfReadyAsync(order.SampleId, userId);
+
+        // Both calls above only stage their changes - the ResultRecord
+        // projection and the sample's submit-for-review transition. The
+        // sibling finalization paths all flush them here; without this
+        // save both are silently discarded.
+        await _db.SaveChangesAsync();
     }
 
     public async Task<WorkflowStep> AdvanceAsync(int testOrderId, int performedByUserId, string? note = null)

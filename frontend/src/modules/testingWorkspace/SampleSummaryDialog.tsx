@@ -15,6 +15,7 @@ import { StatusBadge } from "../../components/StatusBadge";
 import { useAuth } from "../../contexts/AuthContext";
 import { SampleSummaryService, SampleApprovalDecision } from "./services/SampleSummaryService";
 import { SampleSummary, TestOrderSummaryDetail, SampleLocationDetail } from "./types/sampleSummaryTypes";
+import { pathogenObservationLabel } from "./utils/pathogenObservationLabel";
 
 interface Props {
   open: boolean;
@@ -294,7 +295,7 @@ function TestResultsSection({ testOrders }: { testOrders: TestOrderSummaryDetail
               {order.pathogenObservations.map((p, idx) => (
                 <Box key={idx} sx={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 1 }}>
                   <Field label="Step" value={p.stepName} />
-                  <Field label="Growth Observed" value={p.growthObserved ? "Yes" : "No"} />
+                  <Field label="Observation" value={pathogenObservationLabel(p.observation)} />
                   <Field label="Observed By" value={`${p.observedByName} — ${formatDate(p.observedAt)}`} />
                 </Box>
               ))}

@@ -19,23 +19,19 @@ interface Props {
   testOrderId: number;
   testCode: string;
   displayName: string;
-  isDualPlate: boolean;
   minReadyAt: Date | null;
   onClose: () => void;
   onSubmitted: () => void;
 }
 
 // EM/After Cleaning batch pathogen result entry - the final step's per-
-// location Detected/Absent call (or, for a dual-plate final step, two
-// plates that must agree per location). Sibling to LocationResultGrid-
-// Dialog, which handles the CFU/Count case instead.
-export function PathogenLocationResultGridDialog({ open, testOrderId, testCode, displayName, isDualPlate, minReadyAt, onClose, onSubmitted }: Props) {
+// location Detected/Absent call. Sibling to LocationResultGridDialog,
+// which handles the CFU/Count case instead.
+export function PathogenLocationResultGridDialog({ open, testOrderId, testCode, displayName, minReadyAt, onClose, onSubmitted }: Props) {
   const isTimeReady = !minReadyAt || new Date() >= minReadyAt;
 
   const [rows, setRows] = useState<LocationRow[] | null>(null);
   const [growth, setGrowth] = useState<Record<number, "yes" | "no" | "">>({});
-  const [plate1, setPlate1] = useState<Record<number, "yes" | "no" | "">>({});
-  const [plate2, setPlate2] = useState<Record<number, "yes" | "no" | "">>({});
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -44,23 +40,12 @@ export function PathogenLocationResultGridDialog({ open, testOrderId, testCode, 
     setRows(null);
     setError(null);
     setGrowth({});
-    setPlate1({});
-    setPlate2({});
     TestWorkflowService.getLocations(testOrderId).then(setRows);
   }, [open, testOrderId]);
 
-  const allEntered = rows !== null && rows.length > 0 && rows.every((r) =>
-    isDualPlate ? plate1[r.id] && plate2[r.id] : growth[r.id]
-  );
-
-  const inconclusiveCount = rows === null ? 0 : rows.filter((r) => isDualPlate && plate1[r.id] && plate2[r.id] && plate1[r.id] !== plate2[r.id]).length;
+  const allEntered = rows !== null && rows.length > 0 && rows.every((r) => growth[r.id]);
 
   const liveStatus = (r: LocationRow): string | null => {
-    if (isDualPlate) {
-      if (!plate1[r.id] || !plate2[r.id]) return null;
-      if (plate1[r.id] !== plate2[r.id]) return "Inconclusive";
-      return plate1[r.id] === "yes" ? "Detected" : "Absent";
-    }
     if (!growth[r.id]) return null;
     return growth[r.id] === "yes" ? "Detected" : "Absent";
   };
@@ -72,11 +57,7 @@ export function PathogenLocationResultGridDialog({ open, testOrderId, testCode, 
     setError(null);
     setSubmitting(true);
     try {
-      const locations = rows.map((r) =>
-        isDualPlate
-          ? { sampleLocationId: r.id, plate1GrowthObserved: plate1[r.id] === "yes", plate2GrowthObserved: plate2[r.id] === "yes" }
-          : { sampleLocationId: r.id, growthObserved: growth[r.id] === "yes" }
-      );
+      const locations = rows.map((r) => ({ sampleLocationId: r.id, growthObserved: growth[r.id] === "yes" }));
       await TestWorkflowService.recordBatchPathogenResults(testOrderId, locations);
       onSubmitted();
     } catch (e: any) {
@@ -93,22 +74,12 @@ export function PathogenLocationResultGridDialog({ open, testOrderId, testCode, 
       {rows && (
         <Stack spacing={2}>
           {error && <Alert severity="error">{error}</Alert>}
-          {inconclusiveCount > 0 && (
-            <Alert severity="warning">{inconclusiveCount} location(s) inconclusive - the two plates disagree. All locations must be resubmitted once resolved.</Alert>
-          )}
           <Box sx={{ overflowX: "auto" }}>
             <Table size="small">
               <TableHead>
                 <TableRow>
                   <TableCell>Location</TableCell>
-                  {isDualPlate ? (
-                    <>
-                      <TableCell>Plate 1</TableCell>
-                      <TableCell>Plate 2</TableCell>
-                    </>
-                  ) : (
-                    <TableCell>Growth Observed?</TableCell>
-                  )}
+                  <TableCell>Growth Observed?</TableCell>
                   <TableCell>Status</TableCell>
                 </TableRow>
               </TableHead>
@@ -116,29 +87,12 @@ export function PathogenLocationResultGridDialog({ open, testOrderId, testCode, 
                 {rows.map((r) => (
                   <TableRow key={r.id}>
                     <TableCell>{r.locationName}{r.gradeClassification ? ` (${r.gradeClassification})` : ""}</TableCell>
-                    {isDualPlate ? (
-                      <>
-                        <TableCell>
-                          <RadioGroup row value={plate1[r.id] ?? ""} onChange={(e) => setPlate1((p) => ({ ...p, [r.id]: e.target.value as "yes" | "no" }))}>
-                            <FormControlLabel value="yes" control={<Radio size="small" />} label="Growth" />
-                            <FormControlLabel value="no" control={<Radio size="small" />} label="None" />
-                          </RadioGroup>
-                        </TableCell>
-                        <TableCell>
-                          <RadioGroup row value={plate2[r.id] ?? ""} onChange={(e) => setPlate2((p) => ({ ...p, [r.id]: e.target.value as "yes" | "no" }))}>
-                            <FormControlLabel value="yes" control={<Radio size="small" />} label="Growth" />
-                            <FormControlLabel value="no" control={<Radio size="small" />} label="None" />
-                          </RadioGroup>
-                        </TableCell>
-                      </>
-                    ) : (
-                      <TableCell>
-                        <RadioGroup row value={growth[r.id] ?? ""} onChange={(e) => setGrowth((g) => ({ ...g, [r.id]: e.target.value as "yes" | "no" }))}>
-                          <FormControlLabel value="yes" control={<Radio size="small" />} label="Yes" />
-                          <FormControlLabel value="no" control={<Radio size="small" />} label="No" />
-                        </RadioGroup>
-                      </TableCell>
-                    )}
+                    <TableCell>
+                      <RadioGroup row value={growth[r.id] ?? ""} onChange={(e) => setGrowth((g) => ({ ...g, [r.id]: e.target.value as "yes" | "no" }))}>
+                        <FormControlLabel value="yes" control={<Radio size="small" />} label="Yes" />
+                        <FormControlLabel value="no" control={<Radio size="small" />} label="No" />
+                      </RadioGroup>
+                    </TableCell>
                     <TableCell>{liveStatus(r) ? <StatusBadge status={liveStatus(r)!} /> : "—"}</TableCell>
                   </TableRow>
                 ))}

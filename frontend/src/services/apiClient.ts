@@ -3,7 +3,16 @@ import axios, { AxiosError, InternalAxiosRequestConfig } from "axios";
 // Single axios instance every module service goes through. No business
 // logic here - it only attaches the auth token and handles 401s
 // (Frozen Principle #3 - Frontend never implements laboratory rules).
-const baseURL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:5000/api";
+function getApiBaseUrl(): string {
+  const envUrl = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL;
+  if (!envUrl) {
+    return "http://localhost:5000/api";
+  }
+  const trimmed = String(envUrl).trim().replace(/\/+$/, "");
+  return trimmed.endsWith("/api") ? trimmed : `${trimmed}/api`;
+}
+
+const baseURL = getApiBaseUrl();
 
 export const apiClient = axios.create({ baseURL });
 

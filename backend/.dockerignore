@@ -1,0 +1,14 @@
+**/.git
+**/.vs
+**/.vscode
+**/bin
+**/obj
+**/node_modules
+**/storage
+appsettings.Development.json
+appsettings.Production.json
+appsettings.*.local.json
+*.bak
+*.backup
+.env
+.env.*

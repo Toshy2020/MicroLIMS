@@ -39,8 +39,9 @@ public record CreateTestDefinitionMediaRequest(int TestDefinitionId, int MediaTy
 public record UpdateTestDefinitionMediaRequest(int MediaTypeId, string? StepName);
 public record UpdateWorkflowTypeRequest(WorkflowType WorkflowType);
 public record StepMediaRequest(int MaterialId, decimal TempMin, decimal TempMax, bool IsRequired, int DisplayOrder);
-public record CreateTestWorkflowStepRequest(string StepName, int MediaTypeId, int IncubationMinHours, int IncubationMaxHours, decimal TemperatureMin, decimal TemperatureMax, bool IsFinalStep, StepType StepType, int? TargetOrganismId, List<StepMediaRequest> StepMedia);
-public record UpdateTestWorkflowStepRequest(string StepName, int MediaTypeId, int IncubationMinHours, int IncubationMaxHours, decimal TemperatureMin, decimal TemperatureMax, bool IsFinalStep, StepType StepType, int? TargetOrganismId, List<StepMediaRequest> StepMedia);
+public record IncubationStageRequest(int StageNumber, decimal TempMin, decimal TempMax, int IncubationMinHours, int IncubationMaxHours);
+public record CreateTestWorkflowStepRequest(string StepName, int MediaTypeId, int IncubationMinHours, int IncubationMaxHours, decimal TemperatureMin, decimal TemperatureMax, bool IsFinalStep, StepType StepType, int? TargetOrganismId, List<StepMediaRequest> StepMedia, bool RequiresIncubationTransfer, List<IncubationStageRequest>? IncubationStages);
+public record UpdateTestWorkflowStepRequest(string StepName, int MediaTypeId, int IncubationMinHours, int IncubationMaxHours, decimal TemperatureMin, decimal TemperatureMax, bool IsFinalStep, StepType StepType, int? TargetOrganismId, List<StepMediaRequest> StepMedia, bool RequiresIncubationTransfer, List<IncubationStageRequest>? IncubationStages);
 public record MoveTestWorkflowStepRequest(string Direction);
 
 // Backs the Items Master's category-dependent dynamic forms: Product ->
@@ -814,6 +815,7 @@ public class MasterDataController : ControllerBase
             .Include(s => s.MediaType)
             .Include(s => s.TargetOrganism)
             .Include(s => s.StepMedia).ThenInclude(m => m.Material)
+            .Include(s => s.IncubationStages)
             .Where(s => s.TestDefinitionId == id)
             .OrderBy(s => s.StepOrder)
             .Select(s => new
@@ -829,6 +831,11 @@ public class MasterDataController : ControllerBase
                 {
                     stepMediaId = m.Id, m.MaterialId, materialName = m.Material!.MaterialName,
                     m.TempMin, m.TempMax, m.IsRequired, m.DisplayOrder
+                }),
+                s.RequiresIncubationTransfer,
+                incubationStages = s.IncubationStages.OrderBy(x => x.StageNumber).Select(x => new
+                {
+                    x.StageNumber, x.TempMin, x.TempMax, x.IncubationMinHours, x.IncubationMaxHours
                 })
             })
             .ToListAsync()));
@@ -881,12 +888,18 @@ public class MasterDataController : ControllerBase
             TestDefinitionId = id, StepOrder = nextOrder, StepName = request.StepName, MediaTypeId = request.MediaTypeId,
             IncubationMinHours = request.IncubationMinHours, IncubationMaxHours = request.IncubationMaxHours,
             TemperatureMin = request.TemperatureMin, TemperatureMax = request.TemperatureMax,
-            IsFinalStep = request.IsFinalStep, StepType = request.StepType, TargetOrganismId = request.TargetOrganismId
+            IsFinalStep = request.IsFinalStep, StepType = request.StepType, TargetOrganismId = request.TargetOrganismId,
+            RequiresIncubationTransfer = request.RequiresIncubationTransfer
         };
         entity.StepMedia.AddRange(request.StepMedia.Select(m => new TestWorkflowStepMedia
         {
             MaterialId = m.MaterialId, TempMin = m.TempMin, TempMax = m.TempMax,
             IsRequired = m.IsRequired, DisplayOrder = m.DisplayOrder
+        }));
+        entity.IncubationStages.AddRange((request.IncubationStages ?? new()).Select(s => new TestWorkflowStepIncubationStage
+        {
+            StageNumber = s.StageNumber, TempMin = s.TempMin, TempMax = s.TempMax,
+            IncubationMinHours = s.IncubationMinHours, IncubationMaxHours = s.IncubationMaxHours
         }));
 
         await ValidateStepRulesAsync(id, excludeStepId: null, entity);
@@ -905,7 +918,7 @@ public class MasterDataController : ControllerBase
     [HttpPut("test-definitions/steps/{stepId}")]
     public async Task<IActionResult> UpdateTestWorkflowStep(int stepId, UpdateTestWorkflowStepRequest request)
     {
-        var step = await _db.TestWorkflowSteps.Include(s => s.StepMedia)
+        var step = await _db.TestWorkflowSteps.Include(s => s.StepMedia).Include(s => s.IncubationStages)
             .FirstOrDefaultAsync(s => s.Id == stepId)
             ?? throw new InvalidOperationException($"Workflow step {stepId} not found.");
 
@@ -918,6 +931,7 @@ public class MasterDataController : ControllerBase
         step.IsFinalStep = request.IsFinalStep;
         step.StepType = request.StepType;
         step.TargetOrganismId = request.TargetOrganismId;
+        step.RequiresIncubationTransfer = request.RequiresIncubationTransfer;
 
         // StepMedia is replaced wholesale on update - the analyst edits the
         // panel as a set, and the unique index makes incremental merging
@@ -928,6 +942,14 @@ public class MasterDataController : ControllerBase
         {
             TestWorkflowStepId = step.Id, MaterialId = m.MaterialId, TempMin = m.TempMin, TempMax = m.TempMax,
             IsRequired = m.IsRequired, DisplayOrder = m.DisplayOrder
+        }));
+
+        _db.TestWorkflowStepIncubationStages.RemoveRange(step.IncubationStages);
+        step.IncubationStages.Clear();
+        step.IncubationStages.AddRange((request.IncubationStages ?? new()).Select(s => new TestWorkflowStepIncubationStage
+        {
+            TestWorkflowStepId = step.Id, StageNumber = s.StageNumber, TempMin = s.TempMin, TempMax = s.TempMax,
+            IncubationMinHours = s.IncubationMinHours, IncubationMaxHours = s.IncubationMaxHours
         }));
 
         await ValidateStepRulesAsync(step.TestDefinitionId, excludeStepId: stepId, step);

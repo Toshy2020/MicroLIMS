@@ -87,6 +87,7 @@ public class SampleLocationDetailDto
 public class IncubationDetailDto
 {
     public string StepName { get; set; } = string.Empty;
+    public int StageNumber { get; set; } = 1;
     public string? MediaLotNumber { get; set; }
     public string? MediaMaterialName { get; set; }
     public string? IncubatorName { get; set; }
@@ -96,6 +97,14 @@ public class IncubationDetailDto
     public DateTime? ExpectedReadingAt { get; set; }
     public DateTime? CompletedAt { get; set; }
     public string? Outcome { get; set; }
+    public string? StartedByName { get; set; }
+
+    // Set only on the StageNumber == 2 row of a two-stage transfer step:
+    // true if the same analyst started both stages, false if different
+    // analysts did, null everywhere else (including every
+    // RequiresIncubationTransfer = false step's single row) - explicit
+    // rather than making the frontend compare two user names itself.
+    public bool? SameAnalystBothStages { get; set; }
 }
 
 public class ResultDetailDto

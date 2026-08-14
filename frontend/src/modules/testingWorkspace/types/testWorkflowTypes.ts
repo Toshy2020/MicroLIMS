@@ -31,6 +31,14 @@ export interface TestWorkflowStepDto {
   temperatureMin: number;
   temperatureMax: number;
   isFinalStep: boolean;
+  requiresIncubationTransfer?: boolean;
+  incubationStages?: {
+    stageNumber: number;
+    tempMin: number;
+    tempMax: number;
+    incubationMinHours: number;
+    incubationMaxHours: number;
+  }[];
 }
 
 export interface IncubationLock {

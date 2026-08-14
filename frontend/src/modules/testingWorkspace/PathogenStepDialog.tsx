@@ -6,6 +6,7 @@ import { CurrentStepResponse } from "./types/testWorkflowTypes";
 import { parseWorkflowError, workflowErrorDisplayMessage } from "./utils/workflowErrors";
 import { useIncubationCountdown } from "./hooks/useIncubationCountdown";
 import { BrothStepPanel } from "./pathogenSteps/BrothStepPanel";
+import { BrothWaitingPanel } from "./pathogenSteps/BrothWaitingPanel";
 import { SelectivePlatingPanel } from "./pathogenSteps/SelectivePlatingPanel";
 import { UnsupportedStepPanel } from "./pathogenSteps/UnsupportedStepPanel";
 import { InconclusiveTerminalPanel } from "./pathogenSteps/InconclusiveTerminalPanel";
@@ -115,14 +116,19 @@ export function PathogenStepDialog({ testOrderId }: Props) {
         Step {step.stepOrder}: {step.stepName}
         {step.isFinalStep && <Typography component="span" variant="caption" color="text.secondary"> — determines the final result</Typography>}
       </Typography>
-      {current.incubationLock?.isLocked && (
-        <Alert severity="warning" sx={{ mb: 1.5 }}>
-          Incubation in progress — {countdown.formatted} remaining. Submission unlocks automatically.
-        </Alert>
-      )}
 
       {step.stepType === "BrothEnrichment" || step.stepType === "SelectiveBroth" ? (
-        <BrothStepPanel testOrderId={testOrderId} step={step} onSubmitted={handleSubmitted} />
+        current.incubationLock != null ? (
+          <BrothWaitingPanel 
+            testOrderId={testOrderId} 
+            step={step} 
+            incubationLock={current.incubationLock}
+            incubationDetails={current.incubation}
+            onSubmitted={handleSubmitted} 
+          />
+        ) : (
+          <BrothStepPanel testOrderId={testOrderId} step={step} onSubmitted={handleSubmitted} />
+        )
       ) : step.stepType === "SelectivePlating" ? (
         <SelectivePlatingPanel testOrderId={testOrderId} step={step} onSubmitted={handleSubmitted} />
       ) : step.stepType === "ConfirmatoryPlating" ? (

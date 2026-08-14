@@ -16,14 +16,14 @@ namespace MicroLIMS.API.Controllers;
 // Plate1Label, Plate2Label, GrowthObserved, Plate1/2GrowthObserved) are
 // gone along with the dual-plate model itself; see TestWorkflowEngine.
 public record SelectMediaRequest(string StepName, int MediaLotId, int IncubatorId);
+public record StartStage2IncubationRequest(string StepName, int IncubatorId);
 public record RecordTestResultRequest(string StepName, List<decimal>? PlateReadings, decimal? DilutionFactor);
 public record BatchResultLocationRequest(int SampleLocationId, decimal CFUResult);
 public record BatchResultsRequest(decimal DilutionFactor, List<BatchResultLocationRequest> Locations);
 public record BatchPathogenLocationRequest(int SampleLocationId, bool? GrowthObserved);
 public record BatchPathogenResultsRequest(List<BatchPathogenLocationRequest> Locations);
 
-public record SubmitBrothRequest(string StepName, int MediaLotId, int EquipmentId,
-    DateTime IncubationStartUtc, DateTime IncubationEndUtc, string? Observation);
+public record SubmitBrothRequest(string StepName, string? Observation);
 
 public record SubmitSelectivePlatingRequest(string StepName, int MediaLotId, int EquipmentId,
     DateTime IncubationStartUtc, DateTime IncubationEndUtc, GrowthObservation Observation);
@@ -125,7 +125,8 @@ public class TestWorkflowController : ControllerBase
         {
             isLocked = !openIncubation.IsIncubationComplete,
             incubationEndUtc = openIncubation.IncubationEndUtc,
-            remainingSeconds = Math.Max(0, (long)Math.Ceiling((openIncubation.IncubationEndUtc.Value - DateTime.UtcNow).TotalSeconds))
+            remainingSeconds = Math.Max(0, (long)Math.Ceiling((openIncubation.IncubationEndUtc.Value - DateTime.UtcNow).TotalSeconds)),
+            stageNumber = openIncubation.StageNumber
         };
 
         var previousSteps = await _db.Incubations
@@ -158,7 +159,8 @@ public class TestWorkflowController : ControllerBase
                 mediaType = current.Step.MediaType is null ? null : new { current.Step.MediaType.Id, current.Step.MediaType.Class },
                 current.Step.IncubationMinHours, current.Step.IncubationMaxHours,
                 current.Step.TemperatureMin, current.Step.TemperatureMax,
-                current.Step.IsFinalStep
+                current.Step.IsFinalStep,
+                current.Step.RequiresIncubationTransfer
             },
             stepNumber = current.Step?.StepOrder,
             totalSteps = current.TotalSteps,
@@ -254,6 +256,20 @@ public class TestWorkflowController : ControllerBase
         };
     });
 
+    // The transfer IS this call - starting stage 2's incubation closes
+    // stage 1 and opens a new Incubation row in one step. See
+    // TestWorkflowEngine.StartStage2IncubationAsync.
+    [HttpPost("{testOrderId}/start-stage-2-incubation")]
+    public Task<IActionResult> StartStage2Incubation(int testOrderId, StartStage2IncubationRequest request) => RunAsync(async () =>
+    {
+        var incubation = await _engine.StartStage2IncubationAsync(testOrderId, request.StepName, request.IncubatorId, CurrentUserId);
+        return new
+        {
+            incubation.Id, incubation.StepName, incubation.StageNumber, incubation.ParentIncubationId,
+            incubation.Temperature, incubation.Duration, incubation.StartedAt, incubation.ExpectedReadingAt
+        };
+    });
+
     [HttpPost("{testOrderId}/record-result")]
     public Task<IActionResult> RecordResult(int testOrderId, RecordTestResultRequest request) => RunAsync(() =>
     {
@@ -320,8 +336,7 @@ public class TestWorkflowController : ControllerBase
 
     [HttpPost("{testOrderId}/submit-broth")]
     public Task<IActionResult> SubmitBroth(int testOrderId, SubmitBrothRequest request) =>
-        RunAsync(() => _engine.SubmitBrothAsync(testOrderId, request.StepName, request.MediaLotId, request.EquipmentId,
-            request.IncubationStartUtc, request.IncubationEndUtc, request.Observation, CurrentUserId));
+        RunAsync(() => _engine.SubmitBrothAsync(testOrderId, request.StepName, request.Observation, CurrentUserId));
 
     [HttpPost("{testOrderId}/submit-selective-plating")]
     public Task<IActionResult> SubmitSelectivePlating(int testOrderId, SubmitSelectivePlatingRequest request) =>

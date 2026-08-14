@@ -29,6 +29,20 @@ public class TestWorkflowStep
 
     public List<TestWorkflowStepMedia> StepMedia { get; set; } = new();
 
+    // PlateCount only. When true, the step's own TemperatureMin/Max and
+    // IncubationMinHours/MaxHours above describe stage 1; stage 2's window
+    // lives in IncubationStages (StageNumber == 2). See
+    // WorkflowTemplateValidator rule 7 for the "can't half-configure this"
+    // guard.
+    public bool RequiresIncubationTransfer { get; set; }
+
+    // Stage 2+ incubation windows for a transfer-enabled PlateCount step.
+    // Stage 1's window is NOT duplicated here - it stays on this row's own
+    // TemperatureMin/Max/IncubationMinHours/MaxHours, since dozens of
+    // existing call sites already read those directly. Keyed by
+    // StageNumber so a stage 3 can be added later with no schema change.
+    public List<TestWorkflowStepIncubationStage> IncubationStages { get; set; } = new();
+
     public bool RequiresTargetOrganism =>
         StepType is StepType.SelectivePlating or StepType.ConfirmatoryPlating;
 

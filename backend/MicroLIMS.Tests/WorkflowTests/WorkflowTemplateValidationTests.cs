@@ -124,4 +124,69 @@ public class WorkflowTemplateValidationTests
         var errors = WorkflowTemplateValidator.Validate(Step(StepType.PlateCount, null));
         Assert.Empty(errors);
     }
+
+    private static TestWorkflowStepIncubationStage Stage2(decimal tempMin = 30, decimal tempMax = 35, int minHours = 24, int maxHours = 48) =>
+        new() { StageNumber = 2, TempMin = tempMin, TempMax = tempMax, IncubationMinHours = minHours, IncubationMaxHours = maxHours };
+
+    [Fact]
+    public void Rule7_TransferEnabledPlateCount_WithStage2Configured_IsValid()
+    {
+        var step = Step(StepType.PlateCount, null);
+        step.RequiresIncubationTransfer = true;
+        step.IncubationStages.Add(Stage2());
+
+        var errors = WorkflowTemplateValidator.Validate(step);
+        Assert.Empty(errors);
+    }
+
+    [Fact]
+    public void Rule7_TransferEnabledPlateCount_WithNoStage2_FailsRule7()
+    {
+        var step = Step(StepType.PlateCount, null);
+        step.RequiresIncubationTransfer = true;
+
+        var errors = WorkflowTemplateValidator.Validate(step);
+        Assert.Contains(errors, e => e.RuleNumber == 7);
+    }
+
+    [Fact]
+    public void Rule7_TransferEnabledPlateCount_WithInvertedStage2Temperature_FailsRule7()
+    {
+        var step = Step(StepType.PlateCount, null);
+        step.RequiresIncubationTransfer = true;
+        step.IncubationStages.Add(Stage2(tempMin: 40, tempMax: 30));
+
+        var errors = WorkflowTemplateValidator.Validate(step);
+        Assert.Contains(errors, e => e.RuleNumber == 7);
+    }
+
+    [Fact]
+    public void Rule7_TransferEnabledPlateCount_WithZeroMinHours_FailsRule7()
+    {
+        var step = Step(StepType.PlateCount, null);
+        step.RequiresIncubationTransfer = true;
+        step.IncubationStages.Add(Stage2(minHours: 0, maxHours: 24));
+
+        var errors = WorkflowTemplateValidator.Validate(step);
+        Assert.Contains(errors, e => e.RuleNumber == 7);
+    }
+
+    [Fact]
+    public void Rule7_NonTransferPlateCount_WithStage2Defined_FailsRule7()
+    {
+        var step = Step(StepType.PlateCount, null);
+        step.RequiresIncubationTransfer = false;
+        step.IncubationStages.Add(Stage2());
+
+        var errors = WorkflowTemplateValidator.Validate(step);
+        Assert.Contains(errors, e => e.RuleNumber == 7);
+    }
+
+    [Fact]
+    public void Rule7_NonTransferPlateCount_WithNoStage2_IsValid()
+    {
+        var step = Step(StepType.PlateCount, null);
+        var errors = WorkflowTemplateValidator.Validate(step);
+        Assert.Empty(errors);
+    }
 }

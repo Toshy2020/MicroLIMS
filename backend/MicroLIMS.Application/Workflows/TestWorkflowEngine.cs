@@ -87,6 +87,7 @@ public interface ITestWorkflowEngine : IStatefulWorkflowEngine
 {
     Task<CurrentStepResult> GetCurrentStepAsync(int testOrderId);
     Task<Incubation> SelectMediaAsync(int testOrderId, string stepName, int mediaLotId, int incubatorEquipmentId, int userId);
+    Task<Incubation> StartStage2IncubationAsync(int testOrderId, string stepName, int incubatorEquipmentId, int userId);
     Task<TestWorkflowResult> RecordResultAsync(int testOrderId, string stepName, ResultPayload payload, int userId);
     Task<List<SampleLocation>> GetLocationsAsync(int testOrderId);
     Task<Incubation> CloseCurrentIncubationWindowAsync(int testOrderId, int userId);
@@ -94,9 +95,9 @@ public interface ITestWorkflowEngine : IStatefulWorkflowEngine
     Task<TestWorkflowResult> RecordBatchPathogenResultsAsync(int testOrderId, List<BatchLocationObservation>? observations, int userId);
 
     // Broth steps carry no result logic - completion is the incubation
-    // window elapsing plus the analyst submitting the form.
-    Task<StepResultDto> SubmitBrothAsync(int testOrderId, string stepName, int mediaLotId, int equipmentId,
-        DateTime incubationStartUtc, DateTime incubationEndUtc, string? observation, int userId);
+    // window elapsing plus the analyst submitting the form. The window
+    // is server-controlled from Test Master and recorded when media is selected.
+    Task<StepResultDto> SubmitBrothAsync(int testOrderId, string stepName, string? observation, int userId);
 
     Task<StepResultDto> SubmitSelectivePlatingAsync(int testOrderId, string stepName, int mediaLotId, int equipmentId,
         DateTime incubationStartUtc, DateTime incubationEndUtc, GrowthObservation observation, int userId);
@@ -346,6 +347,9 @@ public class TestWorkflowEngine : ITestWorkflowEngine
                 $"This step requires {step.MediaType!.Class} media. The selected lot is {media.MediaType!.Class}.");
 
         var startedAt = DateTime.UtcNow;
+        // Incubation window is locked from Test Master: analyst cannot override.
+        // The window is IncubationStartUtc to IncubationEndUtc; the analyst can
+        // complete once the minimum duration has elapsed AND the end time has passed.
         var incubation = new Incubation
         {
             TestOrderId = testOrderId,
@@ -355,7 +359,11 @@ public class TestWorkflowEngine : ITestWorkflowEngine
             Temperature = $"{step.TemperatureMin}-{step.TemperatureMax} °C",
             Duration = $"{step.IncubationMinHours}-{step.IncubationMaxHours} hours",
             StartedAt = startedAt,
-            ExpectedReadingAt = startedAt.AddHours(step.IncubationMaxHours)
+            IncubationStartUtc = startedAt,
+            IncubationEndUtc = startedAt.AddHours(step.IncubationMaxHours),
+            ExpectedReadingAt = startedAt.AddHours(step.IncubationMaxHours),
+            WindowReceivedAtUtc = startedAt,
+            StartedByUserId = userId
         };
         _db.Incubations.Add(incubation);
 
@@ -374,6 +382,69 @@ public class TestWorkflowEngine : ITestWorkflowEngine
             await _db.SaveChangesAsync();
 
         return incubation;
+    }
+
+    // The transfer IS starting stage 2 - there is no separate
+    // confirmation step or timestamp. The physical plate does not change
+    // between stages, so MediaId is copied from stage 1 rather than
+    // asking the analyst to reselect it; the incubator is new, since
+    // that's the whole point of a transfer.
+    public async Task<Incubation> StartStage2IncubationAsync(int testOrderId, string stepName, int incubatorEquipmentId, int userId)
+    {
+        var (order, definition) = await LoadWithTemplateAsync(testOrderId);
+        var step = definition.Steps.FirstOrDefault(s => s.StepName == stepName)
+            ?? throw new InvalidOperationException($"Step \"{stepName}\" is not part of the workflow template for \"{order.TestCode}\".");
+
+        if (step.StepType != StepType.PlateCount || !step.RequiresIncubationTransfer)
+            throw new InvalidOperationException($"Step \"{stepName}\" does not use a two-stage incubation transfer.");
+
+        var openIncubation = await _db.Incubations
+            .Where(i => i.TestOrderId == testOrderId && i.StepName == stepName && i.CompletedAt == null)
+            .OrderByDescending(i => i.StartedAt)
+            .FirstOrDefaultAsync()
+            ?? throw new InvalidOperationException($"Media must be selected for step \"{stepName}\" before stage 2 incubation can start.");
+
+        if (openIncubation.StageNumber != 1)
+            throw new InvalidOperationException($"Stage 2 incubation has already been started for step \"{stepName}\".");
+
+        if (DateTime.UtcNow < openIncubation.IncubationEndUtc)
+            throw new WorkflowStepException(WorkflowErrorCodes.IncubationStage1NotComplete,
+                $"Stage 1 incubation for step \"{stepName}\" has not finished yet.",
+                Math.Max(0, (long)Math.Ceiling((openIncubation.IncubationEndUtc!.Value - DateTime.UtcNow).TotalSeconds)));
+
+        var stage2Config = await _db.TestWorkflowStepIncubationStages
+            .FirstOrDefaultAsync(s => s.TestWorkflowStepId == step.Id && s.StageNumber == 2)
+            ?? throw new InvalidOperationException($"Step \"{stepName}\" has no stage 2 configuration.");
+
+        var startedAt = DateTime.UtcNow;
+        var endUtc = startedAt.AddHours(stage2Config.IncubationMaxHours);
+        RequireValidIncubationWindow(stepName, stage2Config.IncubationMinHours, startedAt, endUtc);
+
+        openIncubation.CompletedAt = startedAt;
+        openIncubation.Outcome = "Transferred to stage 2 incubation.";
+
+        var stage2 = new Incubation
+        {
+            TestOrderId = testOrderId,
+            StepNumber = step.StepOrder,
+            StepName = stepName,
+            MediaId = openIncubation.MediaId,
+            IncubatorEquipmentId = incubatorEquipmentId,
+            Temperature = $"{stage2Config.TempMin}-{stage2Config.TempMax} °C",
+            Duration = $"{stage2Config.IncubationMinHours}-{stage2Config.IncubationMaxHours} hours",
+            StartedAt = startedAt,
+            IncubationStartUtc = startedAt,
+            IncubationEndUtc = endUtc,
+            ExpectedReadingAt = endUtc,
+            WindowReceivedAtUtc = startedAt,
+            StartedByUserId = userId,
+            ParentIncubationId = openIncubation.Id,
+            StageNumber = 2
+        };
+        _db.Incubations.Add(stage2);
+        await _db.SaveChangesAsync();
+
+        return stage2;
     }
 
     public async Task<TestWorkflowResult> RecordResultAsync(int testOrderId, string stepName, ResultPayload payload, int userId)
@@ -407,6 +478,19 @@ public class TestWorkflowEngine : ITestWorkflowEngine
             .OrderByDescending(i => i.StartedAt)
             .FirstOrDefaultAsync()
             ?? throw new InvalidOperationException($"Media must be selected for step \"{stepName}\" before a result can be recorded.");
+
+        // Two-stage incubation transfer: the count cannot be recorded off
+        // the stage 1 window at all, and not off stage 2 until its window
+        // has elapsed. RequiresIncubationTransfer = false steps skip this
+        // block entirely - unchanged from today.
+        if (step.RequiresIncubationTransfer)
+        {
+            if (openIncubation.StageNumber != 2)
+                throw new WorkflowStepException(WorkflowErrorCodes.IncubationStage2NotStarted,
+                    $"Step \"{stepName}\" requires stage 2 incubation to be started before a count can be recorded.");
+
+            RequireIncubationComplete(openIncubation.IncubationEndUtc!.Value);
+        }
 
         string outcomeSummary;
         decimal? average = null, calculatedResult = null;
@@ -556,7 +640,23 @@ public class TestWorkflowEngine : ITestWorkflowEngine
         if (!step.IsFinalStep)
             throw new InvalidOperationException($"\"{step.StepName}\" is not the final incubation window yet - close it and start the next window first.");
 
-        RequireMinimumDurationElapsed(openIncubation, step);
+        // Two-stage incubation transfer (After Cleaning / EM TAMC and any
+        // other transfer-enabled PlateCount step): same gate as the
+        // single-value RecordResultAsync path, since both terminate the
+        // same server-locked Incubation window mechanics - see
+        // TestWorkflowEngine.RecordResultAsync.
+        if (step.RequiresIncubationTransfer)
+        {
+            if (openIncubation.StageNumber != 2)
+                throw new WorkflowStepException(WorkflowErrorCodes.IncubationStage2NotStarted,
+                    $"Step \"{step.StepName}\" requires stage 2 incubation to be started before results can be recorded.");
+
+            RequireIncubationComplete(openIncubation.IncubationEndUtc!.Value);
+        }
+        else
+        {
+            RequireMinimumDurationElapsed(openIncubation, step);
+        }
 
         if (dilutionFactor <= 0)
             throw new InvalidOperationException("Dilution factor must be greater than zero.");
@@ -888,25 +988,28 @@ public class TestWorkflowEngine : ITestWorkflowEngine
     // RequireIncubationComplete only asks "has the declared end passed?",
     // which a one-second window satisfies as readily as a real 18-24h
     // one - and a window that ends before it starts satisfies it too.
-    // The window is analyst-supplied, so it has to be checked against the
-    // step template the same way RequireMinimumDurationElapsed checks a
+    // The window is analyst-supplied, so it has to be checked against a
+    // minimum the same way RequireMinimumDurationElapsed checks a
     // server-recorded window against it.
     //
     // Deliberately no upper bound: over-incubation happens in real labs
     // and is handled by explanation/deviation, not by refusing the
     // record. Under-incubation is the falsification risk.
-    private static void RequireValidIncubationWindow(TestWorkflowStep step, DateTime incubationStartUtc, DateTime incubationEndUtc)
+    private static void RequireValidIncubationWindow(string stepName, int minHours, DateTime incubationStartUtc, DateTime incubationEndUtc)
     {
         if (incubationEndUtc < incubationStartUtc)
             throw new WorkflowStepException(WorkflowErrorCodes.IncubationWindowInvalid,
                 $"The incubation window ends before it starts ({incubationStartUtc:yyyy-MM-dd HH:mm} to {incubationEndUtc:yyyy-MM-dd HH:mm} UTC).");
 
         var declaredHours = (incubationEndUtc - incubationStartUtc).TotalHours;
-        if (declaredHours < step.IncubationMinHours)
+        if (declaredHours < minHours)
             throw new WorkflowStepException(WorkflowErrorCodes.IncubationWindowTooShort,
-                $"Step \"{step.StepName}\" requires at least {step.IncubationMinHours} hours of incubation - " +
+                $"Step \"{stepName}\" requires at least {minHours} hours of incubation - " +
                 $"the declared window is {declaredHours:0.##} hours.");
     }
+
+    private static void RequireValidIncubationWindow(TestWorkflowStep step, DateTime incubationStartUtc, DateTime incubationEndUtc) =>
+        RequireValidIncubationWindow(step.StepName, step.IncubationMinHours, incubationStartUtc, incubationEndUtc);
 
     // The lot the analyst picked must be a released lot of the permitted
     // material and of the class the step template locks the step to.
@@ -925,42 +1028,47 @@ public class TestWorkflowEngine : ITestWorkflowEngine
     }
 
     // Broth steps carry no result logic - completion is the incubation
-    // window elapsing plus the analyst submitting the form. The free-text
-    // observation is recorded but never branches the workflow.
+    // window elapsing plus the analyst submitting the form. The incubation
+    // window is server-controlled and recorded when SelectMediaAsync is
+    // called; the analyst cannot override it. This method just records
+    // that the window has completed and optionally saves an observation.
     public async Task<StepResultDto> SubmitBrothAsync(
-        int testOrderId, string stepName, int mediaLotId, int equipmentId,
-        DateTime incubationStartUtc, DateTime incubationEndUtc, string? observation, int userId)
+        int testOrderId, string stepName, string? observation, int userId)
     {
         var step = await LoadStepAsync(testOrderId, stepName);
         if (step.StepType is not (StepType.BrothEnrichment or StepType.SelectiveBroth))
             throw new InvalidOperationException($"Step '{stepName}' is not a broth step.");
 
-        var stepMedium = await RequireSingleStepMediumAsync(step);
+        // Load the incubation that was created when media was selected.
+        var incubation = await _db.Incubations
+            .Where(i => i.TestOrderId == testOrderId && i.StepName == stepName && i.CompletedAt == null)
+            .OrderByDescending(i => i.StartedAt)
+            .FirstOrDefaultAsync()
+            ?? throw new InvalidOperationException($"Media must be selected for step \"{stepName}\" before this submission.");
 
-        var lot = await LoadReleasedLotAsync(mediaLotId, stepMedium.MaterialId, step.MediaTypeId);
-        await RequireEligibleIncubatorAsync(stepMedium.Id, equipmentId);
-        RequireValidIncubationWindow(step, incubationStartUtc, incubationEndUtc);
-        RequireIncubationComplete(incubationEndUtc);
+        // Verify that the minimum duration has elapsed and the maximum window has passed.
+        var minReadyAt = incubation.IncubationStartUtc!.Value.AddHours((double)step.IncubationMinHours);
+        if (DateTime.UtcNow < minReadyAt)
+            throw new WorkflowStepException(WorkflowErrorCodes.IncubationNotComplete,
+                $"This step requires at least {step.IncubationMinHours} hours of incubation - not ready until {minReadyAt:yyyy-MM-dd HH:mm} UTC.",
+                Math.Max(0, (long)Math.Ceiling((minReadyAt - DateTime.UtcNow).TotalSeconds)));
 
-        var incubation = new Incubation
-        {
-            TestOrderId = testOrderId, StepNumber = step.StepOrder, StepName = step.StepName,
-            MediaId = lot.Id, IncubatorEquipmentId = equipmentId,
-            Temperature = $"{step.TemperatureMin}-{step.TemperatureMax}",
-            Duration = $"{step.IncubationMinHours}-{step.IncubationMaxHours}h",
-            IncubationStartUtc = incubationStartUtc, IncubationEndUtc = incubationEndUtc,
-            WindowReceivedAtUtc = DateTime.UtcNow,
-            ExpectedReadingAt = incubationEndUtc,
-            CompletedAt = DateTime.UtcNow, Outcome = observation
-        };
-        _db.Incubations.Add(incubation);
+        // Verify the maximum window has passed as well.
+        RequireIncubationComplete(incubation.IncubationEndUtc!.Value);
+
+        // Record the completion of the incubation.
+        incubation.CompletedAt = DateTime.UtcNow;
+        incubation.Outcome = observation;
         await _db.SaveChangesAsync();
 
         var result = new WorkflowStepResult
         {
-            IncubationId = incubation.Id, TestOrderId = testOrderId,
-            StepName = step.StepName, StepType = step.StepType,
-            SubmittedByUserId = userId, SubmittedAtUtc = DateTime.UtcNow
+            IncubationId = incubation.Id,
+            TestOrderId = testOrderId,
+            StepName = step.StepName,
+            StepType = step.StepType,
+            SubmittedByUserId = userId,
+            SubmittedAtUtc = DateTime.UtcNow
         };
         _db.WorkflowStepResults.Add(result);
         await _db.SaveChangesAsync();

@@ -55,6 +55,26 @@ public static class WorkflowTemplateValidator
         foreach (var duplicate in media.GroupBy(m => m.MaterialId).Where(g => g.Count() > 1))
             Fail(6, $"Medium {duplicate.Key} is assigned to this step more than once.");
 
+        if (step.StepType == StepType.PlateCount && step.RequiresIncubationTransfer)
+        {
+            var stage2 = step.IncubationStages.FirstOrDefault(s => s.StageNumber == 2);
+            if (stage2 is null)
+            {
+                Fail(7, "A step requiring incubation transfer must define stage 2's temperature and incubation-hours range.");
+            }
+            else
+            {
+                if (stage2.TempMin >= stage2.TempMax)
+                    Fail(7, "Stage 2's minimum temperature must be below its maximum.");
+                if (stage2.IncubationMinHours <= 0 || stage2.IncubationMaxHours < stage2.IncubationMinHours)
+                    Fail(7, "Stage 2's incubation-hours range must have a positive minimum and a maximum no less than the minimum.");
+            }
+        }
+        else if (step.IncubationStages.Count > 0)
+        {
+            Fail(7, "Only a PlateCount step with incubation transfer enabled may define a second incubation stage.");
+        }
+
         return errors;
     }
 }

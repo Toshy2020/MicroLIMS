@@ -89,7 +89,7 @@ export function TestWorkflowDialog({ testOrderId, testCode, category, displayNam
       setCurrent(data);
       setMediaId(""); setIncubatorId("");
       setReadings([""]); setDilutionFactor("1");
-      setPhase(data.allStepsComplete ? "all-complete" : data.incubation ? "awaiting-result" : "select-media");
+      setPhase(data.allStepsComplete ? "all-complete" : data.incubationLock != null ? "awaiting-result" : "select-media");
     } catch (e: any) {
       setError(e?.response?.data?.message ?? "Could not load this test's workflow.");
     }
@@ -121,12 +121,21 @@ export function TestWorkflowDialog({ testOrderId, testCode, category, displayNam
     i.setPointTemperature != null && step && i.setPointTemperature >= step.temperatureMin && i.setPointTemperature <= step.temperatureMax
   );
 
+  // current-step never serialized a top-level "incubation" object - only
+  // incubationLock (isLocked/incubationEndUtc/remainingSeconds/stageNumber)
+  // and previousSteps (one row per Incubation, including the still-open
+  // one, tagged status: "Incubating"). The open row's own start time comes
+  // from there instead.
+  const openIncubationRow = step
+    ? (current?.previousSteps ?? []).find((p: any) => p.stepName === step.stepName && p.status === "Incubating")
+    : null;
+
   // Minimum-duration gate, mirrored from the server (TestWorkflowEngine.
   // RequireMinimumDurationElapsed) so the button disables itself instead
   // of just bouncing off a server error - the server still enforces it
   // as the source of truth.
-  const minReadyAt = current?.incubation && step
-    ? new Date(new Date(current.incubation.startedAt).getTime() + step.incubationMinHours * 3600 * 1000)
+  const minReadyAt = openIncubationRow && step
+    ? new Date(new Date(openIncubationRow.incubationStartUtc).getTime() + step.incubationMinHours * 3600 * 1000)
     : null;
   const isTimeReady = !minReadyAt || new Date() >= minReadyAt;
 
@@ -248,12 +257,12 @@ export function TestWorkflowDialog({ testOrderId, testCode, category, displayNam
         </Stack>
       )}
 
-      {phase === "awaiting-result" && current.incubation && (
+      {phase === "awaiting-result" && current.incubationLock && (
         <Stack spacing={1.5}>
           <Alert severity="info">Incubation in progress.</Alert>
-          <Typography variant="body2">Temperature: <strong>{current.incubation.temperature}</strong></Typography>
-          <Typography variant="body2">Duration: <strong>{current.incubation.duration}</strong></Typography>
-          <Typography variant="body2">Expected reading: <strong>{new Date(current.incubation.expectedReadingAt).toLocaleString()}</strong></Typography>
+          <Typography variant="body2">Temperature: <strong>{step.temperatureMin}-{step.temperatureMax} °C</strong></Typography>
+          <Typography variant="body2">Duration: <strong>{step.incubationMinHours}-{step.incubationMaxHours} hours</strong></Typography>
+          <Typography variant="body2">Expected reading: <strong>{new Date(current.incubationLock.incubationEndUtc).toLocaleString()}</strong></Typography>
           {!isTimeReady && minReadyAt && (
             <Alert severity="warning">Not ready yet - available from {minReadyAt.toLocaleString()}.</Alert>
           )}

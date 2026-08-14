@@ -78,6 +78,7 @@ public class SampleSummaryService
             .Concat(pathogenObservations.Select(p => p.ObservedByUserId))
             .Concat(workflowHistory.Select(w => w.PerformedByUserId))
             .Concat(sampleLocations.Where(l => l.EnteredByUserId is not null).Select(l => l.EnteredByUserId!.Value))
+            .Concat(incubations.Where(i => i.StartedByUserId is not null).Select(i => i.StartedByUserId!.Value))
             .Append(sample.ReceivedByUserId));
         if (preparation is not null) userIds.Add(preparation.PreparedByUserId);
         if (sample.ReviewedByUserId is not null) userIds.Add(sample.ReviewedByUserId.Value);
@@ -141,9 +142,12 @@ public class SampleSummaryService
                 Status = order.Status.ToString(),
                 CurrentStep = order.CurrentStep.ToString(),
                 IsSuperseded = order.IsSuperseded,
-                Incubations = incubations.Where(i => i.TestOrderId == order.Id).Select(i => new IncubationDetailDto
+                Incubations = incubations.Where(i => i.TestOrderId == order.Id)
+                    .OrderBy(i => i.StepNumber).ThenBy(i => i.StageNumber)
+                    .Select(i => new IncubationDetailDto
                 {
                     StepName = i.StepName,
+                    StageNumber = i.StageNumber,
                     MediaLotNumber = i.Media?.LotNumber,
                     MediaMaterialName = i.Media?.Material?.MaterialName,
                     IncubatorName = i.IncubatorEquipment?.Name,
@@ -152,7 +156,14 @@ public class SampleSummaryService
                     StartedAt = i.StartedAt,
                     ExpectedReadingAt = i.ExpectedReadingAt,
                     CompletedAt = i.CompletedAt,
-                    Outcome = i.Outcome
+                    Outcome = i.Outcome,
+                    StartedByName = i.StartedByUserId is not null ? NameOf(i.StartedByUserId.Value) : null,
+                    SameAnalystBothStages = i.StageNumber == 2
+                        ? incubations
+                            .Where(p => p.TestOrderId == order.Id && p.StepName == i.StepName && p.StageNumber == 1)
+                            .Select(p => (bool?)(p.StartedByUserId == i.StartedByUserId))
+                            .FirstOrDefault()
+                        : null
                 }).ToList(),
                 Results = results.Where(r => r.TestOrderId == order.Id).Select(r => new ResultDetailDto
                 {

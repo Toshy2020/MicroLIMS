@@ -42,11 +42,10 @@ export const TestWorkflowService = {
   // ---- Pathogen five-stage workflow ----
 
   submitBroth: (
-    testOrderId: number, stepName: string, mediaLotId: number, equipmentId: number,
-    incubationStartUtc: string, incubationEndUtc: string, observation: string | null
+    testOrderId: number, stepName: string, observation: string | null
   ): Promise<StepResultDto> =>
     apiClient.post(`/test-workflow/${testOrderId}/submit-broth`, {
-      stepName, mediaLotId, equipmentId, incubationStartUtc, incubationEndUtc, observation
+      stepName, observation
     }).then((r) => r.data.data),
 
   submitSelectivePlating: (

@@ -38,12 +38,23 @@ interface StepFormState {
   stepType: string;
   targetOrganismId: number | null;
   stepMedia: StepMediaRow[];
+  // PlateCount only (backend TestWorkflowStep.RequiresIncubationTransfer /
+  // WorkflowTemplateValidator rule 7). Stage 2's own window is a separate
+  // TestWorkflowStepIncubationStage row (StageNumber 2), not more columns
+  // on this step - see stage2* fields below.
+  requiresIncubationTransfer: boolean;
+  stage2TempMin?: string | number;
+  stage2TempMax?: string | number;
+  stage2IncubationMinHours?: string | number;
+  stage2IncubationMaxHours?: string | number;
 }
 
 // A function rather than a shared constant object, so every reset gets its
 // own stepMedia array instead of every WorkflowStepsSection instance (one
 // per expanded Test Master row) sharing a single mutable reference.
-const defaultStepForm = (): StepFormState => ({ isFinalStep: false, stepType: "PlateCount", targetOrganismId: null, stepMedia: [] });
+const defaultStepForm = (): StepFormState => ({
+  isFinalStep: false, stepType: "PlateCount", targetOrganismId: null, stepMedia: [], requiresIncubationTransfer: false
+});
 
 // Mirrors WorkflowTemplateValidator's six structural rules (backend
 // MicroLIMS.Application/Services/WorkflowTemplateValidator.cs) so the admin
@@ -77,6 +88,20 @@ function validateStepForm(form: StepFormState): string | null {
   }
   const materialIds = form.stepMedia.map((m) => m.materialId);
   if (new Set(materialIds).size !== materialIds.length) return "The same medium cannot be assigned to this step more than once.";
+
+  // Mirrors WorkflowTemplateValidator rule 7 - the server is still
+  // authoritative, this only spares a round trip for the common case.
+  if (form.stepType === "PlateCount" && form.requiresIncubationTransfer) {
+    const { stage2TempMin, stage2TempMax, stage2IncubationMinHours, stage2IncubationMaxHours } = form;
+    if (stage2TempMin === undefined || stage2TempMin === "" || stage2TempMax === undefined || stage2TempMax === "" ||
+        stage2IncubationMinHours === undefined || stage2IncubationMinHours === "" ||
+        stage2IncubationMaxHours === undefined || stage2IncubationMaxHours === "")
+      return "A step requiring incubation transfer must define stage 2's temperature and incubation-hours range.";
+    if (Number(stage2TempMin) >= Number(stage2TempMax))
+      return "Stage 2's minimum temperature must be below its maximum.";
+    if (Number(stage2IncubationMinHours) <= 0 || Number(stage2IncubationMaxHours) < Number(stage2IncubationMinHours))
+      return "Stage 2's incubation-hours range must have a positive minimum and a maximum no less than the minimum.";
+  }
   return null;
 }
 
@@ -125,13 +150,19 @@ function WorkflowStepsSection({ test, onWorkflowTypeChanged }: { test: TestDefin
 
   const startEditStep = (s: any) => {
     setEditingStepId(s.id);
+    const stage2 = (s.incubationStages ?? []).find((x: any) => x.stageNumber === 2);
     setForm({
       stepName: s.stepName, mediaTypeId: s.mediaTypeId, incubationMinHours: s.incubationMinHours, incubationMaxHours: s.incubationMaxHours,
       temperatureMin: s.temperatureMin, temperatureMax: s.temperatureMax, isFinalStep: s.isFinalStep, stepType: s.stepType,
       targetOrganismId: s.targetOrganismId ?? null,
       stepMedia: (s.stepMedia ?? []).map((m: any) => ({
         materialId: m.materialId, tempMin: String(m.tempMin), tempMax: String(m.tempMax), isRequired: m.isRequired, displayOrder: m.displayOrder
-      }))
+      })),
+      requiresIncubationTransfer: !!s.requiresIncubationTransfer,
+      stage2TempMin: stage2 ? String(stage2.tempMin) : undefined,
+      stage2TempMax: stage2 ? String(stage2.tempMax) : undefined,
+      stage2IncubationMinHours: stage2 ? stage2.incubationMinHours : undefined,
+      stage2IncubationMaxHours: stage2 ? stage2.incubationMaxHours : undefined
     });
     setError(null);
   };
@@ -148,7 +179,11 @@ function WorkflowStepsSection({ test, onWorkflowTypeChanged }: { test: TestDefin
   // Broth's single required medium isn't valid as-is for ConfirmatoryPlating,
   // which forbids IsRequired on every row) - forces a deliberate re-pick
   // instead of silently submitting a stale, mismatched configuration.
-  const changeStepType = (stepType: string) => setForm({ ...form, stepType, targetOrganismId: null, stepMedia: [] });
+  const changeStepType = (stepType: string) => setForm({
+    ...form, stepType, targetOrganismId: null, stepMedia: [],
+    requiresIncubationTransfer: false, stage2TempMin: undefined, stage2TempMax: undefined,
+    stage2IncubationMinHours: undefined, stage2IncubationMaxHours: undefined
+  });
 
   const addMediaRow = () => setForm({
     ...form,
@@ -179,7 +214,17 @@ function WorkflowStepsSection({ test, onWorkflowTypeChanged }: { test: TestDefin
       stepMedia: form.stepMedia.map((m, i) => ({
         materialId: Number(m.materialId), tempMin: Number(m.tempMin), tempMax: Number(m.tempMax),
         isRequired: form.stepType === "ConfirmatoryPlating" ? false : !!m.isRequired, displayOrder: i
-      }))
+      })),
+      requiresIncubationTransfer: form.stepType === "PlateCount" && !!form.requiresIncubationTransfer,
+      incubationStages: (form.stepType === "PlateCount" && form.requiresIncubationTransfer) ? [
+        {
+          stageNumber: 2,
+          tempMin: Number(form.stage2TempMin),
+          tempMax: Number(form.stage2TempMax),
+          incubationMinHours: Number(form.stage2IncubationMinHours),
+          incubationMaxHours: Number(form.stage2IncubationMaxHours)
+        }
+      ] : []
     };
     try {
       if (editingStepId) {
@@ -233,32 +278,79 @@ function WorkflowStepsSection({ test, onWorkflowTypeChanged }: { test: TestDefin
               <TableCell>Status</TableCell><TableCell>Final</TableCell><TableCell /></TableRow>
           </TableHead>
           <TableBody>
-            {steps.map((s, i) => (
-              <TableRow key={s.id}>
-                <TableCell>{s.stepOrder}</TableCell>
-                <TableCell>{s.stepName}</TableCell>
-                <TableCell>{mediaClassLabel(s.mediaType?.class)}</TableCell>
-                <TableCell>{s.incubationMinHours}-{s.incubationMaxHours}h</TableCell>
-                <TableCell>{s.temperatureMin}-{s.temperatureMax}</TableCell>
-                <TableCell>{s.stepType}</TableCell>
-                <TableCell>{s.stepMedia?.length > 0 ? s.stepMedia.map((m: any) => m.materialName).join(", ") : <em>—</em>}</TableCell>
-                <TableCell>{s.targetOrganism?.name ?? <em>—</em>}</TableCell>
-                <TableCell>
-                  {stepNeedsConfiguration(s) && (
-                    <Tooltip title="This template is missing a required organism or medium (likely inherited from the pre-refactor migration) and will fail validation the first time an analyst runs it. Edit it to complete the configuration.">
-                      <Chip size="small" color="warning" icon={<WarningAmberIcon fontSize="small" />} label="Needs configuration" />
-                    </Tooltip>
-                  )}
-                </TableCell>
-                <TableCell>{s.isFinalStep ? "Yes" : "—"}</TableCell>
-                <TableCell align="right">
-                  <IconButton size="small" disabled={i === 0} onClick={() => move(s.id, "up")} title="Move up"><ArrowUpwardIcon fontSize="small" /></IconButton>
-                  <IconButton size="small" disabled={i === steps.length - 1} onClick={() => move(s.id, "down")} title="Move down"><ArrowDownwardIcon fontSize="small" /></IconButton>
-                  <IconButton size="small" onClick={() => startEditStep(s)} title="Edit"><EditIcon fontSize="small" /></IconButton>
-                  <IconButton size="small" color="error" onClick={() => remove(s.id)} title="Delete"><DeleteIcon fontSize="small" /></IconButton>
-                </TableCell>
-              </TableRow>
-            ))}
+            {steps.map((s, i) => {
+              const stage2 = (s.incubationStages ?? []).find((x: any) => x.stageNumber === 2);
+              const isTwoStage = s.stepType === "PlateCount" && s.requiresIncubationTransfer;
+              return (
+                <TableRow key={s.id}>
+                  <TableCell>{s.stepOrder}</TableCell>
+                  <TableCell>
+                    <Stack direction="row" spacing={1} alignItems="center">
+                      <span>{s.stepName}</span>
+                      {isTwoStage && (
+                        <Chip
+                          size="small"
+                          color="primary"
+                          variant="outlined"
+                          label="2-Stage"
+                          sx={{ height: 20, fontSize: "0.68rem", fontWeight: 700 }}
+                        />
+                      )}
+                    </Stack>
+                  </TableCell>
+                  <TableCell>{mediaClassLabel(s.mediaType?.class)}</TableCell>
+                  <TableCell>
+                    {isTwoStage && stage2 ? (
+                      <Box sx={{ fontSize: "0.8rem", lineHeight: 1.3 }}>
+                        <div>Stage 1: {s.incubationMinHours}-{s.incubationMaxHours}h</div>
+                        <div>Stage 2: {stage2.incubationMinHours}-{stage2.incubationMaxHours}h</div>
+                      </Box>
+                    ) : (
+                      `${s.incubationMinHours}-${s.incubationMaxHours}h`
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    {isTwoStage && stage2 ? (
+                      <Box sx={{ fontSize: "0.8rem", lineHeight: 1.3 }}>
+                        <div>Stage 1: {s.temperatureMin}-{s.temperatureMax}</div>
+                        <div>Stage 2: {stage2.tempMin}-{stage2.tempMax}</div>
+                      </Box>
+                    ) : (
+                      `${s.temperatureMin}-${s.temperatureMax}`
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    <Stack direction="row" spacing={0.5} alignItems="center">
+                      <span>{s.stepType}</span>
+                      {isTwoStage && (
+                        <Chip
+                          size="small"
+                          color="secondary"
+                          label="Transfer"
+                          sx={{ height: 20, fontSize: "0.68rem", fontWeight: 700 }}
+                        />
+                      )}
+                    </Stack>
+                  </TableCell>
+                  <TableCell>{s.stepMedia?.length > 0 ? s.stepMedia.map((m: any) => m.materialName).join(", ") : <em>—</em>}</TableCell>
+                  <TableCell>{s.targetOrganism?.name ?? <em>—</em>}</TableCell>
+                  <TableCell>
+                    {stepNeedsConfiguration(s) && (
+                      <Tooltip title="This template is missing a required organism or medium (likely inherited from the pre-refactor migration) and will fail validation the first time an analyst runs it. Edit it to complete the configuration.">
+                        <Chip size="small" color="warning" icon={<WarningAmberIcon fontSize="small" />} label="Needs configuration" />
+                      </Tooltip>
+                    )}
+                  </TableCell>
+                  <TableCell>{s.isFinalStep ? "Yes" : "—"}</TableCell>
+                  <TableCell align="right">
+                    <IconButton size="small" disabled={i === 0} onClick={() => move(s.id, "up")} title="Move up"><ArrowUpwardIcon fontSize="small" /></IconButton>
+                    <IconButton size="small" disabled={i === steps.length - 1} onClick={() => move(s.id, "down")} title="Move down"><ArrowDownwardIcon fontSize="small" /></IconButton>
+                    <IconButton size="small" onClick={() => startEditStep(s)} title="Edit"><EditIcon fontSize="small" /></IconButton>
+                    <IconButton size="small" color="error" onClick={() => remove(s.id)} title="Delete"><DeleteIcon fontSize="small" /></IconButton>
+                  </TableCell>
+                </TableRow>
+              );
+            })}
           </TableBody>
         </Table>
       ) : (
@@ -287,9 +379,75 @@ function WorkflowStepsSection({ test, onWorkflowTypeChanged }: { test: TestDefin
           control={<Checkbox checked={!!form.isFinalStep} onChange={(e) => setForm({ ...form, isFinalStep: e.target.checked })} />}
           label="Final Step"
         />
+        {form.stepType === "PlateCount" && (
+          <FormControlLabel
+            control={
+              <Checkbox
+                checked={!!form.requiresIncubationTransfer}
+                onChange={(e) =>
+                  setForm({
+                    ...form,
+                    requiresIncubationTransfer: e.target.checked,
+                    ...(e.target.checked
+                      ? {}
+                      : {
+                          stage2TempMin: undefined,
+                          stage2TempMax: undefined,
+                          stage2IncubationMinHours: undefined,
+                          stage2IncubationMaxHours: undefined
+                        })
+                  })
+                }
+              />
+            }
+            label="Requires incubation transfer"
+          />
+        )}
         {editingStepId && <Button onClick={cancelEditStep}>Cancel</Button>}
         <Button variant="contained" onClick={saveStep}>{editingStepId ? "Save Changes" : "Add Step"}</Button>
       </Stack>
+
+      {form.stepType === "PlateCount" && form.requiresIncubationTransfer && (
+        <Box sx={{ mt: 1.5, p: 1.5, bgcolor: "#fff", border: "1px solid #d1d5db", borderRadius: 1 }}>
+          <Typography sx={{ fontWeight: 700, fontSize: 12, mb: 1, color: "text.primary" }}>
+            Stage 2 Incubation (Transfer)
+          </Typography>
+          <Stack direction="row" spacing={1.5} flexWrap="wrap" alignItems="center">
+            <TextField
+              size="small"
+              type="number"
+              label="Stage 2 Temp Min"
+              value={form.stage2TempMin ?? ""}
+              onChange={(e) => setForm({ ...form, stage2TempMin: e.target.value })}
+              sx={{ width: 140 }}
+            />
+            <TextField
+              size="small"
+              type="number"
+              label="Stage 2 Temp Max"
+              value={form.stage2TempMax ?? ""}
+              onChange={(e) => setForm({ ...form, stage2TempMax: e.target.value })}
+              sx={{ width: 140 }}
+            />
+            <TextField
+              size="small"
+              type="number"
+              label="Stage 2 Min Hours"
+              value={form.stage2IncubationMinHours ?? ""}
+              onChange={(e) => setForm({ ...form, stage2IncubationMinHours: e.target.value })}
+              sx={{ width: 140 }}
+            />
+            <TextField
+              size="small"
+              type="number"
+              label="Stage 2 Max Hours"
+              value={form.stage2IncubationMaxHours ?? ""}
+              onChange={(e) => setForm({ ...form, stage2IncubationMaxHours: e.target.value })}
+              sx={{ width: 140 }}
+            />
+          </Stack>
+        </Box>
+      )}
 
       {needsOrganism && (
         <Stack direction="row" spacing={1.5} alignItems="center" sx={{ mt: 1.5 }}>

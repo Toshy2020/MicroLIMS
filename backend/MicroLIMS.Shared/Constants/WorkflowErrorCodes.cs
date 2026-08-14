@@ -35,4 +35,12 @@ public static class WorkflowErrorCodes
     // ConfirmatoryAlreadyRecorded, which guards the plate read-out itself
     // rather than the decision made after it.
     public const string AnalystDecisionAlreadyRecorded = "ANALYST_DECISION_ALREADY_RECORDED";
+
+    // Stage 1 of a two-stage incubation-transfer PlateCount step has not
+    // reached its declared end yet - stage 2 cannot start until it has.
+    public const string IncubationStage1NotComplete = "INCUBATION_STAGE1_NOT_COMPLETE";
+
+    // Stage 2 of a two-stage incubation-transfer PlateCount step has not
+    // been started yet - the count cannot be recorded until it has.
+    public const string IncubationStage2NotStarted = "INCUBATION_STAGE2_NOT_STARTED";
 }

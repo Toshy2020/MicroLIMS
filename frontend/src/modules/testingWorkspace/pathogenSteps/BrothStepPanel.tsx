@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Typography, Select, MenuItem, TextField, Button, Stack, Alert } from "@mui/material";
+import { Typography, Select, MenuItem, Button, Stack, Alert } from "@mui/material";
 import { TestWorkflowService } from "../services/TestWorkflowService";
 import { TestWorkflowStepDto, PermittedConfirmatoryMediaEntry } from "../types/testWorkflowTypes";
 import { parseWorkflowError, workflowErrorDisplayMessage } from "../utils/workflowErrors";
@@ -10,17 +10,17 @@ interface Props {
   onSubmitted: () => void;
 }
 
-// BrothEnrichment/SelectiveBroth: preparation only. There is deliberately
-// no result-interpretation UI here - the chain runs to completion
-// regardless of what the analyst observes here (the method requires it),
-// so this must never be framed as a pass/fail decision point.
+// BrothEnrichment/SelectiveBroth: preparation only. The incubation
+// window is server-controlled from Test Master (analyst cannot override
+// it). There is deliberately no result-interpretation UI here - the chain
+// runs to completion regardless of what the analyst observes here
+// (the method requires it), so this must never be framed as a pass/fail
+// decision point. No observation field is presented.
 export function BrothStepPanel({ testOrderId, step, onSubmitted }: Props) {
   const [medium, setMedium] = useState<PermittedConfirmatoryMediaEntry | null>(null);
   const [incubators, setIncubators] = useState<{ id: number; name: string; code: string; setTemperature: number }[]>([]);
   const [mediaLotId, setMediaLotId] = useState<number | "">("");
   const [equipmentId, setEquipmentId] = useState<number | "">("");
-  const [durationHours, setDurationHours] = useState(String(step.incubationMinHours));
-  const [observation, setObservation] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -42,13 +42,13 @@ export function BrothStepPanel({ testOrderId, step, onSubmitted }: Props) {
 
   const submit = async () => {
     setError(null);
-    if (!medium || !mediaLotId || !equipmentId) { setError("Select a media lot and an incubator."); return; }
-    const startUtc = new Date().toISOString();
-    const endUtc = new Date(Date.now() + Number(durationHours) * 3600 * 1000).toISOString();
+    if (!medium || !mediaLotId || !equipmentId) { 
+      setError("Select a media lot and an incubator."); 
+      return; 
+    }
     try {
-      await TestWorkflowService.submitBroth(
-        testOrderId, step.stepName, Number(mediaLotId), Number(equipmentId),
-        startUtc, endUtc, observation.trim() || null
+      await TestWorkflowService.selectMedia(
+        testOrderId, step.stepName, Number(mediaLotId), Number(equipmentId)
       );
       onSubmitted();
     } catch (e) {
@@ -64,8 +64,8 @@ export function BrothStepPanel({ testOrderId, step, onSubmitted }: Props) {
     <Stack spacing={1.5}>
       {error && <Alert severity="error">{error}</Alert>}
       <Alert severity="info">
-        This step is preparation only - it is not a pass/fail result. The observation below (if any) is recorded
-        for the record; the workflow proceeds to the next step regardless of what is observed here.
+        This step is preparation only - it is not a pass/fail result. The workflow proceeds to the next step once
+        the assigned incubation window completes.
       </Alert>
       <Typography variant="body2">Medium: <strong>{medium.mediaName}</strong></Typography>
       <Select displayEmpty size="small" value={mediaLotId} onChange={(e) => setMediaLotId(Number(e.target.value))}>
@@ -78,15 +78,9 @@ export function BrothStepPanel({ testOrderId, step, onSubmitted }: Props) {
         <MenuItem value=""><em>Incubator ({medium.tempMin}-{medium.tempMax} °C)</em></MenuItem>
         {incubators.map((i) => <MenuItem key={i.id} value={i.id}>{i.name} ({i.code}) — {i.setTemperature}°C</MenuItem>)}
       </Select>
-      <TextField
-        size="small" type="number" label="Incubation Duration (hours)" value={durationHours}
-        onChange={(e) => setDurationHours(e.target.value)} sx={{ maxWidth: 220 }}
-        helperText={`Template range: ${step.incubationMinHours}-${step.incubationMaxHours}h`}
-      />
-      <TextField
-        size="small" multiline minRows={2} label="Observation (optional)" value={observation}
-        onChange={(e) => setObservation(e.target.value)}
-      />
+      <Typography variant="body2">
+        <strong>Assigned Incubation:</strong> {step.incubationMinHours}–{step.incubationMaxHours} h
+      </Typography>
       <Stack direction="row" justifyContent="flex-end">
         <Button variant="contained" onClick={submit}>Start Incubation</Button>
       </Stack>

@@ -77,6 +77,7 @@ public class MicroLimsDbContext : Microsoft.EntityFrameworkCore.DbContext
     public DbSet<TestDefinitionMedia> TestDefinitionMedias => Set<TestDefinitionMedia>();
     public DbSet<TestWorkflowStep> TestWorkflowSteps => Set<TestWorkflowStep>();
     public DbSet<TestWorkflowStepMedia> TestWorkflowStepMedias => Set<TestWorkflowStepMedia>();
+    public DbSet<TestWorkflowStepIncubationStage> TestWorkflowStepIncubationStages => Set<TestWorkflowStepIncubationStage>();
     public DbSet<WorkflowStepResult> WorkflowStepResults => Set<WorkflowStepResult>();
     public DbSet<ConfirmatoryMediaSelection> ConfirmatoryMediaSelections => Set<ConfirmatoryMediaSelection>();
     public DbSet<ConfirmatoryPlateObservation> ConfirmatoryPlateObservations => Set<ConfirmatoryPlateObservation>();

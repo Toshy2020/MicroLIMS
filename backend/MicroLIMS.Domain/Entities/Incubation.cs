@@ -35,6 +35,24 @@ public class Incubation
     // used to gate anything - it is evidence, not a control.
     public DateTime? WindowReceivedAtUtc { get; set; }
 
+    // Who started this incubation window (selected media/lot and
+    // incubator, or - for StageNumber 2 - performed the transfer). Not
+    // the same person as whoever later records the count: see
+    // CountTestReading.EnteredByUserId / SampleLocation.EnteredByUserId.
+    public int? StartedByUserId { get; set; }
+
+    // Set only on a StageNumber == 2 (or higher) row: the stage 1 row this
+    // one continues from. The physical plate does not change between
+    // stages, so MediaId is copied from the parent, never reselected.
+    public int? ParentIncubationId { get; set; }
+    public Incubation? ParentIncubation { get; set; }
+
+    // 1 for every incubation window that isn't part of a transfer. A
+    // transfer-enabled PlateCount step's stage 2 is a NEW row with
+    // StageNumber == 2 and ParentIncubationId pointing at stage 1 - never
+    // a mutation of the stage 1 row.
+    public int StageNumber { get; set; } = 1;
+
     [NotMapped]
     public bool IsIncubationComplete =>
         IncubationEndUtc.HasValue && DateTime.UtcNow >= IncubationEndUtc.Value;

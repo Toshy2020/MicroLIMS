@@ -17,6 +17,7 @@ const statusColorMap: Record<string, string> = {
   Inactive: "#9ca3af",
   Frozen: "#9ca3af",
   InStock: brandColors.badgeProduct,
+  LowStock: "#f59e0b",
   Depleted: brandColors.badgePM,
   Expired: "#dc2626",
   // Media lot lifecycle - a Conform evaluation only qualifies a lot;
@@ -27,6 +28,8 @@ const statusColorMap: Record<string, string> = {
   Quarantined: "#dc2626",
   PendingReview: "#9ca3af",
   Overdue: "#dc2626",
+  "Due Soon": "#f59e0b",
+  CalibrationDueSoon: "#f59e0b",
   InService: brandColors.badgeProduct,
   OutOfService: brandColors.badgePM,
   Retired: "#9ca3af",

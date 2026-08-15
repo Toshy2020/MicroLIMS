@@ -1,135 +1,375 @@
-import { useEffect, useState } from "react";
-import { Paper, Box, TextField, Select, MenuItem, Button, Table, TableHead, TableRow, TableCell, TableBody, Alert, IconButton } from "@mui/material";
+import { useEffect, useMemo, useState } from "react";
+import {
+  Paper,
+  Box,
+  Button,
+  Table,
+  TableHead,
+  TableRow,
+  TableCell,
+  TableBody,
+  TableContainer,
+  TablePagination,
+  Alert,
+  IconButton,
+  Tooltip,
+  Typography
+} from "@mui/material";
+import AddIcon from "@mui/icons-material/Add";
+import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import HistoryIcon from "@mui/icons-material/History";
-import EditIcon from "@mui/icons-material/Edit";
 import { PageHeader } from "../../../components/PageHeader";
 import { SectionTitle } from "../../../components/SectionTitle";
 import { StatusBadge } from "../../../components/StatusBadge";
 import { PrintButton } from "../../../components/PrintButton";
 import { PrintableTable } from "../../../components/PrintableTable";
 import { AuditHistoryDialog } from "../../../components/AuditHistoryDialog";
+import { LoadingSpinner } from "../../../components/LoadingSpinner";
 import { formatLabDate } from "../../../utils/formatDate";
 import { useAuth } from "../../../contexts/AuthContext";
 import { EquipmentInventoryService } from "./services/EquipmentInventoryService";
+import {
+  EquipmentFilterState,
+  EquipmentItem,
+  EquipmentKpiFilter
+} from "./types/equipmentTypes";
+import {
+  EquipmentKpiCards,
+  isEquipmentCalibrationDueSoon,
+  isEquipmentCalibrationOverdue
+} from "./components/EquipmentKpiCards";
+import { EquipmentFilterBar } from "./components/EquipmentFilterBar";
+import { RegisterEquipmentDialog } from "./components/RegisterEquipmentDialog";
+import { brandColors } from "../../../theme";
 
-const STATUSES = ["InService", "OutOfService", "Retired"];
+const INITIAL_FILTERS: EquipmentFilterState = {
+  search: "",
+  instrumentType: "",
+  status: "",
+  location: "",
+  calibrationRange: ""
+};
 
-// Equipment register under Inventory (Microbiology lab) - mirrors the
-// paper/Excel "List of instruments & equipment in QC laboratories",
-// scoped to Microbiology only per Mohamed's confirmed decision.
 export function EquipmentInventoryPage() {
   const { role } = useAuth();
   const canSeeHistory = role === "SectionHead" || role === "SystemAdministrator";
 
-  const [list, setList] = useState<any[]>([]);
-  const [printList, setPrintList] = useState<any[]>([]);
-  const [form, setForm] = useState<Record<string, any>>({ status: "InService" });
-  const [editingId, setEditingId] = useState<number | null>(null);
+  const [items, setItems] = useState<EquipmentItem[] | null>(null);
+  const [printList, setPrintList] = useState<EquipmentItem[]>([]);
+  const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState<{ text: string; ok: boolean } | null>(null);
+
+  // Filters & KPI state
+  const [kpiFilter, setKpiFilter] = useState<EquipmentKpiFilter>("all");
+  const [filters, setFilters] = useState<EquipmentFilterState>(INITIAL_FILTERS);
+
+  // Pagination state
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(25);
+
+  // Dialog states
+  const [isRegisterOpen, setIsRegisterOpen] = useState(false);
+  const [editingItem, setEditingItem] = useState<EquipmentItem | null>(null);
   const [historyFor, setHistoryFor] = useState<number | null>(null);
 
-  const load = () => {
-    EquipmentInventoryService.getAll().then(setList);
-    EquipmentInventoryService.getForPrint().then(setPrintList);
-  };
-  useEffect(() => { load(); }, []);
-
-  const startEdit = (row: any) => {
-    setEditingId(row.id);
-    setForm({
-      instrumentType: row.instrumentType, manufacturerName: row.manufacturerName ?? "", serialNumber: row.serialNumber ?? "",
-      firmwareVersion: row.firmwareVersion ?? "", code: row.code, location: row.location,
-      calibrationDueDate: row.calibrationDueDate?.slice(0, 10) ?? "", status: row.status
-    });
-  };
-
-  const cancelEdit = () => { setEditingId(null); setForm({ status: "InService" }); };
-
-  const save = async () => {
-    setMessage(null);
-    if (!form.instrumentType || !form.code || !form.location) {
-      setMessage({ text: "Instrument type, code, and location are required.", ok: false });
-      return;
-    }
-    const payload = {
-      instrumentType: form.instrumentType, manufacturerName: form.manufacturerName ?? "",
-      serialNumber: form.serialNumber || null, firmwareVersion: form.firmwareVersion || null,
-      code: form.code, location: form.location, calibrationDueDate: form.calibrationDueDate || null,
-      status: form.status
-    };
+  const loadData = async () => {
     try {
-      if (editingId) {
-        await EquipmentInventoryService.update(editingId, payload);
-        setMessage({ text: "Equipment updated.", ok: true });
-      } else {
-        await EquipmentInventoryService.create(payload);
-        setMessage({ text: "Equipment added.", ok: true });
-      }
-      cancelEdit();
-      load();
-    } catch (e: any) {
-      setMessage({ text: e?.response?.data?.message ?? "Could not save this equipment.", ok: false });
+      setLoading(true);
+      const [allEquipment, printEquipment] = await Promise.all([
+        EquipmentInventoryService.getAll(),
+        EquipmentInventoryService.getForPrint()
+      ]);
+      setItems(allEquipment);
+      setPrintList(printEquipment);
+    } catch {
+      setMessage({ text: "Failed to load equipment register.", ok: false });
+    } finally {
+      setLoading(false);
     }
   };
+
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  const handleReset = () => {
+    setKpiFilter("all");
+    setFilters(INITIAL_FILTERS);
+    setPage(0);
+  };
+
+  const handleKpiSelect = (newKpi: EquipmentKpiFilter) => {
+    setKpiFilter(newKpi);
+    setPage(0);
+  };
+
+  const handleFilterChange = (newFilters: EquipmentFilterState) => {
+    setFilters(newFilters);
+    setPage(0);
+  };
+
+  // Filtered dataset combining KPI shortcuts + form filters
+  const filteredItems = useMemo(() => {
+    if (!items) return [];
+
+    return items.filter((item) => {
+      // 1. KPI Shortcut Filter
+      if (kpiFilter === "in_service" && item.status !== "InService") return false;
+      if (kpiFilter === "out_of_service" && item.status !== "OutOfService" && item.status !== "Retired") return false;
+      if (kpiFilter === "calibration_overdue" && !isEquipmentCalibrationOverdue(item)) return false;
+      if (kpiFilter === "calibration_due_soon" && !isEquipmentCalibrationDueSoon(item, 30)) return false;
+
+      // 2. Search Text Query
+      const q = filters.search.trim().toLowerCase();
+      if (q) {
+        const matchesType = (item.instrumentType ?? "").toLowerCase().includes(q);
+        const matchesMfg = (item.manufacturerName ?? "").toLowerCase().includes(q);
+        const matchesSerial = (item.serialNumber ?? "").toLowerCase().includes(q);
+        const matchesFw = (item.firmwareVersion ?? "").toLowerCase().includes(q);
+        const matchesCode = (item.code ?? "").toLowerCase().includes(q);
+        const matchesLoc = (item.location ?? "").toLowerCase().includes(q);
+        if (!matchesType && !matchesMfg && !matchesSerial && !matchesFw && !matchesCode && !matchesLoc) {
+          return false;
+        }
+      }
+
+      // 3. Dropdown: Instrument Type
+      if (filters.instrumentType && item.instrumentType !== filters.instrumentType) {
+        return false;
+      }
+
+      // 4. Dropdown: Operational Status
+      if (filters.status && item.status !== filters.status) {
+        return false;
+      }
+
+      // 5. Dropdown: Location
+      if (filters.location && item.location !== filters.location) {
+        return false;
+      }
+
+      // 6. Dropdown: Calibration Range
+      if (filters.calibrationRange) {
+        if (filters.calibrationRange === "overdue" && !isEquipmentCalibrationOverdue(item)) return false;
+        if (filters.calibrationRange === "due_30" && !isEquipmentCalibrationDueSoon(item, 30)) return false;
+        if (filters.calibrationRange === "due_60" && !isEquipmentCalibrationDueSoon(item, 60)) return false;
+        if (filters.calibrationRange === "valid" && isEquipmentCalibrationOverdue(item)) return false;
+      }
+
+      return true;
+    });
+  }, [items, kpiFilter, filters]);
+
+  // Paginated slice
+  const paginatedItems = useMemo(() => {
+    const start = page * rowsPerPage;
+    return filteredItems.slice(start, start + rowsPerPage);
+  }, [filteredItems, page, rowsPerPage]);
 
   return (
     <>
-      <PageHeader title="Equipment" subtitle="QC/Microbiology lab instrument register — serial number, firmware, and calibration due date." />
-      {message && <Alert className="no-print" severity={message.ok ? "success" : "error"} sx={{ mb: 2 }}>{message.text}</Alert>}
-
-      <Box className="no-print">
-        <SectionTitle>{editingId ? "Edit Equipment" : "Register Equipment"}</SectionTitle>
-        <Paper sx={{ p: 2.5, mb: 3 }}>
-          <Box sx={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 2 }}>
-            <TextField size="small" label="Instrument Type" placeholder="e.g. Incubator, Pipette" value={form.instrumentType ?? ""} onChange={(e) => setForm({ ...form, instrumentType: e.target.value })} />
-            <TextField size="small" label="Manufacturer" value={form.manufacturerName ?? ""} onChange={(e) => setForm({ ...form, manufacturerName: e.target.value })} />
-            <TextField size="small" label="Serial No." value={form.serialNumber ?? ""} onChange={(e) => setForm({ ...form, serialNumber: e.target.value })} />
-            <TextField size="small" label="Firmware Version" value={form.firmwareVersion ?? ""} onChange={(e) => setForm({ ...form, firmwareVersion: e.target.value })} />
-            <TextField size="small" label="Code" value={form.code ?? ""} onChange={(e) => setForm({ ...form, code: e.target.value })} />
-            <TextField size="small" label="Location" value={form.location ?? ""} onChange={(e) => setForm({ ...form, location: e.target.value })} />
-            <TextField size="small" type="date" label="Calibration Due" InputLabelProps={{ shrink: true }} value={form.calibrationDueDate ?? ""} onChange={(e) => setForm({ ...form, calibrationDueDate: e.target.value })} />
-            <Select size="small" value={form.status ?? "InService"} onChange={(e) => setForm({ ...form, status: e.target.value })}>
-              {STATUSES.map((s) => <MenuItem key={s} value={s}>{s}</MenuItem>)}
-            </Select>
-          </Box>
-          <Box sx={{ display: "flex", justifyContent: "flex-end", gap: 1, mt: 2 }}>
-            {editingId && <Button onClick={cancelEdit}>Cancel</Button>}
-            <Button variant="contained" onClick={save}>{editingId ? "Save Changes" : "Add Equipment"}</Button>
-          </Box>
-        </Paper>
-
-        <SectionTitle>Equipment Register</SectionTitle>
-        <Box sx={{ display: "flex", justifyContent: "flex-end", mb: 1 }}><PrintButton label="Print (excludes out-of-service / retired)" /></Box>
-        <Paper sx={{ p: 2.5 }}>
-          <Table size="small">
-            <TableHead>
-              <TableRow>
-                <TableCell>Type</TableCell><TableCell>Manufacturer</TableCell><TableCell>Serial No.</TableCell><TableCell>Firmware</TableCell>
-                <TableCell>Code</TableCell><TableCell>Location</TableCell><TableCell>Calibration Due</TableCell><TableCell>Status</TableCell><TableCell></TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {list.map((eq) => (
-                <TableRow key={eq.id}>
-                  <TableCell>{eq.instrumentType}</TableCell><TableCell>{eq.manufacturerName || "—"}</TableCell>
-                  <TableCell>{eq.serialNumber || "—"}</TableCell><TableCell>{eq.firmwareVersion || "—"}</TableCell>
-                  <TableCell>{eq.code}</TableCell><TableCell>{eq.location}</TableCell>
-                  <TableCell>
-                    {eq.calibrationDueDate ? formatLabDate(eq.calibrationDueDate) : "—"}
-                    {eq.isCalibrationOverdue && <StatusBadge status="Overdue" />}
-                  </TableCell>
-                  <TableCell><StatusBadge status={eq.status} /></TableCell>
-                  <TableCell>
-                    <IconButton size="small" onClick={() => startEdit(eq)}><EditIcon fontSize="small" /></IconButton>
-                    {canSeeHistory && <IconButton size="small" onClick={() => setHistoryFor(eq.id)}><HistoryIcon fontSize="small" /></IconButton>}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </Paper>
+      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", mb: 2 }}>
+        <PageHeader
+          title="Equipment"
+          subtitle="QC/Microbiology lab instrument register — serial number, firmware, and calibration due date."
+        />
+        <Button
+          className="no-print"
+          variant="contained"
+          startIcon={<AddIcon />}
+          onClick={() => {
+            setEditingItem(null);
+            setIsRegisterOpen(true);
+          }}
+          sx={{
+            bgcolor: brandColors.sectionTitle,
+            px: 2.5,
+            py: 1,
+            fontWeight: 600,
+            whiteSpace: "nowrap",
+            "&:hover": { bgcolor: brandColors.pageTitle }
+          }}
+        >
+          + Register Equipment
+        </Button>
       </Box>
 
+      {message && (
+        <Alert
+          className="no-print"
+          severity={message.ok ? "success" : "error"}
+          onClose={() => setMessage(null)}
+          sx={{ mb: 2 }}
+        >
+          {message.text}
+        </Alert>
+      )}
+
+      {loading || !items ? (
+        <LoadingSpinner />
+      ) : (
+        <Box className="no-print">
+          {/* KPI Shortcut Cards */}
+          <EquipmentKpiCards
+            items={items}
+            activeFilter={kpiFilter}
+            onFilterSelect={handleKpiSelect}
+          />
+
+          {/* Compact Search & Filter Bar */}
+          <EquipmentFilterBar
+            items={items}
+            filters={filters}
+            onFilterChange={handleFilterChange}
+            onReset={handleReset}
+          />
+
+          {/* Equipment Register Section */}
+          <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1.5, mt: 3 }}>
+            <SectionTitle>
+              {`Equipment Register (${filteredItems.length}${filteredItems.length !== items.length ? ` filtered from ${items.length}` : ""})`}
+            </SectionTitle>
+            <PrintButton label="Print (excludes out-of-service / retired)" />
+          </Box>
+
+          <Paper sx={{ border: "1px solid #e5e7eb", borderRadius: 2, overflow: "hidden" }}>
+            <TableContainer>
+              <Table size="small">
+                <TableHead sx={{ bgcolor: "#f9fafb" }}>
+                  <TableRow>
+                    <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Type</TableCell>
+                    <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Manufacturer</TableCell>
+                    <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Serial No.</TableCell>
+                    <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Firmware</TableCell>
+                    <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Code</TableCell>
+                    <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Location</TableCell>
+                    <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Calibration Due</TableCell>
+                    <TableCell sx={{ fontWeight: 700, fontSize: 12, textAlign: "center" }}>Status</TableCell>
+                    <TableCell sx={{ fontWeight: 700, fontSize: 12, textAlign: "center" }}>Actions</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {paginatedItems.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={9} sx={{ textAlign: "center", py: 4 }}>
+                        <Typography color="text.secondary" sx={{ fontSize: 14 }}>
+                          No equipment matching the selected filter criteria.
+                        </Typography>
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    paginatedItems.map((eq) => {
+                      const isOverdue = isEquipmentCalibrationOverdue(eq);
+                      const isDueSoon = isEquipmentCalibrationDueSoon(eq, 30);
+                      return (
+                        <TableRow
+                          key={eq.id}
+                          hover
+                          sx={{
+                            bgcolor: isOverdue ? "#fef2f2" : isDueSoon ? "#fffbeb" : undefined,
+                            "&:last-child td, &:last-child th": { border: 0 }
+                          }}
+                        >
+                          <TableCell sx={{ fontSize: 12, fontWeight: 600, whiteSpace: "nowrap" }}>
+                            {eq.instrumentType}
+                          </TableCell>
+                          <TableCell sx={{ fontSize: 12 }}>
+                            {eq.manufacturerName || "—"}
+                          </TableCell>
+                          <TableCell sx={{ fontSize: 12, fontFamily: "monospace" }}>
+                            {eq.serialNumber || "—"}
+                          </TableCell>
+                          <TableCell sx={{ fontSize: 12 }}>
+                            {eq.firmwareVersion || "—"}
+                          </TableCell>
+                          <TableCell sx={{ fontSize: 12, fontFamily: "monospace", fontWeight: 700 }}>
+                            {eq.code}
+                          </TableCell>
+                          <TableCell sx={{ fontSize: 12 }}>
+                            {eq.location}
+                          </TableCell>
+                          <TableCell sx={{ fontSize: 12, whiteSpace: "nowrap" }}>
+                            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                              <span
+                                style={{
+                                  fontWeight: isOverdue || isDueSoon ? 600 : "normal",
+                                  color: isOverdue ? "#dc2626" : isDueSoon ? "#d97706" : "inherit"
+                                }}
+                              >
+                                {eq.calibrationDueDate ? formatLabDate(eq.calibrationDueDate) : "—"}
+                              </span>
+                              {isOverdue && <StatusBadge status="Overdue" />}
+                              {isDueSoon && <StatusBadge status="Due Soon" />}
+                            </Box>
+                          </TableCell>
+                          <TableCell sx={{ textAlign: "center" }}>
+                            <StatusBadge status={eq.status} />
+                          </TableCell>
+                          <TableCell sx={{ textAlign: "center", whiteSpace: "nowrap" }}>
+                            <Tooltip title="Edit Equipment">
+                              <IconButton
+                                size="small"
+                                onClick={() => {
+                                  setEditingItem(eq);
+                                  setIsRegisterOpen(true);
+                                }}
+                                sx={{ color: "primary.main" }}
+                              >
+                                <EditOutlinedIcon fontSize="small" />
+                              </IconButton>
+                            </Tooltip>
+                            {canSeeHistory && (
+                              <Tooltip title="Audit History">
+                                <IconButton
+                                  size="small"
+                                  onClick={() => setHistoryFor(eq.id)}
+                                  sx={{ color: "text.secondary" }}
+                                >
+                                  <HistoryIcon fontSize="small" />
+                                </IconButton>
+                              </Tooltip>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })
+                  )}
+                </TableBody>
+              </Table>
+            </TableContainer>
+
+            <TablePagination
+              rowsPerPageOptions={[10, 25, 50, 100]}
+              component="div"
+              count={filteredItems.length}
+              rowsPerPage={rowsPerPage}
+              page={page}
+              onPageChange={(_, newPage) => setPage(newPage)}
+              onRowsPerPageChange={(e) => {
+                setRowsPerPage(parseInt(e.target.value, 10));
+                setPage(0);
+              }}
+              sx={{ borderTop: "1px solid #e5e7eb" }}
+            />
+          </Paper>
+        </Box>
+      )}
+
+      {/* Register / Edit Modal Dialog */}
+      <RegisterEquipmentDialog
+        open={isRegisterOpen}
+        onClose={() => {
+          setIsRegisterOpen(false);
+          setEditingItem(null);
+        }}
+        onSuccess={(msg) => {
+          setMessage({ text: msg, ok: true });
+          loadData();
+        }}
+        editingItem={editingItem}
+      />
+
+      {/* Controlled Printable Document Table */}
       <PrintableTable
         title="Equipment Register — Microbiology Lab"
         subtitle="Out-of-service and retired instruments are excluded from this list."
@@ -146,7 +386,13 @@ export function EquipmentInventoryPage() {
         ]}
       />
 
-      <AuditHistoryDialog open={historyFor != null} onClose={() => setHistoryFor(null)} entityName="EquipmentInventory" entityId={historyFor} />
+      {/* Audit History Modal */}
+      <AuditHistoryDialog
+        open={historyFor != null}
+        onClose={() => setHistoryFor(null)}
+        entityName="EquipmentInventory"
+        entityId={historyFor}
+      />
     </>
   );
 }

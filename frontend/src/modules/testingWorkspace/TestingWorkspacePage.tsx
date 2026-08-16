@@ -1,19 +1,31 @@
 import { useEffect, useMemo, useState } from "react";
-import { Paper, Table, TableHead, TableRow, TableCell, TableBody, Typography } from "@mui/material";
+import {
+  Box,
+  Paper,
+  Table,
+  TableHead,
+  TableRow,
+  TableCell,
+  TableBody,
+  Typography
+} from "@mui/material";
 import { SampleTableRow } from "./SampleTableRow";
 import { SampleCardView } from "./SampleCardView";
 import { SampleKanbanView } from "./SampleKanbanView";
 import { WorkspaceStatTiles } from "./WorkspaceStatTiles";
 import { WorkspaceToolbar, WorkspaceView, WORKSPACE_COLUMNS } from "./WorkspaceToolbar";
+import { SelectedSampleTestingPanel } from "./SelectedSampleTestingPanel";
 import { TestWorkflowDialogRouter } from "./FloatingDialogs";
 import { SampleSummaryDialog } from "./SampleSummaryDialog";
-import { WorkspaceService } from "./services/WorkspaceService";
-import { SampleCard as SampleCardType, TestOrderSummary } from "./types/workspaceTypes";
 import { PreparationDialog } from "../testPreparation/PreparationDialog";
+import { AuditHistoryDialog } from "../../components/AuditHistoryDialog";
 import { LoadingSpinner } from "../../components/LoadingSpinner";
 import { PageHeader } from "../../components/PageHeader";
 import { SectionTitle } from "../../components/SectionTitle";
+import { WorkspaceService } from "./services/WorkspaceService";
+import { SampleCard as SampleCardType, TestOrderSummary } from "./types/workspaceTypes";
 import { useAuth } from "../../contexts/AuthContext";
+import { brandColors } from "../../theme";
 
 const ALL_COLUMN_KEYS = WORKSPACE_COLUMNS.map((c) => c.key);
 
@@ -36,11 +48,20 @@ function exportToCsv(samples: SampleCardType[]) {
 export function TestingWorkspacePage() {
   const { userId } = useAuth();
   const [samples, setSamples] = useState<SampleCardType[] | null>(null);
+
+  // Selected sample for split-pane view
+  const [selectedSampleId, setSelectedSampleId] = useState<number | null>(null);
+
+  // Active test for workflow dialog execution
   const [activeTest, setActiveTest] = useState<TestOrderSummary | null>(null);
   const [activeSample, setActiveSample] = useState<SampleCardType | null>(null);
+
+  // Other modal dialogs
   const [preparingSample, setPreparingSample] = useState<SampleCardType | null>(null);
   const [summarySampleId, setSummarySampleId] = useState<number | null>(null);
+  const [auditSampleId, setAuditSampleId] = useState<number | null>(null);
 
+  // Filters and controls
   const [search, setSearch] = useState("");
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
@@ -52,19 +73,24 @@ export function TestingWorkspacePage() {
 
   const load = () => WorkspaceService.getActiveSamples().then(setSamples);
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    load();
+  }, []);
 
   const visibleSamples = useMemo(() => {
     if (!samples) return samples;
     const q = search.trim().toLowerCase();
     return samples.filter((s) => {
-      if (q &&
+      if (
+        q &&
         !s.displayName.toLowerCase().includes(q) &&
         !s.referenceNumber.toLowerCase().includes(q) &&
         !(s.batchNumber ?? "").toLowerCase().includes(q) &&
-        !s.controlNumber.toLowerCase().includes(q)) return false;
+        !s.controlNumber.toLowerCase().includes(q)
+      )
+        return false;
 
-      const receivedDate = s.receivedAt.slice(0, 10); // YYYY-MM-DD, matches <input type="date">
+      const receivedDate = s.receivedAt.slice(0, 10);
       if (fromDate && receivedDate < fromDate) return false;
       if (toDate && receivedDate > toDate) return false;
       if (statusFilter && s.status !== statusFilter) return false;
@@ -74,104 +100,268 @@ export function TestingWorkspacePage() {
     });
   }, [samples, search, fromDate, toDate, statusFilter, testStatusFilter, scope, userId]);
 
+  // Derive the currently selected sample object from latest loaded samples
+  const selectedSample = useMemo(() => {
+    if (!selectedSampleId || !samples) return null;
+    return samples.find((s) => s.sampleId === selectedSampleId) || null;
+  }, [selectedSampleId, samples]);
+
   if (!samples || !visibleSamples) return <LoadingSpinner />;
+
+  const handleSelectSample = (sample: SampleCardType) => {
+    setSelectedSampleId(sample.sampleId);
+  };
+
+  const handleDeselectSample = () => {
+    setSelectedSampleId(null);
+  };
 
   const handleTestClick = (test: TestOrderSummary, sample: SampleCardType) => {
     setActiveTest(test);
     setActiveSample(sample);
   };
 
-  const handleClose = () => {
+  const handleCloseTestWorkflow = () => {
     setActiveTest(null);
-    load(); // refresh statuses after a workflow dialog closes
+    load(); // Refresh statuses after workflow interaction
   };
 
   const handlePreparationClose = () => {
     setPreparingSample(null);
-    load(); // refresh so the row switches from "Needs Preparation" to its test chips
+    load(); // Refresh after preparation
   };
 
   const handleSummaryClose = () => {
     setSummarySampleId(null);
-    load(); // refresh so the badge reflects any review/approval decision just made
+    load(); // Refresh after summary review/approval
   };
 
-  const colSpan = 2 + visibleColumns.size; // expand-icon column + Item/Reference + toggleable columns
+  const colSpan = 2 + visibleColumns.size;
 
   return (
     <>
-      <PageHeader title="Testing Workspace" subtitle="Every active sample, one row each. Click a test to open its workflow." />
+      <PageHeader
+        title="Testing Workspace"
+        subtitle="Manage and execute analytical workflows for active microbiology samples."
+      />
 
       <WorkspaceStatTiles samples={samples} />
 
       <WorkspaceToolbar
-        search={search} onSearchChange={setSearch}
-        fromDate={fromDate} onFromDateChange={setFromDate}
-        toDate={toDate} onToDateChange={setToDate}
-        statusFilter={statusFilter} onStatusFilterChange={setStatusFilter}
-        testStatusFilter={testStatusFilter} onTestStatusFilterChange={setTestStatusFilter}
-        scope={scope} onScopeChange={setScope}
-        view={view} onViewChange={setView}
-        visibleColumns={visibleColumns} onVisibleColumnsChange={setVisibleColumns}
+        search={search}
+        onSearchChange={setSearch}
+        fromDate={fromDate}
+        onFromDateChange={setFromDate}
+        toDate={toDate}
+        onToDateChange={setToDate}
+        statusFilter={statusFilter}
+        onStatusFilterChange={setStatusFilter}
+        testStatusFilter={testStatusFilter}
+        onTestStatusFilterChange={setTestStatusFilter}
+        scope={scope}
+        onScopeChange={setScope}
+        view={view}
+        onViewChange={setView}
+        visibleColumns={visibleColumns}
+        onVisibleColumnsChange={setVisibleColumns}
         onExport={() => exportToCsv(visibleSamples)}
       />
 
-      <SectionTitle>{`Active Samples (${visibleSamples.length})`}</SectionTitle>
+      {/* Main Workspace Layout */}
+      {selectedSample ? (
+        /* SPLIT-PANE LAYOUT: Left = Compact Sample Register, Right = Selected Sample Testing Panel */
+        <Box
+          sx={{
+            display: "flex",
+            flexDirection: { xs: "column", md: "row" },
+            gap: 2,
+            alignItems: "stretch",
+            minHeight: "calc(100vh - 280px)"
+          }}
+        >
+          {/* Left Panel: Compact Sample Register (approx 38% width on desktop) */}
+          <Box
+            sx={{
+              width: { xs: "100%", md: "38%" },
+              display: "flex",
+              flexDirection: "column",
+              gap: 1.5,
+              flexShrink: 0
+            }}
+          >
+            <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <Typography sx={{ fontSize: 14, fontWeight: 700, color: brandColors.pageTitle }}>
+                Active Samples ({visibleSamples.length})
+              </Typography>
+              <Typography sx={{ fontSize: 11, color: "text.secondary" }}>
+                Click a sample to view
+              </Typography>
+            </Box>
 
-      {view === "table" && (
-        <Paper sx={{ overflowX: "auto" }}>
-          <Table size="small">
-            <TableHead>
-              <TableRow>
-                <TableCell />
-                <TableCell>Item / Reference</TableCell>
-                {visibleColumns.has("category") && <TableCell>Category</TableCell>}
-                {visibleColumns.has("batch") && <TableCell>Batch Number</TableCell>}
-                {visibleColumns.has("control") && <TableCell>Control Number</TableCell>}
-                {visibleColumns.has("cause") && <TableCell>Cause of Testing</TableCell>}
-                {visibleColumns.has("receivedAt") && <TableCell>Received At</TableCell>}
-                {visibleColumns.has("tests") && <TableCell>Tests</TableCell>}
-                {visibleColumns.has("assignedTo") && <TableCell>Assigned To</TableCell>}
-                {visibleColumns.has("status") && <TableCell>Status</TableCell>}
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {visibleSamples.map((s) => (
-                <SampleTableRow
-                  key={s.sampleId}
-                  sample={s}
-                  visibleColumns={visibleColumns}
-                  colSpan={colSpan}
-                  onTestClick={handleTestClick}
-                  onNeedsPreparationClick={() => setPreparingSample(s)}
-                  onCorrected={load}
-                  onLifecycleBadgeClick={setSummarySampleId}
-                />
-              ))}
-            </TableBody>
-          </Table>
-          {visibleSamples.length === 0 && (
-            <Typography sx={{ color: "#9ca3af", fontSize: 13, p: 2 }}>No samples match this filter.</Typography>
+            <Paper
+              elevation={0}
+              sx={{
+                border: "1px solid #e5e7eb",
+                borderRadius: 2,
+                overflowY: "auto",
+                maxHeight: { xs: "340px", md: "calc(100vh - 330px)" },
+                bgcolor: "#ffffff"
+              }}
+            >
+              <Table size="small" stickyHeader>
+                <TableHead>
+                  <TableRow sx={{ "& th": { bgcolor: "#f9fafb", fontWeight: 700, fontSize: 11, py: 1 } }}>
+                    <TableCell>Item / Reference</TableCell>
+                    <TableCell sx={{ width: 65 }}>Type</TableCell>
+                    <TableCell sx={{ width: 95 }}>Batch/Ctrl</TableCell>
+                    <TableCell sx={{ width: 85 }}>Status</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {visibleSamples.map((s) => (
+                    <SampleTableRow
+                      key={s.sampleId}
+                      sample={s}
+                      isSelected={selectedSampleId === s.sampleId}
+                      onSelectSample={handleSelectSample}
+                      isCompact={true}
+                      visibleColumns={visibleColumns}
+                      colSpan={4}
+                      onNeedsPreparationClick={() => setPreparingSample(s)}
+                      onCorrected={load}
+                      onLifecycleBadgeClick={setSummarySampleId}
+                    />
+                  ))}
+                  {visibleSamples.length === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={4} align="center" sx={{ py: 3, color: "#9ca3af", fontSize: 12 }}>
+                        No matching samples.
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </Paper>
+          </Box>
+
+          {/* Right Panel: Selected Sample & Assigned Testing Workflow (approx 62% width on desktop) */}
+          <Box
+            sx={{
+              flex: 1,
+              minWidth: 0,
+              display: "flex",
+              flexDirection: "column",
+              maxHeight: { xs: "auto", md: "calc(100vh - 290px)" }
+            }}
+          >
+            <SelectedSampleTestingPanel
+              sample={selectedSample}
+              onTestClick={handleTestClick}
+              onClose={handleDeselectSample}
+              onNeedsPreparationClick={(s) => setPreparingSample(s)}
+              onLifecycleBadgeClick={setSummarySampleId}
+              onCorrected={load}
+              onViewAuditHistory={setAuditSampleId}
+            />
+          </Box>
+        </Box>
+      ) : (
+        /* NORMAL STATE: Full-Width Sample Register */
+        <>
+          <SectionTitle>{`Active Samples (${visibleSamples.length})`}</SectionTitle>
+
+          {view === "table" && (
+            <Paper sx={{ overflowX: "auto" }}>
+              <Table size="small">
+                <TableHead>
+                  <TableRow sx={{ bgcolor: "#fafafa" }}>
+                    <TableCell sx={{ width: 36 }} />
+                    <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Item / Reference</TableCell>
+                    {visibleColumns.has("category") && <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Category</TableCell>}
+                    {visibleColumns.has("batch") && <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Batch Number</TableCell>}
+                    {visibleColumns.has("control") && <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Control Number</TableCell>}
+                    {visibleColumns.has("cause") && <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Cause of Testing</TableCell>}
+                    {visibleColumns.has("receivedAt") && <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Received At</TableCell>}
+                    {visibleColumns.has("assignedTo") && <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Assigned To</TableCell>}
+                    {visibleColumns.has("status") && <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Status</TableCell>}
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {visibleSamples.map((s) => (
+                    <SampleTableRow
+                      key={s.sampleId}
+                      sample={s}
+                      isSelected={false}
+                      onSelectSample={handleSelectSample}
+                      isCompact={false}
+                      visibleColumns={visibleColumns}
+                      colSpan={colSpan}
+                      onNeedsPreparationClick={() => setPreparingSample(s)}
+                      onCorrected={load}
+                      onLifecycleBadgeClick={setSummarySampleId}
+                    />
+                  ))}
+                  {visibleSamples.length === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={colSpan} align="center" sx={{ py: 4, color: "#9ca3af", fontSize: 13 }}>
+                        No samples match this filter.
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </Paper>
           )}
-        </Paper>
+
+          {view === "card" && (
+            <SampleCardView
+              samples={visibleSamples}
+              selectedSampleId={selectedSampleId}
+              onSelectSample={handleSelectSample}
+              onNeedsPreparationClick={setPreparingSample}
+              onLifecycleBadgeClick={setSummarySampleId}
+            />
+          )}
+
+          {view === "kanban" && (
+            <SampleKanbanView
+              samples={visibleSamples}
+              onCardClick={(sampleId) => {
+                const s = samples.find((item) => item.sampleId === sampleId);
+                if (s) setSelectedSampleId(s.sampleId);
+                else setSummarySampleId(sampleId);
+              }}
+            />
+          )}
+        </>
       )}
 
-      {view === "card" && (
-        <SampleCardView
-          samples={visibleSamples}
-          onTestClick={handleTestClick}
-          onNeedsPreparationClick={setPreparingSample}
-          onLifecycleBadgeClick={setSummarySampleId}
-        />
-      )}
+      {/* Floating & Modal Dialogs */}
+      <TestWorkflowDialogRouter
+        open={Boolean(activeTest)}
+        test={activeTest}
+        sample={activeSample}
+        onClose={handleCloseTestWorkflow}
+      />
 
-      {view === "kanban" && (
-        <SampleKanbanView samples={visibleSamples} onCardClick={setSummarySampleId} />
-      )}
+      <PreparationDialog
+        open={Boolean(preparingSample)}
+        sample={preparingSample}
+        onClose={handlePreparationClose}
+      />
 
-      <TestWorkflowDialogRouter open={!!activeTest} test={activeTest} sample={activeSample} onClose={handleClose} />
-      <PreparationDialog open={!!preparingSample} sample={preparingSample} onClose={handlePreparationClose} />
-      <SampleSummaryDialog open={!!summarySampleId} sampleId={summarySampleId} onClose={handleSummaryClose} />
+      <SampleSummaryDialog
+        open={Boolean(summarySampleId)}
+        sampleId={summarySampleId}
+        onClose={handleSummaryClose}
+      />
+
+      <AuditHistoryDialog
+        open={Boolean(auditSampleId)}
+        entityName="Sample"
+        entityId={auditSampleId}
+        onClose={() => setAuditSampleId(null)}
+      />
     </>
   );
 }

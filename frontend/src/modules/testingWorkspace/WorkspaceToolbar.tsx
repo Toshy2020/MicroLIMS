@@ -24,7 +24,6 @@ export const WORKSPACE_COLUMNS: WorkspaceColumn[] = [
   { key: "control", label: "Control No." },
   { key: "cause", label: "Cause of Testing" },
   { key: "receivedAt", label: "Received At" },
-  { key: "tests", label: "Tests" },
   { key: "assignedTo", label: "Assigned To" },
   { key: "status", label: "Overall Status" }
 ];
@@ -45,8 +44,7 @@ interface Props {
 }
 
 // Toolbar is fully controlled - all filter/view state lives in
-// TestingWorkspacePage, same as the search/fromDate/toDate state it
-// already owned before this redesign. This component only renders inputs.
+// TestingWorkspacePage.
 export function WorkspaceToolbar({
   search, onSearchChange, fromDate, onFromDateChange, toDate, onToDateChange,
   statusFilter, onStatusFilterChange, testStatusFilter, onTestStatusFilterChange,
@@ -61,9 +59,6 @@ export function WorkspaceToolbar({
     onVisibleColumnsChange(next);
   };
 
-  // A barcode scanner types the code then emits Enter - reuse the same
-  // `search` filter the text search box already drives rather than a
-  // second parallel filter mechanism.
   const handleScanKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") onSearchChange((e.target as HTMLInputElement).value);
   };
@@ -77,10 +72,10 @@ export function WorkspaceToolbar({
         />
         <TextField
           size="small" placeholder="Search by item, reference, batch, or control number…" value={search}
-          onChange={(e) => onSearchChange(e.target.value)} sx={{ minWidth: 280, flex: 1 }}
+          onChange={(e) => onSearchChange(e.target.value)} sx={{ minWidth: 260, flex: 1 }}
           InputProps={{ startAdornment: <InputAdornment position="start"><SearchIcon fontSize="small" /></InputAdornment> }}
         />
-        <Select size="small" value={scope} onChange={(e) => onScopeChange(e.target.value as "all" | "mine")} sx={{ minWidth: 140 }}>
+        <Select size="small" value={scope} onChange={(e) => onScopeChange(e.target.value as "all" | "mine")} sx={{ minWidth: 130 }}>
           <MenuItem value="all">All Samples</MenuItem>
           <MenuItem value="mine">My Assigned</MenuItem>
         </Select>

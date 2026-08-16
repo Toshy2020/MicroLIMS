@@ -1,178 +1,348 @@
-import { useEffect, useState } from "react";
-import { Box, Paper, Table, TableHead, TableRow, TableCell, TableBody, TextField, Select, MenuItem, Button, Alert, Typography } from "@mui/material";
+import { useEffect, useMemo, useState } from "react";
+import { Box, Button, Alert, Paper } from "@mui/material";
+import AddIcon from "@mui/icons-material/Add";
+import RefreshIcon from "@mui/icons-material/Refresh";
 import { PageHeader } from "../../../components/PageHeader";
 import { SectionTitle } from "../../../components/SectionTitle";
-import { StatusBadge } from "../../../components/StatusBadge";
 import { SignatureDialog } from "../../../components/SignatureDialog";
-import { useAuth } from "../../../contexts/AuthContext";
+import { AuditHistoryDialog } from "../../../components/AuditHistoryDialog";
+import { MediaLotKpiCards, MediaKpiFilterKey, lifecycleOf } from "./components/MediaLotKpiCards";
+import { MediaLotFilterBar } from "./components/MediaLotFilterBar";
+import { MediaLotRegisterTable } from "./components/MediaLotRegisterTable";
+import { SelectedMediaLotWorkspace } from "./components/SelectedMediaLotWorkspace";
+import { MediaPreparationDialog } from "./dialogs/MediaPreparationDialog";
+import { MediaEvaluationWorkflowDialog } from "./dialogs/MediaEvaluationWorkflowDialog";
 import { MediaPreparationService } from "./services/MediaPreparationService";
-import { masterDataOptions, mediaClassLabel } from "../../../services/masterDataOptions";
-import { MaterialService } from "../../inventory/materials/services/MaterialService";
-
-// Where a lot sits in its lifecycle. A Conform evaluation only makes a
-// lot eligible - "Awaiting Approval" is the state between passing
-// evaluation and a Section Head signing for its release.
-function lifecycleOf(lot: any, awaitingApprovalIds: Set<number>): string {
-  if (lot.isReleasedForUse) return "Released";
-  if (lot.approvalStatus === "Rejected" || lot.status === "QuarantineFailed") return "Quarantined";
-  if (awaitingApprovalIds.has(lot.id)) return "Awaiting Approval";
-  return "Pending Evaluation";
-}
+import { MediaEvaluationService } from "../mediaEvaluation/services/MediaEvaluationService";
+import { masterDataOptions } from "../../../services/masterDataOptions";
+import { brandColors } from "../../../theme";
 
 export function MediaPage() {
-  const { role } = useAuth();
-  const canRelease = role === "SectionHead" || role === "SystemAdministrator";
-
   const [lots, setLots] = useState<any[]>([]);
+  const [evaluations, setEvaluations] = useState<any[]>([]);
   const [awaitingApprovalIds, setAwaitingApprovalIds] = useState<Set<number>>(new Set());
   const [mediaTypes, setMediaTypes] = useState<any[]>([]);
-  const [autoclaves, setAutoclaves] = useState<any[]>([]);
-  const [dehydratedMedia, setDehydratedMedia] = useState<any[]>([]);
-  const [form, setForm] = useState<Record<string, any>>({});
-  const [message, setMessage] = useState<{ text: string; ok: boolean } | null>(null);
-  const [pendingDecision, setPendingDecision] = useState<{ lot: any; approved: boolean } | null>(null);
+  const [loading, setLoading] = useState(false);
 
-  const load = () => {
-    MediaPreparationService.getAll().then(setLots);
-    MediaPreparationService.getAwaitingApproval()
-      .then((queue: any[]) => setAwaitingApprovalIds(new Set(queue.map((m) => m.id))))
-      .catch(() => setAwaitingApprovalIds(new Set()));
+  // Selected Media Lot for Split-Pane Workspace
+  const [selectedLotId, setSelectedLotId] = useState<number | null>(null);
+
+  // Dialogs state
+  const [prepDialogOpen, setPrepDialogOpen] = useState(false);
+  const [evaluationDialogOpen, setEvaluationDialogOpen] = useState(false);
+  const [activeEvaluationId, setActiveEvaluationId] = useState<number | null>(null);
+  const [auditLotId, setAuditLotId] = useState<number | null>(null);
+  const [pendingDecision, setPendingDecision] = useState<{ lot: any; approved: boolean } | null>(null);
+  const [message, setMessage] = useState<{ text: string; ok: boolean } | null>(null);
+
+  // Filters & Controls
+  const [search, setSearch] = useState("");
+  const [selectedMediaTypeId, setSelectedMediaTypeId] = useState("");
+  const [selectedStatus, setSelectedStatus] = useState("");
+  const [activeKpi, setActiveKpi] = useState<MediaKpiFilterKey | null>(null);
+
+  const loadData = async () => {
+    setLoading(true);
+    try {
+      const [lotsData, awaitingQueue, evalsData, mTypes] = await Promise.all([
+        MediaPreparationService.getAll(),
+        MediaPreparationService.getAwaitingApproval().catch(() => []),
+        MediaEvaluationService.getAll().catch(() => []),
+        masterDataOptions.getMediaTypes().catch(() => [])
+      ]);
+
+      setLots(lotsData || []);
+      setAwaitingApprovalIds(new Set((awaitingQueue || []).map((m: any) => m.id)));
+      setEvaluations(evalsData || []);
+      setMediaTypes(mTypes || []);
+    } catch (err: any) {
+      setMessage({ text: err?.response?.data?.message ?? "Failed to load media lots.", ok: false });
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
-    load();
-    masterDataOptions.getMediaTypes().then(setMediaTypes);
-    masterDataOptions.getEquipment("Autoclave").then(setAutoclaves);
-    MaterialService.getAll("DehydratedMedia").then(setDehydratedMedia);
+    loadData();
   }, []);
 
-  // Throws on failure so SignatureDialog can surface the server's message
-  // (wrong password, segregation violation) and keep itself open.
-  const confirmDecision = async (password: string) => {
-    if (!pendingDecision) return;
-    await MediaPreparationService.decideRelease(pendingDecision.lot.id, password, pendingDecision.approved);
-    setMessage({
-      text: `Lot ${pendingDecision.lot.lotNumber} ${pendingDecision.approved ? "released for use" : "quarantined"}.`,
-      ok: pendingDecision.approved
-    });
-    setPendingDecision(null);
-    load();
+  const handleKpiSelect = (kpi: MediaKpiFilterKey) => {
+    if (kpi === "ALL" || activeKpi === kpi) {
+      setActiveKpi(null);
+      setSelectedStatus("");
+    } else {
+      setActiveKpi(kpi);
+      setSelectedStatus(kpi);
+    }
   };
 
-  // Only stock that is actually usable (not expired, not depleted) is
-  // offered - MediaPreparationService.PrepareAsync re-checks this
-  // server-side regardless, this is just so the analyst doesn't pick
-  // something that will get rejected.
-  const usableStock = dehydratedMedia.filter((m) => m.status === "InStock");
-  const selectedMaterial = usableStock.find((m) => m.id === form.materialId);
+  const handleStatusFilterChange = (status: string) => {
+    setSelectedStatus(status);
+    if (status) {
+      setActiveKpi(status as MediaKpiFilterKey);
+    } else {
+      setActiveKpi(null);
+    }
+  };
 
-  const setField = (k: string, v: any) => setForm((f) => ({ ...f, [k]: v }));
+  const handleResetFilters = () => {
+    setSearch("");
+    setSelectedMediaTypeId("");
+    setSelectedStatus("");
+    setActiveKpi(null);
+  };
 
-  const save = async () => {
-    setMessage(null);
+  // Filtered lots
+  const visibleLots = useMemo(() => {
+    const q = search.trim().toLowerCase();
+
+    return lots.filter((lot) => {
+      if (q) {
+        const matchesLot = lot.lotNumber?.toLowerCase().includes(q);
+        const matchesType = lot.mediaType?.class?.toLowerCase().includes(q);
+        const matchesMaterial = lot.material?.materialName?.toLowerCase().includes(q);
+        const matchesBatch = lot.material?.batchNumber?.toLowerCase().includes(q);
+        if (!matchesLot && !matchesType && !matchesMaterial && !matchesBatch) return false;
+      }
+
+      if (selectedMediaTypeId && String(lot.mediaTypeId) !== selectedMediaTypeId) {
+        return false;
+      }
+
+      if (selectedStatus) {
+        const lifecycle = lifecycleOf(lot, awaitingApprovalIds);
+        if (lifecycle !== selectedStatus) return false;
+      }
+
+      return true;
+    });
+  }, [lots, search, selectedMediaTypeId, selectedStatus, awaitingApprovalIds]);
+
+  const selectedLot = useMemo(() => {
+    if (!selectedLotId || !lots) return null;
+    return lots.find((l) => l.id === selectedLotId) || null;
+  }, [selectedLotId, lots]);
+
+  const handleSelectLot = (lot: any) => {
+    setSelectedLotId(lot.id);
+  };
+
+  const handleDeselectLot = () => {
+    setSelectedLotId(null);
+  };
+
+  const handleOpenEvaluation = (evaluationId: number) => {
+    setActiveEvaluationId(evaluationId);
+    setEvaluationDialogOpen(true);
+  };
+
+  const handleViewRecord = (lotId: number) => {
+    window.open(`/media/${lotId}/report`, "_blank", "noopener");
+  };
+
+  const handleViewAuditHistory = (lotId: number) => {
+    setAuditLotId(lotId);
+  };
+
+  const confirmDecision = async (password: string) => {
+    if (!pendingDecision) return;
     try {
-      await MediaPreparationService.prepare({
-        mediaTypeId: form.mediaTypeId, materialId: form.materialId,
-        totalWeight: Number(form.totalWeight), totalVolume: form.totalVolume, autoclaveEquipmentId: form.autoclaveEquipmentId,
-        autoclaveProgram: form.autoclaveProgram, loadType: form.loadType, temperature: Number(form.temperature),
-        cycleTime: Number(form.cycleTime), cycleNumber: Number(form.cycleNumber), ph: Number(form.ph), expiryDate: form.expiryDate
+      await MediaPreparationService.decideRelease(pendingDecision.lot.id, password, pendingDecision.approved);
+      setMessage({
+        text: `Media lot ${pendingDecision.lot.lotNumber} ${pendingDecision.approved ? "released for use" : "quarantined"}.`,
+        ok: pendingDecision.approved
       });
-      setMessage({ text: "Media lot prepared.", ok: true });
-      setForm({});
-      load();
-      MaterialService.getAll("DehydratedMedia").then(setDehydratedMedia);
+      setPendingDecision(null);
+      await loadData();
     } catch (e: any) {
-      setMessage({ text: e?.response?.data?.message ?? "Could not prepare media.", ok: false });
+      setMessage({ text: e?.response?.data?.message ?? "Release decision failed.", ok: false });
+    }
+  };
+
+  const handlePrepSuccess = async (newLot: any) => {
+    setMessage({ text: `Media lot ${newLot?.lotNumber ?? ""} successfully prepared.`, ok: true });
+    await loadData();
+    if (newLot?.id) {
+      setSelectedLotId(newLot.id);
     }
   };
 
   return (
     <>
-      <PageHeader title="Media Preparation" subtitle="The full prepared-lot record — autoclave, cycle, pH." />
-      {message && <Alert severity={message.ok ? "success" : "error"} sx={{ mb: 2 }}>{message.text}</Alert>}
+      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 1.5, mb: 1 }}>
+        <PageHeader
+          title="Media Preparation & Evaluation"
+          subtitle="Prepare media lots and manage their evaluations (GPT, Sterility, Indication/Inhibition, Enrichment Characteristics)."
+        />
+        <Box sx={{ display: "flex", gap: 1, pt: 0.5 }}>
+          <Button
+            size="small"
+            variant="outlined"
+            startIcon={<RefreshIcon />}
+            onClick={loadData}
+            disabled={loading}
+            sx={{ borderColor: "#d1d5db", color: "#4b5563" }}
+          >
+            Refresh
+          </Button>
+          <Button
+            size="small"
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={() => setPrepDialogOpen(true)}
+            sx={{ bgcolor: brandColors.sectionTitle, fontWeight: 700, "&:hover": { bgcolor: "#632273" } }}
+          >
+            + Prepare New Media Lot
+          </Button>
+        </Box>
+      </Box>
 
-      <SectionTitle>New Prepared Lot</SectionTitle>
-      <Paper sx={{ p: 2.5, mb: 3 }}>
-        <Box sx={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 2 }}>
-          <Select displayEmpty value={form.mediaTypeId ?? ""} onChange={(e) => setField("mediaTypeId", e.target.value)}>
-            <MenuItem value=""><em>Media Type</em></MenuItem>
-            {mediaTypes.map((m) => <MenuItem key={m.id} value={m.id}>{mediaClassLabel(m.class)}</MenuItem>)}
-          </Select>
-          <Box>
-            <Select displayEmpty fullWidth value={form.materialId ?? ""} onChange={(e) => setField("materialId", e.target.value)}>
-              <MenuItem value=""><em>Dehydrated Media Stock (Inventory)</em></MenuItem>
-              {usableStock.map((m) => (
-                <MenuItem key={m.id} value={m.id}>{m.materialName} — batch {m.batchNumber} ({m.quantityRemaining} {m.unit} left)</MenuItem>
-              ))}
-            </Select>
-            {selectedMaterial && (
-              <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 0.5 }}>
-                {selectedMaterial.manufacturerName} — batch {selectedMaterial.batchNumber}
-              </Typography>
-            )}
+      {message && (
+        <Alert severity={message.ok ? "success" : "error"} sx={{ mb: 2 }} onClose={() => setMessage(null)}>
+          {message.text}
+        </Alert>
+      )}
+
+      {/* KPI Cards */}
+      <MediaLotKpiCards
+        lots={lots}
+        awaitingApprovalIds={awaitingApprovalIds}
+        activeKpi={activeKpi}
+        onSelectKpi={handleKpiSelect}
+      />
+
+      {/* Compact Filter Bar */}
+      <MediaLotFilterBar
+        search={search}
+        onSearchChange={setSearch}
+        selectedMediaTypeId={selectedMediaTypeId}
+        onMediaTypeChange={setSelectedMediaTypeId}
+        selectedStatus={selectedStatus}
+        onStatusChange={handleStatusFilterChange}
+        mediaTypes={mediaTypes}
+        onResetFilters={handleResetFilters}
+      />
+
+      {/* Main Workspace Layout */}
+      {selectedLot ? (
+        /* SPLIT-PANE LAYOUT: Left = Compact Media Lots, Right = Selected Media Lot Workspace */
+        <Box
+          sx={{
+            display: "flex",
+            flexDirection: { xs: "column", md: "row" },
+            gap: 2,
+            alignItems: "stretch",
+            minHeight: "calc(100vh - 280px)"
+          }}
+        >
+          {/* Left Panel: Compact Media Lots Register (approx 38% width) */}
+          <Box
+            sx={{
+              width: { xs: "100%", md: "38%" },
+              display: "flex",
+              flexDirection: "column",
+              gap: 1.5,
+              flexShrink: 0
+            }}
+          >
+            <SectionTitle>{`Media Lots (${visibleLots.length})`}</SectionTitle>
+
+            <Paper
+              elevation={0}
+              sx={{
+                border: "1px solid #e5e7eb",
+                borderRadius: 2,
+                overflowY: "auto",
+                maxHeight: { xs: "340px", md: "calc(100vh - 330px)" },
+                bgcolor: "#ffffff"
+              }}
+            >
+              <MediaLotRegisterTable
+                lots={visibleLots}
+                awaitingApprovalIds={awaitingApprovalIds}
+                selectedLotId={selectedLotId}
+                onSelectLot={handleSelectLot}
+                isCompact={true}
+                onViewRecord={handleViewRecord}
+                onViewAuditHistory={handleViewAuditHistory}
+                onRequestReleaseDecision={(lot, approved) => setPendingDecision({ lot, approved })}
+              />
+            </Paper>
           </Box>
-          <TextField placeholder="Total Weight" value={form.totalWeight ?? ""} onChange={(e) => setField("totalWeight", e.target.value)} />
-          <TextField placeholder="Total Volume" value={form.totalVolume ?? ""} onChange={(e) => setField("totalVolume", e.target.value)} />
-          <Select displayEmpty value={form.autoclaveEquipmentId ?? ""} onChange={(e) => setField("autoclaveEquipmentId", e.target.value)}>
-            <MenuItem value=""><em>Autoclave</em></MenuItem>
-            {autoclaves.map((a) => <MenuItem key={a.id} value={a.id}>{a.name}</MenuItem>)}
-          </Select>
-          <TextField placeholder="Program / Load" value={form.autoclaveProgram ?? ""} onChange={(e) => setField("autoclaveProgram", e.target.value)} />
-          <TextField placeholder="Load Type" value={form.loadType ?? ""} onChange={(e) => setField("loadType", e.target.value)} />
-          <TextField placeholder="Temperature" value={form.temperature ?? ""} onChange={(e) => setField("temperature", e.target.value)} />
-          <TextField placeholder="Cycle Time" value={form.cycleTime ?? ""} onChange={(e) => setField("cycleTime", e.target.value)} />
-          <TextField placeholder="Cycle Number" value={form.cycleNumber ?? ""} onChange={(e) => setField("cycleNumber", e.target.value)} />
-          <TextField placeholder="pH" value={form.ph ?? ""} onChange={(e) => setField("ph", e.target.value)} />
-          <TextField type="date" label="Expiry" InputLabelProps={{ shrink: true }} value={form.expiryDate ?? ""} onChange={(e) => setField("expiryDate", e.target.value)} />
-        </Box>
-        <Box sx={{ display: "flex", justifyContent: "flex-end", mt: 2 }}>
-          <Button variant="contained" onClick={save}>Save</Button>
-        </Box>
-      </Paper>
 
-      <SectionTitle>Prepared Lots</SectionTitle>
-      <Paper sx={{ p: 2.5 }}>
-        <Table>
-          <TableHead><TableRow>
-            <TableCell>Lot</TableCell><TableCell>Prepared</TableCell><TableCell>Expiry</TableCell>
-            <TableCell>Status</TableCell><TableCell>Release</TableCell>
-          </TableRow></TableHead>
-          <TableBody>
-            {lots.map((m) => {
-              const lifecycle = lifecycleOf(m, awaitingApprovalIds);
-              return (
-                <TableRow key={m.id}>
-                  <TableCell>{m.lotNumber}</TableCell>
-                  <TableCell>{new Date(m.preparedAt).toLocaleDateString()}</TableCell>
-                  <TableCell>{new Date(m.expiryDate).toLocaleDateString()}</TableCell>
-                  <TableCell><StatusBadge status={lifecycle} /></TableCell>
-                  <TableCell>
-                    {lifecycle === "Awaiting Approval" && canRelease && (
-                      <>
-                        <Button size="small" color="success" onClick={() => setPendingDecision({ lot: m, approved: true })}>Release</Button>
-                        <Button size="small" color="error" onClick={() => setPendingDecision({ lot: m, approved: false })}>Reject</Button>
-                      </>
-                    )}
-                    {lifecycle === "Released" && m.approvedAt && (
-                      <Typography sx={{ fontSize: 11, color: "text.secondary" }}>
-                        Signed {new Date(m.approvedAt).toLocaleDateString()}
-                      </Typography>
-                    )}
-                    <Button size="small" onClick={() => window.open(`/media/${m.id}/report`, "_blank", "noopener")}>Record</Button>
-                  </TableCell>
-                </TableRow>
-              );
-            })}
-          </TableBody>
-        </Table>
-      </Paper>
+          {/* Right Panel: Selected Media Lot Workspace (approx 62% width) */}
+          <Box
+            sx={{
+              flex: 1,
+              minWidth: 0,
+              display: "flex",
+              flexDirection: "column",
+              maxHeight: { xs: "auto", md: "calc(100vh - 290px)" }
+            }}
+          >
+            <SelectedMediaLotWorkspace
+              lot={selectedLot}
+              awaitingApprovalIds={awaitingApprovalIds}
+              onClose={handleDeselectLot}
+              onViewRecord={handleViewRecord}
+              onViewAuditHistory={handleViewAuditHistory}
+              onOpenEvaluation={handleOpenEvaluation}
+              onRequestReleaseDecision={(lot, approved) => setPendingDecision({ lot, approved })}
+              evaluationsList={evaluations}
+            />
+          </Box>
+        </Box>
+      ) : (
+        /* NORMAL STATE: Full-Width Media Lots Register */
+        <>
+          <SectionTitle>{`Media Lots (${visibleLots.length})`}</SectionTitle>
+          <Paper sx={{ border: "1px solid #e5e7eb", borderRadius: 2, overflowX: "auto" }}>
+            <MediaLotRegisterTable
+              lots={visibleLots}
+              awaitingApprovalIds={awaitingApprovalIds}
+              selectedLotId={null}
+              onSelectLot={handleSelectLot}
+              isCompact={false}
+              onViewRecord={handleViewRecord}
+              onViewAuditHistory={handleViewAuditHistory}
+              onRequestReleaseDecision={(lot, approved) => setPendingDecision({ lot, approved })}
+            />
+          </Paper>
+        </>
+      )}
+
+      {/* Modal Dialogs */}
+      <MediaPreparationDialog
+        open={prepDialogOpen}
+        onClose={() => setPrepDialogOpen(false)}
+        onSuccess={handlePrepSuccess}
+      />
+
+      <MediaEvaluationWorkflowDialog
+        open={evaluationDialogOpen}
+        evaluationId={activeEvaluationId}
+        onClose={() => {
+          setEvaluationDialogOpen(false);
+          setActiveEvaluationId(null);
+        }}
+        onUpdated={loadData}
+      />
+
+      <AuditHistoryDialog
+        open={Boolean(auditLotId)}
+        entityName="Media"
+        entityId={auditLotId}
+        onClose={() => setAuditLotId(null)}
+      />
 
       {pendingDecision && (
         <SignatureDialog
           open
-          meaningStatement={pendingDecision.approved
-            ? `I am releasing media lot ${pendingDecision.lot.lotNumber} for use in routine testing.`
-            : `I am rejecting media lot ${pendingDecision.lot.lotNumber} - it will be quarantined.`}
+          meaningStatement={
+            pendingDecision.approved
+              ? `I am releasing media lot ${pendingDecision.lot.lotNumber} for use in routine testing.`
+              : `I am rejecting media lot ${pendingDecision.lot.lotNumber} - it will be quarantined.`
+          }
           onCancel={() => setPendingDecision(null)}
           onConfirm={confirmDecision}
         />

@@ -27,6 +27,9 @@ RUN dotnet publish MicroLIMS.API.csproj -c Release -o /app/publish --no-restore
 FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS final
 WORKDIR /app
 
+# Ensure storage directory exists with app user ownership before switching user
+RUN mkdir -p /app/storage && chown -R app:app /app
+
 # Non-root user setup for production security
 USER app
 
@@ -36,6 +39,6 @@ ENV ASPNETCORE_ENVIRONMENT=Production
 
 EXPOSE 8080
 
-COPY --from=build /app/publish .
+COPY --from=build --chown=app:app /app/publish .
 
 ENTRYPOINT ["dotnet", "MicroLIMS.API.dll"]

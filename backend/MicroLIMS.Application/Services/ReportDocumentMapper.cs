@@ -204,15 +204,30 @@ public static class ReportDocumentMapper
             Tone = tone
         };
 
-        if (incubation is not null)
+        if (t.Incubations.Count == 1)
         {
+            var inc = t.Incubations[0];
             card.Details = new()
             {
-                ("Incubator", incubation.IncubatorName ?? "-"),
-                ("Temperature", incubation.Temperature ?? "-"),
-                ("Duration", incubation.Duration ?? "-"),
-                ("Expected reading", Dt(incubation.ExpectedReadingAt))
+                ("Incubator", inc.IncubatorName ?? "-"),
+                ("Temperature", inc.Temperature ?? "-"),
+                ("Duration", inc.Duration ?? "-"),
+                ("Started at", $"{Dt(inc.StartedAt)}" + (inc.StartedByName is null ? "" : $" ({inc.StartedByName})")),
+                ("Completed at", $"{Dt(inc.CompletedAt)}" + (inc.CompletedByName is null ? "" : $" ({inc.CompletedByName})"))
             };
+        }
+        else if (t.Incubations.Count > 1)
+        {
+            foreach (var inc in t.Incubations)
+            {
+                var isStage1 = inc.StageNumber == 1 && (inc.TransferredAt != null || inc.TransferredByName != null || t.Incubations.Any(x => x.StageNumber == 2));
+                var label = isStage1 ? "Stage 1 Incubation" : inc.StageNumber == 2 ? "Stage 2 Incubation" : $"Stage {inc.StageNumber} Incubation";
+                var details = isStage1
+                    ? $"Media: {inc.MediaLotNumber ?? "-"} | {inc.IncubatorName ?? "-"} | {inc.Temperature ?? "-"} | Started: {Dt(inc.StartedAt)} ({inc.StartedByName ?? "-"}) | Transferred: {Dt(inc.TransferredAt ?? inc.CompletedAt)} ({inc.TransferredByName ?? "-"})"
+                    : $"Media: {inc.MediaLotNumber ?? "-"} | {inc.IncubatorName ?? "-"} | {inc.Temperature ?? "-"} | Started: {Dt(inc.StartedAt)} ({inc.StartedByName ?? "-"}) | Completed: {Dt(inc.CompletedAt)} ({inc.CompletedByName ?? "-"})";
+
+                card.Rows.Add((label, details));
+            }
         }
 
         if (reading is not null)
@@ -225,7 +240,7 @@ public static class ReportDocumentMapper
                 ("Calculated", reading.CalculatedResult.ToString())
             };
             card.MetaLines.Add($"Reported: {reading.ReportedResult}    Limits (alert/action/spec): {reading.AlertLimit ?? "-"} / {reading.ActionLimit ?? "-"} / {reading.SpecLimit ?? "-"}");
-            card.MetaLines.Add($"Actual reading: {Dt(reading.EnteredAt)}");
+            card.MetaLines.Add($"Entered by: {reading.EnteredByName}    Entered at: {Dt(reading.EnteredAt)}");
         }
 
         foreach (var p in t.PathogenObservations.OrderBy(p => p.StepOrder))

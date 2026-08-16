@@ -364,26 +364,76 @@ function TestCard({ test }: { test: TestOrderSummaryDetail }) {
         </div>
       </div>
 
-      {incubation && (
-        <div className="incubation-row">
-          <div className="incubation-item">
-            <div className="inc-label">Incubator</div>
-            <div className="inc-value">{incubation.incubatorName ?? "—"}</div>
+      {test.incubations.map((inc, i) => {
+        const isStage1Transferred = inc.stageNumber === 1 && (test.incubations.length > 1 || !!inc.transferredAt || !!inc.transferredByName);
+        const isStage2 = inc.stageNumber === 2;
+        const stageTitle = isStage1Transferred
+          ? `Stage 1 Incubation · ${humanize(inc.stepName)}`
+          : isStage2
+          ? `Stage 2 Incubation · ${humanize(inc.stepName)}`
+          : `Incubation · ${humanize(inc.stepName)}`;
+
+        return (
+          <div key={i} style={{ borderTop: i > 0 ? "1px solid var(--color-border)" : undefined }}>
+            {test.incubations.length > 1 && (
+              <div style={{ padding: "10px 16px 0", fontSize: 11, fontWeight: 700, textTransform: "uppercase", color: "var(--color-text-tertiary)" }}>
+                {stageTitle}
+              </div>
+            )}
+            <div className="incubation-row" style={{ borderTop: test.incubations.length > 1 ? "none" : undefined }}>
+              <div className="incubation-item">
+                <div className="inc-label">Media Lot</div>
+                <div className="inc-value">{inc.mediaLotNumber ? `${inc.mediaLotNumber} (${inc.mediaMaterialName ?? "—"})` : "—"}</div>
+              </div>
+              <div className="incubation-item">
+                <div className="inc-label">Incubator</div>
+                <div className="inc-value">{inc.incubatorName ?? "—"}</div>
+              </div>
+              <div className="incubation-item">
+                <div className="inc-label">Temperature</div>
+                <div className="inc-value">{inc.temperature ?? "—"}</div>
+              </div>
+              <div className="incubation-item">
+                <div className="inc-label">Duration</div>
+                <div className="inc-value">{inc.duration ?? "—"}</div>
+              </div>
+              <div className="incubation-item">
+                <div className="inc-label">Started At</div>
+                <div className="inc-value mono">{dt(inc.startedAt)}{inc.startedByName ? ` · ${inc.startedByName}` : ""}</div>
+              </div>
+              {isStage1Transferred ? (
+                <>
+                  <div className="incubation-item">
+                    <div className="inc-label">Transferred At</div>
+                    <div className="inc-value mono">{dt(inc.transferredAt ?? inc.completedAt)}</div>
+                  </div>
+                  <div className="incubation-item">
+                    <div className="inc-label">Transferred By</div>
+                    <div className="inc-value">{inc.transferredByName ?? "—"}</div>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="incubation-item">
+                    <div className="inc-label">Completed At</div>
+                    <div className="inc-value mono">{dt(inc.completedAt)}</div>
+                  </div>
+                  <div className="incubation-item">
+                    <div className="inc-label">Completed By</div>
+                    <div className="inc-value">{inc.completedByName ?? "—"}</div>
+                  </div>
+                </>
+              )}
+              {inc.outcome && (
+                <div className="incubation-item" style={{ gridColumn: "span 2" }}>
+                  <div className="inc-label">Outcome</div>
+                  <div className="inc-value">{inc.outcome}</div>
+                </div>
+              )}
+            </div>
           </div>
-          <div className="incubation-item">
-            <div className="inc-label">Temperature</div>
-            <div className="inc-value">{incubation.temperature ?? "—"}</div>
-          </div>
-          <div className="incubation-item">
-            <div className="inc-label">Duration</div>
-            <div className="inc-value">{incubation.duration ?? "—"}</div>
-          </div>
-          <div className="incubation-item">
-            <div className="inc-label">Expected reading</div>
-            <div className="inc-value mono">{dt(incubation.expectedReadingAt)}</div>
-          </div>
-        </div>
-      )}
+        );
+      })}
 
       {reading && (
         <div className="plate-readings">
@@ -409,7 +459,8 @@ function TestCard({ test }: { test: TestOrderSummaryDetail }) {
           <div className="plate-meta">
             <span>Reported: <strong>{reading.reportedResult}</strong></span>
             <span>Limits (alert/action/spec): <strong>{reading.alertLimit ?? "—"} / {reading.actionLimit ?? "—"} / {reading.specLimit ?? "—"}</strong></span>
-            <span>Actual reading: <strong className="mono">{dt(reading.enteredAt)}</strong></span>
+            <span>Entered by: <strong>{reading.enteredByName}</strong></span>
+            <span>Entered at: <strong className="mono">{dt(reading.enteredAt)}</strong></span>
           </div>
         </div>
       )}

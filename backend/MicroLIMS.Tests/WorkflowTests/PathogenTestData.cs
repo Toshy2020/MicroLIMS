@@ -110,4 +110,16 @@ public static class PathogenTestData
         await db.SaveChangesAsync();
         return (material, lot);
     }
+
+    public static async Task<MicroLIMS.Application.Workflows.StepResultDto> SubmitBrothAsync(this MicroLIMS.Application.Workflows.ITestWorkflowEngine engine,
+        int testOrderId, string stepName, int mediaLotId, int incubatorEquipmentId,
+        DateTime startUtc, DateTime endUtc, string? observation, int userId)
+    {
+        var incubation = await engine.SelectMediaAsync(testOrderId, stepName, mediaLotId, incubatorEquipmentId, userId);
+        incubation.StartedAt = startUtc;
+        incubation.IncubationStartUtc = startUtc;
+        incubation.IncubationEndUtc = endUtc;
+        incubation.ExpectedReadingAt = endUtc;
+        return await engine.SubmitBrothAsync(testOrderId, stepName, observation, userId);
+    }
 }

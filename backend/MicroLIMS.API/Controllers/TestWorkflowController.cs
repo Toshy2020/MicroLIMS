@@ -137,6 +137,7 @@ public class TestWorkflowController : ControllerBase
             {
                 stepNumber = i.StepNumber,
                 stepName = i.StepName,
+                stageNumber = i.StageNumber,
                 status = i.CompletedAt == null ? "Incubating" : "Complete",
                 mediaName = i.Media!.LotNumber,
                 lotNumber = i.Media.LotNumber,
@@ -160,7 +161,15 @@ public class TestWorkflowController : ControllerBase
                 current.Step.IncubationMinHours, current.Step.IncubationMaxHours,
                 current.Step.TemperatureMin, current.Step.TemperatureMax,
                 current.Step.IsFinalStep,
-                current.Step.RequiresIncubationTransfer
+                current.Step.RequiresIncubationTransfer,
+                incubationStages = current.Step.IncubationStages.OrderBy(x => x.StageNumber).Select(x => new
+                {
+                    x.StageNumber,
+                    x.TempMin,
+                    x.TempMax,
+                    x.IncubationMinHours,
+                    x.IncubationMaxHours
+                })
             },
             stepNumber = current.Step?.StepOrder,
             totalSteps = current.TotalSteps,

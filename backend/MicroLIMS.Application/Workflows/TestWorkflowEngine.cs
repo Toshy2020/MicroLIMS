@@ -153,6 +153,7 @@ public class TestWorkflowEngine : ITestWorkflowEngine
         var order = await WorkflowStateMachine.LoadOrThrowAsync(_db, testOrderId);
         var definition = await _db.TestDefinitions
             .Include(t => t.Steps).ThenInclude(s => s.MediaType)
+            .Include(t => t.Steps).ThenInclude(s => s.IncubationStages)
             .FirstOrDefaultAsync(t => t.Code == order.TestCode)
             ?? throw new InvalidOperationException($"Test code \"{order.TestCode}\" has no workflow template configured in Test Master.");
 
@@ -189,7 +190,15 @@ public class TestWorkflowEngine : ITestWorkflowEngine
         // moves straight to Ready and GetCurrentStepAsync short-circuits
         // before ever reaching this check again.
         if (await _db.SampleLocations.AnyAsync(l => l.TestOrderId == testOrderId))
+        {
+            if (step.RequiresIncubationTransfer)
+            {
+                return await _db.Incubations.AnyAsync(i =>
+                    i.TestOrderId == testOrderId && i.StepName == step.StepName && i.StageNumber == 2 && i.CompletedAt != null);
+            }
+
             return await _db.Incubations.AnyAsync(i => i.TestOrderId == testOrderId && i.StepName == step.StepName && i.CompletedAt != null);
+        }
 
         if (workflowType == WorkflowType.CountTest)
             return await _db.CountTestReadings.AnyAsync(r => r.TestOrderId == testOrderId && r.StepName == step.StepName);
@@ -339,6 +348,16 @@ public class TestWorkflowEngine : ITestWorkflowEngine
         var media = await _db.Media.Include(m => m.MediaType).FirstOrDefaultAsync(m => m.Id == mediaLotId)
             ?? throw new InvalidOperationException($"Media lot {mediaLotId} not found.");
 
+        if (!media.IsReleasedForUse)
+            throw new InvalidOperationException($"Media lot \"{media.LotNumber}\" is not released for use.");
+
+        if (step.StepType is StepType.BrothEnrichment or StepType.SelectiveBroth)
+        {
+            var hasStepMedia = await _db.TestWorkflowStepMedias.AnyAsync(m => m.TestWorkflowStepId == step.Id);
+            if (!hasStepMedia)
+                throw new InvalidOperationException($"Step \"{stepName}\" has no media configured in Test Master.");
+        }
+
         // The step template IS the approved specification for this test -
         // Temperature/Duration below are hard-locked from it, never from
         // the picked Media's own MediaType record.
@@ -353,7 +372,9 @@ public class TestWorkflowEngine : ITestWorkflowEngine
         var incubation = new Incubation
         {
             TestOrderId = testOrderId,
+            StepNumber = step.StepOrder,
             StepName = stepName,
+            StageNumber = 1,
             MediaId = mediaLotId,
             IncubatorEquipmentId = incubatorEquipmentId,
             Temperature = $"{step.TemperatureMin}-{step.TemperatureMax} °C",
@@ -407,16 +428,20 @@ public class TestWorkflowEngine : ITestWorkflowEngine
         if (openIncubation.StageNumber != 1)
             throw new InvalidOperationException($"Stage 2 incubation has already been started for step \"{stepName}\".");
 
-        if (DateTime.UtcNow < openIncubation.IncubationEndUtc)
+        var stage1MinReadyAt = openIncubation.IncubationStartUtc!.Value.AddHours(step.IncubationMinHours);
+        if (DateTime.UtcNow < stage1MinReadyAt)
             throw new WorkflowStepException(WorkflowErrorCodes.IncubationStage1NotComplete,
-                $"Stage 1 incubation for step \"{stepName}\" has not finished yet.",
-                Math.Max(0, (long)Math.Ceiling((openIncubation.IncubationEndUtc!.Value - DateTime.UtcNow).TotalSeconds)));
+                $"Stage 1 incubation for step \"{stepName}\" requires at least {step.IncubationMinHours} hours of incubation - not ready until {stage1MinReadyAt:yyyy-MM-dd HH:mm} UTC.",
+                Math.Max(0, (long)Math.Ceiling((stage1MinReadyAt - DateTime.UtcNow).TotalSeconds)));
 
         var stage2Config = await _db.TestWorkflowStepIncubationStages
             .FirstOrDefaultAsync(s => s.TestWorkflowStepId == step.Id && s.StageNumber == 2)
             ?? throw new InvalidOperationException($"Step \"{stepName}\" has no stage 2 configuration.");
 
         var startedAt = DateTime.UtcNow;
+        if (startedAt < openIncubation.StartedAt)
+            throw new InvalidOperationException($"Stage 2 start time ({startedAt:yyyy-MM-dd HH:mm} UTC) cannot precede Stage 1 start time ({openIncubation.StartedAt:yyyy-MM-dd HH:mm} UTC).");
+
         var endUtc = startedAt.AddHours(stage2Config.IncubationMaxHours);
         RequireValidIncubationWindow(stepName, stage2Config.IncubationMinHours, startedAt, endUtc);
 
@@ -531,7 +556,8 @@ public class TestWorkflowEngine : ITestWorkflowEngine
             await _db.SaveChangesAsync();
         }
 
-        if (!step.IsFinalStep)
+        var isFinalStep = step.IsFinalStep || step.RequiresIncubationTransfer || (step.StepOrder == definition.Steps.Max(s => s.StepOrder));
+        if (!isFinalStep)
             return new TestWorkflowResult(outcomeSummary, true, false, null, average, calculatedResult, status);
 
         // Final step - CountTest already wrote its own Result row above;
@@ -591,7 +617,7 @@ public class TestWorkflowEngine : ITestWorkflowEngine
             ?? throw new InvalidOperationException("No incubation window is currently open.");
 
         var step = definition.Steps.FirstOrDefault(s => s.StepName == openIncubation.StepName)
-            ?? throw new InvalidOperationException($"Step \"{openIncubation.StepName}\" is not part of the workflow template for this test.");
+            ?? throw new InvalidOperationException($"Step \"{openIncubation.StepName}\" is not part of the workflow template for \"{definition.Code}\".");
 
         return (openIncubation, step);
     }
@@ -604,17 +630,30 @@ public class TestWorkflowEngine : ITestWorkflowEngine
                 $"This incubation window needs at least {step.IncubationMinHours} hours - not ready until {minReadyAt:yyyy-MM-dd HH:mm} UTC.");
     }
 
-    // EM/After Cleaning multi-window incubation - closes the currently
-    // open (non-final) window once its minimum duration has elapsed.
-    // Opening the NEXT window is then just a normal SelectMediaAsync call
-    // for that step's name, reusing all of its existing validation
-    // (media-type match, etc.) rather than duplicating it here.
+    private static void RequireStage2MinimumDurationElapsed(Incubation incubation, TestWorkflowStep step)
+    {
+        var stage2Config = step.IncubationStages.FirstOrDefault(s => s.StageNumber == 2);
+        var minHours = stage2Config?.IncubationMinHours ?? step.IncubationMinHours;
+        var startUtc = incubation.IncubationStartUtc ?? incubation.StartedAt;
+        var minReadyAt = startUtc.AddHours(minHours);
+        if (DateTime.UtcNow < minReadyAt)
+        {
+            var remaining = (long)Math.Ceiling((minReadyAt - DateTime.UtcNow).TotalSeconds);
+            throw new WorkflowStepException(WorkflowErrorCodes.IncubationNotComplete,
+                $"Stage 2 incubation for step \"{step.StepName}\" requires at least {minHours} hours of incubation - not ready until {minReadyAt:yyyy-MM-dd HH:mm} UTC.",
+                remaining);
+        }
+    }
+
     public async Task<Incubation> CloseCurrentIncubationWindowAsync(int testOrderId, int userId)
     {
         var (order, definition) = await LoadWithTemplateAsync(testOrderId);
         var (incubation, step) = await LoadOpenBatchWindowAsync(testOrderId, definition);
 
-        if (step.IsFinalStep)
+        if (step.RequiresIncubationTransfer)
+            throw new InvalidOperationException("This step requires incubation transfer - start stage 2 incubation instead of advancing window.");
+
+        if (step.IsFinalStep || (step.StepOrder == definition.Steps.Max(s => s.StepOrder) && !step.RequiresIncubationTransfer))
             throw new InvalidOperationException("This is the final incubation window - record results instead of advancing.");
 
         RequireMinimumDurationElapsed(incubation, step);
@@ -624,12 +663,6 @@ public class TestWorkflowEngine : ITestWorkflowEngine
         return incubation;
     }
 
-    // EM/After Cleaning batch result entry - one CFU value per location,
-    // all sharing one dilution factor, submitted together once the
-    // chain's FINAL incubation window has met its minimum duration.
-    // Bypasses the step-template machinery for recording (no
-    // CountTestReading is written) but still validates against it to
-    // make sure every non-final window was actually closed first.
     public async Task<TestWorkflowResult> RecordBatchResultsAsync(int testOrderId, decimal dilutionFactor, List<BatchLocationResult> locations, int userId)
     {
         var (order, definition) = await LoadWithTemplateAsync(testOrderId);
@@ -637,21 +670,17 @@ public class TestWorkflowEngine : ITestWorkflowEngine
             throw new InvalidOperationException("Media must be selected for this test before batch results can be recorded.");
 
         var (openIncubation, step) = await LoadOpenBatchWindowAsync(testOrderId, definition);
-        if (!step.IsFinalStep)
+        var isFinalIncubation = step.IsFinalStep || step.RequiresIncubationTransfer || (step.StepOrder == definition.Steps.Max(s => s.StepOrder));
+        if (!isFinalIncubation)
             throw new InvalidOperationException($"\"{step.StepName}\" is not the final incubation window yet - close it and start the next window first.");
 
-        // Two-stage incubation transfer (After Cleaning / EM TAMC and any
-        // other transfer-enabled PlateCount step): same gate as the
-        // single-value RecordResultAsync path, since both terminate the
-        // same server-locked Incubation window mechanics - see
-        // TestWorkflowEngine.RecordResultAsync.
         if (step.RequiresIncubationTransfer)
         {
             if (openIncubation.StageNumber != 2)
                 throw new WorkflowStepException(WorkflowErrorCodes.IncubationStage2NotStarted,
                     $"Step \"{step.StepName}\" requires stage 2 incubation to be started before results can be recorded.");
 
-            RequireIncubationComplete(openIncubation.IncubationEndUtc!.Value);
+            RequireStage2MinimumDurationElapsed(openIncubation, step);
         }
         else
         {

@@ -185,4 +185,79 @@ public class IncubationTransferTests
         var result = await engine.RecordResultAsync(order.Id, "CountIncubation", new CountTestPayload(new List<decimal> { 10 }, 1), userId: 1);
         Assert.True(result.AllStepsComplete);
     }
+
+    [Fact]
+    public async Task CloseCurrentIncubationWindowAsync_OnTransferStep_ThrowsInvalidOperation()
+    {
+        await using var db = NewDb();
+        var (order, media, _) = await SeedTransferOrderAsync(db);
+        var loc = new SampleLocation { TestOrderId = order.Id, LocationType = LocationType.Room, CFUResult = null };
+        db.SampleLocations.Add(loc);
+        await db.SaveChangesAsync();
+
+        var engine = TestServiceFactory.TestWorkflow(db);
+        await engine.SelectMediaAsync(order.Id, "CountIncubation", media.Id, incubatorEquipmentId: 1, userId: 1);
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            engine.CloseCurrentIncubationWindowAsync(order.Id, userId: 1));
+
+        Assert.Contains("requires incubation transfer", ex.Message);
+    }
+
+    [Fact]
+    public async Task GetCurrentStepAsync_TransferStep_ReturnsIncubationStages()
+    {
+        await using var db = NewDb();
+        var (order, media, _) = await SeedTransferOrderAsync(db);
+        var engine = TestServiceFactory.TestWorkflow(db);
+        await engine.SelectMediaAsync(order.Id, "CountIncubation", media.Id, incubatorEquipmentId: 1, userId: 1);
+
+        var current = await engine.GetCurrentStepAsync(order.Id);
+
+        Assert.NotNull(current.Step);
+        Assert.True(current.Step!.RequiresIncubationTransfer);
+        Assert.NotEmpty(current.Step.IncubationStages);
+        Assert.Equal(2, current.Step.IncubationStages.First().StageNumber);
+        Assert.False(current.AllStepsComplete);
+        Assert.NotNull(current.OpenIncubation);
+        Assert.Equal(1, current.OpenIncubation!.StageNumber);
+    }
+
+    [Fact]
+    public async Task GetCurrentStepAsync_AfterStage2Started_ReturnsStage2OpenIncubation()
+    {
+        await using var db = NewDb();
+        var (order, media, _) = await SeedTransferOrderAsync(db);
+        var engine = TestServiceFactory.TestWorkflow(db);
+        await engine.SelectMediaAsync(order.Id, "CountIncubation", media.Id, incubatorEquipmentId: 1, userId: 1);
+        await BackdateOpenIncubationAsync(db, order.Id, "CountIncubation", TimeSpan.FromHours(49));
+        await engine.StartStage2IncubationAsync(order.Id, "CountIncubation", incubatorEquipmentId: 2, userId: 2);
+
+        var current = await engine.GetCurrentStepAsync(order.Id);
+
+        Assert.NotNull(current.Step);
+        Assert.False(current.AllStepsComplete);
+        Assert.NotNull(current.OpenIncubation);
+        Assert.Equal(2, current.OpenIncubation!.StageNumber);
+    }
+
+    [Fact]
+    public async Task BatchResults_TransferStep_BeforeStage2Started_ThrowsStage2NotStarted()
+    {
+        await using var db = NewDb();
+        var (order, media, _) = await SeedTransferOrderAsync(db);
+        var loc = new SampleLocation { TestOrderId = order.Id, LocationType = LocationType.Room, CFUResult = null };
+        db.SampleLocations.Add(loc);
+        await db.SaveChangesAsync();
+
+        var engine = TestServiceFactory.TestWorkflow(db);
+        await engine.SelectMediaAsync(order.Id, "CountIncubation", media.Id, incubatorEquipmentId: 1, userId: 1);
+        await BackdateOpenIncubationAsync(db, order.Id, "CountIncubation", TimeSpan.FromHours(49));
+
+        var ex = await Assert.ThrowsAsync<WorkflowStepException>(() =>
+            engine.RecordBatchResultsAsync(order.Id, dilutionFactor: 1,
+                new List<BatchLocationResult> { new(loc.Id, 5) }, userId: 1));
+
+        Assert.Equal(WorkflowErrorCodes.IncubationStage2NotStarted, ex.ErrorCode);
+    }
 }

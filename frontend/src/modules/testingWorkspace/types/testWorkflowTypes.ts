@@ -45,6 +45,7 @@ export interface IncubationLock {
   isLocked: boolean;
   incubationEndUtc: string;
   remainingSeconds: number;
+  stageNumber?: number;
 }
 
 export interface SampleContext {

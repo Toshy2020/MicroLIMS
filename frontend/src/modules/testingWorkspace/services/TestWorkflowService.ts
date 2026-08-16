@@ -19,6 +19,9 @@ export const TestWorkflowService = {
   selectMedia: (testOrderId: number, stepName: string, mediaLotId: number, incubatorId: number) =>
     apiClient.post(`/test-workflow/${testOrderId}/select-media`, { stepName, mediaLotId, incubatorId }).then((r) => r.data.data),
 
+  startStage2Incubation: (testOrderId: number, stepName: string, incubatorId: number) =>
+    apiClient.post(`/test-workflow/${testOrderId}/start-stage-2-incubation`, { stepName, incubatorId }).then((r) => r.data.data),
+
   // CountTest only - record-result now rejects any non-PlateCount step
   // server-side. Every pathogen step goes through the Submit* methods below.
   recordResult: (testOrderId: number, payload: { stepName: string; plateReadings: number[]; dilutionFactor: number }) =>

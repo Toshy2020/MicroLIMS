@@ -12,7 +12,7 @@ import { PathogenStepDialog } from "./PathogenStepDialog";
 
 interface Props { testOrderId: number; testCode: string; category: string; displayName: string; }
 
-type Phase = "loading" | "select-media" | "awaiting-result" | "enter-result" | "step-complete" | "all-complete";
+type Phase = "loading" | "select-media" | "awaiting-result" | "transfer-stage-2" | "enter-result" | "step-complete" | "all-complete";
 
 // Read-only progress strip above the phase content - one chip per step
 // in the template, sourced from current-step's allSteps/completedSteps/
@@ -74,6 +74,7 @@ export function TestWorkflowDialog({ testOrderId, testCode, category, displayNam
 
   const [mediaId, setMediaId] = useState<number | "">("");
   const [incubatorId, setIncubatorId] = useState<number | "">("");
+  const [stage2IncubatorId, setStage2IncubatorId] = useState<number | "">("");
   const [releasedMedia, setReleasedMedia] = useState<any[]>([]);
   const [incubators, setIncubators] = useState<any[]>([]);
 
@@ -87,7 +88,7 @@ export function TestWorkflowDialog({ testOrderId, testCode, category, displayNam
     try {
       const data = await TestWorkflowService.getCurrentStep(testOrderId);
       setCurrent(data);
-      setMediaId(""); setIncubatorId("");
+      setMediaId(""); setIncubatorId(""); setStage2IncubatorId("");
       setReadings([""]); setDilutionFactor("1");
       setPhase(data.allStepsComplete ? "all-complete" : data.incubationLock != null ? "awaiting-result" : "select-media");
     } catch (e: any) {
@@ -98,12 +99,17 @@ export function TestWorkflowDialog({ testOrderId, testCode, category, displayNam
   useEffect(() => { load(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [testOrderId]);
 
   useEffect(() => {
-    if (phase !== "select-media") return;
-    masterDataOptions.getReleasedMedia().then(setReleasedMedia);
+    if (phase !== "select-media" && phase !== "transfer-stage-2") return;
+    if (phase === "select-media") {
+      masterDataOptions.getReleasedMedia().then(setReleasedMedia);
+    }
     masterDataOptions.getEquipment("Incubator").then(setIncubators);
   }, [phase]);
 
   const step = current?.step;
+  const isTwoStageTransfer = !!step?.requiresIncubationTransfer;
+  const stage2Config = (step?.incubationStages ?? []).find((x: any) => x.stageNumber === 2);
+
   const classMedia = releasedMedia.filter((m) => m.mediaTypeId === step?.mediaTypeId || m.mediaType?.id === step?.mediaTypeId);
   // Some steps are named after the exact material they require (e.g.
   // "MSA", "TSB", "RVS") - when that's the case, narrow down to just
@@ -121,6 +127,10 @@ export function TestWorkflowDialog({ testOrderId, testCode, category, displayNam
     i.setPointTemperature != null && step && i.setPointTemperature >= step.temperatureMin && i.setPointTemperature <= step.temperatureMax
   );
 
+  const matchingStage2Incubators = incubators.filter((i) =>
+    i.setPointTemperature != null && stage2Config && i.setPointTemperature >= stage2Config.tempMin && i.setPointTemperature <= stage2Config.tempMax
+  );
+
   // current-step never serialized a top-level "incubation" object - only
   // incubationLock (isLocked/incubationEndUtc/remainingSeconds/stageNumber)
   // and previousSteps (one row per Incubation, including the still-open
@@ -130,12 +140,20 @@ export function TestWorkflowDialog({ testOrderId, testCode, category, displayNam
     ? (current?.previousSteps ?? []).find((p: any) => p.stepName === step.stepName && p.status === "Incubating")
     : null;
 
+  const currentStageNumber = current?.incubationLock?.stageNumber ?? openIncubationRow?.stageNumber ?? 1;
+  const isStage2 = currentStageNumber === 2;
+
+  const activeTempMin = isStage2 && stage2Config ? stage2Config.tempMin : step?.temperatureMin;
+  const activeTempMax = isStage2 && stage2Config ? stage2Config.tempMax : step?.temperatureMax;
+  const activeIncMinHours = isStage2 && stage2Config ? stage2Config.incubationMinHours : step?.incubationMinHours;
+  const activeIncMaxHours = isStage2 && stage2Config ? stage2Config.incubationMaxHours : step?.incubationMaxHours;
+
   // Minimum-duration gate, mirrored from the server (TestWorkflowEngine.
   // RequireMinimumDurationElapsed) so the button disables itself instead
   // of just bouncing off a server error - the server still enforces it
   // as the source of truth.
-  const minReadyAt = openIncubationRow && step
-    ? new Date(new Date(openIncubationRow.incubationStartUtc).getTime() + step.incubationMinHours * 3600 * 1000)
+  const minReadyAt = openIncubationRow && activeIncMinHours != null
+    ? new Date(new Date(openIncubationRow.incubationStartUtc).getTime() + activeIncMinHours * 3600 * 1000)
     : null;
   const isTimeReady = !minReadyAt || new Date() >= minReadyAt;
 
@@ -147,6 +165,18 @@ export function TestWorkflowDialog({ testOrderId, testCode, category, displayNam
       await load();
     } catch (e: any) {
       setError(e?.response?.data?.message ?? "Could not start incubation for this step.");
+    }
+  };
+
+  const startStage2Incubation = async () => {
+    setError(null);
+    if (!stage2IncubatorId) return;
+    try {
+      await TestWorkflowService.startStage2Incubation(testOrderId, step.stepName, Number(stage2IncubatorId));
+      setStage2IncubatorId("");
+      await load();
+    } catch (e: any) {
+      setError(e?.response?.data?.message ?? "Could not start stage 2 incubation.");
     }
   };
 
@@ -218,6 +248,7 @@ export function TestWorkflowDialog({ testOrderId, testCode, category, displayNam
 
       <Typography sx={{ fontWeight: 700, mb: 0.5 }}>
         Step {step.stepOrder}: {step.stepName}
+        {isTwoStageTransfer && <Typography component="span" variant="caption" color="text.secondary"> (Two-stage transfer: Stage {currentStageNumber} of 2)</Typography>}
         {step.isFinalStep && <Typography component="span" variant="caption" color="text.secondary"> — determines the final result</Typography>}
       </Typography>
 
@@ -233,7 +264,7 @@ export function TestWorkflowDialog({ testOrderId, testCode, category, displayNam
           </Select>
 
           <Select displayEmpty size="small" value={incubatorId} onChange={(e) => setIncubatorId(Number(e.target.value))}>
-            <MenuItem value=""><em>Incubator ({step.temperatureMin}-{step.temperatureMax} °C)</em></MenuItem>
+            <MenuItem value=""><em>Stage 1 Incubator ({step.temperatureMin}-{step.temperatureMax} °C)</em></MenuItem>
             {matchingIncubators.map((i) => <MenuItem key={i.id} value={i.id}>{i.name} ({i.code}) — {i.setPointTemperature}°C</MenuItem>)}
           </Select>
           {matchingIncubators.length === 0 && (
@@ -241,8 +272,8 @@ export function TestWorkflowDialog({ testOrderId, testCode, category, displayNam
           )}
           {mediaId && incubatorId && (
             <Typography variant="body2" color="text.secondary">
-              Required Temperature (locked by workflow template): <strong>{step.temperatureMin}-{step.temperatureMax} °C</strong>
-              {" — "}Incubation Period (locked by workflow template): <strong>{step.incubationMinHours}-{step.incubationMaxHours} hours</strong>
+              Required Temperature (Stage 1): <strong>{step.temperatureMin}-{step.temperatureMax} °C</strong>
+              {" — "}Incubation Period: <strong>{step.incubationMinHours}-{step.incubationMaxHours} hours</strong>
             </Typography>
           )}
           <Stack direction="row" justifyContent="flex-end">
@@ -257,17 +288,77 @@ export function TestWorkflowDialog({ testOrderId, testCode, category, displayNam
         </Stack>
       )}
 
+      {phase === "transfer-stage-2" && stage2Config && (
+        <Stack spacing={1.5}>
+          <Alert severity="info">
+            Stage 1 incubation is complete. Transfer plates to Stage 2 incubator ({stage2Config.tempMin}-{stage2Config.tempMax} °C) to start the second stage.
+          </Alert>
+
+          <Box sx={{ p: 1.5, bgcolor: "#f9fafb", borderRadius: 1, border: "1px solid #e5e7eb" }}>
+            <Typography variant="body2" color="text.secondary">
+              Media Lot (inherited): <strong>{openIncubationRow?.lotNumber ?? "Selected in Stage 1"}</strong>
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              Stage 2 Required Temperature: <strong>{stage2Config.tempMin}-{stage2Config.tempMax} °C</strong>
+              {" — "}Incubation Period: <strong>{stage2Config.incubationMinHours}-{stage2Config.incubationMaxHours} hours</strong>
+            </Typography>
+          </Box>
+
+          <Select
+            displayEmpty
+            size="small"
+            value={stage2IncubatorId}
+            onChange={(e) => setStage2IncubatorId(Number(e.target.value))}
+          >
+            <MenuItem value="">
+              <em>Select Stage 2 Incubator ({stage2Config.tempMin}-{stage2Config.tempMax} °C)</em>
+            </MenuItem>
+            {matchingStage2Incubators.map((i) => (
+              <MenuItem key={i.id} value={i.id}>
+                {i.name} ({i.code}) — {i.setPointTemperature}°C
+              </MenuItem>
+            ))}
+          </Select>
+          {matchingStage2Incubators.length === 0 && (
+            <Alert severity="warning">No incubator is set to {stage2Config.tempMin}-{stage2Config.tempMax} °C for Stage 2.</Alert>
+          )}
+
+          <Stack direction="row" spacing={1} justifyContent="flex-end">
+            <Button variant="outlined" onClick={() => setPhase("awaiting-result")}>Back</Button>
+            <Button
+              variant="contained"
+              disabled={!stage2IncubatorId}
+              onClick={startStage2Incubation}
+            >
+              Start Stage 2 Incubation
+            </Button>
+          </Stack>
+        </Stack>
+      )}
+
       {phase === "awaiting-result" && current.incubationLock && (
         <Stack spacing={1.5}>
-          <Alert severity="info">Incubation in progress.</Alert>
-          <Typography variant="body2">Temperature: <strong>{step.temperatureMin}-{step.temperatureMax} °C</strong></Typography>
-          <Typography variant="body2">Duration: <strong>{step.incubationMinHours}-{step.incubationMaxHours} hours</strong></Typography>
+          <Alert severity="info">
+            Incubation in progress {isTwoStageTransfer ? `(Stage ${currentStageNumber} of 2)` : ""}.
+          </Alert>
+          <Typography variant="body2">Temperature: <strong>{activeTempMin}-{activeTempMax} °C</strong></Typography>
+          <Typography variant="body2">Duration: <strong>{activeIncMinHours}-{activeIncMaxHours} hours</strong></Typography>
           <Typography variant="body2">Expected reading: <strong>{new Date(current.incubationLock.incubationEndUtc).toLocaleString()}</strong></Typography>
           {!isTimeReady && minReadyAt && (
             <Alert severity="warning">Not ready yet - available from {minReadyAt.toLocaleString()}.</Alert>
           )}
           <Stack direction="row" justifyContent="flex-end">
-            {isEmOrAfterCleaning && step && !step.isFinalStep ? (
+            {isTwoStageTransfer && !isStage2 ? (
+              <Button variant="contained" disabled={!isTimeReady} onClick={() => setPhase("transfer-stage-2")}>
+                Transfer to Stage 2 Incubation
+              </Button>
+            ) : isTwoStageTransfer && isStage2 ? (
+              isEmOrAfterCleaning ? (
+                <Button variant="contained" disabled={!isTimeReady} onClick={() => setShowLocationGrid(true)}>Record Results</Button>
+              ) : (
+                <Button variant="contained" disabled={!isTimeReady} onClick={() => setPhase("enter-result")}>Record Result</Button>
+              )
+            ) : isEmOrAfterCleaning && step && !step.isFinalStep ? (
               <Button variant="contained" disabled={!isTimeReady} onClick={advanceIncubationWindow}>Advance to Next Incubation Window</Button>
             ) : isEmOrAfterCleaning ? (
               <Button variant="contained" disabled={!isTimeReady} onClick={() => setShowLocationGrid(true)}>Record Results</Button>

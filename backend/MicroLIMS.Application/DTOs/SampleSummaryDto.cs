@@ -98,6 +98,9 @@ public class IncubationDetailDto
     public DateTime? CompletedAt { get; set; }
     public string? Outcome { get; set; }
     public string? StartedByName { get; set; }
+    public DateTime? TransferredAt { get; set; }
+    public string? TransferredByName { get; set; }
+    public string? CompletedByName { get; set; }
 
     // Set only on the StageNumber == 2 row of a two-stage transfer step:
     // true if the same analyst started both stages, false if different

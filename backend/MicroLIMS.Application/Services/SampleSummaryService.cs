@@ -144,26 +144,74 @@ public class SampleSummaryService
                 IsSuperseded = order.IsSuperseded,
                 Incubations = incubations.Where(i => i.TestOrderId == order.Id)
                     .OrderBy(i => i.StepNumber).ThenBy(i => i.StageNumber)
-                    .Select(i => new IncubationDetailDto
+                    .Select(i =>
                 {
-                    StepName = i.StepName,
-                    StageNumber = i.StageNumber,
-                    MediaLotNumber = i.Media?.LotNumber,
-                    MediaMaterialName = i.Media?.Material?.MaterialName,
-                    IncubatorName = i.IncubatorEquipment?.Name,
-                    Temperature = i.Temperature,
-                    Duration = i.Duration,
-                    StartedAt = i.StartedAt,
-                    ExpectedReadingAt = i.ExpectedReadingAt,
-                    CompletedAt = i.CompletedAt,
-                    Outcome = i.Outcome,
-                    StartedByName = i.StartedByUserId is not null ? NameOf(i.StartedByUserId.Value) : null,
-                    SameAnalystBothStages = i.StageNumber == 2
-                        ? incubations
-                            .Where(p => p.TestOrderId == order.Id && p.StepName == i.StepName && p.StageNumber == 1)
-                            .Select(p => (bool?)(p.StartedByUserId == i.StartedByUserId))
-                            .FirstOrDefault()
-                        : null
+                    var isStage1WithStage2 = i.StageNumber == 1 && incubations.Any(other =>
+                        other.TestOrderId == order.Id && (other.ParentIncubationId == i.Id || (other.StepName == i.StepName && other.StageNumber == 2)));
+                    var stage2Child = isStage1WithStage2
+                        ? incubations.FirstOrDefault(other => other.TestOrderId == order.Id && (other.ParentIncubationId == i.Id || (other.StepName == i.StepName && other.StageNumber == 2)))
+                        : null;
+
+                    string? transferredByName = null;
+                    DateTime? transferredAt = null;
+                    if (isStage1WithStage2)
+                    {
+                        transferredAt = i.CompletedAt ?? stage2Child?.StartedAt;
+                        transferredByName = stage2Child?.StartedByUserId != null ? NameOf(stage2Child.StartedByUserId.Value) : null;
+                    }
+
+                    string? completedByName = null;
+                    if (i.CompletedAt != null)
+                    {
+                        if (isStage1WithStage2)
+                        {
+                            completedByName = stage2Child?.StartedByUserId != null ? NameOf(stage2Child.StartedByUserId.Value) : null;
+                        }
+                        else
+                        {
+                            var reading = countTestReadings.Where(r => r.TestOrderId == order.Id && (r.StepName == i.StepName || order.Incubations.Count <= 2))
+                                .OrderByDescending(r => r.Id).FirstOrDefault();
+                            var loc = sampleLocations.Where(l => l.TestOrderId == order.Id && l.EnteredByUserId != null)
+                                .OrderByDescending(l => l.EnteredAt).FirstOrDefault();
+                            var obs = pathogenObservations.Where(p => p.TestOrderId == order.Id && p.StepName == i.StepName)
+                                .OrderByDescending(p => p.Id).FirstOrDefault();
+                            var res = results.Where(r => r.TestOrderId == order.Id).OrderByDescending(r => r.Id).FirstOrDefault();
+
+                            if (reading != null) completedByName = NameOf(reading.EnteredByUserId);
+                            else if (loc?.EnteredByUserId != null) completedByName = NameOf(loc.EnteredByUserId.Value);
+                            else if (obs != null) completedByName = NameOf(obs.ObservedByUserId);
+                            else if (res != null) completedByName = NameOf(res.EnteredByUserId);
+                            else
+                            {
+                                var lastHistory = workflowHistory.Where(w => w.TestOrderId == order.Id).OrderByDescending(w => w.Timestamp).FirstOrDefault();
+                                if (lastHistory != null) completedByName = NameOf(lastHistory.PerformedByUserId);
+                            }
+                        }
+                    }
+
+                    return new IncubationDetailDto
+                    {
+                        StepName = i.StepName,
+                        StageNumber = i.StageNumber,
+                        MediaLotNumber = i.Media?.LotNumber,
+                        MediaMaterialName = i.Media?.Material?.MaterialName,
+                        IncubatorName = i.IncubatorEquipment?.Name,
+                        Temperature = i.Temperature,
+                        Duration = i.Duration,
+                        StartedAt = i.StartedAt,
+                        ExpectedReadingAt = i.ExpectedReadingAt,
+                        CompletedAt = i.CompletedAt,
+                        Outcome = i.Outcome,
+                        StartedByName = i.StartedByUserId is not null ? NameOf(i.StartedByUserId.Value) : null,
+                        TransferredAt = transferredAt,
+                        TransferredByName = transferredByName,
+                        CompletedByName = completedByName,
+                        SameAnalystBothStages = i.StageNumber == 2
+                            ? (i.ParentIncubationId != null
+                                ? incubations.FirstOrDefault(p => p.Id == i.ParentIncubationId)?.StartedByUserId == i.StartedByUserId
+                                : incubations.FirstOrDefault(p => p.TestOrderId == order.Id && p.StepName == i.StepName && p.StageNumber == 1)?.StartedByUserId == i.StartedByUserId)
+                            : null
+                    };
                 }).ToList(),
                 Results = results.Where(r => r.TestOrderId == order.Id).Select(r => new ResultDetailDto
                 {
@@ -309,29 +357,64 @@ public class SampleSummaryService
 
             foreach (var inc in order.Incubations)
             {
-                lines.Add($"  Step: {inc.StepName}");
+                var isStage1Transferred = inc.StageNumber == 1 && (inc.TransferredAt != null || inc.TransferredByName != null || order.Incubations.Any(x => x.StageNumber == 2));
+                var isStage2 = inc.StageNumber == 2;
+                var stageLabel = isStage1Transferred ? $"STAGE 1 ({inc.StepName})" : isStage2 ? $"STAGE 2 ({inc.StepName})" : $"INCUBATION ({inc.StepName})";
+
+                lines.Add($"  {stageLabel}");
                 lines.Add($"    Media Lot: {inc.MediaLotNumber ?? "-"} ({inc.MediaMaterialName ?? "-"})   Incubator: {inc.IncubatorName ?? "-"}");
                 lines.Add($"    Temperature: {inc.Temperature ?? "-"}   Duration: {inc.Duration ?? "-"}");
-                lines.Add($"    Expected Reading: {FormatDateTime(inc.ExpectedReadingAt)}   Actual Reading: {FormatDateTime(inc.CompletedAt)}");
+                lines.Add($"    Started At: {FormatDateTime(inc.StartedAt)} (by {inc.StartedByName ?? "-"})");
+                if (isStage1Transferred)
+                {
+                    lines.Add($"    Transferred At: {FormatDateTime(inc.TransferredAt ?? inc.CompletedAt)}   Transferred By: {inc.TransferredByName ?? "-"}");
+                }
+                else
+                {
+                    lines.Add($"    Completed At: {FormatDateTime(inc.CompletedAt)}   Completed By: {inc.CompletedByName ?? "-"}");
+                }
                 if (inc.Outcome is not null) lines.Add($"    Outcome: {inc.Outcome}");
             }
 
-            foreach (var r in order.CountTestReadings)
+            if (order.Locations.Count > 0)
             {
-                lines.Add($"  Plate Readings: {r.PlateReadings}   Dilution Factor: {r.DilutionFactor}");
-                lines.Add($"  Average: {r.Average}   Calculated: {r.CalculatedResult}   Reported: {r.ReportedResult}   Status: {r.Status}");
-                lines.Add($"  Limits (Alert/Action/Spec): {r.AlertLimit ?? "-"} / {r.ActionLimit ?? "-"} / {r.SpecLimit ?? "-"}");
-                lines.Add($"  Entered By: {r.EnteredByName} - {r.EnteredAt:dd-MMM-yyyy HH:mm}");
+                lines.Add("  FINAL RESULT (BY LOCATION):");
+                foreach (var loc in order.Locations)
+                {
+                    lines.Add($"    Location: {loc.LocationName}   CFU: {loc.CFUResult?.ToString() ?? "-"}   Reported: {loc.ReportedResult ?? "-"}   Status: {loc.Status ?? "-"}");
+                    lines.Add($"    Entered By: {loc.EnteredByName ?? "-"}   Entered At: {FormatDateTime(loc.EnteredAt)}");
+                }
+            }
+            else if (order.CountTestReadings.Count > 0)
+            {
+                lines.Add("  FINAL RESULT:");
+                foreach (var r in order.CountTestReadings)
+                {
+                    lines.Add($"    Plate Readings: {r.PlateReadings}   Dilution Factor: {r.DilutionFactor}");
+                    lines.Add($"    Average: {r.Average}   Calculated: {r.CalculatedResult}   Reported Result: {r.ReportedResult}   Status: {r.Status}");
+                    lines.Add($"    Limits (Alert/Action/Spec): {r.AlertLimit ?? "-"} / {r.ActionLimit ?? "-"} / {r.SpecLimit ?? "-"}");
+                    lines.Add($"    Entered By: {r.EnteredByName}   Entered At: {FormatDateTime(r.EnteredAt)}");
+                }
+            }
+            else if (order.PathogenObservations.Count > 0)
+            {
+                lines.Add("  FINAL RESULT:");
+                foreach (var p in order.PathogenObservations)
+                    lines.Add($"    {p.StepName}: Observation = {p.Observation}   Entered By: {p.ObservedByName}   Entered At: {FormatDateTime(p.ObservedAt)}");
+            }
+            else if (order.Results.Count > 0)
+            {
+                lines.Add("  FINAL RESULT:");
+                foreach (var r in order.Results)
+                    lines.Add($"    Result: {r.InterpretedValue ?? r.RawValue}   Entered By: {r.EnteredByName}   Entered At: {FormatDateTime(r.EnteredAt)}");
             }
 
-            foreach (var p in order.PathogenObservations)
-                lines.Add($"  {p.StepName}: Observation = {p.Observation} - {p.ObservedByName} - {p.ObservedAt:dd-MMM-yyyy HH:mm}");
-
-            foreach (var r in order.Results)
-                lines.Add($"  Result: {r.InterpretedValue ?? r.RawValue} - Entered By {r.EnteredByName} - {r.EnteredAt:dd-MMM-yyyy HH:mm}");
-
-            foreach (var h in order.WorkflowHistory)
-                lines.Add($"  {h.FromStep} -> {h.ToStep} by {h.PerformedByName} at {h.Timestamp:dd-MMM-yyyy HH:mm}" + (h.Note is null ? "" : $" - {h.Note}"));
+            if (order.WorkflowHistory.Count > 0)
+            {
+                lines.Add("  WORKFLOW HISTORY:");
+                foreach (var h in order.WorkflowHistory)
+                    lines.Add($"    {h.FromStep} -> {h.ToStep} by {h.PerformedByName} at {h.Timestamp:dd-MMM-yyyy HH:mm}" + (h.Note is null ? "" : $" - {h.Note}"));
+            }
 
             lines.Add("");
         }

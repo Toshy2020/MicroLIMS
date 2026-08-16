@@ -60,7 +60,7 @@ public class IncubationLockTests
         Assert.NotNull(incubation.IncubationEndUtc);
         Assert.InRange(incubation.IncubationStartUtc!.Value, startBefore, startAfter);
         
-        var step = db.TestDefinitions.Include(t => t.Steps).FirstOrDefault(t => t.Code == "E.Coli")?.Steps.First(s => s.StepName == "Broth Enrichment");
+        var step = db.TestDefinitions.Include(t => t.Steps).FirstOrDefault(t => t.Code == order.TestCode)?.Steps.First(s => s.StepName == "Broth Enrichment");
         Assert.NotNull(step);
         var expectedEnd = incubation.IncubationStartUtc!.Value.AddHours(step.IncubationMaxHours);
         Assert.Equal(expectedEnd, incubation.IncubationEndUtc!.Value);

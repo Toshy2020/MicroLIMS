@@ -2,6 +2,7 @@
 
 export interface IncubationDetail {
   stepName: string;
+  stageNumber: number;
   mediaLotNumber: string | null;
   mediaMaterialName: string | null;
   incubatorName: string | null;
@@ -11,6 +12,11 @@ export interface IncubationDetail {
   expectedReadingAt: string | null;
   completedAt: string | null;
   outcome: string | null;
+  startedByName: string | null;
+  transferredAt: string | null;
+  transferredByName: string | null;
+  completedByName: string | null;
+  sameAnalystBothStages: boolean | null;
 }
 
 export interface ResultDetail {

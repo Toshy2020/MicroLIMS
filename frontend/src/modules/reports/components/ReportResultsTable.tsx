@@ -1,16 +1,21 @@
 import { useMemo, useState } from "react";
 import {
   Box, Paper, Typography, Table, TableHead, TableBody, TableRow, TableCell, TableContainer,
-  Checkbox, Chip, Tooltip, IconButton, Menu, MenuItem, Select, FormControl, Button, Alert, Link
+  Checkbox, Chip, Tooltip, IconButton, Menu, MenuItem, Select, FormControl, Button, Alert, Link, Stack
 } from "@mui/material";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
 import ViewColumnIcon from "@mui/icons-material/ViewColumn";
 import FileDownloadIcon from "@mui/icons-material/FileDownload";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
+import PostAddIcon from "@mui/icons-material/PostAdd";
+import ShowChartIcon from "@mui/icons-material/ShowChart";
+import VisibilityIcon from "@mui/icons-material/Visibility";
+import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import { brandColors } from "../../../theme";
 import { StatusBadge, CategoryBadge } from "../../../components/StatusBadge";
 import { ConfirmationDialog } from "../../../components/ConfirmationDialog";
+import { RecordDetailDialog } from "./RecordDetailDialog";
 import { ReportingService } from "../services/ReportingService";
 import { ResultRecordItem, ResultRecordSearchParams, ResultRecordSearchResponse } from "../types/reportingTypes";
 
@@ -55,14 +60,27 @@ interface ReportResultsTableProps {
   onPageChange: (page: number) => void;
   onPageSizeChange: (pageSize: number) => void;
   onClearFilters: () => void;
+  onBuildReport?: (selectedRows: ResultRecordItem[]) => void;
+  onAnalyzeTrend?: (testCode: string, subjectName: string) => void;
 }
 
-export function ReportResultsTable({ results, loading, error, appliedParams, onPageChange, onPageSizeChange, onClearFilters }: ReportResultsTableProps) {
+export function ReportResultsTable({
+  results,
+  loading,
+  error,
+  appliedParams,
+  onPageChange,
+  onPageSizeChange,
+  onClearFilters,
+  onBuildReport,
+  onAnalyzeTrend
+}: ReportResultsTableProps) {
   const [visibleColumns, setVisibleColumns] = useState<Record<ColumnKey, boolean>>(
     Object.fromEntries(ALL_COLUMNS.map((c) => [c, true])) as Record<ColumnKey, boolean>
   );
   const [columnsMenuAnchor, setColumnsMenuAnchor] = useState<HTMLElement | null>(null);
   const [rowMenu, setRowMenu] = useState<{ anchor: HTMLElement; row: ResultRecordItem } | null>(null);
+  const [detailRecord, setDetailRecord] = useState<ResultRecordItem | null>(null);
 
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [selectAllMatching, setSelectAllMatching] = useState(false);
@@ -81,6 +99,7 @@ export function ReportResultsTable({ results, loading, error, appliedParams, onP
   const someVisibleSelected = approvedVisibleIds.some((id) => selectedIds.has(id));
 
   const selectionCount = selectAllMatching ? totalCount : selectedIds.size;
+  const selectedRecords = useMemo(() => items.filter((r) => selectedIds.has(r.id)), [items, selectedIds]);
 
   const toggleRow = (row: ResultRecordItem) => {
     if (row.approvalStatus !== "Approved") return;
@@ -125,6 +144,35 @@ export function ReportResultsTable({ results, loading, error, appliedParams, onP
     }
   };
 
+  const handleExportSelected = () => {
+    if (selectedRecords.length === 0) return;
+    const headers = [
+      "Date/Time", "Reference", "Subject", "Category", "Test", "Result", "Unit",
+      "Result Level", "Status", "Approved By", "Approval Date"
+    ];
+    const rows = selectedRecords.map((r) => [
+      `"${r.resultEnteredAt}"`,
+      `"${r.referenceNumber}"`,
+      `"${r.subjectName}"`,
+      `"${r.category}"`,
+      `"${r.testDisplayName || r.testCode}"`,
+      `"${r.reportedValue}"`,
+      `"${r.unit ?? ""}"`,
+      `"${r.resultLevel}"`,
+      `"${r.approvalStatus}"`,
+      `"${r.approvedByName ?? ""}"`,
+      `"${r.approvedAt ?? ""}"`
+    ]);
+    const csvContent = [headers.join(","), ...rows.map((row) => row.join(","))].join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `selected_records_${new Date().toISOString().slice(0, 10)}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
   const pageStart = totalCount === 0 ? 0 : (page - 1) * pageSize + 1;
   const pageEnd = Math.min(page * pageSize, totalCount);
   const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
@@ -161,32 +209,67 @@ export function ReportResultsTable({ results, loading, error, appliedParams, onP
 
       {exportError && <Alert severity="error" sx={{ mb: 1.5 }} onClose={() => setExportError(null)}>{exportError}</Alert>}
 
-      <Box sx={{ display: "flex", alignItems: "center", gap: 2, mb: 1, flexWrap: "wrap" }}>
-        <Box sx={{ display: "flex", alignItems: "center" }}>
-          <Checkbox
-            size="small"
-            checked={allVisibleSelected}
-            indeterminate={!allVisibleSelected && someVisibleSelected}
-            onChange={toggleVisiblePage}
-            disabled={approvedVisibleIds.length === 0}
-          />
-          <Typography sx={{ fontSize: 13 }}>Select All (Visible)</Typography>
+      {/* Multi-Select Toolbar */}
+      <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 1.5, flexWrap: "wrap", gap: 1, bgcolor: selectionCount > 0 ? "#f5f3ff" : "transparent", p: selectionCount > 0 ? 1 : 0, borderRadius: 1 }}>
+        <Box sx={{ display: "flex", alignItems: "center", gap: 2, flexWrap: "wrap" }}>
+          <Box sx={{ display: "flex", alignItems: "center" }}>
+            <Checkbox
+              size="small"
+              checked={allVisibleSelected}
+              indeterminate={!allVisibleSelected && someVisibleSelected}
+              onChange={toggleVisiblePage}
+              disabled={approvedVisibleIds.length === 0}
+            />
+            <Typography sx={{ fontSize: 13 }}>Select All (Visible)</Typography>
+          </Box>
+
+          <Tooltip title="Selects every Approved result matching your current filters, not just the loaded page.">
+            <Link component="button" type="button" onClick={selectAllMatchingRecords} sx={{ fontSize: 13 }} underline="hover">
+              Select All {totalCount} Matching Records
+            </Link>
+          </Tooltip>
+
+          {selectionCount > 0 && (
+            <Typography sx={{ fontSize: 13, color: "text.secondary", fontWeight: 600 }}>
+              {selectAllMatching ? `All ${totalCount} selected` : `${selectionCount} selected`}
+              {" · "}
+              <Link component="button" type="button" onClick={clearSelection} sx={{ fontSize: 13 }} underline="hover">
+                Clear
+              </Link>
+            </Typography>
+          )}
         </Box>
 
-        <Tooltip title="Selects every Approved result matching your current filters, not just the loaded page.">
-          <Link component="button" type="button" onClick={selectAllMatchingRecords} sx={{ fontSize: 13 }} underline="hover">
-            Select All {totalCount} Matching Records
-          </Link>
-        </Tooltip>
-
         {selectionCount > 0 && (
-          <Typography sx={{ fontSize: 13, color: "text.secondary" }}>
-            {selectAllMatching ? `All ${totalCount} selected` : `${selectionCount} selected`}
-            {" · "}
-            <Link component="button" type="button" onClick={clearSelection} sx={{ fontSize: 13 }} underline="hover">
-              Clear
-            </Link>
-          </Typography>
+          <Stack direction="row" spacing={1}>
+            <Button
+              size="small"
+              variant="contained"
+              startIcon={<PostAddIcon />}
+              onClick={() => onBuildReport && onBuildReport(selectedRecords.length > 0 ? selectedRecords : items)}
+            >
+              Build Report
+            </Button>
+            <Button
+              size="small"
+              variant="outlined"
+              startIcon={<ShowChartIcon />}
+              onClick={() => {
+                const target = selectedRecords[0] ?? items[0];
+                if (target && onAnalyzeTrend) onAnalyzeTrend(target.testCode, target.subjectName);
+              }}
+            >
+              Analyze Selected
+            </Button>
+            <Button
+              size="small"
+              variant="outlined"
+              startIcon={<FileDownloadIcon />}
+              onClick={handleExportSelected}
+            >
+              Export Selected
+            </Button>
+          </Stack>
         )}
       </Box>
 
@@ -249,7 +332,19 @@ export function ReportResultsTable({ results, loading, error, appliedParams, onP
                           <Typography sx={{ fontSize: 11, color: "text.secondary" }}>{dt.time}</Typography>
                         </TableCell>
                       )}
-                      {visibleColumns.reference && <TableCell>{row.referenceNumber}</TableCell>}
+                      {visibleColumns.reference && (
+                        <TableCell>
+                          <Link
+                            component="button"
+                            type="button"
+                            onClick={() => setDetailRecord(row)}
+                            sx={{ fontSize: 13, fontWeight: 600, color: brandColors.sectionTitle }}
+                            underline="hover"
+                          >
+                            {row.referenceNumber}
+                          </Link>
+                        </TableCell>
+                      )}
                       {visibleColumns.subject && (
                         <TableCell>
                           <Typography sx={{ fontSize: 13 }}>{row.subjectName}</Typography>
@@ -258,7 +353,9 @@ export function ReportResultsTable({ results, loading, error, appliedParams, onP
                       )}
                       {visibleColumns.type && <TableCell><CategoryBadge category={row.category} /></TableCell>}
                       {visibleColumns.test && <TableCell>{row.testCode}</TableCell>}
-                      {visibleColumns.result && <TableCell>{row.reportedValue}</TableCell>}
+                      {visibleColumns.result && (
+                        <TableCell sx={{ fontWeight: 600 }}>{row.reportedValue}</TableCell>
+                      )}
                       {visibleColumns.unit && <TableCell>{row.unit ?? "—"}</TableCell>}
                       {visibleColumns.resultLevel && (
                         <TableCell>
@@ -283,10 +380,38 @@ export function ReportResultsTable({ results, loading, error, appliedParams, onP
           <Menu anchorEl={rowMenu?.anchor} open={!!rowMenu} onClose={() => setRowMenu(null)}>
             <MenuItem
               onClick={() => {
+                if (rowMenu) setDetailRecord(rowMenu.row);
+                setRowMenu(null);
+              }}
+            >
+              <VisibilityIcon fontSize="small" sx={{ mr: 1, color: "text.secondary" }} />
+              View Record Details
+            </MenuItem>
+            <MenuItem
+              onClick={() => {
+                if (rowMenu && onBuildReport) onBuildReport([rowMenu.row]);
+                setRowMenu(null);
+              }}
+            >
+              <PostAddIcon fontSize="small" sx={{ mr: 1, color: "text.secondary" }} />
+              Include in Report Builder
+            </MenuItem>
+            <MenuItem
+              onClick={() => {
+                if (rowMenu && onAnalyzeTrend) onAnalyzeTrend(rowMenu.row.testCode, rowMenu.row.subjectName);
+                setRowMenu(null);
+              }}
+            >
+              <ShowChartIcon fontSize="small" sx={{ mr: 1, color: "text.secondary" }} />
+              Analyze Trend
+            </MenuItem>
+            <MenuItem
+              onClick={() => {
                 if (rowMenu) navigator.clipboard?.writeText(rowMenu.row.referenceNumber);
                 setRowMenu(null);
               }}
             >
+              <ContentCopyIcon fontSize="small" sx={{ mr: 1, color: "text.secondary" }} />
               Copy Reference Number
             </MenuItem>
           </Menu>
@@ -318,6 +443,12 @@ export function ReportResultsTable({ results, loading, error, appliedParams, onP
         message={`This will export ${totalCount} row${totalCount === 1 ? "" : "s"} matching your current filters as a CSV file. This export will be logged.`}
         onConfirm={runExport}
         onCancel={() => setExportConfirmOpen(false)}
+      />
+
+      <RecordDetailDialog
+        open={!!detailRecord}
+        onClose={() => setDetailRecord(null)}
+        record={detailRecord}
       />
     </Paper>
   );

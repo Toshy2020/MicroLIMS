@@ -1,250 +1,412 @@
-import { useEffect, useState } from "react";
-import { Box, Paper, Select, MenuItem, TextField, Button, Typography, Autocomplete } from "@mui/material";
+import { useEffect, useMemo, useState } from "react";
+import { Box, Button, Alert, Snackbar, Typography } from "@mui/material";
+import AddIcon from "@mui/icons-material/Add";
+import RefreshIcon from "@mui/icons-material/Refresh";
 import { PageHeader } from "../../components/PageHeader";
-import { SectionTitle } from "../../components/SectionTitle";
-import { SearchBar } from "../../components/SearchBar";
-import { StatusBadge, CauseBadge, CategoryBadge } from "../../components/StatusBadge";
-import { SampleLifecycleBadge } from "../testingWorkspace/SampleLifecycleBadge";
+import { LoadingSpinner } from "../../components/LoadingSpinner";
+import { AuditHistoryDialog } from "../../components/AuditHistoryDialog";
+import { SampleSummaryDialog } from "../testingWorkspace/SampleSummaryDialog";
+import { TestWorkflowDialogRouter } from "../testingWorkspace/FloatingDialogs";
+import { PreparationDialog } from "../testPreparation/PreparationDialog";
+import { SampleRecord, TestOrderSummary } from "./types/receivingTypes";
 import { ReceiveService } from "./services/ReceiveService";
-import { masterDataOptions, SAMPLED_BY_SUGGESTIONS, PRODUCTION_STAGES } from "../../services/masterDataOptions";
-import { SampleRecord } from "./types/receivingTypes";
+import { SampleStatusKpiCards, KpiFilterKey } from "./components/SampleStatusKpiCards";
+import { SampleFilterBar } from "./components/SampleFilterBar";
+import { SampleRegisterTable } from "./components/SampleRegisterTable";
+import { NewSampleDialog } from "./dialogs/NewSampleDialog";
+import { EditSampleDetailsDialog } from "./dialogs/EditSampleDetailsDialog";
 import { brandColors } from "../../theme";
 
-const CATEGORIES = [
-  { key: "product", label: "Product", apiCategory: "FinishedProduct" },
-  { key: "rm", label: "Raw Material", apiCategory: "RawMaterial" },
-  { key: "pm", label: "Packaging Material", apiCategory: "PackagingMaterial" },
-  { key: "water", label: "Water", apiCategory: null },
-  { key: "em", label: "Environmental Monitoring", apiCategory: null },
-  { key: "ac", label: "After Cleaning", apiCategory: null }
-];
-
 export function ReceiveSamplePage() {
-  const [category, setCategory] = useState("product");
-  const [items, setItems] = useState<any[]>([]);
-  const [waterPoints, setWaterPoints] = useState<any[]>([]);
-  const [departments, setDepartments] = useState<any[]>([]);
-  const [machines, setMachines] = useState<any[]>([]);
-  const [causes, setCauses] = useState<any[]>([]);
-
-  const [form, setForm] = useState<Record<string, any>>({});
-  const [message, setMessage] = useState<{ text: string; ok: boolean } | null>(null);
   const [records, setRecords] = useState<SampleRecord[] | null>(null);
-  const [filter, setFilter] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [notification, setNotification] = useState<{ text: string; severity: "success" | "error" | "info" } | null>(null);
+
+  // KPI & Filter State
+  const [activeKpi, setActiveKpi] = useState<KpiFilterKey | null>(null);
+  const [search, setSearch] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState("ALL");
+  const [sampleStatusFilter, setSampleStatusFilter] = useState("ALL");
+  const [testStatusFilter, setTestStatusFilter] = useState("ALL");
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
 
-  useEffect(() => {
-    masterDataOptions.getCausesOfTesting().then(setCauses);
-    masterDataOptions.getWaterSamplingPoints().then(setWaterPoints);
-    masterDataOptions.getDepartments().then(setDepartments);
-    masterDataOptions.getMachines().then(setMachines);
-    loadRecords();
-  }, []);
+  // Dialogs State
+  const [newSampleDialogOpen, setNewSampleDialogOpen] = useState(false);
+  const [editSample, setEditSample] = useState<SampleRecord | null>(null);
+  const [summarySampleId, setSummarySampleId] = useState<number | null>(null);
+  const [activeTest, setActiveTest] = useState<TestOrderSummary | null>(null);
+  const [activeSampleForTest, setActiveSampleForTest] = useState<any | null>(null);
+  const [preparingSample, setPreparingSample] = useState<SampleRecord | null>(null);
+  const [auditSampleId, setAuditSampleId] = useState<number | null>(null);
 
-  useEffect(() => {
-    const cat = CATEGORIES.find((c) => c.key === category);
-    if (cat?.apiCategory) masterDataOptions.getItems(cat.apiCategory).then(setItems);
-    setForm({});
-    setMessage(null);
-  }, [category]);
-
-  const loadRecords = () => ReceiveService.getRecords().then(setRecords);
-  const setField = (key: string, value: any) => setForm((f) => ({ ...f, [key]: value }));
-
-  const handleSave = async () => {
-    setMessage(null);
+  const loadRecords = async () => {
+    setLoading(true);
     try {
-      if (category === "product" || category === "rm" || category === "pm") {
-        await ReceiveService.receiveItemBased({
-          itemId: form.itemId, causeOfTestingId: form.causeOfTestingId, sampleQuantity: form.sampleQuantity ?? "",
-          sampledBy: form.sampledBy ?? "", batchNumber: form.batchNumber ?? "", controlNumber: form.controlNumber ?? "",
-          mfgDate: form.mfgDate || null, expDate: form.expDate || null, productionStage: category === "product" ? form.productionStage : null
-        });
-      } else if (category === "water") {
-        await ReceiveService.receiveWater({
-          waterSamplingPointId: form.waterSamplingPointId, causeOfTestingId: form.causeOfTestingId,
-          sampleQuantity: form.sampleQuantity ?? "", sampledBy: form.sampledBy ?? "", controlNumber: form.controlNumber ?? ""
-        });
-      } else if (category === "em") {
-        await ReceiveService.receiveEM({
-          departmentId: form.departmentId, causeOfTestingId: form.causeOfTestingId,
-          sampledBy: form.sampledBy ?? "", controlNumber: form.controlNumber ?? ""
-        });
-      } else if (category === "ac") {
-        await ReceiveService.receiveAfterCleaning({
-          machineId: form.machineId, causeOfTestingId: form.causeOfTestingId,
-          sampledBy: form.sampledBy ?? "", controlNumber: form.controlNumber ?? ""
-        });
-      }
-      setMessage({ text: "Sample received successfully.", ok: true });
-      setForm({});
-      loadRecords();
-    } catch (e: any) {
-      setMessage({ text: e?.response?.data?.message ?? "Error receiving sample.", ok: false });
+      const data = await ReceiveService.getRecords();
+      setRecords(data);
+    } catch (err: any) {
+      setNotification({
+        text: err?.response?.data?.message || "Failed to load sample records.",
+        severity: "error"
+      });
+    } finally {
+      setLoading(false);
     }
   };
 
-  const filteredRecords = records?.filter((r) => {
-    if (filter && !Object.values(r).some((v) => String(v).toLowerCase().includes(filter.toLowerCase()))) return false;
-    const receivedDate = r.receivedAt.slice(0, 10); // YYYY-MM-DD, matches <input type="date">
-    if (fromDate && receivedDate < fromDate) return false;
-    if (toDate && receivedDate > toDate) return false;
-    return true;
-  });
+  useEffect(() => {
+    loadRecords();
+  }, []);
 
-  const itemBased = category === "product" || category === "rm" || category === "pm";
+  // Handle KPI Click Filter
+  const handleSelectKpi = (kpi: KpiFilterKey) => {
+    if (kpi === "ALL" || activeKpi === kpi) {
+      setActiveKpi(null);
+      setSampleStatusFilter("ALL");
+    } else {
+      setActiveKpi(kpi);
+      setSampleStatusFilter(kpi);
+    }
+  };
+
+  // Sync Sample Status Filter changes with KPI cards
+  const handleSampleStatusFilterChange = (status: string) => {
+    setSampleStatusFilter(status);
+    if (status === "ALL") {
+      setActiveKpi(null);
+    } else if (
+      status === "InTesting" ||
+      status === "PendingReview" ||
+      status === "Approved" ||
+      status === "Rejected" ||
+      status === "RetestRequested"
+    ) {
+      setActiveKpi(status === "RetestRequested" ? "CancelledVoided" : (status as KpiFilterKey));
+    } else {
+      setActiveKpi(null);
+    }
+  };
+
+  const handleResetFilters = () => {
+    setSearch("");
+    setActiveKpi(null);
+    setCategoryFilter("ALL");
+    setSampleStatusFilter("ALL");
+    setTestStatusFilter("ALL");
+    setFromDate("");
+    setToDate("");
+  };
+
+  const hasActiveFilters = Boolean(
+    search ||
+    activeKpi ||
+    categoryFilter !== "ALL" ||
+    sampleStatusFilter !== "ALL" ||
+    testStatusFilter !== "ALL" ||
+    fromDate ||
+    toDate
+  );
+
+  // Filtered Samples Computation
+  const filteredRecords = useMemo(() => {
+    if (!records) return [];
+
+    return records.filter((r) => {
+      // Free Text Search
+      if (search.trim()) {
+        const q = search.trim().toLowerCase();
+        const matches =
+          r.displayName?.toLowerCase().includes(q) ||
+          r.referenceNumber?.toLowerCase().includes(q) ||
+          (r.batchNumber && r.batchNumber.toLowerCase().includes(q)) ||
+          r.controlNumber?.toLowerCase().includes(q) ||
+          r.causeOfTesting?.toLowerCase().includes(q) ||
+          (r.sampledBy && r.sampledBy.toLowerCase().includes(q));
+
+        if (!matches) return false;
+      }
+
+      // KPI Status Filter
+      if (activeKpi && activeKpi !== "ALL") {
+        if (activeKpi === "InTesting" && r.status !== "InTesting") return false;
+        if (
+          activeKpi === "PendingReview" &&
+          r.status !== "UnderReview" &&
+          r.status !== "UnderApproval" &&
+          r.status !== "PendingReview"
+        )
+          return false;
+        if (activeKpi === "Approved" && r.status !== "Approved") return false;
+        if (activeKpi === "Rejected" && r.status !== "Rejected") return false;
+        if (
+          activeKpi === "CancelledVoided" &&
+          r.status !== "RetestRequested" &&
+          r.status !== "Cancelled" &&
+          r.status !== "Voided"
+        )
+          return false;
+      }
+
+      // Category / Item Type Filter
+      if (categoryFilter !== "ALL" && r.category !== categoryFilter) {
+        return false;
+      }
+
+      // Sample Status Filter (if not already handled by KPI)
+      if (sampleStatusFilter !== "ALL" && !activeKpi) {
+        if (sampleStatusFilter === "PendingReview") {
+          if (r.status !== "UnderReview" && r.status !== "UnderApproval" && r.status !== "PendingReview") {
+            return false;
+          }
+        } else if (sampleStatusFilter === "RetestRequested") {
+          if (r.status !== "RetestRequested" && r.status !== "Cancelled" && r.status !== "Voided") {
+            return false;
+          }
+        } else if (r.status !== sampleStatusFilter) {
+          return false;
+        }
+      }
+
+      // Test Status Filter
+      if (testStatusFilter !== "ALL") {
+        const tests = r.assignedTests || [];
+        if (testStatusFilter === "Waiting") {
+          if (!tests.some((t) => t.status === "Waiting" || t.status === "NotStarted")) return false;
+        } else if (testStatusFilter === "InProgress") {
+          if (!tests.some((t) => t.status === "InProgress" || t.status === "Running" || t.status === "Incubating"))
+            return false;
+        } else if (testStatusFilter === "UnderReview") {
+          if (!tests.some((t) => t.status === "UnderReview" || t.status === "Reviewed")) return false;
+        } else {
+          if (!tests.some((t) => t.status === testStatusFilter)) return false;
+        }
+      }
+
+      // Date Range Filters
+      if (r.receivedAt) {
+        const dateStr = r.receivedAt.slice(0, 10);
+        if (fromDate && dateStr < fromDate) return false;
+        if (toDate && dateStr > toDate) return false;
+      }
+
+      return true;
+    });
+  }, [records, search, activeKpi, categoryFilter, sampleStatusFilter, testStatusFilter, fromDate, toDate]);
+
+  // Actions
+  const handleTestClick = (test: TestOrderSummary, sample: SampleRecord) => {
+    setActiveTest(test);
+    setActiveSampleForTest({
+      sampleId: sample.sampleId,
+      category: sample.category,
+      displayName: sample.displayName
+    });
+  };
+
+  const handleViewSummary = (sample: SampleRecord) => {
+    setSummarySampleId(sample.sampleId);
+  };
+
+  const handleEdit = (sample: SampleRecord) => {
+    setEditSample(sample);
+  };
+
+  const handleViewReport = (sample: SampleRecord) => {
+    window.open(`/samples/${sample.sampleId}/report`, "_blank");
+  };
+
+  const handleViewAuditHistory = (sample: SampleRecord) => {
+    setAuditSampleId(sample.sampleId);
+  };
+
+  const handlePrepareSample = (sample: SampleRecord) => {
+    setPreparingSample(sample);
+  };
+
+  const handleReceiveSuccess = (count: number) => {
+    setNotification({
+      text: `Successfully received ${count} sample${count > 1 ? "s" : ""}. Test orders generated automatically.`,
+      severity: "success"
+    });
+    loadRecords();
+  };
+
+  const handleEditSuccess = () => {
+    setNotification({
+      text: "Sample information updated successfully.",
+      severity: "success"
+    });
+    loadRecords();
+  };
 
   return (
     <>
-      <PageHeader title="Sample Receiving" subtitle="Choose an item type, then log incoming samples for that category." />
+      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", mb: 2, flexWrap: "wrap", gap: 1.5 }}>
+        <PageHeader
+          title="Sample Receiving"
+          subtitle="Log incoming samples and track their testing status."
+        />
 
-      <SectionTitle>1. Choose Item Type</SectionTitle>
-      <Box sx={{ display: "flex", gap: 1, mb: 2, flexWrap: "wrap" }}>
-        {CATEGORIES.map((c) => (
-          <Box
-            key={c.key}
-            onClick={() => setCategory(c.key)}
+        <Box sx={{ display: "flex", gap: 1.5, mt: 0.5 }}>
+          <Button
+            variant="outlined"
+            size="medium"
+            onClick={loadRecords}
+            disabled={loading}
+            startIcon={<RefreshIcon />}
             sx={{
-              px: 2, py: 0.75, borderRadius: 5, fontSize: 13, fontWeight: 600, cursor: "pointer",
-              bgcolor: category === c.key ? brandColors.sectionTitle : "#fff",
-              color: category === c.key ? "#fff" : "text.secondary",
-              border: `1px solid ${category === c.key ? brandColors.sectionTitle : "#e5e7eb"}`
+              borderColor: "#d1d5db",
+              color: "#374151",
+              fontWeight: 600,
+              bgcolor: "#ffffff",
+              "&:hover": { bgcolor: "#f9fafb", borderColor: "#9ca3af" }
             }}
           >
-            {c.label}
-          </Box>
-        ))}
+            Refresh
+          </Button>
+
+          <Button
+            variant="contained"
+            size="medium"
+            onClick={() => setNewSampleDialogOpen(true)}
+            startIcon={<AddIcon />}
+            sx={{
+              bgcolor: brandColors.sectionTitle,
+              fontWeight: 600,
+              px: 2.5,
+              "&:hover": { bgcolor: "#631f74" }
+            }}
+          >
+            + New Sample
+          </Button>
+        </Box>
       </Box>
 
-      <SectionTitle>2. Entry</SectionTitle>
-      {message && (
-        <Typography sx={{ mb: 1.5, fontSize: 13, color: message.ok ? brandColors.ok : brandColors.err }}>{message.text}</Typography>
-      )}
+      {/* KPI Cards */}
+      <SampleStatusKpiCards
+        samples={records || []}
+        activeKpi={activeKpi}
+        onSelectKpi={handleSelectKpi}
+      />
 
-      <Paper sx={{ p: 2.5, mb: 3 }}>
-        <Box sx={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 2 }}>
-          {itemBased && (
-            <>
-              <Select displayEmpty value={form.itemId ?? ""} onChange={(e) => setField("itemId", e.target.value)}>
-                <MenuItem value=""><em>Select item</em></MenuItem>
-                {items.map((i) => <MenuItem key={i.id} value={i.id}>{i.name}</MenuItem>)}
-              </Select>
-              {category === "product" && (
-                <Select displayEmpty value={form.productionStage ?? ""} onChange={(e) => setField("productionStage", e.target.value)}>
-                  <MenuItem value=""><em>Production Stage</em></MenuItem>
-                  {PRODUCTION_STAGES.map((s) => <MenuItem key={s} value={s}>{s}</MenuItem>)}
-                </Select>
-              )}
-            </>
-          )}
+      {/* Filter Panel */}
+      <SampleFilterBar
+        search={search}
+        onSearchChange={setSearch}
+        categoryFilter={categoryFilter}
+        onCategoryFilterChange={setCategoryFilter}
+        sampleStatusFilter={sampleStatusFilter}
+        onSampleStatusFilterChange={handleSampleStatusFilterChange}
+        testStatusFilter={testStatusFilter}
+        onTestStatusFilterChange={setTestStatusFilter}
+        fromDate={fromDate}
+        onFromDateChange={setFromDate}
+        toDate={toDate}
+        onToDateChange={setToDate}
+        onResetFilters={handleResetFilters}
+        hasActiveFilters={hasActiveFilters}
+      />
 
-          {category === "water" && (
-            <Select displayEmpty value={form.waterSamplingPointId ?? ""} onChange={(e) => setField("waterSamplingPointId", e.target.value)}>
-              <MenuItem value=""><em>Sampling point</em></MenuItem>
-              {waterPoints.map((p) => <MenuItem key={p.id} value={p.id}>{p.code} — {p.location}</MenuItem>)}
-            </Select>
-          )}
-
-          {category === "em" && (
-            <Select displayEmpty value={form.departmentId ?? ""} onChange={(e) => setField("departmentId", e.target.value)}>
-              <MenuItem value=""><em>Department</em></MenuItem>
-              {departments.map((d) => <MenuItem key={d.id} value={d.id}>{d.name}</MenuItem>)}
-            </Select>
-          )}
-
-          {category === "ac" && (
-            <Select displayEmpty value={form.machineId ?? ""} onChange={(e) => setField("machineId", e.target.value)}>
-              <MenuItem value=""><em>Machine</em></MenuItem>
-              {machines.map((m) => <MenuItem key={m.id} value={m.id}>{m.name}</MenuItem>)}
-            </Select>
-          )}
-
-          <Select displayEmpty value={form.causeOfTestingId ?? ""} onChange={(e) => setField("causeOfTestingId", e.target.value)}>
-            <MenuItem value=""><em>Cause of Testing</em></MenuItem>
-            {causes.map((c) => <MenuItem key={c.id} value={c.id}>{c.name}</MenuItem>)}
-          </Select>
-
-          {category !== "em" && category !== "ac" && (
-            <TextField placeholder="Sample Quantity" value={form.sampleQuantity ?? ""} onChange={(e) => setField("sampleQuantity", e.target.value)} />
-          )}
-
-          <Autocomplete
-            freeSolo
-            options={SAMPLED_BY_SUGGESTIONS}
-            inputValue={form.sampledBy ?? ""}
-            onInputChange={(_, v) => setField("sampledBy", v)}
-            renderInput={(params) => <TextField {...params} placeholder="Sampled By" />}
-          />
-
-          {itemBased && (
-            <TextField placeholder="Batch Number" value={form.batchNumber ?? ""} onChange={(e) => setField("batchNumber", e.target.value)} />
-          )}
-          <TextField placeholder="Control Number" value={form.controlNumber ?? ""} onChange={(e) => setField("controlNumber", e.target.value)} />
-
-          {itemBased && (
-            <>
-              <TextField type="date" label="Mfg Date" InputLabelProps={{ shrink: true }} value={form.mfgDate ?? ""} onChange={(e) => setField("mfgDate", e.target.value)} />
-              <TextField type="date" label="Exp Date" InputLabelProps={{ shrink: true }} value={form.expDate ?? ""} onChange={(e) => setField("expDate", e.target.value)} />
-            </>
-          )}
-        </Box>
-
-        {(category === "em" || category === "ac") && (
-          <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
-            Rooms/parts and test types are selected in a separate Preparation step after receiving.
-          </Typography>
-        )}
-
-        <Box sx={{ display: "flex", justifyContent: "flex-end", mt: 2 }}>
-          <Button variant="contained" onClick={handleSave}>Save Received Sample</Button>
-        </Box>
-      </Paper>
-
-      <SectionTitle tabs={[{ label: "Refresh", onClick: loadRecords }]}>Records</SectionTitle>
-      <SearchBar value={filter} onChange={setFilter} placeholder="Filter records by any field..." />
-      <Box sx={{ display: "flex", gap: 1.5, mb: 2.25, mt: -1.25 }}>
-        <TextField size="small" type="date" label="From" InputLabelProps={{ shrink: true }} value={fromDate} onChange={(e) => setFromDate(e.target.value)} />
-        <TextField size="small" type="date" label="To" InputLabelProps={{ shrink: true }} value={toDate} onChange={(e) => setToDate(e.target.value)} />
+      {/* Records Count & Table Title */}
+      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1.5 }}>
+        <Typography sx={{ fontSize: 16, fontWeight: 700, color: brandColors.pageTitle }}>
+          Received Samples Register {records ? `(${filteredRecords.length}${filteredRecords.length !== records.length ? ` of ${records.length}` : ""})` : ""}
+        </Typography>
       </Box>
 
-      {!filteredRecords ? (
-        <Typography color="text.secondary">Loading...</Typography>
-      ) : filteredRecords.length === 0 ? (
-        <Typography sx={{ color: "#9ca3af", fontSize: 13, p: 2 }}>No samples recorded yet.</Typography>
+      {/* Sample Register Table */}
+      {!records || loading ? (
+        <LoadingSpinner />
       ) : (
-        filteredRecords.map((r) => (
-          <Paper key={r.sampleId} sx={{ p: 2, mb: 1.25, display: "grid", gridTemplateColumns: "60px 1.6fr 1.6fr auto", gap: 2 }}>
-            <Typography sx={{ color: "text.secondary", fontWeight: 600, fontSize: 13 }}>#{r.sampleId}</Typography>
-            <Box>
-              <Typography sx={{ fontWeight: 600, fontSize: 13 }}>{r.displayName}{r.batchNumber ? ` — ${r.batchNumber}` : ""}</Typography>
-              <Box sx={{ display: "flex", gap: 0.75, mt: 0.75 }}>
-                <CategoryBadge category={r.category} />
-                <CauseBadge label={r.causeOfTesting} />
-                {r.preparationStatus === "NeedsPreparation" && <StatusBadge status="Needs Preparation" />}
-                <SampleLifecycleBadge status={r.status} role={null} interactive={false} />
-              </Box>
-              <Typography sx={{ fontSize: 11, color: "#9ca3af", mt: 0.5 }}>{r.referenceNumber}</Typography>
-            </Box>
-            <Box>
-              <Typography sx={{ fontSize: 11, color: "#9ca3af", mb: 0.5 }}>Test Status</Typography>
-              {r.assignedTests.length === 0 ? (
-                <Typography sx={{ fontSize: 12, color: "text.secondary" }}>—</Typography>
-              ) : (
-                <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
-                  {r.assignedTests.map((t) => (
-                    <Box key={t.testOrderId} sx={{ display: "flex", alignItems: "center", gap: 0.5, bgcolor: "#f3e8ff", borderRadius: 1.5, px: 0.75, py: 0.25 }}>
-                      <Typography sx={{ fontSize: 11, fontWeight: 600 }}>{t.testCode}</Typography>
-                      <StatusBadge status={t.status} />
-                    </Box>
-                  ))}
-                </Box>
-              )}
-            </Box>
-            <Typography sx={{ fontSize: 11, color: "#9ca3af", textAlign: "right" }}>{new Date(r.receivedAt).toLocaleString()}</Typography>
-          </Paper>
-        ))
+        <SampleRegisterTable
+          samples={filteredRecords}
+          onTestClick={handleTestClick}
+          onViewSummary={handleViewSummary}
+          onEdit={handleEdit}
+          onViewReport={handleViewReport}
+          onViewAuditHistory={handleViewAuditHistory}
+          onPrepareSample={handlePrepareSample}
+        />
       )}
+
+      {/* New Sample Dialog (2 Steps) */}
+      <NewSampleDialog
+        open={newSampleDialogOpen}
+        onClose={() => setNewSampleDialogOpen(false)}
+        onSuccess={handleReceiveSuccess}
+      />
+
+      {/* Edit Sample Details Dialog */}
+      <EditSampleDetailsDialog
+        open={Boolean(editSample)}
+        sample={editSample}
+        onClose={() => setEditSample(null)}
+        onSuccess={handleEditSuccess}
+      />
+
+      {/* Detailed Sample Summary Dialog */}
+      <SampleSummaryDialog
+        open={Boolean(summarySampleId)}
+        sampleId={summarySampleId}
+        onClose={() => {
+          setSummarySampleId(null);
+          loadRecords();
+        }}
+      />
+
+      {/* Test Workflow Router Dialog */}
+      <TestWorkflowDialogRouter
+        open={Boolean(activeTest)}
+        test={activeTest as any}
+        sample={activeSampleForTest}
+        onClose={() => {
+          setActiveTest(null);
+          setActiveSampleForTest(null);
+          loadRecords();
+        }}
+      />
+
+      {/* Preparation Dialog (for EM / After Cleaning / Needs Preparation) */}
+      <PreparationDialog
+        open={Boolean(preparingSample)}
+        sample={preparingSample ? {
+          sampleId: preparingSample.sampleId,
+          category: preparingSample.category,
+          departmentId: preparingSample.departmentId,
+          machineId: preparingSample.machineId
+        } : null}
+        onClose={() => {
+          setPreparingSample(null);
+          loadRecords();
+        }}
+      />
+
+      {/* Change History Audit Dialog */}
+      <AuditHistoryDialog
+        open={Boolean(auditSampleId)}
+        entityName="Sample"
+        entityId={auditSampleId}
+        onClose={() => setAuditSampleId(null)}
+      />
+
+      {/* Toast Notification Snackbar */}
+      <Snackbar
+        open={Boolean(notification)}
+        autoHideDuration={5000}
+        onClose={() => setNotification(null)}
+        anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+      >
+        {notification ? (
+          <Alert
+            severity={notification.severity}
+            onClose={() => setNotification(null)}
+            sx={{ boxShadow: "0 4px 12px rgba(0,0,0,0.15)", borderRadius: 1.5 }}
+          >
+            {notification.text}
+          </Alert>
+        ) : undefined}
+      </Snackbar>
     </>
   );
 }

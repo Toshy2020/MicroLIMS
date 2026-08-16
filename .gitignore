@@ -37,3 +37,8 @@ frontend/dist/
 # Claude Code worktrees and SDD scratch (git-ignored working state)
 .claude/worktrees/
 .superpowers/
+
+# wrangler files
+.wrangler
+.dev.vars*
+!.dev.vars.example

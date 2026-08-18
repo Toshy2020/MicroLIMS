@@ -105,6 +105,13 @@ public interface ITestWorkflowEngine : IStatefulWorkflowEngine
     // is server-controlled from Test Master and recorded when media is selected.
     Task<StepResultDto> SubmitBrothAsync(int testOrderId, string stepName, string? observation, int userId);
 
+    Task<Incubation> StartSelectivePlatingIncubationAsync(int testOrderId, string stepName, int mediaLotId, int equipmentId,
+        DateTime? incubationStartUtc, int userId);
+
+    Task<StepResultDto> SubmitSelectivePlatingObservationAsync(int testOrderId, string stepName, GrowthObservation observation,
+        string? observedAppearanceNote, int userId);
+
+    [Obsolete("Use StartSelectivePlatingIncubationAsync followed by SubmitSelectivePlatingObservationAsync.")]
     Task<StepResultDto> SubmitSelectivePlatingAsync(int testOrderId, string stepName, int mediaLotId, int equipmentId,
         DateTime incubationStartUtc, DateTime incubationEndUtc, GrowthObservation observation, int userId);
 
@@ -1208,58 +1215,118 @@ public class TestWorkflowEngine : ITestWorkflowEngine
 
     // Growth that is absent or does not match the expected appearance
     // means the organism being sought is not there - the workflow ends
-    // as NotDetected without running confirmatory plating.
-    public async Task<StepResultDto> SubmitSelectivePlatingAsync(
-        int testOrderId, string stepName, int mediaLotId, int equipmentId,
-        DateTime incubationStartUtc, DateTime incubationEndUtc, GrowthObservation observation, int userId)
+    public async Task<Incubation> StartSelectivePlatingIncubationAsync(
+        int testOrderId, string stepName, int mediaLotId, int equipmentId, DateTime? incubationStartUtc, int userId)
+    {
+        var (order, definition) = await LoadWithTemplateAsync(testOrderId);
+        RequireOrderNotFinalized(order);
+        var step = definition.Steps.FirstOrDefault(s => s.StepName == stepName)
+            ?? throw new InvalidOperationException($"Step \"{stepName}\" is not part of the workflow template for \"{order.TestCode}\".");
+
+        if (step.StepType != StepType.SelectivePlating)
+            throw new InvalidOperationException($"Step '{stepName}' is not a selective plating step.");
+
+        var currentStep = await FindFirstIncompleteStepAsync(testOrderId, definition);
+        if (currentStep is null)
+            throw new InvalidOperationException($"All workflow steps for \"{order.TestCode}\" are already complete.");
+        if (currentStep.StepName != stepName)
+            throw new InvalidOperationException($"Workflow order violation: step \"{currentStep.StepName}\" must be completed before \"{stepName}\".");
+
+        var alreadyOpen = await _db.Incubations.AnyAsync(i => i.TestOrderId == testOrderId && i.StepName == stepName && i.CompletedAt == null);
+        if (alreadyOpen)
+            throw new InvalidOperationException($"Incubation has already been started for step \"{stepName}\" - awaiting its result.");
+
+        var stepMedium = await RequireSingleStepMediumAsync(step);
+        var lot = await LoadReleasedLotAsync(mediaLotId, stepMedium.MaterialId, step.MediaTypeId);
+        await RequireEligibleIncubatorAsync(stepMedium.Id, equipmentId);
+
+        var startedAt = incubationStartUtc ?? DateTime.UtcNow;
+        var incubation = new Incubation
+        {
+            TestOrderId = testOrderId,
+            StepNumber = step.StepOrder,
+            StepName = step.StepName,
+            StageNumber = 1,
+            MediaId = lot.Id,
+            IncubatorEquipmentId = equipmentId,
+            Temperature = $"{step.TemperatureMin}-{step.TemperatureMax} °C",
+            Duration = $"{step.IncubationMinHours}-{step.IncubationMaxHours} hours",
+            StartedAt = DateTime.UtcNow,
+            IncubationStartUtc = startedAt,
+            IncubationEndUtc = startedAt.AddHours(step.IncubationMaxHours),
+            ExpectedReadingAt = startedAt.AddHours(step.IncubationMaxHours),
+            WindowReceivedAtUtc = DateTime.UtcNow,
+            StartedByUserId = userId
+        };
+        _db.Incubations.Add(incubation);
+
+        var sample = await _db.Samples.FirstAsync(s => s.Id == order.SampleId);
+        if (sample.Status == SampleStatus.Received)
+            sample.Status = SampleStatus.InTesting;
+
+        if (order.CurrentStep == WorkflowStep.Waiting)
+            await WorkflowStateMachine.TransitionAsync(_db, order, WorkflowStep.Incubating, userId, $"Started step \"{stepName}\"");
+        else
+            await _db.SaveChangesAsync();
+
+        return incubation;
+    }
+
+    public async Task<StepResultDto> SubmitSelectivePlatingObservationAsync(
+        int testOrderId, string stepName, GrowthObservation observation, string? observedAppearanceNote, int userId)
     {
         var step = await LoadStepAsync(testOrderId, stepName);
         if (step.StepType != StepType.SelectivePlating)
             throw new InvalidOperationException($"Step '{stepName}' is not a selective plating step.");
 
-        var stepMedium = await RequireSingleStepMediumAsync(step);
-        var targetOrganismId = RequireTargetOrganism(step);
-        var lot = await LoadReleasedLotAsync(mediaLotId, stepMedium.MaterialId, step.MediaTypeId);
-        await RequireEligibleIncubatorAsync(stepMedium.Id, equipmentId);
+        var incubation = await _db.Incubations
+            .Where(i => i.TestOrderId == testOrderId && i.StepName == stepName && i.CompletedAt == null)
+            .OrderByDescending(i => i.StartedAt)
+            .FirstOrDefaultAsync()
+            ?? throw new InvalidOperationException($"No active incubation found for step \"{stepName}\". Start incubation before recording observation.");
 
-        // Selective plating is read off plates the previous step
-        // incubated, so it carries no "has the window elapsed" lock (see
-        // TestWorkflowStep.RequiresIncubationLock) - but the window it
-        // records is still analyst-declared and still has to be a
-        // possible one.
-        RequireValidIncubationWindow(step, incubationStartUtc, incubationEndUtc);
-
-        var incubation = new Incubation
+        // GMP GATE: enforce minimum incubation time server-side
+        var minReadyAt = incubation.IncubationStartUtc!.Value.AddHours((double)step.IncubationMinHours);
+        if (DateTime.UtcNow < minReadyAt)
         {
-            TestOrderId = testOrderId, StepNumber = step.StepOrder, StepName = step.StepName,
-            MediaId = lot.Id, IncubatorEquipmentId = equipmentId,
-            Temperature = $"{step.TemperatureMin}-{step.TemperatureMax}",
-            Duration = $"{step.IncubationMinHours}-{step.IncubationMaxHours}h",
-            IncubationStartUtc = incubationStartUtc, IncubationEndUtc = incubationEndUtc,
-            WindowReceivedAtUtc = DateTime.UtcNow,
-            ExpectedReadingAt = incubationEndUtc, CompletedAt = DateTime.UtcNow,
-            Outcome = observation.ToString()
-        };
-        _db.Incubations.Add(incubation);
+            var remainingSeconds = Math.Max(0, (long)Math.Ceiling((minReadyAt - DateTime.UtcNow).TotalSeconds));
+            throw new WorkflowStepException(WorkflowErrorCodes.IncubationNotComplete,
+                $"Minimum incubation time not elapsed. Available from: {minReadyAt:yyyy-MM-dd HH:mm} UTC.",
+                remainingSeconds);
+        }
+
+        incubation.CompletedAt = DateTime.UtcNow;
+        incubation.Outcome = observation.ToString();
         await _db.SaveChangesAsync();
 
-        // Snapshot taken at submission, never afterwards (ALCOA+).
+        var stepMedium = await RequireSingleStepMediumAsync(step);
+        var targetOrganismId = RequireTargetOrganism(step);
+
+        // Snapshot taken at observation time, never afterwards (ALCOA+).
         var snapshot = await _appearanceSnapshot.GetExpectedAppearanceSnapshotAsync(
             stepMedium.MaterialId, targetOrganismId);
 
         var result = new WorkflowStepResult
         {
-            IncubationId = incubation.Id, TestOrderId = testOrderId,
-            StepName = step.StepName, StepType = step.StepType,
-            SelectivePlatingObservation = observation, ExpectedAppearanceSnapshot = snapshot,
-            SubmittedByUserId = userId, SubmittedAtUtc = DateTime.UtcNow
+            IncubationId = incubation.Id,
+            TestOrderId = testOrderId,
+            StepName = step.StepName,
+            StepType = step.StepType,
+            SelectivePlatingObservation = observation,
+            ExpectedAppearanceSnapshot = snapshot,
+            SubmittedByUserId = userId,
+            SubmittedAtUtc = DateTime.UtcNow
         };
         _db.WorkflowStepResults.Add(result);
 
         _db.PathogenObservations.Add(new PathogenObservation
         {
-            TestOrderId = testOrderId, StepName = step.StepName, StepOrder = step.StepOrder,
-            Observation = observation, ObservedByUserId = userId, MediaId = lot.Id
+            TestOrderId = testOrderId,
+            StepName = step.StepName,
+            StepOrder = step.StepOrder,
+            Observation = observation,
+            ObservedByUserId = userId,
+            MediaId = incubation.MediaId!.Value
         });
         await _db.SaveChangesAsync();
 
@@ -1270,6 +1337,15 @@ public class TestWorkflowEngine : ITestWorkflowEngine
         await FinalizeWorkflowAsync(testOrderId, "NotDetected", userId);
         return new StepResultDto(incubation.Id, step.StepType.ToString(), "Complete",
             userId, result.SubmittedAtUtc, NextStepUnlocked: false, WorkflowFinalResult: "NotDetected", Flags: new List<string>());
+    }
+
+    [Obsolete("Use StartSelectivePlatingIncubationAsync followed by SubmitSelectivePlatingObservationAsync.")]
+    public async Task<StepResultDto> SubmitSelectivePlatingAsync(
+        int testOrderId, string stepName, int mediaLotId, int equipmentId,
+        DateTime incubationStartUtc, DateTime incubationEndUtc, GrowthObservation observation, int userId)
+    {
+        await StartSelectivePlatingIncubationAsync(testOrderId, stepName, mediaLotId, equipmentId, incubationStartUtc, userId);
+        return await SubmitSelectivePlatingObservationAsync(testOrderId, stepName, observation, null, userId);
     }
 
     // The analyst's media panel for this run. Every chosen medium must be

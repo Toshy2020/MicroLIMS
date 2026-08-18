@@ -27,6 +27,10 @@ public record BatchPathogenResultsRequest(List<BatchPathogenLocationRequest> Loc
 
 public record SubmitBrothRequest(string StepName, string? Observation);
 
+public record StartSelectivePlatingIncubationRequest(string StepName, int MediaLotId, int EquipmentId, DateTime? IncubationStartUtc = null);
+public record SubmitSelectivePlatingObservationRequest(string StepName, GrowthObservation Observation, string? ObservedAppearanceNote = null);
+
+[Obsolete("Use StartSelectivePlatingIncubationRequest and SubmitSelectivePlatingObservationRequest.")]
 public record SubmitSelectivePlatingRequest(string StepName, int MediaLotId, int EquipmentId,
     DateTime IncubationStartUtc, DateTime IncubationEndUtc, GrowthObservation Observation);
 
@@ -360,10 +364,42 @@ public class TestWorkflowController : ControllerBase
     public Task<IActionResult> SubmitBroth(int testOrderId, SubmitBrothRequest request) =>
         RunAsync(() => _engine.SubmitBrothAsync(testOrderId, request.StepName, request.Observation, CurrentUserId));
 
+    [HttpPost("{testOrderId}/start-selective-plating-incubation")]
+    public Task<IActionResult> StartSelectivePlatingIncubation(int testOrderId, StartSelectivePlatingIncubationRequest request) =>
+        RunAsync(async () =>
+        {
+            var incubation = await _engine.StartSelectivePlatingIncubationAsync(
+                testOrderId, request.StepName, request.MediaLotId, request.EquipmentId, request.IncubationStartUtc, CurrentUserId);
+            return new
+            {
+                incubation.Id,
+                incubation.StepName,
+                incubation.IncubationStartUtc,
+                incubation.IncubationEndUtc,
+                incubation.ExpectedReadingAt
+            };
+        });
+
+    [HttpPost("{testOrderId}/submit-selective-plating-observation")]
+    public Task<IActionResult> SubmitSelectivePlatingObservation(int testOrderId, SubmitSelectivePlatingObservationRequest request) =>
+        RunAsync(() => _engine.SubmitSelectivePlatingObservationAsync(
+            testOrderId, request.StepName, request.Observation, request.ObservedAppearanceNote, CurrentUserId));
+
     [HttpPost("{testOrderId}/submit-selective-plating")]
-    public Task<IActionResult> SubmitSelectivePlating(int testOrderId, SubmitSelectivePlatingRequest request) =>
-        RunAsync(() => _engine.SubmitSelectivePlatingAsync(testOrderId, request.StepName, request.MediaLotId, request.EquipmentId,
-            request.IncubationStartUtc, request.IncubationEndUtc, request.Observation, CurrentUserId));
+    [Obsolete("Use start-selective-plating-incubation followed by submit-selective-plating-observation.")]
+    public IActionResult SubmitSelectivePlating_Retired(int testOrderId)
+    {
+        return StatusCode(410, new
+        {
+            error = "This endpoint is retired.",
+            message = "Use start-selective-plating-incubation followed by submit-selective-plating-observation.",
+            replacedBy = new[]
+            {
+                $"POST /api/test-workflow/{testOrderId}/start-selective-plating-incubation",
+                $"POST /api/test-workflow/{testOrderId}/submit-selective-plating-observation"
+            }
+        });
+    }
 
     [HttpPost("{testOrderId}/submit-confirmatory-setup")]
     public Task<IActionResult> SubmitConfirmatorySetup(int testOrderId, SubmitConfirmatorySetupRequest request) =>

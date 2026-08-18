@@ -126,7 +126,7 @@ export function PathogenStepDialog({ testOrderId }: Props) {
           <BrothStepPanel testOrderId={testOrderId} step={step} onSubmitted={handleSubmitted} />
         )
       ) : step.stepType === "SelectivePlating" ? (
-        <SelectivePlatingPanel testOrderId={testOrderId} step={step} onSubmitted={handleSubmitted} />
+        <SelectivePlatingPanel testOrderId={testOrderId} step={step} current={current} onSubmitted={handleSubmitted} />
       ) : step.stepType === "ConfirmatoryPlating" ? (
         <ConfirmatoryPlatingPanel testOrderId={testOrderId} step={step} onSubmitted={handleSubmitted} />
       ) : step.stepType === "BiochemicalTest" ? (

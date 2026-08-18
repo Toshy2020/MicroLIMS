@@ -251,12 +251,43 @@ public class TestingWorkspaceService : ITestWorkspaceService
             else
             {
                 // Non-TSB tests (e.g. TAMC-Water) -> strictly independent
-                if (t.CurrentStep == WorkflowStep.Incubating)
+                var testIncubations = sampleIncubations.Where(i => i.TestOrderId == t.Id).ToList();
+                var openCountIncubation = testIncubations.FirstOrDefault(i =>
+                    i.CompletedAt == null &&
+                    i.IncubationStartUtc.HasValue &&
+                    !i.StepName.Contains("TSB", StringComparison.OrdinalIgnoreCase) &&
+                    !i.StepName.Contains("Enrichment", StringComparison.OrdinalIgnoreCase));
+
+                if (openCountIncubation != null)
+                {
+                    var countStep = def?.Steps.FirstOrDefault(s => s.StepName == openCountIncubation.StepName);
+                    var minHours = countStep?.IncubationMinHours > 0 ? countStep.IncubationMinHours : (countStep?.MediaType?.IncubationMinHours ?? 0);
+                    var minReadyAt = openCountIncubation.IncubationStartUtc!.Value.AddHours((double)minHours);
+
+                    if (DateTime.UtcNow < minReadyAt)
+                    {
+                        workflowState = "COUNT_INCUBATING";
+                        workflowStateDisplay = "Testing / Incubation In Progress";
+                        isLocked = true;
+                        isResultAllowed = false;
+                        lockReason = $"Count incubation in progress. Available from: {minReadyAt:dd/MM/yyyy HH:mm}";
+                    }
+                    else
+                    {
+                        workflowState = "AWAITING_RESULTS";
+                        workflowStateDisplay = "Ready — Awaiting Primary Readings";
+                        isLocked = false;
+                        isResultAllowed = true;
+                        lockReason = null;
+                    }
+                }
+                else if (t.CurrentStep == WorkflowStep.Incubating)
                 {
                     workflowState = "INCUBATING";
                     workflowStateDisplay = "Testing / Incubation In Progress";
-                    isLocked = false;
-                    isResultAllowed = true;
+                    isLocked = true;
+                    isResultAllowed = false;
+                    lockReason = "Incubation in progress";
                 }
                 else if (t.CurrentStep == WorkflowStep.Running)
                 {
@@ -278,6 +309,7 @@ public class TestingWorkspaceService : ITestWorkspaceService
             {
                 "TSB_INCUBATING"        => "InProgress",
                 "DOWNSTREAM_INCUBATING" => "InProgress",
+                "COUNT_INCUBATING"      => "InProgress",
                 "INCUBATING"            => "InProgress",
                 "RUNNING"               => "InProgress",
                 "READY_FOR_DOWNSTREAM"  => "ReadyToRead",

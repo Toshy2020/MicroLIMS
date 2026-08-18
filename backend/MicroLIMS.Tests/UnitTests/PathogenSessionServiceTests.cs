@@ -385,4 +385,104 @@ public class PathogenSessionServiceTests
         var completedSession = await service.CompleteSessionAsync(sampleId, 5);
         Assert.Equal("READY_FOR_REVIEW", completedSession.OverallSessionStatus);
     }
+
+    [Fact]
+    public async Task GetSession_CountTestIncubating_BeforeMinHours_IsLocked()
+    {
+        var (db, sampleId, _) = SetupTestEnvironment(3);
+        var service = new PathogenSessionService(db);
+
+        var tamcOrder = await db.TestOrders.FirstAsync(t => t.TestCode == "TAMC-Water");
+        var start = DateTime.UtcNow.AddHours(-1); // 1 hour ago, minHours is 48
+        db.Incubations.Add(new Incubation
+        {
+            TestOrderId = tamcOrder.Id,
+            StepName = "Plate Incubation",
+            StepNumber = 1,
+            StartedAt = start,
+            IncubationStartUtc = start,
+            IncubationEndUtc = start.AddHours(72),
+            CompletedAt = null
+        });
+        tamcOrder.CurrentStep = WorkflowStep.Incubating;
+        await db.SaveChangesAsync();
+
+        var session = await service.GetSessionAsync(sampleId);
+        var tamcTest = session.AssignedTests.First(t => t.TestCode == "TAMC-Water");
+
+        Assert.False(tamcTest.IsResultEntryAllowed);
+        Assert.True(tamcTest.IsWorkflowLocked);
+        Assert.Equal("COUNT_INCUBATING", tamcTest.TestSessionState);
+        Assert.Contains("Available from", tamcTest.LockReason);
+    }
+
+    [Fact]
+    public async Task GetSession_CountTestIncubating_AfterMinHours_IsUnlocked()
+    {
+        var (db, sampleId, _) = SetupTestEnvironment(3);
+        var service = new PathogenSessionService(db);
+
+        var tamcOrder = await db.TestOrders.FirstAsync(t => t.TestCode == "TAMC-Water");
+        var start = DateTime.UtcNow.AddHours(-50); // 50 hours ago, minHours is 48
+        db.Incubations.Add(new Incubation
+        {
+            TestOrderId = tamcOrder.Id,
+            StepName = "Plate Incubation",
+            StepNumber = 1,
+            StartedAt = start,
+            IncubationStartUtc = start,
+            IncubationEndUtc = start.AddHours(72),
+            CompletedAt = null
+        });
+        tamcOrder.CurrentStep = WorkflowStep.Incubating;
+        await db.SaveChangesAsync();
+
+        var session = await service.GetSessionAsync(sampleId);
+        var tamcTest = session.AssignedTests.First(t => t.TestCode == "TAMC-Water");
+
+        Assert.True(tamcTest.IsResultEntryAllowed);
+        Assert.False(tamcTest.IsWorkflowLocked);
+        Assert.Equal("AWAITING_RESULTS", tamcTest.TestSessionState);
+        Assert.Equal("EnterResult", tamcTest.WorkflowStatus);
+    }
+
+    [Fact]
+    public async Task GetSession_PathogenTest_UnaffectedByCountIncubationFix()
+    {
+        var (db, sampleId, _) = SetupTestEnvironment(3);
+        var service = new PathogenSessionService(db);
+
+        // TAMC is incubating before minHours
+        var tamcOrder = await db.TestOrders.FirstAsync(t => t.TestCode == "TAMC-Water");
+        var start = DateTime.UtcNow.AddHours(-1);
+        db.Incubations.Add(new Incubation
+        {
+            TestOrderId = tamcOrder.Id,
+            StepName = "Plate Incubation",
+            StepNumber = 1,
+            StartedAt = start,
+            IncubationStartUtc = start,
+            IncubationEndUtc = start.AddHours(72),
+            CompletedAt = null
+        });
+        tamcOrder.CurrentStep = WorkflowStep.Incubating;
+        await db.SaveChangesAsync();
+
+        // Start TSB for sample
+        await service.StartSharedTsbAsync(sampleId, new StartSharedTsbRequest(20, 3, DateTime.UtcNow.AddHours(-1)), 5);
+
+        var session = await service.GetSessionAsync(sampleId);
+        var bcc = session.AssignedTests.First(t => t.TestCode == "BCC");
+        var tamc = session.AssignedTests.First(t => t.TestCode == "TAMC-Water");
+
+        // TAMC is locked by count incubation
+        Assert.False(tamc.IsResultEntryAllowed);
+        Assert.True(tamc.IsWorkflowLocked);
+        Assert.Equal("COUNT_INCUBATING", tamc.TestSessionState);
+
+        // BCC is locked by TSB incubation
+        Assert.False(bcc.IsResultEntryAllowed);
+        Assert.True(bcc.IsWorkflowLocked);
+        Assert.Equal("TSB_INCUBATING", bcc.TestSessionState);
+    }
 }

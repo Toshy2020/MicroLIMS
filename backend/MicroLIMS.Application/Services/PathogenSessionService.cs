@@ -566,12 +566,44 @@ public class PathogenSessionService
             else
             {
                 // Test does not require TSB (e.g. TAMC-Water) -> completely independent
-                if (to.CurrentStep == WorkflowStep.Incubating)
+                var openCountIncubation = toIncubations
+                    .FirstOrDefault(i =>
+                        i.TestOrderId == to.Id &&
+                        i.CompletedAt == null &&
+                        i.IncubationStartUtc.HasValue &&
+                        !i.StepName.Contains("TSB", StringComparison.OrdinalIgnoreCase) &&
+                        !i.StepName.Contains("Enrichment", StringComparison.OrdinalIgnoreCase));
+
+                if (openCountIncubation != null)
+                {
+                    var countStep = steps.FirstOrDefault(s => s.StepName == openCountIncubation.StepName);
+                    var minHours = countStep?.IncubationMinHours > 0 ? countStep.IncubationMinHours : (countStep?.MediaType?.IncubationMinHours ?? 0);
+                    var minReadyAt = openCountIncubation.IncubationStartUtc!.Value.AddHours((double)minHours);
+
+                    if (DateTime.UtcNow < minReadyAt)
+                    {
+                        testSessionState = "COUNT_INCUBATING";
+                        testSessionStateDisplay = "Testing / Incubation In Progress";
+                        isResultEntryAllowed = false;
+                        isWorkflowLocked = true;
+                        lockReason = $"Count incubation in progress. Available from: {minReadyAt:dd/MM/yyyy HH:mm}";
+                    }
+                    else
+                    {
+                        testSessionState = "AWAITING_RESULTS";
+                        testSessionStateDisplay = "Ready — Awaiting Primary Readings";
+                        isResultEntryAllowed = true;
+                        isWorkflowLocked = false;
+                        lockReason = null;
+                    }
+                }
+                else if (to.CurrentStep == WorkflowStep.Incubating)
                 {
                     testSessionState = "INCUBATING";
                     testSessionStateDisplay = "Testing / Incubation In Progress";
-                    isResultEntryAllowed = true;
-                    isWorkflowLocked = false;
+                    isResultEntryAllowed = false;
+                    isWorkflowLocked = true;
+                    lockReason = "Incubation in progress";
                 }
                 else if (to.CurrentStep == WorkflowStep.Running)
                 {
@@ -593,6 +625,7 @@ public class PathogenSessionService
             {
                 "TSB_INCUBATING"        => "InProgress",
                 "DOWNSTREAM_INCUBATING" => "InProgress",
+                "COUNT_INCUBATING"      => "InProgress",
                 "INCUBATING"            => "InProgress",
                 "RUNNING"               => "InProgress",
                 "READY_FOR_DOWNSTREAM"  => "ReadyToRead",

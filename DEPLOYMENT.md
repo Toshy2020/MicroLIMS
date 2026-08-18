@@ -152,10 +152,10 @@ The backend contains 52 Code-First migrations that manage the database schema.
 - **Cause**: The Cloudflare Pages URL is not listed in Render's `Frontend__Origin` environment variable.
 - **Resolution**: In Render Dashboard → Environment Variables → `Frontend__Origin`, ensure your exact Cloudflare URL (e.g. `https://microlims.pages.dev`, without trailing slash) is included in the comma-separated list.
 
-### Issue 3: Page Reload Returns 404 on Cloudflare Pages
-- **Symptom**: Navigating to `https://microlims.pages.dev/testing-workspace` and refreshing gives a 404 Not Found.
-- **Cause**: Single Page Application routes need a rewrite rule.
-- **Resolution**: Verified that `frontend/public/_redirects` contains `/* /index.html 200`. This file is automatically deployed to `dist/_redirects` during `npm run build`.
+### Issue 3: Page Reload on Cloudflare Pages / Workers
+- **Symptom**: Navigating to a client-side route and refreshing gives a 404 Not Found.
+- **Cause**: Single Page Application routes need SPA not-found handling.
+- **Resolution**: Handled natively by Cloudflare Workers Static Assets via `"not_found_handling": "single-page-application"` in `wrangler.jsonc`. Do not add a `/* /index.html 200` rule to `_redirects` as that triggers a Cloudflare infinite loop validator error.
 
 ### Issue 4: Database Connection Failed
 - **Symptom**: Render logs show `Npgsql.NpgsqlException: Connection to ... failed`.

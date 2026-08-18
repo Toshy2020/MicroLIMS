@@ -1,7 +1,8 @@
 import { apiClient } from "../../../services/apiClient";
 import {
   CurrentStepResponse, StepResultDto, ConfirmatoryOutcomeDto,
-  PermittedConfirmatoryMediaResponse, EligibleIncubatorsResponse, AnalystDecision
+  PermittedConfirmatoryMediaResponse, EligibleIncubatorsResponse, AnalystDecision,
+  GrowthObservation
 } from "../types/testWorkflowTypes";
 
 export const TestWorkflowService = {
@@ -54,6 +55,21 @@ export const TestWorkflowService = {
       stepName, observation
     }).then((r) => r.data.data),
 
+  startSelectivePlatingIncubation: (
+    testOrderId: number, stepName: string, mediaLotId: number, equipmentId: number, incubationStartUtc?: string
+  ) =>
+    apiClient.post(`/test-workflow/${testOrderId}/start-selective-plating-incubation`, {
+      stepName, mediaLotId, equipmentId, incubationStartUtc
+    }).then((r) => r.data.data),
+
+  submitSelectivePlatingObservation: (
+    testOrderId: number, stepName: string, observation: GrowthObservation, observedAppearanceNote?: string
+  ): Promise<StepResultDto> =>
+    apiClient.post(`/test-workflow/${testOrderId}/submit-selective-plating-observation`, {
+      stepName, observation, observedAppearanceNote
+    }).then((r) => r.data.data),
+
+  /** @deprecated Use startSelectivePlatingIncubation followed by submitSelectivePlatingObservation */
   submitSelectivePlating: (
     testOrderId: number, stepName: string, mediaLotId: number, equipmentId: number,
     incubationStartUtc: string, incubationEndUtc: string, observation: string

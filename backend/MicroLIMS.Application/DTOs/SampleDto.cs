@@ -5,6 +5,16 @@ public class TestOrderSummaryDto
     public int TestOrderId { get; set; }
     public string TestCode { get; set; } = string.Empty;
     public string Status { get; set; } = string.Empty;
+    public string CurrentStep { get; set; } = string.Empty;
+
+    // Pathogen-Session-Aware Effective Workflow State
+    public string WorkflowState { get; set; } = string.Empty;
+    public string WorkflowStateDisplay { get; set; } = string.Empty;
+    public string WorkflowStatus { get; set; } = "Pending";
+    public bool UsesSharedTsb { get; set; }
+    public bool IsWorkflowLocked { get; set; }
+    public bool IsResultEntryAllowed { get; set; }
+    public string? ResultLockReason { get; set; }
 
     // Number of SampleLocation rows under this TestOrder - 0 for
     // Product/RM/PM/Water TestOrders, which don't use SampleLocation at
@@ -28,6 +38,7 @@ public class SampleDto
     public string DisplayName { get; set; } = string.Empty; // Item name, or Sampling Point/Department/Machine name
     public int? DepartmentId { get; set; }
     public int? MachineId { get; set; }
+    public int? WaterDepartmentId { get; set; }
     public string? ProductionStage { get; set; }
     public string CauseOfTesting { get; set; } = string.Empty;
     public string? BatchNumber { get; set; }

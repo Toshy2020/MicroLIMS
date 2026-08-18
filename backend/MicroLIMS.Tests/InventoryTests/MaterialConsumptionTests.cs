@@ -22,7 +22,27 @@ public class MaterialConsumptionTests
         return new MicroLimsDbContext(options);
     }
 
+    private static async Task SeedCurrentCoa(MicroLimsDbContext db, int materialId)
+    {
+        db.MaterialDocuments.Add(new MicroLIMS.Domain.Entities.MaterialDocument
+        {
+            MaterialId = materialId,
+            DocumentType = MicroLIMS.Domain.Enums.MaterialDocumentType.COA,
+            OriginalFileName = "COA.pdf",
+            StorageKey = $"material-documents/{materialId}/test.pdf",
+            FileExtension = ".pdf",
+            ContentType = "application/pdf",
+            FileSizeBytes = 1024,
+            ContentSha256 = "AABBCC",
+            UploadedByUserId = 1,
+            UploadedAt = DateTime.UtcNow,
+            Status = MicroLIMS.Domain.Enums.MaterialDocumentStatus.Current
+        });
+        await db.SaveChangesAsync();
+    }
+
     private static async Task<(MediaType mediaType, Equipment autoclave, Material material)> SeedMediaPrepFixtures(
+
         MicroLimsDbContext db, decimal materialQuantity, DateTime? materialExpiry = null)
     {
         var mediaType = new MediaType
@@ -92,6 +112,7 @@ public class MaterialConsumptionTests
     {
         await using var db = NewDb();
         var (mediaType, autoclave, material) = await SeedMediaPrepFixtures(db, materialQuantity: 500m);
+        await SeedCurrentCoa(db, material.Id); // DehydratedMedia requires a current COA
         var service = new MediaPreparationService(db, new MaterialService(db));
 
         var request = new PrepareMediaRequest(
@@ -208,6 +229,7 @@ public class MaterialConsumptionTests
         await using var db = NewDb();
         var material = await SeedLyophilizedMaterial(db, discs: 10);
         var (media, incubator) = await SeedReleasedMediaFixtures(db);
+        await SeedCurrentCoa(db, material.Id); // LyophilizedMicroorganism requires a current COA
         var service = TestServiceFactory.Cryovial(db);
 
         var request = new PrepareCryovialsRequest(

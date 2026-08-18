@@ -67,9 +67,9 @@ public class IncubationLockTests
     }
 
     // SubmitBrothAsync must verify that the minimum time has elapsed
-    // AND the maximum window has passed before allowing submission.
+    // before allowing submission.
     [Fact]
-    public async Task SubmitBrothAsync_RequiresBothMinimumAndMaximumWindowCompleted()
+    public async Task SubmitBrothAsync_RequiresMinimumDurationCompleted()
     {
         await using var db = PathogenTestData.NewDb();
         var (order, media, incubator) = await PathogenTestData.SeedFiveStageOrderAsync(db);

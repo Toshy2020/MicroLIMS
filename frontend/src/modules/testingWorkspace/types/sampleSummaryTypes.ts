@@ -78,6 +78,12 @@ export interface TestOrderSummaryDetail {
   testDisplayName: string;
   status: string;
   currentStep: string;
+  workflowState?: string;
+  workflowStateDisplay?: string;
+  usesSharedTsb?: boolean;
+  isWorkflowLocked?: boolean;
+  isResultEntryAllowed?: boolean;
+  resultLockReason?: string | null;
   isSuperseded: boolean;
   incubations: IncubationDetail[];
   results: ResultDetail[];

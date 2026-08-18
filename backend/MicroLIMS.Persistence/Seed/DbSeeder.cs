@@ -271,7 +271,8 @@ public static class DbSeeder
         {
             TestDefinitionId = test.Id, StepOrder = 4, StepName = "Confirmatory Plating", MediaTypeId = selectiveAgarId,
             IncubationMinHours = 18, IncubationMaxHours = 24, TemperatureMin = 35, TemperatureMax = 37,
-            IsFinalStep = false, StepType = StepType.ConfirmatoryPlating, TargetOrganismId = organismId
+            IsFinalStep = false, StepType = StepType.ConfirmatoryPlating, TargetOrganismId = organismId,
+            ConfirmatoryMediaCount = confirmatoryMedia.Length > 0 ? confirmatoryMedia.Length : 1
         };
         var biochemical = new TestWorkflowStep
         {

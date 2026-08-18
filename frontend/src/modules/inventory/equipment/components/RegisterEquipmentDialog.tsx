@@ -42,7 +42,8 @@ const INITIAL_FORM: EquipmentFormState = {
   code: "",
   location: "",
   calibrationDueDate: "",
-  status: "InService"
+  status: "InService",
+  statusChangeComment: ""
 };
 
 export function RegisterEquipmentDialog({
@@ -55,6 +56,8 @@ export function RegisterEquipmentDialog({
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
+  const isStatusChanged = editingItem != null && form.status !== editingItem.status;
+
   useEffect(() => {
     if (editingItem) {
       setForm({
@@ -65,7 +68,8 @@ export function RegisterEquipmentDialog({
         code: editingItem.code,
         location: editingItem.location,
         calibrationDueDate: editingItem.calibrationDueDate?.slice(0, 10) ?? "",
-        status: editingItem.status
+        status: editingItem.status,
+        statusChangeComment: ""
       });
     } else {
       setForm(INITIAL_FORM);
@@ -80,6 +84,11 @@ export function RegisterEquipmentDialog({
       return;
     }
 
+    if (isStatusChanged && (!form.statusChangeComment || !form.statusChangeComment.trim())) {
+      setError("A comment explaining the operational status change is required.");
+      return;
+    }
+
     const payload = {
       instrumentType: form.instrumentType.trim(),
       manufacturerName: form.manufacturerName.trim(),
@@ -88,7 +97,8 @@ export function RegisterEquipmentDialog({
       code: form.code.trim(),
       location: form.location.trim(),
       calibrationDueDate: form.calibrationDueDate || null,
-      status: form.status
+      status: form.status,
+      statusChangeComment: isStatusChanged ? form.statusChangeComment?.trim() : undefined
     };
 
     setSaving(true);
@@ -189,7 +199,7 @@ export function RegisterEquipmentDialog({
         <Typography sx={{ fontSize: 12, fontWeight: 700, textTransform: "uppercase", color: "text.secondary", mb: 1.5 }}>
           2. Calibration & Operational Status
         </Typography>
-        <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "repeat(2, 1fr)" }, gap: 2 }}>
+        <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "repeat(2, 1fr)" }, gap: 2, mb: isStatusChanged ? 2 : 0 }}>
           <TextField
             size="small"
             type="date"
@@ -203,6 +213,7 @@ export function RegisterEquipmentDialog({
             <InputLabel id="dialog-equip-status-label">Operational Status</InputLabel>
             <Select
               labelId="dialog-equip-status-label"
+              id="dialog-equip-status-select"
               label="Operational Status"
               value={form.status}
               onChange={(e) => setForm({ ...form, status: e.target.value as EquipmentStatus })}
@@ -215,6 +226,24 @@ export function RegisterEquipmentDialog({
             </Select>
           </FormControl>
         </Box>
+
+        {isStatusChanged && (
+          <Box sx={{ mt: 2 }}>
+            <TextField
+              id="equip-status-change-comment"
+              label="Status Change Comment *"
+              placeholder="Provide a mandatory reason for changing the operational status (e.g., Sent for calibration, Returned from vendor maintenance, Decommissioned)"
+              fullWidth
+              size="small"
+              required
+              multiline
+              rows={2}
+              value={form.statusChangeComment || ""}
+              onChange={(e) => setForm({ ...form, statusChangeComment: e.target.value })}
+              helperText="Required whenever the operational status changes."
+            />
+          </Box>
+        )}
       </DialogContent>
 
       <DialogActions sx={{ px: 3, py: 2, display: "flex", justifyContent: "space-between" }}>
@@ -222,9 +251,10 @@ export function RegisterEquipmentDialog({
           Cancel
         </Button>
         <Button
+          id="dialog-equip-save-btn"
           variant="contained"
           onClick={handleSave}
-          disabled={saving}
+          disabled={saving || (isStatusChanged && (!form.statusChangeComment || !form.statusChangeComment.trim()))}
           sx={{
             bgcolor: brandColors.sectionTitle,
             px: 3,

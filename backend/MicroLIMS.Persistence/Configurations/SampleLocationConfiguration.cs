@@ -20,6 +20,8 @@ public class SampleLocationConfiguration : IEntityTypeConfiguration<SampleLocati
         // as TestOrderConfiguration's Room FK.
         builder.HasOne(l => l.RoomTestConfiguration).WithMany().HasForeignKey(l => l.RoomTestConfigurationId).OnDelete(DeleteBehavior.Restrict);
         builder.HasOne(l => l.MachinePartConfiguration).WithMany().HasForeignKey(l => l.MachinePartConfigurationId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasOne(l => l.WaterSamplingPoint).WithMany().HasForeignKey(l => l.WaterSamplingPointId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasOne(l => l.SamplingConfiguration).WithMany().HasForeignKey(l => l.SamplingConfigurationId).OnDelete(DeleteBehavior.Restrict);
 
         builder.HasIndex(l => new { l.SampleId, l.TestOrderId });
 
@@ -30,5 +32,8 @@ public class SampleLocationConfiguration : IEntityTypeConfiguration<SampleLocati
         builder.HasIndex(l => new { l.TestOrderId, l.MachinePartConfigurationId })
             .IsUnique()
             .HasFilter("\"MachinePartConfigurationId\" IS NOT NULL");
+        builder.HasIndex(l => new { l.TestOrderId, l.WaterSamplingPointId })
+            .IsUnique()
+            .HasFilter("\"WaterSamplingPointId\" IS NOT NULL");
     }
 }

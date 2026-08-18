@@ -57,6 +57,13 @@ public class TestOrderSummaryDetailDto
     public string TestDisplayName { get; set; } = string.Empty;
     public string Status { get; set; } = string.Empty;
     public string CurrentStep { get; set; } = string.Empty;
+    public string WorkflowState { get; set; } = string.Empty;
+    public string WorkflowStateDisplay { get; set; } = string.Empty;
+    public string WorkflowStatus { get; set; } = "Pending";
+    public bool UsesSharedTsb { get; set; }
+    public bool IsWorkflowLocked { get; set; }
+    public bool IsResultEntryAllowed { get; set; }
+    public string? ResultLockReason { get; set; }
     public bool IsSuperseded { get; set; }
     public List<IncubationDetailDto> Incubations { get; set; } = new();
     public List<ResultDetailDto> Results { get; set; } = new();

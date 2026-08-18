@@ -4,12 +4,19 @@ import { brandColors } from "../theme";
 const statusColorMap: Record<string, string> = {
   Received: "#9ca3af",
   Waiting: "#9ca3af",
-  Running: brandColors.badgeRM,
-  InProgress: brandColors.badgeRM,
+  Running: "#1565c0",
+  InProgress: "#1565c0",
+  ReadyToRead: "#7b1fa2",
+  "Ready to Read": "#7b1fa2",
+  EnterResult: "#fef08a",
+  "Enter Result": "#fef08a",
   Incubating: brandColors.badgePM,
   ResultEntered: brandColors.badgeRM,
   Ready: brandColors.badgeRM,
   Reviewed: brandColors.badgePM,
+  PendingReview: "#d97706",
+  "Pending Review": "#d97706",
+  Completed: "#2e7d32",
   Approved: brandColors.badgeProduct,
   Rejected: "#dc2626",
   RetestRequested: brandColors.badgePM,
@@ -26,7 +33,6 @@ const statusColorMap: Record<string, string> = {
   "Awaiting Approval": brandColors.badgePM,
   Released: brandColors.badgeProduct,
   Quarantined: "#dc2626",
-  PendingReview: "#9ca3af",
   Overdue: "#dc2626",
   "Due Soon": "#f59e0b",
   CalibrationDueSoon: "#f59e0b",
@@ -60,6 +66,31 @@ const statusColorMap: Record<string, string> = {
   Pending: "#9ca3af"
 };
 
+const statusTextColorMap: Record<string, string> = {
+  EnterResult: "#ca8a04",
+  "Enter Result": "#ca8a04"
+};
+
+const statusLabelMap: Record<string, string> = {
+  InProgress: "In Progress",
+  ReadyToRead: "Ready to Read",
+  EnterResult: "Enter Result",
+  PendingReview: "Pending Review",
+  ResultEntered: "Result Entered",
+  RetestRequested: "Retest Requested",
+  WithinLimits: "Within Limits",
+  AlertLimitExceeded: "Alert Limit Exceeded",
+  ActionLimitExceeded: "Action Limit Exceeded",
+  OutOfSpecification: "Out of Specification",
+  WithinLimit: "Within Limit",
+  AlertLevel: "Alert Level",
+  ActionLevel: "Action Level",
+  NotApplicable: "Not Applicable",
+  DueSoon: "Due Soon",
+  DueToday: "Due Today",
+  DueTomorrow: "Due Tomorrow"
+};
+
 // Shared color lookup so non-badge UI (e.g. the Result Level segmented
 // buttons in ReportFilterPanel) can match badge colors exactly instead
 // of duplicating the hex map.
@@ -73,9 +104,11 @@ export function statusColor(status: string): string {
 // isn't fit to show a user, but should keep its own color.
 export function StatusBadge({ status, label }: { status: string; label?: string }) {
   const bg = statusColor(status);
+  const text = label ?? statusLabelMap[status] ?? status;
+  const textColor = statusTextColorMap[status] ?? "#fff";
   return (
-    <Box component="span" sx={{ display: "inline-block", px: 1, py: 0.25, borderRadius: 5, fontSize: 11, fontWeight: 700, color: "#fff", bgcolor: bg }}>
-      {label ?? status}
+    <Box component="span" sx={{ display: "inline-block", px: 1, py: 0.25, borderRadius: 5, fontSize: 11, fontWeight: 700, color: textColor, bgcolor: bg }}>
+      {text}
     </Box>
   );
 }

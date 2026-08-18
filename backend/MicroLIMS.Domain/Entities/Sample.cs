@@ -20,6 +20,8 @@ public class Sample
     public Department? Department { get; set; }
     public int? MachineId { get; set; }            // After Cleaning only
     public Machine? Machine { get; set; }
+    public int? WaterDepartmentId { get; set; }    // Water only (batch model)
+    public WaterDepartment? WaterDepartment { get; set; }
 
     // Product only - descriptive, does not affect assigned tests.
     public string? ProductionStage { get; set; }

@@ -264,6 +264,7 @@ public class ResultProjectionService
             .Include(l => l.TestOrder!)
             .Include(l => l.RoomTestConfiguration!).ThenInclude(c => c.Room)
             .Include(l => l.MachinePartConfiguration!).ThenInclude(c => c.MachinePart)
+            .Include(l => l.WaterSamplingPoint)
             .FirstOrDefaultAsync(l => l.Id == sampleLocationId)
             ?? throw new InvalidOperationException($"SampleLocation {sampleLocationId} not found.");
 
@@ -284,7 +285,7 @@ public class ResultProjectionService
         record.TestOrderId = order.Id;
         record.ReferenceNumber = sample.ReferenceNumber;
         record.Category = sample.Category;
-        record.SubjectName = location.RoomTestConfiguration?.Room?.Name ?? location.MachinePartConfiguration?.MachinePart?.Name ?? string.Empty;
+        record.SubjectName = location.RoomTestConfiguration?.Room?.Name ?? location.MachinePartConfiguration?.MachinePart?.Name ?? location.WaterSamplingPoint?.Code ?? string.Empty;
         record.SubjectDetail = location.RoomTestConfiguration?.Room?.GradeClassification;
         record.BatchNumber = sample.BatchNumber;
         record.ControlNumber = sample.ControlNumber;

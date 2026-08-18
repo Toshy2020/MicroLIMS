@@ -45,6 +45,7 @@ import {
   SignatureTrailItem
 } from "./types/sampleSummaryTypes";
 import { pathogenObservationLabel } from "./utils/pathogenObservationLabel";
+import { PathogenSessionDialog } from "./pathogenSession/PathogenSessionDialog";
 
 interface Props {
   open: boolean;
@@ -555,11 +556,11 @@ function TestResultsSection({ testOrders, overallStatus }: { testOrders: TestOrd
               expandIcon={<ExpandMoreIcon />}
               sx={{ bgcolor: "#fafafa", px: 2.5, py: 0.5, borderBottom: "1px solid #f3f4f6" }}
             >
-              <Stack direction="row" spacing={1.5} alignItems="center">
+              <Stack direction="row" spacing={1.5} alignItems="center" flexWrap="wrap">
                 <Typography sx={{ fontWeight: 700, fontSize: 14, color: "#1f2937" }}>
                   {order.testCode} — {order.testDisplayName}
                 </Typography>
-                <StatusBadge status={order.status} />
+                <StatusBadge status={order.workflowStateDisplay || order.status} />
                 {order.isSuperseded && <StatusBadge status="Superseded" />}
               </Stack>
             </AccordionSummary>
@@ -913,6 +914,7 @@ export function SampleSummaryDialog({ open, sampleId, onClose }: Props) {
   const [decision, setDecision] = useState<SampleApprovalDecision>("Approve");
   const [confirmingReview, setConfirmingReview] = useState(false);
   const [confirmingDecision, setConfirmingDecision] = useState(false);
+  const [openPathogenDialog, setOpenPathogenDialog] = useState(false);
   const [exporting, setExporting] = useState<"pdf" | "word" | null>(null);
   const [exportError, setExportError] = useState<string | null>(null);
 
@@ -1013,8 +1015,23 @@ export function SampleSummaryDialog({ open, sampleId, onClose }: Props) {
                   Complete overview of test execution, incubation stages, results, and approvals.
                 </Typography>
               </Box>
-              <Stack direction="row" spacing={1} sx={{ flexShrink: 0 }}>
+              <Stack direction="row" spacing={1} sx={{ flexShrink: 0, flexWrap: "wrap", gap: 1 }}>
                 {exportError && <Alert severity="error" sx={{ py: 0, px: 1 }}>{exportError}</Alert>}
+                <Button
+                  variant="contained"
+                  size="small"
+                  startIcon={<ScienceOutlinedIcon />}
+                  onClick={() => setOpenPathogenDialog(true)}
+                  sx={{
+                    bgcolor: brandColors.sectionTitle,
+                    color: "#ffffff",
+                    fontWeight: 700,
+                    fontSize: 12,
+                    "&:hover": { bgcolor: brandColors.pageTitle }
+                  }}
+                >
+                  Open Pathogen Workflow
+                </Button>
                 <Button
                   variant="outlined"
                   size="small"
@@ -1136,6 +1153,19 @@ export function SampleSummaryDialog({ open, sampleId, onClose }: Props) {
           onConfirm={handleDecisionConfirm}
         />
       )}
+
+      {/* Pathogen Testing Session Workspace Dialog */}
+      <PathogenSessionDialog
+        open={openPathogenDialog}
+        sampleId={sampleId}
+        onClose={() => setOpenPathogenDialog(false)}
+        onSessionCompleted={() => {
+          setOpenPathogenDialog(false);
+          if (sampleId) {
+            SampleSummaryService.getSummary(sampleId).then(setSummary);
+          }
+        }}
+      />
     </>
   );
 }

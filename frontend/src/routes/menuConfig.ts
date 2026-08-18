@@ -38,7 +38,6 @@ const laboratoryConfigurationItem: MenuItem = {
     { label: "Test Master", path: "/laboratory-configuration/test-master" },
     { label: "Organisms", path: "/laboratory-configuration/organisms" },
     { label: "Items", path: "/laboratory-configuration/items" },
-    { label: "Specifications", path: "/laboratory-configuration/specifications" },
     { label: "Media Types", path: "/laboratory-configuration/media-types" },
     { label: "Media Challenge Specs", path: "/laboratory-configuration/media-challenge-specs" },
     { label: "Water", path: "/laboratory-configuration/water" },

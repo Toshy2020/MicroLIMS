@@ -52,12 +52,14 @@ export function NewSampleDialog({ open, onClose, onSuccess }: Props) {
   const [masterData, setMasterData] = useState<{
     items: any[];
     waterPoints: any[];
+    waterDepartments: any[];
     departments: any[];
     machines: any[];
     causes: any[];
   }>({
     items: [],
     waterPoints: [],
+    waterDepartments: [],
     departments: [],
     machines: [],
     causes: []
@@ -79,6 +81,9 @@ export function NewSampleDialog({ open, onClose, onSuccess }: Props) {
       );
       masterDataOptions.getWaterSamplingPoints().then((waterPoints) =>
         setMasterData((prev) => ({ ...prev, waterPoints }))
+      );
+      masterDataOptions.getWaterDepartments().then((waterDepartments) =>
+        setMasterData((prev) => ({ ...prev, waterDepartments }))
       );
       masterDataOptions.getDepartments().then((departments) =>
         setMasterData((prev) => ({ ...prev, departments }))
@@ -157,8 +162,8 @@ export function NewSampleDialog({ open, onClose, onSuccess }: Props) {
           isValid = false;
         }
       } else if (category === "water") {
-        if (!row.waterSamplingPointId) {
-          errors.waterSamplingPointId = "Sampling Point is required";
+        if (!row.departmentId) {
+          errors.departmentId = "Department is required";
           isValid = false;
         }
       } else if (category === "em") {
@@ -228,7 +233,7 @@ export function NewSampleDialog({ open, onClose, onSuccess }: Props) {
           });
         } else if (category === "water") {
           await ReceiveService.receiveWater({
-            waterSamplingPointId: Number(row.waterSamplingPointId),
+            waterDepartmentId: Number(row.departmentId),
             causeOfTestingId: Number(row.causeOfTestingId),
             sampleQuantity: row.sampleQuantity || "",
             sampledBy: row.sampledBy || "",

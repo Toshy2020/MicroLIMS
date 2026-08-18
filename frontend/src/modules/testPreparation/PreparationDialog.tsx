@@ -2,16 +2,17 @@ import { FloatingDialog } from "../../components/FloatingDialog";
 import { TestPreparationForm } from "./TestPreparationForm";
 import { EMPreparationForm } from "../laboratoryConfiguration/environmentalMonitoring/EMPreparationForm";
 import { AfterCleaningPreparationForm } from "../laboratoryConfiguration/afterCleaning/AfterCleaningPreparationForm";
+import { WaterPreparationForm } from "../laboratoryConfiguration/water/WaterPreparationForm";
 
 interface Props {
   open: boolean;
-  sample: { sampleId: number; category: string; departmentId?: number | null; machineId?: number | null } | null;
+  sample: { sampleId: number; category: string; departmentId?: number | null; machineId?: number | null; waterDepartmentId?: number | null } | null;
   onClose: () => void;
 }
 
 // Opened directly from a Testing Workspace card when a sample "Needs
 // Preparation" - routes to the right form by category, reusing the same
-// forms the standalone EM/After Cleaning/Test Preparation pages use.
+// forms the standalone EM/After Cleaning/Water/Test Preparation pages use.
 export function PreparationDialog({ open, sample, onClose }: Props) {
   if (!sample) return null;
 
@@ -23,7 +24,10 @@ export function PreparationDialog({ open, sample, onClose }: Props) {
       {sample.category === "AfterCleaning" && sample.machineId != null && (
         <AfterCleaningPreparationForm sampleId={sample.sampleId} machineId={sample.machineId} onComplete={onClose} />
       )}
-      {sample.category !== "EnvironmentalMonitoring" && sample.category !== "AfterCleaning" && (
+      {sample.category === "Water" && sample.waterDepartmentId != null && (
+        <WaterPreparationForm sampleId={sample.sampleId} waterDepartmentId={sample.waterDepartmentId} onComplete={onClose} />
+      )}
+      {sample.category !== "EnvironmentalMonitoring" && sample.category !== "AfterCleaning" && sample.category !== "Water" && (
         <TestPreparationForm sample={sample} onSaved={onClose} />
       )}
     </FloatingDialog>

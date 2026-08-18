@@ -10,8 +10,12 @@ using MicroLIMS.Shared.Responses;
 
 namespace MicroLIMS.API.Controllers;
 
-public record CreateWaterSamplingPointRequest(string Code, string Location, List<string> AssignedTestCodes);
-public record UpdateWaterSamplingPointRequest(string Code, string Location, List<string> AssignedTestCodes);
+public record CreateWaterSamplingPointRequest(string Code, string Location, string TestingFrequency, List<string> AssignedTestCodes, int? WaterDepartmentId);
+public record UpdateWaterSamplingPointRequest(string Code, string Location, string TestingFrequency, List<string> AssignedTestCodes, int? WaterDepartmentId);
+public record CreateWaterDepartmentRequest(string Name);
+public record UpdateWaterDepartmentRequest(string Name);
+public record CreateWaterSamplingConfigRequest(int WaterSamplingPointId, string TestCode, string AlertLimit, string ActionLimit, string SpecLimit);
+public record UpdateWaterSamplingConfigRequest(string TestCode, string AlertLimit, string ActionLimit, string SpecLimit);
 public record CreateDepartmentRequest(string Name, string Class, string TestingFrequency);
 public record CreateRoomRequest(string Name, int DepartmentId, string GradeClassification);
 public record UpdateDepartmentRequest(string Name, string Class, string TestingFrequency);
@@ -40,8 +44,8 @@ public record UpdateTestDefinitionMediaRequest(int MediaTypeId, string? StepName
 public record UpdateWorkflowTypeRequest(WorkflowType WorkflowType);
 public record StepMediaRequest(int MaterialId, decimal TempMin, decimal TempMax, bool IsRequired, int DisplayOrder);
 public record IncubationStageRequest(int StageNumber, decimal TempMin, decimal TempMax, int IncubationMinHours, int IncubationMaxHours);
-public record CreateTestWorkflowStepRequest(string StepName, int MediaTypeId, int IncubationMinHours, int IncubationMaxHours, decimal TemperatureMin, decimal TemperatureMax, bool IsFinalStep, StepType StepType, int? TargetOrganismId, List<StepMediaRequest> StepMedia, bool RequiresIncubationTransfer, List<IncubationStageRequest>? IncubationStages);
-public record UpdateTestWorkflowStepRequest(string StepName, int MediaTypeId, int IncubationMinHours, int IncubationMaxHours, decimal TemperatureMin, decimal TemperatureMax, bool IsFinalStep, StepType StepType, int? TargetOrganismId, List<StepMediaRequest> StepMedia, bool RequiresIncubationTransfer, List<IncubationStageRequest>? IncubationStages);
+public record CreateTestWorkflowStepRequest(string StepName, int MediaTypeId, int IncubationMinHours, int IncubationMaxHours, decimal TemperatureMin, decimal TemperatureMax, bool IsFinalStep, StepType StepType, int? TargetOrganismId, List<StepMediaRequest> StepMedia, bool RequiresIncubationTransfer, List<IncubationStageRequest>? IncubationStages, int? ConfirmatoryMediaCount);
+public record UpdateTestWorkflowStepRequest(string StepName, int MediaTypeId, int IncubationMinHours, int IncubationMaxHours, decimal TemperatureMin, decimal TemperatureMax, bool IsFinalStep, StepType StepType, int? TargetOrganismId, List<StepMediaRequest> StepMedia, bool RequiresIncubationTransfer, List<IncubationStageRequest>? IncubationStages, int? ConfirmatoryMediaCount);
 public record MoveTestWorkflowStepRequest(string Direction);
 
 // Backs the Items Master's category-dependent dynamic forms: Product ->
@@ -68,7 +72,7 @@ public class MasterDataController : ControllerBase
     [HttpPost("water-sampling-points")]
     public async Task<IActionResult> CreateWaterSamplingPoint(CreateWaterSamplingPointRequest request)
     {
-        var point = new WaterSamplingPoint { Code = request.Code, Location = request.Location, AssignedTestCodes = request.AssignedTestCodes };
+        var point = new WaterSamplingPoint { Code = request.Code, Location = request.Location, TestingFrequency = request.TestingFrequency, AssignedTestCodes = request.AssignedTestCodes, WaterDepartmentId = request.WaterDepartmentId };
         _db.WaterSamplingPoints.Add(point);
         await _db.SaveChangesAsync();
         return Ok(ApiResponse<object>.Ok(point));
@@ -82,7 +86,9 @@ public class MasterDataController : ControllerBase
             ?? throw new InvalidOperationException($"Sampling point {id} not found.");
         point.Code = request.Code;
         point.Location = request.Location;
+        point.TestingFrequency = request.TestingFrequency;
         point.AssignedTestCodes = request.AssignedTestCodes;
+        point.WaterDepartmentId = request.WaterDepartmentId;
         await _db.SaveChangesAsync();
         return Ok(ApiResponse<object>.Ok(point));
     }
@@ -104,6 +110,107 @@ public class MasterDataController : ControllerBase
                 $"Cannot delete '{point.Code}' - it is referenced by {sampleCount} sample(s) and {configCount} sampling configuration(s).");
 
         _db.WaterSamplingPoints.Remove(point);
+        await _db.SaveChangesAsync();
+        return Ok(ApiResponse<object>.Ok(new { }));
+    }
+
+    // ---- Water Departments ----
+    [HttpGet("water-departments")]
+    public async Task<IActionResult> GetWaterDepartments()
+    {
+        // Shaped projection to avoid the WaterDepartment.SamplingPoints <->
+        // WaterSamplingPoint.WaterDepartment navigation cycle, same pattern
+        // as GetDepartments.
+        var departments = await _db.WaterDepartments
+            .Select(d => new
+            {
+                d.Id, d.Name,
+                SamplingPoints = d.SamplingPoints.Select(p => new
+                {
+                    p.Id, p.Code, p.Location, p.TestingFrequency, p.WaterDepartmentId, p.AssignedTestCodes
+                })
+            })
+            .ToListAsync();
+        return Ok(ApiResponse<object>.Ok(departments));
+    }
+
+    [Authorize(Roles = RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
+    [HttpPost("water-departments")]
+    public async Task<IActionResult> CreateWaterDepartment(CreateWaterDepartmentRequest request)
+    {
+        var dept = new WaterDepartment { Name = request.Name };
+        _db.WaterDepartments.Add(dept);
+        await _db.SaveChangesAsync();
+        return Ok(ApiResponse<object>.Ok(dept));
+    }
+
+    [Authorize(Roles = RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
+    [HttpPut("water-departments/{id}")]
+    public async Task<IActionResult> UpdateWaterDepartment(int id, UpdateWaterDepartmentRequest request)
+    {
+        var dept = await _db.WaterDepartments.FirstOrDefaultAsync(d => d.Id == id)
+            ?? throw new InvalidOperationException($"Water department {id} not found.");
+        dept.Name = request.Name;
+        await _db.SaveChangesAsync();
+        return Ok(ApiResponse<object>.Ok(dept));
+    }
+
+    [Authorize(Roles = RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
+    [HttpDelete("water-departments/{id}")]
+    public async Task<IActionResult> DeleteWaterDepartment(int id)
+    {
+        var dept = await _db.WaterDepartments.FirstOrDefaultAsync(d => d.Id == id)
+            ?? throw new InvalidOperationException($"Water department {id} not found.");
+
+        var pointCount = await _db.WaterSamplingPoints.CountAsync(p => p.WaterDepartmentId == id);
+        if (pointCount > 0)
+            throw new InvalidOperationException($"Cannot delete '{dept.Name}' - it still has {pointCount} sample location(s). Delete those first.");
+
+        _db.WaterDepartments.Remove(dept);
+        await _db.SaveChangesAsync();
+        return Ok(ApiResponse<object>.Ok(new { }));
+    }
+
+    // ---- Water Sampling Configurations (per sample location x test limits) ----
+    [HttpGet("water-sampling-configurations")]
+    public async Task<IActionResult> GetWaterSamplingConfigurations([FromQuery] int pointId) =>
+        Ok(ApiResponse<object>.Ok(await _db.SamplingConfigurations.Where(c => c.WaterSamplingPointId == pointId).ToListAsync()));
+
+    [Authorize(Roles = RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
+    [HttpPost("water-sampling-configurations")]
+    public async Task<IActionResult> CreateWaterSamplingConfiguration(CreateWaterSamplingConfigRequest request)
+    {
+        var entity = new SamplingConfiguration
+        {
+            WaterSamplingPointId = request.WaterSamplingPointId, TestCode = request.TestCode,
+            AlertLimit = request.AlertLimit, ActionLimit = request.ActionLimit, SpecLimit = request.SpecLimit
+        };
+        _db.SamplingConfigurations.Add(entity);
+        await _db.SaveChangesAsync();
+        return Ok(ApiResponse<object>.Ok(entity));
+    }
+
+    [Authorize(Roles = RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
+    [HttpPut("water-sampling-configurations/{id}")]
+    public async Task<IActionResult> UpdateWaterSamplingConfiguration(int id, UpdateWaterSamplingConfigRequest request)
+    {
+        var entity = await _db.SamplingConfigurations.FirstOrDefaultAsync(c => c.Id == id)
+            ?? throw new InvalidOperationException($"Water sampling configuration {id} not found.");
+        entity.TestCode = request.TestCode;
+        entity.AlertLimit = request.AlertLimit;
+        entity.ActionLimit = request.ActionLimit;
+        entity.SpecLimit = request.SpecLimit;
+        await _db.SaveChangesAsync();
+        return Ok(ApiResponse<object>.Ok(entity));
+    }
+
+    [Authorize(Roles = RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
+    [HttpDelete("water-sampling-configurations/{id}")]
+    public async Task<IActionResult> DeleteWaterSamplingConfiguration(int id)
+    {
+        var entity = await _db.SamplingConfigurations.FirstOrDefaultAsync(c => c.Id == id)
+            ?? throw new InvalidOperationException($"Water sampling configuration {id} not found.");
+        _db.SamplingConfigurations.Remove(entity);
         await _db.SaveChangesAsync();
         return Ok(ApiResponse<object>.Ok(new { }));
     }
@@ -827,6 +934,7 @@ public class MasterDataController : ControllerBase
                 stepType = s.StepType.ToString(),
                 s.TargetOrganismId,
                 targetOrganism = s.TargetOrganism == null ? null : new { s.TargetOrganism.Id, name = s.TargetOrganism.ScientificName },
+                s.ConfirmatoryMediaCount,
                 stepMedia = s.StepMedia.OrderBy(m => m.DisplayOrder).Select(m => new
                 {
                     stepMediaId = m.Id, m.MaterialId, materialName = m.Material!.MaterialName,
@@ -889,7 +997,8 @@ public class MasterDataController : ControllerBase
             IncubationMinHours = request.IncubationMinHours, IncubationMaxHours = request.IncubationMaxHours,
             TemperatureMin = request.TemperatureMin, TemperatureMax = request.TemperatureMax,
             IsFinalStep = request.IsFinalStep, StepType = request.StepType, TargetOrganismId = request.TargetOrganismId,
-            RequiresIncubationTransfer = request.RequiresIncubationTransfer
+            RequiresIncubationTransfer = request.RequiresIncubationTransfer,
+            ConfirmatoryMediaCount = request.ConfirmatoryMediaCount ?? 1
         };
         entity.StepMedia.AddRange(request.StepMedia.Select(m => new TestWorkflowStepMedia
         {
@@ -932,6 +1041,7 @@ public class MasterDataController : ControllerBase
         step.StepType = request.StepType;
         step.TargetOrganismId = request.TargetOrganismId;
         step.RequiresIncubationTransfer = request.RequiresIncubationTransfer;
+        step.ConfirmatoryMediaCount = request.ConfirmatoryMediaCount ?? 1;
 
         // StepMedia is replaced wholesale on update - the analyst edits the
         // panel as a set, and the unique index makes incremental merging

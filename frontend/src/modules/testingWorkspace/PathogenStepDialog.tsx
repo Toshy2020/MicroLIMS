@@ -4,7 +4,6 @@ import { LoadingSpinner } from "../../components/LoadingSpinner";
 import { TestWorkflowService } from "./services/TestWorkflowService";
 import { CurrentStepResponse } from "./types/testWorkflowTypes";
 import { parseWorkflowError, workflowErrorDisplayMessage } from "./utils/workflowErrors";
-import { useIncubationCountdown } from "./hooks/useIncubationCountdown";
 import { BrothStepPanel } from "./pathogenSteps/BrothStepPanel";
 import { BrothWaitingPanel } from "./pathogenSteps/BrothWaitingPanel";
 import { SelectivePlatingPanel } from "./pathogenSteps/SelectivePlatingPanel";
@@ -78,8 +77,6 @@ export function PathogenStepDialog({ testOrderId }: Props) {
 
   useEffect(() => { load(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [testOrderId]);
 
-  const countdown = useIncubationCountdown(current?.incubationLock ?? null, load);
-
   const handleSubmitted = () => load();
 
   if (error && !current) return <Alert severity="error">{error}</Alert>;
@@ -122,8 +119,7 @@ export function PathogenStepDialog({ testOrderId }: Props) {
           <BrothWaitingPanel 
             testOrderId={testOrderId} 
             step={step} 
-            incubationLock={current.incubationLock}
-            incubationDetails={current.incubation}
+            current={current}
             onSubmitted={handleSubmitted} 
           />
         ) : (

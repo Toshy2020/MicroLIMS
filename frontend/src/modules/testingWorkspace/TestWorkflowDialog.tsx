@@ -8,6 +8,7 @@ import { TestWorkflowService } from "./services/TestWorkflowService";
 import { LoadingSpinner } from "../../components/LoadingSpinner";
 import { LocationResultGridDialog } from "./LocationResultGridDialog";
 import { PathogenLocationResultGridDialog } from "./PathogenLocationResultGridDialog";
+import { WaterLocationResultGridDialog } from "./WaterLocationResultGridDialog";
 import { PathogenStepDialog } from "./PathogenStepDialog";
 
 interface Props { testOrderId: number; testCode: string; category: string; displayName: string; }
@@ -220,6 +221,13 @@ export function TestWorkflowDialog({ testOrderId, testCode, category, displayNam
       </Box>
     );
   }
+
+  // Water's TAMC-Water TestOrder is also SampleLocation-batched (Phase 1
+  // PrepareAsync), but its result computation is the per-location
+  // plate-reading average (WaterLocationResultGridDialog), not EM/AC's
+  // CFU x shared-dilution-factor grid.
+  const isWaterCountBatch = category === "Water" && current.workflowType === "CountTest";
+  const isBatchOrder = isEmOrAfterCleaning || isWaterCountBatch;
 
   // Five-stage pathogen chain, except EM/AfterCleaning (which still uses
   // this component's own incubation phases below, only handing off to

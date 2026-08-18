@@ -23,11 +23,12 @@ interface NotificationDto {
 
 // Where clicking a notification should take the user - mirrors the
 // four notification types DashboardNotificationService computes.
+// Note: Review and Approval queues live inside Testing Workspace.
 const NOTIFICATION_ROUTES: Record<string, string> = {
   MediaExpiry: "/laboratory-configuration/media",
   IncubationReady: "/testing-workspace",
-  ApprovalWaiting: "/approval",
-  ReviewWaiting: "/review"
+  ApprovalWaiting: "/testing-workspace",
+  ReviewWaiting: "/testing-workspace"
 };
 
 const POLL_INTERVAL_MS = 60_000;

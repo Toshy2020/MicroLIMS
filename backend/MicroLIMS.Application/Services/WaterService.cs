@@ -18,6 +18,12 @@ public class WaterService
         return TestingWorkspaceService.ToDto(sample);
     }
 
+    public async Task<SampleDto> PrepareAsync(int sampleId, List<int> waterSamplingPointIds, int userId)
+    {
+        var sample = await _workflow.PrepareAsync(sampleId, waterSamplingPointIds, userId);
+        return TestingWorkspaceService.ToDto(sample);
+    }
+
     public Task<WaterComparisonResult> CalculateAsync(int testOrderId, List<decimal> readings) =>
         _workflow.CalculateAndCompareAsync(testOrderId, readings);
 

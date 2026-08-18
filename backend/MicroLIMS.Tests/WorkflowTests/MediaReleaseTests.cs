@@ -67,6 +67,19 @@ public class MediaReleaseTests
         {
             MaterialName = "TSA", EvaluationType = EvaluationType.GrowthPromotion, OrganismId = organism.Id
         });
+        db.MaterialDocuments.Add(new MaterialDocument
+        {
+            MaterialId = material.Id,
+            DocumentType = MaterialDocumentType.COA,
+            OriginalFileName = "COA.pdf",
+            StorageKey = "test/coa.pdf",
+            FileExtension = ".pdf",
+            ContentType = "application/pdf",
+            FileSizeBytes = 1024,
+            ContentSha256 = "HASH",
+            UploadedByUserId = PreparerId,
+            Status = MaterialDocumentStatus.Current
+        });
         await db.SaveChangesAsync();
 
         var media = await new MediaPreparationService(db, new MaterialService(db)).PrepareAsync(new PrepareMediaRequest(

@@ -35,7 +35,11 @@ public static class WorkflowTemplateValidator
                 break;
 
             case StepType.ConfirmatoryPlating:
-                if (media.Count < 1 || media.Any(m => m.IsRequired))
+                if (step.ConfirmatoryMediaCount < 1)
+                    Fail(3, "Confirmatory media count must be at least 1.");
+                if (media.Count < (step.ConfirmatoryMediaCount < 1 ? 1 : step.ConfirmatoryMediaCount))
+                    Fail(3, $"A confirmatory plating step requires at least {step.ConfirmatoryMediaCount} permitted media, all analyst-selectable.");
+                if (media.Any(m => m.IsRequired))
                     Fail(3, "A confirmatory plating step must have at least one permitted medium, all analyst-selectable.");
                 if (step.TargetOrganismId is null)
                     Fail(3, "A confirmatory plating step must target an organism.");

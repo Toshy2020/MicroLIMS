@@ -147,10 +147,11 @@ export function TestStatusSummaryCell({ sample, onTestClick, onViewAllTests }: P
 
           <List dense disablePadding sx={{ maxHeight: 220, overflowY: "auto" }}>
             {tests.map((test) => {
-              const isApproved = test.status === "Approved";
+              const effectiveStatus = test.workflowStatus ?? test.status;
+              const isApproved = effectiveStatus === "Approved" || effectiveStatus === "Completed";
               const unit = sample.category === "EnvironmentalMonitoring" ? "rooms" : "parts";
               const locCount = test.locationCount && test.locationCount > 0 ? ` (${test.locationCount} ${unit})` : "";
-              const color = statusColor(test.status);
+              const color = statusColor(effectiveStatus);
 
               return (
                 <ListItemButton
@@ -185,7 +186,7 @@ export function TestStatusSummaryCell({ sample, onTestClick, onViewAllTests }: P
                       <FiberManualRecordIcon sx={{ fontSize: 10, color }} />
                     )}
                     <Typography sx={{ fontSize: 11, fontWeight: 600, color }}>
-                      {test.status}
+                      <StatusBadge status={effectiveStatus} />
                     </Typography>
                   </Box>
                 </ListItemButton>

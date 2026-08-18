@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Domain.Entities;
+using MicroLIMS.Domain.Enums;
 using MicroLIMS.Persistence.DbContext;
 
 namespace MicroLIMS.Application.Services;
@@ -9,6 +10,13 @@ namespace MicroLIMS.Application.Services;
 public class ItemService
 {
     private readonly MicroLimsDbContext _db;
+
+    private static readonly SampleCategory[] AllowedItemCategories =
+    {
+        SampleCategory.FinishedProduct,
+        SampleCategory.RawMaterial,
+        SampleCategory.PackagingMaterial,
+    };
 
     public ItemService(MicroLimsDbContext db)
     {
@@ -20,6 +28,15 @@ public class ItemService
 
     public async Task<Item> CreateAsync(Item item)
     {
+        if (!AllowedItemCategories.Contains(item.Category))
+        {
+            throw new InvalidOperationException(
+                "Items can only be configured for Product, Raw Material, or " +
+                "Packaging Material categories. Water, Environmental Monitoring, " +
+                "After Cleaning, and GPT are managed via their dedicated " +
+                "configuration pages.");
+        }
+
         if (await _db.Items.AnyAsync(i => i.Code == item.Code))
             throw new InvalidOperationException($"An item with code '{item.Code}' already exists.");
 
@@ -36,6 +53,15 @@ public class ItemService
     // incoming graph never populates that collection.
     public async Task UpdateAsync(int id, Item update)
     {
+        if (!AllowedItemCategories.Contains(update.Category))
+        {
+            throw new InvalidOperationException(
+                "Items can only be configured for Product, Raw Material, or " +
+                "Packaging Material categories. Water, Environmental Monitoring, " +
+                "After Cleaning, and GPT are managed via their dedicated " +
+                "configuration pages.");
+        }
+
         var item = await _db.Items.Include(i => i.AssignedTests).FirstOrDefaultAsync(i => i.Id == id)
             ?? throw new InvalidOperationException($"Item {id} not found.");
 

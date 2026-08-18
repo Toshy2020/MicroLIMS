@@ -1,203 +1,283 @@
-import { useEffect, useState } from "react";
-import { Box, Paper, TextField, Select, MenuItem, Button, Typography, Alert, Table, TableHead, TableRow, TableCell, TableBody, IconButton } from "@mui/material";
-import CloseIcon from "@mui/icons-material/Close";
+import { useEffect, useMemo, useState } from "react";
+import { Box, Button, Alert } from "@mui/material";
+import AddIcon from "@mui/icons-material/Add";
 import { PageHeader } from "../../../components/PageHeader";
 import { SectionTitle } from "../../../components/SectionTitle";
-import { StatusBadge } from "../../../components/StatusBadge";
 import { SignatureDialog } from "../../../components/SignatureDialog";
+import { LoadingSpinner } from "../../../components/LoadingSpinner";
 import { CryovialService } from "./services/CryovialService";
-import { masterDataOptions } from "../../../services/masterDataOptions";
-import { MaterialService } from "../../inventory/materials/services/MaterialService";
+import { CryovialItem, CryovialFilterState } from "./types/cryovialTypes";
+import { CryovialKpiCards } from "./components/CryovialKpiCards";
+import { CryovialFilterBar } from "./components/CryovialFilterBar";
+import { CryovialReviewTable } from "./components/CryovialReviewTable";
+import { PrepareCryovialBatchDialog } from "./components/PrepareCryovialBatchDialog";
+import { ThawVialReasonDialog } from "./components/ThawVialReasonDialog";
+import { DestroyCryovialDialog } from "./components/DestroyCryovialDialog";
+import { brandColors } from "../../../theme";
 
-interface PanelRow { mediaId: string; incubatorEquipmentId: string; incubationStart: string; incubationEnd: string; observationText: string }
-const emptyRow = (): PanelRow => ({ mediaId: "", incubatorEquipmentId: "", incubationStart: "", incubationEnd: "", observationText: "" });
+const INITIAL_FILTERS: CryovialFilterState = {
+  search: "",
+  status: "",
+  organism: "",
+  expiryRange: ""
+};
 
-// Cryovial batches are prepared directly from a LyophilizedMicroorganism
-// Material row (Inventory Materials Stock) - there is no separate
-// reference-strain receiving step. The identity-confirmation panel
-// (at least one row) is mandatory, since it's the only place identity
-// is confirmed before a batch can be approved for GPT use.
 export function CryovialsPage() {
-  const [cryovials, setCryovials] = useState<any[]>([]);
-  const [materials, setMaterials] = useState<any[]>([]);
-  const [releasedMedia, setReleasedMedia] = useState<any[]>([]);
-  const [incubators, setIncubators] = useState<any[]>([]);
-  const [form, setForm] = useState<Record<string, any>>({});
-  const [panel, setPanel] = useState<PanelRow[]>([emptyRow()]);
+  const [cryovials, setCryovials] = useState<CryovialItem[] | null>(null);
+  const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState<{ text: string; ok: boolean } | null>(null);
-  const [pendingDecision, setPendingDecision] = useState<{ cryovial: any; approved: boolean } | null>(null);
 
-  const load = () => CryovialService.getAll().then(setCryovials);
-  const loadMaterials = () => MaterialService.getAll("LyophilizedMicroorganism").then(setMaterials);
-  useEffect(() => {
-    load();
-    loadMaterials();
-    masterDataOptions.getReleasedMedia().then(setReleasedMedia);
-    masterDataOptions.getEquipment("Incubator").then(setIncubators);
-  }, []);
+  // Filters state
+  const [filters, setFilters] = useState<CryovialFilterState>(INITIAL_FILTERS);
 
-  // Only stock that is actually usable (not expired, not depleted) is
-  // offered - CryovialService.PrepareCryovialsAsync re-checks this
-  // server-side regardless, this is just so the analyst doesn't pick
-  // something that will get rejected.
-  const usableMaterials = materials.filter((m) => m.status === "InStock");
-  const selectedMaterial = usableMaterials.find((m) => m.id === form.materialId);
+  // Pagination state
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(25);
 
-  const setField = (k: string, v: any) => setForm((f) => ({ ...f, [k]: v }));
-  const updateRow = (i: number, k: keyof PanelRow, v: string) => setPanel((p) => p.map((r, idx) => (idx === i ? { ...r, [k]: v } : r)));
-  const addRow = () => setPanel((p) => [...p, emptyRow()]);
-  const removeRow = (i: number) => setPanel((p) => (p.length > 1 ? p.filter((_, idx) => idx !== i) : p));
+  // Dialog states
+  const [isPrepareOpen, setIsPrepareOpen] = useState(false);
+  const [thawItem, setThawItem] = useState<CryovialItem | null>(null);
+  const [destroyItem, setDestroyItem] = useState<CryovialItem | null>(null);
+  const [pendingDecision, setPendingDecision] = useState<{ cryovial: CryovialItem; approved: boolean } | null>(null);
+  const [decisionComment, setDecisionComment] = useState("");
 
-  const save = async () => {
-    setMessage(null);
+  const loadData = async () => {
     try {
-      await CryovialService.prepare({
-        materialId: form.materialId, numberOfVialsPrepared: Number(form.numberOfVialsPrepared), expiryDate: form.expiryDate,
-        storageCondition: form.storageCondition, physicalCheckText: form.physicalCheckText, discsUsed: Number(form.discsUsed),
-        panel: panel.map((r) => ({
-          mediaId: Number(r.mediaId), incubatorEquipmentId: Number(r.incubatorEquipmentId),
-          incubationStart: r.incubationStart, incubationEnd: r.incubationEnd, observationText: r.observationText
-        }))
-      });
-      setMessage({ text: "Cryovial batch prepared.", ok: true });
-      setForm({}); setPanel([emptyRow()]);
-      load();
-      loadMaterials();
-    } catch (e: any) {
-      setMessage({ text: e?.response?.data?.message ?? "Could not prepare cryovial batch.", ok: false });
+      setLoading(true);
+      const data = await CryovialService.getAll();
+      setCryovials(data || []);
+    } catch {
+      setMessage({ text: "Failed to load cryovials register.", ok: false });
+    } finally {
+      setLoading(false);
     }
   };
 
-  // Throws on failure so SignatureDialog can surface the server's message
-  // (wrong password, segregation violation) and keep itself open.
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  const handleReset = () => {
+    setFilters(INITIAL_FILTERS);
+    setPage(0);
+  };
+
+  const handleFilterChange = (newFilters: CryovialFilterState) => {
+    setFilters(newFilters);
+    setPage(0);
+  };
+
+  // Filtered dataset driven by form filters
+  const filteredCryovials = useMemo(() => {
+    if (!cryovials) return [];
+
+    return cryovials.filter((c) => {
+      // 1. Text search
+      if (filters.search.trim()) {
+        const q = filters.search.toLowerCase().trim();
+        const codeMatch = c.code?.toLowerCase().includes(q);
+        const orgName = (c.organism?.scientificName ?? c.organismNameSnapshot ?? "").toLowerCase();
+        const orgMatch = orgName.includes(q);
+        const matName = (c.material?.materialName ?? "").toLowerCase();
+        const batchMatch = (c.material?.batchNumber ?? "").toLowerCase().includes(q);
+        const mfgMatch = (c.manufacturerName ?? "").toLowerCase().includes(q);
+        if (!codeMatch && !orgMatch && !matName.includes(q) && !batchMatch && !mfgMatch) {
+          return false;
+        }
+      }
+
+      // 2. Status filter
+      if (filters.status) {
+        if (filters.status === "Approved") {
+          if (c.approvalStatus !== "Approved" || c.isDestroyed) return false;
+        } else if (filters.status === "PendingReview") {
+          if (c.approvalStatus !== "PendingReview" || c.isDestroyed) return false;
+        } else if (filters.status === "Rejected") {
+          if (c.approvalStatus !== "Rejected") return false;
+        } else if (filters.status === "Destroyed") {
+          if (!c.isDestroyed) return false;
+        } else if (filters.status === "Depleted") {
+          if (c.vialsRemaining > 0 || c.isDestroyed) return false;
+        }
+      }
+
+      // 3. Organism filter
+      if (filters.organism) {
+        const orgName = c.organism?.scientificName ?? c.organismNameSnapshot;
+        if (orgName !== filters.organism) return false;
+      }
+
+      // 4. Expiry filter
+      if (filters.expiryRange) {
+        const now = new Date();
+        const expiry = new Date(c.expiryDate);
+        if (filters.expiryRange === "expired") {
+          if (expiry > now) return false;
+        } else if (filters.expiryRange === "valid") {
+          if (expiry <= now) return false;
+        } else if (filters.expiryRange === "expiring_30") {
+          const diffDays = Math.ceil((expiry.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+          if (diffDays <= 0 || diffDays > 30) return false;
+        }
+      }
+
+      return true;
+    });
+  }, [cryovials, filters]);
+
+  // Actions
+  const handleApproveClick = (cryovial: CryovialItem, approved: boolean) => {
+    setDecisionComment("");
+    setPendingDecision({ cryovial, approved });
+  };
+
   const confirmDecision = async (password: string) => {
     if (!pendingDecision) return;
-    await CryovialService.approve(pendingDecision.cryovial.id, pendingDecision.approved, password);
+    await CryovialService.approve(pendingDecision.cryovial.id, pendingDecision.approved, password, decisionComment);
     setMessage({
-      text: `Batch ${pendingDecision.cryovial.code} ${pendingDecision.approved ? "approved for use" : "rejected and destroyed"}.`,
-      ok: pendingDecision.approved
+      text: `Cryovial batch ${pendingDecision.cryovial.code} has been ${
+        pendingDecision.approved ? "Approved" : "Rejected"
+      }.`,
+      ok: true
     });
     setPendingDecision(null);
-    load();
+    setDecisionComment("");
+    loadData();
   };
-  const destroy = async (id: number) => { await CryovialService.destroy(id); load(); };
-  const thaw = async (id: number) => { await CryovialService.thawVial(id); load(); };
+
+  const handleThawConfirm = async (reason: string) => {
+    if (!thawItem) return;
+    await CryovialService.thawVial(thawItem.id, reason);
+    setMessage({ text: `Vial from ${thawItem.code} successfully thawed and logged.`, ok: true });
+    setThawItem(null);
+    loadData();
+  };
+
+  const handleDestroyConfirm = async () => {
+    if (!destroyItem) return;
+    await CryovialService.destroy(destroyItem.id);
+    setMessage({
+      text: `Batch ${destroyItem.code} has been decommissioned and destroyed.`,
+      ok: true
+    });
+    setDestroyItem(null);
+    loadData();
+  };
 
   return (
     <>
-      <PageHeader title="Cryovials" subtitle="Prepare working cryovial batches from an approved lyophilized microorganism material." />
-      {message && <Alert severity={message.ok ? "success" : "error"} sx={{ mb: 2 }}>{message.text}</Alert>}
+      {/* Top Header with Primary Action Button */}
+      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", mb: 1.5, flexWrap: "wrap", gap: 1.5 }}>
+        <PageHeader
+          title="Cryovials"
+          subtitle="Prepare working cryovial batches from an approved lyophilized microorganism material."
+        />
+        <Button
+          variant="contained"
+          startIcon={<AddIcon />}
+          onClick={() => setIsPrepareOpen(true)}
+          sx={{
+            bgcolor: brandColors.pageTitle,
+            "&:hover": { bgcolor: "#581c87" },
+            px: 2.5,
+            py: 1,
+            fontWeight: 700,
+            fontSize: 13,
+            boxShadow: "0 2px 6px rgba(88, 28, 135, 0.25)"
+          }}
+        >
+          + Prepare Cryovial Batch
+        </Button>
+      </Box>
 
-      <SectionTitle>Prepare Cryovial Batch</SectionTitle>
-      <Paper sx={{ p: 2.5, mb: 3 }}>
-        <Box sx={{ maxWidth: 420, mb: 2 }}>
-          <Select displayEmpty fullWidth value={form.materialId ?? ""} onChange={(e) => setField("materialId", e.target.value)}>
-            <MenuItem value=""><em>Lyophilized Microorganism Stock (Inventory)</em></MenuItem>
-            {usableMaterials.map((m) => (
-              <MenuItem key={m.id} value={m.id}>{m.materialName} — batch {m.batchNumber} ({m.quantityRemaining} {m.unit} left)</MenuItem>
-            ))}
-          </Select>
-          {selectedMaterial && (
-            <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 0.5 }}>
-              Organism: {selectedMaterial.organism?.scientificName ?? "— (set an Organism on this Material first)"}
-              {selectedMaterial.organism?.atccNumber ? ` (ATCC ${selectedMaterial.organism.atccNumber})` : ""}
-              {" — "}{selectedMaterial.manufacturerName}
-            </Typography>
-          )}
-        </Box>
-        <Box sx={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 2 }}>
-          <TextField placeholder="# Vials Prepared" value={form.numberOfVialsPrepared ?? ""} onChange={(e) => setField("numberOfVialsPrepared", e.target.value)} />
-          <TextField placeholder="Discs Used" type="number" value={form.discsUsed ?? ""} onChange={(e) => setField("discsUsed", e.target.value)} />
-          <TextField type="date" label="Expiry" InputLabelProps={{ shrink: true }} value={form.expiryDate ?? ""} onChange={(e) => setField("expiryDate", e.target.value)} />
-          <TextField placeholder="Storage Condition" value={form.storageCondition ?? ""} onChange={(e) => setField("storageCondition", e.target.value)} />
-          <TextField placeholder="Physical Check" value={form.physicalCheckText ?? ""} onChange={(e) => setField("physicalCheckText", e.target.value)} />
-        </Box>
+      {message && (
+        <Alert
+          severity={message.ok ? "success" : "error"}
+          onClose={() => setMessage(null)}
+          sx={{ mb: 2 }}
+        >
+          {message.text}
+        </Alert>
+      )}
 
-        <Typography sx={{ fontWeight: 600, mt: 2, mb: 1 }}>Identity Confirmation Panel</Typography>
-        <Table size="small">
-          <TableHead><TableRow>
-            <TableCell>Media (GPT-released)</TableCell><TableCell>Incubator</TableCell><TableCell>Start</TableCell><TableCell>End</TableCell><TableCell>Observation</TableCell><TableCell></TableCell>
-          </TableRow></TableHead>
-          <TableBody>
-            {panel.map((row, i) => (
-              <TableRow key={i}>
-                <TableCell>
-                  <Select size="small" fullWidth displayEmpty value={row.mediaId} onChange={(e) => updateRow(i, "mediaId", e.target.value)}>
-                    <MenuItem value=""><em>Media</em></MenuItem>
-                    {releasedMedia.map((m) => <MenuItem key={m.id} value={m.id}>{m.lotNumber}</MenuItem>)}
-                  </Select>
-                </TableCell>
-                <TableCell>
-                  <Select size="small" fullWidth displayEmpty value={row.incubatorEquipmentId} onChange={(e) => updateRow(i, "incubatorEquipmentId", e.target.value)}>
-                    <MenuItem value=""><em>Incubator</em></MenuItem>
-                    {incubators.map((i2) => <MenuItem key={i2.id} value={i2.id}>{i2.name}</MenuItem>)}
-                  </Select>
-                </TableCell>
-                <TableCell><TextField size="small" type="date" value={row.incubationStart} onChange={(e) => updateRow(i, "incubationStart", e.target.value)} /></TableCell>
-                <TableCell><TextField size="small" type="date" value={row.incubationEnd} onChange={(e) => updateRow(i, "incubationEnd", e.target.value)} /></TableCell>
-                <TableCell><TextField size="small" value={row.observationText} onChange={(e) => updateRow(i, "observationText", e.target.value)} /></TableCell>
-                <TableCell><IconButton size="small" onClick={() => removeRow(i)}><CloseIcon fontSize="small" /></IconButton></TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-        <Button size="small" onClick={addRow} sx={{ mt: 1 }}>+ Add Media Row</Button>
+      {/* KPI Cards: Operational Insights */}
+      <CryovialKpiCards items={cryovials || []} />
 
-        <Box sx={{ display: "flex", justifyContent: "flex-end", mt: 2 }}>
-          <Button variant="contained" onClick={save}>Save</Button>
-        </Box>
-      </Paper>
-
+      {/* Main Review Queue Section */}
       <SectionTitle>Cryovial Review Queue</SectionTitle>
-      <Paper sx={{ p: 2.5 }}>
-        <Table>
-          <TableHead><TableRow>
-            <TableCell>Code</TableCell><TableCell>Organism</TableCell><TableCell>Status</TableCell><TableCell>Vials</TableCell><TableCell></TableCell>
-          </TableRow></TableHead>
-          <TableBody>
-            {cryovials.map((c) => (
-              <TableRow key={c.id}>
-                <TableCell>{c.code}</TableCell>
-                <TableCell>{c.organism?.scientificName ?? c.organismNameSnapshot}</TableCell>
-                <TableCell><StatusBadge status={c.approvalStatus} /></TableCell>
-                <TableCell>
-                  {c.vialsRemaining} of {c.numberOfVialsPrepared} vials
-                  {c.vialsRemaining === 0 && <Box sx={{ mt: 0.5 }}><StatusBadge status="Depleted" /></Box>}
-                </TableCell>
-                <TableCell>
-                  {c.approvalStatus === "PendingReview" ? (
-                    <>
-                      <Button size="small" color="success" onClick={() => setPendingDecision({ cryovial: c, approved: true })}>Approve</Button>
-                      <Button size="small" color="error" onClick={() => setPendingDecision({ cryovial: c, approved: false })}>Reject</Button>
-                    </>
-                  ) : (
-                    <>
-                      {c.approvalStatus === "Approved" && !c.isDestroyed && !isExpired(c.expiryDate) && c.vialsRemaining > 0 && (
-                        <Button size="small" variant="outlined" onClick={() => thaw(c.id)} sx={{ mr: 1 }}>Thaw Vial</Button>
-                      )}
-                      {!c.isDestroyed && <Button size="small" color="error" onClick={() => destroy(c.id)}>Destroy</Button>}
-                    </>
-                  )}
-                  <Button size="small" onClick={() => window.open(`/cryovials/${c.id}/report`, "_blank", "noopener")}>Record</Button>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </Paper>
 
+      {/* Search & Filter Bar */}
+      <CryovialFilterBar
+        items={cryovials || []}
+        filters={filters}
+        onFilterChange={handleFilterChange}
+        onReset={handleReset}
+      />
+
+      {/* Register Table / Queue */}
+      {loading ? (
+        <Box sx={{ py: 8, display: "flex", justifyContent: "center" }}>
+          <LoadingSpinner />
+        </Box>
+      ) : (
+        <CryovialReviewTable
+          items={filteredCryovials}
+          page={page}
+          rowsPerPage={rowsPerPage}
+          onPageChange={setPage}
+          onRowsPerPageChange={(r) => {
+            setRowsPerPage(r);
+            setPage(0);
+          }}
+          onApproveClick={handleApproveClick}
+          onThawClick={(item) => setThawItem(item)}
+          onDestroyClick={(item) => setDestroyItem(item)}
+        />
+      )}
+
+      {/* Preparation Dialog */}
+      <PrepareCryovialBatchDialog
+        open={isPrepareOpen}
+        onClose={() => setIsPrepareOpen(false)}
+        onSuccess={() => {
+          setIsPrepareOpen(false);
+          setMessage({ text: "Cryovial batch prepared successfully. Awaiting Section Head approval.", ok: true });
+          loadData();
+        }}
+      />
+
+      {/* Thaw Confirmation Dialog */}
+      <ThawVialReasonDialog
+        open={thawItem != null}
+        cryovial={thawItem}
+        onCancel={() => setThawItem(null)}
+        onConfirm={handleThawConfirm}
+      />
+
+      {/* Destroy Confirmation Dialog */}
+      <DestroyCryovialDialog
+        open={destroyItem != null}
+        cryovial={destroyItem}
+        onCancel={() => setDestroyItem(null)}
+        onConfirm={handleDestroyConfirm}
+      />
+
+      {/* 21 CFR Part 11 Electronic Signature Dialog */}
       {pendingDecision && (
         <SignatureDialog
-          open
-          meaningStatement={pendingDecision.approved
-            ? `I confirm the identity of cryovial batch ${pendingDecision.cryovial.code} and approve it for use.`
-            : `I am rejecting cryovial batch ${pendingDecision.cryovial.code} - it will be destroyed.`}
-          onCancel={() => setPendingDecision(null)}
+          open={true}
+          meaningStatement={
+            pendingDecision.approved
+              ? `I am approving Cryovial Batch ${pendingDecision.cryovial.code} for laboratory testing and media evaluation.`
+              : `I am rejecting and decommissioning Cryovial Batch ${pendingDecision.cryovial.code}.`
+          }
+          showComment={true}
+          comment={decisionComment}
+          onCommentChange={setDecisionComment}
           onConfirm={confirmDecision}
+          onCancel={() => setPendingDecision(null)}
         />
       )}
     </>
   );
 }
-
-const isExpired = (expiryDate: string) => new Date(expiryDate) <= new Date();

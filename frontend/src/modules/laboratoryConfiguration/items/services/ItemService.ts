@@ -8,7 +8,7 @@ export interface Item {
   sopNumber: string;
   isActive: boolean;
   assignedTests: { testCode: string; displayName: string }[];
-  specifications: { testCode: string; alertLimit: string; actionLimit: string; specLimit: string }[];
+  specifications: { id?: number; testCode: string; alertLimit: string; actionLimit: string; specLimit: string }[];
 }
 
 export interface ItemSaveRequest {

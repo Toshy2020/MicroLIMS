@@ -65,8 +65,17 @@ public static class ServiceCollectionExtensions
         services.AddScoped<PermissionService>();
         services.AddScoped<ReferenceNumberGenerator>();
         services.AddScoped<AuditSearchService>();
+        services.AddScoped<AuditTraceabilityService>();
         services.AddScoped<MaterialService>();
         services.AddScoped<EquipmentInventoryService>();
+        services.AddScoped<PathogenSessionService>();
+        services.AddScoped<LocationPathogenObservationService>();
+        services.AddScoped<ConfirmationAgreementEvaluator>();
+        // Material & Equipment document subsystems
+        var maxDocBytes = config.GetValue<long>("MaterialDocuments:MaxFileSizeBytes", 26_214_400L); // 25 MB default
+        services.AddSingleton(_ => new MaterialDocumentFileValidator(maxDocBytes));
+        services.AddScoped<MaterialDocumentService>();
+        services.AddScoped<EquipmentDocumentService>();
         services.AddScoped<ResultProjectionService>();
         services.AddScoped<IncubatorEligibilityService>();
         services.AddScoped<MediaAppearanceSnapshotService>();

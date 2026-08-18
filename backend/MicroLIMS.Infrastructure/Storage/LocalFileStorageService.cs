@@ -14,6 +14,11 @@ public class LocalFileStorageService : IFileStorageService
     public async Task<string> SaveAsync(string fileName, byte[] content)
     {
         var path = Path.Combine(_basePath, fileName);
+        var dir = Path.GetDirectoryName(path);
+        if (!string.IsNullOrEmpty(dir))
+        {
+            Directory.CreateDirectory(dir);
+        }
         await File.WriteAllBytesAsync(path, content);
         return path;
     }

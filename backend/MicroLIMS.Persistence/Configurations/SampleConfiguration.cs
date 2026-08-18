@@ -18,6 +18,7 @@ public class SampleConfiguration : IEntityTypeConfiguration<Sample>
         builder.HasOne(s => s.WaterSamplingPoint).WithMany().HasForeignKey(s => s.WaterSamplingPointId).OnDelete(DeleteBehavior.Restrict);
         builder.HasOne(s => s.Department).WithMany().HasForeignKey(s => s.DepartmentId).OnDelete(DeleteBehavior.Restrict);
         builder.HasOne(s => s.Machine).WithMany().HasForeignKey(s => s.MachineId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasOne(s => s.WaterDepartment).WithMany().HasForeignKey(s => s.WaterDepartmentId).OnDelete(DeleteBehavior.Restrict);
         builder.HasOne(s => s.CauseOfTesting).WithMany().HasForeignKey(s => s.CauseOfTestingId).OnDelete(DeleteBehavior.Restrict);
 
         // Never let deleting/reassigning the reviewer or approver cascade

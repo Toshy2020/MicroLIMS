@@ -374,7 +374,8 @@ export function ReceiveSamplePage() {
           sampleId: preparingSample.sampleId,
           category: preparingSample.category,
           departmentId: preparingSample.departmentId,
-          machineId: preparingSample.machineId
+          machineId: preparingSample.machineId,
+          waterDepartmentId: preparingSample.waterDepartmentId
         } : null}
         onClose={() => {
           setPreparingSample(null);

@@ -40,6 +40,7 @@ import {
 } from "./components/EquipmentKpiCards";
 import { EquipmentFilterBar } from "./components/EquipmentFilterBar";
 import { RegisterEquipmentDialog } from "./components/RegisterEquipmentDialog";
+import { EquipmentDetailsDialog } from "./components/EquipmentDetailsDialog";
 import { brandColors } from "../../../theme";
 
 const INITIAL_FILTERS: EquipmentFilterState = {
@@ -70,6 +71,7 @@ export function EquipmentInventoryPage() {
   // Dialog states
   const [isRegisterOpen, setIsRegisterOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<EquipmentItem | null>(null);
+  const [detailsItem, setDetailsItem] = useState<EquipmentItem | null>(null);
   const [historyFor, setHistoryFor] = useState<number | null>(null);
 
   const loadData = async () => {
@@ -81,6 +83,14 @@ export function EquipmentInventoryPage() {
       ]);
       setItems(allEquipment);
       setPrintList(printEquipment);
+
+      // If details dialog is open, refresh the selected item
+      if (detailsItem) {
+        const refreshed = allEquipment.find((e: EquipmentItem) => e.id === detailsItem.id);
+        if (refreshed) {
+          setDetailsItem(refreshed);
+        }
+      }
     } catch {
       setMessage({ text: "Failed to load equipment register.", ok: false });
     } finally {
@@ -283,7 +293,23 @@ export function EquipmentInventoryPage() {
                             {eq.firmwareVersion || "—"}
                           </TableCell>
                           <TableCell sx={{ fontSize: 12, fontFamily: "monospace", fontWeight: 700 }}>
-                            {eq.code}
+                            {/* Equipment Code is the single clickable identifier */}
+                            <Typography
+                              component="span"
+                              id={`equip-code-link-${eq.id}`}
+                              onClick={() => setDetailsItem(eq)}
+                              sx={{
+                                fontSize: 12,
+                                fontFamily: "monospace",
+                                fontWeight: 700,
+                                color: "primary.main",
+                                cursor: "pointer",
+                                textDecoration: "underline",
+                                "&:hover": { color: "primary.dark" }
+                              }}
+                            >
+                              {eq.code}
+                            </Typography>
                           </TableCell>
                           <TableCell sx={{ fontSize: 12 }}>
                             {eq.location}
@@ -354,6 +380,18 @@ export function EquipmentInventoryPage() {
           </Paper>
         </Box>
       )}
+
+      {/* Equipment Details & Controlled Documents Dialog */}
+      <EquipmentDetailsDialog
+        open={detailsItem != null}
+        equipment={detailsItem}
+        onClose={() => setDetailsItem(null)}
+        onEditEquipment={(eq) => {
+          setEditingItem(eq);
+          setIsRegisterOpen(true);
+        }}
+        onEquipmentUpdated={loadData}
+      />
 
       {/* Register / Edit Modal Dialog */}
       <RegisterEquipmentDialog

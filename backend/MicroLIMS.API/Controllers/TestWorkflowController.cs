@@ -20,6 +20,8 @@ public record StartStage2IncubationRequest(string StepName, int IncubatorId);
 public record RecordTestResultRequest(string StepName, List<decimal>? PlateReadings, decimal? DilutionFactor);
 public record BatchResultLocationRequest(int SampleLocationId, decimal CFUResult);
 public record BatchResultsRequest(decimal DilutionFactor, List<BatchResultLocationRequest> Locations);
+public record WaterBatchLocationRequest(int SampleLocationId, List<decimal> Readings);
+public record WaterBatchReadingsRequest(List<WaterBatchLocationRequest> Locations);
 public record BatchPathogenLocationRequest(int SampleLocationId, bool? GrowthObserved);
 public record BatchPathogenResultsRequest(List<BatchPathogenLocationRequest> Locations);
 
@@ -303,14 +305,15 @@ public class TestWorkflowController : ControllerBase
         {
             l.Id,
             locationType = l.LocationType.ToString(),
-            locationName = l.RoomTestConfiguration?.Room?.Name ?? l.MachinePartConfiguration?.MachinePart?.Name ?? string.Empty,
+            locationName = l.RoomTestConfiguration?.Room?.Name ?? l.MachinePartConfiguration?.MachinePart?.Name ?? l.WaterSamplingPoint?.Code ?? string.Empty,
             gradeClassification = l.RoomTestConfiguration?.Room?.GradeClassification,
-            alertLimit = l.AlertLimit ?? l.RoomTestConfiguration?.AlertLimit ?? l.MachinePartConfiguration?.AlertLimit,
-            actionLimit = l.ActionLimit ?? l.RoomTestConfiguration?.ActionLimit ?? l.MachinePartConfiguration?.ActionLimit,
-            specLimit = l.SpecLimit ?? l.RoomTestConfiguration?.SpecLimit ?? l.MachinePartConfiguration?.SpecLimit,
+            alertLimit = l.AlertLimit ?? l.RoomTestConfiguration?.AlertLimit ?? l.MachinePartConfiguration?.AlertLimit ?? l.SamplingConfiguration?.AlertLimit,
+            actionLimit = l.ActionLimit ?? l.RoomTestConfiguration?.ActionLimit ?? l.MachinePartConfiguration?.ActionLimit ?? l.SamplingConfiguration?.ActionLimit,
+            specLimit = l.SpecLimit ?? l.RoomTestConfiguration?.SpecLimit ?? l.MachinePartConfiguration?.SpecLimit ?? l.SamplingConfiguration?.SpecLimit,
             l.CFUResult,
             l.CalculatedResult,
             l.ReportedResult,
+            l.RawReadings,
             l.Status,
             l.EnteredAt
         });
@@ -321,6 +324,16 @@ public class TestWorkflowController : ControllerBase
     {
         var locations = request.Locations.Select(l => new BatchLocationResult(l.SampleLocationId, l.CFUResult)).ToList();
         return _engine.RecordBatchResultsAsync(testOrderId, request.DilutionFactor, locations, CurrentUserId);
+    });
+
+    // Water batch count entry - one set of plate readings per sampling
+    // point, averaged with no shared dilution factor (see
+    // TestWorkflowEngine.RecordWaterBatchReadingsAsync).
+    [HttpPost("{testOrderId}/water-batch-readings")]
+    public Task<IActionResult> RecordWaterBatchReadings(int testOrderId, WaterBatchReadingsRequest request) => RunAsync(() =>
+    {
+        var locations = request.Locations.Select(l => new WaterBatchLocationReadings(l.SampleLocationId, l.Readings)).ToList();
+        return _engine.RecordWaterBatchReadingsAsync(testOrderId, locations, CurrentUserId);
     });
 
     // EM/After Cleaning multi-window incubation - closes the currently

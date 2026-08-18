@@ -42,6 +42,9 @@ export const TestWorkflowService = {
   recordBatchResults: (testOrderId: number, dilutionFactor: number, locations: { sampleLocationId: number; cfuResult: number }[]) =>
     apiClient.post(`/test-workflow/${testOrderId}/batch-results`, { dilutionFactor, locations }).then((r) => r.data.data),
 
+  recordWaterBatchReadings: (testOrderId: number, locations: { sampleLocationId: number; readings: number[] }[]) =>
+    apiClient.post(`/test-workflow/${testOrderId}/water-batch-readings`, { locations }).then((r) => r.data.data),
+
   // ---- Pathogen five-stage workflow ----
 
   submitBroth: (

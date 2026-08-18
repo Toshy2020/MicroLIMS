@@ -41,6 +41,7 @@ public class MicroLimsDbContext : Microsoft.EntityFrameworkCore.DbContext
     public DbSet<Machine> Machines => Set<Machine>();
     public DbSet<MachinePart> MachineParts => Set<MachinePart>();
     public DbSet<WaterSamplingPoint> WaterSamplingPoints => Set<WaterSamplingPoint>();
+    public DbSet<WaterDepartment> WaterDepartments => Set<WaterDepartment>();
     public DbSet<EMRoom> EMRooms => Set<EMRoom>();
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
     public DbSet<Report> Reports => Set<Report>();
@@ -71,6 +72,11 @@ public class MicroLimsDbContext : Microsoft.EntityFrameworkCore.DbContext
     // Inventory module
     public DbSet<Material> Materials => Set<Material>();
     public DbSet<EquipmentInventory> EquipmentInventories => Set<EquipmentInventory>();
+    public DbSet<EquipmentStatusHistory> EquipmentStatusHistories => Set<EquipmentStatusHistory>();
+    public DbSet<MaterialDocument> MaterialDocuments => Set<MaterialDocument>();
+    public DbSet<MaterialDocumentAccessLog> MaterialDocumentAccessLogs => Set<MaterialDocumentAccessLog>();
+    public DbSet<EquipmentDocument> EquipmentDocuments => Set<EquipmentDocument>();
+    public DbSet<EquipmentDocumentAccessLog> EquipmentDocumentAccessLogs => Set<EquipmentDocumentAccessLog>();
 
     // Test Master
     public DbSet<TestDefinition> TestDefinitions => Set<TestDefinition>();
@@ -81,12 +87,22 @@ public class MicroLimsDbContext : Microsoft.EntityFrameworkCore.DbContext
     public DbSet<WorkflowStepResult> WorkflowStepResults => Set<WorkflowStepResult>();
     public DbSet<ConfirmatoryMediaSelection> ConfirmatoryMediaSelections => Set<ConfirmatoryMediaSelection>();
     public DbSet<ConfirmatoryPlateObservation> ConfirmatoryPlateObservations => Set<ConfirmatoryPlateObservation>();
+    public DbSet<LocationPathogenObservation> LocationPathogenObservations => Set<LocationPathogenObservation>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         // Individual per-table configuration classes live in
         // MicroLIMS.Persistence/Configurations and are applied here.
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(MicroLimsDbContext).Assembly);
+
+        // Water sample locations hang off a WaterDepartment (mirrors EM's
+        // Department -> Room). Optional FK; deletion is guarded in the
+        // controller, so keep existing points intact rather than cascading.
+        modelBuilder.Entity<WaterSamplingPoint>()
+            .HasOne(p => p.WaterDepartment)
+            .WithMany(d => d.SamplingPoints)
+            .HasForeignKey(p => p.WaterDepartmentId)
+            .OnDelete(DeleteBehavior.Restrict);
     }
 
     // Frozen Principle #5 - Traceability. Captures every insert/update/
@@ -107,6 +123,8 @@ public class MicroLimsDbContext : Microsoft.EntityFrameworkCore.DbContext
     {
         var entries = ChangeTracker.Entries()
             .Where(e => e.Entity is not AuditLog &&
+                        e.Entity is not MaterialDocumentAccessLog && // append-only; excluded to prevent recursive audit
+                        e.Entity is not EquipmentDocumentAccessLog && // append-only; excluded to prevent recursive audit
                         (e.State == EntityState.Added || e.State == EntityState.Modified || e.State == EntityState.Deleted))
             .ToList();
 

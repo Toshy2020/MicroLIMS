@@ -25,6 +25,7 @@ import { brandColors } from "../../../theme";
 interface MasterData {
   items: any[];
   waterPoints: any[];
+  waterDepartments: any[];
   departments: any[];
   machines: any[];
   causes: any[];
@@ -54,7 +55,7 @@ export function MultiSampleEntryGrid({
 
   return (
     <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
-      {(isEM || isAC) && (
+      {(isEM || isAC || isWater) && (
         <Box
           sx={{
             display: "flex",
@@ -70,7 +71,9 @@ export function MultiSampleEntryGrid({
           <Typography sx={{ fontSize: 12, color: "#92400e", fontWeight: 500 }}>
             {isEM
               ? "Rooms, test locations, and test types are configured in the Preparation step after receiving."
-              : "Machine parts, test locations, and test types are configured in the Preparation step after receiving."}
+              : isAC
+              ? "Machine parts, test locations, and test types are configured in the Preparation step after receiving."
+              : "Sampling points and test types are configured in the Preparation step after receiving."}
           </Typography>
         </Box>
       )}
@@ -101,8 +104,8 @@ export function MultiSampleEntryGrid({
                 )}
 
                 {isWater && (
-                  <TableCell sx={{ minWidth: 220 }}>
-                    Sampling Point <span style={{ color: "#dc2626" }}>*</span>
+                  <TableCell sx={{ minWidth: 180 }}>
+                    Department <span style={{ color: "#dc2626" }}>*</span>
                   </TableCell>
                 )}
 
@@ -213,24 +216,24 @@ export function MultiSampleEntryGrid({
                       </TableCell>
                     )}
 
-                    {/* Water Sampling Point */}
+                    {/* Department (for Water) */}
                     {isWater && (
                       <TableCell>
                         <Select
                           size="small"
                           fullWidth
                           displayEmpty
-                          value={row.waterSamplingPointId ?? ""}
-                          error={Boolean(errors.waterSamplingPointId)}
-                          onChange={(e) => onChangeRow(idx, "waterSamplingPointId", e.target.value)}
+                          value={row.departmentId ?? ""}
+                          error={Boolean(errors.departmentId)}
+                          onChange={(e) => onChangeRow(idx, "departmentId", e.target.value)}
                           sx={{ fontSize: 12 }}
                         >
                           <MenuItem value="">
-                            <em style={{ color: "#9ca3af" }}>Select Sampling Point</em>
+                            <em style={{ color: "#9ca3af" }}>Select Department</em>
                           </MenuItem>
-                          {masterData.waterPoints.map((p) => (
-                            <MenuItem key={p.id} value={p.id}>
-                              {p.code} — {p.location}
+                          {masterData.waterDepartments.map((d) => (
+                            <MenuItem key={d.id} value={d.id}>
+                              {d.name}
                             </MenuItem>
                           ))}
                         </Select>

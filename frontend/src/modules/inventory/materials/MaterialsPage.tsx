@@ -13,7 +13,8 @@ import {
   Alert,
   IconButton,
   Tooltip,
-  Typography
+  Typography,
+  ButtonBase
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
@@ -42,6 +43,7 @@ import {
 } from "./components/MaterialKpiCards";
 import { MaterialFilterBar } from "./components/MaterialFilterBar";
 import { AddMaterialDialog } from "./components/AddMaterialDialog";
+import { MaterialLotDetailsDialog } from "./components/MaterialLotDetailsDialog";
 import { brandColors } from "../../../theme";
 
 const INITIAL_FILTERS: MaterialFilterState = {
@@ -74,6 +76,7 @@ export function MaterialsPage() {
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<MaterialItem | null>(null);
   const [historyFor, setHistoryFor] = useState<number | null>(null);
+  const [lotDetailsFor, setLotDetailsFor] = useState<MaterialItem | null>(null);
 
   const loadData = async () => {
     try {
@@ -256,8 +259,6 @@ export function MaterialsPage() {
                     <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Received</TableCell>
                     <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Expiry</TableCell>
                     <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Code</TableCell>
-                    <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Organism</TableCell>
-                    <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>ATCC</TableCell>
                     <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Location</TableCell>
                     <TableCell sx={{ fontWeight: 700, fontSize: 12, textAlign: "right" }}>Qty Received</TableCell>
                     <TableCell sx={{ fontWeight: 700, fontSize: 12, textAlign: "right" }}>Qty Remaining</TableCell>
@@ -290,14 +291,50 @@ export function MaterialsPage() {
                           <TableCell sx={{ fontSize: 12, whiteSpace: "nowrap" }}>
                             {m.materialType}
                           </TableCell>
+                          {/* Material Name + optional organism/ATCC secondary line */}
                           <TableCell sx={{ fontSize: 12, fontWeight: 600 }}>
                             {m.materialName}
+                            {(() => {
+                              // Canonical ATCC: organism.atccNumber first, material.atccNumber as fallback
+                              const canonicalAtcc = m.organism?.atccNumber ?? m.atccNumber;
+                              const organism = m.organism?.scientificName;
+                              if (!organism && !canonicalAtcc) return null;
+                              return (
+                                <Typography
+                                  component="div"
+                                  sx={{ fontSize: 11, color: "text.secondary", fontWeight: 400, fontStyle: organism ? "italic" : "normal", mt: 0.25 }}
+                                >
+                                  {organism && canonicalAtcc
+                                    ? `${organism} · ATCC ${canonicalAtcc}`
+                                    : organism
+                                    ? organism
+                                    : `ATCC ${canonicalAtcc}`}
+                                </Typography>
+                              );
+                            })()}
                           </TableCell>
                           <TableCell sx={{ fontSize: 12 }}>
                             {m.manufacturerName || "—"}
                           </TableCell>
-                          <TableCell sx={{ fontSize: 12, fontFamily: "monospace", fontWeight: 600 }}>
-                            {m.batchNumber}
+                          {/* Clickable lot number — opens lot details dialog */}
+                          <TableCell sx={{ fontSize: 12, fontFamily: "monospace", fontWeight: 600, p: 0 }}>
+                            <ButtonBase
+                              id={`lot-${m.id}`}
+                              onClick={() => setLotDetailsFor(m)}
+                              sx={{
+                                px: 1, py: 0.75,
+                                color: "primary.main",
+                                fontFamily: "monospace",
+                                fontWeight: 700,
+                                fontSize: 12,
+                                borderRadius: 1,
+                                textDecoration: "underline",
+                                textDecorationStyle: "dotted",
+                                "&:hover": { bgcolor: "primary.50", textDecorationStyle: "solid" }
+                              }}
+                            >
+                              {m.batchNumber}
+                            </ButtonBase>
                           </TableCell>
                           <TableCell sx={{ fontSize: 12, whiteSpace: "nowrap" }}>
                             {formatLabDate(m.receivingDate)}
@@ -314,12 +351,6 @@ export function MaterialsPage() {
                           </TableCell>
                           <TableCell sx={{ fontSize: 12 }}>
                             {m.code ?? "—"}
-                          </TableCell>
-                          <TableCell sx={{ fontSize: 12, fontStyle: "italic" }}>
-                            {m.organism?.scientificName ?? "—"}
-                          </TableCell>
-                          <TableCell sx={{ fontSize: 12 }}>
-                            {m.atccNumber ?? "—"}
                           </TableCell>
                           <TableCell sx={{ fontSize: 12 }}>
                             {m.location}
@@ -398,7 +429,7 @@ export function MaterialsPage() {
         </Box>
       )}
 
-      {/* Add / Edit Modal Dialog */}
+        {/* Add / Edit Modal Dialog */}
       <AddMaterialDialog
         open={isAddOpen}
         onClose={() => {
@@ -410,6 +441,13 @@ export function MaterialsPage() {
           loadData();
         }}
         editingItem={editingItem}
+      />
+
+      {/* Lot Details Dialog (documents) */}
+      <MaterialLotDetailsDialog
+        open={lotDetailsFor != null}
+        material={lotDetailsFor}
+        onClose={() => setLotDetailsFor(null)}
       />
 
       {/* Controlled Printable Document Table */}

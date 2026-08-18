@@ -18,6 +18,11 @@ public class SampleLocation
     public RoomTestConfiguration? RoomTestConfiguration { get; set; }
     public int? MachinePartConfigurationId { get; set; }
     public MachinePartConfiguration? MachinePartConfiguration { get; set; }
+    public int? WaterSamplingPointId { get; set; }
+    public WaterSamplingPoint? WaterSamplingPoint { get; set; }
+    public int? SamplingConfigurationId { get; set; }   // count-test limits source; null for pathogen locations
+    public SamplingConfiguration? SamplingConfiguration { get; set; }
+    public string? RawReadings { get; set; }   // comma-joined plate readings (water count only)
 
     // Shared across every location in the batch - set once when the
     // analyst opens the result grid for this TestOrder.

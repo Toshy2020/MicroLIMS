@@ -45,6 +45,21 @@ public class MediaEvaluationEngineTests
         db.MediaChallengeSpecs.AddRange(specs);
         await db.SaveChangesAsync();
 
+        db.MaterialDocuments.Add(new MaterialDocument
+        {
+            MaterialId = material.Id,
+            DocumentType = MaterialDocumentType.COA,
+            OriginalFileName = "COA.pdf",
+            StorageKey = "test/coa.pdf",
+            FileExtension = ".pdf",
+            ContentType = "application/pdf",
+            FileSizeBytes = 1024,
+            ContentSha256 = "HASH",
+            UploadedByUserId = 1,
+            Status = MaterialDocumentStatus.Current
+        });
+        await db.SaveChangesAsync();
+
         var service = new MediaPreparationService(db, new MaterialService(db));
         var request = new PrepareMediaRequest(
             mediaType.Id, material.Id, TotalWeight: 100m, TotalVolume: "500 ml", AutoclaveEquipmentId: autoclave.Id,

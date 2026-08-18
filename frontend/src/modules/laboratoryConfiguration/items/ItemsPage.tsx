@@ -9,11 +9,7 @@ import { ItemService, Item } from "./services/ItemService";
 const CATEGORIES = [
   { value: "FinishedProduct", label: "Product" },
   { value: "RawMaterial", label: "Raw Material" },
-  { value: "PackagingMaterial", label: "Packaging Material" },
-  { value: "Water", label: "Water" },
-  { value: "EnvironmentalMonitoring", label: "Environmental Monitoring" },
-  { value: "AfterCleaning", label: "After Cleaning" },
-  { value: "GPT", label: "GPT" }
+  { value: "PackagingMaterial", label: "Packaging Material" }
 ];
 
 // Section Head owns this - the Master Configuration the Workflow Engine
@@ -128,7 +124,7 @@ export function ItemsPage() {
       </Paper>
 
       <SectionTitle>Configured Items</SectionTitle>
-      <ItemTable items={items} onEdit={startEdit} onDelete={remove} onToggleFreeze={toggleFreeze} />
+      <ItemTable items={items} onEdit={startEdit} onDelete={remove} onToggleFreeze={toggleFreeze} onSpecsChanged={load} />
     </>
   );
 }

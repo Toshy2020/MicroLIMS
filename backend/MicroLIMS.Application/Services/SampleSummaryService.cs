@@ -58,8 +58,10 @@ public class SampleSummaryService
             .Include(l => l.MachinePartConfiguration!).ThenInclude(c => c.MachinePart)
             .ToListAsync();
         var testDefinitions = await _db.TestDefinitions
+            .Include(t => t.Steps)
+                .ThenInclude(s => s.MediaType)
             .Where(t => sample.TestOrders.Select(o => o.TestCode).Contains(t.Code))
-            .ToDictionaryAsync(t => t.Code, t => t.DisplayName);
+            .ToDictionaryAsync(t => t.Code);
 
         var preparation = await _db.SamplePreparations
             .Include(p => p.Neutralizer)
@@ -86,6 +88,37 @@ public class SampleSummaryService
 
         var names = await _db.Users.Where(u => userIds.Contains(u.Id)).ToDictionaryAsync(u => u.Id, u => u.FullName);
         string NameOf(int userId) => names.TryGetValue(userId, out var n) ? n : "Unknown";
+
+        var sharedTsbInc = incubations.FirstOrDefault(i =>
+            !string.IsNullOrEmpty(i.StepName) &&
+            (i.StepName.Contains("TSB", StringComparison.OrdinalIgnoreCase) ||
+             i.StepName.Contains("Enrichment", StringComparison.OrdinalIgnoreCase)));
+
+        int tsbHoursMin = 24;
+        foreach (var def in testDefinitions.Values)
+        {
+            var tsbStep = def.Steps.FirstOrDefault(step =>
+                step.StepType == StepType.BrothEnrichment ||
+                (!string.IsNullOrEmpty(step.StepName) && step.StepName.Contains("TSB", StringComparison.OrdinalIgnoreCase)) ||
+                (step.MediaType != null && (step.MediaType.Class == MediaClass.GeneralBroth || step.MediaType.Class == MediaClass.SelectiveBroth)));
+            if (tsbStep != null && tsbStep.IncubationMinHours > 0)
+            {
+                tsbHoursMin = tsbStep.IncubationMinHours;
+                break;
+            }
+        }
+
+        bool tsbStarted = sharedTsbInc != null;
+        DateTime? tsbStart = sharedTsbInc?.IncubationStartUtc ?? sharedTsbInc?.StartedAt;
+        DateTime? tsbMinReadyAt = tsbStart?.AddHours(tsbHoursMin);
+
+        bool tsbIncubating = tsbStarted &&
+                             tsbMinReadyAt.HasValue &&
+                             DateTime.UtcNow < tsbMinReadyAt.Value &&
+                             !sharedTsbInc!.CompletedAt.HasValue;
+        bool tsbCompleted = tsbStarted &&
+                            (sharedTsbInc!.CompletedAt.HasValue ||
+                             (tsbMinReadyAt.HasValue && DateTime.UtcNow >= tsbMinReadyAt.Value));
 
         var dto = new SampleSummaryDto
         {
@@ -134,18 +167,126 @@ public class SampleSummaryService
                     Comment = e.Comment,
                     Decision = e.Decision?.ToString()
                 }).ToList(),
-            TestOrders = sample.TestOrders.Select(order => new TestOrderSummaryDetailDto
+            TestOrders = sample.TestOrders.Select(order =>
             {
-                TestOrderId = order.Id,
-                TestCode = order.TestCode,
-                TestDisplayName = testDefinitions.TryGetValue(order.TestCode, out var n) ? n : order.TestCode,
-                Status = order.Status.ToString(),
-                CurrentStep = order.CurrentStep.ToString(),
-                IsSuperseded = order.IsSuperseded,
-                Incubations = incubations.Where(i => i.TestOrderId == order.Id)
-                    .OrderBy(i => i.StepNumber).ThenBy(i => i.StageNumber)
-                    .Select(i =>
+                TestDefinition? def = null;
+                testDefinitions.TryGetValue(order.TestCode, out def);
+
+                bool usesTsb = def?.Steps.Any(step =>
+                    step.StepType == StepType.BrothEnrichment ||
+                    step.StepName.Contains("TSB", StringComparison.OrdinalIgnoreCase) ||
+                    (step.MediaType != null && (step.MediaType.Class == MediaClass.GeneralBroth || step.MediaType.Class == MediaClass.SelectiveBroth))) ?? false;
+
+                string workflowState;
+                string workflowStateDisplay;
+                bool isLocked;
+                bool isResultAllowed;
+                string? lockReason = null;
+
+                if (order.Status == ApprovalStatus.Approved)
                 {
+                    workflowState = "APPROVED";
+                    workflowStateDisplay = "Completed & Approved";
+                    isLocked = false;
+                    isResultAllowed = false;
+                }
+                else if (order.CurrentStep == WorkflowStep.Ready)
+                {
+                    workflowState = "RESULTS_RECORDED";
+                    workflowStateDisplay = "Result Recorded — Pending Review";
+                    isLocked = false;
+                    isResultAllowed = true;
+                }
+                else if (usesTsb)
+                {
+                    if (!tsbStarted)
+                    {
+                        workflowState = "PENDING";
+                        workflowStateDisplay = "Pending";
+                        isLocked = true;
+                        isResultAllowed = false;
+                        lockReason = "TSB broth enrichment setup required";
+                    }
+                    else if (tsbIncubating)
+                    {
+                        workflowState = "TSB_INCUBATING";
+                        workflowStateDisplay = "TSB Incubating";
+                        isLocked = true;
+                        isResultAllowed = false;
+                        lockReason = "Locked until TSB incubation is complete";
+                    }
+                    else if (tsbCompleted)
+                    {
+                        workflowState = "READY_FOR_DOWNSTREAM";
+                        workflowStateDisplay = "Ready for Downstream Testing";
+                        isLocked = false;
+                        isResultAllowed = true;
+                    }
+                    else
+                    {
+                        workflowState = "PENDING";
+                        workflowStateDisplay = "Pending";
+                        isLocked = true;
+                        isResultAllowed = false;
+                    }
+                }
+                else
+                {
+                    if (order.CurrentStep == WorkflowStep.Incubating)
+                    {
+                        workflowState = "INCUBATING";
+                        workflowStateDisplay = "Testing / Incubation In Progress";
+                        isLocked = false;
+                        isResultAllowed = true;
+                    }
+                    else if (order.CurrentStep == WorkflowStep.Running)
+                    {
+                        workflowState = "RUNNING";
+                        workflowStateDisplay = "Testing In Progress";
+                        isLocked = false;
+                        isResultAllowed = true;
+                    }
+                    else
+                    {
+                        workflowState = "PENDING";
+                        workflowStateDisplay = "Pending";
+                        isLocked = false;
+                        isResultAllowed = true;
+                    }
+                }
+
+                string workflowStatus = workflowState switch
+                {
+                    "TSB_INCUBATING"       => "InProgress",
+                    "INCUBATING"           => "InProgress",
+                    "RUNNING"              => "InProgress",
+                    "READY_FOR_DOWNSTREAM" => "ReadyToRead",
+                    "TSB_READY"            => "ReadyToRead",
+                    "AWAITING_RESULTS"     => "EnterResult",
+                    "RESULTS_RECORDED"     => "PendingReview",
+                    "APPROVED"             => "Completed",
+                    _                      => "Pending"
+                };
+
+                return new TestOrderSummaryDetailDto
+                {
+                    TestOrderId = order.Id,
+                    TestCode = order.TestCode,
+                    TestDisplayName = def?.DisplayName ?? order.TestCode,
+                    Status = order.Status.ToString(),
+                    CurrentStep = order.CurrentStep.ToString(),
+                    WorkflowState = workflowState,
+                    WorkflowStateDisplay = workflowStateDisplay,
+                    WorkflowStatus = workflowStatus,
+                    UsesSharedTsb = usesTsb,
+                    IsWorkflowLocked = isLocked,
+                    IsResultEntryAllowed = isResultAllowed,
+                    ResultLockReason = lockReason,
+                    IsSuperseded = order.IsSuperseded,
+                    Incubations = incubations.Where(i => i.TestOrderId == order.Id)
+                        .OrderBy(i => i.StepNumber).ThenBy(i => i.StageNumber)
+                        .Select(i =>
+                    {
                     var isStage1WithStage2 = i.StageNumber == 1 && incubations.Any(other =>
                         other.TestOrderId == order.Id && (other.ParentIncubationId == i.Id || (other.StepName == i.StepName && other.StageNumber == 2)));
                     var stage2Child = isStage1WithStage2
@@ -266,6 +407,7 @@ public class SampleSummaryService
                     EnteredByName = l.EnteredByUserId is not null ? NameOf(l.EnteredByUserId.Value) : null,
                     EnteredAt = l.EnteredAt
                 }).ToList()
+                };
             }).ToList()
         };
 

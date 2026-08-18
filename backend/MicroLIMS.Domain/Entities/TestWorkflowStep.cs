@@ -27,6 +27,9 @@ public class TestWorkflowStep
     public int? TargetOrganismId { get; set; }
     public Organism? TargetOrganism { get; set; }
 
+    // ConfirmatoryPlating only: number of confirmatory media required (e.g. 2 for Salmonella [XLD+TSI], 1 for single-medium pathogens).
+    public int ConfirmatoryMediaCount { get; set; } = 1;
+
     public List<TestWorkflowStepMedia> StepMedia { get; set; } = new();
 
     // PlateCount only. When true, the step's own TemperatureMin/Max and

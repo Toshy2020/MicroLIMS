@@ -7,6 +7,7 @@ export const masterDataOptions = {
     apiClient.get("/items").then((r) => (category ? r.data.data.filter((i: any) => i.category === category) : r.data.data)),
   getWaterSamplingPoints: () => apiClient.get("/masterdata/water-sampling-points").then((r) => r.data.data),
   getDepartments: () => apiClient.get("/masterdata/departments").then((r) => r.data.data),
+  getWaterDepartments: () => apiClient.get("/masterdata/water-departments").then((r) => r.data.data),
   getRooms: () => apiClient.get("/masterdata/rooms").then((r) => r.data.data),
   getMachines: () => apiClient.get("/masterdata/machines").then((r) => r.data.data),
   getCausesOfTesting: () => apiClient.get("/masterdata/causes-of-testing").then((r) => r.data.data),

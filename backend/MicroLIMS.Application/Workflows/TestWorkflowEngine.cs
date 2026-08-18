@@ -79,6 +79,11 @@ public record TestWorkflowResult(
 // RecordResultAsync path.
 public record BatchLocationResult(int SampleLocationId, decimal CFUResult);
 
+// One location's plate readings submitted from WaterLocationResultGridDialog -
+// water batch results only. Averaged directly with no dilution factor,
+// unlike BatchLocationResult's CFU x dilution model (EM/After Cleaning).
+public record WaterBatchLocationReadings(int SampleLocationId, List<decimal> Readings);
+
 // EM/After Cleaning batch pathogen results - the final step's per-
 // location growth observation call.
 public record BatchLocationObservation(int SampleLocationId, bool GrowthObserved);
@@ -92,6 +97,7 @@ public interface ITestWorkflowEngine : IStatefulWorkflowEngine
     Task<List<SampleLocation>> GetLocationsAsync(int testOrderId);
     Task<Incubation> CloseCurrentIncubationWindowAsync(int testOrderId, int userId);
     Task<TestWorkflowResult> RecordBatchResultsAsync(int testOrderId, decimal dilutionFactor, List<BatchLocationResult> locations, int userId);
+    Task<TestWorkflowResult> RecordWaterBatchReadingsAsync(int testOrderId, List<WaterBatchLocationReadings> locations, int userId);
     Task<TestWorkflowResult> RecordBatchPathogenResultsAsync(int testOrderId, List<BatchLocationObservation>? observations, int userId);
 
     // Broth steps carry no result logic - completion is the incubation
@@ -600,6 +606,8 @@ public class TestWorkflowEngine : ITestWorkflowEngine
         await _db.SampleLocations
             .Include(l => l.RoomTestConfiguration!).ThenInclude(c => c.Room)
             .Include(l => l.MachinePartConfiguration!).ThenInclude(c => c.MachinePart)
+            .Include(l => l.WaterSamplingPoint)
+            .Include(l => l.SamplingConfiguration)
             .Where(l => l.TestOrderId == testOrderId)
             .ToListAsync();
 
@@ -754,6 +762,101 @@ public class TestWorkflowEngine : ITestWorkflowEngine
         return new TestWorkflowResult(summary, true, true, summary, null, null, worstStatus);
     }
 
+    // Water-only batch result entry: each sampling point gets its own
+    // set of raw plate readings, averaged directly (no shared dilution
+    // factor) and compared to that point's own SamplingConfiguration
+    // limits - the multi-reading model water has always used, now
+    // applied per-location instead of per-TestOrder. Everything about
+    // opening/closing the incubation window and transitioning the
+    // TestOrder is identical to RecordBatchResultsAsync; only the
+    // result computation differs.
+    public async Task<TestWorkflowResult> RecordWaterBatchReadingsAsync(int testOrderId, List<WaterBatchLocationReadings> locations, int userId)
+    {
+        var (order, definition) = await LoadWithTemplateAsync(testOrderId);
+        if (order.CurrentStep != WorkflowStep.Incubating)
+            throw new InvalidOperationException("Media must be selected for this test before batch results can be recorded.");
+
+        var (openIncubation, step) = await LoadOpenBatchWindowAsync(testOrderId, definition);
+        var isFinalIncubation = step.IsFinalStep || step.RequiresIncubationTransfer || (step.StepOrder == definition.Steps.Max(s => s.StepOrder));
+        if (!isFinalIncubation)
+            throw new InvalidOperationException($"\"{step.StepName}\" is not the final incubation window yet - close it and start the next window first.");
+
+        if (step.RequiresIncubationTransfer)
+        {
+            if (openIncubation.StageNumber != 2)
+                throw new WorkflowStepException(WorkflowErrorCodes.IncubationStage2NotStarted,
+                    $"Step \"{step.StepName}\" requires stage 2 incubation to be started before results can be recorded.");
+
+            RequireStage2MinimumDurationElapsed(openIncubation, step);
+        }
+        else
+        {
+            RequireMinimumDurationElapsed(openIncubation, step);
+        }
+
+        var sampleLocations = await GetLocationsAsync(testOrderId);
+        if (sampleLocations.Count == 0)
+            throw new InvalidOperationException("No locations are assigned to this test order.");
+
+        var submitted = locations.ToDictionary(l => l.SampleLocationId);
+        var missing = sampleLocations.Where(l => !submitted.ContainsKey(l.Id)).ToList();
+        if (missing.Count > 0)
+            throw new InvalidOperationException($"Results are missing for: {string.Join(", ", missing.Select(LocationName))}.");
+
+        var emptyReadings = sampleLocations.Where(l => submitted[l.Id].Readings.Count == 0).ToList();
+        if (emptyReadings.Count > 0)
+            throw new InvalidOperationException($"At least one plate reading is required for: {string.Join(", ", emptyReadings.Select(LocationName))}.");
+
+        var worstStatus = "WithinLimits";
+        var conformCount = 0;
+        foreach (var location in sampleLocations)
+        {
+            var readings = submitted[location.Id].Readings;
+            var average = readings.Average();
+
+            var alertLimit = location.SamplingConfiguration?.AlertLimit;
+            var actionLimit = location.SamplingConfiguration?.ActionLimit;
+            var specLimit = location.SamplingConfiguration?.SpecLimit;
+            var (status, _) = Compare(average, alertLimit, actionLimit, specLimit);
+
+            location.RawReadings = string.Join(",", readings);
+            location.CalculatedResult = average;
+            location.ReportedResult = average.ToString("0.##");
+            location.AlertLimit = alertLimit;
+            location.ActionLimit = actionLimit;
+            location.SpecLimit = specLimit;
+            location.Status = status;
+            location.EnteredAt = DateTime.UtcNow;
+            location.EnteredByUserId = userId;
+
+            if (status == "WithinLimits") conformCount++;
+            if (StatusSeverity(status) > StatusSeverity(worstStatus)) worstStatus = status;
+        }
+
+        var summary = $"{sampleLocations.Count} locations: {conformCount} conform, {sampleLocations.Count - conformCount} alert/action/spec";
+
+        _db.Results.Add(new Result
+        {
+            TestOrderId = testOrderId,
+            RawValue = summary,
+            InterpretedValue = $"{summary} (worst: {worstStatus})",
+            Type = ResultType.Numeric,
+            EnteredByUserId = userId
+        });
+
+        openIncubation.CompletedAt = DateTime.UtcNow;
+        openIncubation.Outcome = summary;
+
+        foreach (var location in sampleLocations)
+            await _resultProjection.UpsertFromSampleLocationAsync(location.Id);
+
+        await WorkflowStateMachine.TransitionAsync(_db, order, WorkflowStep.Ready, userId, $"Water batch readings recorded: {summary}");
+        await _sampleReviewService.AutoSubmitForReviewIfReadyAsync(order.SampleId, userId);
+        await _db.SaveChangesAsync();
+
+        return new TestWorkflowResult(summary, true, true, summary, null, null, worstStatus);
+    }
+
     // EM/After Cleaning batch pathogen result entry - the final step's
     // per-location Detected/Absent call, once its minimum duration has
     // elapsed (same window mechanism as RecordBatchResultsAsync; every
@@ -822,7 +925,7 @@ public class TestWorkflowEngine : ITestWorkflowEngine
     }
 
     private static string LocationName(SampleLocation l) =>
-        l.RoomTestConfiguration?.Room?.Name ?? l.MachinePartConfiguration?.MachinePart?.Name ?? $"Location {l.Id}";
+        l.RoomTestConfiguration?.Room?.Name ?? l.MachinePartConfiguration?.MachinePart?.Name ?? l.WaterSamplingPoint?.Code ?? $"Location {l.Id}";
 
     private static int StatusSeverity(string status) => status switch
     {
@@ -1075,15 +1178,12 @@ public class TestWorkflowEngine : ITestWorkflowEngine
             .FirstOrDefaultAsync()
             ?? throw new InvalidOperationException($"Media must be selected for step \"{stepName}\" before this submission.");
 
-        // Verify that the minimum duration has elapsed and the maximum window has passed.
+        // Verify that the minimum duration has elapsed.
         var minReadyAt = incubation.IncubationStartUtc!.Value.AddHours((double)step.IncubationMinHours);
         if (DateTime.UtcNow < minReadyAt)
             throw new WorkflowStepException(WorkflowErrorCodes.IncubationNotComplete,
                 $"This step requires at least {step.IncubationMinHours} hours of incubation - not ready until {minReadyAt:yyyy-MM-dd HH:mm} UTC.",
                 Math.Max(0, (long)Math.Ceiling((minReadyAt - DateTime.UtcNow).TotalSeconds)));
-
-        // Verify the maximum window has passed as well.
-        RequireIncubationComplete(incubation.IncubationEndUtc!.Value);
 
         // Record the completion of the incubation.
         incubation.CompletedAt = DateTime.UtcNow;

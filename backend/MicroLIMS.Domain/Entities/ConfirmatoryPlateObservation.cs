@@ -2,16 +2,24 @@ using MicroLIMS.Domain.Enums;
 
 namespace MicroLIMS.Domain.Entities;
 
-// One plate reading per selected confirmatory medium per run.
+// One plate reading per selected confirmatory medium per run / per location.
 public class ConfirmatoryPlateObservation
 {
     public int Id { get; set; }
 
-    public int WorkflowStepResultId { get; set; }
+    public int? WorkflowStepResultId { get; set; }
     public WorkflowStepResult? WorkflowStepResult { get; set; }
+
+    public int? SampleLocationId { get; set; }
+    public SampleLocation? SampleLocation { get; set; }
+
+    public int? LocationPathogenObservationId { get; set; }
+    public LocationPathogenObservation? LocationPathogenObservation { get; set; }
 
     public int MaterialId { get; set; }
     public Material? Material { get; set; }
+
+    public int MediumIndex { get; set; } // 0-based index in the configured confirmatory media array
 
     public GrowthObservation Observation { get; set; }
 

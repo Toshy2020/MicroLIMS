@@ -110,10 +110,18 @@ public class MaterialService
         await _db.SaveChangesAsync();
     }
 
+    // Material types that require at least one current COA before consumption.
+    private static readonly HashSet<MaterialType> CoaRequiredTypes = new()
+    {
+        MaterialType.DehydratedMedia,
+        MaterialType.LyophilizedMicroorganism,
+        MaterialType.Supplement
+    };
+
     // Consumption guard + decrement, called from MediaPreparationService.
     // Throws (no partial write - caller's SaveChanges hasn't happened
-    // yet) if the material is expired, wrong type, or doesn't have
-    // enough remaining quantity.
+    // yet) if the material is expired, wrong type, missing a required COA,
+    // or doesn't have enough remaining quantity.
     public async Task<Material> ConsumeAsync(int materialId, MaterialType expectedType, decimal quantityUsed, int currentUserId)
     {
         var material = await _db.Materials.FindAsync(materialId)
@@ -124,6 +132,21 @@ public class MaterialService
 
         if (material.ExpiryDate.HasValue && material.ExpiryDate.Value.Date < DateTime.UtcNow.Date)
             throw new InvalidOperationException($"Material {material.MaterialName} (batch {material.BatchNumber}) is expired and cannot be used.");
+
+        // COA requirement: DehydratedMedia, LyophilizedMicroorganism, and Supplement
+        // must have at least one Current COA on file before they can be consumed.
+        if (CoaRequiredTypes.Contains(material.MaterialType))
+        {
+            var hasCurrentCoa = await _db.MaterialDocuments.AnyAsync(d =>
+                d.MaterialId == materialId &&
+                d.DocumentType == MaterialDocumentType.COA &&
+                d.Status == MaterialDocumentStatus.Current);
+
+            if (!hasCurrentCoa)
+                throw new InvalidOperationException(
+                    $"A current Certificate of Analysis (COA) is required before {material.MaterialName} " +
+                    $"(batch {material.BatchNumber}) can be used. Please upload a valid COA in the Inventory module first.");
+        }
 
         if (material.QuantityRemaining < quantityUsed)
             throw new InvalidOperationException(

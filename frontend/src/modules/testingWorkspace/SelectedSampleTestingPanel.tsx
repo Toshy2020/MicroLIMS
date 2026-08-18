@@ -25,6 +25,8 @@ import { WorkspaceService } from "./services/WorkspaceService";
 import { brandColors } from "../../theme";
 import { useAuth } from "../../contexts/AuthContext";
 
+import { PathogenSessionDialog } from "./pathogenSession/PathogenSessionDialog";
+
 interface Props {
   sample: SampleCardType;
   onTestClick: (test: TestOrderSummary, sample: SampleCardType) => void;
@@ -38,28 +40,39 @@ interface Props {
 const PRODUCT_LIKE = ["FinishedProduct", "RawMaterial", "PackagingMaterial"];
 const formatDate = (d: string | null) => (d ? new Date(d).toLocaleDateString() : "—");
 
-function getWorkflowStepLabel(status: string): { label: string; icon: React.ReactNode; color: string } {
-  switch (status) {
-    case "Approved":
+export function resolveEffectiveTestStatus(test: TestOrderSummary): { label: string; icon: React.ReactNode; color: string } {
+  if (test.workflowStateDisplay) {
+    if (test.workflowState === "APPROVED" || test.status === "Approved") {
       return { label: "Completed & Approved", icon: <CheckCircleIcon sx={{ fontSize: 14, color: "#16a34a" }} />, color: "#16a34a" };
-    case "Reviewed":
-      return { label: "Review Completed — Ready for Approval", icon: <CheckCircleIcon sx={{ fontSize: 14, color: "#2563eb" }} />, color: "#2563eb" };
-    case "UnderReview":
-      return { label: "Under Review", icon: <FiberManualRecordIcon sx={{ fontSize: 12, color: "#d97706" }} />, color: "#d97706" };
-    case "ResultEntered":
+    }
+    if (test.workflowState === "TSB_INCUBATING") {
+      return { label: "TSB Incubating", icon: <FiberManualRecordIcon sx={{ fontSize: 12, color: "#2563eb" }} />, color: "#2563eb" };
+    }
+    if (test.workflowState === "DOWNSTREAM_INCUBATING") {
+      return { label: "Selective Plating In Progress", icon: <FiberManualRecordIcon sx={{ fontSize: 12, color: "#2563eb" }} />, color: "#2563eb" };
+    }
+    if (test.workflowState === "READY_FOR_DOWNSTREAM") {
+      return { label: "Ready for Downstream Testing", icon: <CheckCircleIcon sx={{ fontSize: 14, color: "#2563eb" }} />, color: "#2563eb" };
+    }
+    if (test.workflowState === "AWAITING_RESULTS") {
+      return { label: "Awaiting Final Result", icon: <FiberManualRecordIcon sx={{ fontSize: 12, color: "#2563eb" }} />, color: "#2563eb" };
+    }
+    if (test.workflowState === "RESULTS_RECORDED") {
       return { label: "Result Recorded — Pending Review", icon: <FiberManualRecordIcon sx={{ fontSize: 12, color: "#2563eb" }} />, color: "#2563eb" };
-    case "InProgress":
-    case "Running":
-    case "Incubating":
-      return { label: "Incubation / Testing In Progress", icon: <FiberManualRecordIcon sx={{ fontSize: 12, color: "#2563eb" }} />, color: "#2563eb" };
-    case "Waiting":
-    case "NotStarted":
-      return { label: "Not Started (Media & Setup Required)", icon: <FiberManualRecordIcon sx={{ fontSize: 12, color: "#6b7280" }} />, color: "#6b7280" };
-    case "Rejected":
-      return { label: "Rejected / Non-Conforming", icon: <FiberManualRecordIcon sx={{ fontSize: 12, color: "#dc2626" }} />, color: "#dc2626" };
-    default:
-      return { label: status, icon: <FiberManualRecordIcon sx={{ fontSize: 12, color: statusColor(status) }} />, color: statusColor(status) };
+    }
+    if (test.workflowState === "INCUBATING" || test.workflowState === "RUNNING") {
+      return { label: test.workflowStateDisplay, icon: <FiberManualRecordIcon sx={{ fontSize: 12, color: "#2563eb" }} />, color: "#2563eb" };
+    }
+    return { label: test.workflowStateDisplay, icon: <FiberManualRecordIcon sx={{ fontSize: 12, color: "#6b7280" }} />, color: "#6b7280" };
   }
+
+  if (test.status === "Approved") {
+    return { label: "Completed & Approved", icon: <CheckCircleIcon sx={{ fontSize: 14, color: "#16a34a" }} />, color: "#16a34a" };
+  }
+  if (test.status === "UnderReview") {
+    return { label: "Under Review", icon: <FiberManualRecordIcon sx={{ fontSize: 12, color: "#d97706" }} />, color: "#d97706" };
+  }
+  return { label: test.status || "Pending", icon: <FiberManualRecordIcon sx={{ fontSize: 12, color: "#6b7280" }} />, color: "#6b7280" };
 }
 
 export function SelectedSampleTestingPanel({
@@ -72,6 +85,7 @@ export function SelectedSampleTestingPanel({
   onViewAuditHistory
 }: Props) {
   const { role } = useAuth();
+  const [openPathogenWorkflow, setOpenPathogenWorkflow] = React.useState(false);
   const needsPreparation = sample.preparationStatus === "NeedsPreparation";
   const isProductLike = PRODUCT_LIKE.includes(sample.category);
   const isWater = sample.category === "Water";
@@ -340,13 +354,31 @@ export function SelectedSampleTestingPanel({
 
       {/* Assigned Tests Section */}
       <Box sx={{ mt: 1 }}>
-        <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1.5 }}>
-          <Typography sx={{ fontSize: 15, fontWeight: 700, color: brandColors.pageTitle }}>
-            Assigned Tests ({sample.assignedTests.length})
-          </Typography>
-          <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
-            Click a test card to open its workflow
-          </Typography>
+        <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1.5, flexWrap: "wrap", gap: 1 }}>
+          <Box>
+            <Typography sx={{ fontSize: 15, fontWeight: 700, color: brandColors.pageTitle }}>
+              Assigned Tests ({sample.assignedTests.length})
+            </Typography>
+            <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
+              Test Master configured laboratory workflows
+            </Typography>
+          </Box>
+
+          <Button
+            variant="contained"
+            size="small"
+            startIcon={<ScienceOutlinedIcon />}
+            onClick={() => setOpenPathogenWorkflow(true)}
+            sx={{
+              bgcolor: brandColors.sectionTitle,
+              color: "#ffffff",
+              fontWeight: 700,
+              fontSize: 12,
+              "&:hover": { bgcolor: brandColors.pageTitle }
+            }}
+          >
+            Open Pathogen Workflow
+          </Button>
         </Box>
 
         {needsPreparation && (
@@ -402,7 +434,7 @@ export function SelectedSampleTestingPanel({
             {sample.assignedTests.map((test) => {
               const unit = sample.category === "EnvironmentalMonitoring" ? "rooms" : "parts";
               const locationLabel = test.locationCount > 0 ? ` (${test.locationCount} ${unit})` : "";
-              const stepInfo = getWorkflowStepLabel(test.status);
+              const stepInfo = resolveEffectiveTestStatus(test);
 
               return (
                 <Paper
@@ -434,7 +466,7 @@ export function SelectedSampleTestingPanel({
                       </Typography>
                     </Box>
 
-                    <StatusBadge status={test.status} />
+                    <StatusBadge status={test.workflowStatus ?? test.status} />
                   </Box>
 
                   <Box
@@ -475,6 +507,18 @@ export function SelectedSampleTestingPanel({
           </Stack>
         )}
       </Box>
+
+      {/* Pathogen Testing Session Dialog */}
+      <PathogenSessionDialog
+        open={openPathogenWorkflow}
+        sampleId={sample.sampleId}
+        onClose={() => setOpenPathogenWorkflow(false)}
+        onSessionUpdated={() => onCorrected()}
+        onSessionCompleted={() => {
+          setOpenPathogenWorkflow(false);
+          onCorrected();
+        }}
+      />
     </Paper>
   );
 }

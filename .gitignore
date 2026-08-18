@@ -28,11 +28,15 @@ frontend/.env*.local
 # Frontend
 frontend/node_modules/
 frontend/dist/
+*.tsbuildinfo
 
-# OS/editor
+# OS/editor/scratch
 .vs/
 .vscode/
 .DS_Store
+tree.txt
+git_history.txt
+MICROLIMS_*.txt
 
 # Claude Code worktrees and SDD scratch (git-ignored working state)
 .claude/worktrees/

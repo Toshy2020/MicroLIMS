@@ -135,4 +135,57 @@ public class PathogenObservationReportingTests
         var row = Assert.Single(card.Rows);
         Assert.StartsWith(expectedText + "  |  ", row.Right);
     }
+
+    [Fact]
+    public async Task ReportCard_MultiLocationPathogenObservations_ProjectedToTableRowsWithLimitsFormat()
+    {
+        var (db, sampleId) = await SeedOrderWithObservationAsync(GrowthObservation.NoGrowth);
+        await using var _ = db;
+
+        var order = await db.TestOrders.FirstAsync(o => o.SampleId == sampleId);
+        var waterPoint = new WaterSamplingPoint { Code = "USP01", Location = "Loop Return" };
+        db.WaterSamplingPoints.Add(waterPoint);
+        await db.SaveChangesAsync();
+
+        var sloc = new SampleLocation
+        {
+            SampleId = sampleId,
+            TestOrderId = order.Id,
+            LocationType = LocationType.WaterSamplingPoint,
+            WaterSamplingPointId = waterPoint.Id,
+            AlertLimit = "",
+            ActionLimit = "",
+            SpecLimit = "100"
+        };
+        db.SampleLocations.Add(sloc);
+        await db.SaveChangesAsync();
+
+        db.LocationPathogenObservations.Add(new LocationPathogenObservation
+        {
+            SampleLocationId = sloc.Id,
+            TestOrderId = order.Id,
+            GrowthObservation = GrowthObservation.NoGrowth,
+            ObservedByUserId = 4,
+            ObservedAt = DateTime.UtcNow
+        });
+        await db.SaveChangesAsync();
+
+        var summary = await TestServiceFactory.SampleSummary(db).GetSummaryAsync(sampleId);
+        Assert.NotNull(summary);
+        var testOrderDto = summary.TestOrders.First(t => t.TestOrderId == order.Id);
+        Assert.Single(testOrderDto.Locations);
+        var locDto = testOrderDto.Locations[0];
+        Assert.Equal("USP01", locDto.LocationName);
+        Assert.Equal("Not Detected (-)", locDto.ReportedResult);
+        Assert.Equal("WithinLimits", locDto.Status);
+
+        var doc = ReportDocumentMapper.ForSample(summary);
+        var card = TestCardOf(doc);
+        Assert.Single(card.TableRows);
+        var tableRow = card.TableRows[0];
+        Assert.Equal("USP01", tableRow[0]);
+        Assert.Equal("-/-/-", tableRow[1]); // Pathogen test locations have null limits -> format to -/-/-
+        Assert.Equal("Not Detected (-)", tableRow[3]);
+        Assert.Equal("WithinLimits", tableRow[4]);
+    }
 }

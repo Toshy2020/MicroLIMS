@@ -11,8 +11,12 @@ public class TestWorkflowStep
     public int StepOrder { get; set; }
     public string StepName { get; set; } = string.Empty;
 
-    public int MediaTypeId { get; set; }
+    // Non-null for every StepType except BiochemicalTest, which uses
+    // PhenotypicTestType instead - see WorkflowTemplateValidator rules 4/8.
+    public int? MediaTypeId { get; set; }
     public MediaType? MediaType { get; set; }
+
+    public PhenotypicTestType? PhenotypicTestType { get; set; }
 
     public int IncubationMinHours { get; set; }
     public int IncubationMaxHours { get; set; }

@@ -3,21 +3,22 @@ import { useParams } from "react-router-dom";
 import { SampleSummaryService } from "./services/SampleSummaryService";
 import { ArchivedRecordsService, ArchivedRecordSummary } from "./services/ArchivedRecordsService";
 import { ArchivedCopiesSection } from "./reportPrimitives";
-import { SampleSummary, TestOrderSummaryDetail } from "./types/sampleSummaryTypes";
+import { SummaryMatrix } from "./SummaryMatrix";
+import { TestResultCard } from "./TestResultCards";
+import { SampleSummary } from "./types/sampleSummaryTypes";
 import { reportStyles } from "./reportStyles";
-import { pathogenObservationLabel } from "./utils/pathogenObservationLabel";
 
-const CheckIcon = ({ strokeWidth = 2.5 }: { strokeWidth?: number }) => (
+export const CheckIcon = ({ strokeWidth = 2.5 }: { strokeWidth?: number }) => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round">
     <polyline points="20 6 9 17 4 12" />
   </svg>
 );
-const CrossIcon = () => (
+export const CrossIcon = () => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
     <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
   </svg>
 );
-const DotIcon = () => (
+export const DotIcon = () => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
     <circle cx="12" cy="12" r="4" />
   </svg>
@@ -27,7 +28,7 @@ const DotIcon = () => (
 // "WithinLimits"). On a controlled document they need to read as English.
 // Consecutive capitals are preserved so acronyms survive: "TAMC" stays
 // "TAMC", "OOSInvestigation" becomes "OOS investigation".
-const humanize = (v: string | null | undefined): string => {
+export const humanize = (v: string | null | undefined): string => {
   if (!v) return "—";
   return v
     .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
@@ -45,7 +46,7 @@ const MEANING_TEXT: Record<string, string> = {
   InvestigationOrdered: "I am ordering an investigation into these results."
 };
 
-const dt = (v: string | null | undefined) =>
+export const dt = (v: string | null | undefined) =>
   v ? new Date(v).toLocaleString("en-GB", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }).replace(",", "") : "—";
 const d = (v: string | null | undefined) =>
   v ? new Date(v).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }) : "—";
@@ -63,7 +64,7 @@ function statusTone(status: string): "" | "is-danger" | "is-warning" | "is-neutr
 // Same palette as StatusBadge.tsx's color map, for the location table's
 // status chip - both the CFU/count severity ladder and the pathogen
 // Detected/Absent call.
-const LOCATION_STATUS_COLOR: Record<string, string> = {
+export const LOCATION_STATUS_COLOR: Record<string, string> = {
   WithinLimits: "#16a34a",
   AlertLimitExceeded: "#f59e0b",
   ActionLimitExceeded: "#ea580c",
@@ -210,12 +211,14 @@ export function SampleReportPage() {
           </div>
         )}
 
+        <SummaryMatrix testOrders={s.testOrders} />
+
         <div style={{ marginBottom: 24 }}>
           <div className="section-divider">
             <div className="section-label">test results</div>
             <div className="line" />
           </div>
-          {s.testOrders.map((t) => <TestCard key={t.testOrderId} test={t} />)}
+          {s.testOrders.map((t) => <TestResultCard key={t.testOrderId} test={t} />)}
           {s.testOrders.length === 0 && (
             <div className="section-card"><span style={{ fontSize: 13, color: "#888" }}>No tests recorded.</span></div>
           )}
@@ -296,247 +299,3 @@ export function SampleReportPage() {
   );
 }
 
-// One card per TestOrder. The body varies by what the test actually
-// produced - count readings, a pathogen observation chain, a per-location
-// EM/After Cleaning batch breakdown, or a plain result - rather than
-// forcing every test into the plate-stat shape.
-function TestCard({ test }: { test: TestOrderSummaryDetail }) {
-  const reading = test.countTestReadings[test.countTestReadings.length - 1];
-  const incubation = test.incubations[test.incubations.length - 1];
-  const lastResult = test.results[test.results.length - 1];
-  const hasLocations = test.locations.length > 0;
-  const nonConformingLocation = test.locations.some((l) => l.status && l.status !== "WithinLimits" && l.status !== "Absent");
-
-  const outOfSpec = reading?.status === "OutOfSpecification";
-  // Only conforming growth is the target organism. NoGrowth and
-  // GrowthNonConforming are both "absent" - something growing that is not
-  // the organism under test is not a detection, and reading it as one puts
-  // a false positive on a released GMP record. Mirrors ReportDocumentMapper.
-  const detected = test.pathogenObservations.some((p) => p.observation === "GrowthConforming");
-  const tone = test.isSuperseded ? "is-neutral" : outOfSpec || detected || nonConformingLocation ? "is-danger" : "";
-
-  // Worst status across all locations, for the compact headline slot -
-  // the full "X locations: Y conform..." sentence belongs in the table
-  // summary below, not this 22px single-value stat (it would starve the
-  // title column of width and wrap it word-by-word).
-  const locationSeverity = ["WithinLimits", "Absent", "AlertLimitExceeded", "ActionLimitExceeded", "OutOfSpecification", "Detected"];
-  const worstLocationStatus = hasLocations
-    ? test.locations.reduce<string>((worst, l) => {
-        if (!l.status) return worst;
-        return locationSeverity.indexOf(l.status) > locationSeverity.indexOf(worst) ? l.status : worst;
-      }, "WithinLimits")
-    : null;
-
-  const headline = hasLocations ? humanize(worstLocationStatus) : reading?.reportedResult
-    ?? (test.pathogenObservations.length > 0 ? (detected ? "Detected" : "Absent") : null)
-    ?? lastResult?.interpretedValue ?? lastResult?.rawValue ?? "—";
-
-  const unitLine = hasLocations
-    ? `${test.locations.length} location${test.locations.length === 1 ? "" : "s"}`
-    : reading ? `CFU · ${humanize(reading.status)}` : test.pathogenObservations.length > 0 ? "Pathogen" : humanize(test.status);
-
-  const enteredBy = reading?.enteredByName ?? lastResult?.enteredByName
-    ?? test.pathogenObservations[test.pathogenObservations.length - 1]?.observedByName
-    ?? test.locations[test.locations.length - 1]?.enteredByName;
-  const enteredAt = reading?.enteredAt ?? lastResult?.enteredAt
-    ?? test.pathogenObservations[test.pathogenObservations.length - 1]?.observedAt
-    ?? test.locations[test.locations.length - 1]?.enteredAt;
-
-  return (
-    <div className={`test-card ${test.isSuperseded ? "is-superseded" : ""}`}>
-      <div className="test-header">
-        <div className="test-header-left">
-          <div className={`test-icon ${tone}`}>
-            {test.isSuperseded ? <DotIcon /> : outOfSpec || detected ? <CrossIcon /> : <CheckIcon />}
-          </div>
-          <div>
-            <div className="test-title">{test.testCode} — {test.testDisplayName}</div>
-            <div className="test-subtitle">
-              {test.isSuperseded && <strong>Superseded by retest · </strong>}
-              {incubation ? `Step: ${humanize(incubation.stepName)}` : `Step: ${humanize(test.currentStep)}`}
-              {incubation?.mediaLotNumber ? ` · Media lot: ${incubation.mediaLotNumber}` : ""}
-            </div>
-          </div>
-        </div>
-        <div>
-          <div className={`test-result-value ${tone}`}>{headline}</div>
-          <div className="test-result-unit">{unitLine}</div>
-        </div>
-      </div>
-
-      {test.incubations.map((inc, i) => {
-        const isStage1Transferred = inc.stageNumber === 1 && (test.incubations.length > 1 || !!inc.transferredAt || !!inc.transferredByName);
-        const isStage2 = inc.stageNumber === 2;
-        const stageTitle = isStage1Transferred
-          ? `Stage 1 Incubation · ${humanize(inc.stepName)}`
-          : isStage2
-          ? `Stage 2 Incubation · ${humanize(inc.stepName)}`
-          : `Incubation · ${humanize(inc.stepName)}`;
-
-        return (
-          <div key={i} style={{ borderTop: i > 0 ? "1px solid var(--color-border)" : undefined }}>
-            {test.incubations.length > 1 && (
-              <div style={{ padding: "10px 16px 0", fontSize: 11, fontWeight: 700, textTransform: "uppercase", color: "var(--color-text-tertiary)" }}>
-                {stageTitle}
-              </div>
-            )}
-            <div className="incubation-row" style={{ borderTop: test.incubations.length > 1 ? "none" : undefined }}>
-              <div className="incubation-item">
-                <div className="inc-label">Media Lot</div>
-                <div className="inc-value">{inc.mediaLotNumber ? `${inc.mediaLotNumber} (${inc.mediaMaterialName ?? "—"})` : "—"}</div>
-              </div>
-              <div className="incubation-item">
-                <div className="inc-label">Incubator</div>
-                <div className="inc-value">{inc.incubatorName ?? "—"}</div>
-              </div>
-              <div className="incubation-item">
-                <div className="inc-label">Temperature</div>
-                <div className="inc-value">{inc.temperature ?? "—"}</div>
-              </div>
-              <div className="incubation-item">
-                <div className="inc-label">Duration</div>
-                <div className="inc-value">{inc.duration ?? "—"}</div>
-              </div>
-              <div className="incubation-item">
-                <div className="inc-label">Started At</div>
-                <div className="inc-value mono">{dt(inc.startedAt)}{inc.startedByName ? ` · ${inc.startedByName}` : ""}</div>
-              </div>
-              {isStage1Transferred ? (
-                <>
-                  <div className="incubation-item">
-                    <div className="inc-label">Transferred At</div>
-                    <div className="inc-value mono">{dt(inc.transferredAt ?? inc.completedAt)}</div>
-                  </div>
-                  <div className="incubation-item">
-                    <div className="inc-label">Transferred By</div>
-                    <div className="inc-value">{inc.transferredByName ?? "—"}</div>
-                  </div>
-                </>
-              ) : (
-                <>
-                  <div className="incubation-item">
-                    <div className="inc-label">Completed At</div>
-                    <div className="inc-value mono">{dt(inc.completedAt)}</div>
-                  </div>
-                  <div className="incubation-item">
-                    <div className="inc-label">Completed By</div>
-                    <div className="inc-value">{inc.completedByName ?? "—"}</div>
-                  </div>
-                </>
-              )}
-              {inc.outcome && (
-                <div className="incubation-item" style={{ gridColumn: "span 2" }}>
-                  <div className="inc-label">Outcome</div>
-                  <div className="inc-value">{inc.outcome}</div>
-                </div>
-              )}
-            </div>
-          </div>
-        );
-      })}
-
-      {reading && (
-        <div className="plate-readings">
-          <div className="plate-readings-label">plate readings</div>
-          <div className="plate-stats">
-            <div className="plate-stat">
-              <div className="stat-label">Plate count</div>
-              <div className="stat-value">{reading.plateReadings}</div>
-            </div>
-            <div className="plate-stat">
-              <div className="stat-label">Dilution</div>
-              <div className="stat-value">{reading.dilutionFactor}</div>
-            </div>
-            <div className="plate-stat">
-              <div className="stat-label">Average</div>
-              <div className="stat-value">{reading.average}</div>
-            </div>
-            <div className="plate-stat">
-              <div className="stat-label">Calculated</div>
-              <div className="stat-value">{reading.calculatedResult}</div>
-            </div>
-          </div>
-          <div className="plate-meta">
-            <span>Reported: <strong>{reading.reportedResult}</strong></span>
-            <span>Limits (alert/action/spec): <strong>{reading.alertLimit ?? "—"} / {reading.actionLimit ?? "—"} / {reading.specLimit ?? "—"}</strong></span>
-            <span>Entered by: <strong>{reading.enteredByName}</strong></span>
-            <span>Entered at: <strong className="mono">{dt(reading.enteredAt)}</strong></span>
-          </div>
-        </div>
-      )}
-
-      {test.pathogenObservations.length > 0 && (
-        <div className="observation-row">
-          {test.pathogenObservations
-            .slice()
-            .sort((a, b) => a.stepOrder - b.stepOrder)
-            .map((p, i) => (
-              <div className="observation-item" key={i}>
-                <span className="obs-step">{p.stepName}</span>
-                <span>
-                  <strong>{pathogenObservationLabel(p.observation)}</strong>
-                  <span className="obs-meta"> · {p.observedByName} · {dt(p.observedAt)}</span>
-                </span>
-              </div>
-            ))}
-        </div>
-      )}
-
-      {hasLocations && (
-        <div className="location-table-wrap">
-          <table className="location-table">
-            <thead>
-              <tr>
-                <th>Location</th>
-                <th>Limits (Alert/Action/Spec)</th>
-                <th>CFU</th>
-                <th>Reported Result</th>
-                <th>Status</th>
-                <th>Entered By</th>
-              </tr>
-            </thead>
-            <tbody>
-              {test.locations.map((l, i) => (
-                <tr key={i}>
-                  <td className="loc-name">{l.locationName}{l.gradeClassification ? ` (${l.gradeClassification})` : ""}</td>
-                  <td className="loc-limits">{l.alertLimit ?? "—"} / {l.actionLimit ?? "—"} / {l.specLimit ?? "—"}</td>
-                  <td className="loc-cfu">{l.cfuResult ?? "—"}</td>
-                  <td className="loc-reported">{l.reportedResult ?? "—"}</td>
-                  <td>
-                    {l.status && (
-                      <span className="location-status-chip" style={{ background: LOCATION_STATUS_COLOR[l.status] ?? "#6b7280" }}>
-                        {humanize(l.status)}
-                      </span>
-                    )}
-                  </td>
-                  <td>{l.enteredByName ? <>{l.enteredByName}<br /><span style={{ color: "var(--color-text-quaternary)", fontSize: 11 }}>{dt(l.enteredAt)}</span></> : "—"}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-
-      {!reading && !hasLocations && test.pathogenObservations.length === 0 && lastResult && (
-        <div className="observation-row">
-          <div className="observation-item">
-            <span className="obs-step">Result</span>
-            <span><strong>{lastResult.interpretedValue ?? lastResult.rawValue}</strong></span>
-          </div>
-        </div>
-      )}
-
-      <div className="test-footer">
-        <span>
-          {enteredBy ? <>Entered by <strong>{enteredBy}</strong> · {dt(enteredAt)}</> : <>No result recorded yet</>}
-        </span>
-        <span className={`pass-tag ${tone}`}>
-          {test.isSuperseded ? <DotIcon /> : outOfSpec || detected || nonConformingLocation ? <CrossIcon /> : <CheckIcon />}
-          {test.isSuperseded ? "Superseded"
-            : hasLocations ? (nonConformingLocation ? "Non-conforming location(s)" : "All locations conform")
-            : humanize(reading?.status ?? (test.pathogenObservations.length > 0 ? (detected ? "Detected" : "Absent") : test.status))}
-        </span>
-      </div>
-    </div>
-  );
-}

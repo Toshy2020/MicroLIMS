@@ -17,13 +17,16 @@ public class CountTestReading
     public string? StepName { get; set; }
     public string PlateReadings { get; set; } = string.Empty; // comma-separated raw readings
     public decimal DilutionFactor { get; set; }
-    public decimal Average { get; set; }
-    public decimal CalculatedResult { get; set; }
-    public string ReportedResult { get; set; } = string.Empty; // "<1" or the rounded whole number
+    public decimal? Average { get; set; }
+    public decimal? CalculatedResult { get; set; }
+    public string ReportedResult { get; set; } = string.Empty; // "<1" or the rounded whole number / "TNTC"
     public string? AlertLimit { get; set; }
     public string? ActionLimit { get; set; }
     public string? SpecLimit { get; set; }
     public string Status { get; set; } = string.Empty;
+    public bool HasNonNumericReading { get; set; } = false;
+    public string? NonNumericValue { get; set; } // "TNTC" | "Uncountable"
+    public bool RequiresReview { get; set; } = false;
     public int EnteredByUserId { get; set; }
     public DateTime EnteredAt { get; set; } = DateTime.UtcNow;
 }

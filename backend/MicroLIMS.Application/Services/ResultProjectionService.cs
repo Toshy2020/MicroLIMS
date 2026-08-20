@@ -81,11 +81,14 @@ public class ResultProjectionService
     // for trending) happens at trend-query time, never here.
     private static (bool isBelowDetectionLimit, decimal? detectionLimit) ParseDetectionLimit(string reportedResult)
     {
-        if (!reportedResult.StartsWith('<'))
+        if (string.IsNullOrWhiteSpace(reportedResult) || !reportedResult.TrimStart().StartsWith('<'))
             return (false, null);
 
-        var numberPart = reportedResult[1..];
-        return decimal.TryParse(numberPart, out var limit) ? (true, limit) : (true, null);
+        var afterLt = reportedResult.TrimStart()[1..].Trim();
+        var numberPart = afterLt.Split(' ', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault();
+        return decimal.TryParse(numberPart, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out var limit)
+            ? (true, limit)
+            : (true, null);
     }
 
     // Same Spec -> Action -> Alert precedence used by TestWorkflowEngine.Compare

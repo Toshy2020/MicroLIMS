@@ -103,6 +103,19 @@ export interface SessionWorkflowStepDto {
   completedAt: string | null;
 }
 
+export interface CountResultDto {
+  plateReadings: string;
+  dilutionFactor: number;
+  average: number | null;
+  finalCfu: number | null;
+  reportedResult: string;
+  status: string;
+  hasNonNumericReading: boolean;
+  nonNumericValue: string | null;
+  requiresReview: boolean;
+  unit: string;
+}
+
 export interface SessionAssignedTestDto {
   testOrderId: number;
   testCode: string;
@@ -128,6 +141,7 @@ export interface SessionAssignedTestDto {
   lockReason: string | null;
   steps: SessionWorkflowStepDto[];
   confirmatoryMediaCount?: number;
+  countResult?: CountResultDto | null;
 
   // Primary observation tracking & confirmatory gating metadata
   primaryObservationId?: number | null;

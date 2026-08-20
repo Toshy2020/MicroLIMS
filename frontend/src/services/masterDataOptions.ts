@@ -57,17 +57,17 @@ export const masterDataOptions = {
   getMaterials: (type?: string) =>
     apiClient.get("/inventory/materials", { params: type ? { type } : {} }).then((r) => r.data.data),
   createTestWorkflowStep: (testDefinitionId: number, payload: {
-    stepName: string; mediaTypeId: number; incubationMinHours: number; incubationMaxHours: number;
+    stepName: string; mediaTypeId: number | null; incubationMinHours: number; incubationMaxHours: number;
     temperatureMin: number; temperatureMax: number; isFinalStep: boolean; stepType: string;
-    targetOrganismId: number | null;
+    targetOrganismId: number | null; phenotypicTestType: string | null;
     stepMedia: { materialId: number; tempMin: number; tempMax: number; isRequired: boolean; displayOrder: number }[];
     requiresIncubationTransfer: boolean;
     incubationStages: { stageNumber: number; tempMin: number; tempMax: number; incubationMinHours: number; incubationMaxHours: number }[];
   }) => apiClient.post(`/masterdata/test-definitions/${testDefinitionId}/steps`, payload).then((r) => r.data.data),
   updateTestWorkflowStep: (stepId: number, payload: {
-    stepName: string; mediaTypeId: number; incubationMinHours: number; incubationMaxHours: number;
+    stepName: string; mediaTypeId: number | null; incubationMinHours: number; incubationMaxHours: number;
     temperatureMin: number; temperatureMax: number; isFinalStep: boolean; stepType: string;
-    targetOrganismId: number | null;
+    targetOrganismId: number | null; phenotypicTestType: string | null;
     stepMedia: { materialId: number; tempMin: number; tempMax: number; isRequired: boolean; displayOrder: number }[];
     requiresIncubationTransfer: boolean;
     incubationStages: { stageNumber: number; tempMin: number; tempMax: number; incubationMinHours: number; incubationMaxHours: number }[];

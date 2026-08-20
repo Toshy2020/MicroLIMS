@@ -152,4 +152,22 @@ public class PathogenSessionController : ControllerBase
             return BadRequest(ApiResponse<string>.Fail(ex.Message));
         }
     }
+
+    [HttpPost("{sampleId:int}/reset")]
+    public async Task<IActionResult> ResetSession(int sampleId, [FromBody] ResetPathogenSessionRequest? request)
+    {
+        try
+        {
+            var session = await _sessionService.ResetSessionAsync(sampleId, request?.Reason, CurrentUserId);
+            return Ok(ApiResponse<PathogenTestingSessionDto>.Ok(session));
+        }
+        catch (WorkflowStepException ex)
+        {
+            return BadRequest(ApiResponse<string>.Fail(ex.Message, new List<string> { ex.ErrorCode, ex.Message }));
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(ApiResponse<string>.Fail(ex.Message));
+        }
+    }
 }

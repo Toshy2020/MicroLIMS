@@ -56,4 +56,5 @@ public class Sample
 
     public List<TestOrder> TestOrders { get; set; } = new();
     public List<SampleLocation> Locations { get; set; } = new();
+    public SamplePreparation? SamplePreparation { get; set; }
 }

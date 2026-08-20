@@ -29,6 +29,7 @@ public static class ServiceCollectionExtensions
         // Application services
         services.AddScoped<IReceivingService, ReceivingService>();
         services.AddScoped<ITestWorkspaceService, TestingWorkspaceService>();
+        services.AddScoped<WorkflowStateResolver>();
         services.AddScoped<IResultService, ResultService>();
         services.AddScoped<IReportService, ReportService>();
         services.AddScoped<IAuthenticationService, AuthenticationService>();

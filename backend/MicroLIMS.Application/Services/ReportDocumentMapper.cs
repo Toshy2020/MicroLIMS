@@ -10,6 +10,7 @@ public static class ReportDocumentMapper
 {
     private static string Dt(DateTime? v) => v is null ? "-" : v.Value.ToString("dd-MMM-yyyy HH:mm");
     private static string D(DateTime? v) => v is null ? "-" : v.Value.ToString("dd-MMM-yyyy");
+    private static string FormatLimit(string? limit) => string.IsNullOrWhiteSpace(limit) ? "-" : limit;
 
     // Enum names arrive PascalCase; a controlled document should read as
     // English. Consecutive capitals are preserved so acronyms survive.
@@ -164,7 +165,7 @@ public static class ReportDocumentMapper
         // it as one puts a false positive on a released GMP record.
         var detected = t.PathogenObservations.Any(p => p.Observation == "GrowthConforming");
         var outOfSpec = reading?.Status == "OutOfSpecification";
-        var hasNonConformingLocation = t.Locations.Any(l => l.Status is not (null or "WithinLimits" or "Absent"));
+        var hasNonConformingLocation = t.Locations.Any(l => l.Status is not (null or "WithinLimits" or "Absent" or "PendingConfirmation"));
 
         var tone = t.IsSuperseded ? ReportTone.Neutral
             : outOfSpec || detected || hasNonConformingLocation ? ReportTone.Danger
@@ -177,7 +178,7 @@ public static class ReportDocumentMapper
         string? worstLocationStatus = null;
         if (t.Locations.Count > 0)
         {
-            var severity = new[] { "WithinLimits", "Absent", "AlertLimitExceeded", "ActionLimitExceeded", "OutOfSpecification", "Detected" };
+            var severity = new[] { "WithinLimits", "Absent", "PendingConfirmation", "AlertLimitExceeded", "ActionLimitExceeded", "RequiresReview", "OutOfSpecification", "Detected" };
             worstLocationStatus = "WithinLimits";
             foreach (var loc in t.Locations)
             {
@@ -239,7 +240,7 @@ public static class ReportDocumentMapper
                 ("Average", reading.Average.ToString()),
                 ("Calculated", reading.CalculatedResult.ToString())
             };
-            card.MetaLines.Add($"Reported: {reading.ReportedResult}    Limits (alert/action/spec): {reading.AlertLimit ?? "-"} / {reading.ActionLimit ?? "-"} / {reading.SpecLimit ?? "-"}");
+            card.MetaLines.Add($"Reported: {reading.ReportedResult}    Limits (alert/action/spec): {FormatLimit(reading.AlertLimit)} / {FormatLimit(reading.ActionLimit)} / {FormatLimit(reading.SpecLimit)}");
             card.MetaLines.Add($"Entered by: {reading.EnteredByName}    Entered at: {Dt(reading.EnteredAt)}");
         }
 
@@ -267,7 +268,7 @@ public static class ReportDocumentMapper
                 card.TableRows.Add(new List<string>
                 {
                     label,
-                    $"{loc.AlertLimit ?? "-"}/{loc.ActionLimit ?? "-"}/{loc.SpecLimit ?? "-"}",
+                    $"{FormatLimit(loc.AlertLimit)}/{FormatLimit(loc.ActionLimit)}/{FormatLimit(loc.SpecLimit)}",
                     loc.CFUResult?.ToString() ?? "-",
                     loc.ReportedResult ?? "-",
                     loc.Status ?? "-",

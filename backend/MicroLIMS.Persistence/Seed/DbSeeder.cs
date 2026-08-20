@@ -276,9 +276,9 @@ public static class DbSeeder
         };
         var biochemical = new TestWorkflowStep
         {
-            TestDefinitionId = test.Id, StepOrder = 5, StepName = "Biochemical Test", MediaTypeId = selectiveAgarId,
+            TestDefinitionId = test.Id, StepOrder = 5, StepName = "Biochemical Test", MediaTypeId = null,
             IncubationMinHours = 0, IncubationMaxHours = 0, TemperatureMin = 35, TemperatureMax = 37,
-            IsFinalStep = true, StepType = StepType.BiochemicalTest
+            IsFinalStep = true, StepType = StepType.BiochemicalTest, PhenotypicTestType = PhenotypicTestType.IdentificationKit
         };
         db.TestWorkflowSteps.AddRange(tsb, selectiveBroth, selectivePlating, confirmatory, biochemical);
         db.SaveChanges();

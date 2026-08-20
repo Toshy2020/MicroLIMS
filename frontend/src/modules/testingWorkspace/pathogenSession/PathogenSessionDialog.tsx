@@ -13,11 +13,15 @@ import {
   Chip,
   Alert,
   Paper,
-  Button
+  Button,
+  TextField,
+  DialogActions,
+  CircularProgress
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import ScienceOutlinedIcon from "@mui/icons-material/ScienceOutlined";
 import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
+import RestartAltIcon from "@mui/icons-material/RestartAlt";
 import { PathogenTestingSessionDto } from "../types/pathogenSessionTypes";
 import { PathogenSessionService } from "../services/PathogenSessionService";
 import { SessionOverviewPanel } from "./SessionOverviewPanel";
@@ -96,6 +100,30 @@ export function PathogenSessionDialog({ open, sampleId, onClose, onSessionUpdate
     onClose();
   };
 
+  const [resetDialogOpen, setResetDialogOpen] = useState(false);
+  const [resetReason, setResetReason] = useState("");
+  const [resetting, setResetting] = useState(false);
+
+  const handleResetSession = async () => {
+    if (!sampleId) return;
+    setResetting(true);
+    setError(null);
+    try {
+      const updated = await PathogenSessionService.resetSession(sampleId, resetReason || "Analyst requested session reset");
+      setSession(updated);
+      setActiveStep(0);
+      setResetDialogOpen(false);
+      setResetReason("");
+      if (onSessionUpdated) {
+        onSessionUpdated(updated);
+      }
+    } catch (e: any) {
+      setError(e?.response?.data?.message ?? e?.message ?? "Failed to reset session.");
+    } finally {
+      setResetting(false);
+    }
+  };
+
   const hasEligibleConfirmations = session
     ? session.resultMatrix.some(
         (c) =>
@@ -104,7 +132,8 @@ export function PathogenSessionDialog({ open, sampleId, onClose, onSessionUpdate
           c.primaryObservation === "GrowthNonConforming" ||
           c.confirmationStatus === "Eligible" ||
           c.confirmationStatus === "InProgress" ||
-          c.confirmationStatus === "Completed"
+          c.confirmationStatus === "Complete" ||
+          (c.confirmatoryPlates && c.confirmatoryPlates.length > 0)
       )
     : false;
 
@@ -176,6 +205,23 @@ export function PathogenSessionDialog({ open, sampleId, onClose, onSessionUpdate
                   fontSize: 12
                 }}
               />
+            )}
+            {session && (
+              <Button
+                variant="outlined"
+                size="small"
+                startIcon={<RestartAltIcon />}
+                onClick={() => setResetDialogOpen(true)}
+                sx={{
+                  color: "#ffffff",
+                  borderColor: "rgba(255,255,255,0.4)",
+                  fontSize: 12,
+                  fontWeight: 600,
+                  "&:hover": { borderColor: "#ffffff", bgcolor: "rgba(255,255,255,0.1)" }
+                }}
+              >
+                Reset Session
+              </Button>
             )}
             <IconButton onClick={onClose} sx={{ color: "#ffffff" }} size="small">
               <CloseIcon />
@@ -293,6 +339,44 @@ export function PathogenSessionDialog({ open, sampleId, onClose, onSessionUpdate
           </Box>
         )}
       </DialogContent>
+
+      {/* Reset Confirmation Dialog */}
+      <Dialog
+        open={resetDialogOpen}
+        onClose={() => !resetting && setResetDialogOpen(false)}
+        maxWidth="sm"
+        fullWidth
+        PaperProps={{ sx: { borderRadius: 2 } }}
+      >
+        <DialogTitle sx={{ fontWeight: 700 }}>Reset Testing Session & Steps?</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" sx={{ mb: 2 }}>
+            This will reset all workflow step records, incubations, primary observations, and confirmatory results for Sample <strong>{session?.sampleReferenceNumber}</strong> back to the initial "Not Started" state.
+          </Typography>
+          <TextField
+            label="Reason for Reset *"
+            fullWidth
+            size="small"
+            value={resetReason}
+            onChange={(e) => setResetReason(e.target.value)}
+            placeholder="e.g. Test configuration error / Wrong media lot selected / Operational error"
+            multiline
+            rows={2}
+          />
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button onClick={() => setResetDialogOpen(false)} disabled={resetting}>Cancel</Button>
+          <Button
+            variant="contained"
+            color="error"
+            onClick={handleResetSession}
+            disabled={resetting || !resetReason.trim()}
+            startIcon={resetting ? <CircularProgress size={16} color="inherit" /> : <RestartAltIcon />}
+          >
+            {resetting ? "Resetting..." : "Confirm Reset"}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Dialog>
   );
 }

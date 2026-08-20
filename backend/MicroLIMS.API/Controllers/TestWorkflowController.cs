@@ -17,7 +17,7 @@ namespace MicroLIMS.API.Controllers;
 // gone along with the dual-plate model itself; see TestWorkflowEngine.
 public record SelectMediaRequest(string StepName, int MediaLotId, int IncubatorId);
 public record StartStage2IncubationRequest(string StepName, int IncubatorId);
-public record RecordTestResultRequest(string StepName, List<decimal>? PlateReadings, decimal? DilutionFactor);
+public record RecordTestResultRequest(string StepName, List<decimal>? PlateReadings, decimal? DilutionFactor, List<string>? RawPlateReadings = null);
 public record BatchResultLocationRequest(int SampleLocationId, decimal CFUResult);
 public record BatchResultsRequest(decimal DilutionFactor, List<BatchResultLocationRequest> Locations);
 public record WaterBatchLocationRequest(int SampleLocationId, List<decimal> Readings);
@@ -104,9 +104,14 @@ public class TestWorkflowController : ControllerBase
             .Include(t => t.Sample!).ThenInclude(s => s.Department)
             .Include(t => t.Sample!).ThenInclude(s => s.Machine)
             .Include(t => t.Sample!).ThenInclude(s => s.CauseOfTesting)
+            .Include(t => t.Sample!).ThenInclude(s => s.SamplePreparation)
             .FirstOrDefaultAsync(t => t.Id == testOrderId)
             ?? throw new InvalidOperationException($"Test order {testOrderId} not found.");
         var sample = order.Sample!;
+
+        var prep = sample.SamplePreparation;
+        var prepUnit = prep?.Unit;
+        var cfuUnit = TestWorkflowEngine.GetCfuUnit(sample.Category, prepUnit);
 
         var sampleContext = new Dictionary<string, object?>
         {
@@ -115,7 +120,9 @@ public class TestWorkflowController : ControllerBase
             ["controlNumber"] = sample.ControlNumber,
             ["reason"] = sample.CauseOfTesting?.Name,
             ["systemReferenceNumber"] = sample.ReferenceNumber,
-            ["sampleType"] = sample.Category.ToString()
+            ["sampleType"] = sample.Category.ToString(),
+            ["preparationUnit"] = prepUnit,
+            ["cfuUnit"] = cfuUnit
         };
 
         // Stage (Sample.ProductionStage) is a Finished-Product-only concept
@@ -134,6 +141,10 @@ public class TestWorkflowController : ControllerBase
             remainingSeconds = Math.Max(0, (long)Math.Ceiling((openIncubation.IncubationEndUtc.Value - DateTime.UtcNow).TotalSeconds)),
             stageNumber = openIncubation.StageNumber
         };
+
+        var wsrDict = await _db.WorkflowStepResults
+            .Where(r => r.TestOrderId == testOrderId)
+            .ToDictionaryAsync(r => r.StepName, r => r.IsSharedSessionStep);
 
         var previousSteps = await _db.Incubations
             .Where(i => i.TestOrderId == testOrderId)
@@ -154,6 +165,55 @@ public class TestWorkflowController : ControllerBase
                 observation = i.Outcome
             })
             .ToListAsync();
+
+        var enrichedPreviousSteps = previousSteps.Select(p => new
+        {
+            p.stepNumber,
+            p.stepName,
+            p.stageNumber,
+            p.status,
+            p.mediaName,
+            p.lotNumber,
+            p.incubatorName,
+            p.incubatorSetTemp,
+            p.incubationStartUtc,
+            p.incubationEndUtc,
+            p.observation,
+            isSharedSessionStep = wsrDict.TryGetValue(p.stepName, out var isShared) && isShared == true
+        }).ToList();
+
+        // Check if there is a shared TSB on this sample
+        object? sharedTsbSummary = null;
+        var sharedTsbWsr = await _db.WorkflowStepResults
+            .Include(r => r.Incubation).ThenInclude(i => i!.Media)
+            .Include(r => r.Incubation).ThenInclude(i => i!.IncubatorEquipment)
+            .Where(r => r.TestOrderId == testOrderId && (r.StepName == "Broth Enrichment" || r.StepName.Contains("TSB")) && r.IsSharedSessionStep == true)
+            .OrderByDescending(r => r.Id)
+            .FirstOrDefaultAsync();
+
+        if (sharedTsbWsr?.Incubation != null)
+        {
+            var inc = sharedTsbWsr.Incubation;
+            var startedUser = inc.StartedByUserId.HasValue
+                ? await _db.Users.Where(u => u.Id == inc.StartedByUserId.Value).Select(u => u.Username).FirstOrDefaultAsync()
+                : null;
+
+            var tsbStep = await _db.TestWorkflowSteps
+                .Where(s => s.TestDefinition.Code == order.TestCode && (s.StepName == sharedTsbWsr.StepName || s.StepType == StepType.BrothEnrichment || s.StepName.Contains("TSB")))
+                .FirstOrDefaultAsync();
+            var minHours = tsbStep?.IncubationMinHours > 0 ? tsbStep.IncubationMinHours : 18;
+
+            sharedTsbSummary = new
+            {
+                mediaLotNumber = inc.Media?.LotNumber,
+                incubatorCode = inc.IncubatorEquipment?.Code,
+                incubationStartUtc = inc.IncubationStartUtc,
+                incubationEndUtc = inc.IncubationEndUtc,
+                minReadyAt = inc.IncubationStartUtc?.AddHours(minHours),
+                startedByUserName = startedUser ?? "Analyst",
+                isCompleted = inc.CompletedAt.HasValue
+            };
+        }
 
         return new
         {
@@ -183,7 +243,8 @@ public class TestWorkflowController : ControllerBase
             workflowType = current.WorkflowType.ToString(),
             sampleContext,
             incubationLock,
-            previousSteps,
+            previousSteps = enrichedPreviousSteps,
+            sharedTsbSummary,
             allStepsComplete = current.AllStepsComplete,
             finalResult = current.FinalResult,
             allSteps = current.AllSteps.Select(s => new { s.StepOrder, s.StepName }),
@@ -194,6 +255,13 @@ public class TestWorkflowController : ControllerBase
             })
         };
     });
+
+    [HttpGet("{testOrderId}/sibling-pathogen-orders")]
+    public async Task<IActionResult> GetSiblingPathogenOrders(int testOrderId, CancellationToken ct)
+    {
+        var siblings = await _engine.GetSiblingPathogenOrdersAsync(testOrderId, ct);
+        return Ok(ApiResponse<List<SiblingPathogenOrderDto>>.Ok(siblings));
+    }
 
     [HttpGet("{testOrderId}/eligible-incubators/{stepMediaId}")]
     public async Task<IActionResult> GetEligibleIncubators(int testOrderId, int stepMediaId)
@@ -288,14 +356,21 @@ public class TestWorkflowController : ControllerBase
     [HttpPost("{testOrderId}/record-result")]
     public Task<IActionResult> RecordResult(int testOrderId, RecordTestResultRequest request) => RunAsync(() =>
     {
-        // record-result now serves CountTest (PlateCount) steps only -
-        // every pathogen step goes through the dedicated Submit* endpoints
-        // below. RecordResultAsync itself also guards this (see the
-        // StepType check at its top), so a stray dual-plate/observation
-        // payload can never reach that stale code path either way.
-        var payload = new CountTestPayload(
-            request.PlateReadings ?? throw new InvalidOperationException("Plate readings are required."),
-            request.DilutionFactor ?? 1);
+        // record-result serves CountTest (PlateCount) steps
+        CountTestPayload payload;
+        if (request.RawPlateReadings is { Count: > 0 })
+        {
+            payload = new CountTestPayload(request.RawPlateReadings, request.DilutionFactor ?? 1);
+        }
+        else if (request.PlateReadings is { Count: > 0 })
+        {
+            payload = new CountTestPayload(request.PlateReadings, request.DilutionFactor ?? 1);
+        }
+        else
+        {
+            throw new InvalidOperationException("Plate readings are required.");
+        }
+
         return _engine.RecordResultAsync(testOrderId, request.StepName, payload, CurrentUserId);
     });
 

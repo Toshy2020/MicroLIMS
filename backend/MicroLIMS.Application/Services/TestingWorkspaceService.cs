@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.DTOs;
+using MicroLIMS.Application.Helpers;
 using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
@@ -117,10 +118,7 @@ public class TestingWorkspaceService : ITestWorkspaceService
             .ToList();
 
         // Check if shared TSB is incubating/complete for this sample
-        var sharedTsbInc = sampleIncubations.FirstOrDefault(i =>
-            !string.IsNullOrEmpty(i.StepName) &&
-            (i.StepName.Contains("TSB", StringComparison.OrdinalIgnoreCase) ||
-             i.StepName.Contains("Enrichment", StringComparison.OrdinalIgnoreCase)));
+        var sharedTsbInc = TsbDetectionHelper.FindSharedTsbIncubation(sampleIncubations);
 
         int tsbHoursMin = 24;
         if (testDefs != null)
@@ -141,15 +139,10 @@ public class TestingWorkspaceService : ITestWorkspaceService
 
         bool tsbStarted = sharedTsbInc != null;
         DateTime? tsbStart = sharedTsbInc?.IncubationStartUtc ?? sharedTsbInc?.StartedAt;
-        DateTime? tsbMinReadyAt = tsbStart?.AddHours(tsbHoursMin);
+        DateTime? tsbMinReadyAt = TsbDetectionHelper.GetTsbMinReadyAt(sharedTsbInc, tsbHoursMin);
 
-        bool tsbIncubating = tsbStarted &&
-                             tsbMinReadyAt.HasValue &&
-                             DateTime.UtcNow < tsbMinReadyAt.Value &&
-                             !sharedTsbInc!.CompletedAt.HasValue;
-        bool tsbCompleted = tsbStarted &&
-                            (sharedTsbInc!.CompletedAt.HasValue ||
-                             (tsbMinReadyAt.HasValue && DateTime.UtcNow >= tsbMinReadyAt.Value));
+        bool tsbIncubating = TsbDetectionHelper.IsTsbIncubating(sharedTsbInc, tsbHoursMin, DateTime.UtcNow);
+        bool tsbCompleted = TsbDetectionHelper.IsTsbComplete(sharedTsbInc, tsbHoursMin, DateTime.UtcNow);
 
         var assignedTests = s.TestOrders.Select(t =>
         {
@@ -161,164 +154,8 @@ public class TestingWorkspaceService : ITestWorkspaceService
                 (!string.IsNullOrEmpty(step.StepName) && step.StepName.Contains("TSB", StringComparison.OrdinalIgnoreCase)) ||
                 (step.MediaType != null && (step.MediaType.Class == MediaClass.GeneralBroth || step.MediaType.Class == MediaClass.SelectiveBroth))) ?? false;
 
-            string workflowState;
-            string workflowStateDisplay;
-            bool isLocked;
-            bool isResultAllowed;
-            string? lockReason = null;
-
-            if (t.Status == ApprovalStatus.Approved)
-            {
-                workflowState = "APPROVED";
-                workflowStateDisplay = "Completed & Approved";
-                isLocked = false;
-                isResultAllowed = false;
-            }
-            else if (t.CurrentStep == WorkflowStep.Ready)
-            {
-                workflowState = "RESULTS_RECORDED";
-                workflowStateDisplay = "Result Recorded — Pending Review";
-                isLocked = false;
-                isResultAllowed = true;
-            }
-            else if (usesTsb)
-            {
-                if (!tsbStarted)
-                {
-                    workflowState = "PENDING";
-                    workflowStateDisplay = "Pending";
-                    isLocked = true;
-                    isResultAllowed = false;
-                    lockReason = "TSB broth enrichment setup required";
-                }
-                else if (tsbIncubating)
-                {
-                    workflowState = "TSB_INCUBATING";
-                    workflowStateDisplay = "TSB Incubating";
-                    isLocked = true;
-                    isResultAllowed = false;
-                    lockReason = "Locked until TSB incubation is complete";
-                }
-                else if (tsbCompleted)
-                {
-                    var testIncubations = sampleIncubations.Where(i => i.TestOrderId == t.Id).ToList();
-                    bool downstreamIncubating = false;
-
-                    foreach (var inc in testIncubations)
-                    {
-                        if (string.IsNullOrEmpty(inc.StepName)) continue;
-                        if (inc.StepName.Contains("TSB", StringComparison.OrdinalIgnoreCase) ||
-                            inc.StepName.Contains("Enrichment", StringComparison.OrdinalIgnoreCase))
-                            continue;
-
-                        if (inc.CompletedAt == null && inc.IncubationStartUtc.HasValue)
-                        {
-                            var stepDef = def?.Steps.FirstOrDefault(s => s.StepName == inc.StepName);
-                            int minHours = stepDef?.IncubationMinHours > 0 ? stepDef.IncubationMinHours : 24;
-                            var minReadyAt = inc.IncubationStartUtc.Value.AddHours(minHours);
-
-                            if (DateTime.UtcNow < minReadyAt)
-                            {
-                                downstreamIncubating = true;
-                                break;
-                            }
-                        }
-                    }
-
-                    if (downstreamIncubating)
-                    {
-                        workflowState = "DOWNSTREAM_INCUBATING";
-                        workflowStateDisplay = "Selective Plating In Progress";
-                        isLocked = false;
-                        isResultAllowed = false;
-                    }
-                    else
-                    {
-                        workflowState = "READY_FOR_DOWNSTREAM";
-                        workflowStateDisplay = "Ready for Downstream Testing";
-                        isLocked = false;
-                        isResultAllowed = true;
-                    }
-                }
-                else
-                {
-                    workflowState = "PENDING";
-                    workflowStateDisplay = "Pending";
-                    isLocked = true;
-                    isResultAllowed = false;
-                }
-            }
-            else
-            {
-                // Non-TSB tests (e.g. TAMC-Water) -> strictly independent
-                var testIncubations = sampleIncubations.Where(i => i.TestOrderId == t.Id).ToList();
-                var openCountIncubation = testIncubations.FirstOrDefault(i =>
-                    i.CompletedAt == null &&
-                    i.IncubationStartUtc.HasValue &&
-                    !i.StepName.Contains("TSB", StringComparison.OrdinalIgnoreCase) &&
-                    !i.StepName.Contains("Enrichment", StringComparison.OrdinalIgnoreCase));
-
-                if (openCountIncubation != null)
-                {
-                    var countStep = def?.Steps.FirstOrDefault(s => s.StepName == openCountIncubation.StepName);
-                    var minHours = countStep?.IncubationMinHours > 0 ? countStep.IncubationMinHours : (countStep?.MediaType?.IncubationMinHours ?? 0);
-                    var minReadyAt = openCountIncubation.IncubationStartUtc!.Value.AddHours((double)minHours);
-
-                    if (DateTime.UtcNow < minReadyAt)
-                    {
-                        workflowState = "COUNT_INCUBATING";
-                        workflowStateDisplay = "Testing / Incubation In Progress";
-                        isLocked = true;
-                        isResultAllowed = false;
-                        lockReason = $"Count incubation in progress. Available from: {minReadyAt:dd/MM/yyyy HH:mm}";
-                    }
-                    else
-                    {
-                        workflowState = "AWAITING_RESULTS";
-                        workflowStateDisplay = "Ready — Awaiting Primary Readings";
-                        isLocked = false;
-                        isResultAllowed = true;
-                        lockReason = null;
-                    }
-                }
-                else if (t.CurrentStep == WorkflowStep.Incubating)
-                {
-                    workflowState = "INCUBATING";
-                    workflowStateDisplay = "Testing / Incubation In Progress";
-                    isLocked = true;
-                    isResultAllowed = false;
-                    lockReason = "Incubation in progress";
-                }
-                else if (t.CurrentStep == WorkflowStep.Running)
-                {
-                    workflowState = "RUNNING";
-                    workflowStateDisplay = "Testing In Progress";
-                    isLocked = false;
-                    isResultAllowed = true;
-                }
-                else
-                {
-                    workflowState = "PENDING";
-                    workflowStateDisplay = "Pending";
-                    isLocked = false;
-                    isResultAllowed = true;
-                }
-            }
-
-            string workflowStatus = workflowState switch
-            {
-                "TSB_INCUBATING"        => "InProgress",
-                "DOWNSTREAM_INCUBATING" => "InProgress",
-                "COUNT_INCUBATING"      => "InProgress",
-                "INCUBATING"            => "InProgress",
-                "RUNNING"               => "InProgress",
-                "READY_FOR_DOWNSTREAM"  => "ReadyToRead",
-                "TSB_READY"             => "ReadyToRead",
-                "AWAITING_RESULTS"      => "EnterResult",
-                "RESULTS_RECORDED"      => "PendingReview",
-                "APPROVED"              => "Completed",
-                _                       => "Pending"
-            };
+            var testIncubations = sampleIncubations.Where(i => i.TestOrderId == t.Id).ToList();
+            var stateResult = WorkflowStateResolver.Resolve(t, usesTsb, sharedTsbInc, testIncubations, null, DateTime.UtcNow);
 
             return new TestOrderSummaryDto
             {
@@ -326,13 +163,13 @@ public class TestingWorkspaceService : ITestWorkspaceService
                 TestCode = t.TestCode,
                 Status = t.Status.ToString(),
                 CurrentStep = t.CurrentStep.ToString(),
-                WorkflowState = workflowState,
-                WorkflowStateDisplay = workflowStateDisplay,
-                WorkflowStatus = workflowStatus,
+                WorkflowState = stateResult.WorkflowState,
+                WorkflowStateDisplay = stateResult.WorkflowStateDisplay,
+                WorkflowStatus = stateResult.WorkflowStatus,
                 UsesSharedTsb = usesTsb,
-                IsWorkflowLocked = isLocked,
-                IsResultEntryAllowed = isResultAllowed,
-                ResultLockReason = lockReason,
+                IsWorkflowLocked = stateResult.IsWorkflowLocked,
+                IsResultEntryAllowed = stateResult.IsResultEntryAllowed,
+                ResultLockReason = stateResult.LockReason,
                 LocationCount = locationCounts.GetValueOrDefault(t.Id),
                 AssignedAnalystId = t.AssignedAnalystId,
                 AssignedAnalystName = t.AssignedAnalystId is { } id ? analystNames.GetValueOrDefault(id) : null

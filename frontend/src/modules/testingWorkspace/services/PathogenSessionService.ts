@@ -37,5 +37,8 @@ export const PathogenSessionService = {
     apiClient.post(`/pathogen-session/${sampleId}/save-matrix`, request).then((r) => r.data.data),
 
   completeSession: (sampleId: number): Promise<PathogenTestingSessionDto> =>
-    apiClient.post(`/pathogen-session/${sampleId}/complete`).then((r) => r.data.data)
+    apiClient.post(`/pathogen-session/${sampleId}/complete`).then((r) => r.data.data),
+
+  resetSession: (sampleId: number, reason?: string): Promise<PathogenTestingSessionDto> =>
+    apiClient.post(`/pathogen-session/${sampleId}/reset`, { reason }).then((r) => r.data.data)
 };

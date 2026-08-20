@@ -16,6 +16,8 @@ public class WorkflowStepResult
     public string StepName { get; set; } = string.Empty;
     public StepType StepType { get; set; }
 
+    public bool? IsSharedSessionStep { get; set; }
+
     public GrowthObservation? SelectivePlatingObservation { get; set; }
 
     // Written once, at submission, from MediaChallengeSpec.ExpectedDescription.

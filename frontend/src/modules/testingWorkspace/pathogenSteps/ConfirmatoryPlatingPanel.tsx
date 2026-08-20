@@ -1,11 +1,11 @@
 import { useEffect, useState } from "react";
 import {
-  Box, Typography, Select, MenuItem, TextField, Button, Stack, Alert,
-  Checkbox, FormControlLabel, RadioGroup, Radio, Divider
+  Box, Typography, Select, MenuItem, Button, Stack, Alert,
+  Checkbox, FormControlLabel, RadioGroup, Radio, CircularProgress
 } from "@mui/material";
 import { TestWorkflowService } from "../services/TestWorkflowService";
 import {
-  TestWorkflowStepDto, PermittedConfirmatoryMediaEntry,
+  TestWorkflowStepDto, CurrentStepResponse, PermittedConfirmatoryMediaEntry,
   GrowthObservation, AnalystDecision
 } from "../types/testWorkflowTypes";
 import { parseWorkflowError, workflowErrorDisplayMessage } from "../utils/workflowErrors";
@@ -13,10 +13,11 @@ import { parseWorkflowError, workflowErrorDisplayMessage } from "../utils/workfl
 interface Props {
   testOrderId: number;
   step: TestWorkflowStepDto;
+  current: CurrentStepResponse;
   onSubmitted: () => void;
 }
 
-type Phase = "setup" | "readout" | "decision";
+type Phase = "setup" | "waiting" | "readout" | "decision";
 
 interface IncubatorOption { id: number; name: string; code: string; setTemperature: number; }
 
@@ -35,55 +36,59 @@ interface ReadoutMedium {
   expectedAppearance: string | null;
 }
 
-// ConfirmatoryPlating: the most complex pathogen step. One template step
-// covers three real-world moments - the analyst first sets up the panel
-// (which permitted media they're plating, on what lot/incubator, for how
-// long), later comes back once incubation finishes to read each plate
-// against its expected appearance, and - only when every reading came
-// back conforming - makes a GMP-significant decision about whether to
-// skip biochemical confirmation. There is no server-side signal for
-// "which of these three moments is this analyst in right now": the
-// current-step endpoint only ever reports this step as a whole as
-// "current" or "done" (see TestWorkflowEngine.IsStepDoneAsync - it only
-// flips to done once a ConfirmatoryResult exists, i.e. after read-out).
-// So setup vs. read-out is resolved the only way the API allows: default
-// to "setup", attempt the setup call, and let its error code redirect us:
-//   - CONFIRMATORY_SETUP_ALREADY_SUBMITTED -> media were already chosen
-//     in an earlier session and are incubating; jump straight to read-out.
-//   - CONFIRMATORY_ALREADY_RECORDED -> this step was already read out
-//     entirely (a stale/second tab racing an already-finished run); show
-//     a read-only notice instead of any form.
-// Read-out vs. decision needs no such trick: submit-confirmatory-
-// observations' own response (`analystDecisionRequired`) says which one
-// comes next, and per SubmitConfirmatoryObservationsAsync (backend/
-// MicroLIMS.Application/Workflows/TestWorkflowEngine.cs ~1205-1222)
-// `AnalystDecisionRequired` is set to exactly `allConforming`, so it is
-// never true for an Inconclusive result - a plain if/else fully covers
-// both outcomes.
-export function ConfirmatoryPlatingPanel({ testOrderId, step, onSubmitted }: Props) {
+export function ConfirmatoryPlatingPanel({ testOrderId, step, current, onSubmitted }: Props) {
   const [permitted, setPermitted] = useState<PermittedConfirmatoryMediaEntry[]>([]);
   const [organism, setOrganism] = useState<{ id: number; name: string } | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [alreadyRecordedMessage, setAlreadyRecordedMessage] = useState<string | null>(null);
-
-  const [phase, setPhase] = useState<Phase>("setup");
+  const [submitting, setSubmitting] = useState(false);
 
   // Setup phase state, keyed by stepMediaId.
   const [setupRows, setSetupRows] = useState<Record<number, SetupRow>>({});
-  const [durationHours, setDurationHours] = useState(String(step.incubationMinHours));
 
-  // Read-out phase state. `readoutMedia` is populated either from the
-  // media the analyst just checked+submitted in this session (the normal
-  // path) or, when redirected here by CONFIRMATORY_SETUP_ALREADY_SUBMITTED,
-  // from a best-effort guess (see submitSetup below) - `readoutUncertain`
-  // flags that second case so the UI can warn the analyst and leave every
-  // row unchecked-by-default-but-editable rather than presenting a guess
-  // as fact.
+  // Read-out phase state.
   const [readoutMedia, setReadoutMedia] = useState<ReadoutMedium[]>([]);
   const [readoutUncertain, setReadoutUncertain] = useState(false);
   const [readoutChecked, setReadoutChecked] = useState<Record<number, boolean>>({});
   const [observations, setObservations] = useState<Record<number, GrowthObservation | "">>({});
+
+  // Check incubation status from current step response (aligned with BrothWaitingPanel / SelectivePlatingPanel)
+  const openIncubationRow = step
+    ? (current?.previousSteps ?? []).find(
+        (p) => p.stepName === step.stepName && p.status === "Incubating"
+      )
+    : null;
+  const isStepIncubating = Boolean(openIncubationRow || current?.incubationLock?.isLocked);
+
+  const incubationStartUtc = openIncubationRow?.incubationStartUtc
+    ? new Date(openIncubationRow.incubationStartUtc)
+    : null;
+
+  const minReadyAt = incubationStartUtc && step.incubationMinHours != null
+    ? new Date(incubationStartUtc.getTime() + step.incubationMinHours * 3600 * 1000)
+    : null;
+
+  const expectedEndAt = current?.incubationLock?.incubationEndUtc
+    ? new Date(current.incubationLock.incubationEndUtc)
+    : (incubationStartUtc && step.incubationMaxHours != null
+        ? new Date(incubationStartUtc.getTime() + step.incubationMaxHours * 3600 * 1000)
+        : null);
+
+  const isTimeReady = minReadyAt != null
+    ? new Date() >= minReadyAt
+    : (current?.incubationLock ? current.incubationLock.remainingSeconds <= 0 : true);
+
+  const initialPhase: Phase =
+    !isStepIncubating ? "setup" :
+    !isTimeReady ? "waiting" :
+    "readout";
+
+  const [phase, setPhase] = useState<Phase>(initialPhase);
+
+  useEffect(() => {
+    setPhase(initialPhase);
+  }, [initialPhase]);
 
   useEffect(() => {
     let cancelled = false;
@@ -113,6 +118,19 @@ export function ConfirmatoryPlatingPanel({ testOrderId, step, onSubmitted }: Pro
     return () => { cancelled = true; };
   }, [testOrderId, step.stepName]);
 
+  // When in readout phase and readoutMedia is empty, populate from permitted
+  useEffect(() => {
+    if (phase === "readout" && readoutMedia.length === 0 && permitted.length > 0) {
+      setReadoutMedia(permitted.map((m) => ({
+        stepMediaId: m.stepMediaId,
+        materialId: m.materialId,
+        mediaName: m.mediaName,
+        expectedAppearance: m.expectedAppearance
+      })));
+      setReadoutUncertain(true);
+    }
+  }, [phase, permitted, readoutMedia.length]);
+
   const toggleChecked = (stepMediaId: number, checked: boolean) =>
     setSetupRows((prev) => ({ ...prev, [stepMediaId]: { ...prev[stepMediaId], checked } }));
   const setLot = (stepMediaId: number, mediaLotId: number) =>
@@ -129,14 +147,14 @@ export function ConfirmatoryPlatingPanel({ testOrderId, step, onSubmitted }: Pro
       return;
     }
     const startUtc = new Date().toISOString();
-    const endUtc = new Date(Date.now() + Number(durationHours) * 3600 * 1000).toISOString();
+    const durationMax = step.incubationMaxHours > 0 ? step.incubationMaxHours : 24;
+    const endUtc = new Date(Date.now() + durationMax * 3600 * 1000).toISOString();
     const selections = checkedRows.map((r) => ({
       stepMediaId: r.entry.stepMediaId, mediaLotId: Number(r.mediaLotId), equipmentId: Number(r.equipmentId)
     }));
+    setSubmitting(true);
     try {
       await TestWorkflowService.submitConfirmatorySetup(testOrderId, step.stepName, selections, startUtc, endUtc);
-      // Setup succeeded but does NOT complete the step - do not call
-      // onSubmitted here, only transition phase locally.
       setReadoutMedia(checkedRows.map((r) => ({
         stepMediaId: r.entry.stepMediaId, materialId: r.entry.materialId,
         mediaName: r.entry.mediaName, expectedAppearance: r.entry.expectedAppearance
@@ -144,27 +162,11 @@ export function ConfirmatoryPlatingPanel({ testOrderId, step, onSubmitted }: Pro
       setReadoutUncertain(false);
       setObservations({});
       setReadoutChecked({});
-      setPhase("readout");
+      onSubmitted();
     } catch (e) {
       const parsed = parseWorkflowError(e);
       if (parsed.code === "CONFIRMATORY_SETUP_ALREADY_SUBMITTED") {
-        // Media were already selected in an earlier session. There is no
-        // read endpoint that reports which ones - checkedRows is
-        // guaranteed non-empty and lot/incubator-complete at this point
-        // (both validated above, before submitConfirmatorySetup was ever
-        // called), so the best available signal is exactly what the
-        // analyst just selected in this attempt. Flagged via
-        // readoutUncertain so read-out makes the analyst explicitly
-        // re-confirm each medium (unchecked by default) rather than
-        // presenting this guess as fact; the server still validates the
-        // real selection on submit.
-        setReadoutMedia(checkedRows.map((r) => ({
-          stepMediaId: r.entry.stepMediaId, materialId: r.entry.materialId, mediaName: r.entry.mediaName, expectedAppearance: r.entry.expectedAppearance
-        })));
-        setReadoutUncertain(true);
-        setObservations({});
-        setReadoutChecked({});
-        setPhase("readout");
+        onSubmitted();
         return;
       }
       if (parsed.code === "CONFIRMATORY_ALREADY_RECORDED") {
@@ -172,34 +174,27 @@ export function ConfirmatoryPlatingPanel({ testOrderId, step, onSubmitted }: Pro
         return;
       }
       setError(workflowErrorDisplayMessage(parsed));
+    } finally {
+      setSubmitting(false);
     }
   };
 
-  // In the normal (non-resumption) path every entry in readoutMedia is
-  // exactly what the analyst already submitted for setup, so there is
-  // nothing to re-affirm and no checkbox is shown - always active. Only
-  // the resumption/guess path (readoutUncertain) needs the analyst to
-  // explicitly confirm each medium, so it defaults unchecked - never
-  // pre-affirmed - matching the "no pre-selected GMP control" rule
-  // already applied to the observation radios below.
   const isReadoutActive = (materialId: number) =>
     readoutUncertain ? (readoutChecked[materialId] ?? false) : true;
 
   const submitReadout = async () => {
     setError(null);
     const active = readoutMedia.filter((m) => isReadoutActive(m.materialId));
-    if (active.length === 0) { setError("At least one medium must be recorded."); return; }
+    if (active.length === 0) { setError("At least one medium must be confirmed as plated."); return; }
     const missing = active.filter((m) => !observations[m.materialId]);
     if (missing.length > 0) {
       setError(`Select an observation for: ${missing.map((m) => m.mediaName).join(", ")}.`);
       return;
     }
     const payload = active.map((m) => ({ materialId: m.materialId, observation: observations[m.materialId] as GrowthObservation }));
+    setSubmitting(true);
     try {
       const outcome = await TestWorkflowService.submitConfirmatoryObservations(testOrderId, step.stepName, payload);
-      // AnalystDecisionRequired is exactly `allConforming` server-side, so
-      // an Inconclusive result never reaches the decision phase - this
-      // if/else fully covers both outcomes.
       if (outcome.analystDecisionRequired) {
         setPhase("decision");
       } else {
@@ -207,60 +202,53 @@ export function ConfirmatoryPlatingPanel({ testOrderId, step, onSubmitted }: Pro
       }
     } catch (e) {
       setError(workflowErrorDisplayMessage(parseWorkflowError(e)));
+    } finally {
+      setSubmitting(false);
     }
   };
 
   const decide = async (decision: AnalystDecision) => {
     setError(null);
+    setSubmitting(true);
     try {
       await TestWorkflowService.recordAnalystDecision(testOrderId, decision);
       onSubmitted();
     } catch (e) {
       setError(workflowErrorDisplayMessage(parseWorkflowError(e)));
+    } finally {
+      setSubmitting(false);
     }
   };
 
   if (loading) return <Typography variant="body2">Loading step configuration…</Typography>;
-
   if (alreadyRecordedMessage) {
     return (
-      <Stack spacing={1.5}>
-        <Alert severity="info">{alreadyRecordedMessage}</Alert>
-        <Stack direction="row" justifyContent="flex-end">
-          <Button variant="outlined" onClick={onSubmitted}>Refresh</Button>
-        </Stack>
-      </Stack>
+      <Alert severity="info">
+        {alreadyRecordedMessage}
+      </Alert>
     );
-  }
-
-  // Checked ahead of the "no permitted media" empty state: an empty
-  // `permitted` list is also what a failed fetch leaves behind (the
-  // getPermittedConfirmatoryMedia call itself, or any one of the
-  // parallel getEligibleIncubators calls rejecting the Promise.all), so
-  // without this check a network/500/403 error would be misreported to
-  // the analyst as a Test Master configuration problem, discarding the
-  // real server message already parsed into `error`.
-  if (error && permitted.length === 0) return <Alert severity="error">{error}</Alert>;
-
-  if (permitted.length === 0) {
-    return <Alert severity="error">This step has no permitted confirmatory media configured in Test Master.</Alert>;
   }
 
   return (
     <Stack spacing={1.5}>
       {error && <Alert severity="error">{error}</Alert>}
-      {organism && <Typography variant="body2">Target organism: <strong>{organism.name}</strong></Typography>}
+      {organism && (
+        <Typography variant="body2" sx={{ mb: 1 }}>
+          Target organism: <strong>{organism.name}</strong>
+        </Typography>
+      )}
 
       {phase === "setup" && (
         <Stack spacing={1.5}>
           <Alert severity="info">
             Check every medium you actually plated for this confirmatory run, choose its lot and incubator, then
-            set the shared incubation duration below. Only what the step template permits can be selected - there
-            is no way to add another medium here.
+            set the shared incubation duration below. Only what the step template permits can be selected - there is
+            no way to add another medium here.
           </Alert>
           {permitted.map((m) => {
-            const row = setupRows[m.stepMediaId];
-            if (!row) return null;
+            const row = setupRows[m.stepMediaId] ?? {
+              entry: m, checked: false, mediaLotId: "", equipmentId: "", incubators: []
+            };
             return (
               <Box key={m.stepMediaId} sx={{ border: "1px solid #e0e0e0", borderRadius: 1, p: 1.5 }}>
                 <FormControlLabel
@@ -300,13 +288,66 @@ export function ConfirmatoryPlatingPanel({ testOrderId, step, onSubmitted }: Pro
               </Box>
             );
           })}
-          <TextField
-            size="small" type="number" label="Incubation Duration (hours)" value={durationHours}
-            onChange={(e) => setDurationHours(e.target.value)} sx={{ maxWidth: 220 }}
-            helperText={`Shared by every selected medium. Template range: ${step.incubationMinHours}-${step.incubationMaxHours}h`}
-          />
+          <Box sx={{ p: 1.5, backgroundColor: "#f3f4f6", borderRadius: 1, mb: 1 }}>
+            <Typography variant="caption" sx={{ color: "#6b7280", display: "block" }}>
+              Incubation Duration (from Test Master)
+            </Typography>
+            <Typography variant="body2" sx={{ fontWeight: 600 }}>
+              {step.incubationMinHours}–{step.incubationMaxHours} hours
+            </Typography>
+            <Typography variant="caption" sx={{ color: "#9ca3af" }}>
+              Shared by every selected medium
+            </Typography>
+          </Box>
           <Stack direction="row" justifyContent="flex-end">
-            <Button variant="contained" onClick={submitSetup}>Submit Setup</Button>
+            <Button
+              variant="contained"
+              onClick={submitSetup}
+              disabled={submitting}
+              startIcon={submitting ? <CircularProgress size={16} color="inherit" /> : undefined}
+            >
+              {submitting ? "Starting..." : "Submit Setup"}
+            </Button>
+          </Stack>
+        </Stack>
+      )}
+
+      {phase === "waiting" && (
+        <Stack spacing={1.5}>
+          <Alert severity="info">
+            <Typography variant="body2" sx={{ fontWeight: 600, mb: 0.5 }}>
+              Confirmatory incubation in progress.
+            </Typography>
+            {step.temperatureMin != null && step.temperatureMax != null && (
+              <Typography variant="body2">
+                Temperature: <strong>{step.temperatureMin}–{step.temperatureMax} °C</strong>
+              </Typography>
+            )}
+            <Typography variant="body2">
+              Duration: <strong>{step.incubationMinHours}–{step.incubationMaxHours} hours</strong>
+            </Typography>
+            {incubationStartUtc && (
+              <Typography variant="body2">
+                Started: <strong>{incubationStartUtc.toLocaleString()}</strong>
+              </Typography>
+            )}
+            {expectedEndAt && (
+              <Typography variant="body2">
+                Expected reading: <strong>{expectedEndAt.toLocaleString()}</strong>
+              </Typography>
+            )}
+          </Alert>
+
+          {minReadyAt && (
+            <Alert severity="warning">
+              Not ready yet — available from <strong>{minReadyAt.toLocaleString()}</strong>. Confirmatory plate observation entry will unlock once the incubation period has completed.
+            </Alert>
+          )}
+
+          <Stack direction="row" justifyContent="flex-end">
+            <Button variant="contained" disabled>
+              Incubation In Progress
+            </Button>
           </Stack>
         </Stack>
       )}
@@ -315,10 +356,8 @@ export function ConfirmatoryPlatingPanel({ testOrderId, step, onSubmitted }: Pro
         <Stack spacing={1.5}>
           {readoutUncertain ? (
             <Alert severity="warning">
-              Confirmatory media for this step were already selected in a previous session, and there is no way to
-              retrieve exactly which ones from here. These are the media you just selected on this attempt - confirm
-              they match what was actually plated earlier by checking each one before recording its observation; the
-              server will still reject an incorrect selection.
+              Confirmatory media for this step were already selected in a previous session. Confirm
+              each medium before recording its observation.
             </Alert>
           ) : (
             <Alert severity="info">Read each plate and record what you observe against the expected appearance.</Alert>
@@ -364,7 +403,14 @@ export function ConfirmatoryPlatingPanel({ testOrderId, step, onSubmitted }: Pro
             );
           })}
           <Stack direction="row" justifyContent="flex-end">
-            <Button variant="contained" onClick={submitReadout}>Submit Observations</Button>
+            <Button
+              variant="contained"
+              onClick={submitReadout}
+              disabled={submitting}
+              startIcon={submitting ? <CircularProgress size={16} color="inherit" /> : undefined}
+            >
+              {submitting ? "Submitting..." : "Submit Observations"}
+            </Button>
           </Stack>
         </Stack>
       )}
@@ -372,19 +418,26 @@ export function ConfirmatoryPlatingPanel({ testOrderId, step, onSubmitted }: Pro
       {phase === "decision" && (
         <Stack spacing={1.5}>
           <Alert severity="success">
-            Confirmatory result: <strong>All Conforming</strong>. An analyst decision is required before this
-            workflow proceeds.
+            Every confirmatory medium showed growth matching the target organism's expected appearance.
           </Alert>
-          <Divider />
-          <Alert severity="warning">
-            Submitting as Detected without biochemical confirmation will be flagged for the reviewer.
-          </Alert>
-          <Stack direction="row" spacing={1.5} justifyContent="flex-end">
-            <Button variant="outlined" color="warning" onClick={() => decide("SubmitAsDetected")}>
-              Submit as Detected (skip biochemical)
+          <Typography variant="body2">
+            Per SOP, choose whether to conclude detection from this conforming confirmatory result alone,
+            or proceed with biochemical confirmation.
+          </Typography>
+          <Stack direction="row" spacing={2} justifyContent="flex-end">
+            <Button
+              variant="contained" color="error" onClick={() => decide("SubmitAsDetected")}
+              disabled={submitting}
+              startIcon={submitting ? <CircularProgress size={16} color="inherit" /> : undefined}
+            >
+              Conclude as Detected
             </Button>
-            <Button variant="contained" onClick={() => decide("ProceedToBiochemical")}>
-              Proceed to Biochemical Test
+            <Button
+              variant="outlined" onClick={() => decide("ProceedToBiochemical")}
+              disabled={submitting}
+              startIcon={submitting ? <CircularProgress size={16} color="inherit" /> : undefined}
+            >
+              Proceed to Biochemical Confirmation
             </Button>
           </Stack>
         </Stack>

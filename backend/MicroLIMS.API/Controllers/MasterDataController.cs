@@ -44,8 +44,8 @@ public record UpdateTestDefinitionMediaRequest(int MediaTypeId, string? StepName
 public record UpdateWorkflowTypeRequest(WorkflowType WorkflowType);
 public record StepMediaRequest(int MaterialId, decimal TempMin, decimal TempMax, bool IsRequired, int DisplayOrder);
 public record IncubationStageRequest(int StageNumber, decimal TempMin, decimal TempMax, int IncubationMinHours, int IncubationMaxHours);
-public record CreateTestWorkflowStepRequest(string StepName, int MediaTypeId, int IncubationMinHours, int IncubationMaxHours, decimal TemperatureMin, decimal TemperatureMax, bool IsFinalStep, StepType StepType, int? TargetOrganismId, List<StepMediaRequest> StepMedia, bool RequiresIncubationTransfer, List<IncubationStageRequest>? IncubationStages, int? ConfirmatoryMediaCount);
-public record UpdateTestWorkflowStepRequest(string StepName, int MediaTypeId, int IncubationMinHours, int IncubationMaxHours, decimal TemperatureMin, decimal TemperatureMax, bool IsFinalStep, StepType StepType, int? TargetOrganismId, List<StepMediaRequest> StepMedia, bool RequiresIncubationTransfer, List<IncubationStageRequest>? IncubationStages, int? ConfirmatoryMediaCount);
+public record CreateTestWorkflowStepRequest(string StepName, int? MediaTypeId, int IncubationMinHours, int IncubationMaxHours, decimal TemperatureMin, decimal TemperatureMax, bool IsFinalStep, StepType StepType, int? TargetOrganismId, List<StepMediaRequest> StepMedia, bool RequiresIncubationTransfer, List<IncubationStageRequest>? IncubationStages, int? ConfirmatoryMediaCount, PhenotypicTestType? PhenotypicTestType);
+public record UpdateTestWorkflowStepRequest(string StepName, int? MediaTypeId, int IncubationMinHours, int IncubationMaxHours, decimal TemperatureMin, decimal TemperatureMax, bool IsFinalStep, StepType StepType, int? TargetOrganismId, List<StepMediaRequest> StepMedia, bool RequiresIncubationTransfer, List<IncubationStageRequest>? IncubationStages, int? ConfirmatoryMediaCount, PhenotypicTestType? PhenotypicTestType);
 public record MoveTestWorkflowStepRequest(string Direction);
 
 // Backs the Items Master's category-dependent dynamic forms: Product ->
@@ -927,7 +927,7 @@ public class MasterDataController : ControllerBase
             .OrderBy(s => s.StepOrder)
             .Select(s => new
             {
-                s.Id, s.StepOrder, s.StepName, s.MediaTypeId,
+                s.Id, s.StepOrder, s.StepName, s.MediaTypeId, s.PhenotypicTestType,
                 mediaType = s.MediaType == null ? null : new { s.MediaType.Id, s.MediaType.Class },
                 s.IncubationMinHours, s.IncubationMaxHours, s.TemperatureMin, s.TemperatureMax,
                 s.IsFinalStep,
@@ -998,7 +998,8 @@ public class MasterDataController : ControllerBase
             TemperatureMin = request.TemperatureMin, TemperatureMax = request.TemperatureMax,
             IsFinalStep = request.IsFinalStep, StepType = request.StepType, TargetOrganismId = request.TargetOrganismId,
             RequiresIncubationTransfer = request.RequiresIncubationTransfer,
-            ConfirmatoryMediaCount = request.ConfirmatoryMediaCount ?? 1
+            ConfirmatoryMediaCount = request.ConfirmatoryMediaCount ?? 1,
+            PhenotypicTestType = request.PhenotypicTestType
         };
         entity.StepMedia.AddRange(request.StepMedia.Select(m => new TestWorkflowStepMedia
         {
@@ -1042,6 +1043,7 @@ public class MasterDataController : ControllerBase
         step.TargetOrganismId = request.TargetOrganismId;
         step.RequiresIncubationTransfer = request.RequiresIncubationTransfer;
         step.ConfirmatoryMediaCount = request.ConfirmatoryMediaCount ?? 1;
+        step.PhenotypicTestType = request.PhenotypicTestType;
 
         // StepMedia is replaced wholesale on update - the analyst edits the
         // panel as a set, and the unique index makes incremental merging

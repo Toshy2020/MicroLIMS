@@ -12,7 +12,13 @@ namespace MicroLIMS.Application.Workflows;
 // depends on the TestDefinition's WorkflowType (CountTest) or plain
 // Observation otherwise.
 public abstract record ResultPayload;
-public sealed record CountTestPayload(List<decimal> PlateReadings, decimal DilutionFactor) : ResultPayload;
+public sealed record CountTestPayload(List<string> RawPlateReadings, decimal DilutionFactor) : ResultPayload
+{
+    public CountTestPayload(List<decimal> plateReadings, decimal dilutionFactor)
+        : this(plateReadings.Select(p => p.ToString(System.Globalization.CultureInfo.InvariantCulture)).ToList(), dilutionFactor)
+    {
+    }
+}
 public sealed record ObservationPayload(GrowthObservation Observation) : ResultPayload;
 
 // A business-rule failure that carries a machine-readable code for the
@@ -88,9 +94,13 @@ public record WaterBatchLocationReadings(int SampleLocationId, List<decimal> Rea
 // location growth observation call.
 public record BatchLocationObservation(int SampleLocationId, bool GrowthObserved);
 
+public record SiblingPathogenOrderDto(int TestOrderId, string PathogenName, string TestCode);
+
 public interface ITestWorkflowEngine : IStatefulWorkflowEngine
 {
     Task<CurrentStepResult> GetCurrentStepAsync(int testOrderId);
+    Task<List<SiblingPathogenOrderDto>> GetSiblingPathogenOrdersAsync(int testOrderId, CancellationToken ct = default);
+    Task PropagateSharedTsbToSiblingOrdersAsync(int testOrderId, int incubationId, int userId, CancellationToken ct = default);
     Task<Incubation> SelectMediaAsync(int testOrderId, string stepName, int mediaLotId, int incubatorEquipmentId, int userId);
     Task<Incubation> StartStage2IncubationAsync(int testOrderId, string stepName, int incubatorEquipmentId, int userId);
     Task<TestWorkflowResult> RecordResultAsync(int testOrderId, string stepName, ResultPayload payload, int userId);
@@ -415,7 +425,169 @@ public class TestWorkflowEngine : ITestWorkflowEngine
         else
             await _db.SaveChangesAsync();
 
+        if (step.StepType == StepType.BrothEnrichment || step.StepName.Contains("TSB", StringComparison.OrdinalIgnoreCase))
+        {
+            await PropagateSharedTsbToSiblingOrdersAsync(testOrderId, incubation.Id, userId);
+        }
+
         return incubation;
+    }
+
+    public async Task<List<SiblingPathogenOrderDto>> GetSiblingPathogenOrdersAsync(int testOrderId, CancellationToken ct = default)
+    {
+        var testOrder = await _db.TestOrders
+            .FirstOrDefaultAsync(t => t.Id == testOrderId, ct)
+            ?? throw new InvalidOperationException($"Test order #{testOrderId} not found.");
+
+        var siblings = await _db.TestOrders
+            .Include(t => t.Sample)
+            .Where(t => t.SampleId == testOrder.SampleId && t.Id != testOrderId && t.Status != ApprovalStatus.Approved && !t.IsSuperseded)
+            .ToListAsync(ct);
+
+        var testCodes = siblings.Select(t => t.TestCode).Distinct().ToList();
+        var testDefs = await _db.TestDefinitions
+            .Include(t => t.Steps)
+            .Where(t => testCodes.Contains(t.Code))
+            .ToDictionaryAsync(t => t.Code, ct);
+
+        var result = new List<SiblingPathogenOrderDto>();
+        foreach (var sib in siblings)
+        {
+            if (testDefs.TryGetValue(sib.TestCode, out var def))
+            {
+                var requiresBroth = def.Steps.Any(s =>
+                    s.StepType == StepType.BrothEnrichment ||
+                    s.StepName.Contains("TSB", StringComparison.OrdinalIgnoreCase));
+
+                if (requiresBroth)
+                {
+                    result.Add(new SiblingPathogenOrderDto(
+                        sib.Id,
+                        def.DisplayName ?? sib.TestCode,
+                        sib.TestCode));
+                }
+            }
+        }
+
+        return result;
+    }
+
+    public async Task PropagateSharedTsbToSiblingOrdersAsync(
+        int testOrderId,
+        int incubationId,
+        int userId,
+        CancellationToken ct = default)
+    {
+        var sourceOrder = await _db.TestOrders
+            .FirstOrDefaultAsync(t => t.Id == testOrderId, ct)
+            ?? throw new InvalidOperationException($"Test order #{testOrderId} not found.");
+
+        var incubation = await _db.Incubations
+            .Include(i => i.Media)
+            .Include(i => i.IncubatorEquipment)
+            .FirstOrDefaultAsync(i => i.Id == incubationId, ct)
+            ?? throw new InvalidOperationException($"Incubation #{incubationId} not found.");
+
+        var siblings = await _db.TestOrders
+            .Where(t => t.SampleId == sourceOrder.SampleId && t.Id != testOrderId && t.Status != ApprovalStatus.Approved && !t.IsSuperseded)
+            .ToListAsync(ct);
+
+        if (!siblings.Any()) return;
+
+        var testCodes = siblings.Select(t => t.TestCode).Distinct().ToList();
+        var testDefs = await _db.TestDefinitions
+            .Include(t => t.Steps)
+            .Where(t => testCodes.Contains(t.Code))
+            .ToDictionaryAsync(t => t.Code, ct);
+
+        var brothStepName = "Broth Enrichment";
+        var mediaLotNumber = incubation.Media?.LotNumber ?? "TSB";
+        var incubatorCode = incubation.IncubatorEquipment?.Code ?? "INC";
+
+        foreach (var sibling in siblings)
+        {
+            if (!testDefs.TryGetValue(sibling.TestCode, out var def)) continue;
+
+            var tsbStep = def.Steps.FirstOrDefault(s =>
+                s.StepType == StepType.BrothEnrichment ||
+                s.StepName.Contains("TSB", StringComparison.OrdinalIgnoreCase));
+
+            if (tsbStep == null) continue;
+
+            var targetStepName = tsbStep.StepName;
+
+            // Ensure an Incubation row exists for sibling
+            var existingInc = await _db.Incubations
+                .Where(i => i.TestOrderId == sibling.Id && (i.StepName == targetStepName || i.StepName == brothStepName))
+                .OrderByDescending(i => i.StartedAt)
+                .FirstOrDefaultAsync(ct);
+
+            int siblingIncId;
+            if (existingInc == null)
+            {
+                var newInc = new Incubation
+                {
+                    TestOrderId = sibling.Id,
+                    StepNumber = tsbStep.StepOrder,
+                    StepName = targetStepName,
+                    StageNumber = 1,
+                    MediaId = incubation.MediaId,
+                    IncubatorEquipmentId = incubation.IncubatorEquipmentId,
+                    Temperature = incubation.Temperature,
+                    Duration = incubation.Duration,
+                    StartedAt = incubation.StartedAt,
+                    IncubationStartUtc = incubation.IncubationStartUtc,
+                    IncubationEndUtc = incubation.IncubationEndUtc,
+                    ExpectedReadingAt = incubation.ExpectedReadingAt,
+                    WindowReceivedAtUtc = incubation.WindowReceivedAtUtc,
+                    CompletedAt = incubation.CompletedAt,
+                    Outcome = incubation.Outcome,
+                    StartedByUserId = userId
+                };
+                _db.Incubations.Add(newInc);
+                await _db.SaveChangesAsync(ct);
+                siblingIncId = newInc.Id;
+            }
+            else
+            {
+                if (incubation.CompletedAt.HasValue && !existingInc.CompletedAt.HasValue)
+                {
+                    existingInc.CompletedAt = incubation.CompletedAt;
+                    existingInc.Outcome = incubation.Outcome;
+                }
+                siblingIncId = existingInc.Id;
+            }
+
+            // Ensure WorkflowStepResult exists for sibling
+            var existsWsr = await _db.WorkflowStepResults
+                .AnyAsync(r => r.TestOrderId == sibling.Id && (r.StepName == targetStepName || r.StepName == brothStepName), ct);
+
+            if (!existsWsr)
+            {
+                _db.WorkflowStepResults.Add(new WorkflowStepResult
+                {
+                    TestOrderId = sibling.Id,
+                    StepName = targetStepName,
+                    StepType = StepType.BrothEnrichment,
+                    IncubationId = siblingIncId,
+                    IsSharedSessionStep = true,
+                    SubmittedByUserId = userId,
+                    SubmittedAtUtc = DateTime.UtcNow
+                });
+
+                _db.WorkflowHistories.Add(new WorkflowHistory
+                {
+                    TestOrderId = sibling.Id,
+                    FromStep = sibling.CurrentStep,
+                    ToStep = sibling.CurrentStep == WorkflowStep.Waiting ? WorkflowStep.Incubating : sibling.CurrentStep,
+                    Note = $"Broth enrichment linked to shared TSB (propagated from Test Order #{testOrderId}). Lot: {mediaLotNumber}, Incubator: {incubatorCode}.",
+                    PerformedByUserId = userId,
+                    Timestamp = DateTime.UtcNow
+                });
+            }
+        }
+
+        await _db.SaveChangesAsync(ct);
     }
 
     // The transfer IS starting stage 2 - there is no separate
@@ -827,6 +999,7 @@ public class TestWorkflowEngine : ITestWorkflowEngine
             var (status, _) = Compare(average, alertLimit, actionLimit, specLimit);
 
             location.RawReadings = string.Join(",", readings);
+            location.CFUResult = average;
             location.CalculatedResult = average;
             location.ReportedResult = average.ToString("0.##");
             location.AlertLimit = alertLimit;
@@ -942,59 +1115,150 @@ public class TestWorkflowEngine : ITestWorkflowEngine
         _ => 0
     };
 
-    private async Task<(string reported, decimal average, decimal calculated, string status, CountTestReading reading)> RecordCountTestAsync(TestOrder order, TestWorkflowStep step, CountTestPayload payload, int userId)
+    private async Task<(string reported, decimal? average, decimal? calculated, string status, CountTestReading reading)> RecordCountTestAsync(TestOrder order, TestWorkflowStep step, CountTestPayload payload, int userId)
     {
-        if (payload.PlateReadings.Count == 0)
+        if (payload.RawPlateReadings.Count == 0)
             throw new InvalidOperationException("At least one plate reading is required to calculate an average.");
 
-        var sample = await _db.Samples.FirstOrDefaultAsync(s => s.Id == order.SampleId)
+        var sample = await _db.Samples
+            .Include(s => s.SamplePreparation)
+            .FirstOrDefaultAsync(s => s.Id == order.SampleId)
             ?? throw new InvalidOperationException("Sample not found for this test order.");
 
-        var average = payload.PlateReadings.Average();
-        var calculated = average * payload.DilutionFactor;
-        var reported = calculated < 1 ? "<1" : Math.Round(calculated).ToString("0");
+        // Force DF = 1 for direct count sample types regardless of client input
+        var isDirectCount = sample.Category is
+            SampleCategory.Water or
+            SampleCategory.EnvironmentalMonitoring or
+            SampleCategory.AfterCleaning;
 
-        string? alertLimit = null, actionLimit = null, specLimit = null;
-        if (sample.ItemId is not null)
+        if (isDirectCount && payload.DilutionFactor != 1m)
         {
-            var spec = await _db.Specifications.FirstOrDefaultAsync(s => s.ItemId == sample.ItemId && s.TestCode == order.TestCode);
-            alertLimit = spec?.AlertLimit; actionLimit = spec?.ActionLimit; specLimit = spec?.SpecLimit;
-        }
-        else if (sample.WaterSamplingPointId is not null)
-        {
-            var config = await _db.SamplingConfigurations.FirstOrDefaultAsync(c => c.TestCode == order.TestCode && c.WaterSamplingPointId == sample.WaterSamplingPointId);
-            alertLimit = config?.AlertLimit; actionLimit = config?.ActionLimit; specLimit = config?.SpecLimit;
+            payload = payload with { DilutionFactor = 1m };
         }
 
-        var (status, _) = Compare(calculated, alertLimit, actionLimit, specLimit);
+        var prepUnit = sample.SamplePreparation?.Unit;
+        var unit = GetCfuUnit(sample.Category, prepUnit);
 
-        var reading = new CountTestReading
+        bool hasNonNumeric = payload.RawPlateReadings
+            .Any(r => r.Equals("TNTC", StringComparison.OrdinalIgnoreCase) ||
+                      r.Equals("Uncountable", StringComparison.OrdinalIgnoreCase));
+
+        CountTestReading reading;
+        string reported;
+        decimal? average = null;
+        decimal? calculated = null;
+        string status;
+
+        if (hasNonNumeric)
         {
-            TestOrderId = order.Id,
-            StepName = step.StepName,
-            PlateReadings = string.Join(",", payload.PlateReadings),
-            DilutionFactor = payload.DilutionFactor,
-            Average = average,
-            CalculatedResult = calculated,
-            ReportedResult = reported,
-            AlertLimit = alertLimit,
-            ActionLimit = actionLimit,
-            SpecLimit = specLimit,
-            Status = status,
-            EnteredByUserId = userId
-        };
+            var nonNumericRaw = payload.RawPlateReadings
+                .First(r => !decimal.TryParse(r, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out _))
+                .Trim();
+
+            var nonNumericValue = nonNumericRaw.Equals("TNTC", StringComparison.OrdinalIgnoreCase) ? "TNTC" : "Uncountable";
+
+            status = "RequiresReview";
+            reported = nonNumericValue;
+
+            reading = new CountTestReading
+            {
+                TestOrderId = order.Id,
+                StepName = step.StepName,
+                PlateReadings = string.Join(",", payload.RawPlateReadings),
+                DilutionFactor = payload.DilutionFactor,
+                Average = null,
+                CalculatedResult = null,
+                ReportedResult = reported,
+                AlertLimit = null,
+                ActionLimit = null,
+                SpecLimit = null,
+                Status = status,
+                HasNonNumericReading = true,
+                NonNumericValue = nonNumericValue,
+                RequiresReview = true,
+                EnteredByUserId = userId
+            };
+        }
+        else
+        {
+            var numericReadings = payload.RawPlateReadings
+                .Select(r => decimal.Parse(r, System.Globalization.CultureInfo.InvariantCulture))
+                .ToList();
+
+            average = numericReadings.Average();
+            calculated = average.Value * payload.DilutionFactor;
+            var lowerLimit = payload.DilutionFactor;
+
+            reported = calculated.Value < lowerLimit
+                ? $"<{lowerLimit:G29} {unit}"
+                : $"{calculated.Value:G29} {unit}";
+
+            string? alertLimit = null, actionLimit = null, specLimit = null;
+            if (sample.ItemId is not null)
+            {
+                var spec = await _db.Specifications.FirstOrDefaultAsync(s => s.ItemId == sample.ItemId && s.TestCode == order.TestCode);
+                alertLimit = spec?.AlertLimit; actionLimit = spec?.ActionLimit; specLimit = spec?.SpecLimit;
+            }
+            else if (sample.WaterSamplingPointId is not null)
+            {
+                var config = await _db.SamplingConfigurations.FirstOrDefaultAsync(c => c.TestCode == order.TestCode && c.WaterSamplingPointId == sample.WaterSamplingPointId);
+                alertLimit = config?.AlertLimit; actionLimit = config?.ActionLimit; specLimit = config?.SpecLimit;
+            }
+
+            (status, _) = Compare(calculated.Value, alertLimit, actionLimit, specLimit);
+
+            reading = new CountTestReading
+            {
+                TestOrderId = order.Id,
+                StepName = step.StepName,
+                PlateReadings = string.Join(",", payload.RawPlateReadings),
+                DilutionFactor = payload.DilutionFactor,
+                Average = average,
+                CalculatedResult = calculated,
+                ReportedResult = reported,
+                AlertLimit = alertLimit,
+                ActionLimit = actionLimit,
+                SpecLimit = specLimit,
+                Status = status,
+                HasNonNumericReading = false,
+                NonNumericValue = null,
+                RequiresReview = false,
+                EnteredByUserId = userId
+            };
+        }
+
         _db.CountTestReadings.Add(reading);
 
         _db.Results.Add(new Result
         {
             TestOrderId = order.Id,
-            RawValue = string.Join(",", payload.PlateReadings),
-            InterpretedValue = $"{reported} CFU ({status})",
+            RawValue = string.Join(",", payload.RawPlateReadings),
+            InterpretedValue = hasNonNumeric ? $"{reported} ({status})" : $"{reported} ({status})",
             Type = ResultType.Numeric,
             EnteredByUserId = userId
         });
 
         return (reported, average, calculated, status, reading);
+    }
+
+    public static string GetCfuUnit(SampleCategory category, string? prepUnit)
+    {
+        return category switch
+        {
+            SampleCategory.Water
+                => "CFU/mL",
+            SampleCategory.EnvironmentalMonitoring
+                => prepUnit == "25cm2" ? "CFU/25cm²" : "CFU/plate/4h",
+            SampleCategory.AfterCleaning
+                => prepUnit == "ml" ? "CFU/mL" : "CFU/25cm²",
+            _ => prepUnit switch // Product, RM, PM
+            {
+                "ml"    => "CFU/mL",
+                "gm"    => "CFU/g",
+                "25cm2" => "CFU/25cm²",
+                _       => $"CFU/{prepUnit ?? "unit"}"
+            }
+        };
     }
 
     // GrowthObservation != NoGrowth mirrors the old GrowthObserved bool -
@@ -1178,12 +1442,51 @@ public class TestWorkflowEngine : ITestWorkflowEngine
         if (step.StepType is not (StepType.BrothEnrichment or StepType.SelectiveBroth))
             throw new InvalidOperationException($"Step '{stepName}' is not a broth step.");
 
-        // Load the incubation that was created when media was selected.
-        var incubation = await _db.Incubations
-            .Where(i => i.TestOrderId == testOrderId && i.StepName == stepName && i.CompletedAt == null)
+        // Load the incubation that was created when media was selected (handling step name casing / TSB aliases).
+        var incubations = await _db.Incubations
+            .Where(i => i.TestOrderId == testOrderId)
             .OrderByDescending(i => i.StartedAt)
-            .FirstOrDefaultAsync()
-            ?? throw new InvalidOperationException($"Media must be selected for step \"{stepName}\" before this submission.");
+            .ToListAsync();
+
+        var incubation = incubations.FirstOrDefault(i =>
+            i.CompletedAt == null &&
+            (string.Equals(i.StepName, stepName, StringComparison.OrdinalIgnoreCase) ||
+             (step.StepType == StepType.BrothEnrichment && (i.StepName.Contains("Broth", StringComparison.OrdinalIgnoreCase) || i.StepName.Contains("TSB", StringComparison.OrdinalIgnoreCase)))));
+
+        if (incubation == null)
+        {
+            // Check if there is an already completed incubation (e.g. from Shared TSB or previous completion)
+            var completedInc = incubations.FirstOrDefault(i =>
+                string.Equals(i.StepName, stepName, StringComparison.OrdinalIgnoreCase) ||
+                (step.StepType == StepType.BrothEnrichment && (i.StepName.Contains("Broth", StringComparison.OrdinalIgnoreCase) || i.StepName.Contains("TSB", StringComparison.OrdinalIgnoreCase))));
+
+            if (completedInc != null)
+            {
+                var existingResult = await _db.WorkflowStepResults
+                    .FirstOrDefaultAsync(r => r.TestOrderId == testOrderId && (r.StepName == step.StepName || r.StepName == stepName));
+
+                if (existingResult == null)
+                {
+                    existingResult = new WorkflowStepResult
+                    {
+                        IncubationId = completedInc.Id,
+                        TestOrderId = testOrderId,
+                        StepName = step.StepName,
+                        StepType = step.StepType,
+                        SubmittedByUserId = userId,
+                        SubmittedAtUtc = DateTime.UtcNow,
+                        IsSharedSessionStep = true
+                    };
+                    _db.WorkflowStepResults.Add(existingResult);
+                    await _db.SaveChangesAsync();
+                }
+
+                return new StepResultDto(completedInc.Id, step.StepType.ToString(), "Complete",
+                    userId, existingResult.SubmittedAtUtc, NextStepUnlocked: true, WorkflowFinalResult: null, Flags: new List<string>());
+            }
+
+            throw new InvalidOperationException($"Media must be selected for step \"{stepName}\" before this submission.");
+        }
 
         // Verify that the minimum duration has elapsed.
         var minReadyAt = incubation.IncubationStartUtc!.Value.AddHours((double)step.IncubationMinHours);
@@ -1197,17 +1500,34 @@ public class TestWorkflowEngine : ITestWorkflowEngine
         incubation.Outcome = observation;
         await _db.SaveChangesAsync();
 
-        var result = new WorkflowStepResult
+        // A shared-TSB session can pre-create this row at incubation start
+        // (PathogenSessionService.StartSharedTsbAsync), before this method
+        // ever runs - guard against inserting a second one for the same
+        // (TestOrderId, StepName) here, same as the no-open-incubation
+        // branch above already does. Without this, GetCurrentStep's
+        // ToDictionaryAsync(r => r.StepName, ...) throws on the duplicate.
+        var result = await _db.WorkflowStepResults
+            .FirstOrDefaultAsync(r => r.TestOrderId == testOrderId && r.StepName == step.StepName);
+        if (result is null)
         {
-            IncubationId = incubation.Id,
-            TestOrderId = testOrderId,
-            StepName = step.StepName,
-            StepType = step.StepType,
-            SubmittedByUserId = userId,
-            SubmittedAtUtc = DateTime.UtcNow
-        };
-        _db.WorkflowStepResults.Add(result);
-        await _db.SaveChangesAsync();
+            result = new WorkflowStepResult
+            {
+                IncubationId = incubation.Id,
+                TestOrderId = testOrderId,
+                StepName = step.StepName,
+                StepType = step.StepType,
+                SubmittedByUserId = userId,
+                SubmittedAtUtc = DateTime.UtcNow,
+                IsSharedSessionStep = true
+            };
+            _db.WorkflowStepResults.Add(result);
+            await _db.SaveChangesAsync();
+        }
+
+        if (step.StepType == StepType.BrothEnrichment || step.StepName.Contains("TSB", StringComparison.OrdinalIgnoreCase))
+        {
+            await PropagateSharedTsbToSiblingOrdersAsync(testOrderId, incubation.Id, userId);
+        }
 
         return new StepResultDto(incubation.Id, step.StepType.ToString(), "Complete",
             userId, result.SubmittedAtUtc, NextStepUnlocked: true, WorkflowFinalResult: null, Flags: new List<string>());
@@ -1237,7 +1557,9 @@ public class TestWorkflowEngine : ITestWorkflowEngine
             throw new InvalidOperationException($"Incubation has already been started for step \"{stepName}\" - awaiting its result.");
 
         var stepMedium = await RequireSingleStepMediumAsync(step);
-        var lot = await LoadReleasedLotAsync(mediaLotId, stepMedium.MaterialId, step.MediaTypeId);
+        // SelectivePlating always has a MediaTypeId - only BiochemicalTest
+        // (checked out above) leaves it null.
+        var lot = await LoadReleasedLotAsync(mediaLotId, stepMedium.MaterialId, step.MediaTypeId!.Value);
         await RequireEligibleIncubatorAsync(stepMedium.Id, equipmentId);
 
         var startedAt = incubationStartUtc ?? DateTime.UtcNow;
@@ -1400,6 +1722,9 @@ public class TestWorkflowEngine : ITestWorkflowEngine
             throw new WorkflowStepException(WorkflowErrorCodes.NoMediaSelected,
                 "At least one confirmatory medium must be selected.");
 
+        var durationMax = step.IncubationMaxHours > 0 ? step.IncubationMaxHours : 24;
+        incubationEndUtc = incubationStartUtc.AddHours((double)durationMax);
+
         RequireValidIncubationWindow(step, incubationStartUtc, incubationEndUtc);
 
         var permitted = await _db.TestWorkflowStepMedias
@@ -1420,7 +1745,9 @@ public class TestWorkflowEngine : ITestWorkflowEngine
                 throw new WorkflowStepException(WorkflowErrorCodes.IncompleteConfirmatorySetup,
                     "Every selected medium needs a lot and an incubator.");
 
-            var lot = await LoadReleasedLotAsync(selection.MediaLotId, medium.MaterialId, step.MediaTypeId);
+            // ConfirmatoryPlating always has a MediaTypeId - only
+            // BiochemicalTest (checked out above) leaves it null.
+            var lot = await LoadReleasedLotAsync(selection.MediaLotId, medium.MaterialId, step.MediaTypeId!.Value);
             await RequireEligibleIncubatorAsync(medium.Id, selection.EquipmentId);
             resolved.Add((medium, lot, selection.EquipmentId));
         }
@@ -1613,20 +1940,44 @@ public class TestWorkflowEngine : ITestWorkflowEngine
             throw new WorkflowStepException(WorkflowErrorCodes.BiochemicalResultRequired,
                 "A biochemical result is required.");
 
-        var confirmatory = await _db.WorkflowStepResults
-            .Where(r => r.TestOrderId == testOrderId && r.StepType == StepType.ConfirmatoryPlating)
+        var siblingSteps = await _db.TestWorkflowSteps
+            .Where(s => s.TestDefinitionId == step.TestDefinitionId)
+            .ToListAsync();
+
+        // A biochemical step attaches to whichever plate-based step
+        // (SelectivePlating or ConfirmatoryPlating) is its nearest
+        // preceding step in the configured template - not hardcoded to
+        // ConfirmatoryPlating, since some organisms (e.g. Burkholderia
+        // cepacia complex) go straight from SelectivePlating to phenotypic
+        // confirmatory tests with no ConfirmatoryPlating step at all.
+        // Intervening BiochemicalTest steps (e.g. a prior Oxidase step) are
+        // skipped so every biochemical step in a chain shares the same
+        // underlying plate/incubation.
+        var precedingPlateStep = siblingSteps
+            .Where(s => s.StepOrder < step.StepOrder && (s.StepType == StepType.SelectivePlating || s.StepType == StepType.ConfirmatoryPlating))
+            .OrderByDescending(s => s.StepOrder)
+            .FirstOrDefault()
+            ?? throw new InvalidOperationException(
+                $"Step \"{stepName}\" has no preceding selective or confirmatory plating step configured - check Test Master.");
+
+        var precedingResult = await _db.WorkflowStepResults
+            .Where(r => r.TestOrderId == testOrderId && r.StepName == precedingPlateStep.StepName)
             .OrderByDescending(r => r.Id)
             .FirstOrDefaultAsync()
-            ?? throw new InvalidOperationException("Confirmatory plating has not been completed for this test order.");
+            ?? throw new InvalidOperationException($"Step \"{precedingPlateStep.StepName}\" has not been completed for this test order.");
 
-        if (confirmatory.ConfirmatoryResult != ConfirmatoryResult.AllConforming)
-            throw new InvalidOperationException("A biochemical test is only available after an all-conforming confirmatory result.");
+        var precedingConforms = precedingPlateStep.StepType == StepType.ConfirmatoryPlating
+            ? precedingResult.ConfirmatoryResult == ConfirmatoryResult.AllConforming
+            : precedingResult.SelectivePlatingObservation == GrowthObservation.GrowthConforming;
+        if (!precedingConforms)
+            throw new InvalidOperationException(
+                $"A biochemical test is only available after a conforming result on \"{precedingPlateStep.StepName}\".");
 
-        // Reuses the confirmatory step's incubation as the step instance
-        // - a biochemical test has no incubation window of its own.
+        // Reuses the preceding plate-based step's incubation as the step
+        // instance - a biochemical test has no incubation window of its own.
         var result = new WorkflowStepResult
         {
-            IncubationId = confirmatory.IncubationId, TestOrderId = testOrderId,
+            IncubationId = precedingResult.IncubationId, TestOrderId = testOrderId,
             StepName = step.StepName, StepType = step.StepType,
             BiochemicalResultText = biochemicalResultText, BiochemicalAttachmentId = attachmentId,
             SkippedBiochemical = false,
@@ -1634,10 +1985,23 @@ public class TestWorkflowEngine : ITestWorkflowEngine
         };
         _db.WorkflowStepResults.Add(result);
 
-        // Clears a reviewer's outstanding send-back, if there was one.
-        confirmatory.RequiresBiochemical = false;
-        confirmatory.SkippedBiochemical = false;
+        // Clears a reviewer's outstanding send-back, if there was one -
+        // only ConfirmatoryPlating ever sets these, so this is a no-op
+        // (already false) when the predecessor is SelectivePlating.
+        precedingResult.RequiresBiochemical = false;
+        precedingResult.SkippedBiochemical = false;
         await _db.SaveChangesAsync();
+
+        // Some organisms chain several BiochemicalTest steps off the same
+        // plate predecessor (e.g. Oxidase then Identification kit for
+        // Burkholderia cepacia complex) - only the last one finalizes the
+        // order. Mirrors the IsFinalStep/max-StepOrder fallback used
+        // elsewhere in this file, so a stale/missing Final Step flag
+        // doesn't strand the order on a non-final step.
+        var isLastStep = step.IsFinalStep || step.StepOrder == siblingSteps.Max(s => s.StepOrder);
+        if (!isLastStep)
+            return new StepResultDto(result.IncubationId, step.StepType.ToString(), "Complete",
+                userId, result.SubmittedAtUtc, NextStepUnlocked: true, WorkflowFinalResult: null, Flags: new List<string>());
 
         await FinalizeWorkflowAsync(testOrderId, "Detected", userId);
 

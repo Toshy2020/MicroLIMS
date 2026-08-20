@@ -629,6 +629,73 @@ export function PrimaryObservationMatrixPanel({ session, onUpdated, onNext }: Pr
                       (!isQuant && val.observation !== "")
                     );
 
+                    const countResult = t.countResult;
+                    const hasRecordedCountResult = countResult?.reportedResult != null;
+
+                    if (isQuant && hasRecordedCountResult && countResult) {
+                      const bgColor =
+                        countResult.status === "OutOfSpecification"
+                          ? "#fee2e2"
+                          : countResult.status === "ActionLimitExceeded"
+                          ? "#ffedd5"
+                          : countResult.status === "AlertLimitExceeded" || countResult.hasNonNumericReading
+                          ? "#fef3c7"
+                          : "#f0fdf4";
+
+                      const borderColor =
+                        countResult.status === "OutOfSpecification"
+                          ? "#fca5a5"
+                          : countResult.status === "ActionLimitExceeded"
+                          ? "#fdba74"
+                          : countResult.status === "AlertLimitExceeded" || countResult.hasNonNumericReading
+                          ? "#fcd34d"
+                          : "#bbf7d0";
+
+                      const textColor =
+                        countResult.status === "OutOfSpecification"
+                          ? "#991b1b"
+                          : countResult.status === "ActionLimitExceeded"
+                          ? "#9a3412"
+                          : countResult.status === "AlertLimitExceeded" || countResult.hasNonNumericReading
+                          ? "#92400e"
+                          : "#166534";
+
+                      return (
+                        <TableCell
+                          key={t.testCode}
+                          align="center"
+                          sx={{
+                            p: 1,
+                            borderRight: "1px solid #f1f5f9"
+                          }}
+                        >
+                          <Box
+                            sx={{
+                              p: 1,
+                              borderRadius: 1,
+                              minWidth: 110,
+                              backgroundColor: bgColor,
+                              border: `1px solid ${borderColor}`
+                            }}
+                          >
+                            <Typography variant="body2" sx={{ fontWeight: 700, color: textColor }}>
+                              {countResult.reportedResult}
+                            </Typography>
+                            {!countResult.hasNonNumericReading && countResult.status && (
+                              <Typography variant="caption" sx={{ color: textColor, display: "block" }}>
+                                {countResult.status.replace(/([A-Z])/g, " $1").trim()}
+                              </Typography>
+                            )}
+                            {countResult.requiresReview && (
+                              <Typography variant="caption" sx={{ color: "#92400e", display: "block", fontWeight: 600 }}>
+                                ⚠ Review required
+                              </Typography>
+                            )}
+                          </Box>
+                        </TableCell>
+                      );
+                    }
+
                     return (
                       <TableCell
                         key={t.testCode}

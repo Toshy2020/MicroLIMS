@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.DTOs;
+using MicroLIMS.Application.Helpers;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Infrastructure.Pdf;
@@ -56,6 +57,17 @@ public class SampleSummaryService
             .Where(l => testOrderIds.Contains(l.TestOrderId))
             .Include(l => l.RoomTestConfiguration!).ThenInclude(c => c.Room)
             .Include(l => l.MachinePartConfiguration!).ThenInclude(c => c.MachinePart)
+            .Include(l => l.WaterSamplingPoint)
+            .Include(l => l.SamplingConfiguration!).ThenInclude(c => c.WaterSamplingPoint)
+            .ToListAsync();
+        var locationPathogenObservations = await _db.LocationPathogenObservations
+            .Where(o => testOrderIds.Contains(o.TestOrderId))
+            .Include(o => o.SampleLocation!).ThenInclude(l => l.RoomTestConfiguration!).ThenInclude(c => c.Room)
+            .Include(o => o.SampleLocation!).ThenInclude(l => l.MachinePartConfiguration!).ThenInclude(c => c.MachinePart)
+            .Include(o => o.SampleLocation!).ThenInclude(l => l.WaterSamplingPoint)
+            .Include(o => o.SampleLocation!).ThenInclude(l => l.SamplingConfiguration!).ThenInclude(c => c.WaterSamplingPoint)
+            .Include(o => o.ConfirmatoryPlateObservations)
+            .OrderBy(o => o.ObservedAt)
             .ToListAsync();
         var testDefinitions = await _db.TestDefinitions
             .Include(t => t.Steps)
@@ -78,6 +90,7 @@ public class SampleSummaryService
         var userIds = new HashSet<int>(results.Select(r => r.EnteredByUserId)
             .Concat(countTestReadings.Select(r => r.EnteredByUserId))
             .Concat(pathogenObservations.Select(p => p.ObservedByUserId))
+            .Concat(locationPathogenObservations.Select(o => o.ObservedByUserId))
             .Concat(workflowHistory.Select(w => w.PerformedByUserId))
             .Concat(sampleLocations.Where(l => l.EnteredByUserId is not null).Select(l => l.EnteredByUserId!.Value))
             .Concat(incubations.Where(i => i.StartedByUserId is not null).Select(i => i.StartedByUserId!.Value))
@@ -89,10 +102,7 @@ public class SampleSummaryService
         var names = await _db.Users.Where(u => userIds.Contains(u.Id)).ToDictionaryAsync(u => u.Id, u => u.FullName);
         string NameOf(int userId) => names.TryGetValue(userId, out var n) ? n : "Unknown";
 
-        var sharedTsbInc = incubations.FirstOrDefault(i =>
-            !string.IsNullOrEmpty(i.StepName) &&
-            (i.StepName.Contains("TSB", StringComparison.OrdinalIgnoreCase) ||
-             i.StepName.Contains("Enrichment", StringComparison.OrdinalIgnoreCase)));
+        var sharedTsbInc = TsbDetectionHelper.FindSharedTsbIncubation(incubations);
 
         int tsbHoursMin = 24;
         foreach (var def in testDefinitions.Values)
@@ -110,15 +120,10 @@ public class SampleSummaryService
 
         bool tsbStarted = sharedTsbInc != null;
         DateTime? tsbStart = sharedTsbInc?.IncubationStartUtc ?? sharedTsbInc?.StartedAt;
-        DateTime? tsbMinReadyAt = tsbStart?.AddHours(tsbHoursMin);
+        DateTime? tsbMinReadyAt = TsbDetectionHelper.GetTsbMinReadyAt(sharedTsbInc, tsbHoursMin);
 
-        bool tsbIncubating = tsbStarted &&
-                             tsbMinReadyAt.HasValue &&
-                             DateTime.UtcNow < tsbMinReadyAt.Value &&
-                             !sharedTsbInc!.CompletedAt.HasValue;
-        bool tsbCompleted = tsbStarted &&
-                            (sharedTsbInc!.CompletedAt.HasValue ||
-                             (tsbMinReadyAt.HasValue && DateTime.UtcNow >= tsbMinReadyAt.Value));
+        bool tsbIncubating = TsbDetectionHelper.IsTsbIncubating(sharedTsbInc, tsbHoursMin, DateTime.UtcNow);
+        bool tsbCompleted = TsbDetectionHelper.IsTsbComplete(sharedTsbInc, tsbHoursMin, DateTime.UtcNow);
 
         var dto = new SampleSummaryDto
         {
@@ -177,129 +182,95 @@ public class SampleSummaryService
                     step.StepName.Contains("TSB", StringComparison.OrdinalIgnoreCase) ||
                     (step.MediaType != null && (step.MediaType.Class == MediaClass.GeneralBroth || step.MediaType.Class == MediaClass.SelectiveBroth))) ?? false;
 
-                string workflowState;
-                string workflowStateDisplay;
-                bool isLocked;
-                bool isResultAllowed;
-                string? lockReason = null;
+                var orderIncubations = incubations.Where(i => i.TestOrderId == order.Id).ToList();
+                var stateResult = WorkflowStateResolver.Resolve(order, usesTsb, sharedTsbInc, orderIncubations, null, DateTime.UtcNow);
 
-                if (order.Status == ApprovalStatus.Approved)
-                {
-                    workflowState = "APPROVED";
-                    workflowStateDisplay = "Completed & Approved";
-                    isLocked = false;
-                    isResultAllowed = false;
-                }
-                else if (order.CurrentStep == WorkflowStep.Ready)
-                {
-                    workflowState = "RESULTS_RECORDED";
-                    workflowStateDisplay = "Result Recorded — Pending Review";
-                    isLocked = false;
-                    isResultAllowed = true;
-                }
-                else if (usesTsb)
-                {
-                    if (!tsbStarted)
-                    {
-                        workflowState = "PENDING";
-                        workflowStateDisplay = "Pending";
-                        isLocked = true;
-                        isResultAllowed = false;
-                        lockReason = "TSB broth enrichment setup required";
-                    }
-                    else if (tsbIncubating)
-                    {
-                        workflowState = "TSB_INCUBATING";
-                        workflowStateDisplay = "TSB Incubating";
-                        isLocked = true;
-                        isResultAllowed = false;
-                        lockReason = "Locked until TSB incubation is complete";
-                    }
-                    else if (tsbCompleted)
-                    {
-                        workflowState = "READY_FOR_DOWNSTREAM";
-                        workflowStateDisplay = "Ready for Downstream Testing";
-                        isLocked = false;
-                        isResultAllowed = true;
-                    }
-                    else
-                    {
-                        workflowState = "PENDING";
-                        workflowStateDisplay = "Pending";
-                        isLocked = true;
-                        isResultAllowed = false;
-                    }
-                }
-                else
-                {
-                    // Non-TSB count test / independent test
-                    var openCountIncubation = incubations.FirstOrDefault(i =>
-                        i.TestOrderId == order.Id &&
-                        i.CompletedAt == null &&
-                        i.IncubationStartUtc.HasValue &&
-                        !i.StepName.Contains("TSB", StringComparison.OrdinalIgnoreCase) &&
-                        !i.StepName.Contains("Enrichment", StringComparison.OrdinalIgnoreCase));
+                var orderPathogenObs = locationPathogenObservations.Where(o => o.TestOrderId == order.Id).ToList();
 
-                    if (openCountIncubation != null)
+                List<SampleLocationDetailDto> locationDtos;
+                if (orderPathogenObs.Count > 0)
+                {
+                    locationDtos = orderPathogenObs.Select(obs =>
                     {
-                        var countStep = def?.Steps.FirstOrDefault(s => s.StepName == openCountIncubation.StepName);
-                        var minHours = countStep?.IncubationMinHours > 0 ? countStep.IncubationMinHours : (countStep?.MediaType?.IncubationMinHours ?? 0);
-                        var minReadyAt = openCountIncubation.IncubationStartUtc!.Value.AddHours((double)minHours);
+                        string reportedResult;
+                        string status;
 
-                        if (DateTime.UtcNow < minReadyAt)
+                        if (obs.ConfirmatoryPlateObservations != null && obs.ConfirmatoryPlateObservations.Count > 0)
                         {
-                            workflowState = "COUNT_INCUBATING";
-                            workflowStateDisplay = "Testing / Incubation In Progress";
-                            isLocked = true;
-                            isResultAllowed = false;
-                            lockReason = $"Count incubation in progress. Available from: {minReadyAt:dd/MM/yyyy HH:mm}";
+                            var plates = obs.ConfirmatoryPlateObservations.ToList();
+                            var allConforming = plates.All(p => p.Observation == GrowthObservation.GrowthConforming);
+                            var allNoGrowth = plates.All(p => p.Observation == GrowthObservation.NoGrowth);
+
+                            if (allConforming)
+                            {
+                                reportedResult = "Detected (+)";
+                                status = "OutOfSpecification";
+                            }
+                            else if (allNoGrowth)
+                            {
+                                reportedResult = "Not Detected (-)";
+                                status = "WithinLimits";
+                            }
+                            else
+                            {
+                                reportedResult = "Inconclusive (Retest)";
+                                status = "RequiresReview";
+                            }
+                        }
+                        else if (obs.SampleLocation != null && !string.IsNullOrWhiteSpace(obs.SampleLocation.ReportedResult) && obs.SampleLocation.Status != "PendingConfirmation")
+                        {
+                            reportedResult = obs.SampleLocation.ReportedResult;
+                            status = obs.SampleLocation.Status == "Detected" ? "OutOfSpecification" : obs.SampleLocation.Status == "Absent" ? "WithinLimits" : obs.SampleLocation.Status ?? "WithinLimits";
                         }
                         else
                         {
-                            workflowState = "AWAITING_RESULTS";
-                            workflowStateDisplay = "Ready — Awaiting Primary Readings";
-                            isLocked = false;
-                            isResultAllowed = true;
-                            lockReason = null;
+                            reportedResult = obs.GrowthObservation switch
+                            {
+                                GrowthObservation.NoGrowth => "Not Detected (-)",
+                                GrowthObservation.GrowthNonConforming => "Growth Non-Conforming",
+                                GrowthObservation.GrowthConforming => "Growth Conforming (Presumptive +)",
+                                _ => "—"
+                            };
+                            status = obs.GrowthObservation == GrowthObservation.NoGrowth
+                                ? "WithinLimits"
+                                : "PendingConfirmation";
                         }
-                    }
-                    else if (order.CurrentStep == WorkflowStep.Incubating)
-                    {
-                        workflowState = "INCUBATING";
-                        workflowStateDisplay = "Testing / Incubation In Progress";
-                        isLocked = true;
-                        isResultAllowed = false;
-                        lockReason = "Incubation in progress";
-                    }
-                    else if (order.CurrentStep == WorkflowStep.Running)
-                    {
-                        workflowState = "RUNNING";
-                        workflowStateDisplay = "Testing In Progress";
-                        isLocked = false;
-                        isResultAllowed = true;
-                    }
-                    else
-                    {
-                        workflowState = "PENDING";
-                        workflowStateDisplay = "Pending";
-                        isLocked = false;
-                        isResultAllowed = true;
-                    }
-                }
 
-                string workflowStatus = workflowState switch
+                        return new SampleLocationDetailDto
+                        {
+                            LocationKey = ResolveLocationKey(obs.SampleLocation),
+                            LocationName = ResolveLocationName(obs.SampleLocation),
+                            GradeClassification = obs.SampleLocation?.RoomTestConfiguration?.Room?.GradeClassification,
+                            AlertLimit = null,
+                            ActionLimit = null,
+                            SpecLimit = null,
+                            CFUResult = null,
+                            CalculatedResult = null,
+                            ReportedResult = reportedResult,
+                            Status = status,
+                            EnteredByName = NameOf(obs.ObservedByUserId),
+                            EnteredAt = obs.ObservedAt
+                        };
+                    }).ToList();
+                }
+                else
                 {
-                    "TSB_INCUBATING"       => "InProgress",
-                    "COUNT_INCUBATING"     => "InProgress",
-                    "INCUBATING"           => "InProgress",
-                    "RUNNING"              => "InProgress",
-                    "READY_FOR_DOWNSTREAM" => "ReadyToRead",
-                    "TSB_READY"            => "ReadyToRead",
-                    "AWAITING_RESULTS"     => "EnterResult",
-                    "RESULTS_RECORDED"     => "PendingReview",
-                    "APPROVED"             => "Completed",
-                    _                      => "Pending"
-                };
+                    locationDtos = sampleLocations.Where(l => l.TestOrderId == order.Id).Select(l => new SampleLocationDetailDto
+                    {
+                        LocationKey = ResolveLocationKey(l),
+                        LocationName = ResolveLocationName(l),
+                        GradeClassification = l.RoomTestConfiguration?.Room?.GradeClassification,
+                        AlertLimit = l.AlertLimit,
+                        ActionLimit = l.ActionLimit,
+                        SpecLimit = l.SpecLimit,
+                        CFUResult = l.CFUResult,
+                        CalculatedResult = l.CalculatedResult,
+                        ReportedResult = l.ReportedResult,
+                        Status = l.Status,
+                        EnteredByName = l.EnteredByUserId is not null ? NameOf(l.EnteredByUserId.Value) : null,
+                        EnteredAt = l.EnteredAt
+                    }).ToList();
+                }
 
                 return new TestOrderSummaryDetailDto
                 {
@@ -308,13 +279,13 @@ public class SampleSummaryService
                     TestDisplayName = def?.DisplayName ?? order.TestCode,
                     Status = order.Status.ToString(),
                     CurrentStep = order.CurrentStep.ToString(),
-                    WorkflowState = workflowState,
-                    WorkflowStateDisplay = workflowStateDisplay,
-                    WorkflowStatus = workflowStatus,
+                    WorkflowState = stateResult.WorkflowState,
+                    WorkflowStateDisplay = stateResult.WorkflowStateDisplay,
+                    WorkflowStatus = stateResult.WorkflowStatus,
                     UsesSharedTsb = usesTsb,
-                    IsWorkflowLocked = isLocked,
-                    IsResultEntryAllowed = isResultAllowed,
-                    ResultLockReason = lockReason,
+                    IsWorkflowLocked = stateResult.IsWorkflowLocked,
+                    IsResultEntryAllowed = stateResult.IsResultEntryAllowed,
+                    ResultLockReason = stateResult.LockReason,
                     IsSuperseded = order.IsSuperseded,
                     Incubations = incubations.Where(i => i.TestOrderId == order.Id)
                         .OrderBy(i => i.StepNumber).ThenBy(i => i.StageNumber)
@@ -426,20 +397,7 @@ public class SampleSummaryService
                     PerformedByName = NameOf(w.PerformedByUserId),
                     Timestamp = w.Timestamp
                 }).ToList(),
-                Locations = sampleLocations.Where(l => l.TestOrderId == order.Id).Select(l => new SampleLocationDetailDto
-                {
-                    LocationName = l.RoomTestConfiguration?.Room?.Name ?? l.MachinePartConfiguration?.MachinePart?.Name ?? string.Empty,
-                    GradeClassification = l.RoomTestConfiguration?.Room?.GradeClassification,
-                    AlertLimit = l.AlertLimit,
-                    ActionLimit = l.ActionLimit,
-                    SpecLimit = l.SpecLimit,
-                    CFUResult = l.CFUResult,
-                    CalculatedResult = l.CalculatedResult,
-                    ReportedResult = l.ReportedResult,
-                    Status = l.Status,
-                    EnteredByName = l.EnteredByUserId is not null ? NameOf(l.EnteredByUserId.Value) : null,
-                    EnteredAt = l.EnteredAt
-                }).ToList()
+                Locations = locationDtos
                 };
             }).ToList()
         };
@@ -567,7 +525,7 @@ public class SampleSummaryService
                 {
                     lines.Add($"    Plate Readings: {r.PlateReadings}   Dilution Factor: {r.DilutionFactor}");
                     lines.Add($"    Average: {r.Average}   Calculated: {r.CalculatedResult}   Reported Result: {r.ReportedResult}   Status: {r.Status}");
-                    lines.Add($"    Limits (Alert/Action/Spec): {r.AlertLimit ?? "-"} / {r.ActionLimit ?? "-"} / {r.SpecLimit ?? "-"}");
+                    lines.Add($"    Limits (Alert/Action/Spec): {FormatLimit(r.AlertLimit)} / {FormatLimit(r.ActionLimit)} / {FormatLimit(r.SpecLimit)}");
                     lines.Add($"    Entered By: {r.EnteredByName}   Entered At: {FormatDateTime(r.EnteredAt)}");
                 }
             }
@@ -617,4 +575,37 @@ public class SampleSummaryService
     }
 
     private static string FormatDateTime(DateTime? d) => d is null ? "-" : d.Value.ToString("dd-MMM-yyyy HH:mm");
+    private static string FormatLimit(string? limit) => string.IsNullOrWhiteSpace(limit) ? "-" : limit;
+
+    // The physical location's stable identity, independent of
+    // ResolveLocationName's display text (which can collide - e.g.
+    // several water sampling points sharing the same "WTU" label). Feeds
+    // SampleLocationDetailDto.LocationKey.
+    private static string ResolveLocationKey(SampleLocation? loc)
+    {
+        if (loc == null) return $"None:{Guid.NewGuid()}";
+        if (loc.WaterSamplingPointId is int directWaterId) return $"Water:{directWaterId}";
+        if (loc.SamplingConfiguration?.WaterSamplingPointId is int configWaterId) return $"Water:{configWaterId}";
+        if (loc.RoomTestConfigurationId is int roomId) return $"Room:{roomId}";
+        if (loc.MachinePartConfigurationId is int partId) return $"MachinePart:{partId}";
+        return $"Loc:{loc.Id}";
+    }
+
+    private static string ResolveLocationName(SampleLocation? loc)
+    {
+        if (loc == null) return "—";
+        if (loc.WaterSamplingPoint != null)
+            return !string.IsNullOrWhiteSpace(loc.WaterSamplingPoint.Code)
+                ? loc.WaterSamplingPoint.Code
+                : loc.WaterSamplingPoint.Location ?? "—";
+        if (loc.SamplingConfiguration?.WaterSamplingPoint != null)
+            return !string.IsNullOrWhiteSpace(loc.SamplingConfiguration.WaterSamplingPoint.Code)
+                ? loc.SamplingConfiguration.WaterSamplingPoint.Code
+                : loc.SamplingConfiguration.WaterSamplingPoint.Location ?? "—";
+        if (loc.RoomTestConfiguration?.Room != null)
+            return loc.RoomTestConfiguration.Room.Name ?? "—";
+        if (loc.MachinePartConfiguration?.MachinePart != null)
+            return loc.MachinePartConfiguration.MachinePart.Name ?? "—";
+        return $"Location {loc.Id}";
+    }
 }

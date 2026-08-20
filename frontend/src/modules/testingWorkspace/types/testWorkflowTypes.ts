@@ -22,7 +22,7 @@ export interface TestWorkflowStepDto {
   id: number;
   stepOrder: number;
   stepName: string;
-  mediaTypeId: number;
+  mediaTypeId: number | null;
   stepType: StepType;
   targetOrganismId: number | null;
   mediaType: { id: number; class: string } | null;
@@ -56,6 +56,24 @@ export interface SampleContext {
   systemReferenceNumber: string | null;
   sampleType: string;
   stage?: string; // present only when sampleType === "FinishedProduct" - omitted entirely otherwise, never null
+  preparationUnit?: string | null;
+  cfuUnit?: string | null;
+}
+
+export interface SiblingPathogenOrder {
+  testOrderId: number;
+  pathogenName: string;
+  testCode: string;
+}
+
+export interface SharedTsbSummary {
+  mediaLotNumber: string | null;
+  incubatorCode: string | null;
+  incubationStartUtc: string | null;
+  incubationEndUtc: string | null;
+  minReadyAt: string | null;
+  startedByUserName: string;
+  isCompleted: boolean;
 }
 
 export interface PreviousStepDetail {
@@ -69,6 +87,7 @@ export interface PreviousStepDetail {
   incubationStartUtc: string | null;
   incubationEndUtc: string | null;
   observation: string | null;
+  isSharedSessionStep?: boolean;
 }
 
 export interface CompletedStepSummary {
@@ -93,6 +112,7 @@ export interface CurrentStepResponse {
   sampleContext: SampleContext;
   incubationLock: IncubationLock | null;
   previousSteps: PreviousStepDetail[];
+  sharedTsbSummary?: SharedTsbSummary | null;
   allStepsComplete: boolean;
   finalResult: string | null;
   allSteps: { stepOrder: number; stepName: string }[];

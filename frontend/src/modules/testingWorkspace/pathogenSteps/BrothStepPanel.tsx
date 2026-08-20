@@ -1,12 +1,23 @@
 import { useEffect, useState } from "react";
-import { Typography, Select, MenuItem, Button, Stack, Alert } from "@mui/material";
+import {
+  Typography, Select, MenuItem, Button, Stack, Alert, AlertTitle, Box,
+  Dialog, DialogTitle, DialogContent, DialogActions, List, ListItem,
+  ListItemIcon, ListItemText, CircularProgress
+} from "@mui/material";
+import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
+import CheckIcon from "@mui/icons-material/Check";
+import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import { TestWorkflowService } from "../services/TestWorkflowService";
-import { TestWorkflowStepDto, PermittedConfirmatoryMediaEntry } from "../types/testWorkflowTypes";
+import {
+  TestWorkflowStepDto, PermittedConfirmatoryMediaEntry, CurrentStepResponse, SiblingPathogenOrder
+} from "../types/testWorkflowTypes";
 import { parseWorkflowError, workflowErrorDisplayMessage } from "../utils/workflowErrors";
 
 interface Props {
   testOrderId: number;
   step: TestWorkflowStepDto;
+  current?: CurrentStepResponse;
   onSubmitted: () => void;
 }
 
@@ -16,13 +27,25 @@ interface Props {
 // runs to completion regardless of what the analyst observes here
 // (the method requires it), so this must never be framed as a pass/fail
 // decision point. No observation field is presented.
-export function BrothStepPanel({ testOrderId, step, onSubmitted }: Props) {
+export function BrothStepPanel({ testOrderId, step, current, onSubmitted }: Props) {
   const [medium, setMedium] = useState<PermittedConfirmatoryMediaEntry | null>(null);
   const [incubators, setIncubators] = useState<{ id: number; name: string; code: string; setTemperature: number }[]>([]);
   const [mediaLotId, setMediaLotId] = useState<number | "">("");
   const [equipmentId, setEquipmentId] = useState<number | "">("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+
+  const [confirmationDialog, setConfirmationDialog] = useState<{
+    open: boolean;
+    siblingOrders: SiblingPathogenOrder[];
+    mediaLotLabel?: string;
+    incubatorLabel?: string;
+    incubationStart?: string;
+  }>({
+    open: false,
+    siblingOrders: []
+  });
 
   useEffect(() => {
     setLoading(true);
@@ -40,12 +63,98 @@ export function BrothStepPanel({ testOrderId, step, onSubmitted }: Props) {
       .finally(() => setLoading(false));
   }, [testOrderId, step.stepName]);
 
-  const submit = async () => {
+  // Entry Point C: Check if shared TSB is already recorded for this sample.
+  // Gated strictly to BrothEnrichment (primary non-selective enrichment) — never SelectiveBroth (e.g. RVS)
+  const isBrothEnrichmentStep = step.stepType === "BrothEnrichment";
+  const sharedTsb = current?.sharedTsbSummary;
+  const isSharedBrothComplete = current?.previousSteps?.some(
+    (p) => (p.stepName === "Broth Enrichment" || p.stepName.includes("TSB")) &&
+           p.isSharedSessionStep === true &&
+           (p.status === "Complete" || p.status === "Incubating")
+  );
+
+  const isSharedTsbApplied = isBrothEnrichmentStep && Boolean(sharedTsb || isSharedBrothComplete);
+
+  const handleProceedSharedTsb = async () => {
     setError(null);
-    if (!medium || !mediaLotId || !equipmentId) { 
-      setError("Select a media lot and an incubator."); 
-      return; 
+    setSaving(true);
+    try {
+      await TestWorkflowService.submitBroth(testOrderId, step.stepName, null);
+      onSubmitted();
+    } catch (e: any) {
+      const parsed = parseWorkflowError(e);
+      if (parsed.message?.includes("order violation") || parsed.message?.includes("already")) {
+        onSubmitted();
+      } else {
+        setError(workflowErrorDisplayMessage(parsed));
+      }
+    } finally {
+      setSaving(false);
     }
+  };
+
+  if (isSharedTsbApplied) {
+    const summary = sharedTsb ?? {
+      mediaLotNumber: current?.previousSteps?.find((p) => p.isSharedSessionStep)?.lotNumber ?? "TSB Lot",
+      incubatorCode: current?.previousSteps?.find((p) => p.isSharedSessionStep)?.incubatorName ?? "INC",
+      incubationStartUtc: current?.previousSteps?.find((p) => p.isSharedSessionStep)?.incubationStartUtc ?? new Date().toISOString(),
+      minReadyAt: current?.previousSteps?.find((p) => p.isSharedSessionStep)?.incubationEndUtc ?? new Date().toISOString(),
+      startedByUserName: "Analyst",
+      isCompleted: true
+    };
+
+    if (error) {
+      return (
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {error}
+        </Alert>
+      );
+    }
+
+    return (
+      <Box sx={{ p: 1 }}>
+        <Alert severity="success" icon={<CheckCircleIcon />} sx={{ mb: 2 }}>
+          <AlertTitle sx={{ fontWeight: 700 }}>Shared TSB Applied</AlertTitle>
+          This test is linked to the shared TSB for this sample. There is one shared tube per sample — no separate broth entry required.
+        </Alert>
+
+        <Box sx={{ backgroundColor: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 1.5, p: 2, mb: 2 }}>
+          <Typography variant="body2" sx={{ mb: 0.5 }}>
+            <strong>TSB Lot:</strong> {summary.mediaLotNumber ?? "Standard Lot"}
+          </Typography>
+          <Typography variant="body2" sx={{ mb: 0.5 }}>
+            <strong>Incubator:</strong> {summary.incubatorCode ?? "Standard Incubator"}
+          </Typography>
+          <Typography variant="body2" sx={{ mb: 0.5 }}>
+            <strong>Started:</strong> {summary.incubationStartUtc ? new Date(summary.incubationStartUtc).toLocaleString() : "Recorded"}
+          </Typography>
+          <Typography variant="body2" sx={{ mb: 0.5 }}>
+            <strong>By:</strong> {summary.startedByUserName}
+          </Typography>
+          {summary.minReadyAt && (
+            <Typography variant="body2" sx={{ color: "#6b7280", mt: 1 }}>
+              Available from: {new Date(summary.minReadyAt).toLocaleString()}
+            </Typography>
+          )}
+        </Box>
+
+        <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
+          <Button
+            variant="contained"
+            onClick={handleProceedSharedTsb}
+            disabled={saving}
+            startIcon={saving ? <CircularProgress size={16} color="inherit" /> : undefined}
+          >
+            {saving ? "Advancing..." : "Proceed to Next Step →"}
+          </Button>
+        </Box>
+      </Box>
+    );
+  }
+
+  const doStartIncubation = async () => {
+    setError(null);
+    setSaving(true);
     try {
       await TestWorkflowService.selectMedia(
         testOrderId, step.stepName, Number(mediaLotId), Number(equipmentId)
@@ -53,7 +162,43 @@ export function BrothStepPanel({ testOrderId, step, onSubmitted }: Props) {
       onSubmitted();
     } catch (e) {
       setError(workflowErrorDisplayMessage(parseWorkflowError(e)));
+    } finally {
+      setSaving(false);
     }
+  };
+
+  const handleStartIncubation = async () => {
+    setError(null);
+    if (!medium || !mediaLotId || !equipmentId) { 
+      setError("Select a media lot and an incubator."); 
+      return; 
+    }
+
+    try {
+      const siblings = await TestWorkflowService.getSiblingPathogenOrders(testOrderId);
+      if (siblings && siblings.length > 0) {
+        const selectedLot = medium.availableLots.find((l) => l.id === Number(mediaLotId));
+        const selectedInc = incubators.find((i) => i.id === Number(equipmentId));
+
+        setConfirmationDialog({
+          open: true,
+          siblingOrders: siblings,
+          mediaLotLabel: selectedLot?.lotNumber ?? `Lot #${mediaLotId}`,
+          incubatorLabel: selectedInc?.code ?? `Incubator #${equipmentId}`,
+          incubationStart: new Date().toLocaleString()
+        });
+        return;
+      }
+    } catch {
+      // If sibling query fails, proceed to save directly
+    }
+
+    await doStartIncubation();
+  };
+
+  const handleConfirmApplyToAll = async () => {
+    setConfirmationDialog((prev) => ({ ...prev, open: false }));
+    await doStartIncubation();
   };
 
   if (loading) return <Typography variant="body2">Loading step configuration…</Typography>;
@@ -82,8 +227,81 @@ export function BrothStepPanel({ testOrderId, step, onSubmitted }: Props) {
         <strong>Assigned Incubation:</strong> {step.incubationMinHours}–{step.incubationMaxHours} h
       </Typography>
       <Stack direction="row" justifyContent="flex-end">
-        <Button variant="contained" onClick={submit}>Start Incubation</Button>
+        <Button variant="contained" onClick={handleStartIncubation} disabled={saving}>
+          {saving ? "Starting..." : "Start Incubation"}
+        </Button>
       </Stack>
+
+      {/* Entry Point B — Sibling Confirmation Dialog */}
+      <Dialog
+        open={confirmationDialog.open}
+        maxWidth="sm"
+        fullWidth
+        onClose={() => setConfirmationDialog((prev) => ({ ...prev, open: false }))}
+      >
+        <DialogTitle sx={{ display: "flex", alignItems: "center", gap: 1, fontWeight: 700 }}>
+          <InfoOutlinedIcon sx={{ color: "#1565c0" }} />
+          Apply Shared TSB to All Pathogen Tests
+        </DialogTitle>
+        <DialogContent>
+          <Alert severity="info" sx={{ mb: 2 }}>
+            One TSB tube is shared across all pathogen tests for this sample.
+            There is one physical shared tube per sample — no per-test variation is permitted.
+          </Alert>
+
+          {/* TSB details */}
+          <Box sx={{ mb: 2, p: 1.5, backgroundColor: "#f8fafc", borderRadius: 1, border: "1px solid #e2e8f0" }}>
+            <Typography variant="body2">
+              <strong>TSB Lot:</strong> {confirmationDialog.mediaLotLabel}
+            </Typography>
+            <Typography variant="body2">
+              <strong>Incubator:</strong> {confirmationDialog.incubatorLabel}
+            </Typography>
+            <Typography variant="body2">
+              <strong>Started:</strong> {confirmationDialog.incubationStart}
+            </Typography>
+          </Box>
+
+          {/* Applies to list */}
+          <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 700 }}>
+            Applies to all pathogen tests for this sample:
+          </Typography>
+          <List dense sx={{ mb: 1, bgcolor: "#f8fafc", borderRadius: 1 }}>
+            {confirmationDialog.siblingOrders?.map((order) => (
+              <ListItem key={order.testOrderId} sx={{ py: 0.5 }}>
+                <ListItemIcon sx={{ minWidth: 28 }}>
+                  <CheckCircleOutlineIcon sx={{ fontSize: 18, color: "#2e7d32" }} />
+                </ListItemIcon>
+                <ListItemText
+                  primary={<strong>{order.pathogenName}</strong>}
+                  secondary={`Test Order #${order.testOrderId} (${order.testCode})`}
+                />
+              </ListItem>
+            ))}
+          </List>
+
+          {/* GMP note */}
+          <Typography variant="caption" sx={{ color: "#6b7280", display: "block", mt: 1 }}>
+            This action is recorded in the audit trail per ALCOA+ contemporaneous recording requirements.
+          </Typography>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button
+            variant="outlined"
+            onClick={() => setConfirmationDialog((prev) => ({ ...prev, open: false }))}
+          >
+            Cancel
+          </Button>
+          <Button
+            variant="contained"
+            onClick={handleConfirmApplyToAll}
+            disabled={saving}
+            startIcon={saving ? <CircularProgress size={16} color="inherit" /> : <CheckIcon />}
+          >
+            Confirm & Apply to All
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Stack>
   );
 }

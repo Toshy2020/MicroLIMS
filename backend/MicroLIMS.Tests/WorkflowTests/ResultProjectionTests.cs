@@ -88,7 +88,7 @@ public class ResultProjectionTests
         Assert.True(record.IsBelowDetectionLimit);
         Assert.Equal(1m, record.DetectionLimit);
         Assert.Equal(0.6m, record.NumericValue); // actual calculated result, not DetectionLimit/2
-        Assert.Equal("<1", record.ReportedValue);
+        Assert.Equal("<1 CFU/mL", record.ReportedValue);
         Assert.Equal(ResultKind.Quantitative, record.ResultKind);
     }
 

@@ -78,6 +78,15 @@ public class TestOrderSummaryDetailDto
 
 public class SampleLocationDetailDto
 {
+    // The underlying physical location's stable identity (Room/MachinePart/
+    // WaterSamplingPoint id, or the raw SampleLocation id as a last
+    // resort) - NOT the display name. LocationName is free text and not
+    // guaranteed unique (e.g. multiple water sampling points can share
+    // the same "WTU" label); a frontend matrix that groups rows across
+    // test orders must key on this instead, or it silently merges
+    // distinct locations the same way PathogenSessionService's
+    // display-name grouping once did.
+    public string LocationKey { get; set; } = string.Empty;
     public string LocationName { get; set; } = string.Empty;
     public string? GradeClassification { get; set; }
     public string? AlertLimit { get; set; }
@@ -131,13 +140,16 @@ public class CountTestReadingDetailDto
     public string? StepName { get; set; }
     public string PlateReadings { get; set; } = string.Empty;
     public decimal DilutionFactor { get; set; }
-    public decimal Average { get; set; }
-    public decimal CalculatedResult { get; set; }
+    public decimal? Average { get; set; }
+    public decimal? CalculatedResult { get; set; }
     public string ReportedResult { get; set; } = string.Empty;
     public string? AlertLimit { get; set; }
     public string? ActionLimit { get; set; }
     public string? SpecLimit { get; set; }
     public string Status { get; set; } = string.Empty;
+    public bool HasNonNumericReading { get; set; }
+    public string? NonNumericValue { get; set; }
+    public bool RequiresReview { get; set; }
     public string EnteredByName { get; set; } = string.Empty;
     public DateTime EnteredAt { get; set; }
 }

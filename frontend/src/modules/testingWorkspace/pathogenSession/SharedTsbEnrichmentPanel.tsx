@@ -34,10 +34,6 @@ export function SharedTsbEnrichmentPanel({ session, onUpdated, onNext }: Props) 
 
   const [selectedMediaId, setSelectedMediaId] = useState<number | "">("");
   const [selectedIncubatorId, setSelectedIncubatorId] = useState<number | "">("");
-  const [startDateTime, setStartDateTime] = useState<string>(
-    new Date().toISOString().slice(0, 16)
-  );
-
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -81,7 +77,7 @@ export function SharedTsbEnrichmentPanel({ session, onUpdated, onNext }: Props) 
       await PathogenSessionService.startSharedTsb(session.sampleId, {
         mediaLotId: Number(selectedMediaId),
         incubatorEquipmentId: Number(selectedIncubatorId),
-        incubationStartUtc: startDateTime ? new Date(startDateTime).toISOString() : new Date().toISOString()
+        incubationStartUtc: new Date().toISOString()
       });
       const updated = await PathogenSessionService.getSession(session.sampleId);
       onUpdated(updated);
@@ -275,17 +271,6 @@ export function SharedTsbEnrichmentPanel({ session, onUpdated, onNext }: Props) 
               size="small"
               InputProps={{ readOnly: true }}
               sx={{ bgcolor: "#f1f5f9" }}
-            />
-
-            <TextField
-              label="Actual Start Date & Time *"
-              type="datetime-local"
-              value={startDateTime}
-              onChange={(e) => setStartDateTime(e.target.value)}
-              helperText="Recorded contemporaneously under ALCOA+"
-              fullWidth
-              size="small"
-              InputLabelProps={{ shrink: true }}
             />
           </Box>
         )}

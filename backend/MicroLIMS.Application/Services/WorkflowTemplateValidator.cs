@@ -50,7 +50,19 @@ public static class WorkflowTemplateValidator
                     Fail(4, "A biochemical test step must have no assigned media.");
                 if (step.TargetOrganismId is not null)
                     Fail(4, "A biochemical test step must not target an organism.");
+                if (step.MediaTypeId is not null)
+                    Fail(4, "A biochemical test step must not have a media type assigned.");
+                if (step.PhenotypicTestType is null)
+                    Fail(4, "A biochemical test step must specify a phenotypic test type.");
                 break;
+        }
+
+        if (step.StepType != StepType.BiochemicalTest)
+        {
+            if (step.MediaTypeId is null)
+                Fail(8, "A media type is required for this step type.");
+            if (step.PhenotypicTestType is not null)
+                Fail(8, "Only a biochemical test step may specify a phenotypic test type.");
         }
 
         foreach (var medium in media.Where(m => m.TempMin >= m.TempMax))

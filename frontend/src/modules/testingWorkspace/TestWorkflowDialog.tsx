@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { Box, Typography, TextField, Button, Stack, Alert, Select, MenuItem, IconButton } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import CloseIcon from "@mui/icons-material/Close";
@@ -79,7 +79,7 @@ export function TestWorkflowDialog({ testOrderId, testCode, category, displayNam
   const [releasedMedia, setReleasedMedia] = useState<any[]>([]);
   const [incubators, setIncubators] = useState<any[]>([]);
 
-  const [readings, setReadings] = useState<string[]>([""]);
+  const [readings, setReadings] = useState<string[]>(["", ""]);
   const [dilutionFactor, setDilutionFactor] = useState("1");
 
   const [lastOutcome, setLastOutcome] = useState<any | null>(null);
@@ -90,7 +90,7 @@ export function TestWorkflowDialog({ testOrderId, testCode, category, displayNam
       const data = await TestWorkflowService.getCurrentStep(testOrderId);
       setCurrent(data);
       setMediaId(""); setIncubatorId(""); setStage2IncubatorId("");
-      setReadings([""]); setDilutionFactor("1");
+      setReadings(["", ""]); setDilutionFactor("1");
       setPhase(data.allStepsComplete ? "all-complete" : data.incubationLock != null ? "awaiting-result" : "select-media");
     } catch (e: any) {
       setError(e?.response?.data?.message ?? "Could not load this test's workflow.");
@@ -195,14 +195,50 @@ export function TestWorkflowDialog({ testOrderId, testCode, category, displayNam
   const addReading = () => setReadings((r) => [...r, ""]);
   const removeReading = (i: number) => setReadings((r) => (r.length > 1 ? r.filter((_, idx) => idx !== i) : r));
 
+  const isNonNumeric = (val: string) =>
+    ["tntc", "uncountable"].includes(val.toLowerCase().trim());
+
+  const isDirectCount = ["Water", "EnvironmentalMonitoring", "AfterCleaning"]
+    .includes(current?.sampleContext?.sampleType ?? "");
+
+  const cfuUnit = current?.sampleContext?.cfuUnit ?? "CFU/mL";
+
+  const liveResult = useMemo(() => {
+    const hasNonNumeric = readings.some((r) => isNonNumeric(r));
+    if (hasNonNumeric) {
+      const val = readings.find((r) => isNonNumeric(r))?.toUpperCase();
+      return { display: val, isNonNumeric: true };
+    }
+    const numericVals = readings
+      .filter((r) => r.trim() !== "")
+      .map((r) => parseFloat(r))
+      .filter((n) => !isNaN(n));
+    if (numericVals.length === 0) return null;
+    const df = parseFloat(dilutionFactor) || 1;
+    const avg = numericVals.reduce((a, b) => a + b, 0) / numericVals.length;
+    const finalCfu = avg * df;
+    const lowerLimit = df;
+    const formatted = finalCfu % 1 === 0 ? finalCfu.toFixed(0) : finalCfu.toFixed(1);
+    return {
+      display: finalCfu < lowerLimit ? `< ${lowerLimit} ${cfuUnit}` : `${formatted} ${cfuUnit}`,
+      isNonNumeric: false
+    };
+  }, [readings, dilutionFactor, cfuUnit]);
+
   const submitResult = async () => {
     setError(null);
     try {
-      const parsed = readings.map(Number).filter((n) => !Number.isNaN(n));
-      if (parsed.length === 0) { setError("Enter at least one plate reading."); return; }
-      const payload = { stepName: step.stepName, plateReadings: parsed, dilutionFactor: Number(dilutionFactor) };
+      if (readings.every((r) => r.trim() === "")) {
+        setError("Enter at least one plate reading.");
+        return;
+      }
+      const payload = {
+        stepName: step.stepName,
+        rawPlateReadings: readings.filter((r) => r.trim() !== ""),
+        dilutionFactor: Number(dilutionFactor) || 1
+      };
 
-      const result = await TestWorkflowService.recordResult(testOrderId, payload);
+      const result = await TestWorkflowService.recordCountResult(testOrderId, payload);
       setLastOutcome(result);
       if (result.allStepsComplete) {
         setPhase("all-complete");
@@ -361,14 +397,14 @@ export function TestWorkflowDialog({ testOrderId, testCode, category, displayNam
                 Transfer to Stage 2 Incubation
               </Button>
             ) : isTwoStageTransfer && isStage2 ? (
-              isEmOrAfterCleaning ? (
+              isBatchOrder ? (
                 <Button variant="contained" disabled={!isTimeReady} onClick={() => setShowLocationGrid(true)}>Record Results</Button>
               ) : (
                 <Button variant="contained" disabled={!isTimeReady} onClick={() => setPhase("enter-result")}>Record Result</Button>
               )
             ) : isEmOrAfterCleaning && step && !step.isFinalStep ? (
               <Button variant="contained" disabled={!isTimeReady} onClick={advanceIncubationWindow}>Advance to Next Incubation Window</Button>
-            ) : isEmOrAfterCleaning ? (
+            ) : isBatchOrder ? (
               <Button variant="contained" disabled={!isTimeReady} onClick={() => setShowLocationGrid(true)}>Record Results</Button>
             ) : (
               <Button variant="contained" disabled={!isTimeReady} onClick={() => setPhase("enter-result")}>Record Result</Button>
@@ -377,7 +413,17 @@ export function TestWorkflowDialog({ testOrderId, testCode, category, displayNam
         </Stack>
       )}
 
-      {current.workflowType === "CountTest" ? (
+      {current.workflowType === "CountTest" && isWaterCountBatch ? (
+        <WaterLocationResultGridDialog
+          open={showLocationGrid}
+          testOrderId={testOrderId}
+          testCode={testCode}
+          displayName={displayName}
+          minReadyAt={minReadyAt}
+          onClose={() => setShowLocationGrid(false)}
+          onSubmitted={() => { setShowLocationGrid(false); load(); }}
+        />
+      ) : current.workflowType === "CountTest" ? (
         <LocationResultGridDialog
           open={showLocationGrid}
           testOrderId={testOrderId}
@@ -403,16 +449,70 @@ export function TestWorkflowDialog({ testOrderId, testCode, category, displayNam
         <Stack spacing={1.5}>
           {current.workflowType === "CountTest" && (
             <>
+              <TextField
+                label="Dilution Factor"
+                type="number"
+                value={dilutionFactor}
+                onChange={(e) => setDilutionFactor(e.target.value)}
+                disabled={isDirectCount}
+                helperText={
+                  isDirectCount
+                    ? "Direct count — dilution factor fixed at 1"
+                    : "Enter multiplier: 10 for 1:10 dilution, 100 for 1:100"
+                }
+                inputProps={{ step: "1", min: "1" }}
+                sx={{ maxWidth: 300, mb: 1 }}
+              />
+
               <Stack spacing={1}>
                 {readings.map((r, i) => (
                   <Stack direction="row" spacing={1} key={i} alignItems="center">
-                    <TextField size="small" type="number" label={`Plate ${i + 1}`} value={r} onChange={(e) => updateReading(i, e.target.value)} />
+                    <TextField
+                      size="small"
+                      label={`Plate ${i + 1}`}
+                      value={r}
+                      onChange={(e) => updateReading(i, e.target.value)}
+                      placeholder="Colony count or TNTC"
+                      helperText={
+                        isNonNumeric(r)
+                          ? "⚠ Non-numeric — will be flagged for reviewer decision"
+                          : ""
+                      }
+                      sx={{
+                        flex: 1,
+                        "& .MuiOutlinedInput-root fieldset": {
+                          borderColor: isNonNumeric(r) ? "#d97706" : undefined
+                        }
+                      }}
+                    />
                     <IconButton size="small" onClick={() => removeReading(i)}><CloseIcon fontSize="small" /></IconButton>
                   </Stack>
                 ))}
               </Stack>
               <Button startIcon={<AddIcon />} onClick={addReading} sx={{ alignSelf: "flex-start" }}>Add Plate</Button>
-              <TextField size="small" type="number" label="Dilution Factor" value={dilutionFactor} onChange={(e) => setDilutionFactor(e.target.value)} sx={{ maxWidth: 200 }} />
+
+              {liveResult && (
+                <Box
+                  sx={{
+                    p: 1.5,
+                    mt: 1,
+                    mb: 1,
+                    borderRadius: 1,
+                    backgroundColor: liveResult.isNonNumeric ? "#fef3c7" : "#f0fdf4",
+                    border: `1px solid ${liveResult.isNonNumeric ? "#fcd34d" : "#bbf7d0"}`
+                  }}
+                >
+                  <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                    {liveResult.isNonNumeric ? "⚠ " : "✓ "}
+                    Calculated result: {liveResult.display}
+                  </Typography>
+                  {liveResult.isNonNumeric && (
+                    <Typography variant="caption" sx={{ color: "#92400e", display: "block", mt: 0.5 }}>
+                      Non-numeric result — reviewer will decide accept or retest
+                    </Typography>
+                  )}
+                </Box>
+              )}
             </>
           )}
 

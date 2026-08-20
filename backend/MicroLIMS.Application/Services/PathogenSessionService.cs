@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using MicroLIMS.Application.Helpers;
 using MicroLIMS.Application.Workflows;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
@@ -59,6 +60,8 @@ public record BatchConfirmatorySetupRequest(
     int IncubatorEquipmentId,
     DateTime? IncubationStartUtc);
 
+public record ResetPathogenSessionRequest(string? Reason);
+
 public record BatchConfirmatoryPlateReadingInput(
     int LocationPathogenObservationId,
     int MediumIndex,
@@ -87,6 +90,19 @@ public record SessionLocationDto(
     string? GradeClassification,
     Dictionary<string, int> TestLocationMap); // TestCode -> SampleLocationId
 
+public record CountResultDto(
+    string PlateReadings,
+    decimal DilutionFactor,
+    decimal? Average,
+    decimal? FinalCfu,
+    string ReportedResult,
+    string Status,
+    bool HasNonNumericReading,
+    string? NonNumericValue,
+    bool RequiresReview,
+    string Unit
+);
+
 public record SessionAssignedTestDto(
     int TestOrderId,
     string TestCode,
@@ -103,7 +119,8 @@ public record SessionAssignedTestDto(
     string? LockReason,
     List<SessionWorkflowStepDto> Steps,
     int ConfirmatoryMediaCount = 1,
-    string WorkflowStatus = "Pending");
+    string WorkflowStatus = "Pending",
+    CountResultDto? CountResult = null);
 
 public record SessionWorkflowStepDto(
     int StepOrder,
@@ -253,7 +270,12 @@ public class PathogenSessionService
 
         // Group Locations
         var groupedLocations = new List<SessionLocationDto>();
-        var locationMap = new Dictionary<string, SessionLocationDto>();
+        // Keyed by the underlying physical location's stable id, not its
+        // display name - two distinct Room/MachinePart/WaterSamplingPoint
+        // rows can share the same display text (e.g. multiple water points
+        // all named "WTU"), and a display-name key would silently merge
+        // them, dropping every TestCode mapping but the last one written.
+        var locationMap = new Dictionary<(string Kind, int Id), SessionLocationDto>();
 
         foreach (var loc in sample.Locations)
         {
@@ -262,10 +284,15 @@ public class PathogenSessionService
                 ?? loc.WaterSamplingPoint?.Location
                 ?? $"Location #{loc.Id}";
 
+            var locKey = loc.RoomTestConfigurationId.HasValue ? ("Room", loc.RoomTestConfigurationId.Value)
+                : loc.MachinePartConfigurationId.HasValue ? ("MachinePart", loc.MachinePartConfigurationId.Value)
+                : loc.WaterSamplingPointId.HasValue ? ("Water", loc.WaterSamplingPointId.Value)
+                : ("Loc", loc.Id);
+
             var grade = loc.RoomTestConfiguration?.Room?.GradeClassification.ToString();
             var locType = loc.LocationType.ToString();
 
-            if (!locationMap.TryGetValue(locName, out var group))
+            if (!locationMap.TryGetValue(locKey, out var group))
             {
                 group = new SessionLocationDto(
                     groupedLocations.Count + 1,
@@ -274,7 +301,7 @@ public class PathogenSessionService
                     locType,
                     grade,
                     new Dictionary<string, int>());
-                locationMap[locName] = group;
+                locationMap[locKey] = group;
                 groupedLocations.Add(group);
             }
 
@@ -324,6 +351,10 @@ public class PathogenSessionService
         var primaryObsMap = primaryObservations
             .ToDictionary(o => (o.SampleLocationId, o.TestOrderId));
 
+        var countTestReadings = await _db.CountTestReadings
+            .Where(c => toIds.Contains(c.TestOrderId))
+            .ToListAsync();
+
         // 1. Identify which tests require TSB from Test Master configuration
         var tsbApplicableCodes = new List<string>();
         decimal requiredTsbTempMin = 30;
@@ -352,22 +383,14 @@ public class PathogenSessionService
         }
 
         // Shared TSB State
-        var sharedTsbIncubation = incubations.FirstOrDefault(i =>
-            !string.IsNullOrEmpty(i.StepName) &&
-            (i.StepName.Contains("TSB", StringComparison.OrdinalIgnoreCase) ||
-             i.StepName.Contains("Enrichment", StringComparison.OrdinalIgnoreCase)));
+        var sharedTsbIncubation = TsbDetectionHelper.FindSharedTsbIncubation(incubations);
 
         bool tsbStarted = sharedTsbIncubation != null;
         DateTime? tsbStart = sharedTsbIncubation?.IncubationStartUtc ?? sharedTsbIncubation?.StartedAt;
-        DateTime? tsbMinReadyAt = tsbStart?.AddHours(requiredTsbHoursMin);
+        DateTime? tsbMinReadyAt = TsbDetectionHelper.GetTsbMinReadyAt(sharedTsbIncubation, requiredTsbHoursMin);
 
-        bool tsbIncubating = tsbStarted &&
-                             tsbMinReadyAt.HasValue &&
-                             DateTime.UtcNow < tsbMinReadyAt.Value &&
-                             !sharedTsbIncubation!.CompletedAt.HasValue;
-        bool tsbCompleted = tsbStarted &&
-                            (sharedTsbIncubation!.CompletedAt.HasValue ||
-                             (tsbMinReadyAt.HasValue && DateTime.UtcNow >= tsbMinReadyAt.Value));
+        bool tsbIncubating = TsbDetectionHelper.IsTsbIncubating(sharedTsbIncubation, requiredTsbHoursMin, DateTime.UtcNow);
+        bool tsbCompleted = TsbDetectionHelper.IsTsbComplete(sharedTsbIncubation, requiredTsbHoursMin, DateTime.UtcNow);
 
         SharedTsbStateDto sharedTsbDto;
         if (sharedTsbIncubation != null)
@@ -466,176 +489,32 @@ public class PathogenSessionService
             }
 
             // Determine Test Session State & Result Entry Allowance
-            string testSessionState;
-            string testSessionStateDisplay;
-            bool isResultEntryAllowed;
-            bool isWorkflowLocked;
-            string? lockReason = null;
+            var stateResult = WorkflowStateResolver.Resolve(to, requiresTsb, sharedTsbIncubation, toIncubations, stepDtos, DateTime.UtcNow, requiredTsbHoursMin);
+            string testSessionState = stateResult.WorkflowState;
+            string testSessionStateDisplay = stateResult.WorkflowStateDisplay;
+            bool isResultEntryAllowed = stateResult.IsResultEntryAllowed;
+            bool isWorkflowLocked = stateResult.IsWorkflowLocked;
+            string? lockReason = stateResult.LockReason;
+            string workflowStatus = stateResult.WorkflowStatus;
 
-            if (to.Status == ApprovalStatus.Approved)
+            var countReading = countTestReadings.FirstOrDefault(c => c.TestOrderId == to.Id);
+            CountResultDto? countResultDto = null;
+            if (countReading != null)
             {
-                testSessionState = "COMPLETED";
-                testSessionStateDisplay = "Completed & Approved";
-                isResultEntryAllowed = false;
-                isWorkflowLocked = false;
+                var prepUnit = sample.SamplePreparation?.Unit;
+                var unit = TestWorkflowEngine.GetCfuUnit(sample.Category, prepUnit);
+                countResultDto = new CountResultDto(
+                    countReading.PlateReadings,
+                    countReading.DilutionFactor,
+                    countReading.Average,
+                    countReading.CalculatedResult,
+                    countReading.ReportedResult,
+                    countReading.Status,
+                    countReading.HasNonNumericReading,
+                    countReading.NonNumericValue,
+                    countReading.RequiresReview,
+                    unit);
             }
-            else if (to.CurrentStep == WorkflowStep.Ready)
-            {
-                testSessionState = "RESULTS_RECORDED";
-                testSessionStateDisplay = "Result Recorded — Pending Review";
-                isResultEntryAllowed = true;
-                isWorkflowLocked = false;
-            }
-            else if (requiresTsb)
-            {
-                if (!tsbStarted)
-                {
-                    testSessionState = "PENDING";
-                    testSessionStateDisplay = "Pending";
-                    isResultEntryAllowed = false;
-                    isWorkflowLocked = true;
-                    lockReason = "TSB broth enrichment setup required";
-                }
-                else if (tsbIncubating)
-                {
-                    testSessionState = "TSB_INCUBATING";
-                    testSessionStateDisplay = "TSB Incubating";
-                    isResultEntryAllowed = false; // Strictly locked during TSB incubation!
-                    isWorkflowLocked = true;
-                    lockReason = "Locked until TSB incubation is complete";
-                }
-                else if (tsbCompleted)
-                {
-                    // Check if any non-TSB downstream step is actively incubating
-                    bool downstreamIncubating = false;
-                    foreach (var inc in toIncubations)
-                    {
-                        if (string.IsNullOrEmpty(inc.StepName)) continue;
-                        if (inc.StepName.Contains("TSB", StringComparison.OrdinalIgnoreCase) ||
-                            inc.StepName.Contains("Enrichment", StringComparison.OrdinalIgnoreCase))
-                            continue;
-
-                        if (inc.CompletedAt == null && inc.IncubationStartUtc.HasValue)
-                        {
-                            var stepDef = steps.FirstOrDefault(s => s.StepName == inc.StepName);
-                            int minHours = stepDef?.IncubationMinHours > 0 ? stepDef.IncubationMinHours : 24;
-                            var minReadyAt = inc.IncubationStartUtc.Value.AddHours(minHours);
-
-                            if (DateTime.UtcNow < minReadyAt)
-                            {
-                                downstreamIncubating = true;
-                                break;
-                            }
-                        }
-                    }
-
-                    // Check downstream steps completion (steps before ConfirmatoryPlating / FinalResult)
-                    var nonFinalSteps = stepDtos.Skip(1).Where(s => s.StepType != "ConfirmatoryPlating" && s.StepType != "BiochemicalTest").ToList();
-                    var allDownstreamDone = nonFinalSteps.Count == 0 || nonFinalSteps.All(s => s.IsCompleted);
-
-                    if (downstreamIncubating)
-                    {
-                        testSessionState = "DOWNSTREAM_INCUBATING";
-                        testSessionStateDisplay = "Selective Plating In Progress";
-                        isResultEntryAllowed = false;
-                        isWorkflowLocked = false;
-                    }
-                    else if (allDownstreamDone)
-                    {
-                        testSessionState = "AWAITING_RESULTS";
-                        testSessionStateDisplay = "Awaiting Primary Readings";
-                        isResultEntryAllowed = true;
-                        isWorkflowLocked = false;
-                    }
-                    else
-                    {
-                        testSessionState = "READY_FOR_DOWNSTREAM";
-                        testSessionStateDisplay = "Ready for Downstream Testing";
-                        isResultEntryAllowed = false;
-                        isWorkflowLocked = false;
-                    }
-                }
-                else
-                {
-                    testSessionState = "PENDING";
-                    testSessionStateDisplay = "Pending";
-                    isResultEntryAllowed = false;
-                    isWorkflowLocked = true;
-                }
-            }
-            else
-            {
-                // Test does not require TSB (e.g. TAMC-Water) -> completely independent
-                var openCountIncubation = toIncubations
-                    .FirstOrDefault(i =>
-                        i.TestOrderId == to.Id &&
-                        i.CompletedAt == null &&
-                        i.IncubationStartUtc.HasValue &&
-                        !i.StepName.Contains("TSB", StringComparison.OrdinalIgnoreCase) &&
-                        !i.StepName.Contains("Enrichment", StringComparison.OrdinalIgnoreCase));
-
-                if (openCountIncubation != null)
-                {
-                    var countStep = steps.FirstOrDefault(s => s.StepName == openCountIncubation.StepName);
-                    var minHours = countStep?.IncubationMinHours > 0 ? countStep.IncubationMinHours : (countStep?.MediaType?.IncubationMinHours ?? 0);
-                    var minReadyAt = openCountIncubation.IncubationStartUtc!.Value.AddHours((double)minHours);
-
-                    if (DateTime.UtcNow < minReadyAt)
-                    {
-                        testSessionState = "COUNT_INCUBATING";
-                        testSessionStateDisplay = "Testing / Incubation In Progress";
-                        isResultEntryAllowed = false;
-                        isWorkflowLocked = true;
-                        lockReason = $"Count incubation in progress. Available from: {minReadyAt:dd/MM/yyyy HH:mm}";
-                    }
-                    else
-                    {
-                        testSessionState = "AWAITING_RESULTS";
-                        testSessionStateDisplay = "Ready — Awaiting Primary Readings";
-                        isResultEntryAllowed = true;
-                        isWorkflowLocked = false;
-                        lockReason = null;
-                    }
-                }
-                else if (to.CurrentStep == WorkflowStep.Incubating)
-                {
-                    testSessionState = "INCUBATING";
-                    testSessionStateDisplay = "Testing / Incubation In Progress";
-                    isResultEntryAllowed = false;
-                    isWorkflowLocked = true;
-                    lockReason = "Incubation in progress";
-                }
-                else if (to.CurrentStep == WorkflowStep.Running)
-                {
-                    testSessionState = "RUNNING";
-                    testSessionStateDisplay = "Testing In Progress";
-                    isResultEntryAllowed = true;
-                    isWorkflowLocked = false;
-                }
-                else
-                {
-                    testSessionState = "PENDING";
-                    testSessionStateDisplay = "Pending";
-                    isResultEntryAllowed = true;
-                    isWorkflowLocked = false;
-                }
-            }
-
-            string workflowStatus = testSessionState switch
-            {
-                "TSB_INCUBATING"        => "InProgress",
-                "DOWNSTREAM_INCUBATING" => "InProgress",
-                "COUNT_INCUBATING"      => "InProgress",
-                "INCUBATING"            => "InProgress",
-                "RUNNING"               => "InProgress",
-                "READY_FOR_DOWNSTREAM"  => "ReadyToRead",
-                "TSB_READY"             => "ReadyToRead",
-                "AWAITING_RESULTS"      => "EnterResult",
-                "RESULTS_RECORDED"      => "PendingReview",
-                "COMPLETED"             => "Completed",
-                "APPROVED"              => "Completed",
-                _                       => "Pending"
-            };
 
             assignedTestDtos.Add(new SessionAssignedTestDto(
                 to.Id,
@@ -653,7 +532,8 @@ public class PathogenSessionService
                 lockReason,
                 stepDtos,
                 confirmatoryMediaCount,
-                workflowStatus));
+                workflowStatus,
+                countResultDto));
         }
 
         // Build Result Matrix with Tri-State Cell Model & Confirmation Details
@@ -922,7 +802,7 @@ public class PathogenSessionService
 
         var toIds = tsbOrders.Select(t => t.Id).ToList();
         var existingIncubations = await _db.Incubations
-            .Where(i => i.TestOrderId.HasValue && toIds.Contains(i.TestOrderId.Value) && i.StepName.Contains("TSB"))
+            .Where(i => i.TestOrderId.HasValue && toIds.Contains(i.TestOrderId.Value) && (i.StepName.Contains("TSB") || i.StepName.Contains("Enrichment") || i.StepName == "Broth Enrichment"))
             .ToListAsync();
 
         if (existingIncubations.Count > 0)
@@ -930,11 +810,17 @@ public class PathogenSessionService
 
         foreach (var to in tsbOrders)
         {
+            var def = testDefs.TryGetValue(to.TestCode, out var d) ? d : null;
+            var tsbStep = def?.Steps.FirstOrDefault(s =>
+                s.StepType == StepType.BrothEnrichment ||
+                s.StepName.Contains("TSB", StringComparison.OrdinalIgnoreCase) ||
+                (s.MediaType != null && (s.MediaType.Class == MediaClass.GeneralBroth || s.MediaType.Class == MediaClass.SelectiveBroth)));
+
             var inc = new Incubation
             {
                 TestOrderId = to.Id,
-                StepNumber = 1,
-                StepName = "TSB Broth Enrichment",
+                StepNumber = tsbStep?.StepOrder ?? 1,
+                StepName = tsbStep?.StepName ?? "Broth enrichment",
                 MediaId = request.MediaLotId,
                 IncubatorEquipmentId = request.IncubatorEquipmentId,
                 Temperature = targetTemp,
@@ -959,6 +845,45 @@ public class PathogenSessionService
                 PerformedByUserId = userId,
                 Timestamp = DateTime.UtcNow
             });
+        }
+
+        await _db.SaveChangesAsync();
+
+        foreach (var to in tsbOrders)
+        {
+            var def = testDefs.TryGetValue(to.TestCode, out var d) ? d : null;
+            var tsbStep = def?.Steps.FirstOrDefault(s =>
+                s.StepType == StepType.BrothEnrichment ||
+                s.StepName.Contains("TSB", StringComparison.OrdinalIgnoreCase) ||
+                (s.MediaType != null && (s.MediaType.Class == MediaClass.GeneralBroth || s.MediaType.Class == MediaClass.SelectiveBroth)));
+            var stepName = tsbStep?.StepName ?? "Broth Enrichment";
+
+            var inc = await _db.Incubations
+                .Where(i => i.TestOrderId == to.Id)
+                .OrderByDescending(i => i.StartedAt)
+                .FirstOrDefaultAsync();
+
+            if (inc != null)
+            {
+                var stepNamesToAdd = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "Broth Enrichment", "Broth enrichment", stepName };
+                foreach (var name in stepNamesToAdd)
+                {
+                    var exists = await _db.WorkflowStepResults.AnyAsync(r => r.TestOrderId == to.Id && r.StepName == name);
+                    if (!exists)
+                    {
+                        _db.WorkflowStepResults.Add(new WorkflowStepResult
+                        {
+                            TestOrderId = to.Id,
+                            StepName = name,
+                            StepType = StepType.BrothEnrichment,
+                            IncubationId = inc.Id,
+                            IsSharedSessionStep = true,
+                            SubmittedByUserId = userId,
+                            SubmittedAtUtc = DateTime.UtcNow
+                        });
+                    }
+                }
+            }
         }
 
         await _db.SaveChangesAsync();
@@ -1304,7 +1229,7 @@ public class PathogenSessionService
 
         var sample = await _db.Samples
             .Include(s => s.TestOrders)
-            .Include(s => s.Locations)
+            .Include(s => s.Locations).ThenInclude(l => l.SamplingConfiguration)
             .FirstOrDefaultAsync(s => s.Id == sampleId)
             ?? throw new InvalidOperationException($"Sample #{sampleId} not found.");
 
@@ -1336,7 +1261,24 @@ public class PathogenSessionService
                     loc.CFUResult = cell.NumericValue;
                     loc.CalculatedResult = cell.NumericValue;
                     loc.ReportedResult = cell.ResultDisplay ?? $"{cell.NumericValue} CFU";
-                    loc.Status = "Conform";
+
+                    // Was previously hardcoded to the literal "Conform" -
+                    // a status string nothing else in the app recognizes
+                    // (everywhere else uses the WithinLimits/AlertLimit
+                    // Exceeded/ActionLimitExceeded/OutOfSpecification
+                    // ladder), and never actually compared the value
+                    // against a limit at all. Mirrors
+                    // TestWorkflowEngine.RecordWaterBatchReadingsAsync's
+                    // Compare(...) + limit-snapshot pattern.
+                    var alertLimit = loc.SamplingConfiguration?.AlertLimit;
+                    var actionLimit = loc.SamplingConfiguration?.ActionLimit;
+                    var specLimit = loc.SamplingConfiguration?.SpecLimit;
+                    loc.AlertLimit = alertLimit;
+                    loc.ActionLimit = actionLimit;
+                    loc.SpecLimit = specLimit;
+                    loc.Status = cell.NumericValue.HasValue
+                        ? CompareAgainstLimits(cell.NumericValue.Value, alertLimit, actionLimit, specLimit)
+                        : null;
                 }
                 else
                 {
@@ -1361,6 +1303,19 @@ public class PathogenSessionService
 
         await _db.SaveChangesAsync();
         return (await GetSessionAsync(sampleId))!;
+    }
+
+    // Same semantics as TestWorkflowEngine's private Compare(...) - kept
+    // as a separate copy rather than shared, since that method is
+    // internal to a different service and already covered by its own
+    // tests; duplicating this small pure comparison is lower risk than
+    // reaching into another service's implementation detail.
+    private static string CompareAgainstLimits(decimal value, string? alert, string? action, string? spec)
+    {
+        if (decimal.TryParse(spec, out var specLimit) && value > specLimit) return "OutOfSpecification";
+        if (decimal.TryParse(action, out var actionLimit) && value > actionLimit) return "ActionLimitExceeded";
+        if (decimal.TryParse(alert, out var alertLimit) && value > alertLimit) return "AlertLimitExceeded";
+        return "WithinLimits";
     }
 
     public async Task<PathogenTestingSessionDto> CompleteSessionAsync(int sampleId, int userId)
@@ -1411,6 +1366,116 @@ public class PathogenSessionService
 
         sample.Status = SampleStatus.UnderReview;
         sample.ReviewedAt = null;
+
+        await _db.SaveChangesAsync();
+        return (await GetSessionAsync(sampleId))!;
+    }
+
+    public async Task<PathogenTestingSessionDto> ResetSessionAsync(int sampleId, string? reason, int userId)
+    {
+        var sample = await _db.Samples
+            .Include(s => s.TestOrders)
+            .Include(s => s.Locations)
+            .FirstOrDefaultAsync(s => s.Id == sampleId)
+            ?? throw new InvalidOperationException($"Sample #{sampleId} not found.");
+
+        var testOrderIds = sample.TestOrders.Select(t => t.Id).ToList();
+        var locationIds = sample.Locations.Select(l => l.Id).ToList();
+        var resetReason = string.IsNullOrWhiteSpace(reason) ? "Analyst requested session workflow reset" : reason.Trim();
+
+        // 1. Delete Location Pathogen Observations & Confirmatory Plate Observations
+        var locObs = await _db.LocationPathogenObservations
+            .Include(o => o.ConfirmatoryPlateObservations)
+            .Where(o => (testOrderIds.Contains(o.TestOrderId)) ||
+                        (locationIds.Contains(o.SampleLocationId)))
+            .ToListAsync();
+
+        foreach (var lo in locObs)
+        {
+            if (lo.ConfirmatoryPlateObservations.Count > 0)
+            {
+                _db.ConfirmatoryPlateObservations.RemoveRange(lo.ConfirmatoryPlateObservations);
+            }
+        }
+        if (locObs.Count > 0) _db.LocationPathogenObservations.RemoveRange(locObs);
+
+        // 2. Delete Confirmatory Media Selections & WorkflowStepResults
+        var wsrList = await _db.WorkflowStepResults
+            .Where(w => testOrderIds.Contains(w.TestOrderId))
+            .ToListAsync();
+        var wsrIds = wsrList.Select(w => w.Id).ToList();
+
+        var confSelections = await _db.ConfirmatoryMediaSelections
+            .Where(c => wsrIds.Contains(c.WorkflowStepResultId))
+            .ToListAsync();
+        if (confSelections.Count > 0) _db.ConfirmatoryMediaSelections.RemoveRange(confSelections);
+
+        if (wsrList.Count > 0) _db.WorkflowStepResults.RemoveRange(wsrList);
+
+        // 3. Delete PathogenObservations & CountTestReadings
+        var pathObs = await _db.PathogenObservations
+            .Where(p => testOrderIds.Contains(p.TestOrderId))
+            .ToListAsync();
+        if (pathObs.Count > 0) _db.PathogenObservations.RemoveRange(pathObs);
+
+        var countReadings = await _db.CountTestReadings
+            .Where(c => testOrderIds.Contains(c.TestOrderId))
+            .ToListAsync();
+        if (countReadings.Count > 0) _db.CountTestReadings.RemoveRange(countReadings);
+
+        // 4. Delete Results
+        var results = await _db.Results
+            .Where(r => testOrderIds.Contains(r.TestOrderId))
+            .ToListAsync();
+        if (results.Count > 0) _db.Results.RemoveRange(results);
+
+        // 5. Delete Incubations
+        var incubations = await _db.Incubations
+            .Where(i => i.TestOrderId.HasValue && testOrderIds.Contains(i.TestOrderId.Value))
+            .ToListAsync();
+        if (incubations.Count > 0) _db.Incubations.RemoveRange(incubations);
+
+        // 6. Reset Sample Locations
+        foreach (var loc in sample.Locations)
+        {
+            loc.CFUResult = null;
+        }
+
+        // 7. Reset TestOrders
+        foreach (var order in sample.TestOrders)
+        {
+            order.CurrentStep = WorkflowStep.Waiting;
+            order.Status = ApprovalStatus.Pending;
+
+            _db.WorkflowHistories.Add(new WorkflowHistory
+            {
+                TestOrderId = order.Id,
+                FromStep = WorkflowStep.Running,
+                ToStep = WorkflowStep.Waiting,
+                Note = $"Testing session and workflow steps reset. Reason: {resetReason}",
+                PerformedByUserId = userId,
+                Timestamp = DateTime.UtcNow
+            });
+        }
+
+        // 8. Reset Sample Status
+        if (sample.Status == SampleStatus.InTesting || sample.Status == SampleStatus.Rejected || sample.Status == SampleStatus.UnderReview)
+        {
+            sample.Status = SampleStatus.Received;
+        }
+
+        // 9. Audit Log
+        _db.AuditLogs.Add(new AuditLog
+        {
+            EntityName = "Sample",
+            EntityId = sample.Id.ToString(),
+            Action = "ResetWorkflowSteps",
+            UserId = userId,
+            Timestamp = DateTime.UtcNow,
+            SampleId = sample.Id,
+            SampleReferenceNumber = sample.ReferenceNumber,
+            NewValue = $"Workflow steps reset for Sample #{sampleId} ({sample.ReferenceNumber}). Reason: {resetReason}"
+        });
 
         await _db.SaveChangesAsync();
         return (await GetSessionAsync(sampleId))!;

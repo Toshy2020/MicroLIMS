@@ -29,7 +29,6 @@ function getConfirmatoryOutcome(current: CurrentStepResponse): string | null {
 }
 
 function isInconclusiveTerminal(current: CurrentStepResponse): boolean {
-  if (current.step?.stepType !== "BiochemicalTest") return false;
   return !!getConfirmatoryOutcome(current)?.includes(INCONCLUSIVE_OUTCOME_MARKER);
 }
 
@@ -82,22 +81,35 @@ export function PathogenStepDialog({ testOrderId }: Props) {
   if (error && !current) return <Alert severity="error">{error}</Alert>;
   if (!current) return <Box sx={{ py: 4 }}><LoadingSpinner /></Box>;
 
-  if (current.allStepsComplete) {
-    return (
-      <Box>
-        <StepChainStrip current={current} />
-        <Alert severity={current.finalResult === "Detected" ? "error" : "success"}>
-          Final result: <strong>{current.finalResult}</strong>
-        </Alert>
-      </Box>
-    );
-  }
-
   if (isInconclusiveTerminal(current)) {
     return (
       <Box>
         <StepChainStrip current={current} />
-        <InconclusiveTerminalPanel />
+        <Box sx={{ backgroundColor: "#fff7ed", border: "1px solid #fed7aa", borderRadius: 1, p: 2, mt: 1 }}>
+          <Typography variant="body2" sx={{ fontWeight: 600, color: "#9a3412", display: "flex", alignItems: "center", gap: 1 }}>
+            ⚠ Confirmatory Plating: Inconclusive
+          </Typography>
+          <Typography variant="caption" sx={{ color: "#92400e", display: "block", mt: 0.5 }}>
+            Media disagreement recorded. This result has been flagged for reviewer decision. No further analyst action required.
+          </Typography>
+        </Box>
+      </Box>
+    );
+  }
+
+  if (current.allStepsComplete) {
+    return (
+      <Box>
+        <StepChainStrip current={current} />
+        {current.finalResult ? (
+          <Box sx={{ backgroundColor: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 1, p: 2, mt: 1 }}>
+            <Typography variant="body2" sx={{ fontWeight: 600, color: "#166534" }}>
+              ✓ Final result: {current.finalResult}
+            </Typography>
+          </Box>
+        ) : (
+          <Typography variant="body2" sx={{ color: "#9ca3af" }}>—</Typography>
+        )}
       </Box>
     );
   }
@@ -123,12 +135,12 @@ export function PathogenStepDialog({ testOrderId }: Props) {
             onSubmitted={handleSubmitted} 
           />
         ) : (
-          <BrothStepPanel testOrderId={testOrderId} step={step} onSubmitted={handleSubmitted} />
+          <BrothStepPanel testOrderId={testOrderId} step={step} current={current} onSubmitted={handleSubmitted} />
         )
       ) : step.stepType === "SelectivePlating" ? (
         <SelectivePlatingPanel testOrderId={testOrderId} step={step} current={current} onSubmitted={handleSubmitted} />
       ) : step.stepType === "ConfirmatoryPlating" ? (
-        <ConfirmatoryPlatingPanel testOrderId={testOrderId} step={step} onSubmitted={handleSubmitted} />
+        <ConfirmatoryPlatingPanel testOrderId={testOrderId} step={step} current={current} onSubmitted={handleSubmitted} />
       ) : step.stepType === "BiochemicalTest" ? (
         <BiochemicalTestPanel
           testOrderId={testOrderId} step={step}

@@ -59,6 +59,12 @@ export interface WorkflowHistoryDetail {
 }
 
 export interface SampleLocationDetail {
+  // Stable identity of the physical location (Room/MachinePart/
+  // WaterSamplingPoint id) - use this to group/match rows across test
+  // orders (e.g. building the Summary Matrix). locationName is a display
+  // string and is NOT guaranteed unique (multiple water sampling points
+  // can share the same label).
+  locationKey: string;
   locationName: string;
   gradeClassification: string | null;
   alertLimit: string | null;

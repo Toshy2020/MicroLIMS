@@ -2,12 +2,15 @@ import { apiClient } from "../../../services/apiClient";
 import {
   CurrentStepResponse, StepResultDto, ConfirmatoryOutcomeDto,
   PermittedConfirmatoryMediaResponse, EligibleIncubatorsResponse, AnalystDecision,
-  GrowthObservation
+  GrowthObservation, SiblingPathogenOrder
 } from "../types/testWorkflowTypes";
 
 export const TestWorkflowService = {
   getCurrentStep: (testOrderId: number): Promise<CurrentStepResponse> =>
     apiClient.get(`/test-workflow/${testOrderId}/current-step`).then((r) => r.data.data),
+
+  getSiblingPathogenOrders: (testOrderId: number): Promise<SiblingPathogenOrder[]> =>
+    apiClient.get(`/test-workflow/${testOrderId}/sibling-pathogen-orders`).then((r) => r.data.data),
 
   getEligibleIncubators: (testOrderId: number, stepMediaId: number): Promise<EligibleIncubatorsResponse> =>
     apiClient.get(`/test-workflow/${testOrderId}/eligible-incubators/${stepMediaId}`).then((r) => r.data.data),
@@ -25,7 +28,10 @@ export const TestWorkflowService = {
 
   // CountTest only - record-result now rejects any non-PlateCount step
   // server-side. Every pathogen step goes through the Submit* methods below.
-  recordResult: (testOrderId: number, payload: { stepName: string; plateReadings: number[]; dilutionFactor: number }) =>
+  recordResult: (testOrderId: number, payload: { stepName: string; plateReadings?: number[]; rawPlateReadings?: string[]; dilutionFactor: number }) =>
+    apiClient.post(`/test-workflow/${testOrderId}/record-result`, payload).then((r) => r.data.data),
+
+  recordCountResult: (testOrderId: number, payload: { stepName: string; rawPlateReadings: string[]; dilutionFactor: number }) =>
     apiClient.post(`/test-workflow/${testOrderId}/record-result`, payload).then((r) => r.data.data),
 
   getLocations: (testOrderId: number) =>

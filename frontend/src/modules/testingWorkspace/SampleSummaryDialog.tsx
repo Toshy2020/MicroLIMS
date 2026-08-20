@@ -374,7 +374,7 @@ function LocationResultsTable({ locations }: { locations: SampleLocationDetail[]
                 {l.locationName}{l.gradeClassification ? ` (${l.gradeClassification})` : ""}
               </TableCell>
               <TableCell sx={{ fontSize: 12, color: "text.secondary" }}>
-                {l.alertLimit ?? "—"} / {l.actionLimit ?? "—"} / {l.specLimit ?? "—"}
+                {l.alertLimit || "—"} / {l.actionLimit || "—"} / {l.specLimit || "—"}
               </TableCell>
               <TableCell sx={{ fontSize: 12, textAlign: "right", fontWeight: 700 }}>
                 {l.cfuResult ?? "—"}

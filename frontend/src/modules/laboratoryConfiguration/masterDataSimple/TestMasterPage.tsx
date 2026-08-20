@@ -25,6 +25,12 @@ const STEP_TYPES_WITH_NO_MEDIA = ["BiochemicalTest"];
 // instead of only on server rejection.
 const STEP_TYPES_SINGLE_MEDIA = ["BrothEnrichment", "SelectiveBroth", "SelectivePlating"];
 
+const PHENOTYPIC_TEST_TYPES = ["Gram", "Catalase", "Oxidase", "Coagulase", "Antibiogram", "IdentificationKit"];
+const PHENOTYPIC_TEST_TYPE_LABELS: Record<string, string> = {
+  Gram: "Gram Stain", Catalase: "Catalase", Oxidase: "Oxidase", Coagulase: "Coagulase",
+  Antibiogram: "Antibiogram", IdentificationKit: "Identification Kit"
+};
+
 type StepMediaRow = { materialId: number | ""; tempMin: string; tempMax: string; isRequired: boolean; displayOrder: number };
 
 interface StepFormState {
@@ -47,13 +53,15 @@ interface StepFormState {
   stage2TempMax?: string | number;
   stage2IncubationMinHours?: string | number;
   stage2IncubationMaxHours?: string | number;
+  phenotypicTestType?: string | null;
 }
 
 // A function rather than a shared constant object, so every reset gets its
 // own stepMedia array instead of every WorkflowStepsSection instance (one
 // per expanded Test Master row) sharing a single mutable reference.
 const defaultStepForm = (): StepFormState => ({
-  isFinalStep: false, stepType: "PlateCount", targetOrganismId: null, stepMedia: [], requiresIncubationTransfer: false
+  isFinalStep: false, stepType: "PlateCount", targetOrganismId: null, stepMedia: [], requiresIncubationTransfer: false,
+  phenotypicTestType: null
 });
 
 // Mirrors WorkflowTemplateValidator's six structural rules (backend
@@ -82,6 +90,10 @@ function validateStepForm(form: StepFormState): string | null {
     return "A biochemical test step must have no assigned media.";
   if (isBiochemical && form.targetOrganismId)
     return "A biochemical test step must not target an organism.";
+  if (isBiochemical && !form.phenotypicTestType)
+    return "A biochemical test step must specify a phenotypic test type.";
+  if (!isBiochemical && form.phenotypicTestType)
+    return "Only a biochemical test step may specify a phenotypic test type.";
   for (const m of form.stepMedia) {
     if (m.materialId === "") return "Every medium row needs a selected material.";
     if (Number(m.tempMin) >= Number(m.tempMax)) return "Every medium's minimum temperature must be below its maximum.";
@@ -112,6 +124,7 @@ function validateStepForm(form: StepFormState): string | null {
 function stepNeedsConfiguration(s: any): boolean {
   if (STEP_TYPES_REQUIRING_ORGANISM.includes(s.stepType) && !s.targetOrganismId) return true;
   if (!["BiochemicalTest", "PlateCount"].includes(s.stepType) && (s.stepMedia?.length ?? 0) === 0) return true;
+  if (s.stepType === "BiochemicalTest" && !s.phenotypicTestType) return true;
   return false;
 }
 
@@ -162,7 +175,8 @@ function WorkflowStepsSection({ test, onWorkflowTypeChanged }: { test: TestDefin
       stage2TempMin: stage2 ? String(stage2.tempMin) : undefined,
       stage2TempMax: stage2 ? String(stage2.tempMax) : undefined,
       stage2IncubationMinHours: stage2 ? stage2.incubationMinHours : undefined,
-      stage2IncubationMaxHours: stage2 ? stage2.incubationMaxHours : undefined
+      stage2IncubationMaxHours: stage2 ? stage2.incubationMaxHours : undefined,
+      phenotypicTestType: s.phenotypicTestType ?? null
     });
     setError(null);
   };
@@ -173,6 +187,7 @@ function WorkflowStepsSection({ test, onWorkflowTypeChanged }: { test: TestDefin
   const hasNoMedia = STEP_TYPES_WITH_NO_MEDIA.includes(form.stepType);
   const isSingleMedia = STEP_TYPES_SINGLE_MEDIA.includes(form.stepType);
   const isConfirmatory = form.stepType === "ConfirmatoryPlating";
+  const isBiochemical = form.stepType === "BiochemicalTest";
 
   // Switching StepType clears media/organism rather than carrying over a
   // combination that likely no longer satisfies that type's rules (e.g. a
@@ -180,7 +195,7 @@ function WorkflowStepsSection({ test, onWorkflowTypeChanged }: { test: TestDefin
   // which forbids IsRequired on every row) - forces a deliberate re-pick
   // instead of silently submitting a stale, mismatched configuration.
   const changeStepType = (stepType: string) => setForm({
-    ...form, stepType, targetOrganismId: null, stepMedia: [],
+    ...form, stepType, targetOrganismId: null, stepMedia: [], mediaTypeId: "", phenotypicTestType: null,
     requiresIncubationTransfer: false, stage2TempMin: undefined, stage2TempMax: undefined,
     stage2IncubationMinHours: undefined, stage2IncubationMaxHours: undefined
   });
@@ -197,8 +212,8 @@ function WorkflowStepsSection({ test, onWorkflowTypeChanged }: { test: TestDefin
 
   const saveStep = async () => {
     setError(null);
-    if (!form.stepName || !form.mediaTypeId) {
-      setError("Step Name and Media Type are required.");
+    if (!form.stepName || (!isBiochemical && !form.mediaTypeId) || (isBiochemical && !form.phenotypicTestType)) {
+      setError(isBiochemical ? "Step Name and Phenotypic Test Type are required." : "Step Name and Media Type are required.");
       return;
     }
     const validationError = validateStepForm(form);
@@ -207,7 +222,8 @@ function WorkflowStepsSection({ test, onWorkflowTypeChanged }: { test: TestDefin
       return;
     }
     const payload = {
-      stepName: form.stepName, mediaTypeId: Number(form.mediaTypeId),
+      stepName: form.stepName, mediaTypeId: isBiochemical ? null : Number(form.mediaTypeId),
+      phenotypicTestType: isBiochemical ? form.phenotypicTestType ?? null : null,
       incubationMinHours: Number(form.incubationMinHours) || 0, incubationMaxHours: Number(form.incubationMaxHours) || 0,
       temperatureMin: Number(form.temperatureMin) || 0, temperatureMax: Number(form.temperatureMax) || 0,
       isFinalStep: !!form.isFinalStep, stepType: form.stepType, targetOrganismId: form.targetOrganismId,
@@ -332,7 +348,11 @@ function WorkflowStepsSection({ test, onWorkflowTypeChanged }: { test: TestDefin
                       )}
                     </Stack>
                   </TableCell>
-                  <TableCell>{s.stepMedia?.length > 0 ? s.stepMedia.map((m: any) => m.materialName).join(", ") : <em>—</em>}</TableCell>
+                  <TableCell>
+                    {s.stepType === "BiochemicalTest"
+                      ? (s.phenotypicTestType ? PHENOTYPIC_TEST_TYPE_LABELS[s.phenotypicTestType] ?? s.phenotypicTestType : <em>—</em>)
+                      : (s.stepMedia?.length > 0 ? s.stepMedia.map((m: any) => m.materialName).join(", ") : <em>—</em>)}
+                  </TableCell>
                   <TableCell>{s.targetOrganism?.name ?? <em>—</em>}</TableCell>
                   <TableCell>
                     {stepNeedsConfiguration(s) && (
@@ -360,18 +380,27 @@ function WorkflowStepsSection({ test, onWorkflowTypeChanged }: { test: TestDefin
       <Typography sx={{ fontWeight: 700, fontSize: 12, mb: 1 }}>{editingStepId ? "Edit Step" : "Add Step"}</Typography>
       <Stack direction="row" spacing={1.5} flexWrap="wrap" alignItems="center">
         <TextField size="small" label="Step Name" placeholder="e.g. TSB" value={form.stepName ?? ""} onChange={(e) => setForm({ ...form, stepName: e.target.value })} sx={{ minWidth: 140 }} />
-        {/* Still required for every StepType, including the pathogen ones -
-            TestWorkflowStep.MediaTypeId is non-nullable server-side, so this
-            selector stays even though it's semantically vestigial for
-            anything but PlateCount. Do not remove or conditionally hide it. */}
-        <Select size="small" displayEmpty value={form.mediaTypeId ?? ""} onChange={(e) => setForm({ ...form, mediaTypeId: e.target.value as number })} sx={{ minWidth: 160 }}>
-          <MenuItem value=""><em>Media Type</em></MenuItem>
-          {mediaTypes.map((m) => <MenuItem key={m.id} value={m.id}>{mediaClassLabel(m.class)}</MenuItem>)}
-        </Select>
-        <TextField size="small" type="number" label="Min Hours" value={form.incubationMinHours ?? ""} onChange={(e) => setForm({ ...form, incubationMinHours: e.target.value })} sx={{ width: 100 }} />
-        <TextField size="small" type="number" label="Max Hours" value={form.incubationMaxHours ?? ""} onChange={(e) => setForm({ ...form, incubationMaxHours: e.target.value })} sx={{ width: 100 }} />
-        <TextField size="small" type="number" label="Temp Min" value={form.temperatureMin ?? ""} onChange={(e) => setForm({ ...form, temperatureMin: e.target.value })} sx={{ width: 90 }} />
-        <TextField size="small" type="number" label="Temp Max" value={form.temperatureMax ?? ""} onChange={(e) => setForm({ ...form, temperatureMax: e.target.value })} sx={{ width: 90 }} />
+        {isBiochemical ? (
+          <Select size="small" displayEmpty value={form.phenotypicTestType ?? ""} onChange={(e) => setForm({ ...form, phenotypicTestType: e.target.value as string })} sx={{ minWidth: 180 }}>
+            <MenuItem value=""><em>Phenotypic Test Type</em></MenuItem>
+            {PHENOTYPIC_TEST_TYPES.map((t) => <MenuItem key={t} value={t}>{PHENOTYPIC_TEST_TYPE_LABELS[t]}</MenuItem>)}
+          </Select>
+        ) : (
+          // MediaTypeId is non-nullable for every other StepType - media-lot
+          // verification reads it at submission time (TestWorkflowEngine.cs:387).
+          <Select size="small" displayEmpty value={form.mediaTypeId ?? ""} onChange={(e) => setForm({ ...form, mediaTypeId: e.target.value as number })} sx={{ minWidth: 160 }}>
+            <MenuItem value=""><em>Media Type</em></MenuItem>
+            {mediaTypes.map((m) => <MenuItem key={m.id} value={m.id}>{mediaClassLabel(m.class)}</MenuItem>)}
+          </Select>
+        )}
+        {(!isBiochemical || form.phenotypicTestType === "Antibiogram") && (
+          <>
+            <TextField size="small" type="number" label="Min Hours" value={form.incubationMinHours ?? ""} onChange={(e) => setForm({ ...form, incubationMinHours: e.target.value })} sx={{ width: 100 }} />
+            <TextField size="small" type="number" label="Max Hours" value={form.incubationMaxHours ?? ""} onChange={(e) => setForm({ ...form, incubationMaxHours: e.target.value })} sx={{ width: 100 }} />
+            <TextField size="small" type="number" label="Temp Min" value={form.temperatureMin ?? ""} onChange={(e) => setForm({ ...form, temperatureMin: e.target.value })} sx={{ width: 90 }} />
+            <TextField size="small" type="number" label="Temp Max" value={form.temperatureMax ?? ""} onChange={(e) => setForm({ ...form, temperatureMax: e.target.value })} sx={{ width: 90 }} />
+          </>
+        )}
         <Select size="small" value={form.stepType} onChange={(e) => changeStepType(e.target.value)} sx={{ minWidth: 180 }}>
           {STEP_TYPES.map((t) => <MenuItem key={t} value={t}>{t}</MenuItem>)}
         </Select>

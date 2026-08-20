@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using MicroLIMS.Persistence.DbContext;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -12,9 +13,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace MicroLIMS.Persistence.Migrations
 {
     [DbContext(typeof(MicroLimsDbContext))]
-    partial class MicroLimsDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260819165452_AddNonNumericSupportToCountTestReading")]
+    partial class AddNonNumericSupportToCountTestReading
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -2540,8 +2543,7 @@ namespace MicroLIMS.Persistence.Migrations
 
                     b.HasIndex("NeutralizerId");
 
-                    b.HasIndex("SampleId")
-                        .IsUnique();
+                    b.HasIndex("SampleId");
 
                     b.ToTable("SamplePreparations");
                 });
@@ -2760,10 +2762,7 @@ namespace MicroLIMS.Persistence.Migrations
                     b.Property<bool>("IsFinalStep")
                         .HasColumnType("boolean");
 
-                    b.Property<int?>("MediaTypeId")
-                        .HasColumnType("integer");
-
-                    b.Property<int?>("PhenotypicTestType")
+                    b.Property<int>("MediaTypeId")
                         .HasColumnType("integer");
 
                     b.Property<bool>("RequiresIncubationTransfer")
@@ -3813,8 +3812,8 @@ namespace MicroLIMS.Persistence.Migrations
                         .IsRequired();
 
                     b.HasOne("MicroLIMS.Domain.Entities.Sample", "Sample")
-                        .WithOne("SamplePreparation")
-                        .HasForeignKey("MicroLIMS.Domain.Entities.SamplePreparation", "SampleId")
+                        .WithMany()
+                        .HasForeignKey("SampleId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
@@ -3902,7 +3901,8 @@ namespace MicroLIMS.Persistence.Migrations
                     b.HasOne("MicroLIMS.Domain.Entities.MediaType", "MediaType")
                         .WithMany()
                         .HasForeignKey("MediaTypeId")
-                        .OnDelete(DeleteBehavior.Restrict);
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
 
                     b.HasOne("MicroLIMS.Domain.Entities.Organism", "TargetOrganism")
                         .WithMany()
@@ -4066,8 +4066,6 @@ namespace MicroLIMS.Persistence.Migrations
             modelBuilder.Entity("MicroLIMS.Domain.Entities.Sample", b =>
                 {
                     b.Navigation("Locations");
-
-                    b.Navigation("SamplePreparation");
 
                     b.Navigation("TestOrders");
                 });

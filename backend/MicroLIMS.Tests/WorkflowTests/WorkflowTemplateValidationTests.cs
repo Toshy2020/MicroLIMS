@@ -9,12 +9,33 @@ namespace MicroLIMS.Tests.WorkflowTests;
 // it can be saved (spec 3.1). Pure function - no database.
 public class WorkflowTemplateValidationTests
 {
+    // MediaTypeId/PhenotypicTestType default to whichever value the new
+    // Rule 4/Rule 8 mutual-exclusivity check requires for `type`, so every
+    // pre-existing call site here keeps testing only what it was testing
+    // (media/organism shape) without tripping the newer rules incidentally.
     private static TestWorkflowStep Step(StepType type, int? organismId, params TestWorkflowStepMedia[] media)
     {
-        var step = new TestWorkflowStep { StepName = "S", StepType = type, TargetOrganismId = organismId };
+        var step = new TestWorkflowStep
+        {
+            StepName = "S", StepType = type, TargetOrganismId = organismId,
+            MediaTypeId = type == StepType.BiochemicalTest ? (int?)null : 1,
+            PhenotypicTestType = type == StepType.BiochemicalTest ? PhenotypicTestType.IdentificationKit : null
+        };
         step.StepMedia.AddRange(media);
         return step;
     }
+
+    private static TestWorkflowStep StepWithMediaAndPhenotype(
+        StepType type, int? mediaTypeId, PhenotypicTestType? phenotypicTestType,
+        int? organismId = null, decimal tempMin = 35, decimal tempMax = 37,
+        int incubationMinHours = 0, int incubationMaxHours = 0) =>
+        new()
+        {
+            StepName = "S", StepType = type, TargetOrganismId = organismId,
+            MediaTypeId = mediaTypeId, PhenotypicTestType = phenotypicTestType,
+            TemperatureMin = tempMin, TemperatureMax = tempMax,
+            IncubationMinHours = incubationMinHours, IncubationMaxHours = incubationMaxHours
+        };
 
     private static TestWorkflowStepMedia Medium(int materialId, bool isRequired, decimal tempMin = 35, decimal tempMax = 37) =>
         new() { MaterialId = materialId, IsRequired = isRequired, TempMin = tempMin, TempMax = tempMax };
@@ -122,6 +143,74 @@ public class WorkflowTemplateValidationTests
     public void PlateCountStep_IsNotSubjectToPathogenRules()
     {
         var errors = WorkflowTemplateValidator.Validate(Step(StepType.PlateCount, null));
+        Assert.Empty(errors);
+    }
+
+    [Fact]
+    public void Rule4_BiochemicalTest_WithPhenotypicTestTypeAndNoMediaType_IsValid()
+    {
+        var step = StepWithMediaAndPhenotype(StepType.BiochemicalTest, mediaTypeId: null, phenotypicTestType: PhenotypicTestType.Catalase);
+        var errors = WorkflowTemplateValidator.Validate(step);
+        Assert.Empty(errors);
+    }
+
+    [Fact]
+    public void Rule4_BiochemicalTest_WithMediaTypeId_FailsRule4()
+    {
+        var step = StepWithMediaAndPhenotype(StepType.BiochemicalTest, mediaTypeId: 3, phenotypicTestType: PhenotypicTestType.Catalase);
+        var errors = WorkflowTemplateValidator.Validate(step);
+        Assert.Contains(errors, e => e.RuleNumber == 4);
+    }
+
+    [Fact]
+    public void Rule4_BiochemicalTest_WithoutPhenotypicTestType_FailsRule4()
+    {
+        var step = StepWithMediaAndPhenotype(StepType.BiochemicalTest, mediaTypeId: null, phenotypicTestType: null);
+        var errors = WorkflowTemplateValidator.Validate(step);
+        Assert.Contains(errors, e => e.RuleNumber == 4);
+    }
+
+    [Fact]
+    public void Rule4_BiochemicalTest_Antibiogram_WithRealIncubationWindow_IsValid()
+    {
+        // Antibiogram is the one phenotypic type with a real incubation stage
+        // (16-18h per SOP) - confirms the validator doesn't reject non-zero
+        // Incubation/Temp values on a BiochemicalTest step, since those
+        // fields are otherwise unvalidated/inert for this StepType.
+        var step = StepWithMediaAndPhenotype(
+            StepType.BiochemicalTest, mediaTypeId: null, phenotypicTestType: PhenotypicTestType.Antibiogram,
+            tempMin: 35, tempMax: 37, incubationMinHours: 16, incubationMaxHours: 18);
+        var errors = WorkflowTemplateValidator.Validate(step);
+        Assert.Empty(errors);
+    }
+
+    [Theory]
+    [InlineData(StepType.PlateCount)]
+    [InlineData(StepType.BrothEnrichment)]
+    [InlineData(StepType.SelectiveBroth)]
+    [InlineData(StepType.SelectivePlating)]
+    [InlineData(StepType.ConfirmatoryPlating)]
+    public void Rule8_NonBiochemical_WithoutMediaTypeId_FailsRule8(StepType type)
+    {
+        var step = StepWithMediaAndPhenotype(type, mediaTypeId: null, phenotypicTestType: null,
+            organismId: type is StepType.SelectivePlating or StepType.ConfirmatoryPlating ? 7 : null);
+        var errors = WorkflowTemplateValidator.Validate(step);
+        Assert.Contains(errors, e => e.RuleNumber == 8);
+    }
+
+    [Fact]
+    public void Rule8_NonBiochemical_WithPhenotypicTestType_FailsRule8()
+    {
+        var step = StepWithMediaAndPhenotype(StepType.PlateCount, mediaTypeId: 3, phenotypicTestType: PhenotypicTestType.Gram);
+        var errors = WorkflowTemplateValidator.Validate(step);
+        Assert.Contains(errors, e => e.RuleNumber == 8);
+    }
+
+    [Fact]
+    public void Rule8_NonBiochemical_WithMediaTypeIdAndNoPhenotypicTestType_IsValid()
+    {
+        var step = StepWithMediaAndPhenotype(StepType.PlateCount, mediaTypeId: 3, phenotypicTestType: null);
+        var errors = WorkflowTemplateValidator.Validate(step);
         Assert.Empty(errors);
     }
 

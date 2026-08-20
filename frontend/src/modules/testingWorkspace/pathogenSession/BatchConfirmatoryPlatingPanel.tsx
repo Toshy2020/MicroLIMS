@@ -622,6 +622,19 @@ export function BatchConfirmatoryPlatingPanel({ session, onNext, onBack, onUpdat
                 size="small"
                 InputLabelProps={{ shrink: true }}
               />
+
+              {/* Read-only Incubation Duration from Test Master */}
+              <Box sx={{ p: 1.5, backgroundColor: "#f8fafc", borderRadius: 1.5, border: "1px solid #e2e8f0", gridColumn: { xs: "1", sm: "span 2" } }}>
+                <Typography variant="caption" sx={{ color: "#64748b", display: "block" }}>
+                  Incubation Duration (from Test Master)
+                </Typography>
+                <Typography variant="body2" sx={{ fontWeight: 700, color: "#1e293b" }}>
+                  18–24 hours
+                </Typography>
+                <Typography variant="caption" sx={{ color: "#94a3b8" }}>
+                  Protocol duration is automatically applied to all selected media
+                </Typography>
+              </Box>
             </Box>
           )}
 

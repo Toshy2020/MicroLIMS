@@ -452,9 +452,50 @@ export function SessionReviewPanel({ session, onSessionCompleted, onBackToMatrix
                             }}
                           />
                         ) : (
-                          <Typography sx={{ fontSize: 12, color: "#ef4444", fontWeight: 700 }}>
-                            Pending
-                          </Typography>
+                          (() => {
+                            let label = "Pending";
+                            let bgcolor = "#f9fafb";
+                            let color = "#ef4444";
+                            let border = "1px solid #fca5a5";
+
+                            if (cell?.cellState === "LOCKED_PREREQUISITE") {
+                              label = "Locked";
+                              bgcolor = "#f3f4f6";
+                              color = "#6b7280";
+                              border = "1px solid #e5e7eb";
+                            } else {
+                              switch (t.testSessionState) {
+                                case "TSB_INCUBATING":
+                                  label = "TSB Incubating"; bgcolor = "#eff6ff"; color = "#1e40af"; border = "1px solid #bfdbfe"; break;
+                                case "DOWNSTREAM_INCUBATING":
+                                  label = "Plating In Progress"; bgcolor = "#eff6ff"; color = "#1e40af"; border = "1px solid #bfdbfe"; break;
+                                case "COUNT_INCUBATING":
+                                  label = "Incubating"; bgcolor = "#eff6ff"; color = "#1e40af"; border = "1px solid #bfdbfe"; break;
+                                case "READY_FOR_DOWNSTREAM":
+                                  label = "Ready to Read"; bgcolor = "#f5f3ff"; color = "#7c3aed"; border = "1px solid #ddd6fe"; break;
+                                case "AWAITING_RESULTS":
+                                  label = "Enter Result"; bgcolor = "#fefce8"; color = "#ca8a04"; border = "1px solid #fef08a"; break;
+                                case "RESULTS_RECORDED":
+                                  label = "Pending Review"; bgcolor = "#fff7ed"; color = "#d97706"; border = "1px solid #fed7aa"; break;
+                                default:
+                                  label = "Pending"; bgcolor = "#f9fafb"; color = "#ef4444"; border = "1px solid #fca5a5"; break;
+                              }
+                            }
+
+                            return (
+                              <Chip
+                                label={label}
+                                size="small"
+                                sx={{
+                                  fontWeight: 700,
+                                  bgcolor,
+                                  color,
+                                  border,
+                                  fontSize: 11
+                                }}
+                              />
+                            );
+                          })()
                         )}
 
                         {/* Expandable Derivation Breakdown */}

@@ -129,6 +129,25 @@ export const reportStyles = `
 .section-divider .section-label { margin-bottom: 0; }
 .section-divider .line { flex: 1; height: 1px; background: var(--color-border); }
 
+.matrix-section { border: 1px solid var(--color-border); border-radius: 10px; margin-bottom: 16px; background: #fff; overflow: hidden; }
+.matrix-header { display: flex; justify-content: space-between; align-items: center; padding: 14px 16px; border-bottom: 1px solid var(--color-border); gap: 12px; }
+.matrix-header h3 { font-size: 14px; font-weight: 700; }
+.matrix-header .matrix-sub { font-size: 11.5px; color: var(--color-text-tertiary); margin-top: 2px; }
+.matrix-wrap { overflow-x: auto; }
+table.result-matrix { width: 100%; border-collapse: collapse; font-size: 12px; }
+table.result-matrix th {
+  background: var(--color-surface-muted); padding: 9px 10px; font-size: 10px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.4px; color: var(--color-text-tertiary);
+  border-bottom: 1px solid var(--color-border); text-align: center; white-space: nowrap;
+}
+table.result-matrix th:first-child { text-align: left; padding-left: 16px; }
+table.result-matrix td { padding: 9px 10px; border-bottom: 1px solid var(--color-border); text-align: center; white-space: nowrap; }
+table.result-matrix tr:last-child td { border-bottom: none; }
+table.result-matrix td:first-child { text-align: left; padding-left: 16px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.matrix-cell { font-weight: 700; font-variant-numeric: tabular-nums; }
+.matrix-legend { display: flex; gap: 16px; padding: 10px 16px; background: var(--color-surface-muted); font-size: 11px; color: var(--color-text-tertiary); border-top: 1px solid var(--color-border); flex-wrap: wrap; }
+.matrix-legend .legend-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 5px; }
+
 .test-card {
   border: 1.5px solid var(--color-border);
   border-radius: 12px;
@@ -247,6 +266,40 @@ export const reportStyles = `
 .test-footer .pass-tag.is-neutral { color: var(--color-text-tertiary); }
 .test-footer .pass-tag svg { width: 12px; height: 12px; }
 
+/* Collapsible card shell (CollapsibleTestCard / SecondaryToggle) */
+.print-only { display: none; }
+
+.test-card-header { display: flex; align-items: center; gap: 12px; padding: 13px 16px; cursor: pointer; }
+.test-card-header:hover { background: var(--color-surface-muted); }
+.test-card-chev { color: var(--color-text-tertiary); flex: none; transition: transform 0.15s; }
+.test-card.is-open .test-card-chev { transform: rotate(90deg); }
+.test-card-flex { flex: 1; min-width: 0; }
+.test-card-loc-count { font-size: 11.5px; color: var(--color-text-tertiary); white-space: nowrap; }
+
+.test-card-print-header { display: none; align-items: center; gap: 10px; }
+
+.test-card-body { display: none; border-top: 1px solid var(--color-border); padding: 14px 16px 16px; background: var(--color-surface-muted); }
+.test-card.is-open .test-card-body { display: block; }
+
+.result-pills { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
+.result-pill {
+  display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 600;
+  background: rgba(22, 163, 74, 0.1); color: var(--color-positive); padding: 4px 10px; border-radius: 6px;
+  font-variant-numeric: tabular-nums;
+}
+.result-pill.is-danger { background: rgba(220, 38, 38, 0.1); color: var(--color-danger); }
+
+.secondary-toggle { margin-top: 4px; }
+.stage-toggle-btn {
+  display: inline-flex; align-items: center; gap: 6px; font-size: 11.5px; font-weight: 700;
+  color: var(--color-text-secondary); cursor: pointer; padding: 7px 0; background: none; border: none;
+  font-family: var(--font-sans);
+}
+.stage-toggle-chev { transition: transform 0.15s; }
+.secondary-toggle.is-open .stage-toggle-chev { transform: rotate(90deg); }
+.stage-detail-body { display: none; margin-top: 6px; }
+.secondary-toggle.is-open .stage-detail-body { display: block; }
+
 .timeline-wrap { padding: 16px; border: 1px solid var(--color-border); border-radius: 10px; }
 .timeline-track { display: flex; align-items: center; position: relative; }
 .timeline-step { flex: 1; text-align: center; position: relative; z-index: 1; }
@@ -349,6 +402,17 @@ export const reportStyles = `
   .test-subtitle { font-size: 8pt !important; color: #555 !important; }
   .test-result-value { font-size: 18pt !important; color: #000 !important; }
   .test-result-unit { font-size: 8pt !important; color: #555 !important; }
+
+  /* Collapsible card shell: the interactive header/toggles are .no-print
+     (hidden above); force every collapsed body open and swap in the
+     static print header so nothing needs a click to be readable on paper. */
+  .print-only { display: flex !important; }
+  .test-card-print-header { background: #f0f0f0 !important; border-bottom: 0.75pt solid #bbb !important; padding: 8pt 10pt !important; }
+  .test-card-body { display: block !important; border-top: none !important; background: #fff !important; padding: 8pt 10pt !important; }
+  .stage-detail-body { display: block !important; }
+  .result-pills { margin-bottom: 8pt !important; }
+  .result-pill { border: 0.5pt solid #000 !important; background: #fff !important; color: #000 !important; font-size: 7pt !important; padding: 2pt 6pt !important; }
+  .result-pill.is-danger { border-color: #000 !important; }
 
   .incubation-row { border-top: 0.5pt solid #bbb !important; padding: 8pt 10pt !important; gap: 10pt !important; }
   .incubation-item .inc-label { font-size: 7pt !important; color: #555 !important; }

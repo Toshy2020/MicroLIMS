@@ -10,7 +10,13 @@ public class LocationPathogenObservationConfiguration : IEntityTypeConfiguration
     {
         builder.HasKey(o => o.Id);
 
-        builder.Property(o => o.RowVersion).IsRowVersion();
+        // Not a real optimistic-concurrency token: IsRowVersion() expects
+        // the database to auto-generate a new value on every write (SQL
+        // Server's native rowversion type), which Postgres has no
+        // equivalent for on a plain bytea column - EF never sent a value,
+        // and the NOT NULL column rejected every insert. Nothing in the
+        // app reads RowVersion, so it's just an app-managed column now.
+        builder.Property(o => o.RowVersion);
 
         builder.HasOne(o => o.SampleLocation)
             .WithMany()

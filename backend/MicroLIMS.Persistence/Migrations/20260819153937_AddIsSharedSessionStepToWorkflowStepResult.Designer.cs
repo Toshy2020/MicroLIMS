@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using MicroLIMS.Persistence.DbContext;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -12,9 +13,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace MicroLIMS.Persistence.Migrations
 {
     [DbContext(typeof(MicroLimsDbContext))]
-    partial class MicroLimsDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260819153937_AddIsSharedSessionStepToWorkflowStepResult")]
+    partial class AddIsSharedSessionStepToWorkflowStepResult
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -271,10 +274,10 @@ namespace MicroLIMS.Persistence.Migrations
                     b.Property<string>("AlertLimit")
                         .HasColumnType("text");
 
-                    b.Property<decimal?>("Average")
+                    b.Property<decimal>("Average")
                         .HasColumnType("numeric");
 
-                    b.Property<decimal?>("CalculatedResult")
+                    b.Property<decimal>("CalculatedResult")
                         .HasColumnType("numeric");
 
                     b.Property<decimal>("DilutionFactor")
@@ -286,12 +289,6 @@ namespace MicroLIMS.Persistence.Migrations
                     b.Property<int>("EnteredByUserId")
                         .HasColumnType("integer");
 
-                    b.Property<bool>("HasNonNumericReading")
-                        .HasColumnType("boolean");
-
-                    b.Property<string>("NonNumericValue")
-                        .HasColumnType("text");
-
                     b.Property<string>("PlateReadings")
                         .IsRequired()
                         .HasColumnType("text");
@@ -299,9 +296,6 @@ namespace MicroLIMS.Persistence.Migrations
                     b.Property<string>("ReportedResult")
                         .IsRequired()
                         .HasColumnType("text");
-
-                    b.Property<bool>("RequiresReview")
-                        .HasColumnType("boolean");
 
                     b.Property<string>("SpecLimit")
                         .HasColumnType("text");
@@ -2540,8 +2534,7 @@ namespace MicroLIMS.Persistence.Migrations
 
                     b.HasIndex("NeutralizerId");
 
-                    b.HasIndex("SampleId")
-                        .IsUnique();
+                    b.HasIndex("SampleId");
 
                     b.ToTable("SamplePreparations");
                 });
@@ -2760,10 +2753,7 @@ namespace MicroLIMS.Persistence.Migrations
                     b.Property<bool>("IsFinalStep")
                         .HasColumnType("boolean");
 
-                    b.Property<int?>("MediaTypeId")
-                        .HasColumnType("integer");
-
-                    b.Property<int?>("PhenotypicTestType")
+                    b.Property<int>("MediaTypeId")
                         .HasColumnType("integer");
 
                     b.Property<bool>("RequiresIncubationTransfer")
@@ -3813,8 +3803,8 @@ namespace MicroLIMS.Persistence.Migrations
                         .IsRequired();
 
                     b.HasOne("MicroLIMS.Domain.Entities.Sample", "Sample")
-                        .WithOne("SamplePreparation")
-                        .HasForeignKey("MicroLIMS.Domain.Entities.SamplePreparation", "SampleId")
+                        .WithMany()
+                        .HasForeignKey("SampleId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
@@ -3902,7 +3892,8 @@ namespace MicroLIMS.Persistence.Migrations
                     b.HasOne("MicroLIMS.Domain.Entities.MediaType", "MediaType")
                         .WithMany()
                         .HasForeignKey("MediaTypeId")
-                        .OnDelete(DeleteBehavior.Restrict);
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
 
                     b.HasOne("MicroLIMS.Domain.Entities.Organism", "TargetOrganism")
                         .WithMany()
@@ -4066,8 +4057,6 @@ namespace MicroLIMS.Persistence.Migrations
             modelBuilder.Entity("MicroLIMS.Domain.Entities.Sample", b =>
                 {
                     b.Navigation("Locations");
-
-                    b.Navigation("SamplePreparation");
 
                     b.Navigation("TestOrders");
                 });

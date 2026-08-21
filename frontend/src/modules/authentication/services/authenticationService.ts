@@ -1,8 +1,6 @@
 import { apiClient } from "../../../services/apiClient";
 import { CurrentUserInfo, LoginResult } from "../types/authTypes";
 
-// Every module service calls the backend and does no business logic
-// of its own (Frozen Principle #3).
 export const authenticationService = {
   async login(username: string, password: string): Promise<LoginResult> {
     const res = await apiClient.post("/auth/login", { username, password });
@@ -23,6 +21,10 @@ export const authenticationService = {
 
   async confirmPasswordReset(resetToken: string, newPassword: string) {
     return (await apiClient.post("/auth/password-reset/confirm", { resetToken, newPassword })).data.data;
+  },
+
+  async confirmAdminPasswordRecovery(username: string, recoveryCode: string, newPassword: string) {
+    return (await apiClient.post("/auth/admin-password-recovery/confirm", { username, recoveryCode, newPassword })).data.data;
   },
 
   async changePassword(currentPassword: string, newPassword: string) {

@@ -2,7 +2,7 @@ import { useEffect, useState, useMemo } from "react";
 import {
   Box, Paper, Typography, Grid, FormControl, InputLabel, Select, MenuItem,
   Button, Table, TableHead, TableRow, TableCell, TableBody, TableSortLabel,
-  Stack, Chip, Tooltip, Alert, Divider, IconButton
+  Stack, Chip, Tooltip, Alert, Divider, IconButton, useTheme
 } from "@mui/material";
 import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
 import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
@@ -27,20 +27,21 @@ import { useAuth } from "../../../contexts/AuthContext";
 import { brandColors } from "../../../theme";
 
 function KpiCard({ data }: { data: OverviewKpiCardData }) {
+  const theme = useTheme();
   const isUp = data.deltaDirection === "up";
   const isError = data.variant === "error";
   const isWarning = data.variant === "warning";
 
-  let deltaColor = isUp ? brandColors.ok : brandColors.err;
-  if (isError) deltaColor = brandColors.err;
-  if (isWarning) deltaColor = brandColors.badgePM;
+  let deltaColor = isUp ? theme.custom.status.notDetected.text : theme.custom.status.detected.text;
+  if (isError) deltaColor = theme.custom.status.detected.text;
+  if (isWarning) deltaColor = theme.custom.status.action.text;
 
   const card = (
     <Paper sx={{ p: 2, height: "100%", display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
       <Typography sx={{ fontSize: 12.5, fontWeight: 600, color: "text.secondary" }}>
         {data.title}
       </Typography>
-      <Typography sx={{ fontSize: 24, fontWeight: 800, color: isError ? brandColors.err : brandColors.sectionTitle, my: 0.5 }}>
+      <Typography sx={{ fontSize: 24, fontWeight: 800, color: isError ? theme.custom.status.detected.text : theme.palette.primary.main, my: 0.5 }}>
         {data.value}
       </Typography>
       <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, flexWrap: "wrap" }}>
@@ -67,6 +68,7 @@ function KpiCard({ data }: { data: OverviewKpiCardData }) {
 type Order = "asc" | "desc";
 
 export function AnalystKpiTab() {
+  const theme = useTheme();
   const { role, userId } = useAuth();
   const isAnalyst = role === "Analyst";
 
@@ -257,7 +259,7 @@ export function AnalystKpiTab() {
       {/* Data Coverage & GMP Quality Signal Banner */}
       <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2, flexWrap: "wrap", gap: 1 }}>
         <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-          <CheckCircleOutlineIcon sx={{ color: brandColors.ok, fontSize: 18 }} />
+          <CheckCircleOutlineIcon sx={{ color: theme.custom.status.notDetected.text, fontSize: 18 }} />
           <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
             <strong>Data Availability: {data.dataCoveragePercent}%</strong> · {data.dataCoverageNote}
           </Typography>
@@ -297,19 +299,19 @@ export function AnalystKpiTab() {
         {/* Tests Completed by Month */}
         <Grid item xs={12} md={5}>
           <Paper sx={{ p: 2.5, height: 320 }}>
-            <Typography sx={{ fontSize: 14, fontWeight: 700, color: brandColors.pageTitle, mb: 1 }}>
+            <Typography sx={{ fontSize: 14, fontWeight: 700, color: theme.palette.primary.main, mb: 1 }}>
               Tests Completed by Month
             </Typography>
             <Box sx={{ height: 250 }}>
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={data.completedByMonth} margin={{ top: 10, right: 10, left: -20, bottom: 5 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                  <XAxis dataKey="month" tick={{ fontSize: 11 }} />
-                  <YAxis tick={{ fontSize: 11 }} />
+                  <CartesianGrid strokeDasharray="3 3" stroke={theme.palette.divider} />
+                  <XAxis dataKey="month" tick={{ fontSize: 11, fill: theme.palette.text.secondary }} />
+                  <YAxis tick={{ fontSize: 11, fill: theme.palette.text.secondary }} />
                   <RechartsTooltip />
                   <Legend verticalAlign="top" height={32} wrapperStyle={{ fontSize: 11 }} />
-                  <Bar dataKey="year2025" name="2025" fill="#94a3b8" radius={[3, 3, 0, 0]} barSize={12} />
-                  <Bar dataKey="year2026" name="2026" fill="#7b2d8e" radius={[3, 3, 0, 0]} barSize={12} />
+                  <Bar dataKey="year2025" name="2025" fill={theme.custom.status.pending.text} radius={[3, 3, 0, 0]} barSize={12} />
+                  <Bar dataKey="year2026" name="2026" fill={theme.palette.primary.main} radius={[3, 3, 0, 0]} barSize={12} />
                 </BarChart>
               </ResponsiveContainer>
             </Box>
@@ -319,7 +321,7 @@ export function AnalystKpiTab() {
         {/* Tests by Category Donut */}
         <Grid item xs={12} md={4}>
           <Paper sx={{ p: 2.5, height: 320, display: "flex", flexDirection: "column" }}>
-            <Typography sx={{ fontSize: 14, fontWeight: 700, color: brandColors.pageTitle, mb: 1 }}>
+            <Typography sx={{ fontSize: 14, fontWeight: 700, color: theme.palette.primary.main, mb: 1 }}>
               Tests by Category
             </Typography>
             <Box sx={{ display: "flex", alignItems: "center", flex: 1 }}>
@@ -342,7 +344,7 @@ export function AnalystKpiTab() {
                   </PieChart>
                 </ResponsiveContainer>
                 <Box sx={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%, -50%)", textAlign: "center" }}>
-                  <Typography sx={{ fontSize: 15, fontWeight: 800, color: brandColors.sectionTitle }}>1,284</Typography>
+                  <Typography sx={{ fontSize: 15, fontWeight: 800, color: theme.palette.primary.main }}>1,284</Typography>
                   <Typography sx={{ fontSize: 9, color: "text.secondary" }}>Total</Typography>
                 </Box>
               </Box>
@@ -366,17 +368,17 @@ export function AnalystKpiTab() {
         {/* Average TAT Trend */}
         <Grid item xs={12} md={3}>
           <Paper sx={{ p: 2.5, height: 320 }}>
-            <Typography sx={{ fontSize: 14, fontWeight: 700, color: brandColors.pageTitle, mb: 1 }}>
+            <Typography sx={{ fontSize: 14, fontWeight: 700, color: theme.palette.primary.main, mb: 1 }}>
               Average Testing TAT (Days)
             </Typography>
             <Box sx={{ height: 250 }}>
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={data.tatTrendByMonth} margin={{ top: 10, right: 10, left: -25, bottom: 5 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                  <XAxis dataKey="month" tick={{ fontSize: 11 }} />
-                  <YAxis domain={[0, 4]} tick={{ fontSize: 11 }} />
+                  <CartesianGrid strokeDasharray="3 3" stroke={theme.palette.divider} />
+                  <XAxis dataKey="month" tick={{ fontSize: 11, fill: theme.palette.text.secondary }} />
+                  <YAxis domain={[0, 4]} tick={{ fontSize: 11, fill: theme.palette.text.secondary }} />
                   <RechartsTooltip formatter={(val: number) => [`${val} days`, "Testing TAT"]} />
-                  <Line type="monotone" dataKey="tatDays" stroke="#0891b2" strokeWidth={2.5} dot={{ r: 4 }} />
+                  <Line type="monotone" dataKey="tatDays" stroke={theme.custom.status.info.text} strokeWidth={2.5} dot={{ r: 4 }} />
                 </LineChart>
               </ResponsiveContainer>
             </Box>
@@ -388,35 +390,35 @@ export function AnalystKpiTab() {
       <Grid container spacing={2} sx={{ mb: 2.5 }}>
         <Grid item xs={12} md={6}>
           <Paper sx={{ p: 2 }}>
-            <Typography sx={{ fontSize: 13, fontWeight: 700, color: brandColors.pageTitle, mb: 1.5 }}>
+            <Typography sx={{ fontSize: 13, fontWeight: 700, color: theme.palette.primary.main, mb: 1.5 }}>
               Workflow Bottleneck (Records in Queue)
             </Typography>
             <Grid container spacing={1}>
               <Grid item xs={4}>
-                <Box sx={{ p: 1.5, bgcolor: "#f8fafc", borderRadius: 1, textAlign: "center" }}>
+                <Box sx={{ p: 1.5, bgcolor: "background.default", borderRadius: 1, textAlign: "center" }}>
                   <Typography sx={{ fontSize: 11, color: "text.secondary" }}>Testing Queue</Typography>
-                  <Typography sx={{ fontSize: 18, fontWeight: 800, color: brandColors.sectionTitle }}>
+                  <Typography sx={{ fontSize: 18, fontWeight: 800, color: theme.palette.primary.main }}>
                     {data.workflowBottleneck.testingQueueCount}
                   </Typography>
-                  <Typography sx={{ fontSize: 10, color: brandColors.ok }}>↑ 5.1% vs prev</Typography>
+                  <Typography sx={{ fontSize: 10, color: theme.custom.status.notDetected.text }}>↑ 5.1% vs prev</Typography>
                 </Box>
               </Grid>
               <Grid item xs={4}>
-                <Box sx={{ p: 1.5, bgcolor: "#f5f3ff", borderRadius: 1, textAlign: "center" }}>
+                <Box sx={{ p: 1.5, bgcolor: theme.custom.status.purple.bg, borderRadius: 1, textAlign: "center" }}>
                   <Typography sx={{ fontSize: 11, color: "text.secondary" }}>Review Queue</Typography>
-                  <Typography sx={{ fontSize: 18, fontWeight: 800, color: "#5b21b6" }}>
+                  <Typography sx={{ fontSize: 18, fontWeight: 800, color: theme.custom.status.purple.text }}>
                     {data.workflowBottleneck.reviewQueueCount}
                   </Typography>
-                  <Typography sx={{ fontSize: 10, color: brandColors.ok }}>↓ 12.5% vs prev</Typography>
+                  <Typography sx={{ fontSize: 10, color: theme.custom.status.notDetected.text }}>↓ 12.5% vs prev</Typography>
                 </Box>
               </Grid>
               <Grid item xs={4}>
-                <Box sx={{ p: 1.5, bgcolor: "#f0fdf4", borderRadius: 1, textAlign: "center" }}>
+                <Box sx={{ p: 1.5, bgcolor: theme.custom.status.notDetected.bg, borderRadius: 1, textAlign: "center" }}>
                   <Typography sx={{ fontSize: 11, color: "text.secondary" }}>Approval Queue</Typography>
-                  <Typography sx={{ fontSize: 18, fontWeight: 800, color: "#166534" }}>
+                  <Typography sx={{ fontSize: 18, fontWeight: 800, color: theme.custom.status.notDetected.text }}>
                     {data.workflowBottleneck.approvalQueueCount}
                   </Typography>
-                  <Typography sx={{ fontSize: 10, color: brandColors.ok }}>↓ 25.0% vs prev</Typography>
+                  <Typography sx={{ fontSize: 10, color: theme.custom.status.notDetected.text }}>↓ 25.0% vs prev</Typography>
                 </Box>
               </Grid>
             </Grid>
@@ -425,21 +427,21 @@ export function AnalystKpiTab() {
 
         <Grid item xs={12} md={6}>
           <Paper sx={{ p: 2 }}>
-            <Typography sx={{ fontSize: 13, fontWeight: 700, color: brandColors.pageTitle, mb: 1.5 }}>
+            <Typography sx={{ fontSize: 13, fontWeight: 700, color: theme.palette.primary.main, mb: 1.5 }}>
               TAT Stage Summary (Days) — Segregated by Responsibility
             </Typography>
             <Grid container spacing={1}>
               <Grid item xs={3}>
-                <Box sx={{ p: 1.5, bgcolor: "#eff6ff", borderRadius: 1, textAlign: "center" }}>
+                <Box sx={{ p: 1.5, bgcolor: theme.custom.status.info.bg, borderRadius: 1, textAlign: "center" }}>
                   <Typography sx={{ fontSize: 10.5, color: "text.secondary" }}>Testing (Analyst)</Typography>
-                  <Typography sx={{ fontSize: 18, fontWeight: 800, color: "#2563eb" }}>
+                  <Typography sx={{ fontSize: 18, fontWeight: 800, color: theme.custom.status.info.text }}>
                     {data.tatSummary.testingTatDays} d
                   </Typography>
                   <Typography sx={{ fontSize: 10, color: "text.secondary" }}>Assignment → Entry</Typography>
                 </Box>
               </Grid>
               <Grid item xs={3}>
-                <Box sx={{ p: 1.5, bgcolor: "#f8fafc", borderRadius: 1, textAlign: "center" }}>
+                <Box sx={{ p: 1.5, bgcolor: "background.default", borderRadius: 1, textAlign: "center" }}>
                   <Typography sx={{ fontSize: 10.5, color: "text.secondary" }}>Review Stage</Typography>
                   <Typography sx={{ fontSize: 18, fontWeight: 800 }}>
                     {data.tatSummary.reviewTatDays} d
@@ -448,7 +450,7 @@ export function AnalystKpiTab() {
                 </Box>
               </Grid>
               <Grid item xs={3}>
-                <Box sx={{ p: 1.5, bgcolor: "#f8fafc", borderRadius: 1, textAlign: "center" }}>
+                <Box sx={{ p: 1.5, bgcolor: "background.default", borderRadius: 1, textAlign: "center" }}>
                   <Typography sx={{ fontSize: 10.5, color: "text.secondary" }}>Approval Stage</Typography>
                   <Typography sx={{ fontSize: 18, fontWeight: 800 }}>
                     {data.tatSummary.approvalTatDays} d
@@ -457,9 +459,9 @@ export function AnalystKpiTab() {
                 </Box>
               </Grid>
               <Grid item xs={3}>
-                <Box sx={{ p: 1.5, bgcolor: "#faf5ff", borderRadius: 1, textAlign: "center" }}>
+                <Box sx={{ p: 1.5, bgcolor: theme.custom.status.purple.bg, borderRadius: 1, textAlign: "center" }}>
                   <Typography sx={{ fontSize: 10.5, color: "text.secondary" }}>Total Lifecycle</Typography>
-                  <Typography sx={{ fontSize: 18, fontWeight: 800, color: brandColors.sectionTitle }}>
+                  <Typography sx={{ fontSize: 18, fontWeight: 800, color: theme.palette.primary.main }}>
                     {data.tatSummary.totalTatDays} d
                   </Typography>
                   <Typography sx={{ fontSize: 10, color: "text.secondary" }}>Full turnaround</Typography>
@@ -474,7 +476,7 @@ export function AnalystKpiTab() {
       <Paper sx={{ p: 2.5, mb: 3 }}>
         <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1.5 }}>
           <Box>
-            <Typography sx={{ fontSize: 15, fontWeight: 700, color: brandColors.pageTitle }}>
+            <Typography sx={{ fontSize: 15, fontWeight: 700, color: theme.palette.primary.main }}>
               Analyst Performance Comparison
             </Typography>
             <Typography sx={{ fontSize: 11, color: "text.secondary" }}>
@@ -542,30 +544,30 @@ export function AnalystKpiTab() {
                   key={row.analystId}
                   hover
                   selected={isSelected}
-                  sx={{ cursor: "pointer", bgcolor: isSelected ? "#f5f3ff" : "inherit" }}
+                  sx={{ cursor: "pointer", bgcolor: isSelected ? theme.custom.status.purple.bg : "inherit" }}
                   onClick={() => setSelectedAnalystId(row.analystId)}
                 >
-                  <TableCell sx={{ fontWeight: 700, color: brandColors.sectionTitle }}>
+                  <TableCell sx={{ fontWeight: 700, color: theme.palette.primary.main }}>
                     {row.analystName} <Typography component="span" sx={{ fontSize: 11, color: "text.secondary" }}>({row.username})</Typography>
                   </TableCell>
                   <TableCell align="right">{row.assigned}</TableCell>
                   <TableCell align="right" sx={{ fontWeight: 600 }}>{row.completed}</TableCell>
                   <TableCell align="right">
-                    <Chip size="small" label={`${row.workloadUnits} WU`} sx={{ fontSize: 11, height: 20, bgcolor: "#ede9fe", color: "#6d28d9", fontWeight: 700 }} />
+                    <Chip size="small" label={`${row.workloadUnits} WU`} sx={{ fontSize: 11, height: 20, bgcolor: theme.custom.status.purple.bg, color: theme.custom.status.purple.text, fontWeight: 700 }} />
                   </TableCell>
                   <TableCell align="right">{row.completionRatePercent}%</TableCell>
-                  <TableCell align="right" sx={{ color: row.onTimePercent >= 95 ? brandColors.ok : brandColors.badgePM, fontWeight: 600 }}>
+                  <TableCell align="right" sx={{ color: row.onTimePercent >= 95 ? theme.custom.status.notDetected.text : theme.custom.status.action.text, fontWeight: 600 }}>
                     {row.onTimePercent}%
                   </TableCell>
                   <TableCell align="right">{row.avgTestingTatDays} d</TableCell>
-                  <TableCell align="right" sx={{ color: row.reviewReturns > 0 ? brandColors.badgePM : "inherit" }}>
+                  <TableCell align="right" sx={{ color: row.reviewReturns > 0 ? theme.custom.status.action.text : "inherit" }}>
                     {row.reviewReturns}
                   </TableCell>
-                  <TableCell align="right" sx={{ color: row.docCorrections > 0 ? "#ea580c" : "inherit" }}>
+                  <TableCell align="right" sx={{ color: row.docCorrections > 0 ? theme.custom.status.action.text : "inherit" }}>
                     {row.docCorrections}
                   </TableCell>
                   <TableCell align="right">{row.pending}</TableCell>
-                  <TableCell align="right" sx={{ color: row.overdue > 0 ? brandColors.err : "inherit", fontWeight: row.overdue > 0 ? 700 : 400 }}>
+                  <TableCell align="right" sx={{ color: row.overdue > 0 ? theme.custom.status.detected.text : "inherit", fontWeight: row.overdue > 0 ? 700 : 400 }}>
                     {row.overdue}
                   </TableCell>
                 </TableRow>
@@ -577,10 +579,10 @@ export function AnalystKpiTab() {
 
       {/* Detailed Analyst Drill-Down (4 Panels) */}
       {selectedAnalystDetail && (
-        <Paper sx={{ p: 3, border: "1px solid #e2e8f0" }}>
+        <Paper sx={{ p: 3, border: "1px solid", borderColor: "divider" }}>
           <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2, pb: 1.5, borderBottom: 1, borderColor: "divider" }}>
             <Box>
-              <Typography sx={{ fontSize: 16, fontWeight: 800, color: brandColors.sectionTitle }}>
+              <Typography sx={{ fontSize: 16, fontWeight: 800, color: theme.palette.primary.main }}>
                 Analyst Performance Detail: {selectedAnalystDetail.analystName}
               </Typography>
               <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
@@ -598,8 +600,8 @@ export function AnalystKpiTab() {
           <Grid container spacing={2}>
             {/* Panel A: Workload */}
             <Grid item xs={12} sm={6} md={3}>
-              <Box sx={{ p: 2, bgcolor: "#f8fafc", borderRadius: 1.5, height: "100%", border: "1px solid #e2e8f0" }}>
-                <Typography sx={{ fontSize: 13, fontWeight: 700, color: brandColors.pageTitle, mb: 1.5 }}>
+              <Box sx={{ p: 2, bgcolor: "background.default", borderRadius: 1.5, height: "100%", border: "1px solid", borderColor: "divider" }}>
+                <Typography sx={{ fontSize: 13, fontWeight: 700, color: theme.palette.primary.main, mb: 1.5 }}>
                   A. Workload Execution
                 </Typography>
                 <Stack spacing={1}>
@@ -617,7 +619,7 @@ export function AnalystKpiTab() {
                   </Box>
                   <Box sx={{ display: "flex", justifyContent: "space-between", fontSize: 12 }}>
                     <Typography sx={{ fontSize: 12, color: "text.secondary" }}>Configured Workload Units:</Typography>
-                    <Typography sx={{ fontSize: 12, fontWeight: 700, color: brandColors.sectionTitle }}>
+                    <Typography sx={{ fontSize: 12, fontWeight: 700, color: theme.palette.primary.main }}>
                       {selectedAnalystDetail.workload.configuredWorkloadUnits} WU
                     </Typography>
                   </Box>
@@ -627,8 +629,8 @@ export function AnalystKpiTab() {
 
             {/* Panel B: Timeliness */}
             <Grid item xs={12} sm={6} md={3}>
-              <Box sx={{ p: 2, bgcolor: "#f8fafc", borderRadius: 1.5, height: "100%", border: "1px solid #e2e8f0" }}>
-                <Typography sx={{ fontSize: 13, fontWeight: 700, color: brandColors.pageTitle, mb: 1.5 }}>
+              <Box sx={{ p: 2, bgcolor: "background.default", borderRadius: 1.5, height: "100%", border: "1px solid", borderColor: "divider" }}>
+                <Typography sx={{ fontSize: 13, fontWeight: 700, color: theme.palette.primary.main, mb: 1.5 }}>
                   B. Timeliness & TAT
                 </Typography>
                 <Stack spacing={1}>
@@ -642,13 +644,13 @@ export function AnalystKpiTab() {
                   </Box>
                   <Box sx={{ display: "flex", justifyContent: "space-between", fontSize: 12 }}>
                     <Typography sx={{ fontSize: 12, color: "text.secondary" }}>On-Time Completion:</Typography>
-                    <Typography sx={{ fontSize: 12, fontWeight: 700, color: brandColors.ok }}>
+                    <Typography sx={{ fontSize: 12, fontWeight: 700, color: theme.custom.status.notDetected.text }}>
                       {selectedAnalystDetail.timeliness.onTimePercent}%
                     </Typography>
                   </Box>
                   <Box sx={{ display: "flex", justifyContent: "space-between", fontSize: 12 }}>
                     <Typography sx={{ fontSize: 12, color: "text.secondary" }}>Overdue Count:</Typography>
-                    <Typography sx={{ fontSize: 12, fontWeight: 600, color: selectedAnalystDetail.timeliness.overdueCount > 0 ? brandColors.err : "inherit" }}>
+                    <Typography sx={{ fontSize: 12, fontWeight: 600, color: selectedAnalystDetail.timeliness.overdueCount > 0 ? theme.custom.status.detected.text : "inherit" }}>
                       {selectedAnalystDetail.timeliness.overdueCount}
                     </Typography>
                   </Box>
@@ -658,8 +660,8 @@ export function AnalystKpiTab() {
 
             {/* Panel C: Documentation & Review Quality */}
             <Grid item xs={12} sm={6} md={3}>
-              <Box sx={{ p: 2, bgcolor: "#f8fafc", borderRadius: 1.5, height: "100%", border: "1px solid #e2e8f0" }}>
-                <Typography sx={{ fontSize: 13, fontWeight: 700, color: brandColors.pageTitle, mb: 1.5 }}>
+              <Box sx={{ p: 2, bgcolor: "background.default", borderRadius: 1.5, height: "100%", border: "1px solid", borderColor: "divider" }}>
+                <Typography sx={{ fontSize: 13, fontWeight: 700, color: theme.palette.primary.main, mb: 1.5 }}>
                   C. Documentation Quality
                 </Typography>
                 <Stack spacing={1}>
@@ -673,7 +675,7 @@ export function AnalystKpiTab() {
                   </Box>
                   <Box sx={{ display: "flex", justifyContent: "space-between", fontSize: 12 }}>
                     <Typography sx={{ fontSize: 12, color: "text.secondary" }}>First-Time Review Rate:</Typography>
-                    <Typography sx={{ fontSize: 12, fontWeight: 700, color: brandColors.ok }}>
+                    <Typography sx={{ fontSize: 12, fontWeight: 700, color: theme.custom.status.notDetected.text }}>
                       {selectedAnalystDetail.quality.firstTimeReviewAcceptanceRate}%
                     </Typography>
                   </Box>
@@ -687,14 +689,14 @@ export function AnalystKpiTab() {
 
             {/* Panel D: Compliance */}
             <Grid item xs={12} sm={6} md={3}>
-              <Box sx={{ p: 2, bgcolor: "#f8fafc", borderRadius: 1.5, height: "100%", border: "1px solid #e2e8f0" }}>
-                <Typography sx={{ fontSize: 13, fontWeight: 700, color: brandColors.pageTitle, mb: 1.5 }}>
+              <Box sx={{ p: 2, bgcolor: "background.default", borderRadius: 1.5, height: "100%", border: "1px solid", borderColor: "divider" }}>
+                <Typography sx={{ fontSize: 13, fontWeight: 700, color: theme.palette.primary.main, mb: 1.5 }}>
                   D. Compliance & Training
                 </Typography>
                 <Stack spacing={1}>
                   <Box sx={{ display: "flex", justifyContent: "space-between", fontSize: 12 }}>
                     <Typography sx={{ fontSize: 12, color: "text.secondary" }}>Training Status:</Typography>
-                    <Typography sx={{ fontSize: 12, fontWeight: 600, color: brandColors.ok }}>
+                    <Typography sx={{ fontSize: 12, fontWeight: 600, color: theme.custom.status.notDetected.text }}>
                       {selectedAnalystDetail.compliance.trainingStatus}
                     </Typography>
                   </Box>

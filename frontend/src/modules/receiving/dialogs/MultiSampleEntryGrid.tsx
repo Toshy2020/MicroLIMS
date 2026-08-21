@@ -13,7 +13,8 @@ import {
   IconButton,
   Button,
   Paper,
-  Tooltip
+  Tooltip,
+  useTheme
 } from "@mui/material";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import AddIcon from "@mui/icons-material/Add";
@@ -48,6 +49,7 @@ export function MultiSampleEntryGrid({
   onAddRow,
   onDeleteRow
 }: Props) {
+  const theme = useTheme();
   const isItemBased = category === "product" || category === "rm" || category === "pm";
   const isWater = category === "water";
   const isEM = category === "em";
@@ -62,13 +64,14 @@ export function MultiSampleEntryGrid({
             alignItems: "center",
             gap: 1,
             p: 1.25,
-            bgcolor: "#fef3c7",
+            bgcolor: theme.custom.status.inconclusive.bg,
             borderRadius: 1.5,
-            border: "1px solid #fde68a"
+            border: "1px solid",
+            borderColor: theme.custom.status.inconclusive.border
           }}
         >
-          <InfoOutlinedIcon sx={{ fontSize: 18, color: "#b45309" }} />
-          <Typography sx={{ fontSize: 12, color: "#92400e", fontWeight: 500 }}>
+          <InfoOutlinedIcon sx={{ fontSize: 18, color: theme.custom.status.inconclusive.text }} />
+          <Typography sx={{ fontSize: 12, color: theme.custom.status.inconclusive.text, fontWeight: 500 }}>
             {isEM
               ? "Rooms, test locations, and test types are configured in the Preparation step after receiving."
               : isAC
@@ -81,21 +84,22 @@ export function MultiSampleEntryGrid({
       <Paper
         elevation={0}
         sx={{
-          border: "1px solid #e5e7eb",
+          border: "1px solid",
+          borderColor: "divider",
           borderRadius: 2,
           overflow: "hidden",
-          bgcolor: "#ffffff"
+          bgcolor: "background.paper"
         }}
       >
         <Box sx={{ overflowX: "auto", maxHeight: "55vh" }}>
           <Table size="small" stickyHeader sx={{ minWidth: isItemBased ? 1200 : 780 }}>
             <TableHead>
-              <TableRow sx={{ "& th": { bgcolor: "#f9fafb", fontWeight: 700, fontSize: 12, py: 1.25 } }}>
+              <TableRow sx={{ "& th": { bgcolor: "background.default", fontWeight: 700, fontSize: 12, py: 1.25 } }}>
                 <TableCell sx={{ width: 40 }}>#</TableCell>
 
                 {isItemBased && (
                   <TableCell sx={{ minWidth: 200 }}>
-                    Item <span style={{ color: "#dc2626" }}>*</span>
+                    Item <span style={{ color: theme.custom.status.detected.text }}>*</span>
                   </TableCell>
                 )}
 
@@ -105,24 +109,24 @@ export function MultiSampleEntryGrid({
 
                 {isWater && (
                   <TableCell sx={{ minWidth: 180 }}>
-                    Department <span style={{ color: "#dc2626" }}>*</span>
+                    Department <span style={{ color: theme.custom.status.detected.text }}>*</span>
                   </TableCell>
                 )}
 
                 {isEM && (
                   <TableCell sx={{ minWidth: 180 }}>
-                    Department <span style={{ color: "#dc2626" }}>*</span>
+                    Department <span style={{ color: theme.custom.status.detected.text }}>*</span>
                   </TableCell>
                 )}
 
                 {isAC && (
                   <TableCell sx={{ minWidth: 180 }}>
-                    Machine <span style={{ color: "#dc2626" }}>*</span>
+                    Machine <span style={{ color: theme.custom.status.detected.text }}>*</span>
                   </TableCell>
                 )}
 
                 <TableCell sx={{ minWidth: 170 }}>
-                  Cause of Testing <span style={{ color: "#dc2626" }}>*</span>
+                  Cause of Testing <span style={{ color: theme.custom.status.detected.text }}>*</span>
                 </TableCell>
 
                 {!isEM && !isAC && (
@@ -130,7 +134,7 @@ export function MultiSampleEntryGrid({
                 )}
 
                 <TableCell sx={{ minWidth: 160 }}>
-                  Sampled By <span style={{ color: "#dc2626" }}>*</span>
+                  Sampled By <span style={{ color: theme.custom.status.detected.text }}>*</span>
                 </TableCell>
 
                 {isItemBased && (
@@ -160,12 +164,12 @@ export function MultiSampleEntryGrid({
                   <TableRow
                     key={row.id}
                     sx={{
-                      "&:hover": { bgcolor: "#fdfbfe" },
+                      "&:hover": { bgcolor: "action.hover" },
                       "& td": { py: 1 }
                     }}
                   >
                     {/* Row Index */}
-                    <TableCell sx={{ fontWeight: 600, fontSize: 12, color: "#6b7280" }}>
+                    <TableCell sx={{ fontWeight: 600, fontSize: 12, color: "text.secondary" }}>
                       {idx + 1}
                     </TableCell>
 
@@ -182,7 +186,7 @@ export function MultiSampleEntryGrid({
                           sx={{ fontSize: 12 }}
                         >
                           <MenuItem value="">
-                            <em style={{ color: "#9ca3af" }}>Select Item</em>
+                            <em style={{ color: theme.palette.text.secondary }}>Select Item</em>
                           </MenuItem>
                           {masterData.items.map((i) => (
                             <MenuItem key={i.id} value={i.id}>
@@ -205,7 +209,7 @@ export function MultiSampleEntryGrid({
                           sx={{ fontSize: 12 }}
                         >
                           <MenuItem value="">
-                            <em style={{ color: "#9ca3af" }}>Stage</em>
+                            <em style={{ color: theme.palette.text.secondary }}>Stage</em>
                           </MenuItem>
                           {PRODUCTION_STAGES.map((s) => (
                             <MenuItem key={s} value={s}>
@@ -229,7 +233,7 @@ export function MultiSampleEntryGrid({
                           sx={{ fontSize: 12 }}
                         >
                           <MenuItem value="">
-                            <em style={{ color: "#9ca3af" }}>Select Department</em>
+                            <em style={{ color: theme.palette.text.secondary }}>Select Department</em>
                           </MenuItem>
                           {masterData.waterDepartments.map((d) => (
                             <MenuItem key={d.id} value={d.id}>
@@ -253,7 +257,7 @@ export function MultiSampleEntryGrid({
                           sx={{ fontSize: 12 }}
                         >
                           <MenuItem value="">
-                            <em style={{ color: "#9ca3af" }}>Select Department</em>
+                            <em style={{ color: theme.palette.text.secondary }}>Select Department</em>
                           </MenuItem>
                           {masterData.departments.map((d) => (
                             <MenuItem key={d.id} value={d.id}>
@@ -277,7 +281,7 @@ export function MultiSampleEntryGrid({
                           sx={{ fontSize: 12 }}
                         >
                           <MenuItem value="">
-                            <em style={{ color: "#9ca3af" }}>Select Machine</em>
+                            <em style={{ color: theme.palette.text.secondary }}>Select Machine</em>
                           </MenuItem>
                           {masterData.machines.map((m) => (
                             <MenuItem key={m.id} value={m.id}>
@@ -300,7 +304,7 @@ export function MultiSampleEntryGrid({
                         sx={{ fontSize: 12 }}
                       >
                         <MenuItem value="">
-                          <em style={{ color: "#9ca3af" }}>Cause of Testing</em>
+                          <em style={{ color: theme.palette.text.secondary }}>Cause of Testing</em>
                         </MenuItem>
                         {masterData.causes.map((c) => (
                           <MenuItem key={c.id} value={c.id}>
@@ -405,8 +409,8 @@ export function MultiSampleEntryGrid({
                             disabled={rows.length === 1}
                             onClick={() => onDeleteRow(idx)}
                             sx={{
-                              color: rows.length === 1 ? "#d1d5db" : "#dc2626",
-                              "&:hover": rows.length > 1 ? { bgcolor: "#fee2e2" } : undefined
+                              color: rows.length === 1 ? "text.disabled" : theme.custom.status.detected.text,
+                              "&:hover": rows.length > 1 ? { bgcolor: theme.custom.status.detected.bg } : undefined
                             }}
                           >
                             <DeleteOutlineIcon sx={{ fontSize: 18 }} />
@@ -430,15 +434,15 @@ export function MultiSampleEntryGrid({
           onClick={onAddRow}
           startIcon={<AddIcon sx={{ fontSize: 18 }} />}
           sx={{
-            borderColor: brandColors.sectionTitle,
-            color: brandColors.sectionTitle,
+            borderColor: theme.palette.primary.main,
+            color: theme.palette.primary.main,
             fontSize: 13,
             fontWeight: 600,
             py: 0.75,
             px: 2,
             "&:hover": {
-              borderColor: brandColors.sectionTitle,
-              bgcolor: "#faf5ff"
+              borderColor: theme.palette.primary.main,
+              bgcolor: theme.custom.status.purple.bg
             }
           }}
         >

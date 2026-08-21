@@ -302,7 +302,7 @@ public class TestWorkflowController : ControllerBase
                 : null;
 
             var lots = await _db.Media
-                .Where(m => m.MaterialId == medium.MaterialId && m.IsReleasedForUse && m.ExpiryDate > DateTime.UtcNow)
+                .Where(m => m.MaterialId == medium.MaterialId && m.IsReleasedForUse && m.Status == MediaStatus.Active && m.ExpiryDate > DateTime.UtcNow)
                 .OrderBy(m => m.ExpiryDate)
                 .Select(m => new { m.Id, lotNumber = m.LotNumber, expiryDate = m.ExpiryDate })
                 .ToListAsync();

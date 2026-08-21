@@ -1,39 +1,58 @@
+import { ComponentType } from "react";
+import SpaceDashboardOutlinedIcon from "@mui/icons-material/SpaceDashboardOutlined";
+import ScienceOutlinedIcon from "@mui/icons-material/ScienceOutlined";
+import MoveToInboxOutlinedIcon from "@mui/icons-material/MoveToInboxOutlined";
+import MedicationLiquidOutlinedIcon from "@mui/icons-material/MedicationLiquidOutlined";
+import AcUnitOutlinedIcon from "@mui/icons-material/AcUnitOutlined";
+import Inventory2OutlinedIcon from "@mui/icons-material/Inventory2Outlined";
+import PrecisionManufacturingOutlinedIcon from "@mui/icons-material/PrecisionManufacturingOutlined";
+import RuleOutlinedIcon from "@mui/icons-material/RuleOutlined";
+import FactCheckOutlinedIcon from "@mui/icons-material/FactCheckOutlined";
+import DescriptionOutlinedIcon from "@mui/icons-material/DescriptionOutlined";
+import SearchOutlinedIcon from "@mui/icons-material/SearchOutlined";
+import SettingsOutlinedIcon from "@mui/icons-material/SettingsOutlined";
+import PeopleAltOutlinedIcon from "@mui/icons-material/PeopleAltOutlined";
+import AdminPanelSettingsOutlinedIcon from "@mui/icons-material/AdminPanelSettingsOutlined";
 import { Role } from "../modules/authentication/types/authTypes";
 
 export interface MenuItem {
   label: string;
   path?: string;
+  icon?: ComponentType<{ fontSize?: "small" | "inherit" | "medium" | "large"; sx?: any }>;
+  group?: string;
   children?: MenuItem[];
 }
 
-// Every module's nav entry, in one place. Sidebar (and eventually any
-// other nav surface) reads this rather than hardcoding role checks -
-// DashboardLayout -> Role -> menuConfig.ts -> Visible Modules.
-const dashboardItem: MenuItem = { label: "Dashboard", path: "/dashboard" };
-const receivingItem: MenuItem = { label: "Sample Receiving", path: "/receiving" };
-const testingWorkspaceItem: MenuItem = { label: "Testing Workspace", path: "/testing-workspace" };
-const mediaWorkspaceItem: MenuItem = { label: "Media Preparation & Evaluation", path: "/laboratory-configuration/media" };
-const cryovialsItem: MenuItem = { label: "Cryovials", path: "/laboratory-configuration/cryovials" };
-const reportsItem: MenuItem = { label: "Reports", path: "/reports" };
-const auditSearchItem: MenuItem = { label: "Audit Search", path: "/audit-search" };
+export interface MenuGroup {
+  groupName: string;
+  items: MenuItem[];
+}
+
+// Menu Items
+const dashboardItem: MenuItem = { label: "Dashboard", path: "/dashboard", icon: SpaceDashboardOutlinedIcon, group: "OVERVIEW" };
+const testingWorkspaceItem: MenuItem = { label: "Testing Workspace", path: "/testing-workspace", icon: ScienceOutlinedIcon, group: "MY WORK" };
+const mediaWorkspaceItem: MenuItem = { label: "Media Preparation & Evaluation", path: "/laboratory-configuration/media", icon: MedicationLiquidOutlinedIcon, group: "LABORATORY" };
+const cryovialsItem: MenuItem = { label: "Reference Cryovials", path: "/laboratory-configuration/cryovials", icon: AcUnitOutlinedIcon, group: "LABORATORY" };
+const receivingItem: MenuItem = { label: "Sample Receiving", path: "/receiving", icon: MoveToInboxOutlinedIcon, group: "OPERATIONS" };
+const reportsItem: MenuItem = { label: "Reports", path: "/reports", icon: DescriptionOutlinedIcon, group: "REPORTS" };
+const auditSearchItem: MenuItem = { label: "Audit Search", path: "/audit-search", icon: SearchOutlinedIcon, group: "AUDIT & COMPLIANCE" };
 
 const inventoryItem: MenuItem = {
   label: "Inventory",
+  icon: Inventory2OutlinedIcon,
+  group: "INVENTORY",
   children: [
-    { label: "Materials Stock", path: "/inventory/materials" },
-    { label: "Equipment", path: "/inventory/equipment" },
-    { label: "Approved Media List", path: "/inventory/approved-media" },
-    { label: "Approved Cryovial List", path: "/inventory/approved-cryovials" }
+    { label: "Materials Stock", path: "/inventory/materials", icon: Inventory2OutlinedIcon },
+    { label: "Equipment Master", path: "/inventory/equipment", icon: PrecisionManufacturingOutlinedIcon },
+    { label: "Approved Media List", path: "/inventory/approved-media", icon: RuleOutlinedIcon },
+    { label: "Approved Cryovial List", path: "/inventory/approved-cryovials", icon: FactCheckOutlinedIcon }
   ]
 };
 
-// One collapsible menu instead of many separate top-level items. Only
-// the admin/master-data pages live here - Media Preparation & Evaluation
-// and Cryovials are day-to-day workflow pages like Sample Receiving/Testing
-// Workspace, so they're standalone items available to every role instead of
-// nested under this Section-Head-only menu.
 const laboratoryConfigurationItem: MenuItem = {
   label: "Laboratory Configuration",
+  icon: SettingsOutlinedIcon,
+  group: "LAB CONFIGURATION",
   children: [
     { label: "Test Master", path: "/laboratory-configuration/test-master" },
     { label: "Organisms", path: "/laboratory-configuration/organisms" },
@@ -49,28 +68,66 @@ const laboratoryConfigurationItem: MenuItem = {
   ]
 };
 
-const usersItem: MenuItem = { label: "Users", path: "/users" };
-const rolesItem: MenuItem = { label: "Roles", path: "/roles" };
-
-// Sample Receiving, Testing Workspace, Media Preparation & Evaluation,
-// and Cryovials are shop-floor workflow pages available to every role,
-// regardless of what else that role can reach.
-const sharedWorkflowItems: MenuItem[] = [receivingItem, testingWorkspaceItem, mediaWorkspaceItem, cryovialsItem];
+const usersItem: MenuItem = { label: "Users", path: "/users", icon: PeopleAltOutlinedIcon, group: "ADMINISTRATION" };
+const rolesItem: MenuItem = { label: "Roles", path: "/roles", icon: AdminPanelSettingsOutlinedIcon, group: "ADMINISTRATION" };
 
 const menuByRole: Record<Role, MenuItem[]> = {
-  Analyst: [dashboardItem, ...sharedWorkflowItems, inventoryItem, reportsItem],
-  // Reviewer's "Under Review" work happens by clicking a badge in the
-  // Testing Workspace now - no separate Review menu item.
-  Reviewer: [dashboardItem, ...sharedWorkflowItems, reportsItem],
+  Analyst: [
+    dashboardItem,
+    testingWorkspaceItem,
+    mediaWorkspaceItem,
+    cryovialsItem,
+    inventoryItem,
+    receivingItem,
+    reportsItem
+  ],
+  Reviewer: [
+    dashboardItem,
+    testingWorkspaceItem,
+    mediaWorkspaceItem,
+    cryovialsItem,
+    receivingItem,
+    reportsItem
+  ],
   SectionHead: [
-    dashboardItem, ...sharedWorkflowItems,
-    laboratoryConfigurationItem, inventoryItem, reportsItem, auditSearchItem
+    dashboardItem,
+    testingWorkspaceItem,
+    mediaWorkspaceItem,
+    cryovialsItem,
+    receivingItem,
+    inventoryItem,
+    laboratoryConfigurationItem,
+    reportsItem,
+    auditSearchItem
   ],
   SystemAdministrator: [
-    dashboardItem, ...sharedWorkflowItems,
-    laboratoryConfigurationItem, inventoryItem, usersItem, rolesItem, reportsItem, auditSearchItem
+    dashboardItem,
+    testingWorkspaceItem,
+    mediaWorkspaceItem,
+    cryovialsItem,
+    receivingItem,
+    inventoryItem,
+    laboratoryConfigurationItem,
+    usersItem,
+    rolesItem,
+    reportsItem,
+    auditSearchItem
   ]
 };
 
 export const getMenuForRole = (role: Role | null): MenuItem[] => (role ? menuByRole[role] ?? [] : []);
 export const getMenuItems = getMenuForRole;
+
+export function getGroupedMenuForRole(role: Role | null): MenuGroup[] {
+  const items = getMenuForRole(role);
+  const groups: Record<string, MenuItem[]> = {};
+  for (const item of items) {
+    const g = item.group || "OTHER";
+    if (!groups[g]) groups[g] = [];
+    groups[g].push(item);
+  }
+  return Object.entries(groups).map(([groupName, groupItems]) => ({
+    groupName,
+    items: groupItems
+  }));
+}

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField, FormControl, InputLabel, Select, MenuItem, Stack, Typography } from "@mui/material";
+import { Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField, FormControl, InputLabel, Select, MenuItem, Stack, Typography , useTheme} from "@mui/material";
 import { ReportBuilderCriteria, ReportBuilderOptions, ReportPurpose, SampleCategory } from "../types/reportingTypes";
 import { SavedReportsService } from "../services/SavedReportsService";
 import { useAuth } from "../../../contexts/AuthContext";
@@ -14,6 +14,7 @@ interface SaveConfigDialogProps {
 }
 
 export function SaveConfigDialog({ open, onClose, criteria, options, onSaved }: SaveConfigDialogProps) {
+  const theme = useTheme();
   const { fullName, userId } = useAuth();
   const [name, setName] = useState("");
   const [purpose, setPurpose] = useState<ReportPurpose>(criteria.reportPurpose);
@@ -52,7 +53,7 @@ export function SaveConfigDialog({ open, onClose, criteria, options, onSaved }: 
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-      <DialogTitle sx={{ borderBottom: 1, borderColor: "divider", color: brandColors.sectionTitle, fontWeight: 700 }}>
+      <DialogTitle sx={{ borderBottom: 1, borderColor: "divider", color: theme.palette.primary.main, fontWeight: 700 }}>
         Save Report Configuration
       </DialogTitle>
       <DialogContent sx={{ pt: 2.5 }}>

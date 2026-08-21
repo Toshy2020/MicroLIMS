@@ -1,11 +1,12 @@
 import { useState } from "react";
-import { Box, TextField, Button, Typography, Alert, Link } from "@mui/material";
+import { Box, TextField, Button, Typography, Alert, Link, Stack, useTheme } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { authenticationService } from "../modules/authentication/services/authenticationService";
 import { brandColors } from "../theme";
 
 export function LoginPage() {
+  const theme = useTheme();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -22,7 +23,6 @@ export function LoginPage() {
     setError(null);
     try {
       const { token, refreshToken, role, mustChangePassword } = await authenticationService.login(username, password);
-      // Stash the token immediately so the /auth/me lookup below is authorized.
       localStorage.setItem("microlims_token", token);
       const me = await authenticationService.me();
       login({ token, refreshToken, username, role, fullName: me.fullName, userId: me.userId, mustChangePassword });
@@ -36,12 +36,9 @@ export function LoginPage() {
     e.preventDefault();
     setResetSubmitting(true);
     try {
-      // The endpoint's response may include the raw reset token (email
-      // delivery isn't wired up yet) - never surface it here, only the
-      // generic message, so it can't be used as an account-existence oracle.
       await authenticationService.requestPasswordReset(resetUsername);
     } catch {
-      // Swallow - same generic message either way.
+      // Swallow
     } finally {
       setResetSubmitting(false);
       setResetMessage("If that account exists, a reset link has been generated.");
@@ -50,7 +47,17 @@ export function LoginPage() {
 
   return (
     <Box sx={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", bgcolor: "background.default" }}>
-      <Box sx={{ width: 380, borderRadius: 2.5, overflow: "hidden", boxShadow: "0 4px 20px rgba(0,0,0,0.12)" }}>
+      <Box
+        sx={{
+          width: 380,
+          borderRadius: 2.5,
+          overflow: "hidden",
+          boxShadow:
+            theme.palette.mode === "dark"
+              ? "0 4px 20px rgba(0,0,0,0.4)"
+              : "0 4px 20px rgba(0,0,0,0.12)"
+        }}
+      >
         <Box sx={{ background: brandColors.topbarGradient, color: "#fff", px: 3, py: 2.5, textAlign: "center" }}>
           <Typography sx={{ fontSize: 22, fontWeight: 700 }}>
             Micro<Box component="span" sx={{ fontWeight: 300, opacity: 0.85 }}>LIMS</Box>
@@ -58,7 +65,7 @@ export function LoginPage() {
         </Box>
 
         {forgotMode ? (
-          <Box component="form" onSubmit={handleForgotSubmit} sx={{ bgcolor: "#fff", p: 3.5, display: "flex", flexDirection: "column", gap: 2 }}>
+          <Box component="form" onSubmit={handleForgotSubmit} sx={{ bgcolor: "background.paper", p: 3.5, display: "flex", flexDirection: "column", gap: 2 }}>
             {resetMessage ? (
               <Alert severity="info">{resetMessage}</Alert>
             ) : (
@@ -72,25 +79,41 @@ export function LoginPage() {
                 </Button>
               </>
             )}
-            <Link
-              component="button"
-              type="button"
-              underline="hover"
-              sx={{ fontSize: 13, textAlign: "center" }}
-              onClick={() => { setForgotMode(false); setResetMessage(null); setResetUsername(""); }}
-            >
-              Back to login
-            </Link>
+            <Stack spacing={1} textAlign="center">
+              <Link
+                component="button"
+                type="button"
+                underline="hover"
+                sx={{ fontSize: 13 }}
+                onClick={() => { setForgotMode(false); setResetMessage(null); setResetUsername(""); }}
+              >
+                Back to login
+              </Link>
+              <Link
+                component="button"
+                type="button"
+                underline="hover"
+                sx={{ fontSize: 13, color: "warning.main" }}
+                onClick={() => navigate("/admin-recovery")}
+              >
+                Have a recovery code from your admin?
+              </Link>
+            </Stack>
           </Box>
         ) : (
-          <Box component="form" onSubmit={handleSubmit} sx={{ bgcolor: "#fff", p: 3.5, display: "flex", flexDirection: "column", gap: 2 }}>
+          <Box component="form" onSubmit={handleSubmit} sx={{ bgcolor: "background.paper", p: 3.5, display: "flex", flexDirection: "column", gap: 2 }}>
             {error && <Alert severity="error">{error}</Alert>}
             <TextField label="Username" value={username} onChange={(e) => setUsername(e.target.value)} autoFocus />
             <TextField label="Password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
             <Button type="submit" variant="contained" size="large">Login</Button>
-            <Link component="button" type="button" underline="hover" sx={{ fontSize: 13, textAlign: "center" }} onClick={() => setForgotMode(true)}>
-              Forgot password?
-            </Link>
+            <Stack spacing={1} textAlign="center">
+              <Link component="button" type="button" underline="hover" sx={{ fontSize: 13 }} onClick={() => setForgotMode(true)}>
+                Forgot password?
+              </Link>
+              <Link component="button" type="button" underline="hover" sx={{ fontSize: 13, color: "warning.main" }} onClick={() => navigate("/admin-recovery")}>
+                Admin-Assisted Password Recovery
+              </Link>
+            </Stack>
           </Box>
         )}
       </Box>

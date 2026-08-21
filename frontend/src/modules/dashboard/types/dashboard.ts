@@ -76,3 +76,11 @@ export interface IncubationOverviewRow {
   readyToRead: number;
   incubating: number;
 }
+
+export interface AnalystMetrics {
+  testsCompletedToday: number;
+  mediaLotsPreparedToday: number;
+  activeAssignedOrders: number;
+  onTimeReadingRate: number;
+  trailing7DayVolume: number;
+}

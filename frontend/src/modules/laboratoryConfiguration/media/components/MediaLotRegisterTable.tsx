@@ -10,7 +10,8 @@ import {
   Box,
   Button,
   IconButton,
-  Tooltip
+  Tooltip,
+  useTheme
 } from "@mui/material";
 import HistoryOutlinedIcon from "@mui/icons-material/HistoryOutlined";
 import DescriptionOutlinedIcon from "@mui/icons-material/DescriptionOutlined";
@@ -42,6 +43,7 @@ export function MediaLotRegisterTable({
   onRequestReleaseDecision
 }: Props) {
   const { role } = useAuth();
+  const theme = useTheme();
   const canRelease = role === "SectionHead" || role === "SystemAdministrator";
 
   const [page, setPage] = useState(0);
@@ -63,7 +65,7 @@ export function MediaLotRegisterTable({
       <Box>
         <Table size="small" stickyHeader>
           <TableHead>
-            <TableRow sx={{ "& th": { bgcolor: "#f9fafb", fontWeight: 700, fontSize: 11, py: 1 } }}>
+            <TableRow sx={{ "& th": { bgcolor: "background.default", fontWeight: 700, fontSize: 11, py: 1 } }}>
               <TableCell>Lot Number</TableCell>
               <TableCell>Type</TableCell>
               <TableCell sx={{ width: 95 }}>Status</TableCell>
@@ -81,15 +83,15 @@ export function MediaLotRegisterTable({
                   onClick={() => onSelectLot(lot)}
                   sx={{
                     cursor: "pointer",
-                    bgcolor: isSelected ? "#faf5ff" : "inherit",
+                    bgcolor: isSelected ? theme.custom.status.purple.bg : "inherit",
                     borderLeft: isSelected
                       ? `4px solid ${brandColors.sectionTitle}`
                       : "4px solid transparent",
-                    "&:hover": { bgcolor: isSelected ? "#faf5ff" : "#fdfbfe" }
+                    "&:hover": { bgcolor: isSelected ? theme.custom.status.purple.bg : "background.default" }
                   }}
                 >
                   <TableCell sx={{ py: 1.25 }}>
-                    <Typography sx={{ fontWeight: isSelected ? 700 : 600, fontSize: 13, color: isSelected ? brandColors.pageTitle : "#111827" }}>
+                    <Typography sx={{ fontWeight: isSelected ? 700 : 600, fontSize: 13, color: isSelected ? brandColors.pageTitle : "text.primary" }}>
                       {lot.lotNumber}
                     </Typography>
                     <Typography sx={{ fontSize: 11, color: "text.secondary" }}>
@@ -110,7 +112,7 @@ export function MediaLotRegisterTable({
 
             {lots.length === 0 && (
               <TableRow>
-                <TableCell colSpan={3} align="center" sx={{ py: 3, color: "#9ca3af", fontSize: 12 }}>
+                <TableCell colSpan={3} align="center" sx={{ py: 3, color: "text.secondary", fontSize: 12 }}>
                   No media lots found.
                 </TableCell>
               </TableRow>
@@ -126,7 +128,7 @@ export function MediaLotRegisterTable({
           rowsPerPage={rowsPerPage}
           onRowsPerPageChange={handleChangeRowsPerPage}
           rowsPerPageOptions={[10, 25, 50]}
-          sx={{ borderTop: "1px solid #f0f0f0", ".MuiTablePagination-toolbar": { minHeight: 40 } }}
+          sx={{ borderTop: "1px solid", borderColor: "divider", ".MuiTablePagination-toolbar": { minHeight: 40 } }}
         />
       </Box>
     );
@@ -136,7 +138,7 @@ export function MediaLotRegisterTable({
     <Box>
       <Table size="small">
         <TableHead>
-          <TableRow sx={{ bgcolor: "#fafafa" }}>
+          <TableRow sx={{ bgcolor: "background.default" }}>
             <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Lot Number</TableCell>
             <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Media Type</TableCell>
             <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Dehydrated Material</TableCell>
@@ -158,15 +160,15 @@ export function MediaLotRegisterTable({
                 onClick={() => onSelectLot(lot)}
                 sx={{
                   cursor: "pointer",
-                  bgcolor: isSelected ? "#faf5ff" : "inherit",
+                  bgcolor: isSelected ? theme.custom.status.purple.bg : "inherit",
                   borderLeft: isSelected
                     ? `4px solid ${brandColors.sectionTitle}`
                     : "4px solid transparent",
-                  "&:hover": { bgcolor: isSelected ? "#faf5ff" : "#fdfbfe" }
+                  "&:hover": { bgcolor: isSelected ? theme.custom.status.purple.bg : "background.default" }
                 }}
               >
                 <TableCell sx={{ py: 1.5 }}>
-                  <Typography sx={{ fontWeight: 700, fontSize: 13, color: brandColors.pageTitle }}>
+                  <Typography sx={{ fontWeight: 700, fontSize: 13, color: isSelected ? brandColors.pageTitle : "text.primary" }}>
                     {lot.lotNumber}
                   </Typography>
                   <Typography sx={{ fontSize: 11, color: "text.secondary" }}>
@@ -230,13 +232,13 @@ export function MediaLotRegisterTable({
 
                     <Tooltip title="View Lot Record (Printable)">
                       <IconButton size="small" onClick={() => onViewRecord(lot.id)}>
-                        <DescriptionOutlinedIcon fontSize="small" sx={{ color: "#4b5563" }} />
+                        <DescriptionOutlinedIcon fontSize="small" sx={{ color: "text.secondary" }} />
                       </IconButton>
                     </Tooltip>
 
                     <Tooltip title="Audit Trail">
                       <IconButton size="small" onClick={() => onViewAuditHistory(lot.id)}>
-                        <HistoryOutlinedIcon fontSize="small" sx={{ color: "#4b5563" }} />
+                        <HistoryOutlinedIcon fontSize="small" sx={{ color: "text.secondary" }} />
                       </IconButton>
                     </Tooltip>
                   </Box>
@@ -247,7 +249,7 @@ export function MediaLotRegisterTable({
 
           {lots.length === 0 && (
             <TableRow>
-              <TableCell colSpan={7} align="center" sx={{ py: 4, color: "#9ca3af", fontSize: 13 }}>
+              <TableCell colSpan={7} align="center" sx={{ py: 4, color: "text.secondary", fontSize: 13 }}>
                 No media lots match this filter.
               </TableCell>
             </TableRow>

@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Outlet, useNavigate, useLocation, Navigate } from "react-router-dom";
 import { Box, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Button } from "@mui/material";
 import { Header } from "../components/Header";
@@ -7,12 +8,25 @@ import { useIdleTimeout } from "../hooks/useIdleTimeout";
 
 const CHANGE_PASSWORD_PATH = "/change-password";
 
-// Topbar + subnav stacked at the top, content below - matches the
-// provided design's page structure for every route in the app.
 export function MainLayout() {
   const { logout, mustChangePassword } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [collapsed, setCollapsed] = useState(() => localStorage.getItem("microlims_sidebar_collapsed") === "true");
+
+  const handleToggleCollapse = () => {
+    setCollapsed((prev) => {
+      const next = !prev;
+      localStorage.setItem("microlims_sidebar_collapsed", String(next));
+      return next;
+    });
+  };
+
+  const handleToggleSidebar = () => {
+    setMobileOpen((prev) => !prev);
+  };
 
   const handleIdleTimeout = () => {
     logout();
@@ -28,11 +42,52 @@ export function MainLayout() {
   }
 
   return (
-    <Box sx={{ minHeight: "100vh", bgcolor: "background.default" }}>
-      <Header />
-      <Sidebar />
-      <Box component="main" sx={{ px: 3, py: 2.75, maxWidth: 1400, mx: "auto" }}>
-        <Outlet />
+    <Box
+      sx={{
+        height: "100vh",
+        maxHeight: "100vh",
+        bgcolor: "background.default",
+        display: "flex",
+        flexDirection: "column",
+        overflow: "hidden"
+      }}
+    >
+      <Header onToggleSidebar={handleToggleSidebar} />
+
+      <Box
+        component="div"
+        sx={{
+          display: "flex",
+          flex: 1,
+          height: "calc(100vh - 56px)",
+          overflow: "hidden",
+          position: "relative"
+        }}
+      >
+        <Sidebar
+          mobileOpen={mobileOpen}
+          onMobileClose={() => setMobileOpen(false)}
+          collapsed={collapsed}
+          onToggleCollapse={handleToggleCollapse}
+        />
+
+        <Box
+          component="main"
+          sx={{
+            flexGrow: 1,
+            height: "100%",
+            overflowY: "auto",
+            overflowX: "hidden",
+            p: { xs: 2, sm: 3 },
+            width: "100%",
+            minWidth: 0,
+            bgcolor: "background.default"
+          }}
+        >
+          <Box sx={{ maxWidth: 1600, mx: "auto" }}>
+            <Outlet />
+          </Box>
+        </Box>
       </Box>
 
       {/* GMP session-timeout control - not dismissable via escape/backdrop, no "stay logged out" bypass. */}

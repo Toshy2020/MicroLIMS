@@ -203,19 +203,6 @@ function DetectionTestCard({ test }: { test: TestOrderSummaryDetail }) {
       defaultOpen={hasException}
       isSuperseded={test.isSuperseded}
     >
-      {hasLocations && (
-        <div className="result-pills">
-          {test.locations.map((l, i) => {
-            const conform = isConforming(l.status);
-            return (
-              <span key={i} className={`result-pill ${conform ? "" : "is-danger"}`}>
-                {l.locationName} {conform ? "✓" : "✗"}
-              </span>
-            );
-          })}
-        </div>
-      )}
-
       {/* Independent of hasLocations - mirrors the original markup,
           which rendered this whenever a pathogen chain existed, whether
           or not per-location results were also present. */}
@@ -248,7 +235,21 @@ function DetectionTestCard({ test }: { test: TestOrderSummaryDetail }) {
         </SecondaryToggle>
       )}
       {hasLocations && (
-        <SecondaryToggle label="Show full location table">
+        <SecondaryToggle
+          label="Show full location table"
+          collapsedContent={
+            <div className="result-pills">
+              {test.locations.map((l, i) => {
+                const conform = isConforming(l.status);
+                return (
+                  <span key={i} className={`result-pill ${conform ? "" : "is-danger"}`}>
+                    {l.locationName} {conform ? "✓" : "✗"}
+                  </span>
+                );
+              })}
+            </div>
+          }
+        >
           <FullLocationTable locations={test.locations} />
         </SecondaryToggle>
       )}
@@ -293,20 +294,6 @@ function CountTestCard({ test }: { test: TestOrderSummaryDetail }) {
       defaultOpen={hasException}
       isSuperseded={test.isSuperseded}
     >
-      {hasLocations && (
-        <div className="result-pills">
-          {test.locations.map((l, i) => {
-            const conform = isConforming(l.status);
-            const value = l.cfuResult ?? l.calculatedResult ?? "—";
-            return (
-              <span key={i} className={`result-pill ${conform ? "" : "is-danger"}`}>
-                {l.locationName}: {value} CFU
-              </span>
-            );
-          })}
-        </div>
-      )}
-
       {test.incubations.length > 0 && (
         <SecondaryToggle label={`Show incubation stage details${test.incubations.length > 1 ? ` (${test.incubations.length} stages)` : ""}`}>
           <IncubationStages incubations={test.incubations} />
@@ -342,7 +329,22 @@ function CountTestCard({ test }: { test: TestOrderSummaryDetail }) {
         </SecondaryToggle>
       )}
       {hasLocations && (
-        <SecondaryToggle label="Show full location table">
+        <SecondaryToggle
+          label="Show full location table"
+          collapsedContent={
+            <div className="result-pills">
+              {test.locations.map((l, i) => {
+                const conform = isConforming(l.status);
+                const value = l.cfuResult ?? l.calculatedResult ?? "—";
+                return (
+                  <span key={i} className={`result-pill ${conform ? "" : "is-danger"}`}>
+                    {l.locationName}: {value} CFU
+                  </span>
+                );
+              })}
+            </div>
+          }
+        >
           <FullLocationTable locations={test.locations} />
         </SecondaryToggle>
       )}

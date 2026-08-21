@@ -1,4 +1,4 @@
-import { Box, Typography, Paper, Grid } from "@mui/material";
+import { Box, Typography, Paper, Grid, useTheme } from "@mui/material";
 import MedicationOutlinedIcon from "@mui/icons-material/MedicationOutlined";
 import Inventory2OutlinedIcon from "@mui/icons-material/Inventory2Outlined";
 import AllInboxOutlinedIcon from "@mui/icons-material/AllInboxOutlined";
@@ -25,6 +25,7 @@ const CATEGORY_ICONS: Record<SampleCategoryKey, React.ReactNode> = {
 };
 
 export function SampleTypeSelector({ selectedCategory, onSelectCategory }: Props) {
+  const theme = useTheme();
   return (
     <Box sx={{ py: 1 }}>
       <Typography sx={{ fontSize: 13, color: "text.secondary", mb: 2 }}>
@@ -45,20 +46,27 @@ export function SampleTypeSelector({ selectedCategory, onSelectCategory }: Props
                   cursor: "pointer",
                   border: isSelected
                     ? `2px solid ${brandColors.sectionTitle}`
-                    : "1.5px solid #e5e7eb",
-                  bgcolor: isSelected ? "#faf5ff" : "#ffffff",
+                    : `1.5px solid ${theme.palette.divider}`,
+                  bgcolor: isSelected ? theme.custom.status.purple.bg : "background.paper",
                   transition: "all 0.18s ease-in-out",
                   height: "100%",
                   display: "flex",
                   flexDirection: "column",
                   justifyContent: "space-between",
                   position: "relative",
-                  boxShadow: isSelected ? "0 4px 14px rgba(123, 45, 142, 0.12)" : "none",
+                  boxShadow: isSelected
+                    ? theme.palette.mode === "dark"
+                      ? "0 4px 14px rgba(192, 132, 200, 0.25)"
+                      : "0 4px 14px rgba(123, 45, 142, 0.12)"
+                    : "none",
                   "&:hover": {
-                    borderColor: brandColors.sectionTitle,
-                    bgcolor: isSelected ? "#faf5ff" : "#fdfbfe",
+                    borderColor: theme.palette.primary.main,
+                    bgcolor: isSelected ? theme.custom.status.purple.bg : "action.hover",
                     transform: "translateY(-2px)",
-                    boxShadow: "0 4px 12px rgba(0,0,0,0.06)"
+                    boxShadow:
+                      theme.palette.mode === "dark"
+                        ? "0 4px 12px rgba(0,0,0,0.4)"
+                        : "0 4px 12px rgba(0,0,0,0.06)"
                   }
                 }}
               >
@@ -66,8 +74,8 @@ export function SampleTypeSelector({ selectedCategory, onSelectCategory }: Props
                 <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", mb: 1.5 }}>
                   <Box
                     sx={{
-                      color: isSelected ? brandColors.sectionTitle : "#6b7280",
-                      bgcolor: isSelected ? "#f3e8ff" : "#f3f4f6",
+                      color: isSelected ? brandColors.sectionTitle : "text.secondary",
+                      bgcolor: isSelected ? theme.custom.status.purple.bg : "background.default",
                       width: 44,
                       height: 44,
                       borderRadius: 2,
@@ -81,7 +89,7 @@ export function SampleTypeSelector({ selectedCategory, onSelectCategory }: Props
                   </Box>
 
                   {isSelected && (
-                    <CheckCircleIcon sx={{ color: brandColors.sectionTitle, fontSize: 22 }} />
+                    <CheckCircleIcon sx={{ color: theme.palette.primary.main, fontSize: 22 }} />
                   )}
                 </Box>
 
@@ -91,7 +99,7 @@ export function SampleTypeSelector({ selectedCategory, onSelectCategory }: Props
                     sx={{
                       fontSize: 15,
                       fontWeight: 700,
-                      color: isSelected ? brandColors.pageTitle : "#111827",
+                      color: isSelected ? brandColors.pageTitle : "text.primary",
                       mb: 0.5
                     }}
                   >

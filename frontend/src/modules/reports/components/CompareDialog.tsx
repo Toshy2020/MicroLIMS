@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Dialog, DialogTitle, DialogContent, DialogActions, Button, Grid, Typography, Box, Table, TableHead, TableRow, TableCell, TableBody, Tabs, Tab } from "@mui/material";
+import { Dialog, DialogTitle, DialogContent, DialogActions, Button, Grid, Typography, Box, Table, TableHead, TableRow, TableCell, TableBody, Tabs, Tab , useTheme} from "@mui/material";
 import { brandColors } from "../../../theme";
 
 interface CompareDialogProps {
@@ -9,6 +9,7 @@ interface CompareDialogProps {
 }
 
 export function CompareDialog({ open, onClose, initialMode = "products" }: CompareDialogProps) {
+  const theme = useTheme();
   const [mode, setMode] = useState<"products" | "locations">(initialMode);
 
   const productComparisons = [
@@ -30,7 +31,7 @@ export function CompareDialog({ open, onClose, initialMode = "products" }: Compa
   return (
     <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
       <DialogTitle sx={{ borderBottom: 1, borderColor: "divider", pb: 1.5 }}>
-        <Typography sx={{ fontSize: 16, fontWeight: 700, color: brandColors.sectionTitle }}>
+        <Typography sx={{ fontSize: 16, fontWeight: 700, color: theme.palette.primary.main }}>
           Multi-Series Trend Comparison
         </Typography>
         <Typography sx={{ fontSize: 12, color: "text.secondary" }}>

@@ -12,14 +12,14 @@ import {
   Stepper,
   Step,
   StepLabel,
-  StepContent
+  StepContent,
+  useTheme
 } from "@mui/material";
 import ScienceOutlinedIcon from "@mui/icons-material/ScienceOutlined";
 import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
 import { PathogenTestingSessionDto, SessionAssignedTestDto } from "../types/pathogenSessionTypes";
-import { brandColors } from "../../../theme";
 
 interface Props {
   session: PathogenTestingSessionDto;
@@ -27,6 +27,7 @@ interface Props {
 }
 
 export function DownstreamWorkflowsPanel({ session, onNext }: Props) {
+  const theme = useTheme();
   const [activeTab, setActiveTab] = useState(0);
 
   const selectedTest: SessionAssignedTestDto | undefined = session.assignedTests[activeTab];
@@ -40,13 +41,13 @@ export function DownstreamWorkflowsPanel({ session, onNext }: Props) {
         </Alert>
       )}
 
-      <Paper sx={{ p: 2.5, borderRadius: 2, border: "1px solid #e5e7eb" }}>
+      <Paper sx={{ p: 2.5, borderRadius: 2, border: "1px solid", borderColor: "divider" }}>
         <Stack direction={{ xs: "column", sm: "row" }} justifyContent="space-between" alignItems={{ sm: "center" }} spacing={2} sx={{ mb: 2 }}>
           <Box>
-            <Typography sx={{ fontSize: 16, fontWeight: 700, color: "#1f2937" }}>
+            <Typography sx={{ fontSize: 16, fontWeight: 700, color: "text.primary" }}>
               Assigned Test Workflows ({session.assignedTests.length})
             </Typography>
-            <Typography sx={{ fontSize: 13, color: "#6b7280" }}>
+            <Typography sx={{ fontSize: 13, color: "text.secondary" }}>
               Procedural workflow definitions configured from Test Master. Executed once per test for the session.
             </Typography>
           </Box>
@@ -69,7 +70,8 @@ export function DownstreamWorkflowsPanel({ session, onNext }: Props) {
           variant="scrollable"
           scrollButtons="auto"
           sx={{
-            borderBottom: "1px solid #e5e7eb",
+            borderBottom: "1px solid",
+            borderBottomColor: "divider",
             "& .MuiTab-root": {
               fontWeight: 700,
               textTransform: "none",
@@ -87,7 +89,7 @@ export function DownstreamWorkflowsPanel({ session, onNext }: Props) {
                     <Chip
                       label="TSB"
                       size="small"
-                      sx={{ fontSize: 10, height: 16, bgcolor: "#ede9fe", color: "#6d28d9" }}
+                      sx={{ fontSize: 10, height: 16, bgcolor: theme.custom.status.purple.bg, color: theme.custom.status.purple.text }}
                     />
                   )}
                 </Stack>
@@ -103,19 +105,20 @@ export function DownstreamWorkflowsPanel({ session, onNext }: Props) {
               sx={{
                 p: 2,
                 mb: 3,
-                bgcolor: "#f8fafc",
+                bgcolor: "background.default",
                 borderRadius: 2,
-                border: "1px solid #e2e8f0",
+                border: "1px solid",
+                borderColor: "divider",
                 display: "flex",
                 justifyContent: "space-between",
                 alignItems: "center"
               }}
             >
               <Box>
-                <Typography sx={{ fontSize: 15, fontWeight: 800, color: "#1e293b" }}>
+                <Typography sx={{ fontSize: 15, fontWeight: 800, color: "text.primary" }}>
                   {selectedTest.displayName} ({selectedTest.testCode})
                 </Typography>
-                <Typography sx={{ fontSize: 12, color: "#64748b" }}>
+                <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
                   Workflow Model: <strong>{selectedTest.workflowType}</strong> · Operational Scope: <strong>{session.totalLocations} Sampling Locations</strong>
                 </Typography>
               </Box>
@@ -124,14 +127,14 @@ export function DownstreamWorkflowsPanel({ session, onNext }: Props) {
                 size="small"
                 sx={{
                   fontWeight: 700,
-                  bgcolor: selectedTest.testSessionState === "TSB_INCUBATING" ? "#eff6ff" : "#ede9fe",
-                  color: selectedTest.testSessionState === "TSB_INCUBATING" ? "#1e40af" : "#6d28d9"
+                  bgcolor: selectedTest.testSessionState === "TSB_INCUBATING" ? theme.custom.status.info.bg : theme.custom.status.purple.bg,
+                  color: selectedTest.testSessionState === "TSB_INCUBATING" ? theme.custom.status.info.text : theme.custom.status.purple.text
                 }}
               />
             </Box>
 
             {/* Workflow Steps Vertical Stepper */}
-            <Typography sx={{ fontSize: 13, fontWeight: 700, color: "#475569", mb: 2, textTransform: "uppercase" }}>
+            <Typography sx={{ fontSize: 13, fontWeight: 700, color: "text.secondary", mb: 2, textTransform: "uppercase" }}>
               Configured Step Sequence ({selectedTest.steps.length} Steps)
             </Typography>
 
@@ -151,8 +154,11 @@ export function DownstreamWorkflowsPanel({ session, onNext }: Props) {
                               width: 28,
                               height: 28,
                               borderRadius: "50%",
-                              bgcolor: isStepDone ? "#059669" : isStepLocked ? "#94a3b8" : "#e2e8f0",
-                              color: isStepDone || isStepLocked ? "#ffffff" : "#64748b",
+                              // done/locked stay solid (mode-invariant) fills - they're a
+                              // deliberately "filled" state vs. pending's outline-style
+                              // treatment below, which does need a dark-aware pale token.
+                              bgcolor: isStepDone ? "#059669" : isStepLocked ? "#64748b" : theme.custom.status.pending.bg,
+                              color: isStepDone || isStepLocked ? "#ffffff" : "text.secondary",
                               display: "flex",
                               alignItems: "center",
                               justifyContent: "center",
@@ -171,13 +177,13 @@ export function DownstreamWorkflowsPanel({ session, onNext }: Props) {
                         )}
                       >
                         <Stack direction="row" spacing={1.5} alignItems="center">
-                          <Typography sx={{ fontSize: 14, fontWeight: 700, color: isStepLocked ? "#64748b" : "#1f2937" }}>
+                          <Typography sx={{ fontSize: 14, fontWeight: 700, color: isStepLocked ? "text.secondary" : "text.primary" }}>
                             {s.stepName}
                           </Typography>
                           <Chip
                             label={s.stepType}
                             size="small"
-                            sx={{ fontSize: 11, height: 20, bgcolor: "#f1f5f9", color: "#475569" }}
+                            sx={{ fontSize: 11, height: 20, bgcolor: theme.custom.status.pending.bg, color: theme.custom.status.pending.text }}
                           />
                           {isTsbStep && (
                             <Chip
@@ -186,8 +192,8 @@ export function DownstreamWorkflowsPanel({ session, onNext }: Props) {
                               sx={{
                                 fontSize: 10,
                                 height: 18,
-                                bgcolor: isTsbIncubating ? "#eff6ff" : "#ede9fe",
-                                color: isTsbIncubating ? "#1e40af" : "#6d28d9",
+                                bgcolor: isTsbIncubating ? theme.custom.status.info.bg : theme.custom.status.purple.bg,
+                                color: isTsbIncubating ? theme.custom.status.info.text : theme.custom.status.purple.text,
                                 fontWeight: 700
                               }}
                             />
@@ -197,13 +203,13 @@ export function DownstreamWorkflowsPanel({ session, onNext }: Props) {
                               icon={<LockOutlinedIcon sx={{ fontSize: 12 }} />}
                               label="Locked until TSB Complete"
                               size="small"
-                              sx={{ fontSize: 10, height: 18, bgcolor: "#fee2e2", color: "#991b1b", fontWeight: 600 }}
+                              sx={{ fontSize: 10, height: 18, bgcolor: theme.custom.status.detected.bg, color: theme.custom.status.detected.text, fontWeight: 600 }}
                             />
                           )}
                         </Stack>
                       </StepLabel>
                       <StepContent>
-                        <Box sx={{ p: 2, my: 1, bgcolor: isStepLocked ? "#f8fafc" : "#ffffff", borderRadius: 1.5, border: "1px solid #f1f5f9", boxShadow: "0 1px 2px rgba(0,0,0,0.03)" }}>
+                        <Box sx={{ p: 2, my: 1, bgcolor: isStepLocked ? "background.default" : "background.paper", borderRadius: 1.5, border: "1px solid", borderColor: "divider", boxShadow: "0 1px 2px rgba(0,0,0,0.03)" }}>
                           <Box
                             sx={{
                               display: "grid",
@@ -212,30 +218,30 @@ export function DownstreamWorkflowsPanel({ session, onNext }: Props) {
                             }}
                           >
                             <Box>
-                              <Typography sx={{ fontSize: 11, color: "#64748b", fontWeight: 600 }}>
+                              <Typography sx={{ fontSize: 11, color: "text.secondary", fontWeight: 600 }}>
                                 Incubation Parameters
                               </Typography>
-                              <Typography sx={{ fontSize: 13, fontWeight: 600, color: "#1e293b" }}>
+                              <Typography sx={{ fontSize: 13, fontWeight: 600, color: "text.primary" }}>
                                 {s.temperatureMin} – {s.temperatureMax} °C ({s.incubationMinHours}–{s.incubationMaxHours} h)
                               </Typography>
                             </Box>
                             <Box>
-                              <Typography sx={{ fontSize: 11, color: "#64748b", fontWeight: 600 }}>
+                              <Typography sx={{ fontSize: 11, color: "text.secondary", fontWeight: 600 }}>
                                 Target Medium
                               </Typography>
-                              <Typography sx={{ fontSize: 13, fontWeight: 600, color: "#1e293b" }}>
+                              <Typography sx={{ fontSize: 13, fontWeight: 600, color: "text.primary" }}>
                                 {s.mediaTypeName ?? "Standard Culture Media"}
                               </Typography>
                             </Box>
                             <Box>
-                              <Typography sx={{ fontSize: 11, color: "#64748b", fontWeight: 600 }}>
+                              <Typography sx={{ fontSize: 11, color: "text.secondary", fontWeight: 600 }}>
                                 Execution State
                               </Typography>
                               <Typography
                                 sx={{
                                   fontSize: 13,
                                   fontWeight: 700,
-                                  color: isStepDone ? "#059669" : isStepLocked ? "#991b1b" : "#64748b"
+                                  color: isStepDone ? "#059669" : isStepLocked ? theme.custom.status.detected.text : "text.secondary"
                                 }}
                               >
                                 {isStepDone

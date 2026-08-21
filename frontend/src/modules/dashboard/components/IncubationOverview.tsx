@@ -1,9 +1,10 @@
-import { Paper, Box, Typography, Stack, LinearProgress } from "@mui/material";
+import { Paper, Box, Typography, Stack, LinearProgress, useTheme } from "@mui/material";
 import { IncubationOverviewRow } from "../types/dashboard";
 import { SectionTitle } from "../../../components/SectionTitle";
 import { brandColors } from "../../../theme";
 
 export function IncubationOverview({ rows }: { rows: IncubationOverviewRow[] }) {
+  const theme = useTheme();
   return (
     <Paper sx={{ p: 2.5 }}>
       <SectionTitle>Incubation Overview</SectionTitle>
@@ -19,7 +20,7 @@ export function IncubationOverview({ rows }: { rows: IncubationOverviewRow[] }) 
               </Box>
               <LinearProgress
                 variant="determinate" value={readyPercent}
-                sx={{ height: 8, borderRadius: 4, bgcolor: "#f0e6f2", "& .MuiLinearProgress-bar": { bgcolor: brandColors.sectionTitle, borderRadius: 4 } }}
+                sx={{ height: 8, borderRadius: 4, bgcolor: theme.custom.status.purple.bg, "& .MuiLinearProgress-bar": { bgcolor: brandColors.sectionTitle, borderRadius: 4 } }}
               />
               <Box sx={{ display: "flex", justifyContent: "space-between", mt: 0.5 }}>
                 <Typography sx={{ fontSize: 11, color: brandColors.ok }}>{r.readyToRead} ready</Typography>

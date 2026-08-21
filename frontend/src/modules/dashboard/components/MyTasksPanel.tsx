@@ -23,7 +23,7 @@ export function MyTasksPanel() {
       {loading || !tasks ? <LoadingSpinner /> : (
         <Stack spacing={1.5}>
           {tasks.map((t, i) => (
-            <Box key={i} sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 1, pb: 1.25, borderBottom: i < tasks.length - 1 ? "1px solid #f0f0f0" : "none" }}>
+            <Box key={i} sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 1, pb: 1.25, borderBottom: i < tasks.length - 1 ? "1px solid" : "none", borderColor: "divider" }}>
               <Box sx={{ minWidth: 0 }}>
                 <Typography sx={{ fontSize: 13, fontWeight: 600 }}>{t.title}</Typography>
                 <Typography sx={{ fontSize: 12, color: "text.secondary" }}>{t.subtitle}</Typography>

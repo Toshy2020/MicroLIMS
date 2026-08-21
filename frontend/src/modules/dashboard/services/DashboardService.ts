@@ -1,7 +1,7 @@
 import { apiClient } from "../../../services/apiClient";
 import {
   DashboardSummary, KpiDeltas, MonthlyTrendPoint, DistributionSlice,
-  NotificationItem, MyTask, MediaExpiryLot, TodaysWorkItem, IncubationOverviewRow
+  NotificationItem, MyTask, MediaExpiryLot, TodaysWorkItem, IncubationOverviewRow, AnalystMetrics
 } from "../types/dashboard";
 
 export const DashboardService = {
@@ -32,10 +32,14 @@ export const DashboardService = {
   async getTodaysWork(): Promise<TodaysWorkItem[]> {
     return (await apiClient.get("/dashboard/todays-work")).data.data;
   },
-  async getIncubationOverview(): Promise<IncubationOverviewRow[]> {
-    return (await apiClient.get("/dashboard/incubation-overview")).data.data;
+  async getIncubationOverview(myIncubationsOnly = false): Promise<IncubationOverviewRow[]> {
+    const url = myIncubationsOnly ? "/dashboard/incubation-overview?myIncubationsOnly=true" : "/dashboard/incubation-overview";
+    return (await apiClient.get(url)).data.data;
   },
   async getMediaExpiry(withinDays = 7): Promise<MediaExpiryLot[]> {
     return (await apiClient.get(`/media/expiring?withinDays=${withinDays}`)).data.data;
+  },
+  async getAnalystMetrics(): Promise<AnalystMetrics> {
+    return (await apiClient.get("/dashboard/analyst-metrics")).data.data;
   }
 };

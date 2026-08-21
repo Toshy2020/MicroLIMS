@@ -9,7 +9,8 @@ import {
   InputLabel,
   Button,
   InputAdornment,
-  ButtonGroup
+  ButtonGroup,
+  useTheme
 } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
 import RotateLeftIcon from "@mui/icons-material/RotateLeft";
@@ -24,6 +25,9 @@ interface CryovialFilterBarProps {
 }
 
 export function CryovialFilterBar({ items, filters, onFilterChange, onReset }: CryovialFilterBarProps) {
+  const theme = useTheme();
+  const { notDetected, action, detected } = theme.custom.status;
+
   // Extract unique organisms from current dataset
   const organisms = useMemo(() => {
     const set = new Set<string>();
@@ -43,7 +47,7 @@ export function CryovialFilterBar({ items, filters, onFilterChange, onReset }: C
   };
 
   return (
-    <Paper sx={{ p: 2, mb: 2, bgcolor: "#ffffff", border: "1px solid #e5e7eb" }}>
+    <Paper sx={{ p: 2, mb: 2, bgcolor: "background.paper", border: "1px solid", borderColor: "divider" }}>
       {/* Top row: Status shortcuts & search */}
       <Box
         sx={{
@@ -62,9 +66,9 @@ export function CryovialFilterBar({ items, filters, onFilterChange, onReset }: C
               onClick={() => handleShortcutStatus("")}
               sx={{
                 bgcolor: filters.status === "" ? brandColors.sectionTitle : undefined,
-                color: filters.status === "" ? "#ffffff" : "#4b5563",
-                borderColor: "#d1d5db",
-                "&:hover": { bgcolor: filters.status === "" ? brandColors.pageTitle : "#f3f4f6" }
+                color: filters.status === "" ? "#ffffff" : "text.secondary",
+                borderColor: "divider",
+                "&:hover": { bgcolor: filters.status === "" ? brandColors.pageTitle : "background.default" }
               }}
             >
               All
@@ -73,10 +77,10 @@ export function CryovialFilterBar({ items, filters, onFilterChange, onReset }: C
               variant={filters.status === "Approved" ? "contained" : "outlined"}
               onClick={() => handleShortcutStatus("Approved")}
               sx={{
-                bgcolor: filters.status === "Approved" ? "#16a34a" : undefined,
-                color: filters.status === "Approved" ? "#ffffff" : "#16a34a",
-                borderColor: "#d1d5db",
-                "&:hover": { bgcolor: filters.status === "Approved" ? "#15803d" : "#f0fdf4" }
+                bgcolor: filters.status === "Approved" ? notDetected.text : undefined,
+                color: filters.status === "Approved" ? "#ffffff" : notDetected.text,
+                borderColor: "divider",
+                "&:hover": { bgcolor: filters.status === "Approved" ? notDetected.text : notDetected.bg }
               }}
             >
               Approved
@@ -85,10 +89,10 @@ export function CryovialFilterBar({ items, filters, onFilterChange, onReset }: C
               variant={filters.status === "PendingReview" ? "contained" : "outlined"}
               onClick={() => handleShortcutStatus("PendingReview")}
               sx={{
-                bgcolor: filters.status === "PendingReview" ? "#d97706" : undefined,
-                color: filters.status === "PendingReview" ? "#ffffff" : "#d97706",
-                borderColor: "#d1d5db",
-                "&:hover": { bgcolor: filters.status === "PendingReview" ? "#b45309" : "#fffbeb" }
+                bgcolor: filters.status === "PendingReview" ? action.text : undefined,
+                color: filters.status === "PendingReview" ? "#ffffff" : action.text,
+                borderColor: "divider",
+                "&:hover": { bgcolor: filters.status === "PendingReview" ? action.text : action.bg }
               }}
             >
               Pending Review
@@ -97,10 +101,10 @@ export function CryovialFilterBar({ items, filters, onFilterChange, onReset }: C
               variant={filters.status === "Rejected" ? "contained" : "outlined"}
               onClick={() => handleShortcutStatus("Rejected")}
               sx={{
-                bgcolor: filters.status === "Rejected" ? "#dc2626" : undefined,
-                color: filters.status === "Rejected" ? "#ffffff" : "#dc2626",
-                borderColor: "#d1d5db",
-                "&:hover": { bgcolor: filters.status === "Rejected" ? "#b91c1c" : "#fef2f2" }
+                bgcolor: filters.status === "Rejected" ? detected.text : undefined,
+                color: filters.status === "Rejected" ? "#ffffff" : detected.text,
+                borderColor: "divider",
+                "&:hover": { bgcolor: filters.status === "Rejected" ? detected.text : detected.bg }
               }}
             >
               Rejected
@@ -200,7 +204,7 @@ export function CryovialFilterBar({ items, filters, onFilterChange, onReset }: C
             variant="outlined"
             onClick={onReset}
             startIcon={<RotateLeftIcon fontSize="small" />}
-            sx={{ borderColor: "#d1d5db", color: "#4b5563", minWidth: 90 }}
+            sx={{ borderColor: "divider", color: "text.secondary", minWidth: 90 }}
           >
             Reset
           </Button>

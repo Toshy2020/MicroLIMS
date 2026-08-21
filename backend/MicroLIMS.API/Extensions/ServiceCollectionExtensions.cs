@@ -62,6 +62,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<ItemService>();
         services.AddScoped<SpecificationService>();
         services.AddScoped<UserService>();
+        services.AddScoped<AdminPasswordRecoveryService>();
         services.AddScoped<AuditService>();
         services.AddScoped<PermissionService>();
         services.AddScoped<ReferenceNumberGenerator>();
@@ -69,6 +70,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<AuditTraceabilityService>();
         services.AddScoped<MaterialService>();
         services.AddScoped<EquipmentInventoryService>();
+        services.AddScoped<EquipmentConfigurationService>();
         services.AddScoped<PathogenSessionService>();
         services.AddScoped<LocationPathogenObservationService>();
         services.AddScoped<ConfirmationAgreementEvaluator>();
@@ -77,6 +79,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton(_ => new MaterialDocumentFileValidator(maxDocBytes));
         services.AddScoped<MaterialDocumentService>();
         services.AddScoped<EquipmentDocumentService>();
+        services.AddScoped<ItemDocumentService>();
         services.AddScoped<ResultProjectionService>();
         services.AddScoped<IncubatorEligibilityService>();
         services.AddScoped<MediaAppearanceSnapshotService>();

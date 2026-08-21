@@ -2,7 +2,7 @@ namespace MicroLIMS.Application.Interfaces;
 
 public record LoginOutcome(bool Success, string? Token, string? RefreshToken, string? FailureReason, bool MustChangePassword = false);
 
-public record CurrentUserInfo(int UserId, string Username, string FullName, string Role, DateTime? LastLoginAt, DateTime? PasswordChangedAt, bool MustChangePassword);
+public record CurrentUserInfo(int UserId, string Username, string FullName, string Role, string? JobTitle, DateTime? LastLoginAt, DateTime? PasswordChangedAt, bool MustChangePassword);
 
 public interface IAuthenticationService
 {

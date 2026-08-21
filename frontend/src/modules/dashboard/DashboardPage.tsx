@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Grid, Paper, Typography, Box, Stack, Button } from "@mui/material";
+import { Grid, Paper, Typography, Box, Stack, Button, useTheme } from "@mui/material";
 import { useAuth } from "../../contexts/AuthContext";
 import { useApi } from "../../hooks/useApi";
 import { PageHeader } from "../../components/PageHeader";
@@ -18,11 +18,13 @@ import { MyTasksPanel } from "./components/MyTasksPanel";
 import { MediaExpiryPanel } from "./components/MediaExpiryPanel";
 import { SamplesTrendChart } from "./components/SamplesTrendChart";
 import { TestOrderStatusDonut } from "./components/TestOrderStatusDonut";
+import { AnalystDashboardPage } from "./AnalystDashboardPage";
 
 function MonthlyStatCard({ value, label, deltaPercent }: { value: number; label: string; deltaPercent: number }) {
+  const theme = useTheme();
   return (
     <Paper sx={{ p: 2 }}>
-      <Typography sx={{ fontSize: 22, fontWeight: 700, color: brandColors.sectionTitle }}>{value}</Typography>
+      <Typography sx={{ fontSize: 22, fontWeight: 700, color: theme.palette.primary.main }}>{value}</Typography>
       <Typography sx={{ fontSize: 12, fontWeight: 600 }}>{label}</Typography>
       <Typography sx={{ fontSize: 11, color: deltaPercent >= 0 ? brandColors.ok : brandColors.err }}>
         {deltaPercent >= 0 ? "+" : ""}{deltaPercent}% vs last month
@@ -31,15 +33,13 @@ function MonthlyStatCard({ value, label, deltaPercent }: { value: number; label:
   );
 }
 
-// Role-aware Dashboard: everyone gets the KPI strip, Quick Links,
-// Today's Laboratory Work, Alerts, Incubation Overview, and the two
-// charts. Analysts additionally get My Tasks (above Today's Laboratory
-// Work) and Media Expiry (beside Incubation Overview) - gated here by
-// role rather than a route guard, since it's two extra panels layered
-// onto one shared page, not a different route.
 export function DashboardPage() {
-  const { role, username } = useAuth();
-  const isAnalyst = role === "Analyst";
+  const { role, username, fullName } = useAuth();
+
+  // Analysts receive the action-oriented workspace dashboard
+  if (role === "Analyst") {
+    return <AnalystDashboardPage />;
+  }
 
   const { data: summary } = useDashboardSummary();
   const { data: todaysWork } = useTodaysWork();
@@ -54,7 +54,7 @@ export function DashboardPage() {
   return (
     <>
       <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-        <PageHeader title={`Welcome back, ${username}`} subtitle="Here's what's happening in your laboratory today." />
+        <PageHeader title={`Welcome back, ${fullName ?? username}`} subtitle="Here's what's happening in your laboratory today." />
         <Button variant="contained">Generate Report</Button>
       </Box>
 
@@ -64,14 +64,6 @@ export function DashboardPage() {
         reviewerQueue={summary.reviewerQueue}
         approvalQueue={summary.approvalQueue}
       />
-
-      {isAnalyst && (
-        <Grid container spacing={2} sx={{ mb: 1 }}>
-          <Grid item xs={12}>
-            <MyTasksPanel />
-          </Grid>
-        </Grid>
-      )}
 
       <Grid container spacing={2} sx={{ mb: 1 }}>
         <Grid item xs={12} md={8}>
@@ -83,14 +75,9 @@ export function DashboardPage() {
       </Grid>
 
       <Grid container spacing={2} sx={{ mb: 1 }}>
-        <Grid item xs={12} md={isAnalyst ? 6 : 12}>
+        <Grid item xs={12}>
           {incubationOverview ? <IncubationOverview rows={incubationOverview} /> : <LoadingSpinner />}
         </Grid>
-        {isAnalyst && (
-          <Grid item xs={12} md={6}>
-            <MediaExpiryPanel />
-          </Grid>
-        )}
       </Grid>
 
       <Grid container spacing={2} sx={{ mb: 1 }}>

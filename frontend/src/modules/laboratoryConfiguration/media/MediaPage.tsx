@@ -12,6 +12,7 @@ import { MediaLotRegisterTable } from "./components/MediaLotRegisterTable";
 import { SelectedMediaLotWorkspace } from "./components/SelectedMediaLotWorkspace";
 import { MediaPreparationDialog } from "./dialogs/MediaPreparationDialog";
 import { MediaEvaluationWorkflowDialog } from "./dialogs/MediaEvaluationWorkflowDialog";
+import { MarkOutOfStockDialog } from "./dialogs/MarkOutOfStockDialog";
 import { MediaPreparationService } from "./services/MediaPreparationService";
 import { MediaEvaluationService } from "../mediaEvaluation/services/MediaEvaluationService";
 import { masterDataOptions } from "../../../services/masterDataOptions";
@@ -33,6 +34,7 @@ export function MediaPage() {
   const [activeEvaluationId, setActiveEvaluationId] = useState<number | null>(null);
   const [auditLotId, setAuditLotId] = useState<number | null>(null);
   const [pendingDecision, setPendingDecision] = useState<{ lot: any; approved: boolean } | null>(null);
+  const [outOfStockLot, setOutOfStockLot] = useState<any | null>(null);
   const [message, setMessage] = useState<{ text: string; ok: boolean } | null>(null);
 
   // Filters & Controls
@@ -149,7 +151,7 @@ export function MediaPage() {
     try {
       await MediaPreparationService.decideRelease(pendingDecision.lot.id, password, pendingDecision.approved);
       setMessage({
-        text: `Media lot ${pendingDecision.lot.lotNumber} ${pendingDecision.approved ? "released for use" : "quarantined"}.`,
+        text: `Media lot ${pendingDecision.lot.lotNumber} ${pendingDecision.approved ? "released for use" : "rejected"}.`,
         ok: pendingDecision.approved
       });
       setPendingDecision(null);
@@ -181,7 +183,7 @@ export function MediaPage() {
             startIcon={<RefreshIcon />}
             onClick={loadData}
             disabled={loading}
-            sx={{ borderColor: "#d1d5db", color: "#4b5563" }}
+            sx={{ borderColor: "divider", color: "text.secondary" }}
           >
             Refresh
           </Button>
@@ -190,7 +192,7 @@ export function MediaPage() {
             variant="contained"
             startIcon={<AddIcon />}
             onClick={() => setPrepDialogOpen(true)}
-            sx={{ bgcolor: brandColors.sectionTitle, fontWeight: 700, "&:hover": { bgcolor: "#632273" } }}
+            sx={{ bgcolor: brandColors.sectionTitle, fontWeight: 700, "&:hover": { bgcolor: brandColors.pageTitle } }}
           >
             + Prepare New Media Lot
           </Button>
@@ -250,11 +252,12 @@ export function MediaPage() {
             <Paper
               elevation={0}
               sx={{
-                border: "1px solid #e5e7eb",
+                border: "1px solid",
+                borderColor: "divider",
                 borderRadius: 2,
                 overflowY: "auto",
                 maxHeight: { xs: "340px", md: "calc(100vh - 330px)" },
-                bgcolor: "#ffffff"
+                bgcolor: "background.paper"
               }}
             >
               <MediaLotRegisterTable
@@ -288,6 +291,7 @@ export function MediaPage() {
               onViewAuditHistory={handleViewAuditHistory}
               onOpenEvaluation={handleOpenEvaluation}
               onRequestReleaseDecision={(lot, approved) => setPendingDecision({ lot, approved })}
+              onMarkOutOfStock={(lot) => setOutOfStockLot(lot)}
               evaluationsList={evaluations}
             />
           </Box>
@@ -296,7 +300,7 @@ export function MediaPage() {
         /* NORMAL STATE: Full-Width Media Lots Register */
         <>
           <SectionTitle>{`Media Lots (${visibleLots.length})`}</SectionTitle>
-          <Paper sx={{ border: "1px solid #e5e7eb", borderRadius: 2, overflowX: "auto" }}>
+          <Paper sx={{ border: "1px solid", borderColor: "divider", borderRadius: 2, overflowX: "auto" }}>
             <MediaLotRegisterTable
               lots={visibleLots}
               awaitingApprovalIds={awaitingApprovalIds}
@@ -328,6 +332,16 @@ export function MediaPage() {
         onUpdated={loadData}
       />
 
+      <MarkOutOfStockDialog
+        open={Boolean(outOfStockLot)}
+        lot={outOfStockLot}
+        onClose={() => setOutOfStockLot(null)}
+        onSuccess={() => {
+          setMessage({ text: `Media lot ${outOfStockLot?.lotNumber ?? ""} marked Out of Stock.`, ok: true });
+          loadData();
+        }}
+      />
+
       <AuditHistoryDialog
         open={Boolean(auditLotId)}
         entityName="Media"
@@ -341,7 +355,7 @@ export function MediaPage() {
           meaningStatement={
             pendingDecision.approved
               ? `I am releasing media lot ${pendingDecision.lot.lotNumber} for use in routine testing.`
-              : `I am rejecting media lot ${pendingDecision.lot.lotNumber} - it will be quarantined.`
+              : `I am rejecting media lot ${pendingDecision.lot.lotNumber}.`
           }
           onCancel={() => setPendingDecision(null)}
           onConfirm={confirmDecision}

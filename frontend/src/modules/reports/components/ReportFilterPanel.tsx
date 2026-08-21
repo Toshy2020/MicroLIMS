@@ -1,7 +1,8 @@
 import { RefObject } from "react";
-import { Box, Paper, TextField, MenuItem, Select, InputLabel, FormControl, Button, Link, Typography, Stack } from "@mui/material";
+import { Box, Paper, TextField, MenuItem, Select, InputLabel, FormControl, Button, Link, Typography, Stack, useTheme } from "@mui/material";
 import { brandColors } from "../../../theme";
-import { statusColor, categoryLabel } from "../../../components/StatusBadge";
+import { statusTone } from "../../../theme/statusTokens";
+import { categoryLabel } from "../../../components/StatusBadge";
 import { FilterOptionsResponse, ResultLevel, ResultRecordSearchParams } from "../types/reportingTypes";
 
 const RESULT_LEVEL_SEGMENTS: { value: ResultLevel | ""; label: string }[] = [
@@ -33,10 +34,11 @@ interface ReportFilterPanelProps {
 // only edits draft state - nothing queries the API until "Search
 // Records" is clicked (RecordSearchTab applies the draft then).
 export function ReportFilterPanel({ filterOptions, draft, onChange, onSearch, onReset, searchInputRef }: ReportFilterPanelProps) {
+  const theme = useTheme();
   return (
     <Paper sx={{ p: 2.5 }}>
       <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 2 }}>
-        <Typography sx={{ fontSize: 15, fontWeight: 700, color: brandColors.sectionTitle }}>Filters</Typography>
+        <Typography sx={{ fontSize: 15, fontWeight: 700, color: theme.palette.primary.main }}>Filters</Typography>
         <Link component="button" type="button" onClick={onReset} sx={{ fontSize: 13 }} underline="hover">
           Reset
         </Link>
@@ -94,7 +96,7 @@ export function ReportFilterPanel({ filterOptions, draft, onChange, onSearch, on
           <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.75 }}>
             {RESULT_LEVEL_SEGMENTS.map((seg) => {
               const selected = (draft.resultLevel ?? "") === seg.value;
-              const color = seg.value ? statusColor(seg.value) : brandColors.sectionTitle;
+              const color = seg.value ? theme.custom.status[statusTone(seg.value)].text : brandColors.sectionTitle;
               return (
                 <Button
                   key={seg.label} size="small"

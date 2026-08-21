@@ -20,6 +20,7 @@ public class MicroLimsDbContext : Microsoft.EntityFrameworkCore.DbContext
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
     public DbSet<PasswordResetToken> PasswordResetTokens => Set<PasswordResetToken>();
     public DbSet<PasswordHistory> PasswordHistories => Set<PasswordHistory>();
+    public DbSet<AdminPasswordRecovery> AdminPasswordRecoveries => Set<AdminPasswordRecovery>();
     public DbSet<ElectronicSignature> ElectronicSignatures => Set<ElectronicSignature>();
     public DbSet<Item> Items => Set<Item>();
     public DbSet<Specification> Specifications => Set<Specification>();
@@ -63,6 +64,9 @@ public class MicroLimsDbContext : Microsoft.EntityFrameworkCore.DbContext
     public DbSet<DiluentType> DiluentTypes => Set<DiluentType>();
     public DbSet<Neutralizer> Neutralizers => Set<Neutralizer>();
     public DbSet<Equipment> Equipment => Set<Equipment>();
+    public DbSet<IncubatorSetPointHistory> IncubatorSetPointHistories => Set<IncubatorSetPointHistory>();
+    public DbSet<AutoclaveProgram> AutoclavePrograms => Set<AutoclaveProgram>();
+    public DbSet<AutoclaveProgramHistory> AutoclaveProgramHistories => Set<AutoclaveProgramHistory>();
     public DbSet<MediaType> MediaTypes => Set<MediaType>();
     public DbSet<RoomTestConfiguration> RoomTestConfigurations => Set<RoomTestConfiguration>();
     public DbSet<SamplePreparation> SamplePreparations => Set<SamplePreparation>();
@@ -77,6 +81,8 @@ public class MicroLimsDbContext : Microsoft.EntityFrameworkCore.DbContext
     public DbSet<MaterialDocumentAccessLog> MaterialDocumentAccessLogs => Set<MaterialDocumentAccessLog>();
     public DbSet<EquipmentDocument> EquipmentDocuments => Set<EquipmentDocument>();
     public DbSet<EquipmentDocumentAccessLog> EquipmentDocumentAccessLogs => Set<EquipmentDocumentAccessLog>();
+    public DbSet<ItemDocument> ItemDocuments => Set<ItemDocument>();
+    public DbSet<ItemDocumentAccessLog> ItemDocumentAccessLogs => Set<ItemDocumentAccessLog>();
 
     // Test Master
     public DbSet<TestDefinition> TestDefinitions => Set<TestDefinition>();

@@ -1,4 +1,4 @@
-import { Box, Typography, Stack, Chip, Divider } from "@mui/material";
+import { Box, Typography, Stack, Chip, Divider, useTheme } from "@mui/material";
 import ScienceOutlinedIcon from "@mui/icons-material/ScienceOutlined";
 import AccessTimeOutlinedIcon from "@mui/icons-material/AccessTimeOutlined";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
@@ -22,18 +22,21 @@ const formatDate = (d: string | null | undefined) =>
     : "—";
 
 export function SharedTsbStatusCard({ sharedTsb }: Props) {
+  const theme = useTheme();
+
   if (!sharedTsb.isStarted) {
     return (
       <Box
         sx={{
           p: 2.5,
           borderRadius: 2,
-          border: "1px dashed #d1d5db",
-          bgcolor: "#f9fafb",
+          border: "1px dashed",
+          borderColor: "divider",
+          bgcolor: "background.default",
           textAlign: "center"
         }}
       >
-        <Typography sx={{ fontSize: 13, color: "#6b7280", fontWeight: 500 }}>
+        <Typography sx={{ fontSize: 13, color: "text.secondary", fontWeight: 500 }}>
           Shared TSB Enrichment has not been started yet.
         </Typography>
       </Box>
@@ -45,9 +48,9 @@ export function SharedTsbStatusCard({ sharedTsb }: Props) {
       sx={{
         p: 2.5,
         borderRadius: 2,
-        border: "1px solid #e5e7eb",
-        bgcolor: "#faf5ff",
-        boxShadow: "0 1px 3px rgba(0,0,0,0.05)"
+        border: "1px solid",
+        borderColor: "divider",
+        bgcolor: theme.custom.status.purple.bg
       }}
     >
       <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 2 }}>
@@ -67,10 +70,10 @@ export function SharedTsbStatusCard({ sharedTsb }: Props) {
             <ScienceOutlinedIcon sx={{ fontSize: 20 }} />
           </Box>
           <Box>
-            <Typography sx={{ fontSize: 14, fontWeight: 700, color: "#1f2937" }}>
+            <Typography sx={{ fontSize: 14, fontWeight: 700, color: "text.primary" }}>
               Shared TSB Enrichment / Incubation
             </Typography>
-            <Typography sx={{ fontSize: 12, color: "#6b7280" }}>
+            <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
               Single shared laboratory procedure applied across all applicable pathogen tests
             </Typography>
           </Box>
@@ -83,14 +86,14 @@ export function SharedTsbStatusCard({ sharedTsb }: Props) {
           sx={{
             fontWeight: 700,
             fontSize: 12,
-            bgcolor: sharedTsb.isCompleted ? "#ecfdf5" : "#eff6ff",
-            color: sharedTsb.isCompleted ? "#065f46" : "#1e40af",
-            border: `1px solid ${sharedTsb.isCompleted ? "#a7f3d0" : "#bfdbfe"}`
+            bgcolor: sharedTsb.isCompleted ? theme.custom.status.notDetected.bg : theme.custom.status.info.bg,
+            color: sharedTsb.isCompleted ? theme.custom.status.notDetected.text : theme.custom.status.info.text,
+            border: `1px solid ${sharedTsb.isCompleted ? theme.custom.status.notDetected.border : theme.custom.status.info.border}`
           }}
         />
       </Stack>
 
-      <Divider sx={{ my: 1.5, borderColor: "#e9d5ff" }} />
+      <Divider sx={{ my: 1.5, borderColor: theme.custom.status.purple.border }} />
 
       <Box
         sx={{
@@ -100,71 +103,71 @@ export function SharedTsbStatusCard({ sharedTsb }: Props) {
         }}
       >
         <Box>
-          <Typography sx={{ fontSize: 11, fontWeight: 600, color: "#7c3aed", textTransform: "uppercase" }}>
+          <Typography sx={{ fontSize: 11, fontWeight: 600, color: theme.custom.status.purple.text, textTransform: "uppercase" }}>
             TSB Media Lot
           </Typography>
-          <Typography sx={{ fontSize: 13, fontWeight: 700, color: "#1f2937" }}>
+          <Typography sx={{ fontSize: 13, fontWeight: 700, color: "text.primary" }}>
             {sharedTsb.mediaLotNumber ?? "—"}
           </Typography>
           <Stack direction="row" spacing={0.5} alignItems="center" sx={{ mt: 0.5 }}>
-            <VerifiedUserOutlinedIcon sx={{ fontSize: 13, color: "#059669" }} />
-            <Typography sx={{ fontSize: 11, color: "#059669", fontWeight: 600 }}>
+            <VerifiedUserOutlinedIcon sx={{ fontSize: 13, color: theme.custom.status.notDetected.text }} />
+            <Typography sx={{ fontSize: 11, color: theme.custom.status.notDetected.text, fontWeight: 600 }}>
               {sharedTsb.gptStatus ?? "GPT Conform"}
             </Typography>
           </Stack>
         </Box>
 
         <Box>
-          <Typography sx={{ fontSize: 11, fontWeight: 600, color: "#7c3aed", textTransform: "uppercase" }}>
+          <Typography sx={{ fontSize: 11, fontWeight: 600, color: theme.custom.status.purple.text, textTransform: "uppercase" }}>
             Incubator Equipment
           </Typography>
-          <Typography sx={{ fontSize: 13, fontWeight: 700, color: "#1f2937" }}>
+          <Typography sx={{ fontSize: 13, fontWeight: 700, color: "text.primary" }}>
             {sharedTsb.incubatorCode ?? "—"}
           </Typography>
-          <Typography sx={{ fontSize: 12, color: "#4b5563" }}>
+          <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
             {sharedTsb.temperature ?? "30–35 °C"}
           </Typography>
         </Box>
 
         <Box>
-          <Typography sx={{ fontSize: 11, fontWeight: 600, color: "#7c3aed", textTransform: "uppercase" }}>
+          <Typography sx={{ fontSize: 11, fontWeight: 600, color: theme.custom.status.purple.text, textTransform: "uppercase" }}>
             Incubation Start
           </Typography>
-          <Typography sx={{ fontSize: 13, fontWeight: 700, color: "#1f2937" }}>
+          <Typography sx={{ fontSize: 13, fontWeight: 700, color: "text.primary" }}>
             {formatDate(sharedTsb.actualStartUtc)}
           </Typography>
-          <Typography sx={{ fontSize: 11, color: "#6b7280" }}>
+          <Typography sx={{ fontSize: 11, color: "text.secondary" }}>
             By {sharedTsb.startedByUserName ?? "Analyst"}
           </Typography>
         </Box>
 
         <Box>
-          <Typography sx={{ fontSize: 11, fontWeight: 600, color: "#7c3aed", textTransform: "uppercase" }}>
+          <Typography sx={{ fontSize: 11, fontWeight: 600, color: theme.custom.status.purple.text, textTransform: "uppercase" }}>
             Available From
           </Typography>
-          <Typography sx={{ fontSize: 13, fontWeight: 700, color: "#059669" }}>
+          <Typography sx={{ fontSize: 13, fontWeight: 700, color: theme.custom.status.notDetected.text }}>
             {formatDate(sharedTsb.minReadyAt ?? sharedTsb.actualStartUtc)}
           </Typography>
-          <Typography sx={{ fontSize: 11, color: "#059669", fontWeight: 600 }}>
+          <Typography sx={{ fontSize: 11, color: theme.custom.status.notDetected.text, fontWeight: 600 }}>
             Unlock Point ({sharedTsb.requiredDurationRange ?? "18–24 h"})
           </Typography>
         </Box>
 
         <Box>
-          <Typography sx={{ fontSize: 11, fontWeight: 600, color: "#7c3aed", textTransform: "uppercase" }}>
+          <Typography sx={{ fontSize: 11, fontWeight: 600, color: theme.custom.status.purple.text, textTransform: "uppercase" }}>
             Expected Window
           </Typography>
-          <Typography sx={{ fontSize: 13, fontWeight: 700, color: "#1f2937" }}>
+          <Typography sx={{ fontSize: 13, fontWeight: 700, color: "text.primary" }}>
             {formatDate(sharedTsb.expectedCompletionUtc)}
           </Typography>
-          <Typography sx={{ fontSize: 11, color: "#6b7280" }}>
+          <Typography sx={{ fontSize: 11, color: "text.secondary" }}>
             Max Duration: {sharedTsb.incubationDurationHours ?? 24} h
           </Typography>
         </Box>
       </Box>
 
-      <Box sx={{ mt: 2, p: 1.5, bgcolor: "#ffffff", borderRadius: 1.5, border: "1px solid #f3e8ff" }}>
-        <Typography sx={{ fontSize: 12, color: "#4b5563" }}>
+      <Box sx={{ mt: 2, p: 1.5, bgcolor: "background.paper", borderRadius: 1.5, border: "1px solid", borderColor: theme.custom.status.purple.border }}>
+        <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
           <strong>Scope:</strong> Applies to <strong>{sharedTsb.applicableLocationCount}</strong> sampling locations and{" "}
           <strong>{sharedTsb.applicableTestCodes.length}</strong> applicable pathogen tests (
           {sharedTsb.applicableTestCodes.join(", ")})

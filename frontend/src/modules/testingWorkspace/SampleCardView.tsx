@@ -1,4 +1,4 @@
-import { Grid, Paper, Box, Typography, Stack } from "@mui/material";
+import { Grid, Paper, Box, Typography, Stack, useTheme } from "@mui/material";
 import { SampleCard as SampleCardType } from "./types/workspaceTypes";
 import { CategoryBadge } from "../../components/StatusBadge";
 import { SampleLifecycleBadge } from "./SampleLifecycleBadge";
@@ -23,6 +23,7 @@ export function SampleCardView({
   onLifecycleBadgeClick
 }: Props) {
   const { role } = useAuth();
+  const theme = useTheme();
 
   return (
     <Grid container spacing={2}>
@@ -41,19 +42,19 @@ export function SampleCardView({
                 borderLeft: isSelected
                   ? `4px solid ${brandColors.sectionTitle}`
                   : needsPreparation
-                  ? "4px solid #f59e0b"
+                  ? `4px solid ${theme.custom.status.inconclusive.text}`
                   : "4px solid transparent",
-                bgcolor: isSelected ? "#faf5ff" : "#ffffff",
+                bgcolor: isSelected ? theme.custom.status.purple.bg : "background.paper",
                 transition: "all 0.15s ease",
                 "&:hover": {
-                  boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
+                  boxShadow: theme.palette.mode === "dark" ? "0 4px 12px rgba(0,0,0,0.4)" : "0 4px 12px rgba(0,0,0,0.08)",
                   transform: "translateY(-1px)"
                 }
               }}
             >
               <Stack direction="row" justifyContent="space-between" alignItems="flex-start" sx={{ mb: 1 }}>
                 <Box>
-                  <Typography sx={{ fontWeight: isSelected ? 700 : 600, fontSize: 14, color: isSelected ? brandColors.pageTitle : "#111827" }}>
+                  <Typography sx={{ fontWeight: isSelected ? 700 : 600, fontSize: 14, color: isSelected ? brandColors.pageTitle : "text.primary" }}>
                     {sample.displayName}
                   </Typography>
                   <Typography sx={{ fontSize: 11, color: "text.secondary" }}>
@@ -67,7 +68,7 @@ export function SampleCardView({
                 {sample.causeOfTesting} · {formatDate(sample.receivedAt)}
               </Typography>
 
-              <Typography sx={{ fontSize: 12, color: "#374151", mb: 1.5 }}>
+              <Typography sx={{ fontSize: 12, color: "text.secondary", mb: 1.5 }}>
                 {sample.batchNumber ? `Batch: ${sample.batchNumber}` : `Control: ${sample.controlNumber}`} · Tests: {sample.assignedTests.length}
               </Typography>
 
@@ -87,7 +88,7 @@ export function SampleCardView({
       })}
       {samples.length === 0 && (
         <Grid item xs={12}>
-          <Typography sx={{ color: "#9ca3af", fontSize: 13, p: 2 }}>
+          <Typography sx={{ color: "text.secondary", fontSize: 13, p: 2 }}>
             No samples match this filter.
           </Typography>
         </Grid>

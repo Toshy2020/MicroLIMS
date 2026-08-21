@@ -26,6 +26,7 @@ export interface TestOrderSummary {
 // Mirrors backend SampleDto (backend/MicroLIMS.Application/DTOs/SampleDto.cs)
 export interface SampleCard {
   sampleId: number;
+  itemId?: number | null;
   referenceNumber: string;
   displayName: string; // Item name, or Sampling Point/Department/Machine name
   category: string;

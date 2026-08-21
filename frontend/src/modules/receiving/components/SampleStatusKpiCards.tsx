@@ -1,5 +1,5 @@
 import React from "react";
-import { Box, Paper, Typography, Grid } from "@mui/material";
+import { Box, Paper, Typography, Grid, useTheme } from "@mui/material";
 import Inventory2OutlinedIcon from "@mui/icons-material/Inventory2Outlined";
 import ScienceOutlinedIcon from "@mui/icons-material/ScienceOutlined";
 import RateReviewOutlinedIcon from "@mui/icons-material/RateReviewOutlined";
@@ -7,7 +7,7 @@ import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 import CancelOutlinedIcon from "@mui/icons-material/CancelOutlined";
 import BlockOutlinedIcon from "@mui/icons-material/BlockOutlined";
 import { SampleRecord } from "../types/receivingTypes";
-import { brandColors } from "../../../theme";
+import { StatusTone } from "../../../theme/statusTokens";
 
 export type KpiFilterKey =
   | "ALL"
@@ -28,11 +28,11 @@ interface KpiCardConfig {
   label: string;
   count: number;
   icon: React.ReactNode;
-  accentColor: string;
-  bgTint: string;
+  tone: StatusTone;
 }
 
 export function SampleStatusKpiCards({ samples, activeKpi, onSelectKpi }: Props) {
+  const theme = useTheme();
   const totalCount = samples.length;
   const underTestingCount = samples.filter((s) => s.status === "InTesting").length;
   const pendingReviewCount = samples.filter(
@@ -45,60 +45,20 @@ export function SampleStatusKpiCards({ samples, activeKpi, onSelectKpi }: Props)
   ).length;
 
   const cards: KpiCardConfig[] = [
-    {
-      key: "ALL",
-      label: "Total Samples",
-      count: totalCount,
-      icon: <Inventory2OutlinedIcon sx={{ fontSize: 20 }} />,
-      accentColor: brandColors.pageTitle,
-      bgTint: "#fbf8fc"
-    },
-    {
-      key: "InTesting",
-      label: "Under Testing",
-      count: underTestingCount,
-      icon: <ScienceOutlinedIcon sx={{ fontSize: 20 }} />,
-      accentColor: "#2563eb",
-      bgTint: "#eff6ff"
-    },
-    {
-      key: "PendingReview",
-      label: "Pending Review",
-      count: pendingReviewCount,
-      icon: <RateReviewOutlinedIcon sx={{ fontSize: 20 }} />,
-      accentColor: "#d97706",
-      bgTint: "#fffbeb"
-    },
-    {
-      key: "Approved",
-      label: "Approved",
-      count: approvedCount,
-      icon: <CheckCircleOutlineIcon sx={{ fontSize: 20 }} />,
-      accentColor: "#16a34a",
-      bgTint: "#f0fdf4"
-    },
-    {
-      key: "Rejected",
-      label: "Rejected",
-      count: rejectedCount,
-      icon: <CancelOutlinedIcon sx={{ fontSize: 20 }} />,
-      accentColor: "#dc2626",
-      bgTint: "#fef2f2"
-    },
-    {
-      key: "CancelledVoided",
-      label: "Cancelled / Voided",
-      count: cancelledVoidedCount,
-      icon: <BlockOutlinedIcon sx={{ fontSize: 20 }} />,
-      accentColor: "#64748b",
-      bgTint: "#f8fafc"
-    }
+    { key: "ALL", label: "Total Samples", count: totalCount, icon: <Inventory2OutlinedIcon sx={{ fontSize: 20 }} />, tone: "purple" },
+    { key: "InTesting", label: "Under Testing", count: underTestingCount, icon: <ScienceOutlinedIcon sx={{ fontSize: 20 }} />, tone: "info" },
+    { key: "PendingReview", label: "Pending Review", count: pendingReviewCount, icon: <RateReviewOutlinedIcon sx={{ fontSize: 20 }} />, tone: "action" },
+    { key: "Approved", label: "Approved", count: approvedCount, icon: <CheckCircleOutlineIcon sx={{ fontSize: 20 }} />, tone: "notDetected" },
+    { key: "Rejected", label: "Rejected", count: rejectedCount, icon: <CancelOutlinedIcon sx={{ fontSize: 20 }} />, tone: "detected" },
+    { key: "CancelledVoided", label: "Cancelled / Voided", count: cancelledVoidedCount, icon: <BlockOutlinedIcon sx={{ fontSize: 20 }} />, tone: "pending" }
   ];
 
   return (
     <Grid container spacing={1.5} sx={{ mb: 2.5 }}>
       {cards.map((card) => {
         const isActive = activeKpi === card.key || (card.key === "ALL" && !activeKpi);
+        const iconTokens = theme.custom.status[card.tone];
+        const activeTokens = theme.custom.status.purple;
         return (
           <Grid item xs={6} sm={4} md={2} key={card.key}>
             <Paper
@@ -108,10 +68,9 @@ export function SampleStatusKpiCards({ samples, activeKpi, onSelectKpi }: Props)
                 p: 1.75,
                 borderRadius: 2,
                 cursor: "pointer",
-                border: isActive
-                  ? `2px solid ${brandColors.sectionTitle}`
-                  : "1px solid #e5e7eb",
-                bgcolor: isActive ? "#faf5ff" : "#ffffff",
+                border: isActive ? `2px solid ${activeTokens.border}` : "1px solid",
+                borderColor: isActive ? activeTokens.border : "divider",
+                bgcolor: isActive ? activeTokens.bg : "background.paper",
                 transition: "all 0.15s ease-in-out",
                 display: "flex",
                 flexDirection: "column",
@@ -120,7 +79,7 @@ export function SampleStatusKpiCards({ samples, activeKpi, onSelectKpi }: Props)
                 position: "relative",
                 overflow: "hidden",
                 "&:hover": {
-                  borderColor: brandColors.sectionTitle,
+                  borderColor: activeTokens.border,
                   boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
                   transform: "translateY(-1px)"
                 }
@@ -131,7 +90,7 @@ export function SampleStatusKpiCards({ samples, activeKpi, onSelectKpi }: Props)
                   sx={{
                     fontSize: 12,
                     fontWeight: 600,
-                    color: isActive ? brandColors.sectionTitle : "text.secondary",
+                    color: isActive ? activeTokens.text : "text.secondary",
                     lineHeight: 1.2
                   }}
                 >
@@ -139,14 +98,14 @@ export function SampleStatusKpiCards({ samples, activeKpi, onSelectKpi }: Props)
                 </Typography>
                 <Box
                   sx={{
-                    color: card.accentColor,
+                    color: iconTokens.text,
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
                     width: 28,
                     height: 28,
                     borderRadius: 1.5,
-                    bgcolor: card.bgTint
+                    bgcolor: iconTokens.bg
                   }}
                 >
                   {card.icon}
@@ -158,14 +117,14 @@ export function SampleStatusKpiCards({ samples, activeKpi, onSelectKpi }: Props)
                   sx={{
                     fontSize: 22,
                     fontWeight: 700,
-                    color: isActive ? brandColors.pageTitle : "#1f2937",
+                    color: isActive ? activeTokens.text : "text.primary",
                     lineHeight: 1
                   }}
                 >
                   {card.count}
                 </Typography>
                 {isActive && card.key !== "ALL" && (
-                  <Typography sx={{ fontSize: 11, color: brandColors.sectionTitle, fontWeight: 600 }}>
+                  <Typography sx={{ fontSize: 11, color: activeTokens.text, fontWeight: 600 }}>
                     Active
                   </Typography>
                 )}

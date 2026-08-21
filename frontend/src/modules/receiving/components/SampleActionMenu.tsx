@@ -6,7 +6,8 @@ import {
   Menu,
   MenuItem,
   ListItemIcon,
-  ListItemText
+  ListItemText,
+  useTheme
 } from "@mui/material";
 import VisibilityOutlinedIcon from "@mui/icons-material/VisibilityOutlined";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
@@ -33,6 +34,7 @@ export function SampleActionMenu({
   onViewAuditHistory,
   onPrepareSample
 }: Props) {
+  const theme = useTheme();
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const isMenuOpen = Boolean(anchorEl);
 
@@ -55,8 +57,8 @@ export function SampleActionMenu({
           size="small"
           onClick={() => onViewSummary(sample)}
           sx={{
-            color: "#4b5563",
-            "&:hover": { color: "#7b2d8e", bgcolor: "#f3e8ff" }
+            color: "text.secondary",
+            "&:hover": { color: theme.custom.status.purple.text, bgcolor: theme.custom.status.purple.bg }
           }}
         >
           <VisibilityOutlinedIcon sx={{ fontSize: 18 }} />
@@ -77,8 +79,8 @@ export function SampleActionMenu({
             disabled={!isEditable}
             onClick={() => onEdit(sample)}
             sx={{
-              color: isEditable ? "#4b5563" : "#d1d5db",
-              "&:hover": isEditable ? { color: "#7b2d8e", bgcolor: "#f3e8ff" } : undefined
+              color: isEditable ? "text.secondary" : "text.disabled",
+              "&:hover": isEditable ? { color: theme.custom.status.purple.text, bgcolor: theme.custom.status.purple.bg } : undefined
             }}
           >
             <EditOutlinedIcon sx={{ fontSize: 18 }} />
@@ -91,8 +93,8 @@ export function SampleActionMenu({
         size="small"
         onClick={handleOpenMenu}
         sx={{
-          color: "#4b5563",
-          "&:hover": { color: "#7b2d8e", bgcolor: "#f3e8ff" }
+          color: "text.secondary",
+          "&:hover": { color: theme.custom.status.purple.text, bgcolor: theme.custom.status.purple.bg }
         }}
       >
         <MoreVertIcon sx={{ fontSize: 18 }} />
@@ -107,8 +109,7 @@ export function SampleActionMenu({
         PaperProps={{
           sx: {
             minWidth: 180,
-            borderRadius: 1.5,
-            boxShadow: "0 4px 16px rgba(0,0,0,0.1)"
+            borderRadius: 1.5
           }
         }}
       >
@@ -120,7 +121,7 @@ export function SampleActionMenu({
             }}
           >
             <ListItemIcon>
-              <ScienceOutlinedIcon sx={{ fontSize: 18, color: "#d97706" }} />
+              <ScienceOutlinedIcon sx={{ fontSize: 18, color: theme.custom.status.action.text }} />
             </ListItemIcon>
             <ListItemText primary="Prepare Sample" primaryTypographyProps={{ fontSize: 13, fontWeight: 600 }} />
           </MenuItem>
@@ -133,7 +134,7 @@ export function SampleActionMenu({
           }}
         >
           <ListItemIcon>
-            <PictureAsPdfOutlinedIcon sx={{ fontSize: 18, color: "#2563eb" }} />
+            <PictureAsPdfOutlinedIcon sx={{ fontSize: 18, color: theme.custom.status.info.text }} />
           </ListItemIcon>
           <ListItemText primary="View Full Report" primaryTypographyProps={{ fontSize: 13 }} />
         </MenuItem>
@@ -145,7 +146,7 @@ export function SampleActionMenu({
           }}
         >
           <ListItemIcon>
-            <HistoryOutlinedIcon sx={{ fontSize: 18, color: "#6b7280" }} />
+            <HistoryOutlinedIcon sx={{ fontSize: 18, color: "text.secondary" }} />
           </ListItemIcon>
           <ListItemText primary="Audit History" primaryTypographyProps={{ fontSize: 13 }} />
         </MenuItem>

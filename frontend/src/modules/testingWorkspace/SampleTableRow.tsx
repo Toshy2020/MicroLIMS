@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { TableRow, TableCell, Box, Typography, Collapse, IconButton } from "@mui/material";
+import { TableRow, TableCell, Box, Typography, Collapse, IconButton, useTheme } from "@mui/material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import { SampleCard as SampleCardType } from "./types/workspaceTypes";
@@ -8,7 +8,6 @@ import { WorkspaceService } from "./services/WorkspaceService";
 import { CategoryBadge } from "../../components/StatusBadge";
 import { SampleLifecycleBadge } from "./SampleLifecycleBadge";
 import { useAuth } from "../../contexts/AuthContext";
-import { brandColors } from "../../theme";
 
 interface Props {
   sample: SampleCardType;
@@ -44,6 +43,7 @@ export function SampleTableRow({
   isCompact
 }: Props) {
   const { role } = useAuth();
+  const theme = useTheme();
   const [expanded, setExpanded] = useState(false);
   const needsPreparation = sample.preparationStatus === "NeedsPreparation";
   const isProductLike = PRODUCT_LIKE.includes(sample.category);
@@ -73,17 +73,17 @@ export function SampleTableRow({
         onClick={handleRowClick}
         sx={{
           cursor: "pointer",
-          bgcolor: isSelected ? "#faf5ff" : "inherit",
+          bgcolor: isSelected ? theme.custom.status.purple.bg : "inherit",
           borderLeft: isSelected
-            ? `4px solid ${brandColors.sectionTitle}`
+            ? `4px solid ${theme.custom.status.purple.border}`
             : needsPreparation
-            ? "4px solid #f59e0b"
+            ? `4px solid ${theme.custom.status.inconclusive.border}`
             : "4px solid transparent",
-          "&:hover": { bgcolor: isSelected ? "#faf5ff" : "#fdfbfe" }
+          "&:hover": { bgcolor: isSelected ? theme.custom.status.purple.bg : "action.hover" }
         }}
       >
         <TableCell sx={{ py: 1.25 }}>
-          <Typography sx={{ fontWeight: isSelected ? 700 : 600, fontSize: 13, color: isSelected ? brandColors.pageTitle : "#111827" }}>
+          <Typography sx={{ fontWeight: isSelected ? 700 : 600, fontSize: 13, color: isSelected ? theme.palette.primary.main : "text.primary" }}>
             {sample.displayName}
           </Typography>
           <Typography sx={{ fontSize: 11, color: "text.secondary" }}>
@@ -96,7 +96,7 @@ export function SampleTableRow({
         </TableCell>
 
         <TableCell sx={{ py: 1.25 }}>
-          <Typography sx={{ fontSize: 11, color: "#374151", fontWeight: 600 }}>
+          <Typography sx={{ fontSize: 11, color: "text.primary", fontWeight: 600 }}>
             {sample.batchNumber ? `B: ${sample.batchNumber}` : `C: ${sample.controlNumber || "—"}`}
           </Typography>
         </TableCell>
@@ -119,13 +119,13 @@ export function SampleTableRow({
         onClick={handleRowClick}
         sx={{
           cursor: "pointer",
-          bgcolor: isSelected ? "#faf5ff" : "inherit",
+          bgcolor: isSelected ? theme.custom.status.purple.bg : "inherit",
           borderLeft: isSelected
-            ? `4px solid ${brandColors.sectionTitle}`
+            ? `4px solid ${theme.custom.status.purple.border}`
             : needsPreparation
-            ? "4px solid #f59e0b"
+            ? `4px solid ${theme.custom.status.inconclusive.border}`
             : "4px solid transparent",
-          "&:hover": { bgcolor: isSelected ? "#faf5ff" : "#fdfbfe" }
+          "&:hover": { bgcolor: isSelected ? theme.custom.status.purple.bg : "action.hover" }
         }}
       >
         <TableCell sx={{ width: 36 }} onClick={(e) => e.stopPropagation()}>
@@ -137,7 +137,7 @@ export function SampleTableRow({
         </TableCell>
 
         <TableCell>
-          <Typography sx={{ fontWeight: isSelected ? 700 : 600, fontSize: 13, color: isSelected ? brandColors.pageTitle : "#111827" }}>
+          <Typography sx={{ fontWeight: isSelected ? 700 : 600, fontSize: 13, color: isSelected ? theme.palette.primary.main : "text.primary" }}>
             {sample.displayName}
           </Typography>
           <Typography sx={{ fontSize: 11, color: "text.secondary" }}>{sample.referenceNumber}</Typography>
@@ -202,7 +202,7 @@ export function SampleTableRow({
         <TableRow>
           <TableCell sx={{ p: 0, border: 0 }} colSpan={colSpan}>
             <Collapse in={expanded} unmountOnExit>
-              <Box sx={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 1, p: 1.5, bgcolor: "#faf9fc" }}>
+              <Box sx={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 1, p: 1.5, bgcolor: "background.default" }}>
                 {sample.category === "FinishedProduct" && sample.productionStage && (
                   <DetailField label="Production Stage" value={sample.productionStage} />
                 )}

@@ -1,4 +1,4 @@
-import { Dialog, DialogTitle, DialogContent, DialogActions, Button, Grid, Typography, Box, Divider } from "@mui/material";
+import { Dialog, DialogTitle, DialogContent, DialogActions, Button, Grid, Typography, Box, Divider , useTheme} from "@mui/material";
 import { ResultRecordItem } from "../types/reportingTypes";
 import { StatusBadge, CategoryBadge } from "../../../components/StatusBadge";
 import { brandColors } from "../../../theme";
@@ -12,6 +12,7 @@ interface RecordDetailDialogProps {
 }
 
 export function RecordDetailDialog({ open, onClose, record }: RecordDetailDialogProps) {
+  const theme = useTheme();
   const [auditOpen, setAuditOpen] = useState(false);
 
   if (!record) return null;
@@ -21,7 +22,7 @@ export function RecordDetailDialog({ open, onClose, record }: RecordDetailDialog
       <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
         <DialogTitle sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: 1, borderColor: "divider", pb: 1.5 }}>
           <Box>
-            <Typography sx={{ fontSize: 18, fontWeight: 700, color: brandColors.sectionTitle }}>
+            <Typography sx={{ fontSize: 18, fontWeight: 700, color: theme.palette.primary.main }}>
               Laboratory Result Record
             </Typography>
             <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
@@ -38,7 +39,7 @@ export function RecordDetailDialog({ open, onClose, record }: RecordDetailDialog
           <Grid container spacing={2}>
             {/* Section 1: Sample & Identification */}
             <Grid item xs={12}>
-              <Typography sx={{ fontSize: 13, fontWeight: 700, color: brandColors.pageTitle, mb: 1, textTransform: "uppercase", letterSpacing: 0.5 }}>
+              <Typography sx={{ fontSize: 13, fontWeight: 700, color: theme.palette.primary.main, mb: 1, textTransform: "uppercase", letterSpacing: 0.5 }}>
                 Sample & Item Details
               </Typography>
             </Grid>
@@ -75,7 +76,7 @@ export function RecordDetailDialog({ open, onClose, record }: RecordDetailDialog
 
             <Grid item xs={12}>
               <Divider sx={{ my: 1 }} />
-              <Typography sx={{ fontSize: 13, fontWeight: 700, color: brandColors.pageTitle, mb: 1, textTransform: "uppercase", letterSpacing: 0.5 }}>
+              <Typography sx={{ fontSize: 13, fontWeight: 700, color: theme.palette.primary.main, mb: 1, textTransform: "uppercase", letterSpacing: 0.5 }}>
                 Test & Result Execution
               </Typography>
             </Grid>
@@ -87,7 +88,7 @@ export function RecordDetailDialog({ open, onClose, record }: RecordDetailDialog
 
             <Grid item xs={12} sm={4}>
               <Typography sx={{ fontSize: 11, color: "text.secondary" }}>Reported Result Value</Typography>
-              <Typography sx={{ fontSize: 16, fontWeight: 700, color: brandColors.sectionTitle }}>
+              <Typography sx={{ fontSize: 16, fontWeight: 700, color: theme.palette.primary.main }}>
                 {record.reportedValue} {record.unit ?? ""}
               </Typography>
             </Grid>
@@ -120,7 +121,7 @@ export function RecordDetailDialog({ open, onClose, record }: RecordDetailDialog
 
             <Grid item xs={12}>
               <Divider sx={{ my: 1 }} />
-              <Typography sx={{ fontSize: 13, fontWeight: 700, color: brandColors.pageTitle, mb: 1, textTransform: "uppercase", letterSpacing: 0.5 }}>
+              <Typography sx={{ fontSize: 13, fontWeight: 700, color: theme.palette.primary.main, mb: 1, textTransform: "uppercase", letterSpacing: 0.5 }}>
                 Attribution, Timing & Review Chain
               </Typography>
             </Grid>

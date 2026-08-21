@@ -7,7 +7,8 @@ import {
   AccordionSummary,
   AccordionDetails,
   Snackbar,
-  Alert
+  Alert,
+  useTheme
 } from "@mui/material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
@@ -28,6 +29,7 @@ function formatJsonString(raw: string | null): string {
 }
 
 export function AuditRawJsonViewer({ previousValue, newValue }: Props) {
+  const theme = useTheme();
   const [copied, setCopied] = useState(false);
 
   const prevFormatted = formatJsonString(previousValue);
@@ -47,7 +49,7 @@ export function AuditRawJsonViewer({ previousValue, newValue }: Props) {
   };
 
   return (
-    <Accordion defaultExpanded={false} sx={{ border: "1px solid #e5e7eb", borderRadius: 1.5, "&:before": { display: "none" } }}>
+    <Accordion defaultExpanded={false} sx={{ border: "1px solid", borderColor: "divider", borderRadius: 1.5, "&:before": { display: "none" } }}>
       <AccordionSummary expandIcon={<ExpandMoreIcon />}>
         <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%", pr: 1 }}>
           <Typography sx={{ fontSize: 12, fontWeight: 700, textTransform: "uppercase", color: "text.secondary" }}>
@@ -72,21 +74,22 @@ export function AuditRawJsonViewer({ previousValue, newValue }: Props) {
         <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" }, gap: 1.5 }}>
           {/* Previous Value */}
           <Box>
-            <Typography sx={{ fontSize: 11, fontWeight: 700, color: "#991b1b", mb: 0.5 }}>
+            <Typography sx={{ fontSize: 11, fontWeight: 700, color: theme.custom.status.detected.text, mb: 0.5 }}>
               Previous Value
             </Typography>
             <Box
               component="pre"
               sx={{
                 p: 1.5,
-                bgcolor: "#fef2f2",
-                border: "1px solid #fecaca",
+                bgcolor: theme.custom.status.detected.bg,
+                border: "1px solid",
+                borderColor: theme.custom.status.detected.border,
                 borderRadius: 1,
                 fontSize: 11,
                 fontFamily: "monospace",
                 overflowX: "auto",
                 maxHeight: 250,
-                color: "#7f1d1d"
+                color: theme.custom.status.detected.text
               }}
             >
               {prevFormatted}
@@ -95,21 +98,22 @@ export function AuditRawJsonViewer({ previousValue, newValue }: Props) {
 
           {/* New Value */}
           <Box>
-            <Typography sx={{ fontSize: 11, fontWeight: 700, color: "#166534", mb: 0.5 }}>
+            <Typography sx={{ fontSize: 11, fontWeight: 700, color: theme.custom.status.notDetected.text, mb: 0.5 }}>
               Current Value
             </Typography>
             <Box
               component="pre"
               sx={{
                 p: 1.5,
-                bgcolor: "#f0fdf4",
-                border: "1px solid #bbf7d0",
+                bgcolor: theme.custom.status.notDetected.bg,
+                border: "1px solid",
+                borderColor: theme.custom.status.notDetected.border,
                 borderRadius: 1,
                 fontSize: 11,
                 fontFamily: "monospace",
                 overflowX: "auto",
                 maxHeight: 250,
-                color: "#14532d"
+                color: theme.custom.status.notDetected.text
               }}
             >
               {newFormatted}

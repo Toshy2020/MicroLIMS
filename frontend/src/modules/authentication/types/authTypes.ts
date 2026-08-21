@@ -12,6 +12,7 @@ export interface CurrentUserInfo {
   username: string;
   fullName: string;
   role: Role;
+  jobTitle?: string | null;
   lastLoginAt: string | null;
   passwordChangedAt: string | null;
   mustChangePassword: boolean;

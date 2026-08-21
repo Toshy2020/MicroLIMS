@@ -10,6 +10,7 @@ export interface LoginData {
   username: string;
   role: Role;
   fullName: string;
+  jobTitle?: string | null;
   userId: number;
   mustChangePassword: boolean;
 }
@@ -20,6 +21,7 @@ interface AuthState {
   token: string | null;
   refreshToken: string | null;
   fullName: string | null;
+  jobTitle: string | null;
   userId: number | null;
   mustChangePassword: boolean;
   login: (data: LoginData) => void;
@@ -45,6 +47,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [username, setUsername] = useState<string | null>(localStorage.getItem("microlims_username"));
   const [role, setRole] = useState<Role | null>(localStorage.getItem("microlims_role") as Role | null);
   const [fullName, setFullName] = useState<string | null>(localStorage.getItem("microlims_full_name"));
+  const [jobTitle, setJobTitle] = useState<string | null>(localStorage.getItem("microlims_job_title"));
   const [userId, setUserId] = useState<number | null>(readStored<number | null>("microlims_user_id", null, Number));
   const [mustChangePassword, setMustChangePassword] = useState<boolean>(
     readStored<boolean>("microlims_must_change_password", false, (raw) => raw === "true")
@@ -56,6 +59,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.setItem("microlims_username", data.username);
     localStorage.setItem("microlims_role", data.role);
     localStorage.setItem("microlims_full_name", data.fullName);
+    if (data.jobTitle) {
+      localStorage.setItem("microlims_job_title", data.jobTitle);
+    } else {
+      localStorage.removeItem("microlims_job_title");
+    }
     localStorage.setItem("microlims_user_id", String(data.userId));
     localStorage.setItem("microlims_must_change_password", String(data.mustChangePassword));
 
@@ -64,6 +72,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUsername(data.username);
     setRole(data.role);
     setFullName(data.fullName);
+    setJobTitle(data.jobTitle ?? null);
     setUserId(data.userId);
     setMustChangePassword(data.mustChangePassword);
   };
@@ -74,6 +83,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem("microlims_username");
     localStorage.removeItem("microlims_role");
     localStorage.removeItem("microlims_full_name");
+    localStorage.removeItem("microlims_job_title");
     localStorage.removeItem("microlims_user_id");
     localStorage.removeItem("microlims_must_change_password");
     setToken(null);
@@ -81,6 +91,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUsername(null);
     setRole(null);
     setFullName(null);
+    setJobTitle(null);
     setUserId(null);
     setMustChangePassword(false);
   };
@@ -100,14 +111,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const refresh = async () => {
     const info = await authenticationService.me();
     localStorage.setItem("microlims_full_name", info.fullName);
+    if (info.jobTitle) {
+      localStorage.setItem("microlims_job_title", info.jobTitle);
+    } else {
+      localStorage.removeItem("microlims_job_title");
+    }
     localStorage.setItem("microlims_must_change_password", String(info.mustChangePassword));
     setFullName(info.fullName);
+    setJobTitle(info.jobTitle ?? null);
     setMustChangePassword(info.mustChangePassword);
   };
 
   return (
     <AuthContext.Provider
-      value={{ token, refreshToken, username, role, fullName, userId, mustChangePassword, login, logout, refresh }}
+      value={{ token, refreshToken, username, role, fullName, jobTitle, userId, mustChangePassword, login, logout, refresh }}
     >
       {children}
     </AuthContext.Provider>

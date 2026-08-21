@@ -6,7 +6,8 @@ import {
   Chip,
   Divider,
   Button,
-  Stack
+  Stack,
+  useTheme
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import PersonIcon from "@mui/icons-material/Person";
@@ -41,6 +42,7 @@ export function AuditEventDrawer({
   onClose,
   onViewRecordHistory
 }: Props) {
+  const theme = useTheme();
   if (!event) return null;
 
   const friendlyEntity = ENTITY_DISPLAY_NAMES[event.entityName] ?? event.entityName;
@@ -54,7 +56,7 @@ export function AuditEventDrawer({
         sx: {
           width: { xs: "100%", sm: 540, md: 580 },
           p: 0,
-          boxShadow: "-4px 0 20px rgba(0,0,0,0.08)"
+          boxShadow: theme.palette.mode === "dark" ? "-4px 0 20px rgba(0,0,0,0.4)" : "-4px 0 20px rgba(0,0,0,0.08)"
         }
       }}
     >
@@ -62,8 +64,9 @@ export function AuditEventDrawer({
       <Box
         sx={{
           p: 2.5,
-          bgcolor: "#faf5ff",
-          borderBottom: "1px solid #f3e8ff",
+          bgcolor: theme.custom.status.purple.bg,
+          borderBottom: "1px solid",
+          borderColor: theme.custom.status.purple.border,
           display: "flex",
           justifyContent: "space-between",
           alignItems: "flex-start"
@@ -71,7 +74,7 @@ export function AuditEventDrawer({
       >
         <Box>
           <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 0.5, flexWrap: "wrap" }}>
-            <Typography variant="h6" sx={{ fontWeight: 700, color: brandColors.sectionTitle }}>
+            <Typography variant="h6" sx={{ fontWeight: 700, color: theme.palette.primary.main }}>
               Audit Event #{event.id}
             </Typography>
             <Chip
@@ -107,9 +110,10 @@ export function AuditEventDrawer({
           <Box
             sx={{
               p: 2,
-              bgcolor: "#f9fafb",
+              bgcolor: "background.default",
               borderRadius: 1.5,
-              border: "1px solid #e5e7eb"
+              border: "1px solid",
+              borderColor: "divider"
             }}
           >
             <Typography sx={{ fontSize: 14, fontWeight: 700, color: "text.primary" }}>

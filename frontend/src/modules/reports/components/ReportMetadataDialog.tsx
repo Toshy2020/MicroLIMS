@@ -1,4 +1,4 @@
-import { Dialog, DialogTitle, DialogContent, DialogActions, Button, Grid, Typography, Box, Chip, Divider } from "@mui/material";
+import { Dialog, DialogTitle, DialogContent, DialogActions, Button, Grid, Typography, Box, Chip, Divider, useTheme } from "@mui/material";
 import { GeneratedReport } from "../types/reportingTypes";
 import { brandColors } from "../../../theme";
 
@@ -9,13 +9,14 @@ interface ReportMetadataDialogProps {
 }
 
 export function ReportMetadataDialog({ open, onClose, report }: ReportMetadataDialogProps) {
+  const theme = useTheme();
   if (!report) return null;
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
       <DialogTitle sx={{ borderBottom: 1, borderColor: "divider", pb: 1.5 }}>
         <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <Typography sx={{ fontSize: 16, fontWeight: 700, color: brandColors.sectionTitle }}>
+          <Typography sx={{ fontSize: 16, fontWeight: 700, color: theme.palette.primary.main }}>
             Report Traceability Metadata
           </Typography>
           <Chip size="small" label={report.status} color="success" />
@@ -69,7 +70,7 @@ export function ReportMetadataDialog({ open, onClose, report }: ReportMetadataDi
 
           <Grid item xs={12}>
             <Typography sx={{ fontSize: 11, color: "text.secondary", mb: 0.5 }}>Applied Criteria</Typography>
-            <Box sx={{ p: 1.5, bgcolor: "#f8fafc", borderRadius: 1, border: "1px solid #e2e8f0", fontSize: 11, fontFamily: "monospace", overflowX: "auto" }}>
+            <Box sx={{ p: 1.5, bgcolor: "background.default", borderRadius: 1, border: "1px solid", borderColor: "divider", fontSize: 11, fontFamily: "monospace", overflowX: "auto" }}>
               {report.criteriaJson}
             </Box>
           </Grid>

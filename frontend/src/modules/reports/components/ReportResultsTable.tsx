@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import {
   Box, Paper, Typography, Table, TableHead, TableBody, TableRow, TableCell, TableContainer,
-  Checkbox, Chip, Tooltip, IconButton, Menu, MenuItem, Select, FormControl, Button, Alert, Link, Stack
+  Checkbox, Chip, Tooltip, IconButton, Menu, MenuItem, Select, FormControl, Button, Alert, Link, Stack, useTheme
 } from "@mui/material";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
 import ViewColumnIcon from "@mui/icons-material/ViewColumn";
@@ -75,6 +75,7 @@ export function ReportResultsTable({
   onBuildReport,
   onAnalyzeTrend
 }: ReportResultsTableProps) {
+  const theme = useTheme();
   const [visibleColumns, setVisibleColumns] = useState<Record<ColumnKey, boolean>>(
     Object.fromEntries(ALL_COLUMNS.map((c) => [c, true])) as Record<ColumnKey, boolean>
   );
@@ -181,7 +182,7 @@ export function ReportResultsTable({
     <Paper sx={{ p: 2.5 }}>
       <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 1, mb: 1.5 }}>
         <Box sx={{ display: "flex", alignItems: "center", gap: 1.25 }}>
-          <Typography sx={{ fontSize: 16, fontWeight: 700, color: brandColors.sectionTitle }}>Search Results</Typography>
+          <Typography sx={{ fontSize: 16, fontWeight: 700, color: theme.palette.primary.main }}>Search Results</Typography>
           <Chip size="small" label={`${totalCount} Records Found`} sx={{ bgcolor: brandColors.causeBadgeBg, color: brandColors.causeBadgeText, fontWeight: 700 }} />
         </Box>
         <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
@@ -210,7 +211,7 @@ export function ReportResultsTable({
       {exportError && <Alert severity="error" sx={{ mb: 1.5 }} onClose={() => setExportError(null)}>{exportError}</Alert>}
 
       {/* Multi-Select Toolbar */}
-      <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 1.5, flexWrap: "wrap", gap: 1, bgcolor: selectionCount > 0 ? "#f5f3ff" : "transparent", p: selectionCount > 0 ? 1 : 0, borderRadius: 1 }}>
+      <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 1.5, flexWrap: "wrap", gap: 1, bgcolor: selectionCount > 0 ? theme.custom.status.purple.bg : "transparent", p: selectionCount > 0 ? 1 : 0, borderRadius: 1 }}>
         <Box sx={{ display: "flex", alignItems: "center", gap: 2, flexWrap: "wrap" }}>
           <Box sx={{ display: "flex", alignItems: "center" }}>
             <Checkbox
@@ -338,7 +339,7 @@ export function ReportResultsTable({
                             component="button"
                             type="button"
                             onClick={() => setDetailRecord(row)}
-                            sx={{ fontSize: 13, fontWeight: 600, color: brandColors.sectionTitle }}
+                            sx={{ fontSize: 13, fontWeight: 600, color: theme.palette.primary.main }}
                             underline="hover"
                           >
                             {row.referenceNumber}

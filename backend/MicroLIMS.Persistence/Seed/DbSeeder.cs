@@ -55,12 +55,125 @@ public static class DbSeeder
             );
         }
 
-        if (!db.Equipment.Any())
+        // 1. Reconcile Equipment (Laboratory Configuration Equipment)
+        var incucellEq = db.Equipment.FirstOrDefault(e => e.Code == "INC-F-ML-F-01-002" || e.Code == "INC-03");
+        if (incucellEq != null)
         {
-            db.Equipment.AddRange(
-                new Equipment { Name = "Incubator 03", Code = "INC-03", Type = EquipmentType.Incubator, SetPointTemperature = 32.5m, CalibrationDueDate = DateTime.UtcNow.AddMonths(6) },
-                new Equipment { Name = "Autoclave 1", Code = "AUT-01", Type = EquipmentType.Autoclave }
-            );
+            incucellEq.Code = "INC-F-ML-F-01-002";
+            incucellEq.Name = "INCUCELL";
+            incucellEq.Type = EquipmentType.Incubator;
+            if (incucellEq.SetPointTemperature == null || incucellEq.SetPointTemperature == 0)
+            {
+                incucellEq.SetPointTemperature = 36.5m;
+            }
+        }
+        else
+        {
+            db.Equipment.Add(new Equipment
+            {
+                Name = "INCUCELL",
+                Code = "INC-F-ML-F-01-002",
+                Type = EquipmentType.Incubator,
+                SetPointTemperature = 36.5m,
+                CalibrationDueDate = DateTime.UtcNow.AddMonths(6)
+            });
+        }
+
+        var hirayamaEq = db.Equipment.FirstOrDefault(e => e.Code == "AUT-F-ML-F-03-045" || e.Code == "AUT-01" || e.Code == "ATC-F-ML-F-03-045");
+        if (hirayamaEq != null)
+        {
+            hirayamaEq.Code = "AUT-F-ML-F-03-045";
+            hirayamaEq.Name = "Hirayama";
+            hirayamaEq.Type = EquipmentType.Autoclave;
+        }
+        else
+        {
+            hirayamaEq = new Equipment
+            {
+                Name = "Hirayama",
+                Code = "AUT-F-ML-F-03-045",
+                Type = EquipmentType.Autoclave
+            };
+            db.Equipment.Add(hirayamaEq);
+        }
+
+        db.SaveChanges();
+
+        // 2. Reconcile EquipmentInventories (Physical Inventory Assets)
+        var incucellInv = db.EquipmentInventories.FirstOrDefault(i => i.Code == "INC-F-ML-F-01-002" || i.SerialNumber == "D,141445");
+        if (incucellInv != null)
+        {
+            incucellInv.Code = "INC-F-ML-F-01-002";
+            incucellInv.InstrumentType = "INCUCELL";
+            incucellInv.ManufacturerName = "INCUCELL";
+            incucellInv.SerialNumber = "D,141445";
+            incucellInv.Status = EquipmentOperationalStatus.InService;
+        }
+        else
+        {
+            db.EquipmentInventories.Add(new EquipmentInventory
+            {
+                Code = "INC-F-ML-F-01-002",
+                InstrumentType = "INCUCELL",
+                ManufacturerName = "INCUCELL",
+                SerialNumber = "D,141445",
+                FirmwareVersion = "v1.0.4",
+                Location = "Instruments room F-ML-F-01",
+                Status = EquipmentOperationalStatus.InService,
+                CalibrationDueDate = DateTime.UtcNow.AddMonths(6),
+                CreatedByUserId = 1,
+                LastModifiedByUserId = 1
+            });
+        }
+
+        var hirayamaInv = db.EquipmentInventories.FirstOrDefault(i => i.Code == "AUT-F-ML-F-03-045" || i.Code == "ATC-F-ML-F-03-045" || i.SerialNumber == "30317012128");
+        if (hirayamaInv != null)
+        {
+            hirayamaInv.Code = "AUT-F-ML-F-03-045";
+            hirayamaInv.InstrumentType = "Hirayama";
+            hirayamaInv.ManufacturerName = "Hirayama";
+            hirayamaInv.SerialNumber = "30317012128";
+            hirayamaInv.Status = EquipmentOperationalStatus.InService;
+        }
+        else
+        {
+            db.EquipmentInventories.Add(new EquipmentInventory
+            {
+                Code = "AUT-F-ML-F-03-045",
+                InstrumentType = "Hirayama",
+                ManufacturerName = "Hirayama",
+                SerialNumber = "30317012128",
+                FirmwareVersion = "v2.0",
+                Location = "Sterilization room F-ML-F-04",
+                Status = EquipmentOperationalStatus.InService,
+                CalibrationDueDate = DateTime.UtcNow.AddMonths(12),
+                CreatedByUserId = 1,
+                LastModifiedByUserId = 1
+            });
+        }
+
+        db.SaveChanges();
+
+        // 3. Reconcile Autoclave Programs
+        var currentAutoclave = db.Equipment.FirstOrDefault(e => e.Code == "AUT-F-ML-F-03-045" || e.Type == EquipmentType.Autoclave);
+        if (currentAutoclave != null)
+        {
+            if (!db.AutoclavePrograms.Any())
+            {
+                db.AutoclavePrograms.AddRange(
+                    new AutoclaveProgram { EquipmentId = currentAutoclave.Id, ProgramCode = "P01", ProgramName = "Prepared Media", LoadType = "Media", Temperature = 121m, CycleTimeMinutes = 15, IsActive = true, CreatedByUserId = 1, LastModifiedByUserId = 1 },
+                    new AutoclaveProgram { EquipmentId = currentAutoclave.Id, ProgramCode = "P02", ProgramName = "Glassware", LoadType = "Glassware", Temperature = 121m, CycleTimeMinutes = 20, IsActive = true, CreatedByUserId = 1, LastModifiedByUserId = 1 },
+                    new AutoclaveProgram { EquipmentId = currentAutoclave.Id, ProgramCode = "P03", ProgramName = "Biohazard Waste", LoadType = "Biohazard Waste", Temperature = 121m, CycleTimeMinutes = 30, IsActive = true, CreatedByUserId = 1, LastModifiedByUserId = 1 }
+                );
+            }
+            else
+            {
+                foreach (var prog in db.AutoclavePrograms.ToList())
+                {
+                    prog.EquipmentId = currentAutoclave.Id;
+                }
+            }
+            db.SaveChanges();
         }
 
         // Fixed set - exactly one row per MediaClass, enforced by a
@@ -117,7 +230,8 @@ public static class DbSeeder
         // dehydrated-media stock row it's prepared from.
         if (!db.Media.Any())
         {
-            var admin = db.Users.First(u => u.Username == "admin");
+            var adminUser = db.Users.FirstOrDefault(u => u.Username == "admin") ?? db.Users.FirstOrDefault();
+            int adminUserId = adminUser?.Id ?? 1;
             var tsaMaterial = new Material
             {
                 MaterialType = MaterialType.DehydratedMedia,
@@ -130,8 +244,8 @@ public static class DbSeeder
                 QuantityReceived = 1000,
                 QuantityRemaining = 900,
                 Unit = MaterialUnit.Gram,
-                CreatedByUserId = admin.Id,
-                LastModifiedByUserId = admin.Id
+                CreatedByUserId = adminUserId,
+                LastModifiedByUserId = adminUserId
             };
             db.Materials.Add(tsaMaterial);
             db.SaveChanges();
@@ -153,9 +267,9 @@ public static class DbSeeder
                 // PendingReview would show a released lot sitting in the
                 // Section Head's approval queue forever.
                 ApprovalStatus = ApprovalGateStatus.Approved,
-                ApprovedByUserId = admin.Id,
+                ApprovedByUserId = adminUserId,
                 ApprovedAt = DateTime.UtcNow,
-                PreparedByUserId = admin.Id
+                PreparedByUserId = adminUserId
             });
             db.SaveChanges();
         }

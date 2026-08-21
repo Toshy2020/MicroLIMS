@@ -49,7 +49,7 @@ export function AuditResultsTable({
 
   if (items.length === 0) {
     return (
-      <Paper sx={{ p: 5, textAlign: "center", border: "1px solid #e5e7eb", borderRadius: 2 }}>
+      <Paper sx={{ p: 5, textAlign: "center", border: "1px solid", borderColor: "divider", borderRadius: 2 }}>
         <Typography sx={{ fontSize: 15, fontWeight: 600, color: "text.primary", mb: 0.5 }}>
           No audit events found
         </Typography>
@@ -61,10 +61,10 @@ export function AuditResultsTable({
   }
 
   return (
-    <Paper sx={{ border: "1px solid #e5e7eb", borderRadius: 2, overflow: "hidden" }}>
+    <Paper sx={{ border: "1px solid", borderColor: "divider", borderRadius: 2, overflow: "hidden" }}>
       <TableContainer>
         <Table size="small">
-          <TableHead sx={{ bgcolor: "#f9fafb" }}>
+          <TableHead sx={{ bgcolor: "background.default" }}>
             <TableRow>
               <TableCell sx={{ fontWeight: 700, fontSize: 12, width: 140 }}>Date / Time</TableCell>
               <TableCell sx={{ fontWeight: 700, fontSize: 12, width: 180 }}>User</TableCell>
@@ -221,7 +221,7 @@ export function AuditResultsTable({
         onRowsPerPageChange={(e) => {
           onRowsPerPageChange(parseInt(e.target.value, 10));
         }}
-        sx={{ borderTop: "1px solid #e5e7eb" }}
+        sx={{ borderTop: "1px solid", borderColor: "divider" }}
       />
     </Paper>
   );

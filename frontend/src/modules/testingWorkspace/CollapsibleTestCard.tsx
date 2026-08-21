@@ -63,7 +63,15 @@ export function CollapsibleTestCard({
 // A single nested disclosure inside a card body - used for both "Show
 // incubation stage details" and "Show full location table" (decision A).
 // Independent state per instance, so opening one doesn't open the other.
-export function SecondaryToggle({ label, children }: { label: string; children: ReactNode }) {
+//
+// `collapsedContent` (location pills) is a swap, not an append: it's the
+// collapsed-state view of the same data the expanded body shows, so it's
+// hidden the moment the toggle opens (.secondary-toggle-collapsed CSS) and
+// suppressed outright in print - print always force-expands, which would
+// otherwise render pills and table together. Callers with nothing to show
+// while collapsed (stage details) omit the prop and keep the plain
+// append-on-open behavior.
+export function SecondaryToggle({ label, collapsedContent, children }: { label: string; collapsedContent?: ReactNode; children: ReactNode }) {
   const [open, setOpen] = useState(false);
   return (
     <div className={`secondary-toggle ${open ? "is-open" : ""}`}>
@@ -71,6 +79,7 @@ export function SecondaryToggle({ label, children }: { label: string; children: 
         <ChevronIcon className="stage-toggle-chev" />
         {label}
       </button>
+      {collapsedContent && <div className="secondary-toggle-collapsed">{collapsedContent}</div>}
       <div className="stage-detail-body">{children}</div>
     </div>
   );

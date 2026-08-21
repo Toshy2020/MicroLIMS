@@ -371,8 +371,8 @@ public class TestWorkflowEngine : ITestWorkflowEngine
         var media = await _db.Media.Include(m => m.MediaType).FirstOrDefaultAsync(m => m.Id == mediaLotId)
             ?? throw new InvalidOperationException($"Media lot {mediaLotId} not found.");
 
-        if (!media.IsReleasedForUse)
-            throw new InvalidOperationException($"Media lot \"{media.LotNumber}\" is not released for use.");
+        if (!media.IsReleasedForUse || media.Status == MediaStatus.OutOfStock || media.Status == MediaStatus.QuarantineFailed)
+            throw new InvalidOperationException($"Media lot \"{media.LotNumber}\" is not released for use, out of stock, or rejected.");
 
         if (step.StepType is StepType.BrothEnrichment or StepType.SelectiveBroth)
         {
@@ -1420,8 +1420,8 @@ public class TestWorkflowEngine : ITestWorkflowEngine
     {
         var lot = await _db.Media.FirstOrDefaultAsync(m => m.Id == mediaLotId)
             ?? throw new InvalidOperationException($"Media lot {mediaLotId} not found.");
-        if (!lot.IsReleasedForUse)
-            throw new InvalidOperationException($"Media lot {lot.LotNumber} has not been released for use.");
+        if (!lot.IsReleasedForUse || lot.Status == MediaStatus.OutOfStock || lot.Status == MediaStatus.QuarantineFailed)
+            throw new InvalidOperationException($"Media lot {lot.LotNumber} is not released for use, out of stock, or rejected.");
         if (lot.MaterialId != materialId)
             throw new WorkflowStepException(WorkflowErrorCodes.MediaNotInPermittedList,
                 $"Media lot {lot.LotNumber} is not a lot of the permitted medium for this step.");

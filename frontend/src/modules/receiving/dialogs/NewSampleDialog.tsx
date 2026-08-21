@@ -8,7 +8,8 @@ import {
   Box,
   Typography,
   Alert,
-  CircularProgress
+  CircularProgress,
+  useTheme
 } from "@mui/material";
 import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
@@ -45,6 +46,7 @@ const createEmptyRow = (defaultValues?: Partial<ReceiveRowItem>): ReceiveRowItem
 });
 
 export function NewSampleDialog({ open, onClose, onSuccess }: Props) {
+  const theme = useTheme();
   const [step, setStep] = useState<1 | 2>(1);
   const [category, setCategory] = useState<SampleCategoryKey | null>(null);
   const [rows, setRows] = useState<ReceiveRowItem[]>([createEmptyRow()]);
@@ -287,10 +289,10 @@ export function NewSampleDialog({ open, onClose, onSuccess }: Props) {
       <DialogTitle sx={{ pb: 1 }}>
         <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
           <Box>
-            <Typography sx={{ fontSize: 20, fontWeight: 700, color: brandColors.pageTitle }}>
+            <Typography sx={{ fontSize: 20, fontWeight: 700, color: theme.palette.primary.main }}>
               New Sample
             </Typography>
-            <Typography sx={{ fontSize: 13, color: brandColors.sectionTitle, fontWeight: 600 }}>
+            <Typography sx={{ fontSize: 13, color: theme.palette.primary.main, fontWeight: 600 }}>
               {step === 1
                 ? "Step 1 of 2: Choose Item Type"
                 : `Step 2 of 2: Enter Sample Details — ${currentCategoryDef?.label || ""}`}
@@ -373,7 +375,7 @@ export function NewSampleDialog({ open, onClose, onSuccess }: Props) {
               Back
             </Button>
 
-            <Typography sx={{ fontSize: 13, fontWeight: 700, color: brandColors.pageTitle }}>
+            <Typography sx={{ fontSize: 13, fontWeight: 700, color: theme.palette.primary.main }}>
               Total Samples: {rows.length}
             </Typography>
 

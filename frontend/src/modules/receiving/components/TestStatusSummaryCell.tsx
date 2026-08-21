@@ -8,14 +8,16 @@ import {
   Button,
   List,
   ListItemButton,
-  ListItemText
+  ListItemText,
+  useTheme
 } from "@mui/material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import FiberManualRecordIcon from "@mui/icons-material/FiberManualRecord";
 import { SampleRecord, TestOrderSummary } from "../types/receivingTypes";
-import { StatusBadge, statusColor } from "../../../theme/../components/StatusBadge";
+import { StatusBadge, statusColor } from "../../../components/StatusBadge";
+import { StatusTone } from "../../../theme/statusTokens";
 import { brandColors } from "../../../theme";
 
 interface Props {
@@ -24,14 +26,14 @@ interface Props {
   onViewAllTests: (sample: SampleRecord) => void;
 }
 
-function getSummaryText(tests: TestOrderSummary[], preparationStatus: string): { text: string; bg: string; color: string } {
+function getSummaryText(tests: TestOrderSummary[], preparationStatus: string): { text: string; tone: StatusTone } {
   if (preparationStatus === "NeedsPreparation") {
-    return { text: "Needs Preparation", bg: "#fef3c7", color: "#92400e" };
+    return { text: "Needs Preparation", tone: "inconclusive" };
   }
 
   const total = tests.length;
   if (total === 0) {
-    return { text: "—", bg: "#f3f4f6", color: "#6b7280" };
+    return { text: "—", tone: "pending" };
   }
 
   const approved = tests.filter((t) => t.status === "Approved").length;
@@ -46,11 +48,11 @@ function getSummaryText(tests: TestOrderSummary[], preparationStatus: string): {
   const waiting = tests.filter((t) => t.status === "Waiting" || t.status === "NotStarted").length;
 
   if (approved === total) {
-    return { text: `${total} / ${total} Approved`, bg: "#dcfce7", color: "#166534" };
+    return { text: `${total} / ${total} Approved`, tone: "notDetected" };
   }
 
   if (waiting === total) {
-    return { text: "Not Started", bg: "#f3f4f6", color: "#4b5563" };
+    return { text: "Not Started", tone: "pending" };
   }
 
   const parts: string[] = [];
@@ -62,14 +64,17 @@ function getSummaryText(tests: TestOrderSummary[], preparationStatus: string): {
   if (waiting > 0 && parts.length === 0) parts.push(`${waiting} Waiting`);
 
   const summary = parts.slice(0, 2).join(", ") || `${total} Tests`;
-  return { text: summary, bg: "#f3e8ff", color: brandColors.sectionTitle };
+  return { text: summary, tone: "purple" };
 }
 
 export function TestStatusSummaryCell({ sample, onTestClick, onViewAllTests }: Props) {
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
+  const theme = useTheme();
 
   const tests = sample.assignedTests || [];
-  const summary = getSummaryText(tests, sample.preparationStatus);
+  const summaryText = getSummaryText(tests, sample.preparationStatus);
+  const summaryTone = theme.custom.status[summaryText.tone];
+  const summary = { text: summaryText.text, bg: summaryTone.bg, textColor: summaryTone.text, border: summaryTone.border };
   const isOpen = Boolean(anchorEl);
 
   const handleClick = (event: React.MouseEvent<HTMLElement>) => {
@@ -95,9 +100,9 @@ export function TestStatusSummaryCell({ sample, onTestClick, onViewAllTests }: P
           px: 1.25,
           py: 0.5,
           borderRadius: 1.5,
-          border: `1px solid ${summary.bg === "#f3e8ff" ? "#d8b4fe" : "#e5e7eb"}`,
+          border: `1px solid ${summary.border}`,
           bgcolor: summary.bg,
-          color: summary.color,
+          color: summary.textColor,
           fontSize: 12,
           fontWeight: 600,
           cursor: tests.length > 0 ? "pointer" : "default",
@@ -130,12 +135,13 @@ export function TestStatusSummaryCell({ sample, onTestClick, onViewAllTests }: P
               p: 1.5,
               borderRadius: 2,
               boxShadow: "0 4px 20px rgba(0,0,0,0.12)",
-              border: "1px solid #e5e7eb"
+              border: "1px solid",
+              borderColor: "divider"
             }
           }}
         >
           <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1 }}>
-            <Typography sx={{ fontSize: 12, fontWeight: 700, color: brandColors.pageTitle }}>
+            <Typography sx={{ fontSize: 12, fontWeight: 700, color: theme.palette.primary.main }}>
               Assigned Tests ({tests.length})
             </Typography>
             <Typography sx={{ fontSize: 11, color: "text.secondary" }}>
@@ -151,7 +157,7 @@ export function TestStatusSummaryCell({ sample, onTestClick, onViewAllTests }: P
               const isApproved = effectiveStatus === "Approved" || effectiveStatus === "Completed";
               const unit = sample.category === "EnvironmentalMonitoring" ? "rooms" : "parts";
               const locCount = test.locationCount && test.locationCount > 0 ? ` (${test.locationCount} ${unit})` : "";
-              const color = statusColor(effectiveStatus);
+              const color = statusColor(effectiveStatus, theme);
 
               return (
                 <ListItemButton
@@ -168,20 +174,20 @@ export function TestStatusSummaryCell({ sample, onTestClick, onViewAllTests }: P
                     display: "flex",
                     justifyContent: "space-between",
                     alignItems: "center",
-                    bgcolor: "#fafafa",
-                    "&:hover": { bgcolor: "#f3e8ff" }
+                    bgcolor: "background.default",
+                    "&:hover": { bgcolor: theme.custom.status.purple.bg }
                   }}
                 >
                   <ListItemText
                     primary={
-                      <Typography sx={{ fontSize: 12, fontWeight: 600, color: "#1f2937" }}>
+                      <Typography sx={{ fontSize: 12, fontWeight: 600, color: "text.primary" }}>
                         {test.testCode}{locCount}
                       </Typography>
                     }
                   />
                   <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
                     {isApproved ? (
-                      <CheckCircleIcon sx={{ fontSize: 14, color: "#16a34a" }} />
+                      <CheckCircleIcon sx={{ fontSize: 14, color: theme.custom.status.notDetected.text }} />
                     ) : (
                       <FiberManualRecordIcon sx={{ fontSize: 10, color }} />
                     )}

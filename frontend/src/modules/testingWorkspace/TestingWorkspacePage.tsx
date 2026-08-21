@@ -7,7 +7,8 @@ import {
   TableRow,
   TableCell,
   TableBody,
-  Typography
+  Typography,
+  useTheme
 } from "@mui/material";
 import { SampleTableRow } from "./SampleTableRow";
 import { SampleCardView } from "./SampleCardView";
@@ -46,6 +47,7 @@ function exportToCsv(samples: SampleCardType[]) {
 }
 
 export function TestingWorkspacePage() {
+  const theme = useTheme();
   const { userId } = useAuth();
   const [samples, setSamples] = useState<SampleCardType[] | null>(null);
 
@@ -190,7 +192,7 @@ export function TestingWorkspacePage() {
             }}
           >
             <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <Typography sx={{ fontSize: 14, fontWeight: 700, color: brandColors.pageTitle }}>
+              <Typography sx={{ fontSize: 14, fontWeight: 700, color: theme.palette.primary.main }}>
                 Active Samples ({visibleSamples.length})
               </Typography>
               <Typography sx={{ fontSize: 11, color: "text.secondary" }}>
@@ -201,16 +203,17 @@ export function TestingWorkspacePage() {
             <Paper
               elevation={0}
               sx={{
-                border: "1px solid #e5e7eb",
+                border: "1px solid",
+                borderColor: "divider",
                 borderRadius: 2,
                 overflowY: "auto",
                 maxHeight: { xs: "340px", md: "calc(100vh - 330px)" },
-                bgcolor: "#ffffff"
+                bgcolor: "background.paper"
               }}
             >
               <Table size="small" stickyHeader>
                 <TableHead>
-                  <TableRow sx={{ "& th": { bgcolor: "#f9fafb", fontWeight: 700, fontSize: 11, py: 1 } }}>
+                  <TableRow sx={{ "& th": { bgcolor: "background.default", fontWeight: 700, fontSize: 11, py: 1 } }}>
                     <TableCell>Item / Reference</TableCell>
                     <TableCell sx={{ width: 65 }}>Type</TableCell>
                     <TableCell sx={{ width: 95 }}>Batch/Ctrl</TableCell>
@@ -234,7 +237,7 @@ export function TestingWorkspacePage() {
                   ))}
                   {visibleSamples.length === 0 && (
                     <TableRow>
-                      <TableCell colSpan={4} align="center" sx={{ py: 3, color: "#9ca3af", fontSize: 12 }}>
+                      <TableCell colSpan={4} align="center" sx={{ py: 3, color: "text.secondary", fontSize: 12 }}>
                         No matching samples.
                       </TableCell>
                     </TableRow>
@@ -274,7 +277,7 @@ export function TestingWorkspacePage() {
             <Paper sx={{ overflowX: "auto" }}>
               <Table size="small">
                 <TableHead>
-                  <TableRow sx={{ bgcolor: "#fafafa" }}>
+                  <TableRow sx={{ bgcolor: "background.default" }}>
                     <TableCell sx={{ width: 36 }} />
                     <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Item / Reference</TableCell>
                     {visibleColumns.has("category") && <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Category</TableCell>}
@@ -303,7 +306,7 @@ export function TestingWorkspacePage() {
                   ))}
                   {visibleSamples.length === 0 && (
                     <TableRow>
-                      <TableCell colSpan={colSpan} align="center" sx={{ py: 4, color: "#9ca3af", fontSize: 13 }}>
+                      <TableCell colSpan={colSpan} align="center" sx={{ py: 4, color: "text.secondary", fontSize: 13 }}>
                         No samples match this filter.
                       </TableCell>
                     </TableRow>

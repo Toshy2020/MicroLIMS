@@ -170,8 +170,8 @@ export function SelectivePlatingPanel({ testOrderId, step, current, onSubmitted 
           </Select>
 
           {/* Read-only template duration */}
-          <Box sx={{ p: 1.5, backgroundColor: "#f3f4f6", borderRadius: 1 }}>
-            <Typography variant="caption" sx={{ color: "#6b7280", display: "block" }}>
+          <Box sx={{ p: 1.5, backgroundColor: "background.default", borderRadius: 1 }}>
+            <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>
               Incubation Duration (from Test Master)
             </Typography>
             <Typography variant="body2" sx={{ fontWeight: 600 }}>

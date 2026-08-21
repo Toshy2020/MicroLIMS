@@ -1,4 +1,4 @@
-import { Dialog, DialogTitle, DialogContent, DialogActions, Button, Table, TableHead, TableRow, TableCell, TableBody, Typography, Box } from "@mui/material";
+import { Dialog, DialogTitle, DialogContent, DialogActions, Button, Table, TableHead, TableRow, TableCell, TableBody, Typography, Box , useTheme} from "@mui/material";
 import FileDownloadIcon from "@mui/icons-material/FileDownload";
 import { NumericTrendPoint, QualitativeTrendPoint } from "../types/reportingTypes";
 import { StatusBadge } from "../../../components/StatusBadge";
@@ -27,6 +27,7 @@ export function TrendingDataDialog({
   qualitativePoints = [],
   onSelectRecord
 }: TrendingDataDialogProps) {
+  const theme = useTheme();
   const handleExportCsv = () => {
     let csv = "";
     if (isNumeric) {
@@ -54,7 +55,7 @@ export function TrendingDataDialog({
     <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
       <DialogTitle sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: 1, borderColor: "divider" }}>
         <Box>
-          <Typography sx={{ fontSize: 16, fontWeight: 700, color: brandColors.sectionTitle }}>
+          <Typography sx={{ fontSize: 16, fontWeight: 700, color: theme.palette.primary.main }}>
             Trend Data Table — {testName}
           </Typography>
           <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
@@ -90,7 +91,7 @@ export function TrendingDataDialog({
                   onClick={() => onSelectRecord && onSelectRecord(p.recordId)}
                 >
                   <TableCell>{p.label}</TableCell>
-                  <TableCell sx={{ fontWeight: 600, color: brandColors.sectionTitle }}>{p.referenceNumber}</TableCell>
+                  <TableCell sx={{ fontWeight: 600, color: theme.palette.primary.main }}>{p.referenceNumber}</TableCell>
                   <TableCell sx={{ fontWeight: 700 }}>{p.reportedValue} {unit ?? ""}</TableCell>
                   <TableCell><StatusBadge status={p.resultLevel} /></TableCell>
                   <TableCell>{p.mean != null ? Number(p.mean).toFixed(1) : "—"}</TableCell>

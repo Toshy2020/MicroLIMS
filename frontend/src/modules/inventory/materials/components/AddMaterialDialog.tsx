@@ -9,16 +9,20 @@ import {
   TextField,
   Select,
   MenuItem,
+  ListSubheader,
   FormControl,
   InputLabel,
   Typography,
   Divider,
   Alert,
-  IconButton
+  IconButton,
+  Paper,
+  useTheme
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import { OrganismPicker } from "../../../../components/OrganismPicker";
 import { MaterialService } from "../services/MaterialService";
+import { EquipmentInventoryService } from "../../equipment/services/EquipmentInventoryService";
 import { MaterialFormState, MaterialItem, MaterialType, MaterialUnit } from "../types/materialTypes";
 import { MATERIAL_TYPE_OPTIONS } from "./MaterialFilterBar";
 import { brandColors } from "../../../../theme";
@@ -60,7 +64,10 @@ const INITIAL_FORM: MaterialFormState = {
 };
 
 export function AddMaterialDialog({ open, onClose, onSuccess, editingItem }: AddMaterialDialogProps) {
+  const theme = useTheme();
   const [form, setForm] = useState<MaterialFormState>(INITIAL_FORM);
+  const [equipmentList, setEquipmentList] = useState<any[]>([]);
+  const [equipmentLoading, setEquipmentLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
@@ -88,7 +95,43 @@ export function AddMaterialDialog({ open, onClose, onSuccess, editingItem }: Add
       });
     }
     setError(null);
+
+    if (open) {
+      setEquipmentLoading(true);
+      EquipmentInventoryService.getAll()
+        .then((data: any[]) => setEquipmentList(data || []))
+        .catch(() => setEquipmentList([]))
+        .finally(() => setEquipmentLoading(false));
+    }
   }, [editingItem, open]);
+
+  // Eligible storage equipment: Status = InService
+  const inServiceEquipment = equipmentList.filter(
+    (e) => e.status === "InService" || e.status === 0 || e.status === "0"
+  );
+
+  const refrigerators = inServiceEquipment.filter((e) =>
+    (e.instrumentType || "").toLowerCase().includes("refrigerator")
+  );
+
+  const deepFreezers = inServiceEquipment.filter((e) =>
+    (e.instrumentType || "").toLowerCase().includes("deep freezer")
+  );
+
+  const freezers = inServiceEquipment.filter(
+    (e) =>
+      (e.instrumentType || "").toLowerCase().includes("freezer") &&
+      !(e.instrumentType || "").toLowerCase().includes("deep freezer")
+  );
+
+  const selectedEquipment = inServiceEquipment.find((eq) => {
+    const fullTag = `${eq.instrumentType} — ${eq.manufacturerName} (${eq.code})`;
+    return (
+      form.location === fullTag ||
+      form.location === eq.code ||
+      (form.location && form.location.includes(eq.code))
+    );
+  });
 
   const onMaterialTypeChange = async (type: MaterialType) => {
     try {
@@ -109,7 +152,7 @@ export function AddMaterialDialog({ open, onClose, onSuccess, editingItem }: Add
       form.quantityReceived === "" ||
       form.quantityReceived == null
     ) {
-      setError("Material name, batch/lot number, receiving date, location, and quantity received are required.");
+      setError("Material name, batch/lot number, receiving date, storage location, and quantity received are required.");
       return;
     }
 
@@ -154,7 +197,7 @@ export function AddMaterialDialog({ open, onClose, onSuccess, editingItem }: Add
   return (
     <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
       <DialogTitle sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", pb: 1.5 }}>
-        <Typography variant="h6" sx={{ fontWeight: 700, color: brandColors.sectionTitle }}>
+        <Typography variant="h6" sx={{ fontWeight: 700, color: theme.palette.primary.main }}>
           {editingItem ? "Edit Material" : "Add Material to Stock"}
         </Typography>
         <IconButton size="small" onClick={onClose} disabled={saving}>
@@ -238,9 +281,9 @@ export function AddMaterialDialog({ open, onClose, onSuccess, editingItem }: Add
 
         {/* SECTION 2 — Batch & Quantity */}
         <Typography sx={{ fontSize: 12, fontWeight: 700, textTransform: "uppercase", color: "text.secondary", mb: 1.5 }}>
-          2. Batch & Quantity
+          2. Batch &amp; Quantity
         </Typography>
-        <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "repeat(3, 1fr)" }, gap: 2, mb: 3 }}>
+        <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "repeat(3, 1fr)" }, gap: 2, mb: 1.5 }}>
           <TextField
             size="small"
             required
@@ -250,14 +293,92 @@ export function AddMaterialDialog({ open, onClose, onSuccess, editingItem }: Add
             onChange={(e) => setForm({ ...form, batchNumber: e.target.value })}
           />
 
-          <TextField
-            size="small"
-            required
-            label="Storage Location"
-            placeholder="e.g. Media Room Cabinet A"
-            value={form.location}
-            onChange={(e) => setForm({ ...form, location: e.target.value })}
-          />
+          <FormControl size="small" fullWidth required sx={{ gridColumn: { sm: "span 2", md: "span 2" } }}>
+            <InputLabel id="storage-location-label">Storage Location</InputLabel>
+            <Select
+              labelId="storage-location-label"
+              label="Storage Location"
+              value={form.location}
+              onChange={(e) => setForm({ ...form, location: e.target.value })}
+              disabled={equipmentLoading}
+            >
+              <MenuItem value="">
+                <em>{equipmentLoading ? "Loading storage locations..." : "Select storage location..."}</em>
+              </MenuItem>
+
+              <ListSubheader sx={{ fontWeight: 700, fontSize: 11, color: "text.secondary", textTransform: "uppercase", lineHeight: "28px" }}>
+                Equipment — Refrigerator
+              </ListSubheader>
+              {refrigerators.length > 0 ? (
+                refrigerators.map((eq) => {
+                  const val = `${eq.instrumentType} — ${eq.manufacturerName} (${eq.code})`;
+                  return (
+                    <MenuItem key={eq.id} value={val}>
+                      {val}
+                    </MenuItem>
+                  );
+                })
+              ) : (
+                <MenuItem disabled value="no-ref" sx={{ fontSize: 12, fontStyle: "italic" }}>
+                  No in-service refrigerator configured
+                </MenuItem>
+              )}
+
+              <ListSubheader sx={{ fontWeight: 700, fontSize: 11, color: "text.secondary", textTransform: "uppercase", lineHeight: "28px" }}>
+                Equipment — Deep Freezer
+              </ListSubheader>
+              {deepFreezers.length > 0 ? (
+                deepFreezers.map((eq) => {
+                  const val = `${eq.instrumentType} — ${eq.manufacturerName} (${eq.code})`;
+                  return (
+                    <MenuItem key={eq.id} value={val}>
+                      {val}
+                    </MenuItem>
+                  );
+                })
+              ) : (
+                <MenuItem disabled value="no-df" sx={{ fontSize: 12, fontStyle: "italic" }}>
+                  No in-service deep freezer configured
+                </MenuItem>
+              )}
+
+              <ListSubheader sx={{ fontWeight: 700, fontSize: 11, color: "text.secondary", textTransform: "uppercase", lineHeight: "28px" }}>
+                Equipment — Freezer
+              </ListSubheader>
+              {freezers.length > 0 ? (
+                freezers.map((eq) => {
+                  const val = `${eq.instrumentType} — ${eq.manufacturerName} (${eq.code})`;
+                  return (
+                    <MenuItem key={eq.id} value={val}>
+                      {val}
+                    </MenuItem>
+                  );
+                })
+              ) : (
+                <MenuItem disabled value="no-fr" sx={{ fontSize: 12, fontStyle: "italic" }}>
+                  No in-service freezer configured
+                </MenuItem>
+              )}
+
+              <ListSubheader sx={{ fontWeight: 700, fontSize: 11, color: "text.secondary", textTransform: "uppercase", lineHeight: "28px" }}>
+                Other
+              </ListSubheader>
+              <MenuItem value="Microbiology Lab">
+                Microbiology Lab
+              </MenuItem>
+
+              {/* Fallback for legacy material locations when editing */}
+              {form.location &&
+                form.location !== "Microbiology Lab" &&
+                !inServiceEquipment.some(
+                  (eq) => `${eq.instrumentType} — ${eq.manufacturerName} (${eq.code})` === form.location
+                ) && (
+                  <MenuItem value={form.location}>
+                    {form.location} (Current Location)
+                  </MenuItem>
+                )}
+            </Select>
+          </FormControl>
 
           <TextField
             size="small"
@@ -296,6 +417,116 @@ export function AddMaterialDialog({ open, onClose, onSuccess, editingItem }: Add
           />
         </Box>
 
+        {/* Selected Equipment Read-Only Details Card */}
+        {selectedEquipment && (
+          <Paper
+            variant="outlined"
+            sx={{
+              mb: 3,
+              p: 1.5,
+              bgcolor: "background.default",
+              borderColor: "divider",
+              borderRadius: 1
+            }}
+          >
+            <Box
+              sx={{
+                display: "grid",
+                gridTemplateColumns: {
+                  xs: "1fr",
+                  sm: "repeat(2, 1fr)",
+                  md: "repeat(4, 1fr)"
+                },
+                gap: 1.5
+              }}
+            >
+              <Box>
+                <Typography sx={{ fontSize: 10.5, fontWeight: 700, color: "text.secondary", textTransform: "uppercase" }}>
+                  Selected Storage
+                </Typography>
+                <Typography sx={{ fontSize: 13, fontWeight: 700, color: brandColors.sectionTitle }}>
+                  {selectedEquipment.instrumentType} — {selectedEquipment.manufacturerName || "Asset"}
+                </Typography>
+              </Box>
+              <Box>
+                <Typography sx={{ fontSize: 10.5, fontWeight: 700, color: "text.secondary", textTransform: "uppercase" }}>
+                  Code
+                </Typography>
+                <Typography sx={{ fontSize: 13, fontWeight: 600, color: "text.primary" }}>
+                  {selectedEquipment.code}
+                </Typography>
+              </Box>
+              <Box>
+                <Typography sx={{ fontSize: 10.5, fontWeight: 700, color: "text.secondary", textTransform: "uppercase" }}>
+                  Location
+                </Typography>
+                <Typography sx={{ fontSize: 13, fontWeight: 600, color: "text.primary" }}>
+                  {selectedEquipment.location || "—"}
+                </Typography>
+              </Box>
+              <Box>
+                <Typography sx={{ fontSize: 10.5, fontWeight: 700, color: "text.secondary", textTransform: "uppercase" }}>
+                  Status
+                </Typography>
+                <Typography sx={{ fontSize: 13, fontWeight: 600, color: "success.main" }}>
+                  In Service
+                </Typography>
+              </Box>
+            </Box>
+          </Paper>
+        )}
+
+        {/* Microbiology Lab Read-Only Details Card */}
+        {form.location === "Microbiology Lab" && (
+          <Paper
+            variant="outlined"
+            sx={{
+              mb: 3,
+              p: 1.5,
+              bgcolor: "background.default",
+              borderColor: "divider",
+              borderRadius: 1
+            }}
+          >
+            <Box
+              sx={{
+                display: "grid",
+                gridTemplateColumns: {
+                  xs: "1fr",
+                  sm: "repeat(2, 1fr)",
+                  md: "repeat(3, 1fr)"
+                },
+                gap: 1.5
+              }}
+            >
+              <Box>
+                <Typography sx={{ fontSize: 10.5, fontWeight: 700, color: "text.secondary", textTransform: "uppercase" }}>
+                  Selected Storage
+                </Typography>
+                <Typography sx={{ fontSize: 13, fontWeight: 700, color: brandColors.sectionTitle }}>
+                  Microbiology Lab
+                </Typography>
+              </Box>
+              <Box>
+                <Typography sx={{ fontSize: 10.5, fontWeight: 700, color: "text.secondary", textTransform: "uppercase" }}>
+                  Storage Type
+                </Typography>
+                <Typography sx={{ fontSize: 13, fontWeight: 600, color: "text.primary" }}>
+                  Ambient / Room Storage
+                </Typography>
+              </Box>
+              <Box>
+                <Typography sx={{ fontSize: 10.5, fontWeight: 700, color: "text.secondary", textTransform: "uppercase" }}>
+                  Location
+                </Typography>
+                <Typography sx={{ fontSize: 13, fontWeight: 600, color: "text.primary" }}>
+                  Microbiology Laboratory
+                </Typography>
+              </Box>
+            </Box>
+          </Paper>
+        )}
+
         <Divider sx={{ my: 2.5 }} />
 
         {/* SECTION 3 — Dates */}
@@ -324,8 +555,8 @@ export function AddMaterialDialog({ open, onClose, onSuccess, editingItem }: Add
         </Box>
 
         {editingItem && (
-          <Box sx={{ mt: 2.5, p: 1.5, bgcolor: "#f9fafb", borderRadius: 1.5, border: "1px solid #e5e7eb" }}>
-            <Typography sx={{ fontSize: 12, color: "#4b5563" }}>
+          <Box sx={{ mt: 2.5, p: 1.5, bgcolor: "background.default", borderRadius: 1.5, border: "1px solid", borderColor: "divider" }}>
+            <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
               <strong>Note:</strong> Changing Quantity Received adjusts Quantity Remaining by the difference (a receiving correction) —
               it preserves consumption already recorded by Media Preparation or Cryovials.
             </Typography>

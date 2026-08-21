@@ -21,7 +21,8 @@ import {
   IconButton,
   Divider,
   Stack,
-  Paper
+  Paper,
+  useTheme
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import ScienceIcon from "@mui/icons-material/Science";
@@ -29,6 +30,7 @@ import AddIcon from "@mui/icons-material/Add";
 import { PanelRow, PrepareCryovialPayload } from "../types/cryovialTypes";
 import { CryovialService } from "../services/CryovialService";
 import { MaterialService } from "../../../inventory/materials/services/MaterialService";
+import { EquipmentInventoryService } from "../../../inventory/equipment/services/EquipmentInventoryService";
 import { masterDataOptions } from "../../../../services/masterDataOptions";
 import { brandColors } from "../../../../theme";
 
@@ -51,9 +53,12 @@ export function PrepareCryovialBatchDialog({
   onClose,
   onSuccess
 }: PrepareCryovialBatchDialogProps) {
+  const theme = useTheme();
   const [materials, setMaterials] = useState<any[]>([]);
   const [releasedMedia, setReleasedMedia] = useState<any[]>([]);
   const [incubators, setIncubators] = useState<any[]>([]);
+  const [equipmentList, setEquipmentList] = useState<any[]>([]);
+  const [equipmentLoading, setEquipmentLoading] = useState(false);
   const [form, setForm] = useState<Record<string, any>>({});
   const [panel, setPanel] = useState<PanelRow[]>([emptyRow()]);
   const [error, setError] = useState<string | null>(null);
@@ -67,11 +72,28 @@ export function PrepareCryovialBatchDialog({
       MaterialService.getAll("LyophilizedMicroorganism").then(setMaterials);
       masterDataOptions.getReleasedMedia().then(setReleasedMedia);
       masterDataOptions.getEquipment("Incubator").then(setIncubators);
+      setEquipmentLoading(true);
+      EquipmentInventoryService.getAll()
+        .then((data: any[]) => setEquipmentList(data || []))
+        .catch(() => setEquipmentList([]))
+        .finally(() => setEquipmentLoading(false));
     }
   }, [open]);
 
   const usableMaterials = materials.filter((m) => m.status === "InStock");
   const selectedMaterial = usableMaterials.find((m) => m.id === form.materialId);
+
+  // Eligible storage equipment: Deep Freezer or Freezer in service
+  const eligibleFreezers = equipmentList.filter((e) => {
+    const type = (e.instrumentType || "").trim().toLowerCase();
+    const isFreezer = type === "deep freezer" || type === "freezer" || type.includes("freezer");
+    const isInService = e.status === "InService" || e.status === 0 || e.status === "0";
+    return isFreezer && isInService;
+  });
+
+  const selectedStorageEquipment = eligibleFreezers.find(
+    (e) => e.id === Number(form.storageEquipmentId)
+  );
 
   const setField = (k: string, v: any) => setForm((f) => ({ ...f, [k]: v }));
   const updateRow = (i: number, k: keyof PanelRow, v: string) =>
@@ -87,6 +109,7 @@ export function PrepareCryovialBatchDialog({
     if (form.discsUsed === undefined || form.discsUsed === "" || Number(form.discsUsed) < 0)
       return "Please enter the number of discs used (0 or more).";
     if (!form.expiryDate) return "Please enter an expiry date.";
+    if (!form.storageEquipmentId) return "Please select a Storage Equipment (Freezer / Deep Freezer).";
     if (panel.length === 0) return "At least one Identity Confirmation row is required.";
     for (let i = 0; i < panel.length; i++) {
       const r = panel[i];
@@ -108,11 +131,15 @@ export function PrepareCryovialBatchDialog({
     setSubmitting(true);
     setError(null);
     try {
+      const storageConditionValue = selectedStorageEquipment
+        ? `${selectedStorageEquipment.instrumentType} — ${selectedStorageEquipment.manufacturerName} (${selectedStorageEquipment.code})`
+        : "";
+
       const payload: PrepareCryovialPayload = {
         materialId: Number(form.materialId),
         numberOfVialsPrepared: Number(form.numberOfVialsPrepared),
         expiryDate: form.expiryDate,
-        storageCondition: form.storageCondition || "",
+        storageCondition: storageConditionValue,
         physicalCheckText: form.physicalCheckText || "",
         discsUsed: Number(form.discsUsed),
         panel: panel.map((r) => ({
@@ -158,13 +185,13 @@ export function PrepareCryovialBatchDialog({
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              bgcolor: "#f3e8ff",
-              color: brandColors.sectionTitle
+              bgcolor: theme.custom.status.purple.bg,
+              color: theme.palette.primary.main
             }}
           >
             <ScienceIcon fontSize="small" />
           </Box>
-          <Typography sx={{ fontSize: 18, fontWeight: 700, color: "#1f2937" }}>
+          <Typography sx={{ fontSize: 18, fontWeight: 700, color: "text.primary" }}>
             Prepare Cryovial Batch
           </Typography>
         </Box>
@@ -179,7 +206,7 @@ export function PrepareCryovialBatchDialog({
 
           {/* SECTION 1: Source / Batch Information */}
           <Box>
-            <Typography sx={{ fontSize: 13, fontWeight: 700, color: brandColors.sectionTitle, mb: 1.5, textTransform: "uppercase", letterSpacing: "0.5px" }}>
+            <Typography sx={{ fontSize: 13, fontWeight: 700, color: theme.palette.primary.main, mb: 1.5, textTransform: "uppercase", letterSpacing: "0.5px" }}>
               Section 1: Source &amp; Batch Information
             </Typography>
 
@@ -208,14 +235,14 @@ export function PrepareCryovialBatchDialog({
                   sx={{
                     mt: 1,
                     p: 1.5,
-                    bgcolor: "#f8fafc",
-                    borderColor: "#e2e8f0",
+                    bgcolor: "background.default",
+                    borderColor: "divider",
                     borderRadius: 1
                   }}
                 >
-                  <Typography sx={{ fontSize: 12, fontWeight: 600, color: "#1f2937" }}>
+                  <Typography sx={{ fontSize: 12, fontWeight: 600, color: "text.primary" }}>
                     Organism:{" "}
-                    <span style={{ color: brandColors.sectionTitle, fontWeight: 700 }}>
+                    <span style={{ color: theme.palette.primary.main, fontWeight: 700 }}>
                       {selectedMaterial.organism?.scientificName ?? "— (set an Organism on this Material first)"}
                     </span>
                     {selectedMaterial.organism?.atccNumber ? ` (ATCC ${selectedMaterial.organism.atccNumber})` : ""}
@@ -266,22 +293,97 @@ export function PrepareCryovialBatchDialog({
                 onChange={(e) => setField("expiryDate", e.target.value)}
                 required
               />
-              <TextField
-                size="small"
-                label="Storage Condition"
-                placeholder="e.g. -80°C Ultra-Low Freezer"
-                value={form.storageCondition ?? ""}
-                onChange={(e) => setField("storageCondition", e.target.value)}
-              />
+              <FormControl size="small" required sx={{ gridColumn: { sm: "span 2", md: "span 2" } }}>
+                <InputLabel id="storage-equipment-label">Storage Equipment *</InputLabel>
+                <Select
+                  labelId="storage-equipment-label"
+                  label="Storage Equipment *"
+                  value={form.storageEquipmentId ?? ""}
+                  onChange={(e) => setField("storageEquipmentId", e.target.value)}
+                  disabled={equipmentLoading || eligibleFreezers.length === 0}
+                >
+                  <MenuItem value="">
+                    <em>{equipmentLoading ? "Loading equipment..." : "Select freezer / deep freezer..."}</em>
+                  </MenuItem>
+                  {eligibleFreezers.map((eq) => (
+                    <MenuItem key={eq.id} value={eq.id}>
+                      {eq.instrumentType} — {eq.manufacturerName} ({eq.code})
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
               <TextField
                 size="small"
                 label="Physical Check"
                 placeholder="e.g. Clear, intact cryovials with color code"
                 value={form.physicalCheckText ?? ""}
                 onChange={(e) => setField("physicalCheckText", e.target.value)}
-                sx={{ gridColumn: { sm: "span 2", md: "span 2" } }}
               />
             </Box>
+
+            {eligibleFreezers.length === 0 && !equipmentLoading && (
+              <Alert severity="warning" sx={{ mt: 1.5 }}>
+                No available freezer/deep freezer is currently in service.
+              </Alert>
+            )}
+
+            {selectedStorageEquipment && (
+              <Paper
+                variant="outlined"
+                sx={{
+                  mt: 1.5,
+                  p: 1.5,
+                  bgcolor: "background.default",
+                  borderColor: "divider",
+                  borderRadius: 1
+                }}
+              >
+                <Box
+                  sx={{
+                    display: "grid",
+                    gridTemplateColumns: {
+                      xs: "1fr",
+                      sm: "repeat(2, 1fr)",
+                      md: "repeat(4, 1fr)"
+                    },
+                    gap: 1.5
+                  }}
+                >
+                  <Box>
+                    <Typography sx={{ fontSize: 10.5, fontWeight: 700, color: "text.secondary", textTransform: "uppercase" }}>
+                      Storage Equipment
+                    </Typography>
+                    <Typography sx={{ fontSize: 13, fontWeight: 700, color: theme.palette.primary.main }}>
+                      {selectedStorageEquipment.instrumentType} — {selectedStorageEquipment.manufacturerName || "Asset"}
+                    </Typography>
+                  </Box>
+                  <Box>
+                    <Typography sx={{ fontSize: 10.5, fontWeight: 700, color: "text.secondary", textTransform: "uppercase" }}>
+                      Code
+                    </Typography>
+                    <Typography sx={{ fontSize: 13, fontWeight: 600, color: "text.primary" }}>
+                      {selectedStorageEquipment.code}
+                    </Typography>
+                  </Box>
+                  <Box>
+                    <Typography sx={{ fontSize: 10.5, fontWeight: 700, color: "text.secondary", textTransform: "uppercase" }}>
+                      Location
+                    </Typography>
+                    <Typography sx={{ fontSize: 13, fontWeight: 600, color: "text.primary" }}>
+                      {selectedStorageEquipment.location || "—"}
+                    </Typography>
+                  </Box>
+                  <Box>
+                    <Typography sx={{ fontSize: 10.5, fontWeight: 700, color: "text.secondary", textTransform: "uppercase" }}>
+                      Status
+                    </Typography>
+                    <Typography sx={{ fontSize: 13, fontWeight: 600, color: "success.main" }}>
+                      In Service
+                    </Typography>
+                  </Box>
+                </Box>
+              </Paper>
+            )}
           </Box>
 
           <Divider />
@@ -289,7 +391,7 @@ export function PrepareCryovialBatchDialog({
           {/* SECTION 2: Identity Confirmation Panel */}
           <Box>
             <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1 }}>
-              <Typography sx={{ fontSize: 13, fontWeight: 700, color: brandColors.sectionTitle, textTransform: "uppercase", letterSpacing: "0.5px" }}>
+              <Typography sx={{ fontSize: 13, fontWeight: 700, color: theme.palette.primary.main, textTransform: "uppercase", letterSpacing: "0.5px" }}>
                 Section 2: Identity Confirmation Panel
               </Typography>
               <Typography sx={{ fontSize: 11, color: "text.secondary" }}>
@@ -297,14 +399,14 @@ export function PrepareCryovialBatchDialog({
               </Typography>
             </Box>
 
-            <Table size="small" sx={{ border: "1px solid #e5e7eb", borderRadius: 1, overflow: "hidden" }}>
-              <TableHead sx={{ bgcolor: "#f9fafb" }}>
+            <Table size="small" sx={{ border: "1px solid", borderColor: "divider", borderRadius: 1, overflow: "hidden" }}>
+              <TableHead sx={{ bgcolor: "background.default" }}>
                 <TableRow>
-                  <TableCell sx={{ fontSize: 11, fontWeight: 700, color: "#4b5563" }}>Media (GPT-released) *</TableCell>
-                  <TableCell sx={{ fontSize: 11, fontWeight: 700, color: "#4b5563" }}>Incubator *</TableCell>
-                  <TableCell sx={{ fontSize: 11, fontWeight: 700, color: "#4b5563" }}>Start *</TableCell>
-                  <TableCell sx={{ fontSize: 11, fontWeight: 700, color: "#4b5563" }}>End *</TableCell>
-                  <TableCell sx={{ fontSize: 11, fontWeight: 700, color: "#4b5563" }}>Observation</TableCell>
+                  <TableCell sx={{ fontSize: 11, fontWeight: 700, color: "text.secondary" }}>Media (GPT-released) *</TableCell>
+                  <TableCell sx={{ fontSize: 11, fontWeight: 700, color: "text.secondary" }}>Incubator *</TableCell>
+                  <TableCell sx={{ fontSize: 11, fontWeight: 700, color: "text.secondary" }}>Start *</TableCell>
+                  <TableCell sx={{ fontSize: 11, fontWeight: 700, color: "text.secondary" }}>End *</TableCell>
+                  <TableCell sx={{ fontSize: 11, fontWeight: 700, color: "text.secondary" }}>Observation</TableCell>
                   <TableCell sx={{ width: 40 }}></TableCell>
                 </TableRow>
               </TableHead>
@@ -379,7 +481,7 @@ export function PrepareCryovialBatchDialog({
                         size="small"
                         onClick={() => removeRow(i)}
                         disabled={panel.length <= 1}
-                        sx={{ color: panel.length <= 1 ? "#d1d5db" : "#dc2626" }}
+                        sx={{ color: panel.length <= 1 ? "text.disabled" : "error.main" }}
                       >
                         <CloseIcon fontSize="small" />
                       </IconButton>
@@ -393,7 +495,7 @@ export function PrepareCryovialBatchDialog({
               size="small"
               onClick={addRow}
               startIcon={<AddIcon fontSize="small" />}
-              sx={{ mt: 1.5, color: brandColors.sectionTitle }}
+              sx={{ mt: 1.5, color: theme.palette.primary.main }}
             >
               Add Media Row
             </Button>
@@ -402,13 +504,13 @@ export function PrepareCryovialBatchDialog({
       </DialogContent>
 
       <DialogActions sx={{ px: 3, py: 2 }}>
-        <Button onClick={onClose} disabled={submitting} sx={{ color: "#4b5563" }}>
+        <Button onClick={onClose} disabled={submitting} sx={{ color: "text.secondary" }}>
           Cancel
         </Button>
         <Button
           variant="contained"
           onClick={handleSave}
-          disabled={submitting}
+          disabled={submitting || eligibleFreezers.length === 0}
           sx={{
             bgcolor: brandColors.sectionTitle,
             "&:hover": { bgcolor: brandColors.pageTitle }

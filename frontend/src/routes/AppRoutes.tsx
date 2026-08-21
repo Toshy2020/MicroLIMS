@@ -4,6 +4,7 @@ import { AuthenticatedRoutes } from "./AuthenticatedRoutes";
 import { SystemAdministratorRoutes } from "./SystemAdministratorRoutes";
 import { SectionHeadRoutes } from "./SectionHeadRoutes";
 import { LoginPage } from "../pages/Login";
+import { AdminPasswordRecovery } from "../pages/AdminPasswordRecovery";
 import { DashboardPage } from "../modules/dashboard/DashboardPage";
 import { ProfilePage } from "../pages/Profile";
 import { ChangePasswordPage } from "../pages/ChangePassword";
@@ -38,18 +39,15 @@ import { ApprovedCryovialListPage } from "../modules/inventory/approvedLists/App
 import { InventoryRoutes } from "./InventoryRoutes";
 import { MainLayout } from "../layouts/MainLayout";
 
-// DashboardLayout -> Role -> menuConfig.ts -> Visible Modules.
 export function AppRoutes() {
   return (
     <Routes>
       <Route element={<PublicRoutes />}>
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/admin-recovery" element={<AdminPasswordRecovery />} />
       </Route>
 
       <Route element={<AuthenticatedRoutes />}>
-        {/* Deliberately outside MainLayout: the report is a printable
-            controlled document, so it must render without the app's nav
-            chrome. Opened in a new tab from the Sample Summary dialog. */}
         <Route path="/samples/:id/report" element={<SampleReportPage />} />
         <Route path="/media/:id/report" element={<MediaReportPage />} />
         <Route path="/cryovials/:id/report" element={<CryovialReportPage />} />
@@ -61,7 +59,6 @@ export function AppRoutes() {
           <Route path="/change-password" element={<ChangePasswordPage />} />
           <Route path="/reports" element={<ReportsPage />} />
 
-          {/* Available to every role - see menuConfig.ts */}
           <Route path="/receiving" element={<ReceiveSamplePage />} />
           <Route path="/testing-workspace" element={<TestingWorkspacePage />} />
           <Route path="/laboratory-configuration/media" element={<MediaPage />} />

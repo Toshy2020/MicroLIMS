@@ -1,13 +1,14 @@
 import React from "react";
-import { Grid, Paper, Typography, Box } from "@mui/material";
+import { Grid, Paper, Typography, Box, useTheme } from "@mui/material";
 import ScienceOutlinedIcon from "@mui/icons-material/ScienceOutlined";
 import PendingActionsOutlinedIcon from "@mui/icons-material/PendingActionsOutlined";
 import HowToRegOutlinedIcon from "@mui/icons-material/HowToRegOutlined";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 import BlockOutlinedIcon from "@mui/icons-material/BlockOutlined";
-import { brandColors } from "../../../../theme";
+import InventoryOutlinedIcon from "@mui/icons-material/InventoryOutlined";
+import { StatusTone } from "../../../../theme/statusTokens";
 
-export type MediaKpiFilterKey = "ALL" | "PendingEvaluation" | "AwaitingApproval" | "Released" | "Quarantined";
+export type MediaKpiFilterKey = "ALL" | "PendingEvaluation" | "AwaitingApproval" | "Released" | "Rejected" | "OutOfStock";
 
 interface Props {
   lots: any[];
@@ -17,77 +18,49 @@ interface Props {
 }
 
 export function lifecycleOf(lot: any, awaitingApprovalIds: Set<number>): string {
+  if (lot.status === "OutOfStock") return "Out of Stock";
   if (lot.isReleasedForUse) return "Released";
-  if (lot.approvalStatus === "Rejected" || lot.status === "QuarantineFailed") return "Quarantined";
+  if (lot.approvalStatus === "Rejected" || lot.status === "QuarantineFailed") return "Rejected";
   if (awaitingApprovalIds.has(lot.id)) return "Awaiting Approval";
   return "Pending Evaluation";
 }
 
 export function MediaLotKpiCards({ lots, awaitingApprovalIds, activeKpi, onSelectKpi }: Props) {
+  const theme = useTheme();
   const totalCount = lots.length;
 
   let pendingCount = 0;
   let awaitingApprovalCount = 0;
   let releasedCount = 0;
-  let quarantinedCount = 0;
+  let rejectedCount = 0;
+  let outOfStockCount = 0;
 
   for (const lot of lots) {
     const lifecycle = lifecycleOf(lot, awaitingApprovalIds);
-    if (lifecycle === "Released") releasedCount++;
-    else if (lifecycle === "Quarantined") quarantinedCount++;
+    if (lifecycle === "Out of Stock") outOfStockCount++;
+    else if (lifecycle === "Released") releasedCount++;
+    else if (lifecycle === "Rejected") rejectedCount++;
     else if (lifecycle === "Awaiting Approval") awaitingApprovalCount++;
     else pendingCount++;
   }
 
-  const cards = [
-    {
-      key: "ALL" as MediaKpiFilterKey,
-      label: "Total Lots",
-      count: totalCount,
-      icon: <ScienceOutlinedIcon sx={{ fontSize: 20 }} />,
-      color: brandColors.pageTitle,
-      bgTint: "#fbf8fc"
-    },
-    {
-      key: "PendingEvaluation" as MediaKpiFilterKey,
-      label: "Pending Evaluation",
-      count: pendingCount,
-      icon: <PendingActionsOutlinedIcon sx={{ fontSize: 20 }} />,
-      color: "#6b7280",
-      bgTint: "#f3f4f6"
-    },
-    {
-      key: "AwaitingApproval" as MediaKpiFilterKey,
-      label: "Awaiting Approval",
-      count: awaitingApprovalCount,
-      icon: <HowToRegOutlinedIcon sx={{ fontSize: 20 }} />,
-      color: "#d97706",
-      bgTint: "#fffbeb"
-    },
-    {
-      key: "Released" as MediaKpiFilterKey,
-      label: "Released for Use",
-      count: releasedCount,
-      icon: <CheckCircleOutlineIcon sx={{ fontSize: 20 }} />,
-      color: "#16a34a",
-      bgTint: "#f0fdf4"
-    },
-    {
-      key: "Quarantined" as MediaKpiFilterKey,
-      label: "Quarantined",
-      count: quarantinedCount,
-      icon: <BlockOutlinedIcon sx={{ fontSize: 20 }} />,
-      color: "#dc2626",
-      bgTint: "#fef2f2"
-    }
+  const cards: { key: MediaKpiFilterKey; label: string; count: number; icon: React.ReactNode; tone: StatusTone }[] = [
+    { key: "ALL", label: "Total Lots", count: totalCount, icon: <ScienceOutlinedIcon sx={{ fontSize: 20 }} />, tone: "purple" },
+    { key: "PendingEvaluation", label: "Pending Evaluation", count: pendingCount, icon: <PendingActionsOutlinedIcon sx={{ fontSize: 20 }} />, tone: "pending" },
+    { key: "AwaitingApproval", label: "Awaiting Approval", count: awaitingApprovalCount, icon: <HowToRegOutlinedIcon sx={{ fontSize: 20 }} />, tone: "action" },
+    { key: "Released", label: "Released for Use", count: releasedCount, icon: <CheckCircleOutlineIcon sx={{ fontSize: 20 }} />, tone: "notDetected" },
+    { key: "Rejected", label: "Rejected", count: rejectedCount, icon: <BlockOutlinedIcon sx={{ fontSize: 20 }} />, tone: "detected" },
+    { key: "OutOfStock", label: "Out of Stock", count: outOfStockCount, icon: <InventoryOutlinedIcon sx={{ fontSize: 20 }} />, tone: "pending" }
   ];
 
   return (
     <Grid container spacing={1.5} sx={{ mb: 2.5 }}>
       {cards.map((card) => {
         const isActive = activeKpi === card.key || (card.key === "ALL" && !activeKpi);
+        const iconTokens = theme.custom.status[card.tone];
+        const activeTokens = theme.custom.status.purple;
         return (
-          <Grid item xs={6} sm={4} md={2.4} key={card.key}>
+          <Grid item xs={6} sm={4} md={2} key={card.key}>
             <Paper
               elevation={isActive ? 2 : 0}
               onClick={() => onSelectKpi(card.key)}
@@ -95,17 +68,16 @@ export function MediaLotKpiCards({ lots, awaitingApprovalIds, activeKpi, onSelec
                 p: 1.75,
                 borderRadius: 2,
                 cursor: "pointer",
-                border: isActive
-                  ? `2px solid ${brandColors.sectionTitle}`
-                  : "1px solid #e5e7eb",
-                bgcolor: isActive ? "#faf5ff" : "#ffffff",
+                border: isActive ? `2px solid ${activeTokens.border}` : "1px solid",
+                borderColor: isActive ? activeTokens.border : "divider",
+                bgcolor: isActive ? activeTokens.bg : "background.paper",
                 transition: "all 0.15s ease-in-out",
                 display: "flex",
                 flexDirection: "column",
                 justifyContent: "space-between",
                 minHeight: 88,
                 "&:hover": {
-                  borderColor: brandColors.sectionTitle,
+                  borderColor: activeTokens.border,
                   boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
                   transform: "translateY(-1px)"
                 }
@@ -116,7 +88,7 @@ export function MediaLotKpiCards({ lots, awaitingApprovalIds, activeKpi, onSelec
                   sx={{
                     fontSize: 12,
                     fontWeight: 600,
-                    color: isActive ? brandColors.sectionTitle : "text.secondary",
+                    color: isActive ? activeTokens.text : "text.secondary",
                     lineHeight: 1.2
                   }}
                 >
@@ -124,14 +96,14 @@ export function MediaLotKpiCards({ lots, awaitingApprovalIds, activeKpi, onSelec
                 </Typography>
                 <Box
                   sx={{
-                    color: card.color,
+                    color: iconTokens.text,
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
                     width: 28,
                     height: 28,
                     borderRadius: 1.5,
-                    bgcolor: card.bgTint
+                    bgcolor: iconTokens.bg
                   }}
                 >
                   {card.icon}
@@ -143,14 +115,14 @@ export function MediaLotKpiCards({ lots, awaitingApprovalIds, activeKpi, onSelec
                   sx={{
                     fontSize: 22,
                     fontWeight: 700,
-                    color: isActive ? brandColors.pageTitle : "#1f2937",
+                    color: isActive ? activeTokens.text : "text.primary",
                     lineHeight: 1
                   }}
                 >
                   {card.count}
                 </Typography>
                 {isActive && card.key !== "ALL" && (
-                  <Typography sx={{ fontSize: 11, color: brandColors.sectionTitle, fontWeight: 600 }}>
+                  <Typography sx={{ fontSize: 11, color: activeTokens.text, fontWeight: 600 }}>
                     Active
                   </Typography>
                 )}

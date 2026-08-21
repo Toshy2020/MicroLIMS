@@ -13,6 +13,8 @@ public record PrepareMediaHttpRequest(
 
 public record DecideMediaReleaseRequest(string Password, bool Approved, string? Comment);
 
+public record MarkOutOfStockHttpRequest(string? Comment);
+
 // Media Preparation module - the autoclave/cycle/pH grid. Nothing here
 // is usable in routine testing until it also passes GPT.
 [ApiController]
@@ -67,6 +69,14 @@ public class MediaController : ControllerBase
     {
         var ip = HttpContext.Connection.RemoteIpAddress?.ToString();
         await _mediaRelease.DecideAsync(id, CurrentUserId, r.Password, r.Approved, r.Comment, ip);
+        return Ok(ApiResponse<object>.Ok(new { }));
+    }
+
+    [HttpPost("{id}/mark-out-of-stock")]
+    [Authorize(Roles = RoleConstants.SectionHead + "," + RoleConstants.Analyst + "," + RoleConstants.Reviewer + "," + RoleConstants.SystemAdministrator)]
+    public async Task<IActionResult> MarkOutOfStock(int id, [FromBody] MarkOutOfStockHttpRequest? request)
+    {
+        await _mediaPrep.MarkOutOfStockAsync(id, CurrentUserId, request?.Comment);
         return Ok(ApiResponse<object>.Ok(new { }));
     }
 

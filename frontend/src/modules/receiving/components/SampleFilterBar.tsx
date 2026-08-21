@@ -42,9 +42,10 @@ export function SampleFilterBar({
       sx={{
         p: 2,
         mb: 2.5,
-        border: "1px solid #e5e7eb",
+        border: "1px solid",
+        borderColor: "divider",
         borderRadius: 2,
-        bgcolor: "#ffffff"
+        bgcolor: "background.paper"
       }}
     >
       <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
@@ -65,7 +66,7 @@ export function SampleFilterBar({
           sx={{
             "& .MuiOutlinedInput-root": {
               borderRadius: 1.5,
-              bgcolor: "#fafafa"
+              bgcolor: "background.default"
             }
           }}
         />
@@ -169,12 +170,12 @@ export function SampleFilterBar({
               startIcon={<FilterAltOffIcon sx={{ fontSize: 18 }} />}
               sx={{
                 height: 40,
-                borderColor: "#d1d5db",
-                color: "#4b5563",
+                borderColor: "divider",
+                color: "text.secondary",
                 whiteSpace: "nowrap",
                 "&:hover": {
-                  bgcolor: "#f3f4f6",
-                  borderColor: "#9ca3af"
+                  bgcolor: "background.default",
+                  borderColor: "text.secondary"
                 }
               }}
             >

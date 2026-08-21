@@ -8,6 +8,7 @@ import {
 } from "../../testingWorkspace/reportPrimitives";
 import { ArchivedRecordsService, ArchivedRecordSummary } from "../../testingWorkspace/services/ArchivedRecordsService";
 import { CryovialSummary } from "./types/cryovialSummaryTypes";
+import { PinnedLightTheme } from "../../../theme/PinnedLightTheme";
 
 function approvalTone(s: CryovialSummary): "" | "is-danger" | "is-warning" | "is-neutral" {
   if (s.isDestroyed || s.approvalStatus === "Rejected") return "is-danger";
@@ -40,14 +41,15 @@ export function CryovialReportPage() {
     if (summary) document.title = `Cryovial Batch Record - ${summary.code}`;
   }, [summary]);
 
-  if (error) return <div style={{ padding: 32, fontFamily: "Segoe UI, sans-serif", color: "#dc2626" }}>{error}</div>;
-  if (!summary) return <div style={{ padding: 32, fontFamily: "Segoe UI, sans-serif", color: "#666" }}>Loading record…</div>;
+  if (error) return <PinnedLightTheme><div style={{ padding: 32, fontFamily: "Segoe UI, sans-serif", color: "#dc2626" }}>{error}</div></PinnedLightTheme>;
+  if (!summary) return <PinnedLightTheme><div style={{ padding: 32, fontFamily: "Segoe UI, sans-serif", color: "#666" }}>Loading record…</div></PinnedLightTheme>;
 
   const s = summary;
   const tone = approvalTone(s);
   const depleted = s.vialsRemaining === 0;
 
   return (
+    <PinnedLightTheme>
     <div className="report-root">
       <style>{reportStyles}</style>
 
@@ -173,5 +175,6 @@ export function CryovialReportPage() {
 
       <PrintButton />
     </div>
+    </PinnedLightTheme>
   );
 }

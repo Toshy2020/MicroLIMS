@@ -19,7 +19,8 @@ import {
   TableCell,
   TableBody,
   Paper,
-  Chip
+  Chip,
+  useTheme
 } from "@mui/material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import PrintIcon from "@mui/icons-material/Print";
@@ -112,7 +113,7 @@ function SummaryField({
         sx={{
           fontSize: 13,
           fontWeight: highlight ? 700 : 600,
-          color: highlight ? brandColors.sectionTitle : "#1f2937",
+          color: highlight ? brandColors.sectionTitle : "text.primary",
           lineHeight: 1.3,
           wordBreak: "break-word"
         }}
@@ -130,9 +131,10 @@ function SummaryField({
 
 // 1. Sample Identity Section (4-column responsive grid)
 function SampleIdentityCard({ summary: s }: { summary: SampleSummary }) {
+  const theme = useTheme();
   return (
-    <Paper sx={{ p: 2.5, border: "1px solid #e5e7eb", borderRadius: 2, bgcolor: "#ffffff" }}>
-      <Typography sx={{ fontWeight: 700, fontSize: 15, color: brandColors.sectionTitle, mb: 2 }}>
+    <Paper sx={{ p: 2.5, border: "1px solid", borderColor: "divider", borderRadius: 2, bgcolor: "background.paper" }}>
+      <Typography sx={{ fontWeight: 700, fontSize: 15, color: theme.palette.primary.main, mb: 2 }}>
         Sample Identity
       </Typography>
       <Box
@@ -178,9 +180,10 @@ function SampleIdentityCard({ summary: s }: { summary: SampleSummary }) {
 
 // Sample Preparation Card (if applicable)
 function SamplePreparationCard({ preparation: p }: { preparation: NonNullable<SampleSummary["preparation"]> }) {
+  const theme = useTheme();
   return (
-    <Paper sx={{ p: 2.5, border: "1px solid #e5e7eb", borderRadius: 2, bgcolor: "#ffffff" }}>
-      <Typography sx={{ fontWeight: 700, fontSize: 15, color: brandColors.sectionTitle, mb: 2 }}>
+    <Paper sx={{ p: 2.5, border: "1px solid", borderColor: "divider", borderRadius: 2, bgcolor: "background.paper" }}>
+      <Typography sx={{ fontWeight: 700, fontSize: 15, color: theme.palette.primary.main, mb: 2 }}>
         Sample Preparation
       </Typography>
       <Box
@@ -237,8 +240,9 @@ function IncubationStageBlock({
       sx={{
         p: 2,
         borderRadius: 1.5,
-        border: "1px solid #e5e7eb",
-        bgcolor: "#fcfcfd"
+        border: "1px solid",
+        borderColor: "divider",
+        bgcolor: "background.default"
       }}
     >
       <Box sx={{ display: "flex", alignItems: "center", gap: 1.25, mb: 1.5 }}>
@@ -261,7 +265,7 @@ function IncubationStageBlock({
             {inc.stageNumber}
           </Box>
         )}
-        <Typography sx={{ fontSize: 13, fontWeight: 700, color: "#1f2937" }}>
+        <Typography sx={{ fontSize: 13, fontWeight: 700, color: "text.primary" }}>
           {stageTitle}
         </Typography>
       </Box>
@@ -355,8 +359,8 @@ function LocationResultsTable({ locations }: { locations: SampleLocationDetail[]
 
   return (
     <Box>
-      <Table size="small" sx={{ border: "1px solid #e5e7eb", borderRadius: 1 }}>
-        <TableHead sx={{ bgcolor: "#f9fafb" }}>
+      <Table size="small" sx={{ border: "1px solid", borderColor: "divider", borderRadius: 1 }}>
+        <TableHead sx={{ bgcolor: "background.default" }}>
           <TableRow>
             <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Location</TableCell>
             <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Limits (Alert / Action / Spec)</TableCell>
@@ -417,16 +421,16 @@ function FinalResultBlock({ order }: { order: TestOrderSummaryDetail }) {
 
   if (!hasLocations && !hasCountReadings && !hasPathogens && !hasResults) {
     return (
-      <Box sx={{ p: 2, border: "1px solid #e5e7eb", borderRadius: 1.5, bgcolor: "#f9fafb" }}>
-        <Typography sx={{ fontSize: 13, fontWeight: 700, color: "#1f2937", mb: 0.5 }}>Final Result</Typography>
+      <Box sx={{ p: 2, border: "1px solid", borderColor: "divider", borderRadius: 1.5, bgcolor: "background.default" }}>
+        <Typography sx={{ fontSize: 13, fontWeight: 700, color: "text.primary", mb: 0.5 }}>Final Result</Typography>
         <Typography sx={{ fontSize: 12, color: "text.secondary" }}>No result recorded yet.</Typography>
       </Box>
     );
   }
 
   return (
-    <Box sx={{ p: 2, border: "1px solid #e5e7eb", borderRadius: 1.5, bgcolor: "#f9fafb" }}>
-      <Typography sx={{ fontSize: 13, fontWeight: 700, color: "#1f2937", mb: 1.5 }}>
+    <Box sx={{ p: 2, border: "1px solid", borderColor: "divider", borderRadius: 1.5, bgcolor: "background.default" }}>
+      <Typography sx={{ fontSize: 13, fontWeight: 700, color: "text.primary", mb: 1.5 }}>
         Final Result
       </Typography>
 
@@ -480,8 +484,9 @@ function FinalResultBlock({ order }: { order: TestOrderSummaryDetail }) {
                 },
                 gap: 1.5,
                 p: 1.25,
-                bgcolor: "#ffffff",
-                border: "1px solid #e5e7eb",
+                bgcolor: "background.paper",
+                border: "1px solid",
+                borderColor: "divider",
                 borderRadius: 1
               }}
             >
@@ -507,8 +512,9 @@ function FinalResultBlock({ order }: { order: TestOrderSummaryDetail }) {
                 },
                 gap: 1.5,
                 p: 1.25,
-                bgcolor: "#ffffff",
-                border: "1px solid #e5e7eb",
+                bgcolor: "background.paper",
+                border: "1px solid",
+                borderColor: "divider",
                 borderRadius: 1
               }}
             >
@@ -525,10 +531,11 @@ function FinalResultBlock({ order }: { order: TestOrderSummaryDetail }) {
 
 // 2. Test Results Section
 function TestResultsSection({ testOrders, overallStatus }: { testOrders: TestOrderSummaryDetail[]; overallStatus: string }) {
+  const theme = useTheme();
   return (
     <Box>
       <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1.5 }}>
-        <Typography sx={{ fontWeight: 700, fontSize: 16, color: brandColors.sectionTitle }}>
+        <Typography sx={{ fontWeight: 700, fontSize: 16, color: theme.palette.primary.main }}>
           Test Results
         </Typography>
         <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
@@ -545,19 +552,19 @@ function TestResultsSection({ testOrders, overallStatus }: { testOrders: TestOrd
             key={order.testOrderId}
             defaultExpanded={i === 0 && !order.isSuperseded}
             sx={{
-              border: "1px solid #e5e7eb",
+              border: "1px solid",
+              borderColor: "divider",
               borderRadius: "8px !important",
               overflow: "hidden",
-              boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
               "&:before": { display: "none" }
             }}
           >
             <AccordionSummary
               expandIcon={<ExpandMoreIcon />}
-              sx={{ bgcolor: "#fafafa", px: 2.5, py: 0.5, borderBottom: "1px solid #f3f4f6" }}
+              sx={{ bgcolor: "background.default", px: 2.5, py: 0.5, borderBottom: "1px solid", borderBottomColor: "divider" }}
             >
               <Stack direction="row" spacing={1.5} alignItems="center" flexWrap="wrap">
-                <Typography sx={{ fontWeight: 700, fontSize: 14, color: "#1f2937" }}>
+                <Typography sx={{ fontWeight: 700, fontSize: 14, color: "text.primary" }}>
                   {order.testCode} — {order.testDisplayName}
                 </Typography>
                 <StatusBadge status={order.workflowStateDisplay || order.status} />
@@ -589,6 +596,7 @@ function TestResultsSection({ testOrders, overallStatus }: { testOrders: TestOrd
 
 // 3. Bottom Information Area: Column 1 - Step History
 function StepHistoryCard({ testOrders }: { testOrders: TestOrderSummaryDetail[] }) {
+  const theme = useTheme();
   // Aggregate all step history entries across test orders
   const allEvents = useMemo(() => {
     const list: {
@@ -617,10 +625,10 @@ function StepHistoryCard({ testOrders }: { testOrders: TestOrderSummaryDetail[] 
   }, [testOrders]);
 
   return (
-    <Paper sx={{ p: 2.5, border: "1px solid #e5e7eb", borderRadius: 2, height: "100%", bgcolor: "#ffffff" }}>
+    <Paper sx={{ p: 2.5, border: "1px solid", borderColor: "divider", borderRadius: 2, height: "100%", bgcolor: "background.paper" }}>
       <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 2 }}>
-        <HistoryOutlinedIcon sx={{ color: brandColors.sectionTitle, fontSize: 20 }} />
-        <Typography sx={{ fontWeight: 700, fontSize: 14, color: brandColors.sectionTitle }}>
+        <HistoryOutlinedIcon sx={{ color: theme.palette.primary.main, fontSize: 20 }} />
+        <Typography sx={{ fontWeight: 700, fontSize: 14, color: theme.palette.primary.main }}>
           Step History
         </Typography>
       </Box>
@@ -642,14 +650,14 @@ function StepHistoryCard({ testOrders }: { testOrders: TestOrderSummaryDetail[] 
                 }}
               />
               <Box sx={{ minWidth: 0 }}>
-                <Typography sx={{ fontSize: 12, fontWeight: 700, color: "#1f2937" }}>
+                <Typography sx={{ fontSize: 12, fontWeight: 700, color: "text.primary" }}>
                   {w.fromStep} → {w.toStep}
                 </Typography>
                 <Typography sx={{ fontSize: 11, color: "text.secondary" }}>
                   {w.performedByName} · {formatDate(w.timestamp)}
                 </Typography>
                 {w.note && (
-                  <Typography sx={{ fontSize: 11, color: "#4b5563", fontStyle: "italic", mt: 0.25 }}>
+                  <Typography sx={{ fontSize: 11, color: "text.secondary", fontStyle: "italic", mt: 0.25 }}>
                     "{w.note}"
                   </Typography>
                 )}
@@ -664,11 +672,12 @@ function StepHistoryCard({ testOrders }: { testOrders: TestOrderSummaryDetail[] 
 
 // 3. Bottom Information Area: Column 2 - Workflow History
 function WorkflowHistoryCard({ summary }: { summary: SampleSummary }) {
+  const theme = useTheme();
   return (
-    <Paper sx={{ p: 2.5, border: "1px solid #e5e7eb", borderRadius: 2, height: "100%", bgcolor: "#ffffff" }}>
+    <Paper sx={{ p: 2.5, border: "1px solid", borderColor: "divider", borderRadius: 2, height: "100%", bgcolor: "background.paper" }}>
       <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 2 }}>
-        <TimelineOutlinedIcon sx={{ color: brandColors.sectionTitle, fontSize: 20 }} />
-        <Typography sx={{ fontWeight: 700, fontSize: 14, color: brandColors.sectionTitle }}>
+        <TimelineOutlinedIcon sx={{ color: theme.palette.primary.main, fontSize: 20 }} />
+        <Typography sx={{ fontWeight: 700, fontSize: 14, color: theme.palette.primary.main }}>
           Workflow History
         </Typography>
       </Box>
@@ -691,14 +700,14 @@ function WorkflowHistoryCard({ summary }: { summary: SampleSummary }) {
                 <CheckCircleOutlineIcon sx={{ fontSize: 15 }} />
               </Box>
               <Box sx={{ minWidth: 0 }}>
-                <Typography sx={{ fontSize: 12, fontWeight: 700, color: "#1f2937" }}>
+                <Typography sx={{ fontSize: 12, fontWeight: 700, color: "text.primary" }}>
                   {e.eventType}{e.decision ? ` (${e.decision})` : ""}
                 </Typography>
                 <Typography sx={{ fontSize: 11, color: "text.secondary" }}>
                   {e.performedByName} · {formatDate(e.timestamp)}
                 </Typography>
                 {e.comment && (
-                  <Typography sx={{ fontSize: 11, color: "#4b5563", fontStyle: "italic", mt: 0.25 }}>
+                  <Typography sx={{ fontSize: 11, color: "text.secondary", fontStyle: "italic", mt: 0.25 }}>
                     "{e.comment}"
                   </Typography>
                 )}
@@ -733,16 +742,17 @@ function ApprovalSignaturesCard({
   onReviewClick: () => void;
   onApproveClick: () => void;
 }) {
+  const theme = useTheme();
   const hasSignatures = summary.signatures.length > 0;
   const isApproved = summary.status === "Approved";
   const isRejected = summary.status === "Rejected";
 
   return (
-    <Paper sx={{ p: 2.5, border: "1px solid #e5e7eb", borderRadius: 2, height: "100%", bgcolor: "#ffffff" }}>
+    <Paper sx={{ p: 2.5, border: "1px solid", borderColor: "divider", borderRadius: 2, height: "100%", bgcolor: "background.paper" }}>
       <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 2 }}>
         <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-          <VerifiedUserOutlinedIcon sx={{ color: brandColors.sectionTitle, fontSize: 20 }} />
-          <Typography sx={{ fontWeight: 700, fontSize: 14, color: brandColors.sectionTitle }}>
+          <VerifiedUserOutlinedIcon sx={{ color: theme.palette.primary.main, fontSize: 20 }} />
+          <Typography sx={{ fontWeight: 700, fontSize: 14, color: theme.palette.primary.main }}>
             Approval & Electronic Signatures
           </Typography>
         </Box>
@@ -757,13 +767,14 @@ function ApprovalSignaturesCard({
               key={idx}
               sx={{
                 p: 1.5,
-                bgcolor: "#f9fafb",
+                bgcolor: "background.default",
                 borderRadius: 1.5,
-                border: "1px solid #e5e7eb"
+                border: "1px solid",
+                borderColor: "divider"
               }}
             >
               <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 0.5 }}>
-                <Typography sx={{ fontSize: 12, fontWeight: 700, color: "#1f2937" }}>
+                <Typography sx={{ fontSize: 12, fontWeight: 700, color: "text.primary" }}>
                   {sig.role}: {sig.printedName} ({sig.username})
                 </Typography>
                 <Chip
@@ -771,8 +782,8 @@ function ApprovalSignaturesCard({
                   icon={<CheckCircleOutlineIcon sx={{ fontSize: "14px !important" }} />}
                   label="Verified"
                   sx={{
-                    bgcolor: "#ecfdf5",
-                    color: "#065f46",
+                    bgcolor: theme.custom.status.notDetected.bg,
+                    color: theme.custom.status.notDetected.text,
                     fontWeight: 700,
                     fontSize: 10,
                     height: 20
@@ -782,11 +793,11 @@ function ApprovalSignaturesCard({
               <Typography sx={{ fontSize: 11, color: "text.secondary", mb: 0.5 }}>
                 {formatExactTime(sig.signedAt)}
               </Typography>
-              <Typography sx={{ fontSize: 11, color: "#4b5563", fontStyle: "italic" }}>
+              <Typography sx={{ fontSize: 11, color: "text.secondary", fontStyle: "italic" }}>
                 "{SIGNATURE_STATEMENTS[sig.meaning] ?? sig.meaning}"
               </Typography>
               {sig.comment && (
-                <Typography sx={{ fontSize: 11, color: "#374151", mt: 0.5 }}>
+                <Typography sx={{ fontSize: 11, color: "text.secondary", mt: 0.5 }}>
                   Comment: {sig.comment}
                 </Typography>
               )}
@@ -796,27 +807,27 @@ function ApprovalSignaturesCard({
       ) : isApproved || isRejected ? (
         <Stack spacing={1.5} sx={{ mb: 2 }}>
           {summary.reviewedByName && (
-            <Box sx={{ p: 1.5, bgcolor: "#f9fafb", borderRadius: 1.5, border: "1px solid #e5e7eb" }}>
-              <Typography sx={{ fontSize: 12, fontWeight: 700, color: "#1f2937" }}>
+            <Box sx={{ p: 1.5, bgcolor: "background.default", borderRadius: 1.5, border: "1px solid", borderColor: "divider" }}>
+              <Typography sx={{ fontSize: 12, fontWeight: 700, color: "text.primary" }}>
                 Reviewer: {summary.reviewedByName}
               </Typography>
               <Typography sx={{ fontSize: 11, color: "text.secondary" }}>
                 {formatExactTime(summary.reviewedAt)} · Verified
               </Typography>
-              <Typography sx={{ fontSize: 11, color: "#4b5563", fontStyle: "italic", mt: 0.5 }}>
+              <Typography sx={{ fontSize: 11, color: "text.secondary", fontStyle: "italic", mt: 0.5 }}>
                 "{SIGNATURE_STATEMENTS.Reviewed}"
               </Typography>
             </Box>
           )}
           {summary.approvedByName && (
-            <Box sx={{ p: 1.5, bgcolor: "#f9fafb", borderRadius: 1.5, border: "1px solid #e5e7eb" }}>
-              <Typography sx={{ fontSize: 12, fontWeight: 700, color: "#1f2937" }}>
+            <Box sx={{ p: 1.5, bgcolor: "background.default", borderRadius: 1.5, border: "1px solid", borderColor: "divider" }}>
+              <Typography sx={{ fontSize: 12, fontWeight: 700, color: "text.primary" }}>
                 Section Head: {summary.approvedByName}
               </Typography>
               <Typography sx={{ fontSize: 11, color: "text.secondary" }}>
                 {formatExactTime(summary.approvedAt)} · Verified
               </Typography>
-              <Typography sx={{ fontSize: 11, color: "#4b5563", fontStyle: "italic", mt: 0.5 }}>
+              <Typography sx={{ fontSize: 11, color: "text.secondary", fontStyle: "italic", mt: 0.5 }}>
                 "{isRejected ? SIGNATURE_STATEMENTS.Rejected : SIGNATURE_STATEMENTS.Approved}"
               </Typography>
             </Box>
@@ -834,8 +845,8 @@ function ApprovalSignaturesCard({
 
       {/* Review Action Form */}
       {canReview && (
-        <Box sx={{ mt: 2, pt: 2, borderTop: "1px solid #e5e7eb" }}>
-          <Typography sx={{ fontWeight: 700, fontSize: 13, mb: 1, color: brandColors.sectionTitle }}>
+        <Box sx={{ mt: 2, pt: 2, borderTop: "1px solid", borderColor: "divider" }}>
+          <Typography sx={{ fontWeight: 700, fontSize: 13, mb: 1, color: theme.palette.primary.main }}>
             Submit Technical Review
           </Typography>
           <Alert severity="info" sx={{ fontSize: 11, py: 0.5, mb: 1.5 }}>
@@ -864,8 +875,8 @@ function ApprovalSignaturesCard({
 
       {/* Approval Action Form */}
       {canApprove && (
-        <Box sx={{ mt: 2, pt: 2, borderTop: "1px solid #e5e7eb" }}>
-          <Typography sx={{ fontWeight: 700, fontSize: 13, mb: 1, color: brandColors.sectionTitle }}>
+        <Box sx={{ mt: 2, pt: 2, borderTop: "1px solid", borderColor: "divider" }}>
+          <Typography sx={{ fontWeight: 700, fontSize: 13, mb: 1, color: theme.palette.primary.main }}>
             Submit Release Decision
           </Typography>
           <TextField
@@ -907,6 +918,7 @@ function ApprovalSignaturesCard({
 }
 
 export function SampleSummaryDialog({ open, sampleId, onClose }: Props) {
+  const theme = useTheme();
   const { role } = useAuth();
   const [summary, setSummary] = useState<SampleSummary | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -1037,7 +1049,7 @@ export function SampleSummaryDialog({ open, sampleId, onClose }: Props) {
                   size="small"
                   startIcon={<PrintIcon />}
                   onClick={() => window.open(`/samples/${sampleId}/report`, "_blank", "noopener")}
-                  sx={{ borderColor: "#d1d5db", color: "#374151" }}
+                  sx={{ borderColor: "divider", color: "text.secondary" }}
                 >
                   Printable Report
                 </Button>
@@ -1047,7 +1059,7 @@ export function SampleSummaryDialog({ open, sampleId, onClose }: Props) {
                   startIcon={<PictureAsPdfIcon />}
                   disabled={!!exporting}
                   onClick={() => handleExport("pdf")}
-                  sx={{ borderColor: "#d1d5db", color: "#374151" }}
+                  sx={{ borderColor: "divider", color: "text.secondary" }}
                 >
                   {exporting === "pdf" ? "Exporting…" : "Export PDF"}
                 </Button>
@@ -1057,7 +1069,7 @@ export function SampleSummaryDialog({ open, sampleId, onClose }: Props) {
                   startIcon={<DescriptionIcon />}
                   disabled={!!exporting}
                   onClick={() => handleExport("word")}
-                  sx={{ borderColor: "#d1d5db", color: "#374151" }}
+                  sx={{ borderColor: "divider", color: "text.secondary" }}
                 >
                   {exporting === "word" ? "Exporting…" : "Export Word"}
                 </Button>
@@ -1124,7 +1136,8 @@ export function SampleSummaryDialog({ open, sampleId, onClose }: Props) {
               sx={{
                 textAlign: "center",
                 py: 1,
-                borderTop: "1px solid #f3f4f6",
+                borderTop: "1px solid",
+                borderColor: "divider",
                 color: "text.secondary"
               }}
             >

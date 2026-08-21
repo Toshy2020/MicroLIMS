@@ -19,6 +19,7 @@ export interface TestOrderSummary {
 // Mirrors backend SampleDto exactly.
 export interface SampleRecord {
   sampleId: number;
+  itemId?: number | null;
   referenceNumber: string;
   category: string;
   displayName: string;

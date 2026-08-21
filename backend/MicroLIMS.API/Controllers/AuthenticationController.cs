@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using MicroLIMS.Application.Interfaces;
+using MicroLIMS.Application.Services;
 using MicroLIMS.Shared.Responses;
 
 namespace MicroLIMS.API.Controllers;
@@ -10,16 +11,19 @@ public record RefreshRequest(string RefreshToken);
 public record RequestPasswordResetRequest(string Username);
 public record ConfirmPasswordResetRequest(string ResetToken, string NewPassword);
 public record ChangePasswordRequest(string CurrentPassword, string NewPassword);
+public record ConfirmAdminPasswordRecoveryRequest(string Username, string RecoveryCode, string NewPassword);
 
 [ApiController]
 [Route("api/auth")]
 public class AuthenticationController : ControllerBase
 {
     private readonly IAuthenticationService _authService;
+    private readonly AdminPasswordRecoveryService _adminPasswordRecoveryService;
 
-    public AuthenticationController(IAuthenticationService authService)
+    public AuthenticationController(IAuthenticationService authService, AdminPasswordRecoveryService adminPasswordRecoveryService)
     {
         _authService = authService;
+        _adminPasswordRecoveryService = adminPasswordRecoveryService;
     }
 
     [HttpPost("login")]
@@ -54,8 +58,6 @@ public class AuthenticationController : ControllerBase
             // Don't leak whether the account exists.
         }
 
-        // Same generic message regardless of outcome - doesn't leak
-        // whether the account exists or whether it has an email on file.
         return Ok(ApiResponse<object>.Ok(new { message = "If that account exists, a reset link has been generated." }));
     }
 
@@ -65,6 +67,21 @@ public class AuthenticationController : ControllerBase
     {
         var success = await _authService.ConfirmPasswordResetAsync(request.ResetToken, request.NewPassword);
         return success ? Ok(ApiResponse<object>.Ok(new { })) : BadRequest(ApiResponse<object>.Fail("Reset token is invalid or expired."));
+    }
+
+    [HttpPost("admin-password-recovery/confirm")]
+    [AllowAnonymous]
+    public async Task<IActionResult> ConfirmAdminPasswordRecovery(ConfirmAdminPasswordRecoveryRequest request)
+    {
+        try
+        {
+            await _adminPasswordRecoveryService.ConfirmRecoveryAsync(request.Username, request.RecoveryCode, request.NewPassword);
+            return Ok(ApiResponse<object>.Ok(new { message = "Password recovery successful. You may now log in with your new password." }));
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(ApiResponse<object>.Fail(ex.Message));
+        }
     }
 
     [HttpPost("change-password")]
@@ -94,6 +111,7 @@ public class AuthenticationController : ControllerBase
             username = info.Username,
             fullName = info.FullName,
             role = info.Role,
+            jobTitle = info.JobTitle,
             lastLoginAt = info.LastLoginAt,
             passwordChangedAt = info.PasswordChangedAt,
             mustChangePassword = info.MustChangePassword

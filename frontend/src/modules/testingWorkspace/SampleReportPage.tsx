@@ -7,6 +7,7 @@ import { SummaryMatrix } from "./SummaryMatrix";
 import { TestResultCard } from "./TestResultCards";
 import { SampleSummary } from "./types/sampleSummaryTypes";
 import { reportStyles } from "./reportStyles";
+import { PinnedLightTheme } from "../../theme/PinnedLightTheme";
 
 export const CheckIcon = ({ strokeWidth = 2.5 }: { strokeWidth?: number }) => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round">
@@ -116,14 +117,15 @@ export function SampleReportPage() {
     if (summary) document.title = `Sample Summary - ${summary.referenceNumber}`;
   }, [summary]);
 
-  if (error) return <div style={{ padding: 32, fontFamily: "Segoe UI, sans-serif", color: "#dc2626" }}>{error}</div>;
-  if (!summary) return <div style={{ padding: 32, fontFamily: "Segoe UI, sans-serif", color: "#666" }}>Loading report…</div>;
+  if (error) return <PinnedLightTheme><div style={{ padding: 32, fontFamily: "Segoe UI, sans-serif", color: "#dc2626" }}>{error}</div></PinnedLightTheme>;
+  if (!summary) return <PinnedLightTheme><div style={{ padding: 32, fontFamily: "Segoe UI, sans-serif", color: "#666" }}>Loading report…</div></PinnedLightTheme>;
 
   const s = summary;
   const steps = buildTimeline(s);
   const generatedAt = dt(new Date().toISOString());
 
   return (
+    <PinnedLightTheme>
     <div className="report-root">
       <style>{reportStyles}</style>
 
@@ -296,6 +298,7 @@ export function SampleReportPage() {
         Print / Save PDF
       </button>
     </div>
+    </PinnedLightTheme>
   );
 }
 

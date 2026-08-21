@@ -8,10 +8,10 @@ import {
 } from "../../testingWorkspace/reportPrimitives";
 import { ArchivedRecordsService, ArchivedRecordSummary } from "../../testingWorkspace/services/ArchivedRecordsService";
 import { MediaSummary, MediaChallengeSummary } from "./types/mediaSummaryTypes";
+import { PinnedLightTheme } from "../../../theme/PinnedLightTheme";
 
-// Released is the only "good" terminal state; a quarantined or rejected
-// lot reads red, and anything still in flight reads neutral.
 function releaseTone(s: MediaSummary): "" | "is-danger" | "is-warning" | "is-neutral" {
+  if (s.status === "OutOfStock") return "is-neutral";
   if (s.isReleasedForUse) return "";
   if (s.approvalStatus === "Rejected" || s.status === "QuarantineFailed") return "is-danger";
   if (s.evaluation?.outcome === "Conform") return "is-warning";
@@ -19,8 +19,9 @@ function releaseTone(s: MediaSummary): "" | "is-danger" | "is-warning" | "is-neu
 }
 
 function releaseLabel(s: MediaSummary): string {
+  if (s.status === "OutOfStock") return "Out of Stock";
   if (s.isReleasedForUse) return "Released for use";
-  if (s.approvalStatus === "Rejected" || s.status === "QuarantineFailed") return "Quarantined";
+  if (s.approvalStatus === "Rejected" || s.status === "QuarantineFailed") return "Rejected";
   if (s.evaluation?.outcome === "Conform") return "Awaiting release approval";
   if (s.evaluation?.outcome === "NonConform") return "Evaluation failed";
   return "Pending evaluation";
@@ -44,13 +45,14 @@ export function MediaReportPage() {
     if (summary) document.title = `Media Lot Record - ${summary.lotNumber}`;
   }, [summary]);
 
-  if (error) return <div style={{ padding: 32, fontFamily: "Segoe UI, sans-serif", color: "#dc2626" }}>{error}</div>;
-  if (!summary) return <div style={{ padding: 32, fontFamily: "Segoe UI, sans-serif", color: "#666" }}>Loading record…</div>;
+  if (error) return <PinnedLightTheme><div style={{ padding: 32, fontFamily: "Segoe UI, sans-serif", color: "#dc2626" }}>{error}</div></PinnedLightTheme>;
+  if (!summary) return <PinnedLightTheme><div style={{ padding: 32, fontFamily: "Segoe UI, sans-serif", color: "#666" }}>Loading record…</div></PinnedLightTheme>;
 
   const s = summary;
   const tone = releaseTone(s);
 
   return (
+    <PinnedLightTheme>
     <div className="report-root">
       <style>{reportStyles}</style>
 
@@ -186,6 +188,7 @@ export function MediaReportPage() {
 
       <PrintButton />
     </div>
+    </PinnedLightTheme>
   );
 }
 

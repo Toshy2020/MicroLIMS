@@ -1,4 +1,4 @@
-import { Paper, Box, Typography, Stack } from "@mui/material";
+import { Paper, Box, Typography, Stack, useTheme } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import HourglassBottomOutlinedIcon from "@mui/icons-material/HourglassBottomOutlined";
 import { StatusBadge } from "../../../components/StatusBadge";
@@ -11,6 +11,7 @@ import { useMediaExpiry } from "../hooks/useMediaExpiry";
 export function MediaExpiryPanel() {
   const { data: lots, loading } = useMediaExpiry();
   const navigate = useNavigate();
+  const theme = useTheme();
 
   return (
     <Paper sx={{ p: 2.5 }}>
@@ -18,8 +19,8 @@ export function MediaExpiryPanel() {
       {loading || !lots ? <LoadingSpinner /> : (
         <Stack spacing={1.25}>
           {lots.map((lot) => (
-            <Box key={lot.mediaId} sx={{ display: "flex", alignItems: "center", gap: 1.25, p: 1, border: "1px solid #f0e6f2", borderRadius: 1.5 }}>
-              <HourglassBottomOutlinedIcon fontSize="small" sx={{ color: lot.daysRemaining <= 3 ? "#dc2626" : "#ea580c" }} />
+            <Box key={lot.mediaId} sx={{ display: "flex", alignItems: "center", gap: 1.25, p: 1, border: "1px solid", borderColor: theme.custom.status.purple.border, borderRadius: 1.5 }}>
+              <HourglassBottomOutlinedIcon fontSize="small" sx={{ color: lot.daysRemaining <= 3 ? theme.custom.status.detected.text : theme.custom.status.action.text }} />
               <Box sx={{ flex: 1, minWidth: 0 }}>
                 <Typography sx={{ fontSize: 13, fontWeight: 600 }}>{lot.mediaTypeName} lot {lot.lotNumber}</Typography>
                 <Typography sx={{ fontSize: 12, color: "text.secondary" }}>

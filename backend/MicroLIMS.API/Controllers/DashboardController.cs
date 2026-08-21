@@ -68,5 +68,13 @@ public class DashboardController : ControllerBase
     public async Task<IActionResult> GetTodaysWork() => Ok(ApiResponse<object>.Ok(await _dashboardService.GetTodaysWorkAsync(CurrentRole, CurrentUserId)));
 
     [HttpGet("incubation-overview")]
-    public async Task<IActionResult> GetIncubationOverview() => Ok(ApiResponse<object>.Ok(await _dashboardService.GetIncubationOverviewAsync()));
+    public async Task<IActionResult> GetIncubationOverview([FromQuery] bool myIncubationsOnly = false) =>
+        Ok(ApiResponse<object>.Ok(await _dashboardService.GetIncubationOverviewAsync(myIncubationsOnly, CurrentUserId)));
+
+    [HttpGet("analyst-metrics")]
+    public async Task<IActionResult> GetAnalystMetrics()
+    {
+        if (CurrentRole != RoleType.Analyst) return Forbid();
+        return Ok(ApiResponse<object>.Ok(await _dashboardService.GetAnalystMetricsAsync(CurrentUserId)));
+    }
 }

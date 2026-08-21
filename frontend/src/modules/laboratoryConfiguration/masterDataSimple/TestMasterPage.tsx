@@ -276,7 +276,7 @@ function WorkflowStepsSection({ test, onWorkflowTypeChanged }: { test: TestDefin
   };
 
   return (
-    <Box sx={{ p: 2, bgcolor: "#f5f3fa", borderTop: "1px solid #e5e7eb" }}>
+    <Box sx={{ p: 2, bgcolor: "background.default", borderTop: "1px solid", borderTopColor: "divider" }}>
       <Stack direction="row" spacing={1.5} alignItems="center" sx={{ mb: 1.5 }}>
         <Typography sx={{ fontWeight: 700, fontSize: 13 }}>Workflow Steps</Typography>
         <Select size="small" value={test.workflowType} onChange={(e) => changeWorkflowType(e.target.value)}>
@@ -437,7 +437,7 @@ function WorkflowStepsSection({ test, onWorkflowTypeChanged }: { test: TestDefin
       </Stack>
 
       {form.stepType === "PlateCount" && form.requiresIncubationTransfer && (
-        <Box sx={{ mt: 1.5, p: 1.5, bgcolor: "#fff", border: "1px solid #d1d5db", borderRadius: 1 }}>
+        <Box sx={{ mt: 1.5, p: 1.5, bgcolor: "background.paper", border: "1px solid", borderColor: "divider", borderRadius: 1 }}>
           <Typography sx={{ fontWeight: 700, fontSize: 12, mb: 1, color: "text.primary" }}>
             Stage 2 Incubation (Transfer)
           </Typography>
@@ -583,7 +583,7 @@ function ApprovedMediaSection({ testDefinitionId }: { testDefinitionId: number }
   };
 
   return (
-    <Box sx={{ p: 2, bgcolor: "#faf9fc" }}>
+    <Box sx={{ p: 2, bgcolor: "background.default" }}>
       <Typography sx={{ fontWeight: 700, fontSize: 13, mb: 1 }}>Approved Media</Typography>
       {error && <Alert severity="error" sx={{ mb: 1.5 }}>{error}</Alert>}
       {approved.length > 0 ? (

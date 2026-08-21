@@ -17,7 +17,8 @@ import {
   Chip,
   LinearProgress,
   Tooltip,
-  CircularProgress
+  CircularProgress,
+  useTheme
 } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
 import SaveOutlinedIcon from "@mui/icons-material/SaveOutlined";
@@ -43,6 +44,7 @@ interface Props {
 }
 
 export function PrimaryObservationMatrixPanel({ session, onUpdated, onNext }: Props) {
+  const theme = useTheme();
   // Key = `${sampleLocationId}_${testCode}`
   const [primaryObservations, setPrimaryObservations] = useState<Record<string, {
     sampleLocationId: number;
@@ -330,11 +332,11 @@ export function PrimaryObservationMatrixPanel({ session, onUpdated, onNext }: Pr
       )}
 
       {/* Completion & Tri-State Header Card */}
-      <Paper sx={{ p: 2.5, borderRadius: 2, border: "1px solid #e5e7eb", bgcolor: "#fcfaff" }}>
+      <Paper sx={{ p: 2.5, borderRadius: 2, border: "1px solid", borderColor: theme.custom.status.purple.border, bgcolor: theme.custom.status.purple.bg }}>
         <Stack direction={{ xs: "column", md: "row" }} justifyContent="space-between" alignItems={{ md: "center" }} spacing={2}>
           <Box sx={{ flex: 1 }}>
             <Stack direction="row" spacing={1.5} alignItems="center" flexWrap="wrap" sx={{ mb: 1.25 }}>
-              <Typography sx={{ fontSize: 16, fontWeight: 800, color: "#1f2937" }}>
+              <Typography sx={{ fontSize: 16, fontWeight: 800, color: "text.primary" }}>
                 Primary Observation Matrix (Panel A)
               </Typography>
               <Chip
@@ -342,8 +344,8 @@ export function PrimaryObservationMatrixPanel({ session, onUpdated, onNext }: Pr
                 size="small"
                 sx={{
                   fontWeight: 700,
-                  bgcolor: completedCount > 0 ? "#d1fae5" : "#f3f4f6",
-                  color: completedCount > 0 ? "#065f46" : "#374151"
+                  bgcolor: completedCount > 0 ? theme.custom.status.notDetected.bg : theme.custom.status.pending.bg,
+                  color: completedCount > 0 ? theme.custom.status.notDetected.text : theme.custom.status.pending.text
                 }}
               />
               <Chip
@@ -351,8 +353,8 @@ export function PrimaryObservationMatrixPanel({ session, onUpdated, onNext }: Pr
                 size="small"
                 sx={{
                   fontWeight: 700,
-                  bgcolor: availableCount > 0 ? "#eff6ff" : "#f3f4f6",
-                  color: availableCount > 0 ? "#1e40af" : "#374151"
+                  bgcolor: availableCount > 0 ? theme.custom.status.info.bg : theme.custom.status.pending.bg,
+                  color: availableCount > 0 ? theme.custom.status.info.text : theme.custom.status.pending.text
                 }}
               />
               {lockedCount > 0 && (
@@ -362,8 +364,8 @@ export function PrimaryObservationMatrixPanel({ session, onUpdated, onNext }: Pr
                   size="small"
                   sx={{
                     fontWeight: 700,
-                    bgcolor: "#fee2e2",
-                    color: "#991b1b"
+                    bgcolor: theme.custom.status.detected.bg,
+                    color: theme.custom.status.detected.text
                   }}
                 />
               )}
@@ -375,7 +377,7 @@ export function PrimaryObservationMatrixPanel({ session, onUpdated, onNext }: Pr
               sx={{
                 height: 8,
                 borderRadius: 4,
-                bgcolor: "#e5e7eb",
+                bgcolor: "divider",
                 "& .MuiLinearProgress-bar": {
                   bgcolor: completedCount === totalCount ? "#059669" : brandColors.sectionTitle
                 }
@@ -437,7 +439,7 @@ export function PrimaryObservationMatrixPanel({ session, onUpdated, onNext }: Pr
           InputProps={{
             startAdornment: (
               <InputAdornment position="start">
-                <SearchIcon sx={{ fontSize: 18, color: "#9ca3af" }} />
+                <SearchIcon sx={{ fontSize: 18, color: "text.secondary" }} />
               </InputAdornment>
             )
           }}
@@ -454,13 +456,13 @@ export function PrimaryObservationMatrixPanel({ session, onUpdated, onNext }: Pr
           {filterPendingOnly ? "Showing Pending Only" : "Show Pending Only"}
         </Button>
 
-        <Typography sx={{ fontSize: 12, color: "#6b7280", ml: "auto" }}>
+        <Typography sx={{ fontSize: 12, color: "text.secondary", ml: "auto" }}>
           Showing {filteredLocations.length} of {session.totalLocations} locations
         </Typography>
       </Stack>
 
       {/* Dynamic Primary Observations Grid */}
-      <Paper sx={{ border: "1px solid #e5e7eb", borderRadius: 2, overflow: "hidden" }}>
+      <Paper sx={{ border: "1px solid", borderColor: "divider", borderRadius: 2, overflow: "hidden" }}>
         <Box sx={{ maxHeight: 520, overflow: "auto" }}>
           <Table size="small" stickyHeader>
             <TableHead>
@@ -471,11 +473,12 @@ export function PrimaryObservationMatrixPanel({ session, onUpdated, onNext }: Pr
                     position: "sticky",
                     left: 0,
                     zIndex: 3,
-                    bgcolor: "#f8fafc",
+                    bgcolor: "background.default",
                     fontWeight: 800,
-                    color: "#1e293b",
+                    color: "text.primary",
                     minWidth: 240,
-                    borderRight: "2px solid #e2e8f0"
+                    borderRight: "2px solid",
+                    borderRightColor: "divider"
                   }}
                 >
                   Sampling Location ({filteredLocations.length})
@@ -494,21 +497,22 @@ export function PrimaryObservationMatrixPanel({ session, onUpdated, onNext }: Pr
                       key={t.testCode}
                       align="center"
                       sx={{
-                        bgcolor: isLocked ? "#f8fafc" : "#fcfaff",
+                        bgcolor: isLocked ? "background.default" : theme.custom.status.purple.bg,
                         fontWeight: 800,
-                        color: isLocked ? "#64748b" : brandColors.sectionTitle,
+                        color: isLocked ? "text.secondary" : brandColors.sectionTitle,
                         minWidth: 190,
-                        borderRight: "1px solid #f1f5f9"
+                        borderRight: "1px solid",
+                        borderRightColor: "divider"
                       }}
                     >
                       <Stack direction="row" spacing={0.5} justifyContent="center" alignItems="center">
                         <Typography sx={{ fontSize: 13, fontWeight: 800 }}>
                           {t.testCode}
                         </Typography>
-                        {isLocked && <LockOutlinedIcon sx={{ fontSize: 14, color: "#dc2626" }} />}
+                        {isLocked && <LockOutlinedIcon sx={{ fontSize: 14, color: theme.custom.status.detected.text }} />}
                       </Stack>
 
-                      <Typography sx={{ fontSize: 11, color: "#64748b", fontWeight: 500 }}>
+                      <Typography sx={{ fontSize: 11, color: "text.secondary", fontWeight: 500 }}>
                         {t.displayName}
                       </Typography>
 
@@ -519,8 +523,8 @@ export function PrimaryObservationMatrixPanel({ session, onUpdated, onNext }: Pr
                           sx={{
                             fontSize: 10,
                             height: 18,
-                            bgcolor: isLocked ? "#fee2e2" : "#eff6ff",
-                            color: isLocked ? "#991b1b" : "#1e40af",
+                            bgcolor: isLocked ? theme.custom.status.detected.bg : theme.custom.status.info.bg,
+                            color: isLocked ? theme.custom.status.detected.text : theme.custom.status.info.text,
                             fontWeight: 700
                           }}
                         />
@@ -531,10 +535,11 @@ export function PrimaryObservationMatrixPanel({ session, onUpdated, onNext }: Pr
                             sx={{
                               fontSize: 10,
                               height: 18,
-                              bgcolor: "#fdf4ff",
-                              color: "#a21caf",
+                              bgcolor: theme.custom.status.purple.bg,
+                              color: theme.custom.status.purple.text,
                               fontWeight: 700,
-                              border: "1px solid #f0abfc"
+                              border: "1px solid",
+                              borderColor: theme.custom.status.purple.border
                             }}
                           />
                         )}
@@ -547,30 +552,31 @@ export function PrimaryObservationMatrixPanel({ session, onUpdated, onNext }: Pr
 
             <TableBody>
               {filteredLocations.map((loc, idx) => (
-                <TableRow key={loc.id} hover sx={{ bgcolor: idx % 2 === 0 ? "#ffffff" : "#fafafa" }}>
+                <TableRow key={loc.id} hover sx={{ bgcolor: idx % 2 === 0 ? "background.paper" : "background.default" }}>
                   {/* Sticky Location Name Column */}
                   <TableCell
                     sx={{
                       position: "sticky",
                       left: 0,
                       zIndex: 2,
-                      bgcolor: idx % 2 === 0 ? "#ffffff" : "#fafafa",
+                      bgcolor: idx % 2 === 0 ? "background.paper" : "background.default",
                       fontWeight: 700,
-                      borderRight: "2px solid #e2e8f0"
+                      borderRight: "2px solid",
+                      borderRightColor: "divider"
                     }}
                   >
-                    <Typography sx={{ fontSize: 13, fontWeight: 700, color: "#1f2937" }}>
+                    <Typography sx={{ fontSize: 13, fontWeight: 700, color: "text.primary" }}>
                       {loc.locationName}
                     </Typography>
                     <Stack direction="row" spacing={0.5} alignItems="center" sx={{ mt: 0.25 }}>
-                      <Typography sx={{ fontSize: 11, color: "#6b7280" }}>
+                      <Typography sx={{ fontSize: 11, color: "text.secondary" }}>
                         {loc.locationType}
                       </Typography>
                       {loc.gradeClassification && (
                         <Chip
                           label={`Grade ${loc.gradeClassification}`}
                           size="small"
-                          sx={{ fontSize: 9, height: 16, bgcolor: "#ecfdf5", color: "#065f46" }}
+                          sx={{ fontSize: 9, height: 16, bgcolor: theme.custom.status.notDetected.bg, color: theme.custom.status.notDetected.text }}
                         />
                       )}
                     </Stack>
@@ -595,8 +601,9 @@ export function PrimaryObservationMatrixPanel({ session, onUpdated, onNext }: Pr
                           align="center"
                           sx={{
                             p: 1,
-                            borderRight: "1px solid #f1f5f9",
-                            bgcolor: "#f8fafc"
+                            borderRight: "1px solid",
+                            borderRightColor: "divider",
+                            bgcolor: "background.default"
                           }}
                         >
                           <Tooltip title={t.lockReason ?? "Locked until upstream workflow step completes"}>
@@ -604,19 +611,20 @@ export function PrimaryObservationMatrixPanel({ session, onUpdated, onNext }: Pr
                               sx={{
                                 py: 0.75,
                                 px: 1.5,
-                                bgcolor: "#f1f5f9",
+                                bgcolor: theme.custom.countdown.locked.bg,
                                 borderRadius: 1.5,
-                                border: "1px dashed #cbd5e1",
+                                border: "1px dashed",
+                                borderColor: "divider",
                                 display: "inline-flex",
                                 alignItems: "center",
                                 gap: 0.75,
-                                color: "#64748b",
+                                color: theme.custom.countdown.locked.text,
                                 fontSize: 11,
                                 fontWeight: 700,
                                 cursor: "not-allowed"
                               }}
                             >
-                              <LockOutlinedIcon sx={{ fontSize: 14, color: "#94a3b8" }} />
+                              <LockOutlinedIcon sx={{ fontSize: 14, color: theme.custom.countdown.locked.text }} />
                               <span>Locked</span>
                             </Box>
                           </Tooltip>
@@ -666,7 +674,8 @@ export function PrimaryObservationMatrixPanel({ session, onUpdated, onNext }: Pr
                           align="center"
                           sx={{
                             p: 1,
-                            borderRight: "1px solid #f1f5f9"
+                            borderRight: "1px solid",
+                            borderRightColor: "divider"
                           }}
                         >
                           <Box
@@ -702,7 +711,8 @@ export function PrimaryObservationMatrixPanel({ session, onUpdated, onNext }: Pr
                         align="center"
                         sx={{
                           p: 1,
-                          borderRight: "1px solid #f1f5f9",
+                          borderRight: "1px solid",
+                          borderRightColor: "divider",
                           bgcolor: !isCellFilled ? "#fffbeb" : "inherit"
                         }}
                       >

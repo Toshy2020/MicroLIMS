@@ -33,6 +33,7 @@ public class TestOrderSummaryDto
 public class SampleDto
 {
     public int SampleId { get; set; }
+    public int? ItemId { get; set; }
     public string ReferenceNumber { get; set; } = string.Empty;
     public string Category { get; set; } = string.Empty;
     public string DisplayName { get; set; } = string.Empty; // Item name, or Sampling Point/Department/Machine name

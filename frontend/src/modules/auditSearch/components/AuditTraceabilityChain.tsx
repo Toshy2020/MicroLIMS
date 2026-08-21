@@ -4,7 +4,8 @@ import {
   Typography,
   Chip,
   CircularProgress,
-  Button
+  Button,
+  useTheme
 } from "@mui/material";
 import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
@@ -27,6 +28,7 @@ export function AuditTraceabilityChain({
   onOpenEntityHistory
 }: Props) {
   const navigate = useNavigate();
+  const theme = useTheme();
   const [result, setResult] = useState<AuditTraceabilityResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -88,11 +90,11 @@ export function AuditTraceabilityChain({
               sx={{
                 p: 1.5,
                 borderRadius: 1.5,
-                border: "1px solid #e5e7eb",
-                bgcolor: "#ffffff",
-                boxShadow: "0 1px 2px rgba(0,0,0,0.03)",
+                border: "1px solid",
+                borderColor: "divider",
+                bgcolor: "background.paper",
                 transition: "all 0.15s ease",
-                "&:hover": { borderColor: "primary.main", bgcolor: "#faf5ff" }
+                "&:hover": { borderColor: "primary.main", bgcolor: theme.custom.status.purple.bg }
               }}
             >
               <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", mb: 0.5 }}>
@@ -104,8 +106,8 @@ export function AuditTraceabilityChain({
                       fontSize: 9,
                       fontWeight: 700,
                       height: 18,
-                      bgcolor: "#f3e8ff",
-                      color: "#7e22ce"
+                      bgcolor: theme.custom.status.purple.bg,
+                      color: theme.custom.status.purple.text
                     }}
                   />
                   <Typography sx={{ fontSize: 13, fontWeight: 700, fontFamily: "monospace", color: "text.primary" }}>

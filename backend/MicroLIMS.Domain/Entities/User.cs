@@ -9,6 +9,7 @@ public class User
     public string? Email { get; set; }
     public int RoleId { get; set; }
     public Role? Role { get; set; }
+    public string? JobTitle { get; set; }
     public bool IsActive { get; set; } = true;
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 

@@ -9,7 +9,8 @@ import {
   Box,
   Alert,
   Paper,
-  Stack
+  Stack,
+  useTheme
 } from "@mui/material";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
@@ -29,6 +30,7 @@ export function DestroyCryovialDialog({
   onCancel,
   onConfirm
 }: DestroyCryovialDialogProps) {
+  const theme = useTheme();
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -70,13 +72,13 @@ export function DestroyCryovialDialog({
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            bgcolor: "#fee2e2",
-            color: "#dc2626"
+            bgcolor: theme.custom.status.detected.bg,
+            color: theme.custom.status.detected.text
           }}
         >
           <DeleteOutlineIcon fontSize="small" />
         </Box>
-        <Typography sx={{ fontSize: 18, fontWeight: 700, color: "#1f2937" }}>
+        <Typography sx={{ fontSize: 18, fontWeight: 700, color: "text.primary" }}>
           Confirm Batch Destruction
         </Typography>
       </DialogTitle>
@@ -93,8 +95,8 @@ export function DestroyCryovialDialog({
             variant="outlined"
             sx={{
               p: 2,
-              bgcolor: "#f8fafc",
-              borderColor: "#e2e8f0",
+              bgcolor: "background.default",
+              borderColor: "divider",
               borderRadius: 1.5
             }}
           >
@@ -109,7 +111,7 @@ export function DestroyCryovialDialog({
                 <Typography sx={{ fontSize: 11, fontWeight: 600, color: "text.secondary", textTransform: "uppercase" }}>
                   Cryovial Code
                 </Typography>
-                <Typography sx={{ fontSize: 14, fontWeight: 700, fontFamily: "monospace", color: brandColors.sectionTitle }}>
+                <Typography sx={{ fontSize: 14, fontWeight: 700, fontFamily: "monospace", color: theme.palette.primary.main }}>
                   {cryovial.code}
                 </Typography>
               </Box>
@@ -118,7 +120,7 @@ export function DestroyCryovialDialog({
                 <Typography sx={{ fontSize: 11, fontWeight: 600, color: "text.secondary", textTransform: "uppercase" }}>
                   Organism
                 </Typography>
-                <Typography sx={{ fontSize: 13, fontWeight: 600, color: "#1f2937" }}>
+                <Typography sx={{ fontSize: 13, fontWeight: 600, color: "text.primary" }}>
                   {organismName}
                 </Typography>
               </Box>
@@ -127,7 +129,7 @@ export function DestroyCryovialDialog({
                 <Typography sx={{ fontSize: 11, fontWeight: 600, color: "text.secondary", textTransform: "uppercase" }}>
                   Vials Remaining
                 </Typography>
-                <Typography sx={{ fontSize: 13, fontWeight: 700, color: "#dc2626" }}>
+                <Typography sx={{ fontSize: 13, fontWeight: 700, color: theme.custom.status.detected.text }}>
                   {cryovial.vialsRemaining} of {cryovial.numberOfVialsPrepared}
                 </Typography>
               </Box>
@@ -137,7 +139,7 @@ export function DestroyCryovialDialog({
       </DialogContent>
 
       <DialogActions sx={{ px: 3, py: 2 }}>
-        <Button onClick={onCancel} disabled={submitting} sx={{ color: "#4b5563" }}>
+        <Button onClick={onCancel} disabled={submitting} sx={{ color: "text.secondary" }}>
           Cancel
         </Button>
         <Button

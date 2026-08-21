@@ -1,4 +1,4 @@
-import { Box, Typography, Chip, Tooltip } from "@mui/material";
+import { Box, Typography, Chip, Tooltip, useTheme } from "@mui/material";
 import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 import { computeAuditDiff } from "../utils/auditDiffUtils";
 
@@ -19,6 +19,7 @@ export function AuditDiffViewer({
   maxCompactItems = 2,
   onViewAll
 }: Props) {
+  const theme = useTheme();
   const changes = computeAuditDiff(action, previousValue, newValue);
 
   if (action === "Create") {
@@ -34,9 +35,10 @@ export function AuditDiffViewer({
                 fontSize: 10,
                 fontWeight: 700,
                 height: 18,
-                bgcolor: "#ecfdf5",
-                color: "#059669",
-                border: "1px solid #a7f3d0"
+                bgcolor: theme.custom.status.notDetected.bg,
+                color: theme.custom.status.notDetected.text,
+                border: "1px solid",
+                borderColor: theme.custom.status.notDetected.border
               }}
             />
             <Typography sx={{ fontSize: 11, color: "text.secondary" }}>
@@ -61,15 +63,16 @@ export function AuditDiffViewer({
             sx={{
               fontSize: 11,
               fontWeight: 700,
-              bgcolor: "#ecfdf5",
-              color: "#059669",
-              border: "1px solid #a7f3d0"
+              bgcolor: theme.custom.status.notDetected.bg,
+              color: theme.custom.status.notDetected.text,
+              border: "1px solid",
+              borderColor: theme.custom.status.notDetected.border
             }}
           />
         </Box>
         <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "repeat(2, 1fr)" }, gap: 1 }}>
           {changes.map((c) => (
-            <Box key={c.key} sx={{ p: 1, bgcolor: "#f9fafb", borderRadius: 1, border: "1px solid #f3f4f6" }}>
+            <Box key={c.key} sx={{ p: 1, bgcolor: "background.default", borderRadius: 1, border: "1px solid", borderColor: "divider" }}>
               <Typography sx={{ fontSize: 11, color: "text.secondary", fontWeight: 600 }}>
                 {c.label}
               </Typography>
@@ -93,9 +96,10 @@ export function AuditDiffViewer({
             fontSize: 10,
             fontWeight: 700,
             height: 18,
-            bgcolor: "#fef2f2",
-            color: "#dc2626",
-            border: "1px solid #fecaca"
+            bgcolor: theme.custom.status.detected.bg,
+            color: theme.custom.status.detected.text,
+            border: "1px solid",
+            borderColor: theme.custom.status.detected.border
           }}
         />
         <Typography sx={{ fontSize: 11, color: "text.secondary" }}>
@@ -130,8 +134,8 @@ export function AuditDiffViewer({
                 component="span"
                 sx={{
                   fontSize: 11,
-                  color: "#991b1b",
-                  bgcolor: "#fee2e2",
+                  color: theme.custom.status.detected.text,
+                  bgcolor: theme.custom.status.detected.bg,
                   px: 0.5,
                   py: 0.1,
                   borderRadius: 0.5,
@@ -149,8 +153,8 @@ export function AuditDiffViewer({
                 component="span"
                 sx={{
                   fontSize: 11,
-                  color: "#065f46",
-                  bgcolor: "#d1fae5",
+                  color: theme.custom.status.notDetected.text,
+                  bgcolor: theme.custom.status.notDetected.bg,
                   px: 0.5,
                   py: 0.1,
                   borderRadius: 0.5,
@@ -202,25 +206,26 @@ export function AuditDiffViewer({
           key={c.key}
           sx={{
             p: 1.5,
-            border: "1px solid #e5e7eb",
+            border: "1px solid",
+            borderColor: "divider",
             borderRadius: 1.5,
-            bgcolor: "#ffffff"
+            bgcolor: "background.paper"
           }}
         >
           <Typography sx={{ fontSize: 11, fontWeight: 700, color: "text.secondary", textTransform: "uppercase", mb: 0.5 }}>
             {c.label} <Typography component="span" sx={{ fontSize: 10, color: "text.disabled", fontFamily: "monospace" }}>({c.key})</Typography>
           </Typography>
           <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, flexWrap: "wrap" }}>
-            <Box sx={{ flex: 1, minWidth: 120, p: 1, bgcolor: "#fef2f2", border: "1px solid #fecaca", borderRadius: 1 }}>
-              <Typography sx={{ fontSize: 10, color: "#991b1b", fontWeight: 700 }}>PREVIOUS VALUE</Typography>
-              <Typography sx={{ fontSize: 12, color: "#7f1d1d", wordBreak: "break-word" }}>
+            <Box sx={{ flex: 1, minWidth: 120, p: 1, bgcolor: theme.custom.status.detected.bg, border: "1px solid", borderColor: theme.custom.status.detected.border, borderRadius: 1 }}>
+              <Typography sx={{ fontSize: 10, color: theme.custom.status.detected.text, fontWeight: 700 }}>PREVIOUS VALUE</Typography>
+              <Typography sx={{ fontSize: 12, color: theme.custom.status.detected.text, wordBreak: "break-word" }}>
                 {c.oldDisplay}
               </Typography>
             </Box>
             <ArrowForwardIcon sx={{ color: "text.secondary", fontSize: 16 }} />
-            <Box sx={{ flex: 1, minWidth: 120, p: 1, bgcolor: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 1 }}>
-              <Typography sx={{ fontSize: 10, color: "#166534", fontWeight: 700 }}>NEW VALUE</Typography>
-              <Typography sx={{ fontSize: 12, color: "#14532d", fontWeight: 600, wordBreak: "break-word" }}>
+            <Box sx={{ flex: 1, minWidth: 120, p: 1, bgcolor: theme.custom.status.notDetected.bg, border: "1px solid", borderColor: theme.custom.status.notDetected.border, borderRadius: 1 }}>
+              <Typography sx={{ fontSize: 10, color: theme.custom.status.notDetected.text, fontWeight: 700 }}>NEW VALUE</Typography>
+              <Typography sx={{ fontSize: 12, color: theme.custom.status.notDetected.text, fontWeight: 600, wordBreak: "break-word" }}>
                 {c.newDisplay}
               </Typography>
             </Box>

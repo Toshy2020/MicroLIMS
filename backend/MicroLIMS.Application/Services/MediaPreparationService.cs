@@ -27,11 +27,13 @@ public class MediaPreparationService
 {
     private readonly MicroLimsDbContext _db;
     private readonly MaterialService _materialService;
+    private readonly ReviewGateService _reviewGate;
 
-    public MediaPreparationService(MicroLimsDbContext db, MaterialService materialService)
+    public MediaPreparationService(MicroLimsDbContext db, MaterialService materialService, ReviewGateService reviewGate)
     {
         _db = db;
         _materialService = materialService;
+        _reviewGate = reviewGate;
     }
 
     public async Task<Media> PrepareAsync(PrepareMediaRequest request)
@@ -122,9 +124,31 @@ public class MediaPreparationService
     public async Task<List<Media>> GetReleasedAsync(int? mediaTypeId = null)
     {
         var query = _db.Media.Include(m => m.MediaType).Include(m => m.Material)
-            .Where(m => m.IsReleasedForUse && m.ExpiryDate > DateTime.UtcNow);
+            .Where(m => m.IsReleasedForUse && m.Status == MediaStatus.Active && m.ExpiryDate > DateTime.UtcNow);
         if (mediaTypeId.HasValue) query = query.Where(m => m.MediaTypeId == mediaTypeId.Value);
         return await query.OrderByDescending(m => m.Id).ToListAsync();
+    }
+
+    public async Task MarkOutOfStockAsync(int mediaId, int userId, string? comment = null)
+    {
+        var media = await _db.Media.FirstOrDefaultAsync(m => m.Id == mediaId)
+            ?? throw new InvalidOperationException($"Media lot {mediaId} not found.");
+
+        if (!media.IsReleasedForUse || media.Status != MediaStatus.Active)
+        {
+            throw new InvalidOperationException($"Media lot {media.LotNumber} is not currently released for use and cannot be marked Out of Stock.");
+        }
+
+        media.Status = MediaStatus.OutOfStock;
+
+        await _reviewGate.LogEventAsync(
+            ReviewEntityTypes.Media,
+            mediaId,
+            userId,
+            ReviewWorkflowEventType.ApprovalDecisionMade,
+            comment ?? "Media lot manually marked Out of Stock.");
+
+        await _db.SaveChangesAsync();
     }
 
     // Material.Code isn't guaranteed present (nullable) - falls back to

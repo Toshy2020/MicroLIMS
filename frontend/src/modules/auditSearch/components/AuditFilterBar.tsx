@@ -50,9 +50,9 @@ export function AuditFilterBar({
       sx={{
         p: 2.5,
         mb: 3,
-        border: "1px solid #e5e7eb",
-        borderRadius: 2,
-        boxShadow: "0 1px 3px rgba(0,0,0,0.04)"
+        border: "1px solid",
+        borderColor: "divider",
+        borderRadius: 2
       }}
     >
       {/* Primary quick filters */}
@@ -133,7 +133,8 @@ export function AuditFilterBar({
             gap: 2,
             pt: 1,
             pb: 2,
-            borderTop: "1px dashed #e5e7eb"
+            borderTop: "1px dashed",
+            borderColor: "divider"
           }}
           onKeyDown={handleKeyDown}
         >

@@ -13,7 +13,10 @@ import {
   Alert,
   IconButton,
   Tooltip,
-  Typography
+  Typography,
+  Tabs,
+  Tab,
+  useTheme
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
@@ -41,6 +44,7 @@ import {
 import { EquipmentFilterBar } from "./components/EquipmentFilterBar";
 import { RegisterEquipmentDialog } from "./components/RegisterEquipmentDialog";
 import { EquipmentDetailsDialog } from "./components/EquipmentDetailsDialog";
+import { ActiveEquipmentView } from "./components/ActiveEquipmentView";
 import { brandColors } from "../../../theme";
 
 const INITIAL_FILTERS: EquipmentFilterState = {
@@ -52,9 +56,11 @@ const INITIAL_FILTERS: EquipmentFilterState = {
 };
 
 export function EquipmentInventoryPage() {
+  const theme = useTheme();
   const { role } = useAuth();
   const canSeeHistory = role === "SectionHead" || role === "SystemAdministrator";
 
+  const [activeTab, setActiveTab] = useState(0); // 0 = Equipment Register, 1 = Active Equipment
   const [items, setItems] = useState<EquipmentItem[] | null>(null);
   const [printList, setPrintList] = useState<EquipmentItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -84,7 +90,6 @@ export function EquipmentInventoryPage() {
       setItems(allEquipment);
       setPrintList(printEquipment);
 
-      // If details dialog is open, refresh the selected item
       if (detailsItem) {
         const refreshed = allEquipment.find((e: EquipmentItem) => e.id === detailsItem.id);
         if (refreshed) {
@@ -118,18 +123,15 @@ export function EquipmentInventoryPage() {
     setPage(0);
   };
 
-  // Filtered dataset combining KPI shortcuts + form filters
   const filteredItems = useMemo(() => {
     if (!items) return [];
 
     return items.filter((item) => {
-      // 1. KPI Shortcut Filter
       if (kpiFilter === "in_service" && item.status !== "InService") return false;
       if (kpiFilter === "out_of_service" && item.status !== "OutOfService" && item.status !== "Retired") return false;
       if (kpiFilter === "calibration_overdue" && !isEquipmentCalibrationOverdue(item)) return false;
       if (kpiFilter === "calibration_due_soon" && !isEquipmentCalibrationDueSoon(item, 30)) return false;
 
-      // 2. Search Text Query
       const q = filters.search.trim().toLowerCase();
       if (q) {
         const matchesType = (item.instrumentType ?? "").toLowerCase().includes(q);
@@ -143,22 +145,18 @@ export function EquipmentInventoryPage() {
         }
       }
 
-      // 3. Dropdown: Instrument Type
       if (filters.instrumentType && item.instrumentType !== filters.instrumentType) {
         return false;
       }
 
-      // 4. Dropdown: Operational Status
       if (filters.status && item.status !== filters.status) {
         return false;
       }
 
-      // 5. Dropdown: Location
       if (filters.location && item.location !== filters.location) {
         return false;
       }
 
-      // 6. Dropdown: Calibration Range
       if (filters.calibrationRange) {
         if (filters.calibrationRange === "overdue" && !isEquipmentCalibrationOverdue(item)) return false;
         if (filters.calibrationRange === "due_30" && !isEquipmentCalibrationDueSoon(item, 30)) return false;
@@ -170,7 +168,6 @@ export function EquipmentInventoryPage() {
     });
   }, [items, kpiFilter, filters]);
 
-  // Paginated slice
   const paginatedItems = useMemo(() => {
     const start = page * rowsPerPage;
     return filteredItems.slice(start, start + rowsPerPage);
@@ -181,27 +178,37 @@ export function EquipmentInventoryPage() {
       <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", mb: 2 }}>
         <PageHeader
           title="Equipment"
-          subtitle="QC/Microbiology lab instrument register — serial number, firmware, and calibration due date."
+          subtitle="QC/Microbiology lab instrument register & active equipment traceability."
         />
-        <Button
-          className="no-print"
-          variant="contained"
-          startIcon={<AddIcon />}
-          onClick={() => {
-            setEditingItem(null);
-            setIsRegisterOpen(true);
-          }}
-          sx={{
-            bgcolor: brandColors.sectionTitle,
-            px: 2.5,
-            py: 1,
-            fontWeight: 600,
-            whiteSpace: "nowrap",
-            "&:hover": { bgcolor: brandColors.pageTitle }
-          }}
-        >
-          + Register Equipment
-        </Button>
+        {activeTab === 0 && (
+          <Button
+            className="no-print"
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={() => {
+              setEditingItem(null);
+              setIsRegisterOpen(true);
+            }}
+            sx={{
+              bgcolor: brandColors.sectionTitle,
+              px: 2.5,
+              py: 1,
+              fontWeight: 600,
+              whiteSpace: "nowrap",
+              "&:hover": { bgcolor: brandColors.pageTitle }
+            }}
+          >
+            + Register Equipment
+          </Button>
+        )}
+      </Box>
+
+      {/* Tabs Navigation: Equipment Register vs Active Equipment */}
+      <Box sx={{ borderBottom: 1, borderColor: "divider", mb: 2.5 }} className="no-print">
+        <Tabs value={activeTab} onChange={(_, val) => setActiveTab(val)}>
+          <Tab label="Equipment Register" sx={{ fontWeight: 700, textTransform: "none", fontSize: 15 }} />
+          <Tab label="Active Equipment" sx={{ fontWeight: 700, textTransform: "none", fontSize: 15 }} />
+        </Tabs>
       </Box>
 
       {message && (
@@ -217,16 +224,14 @@ export function EquipmentInventoryPage() {
 
       {loading || !items ? (
         <LoadingSpinner />
-      ) : (
+      ) : activeTab === 0 ? (
         <Box className="no-print">
-          {/* KPI Shortcut Cards */}
           <EquipmentKpiCards
             items={items}
             activeFilter={kpiFilter}
             onFilterSelect={handleKpiSelect}
           />
 
-          {/* Compact Search & Filter Bar */}
           <EquipmentFilterBar
             items={items}
             filters={filters}
@@ -234,7 +239,6 @@ export function EquipmentInventoryPage() {
             onReset={handleReset}
           />
 
-          {/* Equipment Register Section */}
           <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1.5, mt: 3 }}>
             <SectionTitle>
               {`Equipment Register (${filteredItems.length}${filteredItems.length !== items.length ? ` filtered from ${items.length}` : ""})`}
@@ -242,10 +246,10 @@ export function EquipmentInventoryPage() {
             <PrintButton label="Print (excludes out-of-service / retired)" />
           </Box>
 
-          <Paper sx={{ border: "1px solid #e5e7eb", borderRadius: 2, overflow: "hidden" }}>
+          <Paper sx={{ border: "1px solid", borderColor: "divider", borderRadius: 2, overflow: "hidden" }}>
             <TableContainer>
               <Table size="small">
-                <TableHead sx={{ bgcolor: "#f9fafb" }}>
+                <TableHead sx={{ bgcolor: "background.default" }}>
                   <TableRow>
                     <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Type</TableCell>
                     <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Manufacturer</TableCell>
@@ -276,7 +280,11 @@ export function EquipmentInventoryPage() {
                           key={eq.id}
                           hover
                           sx={{
-                            bgcolor: isOverdue ? "#fef2f2" : isDueSoon ? "#fffbeb" : undefined,
+                            bgcolor: isOverdue
+                              ? theme.custom.status.detected.bg
+                              : isDueSoon
+                              ? theme.custom.status.inconclusive.bg
+                              : undefined,
                             "&:last-child td, &:last-child th": { border: 0 }
                           }}
                         >
@@ -293,7 +301,6 @@ export function EquipmentInventoryPage() {
                             {eq.firmwareVersion || "—"}
                           </TableCell>
                           <TableCell sx={{ fontSize: 12, fontFamily: "monospace", fontWeight: 700 }}>
-                            {/* Equipment Code is the single clickable identifier */}
                             <Typography
                               component="span"
                               id={`equip-code-link-${eq.id}`}
@@ -319,7 +326,11 @@ export function EquipmentInventoryPage() {
                               <span
                                 style={{
                                   fontWeight: isOverdue || isDueSoon ? 600 : "normal",
-                                  color: isOverdue ? "#dc2626" : isDueSoon ? "#d97706" : "inherit"
+                                  color: isOverdue
+                                    ? theme.custom.status.detected.text
+                                    : isDueSoon
+                                    ? theme.custom.status.inconclusive.text
+                                    : "inherit"
                                 }}
                               >
                                 {eq.calibrationDueDate ? formatLabDate(eq.calibrationDueDate) : "—"}
@@ -375,9 +386,19 @@ export function EquipmentInventoryPage() {
                 setRowsPerPage(parseInt(e.target.value, 10));
                 setPage(0);
               }}
-              sx={{ borderTop: "1px solid #e5e7eb" }}
+              sx={{ borderTop: "1px solid", borderColor: "divider" }}
             />
           </Paper>
+        </Box>
+      ) : (
+        /* Active Equipment View (Tab 1) */
+        <Box className="no-print">
+          <ActiveEquipmentView
+            onOpenDetails={(eqId) => {
+              const eq = items.find((e) => e.id === eqId);
+              if (eq) setDetailsItem(eq);
+            }}
+          />
         </Box>
       )}
 

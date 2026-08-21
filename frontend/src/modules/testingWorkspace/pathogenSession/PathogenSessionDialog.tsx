@@ -153,7 +153,7 @@ export function PathogenSessionDialog({ open, sampleId, onClose, onSessionUpdate
           borderRadius: 2.5,
           minHeight: "85vh",
           maxHeight: "92vh",
-          bgcolor: "#fbfbfe"
+          bgcolor: "background.paper"
         }
       }}
     >
@@ -232,7 +232,7 @@ export function PathogenSessionDialog({ open, sampleId, onClose, onSessionUpdate
 
       {/* Navigation Stepper with Step-Gating */}
       {session && (
-        <Box sx={{ px: 4, pt: 2.5, pb: 1.5, bgcolor: "#ffffff", borderBottom: "1px solid #e5e7eb" }}>
+        <Box sx={{ px: 4, pt: 2.5, pb: 1.5, bgcolor: "background.paper", borderBottom: "1px solid", borderBottomColor: "divider" }}>
           <Stepper nonLinear activeStep={activeStep}>
             {STEPS.map((label, index) => {
               const isTsbStep = index === 1;
@@ -264,7 +264,7 @@ export function PathogenSessionDialog({ open, sampleId, onClose, onSessionUpdate
                   >
                     <Stack direction="row" spacing={0.5} alignItems="center">
                       <span>{label} {stepLabelSuffix}</span>
-                      {isStepDisabled && <LockOutlinedIcon sx={{ fontSize: 12, color: "#9ca3af" }} />}
+                      {isStepDisabled && <LockOutlinedIcon sx={{ fontSize: 12, color: "text.secondary" }} />}
                     </Stack>
                   </StepButton>
                 </Step>

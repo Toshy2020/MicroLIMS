@@ -11,7 +11,8 @@ import {
   Divider,
   CircularProgress,
   Stack,
-  IconButton
+  IconButton,
+  useTheme
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import HistoryIcon from "@mui/icons-material/History";
@@ -42,6 +43,7 @@ export function AuditHistoryDialog({
   entityName,
   entityId
 }: AuditHistoryDialogProps) {
+  const theme = useTheme();
   const [entries, setEntries] = useState<AuditLogItem[] | null>(null);
   const [loading, setLoading] = useState(false);
   const [expandedRawId, setExpandedRawId] = useState<number | null>(null);
@@ -67,12 +69,12 @@ export function AuditHistoryDialog({
           justifyContent: "space-between",
           alignItems: "center",
           pb: 1.5,
-          bgcolor: "#faf5ff"
+          bgcolor: theme.custom.status.purple.bg
         }}
       >
         <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-          <HistoryIcon sx={{ color: brandColors.sectionTitle }} />
-          <Typography variant="h6" sx={{ fontWeight: 700, color: brandColors.sectionTitle }}>
+          <HistoryIcon sx={{ color: theme.palette.primary.main }} />
+          <Typography variant="h6" sx={{ fontWeight: 700, color: theme.palette.primary.main }}>
             Audit History · {friendlyEntity} #{entityId}
           </Typography>
         </Box>
@@ -81,7 +83,7 @@ export function AuditHistoryDialog({
         </IconButton>
       </DialogTitle>
 
-      <DialogContent dividers sx={{ p: 3, bgcolor: "#fcfcfd" }}>
+      <DialogContent dividers sx={{ p: 3, bgcolor: "background.default" }}>
         {loading ? (
           <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>
             <CircularProgress size={24} />
@@ -97,10 +99,10 @@ export function AuditHistoryDialog({
                 key={entry.id}
                 sx={{
                   p: 2,
-                  bgcolor: "#ffffff",
+                  bgcolor: "background.paper",
                   borderRadius: 1.5,
-                  border: "1px solid #e5e7eb",
-                  boxShadow: "0 1px 2px rgba(0,0,0,0.02)"
+                  border: "1px solid",
+                  borderColor: "divider"
                 }}
               >
                 {/* Event header */}

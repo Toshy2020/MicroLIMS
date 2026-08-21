@@ -179,6 +179,7 @@ public class TestingWorkspaceService : ITestWorkspaceService
         return new()
         {
             SampleId = s.Id,
+            ItemId = s.ItemId,
             ReferenceNumber = s.ReferenceNumber,
             Category = s.Category.ToString(),
             DisplayName = s.Item?.Name ?? s.WaterSamplingPoint?.Code ?? s.WaterDepartment?.Name ?? s.Department?.Name ?? s.Machine?.Name ?? string.Empty,

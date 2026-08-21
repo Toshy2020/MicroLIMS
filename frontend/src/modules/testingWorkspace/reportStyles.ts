@@ -290,6 +290,7 @@ table.result-matrix td:first-child { text-align: left; padding-left: 16px; font-
 .result-pill.is-danger { background: rgba(220, 38, 38, 0.1); color: var(--color-danger); }
 
 .secondary-toggle { margin-top: 4px; }
+.secondary-toggle.is-open .secondary-toggle-collapsed { display: none; }
 .stage-toggle-btn {
   display: inline-flex; align-items: center; gap: 6px; font-size: 11.5px; font-weight: 700;
   color: var(--color-text-secondary); cursor: pointer; padding: 7px 0; background: none; border: none;
@@ -405,11 +406,18 @@ table.result-matrix td:first-child { text-align: left; padding-left: 16px; font-
 
   /* Collapsible card shell: the interactive header/toggles are .no-print
      (hidden above); force every collapsed body open and swap in the
-     static print header so nothing needs a click to be readable on paper. */
+     static print header so nothing needs a click to be readable on paper.
+     Exception: a toggle with collapsedContent (the location table) stays
+     summarized rather than expanded - the pills already carry all six
+     results, and the full table is more detail than a printed report
+     needs. Stage-details toggles have no collapsedContent, so they still
+     force open per the rule above. */
   .print-only { display: flex !important; }
   .test-card-print-header { background: #f0f0f0 !important; border-bottom: 0.75pt solid #bbb !important; padding: 8pt 10pt !important; }
   .test-card-body { display: block !important; border-top: none !important; background: #fff !important; padding: 8pt 10pt !important; }
   .stage-detail-body { display: block !important; }
+  .secondary-toggle-collapsed { display: block !important; }
+  .secondary-toggle-collapsed + .stage-detail-body { display: none !important; }
   .result-pills { margin-bottom: 8pt !important; }
   .result-pill { border: 0.5pt solid #000 !important; background: #fff !important; color: #000 !important; font-size: 7pt !important; padding: 2pt 6pt !important; }
   .result-pill.is-danger { border-color: #000 !important; }
@@ -430,12 +438,6 @@ table.result-matrix td:first-child { text-align: left; padding-left: 16px; font-
   .observation-row { border-top: 0.5pt solid #bbb !important; padding: 8pt 10pt !important; background: #fafafa !important; }
   .observation-item { font-size: 8pt !important; color: #000 !important; }
   .observation-item .obs-meta { font-size: 7pt !important; color: #555 !important; }
-
-  .location-table-wrap { border-top: 0.5pt solid #bbb !important; }
-  .location-table { font-size: 7.5pt !important; }
-  .location-table th { padding: 5pt 8pt !important; font-size: 6.5pt !important; background: #f0f0f0 !important; border-bottom: 0.5pt solid #bbb !important; }
-  .location-table td { padding: 5pt 8pt !important; border-bottom: 0.5pt solid #bbb !important; color: #000 !important; }
-  .location-status-chip { padding: 2pt 6pt !important; border-radius: 3pt !important; font-size: 6.5pt !important; }
 
   .test-footer { border-top: 0.5pt solid #bbb !important; background: #f0f0f0 !important; padding: 5pt 10pt !important; font-size: 8pt !important; color: #333 !important; }
   .test-footer strong { color: #000 !important; }

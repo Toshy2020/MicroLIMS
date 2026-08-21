@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo } from "react";
-import { Box, Typography, TextField, Button, Stack, Alert, Select, MenuItem, IconButton } from "@mui/material";
+import { Box, Typography, TextField, Button, Stack, Alert, Select, MenuItem, IconButton, useTheme } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import CloseIcon from "@mui/icons-material/Close";
 import { StatusBadge } from "../../components/StatusBadge";
@@ -19,6 +19,7 @@ type Phase = "loading" | "select-media" | "awaiting-result" | "transfer-stage-2"
 // in the template, sourced from current-step's allSteps/completedSteps/
 // step fields. No click actions.
 function StepChainStrip({ current }: { current: any }) {
+  const theme = useTheme();
   const completedByOrder = new Map<number, any>((current.completedSteps ?? []).map((s: any) => [s.stepOrder, s]));
   const currentOrder = current.step?.stepOrder ?? null;
 
@@ -29,22 +30,18 @@ function StepChainStrip({ current }: { current: any }) {
         const isCurrent = s.stepOrder === currentOrder;
         const isInconclusive = done?.outcome?.startsWith("Inconclusive");
 
-        let bg = "#eef0f4", color = "#6b7280", border = "1px solid #d9dce3";
+        let tone = theme.custom.status.pending;
         let label = s.stepName;
         if (done) {
           label = `${s.stepName}: ${done.outcome}`;
-          bg = isInconclusive ? "#fdecea" : "#e8f6ec";
-          color = isInconclusive ? "#b3261e" : "#1e7a34";
-          border = `1px solid ${isInconclusive ? "#f3b7b2" : "#a8ddb5"}`;
+          tone = isInconclusive ? theme.custom.status.detected : theme.custom.status.notDetected;
         } else if (isCurrent) {
           label = `${s.stepName}: In progress`;
-          bg = "#eaf1fd";
-          color = "#1a56db";
-          border = "1px solid #a9c6f5";
+          tone = theme.custom.status.info;
         }
 
         return (
-          <Box key={s.stepOrder} sx={{ px: 1.25, py: 0.5, borderRadius: 999, fontSize: 12, fontWeight: 600, bgcolor: bg, color, border }}>
+          <Box key={s.stepOrder} sx={{ px: 1.25, py: 0.5, borderRadius: 999, fontSize: 12, fontWeight: 600, bgcolor: tone.bg, color: tone.text, border: `1px solid ${tone.border}` }}>
             {done ? (isInconclusive ? "✗ " : "✓ ") : ""}{label}
           </Box>
         );
@@ -67,6 +64,7 @@ function StepChainStrip({ current }: { current: any }) {
 // only hand off to LocationResultGridDialog/PathogenLocationResultGrid-
 // Dialog for their per-location batch result entry, exactly as today.
 export function TestWorkflowDialog({ testOrderId, testCode, category, displayName }: Props) {
+  const theme = useTheme();
   const isEmOrAfterCleaning = category === "EnvironmentalMonitoring" || category === "AfterCleaning";
   const [phase, setPhase] = useState<Phase>("loading");
   const [current, setCurrent] = useState<any | null>(null);
@@ -338,7 +336,7 @@ export function TestWorkflowDialog({ testOrderId, testCode, category, displayNam
             Stage 1 incubation is complete. Transfer plates to Stage 2 incubator ({stage2Config.tempMin}-{stage2Config.tempMax} °C) to start the second stage.
           </Alert>
 
-          <Box sx={{ p: 1.5, bgcolor: "#f9fafb", borderRadius: 1, border: "1px solid #e5e7eb" }}>
+          <Box sx={{ p: 1.5, bgcolor: "background.default", borderRadius: 1, border: "1px solid", borderColor: "divider" }}>
             <Typography variant="body2" color="text.secondary">
               Media Lot (inherited): <strong>{openIncubationRow?.lotNumber ?? "Selected in Stage 1"}</strong>
             </Typography>
@@ -481,7 +479,7 @@ export function TestWorkflowDialog({ testOrderId, testCode, category, displayNam
                       sx={{
                         flex: 1,
                         "& .MuiOutlinedInput-root fieldset": {
-                          borderColor: isNonNumeric(r) ? "#d97706" : undefined
+                          borderColor: isNonNumeric(r) ? theme.custom.status.inconclusive.text : undefined
                         }
                       }}
                     />
@@ -498,8 +496,8 @@ export function TestWorkflowDialog({ testOrderId, testCode, category, displayNam
                     mt: 1,
                     mb: 1,
                     borderRadius: 1,
-                    backgroundColor: liveResult.isNonNumeric ? "#fef3c7" : "#f0fdf4",
-                    border: `1px solid ${liveResult.isNonNumeric ? "#fcd34d" : "#bbf7d0"}`
+                    backgroundColor: liveResult.isNonNumeric ? theme.custom.status.inconclusive.bg : theme.custom.status.notDetected.bg,
+                    border: `1px solid ${liveResult.isNonNumeric ? theme.custom.status.inconclusive.border : theme.custom.status.notDetected.border}`
                   }}
                 >
                   <Typography variant="body2" sx={{ fontWeight: 600 }}>
@@ -507,7 +505,7 @@ export function TestWorkflowDialog({ testOrderId, testCode, category, displayNam
                     Calculated result: {liveResult.display}
                   </Typography>
                   {liveResult.isNonNumeric && (
-                    <Typography variant="caption" sx={{ color: "#92400e", display: "block", mt: 0.5 }}>
+                    <Typography variant="caption" sx={{ color: theme.custom.status.inconclusive.text, display: "block", mt: 0.5 }}>
                       Non-numeric result — reviewer will decide accept or retest
                     </Typography>
                   )}

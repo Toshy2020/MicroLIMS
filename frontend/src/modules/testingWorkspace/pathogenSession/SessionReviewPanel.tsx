@@ -18,7 +18,8 @@ import {
   IconButton,
   Card,
   CardContent,
-  Tooltip
+  Tooltip,
+  useTheme
 } from "@mui/material";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 import VerifiedUserOutlinedIcon from "@mui/icons-material/VerifiedUserOutlined";
@@ -66,6 +67,7 @@ interface CellDerivationProps {
 }
 
 function CellDerivationDetail({ cell, testCode, testDisplayName, expanded }: CellDerivationProps) {
+  const theme = useTheme();
   if (!cell || !expanded) return null;
 
   const isQuant = cell.resultType === "Quantitative";
@@ -75,17 +77,18 @@ function CellDerivationDetail({ cell, testCode, testDisplayName, expanded }: Cel
       sx={{
         mt: 1,
         p: 1.5,
-        bgcolor: "#f8fafc",
+        bgcolor: "background.default",
         borderRadius: 1.5,
         borderLeft: `3px solid ${brandColors.sectionTitle}`,
-        border: "1px solid #e2e8f0",
+        border: "1px solid",
+        borderColor: "divider",
         borderLeftWidth: 3,
         fontSize: 11,
         textAlign: "left",
-        color: "#334155"
+        color: "text.secondary"
       }}
     >
-      <Typography sx={{ fontSize: 11, fontWeight: 800, color: brandColors.sectionTitle, mb: 0.5 }}>
+      <Typography sx={{ fontSize: 11, fontWeight: 800, color: theme.palette.primary.main, mb: 0.5 }}>
         Evidence Chain & Derivation:
       </Typography>
 
@@ -93,10 +96,10 @@ function CellDerivationDetail({ cell, testCode, testDisplayName, expanded }: Cel
         <Stack spacing={0.75}>
           {/* Primary Observation */}
           <Box>
-            <Typography sx={{ fontSize: 11, fontWeight: 700, color: "#1e293b" }}>
+            <Typography sx={{ fontSize: 11, fontWeight: 700, color: "text.primary" }}>
               1. Primary Plate Observation:
             </Typography>
-            <Typography sx={{ fontSize: 11, color: "#475569", pl: 1 }}>
+            <Typography sx={{ fontSize: 11, color: "text.secondary", pl: 1 }}>
               Observation: <strong>{cell.primaryObservation || "No Growth recorded"}</strong>
             </Typography>
           </Box>
@@ -104,21 +107,21 @@ function CellDerivationDetail({ cell, testCode, testDisplayName, expanded }: Cel
           {/* Confirmatory Plate Details */}
           {cell.confirmatoryPlates && cell.confirmatoryPlates.length > 0 ? (
             <Box>
-              <Typography sx={{ fontSize: 11, fontWeight: 700, color: "#1e293b" }}>
+              <Typography sx={{ fontSize: 11, fontWeight: 700, color: "text.primary" }}>
                 2. Confirmatory Plating ({cell.confirmatoryPlates.length} Media):
               </Typography>
               {cell.confirmatoryPlates.map((plate) => (
                 <Box key={plate.id} sx={{ pl: 1, mt: 0.25 }}>
-                  <Typography sx={{ fontSize: 10.5, color: "#475569" }}>
+                  <Typography sx={{ fontSize: 10.5, color: "text.secondary" }}>
                     • Medium #{plate.mediumIndex + 1} ({plate.mediumName ?? "Selective Agar"}):{" "}
                     <strong>{plate.observation}</strong>
                   </Typography>
                   {plate.expectedAppearanceSnapshot && (
-                    <Typography sx={{ fontSize: 10, color: "#64748b", pl: 1.25 }}>
+                    <Typography sx={{ fontSize: 10, color: "text.secondary", pl: 1.25 }}>
                       Expected: <em>{plate.expectedAppearanceSnapshot}</em>
                     </Typography>
                   )}
-                  <Typography sx={{ fontSize: 10, color: "#64748b", pl: 1.25 }}>
+                  <Typography sx={{ fontSize: 10, color: "text.secondary", pl: 1.25 }}>
                     Read at {formatDate(plate.recordedAtUtc)} by {plate.recordedByUserName ?? "Analyst"}
                   </Typography>
                 </Box>
@@ -126,7 +129,7 @@ function CellDerivationDetail({ cell, testCode, testDisplayName, expanded }: Cel
             </Box>
           ) : (
             <Box>
-              <Typography sx={{ fontSize: 10.5, color: "#64748b", pl: 1 }}>
+              <Typography sx={{ fontSize: 10.5, color: "text.secondary", pl: 1 }}>
                 2. Confirmatory Plating: <em>Not required (resolved at primary plate)</em>
               </Typography>
             </Box>
@@ -134,10 +137,10 @@ function CellDerivationDetail({ cell, testCode, testDisplayName, expanded }: Cel
 
           {/* Agreement Evaluation */}
           <Box>
-            <Typography sx={{ fontSize: 11, fontWeight: 700, color: "#1e293b" }}>
+            <Typography sx={{ fontSize: 11, fontWeight: 700, color: "text.primary" }}>
               3. Agreement Evaluation:
             </Typography>
-            <Typography sx={{ fontSize: 11, color: "#065f46", pl: 1, fontWeight: 600 }}>
+            <Typography sx={{ fontSize: 11, color: theme.custom.status.notDetected.text, pl: 1, fontWeight: 600 }}>
               {cell.resultDisplay?.includes("Detected (+)")
                 ? "All confirmatory media conforming → Detected (+)"
                 : cell.resultDisplay?.includes("Not Detected (-)")
@@ -150,19 +153,19 @@ function CellDerivationDetail({ cell, testCode, testDisplayName, expanded }: Cel
         </Stack>
       ) : (
         <Box>
-          <Typography sx={{ fontSize: 11, fontWeight: 700, color: "#1e293b" }}>
+          <Typography sx={{ fontSize: 11, fontWeight: 700, color: "text.primary" }}>
             Plate Colony Count:
           </Typography>
-          <Typography sx={{ fontSize: 11, color: "#1e40af", pl: 1, fontWeight: 700 }}>
+          <Typography sx={{ fontSize: 11, color: theme.custom.status.info.text, pl: 1, fontWeight: 700 }}>
             {cell.numericValue !== null ? `${cell.numericValue} CFU` : cell.resultDisplay}
           </Typography>
         </Box>
       )}
 
-      <Divider sx={{ my: 0.75, borderColor: "#e2e8f0" }} />
+      <Divider sx={{ my: 0.75, borderColor: "divider" }} />
 
       {/* Audit Stamp */}
-      <Typography sx={{ fontSize: 10, color: "#64748b" }}>
+      <Typography sx={{ fontSize: 10, color: "text.secondary" }}>
         Entered by: <strong>{cell.enteredByUserName ?? "Analyst"}</strong> at {formatDate(cell.enteredAt)}
       </Typography>
     </Box>
@@ -170,6 +173,7 @@ function CellDerivationDetail({ cell, testCode, testDisplayName, expanded }: Cel
 }
 
 export function SessionReviewPanel({ session, onSessionCompleted, onBackToMatrix }: Props) {
+  const theme = useTheme();
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [expandedCells, setExpandedCells] = useState<Set<string>>(new Set());
@@ -235,11 +239,11 @@ export function SessionReviewPanel({ session, onSessionCompleted, onBackToMatrix
   return (
     <Stack spacing={3}>
       {/* Session Metadata Banner */}
-      <Paper sx={{ p: 3, borderRadius: 2, border: "1px solid #e5e7eb", bgcolor: "#faf5ff" }}>
+      <Paper sx={{ p: 3, borderRadius: 2, border: "1px solid", borderColor: "divider", bgcolor: theme.custom.status.purple.bg }}>
         <Stack direction={{ xs: "column", md: "row" }} justifyContent="space-between" alignItems={{ md: "center" }} spacing={2}>
           <Box>
             <Stack direction="row" spacing={1.5} alignItems="center" sx={{ mb: 1 }}>
-              <Typography sx={{ fontSize: 18, fontWeight: 800, color: "#1f2937" }}>
+              <Typography sx={{ fontSize: 18, fontWeight: 800, color: "text.primary" }}>
                 Testing Session Review — {session.sampleReferenceNumber}
               </Typography>
               <Chip
@@ -248,7 +252,7 @@ export function SessionReviewPanel({ session, onSessionCompleted, onBackToMatrix
                 sx={{ bgcolor: brandColors.sectionTitle, color: "#ffffff", fontWeight: 700 }}
               />
             </Stack>
-            <Typography sx={{ fontSize: 13, color: "#4b5563" }}>
+            <Typography sx={{ fontSize: 13, color: "text.secondary" }}>
               Program: <strong>{session.programName}</strong> · Area: <strong>{session.departmentOrAreaName}</strong> · Control: <strong>{session.controlNumber}</strong>
             </Typography>
           </Box>
@@ -294,13 +298,13 @@ export function SessionReviewPanel({ session, onSessionCompleted, onBackToMatrix
       )}
 
       {/* Results Matrix Review Table with Evidence Expansion */}
-      <Paper sx={{ p: 2.5, borderRadius: 2, border: "1px solid #e5e7eb" }}>
+      <Paper sx={{ p: 2.5, borderRadius: 2, border: "1px solid", borderColor: "divider" }}>
         <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
           <Box>
-            <Typography sx={{ fontSize: 16, fontWeight: 800, color: "#1f2937" }}>
+            <Typography sx={{ fontSize: 16, fontWeight: 800, color: "text.primary" }}>
               Final Analytical Results Summary
             </Typography>
-            <Typography sx={{ fontSize: 12, color: "#6b7280" }}>
+            <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
               {session.completedResultCount} of {session.requiredResultCount} results verified ({session.locations.length} Locations × {session.assignedTests.length} Tests)
               · Click any result badge to toggle evidence derivation details.
             </Typography>
@@ -323,15 +327,15 @@ export function SessionReviewPanel({ session, onSessionCompleted, onBackToMatrix
           <Table size="small" stickyHeader>
             <TableHead>
               <TableRow>
-                <TableCell sx={{ position: "sticky", left: 0, zIndex: 3, bgcolor: "#f8fafc", fontWeight: 800, minWidth: 220, borderRight: "2px solid #e2e8f0" }}>
+                <TableCell sx={{ position: "sticky", left: 0, zIndex: 3, bgcolor: "background.default", fontWeight: 800, minWidth: 220, borderRight: "2px solid", borderColor: "divider" }}>
                   Sampling Location ({session.locations.length})
                 </TableCell>
                 {session.assignedTests.map((t) => (
-                  <TableCell key={t.testCode} align="center" sx={{ bgcolor: "#f8fafc", fontWeight: 800, minWidth: 180, borderRight: "1px solid #f1f5f9" }}>
+                  <TableCell key={t.testCode} align="center" sx={{ bgcolor: "background.default", fontWeight: 800, minWidth: 180, borderRight: "1px solid", borderColor: "divider" }}>
                     <Typography sx={{ fontSize: 13, fontWeight: 800 }}>
                       {t.testCode}
                     </Typography>
-                    <Typography sx={{ fontSize: 11, color: "#64748b" }}>
+                    <Typography sx={{ fontSize: 11, color: "text.secondary" }}>
                       {t.displayName}
                     </Typography>
                   </TableCell>
@@ -340,25 +344,26 @@ export function SessionReviewPanel({ session, onSessionCompleted, onBackToMatrix
             </TableHead>
             <TableBody>
               {session.locations.map((loc, idx) => (
-                <TableRow key={loc.id} hover sx={{ bgcolor: idx % 2 === 0 ? "#ffffff" : "#fafafa" }}>
+                <TableRow key={loc.id} hover sx={{ bgcolor: idx % 2 === 0 ? "background.paper" : "background.default" }}>
                   {/* Sticky Location Column */}
                   <TableCell
                     sx={{
                       position: "sticky",
                       left: 0,
                       zIndex: 2,
-                      bgcolor: idx % 2 === 0 ? "#ffffff" : "#fafafa",
+                      bgcolor: idx % 2 === 0 ? "background.paper" : "background.default",
                       fontWeight: 700,
                       fontSize: 13,
-                      borderRight: "2px solid #e2e8f0",
+                      borderRight: "2px solid",
+                      borderColor: "divider",
                       verticalAlign: "top",
                       py: 1.5
                     }}
                   >
-                    <Typography sx={{ fontSize: 13, fontWeight: 700, color: "#1f2937" }}>
+                    <Typography sx={{ fontSize: 13, fontWeight: 700, color: "text.primary" }}>
                       {loc.locationName}
                     </Typography>
-                    <Typography sx={{ fontSize: 11, color: "#6b7280" }}>
+                    <Typography sx={{ fontSize: 11, color: "text.secondary" }}>
                       {loc.locationType} {loc.gradeClassification ? `· Grade ${loc.gradeClassification}` : ""}
                     </Typography>
                   </TableCell>
@@ -383,7 +388,8 @@ export function SessionReviewPanel({ session, onSessionCompleted, onBackToMatrix
                         key={t.testCode}
                         align="center"
                         sx={{
-                          borderRight: "1px solid #f1f5f9",
+                          borderRight: "1px solid",
+                          borderColor: "divider",
                           verticalAlign: "top",
                           p: 1.25
                         }}
@@ -397,11 +403,11 @@ export function SessionReviewPanel({ session, onSessionCompleted, onBackToMatrix
                             onClick={() => toggleExpanded(slocId, t.testCode)}
                             sx={{
                               fontWeight: 800,
-                              bgcolor: "#fee2e2",
-                              color: "#991b1b",
+                              bgcolor: theme.custom.status.detected.bg,
+                              color: theme.custom.status.detected.text,
                               fontSize: 11,
                               cursor: "pointer",
-                              "&:hover": { bgcolor: "#fecaca" }
+                              "&:hover": { bgcolor: theme.custom.status.detected.border }
                             }}
                           />
                         ) : isNotDetected ? (
@@ -412,11 +418,11 @@ export function SessionReviewPanel({ session, onSessionCompleted, onBackToMatrix
                             onClick={() => toggleExpanded(slocId, t.testCode)}
                             sx={{
                               fontWeight: 700,
-                              bgcolor: "#ecfdf5",
-                              color: "#065f46",
+                              bgcolor: theme.custom.status.notDetected.bg,
+                              color: theme.custom.status.notDetected.text,
                               fontSize: 11,
                               cursor: "pointer",
-                              "&:hover": { bgcolor: "#d1fae5" }
+                              "&:hover": { bgcolor: theme.custom.status.notDetected.border }
                             }}
                           />
                         ) : isInconclusive ? (
@@ -428,11 +434,11 @@ export function SessionReviewPanel({ session, onSessionCompleted, onBackToMatrix
                               onClick={() => toggleExpanded(slocId, t.testCode)}
                               sx={{
                                 fontWeight: 800,
-                                bgcolor: "#ffedd5",
-                                color: "#9a3412",
+                                bgcolor: theme.custom.status.action.bg,
+                                color: theme.custom.status.action.text,
                                 fontSize: 11,
                                 cursor: "pointer",
-                                "&:hover": { bgcolor: "#fed7aa" }
+                                "&:hover": { bgcolor: theme.custom.status.action.border }
                               }}
                             />
                           </Tooltip>
@@ -444,41 +450,41 @@ export function SessionReviewPanel({ session, onSessionCompleted, onBackToMatrix
                             onClick={() => toggleExpanded(slocId, t.testCode)}
                             sx={{
                               fontWeight: 700,
-                              bgcolor: "#eff6ff",
-                              color: "#1e40af",
+                              bgcolor: theme.custom.status.info.bg,
+                              color: theme.custom.status.info.text,
                               fontSize: 11,
                               cursor: "pointer",
-                              "&:hover": { bgcolor: "#dbeafe" }
+                              "&:hover": { bgcolor: theme.custom.status.info.border }
                             }}
                           />
                         ) : (
                           (() => {
                             let label = "Pending";
-                            let bgcolor = "#f9fafb";
-                            let color = "#ef4444";
-                            let border = "1px solid #fca5a5";
+                            let bgcolor: string = theme.custom.status.detected.bg;
+                            let color: string = theme.custom.status.detected.text;
+                            let border = `1px solid ${theme.custom.status.detected.border}`;
 
                             if (cell?.cellState === "LOCKED_PREREQUISITE") {
                               label = "Locked";
-                              bgcolor = "#f3f4f6";
-                              color = "#6b7280";
-                              border = "1px solid #e5e7eb";
+                              bgcolor = theme.custom.status.pending.bg;
+                              color = theme.custom.status.pending.text;
+                              border = `1px solid ${theme.custom.status.pending.border}`;
                             } else {
                               switch (t.testSessionState) {
                                 case "TSB_INCUBATING":
-                                  label = "TSB Incubating"; bgcolor = "#eff6ff"; color = "#1e40af"; border = "1px solid #bfdbfe"; break;
+                                  label = "TSB Incubating"; bgcolor = theme.custom.status.info.bg; color = theme.custom.status.info.text; border = `1px solid ${theme.custom.status.info.border}`; break;
                                 case "DOWNSTREAM_INCUBATING":
-                                  label = "Plating In Progress"; bgcolor = "#eff6ff"; color = "#1e40af"; border = "1px solid #bfdbfe"; break;
+                                  label = "Plating In Progress"; bgcolor = theme.custom.status.info.bg; color = theme.custom.status.info.text; border = `1px solid ${theme.custom.status.info.border}`; break;
                                 case "COUNT_INCUBATING":
-                                  label = "Incubating"; bgcolor = "#eff6ff"; color = "#1e40af"; border = "1px solid #bfdbfe"; break;
+                                  label = "Incubating"; bgcolor = theme.custom.status.info.bg; color = theme.custom.status.info.text; border = `1px solid ${theme.custom.status.info.border}`; break;
                                 case "READY_FOR_DOWNSTREAM":
-                                  label = "Ready to Read"; bgcolor = "#f5f3ff"; color = "#7c3aed"; border = "1px solid #ddd6fe"; break;
+                                  label = "Ready to Read"; bgcolor = theme.custom.status.purple.bg; color = theme.custom.status.purple.text; border = `1px solid ${theme.custom.status.purple.border}`; break;
                                 case "AWAITING_RESULTS":
-                                  label = "Enter Result"; bgcolor = "#fefce8"; color = "#ca8a04"; border = "1px solid #fef08a"; break;
+                                  label = "Enter Result"; bgcolor = theme.custom.status.inconclusive.bg; color = theme.custom.status.inconclusive.text; border = `1px solid ${theme.custom.status.inconclusive.border}`; break;
                                 case "RESULTS_RECORDED":
-                                  label = "Pending Review"; bgcolor = "#fff7ed"; color = "#d97706"; border = "1px solid #fed7aa"; break;
+                                  label = "Pending Review"; bgcolor = theme.custom.status.action.bg; color = theme.custom.status.action.text; border = `1px solid ${theme.custom.status.action.border}`; break;
                                 default:
-                                  label = "Pending"; bgcolor = "#f9fafb"; color = "#ef4444"; border = "1px solid #fca5a5"; break;
+                                  label = "Pending"; bgcolor = theme.custom.status.detected.bg; color = theme.custom.status.detected.text; border = `1px solid ${theme.custom.status.detected.border}`; break;
                               }
                             }
 
@@ -516,15 +522,15 @@ export function SessionReviewPanel({ session, onSessionCompleted, onBackToMatrix
       </Paper>
 
       {/* Audit & Traceability Card */}
-      <Card sx={{ borderRadius: 2, border: "1px solid #e5e7eb", bgcolor: "#fcfaff" }}>
+      <Card sx={{ borderRadius: 2, border: "1px solid", borderColor: "divider", bgcolor: theme.custom.status.purple.bg }}>
         <CardContent sx={{ p: 2.5 }}>
           <Stack direction="row" spacing={1.5} alignItems="center" sx={{ mb: 1 }}>
-            <VerifiedUserOutlinedIcon sx={{ fontSize: 20, color: brandColors.sectionTitle }} />
-            <Typography sx={{ fontSize: 15, fontWeight: 800, color: "#1f2937" }}>
+            <VerifiedUserOutlinedIcon sx={{ fontSize: 20, color: theme.palette.primary.main }} />
+            <Typography sx={{ fontSize: 15, fontWeight: 800, color: "text.primary" }}>
               Audit & Traceability (ALCOA+ Compliance)
             </Typography>
           </Stack>
-          <Typography sx={{ fontSize: 12, color: "#64748b", mb: 2 }}>
+          <Typography sx={{ fontSize: 12, color: "text.secondary", mb: 2 }}>
             All primary observations, confirmatory media selections, incubations, and multi-media agreement evaluations are contemporaneously signed and logged.
           </Typography>
 
@@ -536,42 +542,42 @@ export function SessionReviewPanel({ session, onSessionCompleted, onBackToMatrix
             }}
           >
             <Box>
-              <Typography sx={{ fontSize: 11, fontWeight: 700, color: "#7c3aed", textTransform: "uppercase" }}>
+              <Typography sx={{ fontSize: 11, fontWeight: 700, color: theme.custom.status.purple.text, textTransform: "uppercase" }}>
                 Total Sampling Locations
               </Typography>
-              <Typography sx={{ fontSize: 15, fontWeight: 800, color: "#1f2937" }}>
+              <Typography sx={{ fontSize: 15, fontWeight: 800, color: "text.primary" }}>
                 {session.locations.length}
               </Typography>
             </Box>
 
             <Box>
-              <Typography sx={{ fontSize: 11, fontWeight: 700, color: "#7c3aed", textTransform: "uppercase" }}>
+              <Typography sx={{ fontSize: 11, fontWeight: 700, color: theme.custom.status.purple.text, textTransform: "uppercase" }}>
                 Results Verified
               </Typography>
-              <Typography sx={{ fontSize: 15, fontWeight: 800, color: "#065f46" }}>
+              <Typography sx={{ fontSize: 15, fontWeight: 800, color: theme.custom.status.notDetected.text }}>
                 {session.completedResultCount} / {session.requiredResultCount} (100%)
               </Typography>
             </Box>
 
             <Box>
-              <Typography sx={{ fontSize: 11, fontWeight: 700, color: "#7c3aed", textTransform: "uppercase" }}>
+              <Typography sx={{ fontSize: 11, fontWeight: 700, color: theme.custom.status.purple.text, textTransform: "uppercase" }}>
                 Outcome Breakdown
               </Typography>
-              <Typography sx={{ fontSize: 12, fontWeight: 700, color: "#1f2937" }}>
+              <Typography sx={{ fontSize: 12, fontWeight: 700, color: "text.primary" }}>
                 {outcomeStats.detected} Detected · {outcomeStats.notDetected} Not Detected
                 {outcomeStats.inconclusive > 0 ? ` · ${outcomeStats.inconclusive} Inconclusive` : ""}
               </Typography>
             </Box>
 
             <Box>
-              <Typography sx={{ fontSize: 11, fontWeight: 700, color: "#7c3aed", textTransform: "uppercase" }}>
+              <Typography sx={{ fontSize: 11, fontWeight: 700, color: theme.custom.status.purple.text, textTransform: "uppercase" }}>
                 Session Status
               </Typography>
               <Typography
                 sx={{
                   fontSize: 14,
                   fontWeight: 800,
-                  color: isSessionCompleted ? "#065f46" : "#1e40af"
+                  color: isSessionCompleted ? theme.custom.status.notDetected.text : theme.custom.status.info.text
                 }}
               >
                 {isSessionCompleted ? "✓ Completed & Locked" : "Ready for Technical Review"}

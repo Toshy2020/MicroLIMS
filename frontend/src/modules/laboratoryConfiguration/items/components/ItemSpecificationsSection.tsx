@@ -15,7 +15,8 @@ import {
   IconButton,
   Tooltip,
   Alert,
-  CircularProgress
+  CircularProgress,
+  useTheme
 } from "@mui/material";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import CheckIcon from "@mui/icons-material/Check";
@@ -37,6 +38,7 @@ export const ItemSpecificationsSection: React.FC<ItemSpecificationsSectionProps>
   item,
   onSpecsChanged
 }) => {
+  const theme = useTheme();
   const { options: testDefinitions } = useTestDefinitions();
 
   // Filter to count tests assigned to THIS item only
@@ -141,7 +143,7 @@ export const ItemSpecificationsSection: React.FC<ItemSpecificationsSectionProps>
     <Box sx={{ p: 0.5 }}>
       <Typography
         variant="subtitle2"
-        sx={{ mb: 1.5, fontWeight: 700, color: brandColors.sectionTitle, textTransform: "uppercase", fontSize: 12, letterSpacing: "0.5px" }}
+        sx={{ mb: 1.5, fontWeight: 700, color: theme.palette.primary.main, textTransform: "uppercase", fontSize: 12, letterSpacing: "0.5px" }}
       >
         Specifications (Count Tests)
       </Typography>
@@ -149,20 +151,20 @@ export const ItemSpecificationsSection: React.FC<ItemSpecificationsSectionProps>
       {error && <Alert severity="error" onClose={() => setError(null)} sx={{ mb: 1.5 }}>{error}</Alert>}
 
       {countTestCodes.length === 0 ? (
-        <Typography variant="body2" sx={{ color: "#9ca3af", fontStyle: "italic", py: 1 }}>
+        <Typography variant="body2" sx={{ color: "text.secondary", fontStyle: "italic", py: 1 }}>
           No count tests assigned to this item. Assign TAMC or TYMC tests to configure limits.
         </Typography>
       ) : (
-        <Table size="small" sx={{ mb: 1.5, border: "1px solid #e5e7eb", borderRadius: 1, overflow: "hidden" }}>
+        <Table size="small" sx={{ mb: 1.5, border: "1px solid", borderColor: "divider", borderRadius: 1, overflow: "hidden" }}>
           <TableHead>
-            <TableRow sx={{ backgroundColor: "#f3f4f6" }}>
+            <TableRow sx={{ backgroundColor: "background.default" }}>
               <TableCell sx={{ fontWeight: 700, fontSize: 12, width: 140 }}>Test</TableCell>
               <TableCell sx={{ fontWeight: 700, fontSize: 12, width: 120 }}>Alert Limit</TableCell>
               <TableCell sx={{ fontWeight: 700, fontSize: 12, width: 120 }}>Action Limit</TableCell>
               <TableCell sx={{ fontWeight: 700, fontSize: 12, width: 140 }}>
                 Spec Limit
                 <Tooltip title="Pharmacopoeial pass/fail threshold">
-                  <InfoOutlinedIcon sx={{ fontSize: 14, ml: 0.5, verticalAlign: "middle", color: "#9ca3af" }} />
+                  <InfoOutlinedIcon sx={{ fontSize: 14, ml: 0.5, verticalAlign: "middle", color: "text.secondary" }} />
                 </Tooltip>
               </TableCell>
               <TableCell align="right" sx={{ width: 90 }} />
@@ -175,7 +177,7 @@ export const ItemSpecificationsSection: React.FC<ItemSpecificationsSectionProps>
               const isEditing = editingId === specId;
 
               return (
-                <TableRow key={specId} hover sx={{ "&:nth-of-type(even)": { bgcolor: "#fcfcfd" } }}>
+                <TableRow key={specId} hover sx={{ "&:nth-of-type(even)": { bgcolor: "background.default" } }}>
                   <TableCell sx={{ fontWeight: 600, fontSize: 13 }}>{spec.testCode}</TableCell>
 
                   {isEditing ? (
@@ -234,7 +236,7 @@ export const ItemSpecificationsSection: React.FC<ItemSpecificationsSectionProps>
                     <>
                       <TableCell sx={{ fontSize: 13 }}>{spec.alertLimit || "—"}</TableCell>
                       <TableCell sx={{ fontSize: 13 }}>{spec.actionLimit || "—"}</TableCell>
-                      <TableCell sx={{ fontWeight: 700, fontSize: 13, color: brandColors.sectionTitle }}>
+                      <TableCell sx={{ fontWeight: 700, fontSize: 13, color: theme.palette.primary.main }}>
                         {spec.specLimit || "—"}
                       </TableCell>
                       <TableCell align="right">
@@ -269,7 +271,7 @@ export const ItemSpecificationsSection: React.FC<ItemSpecificationsSectionProps>
 
             {/* Add new spec row (shown if there are count tests not yet configured) */}
             {availableToAdd.length > 0 && (
-              <TableRow sx={{ backgroundColor: "#fafafa" }}>
+              <TableRow sx={{ backgroundColor: "background.default" }}>
                 <TableCell>
                   <FormControl size="small" sx={{ minWidth: 120 }}>
                     <Select

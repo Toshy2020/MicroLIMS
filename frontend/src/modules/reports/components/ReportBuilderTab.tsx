@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import {
   Box, Paper, Typography, TextField, FormControl, InputLabel, Select, MenuItem,
   Button, Checkbox, FormControlLabel, FormGroup, Stack, Table, TableHead, TableRow, TableCell,
-  TableBody, Divider, Chip, IconButton, Tooltip
+  TableBody, Divider, Chip, IconButton, Tooltip, useTheme
 } from "@mui/material";
 import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
 import TableViewIcon from "@mui/icons-material/TableView";
@@ -35,6 +35,7 @@ interface ReportBuilderTabProps {
 }
 
 export function ReportBuilderTab({ preloadedRecords }: ReportBuilderTabProps) {
+  const theme = useTheme();
   const { fullName } = useAuth();
 
   const [criteria, setCriteria] = useState<ReportBuilderCriteria>({
@@ -112,7 +113,7 @@ export function ReportBuilderTab({ preloadedRecords }: ReportBuilderTabProps) {
       {/* LEFT COLUMN: Report Criteria */}
       <Paper sx={{ p: 2.5 }}>
         <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
-          <Typography sx={{ fontSize: 15, fontWeight: 700, color: brandColors.sectionTitle }}>
+          <Typography sx={{ fontSize: 15, fontWeight: 700, color: theme.palette.primary.main }}>
             Report Criteria
           </Typography>
           <IconButton size="small" onClick={handleReset} title="Reset Criteria">
@@ -274,10 +275,10 @@ export function ReportBuilderTab({ preloadedRecords }: ReportBuilderTabProps) {
       <Paper sx={{ p: 3, minHeight: 600 }}>
         <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", mb: 2, pb: 1.5, borderBottom: "2px solid #7b2d8e" }}>
           <Box>
-            <Typography sx={{ fontSize: 11, fontWeight: 700, color: brandColors.sectionTitle, textTransform: "uppercase", letterSpacing: 0.5 }}>
+            <Typography sx={{ fontSize: 11, fontWeight: 700, color: theme.palette.primary.main, textTransform: "uppercase", letterSpacing: 0.5 }}>
               Report Preview
             </Typography>
-            <Typography sx={{ fontSize: 18, fontWeight: 800, color: "#1e293b" }}>
+            <Typography sx={{ fontSize: 18, fontWeight: 800, color: "text.primary" }}>
               {previewData?.reportTitle ?? criteria.reportType}
             </Typography>
             <Typography sx={{ fontSize: 12, color: "text.secondary", mt: 0.25 }}>
@@ -294,11 +295,11 @@ export function ReportBuilderTab({ preloadedRecords }: ReportBuilderTabProps) {
 
         {previewData?.groups.map((group, gIdx) => (
           <Box key={gIdx} sx={{ mb: 2.5 }}>
-            <Typography sx={{ fontSize: 13, fontWeight: 700, color: brandColors.pageTitle, mb: 1, bgcolor: "#f8fafc", px: 1.25, py: 0.5, borderRadius: 1 }}>
+            <Typography sx={{ fontSize: 13, fontWeight: 700, color: theme.palette.primary.main, mb: 1, bgcolor: "background.default", px: 1.25, py: 0.5, borderRadius: 1 }}>
               {group.groupTitle}
             </Typography>
 
-            <Table size="small" sx={{ "& th": { bgcolor: "#fbfcfe", fontWeight: 700, fontSize: 11.5 }, "& td": { fontSize: 12 } }}>
+            <Table size="small" sx={{ "& th": { bgcolor: "background.default", fontWeight: 700, fontSize: 11.5 }, "& td": { fontSize: 12 } }}>
               <TableHead>
                 <TableRow>
                   <TableCell>Sample / Reference</TableCell>
@@ -316,7 +317,7 @@ export function ReportBuilderTab({ preloadedRecords }: ReportBuilderTabProps) {
                     <TableCell sx={{ fontWeight: 600 }}>{row.referenceNumber}</TableCell>
                     <TableCell>{row.subjectName}</TableCell>
                     <TableCell>{row.testDisplayName || row.testCode}</TableCell>
-                    <TableCell sx={{ fontWeight: 700, color: brandColors.sectionTitle }}>
+                    <TableCell sx={{ fontWeight: 700, color: theme.palette.primary.main }}>
                       {row.reportedValue} {row.unit ?? ""}
                     </TableCell>
                     {options.includeSpecifications && (
@@ -349,7 +350,7 @@ export function ReportBuilderTab({ preloadedRecords }: ReportBuilderTabProps) {
 
       {/* RIGHT COLUMN: Report Options & Actions */}
       <Paper sx={{ p: 2.5 }}>
-        <Typography sx={{ fontSize: 15, fontWeight: 700, color: brandColors.sectionTitle, mb: 1.5 }}>
+        <Typography sx={{ fontSize: 15, fontWeight: 700, color: theme.palette.primary.main, mb: 1.5 }}>
           Report Options
         </Typography>
 

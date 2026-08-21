@@ -1,4 +1,4 @@
-import { Grid, Paper, Typography, Box } from "@mui/material";
+import { Grid, Paper, Typography, Box, useTheme } from "@mui/material";
 import ScienceOutlinedIcon from "@mui/icons-material/ScienceOutlined";
 import HourglassEmptyOutlinedIcon from "@mui/icons-material/HourglassEmptyOutlined";
 import EventAvailableOutlinedIcon from "@mui/icons-material/EventAvailableOutlined";
@@ -16,11 +16,12 @@ interface Tile { label: string; value: number; icon: SvgIconComponent; color: st
 // delta is shown because the backend doesn't compute one for these
 // (only KpiDeltas' month-over-month samples/tests do).
 export function KpiStrip({ summary }: { summary: DashboardSummary }) {
+  const theme = useTheme();
   const tiles: Tile[] = [
     { label: "Active Tests", value: summary.pendingTests, icon: ScienceOutlinedIcon, color: brandColors.badgeRM },
     { label: "Incubating", value: summary.incubatingCount, icon: HourglassEmptyOutlinedIcon, color: brandColors.badgePM },
     { label: "Ready to Read", value: summary.readyToReadCount, icon: EventAvailableOutlinedIcon, color: brandColors.ok },
-    { label: "Awaiting Review", value: summary.reviewerQueue, icon: GroupsOutlinedIcon, color: brandColors.sectionTitle },
+    { label: "Awaiting Review", value: summary.reviewerQueue, icon: GroupsOutlinedIcon, color: theme.palette.primary.main },
     { label: "Under Approval", value: summary.approvalQueue, icon: VerifiedUserOutlinedIcon, color: brandColors.badgeProduct },
     { label: "Overdue / Attention", value: summary.delayedTests, icon: WarningAmberOutlinedIcon, color: brandColors.err }
   ];
@@ -37,7 +38,7 @@ export function KpiStrip({ summary }: { summary: DashboardSummary }) {
               <t.icon fontSize="small" />
             </Box>
             <Box sx={{ minWidth: 0 }}>
-              <Typography sx={{ fontSize: 22, fontWeight: 700, color: brandColors.sectionTitle, lineHeight: 1.1 }}>{t.value}</Typography>
+              <Typography sx={{ fontSize: 22, fontWeight: 700, color: theme.palette.primary.main, lineHeight: 1.1 }}>{t.value}</Typography>
               <Typography sx={{ fontSize: 12, color: "text.secondary" }} noWrap>{t.label}</Typography>
             </Box>
           </Paper>

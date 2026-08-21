@@ -18,8 +18,6 @@ public record SaveEquipmentInventoryHttpRequest(
     EquipmentOperationalStatus Status,
     string? StatusChangeComment = null);
 
-// Inventory module - Equipment register (Microbiology lab only, per
-// confirmed scope).
 [ApiController]
 [Route("api/inventory/equipment")]
 [Authorize(Roles = RoleConstants.Analyst + "," + RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
@@ -45,9 +43,42 @@ public class EquipmentInventoryController : ControllerBase
         return Ok(ApiResponse<object>.Ok(item));
     }
 
-    // Print/view list - excludes out-of-service and retired instruments.
     [HttpGet("print")]
     public async Task<IActionResult> GetForPrint() => Ok(ApiResponse<object>.Ok(await _service.GetForPrintAsync()));
+
+    [HttpGet("active")]
+    public async Task<IActionResult> GetActiveEquipment() =>
+        Ok(ApiResponse<object>.Ok(await _service.GetActiveEquipmentAsync()));
+
+    [HttpGet("{id:int}/activities")]
+    public async Task<IActionResult> GetActiveActivities(int id)
+    {
+        try
+        {
+            return Ok(ApiResponse<object>.Ok(await _service.GetActiveActivitiesForEquipmentAsync(id)));
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(ApiResponse<object>.Fail(ex.Message));
+        }
+    }
+
+    [HttpGet("{id:int}/history")]
+    public async Task<IActionResult> GetHistory(int id, [FromQuery] string? itemCode, [FromQuery] DateTime? fromDate, [FromQuery] DateTime? toDate)
+    {
+        try
+        {
+            return Ok(ApiResponse<object>.Ok(await _service.GetHistoricalActivitiesForEquipmentAsync(id, itemCode, fromDate, toDate)));
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(ApiResponse<object>.Fail(ex.Message));
+        }
+    }
+
+    [HttpGet("where-is-it")]
+    public async Task<IActionResult> WhereIsIt([FromQuery] string query) =>
+        Ok(ApiResponse<object>.Ok(await _service.WhereIsItAsync(query)));
 
     [HttpPost]
     public async Task<IActionResult> Create(SaveEquipmentInventoryHttpRequest r) =>
@@ -71,7 +102,6 @@ public class EquipmentInventoryController : ControllerBase
         }
     }
 
-    // Status history is immutable and append-only.
     [HttpGet("{id:int}/status-history")]
     public async Task<IActionResult> GetStatusHistory(int id)
     {

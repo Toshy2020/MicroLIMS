@@ -39,8 +39,8 @@ public class SamplePreparationService
 
             var media = await _db.Media.FirstOrDefaultAsync(m => m.Id == request.DiluentMediaId)
                 ?? throw new InvalidOperationException("Selected diluent media lot not found.");
-            if (!media.IsReleasedForUse || media.ExpiryDate <= DateTime.UtcNow)
-                throw new InvalidOperationException($"Media lot {media.LotNumber} is not GPT-released, inactive, or expired - cannot be used as diluent.");
+            if (!media.IsReleasedForUse || media.Status == MediaStatus.OutOfStock || media.Status == MediaStatus.QuarantineFailed || media.ExpiryDate <= DateTime.UtcNow)
+                throw new InvalidOperationException($"Media lot {media.LotNumber} is not GPT-released, out of stock, rejected, or expired - cannot be used as diluent.");
         }
 
         if (request.Technique.Equals("Filtration", StringComparison.OrdinalIgnoreCase))

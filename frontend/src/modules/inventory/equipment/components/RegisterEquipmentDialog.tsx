@@ -14,7 +14,8 @@ import {
   Typography,
   Divider,
   Alert,
-  IconButton
+  IconButton,
+  useTheme
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import { EquipmentInventoryService } from "../services/EquipmentInventoryService";
@@ -52,6 +53,7 @@ export function RegisterEquipmentDialog({
   onSuccess,
   editingItem
 }: RegisterEquipmentDialogProps) {
+  const theme = useTheme();
   const [form, setForm] = useState<EquipmentFormState>(INITIAL_FORM);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -121,7 +123,7 @@ export function RegisterEquipmentDialog({
   return (
     <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
       <DialogTitle sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", pb: 1.5 }}>
-        <Typography variant="h6" sx={{ fontWeight: 700, color: brandColors.sectionTitle }}>
+        <Typography variant="h6" sx={{ fontWeight: 700, color: theme.palette.primary.main }}>
           {editingItem ? "Edit Equipment" : "Register Equipment"}
         </Typography>
         <IconButton size="small" onClick={onClose} disabled={saving}>

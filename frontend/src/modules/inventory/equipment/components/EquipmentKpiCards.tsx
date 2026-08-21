@@ -1,4 +1,4 @@
-import { Grid, Paper, Typography, Box } from "@mui/material";
+import { Grid, Paper, Typography, Box, useTheme } from "@mui/material";
 import DevicesOtherOutlinedIcon from "@mui/icons-material/DevicesOtherOutlined";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 import PauseCircleOutlineIcon from "@mui/icons-material/PauseCircleOutline";
@@ -6,7 +6,7 @@ import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
 import AlarmOnOutlinedIcon from "@mui/icons-material/AlarmOnOutlined";
 import { SvgIconComponent } from "@mui/icons-material";
 import { EquipmentItem, EquipmentKpiFilter } from "../types/equipmentTypes";
-import { brandColors } from "../../../../theme";
+import { StatusTone } from "../../../../theme/statusTokens";
 
 interface EquipmentKpiCardsProps {
   items: EquipmentItem[];
@@ -20,7 +20,7 @@ interface KpiCardDef {
   description: string;
   count: number;
   icon: SvgIconComponent;
-  color: string;
+  tone: StatusTone;
 }
 
 export function isEquipmentCalibrationOverdue(item: EquipmentItem): boolean {
@@ -42,6 +42,7 @@ export function isEquipmentCalibrationDueSoon(item: EquipmentItem, daysThreshold
 }
 
 export function EquipmentKpiCards({ items, activeFilter, onFilterSelect }: EquipmentKpiCardsProps) {
+  const theme = useTheme();
   const totalCount = items.length;
   const inServiceCount = items.filter((e) => e.status === "InService").length;
   const outOfServiceCount = items.filter((e) => e.status === "OutOfService" || e.status === "Retired").length;
@@ -49,52 +50,18 @@ export function EquipmentKpiCards({ items, activeFilter, onFilterSelect }: Equip
   const dueSoonCount = items.filter((e) => isEquipmentCalibrationDueSoon(e)).length;
 
   const cards: KpiCardDef[] = [
-    {
-      key: "all",
-      label: "Total Equipment",
-      description: "All registered equipment",
-      count: totalCount,
-      icon: DevicesOtherOutlinedIcon,
-      color: brandColors.sectionTitle
-    },
-    {
-      key: "in_service",
-      label: "In Service",
-      description: "Operational equipment",
-      count: inServiceCount,
-      icon: CheckCircleOutlineIcon,
-      color: brandColors.ok
-    },
-    {
-      key: "out_of_service",
-      label: "Out of Service",
-      description: "Unavailable / retired",
-      count: outOfServiceCount,
-      icon: PauseCircleOutlineIcon,
-      color: "#ea580c"
-    },
-    {
-      key: "calibration_overdue",
-      label: "Calibration Overdue",
-      description: "Calibration date has passed",
-      count: overdueCount,
-      icon: ErrorOutlineIcon,
-      color: "#dc2626"
-    },
-    {
-      key: "calibration_due_soon",
-      label: "Calibration Due Soon",
-      description: "Due within 30-day window",
-      count: dueSoonCount,
-      icon: AlarmOnOutlinedIcon,
-      color: "#f59e0b"
-    }
+    { key: "all", label: "Total Equipment", description: "All registered equipment", count: totalCount, icon: DevicesOtherOutlinedIcon, tone: "purple" },
+    { key: "in_service", label: "In Service", description: "Operational equipment", count: inServiceCount, icon: CheckCircleOutlineIcon, tone: "notDetected" },
+    { key: "out_of_service", label: "Out of Service", description: "Unavailable / retired", count: outOfServiceCount, icon: PauseCircleOutlineIcon, tone: "action" },
+    { key: "calibration_overdue", label: "Calibration Overdue", description: "Calibration date has passed", count: overdueCount, icon: ErrorOutlineIcon, tone: "detected" },
+    { key: "calibration_due_soon", label: "Calibration Due Soon", description: "Due within 30-day window", count: dueSoonCount, icon: AlarmOnOutlinedIcon, tone: "inconclusive" }
   ];
 
   return (
     <Grid container spacing={1.5} sx={{ mb: 2 }}>
       {cards.map((card) => {
         const isActive = activeFilter === card.key;
+        const tokens = theme.custom.status[card.tone];
         return (
           <Grid item xs={12} sm={6} md={2.4} key={card.key}>
             <Paper
@@ -103,12 +70,13 @@ export function EquipmentKpiCards({ items, activeFilter, onFilterSelect }: Equip
                 p: 1.75,
                 cursor: "pointer",
                 transition: "all 0.15s ease-in-out",
-                border: isActive ? `2px solid ${card.color}` : "1px solid #e5e7eb",
-                bgcolor: isActive ? `${card.color}0a` : "#ffffff",
-                boxShadow: isActive ? `0 2px 8px ${card.color}26` : "0 1px 3px rgba(0,0,0,0.05)",
+                border: isActive ? `2px solid ${tokens.border}` : "1px solid",
+                borderColor: isActive ? tokens.border : "divider",
+                bgcolor: isActive ? tokens.bg : "background.paper",
+                boxShadow: isActive ? `0 2px 8px ${tokens.border}44` : "0 1px 3px rgba(0,0,0,0.05)",
                 "&:hover": {
-                  boxShadow: `0 4px 12px ${card.color}22`,
-                  borderColor: card.color,
+                  boxShadow: `0 4px 12px ${tokens.border}33`,
+                  borderColor: tokens.border,
                   transform: "translateY(-1px)"
                 }
               }}
@@ -122,8 +90,8 @@ export function EquipmentKpiCards({ items, activeFilter, onFilterSelect }: Equip
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
-                    bgcolor: `${card.color}18`,
-                    color: card.color
+                    bgcolor: tokens.bg,
+                    color: tokens.text
                   }}
                 >
                   <card.icon sx={{ fontSize: 18 }} />
@@ -132,14 +100,14 @@ export function EquipmentKpiCards({ items, activeFilter, onFilterSelect }: Equip
                   sx={{
                     fontSize: 22,
                     fontWeight: 700,
-                    color: card.color,
+                    color: tokens.text,
                     lineHeight: 1
                   }}
                 >
                   {card.count}
                 </Typography>
               </Box>
-              <Typography sx={{ fontSize: 13, fontWeight: 700, color: "#1f2937", lineHeight: 1.2 }} noWrap>
+              <Typography sx={{ fontSize: 13, fontWeight: 700, color: "text.primary", lineHeight: 1.2 }} noWrap>
                 {card.label}
               </Typography>
               <Typography sx={{ fontSize: 11, color: "text.secondary", mt: 0.25 }} noWrap>

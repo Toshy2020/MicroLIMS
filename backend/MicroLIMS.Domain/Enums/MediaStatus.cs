@@ -7,5 +7,6 @@ public enum MediaStatus
     Active,
     Expired,
     QuarantineFailed,
-    Destroyed
+    Destroyed,
+    OutOfStock
 }

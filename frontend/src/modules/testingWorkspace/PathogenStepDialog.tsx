@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Box, Typography, Stack, Alert } from "@mui/material";
+import { Box, Typography, Stack, Alert, useTheme } from "@mui/material";
 import { LoadingSpinner } from "../../components/LoadingSpinner";
 import { TestWorkflowService } from "./services/TestWorkflowService";
 import { CurrentStepResponse } from "./types/testWorkflowTypes";
@@ -33,6 +33,7 @@ function isInconclusiveTerminal(current: CurrentStepResponse): boolean {
 }
 
 function StepChainStrip({ current }: { current: CurrentStepResponse }) {
+  const theme = useTheme();
   const completedByOrder = new Map(current.completedSteps.map((s) => [s.stepOrder, s]));
   const currentOrder = current.step?.stepOrder ?? null;
   return (
@@ -41,17 +42,15 @@ function StepChainStrip({ current }: { current: CurrentStepResponse }) {
         const done = completedByOrder.get(s.stepOrder);
         const isCurrent = s.stepOrder === currentOrder;
         const isInconclusive = done?.outcome?.includes(INCONCLUSIVE_OUTCOME_MARKER);
-        let bg = "#eef0f4", color = "#6b7280", border = "1px solid #d9dce3", label = s.stepName;
+        let tone = theme.custom.status.pending, label = s.stepName;
         if (done) {
           label = `${s.stepName}: ${done.outcome}`;
-          bg = isInconclusive ? "#fdecea" : "#e8f6ec";
-          color = isInconclusive ? "#b3261e" : "#1e7a34";
-          border = `1px solid ${isInconclusive ? "#f3b7b2" : "#a8ddb5"}`;
+          tone = isInconclusive ? theme.custom.status.detected : theme.custom.status.notDetected;
         } else if (isCurrent) {
-          label = `${s.stepName}: In progress`; bg = "#eaf1fd"; color = "#1a56db"; border = "1px solid #a9c6f5";
+          label = `${s.stepName}: In progress`; tone = theme.custom.status.info;
         }
         return (
-          <Box key={s.stepOrder} sx={{ px: 1.25, py: 0.5, borderRadius: 999, fontSize: 12, fontWeight: 600, bgcolor: bg, color, border }}>
+          <Box key={s.stepOrder} sx={{ px: 1.25, py: 0.5, borderRadius: 999, fontSize: 12, fontWeight: 600, bgcolor: tone.bg, color: tone.text, border: `1px solid ${tone.border}` }}>
             {done ? (isInconclusive ? "✗ " : "✓ ") : ""}{label}
           </Box>
         );
@@ -61,6 +60,7 @@ function StepChainStrip({ current }: { current: CurrentStepResponse }) {
 }
 
 export function PathogenStepDialog({ testOrderId }: Props) {
+  const theme = useTheme();
   const [current, setCurrent] = useState<CurrentStepResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -85,11 +85,11 @@ export function PathogenStepDialog({ testOrderId }: Props) {
     return (
       <Box>
         <StepChainStrip current={current} />
-        <Box sx={{ backgroundColor: "#fff7ed", border: "1px solid #fed7aa", borderRadius: 1, p: 2, mt: 1 }}>
-          <Typography variant="body2" sx={{ fontWeight: 600, color: "#9a3412", display: "flex", alignItems: "center", gap: 1 }}>
+        <Box sx={{ backgroundColor: theme.custom.status.action.bg, border: "1px solid", borderColor: theme.custom.status.action.border, borderRadius: 1, p: 2, mt: 1 }}>
+          <Typography variant="body2" sx={{ fontWeight: 600, color: theme.custom.status.action.text, display: "flex", alignItems: "center", gap: 1 }}>
             ⚠ Confirmatory Plating: Inconclusive
           </Typography>
-          <Typography variant="caption" sx={{ color: "#92400e", display: "block", mt: 0.5 }}>
+          <Typography variant="caption" sx={{ color: theme.custom.status.action.text, display: "block", mt: 0.5 }}>
             Media disagreement recorded. This result has been flagged for reviewer decision. No further analyst action required.
           </Typography>
         </Box>
@@ -102,13 +102,13 @@ export function PathogenStepDialog({ testOrderId }: Props) {
       <Box>
         <StepChainStrip current={current} />
         {current.finalResult ? (
-          <Box sx={{ backgroundColor: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 1, p: 2, mt: 1 }}>
-            <Typography variant="body2" sx={{ fontWeight: 600, color: "#166534" }}>
+          <Box sx={{ backgroundColor: theme.custom.status.notDetected.bg, border: "1px solid", borderColor: theme.custom.status.notDetected.border, borderRadius: 1, p: 2, mt: 1 }}>
+            <Typography variant="body2" sx={{ fontWeight: 600, color: theme.custom.status.notDetected.text }}>
               ✓ Final result: {current.finalResult}
             </Typography>
           </Box>
         ) : (
-          <Typography variant="body2" sx={{ color: "#9ca3af" }}>—</Typography>
+          <Typography variant="body2" sx={{ color: "text.secondary" }}>—</Typography>
         )}
       </Box>
     );

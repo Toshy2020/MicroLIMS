@@ -12,12 +12,15 @@ import {
   Select,
   MenuItem,
   Divider,
-  Stack
+  Stack,
+  useTheme
 } from "@mui/material";
 import ScienceOutlinedIcon from "@mui/icons-material/ScienceOutlined";
 import { MediaPreparationService } from "../services/MediaPreparationService";
 import { MaterialService } from "../../../inventory/materials/services/MaterialService";
+import { EquipmentConfigurationService, AutoclaveProgram } from "../../masterDataSimple/services/EquipmentConfigurationService";
 import { masterDataOptions, mediaClassLabel } from "../../../../services/masterDataOptions";
+import { apiClient } from "../../../../services/apiClient";
 import { brandColors } from "../../../../theme";
 
 interface Props {
@@ -27,9 +30,11 @@ interface Props {
 }
 
 export function MediaPreparationDialog({ open, onClose, onSuccess }: Props) {
+  const theme = useTheme();
   const [mediaTypes, setMediaTypes] = useState<any[]>([]);
   const [autoclaves, setAutoclaves] = useState<any[]>([]);
   const [dehydratedMedia, setDehydratedMedia] = useState<any[]>([]);
+  const [autoclavePrograms, setAutoclavePrograms] = useState<AutoclaveProgram[]>([]);
   const [form, setForm] = useState<Record<string, any>>({});
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -38,6 +43,7 @@ export function MediaPreparationDialog({ open, onClose, onSuccess }: Props) {
     if (open) {
       setError(null);
       setForm({});
+      setAutoclavePrograms([]);
       masterDataOptions.getMediaTypes().then(setMediaTypes).catch(() => setMediaTypes([]));
       masterDataOptions.getEquipment("Autoclave").then(setAutoclaves).catch(() => setAutoclaves([]));
       MaterialService.getAll("DehydratedMedia").then(setDehydratedMedia).catch(() => setDehydratedMedia([]));
@@ -48,6 +54,48 @@ export function MediaPreparationDialog({ open, onClose, onSuccess }: Props) {
   const selectedMaterial = usableStock.find((m) => m.id === form.materialId);
 
   const setField = (k: string, v: any) => setForm((f) => ({ ...f, [k]: v }));
+
+  const handleAutoclaveChange = async (eqId: any) => {
+    setField("autoclaveEquipmentId", eqId);
+    setField("autoclaveProgramId", "");
+    setField("autoclaveProgram", "");
+    setField("loadType", "");
+    setField("temperature", "");
+    setField("cycleTime", "");
+    setAutoclavePrograms([]);
+
+    if (eqId) {
+      try {
+        const programs = await EquipmentConfigurationService.getAutoclavePrograms(Number(eqId), true);
+        setAutoclavePrograms(Array.isArray(programs) ? programs : []);
+      } catch (e) {
+        setAutoclavePrograms([]);
+      }
+    }
+  };
+
+  const handleProgramChange = (progId: any) => {
+    const prog = autoclavePrograms.find((p) => p.id === Number(progId));
+    if (prog) {
+      setForm((f) => ({
+        ...f,
+        autoclaveProgramId: prog.id,
+        autoclaveProgram: `${prog.programCode} — ${prog.programName}`,
+        loadType: prog.loadType,
+        temperature: prog.temperature,
+        cycleTime: prog.cycleTimeMinutes
+      }));
+    } else {
+      setForm((f) => ({
+        ...f,
+        autoclaveProgramId: "",
+        autoclaveProgram: "",
+        loadType: "",
+        temperature: "",
+        cycleTime: ""
+      }));
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -75,19 +123,19 @@ export function MediaPreparationDialog({ open, onClose, onSuccess }: Props) {
       return;
     }
     if (!form.autoclaveProgram) {
-      setError("Please specify the Autoclave Program / Load.");
+      setError("Please select an Autoclave Program / Load.");
       return;
     }
     if (!form.loadType) {
-      setError("Please specify the Load Type.");
+      setError("Please select an Autoclave Program with valid Load Type.");
       return;
     }
     if (!form.temperature) {
-      setError("Please specify the sterilization temperature.");
+      setError("Autoclave temperature is required.");
       return;
     }
     if (!form.cycleTime) {
-      setError("Please specify the cycle time.");
+      setError("Autoclave cycle time is required.");
       return;
     }
     if (!form.cycleNumber) {
@@ -134,8 +182,8 @@ export function MediaPreparationDialog({ open, onClose, onSuccess }: Props) {
       <form onSubmit={handleSubmit}>
         <DialogTitle sx={{ pb: 1 }}>
           <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-            <ScienceOutlinedIcon sx={{ color: brandColors.sectionTitle }} />
-            <Typography sx={{ fontSize: 18, fontWeight: 700, color: brandColors.pageTitle }}>
+            <ScienceOutlinedIcon sx={{ color: theme.palette.primary.main }} />
+            <Typography sx={{ fontSize: 18, fontWeight: 700, color: theme.palette.primary.main }}>
               Prepare New Media Lot
             </Typography>
           </Box>
@@ -154,7 +202,7 @@ export function MediaPreparationDialog({ open, onClose, onSuccess }: Props) {
           <Stack spacing={2.5}>
             {/* Section 1: Preparation Details */}
             <Box>
-              <Typography sx={{ fontSize: 13, fontWeight: 700, color: brandColors.sectionTitle, mb: 1.5 }}>
+              <Typography sx={{ fontSize: 13, fontWeight: 700, color: theme.palette.primary.main, mb: 1.5 }}>
                 1. PREPARATION DETAILS & INVENTORY STOCK
               </Typography>
 
@@ -222,59 +270,69 @@ export function MediaPreparationDialog({ open, onClose, onSuccess }: Props) {
 
             {/* Section 2: Sterilization */}
             <Box>
-              <Typography sx={{ fontSize: 13, fontWeight: 700, color: brandColors.sectionTitle, mb: 1.5 }}>
+              <Typography sx={{ fontSize: 13, fontWeight: 700, color: theme.palette.primary.main, mb: 1.5 }}>
                 2. STERILIZATION & AUTOCLAVE PARAMETERS
               </Typography>
+              <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 1.5 }}>
+                Select an autoclave and configured program. Load Type, Temperature, and Cycle Time are automatically set from Laboratory Configuration.
+              </Typography>
 
-              <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr 1fr" }, gap: 2 }}>
+              <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, gap: 2 }}>
                 <Select
                   size="small"
                   displayEmpty
                   value={form.autoclaveEquipmentId ?? ""}
-                  onChange={(e) => setField("autoclaveEquipmentId", e.target.value)}
+                  onChange={(e) => handleAutoclaveChange(e.target.value)}
                 >
                   <MenuItem value="">
                     <em>Select Autoclave *</em>
                   </MenuItem>
                   {autoclaves.map((a) => (
                     <MenuItem key={a.id} value={a.id}>
-                      {a.name}
+                      {a.code} — {a.name}
+                    </MenuItem>
+                  ))}
+                </Select>
+
+                <Select
+                  size="small"
+                  displayEmpty
+                  disabled={!form.autoclaveEquipmentId || !Array.isArray(autoclavePrograms) || autoclavePrograms.length === 0}
+                  value={form.autoclaveProgramId ?? ""}
+                  onChange={(e) => handleProgramChange(e.target.value)}
+                >
+                  <MenuItem value="">
+                    <em>{!Array.isArray(autoclavePrograms) || autoclavePrograms.length === 0 ? "No active programs for autoclave" : "Select Program / Load *"}</em>
+                  </MenuItem>
+                  {Array.isArray(autoclavePrograms) && autoclavePrograms.map((p) => (
+                    <MenuItem key={p.id} value={p.id}>
+                      {p.programCode} — {p.programName} ({p.temperature}°C, {p.cycleTimeMinutes} min)
                     </MenuItem>
                   ))}
                 </Select>
 
                 <TextField
                   size="small"
-                  label="Program / Load *"
-                  placeholder="e.g. Media Cycle 1"
-                  value={form.autoclaveProgram ?? ""}
-                  onChange={(e) => setField("autoclaveProgram", e.target.value)}
-                />
-
-                <TextField
-                  size="small"
-                  label="Load Type *"
-                  placeholder="e.g. Liquid Media"
+                  label="Load Type (Read-Only)"
                   value={form.loadType ?? ""}
-                  onChange={(e) => setField("loadType", e.target.value)}
+                  InputProps={{ readOnly: true }}
+                  helperText="Configured in Laboratory Configuration"
                 />
 
                 <TextField
                   size="small"
-                  label="Temperature (°C) *"
-                  type="number"
-                  placeholder="e.g. 121"
-                  value={form.temperature ?? ""}
-                  onChange={(e) => setField("temperature", e.target.value)}
+                  label="Temperature (°C) (Read-Only)"
+                  value={form.temperature ? `${form.temperature} °C` : ""}
+                  InputProps={{ readOnly: true }}
+                  helperText="Configured in Laboratory Configuration"
                 />
 
                 <TextField
                   size="small"
-                  label="Cycle Time (min) *"
-                  type="number"
-                  placeholder="e.g. 15"
-                  value={form.cycleTime ?? ""}
-                  onChange={(e) => setField("cycleTime", e.target.value)}
+                  label="Cycle Time (min) (Read-Only)"
+                  value={form.cycleTime ? `${form.cycleTime} min` : ""}
+                  InputProps={{ readOnly: true }}
+                  helperText="Configured in Laboratory Configuration"
                 />
 
                 <TextField
@@ -292,7 +350,7 @@ export function MediaPreparationDialog({ open, onClose, onSuccess }: Props) {
 
             {/* Section 3: Quality & Expiry */}
             <Box>
-              <Typography sx={{ fontSize: 13, fontWeight: 700, color: brandColors.sectionTitle, mb: 1.5 }}>
+              <Typography sx={{ fontSize: 13, fontWeight: 700, color: theme.palette.primary.main, mb: 1.5 }}>
                 3. QUALITY SPECIFICATIONS & EXPIRY
               </Typography>
 

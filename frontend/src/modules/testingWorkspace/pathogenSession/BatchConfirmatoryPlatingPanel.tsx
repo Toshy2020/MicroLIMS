@@ -25,7 +25,8 @@ import {
   Tab,
   Tooltip,
   Card,
-  CardContent
+  CardContent,
+  useTheme
 } from "@mui/material";
 import ScienceOutlinedIcon from "@mui/icons-material/ScienceOutlined";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
@@ -61,6 +62,7 @@ interface PathogenSetupState {
 }
 
 export function BatchConfirmatoryPlatingPanel({ session, onNext, onBack, onUpdated }: Props) {
+  const theme = useTheme();
   const [phase, setPhase] = useState<"setup" | "readout">("setup");
   const [activeTab, setActiveTab] = useState(0);
 
@@ -415,12 +417,12 @@ export function BatchConfirmatoryPlatingPanel({ session, onNext, onBack, onUpdat
   // If no locations are eligible for confirmation (100% negative primary observations)
   if (!loadingEligible && eligibleLocations.length === 0) {
     return (
-      <Paper sx={{ p: 4, textAlign: "center", borderRadius: 2, border: "1px solid #e5e7eb" }}>
+      <Paper sx={{ p: 4, textAlign: "center", borderRadius: 2, border: "1px solid", borderColor: "divider" }}>
         <CheckCircleOutlineIcon sx={{ fontSize: 48, color: "#059669", mb: 1.5 }} />
-        <Typography sx={{ fontSize: 18, fontWeight: 800, color: "#1f2937", mb: 1 }}>
+        <Typography sx={{ fontSize: 18, fontWeight: 800, color: "text.primary", mb: 1 }}>
           Confirmatory Plating Not Required
         </Typography>
-        <Typography sx={{ fontSize: 13, color: "#6b7280", maxWidth: 600, mx: "auto", mb: 3 }}>
+        <Typography sx={{ fontSize: 13, color: "text.secondary", maxWidth: 600, mx: "auto", mb: 3 }}>
           All sampling locations in this batch were recorded as <strong>No Growth (-)</strong> during primary plate observation.
           No confirmatory plating is required for this session.
         </Typography>
@@ -439,20 +441,20 @@ export function BatchConfirmatoryPlatingPanel({ session, onNext, onBack, onUpdat
   return (
     <Stack spacing={2.5}>
       {/* Top Banner */}
-      <Paper sx={{ p: 2.5, borderRadius: 2, border: "1px solid #e5e7eb", bgcolor: "#faf5ff" }}>
+      <Paper sx={{ p: 2.5, borderRadius: 2, border: "1px solid", borderColor: theme.custom.status.purple.border, bgcolor: theme.custom.status.purple.bg }}>
         <Stack direction={{ xs: "column", sm: "row" }} justifyContent="space-between" alignItems={{ sm: "center" }} spacing={2}>
           <Box>
             <Stack direction="row" spacing={1.5} alignItems="center" sx={{ mb: 0.75 }}>
-              <Typography sx={{ fontSize: 16, fontWeight: 800, color: "#1f2937" }}>
+              <Typography sx={{ fontSize: 16, fontWeight: 800, color: "text.primary" }}>
                 Confirmatory Plating (Panel B)
               </Typography>
               <Chip
                 label={`${eligibleLocations.length} Flagged Locations`}
                 size="small"
-                sx={{ bgcolor: "#fee2e2", color: "#991b1b", fontWeight: 700 }}
+                sx={{ bgcolor: theme.custom.status.detected.bg, color: theme.custom.status.detected.text, fontWeight: 700 }}
               />
             </Stack>
-            <Typography sx={{ fontSize: 12, color: "#6b7280" }}>
+            <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
               Shared confirmatory media plating, batch incubation, and multi-media agreement evaluation.
             </Typography>
           </Box>
@@ -491,7 +493,8 @@ export function BatchConfirmatoryPlatingPanel({ session, onNext, onBack, onUpdat
           value={activeTab}
           onChange={(_, val) => setActiveTab(val)}
           sx={{
-            borderBottom: "1px solid #e5e7eb",
+            borderBottom: "1px solid",
+            borderBottomColor: "divider",
             "& .MuiTab-root": { fontWeight: 700, textTransform: "none", fontSize: 13 }
           }}
         >
@@ -511,7 +514,7 @@ export function BatchConfirmatoryPlatingPanel({ session, onNext, onBack, onUpdat
 
       {/* PHASE 1: SHARED MEDIA SETUP FORM */}
       {phase === "setup" && currentPathogen && (
-        <Paper sx={{ p: 3, borderRadius: 2, border: "1px solid #e5e7eb" }}>
+        <Paper sx={{ p: 3, borderRadius: 2, border: "1px solid", borderColor: "divider" }}>
           <Stack direction="row" spacing={1.5} alignItems="center" sx={{ mb: 2 }}>
             <Box
               sx={{
@@ -528,17 +531,17 @@ export function BatchConfirmatoryPlatingPanel({ session, onNext, onBack, onUpdat
               <ScienceOutlinedIcon sx={{ fontSize: 20 }} />
             </Box>
             <Box>
-              <Typography sx={{ fontSize: 15, fontWeight: 800, color: "#1f2937" }}>
+              <Typography sx={{ fontSize: 15, fontWeight: 800, color: "text.primary" }}>
                 Shared Media & Incubation Setup — {currentPathogen.testDisplayName}
               </Typography>
-              <Typography sx={{ fontSize: 12, color: "#6b7280" }}>
+              <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
                 {currentPathogen.requiredMediaCount} confirmatory media required by Test Master specification for {currentPathogen.testCode}.
               </Typography>
             </Box>
           </Stack>
 
-          <Box sx={{ p: 2, mb: 3, bgcolor: "#f8fafc", borderRadius: 2, border: "1px solid #e2e8f0" }}>
-            <Typography sx={{ fontSize: 12, fontWeight: 700, color: "#475569", mb: 1 }}>
+          <Box sx={{ p: 2, mb: 3, bgcolor: "background.default", borderRadius: 2, border: "1px solid", borderColor: "divider" }}>
+            <Typography sx={{ fontSize: 12, fontWeight: 700, color: "text.secondary", mb: 1 }}>
               FLAGGED SAMPLING LOCATIONS ({currentPathogen.locations.length}):
             </Typography>
             <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
@@ -548,8 +551,8 @@ export function BatchConfirmatoryPlatingPanel({ session, onNext, onBack, onUpdat
                   label={`${loc.locationName} (${loc.growthObservationDisplay})`}
                   size="small"
                   sx={{
-                    bgcolor: loc.growthObservation === GrowthObservation.GrowthConforming ? "#fee2e2" : "#ffedd5",
-                    color: loc.growthObservation === GrowthObservation.GrowthConforming ? "#991b1b" : "#9a3412",
+                    bgcolor: loc.growthObservation === GrowthObservation.GrowthConforming ? theme.custom.status.detected.bg : theme.custom.status.action.bg,
+                    color: loc.growthObservation === GrowthObservation.GrowthConforming ? theme.custom.status.detected.text : theme.custom.status.action.text,
                     fontWeight: 600
                   }}
                 />
@@ -624,14 +627,14 @@ export function BatchConfirmatoryPlatingPanel({ session, onNext, onBack, onUpdat
               />
 
               {/* Read-only Incubation Duration from Test Master */}
-              <Box sx={{ p: 1.5, backgroundColor: "#f8fafc", borderRadius: 1.5, border: "1px solid #e2e8f0", gridColumn: { xs: "1", sm: "span 2" } }}>
-                <Typography variant="caption" sx={{ color: "#64748b", display: "block" }}>
+              <Box sx={{ p: 1.5, backgroundColor: "background.default", borderRadius: 1.5, border: "1px solid", borderColor: "divider", gridColumn: { xs: "1", sm: "span 2" } }}>
+                <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>
                   Incubation Duration (from Test Master)
                 </Typography>
-                <Typography variant="body2" sx={{ fontWeight: 700, color: "#1e293b" }}>
+                <Typography variant="body2" sx={{ fontWeight: 700, color: "text.primary" }}>
                   18–24 hours
                 </Typography>
-                <Typography variant="caption" sx={{ color: "#94a3b8" }}>
+                <Typography variant="caption" sx={{ color: "text.secondary" }}>
                   Protocol duration is automatically applied to all selected media
                 </Typography>
               </Box>
@@ -660,35 +663,35 @@ export function BatchConfirmatoryPlatingPanel({ session, onNext, onBack, onUpdat
       {phase === "readout" && (
         <Stack spacing={2.5}>
           {/* Agreement Stats Bar */}
-          <Paper sx={{ p: 2, borderRadius: 2, border: "1px solid #e5e7eb", bgcolor: "#fcfaff" }}>
+          <Paper sx={{ p: 2, borderRadius: 2, border: "1px solid", borderColor: theme.custom.status.purple.border, bgcolor: theme.custom.status.purple.bg }}>
             <Stack direction={{ xs: "column", md: "row" }} justifyContent="space-between" alignItems={{ md: "center" }} spacing={2}>
               <Stack direction="row" spacing={1.5} alignItems="center" flexWrap="wrap">
-                <Typography sx={{ fontSize: 14, fontWeight: 800, color: "#1f2937" }}>
+                <Typography sx={{ fontSize: 14, fontWeight: 800, color: "text.primary" }}>
                   Multi-Media Agreement Status:
                 </Typography>
                 <Chip
                   label={`Detected (+): ${stats.detected}`}
                   size="small"
-                  sx={{ bgcolor: stats.detected > 0 ? "#fee2e2" : "#f3f4f6", color: stats.detected > 0 ? "#991b1b" : "#374151", fontWeight: 700 }}
+                  sx={{ bgcolor: stats.detected > 0 ? theme.custom.status.detected.bg : theme.custom.status.pending.bg, color: stats.detected > 0 ? theme.custom.status.detected.text : theme.custom.status.pending.text, fontWeight: 700 }}
                 />
                 <Chip
                   label={`Not Detected (-): ${stats.notDetected}`}
                   size="small"
-                  sx={{ bgcolor: stats.notDetected > 0 ? "#d1fae5" : "#f3f4f6", color: stats.notDetected > 0 ? "#065f46" : "#374151", fontWeight: 700 }}
+                  sx={{ bgcolor: stats.notDetected > 0 ? theme.custom.status.notDetected.bg : theme.custom.status.pending.bg, color: stats.notDetected > 0 ? theme.custom.status.notDetected.text : theme.custom.status.pending.text, fontWeight: 700 }}
                 />
                 {stats.inconclusive > 0 && (
                   <Chip
                     icon={<WarningAmberOutlinedIcon sx={{ fontSize: 13 }} />}
                     label={`Inconclusive (Retest): ${stats.inconclusive}`}
                     size="small"
-                    sx={{ bgcolor: "#ffedd5", color: "#9a3412", fontWeight: 700 }}
+                    sx={{ bgcolor: theme.custom.status.action.bg, color: theme.custom.status.action.text, fontWeight: 700 }}
                   />
                 )}
                 {stats.pending > 0 && (
                   <Chip
                     label={`Pending Reads: ${stats.pending}`}
                     size="small"
-                    sx={{ bgcolor: "#f1f5f9", color: "#64748b", fontWeight: 600 }}
+                    sx={{ bgcolor: theme.custom.status.pending.bg, color: theme.custom.status.pending.text, fontWeight: 600 }}
                   />
                 )}
               </Stack>
@@ -712,15 +715,15 @@ export function BatchConfirmatoryPlatingPanel({ session, onNext, onBack, onUpdat
           </Paper>
 
           {/* Plate Observation Table */}
-          <Paper sx={{ border: "1px solid #e5e7eb", borderRadius: 2, overflow: "hidden" }}>
+          <Paper sx={{ border: "1px solid", borderColor: "divider", borderRadius: 2, overflow: "hidden" }}>
             <Box sx={{ maxHeight: 520, overflow: "auto" }}>
               <Table size="small" stickyHeader>
                 <TableHead>
                   <TableRow>
-                    <TableCell sx={{ position: "sticky", left: 0, zIndex: 3, bgcolor: "#f8fafc", fontWeight: 800, minWidth: 220, borderRight: "2px solid #e2e8f0" }}>
+                    <TableCell sx={{ position: "sticky", left: 0, zIndex: 3, bgcolor: "background.default", fontWeight: 800, minWidth: 220, borderRight: "2px solid", borderRightColor: "divider" }}>
                       Sampling Location ({eligibleLocations.length})
                     </TableCell>
-                    <TableCell align="center" sx={{ bgcolor: "#f8fafc", fontWeight: 800, minWidth: 140 }}>
+                    <TableCell align="center" sx={{ bgcolor: "background.default", fontWeight: 800, minWidth: 140 }}>
                       Primary Reading
                     </TableCell>
 
@@ -729,18 +732,18 @@ export function BatchConfirmatoryPlatingPanel({ session, onNext, onBack, onUpdat
                       <TableCell
                         key={medIdx}
                         align="center"
-                        sx={{ bgcolor: "#fcfaff", fontWeight: 800, minWidth: 260, borderRight: "1px solid #f1f5f9" }}
+                        sx={{ bgcolor: theme.custom.status.purple.bg, fontWeight: 800, minWidth: 260, borderRight: "1px solid", borderRightColor: "divider" }}
                       >
-                        <Typography sx={{ fontSize: 13, fontWeight: 800, color: brandColors.sectionTitle }}>
+                        <Typography sx={{ fontSize: 13, fontWeight: 800, color: theme.palette.primary.main }}>
                           Confirmatory Medium #{medIdx + 1}
                         </Typography>
-                        <Typography sx={{ fontSize: 11, color: "#64748b" }}>
+                        <Typography sx={{ fontSize: 11, color: "text.secondary" }}>
                           Colony appearance & growth observation
                         </Typography>
                       </TableCell>
                     ))}
 
-                    <TableCell align="center" sx={{ bgcolor: "#f8fafc", fontWeight: 800, minWidth: 160 }}>
+                    <TableCell align="center" sx={{ bgcolor: "background.default", fontWeight: 800, minWidth: 160 }}>
                       Agreement Evaluation
                     </TableCell>
                   </TableRow>
@@ -752,13 +755,13 @@ export function BatchConfirmatoryPlatingPanel({ session, onNext, onBack, onUpdat
                     const reqCount = loc.requiredConfirmatoryMediaCount || 1;
 
                     return (
-                      <TableRow key={loc.locationId} hover sx={{ bgcolor: idx % 2 === 0 ? "#ffffff" : "#fafafa" }}>
+                      <TableRow key={loc.locationId} hover sx={{ bgcolor: idx % 2 === 0 ? "background.paper" : "background.default" }}>
                         {/* Sticky Location Name Column */}
-                        <TableCell sx={{ position: "sticky", left: 0, zIndex: 2, bgcolor: idx % 2 === 0 ? "#ffffff" : "#fafafa", fontWeight: 700, borderRight: "2px solid #e2e8f0" }}>
-                          <Typography sx={{ fontSize: 13, fontWeight: 700, color: "#1f2937" }}>
+                        <TableCell sx={{ position: "sticky", left: 0, zIndex: 2, bgcolor: idx % 2 === 0 ? "background.paper" : "background.default", fontWeight: 700, borderRight: "2px solid", borderRightColor: "divider" }}>
+                          <Typography sx={{ fontSize: 13, fontWeight: 700, color: "text.primary" }}>
                             {loc.locationName}
                           </Typography>
-                          <Typography sx={{ fontSize: 11, color: "#6b7280" }}>
+                          <Typography sx={{ fontSize: 11, color: "text.secondary" }}>
                             {loc.testDisplayName} ({loc.testCode})
                           </Typography>
                         </TableCell>
@@ -771,8 +774,8 @@ export function BatchConfirmatoryPlatingPanel({ session, onNext, onBack, onUpdat
                             sx={{
                               fontSize: 11,
                               fontWeight: 700,
-                              bgcolor: loc.growthObservation === GrowthObservation.GrowthConforming ? "#fee2e2" : "#ffedd5",
-                              color: loc.growthObservation === GrowthObservation.GrowthConforming ? "#991b1b" : "#9a3412"
+                              bgcolor: loc.growthObservation === GrowthObservation.GrowthConforming ? theme.custom.status.detected.bg : theme.custom.status.action.bg,
+                              color: loc.growthObservation === GrowthObservation.GrowthConforming ? theme.custom.status.detected.text : theme.custom.status.action.text
                             }}
                           />
                         </TableCell>
@@ -783,7 +786,7 @@ export function BatchConfirmatoryPlatingPanel({ session, onNext, onBack, onUpdat
                           const val = plateReadings[key] ?? "";
 
                           return (
-                            <TableCell key={medIdx} align="center" sx={{ borderRight: "1px solid #f1f5f9" }}>
+                            <TableCell key={medIdx} align="center" sx={{ borderRight: "1px solid", borderRightColor: "divider" }}>
                               <RadioGroup
                                 row
                                 value={val}
@@ -793,17 +796,17 @@ export function BatchConfirmatoryPlatingPanel({ session, onNext, onBack, onUpdat
                                 <FormControlLabel
                                   value={GrowthObservation.NoGrowth}
                                   control={<Radio size="small" sx={{ color: "#059669", "&.Mui-checked": { color: "#059669" } }} />}
-                                  label={<Typography sx={{ fontSize: 11, fontWeight: 600, color: "#065f46" }}>No Growth</Typography>}
+                                  label={<Typography sx={{ fontSize: 11, fontWeight: 600, color: theme.custom.status.notDetected.text }}>No Growth</Typography>}
                                 />
                                 <FormControlLabel
                                   value={GrowthObservation.GrowthNonConforming}
-                                  control={<Radio size="small" sx={{ color: "#d97706", "&.Mui-checked": { color: "#d97706" } }} />}
-                                  label={<Typography sx={{ fontSize: 11, fontWeight: 600, color: "#b45309" }}>Non-Conf</Typography>}
+                                  control={<Radio size="small" sx={{ color: theme.custom.status.inconclusive.text, "&.Mui-checked": { color: theme.custom.status.inconclusive.text } }} />}
+                                  label={<Typography sx={{ fontSize: 11, fontWeight: 600, color: theme.custom.status.inconclusive.text }}>Non-Conf</Typography>}
                                 />
                                 <FormControlLabel
                                   value={GrowthObservation.GrowthConforming}
-                                  control={<Radio size="small" sx={{ color: "#dc2626", "&.Mui-checked": { color: "#dc2626" } }} />}
-                                  label={<Typography sx={{ fontSize: 11, fontWeight: 800, color: "#dc2626" }}>Conf (+)</Typography>}
+                                  control={<Radio size="small" sx={{ color: theme.custom.status.detected.text, "&.Mui-checked": { color: theme.custom.status.detected.text } }} />}
+                                  label={<Typography sx={{ fontSize: 11, fontWeight: 800, color: theme.custom.status.detected.text }}>Conf (+)</Typography>}
                                 />
                               </RadioGroup>
                             </TableCell>
@@ -816,19 +819,19 @@ export function BatchConfirmatoryPlatingPanel({ session, onNext, onBack, onUpdat
                             <Chip
                               label="Pending Read"
                               size="small"
-                              sx={{ fontSize: 11, fontWeight: 600, bgcolor: "#f1f5f9", color: "#64748b" }}
+                              sx={{ fontSize: 11, fontWeight: 600, bgcolor: theme.custom.status.pending.bg, color: theme.custom.status.pending.text }}
                             />
                           ) : agr.result === ConfirmationResult.Detected ? (
                             <Chip
                               label="Detected (+)"
                               size="small"
-                              sx={{ fontSize: 11, fontWeight: 800, bgcolor: "#fee2e2", color: "#991b1b" }}
+                              sx={{ fontSize: 11, fontWeight: 800, bgcolor: theme.custom.status.detected.bg, color: theme.custom.status.detected.text }}
                             />
                           ) : agr.result === ConfirmationResult.NotDetected ? (
                             <Chip
                               label="Not Detected (-)"
                               size="small"
-                              sx={{ fontSize: 11, fontWeight: 700, bgcolor: "#ecfdf5", color: "#065f46" }}
+                              sx={{ fontSize: 11, fontWeight: 700, bgcolor: theme.custom.status.notDetected.bg, color: theme.custom.status.notDetected.text }}
                             />
                           ) : (
                             <Tooltip title="Media observations disagree across plates. Retest is required.">
@@ -836,7 +839,7 @@ export function BatchConfirmatoryPlatingPanel({ session, onNext, onBack, onUpdat
                                 icon={<WarningAmberOutlinedIcon sx={{ fontSize: 12 }} />}
                                 label="Inconclusive (Retest)"
                                 size="small"
-                                sx={{ fontSize: 11, fontWeight: 800, bgcolor: "#ffedd5", color: "#9a3412" }}
+                                sx={{ fontSize: 11, fontWeight: 800, bgcolor: theme.custom.status.action.bg, color: theme.custom.status.action.text }}
                               />
                             </Tooltip>
                           )}
@@ -851,12 +854,12 @@ export function BatchConfirmatoryPlatingPanel({ session, onNext, onBack, onUpdat
 
           {/* Conditional Biochemical Supporting Observation Card */}
           {stats.detected > 0 && (
-            <Card sx={{ bgcolor: "#fffbeb", border: "1px solid #fcd34d", borderRadius: 2 }}>
+            <Card sx={{ bgcolor: theme.custom.status.inconclusive.bg, border: "1px solid", borderColor: theme.custom.status.inconclusive.border, borderRadius: 2 }}>
               <CardContent sx={{ p: 2.5 }}>
-                <Typography sx={{ fontSize: 14, fontWeight: 800, color: "#92400e", mb: 0.5, display: "flex", alignItems: "center", gap: 1 }}>
+                <Typography sx={{ fontSize: 14, fontWeight: 800, color: theme.custom.status.inconclusive.text, mb: 0.5, display: "flex", alignItems: "center", gap: 1 }}>
                   🧪 Biochemical Supporting Observation (Optional)
                 </Typography>
-                <Typography sx={{ fontSize: 11.5, color: "#78350f", mb: 1.5, display: "block" }}>
+                <Typography sx={{ fontSize: 11.5, color: theme.custom.status.inconclusive.text, mb: 1.5, display: "block" }}>
                   Add any biochemical confirmation, species identification, or supporting remarks for the <strong>{stats.detected} Detected (+)</strong> location(s) above. This comment will be contemporaneously recorded in the audit trail.
                 </Typography>
                 <TextField
@@ -867,7 +870,7 @@ export function BatchConfirmatoryPlatingPanel({ session, onNext, onBack, onUpdat
                   value={biochemicalComment}
                   onChange={(e) => setBiochemicalComment(e.target.value)}
                   size="small"
-                  sx={{ bgcolor: "#ffffff", borderRadius: 1 }}
+                  sx={{ bgcolor: "background.paper", borderRadius: 1 }}
                 />
               </CardContent>
             </Card>

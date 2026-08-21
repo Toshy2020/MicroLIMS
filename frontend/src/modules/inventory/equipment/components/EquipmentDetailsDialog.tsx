@@ -12,7 +12,8 @@ import {
   IconButton,
   CircularProgress,
   Stack,
-  Tooltip
+  Tooltip,
+  useTheme
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
@@ -64,6 +65,7 @@ export function EquipmentDetailsDialog({
   onEditEquipment,
   onEquipmentUpdated
 }: Props) {
+  const theme = useTheme();
   const [statusHistory, setStatusHistory] = useState<EquipmentStatusHistoryItem[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
   const [docRefreshKey, setDocRefreshKey] = useState(0);
@@ -99,7 +101,7 @@ export function EquipmentDetailsDialog({
       <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
         <DialogTitle sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", pb: 1.5 }}>
           <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, flexWrap: "wrap" }}>
-            <Typography variant="h6" sx={{ fontWeight: 700, color: brandColors.sectionTitle }}>
+            <Typography variant="h6" sx={{ fontWeight: 700, color: theme.palette.primary.main }}>
               {equipment.code}
             </Typography>
             <Typography sx={{ fontSize: 14, color: "text.secondary" }}>
@@ -150,10 +152,11 @@ export function EquipmentDetailsDialog({
               display: "grid",
               gridTemplateColumns: { xs: "1fr", sm: "repeat(2, 1fr)" },
               gap: 2,
-              bgcolor: "#f9fafb",
+              bgcolor: "background.default",
               p: 2,
               borderRadius: 1.5,
-              border: "1px solid #e5e7eb",
+              border: "1px solid",
+              borderColor: "divider",
               mb: 3
             }}
           >
@@ -173,7 +176,11 @@ export function EquipmentDetailsDialog({
                     <span
                       style={{
                         fontWeight: isOverdue || isDueSoon ? 600 : "normal",
-                        color: isOverdue ? "#dc2626" : isDueSoon ? "#d97706" : "inherit"
+                        color: isOverdue
+                          ? theme.custom.status.detected.text
+                          : isDueSoon
+                          ? theme.custom.status.inconclusive.text
+                          : "inherit"
                       }}
                     >
                       {equipment.calibrationDueDate ? formatLabDate(equipment.calibrationDueDate) : "—"}
@@ -202,7 +209,7 @@ export function EquipmentDetailsDialog({
             </Box>
           </Box>
 
-          <Box sx={{ bgcolor: "#ffffff", border: "1px solid #e5e7eb", borderRadius: 1.5, p: 2, mb: 3 }}>
+          <Box sx={{ bgcolor: "background.paper", border: "1px solid", borderColor: "divider", borderRadius: 1.5, p: 2, mb: 3 }}>
             {loadingHistory ? (
               <Box sx={{ display: "flex", justifyContent: "center", py: 2 }}>
                 <CircularProgress size={20} />
@@ -266,7 +273,7 @@ export function EquipmentDetailsDialog({
             </Button>
           </Box>
 
-          <Box sx={{ bgcolor: "#ffffff", border: "1px solid #e5e7eb", borderRadius: 1.5, p: 2 }}>
+          <Box sx={{ bgcolor: "background.paper", border: "1px solid", borderColor: "divider", borderRadius: 1.5, p: 2 }}>
             <EquipmentDocumentList
               equipmentId={equipment.id}
               refreshKey={docRefreshKey}

@@ -250,7 +250,7 @@ export function ConfirmatoryPlatingPanel({ testOrderId, step, current, onSubmitt
               entry: m, checked: false, mediaLotId: "", equipmentId: "", incubators: []
             };
             return (
-              <Box key={m.stepMediaId} sx={{ border: "1px solid #e0e0e0", borderRadius: 1, p: 1.5 }}>
+              <Box key={m.stepMediaId} sx={{ border: "1px solid", borderColor: "divider", borderRadius: 1, p: 1.5 }}>
                 <FormControlLabel
                   control={<Checkbox checked={row.checked} onChange={(e) => toggleChecked(m.stepMediaId, e.target.checked)} />}
                   label={<Typography sx={{ fontWeight: 600 }}>{m.mediaName}</Typography>}
@@ -288,14 +288,14 @@ export function ConfirmatoryPlatingPanel({ testOrderId, step, current, onSubmitt
               </Box>
             );
           })}
-          <Box sx={{ p: 1.5, backgroundColor: "#f3f4f6", borderRadius: 1, mb: 1 }}>
-            <Typography variant="caption" sx={{ color: "#6b7280", display: "block" }}>
+          <Box sx={{ p: 1.5, backgroundColor: "background.default", borderRadius: 1, mb: 1 }}>
+            <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>
               Incubation Duration (from Test Master)
             </Typography>
             <Typography variant="body2" sx={{ fontWeight: 600 }}>
               {step.incubationMinHours}–{step.incubationMaxHours} hours
             </Typography>
-            <Typography variant="caption" sx={{ color: "#9ca3af" }}>
+            <Typography variant="caption" sx={{ color: "text.secondary" }}>
               Shared by every selected medium
             </Typography>
           </Box>
@@ -366,7 +366,7 @@ export function ConfirmatoryPlatingPanel({ testOrderId, step, current, onSubmitt
             const checked = isReadoutActive(m.materialId);
             const value = observations[m.materialId] ?? "";
             return (
-              <Box key={m.materialId} sx={{ border: "1px solid #e0e0e0", borderRadius: 1, p: 1.5 }}>
+              <Box key={m.materialId} sx={{ border: "1px solid", borderColor: "divider", borderRadius: 1, p: 1.5 }}>
                 {readoutUncertain && (
                   <FormControlLabel
                     control={<Checkbox checked={checked} onChange={(e) =>

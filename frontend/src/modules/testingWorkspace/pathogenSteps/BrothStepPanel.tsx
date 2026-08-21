@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import {
   Typography, Select, MenuItem, Button, Stack, Alert, AlertTitle, Box,
   Dialog, DialogTitle, DialogContent, DialogActions, List, ListItem,
-  ListItemIcon, ListItemText, CircularProgress
+  ListItemIcon, ListItemText, CircularProgress, useTheme
 } from "@mui/material";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
@@ -28,6 +28,7 @@ interface Props {
 // (the method requires it), so this must never be framed as a pass/fail
 // decision point. No observation field is presented.
 export function BrothStepPanel({ testOrderId, step, current, onSubmitted }: Props) {
+  const theme = useTheme();
   const [medium, setMedium] = useState<PermittedConfirmatoryMediaEntry | null>(null);
   const [incubators, setIncubators] = useState<{ id: number; name: string; code: string; setTemperature: number }[]>([]);
   const [mediaLotId, setMediaLotId] = useState<number | "">("");
@@ -118,7 +119,7 @@ export function BrothStepPanel({ testOrderId, step, current, onSubmitted }: Prop
           This test is linked to the shared TSB for this sample. There is one shared tube per sample — no separate broth entry required.
         </Alert>
 
-        <Box sx={{ backgroundColor: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 1.5, p: 2, mb: 2 }}>
+        <Box sx={{ backgroundColor: theme.custom.status.notDetected.bg, border: "1px solid", borderColor: theme.custom.status.notDetected.border, borderRadius: 1.5, p: 2, mb: 2 }}>
           <Typography variant="body2" sx={{ mb: 0.5 }}>
             <strong>TSB Lot:</strong> {summary.mediaLotNumber ?? "Standard Lot"}
           </Typography>
@@ -132,7 +133,7 @@ export function BrothStepPanel({ testOrderId, step, current, onSubmitted }: Prop
             <strong>By:</strong> {summary.startedByUserName}
           </Typography>
           {summary.minReadyAt && (
-            <Typography variant="body2" sx={{ color: "#6b7280", mt: 1 }}>
+            <Typography variant="body2" sx={{ color: "text.secondary", mt: 1 }}>
               Available from: {new Date(summary.minReadyAt).toLocaleString()}
             </Typography>
           )}
@@ -240,7 +241,7 @@ export function BrothStepPanel({ testOrderId, step, current, onSubmitted }: Prop
         onClose={() => setConfirmationDialog((prev) => ({ ...prev, open: false }))}
       >
         <DialogTitle sx={{ display: "flex", alignItems: "center", gap: 1, fontWeight: 700 }}>
-          <InfoOutlinedIcon sx={{ color: "#1565c0" }} />
+          <InfoOutlinedIcon sx={{ color: theme.custom.status.info.text }} />
           Apply Shared TSB to All Pathogen Tests
         </DialogTitle>
         <DialogContent>
@@ -250,7 +251,7 @@ export function BrothStepPanel({ testOrderId, step, current, onSubmitted }: Prop
           </Alert>
 
           {/* TSB details */}
-          <Box sx={{ mb: 2, p: 1.5, backgroundColor: "#f8fafc", borderRadius: 1, border: "1px solid #e2e8f0" }}>
+          <Box sx={{ mb: 2, p: 1.5, backgroundColor: "background.default", borderRadius: 1, border: "1px solid", borderColor: "divider" }}>
             <Typography variant="body2">
               <strong>TSB Lot:</strong> {confirmationDialog.mediaLotLabel}
             </Typography>
@@ -266,11 +267,11 @@ export function BrothStepPanel({ testOrderId, step, current, onSubmitted }: Prop
           <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 700 }}>
             Applies to all pathogen tests for this sample:
           </Typography>
-          <List dense sx={{ mb: 1, bgcolor: "#f8fafc", borderRadius: 1 }}>
+          <List dense sx={{ mb: 1, bgcolor: "background.default", borderRadius: 1 }}>
             {confirmationDialog.siblingOrders?.map((order) => (
               <ListItem key={order.testOrderId} sx={{ py: 0.5 }}>
                 <ListItemIcon sx={{ minWidth: 28 }}>
-                  <CheckCircleOutlineIcon sx={{ fontSize: 18, color: "#2e7d32" }} />
+                  <CheckCircleOutlineIcon sx={{ fontSize: 18, color: theme.custom.status.notDetected.text }} />
                 </ListItemIcon>
                 <ListItemText
                   primary={<strong>{order.pathogenName}</strong>}
@@ -281,7 +282,7 @@ export function BrothStepPanel({ testOrderId, step, current, onSubmitted }: Prop
           </List>
 
           {/* GMP note */}
-          <Typography variant="caption" sx={{ color: "#6b7280", display: "block", mt: 1 }}>
+          <Typography variant="caption" sx={{ color: "text.secondary", display: "block", mt: 1 }}>
             This action is recorded in the audit trail per ALCOA+ contemporaneous recording requirements.
           </Typography>
         </DialogContent>

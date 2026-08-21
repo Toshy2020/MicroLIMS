@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { Paper, Box, Typography, Stack } from "@mui/material";
+import { Paper, Box, Typography, Stack, useTheme } from "@mui/material";
+import { Theme } from "@mui/material/styles";
 import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
 import WarningAmberOutlinedIcon from "@mui/icons-material/WarningAmberOutlined";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
@@ -9,12 +10,14 @@ import { SectionTitle } from "../../../components/SectionTitle";
 import { LoadingSpinner } from "../../../components/LoadingSpinner";
 import { DashboardService } from "../services/DashboardService";
 
-const severityIcon: Record<string, { Icon: typeof ErrorOutlineIcon; color: string }> = {
-  error: { Icon: ErrorOutlineIcon, color: "#dc2626" },
-  warning: { Icon: WarningAmberOutlinedIcon, color: "#ea580c" },
-  info: { Icon: InfoOutlinedIcon, color: "#2563eb" },
-  success: { Icon: CheckCircleOutlineIcon, color: "#16a34a" }
-};
+function severityIcon(theme: Theme): Record<string, { Icon: typeof ErrorOutlineIcon; color: string }> {
+  return {
+    error: { Icon: ErrorOutlineIcon, color: theme.custom.status.detected.text },
+    warning: { Icon: WarningAmberOutlinedIcon, color: theme.custom.status.action.text },
+    info: { Icon: InfoOutlinedIcon, color: theme.custom.status.info.text },
+    success: { Icon: CheckCircleOutlineIcon, color: theme.custom.status.notDetected.text }
+  };
+}
 
 function timeAgo(timestamp: string): string {
   const minutes = Math.max(0, Math.floor((Date.now() - new Date(timestamp).getTime()) / 60_000));
@@ -26,6 +29,8 @@ function timeAgo(timestamp: string): string {
 }
 
 export function AlertsPanel() {
+  const theme = useTheme();
+  const icons = severityIcon(theme);
   const [notifications, setNotifications] = useState<NotificationItem[] | null>(null);
 
   useEffect(() => { DashboardService.getNotifications().then(setNotifications).catch(() => setNotifications([])); }, []);
@@ -42,7 +47,7 @@ export function AlertsPanel() {
       {!notifications ? <LoadingSpinner /> : (
         <Stack spacing={1.25}>
           {notifications.slice(0, 8).map((n, i) => {
-            const { Icon, color } = severityIcon[n.severity] ?? severityIcon.info;
+            const { Icon, color } = icons[n.severity] ?? icons.info;
             return (
               <Box
                 key={n.id ?? i}

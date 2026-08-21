@@ -1,9 +1,13 @@
 import { createTheme } from "@mui/material/styles";
+import { baseThemeOptions, lightThemeOptions, darkThemeOptions } from "./palette";
 
 // Design system extracted from the provided Sample Receiving mockup:
 // purple-gradient brand header, dark-purple subnav, card-based content,
-// light-green toolbars, pill badges. Applied consistently across every
-// page via MainLayout + shared components below.
+// light-green toolbars, pill badges. These are brand "chrome" colors
+// (topbar/sidebar/toolbar) that intentionally stay the same in both
+// light and dark mode - they're already saturated/dark accents, not
+// surfaces that need to flip with theme.palette.mode. Applied via
+// `import { brandColors } from "../theme"` across the app.
 export const brandColors = {
   topbarGradient: "linear-gradient(90deg, #7b2d8e, #9b3fa8)",
   subnavBg: "#6a1f78",
@@ -21,42 +25,15 @@ export const brandColors = {
   err: "#dc2626"
 };
 
-// Single-hue purple ramp for charts - "keep the color homogeneous"
-// instead of mixed red/green/blue like a generic dashboard template.
-export const chartPalette = ["#4a1a55", "#7b2d8e", "#9b3fa8", "#c084c8", "#e9d5ff"];
+export const lightTheme = createTheme(baseThemeOptions, lightThemeOptions);
+export const darkTheme = createTheme(baseThemeOptions, darkThemeOptions);
 
-export const theme = createTheme({
-  palette: {
-    primary: { main: "#7b2d8e", dark: "#631f74", light: "#9b3fa8" },
-    secondary: { main: "#16a34a" },
-    error: { main: "#dc2626" },
-    background: { default: "#f4f6f8", paper: "#ffffff" },
-    text: { primary: "#333333", secondary: "#6b7280" }
-  },
-  typography: {
-    fontFamily: "'Segoe UI', Roboto, Arial, sans-serif",
-    h5: { color: "#4a1a55", fontWeight: 700 }
-  },
-  shape: { borderRadius: 8 },
-  components: {
-    MuiButton: {
-      defaultProps: { size: "large" },
-      styleOverrides: {
-        root: { textTransform: "none", borderRadius: 8, fontWeight: 600 },
-        containedPrimary: {
-          "&:hover": { backgroundColor: "#631f74" }
-        }
-      }
-    },
-    MuiPaper: {
-      styleOverrides: {
-        root: { borderRadius: 10, boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }
-      }
-    },
-    MuiChip: {
-      styleOverrides: {
-        root: { fontWeight: 700, fontSize: 11 }
-      }
-    }
-  }
-});
+export function getTheme(mode: "light" | "dark") {
+  return mode === "dark" ? darkTheme : lightTheme;
+}
+
+// Back-compat aliases - `theme`/`chartPalette` used to be the only
+// (light-only) export; kept pointing at the light theme for anything
+// not yet updated to consume mode-aware values via useTheme().
+export const theme = lightTheme;
+export const chartPalette = lightTheme.custom.chartPalette;

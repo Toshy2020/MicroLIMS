@@ -1,6 +1,6 @@
-import { Box } from "@mui/material";
+import { Box, useTheme } from "@mui/material";
 import PrintIcon from "@mui/icons-material/Print";
-import { brandColors } from "../../theme";
+import { StatusTone } from "../../theme/statusTokens";
 import { Role } from "../../contexts/AuthContext";
 
 const LABELS: Record<string, string> = {
@@ -11,12 +11,12 @@ const LABELS: Record<string, string> = {
   Rejected: "Rejected"
 };
 
-const COLORS: Record<string, string> = {
-  InTesting: brandColors.badgeRM,
-  UnderReview: brandColors.pageTitle,
-  UnderApproval: brandColors.badgePM,
-  Approved: brandColors.badgeProduct,
-  Rejected: brandColors.err
+const TONES: Record<string, StatusTone> = {
+  InTesting: "info",
+  UnderReview: "purple",
+  UnderApproval: "action",
+  Approved: "notDetected",
+  Rejected: "detected"
 };
 
 // Which roles may click each status to open the Sample Summary dialog
@@ -45,10 +45,11 @@ interface Props {
 // Review/Approval. Clicking it (where clickable for the current role)
 // opens SampleSummaryDialog.
 export function SampleLifecycleBadge({ status, role, onClick, interactive = true }: Props) {
+  const theme = useTheme();
   const label = LABELS[status];
   if (!label) return null;
 
-  const bg = COLORS[status] ?? "#6b7280";
+  const tokens = theme.custom.status[TONES[status] ?? "pending"];
   const allowedRoles = CLICKABLE_ROLES[status];
   const clickable = interactive && !!onClick && (ALWAYS_CLICKABLE.has(status) || (!!allowedRoles && !!role && allowedRoles.includes(role)));
 
@@ -58,7 +59,8 @@ export function SampleLifecycleBadge({ status, role, onClick, interactive = true
       onClick={clickable ? onClick : undefined}
       sx={{
         display: "inline-flex", alignItems: "center", gap: 0.5,
-        px: 1, py: 0.25, borderRadius: 5, fontSize: 11, fontWeight: 700, color: "#fff", bgcolor: bg,
+        px: 1, py: 0.25, borderRadius: 5, fontSize: 11, fontWeight: 700,
+        color: tokens.text, bgcolor: tokens.bg, border: `1px solid ${tokens.border}`,
         cursor: clickable ? "pointer" : "default",
         "&:hover": clickable ? { opacity: 0.85 } : undefined
       }}

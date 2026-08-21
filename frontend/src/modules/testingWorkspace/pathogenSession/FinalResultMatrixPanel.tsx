@@ -17,7 +17,8 @@ import {
   Chip,
   LinearProgress,
   Tooltip,
-  CircularProgress
+  CircularProgress,
+  useTheme
 } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
 import SaveOutlinedIcon from "@mui/icons-material/SaveOutlined";
@@ -39,6 +40,7 @@ interface Props {
 }
 
 export function FinalResultMatrixPanel({ session, onUpdated, onNext }: Props) {
+  const theme = useTheme();
   const [cellValues, setCellValues] = useState<Record<string, {
     resultCode: string;
     resultDisplay: string;
@@ -405,7 +407,7 @@ export function FinalResultMatrixPanel({ session, onUpdated, onNext }: Props) {
       </Stack>
 
       {/* Dynamic Result Matrix Grid */}
-      <Paper sx={{ border: "1px solid #e5e7eb", borderRadius: 2, overflow: "hidden" }}>
+      <Paper sx={{ border: "1px solid", borderColor: "divider", borderRadius: 2, overflow: "hidden" }}>
         <Box sx={{ maxHeight: 520, overflow: "auto" }}>
           <Table size="small" stickyHeader>
             <TableHead>
@@ -416,11 +418,12 @@ export function FinalResultMatrixPanel({ session, onUpdated, onNext }: Props) {
                     position: "sticky",
                     left: 0,
                     zIndex: 3,
-                    bgcolor: "#f8fafc",
+                    bgcolor: "background.default",
                     fontWeight: 800,
-                    color: "#1e293b",
+                    color: "text.primary",
                     minWidth: 240,
-                    borderRight: "2px solid #e2e8f0"
+                    borderRight: "2px solid",
+                    borderRightColor: "divider"
                   }}
                 >
                   Sampling Location ({filteredLocations.length})
@@ -435,20 +438,21 @@ export function FinalResultMatrixPanel({ session, onUpdated, onNext }: Props) {
                       key={t.testCode}
                       align="center"
                       sx={{
-                        bgcolor: isLocked ? "#f8fafc" : "#fcfaff",
+                        bgcolor: isLocked ? theme.custom.countdown.locked.bg : theme.custom.countdown.active.bg,
                         fontWeight: 800,
-                        color: isLocked ? "#64748b" : brandColors.sectionTitle,
+                        color: isLocked ? theme.custom.countdown.locked.text : theme.custom.countdown.active.text,
                         minWidth: 180,
-                        borderRight: "1px solid #f1f5f9"
+                        borderRight: "1px solid",
+                        borderRightColor: "divider"
                       }}
                     >
                       <Stack direction="row" spacing={0.5} justifyContent="center" alignItems="center">
                         <Typography sx={{ fontSize: 13, fontWeight: 800 }}>
                           {t.testCode}
                         </Typography>
-                        {isLocked && <LockOutlinedIcon sx={{ fontSize: 14, color: "#dc2626" }} />}
+                        {isLocked && <LockOutlinedIcon sx={{ fontSize: 14, color: theme.custom.status.detected.text }} />}
                       </Stack>
-                      <Typography sx={{ fontSize: 11, color: "#64748b", fontWeight: 500 }}>
+                      <Typography sx={{ fontSize: 11, color: "text.secondary", fontWeight: 500 }}>
                         {t.displayName}
                       </Typography>
                       <Chip
@@ -457,8 +461,8 @@ export function FinalResultMatrixPanel({ session, onUpdated, onNext }: Props) {
                         sx={{
                           fontSize: 10,
                           height: 18,
-                          bgcolor: isLocked ? "#fee2e2" : "#eff6ff",
-                          color: isLocked ? "#991b1b" : "#1e40af",
+                          bgcolor: isLocked ? theme.custom.status.detected.bg : theme.custom.status.info.bg,
+                          color: isLocked ? theme.custom.status.detected.text : theme.custom.status.info.text,
                           mt: 0.5,
                           fontWeight: 700
                         }}
@@ -471,23 +475,24 @@ export function FinalResultMatrixPanel({ session, onUpdated, onNext }: Props) {
 
             <TableBody>
               {filteredLocations.map((loc, idx) => (
-                <TableRow key={loc.id} hover sx={{ bgcolor: idx % 2 === 0 ? "#ffffff" : "#fafafa" }}>
+                <TableRow key={loc.id} hover sx={{ bgcolor: idx % 2 === 0 ? "background.paper" : "background.default" }}>
                   {/* Sticky Location Name Column */}
                   <TableCell
                     sx={{
                       position: "sticky",
                       left: 0,
                       zIndex: 2,
-                      bgcolor: idx % 2 === 0 ? "#ffffff" : "#fafafa",
+                      bgcolor: idx % 2 === 0 ? "background.paper" : "background.default",
                       fontWeight: 700,
-                      borderRight: "2px solid #e2e8f0"
+                      borderRight: "2px solid",
+                      borderRightColor: "divider"
                     }}
                   >
-                    <Typography sx={{ fontSize: 13, fontWeight: 700, color: "#1f2937" }}>
+                    <Typography sx={{ fontSize: 13, fontWeight: 700, color: "text.primary" }}>
                       {loc.locationName}
                     </Typography>
                     <Stack direction="row" spacing={0.5} alignItems="center" sx={{ mt: 0.25 }}>
-                      <Typography sx={{ fontSize: 11, color: "#6b7280" }}>
+                      <Typography sx={{ fontSize: 11, color: "text.secondary" }}>
                         {loc.locationType}
                       </Typography>
                       {loc.gradeClassification && (
@@ -519,8 +524,9 @@ export function FinalResultMatrixPanel({ session, onUpdated, onNext }: Props) {
                           align="center"
                           sx={{
                             p: 1,
-                            borderRight: "1px solid #f1f5f9",
-                            bgcolor: "#f8fafc"
+                            borderRight: "1px solid",
+                            borderRightColor: "divider",
+                            bgcolor: "background.default"
                           }}
                         >
                           <Tooltip title={t.lockReason ?? "Locked until workflow prerequisite is complete"}>
@@ -528,19 +534,20 @@ export function FinalResultMatrixPanel({ session, onUpdated, onNext }: Props) {
                               sx={{
                                 py: 0.75,
                                 px: 1.5,
-                                bgcolor: "#f1f5f9",
+                                bgcolor: theme.custom.countdown.locked.bg,
                                 borderRadius: 1.5,
-                                border: "1px dashed #cbd5e1",
+                                border: "1px dashed",
+                                borderColor: "divider",
                                 display: "inline-flex",
                                 alignItems: "center",
                                 gap: 0.75,
-                                color: "#64748b",
+                                color: theme.custom.countdown.locked.text,
                                 fontSize: 11,
                                 fontWeight: 700,
                                 cursor: "not-allowed"
                               }}
                             >
-                              <LockOutlinedIcon sx={{ fontSize: 14, color: "#94a3b8" }} />
+                              <LockOutlinedIcon sx={{ fontSize: 14, color: theme.custom.countdown.locked.text }} />
                               <span>Locked</span>
                             </Box>
                           </Tooltip>

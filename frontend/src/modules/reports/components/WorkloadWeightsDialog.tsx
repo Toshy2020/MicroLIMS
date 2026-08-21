@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 import {
   Dialog, DialogTitle, DialogContent, DialogActions, Button, Table, TableHead, TableRow, TableCell,
-  TableBody, TextField, Typography, Box, Alert, IconButton, Tooltip, Chip
+  TableBody, TextField, Typography, Box, Alert, IconButton, Tooltip, Chip,
+  useTheme
 } from "@mui/material";
 import EditIcon from "@mui/icons-material/Edit";
 import CheckIcon from "@mui/icons-material/Check";
@@ -18,6 +19,7 @@ interface WorkloadWeightsDialogProps {
 }
 
 export function WorkloadWeightsDialog({ open, onClose, onUpdated }: WorkloadWeightsDialogProps) {
+  const theme = useTheme();
   const { role, fullName } = useAuth();
   const isAuthorized = role === "SectionHead" || role === "SystemAdministrator";
 
@@ -79,7 +81,7 @@ export function WorkloadWeightsDialog({ open, onClose, onUpdated }: WorkloadWeig
     <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
       <DialogTitle sx={{ borderBottom: 1, borderColor: "divider", pb: 1.5 }}>
         <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <Typography sx={{ fontSize: 17, fontWeight: 700, color: brandColors.sectionTitle }}>
+          <Typography sx={{ fontSize: 17, fontWeight: 700, color: theme.palette.primary.main }}>
             Configured Workload Units (Test Complexity Weights)
           </Typography>
           <Chip

@@ -7,6 +7,7 @@ namespace MicroLIMS.Application.Services;
 public record TodaysWorkTestDto(int TestOrderId, string TestCode, string Status, string? TimeRemaining);
 public record TodaysWorkItemDto(int SampleId, string ReferenceNumber, string Category, string DisplayName, DateTime ReceivedAt, string OverallStatus, string NextAction, List<TodaysWorkTestDto> Tests);
 public record IncubationOverviewDto(string TestCode, int ReadyToRead, int Incubating);
+public record AnalystMetricsDto(int TestsCompletedToday, int MediaLotsPreparedToday, int ActiveAssignedOrders, double OnTimeReadingRate, int Trailing7DayVolume);
 
 // Five widgets from the gap analysis, shown to every role (an Analyst's
 // "Pending Tests" is their own queue; a Reviewer's is everyone's - see
@@ -114,13 +115,20 @@ public class DashboardService
 
     // Open incubations grouped by TestCode, split into ready-to-read vs
     // still-incubating - powers the Incubation Overview widget.
-    public async Task<List<IncubationOverviewDto>> GetIncubationOverviewAsync()
+    public async Task<List<IncubationOverviewDto>> GetIncubationOverviewAsync(bool myIncubationsOnly = false, int? userId = null)
     {
         var now = DateTime.UtcNow;
-        var openIncubations = await _db.Incubations
+        var query = _db.Incubations
             .Where(i => i.CompletedAt == null && i.TestOrderId != null)
             .Include(i => i.TestOrder)
-            .ToListAsync();
+            .AsQueryable();
+
+        if (myIncubationsOnly && userId.HasValue)
+        {
+            query = query.Where(i => i.TestOrder!.AssignedAnalystId == userId.Value || i.StartedByUserId == userId.Value);
+        }
+
+        var openIncubations = await query.ToListAsync();
 
         return openIncubations
             .Where(i => i.TestOrder != null)
@@ -131,6 +139,63 @@ public class DashboardService
                 g.Count(i => i.ExpectedReadingAt == null || i.ExpectedReadingAt > now)))
             .OrderByDescending(x => x.ReadyToRead + x.Incubating)
             .ToList();
+    }
+
+    public async Task<AnalystMetricsDto> GetAnalystMetricsAsync(int userId)
+    {
+        var todayStart = DateTime.UtcNow.Date;
+        var sevenDaysAgo = DateTime.UtcNow.Date.AddDays(-7);
+
+        var completedResultsToday = await _db.Results
+            .Where(r => r.EnteredByUserId == userId && r.EnteredAt >= todayStart)
+            .Select(r => r.TestOrderId)
+            .ToListAsync();
+
+        var completedReadingsToday = await _db.CountTestReadings
+            .Where(r => r.EnteredByUserId == userId && r.EnteredAt >= todayStart)
+            .Select(r => r.TestOrderId)
+            .ToListAsync();
+
+        var testsCompletedToday = completedResultsToday.Concat(completedReadingsToday).Distinct().Count();
+
+        var mediaLotsPreparedToday = await _db.Media
+            .CountAsync(m => m.PreparedByUserId == userId && m.PreparedAt >= todayStart);
+
+        var activeAssignedOrders = await _db.TestOrders
+            .CountAsync(t => t.AssignedAnalystId == userId && (t.Status == ApprovalStatus.Pending || t.Status == ApprovalStatus.InProgress || t.Status == ApprovalStatus.RetestRequested));
+
+        var completedResults7d = await _db.Results
+            .Where(r => r.EnteredByUserId == userId && r.EnteredAt >= sevenDaysAgo)
+            .Select(r => r.TestOrderId)
+            .ToListAsync();
+
+        var completedReadings7d = await _db.CountTestReadings
+            .Where(r => r.EnteredByUserId == userId && r.EnteredAt >= sevenDaysAgo)
+            .Select(r => r.TestOrderId)
+            .ToListAsync();
+
+        var trailing7DayVolume = completedResults7d.Concat(completedReadings7d).Distinct().Count();
+
+        var completedIncubations = await _db.Incubations
+            .Where(i => (i.TestOrder!.AssignedAnalystId == userId || i.StartedByUserId == userId)
+                        && i.CompletedAt != null && i.ExpectedReadingAt != null)
+            .Select(i => new { i.CompletedAt, i.ExpectedReadingAt })
+            .ToListAsync();
+
+        double onTimeRate = 100.0;
+        if (completedIncubations.Count > 0)
+        {
+            // Allow up to 4 hours tolerance past ExpectedReadingAt
+            var onTimeCount = completedIncubations.Count(i => i.CompletedAt <= i.ExpectedReadingAt!.Value.AddHours(4));
+            onTimeRate = Math.Round(onTimeCount * 100.0 / completedIncubations.Count, 1);
+        }
+
+        return new AnalystMetricsDto(
+            testsCompletedToday,
+            mediaLotsPreparedToday,
+            activeAssignedOrders,
+            onTimeRate,
+            trailing7DayVolume);
     }
 
     private static int StatusRank(ApprovalStatus status) => status switch

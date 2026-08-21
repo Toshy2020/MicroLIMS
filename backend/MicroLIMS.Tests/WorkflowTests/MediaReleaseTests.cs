@@ -82,7 +82,7 @@ public class MediaReleaseTests
         });
         await db.SaveChangesAsync();
 
-        var media = await new MediaPreparationService(db, new MaterialService(db)).PrepareAsync(new PrepareMediaRequest(
+        var media = await TestServiceFactory.MediaPreparation(db).PrepareAsync(new PrepareMediaRequest(
             mediaType.Id, material.Id, TotalWeight: 100m, TotalVolume: "500 ml", AutoclaveEquipmentId: autoclave.Id,
             AutoclaveProgram: "A", LoadType: "agar", Temperature: 121m, CycleTime: 15, CycleNumber: 1,
             Ph: 7.2m, ExpiryDate: DateTime.UtcNow.AddMonths(6), UserId: PreparerId));
@@ -225,5 +225,41 @@ public class MediaReleaseTests
         var reloaded = await db.Media.FindAsync(media.Id);
         Assert.False(reloaded!.IsReleasedForUse);
         Assert.Equal(ApprovalGateStatus.PendingReview, reloaded.ApprovalStatus);
+    }
+
+    [Fact]
+    public async Task MarkOutOfStockAsync_ReleasedLot_SetsStatusOutOfStockAndExcludesFromGetReleased()
+    {
+        await using var db = NewDb();
+        await SeedUser(db, SectionHeadId);
+        var media = await PrepareAndEvaluateAsync(db, conform: true);
+        var releaseService = NewReleaseService(db);
+        await releaseService.DecideAsync(media.Id, SectionHeadId, Password, approved: true, comment: null, ipAddress: null);
+
+        var prepService = TestServiceFactory.MediaPreparation(db);
+        var releasedBefore = await prepService.GetReleasedAsync();
+        Assert.Contains(releasedBefore, m => m.Id == media.Id);
+
+        await prepService.MarkOutOfStockAsync(media.Id, SectionHeadId, "Lot consumed");
+
+        var reloaded = await db.Media.FindAsync(media.Id);
+        Assert.NotNull(reloaded);
+        Assert.Equal(MediaStatus.OutOfStock, reloaded.Status);
+
+        var releasedAfter = await prepService.GetReleasedAsync();
+        Assert.DoesNotContain(releasedAfter, m => m.Id == media.Id);
+    }
+
+    [Fact]
+    public async Task MarkOutOfStockAsync_UnreleasedLot_Throws()
+    {
+        await using var db = NewDb();
+        await SeedUser(db, SectionHeadId);
+        var media = await PrepareAndEvaluateAsync(db, conform: true);
+
+        var prepService = TestServiceFactory.MediaPreparation(db);
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            prepService.MarkOutOfStockAsync(media.Id, SectionHeadId, null));
+        Assert.Contains("not currently released for use", ex.Message);
     }
 }

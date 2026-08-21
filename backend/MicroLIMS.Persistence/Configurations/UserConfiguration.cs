@@ -10,5 +10,6 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
     {
         builder.HasKey(u => u.Id);
         builder.Property(u => u.Email).HasMaxLength(256);
+        builder.Property(u => u.JobTitle).HasMaxLength(100);
     }
 }

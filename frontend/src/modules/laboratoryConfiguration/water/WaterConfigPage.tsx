@@ -66,7 +66,7 @@ function SamplingPointTestConfigSection({ point }: { point: SamplingPoint }) {
   };
 
   return (
-    <Box sx={{ p: 2, bgcolor: "#faf9fc" }}>
+    <Box sx={{ p: 2, bgcolor: "background.default" }}>
       {error && <Alert severity="error" sx={{ mb: 1.5 }}>{error}</Alert>}
       {configs.length > 0 ? (
         <Table size="small" sx={{ mb: 1.5 }}>
@@ -227,7 +227,7 @@ export function WaterConfigPage() {
                 <TableRow>
                   <TableCell sx={{ p: 0, border: 0 }} colSpan={3}>
                     <Collapse in={expandedDeptId === d.id} unmountOnExit>
-                      <Box sx={{ p: 2, bgcolor: "#f5f3fa" }}>
+                      <Box sx={{ p: 2, bgcolor: "background.default" }}>
                         {(d.samplingPoints ?? []).length === 0 ? (
                           <Typography variant="body2" color="text.secondary">No sample locations yet.</Typography>
                         ) : (

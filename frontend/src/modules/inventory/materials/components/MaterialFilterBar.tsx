@@ -49,7 +49,7 @@ export function MaterialFilterBar({ items, filters, onFilterChange, onReset }: M
   };
 
   return (
-    <Paper sx={{ p: 2, mb: 2, bgcolor: "#ffffff", border: "1px solid #e5e7eb" }}>
+    <Paper sx={{ p: 2, mb: 2, bgcolor: "background.paper", border: "1px solid", borderColor: "divider" }}>
       <Box
         sx={{
           display: "grid",
@@ -175,7 +175,7 @@ export function MaterialFilterBar({ items, filters, onFilterChange, onReset }: M
             variant="outlined"
             onClick={onReset}
             startIcon={<RotateLeftIcon fontSize="small" />}
-            sx={{ borderColor: "#d1d5db", color: "#4b5563", minWidth: 90 }}
+            sx={{ borderColor: "divider", color: "text.secondary", minWidth: 90 }}
           >
             Reset
           </Button>

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Box, Button, Alert, Snackbar, Typography } from "@mui/material";
+import { Box, Button, Alert, Snackbar, Typography, useTheme } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import { PageHeader } from "../../components/PageHeader";
@@ -18,6 +18,7 @@ import { EditSampleDetailsDialog } from "./dialogs/EditSampleDetailsDialog";
 import { brandColors } from "../../theme";
 
 export function ReceiveSamplePage() {
+  const theme = useTheme();
   const [records, setRecords] = useState<SampleRecord[] | null>(null);
   const [loading, setLoading] = useState(false);
   const [notification, setNotification] = useState<{ text: string; severity: "success" | "error" | "info" } | null>(null);
@@ -256,11 +257,11 @@ export function ReceiveSamplePage() {
             disabled={loading}
             startIcon={<RefreshIcon />}
             sx={{
-              borderColor: "#d1d5db",
-              color: "#374151",
+              borderColor: "divider",
+              color: "text.secondary",
               fontWeight: 600,
-              bgcolor: "#ffffff",
-              "&:hover": { bgcolor: "#f9fafb", borderColor: "#9ca3af" }
+              bgcolor: "background.paper",
+              "&:hover": { bgcolor: "background.default", borderColor: "text.secondary" }
             }}
           >
             Refresh
@@ -310,7 +311,7 @@ export function ReceiveSamplePage() {
 
       {/* Records Count & Table Title */}
       <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1.5 }}>
-        <Typography sx={{ fontSize: 16, fontWeight: 700, color: brandColors.pageTitle }}>
+        <Typography sx={{ fontSize: 16, fontWeight: 700, color: theme.palette.primary.main }}>
           Received Samples Register {records ? `(${filteredRecords.length}${filteredRecords.length !== records.length ? ` of ${records.length}` : ""})` : ""}
         </Typography>
       </Box>
@@ -402,7 +403,7 @@ export function ReceiveSamplePage() {
           <Alert
             severity={notification.severity}
             onClose={() => setNotification(null)}
-            sx={{ boxShadow: "0 4px 12px rgba(0,0,0,0.15)", borderRadius: 1.5 }}
+            sx={{ borderRadius: 1.5 }}
           >
             {notification.text}
           </Alert>

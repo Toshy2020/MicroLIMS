@@ -1,4 +1,4 @@
-import { Paper, Box, Typography, Stack } from "@mui/material";
+import { Paper, Box, Typography, Stack, useTheme } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline";
 import PlaylistAddCheckOutlinedIcon from "@mui/icons-material/PlaylistAddCheckOutlined";
@@ -18,6 +18,7 @@ export function QuickLinksBar({ preparationQueue, reviewerQueue, approvalQueue }
   preparationQueue: number; reviewerQueue: number; approvalQueue: number;
 }) {
   const navigate = useNavigate();
+  const theme = useTheme();
 
   const links: QuickLink[] = [
     { label: "Receive New Sample", icon: AddCircleOutlineIcon, path: "/receiving" },
@@ -36,7 +37,7 @@ export function QuickLinksBar({ preparationQueue, reviewerQueue, approvalQueue }
             onClick={() => navigate(l.path)}
             sx={{ display: "flex", alignItems: "center", gap: 0.75, cursor: "pointer", "&:hover": { opacity: 0.75 } }}
           >
-            <l.icon fontSize="small" sx={{ color: brandColors.sectionTitle }} />
+            <l.icon fontSize="small" sx={{ color: theme.palette.primary.main }} />
             <Typography sx={{ fontSize: 13, fontWeight: 600 }}>{l.label}</Typography>
             {l.count !== undefined && (
               <Box component="span" sx={{

@@ -28,7 +28,8 @@ const STATUS_OPTIONS = [
   { value: "Pending Evaluation", label: "Pending Evaluation" },
   { value: "Awaiting Approval", label: "Awaiting Approval" },
   { value: "Released", label: "Released for Use" },
-  { value: "Quarantined", label: "Quarantined" }
+  { value: "Rejected", label: "Rejected" },
+  { value: "Out of Stock", label: "Out of Stock" }
 ];
 
 export function MediaLotFilterBar({
@@ -49,9 +50,10 @@ export function MediaLotFilterBar({
       sx={{
         p: 1.5,
         mb: 2,
-        border: "1px solid #e5e7eb",
+        border: "1px solid",
+        borderColor: "divider",
         borderRadius: 2,
-        bgcolor: "#ffffff"
+        bgcolor: "background.paper"
       }}
     >
       <Stack direction="row" spacing={1.5} alignItems="center" flexWrap="wrap" rowGap={1}>
@@ -111,11 +113,11 @@ export function MediaLotFilterBar({
             onClick={onResetFilters}
             startIcon={<FilterAltOffOutlinedIcon fontSize="small" />}
             sx={{
-              borderColor: "#d1d5db",
-              color: "#4b5563",
+              borderColor: "divider",
+              color: "text.secondary",
               fontSize: 12,
               fontWeight: 600,
-              "&:hover": { borderColor: "#9ca3af", bgcolor: "#f3f4f6" }
+              "&:hover": { borderColor: "text.secondary", bgcolor: "background.default" }
             }}
           >
             Reset Filters

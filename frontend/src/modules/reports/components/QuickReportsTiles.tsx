@@ -1,4 +1,4 @@
-import { Box, Paper, Typography, Tooltip } from "@mui/material";
+import { Box, Paper, Typography, Tooltip, useTheme } from "@mui/material";
 import { brandColors } from "../../../theme";
 import { SampleCategory } from "../types/reportingTypes";
 
@@ -31,9 +31,10 @@ interface QuickReportsTilesProps {
 }
 
 export function QuickReportsTiles({ onPreset, onCustomReport }: QuickReportsTilesProps) {
+  const theme = useTheme();
   return (
     <Paper sx={{ p: 2 }}>
-      <Typography sx={{ fontSize: 13, fontWeight: 700, color: brandColors.sectionTitle, mb: 1.25 }}>Quick Reports</Typography>
+      <Typography sx={{ fontSize: 13, fontWeight: 700, color: theme.palette.primary.main, mb: 1.25 }}>Quick Reports</Typography>
       <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 1 }}>
         {TILES.map((tile) => {
           const disabled = !!tile.disabledReason;
@@ -41,9 +42,9 @@ export function QuickReportsTiles({ onPreset, onCustomReport }: QuickReportsTile
             <Box
               onClick={disabled ? undefined : () => (tile.category ? onPreset(tile.category) : onCustomReport())}
               sx={{
-                p: 1.25, borderRadius: 1.5, border: "1px solid #e5e7eb", textAlign: "center",
-                fontSize: 12, fontWeight: 600, color: disabled ? "#9ca3af" : brandColors.sectionTitle,
-                cursor: disabled ? "not-allowed" : "pointer", bgcolor: disabled ? "#f9fafb" : "transparent",
+                p: 1.25, borderRadius: 1.5, border: "1px solid", borderColor: "divider", textAlign: "center",
+                fontSize: 12, fontWeight: 600, color: disabled ? "text.secondary" : brandColors.sectionTitle,
+                cursor: disabled ? "not-allowed" : "pointer", bgcolor: disabled ? "background.default" : "transparent",
                 "&:hover": disabled ? {} : { bgcolor: brandColors.causeBadgeBg }
               }}
             >

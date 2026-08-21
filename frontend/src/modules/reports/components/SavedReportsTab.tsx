@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import {
   Box, Paper, Typography, Table, TableHead, TableRow, TableCell, TableBody,
-  Button, IconButton, Chip, Tooltip, Stack, Alert
+  Button, IconButton, Chip, Tooltip, Stack, Alert, useTheme
 } from "@mui/material";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import AddIcon from "@mui/icons-material/Add";
@@ -26,6 +26,7 @@ interface SavedReportsTabProps {
 }
 
 export function SavedReportsTab({ onNewReport, onRunConfiguration }: SavedReportsTabProps) {
+  const theme = useTheme();
   const { fullName, userId } = useAuth();
 
   const [generatedReports, setGeneratedReports] = useState<GeneratedReport[]>([]);
@@ -85,7 +86,7 @@ export function SavedReportsTab({ onNewReport, onRunConfiguration }: SavedReport
       {/* Top Header Bar */}
       <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <Box>
-          <Typography sx={{ fontSize: 18, fontWeight: 700, color: brandColors.sectionTitle }}>
+          <Typography sx={{ fontSize: 18, fontWeight: 700, color: theme.palette.primary.main }}>
             Saved & Generated Reports
           </Typography>
           <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
@@ -112,7 +113,7 @@ export function SavedReportsTab({ onNewReport, onRunConfiguration }: SavedReport
       <Paper sx={{ p: 2.5 }}>
         <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1.5 }}>
           <Box sx={{ display: "flex", alignItems: "center", gap: 1.25 }}>
-            <Typography sx={{ fontSize: 15, fontWeight: 700, color: brandColors.pageTitle }}>
+            <Typography sx={{ fontSize: 15, fontWeight: 700, color: theme.palette.primary.main }}>
               Generated Reports
             </Typography>
             <Chip size="small" label={`${generatedReports.length} Available`} sx={{ bgcolor: brandColors.causeBadgeBg, color: brandColors.causeBadgeText, fontWeight: 700 }} />
@@ -139,7 +140,7 @@ export function SavedReportsTab({ onNewReport, onRunConfiguration }: SavedReport
           <TableBody>
             {generatedReports.map((r) => (
               <TableRow key={r.id} hover>
-                <TableCell sx={{ fontWeight: 700, color: brandColors.sectionTitle }}>{r.id}</TableCell>
+                <TableCell sx={{ fontWeight: 700, color: theme.palette.primary.main }}>{r.id}</TableCell>
                 <TableCell sx={{ fontWeight: 600 }}>{r.name}</TableCell>
                 <TableCell>{r.type}</TableCell>
                 <TableCell>
@@ -185,10 +186,10 @@ export function SavedReportsTab({ onNewReport, onRunConfiguration }: SavedReport
       <Paper sx={{ p: 2.5 }}>
         <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1.5 }}>
           <Box sx={{ display: "flex", alignItems: "center", gap: 1.25 }}>
-            <Typography sx={{ fontSize: 15, fontWeight: 700, color: brandColors.pageTitle }}>
+            <Typography sx={{ fontSize: 15, fontWeight: 700, color: theme.palette.primary.main }}>
               Saved Configurations
             </Typography>
-            <Chip size="small" label={`${configurations.length} Templates`} sx={{ bgcolor: "#f1f5f9", fontWeight: 700 }} />
+            <Chip size="small" label={`${configurations.length} Templates`} sx={{ bgcolor: "background.default", fontWeight: 700 }} />
           </Box>
           <Typography sx={{ fontSize: 11, color: "text.secondary" }}>
             Reusable criteria definitions for Report Builder
@@ -211,7 +212,7 @@ export function SavedReportsTab({ onNewReport, onRunConfiguration }: SavedReport
           <TableBody>
             {configurations.map((c) => (
               <TableRow key={c.id} hover>
-                <TableCell sx={{ fontWeight: 600, color: brandColors.sectionTitle }}>{c.name}</TableCell>
+                <TableCell sx={{ fontWeight: 600, color: theme.palette.primary.main }}>{c.name}</TableCell>
                 <TableCell>{c.reportType}</TableCell>
                 <TableCell>
                   <Chip size="small" label={c.purpose} variant="outlined" sx={{ fontSize: 10, height: 20 }} />

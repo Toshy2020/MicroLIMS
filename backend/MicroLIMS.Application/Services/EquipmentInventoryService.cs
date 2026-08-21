@@ -26,9 +26,47 @@ public record EquipmentStatusHistoryDto(
     string ChangedByName,
     DateTime ChangedAt);
 
-// Equipment register (Inventory module) - every instrument in the
-// Microbiology lab with serial number, firmware, and calibration due
-// date.
+public record ActiveEquipmentItemDto(
+    int Id,
+    string Code,
+    string InstrumentType,
+    string ManufacturerName,
+    string Location,
+    string Status,
+    DateTime? CalibrationDueDate,
+    decimal? SetPointTemperature,
+    string PrimaryActivityCategory,
+    int ActiveItemCount);
+
+public record EquipmentActivityDto(
+    int ActivityId,
+    string ItemName,
+    string ItemCode,
+    string ActivityType,
+    string MediaDescription,
+    DateTime StartedOn,
+    string StartedBy,
+    DateTime? ExpectedCompletion,
+    DateTime? CompletedOn,
+    bool IsActive,
+    int? EntityId,
+    string? EntityType);
+
+public record HistoricalLocationDto(
+    string EquipmentCode,
+    string EquipmentName,
+    string ActivityType,
+    DateTime StartedOn,
+    DateTime? CompletedOn,
+    string PerformedBy);
+
+public record WhereIsItResultDto(
+    string SearchTerm,
+    EquipmentActivityDto? CurrentActivity,
+    string? CurrentEquipmentCode,
+    string? CurrentEquipmentName,
+    List<HistoricalLocationDto> History);
+
 public class EquipmentInventoryService
 {
     private readonly MicroLimsDbContext _db;
@@ -44,8 +82,6 @@ public class EquipmentInventoryService
     public async Task<EquipmentInventory?> GetByIdAsync(int id) =>
         await _db.EquipmentInventories.FirstOrDefaultAsync(e => e.Id == id);
 
-    // Print/view list per Mohamed's spec: excludes retired/out-of-service
-    // instruments (the equivalent of "expired/out of stock" for equipment).
     public async Task<List<EquipmentInventory>> GetForPrintAsync() =>
         await _db.EquipmentInventories
             .Where(e => e.Status == EquipmentOperationalStatus.InService)
@@ -85,7 +121,6 @@ public class EquipmentInventoryService
         if (r.Code != entity.Code && await _db.EquipmentInventories.AnyAsync(e => e.Code == r.Code))
             throw new InvalidOperationException($"Equipment code \"{r.Code}\" already exists.");
 
-        // If operational status is changing, enforce mandatory comment and record immutable status history.
         if (r.Status != entity.Status)
         {
             if (string.IsNullOrWhiteSpace(r.StatusChangeComment))
@@ -142,5 +177,370 @@ public class EquipmentInventoryService
             h.ChangedByUserId,
             userMap.GetValueOrDefault(h.ChangedByUserId, "Unknown"),
             h.ChangedAt)).ToList();
+    }
+
+    // =========================================================================
+    // ACTIVE EQUIPMENT TRACEABILITY IMPLEMENTATION
+    // =========================================================================
+
+    public async Task<List<ActiveEquipmentItemDto>> GetActiveEquipmentAsync()
+    {
+        var allEquipment = await _db.EquipmentInventories.ToListAsync();
+        var masterEquipment = await _db.Equipment.ToListAsync();
+
+        var activeList = new List<ActiveEquipmentItemDto>();
+
+        foreach (var eq in allEquipment)
+        {
+            var activeActivities = await GetActiveActivitiesForEquipmentInternalAsync(eq, masterEquipment);
+            if (activeActivities.Count > 0)
+            {
+                var firstAct = activeActivities.First();
+                var primaryCategory = firstAct.ActivityType.Contains("Incubation", StringComparison.OrdinalIgnoreCase) || firstAct.ActivityType.Contains("Pathogen", StringComparison.OrdinalIgnoreCase) ? "Incubation"
+                                    : firstAct.ActivityType.Contains("Cryovial", StringComparison.OrdinalIgnoreCase) ? "Cryovial Storage"
+                                    : firstAct.ActivityType.Contains("Media", StringComparison.OrdinalIgnoreCase) ? "Media Storage"
+                                    : "Laboratory Activity";
+
+                activeList.Add(new ActiveEquipmentItemDto(
+                    eq.Id,
+                    eq.Code,
+                    eq.InstrumentType,
+                    eq.ManufacturerName,
+                    eq.Location,
+                    eq.Status.ToString(),
+                    eq.CalibrationDueDate,
+                    masterEquipment.FirstOrDefault(m => m.Code == eq.Code || m.Id == eq.Id)?.SetPointTemperature,
+                    primaryCategory,
+                    activeActivities.Count
+                ));
+            }
+        }
+
+        return activeList.OrderBy(e => e.InstrumentType).ThenBy(e => e.Code).ToList();
+    }
+
+    public async Task<List<EquipmentActivityDto>> GetActiveActivitiesForEquipmentAsync(int equipmentId)
+    {
+        var eq = await _db.EquipmentInventories.FirstOrDefaultAsync(e => e.Id == equipmentId)
+            ?? throw new InvalidOperationException($"Equipment {equipmentId} not found.");
+        var masterEquipment = await _db.Equipment.ToListAsync();
+        return await GetActiveActivitiesForEquipmentInternalAsync(eq, masterEquipment);
+    }
+
+    public async Task<List<EquipmentActivityDto>> GetHistoricalActivitiesForEquipmentAsync(int equipmentId, string? itemCode = null, DateTime? fromDate = null, DateTime? toDate = null)
+    {
+        var eq = await _db.EquipmentInventories.FirstOrDefaultAsync(e => e.Id == equipmentId)
+            ?? throw new InvalidOperationException($"Equipment {equipmentId} not found.");
+        var masterEquipment = await _db.Equipment.ToListAsync();
+        var matchingMasterId = masterEquipment.FirstOrDefault(m => m.Code == eq.Code || m.Id == eq.Id)?.Id;
+
+        var allIncubations = await _db.Incubations
+            .Include(i => i.TestOrder).ThenInclude(t => t!.Sample).ThenInclude(s => s!.Item)
+            .Include(i => i.Media).ThenInclude(m => m!.Material)
+            .Include(i => i.Media).ThenInclude(m => m!.MediaType)
+            .Where(i => i.IncubatorEquipmentId == eq.Id || (matchingMasterId.HasValue && i.IncubatorEquipmentId == matchingMasterId.Value))
+            .ToListAsync();
+
+        var userIds = allIncubations.Where(i => i.StartedByUserId.HasValue).Select(i => i.StartedByUserId!.Value).Distinct().ToList();
+        var userMap = await _db.Users.Where(u => userIds.Contains(u.Id)).ToDictionaryAsync(u => u.Id, u => u.FullName);
+
+        var list = new List<EquipmentActivityDto>();
+
+        foreach (var inc in allIncubations)
+        {
+            var sampleCode = inc.TestOrder?.Sample?.ReferenceNumber ?? inc.TestOrder?.SampleId.ToString() ?? "N/A";
+            var itemName = inc.TestOrder?.Sample?.Item?.Name ?? inc.StepName ?? "Laboratory Test";
+            var testCode = inc.TestOrder?.TestCode ?? "Test";
+
+            string activityType = inc.StepName.Contains("Pathogen", StringComparison.OrdinalIgnoreCase) || testCode.StartsWith("PAT")
+                ? "Pathogen Test"
+                : inc.StepName.Contains("GPT", StringComparison.OrdinalIgnoreCase)
+                ? "GPT"
+                : "Media Incubation";
+
+            var mediaName = inc.Media?.Material?.MaterialName ?? inc.Media?.MediaType?.Class.ToString() ?? "N/A";
+            var mediaLot = inc.Media?.LotNumber ?? "";
+            var mediaDesc = string.IsNullOrWhiteSpace(mediaLot) ? mediaName : $"{mediaName} (Lot {mediaLot})";
+
+            var startedBy = inc.StartedByUserId.HasValue && userMap.TryGetValue(inc.StartedByUserId.Value, out var uName) ? uName : "Laboratory Analyst";
+            var startedOn = inc.IncubationStartUtc ?? inc.StartedAt;
+            var completedOn = inc.CompletedAt ?? (inc.IncubationEndUtc.HasValue && inc.IncubationEndUtc.Value <= DateTime.UtcNow ? inc.IncubationEndUtc.Value : (DateTime?)null);
+            bool isActive = completedOn == null && (inc.IncubationEndUtc == null || inc.IncubationEndUtc > DateTime.UtcNow);
+
+            list.Add(new EquipmentActivityDto(
+                inc.Id,
+                itemName,
+                sampleCode,
+                activityType,
+                mediaDesc,
+                startedOn,
+                startedBy,
+                inc.IncubationEndUtc ?? inc.ExpectedReadingAt,
+                completedOn,
+                isActive,
+                inc.TestOrder?.SampleId,
+                "Sample"
+            ));
+        }
+
+        var queryable = list.AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(itemCode))
+        {
+            var q = itemCode.Trim().ToLower();
+            queryable = queryable.Where(a => a.ItemCode.ToLower().Contains(q) || a.ItemName.ToLower().Contains(q) || a.MediaDescription.ToLower().Contains(q));
+        }
+
+        if (fromDate.HasValue)
+        {
+            queryable = queryable.Where(a => a.StartedOn >= fromDate.Value);
+        }
+
+        if (toDate.HasValue)
+        {
+            var endOfDay = toDate.Value.Date.AddDays(1).AddTicks(-1);
+            queryable = queryable.Where(a => a.StartedOn <= endOfDay);
+        }
+
+        return queryable.OrderByDescending(a => a.StartedOn).ToList();
+    }
+
+    public async Task<WhereIsItResultDto> WhereIsItAsync(string query)
+    {
+        if (string.IsNullOrWhiteSpace(query))
+            return new WhereIsItResultDto("", null, null, null, new List<HistoricalLocationDto>());
+
+        var q = query.Trim().ToLower();
+        var allEquipment = await _db.EquipmentInventories.ToListAsync();
+
+        var historyList = new List<HistoricalLocationDto>();
+        EquipmentActivityDto? currentActivity = null;
+        string? currentEquipmentCode = null;
+        string? currentEquipmentName = null;
+
+        var incubations = await _db.Incubations
+            .Include(i => i.TestOrder).ThenInclude(t => t!.Sample).ThenInclude(s => s!.Item)
+            .Include(i => i.Media).ThenInclude(m => m!.Material)
+            .Include(i => i.Media).ThenInclude(m => m!.MediaType)
+            .Include(i => i.IncubatorEquipment)
+            .Where(i => (i.TestOrder != null && i.TestOrder.Sample != null && (i.TestOrder.Sample.ReferenceNumber.ToLower().Contains(q) || (i.TestOrder.Sample.Item != null && i.TestOrder.Sample.Item.Name.ToLower().Contains(q))))
+                     || (i.Media != null && (i.Media.LotNumber.ToLower().Contains(q) || (i.Media.Material != null && i.Media.Material.MaterialName.ToLower().Contains(q))))
+                     || i.StepName.ToLower().Contains(q))
+            .OrderByDescending(i => i.IncubationStartUtc ?? i.StartedAt)
+            .ToListAsync();
+
+        var userIds = incubations.Where(i => i.StartedByUserId.HasValue).Select(i => i.StartedByUserId!.Value).Distinct().ToList();
+        var userMap = await _db.Users.Where(u => userIds.Contains(u.Id)).ToDictionaryAsync(u => u.Id, u => u.FullName);
+
+        foreach (var inc in incubations)
+        {
+            var eq = allEquipment.FirstOrDefault(e => e.Id == inc.IncubatorEquipmentId)
+                  ?? allEquipment.FirstOrDefault(e => inc.IncubatorEquipment != null && e.Code == inc.IncubatorEquipment.Code);
+            var eqCode = eq?.Code ?? inc.IncubatorEquipment?.Code ?? "EQ-UNKNOWN";
+            var eqName = eq?.InstrumentType ?? inc.IncubatorEquipment?.Name ?? "Equipment";
+
+            var sampleCode = inc.TestOrder?.Sample?.ReferenceNumber ?? inc.TestOrder?.SampleId.ToString() ?? "N/A";
+            var itemName = inc.TestOrder?.Sample?.Item?.Name ?? inc.StepName ?? "Laboratory Test";
+            var testCode = inc.TestOrder?.TestCode ?? "Test";
+
+            string activityType = inc.StepName.Contains("Pathogen", StringComparison.OrdinalIgnoreCase) || testCode.StartsWith("PAT")
+                ? "Pathogen Test"
+                : inc.StepName.Contains("GPT", StringComparison.OrdinalIgnoreCase)
+                ? "GPT"
+                : "Media Incubation";
+
+            var mediaName = inc.Media?.Material?.MaterialName ?? inc.Media?.MediaType?.Class.ToString() ?? "N/A";
+            var mediaLot = inc.Media?.LotNumber ?? "";
+            var mediaDesc = string.IsNullOrWhiteSpace(mediaLot) ? mediaName : $"{mediaName} (Lot {mediaLot})";
+
+            var startedBy = inc.StartedByUserId.HasValue && userMap.TryGetValue(inc.StartedByUserId.Value, out var uName) ? uName : "Laboratory Analyst";
+            var startedOn = inc.IncubationStartUtc ?? inc.StartedAt;
+            var completedOn = inc.CompletedAt ?? (inc.IncubationEndUtc.HasValue && inc.IncubationEndUtc.Value <= DateTime.UtcNow ? inc.IncubationEndUtc.Value : (DateTime?)null);
+            bool isActive = completedOn == null && (inc.IncubationEndUtc == null || inc.IncubationEndUtc > DateTime.UtcNow);
+
+            if (isActive && currentActivity == null)
+            {
+                currentActivity = new EquipmentActivityDto(
+                    inc.Id,
+                    itemName,
+                    sampleCode,
+                    activityType,
+                    mediaDesc,
+                    startedOn,
+                    startedBy,
+                    inc.IncubationEndUtc ?? inc.ExpectedReadingAt,
+                    null,
+                    true,
+                    inc.TestOrder?.SampleId,
+                    "Sample"
+                );
+                currentEquipmentCode = eqCode;
+                currentEquipmentName = eqName;
+            }
+
+            historyList.Add(new HistoricalLocationDto(
+                eqCode,
+                eqName,
+                activityType,
+                startedOn,
+                completedOn,
+                startedBy
+            ));
+        }
+
+        return new WhereIsItResultDto(query, currentActivity, currentEquipmentCode, currentEquipmentName, historyList);
+    }
+
+    private async Task<List<EquipmentActivityDto>> GetActiveActivitiesForEquipmentInternalAsync(EquipmentInventory eq, List<Equipment> masterEquipment)
+    {
+        var matchingMasterId = masterEquipment.FirstOrDefault(m => m.Code == eq.Code || m.Id == eq.Id)?.Id;
+        var now = DateTime.UtcNow;
+        var activities = new List<EquipmentActivityDto>();
+
+        // 1. Active Incubation records
+        var activeIncubations = await _db.Incubations
+            .Include(i => i.TestOrder).ThenInclude(t => t!.Sample).ThenInclude(s => s!.Item)
+            .Include(i => i.Media).ThenInclude(m => m!.Material)
+            .Include(i => i.Media).ThenInclude(m => m!.MediaType)
+            .Where(i => (i.IncubatorEquipmentId == eq.Id || (matchingMasterId.HasValue && i.IncubatorEquipmentId == matchingMasterId.Value))
+                     && i.CompletedAt == null && (i.IncubationEndUtc == null || i.IncubationEndUtc > now))
+            .ToListAsync();
+
+        var userIds = activeIncubations.Where(i => i.StartedByUserId.HasValue).Select(i => i.StartedByUserId!.Value).Distinct().ToList();
+        var userMap = await _db.Users.Where(u => userIds.Contains(u.Id)).ToDictionaryAsync(u => u.Id, u => u.FullName);
+
+        foreach (var inc in activeIncubations)
+        {
+            var sampleCode = inc.TestOrder?.Sample?.ReferenceNumber ?? inc.TestOrder?.SampleId.ToString() ?? "N/A";
+            var itemName = inc.TestOrder?.Sample?.Item?.Name ?? inc.StepName ?? "Laboratory Test";
+            var testCode = inc.TestOrder?.TestCode ?? "Test";
+
+            string activityType = inc.StepName.Contains("Pathogen", StringComparison.OrdinalIgnoreCase) || testCode.StartsWith("PAT")
+                ? "Pathogen Test"
+                : inc.StepName.Contains("GPT", StringComparison.OrdinalIgnoreCase)
+                ? "GPT"
+                : "Media Incubation";
+
+            var mediaName = inc.Media?.Material?.MaterialName ?? inc.Media?.MediaType?.Class.ToString() ?? "N/A";
+            var mediaLot = inc.Media?.LotNumber ?? "";
+            var mediaDesc = string.IsNullOrWhiteSpace(mediaLot) ? mediaName : $"{mediaName} (Lot {mediaLot})";
+
+            var startedBy = inc.StartedByUserId.HasValue && userMap.TryGetValue(inc.StartedByUserId.Value, out var uName) ? uName : "Laboratory Analyst";
+
+            activities.Add(new EquipmentActivityDto(
+                inc.Id,
+                itemName,
+                sampleCode,
+                activityType,
+                mediaDesc,
+                inc.IncubationStartUtc ?? inc.StartedAt,
+                startedBy,
+                inc.IncubationEndUtc ?? inc.ExpectedReadingAt,
+                null,
+                true,
+                inc.TestOrder?.SampleId,
+                "Sample"
+            ));
+        }
+
+        // 2. Refrigerator / Media Storage
+        if (eq.InstrumentType.Contains("Refrigerator", StringComparison.OrdinalIgnoreCase) || eq.Code.StartsWith("REF", StringComparison.OrdinalIgnoreCase))
+        {
+            var activeMedia = await _db.Media
+                .Include(m => m.Material)
+                .Include(m => m.MediaType)
+                .Where(m => (m.AutoclaveEquipmentId == eq.Id || (matchingMasterId.HasValue && m.AutoclaveEquipmentId == matchingMasterId.Value) || eq.InstrumentType.Contains("Refrigerator"))
+                         && m.Status != Domain.Enums.MediaStatus.Destroyed && m.ExpiryDate > now)
+                .ToListAsync();
+
+            var mediaUserIds = activeMedia.Select(m => m.PreparedByUserId).Distinct().ToList();
+            var mediaUserMap = await _db.Users.Where(u => mediaUserIds.Contains(u.Id)).ToDictionaryAsync(u => u.Id, u => u.FullName);
+
+            foreach (var m in activeMedia)
+            {
+                var mediaName = m.Material?.MaterialName ?? m.MediaType?.Class.ToString() ?? "Media Batch";
+                var preparedBy = mediaUserMap.TryGetValue(m.PreparedByUserId, out var pName) ? pName : "Laboratory Analyst";
+
+                activities.Add(new EquipmentActivityDto(
+                    m.Id,
+                    mediaName,
+                    m.LotNumber,
+                    "Media Storage",
+                    $"Storage of {mediaName}",
+                    m.PreparedAt,
+                    preparedBy,
+                    m.ExpiryDate,
+                    null,
+                    true,
+                    m.Id,
+                    "Media"
+                ));
+            }
+        }
+
+        // 3. Deep Freezer / Cryovial Storage
+        if (eq.InstrumentType.Contains("Freezer", StringComparison.OrdinalIgnoreCase) || eq.Code.StartsWith("COD", StringComparison.OrdinalIgnoreCase) || eq.Code.StartsWith("CRYO", StringComparison.OrdinalIgnoreCase))
+        {
+            var activeCryovials = await _db.Cryovials
+                .Include(c => c.Material)
+                .Include(c => c.Organism)
+                .Where(c => !c.IsDestroyed && c.VialsRemaining > 0)
+                .ToListAsync();
+
+            var cryoUserIds = activeCryovials.Select(c => c.PreparedByUserId).Distinct().ToList();
+            var cryoUserMap = await _db.Users.Where(u => cryoUserIds.Contains(u.Id)).ToDictionaryAsync(u => u.Id, u => u.FullName);
+
+            foreach (var c in activeCryovials)
+            {
+                var organismName = c.Organism?.ScientificName ?? c.OrganismNameSnapshot ?? "Microorganism Strain";
+                var preparedBy = cryoUserMap.TryGetValue(c.PreparedByUserId, out var pName) ? pName : "Laboratory Analyst";
+
+                activities.Add(new EquipmentActivityDto(
+                    c.Id,
+                    organismName,
+                    c.Code,
+                    "Cryovial Storage",
+                    $"Storage of strain: {organismName} ({c.VialsRemaining} vials remaining)",
+                    c.PreparedAt,
+                    preparedBy,
+                    c.ExpiryDate,
+                    null,
+                    true,
+                    c.Id,
+                    "Cryovial"
+                ));
+            }
+        }
+
+        // 4. Identity Confirmation Entries for Cryovials in Incubators
+        var activeIdentityConfirmations = await _db.IdentityConfirmationEntries
+            .Include(i => i.Cryovial)
+            .Include(i => i.Media)
+            .Where(i => (i.IncubatorEquipmentId == eq.Id || (matchingMasterId.HasValue && i.IncubatorEquipmentId == matchingMasterId.Value))
+                     && i.IncubationEnd > now)
+            .ToListAsync();
+
+        foreach (var idConf in activeIdentityConfirmations)
+        {
+            var cryoCode = idConf.Cryovial?.Code ?? "Cryovial Lot";
+            var mediaName = idConf.Media?.LotNumber ?? "Confirmation Media";
+
+            activities.Add(new EquipmentActivityDto(
+                idConf.Id,
+                "Cryovial Identity Confirmation",
+                cryoCode,
+                "GPT / Confirmation",
+                $"Identity confirmation on media {mediaName}",
+                idConf.IncubationStart,
+                "Laboratory Analyst",
+                idConf.IncubationEnd,
+                null,
+                true,
+                idConf.CryovialId,
+                "Cryovial"
+            ));
+        }
+
+        return activities.OrderByDescending(a => a.StartedOn).ToList();
     }
 }

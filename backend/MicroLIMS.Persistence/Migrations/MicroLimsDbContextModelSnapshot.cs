@@ -23,6 +23,55 @@ namespace MicroLIMS.Persistence.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("MicroLIMS.Domain.Entities.AdminPasswordRecovery", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("CodeHash")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("CreatedByUserId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("FailedAttempts")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("UsedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedByUserId");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("AdminPasswordRecoveries");
+                });
+
             modelBuilder.Entity("MicroLIMS.Domain.Entities.ArchivedRecord", b =>
                 {
                     b.Property<int>("Id")
@@ -144,6 +193,137 @@ namespace MicroLIMS.Persistence.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("AuditLogs");
+                });
+
+            modelBuilder.Entity("MicroLIMS.Domain.Entities.AutoclaveProgram", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("CreatedByUserId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("CycleTimeMinutes")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("EquipmentId")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime>("LastModifiedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("LastModifiedByUserId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("LoadType")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("ProgramCode")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("ProgramName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<decimal>("Temperature")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("numeric(5,2)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("EquipmentId", "ProgramCode")
+                        .IsUnique();
+
+                    b.ToTable("AutoclavePrograms");
+                });
+
+            modelBuilder.Entity("MicroLIMS.Domain.Entities.AutoclaveProgramHistory", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Action")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<int>("AutoclaveProgramId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("ChangedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("ChangedByUserId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Comment")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<int>("NewCycleTimeMinutes")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("NewIsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("NewLoadType")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("NewProgramName")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<decimal>("NewTemperature")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("numeric(5,2)");
+
+                    b.Property<int>("PreviousCycleTimeMinutes")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("PreviousIsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("PreviousLoadType")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("PreviousProgramName")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<decimal>("PreviousTemperature")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("numeric(5,2)");
+
+                    b.Property<string>("ProgramCode")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AutoclaveProgramId");
+
+                    b.ToTable("AutoclaveProgramHistories");
                 });
 
             modelBuilder.Entity("MicroLIMS.Domain.Entities.CauseOfTesting", b =>
@@ -925,6 +1105,43 @@ namespace MicroLIMS.Persistence.Migrations
                     b.ToTable("Incubations");
                 });
 
+            modelBuilder.Entity("MicroLIMS.Domain.Entities.IncubatorSetPointHistory", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("ChangedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("ChangedByUserId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("EquipmentId")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal>("NewSetPoint")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("numeric(5,2)");
+
+                    b.Property<decimal>("PreviousSetPoint")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("numeric(5,2)");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("EquipmentId");
+
+                    b.ToTable("IncubatorSetPointHistories");
+                });
+
             modelBuilder.Entity("MicroLIMS.Domain.Entities.Item", b =>
                 {
                     b.Property<int>("Id")
@@ -961,6 +1178,132 @@ namespace MicroLIMS.Persistence.Migrations
                     b.ToTable("Items");
                 });
 
+            modelBuilder.Entity("MicroLIMS.Domain.Entities.ItemDocument", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("ContentSha256")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<string>("ContentType")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<int>("DocumentType")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("EffectiveDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("FileExtension")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)");
+
+                    b.Property<long>("FileSizeBytes")
+                        .HasColumnType("bigint");
+
+                    b.Property<int>("ItemId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("OriginalFileName")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("StorageKey")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateTime?>("SupersededAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("SupersededByDocumentId")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("SupersededByUserId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("SupersessionReason")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<DateTime>("UploadedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("UploadedByUserId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Version")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("VoidReason")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<DateTime?>("VoidedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("VoidedByUserId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ItemId");
+
+                    b.HasIndex("SupersededByDocumentId");
+
+                    b.HasIndex("UploadedByUserId");
+
+                    b.HasIndex("ItemId", "Status");
+
+                    b.HasIndex("ItemId", "DocumentType", "Status");
+
+                    b.ToTable("ItemDocuments");
+                });
+
+            modelBuilder.Entity("MicroLIMS.Domain.Entities.ItemDocumentAccessLog", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("AccessedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("Action")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("DocumentId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DocumentId");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("ItemDocumentAccessLogs");
+                });
+
             modelBuilder.Entity("MicroLIMS.Domain.Entities.LocationPathogenObservation", b =>
                 {
                     b.Property<int>("Id")
@@ -982,9 +1325,7 @@ namespace MicroLIMS.Persistence.Migrations
                         .HasColumnType("integer");
 
                     b.Property<byte[]>("RowVersion")
-                        .IsConcurrencyToken()
                         .IsRequired()
-                        .ValueGeneratedOnAddOrUpdate()
                         .HasColumnType("bytea");
 
                     b.Property<int>("SampleLocationId")
@@ -2926,6 +3267,10 @@ namespace MicroLIMS.Persistence.Migrations
                     b.Property<bool>("IsActive")
                         .HasColumnType("boolean");
 
+                    b.Property<string>("JobTitle")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
                     b.Property<DateTime?>("LastLoginAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -3118,6 +3463,47 @@ namespace MicroLIMS.Persistence.Migrations
                     b.HasIndex("TestOrderId");
 
                     b.ToTable("WorkflowStepResults");
+                });
+
+            modelBuilder.Entity("MicroLIMS.Domain.Entities.AdminPasswordRecovery", b =>
+                {
+                    b.HasOne("MicroLIMS.Domain.Entities.User", "CreatedByUser")
+                        .WithMany()
+                        .HasForeignKey("CreatedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("MicroLIMS.Domain.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("CreatedByUser");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("MicroLIMS.Domain.Entities.AutoclaveProgram", b =>
+                {
+                    b.HasOne("MicroLIMS.Domain.Entities.Equipment", "Equipment")
+                        .WithMany()
+                        .HasForeignKey("EquipmentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Equipment");
+                });
+
+            modelBuilder.Entity("MicroLIMS.Domain.Entities.AutoclaveProgramHistory", b =>
+                {
+                    b.HasOne("MicroLIMS.Domain.Entities.AutoclaveProgram", "AutoclaveProgram")
+                        .WithMany("History")
+                        .HasForeignKey("AutoclaveProgramId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("AutoclaveProgram");
                 });
 
             modelBuilder.Entity("MicroLIMS.Domain.Entities.ConfirmatoryMediaSelection", b =>
@@ -3346,6 +3732,61 @@ namespace MicroLIMS.Persistence.Migrations
                     b.Navigation("ParentIncubation");
 
                     b.Navigation("TestOrder");
+                });
+
+            modelBuilder.Entity("MicroLIMS.Domain.Entities.IncubatorSetPointHistory", b =>
+                {
+                    b.HasOne("MicroLIMS.Domain.Entities.Equipment", "Equipment")
+                        .WithMany()
+                        .HasForeignKey("EquipmentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Equipment");
+                });
+
+            modelBuilder.Entity("MicroLIMS.Domain.Entities.ItemDocument", b =>
+                {
+                    b.HasOne("MicroLIMS.Domain.Entities.Item", "Item")
+                        .WithMany()
+                        .HasForeignKey("ItemId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("MicroLIMS.Domain.Entities.ItemDocument", "SupersededByDocument")
+                        .WithMany()
+                        .HasForeignKey("SupersededByDocumentId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("MicroLIMS.Domain.Entities.User", "UploadedByUser")
+                        .WithMany()
+                        .HasForeignKey("UploadedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Item");
+
+                    b.Navigation("SupersededByDocument");
+
+                    b.Navigation("UploadedByUser");
+                });
+
+            modelBuilder.Entity("MicroLIMS.Domain.Entities.ItemDocumentAccessLog", b =>
+                {
+                    b.HasOne("MicroLIMS.Domain.Entities.ItemDocument", "Document")
+                        .WithMany()
+                        .HasForeignKey("DocumentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("MicroLIMS.Domain.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Document");
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("MicroLIMS.Domain.Entities.LocationPathogenObservation", b =>
@@ -4012,6 +4453,11 @@ namespace MicroLIMS.Persistence.Migrations
                     b.Navigation("Incubation");
 
                     b.Navigation("TestOrder");
+                });
+
+            modelBuilder.Entity("MicroLIMS.Domain.Entities.AutoclaveProgram", b =>
+                {
+                    b.Navigation("History");
                 });
 
             modelBuilder.Entity("MicroLIMS.Domain.Entities.Cryovial", b =>

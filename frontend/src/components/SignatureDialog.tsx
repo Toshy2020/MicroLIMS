@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Box, Typography, TextField, Button, Alert, Stack } from "@mui/material";
 import { FloatingDialog } from "./FloatingDialog";
 import { useAuth } from "../contexts/AuthContext";
+import { PinnedLightTheme } from "../theme/PinnedLightTheme";
 
 interface SignatureDialogProps {
   open: boolean;
@@ -45,36 +46,38 @@ export function SignatureDialog({ open, meaningStatement, showComment = false, c
   };
 
   return (
-    <FloatingDialog
-      open={open}
-      title="Electronic Signature"
-      onClose={handleCancel}
-      actions={
-        <>
-          <Button onClick={handleCancel}>Cancel</Button>
-          <Button variant="contained" onClick={handleConfirm} disabled={!password || submitting}>
-            {submitting ? "Signing..." : "Sign"}
-          </Button>
-        </>
-      }
-    >
-      <Stack spacing={2}>
-        {error && <Alert severity="error">{error}</Alert>}
-        <Box>
-          <Typography sx={{ fontWeight: 700 }}>{fullName ?? username}</Typography>
-          <Typography sx={{ fontSize: 13, color: "text.secondary" }}>{role}</Typography>
-        </Box>
-        <Alert severity="info">{meaningStatement}</Alert>
-        {showComment && (
-          <TextField label="Comment (optional)" multiline rows={2} value={comment ?? ""} onChange={(e) => onCommentChange?.(e.target.value)} />
-        )}
-        <TextField
-          label="Password" type="password" value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          autoFocus required
-          onKeyDown={(e) => { if (e.key === "Enter" && password) handleConfirm(); }}
-        />
-      </Stack>
-    </FloatingDialog>
+    <PinnedLightTheme>
+      <FloatingDialog
+        open={open}
+        title="Electronic Signature"
+        onClose={handleCancel}
+        actions={
+          <>
+            <Button onClick={handleCancel}>Cancel</Button>
+            <Button variant="contained" onClick={handleConfirm} disabled={!password || submitting}>
+              {submitting ? "Signing..." : "Sign"}
+            </Button>
+          </>
+        }
+      >
+        <Stack spacing={2}>
+          {error && <Alert severity="error">{error}</Alert>}
+          <Box>
+            <Typography sx={{ fontWeight: 700 }}>{fullName ?? username}</Typography>
+            <Typography sx={{ fontSize: 13, color: "text.secondary" }}>{role}</Typography>
+          </Box>
+          <Alert severity="info">{meaningStatement}</Alert>
+          {showComment && (
+            <TextField label="Comment (optional)" multiline rows={2} value={comment ?? ""} onChange={(e) => onCommentChange?.(e.target.value)} />
+          )}
+          <TextField
+            label="Password" type="password" value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            autoFocus required
+            onKeyDown={(e) => { if (e.key === "Enter" && password) handleConfirm(); }}
+          />
+        </Stack>
+      </FloatingDialog>
+    </PinnedLightTheme>
   );
 }

@@ -10,7 +10,8 @@ import {
   Box,
   Alert,
   Paper,
-  Stack
+  Stack,
+  useTheme
 } from "@mui/material";
 import AcUnitIcon from "@mui/icons-material/AcUnit";
 import { CryovialItem } from "../types/cryovialTypes";
@@ -29,6 +30,7 @@ export function ThawVialReasonDialog({
   onCancel,
   onConfirm
 }: ThawVialReasonDialogProps) {
+  const theme = useTheme();
   const [reason, setReason] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -81,13 +83,13 @@ export function ThawVialReasonDialog({
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            bgcolor: "#e0f2fe",
-            color: "#0284c7"
+            bgcolor: theme.custom.status.info.bg,
+            color: theme.custom.status.info.text
           }}
         >
           <AcUnitIcon fontSize="small" />
         </Box>
-        <Typography sx={{ fontSize: 18, fontWeight: 700, color: "#1f2937" }}>
+        <Typography sx={{ fontSize: 18, fontWeight: 700, color: "text.primary" }}>
           Thaw Vial — Provide Reason
         </Typography>
       </DialogTitle>
@@ -101,8 +103,8 @@ export function ThawVialReasonDialog({
             variant="outlined"
             sx={{
               p: 2,
-              bgcolor: "#f8fafc",
-              borderColor: "#e2e8f0",
+              bgcolor: "background.default",
+              borderColor: "divider",
               borderRadius: 1.5
             }}
           >
@@ -117,7 +119,7 @@ export function ThawVialReasonDialog({
                 <Typography sx={{ fontSize: 11, fontWeight: 600, color: "text.secondary", textTransform: "uppercase" }}>
                   Cryovial Code
                 </Typography>
-                <Typography sx={{ fontSize: 14, fontWeight: 700, fontFamily: "monospace", color: brandColors.sectionTitle }}>
+                <Typography sx={{ fontSize: 14, fontWeight: 700, fontFamily: "monospace", color: theme.palette.primary.main }}>
                   {cryovial.code}
                 </Typography>
               </Box>
@@ -126,7 +128,7 @@ export function ThawVialReasonDialog({
                 <Typography sx={{ fontSize: 11, fontWeight: 600, color: "text.secondary", textTransform: "uppercase" }}>
                   Organism
                 </Typography>
-                <Typography sx={{ fontSize: 13, fontWeight: 600, color: "#1f2937" }}>
+                <Typography sx={{ fontSize: 13, fontWeight: 600, color: "text.primary" }}>
                   {organismName}
                 </Typography>
               </Box>
@@ -135,7 +137,7 @@ export function ThawVialReasonDialog({
                 <Typography sx={{ fontSize: 11, fontWeight: 600, color: "text.secondary", textTransform: "uppercase" }}>
                   Available Vials
                 </Typography>
-                <Typography sx={{ fontSize: 13, fontWeight: 700, color: "#16a34a" }}>
+                <Typography sx={{ fontSize: 13, fontWeight: 700, color: theme.custom.status.notDetected.text }}>
                   {cryovial.vialsRemaining} of {cryovial.numberOfVialsPrepared} vials
                 </Typography>
               </Box>
@@ -144,8 +146,8 @@ export function ThawVialReasonDialog({
 
           {/* Reason for Thawing (Free Text Only) */}
           <Box>
-            <Typography sx={{ fontSize: 13, fontWeight: 600, color: "#1f2937", mb: 0.75 }}>
-              Reason for Thawing <span style={{ color: "#dc2626" }}>*</span>
+            <Typography sx={{ fontSize: 13, fontWeight: 600, color: "text.primary", mb: 0.75 }}>
+              Reason for Thawing <Box component="span" sx={{ color: theme.custom.status.detected.text }}>*</Box>
             </Typography>
             <TextField
               fullWidth
@@ -171,7 +173,7 @@ export function ThawVialReasonDialog({
                 sx={{
                   fontSize: 11,
                   fontWeight: 600,
-                  color: reason.length >= 450 ? "#ea580c" : "text.secondary"
+                  color: reason.length >= 450 ? theme.custom.status.action.text : "text.secondary"
                 }}
               >
                 {reason.length} / 500 characters
@@ -182,7 +184,7 @@ export function ThawVialReasonDialog({
       </DialogContent>
 
       <DialogActions sx={{ px: 3, py: 2 }}>
-        <Button onClick={onCancel} disabled={submitting} sx={{ color: "#4b5563" }}>
+        <Button onClick={onCancel} disabled={submitting} sx={{ color: "text.secondary" }}>
           Cancel
         </Button>
         <Button

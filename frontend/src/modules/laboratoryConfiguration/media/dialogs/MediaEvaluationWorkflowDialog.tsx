@@ -12,7 +12,8 @@ import {
   Paper,
   Select,
   MenuItem,
-  TextField
+  TextField,
+  useTheme
 } from "@mui/material";
 import { StatusBadge } from "../../../../components/StatusBadge";
 import { MediaEvaluationService } from "../../mediaEvaluation/services/MediaEvaluationService";
@@ -28,6 +29,7 @@ interface Props {
 }
 
 export function MediaEvaluationWorkflowDialog({ open, evaluationId, onClose, onUpdated }: Props) {
+  const theme = useTheme();
   const [evaluation, setEvaluation] = useState<any | null>(null);
   const [cryovials, setCryovials] = useState<any[]>([]);
   const [incubators, setIncubators] = useState<any[]>([]);
@@ -139,7 +141,7 @@ export function MediaEvaluationWorkflowDialog({ open, evaluationId, onClose, onU
           <DialogTitle sx={{ pb: 1 }}>
             <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 1 }}>
               <Box>
-                <Typography sx={{ fontSize: 18, fontWeight: 700, color: brandColors.pageTitle }}>
+                <Typography sx={{ fontSize: 18, fontWeight: 700, color: theme.palette.primary.main }}>
                   {evaluation.media?.lotNumber} — {evaluationTypeLabel(evaluation.evaluationType)}
                 </Typography>
                 <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
@@ -175,7 +177,7 @@ export function MediaEvaluationWorkflowDialog({ open, evaluationId, onClose, onU
                 return (
                   <Paper key={c.id} variant="outlined" sx={{ p: 2, borderRadius: 2 }}>
                     <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1 }}>
-                      <Typography sx={{ fontWeight: 700, fontSize: 14, color: "#111827" }}>
+                      <Typography sx={{ fontWeight: 700, fontSize: 14, color: "text.primary" }}>
                         {c.organism?.scientificName}{c.challengeRole ? ` (${c.challengeRole})` : ""}
                       </Typography>
                       {c.outcome ? (
@@ -197,7 +199,7 @@ export function MediaEvaluationWorkflowDialog({ open, evaluationId, onClose, onU
                         Cryovial: <strong>{c.cryovial.code}</strong>
                       </Typography>
                     ) : (
-                      <Box sx={{ mb: 1.5, p: 1.5, bgcolor: "#fafafa", borderRadius: 1.5, border: "1px solid #f0f0f0" }}>
+                      <Box sx={{ mb: 1.5, p: 1.5, bgcolor: "background.default", borderRadius: 1.5, border: "1px solid", borderColor: "divider" }}>
                         <Typography sx={{ fontSize: 11, fontWeight: 700, color: "text.secondary", mb: 0.5 }}>
                           STEP 1: SELECT WORKING CRYOVIAL
                         </Typography>
@@ -243,13 +245,13 @@ export function MediaEvaluationWorkflowDialog({ open, evaluationId, onClose, onU
                         Incubation: <strong>{c.incubation.temperature}°C, {c.incubation.duration}h</strong>
                         {" — "}
                         {isReadyToRead(c) ? (
-                          <span style={{ color: "#16a34a", fontWeight: 600 }}>Ready to read</span>
+                          <span style={{ color: theme.custom.status.notDetected.text, fontWeight: 600 }}>Ready to read</span>
                         ) : (
                           <span>Earliest reading: {new Date(c.incubation.expectedReadingAt).toLocaleString()}</span>
                         )}
                       </Typography>
                     ) : (
-                      <Box sx={{ mb: 1.5, p: 1.5, bgcolor: "#fafafa", borderRadius: 1.5, border: "1px solid #f0f0f0" }}>
+                      <Box sx={{ mb: 1.5, p: 1.5, bgcolor: "background.default", borderRadius: 1.5, border: "1px solid", borderColor: "divider" }}>
                         <Typography sx={{ fontSize: 11, fontWeight: 700, color: "text.secondary", mb: 0.5 }}>
                           STEP 2: RECORD INCUBATION
                         </Typography>
@@ -285,8 +287,8 @@ export function MediaEvaluationWorkflowDialog({ open, evaluationId, onClose, onU
 
                     {/* Step 3: Result Entry */}
                     {c.outcome ? (
-                      <Box sx={{ mt: 1, p: 1.5, bgcolor: "#f0fdf4", borderRadius: 1.5, border: "1px solid #bbf7d0" }}>
-                        <Typography sx={{ fontSize: 11, fontWeight: 700, color: "#166534", mb: 0.5 }}>
+                      <Box sx={{ mt: 1, p: 1.5, bgcolor: theme.custom.status.notDetected.bg, borderRadius: 1.5, border: "1px solid", borderColor: theme.custom.status.notDetected.border }}>
+                        <Typography sx={{ fontSize: 11, fontWeight: 700, color: theme.custom.status.notDetected.text, mb: 0.5 }}>
                           EVALUATION RESULT RECORDED
                         </Typography>
                         {evaluation.evaluationType === "GrowthPromotion" && (
@@ -317,8 +319,8 @@ export function MediaEvaluationWorkflowDialog({ open, evaluationId, onClose, onU
                           : "Record incubation before a result can be entered."}
                       </Alert>
                     ) : (
-                      <Box sx={{ mt: 1, p: 1.5, bgcolor: "#faf5ff", borderRadius: 1.5, border: "1px solid #e9d5ff" }}>
-                        <Typography sx={{ fontSize: 11, fontWeight: 700, color: brandColors.sectionTitle, mb: 1 }}>
+                      <Box sx={{ mt: 1, p: 1.5, bgcolor: theme.custom.status.purple.bg, borderRadius: 1.5, border: "1px solid", borderColor: theme.custom.status.purple.border }}>
+                        <Typography sx={{ fontSize: 11, fontWeight: 700, color: theme.palette.primary.main, mb: 1 }}>
                           STEP 3: RECORD OBSERVATION / RESULT
                         </Typography>
                         <Box sx={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 1.5, alignItems: "center" }}>
@@ -339,7 +341,7 @@ export function MediaEvaluationWorkflowDialog({ open, evaluationId, onClose, onU
                                 onChange={(e) => setField(c.id, "newMediaCount", e.target.value)}
                               />
                               {previewRecovery(form) !== null && (
-                                <Typography variant="body2" sx={{ fontWeight: 700, color: brandColors.pageTitle }}>
+                                <Typography variant="body2" sx={{ fontWeight: 700, color: theme.palette.primary.main }}>
                                   Recovery: {previewRecovery(form)}%
                                 </Typography>
                               )}

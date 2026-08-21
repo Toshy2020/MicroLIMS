@@ -11,7 +11,8 @@ import {
   Box,
   Button,
   Typography,
-  Tooltip
+  Tooltip,
+  useTheme
 } from "@mui/material";
 import AcUnitIcon from "@mui/icons-material/AcUnit";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
@@ -45,6 +46,9 @@ export function CryovialReviewTable({
   onThawClick,
   onDestroyClick
 }: CryovialReviewTableProps) {
+  const theme = useTheme();
+  const { detected, action, purple } = theme.custom.status;
+
   const isExpired = (expiryDateStr: string) => {
     if (!expiryDateStr) return false;
     return new Date(expiryDateStr) <= new Date();
@@ -53,30 +57,30 @@ export function CryovialReviewTable({
   const paginatedItems = items.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
 
   return (
-    <Paper sx={{ width: "100%", overflow: "hidden", border: "1px solid #e5e7eb", borderRadius: 1.5 }}>
+    <Paper sx={{ width: "100%", overflow: "hidden", border: "1px solid", borderColor: "divider", borderRadius: 1.5 }}>
       <TableContainer sx={{ maxHeight: "calc(100vh - 360px)", minHeight: 300 }}>
         <Table size="small" stickyHeader>
           <TableHead>
             <TableRow>
-              <TableCell sx={{ fontWeight: 700, fontSize: 12, bgcolor: "#f8fafc", color: "#475569" }}>
+              <TableCell sx={{ fontWeight: 700, fontSize: 12, bgcolor: "background.default", color: "text.secondary" }}>
                 Code
               </TableCell>
-              <TableCell sx={{ fontWeight: 700, fontSize: 12, bgcolor: "#f8fafc", color: "#475569" }}>
+              <TableCell sx={{ fontWeight: 700, fontSize: 12, bgcolor: "background.default", color: "text.secondary" }}>
                 Organism &amp; Source
               </TableCell>
-              <TableCell sx={{ fontWeight: 700, fontSize: 12, bgcolor: "#f8fafc", color: "#475569" }}>
+              <TableCell sx={{ fontWeight: 700, fontSize: 12, bgcolor: "background.default", color: "text.secondary" }}>
                 Status
               </TableCell>
-              <TableCell sx={{ fontWeight: 700, fontSize: 12, bgcolor: "#f8fafc", color: "#475569" }}>
+              <TableCell sx={{ fontWeight: 700, fontSize: 12, bgcolor: "background.default", color: "text.secondary" }}>
                 Vials Stock
               </TableCell>
-              <TableCell sx={{ fontWeight: 700, fontSize: 12, bgcolor: "#f8fafc", color: "#475569" }}>
+              <TableCell sx={{ fontWeight: 700, fontSize: 12, bgcolor: "background.default", color: "text.secondary" }}>
                 Prepared
               </TableCell>
-              <TableCell sx={{ fontWeight: 700, fontSize: 12, bgcolor: "#f8fafc", color: "#475569" }}>
+              <TableCell sx={{ fontWeight: 700, fontSize: 12, bgcolor: "background.default", color: "text.secondary" }}>
                 Expiry
               </TableCell>
-              <TableCell align="right" sx={{ fontWeight: 700, fontSize: 12, bgcolor: "#f8fafc", color: "#475569" }}>
+              <TableCell align="right" sx={{ fontWeight: 700, fontSize: 12, bgcolor: "background.default", color: "text.secondary" }}>
                 Actions
               </TableCell>
             </TableRow>
@@ -103,7 +107,7 @@ export function CryovialReviewTable({
                     key={c.id}
                     hover
                     sx={{
-                      "&:nth-of-type(even)": { bgcolor: "#fcfcfd" },
+                      "&:nth-of-type(even)": { bgcolor: "background.default" },
                       opacity: c.isDestroyed ? 0.65 : 1
                     }}
                   >
@@ -114,7 +118,7 @@ export function CryovialReviewTable({
                           fontSize: 13,
                           fontWeight: 700,
                           fontFamily: "monospace",
-                          color: brandColors.sectionTitle
+                          color: theme.palette.primary.main
                         }}
                       >
                         {c.code}
@@ -128,7 +132,7 @@ export function CryovialReviewTable({
 
                     {/* Organism & Source */}
                     <TableCell sx={{ py: 1.25 }}>
-                      <Typography sx={{ fontSize: 13, fontWeight: 600, color: "#1f2937" }}>
+                      <Typography sx={{ fontSize: 13, fontWeight: 600, color: "text.primary" }}>
                         {organismName}
                         {atcc && (
                           <Typography component="span" sx={{ fontSize: 11, color: "text.secondary", ml: 0.5 }}>
@@ -158,7 +162,7 @@ export function CryovialReviewTable({
                         sx={{
                           fontSize: 13,
                           fontWeight: 700,
-                          color: depleted ? "#dc2626" : "#1f2937"
+                          color: depleted ? detected.text : "text.primary"
                         }}
                       >
                         {c.vialsRemaining} of {c.numberOfVialsPrepared} vials
@@ -172,7 +176,7 @@ export function CryovialReviewTable({
 
                     {/* Prepared */}
                     <TableCell sx={{ py: 1.25 }}>
-                      <Typography sx={{ fontSize: 12, fontWeight: 600, color: "#1f2937" }}>
+                      <Typography sx={{ fontSize: 12, fontWeight: 600, color: "text.primary" }}>
                         {formatLabDate(c.preparedAt)}
                       </Typography>
                       {c.preparedByName && (
@@ -188,18 +192,18 @@ export function CryovialReviewTable({
                         sx={{
                           fontSize: 12,
                           fontWeight: expired || expiringSoon ? 700 : 500,
-                          color: expired ? "#dc2626" : expiringSoon ? "#ea580c" : "#1f2937"
+                          color: expired ? detected.text : expiringSoon ? action.text : "text.primary"
                         }}
                       >
                         {formatLabDate(c.expiryDate)}
                       </Typography>
                       {expired && (
-                        <Typography sx={{ fontSize: 10, color: "#dc2626", fontWeight: 700 }}>
+                        <Typography sx={{ fontSize: 10, color: detected.text, fontWeight: 700 }}>
                           Expired
                         </Typography>
                       )}
                       {expiringSoon && (
-                        <Typography sx={{ fontSize: 10, color: "#ea580c", fontWeight: 600 }}>
+                        <Typography sx={{ fontSize: 10, color: action.text, fontWeight: 600 }}>
                           Expiring soon
                         </Typography>
                       )}
@@ -245,11 +249,11 @@ export function CryovialReviewTable({
                                     py: 0.25,
                                     fontSize: 11,
                                     fontWeight: 700,
-                                    borderColor: brandColors.sectionTitle,
-                                    color: brandColors.sectionTitle,
+                                    borderColor: theme.palette.primary.main,
+                                    color: theme.palette.primary.main,
                                     "&:hover": {
-                                      borderColor: brandColors.pageTitle,
-                                      bgcolor: "#f3e8ff"
+                                      borderColor: theme.palette.primary.dark,
+                                      bgcolor: purple.bg
                                     }
                                   }}
                                 >
@@ -284,9 +288,9 @@ export function CryovialReviewTable({
                               px: 1,
                               py: 0.25,
                               fontSize: 11,
-                              borderColor: "#d1d5db",
-                              color: "#4b5563",
-                              "&:hover": { bgcolor: "#f3f4f6" }
+                              borderColor: "divider",
+                              color: "text.secondary",
+                              "&:hover": { bgcolor: "background.default" }
                             }}
                           >
                             Record

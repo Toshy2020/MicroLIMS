@@ -81,6 +81,9 @@ public static class TestServiceFactory
         new(db, new MaterialService(db), new SegregationOfDutiesGuard(db), ReviewGate(db),
             CryovialSummary(db), Archive(db, storage));
 
+    public static MediaPreparationService MediaPreparation(MicroLimsDbContext db) =>
+        new(db, new MaterialService(db), ReviewGate(db));
+
     public static IncubatorEligibilityService IncubatorEligibility(MicroLimsDbContext db) => new(db);
 
     public static MediaAppearanceSnapshotService AppearanceSnapshot(MicroLimsDbContext db) =>

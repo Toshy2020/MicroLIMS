@@ -1,4 +1,4 @@
-import { Dialog, DialogTitle, DialogContent, DialogActions, Button, Box, Typography, Table, TableHead, TableRow, TableCell, TableBody, Chip } from "@mui/material";
+import { Dialog, DialogTitle, DialogContent, DialogActions, Button, Box, Typography, Table, TableHead, TableRow, TableCell, TableBody, Chip, useTheme } from "@mui/material";
 import PrintIcon from "@mui/icons-material/Print";
 import CloseIcon from "@mui/icons-material/Close";
 import { ReportBuilderOptions, ReportPreviewData } from "../types/reportingTypes";
@@ -13,6 +13,7 @@ interface ReportPreviewModalProps {
 }
 
 export function ReportPreviewModal({ open, onClose, previewData, options }: ReportPreviewModalProps) {
+  const theme = useTheme();
   if (!previewData) return null;
 
   const handlePrint = () => {
@@ -21,9 +22,9 @@ export function ReportPreviewModal({ open, onClose, previewData, options }: Repo
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="lg" fullWidth scroll="paper">
-      <DialogTitle sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: 1, borderColor: "divider", bgcolor: "#fcfbfe" }}>
+      <DialogTitle sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: 1, borderColor: "divider", bgcolor: "background.paper" }}>
         <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
-          <Typography sx={{ fontSize: 18, fontWeight: 700, color: brandColors.sectionTitle }}>
+          <Typography sx={{ fontSize: 18, fontWeight: 700, color: theme.palette.primary.main }}>
             Full Report Preview
           </Typography>
           <Chip size="small" label={previewData.reportPurpose} sx={{ bgcolor: brandColors.causeBadgeBg, color: brandColors.causeBadgeText, fontWeight: 700 }} />
@@ -38,15 +39,15 @@ export function ReportPreviewModal({ open, onClose, previewData, options }: Repo
         </Box>
       </DialogTitle>
 
-      <DialogContent sx={{ p: 4, bgcolor: "#f8fafc" }}>
-        <Box sx={{ maxWidth: "850px", mx: "auto", p: 4, bgcolor: "#fff", borderRadius: 2, boxShadow: "0 2px 10px rgba(0,0,0,0.06)", border: "1px solid #e2e8f0" }}>
+      <DialogContent sx={{ p: 4, bgcolor: "background.default" }}>
+        <Box sx={{ maxWidth: "850px", mx: "auto", p: 4, bgcolor: "background.paper", borderRadius: 2, boxShadow: theme.palette.mode === "dark" ? "0 2px 10px rgba(0,0,0,0.4)" : "0 2px 10px rgba(0,0,0,0.06)", border: "1px solid", borderColor: "divider" }}>
           {/* Header */}
           <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", pb: 2, mb: 3, borderBottom: "2px solid #7b2d8e" }}>
             <Box>
-              <Typography sx={{ fontSize: 12, fontWeight: 700, color: brandColors.sectionTitle, textTransform: "uppercase", letterSpacing: 1 }}>
+              <Typography sx={{ fontSize: 12, fontWeight: 700, color: theme.palette.primary.main, textTransform: "uppercase", letterSpacing: 1 }}>
                 MicroLIMS Laboratory Report
               </Typography>
-              <Typography sx={{ fontSize: 22, fontWeight: 800, color: "#1e293b", mt: 0.5 }}>
+              <Typography sx={{ fontSize: 22, fontWeight: 800, color: "text.primary", mt: 0.5 }}>
                 {previewData.reportTitle}
               </Typography>
               <Typography sx={{ fontSize: 13, color: "text.secondary", mt: 0.5 }}>
@@ -63,11 +64,11 @@ export function ReportPreviewModal({ open, onClose, previewData, options }: Repo
           {/* Groups & Tables */}
           {previewData.groups.map((group, idx) => (
             <Box key={idx} sx={{ mb: 3 }}>
-              <Typography sx={{ fontSize: 14, fontWeight: 700, color: brandColors.pageTitle, mb: 1, bgcolor: "#f1f5f9", px: 1.5, py: 0.75, borderRadius: 1 }}>
+              <Typography sx={{ fontSize: 14, fontWeight: 700, color: theme.palette.primary.main, mb: 1, bgcolor: "background.default", px: 1.5, py: 0.75, borderRadius: 1 }}>
                 {group.groupTitle} ({group.items.length} records)
               </Typography>
 
-              <Table size="small" sx={{ "& th": { bgcolor: "#f8fafc", fontWeight: 700, fontSize: 11.5 }, "& td": { fontSize: 12 } }}>
+              <Table size="small" sx={{ "& th": { bgcolor: "background.default", fontWeight: 700, fontSize: 11.5 }, "& td": { fontSize: 12 } }}>
                 <TableHead>
                   <TableRow>
                     <TableCell>Sample/Reference</TableCell>
@@ -88,7 +89,7 @@ export function ReportPreviewModal({ open, onClose, previewData, options }: Repo
                       <TableCell sx={{ fontWeight: 600 }}>{row.referenceNumber}</TableCell>
                       <TableCell>{row.subjectName}</TableCell>
                       <TableCell>{row.testDisplayName || row.testCode}</TableCell>
-                      <TableCell sx={{ fontWeight: 700, color: brandColors.sectionTitle }}>{row.reportedValue} {row.unit ?? ""}</TableCell>
+                      <TableCell sx={{ fontWeight: 700, color: theme.palette.primary.main }}>{row.reportedValue} {row.unit ?? ""}</TableCell>
                       {options.includeSpecifications && <TableCell>{row.specLimit ?? "—"}</TableCell>}
                       {options.includeLimits && <TableCell>{row.alertLimit ? `${row.alertLimit} / ${row.actionLimit}` : "—"}</TableCell>}
                       <TableCell><StatusBadge status={row.resultLevel} /></TableCell>
@@ -104,17 +105,17 @@ export function ReportPreviewModal({ open, onClose, previewData, options }: Repo
 
           {/* Signatures & Footer if toggled */}
           {options.includeSignatures && (
-            <Box sx={{ mt: 4, pt: 3, borderTop: "1px solid #e2e8f0" }}>
+            <Box sx={{ mt: 4, pt: 3, borderTop: "1px solid", borderColor: "divider" }}>
               <Typography sx={{ fontSize: 12, fontWeight: 700, color: "text.secondary", mb: 2, textTransform: "uppercase" }}>
                 Electronic Signatures / Attestations
               </Typography>
               <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 3 }}>
-                <Box sx={{ p: 2, border: "1px solid #e2e8f0", borderRadius: 1, bgcolor: "#fafafa" }}>
+                <Box sx={{ p: 2, border: "1px solid", borderColor: "divider", borderRadius: 1, bgcolor: "background.default" }}>
                   <Typography sx={{ fontSize: 11, color: "text.secondary" }}>Generated / Prepared By:</Typography>
                   <Typography sx={{ fontSize: 13, fontWeight: 700 }}>{previewData.generatedByName}</Typography>
                   <Typography sx={{ fontSize: 11, color: "text.secondary", mt: 0.5 }}>{previewData.generatedAt}</Typography>
                 </Box>
-                <Box sx={{ p: 2, border: "1px solid #e2e8f0", borderRadius: 1, bgcolor: "#fafafa" }}>
+                <Box sx={{ p: 2, border: "1px solid", borderColor: "divider", borderRadius: 1, bgcolor: "background.default" }}>
                   <Typography sx={{ fontSize: 11, color: "text.secondary" }}>Section Head Review / Authorization:</Typography>
                   <Typography sx={{ fontSize: 13, fontWeight: 700 }}>Quality Microbiology Section Head</Typography>
                   <Typography sx={{ fontSize: 11, color: "text.secondary", mt: 0.5 }}>Electronically verified under 21 CFR Part 11</Typography>
@@ -124,7 +125,7 @@ export function ReportPreviewModal({ open, onClose, previewData, options }: Repo
           )}
 
           {options.includePageNumbers && (
-            <Box sx={{ mt: 4, pt: 2, borderTop: "1px solid #cbd5e1", display: "flex", justifyContent: "space-between", fontSize: 11, color: "text.secondary" }}>
+            <Box sx={{ mt: 4, pt: 2, borderTop: "1px solid", borderColor: "divider", display: "flex", justifyContent: "space-between", fontSize: 11, color: "text.secondary" }}>
               <Typography sx={{ fontSize: 11 }}>MicroLIMS Controlled Laboratory Report</Typography>
               <Typography sx={{ fontSize: 11 }}>Page 1 of 1</Typography>
             </Box>

@@ -111,7 +111,7 @@ export function WorkspaceToolbar({
       </Stack>
 
       {filtersOpen && (
-        <Stack direction="row" spacing={1.5} alignItems="center" flexWrap="wrap" rowGap={1} sx={{ mt: 1.5, pt: 1.5, borderTop: "1px solid #f0f0f0" }}>
+        <Stack direction="row" spacing={1.5} alignItems="center" flexWrap="wrap" rowGap={1} sx={{ mt: 1.5, pt: 1.5, borderTop: "1px solid", borderColor: "divider" }}>
           <Select size="small" displayEmpty value={statusFilter} onChange={(e) => onStatusFilterChange(e.target.value)} sx={{ minWidth: 160 }}>
             <MenuItem value="">All Statuses</MenuItem>
             {SAMPLE_STATUSES.map((s) => <MenuItem key={s} value={s}>{s}</MenuItem>)}

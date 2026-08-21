@@ -9,7 +9,8 @@ import {
   Alert,
   Paper,
   Chip,
-  CircularProgress
+  CircularProgress,
+  useTheme
 } from "@mui/material";
 import ScienceOutlinedIcon from "@mui/icons-material/ScienceOutlined";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
@@ -28,6 +29,7 @@ interface Props {
 }
 
 export function SharedTsbEnrichmentPanel({ session, onUpdated, onNext }: Props) {
+  const theme = useTheme();
   const [mediaLots, setMediaLots] = useState<any[]>([]);
   const [incubators, setIncubators] = useState<any[]>([]);
   const [loadingLookups, setLoadingLookups] = useState(false);
@@ -109,13 +111,15 @@ export function SharedTsbEnrichmentPanel({ session, onUpdated, onNext }: Props) 
       <Stack spacing={3}>
         <SharedTsbStatusCard sharedTsb={session.sharedTsb} />
 
-        <Paper sx={{ p: 3, borderRadius: 2, border: "1px solid #e5e7eb", bgcolor: "#f8fafc" }}>
+        <Paper sx={{ p: 3, borderRadius: 2, border: "1px solid", borderColor: "divider", bgcolor: "background.default" }}>
           <Stack direction="row" spacing={1.5} alignItems="center" sx={{ mb: 2 }}>
             <Box
               sx={{
                 width: 36,
                 height: 36,
                 borderRadius: 1.5,
+                // done/locked stay solid (mode-invariant) fills - matches the
+                // intentional pattern in DownstreamWorkflowsPanel.tsx.
                 bgcolor: "#64748b",
                 color: "#ffffff",
                 display: "flex",
@@ -126,10 +130,10 @@ export function SharedTsbEnrichmentPanel({ session, onUpdated, onNext }: Props) 
               <LockOutlinedIcon sx={{ fontSize: 20 }} />
             </Box>
             <Box>
-              <Typography sx={{ fontSize: 16, fontWeight: 700, color: "#1e293b" }}>
+              <Typography sx={{ fontSize: 16, fontWeight: 700, color: "text.primary" }}>
                 LOCKED — Execution in Progress
               </Typography>
-              <Typography sx={{ fontSize: 13, color: "#64748b" }}>
+              <Typography sx={{ fontSize: 13, color: "text.secondary" }}>
                 Shared TSB Enrichment parameters are locked and cannot be modified while execution is active.
               </Typography>
             </Box>
@@ -159,7 +163,7 @@ export function SharedTsbEnrichmentPanel({ session, onUpdated, onNext }: Props) 
 
   return (
     <Stack spacing={3}>
-      <Paper sx={{ p: 3, borderRadius: 2, border: "1px solid #e5e7eb" }}>
+      <Paper sx={{ p: 3, borderRadius: 2, border: "1px solid", borderColor: "divider" }}>
         <Stack direction="row" spacing={1.5} alignItems="center" sx={{ mb: 2 }}>
           <Box
             sx={{
@@ -176,10 +180,10 @@ export function SharedTsbEnrichmentPanel({ session, onUpdated, onNext }: Props) 
             <ScienceOutlinedIcon sx={{ fontSize: 20 }} />
           </Box>
           <Box>
-            <Typography sx={{ fontSize: 16, fontWeight: 700, color: "#1f2937" }}>
+            <Typography sx={{ fontSize: 16, fontWeight: 700, color: "text.primary" }}>
               Start Shared TSB Enrichment
             </Typography>
-            <Typography sx={{ fontSize: 13, color: "#6b7280" }}>
+            <Typography sx={{ fontSize: 13, color: "text.secondary" }}>
               Configure media and incubator once for the entire session. Required temperature and duration are governed by Test Master.
             </Typography>
           </Box>
@@ -187,22 +191,22 @@ export function SharedTsbEnrichmentPanel({ session, onUpdated, onNext }: Props) 
 
         {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
 
-        <Box sx={{ mb: 2.5, p: 2, bgcolor: "#f8fafc", borderRadius: 2, border: "1px solid #e2e8f0" }}>
-          <Typography sx={{ fontSize: 12, fontWeight: 600, color: "#475569", mb: 1 }}>
+        <Box sx={{ mb: 2.5, p: 2, bgcolor: "background.default", borderRadius: 2, border: "1px solid", borderColor: "divider" }}>
+          <Typography sx={{ fontSize: 12, fontWeight: 600, color: "text.secondary", mb: 1 }}>
             APPLICABLE WORKFLOW SCOPE:
           </Typography>
           <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
             <Chip
               label={`${session.totalLocations} Sampling Locations`}
               size="small"
-              sx={{ bgcolor: "#e0e7ff", color: "#3730a3", fontWeight: 600 }}
+              sx={{ bgcolor: theme.custom.status.purple.bg, color: theme.custom.status.purple.text, fontWeight: 600 }}
             />
             {tsbTests.map((t) => (
               <Chip
                 key={t.testCode}
                 label={`${t.testCode} (${t.displayName})`}
                 size="small"
-                sx={{ bgcolor: "#ede9fe", color: "#5b21b6", fontWeight: 600 }}
+                sx={{ bgcolor: theme.custom.status.purple.bg, color: theme.custom.status.purple.text, fontWeight: 600 }}
               />
             ))}
           </Stack>
@@ -260,7 +264,7 @@ export function SharedTsbEnrichmentPanel({ session, onUpdated, onNext }: Props) 
               fullWidth
               size="small"
               InputProps={{ readOnly: true }}
-              sx={{ bgcolor: "#f1f5f9" }}
+              sx={{ bgcolor: "background.default" }}
             />
 
             <TextField
@@ -270,7 +274,7 @@ export function SharedTsbEnrichmentPanel({ session, onUpdated, onNext }: Props) 
               fullWidth
               size="small"
               InputProps={{ readOnly: true }}
-              sx={{ bgcolor: "#f1f5f9" }}
+              sx={{ bgcolor: "background.default" }}
             />
           </Box>
         )}

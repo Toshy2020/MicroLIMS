@@ -38,7 +38,7 @@ public class WaterConfigCrudTests
     public async Task CreateWaterDepartment_PersistsRow()
     {
         await using var db = NewDb();
-        var controller = new MicroLIMS.API.Controllers.MasterDataController(db);
+        var controller = new MicroLIMS.API.Controllers.MasterDataController(db, new MicroLIMS.Application.Services.EquipmentConfigurationService(db));
 
         await controller.CreateWaterDepartment(
             new MicroLIMS.API.Controllers.CreateWaterDepartmentRequest("WTU"));
@@ -57,7 +57,7 @@ public class WaterConfigCrudTests
         db.WaterSamplingPoints.Add(new WaterSamplingPoint { Code = "SP1", WaterDepartmentId = dept.Id });
         await db.SaveChangesAsync();
 
-        var controller = new MicroLIMS.API.Controllers.MasterDataController(db);
+        var controller = new MicroLIMS.API.Controllers.MasterDataController(db, new MicroLIMS.Application.Services.EquipmentConfigurationService(db));
         await Assert.ThrowsAsync<InvalidOperationException>(() => controller.DeleteWaterDepartment(dept.Id));
     }
 
@@ -69,7 +69,7 @@ public class WaterConfigCrudTests
         db.WaterDepartments.Add(dept);
         await db.SaveChangesAsync();
 
-        var controller = new MicroLIMS.API.Controllers.MasterDataController(db);
+        var controller = new MicroLIMS.API.Controllers.MasterDataController(db, new MicroLIMS.Application.Services.EquipmentConfigurationService(db));
         await controller.CreateWaterSamplingPoint(new MicroLIMS.API.Controllers.CreateWaterSamplingPointRequest(
             "SP205", "WTU", "Weekly", new List<string> { "TAMC-Water" }, dept.Id));
 
@@ -86,7 +86,7 @@ public class WaterConfigCrudTests
         db.WaterSamplingPoints.Add(point);
         await db.SaveChangesAsync();
 
-        var controller = new MicroLIMS.API.Controllers.MasterDataController(db);
+        var controller = new MicroLIMS.API.Controllers.MasterDataController(db, new MicroLIMS.Application.Services.EquipmentConfigurationService(db));
         await controller.CreateWaterSamplingConfiguration(new MicroLIMS.API.Controllers.CreateWaterSamplingConfigRequest(
             point.Id, "TAMC-Water", "10", "50", "100"));
 

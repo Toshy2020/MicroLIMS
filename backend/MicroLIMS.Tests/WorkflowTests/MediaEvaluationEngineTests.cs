@@ -60,7 +60,7 @@ public class MediaEvaluationEngineTests
         });
         await db.SaveChangesAsync();
 
-        var service = new MediaPreparationService(db, new MaterialService(db));
+        var service = TestServiceFactory.MediaPreparation(db);
         var request = new PrepareMediaRequest(
             mediaType.Id, material.Id, TotalWeight: 100m, TotalVolume: "500 ml", AutoclaveEquipmentId: autoclave.Id,
             AutoclaveProgram: "A", LoadType: "agar", Temperature: 121m, CycleTime: 15, CycleNumber: 1,

@@ -1,4 +1,4 @@
-import { Box, Button, TextField, Paper } from "@mui/material";
+import { Box, Button, TextField, Paper , useTheme} from "@mui/material";
 import { brandColors } from "../../../theme";
 import { QUICK_PERIOD_OPTIONS, QuickPeriod, toDateInputValue } from "../utils/dateRange";
 
@@ -14,6 +14,7 @@ interface QuickPeriodSelectorProps {
 // "Apply") - only the Custom range needs an explicit pair of date
 // pickers, since there's nothing to click until both ends are chosen.
 export function QuickPeriodSelector({ period, customFrom, customTo, onPeriodChange, onCustomChange }: QuickPeriodSelectorProps) {
+  const theme = useTheme();
   const today = toDateInputValue(new Date());
 
   return (
@@ -24,7 +25,7 @@ export function QuickPeriodSelector({ period, customFrom, customTo, onPeriodChan
           size="small"
           variant={period === opt.value ? "contained" : "outlined"}
           onClick={() => onPeriodChange(opt.value)}
-          sx={period === opt.value ? {} : { color: brandColors.sectionTitle, borderColor: brandColors.sectionTitle }}
+          sx={period === opt.value ? {} : { color: theme.palette.primary.main, borderColor: theme.palette.primary.main }}
         >
           {opt.label}
         </Button>

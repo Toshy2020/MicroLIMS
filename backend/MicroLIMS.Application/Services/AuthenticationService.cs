@@ -150,7 +150,7 @@ public class AuthenticationService : IAuthenticationService
         var user = await _db.Users.Include(u => u.Role).FirstOrDefaultAsync(u => u.Id == userId);
         if (user is null) return null;
         return new CurrentUserInfo(user.Id, user.Username, user.FullName, user.Role?.Type.ToString() ?? "Analyst",
-            user.LastLoginAt, user.PasswordChangedAt, user.MustChangePassword);
+            user.JobTitle, user.LastLoginAt, user.PasswordChangedAt, user.MustChangePassword);
     }
 
     // Shared by ChangePasswordAsync and ConfirmPasswordResetAsync: enforces

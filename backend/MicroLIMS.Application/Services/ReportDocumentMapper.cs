@@ -297,13 +297,15 @@ public static class ReportDocumentMapper
 
     public static ReportDocument ForMedia(MediaSummaryDto s)
     {
-        var tone = s.IsReleasedForUse ? ReportTone.Positive
+        var tone = s.Status == "OutOfStock" ? ReportTone.Neutral
+            : s.IsReleasedForUse ? ReportTone.Positive
             : s.ApprovalStatus == "Rejected" || s.Status == "QuarantineFailed" ? ReportTone.Danger
             : s.Evaluation?.Outcome == "Conform" ? ReportTone.Warning
             : ReportTone.Neutral;
 
-        var badge = s.IsReleasedForUse ? "Released for use"
-            : s.ApprovalStatus == "Rejected" || s.Status == "QuarantineFailed" ? "Quarantined"
+        var badge = s.Status == "OutOfStock" ? "Out of Stock"
+            : s.IsReleasedForUse ? "Released for use"
+            : s.ApprovalStatus == "Rejected" || s.Status == "QuarantineFailed" ? "Rejected"
             : s.Evaluation?.Outcome == "Conform" ? "Awaiting release approval"
             : s.Evaluation?.Outcome == "NonConform" ? "Evaluation failed"
             : "Pending evaluation";

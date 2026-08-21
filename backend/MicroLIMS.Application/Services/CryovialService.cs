@@ -54,8 +54,8 @@ public class CryovialService
         {
             var media = await _db.Media.FirstOrDefaultAsync(m => m.Id == row.MediaId)
                 ?? throw new InvalidOperationException($"Media {row.MediaId} not found.");
-            if (!media.IsReleasedForUse)
-                throw new InvalidOperationException($"Media lot {media.LotNumber} is not GPT-released - cannot be used for identity confirmation.");
+            if (!media.IsReleasedForUse || media.Status == MediaStatus.OutOfStock || media.Status == MediaStatus.QuarantineFailed)
+                throw new InvalidOperationException($"Media lot {media.LotNumber} is not GPT-released, out of stock, or rejected - cannot be used for identity confirmation.");
         }
 
         if (request.Panel.Count == 0)

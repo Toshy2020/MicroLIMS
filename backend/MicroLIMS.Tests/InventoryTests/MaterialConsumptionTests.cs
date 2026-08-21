@@ -72,7 +72,7 @@ public class MaterialConsumptionTests
     {
         await using var db = NewDb();
         var (mediaType, autoclave, material) = await SeedMediaPrepFixtures(db, materialQuantity: 50m);
-        var service = new MediaPreparationService(db, new MaterialService(db));
+        var service = TestServiceFactory.MediaPreparation(db);
 
         var request = new PrepareMediaRequest(
             MediaTypeId: mediaType.Id, MaterialId: material.Id,
@@ -92,7 +92,7 @@ public class MaterialConsumptionTests
     {
         await using var db = NewDb();
         var (mediaType, autoclave, material) = await SeedMediaPrepFixtures(db, materialQuantity: 500m, materialExpiry: DateTime.UtcNow.AddDays(-1));
-        var service = new MediaPreparationService(db, new MaterialService(db));
+        var service = TestServiceFactory.MediaPreparation(db);
 
         var request = new PrepareMediaRequest(
             MediaTypeId: mediaType.Id, MaterialId: material.Id,
@@ -113,7 +113,7 @@ public class MaterialConsumptionTests
         await using var db = NewDb();
         var (mediaType, autoclave, material) = await SeedMediaPrepFixtures(db, materialQuantity: 500m);
         await SeedCurrentCoa(db, material.Id); // DehydratedMedia requires a current COA
-        var service = new MediaPreparationService(db, new MaterialService(db));
+        var service = TestServiceFactory.MediaPreparation(db);
 
         var request = new PrepareMediaRequest(
             MediaTypeId: mediaType.Id, MaterialId: material.Id,

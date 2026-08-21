@@ -14,7 +14,8 @@ import {
   IconButton,
   Tooltip,
   Typography,
-  ButtonBase
+  ButtonBase,
+  useTheme
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
@@ -56,6 +57,7 @@ const INITIAL_FILTERS: MaterialFilterState = {
 };
 
 export function MaterialsPage() {
+  const theme = useTheme();
   const { role } = useAuth();
   const canSeeHistory = role === "SectionHead" || role === "SystemAdministrator";
 
@@ -247,10 +249,10 @@ export function MaterialsPage() {
             <PrintButton label="Print (excludes expired / depleted)" />
           </Box>
 
-          <Paper sx={{ border: "1px solid #e5e7eb", borderRadius: 2, overflow: "hidden" }}>
+          <Paper sx={{ border: "1px solid", borderColor: "divider", borderRadius: 2, overflow: "hidden" }}>
             <TableContainer>
               <Table size="small">
-                <TableHead sx={{ bgcolor: "#f9fafb" }}>
+                <TableHead sx={{ bgcolor: "background.default" }}>
                   <TableRow>
                     <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Type</TableCell>
                     <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Material Name</TableCell>
@@ -284,7 +286,7 @@ export function MaterialsPage() {
                           key={m.id}
                           hover
                           sx={{
-                            bgcolor: isLow ? "#fffbeb" : undefined,
+                            bgcolor: isLow ? theme.custom.status.inconclusive.bg : undefined,
                             "&:last-child td, &:last-child th": { border: 0 }
                           }}
                         >
@@ -343,7 +345,7 @@ export function MaterialsPage() {
                             sx={{
                               fontSize: 12,
                               whiteSpace: "nowrap",
-                              color: isMaterialExpiringSoon(m.expiryDate) ? "#dc2626" : "inherit",
+                              color: isMaterialExpiringSoon(m.expiryDate) ? theme.custom.status.detected.text : "inherit",
                               fontWeight: isMaterialExpiringSoon(m.expiryDate) ? 600 : "normal"
                             }}
                           >
@@ -364,7 +366,11 @@ export function MaterialsPage() {
                               textAlign: "right",
                               whiteSpace: "nowrap",
                               fontWeight: 700,
-                              color: m.quantityRemaining <= 0 ? "#dc2626" : isLow ? "#d97706" : "#16a34a"
+                              color: m.quantityRemaining <= 0
+                                ? theme.custom.status.detected.text
+                                : isLow
+                                ? theme.custom.status.action.text
+                                : theme.custom.status.notDetected.text
                             }}
                           >
                             {m.quantityRemaining} {m.unit}
@@ -423,7 +429,7 @@ export function MaterialsPage() {
                 setRowsPerPage(parseInt(e.target.value, 10));
                 setPage(0);
               }}
-              sx={{ borderTop: "1px solid #e5e7eb" }}
+              sx={{ borderTop: "1px solid", borderColor: "divider" }}
             />
           </Paper>
         </Box>

@@ -6,8 +6,10 @@ import {
   Stack,
   Button,
   Divider,
-  Tooltip
+  Tooltip,
+  useTheme
 } from "@mui/material";
+import { Theme } from "@mui/material/styles";
 import CloseIcon from "@mui/icons-material/Close";
 import DescriptionOutlinedIcon from "@mui/icons-material/DescriptionOutlined";
 import PictureAsPdfOutlinedIcon from "@mui/icons-material/PictureAsPdfOutlined";
@@ -24,8 +26,8 @@ import { EditableCell } from "./EditableCell";
 import { WorkspaceService } from "./services/WorkspaceService";
 import { brandColors } from "../../theme";
 import { useAuth } from "../../contexts/AuthContext";
-
 import { PathogenSessionDialog } from "./pathogenSession/PathogenSessionDialog";
+import { ItemDocumentsCard } from "./ItemDocumentsCard";
 
 interface Props {
   sample: SampleCardType;
@@ -40,39 +42,47 @@ interface Props {
 const PRODUCT_LIKE = ["FinishedProduct", "RawMaterial", "PackagingMaterial"];
 const formatDate = (d: string | null) => (d ? new Date(d).toLocaleDateString() : "—");
 
-export function resolveEffectiveTestStatus(test: TestOrderSummary): { label: string; icon: React.ReactNode; color: string } {
+export function resolveEffectiveTestStatus(
+  test: TestOrderSummary,
+  theme: Theme
+): { label: string; icon: React.ReactNode; color: string } {
+  const successColor = theme.custom.status.notDetected.text;
+  const infoColor = theme.custom.status.info.text;
+  const pendingColor = theme.custom.status.pending.text;
+  const inconclusiveColor = theme.custom.status.inconclusive.text;
+
   if (test.workflowStateDisplay) {
     if (test.workflowState === "APPROVED" || test.status === "Approved") {
-      return { label: "Completed & Approved", icon: <CheckCircleIcon sx={{ fontSize: 14, color: "#16a34a" }} />, color: "#16a34a" };
+      return { label: "Completed & Approved", icon: <CheckCircleIcon sx={{ fontSize: 14, color: successColor }} />, color: successColor };
     }
     if (test.workflowState === "TSB_INCUBATING") {
-      return { label: "TSB Incubating", icon: <FiberManualRecordIcon sx={{ fontSize: 12, color: "#2563eb" }} />, color: "#2563eb" };
+      return { label: "TSB Incubating", icon: <FiberManualRecordIcon sx={{ fontSize: 12, color: infoColor }} />, color: infoColor };
     }
     if (test.workflowState === "DOWNSTREAM_INCUBATING") {
-      return { label: "Selective Plating In Progress", icon: <FiberManualRecordIcon sx={{ fontSize: 12, color: "#2563eb" }} />, color: "#2563eb" };
+      return { label: "Selective Plating In Progress", icon: <FiberManualRecordIcon sx={{ fontSize: 12, color: infoColor }} />, color: infoColor };
     }
     if (test.workflowState === "READY_FOR_DOWNSTREAM") {
-      return { label: "Ready for Downstream Testing", icon: <CheckCircleIcon sx={{ fontSize: 14, color: "#2563eb" }} />, color: "#2563eb" };
+      return { label: "Ready for Downstream Testing", icon: <CheckCircleIcon sx={{ fontSize: 14, color: infoColor }} />, color: infoColor };
     }
     if (test.workflowState === "AWAITING_RESULTS") {
-      return { label: "Awaiting Final Result", icon: <FiberManualRecordIcon sx={{ fontSize: 12, color: "#2563eb" }} />, color: "#2563eb" };
+      return { label: "Awaiting Final Result", icon: <FiberManualRecordIcon sx={{ fontSize: 12, color: infoColor }} />, color: infoColor };
     }
     if (test.workflowState === "RESULTS_RECORDED") {
-      return { label: "Result Recorded — Pending Review", icon: <FiberManualRecordIcon sx={{ fontSize: 12, color: "#2563eb" }} />, color: "#2563eb" };
+      return { label: "Result Recorded — Pending Review", icon: <FiberManualRecordIcon sx={{ fontSize: 12, color: infoColor }} />, color: infoColor };
     }
     if (test.workflowState === "INCUBATING" || test.workflowState === "RUNNING") {
-      return { label: test.workflowStateDisplay, icon: <FiberManualRecordIcon sx={{ fontSize: 12, color: "#2563eb" }} />, color: "#2563eb" };
+      return { label: test.workflowStateDisplay, icon: <FiberManualRecordIcon sx={{ fontSize: 12, color: infoColor }} />, color: infoColor };
     }
-    return { label: test.workflowStateDisplay, icon: <FiberManualRecordIcon sx={{ fontSize: 12, color: "#6b7280" }} />, color: "#6b7280" };
+    return { label: test.workflowStateDisplay, icon: <FiberManualRecordIcon sx={{ fontSize: 12, color: pendingColor }} />, color: pendingColor };
   }
 
   if (test.status === "Approved") {
-    return { label: "Completed & Approved", icon: <CheckCircleIcon sx={{ fontSize: 14, color: "#16a34a" }} />, color: "#16a34a" };
+    return { label: "Completed & Approved", icon: <CheckCircleIcon sx={{ fontSize: 14, color: successColor }} />, color: successColor };
   }
   if (test.status === "UnderReview") {
-    return { label: "Under Review", icon: <FiberManualRecordIcon sx={{ fontSize: 12, color: "#d97706" }} />, color: "#d97706" };
+    return { label: "Under Review", icon: <FiberManualRecordIcon sx={{ fontSize: 12, color: inconclusiveColor }} />, color: inconclusiveColor };
   }
-  return { label: test.status || "Pending", icon: <FiberManualRecordIcon sx={{ fontSize: 12, color: "#6b7280" }} />, color: "#6b7280" };
+  return { label: test.status || "Pending", icon: <FiberManualRecordIcon sx={{ fontSize: 12, color: pendingColor }} />, color: pendingColor };
 }
 
 export function SelectedSampleTestingPanel({
@@ -85,6 +95,7 @@ export function SelectedSampleTestingPanel({
   onViewAuditHistory
 }: Props) {
   const { role } = useAuth();
+  const theme = useTheme();
   const [openPathogenWorkflow, setOpenPathogenWorkflow] = React.useState(false);
   const needsPreparation = sample.preparationStatus === "NeedsPreparation";
   const isProductLike = PRODUCT_LIKE.includes(sample.category);
@@ -108,9 +119,10 @@ export function SelectedSampleTestingPanel({
       elevation={0}
       sx={{
         p: 2.5,
-        border: "1.5px solid #e5e7eb",
+        border: "1.5px solid",
+        borderColor: "divider",
         borderRadius: 2.5,
-        bgcolor: "#ffffff",
+        bgcolor: "background.paper",
         height: "100%",
         display: "flex",
         flexDirection: "column",
@@ -122,7 +134,7 @@ export function SelectedSampleTestingPanel({
       <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 1.5 }}>
         <Box sx={{ minWidth: 0, flex: 1 }}>
           <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap", mb: 0.5 }}>
-            <Typography sx={{ fontSize: 18, fontWeight: 700, color: brandColors.pageTitle, lineHeight: 1.2 }}>
+            <Typography sx={{ fontSize: 18, fontWeight: 700, color: theme.palette.primary.main, lineHeight: 1.2 }}>
               {sample.displayName}
             </Typography>
             <CategoryBadge category={sample.category} />
@@ -145,12 +157,12 @@ export function SelectedSampleTestingPanel({
             onClick={onClose}
             startIcon={<CloseIcon sx={{ fontSize: 16 }} />}
             sx={{
-              borderColor: "#d1d5db",
-              color: "#4b5563",
+              borderColor: "divider",
+              color: "text.secondary",
               fontWeight: 600,
               fontSize: 12,
               whiteSpace: "nowrap",
-              "&:hover": { borderColor: "#9ca3af", bgcolor: "#f3f4f6" }
+              "&:hover": { borderColor: "text.secondary", bgcolor: "background.default" }
             }}
           >
             Deselect
@@ -166,12 +178,12 @@ export function SelectedSampleTestingPanel({
           startIcon={<DescriptionOutlinedIcon sx={{ fontSize: 16 }} />}
           onClick={() => onLifecycleBadgeClick(sample.sampleId)}
           sx={{
-            borderColor: "#d8b4fe",
-            color: brandColors.sectionTitle,
+            borderColor: theme.custom.status.purple.border,
+            color: theme.palette.primary.main,
             fontSize: 12,
             fontWeight: 600,
-            bgcolor: "#faf5ff",
-            "&:hover": { bgcolor: "#f3e8ff", borderColor: brandColors.sectionTitle }
+            bgcolor: theme.custom.status.purple.bg,
+            "&:hover": { bgcolor: theme.custom.status.purple.border, borderColor: theme.palette.primary.main }
           }}
         >
           Sample Summary
@@ -183,12 +195,12 @@ export function SelectedSampleTestingPanel({
           startIcon={<PictureAsPdfOutlinedIcon sx={{ fontSize: 16 }} />}
           onClick={handleOpenReport}
           sx={{
-            borderColor: "#bfdbfe",
-            color: "#1d4ed8",
+            borderColor: theme.custom.status.info.border,
+            color: theme.custom.status.info.text,
             fontSize: 12,
             fontWeight: 600,
-            bgcolor: "#eff6ff",
-            "&:hover": { bgcolor: "#dbeafe", borderColor: "#2563eb" }
+            bgcolor: theme.custom.status.info.bg,
+            "&:hover": { bgcolor: theme.custom.status.info.border, borderColor: theme.custom.status.info.text }
           }}
         >
           View Full Report
@@ -200,12 +212,12 @@ export function SelectedSampleTestingPanel({
           startIcon={<HistoryOutlinedIcon sx={{ fontSize: 16 }} />}
           onClick={() => onViewAuditHistory(sample.sampleId)}
           sx={{
-            borderColor: "#e5e7eb",
-            color: "#4b5563",
+            borderColor: "divider",
+            color: "text.secondary",
             fontSize: 12,
             fontWeight: 600,
-            bgcolor: "#ffffff",
-            "&:hover": { bgcolor: "#f9fafb" }
+            bgcolor: "background.paper",
+            "&:hover": { bgcolor: "background.default" }
           }}
         >
           Audit History
@@ -218,11 +230,11 @@ export function SelectedSampleTestingPanel({
             startIcon={<ScienceOutlinedIcon sx={{ fontSize: 16 }} />}
             onClick={() => onNeedsPreparationClick(sample)}
             sx={{
-              bgcolor: "#d97706",
+              bgcolor: theme.custom.status.action.text,
               color: "#ffffff",
               fontSize: 12,
               fontWeight: 700,
-              "&:hover": { bgcolor: "#b45309" }
+              "&:hover": { bgcolor: theme.custom.status.action.text, opacity: 0.85 }
             }}
           >
             Prepare Sample
@@ -237,8 +249,9 @@ export function SelectedSampleTestingPanel({
         sx={{
           p: 1.5,
           borderRadius: 2,
-          bgcolor: "#faf9fc",
-          border: "1px solid #f0edf4",
+          bgcolor: "background.default",
+          border: "1px solid",
+          borderColor: "divider",
           display: "grid",
           gridTemplateColumns: { xs: "1fr 1fr", sm: "repeat(4, 1fr)" },
           gap: 1.5
@@ -246,7 +259,7 @@ export function SelectedSampleTestingPanel({
       >
         <Box>
           <Typography sx={{ fontSize: 11, color: "text.secondary" }}>Cause of Testing</Typography>
-          <Typography sx={{ fontSize: 12, fontWeight: 600, color: "#1f2937" }}>
+          <Typography sx={{ fontSize: 12, fontWeight: 600, color: "text.primary" }}>
             {sample.causeOfTesting || "—"}
           </Typography>
         </Box>
@@ -260,7 +273,7 @@ export function SelectedSampleTestingPanel({
               onSave={(v) => correct("batchNumber", v)}
             />
           ) : (
-            <Typography sx={{ fontSize: 12, fontWeight: 600, color: "#1f2937" }}>
+            <Typography sx={{ fontSize: 12, fontWeight: 600, color: "text.primary" }}>
               {sample.batchNumber || "—"}
             </Typography>
           )}
@@ -277,7 +290,7 @@ export function SelectedSampleTestingPanel({
 
         <Box>
           <Typography sx={{ fontSize: 11, color: "text.secondary" }}>Received At</Typography>
-          <Typography sx={{ fontSize: 12, fontWeight: 600, color: "#1f2937" }}>
+          <Typography sx={{ fontSize: 12, fontWeight: 600, color: "text.primary" }}>
             {new Date(sample.receivedAt).toLocaleString("en-GB", {
               day: "2-digit",
               month: "short",
@@ -290,7 +303,7 @@ export function SelectedSampleTestingPanel({
 
         <Box>
           <Typography sx={{ fontSize: 11, color: "text.secondary" }}>Sampled By</Typography>
-          <Typography sx={{ fontSize: 12, fontWeight: 600, color: "#1f2937" }}>
+          <Typography sx={{ fontSize: 12, fontWeight: 600, color: "text.primary" }}>
             {sample.sampledBy || "—"}
           </Typography>
         </Box>
@@ -298,7 +311,7 @@ export function SelectedSampleTestingPanel({
         {sample.sampleQuantity && (
           <Box>
             <Typography sx={{ fontSize: 11, color: "text.secondary" }}>Sample Quantity</Typography>
-            <Typography sx={{ fontSize: 12, fontWeight: 600, color: "#1f2937" }}>
+            <Typography sx={{ fontSize: 12, fontWeight: 600, color: "text.primary" }}>
               {sample.sampleQuantity}
             </Typography>
           </Box>
@@ -307,7 +320,7 @@ export function SelectedSampleTestingPanel({
         {sample.category === "FinishedProduct" && sample.productionStage && (
           <Box>
             <Typography sx={{ fontSize: 11, color: "text.secondary" }}>Production Stage</Typography>
-            <Typography sx={{ fontSize: 12, fontWeight: 600, color: "#1f2937" }}>
+            <Typography sx={{ fontSize: 12, fontWeight: 600, color: "text.primary" }}>
               {sample.productionStage}
             </Typography>
           </Box>
@@ -317,13 +330,13 @@ export function SelectedSampleTestingPanel({
           <>
             <Box>
               <Typography sx={{ fontSize: 11, color: "text.secondary" }}>Mfg Date</Typography>
-              <Typography sx={{ fontSize: 12, fontWeight: 600, color: "#1f2937" }}>
+              <Typography sx={{ fontSize: 12, fontWeight: 600, color: "text.primary" }}>
                 {formatDate(sample.mfgDate)}
               </Typography>
             </Box>
             <Box>
               <Typography sx={{ fontSize: 11, color: "text.secondary" }}>Exp Date</Typography>
-              <Typography sx={{ fontSize: 12, fontWeight: 600, color: "#1f2937" }}>
+              <Typography sx={{ fontSize: 12, fontWeight: 600, color: "text.primary" }}>
                 {formatDate(sample.expDate)}
               </Typography>
             </Box>
@@ -334,14 +347,14 @@ export function SelectedSampleTestingPanel({
           <>
             <Box>
               <Typography sx={{ fontSize: 11, color: "text.secondary" }}>Sampling Point</Typography>
-              <Typography sx={{ fontSize: 12, fontWeight: 600, color: "#1f2937" }}>
+              <Typography sx={{ fontSize: 12, fontWeight: 600, color: "text.primary" }}>
                 {sample.waterSamplingPointCode ? `${sample.waterSamplingPointCode} — ${sample.waterSamplingPointLocation}` : "—"}
               </Typography>
             </Box>
             {sample.storageCondition && (
               <Box>
                 <Typography sx={{ fontSize: 11, color: "text.secondary" }}>Storage Condition</Typography>
-                <Typography sx={{ fontSize: 12, fontWeight: 600, color: "#1f2937" }}>
+                <Typography sx={{ fontSize: 12, fontWeight: 600, color: "text.primary" }}>
                   {sample.storageCondition === "Refrigerator"
                     ? `Refrigerator (${sample.storageTimeHours ?? "?"}h)`
                     : sample.storageCondition}
@@ -352,11 +365,16 @@ export function SelectedSampleTestingPanel({
         )}
       </Box>
 
+      {/* Item Controlled Documents Card */}
+      {isProductLike && sample.itemId && (
+        <ItemDocumentsCard itemId={sample.itemId} itemName={sample.displayName} />
+      )}
+
       {/* Assigned Tests Section */}
       <Box sx={{ mt: 1 }}>
         <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1.5, flexWrap: "wrap", gap: 1 }}>
           <Box>
-            <Typography sx={{ fontSize: 15, fontWeight: 700, color: brandColors.pageTitle }}>
+            <Typography sx={{ fontSize: 15, fontWeight: 700, color: theme.palette.primary.main }}>
               Assigned Tests ({sample.assignedTests.length})
             </Typography>
             <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
@@ -388,8 +406,9 @@ export function SelectedSampleTestingPanel({
               p: 2,
               mb: 2,
               borderRadius: 2,
-              border: "1px solid #fde68a",
-              bgcolor: "#fffbeb",
+              border: "1px solid",
+              borderColor: theme.custom.status.inconclusive.border,
+              bgcolor: theme.custom.status.inconclusive.bg,
               display: "flex",
               alignItems: "center",
               justifyContent: "space-between",
@@ -397,12 +416,12 @@ export function SelectedSampleTestingPanel({
             }}
           >
             <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
-              <WarningAmberOutlinedIcon sx={{ color: "#d97706", fontSize: 24 }} />
+              <WarningAmberOutlinedIcon sx={{ color: theme.custom.status.inconclusive.text, fontSize: 24 }} />
               <Box>
-                <Typography sx={{ fontSize: 13, fontWeight: 700, color: "#92400e" }}>
+                <Typography sx={{ fontSize: 13, fontWeight: 700, color: theme.custom.status.inconclusive.text }}>
                   Sample Needs Preparation
                 </Typography>
-                <Typography sx={{ fontSize: 12, color: "#b45309" }}>
+                <Typography sx={{ fontSize: 12, color: theme.custom.status.inconclusive.text }}>
                   Test locations and configuration must be completed before starting laboratory tests.
                 </Typography>
               </Box>
@@ -413,11 +432,12 @@ export function SelectedSampleTestingPanel({
               size="small"
               onClick={() => onNeedsPreparationClick(sample)}
               sx={{
-                bgcolor: "#d97706",
+                bgcolor: theme.custom.status.action.text,
+                color: "#ffffff",
                 fontWeight: 700,
                 fontSize: 12,
                 whiteSpace: "nowrap",
-                "&:hover": { bgcolor: "#b45309" }
+                "&:hover": { bgcolor: theme.custom.status.action.text, opacity: 0.85 }
               }}
             >
               Start Preparation
@@ -426,7 +446,7 @@ export function SelectedSampleTestingPanel({
         )}
 
         {sample.assignedTests.length === 0 ? (
-          <Typography sx={{ color: "#9ca3af", fontSize: 13, py: 3, textAlign: "center" }}>
+          <Typography sx={{ color: "text.secondary", fontSize: 13, py: 3, textAlign: "center" }}>
             No tests assigned to this sample.
           </Typography>
         ) : (
@@ -434,7 +454,7 @@ export function SelectedSampleTestingPanel({
             {sample.assignedTests.map((test) => {
               const unit = sample.category === "EnvironmentalMonitoring" ? "rooms" : "parts";
               const locationLabel = test.locationCount > 0 ? ` (${test.locationCount} ${unit})` : "";
-              const stepInfo = resolveEffectiveTestStatus(test);
+              const stepInfo = resolveEffectiveTestStatus(test, theme);
 
               return (
                 <Paper
@@ -444,21 +464,22 @@ export function SelectedSampleTestingPanel({
                   sx={{
                     p: 2,
                     borderRadius: 2,
-                    border: "1.5px solid #e5e7eb",
-                    bgcolor: "#ffffff",
+                    border: "1.5px solid",
+                    borderColor: "divider",
+                    bgcolor: "background.paper",
                     cursor: "pointer",
                     transition: "all 0.15s ease-in-out",
                     "&:hover": {
-                      borderColor: brandColors.sectionTitle,
+                      borderColor: theme.palette.primary.main,
                       boxShadow: "0 2px 10px rgba(123, 45, 142, 0.08)",
                       transform: "translateY(-1px)",
-                      bgcolor: "#faf7fb"
+                      bgcolor: theme.custom.status.purple.bg
                     }
                   }}
                 >
                   <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", mb: 1 }}>
                     <Box>
-                      <Typography sx={{ fontSize: 14, fontWeight: 700, color: "#111827" }}>
+                      <Typography sx={{ fontSize: 14, fontWeight: 700, color: "text.primary" }}>
                         {test.testCode}{locationLabel}
                       </Typography>
                       <Typography sx={{ fontSize: 11, color: "text.secondary" }}>
@@ -475,7 +496,8 @@ export function SelectedSampleTestingPanel({
                       alignItems: "center",
                       justifyContent: "space-between",
                       pt: 1,
-                      borderTop: "1px solid #f3f4f6"
+                      borderTop: "1px solid",
+                      borderColor: "divider"
                     }}
                   >
                     <Box sx={{ display: "flex", alignItems: "center", gap: 0.75 }}>
@@ -490,7 +512,7 @@ export function SelectedSampleTestingPanel({
                       variant="text"
                       endIcon={<ArrowForwardIcon sx={{ fontSize: 14 }} />}
                       sx={{
-                        color: brandColors.sectionTitle,
+                        color: theme.palette.primary.main,
                         fontSize: 12,
                         fontWeight: 700,
                         p: 0,

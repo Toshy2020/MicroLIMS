@@ -1,4 +1,4 @@
-import { Grid, Paper, Typography, Box } from "@mui/material";
+import { Grid, Paper, Typography, Box, useTheme } from "@mui/material";
 import Inventory2OutlinedIcon from "@mui/icons-material/Inventory2Outlined";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 import WarningAmberOutlinedIcon from "@mui/icons-material/WarningAmberOutlined";
@@ -6,7 +6,7 @@ import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
 import HourglassBottomOutlinedIcon from "@mui/icons-material/HourglassBottomOutlined";
 import { SvgIconComponent } from "@mui/icons-material";
 import { MaterialItem, MaterialKpiFilter } from "../types/materialTypes";
-import { brandColors } from "../../../../theme";
+import { StatusTone } from "../../../../theme/statusTokens";
 
 interface MaterialKpiCardsProps {
   items: MaterialItem[];
@@ -20,7 +20,7 @@ interface KpiCardDef {
   description: string;
   count: number;
   icon: SvgIconComponent;
-  color: string;
+  tone: StatusTone;
 }
 
 export function isMaterialExpiringSoon(expiryDateStr: string | null, daysThreshold: number = 30): boolean {
@@ -55,6 +55,7 @@ export function isMaterialInStock(item: MaterialItem): boolean {
 }
 
 export function MaterialKpiCards({ items, activeFilter, onFilterSelect }: MaterialKpiCardsProps) {
+  const theme = useTheme();
   const totalCount = items.length;
   const inStockCount = items.filter(isMaterialInStock).length;
   const lowStockCount = items.filter(isMaterialLowStock).length;
@@ -62,52 +63,18 @@ export function MaterialKpiCards({ items, activeFilter, onFilterSelect }: Materi
   const expiringSoonCount = items.filter((m) => isMaterialExpiringSoon(m.expiryDate)).length;
 
   const cards: KpiCardDef[] = [
-    {
-      key: "all",
-      label: "Total Items",
-      description: "All material stock records",
-      count: totalCount,
-      icon: Inventory2OutlinedIcon,
-      color: brandColors.sectionTitle
-    },
-    {
-      key: "in_stock",
-      label: "In Stock",
-      description: "Sufficient quantity available",
-      count: inStockCount,
-      icon: CheckCircleOutlineIcon,
-      color: brandColors.ok
-    },
-    {
-      key: "low_stock",
-      label: "Low Stock",
-      description: "Below minimum stock level",
-      count: lowStockCount,
-      icon: WarningAmberOutlinedIcon,
-      color: "#f59e0b"
-    },
-    {
-      key: "out_of_stock",
-      label: "Out of Stock",
-      description: "No usable quantity remaining",
-      count: outOfStockCount,
-      icon: ErrorOutlineIcon,
-      color: "#dc2626"
-    },
-    {
-      key: "expiring_soon",
-      label: "Expiring Soon",
-      description: "Within 30-day warning period",
-      count: expiringSoonCount,
-      icon: HourglassBottomOutlinedIcon,
-      color: "#ea580c"
-    }
+    { key: "all", label: "Total Items", description: "All material stock records", count: totalCount, icon: Inventory2OutlinedIcon, tone: "purple" },
+    { key: "in_stock", label: "In Stock", description: "Sufficient quantity available", count: inStockCount, icon: CheckCircleOutlineIcon, tone: "notDetected" },
+    { key: "low_stock", label: "Low Stock", description: "Below minimum stock level", count: lowStockCount, icon: WarningAmberOutlinedIcon, tone: "inconclusive" },
+    { key: "out_of_stock", label: "Out of Stock", description: "No usable quantity remaining", count: outOfStockCount, icon: ErrorOutlineIcon, tone: "detected" },
+    { key: "expiring_soon", label: "Expiring Soon", description: "Within 30-day warning period", count: expiringSoonCount, icon: HourglassBottomOutlinedIcon, tone: "action" }
   ];
 
   return (
     <Grid container spacing={1.5} sx={{ mb: 2 }}>
       {cards.map((card) => {
         const isActive = activeFilter === card.key;
+        const tokens = theme.custom.status[card.tone];
         return (
           <Grid item xs={12} sm={6} md={2.4} key={card.key}>
             <Paper
@@ -116,12 +83,13 @@ export function MaterialKpiCards({ items, activeFilter, onFilterSelect }: Materi
                 p: 1.75,
                 cursor: "pointer",
                 transition: "all 0.15s ease-in-out",
-                border: isActive ? `2px solid ${card.color}` : "1px solid #e5e7eb",
-                bgcolor: isActive ? `${card.color}0a` : "#ffffff",
-                boxShadow: isActive ? `0 2px 8px ${card.color}26` : "0 1px 3px rgba(0,0,0,0.05)",
+                border: isActive ? `2px solid ${tokens.border}` : "1px solid",
+                borderColor: isActive ? tokens.border : "divider",
+                bgcolor: isActive ? tokens.bg : "background.paper",
+                boxShadow: isActive ? `0 2px 8px ${tokens.border}44` : "0 1px 3px rgba(0,0,0,0.05)",
                 "&:hover": {
-                  boxShadow: `0 4px 12px ${card.color}22`,
-                  borderColor: card.color,
+                  boxShadow: `0 4px 12px ${tokens.border}33`,
+                  borderColor: tokens.border,
                   transform: "translateY(-1px)"
                 }
               }}
@@ -135,8 +103,8 @@ export function MaterialKpiCards({ items, activeFilter, onFilterSelect }: Materi
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
-                    bgcolor: `${card.color}18`,
-                    color: card.color
+                    bgcolor: tokens.bg,
+                    color: tokens.text
                   }}
                 >
                   <card.icon sx={{ fontSize: 18 }} />
@@ -145,14 +113,14 @@ export function MaterialKpiCards({ items, activeFilter, onFilterSelect }: Materi
                   sx={{
                     fontSize: 22,
                     fontWeight: 700,
-                    color: card.color,
+                    color: tokens.text,
                     lineHeight: 1
                   }}
                 >
                   {card.count}
                 </Typography>
               </Box>
-              <Typography sx={{ fontSize: 13, fontWeight: 700, color: "#1f2937", lineHeight: 1.2 }} noWrap>
+              <Typography sx={{ fontSize: 13, fontWeight: 700, color: "text.primary", lineHeight: 1.2 }} noWrap>
                 {card.label}
               </Typography>
               <Typography sx={{ fontSize: 11, color: "text.secondary", mt: 0.25 }} noWrap>

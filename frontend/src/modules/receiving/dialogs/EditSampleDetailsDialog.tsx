@@ -9,7 +9,8 @@ import {
   Box,
   Typography,
   Alert,
-  CircularProgress
+  CircularProgress,
+  useTheme
 } from "@mui/material";
 import { SampleRecord } from "../types/receivingTypes";
 import { ReceiveService } from "../services/ReceiveService";
@@ -23,6 +24,7 @@ interface Props {
 }
 
 export function EditSampleDetailsDialog({ open, sample, onClose, onSuccess }: Props) {
+  const theme = useTheme();
   const [batchNumber, setBatchNumber] = useState("");
   const [controlNumber, setControlNumber] = useState("");
   const [loading, setLoading] = useState(false);
@@ -55,7 +57,7 @@ export function EditSampleDetailsDialog({ open, sample, onClose, onSuccess }: Pr
   return (
     <Dialog open={open} onClose={loading ? undefined : onClose} maxWidth="sm" fullWidth>
       <DialogTitle>
-        <Typography sx={{ fontSize: 18, fontWeight: 700, color: brandColors.pageTitle }}>
+        <Typography sx={{ fontSize: 18, fontWeight: 700, color: theme.palette.primary.main }}>
           Edit Sample Information
         </Typography>
         <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
@@ -87,7 +89,7 @@ export function EditSampleDetailsDialog({ open, sample, onClose, onSuccess }: Pr
             onChange={(e) => setControlNumber(e.target.value)}
           />
 
-          <Typography sx={{ fontSize: 11, color: "text.secondary", bgcolor: "#f9fafb", p: 1.25, borderRadius: 1 }}>
+          <Typography sx={{ fontSize: 11, color: "text.secondary", bgcolor: "background.default", p: 1.25, borderRadius: 1 }}>
             Note: Corrections are logged in the audit trail. Once incubation has started, sample identifiers are frozen.
           </Typography>
         </Box>

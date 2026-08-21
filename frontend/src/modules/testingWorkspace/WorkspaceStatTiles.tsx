@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { Grid, Paper, Typography, Box } from "@mui/material";
+import { Grid, Paper, Typography, Box, useTheme } from "@mui/material";
 import ScienceOutlinedIcon from "@mui/icons-material/ScienceOutlined";
 import PendingActionsOutlinedIcon from "@mui/icons-material/PendingActionsOutlined";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
@@ -15,6 +15,7 @@ interface Tile { label: string; value: number; icon: SvgIconComponent; color: st
 // call needed, same as how "Active Samples (N)" was already computed
 // client-side before this redesign.
 export function WorkspaceStatTiles({ samples }: { samples: SampleCard[] }) {
+  const theme = useTheme();
   const counts = useMemo(() => {
     const totalActive = samples.length;
     const underTesting = samples.filter((s) => s.status === "InTesting").length;
@@ -27,7 +28,7 @@ export function WorkspaceStatTiles({ samples }: { samples: SampleCard[] }) {
     { label: "Total Active", value: counts.totalActive, icon: ScienceOutlinedIcon, color: brandColors.badgeRM },
     { label: "Under Testing", value: counts.underTesting, icon: HourglassEmptyOutlinedIcon, color: brandColors.badgePM },
     { label: "Approved", value: counts.approved, icon: CheckCircleOutlineIcon, color: brandColors.ok },
-    { label: "Pending", value: counts.pending, icon: PendingActionsOutlinedIcon, color: brandColors.sectionTitle }
+    { label: "Pending", value: counts.pending, icon: PendingActionsOutlinedIcon, color: theme.palette.primary.main }
   ];
 
   return (
@@ -43,7 +44,7 @@ export function WorkspaceStatTiles({ samples }: { samples: SampleCard[] }) {
             </Box>
             <Box sx={{ minWidth: 0 }}>
               <Typography sx={{ fontSize: 12, color: "text.secondary" }} noWrap>{t.label}</Typography>
-              <Typography sx={{ fontSize: 20, fontWeight: 700, color: brandColors.sectionTitle, lineHeight: 1.1 }}>{t.value}</Typography>
+              <Typography sx={{ fontSize: 20, fontWeight: 700, color: theme.palette.primary.main, lineHeight: 1.1 }}>{t.value}</Typography>
             </Box>
           </Paper>
         </Grid>

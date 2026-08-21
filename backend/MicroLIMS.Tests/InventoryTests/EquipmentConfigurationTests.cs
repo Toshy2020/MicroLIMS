@@ -301,4 +301,80 @@ public class EquipmentConfigurationTests
         var allHirayamaPrograms = await service.GetAutoclaveProgramsAsync(3, activeOnly: false);
         Assert.Equal(3, allHirayamaPrograms.Count);
     }
+
+    [Fact]
+    public async Task LinkInventoryEquipmentToMasterAsync_IsSqlTranslatable_AndMatchesCaseInsensitivelyWithoutDuplicates()
+    {
+        using var db = NewDb();
+
+        // Existing master equipment with UPPERCASE code
+        var incucellMaster = new Equipment
+        {
+            Id = 1,
+            Name = "INCUCELL",
+            Code = "INC-F-ML-F-01-002",
+            Type = EquipmentType.Incubator,
+            SetPointTemperature = 36.5m
+        };
+        db.Equipment.Add(incucellMaster);
+
+        // Inventory item with lowercase code
+        var incucellInv = new EquipmentInventory
+        {
+            Id = 10,
+            Code = "inc-f-ml-f-01-002",
+            InstrumentType = "INCUCELL Incubator",
+            ManufacturerName = "INCUCELL",
+            SerialNumber = "D,141445",
+            Status = EquipmentOperationalStatus.InService
+        };
+
+        // Another distinct inventory item that has similar prefix but should NOT match
+        var incucellOldInv = new EquipmentInventory
+        {
+            Id = 11,
+            Code = "INC-F-ML-F-01-002-OLD",
+            InstrumentType = "INCUCELL Old",
+            SerialNumber = "D,000000",
+            Status = EquipmentOperationalStatus.Retired
+        };
+
+        // New autoclave inventory item to link
+        var hirayamaInv = new EquipmentInventory
+        {
+            Id = 20,
+            Code = "AUT-F-ML-F-03-045",
+            InstrumentType = "Hirayama Autoclave",
+            ManufacturerName = "Hirayama",
+            SerialNumber = "30317012128",
+            Status = EquipmentOperationalStatus.InService
+        };
+
+        db.EquipmentInventories.AddRange(incucellInv, incucellOldInv, hirayamaInv);
+        await db.SaveChangesAsync();
+
+        var service = new EquipmentConfigurationService(db);
+
+        // 1. Linking lowercase code returns existing master without throwing translation exception
+        var linkedIncucell = await service.LinkInventoryEquipmentToMasterAsync(10, 1);
+        Assert.NotNull(linkedIncucell);
+        Assert.Equal(1, linkedIncucell.Id);
+        Assert.Equal("INC-F-ML-F-01-002", linkedIncucell.Code);
+
+        // Verify count of master equipment remains 1 (no duplicate created)
+        var masterCount = await db.Equipment.CountAsync();
+        Assert.Equal(1, masterCount);
+
+        // 2. Linking Hirayama creates new master equipment record with correct type and code
+        var linkedHirayama = await service.LinkInventoryEquipmentToMasterAsync(20, 1);
+        Assert.NotNull(linkedHirayama);
+        Assert.Equal("AUT-F-ML-F-03-045", linkedHirayama.Code);
+        Assert.Equal(EquipmentType.Autoclave, linkedHirayama.Type);
+
+        // 3. Linking the distinct code INC-F-ML-F-01-002-OLD creates a separate master record
+        var linkedOld = await service.LinkInventoryEquipmentToMasterAsync(11, 1);
+        Assert.NotNull(linkedOld);
+        Assert.Equal("INC-F-ML-F-01-002-OLD", linkedOld.Code);
+        Assert.NotEqual(linkedIncucell.Id, linkedOld.Id);
+    }
 }

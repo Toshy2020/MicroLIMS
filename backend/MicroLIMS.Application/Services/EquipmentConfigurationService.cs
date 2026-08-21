@@ -129,7 +129,8 @@ public class EquipmentConfigurationService
         var inv = await _db.EquipmentInventories.FindAsync(inventoryEquipmentId)
             ?? throw new InvalidOperationException($"Inventory equipment {inventoryEquipmentId} not found.");
 
-        var existingMaster = await _db.Equipment.FirstOrDefaultAsync(e => string.Equals(e.Code, inv.Code, StringComparison.OrdinalIgnoreCase));
+        var normalizedCode = inv.Code.Trim().ToLower();
+        var existingMaster = await _db.Equipment.FirstOrDefaultAsync(e => e.Code.ToLower() == normalizedCode);
         if (existingMaster != null)
             return existingMaster;
 

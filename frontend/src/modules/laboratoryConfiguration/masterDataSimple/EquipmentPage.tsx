@@ -946,7 +946,9 @@ export function EquipmentPage() {
             </TableHead>
             <TableBody>
               {Array.isArray(inventoryList) && inventoryList.map((inv) => {
-                const isAlreadyLinked = safeSummaryList.some((s) => s.code === inv.code || s.id === inv.id);
+                const isAlreadyLinked = safeSummaryList.some(
+                  (s) => (s.code && inv.code && s.code.toLowerCase() === inv.code.toLowerCase()) || s.equipmentInventoryId === inv.id
+                );
                 return (
                   <TableRow key={inv.id}>
                     <TableCell sx={{ fontWeight: 700 }}>{inv.code}</TableCell>

@@ -209,7 +209,7 @@ public class EquipmentInventoryService
                     eq.Location,
                     eq.Status.ToString(),
                     eq.CalibrationDueDate,
-                    masterEquipment.FirstOrDefault(m => m.Code == eq.Code || m.Id == eq.Id)?.SetPointTemperature,
+                    masterEquipment.FirstOrDefault(m => string.Equals(m.Code, eq.Code, StringComparison.OrdinalIgnoreCase))?.SetPointTemperature,
                     primaryCategory,
                     activeActivities.Count
                 ));
@@ -232,7 +232,7 @@ public class EquipmentInventoryService
         var eq = await _db.EquipmentInventories.FirstOrDefaultAsync(e => e.Id == equipmentId)
             ?? throw new InvalidOperationException($"Equipment {equipmentId} not found.");
         var masterEquipment = await _db.Equipment.ToListAsync();
-        var matchingMasterId = masterEquipment.FirstOrDefault(m => m.Code == eq.Code || m.Id == eq.Id)?.Id;
+        var matchingMasterId = masterEquipment.FirstOrDefault(m => string.Equals(m.Code, eq.Code, StringComparison.OrdinalIgnoreCase))?.Id;
 
         var allIncubations = await _db.Incubations
             .Include(i => i.TestOrder).ThenInclude(t => t!.Sample).ThenInclude(s => s!.Item)
@@ -393,7 +393,7 @@ public class EquipmentInventoryService
 
     private async Task<List<EquipmentActivityDto>> GetActiveActivitiesForEquipmentInternalAsync(EquipmentInventory eq, List<Equipment> masterEquipment)
     {
-        var matchingMasterId = masterEquipment.FirstOrDefault(m => m.Code == eq.Code || m.Id == eq.Id)?.Id;
+        var matchingMasterId = masterEquipment.FirstOrDefault(m => string.Equals(m.Code, eq.Code, StringComparison.OrdinalIgnoreCase))?.Id;
         var now = DateTime.UtcNow;
         var activities = new List<EquipmentActivityDto>();
 

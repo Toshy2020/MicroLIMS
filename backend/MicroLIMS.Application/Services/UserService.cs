@@ -2,6 +2,7 @@ using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Domain.Entities;
+using MicroLIMS.Domain.Enums;
 using MicroLIMS.Persistence.DbContext;
 using MicroLIMS.Shared.Validation;
 
@@ -39,6 +40,18 @@ public class UserService
     public async Task<List<UserDto>> GetAllAsync()
     {
         var users = await _db.Users.Include(u => u.Role).OrderBy(u => u.Id).ToListAsync();
+        return users.Select(ToDto).ToList();
+    }
+
+    public async Task<List<UserDto>> GetEligibleAnalystsAsync()
+    {
+        var now = DateTime.UtcNow;
+        var users = await _db.Users
+            .Include(u => u.Role)
+            .Where(u => u.IsActive && (u.LockedUntil == null || u.LockedUntil <= now) && u.Role != null && u.Role.Type == RoleType.Analyst)
+            .OrderBy(u => u.FullName)
+            .ToListAsync();
+
         return users.Select(ToDto).ToList();
     }
 

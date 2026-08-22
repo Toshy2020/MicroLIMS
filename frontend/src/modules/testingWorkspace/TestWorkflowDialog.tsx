@@ -11,7 +11,7 @@ import { PathogenLocationResultGridDialog } from "./PathogenLocationResultGridDi
 import { WaterLocationResultGridDialog } from "./WaterLocationResultGridDialog";
 import { PathogenStepDialog } from "./PathogenStepDialog";
 
-interface Props { testOrderId: number; testCode: string; category: string; displayName: string; }
+interface Props { testOrderId: number; testCode: string; category: string; displayName: string; onClose?: () => void; }
 
 type Phase = "loading" | "select-media" | "awaiting-result" | "transfer-stage-2" | "enter-result" | "step-complete" | "all-complete";
 
@@ -63,7 +63,7 @@ function StepChainStrip({ current }: { current: any }) {
 // samples, which still incubate through this component's phases and
 // only hand off to LocationResultGridDialog/PathogenLocationResultGrid-
 // Dialog for their per-location batch result entry, exactly as today.
-export function TestWorkflowDialog({ testOrderId, testCode, category, displayName }: Props) {
+export function TestWorkflowDialog({ testOrderId, testCode, category, displayName, onClose }: Props) {
   const theme = useTheme();
   const isEmOrAfterCleaning = category === "EnvironmentalMonitoring" || category === "AfterCleaning";
   const [phase, setPhase] = useState<Phase>("loading");
@@ -267,7 +267,7 @@ export function TestWorkflowDialog({ testOrderId, testCode, category, displayNam
   // this component's own incubation phases below, only handing off to
   // the location-grid dialogs for its final per-location result entry).
   if (current.workflowType !== "CountTest" && !isEmOrAfterCleaning) {
-    return <PathogenStepDialog testOrderId={testOrderId} testCode={testCode} displayName={displayName} />;
+    return <PathogenStepDialog testOrderId={testOrderId} testCode={testCode} displayName={displayName} onClose={onClose} />;
   }
 
   if (phase === "all-complete") {
@@ -275,10 +275,17 @@ export function TestWorkflowDialog({ testOrderId, testCode, category, displayNam
     return (
       <Box>
         <StepChainStrip current={current} />
-        <Alert severity={outcome === "Detected" ? "error" : "success"} sx={{ mb: 1 }}>
+        <Alert severity={outcome === "Detected" ? "error" : "success"} sx={{ mb: 2 }}>
           Final result: <strong>{outcome}</strong>
         </Alert>
-        <StatusBadge status="Ready" />
+        <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mt: 2 }}>
+          <StatusBadge status="ResultRecorded" label="Result Recorded — Pending Review" />
+          {onClose && (
+            <Button variant="contained" onClick={onClose} sx={{ fontWeight: 600, textTransform: "none" }}>
+              Done / Close
+            </Button>
+          )}
+        </Box>
       </Box>
     );
   }

@@ -29,6 +29,21 @@ public class SamplePreparationService
         if (await _db.SamplePreparations.AnyAsync(p => p.SampleId == request.SampleId))
             throw new InvalidOperationException("This sample has already been prepared.");
 
+        // Ownership Rule: If an analyst was already assigned by the Section Head,
+        // only that assigned analyst may prepare the sample unless reassigned.
+        var assignedAnalystId = await _db.TestOrders
+            .Where(t => t.SampleId == request.SampleId && t.AssignedAnalystId != null && !t.IsSuperseded)
+            .Select(t => t.AssignedAnalystId)
+            .FirstOrDefaultAsync();
+
+        if (assignedAnalystId != null && assignedAnalystId.Value != request.UserId)
+        {
+            var assignedUser = await _db.Users.FirstOrDefaultAsync(u => u.Id == assignedAnalystId.Value);
+            var assignedName = assignedUser?.FullName ?? $"User #{assignedAnalystId}";
+            throw new InvalidOperationException(
+                $"This sample is assigned to {assignedName}. Only the assigned analyst may perform sample preparation, unless reassigned by an authorized Section Head.");
+        }
+
         var diluentType = await _db.DiluentTypes.FirstOrDefaultAsync(d => d.Id == request.DiluentTypeId)
             ?? throw new InvalidOperationException($"Diluent type {request.DiluentTypeId} not found.");
 

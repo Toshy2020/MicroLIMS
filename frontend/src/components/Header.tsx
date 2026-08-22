@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Box, Typography, Avatar, IconButton, Badge, Menu, MenuItem, Divider,
-  ListItemIcon, ListItemText, Tooltip, Switch
+  ListItemIcon, ListItemText, Tooltip, Switch, useTheme, useMediaQuery
 } from "@mui/material";
 import MenuIcon from "@mui/icons-material/Menu";
 import NotificationsIcon from "@mui/icons-material/Notifications";
@@ -50,12 +50,15 @@ function formatRoleFallback(role: string | null): string {
 
 interface HeaderProps {
   onToggleSidebar?: () => void;
+  sidebarCollapsed?: boolean;
 }
 
 // Purple-gradient brand topbar with responsive identity and sidebar toggle
-export function Header({ onToggleSidebar }: HeaderProps) {
+export function Header({ onToggleSidebar, sidebarCollapsed }: HeaderProps) {
   const { username, fullName, jobTitle, role, logout } = useAuth();
   const { mode, toggleMode } = useThemeMode();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("md"));
   const navigate = useNavigate();
   const initial = (fullName ?? username ?? "U").charAt(0).toUpperCase();
   const displayTitle = jobTitle?.trim() || formatRoleFallback(role);
@@ -97,7 +100,7 @@ export function Header({ onToggleSidebar }: HeaderProps) {
       component="header"
       className="no-print"
       sx={{
-        background: brandColors.topbarGradient,
+        background: theme.custom.chrome.topbarBg,
         color: "#fff",
         display: "flex",
         alignItems: "center",
@@ -114,16 +117,18 @@ export function Header({ onToggleSidebar }: HeaderProps) {
     >
       <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
         {onToggleSidebar && (
-          <IconButton
-            onClick={onToggleSidebar}
-            sx={{ color: "#fff", p: 0.75, mr: 0.5 }}
-            aria-label="Toggle navigation menu"
-          >
-            <MenuIcon />
-          </IconButton>
+          <Tooltip title={isMobile ? "Toggle navigation menu" : (sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar")}>
+            <IconButton
+              onClick={onToggleSidebar}
+              sx={{ color: "#fff", p: 0.75, mr: 0.5 }}
+              aria-label="Toggle navigation menu"
+            >
+              <MenuIcon />
+            </IconButton>
+          </Tooltip>
         )}
         <Typography sx={{ fontSize: { xs: 19, sm: 22 }, fontWeight: 700, letterSpacing: 0.5, userSelect: "none" }}>
-          Micro<Box component="span" sx={{ fontWeight: 300, opacity: 0.85 }}>LIMS</Box>
+          Micro<Box component="span" sx={{ fontWeight: 300, color: theme.custom.chrome.brandAccent }}>LIMS</Box>
         </Typography>
       </Box>
 

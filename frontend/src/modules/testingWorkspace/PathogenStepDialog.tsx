@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Box, Typography, Stack, Alert, useTheme } from "@mui/material";
+import { Box, Typography, Stack, Alert, Button, useTheme } from "@mui/material";
 import { LoadingSpinner } from "../../components/LoadingSpinner";
 import { TestWorkflowService } from "./services/TestWorkflowService";
 import { CurrentStepResponse } from "./types/testWorkflowTypes";
@@ -12,7 +12,7 @@ import { InconclusiveTerminalPanel } from "./pathogenSteps/InconclusiveTerminalP
 import { ConfirmatoryPlatingPanel } from "./pathogenSteps/ConfirmatoryPlatingPanel";
 import { BiochemicalTestPanel } from "./pathogenSteps/BiochemicalTestPanel";
 
-interface Props { testOrderId: number; testCode: string; displayName: string; }
+interface Props { testOrderId: number; testCode: string; displayName: string; onClose?: () => void; }
 
 // Verified against backend/MicroLIMS.Application/Workflows/TestWorkflowEngine.cs:
 // CompletedStepSummary.outcome for a ConfirmatoryPlating step is set directly to
@@ -59,7 +59,7 @@ function StepChainStrip({ current }: { current: CurrentStepResponse }) {
   );
 }
 
-export function PathogenStepDialog({ testOrderId }: Props) {
+export function PathogenStepDialog({ testOrderId, onClose }: Props) {
   const theme = useTheme();
   const [current, setCurrent] = useState<CurrentStepResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -74,24 +74,26 @@ export function PathogenStepDialog({ testOrderId }: Props) {
     }
   };
 
-  useEffect(() => { load(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [testOrderId]);
+  useEffect(() => { load(); }, [testOrderId]);
 
-  const handleSubmitted = () => load();
+  const handleSubmitted = () => {
+    load();
+  };
 
-  if (error && !current) return <Alert severity="error">{error}</Alert>;
-  if (!current) return <Box sx={{ py: 4 }}><LoadingSpinner /></Box>;
+  if (!current) {
+    return (
+      <Box sx={{ py: 4 }}>
+        {error ? <Alert severity="error">{error}</Alert> : <LoadingSpinner />}
+      </Box>
+    );
+  }
 
   if (isInconclusiveTerminal(current)) {
     return (
       <Box>
         <StepChainStrip current={current} />
-        <Box sx={{ backgroundColor: theme.custom.status.action.bg, border: "1px solid", borderColor: theme.custom.status.action.border, borderRadius: 1, p: 2, mt: 1 }}>
-          <Typography variant="body2" sx={{ fontWeight: 600, color: theme.custom.status.action.text, display: "flex", alignItems: "center", gap: 1 }}>
-            ⚠ Confirmatory Plating: Inconclusive
-          </Typography>
-          <Typography variant="caption" sx={{ color: theme.custom.status.action.text, display: "block", mt: 0.5 }}>
-            Media disagreement recorded. This result has been flagged for reviewer decision. No further analyst action required.
-          </Typography>
+        <Box sx={{ mt: 2 }}>
+          <InconclusiveTerminalPanel />
         </Box>
       </Box>
     );
@@ -102,14 +104,22 @@ export function PathogenStepDialog({ testOrderId }: Props) {
       <Box>
         <StepChainStrip current={current} />
         {current.finalResult ? (
-          <Box sx={{ backgroundColor: theme.custom.status.notDetected.bg, border: "1px solid", borderColor: theme.custom.status.notDetected.border, borderRadius: 1, p: 2, mt: 1 }}>
+          <Box sx={{ backgroundColor: theme.custom.status.notDetected.bg, border: "1px solid", borderColor: theme.custom.status.notDetected.border, borderRadius: 1, p: 2, mt: 1, mb: 2 }}>
             <Typography variant="body2" sx={{ fontWeight: 600, color: theme.custom.status.notDetected.text }}>
               ✓ Final result: {current.finalResult}
             </Typography>
           </Box>
         ) : (
-          <Typography variant="body2" sx={{ color: "text.secondary" }}>—</Typography>
+          <Typography variant="body2" sx={{ color: "text.secondary", mb: 2 }}>—</Typography>
         )}
+        <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mt: 2 }}>
+          <Box />
+          {onClose && (
+            <Button variant="contained" onClick={onClose} sx={{ fontWeight: 600, textTransform: "none" }}>
+              Done / Close
+            </Button>
+          )}
+        </Box>
       </Box>
     );
   }

@@ -96,6 +96,9 @@ export function WorkloadWeightsDialog({ open, onClose, onUpdated }: WorkloadWeig
       </DialogTitle>
 
       <DialogContent sx={{ pt: 2.5 }}>
+        <Alert severity="info" sx={{ mb: 2, fontSize: 12 }}>
+          <strong>Notice:</strong> Workload weight persistence is not currently available in the database schema. Configurations shown are operational demonstration constants held in session memory.
+        </Alert>
         {error && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>{error}</Alert>}
         {success && <Alert severity="success" sx={{ mb: 2 }} onClose={() => setSuccess(null)}>{success}</Alert>}
 

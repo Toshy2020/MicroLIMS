@@ -74,6 +74,11 @@ export interface SampleLocationDetail {
   calculatedResult: number | null;
   reportedResult: string | null;
   status: string | null;
+  // Populated at result-entry time - null for qualitative (Detected/Absent)
+  // locations. Never assume "CFU" or "CFU/Plate": EM/After Cleaning/Water
+  // mix CFU/plate/4 hours, CFU/25 sq.cm, and CFU/mL depending on sampling
+  // method.
+  unit: string | null;
   enteredByName: string | null;
   enteredAt: string | null;
 }
@@ -149,6 +154,8 @@ export interface SampleSummary {
   waterSamplingPointLocation: string | null;
   storageCondition: string | null;
   storageTimeHours: number | null;
+  assignedAnalystId?: number | null;
+  assignedAnalystName?: string | null;
   reviewedByName: string | null;
   reviewedAt: string | null;
   approvedByName: string | null;

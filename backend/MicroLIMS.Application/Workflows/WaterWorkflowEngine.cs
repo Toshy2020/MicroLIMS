@@ -114,7 +114,8 @@ public class WaterWorkflowEngine : IWaterWorkflowEngine
                     {
                         TestCode = testCode,
                         Status = ApprovalStatus.Pending,
-                        CurrentStep = WorkflowStep.Waiting
+                        CurrentStep = WorkflowStep.Waiting,
+                        AssignedAnalystId = userId
                     };
                     sample.TestOrders.Add(order);
                     testOrdersByCode[testCode] = order;

@@ -90,7 +90,8 @@ public class EMWorkflowEngine : IEMWorkflowEngine
                 {
                     TestCode = config.TestCode,
                     Status = ApprovalStatus.Pending,
-                    CurrentStep = WorkflowStep.Waiting
+                    CurrentStep = WorkflowStep.Waiting,
+                    AssignedAnalystId = userId
                 };
                 sample.TestOrders.Add(order);
                 testOrdersByCode[config.TestCode] = order;

@@ -94,6 +94,7 @@ public class SampleSummaryService
             .Concat(workflowHistory.Select(w => w.PerformedByUserId))
             .Concat(sampleLocations.Where(l => l.EnteredByUserId is not null).Select(l => l.EnteredByUserId!.Value))
             .Concat(incubations.Where(i => i.StartedByUserId is not null).Select(i => i.StartedByUserId!.Value))
+            .Concat(sample.TestOrders.Where(o => o.AssignedAnalystId.HasValue).Select(o => o.AssignedAnalystId!.Value))
             .Append(sample.ReceivedByUserId));
         if (preparation is not null) userIds.Add(preparation.PreparedByUserId);
         if (sample.ReviewedByUserId is not null) userIds.Add(sample.ReviewedByUserId.Value);
@@ -101,6 +102,10 @@ public class SampleSummaryService
 
         var names = await _db.Users.Where(u => userIds.Contains(u.Id)).ToDictionaryAsync(u => u.Id, u => u.FullName);
         string NameOf(int userId) => names.TryGetValue(userId, out var n) ? n : "Unknown";
+
+        var assignedOrder = sample.TestOrders.FirstOrDefault(o => o.AssignedAnalystId.HasValue);
+        int? assignedAnalystId = assignedOrder?.AssignedAnalystId;
+        string? assignedAnalystName = assignedAnalystId.HasValue ? NameOf(assignedAnalystId.Value) : null;
 
         var sharedTsbInc = TsbDetectionHelper.FindSharedTsbIncubation(incubations);
 
@@ -136,6 +141,8 @@ public class SampleSummaryService
             BatchNumber = sample.BatchNumber,
             ControlNumber = sample.ControlNumber,
             Status = sample.Status.ToString(),
+            AssignedAnalystId = assignedAnalystId,
+            AssignedAnalystName = assignedAnalystName,
             ReceivedByName = NameOf(sample.ReceivedByUserId),
             ReceivedAt = sample.ReceivedAt,
             SampledBy = sample.SampledBy,
@@ -267,6 +274,7 @@ public class SampleSummaryService
                         CalculatedResult = l.CalculatedResult,
                         ReportedResult = l.ReportedResult,
                         Status = l.Status,
+                        Unit = l.Unit,
                         EnteredByName = l.EnteredByUserId is not null ? NameOf(l.EnteredByUserId.Value) : null,
                         EnteredAt = l.EnteredAt
                     }).ToList();

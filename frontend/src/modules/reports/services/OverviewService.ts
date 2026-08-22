@@ -1,145 +1,188 @@
-import { OverviewDashboardData } from "../types/reportingTypes";
+import { OverviewDashboardData, SampleCategory } from "../types/reportingTypes";
 import { ReportingService } from "./ReportingService";
 import { brandColors } from "../../../theme";
 
-/* 
- * MOCK ADAPTER - Overview Dashboard Aggregation Service
- * Consumes ReportingService for live search results where possible.
- * Structured to be seamlessly connected to GET /api/reporting/overview when deployed.
- */
+const CATEGORY_LABELS: Record<string, string> = {
+  FinishedProduct: "Finished Product",
+  RawMaterial: "Raw Material",
+  PackagingMaterial: "Packaging Material",
+  Water: "Water",
+  EnvironmentalMonitoring: "Environmental Monitor",
+  AfterCleaning: "After Cleaning"
+};
+
+const CATEGORY_COLORS: Record<string, string> = {
+  FinishedProduct: brandColors.badgeProduct,
+  RawMaterial: brandColors.badgeRM,
+  PackagingMaterial: brandColors.badgePM,
+  Water: "#0891b2",
+  EnvironmentalMonitoring: "#7c3aed",
+  AfterCleaning: "#be185d"
+};
+
+const LOCATION_COLORS = ["#7b2d8e", "#9b3fa8", "#2563eb", "#0891b2", "#9ca3af", "#d97706", "#16a34a"];
+
 export const OverviewService = {
   async getOverviewData(fromDate?: string, toDate?: string): Promise<OverviewDashboardData> {
     try {
-      // Attempt to query real results count from backend
-      const res = await ReportingService.searchResults({ fromDate, toDate, page: 1, pageSize: 50 }).catch(() => null);
-      const totalCount = res?.totalCount ?? 1284;
+      // Query real results from backend (up to 200 items for period distribution)
+      const res = await ReportingService.searchResults({ fromDate, toDate, page: 1, pageSize: 200 }).catch(() => null);
+      const items = res?.items ?? [];
+      const totalCount = res?.totalCount ?? items.length;
+
+      // Real calculated metrics from ResultRecords
+      const approvedCount = items.filter(
+        (r) => r.sampleStatus === "Approved" || r.approvalStatus === "Approved"
+      ).length;
+
+      const pendingReviewCount = items.filter(
+        (r) => r.sampleStatus === "UnderReview" || (r.approvalStatus === "Pending" && r.sampleStatus !== "UnderApproval")
+      ).length;
+
+      const pendingApprovalCount = items.filter(
+        (r) => r.sampleStatus === "UnderApproval"
+      ).length;
+
+      const outOfSpecCount = items.filter(
+        (r) => r.resultLevel === "OutOfSpecification"
+      ).length;
+
+      const alertActionCount = items.filter(
+        (r) => r.resultLevel === "AlertLevel" || r.resultLevel === "ActionLevel"
+      ).length;
+
+      // Real category distribution
+      const categoryMap = new Map<string, number>();
+      items.forEach((r) => {
+        const cat = r.category || "FinishedProduct";
+        categoryMap.set(cat, (categoryMap.get(cat) ?? 0) + 1);
+      });
+
+      const categoryDistribution = Array.from(categoryMap.entries()).map(([cat, count]) => ({
+        category: cat as SampleCategory,
+        label: CATEGORY_LABELS[cat] ?? cat,
+        count,
+        percentage: items.length > 0 ? Math.round((count / items.length) * 100) : 0,
+        color: CATEGORY_COLORS[cat] ?? "#6b7280"
+      }));
+
+      // Real test distribution
+      const testMap = new Map<string, { name: string; count: number }>();
+      items.forEach((r) => {
+        const code = r.testCode || "OTHER";
+        const name = r.testDisplayName || code;
+        const current = testMap.get(code) ?? { name, count: 0 };
+        testMap.set(code, { name, count: current.count + 1 });
+      });
+
+      const testDistribution = Array.from(testMap.entries())
+        .map(([testCode, data]) => ({
+          testCode,
+          testName: data.name,
+          count: data.count
+        }))
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 10);
+
+      // Real subject / location distribution
+      const locationMap = new Map<string, number>();
+      items.forEach((r) => {
+        const loc = r.subjectDetail || r.subjectName || "Other";
+        locationMap.set(loc, (locationMap.get(loc) ?? 0) + 1);
+      });
+
+      const locationDistribution = Array.from(locationMap.entries())
+        .map(([location, count], idx) => ({
+          location,
+          count,
+          percentage: items.length > 0 ? Math.round((count / items.length) * 100) : 0,
+          color: LOCATION_COLORS[idx % LOCATION_COLORS.length]
+        }))
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 7);
+
+      // Recent activity records
+      const recentReports = items.slice(0, 5).map((r, idx) => ({
+        id: `REP-${r.referenceNumber || String(idx + 101).padStart(5, "0")}`,
+        name: `${r.subjectName} — ${r.testDisplayName || r.testCode}`,
+        type: CATEGORY_LABELS[r.category] ?? r.category,
+        dateGenerated: r.resultEnteredAt ? new Date(r.resultEnteredAt).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "—",
+        generatedBy: r.resultEnteredByName || "Analyst",
+        status: (r.approvalStatus === "Approved" || r.sampleStatus === "Approved" ? "Final" : "Draft") as "Final" | "Draft" | "Archived"
+      }));
 
       return {
         totalTests: {
           title: "Total Tests",
           value: totalCount.toLocaleString(),
-          deltaPercent: 12.5,
+          deltaPercent: totalCount > 0 ? 100 : 0,
           deltaDirection: "up",
-          comparisonLabel: "vs previous 30 days"
+          comparisonLabel: "live database records"
         },
         approvedResults: {
           title: "Approved Results",
-          value: Math.round(totalCount * 0.92).toLocaleString(),
-          deltaPercent: 10.3,
+          value: approvedCount.toLocaleString(),
+          deltaPercent: totalCount > 0 ? Math.round((approvedCount / totalCount) * 100) : 0,
           deltaDirection: "up",
-          comparisonLabel: "vs previous 30 days"
+          comparisonLabel: `${approvedCount} of ${totalCount} approved`
         },
         pendingReview: {
           title: "Pending Review",
-          value: 14,
-          deltaPercent: -12.5,
-          deltaDirection: "down",
-          comparisonLabel: "vs previous 30 days"
+          value: pendingReviewCount,
+          deltaPercent: pendingReviewCount > 0 ? 100 : 0,
+          deltaDirection: pendingReviewCount > 0 ? "up" : "down",
+          comparisonLabel: "active in testing/review queue"
         },
         pendingApproval: {
           title: "Pending Approval",
-          value: 6,
-          deltaPercent: -25.0,
-          deltaDirection: "down",
-          comparisonLabel: "vs previous 30 days"
+          value: pendingApprovalCount,
+          deltaPercent: pendingApprovalCount > 0 ? 100 : 0,
+          deltaDirection: pendingApprovalCount > 0 ? "up" : "down",
+          comparisonLabel: "awaiting section head release"
         },
         outOfSpec: {
           title: "Out of Spec",
-          value: 8,
-          deltaPercent: 33.3,
-          deltaDirection: "up",
-          comparisonLabel: "vs previous 30 days",
-          variant: "error",
+          value: outOfSpecCount,
+          deltaPercent: outOfSpecCount,
+          deltaDirection: outOfSpecCount > 0 ? "up" : "down",
+          comparisonLabel: "quality signal (independent of analyst)",
+          variant: outOfSpecCount > 0 ? "error" : "default",
           tooltip: "Laboratory Quality Metric — Evaluated independently of analyst performance"
         },
         alertActionLevel: {
           title: "Alert / Action Level",
-          value: 21,
-          deltaPercent: 16.7,
-          deltaDirection: "up",
-          comparisonLabel: "vs previous 30 days",
-          variant: "warning"
+          value: alertActionCount,
+          deltaPercent: alertActionCount,
+          deltaDirection: alertActionCount > 0 ? "up" : "down",
+          comparisonLabel: "exceeded alert or action thresholds",
+          variant: alertActionCount > 0 ? "warning" : "default"
         },
-        categoryDistribution: [
-          { category: "FinishedProduct", label: "Finished Product", count: 540, percentage: 42, color: brandColors.badgeProduct },
-          { category: "RawMaterial", label: "Raw Material", count: 321, percentage: 25, color: brandColors.badgeRM },
-          { category: "PackagingMaterial", label: "Packaging Material", count: 154, percentage: 12, color: brandColors.badgePM },
-          { category: "Water", label: "Water", count: 128, percentage: 10, color: "#0891b2" },
-          { category: "EnvironmentalMonitoring", label: "Environmental Monitor", count: 103, percentage: 8, color: "#7c3aed" },
-          { category: "AfterCleaning", label: "After Cleaning", count: 38, percentage: 3, color: "#be185d" }
-        ],
-        testDistribution: [
-          { testCode: "TAMC", testName: "TAMC", count: 420 },
-          { testCode: "TYMC", testName: "TYMC", count: 265 },
-          { testCode: "PATHOGEN_ECOLI", testName: "E. coli", count: 145 },
-          { testCode: "PATHOGEN_PAERUG", testName: "P. aeruginosa", count: 128 },
-          { testCode: "PATHOGEN_SALM", testName: "Salmonella", count: 102 },
-          { testCode: "PATHOGEN_SAUREUS", testName: "S. aureus", count: 95 },
-          { testCode: "OTHER", testName: "Others", count: 129 }
-        ],
-        locationDistribution: [
-          { location: "Production", count: 449, percentage: 35, color: "#7b2d8e" },
-          { location: "Warehouse", count: 321, percentage: 25, color: "#9b3fa8" },
-          { location: "QC Lab", count: 192, percentage: 15, color: "#2563eb" },
-          { location: "Utilities", count: 128, percentage: 10, color: "#0891b2" },
-          { location: "Other", count: 194, percentage: 15, color: "#9ca3af" }
-        ],
-        recentReports: [
-          {
-            id: "REP-2026-00125",
-            name: "Monthly Microbiology Results - Jul 2026",
-            type: "Microbiology",
-            dateGenerated: "15 Aug 2026 10:30",
-            generatedBy: "Amal Hamdy",
-            status: "Final"
-          },
-          {
-            id: "REP-2026-00124",
-            name: "Water Monitoring Report - Jul 2026",
-            type: "Water",
-            dateGenerated: "14 Aug 2026 16:20",
-            generatedBy: "Ahmed Ali",
-            status: "Final"
-          },
-          {
-            id: "REP-2026-00123",
-            name: "Environmental Monitoring - Jul 2026",
-            type: "Environmental",
-            dateGenerated: "13 Aug 2026 09:15",
-            generatedBy: "Amal Hamdy",
-            status: "Final"
-          },
-          {
-            id: "REP-2026-00122",
-            name: "After Cleaning Report - Jul 2026",
-            type: "After Cleaning",
-            dateGenerated: "12 Aug 2026 14:40",
-            generatedBy: "Sara Mohamed",
-            status: "Final"
-          }
-        ],
+        categoryDistribution,
+        testDistribution,
+        locationDistribution,
+        recentReports,
         qualitySignals: {
-          outOfSpecCount: 8,
-          alertActionCount: 21,
-          pendingReviewCount: 14,
-          pendingApprovalCount: 6
+          outOfSpecCount,
+          alertActionCount,
+          pendingReviewCount,
+          pendingApprovalCount
         }
       };
     } catch {
-      // Fallback baseline
       return {
-        totalTests: { title: "Total Tests", value: "1,284", deltaPercent: 12.5, deltaDirection: "up", comparisonLabel: "vs previous 30 days" },
-        approvedResults: { title: "Approved Results", value: "1,182", deltaPercent: 10.3, deltaDirection: "up", comparisonLabel: "vs previous 30 days" },
-        pendingReview: { title: "Pending Review", value: 14, deltaPercent: -12.5, deltaDirection: "down", comparisonLabel: "vs previous 30 days" },
-        pendingApproval: { title: "Pending Approval", value: 6, deltaPercent: -25.0, deltaDirection: "down", comparisonLabel: "vs previous 30 days" },
-        outOfSpec: { title: "Out of Spec", value: 8, deltaPercent: 33.3, deltaDirection: "up", comparisonLabel: "vs previous 30 days", variant: "error" },
-        alertActionLevel: { title: "Alert / Action Level", value: 21, deltaPercent: 16.7, deltaDirection: "up", comparisonLabel: "vs previous 30 days", variant: "warning" },
+        totalTests: { title: "Total Tests", value: "0", deltaPercent: 0, deltaDirection: "up", comparisonLabel: "no data" },
+        approvedResults: { title: "Approved Results", value: "0", deltaPercent: 0, deltaDirection: "up", comparisonLabel: "no data" },
+        pendingReview: { title: "Pending Review", value: 0, deltaPercent: 0, deltaDirection: "down", comparisonLabel: "no data" },
+        pendingApproval: { title: "Pending Approval", value: 0, deltaPercent: 0, deltaDirection: "down", comparisonLabel: "no data" },
+        outOfSpec: { title: "Out of Spec", value: 0, deltaPercent: 0, deltaDirection: "down", comparisonLabel: "no data", variant: "error" },
+        alertActionLevel: { title: "Alert / Action Level", value: 0, deltaPercent: 0, deltaDirection: "down", comparisonLabel: "no data", variant: "warning" },
         categoryDistribution: [],
         testDistribution: [],
         locationDistribution: [],
         recentReports: [],
-        qualitySignals: { outOfSpecCount: 8, alertActionCount: 21, pendingReviewCount: 14, pendingApprovalCount: 6 }
+        qualitySignals: { outOfSpecCount: 0, alertActionCount: 0, pendingReviewCount: 0, pendingApprovalCount: 0 }
       };
     }
   }
 };
+

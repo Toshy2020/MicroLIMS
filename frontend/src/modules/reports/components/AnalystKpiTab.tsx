@@ -117,6 +117,9 @@ export function AnalystKpiTab() {
     return [...data.analystComparison].sort((a, b) => {
       const aVal = a[orderBy];
       const bVal = b[orderBy];
+      if (aVal == null && bVal == null) return 0;
+      if (aVal == null) return 1;
+      if (bVal == null) return -1;
       if (aVal < bVal) return order === "asc" ? -1 : 1;
       if (aVal > bVal) return order === "asc" ? 1 : -1;
       return 0;
@@ -144,27 +147,27 @@ export function AnalystKpiTab() {
       timeliness: {
         avgTestingTatDays: row.avgTestingTatDays,
         medianTestingTatDays: Math.max(1.0, Number((row.avgTestingTatDays - 0.2).toFixed(1))),
-        onTimePercent: row.onTimePercent,
+        onTimePercent: row.onTimePercent != null ? `${row.onTimePercent}%` : "Not Available",
         overdueCount: row.overdue
       },
       quality: {
-        reviewReturns: row.reviewReturns,
-        documentationCorrections: row.docCorrections,
-        calculationCorrections: 0,
+        reviewReturns: row.reviewReturns ?? "Not Available",
+        documentationCorrections: row.docCorrections ?? "Not Available",
+        calculationCorrections: "Not Available",
         missingMandatoryDataCount: 0,
-        firstTimeReviewAcceptanceRate: Number((100 - (row.reviewReturns / row.completed) * 100).toFixed(1)),
-        executionRelatedDeviations: 0
+        firstTimeReviewAcceptanceRate: "Not Available",
+        executionRelatedDeviations: "Not Available"
       },
       compliance: {
-        trainingStatus: "Current / Qualified",
-        competencyStatus: "Current (Annual Evaluation Passed)",
-        sopComplianceIndex: "99.1%",
-        lateEntriesCount: row.overdue
+        trainingStatus: "Not Available",
+        competencyStatus: "Not Available",
+        sopComplianceIndex: "Not Available",
+        lateEntriesCount: "Not Available"
       },
       dataCoverage: {
         totalEvaluatedRecords: row.completed,
-        recordsWithCompleteTimestamps: Math.round(row.completed * 0.96),
-        coveragePercent: 96.0
+        recordsWithCompleteTimestamps: row.completed,
+        coveragePercent: 100.0
       }
     };
   }, [data, selectedAnalystId]);
@@ -368,8 +371,8 @@ export function AnalystKpiTab() {
         {/* Average TAT Trend */}
         <Grid item xs={12} md={3}>
           <Paper sx={{ p: 2.5, height: 320 }}>
-            <Typography sx={{ fontSize: 14, fontWeight: 700, color: theme.palette.primary.main, mb: 1 }}>
-              Average Testing TAT (Days)
+            <Typography sx={{ fontSize: 14, fontWeight: 700, color: theme.palette.primary.main, mb: 1.5 }}>
+              Avg Result Turnaround (Days)
             </Typography>
             <Box sx={{ height: 250 }}>
               <ResponsiveContainer width="100%" height="100%">
@@ -519,7 +522,7 @@ export function AnalystKpiTab() {
               </TableCell>
               <TableCell align="right">
                 <TableSortLabel active={orderBy === "avgTestingTatDays"} direction={orderBy === "avgTestingTatDays" ? order : "asc"} onClick={() => handleRequestSort("avgTestingTatDays")}>
-                  Avg Testing TAT
+                  Avg Result Turnaround
                 </TableSortLabel>
               </TableCell>
               <TableCell align="right">
@@ -556,15 +559,23 @@ export function AnalystKpiTab() {
                     <Chip size="small" label={`${row.workloadUnits} WU`} sx={{ fontSize: 11, height: 20, bgcolor: theme.custom.status.purple.bg, color: theme.custom.status.purple.text, fontWeight: 700 }} />
                   </TableCell>
                   <TableCell align="right">{row.completionRatePercent}%</TableCell>
-                  <TableCell align="right" sx={{ color: row.onTimePercent >= 95 ? theme.custom.status.notDetected.text : theme.custom.status.action.text, fontWeight: 600 }}>
-                    {row.onTimePercent}%
+                  <TableCell align="right">
+                    <Tooltip title="Authoritative analyst on-time completion requires a defined target/SLA and corresponding assignment or due-date data, which is not currently available.">
+                      <Typography component="span" sx={{ fontSize: 11, color: "text.secondary" }}>
+                        {row.onTimePercent != null ? `${row.onTimePercent}%` : "—"}
+                      </Typography>
+                    </Tooltip>
                   </TableCell>
                   <TableCell align="right">{row.avgTestingTatDays} d</TableCell>
-                  <TableCell align="right" sx={{ color: row.reviewReturns > 0 ? theme.custom.status.action.text : "inherit" }}>
-                    {row.reviewReturns}
+                  <TableCell align="right">
+                    <Typography component="span" sx={{ fontSize: 11, color: "text.secondary" }}>
+                      {row.reviewReturns != null ? row.reviewReturns : "—"}
+                    </Typography>
                   </TableCell>
-                  <TableCell align="right" sx={{ color: row.docCorrections > 0 ? theme.custom.status.action.text : "inherit" }}>
-                    {row.docCorrections}
+                  <TableCell align="right">
+                    <Typography component="span" sx={{ fontSize: 11, color: "text.secondary" }}>
+                      {row.docCorrections != null ? row.docCorrections : "—"}
+                    </Typography>
                   </TableCell>
                   <TableCell align="right">{row.pending}</TableCell>
                   <TableCell align="right" sx={{ color: row.overdue > 0 ? theme.custom.status.detected.text : "inherit", fontWeight: row.overdue > 0 ? 700 : 400 }}>
@@ -635,7 +646,7 @@ export function AnalystKpiTab() {
                 </Typography>
                 <Stack spacing={1}>
                   <Box sx={{ display: "flex", justifyContent: "space-between", fontSize: 12 }}>
-                    <Typography sx={{ fontSize: 12, color: "text.secondary" }}>Average Testing TAT:</Typography>
+                    <Typography sx={{ fontSize: 12, color: "text.secondary" }}>Avg Result Turnaround:</Typography>
                     <Typography sx={{ fontSize: 12, fontWeight: 600 }}>{selectedAnalystDetail.timeliness.avgTestingTatDays} Days</Typography>
                   </Box>
                   <Box sx={{ display: "flex", justifyContent: "space-between", fontSize: 12 }}>
@@ -644,9 +655,11 @@ export function AnalystKpiTab() {
                   </Box>
                   <Box sx={{ display: "flex", justifyContent: "space-between", fontSize: 12 }}>
                     <Typography sx={{ fontSize: 12, color: "text.secondary" }}>On-Time Completion:</Typography>
-                    <Typography sx={{ fontSize: 12, fontWeight: 700, color: theme.custom.status.notDetected.text }}>
-                      {selectedAnalystDetail.timeliness.onTimePercent}%
-                    </Typography>
+                    <Tooltip title="Authoritative analyst on-time completion requires a defined target/SLA and corresponding assignment or due-date data, which is not currently available.">
+                      <Typography sx={{ fontSize: 12, fontWeight: 600, color: "text.secondary" }}>
+                        {selectedAnalystDetail.timeliness.onTimePercent}
+                      </Typography>
+                    </Tooltip>
                   </Box>
                   <Box sx={{ display: "flex", justifyContent: "space-between", fontSize: 12 }}>
                     <Typography sx={{ fontSize: 12, color: "text.secondary" }}>Overdue Count:</Typography>
@@ -667,21 +680,21 @@ export function AnalystKpiTab() {
                 <Stack spacing={1}>
                   <Box sx={{ display: "flex", justifyContent: "space-between", fontSize: 12 }}>
                     <Typography sx={{ fontSize: 12, color: "text.secondary" }}>Review Returns:</Typography>
-                    <Typography sx={{ fontSize: 12, fontWeight: 600 }}>{selectedAnalystDetail.quality.reviewReturns}</Typography>
+                    <Typography sx={{ fontSize: 12, fontWeight: 600, color: "text.secondary" }}>{selectedAnalystDetail.quality.reviewReturns}</Typography>
                   </Box>
                   <Box sx={{ display: "flex", justifyContent: "space-between", fontSize: 12 }}>
                     <Typography sx={{ fontSize: 12, color: "text.secondary" }}>Doc Corrections:</Typography>
-                    <Typography sx={{ fontSize: 12, fontWeight: 600 }}>{selectedAnalystDetail.quality.documentationCorrections}</Typography>
+                    <Typography sx={{ fontSize: 12, fontWeight: 600, color: "text.secondary" }}>{selectedAnalystDetail.quality.documentationCorrections}</Typography>
                   </Box>
                   <Box sx={{ display: "flex", justifyContent: "space-between", fontSize: 12 }}>
                     <Typography sx={{ fontSize: 12, color: "text.secondary" }}>First-Time Review Rate:</Typography>
-                    <Typography sx={{ fontSize: 12, fontWeight: 700, color: theme.custom.status.notDetected.text }}>
-                      {selectedAnalystDetail.quality.firstTimeReviewAcceptanceRate}%
+                    <Typography sx={{ fontSize: 12, fontWeight: 600, color: "text.secondary" }}>
+                      {selectedAnalystDetail.quality.firstTimeReviewAcceptanceRate}
                     </Typography>
                   </Box>
                   <Box sx={{ display: "flex", justifyContent: "space-between", fontSize: 12 }}>
                     <Typography sx={{ fontSize: 12, color: "text.secondary" }}>Execution Deviations:</Typography>
-                    <Typography sx={{ fontSize: 12, fontWeight: 600 }}>{selectedAnalystDetail.quality.executionRelatedDeviations}</Typography>
+                    <Typography sx={{ fontSize: 12, fontWeight: 600, color: "text.secondary" }}>{selectedAnalystDetail.quality.executionRelatedDeviations}</Typography>
                   </Box>
                 </Stack>
               </Box>
@@ -696,21 +709,21 @@ export function AnalystKpiTab() {
                 <Stack spacing={1}>
                   <Box sx={{ display: "flex", justifyContent: "space-between", fontSize: 12 }}>
                     <Typography sx={{ fontSize: 12, color: "text.secondary" }}>Training Status:</Typography>
-                    <Typography sx={{ fontSize: 12, fontWeight: 600, color: theme.custom.status.notDetected.text }}>
+                    <Typography sx={{ fontSize: 12, fontWeight: 600, color: "text.secondary" }}>
                       {selectedAnalystDetail.compliance.trainingStatus}
                     </Typography>
                   </Box>
                   <Box sx={{ display: "flex", justifyContent: "space-between", fontSize: 12 }}>
                     <Typography sx={{ fontSize: 12, color: "text.secondary" }}>Competency:</Typography>
-                    <Typography sx={{ fontSize: 12, fontWeight: 600 }}>{selectedAnalystDetail.compliance.competencyStatus}</Typography>
+                    <Typography sx={{ fontSize: 12, fontWeight: 600, color: "text.secondary" }}>{selectedAnalystDetail.compliance.competencyStatus}</Typography>
                   </Box>
                   <Box sx={{ display: "flex", justifyContent: "space-between", fontSize: 12 }}>
                     <Typography sx={{ fontSize: 12, color: "text.secondary" }}>SOP Index:</Typography>
-                    <Typography sx={{ fontSize: 12, fontWeight: 600 }}>{selectedAnalystDetail.compliance.sopComplianceIndex}</Typography>
+                    <Typography sx={{ fontSize: 12, fontWeight: 600, color: "text.secondary" }}>{selectedAnalystDetail.compliance.sopComplianceIndex}</Typography>
                   </Box>
                   <Box sx={{ display: "flex", justifyContent: "space-between", fontSize: 12 }}>
                     <Typography sx={{ fontSize: 12, color: "text.secondary" }}>Late Entries:</Typography>
-                    <Typography sx={{ fontSize: 12, fontWeight: 600 }}>{selectedAnalystDetail.compliance.lateEntriesCount}</Typography>
+                    <Typography sx={{ fontSize: 12, fontWeight: 600, color: "text.secondary" }}>{selectedAnalystDetail.compliance.lateEntriesCount}</Typography>
                   </Box>
                 </Stack>
               </Box>

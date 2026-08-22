@@ -164,6 +164,7 @@ function SampleIdentityCard({ summary: s }: { summary: SampleSummary }) {
         <SummaryField label="Mfg Date" value={formatDate(s.mfgDate)} />
 
         <SummaryField label="Cause of Testing" value={s.causeOfTesting} />
+        <SummaryField label="Assigned Analyst" value={s.assignedAnalystName ?? "Unassigned"} highlight={Boolean(s.assignedAnalystName)} />
         {s.waterSamplingPointCode && (
           <SummaryField label="Sampling Point" value={`${s.waterSamplingPointCode} — ${s.waterSamplingPointLocation}`} />
         )}
@@ -356,6 +357,10 @@ function LocationResultsTable({ locations }: { locations: SampleLocationDetail[]
     if (!l.status) return worst;
     return severityOrder.indexOf(l.status) > severityOrder.indexOf(worst) ? l.status : worst;
   }, "WithinLimits");
+  // Unit comes from the location data (set at result-entry time) - EM/
+  // After Cleaning/Water mix CFU/plate/4 hours, CFU/25 sq.cm, and CFU/mL
+  // depending on sampling method, never a single assumed "CFU".
+  const unit = locations.find((l) => l.unit)?.unit ?? "CFU";
 
   return (
     <Box>
@@ -364,7 +369,7 @@ function LocationResultsTable({ locations }: { locations: SampleLocationDetail[]
           <TableRow>
             <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Location</TableCell>
             <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Limits (Alert / Action / Spec)</TableCell>
-            <TableCell sx={{ fontWeight: 700, fontSize: 12, textAlign: "right" }}>CFU</TableCell>
+            <TableCell sx={{ fontWeight: 700, fontSize: 12, textAlign: "right" }}>{unit}</TableCell>
             <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Reported Result</TableCell>
             <TableCell sx={{ fontWeight: 700, fontSize: 12, textAlign: "center" }}>Status</TableCell>
             <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Entered By</TableCell>

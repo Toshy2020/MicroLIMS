@@ -20,6 +20,9 @@ export const UserService = {
   async getAll(): Promise<UserRecord[]> {
     return (await apiClient.get("/users")).data.data;
   },
+  async getEligibleAnalysts(): Promise<UserRecord[]> {
+    return (await apiClient.get("/users/analysts")).data.data;
+  },
   async getById(id: number): Promise<UserRecord> {
     return (await apiClient.get(`/users/${id}`)).data.data;
   },

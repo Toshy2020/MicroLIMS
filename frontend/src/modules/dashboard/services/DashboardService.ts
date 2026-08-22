@@ -1,12 +1,19 @@
 import { apiClient } from "../../../services/apiClient";
 import {
   DashboardSummary, KpiDeltas, MonthlyTrendPoint, DistributionSlice,
-  NotificationItem, MyTask, MediaExpiryLot, TodaysWorkItem, IncubationOverviewRow, AnalystMetrics
+  NotificationItem, MyTask, MediaExpiryLot, TodaysWorkItem, IncubationOverviewRow, AnalystMetrics,
+  SectionHeadDashboard, ReviewerDashboard
 } from "../types/dashboard";
 
 export const DashboardService = {
   async getSummary(): Promise<DashboardSummary> {
     return (await apiClient.get("/dashboard")).data.data;
+  },
+  async getSectionHeadDashboard(): Promise<SectionHeadDashboard> {
+    return (await apiClient.get("/dashboard/section-head")).data.data;
+  },
+  async getReviewerDashboard(): Promise<ReviewerDashboard> {
+    return (await apiClient.get("/dashboard/reviewer")).data.data;
   },
   async getKpiDeltas(): Promise<KpiDeltas> {
     return (await apiClient.get("/dashboard/kpi-deltas")).data.data;

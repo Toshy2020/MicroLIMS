@@ -62,5 +62,8 @@ public class SampleDto
     // Number correction affordance (see SampleCorrectionService).
     public bool IncubationStarted { get; set; }
 
+    public int? AssignedAnalystId { get; set; }
+    public string? AssignedAnalystName { get; set; }
+
     public List<TestOrderSummaryDto> AssignedTests { get; set; } = new();
 }

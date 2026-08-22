@@ -6,23 +6,18 @@ import { brandColors } from "../theme";
 import { QuickPeriodSelector } from "../modules/reports/components/QuickPeriodSelector";
 import { OverviewTab } from "../modules/reports/components/OverviewTab";
 import { RecordSearchTab } from "../modules/reports/RecordSearchTab";
-import { ReportBuilderTab } from "../modules/reports/components/ReportBuilderTab";
 import { TrendingTab } from "../modules/reports/components/TrendingTab";
-import { SavedReportsTab } from "../modules/reports/components/SavedReportsTab";
 import { AnalystKpiTab } from "../modules/reports/components/AnalystKpiTab";
 import { QuickPeriod, computeQuickPeriodRange, toDateInputValue } from "../modules/reports/utils/dateRange";
-import { ResultRecordItem, SavedReportConfiguration } from "../modules/reports/types/reportingTypes";
 
 const TABS = [
   "Overview",
   "Record Search",
-  "Report Builder",
   "Trending & Analysis",
-  "Saved Reports",
   "KPI / Performance"
 ] as const;
 
-const TAB_KEYS = ["overview", "search", "builder", "trending", "saved", "performance"] as const;
+const TAB_KEYS = ["overview", "search", "trending", "performance"] as const;
 
 export function ReportsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -39,15 +34,20 @@ export function ReportsPage() {
   useEffect(() => {
     if (tabParam) {
       const idx = TAB_KEYS.indexOf(tabParam as any);
-      if (idx >= 0 && idx !== tab) {
-        setTab(idx);
+      const safeTab = idx >= 0 ? idx : 0;
+      if (safeTab !== tab) {
+        setTab(safeTab);
+      }
+      if (idx < 0) {
+        setSearchParams({ tab: TAB_KEYS[0] }, { replace: true });
       }
     }
-  }, [tabParam, tab]);
+  }, [tabParam, tab, setSearchParams]);
 
   const handleTabChange = (newTab: number) => {
-    setTab(newTab);
-    setSearchParams({ tab: TAB_KEYS[newTab] });
+    const safeTab = Math.max(0, Math.min(newTab, TAB_KEYS.length - 1));
+    setTab(safeTab);
+    setSearchParams({ tab: TAB_KEYS[safeTab] });
   };
 
   const [period, setPeriod] = useState<QuickPeriod>("30d");
@@ -55,8 +55,7 @@ export function ReportsPage() {
   const [customFrom, setCustomFrom] = useState(toDateInputValue(new Date(Date.now() - 30 * 86400000)));
   const [customTo, setCustomTo] = useState(toDateInputValue(new Date()));
 
-  // Cross-tab interaction states
-  const [builderRecords, setBuilderRecords] = useState<ResultRecordItem[] | undefined>(undefined);
+  // Cross-tab interaction state for Trending drill-down
   const [trendParams, setTrendParams] = useState<{ testCode?: string; subjectName?: string }>({});
 
   const range = useMemo(() => {
@@ -66,18 +65,9 @@ export function ReportsPage() {
     return computeQuickPeriodRange(period);
   }, [period, customFrom, customTo, defaultRange]);
 
-  const handleBuildReport = (selectedRows: ResultRecordItem[]) => {
-    setBuilderRecords(selectedRows);
-    handleTabChange(2); // Switch to Report Builder
-  };
-
   const handleAnalyzeTrend = (testCode: string, subjectName: string) => {
     setTrendParams({ testCode, subjectName });
-    handleTabChange(3); // Switch to Trending & Analysis
-  };
-
-  const handleRunConfiguration = (config: SavedReportConfiguration) => {
-    handleTabChange(2); // Switch to Report Builder with loaded config
+    handleTabChange(2); // Switch to Trending & Analysis
   };
 
   return (
@@ -117,32 +107,18 @@ export function ReportsPage() {
         <RecordSearchTab
           fromDate={range.fromDate}
           toDate={range.toDate}
-          onBuildReport={handleBuildReport}
           onAnalyzeTrend={handleAnalyzeTrend}
         />
       )}
 
       {tab === 2 && (
-        <ReportBuilderTab
-          preloadedRecords={builderRecords}
-        />
-      )}
-
-      {tab === 3 && (
         <TrendingTab
           initialTestCode={trendParams.testCode}
           initialSubjectName={trendParams.subjectName}
         />
       )}
 
-      {tab === 4 && (
-        <SavedReportsTab
-          onNewReport={() => handleTabChange(2)}
-          onRunConfiguration={handleRunConfiguration}
-        />
-      )}
-
-      {tab === 5 && (
+      {tab === 3 && (
         <AnalystKpiTab />
       )}
     </>

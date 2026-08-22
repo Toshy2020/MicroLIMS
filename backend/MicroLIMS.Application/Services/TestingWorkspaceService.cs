@@ -202,6 +202,8 @@ public class TestingWorkspaceService : ITestWorkspaceService
             StorageCondition = s.StorageCondition,
             StorageTimeHours = s.StorageTimeHours,
             IncubationStarted = sampleIncubations.Count > 0,
+            AssignedAnalystId = assignedTests.FirstOrDefault(t => t.AssignedAnalystId != null)?.AssignedAnalystId,
+            AssignedAnalystName = assignedTests.FirstOrDefault(t => !string.IsNullOrEmpty(t.AssignedAnalystName))?.AssignedAnalystName,
             AssignedTests = assignedTests
         };
     }

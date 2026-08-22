@@ -16,6 +16,8 @@ public record ReceiveItemBasedSampleRequest(
 
 public record CorrectSampleRequest(string? BatchNumber, string? ControlNumber);
 
+public record AssignAnalystRequest(int? AnalystUserId, string? Reason);
+
 [ApiController]
 [Route("api/samples")]
 [Authorize]
@@ -23,11 +25,16 @@ public class SampleController : ControllerBase
 {
     private readonly IReceivingService _receivingService;
     private readonly SampleCorrectionService _correctionService;
+    private readonly SampleAssignmentService _assignmentService;
 
-    public SampleController(IReceivingService receivingService, SampleCorrectionService correctionService)
+    public SampleController(
+        IReceivingService receivingService,
+        SampleCorrectionService correctionService,
+        SampleAssignmentService assignmentService)
     {
         _receivingService = receivingService;
         _correctionService = correctionService;
+        _assignmentService = assignmentService;
     }
 
     private int CurrentUserId => int.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)!.Value);
@@ -57,6 +64,21 @@ public class SampleController : ControllerBase
         try
         {
             var sample = await _correctionService.CorrectAsync(id, request.BatchNumber, request.ControlNumber);
+            return Ok(ApiResponse<object>.Ok(sample));
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(ApiResponse<object>.Fail(ex.Message));
+        }
+    }
+
+    [HttpPut("{id}/assign-analyst")]
+    [Authorize(Roles = RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
+    public async Task<IActionResult> AssignAnalyst(int id, AssignAnalystRequest request)
+    {
+        try
+        {
+            var sample = await _assignmentService.AssignAnalystAsync(id, request.AnalystUserId, CurrentUserId, request.Reason);
             return Ok(ApiResponse<object>.Ok(sample));
         }
         catch (InvalidOperationException ex)

@@ -8,14 +8,40 @@
     <style>
       /* Global print rules used by the Inventory "view and print" pages.
          .no-print hides the topbar/subnav/forms/action buttons.
-         .print-only holds the pre-filtered (expired/out-of-stock or
-         retired equipment excluded) table and is invisible on screen,
+         .print-only holds the pre-filtered table and is invisible on screen,
          shown only when the browser print dialog is triggered. */
       .print-only { display: none; }
       @media print {
+        @page {
+          size: A4 landscape;
+          margin: 10mm 12mm 12mm 12mm;
+        }
+        * {
+          -webkit-print-color-adjust: exact !important;
+          print-color-adjust: exact !important;
+        }
+        html, body, #root, #root > div, main {
+          height: auto !important;
+          min-height: 0 !important;
+          max-height: none !important;
+          overflow: visible !important;
+          position: static !important;
+          background: #fff !important;
+        }
         .no-print { display: none !important; }
         .print-only { display: block !important; }
-        body { background: #fff; }
+        body { background: #fff !important; }
+        table {
+          width: 100% !important;
+          border-collapse: collapse !important;
+        }
+        thead {
+          display: table-header-group !important;
+        }
+        tr {
+          break-inside: avoid !important;
+          page-break-inside: avoid !important;
+        }
       }
     </style>
   </head>

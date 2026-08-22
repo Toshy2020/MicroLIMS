@@ -29,5 +29,10 @@ export const ReceiveService = {
   async correctSample(sampleId: number, batchNumber?: string, controlNumber?: string): Promise<SampleRecord> {
     const res = await apiClient.put(`/samples/${sampleId}/correct`, { batchNumber, controlNumber });
     return res.data.data;
+  },
+
+  async assignAnalyst(sampleId: number, analystUserId: number | null, reason?: string): Promise<SampleRecord> {
+    const res = await apiClient.put(`/samples/${sampleId}/assign-analyst`, { analystUserId, reason });
+    return res.data.data;
   }
 };

@@ -15,6 +15,7 @@ import { SampleFilterBar } from "./components/SampleFilterBar";
 import { SampleRegisterTable } from "./components/SampleRegisterTable";
 import { NewSampleDialog } from "./dialogs/NewSampleDialog";
 import { EditSampleDetailsDialog } from "./dialogs/EditSampleDetailsDialog";
+import { AssignAnalystDialog } from "./dialogs/AssignAnalystDialog";
 import { brandColors } from "../../theme";
 
 export function ReceiveSamplePage() {
@@ -35,6 +36,7 @@ export function ReceiveSamplePage() {
   // Dialogs State
   const [newSampleDialogOpen, setNewSampleDialogOpen] = useState(false);
   const [editSample, setEditSample] = useState<SampleRecord | null>(null);
+  const [assigningSample, setAssigningSample] = useState<SampleRecord | null>(null);
   const [summarySampleId, setSummarySampleId] = useState<number | null>(null);
   const [activeTest, setActiveTest] = useState<TestOrderSummary | null>(null);
   const [activeSampleForTest, setActiveSampleForTest] = useState<any | null>(null);
@@ -328,6 +330,7 @@ export function ReceiveSamplePage() {
           onViewReport={handleViewReport}
           onViewAuditHistory={handleViewAuditHistory}
           onPrepareSample={handlePrepareSample}
+          onAssignAnalyst={(s) => setAssigningSample(s)}
         />
       )}
 
@@ -344,6 +347,17 @@ export function ReceiveSamplePage() {
         sample={editSample}
         onClose={() => setEditSample(null)}
         onSuccess={handleEditSuccess}
+      />
+
+      {/* Assign Analyst Dialog (Section Head & Admin) */}
+      <AssignAnalystDialog
+        open={Boolean(assigningSample)}
+        sample={assigningSample}
+        onClose={() => setAssigningSample(null)}
+        onAssigned={() => {
+          setNotification({ text: "Analyst assignment updated successfully.", severity: "success" });
+          loadRecords();
+        }}
       />
 
       {/* Detailed Sample Summary Dialog */}
@@ -376,7 +390,9 @@ export function ReceiveSamplePage() {
           category: preparingSample.category,
           departmentId: preparingSample.departmentId,
           machineId: preparingSample.machineId,
-          waterDepartmentId: preparingSample.waterDepartmentId
+          waterDepartmentId: preparingSample.waterDepartmentId,
+          assignedAnalystId: preparingSample.assignedAnalystId || preparingSample.assignedTests?.find((t) => t.assignedAnalystId != null)?.assignedAnalystId,
+          assignedAnalystName: preparingSample.assignedAnalystName || preparingSample.assignedTests?.find((t) => t.assignedAnalystName)?.assignedAnalystName
         } : null}
         onClose={() => {
           setPreparingSample(null);

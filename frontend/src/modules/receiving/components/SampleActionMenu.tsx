@@ -15,7 +15,9 @@ import MoreVertIcon from "@mui/icons-material/MoreVert";
 import PictureAsPdfOutlinedIcon from "@mui/icons-material/PictureAsPdfOutlined";
 import HistoryOutlinedIcon from "@mui/icons-material/HistoryOutlined";
 import ScienceOutlinedIcon from "@mui/icons-material/ScienceOutlined";
+import AssignmentIndOutlinedIcon from "@mui/icons-material/AssignmentIndOutlined";
 import { SampleRecord } from "../types/receivingTypes";
+import { useAuth } from "../../../contexts/AuthContext";
 
 interface Props {
   sample: SampleRecord;
@@ -24,6 +26,7 @@ interface Props {
   onViewReport: (sample: SampleRecord) => void;
   onViewAuditHistory: (sample: SampleRecord) => void;
   onPrepareSample: (sample: SampleRecord) => void;
+  onAssignAnalyst?: (sample: SampleRecord) => void;
 }
 
 export function SampleActionMenu({
@@ -32,9 +35,12 @@ export function SampleActionMenu({
   onEdit,
   onViewReport,
   onViewAuditHistory,
-  onPrepareSample
+  onPrepareSample,
+  onAssignAnalyst
 }: Props) {
   const theme = useTheme();
+  const { role } = useAuth();
+  const isAuthorizedToAssign = role === "SectionHead" || role === "SystemAdministrator";
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const isMenuOpen = Boolean(anchorEl);
 
@@ -113,6 +119,20 @@ export function SampleActionMenu({
           }
         }}
       >
+        {isAuthorizedToAssign && onAssignAnalyst && (
+          <MenuItem
+            onClick={() => {
+              handleCloseMenu();
+              onAssignAnalyst(sample);
+            }}
+          >
+            <ListItemIcon>
+              <AssignmentIndOutlinedIcon sx={{ fontSize: 18, color: theme.palette.primary.main }} />
+            </ListItemIcon>
+            <ListItemText primary="Assign Analyst" primaryTypographyProps={{ fontSize: 13, fontWeight: 600 }} />
+          </MenuItem>
+        )}
+
         {needsPreparation && (
           <MenuItem
             onClick={() => {

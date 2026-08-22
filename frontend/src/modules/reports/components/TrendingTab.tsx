@@ -20,6 +20,7 @@ import {
   ResultRecordItem
 } from "../types/reportingTypes";
 import { TrendingService } from "../services/TrendingService";
+import { ReportingService } from "../services/ReportingService";
 import { TrendingDataDialog } from "./TrendingDataDialog";
 import { CompareDialog } from "./CompareDialog";
 import { RecordDetailDialog } from "./RecordDetailDialog";
@@ -31,6 +32,12 @@ interface TrendingTabProps {
 
 export function TrendingTab({ initialTestCode, initialSubjectName }: TrendingTabProps) {
   const theme = useTheme();
+  const [filterOptions, setFilterOptions] = useState<{
+    testCodes: { testCode: string; testDisplayName: string }[];
+    subjectNames: string[];
+    categories: SampleCategory[];
+  }>({ testCodes: [], subjectNames: [], categories: [] });
+
   const [criteria, setCriteria] = useState<TrendingCriteria>({
     testCode: initialTestCode || "TAMC",
     subjectName: initialSubjectName || "Osteocare Liquid",
@@ -51,6 +58,29 @@ export function TrendingTab({ initialTestCode, initialSubjectName }: TrendingTab
   const [compareMode, setCompareMode] = useState<"products" | "locations">("products");
   const [drillDownRecord, setDrillDownRecord] = useState<ResultRecordItem | null>(null);
   const [savedSuccess, setSavedSuccess] = useState(false);
+
+  useEffect(() => {
+    ReportingService.getFilterOptions()
+      .then((opts) => {
+        if (opts) {
+          setFilterOptions({
+            testCodes: opts.testCodes || [],
+            subjectNames: opts.subjectNames || [],
+            categories: (opts.categories || []) as SampleCategory[]
+          });
+          if (opts.testCodes?.length > 0 && !initialTestCode) {
+            const firstTest = opts.testCodes[0].testCode;
+            const firstSubject = opts.subjectNames?.[0] || criteria.subjectName;
+            setCriteria((c) => ({
+              ...c,
+              testCode: firstTest,
+              subjectName: firstSubject
+            }));
+          }
+        }
+      })
+      .catch(() => {});
+  }, [initialTestCode]);
 
   const fetchAnalysis = () => {
     setLoading(true);
@@ -118,10 +148,20 @@ export function TrendingTab({ initialTestCode, initialSubjectName }: TrendingTab
               value={criteria.testCode}
               onChange={(e) => setCriteria((c) => ({ ...c, testCode: e.target.value }))}
             >
-              <MenuItem value="TAMC">TAMC (Total Aerobic Count)</MenuItem>
-              <MenuItem value="TYMC">TYMC (Total Yeast & Mold)</MenuItem>
-              <MenuItem value="WATER_TAMC">Water TAMC (Purified Water)</MenuItem>
-              <MenuItem value="PATHOGEN_ECOLI">E. coli (Pathogen Screening)</MenuItem>
+              {filterOptions.testCodes.length > 0 ? (
+                filterOptions.testCodes.map((t) => (
+                  <MenuItem key={t.testCode} value={t.testCode}>
+                    {t.testDisplayName || t.testCode}
+                  </MenuItem>
+                ))
+              ) : (
+                [
+                  <MenuItem key="TAMC" value="TAMC">TAMC (Total Aerobic Count)</MenuItem>,
+                  <MenuItem key="TYMC" value="TYMC">TYMC (Total Yeast & Mold)</MenuItem>,
+                  <MenuItem key="WATER_TAMC" value="WATER_TAMC">Water TAMC (Purified Water)</MenuItem>,
+                  <MenuItem key="PATHOGEN_ECOLI" value="PATHOGEN_ECOLI">E. coli (Pathogen Screening)</MenuItem>
+                ]
+              )}
             </Select>
           </FormControl>
 
@@ -132,11 +172,21 @@ export function TrendingTab({ initialTestCode, initialSubjectName }: TrendingTab
               value={criteria.subjectName}
               onChange={(e) => setCriteria((c) => ({ ...c, subjectName: e.target.value }))}
             >
-              <MenuItem value="Osteocare Liquid">Osteocare Liquid</MenuItem>
-              <MenuItem value="Feroglobin Syrup">Feroglobin Syrup</MenuItem>
-              <MenuItem value="Honey">Honey (Raw Material)</MenuItem>
-              <MenuItem value="Purified Water">Purified Water (Loop 1)</MenuItem>
-              <MenuItem value="Point W-01">Point W-01 (Utilities)</MenuItem>
+              {filterOptions.subjectNames.length > 0 ? (
+                filterOptions.subjectNames.map((s) => (
+                  <MenuItem key={s} value={s}>
+                    {s}
+                  </MenuItem>
+                ))
+              ) : (
+                [
+                  <MenuItem key="Osteocare Liquid" value="Osteocare Liquid">Osteocare Liquid</MenuItem>,
+                  <MenuItem key="Feroglobin Syrup" value="Feroglobin Syrup">Feroglobin Syrup</MenuItem>,
+                  <MenuItem key="Honey" value="Honey">Honey (Raw Material)</MenuItem>,
+                  <MenuItem key="Purified Water" value="Purified Water">Purified Water (Loop 1)</MenuItem>,
+                  <MenuItem key="Point W-01" value="Point W-01">Point W-01 (Utilities)</MenuItem>
+                ]
+              )}
             </Select>
           </FormControl>
 
@@ -147,10 +197,20 @@ export function TrendingTab({ initialTestCode, initialSubjectName }: TrendingTab
               value={criteria.category ?? ""}
               onChange={(e) => setCriteria((c) => ({ ...c, category: (e.target.value || "") as any }))}
             >
-              <MenuItem value="FinishedProduct">Finished Product</MenuItem>
-              <MenuItem value="RawMaterial">Raw Material</MenuItem>
-              <MenuItem value="Water">Water</MenuItem>
-              <MenuItem value="EnvironmentalMonitoring">Environmental Monitoring</MenuItem>
+              {filterOptions.categories.length > 0 ? (
+                filterOptions.categories.map((cat) => (
+                  <MenuItem key={cat} value={cat}>
+                    {cat}
+                  </MenuItem>
+                ))
+              ) : (
+                [
+                  <MenuItem key="FinishedProduct" value="FinishedProduct">Finished Product</MenuItem>,
+                  <MenuItem key="RawMaterial" value="RawMaterial">Raw Material</MenuItem>,
+                  <MenuItem key="Water" value="Water">Water</MenuItem>,
+                  <MenuItem key="EnvironmentalMonitoring" value="EnvironmentalMonitoring">Environmental Monitoring</MenuItem>
+                ]
+              )}
             </Select>
           </FormControl>
 
@@ -230,18 +290,45 @@ export function TrendingTab({ initialTestCode, initialSubjectName }: TrendingTab
             </Box>
             <Chip
               size="small"
-              label={analysis?.isNumeric ? `Numeric (${analysis?.unit ?? "CFU/mL"})` : "Qualitative (Categorical)"}
-              sx={{ bgcolor: theme.custom.status.pending.bg, color: theme.custom.status.pending.text, fontWeight: 700, fontSize: 11 }}
+              label={
+                analysis?.isNumeric
+                  ? `Live Numeric Trend (${analysis?.unit ?? "CFU/g"})`
+                  : "Development Preview (Qualitative Not in Backend)"
+              }
+              sx={{
+                bgcolor: analysis?.isNumeric ? theme.custom.status.notDetected.bg : theme.custom.status.pending.bg,
+                color: analysis?.isNumeric ? theme.custom.status.notDetected.text : theme.custom.status.pending.text,
+                fontWeight: 700,
+                fontSize: 11
+              }}
             />
           </Box>
 
+          {!analysis?.isNumeric && (
+            <Box sx={{ mt: 1, p: 1.25, bgcolor: "warning.lighter", border: 1, borderColor: "warning.light", borderRadius: 1 }}>
+              <Typography sx={{ fontSize: 12, color: "warning.dark", fontWeight: 600 }}>
+                ⚠️ Qualitative trend mode is not currently supported by the backend. Displaying client-side demonstration model.
+              </Typography>
+            </Box>
+          )}
+
           <Box sx={{ height: 320, width: "100%", mt: 2 }}>
-            <ResponsiveContainer width="100%" height="100%">
-              {analysis?.isNumeric ? (
-                <ComposedChart
-                  data={analysis.numericPoints ?? []}
-                  margin={{ top: 10, right: 30, left: 10, bottom: 25 }}
-                >
+            {analysis?.isNumeric && (!analysis.numericPoints || analysis.numericPoints.length === 0) ? (
+              <Box sx={{ height: "100%", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", bgcolor: "background.default", borderRadius: 1.5, border: 1, borderColor: "divider" }}>
+                <Typography sx={{ fontSize: 14, fontWeight: 600, color: "text.secondary" }}>
+                  No matching records found
+                </Typography>
+                <Typography sx={{ fontSize: 12, color: "text.disabled", mt: 0.5 }}>
+                  No numeric results found for {criteria.testCode} on {criteria.subjectName || "the selected parameter"}.
+                </Typography>
+              </Box>
+            ) : (
+              <ResponsiveContainer width="100%" height="100%">
+                {analysis?.isNumeric ? (
+                  <ComposedChart
+                    data={analysis.numericPoints ?? []}
+                    margin={{ top: 10, right: 30, left: 10, bottom: 25 }}
+                  >
                   <CartesianGrid strokeDasharray="3 3" stroke={theme.palette.divider} />
                   <XAxis dataKey="label" tick={{ fontSize: 11, fill: theme.palette.text.secondary }} />
                   <YAxis
@@ -324,6 +411,7 @@ export function TrendingTab({ initialTestCode, initialSubjectName }: TrendingTab
                 </BarChart>
               )}
             </ResponsiveContainer>
+            )}
           </Box>
         </Paper>
 

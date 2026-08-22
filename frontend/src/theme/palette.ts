@@ -1,5 +1,6 @@
 import { ThemeOptions } from "@mui/material/styles";
 import { statusTonesByMode, countdownTokensByMode } from "./statusTokens";
+import { chromeTokensByMode } from "./chromeTokens";
 
 // Single-hue purple ramp for charts - kept per-mode so the darkest steps
 // (which read fine on the light #f4f6f8 background) don't disappear
@@ -78,7 +79,8 @@ export const lightThemeOptions: ThemeOptions = {
   custom: {
     status: statusTonesByMode.light,
     countdown: countdownTokensByMode.light,
-    chartPalette: chartPaletteByMode.light
+    chartPalette: chartPaletteByMode.light,
+    chrome: chromeTokensByMode.light
   }
 };
 
@@ -120,6 +122,7 @@ export const darkThemeOptions: ThemeOptions = {
   custom: {
     status: statusTonesByMode.dark,
     countdown: countdownTokensByMode.dark,
-    chartPalette: chartPaletteByMode.dark
+    chartPalette: chartPaletteByMode.dark,
+    chrome: chromeTokensByMode.dark
   }
 };

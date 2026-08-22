@@ -299,4 +299,33 @@ public class UserManagementSecurityTests
             Assert.DoesNotContain("SecuredP@ss123!", text);
         }
     }
+
+    [Fact]
+    public async Task Scenario17_GetEligibleAnalysts_ReturnsOnlyActiveUnlockedAnalysts()
+    {
+        var db = CreateDbContext();
+        var (userService, _, _) = CreateServices(db);
+
+        db.Users.AddRange(
+            new User { Id = 10, FullName = "Active Analyst 1", Username = "analyst1", RoleId = 4, IsActive = true, FailedLoginAttempts = 0 },
+            new User { Id = 11, FullName = "Active Analyst 2", Username = "analyst2", RoleId = 4, IsActive = true, FailedLoginAttempts = 0 },
+            new User { Id = 12, FullName = "Disabled Analyst", Username = "analyst_dis", RoleId = 4, IsActive = false },
+            new User { Id = 13, FullName = "Locked Analyst", Username = "analyst_lock", RoleId = 4, IsActive = true, FailedLoginAttempts = 5, LockedUntil = DateTime.UtcNow.AddHours(1) },
+            new User { Id = 14, FullName = "Section Head", Username = "head1", RoleId = 2, IsActive = true },
+            new User { Id = 15, FullName = "Reviewer", Username = "rev1", RoleId = 3, IsActive = true },
+            new User { Id = 16, FullName = "Sys Admin", Username = "admin1", RoleId = 1, IsActive = true }
+        );
+        await db.SaveChangesAsync();
+
+        var eligible = await userService.GetEligibleAnalystsAsync();
+
+        Assert.Equal(2, eligible.Count);
+        Assert.Contains(eligible, u => u.Username == "analyst1");
+        Assert.Contains(eligible, u => u.Username == "analyst2");
+        Assert.DoesNotContain(eligible, u => u.Username == "analyst_dis");
+        Assert.DoesNotContain(eligible, u => u.Username == "analyst_lock");
+        Assert.DoesNotContain(eligible, u => u.Username == "head1");
+        Assert.DoesNotContain(eligible, u => u.Username == "rev1");
+        Assert.DoesNotContain(eligible, u => u.Username == "admin1");
+    }
 }

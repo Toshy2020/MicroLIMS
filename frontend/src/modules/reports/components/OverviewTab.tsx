@@ -3,9 +3,8 @@ import { Grid, Paper, Typography, Box, Stack, Button, Table, TableHead, TableRow
 import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
 import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
 import SearchIcon from "@mui/icons-material/Search";
-import PostAddIcon from "@mui/icons-material/PostAdd";
 import ShowChartIcon from "@mui/icons-material/ShowChart";
-import FolderSharedIcon from "@mui/icons-material/FolderShared";
+import AssessmentIcon from "@mui/icons-material/Assessment";
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
 import HourglassEmptyIcon from "@mui/icons-material/HourglassEmpty";
@@ -75,6 +74,21 @@ export function OverviewTab({ fromDate, toDate, onNavigateTab }: OverviewTabProp
 
   return (
     <Box sx={{ pb: 3 }}>
+      {/* Live Data Header */}
+      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2, flexWrap: "wrap", gap: 1 }}>
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+          <VerifiedUserIcon sx={{ color: theme.custom.status.notDetected.text, fontSize: 18 }} />
+          <Typography sx={{ fontSize: 12.5, fontWeight: 600, color: "text.secondary" }}>
+            Operational Metrics: Aggregated directly from live laboratory ResultRecords
+          </Typography>
+        </Box>
+        <Chip
+          size="small"
+          label="Live Database Data"
+          sx={{ bgcolor: theme.custom.status.notDetected.bg, color: theme.custom.status.notDetected.text, fontSize: 11, fontWeight: 700 }}
+        />
+      </Box>
+
       {/* Top 6 KPI Cards */}
       <Grid container spacing={2} sx={{ mb: 2.5 }}>
         <Grid item xs={12} sm={6} md={2}>
@@ -105,52 +119,66 @@ export function OverviewTab({ fromDate, toDate, onNavigateTab }: OverviewTabProp
             <Typography sx={{ fontSize: 14, fontWeight: 700, color: theme.palette.primary.main, mb: 1 }}>
               Results by Category
             </Typography>
-            <Box sx={{ display: "flex", alignItems: "center", flex: 1 }}>
-              <Box sx={{ width: "50%", height: 220, position: "relative" }}>
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={data.categoryDistribution}
-                      dataKey="count"
-                      nameKey="label"
-                      innerRadius={55}
-                      outerRadius={80}
-                      paddingAngle={2}
-                    >
-                      {data.categoryDistribution.map((entry, idx) => (
-                        <Cell key={idx} fill={entry.color} />
-                      ))}
-                    </Pie>
-                    <RechartsTooltip formatter={(val: number, name: string) => [`${val} tests`, name]} />
-                  </PieChart>
-                </ResponsiveContainer>
-                <Box sx={{
-                  position: "absolute", top: "50%", left: "50%", transform: "translate(-50%, -50%)",
-                  textAlign: "center", pointerEvents: "none"
-                }}>
-                  <Typography sx={{ fontSize: 16, fontWeight: 800, color: theme.palette.primary.main, lineHeight: 1 }}>
-                    1,284
-                  </Typography>
-                  <Typography sx={{ fontSize: 10, color: "text.secondary" }}>Total</Typography>
+            {data.categoryDistribution.length === 0 ? (
+              <Box sx={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <Typography sx={{ fontSize: 13, color: "text.disabled" }}>No matching records found</Typography>
+              </Box>
+            ) : (
+              <Box sx={{ display: "flex", alignItems: "center", flex: 1 }}>
+                <Box sx={{ width: "50%", height: 220, position: "relative" }}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={data.categoryDistribution}
+                        dataKey="count"
+                        nameKey="label"
+                        innerRadius={55}
+                        outerRadius={80}
+                        paddingAngle={2}
+                      >
+                        {data.categoryDistribution.map((entry, idx) => (
+                          <Cell key={idx} fill={entry.color} />
+                        ))}
+                      </Pie>
+                      <RechartsTooltip />
+                    </PieChart>
+                  </ResponsiveContainer>
+                  <Box
+                    sx={{
+                      position: "absolute",
+                      top: "50%",
+                      left: "50%",
+                      transform: "translate(-50%, -50%)",
+                      textAlign: "center"
+                    }}
+                  >
+                    <Typography sx={{ fontSize: 18, fontWeight: 800, color: "text.primary", lineHeight: 1 }}>
+                      {data.totalTests.value}
+                    </Typography>
+                    <Typography sx={{ fontSize: 10, color: "text.secondary", fontWeight: 600 }}>
+                      TOTAL
+                    </Typography>
+                  </Box>
+                </Box>
+                <Box sx={{ width: "50%", pl: 1 }}>
+                  <Stack spacing={0.75}>
+                    {data.categoryDistribution.map((cat: any) => (
+                      <Box key={cat.category} sx={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                        <Box sx={{ display: "flex", alignItems: "center", gap: 0.75 }}>
+                          <Box sx={{ width: 8, height: 8, borderRadius: "50%", bgcolor: cat.color }} />
+                          <Typography sx={{ fontSize: 11, color: "text.secondary" }} noWrap>
+                            {cat.label}
+                          </Typography>
+                        </Box>
+                        <Typography sx={{ fontSize: 11, fontWeight: 700 }}>
+                          {cat.percentage}%
+                        </Typography>
+                      </Box>
+                    ))}
+                  </Stack>
                 </Box>
               </Box>
-
-              <Box sx={{ width: "50%", pl: 1 }}>
-                <Stack spacing={0.75}>
-                  {data.categoryDistribution.map((item, idx) => (
-                    <Box key={idx} sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", fontSize: 11.5 }}>
-                      <Box sx={{ display: "flex", alignItems: "center", gap: 0.75, minWidth: 0 }}>
-                        <Box sx={{ width: 8, height: 8, borderRadius: "50%", bgcolor: item.color, flexShrink: 0 }} />
-                        <Typography sx={{ fontSize: 11.5, color: "text.secondary" }} noWrap>{item.label}</Typography>
-                      </Box>
-                      <Typography sx={{ fontSize: 11.5, fontWeight: 600 }}>
-                        {item.percentage}% ({item.count})
-                      </Typography>
-                    </Box>
-                  ))}
-                </Stack>
-              </Box>
-            </Box>
+            )}
           </Paper>
         </Grid>
 
@@ -241,23 +269,23 @@ export function OverviewTab({ fromDate, toDate, onNavigateTab }: OverviewTabProp
           <Paper sx={{ p: 2.5, height: "100%" }}>
             <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1.5 }}>
               <Typography sx={{ fontSize: 14, fontWeight: 700, color: theme.palette.primary.main }}>
-                Recent Reports
+                Recent Activity
               </Typography>
-              <Button size="small" onClick={() => onNavigateTab(4)}>View All</Button>
+              <Button size="small" onClick={() => onNavigateTab(1)}>View in Search</Button>
             </Box>
             <Table size="small" sx={{ "& th": { fontWeight: 700, fontSize: 11.5 }, "& td": { fontSize: 12 } }}>
               <TableHead>
                 <TableRow>
-                  <TableCell>Report Name</TableCell>
+                  <TableCell>Record</TableCell>
                   <TableCell>Type</TableCell>
-                  <TableCell>Date Generated</TableCell>
-                  <TableCell>Generated By</TableCell>
+                  <TableCell>Date Entered</TableCell>
+                  <TableCell>Entered By</TableCell>
                   <TableCell>Status</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
                 {data.recentReports.map((r) => (
-                  <TableRow key={r.id} hover sx={{ cursor: "pointer" }} onClick={() => onNavigateTab(4)}>
+                  <TableRow key={r.id} hover sx={{ cursor: "pointer" }} onClick={() => onNavigateTab(1)}>
                     <TableCell sx={{ fontWeight: 600, color: theme.palette.primary.main }}>{r.name}</TableCell>
                     <TableCell>{r.type}</TableCell>
                     <TableCell sx={{ color: "text.secondary" }}>{r.dateGenerated}</TableCell>
@@ -341,17 +369,8 @@ export function OverviewTab({ fromDate, toDate, onNavigateTab }: OverviewTabProp
               <Button
                 variant="outlined"
                 fullWidth
-                startIcon={<PostAddIcon />}
-                onClick={() => onNavigateTab(2)}
-                sx={{ justifyContent: "flex-start", py: 1 }}
-              >
-                Build Report
-              </Button>
-              <Button
-                variant="outlined"
-                fullWidth
                 startIcon={<ShowChartIcon />}
-                onClick={() => onNavigateTab(3)}
+                onClick={() => onNavigateTab(2)}
                 sx={{ justifyContent: "flex-start", py: 1 }}
               >
                 Trending & Analysis
@@ -359,11 +378,11 @@ export function OverviewTab({ fromDate, toDate, onNavigateTab }: OverviewTabProp
               <Button
                 variant="outlined"
                 fullWidth
-                startIcon={<FolderSharedIcon />}
-                onClick={() => onNavigateTab(4)}
+                startIcon={<AssessmentIcon />}
+                onClick={() => onNavigateTab(3)}
                 sx={{ justifyContent: "flex-start", py: 1 }}
               >
-                Saved Reports
+                KPI / Performance
               </Button>
             </Stack>
           </Paper>

@@ -16,72 +16,107 @@ import {
  */
 export const TrendingService = {
   async getAnalysis(criteria: TrendingCriteria): Promise<TrendAnalysisResult> {
-    const isQualitative = criteria.testCode.toUpperCase().includes("PATHOGEN") ||
-                          criteria.testCode.toUpperCase().includes("ECOLI") ||
-                          criteria.testCode.toUpperCase().includes("SALM") ||
-                          criteria.testCode.toUpperCase().includes("PAERUG") ||
-                          criteria.testCode.toUpperCase().includes("SAUREUS");
+    const isQualitative =
+      criteria.testCode.toUpperCase().includes("PATHOGEN") ||
+      criteria.testCode.toUpperCase().includes("ECOLI") ||
+      criteria.testCode.toUpperCase().includes("SALM") ||
+      criteria.testCode.toUpperCase().includes("PAERUG") ||
+      criteria.testCode.toUpperCase().includes("SAUREUS");
 
     if (isQualitative) {
       return getQualitativeTrend(criteria);
     }
 
-    // Try calling backend trend endpoint
+    // Call real backend trend endpoint
     try {
       const res = await apiClient.get<{ success: boolean; data: any }>("/reporting/trend", {
         params: {
           testCode: criteria.testCode || "TAMC",
-          subjectName: criteria.subjectName || "Osteocare Liquid"
+          subjectName: criteria.subjectName || undefined
         }
       }).catch(() => null);
 
-      if (res?.data?.data?.points && res.data.data.points.length > 0) {
+      if (res?.data?.data) {
         const backendData = res.data.data;
-        const pts: NumericTrendPoint[] = backendData.points.map((p: any, idx: number) => ({
+        const pts: NumericTrendPoint[] = (backendData.points || []).map((p: any, idx: number) => ({
           date: p.date,
           label: formatMonthLabel(p.date),
           value: p.numericValue,
           reportedValue: p.reportedValue,
-          mean: backendData.statistics?.mean ?? 8.3,
-          upperLimit: p.specLimit ? parseLimitNumber(p.specLimit) : 100,
+          mean: backendData.statistics?.mean ?? 0,
+          upperLimit: p.specLimit ? parseLimitNumber(p.specLimit) : null,
           lowerLimit: 0,
-          alertLevel: p.alertLimit ? parseLimitNumber(p.alertLimit) : 50,
-          actionLevel: p.actionLimit ? parseLimitNumber(p.actionLimit) : 80,
+          alertLevel: p.alertLimit ? parseLimitNumber(p.alertLimit) : null,
+          actionLevel: p.actionLimit ? parseLimitNumber(p.actionLimit) : null,
           resultLevel: p.resultLevel ?? "WithinLimit",
-          referenceNumber: `REC-${idx + 100}`,
+          referenceNumber: p.referenceNumber || `REC-${idx + 100}`,
           recordId: idx + 1
         }));
 
+        const numericValues = pts.map((p) => p.value).filter((v): v is number => v != null);
+        const count = pts.length;
+        const oosCount = pts.filter((p) => p.resultLevel === "OutOfSpecification").length;
+        const alertCount = pts.filter((p) => p.resultLevel === "AlertLevel").length;
+        const actionCount = pts.filter((p) => p.resultLevel === "ActionLevel").length;
+        const withinSpecCount = pts.filter((p) => p.resultLevel === "WithinLimit").length;
+
         const stats: NumericStatisticsSummary = {
-          numberOfResults: pts.length,
-          minimum: backendData.statistics?.min != null ? `${backendData.statistics.min}` : "< 1",
-          maximum: backendData.statistics?.max != null ? `${backendData.statistics.max}` : "48",
-          mean: backendData.statistics?.mean != null ? Number(backendData.statistics.mean).toFixed(1) : "8.3",
-          median: "6",
-          standardDeviation: backendData.statistics?.standardDeviation != null ? Number(backendData.statistics.standardDeviation).toFixed(1) : "12.1",
-          percentWithinSpec: 91.7,
-          percentAlertLevel: 8.3,
-          percentActionLevel: 0,
-          outOfSpecCount: 0
+          numberOfResults: count,
+          minimum: backendData.statistics?.min != null ? `${backendData.statistics.min}` : (count > 0 ? "< 1" : "—"),
+          maximum: backendData.statistics?.max != null ? `${backendData.statistics.max}` : (count > 0 ? "—" : "—"),
+          mean: backendData.statistics?.mean != null ? Number(backendData.statistics.mean).toFixed(1) : "—",
+          median: calculateMedian(numericValues),
+          standardDeviation: backendData.statistics?.standardDeviation != null ? Number(backendData.statistics.standardDeviation).toFixed(1) : "—",
+          percentWithinSpec: count > 0 ? Number(((withinSpecCount / count) * 100).toFixed(1)) : 0,
+          percentAlertLevel: count > 0 ? Number(((alertCount / count) * 100).toFixed(1)) : 0,
+          percentActionLevel: count > 0 ? Number(((actionCount / count) * 100).toFixed(1)) : 0,
+          outOfSpecCount: oosCount
         };
 
         return {
           isNumeric: true,
           testCode: backendData.testCode,
-          testDisplayName: backendData.testDisplayName,
+          testDisplayName: backendData.testDisplayName || backendData.testCode,
           subjectName: backendData.subjectName,
-          unit: backendData.unit ?? "CFU/mL",
+          unit: backendData.unit ?? "CFU/g",
           numericPoints: pts,
           numericStats: stats
         };
       }
     } catch {
-      // fallback to structured mock data
+      // Return empty real result
     }
 
-    return getMockNumericTrend(criteria);
+    return {
+      isNumeric: true,
+      testCode: criteria.testCode || "TAMC",
+      testDisplayName: criteria.testCode || "TAMC",
+      subjectName: criteria.subjectName || "",
+      unit: "CFU/g",
+      numericPoints: [],
+      numericStats: {
+        numberOfResults: 0,
+        minimum: "—",
+        maximum: "—",
+        mean: "—",
+        median: "—",
+        standardDeviation: "—",
+        percentWithinSpec: 0,
+        percentAlertLevel: 0,
+        percentActionLevel: 0,
+        outOfSpecCount: 0
+      }
+    };
   }
 };
+
+function calculateMedian(values: number[]): string {
+  if (values.length === 0) return "—";
+  const sorted = [...values].sort((a, b) => a - b);
+  const mid = Math.floor(sorted.length / 2);
+  const median = sorted.length % 2 !== 0 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
+  return Number(median.toFixed(1)).toString();
+}
 
 function parseLimitNumber(limitStr: string): number | null {
   const match = limitStr.match(/\d+(\.\d+)?/);

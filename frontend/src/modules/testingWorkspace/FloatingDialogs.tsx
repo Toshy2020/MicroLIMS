@@ -29,7 +29,13 @@ export function TestWorkflowDialogRouter({ open, test, sample, onClose }: Props)
 
   return (
     <FloatingDialog open={open} title={title} onClose={onClose}>
-      <TestWorkflowDialog testOrderId={test.testOrderId} testCode={test.testCode} category={sample.category} displayName={sample.displayName} />
+      <TestWorkflowDialog
+        testOrderId={test.testOrderId}
+        testCode={test.testCode}
+        category={sample.category}
+        displayName={sample.displayName}
+        onClose={onClose}
+      />
     </FloatingDialog>
   );
 }

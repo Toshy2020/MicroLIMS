@@ -65,7 +65,11 @@ export function AnalystDashboardPage() {
       <AnalystWorkSummary
         tasks={tasks ?? []}
         readyToReadCount={summary.readyToReadCount}
-        onSelectCategory={() => navigate("/testing-workspace")}
+        onSelectCategory={(cat) => {
+          if (cat === "Overdue") navigate("/testing-workspace?scope=mine&urgency=overdue");
+          else if (cat === "ReadyToRead") navigate("/testing-workspace?scope=mine&testStatus=ReadyToRead");
+          else navigate("/testing-workspace?scope=mine");
+        }}
       />
 
       {/* Tier 2: Action Required by Analyst */}

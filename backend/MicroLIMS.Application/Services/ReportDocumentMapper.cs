@@ -252,11 +252,16 @@ public static class ReportDocumentMapper
         // columns exactly (Location / Limits / CFU / Reported / Status / Entered By).
         if (t.Locations.Count > 0)
         {
+            // Unit comes from the location data (TestWorkflowEngine.
+            // DeriveBatchLocationUnit) - EM/After Cleaning/Water mix
+            // CFU/plate/4 hours, CFU/25 sq.cm, and CFU/mL depending on
+            // sampling method; never assume one unit for the whole report.
+            var unit = t.Locations.FirstOrDefault(l => l.Unit is not null)?.Unit ?? "CFU";
             card.TableColumns = new()
             {
                 new("Location", 0.20),
                 new("Limits (Alert/Action/Spec)", 0.22),
-                new("CFU", 0.08),
+                new(unit, 0.08),
                 new("Reported", 0.10),
                 new("Status", 0.16),
                 new("Entered By", 0.24)

@@ -26,8 +26,12 @@ export function ActionRequiredPanel({ tasks, loading }: ActionRequiredPanelProps
   const handleActionClick = (task: MyTask) => {
     if (task.mediaId) {
       navigate("/laboratory-configuration/media");
+    } else if (task.sampleId && task.testOrderId) {
+      navigate(`/testing-workspace?sampleId=${task.sampleId}&testOrderId=${task.testOrderId}`);
+    } else if (task.sampleId) {
+      navigate(`/testing-workspace?sampleId=${task.sampleId}`);
     } else {
-      navigate("/testing-workspace");
+      navigate("/testing-workspace?scope=mine");
     }
   };
 

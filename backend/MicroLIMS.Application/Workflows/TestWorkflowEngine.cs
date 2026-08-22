@@ -907,6 +907,7 @@ public class TestWorkflowEngine : ITestWorkflowEngine
             location.ActionLimit = actionLimit;
             location.SpecLimit = specLimit;
             location.Status = status;
+            location.Unit = DeriveBatchLocationUnit(location);
             location.EnteredAt = DateTime.UtcNow;
             location.EnteredByUserId = userId;
 
@@ -1006,6 +1007,7 @@ public class TestWorkflowEngine : ITestWorkflowEngine
             location.ActionLimit = actionLimit;
             location.SpecLimit = specLimit;
             location.Status = status;
+            location.Unit = DeriveBatchLocationUnit(location);
             location.EnteredAt = DateTime.UtcNow;
             location.EnteredByUserId = userId;
 
@@ -1106,6 +1108,29 @@ public class TestWorkflowEngine : ITestWorkflowEngine
 
     private static string LocationName(SampleLocation l) =>
         l.RoomTestConfiguration?.Room?.Name ?? l.MachinePartConfiguration?.MachinePart?.Name ?? l.WaterSamplingPoint?.Code ?? $"Location {l.Id}";
+
+    // Batch (SampleLocation) unit derivation for EM/After Cleaning/Water -
+    // distinct from GetCfuUnit, which derives the non-batch CountTestReading
+    // unit from SamplePreparation.Unit. Batch locations never have a
+    // SamplePreparation row (verified: 0 across every Water/EM/AC batch
+    // sample), so the unit has to come from what was actually sampled -
+    // RoomTestConfiguration.TestType / MachinePartConfiguration.TestType -
+    // per QC Microbiology Supervisor sign-off (2026-08-22). Only called for
+    // quantitative (CFU) locations; pathogen (Detected/Absent) locations
+    // never call this and keep Unit = null.
+    private static string DeriveBatchLocationUnit(SampleLocation location) => location switch
+    {
+        { RoomTestConfiguration.TestType: "PassiveAirSample" } => "CFU/plate/4 hours",
+        { RoomTestConfiguration.TestType: "SurfaceAirSample" } => "CFU/25 sq.cm",
+        { MachinePartConfiguration.TestType: "Swab" } => "CFU/25 sq.cm",
+        { MachinePartConfiguration.TestType: "Rinse" } => "CFU/mL",
+        { WaterSamplingPointId: not null } => "CFU/mL",
+        _ => throw new InvalidOperationException(
+            $"No unit mapping for SampleLocation {location.Id} " +
+            $"(RoomTestConfiguration.TestType={location.RoomTestConfiguration?.TestType ?? "-"}, " +
+            $"MachinePartConfiguration.TestType={location.MachinePartConfiguration?.TestType ?? "-"}). " +
+            "Add it to DeriveBatchLocationUnit rather than guessing.")
+    };
 
     private static int StatusSeverity(string status) => status switch
     {

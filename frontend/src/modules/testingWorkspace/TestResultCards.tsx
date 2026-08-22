@@ -119,6 +119,10 @@ function IncubationStages({ incubations }: { incubations: IncubationDetail[] }) 
 // always rendering, so every column (Limits, CFU, Reported Result,
 // Status, Entered By) stays reachable.
 function FullLocationTable({ locations }: { locations: SampleLocationDetail[] }) {
+  // Unit comes from the location data (set at result-entry time) - EM/
+  // After Cleaning/Water mix CFU/plate/4 hours, CFU/25 sq.cm, and CFU/mL
+  // depending on sampling method, never a single assumed "CFU".
+  const unit = locations.find((l) => l.unit)?.unit ?? "CFU";
   return (
     <div className="location-table-wrap" style={{ border: "1px solid var(--color-border)", borderRadius: 8 }}>
       <table className="location-table">
@@ -126,7 +130,7 @@ function FullLocationTable({ locations }: { locations: SampleLocationDetail[] })
           <tr>
             <th>Location</th>
             <th>Limits (Alert/Action/Spec)</th>
-            <th>CFU</th>
+            <th>{unit}</th>
             <th>Reported Result</th>
             <th>Status</th>
             <th>Entered By</th>
@@ -338,7 +342,7 @@ function CountTestCard({ test }: { test: TestOrderSummaryDetail }) {
                 const value = l.cfuResult ?? l.calculatedResult ?? "—";
                 return (
                   <span key={i} className={`result-pill ${conform ? "" : "is-danger"}`}>
-                    {l.locationName}: {value} CFU
+                    {l.locationName}: {value} {l.unit ?? "CFU"}
                   </span>
                 );
               })}

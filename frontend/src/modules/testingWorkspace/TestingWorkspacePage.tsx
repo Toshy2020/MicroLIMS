@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import {
   Box,
   Paper,
@@ -49,6 +50,7 @@ function exportToCsv(samples: SampleCardType[]) {
 export function TestingWorkspacePage() {
   const theme = useTheme();
   const { userId } = useAuth();
+  const [searchParams] = useSearchParams();
   const [samples, setSamples] = useState<SampleCardType[] | null>(null);
 
   // Selected sample for split-pane view
@@ -69,9 +71,13 @@ export function TestingWorkspacePage() {
   const [toDate, setToDate] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [testStatusFilter, setTestStatusFilter] = useState("");
+  const [analystIdFilter, setAnalystIdFilter] = useState<number | null>(null);
+  const [urgencyFilter, setUrgencyFilter] = useState<string>("");
   const [scope, setScope] = useState<"all" | "mine">("all");
   const [view, setView] = useState<WorkspaceView>("table");
   const [visibleColumns, setVisibleColumns] = useState<Set<string>>(new Set(ALL_COLUMN_KEYS));
+
+  const processedDeepLinkKeyRef = useRef<string | null>(null);
 
   const load = () => WorkspaceService.getActiveSamples().then(setSamples);
 
@@ -79,9 +85,62 @@ export function TestingWorkspacePage() {
     load();
   }, []);
 
+  // Parse URL query parameters for deep-linking
+  useEffect(() => {
+    if (!samples) return;
+    const paramSampleId = searchParams.get("sampleId");
+    const paramTestOrderId = searchParams.get("testOrderId");
+    const paramOpenSummary = searchParams.get("openSummary");
+    const paramStatus = searchParams.get("status");
+    const paramTestStatus = searchParams.get("testStatus");
+    const paramAnalystId = searchParams.get("analystId");
+    const paramUrgency = searchParams.get("urgency");
+    const paramScope = searchParams.get("scope");
+    const paramView = searchParams.get("view");
+    const paramSearch = searchParams.get("search");
+
+    if (paramStatus) setStatusFilter(paramStatus);
+    if (paramTestStatus) setTestStatusFilter(paramTestStatus);
+    if (paramAnalystId) setAnalystIdFilter(Number(paramAnalystId));
+    if (paramUrgency) setUrgencyFilter(paramUrgency);
+    if (paramScope === "mine" || paramScope === "all") setScope(paramScope);
+    if (paramView === "table" || paramView === "card" || paramView === "kanban") setView(paramView);
+    if (paramSearch) setSearch(paramSearch);
+
+    const currentDeepLinkKey = `${paramSampleId ?? ""}:${paramTestOrderId ?? ""}:${paramOpenSummary ?? ""}`;
+
+    // Prevent reopening modals when samples are refreshed after completing a workflow
+    if (processedDeepLinkKeyRef.current === currentDeepLinkKey) {
+      return;
+    }
+    processedDeepLinkKeyRef.current = currentDeepLinkKey;
+
+    if (paramSampleId) {
+      const sId = Number(paramSampleId);
+      setSelectedSampleId(sId);
+      if (paramOpenSummary === "true") {
+        setSummarySampleId(sId);
+      }
+    }
+
+    if (paramTestOrderId) {
+      const tId = Number(paramTestOrderId);
+      for (const sample of samples) {
+        const foundTest = sample.assignedTests.find((t) => t.testOrderId === tId);
+        if (foundTest) {
+          setSelectedSampleId(sample.sampleId);
+          setActiveTest(foundTest);
+          setActiveSample(sample);
+          break;
+        }
+      }
+    }
+  }, [samples, searchParams]);
+
   const visibleSamples = useMemo(() => {
     if (!samples) return samples;
     const q = search.trim().toLowerCase();
+    const now = Date.now();
     return samples.filter((s) => {
       if (
         q &&
@@ -97,10 +156,15 @@ export function TestingWorkspacePage() {
       if (toDate && receivedDate > toDate) return false;
       if (statusFilter && s.status !== statusFilter) return false;
       if (testStatusFilter && !s.assignedTests.some((t) => t.status === testStatusFilter)) return false;
+      if (analystIdFilter && !s.assignedTests.some((t) => t.assignedAnalystId === analystIdFilter)) return false;
+      if (urgencyFilter === "overdue") {
+        const isOverdue = (now - new Date(s.receivedAt).getTime()) > 24 * 3600 * 1000;
+        if (!isOverdue) return false;
+      }
       if (scope === "mine" && !s.assignedTests.some((t) => t.assignedAnalystId === userId)) return false;
       return true;
     });
-  }, [samples, search, fromDate, toDate, statusFilter, testStatusFilter, scope, userId]);
+  }, [samples, search, fromDate, toDate, statusFilter, testStatusFilter, analystIdFilter, urgencyFilter, scope, userId]);
 
   // Derive the currently selected sample object from latest loaded samples
   const selectedSample = useMemo(() => {
@@ -125,6 +189,7 @@ export function TestingWorkspacePage() {
 
   const handleCloseTestWorkflow = () => {
     setActiveTest(null);
+    setActiveSample(null);
     load(); // Refresh statuses after workflow interaction
   };
 

@@ -1,12 +1,18 @@
 import { useEffect, useState } from "react";
-import { Box, Select, MenuItem, TextField, Button, Alert } from "@mui/material";
+import { Box, Select, MenuItem, TextField, Button, Alert, Typography } from "@mui/material";
 import { SamplePreparationService } from "./services/SamplePreparationService";
 import { masterDataOptions } from "../../services/masterDataOptions";
+import { useAuth } from "../../contexts/AuthContext";
 
 const UNITS = ["ml", "gm", "bottle", "cap", "25cm2"];
 
 interface Props {
-  sample: { sampleId: number; category: string };
+  sample: {
+    sampleId: number;
+    category: string;
+    assignedAnalystId?: number | null;
+    assignedAnalystName?: string | null;
+  };
   onSaved: () => void;
 }
 
@@ -16,11 +22,18 @@ interface Props {
 // "Start Testing" since completing it also auto-assigns the preparer as
 // analyst on every Waiting test order for this sample.
 export function TestPreparationForm({ sample, onSaved }: Props) {
+  const { userId, role } = useAuth();
   const [diluentTypes, setDiluentTypes] = useState<any[]>([]);
   const [releasedMedia, setReleasedMedia] = useState<any[]>([]);
   const [neutralizers, setNeutralizers] = useState<any[]>([]);
   const [form, setForm] = useState<Record<string, any>>({ technique: "PourPlate", unit: "ml" });
   const [message, setMessage] = useState<{ text: string; ok: boolean } | null>(null);
+
+  const isAssignedToOther =
+    Boolean(sample.assignedAnalystId) &&
+    sample.assignedAnalystId !== userId &&
+    role !== "SectionHead" &&
+    role !== "SystemAdministrator";
 
   useEffect(() => {
     masterDataOptions.getDiluentTypes().then(setDiluentTypes);
@@ -57,13 +70,21 @@ export function TestPreparationForm({ sample, onSaved }: Props) {
 
   return (
     <Box>
+      {isAssignedToOther && (
+        <Alert severity="warning" sx={{ mb: 2, fontSize: 13 }}>
+          <strong>Sample Assignment Rule:</strong> This sample is currently assigned to{" "}
+          <strong>{sample.assignedAnalystName || `User #${sample.assignedAnalystId}`}</strong>.
+          Only the designated analyst may prepare this sample, unless reassigned by an authorized Section Head.
+        </Alert>
+      )}
+
       {message && <Alert severity={message.ok ? "success" : "error"} sx={{ mb: 2 }}>{message.text}</Alert>}
       <Box sx={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 2 }}>
-        <TextField label="Sample Amount" value={form.amount ?? ""} onChange={(e) => setField("amount", e.target.value)} />
-        <Select value={form.unit} onChange={(e) => setField("unit", e.target.value)}>
+        <TextField label="Sample Amount" value={form.amount ?? ""} onChange={(e) => setField("amount", e.target.value)} disabled={isAssignedToOther} />
+        <Select value={form.unit} onChange={(e) => setField("unit", e.target.value)} disabled={isAssignedToOther}>
           {UNITS.map((u) => <MenuItem key={u} value={u}>{u}</MenuItem>)}
         </Select>
-        <Select value={form.technique} onChange={(e) => setField("technique", e.target.value)}>
+        <Select value={form.technique} onChange={(e) => setField("technique", e.target.value)} disabled={isAssignedToOther}>
           <MenuItem value="PourPlate">Pour Plate</MenuItem>
           <MenuItem value="Filtration">Filtration</MenuItem>
         </Select>
@@ -71,18 +92,18 @@ export function TestPreparationForm({ sample, onSaved }: Props) {
 
       {form.technique === "Filtration" && (
         <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 2, mt: 2 }}>
-          <TextField label="Filtration Volume (ml)" value={form.filtrationVolume ?? ""} onChange={(e) => setField("filtrationVolume", e.target.value)} />
-          <TextField label="Washing Volume (ml)" value={form.washingVolume ?? ""} onChange={(e) => setField("washingVolume", e.target.value)} />
+          <TextField label="Filtration Volume (ml)" value={form.filtrationVolume ?? ""} onChange={(e) => setField("filtrationVolume", e.target.value)} disabled={isAssignedToOther} />
+          <TextField label="Washing Volume (ml)" value={form.washingVolume ?? ""} onChange={(e) => setField("washingVolume", e.target.value)} disabled={isAssignedToOther} />
         </Box>
       )}
 
       <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 2, mt: 2 }}>
-        <Select displayEmpty value={form.diluentTypeId ?? ""} onChange={(e) => setField("diluentTypeId", e.target.value)}>
+        <Select displayEmpty value={form.diluentTypeId ?? ""} onChange={(e) => setField("diluentTypeId", e.target.value)} disabled={isAssignedToOther}>
           <MenuItem value=""><em>Diluent</em></MenuItem>
           {diluentTypes.map((d) => <MenuItem key={d.id} value={d.id}>{d.name}</MenuItem>)}
         </Select>
         {selectedDiluent?.requiresBatchTracking && (
-          <Select displayEmpty value={form.diluentMediaId ?? ""} onChange={(e) => setField("diluentMediaId", e.target.value)}>
+          <Select displayEmpty value={form.diluentMediaId ?? ""} onChange={(e) => setField("diluentMediaId", e.target.value)} disabled={isAssignedToOther}>
             <MenuItem value=""><em>Released lot (GPT-released only)</em></MenuItem>
             {releasedMedia.map((m) => <MenuItem key={m.id} value={m.id}>{m.lotNumber} — expires {new Date(m.expiryDate).toLocaleDateString()}</MenuItem>)}
           </Select>
@@ -90,7 +111,7 @@ export function TestPreparationForm({ sample, onSaved }: Props) {
       </Box>
 
       <Box sx={{ maxWidth: 300, mt: 2 }}>
-        <Select displayEmpty fullWidth value={form.neutralizerId ?? ""} onChange={(e) => setField("neutralizerId", e.target.value)}>
+        <Select displayEmpty fullWidth value={form.neutralizerId ?? ""} onChange={(e) => setField("neutralizerId", e.target.value)} disabled={isAssignedToOther}>
           <MenuItem value=""><em>Neutralizer</em></MenuItem>
           {neutralizers.map((n) => <MenuItem key={n.id} value={n.id}>{n.name}</MenuItem>)}
         </Select>
@@ -98,19 +119,21 @@ export function TestPreparationForm({ sample, onSaved }: Props) {
 
       {sample.category === "Water" && (
         <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 2, mt: 2 }}>
-          <Select displayEmpty value={form.storageCondition ?? ""} onChange={(e) => setField("storageCondition", e.target.value)}>
+          <Select displayEmpty value={form.storageCondition ?? ""} onChange={(e) => setField("storageCondition", e.target.value)} disabled={isAssignedToOther}>
             <MenuItem value=""><em>Storage Condition</em></MenuItem>
             <MenuItem value="Refrigerator">Refrigerator</MenuItem>
             <MenuItem value="RoomTemperature">Room Temperature</MenuItem>
           </Select>
           {form.storageCondition === "Refrigerator" && (
-            <TextField label="Storage Time (hours)" value={form.storageTimeHours ?? ""} onChange={(e) => setField("storageTimeHours", e.target.value)} />
+            <TextField label="Storage Time (hours)" value={form.storageTimeHours ?? ""} onChange={(e) => setField("storageTimeHours", e.target.value)} disabled={isAssignedToOther} />
           )}
         </Box>
       )}
 
       <Box sx={{ display: "flex", justifyContent: "flex-end", mt: 3 }}>
-        <Button variant="contained" onClick={save}>Start Testing</Button>
+        <Button variant="contained" onClick={save} disabled={isAssignedToOther}>
+          Start Testing
+        </Button>
       </Box>
     </Box>
   );

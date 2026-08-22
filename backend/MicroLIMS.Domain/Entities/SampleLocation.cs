@@ -40,6 +40,16 @@ public class SampleLocation
     public string? SpecLimit { get; set; }
     public string? Status { get; set; }
 
+    // Set alongside CalculatedResult/Status in RecordBatchResultsAsync/
+    // RecordWaterBatchReadingsAsync (TestWorkflowEngine.DeriveBatchLocationUnit)
+    // - null for pathogen (Detected/Absent) locations, which have no unit.
+    // EM/After Cleaning locations do NOT share Water/Product's
+    // SamplePreparation.Unit-based derivation (TestWorkflowEngine.GetCfuUnit):
+    // batch locations have no SamplePreparation row at all, so the unit is
+    // keyed on RoomTestConfiguration.TestType / MachinePartConfiguration.TestType
+    // instead, per QC Microbiology Supervisor sign-off (2026-08-22).
+    public string? Unit { get; set; }
+
     public DateTime? EnteredAt { get; set; }
     public int? EnteredByUserId { get; set; }
 }

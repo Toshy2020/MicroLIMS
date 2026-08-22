@@ -9,7 +9,6 @@ import { FilterOptionsResponse, ResultRecordItem, ResultRecordSearchParams, Resu
 interface RecordSearchTabProps {
   fromDate: string | undefined;
   toDate: string | undefined;
-  onBuildReport?: (selectedRows: ResultRecordItem[]) => void;
   onAnalyzeTrend?: (testCode: string, subjectName: string) => void;
 }
 
@@ -25,7 +24,7 @@ function baseParams(fromDate: string | undefined, toDate: string | undefined): R
 // above the tabs is the one exception to "apply on button click" -
 // changing it re-applies immediately, carrying over whatever other
 // filters are currently applied.
-export function RecordSearchTab({ fromDate, toDate, onBuildReport, onAnalyzeTrend }: RecordSearchTabProps) {
+export function RecordSearchTab({ fromDate, toDate, onAnalyzeTrend }: RecordSearchTabProps) {
   const [filterOptions, setFilterOptions] = useState<FilterOptionsResponse | null>(null);
   const [draft, setDraft] = useState<ResultRecordSearchParams>(baseParams(fromDate, toDate));
   const [applied, setApplied] = useState<ResultRecordSearchParams>(baseParams(fromDate, toDate));
@@ -98,7 +97,6 @@ export function RecordSearchTab({ fromDate, toDate, onBuildReport, onAnalyzeTren
         onPageChange={(page) => setApplied((a) => ({ ...a, page }))}
         onPageSizeChange={(pageSize) => setApplied((a) => ({ ...a, pageSize, page: 1 }))}
         onClearFilters={handleReset}
-        onBuildReport={onBuildReport}
         onAnalyzeTrend={onAnalyzeTrend}
       />
     </Box>

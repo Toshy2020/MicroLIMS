@@ -258,6 +258,20 @@ export function SelectedSampleTestingPanel({
         }}
       >
         <Box>
+          <Typography sx={{ fontSize: 11, color: "text.secondary" }}>Assigned To</Typography>
+          <Typography sx={{ fontSize: 12, fontWeight: 700, color: theme.palette.primary.main }}>
+            {sample.assignedAnalystName || sample.assignedTests.find((t) => t.assignedAnalystName)?.assignedAnalystName || "Unassigned"}
+          </Typography>
+        </Box>
+
+        <Box>
+          <Typography sx={{ fontSize: 11, color: "text.secondary" }}>Preparation Status</Typography>
+          <Typography sx={{ fontSize: 12, fontWeight: 600, color: needsPreparation ? theme.custom.status.action.text : theme.custom.status.notDetected.text }}>
+            {sample.preparationStatus || "—"}
+          </Typography>
+        </Box>
+
+        <Box>
           <Typography sx={{ fontSize: 11, color: "text.secondary" }}>Cause of Testing</Typography>
           <Typography sx={{ fontSize: 12, fontWeight: 600, color: "text.primary" }}>
             {sample.causeOfTesting || "—"}

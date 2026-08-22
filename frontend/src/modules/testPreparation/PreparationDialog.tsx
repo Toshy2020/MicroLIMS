@@ -6,7 +6,15 @@ import { WaterPreparationForm } from "../laboratoryConfiguration/water/WaterPrep
 
 interface Props {
   open: boolean;
-  sample: { sampleId: number; category: string; departmentId?: number | null; machineId?: number | null; waterDepartmentId?: number | null } | null;
+  sample: {
+    sampleId: number;
+    category: string;
+    departmentId?: number | null;
+    machineId?: number | null;
+    waterDepartmentId?: number | null;
+    assignedAnalystId?: number | null;
+    assignedAnalystName?: string | null;
+  } | null;
   onClose: () => void;
 }
 

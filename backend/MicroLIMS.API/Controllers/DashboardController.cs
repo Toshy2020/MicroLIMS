@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using MicroLIMS.Application.Services;
 using MicroLIMS.Domain.Enums;
+using MicroLIMS.Shared.Constants;
 using MicroLIMS.Shared.Responses;
 
 namespace MicroLIMS.API.Controllers;
@@ -70,6 +71,16 @@ public class DashboardController : ControllerBase
     [HttpGet("incubation-overview")]
     public async Task<IActionResult> GetIncubationOverview([FromQuery] bool myIncubationsOnly = false) =>
         Ok(ApiResponse<object>.Ok(await _dashboardService.GetIncubationOverviewAsync(myIncubationsOnly, CurrentUserId)));
+
+    [HttpGet("section-head")]
+    [Authorize(Roles = RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
+    public async Task<IActionResult> GetSectionHeadDashboard() =>
+        Ok(ApiResponse<object>.Ok(await _dashboardService.GetSectionHeadDashboardAsync()));
+
+    [HttpGet("reviewer")]
+    [Authorize(Roles = RoleConstants.Reviewer + "," + RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
+    public async Task<IActionResult> GetReviewerDashboard() =>
+        Ok(ApiResponse<object>.Ok(await _dashboardService.GetReviewerDashboardAsync(CurrentUserId)));
 
     [HttpGet("analyst-metrics")]
     public async Task<IActionResult> GetAnalystMetrics()

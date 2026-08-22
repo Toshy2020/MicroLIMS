@@ -15,6 +15,14 @@ function isQuantitative(test: TestOrderSummaryDetail): boolean {
   return test.countTestReadings.length > 0 || test.locations.some((l) => l.cfuResult !== null);
 }
 
+// Unit travels with the location data (set at result-entry time) rather
+// than being assumed - EM/After Cleaning/Water mix CFU/plate/4 hours,
+// CFU/25 sq.cm, and CFU/mL depending on sampling method, never a single
+// "CFU" for the whole report.
+function unitFor(test: TestOrderSummaryDetail): string | null {
+  return test.locations.find((l) => l.unit)?.unit ?? null;
+}
+
 interface MatrixCell {
   text: string;
   conform: boolean;
@@ -90,7 +98,7 @@ export function SummaryMatrix({ testOrders }: { testOrders: TestOrderSummaryDeta
             <tr>
               <th>Location</th>
               {locatedTests.map((t) => (
-                <th key={t.testOrderId}>{t.testCode}{isQuantitative(t) ? " (CFU)" : ""}</th>
+                <th key={t.testOrderId}>{t.testCode}{isQuantitative(t) ? ` (${unitFor(t) ?? "CFU"})` : ""}</th>
               ))}
             </tr>
           </thead>

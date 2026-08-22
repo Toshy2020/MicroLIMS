@@ -378,10 +378,10 @@ export interface AnalystComparisonRow {
   completed: number;
   workloadUnits: number;
   completionRatePercent: number;
-  onTimePercent: number;
+  onTimePercent: number | null;
   avgTestingTatDays: number;
-  reviewReturns: number;
-  docCorrections: number;
+  reviewReturns: number | null;
+  docCorrections: number | null;
   pending: number;
   overdue: number;
 }
@@ -403,24 +403,24 @@ export interface AnalystPerformanceDetail {
   timeliness: {
     avgTestingTatDays: number;
     medianTestingTatDays: number;
-    onTimePercent: number;
+    onTimePercent: string;
     overdueCount: number;
   };
   // C. Documentation / Review Quality (Strict attribution only)
   quality: {
-    reviewReturns: number;
-    documentationCorrections: number;
-    calculationCorrections: number;
+    reviewReturns: string | number;
+    documentationCorrections: string | number;
+    calculationCorrections: string | number;
     missingMandatoryDataCount: number;
-    firstTimeReviewAcceptanceRate: number;
-    executionRelatedDeviations: number;
+    firstTimeReviewAcceptanceRate: string;
+    executionRelatedDeviations: string | number;
   };
   // D. Compliance & Competency (Only actual available values, no fake metrics)
   compliance: {
     trainingStatus: string;
     competencyStatus: string;
     sopComplianceIndex: string;
-    lateEntriesCount: number;
+    lateEntriesCount: string | number;
   };
   // Data Coverage
   dataCoverage: {

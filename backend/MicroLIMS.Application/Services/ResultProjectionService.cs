@@ -301,7 +301,7 @@ public class ResultProjectionService
             record.ResultKind = ResultKind.Quantitative;
             record.NumericValue = location.CalculatedResult;
             record.ReportedValue = location.ReportedResult ?? string.Empty;
-            record.Unit = "CFU/Plate"; // EM and After Cleaning are plate-based
+            record.Unit = location.Unit; // set by TestWorkflowEngine.DeriveBatchLocationUnit at result-entry time
             record.IsBelowDetectionLimit = isBelowDetectionLimit;
             record.DetectionLimit = detectionLimit;
             record.AlertLimit = location.AlertLimit;

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Outlet, useNavigate, useLocation, Navigate } from "react-router-dom";
-import { Box, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Button } from "@mui/material";
+import { Box, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Button, useMediaQuery, useTheme } from "@mui/material";
 import { Header } from "../components/Header";
 import { Sidebar } from "../components/Sidebar";
 import { useAuth } from "../contexts/AuthContext";
@@ -12,6 +12,8 @@ export function MainLayout() {
   const { logout, mustChangePassword } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("md"));
 
   const [mobileOpen, setMobileOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(() => localStorage.getItem("microlims_sidebar_collapsed") === "true");
@@ -24,8 +26,15 @@ export function MainLayout() {
     });
   };
 
+  // On desktop the hamburger toggles the persistent icon-only rail; on
+  // mobile there's no rail mode (see Sidebar's effectiveCollapsed), so it
+  // opens/closes the temporary drawer instead.
   const handleToggleSidebar = () => {
-    setMobileOpen((prev) => !prev);
+    if (isMobile) {
+      setMobileOpen((prev) => !prev);
+    } else {
+      handleToggleCollapse();
+    }
   };
 
   const handleIdleTimeout = () => {
@@ -52,7 +61,7 @@ export function MainLayout() {
         overflow: "hidden"
       }}
     >
-      <Header onToggleSidebar={handleToggleSidebar} />
+      <Header onToggleSidebar={handleToggleSidebar} sidebarCollapsed={collapsed} />
 
       <Box
         component="div"

@@ -21,16 +21,17 @@ public class SegregationOfDutiesGuard
     // result for this test order - Result, CountTestReading,
     // PathogenObservation, WorkflowStepResult and ConfirmatoryPlate-
     // Observation are the only result-bearing tables tied to a TestOrder
-    // with a *ByUserId column (MediaEvaluationChallenge.ReadByUserId
-    // belongs to a Media lot, not a TestOrder, so it doesn't apply here).
     public async Task<bool> DidUserPerformTestAsync(int testOrderId, int userId)
     {
-        var assignedAnalystId = await _db.TestOrders
+        var orderInfo = await _db.TestOrders
             .Where(t => t.Id == testOrderId)
-            .Select(t => t.AssignedAnalystId)
+            .Select(t => new { t.AssignedAnalystId, t.SampleId })
             .FirstOrDefaultAsync();
 
-        if (assignedAnalystId == userId) return true;
+        if (orderInfo == null) return false;
+        if (orderInfo.AssignedAnalystId == userId) return true;
+
+        if (await _db.SamplePreparations.AnyAsync(p => p.SampleId == orderInfo.SampleId && p.PreparedByUserId == userId)) return true;
 
         if (await _db.Results.AnyAsync(r => r.TestOrderId == testOrderId && r.EnteredByUserId == userId)) return true;
         if (await _db.CountTestReadings.AnyAsync(r => r.TestOrderId == testOrderId && r.EnteredByUserId == userId)) return true;

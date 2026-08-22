@@ -49,5 +49,7 @@ export interface SampleCard {
   storageCondition: string | null;
   storageTimeHours: number | null;
   incubationStarted: boolean;
+  assignedAnalystId?: number | null;
+  assignedAnalystName?: string | null;
   assignedTests: TestOrderSummary[];
 }

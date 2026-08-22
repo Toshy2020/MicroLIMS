@@ -3,7 +3,6 @@ import { Box, TextField, Button, Typography, Alert, Link, Stack, useTheme } from
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { authenticationService } from "../modules/authentication/services/authenticationService";
-import { brandColors } from "../theme";
 
 export function LoginPage() {
   const theme = useTheme();
@@ -58,9 +57,9 @@ export function LoginPage() {
               : "0 4px 20px rgba(0,0,0,0.12)"
         }}
       >
-        <Box sx={{ background: brandColors.topbarGradient, color: "#fff", px: 3, py: 2.5, textAlign: "center" }}>
+        <Box sx={{ background: theme.custom.chrome.topbarBg, color: "#fff", px: 3, py: 2.5, textAlign: "center" }}>
           <Typography sx={{ fontSize: 22, fontWeight: 700 }}>
-            Micro<Box component="span" sx={{ fontWeight: 300, opacity: 0.85 }}>LIMS</Box>
+            Micro<Box component="span" sx={{ fontWeight: 300, color: theme.custom.chrome.brandAccent }}>LIMS</Box>
           </Typography>
         </Box>
 

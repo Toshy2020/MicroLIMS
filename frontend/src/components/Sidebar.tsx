@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import {
   Drawer, Box, List, ListItemButton, ListItemIcon, ListItemText, Typography,
-  Collapse, Tooltip, IconButton, useMediaQuery, useTheme
+  Collapse, Tooltip, IconButton, useMediaQuery, useTheme, MenuItem, MenuList, Divider,
+  Popper, Paper, ClickAwayListener
 } from "@mui/material";
 import ExpandLess from "@mui/icons-material/ExpandLess";
 import ExpandMore from "@mui/icons-material/ExpandMore";
@@ -10,10 +11,14 @@ import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { getGroupedMenuForRole, MenuItem as MenuItemType } from "../routes/menuConfig";
-import { brandColors } from "../theme";
 
 export const EXPANDED_SIDEBAR_WIDTH = 250;
 export const COLLAPSED_SIDEBAR_WIDTH = 68;
+
+// How long to keep a flyout open after the pointer leaves it, so moving the
+// mouse from the rail icon into the flyout panel itself doesn't close it
+// mid-transit.
+const FLYOUT_CLOSE_DELAY_MS = 200;
 
 interface SidebarProps {
   mobileOpen: boolean;
@@ -24,24 +29,57 @@ interface SidebarProps {
 
 export function Sidebar({ mobileOpen, onMobileClose, collapsed, onToggleCollapse }: SidebarProps) {
   const theme = useTheme();
+  const chrome = theme.custom.chrome;
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
   const navigate = useNavigate();
   const location = useLocation();
   const { role } = useAuth();
   const groups = getGroupedMenuForRole(role);
 
+  // Rail (icon-only) mode only ever applies on desktop - the mobile temporary
+  // Drawer always renders the full labeled nav regardless of the persisted
+  // desktop collapse preference, since a narrow icon rail makes no sense
+  // inside a full-width touch drawer.
+  const effectiveCollapsed = collapsed && !isMobile;
+
   const [openSubmenus, setOpenSubmenus] = useState<Record<string, boolean>>({
     Inventory: false,
     "Laboratory Configuration": false
   });
 
+  // Which parent item's flyout submenu is open in rail mode, and the icon
+  // element it's anchored to. Only one can be open at a time.
+  const [flyoutItem, setFlyoutItem] = useState<{ label: string; anchorEl: HTMLElement } | null>(null);
+  const flyoutCloseTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const openFlyout = (label: string, el: HTMLElement) => {
+    if (flyoutCloseTimer.current) {
+      clearTimeout(flyoutCloseTimer.current);
+      flyoutCloseTimer.current = null;
+    }
+    setFlyoutItem({ label, anchorEl: el });
+  };
+  const scheduleFlyoutClose = () => {
+    flyoutCloseTimer.current = setTimeout(() => setFlyoutItem(null), FLYOUT_CLOSE_DELAY_MS);
+  };
+  const cancelFlyoutClose = () => {
+    if (flyoutCloseTimer.current) {
+      clearTimeout(flyoutCloseTimer.current);
+      flyoutCloseTimer.current = null;
+    }
+  };
+
   const toggleSubmenu = (label: string) => {
     setOpenSubmenus((prev) => ({ ...prev, [label]: !prev[label] }));
   };
 
-  const handleItemClick = (item: MenuItemType) => {
+  const handleItemClick = (item: MenuItemType, anchorEl: HTMLElement) => {
     if (item.children) {
-      toggleSubmenu(item.label);
+      if (effectiveCollapsed) {
+        openFlyout(item.label, anchorEl);
+      } else {
+        toggleSubmenu(item.label);
+      }
     } else if (item.path) {
       navigate(item.path);
       if (isMobile) onMobileClose();
@@ -57,7 +95,7 @@ export function Sidebar({ mobileOpen, onMobileClose, collapsed, onToggleCollapse
         height: "100%",
         display: "flex",
         flexDirection: "column",
-        bgcolor: brandColors.subnavBg,
+        bgcolor: chrome.sidebarBg,
         color: "#fff",
         overflow: "hidden"
       }}
@@ -76,7 +114,7 @@ export function Sidebar({ mobileOpen, onMobileClose, collapsed, onToggleCollapse
       >
         {groups.map((group, groupIdx) => (
           <Box key={group.groupName} sx={{ mb: 1 }}>
-            {!collapsed && (
+            {!effectiveCollapsed && (
               <Typography
                 sx={{
                   px: 2.5,
@@ -97,39 +135,47 @@ export function Sidebar({ mobileOpen, onMobileClose, collapsed, onToggleCollapse
               {group.items.map((item) => {
                 const active = isItemActive(item);
                 const isSubOpen = Boolean(openSubmenus[item.label]);
+                const hasChildren = Boolean(item.children);
+                const flyoutOpen = effectiveCollapsed && hasChildren && flyoutItem?.label === item.label;
                 const IconComponent = item.icon;
 
                 const button = (
                   <ListItemButton
-                    onClick={() => handleItemClick(item)}
+                    onClick={(e) => handleItemClick(item, e.currentTarget)}
+                    onMouseEnter={(e) => {
+                      if (effectiveCollapsed && hasChildren) openFlyout(item.label, e.currentTarget);
+                    }}
+                    onMouseLeave={() => {
+                      if (effectiveCollapsed && hasChildren) scheduleFlyoutClose();
+                    }}
                     sx={{
                       minHeight: 40,
-                      px: collapsed ? 2.25 : 2,
+                      px: effectiveCollapsed ? 2.25 : 2,
                       py: 0.75,
                       mx: 1,
                       borderRadius: 1.5,
-                      bgcolor: active ? "rgba(255, 255, 255, 0.15)" : "transparent",
-                      color: active ? "#fff" : brandColors.subnavText,
-                      borderLeft: active ? "3px solid #fff" : "3px solid transparent",
+                      bgcolor: active ? chrome.sidebarActiveBg : "transparent",
+                      color: active ? chrome.sidebarActiveText : chrome.sidebarText,
+                      borderLeft: active ? `3px solid ${chrome.sidebarActiveBorder}` : "3px solid transparent",
                       "&:hover": {
                         bgcolor: "rgba(255, 255, 255, 0.1)",
                         color: "#fff"
                       },
-                      justifyContent: collapsed ? "center" : "flex-start"
+                      justifyContent: effectiveCollapsed ? "center" : "flex-start"
                     }}
                   >
                     {IconComponent && (
                       <ListItemIcon
                         sx={{
-                          minWidth: collapsed ? 0 : 34,
-                          color: active ? "#fff" : "rgba(255, 255, 255, 0.75)",
+                          minWidth: effectiveCollapsed ? 0 : 34,
+                          color: active ? chrome.sidebarActiveText : "rgba(255, 255, 255, 0.75)",
                           justifyContent: "center"
                         }}
                       >
                         <IconComponent fontSize="small" />
                       </ListItemIcon>
                     )}
-                    {!collapsed && (
+                    {!effectiveCollapsed && (
                       <ListItemText
                         primary={item.label}
                         primaryTypographyProps={{
@@ -139,7 +185,7 @@ export function Sidebar({ mobileOpen, onMobileClose, collapsed, onToggleCollapse
                         }}
                       />
                     )}
-                    {!collapsed && item.children && (
+                    {!effectiveCollapsed && hasChildren && (
                       isSubOpen ? <ExpandLess sx={{ fontSize: 18 }} /> : <ExpandMore sx={{ fontSize: 18 }} />
                     )}
                   </ListItemButton>
@@ -147,7 +193,7 @@ export function Sidebar({ mobileOpen, onMobileClose, collapsed, onToggleCollapse
 
                 return (
                   <Box key={item.label}>
-                    {collapsed ? (
+                    {effectiveCollapsed && !hasChildren ? (
                       <Tooltip title={item.label} placement="right">
                         {button}
                       </Tooltip>
@@ -155,10 +201,11 @@ export function Sidebar({ mobileOpen, onMobileClose, collapsed, onToggleCollapse
                       button
                     )}
 
-                    {!collapsed && item.children && (
+                    {/* Expanded mode: children render as an inline collapsible list. */}
+                    {!effectiveCollapsed && hasChildren && (
                       <Collapse in={isSubOpen} timeout="auto" unmountOnExit>
                         <List disablePadding sx={{ pl: 2.5 }}>
-                          {item.children.map((child) => {
+                          {item.children!.map((child) => {
                             const childActive = location.pathname === child.path;
                             return (
                               <ListItemButton
@@ -173,8 +220,10 @@ export function Sidebar({ mobileOpen, onMobileClose, collapsed, onToggleCollapse
                                   px: 1.75,
                                   my: 0.25,
                                   borderRadius: 1,
-                                  bgcolor: childActive ? "rgba(255, 255, 255, 0.2)" : "transparent",
-                                  color: childActive ? "#fff" : "rgba(255, 255, 255, 0.8)",
+                                  bgcolor: childActive
+                                    ? (theme.palette.mode === "dark" ? chrome.sidebarActiveBg : "rgba(255, 255, 255, 0.2)")
+                                    : "transparent",
+                                  color: childActive ? chrome.sidebarActiveText : "rgba(255, 255, 255, 0.8)",
                                   "&:hover": {
                                     bgcolor: "rgba(255, 255, 255, 0.1)",
                                     color: "#fff"
@@ -194,6 +243,66 @@ export function Sidebar({ mobileOpen, onMobileClose, collapsed, onToggleCollapse
                           })}
                         </List>
                       </Collapse>
+                    )}
+
+                    {/* Rail mode: children render as a flyout panel to the right of the icon.
+                        Popper (not Menu) deliberately - Menu's Popover/Modal base mounts an
+                        invisible backdrop the instant it opens, which sits over the anchor
+                        icon and steals its mouseleave, closing the flyout, which lets the
+                        pointer "re-enter" the now-unhidden icon and reopen it - an open/close
+                        loop that reads as flicker. Popper has no backdrop and no focus trap,
+                        so hover state stays exactly where the mouse actually is. */}
+                    {effectiveCollapsed && hasChildren && (
+                      <Popper
+                        open={flyoutOpen}
+                        anchorEl={flyoutItem?.label === item.label ? flyoutItem.anchorEl : null}
+                        placement="right-start"
+                        sx={{ zIndex: theme.zIndex.modal }}
+                        modifiers={[{ name: "offset", options: { offset: [0, 8] } }]}
+                      >
+                        <ClickAwayListener onClickAway={() => setFlyoutItem(null)}>
+                          <Paper
+                            onMouseEnter={cancelFlyoutClose}
+                            onMouseLeave={scheduleFlyoutClose}
+                            sx={{ minWidth: 210, py: 0.5 }}
+                          >
+                            <Typography
+                              sx={{
+                                px: 2, pt: 1, pb: 0.5,
+                                fontSize: 10.5, fontWeight: 700, letterSpacing: 0.6,
+                                color: "text.secondary", textTransform: "uppercase"
+                              }}
+                            >
+                              {item.label}
+                            </Typography>
+                            <Divider sx={{ mb: 0.5 }} />
+                            <MenuList dense>
+                              {item.children!.map((child) => {
+                                const childActive = location.pathname === child.path;
+                                const ChildIcon = child.icon;
+                                return (
+                                  <MenuItem
+                                    key={child.path}
+                                    selected={childActive}
+                                    onClick={() => {
+                                      navigate(child.path!);
+                                      setFlyoutItem(null);
+                                    }}
+                                    sx={{ fontSize: 13 }}
+                                  >
+                                    {ChildIcon && (
+                                      <ListItemIcon sx={{ minWidth: 30 }}>
+                                        <ChildIcon fontSize="small" />
+                                      </ListItemIcon>
+                                    )}
+                                    <ListItemText primary={child.label} primaryTypographyProps={{ fontSize: 13 }} />
+                                  </MenuItem>
+                                );
+                              })}
+                            </MenuList>
+                          </Paper>
+                        </ClickAwayListener>
+                      </Popper>
                     )}
                   </Box>
                 );
@@ -230,7 +339,7 @@ export function Sidebar({ mobileOpen, onMobileClose, collapsed, onToggleCollapse
               width: EXPANDED_SIDEBAR_WIDTH,
               boxSizing: "border-box",
               borderRight: "none",
-              bgcolor: brandColors.subnavBg
+              bgcolor: chrome.sidebarBg
             }
           }}
         >
@@ -244,7 +353,7 @@ export function Sidebar({ mobileOpen, onMobileClose, collapsed, onToggleCollapse
             width: collapsed ? COLLAPSED_SIDEBAR_WIDTH : EXPANDED_SIDEBAR_WIDTH,
             flexShrink: 0,
             height: "100%",
-            bgcolor: brandColors.subnavBg,
+            bgcolor: chrome.sidebarBg,
             transition: theme.transitions.create("width", {
               easing: theme.transitions.easing.sharp,
               duration: theme.transitions.duration.enteringScreen

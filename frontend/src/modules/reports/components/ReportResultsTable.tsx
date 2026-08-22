@@ -6,9 +6,9 @@ import {
 import MoreVertIcon from "@mui/icons-material/MoreVert";
 import ViewColumnIcon from "@mui/icons-material/ViewColumn";
 import FileDownloadIcon from "@mui/icons-material/FileDownload";
+import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
-import PostAddIcon from "@mui/icons-material/PostAdd";
 import ShowChartIcon from "@mui/icons-material/ShowChart";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
@@ -17,6 +17,8 @@ import { StatusBadge, CategoryBadge } from "../../../components/StatusBadge";
 import { ConfirmationDialog } from "../../../components/ConfirmationDialog";
 import { RecordDetailDialog } from "./RecordDetailDialog";
 import { ReportingService } from "../services/ReportingService";
+import { exportResultsPdf } from "../utils/exportPdf";
+import { useAuth } from "../../../contexts/AuthContext";
 import { ResultRecordItem, ResultRecordSearchParams, ResultRecordSearchResponse } from "../types/reportingTypes";
 
 const ROWS_PER_PAGE_OPTIONS = [10, 25, 50, 100];
@@ -52,6 +54,21 @@ function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
 }
 
+function summarizeFilters(params: ResultRecordSearchParams): string {
+  const parts: string[] = [];
+  if (params.search) parts.push(`Search: "${params.search}"`);
+  if (params.category) parts.push(`Category: ${params.category}`);
+  if (params.testCode) parts.push(`Test: ${params.testCode}`);
+  if (params.resultLevel) parts.push(`Level: ${params.resultLevel}`);
+  if (params.approvalStatus) parts.push(`Status: ${params.approvalStatus}`);
+  if (params.fromDate || params.toDate) {
+    const from = params.fromDate ? new Date(params.fromDate).toLocaleDateString("en-GB") : "Start";
+    const to = params.toDate ? new Date(params.toDate).toLocaleDateString("en-GB") : "Present";
+    parts.push(`Date Range: ${from} – ${to}`);
+  }
+  return parts.length > 0 ? parts.join(" | ") : "All Active Results";
+}
+
 interface ReportResultsTableProps {
   results: ResultRecordSearchResponse | null;
   loading: boolean;
@@ -60,7 +77,6 @@ interface ReportResultsTableProps {
   onPageChange: (page: number) => void;
   onPageSizeChange: (pageSize: number) => void;
   onClearFilters: () => void;
-  onBuildReport?: (selectedRows: ResultRecordItem[]) => void;
   onAnalyzeTrend?: (testCode: string, subjectName: string) => void;
 }
 
@@ -72,10 +88,10 @@ export function ReportResultsTable({
   onPageChange,
   onPageSizeChange,
   onClearFilters,
-  onBuildReport,
   onAnalyzeTrend
 }: ReportResultsTableProps) {
   const theme = useTheme();
+  const { fullName } = useAuth();
   const [visibleColumns, setVisibleColumns] = useState<Record<ColumnKey, boolean>>(
     Object.fromEntries(ALL_COLUMNS.map((c) => [c, true])) as Record<ColumnKey, boolean>
   );
@@ -145,22 +161,38 @@ export function ReportResultsTable({
     }
   };
 
-  const handleExportSelected = () => {
+  const handleExportCurrentPdf = () => {
+    exportResultsPdf(items, {
+      title: "Laboratory Results Export",
+      criteriaSummary: summarizeFilters(appliedParams),
+      generatedBy: fullName || "Authorized User",
+      isSelection: false
+    });
+  };
+
+  const handleExportSelectedCsv = () => {
     if (selectedRecords.length === 0) return;
     const headers = [
-      "Date/Time", "Reference", "Subject", "Category", "Test", "Result", "Unit",
-      "Result Level", "Status", "Approved By", "Approval Date"
+      "Date/Time", "Reference", "Subject", "Subject Detail", "Category", "Test Code", "Test Name",
+      "Reported Value", "Unit", "Result Level", "Alert Limit", "Action Limit", "Spec Limit",
+      "Status", "Analyst", "Approved By", "Approval Date"
     ];
     const rows = selectedRecords.map((r) => [
       `"${r.resultEnteredAt}"`,
       `"${r.referenceNumber}"`,
       `"${r.subjectName}"`,
+      `"${r.subjectDetail ?? ""}"`,
       `"${r.category}"`,
+      `"${r.testCode}"`,
       `"${r.testDisplayName || r.testCode}"`,
       `"${r.reportedValue}"`,
       `"${r.unit ?? ""}"`,
       `"${r.resultLevel}"`,
+      `"${r.alertLimit ?? ""}"`,
+      `"${r.actionLimit ?? ""}"`,
+      `"${r.specLimit ?? ""}"`,
       `"${r.approvalStatus}"`,
+      `"${r.resultEnteredByName ?? ""}"`,
       `"${r.approvedByName ?? ""}"`,
       `"${r.approvedAt ?? ""}"`
     ]);
@@ -169,9 +201,18 @@ export function ReportResultsTable({
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = `selected_records_${new Date().toISOString().slice(0, 10)}.csv`;
+    link.download = `selected_laboratory_results_${new Date().toISOString().slice(0, 10)}.csv`;
     link.click();
     URL.revokeObjectURL(url);
+  };
+
+  const handleExportSelectedPdf = () => {
+    exportResultsPdf(selectedRecords, {
+      title: "Laboratory Results Export (Selected Records)",
+      criteriaSummary: `Export of ${selectedRecords.length} Selected Record${selectedRecords.length === 1 ? "" : "s"}`,
+      generatedBy: fullName || "Authorized User",
+      isSelection: true
+    });
   };
 
   const pageStart = totalCount === 0 ? 0 : (page - 1) * pageSize + 1;
@@ -180,6 +221,7 @@ export function ReportResultsTable({
 
   return (
     <Paper sx={{ p: 2.5 }}>
+      {/* Top Title & Mode A Export Toolbar (When No Rows Selected) */}
       <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 1, mb: 1.5 }}>
         <Box sx={{ display: "flex", alignItems: "center", gap: 1.25 }}>
           <Typography sx={{ fontSize: 16, fontWeight: 700, color: theme.palette.primary.main }}>Search Results</Typography>
@@ -190,11 +232,22 @@ export function ReportResultsTable({
             Columns
           </Button>
           <Button
-            size="small" variant="contained" startIcon={<FileDownloadIcon />}
+            size="small"
+            variant="outlined"
+            startIcon={<PictureAsPdfIcon />}
+            disabled={totalCount === 0}
+            onClick={handleExportCurrentPdf}
+          >
+            Export PDF
+          </Button>
+          <Button
+            size="small"
+            variant="contained"
+            startIcon={<FileDownloadIcon />}
             disabled={exporting || totalCount === 0}
             onClick={() => setExportConfirmOpen(true)}
           >
-            Export Data (CSV)
+            Export CSV
           </Button>
         </Box>
       </Box>
@@ -210,7 +263,7 @@ export function ReportResultsTable({
 
       {exportError && <Alert severity="error" sx={{ mb: 1.5 }} onClose={() => setExportError(null)}>{exportError}</Alert>}
 
-      {/* Multi-Select Toolbar */}
+      {/* Multi-Select Toolbar & Mode B Export Actions (When Rows Selected) */}
       <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 1.5, flexWrap: "wrap", gap: 1, bgcolor: selectionCount > 0 ? theme.custom.status.purple.bg : "transparent", p: selectionCount > 0 ? 1 : 0, borderRadius: 1 }}>
         <Box sx={{ display: "flex", alignItems: "center", gap: 2, flexWrap: "wrap" }}>
           <Box sx={{ display: "flex", alignItems: "center" }}>
@@ -246,30 +299,32 @@ export function ReportResultsTable({
             <Button
               size="small"
               variant="contained"
-              startIcon={<PostAddIcon />}
-              onClick={() => onBuildReport && onBuildReport(selectedRecords.length > 0 ? selectedRecords : items)}
+              startIcon={<PictureAsPdfIcon />}
+              onClick={handleExportSelectedPdf}
             >
-              Build Report
-            </Button>
-            <Button
-              size="small"
-              variant="outlined"
-              startIcon={<ShowChartIcon />}
-              onClick={() => {
-                const target = selectedRecords[0] ?? items[0];
-                if (target && onAnalyzeTrend) onAnalyzeTrend(target.testCode, target.subjectName);
-              }}
-            >
-              Analyze Selected
+              Export Selected PDF
             </Button>
             <Button
               size="small"
               variant="outlined"
               startIcon={<FileDownloadIcon />}
-              onClick={handleExportSelected}
+              onClick={handleExportSelectedCsv}
             >
-              Export Selected
+              Export Selected CSV
             </Button>
+            {onAnalyzeTrend && (
+              <Button
+                size="small"
+                variant="outlined"
+                startIcon={<ShowChartIcon />}
+                onClick={() => {
+                  const target = selectedRecords[0] ?? items[0];
+                  if (target && onAnalyzeTrend) onAnalyzeTrend(target.testCode, target.subjectName);
+                }}
+              >
+                Analyze Selected
+              </Button>
+            )}
           </Stack>
         )}
       </Box>
@@ -388,24 +443,17 @@ export function ReportResultsTable({
               <VisibilityIcon fontSize="small" sx={{ mr: 1, color: "text.secondary" }} />
               View Record Details
             </MenuItem>
-            <MenuItem
-              onClick={() => {
-                if (rowMenu && onBuildReport) onBuildReport([rowMenu.row]);
-                setRowMenu(null);
-              }}
-            >
-              <PostAddIcon fontSize="small" sx={{ mr: 1, color: "text.secondary" }} />
-              Include in Report Builder
-            </MenuItem>
-            <MenuItem
-              onClick={() => {
-                if (rowMenu && onAnalyzeTrend) onAnalyzeTrend(rowMenu.row.testCode, rowMenu.row.subjectName);
-                setRowMenu(null);
-              }}
-            >
-              <ShowChartIcon fontSize="small" sx={{ mr: 1, color: "text.secondary" }} />
-              Analyze Trend
-            </MenuItem>
+            {onAnalyzeTrend && (
+              <MenuItem
+                onClick={() => {
+                  if (rowMenu && onAnalyzeTrend) onAnalyzeTrend(rowMenu.row.testCode, rowMenu.row.subjectName);
+                  setRowMenu(null);
+                }}
+              >
+                <ShowChartIcon fontSize="small" sx={{ mr: 1, color: "text.secondary" }} />
+                Analyze Trend
+              </MenuItem>
+            )}
             <MenuItem
               onClick={() => {
                 if (rowMenu) navigator.clipboard?.writeText(rowMenu.row.referenceNumber);

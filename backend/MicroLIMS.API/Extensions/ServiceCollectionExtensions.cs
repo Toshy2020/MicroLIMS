@@ -53,6 +53,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<KpiService>();
         services.AddScoped<CryovialService>();
         services.AddScoped<SamplePreparationService>();
+        services.AddScoped<SampleAssignmentService>();
         services.AddScoped<SampleCorrectionService>();
         services.AddScoped<MediaPreparationService>();
         services.AddScoped<WaterService>();

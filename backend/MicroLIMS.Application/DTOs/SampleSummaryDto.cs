@@ -26,6 +26,9 @@ public class SampleSummaryDto
     public string? StorageCondition { get; set; }
     public int? StorageTimeHours { get; set; }
 
+    public int? AssignedAnalystId { get; set; }
+    public string? AssignedAnalystName { get; set; }
+
     public string? ReviewedByName { get; set; }
     public DateTime? ReviewedAt { get; set; }
     public string? ApprovedByName { get; set; }
@@ -96,6 +99,12 @@ public class SampleLocationDetailDto
     public decimal? CalculatedResult { get; set; }
     public string? ReportedResult { get; set; }
     public string? Status { get; set; }
+
+    // Populated at result-entry time (TestWorkflowEngine.DeriveBatchLocationUnit)
+    // - null for qualitative (pathogen Detected/Absent) locations. Never
+    // assume "CFU/Plate" - EM/After Cleaning mix CFU/plate/4 hours (passive
+    // air), CFU/25 sq.cm (surface air / swab), and CFU/mL (rinse / water).
+    public string? Unit { get; set; }
     public string? EnteredByName { get; set; }
     public DateTime? EnteredAt { get; set; }
 }

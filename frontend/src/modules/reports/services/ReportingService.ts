@@ -1,6 +1,7 @@
 import { AxiosError } from "axios";
 import { apiClient } from "../../../services/apiClient";
 import {
+  CompareResult,
   FilterOptionsResponse,
   ResultRecordSearchParams,
   ResultRecordSearchResponse
@@ -20,6 +21,16 @@ export const ReportingService = {
 
   getFilterOptions: () =>
     apiClient.get<{ success: boolean; data: FilterOptionsResponse }>("/reporting/filter-options").then((r) => r.data.data),
+
+  getCompletedByMonth: (months = 6) =>
+    apiClient.get<{ success: boolean; data: { month: string; priorYearCount: number; currentYearCount: number }[] }>(
+      "/reporting/completed-by-month", { params: { months } }
+    ).then((r) => r.data.data),
+
+  getCompare: (testCode: string, category: string, fromDate: string, toDate: string) =>
+    apiClient.get<{ success: boolean; data: CompareResult }>(
+      "/reporting/compare", { params: { testCode, category, fromDate, toDate } }
+    ).then((r) => r.data.data),
 
   // Downloads the CSV as a blob and triggers a save via a throwaway
   // object URL + programmatic click, then revokes the URL immediately

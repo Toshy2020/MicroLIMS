@@ -37,6 +37,21 @@ public record TrendStatistics(int Count, decimal? Latest, decimal? Mean, decimal
 
 public record TrendResult(string TestCode, string TestDisplayName, string SubjectName, string? Unit, List<TrendPoint> Points, TrendStatistics Statistics);
 
+// One calendar month, with counts for that month this year and the same
+// month one year earlier - the year-over-year comparison the KPI page's
+// "Tests Completed by Month" chart renders.
+public record MonthlyCompletionPoint(string Month, int PriorYearCount, int CurrentYearCount);
+
+// One product/item or location/point's aggregate stats for a single test
+// code - the Quick Compare dialog's table row. MeanValue is populated only
+// when IsNumeric; PercentDetected only when it's not - callers should read
+// the field matching CompareResult.IsNumeric rather than both.
+public record CompareSubjectStat(
+    string SubjectName, int TestsEvaluated, decimal? MeanValue, double? PercentDetected,
+    int AlertActionCount, int OosCount, double CompliancePercent);
+
+public record CompareResult(string TestCode, string TestDisplayName, bool IsNumeric, List<CompareSubjectStat> Subjects);
+
 // Read-only query layer over the ResultRecord flattened projection - the
 // data source ReportingController's search/trend endpoints (and,
 // eventually, the Reports module) read from. Kept separate from
@@ -218,6 +233,113 @@ public class ReportingQueryService
         var unit = records.Select(r => r.Unit).FirstOrDefault(u => u is not null);
 
         return new TrendResult(testCode, testDefinition.DisplayName, subjectName, unit, points, statistics);
+    }
+
+    // "Completed" = the sample-level approval that finalizes a TestOrder -
+    // grouped by TestOrderId (not raw ResultRecord rows) so an EM/After
+    // Cleaning batch order with several SampleLocation rows counts once,
+    // matching CompletionStatsDto's own TestOrder-level definition of
+    // "Approved" rather than counting per-location.
+    public async Task<List<MonthlyCompletionPoint>> GetCompletedByMonthAsync(int months = 6)
+    {
+        var now = DateTime.UtcNow;
+        var currentMonthStart = new DateTime(now.Year, now.Month, 1, 0, 0, 0, DateTimeKind.Utc);
+        var windowStart = currentMonthStart.AddMonths(-(months - 1)).AddYears(-1);
+
+        var approvedTestOrders = await _db.ResultRecords
+            .Where(r => r.SampleStatus == SampleStatus.Approved && r.ApprovedAt != null && r.ApprovedAt >= windowStart)
+            .Select(r => new { r.TestOrderId, ApprovedAt = r.ApprovedAt!.Value })
+            .Distinct()
+            .ToListAsync();
+
+        var points = new List<MonthlyCompletionPoint>();
+        for (var i = 0; i < months; i++)
+        {
+            var monthStart = currentMonthStart.AddMonths(-(months - 1) + i);
+            var monthEnd = monthStart.AddMonths(1);
+            var priorYearStart = monthStart.AddYears(-1);
+            var priorYearEnd = monthEnd.AddYears(-1);
+
+            var currentYearCount = approvedTestOrders.Count(a => a.ApprovedAt >= monthStart && a.ApprovedAt < monthEnd);
+            var priorYearCount = approvedTestOrders.Count(a => a.ApprovedAt >= priorYearStart && a.ApprovedAt < priorYearEnd);
+
+            points.Add(new MonthlyCompletionPoint(monthStart.ToString("MMM"), priorYearCount, currentYearCount));
+        }
+        return points;
+    }
+
+    // Compares every distinct subject (product/item, or location/point -
+    // whichever ResultRecord.SubjectName represents for this category) that
+    // has results for one given test code, within the same
+    // category+dateRange scope as the Trending panel's own criteria - a
+    // single shared query, not a per-product/per-location fetch.
+    public async Task<CompareResult> GetCompareBySubjectAsync(string testCode, SampleCategory category, DateTime? fromDate, DateTime? toDate)
+    {
+        if (string.IsNullOrWhiteSpace(testCode)) throw new InvalidOperationException("testCode is required.");
+
+        var testDefinition = await _db.TestDefinitions.FirstOrDefaultAsync(t => t.Code == testCode)
+            ?? throw new InvalidOperationException($"Test code \"{testCode}\" is not configured in Test Master.");
+        var isNumeric = testDefinition.WorkflowType == WorkflowType.CountTest;
+
+        var query = _db.ResultRecords.Where(r => r.TestCode == testCode && r.Category == category);
+        if (fromDate is not null) query = query.Where(r => r.ResultEnteredAt >= fromDate);
+        if (toDate is not null) query = query.Where(r => r.ResultEnteredAt <= toDate);
+
+        var records = await query.ToListAsync();
+
+        var subjects = records
+            .GroupBy(r => r.SubjectName)
+            .Select(g =>
+            {
+                var list = g.ToList();
+                var testsEvaluated = list.Count;
+
+                decimal? meanValue = null;
+                double? percentDetected = null;
+                double compliancePercent;
+
+                if (isNumeric)
+                {
+                    var imputed = list
+                        .Select(r => r.IsBelowDetectionLimit && r.DetectionLimit.HasValue ? r.DetectionLimit.Value / 2 : r.NumericValue)
+                        .Where(v => v.HasValue)
+                        .Select(v => v!.Value)
+                        .ToList();
+                    meanValue = imputed.Count > 0 ? Math.Round(imputed.Average(), 2) : null;
+
+                    var withinSpecCount = list.Count(r => r.ResultLevel == ResultLevel.WithinLimit);
+                    compliancePercent = testsEvaluated > 0 ? Math.Round((double)withinSpecCount / testsEvaluated * 100, 1) : 0;
+                }
+                else
+                {
+                    // Two conventions coexist in ReportedValue depending on
+                    // which workflow wrote the record: a single-sample
+                    // Pathogen session (ResultProjectionService's biochemical
+                    // finalization) writes "Detected" / "Not Detected" /
+                    // "Pending Confirmation"; an EM/After-Cleaning batch
+                    // location result writes "Detected" / "Absent"
+                    // (location.ReportedResult ?? location.Status). Both
+                    // negative strings must count as compliant here.
+                    var detectedCount = list.Count(r => r.ReportedValue == "Detected");
+                    percentDetected = testsEvaluated > 0 ? Math.Round((double)detectedCount / testsEvaluated * 100, 1) : null;
+
+                    var notDetectedCount = list.Count(r => r.ReportedValue == "Not Detected" || r.ReportedValue == "Absent");
+                    compliancePercent = testsEvaluated > 0 ? Math.Round((double)notDetectedCount / testsEvaluated * 100, 1) : 0;
+                }
+
+                // Alert/Action and OOS are always 0 for a qualitative subject -
+                // ResultProjectionService never assigns those ResultLevel
+                // values to a pathogen result (spec/alert/action limits are a
+                // numeric concept) - an honest 0, not a fabricated one.
+                var alertActionCount = list.Count(r => r.ResultLevel == ResultLevel.AlertLevel || r.ResultLevel == ResultLevel.ActionLevel);
+                var oosCount = list.Count(r => r.ResultLevel == ResultLevel.OutOfSpecification);
+
+                return new CompareSubjectStat(g.Key, testsEvaluated, meanValue, percentDetected, alertActionCount, oosCount, compliancePercent);
+            })
+            .OrderByDescending(s => s.TestsEvaluated)
+            .ToList();
+
+        return new CompareResult(testCode, testDefinition.DisplayName, isNumeric, subjects);
     }
 
     private static decimal? Impute(TrendPoint point) =>

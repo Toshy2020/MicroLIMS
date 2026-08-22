@@ -1,32 +1,50 @@
-import { useState } from "react";
-import { Dialog, DialogTitle, DialogContent, DialogActions, Button, Grid, Typography, Box, Table, TableHead, TableRow, TableCell, TableBody, Tabs, Tab , useTheme} from "@mui/material";
+import { useEffect, useState } from "react";
+import { Dialog, DialogTitle, DialogContent, DialogActions, Button, Typography, Box, Table, TableHead, TableRow, TableCell, TableBody, Tabs, Tab, CircularProgress, Alert, useTheme } from "@mui/material";
 import { brandColors } from "../../../theme";
+import { CompareResult } from "../types/reportingTypes";
+import { ReportingService } from "../services/ReportingService";
 
 interface CompareDialogProps {
   open: boolean;
   onClose: () => void;
   initialMode?: "products" | "locations";
+  testCode: string;
+  category: string;
+  fromDate: string;
+  toDate: string;
 }
 
-export function CompareDialog({ open, onClose, initialMode = "products" }: CompareDialogProps) {
+// Real per-subject comparison for the currently-selected Test Code +
+// Category + date range (the same criteria the Trending panel itself
+// uses) - one shared query (ReportingQueryService.GetCompareBySubjectAsync),
+// not per-row mock data. "products" vs "locations" only changes the
+// leading column's label: SubjectName plays the product/item role for flat
+// categories and the location/point role for the three hierarchy
+// categories (Water/EM/After Cleaning) - the underlying rows are identical
+// either way, since a category only ever has one of those two identities.
+export function CompareDialog({ open, onClose, initialMode = "products", testCode, category, fromDate, toDate }: CompareDialogProps) {
   const theme = useTheme();
   const [mode, setMode] = useState<"products" | "locations">(initialMode);
+  const [result, setResult] = useState<CompareResult | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const productComparisons = [
-    { name: "Osteocare Liquid", category: "Finished Product", testsEvaluated: 12, meanValue: 8.3, alertCount: 1, oosCount: 0, compliancePercent: 91.7 },
-    { name: "Feroglobin Syrup", category: "Finished Product", testsEvaluated: 12, meanValue: 4.2, alertCount: 0, oosCount: 0, compliancePercent: 100.0 },
-    { name: "Honey (Raw Material)", category: "Raw Material", testsEvaluated: 12, meanValue: 142.0, alertCount: 2, oosCount: 1, compliancePercent: 75.0 },
-    { name: "Purified Water (Loop 1)", category: "Water", testsEvaluated: 24, meanValue: 1.8, alertCount: 0, oosCount: 0, compliancePercent: 100.0 }
-  ];
+  useEffect(() => {
+    setMode(initialMode);
+  }, [initialMode, open]);
 
-  const locationComparisons = [
-    { name: "Point W-01 (Loop 1 Feed)", category: "Water", testsEvaluated: 24, meanValue: 1.2, alertCount: 0, oosCount: 0, compliancePercent: 100.0 },
-    { name: "Point W-04 (Sampling Port)", category: "Water", testsEvaluated: 24, meanValue: 3.5, alertCount: 1, oosCount: 0, compliancePercent: 95.8 },
-    { name: "Filling Line 1 (Cleanroom B)", category: "EM", testsEvaluated: 30, meanValue: 0.8, alertCount: 0, oosCount: 0, compliancePercent: 100.0 },
-    { name: "Autoclave Room (Cleanroom C)", category: "EM", testsEvaluated: 30, meanValue: 2.1, alertCount: 1, oosCount: 0, compliancePercent: 96.7 }
-  ];
+  useEffect(() => {
+    if (!open || !testCode || !category) return;
+    setLoading(true);
+    setError(null);
+    ReportingService.getCompare(testCode, category, fromDate, toDate)
+      .then(setResult)
+      .catch(() => setError("Unable to load comparison data for this test code."))
+      .finally(() => setLoading(false));
+  }, [open, testCode, category, fromDate, toDate]);
 
-  const data = mode === "products" ? productComparisons : locationComparisons;
+  const subjects = result?.subjects ?? [];
+  const isNumeric = result?.isNumeric ?? true;
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
@@ -35,7 +53,7 @@ export function CompareDialog({ open, onClose, initialMode = "products" }: Compa
           Multi-Series Trend Comparison
         </Typography>
         <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
-          Compare performance and statistical distribution across batches, products, or facility points.
+          {result ? `${result.testDisplayName} — every subject with results in the selected date range` : "Compare performance and statistical distribution across batches, products, or facility points."}
         </Typography>
         <Tabs
           value={mode}
@@ -48,38 +66,49 @@ export function CompareDialog({ open, onClose, initialMode = "products" }: Compa
       </DialogTitle>
 
       <DialogContent sx={{ pt: 2.5 }}>
-        <Table size="small" sx={{ "& th": { fontWeight: 700, fontSize: 12 } }}>
-          <TableHead>
-            <TableRow>
-              <TableCell>{mode === "products" ? "Product / Item" : "Location / Point"}</TableCell>
-              <TableCell>Category</TableCell>
-              <TableCell align="right">Tests Evaluated</TableCell>
-              <TableCell align="right">Mean Result</TableCell>
-              <TableCell align="right">Alert / Action</TableCell>
-              <TableCell align="right">OOS Count</TableCell>
-              <TableCell align="right">% Within Spec</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {data.map((row, idx) => (
-              <TableRow key={idx} hover>
-                <TableCell sx={{ fontWeight: 600 }}>{row.name}</TableCell>
-                <TableCell>{row.category}</TableCell>
-                <TableCell align="right">{row.testsEvaluated}</TableCell>
-                <TableCell align="right" sx={{ fontWeight: 700 }}>{row.meanValue}</TableCell>
-                <TableCell align="right" sx={{ color: row.alertCount > 0 ? brandColors.badgePM : "inherit" }}>
-                  {row.alertCount}
-                </TableCell>
-                <TableCell align="right" sx={{ color: row.oosCount > 0 ? brandColors.err : "inherit", fontWeight: row.oosCount > 0 ? 700 : 400 }}>
-                  {row.oosCount}
-                </TableCell>
-                <TableCell align="right" sx={{ fontWeight: 700, color: row.compliancePercent >= 95 ? brandColors.ok : brandColors.badgePM }}>
-                  {row.compliancePercent}%
-                </TableCell>
+        {loading && (
+          <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>
+            <CircularProgress size={28} />
+          </Box>
+        )}
+        {!loading && error && <Alert severity="error">{error}</Alert>}
+        {!loading && !error && subjects.length === 0 && (
+          <Alert severity="info">No results found for this test code in the selected date range.</Alert>
+        )}
+        {!loading && !error && subjects.length > 0 && (
+          <Table size="small" sx={{ "& th": { fontWeight: 700, fontSize: 12 } }}>
+            <TableHead>
+              <TableRow>
+                <TableCell>{mode === "products" ? "Product / Item" : "Location / Point"}</TableCell>
+                <TableCell align="right">Tests Evaluated</TableCell>
+                <TableCell align="right">{isNumeric ? "Mean Result" : "% Detected"}</TableCell>
+                <TableCell align="right">Alert / Action</TableCell>
+                <TableCell align="right">OOS Count</TableCell>
+                <TableCell align="right">{isNumeric ? "% Within Spec" : "% Not Detected"}</TableCell>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+            </TableHead>
+            <TableBody>
+              {subjects.map((row) => (
+                <TableRow key={row.subjectName} hover>
+                  <TableCell sx={{ fontWeight: 600 }}>{row.subjectName}</TableCell>
+                  <TableCell align="right">{row.testsEvaluated}</TableCell>
+                  <TableCell align="right" sx={{ fontWeight: 700 }}>
+                    {isNumeric ? (row.meanValue ?? "—") : (row.percentDetected != null ? `${row.percentDetected}%` : "—")}
+                  </TableCell>
+                  <TableCell align="right" sx={{ color: row.alertActionCount > 0 ? brandColors.badgePM : "inherit" }}>
+                    {row.alertActionCount}
+                  </TableCell>
+                  <TableCell align="right" sx={{ color: row.oosCount > 0 ? brandColors.err : "inherit", fontWeight: row.oosCount > 0 ? 700 : 400 }}>
+                    {row.oosCount}
+                  </TableCell>
+                  <TableCell align="right" sx={{ fontWeight: 700, color: row.compliancePercent >= 95 ? brandColors.ok : brandColors.badgePM }}>
+                    {row.compliancePercent}%
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        )}
       </DialogContent>
 
       <DialogActions sx={{ px: 3, py: 1.5, borderTop: 1, borderColor: "divider" }}>

@@ -142,11 +142,20 @@ public class DashboardService
 {
     private static readonly TimeSpan DelayThreshold = TimeSpan.FromHours(24);
 
-    private readonly MicroLimsDbContext _db;
+    // A sample with no lower bound on when it could have been assigned -
+    // used only to call KpiService.GetSampleAssignmentSlaAsync with an
+    // effectively unbounded "since the beginning" range, since this
+    // dashboard has no date-range concept of its own (a live snapshot,
+    // not a filtered report).
+    private static readonly DateTime Epoch = new(2000, 1, 1, 0, 0, 0, DateTimeKind.Utc);
 
-    public DashboardService(MicroLimsDbContext db)
+    private readonly MicroLimsDbContext _db;
+    private readonly KpiService _kpiService;
+
+    public DashboardService(MicroLimsDbContext db, KpiService kpiService)
     {
         _db = db;
+        _kpiService = kpiService;
     }
 
     public async Task<object> GetSummaryAsync(RoleType role, int userId)
@@ -456,13 +465,34 @@ public class DashboardService
         var pendingReview = await _db.TestOrders.CountAsync(t => !t.IsSuperseded && t.Status == ApprovalStatus.ResultEntered);
         var pendingApproval = await _db.TestOrders.CountAsync(t => !t.IsSuperseded && t.Status == ApprovalStatus.Reviewed);
 
-        var overdue = await _db.TestOrders
-            .Where(t => !t.IsSuperseded && (t.Status == ApprovalStatus.Pending || t.Status == ApprovalStatus.InProgress))
-            .Where(t => _db.Samples.Any(s => s.Id == t.SampleId && s.ReceivedAt < cutoff))
-            .CountAsync();
+        // Rule #1's 7-day Analyst-stage SLA (KpiService.
+        // GetOverdueAnalystStageSamplesAsync - the SLA determination
+        // itself is never re-derived here), restricted to samples still
+        // actually stuck in that stage right now (TestOrder still
+        // Pending/InProgress). This dashboard is a live "what needs
+        // attention now" view, not the historical "did it ever breach"
+        // question Reports' Analyst Comparison asks about the same
+        // samples - a sample that breached the SLA but has since moved
+        // on to Review/Approval/Approved no longer belongs in a
+        // currently-actionable count, even though it's still correctly
+        // counted as a past SLA breach over on the Reports page.
+        var overdueAnalystSamples = await _kpiService.GetOverdueAnalystStageSamplesAsync(Epoch, now);
+        var overdueAssignedAtBySampleId = overdueAnalystSamples.ToDictionary(x => x.SampleId, x => x.AssignedAt);
+
+        var liveOverdueTestOrders = await _db.TestOrders
+            .Where(t => !t.IsSuperseded && (t.Status == ApprovalStatus.Pending || t.Status == ApprovalStatus.InProgress)
+                && overdueAssignedAtBySampleId.Keys.Contains(t.SampleId))
+            .Select(t => new { t.SampleId, t.AssignedAnalystId })
+            .ToListAsync();
+
+        var overdue = liveOverdueTestOrders.Select(t => t.SampleId).Distinct().Count();
+        var liveOverdueCountByAnalyst = liveOverdueTestOrders
+            .Where(t => t.AssignedAnalystId.HasValue)
+            .GroupBy(t => t.AssignedAnalystId!.Value)
+            .ToDictionary(g => g.Key, g => g.Select(x => x.SampleId).Distinct().Count());
 
         // User lookup map for names
-        var users = await _db.Users.AsNoTracking().ToListAsync();
+        var users = await _db.Users.AsNoTracking().Include(u => u.Role).ToListAsync();
         var userMap = users.ToDictionary(u => u.Id, u => u.FullName);
 
         // Review Queue details
@@ -529,13 +559,15 @@ public class DashboardService
         // Incubation summary grouped
         var incubationSummary = await GetIncubationOverviewAsync(false, null);
 
-        // Analyst workloads
+        // Analyst workloads. Overdue reuses the same live-filtered
+        // per-sample set as the top-level Overdue tile above - one shared
+        // computation, not a second one re-derived per analyst.
         var analysts = users.Where(u => u.IsActive && u.Role != null && u.Role.Type == RoleType.Analyst).ToList();
         var analystWorkloads = new List<SectionHeadAnalystWorkloadDto>();
         foreach (var a in analysts)
         {
             var aActive = await _db.TestOrders.CountAsync(t => !t.IsSuperseded && t.AssignedAnalystId == a.Id && (t.Status == ApprovalStatus.Pending || t.Status == ApprovalStatus.InProgress));
-            var aOverdue = await _db.TestOrders.CountAsync(t => !t.IsSuperseded && t.AssignedAnalystId == a.Id && (t.Status == ApprovalStatus.Pending || t.Status == ApprovalStatus.InProgress) && _db.Samples.Any(s => s.Id == t.SampleId && s.ReceivedAt < cutoff));
+            var aOverdue = liveOverdueCountByAnalyst.TryGetValue(a.Id, out var cnt) ? cnt : 0;
             var aCompletedToday = await _db.Results.CountAsync(r => r.EnteredByUserId == a.Id && r.EnteredAt >= todayStart);
             analystWorkloads.Add(new SectionHeadAnalystWorkloadDto(a.Id, a.FullName, a.Username, aActive, aOverdue, aCompletedToday));
         }
@@ -543,21 +575,27 @@ public class DashboardService
         // Attention items
         var attentionItems = new List<SectionHeadAttentionItemDto>();
 
-        // 1. Overdue tests (>24h since received)
-        var overdueList = await _db.TestOrders
-            .Where(t => !t.IsSuperseded && (t.Status == ApprovalStatus.Pending || t.Status == ApprovalStatus.InProgress))
+        // 1. Overdue tests - the same live-filtered, Rule #1 7-day
+        // Analyst-stage SLA set as the tile and AnalystWorkloads above,
+        // detail-fetched for display (Sample.Item, TestCode) rather than
+        // re-derived against Sample.ReceivedAt here.
+        var overdueList = (await _db.TestOrders
+            .Where(t => !t.IsSuperseded && (t.Status == ApprovalStatus.Pending || t.Status == ApprovalStatus.InProgress) && overdueAssignedAtBySampleId.Keys.Contains(t.SampleId))
             .Include(t => t.Sample).ThenInclude(s => s!.Item)
-            .Where(t => t.Sample != null && t.Sample.ReceivedAt < cutoff)
-            .OrderBy(t => t.Sample!.ReceivedAt)
+            .ToListAsync())
+            .GroupBy(t => t.SampleId)
+            .Select(g => g.First())
+            .OrderBy(t => overdueAssignedAtBySampleId[t.SampleId])
             .Take(5)
-            .ToListAsync();
+            .ToList();
         foreach (var ot in overdueList)
         {
             var name = ot.Sample?.Item?.Name ?? ot.Sample?.ReferenceNumber ?? "Sample";
-            var delayHours = (int)Math.Floor((now - ot.Sample!.ReceivedAt).TotalHours);
+            var assignedAt = overdueAssignedAtBySampleId[ot.SampleId];
+            var delayHours = (int)Math.Floor((now - assignedAt).TotalHours);
             attentionItems.Add(new SectionHeadAttentionItemDto(
-                ot.SampleId, ot.Id, ot.Sample.ReferenceNumber, name, ot.TestCode,
-                "High", $"Test pending for {delayHours}h (>24h threshold)", "OverdueTest", ot.Sample.ReceivedAt
+                ot.SampleId, ot.Id, ot.Sample?.ReferenceNumber ?? "", name, ot.TestCode,
+                "High", $"Testing stage pending for {delayHours}h (>168h / 7-day Analyst SLA)", "OverdueTest", assignedAt
             ));
         }
 

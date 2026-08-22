@@ -1,11 +1,10 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Box, Paper, Typography, TextField, FormControl, InputLabel, Select, MenuItem,
-  Button, Grid, Stack, Chip, Divider, IconButton, Tooltip, useTheme
+  Button, Grid, Stack, Chip, Divider, IconButton, Tooltip, useTheme, Menu, Alert
 } from "@mui/material";
 import TableChartIcon from "@mui/icons-material/TableChart";
 import FileDownloadIcon from "@mui/icons-material/FileDownload";
-import BookmarkBorderIcon from "@mui/icons-material/BookmarkBorder";
 import CompareArrowsIcon from "@mui/icons-material/CompareArrows";
 import LocationOnIcon from "@mui/icons-material/LocationOn";
 import {
@@ -19,11 +18,14 @@ import {
   SampleCategory,
   ResultRecordItem
 } from "../types/reportingTypes";
-import { TrendingService } from "../services/TrendingService";
+import { TrendingService, resolveDateRange } from "../services/TrendingService";
 import { ReportingService } from "../services/ReportingService";
+import { LocationCascadeFilter, hasLocationHierarchy } from "./LocationCascadeFilter";
 import { TrendingDataDialog } from "./TrendingDataDialog";
 import { CompareDialog } from "./CompareDialog";
 import { RecordDetailDialog } from "./RecordDetailDialog";
+import { captureSvgAsPng } from "../utils/chartExport";
+import { buildTrendCsv, downloadCsv, exportTrendPdfTable, exportTrendPdfWithChart, TrendExportContext } from "../utils/exportTrend";
 
 interface TrendingTabProps {
   initialTestCode?: string;
@@ -42,9 +44,7 @@ export function TrendingTab({ initialTestCode, initialSubjectName }: TrendingTab
     testCode: initialTestCode || "TAMC",
     subjectName: initialSubjectName || "Osteocare Liquid",
     category: "FinishedProduct",
-    location: "All",
     dateRange: "12m",
-    frequency: "Monthly",
     compareWith: "None",
     showMode: "All"
   });
@@ -57,7 +57,11 @@ export function TrendingTab({ initialTestCode, initialSubjectName }: TrendingTab
   const [compareDialogOpen, setCompareDialogOpen] = useState(false);
   const [compareMode, setCompareMode] = useState<"products" | "locations">("products");
   const [drillDownRecord, setDrillDownRecord] = useState<ResultRecordItem | null>(null);
-  const [savedSuccess, setSavedSuccess] = useState(false);
+
+  // Export menu
+  const [exportMenuAnchor, setExportMenuAnchor] = useState<HTMLElement | null>(null);
+  const [exportError, setExportError] = useState<string | null>(null);
+  const chartContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     ReportingService.getFilterOptions()
@@ -132,6 +136,41 @@ export function TrendingTab({ initialTestCode, initialSubjectName }: TrendingTab
     });
   };
 
+  const exportContext = (): TrendExportContext => ({
+    testName: analysis?.testDisplayName || criteria.testCode,
+    subjectName: analysis?.subjectName || criteria.subjectName,
+    unit: analysis?.unit ?? null,
+    isNumeric: analysis?.isNumeric ?? true,
+    numericPoints: analysis?.numericPoints ?? [],
+    qualitativePoints: analysis?.qualitativePoints ?? []
+  });
+
+  const handleExportCsv = () => {
+    setExportError(null);
+    const ctx = exportContext();
+    downloadCsv(buildTrendCsv(ctx), `trend_${ctx.testName.toLowerCase().replace(/\s+/g, "_")}_${new Date().toISOString().slice(0, 10)}.csv`);
+    setExportMenuAnchor(null);
+  };
+
+  const handleExportPdfTable = () => {
+    setExportError(null);
+    exportTrendPdfTable(exportContext());
+    setExportMenuAnchor(null);
+  };
+
+  const handleExportPdfWithChart = async () => {
+    setExportError(null);
+    setExportMenuAnchor(null);
+    try {
+      const svg = chartContainerRef.current?.querySelector("svg");
+      if (!svg) throw new Error("No chart is currently rendered to capture.");
+      const imageDataUrl = await captureSvgAsPng(svg);
+      exportTrendPdfWithChart(exportContext(), imageDataUrl);
+    } catch (e: any) {
+      setExportError(e?.message || "Could not capture the chart image for export.");
+    }
+  };
+
   return (
     <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", lg: "280px 1fr 240px" }, gap: 2, alignItems: "start", pb: 4 }}>
       {/* LEFT COLUMN: Analysis Criteria */}
@@ -165,30 +204,38 @@ export function TrendingTab({ initialTestCode, initialSubjectName }: TrendingTab
             </Select>
           </FormControl>
 
-          <FormControl fullWidth size="small">
-            <InputLabel>Product / Item</InputLabel>
-            <Select
-              label="Product / Item"
-              value={criteria.subjectName}
-              onChange={(e) => setCriteria((c) => ({ ...c, subjectName: e.target.value }))}
-            >
-              {filterOptions.subjectNames.length > 0 ? (
-                filterOptions.subjectNames.map((s) => (
-                  <MenuItem key={s} value={s}>
-                    {s}
-                  </MenuItem>
-                ))
-              ) : (
-                [
-                  <MenuItem key="Osteocare Liquid" value="Osteocare Liquid">Osteocare Liquid</MenuItem>,
-                  <MenuItem key="Feroglobin Syrup" value="Feroglobin Syrup">Feroglobin Syrup</MenuItem>,
-                  <MenuItem key="Honey" value="Honey">Honey (Raw Material)</MenuItem>,
-                  <MenuItem key="Purified Water" value="Purified Water">Purified Water (Loop 1)</MenuItem>,
-                  <MenuItem key="Point W-01" value="Point W-01">Point W-01 (Utilities)</MenuItem>
-                ]
-              )}
-            </Select>
-          </FormControl>
+          {hasLocationHierarchy(criteria.category) ? (
+            <LocationCascadeFilter
+              category={criteria.category}
+              subjectName={criteria.subjectName}
+              onSubjectNameChange={(name) => setCriteria((c) => ({ ...c, subjectName: name }))}
+            />
+          ) : (
+            <FormControl fullWidth size="small">
+              <InputLabel>Product / Item</InputLabel>
+              <Select
+                label="Product / Item"
+                value={criteria.subjectName}
+                onChange={(e) => setCriteria((c) => ({ ...c, subjectName: e.target.value }))}
+              >
+                {filterOptions.subjectNames.length > 0 ? (
+                  filterOptions.subjectNames.map((s) => (
+                    <MenuItem key={s} value={s}>
+                      {s}
+                    </MenuItem>
+                  ))
+                ) : (
+                  [
+                    <MenuItem key="Osteocare Liquid" value="Osteocare Liquid">Osteocare Liquid</MenuItem>,
+                    <MenuItem key="Feroglobin Syrup" value="Feroglobin Syrup">Feroglobin Syrup</MenuItem>,
+                    <MenuItem key="Honey" value="Honey">Honey (Raw Material)</MenuItem>,
+                    <MenuItem key="Purified Water" value="Purified Water">Purified Water (Loop 1)</MenuItem>,
+                    <MenuItem key="Point W-01" value="Point W-01">Point W-01 (Utilities)</MenuItem>
+                  ]
+                )}
+              </Select>
+            </FormControl>
+          )}
 
           <FormControl fullWidth size="small">
             <InputLabel>Category</InputLabel>
@@ -215,20 +262,6 @@ export function TrendingTab({ initialTestCode, initialSubjectName }: TrendingTab
           </FormControl>
 
           <FormControl fullWidth size="small">
-            <InputLabel>Location / Point</InputLabel>
-            <Select
-              label="Location / Point"
-              value={criteria.location ?? "All"}
-              onChange={(e) => setCriteria((c) => ({ ...c, location: e.target.value }))}
-            >
-              <MenuItem value="All">All Locations</MenuItem>
-              <MenuItem value="Production">Production</MenuItem>
-              <MenuItem value="Warehouse">Warehouse</MenuItem>
-              <MenuItem value="QC Lab">QC Lab</MenuItem>
-            </Select>
-          </FormControl>
-
-          <FormControl fullWidth size="small">
             <InputLabel>Date Range</InputLabel>
             <Select
               label="Date Range"
@@ -243,24 +276,24 @@ export function TrendingTab({ initialTestCode, initialSubjectName }: TrendingTab
           </FormControl>
 
           <FormControl fullWidth size="small">
-            <InputLabel>Frequency</InputLabel>
-            <Select
-              label="Frequency"
-              value={criteria.frequency}
-              onChange={(e) => setCriteria((c) => ({ ...c, frequency: e.target.value as any }))}
-            >
-              <MenuItem value="Monthly">Monthly</MenuItem>
-              <MenuItem value="Weekly">Weekly</MenuItem>
-              <MenuItem value="Quarterly">Quarterly</MenuItem>
-            </Select>
-          </FormControl>
-
-          <FormControl fullWidth size="small">
             <InputLabel>Compare With</InputLabel>
             <Select
               label="Compare With"
               value={criteria.compareWith}
-              onChange={(e) => setCriteria((c) => ({ ...c, compareWith: e.target.value as any }))}
+              onChange={(e) => {
+                const value = e.target.value as typeof criteria.compareWith;
+                setCriteria((c) => ({ ...c, compareWith: value }));
+                // "Previous Period" is a chart-overlay concept, out of this
+                // batch's scope - only the two table-based comparisons open
+                // the Quick Compare dialog, same as its own two buttons do.
+                if (value === "Product Comparison") {
+                  setCompareMode("products");
+                  setCompareDialogOpen(true);
+                } else if (value === "Location Comparison") {
+                  setCompareMode("locations");
+                  setCompareDialogOpen(true);
+                }
+              }}
             >
               <MenuItem value="None">None</MenuItem>
               <MenuItem value="Previous Period">Previous Period</MenuItem>
@@ -312,7 +345,7 @@ export function TrendingTab({ initialTestCode, initialSubjectName }: TrendingTab
             </Box>
           )}
 
-          <Box sx={{ height: 320, width: "100%", mt: 2 }}>
+          <Box ref={chartContainerRef} sx={{ height: 320, width: "100%", mt: 2 }}>
             {analysis?.isNumeric && (!analysis.numericPoints || analysis.numericPoints.length === 0) ? (
               <Box sx={{ height: "100%", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", bgcolor: "background.default", borderRadius: 1.5, border: 1, borderColor: "divider" }}>
                 <Typography sx={{ fontSize: 14, fontWeight: 600, color: "text.secondary" }}>
@@ -563,21 +596,16 @@ export function TrendingTab({ initialTestCode, initialSubjectName }: TrendingTab
               variant="outlined"
               fullWidth
               startIcon={<FileDownloadIcon />}
-              onClick={() => setDataDialogOpen(true)}
+              onClick={(e) => setExportMenuAnchor(e.currentTarget)}
             >
-              Export Data (Excel)
+              Export
             </Button>
-            <Button
-              variant="contained"
-              fullWidth
-              startIcon={<BookmarkBorderIcon />}
-              onClick={() => {
-                setSavedSuccess(true);
-                setTimeout(() => setSavedSuccess(false), 3000);
-              }}
-            >
-              {savedSuccess ? "Saved to Workspace" : "Save Analysis"}
-            </Button>
+            <Menu anchorEl={exportMenuAnchor} open={!!exportMenuAnchor} onClose={() => setExportMenuAnchor(null)}>
+              <MenuItem onClick={handleExportCsv}>CSV (Data Table)</MenuItem>
+              <MenuItem onClick={handleExportPdfTable}>PDF (Data Table)</MenuItem>
+              <MenuItem onClick={handleExportPdfWithChart}>PDF (Data Table + Chart)</MenuItem>
+            </Menu>
+            {exportError && <Alert severity="error" sx={{ fontSize: 12 }}>{exportError}</Alert>}
           </Stack>
         </Paper>
 
@@ -642,6 +670,10 @@ export function TrendingTab({ initialTestCode, initialSubjectName }: TrendingTab
         open={compareDialogOpen}
         onClose={() => setCompareDialogOpen(false)}
         initialMode={compareMode}
+        testCode={criteria.testCode}
+        category={criteria.category || "FinishedProduct"}
+        fromDate={resolveDateRange(criteria).fromDate}
+        toDate={resolveDateRange(criteria).toDate}
       />
 
       <RecordDetailDialog

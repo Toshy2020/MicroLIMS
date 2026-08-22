@@ -163,75 +163,8 @@ export interface OverviewDashboardData {
 }
 
 // ---------------------------------------------------------------------------
-// Report Builder Types
-// ---------------------------------------------------------------------------
-
-export type ReportType =
-  | "Microbiology Results Report"
-  | "Finished Product Report"
-  | "Raw Material Report"
-  | "Packaging Material Report"
-  | "Water Monitoring Report"
-  | "Environmental Monitoring Report"
-  | "After Cleaning Report"
-  | "Analyst Activity Report"
-  | "Custom Report";
-
-export type ReportPurpose = "Ad-Hoc Analysis" | "Operational Report" | "Controlled Report";
-
-export type ReportFormat = "PDF (Portrait)" | "PDF (Landscape)" | "Excel (.xlsx)" | "CSV (.csv)";
-
-export interface ReportBuilderCriteria {
-  reportType: ReportType;
-  reportPurpose: ReportPurpose;
-  fromDate?: string;
-  toDate?: string;
-  category?: SampleCategory | "";
-  selectedProducts: string[];
-  selectedTests: string[];
-  location?: string;
-  resultLevel?: ResultLevel | "";
-  status?: string;
-  approvalStatus?: ApprovalStatus | "";
-  analystId?: number | "";
-  groupBy: "Product" | "Category" | "Test" | "Location" | "Date" | "None";
-  sortBy: "DateAsc" | "DateDesc" | "Reference" | "ResultLevel";
-}
-
-export interface ReportBuilderOptions {
-  includeSpecifications: boolean;
-  includeLimits: boolean;
-  includeAnalyst: boolean;
-  includeReviewer: boolean;
-  includeApprovalInfo: boolean;
-  includeAuditInfo: boolean;
-  includeSignatures: boolean;
-  includePageNumbers: boolean;
-  templateId: string;
-  format: ReportFormat;
-}
-
-export interface ReportPreviewGroup {
-  groupKey: string;
-  groupTitle: string;
-  items: ResultRecordItem[];
-}
-
-export interface ReportPreviewData {
-  reportTitle: string;
-  reportPurpose: ReportPurpose;
-  reportingPeriod: string;
-  generatedAt: string;
-  generatedByName: string;
-  totalRecords: number;
-  groups: ReportPreviewGroup[];
-}
-
-// ---------------------------------------------------------------------------
 // Trending & Analysis Types
 // ---------------------------------------------------------------------------
-
-export type TrendFrequency = "Monthly" | "Weekly" | "Quarterly";
 
 export type TrendComparisonMode = "None" | "Previous Period" | "Product Comparison" | "Location Comparison";
 
@@ -239,11 +172,9 @@ export interface TrendingCriteria {
   testCode: string;
   subjectName: string;
   category?: SampleCategory | "";
-  location?: string;
   dateRange: "7d" | "30d" | "3m" | "6m" | "12m" | "custom";
   customFrom?: string;
   customTo?: string;
-  frequency: TrendFrequency;
   compareWith: TrendComparisonMode;
   showMode: "All" | "ApprovedOnly" | "OutOfTrendOnly";
 }
@@ -307,41 +238,26 @@ export interface TrendAnalysisResult {
   qualitativeStats?: QualitativeStatisticsSummary;
 }
 
-// ---------------------------------------------------------------------------
-// Saved Reports Types
-// ---------------------------------------------------------------------------
-
-export interface GeneratedReport {
-  id: string;
-  name: string;
-  type: string;
-  purpose: ReportPurpose;
-  period: string;
-  generatedOn: string;
-  generatedBy: string;
-  generatedByUserId: number;
-  status: "Final" | "Draft" | "Archived";
-  format: "PDF" | "Excel" | "CSV";
-  criteriaJson: string;
-  sourceRecordIds: number[];
-  templateId?: string;
-  version: string;
-  auditTrailRef?: string;
-  sizeBytes?: number;
+// One product/item or location/point's aggregate stats for a single test
+// code, over the Trending panel's own criteria (category + date range) -
+// backs the Quick Compare dialog. meanValue is populated only for a
+// numeric (CountTest) testCode; percentDetected only for a qualitative
+// one - a row only ever carries the field matching CompareResult.isNumeric.
+export interface CompareSubjectStat {
+  subjectName: string;
+  testsEvaluated: number;
+  meanValue: number | null;
+  percentDetected: number | null;
+  alertActionCount: number;
+  oosCount: number;
+  compliancePercent: number;
 }
 
-export interface SavedReportConfiguration {
-  id: string;
-  name: string;
-  reportType: ReportType;
-  purpose: ReportPurpose;
-  categories: SampleCategory[];
-  criteria: Partial<ReportBuilderCriteria>;
-  options: Partial<ReportBuilderOptions>;
-  lastModified: string;
-  modifiedBy: string;
-  modifiedByUserId: number;
-  status: "Active" | "Inactive";
+export interface CompareResult {
+  testCode: string;
+  testDisplayName: string;
+  isNumeric: boolean;
+  subjects: CompareSubjectStat[];
 }
 
 // ---------------------------------------------------------------------------
@@ -446,6 +362,26 @@ export interface StageTatSummary {
   totalTatDays: number;
 }
 
+// Rule #1's 7-day sample-assignment SLA - a distinct measurement from
+// StepViolationSummary below (different denominator: samples, not
+// tests/steps - a sample can carry several tests).
+export interface SampleSlaSummary {
+  totalAssigned: number;
+  onTimePercent: number;
+  overduePercent: number;
+}
+
+// Step-level max-hours violation (CompletedAt vs ExpectedReadingAt + 4h
+// grace, mirroring DashboardService.GetAnalystMetricsAsync). Deliberately
+// separate from SampleSlaSummary - a different SLA, a different
+// denominator (tests, not samples), never merged into one card.
+export interface StepViolationSummary {
+  totalAssignedTests: number;
+  onTimePercent: number;
+  violationCount: number;
+  violationPercent: number;
+}
+
 export interface AnalystPerformanceDashboardData {
   // Top 6 Analyst KPI Cards
   testsAssigned: OverviewKpiCardData;
@@ -456,13 +392,19 @@ export interface AnalystPerformanceDashboardData {
   pendingOverdue: OverviewKpiCardData;
   // Lab Quality Signal (OOS is explicitly marked as NOT an analyst penalty)
   qualitySignalOos: OverviewKpiCardData;
+  // Sample-level SLA and step-level max-hours violation - two distinct
+  // cards, two distinct denominators.
+  sampleSla: SampleSlaSummary;
+  stepViolations: StepViolationSummary;
   // Data Coverage Indicator
   dataCoveragePercent: number;
   dataCoverageNote: string;
   // Visualizations
   completedByMonth: { month: string; year2025: number; year2026: number }[];
   testsByCategory: { category: string; count: number; percentage: number; color: string }[];
-  tatTrendByMonth: { month: string; tatDays: number }[];
+  // tatDays is null for a month with no completed Testing-stage samples -
+  // rendered as a gap in the line, not a misleading "0 days".
+  tatTrendByMonth: { month: string; tatDays: number | null }[];
   // Workflow Bottleneck & TAT Breakdown
   workflowBottleneck: SectionWorkflowBottleneck;
   tatSummary: StageTatSummary;

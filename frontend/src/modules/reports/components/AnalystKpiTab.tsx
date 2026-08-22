@@ -22,9 +22,21 @@ import {
   OverviewKpiCardData
 } from "../types/reportingTypes";
 import { AnalystKpiService } from "../services/AnalystKpiService";
+import { ReportingService } from "../services/ReportingService";
+import { CATEGORY_LABELS } from "../services/OverviewService";
 import { WorkloadWeightsDialog } from "./WorkloadWeightsDialog";
 import { useAuth } from "../../../contexts/AuthContext";
 import { brandColors } from "../../../theme";
+import { UserService, UserRecord } from "../../users/services/UserService";
+
+// Rule #3's calendar-month-vs-previous delta, formatted for a Workflow
+// Bottleneck queue tile. 0% (no prior-month arrivals to compare against)
+// reads as "flat vs prev" rather than a misleading directional arrow.
+function formatDeltaVsPrev(deltaPercent: number): string {
+  if (deltaPercent === 0) return "flat vs prev";
+  const arrow = deltaPercent > 0 ? "↑" : "↓";
+  return `${arrow} ${Math.abs(deltaPercent).toFixed(1)}% vs prev`;
+}
 
 function KpiCard({ data }: { data: OverviewKpiCardData }) {
   const theme = useTheme();
@@ -89,6 +101,21 @@ export function AnalystKpiTab() {
   const [orderBy, setOrderBy] = useState<keyof AnalystComparisonRow>("completed");
   const [order, setOrder] = useState<Order>("desc");
 
+  // Filter bar option lists - real, not the fixed name/category lists this
+  // page used to hardcode.
+  const [analysts, setAnalysts] = useState<UserRecord[]>([]);
+  const [analystsError, setAnalystsError] = useState<string | null>(null);
+  const [categoryOptions, setCategoryOptions] = useState<string[]>([]);
+
+  useEffect(() => {
+    UserService.getEligibleAnalysts()
+      .then(setAnalysts)
+      .catch((err: any) => setAnalystsError(err?.response?.data?.message || "Unable to load analysts."));
+    ReportingService.getFilterOptions()
+      .then((opts) => setCategoryOptions(opts?.categories ?? []))
+      .catch(() => {});
+  }, []);
+
   const loadData = () => {
     setLoading(true);
     AnalystKpiService.getDashboardData(filters, role || "SectionHead", userId || 101)
@@ -111,6 +138,11 @@ export function AnalystKpiTab() {
     setOrder(isAsc ? "desc" : "asc");
     setOrderBy(property);
   };
+
+  const categoryTotal = useMemo(
+    () => (data ? data.testsByCategory.reduce((sum, c) => sum + c.count, 0) : 0),
+    [data]
+  );
 
   const sortedRows = useMemo(() => {
     if (!data) return [];
@@ -209,14 +241,16 @@ export function AnalystKpiTab() {
                 }}
               >
                 {!isAnalyst && <MenuItem value="All">All Analysts (Section View)</MenuItem>}
-                <MenuItem value={101}>Amal Hamdy</MenuItem>
-                <MenuItem value={102}>Ahmed Ali</MenuItem>
-                <MenuItem value={103}>Sara Mohamed</MenuItem>
-                <MenuItem value={104}>Khaled Omar</MenuItem>
-                <MenuItem value={105}>Nour Ibrahim</MenuItem>
-                <MenuItem value={106}>Youssef Tarek</MenuItem>
+                {analysts.map((a) => (
+                  <MenuItem key={a.id} value={a.id}>
+                    {a.fullName} ({a.username}){a.role?.name ? ` — ${a.role.name}` : ""}
+                  </MenuItem>
+                ))}
               </Select>
             </FormControl>
+            {analystsError && (
+              <Typography sx={{ fontSize: 11, color: "error.main", mt: 0.5 }}>{analystsError}</Typography>
+            )}
           </Grid>
 
           <Grid item xs={12} sm={6} md={2}>
@@ -228,10 +262,9 @@ export function AnalystKpiTab() {
                 onChange={(e) => setFilters((f) => ({ ...f, category: e.target.value as any }))}
               >
                 <MenuItem value="All">All Categories</MenuItem>
-                <MenuItem value="FinishedProduct">Finished Product</MenuItem>
-                <MenuItem value="RawMaterial">Raw Material</MenuItem>
-                <MenuItem value="Water">Water</MenuItem>
-                <MenuItem value="EnvironmentalMonitoring">EM</MenuItem>
+                {categoryOptions.map((cat) => (
+                  <MenuItem key={cat} value={cat}>{CATEGORY_LABELS[cat] ?? cat}</MenuItem>
+                ))}
               </Select>
             </FormControl>
           </Grid>
@@ -297,6 +330,72 @@ export function AnalystKpiTab() {
         </Grid>
       </Grid>
 
+      {/* Sample & Step Violation Metrics - two distinct denominators
+          (samples vs. tests), kept as two separate cards rather than
+          merged into one block. */}
+      <Grid container spacing={2} sx={{ mb: 2.5 }}>
+        <Grid item xs={12} md={6}>
+          <Paper sx={{ p: 2.5, height: "100%" }}>
+            <Typography sx={{ fontSize: 13, fontWeight: 700, color: theme.palette.primary.main, mb: 0.5 }}>
+              Total Assigned Samples
+            </Typography>
+            <Typography sx={{ fontSize: 11, color: "text.secondary", mb: 1.5 }}>
+              7-day analyst SLA: assignment → submitted for review
+            </Typography>
+            <Typography sx={{ fontSize: 24, fontWeight: 800, color: theme.palette.primary.main, mb: 1.5 }}>
+              {data.sampleSla.totalAssigned.toLocaleString()}
+            </Typography>
+            <Stack direction="row" spacing={3}>
+              <Box>
+                <Typography sx={{ fontSize: 11, color: "text.secondary" }}>On-Time %</Typography>
+                <Typography sx={{ fontSize: 18, fontWeight: 700, color: theme.custom.status.notDetected.text }}>
+                  {data.sampleSla.onTimePercent}%
+                </Typography>
+              </Box>
+              <Box>
+                <Typography sx={{ fontSize: 11, color: "text.secondary" }}>Overdue %</Typography>
+                <Typography sx={{ fontSize: 18, fontWeight: 700, color: data.sampleSla.overduePercent > 0 ? theme.custom.status.detected.text : "text.primary" }}>
+                  {data.sampleSla.overduePercent}%
+                </Typography>
+              </Box>
+            </Stack>
+          </Paper>
+        </Grid>
+        <Grid item xs={12} md={6}>
+          <Paper sx={{ p: 2.5, height: "100%" }}>
+            <Typography sx={{ fontSize: 13, fontWeight: 700, color: theme.palette.primary.main, mb: 0.5 }}>
+              Total Assigned Tests
+            </Typography>
+            <Typography sx={{ fontSize: 11, color: "text.secondary", mb: 1.5 }}>
+              Step-level max-hours violation: reading past configured window + 4h grace
+            </Typography>
+            <Typography sx={{ fontSize: 24, fontWeight: 800, color: theme.palette.primary.main, mb: 1.5 }}>
+              {data.stepViolations.totalAssignedTests.toLocaleString()}
+            </Typography>
+            <Stack direction="row" spacing={3}>
+              <Box>
+                <Typography sx={{ fontSize: 11, color: "text.secondary" }}>On-Time %</Typography>
+                <Typography sx={{ fontSize: 18, fontWeight: 700, color: theme.custom.status.notDetected.text }}>
+                  {data.stepViolations.onTimePercent}%
+                </Typography>
+              </Box>
+              <Box>
+                <Typography sx={{ fontSize: 11, color: "text.secondary" }}>Violations</Typography>
+                <Typography sx={{ fontSize: 18, fontWeight: 700, color: data.stepViolations.violationCount > 0 ? theme.custom.status.detected.text : "text.primary" }}>
+                  {data.stepViolations.violationCount}
+                </Typography>
+              </Box>
+              <Box>
+                <Typography sx={{ fontSize: 11, color: "text.secondary" }}>Violation %</Typography>
+                <Typography sx={{ fontSize: 18, fontWeight: 700, color: data.stepViolations.violationPercent > 0 ? theme.custom.status.detected.text : "text.primary" }}>
+                  {data.stepViolations.violationPercent}%
+                </Typography>
+              </Box>
+            </Stack>
+          </Paper>
+        </Grid>
+      </Grid>
+
       {/* Visualizations Row */}
       <Grid container spacing={2} sx={{ mb: 2.5 }}>
         {/* Tests Completed by Month */}
@@ -347,7 +446,7 @@ export function AnalystKpiTab() {
                   </PieChart>
                 </ResponsiveContainer>
                 <Box sx={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%, -50%)", textAlign: "center" }}>
-                  <Typography sx={{ fontSize: 15, fontWeight: 800, color: theme.palette.primary.main }}>1,284</Typography>
+                  <Typography sx={{ fontSize: 15, fontWeight: 800, color: theme.palette.primary.main }}>{categoryTotal.toLocaleString()}</Typography>
                   <Typography sx={{ fontSize: 9, color: "text.secondary" }}>Total</Typography>
                 </Box>
               </Box>
@@ -403,7 +502,7 @@ export function AnalystKpiTab() {
                   <Typography sx={{ fontSize: 18, fontWeight: 800, color: theme.palette.primary.main }}>
                     {data.workflowBottleneck.testingQueueCount}
                   </Typography>
-                  <Typography sx={{ fontSize: 10, color: theme.custom.status.notDetected.text }}>↑ 5.1% vs prev</Typography>
+                  <Typography sx={{ fontSize: 10, color: theme.custom.status.notDetected.text }}>{formatDeltaVsPrev(data.workflowBottleneck.testingQueueDeltaPercent)}</Typography>
                 </Box>
               </Grid>
               <Grid item xs={4}>
@@ -412,7 +511,7 @@ export function AnalystKpiTab() {
                   <Typography sx={{ fontSize: 18, fontWeight: 800, color: theme.custom.status.purple.text }}>
                     {data.workflowBottleneck.reviewQueueCount}
                   </Typography>
-                  <Typography sx={{ fontSize: 10, color: theme.custom.status.notDetected.text }}>↓ 12.5% vs prev</Typography>
+                  <Typography sx={{ fontSize: 10, color: theme.custom.status.notDetected.text }}>{formatDeltaVsPrev(data.workflowBottleneck.reviewQueueDeltaPercent)}</Typography>
                 </Box>
               </Grid>
               <Grid item xs={4}>
@@ -421,7 +520,7 @@ export function AnalystKpiTab() {
                   <Typography sx={{ fontSize: 18, fontWeight: 800, color: theme.custom.status.notDetected.text }}>
                     {data.workflowBottleneck.approvalQueueCount}
                   </Typography>
-                  <Typography sx={{ fontSize: 10, color: theme.custom.status.notDetected.text }}>↓ 25.0% vs prev</Typography>
+                  <Typography sx={{ fontSize: 10, color: theme.custom.status.notDetected.text }}>{formatDeltaVsPrev(data.workflowBottleneck.approvalQueueDeltaPercent)}</Typography>
                 </Box>
               </Grid>
             </Grid>
@@ -440,7 +539,7 @@ export function AnalystKpiTab() {
                   <Typography sx={{ fontSize: 18, fontWeight: 800, color: theme.custom.status.info.text }}>
                     {data.tatSummary.testingTatDays} d
                   </Typography>
-                  <Typography sx={{ fontSize: 10, color: "text.secondary" }}>Assignment → Entry</Typography>
+                  <Typography sx={{ fontSize: 10, color: "text.secondary" }}>Assignment → Submitted</Typography>
                 </Box>
               </Grid>
               <Grid item xs={3}>
@@ -449,7 +548,7 @@ export function AnalystKpiTab() {
                   <Typography sx={{ fontSize: 18, fontWeight: 800 }}>
                     {data.tatSummary.reviewTatDays} d
                   </Typography>
-                  <Typography sx={{ fontSize: 10, color: "text.secondary" }}>Entry → Review</Typography>
+                  <Typography sx={{ fontSize: 10, color: "text.secondary" }}>Submitted → Reviewed</Typography>
                 </Box>
               </Grid>
               <Grid item xs={3}>
@@ -458,7 +557,7 @@ export function AnalystKpiTab() {
                   <Typography sx={{ fontSize: 18, fontWeight: 800 }}>
                     {data.tatSummary.approvalTatDays} d
                   </Typography>
-                  <Typography sx={{ fontSize: 10, color: "text.secondary" }}>Review → Release</Typography>
+                  <Typography sx={{ fontSize: 10, color: "text.secondary" }}>Reviewed → Decided</Typography>
                 </Box>
               </Grid>
               <Grid item xs={3}>
@@ -560,7 +659,9 @@ export function AnalystKpiTab() {
                   </TableCell>
                   <TableCell align="right">{row.completionRatePercent}%</TableCell>
                   <TableCell align="right">
-                    <Tooltip title="Authoritative analyst on-time completion requires a defined target/SLA and corresponding assignment or due-date data, which is not currently available.">
+                    <Tooltip title={row.onTimePercent != null
+                      ? "Percent of this analyst's samples where every stage they've reached (Testing/Review/Approval) met its own SLA."
+                      : "Authoritative analyst on-time completion requires a defined target/SLA and corresponding assignment or due-date data, which is not currently available."}>
                       <Typography component="span" sx={{ fontSize: 11, color: "text.secondary" }}>
                         {row.onTimePercent != null ? `${row.onTimePercent}%` : "—"}
                       </Typography>
@@ -655,7 +756,9 @@ export function AnalystKpiTab() {
                   </Box>
                   <Box sx={{ display: "flex", justifyContent: "space-between", fontSize: 12 }}>
                     <Typography sx={{ fontSize: 12, color: "text.secondary" }}>On-Time Completion:</Typography>
-                    <Tooltip title="Authoritative analyst on-time completion requires a defined target/SLA and corresponding assignment or due-date data, which is not currently available.">
+                    <Tooltip title={selectedAnalystDetail.timeliness.onTimePercent !== "Not Available"
+                      ? "Percent of this analyst's samples where every stage they've reached (Testing/Review/Approval) met its own SLA."
+                      : "Authoritative analyst on-time completion requires a defined target/SLA and corresponding assignment or due-date data, which is not currently available."}>
                       <Typography sx={{ fontSize: 12, fontWeight: 600, color: "text.secondary" }}>
                         {selectedAnalystDetail.timeliness.onTimePercent}
                       </Typography>

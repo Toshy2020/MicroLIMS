@@ -2,7 +2,10 @@ import { OverviewDashboardData, SampleCategory } from "../types/reportingTypes";
 import { ReportingService } from "./ReportingService";
 import { brandColors } from "../../../theme";
 
-const CATEGORY_LABELS: Record<string, string> = {
+// Exported so other Reports tabs (e.g. AnalystKpiTab's category filter and
+// "Tests by Category" donut) use the same human labels instead of each
+// inventing their own.
+export const CATEGORY_LABELS: Record<string, string> = {
   FinishedProduct: "Finished Product",
   RawMaterial: "Raw Material",
   PackagingMaterial: "Packaging Material",

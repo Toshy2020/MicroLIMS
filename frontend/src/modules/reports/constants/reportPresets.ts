@@ -1,31 +1,4 @@
-import { ReportType, ReportPurpose, SampleCategory, WorkloadWeightConfig } from "../types/reportingTypes";
-import { brandColors } from "../../../theme";
-
-export const REPORT_TYPES: ReportType[] = [
-  "Microbiology Results Report",
-  "Finished Product Report",
-  "Raw Material Report",
-  "Packaging Material Report",
-  "Water Monitoring Report",
-  "Environmental Monitoring Report",
-  "After Cleaning Report",
-  "Analyst Activity Report",
-  "Custom Report"
-];
-
-export const REPORT_PURPOSES: ReportPurpose[] = [
-  "Ad-Hoc Analysis",
-  "Operational Report",
-  "Controlled Report"
-];
-
-export const REPORT_TEMPLATES = [
-  { id: "tmpl-micro-std", name: "Microbiology Results Template", description: "Standard comprehensive laboratory report with limits and signatures." },
-  { id: "tmpl-coa", name: "Certificate of Analysis (Micro)", description: "Formal Certificate of Analysis layout for product release." },
-  { id: "tmpl-water-sum", name: "Water Quality Summary Template", description: "Point-by-point water microbial monitoring summary." },
-  { id: "tmpl-em-sum", name: "Environmental Monitoring Summary", description: "Cleanroom grade and location based summary." },
-  { id: "tmpl-analyst-act", name: "Analyst Activity Summary", description: "Workload and testing completion audit log." }
-];
+import { WorkloadWeightConfig } from "../types/reportingTypes";
 
 export const DEFAULT_WORKLOAD_WEIGHTS: WorkloadWeightConfig[] = [
   {
@@ -106,16 +79,6 @@ export const DEFAULT_WORKLOAD_WEIGHTS: WorkloadWeightConfig[] = [
     changedAt: "2026-01-01T00:00:00Z"
   }
 ];
-
-export const CATEGORY_COLORS: Record<SampleCategory, string> = {
-  FinishedProduct: brandColors.badgeProduct,
-  RawMaterial: brandColors.badgeRM,
-  PackagingMaterial: brandColors.badgePM,
-  Water: "#0891b2",
-  EnvironmentalMonitoring: "#7c3aed",
-  AfterCleaning: "#be185d",
-  GPT: "#64748b"
-};
 
 export const MOCK_ANALYSTS = [
   { id: 101, name: "Amal Hamdy", username: "ahamdy", role: "Analyst" },

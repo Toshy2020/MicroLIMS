@@ -74,6 +74,16 @@ public class ReportingController : ControllerBase
     public async Task<IActionResult> GetTrend([FromQuery] string testCode, [FromQuery] string subjectName, [FromQuery] DateTime? fromDate, [FromQuery] DateTime? toDate) =>
         Ok(ApiResponse<object>.Ok(await _query.GetTrendAsync(testCode, subjectName, fromDate, toDate)));
 
+    [HttpGet("compare")]
+    public async Task<IActionResult> GetCompare(
+        [FromQuery] string testCode, [FromQuery] SampleCategory category,
+        [FromQuery] DateTime? fromDate, [FromQuery] DateTime? toDate) =>
+        Ok(ApiResponse<object>.Ok(await _query.GetCompareBySubjectAsync(testCode, category, fromDate, toDate)));
+
+    [HttpGet("completed-by-month")]
+    public async Task<IActionResult> GetCompletedByMonth([FromQuery] int months = 6) =>
+        Ok(ApiResponse<object>.Ok(await _query.GetCompletedByMonthAsync(months)));
+
     // Distinct values actually present in ResultRecords - not master
     // data - so the filter panel's dropdowns never offer a choice that
     // comes back empty.

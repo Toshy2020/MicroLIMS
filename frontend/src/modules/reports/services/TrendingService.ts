@@ -7,6 +7,18 @@ import {
   TrendAnalysisResult,
   TrendingCriteria
 } from "../types/reportingTypes";
+import { computeQuickPeriodRange, QuickPeriod } from "../utils/dateRange";
+
+// TrendingCriteria.dateRange only ever offers the fixed presets the
+// Trending tab's own Select shows (30d/3m/6m/12m) - custom/7d fall back to
+// the criteria's own default ("12m") rather than guessing a range.
+export function resolveDateRange(criteria: TrendingCriteria): { fromDate: string; toDate: string } {
+  if (criteria.dateRange === "custom" && criteria.customFrom && criteria.customTo) {
+    return { fromDate: criteria.customFrom, toDate: criteria.customTo };
+  }
+  const preset = criteria.dateRange === "custom" ? "12m" : criteria.dateRange;
+  return computeQuickPeriodRange(preset as Exclude<QuickPeriod, "custom">);
+}
 
 /*
  * Trending & Analysis Service
@@ -29,10 +41,13 @@ export const TrendingService = {
 
     // Call real backend trend endpoint
     try {
+      const { fromDate, toDate } = resolveDateRange(criteria);
       const res = await apiClient.get<{ success: boolean; data: any }>("/reporting/trend", {
         params: {
           testCode: criteria.testCode || "TAMC",
-          subjectName: criteria.subjectName || undefined
+          subjectName: criteria.subjectName || undefined,
+          fromDate,
+          toDate
         }
       }).catch(() => null);
 

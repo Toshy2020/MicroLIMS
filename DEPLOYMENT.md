@@ -11,10 +11,11 @@ This guide explains how to deploy the **MicroLIMS** application online for devel
                                        │
                    ┌───────────────────┴───────────────────┐
                    ▼                                       ▼
-     Cloudflare Pages (Frontend)                Render (Backend API)
+     Cloudflare Workers / Pages                 Render (Backend API)
     ┌───────────────────────────┐           ┌───────────────────────────┐
     │ React 18 + Vite + MUI     │           │ ASP.NET Core 8 Web API    │
     │ Client-Side SPA (HTTPS)   │──HTTPS───▶│ Container (Docker Linux)  │
+    │ (Workers Static Assets)   │           │                           │
     └───────────────────────────┘           └─────────────┬─────────────┘
                                                           │
                                                           │ ConnectionStrings__Default
@@ -28,7 +29,7 @@ This guide explains how to deploy the **MicroLIMS** application online for devel
 
 | Component | Platform | Service Type | Free Tier Specs |
 | :--- | :--- | :--- | :--- |
-| **Frontend** | [Cloudflare Pages](https://pages.cloudflare.com) | Static Site / Single Page Application | Unlimited bandwidth & requests, Global CDN |
+| **Frontend** | [Cloudflare](https://dash.cloudflare.com) | Workers Static Assets / Pages (SPA) | Unlimited bandwidth & requests, Global CDN, `wrangler.jsonc` |
 | **Backend** | [Render](https://render.com) | Web Service (Docker Container) | 512 MB RAM, 0.1 CPU, Auto-sleep after 15m inactivity |
 | **Database** | [Neon](https://neon.tech) | Serverless PostgreSQL | 0.5 GB storage, SSL connection, Automated branching |
 
@@ -89,8 +90,22 @@ This guide explains how to deploy the **MicroLIMS** application online for devel
 
 ---
 
-### Step 3: Deploy Frontend on Cloudflare Pages
-1. Go to [Cloudflare Dashboard](https://dash.cloudflare.com/) → **Workers & Pages** → **Create application** → **Pages** → **Connect to Git**.
+### Step 3: Deploy Frontend on Cloudflare (Workers Static Assets / Pages)
+
+#### Option A: Deploy via Wrangler CLI (Workers Static Assets)
+1. Build the frontend locally or via CI:
+   ```bash
+   cd frontend
+   npm run build
+   ```
+2. Deploy to Cloudflare using the root `wrangler.jsonc` configuration:
+   ```bash
+   npx wrangler deploy
+   ```
+3. Cloudflare will deploy the static assets with SPA routing handled natively via `"not_found_handling": "single-page-application"`.
+
+#### Option B: Deploy via Cloudflare Dashboard (Git-connected Pages / Workers)
+1. Go to [Cloudflare Dashboard](https://dash.cloudflare.com/) → **Workers & Pages** → **Create application** → **Connect to Git**.
 2. Select your **MicroLIMS** repository.
 3. Configure the build settings:
    - **Project name**: `microlims`
@@ -106,8 +121,8 @@ This guide explains how to deploy the **MicroLIMS** application online for devel
 | `VITE_API_BASE_URL` | `https://<your-render-api-name>.onrender.com/api` |
 
 5. Click **Save and Deploy**.
-6. Cloudflare will build the frontend and provide your public URL: `https://microlims.pages.dev`.
-7. **Important**: Copy your Cloudflare URL (e.g. `https://microlims.pages.dev`), go back to **Render** → `microlims-api` → **Environment**, and ensure `Frontend__Origin` contains `https://microlims.pages.dev`.
+6. Cloudflare will build the frontend and provide your public URL (e.g. `https://microlims.toshy2020.workers.dev` or `https://microlims.pages.dev`).
+7. **Important**: Copy your Cloudflare URL, go back to **Render** → `microlims-api` → **Environment**, and ensure `Frontend__Origin` contains your Cloudflare URL.
 
 ---
 

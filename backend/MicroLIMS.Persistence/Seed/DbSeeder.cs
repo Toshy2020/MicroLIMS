@@ -1,6 +1,7 @@
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Persistence.DbContext;
+using MicroLIMS.Shared.Constants;
 
 namespace MicroLIMS.Persistence.Seed;
 
@@ -17,13 +18,15 @@ public static class DbSeeder
         if (!db.Roles.Any())
         {
             db.Roles.AddRange(
-                new Role { Type = RoleType.SystemAdministrator, Name = "System Administrator" },
-                new Role { Type = RoleType.SectionHead, Name = "Section Head" },
-                new Role { Type = RoleType.Reviewer, Name = "Reviewer" },
-                new Role { Type = RoleType.Analyst, Name = "Analyst" }
+                new Role { Type = RoleType.SystemAdministrator, Name = "System Administrator", IsSystemRole = true, IsActive = true },
+                new Role { Type = RoleType.SectionHead, Name = "Section Head", IsSystemRole = true, IsActive = true },
+                new Role { Type = RoleType.Reviewer, Name = "Reviewer", IsSystemRole = true, IsActive = true },
+                new Role { Type = RoleType.Analyst, Name = "Analyst", IsSystemRole = true, IsActive = true }
             );
             db.SaveChanges();
         }
+
+        SeedPermissionsAndGrants(db);
 
         if (!db.Users.Any())
         {
@@ -176,44 +179,6 @@ public static class DbSeeder
             db.SaveChanges();
         }
 
-        // Fixed set - exactly one row per MediaClass, enforced by a
-        // unique index. Values below are placeholders; Section Head
-        // corrects them for real via the Media Types admin page.
-        if (!db.MediaTypes.Any())
-        {
-            db.MediaTypes.AddRange(
-                new MediaType
-                {
-                    Class = MediaClass.GeneralAgar,
-                    IncubationMinHours = 24, IncubationMaxHours = 48,
-                    RequiredTemperatureMin = 30, RequiredTemperatureMax = 35,
-                    ApprovedTestCodes = new List<string> { "TAMC" },
-                    RecoveryPercentMin = 70, RecoveryPercentMax = 200
-                },
-                new MediaType
-                {
-                    Class = MediaClass.GeneralBroth,
-                    IncubationMinHours = 24, IncubationMaxHours = 48,
-                    RequiredTemperatureMin = 30, RequiredTemperatureMax = 35,
-                    ApprovedTestCodes = new List<string> { "Sterility" }
-                },
-                new MediaType
-                {
-                    Class = MediaClass.SelectiveAgar,
-                    IncubationMinHours = 18, IncubationMaxHours = 24,
-                    RequiredTemperatureMin = 32.5m, RequiredTemperatureMax = 35,
-                    ApprovedTestCodes = new List<string> { "PATHOGEN_ECOLI" }
-                },
-                new MediaType
-                {
-                    Class = MediaClass.SelectiveBroth,
-                    IncubationMinHours = 18, IncubationMaxHours = 24,
-                    RequiredTemperatureMin = 32.5m, RequiredTemperatureMax = 35,
-                    ApprovedTestCodes = new List<string> { "PATHOGEN_ECOLI" }
-                }
-            );
-        }
-
         if (!db.DiluentTypes.Any())
         {
             db.DiluentTypes.Add(new DiluentType { Name = "Buffer PhB 7.2", RequiresBatchTracking = false });
@@ -235,7 +200,7 @@ public static class DbSeeder
             var tsaMaterial = new Material
             {
                 MaterialType = MaterialType.DehydratedMedia,
-                MaterialName = "Tryptic Soy Agar (Dehydrated)",
+                MaterialName = "Tryptic Soy Agar",
                 ManufacturerName = "Seed Data",
                 BatchNumber = "SEED-0001",
                 ReceivingDate = DateTime.UtcNow,
@@ -250,10 +215,8 @@ public static class DbSeeder
             db.Materials.Add(tsaMaterial);
             db.SaveChanges();
 
-            var generalAgar = db.MediaTypes.First(m => m.Class == MediaClass.GeneralAgar);
             db.Media.Add(new Media
             {
-                MediaTypeId = generalAgar.Id,
                 MaterialId = tsaMaterial.Id,
                 LotNumber = $"{tsaMaterial.Code}/01/{DateTime.UtcNow:yy}",
                 ManufacturerLot = tsaMaterial.BatchNumber,
@@ -293,6 +256,30 @@ public static class DbSeeder
         }
 
         SeedWorkflowTemplates(db);
+        SeedWorkloadWeights(db);
+    }
+
+    public static void SeedWorkloadWeights(MicroLimsDbContext db)
+    {
+        if (db.WorkloadWeights.Any()) return;
+
+        var defaultWeights = new List<WorkloadWeight>
+        {
+            new WorkloadWeight { TestCode = "TAMC", TestName = "Total Aerobic Microbial Count", Category = SampleCategory.FinishedProduct, Weight = 1.0m, ReasonForChange = "Initial baseline configuration", ChangedByName = "System Administrator" },
+            new WorkloadWeight { TestCode = "TYMC", TestName = "Total Yeast & Mold Count", Category = SampleCategory.FinishedProduct, Weight = 1.0m, ReasonForChange = "Initial baseline configuration", ChangedByName = "System Administrator" },
+            new WorkloadWeight { TestCode = "WATER_MICRO", TestName = "Water Microbiology (TAMC)", Category = SampleCategory.Water, Weight = 1.2m, ReasonForChange = "Filtration and multiple volume plating factor", ChangedByName = "System Administrator" },
+            new WorkloadWeight { TestCode = "GPT", TestName = "Growth Promotion Test", Category = SampleCategory.GPT, Weight = 2.0m, ReasonForChange = "Multiple standard strain inoculations and 5-day verification", ChangedByName = "System Administrator" },
+            new WorkloadWeight { TestCode = "STERILITY", TestName = "Sterility Test (Membrane Filtration)", Category = SampleCategory.FinishedProduct, Weight = 3.0m, ReasonForChange = "Cleanroom gowning, 14-day incubation, dual media manipulation", ChangedByName = "System Administrator" },
+            new WorkloadWeight { TestCode = "MICROBIAL_ID", TestName = "Microbial Identification (Gram / Biochemical / Vitek)", Category = SampleCategory.FinishedProduct, Weight = 2.5m, ReasonForChange = "Staining, subculture, card preparation and confirmation", ChangedByName = "System Administrator" },
+            new WorkloadWeight { TestCode = "INVESTIGATION", TestName = "Laboratory Investigation / OOS Retest", Category = SampleCategory.FinishedProduct, Weight = 3.0m, ReasonForChange = "Comprehensive phase 1 testing checklist and supervisor review", ChangedByName = "System Administrator" },
+            new WorkloadWeight { TestCode = "PATHOGEN_ECOLI", TestName = "E. coli Screening", Category = SampleCategory.FinishedProduct, Weight = 1.5m, ReasonForChange = "Initial baseline configuration", ChangedByName = "System Administrator" },
+            new WorkloadWeight { TestCode = "PATHOGEN_SALM", TestName = "Salmonella Screening", Category = SampleCategory.FinishedProduct, Weight = 1.5m, ReasonForChange = "Initial baseline configuration", ChangedByName = "System Administrator" },
+            new WorkloadWeight { TestCode = "PATHOGEN_PAERUG", TestName = "P. aeruginosa Screening", Category = SampleCategory.FinishedProduct, Weight = 1.5m, ReasonForChange = "Initial baseline configuration", ChangedByName = "System Administrator" },
+            new WorkloadWeight { TestCode = "PATHOGEN_SAUREUS", TestName = "S. aureus Screening", Category = SampleCategory.FinishedProduct, Weight = 1.5m, ReasonForChange = "Initial baseline configuration", ChangedByName = "System Administrator" }
+        };
+
+        db.WorkloadWeights.AddRange(defaultWeights);
+        db.SaveChanges();
     }
 
     // The TestWorkflowEngine templates (TAMC/TYMC's single count step,
@@ -305,16 +292,10 @@ public static class DbSeeder
     // codes on every startup instead of only running once.
     private static void SeedWorkflowTemplates(MicroLimsDbContext db)
     {
-        var generalAgar = db.MediaTypes.First(m => m.Class == MediaClass.GeneralAgar);
-        var generalBroth = db.MediaTypes.First(m => m.Class == MediaClass.GeneralBroth);
-        var selectiveAgar = db.MediaTypes.First(m => m.Class == MediaClass.SelectiveAgar);
-        var selectiveBroth = db.MediaTypes.First(m => m.Class == MediaClass.SelectiveBroth);
-
-        SeedCountTestTemplate(db, "TAMC", generalAgar.Id);
-        SeedCountTestTemplate(db, "TYMC", generalAgar.Id);
+        SeedCountTestTemplate(db, "TAMC");
+        SeedCountTestTemplate(db, "TYMC");
 
         SeedPathogenTemplate(db, "PATHOGEN_SALMONELLA", "Salmonella enterica",
-            generalBroth.Id, selectiveBroth.Id, selectiveAgar.Id,
             selectivePlatingMedium: "XLD Agar",
             confirmatoryMedia: new[] { ("XLD Agar", 35m, 37m), ("TSI Agar", 35m, 37m) });
 
@@ -323,13 +304,12 @@ public static class DbSeeder
             .ToList())
         {
             SeedPathogenTemplate(db, test.Code, organismScientificName: null,
-                generalBroth.Id, selectiveBroth.Id, selectiveAgar.Id,
                 selectivePlatingMedium: "Selective Agar",
                 confirmatoryMedia: new[] { ("Selective Agar", 35m, 37m) });
         }
     }
 
-    private static void SeedCountTestTemplate(MicroLimsDbContext db, string testCode, int generalAgarId)
+    private static void SeedCountTestTemplate(MicroLimsDbContext db, string testCode)
     {
         var test = db.TestDefinitions.FirstOrDefault(t => t.Code == testCode);
         if (test is null) { Console.WriteLine($"Seed: {testCode} not in Test Master - workflow template skipped."); return; }
@@ -338,7 +318,7 @@ public static class DbSeeder
         test.WorkflowType = WorkflowType.CountTest;
         db.TestWorkflowSteps.Add(new TestWorkflowStep
         {
-            TestDefinitionId = test.Id, StepOrder = 1, StepName = "CountIncubation", MediaTypeId = generalAgarId,
+            TestDefinitionId = test.Id, StepOrder = 1, StepName = "CountIncubation",
             IncubationMinHours = 72, IncubationMaxHours = 120, TemperatureMin = 30, TemperatureMax = 35,
             IsFinalStep = true, StepType = StepType.PlateCount
         });
@@ -349,7 +329,6 @@ public static class DbSeeder
     // rows its StepType requires (see WorkflowTemplateValidator's rules).
     private static void SeedPathogenTemplate(
         MicroLimsDbContext db, string testCode, string? organismScientificName,
-        int generalBrothId, int selectiveBrothId, int selectiveAgarId,
         string selectivePlatingMedium, (string Name, decimal TempMin, decimal TempMax)[] confirmatoryMedia)
     {
         var test = db.TestDefinitions.FirstOrDefault(t => t.Code == testCode);
@@ -365,32 +344,32 @@ public static class DbSeeder
 
         var tsb = new TestWorkflowStep
         {
-            TestDefinitionId = test.Id, StepOrder = 1, StepName = "Broth Enrichment", MediaTypeId = generalBrothId,
+            TestDefinitionId = test.Id, StepOrder = 1, StepName = "Broth Enrichment",
             IncubationMinHours = 18, IncubationMaxHours = 24, TemperatureMin = 35, TemperatureMax = 37,
             IsFinalStep = false, StepType = StepType.BrothEnrichment
         };
         var selectiveBroth = new TestWorkflowStep
         {
-            TestDefinitionId = test.Id, StepOrder = 2, StepName = "Selective Broth", MediaTypeId = selectiveBrothId,
+            TestDefinitionId = test.Id, StepOrder = 2, StepName = "Selective Broth",
             IncubationMinHours = 18, IncubationMaxHours = 24, TemperatureMin = 41, TemperatureMax = 43,
             IsFinalStep = false, StepType = StepType.SelectiveBroth
         };
         var selectivePlating = new TestWorkflowStep
         {
-            TestDefinitionId = test.Id, StepOrder = 3, StepName = "Selective Plating", MediaTypeId = selectiveAgarId,
+            TestDefinitionId = test.Id, StepOrder = 3, StepName = "Selective Plating",
             IncubationMinHours = 18, IncubationMaxHours = 24, TemperatureMin = 35, TemperatureMax = 37,
             IsFinalStep = false, StepType = StepType.SelectivePlating, TargetOrganismId = organismId
         };
         var confirmatory = new TestWorkflowStep
         {
-            TestDefinitionId = test.Id, StepOrder = 4, StepName = "Confirmatory Plating", MediaTypeId = selectiveAgarId,
+            TestDefinitionId = test.Id, StepOrder = 4, StepName = "Confirmatory Plating",
             IncubationMinHours = 18, IncubationMaxHours = 24, TemperatureMin = 35, TemperatureMax = 37,
             IsFinalStep = false, StepType = StepType.ConfirmatoryPlating, TargetOrganismId = organismId,
             ConfirmatoryMediaCount = confirmatoryMedia.Length > 0 ? confirmatoryMedia.Length : 1
         };
         var biochemical = new TestWorkflowStep
         {
-            TestDefinitionId = test.Id, StepOrder = 5, StepName = "Biochemical Test", MediaTypeId = null,
+            TestDefinitionId = test.Id, StepOrder = 5, StepName = "Biochemical Test",
             IncubationMinHours = 0, IncubationMaxHours = 0, TemperatureMin = 35, TemperatureMax = 37,
             IsFinalStep = true, StepType = StepType.BiochemicalTest, PhenotypicTestType = PhenotypicTestType.IdentificationKit
         };
@@ -423,5 +402,81 @@ public static class DbSeeder
             TestWorkflowStepId = stepId, MaterialId = materialId.Value,
             TempMin = tempMin, TempMax = tempMax, IsRequired = isRequired, DisplayOrder = order
         });
+    }
+
+    // The 18 Permission rows and their RolePermission grants from
+    // rbac-permission-catalog.md - reproduces today's 112
+    // [Authorize(Roles=...)] occurrences exactly. Public (not private) and
+    // called both from Seed() and directly from tests, so tests don't have
+    // to run the entire unrelated master-data seed pipeline just to verify
+    // permission grants.
+    public static void SeedPermissionsAndGrants(MicroLimsDbContext db)
+    {
+        if (!db.Roles.Any()) return; // Roles must exist first - Seed() guarantees this ordering.
+
+        if (!db.Permissions.Any())
+        {
+            db.Permissions.AddRange(
+                new Permission { Code = PermissionConstants.UsersManage, Description = "Manage user accounts (create, edit, lock/unlock, password resets)." },
+                new Permission { Code = PermissionConstants.RolesManage, Description = "Manage roles and their granted permissions." },
+                new Permission { Code = PermissionConstants.AuditView, Description = "View audit logs and traceability records." },
+                new Permission { Code = PermissionConstants.ReportingAdmin, Description = "Run administrative reporting operations (e.g. ResultRecord backfill)." },
+                new Permission { Code = PermissionConstants.SamplesReview, Description = "Submit a technical review decision on a sample." },
+                new Permission { Code = PermissionConstants.SamplesApprove, Description = "Submit a release/approval decision on a sample." },
+                new Permission { Code = PermissionConstants.SignaturesManage, Description = "View the electronic signature trail for a record." },
+                new Permission { Code = PermissionConstants.TestWorkflowExecute, Description = "Execute pathogen session and media evaluation workflow steps." },
+                new Permission { Code = PermissionConstants.TestWorkflowBiochemicalDecision, Description = "Record a biochemical confirmation decision." },
+                new Permission { Code = PermissionConstants.CryovialsManage, Description = "General cryovial operations (prepare, destroy, thaw, view summaries)." },
+                new Permission { Code = PermissionConstants.CryovialsApprove, Description = "Approve (release) a cryovial batch." },
+                new Permission { Code = PermissionConstants.MaterialsManage, Description = "Manage inventory materials (receive, update)." },
+                new Permission { Code = PermissionConstants.MaterialsDocumentControl, Description = "Supersede or void a material document." },
+                new Permission { Code = PermissionConstants.EquipmentManage, Description = "Manage inventory equipment." },
+                new Permission { Code = PermissionConstants.EquipmentDocumentControl, Description = "Supersede or void an equipment document." },
+                new Permission { Code = PermissionConstants.ItemsManage, Description = "Manage Items master data (create, update, freeze/unfreeze, delete)." },
+                new Permission { Code = PermissionConstants.ItemsDocumentUpload, Description = "Upload a controlled document to an Item." },
+                new Permission { Code = PermissionConstants.MasterDataManage, Description = "Manage laboratory configuration master data (water, EM, after-cleaning, specs, equipment config, media, organisms, test definitions)." }
+            );
+            db.SaveChanges();
+        }
+
+        if (!db.RolePermissions.Any())
+        {
+            var roleIdByType = db.Roles.ToDictionary(r => r.Type, r => r.Id);
+            var permissionIdByCode = db.Permissions.ToDictionary(p => p.Code, p => p.Id);
+
+            var grants = new (RoleType Role, string[] Codes)[]
+            {
+                (RoleType.SystemAdministrator, PermissionConstants.All.ToArray()),
+                (RoleType.SectionHead, new[]
+                {
+                    PermissionConstants.AuditView, PermissionConstants.SamplesReview, PermissionConstants.SamplesApprove,
+                    PermissionConstants.SignaturesManage, PermissionConstants.TestWorkflowExecute, PermissionConstants.TestWorkflowBiochemicalDecision,
+                    PermissionConstants.CryovialsManage, PermissionConstants.CryovialsApprove,
+                    PermissionConstants.MaterialsManage, PermissionConstants.MaterialsDocumentControl,
+                    PermissionConstants.EquipmentManage, PermissionConstants.EquipmentDocumentControl,
+                    PermissionConstants.ItemsManage, PermissionConstants.ItemsDocumentUpload,
+                    PermissionConstants.MasterDataManage
+                }),
+                (RoleType.Reviewer, new[]
+                {
+                    PermissionConstants.SamplesReview, PermissionConstants.TestWorkflowExecute,
+                    PermissionConstants.TestWorkflowBiochemicalDecision, PermissionConstants.CryovialsManage
+                }),
+                (RoleType.Analyst, new[]
+                {
+                    PermissionConstants.TestWorkflowExecute, PermissionConstants.CryovialsManage,
+                    PermissionConstants.MaterialsManage, PermissionConstants.EquipmentManage
+                })
+            };
+
+            foreach (var (roleType, codes) in grants)
+            {
+                if (!roleIdByType.TryGetValue(roleType, out var roleId)) continue;
+                foreach (var code in codes)
+                    db.RolePermissions.Add(new RolePermission { RoleId = roleId, PermissionId = permissionIdByCode[code] });
+            }
+
+            db.SaveChanges();
+        }
     }
 }

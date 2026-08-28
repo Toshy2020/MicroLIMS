@@ -70,6 +70,35 @@ public class ReportingController : ControllerBase
         return Ok(ApiResponse<object>.Ok(new { items, result.TotalCount, result.Page, result.PageSize }));
     }
 
+    [HttpGet("results/{id}")]
+    public async Task<IActionResult> GetById([FromRoute] int id)
+    {
+        var record = await _query.GetByIdAsync(id);
+        if (record is null) return NotFound(ApiResponse<object>.Fail($"ResultRecord {id} not found."));
+
+        return Ok(ApiResponse<object>.Ok(new
+        {
+            record.Id, record.SampleId, record.TestOrderId, record.SourceTable, record.SourceId, record.Round,
+            record.ReferenceNumber, record.Category, record.SubjectName, record.SubjectDetail, record.BatchNumber, record.ControlNumber,
+            record.TestCode, record.TestDisplayName,
+            record.ResultKind, record.NumericValue, record.ReportedValue, record.Unit, record.IsBelowDetectionLimit, record.DetectionLimit,
+            record.AlertLimit, record.ActionLimit, record.SpecLimit, record.ResultLevel,
+            record.ResultEnteredAt, record.ResultEnteredByUserId, record.ResultEnteredByName,
+            record.SampleStatus, approvalStatus = ReportingQueryService.DeriveApprovalStatus(record.SampleStatus),
+            record.ApprovedByUserId, record.ApprovedByName, record.ApprovedAt
+        }));
+    }
+
+    [HttpGet("overview")]
+    public async Task<IActionResult> GetOverview([FromQuery] DateTime? fromDate, [FromQuery] DateTime? toDate) =>
+        Ok(ApiResponse<object>.Ok(await _query.GetOverviewAggregateAsync(fromDate, toDate)));
+
+    [HttpGet("qualitative-events")]
+    public async Task<IActionResult> GetQualitativeEvents(
+        [FromQuery] string? testCode, [FromQuery] string? subjectName,
+        [FromQuery] SampleCategory? category, [FromQuery] DateTime? fromDate, [FromQuery] DateTime? toDate) =>
+        Ok(ApiResponse<object>.Ok(await _query.GetQualitativeEventsAsync(testCode, subjectName, category, fromDate, toDate)));
+
     [HttpGet("trend")]
     public async Task<IActionResult> GetTrend([FromQuery] string testCode, [FromQuery] string subjectName, [FromQuery] DateTime? fromDate, [FromQuery] DateTime? toDate) =>
         Ok(ApiResponse<object>.Ok(await _query.GetTrendAsync(testCode, subjectName, fromDate, toDate)));

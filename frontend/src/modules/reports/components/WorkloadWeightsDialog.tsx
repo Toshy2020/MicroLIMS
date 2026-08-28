@@ -62,12 +62,12 @@ export function WorkloadWeightsDialog({ open, onClose, onUpdated }: WorkloadWeig
     }
 
     try {
-      const updated = await AnalystKpiService.updateWorkloadWeight(
+      await AnalystKpiService.updateWorkloadWeight(
         testCode,
         editValue,
-        editReason.trim(),
-        fullName || "Authorized User"
+        editReason.trim()
       );
+      const updated = await AnalystKpiService.getWorkloadWeights();
       setWeights(updated);
       setEditingCode(null);
       setSuccess(`Workload weight for ${testCode} updated successfully.`);
@@ -91,14 +91,11 @@ export function WorkloadWeightsDialog({ open, onClose, onUpdated }: WorkloadWeig
           />
         </Box>
         <Typography sx={{ fontSize: 12, color: "text.secondary", mt: 0.5 }}>
-          Operational normalization metric used to account for procedural complexity across test categories. Not a validated GMP score.
+          Operational normalization metric used to account for procedural complexity across test categories. Persisted with reason for change and audit trail.
         </Typography>
       </DialogTitle>
 
       <DialogContent sx={{ pt: 2.5 }}>
-        <Alert severity="info" sx={{ mb: 2, fontSize: 12 }}>
-          <strong>Notice:</strong> Workload weight persistence is not currently available in the database schema. Configurations shown are operational demonstration constants held in session memory.
-        </Alert>
         {error && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>{error}</Alert>}
         {success && <Alert severity="success" sx={{ mb: 2 }} onClose={() => setSuccess(null)}>{success}</Alert>}
 

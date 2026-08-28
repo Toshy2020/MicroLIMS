@@ -171,6 +171,10 @@ export function ReportResultsTable({
   };
 
   const handleExportSelectedCsv = () => {
+    if (selectAllMatching) {
+      runExport();
+      return;
+    }
     if (selectedRecords.length === 0) return;
     const headers = [
       "Date/Time", "Reference", "Subject", "Subject Detail", "Category", "Test Code", "Test Name",
@@ -206,7 +210,25 @@ export function ReportResultsTable({
     URL.revokeObjectURL(url);
   };
 
-  const handleExportSelectedPdf = () => {
+  const handleExportSelectedPdf = async () => {
+    if (selectAllMatching) {
+      setExporting(true);
+      try {
+        const res = await ReportingService.searchResults({ ...appliedParams, page: 1, pageSize: 200 });
+        exportResultsPdf(res.items, {
+          title: "Laboratory Results Export (All Matching)",
+          criteriaSummary: summarizeFilters(appliedParams),
+          generatedBy: fullName || "Authorized User",
+          isSelection: true
+        });
+      } catch (err) {
+        setExportError(err instanceof Error ? err.message : "Export failed.");
+      } finally {
+        setExporting(false);
+      }
+      return;
+    }
+
     exportResultsPdf(selectedRecords, {
       title: "Laboratory Results Export (Selected Records)",
       criteriaSummary: `Export of ${selectedRecords.length} Selected Record${selectedRecords.length === 1 ? "" : "s"}`,

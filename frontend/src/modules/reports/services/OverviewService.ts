@@ -11,7 +11,9 @@ export const CATEGORY_LABELS: Record<string, string> = {
   PackagingMaterial: "Packaging Material",
   Water: "Water",
   EnvironmentalMonitoring: "Environmental Monitor",
-  AfterCleaning: "After Cleaning"
+  AfterCleaning: "After Cleaning",
+  GPT: "Media / GPT",
+  ReferenceStrain: "Reference Strain"
 };
 
 const CATEGORY_COLORS: Record<string, string> = {
@@ -20,7 +22,9 @@ const CATEGORY_COLORS: Record<string, string> = {
   PackagingMaterial: brandColors.badgePM,
   Water: "#0891b2",
   EnvironmentalMonitoring: "#7c3aed",
-  AfterCleaning: "#be185d"
+  AfterCleaning: "#be185d",
+  GPT: "#d97706",
+  ReferenceStrain: "#059669"
 };
 
 const LOCATION_COLORS = ["#7b2d8e", "#9b3fa8", "#2563eb", "#0891b2", "#9ca3af", "#d97706", "#16a34a"];
@@ -28,90 +32,57 @@ const LOCATION_COLORS = ["#7b2d8e", "#9b3fa8", "#2563eb", "#0891b2", "#9ca3af", 
 export const OverviewService = {
   async getOverviewData(fromDate?: string, toDate?: string): Promise<OverviewDashboardData> {
     try {
-      // Query real results from backend (up to 200 items for period distribution)
-      const res = await ReportingService.searchResults({ fromDate, toDate, page: 1, pageSize: 200 }).catch(() => null);
-      const items = res?.items ?? [];
-      const totalCount = res?.totalCount ?? items.length;
+      // Query SQL-level aggregates across all matching records from the backend
+      const res = await ReportingService.getOverview(fromDate, toDate);
 
-      // Real calculated metrics from ResultRecords
-      const approvedCount = items.filter(
-        (r) => r.sampleStatus === "Approved" || r.approvalStatus === "Approved"
-      ).length;
+      const totalCount = res.totalTests;
+      const approvedCount = res.approvedCount;
+      const pendingReviewCount = res.pendingReviewCount;
+      const pendingApprovalCount = res.pendingApprovalCount;
+      const outOfSpecCount = res.outOfSpecCount;
+      const alertActionCount = res.alertActionCount;
 
-      const pendingReviewCount = items.filter(
-        (r) => r.sampleStatus === "UnderReview" || (r.approvalStatus === "Pending" && r.sampleStatus !== "UnderApproval")
-      ).length;
-
-      const pendingApprovalCount = items.filter(
-        (r) => r.sampleStatus === "UnderApproval"
-      ).length;
-
-      const outOfSpecCount = items.filter(
-        (r) => r.resultLevel === "OutOfSpecification"
-      ).length;
-
-      const alertActionCount = items.filter(
-        (r) => r.resultLevel === "AlertLevel" || r.resultLevel === "ActionLevel"
-      ).length;
-
-      // Real category distribution
-      const categoryMap = new Map<string, number>();
-      items.forEach((r) => {
-        const cat = r.category || "FinishedProduct";
-        categoryMap.set(cat, (categoryMap.get(cat) ?? 0) + 1);
-      });
-
-      const categoryDistribution = Array.from(categoryMap.entries()).map(([cat, count]) => ({
-        category: cat as SampleCategory,
-        label: CATEGORY_LABELS[cat] ?? cat,
-        count,
-        percentage: items.length > 0 ? Math.round((count / items.length) * 100) : 0,
-        color: CATEGORY_COLORS[cat] ?? "#6b7280"
+      const categoryDistribution = (res.categoryDistribution ?? []).map((c) => ({
+        category: c.category as SampleCategory,
+        label: CATEGORY_LABELS[c.category] ?? c.category,
+        count: c.count,
+        percentage: c.percentage,
+        color: CATEGORY_COLORS[c.category] ?? "#6b7280"
       }));
 
-      // Real test distribution
-      const testMap = new Map<string, { name: string; count: number }>();
-      items.forEach((r) => {
-        const code = r.testCode || "OTHER";
-        const name = r.testDisplayName || code;
-        const current = testMap.get(code) ?? { name, count: 0 };
-        testMap.set(code, { name, count: current.count + 1 });
-      });
+      const testDistribution = (res.testDistribution ?? []).map((t) => ({
+        testCode: t.testCode,
+        testName: t.testName || t.testCode,
+        count: t.count
+      }));
 
-      const testDistribution = Array.from(testMap.entries())
-        .map(([testCode, data]) => ({
-          testCode,
-          testName: data.name,
-          count: data.count
-        }))
-        .sort((a, b) => b.count - a.count)
-        .slice(0, 10);
+      const locationDistribution = (res.locationDistribution ?? []).map((l, idx) => ({
+        location: l.location || "Other",
+        count: l.count,
+        percentage: l.percentage,
+        color: LOCATION_COLORS[idx % LOCATION_COLORS.length]
+      }));
 
-      // Real subject / location distribution
-      const locationMap = new Map<string, number>();
-      items.forEach((r) => {
-        const loc = r.subjectDetail || r.subjectName || "Other";
-        locationMap.set(loc, (locationMap.get(loc) ?? 0) + 1);
-      });
-
-      const locationDistribution = Array.from(locationMap.entries())
-        .map(([location, count], idx) => ({
-          location,
-          count,
-          percentage: items.length > 0 ? Math.round((count / items.length) * 100) : 0,
-          color: LOCATION_COLORS[idx % LOCATION_COLORS.length]
-        }))
-        .sort((a, b) => b.count - a.count)
-        .slice(0, 7);
-
-      // Recent activity records
-      const recentReports = items.slice(0, 5).map((r, idx) => ({
-        id: `REP-${r.referenceNumber || String(idx + 101).padStart(5, "0")}`,
-        name: `${r.subjectName} — ${r.testDisplayName || r.testCode}`,
-        type: CATEGORY_LABELS[r.category] ?? r.category,
-        dateGenerated: r.resultEnteredAt ? new Date(r.resultEnteredAt).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "—",
-        generatedBy: r.resultEnteredByName || "Analyst",
-        status: (r.approvalStatus === "Approved" || r.sampleStatus === "Approved" ? "Final" : "Draft") as "Final" | "Draft" | "Archived"
+      const recentResults = (res.recentResults ?? []).map((r) => ({
+        id: r.id,
+        referenceNumber: r.referenceNumber,
+        subjectName: r.subjectName,
+        subjectDetail: r.subjectDetail,
+        category: r.category as SampleCategory,
+        testCode: r.testCode,
+        testDisplayName: r.testDisplayName || r.testCode,
+        dateEntered: r.resultEnteredAt
+          ? new Date(r.resultEnteredAt).toLocaleDateString("en-GB", {
+              day: "2-digit",
+              month: "short",
+              year: "numeric",
+              hour: "2-digit",
+              minute: "2-digit"
+            })
+          : "—",
+        enteredBy: r.resultEnteredByName || "Analyst",
+        sampleStatus: r.sampleStatus as any,
+        approvalStatus: r.approvalStatus
       }));
 
       return {
@@ -163,7 +134,7 @@ export const OverviewService = {
         categoryDistribution,
         testDistribution,
         locationDistribution,
-        recentReports,
+        recentResults,
         qualitySignals: {
           outOfSpecCount,
           alertActionCount,
@@ -182,10 +153,9 @@ export const OverviewService = {
         categoryDistribution: [],
         testDistribution: [],
         locationDistribution: [],
-        recentReports: [],
+        recentResults: [],
         qualitySignals: { outOfSpecCount: 0, alertActionCount: 0, pendingReviewCount: 0, pendingApprovalCount: 0 }
       };
     }
   }
 };
-

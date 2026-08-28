@@ -30,12 +30,45 @@ public record FilterOptionsResult(List<SampleCategory> Categories, List<TestCode
 public record ExportQueryResult(List<ResultRecord> Items, int TotalCount, bool Exceeded);
 
 public record TrendPoint(
-    DateTime Date, decimal? NumericValue, string ReportedValue, bool IsBelowDetectionLimit,
+    int RecordId, string ReferenceNumber, DateTime Date, decimal? NumericValue, string ReportedValue, bool IsBelowDetectionLimit,
     decimal? DetectionLimit, ResultLevel ResultLevel, string? AlertLimit, string? ActionLimit, string? SpecLimit);
 
 public record TrendStatistics(int Count, decimal? Latest, decimal? Mean, decimal? StandardDeviation, decimal? Min, decimal? Max, int ImputedPointCount);
 
 public record TrendResult(string TestCode, string TestDisplayName, string SubjectName, string? Unit, List<TrendPoint> Points, TrendStatistics Statistics);
+
+public record OverviewCategoryItem(SampleCategory Category, int Count, int Percentage);
+public record OverviewTestItem(string TestCode, string TestName, int Count);
+public record OverviewLocationItem(string Location, int Count, int Percentage);
+public record OverviewRecentResultItem(
+    int Id, string ReferenceNumber, string SubjectName, string? SubjectDetail,
+    SampleCategory Category, string TestCode, string TestDisplayName,
+    DateTime ResultEnteredAt, string ResultEnteredByName, SampleStatus SampleStatus,
+    string ApprovalStatus);
+
+public record OverviewAggregateResult(
+    int TotalTests,
+    int ApprovedCount,
+    int PendingReviewCount,
+    int PendingApprovalCount,
+    int OutOfSpecCount,
+    int AlertActionCount,
+    List<OverviewCategoryItem> CategoryDistribution,
+    List<OverviewTestItem> TestDistribution,
+    List<OverviewLocationItem> LocationDistribution,
+    List<OverviewRecentResultItem> RecentResults);
+
+public record QualitativeEventItem(
+    int Id, string ReferenceNumber, SampleCategory Category,
+    string SubjectName, string? SubjectDetail,
+    string TestCode, string TestDisplayName,
+    string ReportedValue, DateTime ResultEnteredAt,
+    string ResultEnteredByName, SampleStatus SampleStatus,
+    string ApprovalStatus, string? ApprovedByName, DateTime? ApprovedAt);
+
+public record QualitativeEventResult(
+    string TestCode, string TestDisplayName,
+    List<QualitativeEventItem> Events);
 
 // One calendar month, with counts for that month this year and the same
 // month one year earlier - the year-over-year comparison the KPI page's
@@ -206,7 +239,7 @@ public class ReportingQueryService
         var records = await query.OrderBy(r => r.ResultEnteredAt).ToListAsync();
 
         var points = records.Select(r => new TrendPoint(
-            r.ResultEnteredAt, r.NumericValue, r.ReportedValue, r.IsBelowDetectionLimit,
+            r.Id, r.ReferenceNumber, r.ResultEnteredAt, r.NumericValue, r.ReportedValue, r.IsBelowDetectionLimit,
             r.DetectionLimit, r.ResultLevel, r.AlertLimit, r.ActionLimit, r.SpecLimit)).ToList();
 
         // Imputation (substituting DetectionLimit/2 for a below-detection-
@@ -233,6 +266,120 @@ public class ReportingQueryService
         var unit = records.Select(r => r.Unit).FirstOrDefault(u => u is not null);
 
         return new TrendResult(testCode, testDefinition.DisplayName, subjectName, unit, points, statistics);
+    }
+
+    public async Task<ResultRecord?> GetByIdAsync(int id) =>
+        await _db.ResultRecords.FirstOrDefaultAsync(r => r.Id == id);
+
+    public async Task<OverviewAggregateResult> GetOverviewAggregateAsync(DateTime? fromDate, DateTime? toDate)
+    {
+        var query = _db.ResultRecords.AsQueryable();
+        if (fromDate is not null) query = query.Where(r => r.ResultEnteredAt >= fromDate);
+        if (toDate is not null) query = query.Where(r => r.ResultEnteredAt <= toDate);
+
+        var totalTests = await query.CountAsync();
+        var approvedCount = await query.CountAsync(r => r.SampleStatus == SampleStatus.Approved);
+        var pendingReviewCount = await query.CountAsync(r => r.SampleStatus == SampleStatus.UnderReview);
+        var pendingApprovalCount = await query.CountAsync(r => r.SampleStatus == SampleStatus.UnderApproval);
+        var outOfSpecCount = await query.CountAsync(r => r.ResultLevel == ResultLevel.OutOfSpecification);
+        var alertActionCount = await query.CountAsync(r => r.ResultLevel == ResultLevel.AlertLevel || r.ResultLevel == ResultLevel.ActionLevel);
+
+        var categoryCounts = await query
+            .GroupBy(r => r.Category)
+            .Select(g => new { Category = g.Key, Count = g.Count() })
+            .ToListAsync();
+
+        var categoryDistribution = categoryCounts
+            .Select(c => new OverviewCategoryItem(
+                c.Category,
+                c.Count,
+                totalTests > 0 ? (int)Math.Round((double)c.Count / totalTests * 100) : 0))
+            .OrderByDescending(c => c.Count)
+            .ToList();
+
+        var testCounts = await query
+            .GroupBy(r => new { r.TestCode, r.TestDisplayName })
+            .Select(g => new { g.Key.TestCode, g.Key.TestDisplayName, Count = g.Count() })
+            .OrderByDescending(t => t.Count)
+            .Take(10)
+            .ToListAsync();
+
+        var testDistribution = testCounts
+            .Select(t => new OverviewTestItem(t.TestCode, t.TestDisplayName, t.Count))
+            .ToList();
+
+        var locationCounts = await query
+            .GroupBy(r => r.SubjectName)
+            .Select(g => new { Location = g.Key, Count = g.Count() })
+            .OrderByDescending(l => l.Count)
+            .Take(7)
+            .ToListAsync();
+
+        var locationDistribution = locationCounts
+            .Select(l => new OverviewLocationItem(
+                l.Location,
+                l.Count,
+                totalTests > 0 ? (int)Math.Round((double)l.Count / totalTests * 100) : 0))
+            .ToList();
+
+        var recentRecords = await query
+            .OrderByDescending(r => r.ResultEnteredAt)
+            .Take(5)
+            .ToListAsync();
+
+        var recentResults = recentRecords
+            .Select(r => new OverviewRecentResultItem(
+                r.Id,
+                r.ReferenceNumber,
+                r.SubjectName,
+                r.SubjectDetail,
+                r.Category,
+                r.TestCode,
+                r.TestDisplayName,
+                r.ResultEnteredAt,
+                r.ResultEnteredByName,
+                r.SampleStatus,
+                DeriveApprovalStatus(r.SampleStatus)))
+            .ToList();
+
+        return new OverviewAggregateResult(
+            totalTests, approvedCount, pendingReviewCount, pendingApprovalCount,
+            outOfSpecCount, alertActionCount, categoryDistribution, testDistribution,
+            locationDistribution, recentResults);
+    }
+
+    public async Task<QualitativeEventResult> GetQualitativeEventsAsync(string? testCode, string? subjectName, SampleCategory? category, DateTime? fromDate, DateTime? toDate)
+    {
+        var query = _db.ResultRecords.Where(r => r.ResultKind == ResultKind.Qualitative && r.ReportedValue == "Detected");
+
+        if (!string.IsNullOrWhiteSpace(testCode)) query = query.Where(r => r.TestCode == testCode);
+        if (!string.IsNullOrWhiteSpace(subjectName)) query = query.Where(r => r.SubjectName == subjectName);
+        if (category.HasValue) query = query.Where(r => r.Category == category.Value);
+        if (fromDate is not null) query = query.Where(r => r.ResultEnteredAt >= fromDate);
+        if (toDate is not null) query = query.Where(r => r.ResultEnteredAt <= toDate);
+
+        var records = await query.OrderByDescending(r => r.ResultEnteredAt).ToListAsync();
+
+        var testDisplayName = records.FirstOrDefault()?.TestDisplayName
+            ?? (!string.IsNullOrWhiteSpace(testCode) ? (await _db.TestDefinitions.FirstOrDefaultAsync(t => t.Code == testCode))?.DisplayName ?? testCode : "Qualitative Pathogen Detection");
+
+        var events = records.Select(r => new QualitativeEventItem(
+            r.Id,
+            r.ReferenceNumber,
+            r.Category,
+            r.SubjectName,
+            r.SubjectDetail,
+            r.TestCode,
+            r.TestDisplayName,
+            r.ReportedValue,
+            r.ResultEnteredAt,
+            r.ResultEnteredByName,
+            r.SampleStatus,
+            DeriveApprovalStatus(r.SampleStatus),
+            r.ApprovedByName,
+            r.ApprovedAt)).ToList();
+
+        return new QualitativeEventResult(testCode ?? "ALL_QUALITATIVE", testDisplayName, events);
     }
 
     // "Completed" = the sample-level approval that finalizes a TestOrder -

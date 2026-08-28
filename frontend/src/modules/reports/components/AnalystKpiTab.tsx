@@ -28,6 +28,7 @@ import { WorkloadWeightsDialog } from "./WorkloadWeightsDialog";
 import { useAuth } from "../../../contexts/AuthContext";
 import { brandColors } from "../../../theme";
 import { UserService, UserRecord } from "../../users/services/UserService";
+import { exportKpiPdf } from "../utils/exportKpi";
 
 // Rule #3's calendar-month-vs-previous delta, formatted for a Workflow
 // Bottleneck queue tile. 0% (no prior-month arrivals to compare against)
@@ -81,7 +82,7 @@ type Order = "asc" | "desc";
 
 export function AnalystKpiTab() {
   const theme = useTheme();
-  const { role, userId } = useAuth();
+  const { role, userId, fullName } = useAuth();
   const isAnalyst = role === "Analyst";
 
   const [filters, setFilters] = useState<AnalystKpiFilters>({
@@ -106,13 +107,21 @@ export function AnalystKpiTab() {
   const [analysts, setAnalysts] = useState<UserRecord[]>([]);
   const [analystsError, setAnalystsError] = useState<string | null>(null);
   const [categoryOptions, setCategoryOptions] = useState<string[]>([]);
+  const [locationOptions, setLocationOptions] = useState<string[]>([]);
+  const [testCodeOptions, setTestCodeOptions] = useState<{ testCode: string; testDisplayName: string }[]>([]);
 
   useEffect(() => {
     UserService.getEligibleAnalysts()
       .then(setAnalysts)
       .catch((err: any) => setAnalystsError(err?.response?.data?.message || "Unable to load analysts."));
     ReportingService.getFilterOptions()
-      .then((opts) => setCategoryOptions(opts?.categories ?? []))
+      .then((opts) => {
+        if (opts) {
+          setCategoryOptions(opts.categories ?? []);
+          setLocationOptions(opts.subjectNames ?? []);
+          setTestCodeOptions(opts.testCodes ?? []);
+        }
+      })
       .catch(() => {});
   }, []);
 
@@ -131,7 +140,7 @@ export function AnalystKpiTab() {
   useEffect(() => {
     loadData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filters.dateRange, filters.analystId, filters.category]);
+  }, [filters.dateRange, filters.analystId, filters.category, filters.location, filters.testCode]);
 
   const handleRequestSort = (property: keyof AnalystComparisonRow) => {
     const isAsc = orderBy === property && order === "asc";
@@ -210,8 +219,8 @@ export function AnalystKpiTab() {
     <Box sx={{ pb: 4 }}>
       {/* Top Filter & Access Control Bar */}
       <Paper sx={{ p: 2, mb: 2.5 }}>
-        <Grid container spacing={2} alignItems="center">
-          <Grid item xs={12} sm={6} md={2.5}>
+        <Grid container spacing={1.5} alignItems="center">
+          <Grid item xs={12} sm={6} md={2}>
             <FormControl fullWidth size="small">
               <InputLabel>Date Range</InputLabel>
               <Select
@@ -228,7 +237,7 @@ export function AnalystKpiTab() {
             </FormControl>
           </Grid>
 
-          <Grid item xs={12} sm={6} md={2.5}>
+          <Grid item xs={12} sm={6} md={2}>
             <FormControl fullWidth size="small">
               <InputLabel>Analyst</InputLabel>
               <Select
@@ -240,10 +249,10 @@ export function AnalystKpiTab() {
                   if (e.target.value !== "All") setSelectedAnalystId(Number(e.target.value));
                 }}
               >
-                {!isAnalyst && <MenuItem value="All">All Analysts (Section View)</MenuItem>}
+                {!isAnalyst && <MenuItem value="All">All Analysts</MenuItem>}
                 {analysts.map((a) => (
                   <MenuItem key={a.id} value={a.id}>
-                    {a.fullName} ({a.username}){a.role?.name ? ` — ${a.role.name}` : ""}
+                    {a.fullName} ({a.username})
                   </MenuItem>
                 ))}
               </Select>
@@ -269,7 +278,39 @@ export function AnalystKpiTab() {
             </FormControl>
           </Grid>
 
-          <Grid item xs={12} sm={6} md={5}>
+          <Grid item xs={12} sm={6} md={2}>
+            <FormControl fullWidth size="small">
+              <InputLabel>Location / Subject</InputLabel>
+              <Select
+                label="Location / Subject"
+                value={filters.location}
+                onChange={(e) => setFilters((f) => ({ ...f, location: e.target.value as any }))}
+              >
+                <MenuItem value="All">All Locations</MenuItem>
+                {locationOptions.map((loc) => (
+                  <MenuItem key={loc} value={loc}>{loc}</MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Grid>
+
+          <Grid item xs={12} sm={6} md={1.5}>
+            <FormControl fullWidth size="small">
+              <InputLabel>Test Code</InputLabel>
+              <Select
+                label="Test Code"
+                value={filters.testCode}
+                onChange={(e) => setFilters((f) => ({ ...f, testCode: e.target.value as any }))}
+              >
+                <MenuItem value="All">All Tests</MenuItem>
+                {testCodeOptions.map((t) => (
+                  <MenuItem key={t.testCode} value={t.testCode}>{t.testCode}</MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Grid>
+
+          <Grid item xs={12} sm={12} md={2.5}>
             <Stack direction="row" spacing={1} justifyContent="flex-end">
               <Button
                 size="small"
@@ -277,15 +318,15 @@ export function AnalystKpiTab() {
                 startIcon={<TuneIcon />}
                 onClick={() => setWeightsDialogOpen(true)}
               >
-                Workload Weights
+                Weights
               </Button>
               <Button
                 size="small"
-                variant="outlined"
+                variant="contained"
                 startIcon={<PictureAsPdfIcon />}
-                onClick={() => window.print()}
+                onClick={() => exportKpiPdf(data, filters, fullName || "Authorized User")}
               >
-                Export KPI Report
+                Export PDF
               </Button>
             </Stack>
           </Grid>

@@ -67,11 +67,17 @@ public class MicroLimsDbContext : Microsoft.EntityFrameworkCore.DbContext
     public DbSet<IncubatorSetPointHistory> IncubatorSetPointHistories => Set<IncubatorSetPointHistory>();
     public DbSet<AutoclaveProgram> AutoclavePrograms => Set<AutoclaveProgram>();
     public DbSet<AutoclaveProgramHistory> AutoclaveProgramHistories => Set<AutoclaveProgramHistory>();
-    public DbSet<MediaType> MediaTypes => Set<MediaType>();
     public DbSet<RoomTestConfiguration> RoomTestConfigurations => Set<RoomTestConfiguration>();
     public DbSet<SamplePreparation> SamplePreparations => Set<SamplePreparation>();
-    public DbSet<MediaChallengeSpec> MediaChallengeSpecs => Set<MediaChallengeSpec>();
     public DbSet<Organism> Organisms => Set<Organism>();
+
+    // Workload Weights
+    public DbSet<WorkloadWeight> WorkloadWeights => Set<WorkloadWeight>();
+    public DbSet<WorkloadWeightHistory> WorkloadWeightHistories => Set<WorkloadWeightHistory>();
+
+    // Media Configuration
+    public DbSet<MediaConfiguration> MediaConfigurations => Set<MediaConfiguration>();
+    public DbSet<MediaConfigurationChallenge> MediaConfigurationChallenges => Set<MediaConfigurationChallenge>();
 
     // Inventory module
     public DbSet<Material> Materials => Set<Material>();
@@ -83,13 +89,14 @@ public class MicroLimsDbContext : Microsoft.EntityFrameworkCore.DbContext
     public DbSet<EquipmentDocumentAccessLog> EquipmentDocumentAccessLogs => Set<EquipmentDocumentAccessLog>();
     public DbSet<ItemDocument> ItemDocuments => Set<ItemDocument>();
     public DbSet<ItemDocumentAccessLog> ItemDocumentAccessLogs => Set<ItemDocumentAccessLog>();
+    public DbSet<OosInvestigationDocument> OosInvestigationDocuments => Set<OosInvestigationDocument>();
 
     // Test Master
     public DbSet<TestDefinition> TestDefinitions => Set<TestDefinition>();
-    public DbSet<TestDefinitionMedia> TestDefinitionMedias => Set<TestDefinitionMedia>();
     public DbSet<TestWorkflowStep> TestWorkflowSteps => Set<TestWorkflowStep>();
     public DbSet<TestWorkflowStepMedia> TestWorkflowStepMedias => Set<TestWorkflowStepMedia>();
     public DbSet<TestWorkflowStepIncubationStage> TestWorkflowStepIncubationStages => Set<TestWorkflowStepIncubationStage>();
+    public DbSet<TestWorkflowStepPhenotypicTest> TestWorkflowStepPhenotypicTests => Set<TestWorkflowStepPhenotypicTest>();
     public DbSet<WorkflowStepResult> WorkflowStepResults => Set<WorkflowStepResult>();
     public DbSet<ConfirmatoryMediaSelection> ConfirmatoryMediaSelections => Set<ConfirmatoryMediaSelection>();
     public DbSet<ConfirmatoryPlateObservation> ConfirmatoryPlateObservations => Set<ConfirmatoryPlateObservation>();

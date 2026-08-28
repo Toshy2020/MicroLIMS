@@ -3,6 +3,7 @@ import { apiClient } from "../../../services/apiClient";
 import {
   CompareResult,
   FilterOptionsResponse,
+  ResultRecordItem,
   ResultRecordSearchParams,
   ResultRecordSearchResponse
 } from "../types/reportingTypes";
@@ -25,6 +26,43 @@ export const ReportingService = {
   getCompletedByMonth: (months = 6) =>
     apiClient.get<{ success: boolean; data: { month: string; priorYearCount: number; currentYearCount: number }[] }>(
       "/reporting/completed-by-month", { params: { months } }
+    ).then((r) => r.data.data),
+
+  getResultById: (id: number) =>
+    apiClient.get<{ success: boolean; data: ResultRecordItem }>(`/reporting/results/${id}`).then((r) => r.data.data),
+
+  getOverview: (fromDate?: string, toDate?: string) =>
+    apiClient.get<{
+      success: boolean;
+      data: {
+        totalTests: number;
+        approvedCount: number;
+        pendingReviewCount: number;
+        pendingApprovalCount: number;
+        outOfSpecCount: number;
+        alertActionCount: number;
+        categoryDistribution: { category: string; count: number; percentage: number }[];
+        testDistribution: { testCode: string; testName: string; count: number }[];
+        locationDistribution: { location: string; count: number; percentage: number }[];
+        recentResults: {
+          id: number;
+          referenceNumber: string;
+          subjectName: string;
+          subjectDetail: string | null;
+          category: string;
+          testCode: string;
+          testDisplayName: string;
+          resultEnteredAt: string;
+          resultEnteredByName: string;
+          sampleStatus: string;
+          approvalStatus: string;
+        }[];
+      };
+    }>("/reporting/overview", { params: { fromDate, toDate } }).then((r) => r.data.data),
+
+  getQualitativeEvents: (params: { testCode?: string; subjectName?: string; category?: string; fromDate?: string; toDate?: string }) =>
+    apiClient.get<{ success: boolean; data: import("../types/reportingTypes").QualitativeEventResult }>(
+      "/reporting/qualitative-events", { params }
     ).then((r) => r.data.data),
 
   getCompare: (testCode: string, category: string, fromDate: string, toDate: string) =>

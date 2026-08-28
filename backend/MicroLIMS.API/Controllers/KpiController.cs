@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using MicroLIMS.Application.Services;
+using MicroLIMS.Domain.Enums;
 using MicroLIMS.Shared.Constants;
 using MicroLIMS.Shared.Responses;
 
@@ -19,7 +20,27 @@ public class KpiController : ControllerBase
     }
 
     [HttpGet("analysts")]
-    public async Task<IActionResult> GetAnalystKpis() => Ok(ApiResponse<object>.Ok(await _kpiService.GetAnalystKpisAsync()));
+    public async Task<IActionResult> GetAnalystKpis(
+        [FromQuery] SampleCategory? category,
+        [FromQuery] string? location,
+        [FromQuery] string? testCode) =>
+        Ok(ApiResponse<object>.Ok(await _kpiService.GetAnalystKpisAsync(category, location, testCode)));
+
+    [HttpGet("workload-weights")]
+    public async Task<IActionResult> GetWorkloadWeights() =>
+        Ok(ApiResponse<object>.Ok(await _kpiService.GetWorkloadWeightsAsync()));
+
+    [HttpPut("workload-weights/{testCode}")]
+    public async Task<IActionResult> UpdateWorkloadWeight(
+        [FromRoute] string testCode,
+        [FromBody] UpdateWorkloadWeightRequest request)
+    {
+        var userId = int.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)!.Value);
+        var userName = User.FindFirst(System.Security.Claims.ClaimTypes.Name)?.Value ?? "Section Head";
+        var result = await _kpiService.UpdateWorkloadWeightAsync(
+            testCode, request.WorkloadWeight, request.ReasonForChange, userId, userName);
+        return Ok(ApiResponse<object>.Ok(result));
+    }
 
     [HttpGet("completion-stats")]
     public async Task<IActionResult> GetCompletionStats() => Ok(ApiResponse<object>.Ok(await _kpiService.GetCompletionStatsAsync()));

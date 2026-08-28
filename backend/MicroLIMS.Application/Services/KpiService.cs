@@ -4,9 +4,35 @@ using MicroLIMS.Persistence.DbContext;
 
 namespace MicroLIMS.Application.Services;
 
-public record AnalystKpiDto(int UserId, string Username, int CompletedTests, int PendingTests, double AverageTurnaroundHours);
+public record AnalystKpiDto(
+    int UserId,
+    string Username,
+    string FullName,
+    int CompletedTests,
+    int PendingTests,
+    double AverageTurnaroundHours,
+    double MedianTurnaroundHours,
+    double WorkloadUnits,
+    int ReviewReturns,
+    int DocCorrections);
+
 public record CompletionStatsDto(int TotalTestOrders, int Approved, int Rejected, int Pending, double ApprovalRatePercent);
 public record DelayTrackingDto(int DelayedCount, double AverageDelayHours);
+
+public record WorkloadWeightDto(
+    string TestCode,
+    string TestName,
+    SampleCategory Category,
+    decimal WorkloadWeight,
+    string EffectiveDate,
+    string Status,
+    string? ReasonForChange,
+    string ChangedBy,
+    string ChangedAt);
+
+public record UpdateWorkloadWeightRequest(
+    decimal WorkloadWeight,
+    string ReasonForChange);
 
 // Sample-level queue depths for the Review and Approval workflow gates -
 // deliberately Sample.Status counts, not TestOrder.Status like
@@ -34,7 +60,7 @@ public record StepViolationOutcomeDto(int TotalAssignedTests, int ViolationCount
 // (no sample in the window has finished that stage yet) - TotalAvgDays
 // then treats the missing stage(s) as 0 rather than propagating null,
 // matching how a "Total Lifecycle" figure reads most naturally.
-public record StageTatSummaryDto(double? TestingAvgDays, double? ReviewAvgDays, double? ApprovalAvgDays, double? TotalAvgDays);
+public record StageTatSummaryDto(double? TestingAvgDays, double? TestingMedianDays, double? ReviewAvgDays, double? ApprovalAvgDays, double? TotalAvgDays);
 
 // One calendar month's average Testing-stage (Analyst) TAT, bucketed by
 // when that stage concluded (SubmittedForReviewAt) - the same "last N
@@ -92,32 +118,164 @@ public class KpiService
         _db = db;
     }
 
-    public async Task<List<AnalystKpiDto>> GetAnalystKpisAsync()
+    public async Task<List<WorkloadWeightDto>> GetWorkloadWeightsAsync()
+    {
+        var weights = await _db.WorkloadWeights.OrderBy(w => w.TestCode).ToListAsync();
+        if (weights.Count == 0)
+        {
+            // Auto-seed if table is empty
+            MicroLIMS.Persistence.Seed.DbSeeder.SeedWorkloadWeights(_db);
+            weights = await _db.WorkloadWeights.OrderBy(w => w.TestCode).ToListAsync();
+        }
+
+        return weights.Select(w => new WorkloadWeightDto(
+            w.TestCode,
+            w.TestName,
+            w.Category,
+            w.Weight,
+            w.EffectiveDate.ToString("yyyy-MM-dd"),
+            w.IsActive ? "Active" : "Inactive",
+            w.ReasonForChange,
+            w.ChangedByName,
+            w.ChangedAt.ToString("yyyy-MM-ddTHH:mm:ssZ")
+        )).ToList();
+    }
+
+    public async Task<WorkloadWeightDto> UpdateWorkloadWeightAsync(
+        string testCode, decimal weight, string reason, int userId, string userName)
+    {
+        if (weight <= 0)
+            throw new InvalidOperationException("Workload weight must be greater than 0.");
+        if (string.IsNullOrWhiteSpace(reason))
+            throw new InvalidOperationException("A reason for change is required to update workload weight configuration.");
+
+        var existing = await _db.WorkloadWeights.FirstOrDefaultAsync(w => w.TestCode == testCode);
+        if (existing is null)
+        {
+            var testDef = await _db.TestDefinitions.FirstOrDefaultAsync(t => t.Code == testCode);
+            existing = new MicroLIMS.Domain.Entities.WorkloadWeight
+            {
+                TestCode = testCode,
+                TestName = testDef?.DisplayName ?? testCode,
+                Category = SampleCategory.FinishedProduct,
+                Weight = weight,
+                IsActive = true,
+                EffectiveDate = DateTime.UtcNow,
+                ReasonForChange = reason,
+                ChangedByUserId = userId,
+                ChangedByName = userName,
+                ChangedAt = DateTime.UtcNow
+            };
+            _db.WorkloadWeights.Add(existing);
+        }
+        else
+        {
+            var history = new MicroLIMS.Domain.Entities.WorkloadWeightHistory
+            {
+                WorkloadWeightId = existing.Id,
+                Action = "Updated",
+                TestCode = existing.TestCode,
+                PreviousWeight = existing.Weight,
+                NewWeight = weight,
+                ReasonForChange = reason,
+                ChangedByUserId = userId,
+                ChangedByName = userName,
+                ChangedAt = DateTime.UtcNow
+            };
+            _db.WorkloadWeightHistories.Add(history);
+
+            existing.Weight = weight;
+            existing.ReasonForChange = reason;
+            existing.ChangedByUserId = userId;
+            existing.ChangedByName = userName;
+            existing.ChangedAt = DateTime.UtcNow;
+        }
+
+        await _db.SaveChangesAsync();
+
+        return new WorkloadWeightDto(
+            existing.TestCode,
+            existing.TestName,
+            existing.Category,
+            existing.Weight,
+            existing.EffectiveDate.ToString("yyyy-MM-dd"),
+            existing.IsActive ? "Active" : "Inactive",
+            existing.ReasonForChange,
+            existing.ChangedByName,
+            existing.ChangedAt.ToString("yyyy-MM-ddTHH:mm:ssZ")
+        );
+    }
+
+    private static double Median(List<double> values)
+    {
+        if (values.Count == 0) return 0;
+        var sorted = values.OrderBy(v => v).ToList();
+        var mid = sorted.Count / 2;
+        return sorted.Count % 2 != 0 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2.0;
+    }
+
+    public async Task<List<AnalystKpiDto>> GetAnalystKpisAsync(
+        SampleCategory? category = null, string? location = null, string? testCode = null)
     {
         var analysts = await _db.Users.Include(u => u.Role)
             .Where(u => u.Role!.Type == RoleType.Analyst)
             .ToListAsync();
 
+        var weights = await _db.WorkloadWeights.ToDictionaryAsync(w => w.TestCode, w => w.Weight);
+
         var result = new List<AnalystKpiDto>();
         foreach (var analyst in analysts)
         {
-            var completed = await _db.TestOrders.CountAsync(t => t.AssignedAnalystId == analyst.Id && t.Status == ApprovalStatus.Approved);
-            var pending = await _db.TestOrders.CountAsync(t => t.AssignedAnalystId == analyst.Id &&
-                (t.Status == ApprovalStatus.Pending || t.Status == ApprovalStatus.InProgress));
+            var orderQuery = _db.TestOrders.Where(t => t.AssignedAnalystId == analyst.Id);
+            if (category.HasValue)
+                orderQuery = orderQuery.Where(t => _db.Samples.Any(s => s.Id == t.SampleId && s.Category == category.Value));
+            if (!string.IsNullOrWhiteSpace(location))
+                orderQuery = orderQuery.Where(t => _db.Samples.Any(s => s.Id == t.SampleId && (s.Item!.Name == location || s.WaterSamplingPoint!.Code == location)));
+            if (!string.IsNullOrWhiteSpace(testCode))
+                orderQuery = orderQuery.Where(t => t.TestCode == testCode);
 
-            // Average turnaround: time from sample received to result entered,
-            // for this analyst's completed test orders.
+            var completedOrders = await orderQuery.Where(t => t.Status == ApprovalStatus.Approved).ToListAsync();
+            var completedCount = completedOrders.Count;
+            var pendingCount = await orderQuery.CountAsync(t => t.Status == ApprovalStatus.Pending || t.Status == ApprovalStatus.InProgress);
+
+            // Real workload units = sum of (weight for each test code)
+            var workloadUnits = completedOrders.Sum(o => weights.TryGetValue(o.TestCode, out var w) ? w : 1.0m);
+
+            // Real turnaround calculation (average and statistical median)
+            var completedOrderIds = completedOrders.Select(o => o.Id).ToList();
             var turnaroundHours = await _db.TestOrders
-                .Where(t => t.AssignedAnalystId == analyst.Id && t.Status == ApprovalStatus.Approved)
+                .Where(t => completedOrderIds.Contains(t.Id))
                 .Join(_db.Samples, t => t.SampleId, s => s.Id, (t, s) => new { t.Id, s.ReceivedAt })
                 .Join(_db.Results, x => x.Id, r => r.TestOrderId, (x, r) => new { x.ReceivedAt, r.EnteredAt })
+                .Select(x => (x.EnteredAt - x.ReceivedAt).TotalHours)
                 .ToListAsync();
 
-            var avgHours = turnaroundHours.Count > 0
-                ? turnaroundHours.Average(x => (x.EnteredAt - x.ReceivedAt).TotalHours)
-                : 0;
+            var avgHours = turnaroundHours.Count > 0 ? turnaroundHours.Average() : 0;
+            var medianHours = turnaroundHours.Count > 0 ? Median(turnaroundHours) : 0;
 
-            result.Add(new AnalystKpiDto(analyst.Id, analyst.Username, completed, pending, Math.Round(avgHours, 1)));
+            // Real review returns and doc corrections = count of edits to results after initial entry
+            var assignedOrderIds = await orderQuery.Select(t => t.Id).ToListAsync();
+            var assignedSampleIds = await orderQuery.Select(t => t.SampleId).Distinct().ToListAsync();
+
+            var editCount = await _db.AuditLogs.CountAsync(a =>
+                a.Action == "Update" &&
+                (a.EntityName == "Result" || a.EntityName == "CountTestReading" ||
+                 a.EntityName == "WorkflowStepResult" || a.EntityName == "SampleLocation" ||
+                 a.EntityName == "ResultRecord") &&
+                ((a.TestOrderId != null && assignedOrderIds.Contains(a.TestOrderId.Value)) ||
+                 (a.SampleId != null && assignedSampleIds.Contains(a.SampleId.Value))));
+
+            result.Add(new AnalystKpiDto(
+                analyst.Id,
+                analyst.Username,
+                analyst.FullName,
+                completedCount,
+                pendingCount,
+                Math.Round(avgHours, 1),
+                Math.Round(medianHours, 1),
+                Math.Round((double)workloadUnits, 1),
+                editCount,
+                editCount));
         }
 
         return result;
@@ -438,9 +596,19 @@ public class KpiService
             return list.Count > 0 ? Math.Round(list.Average() / 24.0, 1) : null;
         }
 
-        var testingAvg = AvgDays(scoped
+        static double? MedianDays(IEnumerable<double> hours)
+        {
+            var list = hours.ToList();
+            return list.Count > 0 ? Math.Round(Median(list) / 24.0, 1) : null;
+        }
+
+        var testingHours = scoped
             .Where(w => w.SubmittedForReviewAt.HasValue)
-            .Select(w => (w.SubmittedForReviewAt!.Value - w.AssignedAt).TotalHours));
+            .Select(w => (w.SubmittedForReviewAt!.Value - w.AssignedAt).TotalHours)
+            .ToList();
+
+        var testingAvg = AvgDays(testingHours);
+        var testingMedian = MedianDays(testingHours);
 
         var reviewAvg = AvgDays(scoped
             .Where(w => w.SubmittedForReviewAt.HasValue && w.ReviewCompletedAt.HasValue && w.ReviewCompletedAt > w.SubmittedForReviewAt)
@@ -452,7 +620,7 @@ public class KpiService
 
         var totalAvg = Math.Round((testingAvg ?? 0) + (reviewAvg ?? 0) + (approvalAvg ?? 0), 1);
 
-        return new StageTatSummaryDto(testingAvg, reviewAvg, approvalAvg, totalAvg);
+        return new StageTatSummaryDto(testingAvg, testingMedian, reviewAvg, approvalAvg, totalAvg);
     }
 
     // Historical monthly average Testing-stage (Analyst) TAT, bucketed by

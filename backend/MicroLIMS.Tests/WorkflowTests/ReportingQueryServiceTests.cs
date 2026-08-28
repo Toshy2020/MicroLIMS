@@ -138,4 +138,82 @@ public class ReportingQueryServiceTests
         Assert.Equal("ResultRecordsCsv", log.ExportType);
         Assert.Contains("FinishedProduct", log.FilterJson);
     }
+
+    [Fact]
+    public async Task GetOverviewAggregateAsync_CalculatesSqlLevelAggregates()
+    {
+        await using var db = NewDb();
+        var (sampleId, testOrderId) = await SeedSampleAndOrderAsync(db);
+
+        var r1 = MakeRecord(sampleId, testOrderId, "CountTestReading", 1, SampleCategory.FinishedProduct, "TAMC", "TAMC", "Product A", "CFU/g");
+        r1.SampleStatus = SampleStatus.Approved;
+        r1.ApprovedAt = DateTime.UtcNow;
+
+        var r2 = MakeRecord(sampleId, testOrderId, "CountTestReading", 2, SampleCategory.Water, "TAMC", "TAMC", "Water Point 1", "CFU/mL");
+        r2.SampleStatus = SampleStatus.UnderReview;
+        r2.ResultLevel = ResultLevel.AlertLevel;
+
+        var r3 = MakeRecord(sampleId, testOrderId, "CountTestReading", 3, SampleCategory.FinishedProduct, "TYMC", "TYMC", "Product A", "CFU/g");
+        r3.SampleStatus = SampleStatus.Received;
+        r3.ResultLevel = ResultLevel.OutOfSpecification;
+
+        db.ResultRecords.AddRange(r1, r2, r3);
+        await db.SaveChangesAsync();
+
+        var query = new ReportingQueryService(db);
+        var overview = await query.GetOverviewAggregateAsync(null, null);
+
+        Assert.Equal(3, overview.TotalTests);
+        Assert.Equal(1, overview.ApprovedCount);
+        Assert.Equal(1, overview.PendingReviewCount);
+        Assert.Equal(1, overview.OutOfSpecCount);
+        Assert.Equal(1, overview.AlertActionCount);
+        Assert.Equal(2, overview.CategoryDistribution.Count);
+        Assert.Equal(3, overview.RecentResults.Count);
+    }
+
+    [Fact]
+    public async Task GetByIdAsync_ReturnsCorrectRecord()
+    {
+        await using var db = NewDb();
+        var (sampleId, testOrderId) = await SeedSampleAndOrderAsync(db);
+        var record = MakeRecord(sampleId, testOrderId, "CountTestReading", 1, SampleCategory.FinishedProduct, "TAMC", "TAMC", "Item A", "CFU/g");
+        db.ResultRecords.Add(record);
+        await db.SaveChangesAsync();
+
+        var query = new ReportingQueryService(db);
+        var found = await query.GetByIdAsync(record.Id);
+        var notFound = await query.GetByIdAsync(9999);
+
+        Assert.NotNull(found);
+        Assert.Equal(record.Id, found.Id);
+        Assert.Equal("TAMC", found.TestCode);
+        Assert.Null(notFound);
+    }
+
+    [Fact]
+    public async Task GetQualitativeEventsAsync_ReturnsDetectedEvents()
+    {
+        await using var db = NewDb();
+        var (sampleId, testOrderId) = await SeedSampleAndOrderAsync(db);
+
+        var r1 = MakeRecord(sampleId, testOrderId, "PathogenObservation", 1, SampleCategory.FinishedProduct, "E.coli", "Detection Of E. coli", "Product X", null);
+        r1.ResultKind = ResultKind.Qualitative;
+        r1.ReportedValue = "Detected";
+
+        var r2 = MakeRecord(sampleId, testOrderId, "PathogenObservation", 2, SampleCategory.FinishedProduct, "E.coli", "Detection Of E. coli", "Product Y", null);
+        r2.ResultKind = ResultKind.Qualitative;
+        r2.ReportedValue = "Absent";
+
+        db.ResultRecords.AddRange(r1, r2);
+        await db.SaveChangesAsync();
+
+        var query = new ReportingQueryService(db);
+        var result = await query.GetQualitativeEventsAsync("E.coli", null, null, null, null);
+
+        Assert.Equal("E.coli", result.TestCode);
+        Assert.Single(result.Events);
+        Assert.Equal("Product X", result.Events[0].SubjectName);
+        Assert.Equal("Detected", result.Events[0].ReportedValue);
+    }
 }

@@ -13,6 +13,7 @@ import {
 } from "recharts";
 import {
   NumericTrendPoint,
+  QualitativeEventItem,
   TrendAnalysisResult,
   TrendingCriteria,
   SampleCategory,
@@ -49,7 +50,7 @@ export function TrendingTab({ initialTestCode, initialSubjectName }: TrendingTab
     showMode: "All"
   });
 
-  const [analysis, setAnalysis] = useState<TrendAnalysisResult | null>(null);
+  const [analysis, setAnalysis] = useState<(TrendAnalysisResult & { qualitativeEvents?: QualitativeEventItem[] }) | null>(null);
   const [loading, setLoading] = useState(false);
 
   // Dialog states
@@ -98,42 +99,48 @@ export function TrendingTab({ initialTestCode, initialSubjectName }: TrendingTab
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [criteria.testCode, criteria.subjectName, criteria.dateRange]);
 
-  const handlePointClick = (point: NumericTrendPoint) => {
-    // Generate full record details for drilldown dialog
-    setDrillDownRecord({
-      id: point.recordId,
-      sampleId: 100 + point.recordId,
-      testOrderId: 500 + point.recordId,
-      sourceTable: "TestOrders",
-      sourceId: 500 + point.recordId,
-      round: 1,
-      referenceNumber: point.referenceNumber,
-      category: (criteria.category || "FinishedProduct") as SampleCategory,
-      subjectName: criteria.subjectName,
-      subjectDetail: "Point Drill-down",
-      batchNumber: `B-${point.label.replace(" ", "")}`,
-      controlNumber: "C-2026",
-      testCode: criteria.testCode,
-      testDisplayName: analysis?.testDisplayName || criteria.testCode,
-      resultKind: analysis?.isNumeric ? "Quantitative" : "Qualitative",
-      numericValue: point.value,
-      reportedValue: point.reportedValue,
-      unit: analysis?.unit ?? "CFU/mL",
-      isBelowDetectionLimit: point.value != null && point.value < 1,
-      detectionLimit: 1,
-      alertLimit: point.alertLevel ? `${point.alertLevel}` : null,
-      actionLimit: point.actionLevel ? `${point.actionLevel}` : null,
-      specLimit: point.upperLimit ? `NMT ${point.upperLimit}` : null,
-      resultLevel: point.resultLevel,
-      resultEnteredAt: point.date,
-      resultEnteredByUserId: 101,
-      resultEnteredByName: "Amal Hamdy",
-      sampleStatus: "Approved",
-      approvalStatus: "Approved",
-      approvedByUserId: 201,
-      approvedByName: "Amal Hamdy",
-      approvedAt: point.date
-    });
+  const handlePointClick = async (point: NumericTrendPoint) => {
+    if (!point.recordId) return;
+    try {
+      const record = await ReportingService.getResultById(point.recordId);
+      setDrillDownRecord(record);
+    } catch {
+      // Fallback only on network error
+      setDrillDownRecord({
+        id: point.recordId,
+        sampleId: 0,
+        testOrderId: 0,
+        sourceTable: "ResultRecord",
+        sourceId: point.recordId,
+        round: 1,
+        referenceNumber: point.referenceNumber,
+        category: (criteria.category || "FinishedProduct") as SampleCategory,
+        subjectName: criteria.subjectName,
+        subjectDetail: null,
+        batchNumber: null,
+        controlNumber: null,
+        testCode: criteria.testCode,
+        testDisplayName: analysis?.testDisplayName || criteria.testCode,
+        resultKind: "Quantitative",
+        numericValue: point.value,
+        reportedValue: point.reportedValue,
+        unit: analysis?.unit ?? null,
+        isBelowDetectionLimit: point.value == null,
+        detectionLimit: null,
+        alertLimit: point.alertLevel ? `${point.alertLevel}` : null,
+        actionLimit: point.actionLevel ? `${point.actionLevel}` : null,
+        specLimit: point.upperLimit ? `${point.upperLimit}` : null,
+        resultLevel: point.resultLevel,
+        resultEnteredAt: point.date,
+        resultEnteredByUserId: 0,
+        resultEnteredByName: "—",
+        sampleStatus: "Approved",
+        approvalStatus: "Approved",
+        approvedByUserId: null,
+        approvedByName: null,
+        approvedAt: null
+      });
+    }
   };
 
   const exportContext = (): TrendExportContext => ({
@@ -326,124 +333,167 @@ export function TrendingTab({ initialTestCode, initialSubjectName }: TrendingTab
               label={
                 analysis?.isNumeric
                   ? `Live Numeric Trend (${analysis?.unit ?? "CFU/g"})`
-                  : "Development Preview (Qualitative Not in Backend)"
+                  : "Qualitative Detection Event Log"
               }
               sx={{
-                bgcolor: analysis?.isNumeric ? theme.custom.status.notDetected.bg : theme.custom.status.pending.bg,
-                color: analysis?.isNumeric ? theme.custom.status.notDetected.text : theme.custom.status.pending.text,
+                bgcolor: analysis?.isNumeric ? theme.custom.status.notDetected.bg : theme.custom.status.detected.bg,
+                color: analysis?.isNumeric ? theme.custom.status.notDetected.text : theme.custom.status.detected.text,
                 fontWeight: 700,
                 fontSize: 11
               }}
             />
           </Box>
 
-          {!analysis?.isNumeric && (
-            <Box sx={{ mt: 1, p: 1.25, bgcolor: "warning.lighter", border: 1, borderColor: "warning.light", borderRadius: 1 }}>
-              <Typography sx={{ fontSize: 12, color: "warning.dark", fontWeight: 600 }}>
-                ⚠️ Qualitative trend mode is not currently supported by the backend. Displaying client-side demonstration model.
-              </Typography>
-            </Box>
-          )}
-
-          <Box ref={chartContainerRef} sx={{ height: 320, width: "100%", mt: 2 }}>
-            {analysis?.isNumeric && (!analysis.numericPoints || analysis.numericPoints.length === 0) ? (
-              <Box sx={{ height: "100%", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", bgcolor: "background.default", borderRadius: 1.5, border: 1, borderColor: "divider" }}>
-                <Typography sx={{ fontSize: 14, fontWeight: 600, color: "text.secondary" }}>
-                  No matching records found
-                </Typography>
-                <Typography sx={{ fontSize: 12, color: "text.disabled", mt: 0.5 }}>
-                  No numeric results found for {criteria.testCode} on {criteria.subjectName || "the selected parameter"}.
-                </Typography>
-              </Box>
-            ) : (
-              <ResponsiveContainer width="100%" height="100%">
-                {analysis?.isNumeric ? (
+          <Box ref={chartContainerRef} sx={{ minHeight: 320, width: "100%", mt: 2 }}>
+            {analysis?.isNumeric ? (
+              (!analysis.numericPoints || analysis.numericPoints.length === 0) ? (
+                <Box sx={{ height: 320, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", bgcolor: "background.default", borderRadius: 1.5, border: 1, borderColor: "divider" }}>
+                  <Typography sx={{ fontSize: 14, fontWeight: 600, color: "text.secondary" }}>
+                    No matching records found
+                  </Typography>
+                  <Typography sx={{ fontSize: 12, color: "text.disabled", mt: 0.5 }}>
+                    No numeric results found for {criteria.testCode} on {criteria.subjectName || "the selected parameter"}.
+                  </Typography>
+                </Box>
+              ) : (
+                <ResponsiveContainer width="100%" height={320}>
                   <ComposedChart
                     data={analysis.numericPoints ?? []}
                     margin={{ top: 10, right: 30, left: 10, bottom: 25 }}
                   >
-                  <CartesianGrid strokeDasharray="3 3" stroke={theme.palette.divider} />
-                  <XAxis dataKey="label" tick={{ fontSize: 11, fill: theme.palette.text.secondary }} />
-                  <YAxis
-                    tick={{ fontSize: 11, fill: theme.palette.text.secondary }}
-                    domain={[0, 120]}
-                    label={{ value: analysis.unit ?? "CFU/mL", angle: -90, position: "insideLeft", fontSize: 11, fill: theme.palette.text.secondary }}
-                  />
-                  <RechartsTooltip
-                    content={({ payload, label }) => {
-                      if (!payload || payload.length === 0) return null;
-                      const pt = payload[0].payload as NumericTrendPoint;
-                      return (
-                        <Paper sx={{ p: 1.5, fontSize: 12, boxShadow: "0 4px 12px rgba(0,0,0,0.1)" }}>
-                          <Typography sx={{ fontWeight: 700, color: theme.palette.primary.main }}>{label}</Typography>
-                          <Typography>Ref: <strong>{pt.referenceNumber}</strong></Typography>
-                          <Typography>Result: <strong>{pt.reportedValue} {analysis.unit}</strong></Typography>
-                          <Typography>Level: <strong>{pt.resultLevel}</strong></Typography>
-                          <Typography sx={{ fontSize: 10, color: "text.secondary", mt: 0.5 }}>Click point to view source record</Typography>
-                        </Paper>
-                      );
-                    }}
-                  />
-                  <Legend verticalAlign="top" height={36} wrapperStyle={{ fontSize: 12 }} />
+                    <CartesianGrid strokeDasharray="3 3" stroke={theme.palette.divider} />
+                    <XAxis dataKey="label" tick={{ fontSize: 11, fill: theme.palette.text.secondary }} />
+                    <YAxis
+                      tick={{ fontSize: 11, fill: theme.palette.text.secondary }}
+                      domain={[0, "auto"]}
+                      label={{ value: analysis.unit ?? "CFU/mL", angle: -90, position: "insideLeft", fontSize: 11, fill: theme.palette.text.secondary }}
+                    />
+                    <RechartsTooltip
+                      content={({ payload, label }) => {
+                        if (!payload || payload.length === 0) return null;
+                        const pt = payload[0].payload as NumericTrendPoint;
+                        return (
+                          <Paper sx={{ p: 1.5, fontSize: 12, boxShadow: "0 4px 12px rgba(0,0,0,0.1)" }}>
+                            <Typography sx={{ fontWeight: 700, color: theme.palette.primary.main }}>{label}</Typography>
+                            <Typography>Ref: <strong>{pt.referenceNumber}</strong></Typography>
+                            <Typography>Result: <strong>{pt.reportedValue} {analysis.unit}</strong></Typography>
+                            <Typography>Level: <strong>{pt.resultLevel}</strong></Typography>
+                            <Typography sx={{ fontSize: 10, color: "text.secondary", mt: 0.5 }}>Click point to view source record</Typography>
+                          </Paper>
+                        );
+                      }}
+                    />
+                    <Legend verticalAlign="top" height={36} wrapperStyle={{ fontSize: 12 }} />
 
-                  {/* Limit & Baseline Reference Lines - reuse the same status
-                      tones as everything else, not bespoke chart hex. */}
-                  <Line type="monotone" dataKey="upperLimit" name="Upper Limit (USL)" stroke={theme.custom.status.detected.text} strokeDasharray="5 5" strokeWidth={1.5} dot={false} />
-                  <Line type="monotone" dataKey="actionLevel" name="Action Level" stroke={theme.custom.status.action.text} strokeDasharray="3 3" strokeWidth={1.5} dot={false} />
-                  <Line type="monotone" dataKey="alertLevel" name="Alert Level" stroke={theme.custom.status.inconclusive.text} strokeDasharray="2 2" strokeWidth={1.5} dot={false} />
-                  <Line type="monotone" dataKey="mean" name="Mean" stroke={theme.palette.primary.main} strokeDasharray="4 4" strokeWidth={1.5} dot={false} />
+                    <Line type="monotone" dataKey="upperLimit" name="Upper Limit (USL)" stroke={theme.custom.status.detected.text} strokeDasharray="5 5" strokeWidth={1.5} dot={false} />
+                    <Line type="monotone" dataKey="actionLevel" name="Action Level" stroke={theme.custom.status.action.text} strokeDasharray="3 3" strokeWidth={1.5} dot={false} />
+                    <Line type="monotone" dataKey="alertLevel" name="Alert Level" stroke={theme.custom.status.inconclusive.text} strokeDasharray="2 2" strokeWidth={1.5} dot={false} />
+                    <Line type="monotone" dataKey="mean" name="Mean" stroke={theme.palette.primary.main} strokeDasharray="4 4" strokeWidth={1.5} dot={false} />
 
-                  {/* Main Result Line & Interactive Points */}
-                  <Line
-                    type="monotone"
-                    dataKey="value"
-                    name="Results"
-                    stroke={theme.custom.status.info.text}
-                    strokeWidth={2}
-                    activeDot={{ r: 7, onClick: (_, event: any) => {
-                      if (event?.payload) handlePointClick(event.payload);
-                    } }}
-                    dot={(props: any) => {
-                      const { cx, cy, payload } = props;
-                      if (cx == null || cy == null) return <></>;
-                      const isAlert = payload.resultLevel === "AlertLevel";
-                      const isAction = payload.resultLevel === "ActionLevel";
-                      const isOos = payload.resultLevel === "OutOfSpecification";
-                      let fill = theme.custom.status.info.text;
-                      if (isOos) fill = theme.custom.status.detected.text;
-                      else if (isAction) fill = theme.custom.status.action.text;
-                      else if (isAlert) fill = theme.custom.status.inconclusive.text;
+                    <Line
+                      type="monotone"
+                      dataKey="value"
+                      name="Results"
+                      stroke={theme.custom.status.info.text}
+                      strokeWidth={2}
+                      activeDot={{ r: 7, onClick: (_, event: any) => {
+                        if (event?.payload) handlePointClick(event.payload);
+                      } }}
+                      dot={(props: any) => {
+                        const { cx, cy, payload } = props;
+                        if (cx == null || cy == null) return <></>;
+                        const isAlert = payload.resultLevel === "AlertLevel";
+                        const isAction = payload.resultLevel === "ActionLevel";
+                        const isOos = payload.resultLevel === "OutOfSpecification";
+                        let fill = theme.custom.status.info.text;
+                        if (isOos) fill = theme.custom.status.detected.text;
+                        else if (isAction) fill = theme.custom.status.action.text;
+                        else if (isAlert) fill = theme.custom.status.inconclusive.text;
 
-                      return (
-                        <circle
-                          cx={cx}
-                          cy={cy}
-                          r={isAlert || isAction || isOos ? 6 : 4.5}
-                          fill={fill}
-                          stroke={theme.palette.background.paper}
-                          strokeWidth={1.5}
-                          style={{ cursor: "pointer" }}
-                          onClick={() => handlePointClick(payload)}
-                        />
-                      );
-                    }}
-                  />
-                </ComposedChart>
-              ) : (
-                <BarChart
-                  data={analysis?.qualitativePoints ?? []}
-                  margin={{ top: 10, right: 30, left: 10, bottom: 25 }}
-                >
-                  <CartesianGrid strokeDasharray="3 3" stroke={theme.palette.divider} />
-                  <XAxis dataKey="label" tick={{ fontSize: 11, fill: theme.palette.text.secondary }} />
-                  <YAxis tick={{ fontSize: 11, fill: theme.palette.text.secondary }} />
-                  <RechartsTooltip />
-                  <Legend verticalAlign="top" height={36} wrapperStyle={{ fontSize: 12 }} />
-                  <Bar dataKey="absentCount" name="Conform / Absent" fill={theme.custom.status.notDetected.text} stackId="a" />
-                  <Bar dataKey="detectedCount" name="Detected / Non-Conform" fill={theme.custom.status.detected.text} stackId="a" />
-                </BarChart>
-              )}
-            </ResponsiveContainer>
+                        return (
+                          <circle
+                            cx={cx}
+                            cy={cy}
+                            r={isAlert || isAction || isOos ? 6 : 4.5}
+                            fill={fill}
+                            stroke={theme.palette.background.paper}
+                            strokeWidth={1.5}
+                            style={{ cursor: "pointer" }}
+                            onClick={() => handlePointClick(payload)}
+                          />
+                        );
+                      }}
+                    />
+                  </ComposedChart>
+                </ResponsiveContainer>
+              )
+            ) : (
+              <Box sx={{ width: "100%" }}>
+                {(!analysis?.qualitativeEvents || analysis.qualitativeEvents.length === 0) ? (
+                  <Box sx={{ p: 4, textAlign: "center", bgcolor: theme.custom.status.notDetected.bg, borderRadius: 1.5, border: 1, borderColor: "divider" }}>
+                    <Typography sx={{ fontSize: 15, fontWeight: 700, color: theme.custom.status.notDetected.text }}>
+                      No Pathogen Detection Events
+                    </Typography>
+                    <Typography sx={{ fontSize: 13, color: "text.secondary", mt: 1 }}>
+                      Zero detections recorded for {analysis?.testDisplayName || criteria.testCode} in the selected period. All samples conformed (Absent / Negative).
+                    </Typography>
+                  </Box>
+                ) : (
+                  <Box sx={{ border: 1, borderColor: "divider", borderRadius: 1.5, overflow: "hidden" }}>
+                    <Box sx={{ p: 1.5, bgcolor: theme.custom.status.detected.bg, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <Typography sx={{ fontSize: 13, fontWeight: 700, color: theme.custom.status.detected.text }}>
+                        ⚠️ Pathogen Detection Events ({analysis.qualitativeEvents.length})
+                      </Typography>
+                      <Typography sx={{ fontSize: 11, color: "text.secondary" }}>
+                        Click row to view complete result record
+                      </Typography>
+                    </Box>
+                    <Box sx={{ overflowX: "auto" }}>
+                      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+                        <thead>
+                          <tr style={{ background: theme.palette.background.default, textAlign: "left", borderBottom: `1px solid ${theme.palette.divider}` }}>
+                            <th style={{ padding: "8px 12px", fontWeight: 600 }}>Reference</th>
+                            <th style={{ padding: "8px 12px", fontWeight: 600 }}>Item / Location</th>
+                            <th style={{ padding: "8px 12px", fontWeight: 600 }}>Pathogen</th>
+                            <th style={{ padding: "8px 12px", fontWeight: 600 }}>Result</th>
+                            <th style={{ padding: "8px 12px", fontWeight: 600 }}>Date Entered</th>
+                            <th style={{ padding: "8px 12px", fontWeight: 600 }}>Entered By</th>
+                            <th style={{ padding: "8px 12px", fontWeight: 600 }}>Status</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {analysis.qualitativeEvents.map((ev) => (
+                            <tr
+                              key={ev.id}
+                              style={{ borderBottom: `1px solid ${theme.palette.divider}`, cursor: "pointer" }}
+                              onClick={async () => {
+                                try {
+                                  const r = await ReportingService.getResultById(ev.id);
+                                  setDrillDownRecord(r);
+                                } catch {
+                                  // Fallback
+                                }
+                              }}
+                            >
+                              <td style={{ padding: "8px 12px", fontWeight: 600, color: theme.palette.primary.main }}>{ev.referenceNumber}</td>
+                              <td style={{ padding: "8px 12px" }}>{ev.subjectName} {ev.subjectDetail ? `(${ev.subjectDetail})` : ""}</td>
+                              <td style={{ padding: "8px 12px" }}>{ev.testDisplayName}</td>
+                              <td style={{ padding: "8px 12px", color: theme.custom.status.detected.text, fontWeight: 700 }}>{ev.reportedValue}</td>
+                              <td style={{ padding: "8px 12px", color: theme.palette.text.secondary }}>
+                                {new Date(ev.resultEnteredAt).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })}
+                              </td>
+                              <td style={{ padding: "8px 12px" }}>{ev.resultEnteredByName}</td>
+                              <td style={{ padding: "8px 12px" }}>
+                                <Chip size="small" label={ev.approvalStatus} color={ev.approvalStatus === "Approved" ? "success" : "warning"} sx={{ fontSize: 10, height: 20 }} />
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </Box>
+                  </Box>
+                )}
+              </Box>
             )}
           </Box>
         </Paper>
@@ -549,27 +599,35 @@ export function TrendingTab({ initialTestCode, initialSubjectName }: TrendingTab
           ) : (
             <Grid container spacing={2}>
               <Grid item xs={6} sm={3}>
+                <Box sx={{ p: 1.5, bgcolor: (analysis?.qualitativeEvents?.length ?? 0) > 0 ? theme.custom.status.detected.bg : theme.custom.status.notDetected.bg, borderRadius: 1, textAlign: "center" }}>
+                  <Typography sx={{ fontSize: 11, color: "text.secondary" }}>Detection Events</Typography>
+                  <Typography sx={{ fontSize: 18, fontWeight: 800, color: (analysis?.qualitativeEvents?.length ?? 0) > 0 ? theme.custom.status.detected.text : theme.custom.status.notDetected.text }}>
+                    {analysis?.qualitativeEvents?.length ?? 0}
+                  </Typography>
+                </Box>
+              </Grid>
+              <Grid item xs={6} sm={3}>
                 <Box sx={{ p: 1.5, bgcolor: "background.default", borderRadius: 1, textAlign: "center" }}>
-                  <Typography sx={{ fontSize: 11, color: "text.secondary" }}>Total Tests</Typography>
-                  <Typography sx={{ fontSize: 18, fontWeight: 800 }}>{analysis?.qualitativeStats?.numberOfResults ?? 0}</Typography>
+                  <Typography sx={{ fontSize: 11, color: "text.secondary" }}>Pathogen Parameter</Typography>
+                  <Typography sx={{ fontSize: 15, fontWeight: 700 }} noWrap>
+                    {analysis?.testDisplayName || criteria.testCode}
+                  </Typography>
                 </Box>
               </Grid>
               <Grid item xs={6} sm={3}>
                 <Box sx={{ p: 1.5, bgcolor: theme.custom.status.notDetected.bg, borderRadius: 1, textAlign: "center" }}>
-                  <Typography sx={{ fontSize: 11, color: "text.secondary" }}>% Conform</Typography>
-                  <Typography sx={{ fontSize: 18, fontWeight: 800, color: theme.custom.status.notDetected.text }}>{analysis?.qualitativeStats?.percentConform ?? 100}%</Typography>
+                  <Typography sx={{ fontSize: 11, color: "text.secondary" }}>Surveillance Result</Typography>
+                  <Typography sx={{ fontSize: 14, fontWeight: 800, color: (analysis?.qualitativeEvents?.length ?? 0) === 0 ? theme.custom.status.notDetected.text : theme.custom.status.detected.text }}>
+                    {(analysis?.qualitativeEvents?.length ?? 0) === 0 ? "Conformant / Negative" : "Action Required"}
+                  </Typography>
                 </Box>
               </Grid>
               <Grid item xs={6} sm={3}>
-                <Box sx={{ p: 1.5, bgcolor: theme.custom.status.notDetected.bg, borderRadius: 1, textAlign: "center" }}>
-                  <Typography sx={{ fontSize: 11, color: "text.secondary" }}>Absent Count</Typography>
-                  <Typography sx={{ fontSize: 18, fontWeight: 800, color: theme.custom.status.notDetected.text }}>{analysis?.qualitativeStats?.absentCount ?? 0}</Typography>
-                </Box>
-              </Grid>
-              <Grid item xs={6} sm={3}>
-                <Box sx={{ p: 1.5, bgcolor: theme.custom.status.detected.bg, borderRadius: 1, textAlign: "center" }}>
-                  <Typography sx={{ fontSize: 11, color: "text.secondary" }}>Detected Count</Typography>
-                  <Typography sx={{ fontSize: 18, fontWeight: 800, color: theme.custom.status.detected.text }}>{analysis?.qualitativeStats?.detectedCount ?? 0}</Typography>
+                <Box sx={{ p: 1.5, bgcolor: "background.default", borderRadius: 1, textAlign: "center" }}>
+                  <Typography sx={{ fontSize: 11, color: "text.secondary" }}>Period Range</Typography>
+                  <Typography sx={{ fontSize: 15, fontWeight: 700 }}>
+                    {criteria.dateRange.toUpperCase()}
+                  </Typography>
                 </Box>
               </Grid>
             </Grid>

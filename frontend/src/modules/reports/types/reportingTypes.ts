@@ -13,7 +13,10 @@ export type SampleCategory =
   | "Water"
   | "EnvironmentalMonitoring"
   | "AfterCleaning"
-  | "GPT";
+  | "GPT"; // real backend SampleCategory value (used by WorkloadWeight config), but no Sample row is ever
+           // received under it and Record Search has no query path for it yet - do not wire a Quick Report
+           // tile to this until that's actually built. "ReferenceStrain" was removed from this union: it
+           // was never added to the backend SampleCategory enum at all, so it could never have worked.
 
 export type SampleStatus =
   | "Received"
@@ -132,13 +135,18 @@ export interface LocationDistributionItem {
   color: string;
 }
 
-export interface RecentReportItem {
-  id: string;
-  name: string;
-  type: string;
-  dateGenerated: string;
-  generatedBy: string;
-  status: "Final" | "Draft" | "Archived";
+export interface RecentResultItem {
+  id: number;
+  referenceNumber: string;
+  subjectName: string;
+  subjectDetail: string | null;
+  category: SampleCategory;
+  testCode: string;
+  testDisplayName: string;
+  dateEntered: string;
+  enteredBy: string;
+  sampleStatus: SampleStatus;
+  approvalStatus: string;
 }
 
 export interface QualitySignalSummary {
@@ -158,7 +166,7 @@ export interface OverviewDashboardData {
   categoryDistribution: CategoryDistributionItem[];
   testDistribution: TestDistributionItem[];
   locationDistribution: LocationDistributionItem[];
-  recentReports: RecentReportItem[];
+  recentResults: RecentResultItem[];
   qualitySignals: QualitySignalSummary;
 }
 
@@ -258,6 +266,29 @@ export interface CompareResult {
   testDisplayName: string;
   isNumeric: boolean;
   subjects: CompareSubjectStat[];
+}
+
+export interface QualitativeEventItem {
+  id: number;
+  referenceNumber: string;
+  category: SampleCategory;
+  subjectName: string;
+  subjectDetail: string | null;
+  testCode: string;
+  testDisplayName: string;
+  reportedValue: string;
+  resultEnteredAt: string;
+  resultEnteredByName: string;
+  sampleStatus: SampleStatus;
+  approvalStatus: string;
+  approvedByName: string | null;
+  approvedAt: string | null;
+}
+
+export interface QualitativeEventResult {
+  testCode: string;
+  testDisplayName: string;
+  events: QualitativeEventItem[];
 }
 
 // ---------------------------------------------------------------------------

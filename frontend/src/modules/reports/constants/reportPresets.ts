@@ -79,12 +79,3 @@ export const DEFAULT_WORKLOAD_WEIGHTS: WorkloadWeightConfig[] = [
     changedAt: "2026-01-01T00:00:00Z"
   }
 ];
-
-export const MOCK_ANALYSTS = [
-  { id: 101, name: "Amal Hamdy", username: "ahamdy", role: "Analyst" },
-  { id: 102, name: "Ahmed Ali", username: "aali", role: "Analyst" },
-  { id: 103, name: "Sara Mohamed", username: "smohamed", role: "Analyst" },
-  { id: 104, name: "Khaled Omar", username: "komar", role: "Analyst" },
-  { id: 105, name: "Nour Ibrahim", username: "nibrahim", role: "Analyst" },
-  { id: 106, name: "Youssef Tarek", username: "ytarek", role: "Analyst" }
-];

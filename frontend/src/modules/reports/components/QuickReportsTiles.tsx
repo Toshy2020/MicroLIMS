@@ -8,12 +8,6 @@ interface Tile {
   disabledReason?: string;
 }
 
-// Media/GPT and Reference Strains are not sample results - Media
-// Evaluation lives in its own MediaEvaluation entity (see the
-// ReplaceGptWithMediaEvaluation migration) and Reference Strains are
-// Cryovial records, neither of which ever produces a ResultRecord row.
-// Kept visible but disabled (rather than removed) so the tile grid
-// still matches the mockup and the gap is explained, not silent.
 const TILES: Tile[] = [
   { label: "Product", category: "FinishedProduct" },
   { label: "Raw Material", category: "RawMaterial" },

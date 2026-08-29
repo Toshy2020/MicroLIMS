@@ -10,5 +10,6 @@ public class MachinePartConfiguration
     public string AlertLimit { get; set; } = string.Empty;
     public string ActionLimit { get; set; } = string.Empty;
     public string SpecLimit { get; set; } = string.Empty;
+    public string Unit { get; set; } = string.Empty;
     public bool IsPathogenTest { get; set; } // true for E.coli/P.aeruginosa/Salmonella-type entries, false for Swab/Rinse TAMC
 }

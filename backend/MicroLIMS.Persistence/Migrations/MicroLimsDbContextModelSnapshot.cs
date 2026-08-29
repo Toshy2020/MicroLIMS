@@ -469,6 +469,11 @@ namespace MicroLIMS.Persistence.Migrations
                     b.Property<bool>("HasNonNumericReading")
                         .HasColumnType("boolean");
 
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
                     b.Property<string>("NonNumericValue")
                         .HasColumnType("text");
 
@@ -498,7 +503,7 @@ namespace MicroLIMS.Persistence.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("TestOrderId");
+                    b.HasIndex("TestOrderId", "StepName", "IsActive");
 
                     b.ToTable("CountTestReadings");
                 });
@@ -546,6 +551,9 @@ namespace MicroLIMS.Persistence.Migrations
                     b.Property<string>("OrganismNameSnapshot")
                         .IsRequired()
                         .HasColumnType("text");
+
+                    b.Property<bool>("PhysicalCheckConfirmed")
+                        .HasColumnType("boolean");
 
                     b.Property<string>("PhysicalCheckText")
                         .IsRequired()
@@ -1458,6 +1466,10 @@ namespace MicroLIMS.Persistence.Migrations
                         .HasColumnType("text");
 
                     b.Property<string>("TestType")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Unit")
                         .IsRequired()
                         .HasColumnType("text");
 
@@ -2733,6 +2745,10 @@ namespace MicroLIMS.Persistence.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<string>("Unit")
+                        .IsRequired()
+                        .HasColumnType("text");
+
                     b.HasKey("Id");
 
                     b.HasIndex("RoomId");
@@ -3079,6 +3095,10 @@ namespace MicroLIMS.Persistence.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<string>("Unit")
+                        .IsRequired()
+                        .HasColumnType("text");
+
                     b.Property<int>("WaterSamplingPointId")
                         .HasColumnType("integer");
 
@@ -3113,6 +3133,10 @@ namespace MicroLIMS.Persistence.Migrations
                         .HasColumnType("text");
 
                     b.Property<string>("TestCode")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Unit")
                         .IsRequired()
                         .HasColumnType("text");
 
@@ -3192,6 +3216,41 @@ namespace MicroLIMS.Persistence.Migrations
                     b.HasIndex("SampleId");
 
                     b.ToTable("TestOrders");
+                });
+
+            modelBuilder.Entity("MicroLIMS.Domain.Entities.TestReturnEvent", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int?>("AssignedAnalystId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Reason")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<DateTime>("ReturnedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("ReviewerUserId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("TestOrderId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ReviewerUserId");
+
+                    b.HasIndex("TestOrderId");
+
+                    b.HasIndex("AssignedAnalystId", "ReturnedAt");
+
+                    b.ToTable("TestReturnEvents");
                 });
 
             modelBuilder.Entity("MicroLIMS.Domain.Entities.TestWorkflowStep", b =>
@@ -4617,6 +4676,32 @@ namespace MicroLIMS.Persistence.Migrations
                     b.Navigation("Room");
 
                     b.Navigation("Sample");
+                });
+
+            modelBuilder.Entity("MicroLIMS.Domain.Entities.TestReturnEvent", b =>
+                {
+                    b.HasOne("MicroLIMS.Domain.Entities.User", "AssignedAnalyst")
+                        .WithMany()
+                        .HasForeignKey("AssignedAnalystId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("MicroLIMS.Domain.Entities.User", "ReviewerUser")
+                        .WithMany()
+                        .HasForeignKey("ReviewerUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("MicroLIMS.Domain.Entities.TestOrder", "TestOrder")
+                        .WithMany()
+                        .HasForeignKey("TestOrderId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("AssignedAnalyst");
+
+                    b.Navigation("ReviewerUser");
+
+                    b.Navigation("TestOrder");
                 });
 
             modelBuilder.Entity("MicroLIMS.Domain.Entities.TestWorkflowStep", b =>

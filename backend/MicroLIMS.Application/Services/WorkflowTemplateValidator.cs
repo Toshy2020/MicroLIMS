@@ -50,18 +50,25 @@ public static class WorkflowTemplateValidator
                     Fail(4, "A biochemical test step must have no assigned media.");
                 if (step.TargetOrganismId is not null)
                     Fail(4, "A biochemical test step must not target an organism.");
-                if (step.MediaTypeId is not null)
-                    Fail(4, "A biochemical test step must not have a media type assigned.");
-                if (step.PhenotypicTestType is null)
-                    Fail(4, "A biochemical test step must specify a phenotypic test type.");
+                // Valid via either the older single field or the newer
+                // bundled list (or both) - a step doesn't have to migrate
+                // off the old field to keep validating.
+                if (step.PhenotypicTestType is null && step.PhenotypicTests.Count == 0)
+                    Fail(4, "A biochemical test step must specify at least one phenotypic test type.");
+                foreach (var duplicate in step.PhenotypicTests.GroupBy(t => t.PhenotypicTestType).Where(g => g.Count() > 1))
+                    Fail(4, $"Phenotypic test type {duplicate.Key} is assigned to this step more than once.");
                 break;
         }
 
         if (step.StepType != StepType.BiochemicalTest)
         {
-            if (step.MediaTypeId is null)
-                Fail(8, "A media type is required for this step type.");
-            if (step.PhenotypicTestType is not null)
+            // PlateCount isn't covered by the switch above, so this is its
+            // only media-completeness check - rules 1-3 already cover the
+            // other step types via their own media.Count checks, making
+            // this redundant for them but not for PlateCount.
+            if (media.Count == 0)
+                Fail(8, "At least one medium is required for this step type.");
+            if (step.PhenotypicTestType is not null || step.PhenotypicTests.Count > 0)
                 Fail(8, "Only a biochemical test step may specify a phenotypic test type.");
         }
 

@@ -15,10 +15,6 @@ import {
   Chip,
   Tabs,
   Tab,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
   Alert,
   IconButton,
   Tooltip,
@@ -35,8 +31,9 @@ import ThermostatIcon from "@mui/icons-material/Thermostat";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import { PageHeader } from "../../../components/PageHeader";
 import { SectionTitle } from "../../../components/SectionTitle";
+import { FloatingDialog } from "../../../components/FloatingDialog";
 import { brandColors } from "../../../theme";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import {
   EquipmentConfigurationService,
   ConfiguredEquipmentSummary,
@@ -440,10 +437,11 @@ export function EquipmentPage() {
                         </Typography>
                       </Box>
                       <Button
+                        component={Link}
+                        to="/inventory/equipment"
                         variant="outlined"
                         size="small"
                         startIcon={<OpenInNewIcon />}
-                        onClick={() => navigate("/inventory/equipment")}
                       >
                         View in Inventory
                       </Button>
@@ -739,146 +737,161 @@ export function EquipmentPage() {
       )}
 
       {/* DIALOG 1: EDIT INCUBATOR SET POINT */}
-      <Dialog open={editSetPointDialogOpen} onClose={() => setEditSetPointDialogOpen(false)} fullWidth maxWidth="sm">
-        <DialogTitle sx={{ fontWeight: 700 }}>Edit Incubator Set Point</DialogTitle>
-        <DialogContent dividers>
-          {dialogError && <Alert severity="error" sx={{ mb: 2 }}>{dialogError}</Alert>}
-          <Stack spacing={2}>
-            <Box>
-              <Typography variant="caption" color="text.secondary">Equipment</Typography>
-              <Typography variant="body1" fontWeight={700}>
-                {selectedEquipment?.code} — {selectedEquipment?.name}
-              </Typography>
-            </Box>
-            <Box>
-              <Typography variant="caption" color="text.secondary">Current Set Point</Typography>
-              <Typography variant="body1" fontWeight={700} color={brandColors.sectionTitle}>
-                {selectedEquipment?.setPointTemperature ? `${selectedEquipment.setPointTemperature} °C` : "Not Configured"}
-              </Typography>
-            </Box>
-            <TextField
-              label="New Set Point (°C) *"
-              type="number"
-              inputProps={{ step: "0.1" }}
-              value={newSetPoint}
-              onChange={(e) => setNewSetPoint(e.target.value)}
-              fullWidth
-            />
-            <TextField
-              label="Reason for Change *"
-              placeholder="e.g. Seasonal adjustment / Routine calibration adjustment"
-              value={setPointReason}
-              onChange={(e) => setSetPointReason(e.target.value)}
-              multiline
-              rows={2}
-              fullWidth
-            />
-          </Stack>
-        </DialogContent>
-        <DialogActions sx={{ p: 2 }}>
-          <Button onClick={() => setEditSetPointDialogOpen(false)} variant="outlined" disabled={saving}>
-            Cancel
-          </Button>
-          <Button
-            onClick={handleSaveSetPoint}
-            variant="contained"
-            disabled={saving}
-            sx={{ bgcolor: brandColors.sectionTitle, "&:hover": { bgcolor: "#632273" } }}
-          >
-            {saving ? "Saving…" : "Save Changes"}
-          </Button>
-        </DialogActions>
-      </Dialog>
+      <FloatingDialog
+        open={editSetPointDialogOpen}
+        onClose={() => setEditSetPointDialogOpen(false)}
+        maxWidth="sm"
+        titleSx={{ fontWeight: 700 }}
+        title="Edit Incubator Set Point"
+        actions={
+          <>
+            <Button onClick={() => setEditSetPointDialogOpen(false)} variant="outlined" disabled={saving}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSaveSetPoint}
+              variant="contained"
+              disabled={saving}
+              sx={{ bgcolor: brandColors.sectionTitle, "&:hover": { bgcolor: "#632273" } }}
+            >
+              {saving ? "Saving…" : "Save Changes"}
+            </Button>
+          </>
+        }
+      >
+        {dialogError && <Alert severity="error" sx={{ mb: 2 }}>{dialogError}</Alert>}
+        <Stack spacing={2}>
+          <Box>
+            <Typography variant="caption" color="text.secondary">Equipment</Typography>
+            <Typography variant="body1" fontWeight={700}>
+              {selectedEquipment?.code} — {selectedEquipment?.name}
+            </Typography>
+          </Box>
+          <Box>
+            <Typography variant="caption" color="text.secondary">Current Set Point</Typography>
+            <Typography variant="body1" fontWeight={700} color={brandColors.sectionTitle}>
+              {selectedEquipment?.setPointTemperature ? `${selectedEquipment.setPointTemperature} °C` : "Not Configured"}
+            </Typography>
+          </Box>
+          <TextField
+            label="New Set Point (°C) *"
+            type="number"
+            inputProps={{ step: "0.1" }}
+            value={newSetPoint}
+            onChange={(e) => setNewSetPoint(e.target.value)}
+            fullWidth
+          />
+          <TextField
+            label="Reason for Change *"
+            placeholder="e.g. Seasonal adjustment / Routine calibration adjustment"
+            value={setPointReason}
+            onChange={(e) => setSetPointReason(e.target.value)}
+            multiline
+            rows={2}
+            fullWidth
+          />
+        </Stack>
+      </FloatingDialog>
 
       {/* DIALOG 2: ADD / EDIT AUTOCLAVE PROGRAM */}
-      <Dialog open={programDialogOpen} onClose={() => setProgramDialogOpen(false)} fullWidth maxWidth="sm">
-        <DialogTitle sx={{ fontWeight: 700 }}>
-          {programForm.id ? "Edit Autoclave Program / Load" : "Add Autoclave Program / Load"}
-        </DialogTitle>
-        <DialogContent dividers>
-          {dialogError && <Alert severity="error" sx={{ mb: 2 }}>{dialogError}</Alert>}
-          <Stack spacing={2}>
-            <Box>
-              <Typography variant="caption" color="text.secondary">Autoclave Equipment</Typography>
-              <Typography variant="body1" fontWeight={700}>
-                {selectedEquipment?.code} — {selectedEquipment?.name}
-              </Typography>
-            </Box>
-            <TextField
-              label="Program / Load Code *"
-              placeholder="e.g. P01"
-              value={programForm.programCode ?? ""}
-              onChange={(e) => setProgramForm({ ...programForm, programCode: e.target.value })}
-              fullWidth
-            />
-            <TextField
-              label="Program / Load Name *"
-              placeholder="e.g. Prepared Media"
-              value={programForm.programName ?? ""}
-              onChange={(e) => setProgramForm({ ...programForm, programName: e.target.value })}
-              fullWidth
-            />
-            <TextField
-              label="Load Type *"
-              placeholder="e.g. Media / Glassware / Biohazard Waste"
-              value={programForm.loadType ?? ""}
-              onChange={(e) => setProgramForm({ ...programForm, loadType: e.target.value })}
-              fullWidth
-            />
-            <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 2 }}>
-              <TextField
-                label="Temperature (°C) *"
-                type="number"
-                value={programForm.temperature ?? 121}
-                onChange={(e) => setProgramForm({ ...programForm, temperature: Number(e.target.value) })}
-              />
-              <TextField
-                label="Cycle Time (min) *"
-                type="number"
-                value={programForm.cycleTimeMinutes ?? 15}
-                onChange={(e) => setProgramForm({ ...programForm, cycleTimeMinutes: Number(e.target.value) })}
-              />
-            </Box>
-            <Select
-              value={programForm.isActive ? "Active" : "Inactive"}
-              onChange={(e) => setProgramForm({ ...programForm, isActive: e.target.value === "Active" })}
-              fullWidth
+      <FloatingDialog
+        open={programDialogOpen}
+        onClose={() => setProgramDialogOpen(false)}
+        maxWidth="sm"
+        titleSx={{ fontWeight: 700 }}
+        title={programForm.id ? "Edit Autoclave Program / Load" : "Add Autoclave Program / Load"}
+        actions={
+          <>
+            <Button onClick={() => setProgramDialogOpen(false)} variant="outlined" disabled={saving}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSaveProgram}
+              variant="contained"
+              disabled={saving}
+              sx={{ bgcolor: brandColors.sectionTitle, "&:hover": { bgcolor: "#632273" } }}
             >
-              <MenuItem value="Active">Active</MenuItem>
-              <MenuItem value="Inactive">Inactive</MenuItem>
-            </Select>
+              {saving ? "Saving…" : "Save Program"}
+            </Button>
+          </>
+        }
+      >
+        {dialogError && <Alert severity="error" sx={{ mb: 2 }}>{dialogError}</Alert>}
+        <Stack spacing={2}>
+          <Box>
+            <Typography variant="caption" color="text.secondary">Autoclave Equipment</Typography>
+            <Typography variant="body1" fontWeight={700}>
+              {selectedEquipment?.code} — {selectedEquipment?.name}
+            </Typography>
+          </Box>
+          <TextField
+            label="Program / Load Code *"
+            placeholder="e.g. P01"
+            value={programForm.programCode ?? ""}
+            onChange={(e) => setProgramForm({ ...programForm, programCode: e.target.value })}
+            fullWidth
+          />
+          <TextField
+            label="Program / Load Name *"
+            placeholder="e.g. Prepared Media"
+            value={programForm.programName ?? ""}
+            onChange={(e) => setProgramForm({ ...programForm, programName: e.target.value })}
+            fullWidth
+          />
+          <TextField
+            label="Load Type *"
+            placeholder="e.g. Media / Glassware / Biohazard Waste"
+            value={programForm.loadType ?? ""}
+            onChange={(e) => setProgramForm({ ...programForm, loadType: e.target.value })}
+            fullWidth
+          />
+          <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 2 }}>
             <TextField
-              label="Audit Comment / Reason *"
-              placeholder="Explain the reason for creating or modifying this program configuration"
-              value={programForm.comment ?? ""}
-              onChange={(e) => setProgramForm({ ...programForm, comment: e.target.value })}
-              multiline
-              rows={2}
-              fullWidth
+              label="Temperature (°C) *"
+              type="number"
+              value={programForm.temperature ?? 121}
+              onChange={(e) => setProgramForm({ ...programForm, temperature: Number(e.target.value) })}
             />
-          </Stack>
-        </DialogContent>
-        <DialogActions sx={{ p: 2 }}>
-          <Button onClick={() => setProgramDialogOpen(false)} variant="outlined" disabled={saving}>
-            Cancel
-          </Button>
-          <Button
-            onClick={handleSaveProgram}
-            variant="contained"
-            disabled={saving}
-            sx={{ bgcolor: brandColors.sectionTitle, "&:hover": { bgcolor: "#632273" } }}
+            <TextField
+              label="Cycle Time (min) *"
+              type="number"
+              value={programForm.cycleTimeMinutes ?? 15}
+              onChange={(e) => setProgramForm({ ...programForm, cycleTimeMinutes: Number(e.target.value) })}
+            />
+          </Box>
+          <Select
+            value={programForm.isActive ? "Active" : "Inactive"}
+            onChange={(e) => setProgramForm({ ...programForm, isActive: e.target.value === "Active" })}
+            fullWidth
           >
-            {saving ? "Saving…" : "Save Program"}
-          </Button>
-        </DialogActions>
-      </Dialog>
+            <MenuItem value="Active">Active</MenuItem>
+            <MenuItem value="Inactive">Inactive</MenuItem>
+          </Select>
+          <TextField
+            label="Audit Comment / Reason *"
+            placeholder="Explain the reason for creating or modifying this program configuration"
+            value={programForm.comment ?? ""}
+            onChange={(e) => setProgramForm({ ...programForm, comment: e.target.value })}
+            multiline
+            rows={2}
+            fullWidth
+          />
+        </Stack>
+      </FloatingDialog>
 
       {/* DIALOG 3: AUTOCLAVE PROGRAM HISTORY */}
-      <Dialog open={programHistoryDialogOpen} onClose={() => setProgramHistoryDialogOpen(false)} fullWidth maxWidth="md">
-        <DialogTitle sx={{ fontWeight: 700 }}>
-          Program History — {selectedProgramCode}
-        </DialogTitle>
-        <DialogContent dividers>
+      <FloatingDialog
+        open={programHistoryDialogOpen}
+        onClose={() => setProgramHistoryDialogOpen(false)}
+        maxWidth="md"
+        titleSx={{ fontWeight: 700 }}
+        title={`Program History — ${selectedProgramCode}`}
+        actions={
+          <Button onClick={() => setProgramHistoryDialogOpen(false)} variant="contained">
+            Close
+          </Button>
+        }
+      >
           <Table size="small">
             <TableHead>
               <TableRow>
@@ -916,20 +929,21 @@ export function EquipmentPage() {
               )}
             </TableBody>
           </Table>
-        </DialogContent>
-        <DialogActions sx={{ p: 2 }}>
-          <Button onClick={() => setProgramHistoryDialogOpen(false)} variant="contained">
-            Close
-          </Button>
-        </DialogActions>
-      </Dialog>
+      </FloatingDialog>
 
       {/* DIALOG 4: SELECT FROM INVENTORY */}
-      <Dialog open={inventoryDialogOpen} onClose={() => setInventoryDialogOpen(false)} fullWidth maxWidth="md">
-        <DialogTitle sx={{ fontWeight: 700 }}>
-          Select Equipment from Master Inventory
-        </DialogTitle>
-        <DialogContent dividers>
+      <FloatingDialog
+        open={inventoryDialogOpen}
+        onClose={() => setInventoryDialogOpen(false)}
+        maxWidth="md"
+        titleSx={{ fontWeight: 700 }}
+        title="Select Equipment from Master Inventory"
+        actions={
+          <Button onClick={() => setInventoryDialogOpen(false)} variant="outlined">
+            Close
+          </Button>
+        }
+      >
           <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
             Register physical equipment from Inventory into Laboratory Configuration. Master equipment identity and calibration remain managed by Inventory.
           </Typography>
@@ -973,13 +987,7 @@ export function EquipmentPage() {
               })}
             </TableBody>
           </Table>
-        </DialogContent>
-        <DialogActions sx={{ p: 2 }}>
-          <Button onClick={() => setInventoryDialogOpen(false)} variant="outlined">
-            Close
-          </Button>
-        </DialogActions>
-      </Dialog>
+      </FloatingDialog>
     </>
   );
 }

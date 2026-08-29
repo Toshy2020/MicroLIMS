@@ -96,12 +96,19 @@ export function CryovialReportPage() {
           </div>
         </div>
 
-        {s.physicalCheckText && (
-          <div className="section-card">
-            <div className="section-label">physical check</div>
-            <div style={{ fontSize: 14 }}>{s.physicalCheckText}</div>
+        <div className="section-card">
+          <div className="section-label">physical check</div>
+          <div style={{ fontSize: 14, fontWeight: 500 }}>
+            {s.physicalCheckConfirmed
+              ? "Confirmed against organism reference description"
+              : (s.physicalCheckText || "No physical check recorded")}
           </div>
-        )}
+          {s.physicalCheckConfirmed && s.physicalCheckText && (
+            <div style={{ fontSize: 13, color: "#666", marginTop: 4 }}>
+              Notes: {s.physicalCheckText}
+            </div>
+          )}
+        </div>
 
         <div style={{ marginBottom: 24 }}>
           <div className="section-divider">

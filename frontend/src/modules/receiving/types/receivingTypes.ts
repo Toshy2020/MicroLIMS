@@ -44,6 +44,11 @@ export interface SampleRecord {
   incubationStarted?: boolean;
   assignedAnalystId?: number | null;
   assignedAnalystName?: string | null;
+  previousProductName?: string | null;
+  previousProductBatchNumber?: string | null;
+  originSampleId?: number | null;
+  originReferenceNumber?: string | null;
+  oosGroupCode?: string | null;
   assignedTests: TestOrderSummary[];
 }
 
@@ -80,6 +85,8 @@ export interface AfterCleaningReceiveRequest {
   causeOfTestingId: number;
   sampledBy: string;
   controlNumber: string;
+  previousProductName: string;
+  previousProductBatchNumber: string;
 }
 
 export type SampleCategoryKey = "product" | "rm" | "pm" | "water" | "em" | "ac";
@@ -104,6 +111,8 @@ export interface SampleKpiCounts {
 export interface ReceiveRowItem {
   id: string; // unique client-side key for row rendering
   itemId?: number | "";
+  previousProductName?: string;
+  previousProductBatchNumber?: string;
   productionStage?: string;
   waterSamplingPointId?: number | "";
   departmentId?: number | "";

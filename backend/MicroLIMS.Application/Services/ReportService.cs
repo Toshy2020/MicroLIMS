@@ -94,6 +94,7 @@ public class ReportService : IReportService
         {
             $"Reference: {sample.ReferenceNumber}",
             $"Machine: {sample.Machine?.Name}",
+            $"Previous Product: {sample.PreviousProductName ?? "—"}   Previous Batch: {sample.PreviousProductBatchNumber ?? sample.BatchNumber ?? "—"}",
             $"Cause: {sample.CauseOfTesting?.Name}   Received: {sample.ReceivedAt:dd-MMM-yyyy HH:mm}",
             ""
         };

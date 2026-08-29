@@ -37,7 +37,7 @@ public class PathogenWorkflowTests
             new ConfirmatoryObservationInput(media.TsiMaterialId, GrowthObservation.GrowthConforming)
         }, AnalystId);
         await engine.RecordAnalystDecisionAsync(order.Id, AnalystDecision.ProceedToBiochemical, AnalystId);
-        var final = await engine.SubmitBiochemicalAsync(order.Id, "Biochemical Test", "IMViC: + + - -", null, AnalystId);
+        var final = await engine.SubmitBiochemicalAsync(order.Id, "Biochemical Test", "IMViC: + + - -", null, true, AnalystId);
 
         Assert.Equal("Detected", final.WorkflowFinalResult);
 

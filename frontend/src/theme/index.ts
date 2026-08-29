@@ -31,14 +31,13 @@ export const brandColors = {
 };
 
 export const lightTheme = createTheme(baseThemeOptions, lightThemeOptions);
-export const darkTheme = createTheme(baseThemeOptions, darkThemeOptions);
+const darkTheme = createTheme(baseThemeOptions, darkThemeOptions);
 
 export function getTheme(mode: "light" | "dark") {
   return mode === "dark" ? darkTheme : lightTheme;
 }
 
-// Back-compat aliases - `theme`/`chartPalette` used to be the only
+// Back-compat alias - `chartPalette` used to be the only
 // (light-only) export; kept pointing at the light theme for anything
 // not yet updated to consume mode-aware values via useTheme().
-export const theme = lightTheme;
 export const chartPalette = lightTheme.custom.chartPalette;

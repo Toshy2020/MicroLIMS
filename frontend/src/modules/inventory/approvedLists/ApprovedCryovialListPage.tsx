@@ -31,6 +31,7 @@ import ViewColumnIcon from "@mui/icons-material/ViewColumn";
 import DescriptionOutlinedIcon from "@mui/icons-material/DescriptionOutlined";
 import AcUnitIcon from "@mui/icons-material/AcUnit";
 import FilterAltOffIcon from "@mui/icons-material/FilterAltOff";
+import { Link } from "react-router-dom";
 import { PageHeader } from "../../../components/PageHeader";
 import { SectionTitle } from "../../../components/SectionTitle";
 import { StatusBadge } from "../../../components/StatusBadge";
@@ -874,11 +875,12 @@ export function ApprovedCryovialListPage() {
 
                                 <Tooltip title="View cryovial report record">
                                   <Button
+                                    component={Link}
+                                    to={`/cryovials/${c.id}/report`}
+                                    target="_blank"
+                                    rel="noopener"
                                     size="small"
                                     variant="outlined"
-                                    onClick={() =>
-                                      window.open(`/cryovials/${c.id}/report`, "_blank", "noopener")
-                                    }
                                     startIcon={<DescriptionOutlinedIcon fontSize="small" />}
                                     sx={{
                                       px: 1,
@@ -889,7 +891,7 @@ export function ApprovedCryovialListPage() {
                                       "&:hover": { bgcolor: "background.default" }
                                     }}
                                   >
-                                    Record
+                                    Report
                                   </Button>
                                 </Tooltip>
                               </Box>

@@ -32,7 +32,27 @@ export const SampleSummaryService = {
   async completeReview(sampleId: number, password: string, comment: string | undefined): Promise<void> {
     await apiClient.post(`/samples/${sampleId}/review/complete`, { password, comment });
   },
-  async decideApproval(sampleId: number, password: string, decision: SampleApprovalDecision, comment: string | undefined): Promise<void> {
-    await apiClient.post(`/samples/${sampleId}/approval/decide`, { password, decision, comment });
+  async returnTestToAnalyst(sampleId: number, testOrderId: number, reason?: string): Promise<void> {
+    const trimmedReason = reason?.trim();
+    await apiClient.post(`/samples/${sampleId}/review/return-test`, {
+      testOrderId,
+      reason: trimmedReason ? trimmedReason : undefined
+    });
+  },
+  // certificateRemarks is only meaningful when decision === "Approve" (the
+  // backend ignores it otherwise) - a separate, explicitly-named field from
+  // comment, never derived from it. selectedTestOrderIds is required for
+  // NewSampleRequest/RetestRetainedSample only - the tests the Section Head
+  // chose to retest. newSampleAnalystOneId/TwoId are required for
+  // NewSampleRequest only - the two analysts for the two new samples.
+  async decideApproval(
+    sampleId: number, password: string, decision: SampleApprovalDecision,
+    comment: string | undefined, certificateRemarks?: string,
+    selectedTestOrderIds?: number[], newSampleAnalystOneId?: number, newSampleAnalystTwoId?: number
+  ): Promise<void> {
+    await apiClient.post(`/samples/${sampleId}/approval/decide`, {
+      password, decision, comment, certificateRemarks,
+      selectedTestOrderIds, newSampleAnalystOneId, newSampleAnalystTwoId
+    });
   }
 };

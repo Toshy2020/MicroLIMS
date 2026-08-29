@@ -7,7 +7,13 @@ export const authenticationService = {
     const { token, refreshToken, mustChangePassword } = res.data.data as { token: string; refreshToken: string; mustChangePassword: boolean };
     const payload = JSON.parse(atob(token.split(".")[1]));
     const role = payload["http://schemas.microsoft.com/ws/2008/06/identity/claims/role"] ?? payload.role;
-    return { token, refreshToken, role, mustChangePassword };
+    // System.IdentityModel.Tokens.Jwt collapses a claim type down to a
+    // plain string (not a 1-element array) when only one claim of that
+    // type is present - a custom role granted exactly one permission
+    // would hit this, so never assume the array shape.
+    const rawPermissions = payload.permission;
+    const permissions: string[] = Array.isArray(rawPermissions) ? rawPermissions : rawPermissions ? [rawPermissions] : [];
+    return { token, refreshToken, role, permissions, mustChangePassword };
   },
 
   async refresh(refreshToken: string) {

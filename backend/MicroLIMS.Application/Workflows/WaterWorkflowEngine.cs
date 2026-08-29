@@ -190,12 +190,17 @@ public class WaterWorkflowEngine : IWaterWorkflowEngine
     // the first limit exceeded (starting from Spec, the most severe) wins.
     private static (string status, string? exceeded) Compare(decimal average, string? alert, string? action, string? spec)
     {
-        if (decimal.TryParse(spec, out var specLimit) && average > specLimit)
+        var hasSpec = decimal.TryParse(spec, out var specLimit);
+        if (hasSpec && average > specLimit)
             return ("OutOfSpecification", "Specification");
-        if (decimal.TryParse(action, out var actionLimit) && average > actionLimit)
+        var hasAction = decimal.TryParse(action, out var actionLimit);
+        if (hasAction && average > actionLimit)
             return ("ActionLimitExceeded", "Action");
-        if (decimal.TryParse(alert, out var alertLimit) && average > alertLimit)
+        var hasAlert = decimal.TryParse(alert, out var alertLimit);
+        if (hasAlert && average > alertLimit)
             return ("AlertLimitExceeded", "Alert");
+        if (!hasSpec && !hasAction && !hasAlert)
+            return ("LimitsNotConfigured", null);
         return ("WithinLimits", null);
     }
 

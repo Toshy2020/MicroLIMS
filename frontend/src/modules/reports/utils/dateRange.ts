@@ -21,11 +21,11 @@ export function toDateInputValue(date: Date): string {
   return `${y}-${m}-${d}`;
 }
 
-export function startOfDayIso(dateOnly: string): string {
+function startOfDayIso(dateOnly: string): string {
   return new Date(`${dateOnly}T00:00:00`).toISOString();
 }
 
-export function endOfDayIso(dateOnly: string): string {
+function endOfDayIso(dateOnly: string): string {
   return new Date(`${dateOnly}T23:59:59.999`).toISOString();
 }
 

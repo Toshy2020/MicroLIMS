@@ -22,7 +22,7 @@ import SettingsOutlinedIcon from "@mui/icons-material/SettingsOutlined";
 import ScienceOutlinedIcon from "@mui/icons-material/ScienceOutlined";
 import HistoryOutlinedIcon from "@mui/icons-material/HistoryOutlined";
 import ArrowForwardOutlinedIcon from "@mui/icons-material/ArrowForwardOutlined";
-import { useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
 import { PageHeader } from "../../components/PageHeader";
 import { LoadingSpinner } from "../../components/LoadingSpinner";
@@ -32,7 +32,6 @@ import { brandColors } from "../../theme";
 
 export function AdminDashboardPage() {
   const theme = useTheme();
-  const navigate = useNavigate();
   const { username, fullName } = useAuth();
   const displayName = fullName ?? username ?? "System Administrator";
 
@@ -62,17 +61,19 @@ export function AdminDashboardPage() {
         />
         <Box sx={{ display: "flex", gap: 1.5, flexWrap: "wrap" }}>
           <Button
+            component={Link}
+            to="/audit-search"
             variant="outlined"
             startIcon={<SearchOutlinedIcon />}
-            onClick={() => navigate("/audit-search")}
             sx={{ textTransform: "none", fontWeight: 600, borderRadius: 2 }}
           >
             Audit Search
           </Button>
           <Button
+            component={Link}
+            to="/users"
             variant="contained"
             startIcon={<PeopleAltOutlinedIcon />}
-            onClick={() => navigate("/users")}
             sx={{ textTransform: "none", fontWeight: 600, borderRadius: 2 }}
           >
             Manage Users
@@ -84,10 +85,14 @@ export function AdminDashboardPage() {
       <Grid container spacing={2} sx={{ mb: 2.5 }}>
         <Grid item xs={12} sm={6} md={3}>
           <Paper
-            onClick={() => navigate("/users")}
+            component={Link}
+            to="/users"
             sx={{
               p: 2,
               cursor: "pointer",
+              display: "block",
+              textDecoration: "none",
+              color: "inherit",
               borderLeft: `4px solid ${theme.palette.primary.main}`,
               transition: "transform 0.15s, box-shadow 0.15s",
               "&:hover": { transform: "translateY(-2px)", boxShadow: 3 }
@@ -110,10 +115,14 @@ export function AdminDashboardPage() {
 
         <Grid item xs={12} sm={6} md={3}>
           <Paper
-            onClick={() => navigate("/roles")}
+            component={Link}
+            to="/roles"
             sx={{
               p: 2,
               cursor: "pointer",
+              display: "block",
+              textDecoration: "none",
+              color: "inherit",
               borderLeft: `4px solid ${brandColors.info}`,
               transition: "transform 0.15s, box-shadow 0.15s",
               "&:hover": { transform: "translateY(-2px)", boxShadow: 3 }
@@ -136,10 +145,14 @@ export function AdminDashboardPage() {
 
         <Grid item xs={12} sm={6} md={3}>
           <Paper
-            onClick={() => navigate("/audit-search")}
+            component={Link}
+            to="/audit-search"
             sx={{
               p: 2,
               cursor: "pointer",
+              display: "block",
+              textDecoration: "none",
+              color: "inherit",
               borderLeft: `4px solid ${brandColors.warn}`,
               transition: "transform 0.15s, box-shadow 0.15s",
               "&:hover": { transform: "translateY(-2px)", boxShadow: 3 }
@@ -162,10 +175,14 @@ export function AdminDashboardPage() {
 
         <Grid item xs={12} sm={6} md={3}>
           <Paper
-            onClick={() => navigate("/reports")}
+            component={Link}
+            to="/reports"
             sx={{
               p: 2,
               cursor: "pointer",
+              display: "block",
+              textDecoration: "none",
+              color: "inherit",
               borderLeft: `4px solid ${brandColors.ok}`,
               transition: "transform 0.15s, box-shadow 0.15s",
               "&:hover": { transform: "translateY(-2px)", boxShadow: 3 }
@@ -211,9 +228,18 @@ export function AdminDashboardPage() {
           </Grid>
           <Grid item xs={6} sm={4} md={2}>
             <Paper
+              component={Link}
+              to="/testing-workspace?status=Active"
               variant="outlined"
-              onClick={() => navigate("/testing-workspace?status=Active")}
-              sx={{ p: 1.5, textAlign: "center", cursor: "pointer", "&:hover": { bgcolor: "action.hover" } }}
+              sx={{
+                p: 1.5,
+                textAlign: "center",
+                cursor: "pointer",
+                display: "block",
+                textDecoration: "none",
+                color: "inherit",
+                "&:hover": { bgcolor: "action.hover" }
+              }}
             >
               <Typography sx={{ fontSize: 11, color: "text.secondary", fontWeight: 700 }}>Pending Tests</Typography>
               <Typography sx={{ fontSize: 22, fontWeight: 800, color: brandColors.info }}>
@@ -223,9 +249,18 @@ export function AdminDashboardPage() {
           </Grid>
           <Grid item xs={6} sm={4} md={2}>
             <Paper
+              component={Link}
+              to="/testing-workspace?testStatus=ResultEntered"
               variant="outlined"
-              onClick={() => navigate("/testing-workspace?testStatus=ResultEntered")}
-              sx={{ p: 1.5, textAlign: "center", cursor: "pointer", "&:hover": { bgcolor: "action.hover" } }}
+              sx={{
+                p: 1.5,
+                textAlign: "center",
+                cursor: "pointer",
+                display: "block",
+                textDecoration: "none",
+                color: "inherit",
+                "&:hover": { bgcolor: "action.hover" }
+              }}
             >
               <Typography sx={{ fontSize: 11, color: "text.secondary", fontWeight: 700 }}>Review Queue</Typography>
               <Typography sx={{ fontSize: 22, fontWeight: 800, color: brandColors.warn }}>
@@ -235,9 +270,18 @@ export function AdminDashboardPage() {
           </Grid>
           <Grid item xs={6} sm={4} md={2}>
             <Paper
+              component={Link}
+              to="/testing-workspace?testStatus=Reviewed"
               variant="outlined"
-              onClick={() => navigate("/testing-workspace?testStatus=Reviewed")}
-              sx={{ p: 1.5, textAlign: "center", cursor: "pointer", "&:hover": { bgcolor: "action.hover" } }}
+              sx={{
+                p: 1.5,
+                textAlign: "center",
+                cursor: "pointer",
+                display: "block",
+                textDecoration: "none",
+                color: "inherit",
+                "&:hover": { bgcolor: "action.hover" }
+              }}
             >
               <Typography sx={{ fontSize: 11, color: "text.secondary", fontWeight: 700 }}>Approval Queue</Typography>
               <Typography sx={{ fontSize: 22, fontWeight: 800, color: brandColors.ok }}>
@@ -247,9 +291,18 @@ export function AdminDashboardPage() {
           </Grid>
           <Grid item xs={6} sm={4} md={2}>
             <Paper
+              component={Link}
+              to="/testing-workspace?urgency=overdue"
               variant="outlined"
-              onClick={() => navigate("/testing-workspace?urgency=overdue")}
-              sx={{ p: 1.5, textAlign: "center", cursor: "pointer", "&:hover": { bgcolor: "action.hover" } }}
+              sx={{
+                p: 1.5,
+                textAlign: "center",
+                cursor: "pointer",
+                display: "block",
+                textDecoration: "none",
+                color: "inherit",
+                "&:hover": { bgcolor: "action.hover" }
+              }}
             >
               <Typography sx={{ fontSize: 11, color: "text.secondary", fontWeight: 700 }}>Overdue (&gt;24h)</Typography>
               <Typography sx={{ fontSize: 22, fontWeight: 800, color: brandColors.err }}>
@@ -269,21 +322,24 @@ export function AdminDashboardPage() {
           {[
             { label: "Test Master", path: "/laboratory-configuration/test-master" },
             { label: "Specifications", path: "/laboratory-configuration/specifications" },
-            { label: "Media Types", path: "/laboratory-configuration/media-types" },
+            { label: "Media Configurations", path: "/laboratory-configuration/media-configurations" },
             { label: "Organisms", path: "/laboratory-configuration/organisms" },
             { label: "Items & Materials", path: "/laboratory-configuration/items" },
             { label: "Equipment Inventory", path: "/inventory/equipment" }
           ].map((item, idx) => (
             <Grid item xs={12} sm={6} md={4} key={idx}>
               <Paper
+                component={Link}
+                to={item.path}
                 variant="outlined"
-                onClick={() => navigate(item.path)}
                 sx={{
                   p: 1.5,
                   cursor: "pointer",
                   display: "flex",
                   justifyContent: "space-between",
                   alignItems: "center",
+                  textDecoration: "none",
+                  color: "inherit",
                   "&:hover": { bgcolor: "action.hover", borderColor: theme.palette.primary.main }
                 }}
               >

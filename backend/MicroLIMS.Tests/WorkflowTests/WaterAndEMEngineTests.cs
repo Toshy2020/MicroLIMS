@@ -85,7 +85,7 @@ public class WaterAndEMEngineTests
     }
 
     [Fact]
-    public async Task Water_NoConfiguredLimits_StaysWithinLimits()
+    public async Task Water_NoConfiguredLimits_FlagsLimitsNotConfigured()
     {
         await using var db = NewDb();
         var point = new WaterSamplingPoint { Code = "WP-11", Location = "WTU", AssignedTestCodes = new() { "TAMC" } };
@@ -106,7 +106,7 @@ public class WaterAndEMEngineTests
         var engine = new WaterWorkflowEngine(db, new ReferenceNumberGenerator(db));
         var result = await engine.CalculateAndCompareAsync(order.Id, new List<decimal> { 9999 });
 
-        Assert.Equal("WithinLimits", result.Status);
+        Assert.Equal("LimitsNotConfigured", result.Status);
     }
 
     [Fact]

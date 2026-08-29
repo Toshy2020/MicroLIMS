@@ -99,6 +99,7 @@ public class ResultProjectionService
         "ActionLimitExceeded" => ResultLevel.ActionLevel,
         "AlertLimitExceeded" => ResultLevel.AlertLevel,
         "WithinLimits" => ResultLevel.WithinLimit,
+        "LimitsNotConfigured" => ResultLevel.LimitsNotConfigured,
         _ => ResultLevel.NotApplicable
     };
 
@@ -139,6 +140,18 @@ public class ResultProjectionService
         var enteredBy = await _db.Users.FirstOrDefaultAsync(u => u.Id == reading.EnteredByUserId);
         var round = await ComputeRoundAsync(sample.Id, order.TestCode, order.Id);
 
+        string? configuredUnit = null;
+        if (sample.ItemId is not null)
+        {
+            var spec = await _db.Specifications.FirstOrDefaultAsync(s => s.ItemId == sample.ItemId && s.TestCode == order.TestCode);
+            configuredUnit = spec?.Unit;
+        }
+        else if (sample.WaterSamplingPointId is not null)
+        {
+            var config = await _db.SamplingConfigurations.FirstOrDefaultAsync(c => c.TestCode == order.TestCode && c.WaterSamplingPointId == sample.WaterSamplingPointId);
+            configuredUnit = config?.Unit;
+        }
+
         var (isBelowDetectionLimit, detectionLimit) = ParseDetectionLimit(reading.ReportedResult);
 
         var record = await GetOrCreateAsync("CountTestReading", reading.Id, round);
@@ -155,7 +168,9 @@ public class ResultProjectionService
         record.ResultKind = ResultKind.Quantitative;
         record.NumericValue = reading.CalculatedResult;
         record.ReportedValue = reading.ReportedResult;
-        record.Unit = DeriveCountUnit(preparation, sample.Category);
+        record.Unit = !string.IsNullOrWhiteSpace(configuredUnit)
+            ? (configuredUnit.StartsWith("CFU/", StringComparison.OrdinalIgnoreCase) ? configuredUnit : $"CFU/{configuredUnit}")
+            : DeriveCountUnit(preparation, sample.Category);
         record.IsBelowDetectionLimit = isBelowDetectionLimit;
         record.DetectionLimit = detectionLimit;
         record.AlertLimit = reading.AlertLimit;

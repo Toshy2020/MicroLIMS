@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Box, TextField, Button, Typography, Alert, Link, Stack, useTheme } from "@mui/material";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link as RouterLink } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { authenticationService } from "../modules/authentication/services/authenticationService";
 
@@ -21,10 +21,10 @@ export function LoginPage() {
     e.preventDefault();
     setError(null);
     try {
-      const { token, refreshToken, role, mustChangePassword } = await authenticationService.login(username, password);
+      const { token, refreshToken, role, permissions, mustChangePassword } = await authenticationService.login(username, password);
       localStorage.setItem("microlims_token", token);
       const me = await authenticationService.me();
-      login({ token, refreshToken, username, role, fullName: me.fullName, userId: me.userId, mustChangePassword });
+      login({ token, refreshToken, username, role, permissions, fullName: me.fullName, userId: me.userId, mustChangePassword });
       navigate("/dashboard");
     } catch {
       setError("Invalid username or password.");
@@ -89,11 +89,10 @@ export function LoginPage() {
                 Back to login
               </Link>
               <Link
-                component="button"
-                type="button"
+                component={RouterLink}
+                to="/admin-recovery"
                 underline="hover"
                 sx={{ fontSize: 13, color: "warning.main" }}
-                onClick={() => navigate("/admin-recovery")}
               >
                 Have a recovery code from your admin?
               </Link>
@@ -109,7 +108,12 @@ export function LoginPage() {
               <Link component="button" type="button" underline="hover" sx={{ fontSize: 13 }} onClick={() => setForgotMode(true)}>
                 Forgot password?
               </Link>
-              <Link component="button" type="button" underline="hover" sx={{ fontSize: 13, color: "warning.main" }} onClick={() => navigate("/admin-recovery")}>
+              <Link
+                component={RouterLink}
+                to="/admin-recovery"
+                underline="hover"
+                sx={{ fontSize: 13, color: "warning.main" }}
+              >
                 Admin-Assisted Password Recovery
               </Link>
             </Stack>

@@ -9,6 +9,7 @@ export interface LoginData {
   refreshToken: string;
   username: string;
   role: Role;
+  permissions: string[];
   fullName: string;
   jobTitle?: string | null;
   userId: number;
@@ -18,6 +19,9 @@ export interface LoginData {
 interface AuthState {
   username: string | null;
   role: Role | null;
+  // Additive alongside role - same lifecycle (set at login, not synced on
+  // apiClient's silent 401 token refresh, same as role itself isn't).
+  permissions: string[];
   token: string | null;
   refreshToken: string | null;
   fullName: string | null;
@@ -46,6 +50,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [refreshToken, setRefreshToken] = useState<string | null>(localStorage.getItem("microlims_refresh_token"));
   const [username, setUsername] = useState<string | null>(localStorage.getItem("microlims_username"));
   const [role, setRole] = useState<Role | null>(localStorage.getItem("microlims_role") as Role | null);
+  const [permissions, setPermissions] = useState<string[]>(readStored<string[]>("microlims_permissions", [], JSON.parse));
   const [fullName, setFullName] = useState<string | null>(localStorage.getItem("microlims_full_name"));
   const [jobTitle, setJobTitle] = useState<string | null>(localStorage.getItem("microlims_job_title"));
   const [userId, setUserId] = useState<number | null>(readStored<number | null>("microlims_user_id", null, Number));
@@ -58,6 +63,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.setItem("microlims_refresh_token", data.refreshToken);
     localStorage.setItem("microlims_username", data.username);
     localStorage.setItem("microlims_role", data.role);
+    localStorage.setItem("microlims_permissions", JSON.stringify(data.permissions));
     localStorage.setItem("microlims_full_name", data.fullName);
     if (data.jobTitle) {
       localStorage.setItem("microlims_job_title", data.jobTitle);
@@ -71,6 +77,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setRefreshToken(data.refreshToken);
     setUsername(data.username);
     setRole(data.role);
+    setPermissions(data.permissions);
     setFullName(data.fullName);
     setJobTitle(data.jobTitle ?? null);
     setUserId(data.userId);
@@ -82,6 +89,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem("microlims_refresh_token");
     localStorage.removeItem("microlims_username");
     localStorage.removeItem("microlims_role");
+    localStorage.removeItem("microlims_permissions");
     localStorage.removeItem("microlims_full_name");
     localStorage.removeItem("microlims_job_title");
     localStorage.removeItem("microlims_user_id");
@@ -90,6 +98,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setRefreshToken(null);
     setUsername(null);
     setRole(null);
+    setPermissions([]);
     setFullName(null);
     setJobTitle(null);
     setUserId(null);
@@ -124,7 +133,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   return (
     <AuthContext.Provider
-      value={{ token, refreshToken, username, role, fullName, jobTitle, userId, mustChangePassword, login, logout, refresh }}
+      value={{ token, refreshToken, username, role, permissions, fullName, jobTitle, userId, mustChangePassword, login, logout, refresh }}
     >
       {children}
     </AuthContext.Provider>
@@ -135,4 +144,11 @@ export function useAuth() {
   const ctx = useContext(AuthContext);
   if (!ctx) throw new Error("useAuth must be used within AuthProvider");
   return ctx;
+}
+
+// Opt-in permission check for new/migrated features - existing role-based
+// gates (role === "X") are untouched and keep working exactly as before.
+export function useHasPermission(code: string): boolean {
+  const { permissions } = useAuth();
+  return permissions.includes(code);
 }

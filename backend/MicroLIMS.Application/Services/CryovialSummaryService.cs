@@ -61,7 +61,9 @@ public class CryovialSummaryService
             NumberOfVialsPrepared = cryovial.NumberOfVialsPrepared,
             VialsRemaining = cryovial.VialsRemaining,
             StorageCondition = cryovial.StorageCondition,
+            PhysicalCheckConfirmed = cryovial.PhysicalCheckConfirmed,
             PhysicalCheckText = cryovial.PhysicalCheckText,
+            OrganismDescription = cryovial.Organism?.Description,
             PreparedAt = cryovial.PreparedAt,
             // Legacy batches predate PreparedByUserId and carry 0.
             PreparedByName = cryovial.PreparedByUserId == 0 ? "Not recorded" : NameOf(cryovial.PreparedByUserId),
@@ -121,6 +123,14 @@ public class CryovialSummaryService
 
     private static List<string> BuildReportLines(CryovialSummaryDto s)
     {
+        var physicalCheckDisplay = s.PhysicalCheckConfirmed
+            ? (string.IsNullOrWhiteSpace(s.PhysicalCheckText)
+                ? "Confirmed against reference description"
+                : $"Confirmed against reference description (Notes: {s.PhysicalCheckText})")
+            : (string.IsNullOrWhiteSpace(s.PhysicalCheckText)
+                ? "Not confirmed"
+                : s.PhysicalCheckText);
+
         var lines = new List<string>
         {
             "BATCH IDENTITY",
@@ -133,7 +143,7 @@ public class CryovialSummaryService
             "PREPARATION",
             $"Vials Prepared: {s.NumberOfVialsPrepared}   Vials Remaining: {s.VialsRemaining}",
             $"Storage Condition: {s.StorageCondition}",
-            $"Physical Check: {s.PhysicalCheckText}",
+            $"Physical Check: {physicalCheckDisplay}",
             $"Prepared By: {s.PreparedByName} - {s.PreparedAt:dd-MMM-yyyy HH:mm}",
             "",
             "APPROVAL STATUS",

@@ -1,29 +1,30 @@
 import { useEffect, useState } from "react";
-import { Paper, TextField, Button, Table, TableHead, TableRow, TableCell, TableBody, Stack, Select, MenuItem } from "@mui/material";
+import { Paper, TextField, Button, Stack, Select, MenuItem } from "@mui/material";
 import { PageHeader } from "../../../components/PageHeader";
 import { SectionTitle } from "../../../components/SectionTitle";
 import { StatusBadge } from "../../../components/StatusBadge";
-import { masterDataOptions, mediaClassLabel } from "../../../services/masterDataOptions";
+import { DataTable } from "../../../components/DataTable";
+import { masterDataOptions } from "../../../services/masterDataOptions";
 import { apiClient } from "../../../services/apiClient";
 
 export function DiluentsPage() {
   const [diluents, setDiluents] = useState<any[]>([]);
   const [neutralizers, setNeutralizers] = useState<any[]>([]);
-  const [mediaTypes, setMediaTypes] = useState<any[]>([]);
+  const [materials, setMaterials] = useState<any[]>([]);
   const [name, setName] = useState("");
   const [tracked, setTracked] = useState("No");
-  const [mediaTypeId, setMediaTypeId] = useState("");
+  const [materialId, setMaterialId] = useState("");
   const [neutName, setNeutName] = useState("");
 
   const load = () => {
     masterDataOptions.getDiluentTypes().then(setDiluents);
     masterDataOptions.getNeutralizers().then(setNeutralizers);
-    masterDataOptions.getMediaTypes().then(setMediaTypes);
+    masterDataOptions.getMaterials("DehydratedMedia").then(setMaterials);
   };
   useEffect(() => { load(); }, []);
 
   const addDiluent = async () => {
-    await apiClient.post("/masterdata/diluent-types", { name, requiresBatchTracking: tracked === "Yes", mediaTypeId: mediaTypeId || null });
+    await apiClient.post("/masterdata/diluent-types", { name, requiresBatchTracking: tracked === "Yes", materialId: materialId || null });
     setName(""); load();
   };
   const addNeutralizer = async () => {
@@ -42,19 +43,21 @@ export function DiluentsPage() {
             <MenuItem value="No">No batch tracking</MenuItem><MenuItem value="Yes">Requires batch tracking</MenuItem>
           </Select>
           {tracked === "Yes" && (
-            <Select size="small" displayEmpty value={mediaTypeId} onChange={(e) => setMediaTypeId(e.target.value)}>
-              <MenuItem value=""><em>Media Type</em></MenuItem>
-              {mediaTypes.map((m) => <MenuItem key={m.id} value={m.id}>{mediaClassLabel(m.class)}</MenuItem>)}
+            <Select size="small" displayEmpty value={materialId} onChange={(e) => setMaterialId(e.target.value)}>
+              <MenuItem value=""><em>Material</em></MenuItem>
+              {materials.map((m) => <MenuItem key={m.id} value={m.id}>{m.materialName}</MenuItem>)}
             </Select>
           )}
           <Button variant="outlined" onClick={addDiluent}>Add</Button>
         </Stack>
-        <Table>
-          <TableHead><TableRow><TableCell>Name</TableCell><TableCell>Batch Tracked?</TableCell></TableRow></TableHead>
-          <TableBody>{diluents.map((d) => (
-            <TableRow key={d.id}><TableCell>{d.name}</TableCell><TableCell><StatusBadge status={d.requiresBatchTracking ? "Yes" : "No"} /></TableCell></TableRow>
-          ))}</TableBody>
-        </Table>
+        <DataTable
+          columns={[
+            { key: "name", label: "Name" },
+            { key: "requiresBatchTracking", label: "Batch Tracked?", render: (d) => <StatusBadge status={d.requiresBatchTracking ? "Yes" : "No"} /> }
+          ]}
+          rows={diluents}
+          getRowId={(d) => d.id}
+        />
       </Paper>
 
       <SectionTitle>Neutralizers</SectionTitle>
@@ -63,7 +66,7 @@ export function DiluentsPage() {
           <TextField size="small" placeholder="e.g. Lecithin" value={neutName} onChange={(e) => setNeutName(e.target.value)} sx={{ maxWidth: 280 }} />
           <Button variant="outlined" onClick={addNeutralizer}>Add</Button>
         </Stack>
-        <Table><TableBody>{neutralizers.map((n) => <TableRow key={n.id}><TableCell>{n.name}</TableCell></TableRow>)}</TableBody></Table>
+        <DataTable columns={[{ key: "name", label: "Name" }]} rows={neutralizers} getRowId={(n) => n.id} />
       </Paper>
     </>
   );

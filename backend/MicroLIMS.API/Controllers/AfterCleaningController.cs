@@ -6,7 +6,14 @@ using MicroLIMS.Shared.Responses;
 
 namespace MicroLIMS.API.Controllers;
 
-public record ReceiveAfterCleaningRequest(int MachineId, int CauseOfTestingId, string SampledBy, string ControlNumber);
+public record ReceiveAfterCleaningRequest(
+    int MachineId,
+    int CauseOfTestingId,
+    string SampledBy,
+    string ControlNumber,
+    string PreviousProductName,
+    string PreviousProductBatchNumber
+);
 public record PrepareAfterCleaningRequest(int SampleId, List<int> MachinePartConfigurationIds);
 
 [ApiController]
@@ -26,7 +33,13 @@ public class AfterCleaningController : ControllerBase
     [HttpPost("receive")]
     public async Task<IActionResult> Receive(ReceiveAfterCleaningRequest request) =>
         Ok(ApiResponse<object>.Ok(await _afterCleaningService.ReceiveAsync(new AfterCleaningReceiveRequest(
-            request.MachineId, request.CauseOfTestingId, request.SampledBy, request.ControlNumber, CurrentUserId))));
+            request.MachineId,
+            request.CauseOfTestingId,
+            request.SampledBy,
+            request.ControlNumber,
+            CurrentUserId,
+            request.PreviousProductName,
+            request.PreviousProductBatchNumber))));
 
     // The checklist screen - selecting which machine parts are included
     // in this batch generates the batch TestOrders + SampleLocations.

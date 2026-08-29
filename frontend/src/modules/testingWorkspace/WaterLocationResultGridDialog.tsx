@@ -25,6 +25,7 @@ interface Props {
   testCode: string;
   displayName: string;
   minReadyAt: Date | null;
+  minimumDurationOverridden?: boolean;
   onClose: () => void;
   onSubmitted: () => void;
 }
@@ -34,17 +35,18 @@ interface Props {
 // as the analyst types; the server recomputes and is the authority on
 // the persisted Status.
 function compareStatus(value: number, alert: string | null, action: string | null, spec: string | null): string {
-  const specLimit = spec !== null ? Number(spec) : NaN;
+  const specLimit = spec !== null && spec.trim() !== "" ? Number(spec) : NaN;
   if (!Number.isNaN(specLimit) && value > specLimit) return "OutOfSpecification";
-  const actionLimit = action !== null ? Number(action) : NaN;
+  const actionLimit = action !== null && action.trim() !== "" ? Number(action) : NaN;
   if (!Number.isNaN(actionLimit) && value > actionLimit) return "ActionLimitExceeded";
-  const alertLimit = alert !== null ? Number(alert) : NaN;
+  const alertLimit = alert !== null && alert.trim() !== "" ? Number(alert) : NaN;
   if (!Number.isNaN(alertLimit) && value > alertLimit) return "AlertLimitExceeded";
+  if (Number.isNaN(specLimit) && Number.isNaN(actionLimit) && Number.isNaN(alertLimit)) return "LimitsNotConfigured";
   return "WithinLimits";
 }
 
-export function WaterLocationResultGridDialog({ open, testOrderId, testCode, displayName, minReadyAt, onClose, onSubmitted }: Props) {
-  const isTimeReady = !minReadyAt || new Date() >= minReadyAt;
+export function WaterLocationResultGridDialog({ open, testOrderId, testCode, displayName, minReadyAt, minimumDurationOverridden, onClose, onSubmitted }: Props) {
+  const isTimeReady = !minReadyAt || new Date() >= minReadyAt || !!minimumDurationOverridden;
   const [rows, setRows] = useState<LocationRow[] | null>(null);
   const [readingsByLocation, setReadingsByLocation] = useState<Record<number, string[]>>({});
   const [error, setError] = useState<string | null>(null);
@@ -96,7 +98,7 @@ export function WaterLocationResultGridDialog({ open, testOrderId, testCode, dis
 
   const conformCount = computed.filter((r) => r.liveStatus === "WithinLimits").length;
   const worstStatus = computed.reduce<string>((worst, r) => {
-    const order = ["WithinLimits", "AlertLimitExceeded", "ActionLimitExceeded", "OutOfSpecification"];
+    const order = ["WithinLimits", "LimitsNotConfigured", "AlertLimitExceeded", "ActionLimitExceeded", "OutOfSpecification"];
     if (!r.liveStatus) return worst;
     return order.indexOf(r.liveStatus) > order.indexOf(worst) ? r.liveStatus : worst;
   }, "WithinLimits");
@@ -163,7 +165,7 @@ export function WaterLocationResultGridDialog({ open, testOrderId, testCode, dis
                         </Button>
                       </Stack>
                     </TableCell>
-                    <TableCell>{r.liveAverage != null ? r.liveAverage.toFixed(2) : "—"}</TableCell>
+                    <TableCell>{r.liveAverage != null ? Math.round(r.liveAverage) : "—"}</TableCell>
                     <TableCell>{r.liveStatus ? <StatusBadge status={r.liveStatus} /> : "—"}</TableCell>
                   </TableRow>
                 ))}

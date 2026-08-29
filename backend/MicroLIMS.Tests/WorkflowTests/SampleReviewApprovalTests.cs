@@ -46,17 +46,16 @@ public class SampleReviewApprovalTests
     private static async Task<(Sample sample, TestOrder order, Media media)> SeedSingleTestSampleAsync(MicroLimsDbContext db)
     {
         var testDefinition = new TestDefinition { Code = "TAMC", DisplayName = "Total Aerobic Microbial Count", WorkflowType = WorkflowType.CountTest };
-        var generalAgar = new MediaType { Class = MediaClass.GeneralAgar, IncubationMinHours = 24, IncubationMaxHours = 48, RequiredTemperatureMin = 30, RequiredTemperatureMax = 35 };
         db.TestDefinitions.Add(testDefinition);
-        db.MediaTypes.Add(generalAgar);
         await db.SaveChangesAsync();
 
-        db.TestWorkflowSteps.Add(new TestWorkflowStep
+        var step = new TestWorkflowStep
         {
-            TestDefinitionId = testDefinition.Id, StepOrder = 1, StepName = "CountIncubation", MediaTypeId = generalAgar.Id,
+            TestDefinitionId = testDefinition.Id, StepOrder = 1, StepName = "CountIncubation", 
             IncubationMinHours = 72, IncubationMaxHours = 120, TemperatureMin = 30, TemperatureMax = 35,
             IsFinalStep = true
-        });
+        };
+        db.TestWorkflowSteps.Add(step);
 
         var material = new Material
         {
@@ -66,9 +65,15 @@ public class SampleReviewApprovalTests
         };
         db.Materials.Add(material);
         await db.SaveChangesAsync();
+        db.TestWorkflowStepMedias.Add(new TestWorkflowStepMedia { TestWorkflowStepId = step.Id, MaterialId = material.Id, TempMin = 30, TempMax = 35 });
 
-        var media = new Media { MediaTypeId = generalAgar.Id, MaterialId = material.Id, LotNumber = "TSA/1/26", IsReleasedForUse = true, Status = MediaStatus.Active, ExpiryDate = DateTime.UtcNow.AddDays(30) };
+        var media = new Media { MaterialId = material.Id, LotNumber = "TSA/1/26", IsReleasedForUse = true, Status = MediaStatus.Active, ExpiryDate = DateTime.UtcNow.AddDays(30) };
         db.Media.Add(media);
+        // First Equipment row added to this fresh in-memory DB, so it gets
+        // Id 1 - matching the hardcoded incubatorEquipmentId: 1 the tests
+        // below pass to SelectMediaAsync, which now enforces incubator
+        // eligibility (temperature must fall within the step medium's range).
+        db.Equipment.Add(new Equipment { Name = "Incubator", Code = "INC-1", Type = EquipmentType.Incubator, SetPointTemperature = 32 });
 
         var point = new WaterSamplingPoint { Code = "WP-01", Location = "Utility Room", AssignedTestCodes = new() { "TAMC" } };
         db.WaterSamplingPoints.Add(point);
@@ -169,8 +174,11 @@ public class SampleReviewApprovalTests
         Assert.Equal(ApprovalStatus.Approved, reloadedOrder.Status);
     }
 
+    // CertificateRemarks is the Approver-only, customer-facing field added
+    // for the Product/RM/PM Certificate of Analysis - distinct from the
+    // internal Comment above, and must round-trip exactly as typed.
     [Fact]
-    public async Task DecideAsync_RetestRetainedSample_ResetsToInTestingWithFreshTestOrder()
+    public async Task DecideAsync_Approve_WithCertificateRemarks_PersistsRemarks()
     {
         await using var db = NewDb();
         var (sample, order, media) = await SeedSingleTestSampleAsync(db);
@@ -183,26 +191,254 @@ public class SampleReviewApprovalTests
         await reviewService.CompleteReviewAsync(sample.Id, reviewerUserId: 2, Password, null, null);
 
         var approvalService = NewApprovalService(db);
-        await approvalService.DecideAsync(sample.Id, sectionHeadUserId: 3, Password, ApprovalDecision.RetestRetainedSample, null, null);
+        await approvalService.DecideAsync(sample.Id, sectionHeadUserId: 3, Password, ApprovalDecision.Approve, null, null, "  Released per protocol XYZ.  ");
 
         var reloadedSample = await db.Samples.FirstAsync(s => s.Id == sample.Id);
-        Assert.Equal(SampleStatus.InTesting, reloadedSample.Status);
+        Assert.Equal("Released per protocol XYZ.", reloadedSample.CertificateRemarks);
+    }
 
-        var oldOrder = await db.TestOrders.FirstAsync(t => t.Id == order.Id);
-        Assert.True(oldOrder.IsSuperseded);
+    [Fact]
+    public async Task DecideAsync_Approve_WithoutCertificateRemarks_LeavesNull()
+    {
+        await using var db = NewDb();
+        var (sample, order, media) = await SeedSingleTestSampleAsync(db);
+        await SeedUser(db, 1); // analyst
+        await SeedUser(db, 2); // reviewer
+        await SeedUser(db, 3); // section head
+        await CompleteTestAsync(db, order, media, analystId: 1);
 
-        var freshOrder = await db.TestOrders.SingleAsync(t => t.SampleId == sample.Id && !t.IsSuperseded);
-        Assert.Equal(WorkflowStep.Waiting, freshOrder.CurrentStep);
-        Assert.Equal(ApprovalStatus.Pending, freshOrder.Status);
-        Assert.Equal("TAMC", freshOrder.TestCode);
+        var reviewService = NewReviewService(db);
+        await reviewService.CompleteReviewAsync(sample.Id, reviewerUserId: 2, Password, null, null);
 
-        // Old Result/CountTestReading rows must survive, not be deleted.
-        Assert.True(await db.CountTestReadings.AnyAsync(r => r.TestOrderId == order.Id));
+        var approvalService = NewApprovalService(db);
+        await approvalService.DecideAsync(sample.Id, sectionHeadUserId: 3, Password, ApprovalDecision.Approve, null, null);
 
-        // A second round on the fresh TestOrder completes and re-triggers
-        // auto-submit for review.
-        await CompleteTestAsync(db, freshOrder, media, analystId: 1);
-        var reloadedAfterRetest = await db.Samples.FirstAsync(s => s.Id == sample.Id);
-        Assert.Equal(SampleStatus.UnderReview, reloadedAfterRetest.Status);
+        var reloadedSample = await db.Samples.FirstAsync(s => s.Id == sample.Id);
+        Assert.Null(reloadedSample.CertificateRemarks);
+    }
+
+    private static async Task<CauseOfTesting> SeedRetestCauseAsync(MicroLimsDbContext db)
+    {
+        var cause = new CauseOfTesting { Name = "Retest", IsActive = true };
+        db.CausesOfTesting.Add(cause);
+        await db.SaveChangesAsync();
+        return cause;
+    }
+
+    // A Sample already sitting at UnderApproval with two current
+    // TestOrders, both assigned to analystId - built directly (no
+    // TestWorkflowEngine plumbing needed) since these OOS-retest tests
+    // only exercise SampleApprovalService's own branching logic.
+    private static async Task<(Sample sample, TestOrder tamc, TestOrder tymc)> SeedTwoTestSampleUnderApprovalAsync(
+        MicroLimsDbContext db, int analystId, int reviewedByUserId)
+    {
+        var sample = new Sample
+        {
+            Category = SampleCategory.Water,
+            ControlNumber = "CTRL-OOS-1",
+            Status = SampleStatus.UnderApproval,
+            ReviewedByUserId = reviewedByUserId
+        };
+        var tamc = new TestOrder { TestCode = "TAMC", Status = ApprovalStatus.Reviewed, CurrentStep = WorkflowStep.Waiting, AssignedAnalystId = analystId };
+        var tymc = new TestOrder { TestCode = "TYMC", Status = ApprovalStatus.Reviewed, CurrentStep = WorkflowStep.Waiting, AssignedAnalystId = analystId };
+        sample.TestOrders.Add(tamc);
+        sample.TestOrders.Add(tymc);
+        db.Samples.Add(sample);
+        await db.SaveChangesAsync();
+        return (sample, tamc, tymc);
+    }
+
+    [Fact]
+    public async Task DecideAsync_RetestRetainedSample_SpinsOffNewSampleWithOnlySelectedTestAndHoldsOriginal()
+    {
+        await using var db = NewDb();
+        await SeedUser(db, 1); // analyst
+        await SeedUser(db, 2); // reviewer
+        await SeedUser(db, 3); // section head
+        await SeedRetestCauseAsync(db);
+        var (sample, tamc, tymc) = await SeedTwoTestSampleUnderApprovalAsync(db, analystId: 1, reviewedByUserId: 2);
+
+        var approvalService = NewApprovalService(db);
+        await approvalService.DecideAsync(sample.Id, sectionHeadUserId: 3, Password, ApprovalDecision.RetestRetainedSample,
+            null, null, selectedTestOrderIds: new List<int> { tamc.Id });
+
+        var reloadedSample = await db.Samples.FirstAsync(s => s.Id == sample.Id);
+        Assert.Equal(SampleStatus.RetestRequested, reloadedSample.Status);
+        Assert.Equal(ApprovalDecision.RetestRetainedSample, reloadedSample.ApprovalDecision);
+
+        var reloadedTamc = await db.TestOrders.FirstAsync(t => t.Id == tamc.Id);
+        Assert.True(reloadedTamc.IsSuperseded);
+
+        // The non-selected TestOrder must be left completely untouched -
+        // this is the exact bug being fixed: the old code superseded and
+        // re-queued every TestOrder on the sample regardless of whether
+        // it actually failed.
+        var reloadedTymc = await db.TestOrders.FirstAsync(t => t.Id == tymc.Id);
+        Assert.False(reloadedTymc.IsSuperseded);
+        Assert.Equal(ApprovalStatus.Reviewed, reloadedTymc.Status);
+
+        // No replacement TestOrder is created on the original sample any more.
+        Assert.Equal(2, await db.TestOrders.CountAsync(t => t.SampleId == sample.Id));
+
+        var newSample = await db.Samples.SingleAsync(s => s.OriginSampleId == sample.Id);
+        Assert.NotEqual(sample.ReferenceNumber, newSample.ReferenceNumber);
+        Assert.Equal(sample.Category, newSample.Category);
+        Assert.Equal(SampleStatus.Received, newSample.Status);
+        Assert.Equal(SamplePreparationStatus.NeedsPreparation, newSample.PreparationStatus);
+
+        var newOrder = await db.TestOrders.SingleAsync(t => t.SampleId == newSample.Id);
+        Assert.Equal("TAMC", newOrder.TestCode);
+        Assert.Equal(1, newOrder.AssignedAnalystId);
+        Assert.False(newOrder.IsSuperseded);
+        Assert.Equal(WorkflowStep.Waiting, newOrder.CurrentStep);
+    }
+
+    [Fact]
+    public async Task DecideAsync_RetestRetainedSample_SetsOosGroupCodeOnOriginAndSpinoff()
+    {
+        await using var db = NewDb();
+        await SeedUser(db, 1);
+        await SeedUser(db, 2);
+        await SeedUser(db, 3);
+        await SeedRetestCauseAsync(db);
+        var (sample, tamc, _) = await SeedTwoTestSampleUnderApprovalAsync(db, analystId: 1, reviewedByUserId: 2);
+
+        var approvalService = NewApprovalService(db);
+        await approvalService.DecideAsync(sample.Id, sectionHeadUserId: 3, Password, ApprovalDecision.RetestRetainedSample,
+            null, null, selectedTestOrderIds: new List<int> { tamc.Id });
+
+        var reloadedSample = await db.Samples.FirstAsync(s => s.Id == sample.Id);
+        Assert.NotNull(reloadedSample.OosGroupCode);
+        Assert.StartsWith("OOS", reloadedSample.OosGroupCode);
+
+        var spinoff = await db.Samples.SingleAsync(s => s.OriginSampleId == sample.Id);
+        Assert.Equal(reloadedSample.OosGroupCode, spinoff.OosGroupCode);
+    }
+
+    [Fact]
+    public async Task DecideAsync_RetestRetainedSample_WithoutSelectedTests_Throws()
+    {
+        await using var db = NewDb();
+        await SeedUser(db, 1);
+        await SeedUser(db, 2);
+        await SeedUser(db, 3);
+        await SeedRetestCauseAsync(db);
+        var (sample, _, _) = await SeedTwoTestSampleUnderApprovalAsync(db, analystId: 1, reviewedByUserId: 2);
+
+        var approvalService = NewApprovalService(db);
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            approvalService.DecideAsync(sample.Id, sectionHeadUserId: 3, Password, ApprovalDecision.RetestRetainedSample, null, null));
+        Assert.Contains("At least one test must be selected", ex.Message);
+    }
+
+    [Fact]
+    public async Task DecideAsync_NewSampleRequest_CreatesTwoSamplesWithTwoDifferentAnalysts()
+    {
+        await using var db = NewDb();
+        await SeedUser(db, 1); // original analyst
+        await SeedUser(db, 2); // reviewer
+        await SeedUser(db, 3); // section head
+        await SeedUser(db, 4, RoleType.Analyst); // new analyst one
+        await SeedUser(db, 5, RoleType.Analyst); // new analyst two
+        await SeedRetestCauseAsync(db);
+        var (sample, tamc, tymc) = await SeedTwoTestSampleUnderApprovalAsync(db, analystId: 1, reviewedByUserId: 2);
+
+        var approvalService = NewApprovalService(db);
+        await approvalService.DecideAsync(sample.Id, sectionHeadUserId: 3, Password, ApprovalDecision.NewSampleRequest,
+            null, null, selectedTestOrderIds: new List<int> { tamc.Id }, newSampleAnalystOneId: 4, newSampleAnalystTwoId: 5);
+
+        var reloadedSample = await db.Samples.FirstAsync(s => s.Id == sample.Id);
+        Assert.Equal(SampleStatus.RetestRequested, reloadedSample.Status);
+        Assert.Equal(ApprovalDecision.NewSampleRequest, reloadedSample.ApprovalDecision);
+
+        var reloadedTamc = await db.TestOrders.FirstAsync(t => t.Id == tamc.Id);
+        Assert.True(reloadedTamc.IsSuperseded);
+        var reloadedTymc = await db.TestOrders.FirstAsync(t => t.Id == tymc.Id);
+        Assert.False(reloadedTymc.IsSuperseded);
+
+        var newSamples = await db.Samples.Where(s => s.OriginSampleId == sample.Id).ToListAsync();
+        Assert.Equal(2, newSamples.Count);
+        Assert.NotEqual(newSamples[0].ReferenceNumber, newSamples[1].ReferenceNumber);
+
+        var assignedAnalysts = new List<int?>();
+        foreach (var s in newSamples)
+        {
+            var order = await db.TestOrders.SingleAsync(t => t.SampleId == s.Id);
+            Assert.Equal("TAMC", order.TestCode);
+            assignedAnalysts.Add(order.AssignedAnalystId);
+        }
+        Assert.Equal(new List<int?> { 4, 5 }, assignedAnalysts.OrderBy(a => a).ToList());
+    }
+
+    [Fact]
+    public async Task DecideAsync_NewSampleRequest_SameAnalystForBothNewSamples_Throws()
+    {
+        await using var db = NewDb();
+        await SeedUser(db, 1);
+        await SeedUser(db, 2);
+        await SeedUser(db, 3);
+        await SeedUser(db, 4, RoleType.Analyst);
+        await SeedRetestCauseAsync(db);
+        var (sample, tamc, _) = await SeedTwoTestSampleUnderApprovalAsync(db, analystId: 1, reviewedByUserId: 2);
+
+        var approvalService = NewApprovalService(db);
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            approvalService.DecideAsync(sample.Id, sectionHeadUserId: 3, Password, ApprovalDecision.NewSampleRequest,
+                null, null, selectedTestOrderIds: new List<int> { tamc.Id }, newSampleAnalystOneId: 4, newSampleAnalystTwoId: 4));
+        Assert.Contains("two different analysts", ex.Message);
+    }
+
+    [Fact]
+    public async Task DecideAsync_NewSampleRequest_AnalystSameAsOriginalTester_Throws()
+    {
+        await using var db = NewDb();
+        await SeedUser(db, 1, RoleType.Analyst); // original analyst - also Analyst-role, so it clears eligibility and must be caught by the segregation check instead
+        await SeedUser(db, 2);
+        await SeedUser(db, 3);
+        await SeedUser(db, 5, RoleType.Analyst);
+        await SeedRetestCauseAsync(db);
+        var (sample, tamc, _) = await SeedTwoTestSampleUnderApprovalAsync(db, analystId: 1, reviewedByUserId: 2);
+
+        var approvalService = NewApprovalService(db);
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            approvalService.DecideAsync(sample.Id, sectionHeadUserId: 3, Password, ApprovalDecision.NewSampleRequest,
+                null, null, selectedTestOrderIds: new List<int> { tamc.Id }, newSampleAnalystOneId: 1, newSampleAnalystTwoId: 5));
+        Assert.Contains("may be the analyst who tested the original sample", ex.Message);
+    }
+
+    [Fact]
+    public async Task DecideAsync_NewSampleRequest_NonAnalystRoleChosen_Throws()
+    {
+        await using var db = NewDb();
+        await SeedUser(db, 1);
+        await SeedUser(db, 2);
+        await SeedUser(db, 3);
+        await SeedUser(db, 4, RoleType.Analyst);
+        await SeedUser(db, 6, RoleType.Reviewer); // not an Analyst - ineligible
+        await SeedRetestCauseAsync(db);
+        var (sample, tamc, _) = await SeedTwoTestSampleUnderApprovalAsync(db, analystId: 1, reviewedByUserId: 2);
+
+        var approvalService = NewApprovalService(db);
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            approvalService.DecideAsync(sample.Id, sectionHeadUserId: 3, Password, ApprovalDecision.NewSampleRequest,
+                null, null, selectedTestOrderIds: new List<int> { tamc.Id }, newSampleAnalystOneId: 4, newSampleAnalystTwoId: 6));
+        Assert.Contains("eligible Analyst-role users", ex.Message);
+    }
+
+    [Fact]
+    public async Task DecideAsync_RetestRetainedSample_SelectedTestNotOnSample_Throws()
+    {
+        await using var db = NewDb();
+        await SeedUser(db, 1);
+        await SeedUser(db, 2);
+        await SeedUser(db, 3);
+        await SeedRetestCauseAsync(db);
+        var (sample, _, _) = await SeedTwoTestSampleUnderApprovalAsync(db, analystId: 1, reviewedByUserId: 2);
+
+        var approvalService = NewApprovalService(db);
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            approvalService.DecideAsync(sample.Id, sectionHeadUserId: 3, Password, ApprovalDecision.RetestRetainedSample,
+                null, null, selectedTestOrderIds: new List<int> { 999999 }));
+        Assert.Contains("do not belong to this sample", ex.Message);
     }
 }

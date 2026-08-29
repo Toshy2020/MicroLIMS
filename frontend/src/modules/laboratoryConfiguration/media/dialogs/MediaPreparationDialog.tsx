@@ -19,7 +19,7 @@ import ScienceOutlinedIcon from "@mui/icons-material/ScienceOutlined";
 import { MediaPreparationService } from "../services/MediaPreparationService";
 import { MaterialService } from "../../../inventory/materials/services/MaterialService";
 import { EquipmentConfigurationService, AutoclaveProgram } from "../../masterDataSimple/services/EquipmentConfigurationService";
-import { masterDataOptions, mediaClassLabel } from "../../../../services/masterDataOptions";
+import { masterDataOptions } from "../../../../services/masterDataOptions";
 import { apiClient } from "../../../../services/apiClient";
 import { brandColors } from "../../../../theme";
 
@@ -31,7 +31,6 @@ interface Props {
 
 export function MediaPreparationDialog({ open, onClose, onSuccess }: Props) {
   const theme = useTheme();
-  const [mediaTypes, setMediaTypes] = useState<any[]>([]);
   const [autoclaves, setAutoclaves] = useState<any[]>([]);
   const [dehydratedMedia, setDehydratedMedia] = useState<any[]>([]);
   const [autoclavePrograms, setAutoclavePrograms] = useState<AutoclaveProgram[]>([]);
@@ -44,7 +43,6 @@ export function MediaPreparationDialog({ open, onClose, onSuccess }: Props) {
       setError(null);
       setForm({});
       setAutoclavePrograms([]);
-      masterDataOptions.getMediaTypes().then(setMediaTypes).catch(() => setMediaTypes([]));
       masterDataOptions.getEquipment("Autoclave").then(setAutoclaves).catch(() => setAutoclaves([]));
       MaterialService.getAll("DehydratedMedia").then(setDehydratedMedia).catch(() => setDehydratedMedia([]));
     }
@@ -102,10 +100,6 @@ export function MediaPreparationDialog({ open, onClose, onSuccess }: Props) {
     setError(null);
 
     // Basic required field validation
-    if (!form.mediaTypeId) {
-      setError("Please select a Media Type.");
-      return;
-    }
     if (!form.materialId) {
       setError("Please select a Dehydrated Media Stock item from inventory.");
       return;
@@ -154,7 +148,6 @@ export function MediaPreparationDialog({ open, onClose, onSuccess }: Props) {
     setSaving(true);
     try {
       const result = await MediaPreparationService.prepare({
-        mediaTypeId: Number(form.mediaTypeId),
         materialId: Number(form.materialId),
         totalWeight: Number(form.totalWeight),
         totalVolume: form.totalVolume,
@@ -207,22 +200,6 @@ export function MediaPreparationDialog({ open, onClose, onSuccess }: Props) {
               </Typography>
 
               <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, gap: 2 }}>
-                <Select
-                  size="small"
-                  displayEmpty
-                  value={form.mediaTypeId ?? ""}
-                  onChange={(e) => setField("mediaTypeId", e.target.value)}
-                >
-                  <MenuItem value="">
-                    <em>Select Media Type *</em>
-                  </MenuItem>
-                  {mediaTypes.map((m) => (
-                    <MenuItem key={m.id} value={m.id}>
-                      {mediaClassLabel(m.class)}
-                    </MenuItem>
-                  ))}
-                </Select>
-
                 <Box>
                   <Select
                     size="small"

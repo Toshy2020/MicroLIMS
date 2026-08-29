@@ -17,9 +17,9 @@ export const EMConfigService = {
 
   getRoomTestConfigurations: (roomId: number) =>
     apiClient.get("/masterdata/room-test-configurations", { params: { roomId } }).then((r) => r.data.data),
-  createRoomTestConfiguration: (roomId: number, testType: string, testCode: string, alertLimit: string, actionLimit: string, specLimit: string) =>
-    apiClient.post("/masterdata/room-test-configurations", { roomId, testType, testCode, alertLimit, actionLimit, specLimit }).then((r) => r.data.data),
-  updateRoomTestConfiguration: (id: number, testType: string, testCode: string, alertLimit: string, actionLimit: string, specLimit: string) =>
-    apiClient.put(`/masterdata/room-test-configurations/${id}`, { testType, testCode, alertLimit, actionLimit, specLimit }).then((r) => r.data.data),
+  createRoomTestConfiguration: (roomId: number, testType: string, testCode: string, alertLimit: string, actionLimit: string, specLimit: string, unit?: string) =>
+    apiClient.post("/masterdata/room-test-configurations", { roomId, testType, testCode, alertLimit, actionLimit, specLimit, unit }).then((r) => r.data.data),
+  updateRoomTestConfiguration: (id: number, testType: string, testCode: string, alertLimit: string, actionLimit: string, specLimit: string, unit?: string) =>
+    apiClient.put(`/masterdata/room-test-configurations/${id}`, { testType, testCode, alertLimit, actionLimit, specLimit, unit }).then((r) => r.data.data),
   deleteRoomTestConfiguration: (id: number) => apiClient.delete(`/masterdata/room-test-configurations/${id}`)
 };

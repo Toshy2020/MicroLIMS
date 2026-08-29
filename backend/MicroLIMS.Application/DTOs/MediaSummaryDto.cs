@@ -56,6 +56,11 @@ public class MediaChallengeSummaryDto
     public string OrganismName { get; set; } = string.Empty;
     public string? ChallengeRole { get; set; }
     public string? CryovialCode { get; set; }
+
+    // Alternative to CryovialCode when the analyst used a lyophilized
+    // disk Material directly instead of a prepared Cryovial - exactly
+    // one of the two is populated.
+    public string? LyophilizedDiskLabel { get; set; }
     public string InitialInoculum { get; set; } = string.Empty;
 
     public string? IncubatorName { get; set; }
@@ -70,6 +75,12 @@ public class MediaChallengeSummaryDto
     public decimal? OldMediaCount { get; set; }
     public decimal? NewMediaCount { get; set; }
     public decimal? RecoveryPercent { get; set; }
+
+    // The prior lot OldMediaCount was read from - resolved once at
+    // RecordResultAsync (linked lot number, or free text) and never
+    // re-derived here, so a completed evaluation's record of what it was
+    // compared against stays fixed even if the linked lot is later edited.
+    public string? ReferenceMediaLabel { get; set; }
     public bool? GrowthObserved { get; set; }
     public string? ObservedDescription { get; set; }
     public string? ExpectedDescription { get; set; }

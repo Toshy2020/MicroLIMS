@@ -129,7 +129,7 @@ this frontend, and it's worth being disciplined about going forward.
 Every module follows: **Page component → `services/*.ts` → `apiClient`**.
 
 ```
-ReceiveSamplePage.tsx
+ReceivingTestingWorkspacePage.tsx
    └─ calls ReceiveService.receiveWater(request)
         └─ apiClient.post("/water/receive", request)
              └─ baseURL (from .env) + "/water/receive"

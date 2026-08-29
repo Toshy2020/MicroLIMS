@@ -27,7 +27,9 @@ export interface CryovialSummary {
   numberOfVialsPrepared: number;
   vialsRemaining: number;
   storageCondition: string;
+  physicalCheckConfirmed: boolean;
   physicalCheckText: string;
+  organismDescription?: string | null;
   preparedAt: string;
   preparedByName: string;
   approvalStatus: string;

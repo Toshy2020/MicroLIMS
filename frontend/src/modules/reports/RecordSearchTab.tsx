@@ -10,6 +10,7 @@ interface RecordSearchTabProps {
   fromDate: string | undefined;
   toDate: string | undefined;
   onAnalyzeTrend?: (testCode: string, subjectName: string) => void;
+  onNavigateTab?: (tabIndex: number) => void;
 }
 
 const DEFAULT_PAGE_SIZE = 25;
@@ -24,7 +25,7 @@ function baseParams(fromDate: string | undefined, toDate: string | undefined): R
 // above the tabs is the one exception to "apply on button click" -
 // changing it re-applies immediately, carrying over whatever other
 // filters are currently applied.
-export function RecordSearchTab({ fromDate, toDate, onAnalyzeTrend }: RecordSearchTabProps) {
+export function RecordSearchTab({ fromDate, toDate, onAnalyzeTrend, onNavigateTab }: RecordSearchTabProps) {
   const [filterOptions, setFilterOptions] = useState<FilterOptionsResponse | null>(null);
   const [draft, setDraft] = useState<ResultRecordSearchParams>(baseParams(fromDate, toDate));
   const [applied, setApplied] = useState<ResultRecordSearchParams>(baseParams(fromDate, toDate));
@@ -86,7 +87,12 @@ export function RecordSearchTab({ fromDate, toDate, onAnalyzeTrend }: RecordSear
           onReset={handleReset}
           searchInputRef={searchInputRef}
         />
-        <QuickReportsTiles onPreset={handlePreset} onCustomReport={handleCustomReport} />
+        <QuickReportsTiles
+          onPreset={handlePreset}
+          onCustomReport={handleCustomReport}
+          onMediaGptReport={() => onNavigateTab?.(2)}
+          onReferenceStrainsReport={() => onNavigateTab?.(3)}
+        />
       </Stack>
 
       <ReportResultsTable

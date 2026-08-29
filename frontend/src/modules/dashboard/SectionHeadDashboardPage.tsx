@@ -24,7 +24,7 @@ import WarningAmberOutlinedIcon from "@mui/icons-material/WarningAmberOutlined";
 import ArrowForwardOutlinedIcon from "@mui/icons-material/ArrowForwardOutlined";
 import PeopleAltOutlinedIcon from "@mui/icons-material/PeopleAltOutlined";
 import TrendingUpOutlinedIcon from "@mui/icons-material/TrendingUpOutlined";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
 import { PageHeader } from "../../components/PageHeader";
 import { LoadingSpinner } from "../../components/LoadingSpinner";
@@ -77,19 +77,13 @@ export function SectionHeadDashboardPage() {
         />
         <Box sx={{ display: "flex", gap: 1.5, flexWrap: "wrap" }}>
           <Button
-            variant="outlined"
-            onClick={() => navigate("/receiving")}
-            sx={{ textTransform: "none", fontWeight: 600, borderRadius: 2 }}
-          >
-            Sample Receiving
-          </Button>
-          <Button
+            component={Link}
+            to="/receiving-testing"
             variant="contained"
             startIcon={<ScienceOutlinedIcon />}
-            onClick={() => navigate("/testing-workspace")}
             sx={{ textTransform: "none", fontWeight: 600, borderRadius: 2 }}
           >
-            Testing Workspace
+            Receiving & Testing Workspace
           </Button>
         </Box>
       </Box>
@@ -98,10 +92,14 @@ export function SectionHeadDashboardPage() {
       <Grid container spacing={1.5} sx={{ mb: 2.5 }}>
         <Grid item xs={6} sm={4} md={1.71}>
           <Paper
-            onClick={() => navigate("/testing-workspace?status=Active")}
+            component={Link}
+            to="/testing-workspace?status=Active"
             sx={{
               p: 1.75,
               cursor: "pointer",
+              display: "block",
+              textDecoration: "none",
+              color: "inherit",
               borderLeft: `4px solid ${theme.palette.primary.main}`,
               transition: "transform 0.15s, box-shadow 0.15s",
               "&:hover": { transform: "translateY(-2px)", boxShadow: 3 }
@@ -122,10 +120,14 @@ export function SectionHeadDashboardPage() {
 
         <Grid item xs={6} sm={4} md={1.71}>
           <Paper
-            onClick={() => navigate("/testing-workspace?view=kanban")}
+            component={Link}
+            to="/testing-workspace?view=kanban"
             sx={{
               p: 1.75,
               cursor: "pointer",
+              display: "block",
+              textDecoration: "none",
+              color: "inherit",
               borderLeft: `4px solid ${brandColors.info}`,
               transition: "transform 0.15s, box-shadow 0.15s",
               "&:hover": { transform: "translateY(-2px)", boxShadow: 3 }
@@ -146,10 +148,14 @@ export function SectionHeadDashboardPage() {
 
         <Grid item xs={6} sm={4} md={1.71}>
           <Paper
-            onClick={() => navigate("/testing-workspace?testStatus=ReadyToRead")}
+            component={Link}
+            to="/testing-workspace?testStatus=ReadyToRead"
             sx={{
               p: 1.75,
               cursor: "pointer",
+              display: "block",
+              textDecoration: "none",
+              color: "inherit",
               borderLeft: `4px solid ${brandColors.ok}`,
               transition: "transform 0.15s, box-shadow 0.15s",
               "&:hover": { transform: "translateY(-2px)", boxShadow: 3 }
@@ -170,10 +176,14 @@ export function SectionHeadDashboardPage() {
 
         <Grid item xs={6} sm={4} md={1.71}>
           <Paper
-            onClick={() => navigate("/testing-workspace?testStatus=ResultEntered")}
+            component={Link}
+            to="/testing-workspace?testStatus=ResultEntered"
             sx={{
               p: 1.75,
               cursor: "pointer",
+              display: "block",
+              textDecoration: "none",
+              color: "inherit",
               borderLeft: `4px solid ${brandColors.warn}`,
               transition: "transform 0.15s, box-shadow 0.15s",
               "&:hover": { transform: "translateY(-2px)", boxShadow: 3 }
@@ -194,10 +204,14 @@ export function SectionHeadDashboardPage() {
 
         <Grid item xs={6} sm={4} md={1.71}>
           <Paper
-            onClick={() => navigate("/testing-workspace?testStatus=Reviewed")}
+            component={Link}
+            to="/testing-workspace?testStatus=Reviewed"
             sx={{
               p: 1.75,
               cursor: "pointer",
+              display: "block",
+              textDecoration: "none",
+              color: "inherit",
               borderLeft: `4px solid ${brandColors.ok}`,
               transition: "transform 0.15s, box-shadow 0.15s",
               "&:hover": { transform: "translateY(-2px)", boxShadow: 3 }
@@ -218,10 +232,14 @@ export function SectionHeadDashboardPage() {
 
         <Grid item xs={6} sm={4} md={1.71}>
           <Paper
-            onClick={() => navigate("/testing-workspace?urgency=overdue")}
+            component={Link}
+            to="/testing-workspace?urgency=overdue"
             sx={{
               p: 1.75,
               cursor: "pointer",
+              display: "block",
+              textDecoration: "none",
+              color: "inherit",
               borderLeft: `4px solid ${brandColors.err}`,
               transition: "transform 0.15s, box-shadow 0.15s",
               "&:hover": { transform: "translateY(-2px)", boxShadow: 3 }
@@ -291,11 +309,15 @@ export function SectionHeadDashboardPage() {
           ].map((stage, idx) => (
             <Grid item xs={12} sm={6} md={2.4} key={idx}>
               <Paper
+                component={Link}
+                to={stage.link}
                 variant="outlined"
-                onClick={() => navigate(stage.link)}
                 sx={{
                   p: 1.5,
                   cursor: "pointer",
+                  display: "block",
+                  textDecoration: "none",
+                  color: "inherit",
                   borderColor: "divider",
                   transition: "background-color 0.15s, border-color 0.15s",
                   "&:hover": { bgcolor: "action.hover", borderColor: stage.color }
@@ -360,17 +382,12 @@ export function SectionHeadDashboardPage() {
                       </Typography>
                     </Box>
                     <Button
+                      component={Link}
+                      to={item.testOrderId ? `/testing-workspace?sampleId=${item.sampleId}&testOrderId=${item.testOrderId}` : `/testing-workspace?sampleId=${item.sampleId}`}
                       variant="outlined"
                       color="error"
                       size="small"
                       endIcon={<ArrowForwardOutlinedIcon />}
-                      onClick={() => {
-                        if (item.testOrderId) {
-                          navigate(`/testing-workspace?sampleId=${item.sampleId}&testOrderId=${item.testOrderId}`);
-                        } else {
-                          navigate(`/testing-workspace?sampleId=${item.sampleId}`);
-                        }
-                      }}
                       sx={{ textTransform: "none", fontSize: 12, fontWeight: 600, flexShrink: 0 }}
                     >
                       Intervene
@@ -410,9 +427,10 @@ export function SectionHeadDashboardPage() {
                 </Typography>
               </Box>
               <Button
+                component={Link}
+                to="/testing-workspace?testStatus=ResultEntered"
                 variant="text"
                 size="small"
-                onClick={() => navigate("/testing-workspace?testStatus=ResultEntered")}
                 sx={{ textTransform: "none", fontWeight: 600, fontSize: 12 }}
               >
                 View Full Review Queue →
@@ -440,21 +458,31 @@ export function SectionHeadDashboardPage() {
                       <TableRow
                         key={row.testOrderId}
                         hover
-                        sx={{ cursor: "pointer" }}
-                        onClick={() => navigate(`/testing-workspace?sampleId=${row.sampleId}&testOrderId=${row.testOrderId}`)}
                       >
-                        <TableCell sx={{ fontSize: 11, fontWeight: 700 }}>{row.referenceNumber}</TableCell>
+                        <TableCell sx={{ fontSize: 11, fontWeight: 700 }}>
+                          <Typography
+                            component={Link}
+                            to={`/testing-workspace?sampleId=${row.sampleId}&testOrderId=${row.testOrderId}`}
+                            sx={{
+                              fontSize: 11,
+                              fontWeight: 700,
+                              color: "text.primary",
+                              textDecoration: "none",
+                              "&:hover": { color: "primary.main", textDecoration: "underline" }
+                            }}
+                          >
+                            {row.referenceNumber}
+                          </Typography>
+                        </TableCell>
                         <TableCell sx={{ fontSize: 11 }}><Chip label={row.testCode} size="small" sx={{ fontSize: 10, height: 18 }} /></TableCell>
                         <TableCell sx={{ fontSize: 11, color: "text.secondary" }}>{row.analystName ?? "—"}</TableCell>
                         <TableCell sx={{ fontSize: 11, color: row.ageHours >= 24 ? brandColors.err : "text.primary" }}>{row.ageHours}h</TableCell>
                         <TableCell sx={{ textAlign: "right" }}>
                           <Button
+                            component={Link}
+                            to={`/testing-workspace?sampleId=${row.sampleId}&testOrderId=${row.testOrderId}`}
                             variant="outlined"
                             size="small"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              navigate(`/testing-workspace?sampleId=${row.sampleId}&testOrderId=${row.testOrderId}`);
-                            }}
                             sx={{ textTransform: "none", fontSize: 10, py: 0.2, fontWeight: 600 }}
                           >
                             Review
@@ -482,9 +510,10 @@ export function SectionHeadDashboardPage() {
                 </Typography>
               </Box>
               <Button
+                component={Link}
+                to="/testing-workspace?testStatus=Reviewed"
                 variant="text"
                 size="small"
-                onClick={() => navigate("/testing-workspace?testStatus=Reviewed")}
                 sx={{ textTransform: "none", fontWeight: 600, fontSize: 12 }}
               >
                 View Full Approval Queue →
@@ -512,22 +541,32 @@ export function SectionHeadDashboardPage() {
                       <TableRow
                         key={row.testOrderId}
                         hover
-                        sx={{ cursor: "pointer" }}
-                        onClick={() => navigate(`/testing-workspace?sampleId=${row.sampleId}&testOrderId=${row.testOrderId}`)}
                       >
-                        <TableCell sx={{ fontSize: 11, fontWeight: 700 }}>{row.referenceNumber}</TableCell>
+                        <TableCell sx={{ fontSize: 11, fontWeight: 700 }}>
+                          <Typography
+                            component={Link}
+                            to={`/testing-workspace?sampleId=${row.sampleId}&testOrderId=${row.testOrderId}`}
+                            sx={{
+                              fontSize: 11,
+                              fontWeight: 700,
+                              color: "text.primary",
+                              textDecoration: "none",
+                              "&:hover": { color: "primary.main", textDecoration: "underline" }
+                            }}
+                          >
+                            {row.referenceNumber}
+                          </Typography>
+                        </TableCell>
                         <TableCell sx={{ fontSize: 11 }}><Chip label={row.testCode} size="small" sx={{ fontSize: 10, height: 18 }} /></TableCell>
                         <TableCell sx={{ fontSize: 11, color: "text.secondary" }}>{row.reviewerName ?? "—"}</TableCell>
                         <TableCell sx={{ fontSize: 11, color: row.ageHours >= 24 ? brandColors.err : "text.primary" }}>{row.ageHours}h</TableCell>
                         <TableCell sx={{ textAlign: "right" }}>
                           <Button
+                            component={Link}
+                            to={`/testing-workspace?sampleId=${row.sampleId}&testOrderId=${row.testOrderId}`}
                             variant="outlined"
                             size="small"
                             color="success"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              navigate(`/testing-workspace?sampleId=${row.sampleId}&testOrderId=${row.testOrderId}`);
-                            }}
                             sx={{ textTransform: "none", fontSize: 10, py: 0.2, fontWeight: 600 }}
                           >
                             Approve
@@ -579,11 +618,21 @@ export function SectionHeadDashboardPage() {
                       <TableRow
                         key={a.analystId}
                         hover
-                        sx={{ cursor: "pointer" }}
-                        onClick={() => navigate(`/testing-workspace?analystId=${a.analystId}`)}
                       >
                         <TableCell sx={{ fontSize: 12, fontWeight: 700 }}>
-                          {a.analystName}
+                          <Typography
+                            component={Link}
+                            to={`/testing-workspace?analystId=${a.analystId}`}
+                            sx={{
+                              fontSize: 12,
+                              fontWeight: 700,
+                              color: "text.primary",
+                              textDecoration: "none",
+                              "&:hover": { color: "primary.main", textDecoration: "underline" }
+                            }}
+                          >
+                            {a.analystName}
+                          </Typography>
                         </TableCell>
                         <TableCell sx={{ fontSize: 12 }}>
                           <Chip
@@ -595,13 +644,12 @@ export function SectionHeadDashboardPage() {
                         <TableCell sx={{ fontSize: 12 }}>
                           {a.overdueCount > 0 ? (
                             <Chip
+                              component={Link}
+                              to={`/testing-workspace?analystId=${a.analystId}&urgency=overdue`}
                               label={`${a.overdueCount} overdue`}
                               size="small"
+                              clickable
                               sx={{ fontSize: 11, fontWeight: 700, bgcolor: brandColors.err + "22", color: brandColors.err }}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                navigate(`/testing-workspace?analystId=${a.analystId}&urgency=overdue`);
-                              }}
                             />
                           ) : (
                             <Typography sx={{ fontSize: 12, color: brandColors.ok, fontWeight: 600 }}>0</Typography>
@@ -612,12 +660,10 @@ export function SectionHeadDashboardPage() {
                         </TableCell>
                         <TableCell sx={{ textAlign: "right" }}>
                           <Button
+                            component={Link}
+                            to={`/testing-workspace?analystId=${a.analystId}`}
                             variant="text"
                             size="small"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              navigate(`/testing-workspace?analystId=${a.analystId}`);
-                            }}
                             sx={{ textTransform: "none", fontSize: 11, fontWeight: 600 }}
                           >
                             Filter Tests →
@@ -665,8 +711,6 @@ export function SectionHeadDashboardPage() {
                       <TableRow
                         key={inc.testCode}
                         hover
-                        sx={{ cursor: "pointer" }}
-                        onClick={() => navigate(`/testing-workspace?testStatus=${inc.readyToRead > 0 ? "ReadyToRead" : ""}`)}
                       >
                         <TableCell sx={{ fontSize: 12, fontWeight: 700 }}>
                           <Chip label={inc.testCode} size="small" sx={{ fontSize: 11, fontWeight: 600 }} />
@@ -687,12 +731,10 @@ export function SectionHeadDashboardPage() {
                         </TableCell>
                         <TableCell sx={{ textAlign: "right" }}>
                           <Button
+                            component={Link}
+                            to={`/testing-workspace?testStatus=${inc.readyToRead > 0 ? "ReadyToRead" : ""}`}
                             variant="text"
                             size="small"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              navigate(`/testing-workspace?testStatus=${inc.readyToRead > 0 ? "ReadyToRead" : ""}`);
-                            }}
                             sx={{ textTransform: "none", fontSize: 11, fontWeight: 600 }}
                           >
                             Open →

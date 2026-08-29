@@ -15,11 +15,21 @@ import {
 } from "@mui/material";
 import HistoryOutlinedIcon from "@mui/icons-material/HistoryOutlined";
 import DescriptionOutlinedIcon from "@mui/icons-material/DescriptionOutlined";
+import { Link } from "react-router-dom";
 import { StatusBadge } from "../../../../components/StatusBadge";
-import { mediaClassLabel } from "../../../../services/masterDataOptions";
 import { lifecycleOf } from "./MediaLotKpiCards";
 import { brandColors } from "../../../../theme";
 import { useAuth } from "../../../../contexts/AuthContext";
+
+function formatDateDDMMYY(value: string | number | Date | null | undefined): string {
+  if (!value) return "—";
+  const d = new Date(value);
+  if (isNaN(d.getTime())) return "—";
+  const day = String(d.getDate()).padStart(2, "0");
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const year = String(d.getFullYear()).slice(-2);
+  return `${day}/${month}/${year}`;
+}
 
 interface Props {
   lots: any[];
@@ -66,8 +76,8 @@ export function MediaLotRegisterTable({
         <Table size="small" stickyHeader>
           <TableHead>
             <TableRow sx={{ "& th": { bgcolor: "background.default", fontWeight: 700, fontSize: 11, py: 1 } }}>
-              <TableCell>Lot Number</TableCell>
-              <TableCell>Type</TableCell>
+              <TableCell sx={{ width: 95 }}>Prepared On</TableCell>
+              <TableCell>Material / Lot</TableCell>
               <TableCell sx={{ width: 95 }}>Status</TableCell>
             </TableRow>
           </TableHead>
@@ -90,17 +100,17 @@ export function MediaLotRegisterTable({
                     "&:hover": { bgcolor: isSelected ? theme.custom.status.purple.bg : "background.default" }
                   }}
                 >
-                  <TableCell sx={{ py: 1.25 }}>
-                    <Typography sx={{ fontWeight: isSelected ? 700 : 600, fontSize: 13, color: isSelected ? brandColors.pageTitle : "text.primary" }}>
-                      {lot.lotNumber}
-                    </Typography>
-                    <Typography sx={{ fontSize: 11, color: "text.secondary" }}>
-                      Prep: {new Date(lot.preparedAt).toLocaleDateString()}
-                    </Typography>
+                  <TableCell sx={{ py: 1.25, fontSize: 11.5, color: "text.secondary", whiteSpace: "nowrap" }}>
+                    {formatDateDDMMYY(lot.preparedAt)}
                   </TableCell>
 
-                  <TableCell sx={{ py: 1.25, fontSize: 12 }}>
-                    {mediaClassLabel(lot.mediaType?.class)}
+                  <TableCell sx={{ py: 1.25 }}>
+                    <Typography sx={{ fontWeight: isSelected ? 700 : 600, fontSize: 12.5, color: isSelected ? brandColors.pageTitle : "text.primary" }}>
+                      {lot.material?.materialName || "Dehydrated Material"}
+                    </Typography>
+                    <Typography sx={{ fontSize: 11, color: "text.secondary" }}>
+                      Lot: {lot.lotNumber}
+                    </Typography>
                   </TableCell>
 
                   <TableCell sx={{ py: 1.25 }}>
@@ -139,13 +149,12 @@ export function MediaLotRegisterTable({
       <Table size="small">
         <TableHead>
           <TableRow sx={{ bgcolor: "background.default" }}>
-            <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Lot Number</TableCell>
-            <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Media Type</TableCell>
-            <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Dehydrated Material</TableCell>
-            <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Prepared On</TableCell>
-            <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Expiry Date</TableCell>
-            <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Status</TableCell>
-            <TableCell sx={{ fontWeight: 700, fontSize: 12, textAlign: "right" }}>Actions</TableCell>
+            <TableCell sx={{ fontWeight: 700, fontSize: 12, minWidth: 120 }}>Prepared On</TableCell>
+            <TableCell sx={{ fontWeight: 700, fontSize: 12, minWidth: 180 }}>Dehydrated Material</TableCell>
+            <TableCell sx={{ fontWeight: 700, fontSize: 12, minWidth: 150 }}>Lot Number</TableCell>
+            <TableCell sx={{ fontWeight: 700, fontSize: 12, minWidth: 120 }}>Expiry Date</TableCell>
+            <TableCell sx={{ fontWeight: 700, fontSize: 12, width: 140 }}>Status</TableCell>
+            <TableCell sx={{ fontWeight: 700, fontSize: 12, textAlign: "right", width: 130 }}>Actions</TableCell>
           </TableRow>
         </TableHead>
         <TableBody>
@@ -167,6 +176,30 @@ export function MediaLotRegisterTable({
                   "&:hover": { bgcolor: isSelected ? theme.custom.status.purple.bg : "background.default" }
                 }}
               >
+                {/* 1. Prepared On */}
+                <TableCell sx={{ fontSize: 12, color: "text.secondary", whiteSpace: "nowrap" }}>
+                  {formatDateDDMMYY(lot.preparedAt)}
+                </TableCell>
+
+                {/* 2. Dehydrated Material */}
+                <TableCell sx={{ fontSize: 12 }}>
+                  {lot.material ? (
+                    <>
+                      <Typography sx={{ fontSize: 12, fontWeight: 600, color: "text.primary" }}>
+                        {lot.material.materialName}
+                      </Typography>
+                      {lot.material.batchNumber && (
+                        <Typography sx={{ fontSize: 11, color: "text.secondary" }}>
+                          Batch: {lot.material.batchNumber}
+                        </Typography>
+                      )}
+                    </>
+                  ) : (
+                    "—"
+                  )}
+                </TableCell>
+
+                {/* 3. Lot Number */}
                 <TableCell sx={{ py: 1.5 }}>
                   <Typography sx={{ fontWeight: 700, fontSize: 13, color: isSelected ? brandColors.pageTitle : "text.primary" }}>
                     {lot.lotNumber}
@@ -176,35 +209,17 @@ export function MediaLotRegisterTable({
                   </Typography>
                 </TableCell>
 
-                <TableCell sx={{ fontSize: 12, fontWeight: 500 }}>
-                  {mediaClassLabel(lot.mediaType?.class)}
+                {/* 4. Expiry Date */}
+                <TableCell sx={{ fontSize: 12, color: "text.secondary", whiteSpace: "nowrap" }}>
+                  {formatDateDDMMYY(lot.expiryDate)}
                 </TableCell>
 
-                <TableCell sx={{ fontSize: 12 }}>
-                  {lot.material ? (
-                    <>
-                      <Typography sx={{ fontSize: 12, fontWeight: 600 }}>{lot.material.materialName}</Typography>
-                      <Typography sx={{ fontSize: 11, color: "text.secondary" }}>
-                        Batch: {lot.material.batchNumber}
-                      </Typography>
-                    </>
-                  ) : (
-                    "—"
-                  )}
-                </TableCell>
-
-                <TableCell sx={{ fontSize: 12, whiteSpace: "nowrap" }}>
-                  {new Date(lot.preparedAt).toLocaleDateString()}
-                </TableCell>
-
-                <TableCell sx={{ fontSize: 12, whiteSpace: "nowrap" }}>
-                  {new Date(lot.expiryDate).toLocaleDateString()}
-                </TableCell>
-
+                {/* 5. Status */}
                 <TableCell>
                   <StatusBadge status={lifecycle} />
                 </TableCell>
 
+                {/* 6. Actions */}
                 <TableCell sx={{ textAlign: "right" }} onClick={(e) => e.stopPropagation()}>
                   <Box sx={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 0.5 }}>
                     {lifecycle === "Awaiting Approval" && canRelease && onRequestReleaseDecision && (
@@ -231,7 +246,13 @@ export function MediaLotRegisterTable({
                     )}
 
                     <Tooltip title="View Lot Record (Printable)">
-                      <IconButton size="small" onClick={() => onViewRecord(lot.id)}>
+                      <IconButton
+                        component={Link}
+                        to={`/media/${lot.id}/report`}
+                        target="_blank"
+                        rel="noopener"
+                        size="small"
+                      >
                         <DescriptionOutlinedIcon fontSize="small" sx={{ color: "text.secondary" }} />
                       </IconButton>
                     </Tooltip>
@@ -249,7 +270,7 @@ export function MediaLotRegisterTable({
 
           {lots.length === 0 && (
             <TableRow>
-              <TableCell colSpan={7} align="center" sx={{ py: 4, color: "text.secondary", fontSize: 13 }}>
+              <TableCell colSpan={6} align="center" sx={{ py: 4, color: "text.secondary", fontSize: 13 }}>
                 No media lots match this filter.
               </TableCell>
             </TableRow>

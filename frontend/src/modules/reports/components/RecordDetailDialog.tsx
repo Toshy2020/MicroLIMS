@@ -1,9 +1,10 @@
-import { Dialog, DialogTitle, DialogContent, DialogActions, Button, Grid, Typography, Box, Divider , useTheme} from "@mui/material";
+import { Button, Grid, Typography, Box, Divider , useTheme} from "@mui/material";
 import { ResultRecordItem } from "../types/reportingTypes";
 import { StatusBadge, CategoryBadge } from "../../../components/StatusBadge";
 import { brandColors } from "../../../theme";
 import { useState } from "react";
 import { AuditHistoryDialog } from "../../../components/AuditHistoryDialog";
+import { FloatingDialog } from "../../../components/FloatingDialog";
 
 interface RecordDetailDialogProps {
   open: boolean;
@@ -19,23 +20,38 @@ export function RecordDetailDialog({ open, onClose, record }: RecordDetailDialog
 
   return (
     <>
-      <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
-        <DialogTitle sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: 1, borderColor: "divider", pb: 1.5 }}>
-          <Box>
-            <Typography sx={{ fontSize: 18, fontWeight: 700, color: theme.palette.primary.main }}>
-              Laboratory Result Record
-            </Typography>
-            <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
-              Reference: <strong>{record.referenceNumber}</strong> · Read-only source record
-            </Typography>
+      <FloatingDialog
+        open={open}
+        onClose={onClose}
+        maxWidth="md"
+        titleSx={{ pb: 1.5 }}
+        title={
+          <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", flex: 1, minWidth: 0 }}>
+            <Box>
+              <Typography sx={{ fontSize: 18, fontWeight: 700, color: theme.palette.primary.main }}>
+                Laboratory Result Record
+              </Typography>
+              <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
+                Reference: <strong>{record.referenceNumber}</strong> · Read-only source record
+              </Typography>
+            </Box>
+            <Box sx={{ display: "flex", gap: 1, mr: 1 }}>
+              <CategoryBadge category={record.category} />
+              <StatusBadge status={record.approvalStatus} />
+            </Box>
           </Box>
-          <Box sx={{ display: "flex", gap: 1 }}>
-            <CategoryBadge category={record.category} />
-            <StatusBadge status={record.approvalStatus} />
+        }
+        actions={
+          <Box sx={{ display: "flex", justifyContent: "space-between", width: "100%" }}>
+            <Button variant="outlined" size="small" onClick={() => setAuditOpen(true)}>
+              View Audit Trail
+            </Button>
+            <Button variant="contained" size="small" onClick={onClose}>
+              Close
+            </Button>
           </Box>
-        </DialogTitle>
-
-        <DialogContent sx={{ pt: 2.5 }}>
+        }
+      >
           <Grid container spacing={2}>
             {/* Section 1: Sample & Identification */}
             <Grid item xs={12}>
@@ -142,17 +158,7 @@ export function RecordDetailDialog({ open, onClose, record }: RecordDetailDialog
               </Typography>
             </Grid>
           </Grid>
-        </DialogContent>
-
-        <DialogActions sx={{ px: 3, py: 2, borderTop: 1, borderColor: "divider", justifyContent: "space-between" }}>
-          <Button variant="outlined" size="small" onClick={() => setAuditOpen(true)}>
-            View Audit Trail
-          </Button>
-          <Button variant="contained" size="small" onClick={onClose}>
-            Close
-          </Button>
-        </DialogActions>
-      </Dialog>
+      </FloatingDialog>
 
       <AuditHistoryDialog
         open={auditOpen}

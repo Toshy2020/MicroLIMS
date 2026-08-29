@@ -27,7 +27,6 @@ public class MediaSummaryService
     public async Task<MediaSummaryDto?> GetSummaryAsync(int mediaId)
     {
         var media = await _db.Media
-            .Include(m => m.MediaType)
             .Include(m => m.Material)
             .Include(m => m.AutoclaveEquipment)
             .FirstOrDefaultAsync(m => m.Id == mediaId);
@@ -37,6 +36,8 @@ public class MediaSummaryService
             .Include(e => e.Challenges).ThenInclude(c => c.Organism)
             .Include(e => e.Challenges).ThenInclude(c => c.Cryovial)
             .Include(e => e.Challenges).ThenInclude(c => c.Incubation).ThenInclude(i => i!.IncubatorEquipment)
+            .Include(e => e.Challenges).ThenInclude(c => c.ReferenceMedia)
+            .Include(e => e.Challenges).ThenInclude(c => c.LyophilizedDisk)
             .FirstOrDefaultAsync(e => e.MediaId == mediaId);
 
         var timeline = await _reviewGate.GetTimelineAsync(ReviewEntityTypes.Media, mediaId);
@@ -61,7 +62,11 @@ public class MediaSummaryService
         {
             MediaId = media.Id,
             LotNumber = media.LotNumber,
-            MediaClass = media.MediaType?.Class.ToString() ?? string.Empty,
+            // MediaType.Class no longer exists on Media - EvaluationType is
+            // the nearest equivalent classification and is what actually
+            // governed the GPT mechanic for this lot. Field kept as
+            // MediaClass for now (renaming is Phase 5/frontend scope).
+            MediaClass = evaluation?.EvaluationType.ToString() ?? string.Empty,
             MaterialName = media.Material?.MaterialName ?? string.Empty,
             ManufacturerName = media.ManufacturerName,
             ManufacturerLot = media.ManufacturerLot,
@@ -106,6 +111,7 @@ public class MediaSummaryService
                     OrganismName = c.Organism?.ScientificName ?? string.Empty,
                     ChallengeRole = c.ChallengeRole?.ToString(),
                     CryovialCode = c.Cryovial?.Code,
+                    LyophilizedDiskLabel = c.LyophilizedDisk == null ? null : $"{c.LyophilizedDisk.MaterialName} — batch {c.LyophilizedDisk.BatchNumber}",
                     InitialInoculum = c.InitialInoculum,
                     IncubatorName = c.Incubation?.IncubatorEquipment?.Name,
                     Temperature = c.Incubation?.Temperature,
@@ -115,6 +121,7 @@ public class MediaSummaryService
                     OldMediaCount = c.OldMediaCount,
                     NewMediaCount = c.NewMediaCount,
                     RecoveryPercent = c.RecoveryPercent,
+                    ReferenceMediaLabel = c.ReferenceMedia?.LotNumber ?? c.ReferenceMediaLabel,
                     GrowthObserved = c.GrowthObserved,
                     ObservedDescription = c.ObservedDescription,
                     ExpectedDescription = c.ExpectedDescription,
@@ -187,10 +194,10 @@ public class MediaSummaryService
             foreach (var c in e.Challenges)
             {
                 lines.Add($"  Challenge: {c.OrganismName}{(c.ChallengeRole is null ? "" : $" ({c.ChallengeRole})")}");
-                lines.Add($"    Cryovial: {c.CryovialCode ?? "-"}   Initial Inoculum: {c.InitialInoculum}");
+                lines.Add($"    Source: {c.CryovialCode ?? c.LyophilizedDiskLabel ?? "-"}   Initial Inoculum: {c.InitialInoculum}");
                 lines.Add($"    Incubator: {c.IncubatorName ?? "-"}   Temperature: {c.Temperature ?? "-"}   Duration: {c.Duration ?? "-"}");
                 if (c.RecoveryPercent is not null)
-                    lines.Add($"    Old Count: {c.OldMediaCount}   New Count: {c.NewMediaCount}   Recovery: {c.RecoveryPercent}%");
+                    lines.Add($"    Old Count: {c.OldMediaCount}   New Count: {c.NewMediaCount}   Recovery: {c.RecoveryPercent}%   Reference Lot: {c.ReferenceMediaLabel ?? "-"}");
                 if (c.GrowthObserved is not null)
                     lines.Add($"    Growth Observed: {(c.GrowthObserved.Value ? "Yes" : "No")}");
                 if (c.ObservedDescription is not null)

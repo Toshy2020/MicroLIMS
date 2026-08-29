@@ -10,6 +10,7 @@ import RuleOutlinedIcon from "@mui/icons-material/RuleOutlined";
 import FactCheckOutlinedIcon from "@mui/icons-material/FactCheckOutlined";
 import DescriptionOutlinedIcon from "@mui/icons-material/DescriptionOutlined";
 import SearchOutlinedIcon from "@mui/icons-material/SearchOutlined";
+import ReportProblemOutlinedIcon from "@mui/icons-material/ReportProblemOutlined";
 import SettingsOutlinedIcon from "@mui/icons-material/SettingsOutlined";
 import PeopleAltOutlinedIcon from "@mui/icons-material/PeopleAltOutlined";
 import AdminPanelSettingsOutlinedIcon from "@mui/icons-material/AdminPanelSettingsOutlined";
@@ -30,12 +31,12 @@ export interface MenuGroup {
 
 // Menu Items
 const dashboardItem: MenuItem = { label: "Dashboard", path: "/dashboard", icon: SpaceDashboardOutlinedIcon, group: "OVERVIEW" };
-const testingWorkspaceItem: MenuItem = { label: "Testing Workspace", path: "/testing-workspace", icon: ScienceOutlinedIcon, group: "MY WORK" };
+const receivingTestingItem: MenuItem = { label: "Receiving & Testing", path: "/receiving-testing", icon: ScienceOutlinedIcon, group: "MY WORK" };
 const mediaWorkspaceItem: MenuItem = { label: "Media Preparation & Evaluation", path: "/laboratory-configuration/media", icon: MedicationLiquidOutlinedIcon, group: "LABORATORY" };
 const cryovialsItem: MenuItem = { label: "Reference Cryovials", path: "/laboratory-configuration/cryovials", icon: AcUnitOutlinedIcon, group: "LABORATORY" };
-const receivingItem: MenuItem = { label: "Sample Receiving", path: "/receiving", icon: MoveToInboxOutlinedIcon, group: "OPERATIONS" };
 const reportsItem: MenuItem = { label: "Reports", path: "/reports", icon: DescriptionOutlinedIcon, group: "REPORTS" };
 const auditSearchItem: MenuItem = { label: "Audit Search", path: "/audit-search", icon: SearchOutlinedIcon, group: "AUDIT & COMPLIANCE" };
+const oosTrackingItem: MenuItem = { label: "OOS Tracking", path: "/oos-tracking", icon: ReportProblemOutlinedIcon, group: "AUDIT & COMPLIANCE" };
 
 const inventoryItem: MenuItem = {
   label: "Inventory",
@@ -57,8 +58,7 @@ const laboratoryConfigurationItem: MenuItem = {
     { label: "Test Master", path: "/laboratory-configuration/test-master" },
     { label: "Organisms", path: "/laboratory-configuration/organisms" },
     { label: "Items", path: "/laboratory-configuration/items" },
-    { label: "Media Types", path: "/laboratory-configuration/media-types" },
-    { label: "Media Challenge Specs", path: "/laboratory-configuration/media-challenge-specs" },
+    { label: "Media Configurations", path: "/laboratory-configuration/media-configurations" },
     { label: "Water", path: "/laboratory-configuration/water" },
     { label: "Environmental Monitoring", path: "/laboratory-configuration/environmental-monitoring" },
     { label: "After Cleaning", path: "/laboratory-configuration/after-cleaning" },
@@ -74,52 +74,47 @@ const rolesItem: MenuItem = { label: "Roles", path: "/roles", icon: AdminPanelSe
 const menuByRole: Record<Role, MenuItem[]> = {
   Analyst: [
     dashboardItem,
-    testingWorkspaceItem,
+    receivingTestingItem,
     mediaWorkspaceItem,
     cryovialsItem,
     inventoryItem,
-    receivingItem,
     reportsItem
   ],
   Reviewer: [
     dashboardItem,
-    testingWorkspaceItem,
+    receivingTestingItem,
     mediaWorkspaceItem,
     cryovialsItem,
-    receivingItem,
     reportsItem
   ],
   SectionHead: [
     dashboardItem,
-    testingWorkspaceItem,
+    receivingTestingItem,
     mediaWorkspaceItem,
     cryovialsItem,
-    receivingItem,
     inventoryItem,
     laboratoryConfigurationItem,
     reportsItem,
-    auditSearchItem
+    auditSearchItem,
+    oosTrackingItem
   ],
   SystemAdministrator: [
     dashboardItem,
-    testingWorkspaceItem,
+    receivingTestingItem,
     mediaWorkspaceItem,
     cryovialsItem,
-    receivingItem,
     inventoryItem,
     laboratoryConfigurationItem,
     usersItem,
     rolesItem,
     reportsItem,
-    auditSearchItem
+    auditSearchItem,
+    oosTrackingItem
   ]
 };
 
-export const getMenuForRole = (role: Role | null): MenuItem[] => (role ? menuByRole[role] ?? [] : []);
-export const getMenuItems = getMenuForRole;
-
 export function getGroupedMenuForRole(role: Role | null): MenuGroup[] {
-  const items = getMenuForRole(role);
+  const items = role ? menuByRole[role] ?? [] : [];
   const groups: Record<string, MenuItem[]> = {};
   for (const item of items) {
     const g = item.group || "OTHER";

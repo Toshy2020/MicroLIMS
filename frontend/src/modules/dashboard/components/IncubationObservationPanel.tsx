@@ -14,7 +14,6 @@ interface IncubationObservationPanelProps {
 
 export function IncubationObservationPanel({ rows }: IncubationObservationPanelProps) {
   const theme = useTheme();
-  const navigate = useNavigate();
 
   return (
     <Paper sx={{ p: 2.5, height: "100%", display: "flex", flexDirection: "column" }}>
@@ -22,7 +21,7 @@ export function IncubationObservationPanel({ rows }: IncubationObservationPanelP
         tabs={[
           {
             label: "Open Workspace",
-            onClick: () => navigate("/testing-workspace")
+            to: "/testing-workspace"
           }
         ]}
       >

@@ -35,6 +35,7 @@ import {
   MatrixCellInput
 } from "../types/pathogenSessionTypes";
 import { PathogenSessionService } from "../services/PathogenSessionService";
+import { ConfirmationDialog } from "../../../components/ConfirmationDialog";
 import { brandColors } from "../../../theme";
 
 interface Props {
@@ -59,6 +60,10 @@ export function PrimaryObservationMatrixPanel({ session, onUpdated, onNext }: Pr
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const [fillConfirmation, setFillConfirmation] = useState<{
+    cells: { sampleLocationId: number; testCode: string }[];
+    locationNames: string[];
+  } | null>(null);
 
   // Initialize cell values from session matrix
   useEffect(() => {
@@ -134,9 +139,14 @@ export function PrimaryObservationMatrixPanel({ session, onUpdated, onNext }: Pr
     setSaveSuccess(false);
   };
 
-  const handleFillAllNoGrowth = () => {
-    let eligibleCount = 0;
+  // Computes the eligible-cell set once (same pass used to populate the
+  // confirmation dialog's count/location list below is then reused as the
+  // actual fill target on confirm - never re-filtered a second time, so the
+  // dialog can never show a different set than what actually gets filled.
+  const handleFillAllNoGrowthClick = () => {
     let lockedCount = 0;
+    const cells: { sampleLocationId: number; testCode: string }[] = [];
+    const locationNames = new Set<string>();
 
     for (const loc of session.locations) {
       for (const test of session.assignedTests) {
@@ -151,46 +161,44 @@ export function PrimaryObservationMatrixPanel({ session, onUpdated, onNext }: Pr
           const slocId = loc.testLocationMap[test.testCode] ?? loc.primarySampleLocationId;
           const key = `${slocId}_${test.testCode}`;
           if (!primaryObservations[key]?.observation) {
-            eligibleCount++;
+            cells.push({ sampleLocationId: slocId, testCode: test.testCode });
+            locationNames.add(loc.locationName);
           }
         }
       }
     }
 
-    if (eligibleCount === 0) {
+    if (cells.length === 0) {
       setError(lockedCount > 0
         ? "No eligible empty cells to populate. Remaining empty cells are locked by upstream workflow prerequisites."
         : "All eligible qualitative cells already have primary observations.");
       return;
     }
 
+    setFillConfirmation({ cells, locationNames: Array.from(locationNames) });
+  };
+
+  const handleConfirmFillAllNoGrowth = () => {
+    if (!fillConfirmation) return;
+
     setPrimaryObservations((prev) => {
       const updated = { ...prev };
-      for (const loc of session.locations) {
-        for (const test of session.assignedTests) {
-          if (!test.isResultEntryAllowed) continue;
-
-          const isQuant = test.workflowType.toLowerCase().includes("count") ||
-                          test.testCode.toLowerCase().includes("tamc") ||
-                          test.testCode.toLowerCase().includes("tymc");
-          if (!isQuant) {
-            const slocId = loc.testLocationMap[test.testCode] ?? loc.primarySampleLocationId;
-            const key = `${slocId}_${test.testCode}`;
-            if (!updated[key]?.observation) {
-              updated[key] = {
-                sampleLocationId: slocId,
-                testCode: test.testCode,
-                observation: GrowthObservation.NoGrowth,
-                isQuantitative: false,
-                numericValue: null
-              };
-            }
-          }
+      for (const cell of fillConfirmation.cells) {
+        const key = `${cell.sampleLocationId}_${cell.testCode}`;
+        if (!updated[key]?.observation) {
+          updated[key] = {
+            sampleLocationId: cell.sampleLocationId,
+            testCode: cell.testCode,
+            observation: GrowthObservation.NoGrowth,
+            isQuantitative: false,
+            numericValue: null
+          };
         }
       }
       return updated;
     });
     setSaveSuccess(false);
+    setFillConfirmation(null);
   };
 
   // Calculate Dynamic Tri-State Counts
@@ -379,7 +387,7 @@ export function PrimaryObservationMatrixPanel({ session, onUpdated, onNext }: Pr
                 borderRadius: 4,
                 bgcolor: "divider",
                 "& .MuiLinearProgress-bar": {
-                  bgcolor: completedCount === totalCount ? "#059669" : brandColors.sectionTitle
+                  bgcolor: completedCount === totalCount ? theme.palette.secondary.main : brandColors.sectionTitle
                 }
               }}
             />
@@ -390,7 +398,7 @@ export function PrimaryObservationMatrixPanel({ session, onUpdated, onNext }: Pr
               variant="outlined"
               size="small"
               startIcon={<DoneAllIcon />}
-              onClick={handleFillAllNoGrowth}
+              onClick={handleFillAllNoGrowthClick}
               disabled={areAllTestsLocked || availableCount === 0}
               sx={{ fontSize: 12, fontWeight: 600, textTransform: "none" }}
             >
@@ -641,32 +649,16 @@ export function PrimaryObservationMatrixPanel({ session, onUpdated, onNext }: Pr
                     const hasRecordedCountResult = countResult?.reportedResult != null;
 
                     if (isQuant && hasRecordedCountResult && countResult) {
-                      const bgColor =
+                      const statusToneKey =
                         countResult.status === "OutOfSpecification"
-                          ? "#fee2e2"
+                          ? "detected"
                           : countResult.status === "ActionLimitExceeded"
-                          ? "#ffedd5"
+                          ? "action"
                           : countResult.status === "AlertLimitExceeded" || countResult.hasNonNumericReading
-                          ? "#fef3c7"
-                          : "#f0fdf4";
+                          ? "inconclusive"
+                          : "notDetected";
 
-                      const borderColor =
-                        countResult.status === "OutOfSpecification"
-                          ? "#fca5a5"
-                          : countResult.status === "ActionLimitExceeded"
-                          ? "#fdba74"
-                          : countResult.status === "AlertLimitExceeded" || countResult.hasNonNumericReading
-                          ? "#fcd34d"
-                          : "#bbf7d0";
-
-                      const textColor =
-                        countResult.status === "OutOfSpecification"
-                          ? "#991b1b"
-                          : countResult.status === "ActionLimitExceeded"
-                          ? "#9a3412"
-                          : countResult.status === "AlertLimitExceeded" || countResult.hasNonNumericReading
-                          ? "#92400e"
-                          : "#166534";
+                      const toneTokens = theme.custom.status[statusToneKey];
 
                       return (
                         <TableCell
@@ -683,20 +675,20 @@ export function PrimaryObservationMatrixPanel({ session, onUpdated, onNext }: Pr
                               p: 1,
                               borderRadius: 1,
                               minWidth: 110,
-                              backgroundColor: bgColor,
-                              border: `1px solid ${borderColor}`
+                              backgroundColor: toneTokens.bg,
+                              border: `1px solid ${toneTokens.border}`
                             }}
                           >
-                            <Typography variant="body2" sx={{ fontWeight: 700, color: textColor }}>
+                            <Typography variant="body2" sx={{ fontWeight: 700, color: toneTokens.text }}>
                               {countResult.reportedResult}
                             </Typography>
                             {!countResult.hasNonNumericReading && countResult.status && (
-                              <Typography variant="caption" sx={{ color: textColor, display: "block" }}>
+                              <Typography variant="caption" sx={{ color: toneTokens.text, display: "block" }}>
                                 {countResult.status.replace(/([A-Z])/g, " $1").trim()}
                               </Typography>
                             )}
                             {countResult.requiresReview && (
-                              <Typography variant="caption" sx={{ color: "#92400e", display: "block", fontWeight: 600 }}>
+                              <Typography variant="caption" sx={{ color: theme.custom.status.action.text, display: "block", fontWeight: 600 }}>
                                 ⚠ Review required
                               </Typography>
                             )}
@@ -713,7 +705,7 @@ export function PrimaryObservationMatrixPanel({ session, onUpdated, onNext }: Pr
                           p: 1,
                           borderRight: "1px solid",
                           borderRightColor: "divider",
-                          bgcolor: !isCellFilled ? "#fffbeb" : "inherit"
+                          bgcolor: !isCellFilled ? theme.custom.status.pending.bg : "inherit"
                         }}
                       >
                         {isQuant ? (
@@ -732,7 +724,7 @@ export function PrimaryObservationMatrixPanel({ session, onUpdated, onNext }: Pr
                               "& .MuiInputBase-root": {
                                 fontSize: 12,
                                 fontWeight: 700,
-                                bgcolor: "#ffffff"
+                                bgcolor: "background.paper"
                               }
                             }}
                           />
@@ -748,18 +740,18 @@ export function PrimaryObservationMatrixPanel({ session, onUpdated, onNext }: Pr
                                 fontSize: 12,
                                 fontWeight: 700,
                                 bgcolor: val?.observation === GrowthObservation.GrowthConforming
-                                  ? "#fee2e2"
+                                  ? theme.custom.status.detected.bg
                                   : val?.observation === GrowthObservation.GrowthNonConforming
-                                  ? "#ffedd5"
+                                  ? theme.custom.status.action.bg
                                   : val?.observation === GrowthObservation.NoGrowth
-                                  ? "#d1fae5"
-                                  : "#ffffff",
+                                  ? theme.custom.status.notDetected.bg
+                                  : "background.paper",
                                 color: val?.observation === GrowthObservation.GrowthConforming
-                                  ? "#991b1b"
+                                  ? theme.custom.status.detected.text
                                   : val?.observation === GrowthObservation.GrowthNonConforming
-                                  ? "#9a3412"
+                                  ? theme.custom.status.action.text
                                   : val?.observation === GrowthObservation.NoGrowth
-                                  ? "#065f46"
+                                  ? theme.custom.status.notDetected.text
                                   : "inherit"
                               }
                             }}
@@ -768,17 +760,17 @@ export function PrimaryObservationMatrixPanel({ session, onUpdated, onNext }: Pr
                               <em>Select Observation</em>
                             </MenuItem>
                             <MenuItem value={GrowthObservation.NoGrowth}>
-                              <Typography sx={{ fontSize: 12, fontWeight: 700, color: "#065f46" }}>
+                              <Typography sx={{ fontSize: 12, fontWeight: 700, color: theme.custom.status.notDetected.text }}>
                                 No Growth (-)
                               </Typography>
                             </MenuItem>
                             <MenuItem value={GrowthObservation.GrowthNonConforming}>
-                              <Typography sx={{ fontSize: 12, fontWeight: 700, color: "#c2410c" }}>
+                              <Typography sx={{ fontSize: 12, fontWeight: 700, color: theme.custom.status.action.text }}>
                                 Growth Non-Conforming
                               </Typography>
                             </MenuItem>
                             <MenuItem value={GrowthObservation.GrowthConforming}>
-                              <Typography sx={{ fontSize: 12, fontWeight: 800, color: "#dc2626" }}>
+                              <Typography sx={{ fontSize: 12, fontWeight: 800, color: theme.custom.status.detected.text }}>
                                 Growth Conforming (+)
                               </Typography>
                             </MenuItem>
@@ -793,6 +785,15 @@ export function PrimaryObservationMatrixPanel({ session, onUpdated, onNext }: Pr
           </Table>
         </Box>
       </Paper>
+
+      <ConfirmationDialog
+        open={fillConfirmation !== null}
+        message={fillConfirmation
+          ? `This will set ${fillConfirmation.cells.length} unset result${fillConfirmation.cells.length === 1 ? "" : "s"} as No Growth (-) across ${fillConfirmation.locationNames.length} location${fillConfirmation.locationNames.length === 1 ? "" : "s"}: ${fillConfirmation.locationNames.join(", ")}.`
+          : ""}
+        onConfirm={handleConfirmFillAllNoGrowth}
+        onCancel={() => setFillConfirmation(null)}
+      />
     </Stack>
   );
 }

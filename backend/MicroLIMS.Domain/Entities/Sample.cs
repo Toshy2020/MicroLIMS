@@ -20,6 +20,8 @@ public class Sample
     public Department? Department { get; set; }
     public int? MachineId { get; set; }            // After Cleaning only
     public Machine? Machine { get; set; }
+    public string? PreviousProductName { get; set; } // After Cleaning only (free text)
+    public string? PreviousProductBatchNumber { get; set; } // After Cleaning only (free text)
     public int? WaterDepartmentId { get; set; }    // Water only (batch model)
     public WaterDepartment? WaterDepartment { get; set; }
 
@@ -53,6 +55,30 @@ public class Sample
     public int? ApprovedByUserId { get; set; }
     public DateTime? ApprovedAt { get; set; }
     public ApprovalDecision? ApprovalDecision { get; set; }
+
+    // Customer-facing remark printed on the Certificate of Analysis,
+    // typed by the Approver at the point of approval only - deliberately
+    // separate from ElectronicSignature.Comment, which is internal QA
+    // context (deviations/CAPA/conditional-release reasoning) shared by
+    // both the Review and Approval steps and never meant to leave the
+    // building on a controlled document. Never auto-derived; null/empty
+    // renders as "No remarks." on the certificate. Lives here (not on
+    // ElectronicSignature) for the same reason ApprovedByUserId/ApprovedAt
+    // do: one current value per Sample, overwritten if a retested sample
+    // is approved again, not a per-signing-event audit row.
+    public string? CertificateRemarks { get; set; }
+
+    // Set only on a Sample spun up as an OOS retest (RetestRetainedSample's
+    // new sample, or either of NewSampleRequest's two new samples) -
+    // points back at the Sample whose approval decision created it. Null
+    // for every ordinarily-received Sample. Doubles as the OOS tracking
+    // page's query key (WHERE OriginSampleId IS NOT NULL).
+    public int? OriginSampleId { get; set; }
+    public Sample? OriginSample { get; set; }
+
+    // System-generated group code for out-of-specification investigation tracking (e.g. OOS0826001).
+    // Generated on the root sample upon its first OOS decision and inherited by all descendant retests.
+    public string? OosGroupCode { get; set; }
 
     public List<TestOrder> TestOrders { get; set; } = new();
     public List<SampleLocation> Locations { get; set; } = new();

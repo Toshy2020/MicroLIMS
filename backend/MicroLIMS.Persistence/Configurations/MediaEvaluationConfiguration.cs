@@ -31,5 +31,7 @@ public class MediaEvaluationChallengeConfiguration : IEntityTypeConfiguration<Me
         builder.HasOne(c => c.Cryovial).WithMany().HasForeignKey(c => c.CryovialId).OnDelete(DeleteBehavior.Restrict);
         builder.HasOne(c => c.Incubation).WithMany().HasForeignKey(c => c.IncubationId).OnDelete(DeleteBehavior.Restrict);
         builder.HasOne(c => c.Organism).WithMany().HasForeignKey(c => c.OrganismId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasOne(c => c.ReferenceMedia).WithMany().HasForeignKey(c => c.ReferenceMediaId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasOne(c => c.LyophilizedDisk).WithMany().HasForeignKey(c => c.LyophilizedDiskId).OnDelete(DeleteBehavior.Restrict);
     }
 }

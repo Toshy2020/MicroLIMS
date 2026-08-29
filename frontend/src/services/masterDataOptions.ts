@@ -15,24 +15,48 @@ export const masterDataOptions = {
   getNeutralizers: () => apiClient.get("/masterdata/neutralizers").then((r) => r.data.data),
   getEquipment: (type?: string) =>
     apiClient.get("/masterdata/equipment", { params: type ? { type } : {} }).then((r) => r.data.data),
-  getMediaTypes: () => apiClient.get("/masterdata/media-types").then((r) => r.data.data),
-  updateMediaType: (id: number, payload: any) => apiClient.put(`/masterdata/media-types/${id}`, payload).then((r) => r.data.data),
-  getReleasedMedia: (mediaTypeId?: number) =>
-    apiClient.get("/media/released", { params: mediaTypeId ? { mediaTypeId } : {} }).then((r) => r.data.data),
-  getMediaChallengeSpecs: (params?: { materialName?: string; evaluationType?: string }) =>
-    apiClient.get("/masterdata/media-challenge-specs", { params: params ?? {} }).then((r) => r.data.data),
-  createMediaChallengeSpec: (payload: { materialName: string; evaluationType: string; organismId: number; challengeRole?: string | null; expectedDescription?: string | null }) =>
-    apiClient.post("/masterdata/media-challenge-specs", payload).then((r) => r.data.data),
-  updateMediaChallengeSpec: (id: number, payload: { materialName: string; evaluationType: string; organismId: number; challengeRole?: string | null; expectedDescription?: string | null }) =>
-    apiClient.put(`/masterdata/media-challenge-specs/${id}`, payload).then((r) => r.data.data),
-  deleteMediaChallengeSpec: (id: number) => apiClient.delete(`/masterdata/media-challenge-specs/${id}`),
-  getApprovedMedia: (testCode: string) =>
-    apiClient.get("/test-definition-media-lookup/approved-media", { params: { testCode } }).then((r) => r.data.data),
+  getReleasedMedia: (materialId?: number, opts?: { includeExpired?: boolean; excludeId?: number }) =>
+    apiClient.get("/media/released", { params: { ...(materialId ? { materialId } : {}), ...opts } }).then((r) => r.data.data),
+  getMediaConfigurations: () =>
+    apiClient.get("/masterdata/media-configurations").then((r) => r.data.data),
+  createMediaConfiguration: (payload: {
+    name: string;
+    evaluationType: string;
+    incubationMinHours: number;
+    incubationMaxHours: number;
+    temperatureMin: number;
+    temperatureMax: number;
+    recoveryPercentMin?: number | null;
+    recoveryPercentMax?: number | null;
+    challenges?: {
+      organismId: number;
+      challengeRole?: string | null;
+      expectedDescription?: string | null;
+      initialInoculum?: string | null;
+    }[];
+  }) => apiClient.post("/masterdata/media-configurations", payload).then((r) => r.data.data),
+  updateMediaConfiguration: (id: number, payload: {
+    name: string;
+    evaluationType: string;
+    incubationMinHours: number;
+    incubationMaxHours: number;
+    temperatureMin: number;
+    temperatureMax: number;
+    recoveryPercentMin?: number | null;
+    recoveryPercentMax?: number | null;
+    challenges?: {
+      organismId: number;
+      challengeRole?: string | null;
+      expectedDescription?: string | null;
+      initialInoculum?: string | null;
+    }[];
+  }) => apiClient.put(`/masterdata/media-configurations/${id}`, payload).then((r) => r.data.data),
+  deleteMediaConfiguration: (id: number) => apiClient.delete(`/masterdata/media-configurations/${id}`),
   getOrganisms: () => apiClient.get("/masterdata/organisms").then((r) => r.data.data),
-  createOrganism: (scientificName: string, atccNumber?: string | null, commonName?: string | null) =>
-    apiClient.post("/masterdata/organisms", { scientificName, atccNumber: atccNumber || null, commonName: commonName || null }).then((r) => r.data.data),
-  updateOrganism: (id: number, scientificName: string, atccNumber?: string | null, commonName?: string | null) =>
-    apiClient.put(`/masterdata/organisms/${id}`, { scientificName, atccNumber: atccNumber || null, commonName: commonName || null }).then((r) => r.data.data),
+  createOrganism: (scientificName: string, atccNumber?: string | null, commonName?: string | null, description?: string | null) =>
+    apiClient.post("/masterdata/organisms", { scientificName, atccNumber: atccNumber || null, commonName: commonName || null, description: description || null }).then((r) => r.data.data),
+  updateOrganism: (id: number, scientificName: string, atccNumber?: string | null, commonName?: string | null, description?: string | null) =>
+    apiClient.put(`/masterdata/organisms/${id}`, { scientificName, atccNumber: atccNumber || null, commonName: commonName || null, description: description || null }).then((r) => r.data.data),
   deleteOrganism: (id: number) => apiClient.delete(`/masterdata/organisms/${id}`),
   getTestDefinitions: () => apiClient.get("/masterdata/test-definitions").then((r) => r.data.data),
   createTestDefinition: (code: string, displayName: string) =>
@@ -43,13 +67,6 @@ export const masterDataOptions = {
     apiClient.put(`/masterdata/test-definitions/${id}/freeze`).then((r) => r.data.data),
   unfreezeTestDefinition: (id: number) =>
     apiClient.put(`/masterdata/test-definitions/${id}/unfreeze`).then((r) => r.data.data),
-  getTestDefinitionMedia: (testDefinitionId: number) =>
-    apiClient.get("/masterdata/test-definition-media", { params: { testDefinitionId } }).then((r) => r.data.data),
-  createTestDefinitionMedia: (testDefinitionId: number, mediaTypeId: number, stepName?: string) =>
-    apiClient.post("/masterdata/test-definition-media", { testDefinitionId, mediaTypeId, stepName: stepName || null }).then((r) => r.data.data),
-  updateTestDefinitionMedia: (id: number, mediaTypeId: number, stepName?: string) =>
-    apiClient.put(`/masterdata/test-definition-media/${id}`, { mediaTypeId, stepName: stepName || null }).then((r) => r.data.data),
-  deleteTestDefinitionMedia: (id: number) => apiClient.delete(`/masterdata/test-definition-media/${id}`),
   updateWorkflowType: (testDefinitionId: number, workflowType: string) =>
     apiClient.put(`/masterdata/test-definitions/${testDefinitionId}/workflow-type`, { workflowType }).then((r) => r.data.data),
   getTestWorkflowSteps: (testDefinitionId: number) =>
@@ -57,18 +74,24 @@ export const masterDataOptions = {
   getMaterials: (type?: string) =>
     apiClient.get("/inventory/materials", { params: type ? { type } : {} }).then((r) => r.data.data),
   createTestWorkflowStep: (testDefinitionId: number, payload: {
-    stepName: string; mediaTypeId: number | null; incubationMinHours: number; incubationMaxHours: number;
+    stepName: string; incubationMinHours: number; incubationMaxHours: number;
     temperatureMin: number; temperatureMax: number; isFinalStep: boolean; stepType: string;
-    targetOrganismId: number | null; phenotypicTestType: string | null;
-    stepMedia: { materialId: number; tempMin: number; tempMax: number; isRequired: boolean; displayOrder: number }[];
+    targetOrganismId: number | null; phenotypicTestType: string | null; phenotypicTestTypes?: string[];
+    stepMedia: {
+      materialId: number; mediaConfigurationId: number | null; tempMin: number; tempMax: number;
+      incubationMinHours: number; incubationMaxHours: number; isRequired: boolean; displayOrder: number
+    }[];
     requiresIncubationTransfer: boolean;
     incubationStages: { stageNumber: number; tempMin: number; tempMax: number; incubationMinHours: number; incubationMaxHours: number }[];
   }) => apiClient.post(`/masterdata/test-definitions/${testDefinitionId}/steps`, payload).then((r) => r.data.data),
   updateTestWorkflowStep: (stepId: number, payload: {
-    stepName: string; mediaTypeId: number | null; incubationMinHours: number; incubationMaxHours: number;
+    stepName: string; incubationMinHours: number; incubationMaxHours: number;
     temperatureMin: number; temperatureMax: number; isFinalStep: boolean; stepType: string;
-    targetOrganismId: number | null; phenotypicTestType: string | null;
-    stepMedia: { materialId: number; tempMin: number; tempMax: number; isRequired: boolean; displayOrder: number }[];
+    targetOrganismId: number | null; phenotypicTestType: string | null; phenotypicTestTypes?: string[];
+    stepMedia: {
+      materialId: number; mediaConfigurationId: number | null; tempMin: number; tempMax: number;
+      incubationMinHours: number; incubationMaxHours: number; isRequired: boolean; displayOrder: number
+    }[];
     requiresIncubationTransfer: boolean;
     incubationStages: { stageNumber: number; tempMin: number; tempMax: number; incubationMinHours: number; incubationMaxHours: number }[];
   }) => apiClient.put(`/masterdata/test-definitions/steps/${stepId}`, payload).then((r) => r.data.data),
@@ -85,7 +108,7 @@ export const PRODUCTION_STAGES = ["B", "IP", "F.P", "S.F", "Coating", "Compresse
 // MediaType is a fixed set of 4 rows, one per MediaClass - it no longer
 // has a Name/Code, so this is the friendly label used everywhere a
 // media type is shown in a dropdown or table.
-export const MEDIA_CLASS_LABELS: Record<string, string> = {
+const MEDIA_CLASS_LABELS: Record<string, string> = {
   GeneralAgar: "General Agar",
   GeneralBroth: "General Broth",
   SelectiveAgar: "Selective Agar",
@@ -94,7 +117,7 @@ export const MEDIA_CLASS_LABELS: Record<string, string> = {
 export const mediaClassLabel = (mediaClass?: string) => (mediaClass && MEDIA_CLASS_LABELS[mediaClass]) || mediaClass || "";
 
 // Media Evaluation - the three named tests, one per MediaClass grouping.
-export const EVALUATION_TYPE_LABELS: Record<string, string> = {
+const EVALUATION_TYPE_LABELS: Record<string, string> = {
   GrowthPromotion: "Growth Promotion",
   IndicationInhibition: "Indication / Inhibition",
   EnrichmentCharacteristics: "Enrichment Characteristics"

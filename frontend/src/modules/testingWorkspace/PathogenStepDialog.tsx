@@ -8,7 +8,6 @@ import { BrothStepPanel } from "./pathogenSteps/BrothStepPanel";
 import { BrothWaitingPanel } from "./pathogenSteps/BrothWaitingPanel";
 import { SelectivePlatingPanel } from "./pathogenSteps/SelectivePlatingPanel";
 import { UnsupportedStepPanel } from "./pathogenSteps/UnsupportedStepPanel";
-import { InconclusiveTerminalPanel } from "./pathogenSteps/InconclusiveTerminalPanel";
 import { ConfirmatoryPlatingPanel } from "./pathogenSteps/ConfirmatoryPlatingPanel";
 import { BiochemicalTestPanel } from "./pathogenSteps/BiochemicalTestPanel";
 
@@ -26,10 +25,6 @@ const INCONCLUSIVE_OUTCOME_MARKER = "Inconclusive";
 function getConfirmatoryOutcome(current: CurrentStepResponse): string | null {
   const confirmatoryStep = current.completedSteps.find((s) => s.stepType === "ConfirmatoryPlating");
   return confirmatoryStep?.outcome ?? null;
-}
-
-function isInconclusiveTerminal(current: CurrentStepResponse): boolean {
-  return !!getConfirmatoryOutcome(current)?.includes(INCONCLUSIVE_OUTCOME_MARKER);
 }
 
 function StepChainStrip({ current }: { current: CurrentStepResponse }) {
@@ -84,17 +79,6 @@ export function PathogenStepDialog({ testOrderId, onClose }: Props) {
     return (
       <Box sx={{ py: 4 }}>
         {error ? <Alert severity="error">{error}</Alert> : <LoadingSpinner />}
-      </Box>
-    );
-  }
-
-  if (isInconclusiveTerminal(current)) {
-    return (
-      <Box>
-        <StepChainStrip current={current} />
-        <Box sx={{ mt: 2 }}>
-          <InconclusiveTerminalPanel />
-        </Box>
       </Box>
     );
   }

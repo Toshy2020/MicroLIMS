@@ -1,7 +1,15 @@
 import { Box, Paper, TextField, Select, MenuItem, InputAdornment, Button, FormControl, InputLabel } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
 import FilterAltOffIcon from "@mui/icons-material/FilterAltOff";
+import ViewListIcon from "@mui/icons-material/ViewList";
+import ViewModuleIcon from "@mui/icons-material/ViewModule";
+import ViewKanbanIcon from "@mui/icons-material/ViewKanban";
+import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
+import ToggleButton from "@mui/material/ToggleButton";
+import FileDownloadOutlinedIcon from "@mui/icons-material/FileDownloadOutlined";
 import { RECEIVING_CATEGORIES, SAMPLE_STATUS_OPTIONS, TEST_STATUS_OPTIONS } from "../constants/receivingConstants";
+
+export type SampleFilterBarViewMode = "table" | "card" | "kanban";
 
 interface Props {
   search: string;
@@ -18,6 +26,12 @@ interface Props {
   onToDateChange: (v: string) => void;
   onResetFilters: () => void;
   hasActiveFilters: boolean;
+  // Display-mode toggle (table/card/kanban) and CSV export, shown beside
+  // the search field - optional so this bar still works anywhere it's
+  // used without a view switcher.
+  viewMode?: SampleFilterBarViewMode;
+  onViewModeChange?: (v: SampleFilterBarViewMode) => void;
+  onExport?: () => void;
 }
 
 export function SampleFilterBar({
@@ -34,7 +48,10 @@ export function SampleFilterBar({
   toDate,
   onToDateChange,
   onResetFilters,
-  hasActiveFilters
+  hasActiveFilters,
+  viewMode,
+  onViewModeChange,
+  onExport
 }: Props) {
   return (
     <Paper
@@ -49,27 +66,69 @@ export function SampleFilterBar({
       }}
     >
       <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
-        {/* Main Search Bar */}
-        <TextField
-          fullWidth
-          size="small"
-          placeholder="Search by item, reference number, control number, batch number..."
-          value={search}
-          onChange={(e) => onSearchChange(e.target.value)}
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <SearchIcon sx={{ color: "text.secondary", fontSize: 20 }} />
-              </InputAdornment>
-            )
-          }}
-          sx={{
-            "& .MuiOutlinedInput-root": {
-              borderRadius: 1.5,
-              bgcolor: "background.default"
-            }
-          }}
-        />
+        {/* Main Search Bar, with the display-mode toggle and export beside it */}
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+          <TextField
+            fullWidth
+            size="small"
+            placeholder="Search by item, reference number, control number, batch number..."
+            value={search}
+            onChange={(e) => onSearchChange(e.target.value)}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <SearchIcon sx={{ color: "text.secondary", fontSize: 20 }} />
+                </InputAdornment>
+              )
+            }}
+            sx={{
+              "& .MuiOutlinedInput-root": {
+                borderRadius: 1.5,
+                bgcolor: "background.default"
+              }
+            }}
+          />
+
+          {viewMode && onViewModeChange && (
+            <ToggleButtonGroup
+              value={viewMode}
+              exclusive
+              size="small"
+              onChange={(_, v) => v && onViewModeChange(v)}
+              sx={{ flexShrink: 0 }}
+            >
+              <ToggleButton value="table" title="Table View">
+                <ViewListIcon fontSize="small" />
+              </ToggleButton>
+              <ToggleButton value="card" title="Card View">
+                <ViewModuleIcon fontSize="small" />
+              </ToggleButton>
+              <ToggleButton value="kanban" title="Kanban View">
+                <ViewKanbanIcon fontSize="small" />
+              </ToggleButton>
+            </ToggleButtonGroup>
+          )}
+
+          {onExport && (
+            <Button
+              size="small"
+              variant="outlined"
+              startIcon={<FileDownloadOutlinedIcon />}
+              onClick={onExport}
+              sx={{
+                flexShrink: 0,
+                borderColor: "divider",
+                color: "text.secondary",
+                fontSize: 12,
+                fontWeight: 600,
+                textTransform: "none",
+                whiteSpace: "nowrap"
+              }}
+            >
+              Export CSV
+            </Button>
+          )}
+        </Box>
 
         {/* Filter Dropdowns & Date Pickers */}
         <Box

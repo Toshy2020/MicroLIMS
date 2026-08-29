@@ -2,6 +2,8 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.AspNetCore.Authorization;
+using MicroLIMS.API.Authorization;
 using MicroLIMS.API.Extensions;
 using MicroLIMS.API.Filters;
 using MicroLIMS.API.Json;
@@ -62,6 +64,12 @@ builder.Services.AddAuthentication(options =>
 });
 
 builder.Services.AddAuthorization();
+// Permission-based authorization, running alongside the existing role-
+// string [Authorize(Roles=...)] system - not replacing it in this phase.
+// [Authorize(Policy = "<permission code>")] resolves dynamically via
+// PermissionPolicyProvider, no per-code AddPolicy() call needed.
+builder.Services.AddSingleton<IAuthorizationPolicyProvider, PermissionPolicyProvider>();
+builder.Services.AddSingleton<IAuthorizationHandler, PermissionAuthorizationHandler>();
 builder.Services.AddControllers(options => options.Filters.Add<ValidationFilter>())
     .AddJsonOptions(options =>
     {

@@ -29,17 +29,16 @@ public class ResultProjectionTests
     private static async Task<(TestOrder order, Media media)> SeedTamcOrderAsync(MicroLimsDbContext db)
     {
         var testDefinition = new TestDefinition { Code = "TAMC", DisplayName = "Total Aerobic Microbial Count", WorkflowType = WorkflowType.CountTest };
-        var generalAgar = new MediaType { Class = MediaClass.GeneralAgar, IncubationMinHours = 24, IncubationMaxHours = 48, RequiredTemperatureMin = 30, RequiredTemperatureMax = 35 };
         db.TestDefinitions.Add(testDefinition);
-        db.MediaTypes.Add(generalAgar);
         await db.SaveChangesAsync();
 
-        db.TestWorkflowSteps.Add(new TestWorkflowStep
+        var step = new TestWorkflowStep
         {
-            TestDefinitionId = testDefinition.Id, StepOrder = 1, StepName = "CountIncubation", MediaTypeId = generalAgar.Id,
+            TestDefinitionId = testDefinition.Id, StepOrder = 1, StepName = "CountIncubation", 
             IncubationMinHours = 0, IncubationMaxHours = 120, TemperatureMin = 30, TemperatureMax = 35,
             IsFinalStep = true, StepType = StepType.PlateCount
-        });
+        };
+        db.TestWorkflowSteps.Add(step);
 
         var material = new Material
         {
@@ -49,9 +48,15 @@ public class ResultProjectionTests
         };
         db.Materials.Add(material);
         await db.SaveChangesAsync();
+        db.TestWorkflowStepMedias.Add(new TestWorkflowStepMedia { TestWorkflowStepId = step.Id, MaterialId = material.Id, TempMin = 30, TempMax = 35 });
 
-        var media = new Media { MediaTypeId = generalAgar.Id, MaterialId = material.Id, LotNumber = "TSA/1/26", IsReleasedForUse = true, Status = MediaStatus.Active, ExpiryDate = DateTime.UtcNow.AddDays(30) };
+        var media = new Media { MaterialId = material.Id, LotNumber = "TSA/1/26", IsReleasedForUse = true, Status = MediaStatus.Active, ExpiryDate = DateTime.UtcNow.AddDays(30) };
         db.Media.Add(media);
+        // First Equipment row added to this fresh in-memory DB, so it gets
+        // Id 1 - matching the hardcoded incubatorEquipmentId: 1 the tests
+        // below pass to SelectMediaAsync, which now enforces incubator
+        // eligibility (temperature must fall within the step medium's range).
+        db.Equipment.Add(new Equipment { Name = "Incubator", Code = "INC-1", Type = EquipmentType.Incubator, SetPointTemperature = 32 });
 
         var point = new WaterSamplingPoint { Code = "WP-01", Location = "Utility Room", AssignedTestCodes = new() { "TAMC" } };
         db.WaterSamplingPoints.Add(point);
@@ -163,17 +168,16 @@ public class ResultProjectionTests
         db.RoomTestConfigurations.AddRange(configs);
         await db.SaveChangesAsync();
 
-        var mediaType = new MediaType { Class = MediaClass.GeneralAgar, IncubationMinHours = 24, IncubationMaxHours = 48, RequiredTemperatureMin = 30, RequiredTemperatureMax = 35 };
         var testDefinition = new TestDefinition { Code = "TAMC", DisplayName = "TAMC", WorkflowType = WorkflowType.CountTest };
-        db.MediaTypes.Add(mediaType);
         db.TestDefinitions.Add(testDefinition);
         await db.SaveChangesAsync();
 
-        db.TestWorkflowSteps.Add(new TestWorkflowStep
+        var step = new TestWorkflowStep
         {
-            TestDefinitionId = testDefinition.Id, StepOrder = 1, StepName = "CountIncubation", MediaTypeId = mediaType.Id,
+            TestDefinitionId = testDefinition.Id, StepOrder = 1, StepName = "CountIncubation", 
             IncubationMinHours = 0, IncubationMaxHours = 24, TemperatureMin = 30, TemperatureMax = 35, IsFinalStep = true
-        });
+        };
+        db.TestWorkflowSteps.Add(step);
 
         var material = new Material
         {
@@ -183,9 +187,10 @@ public class ResultProjectionTests
         };
         db.Materials.Add(material);
         await db.SaveChangesAsync();
+        db.TestWorkflowStepMedias.Add(new TestWorkflowStepMedia { TestWorkflowStepId = step.Id, MaterialId = material.Id, TempMin = 30, TempMax = 35 });
 
-        var media = new Media { MediaTypeId = mediaType.Id, MaterialId = material.Id, LotNumber = "TSA/EM", IsReleasedForUse = true, Status = MediaStatus.Active, ExpiryDate = DateTime.UtcNow.AddDays(30) };
-        var equipment = new Equipment { Name = "Incubator EM", Code = "INC-EM", Type = EquipmentType.Incubator };
+        var media = new Media { MaterialId = material.Id, LotNumber = "TSA/EM", IsReleasedForUse = true, Status = MediaStatus.Active, ExpiryDate = DateTime.UtcNow.AddDays(30) };
+        var equipment = new Equipment { Name = "Incubator EM", Code = "INC-EM", Type = EquipmentType.Incubator, SetPointTemperature = 32 };
         db.Media.Add(media);
         db.Equipment.Add(equipment);
         await db.SaveChangesAsync();
@@ -200,7 +205,7 @@ public class ResultProjectionTests
 
         var locations = await workflowEngine.GetLocationsAsync(order.Id);
         Assert.Equal(5, locations.Count);
-        await workflowEngine.RecordBatchResultsAsync(order.Id, 1, locations.Select(l => new BatchLocationResult(l.Id, 0)).ToList(), 1);
+        await workflowEngine.RecordBatchResultsAsync(order.Id, locations.Select(l => new BatchLocationReadings(l.Id, new List<decimal> { 0 })).ToList(), 1);
 
         var records = await db.ResultRecords.Where(r => r.TestOrderId == order.Id).ToListAsync();
         Assert.Equal(5, records.Count);
@@ -307,7 +312,7 @@ public class ResultProjectionTests
 
         // Answering the send-back updates that same row, rather than
         // adding a second reportable result for the order.
-        await engine.SubmitBiochemicalAsync(order.Id, "Biochemical Test", "IMViC: + + - -", null, analystId);
+        await engine.SubmitBiochemicalAsync(order.Id, "Biochemical Test", "IMViC: + + - -", null, true, analystId);
 
         var confirmed = Assert.Single(await db.ResultRecords.Where(r => r.TestOrderId == order.Id).ToListAsync());
         Assert.Equal("Detected", confirmed.ReportedValue);

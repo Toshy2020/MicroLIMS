@@ -1,7 +1,6 @@
 import { Box, useTheme } from "@mui/material";
 import { Theme } from "@mui/material/styles";
-import { brandColors } from "../theme";
-import { statusTone } from "../theme/statusTokens";
+import { statusTone, StatusTone } from "../theme/statusTokens";
 
 const statusLabelMap: Record<string, string> = {
   InProgress: "In Progress",
@@ -18,9 +17,11 @@ const statusLabelMap: Record<string, string> = {
   AlertLevel: "Alert Level",
   ActionLevel: "Action Level",
   NotApplicable: "Not Applicable",
+  LimitsNotConfigured: "Limits Not Configured",
   DueSoon: "Due Soon",
   DueToday: "Due Today",
-  DueTomorrow: "Due Tomorrow"
+  DueTomorrow: "Due Tomorrow",
+  Returned: "Returned"
 };
 
 // Shared color lookup so non-badge UI (e.g. the Result Level segmented
@@ -54,10 +55,25 @@ export function StatusBadge({ status, label }: { status: string; label?: string 
   );
 }
 
-// .cause-badge pill from the design (light purple background).
+// .cause-badge pill from the design (purple tone).
 export function CauseBadge({ label }: { label: string }) {
+  const theme = useTheme();
+  const tokens = theme.custom.status.purple;
   return (
-    <Box component="span" sx={{ display: "inline-block", px: 1, py: 0.25, borderRadius: 5, fontSize: 11, fontWeight: 700, bgcolor: brandColors.causeBadgeBg, color: brandColors.causeBadgeText }}>
+    <Box
+      component="span"
+      sx={{
+        display: "inline-block",
+        px: 1,
+        py: 0.25,
+        borderRadius: 5,
+        fontSize: 11,
+        fontWeight: 700,
+        bgcolor: tokens.bg,
+        color: tokens.text,
+        border: `1px solid ${tokens.border}`
+      }}
+    >
       {label}
     </Box>
   );
@@ -73,31 +89,46 @@ const categoryDisplayMap: Record<string, string> = {
   EnvironmentalMonitoring: "EM",
   AfterCleaning: "AC"
 };
-const categoryColorMap: Record<string, string> = {
-  RawMaterial: brandColors.badgeRM,
-  FinishedProduct: brandColors.badgeProduct,
-  PackagingMaterial: brandColors.badgePM,
-  // Reports module surfaces every SampleCategory (not just Product/RM/PM),
-  // so Water/EM/After Cleaning/GPT need their own colors too.
-  Water: "#0891b2",
-  EnvironmentalMonitoring: "#7c3aed",
-  AfterCleaning: "#be185d",
-  GPT: "#64748b"
+
+const categoryToneMap: Record<string, StatusTone> = {
+  RawMaterial: "info",
+  FinishedProduct: "notDetected",
+  PackagingMaterial: "action",
+  EnvironmentalMonitoring: "purple",
+  Water: "inconclusive",
+  AfterCleaning: "detected",
+  GPT: "pending",
+  ReferenceStrain: "pale"
 };
+
+function categoryTone(category: string): StatusTone {
+  return categoryToneMap[category] ?? "pending";
+}
 
 export function categoryLabel(category: string): string {
   return categoryDisplayMap[category] ?? category;
 }
 
-export function categoryColor(category: string): string {
-  return categoryColorMap[category] ?? "#6b7280";
-}
-
 export function CategoryBadge({ category }: { category: string }) {
+  const theme = useTheme();
+  const tone = categoryTone(category);
+  const tokens = theme.custom.status[tone];
   const label = categoryDisplayMap[category] ?? category;
-  const bg = categoryColorMap[category] ?? "#6b7280";
   return (
-    <Box component="span" sx={{ display: "inline-block", px: 1, py: 0.25, borderRadius: 5, fontSize: 11, fontWeight: 700, color: "#fff", bgcolor: bg }}>
+    <Box
+      component="span"
+      sx={{
+        display: "inline-block",
+        px: 1,
+        py: 0.25,
+        borderRadius: 5,
+        fontSize: 11,
+        fontWeight: 700,
+        color: tokens.text,
+        bgcolor: tokens.bg,
+        border: `1px solid ${tokens.border}`
+      }}
+    >
       {label}
     </Box>
   );

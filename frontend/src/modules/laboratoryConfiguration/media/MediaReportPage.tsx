@@ -157,6 +157,8 @@ export function MediaReportPage() {
                   <span style={{ fontSize: 13, color: "#888" }}>
                     No challenge organisms configured for this material — the lot cannot conform until challenge specs exist.
                   </span>
+                ) : s.evaluation.evaluationType === "GrowthPromotion" ? (
+                  s.evaluation.challenges.map((c, i) => <GrowthPromotionCard key={i} c={c} lotNumber={s.lotNumber} />)
                 ) : (
                   s.evaluation.challenges.map((c, i) => <ChallengeRow key={i} c={c} />)
                 )}
@@ -192,11 +194,63 @@ export function MediaReportPage() {
   );
 }
 
+// One card per organism for a GrowthPromotion evaluation - per the
+// approved media-lot-organism-reorg mockup. Row 1: identity (organism,
+// initial inoculum, cryovial). Row 2: old lot (the reference media the
+// initial count came from, when tracked) -> this lot's own new count,
+// recovery %, and the per-challenge Conform/Non-Conform call. Meta line:
+// incubator/temperature/analyst/date. The other three evaluation types
+// (Inhibition/Indication/EnrichmentCharacteristics) still render via the
+// plain ChallengeRow below, unchanged.
+function GrowthPromotionCard({ c, lotNumber }: { c: MediaChallengeSummary; lotNumber: string }) {
+  const conforms = c.outcome !== "NonConform";
+  const hasReferenceLot = Boolean(c.referenceMediaLabel);
+
+  return (
+    <div className="gp-card">
+      <div className="gp-row1">
+        <div className="gp-name">{c.organismName}</div>
+        <div className="gp-inoc">
+          Initial Inoculum: <b>{c.initialInoculum || "—"}</b>
+        </div>
+        {c.cryovialCode && <div className="gp-cryo">Cryovial {c.cryovialCode}</div>}
+      </div>
+
+      <div className="gp-row2">
+        <div className="gp-lot-pill">
+          <span className="lc">
+            {hasReferenceLot ? c.referenceMediaLabel : <>— <span className="gp-flag">old lot code n/a</span></>}
+          </span>
+          <span className="lv">{c.oldMediaCount ?? "—"} CFU</span>
+        </div>
+        <span className="gp-arrow">→</span>
+        <div className="gp-lot-pill">
+          <span className="lc">{lotNumber}</span>
+          <span className="lv">{c.newMediaCount ?? "—"} CFU</span>
+        </div>
+        {c.recoveryPercent !== null && (
+          <span className={`gp-recovery ${conforms ? "" : "is-danger"}`}>{c.recoveryPercent}%</span>
+        )}
+        <div className={`gp-conform-badge ${conforms ? "" : "is-danger"}`}>
+          {conforms ? <CheckIcon /> : <CrossIcon />}
+          {conforms ? "Conform" : "Non-Conform"}
+        </div>
+      </div>
+
+      <div className="gp-meta">
+        {[c.incubatorName, c.temperature, c.readByName, c.readAt ? dt(c.readAt) : null].filter(Boolean).join(" · ")}
+      </div>
+    </div>
+  );
+}
+
 // Which numbers matter depends on the evaluation type, so the row shows
 // only the measurements that challenge actually produced.
 function ChallengeRow({ c }: { c: MediaChallengeSummary }) {
   const detail: string[] = [];
+  if (c.initialInoculum) detail.push(`Initial Inoculum: ${c.initialInoculum}`);
   if (c.recoveryPercent !== null) detail.push(`Recovery ${c.recoveryPercent}% (${c.oldMediaCount} → ${c.newMediaCount})`);
+  if (c.referenceMediaLabel) detail.push(`Reference Lot: ${c.referenceMediaLabel}`);
   if (c.growthObserved !== null) detail.push(c.growthObserved ? "Growth observed" : "No growth");
   if (c.observedDescription) detail.push(`Observed: ${c.observedDescription}`);
   if (c.expectedDescription) detail.push(`Expected: ${c.expectedDescription}`);

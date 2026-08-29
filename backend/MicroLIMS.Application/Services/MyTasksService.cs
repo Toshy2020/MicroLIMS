@@ -19,7 +19,9 @@ public record MyTaskDto(
     TaskUrgency Urgency,
     int? SampleId,
     int? TestOrderId,
-    int? MediaId);
+    int? MediaId,
+    bool IsReturned = false,
+    string? ReturnReason = null);
 
 // "My Tasks" for the Analyst dashboard. Product/Water/EM/After Cleaning
 // all flow through the same Sample -> TestOrder -> Incubation tables (no
@@ -57,16 +59,39 @@ public class MyTasksService
             .Include(t => t.Incubations)
             .ToListAsync();
 
+        var pendingReturns = await TestReturnHelper.GetPendingReturnsForOrdersAsync(_db, testOrders.Select(t => t.Id));
+
         foreach (var t in testOrders)
         {
+            var sample = t.Sample!;
+            var location = sample.Item?.Name ?? sample.WaterSamplingPoint?.Code ?? sample.Department?.Name ?? sample.Machine?.Name ?? sample.ReferenceNumber;
+
+            if (pendingReturns.TryGetValue(t.Id, out var returnInfo))
+            {
+                var returnReasonSubtitle = string.IsNullOrWhiteSpace(returnInfo.Reason)
+                    ? $"{sample.ReferenceNumber} · {t.TestCode} · Returned for revision"
+                    : $"{sample.ReferenceNumber} · {t.TestCode} · Returned: {returnInfo.Reason}";
+
+                tasks.Add(new MyTaskDto(
+                    TaskType: "Revise Test",
+                    Title: $"Revise {t.TestCode} — {location}",
+                    Subtitle: returnReasonSubtitle,
+                    ReferenceId: sample.ReferenceNumber,
+                    DueAt: returnInfo.ReturnedAt,
+                    Urgency: TaskUrgency.Overdue,
+                    SampleId: sample.Id,
+                    TestOrderId: t.Id,
+                    MediaId: null,
+                    IsReturned: true,
+                    ReturnReason: returnInfo.Reason));
+                continue;
+            }
+
             var openIncubation = t.Incubations
                 .Where(i => i.CompletedAt == null && i.ExpectedReadingAt != null)
                 .OrderBy(i => i.ExpectedReadingAt)
                 .FirstOrDefault();
             if (openIncubation?.ExpectedReadingAt is not { } dueAt || dueAt > horizon) continue;
-
-            var sample = t.Sample!;
-            var location = sample.Item?.Name ?? sample.WaterSamplingPoint?.Code ?? sample.Department?.Name ?? sample.Machine?.Name ?? sample.ReferenceNumber;
 
             tasks.Add(new MyTaskDto(
                 TaskType: "Read Test",

@@ -87,7 +87,9 @@ public class AuditTraceabilityService
         // 2. Media Chain
         if (log.EntityName == nameof(Media) ||
             log.EntityName == nameof(MediaEvaluation) ||
-            log.EntityName == nameof(MediaChallengeSpec) ||
+            log.EntityName == nameof(MediaConfiguration) ||
+            log.EntityName == nameof(MediaConfigurationChallenge) ||
+            log.EntityName == "MediaChallengeSpec" ||
             !string.IsNullOrWhiteSpace(log.MediaLotNumber))
         {
             int? mediaId = null;
@@ -339,7 +341,6 @@ public class AuditTraceabilityService
     private async Task<AuditTraceabilityResult> BuildMediaChainAsync(int mediaId)
     {
         var media = await _db.Media
-            .Include(m => m.MediaType)
             .Include(m => m.Material)
             .Include(m => m.AutoclaveEquipment)
             .FirstOrDefaultAsync(m => m.Id == mediaId);
@@ -367,7 +368,7 @@ public class AuditTraceabilityService
         nodes.Add(new(
             "Media",
             media.LotNumber,
-            $"{media.MediaType?.Class.ToString() ?? "Media Lot"} (Lot: {media.LotNumber})",
+            $"{media.Material?.MaterialName ?? "Media Lot"} (Lot: {media.LotNumber})",
             media.Status.ToString(),
             $"Prep: {media.PreparedAt:dd-MMM-yyyy}, Exp: {media.ExpiryDate:dd-MMM-yyyy}, Autoclave: {media.AutoclaveEquipment?.Code ?? "—"}",
             media.Id,

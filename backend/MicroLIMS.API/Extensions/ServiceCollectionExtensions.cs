@@ -45,6 +45,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<SampleReviewService>();
         services.AddScoped<SampleApprovalService>();
         services.AddScoped<SampleSummaryService>();
+        services.AddScoped<OosTrackingService>();
         services.AddScoped<DashboardService>();
         services.AddScoped<DashboardNotificationService>();
         services.AddScoped<RecentActivityService>();
@@ -63,9 +64,11 @@ public static class ServiceCollectionExtensions
         services.AddScoped<ItemService>();
         services.AddScoped<SpecificationService>();
         services.AddScoped<UserService>();
+        services.AddScoped<UserDeletionService>();
         services.AddScoped<AdminPasswordRecoveryService>();
         services.AddScoped<AuditService>();
         services.AddScoped<PermissionService>();
+        services.AddScoped<RoleService>();
         services.AddScoped<ReferenceNumberGenerator>();
         services.AddScoped<AuditSearchService>();
         services.AddScoped<AuditTraceabilityService>();
@@ -81,10 +84,13 @@ public static class ServiceCollectionExtensions
         services.AddScoped<MaterialDocumentService>();
         services.AddScoped<EquipmentDocumentService>();
         services.AddScoped<ItemDocumentService>();
+        services.AddScoped<OosInvestigationDocumentService>();
         services.AddScoped<ResultProjectionService>();
         services.AddScoped<IncubatorEligibilityService>();
         services.AddScoped<MediaAppearanceSnapshotService>();
         services.AddScoped<ReportingQueryService>();
+        services.AddScoped<MediaGptReportService>();
+        services.AddScoped<ReferenceStrainReportService>();
         services.AddScoped<DataExportAuditService>();
 
         // Validators
@@ -118,10 +124,10 @@ public static class ServiceCollectionExtensions
 
         // AuthenticationService needs a token-issuing delegate - wire it
         // from IJwtTokenService so Application does not reference Infrastructure directly.
-        services.AddScoped<Func<string, string, string>>(sp =>
+        services.AddScoped<Func<string, string, IEnumerable<string>, string>>(sp =>
         {
             var jwt = sp.GetRequiredService<IJwtTokenService>();
-            return (userId, role) => jwt.IssueToken(userId, role);
+            return (userId, role, permissionCodes) => jwt.IssueToken(userId, role, permissionCodes);
         });
 
         return services;

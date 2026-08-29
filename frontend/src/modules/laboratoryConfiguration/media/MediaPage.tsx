@@ -22,7 +22,7 @@ export function MediaPage() {
   const [lots, setLots] = useState<any[]>([]);
   const [evaluations, setEvaluations] = useState<any[]>([]);
   const [awaitingApprovalIds, setAwaitingApprovalIds] = useState<Set<number>>(new Set());
-  const [mediaTypes, setMediaTypes] = useState<any[]>([]);
+  const [materials, setMaterials] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
 
   // Selected Media Lot for Split-Pane Workspace
@@ -39,24 +39,24 @@ export function MediaPage() {
 
   // Filters & Controls
   const [search, setSearch] = useState("");
-  const [selectedMediaTypeId, setSelectedMediaTypeId] = useState("");
+  const [selectedMaterialId, setSelectedMaterialId] = useState("");
   const [selectedStatus, setSelectedStatus] = useState("");
   const [activeKpi, setActiveKpi] = useState<MediaKpiFilterKey | null>(null);
 
   const loadData = async () => {
     setLoading(true);
     try {
-      const [lotsData, awaitingQueue, evalsData, mTypes] = await Promise.all([
+      const [lotsData, awaitingQueue, evalsData, materialsData] = await Promise.all([
         MediaPreparationService.getAll(),
         MediaPreparationService.getAwaitingApproval().catch(() => []),
         MediaEvaluationService.getAll().catch(() => []),
-        masterDataOptions.getMediaTypes().catch(() => [])
+        masterDataOptions.getMaterials("DehydratedMedia").catch(() => [])
       ]);
 
       setLots(lotsData || []);
       setAwaitingApprovalIds(new Set((awaitingQueue || []).map((m: any) => m.id)));
       setEvaluations(evalsData || []);
-      setMediaTypes(mTypes || []);
+      setMaterials(materialsData || []);
     } catch (err: any) {
       setMessage({ text: err?.response?.data?.message ?? "Failed to load media lots.", ok: false });
     } finally {
@@ -89,7 +89,7 @@ export function MediaPage() {
 
   const handleResetFilters = () => {
     setSearch("");
-    setSelectedMediaTypeId("");
+    setSelectedMaterialId("");
     setSelectedStatus("");
     setActiveKpi(null);
   };
@@ -101,13 +101,12 @@ export function MediaPage() {
     return lots.filter((lot) => {
       if (q) {
         const matchesLot = lot.lotNumber?.toLowerCase().includes(q);
-        const matchesType = lot.mediaType?.class?.toLowerCase().includes(q);
         const matchesMaterial = lot.material?.materialName?.toLowerCase().includes(q);
         const matchesBatch = lot.material?.batchNumber?.toLowerCase().includes(q);
-        if (!matchesLot && !matchesType && !matchesMaterial && !matchesBatch) return false;
+        if (!matchesLot && !matchesMaterial && !matchesBatch) return false;
       }
 
-      if (selectedMediaTypeId && String(lot.mediaTypeId) !== selectedMediaTypeId) {
+      if (selectedMaterialId && String(lot.materialId) !== selectedMaterialId) {
         return false;
       }
 
@@ -118,7 +117,7 @@ export function MediaPage() {
 
       return true;
     });
-  }, [lots, search, selectedMediaTypeId, selectedStatus, awaitingApprovalIds]);
+  }, [lots, search, selectedMaterialId, selectedStatus, awaitingApprovalIds]);
 
   const selectedLot = useMemo(() => {
     if (!selectedLotId || !lots) return null;
@@ -217,11 +216,11 @@ export function MediaPage() {
       <MediaLotFilterBar
         search={search}
         onSearchChange={setSearch}
-        selectedMediaTypeId={selectedMediaTypeId}
-        onMediaTypeChange={setSelectedMediaTypeId}
+        selectedMaterialId={selectedMaterialId}
+        onMaterialChange={setSelectedMaterialId}
         selectedStatus={selectedStatus}
         onStatusChange={handleStatusFilterChange}
-        mediaTypes={mediaTypes}
+        materials={materials}
         onResetFilters={handleResetFilters}
       />
 

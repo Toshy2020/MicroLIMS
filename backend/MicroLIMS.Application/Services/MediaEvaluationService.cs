@@ -21,22 +21,27 @@ public class MediaEvaluationService
 
     public async Task<List<MediaEvaluation>> GetAllAsync(MediaEvaluationStatus? status = null)
     {
-        var query = _db.MediaEvaluations.Include(e => e.Media!).ThenInclude(m => m.MediaType).AsQueryable();
+        var query = _db.MediaEvaluations.Include(e => e.Media!).ThenInclude(m => m.Material).AsQueryable();
         if (status.HasValue) query = query.Where(e => e.Status == status.Value);
         return await query.OrderByDescending(e => e.Id).ToListAsync();
     }
 
     public async Task<MediaEvaluation> GetByIdAsync(int id) =>
         await _db.MediaEvaluations
-            .Include(e => e.Media!).ThenInclude(m => m.MediaType)
+            .Include(e => e.Media!).ThenInclude(m => m.Material)
             .Include(e => e.Challenges).ThenInclude(c => c.Cryovial)
             .Include(e => e.Challenges).ThenInclude(c => c.Incubation)
             .Include(e => e.Challenges).ThenInclude(c => c.Organism)
+            .Include(e => e.Challenges).ThenInclude(c => c.ReferenceMedia)
+            .Include(e => e.Challenges).ThenInclude(c => c.LyophilizedDisk)
             .FirstOrDefaultAsync(e => e.Id == id)
         ?? throw new InvalidOperationException($"Media evaluation {id} not found.");
 
     public Task SelectCryovialAsync(int challengeId, int cryovialId, int userId) =>
         _engine.SelectCryovialAsync(challengeId, cryovialId, userId);
+
+    public Task SelectLyophilizedDiskAsync(int challengeId, int materialId, int userId) =>
+        _engine.SelectLyophilizedDiskAsync(challengeId, materialId, userId);
 
     public Task<Incubation> RecordIncubationAsync(int challengeId, int incubatorEquipmentId, int userId) =>
         _engine.RecordIncubationAsync(challengeId, incubatorEquipmentId, userId);

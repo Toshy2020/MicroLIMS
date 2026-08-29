@@ -6,7 +6,6 @@ import {
   Box,
   Typography,
   Stack,
-  IconButton,
   Stepper,
   Step,
   StepButton,
@@ -18,7 +17,6 @@ import {
   DialogActions,
   CircularProgress
 } from "@mui/material";
-import CloseIcon from "@mui/icons-material/Close";
 import ScienceOutlinedIcon from "@mui/icons-material/ScienceOutlined";
 import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
 import RestartAltIcon from "@mui/icons-material/RestartAlt";
@@ -31,6 +29,7 @@ import { PrimaryObservationMatrixPanel } from "./PrimaryObservationMatrixPanel";
 import { BatchConfirmatoryPlatingPanel } from "./BatchConfirmatoryPlatingPanel";
 import { SessionReviewPanel } from "./SessionReviewPanel";
 import { LoadingSpinner } from "../../../components/LoadingSpinner";
+import { FloatingDialog } from "../../../components/FloatingDialog";
 import { brandColors } from "../../../theme";
 
 interface Props {
@@ -143,30 +142,24 @@ export function PathogenSessionDialog({ open, sampleId, onClose, onSessionUpdate
     !session.sharedTsb.isIncubating;
 
   return (
-    <Dialog
+    <FloatingDialog
       open={open}
       onClose={onClose}
       maxWidth="xl"
-      fullWidth
-      PaperProps={{
-        sx: {
-          borderRadius: 2.5,
-          minHeight: "85vh",
-          maxHeight: "92vh",
-          bgcolor: "background.paper"
-        }
+      paperSx={{
+        borderRadius: 2.5,
+        minHeight: "85vh",
+        maxHeight: "92vh",
+        bgcolor: "background.paper"
       }}
-    >
-      {/* Branded Purple Dialog Title */}
-      <DialogTitle
-        sx={{
-          bgcolor: brandColors.sectionTitle,
-          color: "#ffffff",
-          py: 2,
-          px: 3
-        }}
-      >
-        <Stack direction="row" justifyContent="space-between" alignItems="center">
+      titleSx={{
+        bgcolor: brandColors.sectionTitle,
+        color: "#ffffff",
+        py: 2,
+        px: 3
+      }}
+      title={
+        <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ flex: 1, minWidth: 0 }}>
           <Stack direction="row" spacing={1.5} alignItems="center">
             <Box
               sx={{
@@ -223,59 +216,54 @@ export function PathogenSessionDialog({ open, sampleId, onClose, onSessionUpdate
                 Reset Session
               </Button>
             )}
-            <IconButton onClick={onClose} sx={{ color: "#ffffff" }} size="small">
-              <CloseIcon />
-            </IconButton>
           </Stack>
         </Stack>
-      </DialogTitle>
+      }
+      subHeader={
+        session && (
+          <Box sx={{ px: 4, pt: 2.5, pb: 1.5, bgcolor: "background.paper" }}>
+            <Stepper nonLinear activeStep={activeStep}>
+              {STEPS.map((label, index) => {
+                const isTsbStep = index === 1;
+                const hasTsb = session.assignedTests.some((t) => t.requiresTsb);
+                const isConfirmatoryStep = index === 4;
+                const isConfDisabled = isConfirmatoryStep && !hasEligibleConfirmations;
+                const isReviewStep = index === 5;
+                const isReviewDisabled = isReviewStep && !canReview;
+                const isStepDisabled = isConfDisabled || isReviewDisabled;
 
-      {/* Navigation Stepper with Step-Gating */}
-      {session && (
-        <Box sx={{ px: 4, pt: 2.5, pb: 1.5, bgcolor: "background.paper", borderBottom: "1px solid", borderBottomColor: "divider" }}>
-          <Stepper nonLinear activeStep={activeStep}>
-            {STEPS.map((label, index) => {
-              const isTsbStep = index === 1;
-              const hasTsb = session.assignedTests.some((t) => t.requiresTsb);
-              const isConfirmatoryStep = index === 4;
-              const isConfDisabled = isConfirmatoryStep && !hasEligibleConfirmations;
-              const isReviewStep = index === 5;
-              const isReviewDisabled = isReviewStep && !canReview;
-              const isStepDisabled = isConfDisabled || isReviewDisabled;
+                let stepLabelSuffix = "";
+                if (isTsbStep && !hasTsb) stepLabelSuffix = "(N/A)";
+                if (isConfirmatoryStep && !hasEligibleConfirmations) stepLabelSuffix = "(N/A)";
 
-              let stepLabelSuffix = "";
-              if (isTsbStep && !hasTsb) stepLabelSuffix = "(N/A)";
-              if (isConfirmatoryStep && !hasEligibleConfirmations) stepLabelSuffix = "(N/A)";
-
-              return (
-                <Step key={label} disabled={isStepDisabled}>
-                  <StepButton
-                    onClick={() => {
-                      if (!isStepDisabled) {
-                        setActiveStep(index);
-                      }
-                    }}
-                    sx={{
-                      "& .MuiStepLabel-label": {
-                        fontWeight: activeStep === index ? 800 : 600,
-                        fontSize: 13
-                      }
-                    }}
-                  >
-                    <Stack direction="row" spacing={0.5} alignItems="center">
-                      <span>{label} {stepLabelSuffix}</span>
-                      {isStepDisabled && <LockOutlinedIcon sx={{ fontSize: 12, color: "text.secondary" }} />}
-                    </Stack>
-                  </StepButton>
-                </Step>
-              );
-            })}
-          </Stepper>
-        </Box>
-      )}
-
-      {/* Dialog Body */}
-      <DialogContent sx={{ p: 3 }}>
+                return (
+                  <Step key={label} disabled={isStepDisabled}>
+                    <StepButton
+                      onClick={() => {
+                        if (!isStepDisabled) {
+                          setActiveStep(index);
+                        }
+                      }}
+                      sx={{
+                        "& .MuiStepLabel-label": {
+                          fontWeight: activeStep === index ? 800 : 600,
+                          fontSize: 13
+                        }
+                      }}
+                    >
+                      <Stack direction="row" spacing={0.5} alignItems="center">
+                        <span>{label} {stepLabelSuffix}</span>
+                        {isStepDisabled && <LockOutlinedIcon sx={{ fontSize: 12, color: "text.secondary" }} />}
+                      </Stack>
+                    </StepButton>
+                  </Step>
+                );
+              })}
+            </Stepper>
+          </Box>
+        )
+      }
+    >
         {loading && <LoadingSpinner />}
         {error && !session && <Alert severity="error">{error}</Alert>}
 
@@ -338,7 +326,6 @@ export function PathogenSessionDialog({ open, sampleId, onClose, onSessionUpdate
             )}
           </Box>
         )}
-      </DialogContent>
 
       {/* Reset Confirmation Dialog */}
       <Dialog
@@ -377,6 +364,6 @@ export function PathogenSessionDialog({ open, sampleId, onClose, onSessionUpdate
           </Button>
         </DialogActions>
       </Dialog>
-    </Dialog>
+    </FloatingDialog>
   );
 }

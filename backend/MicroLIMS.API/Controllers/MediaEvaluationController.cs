@@ -9,9 +9,11 @@ using MicroLIMS.Shared.Responses;
 namespace MicroLIMS.API.Controllers;
 
 public record SelectCryovialRequest(int CryovialId);
+public record SelectLyophilizedDiskRequest(int MaterialId);
 public record RecordIncubationRequest(int IncubatorEquipmentId);
 public record RecordResultHttpRequest(
     decimal? OldMediaCount, decimal? NewMediaCount,
+    int? ReferenceMediaId, string? ReferenceMediaLabel,
     bool? GrowthObserved,
     string? ObservedDescription, bool? ManualConform,
     bool? IsTurbid);
@@ -49,6 +51,13 @@ public class MediaEvaluationController : ControllerBase
         return Ok(ApiResponse<object>.Ok(new { }));
     }
 
+    [HttpPost("challenges/{challengeId}/lyophilized-disk")]
+    public async Task<IActionResult> SelectLyophilizedDisk(int challengeId, SelectLyophilizedDiskRequest r)
+    {
+        await _service.SelectLyophilizedDiskAsync(challengeId, r.MaterialId, CurrentUserId);
+        return Ok(ApiResponse<object>.Ok(new { }));
+    }
+
     [HttpPost("challenges/{challengeId}/incubation")]
     public async Task<IActionResult> RecordIncubation(int challengeId, RecordIncubationRequest r) =>
         Ok(ApiResponse<object>.Ok(await _service.RecordIncubationAsync(challengeId, r.IncubatorEquipmentId, CurrentUserId)));
@@ -56,6 +65,7 @@ public class MediaEvaluationController : ControllerBase
     [HttpPost("challenges/{challengeId}/result")]
     public async Task<IActionResult> RecordResult(int challengeId, RecordResultHttpRequest r) =>
         Ok(ApiResponse<object>.Ok(await _service.RecordResultAsync(new RecordResultRequest(
-            challengeId, CurrentUserId, r.OldMediaCount, r.NewMediaCount, r.GrowthObserved,
+            challengeId, CurrentUserId, r.OldMediaCount, r.NewMediaCount,
+            r.ReferenceMediaId, r.ReferenceMediaLabel, r.GrowthObserved,
             r.ObservedDescription, r.ManualConform, r.IsTurbid))));
 }

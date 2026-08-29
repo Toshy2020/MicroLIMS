@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import {
   Typography, Select, MenuItem, Button, Stack, Alert, AlertTitle, Box,
-  Dialog, DialogTitle, DialogContent, DialogActions, List, ListItem,
+  List, ListItem,
   ListItemIcon, ListItemText, CircularProgress, useTheme
 } from "@mui/material";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
@@ -13,6 +13,7 @@ import {
   TestWorkflowStepDto, PermittedConfirmatoryMediaEntry, CurrentStepResponse, SiblingPathogenOrder
 } from "../types/testWorkflowTypes";
 import { parseWorkflowError, workflowErrorDisplayMessage } from "../utils/workflowErrors";
+import { FloatingDialog } from "../../../components/FloatingDialog";
 
 interface Props {
   testOrderId: number;
@@ -170,9 +171,19 @@ export function BrothStepPanel({ testOrderId, step, current, onSubmitted }: Prop
 
   const handleStartIncubation = async () => {
     setError(null);
-    if (!medium || !mediaLotId || !equipmentId) { 
-      setError("Select a media lot and an incubator."); 
-      return; 
+    if (!medium || !mediaLotId || !equipmentId) {
+      setError("Select a media lot and an incubator.");
+      return;
+    }
+
+    // The shared-TSB-across-siblings prompt only ever applies to the true
+    // Broth Enrichment step - a SelectiveBroth step (e.g. RVS, MBP) is a
+    // species-specific medium selected per test order, never shared. This
+    // panel is also rendered for SelectiveBroth steps, so this check must
+    // gate the prompt here too, not just the "already applied" banner above.
+    if (!isBrothEnrichmentStep) {
+      await doStartIncubation();
+      return;
     }
 
     try {
@@ -234,17 +245,36 @@ export function BrothStepPanel({ testOrderId, step, current, onSubmitted }: Prop
       </Stack>
 
       {/* Entry Point B — Sibling Confirmation Dialog */}
-      <Dialog
+      <FloatingDialog
         open={confirmationDialog.open}
         maxWidth="sm"
-        fullWidth
         onClose={() => setConfirmationDialog((prev) => ({ ...prev, open: false }))}
+        titleSx={{ display: "flex", alignItems: "center", gap: 1, fontWeight: 700 }}
+        title={
+          <>
+            <InfoOutlinedIcon sx={{ color: theme.custom.status.info.text }} />
+            Apply Shared TSB to All Pathogen Tests
+          </>
+        }
+        actions={
+          <>
+            <Button
+              variant="outlined"
+              onClick={() => setConfirmationDialog((prev) => ({ ...prev, open: false }))}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="contained"
+              onClick={handleConfirmApplyToAll}
+              disabled={saving}
+              startIcon={saving ? <CircularProgress size={16} color="inherit" /> : <CheckIcon />}
+            >
+              Confirm & Apply to All
+            </Button>
+          </>
+        }
       >
-        <DialogTitle sx={{ display: "flex", alignItems: "center", gap: 1, fontWeight: 700 }}>
-          <InfoOutlinedIcon sx={{ color: theme.custom.status.info.text }} />
-          Apply Shared TSB to All Pathogen Tests
-        </DialogTitle>
-        <DialogContent>
           <Alert severity="info" sx={{ mb: 2 }}>
             One TSB tube is shared across all pathogen tests for this sample.
             There is one physical shared tube per sample — no per-test variation is permitted.
@@ -285,24 +315,7 @@ export function BrothStepPanel({ testOrderId, step, current, onSubmitted }: Prop
           <Typography variant="caption" sx={{ color: "text.secondary", display: "block", mt: 1 }}>
             This action is recorded in the audit trail per ALCOA+ contemporaneous recording requirements.
           </Typography>
-        </DialogContent>
-        <DialogActions sx={{ px: 3, pb: 2 }}>
-          <Button
-            variant="outlined"
-            onClick={() => setConfirmationDialog((prev) => ({ ...prev, open: false }))}
-          >
-            Cancel
-          </Button>
-          <Button
-            variant="contained"
-            onClick={handleConfirmApplyToAll}
-            disabled={saving}
-            startIcon={saving ? <CircularProgress size={16} color="inherit" /> : <CheckIcon />}
-          >
-            Confirm & Apply to All
-          </Button>
-        </DialogActions>
-      </Dialog>
+      </FloatingDialog>
     </Stack>
   );
 }

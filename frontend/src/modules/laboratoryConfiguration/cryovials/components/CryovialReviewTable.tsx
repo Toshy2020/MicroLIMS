@@ -19,6 +19,7 @@ import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import DescriptionOutlinedIcon from "@mui/icons-material/DescriptionOutlined";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 import HighlightOffIcon from "@mui/icons-material/HighlightOff";
+import { Link } from "react-router-dom";
 import { StatusBadge } from "../../../../components/StatusBadge";
 import { formatLabDate } from "../../../../utils/formatDate";
 import { CryovialItem } from "../types/cryovialTypes";
@@ -280,9 +281,12 @@ export function CryovialReviewTable({
 
                         <Tooltip title="View laboratory report record">
                           <Button
+                            component={Link}
+                            to={`/cryovials/${c.id}/report`}
+                            target="_blank"
+                            rel="noopener"
                             size="small"
                             variant="outlined"
-                            onClick={() => window.open(`/cryovials/${c.id}/report`, "_blank", "noopener")}
                             startIcon={<DescriptionOutlinedIcon fontSize="small" />}
                             sx={{
                               px: 1,

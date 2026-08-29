@@ -90,6 +90,24 @@ public class DashboardNotificationService
                 results.Add(("ReviewWaiting", $"{reviewCount} test order(s) awaiting review.", "info"));
         }
 
+        var returnedTests = await _db.TestReturnEvents
+            .Where(e => e.AssignedAnalystId == userId && e.ReturnedAt >= now.Subtract(DedupeWindow))
+            .Include(e => e.TestOrder)
+                .ThenInclude(t => t!.Sample)
+            .OrderByDescending(e => e.ReturnedAt)
+            .ToListAsync();
+
+        foreach (var r in returnedTests)
+        {
+            var testCode = r.TestOrder?.TestCode ?? "Test";
+            var sampleRef = r.TestOrder?.Sample?.ReferenceNumber ?? $"#{r.TestOrderId}";
+            var message = string.IsNullOrWhiteSpace(r.Reason)
+                ? $"Test {testCode} for sample {sampleRef} was returned for revision."
+                : $"Test {testCode} for sample {sampleRef} was returned for revision: {r.Reason.Trim()}";
+
+            results.Add(("TestReturnedForRevision", message, "warning"));
+        }
+
         return results;
     }
 

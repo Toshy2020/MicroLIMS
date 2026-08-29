@@ -1,9 +1,5 @@
 import { useEffect, useState } from "react";
 import {
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
   Button,
   TextField,
   Box,
@@ -15,6 +11,7 @@ import {
 import { SampleRecord } from "../types/receivingTypes";
 import { ReceiveService } from "../services/ReceiveService";
 import { brandColors } from "../../../theme";
+import { FloatingDialog } from "../../../components/FloatingDialog";
 
 interface Props {
   open: boolean;
@@ -55,17 +52,40 @@ export function EditSampleDetailsDialog({ open, sample, onClose, onSuccess }: Pr
   };
 
   return (
-    <Dialog open={open} onClose={loading ? undefined : onClose} maxWidth="sm" fullWidth>
-      <DialogTitle>
-        <Typography sx={{ fontSize: 18, fontWeight: 700, color: theme.palette.primary.main }}>
-          Edit Sample Information
-        </Typography>
-        <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
-          Sample #{sample.sampleId} — {sample.displayName} ({sample.referenceNumber})
-        </Typography>
-      </DialogTitle>
-
-      <DialogContent>
+    <FloatingDialog
+      open={open}
+      onClose={() => { if (!loading) onClose(); }}
+      maxWidth="sm"
+      title={
+        <Box>
+          <Typography sx={{ fontSize: 18, fontWeight: 700, color: theme.palette.primary.main }}>
+            Edit Sample Information
+          </Typography>
+          <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
+            Sample #{sample.sampleId} — {sample.displayName} ({sample.referenceNumber})
+          </Typography>
+        </Box>
+      }
+      actions={
+        <>
+          <Button onClick={onClose} disabled={loading} color="inherit">
+            Cancel
+          </Button>
+          <Button
+            variant="contained"
+            onClick={handleSave}
+            disabled={loading}
+            sx={{
+              bgcolor: brandColors.sectionTitle,
+              fontWeight: 600,
+              "&:hover": { bgcolor: "#631f74" }
+            }}
+          >
+            {loading ? <CircularProgress size={20} color="inherit" /> : "Save Changes"}
+          </Button>
+        </>
+      }
+    >
         {error && (
           <Alert severity="error" sx={{ mb: 2, fontSize: 13 }}>
             {error}
@@ -93,25 +113,6 @@ export function EditSampleDetailsDialog({ open, sample, onClose, onSuccess }: Pr
             Note: Corrections are logged in the audit trail. Once incubation has started, sample identifiers are frozen.
           </Typography>
         </Box>
-      </DialogContent>
-
-      <DialogActions sx={{ px: 3, py: 2 }}>
-        <Button onClick={onClose} disabled={loading} color="inherit">
-          Cancel
-        </Button>
-        <Button
-          variant="contained"
-          onClick={handleSave}
-          disabled={loading}
-          sx={{
-            bgcolor: brandColors.sectionTitle,
-            fontWeight: 600,
-            "&:hover": { bgcolor: "#631f74" }
-          }}
-        >
-          {loading ? <CircularProgress size={20} color="inherit" /> : "Save Changes"}
-        </Button>
-      </DialogActions>
-    </Dialog>
+    </FloatingDialog>
   );
 }

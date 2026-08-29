@@ -33,7 +33,7 @@ function PartConfigSection({ machinePartId }: { machinePartId: number }) {
 
   const startEdit = (c: any) => {
     setEditingId(c.id);
-    setForm({ testType: c.testType, testCode: c.testCode, alertLimit: c.alertLimit, actionLimit: c.actionLimit, specLimit: c.specLimit, isPathogenTest: c.isPathogenTest });
+    setForm({ testType: c.testType, testCode: c.testCode, alertLimit: c.alertLimit, actionLimit: c.actionLimit, specLimit: c.specLimit, isPathogenTest: c.isPathogenTest, unit: c.unit });
     setError(null);
   };
   const cancelEdit = () => { setEditingId(null); setForm({ testType: "Swab", isPathogenTest: false }); };
@@ -43,9 +43,9 @@ function PartConfigSection({ machinePartId }: { machinePartId: number }) {
     if (!form.testCode) { setError("Test Code is required."); return; }
     try {
       if (editingId) {
-        await AfterCleaningConfigService.updatePartConfiguration(editingId, form.testType, form.testCode, form.alertLimit ?? "", form.actionLimit ?? "", form.specLimit ?? "", !!form.isPathogenTest);
+        await AfterCleaningConfigService.updatePartConfiguration(editingId, form.testType, form.testCode, form.alertLimit ?? "", form.actionLimit ?? "", form.specLimit ?? "", !!form.isPathogenTest, form.unit ?? "");
       } else {
-        await AfterCleaningConfigService.createPartConfiguration(machinePartId, form.testType, form.testCode, form.alertLimit ?? "", form.actionLimit ?? "", form.specLimit ?? "", !!form.isPathogenTest);
+        await AfterCleaningConfigService.createPartConfiguration(machinePartId, form.testType, form.testCode, form.alertLimit ?? "", form.actionLimit ?? "", form.specLimit ?? "", !!form.isPathogenTest, form.unit ?? "");
       }
       cancelEdit();
       load();
@@ -66,7 +66,7 @@ function PartConfigSection({ machinePartId }: { machinePartId: number }) {
       {configs.length > 0 ? (
         <Table size="small" sx={{ mb: 1.5 }}>
           <TableHead>
-            <TableRow><TableCell>Test Type</TableCell><TableCell>Test Code</TableCell><TableCell>Alert</TableCell><TableCell>Action</TableCell><TableCell>Spec</TableCell><TableCell>Pathogen</TableCell><TableCell /></TableRow>
+            <TableRow><TableCell>Test Type</TableCell><TableCell>Test Code</TableCell><TableCell>Alert</TableCell><TableCell>Action</TableCell><TableCell>Spec</TableCell><TableCell>Unit</TableCell><TableCell>Pathogen</TableCell><TableCell /></TableRow>
           </TableHead>
           <TableBody>
             {configs.map((c) => (
@@ -76,6 +76,7 @@ function PartConfigSection({ machinePartId }: { machinePartId: number }) {
                 <TableCell>{c.alertLimit || "—"}</TableCell>
                 <TableCell>{c.actionLimit || "—"}</TableCell>
                 <TableCell>{c.specLimit || "—"}</TableCell>
+                <TableCell>{c.unit || "—"}</TableCell>
                 <TableCell>{c.isPathogenTest ? "Yes" : "—"}</TableCell>
                 <TableCell align="right">
                   <IconButton size="small" onClick={() => startEdit(c)} title="Edit"><EditIcon fontSize="small" /></IconButton>
@@ -98,6 +99,7 @@ function PartConfigSection({ machinePartId }: { machinePartId: number }) {
         <TextField size="small" placeholder="Alert" value={form.alertLimit ?? ""} onChange={(e) => setField("alertLimit", e.target.value)} sx={{ width: 90 }} />
         <TextField size="small" placeholder="Action" value={form.actionLimit ?? ""} onChange={(e) => setField("actionLimit", e.target.value)} sx={{ width: 90 }} />
         <TextField size="small" placeholder="Spec" value={form.specLimit ?? ""} onChange={(e) => setField("specLimit", e.target.value)} sx={{ width: 90 }} />
+        <TextField size="small" placeholder="Unit (e.g. 25cm²)" value={form.unit ?? ""} onChange={(e) => setField("unit", e.target.value)} sx={{ width: 120 }} />
         <FormControlLabel
           control={<Checkbox checked={!!form.isPathogenTest} onChange={(e) => setField("isPathogenTest", e.target.checked)} />}
           label="Pathogen test"

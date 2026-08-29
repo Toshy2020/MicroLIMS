@@ -49,7 +49,7 @@ const MEANING_TEXT: Record<string, string> = {
 
 export const dt = (v: string | null | undefined) =>
   v ? new Date(v).toLocaleString("en-GB", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }).replace(",", "") : "—";
-const d = (v: string | null | undefined) =>
+export const d = (v: string | null | undefined) =>
   v ? new Date(v).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }) : "—";
 const hhmm = (v: string | null | undefined) =>
   v ? new Date(v).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }) : "";
@@ -67,6 +67,7 @@ function statusTone(status: string): "" | "is-danger" | "is-warning" | "is-neutr
 // Detected/Absent call.
 export const LOCATION_STATUS_COLOR: Record<string, string> = {
   WithinLimits: "#16a34a",
+  LimitsNotConfigured: "#f59e0b",
   AlertLimitExceeded: "#f59e0b",
   ActionLimitExceeded: "#ea580c",
   OutOfSpecification: "#dc2626",
@@ -156,8 +157,14 @@ export function SampleReportPage() {
               <span className="key">Reference</span><span className="value mono">{s.referenceNumber}</span>
               <span className="key">Category</span><span className="value">{humanize(s.category)}</span>
               <span className="key">Item</span><span className="value">{s.displayName || "—"}</span>
+              {s.category === "AfterCleaning" && (
+                <>
+                  <span className="key">Prev. Product</span><span className="value">{s.previousProductName ?? "—"}</span>
+                  <span className="key">Prev. Batch</span><span className="value mono">{s.previousProductBatchNumber ?? s.batchNumber ?? "—"}</span>
+                </>
+              )}
               {s.productionStage && (<><span className="key">Stage</span><span className="value">{s.productionStage}</span></>)}
-              <span className="key">Batch</span><span className="value mono">{s.batchNumber ?? "—"}</span>
+              {s.category !== "AfterCleaning" && (<><span className="key">Batch</span><span className="value mono">{s.batchNumber ?? "—"}</span></>)}
               <span className="key">Control</span><span className="value mono">{s.controlNumber}</span>
               <span className="key">Cause</span><span className="value">{s.causeOfTesting}</span>
               <span className="key">Quantity</span><span className="value">{s.sampleQuantity ?? "—"}</span>

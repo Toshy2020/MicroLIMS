@@ -12,10 +12,12 @@ namespace MicroLIMS.API.Controllers;
 public class ItemDocumentController : ControllerBase
 {
     private readonly ItemDocumentService _service;
+    private readonly ILogger<ItemDocumentController> _logger;
 
-    public ItemDocumentController(ItemDocumentService service)
+    public ItemDocumentController(ItemDocumentService service, ILogger<ItemDocumentController> logger)
     {
         _service = service;
+        _logger = logger;
     }
 
     private int CurrentUserId
@@ -72,7 +74,9 @@ public class ItemDocumentController : ControllerBase
         }
         catch (Exception ex)
         {
-            return BadRequest(ApiResponse<object>.Fail(ex.Message));
+            _logger.LogError(ex, "Failed to upload document for item {ItemId}", itemId);
+            var message = ex.InnerException?.Message ?? ex.Message;
+            return BadRequest(ApiResponse<object>.Fail(message));
         }
     }
 

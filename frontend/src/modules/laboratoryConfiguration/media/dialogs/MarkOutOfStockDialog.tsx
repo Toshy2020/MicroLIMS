@@ -1,9 +1,5 @@
 import { useState } from "react";
 import {
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
   Button,
   TextField,
   Stack,
@@ -14,6 +10,7 @@ import {
 import InventoryOutlinedIcon from "@mui/icons-material/InventoryOutlined";
 import { mediaClassLabel } from "../../../../services/masterDataOptions";
 import { apiClient } from "../../../../services/apiClient";
+import { FloatingDialog } from "../../../../components/FloatingDialog";
 
 interface MarkOutOfStockDialogProps {
   open: boolean;
@@ -49,12 +46,28 @@ export function MarkOutOfStockDialog({
   };
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="xs" fullWidth>
-      <DialogTitle sx={{ fontWeight: 700, fontSize: 16, display: "flex", alignItems: "center", gap: 1 }}>
-        <InventoryOutlinedIcon color="action" />
-        Mark Media Lot Out of Stock
-      </DialogTitle>
-      <DialogContent dividers>
+    <FloatingDialog
+      open={open}
+      onClose={onClose}
+      maxWidth="xs"
+      titleSx={{ fontWeight: 700, fontSize: 16, display: "flex", alignItems: "center", gap: 1 }}
+      title={
+        <>
+          <InventoryOutlinedIcon color="action" />
+          Mark Media Lot Out of Stock
+        </>
+      }
+      actions={
+        <>
+          <Button onClick={onClose} disabled={submitting} color="inherit">
+            Cancel
+          </Button>
+          <Button variant="contained" color="warning" onClick={handleConfirm} disabled={submitting}>
+            {submitting ? "Processing..." : "Confirm Out of Stock"}
+          </Button>
+        </>
+      }
+    >
         <Stack spacing={2} sx={{ mt: 0.5 }}>
           {error && <Alert severity="error">{error}</Alert>}
 
@@ -113,15 +126,6 @@ export function MarkOutOfStockDialog({
             fullWidth
           />
         </Stack>
-      </DialogContent>
-      <DialogActions sx={{ px: 2.5, py: 1.5 }}>
-        <Button onClick={onClose} disabled={submitting} color="inherit">
-          Cancel
-        </Button>
-        <Button variant="contained" color="warning" onClick={handleConfirm} disabled={submitting}>
-          {submitting ? "Processing..." : "Confirm Out of Stock"}
-        </Button>
-      </DialogActions>
-    </Dialog>
+    </FloatingDialog>
   );
 }

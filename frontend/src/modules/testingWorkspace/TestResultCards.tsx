@@ -6,6 +6,15 @@ import { pathogenObservationLabel } from "./utils/pathogenObservationLabel";
 const CONFORMING_STATUSES = new Set(["WithinLimits", "Absent"]);
 const isConforming = (status: string | null) => !status || CONFORMING_STATUSES.has(status);
 
+// A CFU count is a whole-number concept - a raw average can carry a long
+// repeating decimal (e.g. readings that don't divide evenly), but there's
+// no such thing as 0.67 of a colony. Round for display only; the
+// stored/reported value (reportedResult) is the actual reported result.
+function formatCfu(value: number | null | undefined): string {
+  if (value === null || value === undefined) return "—";
+  return Math.round(value).toString();
+}
+
 // Same rule SummaryMatrix uses: a test is quantitative if it produced a
 // CFU number anywhere (a single reading, or per-location counts),
 // otherwise it's a qualitative detection call. Kept as its own copy here
@@ -120,7 +129,7 @@ function IncubationStages({ incubations }: { incubations: IncubationDetail[] }) 
 // Status, Entered By) stays reachable.
 function FullLocationTable({ locations }: { locations: SampleLocationDetail[] }) {
   // Unit comes from the location data (set at result-entry time) - EM/
-  // After Cleaning/Water mix CFU/plate/4 hours, CFU/25 sq.cm, and CFU/mL
+  // After Cleaning/Water mix CFU/plate/4 hours, CFU/25 cm2, and CFU/mL
   // depending on sampling method, never a single assumed "CFU".
   const unit = locations.find((l) => l.unit)?.unit ?? "CFU";
   return (
@@ -141,7 +150,7 @@ function FullLocationTable({ locations }: { locations: SampleLocationDetail[] })
             <tr key={i}>
               <td className="loc-name">{l.locationName}{l.gradeClassification ? ` (${l.gradeClassification})` : ""}</td>
               <td className="loc-limits">{l.alertLimit ?? "—"} / {l.actionLimit ?? "—"} / {l.specLimit ?? "—"}</td>
-              <td className="loc-cfu">{l.cfuResult ?? "—"}</td>
+              <td className="loc-cfu">{formatCfu(l.cfuResult)}</td>
               <td className="loc-reported">{l.reportedResult ?? "—"}</td>
               <td>
                 {l.status && (
@@ -177,7 +186,15 @@ function DetectionTestCard({ test }: { test: TestOrderSummaryDetail }) {
   const hasLocations = test.locations.length > 0;
 
   const nonConformingLocation = test.locations.some((l) => !isConforming(l.status));
-  const detected = test.pathogenObservations.some((p) => p.observation === "GrowthConforming");
+  // Biochemical identification's explicit Detected/Not-Detected call is
+  // authoritative when present - it overrides the selective-plating
+  // morphology alone, the same override applied on the backend (see
+  // ReportDocumentMapper.ToTestCard). A chain can show GrowthConforming at
+  // selective plating and still resolve to absent once biochemical testing
+  // rules the organism out.
+  const lastBiochemical = test.biochemicalResults[test.biochemicalResults.length - 1];
+  const detected = lastBiochemical?.organismDetected
+    ?? test.pathogenObservations.some((p) => p.observation === "GrowthConforming");
   const hasException = !test.isSuperseded && (detected || nonConformingLocation);
   const tone = test.isSuperseded ? "is-neutral" : hasException ? "is-danger" : "";
 
@@ -224,6 +241,23 @@ function DetectionTestCard({ test }: { test: TestOrderSummaryDetail }) {
                 </span>
               </div>
             ))}
+        </div>
+      )}
+
+      {test.biochemicalResults.length > 0 && (
+        <div style={{ marginBottom: 12 }}>
+          {test.biochemicalResults.map((b, i) => (
+            <div key={i} style={{ fontSize: 12, padding: "4px 0" }}>
+              <div style={{ display: "flex", justifyContent: "space-between" }}>
+                <span style={{ color: "var(--color-text-tertiary)" }}>{b.stepName}</span>
+                <span>
+                  <strong>{b.organismDetected === true ? "Detected" : b.organismDetected === false ? "Not Detected" : "Undetermined"}</strong>
+                  <span style={{ color: "var(--color-text-quaternary)" }}> · {b.submittedByName} · {dt(b.submittedAt)}</span>
+                </span>
+              </div>
+              <div style={{ color: "var(--color-text-tertiary)", marginTop: 2 }}>{b.biochemicalResultText}</div>
+            </div>
+          ))}
         </div>
       )}
 
@@ -315,11 +349,11 @@ function CountTestCard({ test }: { test: TestOrderSummaryDetail }) {
                 </div>
                 <div className="plate-stat">
                   <div className="stat-label">Average</div>
-                  <div className="stat-value">{reading.average}</div>
+                  <div className="stat-value">{formatCfu(reading.average)}</div>
                 </div>
                 <div className="plate-stat">
                   <div className="stat-label">Calculated</div>
-                  <div className="stat-value">{reading.calculatedResult}</div>
+                  <div className="stat-value">{formatCfu(reading.calculatedResult)}</div>
                 </div>
               </div>
               <div className="plate-meta">
@@ -339,7 +373,7 @@ function CountTestCard({ test }: { test: TestOrderSummaryDetail }) {
             <div className="result-pills">
               {test.locations.map((l, i) => {
                 const conform = isConforming(l.status);
-                const value = l.cfuResult ?? l.calculatedResult ?? "—";
+                const value = formatCfu(l.cfuResult ?? l.calculatedResult);
                 return (
                   <span key={i} className={`result-pill ${conform ? "" : "is-danger"}`}>
                     {l.locationName}: {value} {l.unit ?? "CFU"}

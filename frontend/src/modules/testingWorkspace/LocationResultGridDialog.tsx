@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
-import { Box, Table, TableHead, TableRow, TableCell, TableBody, TextField, Button, Stack, Alert, Typography } from "@mui/material";
+import { Box, Table, TableHead, TableRow, TableCell, TableBody, TextField, IconButton, Button, Stack, Alert, Typography } from "@mui/material";
+import AddIcon from "@mui/icons-material/Add";
+import CloseIcon from "@mui/icons-material/Close";
 import { FloatingDialog } from "../../components/FloatingDialog";
 import { StatusBadge } from "../../components/StatusBadge";
 import { LoadingSpinner } from "../../components/LoadingSpinner";
@@ -16,6 +18,7 @@ interface LocationRow {
   cfuResult: number | null;
   calculatedResult: number | null;
   reportedResult: string | null;
+  rawReadings: string | null;
   status: string | null;
   enteredAt: string | null;
 }
@@ -26,6 +29,7 @@ interface Props {
   testCode: string;
   displayName: string;
   minReadyAt: Date | null;
+  minimumDurationOverridden?: boolean;
   onClose: () => void;
   onSubmitted: () => void;
 }
@@ -35,12 +39,13 @@ interface Props {
 // live preview as the analyst types; the server recomputes and is the
 // authority on the persisted Status.
 function compareStatus(value: number, alert: string | null, action: string | null, spec: string | null): string {
-  const specLimit = spec !== null ? Number(spec) : NaN;
+  const specLimit = spec !== null && spec.trim() !== "" ? Number(spec) : NaN;
   if (!Number.isNaN(specLimit) && value > specLimit) return "OutOfSpecification";
-  const actionLimit = action !== null ? Number(action) : NaN;
+  const actionLimit = action !== null && action.trim() !== "" ? Number(action) : NaN;
   if (!Number.isNaN(actionLimit) && value > actionLimit) return "ActionLimitExceeded";
-  const alertLimit = alert !== null ? Number(alert) : NaN;
+  const alertLimit = alert !== null && alert.trim() !== "" ? Number(alert) : NaN;
   if (!Number.isNaN(alertLimit) && value > alertLimit) return "AlertLimitExceeded";
+  if (Number.isNaN(specLimit) && Number.isNaN(actionLimit) && Number.isNaN(alertLimit)) return "LimitsNotConfigured";
   return "WithinLimits";
 }
 
@@ -48,11 +53,16 @@ function reportedResult(calculated: number): string {
   return calculated < 1 ? "<1" : Math.round(calculated).toString();
 }
 
-export function LocationResultGridDialog({ open, testOrderId, testCode, displayName, minReadyAt, onClose, onSubmitted }: Props) {
-  const isTimeReady = !minReadyAt || new Date() >= minReadyAt;
+// EM/After Cleaning are direct-count categories - dilution factor is
+// always 1 server-side (RecordBatchResultsAsync), never free-typed for
+// the whole batch. Each location takes multiple raw plate readings,
+// averaged the same way RecordCountTestAsync averages a single order's
+// RawPlateReadings - same multi-reading model Water has always used,
+// mirrored here (see WaterLocationResultGridDialog.tsx).
+export function LocationResultGridDialog({ open, testOrderId, testCode, displayName, minReadyAt, minimumDurationOverridden, onClose, onSubmitted }: Props) {
+  const isTimeReady = !minReadyAt || new Date() >= minReadyAt || !!minimumDurationOverridden;
   const [rows, setRows] = useState<LocationRow[] | null>(null);
-  const [dilutionFactor, setDilutionFactor] = useState("1");
-  const [cfuValues, setCfuValues] = useState<Record<number, string>>({});
+  const [readingsByLocation, setReadingsByLocation] = useState<Record<number, string[]>>({});
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -60,42 +70,50 @@ export function LocationResultGridDialog({ open, testOrderId, testCode, displayN
     if (!open) return;
     setRows(null);
     setError(null);
-    setCfuValues({});
-    setDilutionFactor("1");
+    setReadingsByLocation({});
     TestWorkflowService.getLocations(testOrderId).then((data) => {
       setRows(data);
-      const initial: Record<number, string> = {};
+      const initial: Record<number, string[]> = {};
       data.forEach((r: LocationRow) => {
-        if (r.cfuResult != null) initial[r.id] = String(r.cfuResult);
+        initial[r.id] = r.rawReadings ? r.rawReadings.split(",") : [""];
       });
-      setCfuValues(initial);
+      setReadingsByLocation(initial);
     });
   }, [open, testOrderId]);
 
-  const dilution = Number(dilutionFactor) || 0;
+  const updateReading = (locationId: number, i: number, value: string) =>
+    setReadingsByLocation((m) => ({ ...m, [locationId]: (m[locationId] ?? [""]).map((v, idx) => (idx === i ? value : v)) }));
+  const addReading = (locationId: number) =>
+    setReadingsByLocation((m) => ({ ...m, [locationId]: [...(m[locationId] ?? [""]), ""] }));
+  const removeReading = (locationId: number, i: number) =>
+    setReadingsByLocation((m) => {
+      const current = m[locationId] ?? [""];
+      return { ...m, [locationId]: current.length > 1 ? current.filter((_, idx) => idx !== i) : current };
+    });
 
   const computed = useMemo(() => {
     if (!rows) return [];
     return rows.map((r) => {
-      const cfuText = cfuValues[r.id];
-      const cfu = cfuText !== undefined && cfuText !== "" ? Number(cfuText) : null;
-      if (cfu === null || Number.isNaN(cfu) || dilution <= 0) {
+      const raw = readingsByLocation[r.id] ?? [];
+      const values = raw.filter((v) => v !== "").map(Number);
+      if (values.length === 0 || values.some(Number.isNaN)) {
         return { ...r, liveCalculated: null as number | null, liveReported: null as string | null, liveStatus: null as string | null };
       }
-      const calculated = cfu * dilution;
-      const status = compareStatus(calculated, r.alertLimit, r.actionLimit, r.specLimit);
-      return { ...r, liveCalculated: calculated, liveReported: reportedResult(calculated), liveStatus: status };
+      const average = values.reduce((a, b) => a + b, 0) / values.length;
+      // Dilution factor is always 1 - calculated equals the average directly.
+      const status = compareStatus(average, r.alertLimit, r.actionLimit, r.specLimit);
+      return { ...r, liveCalculated: average, liveReported: reportedResult(average), liveStatus: status };
     });
-  }, [rows, cfuValues, dilution]);
+  }, [rows, readingsByLocation]);
 
   const allEntered = rows !== null && rows.length > 0 && rows.every((r) => {
-    const v = cfuValues[r.id];
-    return v !== undefined && v !== "" && !Number.isNaN(Number(v));
+    const values = (readingsByLocation[r.id] ?? []).filter((v) => v !== "").map(Number);
+    return values.length > 0 && values.every((v) => !Number.isNaN(v));
   });
 
   const conformCount = computed.filter((r) => r.liveStatus === "WithinLimits").length;
   const worstStatus = computed.reduce<string>((worst, r) => {
-    const order = ["WithinLimits", "AlertLimitExceeded", "ActionLimitExceeded", "OutOfSpecification"];
+    const order = ["WithinLimits", "LimitsNotConfigured", "AlertLimitExceeded", "ActionLimitExceeded", "OutOfSpecification"];
     if (!r.liveStatus) return worst;
     return order.indexOf(r.liveStatus) > order.indexOf(worst) ? r.liveStatus : worst;
   }, "WithinLimits");
@@ -107,8 +125,10 @@ export function LocationResultGridDialog({ open, testOrderId, testCode, displayN
     try {
       await TestWorkflowService.recordBatchResults(
         testOrderId,
-        dilution,
-        rows.map((r) => ({ sampleLocationId: r.id, cfuResult: Number(cfuValues[r.id]) }))
+        rows.map((r) => ({
+          sampleLocationId: r.id,
+          readings: (readingsByLocation[r.id] ?? []).filter((v) => v !== "").map(Number)
+        }))
       );
       onSubmitted();
     } catch (e: any) {
@@ -125,17 +145,13 @@ export function LocationResultGridDialog({ open, testOrderId, testCode, displayN
       {rows && (
         <Stack spacing={2}>
           {error && <Alert severity="error">{error}</Alert>}
-          <TextField
-            size="small" type="number" label="Dilution Factor" value={dilutionFactor}
-            onChange={(e) => setDilutionFactor(e.target.value)} sx={{ maxWidth: 200 }}
-          />
           <Box sx={{ overflowX: "auto" }}>
             <Table size="small">
               <TableHead>
                 <TableRow>
                   <TableCell>Location</TableCell>
                   <TableCell>Limits (Alert / Action / Spec)</TableCell>
-                  <TableCell>CFU Count</TableCell>
+                  <TableCell>Plate Readings</TableCell>
                   <TableCell>Calculated Result</TableCell>
                   <TableCell>Status</TableCell>
                 </TableRow>
@@ -150,11 +166,21 @@ export function LocationResultGridDialog({ open, testOrderId, testCode, displayN
                       {r.alertLimit ?? "—"} / {r.actionLimit ?? "—"} / {r.specLimit ?? "—"}
                     </TableCell>
                     <TableCell>
-                      <TextField
-                        size="small" type="number" sx={{ width: 100 }}
-                        value={cfuValues[r.id] ?? ""}
-                        onChange={(e) => setCfuValues((c) => ({ ...c, [r.id]: e.target.value }))}
-                      />
+                      <Stack spacing={0.5}>
+                        {(readingsByLocation[r.id] ?? [""]).map((v, i) => (
+                          <Stack direction="row" spacing={0.5} key={i} alignItems="center">
+                            <TextField
+                              size="small" type="number" sx={{ width: 90 }}
+                              value={v}
+                              onChange={(e) => updateReading(r.id, i, e.target.value)}
+                            />
+                            <IconButton size="small" onClick={() => removeReading(r.id, i)}><CloseIcon fontSize="small" /></IconButton>
+                          </Stack>
+                        ))}
+                        <Button size="small" startIcon={<AddIcon />} onClick={() => addReading(r.id)} sx={{ alignSelf: "flex-start" }}>
+                          Add Plate
+                        </Button>
+                      </Stack>
                     </TableCell>
                     <TableCell>{r.liveReported ?? "—"}</TableCell>
                     <TableCell>{r.liveStatus ? <StatusBadge status={r.liveStatus} /> : "—"}</TableCell>

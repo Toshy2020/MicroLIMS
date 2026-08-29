@@ -19,6 +19,8 @@ import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import FiberManualRecordIcon from "@mui/icons-material/FiberManualRecord";
 import WarningAmberOutlinedIcon from "@mui/icons-material/WarningAmberOutlined";
+import BlockOutlinedIcon from "@mui/icons-material/BlockOutlined";
+import { Link } from "react-router-dom";
 import { SampleCard as SampleCardType, TestOrderSummary } from "./types/workspaceTypes";
 import { CategoryBadge, StatusBadge, statusColor } from "../../components/StatusBadge";
 import { SampleLifecycleBadge } from "./SampleLifecycleBadge";
@@ -37,12 +39,13 @@ interface Props {
   onLifecycleBadgeClick: (sampleId: number) => void;
   onCorrected: () => void;
   onViewAuditHistory: (sampleId: number) => void;
+  onVoid?: (sample: SampleCardType) => void;
 }
 
 const PRODUCT_LIKE = ["FinishedProduct", "RawMaterial", "PackagingMaterial"];
 const formatDate = (d: string | null) => (d ? new Date(d).toLocaleDateString() : "—");
 
-export function resolveEffectiveTestStatus(
+function resolveEffectiveTestStatus(
   test: TestOrderSummary,
   theme: Theme
 ): { label: string; icon: React.ReactNode; color: string } {
@@ -64,14 +67,14 @@ export function resolveEffectiveTestStatus(
     if (test.workflowState === "READY_FOR_DOWNSTREAM") {
       return { label: "Ready for Downstream Testing", icon: <CheckCircleIcon sx={{ fontSize: 14, color: infoColor }} />, color: infoColor };
     }
+    if (test.workflowState === "COUNT_INCUBATING" || test.workflowState === "INCUBATING" || test.workflowState === "RUNNING") {
+      return { label: test.workflowStateDisplay || "Incubation In Progress", icon: <FiberManualRecordIcon sx={{ fontSize: 12, color: infoColor }} />, color: infoColor };
+    }
     if (test.workflowState === "AWAITING_RESULTS") {
-      return { label: "Awaiting Final Result", icon: <FiberManualRecordIcon sx={{ fontSize: 12, color: infoColor }} />, color: infoColor };
+      return { label: test.workflowStateDisplay || "Ready for Result Entry", icon: <FiberManualRecordIcon sx={{ fontSize: 12, color: infoColor }} />, color: infoColor };
     }
     if (test.workflowState === "RESULTS_RECORDED") {
       return { label: "Result Recorded — Pending Review", icon: <FiberManualRecordIcon sx={{ fontSize: 12, color: infoColor }} />, color: infoColor };
-    }
-    if (test.workflowState === "INCUBATING" || test.workflowState === "RUNNING") {
-      return { label: test.workflowStateDisplay, icon: <FiberManualRecordIcon sx={{ fontSize: 12, color: infoColor }} />, color: infoColor };
     }
     return { label: test.workflowStateDisplay, icon: <FiberManualRecordIcon sx={{ fontSize: 12, color: pendingColor }} />, color: pendingColor };
   }
@@ -92,7 +95,8 @@ export function SelectedSampleTestingPanel({
   onNeedsPreparationClick,
   onLifecycleBadgeClick,
   onCorrected,
-  onViewAuditHistory
+  onViewAuditHistory,
+  onVoid
 }: Props) {
   const { role } = useAuth();
   const theme = useTheme();
@@ -190,10 +194,13 @@ export function SelectedSampleTestingPanel({
         </Button>
 
         <Button
+          component={Link}
+          to={`/samples/${sample.sampleId}/report`}
+          target="_blank"
+          rel="noopener"
           size="small"
           variant="outlined"
           startIcon={<PictureAsPdfOutlinedIcon sx={{ fontSize: 16 }} />}
-          onClick={handleOpenReport}
           sx={{
             borderColor: theme.custom.status.info.border,
             color: theme.custom.status.info.text,
@@ -221,6 +228,24 @@ export function SelectedSampleTestingPanel({
           }}
         >
           Audit History
+        </Button>
+
+        <Button
+          size="small"
+          variant="outlined"
+          color="error"
+          startIcon={<BlockOutlinedIcon sx={{ fontSize: 16 }} />}
+          onClick={() => (onVoid ? onVoid(sample) : onLifecycleBadgeClick(sample.sampleId))}
+          sx={{
+            borderColor: theme.custom.status.detected.border,
+            color: theme.custom.status.detected.text,
+            fontSize: 12,
+            fontWeight: 600,
+            bgcolor: theme.custom.status.detected.bg,
+            "&:hover": { bgcolor: theme.custom.status.detected.border, borderColor: theme.custom.status.detected.text }
+          }}
+        >
+          Void Sample
         </Button>
 
         {needsPreparation && (
@@ -278,20 +303,40 @@ export function SelectedSampleTestingPanel({
           </Typography>
         </Box>
 
-        <Box>
-          <Typography sx={{ fontSize: 11, color: "text.secondary" }}>Batch Number</Typography>
-          {isProductLike ? (
+        {isProductLike ? (
+          <Box>
+            <Typography sx={{ fontSize: 11, color: "text.secondary" }}>Batch Number</Typography>
             <EditableCell
               value={sample.batchNumber ?? ""}
               editable={!sample.incubationStarted}
               onSave={(v) => correct("batchNumber", v)}
             />
-          ) : (
+          </Box>
+        ) : sample.category === "AfterCleaning" ? (
+          <>
+            <Box>
+              <Typography sx={{ fontSize: 11, color: "text.secondary" }}>Previous Product</Typography>
+              <Typography sx={{ fontSize: 12, fontWeight: 700, color: theme.palette.primary.main }}>
+                {sample.previousProductName || "—"}
+              </Typography>
+            </Box>
+            <Box>
+              <Typography sx={{ fontSize: 11, color: "text.secondary" }}>Previous Product Batch</Typography>
+              <EditableCell
+                value={sample.previousProductBatchNumber || sample.batchNumber || ""}
+                editable={!sample.incubationStarted}
+                onSave={(v) => correct("batchNumber", v)}
+              />
+            </Box>
+          </>
+        ) : sample.batchNumber ? (
+          <Box>
+            <Typography sx={{ fontSize: 11, color: "text.secondary" }}>Batch Number</Typography>
             <Typography sx={{ fontSize: 12, fontWeight: 600, color: "text.primary" }}>
               {sample.batchNumber || "—"}
             </Typography>
-          )}
-        </Box>
+          </Box>
+        ) : null}
 
         <Box>
           <Typography sx={{ fontSize: 11, color: "text.secondary" }}>Control Number</Typography>

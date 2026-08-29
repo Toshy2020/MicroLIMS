@@ -23,11 +23,13 @@ public class UserController : ControllerBase
 {
     private readonly UserService _userService;
     private readonly AdminPasswordRecoveryService _adminPasswordRecoveryService;
+    private readonly UserDeletionService _userDeletionService;
 
-    public UserController(UserService userService, AdminPasswordRecoveryService adminPasswordRecoveryService)
+    public UserController(UserService userService, AdminPasswordRecoveryService adminPasswordRecoveryService, UserDeletionService userDeletionService)
     {
         _userService = userService;
         _adminPasswordRecoveryService = adminPasswordRecoveryService;
+        _userDeletionService = userDeletionService;
     }
 
     private int CurrentUserId => int.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)!.Value);
@@ -193,6 +195,28 @@ public class UserController : ControllerBase
         {
             var updated = await _userService.ForcePasswordChangeAsync(id, CurrentUserId);
             return Ok(ApiResponse<object>.Ok(updated));
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(ApiResponse<object>.Fail(ex.Message));
+        }
+    }
+
+    // Permanent, irreversible removal of a User row - distinct from the
+    // deactivate endpoint above. Only allowed when the user has zero
+    // history anywhere in the domain model (see UserReferenceRegistry).
+    [HttpDelete("{id}")]
+    [Authorize(Roles = RoleConstants.SystemAdministrator)]
+    public async Task<IActionResult> HardDelete(int id)
+    {
+        try
+        {
+            await _userDeletionService.HardDeleteAsync(id, CurrentUserId);
+            return Ok(ApiResponse<object>.Ok(new { }));
+        }
+        catch (UserHasHistoryException ex)
+        {
+            return Conflict(ApiResponse<object>.Fail(ex.Message));
         }
         catch (InvalidOperationException ex)
         {

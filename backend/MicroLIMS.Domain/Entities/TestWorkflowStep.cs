@@ -11,12 +11,22 @@ public class TestWorkflowStep
     public int StepOrder { get; set; }
     public string StepName { get; set; } = string.Empty;
 
-    // Non-null for every StepType except BiochemicalTest, which uses
-    // PhenotypicTestType instead - see WorkflowTemplateValidator rules 4/8.
-    public int? MediaTypeId { get; set; }
-    public MediaType? MediaType { get; set; }
-
+    // PhenotypicTestType is non-null only for BiochemicalTest; every other
+    // StepType requires at least one StepMedia row instead - see
+    // WorkflowTemplateValidator rules 4/8. Older single-value field, kept
+    // for backward compatibility with existing chained-step templates -
+    // new steps configure PhenotypicTests below instead, which allows more
+    // than one test type per step.
     public PhenotypicTestType? PhenotypicTestType { get; set; }
+
+    // BiochemicalTest only. Lets one step bundle several phenotypic tests
+    // (e.g. Gram Stain + Oxidase + Identification Kit) instead of needing a
+    // separate chained step per type - see WorkflowTemplateValidator rules
+    // 4/8. A step is valid with either this list non-empty OR the older
+    // PhenotypicTestType field set (or both); SubmitBiochemicalAsync still
+    // records one combined result and one Detected/Not-Detected decision
+    // for the whole step either way.
+    public List<TestWorkflowStepPhenotypicTest> PhenotypicTests { get; set; } = new();
 
     public int IncubationMinHours { get; set; }
     public int IncubationMaxHours { get; set; }

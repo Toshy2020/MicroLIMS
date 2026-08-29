@@ -7,7 +7,7 @@ using MicroLIMS.Shared.Responses;
 namespace MicroLIMS.API.Controllers;
 
 public record PrepareMediaHttpRequest(
-    int MediaTypeId, int MaterialId, decimal TotalWeight, string TotalVolume,
+    int MaterialId, decimal TotalWeight, string TotalVolume,
     int AutoclaveEquipmentId, string AutoclaveProgram, string LoadType, decimal Temperature,
     int CycleTime, int CycleNumber, decimal Ph, DateTime ExpiryDate);
 
@@ -46,13 +46,13 @@ public class MediaController : ControllerBase
         Ok(ApiResponse<object>.Ok(await _expiry.GetExpiringAsync(withinDays)));
 
     [HttpGet("released")]
-    public async Task<IActionResult> GetReleased([FromQuery] int? mediaTypeId) =>
-        Ok(ApiResponse<object>.Ok(await _mediaPrep.GetReleasedAsync(mediaTypeId)));
+    public async Task<IActionResult> GetReleased([FromQuery] int? materialId, [FromQuery] bool includeExpired = false, [FromQuery] int? excludeId = null) =>
+        Ok(ApiResponse<object>.Ok(await _mediaPrep.GetReleasedAsync(materialId, includeExpired, excludeId)));
 
     [HttpPost]
     public async Task<IActionResult> Prepare(PrepareMediaHttpRequest r) =>
         Ok(ApiResponse<object>.Ok(await _mediaPrep.PrepareAsync(new PrepareMediaRequest(
-            r.MediaTypeId, r.MaterialId, r.TotalWeight, r.TotalVolume,
+            r.MaterialId, r.TotalWeight, r.TotalVolume,
             r.AutoclaveEquipmentId, r.AutoclaveProgram, r.LoadType, r.Temperature,
             r.CycleTime, r.CycleNumber, r.Ph, r.ExpiryDate, CurrentUserId))));
 

@@ -35,8 +35,8 @@ public class UserManagementSecurityTests
     {
         var emailSender = new EmailSender("", 587, "", "", "no-reply@microlims.local", false);
         var authLogger = NullLogger<AuthenticationService>.Instance;
-        Func<string, string, string> tokenIssuer = (id, role) => "fake-jwt-token";
-        var authService = new AuthenticationService(db, tokenIssuer, emailSender, authLogger);
+        Func<string, string, IEnumerable<string>, string> tokenIssuer = (id, role, permissionCodes) => "fake-jwt-token";
+        var authService = new AuthenticationService(db, tokenIssuer, new PermissionService(db), emailSender, authLogger);
         var userService = new UserService(db, authService);
         return (userService, authService, db);
     }

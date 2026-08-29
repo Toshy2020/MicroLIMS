@@ -3,6 +3,8 @@ import { Typography, Button, Stack, Alert, CircularProgress } from "@mui/materia
 import { TestWorkflowService } from "../services/TestWorkflowService";
 import { TestWorkflowStepDto, CurrentStepResponse } from "../types/testWorkflowTypes";
 import { parseWorkflowError, workflowErrorDisplayMessage } from "../utils/workflowErrors";
+import { useAuth } from "../../../contexts/AuthContext";
+import { ConfirmationDialog } from "../../../components/ConfirmationDialog";
 
 interface Props {
   testOrderId: number;
@@ -23,6 +25,11 @@ export function BrothWaitingPanel({
 }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [skipDialogOpen, setSkipDialogOpen] = useState(false);
+  const [skipping, setSkipping] = useState(false);
+  const { role } = useAuth();
+  const canOverride = role === "SectionHead" || role === "SystemAdministrator";
+  const alreadyOverridden = current?.incubationLock?.minimumDurationOverridden ?? false;
 
   // Match TAMC pattern: find open incubation row from previousSteps
   const openIncubationRow = step
@@ -36,24 +43,41 @@ export function BrothWaitingPanel({
     ? new Date(openIncubationRow.incubationStartUtc)
     : null;
 
+  // Incubation specifications: stepMedia is authoritative, step fallback
+  const firstMedia = step?.stepMedia?.[0];
+  const tempMin = (firstMedia && firstMedia.tempMin > 0) ? firstMedia.tempMin : step?.temperatureMin;
+  const tempMax = (firstMedia && firstMedia.tempMax > 0) ? firstMedia.tempMax : step?.temperatureMax;
+  const incMinHours = (firstMedia && (firstMedia.incubationMinHours ?? 0) > 0) ? firstMedia.incubationMinHours! : step?.incubationMinHours;
+  const incMaxHours = (firstMedia && (firstMedia.incubationMaxHours ?? 0) > 0) ? firstMedia.incubationMaxHours! : step?.incubationMaxHours;
+
   // Available from: start + minHours
-  const minReadyAt = incubationStartUtc && step.incubationMinHours != null
-    ? new Date(incubationStartUtc.getTime() + step.incubationMinHours * 3600 * 1000)
+  const minReadyAt = incubationStartUtc && incMinHours != null
+    ? new Date(incubationStartUtc.getTime() + incMinHours * 3600 * 1000)
     : null;
 
   // Expected reading end: from incubationLock or start + maxHours
   const expectedEndAt = current?.incubationLock?.incubationEndUtc
     ? new Date(current.incubationLock.incubationEndUtc)
-    : (incubationStartUtc && step.incubationMaxHours != null
-        ? new Date(incubationStartUtc.getTime() + step.incubationMaxHours * 3600 * 1000)
+    : (incubationStartUtc && incMaxHours != null
+        ? new Date(incubationStartUtc.getTime() + incMaxHours * 3600 * 1000)
         : null);
 
   // Readiness gate: simple datetime comparison, no setInterval
-  const isTimeReady = !minReadyAt || new Date() >= minReadyAt;
+  const isTimeReady = !minReadyAt || new Date() >= minReadyAt || alreadyOverridden;
 
-  // Temperature specifications from step
-  const tempMin = step.temperatureMin;
-  const tempMax = step.temperatureMax;
+  const confirmSkipWait = async () => {
+    setError(null);
+    setSkipping(true);
+    try {
+      await TestWorkflowService.overrideMinimumDuration(testOrderId);
+      setSkipDialogOpen(false);
+      onSubmitted();
+    } catch (e) {
+      setError(workflowErrorDisplayMessage(parseWorkflowError(e)));
+    } finally {
+      setSkipping(false);
+    }
+  };
 
   const submitCompletion = async () => {
     setError(null);
@@ -68,20 +92,6 @@ export function BrothWaitingPanel({
     }
   };
 
-  console.log("=== BrothWaitingPanel Debug ===");
-  console.log("step.incubationMinHours:", step?.incubationMinHours);
-  console.log("step.incubationMaxHours:", step?.incubationMaxHours);
-  console.log("openIncubationRow:", openIncubationRow);
-  console.log("incubationStartUtc (raw):", openIncubationRow?.incubationStartUtc);
-  console.log("incubationStartUtc (parsed):", incubationStartUtc);
-  console.log("minReadyAt:", minReadyAt);
-  console.log("expectedEndAt:", expectedEndAt);
-  console.log("isTimeReady:", isTimeReady);
-  console.log("now:", new Date());
-  console.log("current?.previousSteps:", current?.previousSteps);
-  console.log("current?.incubationLock:", current?.incubationLock);
-  console.log("==============================");
-
   return (
     <Stack spacing={1.5}>
       {/* Incubation in progress info card */}
@@ -89,14 +99,16 @@ export function BrothWaitingPanel({
         <Typography variant="body2" sx={{ fontWeight: 600, mb: 0.5 }}>
           Incubation in progress.
         </Typography>
-        {tempMin != null && tempMax != null && (
+        {tempMin != null && tempMax != null && tempMin > 0 && (
           <Typography variant="body2">
             Temperature: <strong>{tempMin}–{tempMax} °C</strong>
           </Typography>
         )}
-        <Typography variant="body2">
-          Duration: <strong>{step.incubationMinHours}–{step.incubationMaxHours} hours</strong>
-        </Typography>
+        {incMinHours != null && incMaxHours != null && incMinHours > 0 && (
+          <Typography variant="body2">
+            Duration: <strong>{incMinHours}–{incMaxHours} hours</strong>
+          </Typography>
+        )}
         {incubationStartUtc && (
           <Typography variant="body2">
             Started: <strong>{incubationStartUtc.toLocaleString()}</strong>
@@ -117,9 +129,17 @@ export function BrothWaitingPanel({
           Not ready yet — available from {minReadyAt.toLocaleString()}.
         </Alert>
       )}
+      {alreadyOverridden && (
+        <Alert severity="info">Minimum wait time was skipped by a Section Head/System Administrator.</Alert>
+      )}
 
-      {/* Complete Step button — disabled until minReadyAt has passed */}
-      <Stack direction="row" justifyContent="flex-end">
+      {/* Complete Step button — disabled until minReadyAt has passed (or overridden) */}
+      <Stack direction="row" justifyContent="space-between" alignItems="center">
+        {canOverride && !isTimeReady && !alreadyOverridden ? (
+          <Button variant="outlined" color="warning" onClick={() => setSkipDialogOpen(true)} disabled={skipping}>
+            Skip Wait
+          </Button>
+        ) : <span />}
         <Button
           variant="contained"
           onClick={submitCompletion}
@@ -129,6 +149,13 @@ export function BrothWaitingPanel({
           {submitting ? "Submitting..." : "Complete Step"}
         </Button>
       </Stack>
+
+      <ConfirmationDialog
+        open={skipDialogOpen}
+        message="Skip the remaining minimum incubation wait time for this step? This bypasses the wait only — the recorded incubation window is not changed."
+        onConfirm={confirmSkipWait}
+        onCancel={() => setSkipDialogOpen(false)}
+      />
     </Stack>
   );
 }

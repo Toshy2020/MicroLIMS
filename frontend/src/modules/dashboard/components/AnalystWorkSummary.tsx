@@ -4,6 +4,7 @@ import AccessTimeIcon from "@mui/icons-material/AccessTime";
 import TodayIcon from "@mui/icons-material/Today";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 import { SvgIconComponent } from "@mui/icons-material";
+import { Link } from "react-router-dom";
 import { MyTask } from "../types/dashboard";
 
 interface SummaryCardProps {
@@ -12,21 +13,28 @@ interface SummaryCardProps {
   icon: SvgIconComponent;
   color: string;
   bgWash: string;
+  to?: string;
   onClick?: () => void;
 }
 
-function SummaryCard({ label, count, icon: Icon, color, bgWash, onClick }: SummaryCardProps) {
+function SummaryCard({ label, count, icon: Icon, color, bgWash, to, onClick }: SummaryCardProps) {
   return (
     <Paper
-      onClick={onClick}
+      {...(to
+        ? { component: Link, to }
+        : onClick
+        ? { onClick }
+        : {})}
       sx={{
         p: 2,
         display: "flex",
         alignItems: "center",
         gap: 1.5,
-        cursor: onClick ? "pointer" : "default",
+        cursor: to || onClick ? "pointer" : "default",
+        textDecoration: "none",
+        color: "inherit",
         transition: "transform 0.15s ease, box-shadow 0.15s ease",
-        "&:hover": onClick ? { transform: "translateY(-2px)", boxShadow: 3 } : {}
+        "&:hover": to || onClick ? { transform: "translateY(-2px)", boxShadow: 3 } : {}
       }}
     >
       <Box
@@ -55,6 +63,13 @@ function SummaryCard({ label, count, icon: Icon, color, bgWash, onClick }: Summa
     </Paper>
   );
 }
+
+const CATEGORY_ROUTES: Record<string, string> = {
+  Overdue: "/testing-workspace?scope=mine&urgency=overdue",
+  DueNow: "/testing-workspace?scope=mine",
+  DueToday: "/testing-workspace?scope=mine",
+  ReadyToRead: "/testing-workspace?scope=mine&testStatus=ReadyToRead"
+};
 
 interface AnalystWorkSummaryProps {
   tasks: MyTask[];
@@ -114,6 +129,7 @@ export function AnalystWorkSummary({ tasks, readyToReadCount, onSelectCategory }
             icon={c.icon}
             color={c.color}
             bgWash={c.bgWash}
+            to={CATEGORY_ROUTES[c.category]}
             onClick={onSelectCategory ? () => onSelectCategory(c.category) : undefined}
           />
         </Grid>

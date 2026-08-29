@@ -4,7 +4,7 @@ using MicroLIMS.Persistence.DbContext;
 
 namespace MicroLIMS.Application.Services;
 
-public record TodaysWorkTestDto(int TestOrderId, string TestCode, string Status, string? TimeRemaining);
+public record TodaysWorkTestDto(int TestOrderId, string TestCode, string Status, string? TimeRemaining, bool IsReturned = false, string? ReturnReason = null);
 public record TodaysWorkItemDto(int SampleId, string ReferenceNumber, string Category, string DisplayName, DateTime ReceivedAt, string OverallStatus, string NextAction, List<TodaysWorkTestDto> Tests);
 public record IncubationOverviewDto(string TestCode, int ReadyToRead, int Incubating);
 public record AnalystMetricsDto(int TestsCompletedToday, int MediaLotsPreparedToday, int ActiveAssignedOrders, double OnTimeReadingRate, int Trailing7DayVolume);
@@ -226,6 +226,9 @@ public class DashboardService
 
         var samples = await query.OrderByDescending(s => s.ReceivedAt).ToListAsync();
 
+        var allTestOrderIds = samples.SelectMany(s => s.TestOrders).Select(t => t.Id).ToList();
+        var pendingReturns = await TestReturnHelper.GetPendingReturnsForOrdersAsync(_db, allTestOrderIds);
+
         return samples.Select(s =>
         {
             var tests = s.TestOrders.Select(t =>
@@ -235,7 +238,8 @@ public class DashboardService
                     .OrderBy(i => i.ExpectedReadingAt)
                     .FirstOrDefault();
                 var timeRemaining = openIncubation?.ExpectedReadingAt is { } readyAt ? FormatTimeRemaining(readyAt, now) : null;
-                return new TodaysWorkTestDto(t.Id, t.TestCode, t.Status.ToString(), timeRemaining);
+                var isReturned = pendingReturns.TryGetValue(t.Id, out var returnInfo);
+                return new TodaysWorkTestDto(t.Id, t.TestCode, t.Status.ToString(), timeRemaining, isReturned, returnInfo?.Reason);
             }).ToList();
 
             var worst = s.TestOrders.OrderBy(t => StatusRank(t.Status)).FirstOrDefault();
@@ -286,7 +290,7 @@ public class DashboardService
             .ToListAsync();
 
         var completedReadingsToday = await _db.CountTestReadings
-            .Where(r => r.EnteredByUserId == userId && r.EnteredAt >= todayStart)
+            .Where(r => r.EnteredByUserId == userId && r.EnteredAt >= todayStart && r.IsActive)
             .Select(r => r.TestOrderId)
             .ToListAsync();
 
@@ -304,7 +308,7 @@ public class DashboardService
             .ToListAsync();
 
         var completedReadings7d = await _db.CountTestReadings
-            .Where(r => r.EnteredByUserId == userId && r.EnteredAt >= sevenDaysAgo)
+            .Where(r => r.EnteredByUserId == userId && r.EnteredAt >= sevenDaysAgo && r.IsActive)
             .Select(r => r.TestOrderId)
             .ToListAsync();
 

@@ -1,9 +1,5 @@
 import { useEffect, useState } from "react";
 import {
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
   Button,
   Box,
   TextField,
@@ -14,13 +10,12 @@ import {
   Typography,
   Divider,
   Alert,
-  IconButton,
   useTheme
 } from "@mui/material";
-import CloseIcon from "@mui/icons-material/Close";
 import { EquipmentInventoryService } from "../services/EquipmentInventoryService";
 import { EquipmentFormState, EquipmentItem, EquipmentStatus } from "../types/equipmentTypes";
 import { brandColors } from "../../../../theme";
+import { FloatingDialog } from "../../../../components/FloatingDialog";
 
 const STATUS_OPTIONS: { label: string; value: EquipmentStatus }[] = [
   { label: "In Service", value: "InService" },
@@ -121,17 +116,37 @@ export function RegisterEquipmentDialog({
   };
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
-      <DialogTitle sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", pb: 1.5 }}>
+    <FloatingDialog
+      open={open}
+      onClose={onClose}
+      maxWidth="md"
+      titleSx={{ pb: 1.5 }}
+      title={
         <Typography variant="h6" sx={{ fontWeight: 700, color: theme.palette.primary.main }}>
           {editingItem ? "Edit Equipment" : "Register Equipment"}
         </Typography>
-        <IconButton size="small" onClick={onClose} disabled={saving}>
-          <CloseIcon fontSize="small" />
-        </IconButton>
-      </DialogTitle>
-
-      <DialogContent dividers sx={{ p: 3 }}>
+      }
+      actions={
+        <Box sx={{ display: "flex", justifyContent: "space-between", width: "100%" }}>
+          <Button onClick={onClose} disabled={saving} color="inherit">
+            Cancel
+          </Button>
+          <Button
+            id="dialog-equip-save-btn"
+            variant="contained"
+            onClick={handleSave}
+            disabled={saving || (isStatusChanged && (!form.statusChangeComment || !form.statusChangeComment.trim()))}
+            sx={{
+              bgcolor: brandColors.sectionTitle,
+              px: 3,
+              "&:hover": { bgcolor: brandColors.pageTitle }
+            }}
+          >
+            {saving ? "Saving..." : editingItem ? "Save Changes" : "Register Equipment"}
+          </Button>
+        </Box>
+      }
+    >
         {error && (
           <Alert severity="error" sx={{ mb: 2.5 }}>
             {error}
@@ -246,26 +261,6 @@ export function RegisterEquipmentDialog({
             />
           </Box>
         )}
-      </DialogContent>
-
-      <DialogActions sx={{ px: 3, py: 2, display: "flex", justifyContent: "space-between" }}>
-        <Button onClick={onClose} disabled={saving} color="inherit">
-          Cancel
-        </Button>
-        <Button
-          id="dialog-equip-save-btn"
-          variant="contained"
-          onClick={handleSave}
-          disabled={saving || (isStatusChanged && (!form.statusChangeComment || !form.statusChangeComment.trim()))}
-          sx={{
-            bgcolor: brandColors.sectionTitle,
-            px: 3,
-            "&:hover": { bgcolor: brandColors.pageTitle }
-          }}
-        >
-          {saving ? "Saving..." : editingItem ? "Save Changes" : "Register Equipment"}
-        </Button>
-      </DialogActions>
-    </Dialog>
+    </FloatingDialog>
   );
 }

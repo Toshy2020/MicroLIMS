@@ -92,7 +92,7 @@ export function MultiSampleEntryGrid({
         }}
       >
         <Box sx={{ overflowX: "auto", maxHeight: "55vh" }}>
-          <Table size="small" stickyHeader sx={{ minWidth: isItemBased ? 1200 : 780 }}>
+          <Table size="small" stickyHeader sx={{ minWidth: isItemBased || isAC ? 1200 : 780 }}>
             <TableHead>
               <TableRow sx={{ "& th": { bgcolor: "background.default", fontWeight: 700, fontSize: 12, py: 1.25 } }}>
                 <TableCell sx={{ width: 40 }}>#</TableCell>
@@ -101,6 +101,17 @@ export function MultiSampleEntryGrid({
                   <TableCell sx={{ minWidth: 200 }}>
                     Item <span style={{ color: theme.custom.status.detected.text }}>*</span>
                   </TableCell>
+                )}
+
+                {isAC && (
+                  <>
+                    <TableCell sx={{ minWidth: 200 }}>
+                      Previous Product <span style={{ color: theme.custom.status.detected.text }}>*</span>
+                    </TableCell>
+                    <TableCell sx={{ minWidth: 150 }}>
+                      Previous Batch No. <span style={{ color: theme.custom.status.detected.text }}>*</span>
+                    </TableCell>
+                  </>
                 )}
 
                 {category === "product" && (
@@ -195,6 +206,34 @@ export function MultiSampleEntryGrid({
                           ))}
                         </Select>
                       </TableCell>
+                    )}
+
+                    {/* Previous Product & Previous Batch No (for After Cleaning) */}
+                    {isAC && (
+                      <>
+                        <TableCell>
+                          <TextField
+                            size="small"
+                            fullWidth
+                            placeholder="Previous Product Name"
+                            value={row.previousProductName ?? ""}
+                            error={Boolean(errors.previousProductName)}
+                            onChange={(e) => onChangeRow(idx, "previousProductName", e.target.value)}
+                            inputProps={{ style: { fontSize: 12 } }}
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <TextField
+                            size="small"
+                            fullWidth
+                            placeholder="Prev. Batch No."
+                            value={row.previousProductBatchNumber ?? ""}
+                            error={Boolean(errors.previousProductBatchNumber)}
+                            onChange={(e) => onChangeRow(idx, "previousProductBatchNumber", e.target.value)}
+                            inputProps={{ style: { fontSize: 12 } }}
+                          />
+                        </TableCell>
+                      </>
                     )}
 
                     {/* Production Stage (for Product only) */}

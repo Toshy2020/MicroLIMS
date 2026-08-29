@@ -24,6 +24,7 @@ import HowToRegOutlinedIcon from "@mui/icons-material/HowToRegOutlined";
 import BlockOutlinedIcon from "@mui/icons-material/BlockOutlined";
 import InventoryOutlinedIcon from "@mui/icons-material/InventoryOutlined";
 import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
+import { Link } from "react-router-dom";
 import { StatusBadge } from "../../../../components/StatusBadge";
 import { mediaClassLabel, evaluationTypeLabel } from "../../../../services/masterDataOptions";
 import { MediaSummary } from "../types/mediaSummaryTypes";
@@ -31,6 +32,28 @@ import { apiClient } from "../../../../services/apiClient";
 import { lifecycleOf } from "./MediaLotKpiCards";
 import { brandColors } from "../../../../theme";
 import { useAuth } from "../../../../contexts/AuthContext";
+
+function formatDateDDMMYY(value: string | number | Date | null | undefined): string {
+  if (!value) return "—";
+  const d = new Date(value);
+  if (isNaN(d.getTime())) return "—";
+  const day = String(d.getDate()).padStart(2, "0");
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const year = String(d.getFullYear()).slice(-2);
+  return `${day}/${month}/${year}`;
+}
+
+function formatDateTimeDDMMYY(value: string | number | Date | null | undefined): string {
+  if (!value) return "—";
+  const d = new Date(value);
+  if (isNaN(d.getTime())) return "—";
+  const day = String(d.getDate()).padStart(2, "0");
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const year = String(d.getFullYear()).slice(-2);
+  const hours = String(d.getHours()).padStart(2, "0");
+  const minutes = String(d.getMinutes()).padStart(2, "0");
+  return `${day}/${month}/${year} ${hours}:${minutes}`;
+}
 
 interface Props {
   lot: any;
@@ -97,14 +120,16 @@ export function SelectedMediaLotWorkspace({
             <Typography sx={{ fontSize: 18, fontWeight: 700, color: theme.palette.primary.main, lineHeight: 1.2 }}>
               {lot.lotNumber}
             </Typography>
-            <Typography sx={{ fontSize: 14, color: "text.secondary", fontWeight: 600 }}>
-              {mediaClassLabel(lot.mediaType?.class)}
-            </Typography>
+            {(lot.material?.materialName || summary?.materialName) && (
+              <Typography sx={{ fontSize: 14, color: "text.secondary", fontWeight: 600 }}>
+                {lot.material?.materialName || summary?.materialName}
+              </Typography>
+            )}
             <StatusBadge status={lifecycle} />
           </Box>
 
           <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
-            Prepared: {new Date(lot.preparedAt).toLocaleDateString()} · Expiry: {new Date(lot.expiryDate).toLocaleDateString()} · ID #{lot.id}
+            Prepared: {formatDateDDMMYY(lot.preparedAt)} · Expiry: {formatDateDDMMYY(lot.expiryDate)} · ID #{lot.id}
           </Typography>
         </Box>
 
@@ -131,10 +156,13 @@ export function SelectedMediaLotWorkspace({
       {/* Action Toolbar */}
       <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap sx={{ pt: 0.5 }}>
         <Button
+          component={Link}
+          to={`/media/${lot.id}/report`}
+          target="_blank"
+          rel="noopener"
           size="small"
           variant="outlined"
           startIcon={<DescriptionOutlinedIcon sx={{ fontSize: 16 }} />}
-          onClick={() => onViewRecord(lot.id)}
           sx={{
             borderColor: theme.custom.status.info.border,
             color: theme.custom.status.info.text,
@@ -253,9 +281,9 @@ export function SelectedMediaLotWorkspace({
               }}
             >
               <Box>
-                <Typography sx={{ fontSize: 11, color: "text.secondary" }}>Media Type</Typography>
+                <Typography sx={{ fontSize: 11, color: "text.secondary" }}>Prepared Date</Typography>
                 <Typography sx={{ fontSize: 12, fontWeight: 600, color: "text.primary" }}>
-                  {mediaClassLabel(lot.mediaType?.class)}
+                  {formatDateDDMMYY(lot.preparedAt)}
                 </Typography>
               </Box>
 
@@ -308,20 +336,14 @@ export function SelectedMediaLotWorkspace({
               <Box>
                 <Typography sx={{ fontSize: 11, color: "text.secondary" }}>Prepared On</Typography>
                 <Typography sx={{ fontSize: 12, fontWeight: 600, color: "text.primary" }}>
-                  {new Date(lot.preparedAt).toLocaleString("en-GB", {
-                    day: "2-digit",
-                    month: "short",
-                    year: "numeric",
-                    hour: "2-digit",
-                    minute: "2-digit"
-                  })}
+                  {formatDateTimeDDMMYY(lot.preparedAt)}
                 </Typography>
               </Box>
 
               <Box>
                 <Typography sx={{ fontSize: 11, color: "text.secondary" }}>Expiry Date</Typography>
                 <Typography sx={{ fontSize: 12, fontWeight: 600, color: "text.primary" }}>
-                  {new Date(lot.expiryDate).toLocaleDateString()}
+                  {formatDateDDMMYY(lot.expiryDate)}
                 </Typography>
               </Box>
             </Box>
@@ -421,7 +443,7 @@ export function SelectedMediaLotWorkspace({
                       {evaluationTypeLabel(ev.evaluationType)}
                     </Typography>
                     <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
-                      Evaluation #{ev.id} · Assigned on: {new Date(ev.assignedAt).toLocaleDateString()}
+                      Evaluation #{ev.id} · Assigned on: {formatDateDDMMYY(ev.assignedAt)}
                     </Typography>
                   </Box>
 
@@ -512,7 +534,7 @@ export function SelectedMediaLotWorkspace({
                     {evaluationTypeLabel(summary.evaluation.evaluationType)}
                   </Typography>
                   <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
-                    Assigned on: {new Date(summary.evaluation.assignedAt).toLocaleDateString()}
+                    Assigned on: {formatDateDDMMYY(summary.evaluation.assignedAt)}
                   </Typography>
                 </Box>
 
@@ -605,7 +627,7 @@ export function SelectedMediaLotWorkspace({
               {lot.isReleasedForUse && summary?.approvedByName && (
                 <Typography sx={{ fontSize: 12, color: theme.custom.status.notDetected.text, mt: 0.5 }}>
                   Electronically signed & approved by <strong>{summary.approvedByName}</strong> on{" "}
-                  {summary.approvedAt ? new Date(summary.approvedAt).toLocaleString() : "—"}
+                  {summary.approvedAt ? formatDateTimeDDMMYY(summary.approvedAt) : "—"}
                 </Typography>
               )}
 
@@ -634,7 +656,7 @@ export function SelectedMediaLotWorkspace({
                       {sig.printedName} ({sig.role})
                     </Typography>
                     <Typography sx={{ fontSize: 11, color: "text.secondary" }}>
-                      {sig.meaning} · Signed by @{sig.username} on {new Date(sig.signedAt).toLocaleString()}
+                      {sig.meaning} · Signed by @{sig.username} on {formatDateTimeDDMMYY(sig.signedAt)}
                     </Typography>
                     {sig.comment && (
                       <Typography sx={{ fontSize: 11, color: "text.secondary", mt: 0.5 }}>
@@ -657,7 +679,7 @@ export function SelectedMediaLotWorkspace({
                 {summary.timeline.map((ev, idx) => (
                   <Box key={idx} sx={{ display: "flex", gap: 1.5, alignItems: "flex-start" }}>
                     <Typography sx={{ fontSize: 11, color: "text.secondary", width: 140, flexShrink: 0 }}>
-                      {new Date(ev.timestamp).toLocaleString()}
+                      {formatDateTimeDDMMYY(ev.timestamp)}
                     </Typography>
                     <Box>
                       <Typography sx={{ fontSize: 12, fontWeight: 600, color: "text.primary" }}>

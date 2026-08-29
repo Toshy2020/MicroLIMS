@@ -8,12 +8,12 @@ import ExpandLess from "@mui/icons-material/ExpandLess";
 import ExpandMore from "@mui/icons-material/ExpandMore";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate, useLocation, Link } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { getGroupedMenuForRole, MenuItem as MenuItemType } from "../routes/menuConfig";
 
-export const EXPANDED_SIDEBAR_WIDTH = 250;
-export const COLLAPSED_SIDEBAR_WIDTH = 68;
+const EXPANDED_SIDEBAR_WIDTH = 250;
+const COLLAPSED_SIDEBAR_WIDTH = 68;
 
 // How long to keep a flyout open after the pointer leaves it, so moving the
 // mouse from the rail icon into the flyout panel itself doesn't close it
@@ -141,7 +141,17 @@ export function Sidebar({ mobileOpen, onMobileClose, collapsed, onToggleCollapse
 
                 const button = (
                   <ListItemButton
-                    onClick={(e) => handleItemClick(item, e.currentTarget)}
+                    {...(hasChildren
+                      ? {
+                          onClick: (e: React.MouseEvent<HTMLElement>) => handleItemClick(item, e.currentTarget)
+                        }
+                      : {
+                          component: Link,
+                          to: item.path!,
+                          onClick: () => {
+                            if (isMobile) onMobileClose();
+                          }
+                        })}
                     onMouseEnter={(e) => {
                       if (effectiveCollapsed && hasChildren) openFlyout(item.label, e.currentTarget);
                     }}
@@ -210,8 +220,9 @@ export function Sidebar({ mobileOpen, onMobileClose, collapsed, onToggleCollapse
                             return (
                               <ListItemButton
                                 key={child.path}
+                                component={Link}
+                                to={child.path!}
                                 onClick={() => {
-                                  navigate(child.path!);
                                   if (isMobile) onMobileClose();
                                 }}
                                 sx={{
@@ -283,9 +294,10 @@ export function Sidebar({ mobileOpen, onMobileClose, collapsed, onToggleCollapse
                                 return (
                                   <MenuItem
                                     key={child.path}
+                                    component={Link}
+                                    to={child.path!}
                                     selected={childActive}
                                     onClick={() => {
-                                      navigate(child.path!);
                                       setFlyoutItem(null);
                                     }}
                                     sx={{ fontSize: 13 }}

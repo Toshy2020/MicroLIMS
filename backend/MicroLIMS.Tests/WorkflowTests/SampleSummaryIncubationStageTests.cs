@@ -20,14 +20,12 @@ public class SampleSummaryIncubationStageTests
     private static async Task<(int sampleId, TestOrder order, Media media)> SeedTransferOrderAsync(MicroLimsDbContext db)
     {
         var testDefinition = new TestDefinition { Code = "TAMC-TRANSFER", DisplayName = "TAMC with transfer", WorkflowType = WorkflowType.CountTest };
-        var generalAgar = new MediaType { Class = MediaClass.GeneralAgar, IncubationMinHours = 24, IncubationMaxHours = 48, RequiredTemperatureMin = 30, RequiredTemperatureMax = 35 };
         db.TestDefinitions.Add(testDefinition);
-        db.MediaTypes.Add(generalAgar);
         await db.SaveChangesAsync();
 
         var step = new TestWorkflowStep
         {
-            TestDefinitionId = testDefinition.Id, StepOrder = 1, StepName = "CountIncubation", MediaTypeId = generalAgar.Id,
+            TestDefinitionId = testDefinition.Id, StepOrder = 1, StepName = "CountIncubation", 
             IncubationMinHours = 1, IncubationMaxHours = 1, TemperatureMin = 30, TemperatureMax = 35,
             IsFinalStep = true, StepType = StepType.PlateCount, RequiresIncubationTransfer = true
         };
@@ -42,9 +40,15 @@ public class SampleSummaryIncubationStageTests
         };
         db.Materials.Add(material);
         await db.SaveChangesAsync();
+        db.TestWorkflowStepMedias.Add(new TestWorkflowStepMedia { TestWorkflowStepId = step.Id, MaterialId = material.Id, TempMin = 30, TempMax = 35 });
 
-        var media = new Media { MediaTypeId = generalAgar.Id, MaterialId = material.Id, LotNumber = "TSA/1/26", IsReleasedForUse = true, Status = MediaStatus.Active, ExpiryDate = DateTime.UtcNow.AddDays(30) };
+        var media = new Media { MaterialId = material.Id, LotNumber = "TSA/1/26", IsReleasedForUse = true, Status = MediaStatus.Active, ExpiryDate = DateTime.UtcNow.AddDays(30) };
         db.Media.Add(media);
+        // First Equipment row added to this fresh in-memory DB, so it gets
+        // Id 1 - matching the hardcoded incubatorEquipmentId: 1 the tests
+        // below pass to SelectMediaAsync, which now enforces incubator
+        // eligibility (temperature must fall within the step medium's range).
+        db.Equipment.Add(new Equipment { Name = "Incubator", Code = "INC-1", Type = EquipmentType.Incubator, SetPointTemperature = 32 });
 
         var point = new WaterSamplingPoint { Code = "WP-01", Location = "Utility Room", AssignedTestCodes = new() { "TAMC-TRANSFER" } };
         db.WaterSamplingPoints.Add(point);

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Box,
   Typography,
@@ -16,6 +16,7 @@ import {
   Tooltip,
   Alert,
   CircularProgress,
+  Stack,
   useTheme
 } from "@mui/material";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
@@ -23,15 +24,15 @@ import CheckIcon from "@mui/icons-material/Check";
 import CloseIcon from "@mui/icons-material/Close";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
+import AddIcon from "@mui/icons-material/Add";
 import { Item } from "../services/ItemService";
 import { SpecificationService, SpecificationDto } from "../../specifications/services/SpecificationService";
-import { useTestDefinitions } from "../../../../hooks/useTestDefinitions";
 import { ConfirmationDialog } from "../../../../components/ConfirmationDialog";
 import { brandColors } from "../../../../theme";
 
 interface ItemSpecificationsSectionProps {
   item: Item;
-  onSpecsChanged: () => void;
+  onSpecsChanged?: () => void;
 }
 
 export const ItemSpecificationsSection: React.FC<ItemSpecificationsSectionProps> = ({
@@ -39,22 +40,17 @@ export const ItemSpecificationsSection: React.FC<ItemSpecificationsSectionProps>
   onSpecsChanged
 }) => {
   const theme = useTheme();
-  const { options: testDefinitions } = useTestDefinitions();
 
-  // Filter to count tests assigned to THIS item only
-  const countTestCodes = item.assignedTests
-    .map((t) => t.testCode)
-    .filter((code) => testDefinitions.find((o) => o.code === code)?.workflowType === "CountTest");
-
-  // Existing specs (already in item.specifications from GET /api/items)
-  const existingSpecs = item.specifications ?? [];
+  const [specs, setSpecs] = useState<SpecificationDto[]>(item.specifications ?? []);
+  const [loading, setLoading] = useState(false);
 
   // Add row state
   const [addRow, setAddRow] = useState({
     testCode: "",
     alertLimit: "",
     actionLimit: "",
-    specLimit: ""
+    specLimit: "",
+    unit: ""
   });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -65,6 +61,39 @@ export const ItemSpecificationsSection: React.FC<ItemSpecificationsSectionProps>
 
   // Delete state
   const [pendingDelete, setPendingDelete] = useState<{ id: number; testCode: string } | null>(null);
+
+  const loadSpecs = async () => {
+    if (!item?.id) return;
+    setLoading(true);
+    try {
+      const data = await SpecificationService.getForItem(item.id);
+      if (Array.isArray(data)) {
+        setSpecs(data);
+      }
+    } catch {
+      // Fallback to item.specifications if direct fetch fails
+      setSpecs(item.specifications ?? []);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    setSpecs(item.specifications ?? []);
+    loadSpecs();
+    setEditingId(null);
+    setEditRow({});
+    setError(null);
+    setAddRow({ testCode: "", alertLimit: "", actionLimit: "", specLimit: "", unit: "" });
+  }, [item.id]);
+
+  const assignedTests = item.assignedTests ?? [];
+  const assignableTestCodes = assignedTests.map((t) => t.testCode);
+
+  // Available tests to add (excluding tests already configured)
+  const availableToAdd = assignableTestCodes.filter(
+    (code) => !specs.some((s) => s.testCode === code)
+  );
 
   // === ADD spec ===
   const handleAdd = async () => {
@@ -80,10 +109,12 @@ export const ItemSpecificationsSection: React.FC<ItemSpecificationsSectionProps>
         addRow.testCode,
         addRow.alertLimit ? addRow.alertLimit.trim() : "",
         addRow.actionLimit ? addRow.actionLimit.trim() : "",
-        addRow.specLimit.trim()
+        addRow.specLimit.trim(),
+        addRow.unit ? addRow.unit.trim() : ""
       );
-      setAddRow({ testCode: "", alertLimit: "", actionLimit: "", specLimit: "" });
-      onSpecsChanged();
+      setAddRow({ testCode: "", alertLimit: "", actionLimit: "", specLimit: "", unit: "" });
+      await loadSpecs();
+      onSpecsChanged?.();
     } catch (e: any) {
       setError(e?.response?.data?.message ?? "Failed to add specification.");
     } finally {
@@ -92,8 +123,8 @@ export const ItemSpecificationsSection: React.FC<ItemSpecificationsSectionProps>
   };
 
   // === EDIT spec ===
-  const handleEditSave = async (spec: { id?: number; testCode: string }) => {
-    if (!spec.id) return;
+  const handleEditSave = async (spec: SpecificationDto) => {
+    if (spec.id == null) return;
     if (!editRow.specLimit || !editRow.specLimit.trim()) {
       setError("Specification limit is required.");
       return;
@@ -106,11 +137,13 @@ export const ItemSpecificationsSection: React.FC<ItemSpecificationsSectionProps>
         spec.testCode,
         editRow.alertLimit ? editRow.alertLimit.trim() : "",
         editRow.actionLimit ? editRow.actionLimit.trim() : "",
-        editRow.specLimit.trim()
+        editRow.specLimit.trim(),
+        editRow.unit ? editRow.unit.trim() : ""
       );
       setEditingId(null);
       setEditRow({});
-      onSpecsChanged();
+      await loadSpecs();
+      onSpecsChanged?.();
     } catch (e: any) {
       setError(e?.response?.data?.message ?? "Failed to update specification.");
     } finally {
@@ -126,7 +159,8 @@ export const ItemSpecificationsSection: React.FC<ItemSpecificationsSectionProps>
     try {
       await SpecificationService.remove(pendingDelete.id);
       setPendingDelete(null);
-      onSpecsChanged();
+      await loadSpecs();
+      onSpecsChanged?.();
     } catch (e: any) {
       setError(e?.response?.data?.message ?? "Failed to delete specification.");
     } finally {
@@ -134,210 +168,256 @@ export const ItemSpecificationsSection: React.FC<ItemSpecificationsSectionProps>
     }
   };
 
-  // Available tests to add (excluding tests already configured)
-  const availableToAdd = countTestCodes.filter(
-    (code) => !existingSpecs.some((s) => s.testCode === code)
-  );
+  const getTestDisplayName = (testCode: string) => {
+    const match = assignedTests.find((t) => t.testCode === testCode);
+    return match?.displayName && match.displayName !== testCode ? `${match.displayName} (${testCode})` : testCode;
+  };
 
   return (
     <Box sx={{ p: 0.5 }}>
-      <Typography
-        variant="subtitle2"
-        sx={{ mb: 1.5, fontWeight: 700, color: theme.palette.primary.main, textTransform: "uppercase", fontSize: 12, letterSpacing: "0.5px" }}
-      >
-        Specifications (Count Tests)
-      </Typography>
+      <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1.5 }}>
+        <Typography
+          variant="subtitle2"
+          sx={{ fontWeight: 700, color: theme.palette.primary.main, textTransform: "uppercase", fontSize: 12, letterSpacing: "0.5px" }}
+        >
+          Pharmacopoeial Specifications & Limits ({specs.length})
+        </Typography>
+        {loading && <CircularProgress size={16} />}
+      </Stack>
 
       {error && <Alert severity="error" onClose={() => setError(null)} sx={{ mb: 1.5 }}>{error}</Alert>}
 
-      {countTestCodes.length === 0 ? (
-        <Typography variant="body2" sx={{ color: "text.secondary", fontStyle: "italic", py: 1 }}>
-          No count tests assigned to this item. Assign TAMC or TYMC tests to configure limits.
-        </Typography>
+      {assignableTestCodes.length === 0 ? (
+        <Alert severity="warning" sx={{ py: 1, fontSize: 13 }}>
+          This item has no assigned tests yet. Assign tests under the <strong>Assigned Tests</strong> tab or edit the item before configuring specifications.
+        </Alert>
       ) : (
-        <Table size="small" sx={{ mb: 1.5, border: "1px solid", borderColor: "divider", borderRadius: 1, overflow: "hidden" }}>
-          <TableHead>
-            <TableRow sx={{ backgroundColor: "background.default" }}>
-              <TableCell sx={{ fontWeight: 700, fontSize: 12, width: 140 }}>Test</TableCell>
-              <TableCell sx={{ fontWeight: 700, fontSize: 12, width: 120 }}>Alert Limit</TableCell>
-              <TableCell sx={{ fontWeight: 700, fontSize: 12, width: 120 }}>Action Limit</TableCell>
-              <TableCell sx={{ fontWeight: 700, fontSize: 12, width: 140 }}>
-                Spec Limit
-                <Tooltip title="Pharmacopoeial pass/fail threshold">
-                  <InfoOutlinedIcon sx={{ fontSize: 14, ml: 0.5, verticalAlign: "middle", color: "text.secondary" }} />
-                </Tooltip>
-              </TableCell>
-              <TableCell align="right" sx={{ width: 90 }} />
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {/* Existing specs rows */}
-            {existingSpecs.map((spec, idx) => {
-              const specId = spec.id ?? idx;
-              const isEditing = editingId === specId;
-
-              return (
-                <TableRow key={specId} hover sx={{ "&:nth-of-type(even)": { bgcolor: "background.default" } }}>
-                  <TableCell sx={{ fontWeight: 600, fontSize: 13 }}>{spec.testCode}</TableCell>
-
-                  {isEditing ? (
-                    // Edit mode
-                    <>
-                      <TableCell>
-                        <TextField
-                          size="small"
-                          placeholder="Alert"
-                          value={editRow.alertLimit ?? ""}
-                          onChange={(e) => setEditRow((r) => ({ ...r, alertLimit: e.target.value }))}
-                          sx={{ width: 100 }}
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <TextField
-                          size="small"
-                          placeholder="Action"
-                          value={editRow.actionLimit ?? ""}
-                          onChange={(e) => setEditRow((r) => ({ ...r, actionLimit: e.target.value }))}
-                          sx={{ width: 100 }}
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <TextField
-                          size="small"
-                          placeholder="Spec *"
-                          value={editRow.specLimit ?? ""}
-                          onChange={(e) => setEditRow((r) => ({ ...r, specLimit: e.target.value }))}
-                          sx={{ width: 110 }}
-                          required
-                        />
-                      </TableCell>
-                      <TableCell align="right">
-                        <IconButton
-                          size="small"
-                          color="success"
-                          onClick={() => handleEditSave(spec)}
-                          disabled={saving}
-                          title="Save"
-                        >
-                          <CheckIcon fontSize="small" />
-                        </IconButton>
-                        <IconButton
-                          size="small"
-                          onClick={() => { setEditingId(null); setEditRow({}); }}
-                          disabled={saving}
-                          title="Cancel"
-                        >
-                          <CloseIcon fontSize="small" />
-                        </IconButton>
-                      </TableCell>
-                    </>
-                  ) : (
-                    // Read mode
-                    <>
-                      <TableCell sx={{ fontSize: 13 }}>{spec.alertLimit || "—"}</TableCell>
-                      <TableCell sx={{ fontSize: 13 }}>{spec.actionLimit || "—"}</TableCell>
-                      <TableCell sx={{ fontWeight: 700, fontSize: 13, color: theme.palette.primary.main }}>
-                        {spec.specLimit || "—"}
-                      </TableCell>
-                      <TableCell align="right">
-                        <IconButton
-                          size="small"
-                          onClick={() => {
-                            setEditingId(specId);
-                            setEditRow({
-                              alertLimit: spec.alertLimit,
-                              actionLimit: spec.actionLimit,
-                              specLimit: spec.specLimit
-                            });
-                          }}
-                          title="Edit"
-                        >
-                          <EditIcon fontSize="small" />
-                        </IconButton>
-                        <IconButton
-                          size="small"
-                          color="error"
-                          onClick={() => spec.id && setPendingDelete({ id: spec.id, testCode: spec.testCode })}
-                          title="Delete"
-                        >
-                          <DeleteIcon fontSize="small" />
-                        </IconButton>
-                      </TableCell>
-                    </>
-                  )}
-                </TableRow>
-              );
-            })}
-
-            {/* Add new spec row (shown if there are count tests not yet configured) */}
-            {availableToAdd.length > 0 && (
+        <Box>
+          <Table size="small" sx={{ mb: 2, border: "1px solid", borderColor: "divider", borderRadius: 1, overflow: "hidden" }}>
+            <TableHead>
               <TableRow sx={{ backgroundColor: "background.default" }}>
-                <TableCell>
-                  <FormControl size="small" sx={{ minWidth: 120 }}>
-                    <Select
-                      value={addRow.testCode}
-                      onChange={(e) => setAddRow((r) => ({ ...r, testCode: e.target.value }))}
-                      displayEmpty
-                    >
-                      <MenuItem value="">
-                        <em>Test Code</em>
-                      </MenuItem>
-                      {availableToAdd.map((code) => (
-                        <MenuItem key={code} value={code}>
-                          {code}
-                        </MenuItem>
-                      ))}
-                    </Select>
-                  </FormControl>
+                <TableCell sx={{ fontWeight: 700, fontSize: 12, width: 200 }}>Assigned Test</TableCell>
+                <TableCell sx={{ fontWeight: 700, fontSize: 12, width: 100 }}>Alert Limit</TableCell>
+                <TableCell sx={{ fontWeight: 700, fontSize: 12, width: 100 }}>Action Limit</TableCell>
+                <TableCell sx={{ fontWeight: 700, fontSize: 12, minWidth: 140 }}>
+                  Specification Limit
+                  <Tooltip title="Pharmacopoeial pass/fail threshold">
+                    <InfoOutlinedIcon sx={{ fontSize: 14, ml: 0.5, verticalAlign: "middle", color: "text.secondary" }} />
+                  </Tooltip>
                 </TableCell>
-                <TableCell>
-                  <TextField
-                    size="small"
-                    placeholder="Alert"
-                    value={addRow.alertLimit}
-                    onChange={(e) => setAddRow((r) => ({ ...r, alertLimit: e.target.value }))}
-                    sx={{ width: 100 }}
-                  />
-                </TableCell>
-                <TableCell>
-                  <TextField
-                    size="small"
-                    placeholder="Action"
-                    value={addRow.actionLimit}
-                    onChange={(e) => setAddRow((r) => ({ ...r, actionLimit: e.target.value }))}
-                    sx={{ width: 100 }}
-                  />
-                </TableCell>
-                <TableCell>
-                  <TextField
-                    size="small"
-                    placeholder="Spec *"
-                    value={addRow.specLimit}
-                    onChange={(e) => setAddRow((r) => ({ ...r, specLimit: e.target.value }))}
-                    sx={{ width: 110 }}
-                    required
-                  />
-                </TableCell>
-                <TableCell align="right">
-                  <Button
-                    size="small"
-                    variant="contained"
-                    onClick={handleAdd}
-                    disabled={saving || !addRow.testCode || !addRow.specLimit.trim()}
-                    sx={{
-                      bgcolor: brandColors.sectionTitle,
-                      "&:hover": { bgcolor: brandColors.pageTitle },
-                      minWidth: 60,
-                      fontWeight: 700
-                    }}
-                  >
-                    {saving ? <CircularProgress size={14} color="inherit" /> : "Add"}
-                  </Button>
-                </TableCell>
+                <TableCell sx={{ fontWeight: 700, fontSize: 12, width: 100 }}>Unit</TableCell>
+                <TableCell align="right" sx={{ width: 100 }}>Actions</TableCell>
               </TableRow>
-            )}
-          </TableBody>
-        </Table>
+            </TableHead>
+            <TableBody>
+              {/* Existing specs rows */}
+              {specs.map((spec, idx) => {
+                const specId = spec.id ?? idx;
+                const isEditing = editingId === specId;
+
+                return (
+                  <TableRow key={specId} hover sx={{ "&:nth-of-type(even)": { bgcolor: "background.default" } }}>
+                    <TableCell sx={{ fontWeight: 600, fontSize: 13 }}>
+                      {getTestDisplayName(spec.testCode)}
+                    </TableCell>
+
+                    {isEditing ? (
+                      // Edit mode
+                      <>
+                        <TableCell>
+                          <TextField
+                            size="small"
+                            placeholder="Alert"
+                            value={editRow.alertLimit ?? ""}
+                            onChange={(e) => setEditRow((r) => ({ ...r, alertLimit: e.target.value }))}
+                            sx={{ width: 100 }}
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <TextField
+                            size="small"
+                            placeholder="Action"
+                            value={editRow.actionLimit ?? ""}
+                            onChange={(e) => setEditRow((r) => ({ ...r, actionLimit: e.target.value }))}
+                            sx={{ width: 100 }}
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <TextField
+                            size="small"
+                            placeholder="Specification *"
+                            value={editRow.specLimit ?? ""}
+                            onChange={(e) => setEditRow((r) => ({ ...r, specLimit: e.target.value }))}
+                            fullWidth
+                            required
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <TextField
+                            size="small"
+                            placeholder="Unit (e.g. g)"
+                            value={editRow.unit ?? ""}
+                            onChange={(e) => setEditRow((r) => ({ ...r, unit: e.target.value }))}
+                            sx={{ width: 100 }}
+                          />
+                        </TableCell>
+                        <TableCell align="right">
+                          <Stack direction="row" spacing={0.5} justifyContent="flex-end">
+                            <IconButton
+                              size="small"
+                              color="success"
+                              onClick={() => handleEditSave(spec)}
+                              disabled={saving}
+                              title="Save Changes"
+                            >
+                              <CheckIcon fontSize="small" />
+                            </IconButton>
+                            <IconButton
+                              size="small"
+                              onClick={() => { setEditingId(null); setEditRow({}); }}
+                              disabled={saving}
+                              title="Cancel Edit"
+                            >
+                              <CloseIcon fontSize="small" />
+                            </IconButton>
+                          </Stack>
+                        </TableCell>
+                      </>
+                    ) : (
+                      // Read mode
+                      <>
+                        <TableCell sx={{ fontSize: 13 }}>{spec.alertLimit || "—"}</TableCell>
+                        <TableCell sx={{ fontSize: 13 }}>{spec.actionLimit || "—"}</TableCell>
+                        <TableCell sx={{ fontWeight: 700, fontSize: 13, color: theme.palette.primary.main }}>
+                          {spec.specLimit || "—"}
+                        </TableCell>
+                        <TableCell sx={{ fontSize: 13 }}>{spec.unit || "—"}</TableCell>
+                        <TableCell align="right">
+                          <Stack direction="row" spacing={0.5} justifyContent="flex-end">
+                            <IconButton
+                              size="small"
+                              onClick={() => {
+                                setEditingId(specId);
+                                setEditRow({
+                                  alertLimit: spec.alertLimit,
+                                  actionLimit: spec.actionLimit,
+                                  specLimit: spec.specLimit,
+                                  unit: spec.unit
+                                });
+                              }}
+                              title="Edit Specification"
+                            >
+                              <EditIcon fontSize="small" />
+                            </IconButton>
+                            <IconButton
+                              size="small"
+                              color="error"
+                              onClick={() => spec.id != null && setPendingDelete({ id: spec.id, testCode: spec.testCode })}
+                              title="Delete Specification"
+                            >
+                              <DeleteIcon fontSize="small" />
+                            </IconButton>
+                          </Stack>
+                        </TableCell>
+                      </>
+                    )}
+                  </TableRow>
+                );
+              })}
+
+              {/* Add new spec row (shown if there are assigned tests not yet configured) */}
+              {availableToAdd.length > 0 && (
+                <TableRow sx={{ backgroundColor: "background.default" }}>
+                  <TableCell>
+                    <FormControl size="small" fullWidth>
+                      <Select
+                        value={addRow.testCode}
+                        onChange={(e) => setAddRow((r) => ({ ...r, testCode: e.target.value }))}
+                        displayEmpty
+                      >
+                        <MenuItem value="">
+                          <em>Select Test Code *</em>
+                        </MenuItem>
+                        {availableToAdd.map((code) => (
+                          <MenuItem key={code} value={code}>
+                            {getTestDisplayName(code)}
+                          </MenuItem>
+                        ))}
+                      </Select>
+                    </FormControl>
+                  </TableCell>
+                  <TableCell>
+                    <TextField
+                      size="small"
+                      placeholder="Alert"
+                      value={addRow.alertLimit}
+                      onChange={(e) => setAddRow((r) => ({ ...r, alertLimit: e.target.value }))}
+                      sx={{ width: 100 }}
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <TextField
+                      size="small"
+                      placeholder="Action"
+                      value={addRow.actionLimit}
+                      onChange={(e) => setAddRow((r) => ({ ...r, actionLimit: e.target.value }))}
+                      sx={{ width: 100 }}
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <TextField
+                      size="small"
+                      placeholder="Specification Limit *"
+                      value={addRow.specLimit}
+                      onChange={(e) => setAddRow((r) => ({ ...r, specLimit: e.target.value }))}
+                      fullWidth
+                      required
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <TextField
+                      size="small"
+                      placeholder="Unit (e.g. g)"
+                      value={addRow.unit}
+                      onChange={(e) => setAddRow((r) => ({ ...r, unit: e.target.value }))}
+                      sx={{ width: 100 }}
+                    />
+                  </TableCell>
+                  <TableCell align="right">
+                    <Button
+                      size="small"
+                      variant="contained"
+                      startIcon={saving ? <CircularProgress size={14} color="inherit" /> : <AddIcon />}
+                      onClick={handleAdd}
+                      disabled={saving || !addRow.testCode || !addRow.specLimit.trim()}
+                      sx={{
+                        bgcolor: brandColors.sectionTitle,
+                        "&:hover": { bgcolor: brandColors.pageTitle },
+                        minWidth: 80,
+                        fontWeight: 700,
+                        textTransform: "none"
+                      }}
+                    >
+                      Add
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+
+          {specs.length === 0 && availableToAdd.length > 0 && (
+            <Typography variant="body2" sx={{ color: "text.secondary", fontStyle: "italic", mb: 1.5 }}>
+              No specifications defined yet. Select an assigned test above to add its Alert/Action/Specification limits.
+            </Typography>
+          )}
+
+          {availableToAdd.length === 0 && specs.length > 0 && (
+            <Alert severity="success" sx={{ py: 0.5, fontSize: 12 }}>
+              All assigned tests for <strong>{item.name}</strong> have specifications configured.
+            </Alert>
+          )}
+        </Box>
       )}
 
       {/* Delete Confirmation Dialog */}

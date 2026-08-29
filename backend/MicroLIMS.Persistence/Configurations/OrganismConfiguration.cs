@@ -18,6 +18,7 @@ public class OrganismConfiguration : IEntityTypeConfiguration<Organism>
         builder.Property(o => o.ScientificName).IsRequired().HasMaxLength(200);
         builder.Property(o => o.AtccNumber).HasMaxLength(50);
         builder.Property(o => o.CommonName).HasMaxLength(200);
+        builder.Property(o => o.Description).HasMaxLength(2000);
         builder.HasIndex(o => o.AtccNumber).IsUnique().HasFilter("\"AtccNumber\" IS NOT NULL");
     }
 }

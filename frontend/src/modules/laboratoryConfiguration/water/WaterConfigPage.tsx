@@ -38,7 +38,7 @@ function SamplingPointTestConfigSection({ point }: { point: SamplingPoint }) {
   const setField = (k: string, v: any) => setForm((f) => ({ ...f, [k]: v }));
   const startEdit = (c: any) => {
     setEditingId(c.id);
-    setForm({ testCode: c.testCode, alertLimit: c.alertLimit, actionLimit: c.actionLimit, specLimit: c.specLimit });
+    setForm({ testCode: c.testCode, alertLimit: c.alertLimit, actionLimit: c.actionLimit, specLimit: c.specLimit, unit: c.unit });
     setError(null);
   };
   const cancelEdit = () => { setEditingId(null); setForm({}); };
@@ -48,9 +48,9 @@ function SamplingPointTestConfigSection({ point }: { point: SamplingPoint }) {
     if (!form.testCode) { setError("Select a count test."); return; }
     try {
       if (editingId) {
-        await WaterConfigService.updateSamplingConfiguration(editingId, form.testCode, form.alertLimit ?? "", form.actionLimit ?? "", form.specLimit ?? "");
+        await WaterConfigService.updateSamplingConfiguration(editingId, form.testCode, form.alertLimit ?? "", form.actionLimit ?? "", form.specLimit ?? "", form.unit ?? "");
       } else {
-        await WaterConfigService.createSamplingConfiguration(point.id, form.testCode, form.alertLimit ?? "", form.actionLimit ?? "", form.specLimit ?? "");
+        await WaterConfigService.createSamplingConfiguration(point.id, form.testCode, form.alertLimit ?? "", form.actionLimit ?? "", form.specLimit ?? "", form.unit ?? "");
       }
       cancelEdit();
       load();
@@ -71,7 +71,7 @@ function SamplingPointTestConfigSection({ point }: { point: SamplingPoint }) {
       {configs.length > 0 ? (
         <Table size="small" sx={{ mb: 1.5 }}>
           <TableHead>
-            <TableRow><TableCell>Test Code</TableCell><TableCell>Alert</TableCell><TableCell>Action</TableCell><TableCell>Specification</TableCell><TableCell /></TableRow>
+            <TableRow><TableCell>Test Code</TableCell><TableCell>Alert</TableCell><TableCell>Action</TableCell><TableCell>Specification</TableCell><TableCell>Unit</TableCell><TableCell /></TableRow>
           </TableHead>
           <TableBody>
             {configs.map((c) => (
@@ -80,6 +80,7 @@ function SamplingPointTestConfigSection({ point }: { point: SamplingPoint }) {
                 <TableCell>{c.alertLimit || "—"}</TableCell>
                 <TableCell>{c.actionLimit || "—"}</TableCell>
                 <TableCell>{c.specLimit || "—"}</TableCell>
+                <TableCell>{c.unit || "—"}</TableCell>
                 <TableCell align="right">
                   <IconButton size="small" onClick={() => startEdit(c)} title="Edit"><EditIcon fontSize="small" /></IconButton>
                   <IconButton size="small" color="error" onClick={() => setPendingDelete(c)} title="Delete"><DeleteIcon fontSize="small" /></IconButton>
@@ -105,6 +106,7 @@ function SamplingPointTestConfigSection({ point }: { point: SamplingPoint }) {
             <TextField size="small" placeholder="Alert" value={form.alertLimit ?? ""} onChange={(e) => setField("alertLimit", e.target.value)} sx={{ width: 100 }} />
             <TextField size="small" placeholder="Action" value={form.actionLimit ?? ""} onChange={(e) => setField("actionLimit", e.target.value)} sx={{ width: 100 }} />
             <TextField size="small" placeholder="Specification" value={form.specLimit ?? ""} onChange={(e) => setField("specLimit", e.target.value)} sx={{ width: 120 }} />
+            <TextField size="small" placeholder="Unit (e.g. mL)" value={form.unit ?? ""} onChange={(e) => setField("unit", e.target.value)} sx={{ width: 110 }} />
             {editingId && <Button onClick={cancelEdit}>Cancel</Button>}
             <Button variant="contained" onClick={save}>{editingId ? "Save Changes" : "Add"}</Button>
           </Stack>

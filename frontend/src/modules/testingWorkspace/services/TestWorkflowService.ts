@@ -40,14 +40,22 @@ export const TestWorkflowService = {
   closeIncubationWindow: (testOrderId: number) =>
     apiClient.post(`/test-workflow/${testOrderId}/close-incubation-window`).then((r) => r.data.data),
 
+  // Section Head/System Administrator only (enforced server-side too) -
+  // bypasses the minimum-duration wait for the currently open incubation.
+  overrideMinimumDuration: (testOrderId: number) =>
+    apiClient.post(`/test-workflow/${testOrderId}/override-minimum-duration`).then((r) => r.data.data),
+
   // Still a single boolean per location - EM/AfterCleaning batch pathogen
   // results never adopted the confirmatory model; there is no dual-plate
   // variant of this endpoint anymore.
   recordBatchPathogenResults: (testOrderId: number, locations: { sampleLocationId: number; growthObserved: boolean }[]) =>
     apiClient.post(`/test-workflow/${testOrderId}/batch-pathogen-results`, { locations }).then((r) => r.data.data),
 
-  recordBatchResults: (testOrderId: number, dilutionFactor: number, locations: { sampleLocationId: number; cfuResult: number }[]) =>
-    apiClient.post(`/test-workflow/${testOrderId}/batch-results`, { dilutionFactor, locations }).then((r) => r.data.data),
+  // Dilution factor is always 1 server-side (EM/After Cleaning are
+  // direct-count categories) - each location submits its own set of raw
+  // plate readings, averaged, same shape as recordWaterBatchReadings.
+  recordBatchResults: (testOrderId: number, locations: { sampleLocationId: number; readings: number[] }[]) =>
+    apiClient.post(`/test-workflow/${testOrderId}/batch-results`, { locations }).then((r) => r.data.data),
 
   recordWaterBatchReadings: (testOrderId: number, locations: { sampleLocationId: number; readings: number[] }[]) =>
     apiClient.post(`/test-workflow/${testOrderId}/water-batch-readings`, { locations }).then((r) => r.data.data),
@@ -103,9 +111,9 @@ export const TestWorkflowService = {
   recordAnalystDecision: (testOrderId: number, decision: AnalystDecision): Promise<StepResultDto> =>
     apiClient.post(`/test-workflow/${testOrderId}/analyst-decision`, { decision }).then((r) => r.data.data),
 
-  submitBiochemical: (testOrderId: number, stepName: string, biochemicalResultText: string): Promise<StepResultDto> =>
+  submitBiochemical: (testOrderId: number, stepName: string, biochemicalResultText: string, organismDetected: boolean): Promise<StepResultDto> =>
     apiClient.post(`/test-workflow/${testOrderId}/submit-biochemical`, {
-      stepName, biochemicalResultText, attachmentId: null
+      stepName, biochemicalResultText, attachmentId: null, organismDetected
     }).then((r) => r.data.data),
 
   // Reviewer-only. No frontend UI calls this yet (see plan header) - the

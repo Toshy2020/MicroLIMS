@@ -49,5 +49,8 @@ export const UserService = {
   },
   async forcePasswordChange(id: number) {
     return (await apiClient.put(`/users/${id}/force-password-change`)).data.data;
+  },
+  async hardDelete(id: number) {
+    return (await apiClient.delete(`/users/${id}`)).data.data;
   }
 };

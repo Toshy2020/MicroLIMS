@@ -27,14 +27,12 @@ public class IncubationTransferTests
         MicroLimsDbContext db, int stage1MinHours = 24, int stage1MaxHours = 48, int stage2MinHours = 24, int stage2MaxHours = 48)
     {
         var testDefinition = new TestDefinition { Code = "TAMC-TRANSFER", DisplayName = "TAMC with transfer", WorkflowType = WorkflowType.CountTest };
-        var generalAgar = new MediaType { Class = MediaClass.GeneralAgar, IncubationMinHours = 24, IncubationMaxHours = 48, RequiredTemperatureMin = 30, RequiredTemperatureMax = 35 };
         db.TestDefinitions.Add(testDefinition);
-        db.MediaTypes.Add(generalAgar);
         await db.SaveChangesAsync();
 
         var step = new TestWorkflowStep
         {
-            TestDefinitionId = testDefinition.Id, StepOrder = 1, StepName = "CountIncubation", MediaTypeId = generalAgar.Id,
+            TestDefinitionId = testDefinition.Id, StepOrder = 1, StepName = "CountIncubation", 
             IncubationMinHours = stage1MinHours, IncubationMaxHours = stage1MaxHours, TemperatureMin = 30, TemperatureMax = 35,
             IsFinalStep = true, StepType = StepType.PlateCount, RequiresIncubationTransfer = true
         };
@@ -53,9 +51,15 @@ public class IncubationTransferTests
         };
         db.Materials.Add(material);
         await db.SaveChangesAsync();
+        db.TestWorkflowStepMedias.Add(new TestWorkflowStepMedia { TestWorkflowStepId = step.Id, MaterialId = material.Id, TempMin = 30, TempMax = 35, IncubationMinHours = stage1MinHours, IncubationMaxHours = stage1MaxHours });
 
-        var media = new Media { MediaTypeId = generalAgar.Id, MaterialId = material.Id, LotNumber = "TSA/1/26", IsReleasedForUse = true, Status = MediaStatus.Active, ExpiryDate = DateTime.UtcNow.AddDays(30) };
+        var media = new Media { MaterialId = material.Id, LotNumber = "TSA/1/26", IsReleasedForUse = true, Status = MediaStatus.Active, ExpiryDate = DateTime.UtcNow.AddDays(30) };
         db.Media.Add(media);
+        // First Equipment row added to this fresh in-memory DB, so it gets
+        // Id 1 - matching the hardcoded incubatorEquipmentId: 1 the tests
+        // below pass to SelectMediaAsync, which now enforces incubator
+        // eligibility (temperature must fall within the step medium's range).
+        db.Equipment.Add(new Equipment { Name = "Incubator", Code = "INC-1", Type = EquipmentType.Incubator, SetPointTemperature = 32 });
 
         var point = new WaterSamplingPoint { Code = "WP-01", Location = "Utility Room", AssignedTestCodes = new() { "TAMC-TRANSFER" } };
         db.WaterSamplingPoints.Add(point);
@@ -93,6 +97,56 @@ public class IncubationTransferTests
             engine.StartStage2IncubationAsync(order.Id, "CountIncubation", incubatorEquipmentId: 2, userId: 1));
 
         Assert.Equal(WorkflowErrorCodes.IncubationStage1NotComplete, ex.ErrorCode);
+    }
+
+    // StartStage2IncubationAsync had its own inline stage-1 readiness check
+    // that was missed when the wait-skip override feature was first added -
+    // every other gate (RequireMinimumDurationElapsed,
+    // RequireStage2MinimumDurationElapsed, RequireIncubationComplete, the
+    // two pathogen inline checks) got the override guard, this one didn't.
+    // Regression test for that fix.
+    [Fact]
+    public async Task StartStage2Async_AfterOverridingStage1_SucceedsBeforeWindowElapses()
+    {
+        await using var db = NewDb();
+        var (order, media, _) = await SeedTransferOrderAsync(db);
+        var engine = TestServiceFactory.TestWorkflow(db);
+        await engine.SelectMediaAsync(order.Id, "CountIncubation", media.Id, incubatorEquipmentId: 1, userId: 1);
+
+        await Assert.ThrowsAsync<WorkflowStepException>(() =>
+            engine.StartStage2IncubationAsync(order.Id, "CountIncubation", incubatorEquipmentId: 2, userId: 1));
+
+        var overridden = await engine.OverrideMinimumDurationAsync(order.Id, userId: 99);
+        Assert.Equal(1, overridden.StageNumber);
+
+        var stage2 = await engine.StartStage2IncubationAsync(order.Id, "CountIncubation", incubatorEquipmentId: 2, userId: 1);
+        Assert.Equal(2, stage2.StageNumber);
+    }
+
+    // Overriding stage 1 to start stage 2 must not also silently exempt
+    // stage 2's own wait - each stage's override is a separate, per-row act.
+    [Fact]
+    public async Task RecordResultAsync_AfterOverridingStage2Separately_SucceedsBeforeStage2WindowElapses()
+    {
+        await using var db = NewDb();
+        var (order, media, _) = await SeedTransferOrderAsync(db);
+        var engine = TestServiceFactory.TestWorkflow(db);
+        await engine.SelectMediaAsync(order.Id, "CountIncubation", media.Id, incubatorEquipmentId: 1, userId: 1);
+        await engine.OverrideMinimumDurationAsync(order.Id, userId: 99);
+        await engine.StartStage2IncubationAsync(order.Id, "CountIncubation", incubatorEquipmentId: 2, userId: 1);
+
+        // Stage 2 is a brand-new Incubation row - its own
+        // MinimumDurationOverriddenByUserId is null, independent of
+        // stage 1's, confirmed here before overriding it separately.
+        var ex = await Assert.ThrowsAsync<WorkflowStepException>(() =>
+            engine.RecordResultAsync(order.Id, "CountIncubation", new CountTestPayload(new List<decimal> { 10 }, 1), userId: 1));
+        Assert.Equal(WorkflowErrorCodes.IncubationNotComplete, ex.ErrorCode);
+
+        var overriddenStage2 = await engine.OverrideMinimumDurationAsync(order.Id, userId: 99);
+        Assert.Equal(2, overriddenStage2.StageNumber);
+
+        var result = await engine.RecordResultAsync(order.Id, "CountIncubation", new CountTestPayload(new List<decimal> { 10 }, 1), userId: 1);
+        Assert.True(result.AllStepsComplete);
     }
 
     [Fact]
@@ -255,8 +309,8 @@ public class IncubationTransferTests
         await BackdateOpenIncubationAsync(db, order.Id, "CountIncubation", TimeSpan.FromHours(49));
 
         var ex = await Assert.ThrowsAsync<WorkflowStepException>(() =>
-            engine.RecordBatchResultsAsync(order.Id, dilutionFactor: 1,
-                new List<BatchLocationResult> { new(loc.Id, 5) }, userId: 1));
+            engine.RecordBatchResultsAsync(order.Id,
+                new List<BatchLocationReadings> { new(loc.Id, new List<decimal> { 5 }) }, userId: 1));
 
         Assert.Equal(WorkflowErrorCodes.IncubationStage2NotStarted, ex.ErrorCode);
     }

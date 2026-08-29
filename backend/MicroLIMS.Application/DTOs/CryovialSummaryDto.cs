@@ -18,7 +18,9 @@ public class CryovialSummaryDto
     public int NumberOfVialsPrepared { get; set; }
     public int VialsRemaining { get; set; }
     public string StorageCondition { get; set; } = string.Empty;
+    public bool PhysicalCheckConfirmed { get; set; }
     public string PhysicalCheckText { get; set; } = string.Empty;
+    public string? OrganismDescription { get; set; }
     public DateTime PreparedAt { get; set; }
     public string PreparedByName { get; set; } = string.Empty;
 

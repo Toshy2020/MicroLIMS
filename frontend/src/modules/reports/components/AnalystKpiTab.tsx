@@ -187,12 +187,12 @@ export function AnalystKpiTab() {
       },
       timeliness: {
         avgTestingTatDays: row.avgTestingTatDays,
-        medianTestingTatDays: Math.max(1.0, Number((row.avgTestingTatDays - 0.2).toFixed(1))),
+        medianTestingTatDays: row.avgTestingTatDays,
         onTimePercent: row.onTimePercent != null ? `${row.onTimePercent}%` : "Not Available",
         overdueCount: row.overdue
       },
       quality: {
-        reviewReturns: row.reviewReturns ?? "Not Available",
+        reviewReturns: "Not Available",
         documentationCorrections: row.docCorrections ?? "Not Available",
         calculationCorrections: "Not Available",
         missingMandatoryDataCount: 0,

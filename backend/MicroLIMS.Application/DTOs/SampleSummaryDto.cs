@@ -34,6 +34,11 @@ public class SampleSummaryDto
     public string? ApprovedByName { get; set; }
     public DateTime? ApprovedAt { get; set; }
     public string? ApprovalDecision { get; set; }
+    public string? CertificateRemarks { get; set; }
+
+    // After Cleaning Previous Product Traceability (historical free text)
+    public string? PreviousProductName { get; set; }
+    public string? PreviousProductBatchNumber { get; set; }
 
     public SamplePreparationSummaryDto? Preparation { get; set; }
     public List<TestOrderSummaryDetailDto> TestOrders { get; set; } = new();
@@ -58,6 +63,17 @@ public class TestOrderSummaryDetailDto
     public int TestOrderId { get; set; }
     public string TestCode { get; set; } = string.Empty;
     public string TestDisplayName { get; set; } = string.Empty;
+    // Set only when this row was pulled in from a different Sample - the
+    // reference number of a retest sample whose results were pulled
+    // through onto an OOS origin/intermediate sample whose own TestOrders
+    // were fully superseded (see SampleSummaryService.ResolveEffectiveTestOrdersAsync).
+    // Null for every ordinarily-owned row.
+    public string? SourceSampleReferenceNumber { get; set; }
+    // Specification pass/fail text for this TestOrder's TestCode, resolved
+    // from Test Master's per-Item Specifications (Item+TestCode keyed) -
+    // covers both quantitative and qualitative tests generically. Null
+    // when nobody has configured one for this Item/TestCode pair yet.
+    public string? SpecificationText { get; set; }
     public string Status { get; set; } = string.Empty;
     public string CurrentStep { get; set; } = string.Empty;
     public string WorkflowState { get; set; } = string.Empty;
@@ -72,6 +88,7 @@ public class TestOrderSummaryDetailDto
     public List<ResultDetailDto> Results { get; set; } = new();
     public List<CountTestReadingDetailDto> CountTestReadings { get; set; } = new();
     public List<PathogenObservationDetailDto> PathogenObservations { get; set; } = new();
+    public List<BiochemicalResultDetailDto> BiochemicalResults { get; set; } = new();
     public List<WorkflowHistoryDetailDto> WorkflowHistory { get; set; } = new();
 
     // EM/After Cleaning batch results - one row per location, populated
@@ -103,7 +120,7 @@ public class SampleLocationDetailDto
     // Populated at result-entry time (TestWorkflowEngine.DeriveBatchLocationUnit)
     // - null for qualitative (pathogen Detected/Absent) locations. Never
     // assume "CFU/Plate" - EM/After Cleaning mix CFU/plate/4 hours (passive
-    // air), CFU/25 sq.cm (surface air / swab), and CFU/mL (rinse / water).
+    // air), CFU/25 cm2 (surface air / swab), and CFU/mL (rinse / water).
     public string? Unit { get; set; }
     public string? EnteredByName { get; set; }
     public DateTime? EnteredAt { get; set; }
@@ -161,6 +178,22 @@ public class CountTestReadingDetailDto
     public bool RequiresReview { get; set; }
     public string EnteredByName { get; set; } = string.Empty;
     public DateTime EnteredAt { get; set; }
+}
+
+public class BiochemicalResultDetailDto
+{
+    public string StepName { get; set; } = string.Empty;
+
+    public string BiochemicalResultText { get; set; } = string.Empty;
+
+    // The analyst's explicit interpretation - never inferred from the free
+    // text. Null only for pre-this-field historical rows the backfill
+    // migration couldn't confidently assign (see the migration for how it
+    // was actually backfilled).
+    public bool? OrganismDetected { get; set; }
+
+    public string SubmittedByName { get; set; } = string.Empty;
+    public DateTime SubmittedAt { get; set; }
 }
 
 public class PathogenObservationDetailDto

@@ -12,4 +12,5 @@ public class Organism
     public string ScientificName { get; set; } = string.Empty;
     public string? AtccNumber { get; set; }
     public string? CommonName { get; set; }
+    public string? Description { get; set; }
 }

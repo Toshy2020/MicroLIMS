@@ -45,12 +45,6 @@ public class MediaReleaseTests
     {
         var organism = new Organism { ScientificName = "E. coli" };
         db.Organisms.Add(organism);
-        var mediaType = new MediaType
-        {
-            Class = MediaClass.GeneralAgar, IncubationMinHours = 24, IncubationMaxHours = 48,
-            RequiredTemperatureMin = 30, RequiredTemperatureMax = 35,
-            RecoveryPercentMin = 50, RecoveryPercentMax = 200
-        };
         var material = new Material
         {
             MaterialType = MaterialType.DehydratedMedia, MaterialName = "TSA", ManufacturerName = "Himedia",
@@ -58,15 +52,17 @@ public class MediaReleaseTests
             Code = "MAT", Location = "Micro Lab", QuantityReceived = 500, QuantityRemaining = 500, Unit = MaterialUnit.Gram
         };
         var autoclave = new Equipment { Name = "Autoclave 1", Code = "AUT-01", Type = EquipmentType.Autoclave };
-        db.MediaTypes.Add(mediaType);
         db.Materials.Add(material);
         db.Equipment.Add(autoclave);
-        await db.SaveChangesAsync();
-
-        db.MediaChallengeSpecs.Add(new MediaChallengeSpec
+        db.MediaConfigurations.Add(new MediaConfiguration
         {
-            MaterialName = "TSA", EvaluationType = EvaluationType.GrowthPromotion, OrganismId = organism.Id
+            Name = "TSA", EvaluationType = EvaluationType.GrowthPromotion,
+            IncubationMinHours = 24, IncubationMaxHours = 48,
+            TemperatureMin = 30, TemperatureMax = 35,
+            RecoveryPercentMin = 50, RecoveryPercentMax = 200,
+            Challenges = new List<MediaConfigurationChallenge> { new() { OrganismId = organism.Id } }
         });
+        await db.SaveChangesAsync();
         db.MaterialDocuments.Add(new MaterialDocument
         {
             MaterialId = material.Id,
@@ -83,7 +79,7 @@ public class MediaReleaseTests
         await db.SaveChangesAsync();
 
         var media = await TestServiceFactory.MediaPreparation(db).PrepareAsync(new PrepareMediaRequest(
-            mediaType.Id, material.Id, TotalWeight: 100m, TotalVolume: "500 ml", AutoclaveEquipmentId: autoclave.Id,
+            material.Id, TotalWeight: 100m, TotalVolume: "500 ml", AutoclaveEquipmentId: autoclave.Id,
             AutoclaveProgram: "A", LoadType: "agar", Temperature: 121m, CycleTime: 15, CycleNumber: 1,
             Ph: 7.2m, ExpiryDate: DateTime.UtcNow.AddMonths(6), UserId: PreparerId));
 
@@ -99,7 +95,7 @@ public class MediaReleaseTests
         db.Cryovials.Add(cryovial);
         await db.SaveChangesAsync();
 
-        var engine = new MediaEvaluationEngine(db);
+        var engine = new MediaEvaluationEngine(db, new MaterialService(db));
         await engine.SelectCryovialAsync(challenge.Id, cryovial.Id, PreparerId);
         var incubation = await engine.RecordIncubationAsync(challenge.Id, incubatorEquipmentId: autoclave.Id, PreparerId);
         incubation.ExpectedReadingAt = DateTime.UtcNow.AddMinutes(-1); // simulate the incubation period elapsing
@@ -107,6 +103,7 @@ public class MediaReleaseTests
 
         await engine.RecordResultAsync(new RecordResultRequest(
             challenge.Id, PreparerId, OldMediaCount: 100, NewMediaCount: conform ? 95 : 10,
+            ReferenceMediaId: null, ReferenceMediaLabel: "Prior lot TSA/03/26",
             GrowthObserved: null, ObservedDescription: null, ManualConform: null, IsTurbid: null));
 
         return media;

@@ -51,5 +51,7 @@ export interface SampleCard {
   incubationStarted: boolean;
   assignedAnalystId?: number | null;
   assignedAnalystName?: string | null;
+  previousProductName?: string | null;
+  previousProductBatchNumber?: string | null;
   assignedTests: TestOrderSummary[];
 }

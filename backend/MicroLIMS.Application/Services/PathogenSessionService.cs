@@ -122,6 +122,12 @@ public record SessionAssignedTestDto(
     string WorkflowStatus = "Pending",
     CountResultDto? CountResult = null);
 
+// MediaTypeId/MediaTypeName predate the Media Configuration Migration -
+// MediaTypeId is now always null (the old class-level concept no longer
+// exists) and MediaTypeName is populated from StepType instead of
+// MediaType.Class, which the frontend's "Broth" substring checks still
+// match correctly (BrothEnrichment/SelectiveBroth). Kept rather than
+// renamed to avoid a frontend type change outside this migration's scope.
 public record SessionWorkflowStepDto(
     int StepOrder,
     string StepName,
@@ -258,9 +264,8 @@ public class PathogenSessionService
         // Load Test Definitions from Test Master
         var testDefs = await _db.TestDefinitions
             .Include(t => t.Steps)
-                .ThenInclude(s => s.MediaType)
-            .Include(t => t.Steps)
                 .ThenInclude(s => s.StepMedia)
+                    .ThenInclude(m => m.Material)
             .Where(t => testCodes.Contains(t.Code))
             .ToDictionaryAsync(t => t.Code);
 
@@ -366,18 +371,30 @@ public class PathogenSessionService
         {
             if (testDefs.TryGetValue(to.TestCode, out var def))
             {
+                // SelectiveBroth (e.g. MBP for E.coli, RVS for Salmonella) is
+                // species-specific and never shares this generic TSB lot -
+                // matching it here was the bug that let a shared TSB batch
+                // land on the wrong step. Only the true, common broth
+                // enrichment step (or an explicitly TSB-named one) qualifies.
                 var tsbStep = def.Steps.FirstOrDefault(s =>
-                    s.StepType == StepType.BrothEnrichment ||
-                    s.StepName.Contains("TSB", StringComparison.OrdinalIgnoreCase) ||
-                    (s.MediaType != null && (s.MediaType.Class == MediaClass.GeneralBroth || s.MediaType.Class == MediaClass.SelectiveBroth)));
+                    s.StepType is StepType.BrothEnrichment ||
+                    s.StepName.Contains("TSB", StringComparison.OrdinalIgnoreCase));
 
                 if (tsbStep != null)
                 {
                     tsbApplicableCodes.Add(to.TestCode);
+                    var firstMedia = tsbStep.StepMedia.OrderBy(m => m.DisplayOrder).FirstOrDefault();
                     if (tsbStep.TemperatureMin > 0) requiredTsbTempMin = tsbStep.TemperatureMin;
+                    else if (firstMedia?.TempMin > 0) requiredTsbTempMin = firstMedia.TempMin;
+
                     if (tsbStep.TemperatureMax > 0) requiredTsbTempMax = tsbStep.TemperatureMax;
+                    else if (firstMedia?.TempMax > 0) requiredTsbTempMax = firstMedia.TempMax;
+
                     if (tsbStep.IncubationMinHours > 0) requiredTsbHoursMin = tsbStep.IncubationMinHours;
+                    else if (firstMedia?.IncubationMinHours > 0) requiredTsbHoursMin = firstMedia.IncubationMinHours;
+
                     if (tsbStep.IncubationMaxHours > 0) requiredTsbHoursMax = tsbStep.IncubationMaxHours;
+                    else if (firstMedia?.IncubationMaxHours > 0) requiredTsbHoursMax = firstMedia.IncubationMaxHours;
                 }
             }
         }
@@ -473,23 +490,24 @@ public class PathogenSessionService
                 var isDone = (inc != null && inc.CompletedAt.HasValue) || res != null || (requiresTsb && s.StepOrder == 1 && tsbCompleted);
                 var outcome = inc?.Outcome ?? (res != null ? "Complete" : (isDone ? "Complete" : null));
 
+                var firstMedia = s.StepMedia.OrderBy(m => m.DisplayOrder).FirstOrDefault();
                 stepDtos.Add(new SessionWorkflowStepDto(
                     s.StepOrder,
                     s.StepName,
                     s.StepType.ToString(),
-                    s.MediaTypeId != 0 ? s.MediaTypeId : null,
-                    s.MediaType?.Class.ToString(),
-                    s.IncubationMinHours,
-                    s.IncubationMaxHours,
-                    s.TemperatureMin,
-                    s.TemperatureMax,
+                    null,
+                    s.StepType == StepType.BiochemicalTest ? null : s.StepType.ToString(),
+                    s.IncubationMinHours > 0 ? s.IncubationMinHours : (firstMedia?.IncubationMinHours ?? 0),
+                    s.IncubationMaxHours > 0 ? s.IncubationMaxHours : (firstMedia?.IncubationMaxHours ?? 0),
+                    s.TemperatureMin > 0 ? s.TemperatureMin : (firstMedia?.TempMin ?? 0),
+                    s.TemperatureMax > 0 ? s.TemperatureMax : (firstMedia?.TempMax ?? 0),
                     isDone,
                     outcome,
                     inc?.CompletedAt ?? res?.SubmittedAtUtc));
             }
 
             // Determine Test Session State & Result Entry Allowance
-            var stateResult = WorkflowStateResolver.Resolve(to, requiresTsb, sharedTsbIncubation, toIncubations, stepDtos, DateTime.UtcNow, requiredTsbHoursMin);
+            var stateResult = WorkflowStateResolver.Resolve(to, requiresTsb, sharedTsbIncubation, toIncubations, stepDtos, DateTime.UtcNow, requiredTsbHoursMin, steps);
             string testSessionState = stateResult.WorkflowState;
             string testSessionStateDisplay = stateResult.WorkflowStateDisplay;
             bool isResultEntryAllowed = stateResult.IsResultEntryAllowed;
@@ -763,7 +781,6 @@ public class PathogenSessionService
         var testCodes = sample.TestOrders.Select(t => t.TestCode).Distinct().ToList();
         var testDefs = await _db.TestDefinitions
             .Include(t => t.Steps)
-                .ThenInclude(s => s.MediaType)
             .Where(t => testCodes.Contains(t.Code))
             .ToDictionaryAsync(t => t.Code);
 
@@ -777,10 +794,14 @@ public class PathogenSessionService
         {
             if (testDefs.TryGetValue(to.TestCode, out var def))
             {
+                // SelectiveBroth (e.g. MBP for E.coli, RVS for Salmonella) is
+                // species-specific and never shares this generic TSB lot -
+                // matching it here was the bug that let a shared TSB batch
+                // land on the wrong step. Only the true, common broth
+                // enrichment step (or an explicitly TSB-named one) qualifies.
                 var tsbStep = def.Steps.FirstOrDefault(s =>
-                    s.StepType == StepType.BrothEnrichment ||
-                    s.StepName.Contains("TSB", StringComparison.OrdinalIgnoreCase) ||
-                    (s.MediaType != null && (s.MediaType.Class == MediaClass.GeneralBroth || s.MediaType.Class == MediaClass.SelectiveBroth)));
+                    s.StepType is StepType.BrothEnrichment ||
+                    s.StepName.Contains("TSB", StringComparison.OrdinalIgnoreCase));
 
                 if (tsbStep != null)
                 {
@@ -812,9 +833,8 @@ public class PathogenSessionService
         {
             var def = testDefs.TryGetValue(to.TestCode, out var d) ? d : null;
             var tsbStep = def?.Steps.FirstOrDefault(s =>
-                s.StepType == StepType.BrothEnrichment ||
-                s.StepName.Contains("TSB", StringComparison.OrdinalIgnoreCase) ||
-                (s.MediaType != null && (s.MediaType.Class == MediaClass.GeneralBroth || s.MediaType.Class == MediaClass.SelectiveBroth)));
+                s.StepType is StepType.BrothEnrichment ||
+                s.StepName.Contains("TSB", StringComparison.OrdinalIgnoreCase));
 
             var inc = new Incubation
             {
@@ -853,9 +873,8 @@ public class PathogenSessionService
         {
             var def = testDefs.TryGetValue(to.TestCode, out var d) ? d : null;
             var tsbStep = def?.Steps.FirstOrDefault(s =>
-                s.StepType == StepType.BrothEnrichment ||
-                s.StepName.Contains("TSB", StringComparison.OrdinalIgnoreCase) ||
-                (s.MediaType != null && (s.MediaType.Class == MediaClass.GeneralBroth || s.MediaType.Class == MediaClass.SelectiveBroth)));
+                s.StepType is StepType.BrothEnrichment ||
+                s.StepName.Contains("TSB", StringComparison.OrdinalIgnoreCase));
             var stepName = tsbStep?.StepName ?? "Broth Enrichment";
 
             var inc = await _db.Incubations
@@ -1312,9 +1331,13 @@ public class PathogenSessionService
     // reaching into another service's implementation detail.
     private static string CompareAgainstLimits(decimal value, string? alert, string? action, string? spec)
     {
-        if (decimal.TryParse(spec, out var specLimit) && value > specLimit) return "OutOfSpecification";
-        if (decimal.TryParse(action, out var actionLimit) && value > actionLimit) return "ActionLimitExceeded";
-        if (decimal.TryParse(alert, out var alertLimit) && value > alertLimit) return "AlertLimitExceeded";
+        var hasSpec = decimal.TryParse(spec, out var specLimit);
+        if (hasSpec && value > specLimit) return "OutOfSpecification";
+        var hasAction = decimal.TryParse(action, out var actionLimit);
+        if (hasAction && value > actionLimit) return "ActionLimitExceeded";
+        var hasAlert = decimal.TryParse(alert, out var alertLimit);
+        if (hasAlert && value > alertLimit) return "AlertLimitExceeded";
+        if (!hasSpec && !hasAction && !hasAlert) return "LimitsNotConfigured";
         return "WithinLimits";
     }
 

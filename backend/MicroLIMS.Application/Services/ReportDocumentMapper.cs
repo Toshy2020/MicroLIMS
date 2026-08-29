@@ -163,7 +163,17 @@ public static class ReportDocumentMapper
         // GrowthNonConforming are both "absent" - something growing that
         // is not the organism under test is not a detection, and reading
         // it as one puts a false positive on a released GMP record.
-        var detected = t.PathogenObservations.Any(p => p.Observation == "GrowthConforming");
+        // When biochemical identification was performed, its explicit
+        // Detected/Absent call is authoritative and overrides the
+        // selective-plating morphology alone - a chain can show
+        // GrowthConforming at selective plating and still resolve to
+        // absent once biochemical testing rules the organism out (the
+        // scenario that motivated this override: an Inconclusive
+        // confirmatory result followed by a biochemical result indicating
+        // absence was previously still archived as "Detected").
+        var lastBiochemical = t.BiochemicalResults.LastOrDefault();
+        var detected = lastBiochemical?.OrganismDetected
+            ?? t.PathogenObservations.Any(p => p.Observation == "GrowthConforming");
         var outOfSpec = reading?.Status == "OutOfSpecification";
         var hasNonConformingLocation = t.Locations.Any(l => l.Status is not (null or "WithinLimits" or "Absent" or "PendingConfirmation"));
 
@@ -178,7 +188,7 @@ public static class ReportDocumentMapper
         string? worstLocationStatus = null;
         if (t.Locations.Count > 0)
         {
-            var severity = new[] { "WithinLimits", "Absent", "PendingConfirmation", "AlertLimitExceeded", "ActionLimitExceeded", "RequiresReview", "OutOfSpecification", "Detected" };
+            var severity = new[] { "WithinLimits", "Absent", "PendingConfirmation", "LimitsNotConfigured", "AlertLimitExceeded", "ActionLimitExceeded", "RequiresReview", "OutOfSpecification", "Detected" };
             worstLocationStatus = "WithinLimits";
             foreach (var loc in t.Locations)
             {
@@ -235,10 +245,10 @@ public static class ReportDocumentMapper
         {
             card.Stats = new()
             {
-                ("Plate count", reading.PlateReadings),
+                ("Plate count", reading.PlateReadings ?? "—"),
                 ("Dilution", reading.DilutionFactor.ToString()),
-                ("Average", reading.Average.ToString()),
-                ("Calculated", reading.CalculatedResult.ToString())
+                ("Average", reading.Average?.ToString() ?? "—"),
+                ("Calculated", reading.CalculatedResult?.ToString() ?? "—")
             };
             card.MetaLines.Add($"Reported: {reading.ReportedResult}    Limits (alert/action/spec): {FormatLimit(reading.AlertLimit)} / {FormatLimit(reading.ActionLimit)} / {FormatLimit(reading.SpecLimit)}");
             card.MetaLines.Add($"Entered by: {reading.EnteredByName}    Entered at: {Dt(reading.EnteredAt)}");
@@ -247,6 +257,12 @@ public static class ReportDocumentMapper
         foreach (var p in t.PathogenObservations.OrderBy(p => p.StepOrder))
             card.Rows.Add((Humanize(p.StepName), $"{ObservationText(p.Observation)}  |  {p.ObservedByName}  |  {Dt(p.ObservedAt)}"));
 
+        foreach (var b in t.BiochemicalResults)
+        {
+            var call = b.OrganismDetected is true ? "Detected" : b.OrganismDetected is false ? "Not Detected" : "Undetermined";
+            card.Rows.Add((Humanize(b.StepName), $"{call}: {b.BiochemicalResultText}  |  {b.SubmittedByName}  |  {Dt(b.SubmittedAt)}"));
+        }
+
         // EM/After Cleaning batch results - a genuine table, one row per
         // location, mirroring SampleSummaryDialog's LocationResultsTable
         // columns exactly (Location / Limits / CFU / Reported / Status / Entered By).
@@ -254,7 +270,7 @@ public static class ReportDocumentMapper
         {
             // Unit comes from the location data (TestWorkflowEngine.
             // DeriveBatchLocationUnit) - EM/After Cleaning/Water mix
-            // CFU/plate/4 hours, CFU/25 sq.cm, and CFU/mL depending on
+            // CFU/plate/4 hours, CFU/25 cm2, and CFU/mL depending on
             // sampling method; never assume one unit for the whole report.
             var unit = t.Locations.FirstOrDefault(l => l.Unit is not null)?.Unit ?? "CFU";
             card.TableColumns = new()
@@ -384,9 +400,14 @@ public static class ReportDocumentMapper
             foreach (var c in e.Challenges)
             {
                 var detail = new List<string>();
+                var sourceLabel = c.CryovialCode ?? c.LyophilizedDiskLabel;
+                if (sourceLabel is not null) detail.Add($"Source: {sourceLabel}");
+                if (!string.IsNullOrEmpty(c.InitialInoculum)) detail.Add($"Initial Inoculum: {c.InitialInoculum}");
                 if (c.RecoveryPercent is not null) detail.Add($"Recovery {c.RecoveryPercent}% ({c.OldMediaCount} to {c.NewMediaCount})");
+                if (c.ReferenceMediaLabel is not null) detail.Add($"Reference Lot: {c.ReferenceMediaLabel}");
                 if (c.GrowthObserved is not null) detail.Add(c.GrowthObserved.Value ? "Growth observed" : "No growth");
                 if (c.ObservedDescription is not null) detail.Add($"Observed: {c.ObservedDescription}");
+                if (c.ExpectedDescription is not null) detail.Add($"Expected: {c.ExpectedDescription}");
                 if (c.IsTurbid is not null) detail.Add(c.IsTurbid.Value ? "Turbid" : "Clear");
                 if (c.ReadByName is not null) detail.Add($"{c.ReadByName} · {Dt(c.ReadAt)}");
 
@@ -466,7 +487,13 @@ public static class ReportDocumentMapper
             Title = "Identity confirmation",
             Subtitle = $"{s.IdentityConfirmations.Count} media row(s) · the only place batch identity is confirmed",
             Tone = s.IdentityConfirmations.Count == 0 ? ReportTone.Neutral : ReportTone.Positive,
-            FooterLeft = string.IsNullOrEmpty(s.PhysicalCheckText) ? "No physical check recorded" : $"Physical check: {s.PhysicalCheckText}",
+            FooterLeft = s.PhysicalCheckConfirmed
+                ? (string.IsNullOrEmpty(s.PhysicalCheckText)
+                    ? "Physical check: Confirmed against reference description"
+                    : $"Physical check: Confirmed against reference description ({s.PhysicalCheckText})")
+                : (string.IsNullOrEmpty(s.PhysicalCheckText)
+                    ? "No physical check recorded"
+                    : $"Physical check: {s.PhysicalCheckText}"),
             FooterRight = s.IdentityConfirmations.Count == 0 ? "Not confirmed" : "Confirmed"
         };
         foreach (var i in s.IdentityConfirmations)

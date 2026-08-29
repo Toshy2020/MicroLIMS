@@ -26,9 +26,13 @@ public class SpecificationService
     // Backend performs alert/action/spec comparison - frontend only displays results.
     public string CompareAgainstLimits(decimal value, Specification spec)
     {
-        if (decimal.TryParse(spec.SpecLimit, out var specLimit) && value > specLimit) return "OutOfSpecification";
-        if (decimal.TryParse(spec.ActionLimit, out var actionLimit) && value > actionLimit) return "ActionLimitExceeded";
-        if (decimal.TryParse(spec.AlertLimit, out var alertLimit) && value > alertLimit) return "AlertLimitExceeded";
+        var hasSpec = decimal.TryParse(spec.SpecLimit, out var specLimit);
+        if (hasSpec && value > specLimit) return "OutOfSpecification";
+        var hasAction = decimal.TryParse(spec.ActionLimit, out var actionLimit);
+        if (hasAction && value > actionLimit) return "ActionLimitExceeded";
+        var hasAlert = decimal.TryParse(spec.AlertLimit, out var alertLimit);
+        if (hasAlert && value > alertLimit) return "AlertLimitExceeded";
+        if (!hasSpec && !hasAction && !hasAlert) return "LimitsNotConfigured";
         return "WithinLimits";
     }
 }

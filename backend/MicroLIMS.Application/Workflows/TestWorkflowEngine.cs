@@ -83,7 +83,11 @@ public record TestWorkflowResult(
 // One location's CFU reading submitted from the LocationResultGrid -
 // EM/After Cleaning batch results, never used by the single-value
 // RecordResultAsync path.
-public record BatchLocationResult(int SampleLocationId, decimal CFUResult);
+// Multiple raw plate readings per location, averaged the same way
+// RecordCountTestAsync averages RawPlateReadings for a single order - the
+// dilution factor is always 1 here (EM/After Cleaning are direct-count
+// categories, same rule RecordCountTestAsync already forces for them).
+public record BatchLocationReadings(int SampleLocationId, List<decimal> Readings);
 
 // One location's plate readings submitted from WaterLocationResultGridDialog -
 // water batch results only. Averaged directly with no dilution factor,
@@ -106,7 +110,11 @@ public interface ITestWorkflowEngine : IStatefulWorkflowEngine
     Task<TestWorkflowResult> RecordResultAsync(int testOrderId, string stepName, ResultPayload payload, int userId);
     Task<List<SampleLocation>> GetLocationsAsync(int testOrderId);
     Task<Incubation> CloseCurrentIncubationWindowAsync(int testOrderId, int userId);
-    Task<TestWorkflowResult> RecordBatchResultsAsync(int testOrderId, decimal dilutionFactor, List<BatchLocationResult> locations, int userId);
+    // Section Head/System Administrator only (enforced at the controller) -
+    // bypasses the minimum-duration wait gate for the currently open
+    // incubation on this test order. Never changes the recorded window.
+    Task<Incubation> OverrideMinimumDurationAsync(int testOrderId, int userId);
+    Task<TestWorkflowResult> RecordBatchResultsAsync(int testOrderId, List<BatchLocationReadings> locations, int userId);
     Task<TestWorkflowResult> RecordWaterBatchReadingsAsync(int testOrderId, List<WaterBatchLocationReadings> locations, int userId);
     Task<TestWorkflowResult> RecordBatchPathogenResultsAsync(int testOrderId, List<BatchLocationObservation>? observations, int userId);
 
@@ -133,7 +141,7 @@ public interface ITestWorkflowEngine : IStatefulWorkflowEngine
 
     Task<StepResultDto> RecordAnalystDecisionAsync(int testOrderId, AnalystDecision decision, int userId);
 
-    Task<StepResultDto> SubmitBiochemicalAsync(int testOrderId, string stepName, string biochemicalResultText, int? attachmentId, int userId);
+    Task<StepResultDto> SubmitBiochemicalAsync(int testOrderId, string stepName, string biochemicalResultText, int? attachmentId, bool organismDetected, int userId);
 
     Task<StepResultDto> RecordBiochemicalReviewDecisionAsync(int workflowStepResultId, bool approve, string comment, int reviewerUserId);
 }
@@ -175,8 +183,9 @@ public class TestWorkflowEngine : ITestWorkflowEngine
     {
         var order = await WorkflowStateMachine.LoadOrThrowAsync(_db, testOrderId);
         var definition = await _db.TestDefinitions
-            .Include(t => t.Steps).ThenInclude(s => s.MediaType)
             .Include(t => t.Steps).ThenInclude(s => s.IncubationStages)
+            .Include(t => t.Steps).ThenInclude(s => s.StepMedia).ThenInclude(m => m.Material)
+            .Include(t => t.Steps).ThenInclude(s => s.PhenotypicTests)
             .FirstOrDefaultAsync(t => t.Code == order.TestCode)
             ?? throw new InvalidOperationException($"Test code \"{order.TestCode}\" has no workflow template configured in Test Master.");
 
@@ -224,7 +233,7 @@ public class TestWorkflowEngine : ITestWorkflowEngine
         }
 
         if (workflowType == WorkflowType.CountTest)
-            return await _db.CountTestReadings.AnyAsync(r => r.TestOrderId == testOrderId && r.StepName == step.StepName);
+            return await _db.CountTestReadings.AnyAsync(r => r.TestOrderId == testOrderId && r.StepName == step.StepName && r.IsActive);
 
         if (IsPathogenStepType(step.StepType))
         {
@@ -324,7 +333,7 @@ public class TestWorkflowEngine : ITestWorkflowEngine
             if (step.StepType == StepType.PlateCount)
             {
                 var reading = await _db.CountTestReadings
-                    .Where(r => r.TestOrderId == testOrderId && r.StepName == step.StepName)
+                    .Where(r => r.TestOrderId == testOrderId && r.StepName == step.StepName && r.IsActive)
                     .OrderByDescending(r => r.Id)
                     .FirstOrDefaultAsync();
                 if (reading is not null)
@@ -333,6 +342,27 @@ public class TestWorkflowEngine : ITestWorkflowEngine
                     calculatedResult = reading.CalculatedResult;
                     status = reading.Status;
                     observedAt = reading.EnteredAt;
+                }
+            }
+            else if (step.StepType == StepType.BiochemicalTest)
+            {
+                // Previously left entirely blank here - a submitted
+                // biochemical result and its Detected/NotDetected
+                // interpretation were never visible past the analyst's own
+                // dialog. ReportedResult carries the free-text result,
+                // Status the explicit decision, so a reviewer/summary view
+                // sees both without a new DTO field.
+                var bioResult = await _db.WorkflowStepResults
+                    .Where(r => r.TestOrderId == testOrderId && r.StepName == step.StepName)
+                    .OrderByDescending(r => r.Id)
+                    .FirstOrDefaultAsync();
+                if (bioResult is not null)
+                {
+                    reportedResult = bioResult.BiochemicalResultText;
+                    status = bioResult.BiochemicalOrganismDetected is true ? "Detected"
+                        : bioResult.BiochemicalOrganismDetected is false ? "NotDetected"
+                        : null;
+                    observedAt = bioResult.SubmittedAtUtc;
                 }
             }
 
@@ -368,25 +398,37 @@ public class TestWorkflowEngine : ITestWorkflowEngine
         if (alreadyOpen)
             throw new InvalidOperationException($"Media has already been selected for step \"{stepName}\" - awaiting its result.");
 
-        var media = await _db.Media.Include(m => m.MediaType).FirstOrDefaultAsync(m => m.Id == mediaLotId)
+        var media = await _db.Media.Include(m => m.Material).FirstOrDefaultAsync(m => m.Id == mediaLotId)
             ?? throw new InvalidOperationException($"Media lot {mediaLotId} not found.");
 
         if (!media.IsReleasedForUse || media.Status == MediaStatus.OutOfStock || media.Status == MediaStatus.QuarantineFailed)
             throw new InvalidOperationException($"Media lot \"{media.LotNumber}\" is not released for use, out of stock, or rejected.");
 
-        if (step.StepType is StepType.BrothEnrichment or StepType.SelectiveBroth)
-        {
-            var hasStepMedia = await _db.TestWorkflowStepMedias.AnyAsync(m => m.TestWorkflowStepId == step.Id);
-            if (!hasStepMedia)
-                throw new InvalidOperationException($"Step \"{stepName}\" has no media configured in Test Master.");
-        }
+        var stepMedia = await _db.TestWorkflowStepMedias
+            .Where(m => m.TestWorkflowStepId == step.Id)
+            .ToListAsync();
+        var permittedMaterialIds = stepMedia.Select(m => m.MaterialId).ToList();
+
+        if (step.StepType is StepType.BrothEnrichment or StepType.SelectiveBroth && permittedMaterialIds.Count == 0)
+            throw new InvalidOperationException($"Step \"{stepName}\" has no media configured in Test Master.");
 
         // The step template IS the approved specification for this test -
-        // Temperature/Duration below are hard-locked from it, never from
-        // the picked Media's own MediaType record.
-        if (media.MediaTypeId != step.MediaTypeId)
+        // this is the product-level check that class-matching alone never
+        // gave this method (see the Media Configuration Migration plan
+        // §3 - flagged there as a real gap, closed here). Applies to
+        // every step type that reaches this method, not just broth ones.
+        if (!permittedMaterialIds.Contains(media.MaterialId))
             throw new InvalidOperationException(
-                $"This step requires {step.MediaType!.Class} media. The selected lot is {media.MediaType!.Class}.");
+                $"This step requires a different medium. The selected lot is {media.Material?.MaterialName ?? "unknown"}.");
+
+        // Temperature eligibility was already enforced server-side for
+        // SelectivePlating/Confirmatory (see the other two
+        // RequireEligibleIncubatorAsync call sites); this path never had
+        // that check at all, a pre-existing gap unrelated to this
+        // migration's origin, closed here so every step type is held to
+        // the same standard.
+        var selectedStepMedium = stepMedia.First(m => m.MaterialId == media.MaterialId);
+        await RequireEligibleIncubatorAsync(selectedStepMedium.Id, incubatorEquipmentId);
 
         var startedAt = DateTime.UtcNow;
         // Incubation window is locked from Test Master: analyst cannot override.
@@ -400,12 +442,12 @@ public class TestWorkflowEngine : ITestWorkflowEngine
             StageNumber = 1,
             MediaId = mediaLotId,
             IncubatorEquipmentId = incubatorEquipmentId,
-            Temperature = $"{step.TemperatureMin}-{step.TemperatureMax} °C",
-            Duration = $"{step.IncubationMinHours}-{step.IncubationMaxHours} hours",
+            Temperature = $"{selectedStepMedium.TempMin}-{selectedStepMedium.TempMax} °C",
+            Duration = $"{selectedStepMedium.IncubationMinHours}-{selectedStepMedium.IncubationMaxHours} hours",
             StartedAt = startedAt,
             IncubationStartUtc = startedAt,
-            IncubationEndUtc = startedAt.AddHours(step.IncubationMaxHours),
-            ExpectedReadingAt = startedAt.AddHours(step.IncubationMaxHours),
+            IncubationEndUtc = startedAt.AddHours(selectedStepMedium.IncubationMaxHours),
+            ExpectedReadingAt = startedAt.AddHours(selectedStepMedium.IncubationMaxHours),
             WindowReceivedAtUtc = startedAt,
             StartedByUserId = userId
         };
@@ -613,10 +655,11 @@ public class TestWorkflowEngine : ITestWorkflowEngine
         if (openIncubation.StageNumber != 1)
             throw new InvalidOperationException($"Stage 2 incubation has already been started for step \"{stepName}\".");
 
-        var stage1MinReadyAt = openIncubation.IncubationStartUtc!.Value.AddHours(step.IncubationMinHours);
-        if (DateTime.UtcNow < stage1MinReadyAt)
+        var stage1Medium = await ResolveSelectedStepMediumAsync(step.Id, openIncubation.MediaId!.Value);
+        var stage1MinReadyAt = openIncubation.IncubationStartUtc!.Value.AddHours(stage1Medium.IncubationMinHours);
+        if (DateTime.UtcNow < stage1MinReadyAt && !openIncubation.MinimumDurationOverriddenByUserId.HasValue)
             throw new WorkflowStepException(WorkflowErrorCodes.IncubationStage1NotComplete,
-                $"Stage 1 incubation for step \"{stepName}\" requires at least {step.IncubationMinHours} hours of incubation - not ready until {stage1MinReadyAt:yyyy-MM-dd HH:mm} UTC.",
+                $"Stage 1 incubation for step \"{stepName}\" requires at least {stage1Medium.IncubationMinHours} hours of incubation - not ready until {stage1MinReadyAt:yyyy-MM-dd HH:mm} UTC.",
                 Math.Max(0, (long)Math.Ceiling((stage1MinReadyAt - DateTime.UtcNow).TotalSeconds)));
 
         var stage2Config = await _db.TestWorkflowStepIncubationStages
@@ -699,7 +742,7 @@ public class TestWorkflowEngine : ITestWorkflowEngine
                 throw new WorkflowStepException(WorkflowErrorCodes.IncubationStage2NotStarted,
                     $"Step \"{stepName}\" requires stage 2 incubation to be started before a count can be recorded.");
 
-            RequireIncubationComplete(openIncubation.IncubationEndUtc!.Value);
+            RequireIncubationComplete(openIncubation);
         }
 
         string outcomeSummary;
@@ -795,7 +838,7 @@ public class TestWorkflowEngine : ITestWorkflowEngine
     // belongs to - shared by CloseCurrentIncubationWindowAsync and
     // RecordBatchResultsAsync, both of which need to know whether that
     // window is the chain's final one and when its minimum duration ends.
-    private async Task<(Incubation incubation, TestWorkflowStep step)> LoadOpenBatchWindowAsync(int testOrderId, TestDefinition definition)
+    private async Task<(Incubation incubation, TestWorkflowStep step, TestWorkflowStepMedia stepMedium)> LoadOpenBatchWindowAsync(int testOrderId, TestDefinition definition)
     {
         var openIncubation = await _db.Incubations
             .Where(i => i.TestOrderId == testOrderId && i.CompletedAt == null)
@@ -806,21 +849,29 @@ public class TestWorkflowEngine : ITestWorkflowEngine
         var step = definition.Steps.FirstOrDefault(s => s.StepName == openIncubation.StepName)
             ?? throw new InvalidOperationException($"Step \"{openIncubation.StepName}\" is not part of the workflow template for \"{definition.Code}\".");
 
-        return (openIncubation, step);
+        var stepMedium = await ResolveSelectedStepMediumAsync(step.Id, openIncubation.MediaId!.Value);
+
+        return (openIncubation, step, stepMedium);
     }
 
-    private static void RequireMinimumDurationElapsed(Incubation incubation, TestWorkflowStep step)
+    private static void RequireMinimumDurationElapsed(Incubation incubation, TestWorkflowStepMedia stepMedium)
     {
-        var minReadyAt = incubation.StartedAt.AddHours((double)step.IncubationMinHours);
+        if (incubation.MinimumDurationOverriddenByUserId.HasValue) return;
+        var minReadyAt = incubation.StartedAt.AddHours((double)stepMedium.IncubationMinHours);
         if (DateTime.UtcNow < minReadyAt)
             throw new InvalidOperationException(
-                $"This incubation window needs at least {step.IncubationMinHours} hours - not ready until {minReadyAt:yyyy-MM-dd HH:mm} UTC.");
+                $"This incubation window needs at least {stepMedium.IncubationMinHours} hours - not ready until {minReadyAt:yyyy-MM-dd HH:mm} UTC.");
     }
 
-    private static void RequireStage2MinimumDurationElapsed(Incubation incubation, TestWorkflowStep step)
+    // Stage 2 (the PlateCount transfer window) is explicitly out of scope
+    // for the medium-derived reversal - it's the transfer window itself,
+    // not a property of any medium, and keeps its own independent
+    // TestWorkflowStepIncubationStage fields exactly as before.
+    private static void RequireStage2MinimumDurationElapsed(Incubation incubation, TestWorkflowStep step, TestWorkflowStepMedia stepMedium)
     {
+        if (incubation.MinimumDurationOverriddenByUserId.HasValue) return;
         var stage2Config = step.IncubationStages.FirstOrDefault(s => s.StageNumber == 2);
-        var minHours = stage2Config?.IncubationMinHours ?? step.IncubationMinHours;
+        var minHours = stage2Config?.IncubationMinHours ?? stepMedium.IncubationMinHours;
         var startUtc = incubation.IncubationStartUtc ?? incubation.StartedAt;
         var minReadyAt = startUtc.AddHours(minHours);
         if (DateTime.UtcNow < minReadyAt)
@@ -835,7 +886,7 @@ public class TestWorkflowEngine : ITestWorkflowEngine
     public async Task<Incubation> CloseCurrentIncubationWindowAsync(int testOrderId, int userId)
     {
         var (order, definition) = await LoadWithTemplateAsync(testOrderId);
-        var (incubation, step) = await LoadOpenBatchWindowAsync(testOrderId, definition);
+        var (incubation, step, stepMedium) = await LoadOpenBatchWindowAsync(testOrderId, definition);
 
         if (step.RequiresIncubationTransfer)
             throw new InvalidOperationException("This step requires incubation transfer - start stage 2 incubation instead of advancing window.");
@@ -843,20 +894,38 @@ public class TestWorkflowEngine : ITestWorkflowEngine
         if (step.IsFinalStep || (step.StepOrder == definition.Steps.Max(s => s.StepOrder) && !step.RequiresIncubationTransfer))
             throw new InvalidOperationException("This is the final incubation window - record results instead of advancing.");
 
-        RequireMinimumDurationElapsed(incubation, step);
+        RequireMinimumDurationElapsed(incubation, stepMedium);
 
         incubation.CompletedAt = DateTime.UtcNow;
         await _db.SaveChangesAsync();
         return incubation;
     }
 
-    public async Task<TestWorkflowResult> RecordBatchResultsAsync(int testOrderId, decimal dilutionFactor, List<BatchLocationResult> locations, int userId)
+    // Same "currently open incubation for this order" lookup every gated
+    // path already uses (batch and single-step alike - both just query the
+    // one open Incubation row per TestOrderId), so this works regardless of
+    // step type without branching on it.
+    public async Task<Incubation> OverrideMinimumDurationAsync(int testOrderId, int userId)
+    {
+        var incubation = await _db.Incubations
+            .Where(i => i.TestOrderId == testOrderId && i.CompletedAt == null)
+            .OrderByDescending(i => i.StartedAt)
+            .FirstOrDefaultAsync()
+            ?? throw new InvalidOperationException("No incubation window is currently open.");
+
+        incubation.MinimumDurationOverriddenByUserId = userId;
+        incubation.MinimumDurationOverriddenAt = DateTime.UtcNow;
+        await _db.SaveChangesAsync();
+        return incubation;
+    }
+
+    public async Task<TestWorkflowResult> RecordBatchResultsAsync(int testOrderId, List<BatchLocationReadings> locations, int userId)
     {
         var (order, definition) = await LoadWithTemplateAsync(testOrderId);
         if (order.CurrentStep != WorkflowStep.Incubating)
             throw new InvalidOperationException("Media must be selected for this test before batch results can be recorded.");
 
-        var (openIncubation, step) = await LoadOpenBatchWindowAsync(testOrderId, definition);
+        var (openIncubation, step, stepMedium) = await LoadOpenBatchWindowAsync(testOrderId, definition);
         var isFinalIncubation = step.IsFinalStep || step.RequiresIncubationTransfer || (step.StepOrder == definition.Steps.Max(s => s.StepOrder));
         if (!isFinalIncubation)
             throw new InvalidOperationException($"\"{step.StepName}\" is not the final incubation window yet - close it and start the next window first.");
@@ -867,15 +936,12 @@ public class TestWorkflowEngine : ITestWorkflowEngine
                 throw new WorkflowStepException(WorkflowErrorCodes.IncubationStage2NotStarted,
                     $"Step \"{step.StepName}\" requires stage 2 incubation to be started before results can be recorded.");
 
-            RequireStage2MinimumDurationElapsed(openIncubation, step);
+            RequireStage2MinimumDurationElapsed(openIncubation, step, stepMedium);
         }
         else
         {
-            RequireMinimumDurationElapsed(openIncubation, step);
+            RequireMinimumDurationElapsed(openIncubation, stepMedium);
         }
-
-        if (dilutionFactor <= 0)
-            throw new InvalidOperationException("Dilution factor must be greater than zero.");
 
         var sampleLocations = await GetLocationsAsync(testOrderId);
         if (sampleLocations.Count == 0)
@@ -886,28 +952,38 @@ public class TestWorkflowEngine : ITestWorkflowEngine
         if (missing.Count > 0)
             throw new InvalidOperationException($"Results are missing for: {string.Join(", ", missing.Select(LocationName))}.");
 
+        var emptyReadings = sampleLocations.Where(l => submitted[l.Id].Readings.Count == 0).ToList();
+        if (emptyReadings.Count > 0)
+            throw new InvalidOperationException($"At least one plate reading is required for: {string.Join(", ", emptyReadings.Select(LocationName))}.");
+
         var worstStatus = "WithinLimits";
         var conformCount = 0;
         foreach (var location in sampleLocations)
         {
-            var cfu = submitted[location.Id].CFUResult;
-            var calculated = cfu * dilutionFactor;
-            var reported = calculated < 1 ? "<1" : Math.Round(calculated).ToString("0");
+            var readings = submitted[location.Id].Readings;
+            var average = readings.Average();
+            // Direct-count category - dilution factor is always 1, same
+            // rule RecordCountTestAsync already forces for Water/
+            // EnvironmentalMonitoring/AfterCleaning sample categories.
+            var calculated = average;
+            var reported = calculated < 1 ? "<1" : Math.Round(calculated, MidpointRounding.AwayFromZero).ToString("0");
 
             var alertLimit = location.RoomTestConfiguration?.AlertLimit ?? location.MachinePartConfiguration?.AlertLimit;
             var actionLimit = location.RoomTestConfiguration?.ActionLimit ?? location.MachinePartConfiguration?.ActionLimit;
             var specLimit = location.RoomTestConfiguration?.SpecLimit ?? location.MachinePartConfiguration?.SpecLimit;
             var (status, _) = Compare(calculated, alertLimit, actionLimit, specLimit);
 
-            location.DilutionFactor = dilutionFactor;
-            location.CFUResult = cfu;
+            location.RawReadings = string.Join(",", readings);
+            location.DilutionFactor = 1;
+            location.CFUResult = average;
             location.CalculatedResult = calculated;
             location.ReportedResult = reported;
             location.AlertLimit = alertLimit;
             location.ActionLimit = actionLimit;
             location.SpecLimit = specLimit;
             location.Status = status;
-            location.Unit = DeriveBatchLocationUnit(location);
+            var configuredUnit = location.RoomTestConfiguration?.Unit ?? location.MachinePartConfiguration?.Unit;
+            location.Unit = !string.IsNullOrWhiteSpace(configuredUnit) ? configuredUnit : DeriveBatchLocationUnit(location);
             location.EnteredAt = DateTime.UtcNow;
             location.EnteredByUserId = userId;
 
@@ -956,7 +1032,7 @@ public class TestWorkflowEngine : ITestWorkflowEngine
         if (order.CurrentStep != WorkflowStep.Incubating)
             throw new InvalidOperationException("Media must be selected for this test before batch results can be recorded.");
 
-        var (openIncubation, step) = await LoadOpenBatchWindowAsync(testOrderId, definition);
+        var (openIncubation, step, stepMedium) = await LoadOpenBatchWindowAsync(testOrderId, definition);
         var isFinalIncubation = step.IsFinalStep || step.RequiresIncubationTransfer || (step.StepOrder == definition.Steps.Max(s => s.StepOrder));
         if (!isFinalIncubation)
             throw new InvalidOperationException($"\"{step.StepName}\" is not the final incubation window yet - close it and start the next window first.");
@@ -967,11 +1043,11 @@ public class TestWorkflowEngine : ITestWorkflowEngine
                 throw new WorkflowStepException(WorkflowErrorCodes.IncubationStage2NotStarted,
                     $"Step \"{step.StepName}\" requires stage 2 incubation to be started before results can be recorded.");
 
-            RequireStage2MinimumDurationElapsed(openIncubation, step);
+            RequireStage2MinimumDurationElapsed(openIncubation, step, stepMedium);
         }
         else
         {
-            RequireMinimumDurationElapsed(openIncubation, step);
+            RequireMinimumDurationElapsed(openIncubation, stepMedium);
         }
 
         var sampleLocations = await GetLocationsAsync(testOrderId);
@@ -1002,12 +1078,16 @@ public class TestWorkflowEngine : ITestWorkflowEngine
             location.RawReadings = string.Join(",", readings);
             location.CFUResult = average;
             location.CalculatedResult = average;
-            location.ReportedResult = average.ToString("0.##");
+            // A CFU count is a whole-number concept - round for the
+            // reported display, same as RecordBatchResultsAsync/
+            // RecordCountTestAsync. CFUResult keeps the full-precision average.
+            location.ReportedResult = Math.Round(average, MidpointRounding.AwayFromZero).ToString("0");
             location.AlertLimit = alertLimit;
             location.ActionLimit = actionLimit;
             location.SpecLimit = specLimit;
             location.Status = status;
-            location.Unit = DeriveBatchLocationUnit(location);
+            var configuredUnit = location.SamplingConfiguration?.Unit;
+            location.Unit = !string.IsNullOrWhiteSpace(configuredUnit) ? configuredUnit : DeriveBatchLocationUnit(location);
             location.EnteredAt = DateTime.UtcNow;
             location.EnteredByUserId = userId;
 
@@ -1051,11 +1131,11 @@ public class TestWorkflowEngine : ITestWorkflowEngine
         if (order.CurrentStep != WorkflowStep.Incubating)
             throw new InvalidOperationException("Media must be selected for this test before batch results can be recorded.");
 
-        var (openIncubation, step) = await LoadOpenBatchWindowAsync(testOrderId, definition);
+        var (openIncubation, step, stepMedium) = await LoadOpenBatchWindowAsync(testOrderId, definition);
         if (!step.IsFinalStep)
             throw new InvalidOperationException($"\"{step.StepName}\" is not the final incubation window yet - close it and start the next window first.");
 
-        RequireMinimumDurationElapsed(openIncubation, step);
+        RequireMinimumDurationElapsed(openIncubation, stepMedium);
 
         var sampleLocations = await GetLocationsAsync(testOrderId);
         if (sampleLocations.Count == 0)
@@ -1121,8 +1201,8 @@ public class TestWorkflowEngine : ITestWorkflowEngine
     private static string DeriveBatchLocationUnit(SampleLocation location) => location switch
     {
         { RoomTestConfiguration.TestType: "PassiveAirSample" } => "CFU/plate/4 hours",
-        { RoomTestConfiguration.TestType: "SurfaceAirSample" } => "CFU/25 sq.cm",
-        { MachinePartConfiguration.TestType: "Swab" } => "CFU/25 sq.cm",
+        { RoomTestConfiguration.TestType: "SurfaceAirSample" } => "CFU/25 cm2",
+        { MachinePartConfiguration.TestType: "Swab" } => "CFU/25 cm2",
         { MachinePartConfiguration.TestType: "Rinse" } => "CFU/mL",
         { WaterSamplingPointId: not null } => "CFU/mL",
         _ => throw new InvalidOperationException(
@@ -1134,9 +1214,10 @@ public class TestWorkflowEngine : ITestWorkflowEngine
 
     private static int StatusSeverity(string status) => status switch
     {
-        "OutOfSpecification" => 3,
-        "ActionLimitExceeded" => 2,
-        "AlertLimitExceeded" => 1,
+        "OutOfSpecification" => 4,
+        "ActionLimitExceeded" => 3,
+        "AlertLimitExceeded" => 2,
+        "LimitsNotConfigured" => 1,
         _ => 0
     };
 
@@ -1214,21 +1295,34 @@ public class TestWorkflowEngine : ITestWorkflowEngine
             calculated = average.Value * payload.DilutionFactor;
             var lowerLimit = payload.DilutionFactor;
 
-            reported = calculated.Value < lowerLimit
-                ? $"<{lowerLimit:G29} {unit}"
-                : $"{calculated.Value:G29} {unit}";
-
-            string? alertLimit = null, actionLimit = null, specLimit = null;
+            string? alertLimit = null, actionLimit = null, specLimit = null, configuredUnit = null;
             if (sample.ItemId is not null)
             {
                 var spec = await _db.Specifications.FirstOrDefaultAsync(s => s.ItemId == sample.ItemId && s.TestCode == order.TestCode);
                 alertLimit = spec?.AlertLimit; actionLimit = spec?.ActionLimit; specLimit = spec?.SpecLimit;
+                configuredUnit = spec?.Unit;
             }
             else if (sample.WaterSamplingPointId is not null)
             {
                 var config = await _db.SamplingConfigurations.FirstOrDefaultAsync(c => c.TestCode == order.TestCode && c.WaterSamplingPointId == sample.WaterSamplingPointId);
                 alertLimit = config?.AlertLimit; actionLimit = config?.ActionLimit; specLimit = config?.SpecLimit;
+                configuredUnit = config?.Unit;
             }
+
+            var effectiveUnit = !string.IsNullOrWhiteSpace(configuredUnit)
+                ? (configuredUnit.StartsWith("CFU/", StringComparison.OrdinalIgnoreCase) ? configuredUnit : $"CFU/{configuredUnit}")
+                : unit;
+
+            // A CFU count is a whole-number concept - round to the nearest
+            // integer for the reported display, same as
+            // RecordBatchResultsAsync already does for EM/After Cleaning.
+            // G29 (up to 29 significant digits) could show a long repeating
+            // decimal for readings that don't divide evenly; the
+            // full-precision value is still stored on Average/
+            // CalculatedResult, only the reported display is rounded.
+            reported = calculated.Value < lowerLimit
+                ? $"<{Math.Round(lowerLimit, MidpointRounding.AwayFromZero)} {effectiveUnit}"
+                : $"{Math.Round(calculated.Value, MidpointRounding.AwayFromZero)} {effectiveUnit}";
 
             (status, _) = Compare(calculated.Value, alertLimit, actionLimit, specLimit);
 
@@ -1308,12 +1402,17 @@ public class TestWorkflowEngine : ITestWorkflowEngine
     // WaterWorkflowEngine.Compare/CountTestWorkflowEngine.Compare.
     private static (string status, string? exceeded) Compare(decimal value, string? alert, string? action, string? spec)
     {
-        if (decimal.TryParse(spec, out var specLimit) && value > specLimit)
+        var hasSpec = decimal.TryParse(spec, out var specLimit);
+        if (hasSpec && value > specLimit)
             return ("OutOfSpecification", "Specification");
-        if (decimal.TryParse(action, out var actionLimit) && value > actionLimit)
+        var hasAction = decimal.TryParse(action, out var actionLimit);
+        if (hasAction && value > actionLimit)
             return ("ActionLimitExceeded", "Action");
-        if (decimal.TryParse(alert, out var alertLimit) && value > alertLimit)
+        var hasAlert = decimal.TryParse(alert, out var alertLimit);
+        if (hasAlert && value > alertLimit)
             return ("AlertLimitExceeded", "Alert");
+        if (!hasSpec && !hasAction && !hasAlert)
+            return ("LimitsNotConfigured", null);
         return ("WithinLimits", null);
     }
 
@@ -1398,6 +1497,19 @@ public class TestWorkflowEngine : ITestWorkflowEngine
                 "That medium is not on this step's permitted list.");
     }
 
+    // The step's own IncubationMinHours/MaxHours/TemperatureMin/Max are no
+    // longer read at execution time - a step's permitted medium can carry
+    // its own window (e.g. Confirmatory Plating's XLD vs TSI), which the
+    // step alone can't represent. Given an already-open Incubation's
+    // MediaId (the lot picked at selection time), resolves the specific
+    // TestWorkflowStepMedia row that was actually chosen, so callers can
+    // read its window instead of the step's.
+    private async Task<TestWorkflowStepMedia> ResolveSelectedStepMediumAsync(int stepId, int mediaLotId)
+    {
+        var materialId = await _db.Media.Where(m => m.Id == mediaLotId).Select(m => m.MaterialId).FirstAsync();
+        return await LoadStepMediumAsync(stepId, materialId);
+    }
+
     private async Task RequireEligibleIncubatorAsync(int stepMediaId, int equipmentId)
     {
         if (!await _incubatorEligibility.IsWithinRangeAsync(stepMediaId, equipmentId))
@@ -1405,9 +1517,10 @@ public class TestWorkflowEngine : ITestWorkflowEngine
                 "The selected incubator's set point is outside this medium's temperature range.");
     }
 
-    private static void RequireIncubationComplete(DateTime incubationEndUtc)
+    private static void RequireIncubationComplete(Incubation incubation)
     {
-        var remaining = (long)Math.Ceiling((incubationEndUtc - DateTime.UtcNow).TotalSeconds);
+        if (incubation.MinimumDurationOverriddenByUserId.HasValue) return;
+        var remaining = (long)Math.Ceiling((incubation.IncubationEndUtc!.Value - DateTime.UtcNow).TotalSeconds);
         if (remaining > 0)
             throw new WorkflowStepException(WorkflowErrorCodes.IncubationNotComplete,
                 "This step's incubation period has not finished yet.", remaining);
@@ -1436,12 +1549,12 @@ public class TestWorkflowEngine : ITestWorkflowEngine
                 $"the declared window is {declaredHours:0.##} hours.");
     }
 
-    private static void RequireValidIncubationWindow(TestWorkflowStep step, DateTime incubationStartUtc, DateTime incubationEndUtc) =>
-        RequireValidIncubationWindow(step.StepName, step.IncubationMinHours, incubationStartUtc, incubationEndUtc);
-
     // The lot the analyst picked must be a released lot of the permitted
-    // material and of the class the step template locks the step to.
-    private async Task<Media> LoadReleasedLotAsync(int mediaLotId, int materialId, int mediaTypeId)
+    // material. The class-level check this used to also carry (MediaTypeId
+    // equality) was redundant once the MaterialId check above it existed -
+    // deleted rather than translated, per the Media Configuration
+    // Migration plan §3.
+    private async Task<Media> LoadReleasedLotAsync(int mediaLotId, int materialId)
     {
         var lot = await _db.Media.FirstOrDefaultAsync(m => m.Id == mediaLotId)
             ?? throw new InvalidOperationException($"Media lot {mediaLotId} not found.");
@@ -1450,8 +1563,6 @@ public class TestWorkflowEngine : ITestWorkflowEngine
         if (lot.MaterialId != materialId)
             throw new WorkflowStepException(WorkflowErrorCodes.MediaNotInPermittedList,
                 $"Media lot {lot.LotNumber} is not a lot of the permitted medium for this step.");
-        if (lot.MediaTypeId != mediaTypeId)
-            throw new InvalidOperationException($"Media lot {lot.LotNumber} is the wrong media class for this step.");
         return lot;
     }
 
@@ -1513,12 +1624,18 @@ public class TestWorkflowEngine : ITestWorkflowEngine
             throw new InvalidOperationException($"Media must be selected for step \"{stepName}\" before this submission.");
         }
 
-        // Verify that the minimum duration has elapsed.
-        var minReadyAt = incubation.IncubationStartUtc!.Value.AddHours((double)step.IncubationMinHours);
-        if (DateTime.UtcNow < minReadyAt)
-            throw new WorkflowStepException(WorkflowErrorCodes.IncubationNotComplete,
-                $"This step requires at least {step.IncubationMinHours} hours of incubation - not ready until {minReadyAt:yyyy-MM-dd HH:mm} UTC.",
-                Math.Max(0, (long)Math.Ceiling((minReadyAt - DateTime.UtcNow).TotalSeconds)));
+        // Verify that the minimum duration has elapsed, per the medium
+        // actually picked at selection time (not the step's own fields -
+        // see TestWorkflowStepMedia.IncubationMinHours/MaxHours).
+        var brothMedium = await ResolveSelectedStepMediumAsync(step.Id, incubation.MediaId!.Value);
+        if (!incubation.MinimumDurationOverriddenByUserId.HasValue)
+        {
+            var minReadyAt = incubation.IncubationStartUtc!.Value.AddHours((double)brothMedium.IncubationMinHours);
+            if (DateTime.UtcNow < minReadyAt)
+                throw new WorkflowStepException(WorkflowErrorCodes.IncubationNotComplete,
+                    $"This step requires at least {brothMedium.IncubationMinHours} hours of incubation - not ready until {minReadyAt:yyyy-MM-dd HH:mm} UTC.",
+                    Math.Max(0, (long)Math.Ceiling((minReadyAt - DateTime.UtcNow).TotalSeconds)));
+        }
 
         // Record the completion of the incubation.
         incubation.CompletedAt = DateTime.UtcNow;
@@ -1582,9 +1699,7 @@ public class TestWorkflowEngine : ITestWorkflowEngine
             throw new InvalidOperationException($"Incubation has already been started for step \"{stepName}\" - awaiting its result.");
 
         var stepMedium = await RequireSingleStepMediumAsync(step);
-        // SelectivePlating always has a MediaTypeId - only BiochemicalTest
-        // (checked out above) leaves it null.
-        var lot = await LoadReleasedLotAsync(mediaLotId, stepMedium.MaterialId, step.MediaTypeId!.Value);
+        var lot = await LoadReleasedLotAsync(mediaLotId, stepMedium.MaterialId);
         await RequireEligibleIncubatorAsync(stepMedium.Id, equipmentId);
 
         var startedAt = incubationStartUtc ?? DateTime.UtcNow;
@@ -1596,12 +1711,12 @@ public class TestWorkflowEngine : ITestWorkflowEngine
             StageNumber = 1,
             MediaId = lot.Id,
             IncubatorEquipmentId = equipmentId,
-            Temperature = $"{step.TemperatureMin}-{step.TemperatureMax} °C",
-            Duration = $"{step.IncubationMinHours}-{step.IncubationMaxHours} hours",
+            Temperature = $"{stepMedium.TempMin}-{stepMedium.TempMax} °C",
+            Duration = $"{stepMedium.IncubationMinHours}-{stepMedium.IncubationMaxHours} hours",
             StartedAt = DateTime.UtcNow,
             IncubationStartUtc = startedAt,
-            IncubationEndUtc = startedAt.AddHours(step.IncubationMaxHours),
-            ExpectedReadingAt = startedAt.AddHours(step.IncubationMaxHours),
+            IncubationEndUtc = startedAt.AddHours(stepMedium.IncubationMaxHours),
+            ExpectedReadingAt = startedAt.AddHours(stepMedium.IncubationMaxHours),
             WindowReceivedAtUtc = DateTime.UtcNow,
             StartedByUserId = userId
         };
@@ -1632,21 +1747,26 @@ public class TestWorkflowEngine : ITestWorkflowEngine
             .FirstOrDefaultAsync()
             ?? throw new InvalidOperationException($"No active incubation found for step \"{stepName}\". Start incubation before recording observation.");
 
-        // GMP GATE: enforce minimum incubation time server-side
-        var minReadyAt = incubation.IncubationStartUtc!.Value.AddHours((double)step.IncubationMinHours);
-        if (DateTime.UtcNow < minReadyAt)
+        var stepMedium = await RequireSingleStepMediumAsync(step);
+
+        // GMP GATE: enforce minimum incubation time server-side, per the
+        // medium actually picked (see TestWorkflowStepMedia.IncubationMinHours).
+        if (!incubation.MinimumDurationOverriddenByUserId.HasValue)
         {
-            var remainingSeconds = Math.Max(0, (long)Math.Ceiling((minReadyAt - DateTime.UtcNow).TotalSeconds));
-            throw new WorkflowStepException(WorkflowErrorCodes.IncubationNotComplete,
-                $"Minimum incubation time not elapsed. Available from: {minReadyAt:yyyy-MM-dd HH:mm} UTC.",
-                remainingSeconds);
+            var minReadyAt = incubation.IncubationStartUtc!.Value.AddHours((double)stepMedium.IncubationMinHours);
+            if (DateTime.UtcNow < minReadyAt)
+            {
+                var remainingSeconds = Math.Max(0, (long)Math.Ceiling((minReadyAt - DateTime.UtcNow).TotalSeconds));
+                throw new WorkflowStepException(WorkflowErrorCodes.IncubationNotComplete,
+                    $"Minimum incubation time not elapsed. Available from: {minReadyAt:yyyy-MM-dd HH:mm} UTC.",
+                    remainingSeconds);
+            }
         }
 
         incubation.CompletedAt = DateTime.UtcNow;
         incubation.Outcome = observation.ToString();
         await _db.SaveChangesAsync();
 
-        var stepMedium = await RequireSingleStepMediumAsync(step);
         var targetOrganismId = RequireTargetOrganism(step);
 
         // Snapshot taken at observation time, never afterwards (ALCOA+).
@@ -1747,11 +1867,6 @@ public class TestWorkflowEngine : ITestWorkflowEngine
             throw new WorkflowStepException(WorkflowErrorCodes.NoMediaSelected,
                 "At least one confirmatory medium must be selected.");
 
-        var durationMax = step.IncubationMaxHours > 0 ? step.IncubationMaxHours : 24;
-        incubationEndUtc = incubationStartUtc.AddHours((double)durationMax);
-
-        RequireValidIncubationWindow(step, incubationStartUtc, incubationEndUtc);
-
         var permitted = await _db.TestWorkflowStepMedias
             .Where(m => m.TestWorkflowStepId == step.Id)
             .ToDictionaryAsync(m => m.Id);
@@ -1770,19 +1885,41 @@ public class TestWorkflowEngine : ITestWorkflowEngine
                 throw new WorkflowStepException(WorkflowErrorCodes.IncompleteConfirmatorySetup,
                     "Every selected medium needs a lot and an incubator.");
 
-            // ConfirmatoryPlating always has a MediaTypeId - only
-            // BiochemicalTest (checked out above) leaves it null.
-            var lot = await LoadReleasedLotAsync(selection.MediaLotId, medium.MaterialId, step.MediaTypeId!.Value);
+            var lot = await LoadReleasedLotAsync(selection.MediaLotId, medium.MaterialId);
             await RequireEligibleIncubatorAsync(medium.Id, selection.EquipmentId);
             resolved.Add((medium, lot, selection.EquipmentId));
         }
+
+        // A confirmatory panel can mix media with genuinely different
+        // windows on the same step (e.g. XLD at 35-37C/18-24h vs TSI at
+        // 40-45C/18-24h) - there is one shared Incubation row for the
+        // whole panel, so its window is the widest safe bound across every
+        // medium actually picked: never shorter than the strictest
+        // medium's own minimum, never shorter than the longest medium's
+        // own maximum. Each medium's own eligibility (temperature) is
+        // already enforced individually above, per selection - this is
+        // only about the panel's one shared start/end window.
+        var durationMax = resolved.Max(r => r.Medium.IncubationMaxHours);
+        if (durationMax <= 0) durationMax = 24;
+        incubationEndUtc = incubationStartUtc.AddHours((double)durationMax);
+        var minHoursRequired = resolved.Max(r => r.Medium.IncubationMinHours);
+        RequireValidIncubationWindow(step.StepName, minHoursRequired, incubationStartUtc, incubationEndUtc);
+
+        var distinctRanges = resolved.Select(r => (r.Medium.TempMin, r.Medium.TempMax)).Distinct().ToList();
+        var temperatureDisplay = distinctRanges.Count == 1
+            ? $"{distinctRanges[0].TempMin}-{distinctRanges[0].TempMax}"
+            : string.Join("; ", distinctRanges.Select(r => $"{r.TempMin}-{r.TempMax}"));
+        var distinctDurations = resolved.Select(r => (r.Medium.IncubationMinHours, r.Medium.IncubationMaxHours)).Distinct().ToList();
+        var durationDisplay = distinctDurations.Count == 1
+            ? $"{distinctDurations[0].IncubationMinHours}-{distinctDurations[0].IncubationMaxHours}h"
+            : string.Join("; ", distinctDurations.Select(r => $"{r.IncubationMinHours}-{r.IncubationMaxHours}h"));
 
         var incubation = new Incubation
         {
             TestOrderId = testOrderId, StepNumber = step.StepOrder, StepName = step.StepName,
             MediaId = resolved[0].Lot.Id, IncubatorEquipmentId = resolved[0].EquipmentId,
-            Temperature = $"{step.TemperatureMin}-{step.TemperatureMax}",
-            Duration = $"{step.IncubationMinHours}-{step.IncubationMaxHours}h",
+            Temperature = temperatureDisplay,
+            Duration = durationDisplay,
             IncubationStartUtc = incubationStartUtc, IncubationEndUtc = incubationEndUtc,
             WindowReceivedAtUtc = DateTime.UtcNow,
             ExpectedReadingAt = incubationEndUtc
@@ -1834,9 +1971,10 @@ public class TestWorkflowEngine : ITestWorkflowEngine
         var targetOrganismId = RequireTargetOrganism(step);
 
         var incubation = await _db.Incubations.FirstAsync(i => i.Id == result.IncubationId);
-        RequireIncubationComplete(incubation.IncubationEndUtc
-            ?? throw new WorkflowStepException(WorkflowErrorCodes.IncompleteConfirmatorySetup,
-                "This step has no recorded incubation window."));
+        if (incubation.IncubationEndUtc is null)
+            throw new WorkflowStepException(WorkflowErrorCodes.IncompleteConfirmatorySetup,
+                "This step has no recorded incubation window.");
+        RequireIncubationComplete(incubation);
 
         // Enforced here as well as by the unique index on
         // (WorkflowStepResultId, MaterialId): a duplicate would otherwise
@@ -1955,7 +2093,7 @@ public class TestWorkflowEngine : ITestWorkflowEngine
     // Free-text confirmation with an optional attachment. There is no
     // incubation lock and no media on this step.
     public async Task<StepResultDto> SubmitBiochemicalAsync(
-        int testOrderId, string stepName, string biochemicalResultText, int? attachmentId, int userId)
+        int testOrderId, string stepName, string biochemicalResultText, int? attachmentId, bool organismDetected, int userId)
     {
         var step = await LoadStepAsync(testOrderId, stepName);
         if (step.StepType != StepType.BiochemicalTest)
@@ -1991,8 +2129,14 @@ public class TestWorkflowEngine : ITestWorkflowEngine
             .FirstOrDefaultAsync()
             ?? throw new InvalidOperationException($"Step \"{precedingPlateStep.StepName}\" has not been completed for this test order.");
 
+        // ConfirmatoryPlating: both AllConforming and Inconclusive proceed to
+        // biochemical ID - an Inconclusive plate reading doesn't rule out the
+        // organism, it just means the analyst couldn't call it from
+        // morphology alone, which is exactly what biochemical testing is
+        // for. SelectivePlating has no such middle ground (single
+        // GrowthObservation call) and keeps its conforming-only gate.
         var precedingConforms = precedingPlateStep.StepType == StepType.ConfirmatoryPlating
-            ? precedingResult.ConfirmatoryResult == ConfirmatoryResult.AllConforming
+            ? precedingResult.ConfirmatoryResult is ConfirmatoryResult.AllConforming or ConfirmatoryResult.Inconclusive
             : precedingResult.SelectivePlatingObservation == GrowthObservation.GrowthConforming;
         if (!precedingConforms)
             throw new InvalidOperationException(
@@ -2005,6 +2149,7 @@ public class TestWorkflowEngine : ITestWorkflowEngine
             IncubationId = precedingResult.IncubationId, TestOrderId = testOrderId,
             StepName = step.StepName, StepType = step.StepType,
             BiochemicalResultText = biochemicalResultText, BiochemicalAttachmentId = attachmentId,
+            BiochemicalOrganismDetected = organismDetected,
             SkippedBiochemical = false,
             SubmittedByUserId = userId, SubmittedAtUtc = DateTime.UtcNow
         };
@@ -2028,10 +2173,15 @@ public class TestWorkflowEngine : ITestWorkflowEngine
             return new StepResultDto(result.IncubationId, step.StepType.ToString(), "Complete",
                 userId, result.SubmittedAtUtc, NextStepUnlocked: true, WorkflowFinalResult: null, Flags: new List<string>());
 
-        await FinalizeWorkflowAsync(testOrderId, "Detected", userId);
+        // Never assume Detected - the whole point of this field is that
+        // free-text BiochemicalResultText alone must not drive the final
+        // result (see BiochemicalOrganismDetected's doc comment on
+        // WorkflowStepResult for the incident that made this explicit).
+        var finalResult = organismDetected ? "Detected" : "NotDetected";
+        await FinalizeWorkflowAsync(testOrderId, finalResult, userId);
 
         return new StepResultDto(result.IncubationId, step.StepType.ToString(), "Complete",
-            userId, result.SubmittedAtUtc, NextStepUnlocked: false, WorkflowFinalResult: "Detected", Flags: new List<string>());
+            userId, result.SubmittedAtUtc, NextStepUnlocked: false, WorkflowFinalResult: finalResult, Flags: new List<string>());
     }
 
     // Reviewer action on a result flagged BiochemicalNotPerformed.

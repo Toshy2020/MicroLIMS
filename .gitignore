@@ -37,6 +37,8 @@ frontend/dist/
 tree.txt
 git_history.txt
 MICROLIMS_*.txt
+frontend/navigation_audit.txt
+
 
 # Claude Code worktrees and SDD scratch (git-ignored working state)
 .claude/worktrees/

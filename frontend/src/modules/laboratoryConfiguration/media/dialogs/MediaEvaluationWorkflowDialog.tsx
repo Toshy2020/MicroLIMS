@@ -1,9 +1,5 @@
 import { useEffect, useState } from "react";
 import {
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
   Box,
   Typography,
   Button,
@@ -16,8 +12,10 @@ import {
   useTheme
 } from "@mui/material";
 import { StatusBadge } from "../../../../components/StatusBadge";
+import { FloatingDialog } from "../../../../components/FloatingDialog";
 import { MediaEvaluationService } from "../../mediaEvaluation/services/MediaEvaluationService";
 import { CryovialService } from "../../cryovials/services/CryovialService";
+import { MaterialService } from "../../../inventory/materials/services/MaterialService";
 import { masterDataOptions, evaluationTypeLabel } from "../../../../services/masterDataOptions";
 import { brandColors } from "../../../../theme";
 
@@ -32,7 +30,9 @@ export function MediaEvaluationWorkflowDialog({ open, evaluationId, onClose, onU
   const theme = useTheme();
   const [evaluation, setEvaluation] = useState<any | null>(null);
   const [cryovials, setCryovials] = useState<any[]>([]);
+  const [disks, setDisks] = useState<any[]>([]);
   const [incubators, setIncubators] = useState<any[]>([]);
+  const [referenceLotOptions, setReferenceLotOptions] = useState<any[]>([]);
   const [forms, setForms] = useState<Record<number, any>>({});
   const [message, setMessage] = useState<{ text: string; ok: boolean } | null>(null);
 
@@ -52,13 +52,38 @@ export function MediaEvaluationWorkflowDialog({ open, evaluationId, onClose, onU
     if (open && evaluationId) {
       loadData();
       CryovialService.getAll().then(setCryovials).catch(() => setCryovials([]));
+      MaterialService.getAll("LyophilizedMicroorganism").then(setDisks).catch(() => setDisks([]));
       masterDataOptions.getEquipment("Incubator").then(setIncubators).catch(() => setIncubators([]));
     } else {
       setEvaluation(null);
       setMessage(null);
       setForms({});
+      setReferenceLotOptions([]);
     }
   }, [open, evaluationId]);
+
+  // Same-material prior released lots, for the GrowthPromotion reference-
+  // lot suggestion - loaded once the evaluation (and so its Media/
+  // MaterialId) is known. includeExpired: true because this is citing a
+  // historical count, not asking what's usable right now (see
+  // MediaPreparationService.GetReleasedAsync).
+  useEffect(() => {
+    if (evaluation?.evaluationType === "GrowthPromotion" && evaluation.media?.materialId) {
+      masterDataOptions
+        .getReleasedMedia(evaluation.media.materialId, { includeExpired: true, excludeId: evaluation.media.id })
+        .then(setReferenceLotOptions)
+        .catch(() => setReferenceLotOptions([]));
+    } else {
+      setReferenceLotOptions([]);
+    }
+  }, [evaluation?.id]);
+
+  // Undefined (untouched) defaults to the auto-suggestion when one
+  // exists, or straight to free text when no prior lot of this material
+  // has ever been released.
+  const referenceModeFor = (form: any): "linked" | "freetext" =>
+    form.referenceFreeText === true ? "freetext" : form.referenceFreeText === false ? "linked" : referenceLotOptions.length > 0 ? "linked" : "freetext";
+  const referenceMediaIdFor = (form: any) => (form.referenceMediaId !== undefined ? form.referenceMediaId : referenceLotOptions[0]?.id ?? "");
 
   const refreshDetail = async () => {
     if (!evaluationId) return;
@@ -77,15 +102,31 @@ export function MediaEvaluationWorkflowDialog({ open, evaluationId, onClose, onU
       c.organismId === organismId);
   };
 
-  const pickCryovial = async (challenge: any) => {
-    const cryovialId = forms[challenge.id]?.cryovialId;
-    if (!cryovialId) return;
+  // Lyophilized disks have no approval-gate workflow of their own (unlike
+  // Cryovials) - organism match, not expired, and quantity remaining are
+  // the only checks, mirroring MediaEvaluationEngine.SelectLyophilizedDiskAsync.
+  const diskOptionsFor = (organismId: number) => {
+    const now = new Date();
+    return disks.filter((d) =>
+      d.organismId === organismId && d.quantityRemaining > 0 && (!d.expiryDate || new Date(d.expiryDate) > now));
+  };
+
+  // Step 1's picker merges both organism-source types into one Select -
+  // value is "cv:<id>" or "disk:<id>" so a single selection unambiguously
+  // identifies which backend action to call.
+  const pickOrganismSource = async (challenge: any) => {
+    const selection = forms[challenge.id]?.sourceSelection as string | undefined;
+    if (!selection) return;
     try {
-      await MediaEvaluationService.selectCryovial(challenge.id, Number(cryovialId));
-      setMessage({ text: "Cryovial selected.", ok: true });
+      if (selection.startsWith("cv:")) {
+        await MediaEvaluationService.selectCryovial(challenge.id, Number(selection.slice(3)));
+      } else if (selection.startsWith("disk:")) {
+        await MediaEvaluationService.selectLyophilizedDisk(challenge.id, Number(selection.slice(5)));
+      }
+      setMessage({ text: "Organism source selected.", ok: true });
       await refreshDetail();
     } catch (e: any) {
-      setMessage({ text: e?.response?.data?.message ?? "Could not select cryovial.", ok: false });
+      setMessage({ text: e?.response?.data?.message ?? "Could not select organism source.", ok: false });
     }
   };
 
@@ -107,6 +148,13 @@ export function MediaEvaluationWorkflowDialog({ open, evaluationId, onClose, onU
     if (evaluation.evaluationType === "GrowthPromotion") {
       payload.oldMediaCount = Number(form.oldMediaCount);
       payload.newMediaCount = Number(form.newMediaCount);
+      if (referenceModeFor(form) === "linked") {
+        payload.referenceMediaId = Number(referenceMediaIdFor(form)) || null;
+        payload.referenceMediaLabel = null;
+      } else {
+        payload.referenceMediaId = null;
+        payload.referenceMediaLabel = (form.referenceMediaLabel ?? "").trim();
+      }
     } else if (evaluation.evaluationType === "IndicationInhibition" && challenge.challengeRole === "Inhibition") {
       payload.growthObserved = form.growthObserved === "yes";
     } else if (evaluation.evaluationType === "IndicationInhibition" && challenge.challengeRole === "Indication") {
@@ -135,28 +183,38 @@ export function MediaEvaluationWorkflowDialog({ open, evaluationId, onClose, onU
   if (!open) return null;
 
   return (
-    <Dialog open={open} onClose={onClose} fullWidth maxWidth="md">
+    <FloatingDialog
+      open={open}
+      onClose={onClose}
+      maxWidth="md"
+      titleSx={{ pb: 1 }}
+      title={
+        evaluation ? (
+          <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 1, flex: 1, minWidth: 0 }}>
+            <Box>
+              <Typography sx={{ fontSize: 18, fontWeight: 700, color: theme.palette.primary.main }}>
+                {evaluation.media?.lotNumber} — {evaluationTypeLabel(evaluation.evaluationType)}
+              </Typography>
+              <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
+                Evaluation ID #{evaluation.id} · Status: {evaluation.status}
+              </Typography>
+            </Box>
+
+            <Box sx={{ display: "flex", gap: 1, mr: 1 }}>
+              <StatusBadge status={evaluation.status} />
+              {evaluation.outcome && <StatusBadge status={evaluation.outcome} />}
+            </Box>
+          </Box>
+        ) : null
+      }
+      actions={
+        <Button onClick={onClose} variant="outlined">
+          Close
+        </Button>
+      }
+    >
       {evaluation && (
         <>
-          <DialogTitle sx={{ pb: 1 }}>
-            <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 1 }}>
-              <Box>
-                <Typography sx={{ fontSize: 18, fontWeight: 700, color: theme.palette.primary.main }}>
-                  {evaluation.media?.lotNumber} — {evaluationTypeLabel(evaluation.evaluationType)}
-                </Typography>
-                <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
-                  Evaluation ID #{evaluation.id} · Status: {evaluation.status}
-                </Typography>
-              </Box>
-
-              <Box sx={{ display: "flex", gap: 1 }}>
-                <StatusBadge status={evaluation.status} />
-                {evaluation.outcome && <StatusBadge status={evaluation.outcome} />}
-              </Box>
-            </Box>
-          </DialogTitle>
-
-          <DialogContent dividers>
             {message && (
               <Alert severity={message.ok ? "success" : "error"} sx={{ mb: 2 }}>
                 {message.text}
@@ -173,6 +231,7 @@ export function MediaEvaluationWorkflowDialog({ open, evaluationId, onClose, onU
               {evaluation.challenges.map((c: any) => {
                 const form = forms[c.id] ?? {};
                 const options = cryovialOptionsFor(c.organismId);
+                const diskOpts = diskOptionsFor(c.organismId);
 
                 return (
                   <Paper key={c.id} variant="outlined" sx={{ p: 2, borderRadius: 2 }}>
@@ -193,46 +252,104 @@ export function MediaEvaluationWorkflowDialog({ open, evaluationId, onClose, onU
                       Initial Inoculum: <strong>{c.initialInoculum}</strong>
                     </Typography>
 
-                    {/* Step 1: Cryovial Selection */}
+                    {/* Reference Lot (GrowthPromotion only) - a setup choice
+                        like cryovial/incubator, not a measured result, so it's
+                        decided up front rather than gated behind incubation
+                        completing. */}
+                    {evaluation.evaluationType === "GrowthPromotion" && !c.outcome && (
+                      <Box sx={{ mb: 1.5 }}>
+                        <Typography sx={{ fontSize: 11, fontWeight: 700, color: "text.secondary", mb: 0.5 }}>
+                          REFERENCE LOT (FOR RECOVERY% COMPARISON)
+                        </Typography>
+                        <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
+                          {referenceLotOptions.length > 0 && (
+                            <Select
+                              size="small"
+                              value={referenceModeFor(form) === "freetext" ? "freetext" : referenceMediaIdFor(form)}
+                              onChange={(e) => {
+                                const v = e.target.value;
+                                if (v === "freetext") {
+                                  setField(c.id, "referenceFreeText", true);
+                                } else {
+                                  setField(c.id, "referenceFreeText", false);
+                                  setField(c.id, "referenceMediaId", v);
+                                }
+                              }}
+                              sx={{ minWidth: 320 }}
+                            >
+                              {referenceLotOptions.map((m: any) => (
+                                <MenuItem key={m.id} value={m.id}>
+                                  {m.lotNumber} — prepared {new Date(m.preparedAt).toLocaleDateString()}
+                                </MenuItem>
+                              ))}
+                              <MenuItem value="freetext">
+                                <em>Enter manually…</em>
+                              </MenuItem>
+                            </Select>
+                          )}
+                          {(referenceLotOptions.length === 0 || referenceModeFor(form) === "freetext") && (
+                            <TextField
+                              size="small"
+                              label="Reference Lot (manual entry)"
+                              placeholder="e.g. prior lot code or description"
+                              value={form.referenceMediaLabel ?? ""}
+                              onChange={(e) => setField(c.id, "referenceMediaLabel", e.target.value)}
+                              sx={{ minWidth: 320 }}
+                            />
+                          )}
+                        </Stack>
+                      </Box>
+                    )}
+
+                    {/* Step 1: Organism Source Selection (Cryovial or Lyophilized Disk) */}
                     {c.cryovial ? (
                       <Typography variant="body2" sx={{ mb: 1 }}>
                         Cryovial: <strong>{c.cryovial.code}</strong>
                       </Typography>
+                    ) : c.lyophilizedDisk ? (
+                      <Typography variant="body2" sx={{ mb: 1 }}>
+                        Source: <strong>{c.lyophilizedDisk.materialName} — batch {c.lyophilizedDisk.batchNumber}</strong>
+                      </Typography>
                     ) : (
                       <Box sx={{ mb: 1.5, p: 1.5, bgcolor: "background.default", borderRadius: 1.5, border: "1px solid", borderColor: "divider" }}>
                         <Typography sx={{ fontSize: 11, fontWeight: 700, color: "text.secondary", mb: 0.5 }}>
-                          STEP 1: SELECT WORKING CRYOVIAL
+                          STEP 1: SELECT WORKING CRYOVIAL OR LYOPHILIZED DISK
                         </Typography>
-                        {options.length === 0 ? (
+                        {options.length === 0 && diskOpts.length === 0 ? (
                           <Alert severity="warning" sx={{ mb: 1 }}>
-                            No approved, unexpired cryovial batches available for {c.organism?.scientificName}.
+                            No approved, unexpired cryovial batches or lyophilized disks available for {c.organism?.scientificName}.
                           </Alert>
                         ) : (
                           <Stack direction="row" spacing={1} alignItems="center">
                             <Select
                               size="small"
                               displayEmpty
-                              value={form.cryovialId ?? ""}
-                              onChange={(e) => setField(c.id, "cryovialId", e.target.value)}
-                              sx={{ minWidth: 260 }}
+                              value={form.sourceSelection ?? ""}
+                              onChange={(e) => setField(c.id, "sourceSelection", e.target.value)}
+                              sx={{ minWidth: 320 }}
                             >
                               <MenuItem value="">
-                                <em>Select Cryovial Batch</em>
+                                <em>Select Cryovial or Disk</em>
                               </MenuItem>
                               {options.map((o: any) => (
-                                <MenuItem key={o.id} value={o.id}>
-                                  {o.code} ({o.vialsRemaining} of {o.numberOfVialsPrepared} vials left)
+                                <MenuItem key={`cv:${o.id}`} value={`cv:${o.id}`}>
+                                  {o.code} ({o.vialsRemaining} of {o.numberOfVialsPrepared} vials left) — Cryovial
+                                </MenuItem>
+                              ))}
+                              {diskOpts.map((d: any) => (
+                                <MenuItem key={`disk:${d.id}`} value={`disk:${d.id}`}>
+                                  {d.materialName} — batch {d.batchNumber} ({d.quantityRemaining} left) — Lyophilized Disk
                                 </MenuItem>
                               ))}
                             </Select>
                             <Button
                               size="small"
                               variant="contained"
-                              disabled={!form.cryovialId}
-                              onClick={() => pickCryovial(c)}
+                              disabled={!form.sourceSelection}
+                              onClick={() => pickOrganismSource(c)}
                               sx={{ bgcolor: brandColors.sectionTitle, "&:hover": { bgcolor: "#632273" } }}
                             >
-                              Assign Cryovial
+                              Assign
                             </Button>
                           </Stack>
                         )}
@@ -294,6 +411,11 @@ export function MediaEvaluationWorkflowDialog({ open, evaluationId, onClose, onU
                         {evaluation.evaluationType === "GrowthPromotion" && (
                           <Typography variant="body2">
                             Old Count: <strong>{c.oldMediaCount}</strong> / New Count: <strong>{c.newMediaCount}</strong> — Recovery: <strong>{c.recoveryPercent}%</strong>
+                          </Typography>
+                        )}
+                        {evaluation.evaluationType === "GrowthPromotion" && (
+                          <Typography variant="body2">
+                            Reference Lot: <strong>{c.referenceMedia?.lotNumber ?? c.referenceMediaLabel ?? "—"}</strong>
                           </Typography>
                         )}
                         {c.challengeRole === "Inhibition" && (
@@ -420,15 +542,8 @@ export function MediaEvaluationWorkflowDialog({ open, evaluationId, onClose, onU
                 );
               })}
             </Stack>
-          </DialogContent>
-
-          <DialogActions sx={{ p: 2 }}>
-            <Button onClick={onClose} variant="outlined">
-              Close
-            </Button>
-          </DialogActions>
         </>
       )}
-    </Dialog>
+    </FloatingDialog>
   );
 }

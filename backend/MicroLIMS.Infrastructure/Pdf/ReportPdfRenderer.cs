@@ -339,7 +339,7 @@ public class ReportPdfRenderer
     private static PdfColor LocationStatusColor(string status) => status switch
     {
         "WithinLimits" or "Absent" => Positive,
-        "AlertLimitExceeded" => Warning,
+        "LimitsNotConfigured" or "AlertLimitExceeded" => Warning,
         "ActionLimitExceeded" => ActionOrange,
         "OutOfSpecification" or "Detected" => Danger,
         _ => TextTertiary

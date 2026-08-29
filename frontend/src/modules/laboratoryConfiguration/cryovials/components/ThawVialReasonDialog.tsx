@@ -1,9 +1,5 @@
 import { useState, useEffect } from "react";
 import {
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
   Button,
   TextField,
   Typography,
@@ -16,6 +12,7 @@ import {
 import AcUnitIcon from "@mui/icons-material/AcUnit";
 import { CryovialItem } from "../types/cryovialTypes";
 import { brandColors } from "../../../../theme";
+import { FloatingDialog } from "../../../../components/FloatingDialog";
 
 interface ThawVialReasonDialogProps {
   open: boolean;
@@ -62,39 +59,53 @@ export function ThawVialReasonDialog({
   };
 
   return (
-    <Dialog
+    <FloatingDialog
       open={open}
-      onClose={submitting ? undefined : onCancel}
+      onClose={() => { if (!submitting) onCancel(); }}
       maxWidth="sm"
-      fullWidth
-      PaperProps={{
-        sx: {
-          borderRadius: 2,
-          p: 0.5
-        }
-      }}
+      paperSx={{ borderRadius: 2, p: 0.5 }}
+      titleSx={{ pb: 1, display: "flex", alignItems: "center", gap: 1 }}
+      title={
+        <>
+          <Box
+            sx={{
+              width: 32,
+              height: 32,
+              borderRadius: 1,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              bgcolor: theme.custom.status.info.bg,
+              color: theme.custom.status.info.text
+            }}
+          >
+            <AcUnitIcon fontSize="small" />
+          </Box>
+          <Typography sx={{ fontSize: 18, fontWeight: 700, color: "text.primary" }}>
+            Thaw Vial — Provide Reason
+          </Typography>
+        </>
+      }
+      actions={
+        <>
+          <Button onClick={onCancel} disabled={submitting} sx={{ color: "text.secondary" }}>
+            Cancel
+          </Button>
+          <Button
+            variant="contained"
+            onClick={handleConfirm}
+            disabled={!isReasonValid || submitting}
+            startIcon={<AcUnitIcon />}
+            sx={{
+              bgcolor: brandColors.sectionTitle,
+              "&:hover": { bgcolor: brandColors.pageTitle }
+            }}
+          >
+            {submitting ? "Thawing..." : "Confirm Thaw"}
+          </Button>
+        </>
+      }
     >
-      <DialogTitle sx={{ pb: 1, display: "flex", alignItems: "center", gap: 1 }}>
-        <Box
-          sx={{
-            width: 32,
-            height: 32,
-            borderRadius: 1,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            bgcolor: theme.custom.status.info.bg,
-            color: theme.custom.status.info.text
-          }}
-        >
-          <AcUnitIcon fontSize="small" />
-        </Box>
-        <Typography sx={{ fontSize: 18, fontWeight: 700, color: "text.primary" }}>
-          Thaw Vial — Provide Reason
-        </Typography>
-      </DialogTitle>
-
-      <DialogContent dividers sx={{ pt: 2 }}>
         <Stack spacing={2.5}>
           {error && <Alert severity="error">{error}</Alert>}
 
@@ -181,25 +192,6 @@ export function ThawVialReasonDialog({
             </Box>
           </Box>
         </Stack>
-      </DialogContent>
-
-      <DialogActions sx={{ px: 3, py: 2 }}>
-        <Button onClick={onCancel} disabled={submitting} sx={{ color: "text.secondary" }}>
-          Cancel
-        </Button>
-        <Button
-          variant="contained"
-          onClick={handleConfirm}
-          disabled={!isReasonValid || submitting}
-          startIcon={<AcUnitIcon />}
-          sx={{
-            bgcolor: brandColors.sectionTitle,
-            "&:hover": { bgcolor: brandColors.pageTitle }
-          }}
-        >
-          {submitting ? "Thawing..." : "Confirm Thaw"}
-        </Button>
-      </DialogActions>
-    </Dialog>
+    </FloatingDialog>
   );
 }

@@ -19,7 +19,7 @@ interface KpiCardDef {
   tone: StatusTone;
 }
 
-export function isMaterialExpiringSoon(expiryDateStr: string | null, daysThreshold: number = 30): boolean {
+function isMaterialExpiringSoon(expiryDateStr: string | null, daysThreshold: number = 30): boolean {
   if (!expiryDateStr) return false;
   const expiry = new Date(expiryDateStr);
   const now = new Date();

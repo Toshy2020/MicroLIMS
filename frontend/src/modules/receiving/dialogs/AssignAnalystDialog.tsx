@@ -1,9 +1,5 @@
 import React, { useState, useEffect } from "react";
 import {
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
   Button,
   FormControl,
   InputLabel,
@@ -24,6 +20,7 @@ import { SampleRecord } from "../types/receivingTypes";
 import { ReceiveService } from "../services/ReceiveService";
 import { UserService, UserRecord } from "../../users/services/UserService";
 import { CategoryBadge } from "../../../components/StatusBadge";
+import { FloatingDialog } from "../../../components/FloatingDialog";
 
 interface AssignAnalystDialogProps {
   open: boolean;
@@ -102,15 +99,35 @@ export function AssignAnalystDialog({
     "Unassigned";
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-      <DialogTitle sx={{ pb: 1, display: "flex", alignItems: "center", gap: 1 }}>
-        <AssignmentIndIcon sx={{ color: theme.palette.primary.main }} />
-        <Typography variant="h6" component="span" sx={{ fontWeight: 700 }}>
-          Assign Responsible Analyst
-        </Typography>
-      </DialogTitle>
-
-      <DialogContent dividers>
+    <FloatingDialog
+      open={open}
+      onClose={onClose}
+      maxWidth="sm"
+      titleSx={{ pb: 1, display: "flex", alignItems: "center", gap: 1 }}
+      title={
+        <>
+          <AssignmentIndIcon sx={{ color: theme.palette.primary.main }} />
+          <Typography variant="h6" component="span" sx={{ fontWeight: 700 }}>
+            Assign Responsible Analyst
+          </Typography>
+        </>
+      }
+      actions={
+        <>
+          <Button onClick={onClose} disabled={submitting} variant="outlined">
+            Cancel
+          </Button>
+          <Button
+            onClick={handleSubmit}
+            disabled={submitting || loading}
+            variant="contained"
+            startIcon={submitting ? <CircularProgress size={16} /> : <AssignmentIndIcon />}
+          >
+            {submitting ? "Saving..." : "Save Assignment"}
+          </Button>
+        </>
+      }
+    >
         {error && (
           <Alert
             severity="error"
@@ -208,22 +225,7 @@ export function AssignAnalystDialog({
             rows={2}
           />
         </Box>
-      </DialogContent>
-
-      <DialogActions sx={{ px: 3, py: 2 }}>
-        <Button onClick={onClose} disabled={submitting} variant="outlined">
-          Cancel
-        </Button>
-        <Button
-          onClick={handleSubmit}
-          disabled={submitting || loading}
-          variant="contained"
-          startIcon={submitting ? <CircularProgress size={16} /> : <AssignmentIndIcon />}
-        >
-          {submitting ? "Saving..." : "Save Assignment"}
-        </Button>
-      </DialogActions>
-    </Dialog>
+    </FloatingDialog>
   );
 }
 

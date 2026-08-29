@@ -53,6 +53,14 @@ public class Incubation
     // a mutation of the stage 1 row.
     public int StageNumber { get; set; } = 1;
 
+    // Section Head/System Administrator override of the minimum-duration
+    // wait gate for THIS row only - set together, both null or both set.
+    // Bypasses every "not ready until X" check below for this incubation;
+    // never changes the recorded window/temperature themselves. Per-row by
+    // design: overriding stage 1 does not touch stage 2's own row.
+    public int? MinimumDurationOverriddenByUserId { get; set; }
+    public DateTime? MinimumDurationOverriddenAt { get; set; }
+
     [NotMapped]
     public bool IsIncubationComplete =>
         IncubationEndUtc.HasValue && DateTime.UtcNow >= IncubationEndUtc.Value;

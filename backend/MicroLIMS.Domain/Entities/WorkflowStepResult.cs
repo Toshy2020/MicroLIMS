@@ -31,6 +31,16 @@ public class WorkflowStepResult
     // No Attachment entity exists yet - unmapped forward hook, no FK.
     public int? BiochemicalAttachmentId { get; set; }
 
+    // The analyst's explicit interpretation of BiochemicalResultText -
+    // required at submission time by TestWorkflowEngine.SubmitBiochemicalAsync
+    // (nullable here only so historical pre-this-field rows don't need a
+    // literal schema default). Never inferred from the free-text result:
+    // an earlier version of this code hardcoded the final result to
+    // "Detected" regardless of what the biochemical result actually said,
+    // which produced a real false-positive result once this step became
+    // reachable after an Inconclusive confirmatory reading.
+    public bool? BiochemicalOrganismDetected { get; set; }
+
     // Analyst submitted Detected straight off confirmatory plating.
     public bool SkippedBiochemical { get; set; }
 

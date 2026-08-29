@@ -8,7 +8,13 @@ import BlockOutlinedIcon from "@mui/icons-material/BlockOutlined";
 import InventoryOutlinedIcon from "@mui/icons-material/InventoryOutlined";
 import { StatusTone } from "../../../../theme/statusTokens";
 
-export type MediaKpiFilterKey = "ALL" | "PendingEvaluation" | "AwaitingApproval" | "Released" | "Rejected" | "OutOfStock";
+export type MediaKpiFilterKey =
+  | "ALL"
+  | "Pending Evaluation"
+  | "Awaiting Approval"
+  | "Released"
+  | "Rejected"
+  | "Out of Stock";
 
 interface Props {
   lots: any[];
@@ -46,11 +52,11 @@ export function MediaLotKpiCards({ lots, awaitingApprovalIds, activeKpi, onSelec
 
   const cards: { key: MediaKpiFilterKey; label: string; count: number; icon: React.ReactNode; tone: StatusTone }[] = [
     { key: "ALL", label: "Total Lots", count: totalCount, icon: <ScienceOutlinedIcon sx={{ fontSize: 20 }} />, tone: "purple" },
-    { key: "PendingEvaluation", label: "Pending Evaluation", count: pendingCount, icon: <PendingActionsOutlinedIcon sx={{ fontSize: 20 }} />, tone: "pending" },
-    { key: "AwaitingApproval", label: "Awaiting Approval", count: awaitingApprovalCount, icon: <HowToRegOutlinedIcon sx={{ fontSize: 20 }} />, tone: "action" },
-    { key: "Released", label: "Released for Use", count: releasedCount, icon: <CheckCircleOutlineIcon sx={{ fontSize: 20 }} />, tone: "notDetected" },
+    { key: "Pending Evaluation", label: "Pending Evaluation", count: pendingCount, icon: <PendingActionsOutlinedIcon sx={{ fontSize: 20 }} />, tone: "pending" },
+    { key: "Awaiting Approval", label: "Awaiting Approval", count: awaitingApprovalCount, icon: <HowToRegOutlinedIcon sx={{ fontSize: 20 }} />, tone: "action" },
+    { key: "Released", label: "Released", count: releasedCount, icon: <CheckCircleOutlineIcon sx={{ fontSize: 20 }} />, tone: "notDetected" },
     { key: "Rejected", label: "Rejected", count: rejectedCount, icon: <BlockOutlinedIcon sx={{ fontSize: 20 }} />, tone: "detected" },
-    { key: "OutOfStock", label: "Out of Stock", count: outOfStockCount, icon: <InventoryOutlinedIcon sx={{ fontSize: 20 }} />, tone: "pending" }
+    { key: "Out of Stock", label: "Out of Stock", count: outOfStockCount, icon: <InventoryOutlinedIcon sx={{ fontSize: 20 }} />, tone: "pending" }
   ];
 
   return (

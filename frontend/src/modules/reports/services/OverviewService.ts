@@ -1,6 +1,6 @@
 import { OverviewDashboardData, SampleCategory } from "../types/reportingTypes";
 import { ReportingService } from "./ReportingService";
-import { brandColors } from "../../../theme";
+import { chartPalette as defaultChartPalette } from "../../../theme";
 
 // Exported so other Reports tabs (e.g. AnalystKpiTab's category filter and
 // "Tests by Category" donut) use the same human labels instead of each
@@ -16,21 +16,9 @@ export const CATEGORY_LABELS: Record<string, string> = {
   ReferenceStrain: "Reference Strain"
 };
 
-const CATEGORY_COLORS: Record<string, string> = {
-  FinishedProduct: brandColors.badgeProduct,
-  RawMaterial: brandColors.badgeRM,
-  PackagingMaterial: brandColors.badgePM,
-  Water: "#0891b2",
-  EnvironmentalMonitoring: "#7c3aed",
-  AfterCleaning: "#be185d",
-  GPT: "#d97706",
-  ReferenceStrain: "#059669"
-};
-
-const LOCATION_COLORS = ["#7b2d8e", "#9b3fa8", "#2563eb", "#0891b2", "#9ca3af", "#d97706", "#16a34a"];
-
 export const OverviewService = {
-  async getOverviewData(fromDate?: string, toDate?: string): Promise<OverviewDashboardData> {
+  async getOverviewData(fromDate?: string, toDate?: string, palette?: string[]): Promise<OverviewDashboardData> {
+    const activePalette = palette && palette.length > 0 ? palette : defaultChartPalette;
     try {
       // Query SQL-level aggregates across all matching records from the backend
       const res = await ReportingService.getOverview(fromDate, toDate);
@@ -42,12 +30,12 @@ export const OverviewService = {
       const outOfSpecCount = res.outOfSpecCount;
       const alertActionCount = res.alertActionCount;
 
-      const categoryDistribution = (res.categoryDistribution ?? []).map((c) => ({
+      const categoryDistribution = (res.categoryDistribution ?? []).map((c, idx) => ({
         category: c.category as SampleCategory,
         label: CATEGORY_LABELS[c.category] ?? c.category,
         count: c.count,
         percentage: c.percentage,
-        color: CATEGORY_COLORS[c.category] ?? "#6b7280"
+        color: activePalette[idx % activePalette.length]
       }));
 
       const testDistribution = (res.testDistribution ?? []).map((t) => ({
@@ -60,7 +48,7 @@ export const OverviewService = {
         location: l.location || "Other",
         count: l.count,
         percentage: l.percentage,
-        color: LOCATION_COLORS[idx % LOCATION_COLORS.length]
+        color: activePalette[idx % activePalette.length]
       }));
 
       const recentResults = (res.recentResults ?? []).map((r) => ({

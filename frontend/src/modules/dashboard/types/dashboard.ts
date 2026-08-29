@@ -42,6 +42,8 @@ export interface MyTask {
   sampleId: number | null;
   testOrderId: number | null;
   mediaId: number | null;
+  isReturned?: boolean;
+  returnReason?: string | null;
 }
 
 export interface MediaExpiryLot {
@@ -58,6 +60,8 @@ export interface TodaysWorkTest {
   testCode: string;
   status: string;
   timeRemaining: string | null;
+  isReturned?: boolean;
+  returnReason?: string | null;
 }
 
 export interface TodaysWorkItem {

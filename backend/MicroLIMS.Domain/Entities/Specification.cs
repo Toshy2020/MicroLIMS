@@ -12,4 +12,5 @@ public class Specification
     public string AlertLimit { get; set; } = string.Empty;
     public string ActionLimit { get; set; } = string.Empty;
     public string SpecLimit { get; set; } = string.Empty;
+    public string Unit { get; set; } = string.Empty;
 }

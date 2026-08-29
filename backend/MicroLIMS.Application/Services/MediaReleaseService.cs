@@ -40,7 +40,7 @@ public class MediaReleaseService
             .ToListAsync();
 
         return await _db.Media
-            .Include(m => m.MediaType)
+            .Include(m => m.Material)
             .Where(m => qualifiedMediaIds.Contains(m.Id) && m.ApprovalStatus == ApprovalGateStatus.PendingReview)
             .OrderByDescending(m => m.Id)
             .ToListAsync();

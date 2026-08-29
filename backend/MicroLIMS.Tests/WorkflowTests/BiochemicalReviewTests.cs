@@ -84,7 +84,7 @@ public class BiochemicalReviewTests
         await using var _ = db;
         await engine.RecordAnalystDecisionAsync(orderId, AnalystDecision.ProceedToBiochemical, AnalystId);
 
-        var result = await engine.SubmitBiochemicalAsync(orderId, "Biochemical Test", "IMViC: + + - -", null, AnalystId);
+        var result = await engine.SubmitBiochemicalAsync(orderId, "Biochemical Test", "IMViC: + + - -", null, true, AnalystId);
 
         Assert.Equal("Detected", result.WorkflowFinalResult);
         Assert.Empty(result.Flags);
@@ -102,7 +102,7 @@ public class BiochemicalReviewTests
         await engine.RecordAnalystDecisionAsync(orderId, AnalystDecision.ProceedToBiochemical, AnalystId);
 
         var ex = await Assert.ThrowsAsync<WorkflowStepException>(
-            () => engine.SubmitBiochemicalAsync(orderId, "Biochemical Test", "   ", null, AnalystId));
+            () => engine.SubmitBiochemicalAsync(orderId, "Biochemical Test", "   ", null, true, AnalystId));
 
         Assert.Equal(WorkflowErrorCodes.BiochemicalResultRequired, ex.ErrorCode);
     }
@@ -197,7 +197,7 @@ public class BiochemicalReviewTests
         var (orderId, engine, db) = await AllConformingAsync();
         await using var _ = db;
         await engine.RecordAnalystDecisionAsync(orderId, AnalystDecision.ProceedToBiochemical, AnalystId);
-        await engine.SubmitBiochemicalAsync(orderId, "Biochemical Test", "IMViC: + + - -", null, AnalystId);
+        await engine.SubmitBiochemicalAsync(orderId, "Biochemical Test", "IMViC: + + - -", null, true, AnalystId);
 
         var confirmatory = await db.WorkflowStepResults.SingleAsync(r => r.StepName == "Confirmatory Plating");
         Assert.False(confirmatory.SkippedBiochemical);
@@ -220,7 +220,7 @@ public class BiochemicalReviewTests
         var resultId = (await db.WorkflowStepResults.SingleAsync(r => r.StepName == "Confirmatory Plating")).Id;
 
         await engine.RecordBiochemicalReviewDecisionAsync(resultId, approve: false, "Required per SOP-MB-007.", ReviewerId);
-        var final = await engine.SubmitBiochemicalAsync(orderId, "Biochemical Test", "IMViC: + + - -", null, AnalystId);
+        var final = await engine.SubmitBiochemicalAsync(orderId, "Biochemical Test", "IMViC: + + - -", null, true, AnalystId);
 
         Assert.Equal("Detected", final.WorkflowFinalResult);
         var reloaded = await db.TestOrders.SingleAsync(t => t.Id == orderId);

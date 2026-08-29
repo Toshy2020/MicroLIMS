@@ -50,6 +50,17 @@ export interface PathogenObservationDetail {
   observedAt: string;
 }
 
+export interface BiochemicalResultDetail {
+  stepName: string;
+  biochemicalResultText: string;
+  // The analyst's explicit interpretation - never inferred from the free
+  // text. Null only for historical rows the backfill couldn't confidently
+  // assign.
+  organismDetected: boolean | null;
+  submittedByName: string;
+  submittedAt: string;
+}
+
 export interface WorkflowHistoryDetail {
   fromStep: string;
   toStep: string;
@@ -76,7 +87,7 @@ export interface SampleLocationDetail {
   status: string | null;
   // Populated at result-entry time - null for qualitative (Detected/Absent)
   // locations. Never assume "CFU" or "CFU/Plate": EM/After Cleaning/Water
-  // mix CFU/plate/4 hours, CFU/25 sq.cm, and CFU/mL depending on sampling
+  // mix CFU/plate/4 hours, CFU/25 cm2, and CFU/mL depending on sampling
   // method.
   unit: string | null;
   enteredByName: string | null;
@@ -87,6 +98,14 @@ export interface TestOrderSummaryDetail {
   testOrderId: number;
   testCode: string;
   testDisplayName: string;
+  // Specification pass/fail text from Test Master's per-Item Specifications
+  // (Item+TestCode keyed) - covers quantitative and qualitative tests
+  // alike. Null when nobody has configured one for this Item/TestCode yet.
+  specificationText: string | null;
+  // Set only when this row was pulled in from a different (retest) sample
+  // whose results resolved an OOS chain this sample's own tests were fully
+  // superseded into. Null for every ordinarily-owned row.
+  sourceSampleReferenceNumber?: string | null;
   status: string;
   currentStep: string;
   workflowState?: string;
@@ -100,6 +119,7 @@ export interface TestOrderSummaryDetail {
   results: ResultDetail[];
   countTestReadings: CountTestReadingDetail[];
   pathogenObservations: PathogenObservationDetail[];
+  biochemicalResults: BiochemicalResultDetail[];
   workflowHistory: WorkflowHistoryDetail[];
   locations: SampleLocationDetail[];
 }
@@ -161,6 +181,12 @@ export interface SampleSummary {
   approvedByName: string | null;
   approvedAt: string | null;
   approvalDecision: string | null;
+  // Customer-facing remark typed by the Approver at approval only - never
+  // derived from any internal review/approval comment. Null/empty renders
+  // as "No remarks." wherever printed (the Product/RM/PM COA).
+  certificateRemarks: string | null;
+  previousProductName?: string | null;
+  previousProductBatchNumber?: string | null;
   preparation: SamplePreparationSummary | null;
   testOrders: TestOrderSummaryDetail[];
   timeline: SampleWorkflowEvent[];

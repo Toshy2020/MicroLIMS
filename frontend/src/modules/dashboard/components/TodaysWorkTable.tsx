@@ -3,16 +3,17 @@ import {
   Paper, Table, TableHead, TableRow, TableCell, TableBody, Typography, Stack,
   ToggleButtonGroup, ToggleButton, Box
 } from "@mui/material";
-import { useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { TodaysWorkItem } from "../types/dashboard";
 import { StatusBadge, CategoryBadge } from "../../../components/StatusBadge";
 import { SectionTitle } from "../../../components/SectionTitle";
 
-type Tab = "All" | "Incubating" | "ReadyToRead" | "AwaitingReview" | "UnderApproval" | "Overdue";
+type Tab = "All" | "Returned" | "Incubating" | "ReadyToRead" | "AwaitingReview" | "UnderApproval" | "Overdue";
 const OVERDUE_THRESHOLD_HOURS = 24;
 
 function matchesTab(item: TodaysWorkItem, tab: Tab): boolean {
   if (tab === "All") return true;
+  if (tab === "Returned") return item.tests.some((t) => t.isReturned);
   if (tab === "Incubating") return item.tests.some((t) => t.timeRemaining && t.timeRemaining !== "Ready to read");
   if (tab === "ReadyToRead") return item.tests.some((t) => t.timeRemaining === "Ready to read");
   if (tab === "AwaitingReview") return item.overallStatus === "ResultEntered";
@@ -26,10 +27,10 @@ function matchesTab(item: TodaysWorkItem, tab: Tab): boolean {
 
 export function TodaysWorkTable({ items }: { items: TodaysWorkItem[] }) {
   const [tab, setTab] = useState<Tab>("All");
-  const navigate = useNavigate();
 
   const counts = useMemo(() => ({
     All: items.length,
+    Returned: items.filter((i) => matchesTab(i, "Returned")).length,
     Incubating: items.filter((i) => matchesTab(i, "Incubating")).length,
     ReadyToRead: items.filter((i) => matchesTab(i, "ReadyToRead")).length,
     AwaitingReview: items.filter((i) => matchesTab(i, "AwaitingReview")).length,
@@ -41,6 +42,7 @@ export function TodaysWorkTable({ items }: { items: TodaysWorkItem[] }) {
 
   const tabs: { key: Tab; label: string }[] = [
     { key: "All", label: `All (${counts.All})` },
+    { key: "Returned", label: `Returned (${counts.Returned})` },
     { key: "Incubating", label: `Incubating (${counts.Incubating})` },
     { key: "ReadyToRead", label: `Ready to Read (${counts.ReadyToRead})` },
     { key: "AwaitingReview", label: `Awaiting Review (${counts.AwaitingReview})` },
@@ -50,7 +52,7 @@ export function TodaysWorkTable({ items }: { items: TodaysWorkItem[] }) {
 
   return (
     <>
-      <SectionTitle tabs={[{ label: "View all", onClick: () => navigate("/testing-workspace") }]}>Today's Laboratory Work</SectionTitle>
+      <SectionTitle tabs={[{ label: "View all", to: "/testing-workspace" }]}>Today's Laboratory Work</SectionTitle>
       <ToggleButtonGroup
         value={tab} exclusive size="small"
         onChange={(_, v) => v && setTab(v)}
@@ -73,9 +75,22 @@ export function TodaysWorkTable({ items }: { items: TodaysWorkItem[] }) {
           </TableHead>
           <TableBody>
             {visible.map((item) => (
-              <TableRow key={item.sampleId} hover sx={{ cursor: "pointer" }} onClick={() => navigate("/testing-workspace")}>
+              <TableRow key={item.sampleId} hover>
                 <TableCell>
-                  <Typography sx={{ fontWeight: 600, fontSize: 13 }}>{item.displayName || item.referenceNumber}</Typography>
+                  <Typography
+                    component={Link}
+                    to={`/testing-workspace?sampleId=${item.sampleId}`}
+                    sx={{
+                      fontWeight: 600,
+                      fontSize: 13,
+                      color: "text.primary",
+                      textDecoration: "none",
+                      display: "block",
+                      "&:hover": { color: "primary.main", textDecoration: "underline" }
+                    }}
+                  >
+                    {item.displayName || item.referenceNumber}
+                  </Typography>
                   <Typography sx={{ fontSize: 12, color: "text.secondary" }}>{item.referenceNumber}</Typography>
                 </TableCell>
                 <TableCell><CategoryBadge category={item.category} /></TableCell>
@@ -85,6 +100,7 @@ export function TodaysWorkTable({ items }: { items: TodaysWorkItem[] }) {
                       <Box key={t.testOrderId} sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
                         <Typography sx={{ fontSize: 12 }}>{t.testCode}</Typography>
                         <StatusBadge status={t.status} />
+                        {t.isReturned && <StatusBadge status="Returned" label="Returned" />}
                         {t.timeRemaining && <Typography sx={{ fontSize: 11, color: "text.secondary" }}>{t.timeRemaining}</Typography>}
                       </Box>
                     ))}

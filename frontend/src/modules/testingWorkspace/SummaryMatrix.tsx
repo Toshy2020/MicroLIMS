@@ -11,15 +11,15 @@ import { humanize } from "./SampleReportPage";
 // color is never the only signal.
 const CONFORMING_STATUSES = new Set(["WithinLimits", "Absent"]);
 
-function isQuantitative(test: TestOrderSummaryDetail): boolean {
+export function isQuantitative(test: TestOrderSummaryDetail): boolean {
   return test.countTestReadings.length > 0 || test.locations.some((l) => l.cfuResult !== null);
 }
 
 // Unit travels with the location data (set at result-entry time) rather
 // than being assumed - EM/After Cleaning/Water mix CFU/plate/4 hours,
-// CFU/25 sq.cm, and CFU/mL depending on sampling method, never a single
+// CFU/25 cm2, and CFU/mL depending on sampling method, never a single
 // "CFU" for the whole report.
-function unitFor(test: TestOrderSummaryDetail): string | null {
+export function unitFor(test: TestOrderSummaryDetail): string | null {
   return test.locations.find((l) => l.unit)?.unit ?? null;
 }
 

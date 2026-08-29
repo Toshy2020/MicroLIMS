@@ -237,7 +237,6 @@ public class EquipmentInventoryService
         var allIncubations = await _db.Incubations
             .Include(i => i.TestOrder).ThenInclude(t => t!.Sample).ThenInclude(s => s!.Item)
             .Include(i => i.Media).ThenInclude(m => m!.Material)
-            .Include(i => i.Media).ThenInclude(m => m!.MediaType)
             .Where(i => i.IncubatorEquipmentId == eq.Id || (matchingMasterId.HasValue && i.IncubatorEquipmentId == matchingMasterId.Value))
             .ToListAsync();
 
@@ -252,20 +251,32 @@ public class EquipmentInventoryService
             var itemName = inc.TestOrder?.Sample?.Item?.Name ?? inc.StepName ?? "Laboratory Test";
             var testCode = inc.TestOrder?.TestCode ?? "Test";
 
-            string activityType = inc.StepName.Contains("Pathogen", StringComparison.OrdinalIgnoreCase) || testCode.StartsWith("PAT")
+            string activityType = (inc.StepName?.Contains("Pathogen", StringComparison.OrdinalIgnoreCase) == true) || testCode.StartsWith("PAT")
                 ? "Pathogen Test"
-                : inc.StepName.Contains("GPT", StringComparison.OrdinalIgnoreCase)
+                : (inc.StepName?.Contains("GPT", StringComparison.OrdinalIgnoreCase) == true)
                 ? "GPT"
                 : "Media Incubation";
 
-            var mediaName = inc.Media?.Material?.MaterialName ?? inc.Media?.MediaType?.Class.ToString() ?? "N/A";
+            var mediaName = inc.Media?.Material?.MaterialName ?? "N/A";
             var mediaLot = inc.Media?.LotNumber ?? "";
             var mediaDesc = string.IsNullOrWhiteSpace(mediaLot) ? mediaName : $"{mediaName} (Lot {mediaLot})";
 
             var startedBy = inc.StartedByUserId.HasValue && userMap.TryGetValue(inc.StartedByUserId.Value, out var uName) ? uName : "Laboratory Analyst";
             var startedOn = inc.IncubationStartUtc ?? inc.StartedAt;
-            var completedOn = inc.CompletedAt ?? (inc.IncubationEndUtc.HasValue && inc.IncubationEndUtc.Value <= DateTime.UtcNow ? inc.IncubationEndUtc.Value : (DateTime?)null);
-            bool isActive = completedOn == null && (inc.IncubationEndUtc == null || inc.IncubationEndUtc > DateTime.UtcNow);
+
+            var isTestCompleted = inc.TestOrder != null && (inc.TestOrder.Status == ApprovalStatus.Approved ||
+                                                            inc.TestOrder.CurrentStep == WorkflowStep.Ready ||
+                                                            inc.TestOrder.CurrentStep == WorkflowStep.Reviewed ||
+                                                            inc.TestOrder.CurrentStep == WorkflowStep.Approved);
+            var isSampleFinished = inc.TestOrder?.Sample != null && (inc.TestOrder.Sample.Status == SampleStatus.Approved ||
+                                                                    inc.TestOrder.Sample.Status == SampleStatus.UnderReview ||
+                                                                    inc.TestOrder.Sample.Status == SampleStatus.UnderApproval);
+
+            var completedOn = inc.CompletedAt ?? (isTestCompleted || isSampleFinished
+                ? (inc.IncubationEndUtc ?? inc.StartedAt)
+                : (inc.IncubationEndUtc.HasValue && inc.IncubationEndUtc.Value <= DateTime.UtcNow ? inc.IncubationEndUtc.Value : (DateTime?)null));
+
+            bool isActive = inc.CompletedAt == null && !isTestCompleted && !isSampleFinished && (inc.IncubationEndUtc == null || inc.IncubationEndUtc > DateTime.UtcNow);
 
             list.Add(new EquipmentActivityDto(
                 inc.Id,
@@ -321,7 +332,6 @@ public class EquipmentInventoryService
         var incubations = await _db.Incubations
             .Include(i => i.TestOrder).ThenInclude(t => t!.Sample).ThenInclude(s => s!.Item)
             .Include(i => i.Media).ThenInclude(m => m!.Material)
-            .Include(i => i.Media).ThenInclude(m => m!.MediaType)
             .Include(i => i.IncubatorEquipment)
             .Where(i => (i.TestOrder != null && i.TestOrder.Sample != null && (i.TestOrder.Sample.ReferenceNumber.ToLower().Contains(q) || (i.TestOrder.Sample.Item != null && i.TestOrder.Sample.Item.Name.ToLower().Contains(q))))
                      || (i.Media != null && (i.Media.LotNumber.ToLower().Contains(q) || (i.Media.Material != null && i.Media.Material.MaterialName.ToLower().Contains(q))))
@@ -343,20 +353,32 @@ public class EquipmentInventoryService
             var itemName = inc.TestOrder?.Sample?.Item?.Name ?? inc.StepName ?? "Laboratory Test";
             var testCode = inc.TestOrder?.TestCode ?? "Test";
 
-            string activityType = inc.StepName.Contains("Pathogen", StringComparison.OrdinalIgnoreCase) || testCode.StartsWith("PAT")
+            string activityType = (inc.StepName?.Contains("Pathogen", StringComparison.OrdinalIgnoreCase) == true) || testCode.StartsWith("PAT")
                 ? "Pathogen Test"
-                : inc.StepName.Contains("GPT", StringComparison.OrdinalIgnoreCase)
+                : (inc.StepName?.Contains("GPT", StringComparison.OrdinalIgnoreCase) == true)
                 ? "GPT"
                 : "Media Incubation";
 
-            var mediaName = inc.Media?.Material?.MaterialName ?? inc.Media?.MediaType?.Class.ToString() ?? "N/A";
+            var mediaName = inc.Media?.Material?.MaterialName ?? "N/A";
             var mediaLot = inc.Media?.LotNumber ?? "";
             var mediaDesc = string.IsNullOrWhiteSpace(mediaLot) ? mediaName : $"{mediaName} (Lot {mediaLot})";
 
             var startedBy = inc.StartedByUserId.HasValue && userMap.TryGetValue(inc.StartedByUserId.Value, out var uName) ? uName : "Laboratory Analyst";
             var startedOn = inc.IncubationStartUtc ?? inc.StartedAt;
-            var completedOn = inc.CompletedAt ?? (inc.IncubationEndUtc.HasValue && inc.IncubationEndUtc.Value <= DateTime.UtcNow ? inc.IncubationEndUtc.Value : (DateTime?)null);
-            bool isActive = completedOn == null && (inc.IncubationEndUtc == null || inc.IncubationEndUtc > DateTime.UtcNow);
+
+            var isTestCompleted = inc.TestOrder != null && (inc.TestOrder.Status == ApprovalStatus.Approved ||
+                                                            inc.TestOrder.CurrentStep == WorkflowStep.Ready ||
+                                                            inc.TestOrder.CurrentStep == WorkflowStep.Reviewed ||
+                                                            inc.TestOrder.CurrentStep == WorkflowStep.Approved);
+            var isSampleFinished = inc.TestOrder?.Sample != null && (inc.TestOrder.Sample.Status == SampleStatus.Approved ||
+                                                                    inc.TestOrder.Sample.Status == SampleStatus.UnderReview ||
+                                                                    inc.TestOrder.Sample.Status == SampleStatus.UnderApproval);
+
+            var completedOn = inc.CompletedAt ?? (isTestCompleted || isSampleFinished
+                ? (inc.IncubationEndUtc ?? inc.StartedAt)
+                : (inc.IncubationEndUtc.HasValue && inc.IncubationEndUtc.Value <= DateTime.UtcNow ? inc.IncubationEndUtc.Value : (DateTime?)null));
+
+            bool isActive = inc.CompletedAt == null && !isTestCompleted && !isSampleFinished && (inc.IncubationEndUtc == null || inc.IncubationEndUtc > DateTime.UtcNow);
 
             if (isActive && currentActivity == null)
             {
@@ -398,13 +420,24 @@ public class EquipmentInventoryService
         var activities = new List<EquipmentActivityDto>();
 
         // 1. Active Incubation records
-        var activeIncubations = await _db.Incubations
+        var allEqIncubations = await _db.Incubations
             .Include(i => i.TestOrder).ThenInclude(t => t!.Sample).ThenInclude(s => s!.Item)
             .Include(i => i.Media).ThenInclude(m => m!.Material)
-            .Include(i => i.Media).ThenInclude(m => m!.MediaType)
             .Where(i => (i.IncubatorEquipmentId == eq.Id || (matchingMasterId.HasValue && i.IncubatorEquipmentId == matchingMasterId.Value))
                      && i.CompletedAt == null && (i.IncubationEndUtc == null || i.IncubationEndUtc > now))
             .ToListAsync();
+
+        var activeIncubations = allEqIncubations.Where(i =>
+            i.CompletedAt == null &&
+            (i.IncubationEndUtc == null || i.IncubationEndUtc > now) &&
+            (i.TestOrder == null || (i.TestOrder.Status != ApprovalStatus.Approved &&
+                                     i.TestOrder.CurrentStep != WorkflowStep.Ready &&
+                                     i.TestOrder.CurrentStep != WorkflowStep.Reviewed &&
+                                     i.TestOrder.CurrentStep != WorkflowStep.Approved)) &&
+            (i.TestOrder?.Sample == null || (i.TestOrder.Sample.Status != SampleStatus.Approved &&
+                                             i.TestOrder.Sample.Status != SampleStatus.UnderReview &&
+                                             i.TestOrder.Sample.Status != SampleStatus.UnderApproval))
+        ).ToList();
 
         var userIds = activeIncubations.Where(i => i.StartedByUserId.HasValue).Select(i => i.StartedByUserId!.Value).Distinct().ToList();
         var userMap = await _db.Users.Where(u => userIds.Contains(u.Id)).ToDictionaryAsync(u => u.Id, u => u.FullName);
@@ -415,13 +448,13 @@ public class EquipmentInventoryService
             var itemName = inc.TestOrder?.Sample?.Item?.Name ?? inc.StepName ?? "Laboratory Test";
             var testCode = inc.TestOrder?.TestCode ?? "Test";
 
-            string activityType = inc.StepName.Contains("Pathogen", StringComparison.OrdinalIgnoreCase) || testCode.StartsWith("PAT")
+            string activityType = (inc.StepName?.Contains("Pathogen", StringComparison.OrdinalIgnoreCase) == true) || testCode.StartsWith("PAT")
                 ? "Pathogen Test"
-                : inc.StepName.Contains("GPT", StringComparison.OrdinalIgnoreCase)
+                : (inc.StepName?.Contains("GPT", StringComparison.OrdinalIgnoreCase) == true)
                 ? "GPT"
                 : "Media Incubation";
 
-            var mediaName = inc.Media?.Material?.MaterialName ?? inc.Media?.MediaType?.Class.ToString() ?? "N/A";
+            var mediaName = inc.Media?.Material?.MaterialName ?? "N/A";
             var mediaLot = inc.Media?.LotNumber ?? "";
             var mediaDesc = string.IsNullOrWhiteSpace(mediaLot) ? mediaName : $"{mediaName} (Lot {mediaLot})";
 
@@ -448,7 +481,6 @@ public class EquipmentInventoryService
         {
             var activeMedia = await _db.Media
                 .Include(m => m.Material)
-                .Include(m => m.MediaType)
                 .Where(m => (m.AutoclaveEquipmentId == eq.Id || (matchingMasterId.HasValue && m.AutoclaveEquipmentId == matchingMasterId.Value) || eq.InstrumentType.Contains("Refrigerator"))
                          && m.Status != Domain.Enums.MediaStatus.Destroyed && m.ExpiryDate > now)
                 .ToListAsync();
@@ -458,7 +490,7 @@ public class EquipmentInventoryService
 
             foreach (var m in activeMedia)
             {
-                var mediaName = m.Material?.MaterialName ?? m.MediaType?.Class.ToString() ?? "Media Batch";
+                var mediaName = m.Material?.MaterialName ?? "Media Batch";
                 var preparedBy = mediaUserMap.TryGetValue(m.PreparedByUserId, out var pName) ? pName : "Laboratory Analyst";
 
                 activities.Add(new EquipmentActivityDto(

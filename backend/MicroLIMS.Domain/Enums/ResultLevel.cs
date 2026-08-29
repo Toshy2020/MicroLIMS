@@ -6,5 +6,6 @@ public enum ResultLevel
     AlertLevel,
     ActionLevel,
     OutOfSpecification,
-    NotApplicable
+    NotApplicable,
+    LimitsNotConfigured
 }

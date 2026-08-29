@@ -7,7 +7,7 @@ namespace MicroLIMS.Infrastructure.Authentication;
 
 public interface IJwtTokenService
 {
-    string IssueToken(string userId, string role);
+    string IssueToken(string userId, string role, IEnumerable<string>? permissionCodes = null);
 }
 
 public class JwtTokenService : IJwtTokenService
@@ -23,13 +23,18 @@ public class JwtTokenService : IJwtTokenService
         _audience = audience;
     }
 
-    public string IssueToken(string userId, string role)
+    // Adds one "permission" claim per code, alongside the existing Role
+    // claim (unchanged) - additive, so anything still checking the Role
+    // claim via [Authorize(Roles=...)] keeps working exactly as before.
+    public string IssueToken(string userId, string role, IEnumerable<string>? permissionCodes = null)
     {
-        var claims = new[]
+        var claims = new List<Claim>
         {
-            new Claim(ClaimTypes.NameIdentifier, userId),
-            new Claim(ClaimTypes.Role, role)
+            new(ClaimTypes.NameIdentifier, userId),
+            new(ClaimTypes.Role, role)
         };
+        if (permissionCodes is not null)
+            claims.AddRange(permissionCodes.Select(code => new Claim("permission", code)));
 
         var creds = new SigningCredentials(new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_key)), SecurityAlgorithms.HmacSha256);
 

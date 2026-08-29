@@ -36,10 +36,14 @@ public class MediaAppearanceSnapshotTests
 
         if (expectedDescription is not null)
         {
-            db.MediaChallengeSpecs.Add(new MediaChallengeSpec
+            db.MediaConfigurations.Add(new MediaConfiguration
             {
-                MaterialName = "EMB Agar", EvaluationType = EvaluationType.GrowthPromotion,
-                OrganismId = organism.Id, ExpectedDescription = expectedDescription
+                Name = "EMB Agar", EvaluationType = EvaluationType.IndicationInhibition,
+                IncubationMinHours = 18, IncubationMaxHours = 24, TemperatureMin = 30, TemperatureMax = 35,
+                Challenges = new List<MediaConfigurationChallenge>
+                {
+                    new() { OrganismId = organism.Id, ExpectedDescription = expectedDescription }
+                }
             });
             await db.SaveChangesAsync();
         }

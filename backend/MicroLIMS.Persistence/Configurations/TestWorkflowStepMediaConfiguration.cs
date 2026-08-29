@@ -24,5 +24,10 @@ public class TestWorkflowStepMediaConfiguration : IEntityTypeConfiguration<TestW
             .WithMany()
             .HasForeignKey(m => m.MaterialId)
             .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasOne(m => m.MediaConfiguration)
+            .WithMany()
+            .HasForeignKey(m => m.MediaConfigurationId)
+            .OnDelete(DeleteBehavior.Restrict);
     }
 }

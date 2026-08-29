@@ -9,6 +9,8 @@ import {
   GrowthObservation, AnalystDecision
 } from "../types/testWorkflowTypes";
 import { parseWorkflowError, workflowErrorDisplayMessage } from "../utils/workflowErrors";
+import { useAuth } from "../../../contexts/AuthContext";
+import { ConfirmationDialog } from "../../../components/ConfirmationDialog";
 
 interface Props {
   testOrderId: number;
@@ -43,6 +45,10 @@ export function ConfirmatoryPlatingPanel({ testOrderId, step, current, onSubmitt
   const [error, setError] = useState<string | null>(null);
   const [alreadyRecordedMessage, setAlreadyRecordedMessage] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [skipDialogOpen, setSkipDialogOpen] = useState(false);
+  const [skipping, setSkipping] = useState(false);
+  const { role } = useAuth();
+  const canOverride = role === "SectionHead" || role === "SystemAdministrator";
 
   // Setup phase state, keyed by stepMediaId.
   const [setupRows, setSetupRows] = useState<Record<number, SetupRow>>({});
@@ -65,19 +71,27 @@ export function ConfirmatoryPlatingPanel({ testOrderId, step, current, onSubmitt
     ? new Date(openIncubationRow.incubationStartUtc)
     : null;
 
-  const minReadyAt = incubationStartUtc && step.incubationMinHours != null
-    ? new Date(incubationStartUtc.getTime() + step.incubationMinHours * 3600 * 1000)
+  // Incubation specifications: stepMedia is authoritative, step fallback
+  const firstMedia = step?.stepMedia?.[0];
+  const tempMin = (firstMedia && firstMedia.tempMin > 0) ? firstMedia.tempMin : step?.temperatureMin;
+  const tempMax = (firstMedia && firstMedia.tempMax > 0) ? firstMedia.tempMax : step?.temperatureMax;
+  const incMinHours = (firstMedia && (firstMedia.incubationMinHours ?? 0) > 0) ? firstMedia.incubationMinHours! : step?.incubationMinHours;
+  const incMaxHours = (firstMedia && (firstMedia.incubationMaxHours ?? 0) > 0) ? firstMedia.incubationMaxHours! : step?.incubationMaxHours;
+
+  const minReadyAt = incubationStartUtc && incMinHours != null
+    ? new Date(incubationStartUtc.getTime() + incMinHours * 3600 * 1000)
     : null;
 
   const expectedEndAt = current?.incubationLock?.incubationEndUtc
     ? new Date(current.incubationLock.incubationEndUtc)
-    : (incubationStartUtc && step.incubationMaxHours != null
-        ? new Date(incubationStartUtc.getTime() + step.incubationMaxHours * 3600 * 1000)
+    : (incubationStartUtc && incMaxHours != null
+        ? new Date(incubationStartUtc.getTime() + incMaxHours * 3600 * 1000)
         : null);
 
-  const isTimeReady = minReadyAt != null
+  const isTimeReady = (minReadyAt != null
     ? new Date() >= minReadyAt
-    : (current?.incubationLock ? current.incubationLock.remainingSeconds <= 0 : true);
+    : (current?.incubationLock ? current.incubationLock.remainingSeconds <= 0 : true))
+    || (current?.incubationLock?.minimumDurationOverridden ?? false);
 
   const initialPhase: Phase =
     !isStepIncubating ? "setup" :
@@ -89,6 +103,20 @@ export function ConfirmatoryPlatingPanel({ testOrderId, step, current, onSubmitt
   useEffect(() => {
     setPhase(initialPhase);
   }, [initialPhase]);
+
+  const confirmSkipWait = async () => {
+    setError(null);
+    setSkipping(true);
+    try {
+      await TestWorkflowService.overrideMinimumDuration(testOrderId);
+      setSkipDialogOpen(false);
+      onSubmitted();
+    } catch (e) {
+      setError(workflowErrorDisplayMessage(parseWorkflowError(e)));
+    } finally {
+      setSkipping(false);
+    }
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -318,14 +346,16 @@ export function ConfirmatoryPlatingPanel({ testOrderId, step, current, onSubmitt
             <Typography variant="body2" sx={{ fontWeight: 600, mb: 0.5 }}>
               Confirmatory incubation in progress.
             </Typography>
-            {step.temperatureMin != null && step.temperatureMax != null && (
+            {tempMin != null && tempMax != null && tempMin > 0 && (
               <Typography variant="body2">
-                Temperature: <strong>{step.temperatureMin}–{step.temperatureMax} °C</strong>
+                Temperature: <strong>{tempMin}–{tempMax} °C</strong>
               </Typography>
             )}
-            <Typography variant="body2">
-              Duration: <strong>{step.incubationMinHours}–{step.incubationMaxHours} hours</strong>
-            </Typography>
+            {incMinHours != null && incMaxHours != null && incMinHours > 0 && (
+              <Typography variant="body2">
+                Duration: <strong>{incMinHours}–{incMaxHours} hours</strong>
+              </Typography>
+            )}
             {incubationStartUtc && (
               <Typography variant="body2">
                 Started: <strong>{incubationStartUtc.toLocaleString()}</strong>
@@ -344,7 +374,12 @@ export function ConfirmatoryPlatingPanel({ testOrderId, step, current, onSubmitt
             </Alert>
           )}
 
-          <Stack direction="row" justifyContent="flex-end">
+          <Stack direction="row" justifyContent="space-between" alignItems="center">
+            {canOverride ? (
+              <Button variant="outlined" color="warning" onClick={() => setSkipDialogOpen(true)} disabled={skipping}>
+                Skip Wait
+              </Button>
+            ) : <span />}
             <Button variant="contained" disabled>
               Incubation In Progress
             </Button>
@@ -442,6 +477,13 @@ export function ConfirmatoryPlatingPanel({ testOrderId, step, current, onSubmitt
           </Stack>
         </Stack>
       )}
+
+      <ConfirmationDialog
+        open={skipDialogOpen}
+        message="Skip the remaining minimum incubation wait time for this step? This bypasses the wait only — the recorded incubation window is not changed."
+        onConfirm={confirmSkipWait}
+        onCancel={() => setSkipDialogOpen(false)}
+      />
     </Stack>
   );
 }

@@ -17,6 +17,7 @@ export interface CryovialItem {
     scientificName: string;
     atccNumber?: string | null;
     strainNumber?: string | null;
+    description?: string | null;
   };
   organismNameSnapshot: string;
   manufacturerName: string;
@@ -24,6 +25,7 @@ export interface CryovialItem {
   numberOfVialsPrepared: number;
   vialsRemaining: number;
   storageCondition: string;
+  physicalCheckConfirmed: boolean;
   physicalCheckText: string;
   preparedAt: string;
   preparedByUserId: number;
@@ -65,6 +67,7 @@ export interface PrepareCryovialPayload {
   numberOfVialsPrepared: number;
   expiryDate: string;
   storageCondition: string;
+  physicalCheckConfirmed: boolean;
   physicalCheckText: string;
   discsUsed: number;
   panel: {

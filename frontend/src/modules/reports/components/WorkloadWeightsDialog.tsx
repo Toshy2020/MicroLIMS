@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import {
-  Dialog, DialogTitle, DialogContent, DialogActions, Button, Table, TableHead, TableRow, TableCell,
+  Button, Table, TableHead, TableRow, TableCell,
   TableBody, TextField, Typography, Box, Alert, IconButton, Tooltip, Chip,
   useTheme
 } from "@mui/material";
@@ -11,6 +11,7 @@ import { WorkloadWeightConfig } from "../types/reportingTypes";
 import { AnalystKpiService } from "../services/AnalystKpiService";
 import { useAuth } from "../../../contexts/AuthContext";
 import { brandColors } from "../../../theme";
+import { FloatingDialog } from "../../../components/FloatingDialog";
 
 interface WorkloadWeightsDialogProps {
   open: boolean;
@@ -78,24 +79,30 @@ export function WorkloadWeightsDialog({ open, onClose, onUpdated }: WorkloadWeig
   };
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
-      <DialogTitle sx={{ borderBottom: 1, borderColor: "divider", pb: 1.5 }}>
-        <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <Typography sx={{ fontSize: 17, fontWeight: 700, color: theme.palette.primary.main }}>
-            Configured Workload Units (Test Complexity Weights)
+    <FloatingDialog
+      open={open}
+      onClose={onClose}
+      maxWidth="md"
+      titleSx={{ pb: 1.5 }}
+      title={
+        <Box sx={{ mr: 1, flex: 1, minWidth: 0 }}>
+          <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <Typography sx={{ fontSize: 17, fontWeight: 700, color: theme.palette.primary.main }}>
+              Configured Workload Units (Test Complexity Weights)
+            </Typography>
+            <Chip
+              size="small"
+              label={isAuthorized ? "Section Head / Admin Access" : "Read-Only View"}
+              color={isAuthorized ? "primary" : "default"}
+            />
+          </Box>
+          <Typography sx={{ fontSize: 12, color: "text.secondary", mt: 0.5 }}>
+            Operational normalization metric used to account for procedural complexity across test categories. Persisted with reason for change and audit trail.
           </Typography>
-          <Chip
-            size="small"
-            label={isAuthorized ? "Section Head / Admin Access" : "Read-Only View"}
-            color={isAuthorized ? "primary" : "default"}
-          />
         </Box>
-        <Typography sx={{ fontSize: 12, color: "text.secondary", mt: 0.5 }}>
-          Operational normalization metric used to account for procedural complexity across test categories. Persisted with reason for change and audit trail.
-        </Typography>
-      </DialogTitle>
-
-      <DialogContent sx={{ pt: 2.5 }}>
+      }
+      actions={<Button onClick={onClose}>Close</Button>}
+    >
         {error && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>{error}</Alert>}
         {success && <Alert severity="success" sx={{ mb: 2 }} onClose={() => setSuccess(null)}>{success}</Alert>}
 
@@ -180,11 +187,6 @@ export function WorkloadWeightsDialog({ open, onClose, onUpdated }: WorkloadWeig
             })}
           </TableBody>
         </Table>
-      </DialogContent>
-
-      <DialogActions sx={{ px: 3, py: 1.5, borderTop: 1, borderColor: "divider" }}>
-        <Button onClick={onClose}>Close</Button>
-      </DialogActions>
-    </Dialog>
+    </FloatingDialog>
   );
 }

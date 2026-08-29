@@ -281,12 +281,21 @@ public class KpiService
         return result;
     }
 
-    public async Task<CompletionStatsDto> GetCompletionStatsAsync()
+    public async Task<CompletionStatsDto> GetCompletionStatsAsync(
+        SampleCategory? category = null, string? location = null, string? testCode = null)
     {
-        var total = await _db.TestOrders.CountAsync();
-        var approved = await _db.TestOrders.CountAsync(t => t.Status == ApprovalStatus.Approved);
-        var rejected = await _db.TestOrders.CountAsync(t => t.Status == ApprovalStatus.Rejected);
-        var pending = await _db.TestOrders.CountAsync(t => t.Status == ApprovalStatus.Pending || t.Status == ApprovalStatus.InProgress);
+        var orderQuery = _db.TestOrders.AsQueryable();
+        if (category.HasValue)
+            orderQuery = orderQuery.Where(t => _db.Samples.Any(s => s.Id == t.SampleId && s.Category == category.Value));
+        if (!string.IsNullOrWhiteSpace(location))
+            orderQuery = orderQuery.Where(t => _db.Samples.Any(s => s.Id == t.SampleId && (s.Item!.Name == location || s.WaterSamplingPoint!.Code == location)));
+        if (!string.IsNullOrWhiteSpace(testCode))
+            orderQuery = orderQuery.Where(t => t.TestCode == testCode);
+
+        var total = await orderQuery.CountAsync();
+        var approved = await orderQuery.CountAsync(t => t.Status == ApprovalStatus.Approved);
+        var rejected = await orderQuery.CountAsync(t => t.Status == ApprovalStatus.Rejected);
+        var pending = await orderQuery.CountAsync(t => t.Status == ApprovalStatus.Pending || t.Status == ApprovalStatus.InProgress);
 
         var decided = approved + rejected;
         var approvalRate = decided > 0 ? Math.Round(approved * 100.0 / decided, 1) : 0;
@@ -294,12 +303,21 @@ public class KpiService
         return new CompletionStatsDto(total, approved, rejected, pending, approvalRate);
     }
 
-    public async Task<DelayTrackingDto> GetDelayTrackingAsync()
+    public async Task<DelayTrackingDto> GetDelayTrackingAsync(
+        SampleCategory? category = null, string? location = null, string? testCode = null)
     {
         var cutoff = DateTime.UtcNow.Subtract(ReviewerApprovalDelayThreshold);
 
-        var delayed = await _db.TestOrders
-            .Where(t => t.Status == ApprovalStatus.Pending || t.Status == ApprovalStatus.InProgress)
+        var orderQuery = _db.TestOrders
+            .Where(t => t.Status == ApprovalStatus.Pending || t.Status == ApprovalStatus.InProgress);
+        if (category.HasValue)
+            orderQuery = orderQuery.Where(t => _db.Samples.Any(s => s.Id == t.SampleId && s.Category == category.Value));
+        if (!string.IsNullOrWhiteSpace(location))
+            orderQuery = orderQuery.Where(t => _db.Samples.Any(s => s.Id == t.SampleId && (s.Item!.Name == location || s.WaterSamplingPoint!.Code == location)));
+        if (!string.IsNullOrWhiteSpace(testCode))
+            orderQuery = orderQuery.Where(t => t.TestCode == testCode);
+
+        var delayed = await orderQuery
             .Join(_db.Samples, t => t.SampleId, s => s.Id, (t, s) => s.ReceivedAt)
             .Where(receivedAt => receivedAt < cutoff)
             .ToListAsync();
@@ -311,10 +329,18 @@ public class KpiService
         return new DelayTrackingDto(delayed.Count, Math.Round(avgDelayHours, 1));
     }
 
-    public async Task<SampleQueueCountsDto> GetSampleQueueCountsAsync()
+    public async Task<SampleQueueCountsDto> GetSampleQueueCountsAsync(
+        SampleCategory? category = null, string? location = null, string? testCode = null)
     {
-        var reviewQueueCount = await _db.Samples.CountAsync(s => s.Status == SampleStatus.UnderReview);
-        var approvalQueueCount = await _db.Samples.CountAsync(s => s.Status == SampleStatus.UnderApproval);
+        // testCode is skipped because queue counts are sample-level, not test-order-scoped.
+        var sampleQuery = _db.Samples.AsQueryable();
+        if (category.HasValue)
+            sampleQuery = sampleQuery.Where(s => s.Category == category.Value);
+        if (!string.IsNullOrWhiteSpace(location))
+            sampleQuery = sampleQuery.Where(s => s.Item!.Name == location || s.WaterSamplingPoint!.Code == location);
+
+        var reviewQueueCount = await sampleQuery.CountAsync(s => s.Status == SampleStatus.UnderReview);
+        var approvalQueueCount = await sampleQuery.CountAsync(s => s.Status == SampleStatus.UnderApproval);
         return new SampleQueueCountsDto(reviewQueueCount, approvalQueueCount);
     }
 
@@ -324,24 +350,41 @@ public class KpiService
     // testsThisMonth/testsLastMonth exactly); Review/Approval queue
     // arrivals are SubmittedForReview/ReviewCompleted events, the same
     // entry points BuildSampleStageWindowsAsync reads elsewhere.
-    public async Task<WorkflowBottleneckDeltaDto> GetWorkflowBottleneckDeltasAsync()
+    public async Task<WorkflowBottleneckDeltaDto> GetWorkflowBottleneckDeltasAsync(
+        SampleCategory? category = null, string? location = null, string? testCode = null)
     {
         var now = DateTime.UtcNow;
         var thisMonthStart = new DateTime(now.Year, now.Month, 1, 0, 0, 0, DateTimeKind.Utc);
         var lastMonthStart = thisMonthStart.AddMonths(-1);
 
-        var testingThisMonth = await _db.TestOrders.CountAsync(t => _db.Samples.Any(s => s.Id == t.SampleId && s.ReceivedAt >= thisMonthStart));
-        var testingLastMonth = await _db.TestOrders.CountAsync(t => _db.Samples.Any(s => s.Id == t.SampleId && s.ReceivedAt >= lastMonthStart && s.ReceivedAt < thisMonthStart));
+        // testCode applies to the Testing-queue delta only as Review/Approval events are sample-level.
+        var testingQuery = _db.TestOrders.AsQueryable();
+        if (category.HasValue)
+            testingQuery = testingQuery.Where(t => _db.Samples.Any(s => s.Id == t.SampleId && s.Category == category.Value));
+        if (!string.IsNullOrWhiteSpace(location))
+            testingQuery = testingQuery.Where(t => _db.Samples.Any(s => s.Id == t.SampleId && (s.Item!.Name == location || s.WaterSamplingPoint!.Code == location)));
+        if (!string.IsNullOrWhiteSpace(testCode))
+            testingQuery = testingQuery.Where(t => t.TestCode == testCode);
 
-        var reviewThisMonth = await _db.ReviewWorkflowEvents.CountAsync(e =>
-            e.EntityType == ReviewEntityTypes.Sample && e.EventType == ReviewWorkflowEventType.SubmittedForReview && e.Timestamp >= thisMonthStart);
-        var reviewLastMonth = await _db.ReviewWorkflowEvents.CountAsync(e =>
-            e.EntityType == ReviewEntityTypes.Sample && e.EventType == ReviewWorkflowEventType.SubmittedForReview && e.Timestamp >= lastMonthStart && e.Timestamp < thisMonthStart);
+        var testingThisMonth = await testingQuery.CountAsync(t => _db.Samples.Any(s => s.Id == t.SampleId && s.ReceivedAt >= thisMonthStart));
+        var testingLastMonth = await testingQuery.CountAsync(t => _db.Samples.Any(s => s.Id == t.SampleId && s.ReceivedAt >= lastMonthStart && s.ReceivedAt < thisMonthStart));
 
-        var approvalThisMonth = await _db.ReviewWorkflowEvents.CountAsync(e =>
-            e.EntityType == ReviewEntityTypes.Sample && e.EventType == ReviewWorkflowEventType.ReviewCompleted && e.Timestamp >= thisMonthStart);
-        var approvalLastMonth = await _db.ReviewWorkflowEvents.CountAsync(e =>
-            e.EntityType == ReviewEntityTypes.Sample && e.EventType == ReviewWorkflowEventType.ReviewCompleted && e.Timestamp >= lastMonthStart && e.Timestamp < thisMonthStart);
+        var reviewEventsQuery = _db.ReviewWorkflowEvents
+            .Where(e => e.EntityType == ReviewEntityTypes.Sample);
+        if (category.HasValue)
+            reviewEventsQuery = reviewEventsQuery.Where(e => _db.Samples.Any(s => s.Id == e.EntityId && s.Category == category.Value));
+        if (!string.IsNullOrWhiteSpace(location))
+            reviewEventsQuery = reviewEventsQuery.Where(e => _db.Samples.Any(s => s.Id == e.EntityId && (s.Item!.Name == location || s.WaterSamplingPoint!.Code == location)));
+
+        var reviewThisMonth = await reviewEventsQuery.CountAsync(e =>
+            e.EventType == ReviewWorkflowEventType.SubmittedForReview && e.Timestamp >= thisMonthStart);
+        var reviewLastMonth = await reviewEventsQuery.CountAsync(e =>
+            e.EventType == ReviewWorkflowEventType.SubmittedForReview && e.Timestamp >= lastMonthStart && e.Timestamp < thisMonthStart);
+
+        var approvalThisMonth = await reviewEventsQuery.CountAsync(e =>
+            e.EventType == ReviewWorkflowEventType.ReviewCompleted && e.Timestamp >= thisMonthStart);
+        var approvalLastMonth = await reviewEventsQuery.CountAsync(e =>
+            e.EventType == ReviewWorkflowEventType.ReviewCompleted && e.Timestamp >= lastMonthStart && e.Timestamp < thisMonthStart);
 
         static double DeltaPercent(int thisMonth, int lastMonth) => lastMonth == 0 ? 0 : Math.Round((thisMonth - lastMonth) * 100.0 / lastMonth, 1);
 
@@ -385,10 +428,19 @@ public class KpiService
         int SampleId, HashSet<int> AssignedAnalystIds, DateTime AssignedAt,
         DateTime? SubmittedForReviewAt, DateTime? ReviewCompletedAt, DateTime? ApprovalDecisionAt);
 
-    private async Task<List<SampleStageWindow>> BuildSampleStageWindowsAsync()
+    private async Task<List<SampleStageWindow>> BuildSampleStageWindowsAsync(
+        SampleCategory? category = null, string? location = null, string? testCode = null)
     {
-        var assignedOrders = await _db.TestOrders
-            .Where(t => t.AssignedAnalystId != null)
+        var orderQuery = _db.TestOrders
+            .Where(t => t.AssignedAnalystId != null);
+        if (category.HasValue)
+            orderQuery = orderQuery.Where(t => _db.Samples.Any(s => s.Id == t.SampleId && s.Category == category.Value));
+        if (!string.IsNullOrWhiteSpace(location))
+            orderQuery = orderQuery.Where(t => _db.Samples.Any(s => s.Id == t.SampleId && (s.Item!.Name == location || s.WaterSamplingPoint!.Code == location)));
+        if (!string.IsNullOrWhiteSpace(testCode))
+            orderQuery = orderQuery.Where(t => t.TestCode == testCode);
+
+        var assignedOrders = await orderQuery
             .Select(t => new { t.SampleId, AnalystId = t.AssignedAnalystId!.Value })
             .ToListAsync();
 
@@ -456,9 +508,11 @@ public class KpiService
     }
 
     // Rule #1: 7-day SLA from "analyst assigning" to "submit to review".
-    public async Task<SampleSlaOutcomeDto> GetSampleAssignmentSlaAsync(int? analystId, DateTime fromDate, DateTime toDate)
+    public async Task<SampleSlaOutcomeDto> GetSampleAssignmentSlaAsync(
+        int? analystId, DateTime fromDate, DateTime toDate,
+        SampleCategory? category = null, string? location = null, string? testCode = null)
     {
-        var windows = await BuildSampleStageWindowsAsync();
+        var windows = await BuildSampleStageWindowsAsync(category, location, testCode);
         var now = DateTime.UtcNow;
         int totalAssigned = 0, onTime = 0, overdue = 0;
 
@@ -478,9 +532,11 @@ public class KpiService
     // Analyst Comparison table's Overdue column needs. A sample with
     // TestOrders split across two analysts counts toward both - the SLA
     // is whole-sample, so both analysts share accountability for it.
-    public async Task<Dictionary<int, SampleSlaOutcomeDto>> GetSampleAssignmentSlaByAnalystAsync(DateTime fromDate, DateTime toDate)
+    public async Task<Dictionary<int, SampleSlaOutcomeDto>> GetSampleAssignmentSlaByAnalystAsync(
+        DateTime fromDate, DateTime toDate,
+        SampleCategory? category = null, string? location = null, string? testCode = null)
     {
-        var windows = await BuildSampleStageWindowsAsync();
+        var windows = await BuildSampleStageWindowsAsync(category, location, testCode);
         var now = DateTime.UtcNow;
         var byAnalyst = new Dictionary<int, (int Total, int OnTime, int Overdue)>();
 
@@ -540,9 +596,11 @@ public class KpiService
         return w.ApprovalDecisionAt.HasValue ? w.ApprovalDecisionAt.Value <= approvalDeadline : now <= approvalDeadline;
     }
 
-    public async Task<OverallOnTimeOutcomeDto> GetOverallOnTimeCompletionAsync(DateTime fromDate, DateTime toDate)
+    public async Task<OverallOnTimeOutcomeDto> GetOverallOnTimeCompletionAsync(
+        DateTime fromDate, DateTime toDate,
+        SampleCategory? category = null, string? location = null, string? testCode = null)
     {
-        var windows = await BuildSampleStageWindowsAsync();
+        var windows = await BuildSampleStageWindowsAsync(category, location, testCode);
         var now = DateTime.UtcNow;
         int total = 0, onTime = 0, overdue = 0;
 
@@ -558,9 +616,11 @@ public class KpiService
 
     // Same all-stage on-time definition, broken out per analyst - what
     // the Analyst Comparison table's On-Time % column needs.
-    public async Task<Dictionary<int, OverallOnTimeOutcomeDto>> GetOverallOnTimeCompletionByAnalystAsync(DateTime fromDate, DateTime toDate)
+    public async Task<Dictionary<int, OverallOnTimeOutcomeDto>> GetOverallOnTimeCompletionByAnalystAsync(
+        DateTime fromDate, DateTime toDate,
+        SampleCategory? category = null, string? location = null, string? testCode = null)
     {
-        var windows = await BuildSampleStageWindowsAsync();
+        var windows = await BuildSampleStageWindowsAsync(category, location, testCode);
         var now = DateTime.UtcNow;
         var byAnalyst = new Dictionary<int, (int Total, int OnTime, int Overdue)>();
 
@@ -584,9 +644,11 @@ public class KpiService
     // optionally by analyst. Only samples that have actually finished a
     // given stage contribute to that stage's average - a sample still
     // sitting in UnderReview has no Review duration yet to average in.
-    public async Task<StageTatSummaryDto> GetStageTatSummaryAsync(int? analystId, DateTime fromDate, DateTime toDate)
+    public async Task<StageTatSummaryDto> GetStageTatSummaryAsync(
+        int? analystId, DateTime fromDate, DateTime toDate,
+        SampleCategory? category = null, string? location = null, string? testCode = null)
     {
-        var windows = await BuildSampleStageWindowsAsync();
+        var windows = await BuildSampleStageWindowsAsync(category, location, testCode);
         var scoped = windows.Where(w => w.AssignedAt >= fromDate && w.AssignedAt <= toDate
             && (!analystId.HasValue || w.AssignedAnalystIds.Contains(analystId.Value))).ToList();
 
@@ -627,9 +689,11 @@ public class KpiService
     // when that stage concluded - mirrors ReportingQueryService.
     // GetCompletedByMonthAsync's "last N calendar months ending this
     // month" window exactly.
-    public async Task<List<MonthlyTatPoint>> GetTestingTatByMonthAsync(int months = 6)
+    public async Task<List<MonthlyTatPoint>> GetTestingTatByMonthAsync(
+        int months = 6,
+        SampleCategory? category = null, string? location = null, string? testCode = null)
     {
-        var windows = await BuildSampleStageWindowsAsync();
+        var windows = await BuildSampleStageWindowsAsync(category, location, testCode);
         var completed = windows
             .Where(w => w.SubmittedForReviewAt.HasValue)
             .Select(w => new { SubmittedAt = w.SubmittedForReviewAt!.Value, Hours = (w.SubmittedForReviewAt!.Value - w.AssignedAt).TotalHours })
@@ -660,7 +724,9 @@ public class KpiService
     // "Total Assigned Tests" is scoped by incubation activity in the
     // window (not the Query 1 assignment-clock concept above) since this
     // card is about step-reading violations, not the sample SLA.
-    public async Task<StepViolationOutcomeDto> GetStepViolationsAsync(int? analystId, DateTime fromDate, DateTime toDate)
+    public async Task<StepViolationOutcomeDto> GetStepViolationsAsync(
+        int? analystId, DateTime fromDate, DateTime toDate,
+        SampleCategory? category = null, string? location = null, string? testCode = null)
     {
         var incubationsQuery = _db.Incubations
             .Where(i => i.CompletedAt != null && i.ExpectedReadingAt != null
@@ -669,6 +735,13 @@ public class KpiService
         incubationsQuery = analystId.HasValue
             ? incubationsQuery.Where(i => i.TestOrder!.AssignedAnalystId == analystId.Value || i.StartedByUserId == analystId.Value)
             : incubationsQuery.Where(i => i.TestOrder!.AssignedAnalystId != null || i.StartedByUserId != null);
+
+        if (category.HasValue)
+            incubationsQuery = incubationsQuery.Where(i => _db.TestOrders.Any(t => t.Id == i.TestOrderId && _db.Samples.Any(s => s.Id == t.SampleId && s.Category == category.Value)));
+        if (!string.IsNullOrWhiteSpace(location))
+            incubationsQuery = incubationsQuery.Where(i => _db.TestOrders.Any(t => t.Id == i.TestOrderId && _db.Samples.Any(s => s.Id == t.SampleId && (s.Item!.Name == location || s.WaterSamplingPoint!.Code == location))));
+        if (!string.IsNullOrWhiteSpace(testCode))
+            incubationsQuery = incubationsQuery.Where(i => _db.TestOrders.Any(t => t.Id == i.TestOrderId && t.TestCode == testCode));
 
         var incubations = await incubationsQuery
             .Select(i => new { i.TestOrderId, i.CompletedAt, i.ExpectedReadingAt })
@@ -682,5 +755,31 @@ public class KpiService
             .ToList();
 
         return new StepViolationOutcomeDto(totalAssignedTests, violatingTestOrderIds.Count, violatingTestOrderIds.Distinct().Count());
+    }
+
+    // Date-range-scoped count of explicit TestReturnEvent rows per analyst.
+    // Distinct from broad editCount in GetAnalystKpisAsync.
+    public async Task<Dictionary<int, int>> GetReturnToAnalystCountAsync(
+        int? analystId, DateTime fromDate, DateTime toDate)
+    {
+        var query = _db.TestReturnEvents
+            .Where(e => e.ReturnedAt >= fromDate && e.ReturnedAt <= toDate && e.AssignedAnalystId != null);
+
+        if (analystId.HasValue)
+        {
+            query = query.Where(e => e.AssignedAnalystId == analystId.Value);
+        }
+
+        var counts = await query
+            .GroupBy(e => e.AssignedAnalystId!.Value)
+            .Select(g => new { AnalystId = g.Key, Count = g.Count() })
+            .ToDictionaryAsync(g => g.AnalystId, g => g.Count);
+
+        if (analystId.HasValue && !counts.ContainsKey(analystId.Value))
+        {
+            counts[analystId.Value] = 0;
+        }
+
+        return counts;
     }
 }

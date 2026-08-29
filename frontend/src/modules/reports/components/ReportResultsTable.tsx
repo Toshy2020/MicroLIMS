@@ -1,7 +1,6 @@
 import { useMemo, useState } from "react";
 import {
-  Box, Paper, Typography, Table, TableHead, TableBody, TableRow, TableCell, TableContainer,
-  Checkbox, Chip, Tooltip, IconButton, Menu, MenuItem, Select, FormControl, Button, Alert, Link, Stack, useTheme
+  Box, Paper, Typography, Chip, Checkbox, Tooltip, IconButton, Menu, MenuItem, Select, FormControl, Button, Alert, Link, Stack, useTheme
 } from "@mui/material";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
 import ViewColumnIcon from "@mui/icons-material/ViewColumn";
@@ -20,6 +19,7 @@ import { ReportingService } from "../services/ReportingService";
 import { exportResultsPdf } from "../utils/exportPdf";
 import { useAuth } from "../../../contexts/AuthContext";
 import { ResultRecordItem, ResultRecordSearchParams, ResultRecordSearchResponse } from "../types/reportingTypes";
+import { DataTable, Column } from "../../../components/DataTable";
 
 const ROWS_PER_PAGE_OPTIONS = [10, 25, 50, 100];
 
@@ -241,6 +241,63 @@ export function ReportResultsTable({
   const pageEnd = Math.min(page * pageSize, totalCount);
   const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
 
+  // Maps each toggleable ColumnKey to its real DataTable column definition -
+  // visibleColumns (driven by the Columns menu) filters this list before
+  // it's handed to DataTable; the trailing Actions column is appended
+  // unconditionally since it isn't part of the toggle set.
+  const columnDefs: { colKey: ColumnKey; column: Column<ResultRecordItem> }[] = [
+    { colKey: "dateTime", column: { key: "resultEnteredAt", label: COLUMN_LABELS.dateTime, render: (row) => {
+      const dt = formatDateTime(row.resultEnteredAt);
+      return (
+        <>
+          <Typography sx={{ fontSize: 13 }}>{dt.date}</Typography>
+          <Typography sx={{ fontSize: 11, color: "text.secondary" }}>{dt.time}</Typography>
+        </>
+      );
+    } } },
+    { colKey: "reference", column: { key: "referenceNumber", label: COLUMN_LABELS.reference, render: (row) => (
+      <Link
+        component="button"
+        type="button"
+        onClick={() => setDetailRecord(row)}
+        sx={{ fontSize: 13, fontWeight: 600, color: theme.palette.primary.main }}
+        underline="hover"
+      >
+        {row.referenceNumber}
+      </Link>
+    ) } },
+    { colKey: "subject", column: { key: "subjectName", label: COLUMN_LABELS.subject, render: (row) => (
+      <>
+        <Typography sx={{ fontSize: 13 }}>{row.subjectName}</Typography>
+        {row.subjectDetail && <Typography sx={{ fontSize: 11, color: "text.secondary" }}>{row.subjectDetail}</Typography>}
+      </>
+    ) } },
+    { colKey: "type", column: { key: "category", label: COLUMN_LABELS.type, render: (row) => <CategoryBadge category={row.category} /> } },
+    { colKey: "test", column: { key: "testCode", label: COLUMN_LABELS.test, render: (row) => row.testCode } },
+    { colKey: "result", column: { key: "reportedValue", label: COLUMN_LABELS.result, render: (row) => <Box sx={{ fontWeight: 600 }}>{row.reportedValue}</Box> } },
+    { colKey: "unit", column: { key: "unit", label: COLUMN_LABELS.unit, render: (row) => row.unit ?? "—" } },
+    { colKey: "resultLevel", column: { key: "resultLevel", label: COLUMN_LABELS.resultLevel, render: (row) => (
+      row.resultLevel === "NotApplicable" ? "—" : <StatusBadge status={row.resultLevel} />
+    ) } },
+    { colKey: "status", column: { key: "approvalStatus", label: COLUMN_LABELS.status, render: (row) => <StatusBadge status={row.approvalStatus} /> } },
+    { colKey: "approvedBy", column: { key: "approvedByName", label: COLUMN_LABELS.approvedBy, render: (row) => row.approvedByName ?? "—" } },
+    { colKey: "approvalDate", column: { key: "approvedAt", label: COLUMN_LABELS.approvalDate, render: (row) => row.approvedAt ? formatDate(row.approvedAt) : "—" } }
+  ];
+
+  const tableColumns: Column<ResultRecordItem>[] = [
+    ...columnDefs.filter((d) => visibleColumns[d.colKey]).map((d) => d.column),
+    {
+      key: "id",
+      label: "",
+      align: "center",
+      render: (row) => (
+        <IconButton size="small" onClick={(e) => { e.stopPropagation(); setRowMenu({ anchor: e.currentTarget, row }); }}>
+          <MoreVertIcon fontSize="small" />
+        </IconButton>
+      )
+    }
+  ];
+
   return (
     <Paper sx={{ p: 2.5 }}>
       {/* Top Title & Mode A Export Toolbar (When No Rows Selected) */}
@@ -288,17 +345,6 @@ export function ReportResultsTable({
       {/* Multi-Select Toolbar & Mode B Export Actions (When Rows Selected) */}
       <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 1.5, flexWrap: "wrap", gap: 1, bgcolor: selectionCount > 0 ? theme.custom.status.purple.bg : "transparent", p: selectionCount > 0 ? 1 : 0, borderRadius: 1 }}>
         <Box sx={{ display: "flex", alignItems: "center", gap: 2, flexWrap: "wrap" }}>
-          <Box sx={{ display: "flex", alignItems: "center" }}>
-            <Checkbox
-              size="small"
-              checked={allVisibleSelected}
-              indeterminate={!allVisibleSelected && someVisibleSelected}
-              onChange={toggleVisiblePage}
-              disabled={approvedVisibleIds.length === 0}
-            />
-            <Typography sx={{ fontSize: 13 }}>Select All (Visible)</Typography>
-          </Box>
-
           <Tooltip title="Selects every Approved result matching your current filters, not just the loaded page.">
             <Link component="button" type="button" onClick={selectAllMatchingRecords} sx={{ fontSize: 13 }} underline="hover">
               Select All {totalCount} Matching Records
@@ -365,95 +411,21 @@ export function ReportResultsTable({
 
       {!error && (loading || items.length > 0) && (
         <>
-          <TableContainer sx={{ opacity: loading ? 0.6 : 1 }}>
-            <Table size="small">
-              <TableHead>
-                <TableRow>
-                  <TableCell padding="checkbox" />
-                  {visibleColumns.dateTime && <TableCell>{COLUMN_LABELS.dateTime}</TableCell>}
-                  {visibleColumns.reference && <TableCell>{COLUMN_LABELS.reference}</TableCell>}
-                  {visibleColumns.subject && <TableCell>{COLUMN_LABELS.subject}</TableCell>}
-                  {visibleColumns.type && <TableCell>{COLUMN_LABELS.type}</TableCell>}
-                  {visibleColumns.test && <TableCell>{COLUMN_LABELS.test}</TableCell>}
-                  {visibleColumns.result && <TableCell>{COLUMN_LABELS.result}</TableCell>}
-                  {visibleColumns.unit && <TableCell>{COLUMN_LABELS.unit}</TableCell>}
-                  {visibleColumns.resultLevel && <TableCell>{COLUMN_LABELS.resultLevel}</TableCell>}
-                  {visibleColumns.status && <TableCell>{COLUMN_LABELS.status}</TableCell>}
-                  {visibleColumns.approvedBy && <TableCell>{COLUMN_LABELS.approvedBy}</TableCell>}
-                  {visibleColumns.approvalDate && <TableCell>{COLUMN_LABELS.approvalDate}</TableCell>}
-                  <TableCell padding="checkbox" />
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {items.map((row) => {
-                  const isApproved = row.approvalStatus === "Approved";
-                  const dt = formatDateTime(row.resultEnteredAt);
-                  const checkbox = (
-                    <Checkbox
-                      size="small" checked={selectAllMatching || selectedIds.has(row.id)}
-                      disabled={!isApproved} onChange={() => toggleRow(row)}
-                    />
-                  );
-
-                  return (
-                    <TableRow key={row.id} hover>
-                      <TableCell padding="checkbox">
-                        {isApproved ? checkbox : (
-                          <Tooltip title="Only approved results can be added to a report">
-                            <span>{checkbox}</span>
-                          </Tooltip>
-                        )}
-                      </TableCell>
-                      {visibleColumns.dateTime && (
-                        <TableCell>
-                          <Typography sx={{ fontSize: 13 }}>{dt.date}</Typography>
-                          <Typography sx={{ fontSize: 11, color: "text.secondary" }}>{dt.time}</Typography>
-                        </TableCell>
-                      )}
-                      {visibleColumns.reference && (
-                        <TableCell>
-                          <Link
-                            component="button"
-                            type="button"
-                            onClick={() => setDetailRecord(row)}
-                            sx={{ fontSize: 13, fontWeight: 600, color: theme.palette.primary.main }}
-                            underline="hover"
-                          >
-                            {row.referenceNumber}
-                          </Link>
-                        </TableCell>
-                      )}
-                      {visibleColumns.subject && (
-                        <TableCell>
-                          <Typography sx={{ fontSize: 13 }}>{row.subjectName}</Typography>
-                          {row.subjectDetail && <Typography sx={{ fontSize: 11, color: "text.secondary" }}>{row.subjectDetail}</Typography>}
-                        </TableCell>
-                      )}
-                      {visibleColumns.type && <TableCell><CategoryBadge category={row.category} /></TableCell>}
-                      {visibleColumns.test && <TableCell>{row.testCode}</TableCell>}
-                      {visibleColumns.result && (
-                        <TableCell sx={{ fontWeight: 600 }}>{row.reportedValue}</TableCell>
-                      )}
-                      {visibleColumns.unit && <TableCell>{row.unit ?? "—"}</TableCell>}
-                      {visibleColumns.resultLevel && (
-                        <TableCell>
-                          {row.resultLevel === "NotApplicable" ? "—" : <StatusBadge status={row.resultLevel} />}
-                        </TableCell>
-                      )}
-                      {visibleColumns.status && <TableCell><StatusBadge status={row.approvalStatus} /></TableCell>}
-                      {visibleColumns.approvedBy && <TableCell>{row.approvedByName ?? "—"}</TableCell>}
-                      {visibleColumns.approvalDate && <TableCell>{row.approvedAt ? formatDate(row.approvedAt) : "—"}</TableCell>}
-                      <TableCell padding="checkbox">
-                        <IconButton size="small" onClick={(e) => setRowMenu({ anchor: e.currentTarget, row })}>
-                          <MoreVertIcon fontSize="small" />
-                        </IconButton>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
-          </TableContainer>
+          <Box sx={{ opacity: loading ? 0.6 : 1 }}>
+            <DataTable
+              columns={tableColumns}
+              rows={items}
+              getRowId={(row) => row.id}
+              selection={{
+                isSelected: (row) => selectAllMatching || selectedIds.has(row.id),
+                onToggle: (row) => toggleRow(row),
+                isSelectable: (row) => row.approvalStatus === "Approved",
+                headerChecked: allVisibleSelected,
+                headerIndeterminate: !allVisibleSelected && someVisibleSelected,
+                onToggleAll: toggleVisiblePage
+              }}
+            />
+          </Box>
 
           <Menu anchorEl={rowMenu?.anchor} open={!!rowMenu} onClose={() => setRowMenu(null)}>
             <MenuItem

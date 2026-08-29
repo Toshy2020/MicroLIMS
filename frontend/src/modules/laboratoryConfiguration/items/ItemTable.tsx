@@ -97,6 +97,7 @@ function ItemRowCard({
 }) {
   const theme = useTheme();
   const [docCount, setDocCount] = useState<number | null>(null);
+  const specCount = item.specifications?.length ?? 0;
 
   useEffect(() => {
     ItemDocumentService.getDocumentsForItem(item.id)
@@ -154,6 +155,20 @@ function ItemRowCard({
                 height: 20,
               }}
             />
+
+            {specCount > 0 && (
+              <Chip
+                label={`${specCount} ${specCount === 1 ? "Spec" : "Specs"}`}
+                size="small"
+                variant="outlined"
+                color="primary"
+                sx={{
+                  fontSize: 11,
+                  fontWeight: 600,
+                  height: 20,
+                }}
+              />
+            )}
 
             {docCount !== null && (
               <Chip

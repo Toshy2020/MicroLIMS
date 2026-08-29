@@ -101,7 +101,7 @@ export function SampleTableRow({
           </Typography>
         </TableCell>
 
-        <TableCell sx={{ py: 1.25 }}>
+        <TableCell sx={{ py: 1.25 }} onClick={(e) => e.stopPropagation()}>
           <SampleLifecycleBadge
             status={sample.status}
             role={role}

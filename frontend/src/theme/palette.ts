@@ -36,7 +36,7 @@ export const lightThemeOptions: ThemeOptions = {
   palette: {
     mode: "light",
     primary: { main: "#7b2d8e", dark: "#631f74", light: "#9b3fa8" },
-    secondary: { main: "#16a34a" },
+    secondary: { main: "#15803d" },
     error: { main: "#dc2626" },
     background: { default: "#F4F6F8", paper: "#FFFFFF" },
     text: { primary: "#1A2027", secondary: "#5A6472" },
@@ -52,7 +52,13 @@ export const lightThemeOptions: ThemeOptions = {
     // styles even once the rest of the page has gone dark - MUI doesn't
     // set this on its own.
     MuiCssBaseline: {
-      styleOverrides: { html: { colorScheme: "light" } }
+      styleOverrides: {
+        html: { colorScheme: "light" },
+        "*:focus-visible": {
+          outline: "2px solid #7b2d8e",
+          outlineOffset: "2px"
+        }
+      }
     },
     MuiButton: {
       styleOverrides: {
@@ -102,7 +108,13 @@ export const darkThemeOptions: ThemeOptions = {
   },
   components: {
     MuiCssBaseline: {
-      styleOverrides: { html: { colorScheme: "dark" } }
+      styleOverrides: {
+        html: { colorScheme: "dark" },
+        "*:focus-visible": {
+          outline: "2px solid #c084c8",
+          outlineOffset: "2px"
+        }
+      }
     },
     MuiButton: {
       styleOverrides: {

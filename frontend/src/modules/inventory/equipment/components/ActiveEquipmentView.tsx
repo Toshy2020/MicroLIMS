@@ -1,15 +1,15 @@
 import { useEffect, useState } from "react";
 import {
   Box, Paper, Stack, Typography, TextField, Button, Table, TableHead,
-  TableRow, TableCell, TableBody, TableContainer, Chip, Alert, IconButton,
-  Tooltip, Grid, CircularProgress, Divider
+  TableRow, TableCell, TableBody, TableContainer, TablePagination, Chip, Alert, IconButton,
+  Tooltip, Grid, CircularProgress, Divider, useTheme
 } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import PlaceIcon from "@mui/icons-material/Place";
 import HistoryIcon from "@mui/icons-material/History";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 
 import {
   EquipmentInventoryService, ActiveEquipmentDto, EquipmentActivityDto, WhereIsItResultDto
@@ -23,6 +23,8 @@ interface ActiveEquipmentViewProps {
 
 export function ActiveEquipmentView({ onOpenDetails }: ActiveEquipmentViewProps) {
   const navigate = useNavigate();
+  const theme = useTheme();
+  const headerBg = theme.palette.mode === "dark" ? "grey.800" : "grey.100";
 
   // Active Equipment state
   const [activeEquipment, setActiveEquipment] = useState<ActiveEquipmentDto[]>([]);
@@ -32,6 +34,8 @@ export function ActiveEquipmentView({ onOpenDetails }: ActiveEquipmentViewProps)
   // Selected Equipment Activities state
   const [activities, setActivities] = useState<EquipmentActivityDto[]>([]);
   const [loadingActivities, setLoadingActivities] = useState(false);
+  const [activitiesPage, setActivitiesPage] = useState(0);
+  const [activitiesRowsPerPage, setActivitiesRowsPerPage] = useState(15);
 
   // Activity History state
   const [historyItemCode, setHistoryItemCode] = useState("");
@@ -39,11 +43,15 @@ export function ActiveEquipmentView({ onOpenDetails }: ActiveEquipmentViewProps)
   const [historyToDate, setHistoryToDate] = useState("");
   const [historyResults, setHistoryResults] = useState<EquipmentActivityDto[] | null>(null);
   const [loadingHistory, setLoadingHistory] = useState(false);
+  const [historyPage, setHistoryPage] = useState(0);
+  const [historyRowsPerPage, setHistoryRowsPerPage] = useState(15);
 
   // "Where is it?" search state
   const [whereQuery, setWhereQuery] = useState("");
   const [whereResult, setWhereResult] = useState<WhereIsItResultDto | null>(null);
   const [loadingWhere, setLoadingWhere] = useState(false);
+  const [wherePage, setWherePage] = useState(0);
+  const [whereRowsPerPage, setWhereRowsPerPage] = useState(15);
 
   // Load Active Equipment List on mount
   const loadActiveEquipment = async () => {
@@ -68,6 +76,8 @@ export function ActiveEquipmentView({ onOpenDetails }: ActiveEquipmentViewProps)
   // Load active activities when selected equipment changes
   useEffect(() => {
     if (selectedEqId) {
+      setActivitiesPage(0);
+      setHistoryPage(0);
       loadActivitiesForEquipment(selectedEqId);
       loadHistoryForEquipment(selectedEqId);
     } else {
@@ -107,6 +117,7 @@ export function ActiveEquipmentView({ onOpenDetails }: ActiveEquipmentViewProps)
   const handleHistorySearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (selectedEqId) {
+      setHistoryPage(0);
       loadHistoryForEquipment(selectedEqId);
     }
   };
@@ -116,6 +127,7 @@ export function ActiveEquipmentView({ onOpenDetails }: ActiveEquipmentViewProps)
     if (!whereQuery.trim()) return;
     try {
       setLoadingWhere(true);
+      setWherePage(0);
       const res = await EquipmentInventoryService.whereIsIt(whereQuery);
       setWhereResult(res);
     } catch {
@@ -130,7 +142,7 @@ export function ActiveEquipmentView({ onOpenDetails }: ActiveEquipmentViewProps)
   return (
     <Stack spacing={3}>
       {/* 1. Global "Where is it?" Traceability Search Bar */}
-      <Paper sx={{ p: 2.5, borderRadius: 2, border: "1px solid #e5e7eb", bgcolor: "#fdfdfd" }}>
+      <Paper sx={{ p: 2.5, borderRadius: 2, border: "1px solid", borderColor: "divider" }}>
         <Stack spacing={2}>
           <Stack direction="row" alignItems="center" spacing={1}>
             <PlaceIcon color="primary" />
@@ -160,13 +172,13 @@ export function ActiveEquipmentView({ onOpenDetails }: ActiveEquipmentViewProps)
 
           {/* Where is it? Search Results Display */}
           {whereResult && (
-            <Paper variant="outlined" sx={{ p: 2, bgcolor: "#fff", mt: 1 }}>
+            <Paper variant="outlined" sx={{ p: 2, bgcolor: "background.paper", mt: 1 }}>
               <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 1.5 }}>
                 Traceability Results for "{whereResult.searchTerm}":
               </Typography>
 
               {whereResult.currentActivity ? (
-                <Box sx={{ mb: 2, p: 2, bgcolor: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 1.5 }}>
+                <Box sx={{ mb: 2, p: 2, bgcolor: theme.custom.status.notDetected.bg, border: "1px solid", borderColor: theme.custom.status.notDetected.border, borderRadius: 1.5 }}>
                   <Stack direction="row" justifyContent="space-between" alignItems="center">
                     <Box>
                       <Typography variant="body2" fontWeight={700} color="success.dark">
@@ -189,30 +201,47 @@ export function ActiveEquipmentView({ onOpenDetails }: ActiveEquipmentViewProps)
               )}
 
               {whereResult.history.length > 0 ? (
-                <TableContainer>
-                  <Table size="small">
-                    <TableHead sx={{ bgcolor: "#f9fafb" }}>
-                      <TableRow>
-                        <TableCell sx={{ fontSize: 11, fontWeight: 700 }}>Equipment</TableCell>
-                        <TableCell sx={{ fontSize: 11, fontWeight: 700 }}>Activity</TableCell>
-                        <TableCell sx={{ fontSize: 11, fontWeight: 700 }}>Started On</TableCell>
-                        <TableCell sx={{ fontSize: 11, fontWeight: 700 }}>Completed On</TableCell>
-                        <TableCell sx={{ fontSize: 11, fontWeight: 700 }}>Performed By</TableCell>
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {whereResult.history.map((h, idx) => (
-                        <TableRow key={idx}>
-                          <TableCell sx={{ fontSize: 12, fontWeight: 600, fontFamily: "monospace" }}>{h.equipmentCode} ({h.equipmentName})</TableCell>
-                          <TableCell sx={{ fontSize: 12 }}>{h.activityType}</TableCell>
-                          <TableCell sx={{ fontSize: 12 }}>{formatLabDateTime(h.startedOn)}</TableCell>
-                          <TableCell sx={{ fontSize: 12 }}>{h.completedOn ? formatLabDateTime(h.completedOn) : "Active"}</TableCell>
-                          <TableCell sx={{ fontSize: 12 }}>{h.performedBy}</TableCell>
+                <>
+                  <TableContainer>
+                    <Table size="small">
+                      <TableHead sx={{ bgcolor: headerBg }}>
+                        <TableRow>
+                          <TableCell sx={{ fontSize: 11, fontWeight: 700 }}>Equipment</TableCell>
+                          <TableCell sx={{ fontSize: 11, fontWeight: 700 }}>Activity</TableCell>
+                          <TableCell sx={{ fontSize: 11, fontWeight: 700 }}>Started On</TableCell>
+                          <TableCell sx={{ fontSize: 11, fontWeight: 700 }}>Completed On</TableCell>
+                          <TableCell sx={{ fontSize: 11, fontWeight: 700 }}>Performed By</TableCell>
                         </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </TableContainer>
+                      </TableHead>
+                      <TableBody>
+                        {whereResult.history
+                          .slice(wherePage * whereRowsPerPage, wherePage * whereRowsPerPage + whereRowsPerPage)
+                          .map((h, idx) => (
+                            <TableRow key={idx}>
+                              <TableCell sx={{ fontSize: 12, fontWeight: 600, fontFamily: "monospace" }}>{h.equipmentCode} ({h.equipmentName})</TableCell>
+                              <TableCell sx={{ fontSize: 12 }}>{h.activityType}</TableCell>
+                              <TableCell sx={{ fontSize: 12 }}>{formatLabDateTime(h.startedOn)}</TableCell>
+                              <TableCell sx={{ fontSize: 12 }}>{h.completedOn ? formatLabDateTime(h.completedOn) : "Active"}</TableCell>
+                              <TableCell sx={{ fontSize: 12 }}>{h.performedBy}</TableCell>
+                            </TableRow>
+                          ))}
+                      </TableBody>
+                    </Table>
+                  </TableContainer>
+                  <TablePagination
+                    component="div"
+                    count={whereResult.history.length}
+                    page={wherePage}
+                    onPageChange={(_, newPage) => setWherePage(newPage)}
+                    rowsPerPage={whereRowsPerPage}
+                    onRowsPerPageChange={(e) => {
+                      setWhereRowsPerPage(parseInt(e.target.value, 10));
+                      setWherePage(0);
+                    }}
+                    rowsPerPageOptions={[15, 30, 50]}
+                    sx={{ borderTop: "1px solid", borderColor: "divider" }}
+                  />
+                </>
               ) : (
                 <Typography variant="body2" color="text.secondary" align="center" sx={{ py: 1 }}>
                   No location history records found matching this query.
@@ -227,7 +256,7 @@ export function ActiveEquipmentView({ onOpenDetails }: ActiveEquipmentViewProps)
       <Grid container spacing={3}>
         {/* LEFT PANEL: Active Equipment List */}
         <Grid item xs={12} md={4}>
-          <Paper sx={{ p: 2, borderRadius: 2, border: "1px solid #e5e7eb", minHeight: 500 }}>
+          <Paper sx={{ p: 2, borderRadius: 2, border: "1px solid", borderColor: "divider", minHeight: 500 }}>
             <Typography variant="subtitle1" fontWeight={700} sx={{ mb: 2 }}>
               Active Equipment ({activeEquipment.length})
             </Typography>
@@ -251,10 +280,10 @@ export function ActiveEquipmentView({ onOpenDetails }: ActiveEquipmentViewProps)
                         p: 2,
                         cursor: "pointer",
                         border: "1px solid",
-                        borderColor: isSelected ? "primary.main" : "#e5e7eb",
-                        bgcolor: isSelected ? "#eff6ff" : "#fff",
+                        borderColor: isSelected ? "primary.main" : "divider",
+                        bgcolor: isSelected ? theme.custom.status.purple.bg : "background.paper",
                         transition: "all 0.15s ease-in-out",
-                        "&:hover": { borderColor: "primary.main", bgcolor: isSelected ? "#eff6ff" : "#f9fafb" }
+                        "&:hover": { borderColor: "primary.main", bgcolor: isSelected ? theme.custom.status.purple.bg : "action.hover" }
                       }}
                     >
                       <Stack direction="row" justifyContent="space-between" alignItems="flex-start" sx={{ mb: 1 }}>
@@ -279,7 +308,7 @@ export function ActiveEquipmentView({ onOpenDetails }: ActiveEquipmentViewProps)
           {selectedEquipment ? (
             <Stack spacing={3}>
               {/* Equipment Info Header Card */}
-              <Paper sx={{ p: 2.5, borderRadius: 2, border: "1px solid #e5e7eb" }}>
+              <Paper sx={{ p: 2.5, borderRadius: 2, border: "1px solid", borderColor: "divider" }}>
                 <Stack direction="row" justifyContent="space-between" alignItems="flex-start" sx={{ mb: 2 }}>
                   <Box>
                     <Typography variant="h6" fontWeight={700}>
@@ -297,7 +326,7 @@ export function ActiveEquipmentView({ onOpenDetails }: ActiveEquipmentViewProps)
                   </Stack>
                 </Stack>
 
-                <Grid container spacing={2} sx={{ pt: 1, borderTop: "1px solid #f3f4f6" }}>
+                <Grid container spacing={2} sx={{ pt: 1, borderTop: "1px solid", borderTopColor: "divider" }}>
                   <Grid item xs={6} sm={3}>
                     <Typography variant="caption" color="text.secondary" display="block">Manufacturer</Typography>
                     <Typography variant="body2" fontWeight={600}>{selectedEquipment.manufacturerName || "—"}</Typography>
@@ -322,7 +351,7 @@ export function ActiveEquipmentView({ onOpenDetails }: ActiveEquipmentViewProps)
               </Paper>
 
               {/* Current Activities / Items Table */}
-              <Paper sx={{ p: 2.5, borderRadius: 2, border: "1px solid #e5e7eb" }}>
+              <Paper sx={{ p: 2.5, borderRadius: 2, border: "1px solid", borderColor: "divider" }}>
                 <Typography variant="subtitle1" fontWeight={700} sx={{ mb: 1.5 }}>
                   Current Activities / Items ({activities.length})
                 </Typography>
@@ -332,63 +361,85 @@ export function ActiveEquipmentView({ onOpenDetails }: ActiveEquipmentViewProps)
                 ) : activities.length === 0 ? (
                   <Alert severity="info" sx={{ fontSize: 13 }}>No active activities currently running in this equipment.</Alert>
                 ) : (
-                  <TableContainer>
-                    <Table size="small">
-                      <TableHead sx={{ bgcolor: "#f9fafb" }}>
-                        <TableRow>
-                          <TableCell sx={{ fontWeight: 700, fontSize: 11 }}>Item / Activity</TableCell>
-                          <TableCell sx={{ fontWeight: 700, fontSize: 11 }}>Item Code</TableCell>
-                          <TableCell sx={{ fontWeight: 700, fontSize: 11 }}>Activity Type</TableCell>
-                          <TableCell sx={{ fontWeight: 700, fontSize: 11 }}>Media / Description</TableCell>
-                          <TableCell sx={{ fontWeight: 700, fontSize: 11 }}>Started On</TableCell>
-                          <TableCell sx={{ fontWeight: 700, fontSize: 11 }}>Started By</TableCell>
-                          <TableCell sx={{ fontWeight: 700, fontSize: 11 }}>Expected Completion</TableCell>
-                          <TableCell align="right" sx={{ fontWeight: 700, fontSize: 11 }}>Actions</TableCell>
-                        </TableRow>
-                      </TableHead>
-                      <TableBody>
-                        {activities.map((act) => (
-                          <TableRow key={act.activityId} hover>
-                            <TableCell sx={{ fontSize: 12, fontWeight: 600 }}>{act.itemName}</TableCell>
-                            <TableCell sx={{ fontSize: 12, fontFamily: "monospace", fontWeight: 700 }}>{act.itemCode}</TableCell>
-                            <TableCell sx={{ fontSize: 12 }}>
-                              <Chip label={act.activityType} size="small" variant="outlined" color="primary" sx={{ height: 20, fontSize: 10 }} />
-                            </TableCell>
-                            <TableCell sx={{ fontSize: 12 }}>{act.mediaDescription}</TableCell>
-                            <TableCell sx={{ fontSize: 12 }}>{formatLabDateTime(act.startedOn)}</TableCell>
-                            <TableCell sx={{ fontSize: 12 }}>{act.startedBy}</TableCell>
-                            <TableCell sx={{ fontSize: 12 }}>
-                              {act.expectedCompletion ? formatLabDateTime(act.expectedCompletion) : "N/A"}
-                            </TableCell>
-                            <TableCell align="right">
-                              <Tooltip title="View Activity / Test Workspace">
-                                <IconButton
-                                  size="small"
-                                  color="primary"
-                                  onClick={() => {
-                                    if (act.entityType === "Sample") {
-                                      navigate("/testing-workspace");
-                                    } else if (act.entityType === "Media") {
-                                      navigate("/laboratory-configuration/media");
-                                    } else if (act.entityType === "Cryovial") {
-                                      navigate("/laboratory-configuration/cryovials");
-                                    }
-                                  }}
-                                >
-                                  <VisibilityIcon fontSize="small" />
-                                </IconButton>
-                              </Tooltip>
-                            </TableCell>
+                  <>
+                    <TableContainer>
+                      <Table size="small">
+                        <TableHead sx={{ bgcolor: headerBg }}>
+                          <TableRow>
+                            <TableCell sx={{ fontWeight: 700, fontSize: 11 }}>Item / Activity</TableCell>
+                            <TableCell sx={{ fontWeight: 700, fontSize: 11 }}>Item Code</TableCell>
+                            <TableCell sx={{ fontWeight: 700, fontSize: 11 }}>Activity Type</TableCell>
+                            <TableCell sx={{ fontWeight: 700, fontSize: 11 }}>Media / Description</TableCell>
+                            <TableCell sx={{ fontWeight: 700, fontSize: 11 }}>Started On</TableCell>
+                            <TableCell sx={{ fontWeight: 700, fontSize: 11 }}>Started By</TableCell>
+                            <TableCell sx={{ fontWeight: 700, fontSize: 11 }}>Expected Completion</TableCell>
+                            <TableCell align="right" sx={{ fontWeight: 700, fontSize: 11 }}>Actions</TableCell>
                           </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </TableContainer>
+                        </TableHead>
+                        <TableBody>
+                          {activities
+                            .slice(activitiesPage * activitiesRowsPerPage, activitiesPage * activitiesRowsPerPage + activitiesRowsPerPage)
+                            .map((act) => (
+                              <TableRow key={act.activityId} hover>
+                                <TableCell sx={{ fontSize: 12, fontWeight: 600 }}>{act.itemName}</TableCell>
+                                <TableCell sx={{ fontSize: 12, fontFamily: "monospace", fontWeight: 700 }}>{act.itemCode}</TableCell>
+                                <TableCell sx={{ fontSize: 12 }}>
+                                  <Chip label={act.activityType} size="small" variant="outlined" color="primary" sx={{ height: 20, fontSize: 10 }} />
+                                </TableCell>
+                                <TableCell sx={{ fontSize: 12 }}>{act.mediaDescription}</TableCell>
+                                <TableCell sx={{ fontSize: 12 }}>{formatLabDateTime(act.startedOn)}</TableCell>
+                                <TableCell sx={{ fontSize: 12 }}>{act.startedBy}</TableCell>
+                                <TableCell sx={{ fontSize: 12 }}>
+                                  {act.expectedCompletion ? formatLabDateTime(act.expectedCompletion) : "N/A"}
+                                </TableCell>
+                                <TableCell align="right">
+                                  {(() => {
+                                    const targetRoute =
+                                      act.entityType === "Sample"
+                                        ? "/testing-workspace"
+                                        : act.entityType === "Media"
+                                        ? "/laboratory-configuration/media"
+                                        : act.entityType === "Cryovial"
+                                        ? "/laboratory-configuration/cryovials"
+                                        : null;
+
+                                    return (
+                                      <Tooltip title="View Activity / Test Workspace">
+                                        <IconButton
+                                          {...(targetRoute ? { component: Link, to: targetRoute } : {})}
+                                          size="small"
+                                          color="primary"
+                                        >
+                                          <VisibilityIcon fontSize="small" />
+                                        </IconButton>
+                                      </Tooltip>
+                                    );
+                                  })()}
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                        </TableBody>
+                      </Table>
+                    </TableContainer>
+                    <TablePagination
+                      component="div"
+                      count={activities.length}
+                      page={activitiesPage}
+                      onPageChange={(_, newPage) => setActivitiesPage(newPage)}
+                      rowsPerPage={activitiesRowsPerPage}
+                      onRowsPerPageChange={(e) => {
+                        setActivitiesRowsPerPage(parseInt(e.target.value, 10));
+                        setActivitiesPage(0);
+                      }}
+                      rowsPerPageOptions={[15, 30, 50]}
+                      sx={{ borderTop: "1px solid", borderColor: "divider" }}
+                    />
+                  </>
                 )}
               </Paper>
 
               {/* Date-to-Date Activity History Search */}
-              <Paper sx={{ p: 2.5, borderRadius: 2, border: "1px solid #e5e7eb" }}>
+              <Paper sx={{ p: 2.5, borderRadius: 2, border: "1px solid", borderColor: "divider" }}>
                 <Stack spacing={2}>
                   <Stack direction="row" alignItems="center" spacing={1}>
                     <HistoryIcon color="action" />
@@ -443,7 +494,7 @@ export function ActiveEquipmentView({ onOpenDetails }: ActiveEquipmentViewProps)
                     <Box sx={{ mt: 1 }}>
                       <TableContainer>
                         <Table size="small">
-                          <TableHead sx={{ bgcolor: "#f9fafb" }}>
+                          <TableHead sx={{ bgcolor: headerBg }}>
                             <TableRow>
                               <TableCell sx={{ fontSize: 11, fontWeight: 700 }}>Item / Activity</TableCell>
                               <TableCell sx={{ fontSize: 11, fontWeight: 700 }}>Item Code</TableCell>
@@ -464,30 +515,47 @@ export function ActiveEquipmentView({ onOpenDetails }: ActiveEquipmentViewProps)
                                 </TableCell>
                               </TableRow>
                             ) : (
-                              historyResults.map((h) => (
-                                <TableRow key={h.activityId} hover>
-                                  <TableCell sx={{ fontSize: 12, fontWeight: 600 }}>{h.itemName}</TableCell>
-                                  <TableCell sx={{ fontSize: 12, fontFamily: "monospace", fontWeight: 700 }}>{h.itemCode}</TableCell>
-                                  <TableCell sx={{ fontSize: 12 }}>{h.activityType}</TableCell>
-                                  <TableCell sx={{ fontSize: 12 }}>{h.mediaDescription}</TableCell>
-                                  <TableCell sx={{ fontSize: 12 }}>{formatLabDateTime(h.startedOn)}</TableCell>
-                                  <TableCell sx={{ fontSize: 12 }}>
-                                    {h.completedOn ? formatLabDateTime(h.completedOn) : <Chip label="Active" size="small" color="success" sx={{ height: 18, fontSize: 10 }} />}
-                                  </TableCell>
-                                  <TableCell sx={{ fontSize: 12 }}>{h.startedBy}</TableCell>
-                                </TableRow>
-                              ))
+                              historyResults
+                                .slice(historyPage * historyRowsPerPage, historyPage * historyRowsPerPage + historyRowsPerPage)
+                                .map((h) => (
+                                  <TableRow key={h.activityId} hover>
+                                    <TableCell sx={{ fontSize: 12, fontWeight: 600 }}>{h.itemName}</TableCell>
+                                    <TableCell sx={{ fontSize: 12, fontFamily: "monospace", fontWeight: 700 }}>{h.itemCode}</TableCell>
+                                    <TableCell sx={{ fontSize: 12 }}>{h.activityType}</TableCell>
+                                    <TableCell sx={{ fontSize: 12 }}>{h.mediaDescription}</TableCell>
+                                    <TableCell sx={{ fontSize: 12 }}>{formatLabDateTime(h.startedOn)}</TableCell>
+                                    <TableCell sx={{ fontSize: 12 }}>
+                                      {h.completedOn ? formatLabDateTime(h.completedOn) : <Chip label="Active" size="small" color="success" sx={{ height: 18, fontSize: 10 }} />}
+                                    </TableCell>
+                                    <TableCell sx={{ fontSize: 12 }}>{h.startedBy}</TableCell>
+                                  </TableRow>
+                                ))
                             )}
                           </TableBody>
                         </Table>
                       </TableContainer>
+                      {historyResults.length > 0 && (
+                        <TablePagination
+                          component="div"
+                          count={historyResults.length}
+                          page={historyPage}
+                          onPageChange={(_, newPage) => setHistoryPage(newPage)}
+                          rowsPerPage={historyRowsPerPage}
+                          onRowsPerPageChange={(e) => {
+                            setHistoryRowsPerPage(parseInt(e.target.value, 10));
+                            setHistoryPage(0);
+                          }}
+                          rowsPerPageOptions={[15, 30, 50]}
+                          sx={{ borderTop: "1px solid", borderColor: "divider" }}
+                        />
+                      )}
                     </Box>
                   )}
                 </Stack>
               </Paper>
             </Stack>
           ) : (
-            <Paper sx={{ p: 4, textAlign: "center", borderRadius: 2, border: "1px solid #e5e7eb" }}>
+            <Paper sx={{ p: 4, textAlign: "center", borderRadius: 2, border: "1px solid", borderColor: "divider" }}>
               <Typography variant="body1" color="text.secondary">
                 Select an active equipment record from the left panel to inspect its current activities and traceability history.
               </Typography>

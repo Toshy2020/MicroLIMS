@@ -20,7 +20,7 @@ namespace MicroLIMS.Persistence.Migrations
             // already set) were all written before Unit existed, and
             // ResultProjectionService previously hardcoded "CFU/Plate" for every one
             // of them regardless of sampling method - wrong for Water (CFU/mL),
-            // SurfaceAirSample/Swab (CFU/25 sq.cm), and Rinse (CFU/mL). Correct both
+            // SurfaceAirSample/Swab (CFU/25 cm2), and Rinse (CFU/mL). Correct both
             // SampleLocations and the ResultRecords projected from them, using the
             // same mapping as TestWorkflowEngine.DeriveBatchLocationUnit (QC
             // Microbiology Supervisor sign-off, 2026-08-22). Qualitative
@@ -30,8 +30,8 @@ namespace MicroLIMS.Persistence.Migrations
                 UPDATE ""SampleLocations"" sl
                 SET ""Unit"" = CASE
                     WHEN rtc.""TestType"" = 'PassiveAirSample' THEN 'CFU/plate/4 hours'
-                    WHEN rtc.""TestType"" = 'SurfaceAirSample' THEN 'CFU/25 sq.cm'
-                    WHEN mpc.""TestType"" = 'Swab' THEN 'CFU/25 sq.cm'
+                    WHEN rtc.""TestType"" = 'SurfaceAirSample' THEN 'CFU/25 cm2'
+                    WHEN mpc.""TestType"" = 'Swab' THEN 'CFU/25 cm2'
                     WHEN mpc.""TestType"" = 'Rinse' THEN 'CFU/mL'
                     WHEN sl.""WaterSamplingPointId"" IS NOT NULL THEN 'CFU/mL'
                     ELSE NULL

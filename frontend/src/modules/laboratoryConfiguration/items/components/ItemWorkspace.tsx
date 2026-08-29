@@ -25,18 +25,21 @@ import VisibilityIcon from "@mui/icons-material/Visibility";
 import UploadFileIcon from "@mui/icons-material/UploadFile";
 import HistoryIcon from "@mui/icons-material/History";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import RuleIcon from "@mui/icons-material/Rule";
 import { Item } from "../services/ItemService";
 import { CategoryBadge, StatusBadge } from "../../../../components/StatusBadge";
 import { ItemDocumentService, ItemDocumentDto, ItemDocumentType, MaterialDocumentStatus } from "../services/ItemDocumentService";
 import { UploadItemDocumentDialog } from "./UploadItemDocumentDialog";
 import { AuditHistoryDialog } from "../../../../components/AuditHistoryDialog";
+import { ItemSpecificationsSection } from "./ItemSpecificationsSection";
 
 interface ItemWorkspaceProps {
   item: Item;
   onClose: () => void;
+  onItemUpdated?: () => void;
 }
 
-export function ItemWorkspace({ item, onClose }: ItemWorkspaceProps) {
+export function ItemWorkspace({ item, onClose, onItemUpdated }: ItemWorkspaceProps) {
   const theme = useTheme();
   const [activeTab, setActiveTab] = useState(0);
   const [documents, setDocuments] = useState<ItemDocumentDto[]>([]);
@@ -99,6 +102,8 @@ export function ItemWorkspace({ item, onClose }: ItemWorkspaceProps) {
       minute: "2-digit",
     });
   };
+
+  const specsCount = item.specifications?.length ?? 0;
 
   return (
     <Paper
@@ -164,6 +169,10 @@ export function ItemWorkspace({ item, onClose }: ItemWorkspaceProps) {
             sx={{ textTransform: "none", fontWeight: 600, fontSize: 13 }}
           />
           <Tab
+            label={`Specifications (${specsCount})`}
+            sx={{ textTransform: "none", fontWeight: 600, fontSize: 13 }}
+          />
+          <Tab
             label={`Documents & Attachments (${documents.length})`}
             sx={{ textTransform: "none", fontWeight: 600, fontSize: 13 }}
           />
@@ -219,30 +228,63 @@ export function ItemWorkspace({ item, onClose }: ItemWorkspaceProps) {
                 Configuration Summary
               </Typography>
               <Stack spacing={1}>
-                <Box sx={{ display: "flex", justifyContent: "space-between" }}>
+                <Box
+                  sx={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    cursor: "pointer",
+                    p: 0.5,
+                    borderRadius: 1,
+                    "&:hover": { bgcolor: "action.hover" },
+                  }}
+                  onClick={() => setActiveTab(1)}
+                >
                   <Typography variant="body2" sx={{ color: "text.secondary" }}>
                     Assigned Tests:
                   </Typography>
-                  <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                    {item.assignedTests?.length || 0} tests configured
+                  <Typography variant="body2" sx={{ fontWeight: 600, color: "primary.main" }}>
+                    {item.assignedTests?.length || 0} tests configured →
                   </Typography>
                 </Box>
 
-                <Box sx={{ display: "flex", justifyContent: "space-between" }}>
+                <Box
+                  sx={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    cursor: "pointer",
+                    p: 0.5,
+                    borderRadius: 1,
+                    "&:hover": { bgcolor: "action.hover" },
+                  }}
+                  onClick={() => setActiveTab(2)}
+                >
                   <Typography variant="body2" sx={{ color: "text.secondary" }}>
                     Specifications:
                   </Typography>
-                  <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                    {item.specifications?.length || 0} specifications defined
+                  <Typography variant="body2" sx={{ fontWeight: 600, color: "primary.main" }}>
+                    {specsCount} specifications defined →
                   </Typography>
                 </Box>
 
-                <Box sx={{ display: "flex", justifyContent: "space-between" }}>
+                <Box
+                  sx={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    cursor: "pointer",
+                    p: 0.5,
+                    borderRadius: 1,
+                    "&:hover": { bgcolor: "action.hover" },
+                  }}
+                  onClick={() => setActiveTab(3)}
+                >
                   <Typography variant="body2" sx={{ color: "text.secondary" }}>
                     Controlled Documents:
                   </Typography>
-                  <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                    {currentSop ? "SOP Available" : "No SOP"} • {currentVr ? "VR Available" : "No VR"}
+                  <Typography variant="body2" sx={{ fontWeight: 600, color: "primary.main" }}>
+                    {currentSop ? "SOP Available" : "No SOP"} • {currentVr ? "VR Available" : "No VR"} →
                   </Typography>
                 </Box>
               </Stack>
@@ -288,8 +330,18 @@ export function ItemWorkspace({ item, onClose }: ItemWorkspaceProps) {
           </Stack>
         )}
 
-        {/* Tab 2: Documents & Attachments */}
+        {/* Tab 2: Specifications */}
         {activeTab === 2 && (
+          <ItemSpecificationsSection
+            item={item}
+            onSpecsChanged={() => {
+              onItemUpdated?.();
+            }}
+          />
+        )}
+
+        {/* Tab 3: Documents & Attachments */}
+        {activeTab === 3 && (
           <Stack spacing={3}>
             {docError && <Alert severity="error">{docError}</Alert>}
 
@@ -403,8 +455,8 @@ export function ItemWorkspace({ item, onClose }: ItemWorkspaceProps) {
           </Stack>
         )}
 
-        {/* Tab 3: Audit History */}
-        {activeTab === 3 && (
+        {/* Tab 4: Audit History */}
+        {activeTab === 4 && (
           <Stack spacing={2} alignItems="flex-start">
             <Typography variant="body2" sx={{ color: "text.secondary" }}>
               View full GxP audit log history for Item <strong>{item.name}</strong> ({item.code}).

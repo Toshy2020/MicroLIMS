@@ -34,5 +34,10 @@ export const ReceiveService = {
   async assignAnalyst(sampleId: number, analystUserId: number | null, reason?: string): Promise<SampleRecord> {
     const res = await apiClient.put(`/samples/${sampleId}/assign-analyst`, { analystUserId, reason });
     return res.data.data;
+  },
+
+  async voidSample(sampleId: number, reason: string): Promise<SampleRecord> {
+    const res = await apiClient.post(`/samples/${sampleId}/void`, { reason });
+    return res.data.data;
   }
 };

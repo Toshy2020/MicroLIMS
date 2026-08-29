@@ -27,11 +27,6 @@ public class PathogenMultiLocationConfirmationTests
         var organism = new Organism { Id = 1, ScientificName = "Salmonella enterica" };
         db.Organisms.Add(organism);
 
-        // Seed MediaTypes
-        var brothType = new MediaType { Id = 1, Class = MediaClass.GeneralBroth, IncubationMinHours = 18, IncubationMaxHours = 24, RequiredTemperatureMin = 30, RequiredTemperatureMax = 35 };
-        var agarType = new MediaType { Id = 2, Class = MediaClass.SelectiveAgar, IncubationMinHours = 18, IncubationMaxHours = 24, RequiredTemperatureMin = 35, RequiredTemperatureMax = 37 };
-        db.MediaTypes.AddRange(brothType, agarType);
-
         // Seed Materials
         var tsbMat = new Material { Id = 10, MaterialName = "Tryptic Soy Broth", MaterialType = MaterialType.DehydratedMedia };
         var xldMat = new Material { Id = 101, MaterialName = "XLD Agar", MaterialType = MaterialType.DehydratedMedia };
@@ -41,8 +36,6 @@ public class PathogenMultiLocationConfirmationTests
         var tsbMedia = new Media
         {
             Id = 20,
-            MediaTypeId = 1,
-            MediaType = brothType,
             MaterialId = 10,
             Material = tsbMat,
             LotNumber = "TSB-LOT-01",
@@ -66,15 +59,15 @@ public class PathogenMultiLocationConfirmationTests
             WorkflowType = WorkflowType.Observation,
             Steps = new List<TestWorkflowStep>
             {
-                new() { StepOrder = 1, StepName = "TSB Enrichment", StepType = StepType.BrothEnrichment, MediaTypeId = 1, MediaType = brothType, IncubationMinHours = 18, IncubationMaxHours = 24, TemperatureMin = 30, TemperatureMax = 35 },
-                new() { StepOrder = 2, StepName = "Selective Plating (XLD)", StepType = StepType.SelectivePlating, MediaTypeId = 2, MediaType = agarType, IncubationMinHours = 18, IncubationMaxHours = 24, TemperatureMin = 35, TemperatureMax = 37, TargetOrganismId = 1 },
+                new() { StepOrder = 1, StepName = "TSB Enrichment", StepType = StepType.BrothEnrichment, IncubationMinHours = 18, IncubationMaxHours = 24, TemperatureMin = 30, TemperatureMax = 35 },
+                new() { StepOrder = 2, StepName = "Selective Plating (XLD)", StepType = StepType.SelectivePlating, IncubationMinHours = 18, IncubationMaxHours = 24, TemperatureMin = 35, TemperatureMax = 37, TargetOrganismId = 1 },
                 new()
                 {
                     StepOrder = 3,
                     StepName = "Confirmatory Plating",
                     StepType = StepType.ConfirmatoryPlating,
-                    MediaTypeId = 2,
-                    MediaType = agarType,
+                    
+                    
                     IncubationMinHours = 18,
                     IncubationMaxHours = 24,
                     TemperatureMin = 35,

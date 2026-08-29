@@ -2,20 +2,21 @@ import React from "react";
 import { Box, Paper, Typography, Grid, useTheme } from "@mui/material";
 import Inventory2OutlinedIcon from "@mui/icons-material/Inventory2Outlined";
 import ScienceOutlinedIcon from "@mui/icons-material/ScienceOutlined";
-import RateReviewOutlinedIcon from "@mui/icons-material/RateReviewOutlined";
-import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
-import CancelOutlinedIcon from "@mui/icons-material/CancelOutlined";
-import BlockOutlinedIcon from "@mui/icons-material/BlockOutlined";
+import InventoryOutlinedIcon from "@mui/icons-material/InventoryOutlined";
+import WaterDropOutlinedIcon from "@mui/icons-material/WaterDropOutlined";
+import CleaningServicesOutlinedIcon from "@mui/icons-material/CleaningServicesOutlined";
+import SensorsOutlinedIcon from "@mui/icons-material/SensorsOutlined";
 import { SampleRecord } from "../types/receivingTypes";
 import { StatusTone } from "../../../theme/statusTokens";
 
 export type KpiFilterKey =
   | "ALL"
-  | "InTesting"
-  | "PendingReview"
-  | "Approved"
-  | "Rejected"
-  | "CancelledVoided";
+  | "Product"
+  | "RM"
+  | "PM"
+  | "Water"
+  | "Aftercleaning"
+  | "EM";
 
 interface Props {
   samples: SampleRecord[];
@@ -33,30 +34,31 @@ interface KpiCardConfig {
 
 export function SampleStatusKpiCards({ samples, activeKpi, onSelectKpi }: Props) {
   const theme = useTheme();
-  const totalCount = samples.length;
-  const underTestingCount = samples.filter((s) => s.status === "InTesting").length;
-  const pendingReviewCount = samples.filter(
-    (s) => s.status === "UnderReview" || s.status === "UnderApproval" || s.status === "PendingReview"
+
+  const productCount = samples.filter((s) => s.category === "FinishedProduct" || s.category === "Product").length;
+  const rmCount = samples.filter((s) => s.category === "RawMaterial" || s.category === "RM").length;
+  const pmCount = samples.filter((s) => s.category === "PackagingMaterial" || s.category === "PM").length;
+  const waterCount = samples.filter((s) => s.category === "Water").length;
+  const acCount = samples.filter(
+    (s) => s.category === "AfterCleaning" || s.category === "Aftercleaning" || s.category === "AC"
   ).length;
-  const approvedCount = samples.filter((s) => s.status === "Approved").length;
-  const rejectedCount = samples.filter((s) => s.status === "Rejected").length;
-  const cancelledVoidedCount = samples.filter(
-    (s) => s.status === "RetestRequested" || s.status === "Cancelled" || s.status === "Voided"
+  const emCount = samples.filter(
+    (s) => s.category === "EnvironmentalMonitoring" || s.category === "EM"
   ).length;
 
   const cards: KpiCardConfig[] = [
-    { key: "ALL", label: "Total Samples", count: totalCount, icon: <Inventory2OutlinedIcon sx={{ fontSize: 20 }} />, tone: "purple" },
-    { key: "InTesting", label: "Under Testing", count: underTestingCount, icon: <ScienceOutlinedIcon sx={{ fontSize: 20 }} />, tone: "info" },
-    { key: "PendingReview", label: "Pending Review", count: pendingReviewCount, icon: <RateReviewOutlinedIcon sx={{ fontSize: 20 }} />, tone: "action" },
-    { key: "Approved", label: "Approved", count: approvedCount, icon: <CheckCircleOutlineIcon sx={{ fontSize: 20 }} />, tone: "notDetected" },
-    { key: "Rejected", label: "Rejected", count: rejectedCount, icon: <CancelOutlinedIcon sx={{ fontSize: 20 }} />, tone: "detected" },
-    { key: "CancelledVoided", label: "Cancelled / Voided", count: cancelledVoidedCount, icon: <BlockOutlinedIcon sx={{ fontSize: 20 }} />, tone: "pending" }
+    { key: "Product", label: "Product", count: productCount, icon: <Inventory2OutlinedIcon sx={{ fontSize: 20 }} />, tone: "purple" },
+    { key: "RM", label: "RM", count: rmCount, icon: <ScienceOutlinedIcon sx={{ fontSize: 20 }} />, tone: "info" },
+    { key: "PM", label: "PM", count: pmCount, icon: <InventoryOutlinedIcon sx={{ fontSize: 20 }} />, tone: "action" },
+    { key: "Water", label: "Water", count: waterCount, icon: <WaterDropOutlinedIcon sx={{ fontSize: 20 }} />, tone: "info" },
+    { key: "Aftercleaning", label: "Aftercleaning", count: acCount, icon: <CleaningServicesOutlinedIcon sx={{ fontSize: 20 }} />, tone: "detected" },
+    { key: "EM", label: "EM", count: emCount, icon: <SensorsOutlinedIcon sx={{ fontSize: 20 }} />, tone: "notDetected" }
   ];
 
   return (
     <Grid container spacing={1.5} sx={{ mb: 2.5 }}>
       {cards.map((card) => {
-        const isActive = activeKpi === card.key || (card.key === "ALL" && !activeKpi);
+        const isActive = activeKpi === card.key;
         const iconTokens = theme.custom.status[card.tone];
         const activeTokens = theme.custom.status.purple;
         return (

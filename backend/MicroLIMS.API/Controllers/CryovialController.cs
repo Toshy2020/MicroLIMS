@@ -8,7 +8,7 @@ namespace MicroLIMS.API.Controllers;
 
 public record IdentityConfirmationRowRequest(int MediaId, int IncubatorEquipmentId, DateTime IncubationStart, DateTime IncubationEnd, string ObservationText);
 public record PrepareCryovialsHttpRequest(
-    int MaterialId, int NumberOfVialsPrepared, DateTime ExpiryDate, string StorageCondition, string PhysicalCheckText,
+    int MaterialId, int NumberOfVialsPrepared, DateTime ExpiryDate, string StorageCondition, bool PhysicalCheckConfirmed, string PhysicalCheckText,
     List<IdentityConfirmationRowRequest> Panel, int DiscsUsed);
 public record ApproveRequest(bool Approved, string Password, string? Comment);
 public record ThawVialRequest(string? Notes);
@@ -38,7 +38,7 @@ public class CryovialController : ControllerBase
     [HttpPost("prepare")]
     public async Task<IActionResult> PrepareCryovials(PrepareCryovialsHttpRequest r) =>
         Ok(ApiResponse<object>.Ok(await _service.PrepareCryovialsAsync(new PrepareCryovialsRequest(
-            r.MaterialId, r.NumberOfVialsPrepared, r.ExpiryDate, r.StorageCondition, r.PhysicalCheckText,
+            r.MaterialId, r.NumberOfVialsPrepared, r.ExpiryDate, r.StorageCondition, r.PhysicalCheckConfirmed, r.PhysicalCheckText,
             r.Panel.Select(p => new IdentityConfirmationRow(p.MediaId, p.IncubatorEquipmentId, p.IncubationStart, p.IncubationEnd, p.ObservationText)).ToList(),
             r.DiscsUsed, CurrentUserId))));
 

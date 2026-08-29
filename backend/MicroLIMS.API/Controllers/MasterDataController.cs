@@ -14,38 +14,41 @@ public record CreateWaterSamplingPointRequest(string Code, string Location, stri
 public record UpdateWaterSamplingPointRequest(string Code, string Location, string TestingFrequency, List<string> AssignedTestCodes, int? WaterDepartmentId);
 public record CreateWaterDepartmentRequest(string Name);
 public record UpdateWaterDepartmentRequest(string Name);
-public record CreateWaterSamplingConfigRequest(int WaterSamplingPointId, string TestCode, string AlertLimit, string ActionLimit, string SpecLimit);
-public record UpdateWaterSamplingConfigRequest(string TestCode, string AlertLimit, string ActionLimit, string SpecLimit);
+public record CreateWaterSamplingConfigRequest(int WaterSamplingPointId, string TestCode, string AlertLimit, string ActionLimit, string SpecLimit, string? Unit = null);
+public record UpdateWaterSamplingConfigRequest(string TestCode, string AlertLimit, string ActionLimit, string SpecLimit, string? Unit = null);
 public record CreateDepartmentRequest(string Name, string Class, string TestingFrequency);
 public record CreateRoomRequest(string Name, int DepartmentId, string GradeClassification);
 public record UpdateDepartmentRequest(string Name, string Class, string TestingFrequency);
 public record UpdateRoomRequest(string Name, int DepartmentId, string GradeClassification);
-public record UpdateRoomTestConfigRequest(string TestType, string TestCode, string AlertLimit, string ActionLimit, string SpecLimit);
+public record UpdateRoomTestConfigRequest(string TestType, string TestCode, string AlertLimit, string ActionLimit, string SpecLimit, string? Unit = null);
 public record CreateMachineRequest(string Name);
 public record UpdateMachineRequest(string Name);
 public record CreateMachinePartRequest(string Name, int MachineId);
 public record UpdateMachinePartRequest(string Name, int MachineId);
-public record UpdateMachinePartConfigRequest(string TestType, string TestCode, string AlertLimit, string ActionLimit, string SpecLimit, bool IsPathogenTest);
-public record CreateSpecificationRequest(int ItemId, string TestCode, string AlertLimit, string ActionLimit, string SpecLimit);
-public record UpdateSpecificationRequest(string TestCode, string AlertLimit, string ActionLimit, string SpecLimit);
-public record CreateDiluentTypeRequest(string Name, bool RequiresBatchTracking, int? MediaTypeId);
+public record UpdateMachinePartConfigRequest(string TestType, string TestCode, string AlertLimit, string ActionLimit, string SpecLimit, bool IsPathogenTest, string? Unit = null);
+public record CreateSpecificationRequest(int ItemId, string TestCode, string AlertLimit, string ActionLimit, string SpecLimit, string? Unit = null);
+public record UpdateSpecificationRequest(string TestCode, string AlertLimit, string ActionLimit, string SpecLimit, string? Unit = null);
+public record CreateDiluentTypeRequest(string Name, bool RequiresBatchTracking, int? MaterialId);
 public record CreateEquipmentRequest(string Name, string Code, EquipmentType Type, string? Location, decimal? SetPointTemperature, DateTime? CalibrationDueDate);
-public record UpdateMediaTypeRequest(int IncubationMinHours, int IncubationMaxHours, decimal RequiredTemperatureMin, decimal RequiredTemperatureMax, List<string> ApprovedTestCodes, decimal? RecoveryPercentMin, decimal? RecoveryPercentMax);
-public record CreateRoomTestConfigRequest(int RoomId, string TestType, string TestCode, string AlertLimit, string ActionLimit, string SpecLimit);
-public record CreateMachinePartConfigRequest(int MachinePartId, string TestType, string TestCode, string AlertLimit, string ActionLimit, string SpecLimit, bool IsPathogenTest);
-public record CreateMediaChallengeSpecRequest(string MaterialName, EvaluationType EvaluationType, int OrganismId, ChallengeRole? ChallengeRole, string? ExpectedDescription);
-public record UpdateMediaChallengeSpecRequest(string MaterialName, EvaluationType EvaluationType, int OrganismId, ChallengeRole? ChallengeRole, string? ExpectedDescription);
-public record CreateOrganismRequest(string ScientificName, string? AtccNumber, string? CommonName);
-public record UpdateOrganismRequest(string ScientificName, string? AtccNumber, string? CommonName);
+public record CreateRoomTestConfigRequest(int RoomId, string TestType, string TestCode, string AlertLimit, string ActionLimit, string SpecLimit, string? Unit = null);
+public record CreateMachinePartConfigRequest(int MachinePartId, string TestType, string TestCode, string AlertLimit, string ActionLimit, string SpecLimit, bool IsPathogenTest, string? Unit = null);
+public record CreateMediaConfigurationChallengeRequest(int OrganismId, ChallengeRole? ChallengeRole, string? ExpectedDescription, string? InitialInoculum);
+public record CreateMediaConfigurationRequest(string Name, EvaluationType EvaluationType, int IncubationMinHours, int IncubationMaxHours, decimal TemperatureMin, decimal TemperatureMax, decimal? RecoveryPercentMin, decimal? RecoveryPercentMax, List<CreateMediaConfigurationChallengeRequest>? Challenges);
+public record UpdateMediaConfigurationRequest(string Name, EvaluationType EvaluationType, int IncubationMinHours, int IncubationMaxHours, decimal TemperatureMin, decimal TemperatureMax, decimal? RecoveryPercentMin, decimal? RecoveryPercentMax, List<CreateMediaConfigurationChallengeRequest>? Challenges);
+public record CreateOrganismRequest(string ScientificName, string? AtccNumber, string? CommonName, string? Description);
+public record UpdateOrganismRequest(string ScientificName, string? AtccNumber, string? CommonName, string? Description);
 public record CreateTestDefinitionRequest(string Code, string DisplayName);
 public record UpdateTestDefinitionRequest(string Code, string DisplayName);
-public record CreateTestDefinitionMediaRequest(int TestDefinitionId, int MediaTypeId, string? StepName);
-public record UpdateTestDefinitionMediaRequest(int MediaTypeId, string? StepName);
 public record UpdateWorkflowTypeRequest(WorkflowType WorkflowType);
-public record StepMediaRequest(int MaterialId, decimal TempMin, decimal TempMax, bool IsRequired, int DisplayOrder);
+public record StepMediaRequest(int MaterialId, decimal TempMin, decimal TempMax, bool IsRequired, int DisplayOrder, int? MediaConfigurationId, int IncubationMinHours, int IncubationMaxHours);
 public record IncubationStageRequest(int StageNumber, decimal TempMin, decimal TempMax, int IncubationMinHours, int IncubationMaxHours);
-public record CreateTestWorkflowStepRequest(string StepName, int? MediaTypeId, int IncubationMinHours, int IncubationMaxHours, decimal TemperatureMin, decimal TemperatureMax, bool IsFinalStep, StepType StepType, int? TargetOrganismId, List<StepMediaRequest> StepMedia, bool RequiresIncubationTransfer, List<IncubationStageRequest>? IncubationStages, int? ConfirmatoryMediaCount, PhenotypicTestType? PhenotypicTestType);
-public record UpdateTestWorkflowStepRequest(string StepName, int? MediaTypeId, int IncubationMinHours, int IncubationMaxHours, decimal TemperatureMin, decimal TemperatureMax, bool IsFinalStep, StepType StepType, int? TargetOrganismId, List<StepMediaRequest> StepMedia, bool RequiresIncubationTransfer, List<IncubationStageRequest>? IncubationStages, int? ConfirmatoryMediaCount, PhenotypicTestType? PhenotypicTestType);
+// PhenotypicTestType (single) is kept alongside the new PhenotypicTestTypes
+// list for backward compatibility - an older client sending only the single
+// field still works. When the list is supplied, it drives the step's
+// bundled phenotypic tests; the single field is still stored too (whatever
+// the client sends) since some existing chained-step templates rely on it.
+public record CreateTestWorkflowStepRequest(string StepName, int IncubationMinHours, int IncubationMaxHours, decimal TemperatureMin, decimal TemperatureMax, bool IsFinalStep, StepType StepType, int? TargetOrganismId, List<StepMediaRequest> StepMedia, bool RequiresIncubationTransfer, List<IncubationStageRequest>? IncubationStages, int? ConfirmatoryMediaCount, PhenotypicTestType? PhenotypicTestType, List<PhenotypicTestType>? PhenotypicTestTypes = null);
+public record UpdateTestWorkflowStepRequest(string StepName, int IncubationMinHours, int IncubationMaxHours, decimal TemperatureMin, decimal TemperatureMax, bool IsFinalStep, StepType StepType, int? TargetOrganismId, List<StepMediaRequest> StepMedia, bool RequiresIncubationTransfer, List<IncubationStageRequest>? IncubationStages, int? ConfirmatoryMediaCount, PhenotypicTestType? PhenotypicTestType, List<PhenotypicTestType>? PhenotypicTestTypes = null);
 public record MoveTestWorkflowStepRequest(string Direction);
 
 // Backs the Items Master's category-dependent dynamic forms: Product ->
@@ -189,7 +192,8 @@ public class MasterDataController : ControllerBase
         var entity = new SamplingConfiguration
         {
             WaterSamplingPointId = request.WaterSamplingPointId, TestCode = request.TestCode,
-            AlertLimit = request.AlertLimit, ActionLimit = request.ActionLimit, SpecLimit = request.SpecLimit
+            AlertLimit = request.AlertLimit, ActionLimit = request.ActionLimit, SpecLimit = request.SpecLimit,
+            Unit = request.Unit ?? string.Empty
         };
         _db.SamplingConfigurations.Add(entity);
         await _db.SaveChangesAsync();
@@ -206,6 +210,7 @@ public class MasterDataController : ControllerBase
         entity.AlertLimit = request.AlertLimit;
         entity.ActionLimit = request.ActionLimit;
         entity.SpecLimit = request.SpecLimit;
+        entity.Unit = request.Unit ?? string.Empty;
         await _db.SaveChangesAsync();
         return Ok(ApiResponse<object>.Ok(entity));
     }
@@ -446,7 +451,8 @@ public class MasterDataController : ControllerBase
         var spec = new Specification
         {
             ItemId = request.ItemId, TestCode = request.TestCode,
-            AlertLimit = request.AlertLimit, ActionLimit = request.ActionLimit, SpecLimit = request.SpecLimit
+            AlertLimit = request.AlertLimit, ActionLimit = request.ActionLimit, SpecLimit = request.SpecLimit,
+            Unit = request.Unit ?? string.Empty
         };
         _db.Specifications.Add(spec);
         await _db.SaveChangesAsync();
@@ -463,6 +469,7 @@ public class MasterDataController : ControllerBase
         spec.AlertLimit = request.AlertLimit;
         spec.ActionLimit = request.ActionLimit;
         spec.SpecLimit = request.SpecLimit;
+        spec.Unit = request.Unit ?? string.Empty;
         await _db.SaveChangesAsync();
         return Ok(ApiResponse<object>.Ok(spec));
     }
@@ -503,7 +510,7 @@ public class MasterDataController : ControllerBase
     [HttpPost("diluent-types")]
     public async Task<IActionResult> CreateDiluentType(CreateDiluentTypeRequest request)
     {
-        var entity = new DiluentType { Name = request.Name, RequiresBatchTracking = request.RequiresBatchTracking, MediaTypeId = request.MediaTypeId };
+        var entity = new DiluentType { Name = request.Name, RequiresBatchTracking = request.RequiresBatchTracking, MaterialId = request.MaterialId };
         _db.DiluentTypes.Add(entity);
         await _db.SaveChangesAsync();
         return Ok(ApiResponse<object>.Ok(entity));
@@ -636,31 +643,6 @@ public class MasterDataController : ControllerBase
         return Ok(ApiResponse<object>.Ok(entity));
     }
 
-    // ---- Media Types (fixed set - one row per MediaClass, see MediaType.cs) ----
-    [HttpGet("media-types")]
-    public async Task<IActionResult> GetMediaTypes() => Ok(ApiResponse<object>.Ok(await _db.MediaTypes.ToListAsync()));
-
-    [Authorize(Roles = RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
-    [HttpPut("media-types/{id}")]
-    public async Task<IActionResult> UpdateMediaType(int id, UpdateMediaTypeRequest request)
-    {
-        var entity = await _db.MediaTypes.FirstOrDefaultAsync(m => m.Id == id)
-            ?? throw new InvalidOperationException($"Media type {id} not found.");
-
-        entity.IncubationMinHours = request.IncubationMinHours;
-        entity.IncubationMaxHours = request.IncubationMaxHours;
-        entity.RequiredTemperatureMin = request.RequiredTemperatureMin;
-        entity.RequiredTemperatureMax = request.RequiredTemperatureMax;
-        entity.ApprovedTestCodes = request.ApprovedTestCodes;
-        // Recovery% band only applies to General Agar - never trust the
-        // client to have left these null for other classes.
-        entity.RecoveryPercentMin = entity.Class == MediaClass.GeneralAgar ? request.RecoveryPercentMin : null;
-        entity.RecoveryPercentMax = entity.Class == MediaClass.GeneralAgar ? request.RecoveryPercentMax : null;
-
-        await _db.SaveChangesAsync();
-        return Ok(ApiResponse<object>.Ok(entity));
-    }
-
     // ---- Room Test Configurations (EM) ----
     [HttpGet("room-test-configurations")]
     public async Task<IActionResult> GetRoomTestConfigurations([FromQuery] int roomId) =>
@@ -673,7 +655,8 @@ public class MasterDataController : ControllerBase
         var entity = new RoomTestConfiguration
         {
             RoomId = request.RoomId, TestType = request.TestType, TestCode = request.TestCode,
-            AlertLimit = request.AlertLimit, ActionLimit = request.ActionLimit, SpecLimit = request.SpecLimit
+            AlertLimit = request.AlertLimit, ActionLimit = request.ActionLimit, SpecLimit = request.SpecLimit,
+            Unit = request.Unit ?? string.Empty
         };
         _db.RoomTestConfigurations.Add(entity);
         await _db.SaveChangesAsync();
@@ -691,6 +674,7 @@ public class MasterDataController : ControllerBase
         entity.AlertLimit = request.AlertLimit;
         entity.ActionLimit = request.ActionLimit;
         entity.SpecLimit = request.SpecLimit;
+        entity.Unit = request.Unit ?? string.Empty;
         await _db.SaveChangesAsync();
         return Ok(ApiResponse<object>.Ok(entity));
     }
@@ -721,7 +705,8 @@ public class MasterDataController : ControllerBase
         {
             MachinePartId = request.MachinePartId, TestType = request.TestType, TestCode = request.TestCode,
             AlertLimit = request.AlertLimit, ActionLimit = request.ActionLimit, SpecLimit = request.SpecLimit,
-            IsPathogenTest = request.IsPathogenTest
+            IsPathogenTest = request.IsPathogenTest,
+            Unit = request.Unit ?? string.Empty
         };
         _db.MachinePartConfigurations.Add(entity);
         await _db.SaveChangesAsync();
@@ -740,6 +725,7 @@ public class MasterDataController : ControllerBase
         entity.ActionLimit = request.ActionLimit;
         entity.SpecLimit = request.SpecLimit;
         entity.IsPathogenTest = request.IsPathogenTest;
+        entity.Unit = request.Unit ?? string.Empty;
         await _db.SaveChangesAsync();
         return Ok(ApiResponse<object>.Ok(entity));
     }
@@ -757,60 +743,320 @@ public class MasterDataController : ControllerBase
         return Ok(ApiResponse<object>.Ok(new { }));
     }
 
-    // ---- Media Challenge Specs (Media Evaluation master data) ----
-    [HttpGet("media-challenge-specs")]
-    public async Task<IActionResult> GetMediaChallengeSpecs([FromQuery] string? materialName, [FromQuery] EvaluationType? evaluationType)
+    // ---- Media Configurations (Media Configuration Migration) ----
+    [HttpGet("media-configurations")]
+    public async Task<IActionResult> GetMediaConfigurations()
     {
-        var query = _db.MediaChallengeSpecs.Include(s => s.Organism).AsQueryable();
-        if (!string.IsNullOrWhiteSpace(materialName)) query = query.Where(s => s.MaterialName == materialName);
-        if (evaluationType.HasValue) query = query.Where(s => s.EvaluationType == evaluationType.Value);
-        return Ok(ApiResponse<object>.Ok(await query.ToListAsync()));
+        var configs = await _db.MediaConfigurations
+            .Include(m => m.Challenges)
+            .ThenInclude(c => c.Organism)
+            .OrderBy(m => m.Name)
+            .ThenBy(m => m.IncubationMinHours)
+            .Select(m => new
+            {
+                m.Id,
+                m.Name,
+                m.EvaluationType,
+                m.IncubationMinHours,
+                m.IncubationMaxHours,
+                m.TemperatureMin,
+                m.TemperatureMax,
+                m.RecoveryPercentMin,
+                m.RecoveryPercentMax,
+                Challenges = m.Challenges.Select(c => new
+                {
+                    c.Id,
+                    c.MediaConfigurationId,
+                    c.OrganismId,
+                    c.ChallengeRole,
+                    c.ExpectedDescription,
+                    c.InitialInoculum,
+                    Organism = c.Organism == null ? null : new
+                    {
+                        c.Organism.Id,
+                        c.Organism.ScientificName,
+                        c.Organism.AtccNumber,
+                        c.Organism.CommonName
+                    }
+                }).ToList()
+            })
+            .ToListAsync();
+
+        return Ok(ApiResponse<object>.Ok(configs));
     }
 
     [Authorize(Roles = RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
-    [HttpPost("media-challenge-specs")]
-    public async Task<IActionResult> CreateMediaChallengeSpec(CreateMediaChallengeSpecRequest request)
+    [HttpPost("media-configurations")]
+    public async Task<IActionResult> CreateMediaConfiguration(CreateMediaConfigurationRequest request)
     {
-        var entity = new MediaChallengeSpec
+        if (string.IsNullOrWhiteSpace(request.Name))
+            throw new InvalidOperationException("Media configuration name is required.");
+
+        if (!Enum.IsDefined(typeof(EvaluationType), request.EvaluationType))
+            throw new InvalidOperationException("Valid evaluation type is required.");
+
+        if (request.IncubationMinHours < 0)
+            throw new InvalidOperationException("Incubation min hours cannot be negative.");
+
+        if (request.IncubationMinHours > request.IncubationMaxHours)
+            throw new InvalidOperationException("Incubation min hours cannot exceed incubation max hours.");
+
+        if (request.TemperatureMin > request.TemperatureMax)
+            throw new InvalidOperationException("Temperature min cannot exceed temperature max.");
+
+        if (request.EvaluationType == EvaluationType.GrowthPromotion)
         {
-            MaterialName = request.MaterialName, EvaluationType = request.EvaluationType, OrganismId = request.OrganismId,
-            ChallengeRole = request.ChallengeRole, ExpectedDescription = request.ExpectedDescription
+            if (request.RecoveryPercentMin.HasValue && request.RecoveryPercentMax.HasValue &&
+                request.RecoveryPercentMin > request.RecoveryPercentMax)
+            {
+                throw new InvalidOperationException("Recovery percent min cannot exceed recovery percent max.");
+            }
+        }
+
+        var exists = await _db.MediaConfigurations.AnyAsync(m =>
+            m.Name == request.Name.Trim() &&
+            m.IncubationMinHours == request.IncubationMinHours &&
+            m.IncubationMaxHours == request.IncubationMaxHours &&
+            m.TemperatureMin == request.TemperatureMin &&
+            m.TemperatureMax == request.TemperatureMax);
+
+        if (exists)
+        {
+            throw new InvalidOperationException(
+                $"A media configuration for '{request.Name.Trim()}' with incubation {request.IncubationMinHours}–{request.IncubationMaxHours}h and temperature {request.TemperatureMin}–{request.TemperatureMax}°C already exists.");
+        }
+
+        var entity = new MediaConfiguration
+        {
+            Name = request.Name.Trim(),
+            EvaluationType = request.EvaluationType,
+            IncubationMinHours = request.IncubationMinHours,
+            IncubationMaxHours = request.IncubationMaxHours,
+            TemperatureMin = request.TemperatureMin,
+            TemperatureMax = request.TemperatureMax,
+            RecoveryPercentMin = request.EvaluationType == EvaluationType.GrowthPromotion ? request.RecoveryPercentMin : null,
+            RecoveryPercentMax = request.EvaluationType == EvaluationType.GrowthPromotion ? request.RecoveryPercentMax : null
         };
-        _db.MediaChallengeSpecs.Add(entity);
+
+        if (request.Challenges != null && request.Challenges.Count > 0)
+        {
+            foreach (var ch in request.Challenges)
+            {
+                var organismExists = await _db.Organisms.AnyAsync(o => o.Id == ch.OrganismId);
+                if (!organismExists)
+                    throw new InvalidOperationException($"Organism with ID {ch.OrganismId} not found.");
+
+                if (request.EvaluationType == EvaluationType.IndicationInhibition)
+                {
+                    if (!ch.ChallengeRole.HasValue || !Enum.IsDefined(typeof(ChallengeRole), ch.ChallengeRole.Value))
+                        throw new InvalidOperationException("Challenge role is required for Indication/Inhibition evaluation.");
+                }
+
+                entity.Challenges.Add(new MediaConfigurationChallenge
+                {
+                    OrganismId = ch.OrganismId,
+                    ChallengeRole = request.EvaluationType == EvaluationType.IndicationInhibition ? ch.ChallengeRole : null,
+                    ExpectedDescription = (request.EvaluationType == EvaluationType.IndicationInhibition && ch.ChallengeRole == ChallengeRole.Indication)
+                        ? ch.ExpectedDescription
+                        : null,
+                    InitialInoculum = string.IsNullOrWhiteSpace(ch.InitialInoculum) ? null : ch.InitialInoculum.Trim()
+                });
+            }
+        }
+
+        _db.MediaConfigurations.Add(entity);
         await _db.SaveChangesAsync();
-        return Ok(ApiResponse<object>.Ok(entity));
+
+        var created = new
+        {
+            entity.Id,
+            entity.Name,
+            entity.EvaluationType,
+            entity.IncubationMinHours,
+            entity.IncubationMaxHours,
+            entity.TemperatureMin,
+            entity.TemperatureMax,
+            entity.RecoveryPercentMin,
+            entity.RecoveryPercentMax,
+            Challenges = entity.Challenges.Select(c => new
+            {
+                c.Id,
+                c.MediaConfigurationId,
+                c.OrganismId,
+                c.ChallengeRole,
+                c.ExpectedDescription,
+                c.InitialInoculum
+            }).ToList()
+        };
+
+        return Ok(ApiResponse<object>.Ok(created));
     }
 
     [Authorize(Roles = RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
-    [HttpPut("media-challenge-specs/{id}")]
-    public async Task<IActionResult> UpdateMediaChallengeSpec(int id, UpdateMediaChallengeSpecRequest request)
+    [HttpPut("media-configurations/{id}")]
+    public async Task<IActionResult> UpdateMediaConfiguration(int id, UpdateMediaConfigurationRequest request)
     {
-        var entity = await _db.MediaChallengeSpecs.FirstOrDefaultAsync(s => s.Id == id)
-            ?? throw new InvalidOperationException($"Challenge spec {id} not found.");
+        var entity = await _db.MediaConfigurations
+            .Include(m => m.Challenges)
+            .FirstOrDefaultAsync(m => m.Id == id)
+            ?? throw new InvalidOperationException($"Media configuration {id} not found.");
 
-        entity.MaterialName = request.MaterialName;
+        if (string.IsNullOrWhiteSpace(request.Name))
+            throw new InvalidOperationException("Media configuration name is required.");
+
+        if (!Enum.IsDefined(typeof(EvaluationType), request.EvaluationType))
+            throw new InvalidOperationException("Valid evaluation type is required.");
+
+        if (request.IncubationMinHours < 0)
+            throw new InvalidOperationException("Incubation min hours cannot be negative.");
+
+        if (request.IncubationMinHours > request.IncubationMaxHours)
+            throw new InvalidOperationException("Incubation min hours cannot exceed incubation max hours.");
+
+        if (request.TemperatureMin > request.TemperatureMax)
+            throw new InvalidOperationException("Temperature min cannot exceed temperature max.");
+
+        if (request.EvaluationType == EvaluationType.GrowthPromotion)
+        {
+            if (request.RecoveryPercentMin.HasValue && request.RecoveryPercentMax.HasValue &&
+                request.RecoveryPercentMin > request.RecoveryPercentMax)
+            {
+                throw new InvalidOperationException("Recovery percent min cannot exceed recovery percent max.");
+            }
+        }
+
+        var exists = await _db.MediaConfigurations.AnyAsync(m =>
+            m.Id != id &&
+            m.Name == request.Name.Trim() &&
+            m.IncubationMinHours == request.IncubationMinHours &&
+            m.IncubationMaxHours == request.IncubationMaxHours &&
+            m.TemperatureMin == request.TemperatureMin &&
+            m.TemperatureMax == request.TemperatureMax);
+
+        if (exists)
+        {
+            throw new InvalidOperationException(
+                $"A media configuration for '{request.Name.Trim()}' with incubation {request.IncubationMinHours}–{request.IncubationMaxHours}h and temperature {request.TemperatureMin}–{request.TemperatureMax}°C already exists.");
+        }
+
+        entity.Name = request.Name.Trim();
         entity.EvaluationType = request.EvaluationType;
-        entity.OrganismId = request.OrganismId;
-        entity.ChallengeRole = request.ChallengeRole;
-        entity.ExpectedDescription = request.ExpectedDescription;
+        entity.IncubationMinHours = request.IncubationMinHours;
+        entity.IncubationMaxHours = request.IncubationMaxHours;
+        entity.TemperatureMin = request.TemperatureMin;
+        entity.TemperatureMax = request.TemperatureMax;
+        entity.RecoveryPercentMin = request.EvaluationType == EvaluationType.GrowthPromotion ? request.RecoveryPercentMin : null;
+        entity.RecoveryPercentMax = request.EvaluationType == EvaluationType.GrowthPromotion ? request.RecoveryPercentMax : null;
+
+        var incomingChallenges = request.Challenges ?? new List<CreateMediaConfigurationChallengeRequest>();
+
+        foreach (var ch in incomingChallenges)
+        {
+            var organismExists = await _db.Organisms.AnyAsync(o => o.Id == ch.OrganismId);
+            if (!organismExists)
+                throw new InvalidOperationException($"Organism with ID {ch.OrganismId} not found.");
+
+            if (request.EvaluationType == EvaluationType.IndicationInhibition)
+            {
+                if (!ch.ChallengeRole.HasValue || !Enum.IsDefined(typeof(ChallengeRole), ch.ChallengeRole.Value))
+                    throw new InvalidOperationException("Challenge role is required for Indication/Inhibition evaluation.");
+            }
+        }
+
+        var duplicateIncoming = incomingChallenges
+            .GroupBy(c => new { c.OrganismId, Role = request.EvaluationType == EvaluationType.IndicationInhibition ? c.ChallengeRole : null })
+            .Any(g => g.Count() > 1);
+        if (duplicateIncoming)
+            throw new InvalidOperationException("Duplicate challenge organism and role combination in request.");
+
+        var toRemove = entity.Challenges.Where(existing =>
+            !incomingChallenges.Any(inc =>
+                inc.OrganismId == existing.OrganismId &&
+                (request.EvaluationType != EvaluationType.IndicationInhibition || inc.ChallengeRole == existing.ChallengeRole)
+            )).ToList();
+
+        foreach (var rem in toRemove)
+        {
+            entity.Challenges.Remove(rem);
+        }
+
+        foreach (var inc in incomingChallenges)
+        {
+            var role = request.EvaluationType == EvaluationType.IndicationInhibition ? inc.ChallengeRole : null;
+            var desc = (request.EvaluationType == EvaluationType.IndicationInhibition && inc.ChallengeRole == ChallengeRole.Indication)
+                ? inc.ExpectedDescription
+                : null;
+            var inoculum = string.IsNullOrWhiteSpace(inc.InitialInoculum) ? null : inc.InitialInoculum.Trim();
+
+            var existing = entity.Challenges.FirstOrDefault(e =>
+                e.OrganismId == inc.OrganismId &&
+                (request.EvaluationType != EvaluationType.IndicationInhibition || e.ChallengeRole == inc.ChallengeRole));
+
+            if (existing != null)
+            {
+                existing.ChallengeRole = role;
+                existing.ExpectedDescription = desc;
+                existing.InitialInoculum = inoculum;
+            }
+            else
+            {
+                entity.Challenges.Add(new MediaConfigurationChallenge
+                {
+                    OrganismId = inc.OrganismId,
+                    ChallengeRole = role,
+                    ExpectedDescription = desc,
+                    InitialInoculum = inoculum
+                });
+            }
+        }
+
         await _db.SaveChangesAsync();
 
-        await _db.Entry(entity).Reference(s => s.Organism).LoadAsync();
-        return Ok(ApiResponse<object>.Ok(entity));
+        var updated = new
+        {
+            entity.Id,
+            entity.Name,
+            entity.EvaluationType,
+            entity.IncubationMinHours,
+            entity.IncubationMaxHours,
+            entity.TemperatureMin,
+            entity.TemperatureMax,
+            entity.RecoveryPercentMin,
+            entity.RecoveryPercentMax,
+            Challenges = entity.Challenges.Select(c => new
+            {
+                c.Id,
+                c.MediaConfigurationId,
+                c.OrganismId,
+                c.ChallengeRole,
+                c.ExpectedDescription,
+                c.InitialInoculum
+            }).ToList()
+        };
+
+        return Ok(ApiResponse<object>.Ok(updated));
     }
 
-    // No downstream dependents - MediaPreparationService.PrepareAsync
-    // copies OrganismId/ChallengeRole/ExpectedDescription onto a new
-    // MediaEvaluationChallenge row at prep time rather than referencing
-    // this spec live, so deleting one never affects an already-prepared
-    // lot's evaluation. Always safe to hard-delete.
     [Authorize(Roles = RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
-    [HttpDelete("media-challenge-specs/{id}")]
-    public async Task<IActionResult> DeleteMediaChallengeSpec(int id)
+    [HttpDelete("media-configurations/{id}")]
+    public async Task<IActionResult> DeleteMediaConfiguration(int id)
     {
-        var entity = await _db.MediaChallengeSpecs.FirstOrDefaultAsync(s => s.Id == id)
-            ?? throw new InvalidOperationException($"Challenge spec {id} not found.");
-        _db.MediaChallengeSpecs.Remove(entity);
+        var entity = await _db.MediaConfigurations.FirstOrDefaultAsync(m => m.Id == id)
+            ?? throw new InvalidOperationException($"Media configuration {id} not found.");
+
+        var referencingSteps = await _db.TestWorkflowStepMedias
+            .Where(sm => sm.MediaConfigurationId == id)
+            .Select(sm => sm.TestWorkflowStep!.StepName)
+            .Distinct()
+            .ToListAsync();
+
+        if (referencingSteps.Count > 0)
+        {
+            throw new InvalidOperationException(
+                $"Cannot delete '{entity.Name}' - it is used by {referencingSteps.Count} workflow step(s): {string.Join(", ", referencingSteps)}.");
+        }
+
+        _db.MediaConfigurations.Remove(entity);
         await _db.SaveChangesAsync();
         return Ok(ApiResponse<object>.Ok(new { }));
     }
@@ -828,7 +1074,7 @@ public class MasterDataController : ControllerBase
         if (await _db.Organisms.AnyAsync(o => o.ScientificName.ToLower() == request.ScientificName.ToLower()))
             throw new InvalidOperationException($"Organism \"{request.ScientificName}\" already exists in the Organism list.");
 
-        var entity = new Organism { ScientificName = request.ScientificName, AtccNumber = request.AtccNumber, CommonName = request.CommonName };
+        var entity = new Organism { ScientificName = request.ScientificName, AtccNumber = request.AtccNumber, CommonName = request.CommonName, Description = request.Description };
         _db.Organisms.Add(entity);
         await _db.SaveChangesAsync();
         return Ok(ApiResponse<object>.Ok(entity));
@@ -847,11 +1093,12 @@ public class MasterDataController : ControllerBase
         entity.ScientificName = request.ScientificName;
         entity.AtccNumber = request.AtccNumber;
         entity.CommonName = request.CommonName;
+        entity.Description = request.Description;
         await _db.SaveChangesAsync();
         return Ok(ApiResponse<object>.Ok(entity));
     }
 
-    // Blocked (not a raw FK error) if any MediaChallengeSpec,
+    // Blocked (not a raw FK error) if any MediaConfigurationChallenge,
     // MediaEvaluationChallenge, Cryovial, or Material still references
     // this organism - all four are Restrict FKs (see OrganismConfiguration
     // and friends), same "guard with a clear message" pattern as
@@ -863,16 +1110,16 @@ public class MasterDataController : ControllerBase
         var entity = await _db.Organisms.FirstOrDefaultAsync(o => o.Id == id)
             ?? throw new InvalidOperationException($"Organism {id} not found.");
 
-        var specCount = await _db.MediaChallengeSpecs.CountAsync(s => s.OrganismId == id);
+        var configChallengeCount = await _db.MediaConfigurationChallenges.CountAsync(c => c.OrganismId == id);
         var challengeCount = await _db.MediaEvaluationChallenges.CountAsync(c => c.OrganismId == id);
         var cryovialCount = await _db.Cryovials.CountAsync(c => c.OrganismId == id);
         var materialCount = await _db.Materials.CountAsync(m => m.OrganismId == id);
-        var totalUses = specCount + challengeCount + cryovialCount + materialCount;
+        var totalUses = configChallengeCount + challengeCount + cryovialCount + materialCount;
 
         if (totalUses > 0)
             throw new InvalidOperationException(
                 $"Cannot delete '{entity.ScientificName}' - it is referenced by {totalUses} record(s) " +
-                $"(Challenge Specs: {specCount}, Media Evaluation Challenges: {challengeCount}, Cryovials: {cryovialCount}, Materials: {materialCount}).");
+                $"(Media Configuration Challenges: {configChallengeCount}, Media Evaluation Challenges: {challengeCount}, Cryovials: {cryovialCount}, Materials: {materialCount}).");
 
         _db.Organisms.Remove(entity);
         await _db.SaveChangesAsync();
@@ -939,65 +1186,6 @@ public class MasterDataController : ControllerBase
         return Ok(ApiResponse<object>.Ok(entity));
     }
 
-    // ---- Test Definition Media (Test Master approved media) ----
-    [HttpGet("test-definition-media")]
-    public async Task<IActionResult> GetTestDefinitionMedia([FromQuery] int testDefinitionId) =>
-        Ok(ApiResponse<object>.Ok(await _db.TestDefinitionMedias
-            .Include(m => m.MediaType)
-            .Where(m => m.TestDefinitionId == testDefinitionId)
-            .ToListAsync()));
-
-    [Authorize(Roles = RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
-    [HttpPost("test-definition-media")]
-    public async Task<IActionResult> CreateTestDefinitionMedia(CreateTestDefinitionMediaRequest request)
-    {
-        if (await _db.TestDefinitionMedias.AnyAsync(m =>
-                m.TestDefinitionId == request.TestDefinitionId && m.MediaTypeId == request.MediaTypeId && m.StepName == request.StepName))
-            throw new InvalidOperationException("This media is already approved for this test and step.");
-
-        var entity = new TestDefinitionMedia
-        {
-            TestDefinitionId = request.TestDefinitionId, MediaTypeId = request.MediaTypeId, StepName = request.StepName
-        };
-        _db.TestDefinitionMedias.Add(entity);
-        await _db.SaveChangesAsync();
-        return Ok(ApiResponse<object>.Ok(entity));
-    }
-
-    [Authorize(Roles = RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
-    [HttpPut("test-definition-media/{id}")]
-    public async Task<IActionResult> UpdateTestDefinitionMedia(int id, UpdateTestDefinitionMediaRequest request)
-    {
-        var entity = await _db.TestDefinitionMedias.FirstOrDefaultAsync(m => m.Id == id)
-            ?? throw new InvalidOperationException($"Approved media {id} not found.");
-
-        if (await _db.TestDefinitionMedias.AnyAsync(m =>
-                m.Id != id && m.TestDefinitionId == entity.TestDefinitionId && m.MediaTypeId == request.MediaTypeId && m.StepName == request.StepName))
-            throw new InvalidOperationException("This media is already approved for this test and step.");
-
-        entity.MediaTypeId = request.MediaTypeId;
-        entity.StepName = request.StepName;
-        await _db.SaveChangesAsync();
-
-        await _db.Entry(entity).Reference(m => m.MediaType).LoadAsync();
-        return Ok(ApiResponse<object>.Ok(entity));
-    }
-
-    // No downstream dependents - nothing else references a
-    // TestDefinitionMedia row by Id (approved-media is a reference/
-    // validation list, not something a TestOrder or Incubation points
-    // back to). Always safe to hard-delete.
-    [Authorize(Roles = RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
-    [HttpDelete("test-definition-media/{id}")]
-    public async Task<IActionResult> DeleteTestDefinitionMedia(int id)
-    {
-        var entity = await _db.TestDefinitionMedias.FirstOrDefaultAsync(m => m.Id == id)
-            ?? throw new InvalidOperationException($"Approved media {id} not found.");
-        _db.TestDefinitionMedias.Remove(entity);
-        await _db.SaveChangesAsync();
-        return Ok(ApiResponse<object>.Ok(new { }));
-    }
-
     // ---- Test Workflow Steps (TestWorkflowEngine's configurable
     // template - replaces what used to be hardcoded chains in
     // PathogenWorkflowEngine/CountTestWorkflowEngine) ----
@@ -1015,16 +1203,17 @@ public class MasterDataController : ControllerBase
     [HttpGet("test-definitions/{id}/steps")]
     public async Task<IActionResult> GetTestWorkflowSteps(int id) =>
         Ok(ApiResponse<object>.Ok(await _db.TestWorkflowSteps
-            .Include(s => s.MediaType)
             .Include(s => s.TargetOrganism)
             .Include(s => s.StepMedia).ThenInclude(m => m.Material)
+            .Include(s => s.StepMedia).ThenInclude(m => m.MediaConfiguration)
             .Include(s => s.IncubationStages)
+            .Include(s => s.PhenotypicTests)
             .Where(s => s.TestDefinitionId == id)
             .OrderBy(s => s.StepOrder)
             .Select(s => new
             {
-                s.Id, s.StepOrder, s.StepName, s.MediaTypeId, s.PhenotypicTestType,
-                mediaType = s.MediaType == null ? null : new { s.MediaType.Id, s.MediaType.Class },
+                s.Id, s.StepOrder, s.StepName, s.PhenotypicTestType,
+                phenotypicTestTypes = s.PhenotypicTests.OrderBy(t => t.DisplayOrder).Select(t => t.PhenotypicTestType),
                 s.IncubationMinHours, s.IncubationMaxHours, s.TemperatureMin, s.TemperatureMax,
                 s.IsFinalStep,
                 stepType = s.StepType.ToString(),
@@ -1034,7 +1223,14 @@ public class MasterDataController : ControllerBase
                 stepMedia = s.StepMedia.OrderBy(m => m.DisplayOrder).Select(m => new
                 {
                     stepMediaId = m.Id, m.MaterialId, materialName = m.Material!.MaterialName,
-                    m.TempMin, m.TempMax, m.IsRequired, m.DisplayOrder
+                    // The operative incubation window/temperature for this
+                    // medium at execution time (see TestWorkflowEngine.cs) -
+                    // not the step's own IncubationMinHours/MaxHours/
+                    // TemperatureMin/Max below, which are no longer read.
+                    m.TempMin, m.TempMax, m.IncubationMinHours, m.IncubationMaxHours,
+                    m.IsRequired, m.DisplayOrder,
+                    m.MediaConfigurationId,
+                    mediaConfigurationName = m.MediaConfiguration == null ? null : m.MediaConfiguration.Name
                 }),
                 s.RequiresIncubationTransfer,
                 incubationStages = s.IncubationStages.OrderBy(x => x.StageNumber).Select(x => new
@@ -1043,6 +1239,44 @@ public class MasterDataController : ControllerBase
                 })
             })
             .ToListAsync()));
+
+    // TempMin/Max are server-derived from the picked MediaConfiguration,
+    // not trusted from the client, whenever one is supplied - single
+    // source of truth, no drift between what's shown and what's stored.
+    // MediaConfigurationId stays optional: MediaConfiguration has no
+    // MaterialId FK of its own (out of scope for this pass - see the
+    // Media Configuration Migration plan §7), so MaterialId remains a
+    // separate, independently-required field on every row regardless.
+    private async Task<List<TestWorkflowStepMedia>> BuildStepMediaAsync(List<StepMediaRequest> requests)
+    {
+        var configIds = requests.Where(m => m.MediaConfigurationId.HasValue).Select(m => m.MediaConfigurationId!.Value).Distinct().ToList();
+        var configs = await _db.MediaConfigurations.Where(c => configIds.Contains(c.Id)).ToDictionaryAsync(c => c.Id);
+
+        var result = new List<TestWorkflowStepMedia>();
+        foreach (var m in requests)
+        {
+            var entity = new TestWorkflowStepMedia { MaterialId = m.MaterialId, IsRequired = m.IsRequired, DisplayOrder = m.DisplayOrder };
+            if (m.MediaConfigurationId.HasValue)
+            {
+                if (!configs.TryGetValue(m.MediaConfigurationId.Value, out var config))
+                    throw new InvalidOperationException($"Media configuration {m.MediaConfigurationId.Value} not found.");
+                entity.MediaConfigurationId = config.Id;
+                entity.TempMin = config.TemperatureMin;
+                entity.TempMax = config.TemperatureMax;
+                entity.IncubationMinHours = config.IncubationMinHours;
+                entity.IncubationMaxHours = config.IncubationMaxHours;
+            }
+            else
+            {
+                entity.TempMin = m.TempMin;
+                entity.TempMax = m.TempMax;
+                entity.IncubationMinHours = m.IncubationMinHours;
+                entity.IncubationMaxHours = m.IncubationMaxHours;
+            }
+            result.Add(entity);
+        }
+        return result;
+    }
 
     // Structural rules come from WorkflowTemplateValidator; this adds the
     // one rule that spans the whole template rather than a single step.
@@ -1087,25 +1321,32 @@ public class MasterDataController : ControllerBase
         var nextOrder = 1 + await _db.TestWorkflowSteps.Where(s => s.TestDefinitionId == id)
             .Select(s => (int?)s.StepOrder).MaxAsync() ?? 1;
 
+        var stepMedias = await BuildStepMediaAsync(request.StepMedia);
+        var firstMedia = stepMedias.OrderBy(m => m.DisplayOrder).FirstOrDefault();
+        var tempMin = request.TemperatureMin > 0 ? request.TemperatureMin : (firstMedia?.TempMin ?? 0);
+        var tempMax = request.TemperatureMax > 0 ? request.TemperatureMax : (firstMedia?.TempMax ?? 0);
+        var incMin = request.IncubationMinHours > 0 ? request.IncubationMinHours : (firstMedia?.IncubationMinHours ?? 0);
+        var incMax = request.IncubationMaxHours > 0 ? request.IncubationMaxHours : (firstMedia?.IncubationMaxHours ?? 0);
+
         var entity = new TestWorkflowStep
         {
-            TestDefinitionId = id, StepOrder = nextOrder, StepName = request.StepName, MediaTypeId = request.MediaTypeId,
-            IncubationMinHours = request.IncubationMinHours, IncubationMaxHours = request.IncubationMaxHours,
-            TemperatureMin = request.TemperatureMin, TemperatureMax = request.TemperatureMax,
+            TestDefinitionId = id, StepOrder = nextOrder, StepName = request.StepName,
+            IncubationMinHours = incMin, IncubationMaxHours = incMax,
+            TemperatureMin = tempMin, TemperatureMax = tempMax,
             IsFinalStep = request.IsFinalStep, StepType = request.StepType, TargetOrganismId = request.TargetOrganismId,
             RequiresIncubationTransfer = request.RequiresIncubationTransfer,
             ConfirmatoryMediaCount = request.ConfirmatoryMediaCount ?? 1,
             PhenotypicTestType = request.PhenotypicTestType
         };
-        entity.StepMedia.AddRange(request.StepMedia.Select(m => new TestWorkflowStepMedia
-        {
-            MaterialId = m.MaterialId, TempMin = m.TempMin, TempMax = m.TempMax,
-            IsRequired = m.IsRequired, DisplayOrder = m.DisplayOrder
-        }));
+        entity.StepMedia.AddRange(stepMedias);
         entity.IncubationStages.AddRange((request.IncubationStages ?? new()).Select(s => new TestWorkflowStepIncubationStage
         {
             StageNumber = s.StageNumber, TempMin = s.TempMin, TempMax = s.TempMax,
             IncubationMinHours = s.IncubationMinHours, IncubationMaxHours = s.IncubationMaxHours
+        }));
+        entity.PhenotypicTests.AddRange((request.PhenotypicTestTypes ?? new()).Select((t, i) => new TestWorkflowStepPhenotypicTest
+        {
+            PhenotypicTestType = t, DisplayOrder = i
         }));
 
         await ValidateStepRulesAsync(id, excludeStepId: null, entity);
@@ -1124,16 +1365,22 @@ public class MasterDataController : ControllerBase
     [HttpPut("test-definitions/steps/{stepId}")]
     public async Task<IActionResult> UpdateTestWorkflowStep(int stepId, UpdateTestWorkflowStepRequest request)
     {
-        var step = await _db.TestWorkflowSteps.Include(s => s.StepMedia).Include(s => s.IncubationStages)
+        var step = await _db.TestWorkflowSteps.Include(s => s.StepMedia).Include(s => s.IncubationStages).Include(s => s.PhenotypicTests)
             .FirstOrDefaultAsync(s => s.Id == stepId)
             ?? throw new InvalidOperationException($"Workflow step {stepId} not found.");
 
+        var rebuiltStepMedia = await BuildStepMediaAsync(request.StepMedia);
+        var firstMedia = rebuiltStepMedia.OrderBy(m => m.DisplayOrder).FirstOrDefault();
+        var tempMin = request.TemperatureMin > 0 ? request.TemperatureMin : (firstMedia?.TempMin ?? 0);
+        var tempMax = request.TemperatureMax > 0 ? request.TemperatureMax : (firstMedia?.TempMax ?? 0);
+        var incMin = request.IncubationMinHours > 0 ? request.IncubationMinHours : (firstMedia?.IncubationMinHours ?? 0);
+        var incMax = request.IncubationMaxHours > 0 ? request.IncubationMaxHours : (firstMedia?.IncubationMaxHours ?? 0);
+
         step.StepName = request.StepName;
-        step.MediaTypeId = request.MediaTypeId;
-        step.IncubationMinHours = request.IncubationMinHours;
-        step.IncubationMaxHours = request.IncubationMaxHours;
-        step.TemperatureMin = request.TemperatureMin;
-        step.TemperatureMax = request.TemperatureMax;
+        step.IncubationMinHours = incMin;
+        step.IncubationMaxHours = incMax;
+        step.TemperatureMin = tempMin;
+        step.TemperatureMax = tempMax;
         step.IsFinalStep = request.IsFinalStep;
         step.StepType = request.StepType;
         step.TargetOrganismId = request.TargetOrganismId;
@@ -1146,11 +1393,8 @@ public class MasterDataController : ControllerBase
         // error-prone for no benefit.
         _db.TestWorkflowStepMedias.RemoveRange(step.StepMedia);
         step.StepMedia.Clear();
-        step.StepMedia.AddRange(request.StepMedia.Select(m => new TestWorkflowStepMedia
-        {
-            TestWorkflowStepId = step.Id, MaterialId = m.MaterialId, TempMin = m.TempMin, TempMax = m.TempMax,
-            IsRequired = m.IsRequired, DisplayOrder = m.DisplayOrder
-        }));
+        foreach (var m in rebuiltStepMedia) m.TestWorkflowStepId = step.Id;
+        step.StepMedia.AddRange(rebuiltStepMedia);
 
         _db.TestWorkflowStepIncubationStages.RemoveRange(step.IncubationStages);
         step.IncubationStages.Clear();
@@ -1159,6 +1403,21 @@ public class MasterDataController : ControllerBase
             TestWorkflowStepId = step.Id, StageNumber = s.StageNumber, TempMin = s.TempMin, TempMax = s.TempMax,
             IncubationMinHours = s.IncubationMinHours, IncubationMaxHours = s.IncubationMaxHours
         }));
+
+        // Replaced wholesale, same reasoning as StepMedia above - only when
+        // the client actually sends the new list field. A null
+        // PhenotypicTestTypes (an older client still using only the single
+        // field) leaves the existing bundled list untouched rather than
+        // wiping it on every edit.
+        if (request.PhenotypicTestTypes is not null)
+        {
+            _db.TestWorkflowStepPhenotypicTests.RemoveRange(step.PhenotypicTests);
+            step.PhenotypicTests.Clear();
+            step.PhenotypicTests.AddRange(request.PhenotypicTestTypes.Select((t, i) => new TestWorkflowStepPhenotypicTest
+            {
+                TestWorkflowStepId = step.Id, PhenotypicTestType = t, DisplayOrder = i
+            }));
+        }
 
         await ValidateStepRulesAsync(step.TestDefinitionId, excludeStepId: stepId, step);
         await _db.SaveChangesAsync();

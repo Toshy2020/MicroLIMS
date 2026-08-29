@@ -48,6 +48,7 @@ public class MicroLimsDbContext : Microsoft.EntityFrameworkCore.DbContext
     public DbSet<Report> Reports => Set<Report>();
     public DbSet<WorkflowHistory> WorkflowHistories => Set<WorkflowHistory>();
     public DbSet<ReviewWorkflowEvent> ReviewWorkflowEvents => Set<ReviewWorkflowEvent>();
+    public DbSet<TestReturnEvent> TestReturnEvents => Set<TestReturnEvent>();
     public DbSet<ArchivedRecord> ArchivedRecords => Set<ArchivedRecord>();
     public DbSet<MediaUsage> MediaUsages => Set<MediaUsage>();
     public DbSet<RoomMonitoring> RoomMonitorings => Set<RoomMonitoring>();

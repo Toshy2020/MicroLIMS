@@ -31,6 +31,7 @@ const AUTH_STORAGE_KEYS = [
   "microlims_refresh_token",
   "microlims_username",
   "microlims_role",
+  "microlims_permissions",
   "microlims_full_name",
   "microlims_user_id",
   "microlims_must_change_password"

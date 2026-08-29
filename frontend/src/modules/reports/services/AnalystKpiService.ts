@@ -32,7 +32,8 @@ export const AnalystKpiService = {
       sampleQueueCountsRes, outOfSpecRes, completedByMonthRes,
       sampleSlaRes, stepViolationsRes,
       stageTatSummaryRes, testingTatByMonthRes, sampleSlaByAnalystRes,
-      workflowBottleneckDeltasRes, overallOnTimeRes, overallOnTimeByAnalystRes
+      workflowBottleneckDeltasRes, overallOnTimeRes, overallOnTimeByAnalystRes,
+      returnToAnalystRes
     ] = await Promise.all([
       apiClient.get<{ success: boolean; data: any[] }>("/kpi/analysts", {
         params: {
@@ -46,20 +47,109 @@ export const AnalystKpiService = {
         }
         return null;
       }),
-      apiClient.get<{ success: boolean; data: any }>("/kpi/completion-stats").catch(() => null),
-      apiClient.get<{ success: boolean; data: any }>("/kpi/delay-tracking").catch(() => null),
+      apiClient.get<{ success: boolean; data: any }>("/kpi/completion-stats", {
+        params: {
+          category: categoryParam,
+          location: locationParam,
+          testCode: testCodeParam
+        }
+      }).catch(() => null),
+      apiClient.get<{ success: boolean; data: any }>("/kpi/delay-tracking", {
+        params: {
+          category: categoryParam,
+          location: locationParam,
+          testCode: testCodeParam
+        }
+      }).catch(() => null),
       OverviewService.getOverviewData(fromDate, toDate).catch(() => null),
-      apiClient.get<{ success: boolean; data: any }>("/kpi/sample-queue-counts").catch(() => null),
+      apiClient.get<{ success: boolean; data: any }>("/kpi/sample-queue-counts", {
+        params: {
+          category: categoryParam,
+          location: locationParam,
+          testCode: testCodeParam
+        }
+      }).catch(() => null),
       ReportingService.searchResults({ fromDate, toDate, resultLevel: "OutOfSpecification", page: 1, pageSize: 1 }).catch(() => null),
       ReportingService.getCompletedByMonth(6).catch(() => null),
-      apiClient.get<{ success: boolean; data: any }>("/kpi/sample-assignment-sla", { params: { analystId: filterAnalystId, fromDate, toDate } }).catch(() => null),
-      apiClient.get<{ success: boolean; data: any }>("/kpi/step-violations", { params: { analystId: filterAnalystId, fromDate, toDate } }).catch(() => null),
-      apiClient.get<{ success: boolean; data: any }>("/kpi/stage-tat-summary", { params: { analystId: filterAnalystId, fromDate, toDate } }).catch(() => null),
-      apiClient.get<{ success: boolean; data: any[] }>("/kpi/testing-tat-by-month", { params: { months: 6 } }).catch(() => null),
-      apiClient.get<{ success: boolean; data: Record<string, any> }>("/kpi/sample-assignment-sla-by-analyst", { params: { fromDate, toDate } }).catch(() => null),
-      apiClient.get<{ success: boolean; data: any }>("/kpi/workflow-bottleneck-deltas").catch(() => null),
-      apiClient.get<{ success: boolean; data: any }>("/kpi/overall-on-time-completion", { params: { fromDate, toDate } }).catch(() => null),
-      apiClient.get<{ success: boolean; data: Record<string, any> }>("/kpi/overall-on-time-completion-by-analyst", { params: { fromDate, toDate } }).catch(() => null)
+      apiClient.get<{ success: boolean; data: any }>("/kpi/sample-assignment-sla", {
+        params: {
+          analystId: filterAnalystId,
+          fromDate,
+          toDate,
+          category: categoryParam,
+          location: locationParam,
+          testCode: testCodeParam
+        }
+      }).catch(() => null),
+      apiClient.get<{ success: boolean; data: any }>("/kpi/step-violations", {
+        params: {
+          analystId: filterAnalystId,
+          fromDate,
+          toDate,
+          category: categoryParam,
+          location: locationParam,
+          testCode: testCodeParam
+        }
+      }).catch(() => null),
+      apiClient.get<{ success: boolean; data: any }>("/kpi/stage-tat-summary", {
+        params: {
+          analystId: filterAnalystId,
+          fromDate,
+          toDate,
+          category: categoryParam,
+          location: locationParam,
+          testCode: testCodeParam
+        }
+      }).catch(() => null),
+      apiClient.get<{ success: boolean; data: any[] }>("/kpi/testing-tat-by-month", {
+        params: {
+          months: 6,
+          category: categoryParam,
+          location: locationParam,
+          testCode: testCodeParam
+        }
+      }).catch(() => null),
+      apiClient.get<{ success: boolean; data: Record<string, any> }>("/kpi/sample-assignment-sla-by-analyst", {
+        params: {
+          fromDate,
+          toDate,
+          category: categoryParam,
+          location: locationParam,
+          testCode: testCodeParam
+        }
+      }).catch(() => null),
+      apiClient.get<{ success: boolean; data: any }>("/kpi/workflow-bottleneck-deltas", {
+        params: {
+          category: categoryParam,
+          location: locationParam,
+          testCode: testCodeParam
+        }
+      }).catch(() => null),
+      apiClient.get<{ success: boolean; data: any }>("/kpi/overall-on-time-completion", {
+        params: {
+          fromDate,
+          toDate,
+          category: categoryParam,
+          location: locationParam,
+          testCode: testCodeParam
+        }
+      }).catch(() => null),
+      apiClient.get<{ success: boolean; data: Record<string, any> }>("/kpi/overall-on-time-completion-by-analyst", {
+        params: {
+          fromDate,
+          toDate,
+          category: categoryParam,
+          location: locationParam,
+          testCode: testCodeParam
+        }
+      }).catch(() => null),
+      apiClient.get<{ success: boolean; data: Record<string, number> }>("/kpi/return-to-analyst-count", {
+        params: {
+          analystId: filterAnalystId,
+          fromDate,
+          toDate
+        }
+      }).catch(() => null)
     ]);
 
     const realAnalysts = realAnalystsRes?.data?.data ?? [];
@@ -76,6 +166,7 @@ export const AnalystKpiService = {
     const workflowBottleneckDeltas = workflowBottleneckDeltasRes?.data?.data;
     const overallOnTime = overallOnTimeRes?.data?.data;
     const overallOnTimeByAnalyst: Record<string, { totalAssigned: number; onTimeCount: number; overdueCount: number }> = overallOnTimeByAnalystRes?.data?.data ?? {};
+    const returnToAnalystByAnalyst: Record<string, number> | null = returnToAnalystRes?.data?.data ?? null;
 
     const comparisonRows = buildComparisonRows(realAnalysts, slaByAnalyst, overallOnTimeByAnalyst);
 
@@ -86,7 +177,7 @@ export const AnalystKpiService = {
         ? Number(filters.analystId)
         : comparisonRows[0]?.analystId ?? currentUserId;
 
-    const selectedAnalystDetail = buildAnalystDetail(targetAnalystId, comparisonRows, stageTatSummary);
+    const selectedAnalystDetail = buildAnalystDetail(targetAnalystId, comparisonRows, stageTatSummary, returnToAnalystByAnalyst);
 
     const totalAssigned = completionStats?.totalTestOrders ?? comparisonRows.reduce((acc, r) => acc + r.assigned, 0);
     const totalCompleted = completionStats?.approved ?? comparisonRows.reduce((acc, r) => acc + r.completed, 0);
@@ -294,7 +385,8 @@ function buildComparisonRows(
 function buildAnalystDetail(
   analystId: number,
   rows: AnalystComparisonRow[],
-  stageTatSummary?: any
+  stageTatSummary?: any,
+  returnToAnalystByAnalyst?: Record<string, number> | null
 ): AnalystPerformanceDetail | null {
   const row = rows.find((r) => r.analystId === analystId) ?? rows[0];
   if (!row) return null;
@@ -303,6 +395,10 @@ function buildAnalystDetail(
     stageTatSummary?.testingMedianDays != null
       ? Number(stageTatSummary.testingMedianDays.toFixed(1))
       : row.avgTestingTatDays;
+
+  const reviewReturnsCount = returnToAnalystByAnalyst != null
+    ? (returnToAnalystByAnalyst[String(row.analystId)] ?? returnToAnalystByAnalyst[row.analystId] ?? 0)
+    : "Not Available";
 
   return {
     analystId: row.analystId,
@@ -323,7 +419,7 @@ function buildAnalystDetail(
       overdueCount: row.overdue
     },
     quality: {
-      reviewReturns: row.reviewReturns != null ? row.reviewReturns : "Not Available",
+      reviewReturns: reviewReturnsCount,
       documentationCorrections: row.docCorrections != null ? row.docCorrections : "Not Available",
       calculationCorrections: "Not Available",
       missingMandatoryDataCount: 0,

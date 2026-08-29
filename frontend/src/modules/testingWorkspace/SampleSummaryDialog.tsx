@@ -20,24 +20,33 @@ import {
   TableBody,
   Paper,
   Chip,
-  useTheme
+  useTheme,
+  Checkbox,
+  FormGroup,
+  Select,
+  MenuItem,
+  InputLabel,
+  FormControl
 } from "@mui/material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import PrintIcon from "@mui/icons-material/Print";
+import FactCheckOutlinedIcon from "@mui/icons-material/FactCheckOutlined";
 import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
-import DescriptionIcon from "@mui/icons-material/Description";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 import VerifiedUserOutlinedIcon from "@mui/icons-material/VerifiedUserOutlined";
 import ScienceOutlinedIcon from "@mui/icons-material/ScienceOutlined";
-import HistoryOutlinedIcon from "@mui/icons-material/HistoryOutlined";
 import TimelineOutlinedIcon from "@mui/icons-material/TimelineOutlined";
+import AssignmentReturnOutlinedIcon from "@mui/icons-material/AssignmentReturnOutlined";
+import { Link } from "react-router-dom";
 import { FloatingDialog } from "../../components/FloatingDialog";
 import { SignatureDialog } from "../../components/SignatureDialog";
+import { ReturnToAnalystDialog } from "../../components/ReturnToAnalystDialog";
 import { LoadingSpinner } from "../../components/LoadingSpinner";
 import { StatusBadge } from "../../components/StatusBadge";
 import { brandColors } from "../../theme";
 import { useAuth } from "../../contexts/AuthContext";
 import { SampleSummaryService, SampleApprovalDecision } from "./services/SampleSummaryService";
+import { buildCoaMatrix, buildCoaSimpleRows } from "./coaAggregation";
 import {
   SampleSummary,
   TestOrderSummaryDetail,
@@ -47,6 +56,7 @@ import {
 } from "./types/sampleSummaryTypes";
 import { pathogenObservationLabel } from "./utils/pathogenObservationLabel";
 import { PathogenSessionDialog } from "./pathogenSession/PathogenSessionDialog";
+import { UserService, UserRecord } from "../users/services/UserService";
 
 interface Props {
   open: boolean;
@@ -76,6 +86,23 @@ const formatExactTime = (d: string | null | undefined) =>
         second: "2-digit"
       })
     : "—";
+
+// Advisory only - pre-checks the retest checklist toward whichever tests
+// actually failed, mirroring overallStatus's own per-sample rollup below
+// but scoped to a single TestOrder. The Section Head can still freely
+// check/uncheck anything; the backend is the actual authority on which
+// TestOrderIds are valid to retest (it just requires "at least one").
+function isTestOrderNonPassing(order: TestOrderSummaryDetail): boolean {
+  if (order.locations.some((l) => l.status && l.status !== "WithinLimits" && l.status !== "Absent")) return true;
+  if (order.countTestReadings.some((r) => r.status !== "WithinLimits")) return true;
+  const biochemical = order.biochemicalResults;
+  if (biochemical.some((b) => b.organismDetected === true)) return true;
+  const pathogens = order.pathogenObservations;
+  const anyConforming = pathogens.some((p) => p.observation === "GrowthConforming");
+  const biochemicalRulesOutAll = biochemical.length > 0 && biochemical.every((b) => b.organismDetected === false);
+  if (anyConforming && !biochemicalRulesOutAll) return true;
+  return false;
+}
 
 const DECISION_OPTIONS: { value: SampleApprovalDecision; label: string }[] = [
   { value: "Approve", label: "Approve — Results conform to specifications" },
@@ -165,6 +192,12 @@ function SampleIdentityCard({ summary: s }: { summary: SampleSummary }) {
 
         <SummaryField label="Cause of Testing" value={s.causeOfTesting} />
         <SummaryField label="Assigned Analyst" value={s.assignedAnalystName ?? "Unassigned"} highlight={Boolean(s.assignedAnalystName)} />
+        {s.category === "AfterCleaning" && (
+          <>
+            <SummaryField label="Previous Product" value={s.previousProductName || "—"} highlight />
+            <SummaryField label="Previous Product Batch" value={s.previousProductBatchNumber || s.batchNumber || "—"} highlight />
+          </>
+        )}
         {s.waterSamplingPointCode && (
           <SummaryField label="Sampling Point" value={`${s.waterSamplingPointCode} — ${s.waterSamplingPointLocation}`} />
         )}
@@ -352,13 +385,13 @@ function IncubationStageBlock({
 // Location-based Results Table (EM / After Cleaning)
 function LocationResultsTable({ locations }: { locations: SampleLocationDetail[] }) {
   const conformCount = locations.filter((l) => l.status === "WithinLimits" || l.status === "Absent").length;
-  const severityOrder = ["WithinLimits", "Absent", "AlertLimitExceeded", "ActionLimitExceeded", "OutOfSpecification", "Detected"];
+  const severityOrder = ["WithinLimits", "Absent", "LimitsNotConfigured", "AlertLimitExceeded", "ActionLimitExceeded", "OutOfSpecification", "Detected"];
   const worstStatus = locations.reduce<string>((worst, l) => {
     if (!l.status) return worst;
     return severityOrder.indexOf(l.status) > severityOrder.indexOf(worst) ? l.status : worst;
   }, "WithinLimits");
   // Unit comes from the location data (set at result-entry time) - EM/
-  // After Cleaning/Water mix CFU/plate/4 hours, CFU/25 sq.cm, and CFU/mL
+  // After Cleaning/Water mix CFU/plate/4 hours, CFU/25 cm2, and CFU/mL
   // depending on sampling method, never a single assumed "CFU".
   const unit = locations.find((l) => l.unit)?.unit ?? "CFU";
 
@@ -422,9 +455,10 @@ function FinalResultBlock({ order }: { order: TestOrderSummaryDetail }) {
   const hasLocations = order.locations.length > 0;
   const hasCountReadings = order.countTestReadings.length > 0;
   const hasPathogens = order.pathogenObservations.length > 0;
+  const hasBiochemical = order.biochemicalResults.length > 0;
   const hasResults = order.results.length > 0;
 
-  if (!hasLocations && !hasCountReadings && !hasPathogens && !hasResults) {
+  if (!hasLocations && !hasCountReadings && !hasPathogens && !hasBiochemical && !hasResults) {
     return (
       <Box sx={{ p: 2, border: "1px solid", borderColor: "divider", borderRadius: 1.5, bgcolor: "background.default" }}>
         <Typography sx={{ fontSize: 13, fontWeight: 700, color: "text.primary", mb: 0.5 }}>Final Result</Typography>
@@ -504,8 +538,41 @@ function FinalResultBlock({ order }: { order: TestOrderSummaryDetail }) {
         </Stack>
       )}
 
-      {hasResults && (
+      {hasBiochemical && (
         <Stack spacing={1} sx={{ mt: (hasCountReadings || hasPathogens) ? 1.5 : 0 }}>
+          {order.biochemicalResults.map((b, idx) => (
+            <Box
+              key={idx}
+              sx={{
+                display: "grid",
+                gridTemplateColumns: {
+                  xs: "1fr",
+                  sm: "repeat(2, 1fr)",
+                  md: "repeat(4, 1fr)"
+                },
+                gap: 1.5,
+                p: 1.25,
+                bgcolor: "background.paper",
+                border: "1px solid",
+                borderColor: "divider",
+                borderRadius: 1
+              }}
+            >
+              <SummaryField label="Step" value={b.stepName} />
+              <SummaryField
+                label="Interpretation"
+                value={b.organismDetected === true ? "Detected" : b.organismDetected === false ? "Not Detected" : "Undetermined"}
+                highlight
+              />
+              <SummaryField label="Result" value={b.biochemicalResultText} />
+              <SummaryField label="Submitted By" value={b.submittedByName} />
+            </Box>
+          ))}
+        </Stack>
+      )}
+
+      {hasResults && (
+        <Stack spacing={1} sx={{ mt: (hasCountReadings || hasPathogens || hasBiochemical) ? 1.5 : 0 }}>
           {order.results.map((r, idx) => (
             <Box
               key={idx}
@@ -535,7 +602,17 @@ function FinalResultBlock({ order }: { order: TestOrderSummaryDetail }) {
 }
 
 // 2. Test Results Section
-function TestResultsSection({ testOrders, overallStatus }: { testOrders: TestOrderSummaryDetail[]; overallStatus: string }) {
+function TestResultsSection({
+  testOrders,
+  overallStatus,
+  canReturn,
+  onReturnTest
+}: {
+  testOrders: TestOrderSummaryDetail[];
+  overallStatus: string;
+  canReturn?: boolean;
+  onReturnTest?: (order: TestOrderSummaryDetail) => void;
+}) {
   const theme = useTheme();
   return (
     <Box>
@@ -552,134 +629,97 @@ function TestResultsSection({ testOrders, overallStatus }: { testOrders: TestOrd
       </Box>
 
       <Stack spacing={2}>
-        {testOrders.map((order, i) => (
-          <Accordion
-            key={order.testOrderId}
-            defaultExpanded={i === 0 && !order.isSuperseded}
-            sx={{
-              border: "1px solid",
-              borderColor: "divider",
-              borderRadius: "8px !important",
-              overflow: "hidden",
-              "&:before": { display: "none" }
-            }}
-          >
-            <AccordionSummary
-              expandIcon={<ExpandMoreIcon />}
-              sx={{ bgcolor: "background.default", px: 2.5, py: 0.5, borderBottom: "1px solid", borderBottomColor: "divider" }}
-            >
-              <Stack direction="row" spacing={1.5} alignItems="center" flexWrap="wrap">
-                <Typography sx={{ fontWeight: 700, fontSize: 14, color: "text.primary" }}>
-                  {order.testCode} — {order.testDisplayName}
-                </Typography>
-                <StatusBadge status={order.workflowStateDisplay || order.status} />
-                {order.isSuperseded && <StatusBadge status="Superseded" />}
-              </Stack>
-            </AccordionSummary>
-            <AccordionDetails sx={{ p: 2.5 }}>
-              <Stack spacing={2}>
-                {/* Incubation Stages */}
-                {order.incubations.map((inc, idx) => (
-                  <IncubationStageBlock
-                    key={idx}
-                    inc={inc}
-                    totalStages={order.incubations.length}
-                    stageIndex={idx}
-                  />
-                ))}
+        {testOrders.map((order, i) => {
+          const isCountTest =
+            (order.countTestReadings.length > 0 ||
+              (order.results.length > 0 && order.biochemicalResults.length === 0 && order.locations.length === 0)) &&
+            order.pathogenObservations.length === 0;
+          const canReturnOrder = Boolean(
+            canReturn && !order.isSuperseded && order.status === "ResultEntered" && isCountTest
+          );
 
-                {/* Final Result */}
-                <FinalResultBlock order={order} />
-              </Stack>
-            </AccordionDetails>
-          </Accordion>
-        ))}
+          return (
+            <Accordion
+              key={order.testOrderId}
+              defaultExpanded={!order.isSuperseded && (i === 0 || order.status === "ResultEntered")}
+              sx={{
+                border: "1px solid",
+                borderColor: "divider",
+                borderRadius: "8px !important",
+                overflow: "hidden",
+                "&:before": { display: "none" }
+              }}
+            >
+              <AccordionSummary
+                expandIcon={<ExpandMoreIcon />}
+                sx={{ bgcolor: "background.default", px: 2.5, py: 0.5, borderBottom: "1px solid", borderBottomColor: "divider" }}
+              >
+                <Stack direction="row" spacing={1.5} alignItems="center" flexWrap="wrap">
+                  <Typography sx={{ fontWeight: 700, fontSize: 14, color: "text.primary" }}>
+                    {order.testCode} — {order.testDisplayName}
+                  </Typography>
+                  <StatusBadge status={order.workflowStateDisplay || order.status} />
+                  {order.isSuperseded && <StatusBadge status="Superseded" />}
+                </Stack>
+              </AccordionSummary>
+              <AccordionDetails sx={{ p: 2.5 }}>
+                <Stack spacing={2}>
+                  {/* Incubation Stages */}
+                  {order.incubations.map((inc, idx) => (
+                    <IncubationStageBlock
+                      key={idx}
+                      inc={inc}
+                      totalStages={order.incubations.length}
+                      stageIndex={idx}
+                    />
+                  ))}
+
+                  {/* Final Result */}
+                  <FinalResultBlock order={order} />
+
+                  {/* Return to Analyst Action */}
+                  {canReturnOrder && (
+                    <Box sx={{ display: "flex", justifyContent: "flex-end", pt: 0.5 }}>
+                      <Button
+                        variant="outlined"
+                        color="warning"
+                        size="small"
+                        startIcon={<AssignmentReturnOutlinedIcon />}
+                        onClick={() => onReturnTest?.(order)}
+                        sx={{
+                          fontWeight: 600,
+                          fontSize: 12,
+                          borderColor: "warning.main",
+                          color: "warning.dark",
+                          "&:hover": {
+                            borderColor: "warning.dark",
+                            bgcolor: "rgba(237, 108, 2, 0.08)"
+                          }
+                        }}
+                      >
+                        Return to Analyst
+                      </Button>
+                    </Box>
+                  )}
+                </Stack>
+              </AccordionDetails>
+            </Accordion>
+          );
+        })}
       </Stack>
     </Box>
   );
 }
 
-// 3. Bottom Information Area: Column 1 - Step History
-function StepHistoryCard({ testOrders }: { testOrders: TestOrderSummaryDetail[] }) {
-  const theme = useTheme();
-  // Aggregate all step history entries across test orders
-  const allEvents = useMemo(() => {
-    const list: {
-      testCode: string;
-      fromStep: string;
-      toStep: string;
-      performedByName: string;
-      timestamp: string;
-      note: string | null;
-    }[] = [];
-
-    testOrders.forEach((o) => {
-      o.workflowHistory.forEach((w) => {
-        list.push({
-          testCode: o.testCode,
-          fromStep: w.fromStep,
-          toStep: w.toStep,
-          performedByName: w.performedByName,
-          timestamp: w.timestamp,
-          note: w.note
-        });
-      });
-    });
-
-    return list.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
-  }, [testOrders]);
-
-  return (
-    <Paper sx={{ p: 2.5, border: "1px solid", borderColor: "divider", borderRadius: 2, height: "100%", bgcolor: "background.paper" }}>
-      <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 2 }}>
-        <HistoryOutlinedIcon sx={{ color: theme.palette.primary.main, fontSize: 20 }} />
-        <Typography sx={{ fontWeight: 700, fontSize: 14, color: theme.palette.primary.main }}>
-          Step History
-        </Typography>
-      </Box>
-
-      {allEvents.length === 0 ? (
-        <Typography sx={{ fontSize: 12, color: "text.secondary" }}>No step transitions recorded.</Typography>
-      ) : (
-        <Stack spacing={2} sx={{ position: "relative", pl: 1 }}>
-          {allEvents.map((w, idx) => (
-            <Box key={idx} sx={{ display: "flex", gap: 1.5, position: "relative" }}>
-              <Box
-                sx={{
-                  width: 8,
-                  height: 8,
-                  borderRadius: "50%",
-                  bgcolor: brandColors.sectionTitle,
-                  mt: 0.6,
-                  flexShrink: 0
-                }}
-              />
-              <Box sx={{ minWidth: 0 }}>
-                <Typography sx={{ fontSize: 12, fontWeight: 700, color: "text.primary" }}>
-                  {w.fromStep} → {w.toStep}
-                </Typography>
-                <Typography sx={{ fontSize: 11, color: "text.secondary" }}>
-                  {w.performedByName} · {formatDate(w.timestamp)}
-                </Typography>
-                {w.note && (
-                  <Typography sx={{ fontSize: 11, color: "text.secondary", fontStyle: "italic", mt: 0.25 }}>
-                    "{w.note}"
-                  </Typography>
-                )}
-              </Box>
-            </Box>
-          ))}
-        </Stack>
-      )}
-    </Paper>
-  );
-}
-
-// 3. Bottom Information Area: Column 2 - Workflow History
-function WorkflowHistoryCard({ summary }: { summary: SampleSummary }) {
+// Workflow History, horizontal - moved from the bottom information area to
+// the top of the page, above Approval & Electronic Signatures, so the
+// sample's lifecycle is visible at a glance rather than buried below the
+// results. Step History (per-test-order step transitions) was removed as a
+// separate card - this lifecycle timeline already covers what matters.
+function WorkflowHistoryStrip({ summary }: { summary: SampleSummary }) {
   const theme = useTheme();
   return (
-    <Paper sx={{ p: 2.5, border: "1px solid", borderColor: "divider", borderRadius: 2, height: "100%", bgcolor: "background.paper" }}>
+    <Paper sx={{ p: 2.5, border: "1px solid", borderColor: "divider", borderRadius: 2, bgcolor: "background.paper" }}>
       <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 2 }}>
         <TimelineOutlinedIcon sx={{ color: theme.palette.primary.main, fontSize: 20 }} />
         <Typography sx={{ fontWeight: 700, fontSize: 14, color: theme.palette.primary.main }}>
@@ -690,26 +730,30 @@ function WorkflowHistoryCard({ summary }: { summary: SampleSummary }) {
       {summary.timeline.length === 0 ? (
         <Typography sx={{ fontSize: 12, color: "text.secondary" }}>No lifecycle events yet.</Typography>
       ) : (
-        <Stack spacing={2} sx={{ pl: 1 }}>
+        <Stack direction="row" spacing={0} sx={{ overflowX: "auto", pb: 0.5 }}>
           {summary.timeline.map((e, idx) => (
-            <Box key={idx} sx={{ display: "flex", gap: 1.5 }}>
-              <Box
-                sx={{
-                  color: e.decision === "Reject" ? brandColors.err : brandColors.ok,
-                  display: "flex",
-                  alignItems: "center",
-                  mt: 0.2,
-                  flexShrink: 0
-                }}
-              >
-                <CheckCircleOutlineIcon sx={{ fontSize: 15 }} />
-              </Box>
-              <Box sx={{ minWidth: 0 }}>
-                <Typography sx={{ fontSize: 12, fontWeight: 700, color: "text.primary" }}>
+            <Box key={idx} sx={{ display: "flex", alignItems: "flex-start", flexShrink: 0 }}>
+              {idx > 0 && (
+                <Box sx={{ width: 32, height: 0, borderTop: "2px solid", borderColor: "divider", mt: 1.6, flexShrink: 0 }} />
+              )}
+              <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", width: 160, textAlign: "center", px: 1 }}>
+                <Box
+                  sx={{
+                    color: e.decision === "Reject" ? brandColors.err : brandColors.ok,
+                    display: "flex",
+                    alignItems: "center"
+                  }}
+                >
+                  <CheckCircleOutlineIcon sx={{ fontSize: 18 }} />
+                </Box>
+                <Typography sx={{ fontSize: 12, fontWeight: 700, color: "text.primary", mt: 0.5 }}>
                   {e.eventType}{e.decision ? ` (${e.decision})` : ""}
                 </Typography>
                 <Typography sx={{ fontSize: 11, color: "text.secondary" }}>
-                  {e.performedByName} · {formatDate(e.timestamp)}
+                  {e.performedByName}
+                </Typography>
+                <Typography sx={{ fontSize: 11, color: "text.secondary" }}>
+                  {formatDate(e.timestamp)}
                 </Typography>
                 {e.comment && (
                   <Typography sx={{ fontSize: 11, color: "text.secondary", fontStyle: "italic", mt: 0.25 }}>
@@ -734,6 +778,15 @@ function ApprovalSignaturesCard({
   setComment,
   decision,
   setDecision,
+  certificateRemarks,
+  setCertificateRemarks,
+  selectedTestOrderIds,
+  setSelectedTestOrderIds,
+  analysts,
+  newSampleAnalystOneId,
+  setNewSampleAnalystOneId,
+  newSampleAnalystTwoId,
+  setNewSampleAnalystTwoId,
   onReviewClick,
   onApproveClick
 }: {
@@ -744,6 +797,15 @@ function ApprovalSignaturesCard({
   setComment: (c: string) => void;
   decision: SampleApprovalDecision;
   setDecision: (d: SampleApprovalDecision) => void;
+  certificateRemarks: string;
+  setCertificateRemarks: (r: string) => void;
+  selectedTestOrderIds: number[];
+  setSelectedTestOrderIds: (ids: number[]) => void;
+  analysts: UserRecord[];
+  newSampleAnalystOneId: number | "";
+  setNewSampleAnalystOneId: (id: number | "") => void;
+  newSampleAnalystTwoId: number | "";
+  setNewSampleAnalystTwoId: (id: number | "") => void;
   onReviewClick: () => void;
   onApproveClick: () => void;
 }) {
@@ -751,6 +813,13 @@ function ApprovalSignaturesCard({
   const hasSignatures = summary.signatures.length > 0;
   const isApproved = summary.status === "Approved";
   const isRejected = summary.status === "Rejected";
+
+  const isRetestDecision = decision === "RetestRetainedSample" || decision === "NewSampleRequest";
+  const decisionValid =
+    !isRetestDecision ||
+    (selectedTestOrderIds.length > 0 &&
+      (decision !== "NewSampleRequest" ||
+        (newSampleAnalystOneId !== "" && newSampleAnalystTwoId !== "" && newSampleAnalystOneId !== newSampleAnalystTwoId)));
 
   return (
     <Paper sx={{ p: 2.5, border: "1px solid", borderColor: "divider", borderRadius: 2, height: "100%", bgcolor: "background.paper" }}>
@@ -908,9 +977,109 @@ function ApprovalSignaturesCard({
               />
             ))}
           </RadioGroup>
+          {decision === "Approve" && (
+            <TextField
+              fullWidth
+              size="small"
+              label="Certificate Remarks (optional)"
+              helperText="Printed on the Certificate of Analysis exactly as typed. Leave blank to show &quot;No remarks.&quot; Separate from the internal comment above, which never appears on the certificate."
+              multiline
+              rows={2}
+              value={certificateRemarks}
+              onChange={(e) => setCertificateRemarks(e.target.value)}
+              sx={{ mb: 1.5 }}
+            />
+          )}
+
+          {(decision === "RetestRetainedSample" || decision === "NewSampleRequest") && (
+            <Box sx={{ mb: 1.5 }}>
+              <Typography sx={{ fontSize: 12, fontWeight: 700, mb: 0.5 }}>
+                Tests to Retest
+              </Typography>
+              <Typography sx={{ fontSize: 11, color: "text.secondary", mb: 1 }}>
+                Non-conforming tests are pre-checked. Adjust as needed - only the checked test(s) move to the new sample{decision === "NewSampleRequest" ? "s" : ""}; everything else on this sample is left untouched.
+              </Typography>
+              <FormGroup>
+                {summary.testOrders
+                  .filter((t) => !t.isSuperseded)
+                  .map((t) => (
+                    <FormControlLabel
+                      key={t.testOrderId}
+                      control={
+                        <Checkbox
+                          size="small"
+                          checked={selectedTestOrderIds.includes(t.testOrderId)}
+                          onChange={(e) =>
+                            setSelectedTestOrderIds(
+                              e.target.checked
+                                ? [...selectedTestOrderIds, t.testOrderId]
+                                : selectedTestOrderIds.filter((id) => id !== t.testOrderId)
+                            )
+                          }
+                        />
+                      }
+                      label={
+                        <Typography sx={{ fontSize: 12 }}>
+                          {t.testDisplayName} {isTestOrderNonPassing(t) && <Chip size="small" label="Non-conforming" color="error" sx={{ ml: 0.5, height: 16, fontSize: 9 }} />}
+                        </Typography>
+                      }
+                    />
+                  ))}
+              </FormGroup>
+              {selectedTestOrderIds.length === 0 && (
+                <Alert severity="warning" sx={{ fontSize: 11, py: 0, mt: 0.5 }}>
+                  Select at least one test to retest.
+                </Alert>
+              )}
+            </Box>
+          )}
+
+          {decision === "NewSampleRequest" && (
+            <Box sx={{ mb: 1.5 }}>
+              <Typography sx={{ fontSize: 12, fontWeight: 700, mb: 0.5 }}>
+                Analysts for the Two New Samples
+              </Typography>
+              <Typography sx={{ fontSize: 11, color: "text.secondary", mb: 1 }}>
+                Two different analysts are required, and neither may be whoever tested the original sample.
+              </Typography>
+              <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5}>
+                <FormControl fullWidth size="small">
+                  <InputLabel>New Sample 1 - Analyst</InputLabel>
+                  <Select
+                    label="New Sample 1 - Analyst"
+                    value={newSampleAnalystOneId}
+                    onChange={(e) => setNewSampleAnalystOneId(e.target.value === "" ? "" : Number(e.target.value))}
+                  >
+                    {analysts.map((a) => (
+                      <MenuItem key={a.id} value={a.id}>{a.fullName} ({a.username})</MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+                <FormControl fullWidth size="small">
+                  <InputLabel>New Sample 2 - Analyst</InputLabel>
+                  <Select
+                    label="New Sample 2 - Analyst"
+                    value={newSampleAnalystTwoId}
+                    onChange={(e) => setNewSampleAnalystTwoId(e.target.value === "" ? "" : Number(e.target.value))}
+                  >
+                    {analysts.map((a) => (
+                      <MenuItem key={a.id} value={a.id}>{a.fullName} ({a.username})</MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Stack>
+              {newSampleAnalystOneId !== "" && newSampleAnalystOneId === newSampleAnalystTwoId && (
+                <Alert severity="warning" sx={{ fontSize: 11, py: 0, mt: 0.5 }}>
+                  The two new samples must be assigned to two different analysts.
+                </Alert>
+              )}
+            </Box>
+          )}
+
           <Button
             variant="contained"
             fullWidth
+            disabled={!decisionValid}
             onClick={onApproveClick}
             sx={{ bgcolor: brandColors.sectionTitle, "&:hover": { bgcolor: brandColors.pageTitle } }}
           >
@@ -929,10 +1098,16 @@ export function SampleSummaryDialog({ open, sampleId, onClose }: Props) {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [comment, setComment] = useState("");
   const [decision, setDecision] = useState<SampleApprovalDecision>("Approve");
+  const [certificateRemarks, setCertificateRemarks] = useState("");
+  const [selectedTestOrderIds, setSelectedTestOrderIds] = useState<number[]>([]);
+  const [analysts, setAnalysts] = useState<UserRecord[]>([]);
+  const [newSampleAnalystOneId, setNewSampleAnalystOneId] = useState<number | "">("");
+  const [newSampleAnalystTwoId, setNewSampleAnalystTwoId] = useState<number | "">("");
   const [confirmingReview, setConfirmingReview] = useState(false);
   const [confirmingDecision, setConfirmingDecision] = useState(false);
+  const [returningTestOrder, setReturningTestOrder] = useState<TestOrderSummaryDetail | null>(null);
   const [openPathogenDialog, setOpenPathogenDialog] = useState(false);
-  const [exporting, setExporting] = useState<"pdf" | "word" | null>(null);
+  const [exporting, setExporting] = useState<"pdf" | null>(null);
   const [exportError, setExportError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -941,13 +1116,39 @@ export function SampleSummaryDialog({ open, sampleId, onClose }: Props) {
       setLoadError(null);
       setComment("");
       setDecision("Approve");
+      setCertificateRemarks("");
+      setSelectedTestOrderIds([]);
+      setNewSampleAnalystOneId("");
+      setNewSampleAnalystTwoId("");
+      setReturningTestOrder(null);
       SampleSummaryService.getSummary(sampleId)
         .then(setSummary)
         .catch((e) => {
           setLoadError(e?.response?.data?.message ?? "Failed to load sample summary.");
         });
+      if (role === "SectionHead" || role === "SystemAdministrator") {
+        UserService.getEligibleAnalysts().then(setAnalysts).catch(() => setAnalysts([]));
+      }
     }
-  }, [open, sampleId]);
+  }, [open, sampleId, role]);
+
+  // Re-pre-check the retest checklist toward whichever tests are actually
+  // non-conforming whenever the decision switches to a retest flavor (or
+  // the summary first loads) - the Section Head can still freely adjust it.
+  useEffect(() => {
+    if (!summary) return;
+    if (decision !== "RetestRetainedSample" && decision !== "NewSampleRequest") return;
+    const nonPassing = summary.testOrders.filter((t) => !t.isSuperseded && isTestOrderNonPassing(t)).map((t) => t.testOrderId);
+    setSelectedTestOrderIds(nonPassing);
+  }, [decision, summary]);
+
+  const handleReturnConfirm = async (reason?: string) => {
+    if (!sampleId || !returningTestOrder) return;
+    await SampleSummaryService.returnTestToAnalyst(sampleId, returningTestOrder.testOrderId, reason);
+    setReturningTestOrder(null);
+    const updated = await SampleSummaryService.getSummary(sampleId);
+    setSummary(updated);
+  };
 
   const handleReviewConfirm = async (password: string) => {
     if (!sampleId) return;
@@ -958,7 +1159,14 @@ export function SampleSummaryDialog({ open, sampleId, onClose }: Props) {
 
   const handleDecisionConfirm = async (password: string) => {
     if (!sampleId) return;
-    await SampleSummaryService.decideApproval(sampleId, password, decision, comment || undefined);
+    const isRetestDecision = decision === "RetestRetainedSample" || decision === "NewSampleRequest";
+    await SampleSummaryService.decideApproval(
+      sampleId, password, decision, comment || undefined,
+      decision === "Approve" ? (certificateRemarks || undefined) : undefined,
+      isRetestDecision ? selectedTestOrderIds : undefined,
+      decision === "NewSampleRequest" && newSampleAnalystOneId !== "" ? newSampleAnalystOneId : undefined,
+      decision === "NewSampleRequest" && newSampleAnalystTwoId !== "" ? newSampleAnalystTwoId : undefined
+    );
     setConfirmingDecision(false);
     onClose();
   };
@@ -966,17 +1174,18 @@ export function SampleSummaryDialog({ open, sampleId, onClose }: Props) {
   const canReview =
     summary?.status === "UnderReview" &&
     (role === "Reviewer" || role === "SectionHead" || role === "SystemAdministrator");
+  const canReturn =
+    role === "Reviewer" || role === "SectionHead" || role === "SystemAdministrator";
   const canApprove =
     summary?.status === "UnderApproval" &&
     (role === "SectionHead" || role === "SystemAdministrator");
 
-  const handleExport = async (format: "pdf" | "word") => {
+  const handleExport = async (format: "pdf") => {
     if (!sampleId || !summary) return;
     setExporting(format);
     setExportError(null);
     try {
-      if (format === "pdf") await SampleSummaryService.exportPdf(sampleId, summary.referenceNumber);
-      else await SampleSummaryService.exportWord(sampleId, summary.referenceNumber);
+      await SampleSummaryService.exportPdf(sampleId, summary.referenceNumber);
     } catch (e: any) {
       setExportError(e?.response?.data?.message ?? "Export failed.");
     } finally {
@@ -999,11 +1208,35 @@ export function SampleSummaryDialog({ open, sampleId, onClose }: Props) {
     const allReadings = summary.testOrders.flatMap((t) => t.countTestReadings);
     if (allReadings.some((r) => r.status === "OutOfSpecification")) return "OutOfSpecification";
 
+    // Biochemical identification's explicit call overrides selective-plating
+    // morphology alone when present - same override as ReportDocumentMapper
+    // and TestResultCards apply, so this banner can't disagree with either.
+    const allBiochemical = summary.testOrders.flatMap((t) => t.biochemicalResults);
+    if (allBiochemical.some((b) => b.organismDetected === true)) return "Detected";
     const allPathogens = summary.testOrders.flatMap((t) => t.pathogenObservations);
-    if (allPathogens.some((p) => p.observation === "GrowthConforming")) return "Detected";
+    const anyConforming = allPathogens.some((p) => p.observation === "GrowthConforming");
+    const biochemicalRulesOutAll = allBiochemical.length > 0 && allBiochemical.every((b) => b.organismDetected === false);
+    if (anyConforming && !biochemicalRulesOutAll) return "Detected";
 
     return summary.status || "WithinLimits";
   }, [summary]);
+
+  // COA is only meaningful once the sample has a final disposition
+  // (Approved or Rejected - matches SampleCoaPage.tsx's own gate) and
+  // there's something to report: either per-location results (Water/EM/
+  // After Cleaning) for the matrix layout, or plain single-value results
+  // (Product/RM/PM) for the simple layout. For an OOS origin/intermediate
+  // sample resolved via retest propagation, "something to report" comes
+  // from the pulled-through resolving retest's results (see
+  // SampleSummaryService.ResolveEffectiveTestOrdersAsync), not this
+  // sample's own now-superseded TestOrders.
+  const coaEligible = useMemo(
+    () =>
+      !!summary &&
+      (summary.status === "Approved" || summary.status === "Rejected") &&
+      (buildCoaMatrix(summary.testOrders) !== null || buildCoaSimpleRows(summary.testOrders) !== null),
+    [summary]
+  );
 
   return (
     <>
@@ -1050,14 +1283,31 @@ export function SampleSummaryDialog({ open, sampleId, onClose }: Props) {
                   Open Pathogen Workflow
                 </Button>
                 <Button
+                  component={Link}
+                  to={`/samples/${sampleId}/report`}
+                  target="_blank"
+                  rel="noopener"
                   variant="outlined"
                   size="small"
                   startIcon={<PrintIcon />}
-                  onClick={() => window.open(`/samples/${sampleId}/report`, "_blank", "noopener")}
                   sx={{ borderColor: "divider", color: "text.secondary" }}
                 >
                   Printable Report
                 </Button>
+                {coaEligible && (
+                  <Button
+                    component={Link}
+                    to={`/samples/${sampleId}/coa`}
+                    target="_blank"
+                    rel="noopener"
+                    variant="outlined"
+                    size="small"
+                    startIcon={<FactCheckOutlinedIcon />}
+                    sx={{ borderColor: "divider", color: "text.secondary" }}
+                  >
+                    View COA
+                  </Button>
+                )}
                 <Button
                   variant="outlined"
                   size="small"
@@ -1068,72 +1318,94 @@ export function SampleSummaryDialog({ open, sampleId, onClose }: Props) {
                 >
                   {exporting === "pdf" ? "Exporting…" : "Export PDF"}
                 </Button>
-                <Button
-                  variant="outlined"
-                  size="small"
-                  startIcon={<DescriptionIcon />}
-                  disabled={!!exporting}
-                  onClick={() => handleExport("word")}
-                  sx={{ borderColor: "divider", color: "text.secondary" }}
-                >
-                  {exporting === "word" ? "Exporting…" : "Export Word"}
-                </Button>
               </Stack>
             </Box>
 
             {/* 1. Sample Identity */}
             <SampleIdentityCard summary={summary} />
 
+            {/* Workflow History - horizontal, right under Sample Identity so
+                the sample's lifecycle is visible at a glance, above
+                Approval & Signatures */}
+            <WorkflowHistoryStrip summary={summary} />
+
             {/* Preparation (if available) */}
             {summary.preparation && <SamplePreparationCard preparation={summary.preparation} />}
 
             {/* 2. Test Results */}
-            <TestResultsSection testOrders={summary.testOrders} overallStatus={overallStatus} />
+            <TestResultsSection
+              testOrders={summary.testOrders}
+              overallStatus={overallStatus}
+              canReturn={canReturn}
+              onReturnTest={(order) => setReturningTestOrder(order)}
+            />
 
-            {/* 3. Bottom Three-Column Information Area */}
-            <Box
-              sx={{
-                display: "grid",
-                gridTemplateColumns: {
-                  xs: "1fr",
-                  md: "repeat(3, 1fr)"
-                },
-                gap: 2.5
-              }}
-            >
-              <StepHistoryCard testOrders={summary.testOrders} />
-              <WorkflowHistoryCard summary={summary} />
-              <ApprovalSignaturesCard
-                summary={summary}
-                canReview={!!canReview}
-                canApprove={!!canApprove}
-                comment={comment}
-                setComment={setComment}
-                decision={decision}
-                setDecision={setDecision}
-                onReviewClick={() => setConfirmingReview(true)}
-                onApproveClick={() => setConfirmingDecision(true)}
-              />
-            </Box>
+            {/* 3. Approval & Electronic Signatures */}
+            <ApprovalSignaturesCard
+              summary={summary}
+              canReview={!!canReview}
+              canApprove={!!canApprove}
+              comment={comment}
+              setComment={setComment}
+              decision={decision}
+              setDecision={setDecision}
+              certificateRemarks={certificateRemarks}
+              setCertificateRemarks={setCertificateRemarks}
+              selectedTestOrderIds={selectedTestOrderIds}
+              setSelectedTestOrderIds={setSelectedTestOrderIds}
+              analysts={analysts}
+              newSampleAnalystOneId={newSampleAnalystOneId}
+              setNewSampleAnalystOneId={setNewSampleAnalystOneId}
+              newSampleAnalystTwoId={newSampleAnalystTwoId}
+              setNewSampleAnalystTwoId={setNewSampleAnalystTwoId}
+              onReviewClick={() => setConfirmingReview(true)}
+              onApproveClick={() => setConfirmingDecision(true)}
+            />
 
-            {/* 4. Full-Width Open Printable Report Button */}
+            {/* 4. Full-Width Open Printable Report / View COA Buttons */}
             <Box sx={{ pt: 1 }}>
-              <Button
-                variant="contained"
-                fullWidth
-                size="large"
-                startIcon={<PrintIcon />}
-                onClick={() => window.open(`/samples/${sampleId}/report`, "_blank", "noopener")}
-                sx={{
-                  bgcolor: brandColors.sectionTitle,
-                  py: 1.25,
-                  fontWeight: 600,
-                  fontSize: 14,
-                  "&:hover": { bgcolor: brandColors.pageTitle }
-                }}
-              >
-                Open Printable Report
-              </Button>
+              <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5}>
+                <Button
+                  component={Link}
+                  to={`/samples/${sampleId}/report`}
+                  target="_blank"
+                  rel="noopener"
+                  variant="contained"
+                  fullWidth
+                  size="large"
+                  startIcon={<PrintIcon />}
+                  sx={{
+                    bgcolor: brandColors.sectionTitle,
+                    py: 1.25,
+                    fontWeight: 600,
+                    fontSize: 14,
+                    "&:hover": { bgcolor: brandColors.pageTitle }
+                  }}
+                >
+                  Open Printable Report
+                </Button>
+                {coaEligible && (
+                  <Button
+                    component={Link}
+                    to={`/samples/${sampleId}/coa`}
+                    target="_blank"
+                    rel="noopener"
+                    variant="outlined"
+                    fullWidth
+                    size="large"
+                    startIcon={<FactCheckOutlinedIcon />}
+                    sx={{
+                      py: 1.25,
+                      fontWeight: 600,
+                      fontSize: 14,
+                      borderColor: brandColors.sectionTitle,
+                      color: brandColors.sectionTitle
+                    }}
+                  >
+                    View Certificate of Analysis
+                  </Button>
+                )}
+              </Stack>
             </Box>
 
             {/* 5. Controlled Document Footer Information */}
@@ -1153,6 +1425,17 @@ export function SampleSummaryDialog({ open, sampleId, onClose }: Props) {
           </Stack>
         )}
       </FloatingDialog>
+
+      {/* Return to Analyst Reason Dialog */}
+      {returningTestOrder && (
+        <ReturnToAnalystDialog
+          open={Boolean(returningTestOrder)}
+          testCode={returningTestOrder.testCode}
+          testDisplayName={returningTestOrder.testDisplayName}
+          onCancel={() => setReturningTestOrder(null)}
+          onConfirm={handleReturnConfirm}
+        />
+      )}
 
       {/* Signature Confirmation Dialogs */}
       {summary && (

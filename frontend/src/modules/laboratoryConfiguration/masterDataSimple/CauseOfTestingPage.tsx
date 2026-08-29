@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
-import { Paper, TextField, Button, Table, TableBody, TableRow, TableCell, Stack } from "@mui/material";
+import { Paper, TextField, Button, Stack } from "@mui/material";
 import { PageHeader } from "../../../components/PageHeader";
 import { SectionTitle } from "../../../components/SectionTitle";
+import { DataTable } from "../../../components/DataTable";
 import { masterDataOptions } from "../../../services/masterDataOptions";
 import { apiClient } from "../../../services/apiClient";
 
@@ -26,7 +27,7 @@ export function CauseOfTestingPage() {
           <TextField size="small" placeholder="e.g. Investigation" value={name} onChange={(e) => setName(e.target.value)} sx={{ maxWidth: 280 }} />
           <Button variant="outlined" onClick={add}>Add</Button>
         </Stack>
-        <Table><TableBody>{list.map((c) => <TableRow key={c.id}><TableCell>{c.name}</TableCell></TableRow>)}</TableBody></Table>
+        <DataTable columns={[{ key: "name", label: "Name" }]} rows={list} getRowId={(c) => c.id} />
       </Paper>
     </>
   );

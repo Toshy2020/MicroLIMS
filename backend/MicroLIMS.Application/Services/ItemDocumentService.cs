@@ -78,6 +78,12 @@ public class ItemDocumentService
         var storageKey = $"item-documents/{itemId}/{Guid.NewGuid():N}{ext}";
         var savedPath = await _storage.SaveAsync(storageKey, contentBytes);
 
+        // The date input arrives with DateTimeKind.Unspecified (no timezone
+        // in a plain HTML date value) - Npgsql refuses to write that into a
+        // "timestamp with time zone" column, so treat it as UTC explicitly.
+        if (effectiveDate.HasValue && effectiveDate.Value.Kind == DateTimeKind.Unspecified)
+            effectiveDate = DateTime.SpecifyKind(effectiveDate.Value, DateTimeKind.Utc);
+
         // Find existing Current document of the same type to supersede
         var existingCurrentDoc = await _db.ItemDocuments
             .FirstOrDefaultAsync(d => d.ItemId == itemId && d.DocumentType == documentType && d.Status == MaterialDocumentStatus.Current);

@@ -60,15 +60,16 @@ function KpiCard({ data }: { data: OverviewKpiCardData }) {
 
 export function OverviewTab({ fromDate, toDate, onNavigateTab }: OverviewTabProps) {
   const theme = useTheme();
+  const chartPalette = theme.custom.chartPalette;
   const [data, setData] = useState<OverviewDashboardData | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     setLoading(true);
-    OverviewService.getOverviewData(fromDate, toDate)
+    OverviewService.getOverviewData(fromDate, toDate, chartPalette)
       .then(setData)
       .finally(() => setLoading(false));
-  }, [fromDate, toDate]);
+  }, [fromDate, toDate, chartPalette]);
 
   if (!data) return null;
 
@@ -386,7 +387,7 @@ export function OverviewTab({ fromDate, toDate, onNavigateTab }: OverviewTabProp
                 variant="outlined"
                 fullWidth
                 startIcon={<ShowChartIcon />}
-                onClick={() => onNavigateTab(2)}
+                onClick={() => onNavigateTab(4)}
                 sx={{ justifyContent: "flex-start", py: 1 }}
               >
                 Trending & Analysis
@@ -395,7 +396,7 @@ export function OverviewTab({ fromDate, toDate, onNavigateTab }: OverviewTabProp
                 variant="outlined"
                 fullWidth
                 startIcon={<AssessmentIcon />}
-                onClick={() => onNavigateTab(3)}
+                onClick={() => onNavigateTab(5)}
                 sx={{ justifyContent: "flex-start", py: 1 }}
               >
                 KPI / Performance

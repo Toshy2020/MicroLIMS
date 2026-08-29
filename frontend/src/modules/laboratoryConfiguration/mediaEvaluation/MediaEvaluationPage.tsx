@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
 import {
   Box, Paper, Table, TableHead, TableRow, TableCell, TableBody, Select, MenuItem, Button, Alert,
-  Dialog, DialogTitle, DialogContent, DialogActions, TextField, Typography, Stack
+  TextField, Typography, Stack
 } from "@mui/material";
 import { PageHeader } from "../../../components/PageHeader";
 import { SectionTitle } from "../../../components/SectionTitle";
 import { StatusBadge } from "../../../components/StatusBadge";
+import { FloatingDialog } from "../../../components/FloatingDialog";
 import { MediaEvaluationService } from "./services/MediaEvaluationService";
 import { CryovialService } from "../cryovials/services/CryovialService";
 import { masterDataOptions, mediaClassLabel, evaluationTypeLabel } from "../../../services/masterDataOptions";
@@ -142,17 +143,25 @@ export function MediaEvaluationPage() {
         </Table>
       </Paper>
 
-      <Dialog open={!!selected} onClose={closeDetail} fullWidth maxWidth="md">
-        {selected && (
-          <>
-            <DialogTitle>
+      <FloatingDialog
+        open={!!selected}
+        onClose={closeDetail}
+        maxWidth="md"
+        title={
+          selected ? (
+            <Box>
               {selected.media?.lotNumber} — {evaluationTypeLabel(selected.evaluationType)}
               <Box sx={{ mt: 0.5, display: "flex", gap: 1 }}>
                 <StatusBadge status={selected.status} />
                 {selected.outcome && <StatusBadge status={selected.outcome} />}
               </Box>
-            </DialogTitle>
-            <DialogContent dividers>
+            </Box>
+          ) : null
+        }
+        actions={<Button onClick={closeDetail}>Close</Button>}
+      >
+        {selected && (
+          <>
               {message && <Alert severity={message.ok ? "success" : "error"} sx={{ mb: 2 }}>{message.text}</Alert>}
               <Stack spacing={2}>
                 {selected.challenges.length === 0 && (
@@ -271,13 +280,9 @@ export function MediaEvaluationPage() {
                   );
                 })}
               </Stack>
-            </DialogContent>
-            <DialogActions>
-              <Button onClick={closeDetail}>Close</Button>
-            </DialogActions>
           </>
         )}
-      </Dialog>
+      </FloatingDialog>
     </>
   );
 }

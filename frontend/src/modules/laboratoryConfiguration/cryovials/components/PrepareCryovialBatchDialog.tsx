@@ -1,9 +1,5 @@
 import { useState, useEffect } from "react";
 import {
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
   Button,
   TextField,
   Typography,
@@ -22,6 +18,8 @@ import {
   Divider,
   Stack,
   Paper,
+  Checkbox,
+  FormControlLabel,
   useTheme
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
@@ -33,6 +31,7 @@ import { MaterialService } from "../../../inventory/materials/services/MaterialS
 import { EquipmentInventoryService } from "../../../inventory/equipment/services/EquipmentInventoryService";
 import { masterDataOptions } from "../../../../services/masterDataOptions";
 import { brandColors } from "../../../../theme";
+import { FloatingDialog } from "../../../../components/FloatingDialog";
 
 interface PrepareCryovialBatchDialogProps {
   open: boolean;
@@ -110,6 +109,7 @@ export function PrepareCryovialBatchDialog({
       return "Please enter the number of discs used (0 or more).";
     if (!form.expiryDate) return "Please enter an expiry date.";
     if (!form.storageEquipmentId) return "Please select a Storage Equipment (Freezer / Deep Freezer).";
+    if (!form.physicalCheckConfirmed) return "Please confirm the physical check against the reference description.";
     if (panel.length === 0) return "At least one Identity Confirmation row is required.";
     for (let i = 0; i < panel.length; i++) {
       const r = panel[i];
@@ -140,6 +140,7 @@ export function PrepareCryovialBatchDialog({
         numberOfVialsPrepared: Number(form.numberOfVialsPrepared),
         expiryDate: form.expiryDate,
         storageCondition: storageConditionValue,
+        physicalCheckConfirmed: Boolean(form.physicalCheckConfirmed),
         physicalCheckText: form.physicalCheckText || "",
         discsUsed: Number(form.discsUsed),
         panel: panel.map((r) => ({
@@ -163,19 +164,13 @@ export function PrepareCryovialBatchDialog({
   };
 
   return (
-    <Dialog
+    <FloatingDialog
       open={open}
-      onClose={submitting ? undefined : onClose}
+      onClose={() => { if (!submitting) onClose(); }}
       maxWidth="md"
-      fullWidth
-      PaperProps={{
-        sx: {
-          borderRadius: 2,
-          p: 0.5
-        }
-      }}
-    >
-      <DialogTitle sx={{ pb: 1, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+      paperSx={{ borderRadius: 2, p: 0.5 }}
+      titleSx={{ pb: 1 }}
+      title={
         <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
           <Box
             sx={{
@@ -195,12 +190,26 @@ export function PrepareCryovialBatchDialog({
             Prepare Cryovial Batch
           </Typography>
         </Box>
-        <IconButton onClick={onClose} disabled={submitting} size="small">
-          <CloseIcon fontSize="small" />
-        </IconButton>
-      </DialogTitle>
-
-      <DialogContent dividers sx={{ pt: 2.5 }}>
+      }
+      actions={
+        <>
+          <Button onClick={onClose} disabled={submitting} sx={{ color: "text.secondary" }}>
+            Cancel
+          </Button>
+          <Button
+            variant="contained"
+            onClick={handleSave}
+            disabled={submitting || eligibleFreezers.length === 0}
+            sx={{
+              bgcolor: brandColors.sectionTitle,
+              "&:hover": { bgcolor: brandColors.pageTitle }
+            }}
+          >
+            {submitting ? "Saving Batch..." : "Save Batch"}
+          </Button>
+        </>
+      }
+    >
         <Stack spacing={3}>
           {error && <Alert severity="error">{error}</Alert>}
 
@@ -249,6 +258,21 @@ export function PrepareCryovialBatchDialog({
                     {" · "}
                     Manufacturer: {selectedMaterial.manufacturerName || "—"}
                   </Typography>
+
+                  <Box sx={{ mt: 1.25, pt: 1, borderTop: "1px dashed", borderColor: "divider" }}>
+                    <Typography sx={{ fontSize: 11, fontWeight: 700, color: "text.secondary", textTransform: "uppercase", letterSpacing: "0.3px", mb: 0.5 }}>
+                      Reference Description (Organism Master Data)
+                    </Typography>
+                    {selectedMaterial.organism?.description ? (
+                      <Typography sx={{ fontSize: 12, color: "text.primary", whiteSpace: "pre-wrap", bgcolor: "action.hover", p: 1, borderRadius: 0.5, border: "1px solid", borderColor: "divider" }}>
+                        {selectedMaterial.organism.description}
+                      </Typography>
+                    ) : (
+                      <Typography sx={{ fontSize: 12, color: "warning.main", fontStyle: "italic" }}>
+                        No reference description configured for this organism. Add one under Laboratory Configuration → Organisms before confirming the physical check.
+                      </Typography>
+                    )}
+                  </Box>
                 </Paper>
               )}
             </Box>
@@ -293,7 +317,7 @@ export function PrepareCryovialBatchDialog({
                 onChange={(e) => setField("expiryDate", e.target.value)}
                 required
               />
-              <FormControl size="small" required sx={{ gridColumn: { sm: "span 2", md: "span 2" } }}>
+              <FormControl size="small" required sx={{ gridColumn: { sm: "span 2", md: "span 3" } }}>
                 <InputLabel id="storage-equipment-label">Storage Equipment *</InputLabel>
                 <Select
                   labelId="storage-equipment-label"
@@ -312,12 +336,33 @@ export function PrepareCryovialBatchDialog({
                   ))}
                 </Select>
               </FormControl>
+
+              <Box sx={{ gridColumn: { xs: "1fr", sm: "span 2", md: "span 3" }, mt: 0.5 }}>
+                <FormControlLabel
+                  control={
+                    <Checkbox
+                      checked={Boolean(form.physicalCheckConfirmed)}
+                      onChange={(e) => setField("physicalCheckConfirmed", e.target.checked)}
+                      color="primary"
+                      size="small"
+                    />
+                  }
+                  label={
+                    <Typography sx={{ fontSize: 13, fontWeight: 600, color: "text.primary" }}>
+                      I confirm the physical characteristics match the reference description above. *
+                    </Typography>
+                  }
+                />
+              </Box>
+
               <TextField
+                fullWidth
                 size="small"
-                label="Physical Check"
-                placeholder="e.g. Clear, intact cryovials with color code"
+                label="Physical Check Notes / Discrepancies (optional)"
+                placeholder="e.g. Pure uniform colonies, no morphological deviations observed"
                 value={form.physicalCheckText ?? ""}
                 onChange={(e) => setField("physicalCheckText", e.target.value)}
+                sx={{ gridColumn: { xs: "1fr", sm: "span 2", md: "span 3" } }}
               />
             </Box>
 
@@ -501,24 +546,6 @@ export function PrepareCryovialBatchDialog({
             </Button>
           </Box>
         </Stack>
-      </DialogContent>
-
-      <DialogActions sx={{ px: 3, py: 2 }}>
-        <Button onClick={onClose} disabled={submitting} sx={{ color: "text.secondary" }}>
-          Cancel
-        </Button>
-        <Button
-          variant="contained"
-          onClick={handleSave}
-          disabled={submitting || eligibleFreezers.length === 0}
-          sx={{
-            bgcolor: brandColors.sectionTitle,
-            "&:hover": { bgcolor: brandColors.pageTitle }
-          }}
-        >
-          {submitting ? "Saving Batch..." : "Save Batch"}
-        </Button>
-      </DialogActions>
-    </Dialog>
+    </FloatingDialog>
   );
 }

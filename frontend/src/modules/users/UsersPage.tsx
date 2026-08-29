@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
 import {
   Paper, TextField, Select, MenuItem, Button, Stack, Typography, Alert, Box,
-  Chip, Dialog, DialogTitle, DialogContent, DialogActions, Tooltip, Table,
+  Chip, Tooltip, Table,
   TableBody, TableCell, TableContainer, TableHead, TableRow, IconButton
 } from "@mui/material";
+import { FloatingDialog } from "../../components/FloatingDialog";
 import EditIcon from "@mui/icons-material/Edit";
 import LockOpenIcon from "@mui/icons-material/LockOpen";
 import LockResetIcon from "@mui/icons-material/LockReset";
@@ -13,6 +14,8 @@ import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 import PersonOutlineIcon from "@mui/icons-material/PersonOutline";
 import KeyIcon from "@mui/icons-material/Key";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
+import DeleteForeverIcon from "@mui/icons-material/DeleteForever";
+import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 
 import { PageHeader } from "../../components/PageHeader";
 import { SectionTitle } from "../../components/SectionTitle";
@@ -59,6 +62,10 @@ export function UsersPage() {
   const [codeCopied, setCodeCopied] = useState(false);
 
   const [forcePwdUser, setForcePwdUser] = useState<UserRecord | null>(null);
+
+  const [deleteDialogUser, setDeleteDialogUser] = useState<UserRecord | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const load = () => {
     UserService.getAll().then(setUsers).catch(() => {});
@@ -238,6 +245,34 @@ export function UsersPage() {
     }
   };
 
+  // Permanent Delete
+  const openDeleteDialog = (u: UserRecord) => {
+    setDeleteDialogUser(u);
+    setDeleteError(null);
+  };
+
+  const closeDeleteDialog = () => {
+    if (deleting) return;
+    setDeleteDialogUser(null);
+    setDeleteError(null);
+  };
+
+  const handleHardDelete = async () => {
+    if (!deleteDialogUser) return;
+    setDeleting(true);
+    setDeleteError(null);
+    try {
+      await UserService.hardDelete(deleteDialogUser.id);
+      setMessage({ text: `User "${deleteDialogUser.username}" was permanently deleted.`, ok: true });
+      setDeleteDialogUser(null);
+      load();
+    } catch (e: any) {
+      setDeleteError(e?.response?.data?.message ?? "Could not delete user.");
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   return (
     <>
       <PageHeader title="User Management" subtitle="Manage system users, role assignments, security status, and account access." />
@@ -351,6 +386,14 @@ export function UsersPage() {
                       <Tooltip title="Force Password Change at Next Login">
                         <IconButton size="small" color="info" onClick={() => openForcePwdDialog(u)}><SecurityIcon fontSize="small" /></IconButton>
                       </Tooltip>
+
+                      <Tooltip title={isSelf ? "You cannot permanently delete your own account" : "Permanently Delete User"}>
+                        <span>
+                          <IconButton size="small" color="error" disabled={isSelf} onClick={() => openDeleteDialog(u)}>
+                            <DeleteForeverIcon fontSize="small" />
+                          </IconButton>
+                        </span>
+                      </Tooltip>
                     </Stack>
                   </TableCell>
                 </TableRow>
@@ -361,102 +404,144 @@ export function UsersPage() {
       </TableContainer>
 
       {/* Edit Profile Dialog */}
-      <Dialog open={Boolean(editProfileUser)} onClose={() => setEditProfileUser(null)} maxWidth="xs" fullWidth>
-        <DialogTitle>Edit Profile — {editProfileUser?.username}</DialogTitle>
-        <DialogContent dividers>
-          <Stack spacing={2} sx={{ mt: 1 }}>
-            <TextField label="Full Name" size="small" value={editFullName} onChange={(e) => setEditFullName(e.target.value)} fullWidth />
-            <TextField label="Username" size="small" value={editUsername} onChange={(e) => setEditUsername(e.target.value)} fullWidth />
-            <TextField label="Email" size="small" type="email" value={editEmail} onChange={(e) => setEditEmail(e.target.value)} fullWidth helperText="Required for email password resets" />
-          </Stack>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setEditProfileUser(null)}>Cancel</Button>
-          <Button variant="contained" onClick={handleSaveProfile}>Save Profile</Button>
-        </DialogActions>
-      </Dialog>
+      <FloatingDialog
+        open={Boolean(editProfileUser)}
+        onClose={() => setEditProfileUser(null)}
+        maxWidth="xs"
+        title={`Edit Profile — ${editProfileUser?.username}`}
+        actions={
+          <>
+            <Button onClick={() => setEditProfileUser(null)}>Cancel</Button>
+            <Button variant="contained" onClick={handleSaveProfile}>Save Profile</Button>
+          </>
+        }
+      >
+        <Stack spacing={2} sx={{ mt: 1 }}>
+          <TextField label="Full Name" size="small" value={editFullName} onChange={(e) => setEditFullName(e.target.value)} fullWidth />
+          <TextField label="Username" size="small" value={editUsername} onChange={(e) => setEditUsername(e.target.value)} fullWidth />
+          <TextField label="Email" size="small" type="email" value={editEmail} onChange={(e) => setEditEmail(e.target.value)} fullWidth helperText="Required for email password resets" />
+        </Stack>
+      </FloatingDialog>
 
       {/* Change Role Dialog */}
-      <Dialog open={Boolean(roleDialogUser)} onClose={() => setRoleDialogUser(null)} maxWidth="xs" fullWidth>
-        <DialogTitle>Change Role — {roleDialogUser?.username}</DialogTitle>
-        <DialogContent dividers>
-          <Stack spacing={2} sx={{ mt: 1 }}>
-            <Typography variant="body2">Current Role: <strong>{roleDialogUser?.role?.name ?? "None"}</strong></Typography>
-            <Select size="small" value={newRoleId} onChange={(e) => setNewRoleId(Number(e.target.value))} fullWidth displayEmpty>
-              <MenuItem value=""><em>Select New Role</em></MenuItem>
-              {roles.map((r) => <MenuItem key={r.id} value={r.id}>{r.name}</MenuItem>)}
-            </Select>
-            <TextField label="Reason for Change" size="small" multiline rows={2} value={roleReason} onChange={(e) => setRoleReason(e.target.value)} required fullWidth placeholder="Mandatory administrative justification" />
-          </Stack>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setRoleDialogUser(null)}>Cancel</Button>
-          <Button variant="contained" color="primary" onClick={handleSaveRole} disabled={!newRoleId || !roleReason}>Change Role</Button>
-        </DialogActions>
-      </Dialog>
+      <FloatingDialog
+        open={Boolean(roleDialogUser)}
+        onClose={() => setRoleDialogUser(null)}
+        maxWidth="xs"
+        title={`Change Role — ${roleDialogUser?.username}`}
+        actions={
+          <>
+            <Button onClick={() => setRoleDialogUser(null)}>Cancel</Button>
+            <Button variant="contained" color="primary" onClick={handleSaveRole} disabled={!newRoleId || !roleReason}>Change Role</Button>
+          </>
+        }
+      >
+        <Stack spacing={2} sx={{ mt: 1 }}>
+          <Typography variant="body2">Current Role: <strong>{roleDialogUser?.role?.name ?? "None"}</strong></Typography>
+          <Select size="small" value={newRoleId} onChange={(e) => setNewRoleId(Number(e.target.value))} fullWidth displayEmpty>
+            <MenuItem value=""><em>Select New Role</em></MenuItem>
+            {roles.map((r) => <MenuItem key={r.id} value={r.id}>{r.name}</MenuItem>)}
+          </Select>
+          <TextField label="Reason for Change" size="small" multiline rows={2} value={roleReason} onChange={(e) => setRoleReason(e.target.value)} required fullWidth placeholder="Mandatory administrative justification" />
+        </Stack>
+      </FloatingDialog>
 
       {/* Enable / Disable Status Dialog */}
-      <Dialog open={Boolean(statusDialogUser)} onClose={() => setStatusDialogUser(null)} maxWidth="xs" fullWidth>
-        <DialogTitle>{statusDialogUser?.isActive ? "Disable User Account" : "Enable User Account"}</DialogTitle>
-        <DialogContent dividers>
-          <Stack spacing={2} sx={{ mt: 1 }}>
-            <Typography variant="body2">
-              Are you sure you want to {statusDialogUser?.isActive ? "disable" : "enable"} account <strong>{statusDialogUser?.fullName} (@{statusDialogUser?.username})</strong>?
-            </Typography>
-            {statusDialogUser?.isActive && (
-              <TextField label="Reason for Disabling" size="small" multiline rows={2} value={statusReason} onChange={(e) => setStatusReason(e.target.value)} required fullWidth placeholder="Mandatory justification" />
-            )}
-          </Stack>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setStatusDialogUser(null)}>Cancel</Button>
-          <Button variant="contained" color={statusDialogUser?.isActive ? "error" : "success"} onClick={handleSaveStatus} disabled={statusDialogUser?.isActive && !statusReason}>
-            {statusDialogUser?.isActive ? "Disable Account" : "Enable Account"}
-          </Button>
-        </DialogActions>
-      </Dialog>
+      <FloatingDialog
+        open={Boolean(statusDialogUser)}
+        onClose={() => setStatusDialogUser(null)}
+        maxWidth="xs"
+        title={statusDialogUser?.isActive ? "Disable User Account" : "Enable User Account"}
+        actions={
+          <>
+            <Button onClick={() => setStatusDialogUser(null)}>Cancel</Button>
+            <Button variant="contained" color={statusDialogUser?.isActive ? "error" : "success"} onClick={handleSaveStatus} disabled={statusDialogUser?.isActive && !statusReason}>
+              {statusDialogUser?.isActive ? "Disable Account" : "Enable Account"}
+            </Button>
+          </>
+        }
+      >
+        <Stack spacing={2} sx={{ mt: 1 }}>
+          <Typography variant="body2">
+            Are you sure you want to {statusDialogUser?.isActive ? "disable" : "enable"} account <strong>{statusDialogUser?.fullName} (@{statusDialogUser?.username})</strong>?
+          </Typography>
+          {statusDialogUser?.isActive && (
+            <TextField label="Reason for Disabling" size="small" multiline rows={2} value={statusReason} onChange={(e) => setStatusReason(e.target.value)} required fullWidth placeholder="Mandatory justification" />
+          )}
+        </Stack>
+      </FloatingDialog>
 
       {/* Unlock Dialog */}
-      <Dialog open={Boolean(unlockDialogUser)} onClose={() => setUnlockDialogUser(null)} maxWidth="xs" fullWidth>
-        <DialogTitle>Unlock User Account</DialogTitle>
-        <DialogContent dividers>
-          <Stack spacing={2} sx={{ mt: 1 }}>
-            <Typography variant="body2">
-              Unlock account for <strong>{unlockDialogUser?.fullName} (@{unlockDialogUser?.username})</strong>? This will clear failed login attempts and reset account lock.
-            </Typography>
-            <TextField label="Reason for Unlock (Optional)" size="small" value={unlockReason} onChange={(e) => setUnlockReason(e.target.value)} fullWidth />
-          </Stack>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setUnlockDialogUser(null)}>Cancel</Button>
-          <Button variant="contained" color="warning" onClick={handleSaveUnlock}>Unlock Account</Button>
-        </DialogActions>
-      </Dialog>
+      <FloatingDialog
+        open={Boolean(unlockDialogUser)}
+        onClose={() => setUnlockDialogUser(null)}
+        maxWidth="xs"
+        title="Unlock User Account"
+        actions={
+          <>
+            <Button onClick={() => setUnlockDialogUser(null)}>Cancel</Button>
+            <Button variant="contained" color="warning" onClick={handleSaveUnlock}>Unlock Account</Button>
+          </>
+        }
+      >
+        <Stack spacing={2} sx={{ mt: 1 }}>
+          <Typography variant="body2">
+            Unlock account for <strong>{unlockDialogUser?.fullName} (@{unlockDialogUser?.username})</strong>? This will clear failed login attempts and reset account lock.
+          </Typography>
+          <TextField label="Reason for Unlock (Optional)" size="small" value={unlockReason} onChange={(e) => setUnlockReason(e.target.value)} fullWidth />
+        </Stack>
+      </FloatingDialog>
 
       {/* Standard Email Reset Dialog */}
-      <Dialog open={Boolean(resetDialogUser)} onClose={() => setResetDialogUser(null)} maxWidth="xs" fullWidth>
-        <DialogTitle>Initiate Email Password Reset</DialogTitle>
-        <DialogContent dividers>
-          <Stack spacing={2} sx={{ mt: 1 }}>
-            <Typography variant="body2">
-              Send password reset instructions to <strong>{resetDialogUser?.fullName} ({resetDialogUser?.email ?? "No email on file"})</strong>?
-            </Typography>
-            <Alert severity="info" sx={{ fontSize: 12 }}>
-              The system will generate a secure reset token link and send it via email. Plaintext passwords are never generated or shown to administrators.
-            </Alert>
-            <TextField label="Reason for Reset (Optional)" size="small" value={resetReason} onChange={(e) => setResetReason(e.target.value)} fullWidth />
-          </Stack>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setResetDialogUser(null)}>Cancel</Button>
-          <Button variant="contained" color="secondary" onClick={handleSavePasswordReset}>Send Reset Link</Button>
-        </DialogActions>
-      </Dialog>
+      <FloatingDialog
+        open={Boolean(resetDialogUser)}
+        onClose={() => setResetDialogUser(null)}
+        maxWidth="xs"
+        title="Initiate Email Password Reset"
+        actions={
+          <>
+            <Button onClick={() => setResetDialogUser(null)}>Cancel</Button>
+            <Button variant="contained" color="secondary" onClick={handleSavePasswordReset}>Send Reset Link</Button>
+          </>
+        }
+      >
+        <Stack spacing={2} sx={{ mt: 1 }}>
+          <Typography variant="body2">
+            Send password reset instructions to <strong>{resetDialogUser?.fullName} ({resetDialogUser?.email ?? "No email on file"})</strong>?
+          </Typography>
+          <Alert severity="info" sx={{ fontSize: 12 }}>
+            The system will generate a secure reset token link and send it via email. Plaintext passwords are never generated or shown to administrators.
+          </Alert>
+          <TextField label="Reason for Reset (Optional)" size="small" value={resetReason} onChange={(e) => setResetReason(e.target.value)} fullWidth />
+        </Stack>
+      </FloatingDialog>
 
       {/* Admin-Assisted Password Recovery Dialog */}
-      <Dialog open={Boolean(adminRecoveryUser)} onClose={closeAdminRecoveryDialog} maxWidth="sm" fullWidth>
-        <DialogTitle>Administrator-Assisted Password Recovery</DialogTitle>
-        <DialogContent dividers>
+      <FloatingDialog
+        open={Boolean(adminRecoveryUser)}
+        onClose={closeAdminRecoveryDialog}
+        maxWidth="sm"
+        title="Administrator-Assisted Password Recovery"
+        actions={
+          !generatedCode ? (
+            <>
+              <Button onClick={closeAdminRecoveryDialog}>Cancel</Button>
+              <Button
+                variant="contained"
+                color="warning"
+                onClick={handleGenerateRecoveryCode}
+                disabled={!adminRecoveryReason}
+              >
+                Generate Recovery Code
+              </Button>
+            </>
+          ) : (
+            <Button variant="contained" onClick={closeAdminRecoveryDialog}>
+              Close & Done
+            </Button>
+          )
+        }
+      >
           {!generatedCode ? (
             <Stack spacing= {2} sx={{ mt: 1 }}>
               <Typography variant="body2">
@@ -523,41 +608,51 @@ export function UsersPage() {
               </Alert>
             </Stack>
           )}
-        </DialogContent>
-        <DialogActions>
-          {!generatedCode ? (
-            <>
-              <Button onClick={closeAdminRecoveryDialog}>Cancel</Button>
-              <Button
-                variant="contained"
-                color="warning"
-                onClick={handleGenerateRecoveryCode}
-                disabled={!adminRecoveryReason}
-              >
-                Generate Recovery Code
-              </Button>
-            </>
-          ) : (
-            <Button variant="contained" onClick={closeAdminRecoveryDialog}>
-              Close & Done
-            </Button>
-          )}
-        </DialogActions>
-      </Dialog>
+      </FloatingDialog>
 
       {/* Force Password Change Dialog */}
-      <Dialog open={Boolean(forcePwdUser)} onClose={() => setForcePwdUser(null)} maxWidth="xs" fullWidth>
-        <DialogTitle>Force Password Change</DialogTitle>
-        <DialogContent dividers>
-          <Typography variant="body2" sx={{ mt: 1 }}>
-            Require <strong>{forcePwdUser?.fullName} (@{forcePwdUser?.username})</strong> to change their password on next login?
+      <FloatingDialog
+        open={Boolean(forcePwdUser)}
+        onClose={() => setForcePwdUser(null)}
+        maxWidth="xs"
+        title="Force Password Change"
+        actions={
+          <>
+            <Button onClick={() => setForcePwdUser(null)}>Cancel</Button>
+            <Button variant="contained" color="info" onClick={handleSaveForcePwd}>Force Password Change</Button>
+          </>
+        }
+      >
+        <Typography variant="body2" sx={{ mt: 1 }}>
+          Require <strong>{forcePwdUser?.fullName} (@{forcePwdUser?.username})</strong> to change their password on next login?
+        </Typography>
+      </FloatingDialog>
+
+      {/* Permanent Delete Dialog */}
+      <FloatingDialog
+        open={Boolean(deleteDialogUser)}
+        onClose={closeDeleteDialog}
+        maxWidth="xs"
+        title="Permanently Delete User"
+        actions={
+          <>
+            <Button onClick={closeDeleteDialog} disabled={deleting}>Cancel</Button>
+            <Button variant="contained" color="error" onClick={handleHardDelete} disabled={deleting} startIcon={<DeleteForeverIcon />}>
+              {deleting ? "Deleting..." : "Permanently Delete"}
+            </Button>
+          </>
+        }
+      >
+        <Stack spacing={2} sx={{ mt: 1 }}>
+          {deleteError && <Alert severity="error">{deleteError}</Alert>}
+          <Alert severity="warning" icon={<WarningAmberIcon />}>
+            This permanently removes the account and cannot be undone. It is only possible when the user has no activity history anywhere in the system — if this fails, deactivate the account instead.
+          </Alert>
+          <Typography variant="body2">
+            Permanently delete <strong>{deleteDialogUser?.fullName} (@{deleteDialogUser?.username})</strong>?
           </Typography>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setForcePwdUser(null)}>Cancel</Button>
-          <Button variant="contained" color="info" onClick={handleSaveForcePwd}>Force Password Change</Button>
-        </DialogActions>
-      </Dialog>
+        </Stack>
+      </FloatingDialog>
     </>
   );
 }

@@ -1,6 +1,7 @@
-import { useEffect, useState } from "react";
-import { Box, Table, TableHead, TableRow, TableCell, TableBody, Checkbox, Button, Alert, Typography } from "@mui/material";
+import { useEffect, useMemo, useState } from "react";
+import { Box, Typography } from "@mui/material";
 import { WaterPreparationService } from "./services/WaterPreparationService";
+import { SamplingPointGrid, SamplingPointGridItem } from "../../testPreparation/components/SamplingPointGrid";
 
 interface SamplingPoint { id: number; code: string; location: string; assignedTestCodes: string[] }
 
@@ -10,23 +11,45 @@ interface Props {
   onComplete: () => void;
 }
 
-// One checkbox per sampling point - checking a point includes ALL of its
+// Grid/card-based selection per sampling point - checking a point includes ALL of its
 // assigned tests in this batch (one TestOrder per distinct TestCode
 // across every selected point, not one TestOrder per point). Mirrors
-// EMPreparationForm's Room checklist.
+// EMPreparationForm's Room grid.
 export function WaterPreparationForm({ sampleId, waterDepartmentId, onComplete }: Props) {
   const [points, setPoints] = useState<SamplingPoint[]>([]);
   const [checked, setChecked] = useState<Record<number, boolean>>({});
+  const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<{ text: string; ok: boolean } | null>(null);
 
   useEffect(() => {
     WaterPreparationService.getSamplingPointsForDepartment(waterDepartmentId).then(setPoints);
   }, [waterDepartmentId]);
 
+  const items: SamplingPointGridItem[] = useMemo(() => {
+    return points.map((point) => ({
+      id: point.id,
+      title: point.code,
+      subtitle: point.location || undefined,
+      assignedTests: point.assignedTestCodes ?? [],
+      disabled: !point.assignedTestCodes || point.assignedTestCodes.length === 0
+    }));
+  }, [points]);
+
   const toggle = (pointId: number) => setChecked((c) => ({ ...c, [pointId]: !c[pointId] }));
+
+  const handleSelectAll = (select: boolean) => {
+    const next: Record<number, boolean> = {};
+    items.forEach((item) => {
+      if (!item.disabled) {
+        next[item.id] = select;
+      }
+    });
+    setChecked(next);
+  };
 
   const confirm = async () => {
     setMessage(null);
+    setLoading(true);
     const waterSamplingPointIds = points.filter((p) => checked[p.id]).map((p) => p.id);
 
     try {
@@ -34,50 +57,27 @@ export function WaterPreparationForm({ sampleId, waterDepartmentId, onComplete }
       onComplete();
     } catch (e: any) {
       setMessage({ text: e?.response?.data?.message ?? "Could not prepare sample.", ok: false });
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
     <Box>
-      {message && <Alert severity="error" sx={{ mb: 2 }}>{message.text}</Alert>}
-      {points.length > 0 && (
-        <Box sx={{ overflowX: "auto" }}>
-          <Table>
-            <TableHead>
-              <TableRow>
-                <TableCell padding="checkbox" />
-                <TableCell>Sampling Point</TableCell>
-                <TableCell>Assigned Tests</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {points.map((point) => (
-                <TableRow key={point.id} hover>
-                  <TableCell padding="checkbox">
-                    <Checkbox
-                      checked={!!checked[point.id]}
-                      disabled={!point.assignedTestCodes || point.assignedTestCodes.length === 0}
-                      onChange={() => toggle(point.id)}
-                    />
-                  </TableCell>
-                  <TableCell>
-                    {point.code}{point.location ? ` (${point.location})` : ""}
-                  </TableCell>
-                  <TableCell>
-                    <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
-                      {point.assignedTestCodes && point.assignedTestCodes.length > 0
-                        ? point.assignedTestCodes.join(", ")
-                        : "No tests assigned"}
-                    </Typography>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-          <Box sx={{ display: "flex", justifyContent: "flex-end", mt: 2 }}>
-            <Button variant="contained" onClick={confirm}>Start Testing</Button>
-          </Box>
-        </Box>
+      {points.length === 0 ? (
+        <Typography sx={{ fontSize: 13, color: "text.secondary", py: 2 }}>
+          Loading sampling points...
+        </Typography>
+      ) : (
+        <SamplingPointGrid
+          items={items}
+          selectedIds={checked}
+          onToggle={toggle}
+          onSelectAll={handleSelectAll}
+          onConfirm={confirm}
+          loading={loading}
+          errorMessage={message?.text}
+        />
       )}
     </Box>
   );

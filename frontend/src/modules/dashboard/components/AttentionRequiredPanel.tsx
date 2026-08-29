@@ -4,7 +4,7 @@ import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
 import WarningAmberOutlinedIcon from "@mui/icons-material/WarningAmberOutlined";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import HourglassBottomOutlinedIcon from "@mui/icons-material/HourglassBottomOutlined";
-import { useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { NotificationItem, MediaExpiryLot } from "../types/dashboard";
 import { SectionTitle } from "../../../components/SectionTitle";
 import { LoadingSpinner } from "../../../components/LoadingSpinner";
@@ -27,7 +27,6 @@ interface AttentionRequiredPanelProps {
 
 export function AttentionRequiredPanel({ notifications: propNotifications, expiringMedia: propExpiringMedia, loading }: AttentionRequiredPanelProps) {
   const theme = useTheme();
-  const navigate = useNavigate();
 
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [expiringMedia, setExpiringMedia] = useState<MediaExpiryLot[]>([]);
@@ -64,7 +63,8 @@ export function AttentionRequiredPanel({ notifications: propNotifications, expir
           {expiringMedia.map((lot) => (
             <Box
               key={lot.mediaId}
-              onClick={() => navigate("/laboratory-configuration/media")}
+              component={Link}
+              to="/laboratory-configuration/media"
               sx={{
                 display: "flex",
                 alignItems: "center",
@@ -74,7 +74,9 @@ export function AttentionRequiredPanel({ notifications: propNotifications, expir
                 border: "1px solid",
                 borderColor: lot.daysRemaining <= 2 ? theme.custom.status.detected.border : theme.custom.status.action.border,
                 bgcolor: lot.daysRemaining <= 2 ? theme.custom.status.detected.bg : theme.custom.status.action.bg,
-                cursor: "pointer"
+                cursor: "pointer",
+                textDecoration: "none",
+                color: "inherit"
               }}
             >
               <HourglassBottomOutlinedIcon

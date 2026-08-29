@@ -175,7 +175,7 @@ public class PathogenChainInvariantTests
         Assert.Equal(4, current.CompletedSteps.Count);
 
         await engine.RecordAnalystDecisionAsync(order.Id, AnalystDecision.ProceedToBiochemical, AnalystId);
-        await engine.SubmitBiochemicalAsync(order.Id, "Biochemical Test", "IMViC: + + - -", null, AnalystId);
+        await engine.SubmitBiochemicalAsync(order.Id, "Biochemical Test", "IMViC: + + - -", null, true, AnalystId);
 
         current = await engine.GetCurrentStepAsync(order.Id);
         Assert.True(current.AllStepsComplete);

@@ -469,4 +469,190 @@ table.result-matrix td:first-child { text-align: left; padding-left: 16px; font-
   .report-footer { border-top: 0.75pt solid #000 !important; padding-top: 8pt !important; margin-top: 12pt !important; }
   .report-footer div { font-size: 7pt !important; color: #555 !important; }
 }
+
+/* Growth Promotion challenge cards - one card per organism, reorganized
+   per the approved media-lot-organism-reorg mockup. Scoped under .gp-*
+   so it never collides with the plain .observation-item rows the other
+   three evaluation types (Inhibition/Indication/EnrichmentCharacteristics)
+   still use unchanged. */
+.gp-card { background: #fff; border: 1px solid var(--color-border); border-radius: 9px; padding: 13px 16px; }
+.gp-card + .gp-card { margin-top: 8px; }
+.gp-row1 { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+.gp-name { font-size: 13.5px; font-weight: 800; font-style: italic; }
+.gp-inoc { font-size: 12px; color: var(--color-text-secondary); }
+.gp-inoc b { color: var(--color-text-primary); font-weight: 700; }
+.gp-cryo {
+  margin-left: auto; font-variant-numeric: tabular-nums; font-size: 11.5px;
+  color: #5B21B6; background: #F3EEFC; padding: 2px 9px; border-radius: 5px; white-space: nowrap;
+}
+.gp-row2 {
+  display: flex; align-items: center; gap: 10px; margin-top: 9px; padding-top: 9px;
+  border-top: 1px dashed var(--color-border); font-size: 12px; flex-wrap: wrap;
+}
+.gp-lot-pill { display: flex; align-items: center; gap: 6px; background: var(--color-surface); border: 1px solid var(--color-border); border-radius: 6px; padding: 5px 10px; }
+.gp-lot-pill .lc { font-variant-numeric: tabular-nums; font-size: 11.5px; font-weight: 700; }
+.gp-lot-pill .lv { font-size: 11.5px; color: var(--color-text-secondary); }
+.gp-arrow { color: var(--color-text-quaternary); font-weight: 700; }
+.gp-recovery { font-size: 12.5px; font-weight: 800; color: var(--color-positive); font-variant-numeric: tabular-nums; }
+.gp-recovery.is-danger { color: var(--color-danger); }
+.gp-conform-badge {
+  margin-left: auto; display: flex; align-items: center; gap: 5px;
+  background: rgba(22, 163, 74, 0.1); color: var(--color-positive); font-size: 11px; font-weight: 800;
+  padding: 3px 11px; border-radius: 20px; white-space: nowrap;
+}
+.gp-conform-badge svg { width: 11px; height: 11px; }
+.gp-conform-badge.is-danger { background: rgba(220, 38, 38, 0.1); color: var(--color-danger); }
+.gp-flag {
+  font-size: 9.5px; font-weight: 700; color: var(--color-warning); background: rgba(217, 119, 6, 0.12);
+  padding: 1px 6px; border-radius: 4px; border: 1px solid rgba(217, 119, 6, 0.4); white-space: nowrap;
+}
+.gp-meta { font-size: 10.5px; color: var(--color-text-quaternary); margin-top: 6px; }
+
+@media print {
+  .gp-card { border: 0.75pt solid #bbb !important; border-radius: 4pt !important; padding: 8pt 10pt !important; page-break-inside: avoid !important; }
+  .gp-card + .gp-card { margin-top: 5pt !important; }
+  .gp-name { font-size: 9.5pt !important; color: #000 !important; }
+  .gp-inoc { font-size: 8pt !important; color: #333 !important; }
+  .gp-inoc b { color: #000 !important; }
+  .gp-cryo { color: #000 !important; background: #eee !important; border: 0.5pt solid #999 !important; font-size: 8pt !important; }
+  .gp-row2 { border-top: 0.5pt dashed #bbb !important; margin-top: 6pt !important; padding-top: 6pt !important; }
+  .gp-lot-pill { background: #fafafa !important; border: 0.5pt solid #bbb !important; }
+  .gp-lot-pill .lc { color: #000 !important; }
+  .gp-lot-pill .lv { color: #555 !important; }
+  .gp-recovery { color: #000 !important; }
+  .gp-conform-badge { border: 0.5pt solid #000 !important; background: #fff !important; color: #000 !important; font-size: 7.5pt !important; }
+  .gp-flag { color: #000 !important; background: #eee !important; border: 0.5pt solid #999 !important; font-size: 7pt !important; }
+  .gp-meta { font-size: 7pt !important; color: #555 !important; }
+}
+
+/* Certificate of Analysis - ported from the approved COA mockup. Scoped
+   under .coa-root/.coa-page so its variable names never collide with the
+   Sample Summary Report styles above, even though the two pages never
+   render at the same time. */
+.coa-root {
+  --coa-header: #0B3B2E; --coa-green: #0F6B3F; --coa-green-bg: #E4F5EB;
+  --coa-red: #B3261E; --coa-red-bg: #FCEBEA;
+  --coa-border: #D7DBE0; --coa-ink: #111827; --coa-ink2: #4B5563; --coa-ink3: #8A93A0;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  color: var(--coa-ink);
+  background: #F7F8F9;
+  min-height: 100vh;
+}
+.coa-page { max-width: 760px; margin: 0 auto; padding: 36px 40px; background: #fff; }
+
+.coa-head { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 3px solid var(--coa-header); padding-bottom: 16px; margin-bottom: 20px; }
+.coa-title { font-size: 20px; font-weight: 800; letter-spacing: .3px; }
+.coa-sub { font-size: 11.5px; color: var(--coa-ink3); margin-top: 3px; }
+.coa-doc-id { text-align: right; font-variant-numeric: tabular-nums; font-size: 12px; color: var(--coa-ink2); }
+
+.coa-id-strip { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 22px; padding-bottom: 18px; border-bottom: 1px solid var(--coa-border); }
+.coa-id-strip .il { font-size: 10.5px; color: var(--coa-ink3); text-transform: uppercase; letter-spacing: .4px; }
+.coa-id-strip .iv { font-size: 13px; font-weight: 700; margin-top: 2px; }
+
+/* Product/RM/PM COA - no location dimension, so the item identity and
+   date fields render as a strip + grid instead of the located branch's
+   coa-id-strip, and results render as a plain per-test table instead of
+   table.coa-matrix. */
+.coa-item-strip { margin-bottom: 22px; padding-bottom: 18px; border-bottom: 1px solid var(--coa-border); }
+.coa-item-name-row { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; margin-bottom: 14px; }
+.coa-item-name { font-size: 16px; font-weight: 800; }
+.coa-item-sub { font-size: 11.5px; color: var(--coa-ink3); margin-top: 2px; }
+.coa-item-qty { font-size: 12.5px; font-weight: 700; color: var(--coa-ink2); white-space: nowrap; }
+
+.coa-dates-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+.coa-dates-grid .il { font-size: 10.5px; color: var(--coa-ink3); text-transform: uppercase; letter-spacing: .4px; }
+.coa-dates-grid .iv { font-size: 13px; font-weight: 700; margin-top: 2px; }
+
+.coa-remarks-box { font-size: 12.5px; color: var(--coa-ink); background: #F7F8F9; border: 1px solid var(--coa-border); border-radius: 8px; padding: 12px 14px; margin-bottom: 22px; white-space: pre-wrap; }
+.coa-remarks-box.is-empty { color: var(--coa-ink3); font-style: italic; }
+
+table.coa-simple { width: 100%; border-collapse: collapse; margin-bottom: 6px; }
+table.coa-simple th { text-align: left; font-size: 10.5px; font-weight: 800; color: var(--coa-ink); padding: 8px 10px; border: 1px solid var(--coa-border); background: #F0F2F4; }
+table.coa-simple td { padding: 8px 10px; border: 1px solid var(--coa-border); font-size: 12px; }
+table.coa-simple td.r-pass { color: var(--coa-green); font-weight: 700; }
+table.coa-simple td.r-fail { color: var(--coa-red); font-weight: 700; background: var(--coa-red-bg); }
+
+.coa-section-h { font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: .5px; color: var(--coa-ink3); margin-bottom: 10px; }
+
+table.coa-matrix { width: 100%; min-width: 620px; border-collapse: collapse; margin-bottom: 6px; }
+table.coa-matrix th {
+  text-align: center; font-size: 10.5px; font-weight: 800; color: var(--coa-ink);
+  padding: 8px 6px; border: 1px solid var(--coa-border); white-space: normal; background: #F0F2F4;
+}
+table.coa-matrix th.grp { font-size: 11.5px; background: #E4E7EB; }
+table.coa-matrix th.loc-col { text-align: left; background: #F0F2F4; white-space: nowrap; }
+table.coa-matrix th.sub { font-size: 9.5px; font-weight: 700; color: var(--coa-ink2); text-transform: none; background: #F7F8F9; }
+table.coa-matrix th.sub.spec-req { color: var(--coa-ink3); font-style: italic; font-weight: 600; }
+table.coa-matrix td { padding: 8px 6px; border: 1px solid var(--coa-border); font-size: 12px; text-align: center; font-variant-numeric: tabular-nums; }
+table.coa-matrix td.loc-col { text-align: left; font-family: var(--font-sans); font-weight: 700; font-size: 12px; }
+table.coa-matrix .r-pass { color: var(--coa-green); font-weight: 700; }
+table.coa-matrix .r-fail { color: var(--coa-red); font-weight: 700; background: var(--coa-red-bg); }
+table.coa-matrix .lim-dim { color: var(--coa-ink3); font-size: 11px; }
+table.coa-matrix .coa-unit-sub { font-family: var(--font-sans); font-size: 9px; font-weight: 500; color: var(--coa-ink3); margin-top: 1px; }
+
+.coa-footnote { font-size: 11px; color: var(--coa-ink3); margin: 8px 0 22px; }
+
+.coa-overall { background: var(--coa-green-bg); border: 1px solid #7FCBA0; border-radius: 8px; padding: 16px 18px; margin-bottom: 26px; }
+.coa-overall.is-fail { background: var(--coa-red-bg); border-color: #E7A19C; }
+.coa-overall .ot { font-size: 10.5px; font-weight: 800; text-transform: uppercase; letter-spacing: .5px; color: var(--coa-green); margin-bottom: 5px; }
+.coa-overall.is-fail .ot { color: var(--coa-red); }
+.coa-overall .od { font-size: 13.5px; font-weight: 600; color: var(--coa-ink); }
+
+.coa-sig-strip { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-top: 26px; padding-top: 20px; border-top: 1px solid var(--coa-border); }
+.coa-sig-block .sn { font-size: 13px; font-weight: 700; }
+.coa-sig-block .sr { font-size: 11px; color: var(--coa-ink3); margin-top: 1px; }
+.coa-sig-block .sm { font-size: 11px; color: var(--coa-ink2); font-style: italic; margin-top: 6px; line-height: 1.5; }
+.coa-sig-block .st { font-size: 10.5px; color: var(--coa-ink3); margin-top: 6px; font-variant-numeric: tabular-nums; }
+
+.coa-footer-note { font-size: 9.5px; color: var(--coa-ink3); text-align: center; margin-top: 30px; line-height: 1.6; }
+
+@media print {
+  .coa-root { background: #fff !important; min-height: 0; font-size: 10pt; }
+  .coa-page { max-width: 100% !important; margin: 0 !important; padding: 0 !important; }
+
+  .coa-head { border-bottom: 2pt solid #000 !important; padding-bottom: 10pt !important; margin-bottom: 14pt !important; }
+  .coa-title { font-size: 16pt !important; color: #000 !important; }
+  .coa-sub { font-size: 8pt !important; color: #555 !important; }
+  .coa-doc-id { font-size: 9pt !important; color: #333 !important; }
+
+  .coa-id-strip { gap: 10pt !important; margin-bottom: 14pt !important; padding-bottom: 10pt !important; }
+  .coa-id-strip .il { font-size: 7pt !important; color: #555 !important; }
+  .coa-id-strip .iv { font-size: 9pt !important; color: #000 !important; }
+
+  .coa-item-strip { margin-bottom: 14pt !important; padding-bottom: 10pt !important; }
+  .coa-item-name { font-size: 13pt !important; }
+  .coa-item-sub { font-size: 8pt !important; color: #555 !important; }
+  .coa-item-qty { font-size: 9.5pt !important; color: #333 !important; }
+  .coa-dates-grid { gap: 10pt !important; }
+  .coa-dates-grid .il { font-size: 7pt !important; color: #555 !important; }
+  .coa-dates-grid .iv { font-size: 9pt !important; color: #000 !important; }
+  .coa-remarks-box { font-size: 9pt !important; padding: 8pt 10pt !important; margin-bottom: 14pt !important; border-color: #999 !important; }
+  table.coa-simple th { font-size: 7pt !important; padding: 5pt 4pt !important; border-color: #999 !important; background: #eee !important; }
+  table.coa-simple td { font-size: 8pt !important; padding: 5pt 4pt !important; border-color: #999 !important; }
+  table.coa-simple td.r-fail { background: #f5d9d7 !important; }
+
+  .coa-section-h { font-size: 8pt !important; color: #555 !important; margin-bottom: 6pt !important; }
+
+  table.coa-matrix th { font-size: 7pt !important; padding: 5pt 4pt !important; border-color: #999 !important; background: #eee !important; }
+  table.coa-matrix th.grp { font-size: 7.5pt !important; background: #ddd !important; }
+  table.coa-matrix th.loc-col { background: #eee !important; }
+  table.coa-matrix td { font-size: 8pt !important; padding: 5pt 4pt !important; border-color: #999 !important; }
+  table.coa-matrix .r-fail { background: #f5d9d7 !important; }
+  table.coa-matrix .coa-unit-sub { font-size: 6.5pt !important; color: #666 !important; }
+
+  .coa-footnote { font-size: 7pt !important; margin: 5pt 0 14pt !important; }
+
+  .coa-overall { border: 0.75pt solid #000 !important; border-radius: 3pt !important; padding: 10pt !important; margin-bottom: 16pt !important; page-break-inside: avoid !important; }
+  .coa-overall .ot { font-size: 7pt !important; }
+  .coa-overall .od { font-size: 9pt !important; color: #000 !important; }
+
+  .coa-sig-strip { gap: 14pt !important; margin-top: 16pt !important; padding-top: 12pt !important; }
+  .coa-sig-block .sn { font-size: 9pt !important; color: #000 !important; }
+  .coa-sig-block .sr { font-size: 7pt !important; color: #555 !important; }
+  .coa-sig-block .sm { font-size: 7pt !important; color: #333 !important; }
+  .coa-sig-block .st { font-size: 7pt !important; color: #555 !important; }
+
+  .coa-footer-note { font-size: 6.5pt !important; margin-top: 18pt !important; }
+}
 `;

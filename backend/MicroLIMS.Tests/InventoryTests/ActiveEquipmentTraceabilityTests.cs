@@ -141,15 +141,12 @@ public class ActiveEquipmentTraceabilityTests
         });
 
         var mat = new Material { Id = 30, MaterialName = "TSB Powder", Code = "TSB-MAT" };
-        var mt = new MediaType { Id = 30, Class = MediaClass.GeneralBroth };
         db.Materials.Add(mat);
-        db.MediaTypes.Add(mt);
 
         db.Media.Add(new Media
         {
             Id = 301,
             MaterialId = 30,
-            MediaTypeId = 30,
             AutoclaveEquipmentId = 3,
             LotNumber = "TSB/08/26",
             ManufacturerLot = "MFG-001",
@@ -361,5 +358,68 @@ public class ActiveEquipmentTraceabilityTests
 
         var act = Assert.Single(searchFiltered);
         Assert.Equal("Test B", act.ItemName);
+    }
+
+    [Fact]
+    public async Task IncubationCompletedViaTestOrderOrSample_ExcludedFromActiveEquipment()
+    {
+        using var db = NewDb();
+        db.EquipmentInventories.Add(new EquipmentInventory
+        {
+            Id = 8,
+            Code = "INC-008",
+            InstrumentType = "Incubator",
+            Location = "Room B",
+            Status = EquipmentOperationalStatus.InService
+        });
+
+        var sample = new Sample
+        {
+            Id = 800,
+            ReferenceNumber = "SMP-800",
+            ControlNumber = "CTRL-800",
+            Status = SampleStatus.Approved
+        };
+        db.Samples.Add(sample);
+
+        var testOrder = new TestOrder
+        {
+            Id = 801,
+            SampleId = 800,
+            TestCode = "TAMC",
+            CurrentStep = WorkflowStep.Approved,
+            Status = ApprovalStatus.Approved
+        };
+        db.TestOrders.Add(testOrder);
+
+        db.Incubations.Add(new Incubation
+        {
+            Id = 802,
+            TestOrderId = 801,
+            IncubatorEquipmentId = 8,
+            StepName = "TAMC Incubation",
+            StartedAt = DateTime.UtcNow.AddDays(-3),
+            IncubationStartUtc = DateTime.UtcNow.AddDays(-3),
+            IncubationEndUtc = DateTime.UtcNow.AddDays(2), // Date is in future, but test & sample are approved/completed
+            CompletedAt = null,
+            StartedByUserId = 1
+        });
+        await db.SaveChangesAsync();
+
+        var service = new EquipmentInventoryService(db);
+
+        // Active equipment should NOT include INC-008
+        var activeEq = await service.GetActiveEquipmentAsync();
+        Assert.DoesNotContain(activeEq, e => e.Code == "INC-008");
+
+        // Active activities for INC-008 should be empty
+        var activeActivities = await service.GetActiveActivitiesForEquipmentAsync(8);
+        Assert.Empty(activeActivities);
+
+        // History should still show the record with isActive = false
+        var history = await service.GetHistoricalActivitiesForEquipmentAsync(8);
+        var histItem = Assert.Single(history);
+        Assert.False(histItem.IsActive);
+        Assert.NotNull(histItem.CompletedOn);
     }
 }

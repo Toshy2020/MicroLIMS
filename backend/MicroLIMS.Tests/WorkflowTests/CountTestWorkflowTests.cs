@@ -24,18 +24,16 @@ public class CountTestWorkflowTests
     private static async Task<(TestOrder order, Media generalAgarMedia, Media selectiveAgarMedia)> SeedTamcOrderAsync(MicroLimsDbContext db)
     {
         var testDefinition = new TestDefinition { Code = "TAMC", DisplayName = "Total Aerobic Microbial Count", WorkflowType = WorkflowType.CountTest };
-        var generalAgar = new MediaType { Class = MediaClass.GeneralAgar, IncubationMinHours = 24, IncubationMaxHours = 48, RequiredTemperatureMin = 30, RequiredTemperatureMax = 35 };
-        var selectiveAgar = new MediaType { Class = MediaClass.SelectiveAgar, IncubationMinHours = 18, IncubationMaxHours = 24, RequiredTemperatureMin = 32, RequiredTemperatureMax = 35 };
         db.TestDefinitions.Add(testDefinition);
-        db.MediaTypes.AddRange(generalAgar, selectiveAgar);
         await db.SaveChangesAsync();
 
-        db.TestWorkflowSteps.Add(new TestWorkflowStep
+        var countStep = new TestWorkflowStep
         {
-            TestDefinitionId = testDefinition.Id, StepOrder = 1, StepName = "CountIncubation", MediaTypeId = generalAgar.Id,
+            TestDefinitionId = testDefinition.Id, StepOrder = 1, StepName = "CountIncubation", 
             IncubationMinHours = 72, IncubationMaxHours = 120, TemperatureMin = 30, TemperatureMax = 35,
             IsFinalStep = true, StepType = StepType.PlateCount
-        });
+        };
+        db.TestWorkflowSteps.Add(countStep);
 
         var material = new Material
         {
@@ -43,12 +41,34 @@ public class CountTestWorkflowTests
             BatchNumber = "LOT-001", ReceivingDate = DateTime.UtcNow.AddDays(-10), Code = "TSA",
             Location = "Micro Lab", QuantityReceived = 500, QuantityRemaining = 500, Unit = MaterialUnit.Gram
         };
-        db.Materials.Add(material);
+        // A second, distinct product - not permitted on countStep - so
+        // SelectMediaAsync_WrongMediaClass_Throws still has a genuinely
+        // wrong medium to reject under the new product-level check (see
+        // the Media Configuration Migration plan §3): the old class-level
+        // mismatch this test named itself after no longer exists as a
+        // concept, but "wrong medium for this step" still does.
+        var otherMaterial = new Material
+        {
+            MaterialType = MaterialType.DehydratedMedia, MaterialName = "Cetrimide Agar Powder", ManufacturerName = "Himedia",
+            BatchNumber = "LOT-002", ReceivingDate = DateTime.UtcNow.AddDays(-10), Code = "CAM",
+            Location = "Micro Lab", QuantityReceived = 500, QuantityRemaining = 500, Unit = MaterialUnit.Gram
+        };
+        db.Materials.AddRange(material, otherMaterial);
         await db.SaveChangesAsync();
 
-        var generalAgarMedia = new Media { MediaTypeId = generalAgar.Id, MaterialId = material.Id, LotNumber = "TSA/1/26", IsReleasedForUse = true, Status = MediaStatus.Active, ExpiryDate = DateTime.UtcNow.AddDays(30) };
-        var selectiveAgarMedia = new Media { MediaTypeId = selectiveAgar.Id, MaterialId = material.Id, LotNumber = "CAM/1/26", IsReleasedForUse = true, Status = MediaStatus.Active, ExpiryDate = DateTime.UtcNow.AddDays(30) };
+        // SelectMediaAsync now requires the picked lot's MaterialId to be
+        // among a step's configured StepMedia (see the Media Configuration
+        // Migration plan §3).
+        db.TestWorkflowStepMedias.Add(new TestWorkflowStepMedia { TestWorkflowStepId = countStep.Id, MaterialId = material.Id, TempMin = 30, TempMax = 35, IncubationMinHours = 72, IncubationMaxHours = 120 });
+
+        var generalAgarMedia = new Media { MaterialId = material.Id, LotNumber = "TSA/1/26", IsReleasedForUse = true, Status = MediaStatus.Active, ExpiryDate = DateTime.UtcNow.AddDays(30) };
+        var selectiveAgarMedia = new Media { MaterialId = otherMaterial.Id, LotNumber = "CAM/1/26", IsReleasedForUse = true, Status = MediaStatus.Active, ExpiryDate = DateTime.UtcNow.AddDays(30) };
         db.Media.AddRange(generalAgarMedia, selectiveAgarMedia);
+        // First Equipment row added to this fresh in-memory DB, so it gets
+        // Id 1 - matching the hardcoded incubatorEquipmentId: 1 the tests
+        // below pass to SelectMediaAsync, which now enforces incubator
+        // eligibility (temperature must fall within the step medium's range).
+        db.Equipment.Add(new Equipment { Name = "Incubator", Code = "INC-1", Type = EquipmentType.Incubator, SetPointTemperature = 32 });
 
         var point = new WaterSamplingPoint { Code = "WP-01", Location = "Utility Room", AssignedTestCodes = new() { "TAMC" } };
         db.WaterSamplingPoints.Add(point);
@@ -129,7 +149,7 @@ public class CountTestWorkflowTests
         var result = await engine.RecordResultAsync(order.Id, "CountIncubation", new CountTestPayload(new List<decimal> { 90, 110, 120 }, 1), userId: 1);
 
         Assert.Equal("OutOfSpecification", result.Status);
-        Assert.Contains("106.66666666666666666666666667", result.OutcomeSummary); // average (90+110+120)/3 = 106.67
+        Assert.Contains("107", result.OutcomeSummary); // average (90+110+120)/3 = 106.67, rounded to a whole CFU count
         Assert.True(result.AllStepsComplete);
 
         var incubation = await db.Incubations.FirstAsync(i => i.TestOrderId == order.Id && i.StepName == "CountIncubation");
@@ -141,7 +161,7 @@ public class CountTestWorkflowTests
 
         var savedResult = await db.Results.FirstAsync(r => r.TestOrderId == order.Id);
         Assert.Equal(ResultType.Numeric, savedResult.Type);
-        Assert.Contains("106.66666666666666666666666667", savedResult.InterpretedValue);
+        Assert.Contains("107", savedResult.InterpretedValue);
     }
 
     // Regression test: a CountTest TestDefinition with more than one step
@@ -158,12 +178,20 @@ public class CountTestWorkflowTests
         var testDefinition = await db.TestDefinitions.FirstAsync(t => t.Code == "TAMC");
         var firstStep = await db.TestWorkflowSteps.FirstAsync(s => s.TestDefinitionId == testDefinition.Id && s.StepName == "CountIncubation");
         firstStep.IsFinalStep = false;
-        db.TestWorkflowSteps.Add(new TestWorkflowStep
+        var transferStep = new TestWorkflowStep
         {
-            TestDefinitionId = testDefinition.Id, StepOrder = 2, StepName = "transfer", MediaTypeId = generalAgarMedia.MediaTypeId,
+            TestDefinitionId = testDefinition.Id, StepOrder = 2, StepName = "transfer", 
             IncubationMinHours = 48, IncubationMaxHours = 72, TemperatureMin = 20, TemperatureMax = 25,
             IsFinalStep = true, StepType = StepType.PlateCount
-        });
+        };
+        db.TestWorkflowSteps.Add(transferStep);
+        await db.SaveChangesAsync();
+        db.TestWorkflowStepMedias.Add(new TestWorkflowStepMedia { TestWorkflowStepId = transferStep.Id, MaterialId = generalAgarMedia.MaterialId, TempMin = 20, TempMax = 25, IncubationMinHours = 48, IncubationMaxHours = 72 });
+        // Transfer step's 20-25 window is disjoint from the seeded 30-35
+        // incubator (Id 1) - a real incubator can't serve both, same as
+        // every other two-window fixture in this suite.
+        var transferEquipment = new Equipment { Name = "Incubator Transfer", Code = "INC-TRANSFER", Type = EquipmentType.Incubator, SetPointTemperature = 22 };
+        db.Equipment.Add(transferEquipment);
         await db.SaveChangesAsync();
 
         var engine = TestServiceFactory.TestWorkflow(db);
@@ -176,7 +204,7 @@ public class CountTestWorkflowTests
         Assert.False(current.AllStepsComplete);
         Assert.Equal("transfer", current.Step?.StepName);
 
-        await engine.SelectMediaAsync(order.Id, "transfer", generalAgarMedia.Id, incubatorEquipmentId: 1, userId: 1);
+        await engine.SelectMediaAsync(order.Id, "transfer", generalAgarMedia.Id, transferEquipment.Id, userId: 1);
         var secondResult = await engine.RecordResultAsync(order.Id, "transfer", new CountTestPayload(new List<decimal> { 12 }, 1), userId: 1);
         Assert.True(secondResult.AllStepsComplete);
 
@@ -262,8 +290,8 @@ public class CountTestWorkflowTests
         await engine.SelectMediaAsync(order.Id, "CountIncubation", generalAgarMedia.Id, incubatorEquipmentId: 1, userId: 1);
 
         var result = await engine.RecordResultAsync(order.Id, "CountIncubation", new CountTestPayload(new List<string> { "2", "3" }, 1), userId: 1);
-        Assert.Equal("2.5 CFU/mL", result.OutcomeSummary);
-        Assert.Equal(2.5m, result.Average);
+        Assert.Equal("3 CFU/mL", result.OutcomeSummary); // average 2.5, rounded away-from-zero to 3 for display
+        Assert.Equal(2.5m, result.Average); // full-precision average still stored, unrounded
         Assert.Equal(2.5m, result.CalculatedResult);
     }
 

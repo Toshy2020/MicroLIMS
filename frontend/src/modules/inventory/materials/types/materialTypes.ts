@@ -30,6 +30,7 @@ export interface OrganismSummary {
   scientificName: string;
   atccNumber?: string | null;
   strainNumber?: string;
+  description?: string | null;
 }
 
 export interface MaterialItem {

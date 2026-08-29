@@ -21,11 +21,6 @@ public class TestWorkflowStepConfiguration : IEntityTypeConfiguration<TestWorkfl
             .HasForeignKey(s => s.TestDefinitionId)
             .OnDelete(DeleteBehavior.Cascade);
 
-        builder.HasOne(s => s.MediaType)
-            .WithMany()
-            .HasForeignKey(s => s.MediaTypeId)
-            .OnDelete(DeleteBehavior.Restrict);
-
         builder.HasOne(s => s.TargetOrganism)
             .WithMany()
             .HasForeignKey(s => s.TargetOrganismId)

@@ -14,9 +14,9 @@ export const AfterCleaningConfigService = {
 
   getPartConfigurations: (machinePartId: number) =>
     apiClient.get("/masterdata/machine-part-configurations", { params: { machinePartId } }).then((r) => r.data.data),
-  createPartConfiguration: (machinePartId: number, testType: string, testCode: string, alertLimit: string, actionLimit: string, specLimit: string, isPathogenTest: boolean) =>
-    apiClient.post("/masterdata/machine-part-configurations", { machinePartId, testType, testCode, alertLimit, actionLimit, specLimit, isPathogenTest }).then((r) => r.data.data),
-  updatePartConfiguration: (id: number, testType: string, testCode: string, alertLimit: string, actionLimit: string, specLimit: string, isPathogenTest: boolean) =>
-    apiClient.put(`/masterdata/machine-part-configurations/${id}`, { testType, testCode, alertLimit, actionLimit, specLimit, isPathogenTest }).then((r) => r.data.data),
+  createPartConfiguration: (machinePartId: number, testType: string, testCode: string, alertLimit: string, actionLimit: string, specLimit: string, isPathogenTest: boolean, unit?: string) =>
+    apiClient.post("/masterdata/machine-part-configurations", { machinePartId, testType, testCode, alertLimit, actionLimit, specLimit, isPathogenTest, unit }).then((r) => r.data.data),
+  updatePartConfiguration: (id: number, testType: string, testCode: string, alertLimit: string, actionLimit: string, specLimit: string, isPathogenTest: boolean, unit?: string) =>
+    apiClient.put(`/masterdata/machine-part-configurations/${id}`, { testType, testCode, alertLimit, actionLimit, specLimit, isPathogenTest, unit }).then((r) => r.data.data),
   deletePartConfiguration: (id: number) => apiClient.delete(`/masterdata/machine-part-configurations/${id}`)
 };

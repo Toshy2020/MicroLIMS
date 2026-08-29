@@ -43,4 +43,21 @@ public class ReferenceNumberGenerator
         var sequence = (countThisMonth + 1).ToString("D3");
         return $"{prefix}{sequence}";
     }
+
+    public async Task<string> GenerateOosCodeAsync()
+    {
+        var now = DateTime.UtcNow;
+        var mm = now.ToString("MM");
+        var yy = now.ToString("yy");
+        var prefix = $"OOS{mm}{yy}";
+
+        var countThisMonth = await _db.Samples
+            .Where(s => s.OosGroupCode != null && s.OosGroupCode.StartsWith(prefix))
+            .Select(s => s.OosGroupCode)
+            .Distinct()
+            .CountAsync();
+
+        var sequence = (countThisMonth + 1).ToString("D3");
+        return $"{prefix}{sequence}";
+    }
 }

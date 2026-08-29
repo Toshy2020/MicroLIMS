@@ -41,16 +41,9 @@ public class MaterialConsumptionTests
         await db.SaveChangesAsync();
     }
 
-    private static async Task<(MediaType mediaType, Equipment autoclave, Material material)> SeedMediaPrepFixtures(
-
+    private static async Task<(Equipment autoclave, Material material)> SeedMediaPrepFixtures(
         MicroLimsDbContext db, decimal materialQuantity, DateTime? materialExpiry = null)
     {
-        var mediaType = new MediaType
-        {
-            Class = MediaClass.GeneralAgar,
-            IncubationMinHours = 24, IncubationMaxHours = 48,
-            RequiredTemperatureMin = 30, RequiredTemperatureMax = 35
-        };
         var autoclave = new Equipment { Name = "Autoclave 1", Code = "AUT-01", Type = EquipmentType.Autoclave };
         var material = new Material
         {
@@ -60,22 +53,27 @@ public class MaterialConsumptionTests
             Location = "Micro Lab", QuantityReceived = materialQuantity, QuantityRemaining = materialQuantity,
             Unit = MaterialUnit.Gram
         };
-        db.MediaTypes.Add(mediaType);
         db.Equipment.Add(autoclave);
         db.Materials.Add(material);
+        db.MediaConfigurations.Add(new MediaConfiguration
+        {
+            Name = material.MaterialName, EvaluationType = EvaluationType.GrowthPromotion,
+            IncubationMinHours = 24, IncubationMaxHours = 48, TemperatureMin = 30, TemperatureMax = 35,
+            RecoveryPercentMin = 50, RecoveryPercentMax = 200
+        });
         await db.SaveChangesAsync();
-        return (mediaType, autoclave, material);
+        return (autoclave, material);
     }
 
     [Fact]
     public async Task PrepareMedia_InsufficientStock_ThrowsAndWritesNothing()
     {
         await using var db = NewDb();
-        var (mediaType, autoclave, material) = await SeedMediaPrepFixtures(db, materialQuantity: 50m);
+        var (autoclave, material) = await SeedMediaPrepFixtures(db, materialQuantity: 50m);
         var service = TestServiceFactory.MediaPreparation(db);
 
         var request = new PrepareMediaRequest(
-            MediaTypeId: mediaType.Id, MaterialId: material.Id,
+            MaterialId: material.Id,
             TotalWeight: 100m, TotalVolume: "500 ml", AutoclaveEquipmentId: autoclave.Id, AutoclaveProgram: "Program A",
             LoadType: "agar", Temperature: 121m, CycleTime: 15, CycleNumber: 1,
             Ph: 7.2m, ExpiryDate: DateTime.UtcNow.AddMonths(1), UserId: 1);
@@ -91,11 +89,11 @@ public class MaterialConsumptionTests
     public async Task PrepareMedia_ExpiredMaterial_ThrowsAndWritesNothing()
     {
         await using var db = NewDb();
-        var (mediaType, autoclave, material) = await SeedMediaPrepFixtures(db, materialQuantity: 500m, materialExpiry: DateTime.UtcNow.AddDays(-1));
+        var (autoclave, material) = await SeedMediaPrepFixtures(db, materialQuantity: 500m, materialExpiry: DateTime.UtcNow.AddDays(-1));
         var service = TestServiceFactory.MediaPreparation(db);
 
         var request = new PrepareMediaRequest(
-            MediaTypeId: mediaType.Id, MaterialId: material.Id,
+            MaterialId: material.Id,
             TotalWeight: 100m, TotalVolume: "500 ml", AutoclaveEquipmentId: autoclave.Id, AutoclaveProgram: "Program A",
             LoadType: "agar", Temperature: 121m, CycleTime: 15, CycleNumber: 1,
             Ph: 7.2m, ExpiryDate: DateTime.UtcNow.AddMonths(1), UserId: 1);
@@ -111,12 +109,12 @@ public class MaterialConsumptionTests
     public async Task PrepareMedia_SufficientStock_DecrementsAndCreatesMediaAtomically()
     {
         await using var db = NewDb();
-        var (mediaType, autoclave, material) = await SeedMediaPrepFixtures(db, materialQuantity: 500m);
+        var (autoclave, material) = await SeedMediaPrepFixtures(db, materialQuantity: 500m);
         await SeedCurrentCoa(db, material.Id); // DehydratedMedia requires a current COA
         var service = TestServiceFactory.MediaPreparation(db);
 
         var request = new PrepareMediaRequest(
-            MediaTypeId: mediaType.Id, MaterialId: material.Id,
+            MaterialId: material.Id,
             TotalWeight: 100m, TotalVolume: "500 ml", AutoclaveEquipmentId: autoclave.Id, AutoclaveProgram: "Program A",
             LoadType: "agar", Temperature: 121m, CycleTime: 15, CycleNumber: 1,
             Ph: 7.2m, ExpiryDate: DateTime.UtcNow.AddMonths(1), UserId: 1);
@@ -155,7 +153,6 @@ public class MaterialConsumptionTests
     // panel row that PrepareCryovialsAsync now requires (at least one row).
     private static async Task<(Media media, Equipment incubator)> SeedReleasedMediaFixtures(MicroLimsDbContext db)
     {
-        var mediaType = new MediaType { Class = MediaClass.GeneralAgar, IncubationMinHours = 24, IncubationMaxHours = 48, RequiredTemperatureMin = 30, RequiredTemperatureMax = 35 };
         var mediaMaterial = new Material
         {
             MaterialType = MaterialType.DehydratedMedia, MaterialName = "TSA Powder", ManufacturerName = "Himedia",
@@ -163,14 +160,13 @@ public class MaterialConsumptionTests
             Code = "TSA", Location = "Micro Lab", QuantityReceived = 500, QuantityRemaining = 500, Unit = MaterialUnit.Gram
         };
         var incubator = new Equipment { Name = "Incubator 1", Code = "INC-01", Type = EquipmentType.Incubator };
-        db.MediaTypes.Add(mediaType);
         db.Materials.Add(mediaMaterial);
         db.Equipment.Add(incubator);
         await db.SaveChangesAsync();
 
         var media = new Media
         {
-            MediaTypeId = mediaType.Id, MaterialId = mediaMaterial.Id, LotNumber = "TSA/01/26",
+            MaterialId = mediaMaterial.Id, LotNumber = "TSA/01/26",
             IsReleasedForUse = true, Status = MediaStatus.Active, ExpiryDate = DateTime.UtcNow.AddYears(1)
         };
         db.Media.Add(media);
@@ -193,7 +189,7 @@ public class MaterialConsumptionTests
 
         var request = new PrepareCryovialsRequest(
             material.Id, NumberOfVialsPrepared: 5, ExpiryDate: DateTime.UtcNow.AddMonths(6),
-            StorageCondition: "Freezer -15 to -25", PhysicalCheckText: "OK",
+            StorageCondition: "Freezer -15 to -25", PhysicalCheckConfirmed: true, PhysicalCheckText: "OK",
             Panel: OnePanelRow(media, incubator), DiscsUsed: 3, UserId: 1);
 
         await Assert.ThrowsAsync<InvalidOperationException>(() => service.PrepareCryovialsAsync(request));
@@ -213,7 +209,7 @@ public class MaterialConsumptionTests
 
         var request = new PrepareCryovialsRequest(
             material.Id, NumberOfVialsPrepared: 5, ExpiryDate: DateTime.UtcNow.AddMonths(6),
-            StorageCondition: "Freezer -15 to -25", PhysicalCheckText: "OK",
+            StorageCondition: "Freezer -15 to -25", PhysicalCheckConfirmed: true, PhysicalCheckText: "OK",
             Panel: OnePanelRow(media, incubator), DiscsUsed: 2, UserId: 1);
 
         await Assert.ThrowsAsync<InvalidOperationException>(() => service.PrepareCryovialsAsync(request));
@@ -221,6 +217,28 @@ public class MaterialConsumptionTests
         Assert.Empty(await db.Cryovials.ToListAsync());
         var reloaded = await db.Materials.FindAsync(material.Id);
         Assert.Equal(10m, reloaded!.QuantityRemaining); // unchanged
+    }
+
+    [Fact]
+    public async Task PrepareCryovials_PhysicalCheckNotConfirmed_ThrowsAndWritesNothing()
+    {
+        await using var db = NewDb();
+        var material = await SeedLyophilizedMaterial(db, discs: 10);
+        var (media, incubator) = await SeedReleasedMediaFixtures(db);
+        await SeedCurrentCoa(db, material.Id);
+        var service = TestServiceFactory.Cryovial(db);
+
+        var request = new PrepareCryovialsRequest(
+            material.Id, NumberOfVialsPrepared: 5, ExpiryDate: DateTime.UtcNow.AddMonths(6),
+            StorageCondition: "Freezer -15 to -25", PhysicalCheckConfirmed: false, PhysicalCheckText: "Discrepancy noted",
+            Panel: OnePanelRow(media, incubator), DiscsUsed: 1, UserId: 1);
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.PrepareCryovialsAsync(request));
+        Assert.Contains("Physical check confirmation against the organism reference description is required", ex.Message);
+
+        Assert.Empty(await db.Cryovials.ToListAsync());
+        var reloaded = await db.Materials.FindAsync(material.Id);
+        Assert.Equal(10m, reloaded!.QuantityRemaining); // stock untouched
     }
 
     [Fact]
@@ -234,7 +252,7 @@ public class MaterialConsumptionTests
 
         var request = new PrepareCryovialsRequest(
             material.Id, NumberOfVialsPrepared: 5, ExpiryDate: DateTime.UtcNow.AddMonths(6),
-            StorageCondition: "Freezer -15 to -25", PhysicalCheckText: "OK",
+            StorageCondition: "Freezer -15 to -25", PhysicalCheckConfirmed: true, PhysicalCheckText: "Conforms to reference description",
             Panel: OnePanelRow(media, incubator), DiscsUsed: 3, UserId: 1);
 
         var cryovial = await service.PrepareCryovialsAsync(request);
@@ -247,5 +265,7 @@ public class MaterialConsumptionTests
         Assert.Equal(material.Id, cryovial.MaterialId);
         Assert.Equal(material.OrganismId, cryovial.OrganismId);
         Assert.Equal("E. coli", cryovial.OrganismNameSnapshot);
+        Assert.True(cryovial.PhysicalCheckConfirmed);
+        Assert.Equal("Conforms to reference description", cryovial.PhysicalCheckText);
     }
 }

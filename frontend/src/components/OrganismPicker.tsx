@@ -6,6 +6,7 @@ interface OrganismPickerProps {
   onChange: (organismId: number | null) => void;
   label?: string;
   size?: "small" | "medium";
+  disabled?: boolean;
   sx?: any;
 }
 
@@ -20,13 +21,14 @@ const optionLabel = (o: OrganismOption) => (o.atccNumber ? `${o.scientificName} 
 // exist yet offers "Add <name> to Organism list" - selecting it creates
 // the Organism immediately and picks it, mirroring TestCodePicker.tsx's
 // freeSolo pattern so analysts are never blocked by missing master data.
-export function OrganismPicker({ value, onChange, label = "Organism", size = "small", sx }: OrganismPickerProps) {
+export function OrganismPicker({ value, onChange, label = "Organism", size = "small", disabled = false, sx }: OrganismPickerProps) {
   const { options, addNew } = useOrganisms();
   const selected = options.find((o) => o.id === value) ?? null;
 
   return (
     <Autocomplete<Option, false, false, false>
       size={size}
+      disabled={disabled}
       sx={sx}
       options={options}
       value={selected}

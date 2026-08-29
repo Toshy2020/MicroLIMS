@@ -5,7 +5,7 @@
  * Do not invent routes or use deprecated paths.
  */
 
-export const APP_ROUTES = {
+const APP_ROUTES = {
   // Public
   LOGIN: "/login",
 
@@ -17,6 +17,7 @@ export const APP_ROUTES = {
   REPORTS: "/reports",
 
   // Core Laboratory Workflows
+  RECEIVING_TESTING: "/receiving-testing",
   RECEIVING: "/receiving",
   TESTING_WORKSPACE: "/testing-workspace",
 
@@ -27,8 +28,7 @@ export const APP_ROUTES = {
   TEST_MASTER: "/laboratory-configuration/test-master",
   ORGANISMS: "/laboratory-configuration/organisms",
   ITEMS: "/laboratory-configuration/items",
-  MEDIA_TYPES: "/laboratory-configuration/media-types",
-  MEDIA_CHALLENGE_SPECS: "/laboratory-configuration/media-challenge-specs",
+  MEDIA_CONFIGURATIONS: "/laboratory-configuration/media-configurations",
   WATER: "/laboratory-configuration/water",
   ENVIRONMENTAL_MONITORING: "/laboratory-configuration/environmental-monitoring",
   AFTER_CLEANING: "/laboratory-configuration/after-cleaning",
@@ -44,10 +44,13 @@ export const APP_ROUTES = {
 
   // Audit
   AUDIT_SEARCH: "/audit-search",
+  OOS_TRACKING: "/oos-tracking",
 
   // Administration
   USERS: "/users",
   ROLES: "/roles",
+  ROLE_NEW: "/roles/new",
+  ROLE_DETAIL: (id: number | string) => `/roles/${id}`,
 
   // Printable Report Pages (standalone rendering outside MainLayout)
   SAMPLE_REPORT: (id: number | string) => `/samples/${id}/report`,
@@ -67,14 +70,17 @@ export function resolveTraceabilityRoute(
   const type = nodeType?.toLowerCase().trim();
 
   // 1. Check explicit navigationTarget
-  if (target === "testing" || target === "samples" || target === "testorders" || target === "results") {
-    return APP_ROUTES.TESTING_WORKSPACE;
+  if (target === "receiving-testing" || target === "testing" || target === "samples" || target === "testorders" || target === "results") {
+    return APP_ROUTES.RECEIVING_TESTING;
   }
   if (target === "receiving") {
-    return APP_ROUTES.RECEIVING;
+    return APP_ROUTES.RECEIVING_TESTING;
   }
   if (target === "media") {
     return APP_ROUTES.MEDIA_PREPARATION;
+  }
+  if (target === "media-configurations" || target === "mediaconfigurations" || target === "media-configuration") {
+    return APP_ROUTES.MEDIA_CONFIGURATIONS;
   }
   if (target === "media-evaluation" || target === "mediaevaluation") {
     return APP_ROUTES.MEDIA_EVALUATION;
@@ -106,7 +112,7 @@ export function resolveTraceabilityRoute(
 
   // 2. Fallback to nodeType
   if (type === "sample" || type === "testorder" || type === "result" || type === "review" || type === "electronicsignature") {
-    return APP_ROUTES.TESTING_WORKSPACE;
+    return APP_ROUTES.RECEIVING_TESTING;
   }
   if (type === "item") {
     return APP_ROUTES.ITEMS;

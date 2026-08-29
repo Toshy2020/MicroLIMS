@@ -35,6 +35,7 @@ import ScienceOutlinedIcon from "@mui/icons-material/ScienceOutlined";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 import WarningAmberOutlinedIcon from "@mui/icons-material/WarningAmberOutlined";
 import CategoryOutlinedIcon from "@mui/icons-material/CategoryOutlined";
+import { Link } from "react-router-dom";
 import { PageHeader } from "../../../components/PageHeader";
 import { SectionTitle } from "../../../components/SectionTitle";
 import { StatusBadge } from "../../../components/StatusBadge";
@@ -276,7 +277,7 @@ export function ApprovedMediaListPage() {
     const inStockCount = media.filter((m) => m.status === "Active" || m.isReleasedForUse).length;
     const expiringSoonCount = media.filter((m) => isExpiringSoon(m.expiryDate, 30)).length;
     const uniqueTypesCount = new Set(
-      media.map((m) => m.mediaTypeId || m.mediaType?.class).filter(Boolean)
+      media.map((m) => m.materialId || m.material?.materialName).filter(Boolean)
     ).size;
 
     return [
@@ -990,9 +991,12 @@ export function ApprovedMediaListPage() {
                             <TableCell align="right" sx={{ py: 1.25 }}>
                               <Tooltip title="View media lot report record">
                                 <Button
+                                  component={Link}
+                                  to={`/media/${m.id}/report`}
+                                  target="_blank"
+                                  rel="noopener"
                                   size="small"
                                   variant="outlined"
-                                  onClick={() => window.open(`/media/${m.id}/report`, "_blank", "noopener")}
                                   startIcon={<DescriptionOutlinedIcon fontSize="small" />}
                                   sx={{
                                     px: 1,

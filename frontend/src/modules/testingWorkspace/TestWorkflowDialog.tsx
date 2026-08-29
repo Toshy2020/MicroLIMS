@@ -3,13 +3,15 @@ import { Box, Typography, TextField, Button, Stack, Alert, Select, MenuItem, Ico
 import AddIcon from "@mui/icons-material/Add";
 import CloseIcon from "@mui/icons-material/Close";
 import { StatusBadge } from "../../components/StatusBadge";
-import { masterDataOptions, mediaClassLabel } from "../../services/masterDataOptions";
+import { masterDataOptions } from "../../services/masterDataOptions";
 import { TestWorkflowService } from "./services/TestWorkflowService";
 import { LoadingSpinner } from "../../components/LoadingSpinner";
 import { LocationResultGridDialog } from "./LocationResultGridDialog";
 import { PathogenLocationResultGridDialog } from "./PathogenLocationResultGridDialog";
 import { WaterLocationResultGridDialog } from "./WaterLocationResultGridDialog";
 import { PathogenStepDialog } from "./PathogenStepDialog";
+import { useAuth } from "../../contexts/AuthContext";
+import { ConfirmationDialog } from "../../components/ConfirmationDialog";
 
 interface Props { testOrderId: number; testCode: string; category: string; displayName: string; onClose?: () => void; }
 
@@ -109,21 +111,30 @@ export function TestWorkflowDialog({ testOrderId, testCode, category, displayNam
   const isTwoStageTransfer = !!step?.requiresIncubationTransfer;
   const stage2Config = (step?.incubationStages ?? []).find((x: any) => x.stageNumber === 2);
 
-  const classMedia = releasedMedia.filter((m) => m.mediaTypeId === step?.mediaTypeId || m.mediaType?.id === step?.mediaTypeId);
-  // Some steps are named after the exact material they require (e.g.
-  // "MSA", "TSB", "RVS") - when that's the case, narrow down to just
-  // that material instead of every lot of the step's (coarse, 4-value)
-  // MediaType class. Other steps are named after a procedure instead
-  // ("Detection", "XLD_TSI", "CountIncubation") with no single matching
-  // material, so there's nothing to narrow - fall back to the full
-  // class list exactly as before.
-  const materialMedia = step ? classMedia.filter((m) => (m.material?.code ?? "").toUpperCase() === step.stepName.toUpperCase()) : [];
-  const matchingMedia = materialMedia.length > 0 ? materialMedia : classMedia;
+  // Permitted materials come directly from the step's own configured
+  // StepMedia (Test Master) - the same set TestWorkflowEngine.SelectMediaAsync
+  // enforces server-side, so the picker can't offer a lot the backend
+  // would reject anyway. Replaces the old MediaType-class filter plus a
+  // step-name-matching fallback, both of which relied on fields that no
+  // longer exist on the step/lot after the Media Configuration Migration.
+  const permittedMaterialIds = new Set((step?.stepMedia ?? []).map((m: any) => m.materialId));
+  const matchingMedia = releasedMedia.filter((m) => permittedMaterialIds.has(m.materialId));
+  const permittedMaterialNames = (step?.stepMedia ?? []).map((m: any) => m.materialName).join(" or ");
+
+  const selectedMediaLot = releasedMedia.find((m) => m.id === mediaId);
+  const selectedStepMedium = (step?.stepMedia ?? []).find((m: any) => m.materialId === selectedMediaLot?.materialId);
+  const activeStage1Medium = selectedStepMedium ?? ((step?.stepMedia?.length === 1) ? step.stepMedia[0] : null);
+
+  const stage1TempMin = activeStage1Medium?.tempMin ?? (step?.stepMedia?.length > 0 ? Math.min(...step.stepMedia.map((m: any) => m.tempMin)) : (step?.temperatureMin ?? 0));
+  const stage1TempMax = activeStage1Medium?.tempMax ?? (step?.stepMedia?.length > 0 ? Math.max(...step.stepMedia.map((m: any) => m.tempMax)) : (step?.temperatureMax ?? 0));
+  const stage1IncMinHours = activeStage1Medium?.incubationMinHours ?? (step?.stepMedia?.length > 0 ? Math.min(...step.stepMedia.map((m: any) => m.incubationMinHours)) : (step?.incubationMinHours ?? 0));
+  const stage1IncMaxHours = activeStage1Medium?.incubationMaxHours ?? (step?.stepMedia?.length > 0 ? Math.max(...step.stepMedia.map((m: any) => m.incubationMaxHours)) : (step?.incubationMaxHours ?? 0));
+
   // Only offer incubators whose set point actually falls within this
   // step's required temperature range - one out of calibration/set to
   // the wrong temperature for this test shouldn't even be selectable.
   const matchingIncubators = incubators.filter((i) =>
-    i.setPointTemperature != null && step && i.setPointTemperature >= step.temperatureMin && i.setPointTemperature <= step.temperatureMax
+    i.setPointTemperature != null && i.setPointTemperature >= stage1TempMin && i.setPointTemperature <= stage1TempMax
   );
 
   const matchingStage2Incubators = incubators.filter((i) =>
@@ -142,10 +153,10 @@ export function TestWorkflowDialog({ testOrderId, testCode, category, displayNam
   const currentStageNumber = current?.incubationLock?.stageNumber ?? openIncubationRow?.stageNumber ?? 1;
   const isStage2 = currentStageNumber === 2;
 
-  const activeTempMin = isStage2 && stage2Config ? stage2Config.tempMin : step?.temperatureMin;
-  const activeTempMax = isStage2 && stage2Config ? stage2Config.tempMax : step?.temperatureMax;
-  const activeIncMinHours = isStage2 && stage2Config ? stage2Config.incubationMinHours : step?.incubationMinHours;
-  const activeIncMaxHours = isStage2 && stage2Config ? stage2Config.incubationMaxHours : step?.incubationMaxHours;
+  const activeTempMin = isStage2 && stage2Config ? stage2Config.tempMin : stage1TempMin;
+  const activeTempMax = isStage2 && stage2Config ? stage2Config.tempMax : stage1TempMax;
+  const activeIncMinHours = isStage2 && stage2Config ? stage2Config.incubationMinHours : stage1IncMinHours;
+  const activeIncMaxHours = isStage2 && stage2Config ? stage2Config.incubationMaxHours : stage1IncMaxHours;
 
   // Minimum-duration gate, mirrored from the server (TestWorkflowEngine.
   // RequireMinimumDurationElapsed) so the button disables itself instead
@@ -154,7 +165,26 @@ export function TestWorkflowDialog({ testOrderId, testCode, category, displayNam
   const minReadyAt = openIncubationRow && activeIncMinHours != null
     ? new Date(new Date(openIncubationRow.incubationStartUtc).getTime() + activeIncMinHours * 3600 * 1000)
     : null;
-  const isTimeReady = !minReadyAt || new Date() >= minReadyAt;
+  const minimumDurationOverridden = current?.incubationLock?.minimumDurationOverridden ?? false;
+  const isTimeReady = !minReadyAt || new Date() >= minReadyAt || minimumDurationOverridden;
+
+  const { role } = useAuth();
+  const canOverrideWait = role === "SectionHead" || role === "SystemAdministrator";
+  const [skipDialogOpen, setSkipDialogOpen] = useState(false);
+  const [skipping, setSkipping] = useState(false);
+  const confirmSkipWait = async () => {
+    setError(null);
+    setSkipping(true);
+    try {
+      await TestWorkflowService.overrideMinimumDuration(testOrderId);
+      setSkipDialogOpen(false);
+      await load();
+    } catch (e: any) {
+      setError(e?.response?.data?.message ?? "Could not skip the wait.");
+    } finally {
+      setSkipping(false);
+    }
+  };
 
   const startIncubation = async () => {
     setError(null);
@@ -293,6 +323,13 @@ export function TestWorkflowDialog({ testOrderId, testCode, category, displayNam
   return (
     <Box>
       <StepChainStrip current={current} />
+      {current?.returnInfo && (
+        <Alert severity="warning" sx={{ mb: 2 }}>
+          {current.returnInfo.reason
+            ? `Returned for revision: ${current.returnInfo.reason}`
+            : "Returned by reviewer for revision"}
+        </Alert>
+      )}
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
 
       <Typography sx={{ fontWeight: 700, mb: 0.5 }}>
@@ -304,25 +341,34 @@ export function TestWorkflowDialog({ testOrderId, testCode, category, displayNam
       {phase === "select-media" && (
         <Stack spacing={1.5}>
           <Typography variant="body2" color="text.secondary">
-            Requires {mediaClassLabel(step.mediaType?.class)} media.
+            Requires {permittedMaterialNames || "an approved"} media.
           </Typography>
 
-          <Select displayEmpty size="small" value={mediaId} onChange={(e) => setMediaId(Number(e.target.value))}>
-            <MenuItem value=""><em>Media Batch ({mediaClassLabel(step.mediaType?.class)} lots only)</em></MenuItem>
+          <Select
+            displayEmpty
+            size="small"
+            value={mediaId}
+            onChange={(e) => {
+              const val = e.target.value === "" ? "" : Number(e.target.value);
+              setMediaId(val);
+              setIncubatorId("");
+            }}
+          >
+            <MenuItem value=""><em>Media Batch ({permittedMaterialNames || "approved"} lots only)</em></MenuItem>
             {matchingMedia.map((m) => <MenuItem key={m.id} value={m.id}>{m.lotNumber} — expires {new Date(m.expiryDate).toLocaleDateString()}</MenuItem>)}
           </Select>
 
           <Select displayEmpty size="small" value={incubatorId} onChange={(e) => setIncubatorId(Number(e.target.value))}>
-            <MenuItem value=""><em>Stage 1 Incubator ({step.temperatureMin}-{step.temperatureMax} °C)</em></MenuItem>
+            <MenuItem value=""><em>Stage 1 Incubator ({stage1TempMin}-{stage1TempMax} °C)</em></MenuItem>
             {matchingIncubators.map((i) => <MenuItem key={i.id} value={i.id}>{i.name} ({i.code}) — {i.setPointTemperature}°C</MenuItem>)}
           </Select>
           {matchingIncubators.length === 0 && (
-            <Alert severity="warning">No incubator is set to {step.temperatureMin}-{step.temperatureMax} °C for this step.</Alert>
+            <Alert severity="warning">No incubator is set to {stage1TempMin}-{stage1TempMax} °C for this step.</Alert>
           )}
           {mediaId && incubatorId && (
             <Typography variant="body2" color="text.secondary">
-              Required Temperature (Stage 1): <strong>{step.temperatureMin}-{step.temperatureMax} °C</strong>
-              {" — "}Incubation Period: <strong>{step.incubationMinHours}-{step.incubationMaxHours} hours</strong>
+              Required Temperature (Stage 1): <strong>{stage1TempMin}-{stage1TempMax} °C</strong>
+              {" — "}Incubation Period: <strong>{stage1IncMinHours}-{stage1IncMaxHours} hours</strong>
             </Typography>
           )}
           <Stack direction="row" justifyContent="flex-end">
@@ -396,7 +442,15 @@ export function TestWorkflowDialog({ testOrderId, testCode, category, displayNam
           {!isTimeReady && minReadyAt && (
             <Alert severity="warning">Not ready yet - available from {minReadyAt.toLocaleString()}.</Alert>
           )}
-          <Stack direction="row" justifyContent="flex-end">
+          {minimumDurationOverridden && (
+            <Alert severity="info">Minimum wait time was skipped by a Section Head/System Administrator.</Alert>
+          )}
+          <Stack direction="row" justifyContent="space-between">
+            {canOverrideWait && !isTimeReady ? (
+              <Button variant="outlined" color="warning" onClick={() => setSkipDialogOpen(true)} disabled={skipping}>
+                Skip Wait
+              </Button>
+            ) : <span />}
             {isTwoStageTransfer && !isStage2 ? (
               <Button variant="contained" disabled={!isTimeReady} onClick={() => setPhase("transfer-stage-2")}>
                 Transfer to Stage 2 Incubation
@@ -418,6 +472,13 @@ export function TestWorkflowDialog({ testOrderId, testCode, category, displayNam
         </Stack>
       )}
 
+      <ConfirmationDialog
+        open={skipDialogOpen}
+        message="Skip the remaining minimum incubation wait time for this step? This bypasses the wait only — the recorded incubation window is not changed."
+        onConfirm={confirmSkipWait}
+        onCancel={() => setSkipDialogOpen(false)}
+      />
+
       {current.workflowType === "CountTest" && isWaterCountBatch ? (
         <WaterLocationResultGridDialog
           open={showLocationGrid}
@@ -425,6 +486,7 @@ export function TestWorkflowDialog({ testOrderId, testCode, category, displayNam
           testCode={testCode}
           displayName={displayName}
           minReadyAt={minReadyAt}
+          minimumDurationOverridden={minimumDurationOverridden}
           onClose={() => setShowLocationGrid(false)}
           onSubmitted={() => { setShowLocationGrid(false); load(); }}
         />
@@ -435,6 +497,7 @@ export function TestWorkflowDialog({ testOrderId, testCode, category, displayNam
           testCode={testCode}
           displayName={displayName}
           minReadyAt={minReadyAt}
+          minimumDurationOverridden={minimumDurationOverridden}
           onClose={() => setShowLocationGrid(false)}
           onSubmitted={() => { setShowLocationGrid(false); load(); }}
         />
@@ -445,6 +508,7 @@ export function TestWorkflowDialog({ testOrderId, testCode, category, displayNam
           testCode={testCode}
           displayName={displayName}
           minReadyAt={minReadyAt}
+          minimumDurationOverridden={minimumDurationOverridden}
           onClose={() => setShowLocationGrid(false)}
           onSubmitted={() => { setShowLocationGrid(false); load(); }}
         />

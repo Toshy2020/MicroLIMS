@@ -6,6 +6,7 @@ export interface OrganismOption {
   scientificName: string;
   atccNumber: string | null;
   commonName: string | null;
+  description: string | null;
 }
 
 // Backs every organism picker in the app (Media Challenge Specs, Material
@@ -26,14 +27,14 @@ export function useOrganisms() {
   // Adds a brand-new organism to the master list (used when the analyst
   // types a scientific name that doesn't exist yet) and returns it so the
   // caller can select it immediately.
-  const addNew = async (scientificName: string, atccNumber?: string | null) => {
-    const created = await masterDataOptions.createOrganism(scientificName, atccNumber ?? null);
+  const addNew = async (scientificName: string, atccNumber?: string | null, commonName?: string | null, description?: string | null) => {
+    const created = await masterDataOptions.createOrganism(scientificName, atccNumber ?? null, commonName ?? null, description ?? null);
     await reload();
     return created as OrganismOption;
   };
 
-  const update = async (id: number, scientificName: string, atccNumber?: string | null, commonName?: string | null) => {
-    const updated = await masterDataOptions.updateOrganism(id, scientificName, atccNumber ?? null, commonName ?? null);
+  const update = async (id: number, scientificName: string, atccNumber?: string | null, commonName?: string | null, description?: string | null) => {
+    const updated = await masterDataOptions.updateOrganism(id, scientificName, atccNumber ?? null, commonName ?? null, description ?? null);
     await reload();
     return updated as OrganismOption;
   };

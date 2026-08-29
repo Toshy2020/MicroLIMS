@@ -16,6 +16,8 @@ import PictureAsPdfOutlinedIcon from "@mui/icons-material/PictureAsPdfOutlined";
 import HistoryOutlinedIcon from "@mui/icons-material/HistoryOutlined";
 import ScienceOutlinedIcon from "@mui/icons-material/ScienceOutlined";
 import AssignmentIndOutlinedIcon from "@mui/icons-material/AssignmentIndOutlined";
+import BlockOutlinedIcon from "@mui/icons-material/BlockOutlined";
+import { Link } from "react-router-dom";
 import { SampleRecord } from "../types/receivingTypes";
 import { useAuth } from "../../../contexts/AuthContext";
 
@@ -27,6 +29,7 @@ interface Props {
   onViewAuditHistory: (sample: SampleRecord) => void;
   onPrepareSample: (sample: SampleRecord) => void;
   onAssignAnalyst?: (sample: SampleRecord) => void;
+  onVoid?: (sample: SampleRecord) => void;
 }
 
 export function SampleActionMenu({
@@ -36,7 +39,8 @@ export function SampleActionMenu({
   onViewReport,
   onViewAuditHistory,
   onPrepareSample,
-  onAssignAnalyst
+  onAssignAnalyst,
+  onVoid
 }: Props) {
   const theme = useTheme();
   const { role } = useAuth();
@@ -45,10 +49,12 @@ export function SampleActionMenu({
   const isMenuOpen = Boolean(anchorEl);
 
   const handleOpenMenu = (event: React.MouseEvent<HTMLElement>) => {
+    event.stopPropagation();
     setAnchorEl(event.currentTarget);
   };
 
-  const handleCloseMenu = () => {
+  const handleCloseMenu = (event?: any) => {
+    event?.stopPropagation?.();
     setAnchorEl(null);
   };
 
@@ -56,12 +62,15 @@ export function SampleActionMenu({
   const needsPreparation = sample.preparationStatus === "NeedsPreparation";
 
   return (
-    <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+    <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }} onClick={(e) => e.stopPropagation()}>
       {/* View Sample Action */}
       <Tooltip title="View Sample Details & Workflow">
         <IconButton
           size="small"
-          onClick={() => onViewSummary(sample)}
+          onClick={(e) => {
+            e.stopPropagation();
+            onViewSummary(sample);
+          }}
           sx={{
             color: "text.secondary",
             "&:hover": { color: theme.custom.status.purple.text, bgcolor: theme.custom.status.purple.bg }
@@ -83,7 +92,10 @@ export function SampleActionMenu({
           <IconButton
             size="small"
             disabled={!isEditable}
-            onClick={() => onEdit(sample)}
+            onClick={(e) => {
+              e.stopPropagation();
+              onEdit(sample);
+            }}
             sx={{
               color: isEditable ? "text.secondary" : "text.disabled",
               "&:hover": isEditable ? { color: theme.custom.status.purple.text, bgcolor: theme.custom.status.purple.bg } : undefined
@@ -92,6 +104,27 @@ export function SampleActionMenu({
             <EditOutlinedIcon sx={{ fontSize: 18 }} />
           </IconButton>
         </span>
+      </Tooltip>
+
+      {/* Void Sample Action */}
+      <Tooltip title="Void Sample">
+        <IconButton
+          size="small"
+          onClick={(e) => {
+            e.stopPropagation();
+            if (onVoid) {
+              onVoid(sample);
+            } else {
+              onViewSummary(sample);
+            }
+          }}
+          sx={{
+            color: "text.secondary",
+            "&:hover": { color: theme.custom.status.detected.text, bgcolor: theme.custom.status.detected.bg }
+          }}
+        >
+          <BlockOutlinedIcon sx={{ fontSize: 18 }} />
+        </IconButton>
       </Tooltip>
 
       {/* More Actions Menu */}
@@ -150,8 +183,28 @@ export function SampleActionMenu({
         <MenuItem
           onClick={() => {
             handleCloseMenu();
-            onViewReport(sample);
+            if (onVoid) {
+              onVoid(sample);
+            } else {
+              onViewSummary(sample);
+            }
           }}
+        >
+          <ListItemIcon>
+            <BlockOutlinedIcon sx={{ fontSize: 18, color: theme.custom.status.detected.text }} />
+          </ListItemIcon>
+          <ListItemText
+            primary="Void Sample"
+            primaryTypographyProps={{ fontSize: 13, fontWeight: 600, color: theme.custom.status.detected.text }}
+          />
+        </MenuItem>
+
+        <MenuItem
+          component={Link}
+          to={`/samples/${sample.sampleId}/report`}
+          target="_blank"
+          rel="noopener"
+          onClick={handleCloseMenu}
         >
           <ListItemIcon>
             <PictureAsPdfOutlinedIcon sx={{ fontSize: 18, color: theme.custom.status.info.text }} />

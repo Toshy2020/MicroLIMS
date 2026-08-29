@@ -9,7 +9,7 @@ import {
 } from "@mui/material";
 import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { AuditSearchService } from "../services/AuditSearchService";
 import type { AuditTraceabilityResult } from "../types/auditTypes";
 import { resolveTraceabilityRoute } from "../../../routes/routes";
@@ -153,10 +153,11 @@ export function AuditTraceabilityChain({
 
                   return (
                     <Button
+                      component={Link}
+                      to={targetRoute}
                       size="small"
                       variant="outlined"
                       endIcon={<OpenInNewIcon sx={{ fontSize: 12 }} />}
-                      onClick={() => navigate(targetRoute)}
                       sx={{ fontSize: 10, textTransform: "none", py: 0.2 }}
                     >
                       Open {node.nodeType}

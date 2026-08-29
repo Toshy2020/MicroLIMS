@@ -60,7 +60,7 @@ export function AdminPasswordRecovery() {
               <Alert severity="success">
                 Your password has been successfully reset! You can now log in using your new password.
               </Alert>
-              <Button variant="contained" onClick={() => navigate("/login")}>
+              <Button component={RouterLink} to="/login" variant="contained">
                 Go to Login Page
               </Button>
             </Stack>

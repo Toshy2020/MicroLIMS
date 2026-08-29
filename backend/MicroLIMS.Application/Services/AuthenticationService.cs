@@ -21,14 +21,16 @@ public class AuthenticationService : IAuthenticationService
     private static readonly TimeSpan PasswordResetTokenLifetime = TimeSpan.FromHours(1);
 
     private readonly MicroLimsDbContext _db;
-    private readonly Func<string, string, string> _tokenIssuer; // (userId, role) -> JWT
+    private readonly Func<string, string, IEnumerable<string>, string> _tokenIssuer; // (userId, role, permissionCodes) -> JWT
+    private readonly PermissionService _permissionService;
     private readonly IEmailSender _emailSender;
     private readonly ILogger<AuthenticationService> _logger;
 
-    public AuthenticationService(MicroLimsDbContext db, Func<string, string, string> tokenIssuer, IEmailSender emailSender, ILogger<AuthenticationService> logger)
+    public AuthenticationService(MicroLimsDbContext db, Func<string, string, IEnumerable<string>, string> tokenIssuer, PermissionService permissionService, IEmailSender emailSender, ILogger<AuthenticationService> logger)
     {
         _db = db;
         _tokenIssuer = tokenIssuer;
+        _permissionService = permissionService;
         _emailSender = emailSender;
         _logger = logger;
     }
@@ -66,7 +68,8 @@ public class AuthenticationService : IAuthenticationService
         await _db.SaveChangesAsync();
         await RecordLoginAsync(user.Id, username, true, null, ipAddress);
 
-        var token = _tokenIssuer(user.Id.ToString(), user.Role?.Type.ToString() ?? "Analyst");
+        var permissionCodes = user.Role is not null ? await _permissionService.GetPermissionCodesForRoleAsync(user.Role.Id) : new List<string>();
+        var token = _tokenIssuer(user.Id.ToString(), user.Role?.Type.ToString() ?? "Analyst", permissionCodes);
         var refreshToken = await IssueRefreshTokenAsync(user.Id);
 
         return new LoginOutcome(true, token, refreshToken, null, user.MustChangePassword);
@@ -86,7 +89,8 @@ public class AuthenticationService : IAuthenticationService
         var newRefreshToken = await IssueRefreshTokenAsync(stored.UserId);
         await _db.SaveChangesAsync();
 
-        var token = _tokenIssuer(stored.UserId.ToString(), stored.User?.Role?.Type.ToString() ?? "Analyst");
+        var permissionCodes = stored.User?.Role is not null ? await _permissionService.GetPermissionCodesForRoleAsync(stored.User.Role.Id) : new List<string>();
+        var token = _tokenIssuer(stored.UserId.ToString(), stored.User?.Role?.Type.ToString() ?? "Analyst", permissionCodes);
         return new LoginOutcome(true, token, newRefreshToken, null, stored.User?.MustChangePassword ?? false);
     }
 

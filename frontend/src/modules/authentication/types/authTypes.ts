@@ -4,6 +4,7 @@ export interface LoginResult {
   token: string;
   refreshToken: string;
   role: Role;
+  permissions: string[];
   mustChangePassword: boolean;
 }
 

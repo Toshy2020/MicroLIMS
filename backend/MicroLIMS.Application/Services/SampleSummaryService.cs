@@ -28,6 +28,49 @@ public class SampleSummaryService
         _reviewGate = reviewGate;
     }
 
+    // A retest can be partial - only the TestCode(s) actually selected for
+    // retest go superseded on this sample, every other TestCode is left
+    // live right here (SampleApprovalService.DecideAsync's retest branches
+    // only touch `selectedOrders`). So pull-through has to work per
+    // TestCode, never as an all-or-nothing decision for the whole sample:
+    // otherwise a sample with e.g. three passing live tests and one
+    // superseded (failing) one would show only the three passers, silently
+    // dropping the very test that triggered the OOS investigation from its
+    // own Summary/Report/COA. For each of this sample's own superseded
+    // TestCodes, this pulls in the TestOrder(s) of whichever descendant(s)
+    // actually carried that retest to its conclusion - recursing through
+    // NewSampleRequest's two siblings and multi-level escalation the same
+    // way SampleApprovalService.PropagateOosOutcomeAsync does.
+    private async Task<(List<TestOrder> Orders, Dictionary<int, string> SourceReferenceByOrderId)> ResolveEffectiveTestOrdersAsync(Sample sample, int depth = 0)
+    {
+        var orders = new List<TestOrder>(sample.TestOrders);
+        var sourceRef = new Dictionary<int, string>();
+
+        var supersededTestCodes = sample.TestOrders.Where(o => o.IsSuperseded).Select(o => o.TestCode).ToHashSet();
+        if (supersededTestCodes.Count == 0 || sample.OosGroupCode is null || depth > 10)
+            return (orders, sourceRef);
+
+        var children = await _db.Samples.Include(c => c.TestOrders)
+            .Where(c => c.OriginSampleId == sample.Id)
+            .ToListAsync();
+
+        foreach (var child in children)
+        {
+            var (childOrders, childSourceRef) = await ResolveEffectiveTestOrdersAsync(child, depth + 1);
+            foreach (var order in childOrders)
+            {
+                // Only pull in TestCodes this sample actually superseded -
+                // a child only ever carries the tests selected for its
+                // retest, so this is mostly a defensive filter.
+                if (!supersededTestCodes.Contains(order.TestCode)) continue;
+                orders.Add(order);
+                sourceRef[order.Id] = childSourceRef.TryGetValue(order.Id, out var deeper) ? deeper : child.ReferenceNumber;
+            }
+        }
+
+        return (orders, sourceRef);
+    }
+
     public async Task<SampleSummaryDto?> GetSummaryAsync(int sampleId)
     {
         var sample = await _db.Samples
@@ -42,7 +85,9 @@ public class SampleSummaryService
 
         var timeline = await _reviewGate.GetTimelineAsync(ReviewEntityTypes.Sample, sampleId);
 
-        var testOrderIds = sample.TestOrders.Select(t => t.Id).ToList();
+        var (effectiveTestOrders, sourceRefByOrderId) = await ResolveEffectiveTestOrdersAsync(sample);
+
+        var testOrderIds = effectiveTestOrders.Select(t => t.Id).ToList();
 
         var incubations = await _db.Incubations
             .Where(i => i.TestOrderId != null && testOrderIds.Contains(i.TestOrderId.Value))
@@ -52,6 +97,9 @@ public class SampleSummaryService
         var results = await _db.Results.Where(r => testOrderIds.Contains(r.TestOrderId)).ToListAsync();
         var countTestReadings = await _db.CountTestReadings.Where(r => testOrderIds.Contains(r.TestOrderId)).ToListAsync();
         var pathogenObservations = await _db.PathogenObservations.Where(p => testOrderIds.Contains(p.TestOrderId)).ToListAsync();
+        var biochemicalResults = await _db.WorkflowStepResults
+            .Where(r => testOrderIds.Contains(r.TestOrderId) && r.BiochemicalResultText != null)
+            .ToListAsync();
         var workflowHistory = await _db.WorkflowHistories.Where(w => testOrderIds.Contains(w.TestOrderId)).ToListAsync();
         var sampleLocations = await _db.SampleLocations
             .Where(l => testOrderIds.Contains(l.TestOrderId))
@@ -71,13 +119,29 @@ public class SampleSummaryService
             .ToListAsync();
         var testDefinitions = await _db.TestDefinitions
             .Include(t => t.Steps)
-                .ThenInclude(s => s.MediaType)
-            .Where(t => sample.TestOrders.Select(o => o.TestCode).Contains(t.Code))
+                .ThenInclude(s => s.StepMedia)
+            .Include(t => t.Steps)
+                .ThenInclude(s => s.IncubationStages)
+            .Where(t => effectiveTestOrders.Select(o => o.TestCode).Contains(t.Code))
             .ToDictionaryAsync(t => t.Code);
 
         var preparation = await _db.SamplePreparations
             .Include(p => p.Neutralizer)
             .FirstOrDefaultAsync(p => p.SampleId == sampleId);
+
+        // Specification text per (Item, TestCode) - already resolved onto
+        // CountTestReadingDetailDto.SpecLimit for quantitative tests at
+        // result-entry time, but qualitative (pathogen) test orders have no
+        // equivalent anywhere, so this is looked up generically here for
+        // every test order regardless of type. Empty/no match is expected
+        // for a test code nobody has configured a Specification for yet
+        // (e.g. every pathogen test, until Test Master's Items page is used
+        // to add one) - not an error, renders as "-" wherever shown.
+        var specificationsByTestCode = sample.ItemId is null
+            ? new Dictionary<string, Specification>()
+            : await _db.Specifications
+                .Where(sp => sp.ItemId == sample.ItemId.Value)
+                .ToDictionaryAsync(sp => sp.TestCode);
 
         var signatures = await _db.ElectronicSignatures
             .Where(s => s.EntityType == "Sample" && s.EntityId == sampleId)
@@ -94,7 +158,7 @@ public class SampleSummaryService
             .Concat(workflowHistory.Select(w => w.PerformedByUserId))
             .Concat(sampleLocations.Where(l => l.EnteredByUserId is not null).Select(l => l.EnteredByUserId!.Value))
             .Concat(incubations.Where(i => i.StartedByUserId is not null).Select(i => i.StartedByUserId!.Value))
-            .Concat(sample.TestOrders.Where(o => o.AssignedAnalystId.HasValue).Select(o => o.AssignedAnalystId!.Value))
+            .Concat(effectiveTestOrders.Where(o => o.AssignedAnalystId.HasValue).Select(o => o.AssignedAnalystId!.Value))
             .Append(sample.ReceivedByUserId));
         if (preparation is not null) userIds.Add(preparation.PreparedByUserId);
         if (sample.ReviewedByUserId is not null) userIds.Add(sample.ReviewedByUserId.Value);
@@ -103,7 +167,7 @@ public class SampleSummaryService
         var names = await _db.Users.Where(u => userIds.Contains(u.Id)).ToDictionaryAsync(u => u.Id, u => u.FullName);
         string NameOf(int userId) => names.TryGetValue(userId, out var n) ? n : "Unknown";
 
-        var assignedOrder = sample.TestOrders.FirstOrDefault(o => o.AssignedAnalystId.HasValue);
+        var assignedOrder = effectiveTestOrders.FirstOrDefault(o => o.AssignedAnalystId.HasValue);
         int? assignedAnalystId = assignedOrder?.AssignedAnalystId;
         string? assignedAnalystName = assignedAnalystId.HasValue ? NameOf(assignedAnalystId.Value) : null;
 
@@ -113,9 +177,8 @@ public class SampleSummaryService
         foreach (var def in testDefinitions.Values)
         {
             var tsbStep = def.Steps.FirstOrDefault(step =>
-                step.StepType == StepType.BrothEnrichment ||
-                (!string.IsNullOrEmpty(step.StepName) && step.StepName.Contains("TSB", StringComparison.OrdinalIgnoreCase)) ||
-                (step.MediaType != null && (step.MediaType.Class == MediaClass.GeneralBroth || step.MediaType.Class == MediaClass.SelectiveBroth)));
+                step.StepType is StepType.BrothEnrichment ||
+                (!string.IsNullOrEmpty(step.StepName) && step.StepName.Contains("TSB", StringComparison.OrdinalIgnoreCase)));
             if (tsbStep != null && tsbStep.IncubationMinHours > 0)
             {
                 tsbHoursMin = tsbStep.IncubationMinHours;
@@ -130,12 +193,20 @@ public class SampleSummaryService
         bool tsbIncubating = TsbDetectionHelper.IsTsbIncubating(sharedTsbInc, tsbHoursMin, DateTime.UtcNow);
         bool tsbCompleted = TsbDetectionHelper.IsTsbComplete(sharedTsbInc, tsbHoursMin, DateTime.UtcNow);
 
+        string summaryDisplayName = sample.Category switch
+        {
+            SampleCategory.AfterCleaning => sample.Machine?.Name ?? string.Empty,
+            SampleCategory.Water => sample.WaterSamplingPoint?.Code ?? string.Empty,
+            SampleCategory.EnvironmentalMonitoring => sample.Department?.Name ?? string.Empty,
+            _ => sample.Item?.Name ?? string.Empty
+        };
+
         var dto = new SampleSummaryDto
         {
             SampleId = sample.Id,
             ReferenceNumber = sample.ReferenceNumber,
             Category = sample.Category.ToString(),
-            DisplayName = sample.Item?.Name ?? sample.WaterSamplingPoint?.Code ?? sample.Department?.Name ?? sample.Machine?.Name ?? string.Empty,
+            DisplayName = summaryDisplayName,
             ProductionStage = sample.ProductionStage,
             CauseOfTesting = sample.CauseOfTesting?.Name ?? string.Empty,
             BatchNumber = sample.BatchNumber,
@@ -158,6 +229,9 @@ public class SampleSummaryService
             ApprovedByName = sample.ApprovedByUserId is not null ? NameOf(sample.ApprovedByUserId.Value) : null,
             ApprovedAt = sample.ApprovedAt,
             ApprovalDecision = sample.ApprovalDecision?.ToString(),
+            CertificateRemarks = sample.CertificateRemarks,
+            PreviousProductName = sample.Category == SampleCategory.AfterCleaning ? sample.PreviousProductName : null,
+            PreviousProductBatchNumber = sample.Category == SampleCategory.AfterCleaning ? (sample.PreviousProductBatchNumber ?? sample.BatchNumber) : null,
             Signatures = signatures,
             Preparation = preparation is null ? null : new SamplePreparationSummaryDto
             {
@@ -179,18 +253,17 @@ public class SampleSummaryService
                     Comment = e.Comment,
                     Decision = e.Decision?.ToString()
                 }).ToList(),
-            TestOrders = sample.TestOrders.Select(order =>
+            TestOrders = effectiveTestOrders.Select(order =>
             {
                 TestDefinition? def = null;
                 testDefinitions.TryGetValue(order.TestCode, out def);
 
                 bool usesTsb = def?.Steps.Any(step =>
-                    step.StepType == StepType.BrothEnrichment ||
-                    step.StepName.Contains("TSB", StringComparison.OrdinalIgnoreCase) ||
-                    (step.MediaType != null && (step.MediaType.Class == MediaClass.GeneralBroth || step.MediaType.Class == MediaClass.SelectiveBroth))) ?? false;
+                    step.StepType is StepType.BrothEnrichment or StepType.SelectiveBroth ||
+                    step.StepName.Contains("TSB", StringComparison.OrdinalIgnoreCase)) ?? false;
 
                 var orderIncubations = incubations.Where(i => i.TestOrderId == order.Id).ToList();
-                var stateResult = WorkflowStateResolver.Resolve(order, usesTsb, sharedTsbInc, orderIncubations, null, DateTime.UtcNow);
+                var stateResult = WorkflowStateResolver.Resolve(order, usesTsb, sharedTsbInc, orderIncubations, null, DateTime.UtcNow, 24, def?.Steps);
 
                 var orderPathogenObs = locationPathogenObservations.Where(o => o.TestOrderId == order.Id).ToList();
 
@@ -280,11 +353,15 @@ public class SampleSummaryService
                     }).ToList();
                 }
 
+                specificationsByTestCode.TryGetValue(order.TestCode, out var spec);
+
                 return new TestOrderSummaryDetailDto
                 {
                     TestOrderId = order.Id,
                     TestCode = order.TestCode,
                     TestDisplayName = def?.DisplayName ?? order.TestCode,
+                    SourceSampleReferenceNumber = sourceRefByOrderId.TryGetValue(order.Id, out var sourceRef) ? sourceRef : null,
+                    SpecificationText = FormatSpecificationText(spec),
                     Status = order.Status.ToString(),
                     CurrentStep = order.CurrentStep.ToString(),
                     WorkflowState = stateResult.WorkflowState,
@@ -374,7 +451,7 @@ public class SampleSummaryService
                     EnteredByName = NameOf(r.EnteredByUserId),
                     EnteredAt = r.EnteredAt
                 }).ToList(),
-                CountTestReadings = countTestReadings.Where(r => r.TestOrderId == order.Id).Select(r => new CountTestReadingDetailDto
+                CountTestReadings = countTestReadings.Where(r => r.TestOrderId == order.Id && r.IsActive).Select(r => new CountTestReadingDetailDto
                 {
                     StepName = r.StepName,
                     PlateReadings = r.PlateReadings,
@@ -396,6 +473,14 @@ public class SampleSummaryService
                     Observation = p.Observation.ToString(),
                     ObservedByName = NameOf(p.ObservedByUserId),
                     ObservedAt = p.ObservedAt
+                }).ToList(),
+                BiochemicalResults = biochemicalResults.Where(r => r.TestOrderId == order.Id).Select(r => new BiochemicalResultDetailDto
+                {
+                    StepName = r.StepName,
+                    BiochemicalResultText = r.BiochemicalResultText ?? string.Empty,
+                    OrganismDetected = r.BiochemicalOrganismDetected,
+                    SubmittedByName = NameOf(r.SubmittedByUserId),
+                    SubmittedAt = r.SubmittedAtUtc
                 }).ToList(),
                 WorkflowHistory = workflowHistory.Where(w => w.TestOrderId == order.Id).OrderBy(w => w.Timestamp).Select(w => new WorkflowHistoryDetailDto
                 {
@@ -543,6 +628,16 @@ public class SampleSummaryService
                 foreach (var p in order.PathogenObservations)
                     lines.Add($"    {p.StepName}: Observation = {p.Observation}   Entered By: {p.ObservedByName}   Entered At: {FormatDateTime(p.ObservedAt)}");
             }
+
+            if (order.BiochemicalResults.Count > 0)
+            {
+                lines.Add("  BIOCHEMICAL IDENTIFICATION:");
+                foreach (var b in order.BiochemicalResults)
+                {
+                    var call = b.OrganismDetected is true ? "Detected" : b.OrganismDetected is false ? "Not Detected" : "Undetermined";
+                    lines.Add($"    {b.StepName}: {b.BiochemicalResultText}   Interpretation: {call}   Entered By: {b.SubmittedByName}   Entered At: {FormatDateTime(b.SubmittedAt)}");
+                }
+            }
             else if (order.Results.Count > 0)
             {
                 lines.Add("  FINAL RESULT:");
@@ -615,5 +710,23 @@ public class SampleSummaryService
         if (loc.MachinePartConfiguration?.MachinePart != null)
             return loc.MachinePartConfiguration.MachinePart.Name ?? "—";
         return $"Location {loc.Id}";
+    }
+
+    private static string? FormatSpecificationText(Specification? spec)
+    {
+        if (spec is null || string.IsNullOrWhiteSpace(spec.SpecLimit))
+            return null;
+
+        var raw = spec.SpecLimit.Trim();
+        if (decimal.TryParse(raw, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out _))
+        {
+            if (!string.IsNullOrWhiteSpace(spec.Unit))
+            {
+                return $"NMT {raw}/{spec.Unit.Trim()}";
+            }
+            return raw;
+        }
+
+        return raw;
     }
 }

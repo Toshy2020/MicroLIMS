@@ -20,7 +20,7 @@ export const DotIcon = () => (
   </svg>
 );
 
-export const PrinterIcon = () => (
+const PrinterIcon = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
     <polyline points="6 9 6 2 18 2 18 9" />
     <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />
@@ -42,7 +42,7 @@ export const humanize = (v: string | null | undefined): string => {
 
 // 11.50(b) requires the *meaning* of a signature, not just its type -
 // the enum name alone ("Reviewed") does not state what was attested to.
-export const MEANING_TEXT: Record<string, string> = {
+const MEANING_TEXT: Record<string, string> = {
   Reviewed: "I have reviewed the test data and confirm it is complete and accurate.",
   Approved: "I approve the release of this record for its intended use.",
   Rejected: "I reject this record; it does not conform to specification.",
@@ -55,9 +55,6 @@ export const dt = (v: string | null | undefined) =>
 
 export const d = (v: string | null | undefined) =>
   v ? new Date(v).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }) : "—";
-
-export const hhmm = (v: string | null | undefined) =>
-  v ? new Date(v).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }) : "";
 
 export interface SignatureLike {
   printedName: string;

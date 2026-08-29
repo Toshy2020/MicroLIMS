@@ -1,7 +1,7 @@
 import { Paper, Box, Typography, Stack, Button, useTheme } from "@mui/material";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
-import { useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { MyTask } from "../types/dashboard";
 import { StatusBadge } from "../../../components/StatusBadge";
 import { SectionTitle } from "../../../components/SectionTitle";
@@ -14,6 +14,18 @@ const urgencyLabel: Record<MyTask["urgency"], (task: MyTask) => string> = {
   DueTomorrow: () => "Due tomorrow"
 };
 
+function getTaskRoute(task: MyTask): string {
+  if (task.mediaId) {
+    return "/laboratory-configuration/media";
+  } else if (task.sampleId && task.testOrderId) {
+    return `/testing-workspace?sampleId=${task.sampleId}&testOrderId=${task.testOrderId}`;
+  } else if (task.sampleId) {
+    return `/testing-workspace?sampleId=${task.sampleId}`;
+  } else {
+    return "/testing-workspace?scope=mine";
+  }
+}
+
 interface ActionRequiredPanelProps {
   tasks: MyTask[] | null;
   loading?: boolean;
@@ -21,19 +33,6 @@ interface ActionRequiredPanelProps {
 
 export function ActionRequiredPanel({ tasks, loading }: ActionRequiredPanelProps) {
   const theme = useTheme();
-  const navigate = useNavigate();
-
-  const handleActionClick = (task: MyTask) => {
-    if (task.mediaId) {
-      navigate("/laboratory-configuration/media");
-    } else if (task.sampleId && task.testOrderId) {
-      navigate(`/testing-workspace?sampleId=${task.sampleId}&testOrderId=${task.testOrderId}`);
-    } else if (task.sampleId) {
-      navigate(`/testing-workspace?sampleId=${task.sampleId}`);
-    } else {
-      navigate("/testing-workspace?scope=mine");
-    }
-  };
 
   return (
     <Paper sx={{ p: 2.5, mb: 2 }}>
@@ -41,7 +40,7 @@ export function ActionRequiredPanel({ tasks, loading }: ActionRequiredPanelProps
         tabs={[
           {
             label: "Open Testing Workspace",
-            onClick: () => navigate("/testing-workspace")
+            to: "/testing-workspace"
           }
         ]}
       >
@@ -77,6 +76,7 @@ export function ActionRequiredPanel({ tasks, loading }: ActionRequiredPanelProps
                     {t.title}
                   </Typography>
                   <StatusBadge status={t.urgency} label={urgencyLabel[t.urgency](t)} />
+                  {t.isReturned && <StatusBadge status="Returned" label="Returned" />}
                 </Box>
                 <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
                   {t.subtitle}
@@ -85,10 +85,11 @@ export function ActionRequiredPanel({ tasks, loading }: ActionRequiredPanelProps
 
               <Box sx={{ flexShrink: 0 }}>
                 <Button
+                  component={Link}
+                  to={getTaskRoute(t)}
                   size="small"
                   variant="contained"
                   endIcon={<ArrowForwardIcon sx={{ fontSize: 16 }} />}
-                  onClick={() => handleActionClick(t)}
                   sx={{
                     textTransform: "none",
                     fontWeight: 600,
@@ -97,7 +98,7 @@ export function ActionRequiredPanel({ tasks, loading }: ActionRequiredPanelProps
                     px: 2
                   }}
                 >
-                  {t.mediaId ? "Read GPT" : "Enter Result"}
+                  {t.mediaId ? "Read GPT" : t.isReturned ? "Revise Result" : "Enter Result"}
                 </Button>
               </Box>
             </Box>

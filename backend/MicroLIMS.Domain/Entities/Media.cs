@@ -12,8 +12,6 @@ namespace MicroLIMS.Domain.Entities;
 public class Media
 {
     public int Id { get; set; }
-    public int MediaTypeId { get; set; }
-    public MediaType? MediaType { get; set; }
 
     // The dehydrated media Material consumed to prepare this lot -
     // ManufacturerLot/ManufacturerName below are copied from it at

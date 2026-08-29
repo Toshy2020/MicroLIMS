@@ -23,7 +23,7 @@ import UndoOutlinedIcon from "@mui/icons-material/UndoOutlined";
 import ArrowForwardOutlinedIcon from "@mui/icons-material/ArrowForwardOutlined";
 import ScienceOutlinedIcon from "@mui/icons-material/ScienceOutlined";
 import HistoryOutlinedIcon from "@mui/icons-material/HistoryOutlined";
-import { useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
 import { PageHeader } from "../../components/PageHeader";
 import { LoadingSpinner } from "../../components/LoadingSpinner";
@@ -42,7 +42,6 @@ function formatAge(minutes: number): string {
 
 export function ReviewerDashboardPage() {
   const theme = useTheme();
-  const navigate = useNavigate();
   const { username, fullName } = useAuth();
   const displayName = fullName ?? username ?? "Reviewer";
 
@@ -63,10 +62,6 @@ export function ReviewerDashboardPage() {
 
   if (loading || !data) return <LoadingSpinner />;
 
-  const handleOpenReview = (item: ReviewerQueueItem) => {
-    navigate(`/testing-workspace?sampleId=${item.sampleId}&testOrderId=${item.testOrderId}`);
-  };
-
   return (
     <>
       <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", mb: 2, flexWrap: "wrap", gap: 1.5 }}>
@@ -75,9 +70,10 @@ export function ReviewerDashboardPage() {
           subtitle="What results are waiting for your scientific review today?"
         />
         <Button
+          component={Link}
+          to="/testing-workspace"
           variant="contained"
           startIcon={<ScienceOutlinedIcon />}
-          onClick={() => navigate("/testing-workspace")}
           sx={{ textTransform: "none", fontWeight: 600, borderRadius: 2 }}
         >
           Open Testing Workspace
@@ -88,10 +84,14 @@ export function ReviewerDashboardPage() {
       <Grid container spacing={2} sx={{ mb: 2.5 }}>
         <Grid item xs={12} sm={6} md={2.4}>
           <Paper
-            onClick={() => navigate("/testing-workspace?testStatus=ResultEntered")}
+            component={Link}
+            to="/testing-workspace?testStatus=ResultEntered"
             sx={{
               p: 2,
               cursor: "pointer",
+              display: "block",
+              textDecoration: "none",
+              color: "inherit",
               borderLeft: `4px solid ${theme.palette.primary.main}`,
               transition: "transform 0.15s, box-shadow 0.15s",
               "&:hover": { transform: "translateY(-2px)", boxShadow: 3 }
@@ -114,10 +114,14 @@ export function ReviewerDashboardPage() {
 
         <Grid item xs={12} sm={6} md={2.4}>
           <Paper
-            onClick={() => navigate("/testing-workspace?testStatus=ResultEntered&urgency=overdue")}
+            component={Link}
+            to="/testing-workspace?testStatus=ResultEntered&urgency=overdue"
             sx={{
               p: 2,
               cursor: "pointer",
+              display: "block",
+              textDecoration: "none",
+              color: "inherit",
               borderLeft: `4px solid ${brandColors.err}`,
               transition: "transform 0.15s, box-shadow 0.15s",
               "&:hover": { transform: "translateY(-2px)", boxShadow: 3 }
@@ -140,10 +144,14 @@ export function ReviewerDashboardPage() {
 
         <Grid item xs={12} sm={6} md={2.4}>
           <Paper
-            onClick={() => navigate("/testing-workspace?testStatus=ResultEntered")}
+            component={Link}
+            to="/testing-workspace?testStatus=ResultEntered"
             sx={{
               p: 2,
               cursor: "pointer",
+              display: "block",
+              textDecoration: "none",
+              color: "inherit",
               borderLeft: `4px solid ${brandColors.warn}`,
               transition: "transform 0.15s, box-shadow 0.15s",
               "&:hover": { transform: "translateY(-2px)", boxShadow: 3 }
@@ -166,10 +174,14 @@ export function ReviewerDashboardPage() {
 
         <Grid item xs={12} sm={6} md={2.4}>
           <Paper
-            onClick={() => navigate("/testing-workspace?testStatus=RetestRequested")}
+            component={Link}
+            to="/testing-workspace?testStatus=RetestRequested"
             sx={{
               p: 2,
               cursor: "pointer",
+              display: "block",
+              textDecoration: "none",
+              color: "inherit",
               borderLeft: `4px solid ${brandColors.info}`,
               transition: "transform 0.15s, box-shadow 0.15s",
               "&:hover": { transform: "translateY(-2px)", boxShadow: 3 }
@@ -250,11 +262,12 @@ export function ReviewerDashboardPage() {
                     </Typography>
                   </Box>
                   <Button
+                    component={Link}
+                    to={`/testing-workspace?sampleId=${item.sampleId}&testOrderId=${item.testOrderId}`}
                     variant="outlined"
                     color="error"
                     size="small"
                     endIcon={<ArrowForwardOutlinedIcon />}
-                    onClick={() => navigate(`/testing-workspace?sampleId=${item.sampleId}&testOrderId=${item.testOrderId}`)}
                     sx={{ textTransform: "none", fontSize: 12, fontWeight: 600, flexShrink: 0 }}
                   >
                     Review Now
@@ -280,9 +293,10 @@ export function ReviewerDashboardPage() {
                 </Typography>
               </Box>
               <Button
+                component={Link}
+                to="/testing-workspace?testStatus=ResultEntered"
                 variant="text"
                 size="small"
-                onClick={() => navigate("/testing-workspace?testStatus=ResultEntered")}
                 sx={{ textTransform: "none", fontWeight: 600 }}
               >
                 View Full Workspace →
@@ -317,11 +331,21 @@ export function ReviewerDashboardPage() {
                       <TableRow
                         key={row.testOrderId}
                         hover
-                        sx={{ cursor: "pointer" }}
-                        onClick={() => handleOpenReview(row)}
                       >
                         <TableCell sx={{ fontSize: 12, fontWeight: 700 }}>
-                          {row.referenceNumber}
+                          <Typography
+                            component={Link}
+                            to={`/testing-workspace?sampleId=${row.sampleId}&testOrderId=${row.testOrderId}`}
+                            sx={{
+                              fontSize: 12,
+                              fontWeight: 700,
+                              color: "text.primary",
+                              textDecoration: "none",
+                              "&:hover": { color: "primary.main", textDecoration: "underline" }
+                            }}
+                          >
+                            {row.referenceNumber}
+                          </Typography>
                         </TableCell>
                         <TableCell sx={{ fontSize: 12 }}>
                           {row.subjectName}
@@ -396,13 +420,11 @@ export function ReviewerDashboardPage() {
                         </TableCell>
                         <TableCell sx={{ textAlign: "right" }}>
                           <Button
+                            component={Link}
+                            to={`/testing-workspace?sampleId=${row.sampleId}&testOrderId=${row.testOrderId}`}
                             variant="contained"
                             size="small"
                             startIcon={<RateReviewOutlinedIcon />}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleOpenReview(row);
-                            }}
                             sx={{ textTransform: "none", fontSize: 11, fontWeight: 700, py: 0.3 }}
                           >
                             Review
@@ -439,13 +461,17 @@ export function ReviewerDashboardPage() {
                 {data.recentlyReviewed.map((rec, idx) => (
                   <Paper
                     key={idx}
+                    component={Link}
+                    to={`/testing-workspace?sampleId=${rec.sampleId}&testOrderId=${rec.testOrderId}`}
                     variant="outlined"
                     sx={{
                       p: 1.5,
                       cursor: "pointer",
+                      display: "block",
+                      textDecoration: "none",
+                      color: "inherit",
                       "&:hover": { bgcolor: "action.hover" }
                     }}
-                    onClick={() => navigate(`/testing-workspace?sampleId=${rec.sampleId}&testOrderId=${rec.testOrderId}`)}
                   >
                     <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
                       <Box>

@@ -48,11 +48,11 @@ export interface CountdownTokens {
 export const countdownTokensByMode: Record<"light" | "dark", CountdownTokens> = {
   light: {
     active: { bg: "#EAF0FB", text: "#2E5AAC" },
-    locked: { bg: "#F1F2F4", text: "#8A93A0" }
+    locked: { bg: "#F1F2F4", text: "#606A78" }
   },
   dark: {
     active: { bg: "#22344F", text: "#8AB0F0" },
-    locked: { bg: "#262C35", text: "#6B7480" }
+    locked: { bg: "#262C35", text: "#949DA9" }
   }
 };
 
@@ -76,9 +76,11 @@ const STATUS_TONE: Record<string, StatusTone> = {
   InService: "notDetected", OutOfService: "action", Retired: "pending",
   WithinLimits: "notDetected", AlertLimitExceeded: "inconclusive", ActionLimitExceeded: "action", OutOfSpecification: "detected",
   WithinLimit: "notDetected", AlertLevel: "inconclusive", ActionLevel: "action", NotApplicable: "pending",
+  LimitsNotConfigured: "inconclusive", "Limits Not Configured": "inconclusive",
   Detected: "detected", Absent: "notDetected",
   DueSoon: "action", DueToday: "action", DueTomorrow: "notDetected",
-  Passed: "notDetected", Failed: "detected", Pending: "pending"
+  Passed: "notDetected", Failed: "detected", Pending: "pending",
+  Returned: "action"
 };
 
 export function statusTone(status: string): StatusTone {

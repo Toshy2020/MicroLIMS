@@ -15,6 +15,7 @@ export interface MediaChallengeSummary {
   oldMediaCount: number | null;
   newMediaCount: number | null;
   recoveryPercent: number | null;
+  referenceMediaLabel: string | null;
   growthObserved: boolean | null;
   observedDescription: string | null;
   expectedDescription: string | null;

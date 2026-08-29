@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import {
   Box, Typography, Avatar, IconButton, Badge, Menu, MenuItem, Divider,
   ListItemIcon, ListItemText, Tooltip, Switch, useTheme, useMediaQuery
@@ -32,7 +32,8 @@ const NOTIFICATION_ROUTES: Record<string, string> = {
   MediaExpiry: "/laboratory-configuration/media",
   IncubationReady: "/testing-workspace",
   ApprovalWaiting: "/testing-workspace",
-  ReviewWaiting: "/testing-workspace"
+  ReviewWaiting: "/testing-workspace",
+  TestReturnedForRevision: "/receiving-testing"
 };
 
 const POLL_INTERVAL_MS = 60_000;
@@ -159,16 +160,24 @@ export function Header({ onToggleSidebar, sidebarCollapsed }: HeaderProps) {
               <ListItemText primary="Nothing pending." />
             </MenuItem>
           )}
-          {notifications.map((n, i) => (
-            <MenuItem key={n.id ?? i} onClick={() => handleNotificationClick(n)} sx={{ whiteSpace: "normal", alignItems: "flex-start" }}>
-              <ListItemText
-                primary={n.message}
-                secondary={new Date(n.timestamp).toLocaleString()}
-                primaryTypographyProps={{ fontWeight: n.isRead ? 400 : 700, fontSize: 13 }}
-                secondaryTypographyProps={{ fontSize: 11 }}
-              />
-            </MenuItem>
-          ))}
+          {notifications.map((n, i) => {
+            const target = NOTIFICATION_ROUTES[n.type];
+            return (
+              <MenuItem
+                key={n.id ?? i}
+                {...(target ? { component: Link, to: target } : {})}
+                onClick={() => handleNotificationClick(n)}
+                sx={{ whiteSpace: "normal", alignItems: "flex-start" }}
+              >
+                <ListItemText
+                  primary={n.message}
+                  secondary={new Date(n.timestamp).toLocaleString()}
+                  primaryTypographyProps={{ fontWeight: n.isRead ? 400 : 700, fontSize: 13 }}
+                  secondaryTypographyProps={{ fontSize: 11 }}
+                />
+              </MenuItem>
+            );
+          })}
         </Menu>
 
         <Box
@@ -203,11 +212,11 @@ export function Header({ onToggleSidebar, sidebarCollapsed }: HeaderProps) {
             <Typography sx={{ fontSize: 11, color: "text.disabled" }}>Role: {role}</Typography>
           </Box>
           <Divider />
-          <MenuItem onClick={() => { setAccountAnchor(null); navigate("/profile"); }}>
+          <MenuItem component={Link} to="/profile" onClick={() => setAccountAnchor(null)}>
             <ListItemIcon><PersonIcon fontSize="small" /></ListItemIcon>
             <ListItemText primary="My Profile" />
           </MenuItem>
-          <MenuItem onClick={() => { setAccountAnchor(null); navigate("/change-password"); }}>
+          <MenuItem component={Link} to="/change-password" onClick={() => setAccountAnchor(null)}>
             <ListItemIcon><LockResetIcon fontSize="small" /></ListItemIcon>
             <ListItemText primary="Change Password" />
           </MenuItem>

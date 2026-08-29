@@ -23,10 +23,6 @@ public class BiochemicalPredecessorTests
     // step - mirrors the reconfigured Burkholderia cepacia complex template.
     private static async Task<(TestOrder order, int brothLotId, int platingLotId, Equipment incubator)> SeedNoConfirmatoryOrderAsync(MicroLimsDbContext db)
     {
-        var generalBroth = new MediaType { Class = MediaClass.GeneralBroth, IncubationMinHours = 18, IncubationMaxHours = 24, RequiredTemperatureMin = 35, RequiredTemperatureMax = 37 };
-        var selectiveAgar = new MediaType { Class = MediaClass.SelectiveAgar, IncubationMinHours = 18, IncubationMaxHours = 24, RequiredTemperatureMin = 35, RequiredTemperatureMax = 37 };
-        db.MediaTypes.AddRange(generalBroth, selectiveAgar);
-
         var organism = new Organism { ScientificName = "Burkholderia cepacia complex" };
         db.Organisms.Add(organism);
 
@@ -39,8 +35,8 @@ public class BiochemicalPredecessorTests
 
         var steps = new[]
         {
-            new TestWorkflowStep { TestDefinitionId = test.Id, StepOrder = 1, StepName = "Broth Enrichment", MediaTypeId = generalBroth.Id, IncubationMinHours = 18, IncubationMaxHours = 24, TemperatureMin = 35, TemperatureMax = 37, StepType = StepType.BrothEnrichment },
-            new TestWorkflowStep { TestDefinitionId = test.Id, StepOrder = 2, StepName = "BUR", MediaTypeId = selectiveAgar.Id, IncubationMinHours = 18, IncubationMaxHours = 24, TemperatureMin = 35, TemperatureMax = 37, StepType = StepType.SelectivePlating, TargetOrganismId = organism.Id },
+            new TestWorkflowStep { TestDefinitionId = test.Id, StepOrder = 1, StepName = "Broth Enrichment", IncubationMinHours = 18, IncubationMaxHours = 24, TemperatureMin = 35, TemperatureMax = 37, StepType = StepType.BrothEnrichment },
+            new TestWorkflowStep { TestDefinitionId = test.Id, StepOrder = 2, StepName = "BUR", IncubationMinHours = 18, IncubationMaxHours = 24, TemperatureMin = 35, TemperatureMax = 37, StepType = StepType.SelectivePlating, TargetOrganismId = organism.Id },
             new TestWorkflowStep { TestDefinitionId = test.Id, StepOrder = 3, StepName = "Oxidase", IncubationMinHours = 0, IncubationMaxHours = 0, TemperatureMin = 0, TemperatureMax = 0, StepType = StepType.BiochemicalTest, PhenotypicTestType = PhenotypicTestType.Oxidase },
             new TestWorkflowStep { TestDefinitionId = test.Id, StepOrder = 4, StepName = "Identification Kit", IncubationMinHours = 0, IncubationMaxHours = 0, TemperatureMin = 0, TemperatureMax = 0, IsFinalStep = true, StepType = StepType.BiochemicalTest, PhenotypicTestType = PhenotypicTestType.IdentificationKit }
         };
@@ -52,8 +48,8 @@ public class BiochemicalPredecessorTests
         db.Materials.AddRange(brothMaterial, platingMaterial);
         await db.SaveChangesAsync();
 
-        var brothLot = new Media { MediaTypeId = generalBroth.Id, MaterialId = brothMaterial.Id, LotNumber = "TSB/1/26", IsReleasedForUse = true, Status = MediaStatus.Active, ExpiryDate = DateTime.UtcNow.AddDays(30) };
-        var platingLot = new Media { MediaTypeId = selectiveAgar.Id, MaterialId = platingMaterial.Id, LotNumber = "BUR/1/26", IsReleasedForUse = true, Status = MediaStatus.Active, ExpiryDate = DateTime.UtcNow.AddDays(30) };
+        var brothLot = new Media { MaterialId = brothMaterial.Id, LotNumber = "TSB/1/26", IsReleasedForUse = true, Status = MediaStatus.Active, ExpiryDate = DateTime.UtcNow.AddDays(30) };
+        var platingLot = new Media { MaterialId = platingMaterial.Id, LotNumber = "BUR/1/26", IsReleasedForUse = true, Status = MediaStatus.Active, ExpiryDate = DateTime.UtcNow.AddDays(30) };
         db.Media.AddRange(brothLot, platingLot);
         await db.SaveChangesAsync();
 
@@ -83,7 +79,7 @@ public class BiochemicalPredecessorTests
         await engine.SubmitBrothAsync(order.Id, "Broth Enrichment", brothLotId, incubator.Id, start, end, null, AnalystId);
         await engine.SubmitSelectivePlatingAsync(order.Id, "BUR", platingLotId, incubator.Id, start, end, GrowthObservation.GrowthConforming, AnalystId);
 
-        var result = await engine.SubmitBiochemicalAsync(order.Id, "Oxidase", "Oxidase positive.", null, AnalystId);
+        var result = await engine.SubmitBiochemicalAsync(order.Id, "Oxidase", "Oxidase positive.", null, true, AnalystId);
 
         Assert.Null(result.WorkflowFinalResult);
         Assert.True(result.NextStepUnlocked);
@@ -106,9 +102,9 @@ public class BiochemicalPredecessorTests
 
         await engine.SubmitBrothAsync(order.Id, "Broth Enrichment", brothLotId, incubator.Id, start, end, null, AnalystId);
         await engine.SubmitSelectivePlatingAsync(order.Id, "BUR", platingLotId, incubator.Id, start, end, GrowthObservation.GrowthConforming, AnalystId);
-        await engine.SubmitBiochemicalAsync(order.Id, "Oxidase", "Oxidase positive.", null, AnalystId);
+        await engine.SubmitBiochemicalAsync(order.Id, "Oxidase", "Oxidase positive.", null, true, AnalystId);
 
-        var result = await engine.SubmitBiochemicalAsync(order.Id, "Identification Kit", "Confirmed B. cepacia complex.", null, AnalystId);
+        var result = await engine.SubmitBiochemicalAsync(order.Id, "Identification Kit", "Confirmed B. cepacia complex.", null, true, AnalystId);
 
         Assert.Equal("Detected", result.WorkflowFinalResult);
         Assert.False(result.NextStepUnlocked);
@@ -135,7 +131,7 @@ public class BiochemicalPredecessorTests
         // there is no scenario where a non-conforming plate leaves the
         // biochemical step reachable.
         await Assert.ThrowsAsync<InvalidOperationException>(
-            () => engine.SubmitBiochemicalAsync(order.Id, "Oxidase", "Oxidase positive.", null, AnalystId));
+            () => engine.SubmitBiochemicalAsync(order.Id, "Oxidase", "Oxidase positive.", null, true, AnalystId));
     }
 
     [Fact]
@@ -162,7 +158,7 @@ public class BiochemicalPredecessorTests
         var engine = TestServiceFactory.TestWorkflow(db);
 
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(
-            () => engine.SubmitBiochemicalAsync(order.Id, "Gram Stain", "Gram negative.", null, AnalystId));
+            () => engine.SubmitBiochemicalAsync(order.Id, "Gram Stain", "Gram negative.", null, true, AnalystId));
         Assert.Contains("no preceding selective or confirmatory plating step", ex.Message);
     }
 }

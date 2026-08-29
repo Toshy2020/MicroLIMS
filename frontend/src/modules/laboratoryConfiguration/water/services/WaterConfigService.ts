@@ -22,9 +22,9 @@ export const WaterConfigService = {
 
   getSamplingConfigurations: (pointId: number) =>
     apiClient.get("/masterdata/water-sampling-configurations", { params: { pointId } }).then((r) => r.data.data),
-  createSamplingConfiguration: (waterSamplingPointId: number, testCode: string, alertLimit: string, actionLimit: string, specLimit: string) =>
-    apiClient.post("/masterdata/water-sampling-configurations", { waterSamplingPointId, testCode, alertLimit, actionLimit, specLimit }).then((r) => r.data.data),
-  updateSamplingConfiguration: (id: number, testCode: string, alertLimit: string, actionLimit: string, specLimit: string) =>
-    apiClient.put(`/masterdata/water-sampling-configurations/${id}`, { testCode, alertLimit, actionLimit, specLimit }).then((r) => r.data.data),
+  createSamplingConfiguration: (waterSamplingPointId: number, testCode: string, alertLimit: string, actionLimit: string, specLimit: string, unit?: string) =>
+    apiClient.post("/masterdata/water-sampling-configurations", { waterSamplingPointId, testCode, alertLimit, actionLimit, specLimit, unit }).then((r) => r.data.data),
+  updateSamplingConfiguration: (id: number, testCode: string, alertLimit: string, actionLimit: string, specLimit: string, unit?: string) =>
+    apiClient.put(`/masterdata/water-sampling-configurations/${id}`, { testCode, alertLimit, actionLimit, specLimit, unit }).then((r) => r.data.data),
   deleteSamplingConfiguration: (id: number) => apiClient.delete(`/masterdata/water-sampling-configurations/${id}`)
 };

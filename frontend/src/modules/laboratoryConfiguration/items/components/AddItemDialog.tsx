@@ -1,9 +1,5 @@
 import { useState, useEffect } from "react";
 import {
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
   Button,
   TextField,
   Select,
@@ -15,6 +11,7 @@ import {
 } from "@mui/material";
 import { TestCodePickerMulti } from "../../../../components/TestCodePickerMulti";
 import { Item } from "../services/ItemService";
+import { FloatingDialog } from "../../../../components/FloatingDialog";
 
 interface AddItemDialogProps {
   open: boolean;
@@ -86,11 +83,23 @@ export function AddItemDialog({ open, itemToEdit, onClose, onSave }: AddItemDial
   };
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-      <DialogTitle sx={{ fontWeight: 700, fontSize: 16 }}>
-        {itemToEdit ? `Edit Item: ${itemToEdit.name}` : "Add New Item"}
-      </DialogTitle>
-      <DialogContent dividers>
+    <FloatingDialog
+      open={open}
+      onClose={onClose}
+      maxWidth="sm"
+      titleSx={{ fontWeight: 700, fontSize: 16 }}
+      title={itemToEdit ? `Edit Item: ${itemToEdit.name}` : "Add New Item"}
+      actions={
+        <>
+          <Button onClick={onClose} disabled={saving} color="inherit">
+            Cancel
+          </Button>
+          <Button variant="contained" onClick={handleSubmit} disabled={saving}>
+            {saving ? "Saving..." : itemToEdit ? "Save Changes" : "Save Item"}
+          </Button>
+        </>
+      }
+    >
         <Stack spacing={2} sx={{ mt: 0.5 }}>
           {error && <Alert severity="error">{error}</Alert>}
 
@@ -141,15 +150,6 @@ export function AddItemDialog({ open, itemToEdit, onClose, onSave }: AddItemDial
             <TestCodePickerMulti value={testCodes} onChange={setTestCodes} label="Assigned Tests" />
           </Box>
         </Stack>
-      </DialogContent>
-      <DialogActions sx={{ px: 3, py: 1.5 }}>
-        <Button onClick={onClose} disabled={saving} color="inherit">
-          Cancel
-        </Button>
-        <Button variant="contained" onClick={handleSubmit} disabled={saving}>
-          {saving ? "Saving..." : itemToEdit ? "Save Changes" : "Save Item"}
-        </Button>
-      </DialogActions>
-    </Dialog>
+    </FloatingDialog>
   );
 }

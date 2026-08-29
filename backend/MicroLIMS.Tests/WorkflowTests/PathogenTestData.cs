@@ -23,10 +23,6 @@ public static class PathogenTestData
 
     public static async Task<(TestOrder order, SeededMedia media, Equipment incubator)> SeedFiveStageOrderAsync(MicroLimsDbContext db)
     {
-        var generalBroth = await AddMediaTypeAsync(db, MediaClass.GeneralBroth, 35, 37);
-        var selectiveBrothType = await AddMediaTypeAsync(db, MediaClass.SelectiveBroth, 41, 43);
-        var selectiveAgar = await AddMediaTypeAsync(db, MediaClass.SelectiveAgar, 35, 37);
-
         var organism = new Organism { ScientificName = "Salmonella enterica" };
         db.Organisms.Add(organism);
 
@@ -43,31 +39,44 @@ public static class PathogenTestData
 
         var steps = new[]
         {
-            new TestWorkflowStep { TestDefinitionId = test.Id, StepOrder = 1, StepName = "Broth Enrichment", MediaTypeId = generalBroth.Id, IncubationMinHours = 18, IncubationMaxHours = 24, TemperatureMin = 35, TemperatureMax = 37, StepType = StepType.BrothEnrichment },
-            new TestWorkflowStep { TestDefinitionId = test.Id, StepOrder = 2, StepName = "Selective Broth", MediaTypeId = selectiveBrothType.Id, IncubationMinHours = 18, IncubationMaxHours = 24, TemperatureMin = 41, TemperatureMax = 43, StepType = StepType.SelectiveBroth },
-            new TestWorkflowStep { TestDefinitionId = test.Id, StepOrder = 3, StepName = "Selective Plating", MediaTypeId = selectiveAgar.Id, IncubationMinHours = 18, IncubationMaxHours = 24, TemperatureMin = 35, TemperatureMax = 37, StepType = StepType.SelectivePlating, TargetOrganismId = organism.Id },
-            new TestWorkflowStep { TestDefinitionId = test.Id, StepOrder = 4, StepName = "Confirmatory Plating", MediaTypeId = selectiveAgar.Id, IncubationMinHours = 18, IncubationMaxHours = 24, TemperatureMin = 35, TemperatureMax = 37, StepType = StepType.ConfirmatoryPlating, TargetOrganismId = organism.Id },
-            new TestWorkflowStep { TestDefinitionId = test.Id, StepOrder = 5, StepName = "Biochemical Test", MediaTypeId = selectiveAgar.Id, IncubationMinHours = 0, IncubationMaxHours = 0, TemperatureMin = 35, TemperatureMax = 37, IsFinalStep = true, StepType = StepType.BiochemicalTest }
+            new TestWorkflowStep { TestDefinitionId = test.Id, StepOrder = 1, StepName = "Broth Enrichment", IncubationMinHours = 18, IncubationMaxHours = 24, TemperatureMin = 35, TemperatureMax = 37, StepType = StepType.BrothEnrichment },
+            new TestWorkflowStep { TestDefinitionId = test.Id, StepOrder = 2, StepName = "Selective Broth", IncubationMinHours = 18, IncubationMaxHours = 24, TemperatureMin = 41, TemperatureMax = 43, StepType = StepType.SelectiveBroth },
+            new TestWorkflowStep { TestDefinitionId = test.Id, StepOrder = 3, StepName = "Selective Plating", IncubationMinHours = 18, IncubationMaxHours = 24, TemperatureMin = 35, TemperatureMax = 37, StepType = StepType.SelectivePlating, TargetOrganismId = organism.Id },
+            new TestWorkflowStep { TestDefinitionId = test.Id, StepOrder = 4, StepName = "Confirmatory Plating", IncubationMinHours = 18, IncubationMaxHours = 24, TemperatureMin = 35, TemperatureMax = 37, StepType = StepType.ConfirmatoryPlating, TargetOrganismId = organism.Id },
+            new TestWorkflowStep { TestDefinitionId = test.Id, StepOrder = 5, StepName = "Biochemical Test", IncubationMinHours = 0, IncubationMaxHours = 0, TemperatureMin = 35, TemperatureMax = 37, IsFinalStep = true, StepType = StepType.BiochemicalTest }
         };
         db.TestWorkflowSteps.AddRange(steps);
         await db.SaveChangesAsync();
 
-        var (brothMaterial, brothLot) = await AddMediumAsync(db, generalBroth, "Tryptone Soya Broth", "TSB/1/26");
-        var (selBrothMaterial, selBrothLot) = await AddMediumAsync(db, selectiveBrothType, "Rappaport Vassiliadis Broth", "RVS/1/26");
-        var (platingMaterial, platingLot) = await AddMediumAsync(db, selectiveAgar, "XLD Agar", "XLD/1/26");
-        var (tsiMaterial, tsiLot) = await AddMediumAsync(db, selectiveAgar, "TSI Agar", "TSI/1/26");
+        var (brothMaterial, brothLot) = await AddMediumAsync(db, "Tryptone Soya Broth", "TSB/1/26");
+        var (selBrothMaterial, selBrothLot) = await AddMediumAsync(db, "Rappaport Vassiliadis Broth", "RVS/1/26");
+        var (platingMaterial, platingLot) = await AddMediumAsync(db, "XLD Agar", "XLD/1/26");
+        var (tsiMaterial, tsiLot) = await AddMediumAsync(db, "TSI Agar", "TSI/1/26");
 
+        // IncubationMinHours/MaxHours mirror each parent step's own 18-24h
+        // window - these are now the operative source at execution time
+        // (see TestWorkflowEngine.cs), not the step-level fields above.
         db.TestWorkflowStepMedias.AddRange(
-            new TestWorkflowStepMedia { TestWorkflowStepId = steps[0].Id, MaterialId = brothMaterial.Id, TempMin = 35, TempMax = 37, IsRequired = true, DisplayOrder = 1 },
-            new TestWorkflowStepMedia { TestWorkflowStepId = steps[1].Id, MaterialId = selBrothMaterial.Id, TempMin = 41, TempMax = 43, IsRequired = true, DisplayOrder = 1 },
-            new TestWorkflowStepMedia { TestWorkflowStepId = steps[2].Id, MaterialId = platingMaterial.Id, TempMin = 35, TempMax = 37, IsRequired = true, DisplayOrder = 1 });
-        var xldStepMedia = new TestWorkflowStepMedia { TestWorkflowStepId = steps[3].Id, MaterialId = platingMaterial.Id, TempMin = 35, TempMax = 37, IsRequired = false, DisplayOrder = 1 };
-        var tsiStepMedia = new TestWorkflowStepMedia { TestWorkflowStepId = steps[3].Id, MaterialId = tsiMaterial.Id, TempMin = 35, TempMax = 37, IsRequired = false, DisplayOrder = 2 };
+            new TestWorkflowStepMedia { TestWorkflowStepId = steps[0].Id, MaterialId = brothMaterial.Id, TempMin = 35, TempMax = 37, IncubationMinHours = 18, IncubationMaxHours = 24, IsRequired = true, DisplayOrder = 1 },
+            new TestWorkflowStepMedia { TestWorkflowStepId = steps[1].Id, MaterialId = selBrothMaterial.Id, TempMin = 41, TempMax = 43, IncubationMinHours = 18, IncubationMaxHours = 24, IsRequired = true, DisplayOrder = 1 },
+            new TestWorkflowStepMedia { TestWorkflowStepId = steps[2].Id, MaterialId = platingMaterial.Id, TempMin = 35, TempMax = 37, IncubationMinHours = 18, IncubationMaxHours = 24, IsRequired = true, DisplayOrder = 1 });
+        var xldStepMedia = new TestWorkflowStepMedia { TestWorkflowStepId = steps[3].Id, MaterialId = platingMaterial.Id, TempMin = 35, TempMax = 37, IncubationMinHours = 18, IncubationMaxHours = 24, IsRequired = false, DisplayOrder = 1 };
+        var tsiStepMedia = new TestWorkflowStepMedia { TestWorkflowStepId = steps[3].Id, MaterialId = tsiMaterial.Id, TempMin = 35, TempMax = 37, IncubationMinHours = 18, IncubationMaxHours = 24, IsRequired = false, DisplayOrder = 2 };
         db.TestWorkflowStepMedias.AddRange(xldStepMedia, tsiStepMedia);
 
-        db.MediaChallengeSpecs.AddRange(
-            new MediaChallengeSpec { MaterialName = "XLD Agar", EvaluationType = EvaluationType.GrowthPromotion, OrganismId = organism.Id, ExpectedDescription = "Red colonies with black centres" },
-            new MediaChallengeSpec { MaterialName = "TSI Agar", EvaluationType = EvaluationType.GrowthPromotion, OrganismId = organism.Id, ExpectedDescription = "Alkaline slant, acid butt, H2S positive" });
+        db.MediaConfigurations.AddRange(
+            new MediaConfiguration
+            {
+                Name = "XLD Agar", EvaluationType = EvaluationType.IndicationInhibition,
+                IncubationMinHours = 18, IncubationMaxHours = 24, TemperatureMin = 35, TemperatureMax = 37,
+                Challenges = new List<MediaConfigurationChallenge> { new() { OrganismId = organism.Id, ExpectedDescription = "Red colonies with black centres" } }
+            },
+            new MediaConfiguration
+            {
+                Name = "TSI Agar", EvaluationType = EvaluationType.IndicationInhibition,
+                IncubationMinHours = 18, IncubationMaxHours = 24, TemperatureMin = 35, TemperatureMax = 37,
+                Challenges = new List<MediaConfigurationChallenge> { new() { OrganismId = organism.Id, ExpectedDescription = "Alkaline slant, acid butt, H2S positive" } }
+            });
         await db.SaveChangesAsync();
 
         var sample = new Sample { Category = SampleCategory.FinishedProduct, ControlNumber = "CTRL-1", Status = SampleStatus.Received };
@@ -86,15 +95,7 @@ public static class PathogenTestData
         return (order, media, incubator);
     }
 
-    private static async Task<MediaType> AddMediaTypeAsync(MicroLimsDbContext db, MediaClass mediaClass, decimal tempMin, decimal tempMax)
-    {
-        var mediaType = new MediaType { Class = mediaClass, IncubationMinHours = 18, IncubationMaxHours = 24, RequiredTemperatureMin = tempMin, RequiredTemperatureMax = tempMax };
-        db.MediaTypes.Add(mediaType);
-        await db.SaveChangesAsync();
-        return mediaType;
-    }
-
-    private static async Task<(Material material, Media lot)> AddMediumAsync(MicroLimsDbContext db, MediaType mediaType, string materialName, string lotNumber)
+    private static async Task<(Material material, Media lot)> AddMediumAsync(MicroLimsDbContext db, string materialName, string lotNumber)
     {
         var material = new Material
         {
@@ -105,7 +106,7 @@ public static class PathogenTestData
         db.Materials.Add(material);
         await db.SaveChangesAsync();
 
-        var lot = new Media { MediaTypeId = mediaType.Id, MaterialId = material.Id, LotNumber = lotNumber, IsReleasedForUse = true, Status = MediaStatus.Active, ExpiryDate = DateTime.UtcNow.AddDays(30) };
+        var lot = new Media { MaterialId = material.Id, LotNumber = lotNumber, IsReleasedForUse = true, Status = MediaStatus.Active, ExpiryDate = DateTime.UtcNow.AddDays(30) };
         db.Media.Add(lot);
         await db.SaveChangesAsync();
         return (material, lot);

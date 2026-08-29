@@ -9,7 +9,7 @@ export interface FieldChange {
   newDisplay: string;
 }
 
-export function humanizeKey(key: string): string {
+function humanizeKey(key: string): string {
   if (FIELD_DISPLAY_NAMES[key]) return FIELD_DISPLAY_NAMES[key];
   // Insert spaces before capital letters: "SetPointTemperature" -> "Set Point Temperature"
   return key
@@ -18,7 +18,7 @@ export function humanizeKey(key: string): string {
     .trim();
 }
 
-export function formatAuditValue(val: any): string {
+function formatAuditValue(val: any): string {
   if (val === null || val === undefined) return "—";
   if (typeof val === "boolean") return val ? "Yes" : "No";
   if (typeof val === "number") return val.toString();

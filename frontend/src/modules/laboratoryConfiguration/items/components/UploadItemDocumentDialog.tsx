@@ -1,9 +1,5 @@
 import { useState, useEffect } from "react";
 import {
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
   Button,
   TextField,
   Select,
@@ -15,6 +11,7 @@ import {
 } from "@mui/material";
 import CloudUploadIcon from "@mui/icons-material/CloudUpload";
 import { ItemDocumentType, ItemDocumentService } from "../services/ItemDocumentService";
+import { FloatingDialog } from "../../../../components/FloatingDialog";
 
 interface UploadItemDocumentDialogProps {
   open: boolean;
@@ -73,9 +70,23 @@ export function UploadItemDocumentDialog({
   const docTypeName = docType === ItemDocumentType.Sop ? "SOP" : "Verification Report";
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="xs" fullWidth>
-      <DialogTitle sx={{ fontWeight: 700, fontSize: 15 }}>Upload Controlled {docTypeName}</DialogTitle>
-      <DialogContent dividers>
+    <FloatingDialog
+      open={open}
+      onClose={onClose}
+      maxWidth="xs"
+      titleSx={{ fontWeight: 700, fontSize: 15 }}
+      title={`Upload Controlled ${docTypeName}`}
+      actions={
+        <>
+          <Button onClick={onClose} disabled={uploading} color="inherit">
+            Cancel
+          </Button>
+          <Button variant="contained" onClick={handleUpload} disabled={uploading || !file}>
+            {uploading ? "Uploading..." : "Upload"}
+          </Button>
+        </>
+      }
+    >
         <Stack spacing={2} sx={{ mt: 0.5 }}>
           {error && <Alert severity="error">{error}</Alert>}
 
@@ -90,7 +101,7 @@ export function UploadItemDocumentDialog({
             <Select
               size="small"
               value={docType}
-              onChange={(e) => setDocType(Number(e.target.value) as ItemDocumentType)}
+              onChange={(e) => setDocType(e.target.value as ItemDocumentType)}
               fullWidth
             >
               <MenuItem value={ItemDocumentType.Sop}>SOP</MenuItem>
@@ -151,15 +162,6 @@ export function UploadItemDocumentDialog({
             </label>
           </Box>
         </Stack>
-      </DialogContent>
-      <DialogActions sx={{ px: 2.5, py: 1.5 }}>
-        <Button onClick={onClose} disabled={uploading} color="inherit">
-          Cancel
-        </Button>
-        <Button variant="contained" onClick={handleUpload} disabled={uploading || !file}>
-          {uploading ? "Uploading..." : "Upload"}
-        </Button>
-      </DialogActions>
-    </Dialog>
+    </FloatingDialog>
   );
 }

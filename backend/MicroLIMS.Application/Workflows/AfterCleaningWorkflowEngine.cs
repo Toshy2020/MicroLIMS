@@ -5,7 +5,15 @@ using MicroLIMS.Persistence.DbContext;
 
 namespace MicroLIMS.Application.Workflows;
 
-public record AfterCleaningReceiveRequest(int MachineId, int CauseOfTestingId, string SampledBy, string ControlNumber, int ReceivedByUserId);
+public record AfterCleaningReceiveRequest(
+    int MachineId,
+    int CauseOfTestingId,
+    string SampledBy,
+    string ControlNumber,
+    int ReceivedByUserId,
+    string PreviousProductName,
+    string PreviousProductBatchNumber
+);
 
 public interface IAfterCleaningWorkflowEngine : IStatefulWorkflowEngine
 {
@@ -34,11 +42,25 @@ public class AfterCleaningWorkflowEngine : IAfterCleaningWorkflowEngine
         var machine = await _db.Machines.FirstOrDefaultAsync(m => m.Id == request.MachineId)
             ?? throw new InvalidOperationException($"Machine {request.MachineId} not found.");
 
+        if (string.IsNullOrWhiteSpace(request.PreviousProductName))
+        {
+            throw new InvalidOperationException("Previous Product is required for After Cleaning receiving.");
+        }
+
+        if (string.IsNullOrWhiteSpace(request.PreviousProductBatchNumber))
+        {
+            throw new InvalidOperationException("Previous Product Batch Number is required for After Cleaning receiving.");
+        }
+
         var sample = new Sample
         {
             ReferenceNumber = await _refNumbers.GenerateAsync(SampleCategory.AfterCleaning),
             Category = SampleCategory.AfterCleaning,
             MachineId = machine.Id,
+            ItemId = null,
+            PreviousProductName = request.PreviousProductName.Trim(),
+            PreviousProductBatchNumber = request.PreviousProductBatchNumber.Trim(),
+            BatchNumber = request.PreviousProductBatchNumber.Trim(),
             CauseOfTestingId = request.CauseOfTestingId,
             SampledBy = request.SampledBy,
             ControlNumber = request.ControlNumber,

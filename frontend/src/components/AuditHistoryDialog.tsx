@@ -1,9 +1,5 @@
 import { useEffect, useState } from "react";
 import {
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
   Button,
   Box,
   Typography,
@@ -11,13 +7,12 @@ import {
   Divider,
   CircularProgress,
   Stack,
-  IconButton,
   useTheme
 } from "@mui/material";
-import CloseIcon from "@mui/icons-material/Close";
 import HistoryIcon from "@mui/icons-material/History";
 import { formatLabDateTime } from "../utils/formatDate";
 import { brandColors } from "../theme";
+import { FloatingDialog } from "./FloatingDialog";
 import { AuditSearchService } from "../modules/auditSearch/services/AuditSearchService";
 import type { AuditLogItem } from "../modules/auditSearch/types/auditTypes";
 import { ENTITY_DISPLAY_NAMES } from "../modules/auditSearch/types/auditTypes";
@@ -62,28 +57,25 @@ export function AuditHistoryDialog({
   const friendlyEntity = ENTITY_DISPLAY_NAMES[entityName] ?? entityName;
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
-      <DialogTitle
-        sx={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          pb: 1.5,
-          bgcolor: theme.custom.status.purple.bg
-        }}
-      >
+    <FloatingDialog
+      open={open}
+      onClose={onClose}
+      maxWidth="md"
+      titleSx={{ pb: 1.5, bgcolor: theme.custom.status.purple.bg }}
+      title={
         <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
           <HistoryIcon sx={{ color: theme.palette.primary.main }} />
           <Typography variant="h6" sx={{ fontWeight: 700, color: theme.palette.primary.main }}>
             Audit History · {friendlyEntity} #{entityId}
           </Typography>
         </Box>
-        <IconButton size="small" onClick={onClose}>
-          <CloseIcon fontSize="small" />
-        </IconButton>
-      </DialogTitle>
-
-      <DialogContent dividers sx={{ p: 3, bgcolor: "background.default" }}>
+      }
+      actions={
+        <Button onClick={onClose} color="inherit">
+          Close
+        </Button>
+      }
+    >
         {loading ? (
           <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>
             <CircularProgress size={24} />
@@ -157,13 +149,6 @@ export function AuditHistoryDialog({
             ))}
           </Stack>
         )}
-      </DialogContent>
-
-      <DialogActions sx={{ px: 3, py: 1.5 }}>
-        <Button onClick={onClose} color="inherit">
-          Close
-        </Button>
-      </DialogActions>
-    </Dialog>
+    </FloatingDialog>
   );
 }

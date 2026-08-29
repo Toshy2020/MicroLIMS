@@ -10,8 +10,16 @@ namespace MicroLIMS.Application.Services;
 // criteria as they stood when the analyst looked at the plate
 // (ALCOA+ Original and Contemporaneous).
 //
-// MediaChallengeSpec keys on MaterialName rather than MaterialId, so the
-// material is resolved to its name first.
+// MediaConfiguration.Name is populated from Material.MaterialName at
+// creation time (see the Media Configuration Migration plan Phase 3, and
+// the MediaConfiguration admin page's Material picker) rather than typed
+// independently on a separate admin page the way the old
+// MediaChallengeSpec.MaterialName was - that independence is what let the
+// two live mismatches (Burkholderia's leading space, Tryptic Soy Agar's
+// suffix) drift silently for real. A product can have more than one
+// MediaConfiguration row (different incubation profiles); every row
+// sharing a Name carries the same challenge organisms (Phase 3 duplicated
+// them for exactly this reason), so matching on any one of them is enough.
 public class MediaAppearanceSnapshotService
 {
     private readonly MicroLimsDbContext _db;
@@ -37,14 +45,14 @@ public class MediaAppearanceSnapshotService
             return null;
         }
 
-        var expected = await _db.MediaChallengeSpecs
-            .Where(s => s.MaterialName == materialName && s.OrganismId == organismId)
-            .Select(s => s.ExpectedDescription)
+        var expected = await _db.MediaConfigurationChallenges
+            .Where(c => c.MediaConfiguration!.Name == materialName && c.OrganismId == organismId)
+            .Select(c => c.ExpectedDescription)
             .FirstOrDefaultAsync(cancellationToken);
 
         if (expected is null)
             _logger.LogWarning(
-                "No MediaChallengeSpec for material '{MaterialName}' and organism {OrganismId} - appearance snapshot recorded as null.",
+                "No MediaConfigurationChallenge for material '{MaterialName}' and organism {OrganismId} - appearance snapshot recorded as null.",
                 materialName, organismId);
 
         return expected;

@@ -32,11 +32,6 @@ public class PathogenSessionServiceTests
         };
         db.Users.Add(user);
 
-        // Seed MediaTypes
-        var brothType = new MediaType { Id = 1, Class = MediaClass.GeneralBroth, IncubationMinHours = 18, IncubationMaxHours = 24, RequiredTemperatureMin = 30, RequiredTemperatureMax = 35 };
-        var agarType = new MediaType { Id = 2, Class = MediaClass.GeneralAgar, IncubationMinHours = 24, IncubationMaxHours = 48, RequiredTemperatureMin = 35, RequiredTemperatureMax = 37 };
-        db.MediaTypes.AddRange(brothType, agarType);
-
         // Seed Incubators
         var inc3 = new EquipmentInventory { Id = 3, Code = "INC-03", InstrumentType = "Incubator", Status = EquipmentOperationalStatus.InService };
         var inc4 = new EquipmentInventory { Id = 4, Code = "INC-04", InstrumentType = "Incubator", Status = EquipmentOperationalStatus.InService };
@@ -49,8 +44,6 @@ public class PathogenSessionServiceTests
         var tsbMedia = new Media
         {
             Id = 20,
-            MediaTypeId = 1,
-            MediaType = brothType,
             MaterialId = 10,
             Material = tsbMat,
             LotNumber = "TSB-LOT-25113",
@@ -80,8 +73,8 @@ public class PathogenSessionServiceTests
             WorkflowType = WorkflowType.Observation,
             Steps = new List<TestWorkflowStep>
             {
-                new() { StepOrder = 1, StepName = "TSB Enrichment", StepType = StepType.BrothEnrichment, MediaTypeId = 1, MediaType = brothType, IncubationMinHours = 18, IncubationMaxHours = 24, TemperatureMin = 30, TemperatureMax = 35 },
-                new() { StepOrder = 2, StepName = "BCA Selective Medium", StepType = StepType.SelectivePlating, MediaTypeId = 2, MediaType = agarType, IncubationMinHours = 24, IncubationMaxHours = 48, TemperatureMin = 35, TemperatureMax = 37 }
+                new() { StepOrder = 1, StepName = "TSB Enrichment", StepType = StepType.BrothEnrichment, IncubationMinHours = 18, IncubationMaxHours = 24, TemperatureMin = 30, TemperatureMax = 35 },
+                new() { StepOrder = 2, StepName = "BCA Selective Medium", StepType = StepType.SelectivePlating, IncubationMinHours = 24, IncubationMaxHours = 48, TemperatureMin = 35, TemperatureMax = 37 }
             }
         };
 
@@ -93,8 +86,8 @@ public class PathogenSessionServiceTests
             WorkflowType = WorkflowType.Observation,
             Steps = new List<TestWorkflowStep>
             {
-                new() { StepOrder = 1, StepName = "TSB Pre-enrichment", StepType = StepType.BrothEnrichment, MediaTypeId = 1, MediaType = brothType, IncubationMinHours = 18, IncubationMaxHours = 24, TemperatureMin = 30, TemperatureMax = 35 },
-                new() { StepOrder = 2, StepName = "RVS Selective Broth", StepType = StepType.SelectiveBroth, MediaTypeId = 1, MediaType = brothType, IncubationMinHours = 24, IncubationMaxHours = 24, TemperatureMin = 41.5m, TemperatureMax = 42.5m }
+                new() { StepOrder = 1, StepName = "TSB Pre-enrichment", StepType = StepType.BrothEnrichment, IncubationMinHours = 18, IncubationMaxHours = 24, TemperatureMin = 30, TemperatureMax = 35 },
+                new() { StepOrder = 2, StepName = "RVS Selective Broth", StepType = StepType.SelectiveBroth, IncubationMinHours = 24, IncubationMaxHours = 24, TemperatureMin = 41.5m, TemperatureMax = 42.5m }
             }
         };
 
@@ -106,7 +99,7 @@ public class PathogenSessionServiceTests
             WorkflowType = WorkflowType.CountTest,
             Steps = new List<TestWorkflowStep>
             {
-                new() { StepOrder = 1, StepName = "Plate Incubation", StepType = StepType.SelectivePlating, MediaTypeId = 2, MediaType = agarType, IncubationMinHours = 48, IncubationMaxHours = 72, TemperatureMin = 30, TemperatureMax = 35 }
+                new() { StepOrder = 1, StepName = "Plate Incubation", StepType = StepType.SelectivePlating, IncubationMinHours = 48, IncubationMaxHours = 72, TemperatureMin = 30, TemperatureMax = 35 }
             }
         };
 
@@ -118,7 +111,7 @@ public class PathogenSessionServiceTests
             WorkflowType = WorkflowType.Observation,
             Steps = new List<TestWorkflowStep>
             {
-                new() { StepOrder = 1, StepName = "TSB Enrichment", StepType = StepType.BrothEnrichment, MediaTypeId = 1, MediaType = brothType, IncubationMinHours = 18, IncubationMaxHours = 24, TemperatureMin = 30, TemperatureMax = 35 }
+                new() { StepOrder = 1, StepName = "TSB Enrichment", StepType = StepType.BrothEnrichment, IncubationMinHours = 18, IncubationMaxHours = 24, TemperatureMin = 30, TemperatureMax = 35 }
             }
         };
 
@@ -130,7 +123,7 @@ public class PathogenSessionServiceTests
             WorkflowType = WorkflowType.Observation,
             Steps = new List<TestWorkflowStep>
             {
-                new() { StepOrder = 1, StepName = "TSB Enrichment", StepType = StepType.BrothEnrichment, MediaTypeId = 1, MediaType = brothType, IncubationMinHours = 18, IncubationMaxHours = 24, TemperatureMin = 30, TemperatureMax = 35 }
+                new() { StepOrder = 1, StepName = "TSB Enrichment", StepType = StepType.BrothEnrichment, IncubationMinHours = 18, IncubationMaxHours = 24, TemperatureMin = 30, TemperatureMax = 35 }
             }
         };
 
@@ -142,7 +135,7 @@ public class PathogenSessionServiceTests
             WorkflowType = WorkflowType.Observation,
             Steps = new List<TestWorkflowStep>
             {
-                new() { StepOrder = 1, StepName = "TSB Enrichment", StepType = StepType.BrothEnrichment, MediaTypeId = 1, MediaType = brothType, IncubationMinHours = 18, IncubationMaxHours = 24, TemperatureMin = 30, TemperatureMax = 35 }
+                new() { StepOrder = 1, StepName = "TSB Enrichment", StepType = StepType.BrothEnrichment, IncubationMinHours = 18, IncubationMaxHours = 24, TemperatureMin = 30, TemperatureMax = 35 }
             }
         };
 
@@ -214,6 +207,35 @@ public class PathogenSessionServiceTests
 
         db.SaveChanges();
         return (db, 100, locIds);
+    }
+
+    // Regression test for a real production bug: StartSharedTsbAsync's
+    // step-resolution predicate used to match StepType.SelectiveBroth as
+    // well as BrothEnrichment. Salmonella's own template (seeded above) has
+    // both a BrothEnrichment step ("TSB Pre-enrichment") and a distinct
+    // SelectiveBroth step ("RVS Selective Broth") - exactly the shape that
+    // let the shared TSB lot land on the wrong step (StepName "RVS Selective
+    // Broth" instead of "TSB Pre-enrichment"), corrupting real live test
+    // orders. The fix restricts the match to BrothEnrichment only.
+    [Fact]
+    public async Task StartSharedTsbAsync_TestWithBothBrothTypes_AttachesToBrothEnrichmentNotSelectiveBroth()
+    {
+        var (db, sampleId, _) = SetupTestEnvironment(1);
+        var service = new PathogenSessionService(db);
+
+        await service.StartSharedTsbAsync(sampleId, new StartSharedTsbRequest(
+            MediaLotId: 20,
+            IncubatorEquipmentId: 3,
+            IncubationStartUtc: DateTime.UtcNow
+        ), userId: 5);
+
+        var salmonellaOrderId = 201; // toCodes[1] == "Salmonella", Id = 200 + 1
+        var salmonellaIncubations = await db.Incubations.Where(i => i.TestOrderId == salmonellaOrderId).ToListAsync();
+
+        Assert.Single(salmonellaIncubations);
+        Assert.Equal("TSB Pre-enrichment", salmonellaIncubations[0].StepName);
+        Assert.Equal(20, salmonellaIncubations[0].MediaId);
+        Assert.DoesNotContain(salmonellaIncubations, i => i.StepName == "RVS Selective Broth");
     }
 
     [Fact]

@@ -76,17 +76,16 @@ public class WaterBatchResultTests
         db.SamplingConfigurations.Add(new SamplingConfiguration { WaterSamplingPointId = pointB.Id, TestCode = "TAMC-Water", AlertLimit = "10", ActionLimit = "50", SpecLimit = "100" });
         await db.SaveChangesAsync();
 
-        var mediaType = new MediaType { Class = MediaClass.GeneralAgar, IncubationMinHours = 24, IncubationMaxHours = 48, RequiredTemperatureMin = 20, RequiredTemperatureMax = 25 };
         var testDefinition = new TestDefinition { Code = "TAMC-Water", DisplayName = "TAMC-Water", WorkflowType = WorkflowType.CountTest };
-        db.MediaTypes.Add(mediaType);
         db.TestDefinitions.Add(testDefinition);
         await db.SaveChangesAsync();
 
-        db.TestWorkflowSteps.Add(new TestWorkflowStep
+        var step = new TestWorkflowStep
         {
-            TestDefinitionId = testDefinition.Id, StepOrder = 1, StepName = "CountIncubation", MediaTypeId = mediaType.Id,
+            TestDefinitionId = testDefinition.Id, StepOrder = 1, StepName = "CountIncubation", 
             IncubationMinHours = 0, IncubationMaxHours = 24, TemperatureMin = 20, TemperatureMax = 25, IsFinalStep = true
-        });
+        };
+        db.TestWorkflowSteps.Add(step);
 
         var material = new Material
         {
@@ -96,13 +95,14 @@ public class WaterBatchResultTests
         };
         db.Materials.Add(material);
         await db.SaveChangesAsync();
+        db.TestWorkflowStepMedias.Add(new TestWorkflowStepMedia { TestWorkflowStepId = step.Id, MaterialId = material.Id, TempMin = 20, TempMax = 25 });
 
         var media = new Media
         {
-            MediaTypeId = mediaType.Id, MaterialId = material.Id, LotNumber = "TSA/WATER", IsReleasedForUse = true,
+            MaterialId = material.Id, LotNumber = "TSA/WATER", IsReleasedForUse = true,
             Status = MediaStatus.Active, ExpiryDate = DateTime.UtcNow.AddDays(30)
         };
-        var equipment = new Equipment { Name = "Incubator Water", Code = "INC-WATER", Type = EquipmentType.Incubator };
+        var equipment = new Equipment { Name = "Incubator Water", Code = "INC-WATER", Type = EquipmentType.Incubator, SetPointTemperature = 22 };
         db.Media.Add(media);
         db.Equipment.Add(equipment);
         await db.SaveChangesAsync();

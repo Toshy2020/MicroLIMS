@@ -44,7 +44,7 @@ export function TestPreparationForm({ sample, onSaved }: Props) {
 
   useEffect(() => {
     if (selectedDiluent?.requiresBatchTracking) {
-      masterDataOptions.getReleasedMedia(selectedDiluent.mediaTypeId).then(setReleasedMedia);
+      masterDataOptions.getReleasedMedia(selectedDiluent.materialId).then(setReleasedMedia);
     }
   }, [form.diluentTypeId]);
 

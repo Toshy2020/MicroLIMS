@@ -1,9 +1,5 @@
 import { useEffect, useState } from "react";
 import {
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
   Button,
   Box,
   TextField,
@@ -15,19 +11,18 @@ import {
   Typography,
   Divider,
   Alert,
-  IconButton,
   Paper,
   useTheme
 } from "@mui/material";
-import CloseIcon from "@mui/icons-material/Close";
 import { OrganismPicker } from "../../../../components/OrganismPicker";
 import { MaterialService } from "../services/MaterialService";
 import { EquipmentInventoryService } from "../../equipment/services/EquipmentInventoryService";
 import { MaterialFormState, MaterialItem, MaterialType, MaterialUnit } from "../types/materialTypes";
 import { MATERIAL_TYPE_OPTIONS } from "./MaterialFilterBar";
 import { brandColors } from "../../../../theme";
+import { FloatingDialog } from "../../../../components/FloatingDialog";
 
-export const MATERIAL_UNITS: MaterialUnit[] = [
+const MATERIAL_UNITS: MaterialUnit[] = [
   "Gram",
   "Kilogram",
   "Milliliter",
@@ -195,17 +190,36 @@ export function AddMaterialDialog({ open, onClose, onSuccess, editingItem }: Add
   };
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
-      <DialogTitle sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", pb: 1.5 }}>
+    <FloatingDialog
+      open={open}
+      onClose={onClose}
+      maxWidth="md"
+      titleSx={{ pb: 1.5 }}
+      title={
         <Typography variant="h6" sx={{ fontWeight: 700, color: theme.palette.primary.main }}>
           {editingItem ? "Edit Material" : "Add Material to Stock"}
         </Typography>
-        <IconButton size="small" onClick={onClose} disabled={saving}>
-          <CloseIcon fontSize="small" />
-        </IconButton>
-      </DialogTitle>
-
-      <DialogContent dividers sx={{ p: 3 }}>
+      }
+      actions={
+        <Box sx={{ display: "flex", justifyContent: "space-between", width: "100%" }}>
+          <Button onClick={onClose} disabled={saving} color="inherit">
+            Cancel
+          </Button>
+          <Button
+            variant="contained"
+            onClick={handleSave}
+            disabled={saving}
+            sx={{
+              bgcolor: brandColors.sectionTitle,
+              px: 3,
+              "&:hover": { bgcolor: brandColors.pageTitle }
+            }}
+          >
+            {saving ? "Saving..." : editingItem ? "Save Changes" : "Add to Stock"}
+          </Button>
+        </Box>
+      }
+    >
         {error && (
           <Alert severity="error" sx={{ mb: 2.5 }}>
             {error}
@@ -562,25 +576,6 @@ export function AddMaterialDialog({ open, onClose, onSuccess, editingItem }: Add
             </Typography>
           </Box>
         )}
-      </DialogContent>
-
-      <DialogActions sx={{ px: 3, py: 2, display: "flex", justifyContent: "space-between" }}>
-        <Button onClick={onClose} disabled={saving} color="inherit">
-          Cancel
-        </Button>
-        <Button
-          variant="contained"
-          onClick={handleSave}
-          disabled={saving}
-          sx={{
-            bgcolor: brandColors.sectionTitle,
-            px: 3,
-            "&:hover": { bgcolor: brandColors.pageTitle }
-          }}
-        >
-          {saving ? "Saving..." : editingItem ? "Save Changes" : "Add to Stock"}
-        </Button>
-      </DialogActions>
-    </Dialog>
+    </FloatingDialog>
   );
 }

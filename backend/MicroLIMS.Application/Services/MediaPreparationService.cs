@@ -6,7 +6,7 @@ using MicroLIMS.Persistence.DbContext;
 namespace MicroLIMS.Application.Services;
 
 public record PrepareMediaRequest(
-    int MediaTypeId, int MaterialId, decimal TotalWeight, string TotalVolume,
+    int MaterialId, decimal TotalWeight, string TotalVolume,
     int AutoclaveEquipmentId, string AutoclaveProgram, string LoadType, decimal Temperature,
     int CycleTime, int CycleNumber, decimal Ph, DateTime ExpiryDate, int UserId);
 
@@ -38,9 +38,6 @@ public class MediaPreparationService
 
     public async Task<Media> PrepareAsync(PrepareMediaRequest request)
     {
-        var mediaType = await _db.MediaTypes.FirstOrDefaultAsync(m => m.Id == request.MediaTypeId)
-            ?? throw new InvalidOperationException($"Media type {request.MediaTypeId} not found.");
-
         var autoclave = await _db.Equipment.FirstOrDefaultAsync(e => e.Id == request.AutoclaveEquipmentId && e.Type == EquipmentType.Autoclave)
             ?? throw new InvalidOperationException("Selected equipment is not a valid autoclave.");
 
@@ -51,10 +48,24 @@ public class MediaPreparationService
         // instead of a second lookup.
         var material = await _materialService.ConsumeAsync(request.MaterialId, MaterialType.DehydratedMedia, request.TotalWeight, request.UserId);
 
+        // A product can have more than one MediaConfiguration row (e.g.
+        // Tryptic Soy Agar's Standard vs. Extended Transfer usages - see
+        // the Media Configuration Migration plan). All rows sharing a
+        // Name carry the same EvaluationType and challenge organisms
+        // (Phase 3 duplicated challenges across every row for exactly
+        // this reason), so picking the lowest-Id row is a stable,
+        // deterministic choice, not an arbitrary one, for GPT-evaluation
+        // purposes specifically.
+        var config = await _db.MediaConfigurations.Include(c => c.Challenges)
+            .Where(c => c.Name == material.MaterialName)
+            .OrderBy(c => c.Id)
+            .FirstOrDefaultAsync()
+            ?? throw new InvalidOperationException($"No Media Configuration exists yet for \"{material.MaterialName}\" - configure it in Laboratory Configuration before preparing a lot.");
+
         var yearStart = new DateTime(DateTime.UtcNow.Year, 1, 1, 0, 0, 0, DateTimeKind.Utc);
         var yearEnd = yearStart.AddYears(1);
         var countThisYear = await _db.Media.CountAsync(m =>
-            m.MediaTypeId == mediaType.Id && m.PreparedAt >= yearStart && m.PreparedAt < yearEnd);
+            m.MaterialId == material.Id && m.PreparedAt >= yearStart && m.PreparedAt < yearEnd);
 
         var sequence = (countThisYear + 1).ToString("D2");
         var lotPrefix = !string.IsNullOrWhiteSpace(material.Code) ? material.Code : SanitizeForLotPrefix(material.MaterialName);
@@ -62,7 +73,6 @@ public class MediaPreparationService
 
         var media = new Media
         {
-            MediaTypeId = mediaType.Id,
             MaterialId = material.Id,
             LotNumber = lotNumber,
             ManufacturerLot = material.BatchNumber,
@@ -84,32 +94,23 @@ public class MediaPreparationService
         _db.Media.Add(media);
 
         // Auto-assign the Media Evaluation for this lot - EvaluationType
-        // is derived from the class, one MediaEvaluationChallenge per
-        // matching MediaChallengeSpec row for this Material. Zero specs
-        // is allowed (no throw): the analyst needs to be able to prepare
-        // media before master data is fully configured, but the
-        // evaluation obviously can't Conform until specs exist.
-        var evaluationType = mediaType.Class switch
-        {
-            MediaClass.GeneralAgar => EvaluationType.GrowthPromotion,
-            MediaClass.SelectiveAgar or MediaClass.SelectiveBroth => EvaluationType.IndicationInhibition,
-            MediaClass.GeneralBroth => EvaluationType.EnrichmentCharacteristics,
-            _ => throw new InvalidOperationException($"Unhandled media class {mediaType.Class}.")
-        };
-
-        var specs = await _db.MediaChallengeSpecs
-            .Where(s => s.MaterialName == material.MaterialName && s.EvaluationType == evaluationType)
-            .ToListAsync();
-
-        var evaluation = new MediaEvaluation { Media = media, EvaluationType = evaluationType, Status = MediaEvaluationStatus.Assigned };
-        foreach (var spec in specs)
+        // and challenge organisms now come directly off the matched
+        // MediaConfiguration row via its own FK'd MediaConfigurationChallenge
+        // children, not a MaterialName string match against
+        // MediaChallengeSpec (the old join that silently failed for any
+        // name that drifted - see the migration plan's §2/§5). Zero
+        // challenges is allowed (no throw): the analyst needs to be able
+        // to prepare media before master data is fully configured, but
+        // the evaluation obviously can't Conform until challenges exist.
+        var evaluation = new MediaEvaluation { Media = media, EvaluationType = config.EvaluationType, Status = MediaEvaluationStatus.Assigned };
+        foreach (var challenge in config.Challenges)
         {
             evaluation.Challenges.Add(new MediaEvaluationChallenge
             {
-                OrganismId = spec.OrganismId,
-                ChallengeRole = spec.ChallengeRole,
-                ExpectedDescription = spec.ExpectedDescription,
-                InitialInoculum = spec.ChallengeRole == ChallengeRole.Inhibition ? "10^3" : "10^2"
+                OrganismId = challenge.OrganismId,
+                ChallengeRole = challenge.ChallengeRole,
+                ExpectedDescription = challenge.ExpectedDescription,
+                InitialInoculum = challenge.InitialInoculum ?? string.Empty
             });
         }
         _db.MediaEvaluations.Add(evaluation);
@@ -119,13 +120,19 @@ public class MediaPreparationService
     }
 
     public async Task<List<Media>> GetAllAsync() =>
-        await _db.Media.Include(m => m.MediaType).OrderByDescending(m => m.Id).ToListAsync();
+        await _db.Media.Include(m => m.Material).OrderByDescending(m => m.Id).ToListAsync();
 
-    public async Task<List<Media>> GetReleasedAsync(int? mediaTypeId = null)
+    // includeExpired: the reference-lot lookup for a new GrowthPromotion
+    // evaluation (MediaEvaluationController) wants any lot that was ever
+    // released, since it's citing a historical count, not asking what can
+    // be pulled off the shelf right now - every other caller wants the
+    // latter and leaves this false.
+    public async Task<List<Media>> GetReleasedAsync(int? materialId = null, bool includeExpired = false, int? excludeId = null)
     {
-        var query = _db.Media.Include(m => m.MediaType).Include(m => m.Material)
-            .Where(m => m.IsReleasedForUse && m.Status == MediaStatus.Active && m.ExpiryDate > DateTime.UtcNow);
-        if (mediaTypeId.HasValue) query = query.Where(m => m.MediaTypeId == mediaTypeId.Value);
+        var query = _db.Media.Include(m => m.Material).Where(m => m.IsReleasedForUse);
+        if (!includeExpired) query = query.Where(m => m.Status == MediaStatus.Active && m.ExpiryDate > DateTime.UtcNow);
+        if (materialId.HasValue) query = query.Where(m => m.MaterialId == materialId.Value);
+        if (excludeId.HasValue) query = query.Where(m => m.Id != excludeId.Value);
         return await query.OrderByDescending(m => m.Id).ToListAsync();
     }
 

@@ -27,6 +27,7 @@ public class CountTestReading
     public bool HasNonNumericReading { get; set; } = false;
     public string? NonNumericValue { get; set; } // "TNTC" | "Uncountable"
     public bool RequiresReview { get; set; } = false;
+    public bool IsActive { get; set; } = true;
     public int EnteredByUserId { get; set; }
     public DateTime EnteredAt { get; set; } = DateTime.UtcNow;
 }

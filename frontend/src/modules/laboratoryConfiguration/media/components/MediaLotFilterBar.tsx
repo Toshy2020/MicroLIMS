@@ -11,23 +11,22 @@ import {
 } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
 import FilterAltOffOutlinedIcon from "@mui/icons-material/FilterAltOffOutlined";
-import { mediaClassLabel } from "../../../../services/masterDataOptions";
 
 interface Props {
   search: string;
   onSearchChange: (v: string) => void;
-  selectedMediaTypeId: string;
-  onMediaTypeChange: (v: string) => void;
+  selectedMaterialId: string;
+  onMaterialChange: (v: string) => void;
   selectedStatus: string;
   onStatusChange: (v: string) => void;
-  mediaTypes: any[];
+  materials: any[];
   onResetFilters: () => void;
 }
 
 const STATUS_OPTIONS = [
   { value: "Pending Evaluation", label: "Pending Evaluation" },
   { value: "Awaiting Approval", label: "Awaiting Approval" },
-  { value: "Released", label: "Released for Use" },
+  { value: "Released", label: "Released" },
   { value: "Rejected", label: "Rejected" },
   { value: "Out of Stock", label: "Out of Stock" }
 ];
@@ -35,14 +34,14 @@ const STATUS_OPTIONS = [
 export function MediaLotFilterBar({
   search,
   onSearchChange,
-  selectedMediaTypeId,
-  onMediaTypeChange,
+  selectedMaterialId,
+  onMaterialChange,
   selectedStatus,
   onStatusChange,
-  mediaTypes,
+  materials,
   onResetFilters
 }: Props) {
-  const hasActiveFilters = Boolean(search || selectedMediaTypeId || selectedStatus);
+  const hasActiveFilters = Boolean(search || selectedMaterialId || selectedStatus);
 
   return (
     <Paper
@@ -59,7 +58,7 @@ export function MediaLotFilterBar({
       <Stack direction="row" spacing={1.5} alignItems="center" flexWrap="wrap" rowGap={1}>
         <TextField
           size="small"
-          placeholder="Search by lot number, media type, material, batch…"
+          placeholder="Search by lot number, dehydrated material, batch…"
           value={search}
           onChange={(e) => onSearchChange(e.target.value)}
           sx={{ minWidth: 280, flex: 1 }}
@@ -75,16 +74,16 @@ export function MediaLotFilterBar({
         <Select
           size="small"
           displayEmpty
-          value={selectedMediaTypeId}
-          onChange={(e) => onMediaTypeChange(e.target.value)}
+          value={selectedMaterialId}
+          onChange={(e) => onMaterialChange(e.target.value)}
           sx={{ minWidth: 180 }}
         >
           <MenuItem value="">
-            <em>All Media Types</em>
+            <em>All Materials</em>
           </MenuItem>
-          {mediaTypes.map((m) => (
+          {materials.map((m) => (
             <MenuItem key={m.id} value={String(m.id)}>
-              {mediaClassLabel(m.class)}
+              {m.materialName}
             </MenuItem>
           ))}
         </Select>

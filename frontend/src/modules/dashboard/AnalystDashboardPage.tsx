@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Grid, Box, Typography, Button } from "@mui/material";
 import ScienceOutlinedIcon from "@mui/icons-material/ScienceOutlined";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
 import { PageHeader } from "../../components/PageHeader";
 import { LoadingSpinner } from "../../components/LoadingSpinner";
@@ -52,9 +52,10 @@ export function AnalystDashboardPage() {
           subtitle="Here is your prioritized microbiological workspace for today."
         />
         <Button
+          component={Link}
+          to="/testing-workspace"
           variant="contained"
           startIcon={<ScienceOutlinedIcon />}
-          onClick={() => navigate("/testing-workspace")}
           sx={{ textTransform: "none", fontWeight: 600, borderRadius: 2 }}
         >
           Open Testing Workspace

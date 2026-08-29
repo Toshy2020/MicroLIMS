@@ -1,21 +1,15 @@
 import { useEffect, useState } from "react";
 import {
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
   Button,
   Box,
   Typography,
   Divider,
   Alert,
-  IconButton,
   CircularProgress,
   Stack,
   Tooltip,
   useTheme
 } from "@mui/material";
-import CloseIcon from "@mui/icons-material/Close";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import UploadFileIcon from "@mui/icons-material/UploadFile";
 import HistoryIcon from "@mui/icons-material/History";
@@ -36,6 +30,7 @@ import {
 } from "./EquipmentKpiCards";
 import { EquipmentDocumentList } from "./EquipmentDocumentList";
 import { UploadEquipmentDocumentDialog } from "./UploadEquipmentDocumentDialog";
+import { FloatingDialog } from "../../../../components/FloatingDialog";
 
 interface Props {
   open: boolean;
@@ -98,8 +93,12 @@ export function EquipmentDetailsDialog({
 
   return (
     <>
-      <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
-        <DialogTitle sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", pb: 1.5 }}>
+      <FloatingDialog
+        open={open}
+        onClose={onClose}
+        maxWidth="md"
+        titleSx={{ pb: 1.5 }}
+        title={
           <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, flexWrap: "wrap" }}>
             <Typography variant="h6" sx={{ fontWeight: 700, color: theme.palette.primary.main }}>
               {equipment.code}
@@ -109,12 +108,13 @@ export function EquipmentDetailsDialog({
             </Typography>
             <StatusBadge status={equipment.status} />
           </Box>
-          <IconButton size="small" onClick={onClose}>
-            <CloseIcon fontSize="small" />
-          </IconButton>
-        </DialogTitle>
-
-        <DialogContent dividers sx={{ p: 3 }}>
+        }
+        actions={
+          <Button onClick={onClose} color="inherit">
+            Close
+          </Button>
+        }
+      >
           {message && (
             <Alert
               severity={message.ok ? "success" : "error"}
@@ -283,14 +283,7 @@ export function EquipmentDetailsDialog({
               }}
             />
           </Box>
-        </DialogContent>
-
-        <DialogActions sx={{ px: 3, py: 2 }}>
-          <Button onClick={onClose} color="inherit">
-            Close
-          </Button>
-        </DialogActions>
-      </Dialog>
+      </FloatingDialog>
 
       {/* Upload Certificate Dialog */}
       <UploadEquipmentDocumentDialog

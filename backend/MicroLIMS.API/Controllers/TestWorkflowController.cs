@@ -18,8 +18,8 @@ namespace MicroLIMS.API.Controllers;
 public record SelectMediaRequest(string StepName, int MediaLotId, int IncubatorId);
 public record StartStage2IncubationRequest(string StepName, int IncubatorId);
 public record RecordTestResultRequest(string StepName, List<decimal>? PlateReadings, decimal? DilutionFactor, List<string>? RawPlateReadings = null);
-public record BatchResultLocationRequest(int SampleLocationId, decimal CFUResult);
-public record BatchResultsRequest(decimal DilutionFactor, List<BatchResultLocationRequest> Locations);
+public record BatchResultLocationRequest(int SampleLocationId, List<decimal> Readings);
+public record BatchResultsRequest(List<BatchResultLocationRequest> Locations);
 public record WaterBatchLocationRequest(int SampleLocationId, List<decimal> Readings);
 public record WaterBatchReadingsRequest(List<WaterBatchLocationRequest> Locations);
 public record BatchPathogenLocationRequest(int SampleLocationId, bool? GrowthObserved);
@@ -42,7 +42,7 @@ public record ConfirmatoryObservationRequest(int MaterialId, GrowthObservation O
 public record SubmitConfirmatoryObservationsRequest(string StepName, List<ConfirmatoryObservationRequest> Observations);
 
 public record AnalystDecisionRequest(AnalystDecision Decision);
-public record SubmitBiochemicalRequest(string StepName, string BiochemicalResultText, int? AttachmentId);
+public record SubmitBiochemicalRequest(string StepName, string BiochemicalResultText, int? AttachmentId, bool OrganismDetected);
 public record BiochemicalReviewRequest(bool Approve, string Comment);
 
 // Generic step-runner API for any TestDefinition with a configured
@@ -111,7 +111,21 @@ public class TestWorkflowController : ControllerBase
 
         var prep = sample.SamplePreparation;
         var prepUnit = prep?.Unit;
-        var cfuUnit = TestWorkflowEngine.GetCfuUnit(sample.Category, prepUnit);
+        string? configuredUnit = null;
+        if (sample.ItemId is not null)
+        {
+            var spec = await _db.Specifications.FirstOrDefaultAsync(s => s.ItemId == sample.ItemId && s.TestCode == order.TestCode);
+            configuredUnit = spec?.Unit;
+        }
+        else if (sample.WaterSamplingPointId is not null)
+        {
+            var config = await _db.SamplingConfigurations.FirstOrDefaultAsync(c => c.TestCode == order.TestCode && c.WaterSamplingPointId == sample.WaterSamplingPointId);
+            configuredUnit = config?.Unit;
+        }
+
+        var cfuUnit = !string.IsNullOrWhiteSpace(configuredUnit)
+            ? (configuredUnit.StartsWith("CFU/", StringComparison.OrdinalIgnoreCase) ? configuredUnit : $"CFU/{configuredUnit}")
+            : TestWorkflowEngine.GetCfuUnit(sample.Category, prepUnit);
 
         var sampleContext = new Dictionary<string, object?>
         {
@@ -139,7 +153,9 @@ public class TestWorkflowController : ControllerBase
             isLocked = !openIncubation.IsIncubationComplete,
             incubationEndUtc = openIncubation.IncubationEndUtc,
             remainingSeconds = Math.Max(0, (long)Math.Ceiling((openIncubation.IncubationEndUtc.Value - DateTime.UtcNow).TotalSeconds)),
-            stageNumber = openIncubation.StageNumber
+            stageNumber = openIncubation.StageNumber,
+            minimumDurationOverridden = openIncubation.MinimumDurationOverriddenByUserId.HasValue,
+            minimumDurationOverriddenAt = openIncubation.MinimumDurationOverriddenAt
         };
 
         var wsrDict = await _db.WorkflowStepResults
@@ -215,19 +231,40 @@ public class TestWorkflowController : ControllerBase
             };
         }
 
+        var firstMedia = current.Step?.StepMedia.OrderBy(m => m.DisplayOrder).FirstOrDefault();
+        var tempMin = current.Step == null ? 0 : (current.Step.TemperatureMin > 0 ? current.Step.TemperatureMin : (firstMedia?.TempMin ?? 0));
+        var tempMax = current.Step == null ? 0 : (current.Step.TemperatureMax > 0 ? current.Step.TemperatureMax : (firstMedia?.TempMax ?? 0));
+        var incMin = current.Step == null ? 0 : (current.Step.IncubationMinHours > 0 ? current.Step.IncubationMinHours : (firstMedia?.IncubationMinHours ?? 0));
+        var incMax = current.Step == null ? 0 : (current.Step.IncubationMaxHours > 0 ? current.Step.IncubationMaxHours : (firstMedia?.IncubationMaxHours ?? 0));
+
+        var returnInfo = await TestReturnHelper.GetPendingReturnAsync(_db, testOrderId);
+
         return new
         {
             testOrderId,
             step = current.Step is null ? null : new
             {
-                current.Step.Id, current.Step.StepOrder, current.Step.StepName, current.Step.MediaTypeId,
+                current.Step.Id, current.Step.StepOrder, current.Step.StepName,
                 stepType = current.Step.StepType.ToString(),
                 current.Step.TargetOrganismId,
-                mediaType = current.Step.MediaType is null ? null : new { current.Step.MediaType.Id, current.Step.MediaType.Class },
-                current.Step.IncubationMinHours, current.Step.IncubationMaxHours,
-                current.Step.TemperatureMin, current.Step.TemperatureMax,
+                phenotypicTestType = current.Step.PhenotypicTestType?.ToString(),
+                phenotypicTestTypes = current.Step.PhenotypicTests.OrderBy(t => t.DisplayOrder).Select(t => t.PhenotypicTestType.ToString()),
+                incubationMinHours = incMin,
+                incubationMaxHours = incMax,
+                temperatureMin = tempMin,
+                temperatureMax = tempMax,
                 current.Step.IsFinalStep,
                 current.Step.RequiresIncubationTransfer,
+                // The operative incubation window/temperature for this
+                // medium, per the Media Configuration Migration's Test
+                // Master reversal - not the step-level fields above, which
+                // are no longer read at execution time.
+                stepMedia = current.Step.StepMedia.OrderBy(m => m.DisplayOrder).Select(m => new
+                {
+                    m.Id,
+                    m.MaterialId, materialName = m.Material!.MaterialName, m.TempMin, m.TempMax,
+                    m.IncubationMinHours, m.IncubationMaxHours, m.IsRequired
+                }),
                 incubationStages = current.Step.IncubationStages.OrderBy(x => x.StageNumber).Select(x => new
                 {
                     x.StageNumber,
@@ -243,6 +280,11 @@ public class TestWorkflowController : ControllerBase
             workflowType = current.WorkflowType.ToString(),
             sampleContext,
             incubationLock,
+            returnInfo = returnInfo is null ? null : new
+            {
+                reason = returnInfo.Reason,
+                returnedAt = returnInfo.ReturnedAt
+            },
             previousSteps = enrichedPreviousSteps,
             sharedTsbSummary,
             allStepsComplete = current.AllStepsComplete,
@@ -401,8 +443,8 @@ public class TestWorkflowController : ControllerBase
     [HttpPost("{testOrderId}/batch-results")]
     public Task<IActionResult> RecordBatchResults(int testOrderId, BatchResultsRequest request) => RunAsync(() =>
     {
-        var locations = request.Locations.Select(l => new BatchLocationResult(l.SampleLocationId, l.CFUResult)).ToList();
-        return _engine.RecordBatchResultsAsync(testOrderId, request.DilutionFactor, locations, CurrentUserId);
+        var locations = request.Locations.Select(l => new BatchLocationReadings(l.SampleLocationId, l.Readings)).ToList();
+        return _engine.RecordBatchResultsAsync(testOrderId, locations, CurrentUserId);
     });
 
     // Water batch count entry - one set of plate readings per sampling
@@ -495,11 +537,18 @@ public class TestWorkflowController : ControllerBase
     [HttpPost("{testOrderId}/submit-biochemical")]
     public Task<IActionResult> SubmitBiochemical(int testOrderId, SubmitBiochemicalRequest request) =>
         RunAsync(() => _engine.SubmitBiochemicalAsync(testOrderId, request.StepName,
-            request.BiochemicalResultText, request.AttachmentId, CurrentUserId));
+            request.BiochemicalResultText, request.AttachmentId, request.OrganismDetected, CurrentUserId));
 
     [Authorize(Roles = RoleConstants.Reviewer + "," + RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
     [HttpPost("results/{workflowStepResultId}/biochemical-decision")]
     public Task<IActionResult> RecordBiochemicalDecision(int workflowStepResultId, BiochemicalReviewRequest request) =>
         RunAsync(() => _engine.RecordBiochemicalReviewDecisionAsync(
             workflowStepResultId, request.Approve, request.Comment, CurrentUserId));
+
+    // Bypasses the minimum-duration wait gate for the currently open
+    // incubation only - never changes the recorded window/temperature.
+    [Authorize(Roles = RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
+    [HttpPost("{testOrderId}/override-minimum-duration")]
+    public Task<IActionResult> OverrideMinimumDuration(int testOrderId) =>
+        RunAsync(() => _engine.OverrideMinimumDurationAsync(testOrderId, CurrentUserId));
 }

@@ -22,10 +22,14 @@ export interface TestWorkflowStepDto {
   id: number;
   stepOrder: number;
   stepName: string;
-  mediaTypeId: number | null;
   stepType: StepType;
   targetOrganismId: number | null;
-  mediaType: { id: number; class: string } | null;
+  phenotypicTestType?: string | null;
+  // A biochemical step can bundle more than one phenotypic test (e.g.
+  // Gram Stain + Oxidase + Identification Kit) instead of chaining
+  // separate steps - the analyst still submits one combined result.
+  phenotypicTestTypes?: string[];
+  stepMedia: { id?: number; materialId: number; materialName: string; tempMin: number; tempMax: number; incubationMinHours?: number; incubationMaxHours?: number; isRequired: boolean }[];
   incubationMinHours: number;
   incubationMaxHours: number;
   temperatureMin: number;
@@ -46,6 +50,8 @@ export interface IncubationLock {
   incubationEndUtc: string;
   remainingSeconds: number;
   stageNumber?: number;
+  minimumDurationOverridden?: boolean;
+  minimumDurationOverriddenAt?: string | null;
 }
 
 export interface SampleContext {

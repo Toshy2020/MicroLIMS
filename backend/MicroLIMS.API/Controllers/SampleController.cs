@@ -14,9 +14,16 @@ public record ReceiveItemBasedSampleRequest(
     int ItemId, int CauseOfTestingId, string SampleQuantity, string SampledBy,
     string BatchNumber, string ControlNumber, DateTime? MfgDate, DateTime? ExpDate, string? ProductionStage);
 
-public record CorrectSampleRequest(string? BatchNumber, string? ControlNumber);
+public record CorrectSampleRequest(
+    string? BatchNumber,
+    string? ControlNumber,
+    string? PreviousProductName = null,
+    string? PreviousProductBatchNumber = null
+);
 
 public record AssignAnalystRequest(int? AnalystUserId, string? Reason);
+
+public record VoidSampleRequest(string Reason);
 
 [ApiController]
 [Route("api/samples")]
@@ -63,7 +70,12 @@ public class SampleController : ControllerBase
     {
         try
         {
-            var sample = await _correctionService.CorrectAsync(id, request.BatchNumber, request.ControlNumber);
+            var sample = await _correctionService.CorrectAsync(
+                id,
+                request.BatchNumber,
+                request.ControlNumber,
+                request.PreviousProductName,
+                request.PreviousProductBatchNumber);
             return Ok(ApiResponse<object>.Ok(sample));
         }
         catch (InvalidOperationException ex)
@@ -79,6 +91,21 @@ public class SampleController : ControllerBase
         try
         {
             var sample = await _assignmentService.AssignAnalystAsync(id, request.AnalystUserId, CurrentUserId, request.Reason);
+            return Ok(ApiResponse<object>.Ok(sample));
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(ApiResponse<object>.Fail(ex.Message));
+        }
+    }
+
+    [HttpPost("{id}/void")]
+    [Authorize(Roles = RoleConstants.Analyst + "," + RoleConstants.Reviewer + "," + RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
+    public async Task<IActionResult> Void(int id, [FromBody] VoidSampleRequest request)
+    {
+        try
+        {
+            var sample = await _correctionService.VoidAsync(id, request.Reason, CurrentUserId);
             return Ok(ApiResponse<object>.Ok(sample));
         }
         catch (InvalidOperationException ex)

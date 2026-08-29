@@ -1,9 +1,5 @@
 import { useState, useEffect } from "react";
 import {
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
   Button,
   Box,
   Typography,
@@ -18,7 +14,6 @@ import {
   AccordionDetails,
   useTheme,
 } from "@mui/material";
-import CloseIcon from "@mui/icons-material/Close";
 import DescriptionIcon from "@mui/icons-material/Description";
 import VerifiedIcon from "@mui/icons-material/Verified";
 import DownloadIcon from "@mui/icons-material/Download";
@@ -31,6 +26,7 @@ import {
   ItemDocumentType,
   MaterialDocumentStatus,
 } from "../modules/laboratoryConfiguration/items/services/ItemDocumentService";
+import { FloatingDialog } from "./FloatingDialog";
 
 interface ReadOnlyItemDocumentsDialogProps {
   open: boolean;
@@ -98,8 +94,12 @@ export function ReadOnlyItemDocumentsDialog({
   };
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-      <DialogTitle sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", pb: 1 }}>
+    <FloatingDialog
+      open={open}
+      onClose={onClose}
+      maxWidth="sm"
+      titleSx={{ pb: 1 }}
+      title={
         <Box>
           <Typography variant="h6" sx={{ fontWeight: 700, fontSize: 16 }}>
             Controlled Item Documents
@@ -116,12 +116,13 @@ export function ReadOnlyItemDocumentsDialog({
             {category && <CategoryBadge category={category} />}
           </Stack>
         </Box>
-        <Button size="small" onClick={onClose} color="inherit">
-          <CloseIcon fontSize="small" />
+      }
+      actions={
+        <Button onClick={onClose} variant="contained" color="primary">
+          Close
         </Button>
-      </DialogTitle>
-
-      <DialogContent dividers>
+      }
+    >
         {loading ? (
           <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>
             <CircularProgress size={32} />
@@ -233,14 +234,7 @@ export function ReadOnlyItemDocumentsDialog({
             </Box>
           </Stack>
         )}
-      </DialogContent>
-
-      <DialogActions sx={{ px: 2.5, py: 1.5 }}>
-        <Button onClick={onClose} variant="contained" color="primary">
-          Close
-        </Button>
-      </DialogActions>
-    </Dialog>
+    </FloatingDialog>
   );
 }
 

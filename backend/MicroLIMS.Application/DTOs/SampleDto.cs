@@ -65,5 +65,14 @@ public class SampleDto
     public int? AssignedAnalystId { get; set; }
     public string? AssignedAnalystName { get; set; }
 
+    // After Cleaning Previous Product Traceability (historical free text)
+    public string? PreviousProductName { get; set; }
+    public string? PreviousProductBatchNumber { get; set; }
+
+    // Retest spin-off linkage (for nested sub-row rendering in register)
+    public int? OriginSampleId { get; set; }
+    public string? OriginReferenceNumber { get; set; }
+    public string? OosGroupCode { get; set; }
+
     public List<TestOrderSummaryDto> AssignedTests { get; set; } = new();
 }

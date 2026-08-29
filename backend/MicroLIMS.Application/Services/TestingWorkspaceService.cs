@@ -20,6 +20,7 @@ public class TestingWorkspaceService : ITestWorkspaceService
     public async Task<List<SampleDto>> GetActiveSamplesAsync()
     {
         var samples = await _db.Samples
+            .Include(s => s.OriginSample)
             .Include(s => s.Item)
             .Include(s => s.WaterSamplingPoint)
             .Include(s => s.WaterDepartment)
@@ -35,7 +36,9 @@ public class TestingWorkspaceService : ITestWorkspaceService
 
         var testDefs = await _db.TestDefinitions
             .Include(t => t.Steps)
-                .ThenInclude(s => s.MediaType)
+                .ThenInclude(s => s.StepMedia)
+            .Include(t => t.Steps)
+                .ThenInclude(s => s.IncubationStages)
             .Where(t => allTestCodes.Contains(t.Code))
             .ToDictionaryAsync(t => t.Code);
 
@@ -52,6 +55,7 @@ public class TestingWorkspaceService : ITestWorkspaceService
     public async Task<SampleDto?> GetSampleAsync(int sampleId)
     {
         var sample = await _db.Samples
+            .Include(s => s.OriginSample)
             .Include(s => s.Item)
             .Include(s => s.WaterSamplingPoint)
             .Include(s => s.WaterDepartment)
@@ -67,7 +71,9 @@ public class TestingWorkspaceService : ITestWorkspaceService
 
         var testDefs = await _db.TestDefinitions
             .Include(t => t.Steps)
-                .ThenInclude(s => s.MediaType)
+                .ThenInclude(s => s.StepMedia)
+            .Include(t => t.Steps)
+                .ThenInclude(s => s.IncubationStages)
             .Where(t => allTestCodes.Contains(t.Code))
             .ToDictionaryAsync(t => t.Code);
 
@@ -126,9 +132,8 @@ public class TestingWorkspaceService : ITestWorkspaceService
             foreach (var def in testDefs.Values)
             {
                 var tsbStep = def.Steps.FirstOrDefault(step =>
-                    step.StepType == StepType.BrothEnrichment ||
-                    (!string.IsNullOrEmpty(step.StepName) && step.StepName.Contains("TSB", StringComparison.OrdinalIgnoreCase)) ||
-                    (step.MediaType != null && (step.MediaType.Class == MediaClass.GeneralBroth || step.MediaType.Class == MediaClass.SelectiveBroth)));
+                    step.StepType is StepType.BrothEnrichment ||
+                    (!string.IsNullOrEmpty(step.StepName) && step.StepName.Contains("TSB", StringComparison.OrdinalIgnoreCase)));
                 if (tsbStep != null && tsbStep.IncubationMinHours > 0)
                 {
                     tsbHoursMin = tsbStep.IncubationMinHours;
@@ -150,12 +155,11 @@ public class TestingWorkspaceService : ITestWorkspaceService
             testDefs?.TryGetValue(t.TestCode, out def);
 
             bool usesTsb = def?.Steps.Any(step =>
-                step.StepType == StepType.BrothEnrichment ||
-                (!string.IsNullOrEmpty(step.StepName) && step.StepName.Contains("TSB", StringComparison.OrdinalIgnoreCase)) ||
-                (step.MediaType != null && (step.MediaType.Class == MediaClass.GeneralBroth || step.MediaType.Class == MediaClass.SelectiveBroth))) ?? false;
+                step.StepType is StepType.BrothEnrichment or StepType.SelectiveBroth ||
+                (!string.IsNullOrEmpty(step.StepName) && step.StepName.Contains("TSB", StringComparison.OrdinalIgnoreCase))) ?? false;
 
             var testIncubations = sampleIncubations.Where(i => i.TestOrderId == t.Id).ToList();
-            var stateResult = WorkflowStateResolver.Resolve(t, usesTsb, sharedTsbInc, testIncubations, null, DateTime.UtcNow);
+            var stateResult = WorkflowStateResolver.Resolve(t, usesTsb, sharedTsbInc, testIncubations, null, DateTime.UtcNow, 24, def?.Steps);
 
             return new TestOrderSummaryDto
             {
@@ -176,13 +180,21 @@ public class TestingWorkspaceService : ITestWorkspaceService
             };
         }).ToList();
 
+        string displayName = s.Category switch
+        {
+            SampleCategory.AfterCleaning => s.Machine?.Name ?? string.Empty,
+            SampleCategory.Water => s.WaterSamplingPoint?.Code ?? s.WaterDepartment?.Name ?? string.Empty,
+            SampleCategory.EnvironmentalMonitoring => s.Department?.Name ?? string.Empty,
+            _ => s.Item?.Name ?? string.Empty
+        };
+
         return new()
         {
             SampleId = s.Id,
             ItemId = s.ItemId,
             ReferenceNumber = s.ReferenceNumber,
             Category = s.Category.ToString(),
-            DisplayName = s.Item?.Name ?? s.WaterSamplingPoint?.Code ?? s.WaterDepartment?.Name ?? s.Department?.Name ?? s.Machine?.Name ?? string.Empty,
+            DisplayName = displayName,
             DepartmentId = s.DepartmentId,
             MachineId = s.MachineId,
             WaterDepartmentId = s.WaterDepartmentId,
@@ -204,7 +216,12 @@ public class TestingWorkspaceService : ITestWorkspaceService
             IncubationStarted = sampleIncubations.Count > 0,
             AssignedAnalystId = assignedTests.FirstOrDefault(t => t.AssignedAnalystId != null)?.AssignedAnalystId,
             AssignedAnalystName = assignedTests.FirstOrDefault(t => !string.IsNullOrEmpty(t.AssignedAnalystName))?.AssignedAnalystName,
-            AssignedTests = assignedTests
+            AssignedTests = assignedTests,
+            PreviousProductName = s.Category == SampleCategory.AfterCleaning ? s.PreviousProductName : null,
+            PreviousProductBatchNumber = s.Category == SampleCategory.AfterCleaning ? (s.PreviousProductBatchNumber ?? s.BatchNumber) : null,
+            OriginSampleId = s.OriginSampleId,
+            OriginReferenceNumber = s.OriginSample?.ReferenceNumber,
+            OosGroupCode = s.OosGroupCode
         };
     }
 }

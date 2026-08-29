@@ -28,6 +28,11 @@ public class NoOpNotificationService : INotificationService
     public Task NotifyAsync(int userId, string message) => Task.CompletedTask;
 }
 
+public class NoOpEmailSender : MicroLIMS.Infrastructure.Email.IEmailSender
+{
+    public Task SendAsync(string to, string subject, string body) => Task.CompletedTask;
+}
+
 // For the handful of tests that DO need to assert delivery (e.g. the
 // reviewer send-back notifying the analyst).
 public class SpyNotificationService : INotificationService
@@ -46,8 +51,13 @@ public class SpyNotificationService : INotificationService
 // constructs it.
 public static class TestServiceFactory
 {
+    public static DashboardNotificationService DashboardNotification(MicroLimsDbContext db, INotificationService? notifications = null, MicroLIMS.Infrastructure.Email.IEmailSender? emailSender = null) =>
+        new(db, notifications ?? new NoOpNotificationService(), emailSender ?? new NoOpEmailSender());
     public static ReviewGateService ReviewGate(MicroLimsDbContext db) =>
         new(db, new ElectronicSignatureService(db));
+
+    public static ReviewService Review(MicroLimsDbContext db) =>
+        new(db, new SegregationOfDutiesGuard(db), new ElectronicSignatureService(db));
 
     public static RecordArchiveService Archive(MicroLimsDbContext db, IFileStorageService? storage = null) =>
         new(db, new PdfGenerator(), storage ?? new InMemoryFileStorageService(), NullLogger<RecordArchiveService>.Instance);
@@ -72,7 +82,7 @@ public static class TestServiceFactory
             new SegregationOfDutiesGuard(db), ReviewGate(db), notifications ?? new NoOpNotificationService());
 
     public static SampleApprovalService SampleApproval(MicroLimsDbContext db, IFileStorageService? storage = null) =>
-        new(db, ReviewGate(db), SampleSummary(db), Archive(db, storage), ResultProjection(db));
+        new(db, ReviewGate(db), SampleSummary(db), Archive(db, storage), ResultProjection(db), new ReferenceNumberGenerator(db));
 
     public static MediaReleaseService MediaRelease(MicroLimsDbContext db, IFileStorageService? storage = null) =>
         new(db, new SegregationOfDutiesGuard(db), ReviewGate(db), MediaSummary(db), Archive(db, storage));
@@ -88,4 +98,10 @@ public static class TestServiceFactory
 
     public static MediaAppearanceSnapshotService AppearanceSnapshot(MicroLimsDbContext db) =>
         new(db, NullLogger<MediaAppearanceSnapshotService>.Instance);
+
+    public static KpiService Kpi(MicroLimsDbContext db) => new(db);
+
+    public static DashboardService Dashboard(MicroLimsDbContext db) => new(db, Kpi(db));
+
+    public static MyTasksService MyTasks(MicroLimsDbContext db) => new(db);
 }

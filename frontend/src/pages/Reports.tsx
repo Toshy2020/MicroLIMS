@@ -6,6 +6,8 @@ import { brandColors } from "../theme";
 import { QuickPeriodSelector } from "../modules/reports/components/QuickPeriodSelector";
 import { OverviewTab } from "../modules/reports/components/OverviewTab";
 import { RecordSearchTab } from "../modules/reports/RecordSearchTab";
+import { MediaGptReportTab } from "../modules/reports/MediaGptReportTab";
+import { ReferenceStrainReportTab } from "../modules/reports/ReferenceStrainReportTab";
 import { TrendingTab } from "../modules/reports/components/TrendingTab";
 import { AnalystKpiTab } from "../modules/reports/components/AnalystKpiTab";
 import { QuickPeriod, computeQuickPeriodRange, toDateInputValue } from "../modules/reports/utils/dateRange";
@@ -13,11 +15,13 @@ import { QuickPeriod, computeQuickPeriodRange, toDateInputValue } from "../modul
 const TABS = [
   "Overview",
   "Record Search",
+  "Media / GPT",
+  "Reference Strains",
   "Trending & Analysis",
   "KPI / Performance"
 ] as const;
 
-const TAB_KEYS = ["overview", "search", "trending", "performance"] as const;
+const TAB_KEYS = ["overview", "search", "media-gpt", "reference-strains", "trending", "performance"] as const;
 
 export function ReportsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -67,7 +71,7 @@ export function ReportsPage() {
 
   const handleAnalyzeTrend = (testCode: string, subjectName: string) => {
     setTrendParams({ testCode, subjectName });
-    handleTabChange(2); // Switch to Trending & Analysis
+    handleTabChange(4); // Switch to Trending & Analysis
   };
 
   return (
@@ -108,17 +112,29 @@ export function ReportsPage() {
           fromDate={range.fromDate}
           toDate={range.toDate}
           onAnalyzeTrend={handleAnalyzeTrend}
+          onNavigateTab={handleTabChange}
         />
       )}
 
       {tab === 2 && (
+        <MediaGptReportTab
+          fromDate={range.fromDate}
+          toDate={range.toDate}
+        />
+      )}
+
+      {tab === 3 && (
+        <ReferenceStrainReportTab />
+      )}
+
+      {tab === 4 && (
         <TrendingTab
           initialTestCode={trendParams.testCode}
           initialSubjectName={trendParams.subjectName}
         />
       )}
 
-      {tab === 3 && (
+      {tab === 5 && (
         <AnalystKpiTab />
       )}
     </>

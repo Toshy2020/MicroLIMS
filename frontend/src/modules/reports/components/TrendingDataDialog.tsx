@@ -1,8 +1,9 @@
-import { Dialog, DialogTitle, DialogContent, DialogActions, Button, Table, TableHead, TableRow, TableCell, TableBody, Typography, Box , useTheme} from "@mui/material";
+import { Button, Table, TableHead, TableRow, TableCell, TableBody, Typography, Box , useTheme} from "@mui/material";
 import FileDownloadIcon from "@mui/icons-material/FileDownload";
 import { NumericTrendPoint, QualitativeTrendPoint } from "../types/reportingTypes";
 import { StatusBadge } from "../../../components/StatusBadge";
 import { brandColors } from "../../../theme";
+import { FloatingDialog } from "../../../components/FloatingDialog";
 
 interface TrendingDataDialogProps {
   open: boolean;
@@ -52,22 +53,27 @@ export function TrendingDataDialog({
   };
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
-      <DialogTitle sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: 1, borderColor: "divider" }}>
-        <Box>
-          <Typography sx={{ fontSize: 16, fontWeight: 700, color: theme.palette.primary.main }}>
-            Trend Data Table — {testName}
-          </Typography>
-          <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
-            Subject: <strong>{subjectName}</strong> {unit ? `(${unit})` : ""}
-          </Typography>
+    <FloatingDialog
+      open={open}
+      onClose={onClose}
+      maxWidth="md"
+      title={
+        <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", flex: 1, minWidth: 0, mr: 1 }}>
+          <Box>
+            <Typography sx={{ fontSize: 16, fontWeight: 700, color: theme.palette.primary.main }}>
+              Trend Data Table — {testName}
+            </Typography>
+            <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
+              Subject: <strong>{subjectName}</strong> {unit ? `(${unit})` : ""}
+            </Typography>
+          </Box>
+          <Button size="small" variant="outlined" startIcon={<FileDownloadIcon />} onClick={handleExportCsv}>
+            Export CSV
+          </Button>
         </Box>
-        <Button size="small" variant="outlined" startIcon={<FileDownloadIcon />} onClick={handleExportCsv}>
-          Export CSV
-        </Button>
-      </DialogTitle>
-
-      <DialogContent sx={{ pt: 2 }}>
+      }
+      actions={<Button onClick={onClose}>Close</Button>}
+    >
         {isNumeric ? (
           <Table size="small" sx={{ "& th": { fontWeight: 700, fontSize: 11.5 } }}>
             <TableHead>
@@ -130,11 +136,6 @@ export function TrendingDataDialog({
             </TableBody>
           </Table>
         )}
-      </DialogContent>
-
-      <DialogActions sx={{ px: 3, py: 1.5, borderTop: 1, borderColor: "divider" }}>
-        <Button onClick={onClose}>Close</Button>
-      </DialogActions>
-    </Dialog>
+    </FloatingDialog>
   );
 }

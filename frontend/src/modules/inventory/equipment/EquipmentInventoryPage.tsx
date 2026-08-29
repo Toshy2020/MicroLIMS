@@ -72,7 +72,7 @@ export function EquipmentInventoryPage() {
 
   // Pagination state
   const [page, setPage] = useState(0);
-  const [rowsPerPage, setRowsPerPage] = useState(25);
+  const [rowsPerPage, setRowsPerPage] = useState(15);
 
   // Dialog states
   const [isRegisterOpen, setIsRegisterOpen] = useState(false);
@@ -376,7 +376,7 @@ export function EquipmentInventoryPage() {
             </TableContainer>
 
             <TablePagination
-              rowsPerPageOptions={[10, 25, 50, 100]}
+              rowsPerPageOptions={[15, 30, 50, 100]}
               component="div"
               count={filteredItems.length}
               rowsPerPage={rowsPerPage}

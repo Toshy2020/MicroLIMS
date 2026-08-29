@@ -7,7 +7,7 @@ namespace MicroLIMS.Application.Services;
 
 public record IdentityConfirmationRow(int MediaId, int IncubatorEquipmentId, DateTime IncubationStart, DateTime IncubationEnd, string ObservationText);
 public record PrepareCryovialsRequest(
-    int MaterialId, int NumberOfVialsPrepared, DateTime ExpiryDate, string StorageCondition, string PhysicalCheckText,
+    int MaterialId, int NumberOfVialsPrepared, DateTime ExpiryDate, string StorageCondition, bool PhysicalCheckConfirmed, string PhysicalCheckText,
     List<IdentityConfirmationRow> Panel, int DiscsUsed, int UserId);
 
 // Cryovial batches are prepared directly from a LyophilizedMicroorganism
@@ -41,6 +41,9 @@ public class CryovialService
 
     public async Task<Cryovial> PrepareCryovialsAsync(PrepareCryovialsRequest request)
     {
+        if (!request.PhysicalCheckConfirmed)
+            throw new InvalidOperationException("Physical check confirmation against the organism reference description is required.");
+
         var material = await _db.Materials.Include(m => m.Organism).FirstOrDefaultAsync(m => m.Id == request.MaterialId)
             ?? throw new InvalidOperationException($"Material {request.MaterialId} not found.");
 
@@ -86,6 +89,7 @@ public class CryovialService
             NumberOfVialsPrepared = request.NumberOfVialsPrepared,
             VialsRemaining = request.NumberOfVialsPrepared,
             StorageCondition = request.StorageCondition,
+            PhysicalCheckConfirmed = request.PhysicalCheckConfirmed,
             PhysicalCheckText = request.PhysicalCheckText,
             ApprovalStatus = ApprovalGateStatus.PendingReview,
             PreparedByUserId = request.UserId

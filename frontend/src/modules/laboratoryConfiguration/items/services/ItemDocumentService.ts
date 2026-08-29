@@ -1,14 +1,17 @@
 import { apiClient } from "../../../../services/apiClient";
 
+// String-valued to match the backend's JSON enum serialization
+// (JsonStringEnumConverter is registered globally in Program.cs, so every
+// enum - including these - arrives as its name, not its numeric value).
 export enum ItemDocumentType {
-  Sop = 0,
-  VerificationReport = 1,
+  Sop = "Sop",
+  VerificationReport = "VerificationReport",
 }
 
 export enum MaterialDocumentStatus {
-  Current = 0,
-  Superseded = 1,
-  Voided = 2,
+  Current = "Current",
+  Superseded = "Superseded",
+  Voided = "Voided",
 }
 
 export interface ItemDocumentDto {
@@ -29,8 +32,8 @@ export interface ItemDocumentDto {
 
 export const ItemDocumentService = {
   async getDocumentsForItem(itemId: number): Promise<ItemDocumentDto[]> {
-    const res = await apiClient.get<ItemDocumentDto[]>(`/api/items/${itemId}/documents`);
-    return res.data;
+    const res = await apiClient.get<{ data: ItemDocumentDto[] }>(`/items/${itemId}/documents`);
+    return res.data.data;
   },
 
   async uploadDocument(
@@ -48,14 +51,14 @@ export const ItemDocumentService = {
       formData.append("effectiveDate", effectiveDate);
     }
 
-    const res = await apiClient.post<ItemDocumentDto>(`/api/items/${itemId}/documents`, formData, {
+    const res = await apiClient.post<{ data: ItemDocumentDto }>(`/items/${itemId}/documents`, formData, {
       headers: { "Content-Type": "multipart/form-data" },
     });
-    return res.data;
+    return res.data.data;
   },
 
   getContentUrl(documentId: number, download = false): string {
     const base = apiClient.defaults.baseURL || "";
-    return `${base}/api/item-documents/${documentId}/content${download ? "?download=true" : ""}`;
+    return `${base}/item-documents/${documentId}/content${download ? "?download=true" : ""}`;
   },
 };

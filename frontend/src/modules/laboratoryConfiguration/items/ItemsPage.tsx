@@ -188,7 +188,11 @@ export function ItemsPage() {
 
           {/* Right Workspace Panel: ~60-65% detailed workspace */}
           <Grid item xs={12} md={7.5} lg={8}>
-            <ItemWorkspace item={selectedItem} onClose={() => setSelectedItemId(null)} />
+            <ItemWorkspace
+              item={selectedItem}
+              onClose={() => setSelectedItemId(null)}
+              onItemUpdated={loadItems}
+            />
           </Grid>
         </Grid>
       ) : (

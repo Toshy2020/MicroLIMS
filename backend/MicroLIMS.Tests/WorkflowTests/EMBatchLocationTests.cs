@@ -4,6 +4,7 @@ using MicroLIMS.Application.Workflows;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Persistence.DbContext;
+using MicroLIMS.Shared.Constants;
 using Xunit;
 
 namespace MicroLIMS.Tests.WorkflowTests;
@@ -29,21 +30,16 @@ public class EMBatchLocationTests
     // Master's actual EM/After Cleaning configuration).
     private static async Task<(Media media, Equipment equipment)> SeedCountTestWorkflowAsync(MicroLimsDbContext db, string testCode, int minHours = 0)
     {
-        var mediaType = new MediaType
-        {
-            Class = MediaClass.GeneralAgar,
-            IncubationMinHours = 24, IncubationMaxHours = 48, RequiredTemperatureMin = 30, RequiredTemperatureMax = 35
-        };
         var testDefinition = new TestDefinition { Code = testCode, DisplayName = testCode, WorkflowType = WorkflowType.CountTest };
-        db.MediaTypes.Add(mediaType);
         db.TestDefinitions.Add(testDefinition);
         await db.SaveChangesAsync();
 
-        db.TestWorkflowSteps.Add(new TestWorkflowStep
+        var step = new TestWorkflowStep
         {
-            TestDefinitionId = testDefinition.Id, StepOrder = 1, StepName = "CountIncubation", MediaTypeId = mediaType.Id,
+            TestDefinitionId = testDefinition.Id, StepOrder = 1, StepName = "CountIncubation", 
             IncubationMinHours = minHours, IncubationMaxHours = minHours + 24, TemperatureMin = 30, TemperatureMax = 35, IsFinalStep = true
-        });
+        };
+        db.TestWorkflowSteps.Add(step);
 
         var material = new Material
         {
@@ -53,13 +49,14 @@ public class EMBatchLocationTests
         };
         db.Materials.Add(material);
         await db.SaveChangesAsync();
+        db.TestWorkflowStepMedias.Add(new TestWorkflowStepMedia { TestWorkflowStepId = step.Id, MaterialId = material.Id, TempMin = 30, TempMax = 35, IncubationMinHours = minHours, IncubationMaxHours = minHours + 24 });
 
         var media = new Media
         {
-            MediaTypeId = mediaType.Id, MaterialId = material.Id, LotNumber = "TSA/" + testCode, IsReleasedForUse = true,
+            MaterialId = material.Id, LotNumber = "TSA/" + testCode, IsReleasedForUse = true,
             Status = MediaStatus.Active, ExpiryDate = DateTime.UtcNow.AddDays(30)
         };
-        var equipment = new Equipment { Name = "Incubator " + testCode, Code = "INC-" + testCode, Type = EquipmentType.Incubator };
+        var equipment = new Equipment { Name = "Incubator " + testCode, Code = "INC-" + testCode, Type = EquipmentType.Incubator, SetPointTemperature = 32 };
         db.Media.Add(media);
         db.Equipment.Add(equipment);
         await db.SaveChangesAsync();
@@ -72,78 +69,65 @@ public class EMBatchLocationTests
     // Master's actual "TAMC Passive air sample" configuration.
     private static async Task<(Media window1Media, Media window2Media, Equipment equipment1, Equipment equipment2)> SeedTwoWindowCountTestWorkflowAsync(MicroLimsDbContext db, string testCode)
     {
-        var window1Media = new MediaType { Class = MediaClass.GeneralAgar, IncubationMinHours = 24, IncubationMaxHours = 48, RequiredTemperatureMin = 30, RequiredTemperatureMax = 35 };
-        var window2Media = new MediaType { Class = MediaClass.GeneralAgar, IncubationMinHours = 24, IncubationMaxHours = 48, RequiredTemperatureMin = 20, RequiredTemperatureMax = 25 };
         var testDefinition = new TestDefinition { Code = testCode, DisplayName = testCode, WorkflowType = WorkflowType.CountTest };
-        db.MediaTypes.AddRange(window1Media, window2Media);
         db.TestDefinitions.Add(testDefinition);
         await db.SaveChangesAsync();
 
-        db.TestWorkflowSteps.AddRange(
-            new TestWorkflowStep { TestDefinitionId = testDefinition.Id, StepOrder = 1, StepName = "CountIncubation", MediaTypeId = window1Media.Id, IncubationMinHours = 72, IncubationMaxHours = 96, TemperatureMin = 30, TemperatureMax = 35, IsFinalStep = false },
-            new TestWorkflowStep { TestDefinitionId = testDefinition.Id, StepOrder = 2, StepName = "transfer", MediaTypeId = window2Media.Id, IncubationMinHours = 48, IncubationMaxHours = 72, TemperatureMin = 20, TemperatureMax = 25, IsFinalStep = true });
+        var step1 = new TestWorkflowStep { TestDefinitionId = testDefinition.Id, StepOrder = 1, StepName = "CountIncubation", IncubationMinHours = 72, IncubationMaxHours = 96, TemperatureMin = 30, TemperatureMax = 35, IsFinalStep = false };
+        var step2 = new TestWorkflowStep { TestDefinitionId = testDefinition.Id, StepOrder = 2, StepName = "transfer", IncubationMinHours = 48, IncubationMaxHours = 72, TemperatureMin = 20, TemperatureMax = 25, IsFinalStep = true };
+        db.TestWorkflowSteps.AddRange(step1, step2);
 
         var material = new Material
         {
             MaterialType = MaterialType.DehydratedMedia, MaterialName = "TSA Powder", ManufacturerName = "Himedia",
-            BatchNumber = "LOT-001", ReceivingDate = DateTime.UtcNow.AddDays(-10), Code = "TSA-2W-" + testCode,
+            BatchNumber = "LOT-002", ReceivingDate = DateTime.UtcNow.AddDays(-10), Code = "TSA2-" + testCode,
             Location = "Micro Lab", QuantityReceived = 500, QuantityRemaining = 500, Unit = MaterialUnit.Gram
         };
         db.Materials.Add(material);
         await db.SaveChangesAsync();
+        db.TestWorkflowStepMedias.Add(new TestWorkflowStepMedia { TestWorkflowStepId = step1.Id, MaterialId = material.Id, TempMin = 30, TempMax = 35, IncubationMinHours = 72, IncubationMaxHours = 96 });
+        db.TestWorkflowStepMedias.Add(new TestWorkflowStepMedia { TestWorkflowStepId = step2.Id, MaterialId = material.Id, TempMin = 20, TempMax = 25, IncubationMinHours = 48, IncubationMaxHours = 72 });
 
-        var media = new Media
+        var window1Media = new Media
         {
-            MediaTypeId = window1Media.Id, MaterialId = material.Id, LotNumber = "TSA/2W/" + testCode, IsReleasedForUse = true,
+            MaterialId = material.Id, LotNumber = "TSA1/" + testCode, IsReleasedForUse = true,
             Status = MediaStatus.Active, ExpiryDate = DateTime.UtcNow.AddDays(30)
         };
-        // A second Media row sharing window2's MediaType, so the "same
-        // plate, new incubator" window 2 selection has a matching lot to
-        // pick from too (SelectMediaAsync enforces media type == step type).
-        var media2 = new Media
+        var window2Media = new Media
         {
-            MediaTypeId = window2Media.Id, MaterialId = material.Id, LotNumber = "TSA/2W-B/" + testCode, IsReleasedForUse = true,
+            MaterialId = material.Id, LotNumber = "TSA2/" + testCode, IsReleasedForUse = true,
             Status = MediaStatus.Active, ExpiryDate = DateTime.UtcNow.AddDays(30)
         };
-        var equipment1 = new Equipment { Name = "Incubator 32.5 " + testCode, Code = "INC-A-" + testCode, Type = EquipmentType.Incubator };
-        var equipment2 = new Equipment { Name = "Incubator 22.5 " + testCode, Code = "INC-B-" + testCode, Type = EquipmentType.Incubator };
-        db.Media.AddRange(media, media2);
+        var equipment1 = new Equipment { Name = "Incubator 32.5 " + testCode, Code = "INC-32-" + testCode, Type = EquipmentType.Incubator, SetPointTemperature = 32 };
+        var equipment2 = new Equipment { Name = "Incubator 22.5 " + testCode, Code = "INC-22-" + testCode, Type = EquipmentType.Incubator, SetPointTemperature = 22 };
+        db.Media.AddRange(window1Media, window2Media);
         db.Equipment.AddRange(equipment1, equipment2);
         await db.SaveChangesAsync();
 
-        return (media, media2, equipment1, equipment2);
+        return (window1Media, window2Media, equipment1, equipment2);
     }
 
     private static TestWorkflowEngine NewTestWorkflowEngine(MicroLimsDbContext db) =>
         TestServiceFactory.TestWorkflow(db);
 
-    // Seeds a single-step Observation pathogen workflow template for the
-    // given test code, plus a released media lot and incubator - mirrors
-    // SeedCountTestWorkflowAsync but for the per-location Detected/Absent
-    // grid instead of CFU. DualPlate no longer exists as a WorkflowType;
-    // the batch pathogen path only ever records one growth observation
+    // Seeds a standard single-step observation/pathogen workflow - 1 result
     // per location (RecordBatchPathogenResultsAsync).
     private static async Task<(Media media, Equipment equipment)> SeedPathogenWorkflowAsync(MicroLimsDbContext db, string testCode)
     {
-        var mediaType = new MediaType
-        {
-            Class = MediaClass.SelectiveAgar,
-            IncubationMinHours = 24, IncubationMaxHours = 48, RequiredTemperatureMin = 35, RequiredTemperatureMax = 37
-        };
         var testDefinition = new TestDefinition
         {
             Code = testCode, DisplayName = testCode, WorkflowType = WorkflowType.Observation
         };
-        db.MediaTypes.Add(mediaType);
         db.TestDefinitions.Add(testDefinition);
         await db.SaveChangesAsync();
 
-        db.TestWorkflowSteps.Add(new TestWorkflowStep
+        var step = new TestWorkflowStep
         {
-            TestDefinitionId = testDefinition.Id, StepOrder = 1, StepName = "Detection", MediaTypeId = mediaType.Id,
+            TestDefinitionId = testDefinition.Id, StepOrder = 1, StepName = "Detection", 
             IncubationMinHours = 0, IncubationMaxHours = 24, TemperatureMin = 35, TemperatureMax = 37,
             IsFinalStep = true
-        });
+        };
+        db.TestWorkflowSteps.Add(step);
 
         var material = new Material
         {
@@ -153,13 +137,14 @@ public class EMBatchLocationTests
         };
         db.Materials.Add(material);
         await db.SaveChangesAsync();
+        db.TestWorkflowStepMedias.Add(new TestWorkflowStepMedia { TestWorkflowStepId = step.Id, MaterialId = material.Id, TempMin = 35, TempMax = 37 });
 
         var media = new Media
         {
-            MediaTypeId = mediaType.Id, MaterialId = material.Id, LotNumber = "SEL/" + testCode, IsReleasedForUse = true,
+            MaterialId = material.Id, LotNumber = "SEL/" + testCode, IsReleasedForUse = true,
             Status = MediaStatus.Active, ExpiryDate = DateTime.UtcNow.AddDays(30)
         };
-        var equipment = new Equipment { Name = "Incubator " + testCode, Code = "INC-P-" + testCode, Type = EquipmentType.Incubator };
+        var equipment = new Equipment { Name = "Incubator " + testCode, Code = "INC-P-" + testCode, Type = EquipmentType.Incubator, SetPointTemperature = 36 };
         db.Media.Add(media);
         db.Equipment.Add(equipment);
         await db.SaveChangesAsync();
@@ -229,10 +214,10 @@ public class EMBatchLocationTests
         await workflowEngine.SelectMediaAsync(order.Id, "CountIncubation", media.Id, equipment.Id, 1);
 
         var locations = await workflowEngine.GetLocationsAsync(order.Id);
-        var onlyOne = new List<BatchLocationResult> { new(locations[0].Id, 5) };
+        var onlyOne = new List<BatchLocationReadings> { new(locations[0].Id, new List<decimal> { 5 }) };
 
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            workflowEngine.RecordBatchResultsAsync(order.Id, 1, onlyOne, 1));
+            workflowEngine.RecordBatchResultsAsync(order.Id, onlyOne, 1));
         Assert.Contains(locations[1].RoomTestConfiguration!.Room!.Name, ex.Message);
     }
 
@@ -272,8 +257,8 @@ public class EMBatchLocationTests
         var locations = await workflowEngine.GetLocationsAsync(order.Id);
         Assert.Equal(3, locations.Count);
 
-        var submissions = locations.Select(l => new BatchLocationResult(l.Id, 0)).ToList();
-        var result = await workflowEngine.RecordBatchResultsAsync(order.Id, 1, submissions, 1);
+        var submissions = locations.Select(l => new BatchLocationReadings(l.Id, new List<decimal> { 0 })).ToList();
+        var result = await workflowEngine.RecordBatchResultsAsync(order.Id, submissions, 1);
 
         Assert.True(result.AllStepsComplete);
 
@@ -287,6 +272,130 @@ public class EMBatchLocationTests
 
         var reloadedOrder = await db.TestOrders.FirstAsync(t => t.Id == order.Id);
         Assert.Equal(WorkflowStep.Ready, reloadedOrder.CurrentStep);
+    }
+
+    // Multiple plate readings per location, averaged the same way
+    // RecordCountTestAsync averages RawPlateReadings for a single order -
+    // dilution factor is always 1 (EM/After Cleaning are direct-count
+    // categories), never free-typed for the whole batch.
+    [Fact]
+    public async Task RecordBatchResultsAsync_MultipleReadingsPerLocation_AveragesWithDilutionFactorOne()
+    {
+        await using var db = NewDb();
+        var dept = new Department { Name = "Filling" };
+        var rooms = new[]
+        {
+            new Room { Name = "Room A", Department = dept, GradeClassification = "A" },
+            new Room { Name = "Room B", Department = dept, GradeClassification = "A" }
+        };
+        db.Departments.Add(dept);
+        db.Rooms.AddRange(rooms);
+        await db.SaveChangesAsync();
+
+        var configs = rooms.Select(r => new RoomTestConfiguration
+        { RoomId = r.Id, TestType = "PassiveAirSample", TestCode = "TAMC", AlertLimit = "1", ActionLimit = "3", SpecLimit = "5" }).ToList();
+        db.RoomTestConfigurations.AddRange(configs);
+        await db.SaveChangesAsync();
+
+        var (media, equipment) = await SeedCountTestWorkflowAsync(db, "TAMC", minHours: 0);
+
+        var emEngine = new EMWorkflowEngine(db, new ReferenceNumberGenerator(db));
+        var sample = await emEngine.ReceiveAsync(new EMReceiveRequest(dept.Id, 0, "Analyst", "CTRL-MR", 1));
+        var prepared = await emEngine.PrepareAsync(sample.Id, configs.Select(c => c.Id).ToList(), 1);
+        var order = prepared.TestOrders.Single();
+
+        var workflowEngine = NewTestWorkflowEngine(db);
+        await workflowEngine.SelectMediaAsync(order.Id, "CountIncubation", media.Id, equipment.Id, 1);
+
+        var locations = await workflowEngine.GetLocationsAsync(order.Id);
+        Assert.Equal(2, locations.Count);
+
+        var submissions = new List<BatchLocationReadings>
+        {
+            new(locations[0].Id, new List<decimal> { 2, 4, 6 }), // average 4
+            new(locations[1].Id, new List<decimal> { 10 })       // single reading, average 10
+        };
+        var result = await workflowEngine.RecordBatchResultsAsync(order.Id, submissions, 1);
+        Assert.True(result.AllStepsComplete);
+
+        var reloadedById = (await db.SampleLocations.Where(l => l.TestOrderId == order.Id).ToListAsync())
+            .ToDictionary(l => l.Id);
+        var loc0 = reloadedById[locations[0].Id];
+        var loc1 = reloadedById[locations[1].Id];
+        Assert.Equal(4m, loc0.CFUResult);
+        Assert.Equal(4m, loc0.CalculatedResult); // dilution factor 1 - calculated equals the average
+        Assert.Equal(1m, loc0.DilutionFactor);
+        Assert.Equal("2,4,6", loc0.RawReadings);
+        Assert.Equal(10m, loc1.CFUResult);
+        Assert.Equal(1m, loc1.DilutionFactor);
+    }
+
+    [Fact]
+    public async Task RecordBatchResultsAsync_LocationWithNoReadings_ThrowsListingIt()
+    {
+        await using var db = NewDb();
+        var dept = new Department { Name = "Filling" };
+        var room = new Room { Name = "Room A", Department = dept, GradeClassification = "A" };
+        db.Departments.Add(dept);
+        db.Rooms.Add(room);
+        await db.SaveChangesAsync();
+
+        var config = new RoomTestConfiguration { RoomId = room.Id, TestType = "PassiveAirSample", TestCode = "TAMC", AlertLimit = "1", ActionLimit = "3", SpecLimit = "5" };
+        db.RoomTestConfigurations.Add(config);
+        await db.SaveChangesAsync();
+
+        var (media, equipment) = await SeedCountTestWorkflowAsync(db, "TAMC", minHours: 0);
+
+        var emEngine = new EMWorkflowEngine(db, new ReferenceNumberGenerator(db));
+        var sample = await emEngine.ReceiveAsync(new EMReceiveRequest(dept.Id, 0, "Analyst", "CTRL-NR", 1));
+        var prepared = await emEngine.PrepareAsync(sample.Id, new List<int> { config.Id }, 1);
+        var order = prepared.TestOrders.Single();
+
+        var workflowEngine = NewTestWorkflowEngine(db);
+        await workflowEngine.SelectMediaAsync(order.Id, "CountIncubation", media.Id, equipment.Id, 1);
+
+        var locations = await workflowEngine.GetLocationsAsync(order.Id);
+        var submissions = new List<BatchLocationReadings> { new(locations[0].Id, new List<decimal>()) };
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            workflowEngine.RecordBatchResultsAsync(order.Id, submissions, 1));
+        Assert.Contains(locations[0].RoomTestConfiguration!.Room!.Name, ex.Message);
+    }
+
+    // Closes the pre-existing enforcement gap fixed alongside the Media
+    // Configuration Migration's Test Master work: IncubatorEligibilityService
+    // was previously wired in only for SelectivePlating/Confirmatory
+    // (see IncubatorEligibilityTests.cs); this proves SelectMediaAsync's
+    // generic path - the one EM, broth, and CountTest all use - now enforces
+    // it too, not just the class-level product check already covered above.
+    [Fact]
+    public async Task SelectMediaAsync_IncubatorOutsideMediumRange_ThrowsIncubatorTempOutOfRange()
+    {
+        await using var db = NewDb();
+        var dept = new Department { Name = "Filling" };
+        var room = new Room { Name = "Room A", Department = dept, GradeClassification = "A" };
+        db.Departments.Add(dept);
+        db.Rooms.Add(room);
+        await db.SaveChangesAsync();
+
+        var config = new RoomTestConfiguration { RoomId = room.Id, TestType = "PassiveAirSample", TestCode = "TAMC", AlertLimit = "1", ActionLimit = "3", SpecLimit = "5" };
+        db.RoomTestConfigurations.Add(config);
+        await db.SaveChangesAsync();
+
+        var (media, _) = await SeedCountTestWorkflowAsync(db, "TAMC", minHours: 0); // step medium is 30-35C
+        var outOfRangeIncubator = new Equipment { Name = "Cold Room", Code = "INC-COLD", Type = EquipmentType.Incubator, SetPointTemperature = 4 };
+        db.Equipment.Add(outOfRangeIncubator);
+        await db.SaveChangesAsync();
+
+        var emEngine = new EMWorkflowEngine(db, new ReferenceNumberGenerator(db));
+        var sample = await emEngine.ReceiveAsync(new EMReceiveRequest(dept.Id, 0, "Analyst", "CTRL-COLD", 1));
+        var prepared = await emEngine.PrepareAsync(sample.Id, new List<int> { config.Id }, 1);
+        var order = prepared.TestOrders.Single();
+
+        var workflowEngine = NewTestWorkflowEngine(db);
+        var ex = await Assert.ThrowsAsync<WorkflowStepException>(() =>
+            workflowEngine.SelectMediaAsync(order.Id, "CountIncubation", media.Id, outOfRangeIncubator.Id, 1));
+        Assert.Equal(WorkflowErrorCodes.IncubatorTempOutOfRange, ex.ErrorCode);
     }
 
     [Fact]
@@ -319,7 +428,7 @@ public class EMBatchLocationTests
 
         await workflowEngine.SelectMediaAsync(tamcOrder.Id, "CountIncubation", tamcMedia.Id, tamcEquipment.Id, 1);
         var tamcLocations = await workflowEngine.GetLocationsAsync(tamcOrder.Id);
-        await workflowEngine.RecordBatchResultsAsync(tamcOrder.Id, 1, tamcLocations.Select(l => new BatchLocationResult(l.Id, 2)).ToList(), 1);
+        await workflowEngine.RecordBatchResultsAsync(tamcOrder.Id, tamcLocations.Select(l => new BatchLocationReadings(l.Id, new List<decimal> { 2 })).ToList(), 1);
 
         // Only one of two TestOrders done - Sample must still be in testing.
         var midway = await db.Samples.FirstAsync(s => s.Id == sample.Id);
@@ -327,7 +436,7 @@ public class EMBatchLocationTests
 
         await workflowEngine.SelectMediaAsync(tymcOrder.Id, "CountIncubation", tymcMedia.Id, tymcEquipment.Id, 1);
         var tymcLocations = await workflowEngine.GetLocationsAsync(tymcOrder.Id);
-        await workflowEngine.RecordBatchResultsAsync(tymcOrder.Id, 1, tymcLocations.Select(l => new BatchLocationResult(l.Id, 2)).ToList(), 1);
+        await workflowEngine.RecordBatchResultsAsync(tymcOrder.Id, tymcLocations.Select(l => new BatchLocationReadings(l.Id, new List<decimal> { 2 })).ToList(), 1);
 
         var finalSample = await db.Samples.FirstAsync(s => s.Id == sample.Id);
         Assert.Equal(SampleStatus.UnderReview, finalSample.Status);
@@ -405,10 +514,10 @@ public class EMBatchLocationTests
         // Can't record results before window 2's own minimum has elapsed.
         var locations = await workflowEngine.GetLocationsAsync(order.Id);
         await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            workflowEngine.RecordBatchResultsAsync(order.Id, 1, locations.Select(l => new BatchLocationResult(l.Id, 0)).ToList(), 1));
+            workflowEngine.RecordBatchResultsAsync(order.Id, locations.Select(l => new BatchLocationReadings(l.Id, new List<decimal> { 0 })).ToList(), 1));
 
         await BackdateOpenIncubationAsync(db, order.Id, hours: 49);
-        var result = await workflowEngine.RecordBatchResultsAsync(order.Id, 1, locations.Select(l => new BatchLocationResult(l.Id, 0)).ToList(), 1);
+        var result = await workflowEngine.RecordBatchResultsAsync(order.Id, locations.Select(l => new BatchLocationReadings(l.Id, new List<decimal> { 0 })).ToList(), 1);
 
         Assert.True(result.AllStepsComplete);
         var reloadedOrder = await db.TestOrders.FirstAsync(t => t.Id == order.Id);
@@ -445,7 +554,7 @@ public class EMBatchLocationTests
 
         var locations = await workflowEngine.GetLocationsAsync(order.Id);
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            workflowEngine.RecordBatchResultsAsync(order.Id, 1, locations.Select(l => new BatchLocationResult(l.Id, 0)).ToList(), 1));
+            workflowEngine.RecordBatchResultsAsync(order.Id, locations.Select(l => new BatchLocationReadings(l.Id, new List<decimal> { 0 })).ToList(), 1));
         Assert.Contains("not the final incubation window", ex.Message);
     }
 
@@ -491,5 +600,109 @@ public class EMBatchLocationTests
 
         var reloadedOrder = await db.TestOrders.FirstAsync(t => t.Id == order.Id);
         Assert.Equal(WorkflowStep.Ready, reloadedOrder.CurrentStep);
+    }
+
+    [Fact]
+    public async Task OverrideMinimumDurationAsync_ThenRecordBatchResults_SucceedsBeforeMinimumElapsed()
+    {
+        await using var db = NewDb();
+        var dept = new Department { Name = "Filling" };
+        var room = new Room { Name = "Room A", Department = dept, GradeClassification = "A" };
+        db.Departments.Add(dept);
+        db.Rooms.Add(room);
+        await db.SaveChangesAsync();
+
+        var config = new RoomTestConfiguration { RoomId = room.Id, TestType = "PassiveAirSample", TestCode = "TAMC", AlertLimit = "1", ActionLimit = "3", SpecLimit = "5" };
+        db.RoomTestConfigurations.Add(config);
+        await db.SaveChangesAsync();
+
+        // minHours: 72 - genuinely not ready without an override.
+        var (media, equipment) = await SeedCountTestWorkflowAsync(db, "TAMC", minHours: 72);
+
+        var emEngine = new EMWorkflowEngine(db, new ReferenceNumberGenerator(db));
+        var sample = await emEngine.ReceiveAsync(new EMReceiveRequest(dept.Id, 0, "Analyst", "CTRL-10", 1));
+        var prepared = await emEngine.PrepareAsync(sample.Id, new List<int> { config.Id }, 1);
+        var order = prepared.TestOrders.Single();
+
+        var workflowEngine = NewTestWorkflowEngine(db);
+        await workflowEngine.SelectMediaAsync(order.Id, "CountIncubation", media.Id, equipment.Id, 1);
+
+        var locations = await workflowEngine.GetLocationsAsync(order.Id);
+        var submissions = locations.Select(l => new BatchLocationReadings(l.Id, new List<decimal> { 0 })).ToList();
+
+        // Blocked before the override - minimum 72h has not elapsed.
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            workflowEngine.RecordBatchResultsAsync(order.Id, submissions, 1));
+
+        var overridden = await workflowEngine.OverrideMinimumDurationAsync(order.Id, 99);
+        Assert.Equal(99, overridden.MinimumDurationOverriddenByUserId);
+        Assert.NotNull(overridden.MinimumDurationOverriddenAt);
+
+        // Succeeds immediately after the override, with no wait.
+        var result = await workflowEngine.RecordBatchResultsAsync(order.Id, submissions, 1);
+        Assert.True(result.AllStepsComplete);
+    }
+
+    // "Stage 1"/"stage 2" here is the real EM two-window shape - two
+    // distinct TestWorkflowStep rows (CountIncubation, transfer), each
+    // getting its own Incubation row, exactly like live TAMC Passive Air
+    // Sample / TAMC-transfere - not TestWorkflowStepIncubationStage's
+    // RequiresIncubationTransfer mechanism (which was explicitly kept out
+    // of scope for this feature and confirmed untouched separately). Both
+    // are per-row gates; this is the one actually exercised by real data.
+    [Fact]
+    public async Task OverrideMinimumDurationAsync_OnFirstWindow_DoesNotBypassSecondWindowsOwnWait()
+    {
+        await using var db = NewDb();
+        var dept = new Department { Name = "Filling" };
+        var room = new Room { Name = "Room A", Department = dept, GradeClassification = "A" };
+        db.Departments.Add(dept);
+        db.Rooms.Add(room);
+        await db.SaveChangesAsync();
+
+        var config = new RoomTestConfiguration { RoomId = room.Id, TestType = "PassiveAirSample", TestCode = "TAMC", AlertLimit = "1", ActionLimit = "3", SpecLimit = "5" };
+        db.RoomTestConfigurations.Add(config);
+        await db.SaveChangesAsync();
+
+        var (window1Media, window2Media, equipment1, equipment2) = await SeedTwoWindowCountTestWorkflowAsync(db, "TAMC");
+
+        var emEngine = new EMWorkflowEngine(db, new ReferenceNumberGenerator(db));
+        var sample = await emEngine.ReceiveAsync(new EMReceiveRequest(dept.Id, 0, "Analyst", "CTRL-11", 1));
+        var prepared = await emEngine.PrepareAsync(sample.Id, new List<int> { config.Id }, 1);
+        var order = prepared.TestOrders.Single();
+
+        var workflowEngine = NewTestWorkflowEngine(db);
+
+        // Window 1 (72h minimum): override its wait rather than backdating.
+        await workflowEngine.SelectMediaAsync(order.Id, "CountIncubation", window1Media.Id, equipment1.Id, 1);
+        await workflowEngine.OverrideMinimumDurationAsync(order.Id, 1);
+        await workflowEngine.CloseCurrentIncubationWindowAsync(order.Id, 1); // succeeds only because of the override above
+
+        // Window 2 (48h minimum) is a brand-new Incubation row - its own
+        // MinimumDurationOverriddenByUserId is null, independent of window 1's.
+        await workflowEngine.SelectMediaAsync(order.Id, "transfer", window2Media.Id, equipment2.Id, 1);
+
+        var locations = await workflowEngine.GetLocationsAsync(order.Id);
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            workflowEngine.RecordBatchResultsAsync(order.Id, locations.Select(l => new BatchLocationReadings(l.Id, new List<decimal> { 0 })).ToList(), 1));
+        Assert.Contains("48 hours", ex.Message); // window 2's own gate, not silently bypassed by window 1's override
+    }
+
+    // Analyst/Reviewer must NOT be able to skip the wait - Section
+    // Head/System Administrator only. Same reflection-based pattern as
+    // RoleController_StaysSystemAdministratorOnlyAtTheClassLevel.
+    [Fact]
+    public void OverrideMinimumDuration_IsRestrictedToSectionHeadAndSystemAdministrator()
+    {
+        var method = typeof(MicroLIMS.API.Controllers.TestWorkflowController)
+            .GetMethod(nameof(MicroLIMS.API.Controllers.TestWorkflowController.OverrideMinimumDuration))!;
+        var attr = (Microsoft.AspNetCore.Authorization.AuthorizeAttribute)
+            method.GetCustomAttributes(typeof(Microsoft.AspNetCore.Authorization.AuthorizeAttribute), true).Single();
+
+        var roles = attr.Roles!.Split(',');
+        Assert.Contains(RoleConstants.SectionHead, roles);
+        Assert.Contains(RoleConstants.SystemAdministrator, roles);
+        Assert.DoesNotContain(RoleConstants.Analyst, roles);
+        Assert.DoesNotContain(RoleConstants.Reviewer, roles);
     }
 }

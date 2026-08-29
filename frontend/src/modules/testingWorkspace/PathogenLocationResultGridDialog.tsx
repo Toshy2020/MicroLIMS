@@ -20,6 +20,7 @@ interface Props {
   testCode: string;
   displayName: string;
   minReadyAt: Date | null;
+  minimumDurationOverridden?: boolean;
   onClose: () => void;
   onSubmitted: () => void;
 }
@@ -27,8 +28,8 @@ interface Props {
 // EM/After Cleaning batch pathogen result entry - the final step's per-
 // location Detected/Absent call. Sibling to LocationResultGridDialog,
 // which handles the CFU/Count case instead.
-export function PathogenLocationResultGridDialog({ open, testOrderId, testCode, displayName, minReadyAt, onClose, onSubmitted }: Props) {
-  const isTimeReady = !minReadyAt || new Date() >= minReadyAt;
+export function PathogenLocationResultGridDialog({ open, testOrderId, testCode, displayName, minReadyAt, minimumDurationOverridden, onClose, onSubmitted }: Props) {
+  const isTimeReady = !minReadyAt || new Date() >= minReadyAt || !!minimumDurationOverridden;
 
   const [rows, setRows] = useState<LocationRow[] | null>(null);
   const [growth, setGrowth] = useState<Record<number, "yes" | "no" | "">>({});

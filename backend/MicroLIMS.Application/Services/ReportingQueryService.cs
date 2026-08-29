@@ -454,8 +454,10 @@ public class ReportingQueryService
                         .ToList();
                     meanValue = imputed.Count > 0 ? Math.Round(imputed.Average(), 2) : null;
 
-                    var withinSpecCount = list.Count(r => r.ResultLevel == ResultLevel.WithinLimit);
-                    compliancePercent = testsEvaluated > 0 ? Math.Round((double)withinSpecCount / testsEvaluated * 100, 1) : 0;
+                    var eligibleList = list.Where(r => r.ResultLevel != ResultLevel.LimitsNotConfigured).ToList();
+                    var eligibleCount = eligibleList.Count;
+                    var withinSpecCount = eligibleList.Count(r => r.ResultLevel == ResultLevel.WithinLimit);
+                    compliancePercent = eligibleCount > 0 ? Math.Round((double)withinSpecCount / eligibleCount * 100, 1) : 0;
                 }
                 else
                 {

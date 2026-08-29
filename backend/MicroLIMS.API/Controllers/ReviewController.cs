@@ -8,6 +8,7 @@ namespace MicroLIMS.API.Controllers;
 
 public record ReviewRequest(int TestOrderId, string? Comment, string Password, ReviewMode Mode = ReviewMode.Detailed);
 public record QuickReviewBatchRequest(List<int> TestOrderIds, string Password);
+public record ReturnToAnalystRequest(int TestOrderId, string? Reason);
 
 // TestOrder-level review - superseded by SampleReviewController/
 // SampleReviewService for the main workflow (no nav entry reaches this
@@ -32,6 +33,14 @@ public class ReviewController : ControllerBase
         var ip = HttpContext.Connection.RemoteIpAddress?.ToString();
         await _reviewService.MarkReviewedAsync(request.TestOrderId, reviewerId, request.Comment, request.Password, ip, request.Mode);
         return Ok(ApiResponse<object>.Ok(new { }));
+    }
+
+    [HttpPost("return")]
+    public async Task<IActionResult> ReturnToAnalyst([FromBody] ReturnToAnalystRequest request)
+    {
+        var reviewerId = int.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)!.Value);
+        var result = await _reviewService.ReturnToAnalystAsync(request.TestOrderId, reviewerId, request.Reason);
+        return Ok(ApiResponse<object>.Ok(result));
     }
 
     // Quick table review - hybrid mode #2 from the spec.

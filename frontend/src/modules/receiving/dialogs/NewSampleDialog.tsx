@@ -1,9 +1,5 @@
 import { useEffect, useState } from "react";
 import {
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
   Button,
   Box,
   Typography,
@@ -21,6 +17,7 @@ import { MultiSampleEntryGrid } from "./MultiSampleEntryGrid";
 import { ReceiveService } from "../services/ReceiveService";
 import { masterDataOptions } from "../../../services/masterDataOptions";
 import { brandColors } from "../../../theme";
+import { FloatingDialog } from "../../../components/FloatingDialog";
 
 interface Props {
   open: boolean;
@@ -174,6 +171,14 @@ export function NewSampleDialog({ open, onClose, onSuccess }: Props) {
           isValid = false;
         }
       } else if (category === "ac") {
+        if (!row.previousProductName || row.previousProductName.trim() === "") {
+          errors.previousProductName = "Previous Product is required";
+          isValid = false;
+        }
+        if (!row.previousProductBatchNumber || row.previousProductBatchNumber.trim() === "") {
+          errors.previousProductBatchNumber = "Previous Product Batch No. is required";
+          isValid = false;
+        }
         if (!row.machineId) {
           errors.machineId = "Machine is required";
           isValid = false;
@@ -253,7 +258,9 @@ export function NewSampleDialog({ open, onClose, onSuccess }: Props) {
             machineId: Number(row.machineId),
             causeOfTestingId: Number(row.causeOfTestingId),
             sampledBy: row.sampledBy || "",
-            controlNumber: row.controlNumber || ""
+            controlNumber: row.controlNumber || "",
+            previousProductName: String(row.previousProductName || "").trim(),
+            previousProductBatchNumber: String(row.previousProductBatchNumber || "").trim()
           });
         }
       }
@@ -274,20 +281,14 @@ export function NewSampleDialog({ open, onClose, onSuccess }: Props) {
   const currentCategoryDef = RECEIVING_CATEGORIES.find((c) => c.key === category);
 
   return (
-    <Dialog
+    <FloatingDialog
       open={open}
-      onClose={loading ? undefined : onClose}
+      onClose={() => { if (!loading) onClose(); }}
       maxWidth={step === 1 ? "md" : "xl"}
-      fullWidth
-      PaperProps={{
-        sx: {
-          borderRadius: 2.5,
-          p: 0.5
-        }
-      }}
-    >
-      <DialogTitle sx={{ pb: 1 }}>
-        <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+      paperSx={{ borderRadius: 2.5, p: 0.5 }}
+      titleSx={{ pb: 1 }}
+      title={
+        <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", flex: 1, minWidth: 0, mr: 1 }}>
           <Box>
             <Typography sx={{ fontSize: 20, fontWeight: 700, color: theme.palette.primary.main }}>
               New Sample
@@ -302,49 +303,10 @@ export function NewSampleDialog({ open, onClose, onSuccess }: Props) {
             Step {step} of 2
           </Typography>
         </Box>
-      </DialogTitle>
-
-      <DialogContent sx={{ pb: 2 }}>
-        {errorMessage && (
-          <Alert severity="error" sx={{ mb: 2, whiteSpace: "pre-line", fontSize: 13 }}>
-            {errorMessage}
-          </Alert>
-        )}
-
-        {step === 1 ? (
-          <SampleTypeSelector
-            selectedCategory={category}
-            onSelectCategory={(cat) => {
-              setCategory(cat);
-              setErrorMessage(null);
-            }}
-          />
-        ) : (
-          category && (
-            <MultiSampleEntryGrid
-              category={category}
-              rows={rows}
-              masterData={masterData}
-              onChangeRow={handleChangeRow}
-              onAddRow={handleAddRow}
-              onDeleteRow={handleDeleteRow}
-            />
-          )
-        )}
-      </DialogContent>
-
-      <DialogActions
-        sx={{
-          px: 3,
-          py: 2,
-          borderTop: "1px solid #e5e7eb",
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center"
-        }}
-      >
-        {step === 1 ? (
-          <>
+      }
+      actions={
+        step === 1 ? (
+          <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%" }}>
             <Button onClick={onClose} color="inherit" sx={{ color: "#4b5563" }}>
               Cancel
             </Button>
@@ -362,9 +324,9 @@ export function NewSampleDialog({ open, onClose, onSuccess }: Props) {
             >
               Next
             </Button>
-          </>
+          </Box>
         ) : (
-          <>
+          <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%" }}>
             <Button
               onClick={handlePrevStep}
               disabled={loading}
@@ -398,9 +360,36 @@ export function NewSampleDialog({ open, onClose, onSuccess }: Props) {
                 {loading ? "Receiving..." : "Save All Samples"}
               </Button>
             </Box>
-          </>
+          </Box>
+        )
+      }
+    >
+        {errorMessage && (
+          <Alert severity="error" sx={{ mb: 2, whiteSpace: "pre-line", fontSize: 13 }}>
+            {errorMessage}
+          </Alert>
         )}
-      </DialogActions>
-    </Dialog>
+
+        {step === 1 ? (
+          <SampleTypeSelector
+            selectedCategory={category}
+            onSelectCategory={(cat) => {
+              setCategory(cat);
+              setErrorMessage(null);
+            }}
+          />
+        ) : (
+          category && (
+            <MultiSampleEntryGrid
+              category={category}
+              rows={rows}
+              masterData={masterData}
+              onChangeRow={handleChangeRow}
+              onAddRow={handleAddRow}
+              onDeleteRow={handleDeleteRow}
+            />
+          )
+        )}
+    </FloatingDialog>
   );
 }

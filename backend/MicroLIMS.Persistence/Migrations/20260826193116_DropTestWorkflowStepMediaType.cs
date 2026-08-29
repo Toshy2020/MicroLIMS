@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore.Migrations;
+using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
@@ -47,6 +47,11 @@ namespace MicroLIMS.Persistence.Migrations
                 name: "IX_DiluentTypes_MediaTypeId",
                 table: "DiluentTypes",
                 newName: "IX_DiluentTypes_MaterialId");
+
+            migrationBuilder.Sql(@"
+                UPDATE ""DiluentTypes""
+                SET ""MaterialId"" = NULL;
+            ");
 
             migrationBuilder.AddForeignKey(
                 name: "FK_DiluentTypes_Materials_MaterialId",

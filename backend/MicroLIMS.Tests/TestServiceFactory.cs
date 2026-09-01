@@ -56,6 +56,12 @@ public static class TestServiceFactory
     public static ReviewGateService ReviewGate(MicroLimsDbContext db) =>
         new(db, new ElectronicSignatureService(db));
 
+    public static SamplePreparationService SamplePreparation(MicroLimsDbContext db) =>
+        new(db, new PreparationParameterValidator(db), new ElectronicSignatureService(db));
+
+    public static ItemPreparationConfigurationService ItemPreparationConfiguration(MicroLimsDbContext db) =>
+        new(db, new PreparationParameterValidator(db));
+
     public static ReviewService Review(MicroLimsDbContext db) =>
         new(db, new SegregationOfDutiesGuard(db), new ElectronicSignatureService(db));
 

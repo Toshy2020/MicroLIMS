@@ -34,8 +34,12 @@ public class ActiveEquipmentTraceabilityTests
     }
 
     [Fact]
-    public async Task EmptyIncubator_NotActiveEquipment()
+    public async Task EmptyIncubator_AppearsWithZeroActiveItems()
     {
+        // Idle equipment still needs to be selectable in the Active
+        // Equipment view (to browse its traceability history) even when
+        // nothing is currently in progress - it just carries a 0 count
+        // rather than vanishing from the list entirely.
         using var db = NewDb();
         db.EquipmentInventories.Add(new EquipmentInventory
         {
@@ -50,7 +54,8 @@ public class ActiveEquipmentTraceabilityTests
         var service = new EquipmentInventoryService(db);
         var activeList = await service.GetActiveEquipmentAsync();
 
-        Assert.DoesNotContain(activeList, e => e.Code == "INC-EMPTY-01");
+        var entry = Assert.Single(activeList, e => e.Code == "INC-EMPTY-01");
+        Assert.Equal(0, entry.ActiveItemCount);
     }
 
     [Fact]
@@ -361,7 +366,7 @@ public class ActiveEquipmentTraceabilityTests
     }
 
     [Fact]
-    public async Task IncubationCompletedViaTestOrderOrSample_ExcludedFromActiveEquipment()
+    public async Task IncubationCompletedViaTestOrderOrSample_ZeroActiveCountNotExcluded()
     {
         using var db = NewDb();
         db.EquipmentInventories.Add(new EquipmentInventory
@@ -408,9 +413,12 @@ public class ActiveEquipmentTraceabilityTests
 
         var service = new EquipmentInventoryService(db);
 
-        // Active equipment should NOT include INC-008
+        // INC-008 stays listed (idle equipment is still selectable for
+        // history) but must carry a 0 active count, since its only
+        // Incubation row belongs to an already-Approved TestOrder.
         var activeEq = await service.GetActiveEquipmentAsync();
-        Assert.DoesNotContain(activeEq, e => e.Code == "INC-008");
+        var inc008 = Assert.Single(activeEq, e => e.Code == "INC-008");
+        Assert.Equal(0, inc008.ActiveItemCount);
 
         // Active activities for INC-008 should be empty
         var activeActivities = await service.GetActiveActivitiesForEquipmentAsync(8);

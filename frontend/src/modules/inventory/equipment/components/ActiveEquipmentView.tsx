@@ -209,8 +209,9 @@ export function ActiveEquipmentView({ onOpenDetails }: ActiveEquipmentViewProps)
                           <TableCell sx={{ fontSize: 11, fontWeight: 700 }}>Equipment</TableCell>
                           <TableCell sx={{ fontSize: 11, fontWeight: 700 }}>Activity</TableCell>
                           <TableCell sx={{ fontSize: 11, fontWeight: 700 }}>Started On</TableCell>
-                          <TableCell sx={{ fontSize: 11, fontWeight: 700 }}>Completed On</TableCell>
-                          <TableCell sx={{ fontSize: 11, fontWeight: 700 }}>Performed By</TableCell>
+                          <TableCell sx={{ fontSize: 11, fontWeight: 700 }}>Started By</TableCell>
+                          <TableCell sx={{ fontSize: 11, fontWeight: 700 }}>Ended On</TableCell>
+                          <TableCell sx={{ fontSize: 11, fontWeight: 700 }}>Ended By</TableCell>
                         </TableRow>
                       </TableHead>
                       <TableBody>
@@ -221,8 +222,9 @@ export function ActiveEquipmentView({ onOpenDetails }: ActiveEquipmentViewProps)
                               <TableCell sx={{ fontSize: 12, fontWeight: 600, fontFamily: "monospace" }}>{h.equipmentCode} ({h.equipmentName})</TableCell>
                               <TableCell sx={{ fontSize: 12 }}>{h.activityType}</TableCell>
                               <TableCell sx={{ fontSize: 12 }}>{formatLabDateTime(h.startedOn)}</TableCell>
-                              <TableCell sx={{ fontSize: 12 }}>{h.completedOn ? formatLabDateTime(h.completedOn) : "Active"}</TableCell>
                               <TableCell sx={{ fontSize: 12 }}>{h.performedBy}</TableCell>
+                              <TableCell sx={{ fontSize: 12 }}>{h.completedOn ? formatLabDateTime(h.completedOn) : "Active"}</TableCell>
+                              <TableCell sx={{ fontSize: 12 }}>{h.completedBy ?? "—"}</TableCell>
                             </TableRow>
                           ))}
                       </TableBody>
@@ -257,20 +259,24 @@ export function ActiveEquipmentView({ onOpenDetails }: ActiveEquipmentViewProps)
         {/* LEFT PANEL: Active Equipment List */}
         <Grid item xs={12} md={4}>
           <Paper sx={{ p: 2, borderRadius: 2, border: "1px solid", borderColor: "divider", minHeight: 500 }}>
-            <Typography variant="subtitle1" fontWeight={700} sx={{ mb: 2 }}>
-              Active Equipment ({activeEquipment.length})
+            <Typography variant="subtitle1" fontWeight={700} sx={{ mb: 0.25 }}>
+              Equipment ({activeEquipment.length})
+            </Typography>
+            <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 2 }}>
+              {activeEquipment.filter((e) => e.activeItemCount > 0).length} currently in use — select any equipment to view its traceability history
             </Typography>
 
             {loadingActive ? (
               <Box textAlign="center" py={4}><CircularProgress size={32} /></Box>
             ) : activeEquipment.length === 0 ? (
               <Alert severity="info" sx={{ fontSize: 13 }}>
-                No equipment is currently in active use by laboratory activities.
+                No equipment records found.
               </Alert>
             ) : (
               <Stack spacing={1.5}>
                 {activeEquipment.map((eq) => {
                   const isSelected = eq.id === selectedEqId;
+                  const isInUse = eq.activeItemCount > 0;
                   return (
                     <Paper
                       key={eq.id}
@@ -282,15 +288,21 @@ export function ActiveEquipmentView({ onOpenDetails }: ActiveEquipmentViewProps)
                         border: "1px solid",
                         borderColor: isSelected ? "primary.main" : "divider",
                         bgcolor: isSelected ? theme.custom.status.purple.bg : "background.paper",
+                        opacity: isInUse ? 1 : 0.75,
                         transition: "all 0.15s ease-in-out",
-                        "&:hover": { borderColor: "primary.main", bgcolor: isSelected ? theme.custom.status.purple.bg : "action.hover" }
+                        "&:hover": { borderColor: "primary.main", bgcolor: isSelected ? theme.custom.status.purple.bg : "action.hover", opacity: 1 }
                       }}
                     >
                       <Stack direction="row" justifyContent="space-between" alignItems="flex-start" sx={{ mb: 1 }}>
                         <Typography sx={{ fontFamily: "monospace", fontWeight: 700, fontSize: 14, color: "primary.main" }}>
                           {eq.code}
                         </Typography>
-                        <Chip label={`${eq.activeItemCount} ${eq.activeItemCount === 1 ? "item" : "items"}`} size="small" color="primary" sx={{ height: 20, fontSize: 11 }} />
+                        <Chip
+                          label={isInUse ? `${eq.activeItemCount} ${eq.activeItemCount === 1 ? "item" : "items"}` : "Idle"}
+                          size="small"
+                          color={isInUse ? "primary" : "default"}
+                          sx={{ height: 20, fontSize: 11 }}
+                        />
                       </Stack>
                       <Typography sx={{ fontWeight: 600, fontSize: 13 }}>{eq.instrumentType}</Typography>
                       <Typography sx={{ fontSize: 12, color: "text.secondary", mt: 0.5 }}>{eq.location}</Typography>
@@ -319,7 +331,11 @@ export function ActiveEquipmentView({ onOpenDetails }: ActiveEquipmentViewProps)
                     </Typography>
                   </Box>
                   <Stack direction="row" spacing={1} alignItems="center">
-                    <Chip label="In Use" color="success" size="small" />
+                    <Chip
+                      label={selectedEquipment.activeItemCount > 0 ? "In Use" : "Idle"}
+                      color={selectedEquipment.activeItemCount > 0 ? "success" : "default"}
+                      size="small"
+                    />
                     <Button size="small" variant="outlined" startIcon={<InfoOutlinedIcon />} onClick={() => onOpenDetails(selectedEquipment.id)}>
                       Equipment Details
                     </Button>
@@ -501,14 +517,15 @@ export function ActiveEquipmentView({ onOpenDetails }: ActiveEquipmentViewProps)
                               <TableCell sx={{ fontSize: 11, fontWeight: 700 }}>Activity Type</TableCell>
                               <TableCell sx={{ fontSize: 11, fontWeight: 700 }}>Media / Description</TableCell>
                               <TableCell sx={{ fontSize: 11, fontWeight: 700 }}>Started On</TableCell>
-                              <TableCell sx={{ fontSize: 11, fontWeight: 700 }}>Completed On</TableCell>
-                              <TableCell sx={{ fontSize: 11, fontWeight: 700 }}>Analyst</TableCell>
+                              <TableCell sx={{ fontSize: 11, fontWeight: 700 }}>Started By</TableCell>
+                              <TableCell sx={{ fontSize: 11, fontWeight: 700 }}>Ended On</TableCell>
+                              <TableCell sx={{ fontSize: 11, fontWeight: 700 }}>Ended By</TableCell>
                             </TableRow>
                           </TableHead>
                           <TableBody>
                             {historyResults.length === 0 ? (
                               <TableRow>
-                                <TableCell colSpan={7} align="center" sx={{ py: 3 }}>
+                                <TableCell colSpan={8} align="center" sx={{ py: 3 }}>
                                   <Typography color="text.secondary" sx={{ fontSize: 13 }}>
                                     No historical activities found matching the selected search criteria.
                                   </Typography>
@@ -524,10 +541,11 @@ export function ActiveEquipmentView({ onOpenDetails }: ActiveEquipmentViewProps)
                                     <TableCell sx={{ fontSize: 12 }}>{h.activityType}</TableCell>
                                     <TableCell sx={{ fontSize: 12 }}>{h.mediaDescription}</TableCell>
                                     <TableCell sx={{ fontSize: 12 }}>{formatLabDateTime(h.startedOn)}</TableCell>
+                                    <TableCell sx={{ fontSize: 12 }}>{h.startedBy}</TableCell>
                                     <TableCell sx={{ fontSize: 12 }}>
                                       {h.completedOn ? formatLabDateTime(h.completedOn) : <Chip label="Active" size="small" color="success" sx={{ height: 18, fontSize: 10 }} />}
                                     </TableCell>
-                                    <TableCell sx={{ fontSize: 12 }}>{h.startedBy}</TableCell>
+                                    <TableCell sx={{ fontSize: 12 }}>{h.completedBy ?? "—"}</TableCell>
                                   </TableRow>
                                 ))
                             )}

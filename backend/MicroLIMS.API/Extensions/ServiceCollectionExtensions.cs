@@ -54,6 +54,8 @@ public static class ServiceCollectionExtensions
         services.AddScoped<KpiService>();
         services.AddScoped<CryovialService>();
         services.AddScoped<SamplePreparationService>();
+        services.AddScoped<PreparationParameterValidator>();
+        services.AddScoped<ItemPreparationConfigurationService>();
         services.AddScoped<SampleAssignmentService>();
         services.AddScoped<SampleCorrectionService>();
         services.AddScoped<MediaPreparationService>();

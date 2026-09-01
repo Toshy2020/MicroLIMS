@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Box, Select, MenuItem, TextField, Button, Alert, Typography } from "@mui/material";
 import { SamplePreparationService } from "./services/SamplePreparationService";
+import { SignatureDialog } from "../../components/SignatureDialog";
 import { masterDataOptions } from "../../services/masterDataOptions";
 import { useAuth } from "../../contexts/AuthContext";
 
@@ -10,6 +11,7 @@ interface Props {
   sample: {
     sampleId: number;
     category: string;
+    itemName?: string | null;
     assignedAnalystId?: number | null;
     assignedAnalystName?: string | null;
   };
@@ -28,6 +30,7 @@ export function TestPreparationForm({ sample, onSaved }: Props) {
   const [neutralizers, setNeutralizers] = useState<any[]>([]);
   const [form, setForm] = useState<Record<string, any>>({ technique: "PourPlate", unit: "ml" });
   const [message, setMessage] = useState<{ text: string; ok: boolean } | null>(null);
+  const [signing, setSigning] = useState(false);
 
   const isAssignedToOther =
     Boolean(sample.assignedAnalystId) &&
@@ -50,22 +53,20 @@ export function TestPreparationForm({ sample, onSaved }: Props) {
 
   const setField = (k: string, v: any) => setForm((f) => ({ ...f, [k]: v }));
 
-  const save = async () => {
+  // Errors propagate to SignatureDialog, which surfaces the server message
+  // and keeps itself open with the password cleared.
+  const save = async (password: string) => {
     setMessage(null);
-    try {
-      await SamplePreparationService.prepare({
-        sampleId: sample.sampleId, amount: Number(form.amount), unit: form.unit, technique: form.technique,
-        filtrationVolume: form.filtrationVolume ? Number(form.filtrationVolume) : undefined,
-        washingVolume: form.washingVolume ? Number(form.washingVolume) : undefined,
-        diluentTypeId: form.diluentTypeId, diluentMediaId: form.diluentMediaId, neutralizerId: form.neutralizerId,
-        storageCondition: sample.category === "Water" ? form.storageCondition : undefined,
-        storageTimeHours: form.storageTimeHours ? Number(form.storageTimeHours) : undefined
-      });
-      setMessage({ text: "Preparation saved.", ok: true });
-      onSaved();
-    } catch (e: any) {
-      setMessage({ text: e?.response?.data?.message ?? "Could not save preparation.", ok: false });
-    }
+    await SamplePreparationService.prepare({
+      sampleId: sample.sampleId, amount: Number(form.amount), unit: form.unit, technique: form.technique,
+      filtrationVolume: form.filtrationVolume ? Number(form.filtrationVolume) : undefined,
+      washingVolume: form.washingVolume ? Number(form.washingVolume) : undefined,
+      diluentTypeId: form.diluentTypeId, diluentMediaId: form.diluentMediaId, neutralizerId: form.neutralizerId,
+      password
+    });
+    setSigning(false);
+    setMessage({ text: "Preparation saved.", ok: true });
+    onSaved();
   };
 
   return (
@@ -117,24 +118,24 @@ export function TestPreparationForm({ sample, onSaved }: Props) {
         </Select>
       </Box>
 
-      {sample.category === "Water" && (
-        <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 2, mt: 2 }}>
-          <Select displayEmpty value={form.storageCondition ?? ""} onChange={(e) => setField("storageCondition", e.target.value)} disabled={isAssignedToOther}>
-            <MenuItem value=""><em>Storage Condition</em></MenuItem>
-            <MenuItem value="Refrigerator">Refrigerator</MenuItem>
-            <MenuItem value="RoomTemperature">Room Temperature</MenuItem>
-          </Select>
-          {form.storageCondition === "Refrigerator" && (
-            <TextField label="Storage Time (hours)" value={form.storageTimeHours ?? ""} onChange={(e) => setField("storageTimeHours", e.target.value)} disabled={isAssignedToOther} />
-          )}
-        </Box>
-      )}
+      <Alert severity="info" sx={{ mt: 2, fontSize: 12 }}>
+        <strong>{sample.itemName ?? "This item"}</strong> has no preparation configuration yet. What you enter
+        here becomes its standing configuration for future samples, and is sent to the Section Head for
+        approval - testing is not held up waiting for it.
+      </Alert>
 
       <Box sx={{ display: "flex", justifyContent: "flex-end", mt: 3 }}>
-        <Button variant="contained" onClick={save} disabled={isAssignedToOther}>
+        <Button variant="contained" onClick={() => setSigning(true)} disabled={isAssignedToOther}>
           Start Testing
         </Button>
       </Box>
+
+      <SignatureDialog
+        open={signing}
+        meaningStatement="I confirm the preparation steps entered above are the steps performed for this sample, and are correct for this item."
+        onCancel={() => setSigning(false)}
+        onConfirm={save}
+      />
     </Box>
   );
 }

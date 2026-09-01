@@ -11,6 +11,12 @@ public class Incubation
     public string StepName { get; set; } = string.Empty;
     public DateTime StartedAt { get; set; } = DateTime.UtcNow;
     public DateTime? CompletedAt { get; set; }
+
+    // Who closed this incubation window - the analyst who recorded the
+    // reading/result/observation that set CompletedAt above. Distinct from
+    // StartedByUserId, since the person reading a plate is often not the
+    // one who set it up.
+    public int? CompletedByUserId { get; set; }
     public string? Outcome { get; set; }
 
     public int? MediaId { get; set; }

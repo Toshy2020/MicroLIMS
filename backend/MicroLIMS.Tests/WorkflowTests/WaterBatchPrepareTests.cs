@@ -73,7 +73,7 @@ public class WaterBatchPrepareTests
         var engine = new MicroLIMS.Application.Workflows.WaterWorkflowEngine(db, new MicroLIMS.Application.Services.ReferenceNumberGenerator(db));
         var sample = await engine.ReceiveAsync(new MicroLIMS.Application.Workflows.WaterReceiveRequest(department.Id, 0, "500ml", "Analyst", "CTRL-3", 1));
 
-        var prepared = await engine.PrepareAsync(sample.Id, new List<int> { pointA.Id, pointB.Id }, 1);
+        var prepared = await engine.PrepareAsync(sample.Id, new List<int> { pointA.Id, pointB.Id }, 1, "RoomTemperature");
 
         Assert.Equal(2, prepared.TestOrders.Count); // TAMC, Salmonella
         Assert.Equal(3, prepared.Locations.Count);  // TAMC@A, Salmonella@A, TAMC@B
@@ -103,7 +103,7 @@ public class WaterBatchPrepareTests
         var engine = new MicroLIMS.Application.Workflows.WaterWorkflowEngine(db, new MicroLIMS.Application.Services.ReferenceNumberGenerator(db));
         var sample = await engine.ReceiveAsync(new MicroLIMS.Application.Workflows.WaterReceiveRequest(deptA.Id, 0, "500ml", "Analyst", "CTRL-4", 1));
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => engine.PrepareAsync(sample.Id, new List<int> { pointInB.Id }, 1));
+        await Assert.ThrowsAsync<InvalidOperationException>(() => engine.PrepareAsync(sample.Id, new List<int> { pointInB.Id }, 1, "RoomTemperature"));
     }
 
     [Fact]
@@ -118,5 +118,70 @@ public class WaterBatchPrepareTests
         var sample = await engine.ReceiveAsync(new MicroLIMS.Application.Workflows.WaterReceiveRequest(department.Id, 0, "500ml", "Analyst", "CTRL-5", 1));
 
         await Assert.ThrowsAsync<InvalidOperationException>(() => engine.PrepareAsync(sample.Id, new List<int>(), 1));
+    }
+
+    // Storage condition is captured alongside the location selection - it
+    // describes how the collected water was held before testing.
+    [Fact]
+    public async Task PrepareAsync_PersistsStorageConditionAndTime()
+    {
+        await using var db = NewDb();
+        var department = new WaterDepartment { Name = "WTU" };
+        db.WaterDepartments.Add(department);
+        await db.SaveChangesAsync();
+
+        var point = new WaterSamplingPoint { Code = "WP-1", Location = "Loop", WaterDepartmentId = department.Id, AssignedTestCodes = new List<string> { "TAMC-Water" } };
+        db.WaterSamplingPoints.Add(point);
+        await db.SaveChangesAsync();
+
+        var engine = new MicroLIMS.Application.Workflows.WaterWorkflowEngine(db, new MicroLIMS.Application.Services.ReferenceNumberGenerator(db));
+        var sample = await engine.ReceiveAsync(new MicroLIMS.Application.Workflows.WaterReceiveRequest(department.Id, 0, "500ml", "Analyst", "CTRL-6", 1));
+
+        var prepared = await engine.PrepareAsync(sample.Id, new List<int> { point.Id }, 1, "Refrigerator", 18);
+
+        Assert.Equal("Refrigerator", prepared.StorageCondition);
+        Assert.Equal(18, prepared.StorageTimeHours);
+    }
+
+    [Fact]
+    public async Task PrepareAsync_RejectsMissingStorageCondition()
+    {
+        await using var db = NewDb();
+        var department = new WaterDepartment { Name = "WTU" };
+        db.WaterDepartments.Add(department);
+        await db.SaveChangesAsync();
+
+        var point = new WaterSamplingPoint { Code = "WP-1", Location = "Loop", WaterDepartmentId = department.Id, AssignedTestCodes = new List<string> { "TAMC-Water" } };
+        db.WaterSamplingPoints.Add(point);
+        await db.SaveChangesAsync();
+
+        var engine = new MicroLIMS.Application.Workflows.WaterWorkflowEngine(db, new MicroLIMS.Application.Services.ReferenceNumberGenerator(db));
+        var sample = await engine.ReceiveAsync(new MicroLIMS.Application.Workflows.WaterReceiveRequest(department.Id, 0, "500ml", "Analyst", "CTRL-7", 1));
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+            () => engine.PrepareAsync(sample.Id, new List<int> { point.Id }, 1));
+        Assert.Contains("Storage condition is required", ex.Message);
+    }
+
+    // Refrigerated water has a hold-time limit, so the duration must come
+    // with the condition.
+    [Fact]
+    public async Task PrepareAsync_RejectsRefrigeratedWithoutStorageTime()
+    {
+        await using var db = NewDb();
+        var department = new WaterDepartment { Name = "WTU" };
+        db.WaterDepartments.Add(department);
+        await db.SaveChangesAsync();
+
+        var point = new WaterSamplingPoint { Code = "WP-1", Location = "Loop", WaterDepartmentId = department.Id, AssignedTestCodes = new List<string> { "TAMC-Water" } };
+        db.WaterSamplingPoints.Add(point);
+        await db.SaveChangesAsync();
+
+        var engine = new MicroLIMS.Application.Workflows.WaterWorkflowEngine(db, new MicroLIMS.Application.Services.ReferenceNumberGenerator(db));
+        var sample = await engine.ReceiveAsync(new MicroLIMS.Application.Workflows.WaterReceiveRequest(department.Id, 0, "500ml", "Analyst", "CTRL-8", 1));
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+            () => engine.PrepareAsync(sample.Id, new List<int> { point.Id }, 1, "Refrigerator"));
+        Assert.Contains("Storage time is required", ex.Message);
     }
 }

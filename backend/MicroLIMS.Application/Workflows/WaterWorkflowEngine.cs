@@ -19,7 +19,10 @@ public interface IWaterWorkflowEngine : IStatefulWorkflowEngine
     // in this batch generates the TestOrders (one per distinct TestCode
     // across every selected point) and the SampleLocation rows (one per
     // selected point x assigned test code).
-    Task<Sample> PrepareAsync(int sampleId, List<int> waterSamplingPointIds, int userId);
+    // storageCondition/storageTimeHours describe how the collected water was
+    // held before testing - captured here because this is where a water
+    // sample is actually prepared.
+    Task<Sample> PrepareAsync(int sampleId, List<int> waterSamplingPointIds, int userId, string? storageCondition = null, int? storageTimeHours = null);
 
     // Calculation engine: averages the entered raw readings and compares
     // against Alert -> Action -> Specification limits, in that order of
@@ -65,7 +68,7 @@ public class WaterWorkflowEngine : IWaterWorkflowEngine
         return sample;
     }
 
-    public async Task<Sample> PrepareAsync(int sampleId, List<int> waterSamplingPointIds, int userId)
+    public async Task<Sample> PrepareAsync(int sampleId, List<int> waterSamplingPointIds, int userId, string? storageCondition = null, int? storageTimeHours = null)
     {
         var sample = await _db.Samples.Include(s => s.TestOrders).Include(s => s.Locations).FirstOrDefaultAsync(s => s.Id == sampleId)
             ?? throw new InvalidOperationException($"Sample {sampleId} not found.");
@@ -75,6 +78,13 @@ public class WaterWorkflowEngine : IWaterWorkflowEngine
 
         if (waterSamplingPointIds.Count == 0)
             throw new InvalidOperationException("At least one sampling point must be selected.");
+
+        // Refrigerated water has a hold-time limit, so the duration has to be
+        // recorded alongside the condition.
+        if (string.IsNullOrWhiteSpace(storageCondition))
+            throw new InvalidOperationException("Storage condition is required for water samples.");
+        if (storageCondition == "Refrigerator" && storageTimeHours is null)
+            throw new InvalidOperationException("Storage time is required when a water sample was refrigerated.");
 
         var points = await _db.WaterSamplingPoints
             .Where(p => waterSamplingPointIds.Contains(p.Id))
@@ -138,6 +148,11 @@ public class WaterWorkflowEngine : IWaterWorkflowEngine
                 sample.Locations.Add(location);
             }
         }
+
+        // Set only once every validation above has passed, so a rejected
+        // preparation never leaves the tracked sample half-mutated.
+        sample.StorageCondition = storageCondition;
+        sample.StorageTimeHours = storageCondition == "Refrigerator" ? storageTimeHours : null;
 
         sample.PreparationStatus = SamplePreparationStatus.Ready;
         await _db.SaveChangesAsync();

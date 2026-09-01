@@ -115,6 +115,7 @@ public class ReviewService
         if (latestIncubation != null)
         {
             latestIncubation.CompletedAt = null;
+            latestIncubation.CompletedByUserId = null;
             latestIncubation.Outcome = null;
         }
 

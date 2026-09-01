@@ -51,6 +51,13 @@ public class DashboardNotificationService
         await _db.SaveChangesAsync();
     }
 
+    public async Task MarkAllAsReadAsync(int userId)
+    {
+        await _db.NotificationLogs
+            .Where(n => n.UserId == userId && !n.IsRead)
+            .ExecuteUpdateAsync(s => s.SetProperty(n => n.IsRead, true));
+    }
+
     private async Task<List<(string Type, string Message, string Severity)>> ComputeAsync(RoleType role, int userId)
     {
         var results = new List<(string, string, string)>();
@@ -81,6 +88,13 @@ public class DashboardNotificationService
             var approvalCount = await _db.TestOrders.CountAsync(t => t.Status == ApprovalStatus.Reviewed);
             if (approvalCount > 0)
                 results.Add(("ApprovalWaiting", $"{approvalCount} test order(s) awaiting approval.", "info"));
+
+            // Auto-seeded from an analyst's first manual entry - already in
+            // use, so this is a review-after-the-fact prompt, not a blocker.
+            var pendingConfigCount = await _db.ItemPreparationConfigurations
+                .CountAsync(c => c.ApprovalStatus == ApprovalGateStatus.PendingReview);
+            if (pendingConfigCount > 0)
+                results.Add(("PendingPreparationConfigApproval", $"{pendingConfigCount} preparation configuration(s) awaiting approval.", "info"));
         }
 
         if (role is RoleType.Reviewer or RoleType.SectionHead or RoleType.SystemAdministrator)

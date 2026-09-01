@@ -26,4 +26,11 @@ public class SamplePreparation
 
     public int PreparedByUserId { get; set; }
     public DateTime PreparedAt { get; set; } = DateTime.UtcNow;
+
+    // The values above are the snapshot: copied from the Item's configuration
+    // at confirmation time so editing that config never rewrites history.
+    // Null SourceConfigurationId means this row predates the config feature.
+    public int? SourceConfigurationId { get; set; }
+    public ItemPreparationConfiguration? SourceConfiguration { get; set; }
+    public bool WasConfirmedFromConfig { get; set; }
 }

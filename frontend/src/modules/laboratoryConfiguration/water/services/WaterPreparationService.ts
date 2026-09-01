@@ -11,6 +11,13 @@ export const WaterPreparationService = {
       const department = r.data.data.find((d: any) => d.id === waterDepartmentId);
       return department?.samplingPoints ?? [];
     }),
-  prepare: (sampleId: number, waterSamplingPointIds: number[]) =>
-    apiClient.post("/water/prepare", { sampleId, waterSamplingPointIds }).then((r) => r.data.data)
+  prepare: (
+    sampleId: number,
+    waterSamplingPointIds: number[],
+    storageCondition: string,
+    storageTimeHours?: number | null
+  ) =>
+    apiClient
+      .post("/water/prepare", { sampleId, waterSamplingPointIds, storageCondition, storageTimeHours })
+      .then((r) => r.data.data)
 };

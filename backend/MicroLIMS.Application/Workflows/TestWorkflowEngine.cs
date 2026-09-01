@@ -583,6 +583,7 @@ public class TestWorkflowEngine : ITestWorkflowEngine
                     ExpectedReadingAt = incubation.ExpectedReadingAt,
                     WindowReceivedAtUtc = incubation.WindowReceivedAtUtc,
                     CompletedAt = incubation.CompletedAt,
+                    CompletedByUserId = incubation.CompletedByUserId,
                     Outcome = incubation.Outcome,
                     StartedByUserId = userId
                 };
@@ -595,6 +596,7 @@ public class TestWorkflowEngine : ITestWorkflowEngine
                 if (incubation.CompletedAt.HasValue && !existingInc.CompletedAt.HasValue)
                 {
                     existingInc.CompletedAt = incubation.CompletedAt;
+                    existingInc.CompletedByUserId = incubation.CompletedByUserId;
                     existingInc.Outcome = incubation.Outcome;
                 }
                 siblingIncId = existingInc.Id;
@@ -674,6 +676,7 @@ public class TestWorkflowEngine : ITestWorkflowEngine
         RequireValidIncubationWindow(stepName, stage2Config.IncubationMinHours, startedAt, endUtc);
 
         openIncubation.CompletedAt = startedAt;
+        openIncubation.CompletedByUserId = userId;
         openIncubation.Outcome = "Transferred to stage 2 incubation.";
 
         var stage2 = new Incubation
@@ -769,6 +772,7 @@ public class TestWorkflowEngine : ITestWorkflowEngine
         }
 
         openIncubation.CompletedAt = DateTime.UtcNow;
+        openIncubation.CompletedByUserId = userId;
         openIncubation.Outcome = outcomeSummary;
         await _db.SaveChangesAsync();
 
@@ -897,6 +901,7 @@ public class TestWorkflowEngine : ITestWorkflowEngine
         RequireMinimumDurationElapsed(incubation, stepMedium);
 
         incubation.CompletedAt = DateTime.UtcNow;
+        incubation.CompletedByUserId = userId;
         await _db.SaveChangesAsync();
         return incubation;
     }
@@ -1003,6 +1008,7 @@ public class TestWorkflowEngine : ITestWorkflowEngine
         });
 
         openIncubation.CompletedAt = DateTime.UtcNow;
+        openIncubation.CompletedByUserId = userId;
         openIncubation.Outcome = summary;
 
         // Locations are existing rows (created at Prepare time) being
@@ -1107,6 +1113,7 @@ public class TestWorkflowEngine : ITestWorkflowEngine
         });
 
         openIncubation.CompletedAt = DateTime.UtcNow;
+        openIncubation.CompletedByUserId = userId;
         openIncubation.Outcome = summary;
 
         foreach (var location in sampleLocations)
@@ -1174,6 +1181,7 @@ public class TestWorkflowEngine : ITestWorkflowEngine
         });
 
         openIncubation.CompletedAt = DateTime.UtcNow;
+        openIncubation.CompletedByUserId = userId;
         openIncubation.Outcome = summary;
 
         foreach (var location in sampleLocations)
@@ -1639,6 +1647,7 @@ public class TestWorkflowEngine : ITestWorkflowEngine
 
         // Record the completion of the incubation.
         incubation.CompletedAt = DateTime.UtcNow;
+        incubation.CompletedByUserId = userId;
         incubation.Outcome = observation;
         await _db.SaveChangesAsync();
 
@@ -1764,6 +1773,7 @@ public class TestWorkflowEngine : ITestWorkflowEngine
         }
 
         incubation.CompletedAt = DateTime.UtcNow;
+        incubation.CompletedByUserId = userId;
         incubation.Outcome = observation.ToString();
         await _db.SaveChangesAsync();
 
@@ -2008,6 +2018,7 @@ public class TestWorkflowEngine : ITestWorkflowEngine
         var allConforming = observations.All(o => o.Observation == GrowthObservation.GrowthConforming);
         result.ConfirmatoryResult = allConforming ? ConfirmatoryResult.AllConforming : ConfirmatoryResult.Inconclusive;
         incubation.CompletedAt = DateTime.UtcNow;
+        incubation.CompletedByUserId = userId;
         incubation.Outcome = result.ConfirmatoryResult.ToString();
 
         if (!allConforming)

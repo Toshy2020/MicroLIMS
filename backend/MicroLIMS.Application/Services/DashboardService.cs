@@ -180,6 +180,11 @@ public class DashboardService
         var approvalQueue = await _db.TestOrders.CountAsync(t => t.Status == ApprovalStatus.Reviewed);
         var preparationQueue = await _db.Samples.CountAsync(s => s.PreparationStatus == SamplePreparationStatus.NeedsPreparation);
 
+        // Preparation configs auto-created from an analyst's first manual
+        // entry are usable immediately but still owe a Section Head review.
+        var pendingPreparationConfigApproval = await _db.ItemPreparationConfigurations
+            .CountAsync(c => c.ApprovalStatus == ApprovalGateStatus.PendingReview);
+
         // Open incubations split ready-vs-still-incubating - feeds the KPI
         // strip's "Incubating" / "Ready to Read" tiles (same open-incubation
         // definition GetIncubationOverviewAsync groups by test code).
@@ -198,6 +203,7 @@ public class DashboardService
             reviewerQueue,
             approvalQueue,
             preparationQueue,
+            pendingPreparationConfigApproval,
             incubatingCount,
             readyToReadCount
         };

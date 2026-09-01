@@ -289,6 +289,29 @@ export function AdminDashboardPage() {
               </Typography>
             </Paper>
           </Grid>
+          {summary.pendingPreparationConfigApproval > 0 && (
+            <Grid item xs={6} sm={4} md={2}>
+              <Paper
+                component={Link}
+                to="/laboratory-configuration/items"
+                variant="outlined"
+                sx={{
+                  p: 1.5,
+                  textAlign: "center",
+                  cursor: "pointer",
+                  display: "block",
+                  textDecoration: "none",
+                  color: "inherit",
+                  "&:hover": { bgcolor: "action.hover" }
+                }}
+              >
+                <Typography sx={{ fontSize: 11, color: "text.secondary", fontWeight: 700 }}>Prep Configs Pending</Typography>
+                <Typography sx={{ fontSize: 22, fontWeight: 800, color: brandColors.warn }}>
+                  {summary.pendingPreparationConfigApproval}
+                </Typography>
+              </Paper>
+            </Grid>
+          )}
           <Grid item xs={6} sm={4} md={2}>
             <Paper
               component={Link}

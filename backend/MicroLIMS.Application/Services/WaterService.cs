@@ -18,9 +18,9 @@ public class WaterService
         return TestingWorkspaceService.ToDto(sample);
     }
 
-    public async Task<SampleDto> PrepareAsync(int sampleId, List<int> waterSamplingPointIds, int userId)
+    public async Task<SampleDto> PrepareAsync(int sampleId, List<int> waterSamplingPointIds, int userId, string? storageCondition = null, int? storageTimeHours = null)
     {
-        var sample = await _workflow.PrepareAsync(sampleId, waterSamplingPointIds, userId);
+        var sample = await _workflow.PrepareAsync(sampleId, waterSamplingPointIds, userId, storageCondition, storageTimeHours);
         return TestingWorkspaceService.ToDto(sample);
     }
 

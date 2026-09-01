@@ -1,4 +1,5 @@
 import { FIELD_DISPLAY_NAMES } from "../types/auditTypes";
+import { lookupEnumLabel } from "./auditEnumLabels";
 
 export interface FieldChange {
   key: string;
@@ -18,10 +19,19 @@ function humanizeKey(key: string): string {
     .trim();
 }
 
-function formatAuditValue(val: any): string {
+function formatAuditValue(val: any, entityName?: string, fieldKey?: string): string {
   if (val === null || val === undefined) return "—";
   if (typeof val === "boolean") return val ? "Yes" : "No";
-  if (typeof val === "number") return val.toString();
+  if (typeof val === "number") {
+    // Whole numbers on a field known to store an enum are a stored
+    // ordinal (e.g. Sample.Status = 4), not a quantity - resolve it to
+    // its label rather than showing raw digits to a GMP auditor.
+    if (entityName && fieldKey && Number.isInteger(val)) {
+      const label = lookupEnumLabel(entityName, fieldKey, val);
+      if (label) return label;
+    }
+    return val.toString();
+  }
   if (typeof val === "string") {
     if (!val.trim()) return "—";
     // Check if it's an ISO date string
@@ -41,7 +51,7 @@ function formatAuditValue(val: any): string {
   }
   if (Array.isArray(val)) {
     if (val.length === 0) return "[]";
-    return `[${val.map(formatAuditValue).join(", ")}]`;
+    return `[${val.map((v) => formatAuditValue(v)).join(", ")}]`;
   }
   if (typeof val === "object") {
     try {
@@ -56,7 +66,8 @@ function formatAuditValue(val: any): string {
 export function computeAuditDiff(
   action: string,
   previousJson: string | null,
-  newJson: string | null
+  newJson: string | null,
+  entityName?: string
 ): FieldChange[] {
   let prevObj: Record<string, any> = {};
   let newObj: Record<string, any> = {};
@@ -94,8 +105,8 @@ export function computeAuditDiff(
           label: humanizeKey(key),
           oldVal: pVal,
           newVal: nVal,
-          oldDisplay: formatAuditValue(pVal),
-          newDisplay: formatAuditValue(nVal)
+          oldDisplay: formatAuditValue(pVal, entityName, key),
+          newDisplay: formatAuditValue(nVal, entityName, key)
         });
       }
     }
@@ -108,7 +119,7 @@ export function computeAuditDiff(
           oldVal: null,
           newVal: nVal,
           oldDisplay: "—",
-          newDisplay: formatAuditValue(nVal)
+          newDisplay: formatAuditValue(nVal, entityName, key)
         });
       }
     }
@@ -120,7 +131,7 @@ export function computeAuditDiff(
           label: humanizeKey(key),
           oldVal: pVal,
           newVal: null,
-          oldDisplay: formatAuditValue(pVal),
+          oldDisplay: formatAuditValue(pVal, entityName, key),
           newDisplay: "—"
         });
       }

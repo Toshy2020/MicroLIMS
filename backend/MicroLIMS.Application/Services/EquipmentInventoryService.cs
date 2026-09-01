@@ -50,7 +50,8 @@ public record EquipmentActivityDto(
     DateTime? CompletedOn,
     bool IsActive,
     int? EntityId,
-    string? EntityType);
+    string? EntityType,
+    string? CompletedBy = null);
 
 public record HistoricalLocationDto(
     string EquipmentCode,
@@ -58,7 +59,8 @@ public record HistoricalLocationDto(
     string ActivityType,
     DateTime StartedOn,
     DateTime? CompletedOn,
-    string PerformedBy);
+    string PerformedBy,
+    string? CompletedBy = null);
 
 public record WhereIsItResultDto(
     string SearchTerm,
@@ -183,6 +185,10 @@ public class EquipmentInventoryService
     // ACTIVE EQUIPMENT TRACEABILITY IMPLEMENTATION
     // =========================================================================
 
+    // Every equipment record is listed here - not just ones with something
+    // active right now - so an idle incubator (nothing currently
+    // incubating in it) stays selectable for its traceability history
+    // instead of vanishing from the panel entirely.
     public async Task<List<ActiveEquipmentItemDto>> GetActiveEquipmentAsync()
     {
         var allEquipment = await _db.EquipmentInventories.ToListAsync();
@@ -193,30 +199,29 @@ public class EquipmentInventoryService
         foreach (var eq in allEquipment)
         {
             var activeActivities = await GetActiveActivitiesForEquipmentInternalAsync(eq, masterEquipment);
-            if (activeActivities.Count > 0)
-            {
-                var firstAct = activeActivities.First();
-                var primaryCategory = firstAct.ActivityType.Contains("Incubation", StringComparison.OrdinalIgnoreCase) || firstAct.ActivityType.Contains("Pathogen", StringComparison.OrdinalIgnoreCase) ? "Incubation"
-                                    : firstAct.ActivityType.Contains("Cryovial", StringComparison.OrdinalIgnoreCase) ? "Cryovial Storage"
-                                    : firstAct.ActivityType.Contains("Media", StringComparison.OrdinalIgnoreCase) ? "Media Storage"
-                                    : "Laboratory Activity";
+            var primaryCategory = activeActivities.Count > 0
+                ? ClassifyActivityCategory(activeActivities.First().ActivityType)
+                : ClassifyEquipmentCategory(eq.InstrumentType, eq.Code);
 
-                activeList.Add(new ActiveEquipmentItemDto(
-                    eq.Id,
-                    eq.Code,
-                    eq.InstrumentType,
-                    eq.ManufacturerName,
-                    eq.Location,
-                    eq.Status.ToString(),
-                    eq.CalibrationDueDate,
-                    masterEquipment.FirstOrDefault(m => string.Equals(m.Code, eq.Code, StringComparison.OrdinalIgnoreCase))?.SetPointTemperature,
-                    primaryCategory,
-                    activeActivities.Count
-                ));
-            }
+            activeList.Add(new ActiveEquipmentItemDto(
+                eq.Id,
+                eq.Code,
+                eq.InstrumentType,
+                eq.ManufacturerName,
+                eq.Location,
+                eq.Status.ToString(),
+                eq.CalibrationDueDate,
+                masterEquipment.FirstOrDefault(m => string.Equals(m.Code, eq.Code, StringComparison.OrdinalIgnoreCase))?.SetPointTemperature,
+                primaryCategory,
+                activeActivities.Count
+            ));
         }
 
-        return activeList.OrderBy(e => e.InstrumentType).ThenBy(e => e.Code).ToList();
+        // Equipment with something in progress right now surfaces first;
+        // idle equipment (still selectable for history) follows.
+        return activeList
+            .OrderByDescending(e => e.ActiveItemCount > 0)
+            .ThenBy(e => e.InstrumentType).ThenBy(e => e.Code).ToList();
     }
 
     public async Task<List<EquipmentActivityDto>> GetActiveActivitiesForEquipmentAsync(int equipmentId)
@@ -240,7 +245,9 @@ public class EquipmentInventoryService
             .Where(i => i.IncubatorEquipmentId == eq.Id || (matchingMasterId.HasValue && i.IncubatorEquipmentId == matchingMasterId.Value))
             .ToListAsync();
 
-        var userIds = allIncubations.Where(i => i.StartedByUserId.HasValue).Select(i => i.StartedByUserId!.Value).Distinct().ToList();
+        var userIds = allIncubations.Where(i => i.StartedByUserId.HasValue).Select(i => i.StartedByUserId!.Value)
+            .Concat(allIncubations.Where(i => i.CompletedByUserId.HasValue).Select(i => i.CompletedByUserId!.Value))
+            .Distinct().ToList();
         var userMap = await _db.Users.Where(u => userIds.Contains(u.Id)).ToDictionaryAsync(u => u.Id, u => u.FullName);
 
         var list = new List<EquipmentActivityDto>();
@@ -276,6 +283,13 @@ public class EquipmentInventoryService
                 ? (inc.IncubationEndUtc ?? inc.StartedAt)
                 : (inc.IncubationEndUtc.HasValue && inc.IncubationEndUtc.Value <= DateTime.UtcNow ? inc.IncubationEndUtc.Value : (DateTime?)null));
 
+            // Only a real CompletedAt has a CompletedByUserId recorded alongside it -
+            // the synthetic fallbacks above (test/sample already finished, or the
+            // declared window merely elapsed) don't reflect an analyst action.
+            var completedBy = inc.CompletedAt.HasValue && inc.CompletedByUserId.HasValue && userMap.TryGetValue(inc.CompletedByUserId.Value, out var cName)
+                ? cName
+                : null;
+
             bool isActive = inc.CompletedAt == null && !isTestCompleted && !isSampleFinished && (inc.IncubationEndUtc == null || inc.IncubationEndUtc > DateTime.UtcNow);
 
             list.Add(new EquipmentActivityDto(
@@ -290,7 +304,8 @@ public class EquipmentInventoryService
                 completedOn,
                 isActive,
                 inc.TestOrder?.SampleId,
-                "Sample"
+                "Sample",
+                completedBy
             ));
         }
 
@@ -339,7 +354,9 @@ public class EquipmentInventoryService
             .OrderByDescending(i => i.IncubationStartUtc ?? i.StartedAt)
             .ToListAsync();
 
-        var userIds = incubations.Where(i => i.StartedByUserId.HasValue).Select(i => i.StartedByUserId!.Value).Distinct().ToList();
+        var userIds = incubations.Where(i => i.StartedByUserId.HasValue).Select(i => i.StartedByUserId!.Value)
+            .Concat(incubations.Where(i => i.CompletedByUserId.HasValue).Select(i => i.CompletedByUserId!.Value))
+            .Distinct().ToList();
         var userMap = await _db.Users.Where(u => userIds.Contains(u.Id)).ToDictionaryAsync(u => u.Id, u => u.FullName);
 
         foreach (var inc in incubations)
@@ -380,6 +397,10 @@ public class EquipmentInventoryService
 
             bool isActive = inc.CompletedAt == null && !isTestCompleted && !isSampleFinished && (inc.IncubationEndUtc == null || inc.IncubationEndUtc > DateTime.UtcNow);
 
+            var completedBy = inc.CompletedAt.HasValue && inc.CompletedByUserId.HasValue && userMap.TryGetValue(inc.CompletedByUserId.Value, out var cName)
+                ? cName
+                : null;
+
             if (isActive && currentActivity == null)
             {
                 currentActivity = new EquipmentActivityDto(
@@ -406,7 +427,8 @@ public class EquipmentInventoryService
                 activityType,
                 startedOn,
                 completedOn,
-                startedBy
+                startedBy,
+                completedBy
             ));
         }
 
@@ -575,4 +597,27 @@ public class EquipmentInventoryService
 
         return activities.OrderByDescending(a => a.StartedOn).ToList();
     }
+
+    private static string ClassifyActivityCategory(string activityType) =>
+        activityType.Contains("Incubation", StringComparison.OrdinalIgnoreCase) || activityType.Contains("Pathogen", StringComparison.OrdinalIgnoreCase) ? "Incubation"
+        : activityType.Contains("Cryovial", StringComparison.OrdinalIgnoreCase) ? "Cryovial Storage"
+        : activityType.Contains("Media", StringComparison.OrdinalIgnoreCase) ? "Media Storage"
+        : "Laboratory Activity";
+
+    // Fallback classification for equipment with nothing active right now -
+    // derived from the equipment's own type/code rather than an activity,
+    // since there isn't one to read a category off of. InstrumentType free
+    // text isn't fully reliable on its own (e.g. a row can be mislabeled
+    // with its manufacturer name instead of "Incubator"), so the Code
+    // prefix convention (INC-/AUT-/LAF-) backs it up where that prefix is
+    // actually distinctive - Refrigerator vs. Deep Freezer both use a
+    // "COD-" code in this lab's numbering, so those two rely on
+    // InstrumentType text alone.
+    private static string ClassifyEquipmentCategory(string instrumentType, string code) =>
+        instrumentType.Contains("Incubat", StringComparison.OrdinalIgnoreCase) || code.StartsWith("INC", StringComparison.OrdinalIgnoreCase) ? "Incubation"
+        : instrumentType.Contains("Freezer", StringComparison.OrdinalIgnoreCase) ? "Cryovial Storage"
+        : instrumentType.Contains("Refrigerator", StringComparison.OrdinalIgnoreCase) ? "Media Storage"
+        : instrumentType.Contains("Autoclave", StringComparison.OrdinalIgnoreCase) || code.StartsWith("AUT", StringComparison.OrdinalIgnoreCase) ? "Sterilization"
+        : instrumentType.Contains("Biological Safety", StringComparison.OrdinalIgnoreCase) || instrumentType.Contains("Laminar", StringComparison.OrdinalIgnoreCase) || code.StartsWith("LAF", StringComparison.OrdinalIgnoreCase) ? "Biosafety Cabinet"
+        : "Laboratory Equipment";
 }

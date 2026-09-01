@@ -67,6 +67,58 @@ public class SampleApprovalService
         };
     }
 
+    // Water/EM/After Cleaning TestOrders are batches of per-location
+    // results (SampleLocation rows), not one result per order. A retest
+    // must only ever re-run the locations that actually failed on the
+    // original order - carrying over every assigned location (or worse,
+    // letting the analyst re-pick from the whole department/machine/room
+    // catalog in the Preparation screen) would silently retest points
+    // that already conformed. Returns true if any location was cloned
+    // (signals the caller to skip the Preparation screen for this order's
+    // sample, since it now already has everything it needs).
+    private async Task<bool> CloneFailedLocationsAsync(SampleCategory category, TestOrder originalOrder, Sample newSample, TestOrder newOrder)
+    {
+        if (category is not (SampleCategory.Water or SampleCategory.EnvironmentalMonitoring or SampleCategory.AfterCleaning))
+            return false;
+
+        var originalLocations = await _db.SampleLocations.AsNoTracking()
+            .Where(l => l.TestOrderId == originalOrder.Id)
+            .ToListAsync();
+
+        if (originalLocations.Count == 0)
+            return false;
+
+        // Conforming statuses mirror DetermineOwnResultConformanceAsync
+        // below. If none of the original locations actually failed (e.g.
+        // the order was sent to retest for a procedural/OOS reason rather
+        // than a location result), fall back to carrying every original
+        // location rather than creating a TestOrder with no locations at
+        // all - an empty batch order can't be tested.
+        var failedLocations = originalLocations.Where(l => l.Status is not ("WithinLimits" or "Absent")).ToList();
+        var locationsToClone = failedLocations.Count > 0 ? failedLocations : originalLocations;
+
+        foreach (var loc in locationsToClone)
+        {
+            newSample.Locations.Add(new SampleLocation
+            {
+                TestOrder = newOrder,
+                LocationType = loc.LocationType,
+                RoomTestConfigurationId = loc.RoomTestConfigurationId,
+                MachinePartConfigurationId = loc.MachinePartConfigurationId,
+                WaterSamplingPointId = loc.WaterSamplingPointId,
+                SamplingConfigurationId = loc.SamplingConfigurationId
+                // Deliberately not copying DilutionFactor/CFUResult/
+                // CalculatedResult/ReportedResult/AlertLimit/ActionLimit/
+                // SpecLimit/Status/Unit/RawReadings/EnteredAt/
+                // EnteredByUserId - this is a fresh, unread location on the
+                // retest order; limits get freshly snapshotted when the
+                // analyst records the result, same as any normal batch order.
+            });
+        }
+
+        return true;
+    }
+
     public async Task DecideAsync(
         int sampleId, int sectionHeadUserId, string password, ApprovalDecision decision,
         string? comment, string? ipAddress, string? certificateRemarks = null,
@@ -195,9 +247,10 @@ public class SampleApprovalService
                     sample.OosGroupCode = await _refNumbers.GenerateOosCodeAsync();
 
                 var newSample = BuildRetestSample(sample, await _refNumbers.GenerateAsync(sample.Category), retestCause!.Id, sectionHeadUserId, sample.OosGroupCode);
+                var carriedAnyLocations = false;
                 foreach (var order in selectedOrders)
                 {
-                    newSample.TestOrders.Add(new TestOrder
+                    var newOrder = new TestOrder
                     {
                         TestCode = order.TestCode,
                         Status = ApprovalStatus.Pending,
@@ -205,7 +258,11 @@ public class SampleApprovalService
                         AssignedAnalystId = order.AssignedAnalystId,
                         RoomId = order.RoomId,
                         IsSuperseded = false
-                    });
+                    };
+                    newSample.TestOrders.Add(newOrder);
+
+                    if (await CloneFailedLocationsAsync(sample.Category, order, newSample, newOrder))
+                        carriedAnyLocations = true;
 
                     order.IsSuperseded = true;
                     _db.WorkflowHistories.Add(new WorkflowHistory
@@ -217,6 +274,16 @@ public class SampleApprovalService
                         PerformedByUserId = sectionHeadUserId
                     });
                 }
+
+                // Water/EM/After Cleaning: the failed locations are already
+                // carried onto the new TestOrders above, so this sample
+                // skips the checkbox Preparation screen entirely - it would
+                // otherwise let the analyst freely add back every other
+                // point/room/part (and every test assigned to it), exactly
+                // the "retest everything" bug this exists to prevent.
+                if (carriedAnyLocations)
+                    newSample.PreparationStatus = SamplePreparationStatus.Ready;
+
                 _db.Samples.Add(newSample);
                 break;
             }
@@ -239,9 +306,10 @@ public class SampleApprovalService
                 foreach (var analystId in analystIds)
                 {
                     var spinoff = BuildRetestSample(sample, await _refNumbers.GenerateAsync(sample.Category), retestCause!.Id, sectionHeadUserId, sample.OosGroupCode);
+                    var carriedAnyLocations = false;
                     foreach (var order in selectedOrders)
                     {
-                        spinoff.TestOrders.Add(new TestOrder
+                        var newOrder = new TestOrder
                         {
                             TestCode = order.TestCode,
                             Status = ApprovalStatus.Pending,
@@ -249,8 +317,18 @@ public class SampleApprovalService
                             AssignedAnalystId = analystId,
                             RoomId = order.RoomId,
                             IsSuperseded = false
-                        });
+                        };
+                        spinoff.TestOrders.Add(newOrder);
+
+                        if (await CloneFailedLocationsAsync(sample.Category, order, spinoff, newOrder))
+                            carriedAnyLocations = true;
                     }
+
+                    // See the matching comment in the RetestRetainedSample
+                    // branch above - same reasoning, applied per spinoff.
+                    if (carriedAnyLocations)
+                        spinoff.PreparationStatus = SamplePreparationStatus.Ready;
+
                     _db.Samples.Add(spinoff);
                     await _db.SaveChangesAsync();
                 }

@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import {
   Box, Typography, Avatar, IconButton, Badge, Menu, MenuItem, Divider,
-  ListItemIcon, ListItemText, Tooltip, Switch, useTheme, useMediaQuery
+  ListItemIcon, ListItemText, Tooltip, Switch, useTheme, useMediaQuery, Button
 } from "@mui/material";
 import MenuIcon from "@mui/icons-material/Menu";
 import NotificationsIcon from "@mui/icons-material/Notifications";
@@ -90,6 +90,12 @@ export function Header({ onToggleSidebar, sidebarCollapsed }: HeaderProps) {
     if (target) navigate(target);
   };
 
+  const handleMarkAllRead = () => {
+    if (unreadCount === 0) return;
+    apiClient.post("/dashboard/notifications/read-all").catch(() => {});
+    setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
+  };
+
   const handleSignOut = () => {
     setAccountAnchor(null);
     logout();
@@ -155,6 +161,20 @@ export function Header({ onToggleSidebar, sidebarCollapsed }: HeaderProps) {
           </IconButton>
         </Tooltip>
         <Menu anchorEl={bellAnchor} open={Boolean(bellAnchor)} onClose={() => setBellAnchor(null)} PaperProps={{ sx: { width: 360, maxHeight: 420 } }}>
+          {notifications.length > 0 && (
+            <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", px: 2, py: 0.75 }}>
+              <Typography sx={{ fontSize: 13, fontWeight: 700 }}>Notifications</Typography>
+              <Button
+                size="small"
+                onClick={handleMarkAllRead}
+                disabled={unreadCount === 0}
+                sx={{ fontSize: 11, textTransform: "none", minWidth: 0 }}
+              >
+                Mark all as read
+              </Button>
+            </Box>
+          )}
+          {notifications.length > 0 && <Divider />}
           {notifications.length === 0 && (
             <MenuItem disabled>
               <ListItemText primary="Nothing pending." />

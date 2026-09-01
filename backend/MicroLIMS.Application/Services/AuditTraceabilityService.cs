@@ -180,6 +180,27 @@ public class AuditTraceabilityService
             }
         }
 
+        // 6. Item Master Chain (preparation configuration hangs off the Item,
+        // not off any one Sample - it outlives every sample that used it).
+        if (log.EntityName == nameof(Item) ||
+            log.EntityName == nameof(ItemPreparationConfiguration))
+        {
+            int? itemId = null;
+            if (log.EntityName == nameof(Item) && int.TryParse(log.EntityId, out var parsedItemId))
+            {
+                itemId = parsedItemId;
+            }
+            else if (log.EntityName == nameof(ItemPreparationConfiguration) && int.TryParse(log.EntityId, out var parsedCfgId))
+            {
+                itemId = await _db.ItemPreparationConfigurations.Where(c => c.Id == parsedCfgId).Select(c => (int?)c.ItemId).FirstOrDefaultAsync();
+            }
+
+            if (itemId.HasValue)
+            {
+                return await BuildItemChainAsync(itemId.Value);
+            }
+        }
+
         return new AuditTraceabilityResult("General", $"{log.EntityName} #{log.EntityId}", new List<AuditTraceabilityNode>
         {
             new(log.EntityName, log.EntityId, log.EntityName, log.Action, $"Entity {log.EntityName} with ID {log.EntityId}", int.TryParse(log.EntityId, out var id) ? id : null, null, log.Timestamp)
@@ -195,11 +216,65 @@ public class AuditTraceabilityService
         if (entityName == nameof(Material)) return await BuildMaterialChainAsync(id);
         if (entityName == nameof(Cryovial)) return await BuildCryovialChainAsync(id);
         if (entityName == nameof(EquipmentInventory)) return await BuildEquipmentChainAsync(id);
+        if (entityName == nameof(Item)) return await BuildItemChainAsync(id);
 
         return null;
     }
 
     // ---- Domain Relationship Chain Builders ----
+
+    private async Task<AuditTraceabilityResult> BuildItemChainAsync(int itemId)
+    {
+        var item = await _db.Items.FirstOrDefaultAsync(i => i.Id == itemId);
+        if (item == null)
+        {
+            return new AuditTraceabilityResult("ItemMaster", $"Item #{itemId}", new List<AuditTraceabilityNode>());
+        }
+
+        var nodes = new List<AuditTraceabilityNode>
+        {
+            new("Item", item.Code, item.Name, item.Category.ToString(), $"Product/Item: {item.Name} ({item.Code})", item.Id, null, null)
+        };
+
+        var config = await _db.ItemPreparationConfigurations
+            .Include(c => c.Neutralizer)
+            .FirstOrDefaultAsync(c => c.ItemId == itemId);
+
+        if (config != null)
+        {
+            nodes.Add(new(
+                "PreparationConfiguration",
+                $"PREP-CFG-{config.Id}",
+                "Preparation Configuration",
+                config.ApprovalStatus.ToString(),
+                $"{config.Amount} {config.Unit}, {config.Technique}, Neutralizer: {config.Neutralizer?.Name ?? "—"}",
+                config.Id,
+                null,
+                config.CreatedAt));
+        }
+
+        var samples = await _db.Samples
+            .Where(s => s.ItemId == itemId)
+            .OrderByDescending(s => s.ReceivedAt)
+            .Take(20)
+            .Select(s => new { s.Id, s.ReferenceNumber, s.Status, s.ReceivedAt, s.ControlNumber })
+            .ToListAsync();
+
+        foreach (var s in samples)
+        {
+            nodes.Add(new(
+                "Sample",
+                s.ReferenceNumber,
+                $"Sample (Ctrl: {s.ControlNumber})",
+                s.Status.ToString(),
+                $"Received: {s.ReceivedAt:dd-MMM-yyyy HH:mm}",
+                s.Id,
+                "samples",
+                s.ReceivedAt));
+        }
+
+        return new AuditTraceabilityResult("ItemMaster", item.Code, nodes);
+    }
 
     private async Task<AuditTraceabilityResult> BuildSampleChainAsync(int sampleId)
     {
@@ -268,6 +343,29 @@ public class AuditTraceabilityService
             sample.Id,
             "samples",
             sample.ReceivedAt));
+
+        // 2b. Preparation snapshot - the values actually used, plus a link
+        // back to the config version they were confirmed from.
+        var prep = await _db.SamplePreparations
+            .Include(p => p.Neutralizer)
+            .FirstOrDefaultAsync(p => p.SampleId == sampleId);
+
+        if (prep != null)
+        {
+            var provenance = prep.SourceConfigurationId.HasValue
+                ? $"Confirmed from Preparation Configuration PREP-CFG-{prep.SourceConfigurationId}"
+                : "Manually entered (no configuration on file)";
+
+            nodes.Add(new(
+                "SamplePreparation",
+                $"PREP-{prep.Id}",
+                "Sample Preparation",
+                prep.WasConfirmedFromConfig ? "Confirmed from Configuration" : "Manual Entry",
+                $"{prep.Amount} {prep.Unit}, {prep.Technique}, Neutralizer: {prep.Neutralizer?.Name ?? "—"}. {provenance}",
+                prep.Id,
+                null,
+                prep.PreparedAt));
+        }
 
         // 3. Test Orders
         foreach (var to in sample.TestOrders)

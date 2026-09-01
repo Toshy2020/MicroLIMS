@@ -53,6 +53,13 @@ public class DashboardController : ControllerBase
         return Ok(ApiResponse<object>.Ok(new { }));
     }
 
+    [HttpPost("notifications/read-all")]
+    public async Task<IActionResult> MarkAllNotificationsRead()
+    {
+        await _notificationService.MarkAllAsReadAsync(CurrentUserId);
+        return Ok(ApiResponse<object>.Ok(new { }));
+    }
+
     [HttpGet("recent-activity")]
     public async Task<IActionResult> GetRecentActivity([FromQuery] int take = 25) => Ok(ApiResponse<object>.Ok(await _activityService.GetRecentAsync(take)));
 

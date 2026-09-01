@@ -31,6 +31,7 @@ export interface EquipmentActivityDto {
   isActive: boolean;
   entityId: number | null;
   entityType: string | null;
+  completedBy: string | null;
 }
 
 export interface HistoricalLocationDto {
@@ -40,6 +41,7 @@ export interface HistoricalLocationDto {
   startedOn: string;
   completedOn: string | null;
   performedBy: string;
+  completedBy: string | null;
 }
 
 export interface WhereIsItResultDto {

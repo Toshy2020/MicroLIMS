@@ -135,6 +135,7 @@ public class MediaEvaluationEngine : IMediaEvaluationEngine
             MediaId = evaluation.MediaId,
             IncubatorEquipmentId = incubatorEquipmentId,
             StartedAt = startedAt,
+            StartedByUserId = userId,
             Temperature = $"{config.TemperatureMin}-{config.TemperatureMax}",
             Duration = $"{config.IncubationMinHours}-{config.IncubationMaxHours}",
             // The Duration's minimum is a hard gate, not a suggestion -
@@ -233,6 +234,14 @@ public class MediaEvaluationEngine : IMediaEvaluationEngine
 
         challenge.ReadAt = DateTime.UtcNow;
         challenge.ReadByUserId = request.UserId;
+
+        // The per-challenge incubation ends the moment its result is
+        // read - each challenge owns exactly one Incubation row (set up
+        // in RecordIncubationAsync above), so closing it here is safe
+        // even while sibling challenges on the same evaluation are still
+        // incubating.
+        challenge.Incubation!.CompletedAt = challenge.ReadAt;
+        challenge.Incubation.CompletedByUserId = request.UserId;
 
         // A completed evaluation QUALIFIES a lot; it no longer releases
         // it. On Conform the lot stays at ApprovalStatus.PendingReview

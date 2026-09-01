@@ -32,6 +32,11 @@ import { ItemDocumentService, ItemDocumentDto, ItemDocumentType, MaterialDocumen
 import { UploadItemDocumentDialog } from "./UploadItemDocumentDialog";
 import { AuditHistoryDialog } from "../../../../components/AuditHistoryDialog";
 import { ItemSpecificationsSection } from "./ItemSpecificationsSection";
+import { ItemPreparationConfigurationSection } from "./ItemPreparationConfigurationSection";
+import {
+  ItemPreparationConfigurationService,
+  type ItemPreparationConfiguration
+} from "../../../testPreparation/services/ItemPreparationConfigurationService";
 
 interface ItemWorkspaceProps {
   item: Item;
@@ -48,6 +53,19 @@ export function ItemWorkspace({ item, onClose, onItemUpdated }: ItemWorkspacePro
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
   const [uploadDocType, setUploadDocType] = useState<ItemDocumentType>(ItemDocumentType.Sop);
   const [auditDialogOpen, setAuditDialogOpen] = useState(false);
+
+  // Drives the Overview summary row; bumped by the tab when it saves or
+  // approves so the row doesn't go stale behind the user.
+  const [prepConfig, setPrepConfig] = useState<ItemPreparationConfiguration | null>(null);
+  const [prepConfigVersion, setPrepConfigVersion] = useState(0);
+
+  useEffect(() => {
+    let cancelled = false;
+    ItemPreparationConfigurationService.get(item.id)
+      .then((c) => { if (!cancelled) setPrepConfig(c); })
+      .catch(() => { if (!cancelled) setPrepConfig(null); });
+    return () => { cancelled = true; };
+  }, [item.id, prepConfigVersion]);
 
   const loadDocuments = async () => {
     setLoadingDocs(true);
@@ -176,6 +194,7 @@ export function ItemWorkspace({ item, onClose, onItemUpdated }: ItemWorkspacePro
             label={`Documents & Attachments (${documents.length})`}
             sx={{ textTransform: "none", fontWeight: 600, fontSize: 13 }}
           />
+          <Tab label="Preparation Configuration" sx={{ textTransform: "none", fontWeight: 600, fontSize: 13 }} />
           <Tab label="Audit History" sx={{ textTransform: "none", fontWeight: 600, fontSize: 13 }} />
         </Tabs>
       </Box>
@@ -285,6 +304,34 @@ export function ItemWorkspace({ item, onClose, onItemUpdated }: ItemWorkspacePro
                   </Typography>
                   <Typography variant="body2" sx={{ fontWeight: 600, color: "primary.main" }}>
                     {currentSop ? "SOP Available" : "No SOP"} • {currentVr ? "VR Available" : "No VR"} →
+                  </Typography>
+                </Box>
+
+                <Box
+                  sx={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    cursor: "pointer",
+                    p: 0.5,
+                    borderRadius: 1,
+                    "&:hover": { bgcolor: "action.hover" },
+                  }}
+                  onClick={() => setActiveTab(4)}
+                >
+                  <Typography variant="body2" sx={{ color: "text.secondary" }}>
+                    Preparation Steps:
+                  </Typography>
+                  <Typography
+                    variant="body2"
+                    sx={{
+                      fontWeight: 600,
+                      color: prepConfig?.approvalStatus === "PendingReview" ? "warning.main" : "primary.main"
+                    }}
+                  >
+                    {prepConfig
+                      ? `Configured · ${prepConfig.approvalStatus === "Approved" ? "Approved" : "Pending Approval"} →`
+                      : "Not configured →"}
                   </Typography>
                 </Box>
               </Stack>
@@ -455,8 +502,17 @@ export function ItemWorkspace({ item, onClose, onItemUpdated }: ItemWorkspacePro
           </Stack>
         )}
 
-        {/* Tab 4: Audit History */}
+        {/* Tab 4: Preparation Configuration */}
         {activeTab === 4 && (
+          <ItemPreparationConfigurationSection
+            itemId={item.id}
+            itemName={item.name}
+            onChanged={() => setPrepConfigVersion((v) => v + 1)}
+          />
+        )}
+
+        {/* Tab 5: Audit History */}
+        {activeTab === 5 && (
           <Stack spacing={2} alignItems="flex-start">
             <Typography variant="body2" sx={{ color: "text.secondary" }}>
               View full GxP audit log history for Item <strong>{item.name}</strong> ({item.code}).

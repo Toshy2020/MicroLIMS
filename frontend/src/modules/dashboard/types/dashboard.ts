@@ -5,6 +5,7 @@ export interface DashboardSummary {
   reviewerQueue: number;
   approvalQueue: number;
   preparationQueue: number;
+  pendingPreparationConfigApproval: number;
   incubatingCount: number;
   readyToReadCount: number;
 }

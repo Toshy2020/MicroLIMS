@@ -140,6 +140,7 @@ export function AuditResultsTable({
                       action={item.action}
                       previousValue={item.previousValue}
                       newValue={item.newValue}
+                      entityName={item.entityName}
                       compact={true}
                       onViewAll={() => onSelectEvent(item)}
                     />

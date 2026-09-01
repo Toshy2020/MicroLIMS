@@ -22,3 +22,39 @@ public class ItemConfiguration : IEntityTypeConfiguration<Item>
                .HasForeignKey(t => t.ItemId);
     }
 }
+
+public class ItemPreparationConfigurationConfiguration : IEntityTypeConfiguration<ItemPreparationConfiguration>
+{
+    public void Configure(EntityTypeBuilder<ItemPreparationConfiguration> builder)
+    {
+        builder.HasKey(c => c.Id);
+
+        // One protocol per Item.
+        builder.HasIndex(c => c.ItemId).IsUnique();
+
+        builder.Property(c => c.Unit).IsRequired().HasMaxLength(50);
+        builder.Property(c => c.Technique).IsRequired().HasMaxLength(50);
+
+        // Restrict throughout - a config is master data referenced by
+        // historical SamplePreparation snapshots.
+        builder.HasOne(c => c.Item).WithMany().HasForeignKey(c => c.ItemId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasOne(c => c.DiluentType).WithMany().HasForeignKey(c => c.DiluentTypeId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasOne(c => c.DiluentMedia).WithMany().HasForeignKey(c => c.DiluentMediaId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasOne(c => c.Neutralizer).WithMany().HasForeignKey(c => c.NeutralizerId).OnDelete(DeleteBehavior.Restrict);
+    }
+}
+
+public class SamplePreparationConfiguration : IEntityTypeConfiguration<SamplePreparation>
+{
+    public void Configure(EntityTypeBuilder<SamplePreparation> builder)
+    {
+        builder.HasKey(p => p.Id);
+
+        // Keep the snapshot readable even if the source config is later
+        // removed - the snapshot columns on this row stand on their own.
+        builder.HasOne(p => p.SourceConfiguration)
+               .WithMany()
+               .HasForeignKey(p => p.SourceConfigurationId)
+               .OnDelete(DeleteBehavior.Restrict);
+    }
+}

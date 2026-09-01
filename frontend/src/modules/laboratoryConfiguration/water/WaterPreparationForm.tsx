@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Box, Typography } from "@mui/material";
+import { Box, MenuItem, Paper, Select, TextField, Typography } from "@mui/material";
 import { WaterPreparationService } from "./services/WaterPreparationService";
 import { SamplingPointGrid, SamplingPointGridItem } from "../../testPreparation/components/SamplingPointGrid";
 
@@ -20,6 +20,14 @@ export function WaterPreparationForm({ sampleId, waterDepartmentId, onComplete }
   const [checked, setChecked] = useState<Record<number, boolean>>({});
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<{ text: string; ok: boolean } | null>(null);
+
+  // How the collected water was held before testing. Refrigerated samples
+  // have a hold-time limit, so the duration is required alongside it.
+  const [storageCondition, setStorageCondition] = useState("");
+  const [storageTimeHours, setStorageTimeHours] = useState("");
+
+  const storageIncomplete =
+    !storageCondition || (storageCondition === "Refrigerator" && !storageTimeHours);
 
   useEffect(() => {
     WaterPreparationService.getSamplingPointsForDepartment(waterDepartmentId).then(setPoints);
@@ -53,7 +61,12 @@ export function WaterPreparationForm({ sampleId, waterDepartmentId, onComplete }
     const waterSamplingPointIds = points.filter((p) => checked[p.id]).map((p) => p.id);
 
     try {
-      await WaterPreparationService.prepare(sampleId, waterSamplingPointIds);
+      await WaterPreparationService.prepare(
+        sampleId,
+        waterSamplingPointIds,
+        storageCondition,
+        storageCondition === "Refrigerator" ? Number(storageTimeHours) : null
+      );
       onComplete();
     } catch (e: any) {
       setMessage({ text: e?.response?.data?.message ?? "Could not prepare sample.", ok: false });
@@ -69,15 +82,55 @@ export function WaterPreparationForm({ sampleId, waterDepartmentId, onComplete }
           Loading sampling points...
         </Typography>
       ) : (
-        <SamplingPointGrid
-          items={items}
-          selectedIds={checked}
-          onToggle={toggle}
-          onSelectAll={handleSelectAll}
-          onConfirm={confirm}
-          loading={loading}
-          errorMessage={message?.text}
-        />
+        <>
+          <Paper
+            variant="outlined"
+            sx={{ p: 1.5, mb: 2, display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, gap: 2 }}
+          >
+            <Box>
+              <Typography sx={{ fontSize: 12, fontWeight: 700, color: "text.secondary", mb: 0.5 }}>
+                Storage Condition *
+              </Typography>
+              <Select
+                displayEmpty
+                fullWidth
+                size="small"
+                value={storageCondition}
+                onChange={(e) => setStorageCondition(e.target.value)}
+              >
+                <MenuItem value=""><em>Select storage condition</em></MenuItem>
+                <MenuItem value="Refrigerator">Refrigerator</MenuItem>
+                <MenuItem value="RoomTemperature">Room Temperature</MenuItem>
+              </Select>
+            </Box>
+
+            {storageCondition === "Refrigerator" && (
+              <Box>
+                <Typography sx={{ fontSize: 12, fontWeight: 700, color: "text.secondary", mb: 0.5 }}>
+                  Storage Time (hours) *
+                </Typography>
+                <TextField
+                  fullWidth
+                  size="small"
+                  type="number"
+                  value={storageTimeHours}
+                  onChange={(e) => setStorageTimeHours(e.target.value)}
+                />
+              </Box>
+            )}
+          </Paper>
+
+          <SamplingPointGrid
+            items={items}
+            selectedIds={checked}
+            onToggle={toggle}
+            onSelectAll={handleSelectAll}
+            onConfirm={confirm}
+            loading={loading}
+            errorMessage={message?.text}
+            confirmDisabled={storageIncomplete}
+          />
+        </>
       )}
     </Box>
   );

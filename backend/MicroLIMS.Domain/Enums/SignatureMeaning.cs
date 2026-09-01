@@ -6,5 +6,6 @@ public enum SignatureMeaning
     Approved,
     Rejected,
     RetestRequested,
-    InvestigationOrdered
+    InvestigationOrdered,
+    PreparationConfirmed
 }

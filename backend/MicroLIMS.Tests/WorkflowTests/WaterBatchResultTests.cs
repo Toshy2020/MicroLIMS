@@ -109,7 +109,7 @@ public class WaterBatchResultTests
 
         var waterEngine = new MicroLIMS.Application.Workflows.WaterWorkflowEngine(db, new ReferenceNumberGenerator(db));
         var sample = await waterEngine.ReceiveAsync(new MicroLIMS.Application.Workflows.WaterReceiveRequest(department.Id, 0, "500ml", "Analyst", "CTRL-600", 1));
-        var prepared = await waterEngine.PrepareAsync(sample.Id, new List<int> { pointA.Id, pointB.Id }, 1);
+        var prepared = await waterEngine.PrepareAsync(sample.Id, new List<int> { pointA.Id, pointB.Id }, 1, "RoomTemperature");
         var order = prepared.TestOrders.Single();
 
         var engine = TestServiceFactory.TestWorkflow(db);

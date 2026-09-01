@@ -6,6 +6,7 @@ interface Props {
   action: string;
   previousValue: string | null;
   newValue: string | null;
+  entityName?: string;
   compact?: boolean;
   maxCompactItems?: number;
   onViewAll?: () => void;
@@ -15,12 +16,13 @@ export function AuditDiffViewer({
   action,
   previousValue,
   newValue,
+  entityName,
   compact = false,
   maxCompactItems = 2,
   onViewAll
 }: Props) {
   const theme = useTheme();
-  const changes = computeAuditDiff(action, previousValue, newValue);
+  const changes = computeAuditDiff(action, previousValue, newValue, entityName);
 
   if (action === "Create") {
     if (compact) {

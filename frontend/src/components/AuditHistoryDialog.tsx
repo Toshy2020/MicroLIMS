@@ -134,6 +134,7 @@ export function AuditHistoryDialog({
                     action={entry.action}
                     previousValue={entry.previousValue}
                     newValue={entry.newValue}
+                    entityName={entityName}
                     compact={false}
                   />
                 </Box>

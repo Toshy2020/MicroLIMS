@@ -78,6 +78,7 @@ export const ENTITY_DISPLAY_NAMES: Record<string, string> = {
   EquipmentDocument: "Calibration Certificate",
   EquipmentStatusHistory: "Equipment Status Transition",
   Item: "Item Master",
+  ItemPreparationConfiguration: "Preparation Configuration",
   WaterSamplingPoint: "Water Sampling Point",
   Department: "EM Department",
   Room: "EM Room"

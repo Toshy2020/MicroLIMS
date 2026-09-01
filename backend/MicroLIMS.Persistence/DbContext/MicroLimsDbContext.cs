@@ -70,6 +70,7 @@ public class MicroLimsDbContext : Microsoft.EntityFrameworkCore.DbContext
     public DbSet<AutoclaveProgramHistory> AutoclaveProgramHistories => Set<AutoclaveProgramHistory>();
     public DbSet<RoomTestConfiguration> RoomTestConfigurations => Set<RoomTestConfiguration>();
     public DbSet<SamplePreparation> SamplePreparations => Set<SamplePreparation>();
+    public DbSet<ItemPreparationConfiguration> ItemPreparationConfigurations => Set<ItemPreparationConfiguration>();
     public DbSet<Organism> Organisms => Set<Organism>();
 
     // Workload Weights

@@ -730,6 +730,8 @@ export function ReceivingTestingWorkspacePage() {
         sample={preparingSample ? {
           sampleId: preparingSample.sampleId,
           category: preparingSample.category,
+          itemId: preparingSample.itemId,
+          itemName: preparingSample.displayName,
           departmentId: preparingSample.departmentId,
           machineId: preparingSample.machineId,
           waterDepartmentId: preparingSample.waterDepartmentId,

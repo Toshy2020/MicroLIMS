@@ -140,6 +140,7 @@ export function AuditEventDrawer({
             action={event.action}
             previousValue={event.previousValue}
             newValue={event.newValue}
+            entityName={event.entityName}
             compact={false}
           />
         </Box>

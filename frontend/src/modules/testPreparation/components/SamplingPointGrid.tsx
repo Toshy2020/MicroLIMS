@@ -32,6 +32,9 @@ interface Props {
   confirmLabel?: string;
   loading?: boolean;
   errorMessage?: string | null;
+  // Lets a caller block confirmation on its own prerequisites (e.g. Water's
+  // storage condition) on top of the grid's own selection rule.
+  confirmDisabled?: boolean;
 }
 
 export function SamplingPointGrid({
@@ -42,7 +45,8 @@ export function SamplingPointGrid({
   onConfirm,
   confirmLabel = "Start Testing",
   loading = false,
-  errorMessage = null
+  errorMessage = null,
+  confirmDisabled = false
 }: Props) {
   const theme = useTheme();
 
@@ -255,7 +259,7 @@ export function SamplingPointGrid({
         <Button
           variant="contained"
           onClick={onConfirm}
-          disabled={selectedCount === 0 || loading}
+          disabled={selectedCount === 0 || loading || confirmDisabled}
           startIcon={<PlayArrowIcon />}
           sx={{
             bgcolor: brandColors.sectionTitle,

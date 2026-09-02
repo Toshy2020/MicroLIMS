@@ -10,6 +10,14 @@ namespace MicroLIMS.Application.Services;
 
 public record RoleDto(int Id, string Name, string Type);
 
+public record UserDirectoryDto(
+    int Id,
+    string FullName,
+    string Username,
+    string? JobTitle,
+    string RoleName,
+    bool IsActive);
+
 public record UserDto(
     int Id,
     string FullName,
@@ -41,6 +49,25 @@ public class UserService
     {
         var users = await _db.Users.Include(u => u.Role).OrderBy(u => u.Id).ToListAsync();
         return users.Select(ToDto).ToList();
+    }
+
+    public async Task<List<UserDirectoryDto>> GetDirectoryAsync()
+    {
+        var users = await _db.Users
+            .Include(u => u.Role)
+            .Where(u => u.IsActive)
+            .OrderBy(u => u.FullName)
+            .AsNoTracking()
+            .ToListAsync();
+
+        return users.Select(u => new UserDirectoryDto(
+            u.Id,
+            u.FullName,
+            u.Username,
+            u.JobTitle,
+            u.Role?.Name ?? "Staff",
+            u.IsActive
+        )).ToList();
     }
 
     public async Task<List<UserDto>> GetEligibleAnalystsAsync()

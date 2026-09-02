@@ -88,6 +88,8 @@ public static class ServiceCollectionExtensions
         services.AddScoped<ItemDocumentService>();
         services.AddScoped<OosInvestigationDocumentService>();
         services.AddScoped<ResultProjectionService>();
+        services.AddScoped<DiscussionService>();
+        services.AddScoped<MessageService>();
         services.AddScoped<IncubatorEligibilityService>();
         services.AddScoped<MediaAppearanceSnapshotService>();
         services.AddScoped<ReportingQueryService>();

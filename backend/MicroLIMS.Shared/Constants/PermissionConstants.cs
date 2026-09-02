@@ -25,6 +25,10 @@ public static class PermissionConstants
     public const string ItemsManage = "Items.Manage";
     public const string ItemsDocumentUpload = "Items.DocumentUpload";
     public const string MasterDataManage = "MasterData.Manage";
+    public const string DiscussionsView = "Discussions.View";
+    public const string DiscussionsCreate = "Discussions.Create";
+    public const string DiscussionsEditAny = "Discussions.EditAny";
+    public const string MessagesUse = "Messages.Use";
 
     public static readonly IReadOnlyList<string> All = new[]
     {
@@ -35,6 +39,7 @@ public static class PermissionConstants
         MaterialsManage, MaterialsDocumentControl,
         EquipmentManage, EquipmentDocumentControl,
         ItemsManage, ItemsDocumentUpload,
-        MasterDataManage
+        MasterDataManage,
+        DiscussionsView, DiscussionsCreate, DiscussionsEditAny, MessagesUse
     };
 }

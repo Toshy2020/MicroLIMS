@@ -64,7 +64,7 @@ public class RoleManagementTests
         var reviewer = await service.GetByIdAsync(3); // Reviewer
 
         Assert.NotNull(reviewer);
-        Assert.Equal(4, reviewer!.PermissionCodes.Count);
+        Assert.Equal(7, reviewer!.PermissionCodes.Count);
         Assert.Contains(PermissionConstants.SamplesReview, reviewer.PermissionCodes);
     }
 

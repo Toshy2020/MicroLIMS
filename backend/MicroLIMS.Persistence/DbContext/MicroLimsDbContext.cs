@@ -104,6 +104,15 @@ public class MicroLimsDbContext : Microsoft.EntityFrameworkCore.DbContext
     public DbSet<ConfirmatoryPlateObservation> ConfirmatoryPlateObservations => Set<ConfirmatoryPlateObservation>();
     public DbSet<LocationPathogenObservation> LocationPathogenObservations => Set<LocationPathogenObservation>();
 
+    // Discussions & Messages module (V1)
+    public DbSet<DiscussionPost> DiscussionPosts => Set<DiscussionPost>();
+    public DbSet<DiscussionPostVersion> DiscussionPostVersions => Set<DiscussionPostVersion>();
+    public DbSet<DiscussionComment> DiscussionComments => Set<DiscussionComment>();
+    public DbSet<DiscussionAttachment> DiscussionAttachments => Set<DiscussionAttachment>();
+    public DbSet<Conversation> Conversations => Set<Conversation>();
+    public DbSet<ConversationParticipant> ConversationParticipants => Set<ConversationParticipant>();
+    public DbSet<DirectMessage> DirectMessages => Set<DirectMessage>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         // Individual per-table configuration classes live in

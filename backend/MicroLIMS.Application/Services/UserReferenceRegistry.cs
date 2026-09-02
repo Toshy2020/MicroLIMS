@@ -50,6 +50,14 @@ public static class UserReferenceRegistry
         new UserReferenceEntry(typeof(Sample), nameof(Sample.ApprovedByUserId), UserReferenceDisposition.Blocks, "DB FK Restrict"),
         new UserReferenceEntry(typeof(TestReturnEvent), nameof(TestReturnEvent.ReviewerUserId), UserReferenceDisposition.Blocks, "DB FK Restrict"),
         new UserReferenceEntry(typeof(TestReturnEvent), nameof(TestReturnEvent.AssignedAnalystId), UserReferenceDisposition.Blocks, "DB FK Restrict"),
+        new UserReferenceEntry(typeof(DiscussionPost), nameof(DiscussionPost.AuthorUserId), UserReferenceDisposition.Blocks, "DB FK Restrict - post author"),
+        new UserReferenceEntry(typeof(DiscussionPost), nameof(DiscussionPost.LastEditedByUserId), UserReferenceDisposition.Blocks, "DB FK Restrict - post editor"),
+        new UserReferenceEntry(typeof(DiscussionPostVersion), nameof(DiscussionPostVersion.ChangedByUserId), UserReferenceDisposition.Blocks, "DB FK Restrict - post version editor"),
+        new UserReferenceEntry(typeof(DiscussionComment), nameof(DiscussionComment.AuthorUserId), UserReferenceDisposition.Blocks, "DB FK Restrict - comment author"),
+        new UserReferenceEntry(typeof(DiscussionAttachment), nameof(DiscussionAttachment.UploadedByUserId), UserReferenceDisposition.Blocks, "DB FK Restrict - attachment uploader"),
+        new UserReferenceEntry(typeof(Conversation), nameof(Conversation.CreatedByUserId), UserReferenceDisposition.Blocks, "DB FK Restrict - conversation creator"),
+        new UserReferenceEntry(typeof(ConversationParticipant), nameof(ConversationParticipant.UserId), UserReferenceDisposition.Blocks, "DB FK Restrict - conversation participant"),
+        new UserReferenceEntry(typeof(DirectMessage), nameof(DirectMessage.SenderUserId), UserReferenceDisposition.Blocks, "DB FK Restrict - message sender"),
 
         // ---- Excluded: DB enforces Cascade - auth housekeeping only, cleans up automatically ----
         new UserReferenceEntry(typeof(PasswordHistory), nameof(PasswordHistory.UserId), UserReferenceDisposition.Excluded, "Cascade FK - password history is per-user housekeeping, deleted with the user"),

@@ -37,12 +37,12 @@ public class RolePermissionSeedDataTests
     }
 
     [Fact]
-    public async Task ExactlyEighteenPermissionsAreSeeded()
+    public async Task ExactlyTwentyTwoPermissionsAreSeeded()
     {
         var db = CreateSeededDbContext();
         var codes = await db.Permissions.Select(p => p.Code).ToListAsync();
 
-        Assert.Equal(18, codes.Count);
+        Assert.Equal(22, codes.Count);
         Assert.Equal(PermissionConstants.All.OrderBy(c => c), codes.OrderBy(c => c));
     }
 
@@ -62,11 +62,11 @@ public class RolePermissionSeedDataTests
     }
 
     [Fact]
-    public async Task SystemAdministrator_HoldsAllEighteenPermissions()
+    public async Task SystemAdministrator_HoldsAllTwentyTwoPermissions()
     {
         var db = CreateSeededDbContext();
         var codes = await CodesForRole(db, RoleType.SystemAdministrator);
-        Assert.Equal(18, codes.Count);
+        Assert.Equal(22, codes.Count);
         Assert.Equal(PermissionConstants.All.OrderBy(c => c), codes.OrderBy(c => c));
     }
 
@@ -84,10 +84,12 @@ public class RolePermissionSeedDataTests
             PermissionConstants.MaterialsManage, PermissionConstants.MaterialsDocumentControl,
             PermissionConstants.EquipmentManage, PermissionConstants.EquipmentDocumentControl,
             PermissionConstants.ItemsManage, PermissionConstants.ItemsDocumentUpload,
-            PermissionConstants.MasterDataManage
+            PermissionConstants.MasterDataManage,
+            PermissionConstants.DiscussionsView, PermissionConstants.DiscussionsCreate,
+            PermissionConstants.DiscussionsEditAny, PermissionConstants.MessagesUse
         };
 
-        Assert.Equal(15, codes.Count);
+        Assert.Equal(19, codes.Count);
         Assert.Equal(expected.OrderBy(c => c), codes.OrderBy(c => c));
         // Not granted to SectionHead per the catalog:
         Assert.DoesNotContain(PermissionConstants.UsersManage, codes);
@@ -104,10 +106,12 @@ public class RolePermissionSeedDataTests
         var expected = new[]
         {
             PermissionConstants.SamplesReview, PermissionConstants.TestWorkflowExecute,
-            PermissionConstants.TestWorkflowBiochemicalDecision, PermissionConstants.CryovialsManage
+            PermissionConstants.TestWorkflowBiochemicalDecision, PermissionConstants.CryovialsManage,
+            PermissionConstants.DiscussionsView, PermissionConstants.DiscussionsCreate,
+            PermissionConstants.MessagesUse
         };
 
-        Assert.Equal(4, codes.Count);
+        Assert.Equal(7, codes.Count);
         Assert.Equal(expected.OrderBy(c => c), codes.OrderBy(c => c));
         Assert.DoesNotContain(PermissionConstants.SamplesApprove, codes);
     }
@@ -121,22 +125,24 @@ public class RolePermissionSeedDataTests
         var expected = new[]
         {
             PermissionConstants.TestWorkflowExecute, PermissionConstants.CryovialsManage,
-            PermissionConstants.MaterialsManage, PermissionConstants.EquipmentManage
+            PermissionConstants.MaterialsManage, PermissionConstants.EquipmentManage,
+            PermissionConstants.DiscussionsView, PermissionConstants.DiscussionsCreate,
+            PermissionConstants.MessagesUse
         };
 
-        Assert.Equal(4, codes.Count);
+        Assert.Equal(7, codes.Count);
         Assert.Equal(expected.OrderBy(c => c), codes.OrderBy(c => c));
         Assert.DoesNotContain(PermissionConstants.SamplesReview, codes);
         Assert.DoesNotContain(PermissionConstants.CryovialsApprove, codes);
     }
 
     [Fact]
-    public async Task TotalGrantCount_IsFortyOne()
+    public async Task TotalGrantCount_IsFiftyFive()
     {
-        // 18 (SysAdmin) + 15 (SectionHead) + 4 (Reviewer) + 4 (Analyst)
+        // 22 (SysAdmin) + 19 (SectionHead) + 7 (Reviewer) + 7 (Analyst) = 55
         var db = CreateSeededDbContext();
         var total = await db.RolePermissions.CountAsync();
-        Assert.Equal(41, total);
+        Assert.Equal(55, total);
     }
 
     [Fact]
@@ -145,7 +151,7 @@ public class RolePermissionSeedDataTests
         var db = CreateSeededDbContext();
         DbSeeder.SeedPermissionsAndGrants(db); // second call
 
-        Assert.Equal(18, await db.Permissions.CountAsync());
-        Assert.Equal(41, await db.RolePermissions.CountAsync());
+        Assert.Equal(22, await db.Permissions.CountAsync());
+        Assert.Equal(55, await db.RolePermissions.CountAsync());
     }
 }

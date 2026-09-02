@@ -1,19 +1,38 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Drawer, Box, List, ListItemButton, ListItemIcon, ListItemText, Typography,
   Collapse, Tooltip, IconButton, useMediaQuery, useTheme, MenuItem, MenuList, Divider,
-  Popper, Paper, ClickAwayListener
+  Popper, Paper, ClickAwayListener, Avatar, Badge, Menu
 } from "@mui/material";
 import ExpandLess from "@mui/icons-material/ExpandLess";
 import ExpandMore from "@mui/icons-material/ExpandMore";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
+import PersonOutlineIcon from "@mui/icons-material/PersonOutline";
+import ForumOutlinedIcon from "@mui/icons-material/ForumOutlined";
+import MailOutlineIcon from "@mui/icons-material/MailOutline";
+import LockResetIcon from "@mui/icons-material/LockReset";
+import LogoutIcon from "@mui/icons-material/Logout";
+import MoreVertIcon from "@mui/icons-material/MoreVert";
 import { useNavigate, useLocation, Link } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
+import { apiClient } from "../services/apiClient";
+import { brandColors } from "../theme";
 import { getGroupedMenuForRole, MenuItem as MenuItemType } from "../routes/menuConfig";
 
 const EXPANDED_SIDEBAR_WIDTH = 250;
 const COLLAPSED_SIDEBAR_WIDTH = 68;
+
+function formatRoleFallback(role: string | null): string {
+  if (!role) return "Staff";
+  switch (role) {
+    case "Analyst": return "Microbiology Analyst";
+    case "SectionHead": return "Section Head";
+    case "Reviewer": return "Quality Reviewer";
+    case "SystemAdministrator": return "System Administrator";
+    default: return role;
+  }
+}
 
 // How long to keep a flyout open after the pointer leaves it, so moving the
 // mouse from the rail icon into the flyout panel itself doesn't close it
@@ -33,8 +52,32 @@ export function Sidebar({ mobileOpen, onMobileClose, collapsed, onToggleCollapse
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
   const navigate = useNavigate();
   const location = useLocation();
-  const { role } = useAuth();
+  const { username, fullName, jobTitle, role, logout } = useAuth();
   const groups = getGroupedMenuForRole(role);
+
+  const initial = (fullName ?? username ?? "U").charAt(0).toUpperCase();
+  const displayTitle = jobTitle?.trim() || formatRoleFallback(role);
+
+  const [unreadMessages, setUnreadMessages] = useState<number>(0);
+  const [profileAnchor, setProfileAnchor] = useState<HTMLElement | null>(null);
+
+  const loadUnreadMessages = () => {
+    apiClient.get("/messages/unread-count")
+      .then((r) => setUnreadMessages(r.data?.data?.unreadCount ?? 0))
+      .catch(() => {});
+  };
+
+  useEffect(() => {
+    loadUnreadMessages();
+    const interval = setInterval(loadUnreadMessages, 60_000);
+    return () => clearInterval(interval);
+  }, [location.pathname]);
+
+  const handleSignOut = () => {
+    setProfileAnchor(null);
+    logout();
+    navigate("/login");
+  };
 
   // Rail (icon-only) mode only ever applies on desktop - the mobile temporary
   // Drawer always renders the full labeled nav regardless of the persisted
@@ -322,6 +365,116 @@ export function Sidebar({ mobileOpen, onMobileClose, collapsed, onToggleCollapse
             </List>
           </Box>
         ))}
+      </Box>
+
+      {/* User Profile Section at Bottom-Left */}
+      <Box
+        sx={{
+          p: effectiveCollapsed ? 1 : 1.25,
+          borderTop: "1px solid rgba(255, 255, 255, 0.12)",
+          flexShrink: 0
+        }}
+      >
+        {effectiveCollapsed ? (
+          <Box sx={{ display: "flex", justifyContent: "center" }}>
+            <Tooltip title={`${fullName ?? username} (${displayTitle})`} placement="right">
+              <IconButton
+                onClick={(e) => setProfileAnchor(e.currentTarget)}
+                sx={{
+                  p: 0.5,
+                  "&:hover": { bgcolor: "rgba(255, 255, 255, 0.1)" }
+                }}
+              >
+                <Badge badgeContent={unreadMessages} color="error" overlap="circular">
+                  <Avatar sx={{ width: 32, height: 32, bgcolor: "#fff", color: brandColors.sectionTitle, fontWeight: 700, fontSize: 13 }}>
+                    {initial}
+                  </Avatar>
+                </Badge>
+              </IconButton>
+            </Tooltip>
+          </Box>
+        ) : (
+          <Box
+            onClick={(e) => setProfileAnchor(e.currentTarget)}
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              gap: 1.25,
+              cursor: "pointer",
+              p: 0.75,
+              borderRadius: 1.5,
+              bgcolor: profileAnchor ? "rgba(255, 255, 255, 0.1)" : "transparent",
+              "&:hover": { bgcolor: "rgba(255, 255, 255, 0.08)" }
+            }}
+          >
+            <Badge badgeContent={unreadMessages} color="error" overlap="circular">
+              <Avatar sx={{ width: 32, height: 32, bgcolor: "#fff", color: brandColors.sectionTitle, fontWeight: 700, fontSize: 13 }}>
+                {initial}
+              </Avatar>
+            </Badge>
+            <Box sx={{ flex: 1, minWidth: 0, textAlign: "left" }}>
+              <Typography sx={{ fontWeight: 700, fontSize: 12.5, color: "#fff", lineHeight: 1.1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                {fullName ?? username}
+              </Typography>
+              <Typography sx={{ fontSize: 10.5, color: "rgba(255, 255, 255, 0.7)", lineHeight: 1.1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                {displayTitle}
+              </Typography>
+            </Box>
+            <MoreVertIcon sx={{ fontSize: 18, color: "rgba(255, 255, 255, 0.6)" }} />
+          </Box>
+        )}
+
+        <Menu
+          anchorEl={profileAnchor}
+          open={Boolean(profileAnchor)}
+          onClose={() => setProfileAnchor(null)}
+          anchorOrigin={{
+            vertical: "top",
+            horizontal: effectiveCollapsed ? "right" : "left"
+          }}
+          transformOrigin={{
+            vertical: "bottom",
+            horizontal: "left"
+          }}
+          PaperProps={{ sx: { minWidth: 230, py: 0.5, mb: 1 } }}
+        >
+          <Box sx={{ px: 2, py: 1 }}>
+            <Typography sx={{ fontWeight: 700, fontSize: 13.5 }}>{fullName ?? username}</Typography>
+            <Typography sx={{ fontSize: 11.5, color: "text.secondary", fontWeight: 500 }}>{displayTitle}</Typography>
+            <Typography sx={{ fontSize: 10.5, color: "text.disabled" }}>Role: {role}</Typography>
+          </Box>
+          <Divider />
+          <MenuItem component={Link} to="/profile" onClick={() => { setProfileAnchor(null); if (isMobile) onMobileClose(); }}>
+            <ListItemIcon><PersonOutlineIcon fontSize="small" /></ListItemIcon>
+            <ListItemText primary="My Profile" primaryTypographyProps={{ fontSize: 13 }} />
+          </MenuItem>
+          <MenuItem component={Link} to="/discussions" onClick={() => { setProfileAnchor(null); if (isMobile) onMobileClose(); }}>
+            <ListItemIcon><ForumOutlinedIcon fontSize="small" /></ListItemIcon>
+            <ListItemText primary="Discussions" primaryTypographyProps={{ fontSize: 13 }} />
+          </MenuItem>
+          <MenuItem component={Link} to="/messages" onClick={() => { setProfileAnchor(null); if (isMobile) onMobileClose(); }}>
+            <ListItemIcon>
+              <Badge badgeContent={unreadMessages} color="error">
+                <MailOutlineIcon fontSize="small" />
+              </Badge>
+            </ListItemIcon>
+            <ListItemText primary="Messages" primaryTypographyProps={{ fontSize: 13 }} />
+            {unreadMessages > 0 && (
+              <Typography sx={{ fontSize: 11, bgcolor: "error.main", color: "#fff", px: 0.75, py: 0.1, borderRadius: 1, fontWeight: 700 }}>
+                {unreadMessages}
+              </Typography>
+            )}
+          </MenuItem>
+          <MenuItem component={Link} to="/change-password" onClick={() => { setProfileAnchor(null); if (isMobile) onMobileClose(); }}>
+            <ListItemIcon><LockResetIcon fontSize="small" /></ListItemIcon>
+            <ListItemText primary="Change Password" primaryTypographyProps={{ fontSize: 13 }} />
+          </MenuItem>
+          <Divider />
+          <MenuItem onClick={handleSignOut}>
+            <ListItemIcon><LogoutIcon fontSize="small" /></ListItemIcon>
+            <ListItemText primary="Sign Out" primaryTypographyProps={{ fontSize: 13 }} />
+          </MenuItem>
+        </Menu>
       </Box>
 
       {/* Collapse/Expand Toggle on Desktop */}

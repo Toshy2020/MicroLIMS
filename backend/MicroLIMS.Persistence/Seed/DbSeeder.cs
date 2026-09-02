@@ -434,7 +434,11 @@ public static class DbSeeder
                 new Permission { Code = PermissionConstants.EquipmentDocumentControl, Description = "Supersede or void an equipment document." },
                 new Permission { Code = PermissionConstants.ItemsManage, Description = "Manage Items master data (create, update, freeze/unfreeze, delete)." },
                 new Permission { Code = PermissionConstants.ItemsDocumentUpload, Description = "Upload a controlled document to an Item." },
-                new Permission { Code = PermissionConstants.MasterDataManage, Description = "Manage laboratory configuration master data (water, EM, after-cleaning, specs, equipment config, media, organisms, test definitions)." }
+                new Permission { Code = PermissionConstants.MasterDataManage, Description = "Manage laboratory configuration master data (water, EM, after-cleaning, specs, equipment config, media, organisms, test definitions)." },
+                new Permission { Code = PermissionConstants.DiscussionsView, Description = "View discussions and posts." },
+                new Permission { Code = PermissionConstants.DiscussionsCreate, Description = "Create discussion posts and add comments." },
+                new Permission { Code = PermissionConstants.DiscussionsEditAny, Description = "Edit or delete any discussion post or comment." },
+                new Permission { Code = PermissionConstants.MessagesUse, Description = "Send and receive direct/group messages." }
             );
             db.SaveChanges();
         }
@@ -455,17 +459,23 @@ public static class DbSeeder
                     PermissionConstants.MaterialsManage, PermissionConstants.MaterialsDocumentControl,
                     PermissionConstants.EquipmentManage, PermissionConstants.EquipmentDocumentControl,
                     PermissionConstants.ItemsManage, PermissionConstants.ItemsDocumentUpload,
-                    PermissionConstants.MasterDataManage
+                    PermissionConstants.MasterDataManage,
+                    PermissionConstants.DiscussionsView, PermissionConstants.DiscussionsCreate,
+                    PermissionConstants.DiscussionsEditAny, PermissionConstants.MessagesUse
                 }),
                 (RoleType.Reviewer, new[]
                 {
                     PermissionConstants.SamplesReview, PermissionConstants.TestWorkflowExecute,
-                    PermissionConstants.TestWorkflowBiochemicalDecision, PermissionConstants.CryovialsManage
+                    PermissionConstants.TestWorkflowBiochemicalDecision, PermissionConstants.CryovialsManage,
+                    PermissionConstants.DiscussionsView, PermissionConstants.DiscussionsCreate,
+                    PermissionConstants.MessagesUse
                 }),
                 (RoleType.Analyst, new[]
                 {
                     PermissionConstants.TestWorkflowExecute, PermissionConstants.CryovialsManage,
-                    PermissionConstants.MaterialsManage, PermissionConstants.EquipmentManage
+                    PermissionConstants.MaterialsManage, PermissionConstants.EquipmentManage,
+                    PermissionConstants.DiscussionsView, PermissionConstants.DiscussionsCreate,
+                    PermissionConstants.MessagesUse
                 })
             };
 
@@ -473,7 +483,12 @@ public static class DbSeeder
             {
                 if (!roleIdByType.TryGetValue(roleType, out var roleId)) continue;
                 foreach (var code in codes)
-                    db.RolePermissions.Add(new RolePermission { RoleId = roleId, PermissionId = permissionIdByCode[code] });
+                {
+                    if (permissionIdByCode.TryGetValue(code, out var permId))
+                    {
+                        db.RolePermissions.Add(new RolePermission { RoleId = roleId, PermissionId = permId });
+                    }
+                }
             }
 
             db.SaveChanges();

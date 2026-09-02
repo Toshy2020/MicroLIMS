@@ -110,4 +110,10 @@ public static class TestServiceFactory
     public static DashboardService Dashboard(MicroLimsDbContext db) => new(db, Kpi(db));
 
     public static MyTasksService MyTasks(MicroLimsDbContext db) => new(db);
+
+    public static DiscussionService Discussion(MicroLimsDbContext db, IFileStorageService? storage = null, INotificationService? notifications = null) =>
+        new(db, storage ?? new InMemoryFileStorageService(), notifications ?? new NoOpNotificationService(), NullLogger<DiscussionService>.Instance);
+
+    public static MessageService Message(MicroLimsDbContext db, INotificationService? notifications = null) =>
+        new(db, notifications ?? new NoOpNotificationService(), NullLogger<MessageService>.Instance);
 }

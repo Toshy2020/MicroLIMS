@@ -9,6 +9,9 @@ import { DashboardPage } from "../modules/dashboard/DashboardPage";
 import { ProfilePage } from "../pages/Profile";
 import { ChangePasswordPage } from "../pages/ChangePassword";
 import { ReportsPage } from "../pages/Reports";
+import { DiscussionsFeedPage } from "../modules/discussions/DiscussionsFeedPage";
+import { DiscussionDetailPage } from "../modules/discussions/DiscussionDetailPage";
+import { MessagesPage } from "../modules/messages/MessagesPage";
 import { ReceivingTestingWorkspacePage } from "../modules/receivingTesting/ReceivingTestingWorkspacePage";
 import { SampleReportPage } from "../modules/testingWorkspace/SampleReportPage";
 import { SampleCoaPage } from "../modules/testingWorkspace/SampleCoaPage";
@@ -65,6 +68,9 @@ export function AppRoutes() {
           <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/profile" element={<ProfilePage />} />
           <Route path="/change-password" element={<ChangePasswordPage />} />
+          <Route path="/discussions" element={<DiscussionsFeedPage />} />
+          <Route path="/discussions/:id" element={<DiscussionDetailPage />} />
+          <Route path="/messages" element={<MessagesPage />} />
           <Route path="/reports" element={<ReportsPage />} />
 
           {/* Canonical Unified Receiving & Testing Workspace */}

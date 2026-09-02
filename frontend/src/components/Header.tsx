@@ -1,19 +1,14 @@
 import { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import {
-  Box, Typography, Avatar, IconButton, Badge, Menu, MenuItem, Divider,
-  ListItemIcon, ListItemText, Tooltip, Switch, useTheme, useMediaQuery, Button
+  Box, Typography, IconButton, Badge, Menu, MenuItem, Divider,
+  ListItemText, Tooltip, Switch, useTheme, useMediaQuery, Button
 } from "@mui/material";
 import MenuIcon from "@mui/icons-material/Menu";
 import NotificationsIcon from "@mui/icons-material/Notifications";
-import PersonIcon from "@mui/icons-material/Person";
-import LockResetIcon from "@mui/icons-material/LockReset";
-import LogoutIcon from "@mui/icons-material/Logout";
 import LightModeIcon from "@mui/icons-material/LightMode";
 import DarkModeIcon from "@mui/icons-material/DarkMode";
-import { useAuth } from "../contexts/AuthContext";
 import { apiClient } from "../services/apiClient";
-import { brandColors } from "../theme";
 import { useThemeMode } from "../theme/ThemeModeContext";
 
 interface NotificationDto {
@@ -25,48 +20,33 @@ interface NotificationDto {
   isRead: boolean;
 }
 
-// Where clicking a notification should take the user - mirrors the
-// four notification types DashboardNotificationService computes.
-// Note: Review and Approval queues live inside Testing Workspace.
+// Where clicking a notification should take the user
 const NOTIFICATION_ROUTES: Record<string, string> = {
   MediaExpiry: "/laboratory-configuration/media",
   IncubationReady: "/testing-workspace",
   ApprovalWaiting: "/testing-workspace",
   ReviewWaiting: "/testing-workspace",
-  TestReturnedForRevision: "/receiving-testing"
+  TestReturnedForRevision: "/receiving-testing",
+  DiscussionComment: "/discussions",
+  DiscussionPostUpdated: "/discussions",
+  DirectMessage: "/messages"
 };
 
 const POLL_INTERVAL_MS = 60_000;
-
-function formatRoleFallback(role: string | null): string {
-  if (!role) return "Staff";
-  switch (role) {
-    case "Analyst": return "Microbiology Analyst";
-    case "SectionHead": return "Section Head";
-    case "Reviewer": return "Quality Reviewer";
-    case "SystemAdministrator": return "System Administrator";
-    default: return role;
-  }
-}
 
 interface HeaderProps {
   onToggleSidebar?: () => void;
   sidebarCollapsed?: boolean;
 }
 
-// Purple-gradient brand topbar with responsive identity and sidebar toggle
 export function Header({ onToggleSidebar, sidebarCollapsed }: HeaderProps) {
-  const { username, fullName, jobTitle, role, logout } = useAuth();
   const { mode, toggleMode } = useThemeMode();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
   const navigate = useNavigate();
-  const initial = (fullName ?? username ?? "U").charAt(0).toUpperCase();
-  const displayTitle = jobTitle?.trim() || formatRoleFallback(role);
 
   const [notifications, setNotifications] = useState<NotificationDto[]>([]);
   const [bellAnchor, setBellAnchor] = useState<HTMLElement | null>(null);
-  const [accountAnchor, setAccountAnchor] = useState<HTMLElement | null>(null);
 
   const unreadCount = notifications.filter((n) => !n.isRead).length;
 
@@ -94,12 +74,6 @@ export function Header({ onToggleSidebar, sidebarCollapsed }: HeaderProps) {
     if (unreadCount === 0) return;
     apiClient.post("/dashboard/notifications/read-all").catch(() => {});
     setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
-  };
-
-  const handleSignOut = () => {
-    setAccountAnchor(null);
-    logout();
-    navigate("/login");
   };
 
   return (
@@ -198,53 +172,6 @@ export function Header({ onToggleSidebar, sidebarCollapsed }: HeaderProps) {
               </MenuItem>
             );
           })}
-        </Menu>
-
-        <Box
-          onClick={(e) => setAccountAnchor(e.currentTarget)}
-          sx={{
-            display: "flex",
-            alignItems: "center",
-            gap: 1.25,
-            cursor: "pointer",
-            p: 0.5,
-            borderRadius: 1.5,
-            "&:hover": { bgcolor: "rgba(255, 255, 255, 0.08)" }
-          }}
-        >
-          <Avatar sx={{ width: 34, height: 34, bgcolor: "#fff", color: brandColors.sectionTitle, fontWeight: 700, fontSize: 14 }}>
-            {initial}
-          </Avatar>
-          <Box sx={{ display: { xs: "none", sm: "block" }, textAlign: "left", lineHeight: 1.2 }}>
-            <Typography sx={{ fontWeight: 700, fontSize: 13, color: "#fff", lineHeight: 1.1 }}>
-              {fullName ?? username}
-            </Typography>
-            <Typography sx={{ fontSize: 11, color: "rgba(255, 255, 255, 0.8)", lineHeight: 1.1 }}>
-              {displayTitle}
-            </Typography>
-          </Box>
-        </Box>
-
-        <Menu anchorEl={accountAnchor} open={Boolean(accountAnchor)} onClose={() => setAccountAnchor(null)} PaperProps={{ sx: { width: 250 } }}>
-          <Box sx={{ px: 2, py: 1.25 }}>
-            <Typography sx={{ fontWeight: 700, fontSize: 14 }}>{fullName ?? username}</Typography>
-            <Typography sx={{ fontSize: 12, color: "text.secondary", fontWeight: 500 }}>{displayTitle}</Typography>
-            <Typography sx={{ fontSize: 11, color: "text.disabled" }}>Role: {role}</Typography>
-          </Box>
-          <Divider />
-          <MenuItem component={Link} to="/profile" onClick={() => setAccountAnchor(null)}>
-            <ListItemIcon><PersonIcon fontSize="small" /></ListItemIcon>
-            <ListItemText primary="My Profile" />
-          </MenuItem>
-          <MenuItem component={Link} to="/change-password" onClick={() => setAccountAnchor(null)}>
-            <ListItemIcon><LockResetIcon fontSize="small" /></ListItemIcon>
-            <ListItemText primary="Change Password" />
-          </MenuItem>
-          <Divider />
-          <MenuItem onClick={handleSignOut}>
-            <ListItemIcon><LogoutIcon fontSize="small" /></ListItemIcon>
-            <ListItemText primary="Sign Out" />
-          </MenuItem>
         </Menu>
       </Box>
     </Box>

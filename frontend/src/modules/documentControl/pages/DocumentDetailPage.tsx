@@ -124,9 +124,9 @@ export function DocumentDetailPage() {
       // Load periodic review history across all revisions of this master
       try {
         const pTasks = await periodicReviewService.getMasterHistory(Number(id));
-        setPeriodicReviewTasks(pTasks);
+        setPeriodicReviewTasks(Array.isArray(pTasks) ? pTasks : []);
       } catch {
-        // non-blocking
+        setPeriodicReviewTasks([]);
       }
 
       // Load review and approval tasks for in-flight revision or effective revision

@@ -437,4 +437,40 @@ public class DocumentControlPeriodicReviewUnitTests
         // Assert - Master 1 already has task (skipped), Master 2 gets new task
         Assert.Equal(1, result.CreatedTasksCount);
     }
+
+    [Fact]
+    public async Task GetMasterReviewHistory_ControllerEndpoint_ReturnsDirectList_ContractMatchesFrontend()
+    {
+        // Arrange
+        var (db, author, reviewer, approver, sectionHead, master, effectiveRev, service) = await CreateSeededContextAsync();
+        var controller = new MicroLIMS.API.Controllers.DocumentControl.PeriodicReviewController(service)
+        {
+            ControllerContext = new Microsoft.AspNetCore.Mvc.ControllerContext
+            {
+                HttpContext = new Microsoft.AspNetCore.Http.DefaultHttpContext
+                {
+                    User = new System.Security.Claims.ClaimsPrincipal(new System.Security.Claims.ClaimsIdentity(new[]
+                    {
+                        new System.Security.Claims.Claim(System.Security.Claims.ClaimTypes.NameIdentifier, sectionHead.Id.ToString()),
+                        new System.Security.Claims.Claim(System.Security.Claims.ClaimTypes.Role, nameof(RoleType.SectionHead))
+                    }, "TestAuth"))
+                }
+            }
+        };
+
+        // Act 1: Zero tasks
+        var zeroTasksResult = await controller.GetMasterReviewHistory(master.Id);
+        var okResultZero = Assert.IsType<Microsoft.AspNetCore.Mvc.OkObjectResult>(zeroTasksResult.Result);
+        var zeroList = Assert.IsAssignableFrom<IEnumerable<PeriodicReviewTaskDto>>(okResultZero.Value);
+        Assert.Empty(zeroList);
+
+        // Act 2: Generate 1 task
+        var gen = await service.GenerateDueReviewTasksAsync();
+        Assert.Equal(1, gen.CreatedTasksCount);
+
+        var oneTaskResult = await controller.GetMasterReviewHistory(master.Id);
+        var okResultOne = Assert.IsType<Microsoft.AspNetCore.Mvc.OkObjectResult>(oneTaskResult.Result);
+        var oneList = Assert.IsAssignableFrom<IEnumerable<PeriodicReviewTaskDto>>(okResultOne.Value);
+        Assert.Single(oneList);
+    }
 }

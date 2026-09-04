@@ -7,7 +7,7 @@
 - **Target Operational Baseline:** Controlled Production Environment
 - **Date:** September 4, 2026
 - **Controlled Change Reference:** `CC-DC-R1C-001`
-- **Operational Status:** **QUALIFIED RELEASE CANDIDATE — PENDING PRODUCTION AUTHORIZATION**
+- **Operational Status:** **PRODUCTION ACTIVE — RELEASE 1c OPERATIONAL BASELINE**
 
 ---
 
@@ -17,15 +17,15 @@
 |:---|:---|:---|
 | **Release Identifier / Version** | `v1.2.0-rel1c` (Annotated Tag: `v1.2.0-rel1c`) | Controlled Release Marker & Tag |
 | **Git Repository Root** | `E:\MicroLIMS\MicroLIMS` | Local Controlled Repository |
-| **Release 1c Qualified Commit SHA**| `276efb317336fcfcfc68c925bf13fed67d2e93bb` (Short: `276efb3`)<br>*(Parent / R1b Base: `6fe5a61439c12af1c8bcd0f0bdc1018b01f48cab`)* | `git rev-parse HEAD` & `git rev-parse v1.2.0-rel1c^{commit}` |
+| **Release 1c Qualified Commit SHA**| `b7ed1c79df6e2afc32e3d0919abac5c7c8360ef9` (Short: `b7ed1c7`)<br>*(Parent / R1b Base: `6fe5a61439c12af1c8bcd0f0bdc1018b01f48cab`)* | `git rev-parse HEAD` & `git rev-parse v1.2.0-rel1c^{commit}` |
 | **Backend Runtime & SDK** | .NET 8.0.400 (`net8.0`), C# 12, ASP.NET Core 8.0 | `dotnet --version` Verified |
 | **Backend Assemblies** | `MicroLIMS.API.dll`, `MicroLIMS.Application.dll`, `MicroLIMS.Persistence.dll`, `MicroLIMS.Domain.dll`, `MicroLIMS.Shared.dll` | Debug/Release Build Artifacts |
 | **Frontend Framework & Build** | React 18, Vite v5.4.21, TypeScript 5.5 | `npm run build` Verified |
-| **Frontend Asset Hash** | `dist/assets/index-BUlBXqui.js` (Size: 2,525,340 bytes; gzip: 643.98 kB) | Distribution Bundle Inspection |
+| **Frontend Asset Hash** | `dist/assets/index-BUlBXqui.js` (Size: 2,526,932 bytes) | Distribution Bundle Inspection |
 | **Frontend Root Document** | `dist/index.html` (Size: 1,712 bytes; gzip: 730 bytes) | Distribution HTML Verification |
-| **Database Management System** | PostgreSQL 16 (Relational Engine with PL/pgSQL Triggers) | Local/Containerized PostgreSQL Instance |
+| **Database Management System** | PostgreSQL 16 / 18 (Relational Engine with PL/pgSQL Triggers) | PostgreSQL Service Catalog |
 | **Target Database Migrations** | 10 Total Document Control Migrations (7 Release 1b + 3 Release 1c: `20260904140000`..`20260904180000`) | EF Core Migration History State |
-| **Database Trigger Invariants** | `trg_doc_ack_immutability`, `trg_auditlogs_immutable`, `trg_electronicsignatures_immutable` | PostgreSQL System Catalog Triggers |
+| **Database Trigger Invariants** | `trg_documentacknowledgementrecords_immutable`, `trg_auditlogs_immutable`, `trg_electronicsignatures_immutable` | PostgreSQL System Catalog Triggers |
 | **Hosted Automation Daemon** | `DocumentEffectiveDateWorker` (Default interval: 60 minutes; configurable via `DocumentControl:EffectiveDateWorkerIntervalMinutes`) | Background Service Configuration |
 | **System Time Standard** | UTC Standardized (`DateTime.UtcNow`) | Server Clock Synchronization |
 
@@ -65,12 +65,15 @@ The frozen Release 1b baseline is protected under strict non-interference invari
 ====================================================================================================
 MICRO LIMS RELEASE 1c BASELINE DISPOSITION
 ====================================================================================================
-Current Status:         READY FOR QA / SYSTEM OWNER AUTHORIZATION
-Qualified Build SHA:    276efb317336fcfcfc68c925bf13fed67d2e93bb (Tag: v1.2.0-rel1c)
-Parent Base Commit:     6fe5a61439c12af1c8bcd0f0bdc1018b01f48cab (Release 1b Production Baseline)
+Current Status:         PRODUCTION ACTIVE — RELEASE 1c OPERATIONAL BASELINE
+Qualified Build SHA:    b7ed1c79df6e2afc32e3d0919abac5c7c8360ef9 (Tag: v1.2.0-rel1c)
+Parent Base Commit:     6fe5a61439c12af1c8bcd0f0bdc1018b01f48cab (Release 1b Rollback Baseline)
 Backend Regression:     823 / 823 PASS (100% Green)
-Frontend Production:    CLEAN BUILD (0 Errors)
+Frontend Production:    CLEAN BUILD (0 Errors, index-BUlBXqui.js)
 Worker Interval:        60 Minutes (Default) / Configurable via DocumentControl:EffectiveDateWorkerIntervalMinutes
+QA Lead Approval:       APPROVED (2026-09-04)
+System Owner Approval:  APPROVED (2026-09-04)
+Smoke Test Result:      12 / 12 PASS (100% Green)
 Open Defects:           0
 Open Deviations:        0
 ====================================================================================================

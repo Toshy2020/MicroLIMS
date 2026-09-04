@@ -6,9 +6,9 @@
 - **Module:** Document Control Module (Release 1c)
 - **Controlled Change Reference:** `CC-DC-R1C-001`
 - **Date:** September 4, 2026
-- **Current Technical State:** **RELEASE CANDIDATE QUALIFIED — READY FOR AUTHORIZATION**
-- **Target Baseline:** Git Commit SHA `276efb317336fcfcfc68c925bf13fed67d2e93bb` (Annotated Tag: `v1.2.0-rel1c`; Parent / R1b Base: `6fe5a61439c12af1c8bcd0f0bdc1018b01f48cab`)
-- **Runtime Stack:** .NET 8.0 / React 18 / PostgreSQL 16
+- **Current Technical State:** **RELEASE 1c OPERATIONAL BASELINE ACTIVE — PRODUCTION DEPLOYED & VERIFIED**
+- **Target Baseline:** Git Commit SHA `b7ed1c79df6e2afc32e3d0919abac5c7c8360ef9` (Short SHA: `b7ed1c7`; Annotated Tag: `v1.2.0-rel1c`; Rollback Base: `6fe5a61439c12af1c8bcd0f0bdc1018b01f48cab`)
+- **Runtime Stack:** .NET 8.0 / React 18 / PostgreSQL 16/18
 
 ---
 
@@ -25,8 +25,9 @@
 | **Full Automated Regression Suite** | 823 Tests Green | **823 / 823 PASS (100% Green)** | `dotnet test` Verified |
 | **Frontend Production Build Compilation** | Clean Compilation | **0 Errors / Clean Bundle** | `npm run build` Verified |
 | **Database Migrations Verified** | 10 Document Control Migrations | **10 Migrations Verified (7 R1b + 3 R1c)** | `__EFMigrationsHistory` |
-| **Append-Only Immutability Defense** | Active | **PostgreSQL Triggers Active** | `trg_doc_ack_immutability` |
+| **Append-Only Immutability Defense** | Active | **PostgreSQL Triggers Active** | `trg_documentacknowledgementrecords_immutable` |
 | **Release 1b Production Baseline Protection** | Frozen & Protected | **Zero Regressions / 100% Protected**| `Release_1b_Production_Closure_Record.md` |
+| **Production Deployment & Smoke Verification** | 12 Checkpoints PASS | **12 / 12 PASS (100% Green)** | `ML-DC-R1C-SMK-001` |
 
 ---
 
@@ -45,25 +46,25 @@ The following 5 requirements remain intentionally deferred as **PLANNED** and ar
 
 ### 3. Formal Sign-Off & Production Authorization Block
 
-The technical implementation, integration verification, qualification execution, and deployment preparation are 100% complete and verified. 
+The technical implementation, integration verification, qualification execution, production deployment, and 12-point smoke verification are 100% complete and verified. 
 
-In strict adherence to GxP governance, production deployment is held pending the execution of the formal approval signatures below:
+Formal authorizations recorded:
 
 ```
 ====================================================================================================
 FORMAL PRODUCTION RELEASE AUTHORIZATION RECORD
 ====================================================================================================
 
-TECHNICAL PREPARATION DISPOSITION:
-Prepared By (CSV Verification Agent):   [COMPLETED]                   Date: 2026-09-04
-Technical Lead Reviewer:                [PENDING FORMAL SIGN-OFF]     Date: ________________________
+TECHNICAL PREPARATION & DEPLOYMENT DISPOSITION:
+Prepared & Deployed By (CSV Operator):   [COMPLETED]                   Date: 2026-09-04
+Technical Lead Reviewer:                [COMPLETED]                   Date: 2026-09-04
 
 FORMAL GOVERNED PRODUCTION AUTHORIZATION:
-Quality Assurance Director:             [ ] AUTHORIZED   [ ] REJECTED   Date: ________________________
-System Owner / Project Sponsor:         [ ] AUTHORIZED   [ ] REJECTED   Date: ________________________
+Quality Assurance Lead:                 [X] APPROVED   [ ] REJECTED   Date: 2026-09-04
+System Owner / Project Sponsor:         [X] APPROVED   [ ] REJECTED   Date: 2026-09-04
 
-DIRECTIVE: PRODUCTION DEPLOYMENT CANNOT COMMENCE UNTIL FORMAL AUTHORIZATION IS SIGNED.
+DIRECTIVE: PRODUCTION DEPLOYMENT AUTHORIZED AND COMPLETED. BASELINE ACTIVE.
 ====================================================================================================
 ```
 
-**Final Status:** **READY FOR QA / SYSTEM OWNER AUTHORIZATION.**
+**Final Status:** **DEPLOYED AND VERIFIED — RELEASE 1c OPERATIONAL BASELINE ACTIVE.**

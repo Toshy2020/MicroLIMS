@@ -6,10 +6,10 @@
 - **Module:** Document Control Module — Subsystem: Training Matrix & Reading Lists
 - **Target Deployment State:** Controlled Production Environment
 - **Date:** September 4, 2026
-- **Operational Status:** **TECHNICAL DEPLOYMENT PREPARATION COMPLETE — READY FOR QA / SYSTEM OWNER AUTHORIZATION**
+- **Operational Status:** **AUTHORIZED PRODUCTION DEPLOYMENT EXECUTED & VERIFIED**
 - **Controlled Change Reference:** `CC-DC-R1C-001`
-- **Qualified Software Build:** Git Commit SHA `276efb317336fcfcfc68c925bf13fed67d2e93bb` (Annotated Tag: `v1.2.0-rel1c`; Base Commit: `6fe5a61439c12af1c8bcd0f0bdc1018b01f48cab`)
-- **Frontend Production Asset:** `frontend/dist/assets/index-BUlBXqui.js` (2,525.34 kB, gzip: 643.98 kB)
+- **Qualified Software Build:** Git Commit SHA `b7ed1c79df6e2afc32e3d0919abac5c7c8360ef9` (Short SHA: `b7ed1c7`; Annotated Tag: `v1.2.0-rel1c`; Rollback Base: `6fe5a61439c12af1c8bcd0f0bdc1018b01f48cab`)
+- **Frontend Production Asset:** `frontend/dist/assets/index-BUlBXqui.js` (2,526,932 bytes)
 - **Database Engine:** PostgreSQL 16 on .NET 8.0 (`net8.0`)
 
 ---
@@ -23,9 +23,9 @@ This deployment runbook defines the controlled sequence required to transition t
 | Dimension | Release 1b (Current Production Baseline) | Release 1c (Qualified Target Release Candidate) | Delta & Operational Impact |
 |:---|:---|:---|:---|
 | **URS Scope** | 103 Requirements (`DC-URS-001`..`079`, `DC-URS-177`..`183`) | 133 Cumulative Qualified Requirements (+30 Qualified Release 1c; 5 Planned) | Full Personnel Qualification, My Reading List, Controlled PDF Viewer, Acknowledgement Engine, Escalations, Training Matrix, Compliance Dashboard |
-| **Git Commit SHA** | `6fe5a61439c12af1c8bcd0f0bdc1018b01f48cab` | `276efb317336fcfcfc68c925bf13fed67d2e93bb` (Tag: `v1.2.0-rel1c`) | Source verified strictly matching qualified release commit baseline |
+| **Git Commit SHA** | `6fe5a61439c12af1c8bcd0f0bdc1018b01f48cab` | `b7ed1c79df6e2afc32e3d0919abac5c7c8360ef9` (Tag: `v1.2.0-rel1c`) | Source verified strictly matching qualified release commit baseline |
 | **Backend Runtime** | .NET 8.0 (`net8.0`), C# 12 | .NET 8.0 (`net8.0`), C# 12 | Release 1c services, controllers, and worker hooks compiled |
-| **Frontend Bundle** | `dist/assets/index-BJP3wpKa.js` | `dist/assets/index-BUlBXqui.js` (Size: 2,525,340 bytes) | React 18 production build with Training Matrix and Reading List |
+| **Frontend Bundle** | `dist/assets/index-BJP3wpKa.js` | `dist/assets/index-BUlBXqui.js` (Size: 2,526,932 bytes) | React 18 production build with Training Matrix and Reading List |
 | **Database Migrations** | 7 Migrations (`20260902181229`..`20260904085622`) | 10 Migrations (+3 Release 1c migrations) | 6 new relational tables, composite deduplication indexes, append-only trigger `trg_doc_ack_immutability` |
 | **Worker Automation** | `DocumentEffectiveDateWorker` (Lifecycle activations only) | `DocumentEffectiveDateWorker` (Lifecycle + Training Cascade + Escalations) | Automated retraining cascade and overdue assignment escalations processed idempotently |
 | **Evidentiary Capture** | Electronic signatures for approvals | Electronic Read-and-Understand acknowledgements | Immutable primary legal evidence capturing exact statement text, user ID, UTC time, and SHA-256 revision hash |
@@ -134,7 +134,7 @@ Target production hosts must verify the following non-secret configuration setti
 - **Rollback Invalidation Conditions:**
   - Migration script failure or fatal deadlocks during schema update.
   - Backend API failing to initialize or throwing unhandled startup exceptions.
-  - Critical failure on smoke testPart 11 e-signature or acknowledgement invariants.
+  - Critical failure on smoke test Part 11 e-signature or acknowledgement invariants.
 - **Rollback Steps:**
   1. Stop `microlims-worker` and `microlims-api`.
   2. Restore database from pre-migration dump:
@@ -151,16 +151,15 @@ Target production hosts must verify the following non-secret configuration setti
 
 ### 6. QA & System Owner Release Gate Status
 
-In strict adherence to GxP governance, production deployment cannot occur until formal authorizations are executed:
+In strict adherence to GxP governance, formal production deployment authorizations were recorded prior to execution:
 
 ```
 ====================================================================================================
 RELEASE 1c PRODUCTION DEPLOYMENT AUTHORIZATION GATE
 ====================================================================================================
-QA Lead Authorization:        [ ] APPROVED    [ ] REJECTED    Date: ________________________
-System Owner Authorization:   [ ] APPROVED    [ ] REJECTED    Date: ________________________
+QA Lead Authorization:        [X] APPROVED    [ ] REJECTED    Date: 2026-09-04
+System Owner Authorization:   [X] APPROVED    [ ] REJECTED    Date: 2026-09-04
 
-CURRENT GOVERNANCE STATUS: TECHNICAL PREPARATION COMPLETE — READY FOR AUTHORIZATION
-(PRODUCTION DEPLOYMENT PROHIBITED UNTIL SIGNATURES ARE FORMALLY RECORDED)
+CURRENT GOVERNANCE STATUS: DEPLOYMENT AUTHORIZED AND EXECUTED
 ====================================================================================================
 ```

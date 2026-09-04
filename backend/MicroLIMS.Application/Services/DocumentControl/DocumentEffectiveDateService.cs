@@ -99,7 +99,7 @@ public class DocumentEffectiveDateService : IDocumentEffectiveDateService
                 {
                     _logger.LogError(ex,
                         "[{Worker}] Critical failure during automatic activation of Revision Id {RevisionId} (Master Id: {MasterId}, Code: {DocCode})",
-                        targetRevision.Id, masterId, targetRevision.DocumentMaster?.CompanyDocumentCode ?? "UNKNOWN");
+                        SystemProcessName, targetRevision.Id, masterId, targetRevision.DocumentMaster?.CompanyDocumentCode ?? "UNKNOWN");
 
                     failures.Add(new EffectiveDateFailureDetail(
                         masterId,
@@ -148,7 +148,7 @@ public class DocumentEffectiveDateService : IDocumentEffectiveDateService
         {
             _logger.LogInformation(
                 "[{Worker}] Revision Id {RevisionId} is no longer in FutureEffective status (current: {Status}). Skipping.",
-                freshRevision.Id, freshRevision.RevisionStatus);
+                SystemProcessName, freshRevision.Id, freshRevision.RevisionStatus);
             return null;
         }
 
@@ -191,7 +191,7 @@ public class DocumentEffectiveDateService : IDocumentEffectiveDateService
 
                     _logger.LogInformation(
                         "[{Worker}] Automatically superseding prior Revision Id {PriorId} (Rev {RevNo}) for Document {DocCode}",
-                        prior.Id, prior.RevisionNumber, master.CompanyDocumentCode);
+                        SystemProcessName, prior.Id, prior.RevisionNumber, master.CompanyDocumentCode);
                 }
 
                 // 3. DC-URS-177: Transition target revision to Effective
@@ -264,7 +264,7 @@ public class DocumentEffectiveDateService : IDocumentEffectiveDateService
 
                 _logger.LogInformation(
                     "[{Worker}] Successfully committed activation of Revision Id {RevId} (Rev {RevNo}) for Document {DocCode}. (Delayed: {Delayed})",
-                    freshRevision.Id, freshRevision.RevisionNumber, master.CompanyDocumentCode, isDelayedExecution);
+                    SystemProcessName, freshRevision.Id, freshRevision.RevisionNumber, master.CompanyDocumentCode, isDelayedExecution);
             }
             catch
             {

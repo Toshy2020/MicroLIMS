@@ -120,6 +120,7 @@ export interface DocumentMasterDto {
   sectionName: string;
   documentOwnerUserId: number;
   documentOwnerUserName: string;
+  documentOwnerName?: string;
   confidentiality: DocumentConfidentiality;
   category: string | null;
   recordOrigin: RecordOrigin;
@@ -129,12 +130,15 @@ export interface DocumentMasterDto {
   createdAt: string;
   createdByUserId: number;
   createdByUserName: string;
+  createdByName?: string;
   modifiedAt: string | null;
   modifiedByUserId: number | null;
   modifiedByUserName: string | null;
+  modifiedByName?: string;
   voidedAt: string | null;
   voidedByUserId: number | null;
   voidedByUserName: string | null;
+  voidedByName?: string;
   voidReason: string | null;
   keywords: string[];
   assignments: DocumentMasterAssignmentDto[];

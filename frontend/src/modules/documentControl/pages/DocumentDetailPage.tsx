@@ -287,7 +287,7 @@ export function DocumentDetailPage() {
                 Current Revision: <strong>{currentRevision?.revisionNumber || "01"}</strong> ({currentRevision?.revisionStatus})
               </Typography>
               <Typography variant="caption">
-                Owner: <strong>{document.documentOwnerUserName}</strong>
+                Owner: <strong>{document.documentOwnerUserName || document.documentOwnerName || "System Owner"}</strong>
               </Typography>
             </Box>
           </Box>
@@ -826,10 +826,10 @@ export function DocumentDetailPage() {
                     <TableCell>
                       <Chip label="Document Owner" size="small" color="primary" />
                     </TableCell>
-                    <TableCell sx={{ fontWeight: 600 }}>{document.documentOwnerUserName}</TableCell>
-                    <TableCell>User #{document.documentOwnerUserId}</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>{document.documentOwnerUserName || document.documentOwnerName || "System Owner"}</TableCell>
+                    <TableCell>Primary System Owner</TableCell>
                     <TableCell>{new Date(document.createdAt).toLocaleString()}</TableCell>
-                    <TableCell>{document.createdByUserName}</TableCell>
+                    <TableCell>{document.createdByUserName || document.createdByName || "System"}</TableCell>
                     <TableCell align="right">
                       <Typography variant="caption" color="text.secondary">Primary Owner</Typography>
                     </TableCell>

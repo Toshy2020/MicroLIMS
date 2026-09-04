@@ -15,7 +15,7 @@ public class AuditLog
     public string Action { get; set; } = string.Empty;
     public string? PreviousValue { get; set; }
     public string? NewValue { get; set; }
-    public int UserId { get; set; }
+    public int? UserId { get; set; }
     public DateTime Timestamp { get; set; } = DateTime.UtcNow;
 
     public string? BatchNumber { get; set; }
@@ -26,4 +26,18 @@ public class AuditLog
     public string? CryovialCode { get; set; }
     public int? SampleId { get; set; }
     public int? TestOrderId { get; set; }
+
+    // Semantic Event Layer (Release 1a - Document Control Foundation)
+    public string? EventUid { get; set; }
+    public Enums.ActorType? ActorType { get; set; }
+    public string? SystemProcessName { get; set; }
+    public string? ActionCode { get; set; }
+    public Enums.AuditActionCategory? ActionCategory { get; set; }
+    public string? Reason { get; set; }
+    public string? SourceContext { get; set; }
+    public Guid? CorrelationId { get; set; }
+    public int? DocumentMasterId { get; set; }
+    public int? DocumentRevisionId { get; set; }
+
+    public ICollection<AuditEventChange> Changes { get; set; } = new List<AuditEventChange>();
 }

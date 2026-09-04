@@ -56,7 +56,28 @@ export function SampleLifecycleBadge({ status, role, onClick, interactive = true
   return (
     <Box
       component="span"
-      onClick={clickable ? onClick : undefined}
+      role={clickable ? "button" : undefined}
+      tabIndex={clickable ? 0 : undefined}
+      data-no-row-click={clickable ? "true" : undefined}
+      onClick={
+        clickable
+          ? (e) => {
+              e.stopPropagation();
+              onClick();
+            }
+          : undefined
+      }
+      onKeyDown={
+        clickable
+          ? (e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                e.stopPropagation();
+                onClick();
+              }
+            }
+          : undefined
+      }
       sx={{
         display: "inline-flex", alignItems: "center", gap: 0.5,
         px: 1, py: 0.25, borderRadius: 5, fontSize: 11, fontWeight: 700,

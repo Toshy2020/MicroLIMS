@@ -1,11 +1,13 @@
 import { Paper, Box, Typography, Stack, Button, useTheme } from "@mui/material";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
+import LayersIcon from "@mui/icons-material/Layers";
 import { Link } from "react-router-dom";
 import { MyTask } from "../types/dashboard";
 import { StatusBadge } from "../../../components/StatusBadge";
 import { SectionTitle } from "../../../components/SectionTitle";
 import { LoadingSpinner } from "../../../components/LoadingSpinner";
+import { useActionableGroups } from "../../testingWorkspace/hooks/useActionableGroups";
 
 const urgencyLabel: Record<MyTask["urgency"], (task: MyTask) => string> = {
   Overdue: (t) => `Overdue ${Math.round(Math.abs(Date.now() - new Date(t.dueAt).getTime()) / 3_600_000)}h`,
@@ -33,6 +35,9 @@ interface ActionRequiredPanelProps {
 
 export function ActionRequiredPanel({ tasks, loading }: ActionRequiredPanelProps) {
   const theme = useTheme();
+  const { groups: actionableGroups } = useActionableGroups({ scope: "mine" });
+
+  const multiSampleGroups = actionableGroups.filter((g) => g.testOrderCount >= 2);
 
   return (
     <Paper sx={{ p: 2.5, mb: 2 }}>
@@ -51,6 +56,59 @@ export function ActionRequiredPanel({ tasks, loading }: ActionRequiredPanelProps
         <LoadingSpinner />
       ) : (
         <Stack spacing={1.5}>
+          {/* Multi-sample Grouped Actions */}
+          {multiSampleGroups.map((g) => (
+            <Box
+              key={g.groupKey}
+              sx={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                gap: 1.5,
+                p: 1.5,
+                borderRadius: 1.5,
+                border: "1px solid",
+                borderColor: theme.palette.mode === "dark" ? "rgba(99, 102, 241, 0.4)" : "#C7D2FE",
+                bgcolor: theme.palette.mode === "dark" ? "rgba(99, 102, 241, 0.1)" : "#F5F7FF",
+                transition: "background 0.15s ease",
+                "&:hover": {
+                  bgcolor: theme.palette.mode === "dark" ? "rgba(99, 102, 241, 0.15)" : "#EEF2FF"
+                }
+              }}
+            >
+              <Box sx={{ minWidth: 0, flex: 1 }}>
+                <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 0.25 }}>
+                  <Typography sx={{ fontSize: 13, fontWeight: 700, color: theme.palette.text.primary }}>
+                    {g.stepName} · Grouped Action ({g.testOrderCount} Tests across {g.sampleCount} Samples)
+                  </Typography>
+                  <StatusBadge status="Ready: Setup" label="Ready: Setup" />
+                </Box>
+                <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
+                  Next: Incubation setup {g.permittedMaterialNames ? `· ${g.permittedMaterialNames}` : ""} · {g.tempMin}–{g.tempMax}°C
+                </Typography>
+              </Box>
+
+              <Box sx={{ flexShrink: 0 }}>
+                <Button
+                  component={Link}
+                  to={`/testing-workspace?sampleIds=${g.testOrders.map((t) => t.sampleId).join(",")}`}
+                  size="small"
+                  variant="contained"
+                  startIcon={<LayersIcon sx={{ fontSize: 16 }} />}
+                  endIcon={<ArrowForwardIcon sx={{ fontSize: 16 }} />}
+                  sx={{
+                    textTransform: "none",
+                    fontWeight: 700,
+                    fontSize: 12,
+                    borderRadius: 1.5,
+                    px: 2
+                  }}
+                >
+                  Start {g.testOrderCount} Tests
+                </Button>
+              </Box>
+            </Box>
+          ))}
           {tasks.map((t, i) => (
             <Box
               key={i}

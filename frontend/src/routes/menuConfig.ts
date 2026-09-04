@@ -1,4 +1,4 @@
-import { ComponentType } from "react";
+﻿import { ComponentType } from "react";
 import SpaceDashboardOutlinedIcon from "@mui/icons-material/SpaceDashboardOutlined";
 import ScienceOutlinedIcon from "@mui/icons-material/ScienceOutlined";
 import MoveToInboxOutlinedIcon from "@mui/icons-material/MoveToInboxOutlined";
@@ -71,10 +71,54 @@ const laboratoryConfigurationItem: MenuItem = {
 const usersItem: MenuItem = { label: "Users", path: "/users", icon: PeopleAltOutlinedIcon, group: "ADMINISTRATION" };
 const rolesItem: MenuItem = { label: "Roles", path: "/roles", icon: AdminPanelSettingsOutlinedIcon, group: "ADMINISTRATION" };
 
+const documentControlUserItem: MenuItem = {
+  label: "Document Control",
+  icon: DescriptionOutlinedIcon,
+  group: "DOCUMENT CONTROL",
+  children: [
+    { label: "Dashboard", path: "/document-control" },
+    { label: "My Reading List", path: "/document-control/my-reading-list" },
+    { label: "Training Matrix", path: "/document-control/training-matrix" },
+    { label: "Compliance Dashboard", path: "/document-control/compliance-dashboard" },
+    { label: "Document Library", path: "/document-control/library" }
+  ]
+};
+
+const documentControlAuditorItem: MenuItem = {
+  label: "Document Control",
+  icon: DescriptionOutlinedIcon,
+  group: "DOCUMENT CONTROL",
+  children: [
+    { label: "Dashboard", path: "/document-control" },
+    { label: "My Reading List", path: "/document-control/my-reading-list" },
+    { label: "Training Matrix", path: "/document-control/training-matrix" },
+    { label: "Compliance Dashboard", path: "/document-control/compliance-dashboard" },
+    { label: "Document Library", path: "/document-control/library" },
+    { label: "Audit Trail", path: "/document-control/audit" }
+  ]
+};
+
+const documentControlAdminItem: MenuItem = {
+  label: "Document Control",
+  icon: DescriptionOutlinedIcon,
+  group: "DOCUMENT CONTROL",
+  children: [
+    { label: "Dashboard", path: "/document-control" },
+    { label: "My Reading List", path: "/document-control/my-reading-list" },
+    { label: "Training Matrix", path: "/document-control/training-matrix" },
+    { label: "Compliance Dashboard", path: "/document-control/compliance-dashboard" },
+    { label: "Document Library", path: "/document-control/library" },
+    { label: "Audit Trail", path: "/document-control/audit" },
+    { label: "Configuration", path: "/document-control/configuration" }
+  ]
+};
+
+
 const menuByRole: Record<Role, MenuItem[]> = {
   Analyst: [
     dashboardItem,
     receivingTestingItem,
+    documentControlUserItem,
     mediaWorkspaceItem,
     cryovialsItem,
     inventoryItem,
@@ -83,6 +127,7 @@ const menuByRole: Record<Role, MenuItem[]> = {
   Reviewer: [
     dashboardItem,
     receivingTestingItem,
+    documentControlAuditorItem,
     mediaWorkspaceItem,
     cryovialsItem,
     reportsItem
@@ -90,6 +135,7 @@ const menuByRole: Record<Role, MenuItem[]> = {
   SectionHead: [
     dashboardItem,
     receivingTestingItem,
+    documentControlAuditorItem,
     mediaWorkspaceItem,
     cryovialsItem,
     inventoryItem,
@@ -101,6 +147,7 @@ const menuByRole: Record<Role, MenuItem[]> = {
   SystemAdministrator: [
     dashboardItem,
     receivingTestingItem,
+    documentControlAdminItem,
     mediaWorkspaceItem,
     cryovialsItem,
     inventoryItem,
@@ -126,3 +173,5 @@ export function getGroupedMenuForRole(role: Role | null): MenuGroup[] {
     items: groupItems
   }));
 }
+
+

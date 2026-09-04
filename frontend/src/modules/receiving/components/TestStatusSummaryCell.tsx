@@ -111,7 +111,10 @@ export function TestStatusSummaryCell({ sample, onTestClick, onViewAllTests, onP
     }
   };
 
-  const handleClose = () => {
+  const handleClose = (e?: React.SyntheticEvent | Event | {}) => {
+    if (e && "stopPropagation" in e && typeof (e as any).stopPropagation === "function") {
+      (e as any).stopPropagation();
+    }
     setAnchorEl(null);
   };
 
@@ -121,6 +124,8 @@ export function TestStatusSummaryCell({ sample, onTestClick, onViewAllTests, onP
     <>
       <Box
         component="button"
+        type="button"
+        data-no-row-click="true"
         onClick={handleClick}
         disabled={tests.length === 0 && sample.preparationStatus !== "NeedsPreparation"}
         sx={{
@@ -159,6 +164,7 @@ export function TestStatusSummaryCell({ sample, onTestClick, onViewAllTests, onP
           open={isOpen}
           anchorEl={anchorEl}
           onClose={handleClose}
+          onClick={(e) => e.stopPropagation()}
           anchorOrigin={{ vertical: "bottom", horizontal: "left" }}
           transformOrigin={{ vertical: "top", horizontal: "left" }}
           PaperProps={{
@@ -194,8 +200,9 @@ export function TestStatusSummaryCell({ sample, onTestClick, onViewAllTests, onP
               return (
                 <ListItemButton
                   key={test.testOrderId}
-                  onClick={() => {
-                    handleClose();
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleClose(e);
                     onTestClick(test, sample);
                   }}
                   sx={{
@@ -239,8 +246,9 @@ export function TestStatusSummaryCell({ sample, onTestClick, onViewAllTests, onP
             size="small"
             variant="contained"
             color="primary"
-            onClick={() => {
-              handleClose();
+            onClick={(e) => {
+              e.stopPropagation();
+              handleClose(e);
               onViewAllTests(sample);
             }}
             endIcon={<OpenInNewIcon sx={{ fontSize: 14 }} />}

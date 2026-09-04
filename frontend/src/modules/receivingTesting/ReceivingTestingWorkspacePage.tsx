@@ -40,6 +40,7 @@ import { SampleTableRow } from "../testingWorkspace/SampleTableRow";
 import { SampleCardView } from "../testingWorkspace/SampleCardView";
 import { SampleKanbanView } from "../testingWorkspace/SampleKanbanView";
 import { SelectedSampleTestingPanel } from "../testingWorkspace/SelectedSampleTestingPanel";
+import { GroupedActionsPanel } from "../testingWorkspace/components/GroupedActionsPanel";
 import { TestWorkflowDialogRouter } from "../testingWorkspace/FloatingDialogs";
 import { SampleSummaryDialog } from "../testingWorkspace/SampleSummaryDialog";
 import { PreparationDialog } from "../testPreparation/PreparationDialog";
@@ -80,7 +81,7 @@ export function ReceivingTestingWorkspacePage() {
   // Core Data State
   const [records, setRecords] = useState<SampleRecord[] | null>(null);
   const [loading, setLoading] = useState(false);
-  const [notification, setNotification] = useState<{ text: string; severity: "success" | "error" | "info" } | null>(null);
+  const [notification, setNotification] = useState<{ text: string; severity: "success" | "error" | "info" | "warning" } | null>(null);
 
   // Operational Tabs & Display View State
   const [activeTab, setActiveTab] = useState<OperationalTab>("all");
@@ -88,6 +89,25 @@ export function ReceivingTestingWorkspacePage() {
 
   // Selection for Master-Detail Split Pane
   const [selectedSampleId, setSelectedSampleId] = useState<number | null>(null);
+
+  // Multi-select Sample Checkboxes for Grouped Actions
+  const [checkedSampleIds, setCheckedSampleIds] = useState<Set<number>>(new Set());
+
+  const handleToggleCheckSample = (sampleId: number, checked: boolean) => {
+    setCheckedSampleIds((prev) => {
+      const next = new Set(prev);
+      if (checked) {
+        next.add(sampleId);
+      } else {
+        next.delete(sampleId);
+      }
+      return next;
+    });
+  };
+
+  const handleDeselectAllChecked = () => {
+    setCheckedSampleIds(new Set());
+  };
 
   // Filter State
   const [activeKpi, setActiveKpi] = useState<KpiFilterKey | null>(null);
@@ -113,8 +133,8 @@ export function ReceivingTestingWorkspacePage() {
 
   const processedDeepLinkKeyRef = useRef<string | null>(null);
 
-  const loadRecords = async () => {
-    setLoading(true);
+  const loadRecords = async (silent = false) => {
+    if (!silent) setLoading(true);
     try {
       const data = await ReceiveService.getRecords();
       setRecords(data);
@@ -124,7 +144,7 @@ export function ReceivingTestingWorkspacePage() {
         severity: "error"
       });
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
 
@@ -186,6 +206,14 @@ export function ReceivingTestingWorkspacePage() {
           setActiveSampleForTest(sample as unknown as WorkspaceSampleCard);
           break;
         }
+      }
+    }
+
+    const paramSampleIds = searchParams.get("sampleIds");
+    if (paramSampleIds) {
+      const ids = paramSampleIds.split(",").map(Number).filter((id) => !isNaN(id) && id > 0);
+      if (ids.length >= 2) {
+        setCheckedSampleIds(new Set(ids));
       }
     }
   }, [records, searchParams]);
@@ -461,7 +489,7 @@ export function ReceivingTestingWorkspacePage() {
           <Button
             variant="outlined"
             size="medium"
-            onClick={loadRecords}
+            onClick={() => loadRecords()}
             disabled={loading}
             startIcon={<RefreshIcon />}
             sx={{
@@ -523,8 +551,117 @@ export function ReceivingTestingWorkspacePage() {
       {/* Loading State */}
       {!records || loading ? (
         <LoadingSpinner />
+      ) : checkedSampleIds.size >= 2 ? (
+        /* GROUPED ACTIONS SPLIT-PANE LAYOUT (When 2+ samples are checked) */
+        <Box
+          sx={{
+            display: "flex",
+            flexDirection: { xs: "column", md: "row" },
+            gap: 2,
+            alignItems: "stretch",
+            minHeight: "calc(100vh - 280px)"
+          }}
+        >
+          {/* Left Panel: Compact Sample Register with Checkboxes */}
+          <Box
+            sx={{
+              width: { xs: "100%", md: "38%" },
+              display: "flex",
+              flexDirection: "column",
+              gap: 1.5,
+              flexShrink: 0
+            }}
+          >
+            <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <Typography sx={{ fontSize: 14, fontWeight: 700, color: theme.palette.primary.main }}>
+                Laboratory Register ({filteredRecords.length})
+              </Typography>
+              <Typography sx={{ fontSize: 11, color: "text.secondary" }}>
+                {checkedSampleIds.size} samples checked
+              </Typography>
+            </Box>
+
+            <Paper
+              elevation={0}
+              sx={{
+                border: "1px solid",
+                borderColor: "divider",
+                borderRadius: 2,
+                overflowY: "auto",
+                maxHeight: { xs: "340px", md: "calc(100vh - 330px)" },
+                bgcolor: "background.paper"
+              }}
+            >
+              <Table size="small" stickyHeader>
+                <TableHead>
+                  <TableRow sx={{ "& th": { bgcolor: "background.default", fontWeight: 700, fontSize: 11, py: 1 } }}>
+                    <TableCell>Item / Reference</TableCell>
+                    <TableCell sx={{ width: 65 }}>Type</TableCell>
+                    <TableCell sx={{ width: 95 }}>Batch/Ctrl</TableCell>
+                    <TableCell sx={{ width: 85 }}>Status</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {filteredRecords.map((s) => (
+                    <SampleTableRow
+                      key={s.sampleId}
+                      sample={s as unknown as WorkspaceSampleCard}
+                      isSelected={selectedSampleId === s.sampleId}
+                      isChecked={checkedSampleIds.has(s.sampleId)}
+                      onToggleCheck={handleToggleCheckSample}
+                      onSelectSample={(sample) => handleSelectSample(sample)}
+                      isCompact={true}
+                      visibleColumns={new Set(["category", "batch", "control", "status"])}
+                      colSpan={4}
+                      onNeedsPreparationClick={() => handlePrepareSample(s)}
+                      onCorrected={() => loadRecords(true)}
+                      onLifecycleBadgeClick={setSummarySampleId}
+                    />
+                  ))}
+                  {filteredRecords.length === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={4} align="center" sx={{ py: 3, color: "text.secondary", fontSize: 12 }}>
+                        No matching samples found.
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </Paper>
+          </Box>
+
+          {/* Right Panel: Grouped Actions Panel */}
+          <Box
+            sx={{
+              flex: 1,
+              minWidth: 0,
+              display: "flex",
+              flexDirection: "column",
+              maxHeight: { xs: "auto", md: "calc(100vh - 290px)" }
+            }}
+          >
+            <GroupedActionsPanel
+              selectedSampleIds={Array.from(checkedSampleIds)}
+              onDeselectAll={handleDeselectAllChecked}
+              onOpenWorkflow={(sampleId, testOrderId) => {
+                const sample = records.find((r) => r.sampleId === sampleId);
+                const test = sample?.assignedTests?.find((t) => t.testOrderId === testOrderId);
+                if (sample && test) {
+                  handleTestClick(test as unknown as WorkspaceTestOrderSummary, sample as unknown as WorkspaceSampleCard);
+                }
+              }}
+              onActionComplete={(result) => {
+                setNotification({
+                  text: `${result.succeededCount} test${result.succeededCount === 1 ? "" : "s"} started in incubation.${result.skippedCount > 0 ? ` (${result.skippedCount} skipped)` : ""}`,
+                  severity: result.skippedCount > 0 ? "warning" : "success"
+                });
+                loadRecords(true);
+              }}
+            />
+          </Box>
+        </Box>
       ) : selectedSample ? (
-        /* MASTER-DETAIL SPLIT-PANE LAYOUT (When a sample is selected) */
+        /* MASTER-DETAIL SPLIT-PANE LAYOUT (When a single sample is selected) */
         <Box
           sx={{
             display: "flex",
@@ -579,12 +716,14 @@ export function ReceivingTestingWorkspacePage() {
                       key={s.sampleId}
                       sample={s as unknown as WorkspaceSampleCard}
                       isSelected={selectedSampleId === s.sampleId}
+                      isChecked={checkedSampleIds.has(s.sampleId)}
+                      onToggleCheck={handleToggleCheckSample}
                       onSelectSample={(sample) => handleSelectSample(sample)}
                       isCompact={true}
                       visibleColumns={new Set(["category", "batch", "control", "status"])}
                       colSpan={4}
                       onNeedsPreparationClick={() => handlePrepareSample(s)}
-                      onCorrected={loadRecords}
+                      onCorrected={() => loadRecords(true)}
                       onLifecycleBadgeClick={setSummarySampleId}
                     />
                   ))}
@@ -616,7 +755,7 @@ export function ReceivingTestingWorkspacePage() {
               onClose={handleDeselectSample}
               onNeedsPreparationClick={(sample) => handlePrepareSample(sample)}
               onLifecycleBadgeClick={setSummarySampleId}
-              onCorrected={loadRecords}
+              onCorrected={() => loadRecords(true)}
               onViewAuditHistory={(sampleId) => setAuditSampleId(sampleId)}
               onVoid={(sample) => setVoidingSample(sample as unknown as SampleRecord)}
             />
@@ -635,13 +774,13 @@ export function ReceivingTestingWorkspacePage() {
             <SampleRegisterTable
               samples={filteredRecords}
               selectedSampleId={selectedSampleId}
+              checkedSampleIds={checkedSampleIds}
+              onToggleCheck={handleToggleCheckSample}
               onSelectSample={handleSelectSample}
               onTestClick={(test, sample) => {
-                setSelectedSampleId(sample.sampleId);
                 handleTestClick(test, sample);
               }}
               onViewSummary={(sample) => {
-                setSelectedSampleId(sample.sampleId);
                 handleViewSummary(sample);
               }}
               onEdit={handleEdit}
@@ -720,7 +859,7 @@ export function ReceivingTestingWorkspacePage() {
         onClose={() => {
           setActiveTest(null);
           setActiveSampleForTest(null);
-          loadRecords();
+          loadRecords(true);
         }}
       />
 

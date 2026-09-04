@@ -171,3 +171,67 @@ export interface EligibleIncubatorsResponse {
   tempMax: number;
   eligibleIncubators: { id: number; name: string; code: string; setTemperature: number; calibrationStatus: string }[];
 }
+
+export interface ActionableTestOrderSummary {
+  testOrderId: number;
+  sampleId: number;
+  sampleReference: string;
+  displayName: string;
+  testCode: string;
+  batchNumber?: string | null;
+  assignedAnalystId?: number | null;
+  assignedAnalystName?: string | null;
+}
+
+export interface ActionableGroup {
+  groupKey: string;
+  actionType: string;
+  stepType: string;
+  stepName: string;
+  testCode: string;
+  sampleCount: number;
+  testOrderCount: number;
+  tempMin: number;
+  tempMax: number;
+  incubationMinHours: number;
+  incubationMaxHours: number;
+  permittedMaterialIds: number[];
+  permittedMaterialNames: string;
+  urgency: string;
+  testOrders: ActionableTestOrderSummary[];
+}
+
+export interface ActionableGroupsResponse {
+  groups: ActionableGroup[];
+}
+
+export interface BatchSelectMediaRequest {
+  testOrderIds: number[];
+  stepName: string;
+  mediaLotId: number;
+  incubatorEquipmentId: number;
+  incubationStartUtc?: string;
+}
+
+export interface BatchActionSuccessItem {
+  testOrderId: number;
+  sampleReference: string;
+  incubationId: number;
+  expectedReadingAt: string;
+  message: string;
+}
+
+export interface BatchActionSkippedItem {
+  testOrderId: number;
+  sampleReference: string;
+  reason: string;
+}
+
+export interface BatchSelectMediaResponse {
+  totalRequested: number;
+  succeededCount: number;
+  skippedCount: number;
+  succeeded: BatchActionSuccessItem[];
+  skipped: BatchActionSkippedItem[];
+}
+

@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using MicroLIMS.Application.DTOs;
 using MicroLIMS.Application.Services;
 using MicroLIMS.Application.Workflows;
 using MicroLIMS.Domain.Enums;
@@ -58,18 +59,61 @@ public class TestWorkflowController : ControllerBase
     private readonly MicroLimsDbContext _db;
     private readonly IncubatorEligibilityService _incubatorEligibility;
     private readonly MediaAppearanceSnapshotService _appearanceSnapshot;
+    private readonly GroupedTestActionService _groupedTestActionService;
 
     public TestWorkflowController(
         ITestWorkflowEngine engine, MicroLimsDbContext db,
-        IncubatorEligibilityService incubatorEligibility, MediaAppearanceSnapshotService appearanceSnapshot)
+        IncubatorEligibilityService incubatorEligibility, MediaAppearanceSnapshotService appearanceSnapshot,
+        GroupedTestActionService? groupedTestActionService = null)
     {
         _engine = engine;
         _db = db;
         _incubatorEligibility = incubatorEligibility;
         _appearanceSnapshot = appearanceSnapshot;
+        _groupedTestActionService = groupedTestActionService ?? new GroupedTestActionService(db, engine, incubatorEligibility);
     }
 
     private int CurrentUserId => int.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)!.Value);
+    private RoleType CurrentRole => Enum.TryParse<RoleType>(User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value, out var r) ? r : RoleType.Analyst;
+
+    [HttpGet("actionable-groups")]
+    public async Task<IActionResult> GetActionableGroups(
+        [FromQuery] string? scope = "mine",
+        [FromQuery] string? actionType = null,
+        [FromQuery] string? sampleIds = null,
+        CancellationToken ct = default)
+    {
+        List<int>? parsedSampleIds = null;
+        if (!string.IsNullOrWhiteSpace(sampleIds))
+        {
+            parsedSampleIds = sampleIds.Split(',', StringSplitOptions.RemoveEmptyEntries)
+                .Select(s => int.TryParse(s.Trim(), out var id) ? id : (int?)null)
+                .Where(id => id.HasValue)
+                .Select(id => id!.Value)
+                .ToList();
+        }
+
+        var result = await _groupedTestActionService.GetActionableGroupsAsync(
+            CurrentUserId, CurrentRole, scope, actionType, parsedSampleIds, ct);
+        return Ok(ApiResponse<ActionableGroupsResponse>.Ok(result));
+    }
+
+    [HttpPost("batch-select-media")]
+    public async Task<IActionResult> BatchSelectMedia(
+        [FromBody] BatchSelectMediaRequest request,
+        CancellationToken ct = default)
+    {
+        try
+        {
+            var result = await _groupedTestActionService.ExecuteBatchSelectMediaAsync(
+                request, CurrentUserId, CurrentRole, ct);
+            return Ok(ApiResponse<BatchSelectMediaResponse>.Ok(result));
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(ApiResponse<object>.Fail(ex.Message));
+        }
+    }
 
     // ApiResponse has no error-code field, so the code travels as the
     // first entry in Errors, with remainingSeconds appended when the

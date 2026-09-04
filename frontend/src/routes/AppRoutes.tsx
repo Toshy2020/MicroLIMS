@@ -1,4 +1,4 @@
-import { Routes, Route, Navigate, useLocation } from "react-router-dom";
+﻿import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { PublicRoutes } from "./PublicRoutes";
 import { AuthenticatedRoutes } from "./AuthenticatedRoutes";
 import { SystemAdministratorRoutes } from "./SystemAdministratorRoutes";
@@ -42,6 +42,14 @@ import { EquipmentInventoryPage } from "../modules/inventory/equipment/Equipment
 import { ApprovedMediaListPage } from "../modules/inventory/approvedLists/ApprovedMediaListPage";
 import { ApprovedCryovialListPage } from "../modules/inventory/approvedLists/ApprovedCryovialListPage";
 import { InventoryRoutes } from "./InventoryRoutes";
+import { DocumentControlDashboardPage } from "../modules/documentControl/pages/DocumentControlDashboardPage";
+import { DocumentLibraryPage } from "../modules/documentControl/pages/DocumentLibraryPage";
+import { MyReadingListPage } from "../modules/documentControl/pages/MyReadingListPage";
+import { TrainingMatrixPage } from "../modules/documentControl/pages/TrainingMatrixPage";
+import { ComplianceDashboardPage } from "../modules/documentControl/pages/ComplianceDashboardPage";
+import { DocumentDetailPage } from "../modules/documentControl/pages/DocumentDetailPage";
+import { DocumentConfigurationPage } from "../modules/documentControl/pages/DocumentConfigurationPage";
+import { DocumentAuditPage } from "../modules/documentControl/pages/DocumentAuditPage";
 import { MainLayout } from "../layouts/MainLayout";
 
 function LegacyRedirect({ to }: { to: string }) {
@@ -99,6 +107,15 @@ export function AppRoutes() {
             <Route path="/laboratory-configuration/equipment" element={<EquipmentPage />} />
           </Route>
 
+          {/* Document Control Module (Release 1a) */}
+          <Route path="/document-control" element={<DocumentControlDashboardPage />} />
+          <Route path="/document-control/my-reading-list" element={<MyReadingListPage />} />
+          <Route path="/document-control/training-matrix" element={<TrainingMatrixPage />} />
+          <Route path="/document-control/compliance-dashboard" element={<ComplianceDashboardPage />} />
+          <Route path="/document-control/library" element={<DocumentLibraryPage />} />
+          <Route path="/document-control/documents/:id" element={<DocumentDetailPage />} />
+          <Route path="/document-control/audit" element={<DocumentAuditPage />} />
+
           <Route element={<InventoryRoutes />}>
             <Route path="/inventory/materials" element={<MaterialsPage />} />
             <Route path="/inventory/equipment" element={<EquipmentInventoryPage />} />
@@ -107,6 +124,7 @@ export function AppRoutes() {
           </Route>
 
           <Route element={<SystemAdministratorRoutes />}>
+            <Route path="/document-control/configuration" element={<DocumentConfigurationPage />} />
             <Route path="/users" element={<UsersPage />} />
             <Route path="/roles" element={<RolesPage />} />
             <Route path="/roles/new" element={<CreateRolePage />} />
@@ -117,3 +135,4 @@ export function AppRoutes() {
     </Routes>
   );
 }
+

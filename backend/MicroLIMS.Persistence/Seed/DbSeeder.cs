@@ -257,6 +257,7 @@ public static class DbSeeder
 
         SeedWorkflowTemplates(db);
         SeedWorkloadWeights(db);
+        SeedConfigurationSettings(db);
     }
 
     public static void SeedWorkloadWeights(MicroLimsDbContext db)
@@ -491,6 +492,48 @@ public static class DbSeeder
                 }
             }
 
+            db.SaveChanges();
+        }
+    }
+
+    private static void SeedConfigurationSettings(MicroLimsDbContext db)
+    {
+        if (!db.ConfigurationSettings.Any())
+        {
+            db.ConfigurationSettings.AddRange(
+                new ConfigurationSetting
+                {
+                    SettingKey = "System.TimeZone",
+                    SettingValue = "UTC",
+                    DataType = "string",
+                    SettingGroup = "System",
+                    ModifiedAt = DateTime.UtcNow
+                },
+                new ConfigurationSetting
+                {
+                    SettingKey = "DocumentControl.ControlledCopy.DownloadPermitted",
+                    SettingValue = "true",
+                    DataType = "boolean",
+                    SettingGroup = "DocumentControl",
+                    ModifiedAt = DateTime.UtcNow
+                },
+                new ConfigurationSetting
+                {
+                    SettingKey = "DocumentControl.ControlledCopy.PrintPermitted",
+                    SettingValue = "true",
+                    DataType = "boolean",
+                    SettingGroup = "DocumentControl",
+                    ModifiedAt = DateTime.UtcNow
+                },
+                new ConfigurationSetting
+                {
+                    SettingKey = "DocumentControl.Watermark.OnDownload",
+                    SettingValue = "true",
+                    DataType = "boolean",
+                    SettingGroup = "DocumentControl",
+                    ModifiedAt = DateTime.UtcNow
+                }
+            );
             db.SaveChanges();
         }
     }

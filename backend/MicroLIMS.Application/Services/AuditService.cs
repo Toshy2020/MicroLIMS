@@ -22,7 +22,7 @@ public class AuditService
             .OrderByDescending(a => a.Timestamp)
             .ToListAsync();
 
-        var userIds = logs.Select(l => l.UserId).Distinct().Where(id => id > 0).ToList();
+        var userIds = logs.Select(l => l.UserId).Where(id => id.HasValue && id.Value > 0).Select(id => id!.Value).Distinct().ToList();
         var userMap = await _db.Users
             .Include(u => u.Role)
             .Where(u => userIds.Contains(u.Id))
@@ -30,8 +30,11 @@ public class AuditService
 
         return logs.Select(l =>
         {
-            userMap.TryGetValue(l.UserId, out var user);
-            var name = user?.FullName ?? (l.UserId == 0 ? "System" : $"User #{l.UserId}");
+            User? user = null;
+            if (l.UserId.HasValue) userMap.TryGetValue(l.UserId.Value, out user);
+            var name = l.ActorType == Domain.Enums.ActorType.System
+                ? (l.SystemProcessName ?? "System")
+                : (user?.FullName ?? (l.UserId == null || l.UserId == 0 ? "System" : $"User #{l.UserId}"));
             var role = user?.Role?.Name;
             var username = user?.Username;
 
@@ -42,7 +45,7 @@ public class AuditService
                 l.Action,
                 l.PreviousValue,
                 l.NewValue,
-                l.UserId,
+                l.UserId ?? 0,
                 name,
                 role,
                 username,

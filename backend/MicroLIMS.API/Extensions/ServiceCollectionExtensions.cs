@@ -1,5 +1,7 @@
-using MicroLIMS.Application.Interfaces;
+﻿using MicroLIMS.Application.Interfaces;
+using MicroLIMS.Application.Interfaces.DocumentControl;
 using MicroLIMS.Application.Services;
+using MicroLIMS.Application.Services.DocumentControl;
 using MicroLIMS.Application.Validators;
 using MicroLIMS.Application.Workflows;
 using MicroLIMS.Infrastructure.Authentication;
@@ -8,6 +10,7 @@ using MicroLIMS.Infrastructure.Notifications;
 using MicroLIMS.Infrastructure.Pdf;
 using MicroLIMS.Infrastructure.Storage;
 using MicroLIMS.Infrastructure.Word;
+using MicroLIMS.Persistence.Helpers;
 using MicroLIMS.Persistence.Repositories;
 
 namespace MicroLIMS.API.Extensions;
@@ -50,6 +53,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<DashboardNotificationService>();
         services.AddScoped<RecentActivityService>();
         services.AddScoped<MyTasksService>();
+        services.AddScoped<GroupedTestActionService>();
         services.AddScoped<MediaExpiryService>();
         services.AddScoped<KpiService>();
         services.AddScoped<CryovialService>();
@@ -74,6 +78,23 @@ public static class ServiceCollectionExtensions
         services.AddScoped<ReferenceNumberGenerator>();
         services.AddScoped<AuditSearchService>();
         services.AddScoped<AuditTraceabilityService>();
+        services.AddScoped<IDatabaseSequenceHelper, DatabaseSequenceHelper>();
+        services.AddScoped<IAuditEventService, AuditEventService>();
+        services.AddScoped<IDocumentAuthorizationService, DocumentAuthorizationService>();
+        services.AddScoped<IDocumentMasterService, DocumentMasterService>();
+        services.AddScoped<IDocumentFileService, DocumentFileService>();
+        services.AddScoped<IDocumentConfigurationService, DocumentConfigurationService>();
+        services.AddScoped<IDocumentAuditService, DocumentAuditService>();
+        services.AddScoped<IDocumentReviewService, DocumentReviewService>();
+        services.AddScoped<IDocumentRevisionService, DocumentRevisionService>();
+        services.AddScoped<IDocumentApprovalService, DocumentApprovalService>();
+        services.AddScoped<IDocumentEffectiveDateService, DocumentEffectiveDateService>();
+        services.AddScoped<IPeriodicReviewService, PeriodicReviewService>();
+        services.AddScoped<ITrainingAssignmentService, TrainingAssignmentService>();
+        services.AddScoped<ITrainingMatrixService, TrainingMatrixService>();
+        services.AddScoped<IDocumentAcknowledgementService, DocumentAcknowledgementService>();
+        services.AddScoped<IDocumentEscalationService, DocumentEscalationService>();
+        services.AddHostedService<MicroLIMS.API.BackgroundServices.DocumentEffectiveDateWorker>();
         services.AddScoped<MaterialService>();
         services.AddScoped<EquipmentInventoryService>();
         services.AddScoped<EquipmentConfigurationService>();

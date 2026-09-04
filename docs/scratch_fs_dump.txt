@@ -1,0 +1,819 @@
+﻿MicroLIMS
+DOCUMENT CONTROL MODULE
+FUNCTIONAL SPECIFICATION — RELEASE 1a
+Field
+Detail
+Document Title
+MicroLIMS Document Control Module — Functional Specification, Release 1a
+Document Type
+Functional Specification (GAMP 5, Category 5 bespoke application)
+Release Scope
+Release 1a — Document Register, Controlled Files, Configuration, Audit Trail
+Version
+0.1 (Draft for Review)
+Status
+Draft
+Requirement Baseline
+URS v1.1 (URS v1.0 + Amendment v1.1)
+Requirements Covered
+68 requirements — see Section 14, Traceability Matrix
+Risk Assessment
+Document Control Requirements Risk Assessment v1.0
+Prepared Date
+06-Aug-2026
+Business Area
+Quality Control — Microbiology
+1. Purpose
+This Functional Specification defines how the MicroLIMS Document Control module shall satisfy the requirements allocated to Release 1a of Phase 1. It describes the intended system behaviour, data structures, business logic, screens, permissions and controls in sufficient detail to permit development, design review and the authoring of Installation and Operational Qualification protocols.
+This specification describes what the system does and how it behaves. It does not define the internal code structure, class design or database migration scripts, which are covered by the Design Specification and the development standards of the MicroLIMS project.
+Where this specification makes a design decision that is not directly dictated by a requirement, the decision and its rationale are stated explicitly so that the reasoning is available for review and for future change control.
+2. Scope
+2.1 In scope for Release 1a
+The Document Master register, including document identification, classification, ownership and per-document workflow assignments.
+Controlled file storage for document revisions, including file integrity control and prevention of overwrite.
+The Document Library and Document Details screens.
+The Register New Document function.
+Module configuration for document types, departments and sections, review cycles, document numbering and controlled-copy behaviour.
+The audit trail data model, immutability controls, global audit trail screen and record-specific audit history.
+Role-based access control, record cancellation and voiding, system time handling and data integrity controls.
+2.2 Out of scope for Release 1a
+The following are approved Phase 1 requirements allocated to later releases. They are excluded from this specification and from Release 1a qualification.
+Release
+Functionality
+Reason for deferral
+1b
+Create New Revision, technical review, approval, electronic signature, effective-date automation, periodic review
+Depends on the register and audit foundation delivered by 1a.
+1c
+Reading assignments, My Reading List, Training Matrix, Reports and KPIs
+Depends on effective revisions existing, which requires 1b.
+1d
+Knowledge Assessment Form engine, question bank, results
+Depends on training assignments delivered by 1c.
+1e
+Import / Migration wizard and migration reconciliation
+Deliberately last so that legacy records are loaded into a stabilised and qualified structure.
+2.3 FS-1a-105 — Scope boundary control
+Release 1a shall not expose any interface, event or data path by which a controlled document, its status or a user training state is read by, injected into or able to influence any laboratory execution module of MicroLIMS (sample receiving, testing, media evaluation, environmental monitoring, inventory or review and approval of laboratory results).
+This shall be verified by demonstrating that no laboratory execution module references any Document Control entity or service, and that the Document Control module publishes no domain events consumed outside itself. Satisfies DC-URS-161, DC-URS-162 and DC-URS-163.
+3. References
+Reference
+Document
+URS v1.0
+MicroLIMS Document Control — User Requirements Specification v1.0
+URS Amd v1.1
+MicroLIMS Document Control — URS Amendment v1.1
+RA v1.0
+MicroLIMS Document Control — Requirements Risk Assessment v1.0
+Charter v1.0
+MicroLIMS Document Control — Project Charter v1.0
+—
+GAMP 5 (Second Edition), ICH Q9, 21 CFR Part 11, EU GMP Annex 11, ALCOA+ principles
+4. System Architecture
+The Document Control module is delivered inside the existing MicroLIMS application and shares its runtime, database, authentication and infrastructure. It is not a separate deployable system.
+Layer
+Implementation
+Backend
+ASP.NET Core 8, Clean Architecture (Domain, Application, Infrastructure, API)
+Persistence
+Entity Framework Core 8 with PostgreSQL
+Frontend
+React 18, TypeScript, Vite, Material UI
+Navigation
+Existing menuConfig.ts-driven navigation, extended with a Document Control section
+Authentication
+Existing MicroLIMS authentication, session management and idle timeout controls
+Authorisation
+Existing MicroLIMS role framework, extended with Document Control permissions
+Audit
+Existing MicroLIMS audit trail infrastructure, extended with Document Control event types
+File storage
+Server-side controlled file store, not accessible to end users by direct path
+Design decision — reuse of shared services. The audit trail, authentication, session management and electronic signature components already qualified within MicroLIMS shall be reused rather than reimplemented within Document Control. Rationale: a second implementation of any of these controls would require independent validation, would create two designs to defend at inspection, and would risk divergent behaviour between modules.
+All laboratory logic and all controlled-state transitions are owned by the backend. The frontend shall not compute, infer or enforce any controlled state, permission or lifecycle decision; it renders state returned by the backend and issues intent to the backend.
+5. Security and Access Control
+5.1 FS-1a-110 — Authentication of controlled actions
+Every request that creates, modifies, cancels or voids a Document Control record shall be executed under an authenticated MicroLIMS user identity established by the existing authentication service. Requests without a valid authenticated session shall be rejected by the backend with no partial effect. The authenticated user identity and the server-generated timestamp shall be recorded on the resulting record and its audit event. Satisfies DC-URS-143 and DC-URS-145.
+5.2 FS-1a-111 — Permission model
+Authorisation is evaluated on the backend for every endpoint. A permission check failure returns an authorisation error and creates no record change. The frontend hides or disables actions the user cannot perform, but this is a usability measure only and is never the enforcement point.
+Release 1a defines the following permissions and their allocation. Roles shown without any permission in this release are defined for completeness because they carry functions in later releases.
+Permission (Release 1a)
+System Admin
+Doc Controller
+Author
+QA Viewer
+Auditor
+Reader
+View Document Library and Details
+Yes
+Yes
+Yes
+Yes
+Yes
+Yes
+View controlled PDF of an effective revision
+Yes
+Yes
+Yes
+Yes
+Yes
+Yes
+View / download source (editable) file
+Yes
+Yes
+Own docs
+No
+No
+No
+Register new Document Master
+Yes
+Yes
+Yes
+No
+No
+No
+Edit Document Master metadata (draft state)
+Yes
+Yes
+Own docs
+No
+No
+No
+Upload / replace revision file (draft state)
+Yes
+Yes
+Own docs
+No
+No
+No
+Cancel a draft revision
+Yes
+Yes
+Own docs
+No
+No
+No
+Void a Document Master
+No
+Yes
+No
+No
+No
+No
+View global audit trail
+Yes
+Yes
+No
+Yes
+Yes
+No
+View record audit history
+Yes
+Yes
+Yes
+Yes
+Yes
+No
+Export audit trail
+Yes
+Yes
+No
+Yes
+Yes
+No
+Change module configuration
+Yes
+No
+No
+No
+No
+No
+Design decision — voiding is restricted to the Document Controller and is deliberately not granted to the System Administrator. Rationale: voiding removes a Document Master from the active register and is a quality decision, not a technical one. Separating it from the administrative role prevents an administrator from removing a record from the register without quality involvement.
+"Own docs" means the user is recorded as the Document Owner of that Document Master, or holds an Author assignment on it (see FS-1a-131). Satisfies DC-URS-144 and DC-URS-146.
+6. Data Model
+6.1 FS-1a-130 — Entities and relationships
+A Document Master represents the controlled document as a permanent identity. A Document Revision represents one issued version of that document. A Revision File represents one stored file belonging to a revision. This three-level separation is the basis of traceability required by DC-URS-150 and DC-URS-153.
+Entity
+Purpose and key attributes
+DocumentMaster
+Permanent identity of a controlled document.
+MicroLimsDocumentId (system-generated, unique, immutable); CompanyDocumentCode (manually entered, unique); Title; DocumentTypeId; DepartmentId; SectionId; DocumentOwnerUserId; Confidentiality; Category; RecordOrigin; RecordStatus (Active | Void); CurrentEffectiveRevisionId (nullable); CreatedBy/On; ModifiedBy/On; VoidedBy/On; VoidReason.
+DocumentMasterAssignment
+Per-document workflow authority.
+DocumentMasterId; UserId; AssignmentRole (Owner | Author | TechnicalReviewer | Approver); IsActive; AssignedBy/On.
+DocumentKeyword
+Optional classification keywords.
+DocumentMasterId; Keyword.
+DocumentRevision
+One issued version of a document.
+DocumentMasterId; RevisionNumber (text, preserves leading zeros); RevisionStatus; EffectiveDate; NextReviewDate; ReviewCycleMonths; RevisionType; ReasonForRevision; ChangeReference; RecordOrigin; CreatedBy/On; CancelledBy/On; CancelReason.
+RevisionFile
+One stored file belonging to a revision.
+DocumentRevisionId; FileRole (ControlledPdf | SourceFile); FileName; ContentType; SizeBytes; ContentHash (SHA-256); StorageKey; IsActive; SupersededByFileId; UploadedBy/On.
+DocumentType
+Configurable document type.
+Code; Name; DefaultReviewCycleMonths; IsActive.
+Department / Section
+Configurable organisational structure.
+Section references its parent Department. Both carry IsActive.
+DocumentNumberingConfiguration
+Numbering control.
+Prefix; NumberFormat; NextSequenceValue; IsEnabled.
+ConfigurationSetting
+Key/value module settings.
+SettingKey; SettingValue; DataType; SettingGroup; ModifiedBy/On.
+AuditEvent
+Append-only record of controlled actions. See Section 9.
+Design decision — RevisionNumber is stored as text, not as an integer. Rationale: company revision conventions include leading zeros ("05") and may include alphanumeric forms. Storing the value as entered preserves the record exactly as issued, and sort order is handled by a separate sequence value rather than by numeric interpretation of the label.
+Design decision — CurrentEffectiveRevisionId is stored on the Document Master as an explicit pointer rather than derived at query time from revision statuses and dates. Rationale: a derived value can silently return two effective revisions if any status is inconsistent, whereas a single explicit pointer makes "current effective" unambiguous and directly testable. The pointer is set only by controlled transitions, which are delivered in Release 1b. Satisfies DC-URS-010.
+6.2 FS-1a-131 — Per-document workflow assignments
+Each Document Master shall record its Document Owner and may record designated Author, Technical Reviewer and Approver assignments. In Release 1a these assignments are captured, displayed, editable by the Document Controller, and audit-trailed. They are not yet enforced, because no review or approval action exists until Release 1b.
+The Functional Specification for Release 1b shall define enforcement such that a controlled workflow action requires both the applicable global permission and an active assignment of the corresponding role on that Document Master, and such that the same user cannot hold effective authority for author, technical review and approval of the same revision. Satisfies DC-URS-168 in this release, and provides the structure required by DC-URS-164 to DC-URS-167.
+6.3 FS-1a-125 — Record origin
+Every DocumentMaster, DocumentRevision and RevisionFile shall carry a RecordOrigin attribute with the values Native or Migrated. Records created through the Register New Document function shall be set to Native and the value shall be immutable thereafter. The Migrated value is written only by the migration function delivered in Release 1e. Record origin shall be displayed on the Document Details screen and shall be available as a Document Library filter. Satisfies DC-URS-193.
+6.4 FS-1a-120 — Document identification
+Two identifiers are maintained for every Document Master and they are never merged, derived from one another, or substituted for one another:
+Company Document Code — the organisation-issued code (for example SOP/QC/MIC/014). Entered manually by the user. Unique across active Document Masters, compared case-insensitively and with surrounding whitespace removed. Never generated or overwritten by the system.
+MicroLIMS Document ID — generated by the system, unique, permanent, and unchanged across every revision of the Document Master.
+Satisfies DC-URS-003, DC-URS-005 and DC-URS-137.
+6.5 FS-1a-121 — MicroLIMS Document ID generation
+The identifier is composed from the configured prefix and number format, for example DOC-000217. Generation rules:
+The sequence value is allocated from a database sequence within the same transaction that inserts the Document Master, so that concurrent registrations cannot receive the same value.
+Uniqueness is additionally enforced by a unique database constraint. A violation aborts the transaction; no partial record is created.
+A sequence value consumed by a transaction that subsequently fails is not reissued. Gaps in the sequence are permitted, are not errors, and shall not be backfilled.
+The identifier is written once and is immutable. No application function updates it.
+Changing the prefix or number format affects only identifiers generated after the change. Existing identifiers are never regenerated.
+Satisfies DC-URS-004, DC-URS-005 and DC-URS-136.
+7. Document Lifecycle in Release 1a
+7.1 FS-1a-140 — States and permitted transitions
+The full lifecycle state set is defined in the data model so that later releases require no structural change. Release 1a implements only the transitions that do not require review or approval.
+State
+Meaning
+Reachable in 1a
+Transition delivered by
+Draft
+Revision being prepared. Not controlled content.
+Yes
+1a
+Cancelled
+Draft abandoned. Retained read-only.
+Yes
+1a
+In Review
+Submitted for technical review.
+No
+1b
+Awaiting Approval
+Technical review complete.
+No
+1b
+Future Effective
+Approved, effective date not yet reached.
+No
+1b
+Effective
+Current controlled revision.
+No
+1b
+Superseded
+Replaced by a later effective revision.
+No
+1b
+Obsolete
+Withdrawn from use.
+No
+1b
+Design decision — no administrative route to the Effective state is provided in Release 1a. A "record an existing effective document" function was considered and rejected. Rationale: such a function would place controlled content into the Effective state without technical review, approval or electronic signature, and would itself require compensating controls and validation. The consequence, which is accepted, is that Release 1a is qualified as a register, file and configuration release: documents registered in 1a remain in Draft until the approval workflow is delivered in Release 1b, and legacy effective documents are loaded through the qualified migration function in Release 1e.
+Superseded and Obsolete revisions, once reachable, shall be visually identified as such wherever displayed and their controlled files shall be served only in accordance with the configured access policy. Satisfies DC-URS-030 at the design level; verification occurs in the release that delivers those states.
+8. Controlled File Management
+8.1 FS-1a-160 — File storage model
+Files are stored in a server-side controlled store that is not addressable by end users. The database holds the file record; the store holds the bytes. Each RevisionFile row is bound to exactly one DocumentRevision, and a file is never shared between revisions. A revision may hold at most one active controlled PDF and at most one active source file. Satisfies DC-URS-021, DC-URS-022 and DC-URS-023.
+8.2 FS-1a-161 — File integrity
+On upload the system computes a SHA-256 hash of the received file content and stores it on the RevisionFile record together with the byte size. The storage key is derived from the hash, so identical content resolves to the same stored object and no write operation can overwrite different content at an existing key.
+On every retrieval the system verifies the stored hash against the content being served. If verification fails, the file shall not be served, an error shall be returned to the user, an audit event shall be raised, and a notification shall be sent to administrators. Upload, hash generation, retrieval and any verification failure are recorded in the audit trail. Satisfies DC-URS-198, DC-URS-199 and DC-URS-200.
+8.3 FS-1a-162 — Prevention of overwrite and silent replacement
+The file store is append-only. No application function updates or deletes a stored object.
+Replacing a file on a Draft revision creates a new RevisionFile row, sets it active, and sets the previous row inactive with a SupersededByFileId pointer. Both rows and both stored objects are retained.
+Files belonging to a revision in any state other than Draft cannot be replaced through any application function. The endpoint rejects the request based on revision state evaluated on the backend.
+Every file replacement raises an audit event identifying the previous and new file name, size and hash. A file change is therefore never silent.
+Satisfies DC-URS-024 and DC-URS-025. Both requirements are rated High risk and require negative testing: an attempted replacement on a non-draft revision, and confirmation that the historical file remains retrievable and unchanged after a draft replacement.
+8.4 FS-1a-163 — Access to files and controlled copies
+Access to the source (editable) file is permission-controlled per FS-1a-111 and is separate from access to the controlled PDF. Controlled-copy behaviour — whether download is permitted, whether printing is permitted, and whether a watermark is applied on download — is configurable by an administrator (see F-04.5) and is enforced by the backend when the file is served, not by the viewer. Satisfies DC-URS-028 and DC-URS-029.
+9. Audit Trail
+9.1 FS-1a-180 — Approach
+Document Control uses the existing MicroLIMS audit trail infrastructure, extended with Document Control record types, action codes and action categories. A separate Document Control audit subsystem is not created. Rationale: a single audit design is validated once, behaves consistently across modules, and presents one coherent record at inspection. Satisfies DC-URS-123.
+9.2 FS-1a-181 — Audit event content
+Attribute
+Description
+EventId
+System-generated unique event identifier, displayed to users.
+OccurredAt
+Server-generated timestamp, stored in UTC. See FS-1a-195.
+ActorType
+User or System. Identifies automatic system-initiated actions.
+UserId / UserName
+Authenticated user for user-initiated actions; null with a named system context for system actions.
+ActionCode / ActionCategory
+The specific action and its category (Document, Review, Approval, Training, KAF, Configuration, Security, Import/Export, Other).
+RecordType
+The type of record affected.
+DocumentMasterId / DocumentRevisionId
+The affected document and revision, where applicable.
+FieldName / PreviousValue / NewValue
+Recorded for every changed field, one audit detail row per field.
+Reason
+Mandatory where the action requires a reason (cancellation, voiding).
+SourceContext
+Origin of the action, for example Web Portal or Scheduled Process.
+SignatureId
+Link to the electronic signature record where the action was signed. Not populated in Release 1a.
+CorrelationId
+Groups all audit events arising from a single user transaction.
+Automatic system-initiated actions shall record ActorType = System together with the named triggering process, and shall not be attributed to a user. Satisfies DC-URS-124, DC-URS-125, DC-URS-126, DC-URS-132 and DC-URS-148.
+9.3 FS-1a-182 — Immutability
+Audit records are append-only and are protected at the persistence layer rather than by application logic alone:
+The application database role is granted INSERT and SELECT on the audit tables only. UPDATE and DELETE are not granted.
+A database trigger on the audit tables raises an exception on any UPDATE or DELETE attempt, so the control holds even if privileges are later altered.
+No application endpoint exists that updates or deletes an audit record. The audit trail screen is read-only and provides no edit or delete action.
+Design decision — enforcement at the persistence layer rather than in application code. Rationale: DC-URS-127, DC-URS-128 and DC-URS-152 are rated High risk with low detectability. A control that lives only in application code can be bypassed by any future code path, and its failure would be silent. A database-level control is testable directly and independently of the application.
+Satisfies DC-URS-127, DC-URS-128 and DC-URS-152.
+9.4 FS-1a-183 — Audited actions in Release 1a
+Action
+Recorded detail
+Document Master registered
+All initial metadata field values; assigned MicroLIMS Document ID; record origin.
+Document Master metadata changed
+One detail row per changed field with previous and new value.
+Workflow assignment added / removed
+Assignment role, user, previous and new state.
+Draft revision created
+Revision number, revision type, reason for revision.
+Revision file uploaded
+File name, role, size, SHA-256 hash.
+Revision file replaced (draft)
+Previous and new file name, size and hash.
+File integrity verification failed
+File identity, expected and computed hash.
+Controlled file downloaded / viewed
+Document, revision, file role, delivery mode.
+Draft revision cancelled
+Previous status, reason.
+Document Master voided
+Previous status, reason.
+Configuration changed
+Setting key, previous and new value.
+Audit trail exported
+Filter criteria applied and record count exported.
+Audit trail export is itself an audited action. Satisfies DC-URS-131 for the actions existing in this release; later releases extend the same event model.
+10. Record Cancellation and Voiding
+10.1 FS-1a-170 — Prohibition of deletion
+No application function shall permanently delete a Document Master, Document Revision, Revision File, configuration record or audit record. No delete endpoint shall exist for these entities. Removal from active use is achieved only through the controlled cancellation and voiding functions defined below. Satisfies DC-URS-184.
+10.2 FS-1a-171 — Cancelling a draft revision
+A user with the applicable permission may cancel a revision in Draft state. A reason of at least ten characters is mandatory. On cancellation the revision moves to Cancelled, becomes read-only including its files, is excluded from active work lists, and an audit event records the previous status and the reason. Cancelled revisions cannot be reopened; a new draft revision is created instead. Satisfies DC-URS-185.
+10.3 FS-1a-172 — Voiding a Document Master
+A Document Master registered in error may be voided by the Document Controller. A reason of at least ten characters is mandatory. Voiding is permitted only where the Document Master has never held an effective revision; a Document Master that has been effective is withdrawn through obsolescence in a later release, not voided.
+The MicroLIMS Document ID of a voided Document Master is retired permanently and shall not be reissued, because the sequence never reuses a consumed value (FS-1a-121). The Company Document Code of a voided Document Master is released and may be registered again, since the organisation may legitimately reissue it; the uniqueness constraint therefore applies across active Document Masters only. Satisfies DC-URS-186.
+10.4 FS-1a-173 — Visibility of cancelled and voided records
+Cancelled revisions and voided Document Masters are excluded by default from the Document Library, search results, counts and active work lists. They remain retrievable by authorised users through an explicit "Include cancelled and voided" filter, and are displayed read-only with a clear status indication and the recorded reason. Satisfies DC-URS-187.
+10.5 FS-1a-174 — Audit of cancellation and voiding
+Cancellation and voiding record the performing user, the server-generated date and time, the previous status and the mandatory reason, and raise an audit event. The reason text is stored on both the record and the audit event. Satisfies DC-URS-188.
+11. Data Integrity and Time Handling
+11.1 FS-1a-190 — Enduring records and traceability
+Document Masters, revisions, files and audit events are enduring records. No application function reduces, summarises or removes them. Every revision is permanently linked to its Document Master, every file to its revision, and every audit event to the affected record, so that any controlled record can be traced to the exact revision it relates to. Records are retrievable and legible through the application for the full retention period without dependence on the originating user session. Satisfies DC-URS-149, DC-URS-153 and DC-URS-154.
+11.2 FS-1a-195 — Date and time
+All timestamps on controlled records and audit events are generated by the database server, not by the client and not by the application server. Values are stored in UTC with time zone information.
+A single system time zone is held in module configuration and is used for all display and for the evaluation of all date-driven controlled transitions in later releases. It is changeable only by a System Administrator and the change is audit-trailed. Client-supplied timestamps are never accepted for controlled records. Satisfies DC-URS-151 and DC-URS-182.
+Design decision — server-generated timestamps only. Rationale: a client-supplied timestamp is under the control of the user performing the action, which defeats contemporaneity and attributability, and the failure is invisible in the resulting record.
+12. Screen Specifications
+Each screen below states its purpose, the regions it presents, the actions available, the backend validation applied and the audit events raised. Field-level layout is defined by the approved user interface design and is not repeated here.
+12.1 F-01 — Document Library
+Purpose: the single searchable register of controlled documents. Lists Document Masters, one row per Document Master, showing the current revision and its status.
+Design decision — the Library lists Document Masters, not revisions. Status tabs and status filters operate on the status of the current revision of each Document Master. Rationale: listing revisions would show the same document several times and would make the register counts ambiguous. A separate revision-level view is available on the Document Details screen.
+Element
+Specification
+Columns
+Company Document Code; MicroLIMS Document ID; Title; Type; Current Revision; Status; Effective Date; Next Review Date; Owner; File indicator; Record origin; Actions.
+Search
+Free-text across company code, MicroLIMS ID, title and keywords.
+Filters
+Document type; status; department; section; owner; record origin; effective date range; review due date range; include cancelled and voided.
+Sorting / paging
+Server-side on all listed columns, with server-side paging. Counts reflect the applied filter.
+Actions
+Open Document Details; Register New Document (permission-controlled).
+Validation
+None (read-only screen).
+Audit
+None. Search and filter operations are not audited; file access initiated from this screen is audited by the file service.
+Satisfies DC-URS-002, DC-URS-006, DC-URS-010, DC-URS-156 and DC-URS-187.
+12.2 F-02 — Register New Document
+Purpose: create a new Document Master and its initial Draft revision. Presented as a four-step wizard: Document Information, Files, Control and Training, Review.
+A partially completed registration may be saved as Draft at any step. Saving as Draft creates the Document Master and assigns the MicroLIMS Document ID. Satisfies DC-URS-011 and DC-URS-012.
+F-02.5 — Validation rules
+Field / rule
+Validation
+Behaviour on failure
+Company Document Code
+Mandatory. Trimmed. Unique across active Document Masters, case-insensitive.
+Field-level error identifying the conflicting document.
+Document Title
+Mandatory. Maximum length enforced.
+Field-level error.
+Document Type
+Mandatory. Must be an active configured type.
+Field-level error.
+Department / Section
+Both mandatory. Section must belong to the selected Department.
+Section list is constrained by Department; mismatch rejected by the backend.
+Document Owner
+Mandatory. Must be an active user.
+Field-level error.
+Initial Revision
+Mandatory. Stored as entered, preserving leading zeros.
+Field-level error.
+Review Cycle
+Defaulted from Document Type; may be overridden by an authorised user.
+Field-level error if outside configured bounds.
+Controlled PDF
+Required before submission for review; not required to save as Draft.
+Readiness indicator shows the item as outstanding.
+All rules
+Re-evaluated on the backend on save, irrespective of frontend validation.
+Request rejected; no partial record created.
+A readiness indicator lists mandatory items and their completion state so that missing information is visible before submission. Satisfies DC-URS-157.
+Audit: registration raises a Document Master registered event capturing all initial field values and the assigned MicroLIMS Document ID; file upload raises a file uploaded event.
+12.3 F-03 — Document Details
+Purpose: the complete record of one Document Master. Tabs: Overview, Document, Version History, Audit Trail. Workflow, Reading and Training, and KAF tabs are added by later releases and are not present in Release 1a.
+Tab
+Content
+Overview
+Document identification, classification, ownership, workflow assignments, record origin, current revision summary, controlled file record with size and upload date.
+Document
+Integrated controlled PDF viewer. See F-03.4.
+Version History
+All revisions of the Document Master with revision number, status, dates and file, including cancelled revisions, in reverse chronological order.
+Audit Trail
+Record-specific audit history for this Document Master and its revisions. See F-05.2.
+F-03.4 — Controlled PDF viewer
+The viewer displays the controlled PDF within the application. It shall persistently display the document identity, revision number and revision status of the file being viewed, so that the user cannot be uncertain which revision is on screen. Download and print controls are shown only where permitted by the controlled-copy configuration and by the user's permissions, and the backend enforces the same rules when the file is requested. Satisfies DC-URS-026, DC-URS-027 and DC-URS-156.
+12.4 F-04 — Configuration
+Purpose: administrator configuration of module behaviour. Available only to the System Administrator role. Every change raises a configuration audit event capturing the setting key and its previous and new values.
+Ref
+Section
+Specification
+F-04.1
+Document Types
+Create, edit and deactivate document types with code, name and default review cycle. Types in use cannot be deleted; they are deactivated, which removes them from selection lists without affecting existing records. Satisfies DC-URS-007 and DC-URS-133.
+F-04.2
+Departments and Sections
+Create, edit and deactivate departments and their sections. Same deactivation rule as document types. Satisfies DC-URS-008 and DC-URS-134.
+F-04.3
+Review Cycles
+Default periodic review interval per document type, applied as the default when a document is registered. Changing a default does not alter existing documents. Satisfies DC-URS-135.
+F-04.4
+Document ID Generation
+Prefix, number format and enable/disable. Displays a sample of the next identifier. The next sequence value is displayed read-only and cannot be edited or reset through the application. Satisfies DC-URS-136.
+F-04.5
+Controlled Copy Settings
+Whether download is permitted, whether printing is permitted, and whether a watermark is applied on download. Enforced by the backend when files are served. Satisfies DC-URS-029.
+F-04.6
+System
+System time zone (FS-1a-195). Displays the configuration change history. Satisfies DC-URS-142.
+Design decision — the next sequence value is not editable. Rationale: allowing it to be set would permit reuse of a previously issued MicroLIMS Document ID, which would break the permanence guaranteed by DC-URS-004 and DC-URS-005.
+Configuration sections for workflow and approvals, training and KAF, notifications, and import and migration are delivered with the releases that provide those functions and are not present in Release 1a.
+12.5 F-05 — Audit Trail
+F-05.1 — Global audit trail
+A searchable, read-only view of all Document Control audit events. Filters: date range, user, action category, record type, document type, department and section, company document code, MicroLIMS Document ID, revision, and event identifier. Free-text search across searchable event attributes. Results are paged server-side and display date and time, user, action, record type, document, revision, previous value, new value, source context and event identifier. Selecting an event displays its full detail including all changed fields.
+Export produces a file of the currently filtered result set and is itself audited, recording the filter criteria applied and the number of records exported. The screen presents no edit or delete action and the backend exposes no endpoint capable of modifying an audit record. Satisfies DC-URS-129 and DC-URS-127.
+F-05.2 — Record audit history
+Accessible from the Document Details screen, showing all audit events for that Document Master and all of its revisions, in reverse chronological order, using the same event detail presentation. Satisfies DC-URS-130.
+13. Non-Functional Design
+13.1 FS-1a-200 — Infrastructure, availability and retention
+The module uses the established MicroLIMS application hosting, database, authentication, backup, restore and retention infrastructure. It introduces no separate database, no separate authentication mechanism and no separate backup arrangement. The controlled file store is included in the MicroLIMS backup scope, and restore testing shall demonstrate that database records and their corresponding stored files are recovered consistently. Satisfies DC-URS-155 and DC-URS-160.
+13.2 FS-1a-201 — Performance
+Document Library search and record opening shall complete within an agreed response time under the expected concurrent load. Filtering, sorting and paging are performed server-side so that response time does not degrade as the register grows. The specific response time target and load profile shall be stated in the PQ protocol. Satisfies DC-URS-159.
+13.3 Error handling
+All validation and authorisation failures are evaluated on the backend and returned as structured errors that the frontend presents in context. A rejected request creates no record and no partial state. Any operation that writes to both the database and the file store is executed such that a failure in either leaves no orphaned record and no unreferenced stored object.
+14. Traceability Matrix
+Each requirement allocated to Release 1a and the specification section that satisfies it. Requirements outside Release 1a are traced in the Functional Specification for the release that delivers them.
+URS ID
+Category
+Requirement
+FS Reference
+DC-URS-001
+General
+The system shall provide a dedicated Document Control module within MicroLIMS.
+FS-1a-100
+DC-URS-002
+General
+The system shall maintain a centralized Master Document Register for controlled documents.
+FS-1a-100
+DC-URS-003
+General
+The system shall preserve the organization-issued Company Document Code as a separate field from the MicroLIMS system ID.
+FS-1a-120
+DC-URS-004
+General
+The system shall automatically generate a unique permanent MicroLIMS Document ID for each Document Master.
+FS-1a-121
+DC-URS-005
+General
+The MicroLIMS Document ID shall remain unchanged across all revisions of the same Document Master.
+FS-1a-121
+DC-URS-006
+General
+Authorized users shall be able to search and filter documents by company code, MicroLIMS ID, title, type, department/section, owner, status, revisi…
+F-01
+DC-URS-007
+General
+The system shall support configurable document types including SOP, Protocol, Work Instruction, Test Method, Specification, Form, Template, Policy,…
+F-04.1
+DC-URS-008
+General
+The system shall support configurable departments and sections for document ownership and classification.
+F-04.2
+DC-URS-009
+General
+Each Document Master shall maintain title, document type, department/section, owner and applicable classification metadata.
+FS-1a-130
+DC-URS-010
+General
+The system shall clearly identify the current effective revision of each Document Master.
+FS-1a-140 / F-01
+DC-URS-011
+Registration & Migration
+Authorized users shall be able to register a new controlled document.
+F-02
+DC-URS-012
+Registration & Migration
+The system shall permit a document record to be saved as Draft before all final approval/effective-date information is available.
+F-02
+DC-URS-021
+File Control
+The system shall support storage of a controlled PDF for each applicable document revision.
+FS-1a-160
+DC-URS-022
+File Control
+The system should support storage of a restricted editable source file such as DOCX for each applicable revision.
+FS-1a-160
+DC-URS-023
+File Control
+The system shall associate files with the exact revision to which they belong.
+FS-1a-160
+DC-URS-024
+File Control
+The system shall prevent historical revision files from being overwritten through normal user functions.
+FS-1a-162
+DC-URS-025
+File Control
+The system shall prevent silent replacement of files belonging to an effective revision.
+FS-1a-162
+DC-URS-026
+File Control
+The system shall provide an integrated controlled PDF viewer for reading and review.
+F-03.4
+DC-URS-027
+File Control
+The viewer shall display the document identity and revision being viewed.
+F-03.4
+DC-URS-028
+File Control
+Access to source/editable files shall be permission-controlled.
+FS-1a-163
+DC-URS-029
+File Control
+Controlled copy download/print behavior shall be configurable by authorized administrators.
+FS-1a-163 / F-04.5
+DC-URS-030
+File Control
+Superseded documents shall be clearly identified and access shall be controlled according to configured policy.
+FS-1a-140
+DC-URS-123
+Audit Trail
+The system shall maintain an audit trail for controlled Document Control activities.
+FS-1a-180
+DC-URS-124
+Audit Trail
+Audit events shall record date/time, user, action, record type, affected document/revision and event identifier.
+FS-1a-181
+DC-URS-125
+Audit Trail
+Where applicable, audit events shall record previous value and new value.
+FS-1a-181
+DC-URS-126
+Audit Trail
+Where applicable, audit events shall retain reason/comment and electronic-signature context.
+FS-1a-181
+DC-URS-127
+Audit Trail
+Audit records shall be read-only through the normal application.
+FS-1a-182
+DC-URS-128
+Audit Trail
+Audit records shall not be deletable through normal application functions.
+FS-1a-182
+DC-URS-129
+Audit Trail
+Authorized users shall be able to search/filter the global audit trail by date range, user, document/company code, MicroLIMS ID, revision, record t…
+F-05.1
+DC-URS-130
+Audit Trail
+Each Document Master/revision shall provide access to its record-specific audit history.
+F-05.2
+DC-URS-131
+Audit Trail
+The system shall audit document creation/import, metadata changes, file changes, revisions, submissions, review actions, approvals, effective/super…
+FS-1a-183
+DC-URS-132
+Audit Trail
+System-generated automatic status transitions shall identify the system context/source in the audit trail.
+FS-1a-181
+DC-URS-133
+Configuration
+Authorized administrators shall be able to configure document types.
+F-04.1
+DC-URS-134
+Configuration
+Authorized administrators shall be able to configure departments/sections.
+F-04.2
+DC-URS-135
+Configuration
+Authorized administrators shall be able to configure default review cycles.
+F-04.3
+DC-URS-136
+Configuration
+Authorized administrators shall be able to configure the MicroLIMS Document ID prefix/numbering pattern.
+F-04.4
+DC-URS-137
+Configuration
+The company document code shall not be automatically overwritten by the MicroLIMS numbering configuration.
+FS-1a-121
+DC-URS-142
+Configuration
+Configuration changes shall be audit-trailed.
+F-04.6
+DC-URS-143
+Security
+The system shall use role-based access control for Document Control functions.
+FS-1a-110
+DC-URS-144
+Security
+Permissions shall distinguish at least administration, document control, authoring, technical review, approval, reading/training, compliance viewin…
+FS-1a-111
+DC-URS-145
+Security
+The system shall require authenticated user identity for controlled actions.
+FS-1a-110
+DC-URS-146
+Security
+The system shall prevent a user from performing actions for which the user lacks permission.
+FS-1a-111
+DC-URS-148
+Security
+The system shall associate controlled actions with the authenticated user and date/time.
+FS-1a-181
+DC-URS-149
+Data Integrity
+The system shall preserve historical revisions, approvals, periodic reviews, training evidence and KAF results as enduring records.
+FS-1a-190
+DC-URS-150
+Data Integrity
+The system shall maintain traceability between Document Master, revision, controlled file, workflow records, training assignments and KAF records.
+FS-1a-130
+DC-URS-151
+Data Integrity
+Date/time stamps shall be generated consistently by the system and stored in a controlled manner.
+FS-1a-195
+DC-URS-152
+Data Integrity
+The system shall not permit normal users to alter audit trail records.
+FS-1a-182
+DC-URS-153
+Data Integrity
+The system shall identify the exact revision associated with every approval, acknowledgement, training completion and KAF attempt.
+FS-1a-190
+DC-URS-154
+Data Integrity
+The system shall provide records in a form that is legible and retrievable for authorized review.
+FS-1a-190
+DC-URS-155
+Data Integrity
+The system shall support backup/restore and retention through the validated MicroLIMS infrastructure.
+FS-1a-200
+DC-URS-156
+Usability
+The interface shall clearly display document status, revision and effective-date information.
+F-01 / F-03
+DC-URS-157
+Usability
+Validation/readiness indicators should identify missing mandatory information before submission.
+F-02.5
+DC-URS-159
+Performance
+Common Document Library searches and record opening should complete within an acceptable validated response time under expected load.
+FS-1a-201
+DC-URS-160
+Availability
+The module shall use the established MicroLIMS application availability, backup, recovery and access infrastructure.
+FS-1a-200
+DC-URS-161
+Scope Boundary
+Phase 1 shall not automatically inject controlled documents into laboratory testing workspaces.
+FS-1a-105
+DC-URS-162
+Scope Boundary
+Phase 1 shall not automatically block laboratory execution because an analyst has not completed document training.
+FS-1a-105
+DC-URS-163
+Scope Boundary
+Future workspace integration shall be treated as a separate controlled project/change because it affects multiple MicroLIMS modules.
+FS-1a-105
+DC-URS-168
+Segregation of Duties
+Each Document Master shall identify its Document Owner, designated Technical Reviewer(s) and designated Approver(s), and controlled workflow author…
+FS-1a-131
+DC-URS-182
+Automatic System Actions
+All date-driven controlled transitions shall be evaluated against a single defined system time zone, and that time zone shall be documented and con…
+FS-1a-195
+DC-URS-184
+Record Cancellation
+No controlled document record, revision, workflow record, training record, assessment record or audit record shall be permanently deleted through t…
+FS-1a-170
+DC-URS-185
+Record Cancellation
+A draft revision that is no longer required shall be cancellable with a mandatory recorded reason, and shall be retained in read-only form.
+FS-1a-171
+DC-URS-186
+Record Cancellation
+A Document Master registered in error shall be voidable with a mandatory recorded reason and appropriate authorization; the assigned MicroLIMS Docu…
+FS-1a-172
+DC-URS-187
+Record Cancellation
+Cancelled and voided records shall be excluded from the active document register and active work lists, while remaining retrievable by authorized u…
+FS-1a-173
+DC-URS-188
+Record Cancellation
+Cancellation and voiding actions shall record the performing user, date/time and reason, and shall be audit-trailed.
+FS-1a-174
+DC-URS-193
+Registration & Migration
+Every Document Master, revision and training/assessment record shall carry an origin indicator distinguishing records created within MicroLIMS from…
+FS-1a-125
+DC-URS-198
+File Control
+The system shall generate and store a cryptographic checksum for each controlled file at the point of upload.
+FS-1a-161
+DC-URS-199
+File Control
+The system shall verify the stored checksum when a controlled file is retrieved and shall prevent or flag delivery of a file whose integrity cannot…
+FS-1a-161
+DC-URS-200
+File Control
+File upload, checksum generation and any detected integrity mismatch shall be recorded in the audit trail.
+FS-1a-161
+15. Assumptions, Constraints and Open Items
+15.1 Assumptions
+The MicroLIMS authentication, session management, audit trail infrastructure and role framework are already implemented and validated, and are available for reuse.
+Users, departments and roles are maintained through existing MicroLIMS administration and are not duplicated within Document Control.
+The controlled file store is included in the existing MicroLIMS backup and restore scope.
+15.2 Constraints
+Documents registered in Release 1a remain in Draft until the approval workflow is delivered in Release 1b. This is a deliberate design decision recorded in FS-1a-140 and is accepted by the project.
+Release 1a delivers no laboratory execution integration of any kind (FS-1a-105).
+15.3 Open items to be closed before this specification is approved
+#
+Open item
+Owner
+1
+Agreed response time target and concurrent load profile for FS-1a-201.
+System Owner / IT
+2
+Confirmation of controlled-copy default policy: whether download and printing are permitted by default, and watermark content.
+Quality Assurance
+3
+Maximum permitted controlled file size and the accepted file types for the controlled PDF and source file.
+Document Controller / IT
+4
+Confirmation that the Company Document Code may be reissued after a Document Master is voided (FS-1a-172).
+Quality Assurance
+5
+Retention period for Document Control records, and the recovery point and recovery time objectives, for FS-1a-200.
+System Owner / IT
+6
+Confirmation of the system time zone value for FS-1a-195.
+System Owner
+7
+Whether a Document Author may view the source file of documents they do not own.
+Quality Assurance
+16. Approval
+Approval of this specification confirms that it correctly and completely translates the Release 1a requirements of URS v1.1 into intended system behaviour, and that it is suitable as the basis for development and for the authoring of qualification protocols.
+Role
+Name
+Signature
+Date
+Author
+System Owner
+QC / Microbiology Representative
+Quality Assurance
+IT / Technical Representative
+END OF SPECIFICATION

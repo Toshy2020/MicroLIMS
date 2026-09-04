@@ -111,6 +111,9 @@ public static class TestServiceFactory
 
     public static MyTasksService MyTasks(MicroLimsDbContext db) => new(db);
 
+    public static GroupedTestActionService GroupedTestAction(MicroLimsDbContext db) =>
+        new(db, TestWorkflow(db), IncubatorEligibility(db));
+
     public static DiscussionService Discussion(MicroLimsDbContext db, IFileStorageService? storage = null, INotificationService? notifications = null) =>
         new(db, storage ?? new InMemoryFileStorageService(), notifications ?? new NoOpNotificationService(), NullLogger<DiscussionService>.Instance);
 

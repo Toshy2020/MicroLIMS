@@ -4,6 +4,7 @@ import { CategoryBadge } from "../../components/StatusBadge";
 import { SampleLifecycleBadge } from "./SampleLifecycleBadge";
 import { useAuth } from "../../contexts/AuthContext";
 import { brandColors } from "../../theme";
+import { isInteractiveElement } from "../../utils/isInteractiveElement";
 
 interface Props {
   samples: SampleCardType[];
@@ -34,7 +35,23 @@ export function SampleCardView({
         return (
           <Grid item xs={12} sm={6} md={4} key={sample.sampleId}>
             <Paper
-              onClick={() => onSelectSample(sample)}
+              tabIndex={0}
+              role="button"
+              onClick={(e) => {
+                if (isInteractiveElement(e.target, e.currentTarget)) {
+                  return;
+                }
+                onSelectSample(sample);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  if (isInteractiveElement(e.target, e.currentTarget)) {
+                    return;
+                  }
+                  e.preventDefault();
+                  onSelectSample(sample);
+                }
+              }}
               sx={{
                 p: 2,
                 height: "100%",

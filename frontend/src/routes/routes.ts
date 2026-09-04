@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Centralized Application Route Constants and Resolvers for MicroLIMS.
  * 
  * All routes match the active route tree in AppRoutes.tsx.
@@ -41,6 +41,16 @@ const APP_ROUTES = {
   INVENTORY_EQUIPMENT: "/inventory/equipment",
   APPROVED_MEDIA: "/inventory/approved-media",
   APPROVED_CRYOVIALS: "/inventory/approved-cryovials",
+
+  // Document Control (Release 1a / 1c)
+  DOCUMENT_CONTROL_DASHBOARD: "/document-control",
+  DOCUMENT_CONTROL_MY_READING_LIST: "/document-control/my-reading-list",
+  DOCUMENT_CONTROL_TRAINING_MATRIX: "/document-control/training-matrix",
+  DOCUMENT_CONTROL_COMPLIANCE_DASHBOARD: "/document-control/compliance-dashboard",
+  DOCUMENT_CONTROL_LIBRARY: "/document-control/library",
+  DOCUMENT_CONTROL_DETAIL: (id: number | string) => `/document-control/documents/${id}`,
+  DOCUMENT_CONTROL_AUDIT: "/document-control/audit",
+  DOCUMENT_CONTROL_CONFIGURATION: "/document-control/configuration",
 
   // Audit
   AUDIT_SEARCH: "/audit-search",
@@ -144,3 +154,4 @@ export function resolveTraceabilityRoute(
 
   return null;
 }
+

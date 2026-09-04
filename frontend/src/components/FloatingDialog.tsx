@@ -28,11 +28,34 @@ interface FloatingDialogProps {
 // Every laboratory process opens as a modal/floating page - "No
 // navigation between pages. Analyst focuses only on one task."
 export function FloatingDialog({ open, title, onClose, children, actions, maxWidth = "md", titleSx, paperSx, subHeader }: FloatingDialogProps) {
+  const handleClose = (e?: React.SyntheticEvent | Event | {}) => {
+    if (e && "stopPropagation" in e && typeof (e as any).stopPropagation === "function") {
+      (e as any).stopPropagation();
+    }
+    onClose();
+  };
+
   return (
-    <Dialog open={open} onClose={onClose} maxWidth={maxWidth} fullWidth PaperProps={paperSx ? { sx: paperSx } : undefined}>
+    <Dialog
+      open={open}
+      onClose={handleClose}
+      maxWidth={maxWidth}
+      fullWidth
+      PaperProps={paperSx ? { sx: paperSx } : undefined}
+      onClick={(e) => e.stopPropagation()}
+    >
       <DialogTitle sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", ...titleSx }}>
         {title}
-        <IconButton onClick={onClose} size="small" sx={{ color: "inherit" }}><CloseIcon /></IconButton>
+        <IconButton
+          onClick={(e) => {
+            e.stopPropagation();
+            onClose();
+          }}
+          size="small"
+          sx={{ color: "inherit" }}
+        >
+          <CloseIcon />
+        </IconButton>
       </DialogTitle>
       {subHeader}
       <DialogContent dividers>{children}</DialogContent>

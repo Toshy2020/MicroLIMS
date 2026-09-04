@@ -4,6 +4,7 @@ import AddIcon from "@mui/icons-material/Add";
 import CloseIcon from "@mui/icons-material/Close";
 import { StatusBadge } from "../../components/StatusBadge";
 import { masterDataOptions } from "../../services/masterDataOptions";
+import { lookupCache } from "../../services/lookupCache";
 import { TestWorkflowService } from "./services/TestWorkflowService";
 import { LoadingSpinner } from "../../components/LoadingSpinner";
 import { LocationResultGridDialog } from "./LocationResultGridDialog";
@@ -102,9 +103,9 @@ export function TestWorkflowDialog({ testOrderId, testCode, category, displayNam
   useEffect(() => {
     if (phase !== "select-media" && phase !== "transfer-stage-2") return;
     if (phase === "select-media") {
-      masterDataOptions.getReleasedMedia().then(setReleasedMedia);
+      lookupCache.getReleasedMedia().then(setReleasedMedia);
     }
-    masterDataOptions.getEquipment("Incubator").then(setIncubators);
+    lookupCache.getIncubators().then(setIncubators);
   }, [phase]);
 
   const step = current?.step;

@@ -25,7 +25,7 @@ public class RecentActivityService
             .Select(a => new ActivityEntryDto(
                 "Audit",
                 $"{a.Action} {a.EntityName} #{a.EntityId}",
-                a.UserId,
+                a.UserId ?? 0,
                 a.Timestamp))
             .ToListAsync();
 

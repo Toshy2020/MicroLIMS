@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { TableRow, TableCell, Box, Typography, Collapse, IconButton, useTheme } from "@mui/material";
+import { TableRow, TableCell, Box, Typography, Collapse, IconButton, Checkbox, useTheme } from "@mui/material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import { SampleCard as SampleCardType } from "./types/workspaceTypes";
@@ -8,6 +8,7 @@ import { WorkspaceService } from "./services/WorkspaceService";
 import { CategoryBadge } from "../../components/StatusBadge";
 import { SampleLifecycleBadge } from "./SampleLifecycleBadge";
 import { useAuth } from "../../contexts/AuthContext";
+import { isInteractiveElement } from "../../utils/isInteractiveElement";
 
 interface Props {
   sample: SampleCardType;
@@ -19,6 +20,8 @@ interface Props {
   visibleColumns: Set<string>;
   colSpan: number;
   isCompact?: boolean;
+  isChecked?: boolean;
+  onToggleCheck?: (sampleId: number, checked: boolean) => void;
 }
 
 const PRODUCT_LIKE = ["FinishedProduct", "RawMaterial", "PackagingMaterial"];
@@ -40,7 +43,9 @@ export function SampleTableRow({
   onLifecycleBadgeClick,
   visibleColumns,
   colSpan,
-  isCompact
+  isCompact,
+  isChecked,
+  onToggleCheck
 }: Props) {
   const { role } = useAuth();
   const theme = useTheme();
@@ -60,9 +65,22 @@ export function SampleTableRow({
     onCorrected();
   };
 
-  const handleRowClick = () => {
+  const handleRowClick = (e: React.MouseEvent<HTMLTableRowElement>) => {
+    if (isInteractiveElement(e.target, e.currentTarget)) {
+      return;
+    }
     if (onSelectSample) {
       onSelectSample(sample);
+    }
+  };
+
+  const handleRowKeyDown = (e: React.KeyboardEvent<HTMLTableRowElement>) => {
+    if (e.key === "Enter" || e.key === " ") {
+      if (isInteractiveElement(e.target, e.currentTarget)) {
+        return;
+      }
+      e.preventDefault();
+      onSelectSample?.(sample);
     }
   };
 
@@ -70,7 +88,10 @@ export function SampleTableRow({
     return (
       <TableRow
         hover
+        tabIndex={0}
+        role="row"
         onClick={handleRowClick}
+        onKeyDown={handleRowKeyDown}
         sx={{
           cursor: "pointer",
           bgcolor: isSelected ? theme.custom.status.purple.bg : "inherit",
@@ -83,12 +104,28 @@ export function SampleTableRow({
         }}
       >
         <TableCell sx={{ py: 1.25 }}>
-          <Typography sx={{ fontWeight: isSelected ? 700 : 600, fontSize: 13, color: isSelected ? theme.palette.primary.main : "text.primary" }}>
-            {sample.displayName}
-          </Typography>
-          <Typography sx={{ fontSize: 11, color: "text.secondary" }}>
-            {sample.referenceNumber}
-          </Typography>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+            {onToggleCheck && (
+              <Checkbox
+                size="small"
+                checked={Boolean(isChecked)}
+                onChange={(e) => {
+                  e.stopPropagation();
+                  onToggleCheck(sample.sampleId, e.target.checked);
+                }}
+                onClick={(e) => e.stopPropagation()}
+                sx={{ p: 0.25, mr: 0.25 }}
+              />
+            )}
+            <Box sx={{ minWidth: 0 }}>
+              <Typography sx={{ fontWeight: isSelected ? 700 : 600, fontSize: 13, color: isSelected ? theme.palette.primary.main : "text.primary" }}>
+                {sample.displayName}
+              </Typography>
+              <Typography sx={{ fontSize: 11, color: "text.secondary" }}>
+                {sample.referenceNumber}
+              </Typography>
+            </Box>
+          </Box>
         </TableCell>
 
         <TableCell sx={{ py: 1.25 }}>
@@ -116,7 +153,10 @@ export function SampleTableRow({
     <>
       <TableRow
         hover
+        tabIndex={0}
+        role="row"
         onClick={handleRowClick}
+        onKeyDown={handleRowKeyDown}
         sx={{
           cursor: "pointer",
           bgcolor: isSelected ? theme.custom.status.purple.bg : "inherit",
@@ -137,10 +177,26 @@ export function SampleTableRow({
         </TableCell>
 
         <TableCell>
-          <Typography sx={{ fontWeight: isSelected ? 700 : 600, fontSize: 13, color: isSelected ? theme.palette.primary.main : "text.primary" }}>
-            {sample.displayName}
-          </Typography>
-          <Typography sx={{ fontSize: 11, color: "text.secondary" }}>{sample.referenceNumber}</Typography>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+            {onToggleCheck && (
+              <Checkbox
+                size="small"
+                checked={Boolean(isChecked)}
+                onChange={(e) => {
+                  e.stopPropagation();
+                  onToggleCheck(sample.sampleId, e.target.checked);
+                }}
+                onClick={(e) => e.stopPropagation()}
+                sx={{ p: 0.25, mr: 0.25 }}
+              />
+            )}
+            <Box sx={{ minWidth: 0 }}>
+              <Typography sx={{ fontWeight: isSelected ? 700 : 600, fontSize: 13, color: isSelected ? theme.palette.primary.main : "text.primary" }}>
+                {sample.displayName}
+              </Typography>
+              <Typography sx={{ fontSize: 11, color: "text.secondary" }}>{sample.referenceNumber}</Typography>
+            </Box>
+          </Box>
         </TableCell>
 
         {visibleColumns.has("category") && (

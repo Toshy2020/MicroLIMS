@@ -45,6 +45,7 @@ public class MicroLimsDbContext : Microsoft.EntityFrameworkCore.DbContext
     public DbSet<WaterDepartment> WaterDepartments => Set<WaterDepartment>();
     public DbSet<EMRoom> EMRooms => Set<EMRoom>();
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
+    public DbSet<AuditEventChange> AuditEventChanges => Set<AuditEventChange>();
     public DbSet<Report> Reports => Set<Report>();
     public DbSet<WorkflowHistory> WorkflowHistories => Set<WorkflowHistory>();
     public DbSet<ReviewWorkflowEvent> ReviewWorkflowEvents => Set<ReviewWorkflowEvent>();
@@ -113,6 +114,41 @@ public class MicroLimsDbContext : Microsoft.EntityFrameworkCore.DbContext
     public DbSet<ConversationParticipant> ConversationParticipants => Set<ConversationParticipant>();
     public DbSet<DirectMessage> DirectMessages => Set<DirectMessage>();
 
+    // Document Control Module (Release 1a)
+    public DbSet<DocumentMaster> DocumentMasters => Set<DocumentMaster>();
+    public DbSet<DocumentRevision> DocumentRevisions => Set<DocumentRevision>();
+    public DbSet<DocumentMasterAssignment> DocumentMasterAssignments => Set<DocumentMasterAssignment>();
+    public DbSet<DocumentKeyword> DocumentKeywords => Set<DocumentKeyword>();
+    public DbSet<RevisionFile> RevisionFiles => Set<RevisionFile>();
+    public DbSet<DocumentType> DocumentTypes => Set<DocumentType>();
+    public DbSet<DocumentDepartment> DocumentDepartments => Set<DocumentDepartment>();
+    public DbSet<DocumentSection> DocumentSections => Set<DocumentSection>();
+    public DbSet<DocumentNumberingConfiguration> DocumentNumberingConfigurations => Set<DocumentNumberingConfiguration>();
+    public DbSet<ConfigurationSetting> ConfigurationSettings => Set<ConfigurationSetting>();
+
+    // Document Control Module (Release 1b - WP1 Technical Review)
+    public DbSet<DocumentReviewTask> DocumentReviewTasks => Set<DocumentReviewTask>();
+    public DbSet<DocumentReviewFinding> DocumentReviewFindings => Set<DocumentReviewFinding>();
+
+    // Document Control Module (Release 1b - WP2 Revision Management)
+    public DbSet<RevisionChangeItem> RevisionChangeItems => Set<RevisionChangeItem>();
+    public DbSet<RevisionImpactAssessment> RevisionImpactAssessments => Set<RevisionImpactAssessment>();
+
+    // Document Control Module (Release 1b - WP3 Approval Workflow)
+    public DbSet<DocumentApprovalTask> DocumentApprovalTasks => Set<DocumentApprovalTask>();
+
+    // Document Control Module (Release 1b - WP6 Periodic Review Engine)
+    public DbSet<PeriodicReviewTask> PeriodicReviewTasks => Set<PeriodicReviewTask>();
+    public DbSet<PeriodicReviewFinding> PeriodicReviewFindings => Set<PeriodicReviewFinding>();
+
+    // Document Control Module (Release 1c - WP1/WP3/WP4 Training Matrix, Acknowledgements & Escalations)
+    public DbSet<DocumentTrainingAssignment> DocumentTrainingAssignments => Set<DocumentTrainingAssignment>();
+    public DbSet<DocumentTrainingConfiguration> DocumentTrainingConfigurations => Set<DocumentTrainingConfiguration>();
+    public DbSet<DocumentRoleCurriculum> DocumentRoleCurricula => Set<DocumentRoleCurriculum>();
+    public DbSet<DocumentRoleCurriculumItem> DocumentRoleCurriculumItems => Set<DocumentRoleCurriculumItem>();
+    public DbSet<DocumentAcknowledgementRecord> DocumentAcknowledgementRecords => Set<DocumentAcknowledgementRecord>();
+    public DbSet<DocumentEscalationRecord> DocumentEscalationRecords => Set<DocumentEscalationRecord>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         // Individual per-table configuration classes live in
@@ -147,6 +183,7 @@ public class MicroLimsDbContext : Microsoft.EntityFrameworkCore.DbContext
     {
         var entries = ChangeTracker.Entries()
             .Where(e => e.Entity is not AuditLog &&
+                        e.Entity is not AuditEventChange && // append-only; excluded to prevent recursive audit
                         e.Entity is not MaterialDocumentAccessLog && // append-only; excluded to prevent recursive audit
                         e.Entity is not EquipmentDocumentAccessLog && // append-only; excluded to prevent recursive audit
                         (e.State == EntityState.Added || e.State == EntityState.Modified || e.State == EntityState.Deleted))

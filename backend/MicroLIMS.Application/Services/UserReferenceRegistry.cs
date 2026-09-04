@@ -59,6 +59,53 @@ public static class UserReferenceRegistry
         new UserReferenceEntry(typeof(ConversationParticipant), nameof(ConversationParticipant.UserId), UserReferenceDisposition.Blocks, "DB FK Restrict - conversation participant"),
         new UserReferenceEntry(typeof(DirectMessage), nameof(DirectMessage.SenderUserId), UserReferenceDisposition.Blocks, "DB FK Restrict - message sender"),
 
+        // Document Control (Release 1a)
+        new UserReferenceEntry(typeof(DocumentMaster), nameof(DocumentMaster.DocumentOwnerUserId), UserReferenceDisposition.Blocks, "DB FK Restrict - document owner"),
+        new UserReferenceEntry(typeof(DocumentMaster), nameof(DocumentMaster.CreatedByUserId), UserReferenceDisposition.Blocks, "DB FK Restrict - document creator"),
+        new UserReferenceEntry(typeof(DocumentMaster), nameof(DocumentMaster.ModifiedByUserId), UserReferenceDisposition.Blocks, "DB FK Restrict - document editor"),
+        new UserReferenceEntry(typeof(DocumentMaster), nameof(DocumentMaster.VoidedByUserId), UserReferenceDisposition.Blocks, "DB FK Restrict - document voider"),
+        new UserReferenceEntry(typeof(DocumentMasterAssignment), nameof(DocumentMasterAssignment.UserId), UserReferenceDisposition.Blocks, "DB FK Restrict - assigned user"),
+        new UserReferenceEntry(typeof(DocumentMasterAssignment), nameof(DocumentMasterAssignment.AssignedByUserId), UserReferenceDisposition.Blocks, "DB FK Restrict - assigner user"),
+        new UserReferenceEntry(typeof(DocumentRevision), nameof(DocumentRevision.CreatedByUserId), UserReferenceDisposition.Blocks, "DB FK Restrict - revision creator"),
+        new UserReferenceEntry(typeof(DocumentRevision), nameof(DocumentRevision.CancelledByUserId), UserReferenceDisposition.Blocks, "DB FK Restrict - revision canceller"),
+        new UserReferenceEntry(typeof(RevisionFile), nameof(RevisionFile.UploadedByUserId), UserReferenceDisposition.Blocks, "DB FK Restrict - file uploader"),
+        new UserReferenceEntry(typeof(DocumentNumberingConfiguration), nameof(DocumentNumberingConfiguration.ModifiedByUserId), UserReferenceDisposition.Blocks, "DB FK Restrict - numbering modifier"),
+        new UserReferenceEntry(typeof(ConfigurationSetting), nameof(ConfigurationSetting.ModifiedByUserId), UserReferenceDisposition.Blocks, "DB FK Restrict - setting modifier"),
+
+        // Document Control (Release 1b - WP1 Technical Review)
+        new UserReferenceEntry(typeof(DocumentReviewTask), nameof(DocumentReviewTask.AssignedReviewerUserId), UserReferenceDisposition.Blocks, "DB FK Restrict - assigned reviewer"),
+        new UserReferenceEntry(typeof(DocumentReviewTask), nameof(DocumentReviewTask.AssignedByUserId), UserReferenceDisposition.Blocks, "DB FK Restrict - review task assigner"),
+        new UserReferenceEntry(typeof(DocumentReviewTask), nameof(DocumentReviewTask.DecisionByUserId), UserReferenceDisposition.Blocks, "DB FK Restrict - review decision maker"),
+        new UserReferenceEntry(typeof(DocumentReviewFinding), nameof(DocumentReviewFinding.CreatedByUserId), UserReferenceDisposition.Blocks, "DB FK Restrict - finding creator"),
+        new UserReferenceEntry(typeof(DocumentReviewFinding), nameof(DocumentReviewFinding.AuthorResponseByUserId), UserReferenceDisposition.Blocks, "DB FK Restrict - finding author respondent"),
+        new UserReferenceEntry(typeof(DocumentReviewFinding), nameof(DocumentReviewFinding.ReviewerVerifiedByUserId), UserReferenceDisposition.Blocks, "DB FK Restrict - finding reviewer verifier"),
+        new UserReferenceEntry(typeof(DocumentReviewFinding), nameof(DocumentReviewFinding.ResolvedByUserId), UserReferenceDisposition.Blocks, "DB FK Restrict - finding resolver"),
+
+        // Document Control (Release 1b - WP2 Revision Management)
+        new UserReferenceEntry(typeof(RevisionChangeItem), nameof(RevisionChangeItem.CreatedByUserId), UserReferenceDisposition.Blocks, "DB FK Restrict - change item creator"),
+        new UserReferenceEntry(typeof(RevisionImpactAssessment), nameof(RevisionImpactAssessment.CompletedByUserId), UserReferenceDisposition.Blocks, "DB FK Restrict - impact assessor"),
+
+        // Document Control (Release 1b - WP3 Approval Workflow)
+        new UserReferenceEntry(typeof(DocumentApprovalTask), nameof(DocumentApprovalTask.AssignedApproverUserId), UserReferenceDisposition.Blocks, "DB FK Restrict - assigned approver"),
+        new UserReferenceEntry(typeof(DocumentApprovalTask), nameof(DocumentApprovalTask.AssignedByUserId), UserReferenceDisposition.Blocks, "DB FK Restrict - approval task assigner"),
+        new UserReferenceEntry(typeof(DocumentApprovalTask), nameof(DocumentApprovalTask.DecisionByUserId), UserReferenceDisposition.Blocks, "DB FK Restrict - approval decision maker"),
+
+        // Document Control (Release 1b - WP6 Periodic Review)
+        new UserReferenceEntry(typeof(PeriodicReviewTask), nameof(PeriodicReviewTask.AssignedReviewerUserId), UserReferenceDisposition.Blocks, "DB FK Restrict - assigned periodic reviewer"),
+        new UserReferenceEntry(typeof(PeriodicReviewTask), nameof(PeriodicReviewTask.CompletedByUserId), UserReferenceDisposition.Blocks, "DB FK Restrict - periodic review completer"),
+        new UserReferenceEntry(typeof(PeriodicReviewFinding), nameof(PeriodicReviewFinding.CreatedByUserId), UserReferenceDisposition.Blocks, "DB FK Restrict - periodic review finding creator"),
+
+        // Document Control (Release 1c - WP1/WP3/WP4 Training Matrix, Acknowledgements & Escalations)
+        new UserReferenceEntry(typeof(DocumentTrainingAssignment), nameof(DocumentTrainingAssignment.AssignedUserId), UserReferenceDisposition.Blocks, "DB FK Restrict - assigned trainee user"),
+        new UserReferenceEntry(typeof(DocumentTrainingAssignment), nameof(DocumentTrainingAssignment.AcknowledgedByUserId), UserReferenceDisposition.Blocks, "DB FK Restrict - acknowledgement submitter"),
+        new UserReferenceEntry(typeof(DocumentTrainingAssignment), nameof(DocumentTrainingAssignment.CreatedByUserId), UserReferenceDisposition.Blocks, "DB FK Restrict - training assignment creator"),
+        new UserReferenceEntry(typeof(DocumentTrainingAssignment), nameof(DocumentTrainingAssignment.ModifiedByUserId), UserReferenceDisposition.Blocks, "DB FK Restrict - training assignment modifier"),
+        new UserReferenceEntry(typeof(DocumentTrainingConfiguration), nameof(DocumentTrainingConfiguration.ModifiedByUserId), UserReferenceDisposition.Blocks, "DB FK Restrict - training configuration modifier"),
+        new UserReferenceEntry(typeof(DocumentRoleCurriculum), nameof(DocumentRoleCurriculum.CreatedByUserId), UserReferenceDisposition.Blocks, "DB FK Restrict - role curriculum creator"),
+        new UserReferenceEntry(typeof(DocumentAcknowledgementRecord), nameof(DocumentAcknowledgementRecord.AcknowledgedByUserId), UserReferenceDisposition.Blocks, "DB FK Restrict - legal acknowledgement evidence user"),
+        new UserReferenceEntry(typeof(DocumentEscalationRecord), nameof(DocumentEscalationRecord.AssignedUserId), UserReferenceDisposition.Blocks, "DB FK Restrict - escalated assignment user"),
+        new UserReferenceEntry(typeof(DocumentEscalationRecord), nameof(DocumentEscalationRecord.ResolvedByUserId), UserReferenceDisposition.Blocks, "DB FK Restrict - escalation resolver user"),
+
         // ---- Excluded: DB enforces Cascade - auth housekeeping only, cleans up automatically ----
         new UserReferenceEntry(typeof(PasswordHistory), nameof(PasswordHistory.UserId), UserReferenceDisposition.Excluded, "Cascade FK - password history is per-user housekeeping, deleted with the user"),
         new UserReferenceEntry(typeof(PasswordResetToken), nameof(PasswordResetToken.UserId), UserReferenceDisposition.Excluded, "Cascade FK - reset tokens are per-user housekeeping, deleted with the user"),

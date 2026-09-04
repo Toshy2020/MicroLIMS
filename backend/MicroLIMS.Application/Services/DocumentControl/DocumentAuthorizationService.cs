@@ -1,0 +1,182 @@
+using Microsoft.EntityFrameworkCore;
+using MicroLIMS.Application.Interfaces.DocumentControl;
+using MicroLIMS.Domain.Enums;
+using MicroLIMS.Persistence.DbContext;
+
+namespace MicroLIMS.Application.Services.DocumentControl;
+
+public class DocumentAuthorizationService : IDocumentAuthorizationService
+{
+    private readonly MicroLimsDbContext _db;
+
+    public DocumentAuthorizationService(MicroLimsDbContext db)
+    {
+        _db = db;
+    }
+
+    private async Task<(bool IsActive, RoleType? RoleType)> GetUserRoleAsync(int userId)
+    {
+        var user = await _db.Users
+            .Include(u => u.Role)
+            .AsNoTracking()
+            .FirstOrDefaultAsync(u => u.Id == userId);
+
+        if (user == null || !user.IsActive)
+            return (false, null);
+
+        return (true, user.Role?.Type);
+    }
+
+    private async Task<bool> IsOwnerOrAssignedAuthorAsync(int documentMasterId, int userId)
+    {
+        var isOwner = await _db.DocumentMasters
+            .AsNoTracking()
+            .AnyAsync(d => d.Id == documentMasterId && d.DocumentOwnerUserId == userId);
+
+        if (isOwner) return true;
+
+        var isAuthor = await _db.DocumentMasterAssignments
+            .AsNoTracking()
+            .AnyAsync(a => a.DocumentMasterId == documentMasterId &&
+                           a.UserId == userId &&
+                           a.AssignmentRole == AssignmentRole.Author &&
+                           a.IsActive);
+
+        return isAuthor;
+    }
+
+    public async Task<bool> CanViewDocumentAsync(int documentMasterId, int userId)
+    {
+        var (isActive, role) = await GetUserRoleAsync(userId);
+        if (!isActive || role == null) return false;
+
+        var doc = await _db.DocumentMasters.AsNoTracking().FirstOrDefaultAsync(d => d.Id == documentMasterId);
+        if (doc == null) return false;
+
+        // Cancelled/Voided records require privileged view (Admin or Document Controller)
+        if (doc.RecordStatus == DocumentRecordStatus.Void)
+        {
+            return role == RoleType.SystemAdministrator || role == RoleType.SectionHead;
+        }
+
+        return true;
+    }
+
+    public async Task<bool> CanEditDraftMetadataAsync(int documentMasterId, int userId)
+    {
+        var (isActive, role) = await GetUserRoleAsync(userId);
+        if (!isActive || role == null) return false;
+
+        if (role == RoleType.SystemAdministrator || role == RoleType.SectionHead)
+            return true;
+
+        return await IsOwnerOrAssignedAuthorAsync(documentMasterId, userId);
+    }
+
+    public async Task<bool> CanUploadOrReplaceDraftFileAsync(int revisionId, int userId)
+    {
+        var (isActive, role) = await GetUserRoleAsync(userId);
+        if (!isActive || role == null) return false;
+
+        var revision = await _db.DocumentRevisions.AsNoTracking().FirstOrDefaultAsync(r => r.Id == revisionId);
+        if (revision == null || revision.RevisionStatus != DocumentRevisionStatus.Draft)
+            return false;
+
+        if (role == RoleType.SystemAdministrator || role == RoleType.SectionHead)
+            return true;
+
+        return await IsOwnerOrAssignedAuthorAsync(revision.DocumentMasterId, userId);
+    }
+
+    public async Task<bool> CanCancelDraftRevisionAsync(int revisionId, int userId)
+    {
+        var (isActive, role) = await GetUserRoleAsync(userId);
+        if (!isActive || role == null) return false;
+
+        var revision = await _db.DocumentRevisions.AsNoTracking().FirstOrDefaultAsync(r => r.Id == revisionId);
+        if (revision == null || revision.RevisionStatus != DocumentRevisionStatus.Draft)
+            return false;
+
+        if (role == RoleType.SystemAdministrator || role == RoleType.SectionHead)
+            return true;
+
+        return await IsOwnerOrAssignedAuthorAsync(revision.DocumentMasterId, userId);
+    }
+
+    public async Task<bool> CanVoidDocumentMasterAsync(int documentMasterId, int userId)
+    {
+        var (isActive, role) = await GetUserRoleAsync(userId);
+        if (!isActive || role == null) return false;
+
+        // Quality rule FS-1a-111: strictly Document Controller (SectionHead role), not even SystemAdministrator
+        return role == RoleType.SectionHead;
+    }
+
+    public async Task<bool> CanAccessSourceFileAsync(int fileId, int userId)
+    {
+        var (isActive, role) = await GetUserRoleAsync(userId);
+        if (!isActive || role == null) return false;
+
+        var file = await _db.RevisionFiles
+            .Include(f => f.DocumentRevision)
+            .AsNoTracking()
+            .FirstOrDefaultAsync(f => f.Id == fileId);
+
+        if (file == null || file.DocumentRevision == null) return false;
+
+        // Source file is restricted: Admin, Doc Controller, or Owner/Author
+        if (role == RoleType.SystemAdministrator || role == RoleType.SectionHead)
+            return true;
+
+        return await IsOwnerOrAssignedAuthorAsync(file.DocumentRevision.DocumentMasterId, userId);
+    }
+
+    public async Task<bool> CanAccessControlledPdfAsync(int fileId, int userId)
+    {
+        var (isActive, role) = await GetUserRoleAsync(userId);
+        if (!isActive || role == null) return false;
+
+        var file = await _db.RevisionFiles
+            .Include(f => f.DocumentRevision)
+            .AsNoTracking()
+            .FirstOrDefaultAsync(f => f.Id == fileId);
+
+        if (file == null || file.DocumentRevision == null) return false;
+
+        // If revision is effective: all active users can read
+        if (file.DocumentRevision.RevisionStatus == DocumentRevisionStatus.Effective)
+            return true;
+
+        // Draft or other non-effective states: restricted to Admin, Doc Controller, or Owner/Author
+        if (role == RoleType.SystemAdministrator || role == RoleType.SectionHead || role == RoleType.Reviewer)
+            return true;
+
+        return await IsOwnerOrAssignedAuthorAsync(file.DocumentRevision.DocumentMasterId, userId);
+    }
+
+    public async Task<bool> CanManageConfigurationAsync(int userId)
+    {
+        var (isActive, role) = await GetUserRoleAsync(userId);
+        return isActive && role == RoleType.SystemAdministrator;
+    }
+
+    public async Task<bool> CanQueryGlobalAuditAsync(int userId)
+    {
+        var (isActive, role) = await GetUserRoleAsync(userId);
+        if (!isActive || role == null) return false;
+
+        // Admin, Document Controller, or QA Reviewer/Auditor
+        return role == RoleType.SystemAdministrator || role == RoleType.SectionHead || role == RoleType.Reviewer;
+    }
+
+    public async Task<bool> CanViewRecordAuditAsync(int documentMasterId, int userId)
+    {
+        var (isActive, role) = await GetUserRoleAsync(userId);
+        if (!isActive || role == null) return false;
+
+        if (role == RoleType.SystemAdministrator || role == RoleType.SectionHead || role == RoleType.Reviewer)
+            return true;
+
+        return await IsOwnerOrAssignedAuthorAsync(documentMasterId, userId);
+    }
+}

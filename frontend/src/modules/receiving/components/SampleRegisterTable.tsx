@@ -11,6 +11,7 @@ import {
   Typography,
   Tooltip,
   Button,
+  Checkbox,
   useTheme
 } from "@mui/material";
 import DescriptionIcon from "@mui/icons-material/Description";
@@ -29,10 +30,13 @@ import { brandColors } from "../../../theme";
 import { ReadOnlyItemDocumentsDialog } from "../../../components/ReadOnlyItemDocumentsDialog";
 import { ItemDocumentService } from "../../laboratoryConfiguration/items/services/ItemDocumentService";
 import { useAuth } from "../../../contexts/AuthContext";
+import { isInteractiveElement } from "../../../utils/isInteractiveElement";
 
 interface Props {
   samples: SampleRecord[];
   selectedSampleId?: number | null;
+  checkedSampleIds?: Set<number>;
+  onToggleCheck?: (sampleId: number, checked: boolean) => void;
   onSelectSample?: (sample: SampleRecord) => void;
   onTestClick: (test: TestOrderSummary, sample: SampleRecord) => void;
   onViewSummary: (sample: SampleRecord) => void;
@@ -91,6 +95,8 @@ function OverallSampleStatusBadge({ status }: { status: string }) {
 export function SampleRegisterTable({
   samples,
   selectedSampleId,
+  checkedSampleIds,
+  onToggleCheck,
   onSelectSample,
   onTestClick,
   onViewSummary,
@@ -182,7 +188,23 @@ export function SampleRegisterTable({
       <React.Fragment key={sample.sampleId}>
         <TableRow
           hover
-          onClick={() => onSelectSample?.(sample)}
+          tabIndex={0}
+          role="row"
+          onClick={(e) => {
+            if (isInteractiveElement(e.target, e.currentTarget)) {
+              return;
+            }
+            onSelectSample?.(sample);
+          }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              if (isInteractiveElement(e.target, e.currentTarget)) {
+                return;
+              }
+              e.preventDefault();
+              onSelectSample?.(sample);
+            }
+          }}
           sx={{
             cursor: "pointer",
             bgcolor: isSelected
@@ -220,6 +242,18 @@ export function SampleRegisterTable({
           {/* Item / Reference */}
           <TableCell sx={{ pl: isNested ? `${level * 24 + 16}px` : undefined }}>
             <Box sx={{ display: "flex", alignItems: "flex-start", gap: 0.75 }}>
+              {onToggleCheck && (
+                <Checkbox
+                  size="small"
+                  checked={Boolean(checkedSampleIds?.has(sample.sampleId))}
+                  onChange={(e) => {
+                    e.stopPropagation();
+                    onToggleCheck(sample.sampleId, e.target.checked);
+                  }}
+                  onClick={(e) => e.stopPropagation()}
+                  sx={{ p: 0.25, mr: 0.25 }}
+                />
+              )}
               {isNested && (
                 <SubdirectoryArrowRightIcon
                   sx={{ fontSize: 16, color: "warning.main", mt: 0.25, flexShrink: 0 }}
@@ -262,6 +296,7 @@ export function SampleRegisterTable({
                     <Tooltip title={isExpanded ? "Collapse retest chain" : "Expand retest chain"}>
                       <Chip
                         size="small"
+                        data-no-row-click="true"
                         icon={
                           isExpanded ? (
                             <KeyboardArrowDownIcon sx={{ fontSize: "14px !important" }} />
@@ -336,6 +371,7 @@ export function SampleRegisterTable({
                 <Tooltip title="Click to reassign analyst (Section Head)">
                   <Chip
                     size="small"
+                    data-no-row-click="true"
                     icon={<PersonOutlineIcon sx={{ fontSize: "16px !important" }} />}
                     label={assignedAnalystName}
                     onClick={(e) => {
@@ -369,6 +405,7 @@ export function SampleRegisterTable({
                 <Button
                   size="small"
                   variant="outlined"
+                  data-no-row-click="true"
                   startIcon={<AssignmentIndIcon sx={{ fontSize: 15 }} />}
                   onClick={(e) => {
                     e.stopPropagation();
@@ -550,9 +587,19 @@ function SampleDocIndicator({
   return (
     <Box
       component="span"
+      role="button"
+      tabIndex={0}
+      data-no-row-click="true"
       onClick={(e) => {
         e.stopPropagation();
         onOpenDocs(sample);
+      }}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          e.stopPropagation();
+          onOpenDocs(sample);
+        }
       }}
       sx={{
         display: "inline-flex",

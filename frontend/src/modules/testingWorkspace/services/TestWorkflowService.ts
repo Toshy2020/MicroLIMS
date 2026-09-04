@@ -2,7 +2,8 @@ import { apiClient } from "../../../services/apiClient";
 import {
   CurrentStepResponse, StepResultDto, ConfirmatoryOutcomeDto,
   PermittedConfirmatoryMediaResponse, EligibleIncubatorsResponse, AnalystDecision,
-  GrowthObservation, SiblingPathogenOrder
+  GrowthObservation, SiblingPathogenOrder,
+  ActionableGroupsResponse, BatchSelectMediaRequest, BatchSelectMediaResponse
 } from "../types/testWorkflowTypes";
 
 export const TestWorkflowService = {
@@ -120,5 +121,13 @@ export const TestWorkflowService = {
   // method exists so a future review screen has something to call.
   recordBiochemicalDecision: (workflowStepResultId: number, approve: boolean, comment: string): Promise<StepResultDto> =>
     apiClient.post(`/test-workflow/results/${workflowStepResultId}/biochemical-decision`, { approve, comment })
-      .then((r) => r.data.data)
+      .then((r) => r.data.data),
+
+  // Grouped Test Actions
+  getActionableGroups: (params?: { scope?: string; actionType?: string; sampleIds?: string }): Promise<ActionableGroupsResponse> =>
+    apiClient.get("/test-workflow/actionable-groups", { params }).then((r) => r.data.data),
+
+  batchSelectMedia: (payload: BatchSelectMediaRequest): Promise<BatchSelectMediaResponse> =>
+    apiClient.post("/test-workflow/batch-select-media", payload).then((r) => r.data.data)
 };
+

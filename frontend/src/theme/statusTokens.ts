@@ -65,6 +65,7 @@ const STATUS_TONE: Record<string, StatusTone> = {
   Running: "info", InProgress: "info",
   ReadyToRead: "purple", "Ready to Read": "purple",
   EnterResult: "pale", "Enter Result": "pale",
+  "Ready: Plating": "info", "Ready: Broth": "info", "Ready: Setup": "info", "Ready: Confirmatory": "info", "Ready: Subculture": "info",
   Incubating: "action", ResultEntered: "info", Ready: "info", Reviewed: "action",
   PendingReview: "action", "Pending Review": "action",
   Completed: "notDetected", Approved: "notDetected",

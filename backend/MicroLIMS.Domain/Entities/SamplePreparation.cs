@@ -10,19 +10,15 @@ public class SamplePreparation
     public Sample? Sample { get; set; }
 
     public decimal Amount { get; set; }
-    public string Unit { get; set; } = string.Empty; // ml/gm/bottle/cap/25cm2
+    // No Unit here - see ItemPreparationConfiguration.
 
     public string Technique { get; set; } = string.Empty; // "PourPlate" or "Filtration"
     public decimal? FiltrationVolume { get; set; }
     public decimal? WashingVolume { get; set; }
 
-    public int DiluentTypeId { get; set; }
-    public DiluentType? DiluentType { get; set; }
-    public int? DiluentMediaId { get; set; } // set only when DiluentType.RequiresBatchTracking
-    public Media? DiluentMedia { get; set; }
-
-    public int NeutralizerId { get; set; }
-    public Neutralizer? Neutralizer { get; set; }
+    // Free text - see ItemPreparationConfiguration.
+    public string Diluent { get; set; } = string.Empty;
+    public string Neutralizer { get; set; } = string.Empty;
 
     public int PreparedByUserId { get; set; }
     public DateTime PreparedAt { get; set; } = DateTime.UtcNow;

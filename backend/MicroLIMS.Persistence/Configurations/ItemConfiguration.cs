@@ -32,15 +32,13 @@ public class ItemPreparationConfigurationConfiguration : IEntityTypeConfiguratio
         // One protocol per Item.
         builder.HasIndex(c => c.ItemId).IsUnique();
 
-        builder.Property(c => c.Unit).IsRequired().HasMaxLength(50);
         builder.Property(c => c.Technique).IsRequired().HasMaxLength(50);
+        builder.Property(c => c.Diluent).IsRequired().HasMaxLength(200);
+        builder.Property(c => c.Neutralizer).IsRequired().HasMaxLength(200);
 
-        // Restrict throughout - a config is master data referenced by
-        // historical SamplePreparation snapshots.
+        // Restrict - a config is master data referenced by historical
+        // SamplePreparation snapshots.
         builder.HasOne(c => c.Item).WithMany().HasForeignKey(c => c.ItemId).OnDelete(DeleteBehavior.Restrict);
-        builder.HasOne(c => c.DiluentType).WithMany().HasForeignKey(c => c.DiluentTypeId).OnDelete(DeleteBehavior.Restrict);
-        builder.HasOne(c => c.DiluentMedia).WithMany().HasForeignKey(c => c.DiluentMediaId).OnDelete(DeleteBehavior.Restrict);
-        builder.HasOne(c => c.Neutralizer).WithMany().HasForeignKey(c => c.NeutralizerId).OnDelete(DeleteBehavior.Restrict);
     }
 }
 
@@ -49,6 +47,10 @@ public class SamplePreparationConfiguration : IEntityTypeConfiguration<SamplePre
     public void Configure(EntityTypeBuilder<SamplePreparation> builder)
     {
         builder.HasKey(p => p.Id);
+
+        builder.Property(p => p.Technique).IsRequired().HasMaxLength(50);
+        builder.Property(p => p.Diluent).IsRequired().HasMaxLength(200);
+        builder.Property(p => p.Neutralizer).IsRequired().HasMaxLength(200);
 
         // Keep the snapshot readable even if the source config is later
         // removed - the snapshot columns on this row stand on their own.

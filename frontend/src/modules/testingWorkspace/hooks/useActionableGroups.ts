@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { ActionableGroup } from "../types/testWorkflowTypes";
+import { ActionableGroup, ExcludedResultEntryTestOrder } from "../types/testWorkflowTypes";
 import { TestWorkflowService } from "../services/TestWorkflowService";
 
 interface UseActionableGroupsProps {
@@ -18,6 +18,8 @@ export function useActionableGroups({
   const [groups, setGroups] = useState<ActionableGroup[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [excludedResultEntryTestOrders, setExcludedResultEntryTestOrders] = useState<ExcludedResultEntryTestOrder[]>([]);
+  const [excludedResultEntryCount, setExcludedResultEntryCount] = useState<number>(0);
 
   const sampleIdsKey = sampleIds?.slice().sort().join(",") ?? "";
 
@@ -33,6 +35,8 @@ export function useActionableGroups({
         sampleIds: sampleIdsKey || undefined
       });
       setGroups(resp.groups || []);
+      setExcludedResultEntryTestOrders(resp.excludedResultEntryTestOrders || []);
+      setExcludedResultEntryCount(resp.excludedResultEntryCount || 0);
     } catch (err: any) {
       setError(err?.response?.data?.message || err?.message || "Failed to load actionable groups.");
     } finally {
@@ -45,6 +49,8 @@ export function useActionableGroups({
       reload(false);
     } else {
       setGroups([]);
+      setExcludedResultEntryTestOrders([]);
+      setExcludedResultEntryCount(0);
     }
   }, [enabled, reload]);
 
@@ -52,6 +58,8 @@ export function useActionableGroups({
     groups,
     loading,
     error,
-    reload
+    reload,
+    excludedResultEntryTestOrders,
+    excludedResultEntryCount
   };
 }

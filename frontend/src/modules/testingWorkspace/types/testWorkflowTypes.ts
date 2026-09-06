@@ -49,6 +49,8 @@ export interface IncubationLock {
   isLocked: boolean;
   incubationEndUtc: string;
   remainingSeconds: number;
+  minReadyAt?: string | null;
+  remainingMinimumSeconds?: number;
   stageNumber?: number;
   minimumDurationOverridden?: boolean;
   minimumDurationOverriddenAt?: string | null;
@@ -62,8 +64,12 @@ export interface SampleContext {
   systemReferenceNumber: string | null;
   sampleType: string;
   stage?: string; // present only when sampleType === "FinishedProduct" - omitted entirely otherwise, never null
-  preparationUnit?: string | null;
   cfuUnit?: string | null;
+  // Configured on the item's Specifications tab. Null means: direct-count
+  // sample type (Water/EM/AfterCleaning, always forced to 1 server-side),
+  // a pathogen/observation test (DF not applicable), or an item-based
+  // count test with nothing configured yet.
+  configuredDilutionFactor?: number | null;
 }
 
 export interface SiblingPathogenOrder {
@@ -78,6 +84,9 @@ export interface SharedTsbSummary {
   incubationStartUtc: string | null;
   incubationEndUtc: string | null;
   minReadyAt: string | null;
+  remainingMinimumSeconds?: number;
+  minimumDurationOverridden?: boolean;
+  isLocked?: boolean;
   startedByUserName: string;
   isCompleted: boolean;
 }
@@ -183,6 +192,16 @@ export interface ActionableTestOrderSummary {
   assignedAnalystName?: string | null;
 }
 
+export interface ExcludedResultEntryTestOrder {
+  testOrderId: number;
+  sampleId: number;
+  sampleReference: string;
+  displayName: string;
+  testCode: string;
+  stepName: string;
+  reason: string;
+}
+
 export interface ActionableGroup {
   groupKey: string;
   actionType: string;
@@ -199,18 +218,27 @@ export interface ActionableGroup {
   permittedMaterialNames: string;
   urgency: string;
   testOrders: ActionableTestOrderSummary[];
+  transitionType?: string;
+  transitionLabel?: string;
+  targetStepName?: string;
+  predecessorStepName?: string;
 }
 
 export interface ActionableGroupsResponse {
   groups: ActionableGroup[];
+  excludedResultEntryCount?: number;
+  excludedResultEntryTestOrders?: ExcludedResultEntryTestOrder[];
 }
 
 export interface BatchSelectMediaRequest {
   testOrderIds: number[];
   stepName: string;
-  mediaLotId: number;
+  mediaLotId?: number;
   incubatorEquipmentId: number;
   incubationStartUtc?: string;
+  transitionType?: string;
+  targetStepName?: string;
+  predecessorStepName?: string;
 }
 
 export interface BatchActionSuccessItem {

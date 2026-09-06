@@ -7,14 +7,17 @@ import {
   IconButton,
   CircularProgress,
   Stack,
-  Divider,
   Alert,
+  Chip,
   useTheme
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 import LayersIcon from "@mui/icons-material/Layers";
+import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
+import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import { useActionableGroups } from "../hooks/useActionableGroups";
+import { invalidateStepCache } from "../hooks/useTestStepQuickAction";
 import { GroupedActionRow } from "./GroupedActionRow";
 import { BatchSelectMediaResponse } from "../types/testWorkflowTypes";
 
@@ -33,13 +36,21 @@ export function GroupedActionsPanel({
 }: GroupedActionsPanelProps) {
   const theme = useTheme();
 
-  const { groups, loading, error, reload } = useActionableGroups({
+  const {
+    groups,
+    loading,
+    error,
+    reload,
+    excludedResultEntryTestOrders,
+    excludedResultEntryCount
+  } = useActionableGroups({
     sampleIds: selectedSampleIds,
     scope: "all",
     enabled: selectedSampleIds.length >= 2
   });
 
   const handleBatchSuccess = (result: BatchSelectMediaResponse) => {
+    invalidateStepCache();
     reload(true);
     onActionComplete(result);
   };
@@ -138,33 +149,103 @@ export function GroupedActionsPanel({
           </Typography>
         </Box>
       ) : groups.length === 0 ? (
-        <Box
-          sx={{
-            py: 6,
-            px: 3,
-            textAlign: "center",
-            border: "1px dashed",
-            borderColor: theme.palette.divider,
-            borderRadius: 2,
-            my: "auto"
-          }}
-        >
-          <CheckCircleOutlineIcon sx={{ fontSize: 36, color: "text.disabled", mb: 1 }} />
-          <Typography sx={{ fontWeight: 600, fontSize: "0.86rem", mb: 0.5 }}>
-            No Shared Setup Actions Available
-          </Typography>
-          <Typography sx={{ fontSize: "0.75rem", color: "text.secondary", maxWidth: 360, mx: "auto" }}>
-            The selected samples do not currently share an active incubation setup or preparation step requiring media and incubator selection.
-          </Typography>
-        </Box>
+        excludedResultEntryCount && excludedResultEntryCount > 0 ? (
+          <Box
+            sx={{
+              py: 5,
+              px: 3,
+              textAlign: "center",
+              border: "1px dashed",
+              borderColor: theme.palette.mode === "dark" ? "rgba(245, 158, 11, 0.4)" : "#FCD34D",
+              borderRadius: 2,
+              bgcolor: theme.palette.mode === "dark" ? "rgba(245, 158, 11, 0.05)" : "#FFFBEB",
+              my: "auto"
+            }}
+          >
+            <InfoOutlinedIcon sx={{ fontSize: 36, color: "warning.main", mb: 1 }} />
+            <Typography sx={{ fontWeight: 700, fontSize: "0.88rem", mb: 0.75, color: "text.primary" }}>
+              Individual Result Entry Required
+            </Typography>
+            <Typography sx={{ fontSize: "0.76rem", color: "text.secondary", maxWidth: 460, mx: "auto", mb: 2 }}>
+              No grouped workflow action is available. The selected tests require individual result entry. Result entry must be completed separately for each test.
+            </Typography>
+            {excludedResultEntryTestOrders && excludedResultEntryTestOrders.length > 0 && (
+              <Box sx={{ display: "flex", flexDirection: "column", gap: 0.75, maxWidth: 520, mx: "auto", textAlign: "left" }}>
+                <Typography sx={{ fontSize: "0.68rem", fontWeight: 700, textTransform: "uppercase", color: "text.secondary" }}>
+                  Tests Awaiting Individual Result Entry ({excludedResultEntryTestOrders.length}):
+                </Typography>
+                <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.75 }}>
+                  {excludedResultEntryTestOrders.map((t) => (
+                    <Chip
+                      key={t.testOrderId}
+                      size="small"
+                      label={`${t.sampleReference} · ${t.displayName} (${t.stepName})`}
+                      onClick={onOpenWorkflow ? () => onOpenWorkflow(t.sampleId, t.testOrderId) : undefined}
+                      deleteIcon={onOpenWorkflow ? <OpenInNewIcon sx={{ fontSize: "13px !important" }} /> : undefined}
+                      onDelete={onOpenWorkflow ? () => onOpenWorkflow(t.sampleId, t.testOrderId) : undefined}
+                      sx={{
+                        fontSize: "0.72rem",
+                        fontWeight: 600,
+                        cursor: onOpenWorkflow ? "pointer" : "default",
+                        bgcolor: theme.palette.background.paper,
+                        border: "1px solid",
+                        borderColor: theme.palette.divider
+                      }}
+                    />
+                  ))}
+                </Box>
+              </Box>
+            )}
+          </Box>
+        ) : (
+          <Box
+            sx={{
+              py: 6,
+              px: 3,
+              textAlign: "center",
+              border: "1px dashed",
+              borderColor: theme.palette.divider,
+              borderRadius: 2,
+              my: "auto"
+            }}
+          >
+            <CheckCircleOutlineIcon sx={{ fontSize: 36, color: "text.disabled", mb: 1 }} />
+            <Typography sx={{ fontWeight: 600, fontSize: "0.86rem", mb: 0.5 }}>
+              No Shared Setup Actions Available
+            </Typography>
+            <Typography sx={{ fontSize: "0.75rem", color: "text.secondary", maxWidth: 360, mx: "auto" }}>
+              The selected samples do not currently share an active incubation setup or preparation step requiring media and incubator selection.
+            </Typography>
+          </Box>
+        )
       ) : (
         <Box sx={{ display: "flex", flexDirection: "column", gap: 1.25 }}>
+          {excludedResultEntryCount && excludedResultEntryCount > 0 ? (
+            <Alert
+              severity="info"
+              icon={<InfoOutlinedIcon fontSize="inherit" />}
+              sx={{
+                py: 0.75,
+                px: 1.5,
+                fontSize: "0.74rem",
+                borderRadius: 1.5
+              }}
+            >
+              <Typography sx={{ fontSize: "0.74rem", fontWeight: 700, mb: 0.25 }}>
+                {excludedResultEntryCount} {excludedResultEntryCount === 1 ? "test" : "tests"} excluded from grouped actions
+              </Typography>
+              <Typography sx={{ fontSize: "0.72rem", color: "text.secondary" }}>
+                The selected tests require individual result entry (e.g. colony counts or plate readings) and cannot be executed as a grouped action. Result entry must be completed separately for each test.
+              </Typography>
+            </Alert>
+          ) : null}
+
           <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
             <Typography sx={{ fontSize: "0.72rem", fontWeight: 700, textTransform: "uppercase", color: "text.secondary", letterSpacing: "0.5px" }}>
               Compatible Actions ({groups.length})
             </Typography>
             <Typography sx={{ fontSize: "0.72rem", color: "text.secondary" }}>
-              Single media lot &amp; incubator selection applies to all tests in group
+              Shared operational workflow transition
             </Typography>
           </Box>
 

@@ -32,7 +32,7 @@ export const TestWorkflowService = {
   recordResult: (testOrderId: number, payload: { stepName: string; plateReadings?: number[]; rawPlateReadings?: string[]; dilutionFactor: number }) =>
     apiClient.post(`/test-workflow/${testOrderId}/record-result`, payload).then((r) => r.data.data),
 
-  recordCountResult: (testOrderId: number, payload: { stepName: string; rawPlateReadings: string[]; dilutionFactor: number }) =>
+  recordCountResult: (testOrderId: number, payload: { stepName: string; rawPlateReadings: string[]; dilutionFactor: number; dilutionFactorOverrideNote?: string }) =>
     apiClient.post(`/test-workflow/${testOrderId}/record-result`, payload).then((r) => r.data.data),
 
   getLocations: (testOrderId: number) =>

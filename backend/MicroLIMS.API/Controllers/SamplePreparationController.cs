@@ -8,8 +8,8 @@ namespace MicroLIMS.API.Controllers;
 // Manual entry - only reachable when the Item has no preparation
 // configuration yet; these values also become that Item's standing config.
 public record PrepareSampleHttpRequest(
-    int SampleId, decimal Amount, string Unit, string Technique, decimal? FiltrationVolume, decimal? WashingVolume,
-    int DiluentTypeId, int? DiluentMediaId, int NeutralizerId, string Password);
+    int SampleId, decimal Amount, string Technique, decimal? FiltrationVolume, decimal? WashingVolume,
+    string Diluent, string Neutralizer, string Password);
 
 // Confirm-only - the Item's configured steps are the ones performed.
 public record ConfirmPreparationHttpRequest(int SampleId, string Password);
@@ -35,8 +35,8 @@ public class SamplePreparationController : ControllerBase
     public async Task<IActionResult> Prepare(PrepareSampleHttpRequest r)
     {
         var prep = await _service.PrepareAsync(new PrepareSampleRequest(
-            r.SampleId, r.Amount, r.Unit, r.Technique, r.FiltrationVolume, r.WashingVolume,
-            r.DiluentTypeId, r.DiluentMediaId, r.NeutralizerId, CurrentUserId, r.Password), ClientIp);
+            r.SampleId, r.Amount, r.Technique, r.FiltrationVolume, r.WashingVolume,
+            r.Diluent, r.Neutralizer, CurrentUserId, r.Password), ClientIp);
 
         return Ok(ApiResponse<object>.Ok(Project(prep)));
     }
@@ -59,8 +59,8 @@ public class SamplePreparationController : ControllerBase
     // into the same tracked context).
     private static object Project(Domain.Entities.SamplePreparation prep) => new
     {
-        prep.Id, prep.SampleId, prep.Amount, prep.Unit, prep.Technique, prep.FiltrationVolume, prep.WashingVolume,
-        prep.DiluentTypeId, prep.DiluentMediaId, prep.NeutralizerId, prep.PreparedByUserId, prep.PreparedAt,
+        prep.Id, prep.SampleId, prep.Amount, prep.Technique, prep.FiltrationVolume, prep.WashingVolume,
+        prep.Diluent, prep.Neutralizer, prep.PreparedByUserId, prep.PreparedAt,
         prep.SourceConfigurationId, prep.WasConfirmedFromConfig
     };
 }

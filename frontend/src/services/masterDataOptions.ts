@@ -11,6 +11,23 @@ export const masterDataOptions = {
   getRooms: () => apiClient.get("/masterdata/rooms").then((r) => r.data.data),
   getMachines: () => apiClient.get("/masterdata/machines").then((r) => r.data.data),
   getCausesOfTesting: () => apiClient.get("/masterdata/causes-of-testing").then((r) => r.data.data),
+  createCauseOfTesting: (name: string) =>
+    apiClient.post("/masterdata/causes-of-testing", JSON.stringify(name), { headers: { "Content-Type": "application/json" } }).then((r) => r.data.data),
+  updateCauseOfTesting: (id: number, name: string) =>
+    apiClient.put(`/masterdata/causes-of-testing/${id}`, JSON.stringify(name), { headers: { "Content-Type": "application/json" } }).then((r) => r.data.data),
+  deleteCauseOfTesting: (id: number) => apiClient.delete(`/masterdata/causes-of-testing/${id}`),
+  getSamplers: () => apiClient.get("/masterdata/samplers").then((r) => r.data.data),
+  createSampler: (name: string) =>
+    apiClient.post("/masterdata/samplers", JSON.stringify(name), { headers: { "Content-Type": "application/json" } }).then((r) => r.data.data),
+  updateSampler: (id: number, name: string) =>
+    apiClient.put(`/masterdata/samplers/${id}`, JSON.stringify(name), { headers: { "Content-Type": "application/json" } }).then((r) => r.data.data),
+  deleteSampler: (id: number) => apiClient.delete(`/masterdata/samplers/${id}`),
+  getProductionStages: () => apiClient.get("/masterdata/production-stages").then((r) => r.data.data),
+  createProductionStage: (name: string) =>
+    apiClient.post("/masterdata/production-stages", JSON.stringify(name), { headers: { "Content-Type": "application/json" } }).then((r) => r.data.data),
+  updateProductionStage: (id: number, name: string) =>
+    apiClient.put(`/masterdata/production-stages/${id}`, JSON.stringify(name), { headers: { "Content-Type": "application/json" } }).then((r) => r.data.data),
+  deleteProductionStage: (id: number) => apiClient.delete(`/masterdata/production-stages/${id}`),
   getDiluentTypes: () => apiClient.get("/masterdata/diluent-types").then((r) => r.data.data),
   getNeutralizers: () => apiClient.get("/masterdata/neutralizers").then((r) => r.data.data),
   getEquipment: (type?: string) =>
@@ -99,11 +116,6 @@ export const masterDataOptions = {
     apiClient.put(`/masterdata/test-definitions/steps/${stepId}/move`, { direction }).then((r) => r.data.data),
   deleteTestWorkflowStep: (stepId: number) => apiClient.delete(`/masterdata/test-definitions/steps/${stepId}`)
 };
-
-// "Sampled By" is free text per the confirmed spec, but the common
-// names are offered as quick-pick suggestions.
-export const SAMPLED_BY_SUGGESTIONS = ["Walid", "Mohamed", "Adel", "Ahmed Reda", "Shawky", "IPQA", "R&D"];
-export const PRODUCTION_STAGES = ["B", "IP", "F.P", "S.F", "Coating", "Compressed Tab"];
 
 // MediaType is a fixed set of 4 rows, one per MediaClass - it no longer
 // has a Name/Code, so this is the friendly label used everywhere a

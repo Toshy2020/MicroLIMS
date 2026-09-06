@@ -7,8 +7,8 @@ using MicroLIMS.Shared.Responses;
 namespace MicroLIMS.API.Controllers;
 
 public record UpsertPreparationConfigurationRequest(
-    decimal Amount, string Unit, string Technique, decimal? FiltrationVolume, decimal? WashingVolume,
-    int DiluentTypeId, int? DiluentMediaId, int NeutralizerId);
+    decimal Amount, string Technique, decimal? FiltrationVolume, decimal? WashingVolume,
+    string Diluent, string Neutralizer);
 
 // Per-item preparation protocol (Laboratory Configuration -> Items).
 // Readable by anyone who can prepare a sample - the analyst's confirm
@@ -36,8 +36,8 @@ public class ItemPreparationConfigurationController : ControllerBase
     public async Task<IActionResult> Upsert(int itemId, UpsertPreparationConfigurationRequest r)
     {
         var dto = await _service.UpsertAsync(itemId, new PreparationParameters(
-            r.Amount, r.Unit, r.Technique, r.FiltrationVolume, r.WashingVolume,
-            r.DiluentTypeId, r.DiluentMediaId, r.NeutralizerId), CurrentUserId);
+            r.Amount, r.Technique, r.FiltrationVolume, r.WashingVolume,
+            r.Diluent, r.Neutralizer), CurrentUserId);
 
         return Ok(ApiResponse<ItemPreparationConfigurationDto>.Ok(dto));
     }

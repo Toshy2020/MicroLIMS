@@ -57,10 +57,10 @@ public static class TestServiceFactory
         new(db, new ElectronicSignatureService(db));
 
     public static SamplePreparationService SamplePreparation(MicroLimsDbContext db) =>
-        new(db, new PreparationParameterValidator(db), new ElectronicSignatureService(db));
+        new(db, new PreparationParameterValidator(), new ElectronicSignatureService(db));
 
     public static ItemPreparationConfigurationService ItemPreparationConfiguration(MicroLimsDbContext db) =>
-        new(db, new PreparationParameterValidator(db));
+        new(db, new PreparationParameterValidator());
 
     public static ReviewService Review(MicroLimsDbContext db) =>
         new(db, new SegregationOfDutiesGuard(db), new ElectronicSignatureService(db));

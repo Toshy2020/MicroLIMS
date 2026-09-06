@@ -1,16 +1,13 @@
 import { useEffect, useState } from "react";
 import {
-  Alert, Box, Button, Chip, CircularProgress, MenuItem, Paper, Select, Stack, TextField, Typography
+  Alert, Box, Button, Chip, CircularProgress, Paper, Select, Stack, TextField, Typography, MenuItem
 } from "@mui/material";
 import {
   ItemPreparationConfigurationService,
   type ItemPreparationConfiguration
 } from "../../../testPreparation/services/ItemPreparationConfigurationService";
 import { PreparationStepsSummary } from "../../../testPreparation/PreparationStepsSummary";
-import { masterDataOptions } from "../../../../services/masterDataOptions";
 import { useAuth } from "../../../../contexts/AuthContext";
-
-const UNITS = ["ml", "gm", "bottle", "cap", "25cm2"];
 
 interface Props {
   itemId: number;
@@ -30,10 +27,7 @@ export function ItemPreparationConfigurationSection({ itemId, itemName, onChange
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<{ text: string; ok: boolean } | null>(null);
 
-  const [diluentTypes, setDiluentTypes] = useState<any[]>([]);
-  const [releasedMedia, setReleasedMedia] = useState<any[]>([]);
-  const [neutralizers, setNeutralizers] = useState<any[]>([]);
-  const [form, setForm] = useState<Record<string, any>>({ technique: "PourPlate", unit: "ml" });
+  const [form, setForm] = useState<Record<string, any>>({ technique: "PourPlate" });
 
   const load = () => {
     setLoading(true);
@@ -49,30 +43,16 @@ export function ItemPreparationConfigurationSection({ itemId, itemName, onChange
     setMessage(null);
   }, [itemId]);
 
-  useEffect(() => {
-    masterDataOptions.getDiluentTypes().then(setDiluentTypes);
-    masterDataOptions.getNeutralizers().then(setNeutralizers);
-  }, []);
-
-  const selectedDiluent = diluentTypes.find((d) => d.id === form.diluentTypeId);
-
-  useEffect(() => {
-    if (selectedDiluent?.requiresBatchTracking) {
-      masterDataOptions.getReleasedMedia(selectedDiluent.materialId).then(setReleasedMedia);
-    }
-  }, [form.diluentTypeId]);
-
   const setField = (k: string, v: any) => setForm((f) => ({ ...f, [k]: v }));
 
   const beginEdit = () => {
     setForm(config
       ? {
-          amount: config.amount, unit: config.unit, technique: config.technique,
+          amount: config.amount, technique: config.technique,
           filtrationVolume: config.filtrationVolume ?? "", washingVolume: config.washingVolume ?? "",
-          diluentTypeId: config.diluentTypeId, diluentMediaId: config.diluentMediaId ?? "",
-          neutralizerId: config.neutralizerId
+          diluent: config.diluent, neutralizer: config.neutralizer
         }
-      : { technique: "PourPlate", unit: "ml" });
+      : { technique: "PourPlate" });
     setMessage(null);
     setEditing(true);
   };
@@ -82,12 +62,11 @@ export function ItemPreparationConfigurationSection({ itemId, itemName, onChange
     setMessage(null);
     try {
       const saved = await ItemPreparationConfigurationService.save(itemId, {
-        amount: Number(form.amount), unit: form.unit, technique: form.technique,
+        amount: Number(form.amount), technique: form.technique,
         filtrationVolume: form.filtrationVolume ? Number(form.filtrationVolume) : null,
         washingVolume: form.washingVolume ? Number(form.washingVolume) : null,
-        diluentTypeId: Number(form.diluentTypeId),
-        diluentMediaId: form.diluentMediaId ? Number(form.diluentMediaId) : null,
-        neutralizerId: Number(form.neutralizerId)
+        diluent: (form.diluent ?? "").trim(),
+        neutralizer: (form.neutralizer ?? "").trim()
       });
       setConfig(saved);
       setEditing(false);
@@ -159,9 +138,6 @@ export function ItemPreparationConfigurationSection({ itemId, itemName, onChange
         <Paper sx={{ p: 2, border: "1px solid", borderColor: "divider" }}>
           <Box sx={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 2 }}>
             <TextField label="Sample Amount" value={form.amount ?? ""} onChange={(e) => setField("amount", e.target.value)} />
-            <Select value={form.unit} onChange={(e) => setField("unit", e.target.value)}>
-              {UNITS.map((u) => <MenuItem key={u} value={u}>{u}</MenuItem>)}
-            </Select>
             <Select value={form.technique} onChange={(e) => setField("technique", e.target.value)}>
               <MenuItem value="PourPlate">Pour Plate</MenuItem>
               <MenuItem value="Filtration">Filtration</MenuItem>
@@ -176,23 +152,8 @@ export function ItemPreparationConfigurationSection({ itemId, itemName, onChange
           )}
 
           <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 2, mt: 2 }}>
-            <Select displayEmpty value={form.diluentTypeId ?? ""} onChange={(e) => setField("diluentTypeId", e.target.value)}>
-              <MenuItem value=""><em>Diluent</em></MenuItem>
-              {diluentTypes.map((d) => <MenuItem key={d.id} value={d.id}>{d.name}</MenuItem>)}
-            </Select>
-            {selectedDiluent?.requiresBatchTracking && (
-              <Select displayEmpty value={form.diluentMediaId ?? ""} onChange={(e) => setField("diluentMediaId", e.target.value)}>
-                <MenuItem value=""><em>Released lot (GPT-released only)</em></MenuItem>
-                {releasedMedia.map((m) => <MenuItem key={m.id} value={m.id}>{m.lotNumber} — expires {new Date(m.expiryDate).toLocaleDateString()}</MenuItem>)}
-              </Select>
-            )}
-          </Box>
-
-          <Box sx={{ maxWidth: 300, mt: 2 }}>
-            <Select displayEmpty fullWidth value={form.neutralizerId ?? ""} onChange={(e) => setField("neutralizerId", e.target.value)}>
-              <MenuItem value=""><em>Neutralizer</em></MenuItem>
-              {neutralizers.map((n) => <MenuItem key={n.id} value={n.id}>{n.name}</MenuItem>)}
-            </Select>
+            <TextField label="Diluent" value={form.diluent ?? ""} onChange={(e) => setField("diluent", e.target.value)} required />
+            <TextField label="Neutralizer" value={form.neutralizer ?? ""} onChange={(e) => setField("neutralizer", e.target.value)} required />
           </Box>
         </Paper>
       )}
@@ -202,7 +163,7 @@ export function ItemPreparationConfigurationSection({ itemId, itemName, onChange
           {editing ? (
             <>
               <Button onClick={() => { setEditing(false); setMessage(null); }} disabled={saving}>Cancel</Button>
-              <Button variant="contained" onClick={save} disabled={saving}>
+              <Button variant="contained" onClick={save} disabled={saving || !form.diluent?.trim() || !form.neutralizer?.trim()}>
                 {saving ? "Saving..." : "Save Configuration"}
               </Button>
             </>

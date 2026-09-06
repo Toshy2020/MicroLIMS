@@ -10,6 +10,15 @@ public record ActionableTestOrderSummaryDto(
     int? AssignedAnalystId,
     string? AssignedAnalystName
 );
+public record ExcludedResultEntryTestOrderDto(
+    int TestOrderId,
+    int SampleId,
+    string SampleReference,
+    string DisplayName,
+    string TestCode,
+    string StepName,
+    string Reason
+);
 
 public record ActionableGroupDto(
     string GroupKey,
@@ -26,19 +35,28 @@ public record ActionableGroupDto(
     List<int> PermittedMaterialIds,
     string PermittedMaterialNames,
     string Urgency,
-    List<ActionableTestOrderSummaryDto> TestOrders
+    List<ActionableTestOrderSummaryDto> TestOrders,
+    string? TransitionType = null,
+    string? TransitionLabel = null,
+    string? TargetStepName = null,
+    string? PredecessorStepName = null
 );
 
 public record ActionableGroupsResponse(
-    List<ActionableGroupDto> Groups
+    List<ActionableGroupDto> Groups,
+    int ExcludedResultEntryCount = 0,
+    List<ExcludedResultEntryTestOrderDto>? ExcludedResultEntryTestOrders = null
 );
 
 public record BatchSelectMediaRequest(
     List<int> TestOrderIds,
     string StepName,
-    int MediaLotId,
-    int IncubatorEquipmentId,
-    DateTime? IncubationStartUtc = null
+    int? MediaLotId = null,
+    int IncubatorEquipmentId = 0,
+    DateTime? IncubationStartUtc = null,
+    string? TransitionType = null,
+    string? TargetStepName = null,
+    string? PredecessorStepName = null
 );
 
 public record BatchActionSuccessItem(

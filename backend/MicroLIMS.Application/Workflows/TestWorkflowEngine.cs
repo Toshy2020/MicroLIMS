@@ -12,10 +12,10 @@ namespace MicroLIMS.Application.Workflows;
 // depends on the TestDefinition's WorkflowType (CountTest) or plain
 // Observation otherwise.
 public abstract record ResultPayload;
-public sealed record CountTestPayload(List<string> RawPlateReadings, decimal DilutionFactor) : ResultPayload
+public sealed record CountTestPayload(List<string> RawPlateReadings, decimal DilutionFactor, string? DilutionFactorOverrideNote = null) : ResultPayload
 {
-    public CountTestPayload(List<decimal> plateReadings, decimal dilutionFactor)
-        : this(plateReadings.Select(p => p.ToString(System.Globalization.CultureInfo.InvariantCulture)).ToList(), dilutionFactor)
+    public CountTestPayload(List<decimal> plateReadings, decimal dilutionFactor, string? dilutionFactorOverrideNote = null)
+        : this(plateReadings.Select(p => p.ToString(System.Globalization.CultureInfo.InvariantCulture)).ToList(), dilutionFactor, dilutionFactorOverrideNote)
     {
     }
 }
@@ -36,6 +36,20 @@ public class WorkflowStepException : InvalidOperationException
         RemainingSeconds = remainingSeconds;
     }
 }
+
+public class PredecessorStepIncubationActiveException : WorkflowStepException
+{
+    public string PredecessorStepName { get; }
+
+    public PredecessorStepIncubationActiveException(string predecessorStepName, long remainingSeconds)
+        : base(WorkflowErrorCodes.PredecessorStepIncubationActive,
+               $"Predecessor step \"{predecessorStepName}\" is still incubating ({remainingSeconds}s remaining). It must complete before starting the next step.",
+               remainingSeconds)
+    {
+        PredecessorStepName = predecessorStepName;
+    }
+}
+
 
 // The outcome of any single pathogen step submission (Tasks 8-11) -
 // StepType is sent as its string name since the frontend has no reason
@@ -103,6 +117,7 @@ public record SiblingPathogenOrderDto(int TestOrderId, string PathogenName, stri
 public interface ITestWorkflowEngine : IStatefulWorkflowEngine
 {
     Task<CurrentStepResult> GetCurrentStepAsync(int testOrderId);
+    Task<bool> IsStepDoneAsync(int testOrderId, WorkflowType workflowType, TestWorkflowStep step);
     Task<List<SiblingPathogenOrderDto>> GetSiblingPathogenOrdersAsync(int testOrderId, CancellationToken ct = default);
     Task PropagateSharedTsbToSiblingOrdersAsync(int testOrderId, int incubationId, int userId, CancellationToken ct = default);
     Task<Incubation> SelectMediaAsync(int testOrderId, string stepName, int mediaLotId, int incubatorEquipmentId, int userId);
@@ -206,11 +221,26 @@ public class TestWorkflowEngine : ITestWorkflowEngine
         stepType is StepType.BrothEnrichment or StepType.SelectiveBroth or StepType.SelectivePlating
             or StepType.ConfirmatoryPlating or StepType.BiochemicalTest;
 
+    private static bool IsIncubationForStep(Incubation inc, TestWorkflowStep step)
+    {
+        if (inc.StepNumber > 0 && inc.StepNumber == step.StepOrder) return true;
+        if (string.Equals(inc.StepName, step.StepName, StringComparison.OrdinalIgnoreCase)) return true;
+        if (step.StepType == StepType.BrothEnrichment)
+        {
+            return (inc.StepNumber == 1 ||
+                    inc.StepName.Equals("Broth Enrichment", StringComparison.OrdinalIgnoreCase) ||
+                    inc.StepName.Equals("TSB", StringComparison.OrdinalIgnoreCase) ||
+                    inc.StepName.Equals("TSB Enrichment", StringComparison.OrdinalIgnoreCase))
+                   && !inc.StepName.Contains("Selective", StringComparison.OrdinalIgnoreCase);
+        }
+        return false;
+    }
+
     // A step is "done" once a definitive result has been recorded for
     // it: a CountTestReading for CountTest workflows (always one step),
     // a WorkflowStepResult for a pathogen step, or any observation for a
     // plain Observation step.
-    private async Task<bool> IsStepDoneAsync(int testOrderId, WorkflowType workflowType, TestWorkflowStep step)
+    public async Task<bool> IsStepDoneAsync(int testOrderId, WorkflowType workflowType, TestWorkflowStep step)
     {
         // EM/After Cleaning batch orders never write a CountTestReading or
         // PathogenObservation for any step - they carry per-location
@@ -247,7 +277,26 @@ public class TestWorkflowEngine : ITestWorkflowEngine
                 return await _db.WorkflowStepResults.AnyAsync(r =>
                     r.TestOrderId == testOrderId && r.StepName == step.StepName && r.ConfirmatoryResult != null);
 
-            return await _db.WorkflowStepResults.AnyAsync(r => r.TestOrderId == testOrderId && r.StepName == step.StepName);
+            var allIncubations = await _db.Incubations
+                .Where(i => i.TestOrderId == testOrderId)
+                .OrderByDescending(i => i.StartedAt)
+                .ToListAsync();
+
+            var relevantIncubations = allIncubations.Where(i => IsIncubationForStep(i, step)).ToList();
+
+            // Any pathogen step with an active, uncompleted incubation is NOT done.
+            if (relevantIncubations.Any(i => i.CompletedAt == null))
+                return false;
+
+            // For broth enrichment where an incubation exists, it must be completed.
+            if (step.StepType == StepType.BrothEnrichment && relevantIncubations.Count > 0)
+            {
+                if (!relevantIncubations.Any(i => i.CompletedAt != null))
+                    return false;
+            }
+
+            return await _db.WorkflowStepResults.AnyAsync(r => r.TestOrderId == testOrderId &&
+                (r.StepName == step.StepName || (step.StepType == StepType.BrothEnrichment && (r.StepName == "Broth Enrichment" || r.StepName == "TSB" || r.StepName == "TSB Enrichment"))));
         }
 
         return await _db.PathogenObservations.AnyAsync(o => o.TestOrderId == testOrderId && o.StepName == step.StepName);
@@ -291,10 +340,11 @@ public class TestWorkflowEngine : ITestWorkflowEngine
         var step = await FindFirstIncompleteStepAsync(testOrderId, definition);
         if (step is not null)
         {
-            var openIncubation = await _db.Incubations
-                .Where(i => i.TestOrderId == testOrderId && i.StepName == step.StepName && i.CompletedAt == null)
+            var openIncubations = await _db.Incubations
+                .Where(i => i.TestOrderId == testOrderId && i.CompletedAt == null)
                 .OrderByDescending(i => i.StartedAt)
-                .FirstOrDefaultAsync();
+                .ToListAsync();
+            var openIncubation = openIncubations.FirstOrDefault(i => IsIncubationForStep(i, step));
 
             var completed = await BuildCompletedStepsAsync(testOrderId, definition, currentStep: step);
             return new CurrentStepResult(step, definition.WorkflowType, openIncubation, false, null, completed, totalSteps, allSteps);
@@ -315,15 +365,17 @@ public class TestWorkflowEngine : ITestWorkflowEngine
     private async Task<List<CompletedStepSummary>> BuildCompletedStepsAsync(int testOrderId, TestDefinition definition, TestWorkflowStep? currentStep)
     {
         var summaries = new List<CompletedStepSummary>();
+        var completedIncubations = await _db.Incubations
+            .Where(i => i.TestOrderId == testOrderId && i.CompletedAt != null)
+            .OrderByDescending(i => i.CompletedAt)
+            .ToListAsync();
+
         foreach (var step in definition.Steps.OrderBy(s => s.StepOrder))
         {
             if (currentStep is not null && step.StepOrder >= currentStep.StepOrder) break;
             if (!await IsStepDoneAsync(testOrderId, definition.WorkflowType, step)) continue;
 
-            var latestIncubation = await _db.Incubations
-                .Where(i => i.TestOrderId == testOrderId && i.StepName == step.StepName && i.CompletedAt != null)
-                .OrderByDescending(i => i.CompletedAt)
-                .FirstOrDefaultAsync();
+            var latestIncubation = completedIncubations.FirstOrDefault(i => IsIncubationForStep(i, step));
             var outcome = latestIncubation?.Outcome ?? string.Empty;
             var observedAt = latestIncubation?.CompletedAt;
 
@@ -374,6 +426,44 @@ public class TestWorkflowEngine : ITestWorkflowEngine
         return summaries;
     }
 
+    private async Task CheckPredecessorStepsReadyAsync(TestOrder order, TestDefinition definition, TestWorkflowStep targetStep)
+    {
+        var predecessors = definition.Steps
+            .Where(s => s.StepOrder < targetStep.StepOrder)
+            .OrderBy(s => s.StepOrder)
+            .ToList();
+
+        if (predecessors.Count == 0) return;
+
+        var allIncubations = await _db.Incubations
+            .Where(i => i.TestOrderId == order.Id)
+            .OrderByDescending(i => i.StartedAt)
+            .ToListAsync();
+
+        foreach (var pred in predecessors)
+        {
+            var predIncubations = allIncubations.Where(i => IsIncubationForStep(i, pred)).ToList();
+
+            var activeInc = predIncubations.FirstOrDefault(i => i.CompletedAt == null);
+            if (activeInc != null)
+            {
+                long remainingSeconds = 0;
+                if (!activeInc.MinimumDurationOverriddenByUserId.HasValue && activeInc.IncubationEndUtc.HasValue)
+                {
+                    remainingSeconds = Math.Max(0, (long)Math.Ceiling((activeInc.IncubationEndUtc.Value - DateTime.UtcNow).TotalSeconds));
+                }
+
+                throw new PredecessorStepIncubationActiveException(pred.StepName, remainingSeconds);
+            }
+
+            var isDone = await IsStepDoneAsync(order.Id, definition.WorkflowType, pred);
+            if (!isDone)
+            {
+                throw new InvalidOperationException($"Workflow order violation: step \"{pred.StepName}\" must be completed before \"{targetStep.StepName}\".");
+            }
+        }
+    }
+
     public async Task<Incubation> SelectMediaAsync(int testOrderId, string stepName, int mediaLotId, int incubatorEquipmentId, int userId)
     {
         var (order, definition) = await LoadWithTemplateAsync(testOrderId);
@@ -383,6 +473,9 @@ public class TestWorkflowEngine : ITestWorkflowEngine
         var currentStep = await FindFirstIncompleteStepAsync(testOrderId, definition);
         if (currentStep is null)
             throw new InvalidOperationException($"All workflow steps for \"{order.TestCode}\" are already complete.");
+
+        await CheckPredecessorStepsReadyAsync(order, definition, step);
+
         if (currentStep.StepName != stepName)
             throw new InvalidOperationException($"Workflow order violation: step \"{currentStep.StepName}\" must be completed before \"{stepName}\".");
 
@@ -619,15 +712,23 @@ public class TestWorkflowEngine : ITestWorkflowEngine
                     SubmittedAtUtc = DateTime.UtcNow
                 });
 
-                _db.WorkflowHistories.Add(new WorkflowHistory
+                if (sibling.CurrentStep == WorkflowStep.Waiting)
                 {
-                    TestOrderId = sibling.Id,
-                    FromStep = sibling.CurrentStep,
-                    ToStep = sibling.CurrentStep == WorkflowStep.Waiting ? WorkflowStep.Incubating : sibling.CurrentStep,
-                    Note = $"Broth enrichment linked to shared TSB (propagated from Test Order #{testOrderId}). Lot: {mediaLotNumber}, Incubator: {incubatorCode}.",
-                    PerformedByUserId = userId,
-                    Timestamp = DateTime.UtcNow
-                });
+                    await WorkflowStateMachine.TransitionAsync(_db, sibling, WorkflowStep.Incubating, userId,
+                        $"Broth enrichment linked to shared TSB (propagated from Test Order #{testOrderId}). Lot: {mediaLotNumber}, Incubator: {incubatorCode}.");
+                }
+                else
+                {
+                    _db.WorkflowHistories.Add(new WorkflowHistory
+                    {
+                        TestOrderId = sibling.Id,
+                        FromStep = sibling.CurrentStep,
+                        ToStep = sibling.CurrentStep,
+                        Note = $"Broth enrichment linked to shared TSB (propagated from Test Order #{testOrderId}). Lot: {mediaLotNumber}, Incubator: {incubatorCode}.",
+                        PerformedByUserId = userId,
+                        Timestamp = DateTime.UtcNow
+                    });
+                }
             }
         }
 
@@ -1199,7 +1300,8 @@ public class TestWorkflowEngine : ITestWorkflowEngine
 
     // Batch (SampleLocation) unit derivation for EM/After Cleaning/Water -
     // distinct from GetCfuUnit, which derives the non-batch CountTestReading
-    // unit from SamplePreparation.Unit. Batch locations never have a
+    // unit from Specification.Unit (required as of the 2026-09 Preparation
+    // Configuration simplification). Batch locations never have a
     // SamplePreparation row (verified: 0 across every Water/EM/AC batch
     // sample), so the unit has to come from what was actually sampled -
     // RoomTestConfiguration.TestType / MachinePartConfiguration.TestType -
@@ -1235,7 +1337,6 @@ public class TestWorkflowEngine : ITestWorkflowEngine
             throw new InvalidOperationException("At least one plate reading is required to calculate an average.");
 
         var sample = await _db.Samples
-            .Include(s => s.SamplePreparation)
             .FirstOrDefaultAsync(s => s.Id == order.SampleId)
             ?? throw new InvalidOperationException("Sample not found for this test order.");
 
@@ -1250,8 +1351,48 @@ public class TestWorkflowEngine : ITestWorkflowEngine
             payload = payload with { DilutionFactor = 1m };
         }
 
-        var prepUnit = sample.SamplePreparation?.Unit;
-        var unit = GetCfuUnit(sample.Category, prepUnit);
+        // Direct-count sample types are never Item-based (Sample.ItemId is
+        // Product/RM/PM only) so they never reach Specifications - the
+        // force-to-1 rule above is the only DF logic that applies to them.
+        // Everything else must have a configured DF before a result can be
+        // recorded, and any entered value that disagrees with it needs a
+        // justification note captured for the audit trail.
+        decimal? configuredDilutionFactor = isDirectCount ? 1m : null;
+        var dilutionFactorOverridden = false;
+        if (!isDirectCount && sample.ItemId is not null)
+        {
+            var itemSpec = await _db.Specifications.FirstOrDefaultAsync(s => s.ItemId == sample.ItemId && s.TestCode == order.TestCode);
+            configuredDilutionFactor = itemSpec?.DilutionFactor;
+
+            if (configuredDilutionFactor is null)
+            {
+                throw new WorkflowStepException(WorkflowErrorCodes.DilutionFactorNotConfigured,
+                    $"No Dilution Factor is configured for \"{order.TestCode}\" on this item's Specifications. Configure it before recording a result.");
+            }
+
+            dilutionFactorOverridden = payload.DilutionFactor != configuredDilutionFactor.Value;
+            if (dilutionFactorOverridden && string.IsNullOrWhiteSpace(payload.DilutionFactorOverrideNote))
+            {
+                throw new WorkflowStepException(WorkflowErrorCodes.DilutionFactorJustificationRequired,
+                    $"The entered Dilution Factor ({payload.DilutionFactor}) differs from the configured value ({configuredDilutionFactor.Value}). A justification note is required.");
+            }
+
+            // SamplePreparation.Unit (removed in the 2026-09 Preparation
+            // Configuration simplification) used to be a fallback CFU-unit
+            // source when this was blank. Require it configured instead of
+            // silently falling back, same rationale as the DF check above.
+            if (string.IsNullOrWhiteSpace(itemSpec!.Unit))
+            {
+                throw new WorkflowStepException(WorkflowErrorCodes.CfuUnitNotConfigured,
+                    $"No reporting Unit is configured for \"{order.TestCode}\" on this item's Specifications. Configure it before recording a result.");
+            }
+        }
+
+        // Water/EM/AfterCleaning never reach a meaningful prepUnit here:
+        // Water's CFU unit is hardcoded below regardless of prepUnit, and
+        // EM/AfterCleaning count tests always go through the batch/location
+        // path (RecordBatchResultsAsync), never this method.
+        var unit = GetCfuUnit(sample.Category, null);
 
         bool hasNonNumeric = payload.RawPlateReadings
             .Any(r => r.Equals("TNTC", StringComparison.OrdinalIgnoreCase) ||
@@ -1280,6 +1421,9 @@ public class TestWorkflowEngine : ITestWorkflowEngine
                 StepName = step.StepName,
                 PlateReadings = string.Join(",", payload.RawPlateReadings),
                 DilutionFactor = payload.DilutionFactor,
+                ConfiguredDilutionFactor = configuredDilutionFactor,
+                DilutionFactorOverridden = dilutionFactorOverridden,
+                DilutionFactorOverrideNote = dilutionFactorOverridden ? payload.DilutionFactorOverrideNote : null,
                 Average = null,
                 CalculatedResult = null,
                 ReportedResult = reported,
@@ -1340,6 +1484,9 @@ public class TestWorkflowEngine : ITestWorkflowEngine
                 StepName = step.StepName,
                 PlateReadings = string.Join(",", payload.RawPlateReadings),
                 DilutionFactor = payload.DilutionFactor,
+                ConfiguredDilutionFactor = configuredDilutionFactor,
+                DilutionFactorOverridden = dilutionFactorOverridden,
+                DilutionFactorOverrideNote = dilutionFactorOverridden ? payload.DilutionFactorOverrideNote : null,
                 Average = average,
                 CalculatedResult = calculated,
                 ReportedResult = reported,
@@ -1457,6 +1604,9 @@ public class TestWorkflowEngine : ITestWorkflowEngine
         var currentStep = await FindFirstIncompleteStepAsync(testOrderId, test);
         if (currentStep is null)
             throw new InvalidOperationException($"All workflow steps for \"{order.TestCode}\" are already complete.");
+
+        await CheckPredecessorStepsReadyAsync(order, test, step);
+
         if (currentStep.StepName != stepName)
             throw new InvalidOperationException(
                 $"Workflow order violation: step \"{currentStep.StepName}\" must be completed before \"{stepName}\".");
@@ -1593,16 +1743,13 @@ public class TestWorkflowEngine : ITestWorkflowEngine
             .ToListAsync();
 
         var incubation = incubations.FirstOrDefault(i =>
-            i.CompletedAt == null &&
-            (string.Equals(i.StepName, stepName, StringComparison.OrdinalIgnoreCase) ||
-             (step.StepType == StepType.BrothEnrichment && (i.StepName.Contains("Broth", StringComparison.OrdinalIgnoreCase) || i.StepName.Contains("TSB", StringComparison.OrdinalIgnoreCase)))));
+            i.CompletedAt == null && IsIncubationForStep(i, step));
 
         if (incubation == null)
         {
             // Check if there is an already completed incubation (e.g. from Shared TSB or previous completion)
             var completedInc = incubations.FirstOrDefault(i =>
-                string.Equals(i.StepName, stepName, StringComparison.OrdinalIgnoreCase) ||
-                (step.StepType == StepType.BrothEnrichment && (i.StepName.Contains("Broth", StringComparison.OrdinalIgnoreCase) || i.StepName.Contains("TSB", StringComparison.OrdinalIgnoreCase))));
+                i.CompletedAt != null && IsIncubationForStep(i, step));
 
             if (completedInc != null)
             {
@@ -1700,6 +1847,9 @@ public class TestWorkflowEngine : ITestWorkflowEngine
         var currentStep = await FindFirstIncompleteStepAsync(testOrderId, definition);
         if (currentStep is null)
             throw new InvalidOperationException($"All workflow steps for \"{order.TestCode}\" are already complete.");
+
+        await CheckPredecessorStepsReadyAsync(order, definition, step);
+
         if (currentStep.StepName != stepName)
             throw new InvalidOperationException($"Workflow order violation: step \"{currentStep.StepName}\" must be completed before \"{stepName}\".");
 

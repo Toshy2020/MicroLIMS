@@ -20,7 +20,6 @@ import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import AddIcon from "@mui/icons-material/Add";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import { ReceiveRowItem, SampleCategoryKey } from "../types/receivingTypes";
-import { SAMPLED_BY_SUGGESTIONS, PRODUCTION_STAGES } from "../../../services/masterDataOptions";
 import { brandColors } from "../../../theme";
 
 interface MasterData {
@@ -30,6 +29,8 @@ interface MasterData {
   departments: any[];
   machines: any[];
   causes: any[];
+  samplers: any[];
+  productionStages: any[];
 }
 
 interface Props {
@@ -250,9 +251,9 @@ export function MultiSampleEntryGrid({
                           <MenuItem value="">
                             <em style={{ color: theme.palette.text.secondary }}>Stage</em>
                           </MenuItem>
-                          {PRODUCTION_STAGES.map((s) => (
-                            <MenuItem key={s} value={s}>
-                              {s}
+                          {masterData.productionStages.map((s) => (
+                            <MenuItem key={s.id} value={s.name}>
+                              {s.name}
                             </MenuItem>
                           ))}
                         </Select>
@@ -372,7 +373,7 @@ export function MultiSampleEntryGrid({
                       <Autocomplete
                         freeSolo
                         size="small"
-                        options={SAMPLED_BY_SUGGESTIONS}
+                        options={masterData.samplers.map((s) => s.name)}
                         inputValue={row.sampledBy ?? ""}
                         onInputChange={(_, v) => onChangeRow(idx, "sampledBy", v)}
                         renderInput={(params) => (

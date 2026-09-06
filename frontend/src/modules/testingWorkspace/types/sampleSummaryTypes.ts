@@ -126,11 +126,11 @@ export interface TestOrderSummaryDetail {
 
 export interface SamplePreparationSummary {
   amount: number;
-  unit: string;
   technique: string;
   filtrationVolume: number | null;
   washingVolume: number | null;
-  neutralizerName: string;
+  diluent: string;
+  neutralizer: string;
   preparedByName: string;
   preparedAt: string;
 }

@@ -140,11 +140,10 @@ public class ReturnToAnalystTests
         {
             Sample = sample,
             Amount = 1m,
-            Unit = "mL",
             Technique = "PourPlate",
             PreparedByUserId = analyst.Id,
-            NeutralizerId = 1,
-            DiluentTypeId = 1
+            Neutralizer = "Tween",
+            Diluent = "Buffer"
         };
         db.SamplePreparations.Add(prep);
         db.Samples.Add(sample);

@@ -43,4 +43,23 @@ public static class WorkflowErrorCodes
     // Stage 2 of a two-stage incubation-transfer PlateCount step has not
     // been started yet - the count cannot be recorded until it has.
     public const string IncubationStage2NotStarted = "INCUBATION_STAGE2_NOT_STARTED";
+
+    // Predecessor step incubation has not finished yet - the next step cannot start or select media until it has.
+    public const string PredecessorStepIncubationActive = "PREDECESSOR_STEP_INCUBATION_ACTIVE";
+
+    // A count test (TAMC/TYMC) has no Dilution Factor configured on the
+    // item's Specifications tab - result entry is blocked rather than
+    // silently falling back to manual entry.
+    public const string DilutionFactorNotConfigured = "DILUTION_FACTOR_NOT_CONFIGURED";
+
+    // The Dilution Factor entered at result entry differs from the one
+    // configured on Specifications, and no justification note was supplied.
+    public const string DilutionFactorJustificationRequired = "DILUTION_FACTOR_JUSTIFICATION_REQUIRED";
+
+    // A count test (TAMC/TYMC) has no reporting Unit configured on the
+    // item's Specifications tab. Blocking here replaces the old fallback
+    // to SamplePreparation.Unit, which was removed in the 2026-09
+    // Preparation Configuration simplification.
+    public const string CfuUnitNotConfigured = "CFU_UNIT_NOT_CONFIGURED";
 }
+

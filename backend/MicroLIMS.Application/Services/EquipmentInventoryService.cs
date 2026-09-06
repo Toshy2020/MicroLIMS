@@ -239,10 +239,15 @@ public class EquipmentInventoryService
         var masterEquipment = await _db.Equipment.ToListAsync();
         var matchingMasterId = masterEquipment.FirstOrDefault(m => string.Equals(m.Code, eq.Code, StringComparison.OrdinalIgnoreCase))?.Id;
 
+        if (!matchingMasterId.HasValue)
+        {
+            return new List<EquipmentActivityDto>();
+        }
+
         var allIncubations = await _db.Incubations
             .Include(i => i.TestOrder).ThenInclude(t => t!.Sample).ThenInclude(s => s!.Item)
             .Include(i => i.Media).ThenInclude(m => m!.Material)
-            .Where(i => i.IncubatorEquipmentId == eq.Id || (matchingMasterId.HasValue && i.IncubatorEquipmentId == matchingMasterId.Value))
+            .Where(i => i.IncubatorEquipmentId == matchingMasterId.Value)
             .ToListAsync();
 
         var userIds = allIncubations.Where(i => i.StartedByUserId.HasValue).Select(i => i.StartedByUserId!.Value)
@@ -338,6 +343,7 @@ public class EquipmentInventoryService
 
         var q = query.Trim().ToLower();
         var allEquipment = await _db.EquipmentInventories.ToListAsync();
+        var masterEquipment = await _db.Equipment.ToListAsync();
 
         var historyList = new List<HistoricalLocationDto>();
         EquipmentActivityDto? currentActivity = null;
@@ -361,9 +367,13 @@ public class EquipmentInventoryService
 
         foreach (var inc in incubations)
         {
-            var eq = allEquipment.FirstOrDefault(e => e.Id == inc.IncubatorEquipmentId)
-                  ?? allEquipment.FirstOrDefault(e => inc.IncubatorEquipment != null && e.Code == inc.IncubatorEquipment.Code);
-            var eqCode = eq?.Code ?? inc.IncubatorEquipment?.Code ?? "EQ-UNKNOWN";
+            var masterCode = inc.IncubatorEquipment?.Code
+                ?? (inc.IncubatorEquipmentId.HasValue ? masterEquipment.FirstOrDefault(m => m.Id == inc.IncubatorEquipmentId.Value)?.Code : null);
+
+            var eq = !string.IsNullOrEmpty(masterCode)
+                ? allEquipment.FirstOrDefault(e => string.Equals(e.Code, masterCode, StringComparison.OrdinalIgnoreCase))
+                : null;
+            var eqCode = eq?.Code ?? masterCode ?? "EQ-UNKNOWN";
             var eqName = eq?.InstrumentType ?? inc.IncubatorEquipment?.Name ?? "Equipment";
 
             var sampleCode = inc.TestOrder?.Sample?.ReferenceNumber ?? inc.TestOrder?.SampleId.ToString() ?? "N/A";
@@ -442,24 +452,28 @@ public class EquipmentInventoryService
         var activities = new List<EquipmentActivityDto>();
 
         // 1. Active Incubation records
-        var allEqIncubations = await _db.Incubations
-            .Include(i => i.TestOrder).ThenInclude(t => t!.Sample).ThenInclude(s => s!.Item)
-            .Include(i => i.Media).ThenInclude(m => m!.Material)
-            .Where(i => (i.IncubatorEquipmentId == eq.Id || (matchingMasterId.HasValue && i.IncubatorEquipmentId == matchingMasterId.Value))
-                     && i.CompletedAt == null && (i.IncubationEndUtc == null || i.IncubationEndUtc > now))
-            .ToListAsync();
+        var activeIncubations = new List<Incubation>();
+        if (matchingMasterId.HasValue)
+        {
+            var allEqIncubations = await _db.Incubations
+                .Include(i => i.TestOrder).ThenInclude(t => t!.Sample).ThenInclude(s => s!.Item)
+                .Include(i => i.Media).ThenInclude(m => m!.Material)
+                .Where(i => i.IncubatorEquipmentId == matchingMasterId.Value
+                         && i.CompletedAt == null && (i.IncubationEndUtc == null || i.IncubationEndUtc > now))
+                .ToListAsync();
 
-        var activeIncubations = allEqIncubations.Where(i =>
-            i.CompletedAt == null &&
-            (i.IncubationEndUtc == null || i.IncubationEndUtc > now) &&
-            (i.TestOrder == null || (i.TestOrder.Status != ApprovalStatus.Approved &&
-                                     i.TestOrder.CurrentStep != WorkflowStep.Ready &&
-                                     i.TestOrder.CurrentStep != WorkflowStep.Reviewed &&
-                                     i.TestOrder.CurrentStep != WorkflowStep.Approved)) &&
-            (i.TestOrder?.Sample == null || (i.TestOrder.Sample.Status != SampleStatus.Approved &&
-                                             i.TestOrder.Sample.Status != SampleStatus.UnderReview &&
-                                             i.TestOrder.Sample.Status != SampleStatus.UnderApproval))
-        ).ToList();
+            activeIncubations = allEqIncubations.Where(i =>
+                i.CompletedAt == null &&
+                (i.IncubationEndUtc == null || i.IncubationEndUtc > now) &&
+                (i.TestOrder == null || (i.TestOrder.Status != ApprovalStatus.Approved &&
+                                         i.TestOrder.CurrentStep != WorkflowStep.Ready &&
+                                         i.TestOrder.CurrentStep != WorkflowStep.Reviewed &&
+                                         i.TestOrder.CurrentStep != WorkflowStep.Approved)) &&
+                (i.TestOrder?.Sample == null || (i.TestOrder.Sample.Status != SampleStatus.Approved &&
+                                                 i.TestOrder.Sample.Status != SampleStatus.UnderReview &&
+                                                 i.TestOrder.Sample.Status != SampleStatus.UnderApproval))
+            ).ToList();
+        }
 
         var userIds = activeIncubations.Where(i => i.StartedByUserId.HasValue).Select(i => i.StartedByUserId!.Value).Distinct().ToList();
         var userMap = await _db.Users.Where(u => userIds.Contains(u.Id)).ToDictionaryAsync(u => u.Id, u => u.FullName);
@@ -503,7 +517,7 @@ public class EquipmentInventoryService
         {
             var activeMedia = await _db.Media
                 .Include(m => m.Material)
-                .Where(m => (m.AutoclaveEquipmentId == eq.Id || (matchingMasterId.HasValue && m.AutoclaveEquipmentId == matchingMasterId.Value) || eq.InstrumentType.Contains("Refrigerator"))
+                .Where(m => ((matchingMasterId.HasValue && m.AutoclaveEquipmentId == matchingMasterId.Value) || eq.InstrumentType.Contains("Refrigerator"))
                          && m.Status != Domain.Enums.MediaStatus.Destroyed && m.ExpiryDate > now)
                 .ToListAsync();
 
@@ -567,32 +581,35 @@ public class EquipmentInventoryService
         }
 
         // 4. Identity Confirmation Entries for Cryovials in Incubators
-        var activeIdentityConfirmations = await _db.IdentityConfirmationEntries
-            .Include(i => i.Cryovial)
-            .Include(i => i.Media)
-            .Where(i => (i.IncubatorEquipmentId == eq.Id || (matchingMasterId.HasValue && i.IncubatorEquipmentId == matchingMasterId.Value))
-                     && i.IncubationEnd > now)
-            .ToListAsync();
-
-        foreach (var idConf in activeIdentityConfirmations)
+        if (matchingMasterId.HasValue)
         {
-            var cryoCode = idConf.Cryovial?.Code ?? "Cryovial Lot";
-            var mediaName = idConf.Media?.LotNumber ?? "Confirmation Media";
+            var activeIdentityConfirmations = await _db.IdentityConfirmationEntries
+                .Include(i => i.Cryovial)
+                .Include(i => i.Media)
+                .Where(i => i.IncubatorEquipmentId == matchingMasterId.Value
+                         && i.IncubationEnd > now)
+                .ToListAsync();
 
-            activities.Add(new EquipmentActivityDto(
-                idConf.Id,
-                "Cryovial Identity Confirmation",
-                cryoCode,
-                "GPT / Confirmation",
-                $"Identity confirmation on media {mediaName}",
-                idConf.IncubationStart,
-                "Laboratory Analyst",
-                idConf.IncubationEnd,
-                null,
-                true,
-                idConf.CryovialId,
-                "Cryovial"
-            ));
+            foreach (var idConf in activeIdentityConfirmations)
+            {
+                var cryoCode = idConf.Cryovial?.Code ?? "Cryovial Lot";
+                var mediaName = idConf.Media?.LotNumber ?? "Confirmation Media";
+
+                activities.Add(new EquipmentActivityDto(
+                    idConf.Id,
+                    "Cryovial Identity Confirmation",
+                    cryoCode,
+                    "GPT / Confirmation",
+                    $"Identity confirmation on media {mediaName}",
+                    idConf.IncubationStart,
+                    "Laboratory Analyst",
+                    idConf.IncubationEnd,
+                    null,
+                    true,
+                    idConf.CryovialId,
+                    "Cryovial"
+                ));
+            }
         }
 
         return activities.OrderByDescending(a => a.StartedOn).ToList();

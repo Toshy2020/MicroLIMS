@@ -49,11 +49,11 @@ public class SampleSummaryDto
 public class SamplePreparationSummaryDto
 {
     public decimal Amount { get; set; }
-    public string Unit { get; set; } = string.Empty;
     public string Technique { get; set; } = string.Empty;
     public decimal? FiltrationVolume { get; set; }
     public decimal? WashingVolume { get; set; }
-    public string NeutralizerName { get; set; } = string.Empty;
+    public string Diluent { get; set; } = string.Empty;
+    public string Neutralizer { get; set; } = string.Empty;
     public string PreparedByName { get; set; } = string.Empty;
     public DateTime PreparedAt { get; set; }
 }

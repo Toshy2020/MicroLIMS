@@ -13,4 +13,11 @@ public class Specification
     public string ActionLimit { get; set; } = string.Empty;
     public string SpecLimit { get; set; } = string.Empty;
     public string Unit { get; set; } = string.Empty;
+
+    // Only meaningful for count-type tests (TAMC/TYMC) - pathogen
+    // presence/absence tests never set this. Null means "not configured
+    // yet", which RecordCountTestAsync treats as blocking result entry
+    // rather than silently defaulting to 1, so an unconfigured DF can't
+    // slip through unnoticed.
+    public decimal? DilutionFactor { get; set; }
 }

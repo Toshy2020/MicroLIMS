@@ -70,11 +70,19 @@ public class ActiveEquipmentTraceabilityTests
             Location = "Instruments room F-ML-F-01",
             Status = EquipmentOperationalStatus.InService
         });
+        db.Equipment.Add(new Equipment
+        {
+            Id = 10, // Independent Equipment.Id
+            Code = "INC-F-ML-F-01-002",
+            Name = "INCUCELL",
+            Type = EquipmentType.Incubator,
+            SetPointTemperature = 32.5m
+        });
 
         db.Incubations.Add(new Incubation
         {
             Id = 101,
-            IncubatorEquipmentId = 1,
+            IncubatorEquipmentId = 10,
             StepName = "Pathogen Test",
             StartedAt = DateTime.UtcNow.AddHours(-2),
             IncubationStartUtc = DateTime.UtcNow.AddHours(-2),
@@ -104,13 +112,21 @@ public class ActiveEquipmentTraceabilityTests
             Location = "Room 101",
             Status = EquipmentOperationalStatus.InService
         });
+        db.Equipment.Add(new Equipment
+        {
+            Id = 20, // Independent Equipment.Id
+            Code = "INC-MULTI-01",
+            Name = "Multi Incubator",
+            Type = EquipmentType.Incubator,
+            SetPointTemperature = 32.5m
+        });
 
         for (int i = 1; i <= 4; i++)
         {
             db.Incubations.Add(new Incubation
             {
                 Id = 200 + i,
-                IncubatorEquipmentId = 2,
+                IncubatorEquipmentId = 20,
                 StepName = $"Media Incubation {i}",
                 StartedAt = DateTime.UtcNow.AddHours(-1),
                 IncubationStartUtc = DateTime.UtcNow.AddHours(-1),
@@ -234,11 +250,19 @@ public class ActiveEquipmentTraceabilityTests
             Location = "Lab 1",
             Status = EquipmentOperationalStatus.InService
         });
+        db.Equipment.Add(new Equipment
+        {
+            Id = 50, // Independent Equipment.Id
+            Code = "INC-005",
+            Name = "Incubator 5",
+            Type = EquipmentType.Incubator,
+            SetPointTemperature = 32.5m
+        });
 
         var inc = new Incubation
         {
             Id = 501,
-            IncubatorEquipmentId = 5,
+            IncubatorEquipmentId = 50,
             StepName = "E. coli test",
             StartedAt = DateTime.UtcNow.AddHours(-12),
             IncubationStartUtc = DateTime.UtcNow.AddHours(-12),
@@ -282,6 +306,14 @@ public class ActiveEquipmentTraceabilityTests
             Location = "Room F-01",
             Status = EquipmentOperationalStatus.InService
         });
+        db.Equipment.Add(new Equipment
+        {
+            Id = 60, // Independent Equipment.Id
+            Code = "INC-F-ML-F-01-002",
+            Name = "Incubator 1 Master",
+            Type = EquipmentType.Incubator,
+            SetPointTemperature = 32.5m
+        });
 
         var sample = new Sample
         {
@@ -303,7 +335,7 @@ public class ActiveEquipmentTraceabilityTests
         {
             Id = 602,
             TestOrderId = 601,
-            IncubatorEquipmentId = 6,
+            IncubatorEquipmentId = 60,
             StepName = "Pathogen Test - Pre-Enrichment",
             StartedAt = DateTime.UtcNow.AddHours(-5),
             IncubationStartUtc = DateTime.UtcNow.AddHours(-5),
@@ -335,11 +367,19 @@ public class ActiveEquipmentTraceabilityTests
             Location = "Room A",
             Status = EquipmentOperationalStatus.InService
         });
+        db.Equipment.Add(new Equipment
+        {
+            Id = 70, // Independent Equipment.Id
+            Code = "INC-007",
+            Name = "Incubator 7",
+            Type = EquipmentType.Incubator,
+            SetPointTemperature = 32.5m
+        });
 
         db.Incubations.AddRange(
             new Incubation
             {
-                Id = 701, IncubatorEquipmentId = 7, StepName = "Test A",
+                Id = 701, IncubatorEquipmentId = 70, StepName = "Test A",
                 StartedAt = new DateTime(2026, 8, 15, 10, 0, 0, DateTimeKind.Utc),
                 IncubationStartUtc = new DateTime(2026, 8, 15, 10, 0, 0, DateTimeKind.Utc),
                 CompletedAt = new DateTime(2026, 8, 16, 10, 0, 0, DateTimeKind.Utc),
@@ -347,7 +387,7 @@ public class ActiveEquipmentTraceabilityTests
             },
             new Incubation
             {
-                Id = 702, IncubatorEquipmentId = 7, StepName = "Test B",
+                Id = 702, IncubatorEquipmentId = 70, StepName = "Test B",
                 StartedAt = new DateTime(2026, 8, 18, 10, 0, 0, DateTimeKind.Utc),
                 IncubationStartUtc = new DateTime(2026, 8, 18, 10, 0, 0, DateTimeKind.Utc),
                 CompletedAt = new DateTime(2026, 8, 19, 10, 0, 0, DateTimeKind.Utc),
@@ -377,6 +417,14 @@ public class ActiveEquipmentTraceabilityTests
             Location = "Room B",
             Status = EquipmentOperationalStatus.InService
         });
+        db.Equipment.Add(new Equipment
+        {
+            Id = 80, // Independent Equipment.Id
+            Code = "INC-008",
+            Name = "Incubator 8",
+            Type = EquipmentType.Incubator,
+            SetPointTemperature = 32.5m
+        });
 
         var sample = new Sample
         {
@@ -401,11 +449,11 @@ public class ActiveEquipmentTraceabilityTests
         {
             Id = 802,
             TestOrderId = 801,
-            IncubatorEquipmentId = 8,
+            IncubatorEquipmentId = 80,
             StepName = "TAMC Incubation",
             StartedAt = DateTime.UtcNow.AddDays(-3),
             IncubationStartUtc = DateTime.UtcNow.AddDays(-3),
-            IncubationEndUtc = DateTime.UtcNow.AddDays(2), // Date is in future, but test & sample are approved/completed
+            IncubationEndUtc = DateTime.UtcNow.AddDays(2),
             CompletedAt = null,
             StartedByUserId = 1
         });
@@ -413,21 +461,187 @@ public class ActiveEquipmentTraceabilityTests
 
         var service = new EquipmentInventoryService(db);
 
-        // INC-008 stays listed (idle equipment is still selectable for
-        // history) but must carry a 0 active count, since its only
-        // Incubation row belongs to an already-Approved TestOrder.
         var activeEq = await service.GetActiveEquipmentAsync();
         var inc008 = Assert.Single(activeEq, e => e.Code == "INC-008");
         Assert.Equal(0, inc008.ActiveItemCount);
 
-        // Active activities for INC-008 should be empty
         var activeActivities = await service.GetActiveActivitiesForEquipmentAsync(8);
         Assert.Empty(activeActivities);
 
-        // History should still show the record with isActive = false
         var history = await service.GetHistoricalActivitiesForEquipmentAsync(8);
         var histItem = Assert.Single(history);
         Assert.False(histItem.IsActive);
         Assert.NotNull(histItem.CompletedOn);
+    }
+
+    // =========================================================================
+    // REGRESSION TESTS FOR CROSS-ENTITY ID CONFUSION (PRODUCTION SCENARIO)
+    // =========================================================================
+
+    [Fact]
+    public async Task EquipmentResolution_DistinctInventoryAndMasterIds_NoCrossContamination()
+    {
+        // Mirrors exact production database:
+        // INC-F-ML-F-01-003: EquipmentInventory.Id = 1, Equipment.Id = 3
+        // INC-F-ML-F-01-007: EquipmentInventory.Id = 3, Equipment.Id = 5
+        // AUT-F-ML-F-03-045: EquipmentInventory.Id = 6, Equipment.Id = 2
+        using var db = NewDb();
+
+        db.EquipmentInventories.AddRange(
+            new EquipmentInventory
+            {
+                Id = 1,
+                Code = "INC-F-ML-F-01-003",
+                InstrumentType = "Incubator",
+                Location = "Instruments room F-ML-F-01",
+                Status = EquipmentOperationalStatus.InService
+            },
+            new EquipmentInventory
+            {
+                Id = 3,
+                Code = "INC-F-ML-F-01-007",
+                InstrumentType = "Incubator",
+                Location = "Instruments room F-ML-F-01",
+                Status = EquipmentOperationalStatus.InService
+            },
+            new EquipmentInventory
+            {
+                Id = 6,
+                Code = "AUT-F-ML-F-03-045",
+                InstrumentType = "Hirayama",
+                Location = "Sterilization room F-ML-F-04",
+                Status = EquipmentOperationalStatus.InService
+            }
+        );
+
+        db.Equipment.AddRange(
+            new Equipment
+            {
+                Id = 3,
+                Code = "INC-F-ML-F-01-003",
+                Name = "Qualitemp",
+                Type = EquipmentType.Incubator,
+                SetPointTemperature = 32.5m
+            },
+            new Equipment
+            {
+                Id = 5,
+                Code = "INC-F-ML-F-01-007",
+                Name = "Binder",
+                Type = EquipmentType.Incubator,
+                SetPointTemperature = 42m
+            },
+            new Equipment
+            {
+                Id = 2,
+                Code = "AUT-F-ML-F-03-045",
+                Name = "Hirayama",
+                Type = EquipmentType.Autoclave
+            }
+        );
+
+        // TestOrder 303 & 309 incubated in Qualitemp (Equipment.Id = 3)
+        var s1 = new Sample { Id = 83, ReferenceNumber = "FP0926006" };
+        var s2 = new Sample { Id = 84, ReferenceNumber = "FP0926007" };
+        var s3 = new Sample { Id = 85, ReferenceNumber = "FP0926008" };
+        db.Samples.AddRange(s1, s2, s3);
+
+        var o303 = new TestOrder { Id = 303, SampleId = 83, TestCode = "P. aeruginosa" };
+        var o309 = new TestOrder { Id = 309, SampleId = 84, TestCode = "P. aeruginosa" };
+        var o290 = new TestOrder { Id = 290, SampleId = 85, TestCode = "E.coli" };
+        db.TestOrders.AddRange(o303, o309, o290);
+
+        // Incubations for INC-F-ML-F-01-003 (Equipment.Id = 3)
+        db.Incubations.Add(new Incubation
+        {
+            Id = 587,
+            TestOrderId = 303,
+            StepName = "CAM",
+            IncubatorEquipmentId = 3,
+            StartedAt = DateTime.UtcNow.AddHours(-1),
+            IncubationStartUtc = DateTime.UtcNow.AddHours(-1),
+            IncubationEndUtc = DateTime.UtcNow.AddHours(23),
+            StartedByUserId = 1
+        });
+        db.Incubations.Add(new Incubation
+        {
+            Id = 588,
+            TestOrderId = 309,
+            StepName = "CAM",
+            IncubatorEquipmentId = 3,
+            StartedAt = DateTime.UtcNow.AddHours(-1),
+            IncubationStartUtc = DateTime.UtcNow.AddHours(-1),
+            IncubationEndUtc = DateTime.UtcNow.AddHours(23),
+            StartedByUserId = 1
+        });
+
+        // Incubation for INC-F-ML-F-01-007 (Equipment.Id = 5)
+        db.Incubations.Add(new Incubation
+        {
+            Id = 591,
+            TestOrderId = 290,
+            StepName = "MBP",
+            IncubatorEquipmentId = 5,
+            StartedAt = DateTime.UtcNow.AddHours(-1),
+            IncubationStartUtc = DateTime.UtcNow.AddHours(-1),
+            IncubationEndUtc = DateTime.UtcNow.AddHours(23),
+            StartedByUserId = 1
+        });
+
+        await db.SaveChangesAsync();
+
+        var service = new EquipmentInventoryService(db);
+
+        // 1. Check Active Equipment Counts
+        var activeEquipment = await service.GetActiveEquipmentAsync();
+
+        var inc003 = Assert.Single(activeEquipment, e => e.Code == "INC-F-ML-F-01-003");
+        var inc007 = Assert.Single(activeEquipment, e => e.Code == "INC-F-ML-F-01-007");
+        var autoclave = Assert.Single(activeEquipment, e => e.Code == "AUT-F-ML-F-03-045");
+
+        // INC-F-ML-F-01-003 must have exactly 2 active items (TestOrders 303 and 309)
+        Assert.Equal(2, inc003.ActiveItemCount);
+
+        // INC-F-ML-F-01-007 must have exactly 1 active item (TestOrder 290)
+        // Under the old bug, it falsely matched IncubatorEquipmentId == 3 (eq.Id == 3) and had 3 items!
+        Assert.Equal(1, inc007.ActiveItemCount);
+
+        // Autoclave must have 0 active incubator items
+        // Under the old bug, if an incubator had Equipment.Id = 6, autoclave (eq.Id = 6) picked it up!
+        Assert.Equal(0, autoclave.ActiveItemCount);
+
+        // 2. Check Active Activities per Equipment
+        var inc003Activities = await service.GetActiveActivitiesForEquipmentAsync(1); // eq.Id = 1
+        Assert.Equal(2, inc003Activities.Count);
+        Assert.Contains(inc003Activities, a => a.ItemCode == "FP0926006" && a.ActivityType == "Media Incubation");
+        Assert.Contains(inc003Activities, a => a.ItemCode == "FP0926007" && a.ActivityType == "Media Incubation");
+
+        var inc007Activities = await service.GetActiveActivitiesForEquipmentAsync(3); // eq.Id = 3
+        Assert.Single(inc007Activities);
+        Assert.Equal("FP0926008", inc007Activities[0].ItemCode);
+        // Crucial: TestOrders 303 and 309 must NOT appear in INC-F-ML-F-01-007!
+        Assert.DoesNotContain(inc007Activities, a => a.ItemCode == "FP0926006");
+        Assert.DoesNotContain(inc007Activities, a => a.ItemCode == "FP0926007");
+
+        var autoclaveActivities = await service.GetActiveActivitiesForEquipmentAsync(6); // eq.Id = 6
+        Assert.Empty(autoclaveActivities);
+
+        // 3. Check "Where Is It?" resolution
+        var whereResult303 = await service.WhereIsItAsync("FP0926006");
+        Assert.Equal("INC-F-ML-F-01-003", whereResult303.CurrentEquipmentCode);
+        Assert.Equal("Incubator", whereResult303.CurrentEquipmentName);
+        Assert.NotNull(whereResult303.CurrentActivity);
+
+        var whereResult290 = await service.WhereIsItAsync("FP0926008");
+        Assert.Equal("INC-F-ML-F-01-007", whereResult290.CurrentEquipmentCode);
+
+        // 4. Check Historical Activities
+        var history003 = await service.GetHistoricalActivitiesForEquipmentAsync(1); // eq.Id = 1 -> Master 3
+        Assert.Equal(2, history003.Count);
+
+        var history007 = await service.GetHistoricalActivitiesForEquipmentAsync(3); // eq.Id = 3 -> Master 5
+        Assert.Single(history007);
+        Assert.DoesNotContain(history007, a => a.ItemCode == "FP0926006");
+        Assert.DoesNotContain(history007, a => a.ItemCode == "FP0926007");
     }
 }

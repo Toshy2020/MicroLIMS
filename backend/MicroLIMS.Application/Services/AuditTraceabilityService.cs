@@ -237,7 +237,6 @@ public class AuditTraceabilityService
         };
 
         var config = await _db.ItemPreparationConfigurations
-            .Include(c => c.Neutralizer)
             .FirstOrDefaultAsync(c => c.ItemId == itemId);
 
         if (config != null)
@@ -247,7 +246,7 @@ public class AuditTraceabilityService
                 $"PREP-CFG-{config.Id}",
                 "Preparation Configuration",
                 config.ApprovalStatus.ToString(),
-                $"{config.Amount} {config.Unit}, {config.Technique}, Neutralizer: {config.Neutralizer?.Name ?? "—"}",
+                $"Amount: {config.Amount}, {config.Technique}, Diluent: {config.Diluent}, Neutralizer: {config.Neutralizer}",
                 config.Id,
                 null,
                 config.CreatedAt));
@@ -347,7 +346,6 @@ public class AuditTraceabilityService
         // 2b. Preparation snapshot - the values actually used, plus a link
         // back to the config version they were confirmed from.
         var prep = await _db.SamplePreparations
-            .Include(p => p.Neutralizer)
             .FirstOrDefaultAsync(p => p.SampleId == sampleId);
 
         if (prep != null)
@@ -361,7 +359,7 @@ public class AuditTraceabilityService
                 $"PREP-{prep.Id}",
                 "Sample Preparation",
                 prep.WasConfirmedFromConfig ? "Confirmed from Configuration" : "Manual Entry",
-                $"{prep.Amount} {prep.Unit}, {prep.Technique}, Neutralizer: {prep.Neutralizer?.Name ?? "—"}. {provenance}",
+                $"Amount: {prep.Amount}, {prep.Technique}, Diluent: {prep.Diluent}, Neutralizer: {prep.Neutralizer}. {provenance}",
                 prep.Id,
                 null,
                 prep.PreparedAt));

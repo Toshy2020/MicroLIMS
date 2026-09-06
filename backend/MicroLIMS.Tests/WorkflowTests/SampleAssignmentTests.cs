@@ -82,11 +82,10 @@ public class SampleAssignmentTests
         {
             Sample = sample,
             Amount = 10m,
-            Unit = "gm",
             Technique = "PourPlate",
             PreparedByUserId = 50,
-            NeutralizerId = 1,
-            DiluentTypeId = 1
+            Neutralizer = "Tween",
+            Diluent = "Buffer"
         };
         db.SamplePreparations.Add(prep);
         db.Samples.Add(sample);

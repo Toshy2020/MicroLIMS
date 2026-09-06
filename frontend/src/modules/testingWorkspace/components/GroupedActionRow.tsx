@@ -109,9 +109,12 @@ export function GroupedActionRow({
     setExpanded((prev) => !prev);
   };
 
+  const isIncubatorOnly = group.transitionType === "TRANSFER_INCUBATOR";
+
   const handleExecuteBatch = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!selectedMediaId || !selectedIncubatorId) return;
+    if (!selectedIncubatorId) return;
+    if (!isIncubatorOnly && !selectedMediaId) return;
 
     setSubmitting(true);
     setSubmitError(null);
@@ -120,8 +123,11 @@ export function GroupedActionRow({
       const resp = await TestWorkflowService.batchSelectMedia({
         testOrderIds: group.testOrders.map((t) => t.testOrderId),
         stepName: group.stepName,
-        mediaLotId: Number(selectedMediaId),
-        incubatorEquipmentId: Number(selectedIncubatorId)
+        mediaLotId: isIncubatorOnly ? undefined : Number(selectedMediaId),
+        incubatorEquipmentId: Number(selectedIncubatorId),
+        transitionType: group.transitionType,
+        targetStepName: group.targetStepName,
+        predecessorStepName: group.predecessorStepName
       });
 
       setExpanded(false);
@@ -169,7 +175,7 @@ export function GroupedActionRow({
         {/* Left: Test name, count badge, status badge */}
         <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexShrink: 0 }}>
           <Typography sx={{ fontWeight: 700, fontSize: "0.82rem", color: theme.palette.text.primary }}>
-            {group.stepName}
+            {group.transitionLabel || group.stepName}
           </Typography>
 
           <Chip
@@ -186,8 +192,20 @@ export function GroupedActionRow({
           />
 
           <StatusBadge
-            status={group.stepType === "SelectivePlating" ? "Ready: Plating" : "Ready: Setup"}
-            label={group.stepType === "SelectivePlating" ? "Ready: Plating" : "Ready: Setup"}
+            status={
+              group.transitionType === "TRANSFER_INCUBATOR"
+                ? "Ready: Transfer"
+                : group.transitionType === "TRANSFER_SELECTIVE"
+                ? "Ready: Plating"
+                : "Ready: Setup"
+            }
+            label={
+              group.transitionType === "TRANSFER_INCUBATOR"
+                ? "Ready: Transfer"
+                : group.transitionType === "TRANSFER_SELECTIVE"
+                ? "Ready: Plating"
+                : "Ready: Setup"
+            }
           />
         </Box>
 
@@ -201,7 +219,9 @@ export function GroupedActionRow({
               fontWeight: 500
             }}
           >
-            Next: {group.stepName}{mediaLabel}{tempLabel}{hoursLabel}
+            {group.transitionType === "TRANSFER_INCUBATOR"
+              ? `Transfer to ${group.tempMin}–${group.tempMax}°C Incubator${hoursLabel}`
+              : `Next: ${group.stepName}${mediaLabel}${tempLabel}${hoursLabel}`}
           </Typography>
         </Box>
 
@@ -286,41 +306,43 @@ export function GroupedActionRow({
             </Box>
           ) : (
             <Box sx={{ display: "flex", flexWrap: "wrap", alignItems: "flex-end", gap: 1.5 }}>
-              {/* Media Lot Dropdown */}
-              <Box sx={{ flex: "1 1 200px" }}>
-                <Typography sx={{ fontSize: "0.68rem", fontWeight: 700, textTransform: "uppercase", color: "text.secondary", mb: 0.5 }}>
-                  Media Lot ({group.permittedMaterialNames || "Approved Media"})
-                </Typography>
-                <Select
-                  size="small"
-                  fullWidth
-                  value={selectedMediaId}
-                  onChange={(e) => setSelectedMediaId(e.target.value as number)}
-                  displayEmpty
-                  sx={{
-                    height: 30,
-                    fontSize: "0.75rem",
-                    bgcolor: theme.palette.background.paper
-                  }}
-                >
-                  {matchingMedia.length === 0 ? (
-                    <MenuItem disabled value="">
-                      <em>No released, active lots available</em>
-                    </MenuItem>
-                  ) : (
-                    matchingMedia.map((m) => (
-                      <MenuItem key={m.id} value={m.id} sx={{ fontSize: "0.75rem" }}>
-                        {m.lotNumber} ({m.materialName}) · Exp: {new Date(m.expiryDate).toLocaleDateString()}
+              {/* Media Lot Dropdown - only when not incubator-only transfer */}
+              {!isIncubatorOnly && (
+                <Box sx={{ flex: "1 1 200px" }}>
+                  <Typography sx={{ fontSize: "0.68rem", fontWeight: 700, textTransform: "uppercase", color: "text.secondary", mb: 0.5 }}>
+                    Media Lot ({group.permittedMaterialNames || "Approved Media"})
+                  </Typography>
+                  <Select
+                    size="small"
+                    fullWidth
+                    value={selectedMediaId}
+                    onChange={(e) => setSelectedMediaId(e.target.value as number)}
+                    displayEmpty
+                    sx={{
+                      height: 30,
+                      fontSize: "0.75rem",
+                      bgcolor: theme.palette.background.paper
+                    }}
+                  >
+                    {matchingMedia.length === 0 ? (
+                      <MenuItem disabled value="">
+                        <em>No released, active lots available</em>
                       </MenuItem>
-                    ))
-                  )}
-                </Select>
-              </Box>
+                    ) : (
+                      matchingMedia.map((m) => (
+                        <MenuItem key={m.id} value={m.id} sx={{ fontSize: "0.75rem" }}>
+                          {m.lotNumber} ({m.materialName}) · Exp: {new Date(m.expiryDate).toLocaleDateString()}
+                        </MenuItem>
+                      ))
+                    )}
+                  </Select>
+                </Box>
+              )}
 
               {/* Incubator Dropdown */}
               <Box sx={{ flex: "1 1 200px" }}>
                 <Typography sx={{ fontSize: "0.68rem", fontWeight: 700, textTransform: "uppercase", color: "text.secondary", mb: 0.5 }}>
-                  Incubator ({group.tempMin}–{group.tempMax}°C)
+                  {isIncubatorOnly ? "Transfer to Incubator" : "Incubator"} ({group.tempMin}–{group.tempMax}°C)
                 </Typography>
                 <Select
                   size="small"
@@ -368,7 +390,7 @@ export function GroupedActionRow({
                 <Button
                   size="small"
                   variant="contained"
-                  disabled={submitting || !selectedMediaId || !selectedIncubatorId}
+                  disabled={submitting || !selectedIncubatorId || (!isIncubatorOnly && !selectedMediaId)}
                   onClick={handleExecuteBatch}
                   startIcon={submitting ? <CircularProgress size={14} color="inherit" /> : <ArrowForwardIcon sx={{ fontSize: 14 }} />}
                   sx={{
@@ -381,7 +403,11 @@ export function GroupedActionRow({
                   }}
                 >
                   {submitting
-                    ? "Starting..."
+                    ? "Processing..."
+                    : group.transitionType === "TRANSFER_INCUBATOR"
+                    ? `Transfer to Incubator (${group.testOrders.length} ${group.testOrders.length === 1 ? "Test" : "Tests"})`
+                    : group.transitionType === "TRANSFER_SELECTIVE"
+                    ? `Transfer & Start Incubation (${group.testOrders.length} ${group.testOrders.length === 1 ? "Test" : "Tests"})`
                     : `Start Incubation (${group.testOrders.length} ${group.testOrders.length === 1 ? "Test" : "Tests"})`}
                 </Button>
               </Box>

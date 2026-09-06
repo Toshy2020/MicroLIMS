@@ -231,7 +231,7 @@ function SamplePreparationCard({ preparation: p }: { preparation: NonNullable<Sa
           gap: 2
         }}
       >
-        <SummaryField label="Amount" value={`${p.amount} ${p.unit}`} />
+        <SummaryField label="Amount" value={`${p.amount}`} />
         <SummaryField label="Technique" value={p.technique} />
         {p.technique === "Filtration" && (
           <>
@@ -239,7 +239,8 @@ function SamplePreparationCard({ preparation: p }: { preparation: NonNullable<Sa
             <SummaryField label="Washing Volume" value={p.washingVolume ? `${p.washingVolume} mL` : "—"} />
           </>
         )}
-        <SummaryField label="Neutralizer" value={p.neutralizerName || "—"} />
+        <SummaryField label="Diluent" value={p.diluent || "—"} />
+        <SummaryField label="Neutralizer" value={p.neutralizer || "—"} />
         <SummaryField label="Prepared By" value={p.preparedByName} />
         <SummaryField label="Prepared At" value={formatDate(p.preparedAt)} />
       </Box>

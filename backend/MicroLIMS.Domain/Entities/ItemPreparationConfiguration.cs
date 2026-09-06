@@ -17,19 +17,21 @@ public class ItemPreparationConfiguration
     public Item? Item { get; set; }
 
     public decimal Amount { get; set; }
-    public string Unit { get; set; } = string.Empty; // ml/gm/bottle/cap/25cm2
+    // No Unit here - the reporting unit lives on Specification per test
+    // (see the 2026-09 Preparation Configuration simplification); Amount
+    // is a bare quantity, not itself unit-typed.
 
     public string Technique { get; set; } = string.Empty; // "PourPlate" or "Filtration"
     public decimal? FiltrationVolume { get; set; }
     public decimal? WashingVolume { get; set; }
 
-    public int DiluentTypeId { get; set; }
-    public DiluentType? DiluentType { get; set; }
-    public int? DiluentMediaId { get; set; } // set only when DiluentType.RequiresBatchTracking
-    public Media? DiluentMedia { get; set; }
-
-    public int NeutralizerId { get; set; }
-    public Neutralizer? Neutralizer { get; set; }
+    // Free text as of the 2026-09 simplification - previously an FK to
+    // DiluentType, which also gated a GPT-released Media lot selection via
+    // RequiresBatchTracking/DiluentMediaId. That lot-tracking mechanism was
+    // dropped as unused (no DiluentType had ever required it); if diluent
+    // batch traceability is needed again, it needs redesigning from here.
+    public string Diluent { get; set; } = string.Empty;
+    public string Neutralizer { get; set; } = string.Empty;
 
     public ApprovalGateStatus ApprovalStatus { get; set; } = ApprovalGateStatus.PendingReview;
 

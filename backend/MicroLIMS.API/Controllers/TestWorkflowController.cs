@@ -18,7 +18,7 @@ namespace MicroLIMS.API.Controllers;
 // gone along with the dual-plate model itself; see TestWorkflowEngine.
 public record SelectMediaRequest(string StepName, int MediaLotId, int IncubatorId);
 public record StartStage2IncubationRequest(string StepName, int IncubatorId);
-public record RecordTestResultRequest(string StepName, List<decimal>? PlateReadings, decimal? DilutionFactor, List<string>? RawPlateReadings = null);
+public record RecordTestResultRequest(string StepName, List<decimal>? PlateReadings, decimal? DilutionFactor, List<string>? RawPlateReadings = null, string? DilutionFactorOverrideNote = null);
 public record BatchResultLocationRequest(int SampleLocationId, List<decimal> Readings);
 public record BatchResultsRequest(List<BatchResultLocationRequest> Locations);
 public record WaterBatchLocationRequest(int SampleLocationId, List<decimal> Readings);
@@ -148,18 +148,17 @@ public class TestWorkflowController : ControllerBase
             .Include(t => t.Sample!).ThenInclude(s => s.Department)
             .Include(t => t.Sample!).ThenInclude(s => s.Machine)
             .Include(t => t.Sample!).ThenInclude(s => s.CauseOfTesting)
-            .Include(t => t.Sample!).ThenInclude(s => s.SamplePreparation)
             .FirstOrDefaultAsync(t => t.Id == testOrderId)
             ?? throw new InvalidOperationException($"Test order {testOrderId} not found.");
         var sample = order.Sample!;
 
-        var prep = sample.SamplePreparation;
-        var prepUnit = prep?.Unit;
         string? configuredUnit = null;
+        decimal? configuredDilutionFactor = null;
         if (sample.ItemId is not null)
         {
             var spec = await _db.Specifications.FirstOrDefaultAsync(s => s.ItemId == sample.ItemId && s.TestCode == order.TestCode);
             configuredUnit = spec?.Unit;
+            configuredDilutionFactor = spec?.DilutionFactor;
         }
         else if (sample.WaterSamplingPointId is not null)
         {
@@ -169,7 +168,7 @@ public class TestWorkflowController : ControllerBase
 
         var cfuUnit = !string.IsNullOrWhiteSpace(configuredUnit)
             ? (configuredUnit.StartsWith("CFU/", StringComparison.OrdinalIgnoreCase) ? configuredUnit : $"CFU/{configuredUnit}")
-            : TestWorkflowEngine.GetCfuUnit(sample.Category, prepUnit);
+            : TestWorkflowEngine.GetCfuUnit(sample.Category, null);
 
         var sampleContext = new Dictionary<string, object?>
         {
@@ -179,8 +178,14 @@ public class TestWorkflowController : ControllerBase
             ["reason"] = sample.CauseOfTesting?.Name,
             ["systemReferenceNumber"] = sample.ReferenceNumber,
             ["sampleType"] = sample.Category.ToString(),
-            ["preparationUnit"] = prepUnit,
-            ["cfuUnit"] = cfuUnit
+            ["cfuUnit"] = cfuUnit,
+            // Null for direct-count sample types (Water/EM/AfterCleaning -
+            // always forced to 1 server-side, see TestWorkflowEngine.
+            // RecordCountTestAsync) and for pathogen/observation tests,
+            // which have no DF. Null for an Item-based count test means
+            // "not configured yet" - the frontend blocks result entry in
+            // that case rather than falling back to free-entry.
+            ["configuredDilutionFactor"] = configuredDilutionFactor
         };
 
         // Stage (Sample.ProductionStage) is a Finished-Product-only concept
@@ -192,11 +197,51 @@ public class TestWorkflowController : ControllerBase
             sampleContext["stage"] = sample.ProductionStage;
 
         var openIncubation = current.OpenIncubation;
+        DateTime? minReadyAtUtc = null;
+        long remainingMinSeconds = 0;
+        if (openIncubation != null)
+        {
+            var startUtc = openIncubation.IncubationStartUtc ?? openIncubation.StartedAt;
+            int minHours = 0;
+            if (openIncubation.StageNumber == 2)
+            {
+                var stage2 = current.Step?.IncubationStages?.FirstOrDefault(s => s.StageNumber == 2);
+                minHours = stage2?.IncubationMinHours ?? current.Step?.IncubationMinHours ?? 0;
+            }
+            else
+            {
+                if (openIncubation.MediaId.HasValue && current.Step?.StepMedia != null)
+                {
+                    var mediaRow = await _db.Media.Where(m => m.Id == openIncubation.MediaId.Value).Select(m => new { m.MaterialId }).FirstOrDefaultAsync();
+                    var stepMedia = mediaRow != null ? current.Step.StepMedia.FirstOrDefault(sm => sm.MaterialId == mediaRow.MaterialId) : null;
+                    minHours = stepMedia?.IncubationMinHours ?? current.Step?.IncubationMinHours ?? 0;
+                }
+                else
+                {
+                    minHours = current.Step?.IncubationMinHours ?? 0;
+                }
+            }
+
+            if (minHours > 0)
+            {
+                minReadyAtUtc = startUtc.AddHours(minHours);
+                remainingMinSeconds = Math.Max(0, (long)Math.Ceiling((minReadyAtUtc.Value - DateTime.UtcNow).TotalSeconds));
+            }
+            else if (openIncubation.IncubationEndUtc.HasValue)
+            {
+                minReadyAtUtc = openIncubation.IncubationEndUtc.Value;
+                remainingMinSeconds = Math.Max(0, (long)Math.Ceiling((openIncubation.IncubationEndUtc.Value - DateTime.UtcNow).TotalSeconds));
+            }
+        }
+
+        var isMinLockActive = openIncubation != null && minReadyAtUtc.HasValue && DateTime.UtcNow < minReadyAtUtc.Value && !openIncubation.MinimumDurationOverriddenByUserId.HasValue;
         var incubationLock = openIncubation?.IncubationEndUtc is null ? null : new
         {
-            isLocked = !openIncubation.IsIncubationComplete,
+            isLocked = isMinLockActive || !openIncubation.IsIncubationComplete,
             incubationEndUtc = openIncubation.IncubationEndUtc,
             remainingSeconds = Math.Max(0, (long)Math.Ceiling((openIncubation.IncubationEndUtc.Value - DateTime.UtcNow).TotalSeconds)),
+            minReadyAt = minReadyAtUtc,
+            remainingMinimumSeconds = remainingMinSeconds,
             stageNumber = openIncubation.StageNumber,
             minimumDurationOverridden = openIncubation.MinimumDurationOverriddenByUserId.HasValue,
             minimumDurationOverriddenAt = openIncubation.MinimumDurationOverriddenAt
@@ -259,9 +304,13 @@ public class TestWorkflowController : ControllerBase
                 : null;
 
             var tsbStep = await _db.TestWorkflowSteps
-                .Where(s => s.TestDefinition.Code == order.TestCode && (s.StepName == sharedTsbWsr.StepName || s.StepType == StepType.BrothEnrichment || s.StepName.Contains("TSB")))
+                .Where(s => s.TestDefinition != null && s.TestDefinition.Code == order.TestCode && (s.StepName == sharedTsbWsr.StepName || s.StepType == StepType.BrothEnrichment || s.StepName.Contains("TSB")))
                 .FirstOrDefaultAsync();
             var minHours = tsbStep?.IncubationMinHours > 0 ? tsbStep.IncubationMinHours : 18;
+
+            var tsbMinReady = inc.IncubationStartUtc?.AddHours(minHours);
+            var tsbRemMinSec = tsbMinReady.HasValue ? Math.Max(0, (long)Math.Ceiling((tsbMinReady.Value - DateTime.UtcNow).TotalSeconds)) : 0;
+            var tsbOverridden = inc.MinimumDurationOverriddenByUserId.HasValue;
 
             sharedTsbSummary = new
             {
@@ -269,7 +318,10 @@ public class TestWorkflowController : ControllerBase
                 incubatorCode = inc.IncubatorEquipment?.Code,
                 incubationStartUtc = inc.IncubationStartUtc,
                 incubationEndUtc = inc.IncubationEndUtc,
-                minReadyAt = inc.IncubationStartUtc?.AddHours(minHours),
+                minReadyAt = tsbMinReady,
+                remainingMinimumSeconds = tsbRemMinSec,
+                minimumDurationOverridden = tsbOverridden,
+                isLocked = (tsbMinReady.HasValue && DateTime.UtcNow < tsbMinReady.Value && !tsbOverridden) || !inc.IsIncubationComplete,
                 startedByUserName = startedUser ?? "Analyst",
                 isCompleted = inc.CompletedAt.HasValue
             };
@@ -446,11 +498,11 @@ public class TestWorkflowController : ControllerBase
         CountTestPayload payload;
         if (request.RawPlateReadings is { Count: > 0 })
         {
-            payload = new CountTestPayload(request.RawPlateReadings, request.DilutionFactor ?? 1);
+            payload = new CountTestPayload(request.RawPlateReadings, request.DilutionFactor ?? 1, request.DilutionFactorOverrideNote);
         }
         else if (request.PlateReadings is { Count: > 0 })
         {
-            payload = new CountTestPayload(request.PlateReadings, request.DilutionFactor ?? 1);
+            payload = new CountTestPayload(request.PlateReadings, request.DilutionFactor ?? 1, request.DilutionFactorOverrideNote);
         }
         else
         {

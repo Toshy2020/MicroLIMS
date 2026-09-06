@@ -6,9 +6,9 @@ import type { ItemPreparationConfiguration } from "./services/ItemPreparationCon
 // describe the same protocol differently.
 export function PreparationStepsSummary({ config }: { config: ItemPreparationConfiguration }) {
   const fields: { label: string; value: string }[] = [
-    { label: "Sample Amount", value: `${config.amount} ${config.unit}` },
+    { label: "Sample Amount", value: `${config.amount}` },
     { label: "Technique", value: config.technique === "PourPlate" ? "Pour Plate" : config.technique },
-    { label: "Diluent", value: config.diluentTypeName || "—" }
+    { label: "Diluent", value: config.diluent || "—" }
   ];
 
   if (config.technique === "Filtration") {
@@ -18,11 +18,7 @@ export function PreparationStepsSummary({ config }: { config: ItemPreparationCon
     );
   }
 
-  if (config.diluentMediaLotNumber) {
-    fields.push({ label: "Diluent Media Lot", value: config.diluentMediaLotNumber });
-  }
-
-  fields.push({ label: "Neutralizer", value: config.neutralizerName || "—" });
+  fields.push({ label: "Neutralizer", value: config.neutralizer || "—" });
 
   return (
     <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, gap: 1.5 }}>

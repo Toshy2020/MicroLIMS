@@ -126,7 +126,6 @@ public class SampleSummaryService
             .ToDictionaryAsync(t => t.Code);
 
         var preparation = await _db.SamplePreparations
-            .Include(p => p.Neutralizer)
             .FirstOrDefaultAsync(p => p.SampleId == sampleId);
 
         // Specification text per (Item, TestCode) - already resolved onto
@@ -236,11 +235,11 @@ public class SampleSummaryService
             Preparation = preparation is null ? null : new SamplePreparationSummaryDto
             {
                 Amount = preparation.Amount,
-                Unit = preparation.Unit,
                 Technique = preparation.Technique,
                 FiltrationVolume = preparation.FiltrationVolume,
                 WashingVolume = preparation.WashingVolume,
-                NeutralizerName = preparation.Neutralizer?.Name ?? string.Empty,
+                Diluent = preparation.Diluent,
+                Neutralizer = preparation.Neutralizer,
                 PreparedByName = NameOf(preparation.PreparedByUserId),
                 PreparedAt = preparation.PreparedAt
             },
@@ -563,14 +562,15 @@ public class SampleSummaryService
         {
             var p = s.Preparation;
             lines.Add("SAMPLE PREPARATION");
-            lines.Add($"Amount: {p.Amount} {p.Unit}");
+            lines.Add($"Amount: {p.Amount}");
             lines.Add($"Technique: {p.Technique}");
             if (p.Technique == "Filtration")
             {
                 lines.Add($"Filtration Volume: {p.FiltrationVolume}");
                 lines.Add($"Washing Volume: {p.WashingVolume}");
             }
-            lines.Add($"Neutralizer: {p.NeutralizerName}");
+            lines.Add($"Diluent: {p.Diluent}");
+            lines.Add($"Neutralizer: {p.Neutralizer}");
             lines.Add($"Prepared By: {p.PreparedByName}");
             lines.Add($"Prepared At: {p.PreparedAt:dd-MMM-yyyy HH:mm}");
             lines.Add("");

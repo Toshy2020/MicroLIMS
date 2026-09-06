@@ -519,8 +519,26 @@ public class PathogenSessionService
             CountResultDto? countResultDto = null;
             if (countReading != null)
             {
-                var prepUnit = sample.SamplePreparation?.Unit;
-                var unit = TestWorkflowEngine.GetCfuUnit(sample.Category, prepUnit);
+                // Same configured-unit-first pattern as TestWorkflowEngine/
+                // ResultProjectionService - Specification.Unit is required
+                // for Item-based count tests as of the 2026-09 Preparation
+                // Configuration simplification, which removed the old
+                // SamplePreparation.Unit fallback used here.
+                string? configuredUnit = null;
+                if (sample.ItemId is not null)
+                {
+                    var spec = await _db.Specifications.FirstOrDefaultAsync(s => s.ItemId == sample.ItemId && s.TestCode == to.TestCode);
+                    configuredUnit = spec?.Unit;
+                }
+                else if (sample.WaterSamplingPointId is not null)
+                {
+                    var config = await _db.SamplingConfigurations.FirstOrDefaultAsync(c => c.TestCode == to.TestCode && c.WaterSamplingPointId == sample.WaterSamplingPointId);
+                    configuredUnit = config?.Unit;
+                }
+
+                var unit = !string.IsNullOrWhiteSpace(configuredUnit)
+                    ? (configuredUnit.StartsWith("CFU/", StringComparison.OrdinalIgnoreCase) ? configuredUnit : $"CFU/{configuredUnit}")
+                    : TestWorkflowEngine.GetCfuUnit(sample.Category, null);
                 countResultDto = new CountResultDto(
                     countReading.PlateReadings,
                     countReading.DilutionFactor,

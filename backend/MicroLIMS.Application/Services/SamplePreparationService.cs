@@ -9,8 +9,8 @@ namespace MicroLIMS.Application.Services;
 // Manual entry - used only when the Item has no preparation configuration
 // yet. What the analyst enters here becomes the Item's standing config.
 public record PrepareSampleRequest(
-    int SampleId, decimal Amount, string Unit, string Technique, decimal? FiltrationVolume, decimal? WashingVolume,
-    int DiluentTypeId, int? DiluentMediaId, int NeutralizerId, int UserId, string Password);
+    int SampleId, decimal Amount, string Technique, decimal? FiltrationVolume, decimal? WashingVolume,
+    string Diluent, string Neutralizer, int UserId, string Password);
 
 // Confirm-only - the Item already has a configuration; the analyst signs
 // off that those steps were the ones performed.
@@ -44,11 +44,10 @@ public class SamplePreparationService
             throw new InvalidOperationException("This sample has no Item and cannot use the preparation configuration flow.");
 
         var parameters = new PreparationParameters(
-            request.Amount, request.Unit, request.Technique, request.FiltrationVolume, request.WashingVolume,
-            request.DiluentTypeId, request.DiluentMediaId, request.NeutralizerId);
+            request.Amount, request.Technique, request.FiltrationVolume, request.WashingVolume,
+            request.Diluent, request.Neutralizer);
 
-        var diluentType = await _validator.ValidateAsync(parameters);
-        var resolvedDiluentMediaId = diluentType.RequiresBatchTracking ? request.DiluentMediaId : null;
+        await _validator.ValidateAsync(parameters);
 
         // Seed the Item's standing configuration from this first manual entry.
         // Usable immediately by later samples; Section Head reviews after the
@@ -64,13 +63,11 @@ public class SamplePreparationService
             {
                 ItemId = sample.ItemId.Value,
                 Amount = request.Amount,
-                Unit = request.Unit,
                 Technique = request.Technique,
                 FiltrationVolume = request.FiltrationVolume,
                 WashingVolume = request.WashingVolume,
-                DiluentTypeId = request.DiluentTypeId,
-                DiluentMediaId = resolvedDiluentMediaId,
-                NeutralizerId = request.NeutralizerId,
+                Diluent = request.Diluent.Trim(),
+                Neutralizer = request.Neutralizer.Trim(),
                 ApprovalStatus = ApprovalGateStatus.PendingReview,
                 CreatedByUserId = request.UserId
             };
@@ -80,13 +77,11 @@ public class SamplePreparationService
         {
             SampleId = request.SampleId,
             Amount = request.Amount,
-            Unit = request.Unit,
             Technique = request.Technique,
             FiltrationVolume = request.FiltrationVolume,
             WashingVolume = request.WashingVolume,
-            DiluentTypeId = request.DiluentTypeId,
-            DiluentMediaId = resolvedDiluentMediaId,
-            NeutralizerId = request.NeutralizerId,
+            Diluent = request.Diluent.Trim(),
+            Neutralizer = request.Neutralizer.Trim(),
             PreparedByUserId = request.UserId,
             SourceConfiguration = config,
             WasConfirmedFromConfig = false
@@ -107,23 +102,22 @@ public class SamplePreparationService
         var config = await _db.ItemPreparationConfigurations.FirstOrDefaultAsync(c => c.ItemId == sample.ItemId.Value)
             ?? throw new InvalidOperationException("This item has no preparation configuration to confirm.");
 
-        // Re-validate at confirmation time: a media lot that was fine when the
-        // config was written may have expired or been rejected since.
-        var diluentType = await _validator.ValidateAsync(new PreparationParameters(
-            config.Amount, config.Unit, config.Technique, config.FiltrationVolume, config.WashingVolume,
-            config.DiluentTypeId, config.DiluentMediaId, config.NeutralizerId));
+        // Re-validate at confirmation time in case the config was left in an
+        // invalid state (e.g. blank Diluent/Neutralizer from data predating
+        // validation).
+        await _validator.ValidateAsync(new PreparationParameters(
+            config.Amount, config.Technique, config.FiltrationVolume, config.WashingVolume,
+            config.Diluent, config.Neutralizer));
 
         var prep = new SamplePreparation
         {
             SampleId = request.SampleId,
             Amount = config.Amount,
-            Unit = config.Unit,
             Technique = config.Technique,
             FiltrationVolume = config.FiltrationVolume,
             WashingVolume = config.WashingVolume,
-            DiluentTypeId = config.DiluentTypeId,
-            DiluentMediaId = diluentType.RequiresBatchTracking ? config.DiluentMediaId : null,
-            NeutralizerId = config.NeutralizerId,
+            Diluent = config.Diluent,
+            Neutralizer = config.Neutralizer,
             PreparedByUserId = request.UserId,
             SourceConfigurationId = config.Id,
             WasConfirmedFromConfig = true

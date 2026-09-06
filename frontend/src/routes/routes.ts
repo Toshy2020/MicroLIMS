@@ -32,8 +32,7 @@ const APP_ROUTES = {
   WATER: "/laboratory-configuration/water",
   ENVIRONMENTAL_MONITORING: "/laboratory-configuration/environmental-monitoring",
   AFTER_CLEANING: "/laboratory-configuration/after-cleaning",
-  CAUSE_OF_TESTING: "/laboratory-configuration/cause-of-testing",
-  DILUENTS: "/laboratory-configuration/diluents",
+  RECEIVING_CONFIGURATION: "/laboratory-configuration/receiving-configuration",
   LAB_EQUIPMENT: "/laboratory-configuration/equipment",
 
   // Inventory & Stock

@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using MicroLIMS.Persistence.DbContext;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -12,9 +13,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace MicroLIMS.Persistence.Migrations
 {
     [DbContext(typeof(MicroLimsDbContext))]
-    partial class MicroLimsDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260906171348_SimplifyPreparationConfigurationDiluentNeutralizer")]
+    partial class SimplifyPreparationConfigurationDiluentNeutralizer
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -3842,26 +3845,6 @@ namespace MicroLIMS.Persistence.Migrations
                     b.ToTable("Permissions");
                 });
 
-            modelBuilder.Entity("MicroLIMS.Domain.Entities.ProductionStage", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("boolean");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("ProductionStages");
-                });
-
             modelBuilder.Entity("MicroLIMS.Domain.Entities.RefreshToken", b =>
                 {
                     b.Property<int>("Id")
@@ -4840,26 +4823,6 @@ namespace MicroLIMS.Persistence.Migrations
                     b.HasIndex("ItemId");
 
                     b.ToTable("SampleTests");
-                });
-
-            modelBuilder.Entity("MicroLIMS.Domain.Entities.Sampler", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("boolean");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("Samplers");
                 });
 
             modelBuilder.Entity("MicroLIMS.Domain.Entities.SamplingConfiguration", b =>

@@ -16,7 +16,16 @@ public class CountTestReading
     // treating any reading on the test order as completing the whole chain.
     public string? StepName { get; set; }
     public string PlateReadings { get; set; } = string.Empty; // comma-separated raw readings
+    // The value actually used in the CFU calculation - configured value
+    // unless the analyst overrode it.
     public decimal DilutionFactor { get; set; }
+    // ALCOA+ snapshot of what Specifications had configured at entry
+    // time, so a later config change can't retroactively alter what this
+    // result claims was used. Null for direct-count sample types (Water/
+    // EM/AfterCleaning), which never go through Specifications.
+    public decimal? ConfiguredDilutionFactor { get; set; }
+    public bool DilutionFactorOverridden { get; set; } = false;
+    public string? DilutionFactorOverrideNote { get; set; }
     public decimal? Average { get; set; }
     public decimal? CalculatedResult { get; set; }
     public string ReportedResult { get; set; } = string.Empty; // "<1" or the rounded whole number / "TNTC"

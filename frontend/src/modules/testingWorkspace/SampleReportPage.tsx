@@ -198,7 +198,7 @@ export function SampleReportPage() {
             <div className="prep-grid">
               <div className="prep-item">
                 <div className="prep-label">Amount</div>
-                <div className="prep-value">{s.preparation.amount} {s.preparation.unit}</div>
+                <div className="prep-value">{s.preparation.amount}</div>
               </div>
               <div className="prep-item">
                 <div className="prep-label">Technique</div>
@@ -208,8 +208,12 @@ export function SampleReportPage() {
                 )}
               </div>
               <div className="prep-item">
+                <div className="prep-label">Diluent</div>
+                <div className="prep-value">{s.preparation.diluent || "—"}</div>
+              </div>
+              <div className="prep-item">
                 <div className="prep-label">Neutralizer</div>
-                <div className="prep-value">{s.preparation.neutralizerName || "—"}</div>
+                <div className="prep-value">{s.preparation.neutralizer || "—"}</div>
               </div>
               <div className="prep-item">
                 <div className="prep-label">Prepared by</div>

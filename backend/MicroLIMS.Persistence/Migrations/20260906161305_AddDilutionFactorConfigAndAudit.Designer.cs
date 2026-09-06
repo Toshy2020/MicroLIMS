@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using MicroLIMS.Persistence.DbContext;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -12,9 +13,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace MicroLIMS.Persistence.Migrations
 {
     [DbContext(typeof(MicroLimsDbContext))]
-    partial class MicroLimsDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260906161305_AddDilutionFactorConfigAndAudit")]
+    partial class AddDilutionFactorConfigAndAudit
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -2725,10 +2728,11 @@ namespace MicroLIMS.Persistence.Migrations
                     b.Property<int>("CreatedByUserId")
                         .HasColumnType("integer");
 
-                    b.Property<string>("Diluent")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
+                    b.Property<int?>("DiluentMediaId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("DiluentTypeId")
+                        .HasColumnType("integer");
 
                     b.Property<decimal?>("FiltrationVolume")
                         .HasColumnType("numeric");
@@ -2736,12 +2740,15 @@ namespace MicroLIMS.Persistence.Migrations
                     b.Property<int>("ItemId")
                         .HasColumnType("integer");
 
-                    b.Property<string>("Neutralizer")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
+                    b.Property<int>("NeutralizerId")
+                        .HasColumnType("integer");
 
                     b.Property<string>("Technique")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("Unit")
                         .IsRequired()
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)");
@@ -2751,8 +2758,14 @@ namespace MicroLIMS.Persistence.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("DiluentMediaId");
+
+                    b.HasIndex("DiluentTypeId");
+
                     b.HasIndex("ItemId")
                         .IsUnique();
+
+                    b.HasIndex("NeutralizerId");
 
                     b.ToTable("ItemPreparationConfigurations");
                 });
@@ -3842,26 +3855,6 @@ namespace MicroLIMS.Persistence.Migrations
                     b.ToTable("Permissions");
                 });
 
-            modelBuilder.Entity("MicroLIMS.Domain.Entities.ProductionStage", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("boolean");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("ProductionStages");
-                });
-
             modelBuilder.Entity("MicroLIMS.Domain.Entities.RefreshToken", b =>
                 {
                     b.Property<int>("Id")
@@ -4770,18 +4763,17 @@ namespace MicroLIMS.Persistence.Migrations
                     b.Property<decimal>("Amount")
                         .HasColumnType("numeric");
 
-                    b.Property<string>("Diluent")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
+                    b.Property<int?>("DiluentMediaId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("DiluentTypeId")
+                        .HasColumnType("integer");
 
                     b.Property<decimal?>("FiltrationVolume")
                         .HasColumnType("numeric");
 
-                    b.Property<string>("Neutralizer")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
+                    b.Property<int>("NeutralizerId")
+                        .HasColumnType("integer");
 
                     b.Property<DateTime>("PreparedAt")
                         .HasColumnType("timestamp with time zone");
@@ -4797,8 +4789,11 @@ namespace MicroLIMS.Persistence.Migrations
 
                     b.Property<string>("Technique")
                         .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
+                        .HasColumnType("text");
+
+                    b.Property<string>("Unit")
+                        .IsRequired()
+                        .HasColumnType("text");
 
                     b.Property<bool>("WasConfirmedFromConfig")
                         .HasColumnType("boolean");
@@ -4807,6 +4802,12 @@ namespace MicroLIMS.Persistence.Migrations
                         .HasColumnType("numeric");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("DiluentMediaId");
+
+                    b.HasIndex("DiluentTypeId");
+
+                    b.HasIndex("NeutralizerId");
 
                     b.HasIndex("SampleId")
                         .IsUnique();
@@ -4840,26 +4841,6 @@ namespace MicroLIMS.Persistence.Migrations
                     b.HasIndex("ItemId");
 
                     b.ToTable("SampleTests");
-                });
-
-            modelBuilder.Entity("MicroLIMS.Domain.Entities.Sampler", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("boolean");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("Samplers");
                 });
 
             modelBuilder.Entity("MicroLIMS.Domain.Entities.SamplingConfiguration", b =>
@@ -6513,13 +6494,36 @@ namespace MicroLIMS.Persistence.Migrations
 
             modelBuilder.Entity("MicroLIMS.Domain.Entities.ItemPreparationConfiguration", b =>
                 {
+                    b.HasOne("MicroLIMS.Domain.Entities.Media", "DiluentMedia")
+                        .WithMany()
+                        .HasForeignKey("DiluentMediaId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("MicroLIMS.Domain.Entities.DiluentType", "DiluentType")
+                        .WithMany()
+                        .HasForeignKey("DiluentTypeId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
                     b.HasOne("MicroLIMS.Domain.Entities.Item", "Item")
                         .WithMany()
                         .HasForeignKey("ItemId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("MicroLIMS.Domain.Entities.Neutralizer", "Neutralizer")
+                        .WithMany()
+                        .HasForeignKey("NeutralizerId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("DiluentMedia");
+
+                    b.Navigation("DiluentType");
+
                     b.Navigation("Item");
+
+                    b.Navigation("Neutralizer");
                 });
 
             modelBuilder.Entity("MicroLIMS.Domain.Entities.LocationPathogenObservation", b =>
@@ -7137,6 +7141,22 @@ namespace MicroLIMS.Persistence.Migrations
 
             modelBuilder.Entity("MicroLIMS.Domain.Entities.SamplePreparation", b =>
                 {
+                    b.HasOne("MicroLIMS.Domain.Entities.Media", "DiluentMedia")
+                        .WithMany()
+                        .HasForeignKey("DiluentMediaId");
+
+                    b.HasOne("MicroLIMS.Domain.Entities.DiluentType", "DiluentType")
+                        .WithMany()
+                        .HasForeignKey("DiluentTypeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("MicroLIMS.Domain.Entities.Neutralizer", "Neutralizer")
+                        .WithMany()
+                        .HasForeignKey("NeutralizerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
                     b.HasOne("MicroLIMS.Domain.Entities.Sample", "Sample")
                         .WithOne("SamplePreparation")
                         .HasForeignKey("MicroLIMS.Domain.Entities.SamplePreparation", "SampleId")
@@ -7147,6 +7167,12 @@ namespace MicroLIMS.Persistence.Migrations
                         .WithMany()
                         .HasForeignKey("SourceConfigurationId")
                         .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("DiluentMedia");
+
+                    b.Navigation("DiluentType");
+
+                    b.Navigation("Neutralizer");
 
                     b.Navigation("Sample");
 

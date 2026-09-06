@@ -142,7 +142,10 @@ export function AssignedTestCard({
     if (effectiveIsIncubating) {
       const endUtc = optimisticDetails?.endUtc || incubationEndUtc || activeIncubation?.incubationEndUtc;
       if (endUtc && nowMs >= new Date(endUtc).getTime()) {
-        return { status: "EnterResult", label: "Ready to Read" };
+        if (test.workflowState === "TSB_INCUBATING" || test.usesSharedTsb || step?.stepType === "BrothEnrichment" || step?.stepType === "SelectiveBroth") {
+          return { status: "Ready: Plating", label: "Ready: Plating" };
+        }
+        return { status: "EnterResult", label: "Enter Result" };
       }
       return { status: "InProgress", label: "Incubating" };
     }
@@ -239,6 +242,9 @@ export function AssignedTestCard({
       // Check if endUtc has actually passed
       const endUtc = optimisticDetails?.endUtc || incubationEndUtc || activeIncubation?.incubationEndUtc;
       if (endUtc && nowMs >= new Date(endUtc).getTime()) {
+        if (test.workflowState === "TSB_INCUBATING" || test.usesSharedTsb || step?.stepType === "BrothEnrichment" || step?.stepType === "SelectiveBroth") {
+          return `✓ ${mediaLabel}${tempRange} · Incubation Complete — Ready for Downstream Setup${incSuffix}`;
+        }
         return `⏳ ${mediaLabel}${tempRange} · Incubation Complete${incSuffix}`;
       }
 

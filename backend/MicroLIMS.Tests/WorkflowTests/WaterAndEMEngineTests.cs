@@ -160,11 +160,7 @@ public class WaterAndEMEngineTests
         await db.SaveChangesAsync();
         db.Users.Add(new User { Id = 5, Username = "user5", FullName = "Analyst Five", RoleId = role.Id, PasswordHash = BCrypt.Net.BCrypt.HashPassword(password), IsActive = true });
         var item = new Item { Name = "Example Tablet", Code = "FP-0001", Category = SampleCategory.FinishedProduct };
-        var diluent = new DiluentType { Name = "Buffer", RequiresBatchTracking = false };
-        var neutralizer = new Neutralizer { Name = "Tween" };
         db.Items.Add(item);
-        db.DiluentTypes.Add(diluent);
-        db.Neutralizers.Add(neutralizer);
         await db.SaveChangesAsync();
 
         var sample = new Sample { Category = SampleCategory.FinishedProduct, ItemId = item.Id, ControlNumber = "CTRL-3", Status = SampleStatus.Received, PreparationStatus = SamplePreparationStatus.NeedsPreparation };
@@ -173,7 +169,7 @@ public class WaterAndEMEngineTests
 
         var service = TestServiceFactory.SamplePreparation(db);
         await service.PrepareAsync(new PrepareSampleRequest(
-            sample.Id, 10m, "ml", "PourPlate", null, null, diluent.Id, null, neutralizer.Id, UserId: 5, password));
+            sample.Id, 10m, "PourPlate", null, null, "Buffer", "Tween", UserId: 5, password));
 
         var reloaded = await db.Samples.FirstAsync(s => s.Id == sample.Id);
         Assert.Equal(SamplePreparationStatus.Ready, reloaded.PreparationStatus);

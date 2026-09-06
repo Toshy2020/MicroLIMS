@@ -29,6 +29,7 @@ import { Item } from "../services/ItemService";
 import { SpecificationService, SpecificationDto } from "../../specifications/services/SpecificationService";
 import { ConfirmationDialog } from "../../../../components/ConfirmationDialog";
 import { brandColors } from "../../../../theme";
+import { masterDataOptions } from "../../../../services/masterDataOptions";
 
 interface ItemSpecificationsSectionProps {
   item: Item;
@@ -44,13 +45,32 @@ export const ItemSpecificationsSection: React.FC<ItemSpecificationsSectionProps>
   const [specs, setSpecs] = useState<SpecificationDto[]>(item.specifications ?? []);
   const [loading, setLoading] = useState(false);
 
+  // testCode -> WorkflowType ("CountTest" | "Observation"), used to gate the
+  // Dilution Factor column to count-type tests (TAMC/TYMC) only - pathogen
+  // presence/absence tests never have a DF.
+  const [workflowTypeByCode, setWorkflowTypeByCode] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    masterDataOptions.getTestDefinitions()
+      .then((defs: { code: string; workflowType: string }[]) => {
+        setWorkflowTypeByCode(Object.fromEntries(defs.map((d) => [d.code, d.workflowType])));
+      })
+      .catch(() => {
+        // Non-fatal - the DF column just falls back to read-only "—" for
+        // every row if test definitions can't be loaded.
+      });
+  }, []);
+
+  const isCountTypeTest = (testCode: string) => workflowTypeByCode[testCode] === "CountTest";
+
   // Add row state
   const [addRow, setAddRow] = useState({
     testCode: "",
     alertLimit: "",
     actionLimit: "",
     specLimit: "",
-    unit: ""
+    unit: "",
+    dilutionFactor: ""
   });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -84,7 +104,7 @@ export const ItemSpecificationsSection: React.FC<ItemSpecificationsSectionProps>
     setEditingId(null);
     setEditRow({});
     setError(null);
-    setAddRow({ testCode: "", alertLimit: "", actionLimit: "", specLimit: "", unit: "" });
+    setAddRow({ testCode: "", alertLimit: "", actionLimit: "", specLimit: "", unit: "", dilutionFactor: "" });
   }, [item.id]);
 
   const assignedTests = item.assignedTests ?? [];
@@ -110,9 +130,10 @@ export const ItemSpecificationsSection: React.FC<ItemSpecificationsSectionProps>
         addRow.alertLimit ? addRow.alertLimit.trim() : "",
         addRow.actionLimit ? addRow.actionLimit.trim() : "",
         addRow.specLimit.trim(),
-        addRow.unit ? addRow.unit.trim() : ""
+        addRow.unit ? addRow.unit.trim() : "",
+        isCountTypeTest(addRow.testCode) && addRow.dilutionFactor.trim() !== "" ? Number(addRow.dilutionFactor) : null
       );
-      setAddRow({ testCode: "", alertLimit: "", actionLimit: "", specLimit: "", unit: "" });
+      setAddRow({ testCode: "", alertLimit: "", actionLimit: "", specLimit: "", unit: "", dilutionFactor: "" });
       await loadSpecs();
       onSpecsChanged?.();
     } catch (e: any) {
@@ -138,7 +159,10 @@ export const ItemSpecificationsSection: React.FC<ItemSpecificationsSectionProps>
         editRow.alertLimit ? editRow.alertLimit.trim() : "",
         editRow.actionLimit ? editRow.actionLimit.trim() : "",
         editRow.specLimit.trim(),
-        editRow.unit ? editRow.unit.trim() : ""
+        editRow.unit ? editRow.unit.trim() : "",
+        isCountTypeTest(spec.testCode) && editRow.dilutionFactor != null && `${editRow.dilutionFactor}`.trim() !== ""
+          ? Number(editRow.dilutionFactor)
+          : null
       );
       setEditingId(null);
       setEditRow({});
@@ -206,6 +230,12 @@ export const ItemSpecificationsSection: React.FC<ItemSpecificationsSectionProps>
                   </Tooltip>
                 </TableCell>
                 <TableCell sx={{ fontWeight: 700, fontSize: 12, width: 100 }}>Unit</TableCell>
+                <TableCell sx={{ fontWeight: 700, fontSize: 12, width: 120 }}>
+                  Dilution Factor
+                  <Tooltip title="Configured DF pulled automatically into count-test (TAMC/TYMC) result entry. Not applicable to pathogen tests.">
+                    <InfoOutlinedIcon sx={{ fontSize: 14, ml: 0.5, verticalAlign: "middle", color: "text.secondary" }} />
+                  </Tooltip>
+                </TableCell>
                 <TableCell align="right" sx={{ width: 100 }}>Actions</TableCell>
               </TableRow>
             </TableHead>
@@ -261,6 +291,21 @@ export const ItemSpecificationsSection: React.FC<ItemSpecificationsSectionProps>
                             sx={{ width: 100 }}
                           />
                         </TableCell>
+                        <TableCell>
+                          {isCountTypeTest(spec.testCode) ? (
+                            <TextField
+                              size="small"
+                              type="number"
+                              placeholder="e.g. 10"
+                              value={editRow.dilutionFactor ?? ""}
+                              onChange={(e) => setEditRow((r) => ({ ...r, dilutionFactor: e.target.value === "" ? null : Number(e.target.value) }))}
+                              inputProps={{ step: "1", min: "1" }}
+                              sx={{ width: 100 }}
+                            />
+                          ) : (
+                            <Typography variant="body2" sx={{ color: "text.disabled", fontSize: 13 }}>—</Typography>
+                          )}
+                        </TableCell>
                         <TableCell align="right">
                           <Stack direction="row" spacing={0.5} justifyContent="flex-end">
                             <IconButton
@@ -292,6 +337,9 @@ export const ItemSpecificationsSection: React.FC<ItemSpecificationsSectionProps>
                           {spec.specLimit || "—"}
                         </TableCell>
                         <TableCell sx={{ fontSize: 13 }}>{spec.unit || "—"}</TableCell>
+                        <TableCell sx={{ fontSize: 13 }}>
+                          {isCountTypeTest(spec.testCode) ? (spec.dilutionFactor ?? "—") : "—"}
+                        </TableCell>
                         <TableCell align="right">
                           <Stack direction="row" spacing={0.5} justifyContent="flex-end">
                             <IconButton
@@ -302,7 +350,8 @@ export const ItemSpecificationsSection: React.FC<ItemSpecificationsSectionProps>
                                   alertLimit: spec.alertLimit,
                                   actionLimit: spec.actionLimit,
                                   specLimit: spec.specLimit,
-                                  unit: spec.unit
+                                  unit: spec.unit,
+                                  dilutionFactor: spec.dilutionFactor
                                 });
                               }}
                               title="Edit Specification"
@@ -382,6 +431,21 @@ export const ItemSpecificationsSection: React.FC<ItemSpecificationsSectionProps>
                       onChange={(e) => setAddRow((r) => ({ ...r, unit: e.target.value }))}
                       sx={{ width: 100 }}
                     />
+                  </TableCell>
+                  <TableCell>
+                    {addRow.testCode && isCountTypeTest(addRow.testCode) ? (
+                      <TextField
+                        size="small"
+                        type="number"
+                        placeholder="e.g. 10"
+                        value={addRow.dilutionFactor}
+                        onChange={(e) => setAddRow((r) => ({ ...r, dilutionFactor: e.target.value }))}
+                        inputProps={{ step: "1", min: "1" }}
+                        sx={{ width: 100 }}
+                      />
+                    ) : (
+                      <Typography variant="body2" sx={{ color: "text.disabled", fontSize: 13 }}>—</Typography>
+                    )}
                   </TableCell>
                   <TableCell align="right">
                     <Button

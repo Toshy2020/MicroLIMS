@@ -9,16 +9,11 @@ public record ItemPreparationConfigurationDto(
     int Id,
     int ItemId,
     decimal Amount,
-    string Unit,
     string Technique,
     decimal? FiltrationVolume,
     decimal? WashingVolume,
-    int DiluentTypeId,
-    string DiluentTypeName,
-    int? DiluentMediaId,
-    string? DiluentMediaLotNumber,
-    int NeutralizerId,
-    string NeutralizerName,
+    string Diluent,
+    string Neutralizer,
     ApprovalGateStatus ApprovalStatus,
     int CreatedByUserId,
     string? CreatedByName,
@@ -46,9 +41,6 @@ public class ItemPreparationConfigurationService
     {
         var config = await _db.ItemPreparationConfigurations
             .AsNoTracking()
-            .Include(c => c.DiluentType)
-            .Include(c => c.DiluentMedia)
-            .Include(c => c.Neutralizer)
             .FirstOrDefaultAsync(c => c.ItemId == itemId);
 
         return config is null ? null : await ToDtoAsync(config);
@@ -59,7 +51,7 @@ public class ItemPreparationConfigurationService
         if (!await _db.Items.AnyAsync(i => i.Id == itemId))
             throw new InvalidOperationException($"Item {itemId} not found.");
 
-        var diluentType = await _validator.ValidateAsync(p);
+        await _validator.ValidateAsync(p);
 
         var config = await _db.ItemPreparationConfigurations.FirstOrDefaultAsync(c => c.ItemId == itemId);
         if (config is null)
@@ -76,13 +68,11 @@ public class ItemPreparationConfigurationService
         }
 
         config.Amount = p.Amount;
-        config.Unit = p.Unit;
         config.Technique = p.Technique;
         config.FiltrationVolume = p.FiltrationVolume;
         config.WashingVolume = p.WashingVolume;
-        config.DiluentTypeId = p.DiluentTypeId;
-        config.DiluentMediaId = diluentType.RequiresBatchTracking ? p.DiluentMediaId : null;
-        config.NeutralizerId = p.NeutralizerId;
+        config.Diluent = p.Diluent.Trim();
+        config.Neutralizer = p.Neutralizer.Trim();
         config.ApprovalStatus = ApprovalGateStatus.PendingReview;
 
         await _db.SaveChangesAsync();
@@ -112,9 +102,6 @@ public class ItemPreparationConfigurationService
     {
         var configs = await _db.ItemPreparationConfigurations
             .AsNoTracking()
-            .Include(c => c.DiluentType)
-            .Include(c => c.DiluentMedia)
-            .Include(c => c.Neutralizer)
             .Where(c => c.ApprovalStatus == ApprovalGateStatus.PendingReview)
             .OrderBy(c => c.CreatedAt)
             .ToListAsync();
@@ -139,16 +126,11 @@ public class ItemPreparationConfigurationService
             c.Id,
             c.ItemId,
             c.Amount,
-            c.Unit,
             c.Technique,
             c.FiltrationVolume,
             c.WashingVolume,
-            c.DiluentTypeId,
-            c.DiluentType?.Name ?? string.Empty,
-            c.DiluentMediaId,
-            c.DiluentMedia?.LotNumber,
-            c.NeutralizerId,
-            c.Neutralizer?.Name ?? string.Empty,
+            c.Diluent,
+            c.Neutralizer,
             c.ApprovalStatus,
             c.CreatedByUserId,
             names.TryGetValue(c.CreatedByUserId, out var createdBy) ? createdBy : null,

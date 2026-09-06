@@ -26,8 +26,8 @@ public record UpdateMachineRequest(string Name);
 public record CreateMachinePartRequest(string Name, int MachineId);
 public record UpdateMachinePartRequest(string Name, int MachineId);
 public record UpdateMachinePartConfigRequest(string TestType, string TestCode, string AlertLimit, string ActionLimit, string SpecLimit, bool IsPathogenTest, string? Unit = null);
-public record CreateSpecificationRequest(int ItemId, string TestCode, string AlertLimit, string ActionLimit, string SpecLimit, string? Unit = null);
-public record UpdateSpecificationRequest(string TestCode, string AlertLimit, string ActionLimit, string SpecLimit, string? Unit = null);
+public record CreateSpecificationRequest(int ItemId, string TestCode, string AlertLimit, string ActionLimit, string SpecLimit, string? Unit = null, decimal? DilutionFactor = null);
+public record UpdateSpecificationRequest(string TestCode, string AlertLimit, string ActionLimit, string SpecLimit, string? Unit = null, decimal? DilutionFactor = null);
 public record CreateDiluentTypeRequest(string Name, bool RequiresBatchTracking, int? MaterialId);
 public record CreateEquipmentRequest(string Name, string Code, EquipmentType Type, string? Location, decimal? SetPointTemperature, DateTime? CalibrationDueDate);
 public record CreateRoomTestConfigRequest(int RoomId, string TestType, string TestCode, string AlertLimit, string ActionLimit, string SpecLimit, string? Unit = null);
@@ -452,7 +452,7 @@ public class MasterDataController : ControllerBase
         {
             ItemId = request.ItemId, TestCode = request.TestCode,
             AlertLimit = request.AlertLimit, ActionLimit = request.ActionLimit, SpecLimit = request.SpecLimit,
-            Unit = request.Unit ?? string.Empty
+            Unit = request.Unit ?? string.Empty, DilutionFactor = request.DilutionFactor
         };
         _db.Specifications.Add(spec);
         await _db.SaveChangesAsync();
@@ -470,6 +470,7 @@ public class MasterDataController : ControllerBase
         spec.ActionLimit = request.ActionLimit;
         spec.SpecLimit = request.SpecLimit;
         spec.Unit = request.Unit ?? string.Empty;
+        spec.DilutionFactor = request.DilutionFactor;
         await _db.SaveChangesAsync();
         return Ok(ApiResponse<object>.Ok(spec));
     }
@@ -496,10 +497,139 @@ public class MasterDataController : ControllerBase
     [HttpPost("causes-of-testing")]
     public async Task<IActionResult> CreateCauseOfTesting([FromBody] string name)
     {
+        if (await _db.CausesOfTesting.AnyAsync(c => c.Name.ToLower() == name.ToLower()))
+            throw new InvalidOperationException($"Cause of Testing \"{name}\" already exists.");
+
         var entity = new CauseOfTesting { Name = name };
         _db.CausesOfTesting.Add(entity);
         await _db.SaveChangesAsync();
         return Ok(ApiResponse<object>.Ok(entity));
+    }
+
+    [Authorize(Roles = RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
+    [HttpPut("causes-of-testing/{id}")]
+    public async Task<IActionResult> UpdateCauseOfTesting(int id, [FromBody] string name)
+    {
+        var entity = await _db.CausesOfTesting.FirstOrDefaultAsync(c => c.Id == id)
+            ?? throw new InvalidOperationException($"Cause of Testing {id} not found.");
+
+        if (await _db.CausesOfTesting.AnyAsync(c => c.Id != id && c.Name.ToLower() == name.ToLower()))
+            throw new InvalidOperationException($"Cause of Testing \"{name}\" already exists.");
+
+        entity.Name = name;
+        await _db.SaveChangesAsync();
+        return Ok(ApiResponse<object>.Ok(entity));
+    }
+
+    // Blocked (not a raw FK error) if any Sample still references this
+    // cause - real FK (Sample.CauseOfTestingId is Restrict), same
+    // "guard with a clear message" pattern as DeleteOrganism.
+    [Authorize(Roles = RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
+    [HttpDelete("causes-of-testing/{id}")]
+    public async Task<IActionResult> DeleteCauseOfTesting(int id)
+    {
+        var entity = await _db.CausesOfTesting.FirstOrDefaultAsync(c => c.Id == id)
+            ?? throw new InvalidOperationException($"Cause of Testing {id} not found.");
+
+        var sampleCount = await _db.Samples.CountAsync(s => s.CauseOfTestingId == id);
+        if (sampleCount > 0)
+            throw new InvalidOperationException($"Cannot delete '{entity.Name}' - it is referenced by {sampleCount} sample(s).");
+
+        _db.CausesOfTesting.Remove(entity);
+        await _db.SaveChangesAsync();
+        return Ok(ApiResponse<object>.Ok(new { }));
+    }
+
+    // ---- Samplers (suggestion list for the free-text "Sampled By" field on
+    // Sample - not an FK, so no delete guard needed: removing a name here
+    // never touches historical Sample rows, which store the string directly) ----
+    [HttpGet("samplers")]
+    public async Task<IActionResult> GetSamplers() => Ok(ApiResponse<object>.Ok(await _db.Samplers.Where(s => s.IsActive).OrderBy(s => s.Name).ToListAsync()));
+
+    [Authorize(Roles = RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
+    [HttpPost("samplers")]
+    public async Task<IActionResult> CreateSampler([FromBody] string name)
+    {
+        if (await _db.Samplers.AnyAsync(s => s.Name.ToLower() == name.ToLower()))
+            throw new InvalidOperationException($"Sampler \"{name}\" already exists.");
+
+        var entity = new Sampler { Name = name };
+        _db.Samplers.Add(entity);
+        await _db.SaveChangesAsync();
+        return Ok(ApiResponse<object>.Ok(entity));
+    }
+
+    [Authorize(Roles = RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
+    [HttpPut("samplers/{id}")]
+    public async Task<IActionResult> UpdateSampler(int id, [FromBody] string name)
+    {
+        var entity = await _db.Samplers.FirstOrDefaultAsync(s => s.Id == id)
+            ?? throw new InvalidOperationException($"Sampler {id} not found.");
+
+        if (await _db.Samplers.AnyAsync(s => s.Id != id && s.Name.ToLower() == name.ToLower()))
+            throw new InvalidOperationException($"Sampler \"{name}\" already exists.");
+
+        entity.Name = name;
+        await _db.SaveChangesAsync();
+        return Ok(ApiResponse<object>.Ok(entity));
+    }
+
+    [Authorize(Roles = RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
+    [HttpDelete("samplers/{id}")]
+    public async Task<IActionResult> DeleteSampler(int id)
+    {
+        var entity = await _db.Samplers.FirstOrDefaultAsync(s => s.Id == id)
+            ?? throw new InvalidOperationException($"Sampler {id} not found.");
+
+        _db.Samplers.Remove(entity);
+        await _db.SaveChangesAsync();
+        return Ok(ApiResponse<object>.Ok(new { }));
+    }
+
+    // ---- Production Stages (fixed-choice list for the Finished Product
+    // receiving form's Production Stage field - not an FK, same rationale
+    // as Samplers above) ----
+    [HttpGet("production-stages")]
+    public async Task<IActionResult> GetProductionStages() => Ok(ApiResponse<object>.Ok(await _db.ProductionStages.Where(s => s.IsActive).OrderBy(s => s.Name).ToListAsync()));
+
+    [Authorize(Roles = RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
+    [HttpPost("production-stages")]
+    public async Task<IActionResult> CreateProductionStage([FromBody] string name)
+    {
+        if (await _db.ProductionStages.AnyAsync(s => s.Name.ToLower() == name.ToLower()))
+            throw new InvalidOperationException($"Production Stage \"{name}\" already exists.");
+
+        var entity = new ProductionStage { Name = name };
+        _db.ProductionStages.Add(entity);
+        await _db.SaveChangesAsync();
+        return Ok(ApiResponse<object>.Ok(entity));
+    }
+
+    [Authorize(Roles = RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
+    [HttpPut("production-stages/{id}")]
+    public async Task<IActionResult> UpdateProductionStage(int id, [FromBody] string name)
+    {
+        var entity = await _db.ProductionStages.FirstOrDefaultAsync(s => s.Id == id)
+            ?? throw new InvalidOperationException($"Production Stage {id} not found.");
+
+        if (await _db.ProductionStages.AnyAsync(s => s.Id != id && s.Name.ToLower() == name.ToLower()))
+            throw new InvalidOperationException($"Production Stage \"{name}\" already exists.");
+
+        entity.Name = name;
+        await _db.SaveChangesAsync();
+        return Ok(ApiResponse<object>.Ok(entity));
+    }
+
+    [Authorize(Roles = RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
+    [HttpDelete("production-stages/{id}")]
+    public async Task<IActionResult> DeleteProductionStage(int id)
+    {
+        var entity = await _db.ProductionStages.FirstOrDefaultAsync(s => s.Id == id)
+            ?? throw new InvalidOperationException($"Production Stage {id} not found.");
+
+        _db.ProductionStages.Remove(entity);
+        await _db.SaveChangesAsync();
+        return Ok(ApiResponse<object>.Ok(new { }));
     }
 
     // ---- Diluent Types ----

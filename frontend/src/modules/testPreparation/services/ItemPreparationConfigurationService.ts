@@ -1,21 +1,19 @@
 import { apiClient } from "../../../services/apiClient";
 
 // Per-item preparation protocol. Read by the analyst's confirm dialogue,
-// written from Laboratory Configuration -> Items.
+// written from Laboratory Configuration -> Items. Diluent/Neutralizer are
+// free text and Unit was removed as of the 2026-09 Preparation
+// Configuration simplification - the reporting unit lives on Specification
+// per test instead.
 export interface ItemPreparationConfiguration {
   id: number;
   itemId: number;
   amount: number;
-  unit: string;
   technique: string;
   filtrationVolume: number | null;
   washingVolume: number | null;
-  diluentTypeId: number;
-  diluentTypeName: string;
-  diluentMediaId: number | null;
-  diluentMediaLotNumber: string | null;
-  neutralizerId: number;
-  neutralizerName: string;
+  diluent: string;
+  neutralizer: string;
   approvalStatus: "PendingReview" | "Approved" | "Rejected";
   createdByUserId: number;
   createdByName: string | null;
@@ -27,13 +25,11 @@ export interface ItemPreparationConfiguration {
 
 export interface PreparationConfigurationSaveRequest {
   amount: number;
-  unit: string;
   technique: string;
   filtrationVolume?: number | null;
   washingVolume?: number | null;
-  diluentTypeId: number;
-  diluentMediaId?: number | null;
-  neutralizerId: number;
+  diluent: string;
+  neutralizer: string;
 }
 
 export const ItemPreparationConfigurationService = {

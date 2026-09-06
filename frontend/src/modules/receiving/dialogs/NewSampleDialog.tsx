@@ -55,13 +55,17 @@ export function NewSampleDialog({ open, onClose, onSuccess }: Props) {
     departments: any[];
     machines: any[];
     causes: any[];
+    samplers: any[];
+    productionStages: any[];
   }>({
     items: [],
     waterPoints: [],
     waterDepartments: [],
     departments: [],
     machines: [],
-    causes: []
+    causes: [],
+    samplers: [],
+    productionStages: []
   });
 
   const [loading, setLoading] = useState(false);
@@ -77,6 +81,12 @@ export function NewSampleDialog({ open, onClose, onSuccess }: Props) {
 
       masterDataOptions.getCausesOfTesting().then((causes) =>
         setMasterData((prev) => ({ ...prev, causes }))
+      );
+      masterDataOptions.getSamplers().then((samplers) =>
+        setMasterData((prev) => ({ ...prev, samplers }))
+      );
+      masterDataOptions.getProductionStages().then((productionStages) =>
+        setMasterData((prev) => ({ ...prev, productionStages }))
       );
       masterDataOptions.getWaterSamplingPoints().then((waterPoints) =>
         setMasterData((prev) => ({ ...prev, waterPoints }))

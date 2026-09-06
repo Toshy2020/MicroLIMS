@@ -4,6 +4,7 @@ using MicroLIMS.Application.Workflows;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Persistence.DbContext;
+using MicroLIMS.Shared.Constants;
 using Xunit;
 
 namespace MicroLIMS.Tests.WorkflowTests;
@@ -233,7 +234,8 @@ public class CountTestWorkflowTests
         var (order, generalAgarMedia, _) = await SeedTamcOrderAsync(db);
         var sample = await db.Samples.FirstAsync(s => s.Id == order.SampleId);
         sample.Category = SampleCategory.FinishedProduct;
-        db.SamplePreparations.Add(new SamplePreparation { SampleId = sample.Id, Amount = 10, Unit = "gm", Technique = "PourPlate", DiluentTypeId = 1, NeutralizerId = 1 });
+        db.SamplePreparations.Add(new SamplePreparation { SampleId = sample.Id, Amount = 10, Technique = "PourPlate", Diluent = "Buffer", Neutralizer = "Tween" });
+        (await db.SamplingConfigurations.FirstAsync(c => c.TestCode == "TAMC")).Unit = "g";
         await db.SaveChangesAsync();
 
         var engine = TestServiceFactory.TestWorkflow(db);
@@ -250,7 +252,8 @@ public class CountTestWorkflowTests
         var (order, generalAgarMedia, _) = await SeedTamcOrderAsync(db);
         var sample = await db.Samples.FirstAsync(s => s.Id == order.SampleId);
         sample.Category = SampleCategory.FinishedProduct;
-        db.SamplePreparations.Add(new SamplePreparation { SampleId = sample.Id, Amount = 10, Unit = "gm", Technique = "PourPlate", DiluentTypeId = 1, NeutralizerId = 1 });
+        db.SamplePreparations.Add(new SamplePreparation { SampleId = sample.Id, Amount = 10, Technique = "PourPlate", Diluent = "Buffer", Neutralizer = "Tween" });
+        (await db.SamplingConfigurations.FirstAsync(c => c.TestCode == "TAMC")).Unit = "g";
         await db.SaveChangesAsync();
 
         var engine = TestServiceFactory.TestWorkflow(db);
@@ -269,7 +272,8 @@ public class CountTestWorkflowTests
         var (order, generalAgarMedia, _) = await SeedTamcOrderAsync(db);
         var sample = await db.Samples.FirstAsync(s => s.Id == order.SampleId);
         sample.Category = SampleCategory.FinishedProduct;
-        db.SamplePreparations.Add(new SamplePreparation { SampleId = sample.Id, Amount = 10, Unit = "gm", Technique = "PourPlate", DiluentTypeId = 1, NeutralizerId = 1 });
+        db.SamplePreparations.Add(new SamplePreparation { SampleId = sample.Id, Amount = 10, Technique = "PourPlate", Diluent = "Buffer", Neutralizer = "Tween" });
+        (await db.SamplingConfigurations.FirstAsync(c => c.TestCode == "TAMC")).Unit = "g";
         await db.SaveChangesAsync();
 
         var engine = TestServiceFactory.TestWorkflow(db);
@@ -362,6 +366,115 @@ public class CountTestWorkflowTests
 
         var reading = await db.CountTestReadings.FirstAsync(r => r.TestOrderId == order.Id);
         Assert.Equal(1m, reading.DilutionFactor);
+    }
+
+    [Fact]
+    public async Task CountTest_ItemBased_NoConfiguredDF_Blocks()
+    {
+        await using var db = NewDb();
+        var (order, generalAgarMedia, _) = await SeedTamcOrderAsync(db);
+        var item = new Item { Name = "Osteocare Liquid", Code = "OST-01", Category = SampleCategory.FinishedProduct };
+        db.Items.Add(item);
+        await db.SaveChangesAsync();
+
+        var sample = await db.Samples.FirstAsync(s => s.Id == order.SampleId);
+        sample.Category = SampleCategory.FinishedProduct;
+        sample.ItemId = item.Id;
+        sample.WaterSamplingPointId = null;
+        db.SamplePreparations.Add(new SamplePreparation { SampleId = sample.Id, Amount = 10, Technique = "PourPlate", Diluent = "Buffer", Neutralizer = "Tween" });
+        await db.SaveChangesAsync();
+
+        var engine = TestServiceFactory.TestWorkflow(db);
+        await engine.SelectMediaAsync(order.Id, "CountIncubation", generalAgarMedia.Id, incubatorEquipmentId: 1, userId: 1);
+
+        var ex = await Assert.ThrowsAsync<WorkflowStepException>(() =>
+            engine.RecordResultAsync(order.Id, "CountIncubation", new CountTestPayload(new List<string> { "3", "5" }, 10), userId: 1));
+        Assert.Equal(WorkflowErrorCodes.DilutionFactorNotConfigured, ex.ErrorCode);
+    }
+
+    [Fact]
+    public async Task CountTest_ItemBased_MatchingConfiguredDF_NoNoteNeeded()
+    {
+        await using var db = NewDb();
+        var (order, generalAgarMedia, _) = await SeedTamcOrderAsync(db);
+        var item = new Item { Name = "Osteocare Liquid", Code = "OST-01", Category = SampleCategory.FinishedProduct };
+        db.Items.Add(item);
+        await db.SaveChangesAsync();
+        db.Specifications.Add(new Specification { ItemId = item.Id, TestCode = "TAMC", SpecLimit = "1000", Unit = "g", DilutionFactor = 10 });
+
+        var sample = await db.Samples.FirstAsync(s => s.Id == order.SampleId);
+        sample.Category = SampleCategory.FinishedProduct;
+        sample.ItemId = item.Id;
+        sample.WaterSamplingPointId = null;
+        db.SamplePreparations.Add(new SamplePreparation { SampleId = sample.Id, Amount = 10, Technique = "PourPlate", Diluent = "Buffer", Neutralizer = "Tween" });
+        await db.SaveChangesAsync();
+
+        var engine = TestServiceFactory.TestWorkflow(db);
+        await engine.SelectMediaAsync(order.Id, "CountIncubation", generalAgarMedia.Id, incubatorEquipmentId: 1, userId: 1);
+
+        var result = await engine.RecordResultAsync(order.Id, "CountIncubation", new CountTestPayload(new List<string> { "3", "5" }, 10), userId: 1);
+        Assert.Equal(40m, result.CalculatedResult);
+
+        var reading = await db.CountTestReadings.FirstAsync(r => r.TestOrderId == order.Id);
+        Assert.Equal(10m, reading.ConfiguredDilutionFactor);
+        Assert.False(reading.DilutionFactorOverridden);
+        Assert.Null(reading.DilutionFactorOverrideNote);
+    }
+
+    [Fact]
+    public async Task CountTest_ItemBased_OverrideWithoutNote_Throws()
+    {
+        await using var db = NewDb();
+        var (order, generalAgarMedia, _) = await SeedTamcOrderAsync(db);
+        var item = new Item { Name = "Osteocare Liquid", Code = "OST-01", Category = SampleCategory.FinishedProduct };
+        db.Items.Add(item);
+        await db.SaveChangesAsync();
+        db.Specifications.Add(new Specification { ItemId = item.Id, TestCode = "TAMC", SpecLimit = "1000", Unit = "g", DilutionFactor = 10 });
+
+        var sample = await db.Samples.FirstAsync(s => s.Id == order.SampleId);
+        sample.Category = SampleCategory.FinishedProduct;
+        sample.ItemId = item.Id;
+        sample.WaterSamplingPointId = null;
+        db.SamplePreparations.Add(new SamplePreparation { SampleId = sample.Id, Amount = 10, Technique = "PourPlate", Diluent = "Buffer", Neutralizer = "Tween" });
+        await db.SaveChangesAsync();
+
+        var engine = TestServiceFactory.TestWorkflow(db);
+        await engine.SelectMediaAsync(order.Id, "CountIncubation", generalAgarMedia.Id, incubatorEquipmentId: 1, userId: 1);
+
+        var ex = await Assert.ThrowsAsync<WorkflowStepException>(() =>
+            engine.RecordResultAsync(order.Id, "CountIncubation", new CountTestPayload(new List<string> { "3", "5" }, 100), userId: 1));
+        Assert.Equal(WorkflowErrorCodes.DilutionFactorJustificationRequired, ex.ErrorCode);
+    }
+
+    [Fact]
+    public async Task CountTest_ItemBased_OverrideWithNote_RecordsAudit()
+    {
+        await using var db = NewDb();
+        var (order, generalAgarMedia, _) = await SeedTamcOrderAsync(db);
+        var item = new Item { Name = "Osteocare Liquid", Code = "OST-01", Category = SampleCategory.FinishedProduct };
+        db.Items.Add(item);
+        await db.SaveChangesAsync();
+        db.Specifications.Add(new Specification { ItemId = item.Id, TestCode = "TAMC", SpecLimit = "1000", Unit = "g", DilutionFactor = 10 });
+
+        var sample = await db.Samples.FirstAsync(s => s.Id == order.SampleId);
+        sample.Category = SampleCategory.FinishedProduct;
+        sample.ItemId = item.Id;
+        sample.WaterSamplingPointId = null;
+        db.SamplePreparations.Add(new SamplePreparation { SampleId = sample.Id, Amount = 10, Technique = "PourPlate", Diluent = "Buffer", Neutralizer = "Tween" });
+        await db.SaveChangesAsync();
+
+        var engine = TestServiceFactory.TestWorkflow(db);
+        await engine.SelectMediaAsync(order.Id, "CountIncubation", generalAgarMedia.Id, incubatorEquipmentId: 1, userId: 1);
+
+        var result = await engine.RecordResultAsync(order.Id, "CountIncubation",
+            new CountTestPayload(new List<string> { "3", "5" }, 100, "Analyst re-diluted after initial plate overgrowth."), userId: 1);
+        Assert.Equal(400m, result.CalculatedResult);
+
+        var reading = await db.CountTestReadings.FirstAsync(r => r.TestOrderId == order.Id);
+        Assert.Equal(10m, reading.ConfiguredDilutionFactor);
+        Assert.Equal(100m, reading.DilutionFactor);
+        Assert.True(reading.DilutionFactorOverridden);
+        Assert.Equal("Analyst re-diluted after initial plate overgrowth.", reading.DilutionFactorOverrideNote);
     }
 
     [Fact]

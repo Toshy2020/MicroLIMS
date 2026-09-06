@@ -2,6 +2,7 @@ import { useEffect, useState, useMemo } from "react";
 import { Box, Typography, TextField, Button, Stack, Alert, Select, MenuItem, IconButton, useTheme } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import CloseIcon from "@mui/icons-material/Close";
+import EditIcon from "@mui/icons-material/Edit";
 import { StatusBadge } from "../../components/StatusBadge";
 import { masterDataOptions } from "../../services/masterDataOptions";
 import { lookupCache } from "../../services/lookupCache";
@@ -82,6 +83,8 @@ export function TestWorkflowDialog({ testOrderId, testCode, category, displayNam
 
   const [readings, setReadings] = useState<string[]>(["", ""]);
   const [dilutionFactor, setDilutionFactor] = useState("1");
+  const [dilutionFactorOverriding, setDilutionFactorOverriding] = useState(false);
+  const [dilutionFactorOverrideNote, setDilutionFactorOverrideNote] = useState("");
 
   const [lastOutcome, setLastOutcome] = useState<any | null>(null);
 
@@ -91,7 +94,13 @@ export function TestWorkflowDialog({ testOrderId, testCode, category, displayNam
       const data = await TestWorkflowService.getCurrentStep(testOrderId);
       setCurrent(data);
       setMediaId(""); setIncubatorId(""); setStage2IncubatorId("");
-      setReadings(["", ""]); setDilutionFactor("1");
+      const sampleType = data?.sampleContext?.sampleType ?? "";
+      const isDirect = ["Water", "EnvironmentalMonitoring", "AfterCleaning"].includes(sampleType);
+      const configuredDf = data?.sampleContext?.configuredDilutionFactor;
+      setReadings(["", ""]);
+      setDilutionFactor(isDirect ? "1" : configuredDf != null ? String(configuredDf) : "");
+      setDilutionFactorOverriding(false);
+      setDilutionFactorOverrideNote("");
       setPhase(data.allStepsComplete ? "all-complete" : data.incubationLock != null ? "awaiting-result" : "select-media");
     } catch (e: any) {
       setError(e?.response?.data?.message ?? "Could not load this test's workflow.");
@@ -230,6 +239,18 @@ export function TestWorkflowDialog({ testOrderId, testCode, category, displayNam
   const isDirectCount = ["Water", "EnvironmentalMonitoring", "AfterCleaning"]
     .includes(current?.sampleContext?.sampleType ?? "");
 
+  const isCountTestWorkflow = current?.workflowType === "CountTest";
+  const configuredDilutionFactor: number | null = current?.sampleContext?.configuredDilutionFactor ?? null;
+  // Item-based count test (TAMC/TYMC) with nothing configured yet on
+  // Specifications - result entry is blocked, mirroring the backend rule
+  // in TestWorkflowEngine.RecordCountTestAsync rather than letting the
+  // analyst free-type a value that would just be rejected on submit.
+  // Gated to CountTest so these never affect the pathogen/observation
+  // Submit button, which shares the same disabled-state expression below.
+  const dilutionFactorNotConfigured = isCountTestWorkflow && !isDirectCount && configuredDilutionFactor == null;
+  const dilutionFactorDiffersFromConfigured =
+    isCountTestWorkflow && !isDirectCount && configuredDilutionFactor != null && (parseFloat(dilutionFactor) || 0) !== configuredDilutionFactor;
+
   const cfuUnit = current?.sampleContext?.cfuUnit ?? "CFU/mL";
 
   const liveResult = useMemo(() => {
@@ -257,14 +278,23 @@ export function TestWorkflowDialog({ testOrderId, testCode, category, displayNam
   const submitResult = async () => {
     setError(null);
     try {
+      if (dilutionFactorNotConfigured) {
+        setError("No Dilution Factor is configured for this test on the item's Specifications. Ask a Section Head/Admin to configure it before recording a result.");
+        return;
+      }
       if (readings.every((r) => r.trim() === "")) {
         setError("Enter at least one plate reading.");
+        return;
+      }
+      if (dilutionFactorDiffersFromConfigured && !dilutionFactorOverrideNote.trim()) {
+        setError("A justification note is required when the entered Dilution Factor differs from the configured value.");
         return;
       }
       const payload = {
         stepName: step.stepName,
         rawPlateReadings: readings.filter((r) => r.trim() !== ""),
-        dilutionFactor: Number(dilutionFactor) || 1
+        dilutionFactor: Number(dilutionFactor) || 1,
+        dilutionFactorOverrideNote: dilutionFactorDiffersFromConfigured ? dilutionFactorOverrideNote.trim() : undefined
       };
 
       const result = await TestWorkflowService.recordCountResult(testOrderId, payload);
@@ -519,20 +549,68 @@ export function TestWorkflowDialog({ testOrderId, testCode, category, displayNam
         <Stack spacing={1.5}>
           {current.workflowType === "CountTest" && (
             <>
-              <TextField
-                label="Dilution Factor"
-                type="number"
-                value={dilutionFactor}
-                onChange={(e) => setDilutionFactor(e.target.value)}
-                disabled={isDirectCount}
-                helperText={
-                  isDirectCount
-                    ? "Direct count — dilution factor fixed at 1"
-                    : "Enter multiplier: 10 for 1:10 dilution, 100 for 1:100"
-                }
-                inputProps={{ step: "1", min: "1" }}
-                sx={{ maxWidth: 300, mb: 1 }}
-              />
+              {dilutionFactorNotConfigured ? (
+                <Alert severity="error" sx={{ mb: 1 }}>
+                  No Dilution Factor is configured for this test on the item's Specifications tab. Ask a Section Head/Admin to configure it before recording a result.
+                </Alert>
+              ) : (
+                <Stack direction="row" spacing={1} alignItems="flex-start" sx={{ mb: 1 }}>
+                  <TextField
+                    label="Dilution Factor"
+                    type="number"
+                    value={dilutionFactor}
+                    onChange={(e) => setDilutionFactor(e.target.value)}
+                    disabled={isDirectCount || !dilutionFactorOverriding}
+                    helperText={
+                      isDirectCount
+                        ? "Direct count — dilution factor fixed at 1"
+                        : dilutionFactorOverriding
+                          ? "Enter multiplier: 10 for 1:10 dilution, 100 for 1:100"
+                          : `Configured value from Specifications${configuredDilutionFactor != null ? ` (${configuredDilutionFactor})` : ""}`
+                    }
+                    inputProps={{ step: "1", min: "1" }}
+                    sx={{ maxWidth: 300 }}
+                  />
+                  {!isDirectCount && !dilutionFactorOverriding && (
+                    <IconButton
+                      size="small"
+                      onClick={() => setDilutionFactorOverriding(true)}
+                      title="Override configured Dilution Factor"
+                      sx={{ mt: 1 }}
+                    >
+                      <EditIcon fontSize="small" />
+                    </IconButton>
+                  )}
+                  {dilutionFactorOverriding && (
+                    <Button
+                      size="small"
+                      sx={{ mt: 1 }}
+                      onClick={() => {
+                        setDilutionFactorOverriding(false);
+                        setDilutionFactorOverrideNote("");
+                        setDilutionFactor(configuredDilutionFactor != null ? String(configuredDilutionFactor) : "");
+                      }}
+                    >
+                      Cancel Override
+                    </Button>
+                  )}
+                </Stack>
+              )}
+
+              {dilutionFactorDiffersFromConfigured && (
+                <TextField
+                  label="Justification for override"
+                  required
+                  multiline
+                  minRows={2}
+                  value={dilutionFactorOverrideNote}
+                  onChange={(e) => setDilutionFactorOverrideNote(e.target.value)}
+                  error={!dilutionFactorOverrideNote.trim()}
+                  helperText="Required — the entered value differs from what's configured on Specifications. This is captured in the audit trail."
+                  fullWidth
+                  sx={{ mb: 1 }}
+                />
+              )}
 
               <Stack spacing={1}>
                 {readings.map((r, i) => (
@@ -590,7 +668,11 @@ export function TestWorkflowDialog({ testOrderId, testCode, category, displayNam
             <Alert severity="warning">Results cannot be submitted before {minReadyAt.toLocaleString()}.</Alert>
           )}
           <Stack direction="row" justifyContent="flex-end">
-            <Button variant="contained" disabled={!isTimeReady} onClick={submitResult}>
+            <Button
+              variant="contained"
+              disabled={!isTimeReady || dilutionFactorNotConfigured || (dilutionFactorDiffersFromConfigured && !dilutionFactorOverrideNote.trim())}
+              onClick={submitResult}
+            >
               {current.workflowType === "CountTest" ? "Calculate" : "Submit"}
             </Button>
           </Stack>

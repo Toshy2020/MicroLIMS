@@ -129,9 +129,10 @@ public static class ReportDocumentMapper
                 Label = "sample preparation",
                 Items = new()
                 {
-                    ("Amount", $"{p.Amount} {p.Unit}", null),
+                    ("Amount", $"{p.Amount}", null),
                     ("Technique", Humanize(p.Technique), p.Technique == "Filtration" ? $"Filt {p.FiltrationVolume} / Wash {p.WashingVolume}" : null),
-                    ("Neutralizer", string.IsNullOrEmpty(p.NeutralizerName) ? "-" : p.NeutralizerName, null),
+                    ("Diluent", string.IsNullOrEmpty(p.Diluent) ? "-" : p.Diluent, null),
+                    ("Neutralizer", string.IsNullOrEmpty(p.Neutralizer) ? "-" : p.Neutralizer, null),
                     ("Prepared by", p.PreparedByName, Dt(p.PreparedAt))
                 }
             });

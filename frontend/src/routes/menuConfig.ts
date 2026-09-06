@@ -62,8 +62,7 @@ const laboratoryConfigurationItem: MenuItem = {
     { label: "Water", path: "/laboratory-configuration/water" },
     { label: "Environmental Monitoring", path: "/laboratory-configuration/environmental-monitoring" },
     { label: "After Cleaning", path: "/laboratory-configuration/after-cleaning" },
-    { label: "Cause of Testing", path: "/laboratory-configuration/cause-of-testing" },
-    { label: "Diluents & Neutralizers", path: "/laboratory-configuration/diluents" },
+    { label: "Receiving Configuration", path: "/laboratory-configuration/receiving-configuration" },
     { label: "Equipment", path: "/laboratory-configuration/equipment" }
   ]
 };

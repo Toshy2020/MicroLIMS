@@ -103,26 +103,13 @@ public class ResultProjectionService
         _ => ResultLevel.NotApplicable
     };
 
-    // SamplePreparation.Unit is "ml"/"gm"/"bottle"/"cap"/"25cm2" (see its
-    // comment) - only the mass ("gm") and volume ("ml") units translate to
-    // a CFU/g or CFU/mL result unit. Everything else (bottle/cap/25cm2 - a
-    // whole-item or swab-area basis) reports per plate instead. When no
-    // SamplePreparation exists at all (shouldn't happen for Product/RM/PM/
-    // Water, but guards Count Tests reached some other way), fall back to
-    // the category's typical unit.
-    private static string DeriveCountUnit(SamplePreparation? preparation, SampleCategory category)
-    {
-        if (preparation is not null)
-        {
-            return preparation.Unit.ToLowerInvariant() switch
-            {
-                "gm" => "CFU/g",
-                "ml" => "CFU/mL",
-                _ => "CFU/Plate"
-            };
-        }
-        return category == SampleCategory.Water ? "CFU/mL" : "CFU/g";
-    }
+    // Fallback when nothing is configured on Specification/SamplingConfiguration
+    // - Item-based (Product/RM/PM) tests always have Specification.Unit by
+    // this point (required as of the 2026-09 Preparation Configuration
+    // simplification, enforced in TestWorkflowEngine.RecordCountTestAsync),
+    // so in practice this only still matters for Water.
+    private static string DeriveCountUnit(SampleCategory category) =>
+        category == SampleCategory.Water ? "CFU/mL" : "CFU/g";
 
     public async Task UpsertFromCountTestReadingAsync(int countTestReadingId)
     {
@@ -136,7 +123,6 @@ public class ResultProjectionService
         var sample = order.Sample ?? throw new InvalidOperationException($"TestOrder {order.Id} has no Sample - cannot project CountTestReading {countTestReadingId}.");
 
         var testDefinition = await _db.TestDefinitions.FirstOrDefaultAsync(t => t.Code == order.TestCode);
-        var preparation = await _db.SamplePreparations.FirstOrDefaultAsync(p => p.SampleId == sample.Id);
         var enteredBy = await _db.Users.FirstOrDefaultAsync(u => u.Id == reading.EnteredByUserId);
         var round = await ComputeRoundAsync(sample.Id, order.TestCode, order.Id);
 
@@ -170,7 +156,7 @@ public class ResultProjectionService
         record.ReportedValue = reading.ReportedResult;
         record.Unit = !string.IsNullOrWhiteSpace(configuredUnit)
             ? (configuredUnit.StartsWith("CFU/", StringComparison.OrdinalIgnoreCase) ? configuredUnit : $"CFU/{configuredUnit}")
-            : DeriveCountUnit(preparation, sample.Category);
+            : DeriveCountUnit(sample.Category);
         record.IsBelowDetectionLimit = isBelowDetectionLimit;
         record.DetectionLimit = detectionLimit;
         record.AlertLimit = reading.AlertLimit;

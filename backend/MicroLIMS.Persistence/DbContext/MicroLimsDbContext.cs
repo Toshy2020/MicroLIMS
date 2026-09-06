@@ -65,6 +65,8 @@ public class MicroLimsDbContext : Microsoft.EntityFrameworkCore.DbContext
     public DbSet<CauseOfTesting> CausesOfTesting => Set<CauseOfTesting>();
     public DbSet<DiluentType> DiluentTypes => Set<DiluentType>();
     public DbSet<Neutralizer> Neutralizers => Set<Neutralizer>();
+    public DbSet<Sampler> Samplers => Set<Sampler>();
+    public DbSet<ProductionStage> ProductionStages => Set<ProductionStage>();
     public DbSet<Equipment> Equipment => Set<Equipment>();
     public DbSet<IncubatorSetPointHistory> IncubatorSetPointHistories => Set<IncubatorSetPointHistory>();
     public DbSet<AutoclaveProgram> AutoclavePrograms => Set<AutoclaveProgram>();

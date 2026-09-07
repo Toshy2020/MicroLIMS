@@ -17,6 +17,10 @@ public class DocumentReviewFindingDto
     public string CommentText { get; set; } = string.Empty;
     public bool IsMandatory { get; set; }
 
+    // Release 1d: Linkage to specific source file version
+    public int? RevisionFileId { get; set; }
+    public int? SourceFileVersion { get; set; }
+
     public ReviewFindingStatus Status { get; set; }
 
     public string? AuthorResponse { get; set; }

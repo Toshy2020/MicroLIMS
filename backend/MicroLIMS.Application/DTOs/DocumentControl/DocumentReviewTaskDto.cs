@@ -31,6 +31,10 @@ public class DocumentReviewTaskDto
     public string? ReviewNotes { get; set; }
     public string? SubmissionNotes { get; set; }
 
+    // Release 1d: Multi-cycle review lineage
+    public int ReviewCycleNumber { get; set; } = 1;
+    public int? ReviewedSourceFileId { get; set; }
+
     public int TotalFindingsCount { get; set; }
     public int OpenMandatoryFindingsCount { get; set; }
 

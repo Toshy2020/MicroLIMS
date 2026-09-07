@@ -956,6 +956,8 @@ public class DocumentApprovalService : IDocumentApprovalService
             DecisionByUsername = t.DecisionByUser?.Username,
             ReviewNotes = t.ReviewNotes,
             SubmissionNotes = t.SubmissionNotes,
+            ReviewCycleNumber = t.ReviewCycleNumber,
+            ReviewedSourceFileId = t.ReviewedSourceFileId,
             TotalFindingsCount = t.Findings.Count,
             OpenMandatoryFindingsCount = t.Findings.Count(f => f.IsMandatory && f.Status != ReviewFindingStatus.Resolved),
             Findings = t.Findings.OrderBy(f => f.PageNumber).ThenBy(f => f.SectionNumber).Select(f => new DocumentReviewFindingDto
@@ -970,6 +972,8 @@ public class DocumentApprovalService : IDocumentApprovalService
                 SectionNumber = f.SectionNumber,
                 CommentText = f.CommentText,
                 IsMandatory = f.IsMandatory,
+                RevisionFileId = f.RevisionFileId,
+                SourceFileVersion = f.SourceFileVersion,
                 Status = f.Status,
                 AuthorResponse = f.AuthorResponse,
                 AuthorResponseAt = f.AuthorResponseAt,

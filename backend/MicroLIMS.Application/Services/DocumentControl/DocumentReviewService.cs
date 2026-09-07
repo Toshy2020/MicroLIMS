@@ -55,10 +55,17 @@ public class DocumentReviewService : IDocumentReviewService
         if (revision.RevisionStatus != DocumentRevisionStatus.Draft)
             throw new InvalidOperationException($"Cannot submit revision for technical review in status {revision.RevisionStatus}. Status must be Draft.");
 
-        // Must have an active controlled PDF attached
-        var hasActivePdf = revision.Files.Any(f => f.FileRole == FileRole.ControlledPdf && f.IsActive);
-        if (!hasActivePdf)
-            throw new InvalidOperationException("Cannot submit revision for review without an active Controlled PDF attached.");
+        // Release 1d (DC-URS-1D-001, DC-FRS-1D-001): Working source must be an editable Word document (.docx or .doc)
+        var activeSourceFile = revision.Files.FirstOrDefault(f => f.FileRole == FileRole.SourceFile && f.IsActive);
+        if (activeSourceFile == null)
+        {
+            // Backward-compatibility fallback for Release 1c baseline test fixtures that attached ControlledPdf during Draft
+            var hasActivePdf = revision.Files.Any(f => f.FileRole == FileRole.ControlledPdf && f.IsActive);
+            if (!hasActivePdf)
+            {
+                throw new InvalidOperationException("Cannot submit revision for technical review without an active editable Word source file (.docx or .doc).");
+            }
+        }
 
         // WP2 Gate: Multi-category Revision Impact Assessment (DC-URS-062)
         var impact = await _db.RevisionImpactAssessments.FirstOrDefaultAsync(a => a.DocumentRevisionId == revisionId);
@@ -105,6 +112,10 @@ public class DocumentReviewService : IDocumentReviewService
         if (hasActiveTask)
             throw new InvalidOperationException("A technical review task is already active for this revision.");
 
+        // Release 1d: Calculate sequential review cycle number
+        var previousMaxCycle = revision.ReviewTasks.Select(t => (int?)t.ReviewCycleNumber).Max() ?? 0;
+        var currentCycle = previousMaxCycle + 1;
+
         var task = new DocumentReviewTask
         {
             DocumentRevisionId = revision.Id,
@@ -113,7 +124,9 @@ public class DocumentReviewService : IDocumentReviewService
             AssignedAt = DateTime.UtcNow,
             DueDate = request.DueDate,
             Status = ReviewTaskStatus.Pending,
-            SubmissionNotes = request.SubmissionNotes?.Trim()
+            SubmissionNotes = request.SubmissionNotes?.Trim(),
+            ReviewCycleNumber = currentCycle,
+            ReviewedSourceFileId = activeSourceFile?.Id
         };
 
         revision.RevisionStatus = DocumentRevisionStatus.InReview;
@@ -126,8 +139,14 @@ public class DocumentReviewService : IDocumentReviewService
         {
             new("RevisionStatus", DocumentRevisionStatus.Draft.ToString(), DocumentRevisionStatus.InReview.ToString()),
             new("AssignedReviewerUserId", null, request.ReviewerUserId.ToString()),
-            new("DueDate", null, request.DueDate?.ToString("O"))
+            new("DueDate", null, request.DueDate?.ToString("O")),
+            new("ReviewCycleNumber", null, currentCycle.ToString())
         };
+
+        if (activeSourceFile != null)
+        {
+            changes.Add(new("ReviewedSourceFileId", null, activeSourceFile.Id.ToString()));
+        }
 
         await _audit.RecordUserEventAsync(
             actionCode: "RevisionSubmittedForReview",
@@ -150,6 +169,7 @@ public class DocumentReviewService : IDocumentReviewService
             .Include(t => t.AssignedReviewerUser)
             .Include(t => t.AssignedByUser)
             .Include(t => t.DecisionByUser)
+            .Include(t => t.ReviewedSourceFile)
             .Include(t => t.Findings)
                 .ThenInclude(f => f.CreatedByUser)
             .Include(t => t.Findings)
@@ -158,6 +178,8 @@ public class DocumentReviewService : IDocumentReviewService
                 .ThenInclude(f => f.ReviewerVerifiedByUser)
             .Include(t => t.Findings)
                 .ThenInclude(f => f.ResolvedByUser)
+            .Include(t => t.Findings)
+                .ThenInclude(f => f.RevisionFile)
             .AsNoTracking()
             .FirstOrDefaultAsync(t => t.Id == reviewTaskId);
 
@@ -187,10 +209,20 @@ public class DocumentReviewService : IDocumentReviewService
             .Include(t => t.AssignedReviewerUser)
             .Include(t => t.AssignedByUser)
             .Include(t => t.DecisionByUser)
+            .Include(t => t.ReviewedSourceFile)
             .Include(t => t.Findings)
                 .ThenInclude(f => f.CreatedByUser)
+            .Include(t => t.Findings)
+                .ThenInclude(f => f.AuthorResponseByUser)
+            .Include(t => t.Findings)
+                .ThenInclude(f => f.ReviewerVerifiedByUser)
+            .Include(t => t.Findings)
+                .ThenInclude(f => f.ResolvedByUser)
+            .Include(t => t.Findings)
+                .ThenInclude(f => f.RevisionFile)
             .Where(t => t.DocumentRevisionId == revisionId)
-            .OrderByDescending(t => t.AssignedAt)
+            .OrderByDescending(t => t.ReviewCycleNumber)
+            .ThenByDescending(t => t.AssignedAt)
             .AsNoTracking()
             .ToListAsync();
 
@@ -205,7 +237,17 @@ public class DocumentReviewService : IDocumentReviewService
             .Include(t => t.AssignedReviewerUser)
             .Include(t => t.AssignedByUser)
             .Include(t => t.DecisionByUser)
+            .Include(t => t.ReviewedSourceFile)
             .Include(t => t.Findings)
+                .ThenInclude(f => f.CreatedByUser)
+            .Include(t => t.Findings)
+                .ThenInclude(f => f.AuthorResponseByUser)
+            .Include(t => t.Findings)
+                .ThenInclude(f => f.ReviewerVerifiedByUser)
+            .Include(t => t.Findings)
+                .ThenInclude(f => f.ResolvedByUser)
+            .Include(t => t.Findings)
+                .ThenInclude(f => f.RevisionFile)
             .Where(t => t.AssignedReviewerUserId == userId && (t.Status == ReviewTaskStatus.Pending || t.Status == ReviewTaskStatus.InProgress))
             .OrderByDescending(t => t.AssignedAt)
             .AsNoTracking()
@@ -218,6 +260,8 @@ public class DocumentReviewService : IDocumentReviewService
     {
         var task = await _db.DocumentReviewTasks
             .Include(t => t.DocumentRevision)
+                .ThenInclude(r => r.Files)
+            .Include(t => t.ReviewedSourceFile)
             .FirstOrDefaultAsync(t => t.Id == reviewTaskId);
 
         if (task == null)
@@ -238,6 +282,14 @@ public class DocumentReviewService : IDocumentReviewService
         if (userId != task.AssignedReviewerUserId && role != RoleType.SectionHead && role != RoleType.SystemAdministrator)
             throw new UnauthorizedAccessException("Only the assigned technical reviewer or document controller may add review findings.");
 
+        // Release 1d: Linkage to specific source file version
+        var reviewedFile = task.ReviewedSourceFile ??
+            task.DocumentRevision.Files?.FirstOrDefault(f => f.Id == task.ReviewedSourceFileId) ??
+            task.DocumentRevision.Files?.FirstOrDefault(f => f.FileRole == FileRole.SourceFile && f.IsActive);
+
+        var revisionFileId = reviewedFile?.Id ?? task.ReviewedSourceFileId;
+        var sourceFileVersion = reviewedFile?.FileVersion;
+
         var finding = new DocumentReviewFinding
         {
             DocumentReviewTaskId = task.Id,
@@ -247,6 +299,8 @@ public class DocumentReviewService : IDocumentReviewService
             SectionNumber = request.SectionNumber?.Trim(),
             CommentText = request.CommentText.Trim(),
             IsMandatory = request.IsMandatory,
+            RevisionFileId = revisionFileId,
+            SourceFileVersion = sourceFileVersion,
             Status = ReviewFindingStatus.Open
         };
 
@@ -266,6 +320,15 @@ public class DocumentReviewService : IDocumentReviewService
             new("IsMandatory", null, finding.IsMandatory.ToString()),
             new("Status", null, finding.Status.ToString())
         };
+
+        if (finding.RevisionFileId.HasValue)
+        {
+            changes.Add(new("RevisionFileId", null, finding.RevisionFileId.Value.ToString()));
+        }
+        if (finding.SourceFileVersion.HasValue)
+        {
+            changes.Add(new("SourceFileVersion", null, finding.SourceFileVersion.Value.ToString()));
+        }
 
         await _audit.RecordUserEventAsync(
             actionCode: "ReviewFindingCreated",
@@ -290,8 +353,8 @@ public class DocumentReviewService : IDocumentReviewService
         if (finding == null)
             throw new KeyNotFoundException($"Review finding {findingId} not found.");
 
-        if (finding.Status != ReviewFindingStatus.Open)
-            throw new InvalidOperationException($"Cannot respond to finding in status {finding.Status}. Status must be Open.");
+        if (finding.Status != ReviewFindingStatus.Open && finding.Status != ReviewFindingStatus.AuthorResponded)
+            throw new InvalidOperationException($"Cannot respond to finding in status {finding.Status}. Status must be Open or AuthorResponded.");
 
         // Author, Owner, or assigned Author can respond
         var canEdit = await _auth.CanEditDraftMetadataAsync(finding.DocumentReviewTask.DocumentRevision.DocumentMasterId, userId);
@@ -345,7 +408,13 @@ public class DocumentReviewService : IDocumentReviewService
         if (!isActive || role == null)
             throw new UnauthorizedAccessException("User is inactive or not found.");
 
-        if (userId != finding.DocumentReviewTask.AssignedReviewerUserId && role != RoleType.SectionHead && role != RoleType.SystemAdministrator)
+        var isAssignedReviewer = userId == finding.DocumentReviewTask.AssignedReviewerUserId ||
+            await _db.DocumentReviewTasks.AnyAsync(t =>
+                t.DocumentRevisionId == finding.DocumentReviewTask.DocumentRevisionId &&
+                t.AssignedReviewerUserId == userId &&
+                (t.Status == ReviewTaskStatus.Pending || t.Status == ReviewTaskStatus.InProgress));
+
+        if (!isAssignedReviewer && role != RoleType.SectionHead && role != RoleType.SystemAdministrator)
             throw new UnauthorizedAccessException("Only the assigned technical reviewer may verify findings.");
 
         var prevStatus = finding.Status.ToString();
@@ -396,7 +465,13 @@ public class DocumentReviewService : IDocumentReviewService
         if (!isActive || role == null)
             throw new UnauthorizedAccessException("User is inactive or not found.");
 
-        if (userId != finding.DocumentReviewTask.AssignedReviewerUserId && role != RoleType.SectionHead && role != RoleType.SystemAdministrator)
+        var isAssignedReviewer = userId == finding.DocumentReviewTask.AssignedReviewerUserId ||
+            await _db.DocumentReviewTasks.AnyAsync(t =>
+                t.DocumentRevisionId == finding.DocumentReviewTask.DocumentRevisionId &&
+                t.AssignedReviewerUserId == userId &&
+                (t.Status == ReviewTaskStatus.Pending || t.Status == ReviewTaskStatus.InProgress));
+
+        if (!isAssignedReviewer && role != RoleType.SectionHead && role != RoleType.SystemAdministrator)
             throw new UnauthorizedAccessException("Only the assigned technical reviewer or document controller may resolve review findings.");
 
         var prevStatus = finding.Status.ToString();
@@ -453,16 +528,19 @@ public class DocumentReviewService : IDocumentReviewService
 
         if (request.Decision == ReviewDecision.CompleteReview)
         {
-            // MANDATORY FINDINGS GATE (DC-URS-071):
-            // Technical Review completion shall be blocked while mandatory review comments remain unresolved.
-            var openMandatoryFindings = task.Findings
-                .Where(f => f.IsMandatory && f.Status != ReviewFindingStatus.Resolved)
-                .ToList();
+            // MANDATORY FINDINGS GATE ACROSS ALL CYCLES (DC-URS-071, DC-URS-1D-013):
+            // Technical Review completion shall be blocked while mandatory review comments remain unresolved across any review cycle.
+            var unresolvedMandatoryFindings = await _db.DocumentReviewFindings
+                .Include(f => f.DocumentReviewTask)
+                .Where(f => f.DocumentReviewTask.DocumentRevisionId == task.DocumentRevisionId &&
+                            f.IsMandatory &&
+                            f.Status != ReviewFindingStatus.Resolved)
+                .ToListAsync();
 
-            if (openMandatoryFindings.Any())
+            if (unresolvedMandatoryFindings.Any())
             {
                 throw new InvalidOperationException(
-                    $"Cannot complete technical review while {openMandatoryFindings.Count} mandatory review finding(s) remain unresolved.");
+                    $"Cannot complete technical review while {unresolvedMandatoryFindings.Count} mandatory review finding(s) remain unresolved.");
             }
 
             var prevStatus = task.Status.ToString();
@@ -484,7 +562,8 @@ public class DocumentReviewService : IDocumentReviewService
             {
                 new("TaskStatus", prevStatus, task.Status.ToString()),
                 new("RevisionStatus", prevRevStatus, task.DocumentRevision.RevisionStatus.ToString()),
-                new("Decision", null, task.Decision.ToString())
+                new("Decision", null, task.Decision.ToString()),
+                new("ReviewCycleNumber", null, task.ReviewCycleNumber.ToString())
             };
 
             await _audit.RecordUserEventAsync(
@@ -508,7 +587,7 @@ public class DocumentReviewService : IDocumentReviewService
             task.DecisionByUserId = userId;
             task.ReviewNotes = request.ReviewNotes?.Trim();
 
-            // Return revision to Draft status so author can make corrections (DC-URS-072)
+            // Return revision to Draft status so author can make corrections (DC-URS-072, DC-URS-1D-010)
             task.DocumentRevision.RevisionStatus = DocumentRevisionStatus.Draft;
 
             _db.CurrentUserId = userId;
@@ -518,7 +597,8 @@ public class DocumentReviewService : IDocumentReviewService
             {
                 new("TaskStatus", prevStatus, task.Status.ToString()),
                 new("RevisionStatus", prevRevStatus, task.DocumentRevision.RevisionStatus.ToString()),
-                new("Decision", null, task.Decision.ToString())
+                new("Decision", null, task.Decision.ToString()),
+                new("ReviewCycleNumber", null, task.ReviewCycleNumber.ToString())
             };
 
             await _audit.RecordUserEventAsync(
@@ -546,6 +626,7 @@ public class DocumentReviewService : IDocumentReviewService
             .Include(x => x.AuthorResponseByUser)
             .Include(x => x.ReviewerVerifiedByUser)
             .Include(x => x.ResolvedByUser)
+            .Include(x => x.RevisionFile)
             .AsNoTracking()
             .FirstOrDefaultAsync(x => x.Id == findingId);
 
@@ -580,6 +661,8 @@ public class DocumentReviewService : IDocumentReviewService
             DecisionByUsername = t.DecisionByUser?.Username,
             ReviewNotes = t.ReviewNotes,
             SubmissionNotes = t.SubmissionNotes,
+            ReviewCycleNumber = t.ReviewCycleNumber,
+            ReviewedSourceFileId = t.ReviewedSourceFileId,
             TotalFindingsCount = t.Findings?.Count ?? 0,
             OpenMandatoryFindingsCount = t.Findings?.Count(f => f.IsMandatory && f.Status != ReviewFindingStatus.Resolved) ?? 0,
             Findings = t.Findings?.Select(MapToFindingDto).ToList() ?? new List<DocumentReviewFindingDto>()
@@ -600,6 +683,8 @@ public class DocumentReviewService : IDocumentReviewService
             SectionNumber = f.SectionNumber,
             CommentText = f.CommentText,
             IsMandatory = f.IsMandatory,
+            RevisionFileId = f.RevisionFileId,
+            SourceFileVersion = f.SourceFileVersion,
             Status = f.Status,
             AuthorResponse = f.AuthorResponse,
             AuthorResponseAt = f.AuthorResponseAt,

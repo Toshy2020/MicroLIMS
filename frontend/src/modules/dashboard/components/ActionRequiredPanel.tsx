@@ -68,11 +68,14 @@ export function ActionRequiredPanel({ tasks, loading }: ActionRequiredPanelProps
                 p: 1.5,
                 borderRadius: 1.5,
                 border: "1px solid",
-                borderColor: theme.palette.mode === "dark" ? "rgba(99, 102, 241, 0.4)" : "#C7D2FE",
-                bgcolor: theme.palette.mode === "dark" ? "rgba(99, 102, 241, 0.1)" : "#F5F7FF",
+                // Was a raw indigo with hand-rolled light/dark branching; the
+                // info tone already carries a matching bg/text/border triad
+                // for both modes.
+                borderColor: theme.custom.status.info.border,
+                bgcolor: theme.custom.status.info.bg,
                 transition: "background 0.15s ease",
                 "&:hover": {
-                  bgcolor: theme.palette.mode === "dark" ? "rgba(99, 102, 241, 0.15)" : "#EEF2FF"
+                  bgcolor: theme.palette.action.hover
                 }
               }}
             >

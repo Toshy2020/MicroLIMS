@@ -720,7 +720,7 @@ export function BatchConfirmatoryPlatingPanel({ session, onNext, onBack, onUpdat
               <Table size="small" stickyHeader>
                 <TableHead>
                   <TableRow>
-                    <TableCell sx={{ position: "sticky", left: 0, zIndex: 3, bgcolor: "background.default", fontWeight: 800, minWidth: 220, borderRight: "2px solid", borderRightColor: "divider" }}>
+                    <TableCell sx={{ position: "sticky", left: 0, zIndex: 3, bgcolor: theme.custom.chrome.tableHeaderBg, color: theme.custom.chrome.tableHeaderText, fontWeight: 800, minWidth: 220, borderRight: "2px solid", borderRightColor: "divider" }}>
                       Sampling Location ({eligibleLocations.length})
                     </TableCell>
                     <TableCell align="center" sx={{ bgcolor: "background.default", fontWeight: 800, minWidth: 140 }}>

@@ -26,10 +26,11 @@ import HistoryOutlinedIcon from "@mui/icons-material/HistoryOutlined";
 import { Link } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
 import { PageHeader } from "../../components/PageHeader";
-import { LoadingSpinner } from "../../components/LoadingSpinner";
+import RefreshIcon from "@mui/icons-material/Refresh";
+import { DashboardStateGate } from "./components/DashboardStateGate";
 import { DashboardService } from "./services/DashboardService";
 import { ReviewerDashboard, ReviewerQueueItem } from "./types/dashboard";
-import { brandColors } from "../../theme";
+import { brandColors, tableHeadSx } from "../../theme";
 
 function formatAge(minutes: number): string {
   if (minutes < 60) return `${minutes}m`;
@@ -47,20 +48,37 @@ export function ReviewerDashboardPage() {
 
   const [data, setData] = useState<ReviewerDashboard | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [reloadKey, setReloadKey] = useState(0);
+  const reload = () => setReloadKey((k) => k + 1);
 
   useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    setError(null);
+
     DashboardService.getReviewerDashboard()
       .then((res) => {
-        setData(res);
-        setLoading(false);
+        if (!cancelled) setData(res);
       })
       .catch((err) => {
         console.error("Failed to load reviewer dashboard:", err);
-        setLoading(false);
+        if (!cancelled) setError("The dashboard service did not respond. Your review queue has not been changed.");
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
       });
-  }, []);
 
-  if (loading || !data) return <LoadingSpinner />;
+    return () => { cancelled = true; };
+  }, [reloadKey]);
+
+  if (!data) {
+    return (
+      <DashboardStateGate loading={loading} error={error} hasData={false} onRetry={reload}>
+        {null}
+      </DashboardStateGate>
+    );
+  }
 
   return (
     <>
@@ -69,15 +87,26 @@ export function ReviewerDashboardPage() {
           title={`Reviewer Command Center — ${displayName}`}
           subtitle="What results are waiting for your scientific review today?"
         />
-        <Button
-          component={Link}
-          to="/testing-workspace"
-          variant="contained"
-          startIcon={<ScienceOutlinedIcon />}
-          sx={{ textTransform: "none", fontWeight: 600, borderRadius: 2 }}
-        >
-          Open Testing Workspace
-        </Button>
+        <Box sx={{ display: "flex", gap: 1.5, flexWrap: "wrap" }}>
+          <Button
+            variant="outlined"
+            onClick={reload}
+            disabled={loading}
+            startIcon={<RefreshIcon />}
+            sx={{ textTransform: "none", fontWeight: 600, borderRadius: 2 }}
+          >
+            Refresh
+          </Button>
+          <Button
+            component={Link}
+            to="/testing-workspace"
+            variant="contained"
+            startIcon={<ScienceOutlinedIcon />}
+            sx={{ textTransform: "none", fontWeight: 600, borderRadius: 2 }}
+          >
+            Open Testing Workspace
+          </Button>
+        </Box>
       </Box>
 
       {/* Tier 1: Summary Cards */}
@@ -315,7 +344,7 @@ export function ReviewerDashboardPage() {
               <Box sx={{ overflowX: "auto" }}>
                 <Table size="small">
                   <TableHead>
-                    <TableRow sx={{ bgcolor: "background.default" }}>
+                    <TableRow sx={tableHeadSx}>
                       <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Sample / Ref</TableCell>
                       <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Item / Location</TableCell>
                       <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Test</TableCell>

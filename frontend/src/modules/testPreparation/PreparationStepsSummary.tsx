@@ -1,10 +1,18 @@
 import { Box, Paper, Typography } from "@mui/material";
 import type { ItemPreparationConfiguration } from "./services/ItemPreparationConfigurationService";
 
+// Only the protocol fields, so the grouped confirm row can render a group's
+// shared steps without inventing the identity/approval fields a full
+// configuration carries.
+export type PreparationSteps = Pick<
+  ItemPreparationConfiguration,
+  "amount" | "technique" | "filtrationVolume" | "washingVolume" | "diluent" | "neutralizer"
+>;
+
 // Read-only rendering of a preparation protocol. Shared by the analyst's
-// confirm dialogue and the Item Configuration tab so the two can never
-// describe the same protocol differently.
-export function PreparationStepsSummary({ config }: { config: ItemPreparationConfiguration }) {
+// confirm dialogue, the grouped confirm row and the Item Configuration tab
+// so they can never describe the same protocol differently.
+export function PreparationStepsSummary({ config }: { config: PreparationSteps }) {
   const fields: { label: string; value: string }[] = [
     { label: "Sample Amount", value: `${config.amount}` },
     { label: "Technique", value: config.technique === "PourPlate" ? "Pour Plate" : config.technique },

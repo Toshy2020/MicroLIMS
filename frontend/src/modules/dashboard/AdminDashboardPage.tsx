@@ -25,7 +25,8 @@ import ArrowForwardOutlinedIcon from "@mui/icons-material/ArrowForwardOutlined";
 import { Link } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
 import { PageHeader } from "../../components/PageHeader";
-import { LoadingSpinner } from "../../components/LoadingSpinner";
+import RefreshIcon from "@mui/icons-material/Refresh";
+import { DashboardStateGate } from "./components/DashboardStateGate";
 import { DashboardService } from "./services/DashboardService";
 import { DashboardSummary, KpiDeltas } from "./types/dashboard";
 import { brandColors } from "../../theme";
@@ -38,19 +39,41 @@ export function AdminDashboardPage() {
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
   const [kpis, setKpis] = useState<KpiDeltas | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [reloadKey, setReloadKey] = useState(0);
+  const reload = () => setReloadKey((k) => k + 1);
 
   useEffect(() => {
-    Promise.all([
-      DashboardService.getSummary().catch(() => null),
-      DashboardService.getKpiDeltas().catch(() => null)
-    ]).then(([sumData, kpiData]) => {
-      setSummary(sumData);
-      setKpis(kpiData);
-      setLoading(false);
-    });
-  }, []);
+    let cancelled = false;
+    setLoading(true);
+    setError(null);
 
-  if (loading || !summary) return <LoadingSpinner />;
+    // The summary IS this page, so its failure surfaces as an error with a
+    // retry. The KPI deltas are supplementary - a failure there degrades that
+    // one panel rather than taking the whole dashboard down.
+    Promise.all([DashboardService.getSummary(), DashboardService.getKpiDeltas().catch(() => null)])
+      .then(([sumData, kpiData]) => {
+        if (cancelled) return;
+        setSummary(sumData);
+        setKpis(kpiData);
+      })
+      .catch(() => {
+        if (!cancelled) setError("The dashboard service did not respond. Your data has not been changed.");
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+
+    return () => { cancelled = true; };
+  }, [reloadKey]);
+
+  if (!summary) {
+    return (
+      <DashboardStateGate loading={loading} error={error} hasData={false} onRetry={reload}>
+        {null}
+      </DashboardStateGate>
+    );
+  }
 
   return (
     <>
@@ -60,6 +83,15 @@ export function AdminDashboardPage() {
           subtitle="System administration, access control, audit compliance, and laboratory operations."
         />
         <Box sx={{ display: "flex", gap: 1.5, flexWrap: "wrap" }}>
+          <Button
+            variant="outlined"
+            onClick={reload}
+            disabled={loading}
+            startIcon={<RefreshIcon />}
+            sx={{ textTransform: "none", fontWeight: 600, borderRadius: 2 }}
+          >
+            Refresh
+          </Button>
           <Button
             component={Link}
             to="/audit-search"

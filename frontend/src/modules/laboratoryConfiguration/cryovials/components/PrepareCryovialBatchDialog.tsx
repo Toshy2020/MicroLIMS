@@ -30,7 +30,7 @@ import { CryovialService } from "../services/CryovialService";
 import { MaterialService } from "../../../inventory/materials/services/MaterialService";
 import { EquipmentInventoryService } from "../../../inventory/equipment/services/EquipmentInventoryService";
 import { masterDataOptions } from "../../../../services/masterDataOptions";
-import { brandColors } from "../../../../theme";
+import { brandColors, tableHeadSx } from "../../../../theme";
 import { FloatingDialog } from "../../../../components/FloatingDialog";
 
 interface PrepareCryovialBatchDialogProps {
@@ -445,7 +445,7 @@ export function PrepareCryovialBatchDialog({
             </Box>
 
             <Table size="small" sx={{ border: "1px solid", borderColor: "divider", borderRadius: 1, overflow: "hidden" }}>
-              <TableHead sx={{ bgcolor: "background.default" }}>
+              <TableHead sx={tableHeadSx}>
                 <TableRow>
                   <TableCell sx={{ fontSize: 11, fontWeight: 700, color: "text.secondary" }}>Media (GPT-released) *</TableCell>
                   <TableCell sx={{ fontSize: 11, fontWeight: 700, color: "text.secondary" }}>Incubator *</TableCell>

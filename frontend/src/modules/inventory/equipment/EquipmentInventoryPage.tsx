@@ -45,7 +45,7 @@ import { EquipmentFilterBar } from "./components/EquipmentFilterBar";
 import { RegisterEquipmentDialog } from "./components/RegisterEquipmentDialog";
 import { EquipmentDetailsDialog } from "./components/EquipmentDetailsDialog";
 import { ActiveEquipmentView } from "./components/ActiveEquipmentView";
-import { brandColors } from "../../../theme";
+import { brandColors, tableHeadSx } from "../../../theme";
 
 const INITIAL_FILTERS: EquipmentFilterState = {
   search: "",
@@ -249,7 +249,7 @@ export function EquipmentInventoryPage() {
           <Paper sx={{ border: "1px solid", borderColor: "divider", borderRadius: 2, overflow: "hidden" }}>
             <TableContainer>
               <Table size="small">
-                <TableHead sx={{ bgcolor: "background.default" }}>
+                <TableHead sx={tableHeadSx}>
                   <TableRow>
                     <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Type</TableCell>
                     <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Manufacturer</TableCell>

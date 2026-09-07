@@ -40,6 +40,7 @@ import {
   OosGroup,
   OosInvestigationDocument
 } from "./services/OosTrackingService";
+import { tableHeadSx } from "../../theme";
 
 const RETEST_TYPE_LABELS: Record<string, string> = {
   RetestRetainedSample: "Retest Retained Sample",
@@ -606,7 +607,7 @@ function OosInvestigationDocumentsDialog({ open, group, onClose, onChanged }: Do
       {/* Documents Table */}
       <TableContainer sx={{ border: "1px solid", borderColor: "divider", borderRadius: 1 }}>
         <Table size="small">
-          <TableHead sx={{ bgcolor: "background.default" }}>
+          <TableHead sx={tableHeadSx}>
             <TableRow>
               {["Status", "Filename", "Size", "Uploaded By", "Date", "Actions"].map((h) => (
                 <TableCell key={h} sx={{ fontWeight: 700, fontSize: 11, color: "text.secondary" }}>

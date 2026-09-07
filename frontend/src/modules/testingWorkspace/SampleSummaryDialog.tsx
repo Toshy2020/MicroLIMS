@@ -43,7 +43,7 @@ import { SignatureDialog } from "../../components/SignatureDialog";
 import { ReturnToAnalystDialog } from "../../components/ReturnToAnalystDialog";
 import { LoadingSpinner } from "../../components/LoadingSpinner";
 import { StatusBadge } from "../../components/StatusBadge";
-import { brandColors } from "../../theme";
+import { brandColors, tableHeadSx } from "../../theme";
 import { useAuth } from "../../contexts/AuthContext";
 import { SampleSummaryService, SampleApprovalDecision } from "./services/SampleSummaryService";
 import { buildCoaMatrix, buildCoaSimpleRows } from "./coaAggregation";
@@ -399,7 +399,7 @@ function LocationResultsTable({ locations }: { locations: SampleLocationDetail[]
   return (
     <Box>
       <Table size="small" sx={{ border: "1px solid", borderColor: "divider", borderRadius: 1 }}>
-        <TableHead sx={{ bgcolor: "background.default" }}>
+        <TableHead sx={tableHeadSx}>
           <TableRow>
             <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Location</TableCell>
             <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Limits (Alert / Action / Spec)</TableCell>

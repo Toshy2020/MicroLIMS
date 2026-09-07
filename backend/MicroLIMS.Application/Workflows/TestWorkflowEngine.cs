@@ -464,6 +464,34 @@ public class TestWorkflowEngine : ITestWorkflowEngine
         }
     }
 
+    // Test Preparation gate: no incubation may start on a sample whose
+    // preparation step is still outstanding. Sample.PreparationStatus is the
+    // one signal that covers every category - Product/RM/PM record a
+    // SamplePreparation row when they confirm, while Water/EM/After Cleaning
+    // reach Ready through their own location/sampling-point prepare endpoints
+    // and never write one, so keying off that table would wrongly block them.
+    private async Task RequireSamplePreparedAsync(int testOrderId, int sampleId, string stepName)
+    {
+        var sample = await _db.Samples
+            .Where(s => s.Id == sampleId)
+            .Select(s => new { s.Category, s.PreparationStatus, s.ReferenceNumber })
+            .FirstAsync();
+
+        if (sample.PreparationStatus != SamplePreparationStatus.Ready)
+            throw new InvalidOperationException(
+                $"Test Preparation must be completed for sample {sample.ReferenceNumber} before incubation can be started for step \"{stepName}\".");
+
+        // Belt and braces for the location-based categories: PreparationStatus
+        // going Ready and the locations landing are two separate writes, and
+        // only the second is what an incubation actually needs.
+        if (sample.Category is SampleCategory.EnvironmentalMonitoring or SampleCategory.AfterCleaning)
+        {
+            var hasLocations = await _db.SampleLocations.AnyAsync(l => l.TestOrderId == testOrderId);
+            if (!hasLocations)
+                throw new InvalidOperationException("Preparation not complete - no locations assigned to this test.");
+        }
+    }
+
     public async Task<Incubation> SelectMediaAsync(int testOrderId, string stepName, int mediaLotId, int incubatorEquipmentId, int userId)
     {
         var (order, definition) = await LoadWithTemplateAsync(testOrderId);
@@ -479,13 +507,7 @@ public class TestWorkflowEngine : ITestWorkflowEngine
         if (currentStep.StepName != stepName)
             throw new InvalidOperationException($"Workflow order violation: step \"{currentStep.StepName}\" must be completed before \"{stepName}\".");
 
-        var sampleCategory = await _db.Samples.Where(s => s.Id == order.SampleId).Select(s => s.Category).FirstAsync();
-        if (sampleCategory is SampleCategory.EnvironmentalMonitoring or SampleCategory.AfterCleaning)
-        {
-            var hasLocations = await _db.SampleLocations.AnyAsync(l => l.TestOrderId == testOrderId);
-            if (!hasLocations)
-                throw new InvalidOperationException("Preparation not complete - no locations assigned to this test.");
-        }
+        await RequireSamplePreparedAsync(testOrderId, order.SampleId, stepName);
 
         var alreadyOpen = await _db.Incubations.AnyAsync(i => i.TestOrderId == testOrderId && i.StepName == stepName && i.CompletedAt == null);
         if (alreadyOpen)
@@ -1852,6 +1874,8 @@ public class TestWorkflowEngine : ITestWorkflowEngine
 
         if (currentStep.StepName != stepName)
             throw new InvalidOperationException($"Workflow order violation: step \"{currentStep.StepName}\" must be completed before \"{stepName}\".");
+
+        await RequireSamplePreparedAsync(testOrderId, order.SampleId, stepName);
 
         var alreadyOpen = await _db.Incubations.AnyAsync(i => i.TestOrderId == testOrderId && i.StepName == stepName && i.CompletedAt == null);
         if (alreadyOpen)

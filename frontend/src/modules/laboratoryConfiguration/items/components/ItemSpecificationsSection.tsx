@@ -28,7 +28,7 @@ import AddIcon from "@mui/icons-material/Add";
 import { Item } from "../services/ItemService";
 import { SpecificationService, SpecificationDto } from "../../specifications/services/SpecificationService";
 import { ConfirmationDialog } from "../../../../components/ConfirmationDialog";
-import { brandColors } from "../../../../theme";
+import { brandColors, tableHeadSx } from "../../../../theme";
 import { masterDataOptions } from "../../../../services/masterDataOptions";
 
 interface ItemSpecificationsSectionProps {
@@ -219,7 +219,7 @@ export const ItemSpecificationsSection: React.FC<ItemSpecificationsSectionProps>
         <Box>
           <Table size="small" sx={{ mb: 2, border: "1px solid", borderColor: "divider", borderRadius: 1, overflow: "hidden" }}>
             <TableHead>
-              <TableRow sx={{ backgroundColor: "background.default" }}>
+              <TableRow sx={tableHeadSx}>
                 <TableCell sx={{ fontWeight: 700, fontSize: 12, width: 200 }}>Assigned Test</TableCell>
                 <TableCell sx={{ fontWeight: 700, fontSize: 12, width: 100 }}>Alert Limit</TableCell>
                 <TableCell sx={{ fontWeight: 700, fontSize: 12, width: 100 }}>Action Limit</TableCell>
@@ -376,7 +376,7 @@ export const ItemSpecificationsSection: React.FC<ItemSpecificationsSectionProps>
 
               {/* Add new spec row (shown if there are assigned tests not yet configured) */}
               {availableToAdd.length > 0 && (
-                <TableRow sx={{ backgroundColor: "background.default" }}>
+                <TableRow sx={tableHeadSx}>
                   <TableCell>
                     <FormControl size="small" fullWidth>
                       <Select

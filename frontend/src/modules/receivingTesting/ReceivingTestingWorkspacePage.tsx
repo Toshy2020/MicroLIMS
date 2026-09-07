@@ -21,12 +21,18 @@ import { PageHeader } from "../../components/PageHeader";
 import { LoadingSpinner } from "../../components/LoadingSpinner";
 import { AuditHistoryDialog } from "../../components/AuditHistoryDialog";
 import { useAuth } from "../../contexts/AuthContext";
-import { brandColors } from "../../theme";
+import { brandColors, tableHeadSx } from "../../theme";
 
 // Receiving Components & Dialogs
 import { SampleRecord, TestOrderSummary as ReceivingTestOrderSummary } from "../receiving/types/receivingTypes";
 import { ReceiveService } from "../receiving/services/ReceiveService";
-import { SampleStatusKpiCards, KpiFilterKey } from "../receiving/components/SampleStatusKpiCards";
+import {
+  SampleStatusKpiCards,
+  WorkloadFilterKey,
+  WORKLOAD_PREDICATES,
+  WorkloadContext
+} from "../receiving/components/SampleStatusKpiCards";
+import { SelectionSummaryBar } from "../receiving/components/SelectionSummaryBar";
 import { SampleFilterBar } from "../receiving/components/SampleFilterBar";
 import { SampleRegisterTable } from "../receiving/components/SampleRegisterTable";
 import { NewSampleDialog } from "../receiving/dialogs/NewSampleDialog";
@@ -46,7 +52,6 @@ import { SampleSummaryDialog } from "../testingWorkspace/SampleSummaryDialog";
 import { PreparationDialog } from "../testPreparation/PreparationDialog";
 import { VoidSampleConfirmationDialog } from "../receiving/dialogs/VoidSampleConfirmationDialog";
 
-export type OperationalTab = "all" | "mine" | "needsAction" | "completed";
 export type WorkspaceDisplayView = "table" | "card" | "kanban";
 
 function exportSamplesToCsv(samples: SampleRecord[]) {
@@ -83,8 +88,9 @@ export function ReceivingTestingWorkspacePage() {
   const [loading, setLoading] = useState(false);
   const [notification, setNotification] = useState<{ text: string; severity: "success" | "error" | "info" | "warning" } | null>(null);
 
-  // Operational Tabs & Display View State
-  const [activeTab, setActiveTab] = useState<OperationalTab>("all");
+  // Display View State. There is no operational tab strip: the workload KPI
+  // tiles are the "what needs doing" control now, and they filter through the
+  // same predicates they count with.
   const [viewMode, setViewMode] = useState<WorkspaceDisplayView>("table");
 
   // Selection for Master-Detail Split Pane
@@ -92,6 +98,10 @@ export function ReceivingTestingWorkspacePage() {
 
   // Multi-select Sample Checkboxes for Grouped Actions
   const [checkedSampleIds, setCheckedSampleIds] = useState<Set<number>>(new Set());
+
+  // Reveals every checked sample regardless of the active filters, so nobody
+  // signs a grouped action over a set they cannot see in full.
+  const [showSelectedOnly, setShowSelectedOnly] = useState(false);
 
   const handleToggleCheckSample = (sampleId: number, checked: boolean) => {
     setCheckedSampleIds((prev) => {
@@ -105,12 +115,25 @@ export function ReceivingTestingWorkspacePage() {
     });
   };
 
+  // Select/deselect every row the register is currently showing on this page.
+  const handleToggleCheckMany = (sampleIds: number[], checked: boolean) => {
+    setCheckedSampleIds((prev) => {
+      const next = new Set(prev);
+      for (const id of sampleIds) {
+        if (checked) next.add(id);
+        else next.delete(id);
+      }
+      return next;
+    });
+  };
+
   const handleDeselectAllChecked = () => {
     setCheckedSampleIds(new Set());
+    setShowSelectedOnly(false);
   };
 
   // Filter State
-  const [activeKpi, setActiveKpi] = useState<KpiFilterKey | null>(null);
+  const [workloadFilter, setWorkloadFilter] = useState<WorkloadFilterKey | null>(null);
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("ALL");
   const [sampleStatusFilter, setSampleStatusFilter] = useState("ALL");
@@ -169,7 +192,7 @@ export function ReceivingTestingWorkspacePage() {
 
     if (paramStatus) {
       if (paramStatus === "Active") {
-        setActiveTab("all");
+        setWorkloadFilter(null);
         setSampleStatusFilter("ALL");
       } else {
         setSampleStatusFilter(paramStatus);
@@ -178,7 +201,7 @@ export function ReceivingTestingWorkspacePage() {
     if (paramTestStatus) setTestStatusFilter(paramTestStatus);
     if (paramAnalystId) setAnalystIdFilter(Number(paramAnalystId));
     if (paramUrgency) setUrgencyFilter(paramUrgency);
-    if (paramScope === "mine") setActiveTab("mine");
+    if (paramScope === "mine") setWorkloadFilter("mine");
     if (paramView === "table" || paramView === "card" || paramView === "kanban") setViewMode(paramView);
     if (paramSearch) setSearch(paramSearch);
 
@@ -218,45 +241,11 @@ export function ReceivingTestingWorkspacePage() {
     }
   }, [records, searchParams]);
 
-  // Handle KPI Category Tile Selection
-  const handleSelectKpi = (kpi: KpiFilterKey) => {
-    if (activeKpi === kpi || kpi === "ALL") {
-      setActiveKpi(null);
-      setCategoryFilter("ALL");
-    } else {
-      setActiveKpi(kpi);
-      const categoryMapping: Record<string, string> = {
-        Product: "FinishedProduct",
-        RM: "RawMaterial",
-        PM: "PackagingMaterial",
-        Water: "Water",
-        Aftercleaning: "AfterCleaning",
-        EM: "EnvironmentalMonitoring"
-      };
-      setCategoryFilter(categoryMapping[kpi] || "ALL");
-    }
-  };
-
-  // Sync Category dropdown changes with KPI cards
-  const handleCategoryFilterChange = (cat: string) => {
-    setCategoryFilter(cat);
-    if (cat === "ALL") {
-      setActiveKpi(null);
-    } else if (cat === "FinishedProduct" || cat === "Product") {
-      setActiveKpi("Product");
-    } else if (cat === "RawMaterial" || cat === "RM") {
-      setActiveKpi("RM");
-    } else if (cat === "PackagingMaterial" || cat === "PM") {
-      setActiveKpi("PM");
-    } else if (cat === "Water") {
-      setActiveKpi("Water");
-    } else if (cat === "AfterCleaning" || cat === "Aftercleaning" || cat === "AC") {
-      setActiveKpi("Aftercleaning");
-    } else if (cat === "EnvironmentalMonitoring" || cat === "EM") {
-      setActiveKpi("EM");
-    } else {
-      setActiveKpi(null);
-    }
+  // Workload tiles are a toggle: clicking the active one clears it. Category
+  // is no longer mirrored here - the Item Type dropdown owns it outright,
+  // which is what these tiles used to duplicate.
+  const handleSelectWorkload = (key: WorkloadFilterKey) => {
+    setWorkloadFilter((prev) => (prev === key ? null : key));
   };
 
   // Sync Sample Status Filter changes
@@ -266,7 +255,8 @@ export function ReceivingTestingWorkspacePage() {
 
   const handleResetFilters = () => {
     setSearch("");
-    setActiveKpi(null);
+    setShowSelectedOnly(false);
+    setWorkloadFilter(null);
     setCategoryFilter("ALL");
     setSampleStatusFilter("ALL");
     setTestStatusFilter("ALL");
@@ -278,7 +268,7 @@ export function ReceivingTestingWorkspacePage() {
 
   const hasActiveFilters = Boolean(
     search ||
-    activeKpi ||
+    workloadFilter ||
     categoryFilter !== "ALL" ||
     sampleStatusFilter !== "ALL" ||
     testStatusFilter !== "ALL" ||
@@ -291,35 +281,23 @@ export function ReceivingTestingWorkspacePage() {
   // Filtered Samples Computation
   const filteredRecords = useMemo(() => {
     if (!records) return [];
-    const now = Date.now();
-    const isSectionHeadOrAdmin = role === "SectionHead" || role === "SystemAdministrator";
+    const workloadCtx: WorkloadContext = {
+      userId,
+      isSectionHeadOrAdmin: role === "SectionHead" || role === "SystemAdministrator",
+      now: Date.now()
+    };
+
+    // "Show selected only" deliberately overrides everything else - its whole
+    // job is to surface checked samples the other filters are hiding.
+    if (showSelectedOnly) {
+      return records.filter((r) => checkedSampleIds.has(r.sampleId));
+    }
 
     return records.filter((r) => {
-      // 1. Operational Tab Filter
-      if (activeTab === "mine") {
-        const isAssigned =
-          r.assignedAnalystId === userId ||
-          r.assignedTests?.some((t) => t.assignedAnalystId === userId);
-        if (!isAssigned) return false;
-      } else if (activeTab === "needsAction") {
-        const needsPrep = r.preparationStatus === "NeedsPreparation";
-        const hasAwaitingReview =
-          r.status === "UnderReview" ||
-          r.assignedTests?.some((t) => t.status === "ResultEntered" || t.workflowStatus === "PendingReview");
-        const hasReadyToRead = r.assignedTests?.some((t) => t.workflowStatus === "ReadyToRead" || t.workflowStatus === "EnterResult");
-        const isUnassigned = isSectionHeadOrAdmin && !r.assignedAnalystId && !r.assignedTests?.some((t) => t.assignedAnalystId != null);
-
-        if (!needsPrep && !hasAwaitingReview && !hasReadyToRead && !isUnassigned) {
-          return false;
-        }
-      } else if (activeTab === "completed") {
-        const isCompleted =
-          r.status === "Approved" ||
-          r.status === "Rejected" ||
-          r.status === "RetestRequested" ||
-          r.status === "Cancelled" ||
-          r.status === "Voided";
-        if (!isCompleted) return false;
+      // 1. Workload tile - the very predicate the tile counted with, so the
+      // number on the tile and the length of this list cannot disagree.
+      if (workloadFilter && !WORKLOAD_PREDICATES[workloadFilter](r, workloadCtx)) {
+        return false;
       }
 
       // 2. Free Text Search
@@ -337,15 +315,8 @@ export function ReceivingTestingWorkspacePage() {
         if (!matches) return false;
       }
 
-      // 3. Category / KPI Filter
-      if (activeKpi) {
-        if (activeKpi === "Product" && r.category !== "FinishedProduct" && r.category !== "Product") return false;
-        if (activeKpi === "RM" && r.category !== "RawMaterial" && r.category !== "RM") return false;
-        if (activeKpi === "PM" && r.category !== "PackagingMaterial" && r.category !== "PM") return false;
-        if (activeKpi === "Water" && r.category !== "Water") return false;
-        if (activeKpi === "Aftercleaning" && r.category !== "AfterCleaning" && r.category !== "Aftercleaning" && r.category !== "AC") return false;
-        if (activeKpi === "EM" && r.category !== "EnvironmentalMonitoring" && r.category !== "EM") return false;
-      } else if (categoryFilter !== "ALL" && r.category !== categoryFilter) {
+      // 3. Category Filter
+      if (categoryFilter !== "ALL" && r.category !== categoryFilter) {
         return false;
       }
 
@@ -389,10 +360,11 @@ export function ReceivingTestingWorkspacePage() {
         if (!matchesAnalyst) return false;
       }
 
-      // 8. Urgency Filter
-      if (urgencyFilter === "overdue") {
-        const isOverdue = (now - new Date(r.receivedAt).getTime()) > 24 * 3600 * 1000;
-        if (!isOverdue) return false;
+      // 8. Urgency Filter - shares the Overdue tile's predicate so a
+      // ?urgency=overdue deep link and the tile never disagree. (This also
+      // stops long-closed samples counting as overdue forever.)
+      if (urgencyFilter === "overdue" && !WORKLOAD_PREDICATES.overdue(r, workloadCtx)) {
+        return false;
       }
 
       // 9. Date Range Filters
@@ -406,9 +378,10 @@ export function ReceivingTestingWorkspacePage() {
     });
   }, [
     records,
-    activeTab,
+    showSelectedOnly,
+    checkedSampleIds,
     search,
-    activeKpi,
+    workloadFilter,
     categoryFilter,
     sampleStatusFilter,
     testStatusFilter,
@@ -419,6 +392,19 @@ export function ReceivingTestingWorkspacePage() {
     userId,
     role
   ]);
+
+  // Checked samples the current filters have pushed out of view. Checked ids
+  // are never silently dropped when a filter changes, so this is what makes
+  // the difference visible instead of surprising.
+  const hiddenCheckedCount = useMemo(() => {
+    if (checkedSampleIds.size === 0) return 0;
+    const visible = new Set(filteredRecords.map((r) => r.sampleId));
+    let hidden = 0;
+    checkedSampleIds.forEach((id) => {
+      if (!visible.has(id)) hidden += 1;
+    });
+    return hidden;
+  }, [checkedSampleIds, filteredRecords]);
 
   // Derive Selected Sample Object
   const selectedSample = useMemo(() => {
@@ -523,8 +509,10 @@ export function ReceivingTestingWorkspacePage() {
       {/* Unified KPI Status Cards */}
       <SampleStatusKpiCards
         samples={records || []}
-        activeKpi={activeKpi}
-        onSelectKpi={handleSelectKpi}
+        activeKey={workloadFilter}
+        onSelect={handleSelectWorkload}
+        userId={userId}
+        isSectionHeadOrAdmin={role === "SectionHead" || role === "SystemAdministrator"}
       />
 
       {/* Unified Filter Bar - search, display-mode toggle, and export all live here now (the separate All/Mine/Needs Action/Completed tab strip above it was dropped, its counts overlapped this bar's own Sample Status filter) */}
@@ -532,7 +520,7 @@ export function ReceivingTestingWorkspacePage() {
         search={search}
         onSearchChange={setSearch}
         categoryFilter={categoryFilter}
-        onCategoryFilterChange={handleCategoryFilterChange}
+        onCategoryFilterChange={setCategoryFilter}
         sampleStatusFilter={sampleStatusFilter}
         onSampleStatusFilterChange={handleSampleStatusFilterChange}
         testStatusFilter={testStatusFilter}
@@ -547,6 +535,18 @@ export function ReceivingTestingWorkspacePage() {
         onViewModeChange={setViewMode}
         onExport={() => exportSamplesToCsv(filteredRecords)}
       />
+
+      {/* Selection summary - rendered above the layout branch so it survives
+          the swap into the grouped-actions split view at 2+ selected. */}
+      {records && !loading && (
+        <SelectionSummaryBar
+          selectedCount={checkedSampleIds.size}
+          hiddenCount={hiddenCheckedCount}
+          showingSelectedOnly={showSelectedOnly}
+          onToggleShowSelectedOnly={() => setShowSelectedOnly((prev) => !prev)}
+          onClear={handleDeselectAllChecked}
+        />
+      )}
 
       {/* Loading State */}
       {!records || loading ? (
@@ -574,10 +574,12 @@ export function ReceivingTestingWorkspacePage() {
           >
             <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <Typography sx={{ fontSize: 14, fontWeight: 700, color: theme.palette.primary.main }}>
-                Laboratory Register ({filteredRecords.length})
+                Laboratory Register ({filteredRecords.length}
+                {records && filteredRecords.length !== records.length ? ` of ${records.length}` : ""})
               </Typography>
               <Typography sx={{ fontSize: 11, color: "text.secondary" }}>
-                {checkedSampleIds.size} samples checked
+                {checkedSampleIds.size} checked
+                {hiddenCheckedCount > 0 ? ` · ${hiddenCheckedCount} hidden` : ""}
               </Typography>
             </Box>
 
@@ -594,7 +596,7 @@ export function ReceivingTestingWorkspacePage() {
             >
               <Table size="small" stickyHeader>
                 <TableHead>
-                  <TableRow sx={{ "& th": { bgcolor: "background.default", fontWeight: 700, fontSize: 11, py: 1 } }}>
+                  <TableRow sx={[tableHeadSx, { "& th": { fontWeight: 700, fontSize: 11, py: 1 } }]}>
                     <TableCell>Item / Reference</TableCell>
                     <TableCell sx={{ width: 65 }}>Type</TableCell>
                     <TableCell sx={{ width: 95 }}>Batch/Ctrl</TableCell>
@@ -657,6 +659,13 @@ export function ReceivingTestingWorkspacePage() {
                 });
                 loadRecords(true);
               }}
+              onPreparationComplete={(result) => {
+                setNotification({
+                  text: `${result.succeededCount} sample${result.succeededCount === 1 ? "" : "s"} prepared and signed.${result.skippedCount > 0 ? ` (${result.skippedCount} skipped)` : ""}`,
+                  severity: result.skippedCount > 0 ? "warning" : "success"
+                });
+                loadRecords(true);
+              }}
             />
           </Box>
         </Box>
@@ -683,7 +692,8 @@ export function ReceivingTestingWorkspacePage() {
           >
             <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <Typography sx={{ fontSize: 14, fontWeight: 700, color: theme.palette.primary.main }}>
-                Laboratory Register ({filteredRecords.length})
+                Laboratory Register ({filteredRecords.length}
+                {records && filteredRecords.length !== records.length ? ` of ${records.length}` : ""})
               </Typography>
               <Typography sx={{ fontSize: 11, color: "text.secondary" }}>
                 Click a sample to switch
@@ -703,7 +713,7 @@ export function ReceivingTestingWorkspacePage() {
             >
               <Table size="small" stickyHeader>
                 <TableHead>
-                  <TableRow sx={{ "& th": { bgcolor: "background.default", fontWeight: 700, fontSize: 11, py: 1 } }}>
+                  <TableRow sx={[tableHeadSx, { "& th": { fontWeight: 700, fontSize: 11, py: 1 } }]}>
                     <TableCell>Item / Reference</TableCell>
                     <TableCell sx={{ width: 65 }}>Type</TableCell>
                     <TableCell sx={{ width: 95 }}>Batch/Ctrl</TableCell>
@@ -776,6 +786,7 @@ export function ReceivingTestingWorkspacePage() {
               selectedSampleId={selectedSampleId}
               checkedSampleIds={checkedSampleIds}
               onToggleCheck={handleToggleCheckSample}
+              onToggleCheckMany={handleToggleCheckMany}
               onSelectSample={handleSelectSample}
               onTestClick={(test, sample) => {
                 handleTestClick(test, sample);

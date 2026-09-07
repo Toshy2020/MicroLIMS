@@ -20,19 +20,24 @@ import { useActionableGroups } from "../hooks/useActionableGroups";
 import { invalidateStepCache } from "../hooks/useTestStepQuickAction";
 import { GroupedActionRow } from "./GroupedActionRow";
 import { BatchSelectMediaResponse } from "../types/testWorkflowTypes";
+import { useGroupedPreparation } from "../../testPreparation/hooks/useGroupedPreparation";
+import { GroupedPreparationRow } from "../../testPreparation/components/GroupedPreparationRow";
+import type { BatchConfirmPreparationResponse } from "../../testPreparation/services/SamplePreparationService";
 
 interface GroupedActionsPanelProps {
   selectedSampleIds: number[];
   onDeselectAll: () => void;
   onOpenWorkflow?: (sampleId: number, testOrderId: number) => void;
   onActionComplete: (result: BatchSelectMediaResponse) => void;
+  onPreparationComplete?: (result: BatchConfirmPreparationResponse) => void;
 }
 
 export function GroupedActionsPanel({
   selectedSampleIds,
   onDeselectAll,
   onOpenWorkflow,
-  onActionComplete
+  onActionComplete,
+  onPreparationComplete
 }: GroupedActionsPanelProps) {
   const theme = useTheme();
 
@@ -49,11 +54,73 @@ export function GroupedActionsPanel({
     enabled: selectedSampleIds.length >= 2
   });
 
+  // Test Preparation gates incubation, so the same selection is asked for
+  // both: whatever still needs preparing is offered first, and the setup
+  // actions those samples unlock appear once it is signed.
+  const {
+    groups: prepGroups,
+    excluded: prepExcluded,
+    loading: prepLoading,
+    error: prepError,
+    reload: reloadPrep
+  } = useGroupedPreparation({
+    sampleIds: selectedSampleIds,
+    enabled: selectedSampleIds.length >= 2
+  });
+
   const handleBatchSuccess = (result: BatchSelectMediaResponse) => {
     invalidateStepCache();
     reload(true);
     onActionComplete(result);
   };
+
+  const handlePreparationSuccess = (result: BatchConfirmPreparationResponse) => {
+    invalidateStepCache();
+    reloadPrep(true);
+    reload(true);
+    onPreparationComplete?.(result);
+  };
+
+  const hasPreparation = prepGroups.length > 0;
+
+  // Preparation blocks these samples from any incubation action, so an
+  // empty action list is expected rather than a dead end - say so instead
+  // of showing the generic "nothing to do" panel.
+  const preparationBlocksActions = hasPreparation && groups.length === 0;
+
+  const preparationSection = hasPreparation ? (
+    <Box sx={{ display: "flex", flexDirection: "column", gap: 1.25 }}>
+      <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <Typography sx={{ fontSize: "0.72rem", fontWeight: 700, textTransform: "uppercase", color: "text.secondary", letterSpacing: "0.5px" }}>
+          Test Preparation Required ({prepGroups.length})
+        </Typography>
+        <Typography sx={{ fontSize: "0.72rem", color: "text.secondary" }}>
+          Must complete before incubation
+        </Typography>
+      </Box>
+
+      <Stack spacing={1}>
+        {prepGroups.map((g) => (
+          <GroupedPreparationRow key={g.groupKey} group={g} onComplete={handlePreparationSuccess} />
+        ))}
+      </Stack>
+
+      {prepExcluded.length > 0 && (
+        <Alert severity="info" icon={<InfoOutlinedIcon fontSize="inherit" />} sx={{ py: 0.75, px: 1.5, borderRadius: 1.5 }}>
+          <Typography sx={{ fontSize: "0.74rem", fontWeight: 700, mb: 0.25 }}>
+            {prepExcluded.length} {prepExcluded.length === 1 ? "sample" : "samples"} cannot be prepared as a group
+          </Typography>
+          <Box sx={{ display: "flex", flexDirection: "column", gap: 0.25 }}>
+            {prepExcluded.map((s) => (
+              <Typography key={s.sampleId} sx={{ fontSize: "0.72rem", color: "text.secondary" }}>
+                <strong>{s.sampleReference}</strong> - {s.reason}
+              </Typography>
+            ))}
+          </Box>
+        </Alert>
+      )}
+    </Box>
+  ) : null;
 
   return (
     <Paper
@@ -141,12 +208,40 @@ export function GroupedActionsPanel({
         </Alert>
       )}
 
-      {loading ? (
+      {prepError && (
+        <Alert severity="error" sx={{ py: 0.5, fontSize: "0.75rem" }}>
+          {prepError}
+        </Alert>
+      )}
+
+      {loading || prepLoading ? (
         <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", py: 6, gap: 1.5 }}>
           <CircularProgress size={28} />
           <Typography sx={{ fontSize: "0.8rem", color: "text.secondary" }}>
             Calculating compatible workflow steps...
           </Typography>
+        </Box>
+      ) : preparationBlocksActions ? (
+        <Box sx={{ display: "flex", flexDirection: "column", gap: 1.25 }}>
+          {preparationSection}
+          <Box
+            sx={{
+              py: 3,
+              px: 3,
+              textAlign: "center",
+              border: "1px dashed",
+              borderColor: theme.palette.divider,
+              borderRadius: 2
+            }}
+          >
+            <Typography sx={{ fontWeight: 600, fontSize: "0.86rem", mb: 0.5 }}>
+              Incubation Setup Locked
+            </Typography>
+            <Typography sx={{ fontSize: "0.75rem", color: "text.secondary", maxWidth: 400, mx: "auto" }}>
+              No incubation can start on a sample whose Test Preparation is still outstanding. Confirm the
+              preparation above and the compatible setup actions appear here.
+            </Typography>
+          </Box>
         </Box>
       ) : groups.length === 0 ? (
         excludedResultEntryCount && excludedResultEntryCount > 0 ? (
@@ -220,6 +315,8 @@ export function GroupedActionsPanel({
         )
       ) : (
         <Box sx={{ display: "flex", flexDirection: "column", gap: 1.25 }}>
+          {preparationSection}
+
           {excludedResultEntryCount && excludedResultEntryCount > 0 ? (
             <Alert
               severity="info"

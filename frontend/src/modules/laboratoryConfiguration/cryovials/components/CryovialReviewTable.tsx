@@ -63,25 +63,25 @@ export function CryovialReviewTable({
         <Table size="small" stickyHeader>
           <TableHead>
             <TableRow>
-              <TableCell sx={{ fontWeight: 700, fontSize: 12, bgcolor: "background.default", color: "text.secondary" }}>
+              <TableCell sx={{ fontWeight: 700, fontSize: 12, bgcolor: theme.custom.chrome.tableHeaderBg, color: theme.custom.chrome.tableHeaderText }}>
                 Code
               </TableCell>
-              <TableCell sx={{ fontWeight: 700, fontSize: 12, bgcolor: "background.default", color: "text.secondary" }}>
+              <TableCell sx={{ fontWeight: 700, fontSize: 12, bgcolor: theme.custom.chrome.tableHeaderBg, color: theme.custom.chrome.tableHeaderText }}>
                 Organism &amp; Source
               </TableCell>
-              <TableCell sx={{ fontWeight: 700, fontSize: 12, bgcolor: "background.default", color: "text.secondary" }}>
+              <TableCell sx={{ fontWeight: 700, fontSize: 12, bgcolor: theme.custom.chrome.tableHeaderBg, color: theme.custom.chrome.tableHeaderText }}>
                 Status
               </TableCell>
-              <TableCell sx={{ fontWeight: 700, fontSize: 12, bgcolor: "background.default", color: "text.secondary" }}>
+              <TableCell sx={{ fontWeight: 700, fontSize: 12, bgcolor: theme.custom.chrome.tableHeaderBg, color: theme.custom.chrome.tableHeaderText }}>
                 Vials Stock
               </TableCell>
-              <TableCell sx={{ fontWeight: 700, fontSize: 12, bgcolor: "background.default", color: "text.secondary" }}>
+              <TableCell sx={{ fontWeight: 700, fontSize: 12, bgcolor: theme.custom.chrome.tableHeaderBg, color: theme.custom.chrome.tableHeaderText }}>
                 Prepared
               </TableCell>
-              <TableCell sx={{ fontWeight: 700, fontSize: 12, bgcolor: "background.default", color: "text.secondary" }}>
+              <TableCell sx={{ fontWeight: 700, fontSize: 12, bgcolor: theme.custom.chrome.tableHeaderBg, color: theme.custom.chrome.tableHeaderText }}>
                 Expiry
               </TableCell>
-              <TableCell align="right" sx={{ fontWeight: 700, fontSize: 12, bgcolor: "background.default", color: "text.secondary" }}>
+              <TableCell align="right" sx={{ fontWeight: 700, fontSize: 12, bgcolor: theme.custom.chrome.tableHeaderBg, color: theme.custom.chrome.tableHeaderText }}>
                 Actions
               </TableCell>
             </TableRow>

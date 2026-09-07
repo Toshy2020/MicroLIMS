@@ -13,28 +13,25 @@ interface SummaryCardProps {
   icon: SvgIconComponent;
   color: string;
   bgWash: string;
-  to?: string;
-  onClick?: () => void;
+  to: string;
 }
 
-function SummaryCard({ label, count, icon: Icon, color, bgWash, to, onClick }: SummaryCardProps) {
+function SummaryCard({ label, count, icon: Icon, color, bgWash, to }: SummaryCardProps) {
   return (
     <Paper
-      {...(to
-        ? { component: Link, to }
-        : onClick
-        ? { onClick }
-        : {})}
+      component={Link}
+      to={to}
       sx={{
         p: 2,
         display: "flex",
         alignItems: "center",
         gap: 1.5,
-        cursor: to || onClick ? "pointer" : "default",
+        cursor: "pointer",
         textDecoration: "none",
         color: "inherit",
         transition: "transform 0.15s ease, box-shadow 0.15s ease",
-        "&:hover": to || onClick ? { transform: "translateY(-2px)", boxShadow: 3 } : {}
+        "&:hover": { transform: "translateY(-2px)", boxShadow: 3 },
+        "&:focus-visible": { outline: `2px solid ${color}`, outlineOffset: 2 }
       }}
     >
       <Box
@@ -74,10 +71,9 @@ const CATEGORY_ROUTES: Record<string, string> = {
 interface AnalystWorkSummaryProps {
   tasks: MyTask[];
   readyToReadCount: number;
-  onSelectCategory?: (category: "Overdue" | "DueNow" | "DueToday" | "ReadyToRead") => void;
 }
 
-export function AnalystWorkSummary({ tasks, readyToReadCount, onSelectCategory }: AnalystWorkSummaryProps) {
+export function AnalystWorkSummary({ tasks, readyToReadCount }: AnalystWorkSummaryProps) {
   const theme = useTheme();
 
   const overdueCount = tasks.filter((t) => t.urgency === "Overdue").length;
@@ -130,7 +126,6 @@ export function AnalystWorkSummary({ tasks, readyToReadCount, onSelectCategory }
             color={c.color}
             bgWash={c.bgWash}
             to={CATEGORY_ROUTES[c.category]}
-            onClick={onSelectCategory ? () => onSelectCategory(c.category) : undefined}
           />
         </Grid>
       ))}

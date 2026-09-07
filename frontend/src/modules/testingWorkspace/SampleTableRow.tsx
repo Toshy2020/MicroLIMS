@@ -114,6 +114,9 @@ export function SampleTableRow({
                   onToggleCheck(sample.sampleId, e.target.checked);
                 }}
                 onClick={(e) => e.stopPropagation()}
+                inputProps={{
+                  "aria-label": `Select ${sample.displayName} (${sample.referenceNumber}) for grouped actions`
+                }}
                 sx={{ p: 0.25, mr: 0.25 }}
               />
             )}
@@ -170,7 +173,12 @@ export function SampleTableRow({
       >
         <TableCell sx={{ width: 36 }} onClick={(e) => e.stopPropagation()}>
           {hasDetails && (
-            <IconButton size="small" onClick={() => setExpanded((e) => !e)}>
+            <IconButton
+              size="small"
+              onClick={() => setExpanded((e) => !e)}
+              aria-label={`${expanded ? "Hide" : "Show"} details for ${sample.displayName}`}
+              aria-expanded={expanded}
+            >
               {expanded ? <ExpandLessIcon fontSize="small" /> : <ExpandMoreIcon fontSize="small" />}
             </IconButton>
           )}
@@ -187,6 +195,9 @@ export function SampleTableRow({
                   onToggleCheck(sample.sampleId, e.target.checked);
                 }}
                 onClick={(e) => e.stopPropagation()}
+                inputProps={{
+                  "aria-label": `Select ${sample.displayName} (${sample.referenceNumber}) for grouped actions`
+                }}
                 sx={{ p: 0.25, mr: 0.25 }}
               />
             )}

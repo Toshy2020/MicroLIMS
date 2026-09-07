@@ -1,71 +1,189 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { Box, Paper, Typography, Grid, useTheme } from "@mui/material";
-import Inventory2OutlinedIcon from "@mui/icons-material/Inventory2Outlined";
 import ScienceOutlinedIcon from "@mui/icons-material/ScienceOutlined";
-import InventoryOutlinedIcon from "@mui/icons-material/InventoryOutlined";
-import WaterDropOutlinedIcon from "@mui/icons-material/WaterDropOutlined";
-import CleaningServicesOutlinedIcon from "@mui/icons-material/CleaningServicesOutlined";
-import SensorsOutlinedIcon from "@mui/icons-material/SensorsOutlined";
+import VisibilityOutlinedIcon from "@mui/icons-material/VisibilityOutlined";
+import RateReviewOutlinedIcon from "@mui/icons-material/RateReviewOutlined";
+import ScheduleOutlinedIcon from "@mui/icons-material/ScheduleOutlined";
+import PersonOutlineIcon from "@mui/icons-material/PersonOutline";
+import PersonOffOutlinedIcon from "@mui/icons-material/PersonOffOutlined";
 import { SampleRecord } from "../types/receivingTypes";
 import { StatusTone } from "../../../theme/statusTokens";
 
-export type KpiFilterKey =
-  | "ALL"
-  | "Product"
-  | "RM"
-  | "PM"
-  | "Water"
-  | "Aftercleaning"
-  | "EM";
+// These tiles used to count sample categories (Product/RM/PM/Water/AC/EM),
+// which duplicated the Item Type dropdown immediately below them. They now
+// answer the question the workspace is actually opened to answer - what is
+// outstanding, and what of it is mine.
+
+export type WorkloadFilterKey =
+  | "needsPreparation"
+  | "readyToRead"
+  | "awaitingReview"
+  | "overdue"
+  | "mine"
+  | "unassigned";
+
+export interface WorkloadContext {
+  userId: number | null;
+  isSectionHeadOrAdmin: boolean;
+  now: number;
+}
+
+const OVERDUE_AFTER_MS = 24 * 60 * 60 * 1000;
+
+// A sample past one of these is finished; it is not outstanding work no
+// matter how long ago it arrived. Without this an "Overdue" count grows
+// forever, because every approved sample eventually passes 24h.
+const CLOSED_SAMPLE_STATUSES = new Set([
+  "Approved",
+  "Rejected",
+  "RetestRequested",
+  "Cancelled",
+  "Voided"
+]);
+
+export function isClosedSample(r: SampleRecord): boolean {
+  return CLOSED_SAMPLE_STATUSES.has(r.status);
+}
+
+// The single source of truth for what each tile means. The tiles count with
+// these and the register filters with these, so a tile can never claim a
+// number that the list underneath it does not show - which in a GMP system
+// is a credibility problem, not just a cosmetic one.
+export const WORKLOAD_PREDICATES: Record<
+  WorkloadFilterKey,
+  (r: SampleRecord, ctx: WorkloadContext) => boolean
+> = {
+  needsPreparation: (r) => r.preparationStatus === "NeedsPreparation" && !isClosedSample(r),
+
+  readyToRead: (r) =>
+    Boolean(r.assignedTests?.some((t) => t.workflowStatus === "ReadyToRead" || t.workflowStatus === "EnterResult")),
+
+  awaitingReview: (r) =>
+    r.status === "UnderReview" ||
+    Boolean(r.assignedTests?.some((t) => t.status === "ResultEntered" || t.workflowStatus === "PendingReview")),
+
+  overdue: (r, ctx) => !isClosedSample(r) && ctx.now - new Date(r.receivedAt).getTime() > OVERDUE_AFTER_MS,
+
+  mine: (r, ctx) =>
+    ctx.userId != null &&
+    (r.assignedAnalystId === ctx.userId ||
+      Boolean(r.assignedTests?.some((t) => t.assignedAnalystId === ctx.userId))),
+
+  unassigned: (r) =>
+    !isClosedSample(r) &&
+    !r.assignedAnalystId &&
+    !r.assignedTests?.some((t) => t.assignedAnalystId != null)
+};
+
+interface TileConfig {
+  key: WorkloadFilterKey;
+  label: string;
+  hint: string;
+  icon: React.ReactNode;
+  tone: StatusTone;
+  sectionHeadOnly?: boolean;
+}
+
+const TILES: TileConfig[] = [
+  {
+    key: "needsPreparation",
+    label: "Needs Preparation",
+    hint: "Preparation not yet signed off",
+    icon: <ScienceOutlinedIcon sx={{ fontSize: 20 }} />,
+    tone: "inconclusive"
+  },
+  {
+    key: "readyToRead",
+    label: "Ready to Read",
+    hint: "Incubation complete, awaiting result entry",
+    icon: <VisibilityOutlinedIcon sx={{ fontSize: 20 }} />,
+    tone: "purple"
+  },
+  {
+    key: "awaitingReview",
+    label: "Awaiting Review",
+    hint: "Results entered, awaiting reviewer",
+    icon: <RateReviewOutlinedIcon sx={{ fontSize: 20 }} />,
+    tone: "info"
+  },
+  {
+    key: "overdue",
+    label: "Overdue",
+    hint: "Open more than 24 hours after receipt",
+    icon: <ScheduleOutlinedIcon sx={{ fontSize: 20 }} />,
+    tone: "detected"
+  },
+  {
+    key: "mine",
+    label: "Assigned to Me",
+    hint: "Samples with a test assigned to you",
+    icon: <PersonOutlineIcon sx={{ fontSize: 20 }} />,
+    tone: "action"
+  },
+  {
+    key: "unassigned",
+    label: "Unassigned",
+    hint: "No analyst assigned yet",
+    icon: <PersonOffOutlinedIcon sx={{ fontSize: 20 }} />,
+    tone: "pending",
+    sectionHeadOnly: true
+  }
+];
 
 interface Props {
   samples: SampleRecord[];
-  activeKpi: KpiFilterKey | null;
-  onSelectKpi: (kpi: KpiFilterKey) => void;
+  activeKey: WorkloadFilterKey | null;
+  onSelect: (key: WorkloadFilterKey) => void;
+  userId: number | null;
+  isSectionHeadOrAdmin: boolean;
 }
 
-interface KpiCardConfig {
-  key: KpiFilterKey;
-  label: string;
-  count: number;
-  icon: React.ReactNode;
-  tone: StatusTone;
-}
-
-export function SampleStatusKpiCards({ samples, activeKpi, onSelectKpi }: Props) {
+export function SampleStatusKpiCards({ samples, activeKey, onSelect, userId, isSectionHeadOrAdmin }: Props) {
   const theme = useTheme();
 
-  const productCount = samples.filter((s) => s.category === "FinishedProduct" || s.category === "Product").length;
-  const rmCount = samples.filter((s) => s.category === "RawMaterial" || s.category === "RM").length;
-  const pmCount = samples.filter((s) => s.category === "PackagingMaterial" || s.category === "PM").length;
-  const waterCount = samples.filter((s) => s.category === "Water").length;
-  const acCount = samples.filter(
-    (s) => s.category === "AfterCleaning" || s.category === "Aftercleaning" || s.category === "AC"
-  ).length;
-  const emCount = samples.filter(
-    (s) => s.category === "EnvironmentalMonitoring" || s.category === "EM"
-  ).length;
+  const visibleTiles = useMemo(
+    () => TILES.filter((t) => !t.sectionHeadOnly || isSectionHeadOrAdmin),
+    [isSectionHeadOrAdmin]
+  );
 
-  const cards: KpiCardConfig[] = [
-    { key: "Product", label: "Product", count: productCount, icon: <Inventory2OutlinedIcon sx={{ fontSize: 20 }} />, tone: "purple" },
-    { key: "RM", label: "RM", count: rmCount, icon: <ScienceOutlinedIcon sx={{ fontSize: 20 }} />, tone: "info" },
-    { key: "PM", label: "PM", count: pmCount, icon: <InventoryOutlinedIcon sx={{ fontSize: 20 }} />, tone: "action" },
-    { key: "Water", label: "Water", count: waterCount, icon: <WaterDropOutlinedIcon sx={{ fontSize: 20 }} />, tone: "info" },
-    { key: "Aftercleaning", label: "Aftercleaning", count: acCount, icon: <CleaningServicesOutlinedIcon sx={{ fontSize: 20 }} />, tone: "detected" },
-    { key: "EM", label: "EM", count: emCount, icon: <SensorsOutlinedIcon sx={{ fontSize: 20 }} />, tone: "notDetected" }
-  ];
+  // One pass over the samples for all tiles, rather than one pass per tile.
+  const counts = useMemo(() => {
+    const ctx: WorkloadContext = { userId, isSectionHeadOrAdmin, now: Date.now() };
+    const totals = {} as Record<WorkloadFilterKey, number>;
+    for (const tile of visibleTiles) totals[tile.key] = 0;
+
+    for (const sample of samples) {
+      for (const tile of visibleTiles) {
+        if (WORKLOAD_PREDICATES[tile.key](sample, ctx)) totals[tile.key] += 1;
+      }
+    }
+    return totals;
+  }, [samples, visibleTiles, userId, isSectionHeadOrAdmin]);
 
   return (
     <Grid container spacing={1.5} sx={{ mb: 2.5 }}>
-      {cards.map((card) => {
-        const isActive = activeKpi === card.key;
+      {visibleTiles.map((card) => {
+        const isActive = activeKey === card.key;
+        const count = counts[card.key] ?? 0;
         const iconTokens = theme.custom.status[card.tone];
         const activeTokens = theme.custom.status.purple;
+
         return (
           <Grid item xs={6} sm={4} md={2} key={card.key}>
             <Paper
               elevation={isActive ? 2 : 0}
-              onClick={() => onSelectKpi(card.key)}
+              role="button"
+              tabIndex={0}
+              aria-pressed={isActive}
+              aria-label={`${card.label}: ${count} ${count === 1 ? "sample" : "samples"}. ${card.hint}.`}
+              title={card.hint}
+              onClick={() => onSelect(card.key)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  onSelect(card.key);
+                }
+              }}
               sx={{
                 p: 1.75,
                 borderRadius: 2,
@@ -80,14 +198,25 @@ export function SampleStatusKpiCards({ samples, activeKpi, onSelectKpi }: Props)
                 minHeight: 88,
                 position: "relative",
                 overflow: "hidden",
+                // A zero count is not worth pulling the eye toward, but the
+                // tile stays clickable so the filter is still reachable.
+                opacity: count === 0 && !isActive ? 0.65 : 1,
                 "&:hover": {
                   borderColor: activeTokens.border,
                   boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
                   transform: "translateY(-1px)"
+                },
+                // These tiles are the page's primary filter, so the keyboard
+                // path needs the same visible affordance the pointer one has.
+                // .text, not .border: the border token is a pale tint that
+                // would leave the ring under the 3:1 an indicator needs.
+                "&:focus-visible": {
+                  outline: `2px solid ${activeTokens.text}`,
+                  outlineOffset: 2
                 }
               }}
             >
-              <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 0.75 }}>
+              <Box sx={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 0.5, mb: 0.75 }}>
                 <Typography
                   sx={{
                     fontSize: 12,
@@ -107,7 +236,8 @@ export function SampleStatusKpiCards({ samples, activeKpi, onSelectKpi }: Props)
                     width: 28,
                     height: 28,
                     borderRadius: 1.5,
-                    bgcolor: iconTokens.bg
+                    bgcolor: iconTokens.bg,
+                    flexShrink: 0
                   }}
                 >
                   {card.icon}
@@ -123,11 +253,11 @@ export function SampleStatusKpiCards({ samples, activeKpi, onSelectKpi }: Props)
                     lineHeight: 1
                   }}
                 >
-                  {card.count}
+                  {count}
                 </Typography>
-                {isActive && card.key !== "ALL" && (
+                {isActive && (
                   <Typography sx={{ fontSize: 11, color: activeTokens.text, fontWeight: 600 }}>
-                    Active
+                    Filtering
                   </Typography>
                 )}
               </Box>

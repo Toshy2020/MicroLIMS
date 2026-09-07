@@ -340,7 +340,7 @@ public class DocumentControlLifecycleEndToEndPostgresIntegrationTests
         // WP8 Lifecycle Point 6: 21 CFR Part 11 Electronic Signature Ceremony (WP4)
         // -----------------------------------------------------------------------------------------
         // Test invalid password rejection first (assert security barrier)
-        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        await Assert.ThrowsAnyAsync<InvalidOperationException>(() =>
             harness.ApprovalService.ExecuteApprovalDecisionAsync(
                 approvalTask.Id,
                 new ExecuteApprovalDecisionRequest(

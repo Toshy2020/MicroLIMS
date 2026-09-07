@@ -327,7 +327,7 @@ export function SessionReviewPanel({ session, onSessionCompleted, onBackToMatrix
           <Table size="small" stickyHeader>
             <TableHead>
               <TableRow>
-                <TableCell sx={{ position: "sticky", left: 0, zIndex: 3, bgcolor: "background.default", fontWeight: 800, minWidth: 220, borderRight: "2px solid", borderColor: "divider" }}>
+                <TableCell sx={{ position: "sticky", left: 0, zIndex: 3, bgcolor: theme.custom.chrome.tableHeaderBg, color: theme.custom.chrome.tableHeaderText, fontWeight: 800, minWidth: 220, borderRight: "2px solid", borderColor: "divider" }}>
                   Sampling Location ({session.locations.length})
                 </TableCell>
                 {session.assignedTests.map((t) => (

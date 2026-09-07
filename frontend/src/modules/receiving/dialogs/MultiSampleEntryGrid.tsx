@@ -20,7 +20,7 @@ import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import AddIcon from "@mui/icons-material/Add";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import { ReceiveRowItem, SampleCategoryKey } from "../types/receivingTypes";
-import { brandColors } from "../../../theme";
+import { brandColors, tableHeadSx } from "../../../theme";
 
 interface MasterData {
   items: any[];
@@ -95,7 +95,7 @@ export function MultiSampleEntryGrid({
         <Box sx={{ overflowX: "auto", maxHeight: "55vh" }}>
           <Table size="small" stickyHeader sx={{ minWidth: isItemBased || isAC ? 1200 : 780 }}>
             <TableHead>
-              <TableRow sx={{ "& th": { bgcolor: "background.default", fontWeight: 700, fontSize: 12, py: 1.25 } }}>
+              <TableRow sx={[tableHeadSx, { "& th": { fontWeight: 700, fontSize: 12, py: 1.25 } }]}>
                 <TableCell sx={{ width: 40 }}>#</TableCell>
 
                 {isItemBased && (

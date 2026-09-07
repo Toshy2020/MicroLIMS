@@ -224,7 +224,7 @@ public class DocumentControlElectronicSignatureUnitTests
             Password: "Wrong-Password-123!"
         );
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAnyAsync<InvalidOperationException>(() =>
             approvalService.ExecuteApprovalDecisionAsync(task.Id, request, approver.Id));
 
         Assert.Contains("Password verification failed", ex.Message);

@@ -20,8 +20,6 @@ import {
 import CloseIcon from "@mui/icons-material/Close";
 import DescriptionIcon from "@mui/icons-material/Description";
 import VerifiedIcon from "@mui/icons-material/Verified";
-import DownloadIcon from "@mui/icons-material/Download";
-import VisibilityIcon from "@mui/icons-material/Visibility";
 import UploadFileIcon from "@mui/icons-material/UploadFile";
 import HistoryIcon from "@mui/icons-material/History";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
@@ -31,6 +29,7 @@ import { CategoryBadge, StatusBadge } from "../../../../components/StatusBadge";
 import { ItemDocumentService, ItemDocumentDto, ItemDocumentType, MaterialDocumentStatus } from "../services/ItemDocumentService";
 import { UploadItemDocumentDialog } from "./UploadItemDocumentDialog";
 import { AuditHistoryDialog } from "../../../../components/AuditHistoryDialog";
+import { ItemDocumentActionButtons } from "../../../../components/ItemDocumentActionButtons";
 import { ItemSpecificationsSection } from "./ItemSpecificationsSection";
 import { ItemPreparationConfigurationSection } from "./ItemPreparationConfigurationSection";
 import {
@@ -602,29 +601,7 @@ function DocumentCard({
           </Typography>
         </Box>
 
-        <Stack direction="row" spacing={1}>
-          <Button
-            size="small"
-            variant="outlined"
-            startIcon={<VisibilityIcon fontSize="small" />}
-            href={ItemDocumentService.getContentUrl(doc.id)}
-            target="_blank"
-            rel="noopener noreferrer"
-            sx={{ textTransform: "none" }}
-          >
-            View
-          </Button>
-          <Button
-            size="small"
-            variant="contained"
-            color="primary"
-            startIcon={<DownloadIcon fontSize="small" />}
-            href={ItemDocumentService.getContentUrl(doc.id, true)}
-            sx={{ textTransform: "none" }}
-          >
-            Download
-          </Button>
-        </Stack>
+        <ItemDocumentActionButtons doc={doc} buttonSx={{ textTransform: "none" }} />
       </Stack>
     </Paper>
   );

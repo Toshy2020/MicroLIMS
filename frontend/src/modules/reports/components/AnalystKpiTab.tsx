@@ -448,13 +448,13 @@ export function AnalystKpiTab() {
             <Box sx={{ height: 250 }}>
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={data.completedByMonth} margin={{ top: 10, right: 10, left: -20, bottom: 5 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke={theme.palette.divider} />
+                  <CartesianGrid vertical={false} stroke={theme.palette.divider} />
                   <XAxis dataKey="month" tick={{ fontSize: 11, fill: theme.palette.text.secondary }} />
                   <YAxis tick={{ fontSize: 11, fill: theme.palette.text.secondary }} />
                   <RechartsTooltip />
                   <Legend verticalAlign="top" height={32} wrapperStyle={{ fontSize: 11 }} />
-                  <Bar dataKey="year2025" name="2025" fill={theme.custom.status.pending.text} radius={[3, 3, 0, 0]} barSize={12} />
-                  <Bar dataKey="year2026" name="2026" fill={theme.palette.primary.main} radius={[3, 3, 0, 0]} barSize={12} />
+                  <Bar dataKey="year2025" name="2025" fill={theme.custom.chartSequential[1]} radius={[3, 3, 0, 0]} barSize={12} />
+                  <Bar dataKey="year2026" name="2026" fill={theme.custom.chartSequential[3]} radius={[3, 3, 0, 0]} barSize={12} />
                 </BarChart>
               </ResponsiveContainer>
             </Box>
@@ -517,7 +517,7 @@ export function AnalystKpiTab() {
             <Box sx={{ height: 250 }}>
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={data.tatTrendByMonth} margin={{ top: 10, right: 10, left: -25, bottom: 5 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke={theme.palette.divider} />
+                  <CartesianGrid vertical={false} stroke={theme.palette.divider} />
                   <XAxis dataKey="month" tick={{ fontSize: 11, fill: theme.palette.text.secondary }} />
                   <YAxis domain={[0, 4]} tick={{ fontSize: 11, fill: theme.palette.text.secondary }} />
                   <RechartsTooltip formatter={(val: number) => [`${val} days`, "Testing TAT"]} />

@@ -216,7 +216,7 @@ public class MediaReleaseTests
         await SeedUser(db, SectionHeadId);
         var media = await PrepareAndEvaluateAsync(db, conform: true);
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        await Assert.ThrowsAnyAsync<InvalidOperationException>(() =>
             NewReleaseService(db).DecideAsync(media.Id, SectionHeadId, "wrong-password", approved: true, comment: null, ipAddress: null));
 
         var reloaded = await db.Media.FindAsync(media.Id);

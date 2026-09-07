@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using MicroLIMS.Application.DTOs;
 using MicroLIMS.Application.Services;
 using MicroLIMS.Shared.Responses;
 
@@ -13,6 +14,10 @@ public record PrepareSampleHttpRequest(
 
 // Confirm-only - the Item's configured steps are the ones performed.
 public record ConfirmPreparationHttpRequest(int SampleId, string Password);
+
+// Grouped confirm - the same confirm-only step applied to every sample in
+// one item-configuration group, signed once.
+public record BatchConfirmPreparationHttpRequest(List<int> SampleIds, int ConfigurationId, string Password);
 
 // Test Preparation step - Product/RM/PM, once per Sample, must
 // complete before results can be entered.
@@ -48,6 +53,33 @@ public class SamplePreparationController : ControllerBase
             new ConfirmPreparationRequest(r.SampleId, CurrentUserId, r.Password), ClientIp);
 
         return Ok(ApiResponse<object>.Ok(Project(prep)));
+    }
+
+    // Grouped preparation - which of the checked samples can be prepared
+    // together, bucketed by the item configuration each would confirm, plus
+    // the ones that cannot with the reason why.
+    [HttpGet("groups")]
+    public async Task<IActionResult> GetGroups([FromQuery] string? sampleIds = null, CancellationToken ct = default)
+    {
+        var ids = (sampleIds ?? string.Empty)
+            .Split(',', StringSplitOptions.RemoveEmptyEntries)
+            .Select(s => int.TryParse(s.Trim(), out var id) ? id : (int?)null)
+            .Where(id => id.HasValue)
+            .Select(id => id!.Value)
+            .ToList();
+
+        var result = await _service.GetGroupedPreparationAsync(ids, CurrentUserId, ct);
+        return Ok(ApiResponse<GroupedPreparationResponse>.Ok(result));
+    }
+
+    [HttpPost("batch-confirm")]
+    public async Task<IActionResult> BatchConfirm(BatchConfirmPreparationHttpRequest r, CancellationToken ct = default)
+    {
+        var result = await _service.ConfirmBatchFromConfigurationAsync(
+            new BatchConfirmPreparationRequest(r.SampleIds, r.ConfigurationId, r.Password),
+            CurrentUserId, ClientIp, ct);
+
+        return Ok(ApiResponse<BatchConfirmPreparationResponse>.Ok(result));
     }
 
     [HttpGet("{sampleId}/is-prepared")]

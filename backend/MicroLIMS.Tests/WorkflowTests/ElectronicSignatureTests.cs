@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Application.Services;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
@@ -53,7 +54,7 @@ public class ElectronicSignatureTests
         var user = await SeedUser(db);
         var service = new ElectronicSignatureService(db);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<SignatureVerificationException>(() =>
             service.SignAsync(user.Id, WrongPassword, SignatureMeaning.Reviewed, "TestOrder", 1, "comment", "127.0.0.1"));
 
         Assert.Equal("Password verification failed. The signature was not applied.", ex.Message);
@@ -88,7 +89,7 @@ public class ElectronicSignatureTests
 
         for (var i = 0; i < 10; i++)
         {
-            await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            await Assert.ThrowsAnyAsync<InvalidOperationException>(() =>
                 service.SignAsync(user.Id, WrongPassword, SignatureMeaning.Reviewed, "TestOrder", 1, null, null));
         }
 
@@ -106,7 +107,7 @@ public class ElectronicSignatureTests
         var order = await SeedResultEnteredOrder(db, analystId: 999);
         var review = new ReviewService(db, new SegregationOfDutiesGuard(db), new ElectronicSignatureService(db));
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => review.MarkReviewedAsync(order.Id, user.Id, "comment", WrongPassword, null));
+        await Assert.ThrowsAnyAsync<InvalidOperationException>(() => review.MarkReviewedAsync(order.Id, user.Id, "comment", WrongPassword, null));
 
         Assert.Empty(db.ElectronicSignatures);
         var reloaded = await db.TestOrders.FirstAsync(t => t.Id == order.Id);

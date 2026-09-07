@@ -2,14 +2,13 @@ import { useState, useEffect } from "react";
 import { Paper, Box, Typography, Stack, Button, Chip, useTheme } from "@mui/material";
 import DescriptionIcon from "@mui/icons-material/Description";
 import VerifiedIcon from "@mui/icons-material/Verified";
-import DownloadIcon from "@mui/icons-material/Download";
-import VisibilityIcon from "@mui/icons-material/Visibility";
 import {
   ItemDocumentService,
   ItemDocumentDto,
   ItemDocumentType,
   MaterialDocumentStatus,
 } from "../laboratoryConfiguration/items/services/ItemDocumentService";
+import { ItemDocumentActionButtons } from "../../components/ItemDocumentActionButtons";
 
 interface ItemDocumentsCardProps {
   itemId: number;
@@ -128,29 +127,12 @@ function ItemDocRow({
         </Typography>
       </Box>
 
-      <Stack direction="row" spacing={0.75}>
-        <Button
-          size="small"
-          variant="outlined"
-          startIcon={<VisibilityIcon sx={{ fontSize: 14 }} />}
-          href={ItemDocumentService.getContentUrl(doc.id)}
-          target="_blank"
-          rel="noopener noreferrer"
-          sx={{ textTransform: "none", fontSize: 11, px: 1, py: 0.25 }}
-        >
-          View
-        </Button>
-        <Button
-          size="small"
-          variant="contained"
-          color="primary"
-          startIcon={<DownloadIcon sx={{ fontSize: 14 }} />}
-          href={ItemDocumentService.getContentUrl(doc.id, true)}
-          sx={{ textTransform: "none", fontSize: 11, px: 1, py: 0.25 }}
-        >
-          Download
-        </Button>
-      </Stack>
+      <ItemDocumentActionButtons
+        doc={doc}
+        iconSize={14}
+        spacing={0.75}
+        buttonSx={{ textTransform: "none", fontSize: 11, px: 1, py: 0.25 }}
+      />
     </Paper>
   );
 }

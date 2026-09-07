@@ -16,8 +16,6 @@ import {
 } from "@mui/material";
 import DescriptionIcon from "@mui/icons-material/Description";
 import VerifiedIcon from "@mui/icons-material/Verified";
-import DownloadIcon from "@mui/icons-material/Download";
-import VisibilityIcon from "@mui/icons-material/Visibility";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { CategoryBadge } from "./StatusBadge";
 import {
@@ -27,6 +25,7 @@ import {
   MaterialDocumentStatus,
 } from "../modules/laboratoryConfiguration/items/services/ItemDocumentService";
 import { FloatingDialog } from "./FloatingDialog";
+import { ItemDocumentActionButtons } from "./ItemDocumentActionButtons";
 
 interface ReadOnlyItemDocumentsDialogProps {
   open: boolean;
@@ -286,29 +285,7 @@ function ReadOnlyDocumentCard({
           </Typography>
         </Box>
 
-        <Stack direction="row" spacing={1}>
-          <Button
-            size="small"
-            variant="outlined"
-            startIcon={<VisibilityIcon fontSize="small" />}
-            href={ItemDocumentService.getContentUrl(doc.id)}
-            target="_blank"
-            rel="noopener noreferrer"
-            sx={{ textTransform: "none", fontSize: 11 }}
-          >
-            View
-          </Button>
-          <Button
-            size="small"
-            variant="contained"
-            color="primary"
-            startIcon={<DownloadIcon fontSize="small" />}
-            href={ItemDocumentService.getContentUrl(doc.id, true)}
-            sx={{ textTransform: "none", fontSize: 11 }}
-          >
-            Download
-          </Button>
-        </Stack>
+        <ItemDocumentActionButtons doc={doc} buttonSx={{ textTransform: "none", fontSize: 11 }} />
       </Stack>
     </Paper>
   );

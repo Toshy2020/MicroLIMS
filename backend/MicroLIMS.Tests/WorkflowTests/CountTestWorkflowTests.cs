@@ -504,4 +504,24 @@ public class CountTestWorkflowTests
         var unit = TestWorkflowEngine.GetCfuUnit(SampleCategory.EnvironmentalMonitoring, "plate");
         Assert.Equal("CFU/plate/4h", unit);
     }
+
+    // Test Preparation gates incubation, not just result entry: nothing
+    // goes into an incubator before the sample's preparation is signed off.
+    [Fact]
+    public async Task SelectMediaAsync_WhenSamplePreparationIsOutstanding_ThrowsAndStartsNoIncubation()
+    {
+        await using var db = NewDb();
+        var (order, generalAgarMedia, _) = await SeedTamcOrderAsync(db);
+
+        var sample = await db.Samples.FirstAsync(s => s.Id == order.SampleId);
+        sample.PreparationStatus = SamplePreparationStatus.NeedsPreparation;
+        await db.SaveChangesAsync();
+
+        var engine = TestServiceFactory.TestWorkflow(db);
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            engine.SelectMediaAsync(order.Id, "CountIncubation", generalAgarMedia.Id, incubatorEquipmentId: 1, userId: 1));
+
+        Assert.Contains("Test Preparation must be completed", ex.Message);
+        Assert.Empty(await db.Incubations.ToListAsync());
+    }
 }

@@ -3,6 +3,16 @@ using MicroLIMS.Domain.Enums;
 
 namespace MicroLIMS.Application.Interfaces;
 
+// Raised when the signer's password could not be verified, as opposed to
+// any other reason a signed action might fail. Derives from
+// InvalidOperationException so every existing catch site keeps behaving
+// as before; batch callers catch this specifically to abort the whole run
+// rather than logging one failed-attempt audit row per item.
+public class SignatureVerificationException : InvalidOperationException
+{
+    public SignatureVerificationException(string message) : base(message) { }
+}
+
 public interface IElectronicSignatureService
 {
     // Re-verifies the signer's password (11.200(a)(1) - being logged in

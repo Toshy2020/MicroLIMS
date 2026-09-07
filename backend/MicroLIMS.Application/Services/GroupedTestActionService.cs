@@ -91,11 +91,12 @@ public class GroupedTestActionService
             var sample = order.Sample;
             if (sample == null) continue;
 
-            if (sample.Category is SampleCategory.EnvironmentalMonitoring or SampleCategory.AfterCleaning)
-            {
-                if (sample.PreparationStatus != SamplePreparationStatus.Ready)
-                    continue;
-            }
+            // Test Preparation gate - every category, not just the
+            // location-based ones. PreparationStatus turns Ready only once
+            // the sample's preparation step has been signed off, so an
+            // unprepared sample offers no incubation action at all.
+            if (sample.PreparationStatus != SamplePreparationStatus.Ready)
+                continue;
 
             CurrentStepResult stepResult;
             try
@@ -543,13 +544,13 @@ public class GroupedTestActionService
                 continue;
             }
 
-            if (order.Sample != null && (order.Sample.Category is SampleCategory.EnvironmentalMonitoring or SampleCategory.AfterCleaning))
+            if (order.Sample != null && order.Sample.PreparationStatus != SamplePreparationStatus.Ready)
             {
-                if (order.Sample.PreparationStatus != SamplePreparationStatus.Ready)
-                {
-                    skipped.Add(new BatchActionSkippedItem(id, sampleRef, "Sample preparation is not complete (locations/swabs not verified)."));
-                    continue;
-                }
+                skipped.Add(new BatchActionSkippedItem(id, sampleRef,
+                    order.Sample.Category is SampleCategory.EnvironmentalMonitoring or SampleCategory.AfterCleaning
+                        ? "Sample preparation is not complete (locations/swabs not verified)."
+                        : "Test Preparation is not complete for this sample."));
+                continue;
             }
 
             // Backend Domain Rule: Ensure order is NOT at a result-entry step

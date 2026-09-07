@@ -95,15 +95,16 @@ export function SampleFilterBar({
               exclusive
               size="small"
               onChange={(_, v) => v && onViewModeChange(v)}
+              aria-label="Register display mode"
               sx={{ flexShrink: 0 }}
             >
-              <ToggleButton value="table" title="Table View">
+              <ToggleButton value="table" title="Table View" aria-label="Table view">
                 <ViewListIcon fontSize="small" />
               </ToggleButton>
-              <ToggleButton value="card" title="Card View">
+              <ToggleButton value="card" title="Card View" aria-label="Card view">
                 <ViewModuleIcon fontSize="small" />
               </ToggleButton>
-              <ToggleButton value="kanban" title="Kanban View">
+              <ToggleButton value="kanban" title="Kanban View" aria-label="Kanban view">
                 <ViewKanbanIcon fontSize="small" />
               </ToggleButton>
             </ToggleButtonGroup>

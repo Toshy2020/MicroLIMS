@@ -18,7 +18,7 @@ import DescriptionOutlinedIcon from "@mui/icons-material/DescriptionOutlined";
 import { Link } from "react-router-dom";
 import { StatusBadge } from "../../../../components/StatusBadge";
 import { lifecycleOf } from "./MediaLotKpiCards";
-import { brandColors } from "../../../../theme";
+import { brandColors, tableHeadSx } from "../../../../theme";
 import { useAuth } from "../../../../contexts/AuthContext";
 
 function formatDateDDMMYY(value: string | number | Date | null | undefined): string {
@@ -75,7 +75,7 @@ export function MediaLotRegisterTable({
       <Box>
         <Table size="small" stickyHeader>
           <TableHead>
-            <TableRow sx={{ "& th": { bgcolor: "background.default", fontWeight: 700, fontSize: 11, py: 1 } }}>
+            <TableRow sx={[tableHeadSx, { "& th": { fontWeight: 700, fontSize: 11, py: 1 } }]}>
               <TableCell sx={{ width: 95 }}>Prepared On</TableCell>
               <TableCell>Material / Lot</TableCell>
               <TableCell sx={{ width: 95 }}>Status</TableCell>
@@ -148,7 +148,7 @@ export function MediaLotRegisterTable({
     <Box>
       <Table size="small">
         <TableHead>
-          <TableRow sx={{ bgcolor: "background.default" }}>
+          <TableRow sx={tableHeadSx}>
             <TableCell sx={{ fontWeight: 700, fontSize: 12, minWidth: 120 }}>Prepared On</TableCell>
             <TableCell sx={{ fontWeight: 700, fontSize: 12, minWidth: 180 }}>Dehydrated Material</TableCell>
             <TableCell sx={{ fontWeight: 700, fontSize: 12, minWidth: 150 }}>Lot Number</TableCell>

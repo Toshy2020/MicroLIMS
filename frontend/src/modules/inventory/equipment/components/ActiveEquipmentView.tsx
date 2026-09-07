@@ -24,7 +24,10 @@ interface ActiveEquipmentViewProps {
 export function ActiveEquipmentView({ onOpenDetails }: ActiveEquipmentViewProps) {
   const navigate = useNavigate();
   const theme = useTheme();
-  const headerBg = theme.palette.mode === "dark" ? "grey.800" : "grey.100";
+  // This inline pair is where the dark table-head band came from; it now
+  // lives in the theme as chrome.tableHeaderBg/Text so every table agrees.
+  const headerBg = theme.custom.chrome.tableHeaderBg;
+  const headerText = theme.custom.chrome.tableHeaderText;
 
   // Active Equipment state
   const [activeEquipment, setActiveEquipment] = useState<ActiveEquipmentDto[]>([]);
@@ -204,7 +207,7 @@ export function ActiveEquipmentView({ onOpenDetails }: ActiveEquipmentViewProps)
                 <>
                   <TableContainer>
                     <Table size="small">
-                      <TableHead sx={{ bgcolor: headerBg }}>
+                      <TableHead sx={{ bgcolor: headerBg, "& th": { color: headerText } }}>
                         <TableRow>
                           <TableCell sx={{ fontSize: 11, fontWeight: 700 }}>Equipment</TableCell>
                           <TableCell sx={{ fontSize: 11, fontWeight: 700 }}>Activity</TableCell>
@@ -380,7 +383,7 @@ export function ActiveEquipmentView({ onOpenDetails }: ActiveEquipmentViewProps)
                   <>
                     <TableContainer>
                       <Table size="small">
-                        <TableHead sx={{ bgcolor: headerBg }}>
+                        <TableHead sx={{ bgcolor: headerBg, "& th": { color: headerText } }}>
                           <TableRow>
                             <TableCell sx={{ fontWeight: 700, fontSize: 11 }}>Item / Activity</TableCell>
                             <TableCell sx={{ fontWeight: 700, fontSize: 11 }}>Item Code</TableCell>
@@ -510,7 +513,7 @@ export function ActiveEquipmentView({ onOpenDetails }: ActiveEquipmentViewProps)
                     <Box sx={{ mt: 1 }}>
                       <TableContainer>
                         <Table size="small">
-                          <TableHead sx={{ bgcolor: headerBg }}>
+                          <TableHead sx={{ bgcolor: headerBg, "& th": { color: headerText } }}>
                             <TableRow>
                               <TableCell sx={{ fontSize: 11, fontWeight: 700 }}>Item / Activity</TableCell>
                               <TableCell sx={{ fontSize: 11, fontWeight: 700 }}>Item Code</TableCell>

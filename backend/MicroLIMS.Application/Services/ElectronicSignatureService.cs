@@ -38,7 +38,7 @@ public class ElectronicSignatureService : IElectronicSignatureService
                 TestOrderId = entityType == "TestOrder" ? entityId : null
             });
             await _db.SaveChangesAsync();
-            throw new InvalidOperationException("Password verification failed. The signature was not applied.");
+            throw new SignatureVerificationException("Password verification failed. The signature was not applied.");
         }
 
         var signature = new ElectronicSignature

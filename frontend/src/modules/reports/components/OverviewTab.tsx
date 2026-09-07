@@ -9,10 +9,43 @@ import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
 import HourglassEmptyIcon from "@mui/icons-material/HourglassEmpty";
 import VerifiedUserIcon from "@mui/icons-material/VerifiedUser";
-import { ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip as RechartsTooltip, CartesianGrid } from "recharts";
+import { ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip as RechartsTooltip, LabelList } from "recharts";
 import { OverviewDashboardData, OverviewKpiCardData } from "../types/reportingTypes";
 import { OverviewService } from "../services/OverviewService";
 import { brandColors } from "../../../theme";
+
+// "Results by Test" y-axis ticks.
+//
+// The axis was 80px wide, so Recharts word-wrapped names like "Total Aerobic
+// Microbial Count" onto three lines. The card is a fixed 340px and the server
+// caps the chart at ten tests, which leaves roughly 25px per band - a
+// three-line 11px label is ~39px tall, so neighbouring labels collided.
+//
+// One line per tick, truncated to what the axis can actually show, with the
+// full name still available on hover (SVG <title> here, and the chart tooltip
+// on the bar itself).
+const TEST_AXIS_WIDTH = 156;
+const TEST_TICK_FONT_SIZE = 11;
+// Roughly half the font size per character for this weight - close enough to
+// pick a cut point, and the <title> covers whatever gets cut.
+const TEST_TICK_MAX_CHARS = Math.floor((TEST_AXIS_WIDTH - 10) / (TEST_TICK_FONT_SIZE * 0.52));
+
+function truncateTestName(name: string) {
+  if (name.length <= TEST_TICK_MAX_CHARS) return name;
+  return `${name.slice(0, TEST_TICK_MAX_CHARS - 1).trimEnd()}\u2026`;
+}
+
+function TestNameTick({ x, y, payload, fill }: any) {
+  const fullName = String(payload?.value ?? "");
+  return (
+    <g transform={`translate(${x},${y})`}>
+      <title>{fullName}</title>
+      <text x={0} y={0} dy={4} textAnchor="end" fontSize={TEST_TICK_FONT_SIZE} fill={fill}>
+        {truncateTestName(fullName)}
+      </text>
+    </g>
+  );
+}
 
 interface OverviewTabProps {
   fromDate?: string;
@@ -189,18 +222,38 @@ export function OverviewTab({ fromDate, toDate, onNavigateTab }: OverviewTabProp
             <Typography sx={{ fontSize: 14, fontWeight: 700, color: theme.palette.primary.main, mb: 1 }}>
               Results by Test
             </Typography>
-            <Box sx={{ flex: 1, height: 250 }}>
+            <Box sx={{ flex: 1, minHeight: 0 }}>
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart
                   data={data.testDistribution}
                   layout="vertical"
-                  margin={{ top: 5, right: 30, left: 40, bottom: 5 }}
+                  margin={{ top: 4, right: 40, left: 0, bottom: 4 }}
                 >
-                  <CartesianGrid strokeDasharray="3 3" stroke={theme.palette.divider} />
+                  {/* No gridlines: the value axis is hidden and every bar is
+                      directly labelled, so a grid would only add noise (and the
+                      dashed rule it replaced reads as a threshold it never was). */}
                   <XAxis type="number" hide />
-                  <YAxis type="category" dataKey="testName" tick={{ fontSize: 11, fill: theme.palette.text.secondary }} width={80} />
-                  <RechartsTooltip formatter={(val: number) => [`${val} tests`, "Volume"]} />
-                  <Bar dataKey="count" fill={theme.palette.primary.main} radius={[0, 4, 4, 0]} barSize={14} />
+                  <YAxis
+                    type="category"
+                    dataKey="testName"
+                    width={TEST_AXIS_WIDTH}
+                    interval={0}
+                    tickLine={false}
+                    axisLine={false}
+                    tick={<TestNameTick fill={theme.palette.text.secondary} />}
+                  />
+                  <RechartsTooltip
+                    cursor={{ fill: theme.palette.action.hover }}
+                    formatter={(val: number) => [`${val} tests`, "Volume"]}
+                  />
+                  <Bar dataKey="count" fill={theme.palette.primary.main} radius={[0, 4, 4, 0]} barSize={14}>
+                    <LabelList
+                      dataKey="count"
+                      position="right"
+                      offset={8}
+                      style={{ fontSize: 11, fontWeight: 700, fill: theme.palette.text.secondary }}
+                    />
+                  </Bar>
                 </BarChart>
               </ResponsiveContainer>
             </Box>

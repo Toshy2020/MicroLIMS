@@ -27,12 +27,13 @@ import TrendingUpOutlinedIcon from "@mui/icons-material/TrendingUpOutlined";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
 import { PageHeader } from "../../components/PageHeader";
-import { LoadingSpinner } from "../../components/LoadingSpinner";
+import RefreshIcon from "@mui/icons-material/Refresh";
+import { DashboardStateGate } from "./components/DashboardStateGate";
 import { DashboardService } from "./services/DashboardService";
 import { SectionHeadDashboard, MonthlyTrendPoint, DistributionSlice } from "./types/dashboard";
 import { SamplesTrendChart } from "./components/SamplesTrendChart";
 import { TestOrderStatusDonut } from "./components/TestOrderStatusDonut";
-import { brandColors } from "../../theme";
+import { tableHeadSx } from "../../theme";
 
 export function SectionHeadDashboardPage() {
   const theme = useTheme();
@@ -46,20 +47,53 @@ export function SectionHeadDashboardPage() {
   const [statusDist, setStatusDist] = useState<DistributionSlice[] | null>(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    Promise.all([
-      DashboardService.getSectionHeadDashboard().catch(() => null),
-      DashboardService.getMonthlyTrend(months).catch(() => null),
-      DashboardService.getStatusDistribution().catch(() => null)
-    ]).then(([dashData, trendData, distData]) => {
-      setData(dashData);
-      setTrend(trendData);
-      setStatusDist(distData);
-      setLoading(false);
-    });
-  }, [months]);
+  const [error, setError] = useState<string | null>(null);
+  const [reloadKey, setReloadKey] = useState(0);
+  const reload = () => setReloadKey((k) => k + 1);
 
-  if (loading || !data) return <LoadingSpinner />;
+  // The dashboard body and the status donut do not depend on `months` - only
+  // the trend does - so changing the period no longer refetches all three.
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    setError(null);
+
+    Promise.all([
+      DashboardService.getSectionHeadDashboard(),
+      DashboardService.getStatusDistribution().catch(() => null)
+    ])
+      .then(([dashData, distData]) => {
+        if (cancelled) return;
+        setData(dashData);
+        setStatusDist(distData);
+      })
+      .catch(() => {
+        if (!cancelled) setError("The dashboard service did not respond. No laboratory data has been changed.");
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+
+    return () => { cancelled = true; };
+  }, [reloadKey]);
+
+  useEffect(() => {
+    let cancelled = false;
+    DashboardService.getMonthlyTrend(months)
+      .catch(() => null)
+      .then((trendData) => {
+        if (!cancelled) setTrend(trendData);
+      });
+    return () => { cancelled = true; };
+  }, [months, reloadKey]);
+
+  if (!data) {
+    return (
+      <DashboardStateGate loading={loading} error={error} hasData={false} onRetry={reload}>
+        {null}
+      </DashboardStateGate>
+    );
+  }
 
   const totalBottleneck =
     data.testingBottleneck +
@@ -76,6 +110,15 @@ export function SectionHeadDashboardPage() {
           subtitle="Laboratory-wide operational overview, workflow bottlenecks, and intervention tracking."
         />
         <Box sx={{ display: "flex", gap: 1.5, flexWrap: "wrap" }}>
+          <Button
+            variant="outlined"
+            onClick={reload}
+            disabled={loading}
+            startIcon={<RefreshIcon />}
+            sx={{ textTransform: "none", fontWeight: 600, borderRadius: 2 }}
+          >
+            Refresh
+          </Button>
           <Button
             component={Link}
             to="/receiving-testing"
@@ -128,7 +171,7 @@ export function SectionHeadDashboardPage() {
               display: "block",
               textDecoration: "none",
               color: "inherit",
-              borderLeft: `4px solid ${brandColors.info}`,
+              borderLeft: `4px solid ${theme.custom.status.info.text}`,
               transition: "transform 0.15s, box-shadow 0.15s",
               "&:hover": { transform: "translateY(-2px)", boxShadow: 3 }
             }}
@@ -137,9 +180,9 @@ export function SectionHeadDashboardPage() {
               <Typography sx={{ fontSize: 11, fontWeight: 700, color: "text.secondary", textTransform: "uppercase" }}>
                 Incubating
               </Typography>
-              <ThermostatOutlinedIcon sx={{ color: brandColors.info, fontSize: 18 }} />
+              <ThermostatOutlinedIcon sx={{ color: theme.custom.status.info.text, fontSize: 18 }} />
             </Box>
-            <Typography sx={{ fontSize: 24, fontWeight: 800, color: brandColors.info, my: 0.25 }}>
+            <Typography sx={{ fontSize: 24, fontWeight: 800, color: theme.custom.status.info.text, my: 0.25 }}>
               {data.incubating}
             </Typography>
             <Typography sx={{ fontSize: 10, color: "text.secondary" }}>Active chambers</Typography>
@@ -156,7 +199,7 @@ export function SectionHeadDashboardPage() {
               display: "block",
               textDecoration: "none",
               color: "inherit",
-              borderLeft: `4px solid ${brandColors.ok}`,
+              borderLeft: `4px solid ${theme.custom.status.notDetected.text}`,
               transition: "transform 0.15s, box-shadow 0.15s",
               "&:hover": { transform: "translateY(-2px)", boxShadow: 3 }
             }}
@@ -165,9 +208,9 @@ export function SectionHeadDashboardPage() {
               <Typography sx={{ fontSize: 11, fontWeight: 700, color: "text.secondary", textTransform: "uppercase" }}>
                 Ready to Read
               </Typography>
-              <VisibilityOutlinedIcon sx={{ color: brandColors.ok, fontSize: 18 }} />
+              <VisibilityOutlinedIcon sx={{ color: theme.custom.status.notDetected.text, fontSize: 18 }} />
             </Box>
-            <Typography sx={{ fontSize: 24, fontWeight: 800, color: brandColors.ok, my: 0.25 }}>
+            <Typography sx={{ fontSize: 24, fontWeight: 800, color: theme.custom.status.notDetected.text, my: 0.25 }}>
               {data.readyToRead}
             </Typography>
             <Typography sx={{ fontSize: 10, color: "text.secondary" }}>Readings pending</Typography>
@@ -184,7 +227,7 @@ export function SectionHeadDashboardPage() {
               display: "block",
               textDecoration: "none",
               color: "inherit",
-              borderLeft: `4px solid ${brandColors.warn}`,
+              borderLeft: `4px solid ${theme.custom.status.inconclusive.text}`,
               transition: "transform 0.15s, box-shadow 0.15s",
               "&:hover": { transform: "translateY(-2px)", boxShadow: 3 }
             }}
@@ -193,9 +236,9 @@ export function SectionHeadDashboardPage() {
               <Typography sx={{ fontSize: 11, fontWeight: 700, color: "text.secondary", textTransform: "uppercase" }}>
                 Review Queue
               </Typography>
-              <RateReviewOutlinedIcon sx={{ color: brandColors.warn, fontSize: 18 }} />
+              <RateReviewOutlinedIcon sx={{ color: theme.custom.status.inconclusive.text, fontSize: 18 }} />
             </Box>
-            <Typography sx={{ fontSize: 24, fontWeight: 800, color: brandColors.warn, my: 0.25 }}>
+            <Typography sx={{ fontSize: 24, fontWeight: 800, color: theme.custom.status.inconclusive.text, my: 0.25 }}>
               {data.pendingReview}
             </Typography>
             <Typography sx={{ fontSize: 10, color: "text.secondary" }}>Awaiting review</Typography>
@@ -212,7 +255,7 @@ export function SectionHeadDashboardPage() {
               display: "block",
               textDecoration: "none",
               color: "inherit",
-              borderLeft: `4px solid ${brandColors.ok}`,
+              borderLeft: `4px solid ${theme.custom.status.notDetected.text}`,
               transition: "transform 0.15s, box-shadow 0.15s",
               "&:hover": { transform: "translateY(-2px)", boxShadow: 3 }
             }}
@@ -221,9 +264,9 @@ export function SectionHeadDashboardPage() {
               <Typography sx={{ fontSize: 11, fontWeight: 700, color: "text.secondary", textTransform: "uppercase" }}>
                 Approval Queue
               </Typography>
-              <VerifiedUserOutlinedIcon sx={{ color: brandColors.ok, fontSize: 18 }} />
+              <VerifiedUserOutlinedIcon sx={{ color: theme.custom.status.notDetected.text, fontSize: 18 }} />
             </Box>
-            <Typography sx={{ fontSize: 24, fontWeight: 800, color: brandColors.ok, my: 0.25 }}>
+            <Typography sx={{ fontSize: 24, fontWeight: 800, color: theme.custom.status.notDetected.text, my: 0.25 }}>
               {data.pendingApproval}
             </Typography>
             <Typography sx={{ fontSize: 10, color: "text.secondary" }}>Awaiting release</Typography>
@@ -240,7 +283,7 @@ export function SectionHeadDashboardPage() {
               display: "block",
               textDecoration: "none",
               color: "inherit",
-              borderLeft: `4px solid ${brandColors.err}`,
+              borderLeft: `4px solid ${theme.custom.status.detected.text}`,
               transition: "transform 0.15s, box-shadow 0.15s",
               "&:hover": { transform: "translateY(-2px)", boxShadow: 3 }
             }}
@@ -249,12 +292,12 @@ export function SectionHeadDashboardPage() {
               <Typography sx={{ fontSize: 11, fontWeight: 700, color: "text.secondary", textTransform: "uppercase" }}>
                 Overdue
               </Typography>
-              <AccessTimeOutlinedIcon sx={{ color: brandColors.err, fontSize: 18 }} />
+              <AccessTimeOutlinedIcon sx={{ color: theme.custom.status.detected.text, fontSize: 18 }} />
             </Box>
-            <Typography sx={{ fontSize: 24, fontWeight: 800, color: brandColors.err, my: 0.25 }}>
+            <Typography sx={{ fontSize: 24, fontWeight: 800, color: theme.custom.status.detected.text, my: 0.25 }}>
               {data.overdue}
             </Typography>
-            <Typography sx={{ fontSize: 10, color: brandColors.err }}>&gt;24h delay</Typography>
+            <Typography sx={{ fontSize: 10, color: theme.custom.status.detected.text }}>&gt;24h delay</Typography>
           </Paper>
         </Grid>
 
@@ -267,7 +310,7 @@ export function SectionHeadDashboardPage() {
             sx={{
               p: 1.75,
               cursor: "pointer",
-              borderLeft: `4px solid ${data.attentionCount > 0 ? brandColors.err : brandColors.ok}`,
+              borderLeft: `4px solid ${data.attentionCount > 0 ? theme.custom.status.detected.text : theme.custom.status.notDetected.text}`,
               transition: "transform 0.15s, box-shadow 0.15s",
               "&:hover": { transform: "translateY(-2px)", boxShadow: 3 }
             }}
@@ -276,9 +319,9 @@ export function SectionHeadDashboardPage() {
               <Typography sx={{ fontSize: 11, fontWeight: 700, color: "text.secondary", textTransform: "uppercase" }}>
                 Attention Items
               </Typography>
-              <WarningAmberOutlinedIcon sx={{ color: data.attentionCount > 0 ? brandColors.err : brandColors.ok, fontSize: 18 }} />
+              <WarningAmberOutlinedIcon sx={{ color: data.attentionCount > 0 ? theme.custom.status.detected.text : theme.custom.status.notDetected.text, fontSize: 18 }} />
             </Box>
-            <Typography sx={{ fontSize: 24, fontWeight: 800, color: data.attentionCount > 0 ? brandColors.err : brandColors.ok, my: 0.25 }}>
+            <Typography sx={{ fontSize: 24, fontWeight: 800, color: data.attentionCount > 0 ? theme.custom.status.detected.text : theme.custom.status.notDetected.text, my: 0.25 }}>
               {data.attentionCount}
             </Typography>
             <Typography sx={{ fontSize: 10, color: "text.secondary" }}>Action required</Typography>
@@ -300,12 +343,18 @@ export function SectionHeadDashboardPage() {
         </Box>
 
         <Grid container spacing={1.5}>
+          {/* These five are positions in one pipeline, not health states.
+              They previously borrowed the status palette - which made stage 4
+              permanently amber and stage 5 "good" regardless of the numbers,
+              and painted stages 3 and 5 the identical green, so colour
+              carried no stage identity at all. An ordered sequence wants an
+              ordinal ramp: one hue deepening stage by stage. */}
           {[
-            { label: "1. Testing / Preparation", count: data.testingBottleneck, color: theme.palette.primary.main, link: "/testing-workspace?status=Active" },
-            { label: "2. Incubation", count: data.incubationBottleneck, color: brandColors.info, link: "/testing-workspace" },
-            { label: "3. Ready to Read", count: data.readyToReadBottleneck, color: brandColors.ok, link: "/testing-workspace?testStatus=ReadyToRead" },
-            { label: "4. Scientific Review", count: data.reviewBottleneck, color: brandColors.warn, link: "/testing-workspace?testStatus=ResultEntered" },
-            { label: "5. Final Approval", count: data.approvalBottleneck, color: brandColors.ok, link: "/testing-workspace?testStatus=Reviewed" }
+            { label: "1. Testing / Preparation", count: data.testingBottleneck, color: theme.custom.chartSequential[0], link: "/testing-workspace?status=Active" },
+            { label: "2. Incubation", count: data.incubationBottleneck, color: theme.custom.chartSequential[1], link: "/testing-workspace" },
+            { label: "3. Ready to Read", count: data.readyToReadBottleneck, color: theme.custom.chartSequential[2], link: "/testing-workspace?testStatus=ReadyToRead" },
+            { label: "4. Scientific Review", count: data.reviewBottleneck, color: theme.custom.chartSequential[3], link: "/testing-workspace?testStatus=ResultEntered" },
+            { label: "5. Final Approval", count: data.approvalBottleneck, color: theme.custom.chartSequential[4], link: "/testing-workspace?testStatus=Reviewed" }
           ].map((stage, idx) => (
             <Grid item xs={12} sm={6} md={2.4} key={idx}>
               <Paper
@@ -348,10 +397,10 @@ export function SectionHeadDashboardPage() {
       {/* Tier 3: Attention Required (Actionable Section) */}
       <Box id="attention-section" sx={{ mb: 2.5 }}>
         {data.attentionItems.length > 0 ? (
-          <Paper sx={{ p: 2, borderLeft: `4px solid ${brandColors.err}` }}>
+          <Paper sx={{ p: 2, borderLeft: `4px solid ${theme.custom.status.detected.text}` }}>
             <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1.5 }}>
-              <WarningAmberOutlinedIcon sx={{ color: brandColors.err }} />
-              <Typography sx={{ fontSize: 15, fontWeight: 700, color: brandColors.err }}>
+              <WarningAmberOutlinedIcon sx={{ color: theme.custom.status.detected.text }} />
+              <Typography sx={{ fontSize: 15, fontWeight: 700, color: theme.custom.status.detected.text }}>
                 Laboratory Attention Required ({data.attentionItems.length})
               </Typography>
             </Box>
@@ -377,7 +426,7 @@ export function SectionHeadDashboardPage() {
                         </Typography>
                         <Chip label={item.testCode} size="small" sx={{ fontSize: 10, height: 20 }} />
                       </Box>
-                      <Typography sx={{ fontSize: 12, color: brandColors.err, mt: 0.25 }}>
+                      <Typography sx={{ fontSize: 12, color: theme.custom.status.detected.text, mt: 0.25 }}>
                         {item.reason}
                       </Typography>
                     </Box>
@@ -398,10 +447,10 @@ export function SectionHeadDashboardPage() {
             </Grid>
           </Paper>
         ) : (
-          <Paper sx={{ p: 2, display: "flex", alignItems: "center", gap: 1.5, borderLeft: `4px solid ${brandColors.ok}` }}>
-            <VerifiedUserOutlinedIcon sx={{ color: brandColors.ok }} />
+          <Paper sx={{ p: 2, display: "flex", alignItems: "center", gap: 1.5, borderLeft: `4px solid ${theme.custom.status.notDetected.text}` }}>
+            <VerifiedUserOutlinedIcon sx={{ color: theme.custom.status.notDetected.text }} />
             <Box>
-              <Typography sx={{ fontSize: 14, fontWeight: 700, color: brandColors.ok }}>
+              <Typography sx={{ fontSize: 14, fontWeight: 700, color: theme.custom.status.notDetected.text }}>
                 All Laboratory Workflows Running Within Normal SLA
               </Typography>
               <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
@@ -445,7 +494,7 @@ export function SectionHeadDashboardPage() {
               <Box sx={{ overflowX: "auto", flex: 1 }}>
                 <Table size="small">
                   <TableHead>
-                    <TableRow sx={{ bgcolor: "background.default" }}>
+                    <TableRow sx={tableHeadSx}>
                       <TableCell sx={{ fontWeight: 700, fontSize: 11 }}>Sample / Ref</TableCell>
                       <TableCell sx={{ fontWeight: 700, fontSize: 11 }}>Test</TableCell>
                       <TableCell sx={{ fontWeight: 700, fontSize: 11 }}>Analyst</TableCell>
@@ -476,7 +525,7 @@ export function SectionHeadDashboardPage() {
                         </TableCell>
                         <TableCell sx={{ fontSize: 11 }}><Chip label={row.testCode} size="small" sx={{ fontSize: 10, height: 18 }} /></TableCell>
                         <TableCell sx={{ fontSize: 11, color: "text.secondary" }}>{row.analystName ?? "—"}</TableCell>
-                        <TableCell sx={{ fontSize: 11, color: row.ageHours >= 24 ? brandColors.err : "text.primary" }}>{row.ageHours}h</TableCell>
+                        <TableCell sx={{ fontSize: 11, color: row.ageHours >= 24 ? theme.custom.status.detected.text : "text.primary" }}>{row.ageHours}h</TableCell>
                         <TableCell sx={{ textAlign: "right" }}>
                           <Button
                             component={Link}
@@ -528,7 +577,7 @@ export function SectionHeadDashboardPage() {
               <Box sx={{ overflowX: "auto", flex: 1 }}>
                 <Table size="small">
                   <TableHead>
-                    <TableRow sx={{ bgcolor: "background.default" }}>
+                    <TableRow sx={tableHeadSx}>
                       <TableCell sx={{ fontWeight: 700, fontSize: 11 }}>Sample / Ref</TableCell>
                       <TableCell sx={{ fontWeight: 700, fontSize: 11 }}>Test</TableCell>
                       <TableCell sx={{ fontWeight: 700, fontSize: 11 }}>Reviewer</TableCell>
@@ -559,7 +608,7 @@ export function SectionHeadDashboardPage() {
                         </TableCell>
                         <TableCell sx={{ fontSize: 11 }}><Chip label={row.testCode} size="small" sx={{ fontSize: 10, height: 18 }} /></TableCell>
                         <TableCell sx={{ fontSize: 11, color: "text.secondary" }}>{row.reviewerName ?? "—"}</TableCell>
-                        <TableCell sx={{ fontSize: 11, color: row.ageHours >= 24 ? brandColors.err : "text.primary" }}>{row.ageHours}h</TableCell>
+                        <TableCell sx={{ fontSize: 11, color: row.ageHours >= 24 ? theme.custom.status.detected.text : "text.primary" }}>{row.ageHours}h</TableCell>
                         <TableCell sx={{ textAlign: "right" }}>
                           <Button
                             component={Link}
@@ -605,7 +654,7 @@ export function SectionHeadDashboardPage() {
               <Box sx={{ overflowX: "auto" }}>
                 <Table size="small">
                   <TableHead>
-                    <TableRow sx={{ bgcolor: "background.default" }}>
+                    <TableRow sx={tableHeadSx}>
                       <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Analyst</TableCell>
                       <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Active Assigned Tests</TableCell>
                       <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Overdue Tests</TableCell>
@@ -649,13 +698,13 @@ export function SectionHeadDashboardPage() {
                               label={`${a.overdueCount} overdue`}
                               size="small"
                               clickable
-                              sx={{ fontSize: 11, fontWeight: 700, bgcolor: brandColors.err + "22", color: brandColors.err }}
+                              sx={{ fontSize: 11, fontWeight: 700, bgcolor: theme.custom.status.detected.text + "22", color: theme.custom.status.detected.text }}
                             />
                           ) : (
-                            <Typography sx={{ fontSize: 12, color: brandColors.ok, fontWeight: 600 }}>0</Typography>
+                            <Typography sx={{ fontSize: 12, color: theme.custom.status.notDetected.text, fontWeight: 600 }}>0</Typography>
                           )}
                         </TableCell>
-                        <TableCell sx={{ fontSize: 12, fontWeight: 600, color: brandColors.ok }}>
+                        <TableCell sx={{ fontSize: 12, fontWeight: 600, color: theme.custom.status.notDetected.text }}>
                           {a.completedTodayCount}
                         </TableCell>
                         <TableCell sx={{ textAlign: "right" }}>
@@ -699,7 +748,7 @@ export function SectionHeadDashboardPage() {
               <Box sx={{ overflowX: "auto" }}>
                 <Table size="small">
                   <TableHead>
-                    <TableRow sx={{ bgcolor: "background.default" }}>
+                    <TableRow sx={tableHeadSx}>
                       <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Test Type</TableCell>
                       <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Ready to Read</TableCell>
                       <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Still Incubating</TableCell>
@@ -720,7 +769,7 @@ export function SectionHeadDashboardPage() {
                             <Chip
                               label={`${inc.readyToRead} ready`}
                               size="small"
-                              sx={{ fontSize: 11, fontWeight: 700, bgcolor: brandColors.ok + "22", color: brandColors.ok }}
+                              sx={{ fontSize: 11, fontWeight: 700, bgcolor: theme.custom.status.notDetected.text + "22", color: theme.custom.status.notDetected.text }}
                             />
                           ) : (
                             <Typography sx={{ fontSize: 12, color: "text.secondary" }}>0</Typography>

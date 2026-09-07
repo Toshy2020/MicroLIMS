@@ -1,4 +1,4 @@
-import { createTheme } from "@mui/material/styles";
+import { createTheme, Theme } from "@mui/material/styles";
 import { baseThemeOptions, lightThemeOptions, darkThemeOptions } from "./palette";
 
 // Design system extracted from the provided Sample Receiving mockup:
@@ -29,6 +29,18 @@ export const brandColors = {
   warn: "#d97706",
   info: "#2563eb"
 };
+
+// One definition for every table head in the app, so the band and the ink
+// that has to stay legible on it can never drift apart. Compose with the
+// array form where a table needs its own metrics:
+//   sx={[tableHeadSx, { "& th": { fontSize: 11, py: 1 } }]}
+export const tableHeadSx = (theme: Theme) => ({
+  bgcolor: theme.custom.chrome.tableHeaderBg,
+  "& th": {
+    bgcolor: theme.custom.chrome.tableHeaderBg,
+    color: theme.custom.chrome.tableHeaderText
+  }
+});
 
 export const lightTheme = createTheme(baseThemeOptions, lightThemeOptions);
 const darkTheme = createTheme(baseThemeOptions, darkThemeOptions);

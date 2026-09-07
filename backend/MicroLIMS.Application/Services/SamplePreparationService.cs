@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using MicroLIMS.Application.DTOs;
 using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
@@ -14,7 +15,11 @@ public record PrepareSampleRequest(
 
 // Confirm-only - the Item already has a configuration; the analyst signs
 // off that those steps were the ones performed.
-public record ConfirmPreparationRequest(int SampleId, int UserId, string Password);
+// ExpectedConfigurationId is set by the grouped path only: it pins the
+// confirmation to the exact configuration row the analyst was shown, so a
+// Section Head edit landing mid-batch skips the sample instead of signing
+// it against steps nobody read.
+public record ConfirmPreparationRequest(int SampleId, int UserId, string Password, int? ExpectedConfigurationId = null);
 
 // Test Preparation - Product/RM/PM only, once per Sample. Must complete
 // before any result can be entered for any of that sample's TestOrders.
@@ -102,6 +107,11 @@ public class SamplePreparationService
         var config = await _db.ItemPreparationConfigurations.FirstOrDefaultAsync(c => c.ItemId == sample.ItemId.Value)
             ?? throw new InvalidOperationException("This item has no preparation configuration to confirm.");
 
+        if (request.ExpectedConfigurationId is int expectedConfigId && config.Id != expectedConfigId)
+            throw new InvalidOperationException(
+                "This item's preparation configuration changed after the group was loaded. "
+                + "Reload the grouped action and review the steps before confirming.");
+
         // Re-validate at confirmation time in case the config was left in an
         // invalid state (e.g. blank Diluent/Neutralizer from data predating
         // validation).
@@ -188,4 +198,196 @@ public class SamplePreparationService
 
     public async Task<bool> IsPreparedAsync(int sampleId) =>
         await _db.SamplePreparations.AnyAsync(p => p.SampleId == sampleId);
+
+    // ---- Grouped Test Preparation -------------------------------------
+    // Only the confirm-only path groups. Manual first entry cannot: its
+    // values are per-item and become that item's standing configuration,
+    // so one shared form across several items would write the wrong
+    // protocol. EM/After Cleaning/Water cannot either - each of those
+    // samples is defined by its own room/machine/sampling-point set.
+
+    private static readonly SampleCategory[] GroupablePreparationCategories =
+    {
+        SampleCategory.FinishedProduct, SampleCategory.RawMaterial, SampleCategory.PackagingMaterial
+    };
+
+    public async Task<GroupedPreparationResponse> GetGroupedPreparationAsync(
+        List<int> sampleIds, int userId, CancellationToken ct = default)
+    {
+        var ids = (sampleIds ?? new List<int>()).Distinct().ToList();
+        if (ids.Count == 0)
+            return new GroupedPreparationResponse(new(), 0, new());
+
+        var samples = await _db.Samples
+            .Include(s => s.Item)
+            .Where(s => ids.Contains(s.Id))
+            .ToListAsync(ct);
+
+        var preparedSampleIds = (await _db.SamplePreparations
+            .Where(p => ids.Contains(p.SampleId))
+            .Select(p => p.SampleId)
+            .ToListAsync(ct)).ToHashSet();
+
+        // One query for the whole selection - LoadPreparableSampleAsync does
+        // this per sample, which is fine for a single confirmation but not
+        // for a panel that reloads on every checkbox change.
+        var assignments = await _db.TestOrders
+            .Where(t => ids.Contains(t.SampleId) && t.AssignedAnalystId != null && !t.IsSuperseded)
+            .Select(t => new { t.SampleId, AnalystId = t.AssignedAnalystId!.Value })
+            .Distinct()
+            .ToListAsync(ct);
+
+        var assignedBySample = assignments
+            .GroupBy(a => a.SampleId)
+            .ToDictionary(g => g.Key, g => g.First().AnalystId);
+
+        var assignedAnalystIds = assignedBySample.Values.Distinct().ToList();
+        var analystNames = await _db.Users
+            .Where(u => assignedAnalystIds.Contains(u.Id))
+            .ToDictionaryAsync(u => u.Id, u => u.FullName ?? u.Username, ct);
+
+        var itemIds = samples.Where(s => s.ItemId != null).Select(s => s.ItemId!.Value).Distinct().ToList();
+        var configsByItem = await _db.ItemPreparationConfigurations
+            .Where(c => itemIds.Contains(c.ItemId))
+            .ToDictionaryAsync(c => c.ItemId, ct);
+
+        var excluded = new List<ExcludedPreparationSampleDto>();
+        var eligible = new List<(Sample Sample, ItemPreparationConfiguration Config, int? AnalystId, string? AnalystName)>();
+
+        foreach (var sample in samples.OrderBy(s => s.Id))
+        {
+            var displayName = sample.Item?.Name ?? sample.ReferenceNumber;
+
+            void Exclude(string reason) =>
+                excluded.Add(new ExcludedPreparationSampleDto(sample.Id, sample.ReferenceNumber, displayName, reason));
+
+            if (sample.PreparationStatus != SamplePreparationStatus.NeedsPreparation || preparedSampleIds.Contains(sample.Id))
+            {
+                Exclude("Already prepared.");
+                continue;
+            }
+
+            if (!GroupablePreparationCategories.Contains(sample.Category))
+            {
+                Exclude($"{sample.Category} samples are prepared individually - their locations or sampling points are selected per sample.");
+                continue;
+            }
+
+            if (sample.ItemId is null)
+            {
+                Exclude("This sample has no Item and cannot use the preparation configuration flow.");
+                continue;
+            }
+
+            if (!configsByItem.TryGetValue(sample.ItemId.Value, out var config))
+            {
+                Exclude("This item has no preparation configuration yet - prepare one sample individually to record it first.");
+                continue;
+            }
+
+            var hasAssignment = assignedBySample.TryGetValue(sample.Id, out var assignedId);
+            var assignedName = hasAssignment && analystNames.TryGetValue(assignedId, out var an) ? an : null;
+
+            if (hasAssignment && assignedId != userId)
+            {
+                Exclude($"Assigned to {assignedName ?? ("User #" + assignedId)} - only the assigned analyst may prepare this sample.");
+                continue;
+            }
+
+            eligible.Add((sample, config, hasAssignment ? assignedId : null, assignedName));
+        }
+
+        var groups = eligible
+            .GroupBy(e => e.Config.Id)
+            .Select(g =>
+            {
+                var config = g.First().Config;
+                var item = g.First().Sample.Item;
+                return new GroupedPreparationDto(
+                    GroupKey: $"PREPARE|{config.Id}",
+                    ConfigurationId: config.Id,
+                    ItemId: config.ItemId,
+                    ItemName: item?.Name ?? ("Item #" + config.ItemId),
+                    ApprovalStatus: config.ApprovalStatus.ToString(),
+                    Amount: config.Amount,
+                    Technique: config.Technique,
+                    FiltrationVolume: config.FiltrationVolume,
+                    WashingVolume: config.WashingVolume,
+                    Diluent: config.Diluent,
+                    Neutralizer: config.Neutralizer,
+                    SampleCount: g.Count(),
+                    Samples: g.Select(e => new GroupedPreparationSampleDto(
+                        e.Sample.Id,
+                        e.Sample.ReferenceNumber,
+                        e.Sample.Item?.Name ?? e.Sample.ReferenceNumber,
+                        e.Sample.BatchNumber,
+                        e.Sample.Category.ToString(),
+                        e.AnalystId,
+                        e.AnalystName
+                    )).ToList()
+                );
+            })
+            .OrderByDescending(g => g.SampleCount)
+            .ThenBy(g => g.ItemName)
+            .ToList();
+
+        return new GroupedPreparationResponse(groups, excluded.Count, excluded);
+    }
+
+    // One password entry, one ElectronicSignature per sample: each sample's
+    // audit trail still points at its own signature, and each sample's
+    // snapshot + status change + signature still commit inside the single
+    // SaveChangesAsync that CommitPreparationAsync owns. A sample that fails
+    // its own rule is skipped and reported rather than rolling back the ones
+    // that succeeded - the same partial-success contract grouped incubation
+    // setup already uses.
+    public async Task<BatchConfirmPreparationResponse> ConfirmBatchFromConfigurationAsync(
+        BatchConfirmPreparationRequest request, int userId, string? ipAddress = null, CancellationToken ct = default)
+    {
+        var ids = (request.SampleIds ?? new List<int>()).Distinct().ToList();
+        if (ids.Count == 0)
+            throw new InvalidOperationException("No samples were selected for grouped preparation.");
+
+        if (!await _db.ItemPreparationConfigurations.AnyAsync(c => c.Id == request.ConfigurationId, ct))
+            throw new InvalidOperationException("The preparation configuration for this group no longer exists.");
+
+        var references = await _db.Samples
+            .Where(s => ids.Contains(s.Id))
+            .ToDictionaryAsync(s => s.Id, s => s.ReferenceNumber, ct);
+
+        var succeeded = new List<BatchPreparationSuccessItem>();
+        var skipped = new List<BatchPreparationSkippedItem>();
+        var anySigned = false;
+
+        foreach (var sampleId in ids)
+        {
+            var reference = references.TryGetValue(sampleId, out var r) ? r : ("Sample-" + sampleId);
+
+            try
+            {
+                var prep = await ConfirmFromConfigurationAsync(
+                    new ConfirmPreparationRequest(sampleId, userId, request.Password, request.ConfigurationId),
+                    ipAddress);
+
+                anySigned = true;
+                succeeded.Add(new BatchPreparationSuccessItem(
+                    sampleId, reference, prep.Id, "Preparation confirmed and signed."));
+            }
+            // A wrong password can only surface on the first sample that
+            // reaches the signature - nothing is written yet, so fail the
+            // whole run rather than leaving one failed-attempt audit row per
+            // selected sample behind.
+            catch (SignatureVerificationException) when (!anySigned)
+            {
+                throw;
+            }
+            catch (InvalidOperationException ex)
+            {
+                skipped.Add(new BatchPreparationSkippedItem(sampleId, reference, ex.Message));
+            }
+        }
+
+        return new BatchConfirmPreparationResponse(
+            ids.Count, succeeded.Count, skipped.Count, succeeded, skipped);
+    }
 }

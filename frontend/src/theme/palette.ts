@@ -5,11 +5,37 @@ import { chromeTokensByMode } from "./chromeTokens";
 // Single-hue purple ramp for charts - kept per-mode so the darkest steps
 // (which read fine on the light #f4f6f8 background) don't disappear
 // against a near-black dark background.
+// CATEGORICAL - identity, not magnitude. One hue per entity, assigned in a
+// fixed order and never cycled.
+//
+// This used to be a five-step ramp of the single brand purple, which is a
+// *sequential* scale: it encodes magnitude, so using it for categories
+// asserted a ranking that does not exist, and adjacent steps of one hue are
+// the hardest pairs to tell apart. Measured, that palette failed the
+// lightness band, the chroma floor and the normal-vision separation floor in
+// both modes (worst adjacent pair dE 8.3, where 15 is the floor), and its
+// lightest step sat at 1.36:1 on a white card - effectively invisible.
+//
+// These two sets are validated against the real card surfaces (#FFFFFF and
+// #1A1F27): all checks pass, worst adjacent pair dE 19.6 light / 19.3 dark.
+// Seven slots covers the widest consumer (the Reports location donut, capped
+// at seven server-side) so nothing has to wrap around.
 const chartPaletteByMode = {
-  light: ["#4a1a55", "#7b2d8e", "#9b3fa8", "#c084c8", "#e9d5ff"],
-  dark: ["#e9d5ff", "#c084c8", "#9b3fa8", "#7b2d8e", "#4a1a55"]
+  light: ["#2a78d6", "#eb6834", "#1baf7a", "#eda100", "#e87ba4", "#008300", "#4a3aa7"],
+  dark:  ["#3987e5", "#d95926", "#199e70", "#c98500", "#d55181", "#008300", "#9085e9"]
 };
 
+// SEQUENTIAL - for genuinely ordered data (pipeline stages, ranked bands),
+// which is the job the old purple ramp was actually shaped for. Kept on the
+// brand hue and re-stepped so each mode's shallow end still clears its own
+// surface: on a dark card the *dark* end is the one that disappears, so the
+// dark ramp starts mid-tone rather than near-black.
+// Both validated as ordinal ramps: monotone lightness, >=0.06 L between
+// steps, shallow end 2.33:1 (light) / 2.79:1 (dark) against the surface.
+const chartSequentialByMode = {
+  light: ["#c79ad6", "#b070c5", "#9b3fa8", "#7b2d8e", "#5c2069"],
+  dark:  ["#e9d5ff", "#d69ae4", "#c17dd2", "#a660b8", "#8a4a9c"]
+};
 // Shared across both modes - typography/shape/spacing/component shape
 // don't change with theme, only color does.
 export const baseThemeOptions: ThemeOptions = {
@@ -86,6 +112,7 @@ export const lightThemeOptions: ThemeOptions = {
     status: statusTonesByMode.light,
     countdown: countdownTokensByMode.light,
     chartPalette: chartPaletteByMode.light,
+    chartSequential: chartSequentialByMode.light,
     chrome: chromeTokensByMode.light
   }
 };
@@ -135,6 +162,7 @@ export const darkThemeOptions: ThemeOptions = {
     status: statusTonesByMode.dark,
     countdown: countdownTokensByMode.dark,
     chartPalette: chartPaletteByMode.dark,
+    chartSequential: chartSequentialByMode.dark,
     chrome: chromeTokensByMode.dark
   }
 };

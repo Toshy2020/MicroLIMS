@@ -248,7 +248,7 @@ public class DocumentControlElectronicSignaturePostgresIntegrationTests
             Password: "Definitively-Wrong-Password!"
         );
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        await Assert.ThrowsAnyAsync<InvalidOperationException>(() =>
             approvalService.ExecuteApprovalDecisionAsync(task.Id, invalidRequest, approverId));
 
         // Check revision status still AwaitingApproval in live Postgres

@@ -263,7 +263,7 @@ public class SamplePreparationTests
         await db.SaveChangesAsync();
 
         var service = TestServiceFactory.SamplePreparation(db);
-        await Assert.ThrowsAsync<InvalidOperationException>(() => service.PrepareAsync(new PrepareSampleRequest(
+        await Assert.ThrowsAnyAsync<InvalidOperationException>(() => service.PrepareAsync(new PrepareSampleRequest(
             sample.Id, 10m, "PourPlate", null, null, "Buffer", "Tween", UserId: 11, "wrong-password")));
 
         Assert.Empty(await db.SamplePreparations.ToListAsync());

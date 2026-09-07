@@ -56,7 +56,21 @@ export function TodaysWorkTable({ items }: { items: TodaysWorkItem[] }) {
       <ToggleButtonGroup
         value={tab} exclusive size="small"
         onChange={(_, v) => v && setTab(v)}
-        sx={{ mb: 1.5, flexWrap: "wrap", "& .MuiToggleButton-root": { textTransform: "none", fontSize: 12, fontWeight: 600, borderRadius: "16px !important", border: "1px solid #e0e0e0 !important", mr: 1, mb: 1 } }}
+        // sx callback form so the divider resolves per mode - the previous
+        // #e0e0e0 was 1.32:1 on white and did not change in dark mode.
+        sx={(theme) => ({
+          mb: 1.5,
+          flexWrap: "wrap",
+          "& .MuiToggleButton-root": {
+            textTransform: "none",
+            fontSize: 12,
+            fontWeight: 600,
+            borderRadius: "16px !important",
+            border: `1px solid ${theme.palette.divider} !important`,
+            mr: 1,
+            mb: 1
+          }
+        })}
       >
         {tabs.map((t) => <ToggleButton key={t.key} value={t.key}>{t.label}</ToggleButton>)}
       </ToggleButtonGroup>
@@ -114,7 +128,7 @@ export function TodaysWorkTable({ items }: { items: TodaysWorkItem[] }) {
           </TableBody>
         </Table>
         {visible.length === 0 && (
-          <Typography sx={{ color: "#9ca3af", fontSize: 13, p: 2 }}>No work matches this filter.</Typography>
+          <Typography sx={{ color: "text.secondary", fontSize: 13, p: 2 }}>No work matches this filter.</Typography>
         )}
       </Paper>
     </>

@@ -237,7 +237,7 @@ export function MediaGptDetailDialog({ open, onClose, detail }: MediaGptDetailDi
                           </Typography>
                         </>
                       ) : (
-                        <span style={{ color: "#9ca3af" }}>Pending</span>
+                        <Typography component="span" sx={{ color: "text.secondary" }}>Pending</Typography>
                       )}
                     </TableCell>
                   </TableRow>

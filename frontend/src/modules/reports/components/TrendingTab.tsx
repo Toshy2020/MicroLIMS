@@ -361,7 +361,11 @@ export function TrendingTab({ initialTestCode, initialSubjectName }: TrendingTab
                     data={analysis.numericPoints ?? []}
                     margin={{ top: 10, right: 30, left: 10, bottom: 25 }}
                   >
-                    <CartesianGrid strokeDasharray="3 3" stroke={theme.palette.divider} />
+                    {/* Solid and horizontal-only. This grid used to be dashed
+                        "3 3" - the exact pattern the Action Level line below
+                        uses - so on a control chart a gridline and an action
+                        limit were told apart by colour alone. */}
+                    <CartesianGrid vertical={false} stroke={theme.palette.divider} />
                     <XAxis dataKey="label" tick={{ fontSize: 11, fill: theme.palette.text.secondary }} />
                     <YAxis
                       tick={{ fontSize: 11, fill: theme.palette.text.secondary }}

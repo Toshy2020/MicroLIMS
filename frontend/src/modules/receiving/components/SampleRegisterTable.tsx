@@ -26,7 +26,7 @@ import { CategoryBadge, CauseBadge, StatusBadge } from "../../../components/Stat
 import { StatusTone } from "../../../theme/statusTokens";
 import { TestStatusSummaryCell } from "./TestStatusSummaryCell";
 import { SampleActionMenu } from "./SampleActionMenu";
-import { brandColors } from "../../../theme";
+import { brandColors, tableHeadSx } from "../../../theme";
 import { ReadOnlyItemDocumentsDialog } from "../../../components/ReadOnlyItemDocumentsDialog";
 import { ItemDocumentService } from "../../laboratoryConfiguration/items/services/ItemDocumentService";
 import { useAuth } from "../../../contexts/AuthContext";
@@ -37,6 +37,7 @@ interface Props {
   selectedSampleId?: number | null;
   checkedSampleIds?: Set<number>;
   onToggleCheck?: (sampleId: number, checked: boolean) => void;
+  onToggleCheckMany?: (sampleIds: number[], checked: boolean) => void;
   onSelectSample?: (sample: SampleRecord) => void;
   onTestClick: (test: TestOrderSummary, sample: SampleRecord) => void;
   onViewSummary: (sample: SampleRecord) => void;
@@ -97,6 +98,7 @@ export function SampleRegisterTable({
   selectedSampleId,
   checkedSampleIds,
   onToggleCheck,
+  onToggleCheckMany,
   onSelectSample,
   onTestClick,
   onViewSummary,
@@ -152,10 +154,43 @@ export function SampleRegisterTable({
     }
   }
 
+  // The parent owns filtering, so narrowing a filter shrinks this list under
+  // whatever page the user is on - which used to render the "no samples found"
+  // empty state over a perfectly non-empty result set. Clamp rather than reset
+  // to page 0, so a background refresh does not yank the user back to page 1.
+  //
+  // The clamp is applied during render, not only in the effect below: effects
+  // run after commit, so relying on the effect alone would hand MUI an
+  // out-of-range page prop for one render and trip its console warning.
+  const lastPageIndex = Math.max(0, Math.ceil(topLevelSamples.length / rowsPerPage) - 1);
+  const effectivePage = Math.min(page, lastPageIndex);
+
+  useEffect(() => {
+    if (page !== effectivePage) {
+      setPage(effectivePage);
+    }
+  }, [page, effectivePage]);
+
   const paginatedTopLevelSamples = topLevelSamples.slice(
-    page * rowsPerPage,
-    page * rowsPerPage + rowsPerPage
+    effectivePage * rowsPerPage,
+    effectivePage * rowsPerPage + rowsPerPage
   );
+
+  // Every id the current page renders, including retest children of any
+  // expanded parent - "select all" should mean what is on screen, not the
+  // whole filtered set, which could be hundreds of rows away.
+  const idsOnPage: number[] = [];
+  const collectIds = (sample: SampleRecord) => {
+    idsOnPage.push(sample.sampleId);
+    if (expandedSampleIds.has(sample.sampleId)) {
+      (childrenByParentId.get(sample.sampleId) || []).forEach(collectIds);
+    }
+  };
+  paginatedTopLevelSamples.forEach(collectIds);
+
+  const checkedOnPage = idsOnPage.filter((id) => checkedSampleIds?.has(id)).length;
+  const allOnPageChecked = idsOnPage.length > 0 && checkedOnPage === idsOnPage.length;
+  const someOnPageChecked = checkedOnPage > 0 && !allOnPageChecked;
 
   const formatReceivedDate = (d: string) => {
     try {
@@ -251,6 +286,9 @@ export function SampleRegisterTable({
                     onToggleCheck(sample.sampleId, e.target.checked);
                   }}
                   onClick={(e) => e.stopPropagation()}
+                  inputProps={{
+                    "aria-label": `Select ${sample.displayName} (${sample.referenceNumber}) for grouped actions`
+                  }}
                   sx={{ p: 0.25, mr: 0.25 }}
                 />
               )}
@@ -482,37 +520,54 @@ export function SampleRegisterTable({
     >
       <Box sx={{ overflowX: "auto" }}>
         <Table size="small" sx={{ minWidth: 960 }}>
-          <TableHead sx={{ bgcolor: "background.default" }}>
+          <TableHead sx={tableHeadSx}>
             <TableRow>
-              <TableCell sx={{ fontWeight: 700, fontSize: 12, color: "text.secondary", minWidth: 140 }}>
+              <TableCell sx={{ fontWeight: 700, fontSize: 12, minWidth: 140 }}>
                 Received At
               </TableCell>
-              <TableCell sx={{ fontWeight: 700, fontSize: 12, color: "text.secondary", width: 50 }}>#</TableCell>
-              <TableCell sx={{ fontWeight: 700, fontSize: 12, color: "text.secondary", minWidth: 180 }}>
-                Item / Reference
+              <TableCell sx={{ fontWeight: 700, fontSize: 12, width: 50 }}>#</TableCell>
+              <TableCell sx={{ fontWeight: 700, fontSize: 12, minWidth: 180 }}>
+                <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+                  {onToggleCheckMany && (
+                    <Checkbox
+                      size="small"
+                      checked={allOnPageChecked}
+                      indeterminate={someOnPageChecked}
+                      disabled={idsOnPage.length === 0}
+                      onChange={(e) => onToggleCheckMany(idsOnPage, e.target.checked)}
+                      inputProps={{
+                        "aria-label": allOnPageChecked
+                          ? `Deselect all ${idsOnPage.length} samples on this page`
+                          : `Select all ${idsOnPage.length} samples on this page`
+                      }}
+                      sx={{ p: 0.25 }}
+                    />
+                  )}
+                  Item / Reference
+                </Box>
               </TableCell>
-              <TableCell sx={{ fontWeight: 700, fontSize: 12, color: "text.secondary", width: 110 }}>
+              <TableCell sx={{ fontWeight: 700, fontSize: 12, width: 110 }}>
                 Item Type
               </TableCell>
-              <TableCell sx={{ fontWeight: 700, fontSize: 12, color: "text.secondary", minWidth: 120 }}>
+              <TableCell sx={{ fontWeight: 700, fontSize: 12, minWidth: 120 }}>
                 Cause
               </TableCell>
-              <TableCell sx={{ fontWeight: 700, fontSize: 12, color: "text.secondary", minWidth: 110 }}>
+              <TableCell sx={{ fontWeight: 700, fontSize: 12, minWidth: 110 }}>
                 Sampled By
               </TableCell>
-              <TableCell sx={{ fontWeight: 700, fontSize: 12, color: "text.secondary", minWidth: 140 }}>
+              <TableCell sx={{ fontWeight: 700, fontSize: 12, minWidth: 140 }}>
                 Batch / Control No.
               </TableCell>
-              <TableCell sx={{ fontWeight: 700, fontSize: 12, color: "text.secondary", minWidth: 130 }}>
+              <TableCell sx={{ fontWeight: 700, fontSize: 12, minWidth: 130 }}>
                 Assigned To
               </TableCell>
-              <TableCell sx={{ fontWeight: 700, fontSize: 12, color: "text.secondary", width: 140 }}>
+              <TableCell sx={{ fontWeight: 700, fontSize: 12, width: 140 }}>
                 Sample Status
               </TableCell>
-              <TableCell sx={{ fontWeight: 700, fontSize: 12, color: "text.secondary", minWidth: 170 }}>
+              <TableCell sx={{ fontWeight: 700, fontSize: 12, minWidth: 170 }}>
                 Test Status Summary
               </TableCell>
-              <TableCell align="center" sx={{ fontWeight: 700, fontSize: 12, color: "text.secondary", width: 120 }}>
+              <TableCell align="center" sx={{ fontWeight: 700, fontSize: 12, width: 120 }}>
                 Actions
               </TableCell>
             </TableRow>
@@ -540,7 +595,7 @@ export function SampleRegisterTable({
           component="div"
           count={topLevelSamples.length}
           rowsPerPage={rowsPerPage}
-          page={page}
+          page={effectivePage}
           onPageChange={handleChangePage}
           onRowsPerPageChange={handleChangeRowsPerPage}
           sx={{
@@ -575,11 +630,14 @@ function SampleDocIndicator({
   const [docCount, setDocCount] = useState<number | null>(null);
 
   useEffect(() => {
-    if (sample.itemId) {
-      ItemDocumentService.getDocumentsForItem(sample.itemId)
-        .then((docs) => setDocCount(docs.length))
-        .catch(() => setDocCount(0));
-    }
+    if (!sample.itemId) return;
+
+    let cancelled = false;
+    ItemDocumentService.getDocumentCountForItem(sample.itemId)
+      .then((count) => { if (!cancelled) setDocCount(count); })
+      .catch(() => { if (!cancelled) setDocCount(0); });
+
+    return () => { cancelled = true; };
   }, [sample.itemId]);
 
   if (!sample.itemId || docCount === null) return null;
@@ -620,6 +678,7 @@ function SampleDocIndicator({
           bgcolor: "action.selected",
         },
       }}
+      aria-label={`View controlled item documents for ${sample.displayName} (${docCount} available)`}
       title="View Controlled Item Documents (SOP & Verification Report)"
     >
       <DescriptionIcon style={{ fontSize: 11 }} />

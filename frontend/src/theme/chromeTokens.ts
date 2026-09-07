@@ -6,6 +6,8 @@ export interface ChromeTokens {
   sidebarActiveBg: string;
   sidebarActiveText: string;
   sidebarActiveBorder: string;
+  tableHeaderBg: string;
+  tableHeaderText: string;
 }
 
 // Topbar/sidebar brand chrome - previously mode-invariant (same bright
@@ -32,7 +34,11 @@ export const chromeTokensByMode: Record<"light" | "dark", ChromeTokens> = {
     sidebarText: "#f1d9f5",
     sidebarActiveBg: "rgba(255,255,255,0.15)",
     sidebarActiveText: "#ffffff",
-    sidebarActiveBorder: "#ffffff"
+    sidebarActiveBorder: "#ffffff",
+    // Light mode is unchanged from what the tables already did
+    // (background.default over a white card, secondary ink).
+    tableHeaderBg: "#F4F6F8",
+    tableHeaderText: "#5A6472"
   },
   dark: {
     topbarBg: "linear-gradient(90deg, #1E1229, #2A1740)",
@@ -41,6 +47,17 @@ export const chromeTokensByMode: Record<"light" | "dark", ChromeTokens> = {
     sidebarText: "#9E8FB5",
     sidebarActiveBg: "#2C1E42",
     sidebarActiveText: "#e9d5ff",
-    sidebarActiveBorder: "#9b3fa8"
+    sidebarActiveBorder: "#9b3fa8",
+    // Dark mode is the correction. Table heads used to take
+    // background.default (#12161C), which is DARKER than the card they sit
+    // on (#1A1F27) - so the header sank into the surface and separated from
+    // it by only 1.1:1. This band sits above the card instead, at 1.65:1,
+    // which is what makes it read as a header at a glance.
+    //
+    // The text has to travel with it: the secondary ink most tables used for
+    // header cells lands at 3.93:1 on this band, under the 4.5:1 it needs, so
+    // the token pairs the band with primary ink at 8.39:1.
+    tableHeaderBg: "#424242",
+    tableHeaderText: "#E7EBF0"
   }
 };

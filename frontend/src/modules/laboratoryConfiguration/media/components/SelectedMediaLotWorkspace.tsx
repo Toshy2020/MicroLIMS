@@ -30,7 +30,7 @@ import { mediaClassLabel, evaluationTypeLabel } from "../../../../services/maste
 import { MediaSummary } from "../types/mediaSummaryTypes";
 import { apiClient } from "../../../../services/apiClient";
 import { lifecycleOf } from "./MediaLotKpiCards";
-import { brandColors } from "../../../../theme";
+import { brandColors, tableHeadSx } from "../../../../theme";
 import { useAuth } from "../../../../contexts/AuthContext";
 
 function formatDateDDMMYY(value: string | number | Date | null | undefined): string {
@@ -461,7 +461,7 @@ export function SelectedMediaLotWorkspace({
                     </Typography>
                     <Table size="small" sx={{ border: "1px solid", borderColor: "divider", borderRadius: 1 }}>
                       <TableHead>
-                        <TableRow sx={{ bgcolor: "background.default" }}>
+                        <TableRow sx={tableHeadSx}>
                           <TableCell sx={{ fontSize: 11, fontWeight: 700 }}>Organism</TableCell>
                           <TableCell sx={{ fontSize: 11, fontWeight: 700 }}>Cryovial</TableCell>
                           <TableCell sx={{ fontSize: 11, fontWeight: 700 }}>Incubation</TableCell>
@@ -549,7 +549,7 @@ export function SelectedMediaLotWorkspace({
                 <Box sx={{ mt: 1.5, mb: 1.5 }}>
                   <Table size="small" sx={{ border: "1px solid", borderColor: "divider", borderRadius: 1 }}>
                     <TableHead>
-                      <TableRow sx={{ bgcolor: "background.default" }}>
+                      <TableRow sx={tableHeadSx}>
                         <TableCell sx={{ fontSize: 11, fontWeight: 700 }}>Organism</TableCell>
                         <TableCell sx={{ fontSize: 11, fontWeight: 700 }}>Cryovial</TableCell>
                         <TableCell sx={{ fontSize: 11, fontWeight: 700 }}>Incubation</TableCell>

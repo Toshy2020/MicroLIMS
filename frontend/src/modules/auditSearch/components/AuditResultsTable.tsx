@@ -19,6 +19,7 @@ import { formatLabDateTime } from "../../../utils/formatDate";
 import type { AuditLogItem } from "../types/auditTypes";
 import { ENTITY_DISPLAY_NAMES } from "../types/auditTypes";
 import { AuditDiffViewer } from "./AuditDiffViewer";
+import { tableHeadSx } from "../../../theme";
 
 interface Props {
   items: AuditLogItem[];
@@ -64,7 +65,7 @@ export function AuditResultsTable({
     <Paper sx={{ border: "1px solid", borderColor: "divider", borderRadius: 2, overflow: "hidden" }}>
       <TableContainer>
         <Table size="small">
-          <TableHead sx={{ bgcolor: "background.default" }}>
+          <TableHead sx={tableHeadSx}>
             <TableRow>
               <TableCell sx={{ fontWeight: 700, fontSize: 12, width: 140 }}>Date / Time</TableCell>
               <TableCell sx={{ fontWeight: 700, fontSize: 12, width: 180 }}>User</TableCell>

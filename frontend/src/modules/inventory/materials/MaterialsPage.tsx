@@ -45,7 +45,7 @@ import {
 import { MaterialFilterBar } from "./components/MaterialFilterBar";
 import { AddMaterialDialog } from "./components/AddMaterialDialog";
 import { MaterialLotDetailsDialog } from "./components/MaterialLotDetailsDialog";
-import { brandColors } from "../../../theme";
+import { brandColors, tableHeadSx } from "../../../theme";
 
 const INITIAL_FILTERS: MaterialFilterState = {
   search: "",
@@ -252,7 +252,7 @@ export function MaterialsPage() {
           <Paper sx={{ border: "1px solid", borderColor: "divider", borderRadius: 2, overflow: "hidden" }}>
             <TableContainer>
               <Table size="small">
-                <TableHead sx={{ bgcolor: "background.default" }}>
+                <TableHead sx={tableHeadSx}>
                   <TableRow>
                     <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Type</TableCell>
                     <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Material Name</TableCell>

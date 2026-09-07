@@ -110,7 +110,7 @@ public class CryovialApprovalTests
         await SeedUser(db, SectionHeadId);
         var cryovial = await SeedPendingBatchAsync(db);
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        await Assert.ThrowsAnyAsync<InvalidOperationException>(() =>
             NewService(db).ApproveAsync(cryovial.Id, approved: true, SectionHeadId, "wrong-password", null, null));
 
         var reloaded = await db.Cryovials.FindAsync(cryovial.Id);

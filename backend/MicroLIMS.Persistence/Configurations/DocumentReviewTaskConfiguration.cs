@@ -38,13 +38,24 @@ public class DocumentReviewTaskConfiguration : IEntityTypeConfiguration<Document
             .HasForeignKey(t => t.DecisionByUserId)
             .OnDelete(DeleteBehavior.Restrict);
 
+        builder.Property(t => t.ReviewCycleNumber)
+            .HasDefaultValue(1);
+
         builder.HasMany(t => t.Findings)
             .WithOne(f => f.DocumentReviewTask)
             .HasForeignKey(f => f.DocumentReviewTaskId)
             .OnDelete(DeleteBehavior.Restrict);
 
+        // Release 1d: Multi-cycle review lineage
+        builder.HasOne(t => t.ReviewedSourceFile)
+            .WithMany()
+            .HasForeignKey(t => t.ReviewedSourceFileId)
+            .OnDelete(DeleteBehavior.Restrict);
+
         builder.HasIndex(t => t.DocumentRevisionId);
         builder.HasIndex(t => t.AssignedReviewerUserId);
         builder.HasIndex(t => t.Status);
+        builder.HasIndex(t => t.ReviewedSourceFileId);
+        builder.HasIndex(t => new { t.DocumentRevisionId, t.ReviewCycleNumber });
     }
 }

@@ -28,5 +28,11 @@ public class DocumentReviewTask
     public string? ReviewNotes { get; set; }
     public string? SubmissionNotes { get; set; }
 
+    // Release 1d: Multi-cycle review lineage
+    public int ReviewCycleNumber { get; set; } = 1;
+
+    public int? ReviewedSourceFileId { get; set; }
+    public RevisionFile? ReviewedSourceFile { get; set; }
+
     public ICollection<DocumentReviewFinding> Findings { get; set; } = new List<DocumentReviewFinding>();
 }

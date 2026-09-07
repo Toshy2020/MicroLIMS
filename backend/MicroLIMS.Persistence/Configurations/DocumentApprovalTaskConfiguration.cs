@@ -38,8 +38,21 @@ public class DocumentApprovalTaskConfiguration : IEntityTypeConfiguration<Docume
             .HasForeignKey(t => t.DecisionByUserId)
             .OnDelete(DeleteBehavior.Restrict);
 
+        // Release 1d: Approval dossier linkages
+        builder.HasOne(t => t.ApprovedSourceFile)
+            .WithMany()
+            .HasForeignKey(t => t.ApprovedSourceFileId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasOne(t => t.GeneratedControlledPdf)
+            .WithMany()
+            .HasForeignKey(t => t.GeneratedControlledPdfId)
+            .OnDelete(DeleteBehavior.Restrict);
+
         builder.HasIndex(t => t.DocumentRevisionId);
         builder.HasIndex(t => t.AssignedApproverUserId);
         builder.HasIndex(t => t.Status);
+        builder.HasIndex(t => t.ApprovedSourceFileId);
+        builder.HasIndex(t => t.GeneratedControlledPdfId);
     }
 }

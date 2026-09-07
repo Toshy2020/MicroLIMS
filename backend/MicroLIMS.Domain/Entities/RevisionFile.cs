@@ -18,6 +18,16 @@ public class RevisionFile
 
     public bool IsActive { get; set; } = true;
 
+    // Release 1d: Explicit sequential version within (DocumentRevisionId, FileRole)
+    public int FileVersion { get; set; } = 1;
+
+    // Release 1d: Identifies the final approved Word source file for the revision (strictly SourceFile)
+    public bool IsApprovedFinalSource { get; set; } = false;
+
+    // Release 1d: Provenance linkage - for ControlledPdf, references the exact Word source used for generation
+    public int? GeneratedFromSourceFileId { get; set; }
+    public RevisionFile? GeneratedFromSourceFile { get; set; }
+
     public int? SupersededByFileId { get; set; }
     public RevisionFile? SupersededByFile { get; set; }
 

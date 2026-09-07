@@ -41,4 +41,11 @@ public class DocumentRevision
     public ICollection<RevisionChangeItem> ChangeItems { get; set; } = new List<RevisionChangeItem>();
     public RevisionImpactAssessment? ImpactAssessment { get; set; }
     public ICollection<DocumentApprovalTask> ApprovalTasks { get; set; } = new List<DocumentApprovalTask>();
+
+    // Release 1d: Pointers to approved source and controlled PDF
+    public int? ApprovedSourceFileId { get; set; }
+    public RevisionFile? ApprovedSourceFile { get; set; }
+
+    public int? ControlledPdfFileId { get; set; }
+    public RevisionFile? ControlledPdfFile { get; set; }
 }

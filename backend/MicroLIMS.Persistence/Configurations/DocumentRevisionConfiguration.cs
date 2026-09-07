@@ -45,9 +45,22 @@ public class DocumentRevisionConfiguration : IEntityTypeConfiguration<DocumentRe
             .HasForeignKey(f => f.DocumentRevisionId)
             .OnDelete(DeleteBehavior.Restrict);
 
+        // Release 1d: Pointers to approved source and controlled PDF
+        builder.HasOne(r => r.ApprovedSourceFile)
+            .WithMany()
+            .HasForeignKey(r => r.ApprovedSourceFileId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasOne(r => r.ControlledPdfFile)
+            .WithMany()
+            .HasForeignKey(r => r.ControlledPdfFileId)
+            .OnDelete(DeleteBehavior.Restrict);
+
         builder.HasIndex(r => new { r.DocumentMasterId, r.RevisionNumber })
             .IsUnique();
 
         builder.HasIndex(r => r.RevisionSequence);
+        builder.HasIndex(r => r.ApprovedSourceFileId);
+        builder.HasIndex(r => r.ControlledPdfFileId);
     }
 }

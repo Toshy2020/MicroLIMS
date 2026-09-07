@@ -50,8 +50,15 @@ public class DocumentReviewFindingConfiguration : IEntityTypeConfiguration<Docum
             .HasForeignKey(f => f.ResolvedByUserId)
             .OnDelete(DeleteBehavior.Restrict);
 
+        // Release 1d: Linkage to specific source file version
+        builder.HasOne(f => f.RevisionFile)
+            .WithMany()
+            .HasForeignKey(f => f.RevisionFileId)
+            .OnDelete(DeleteBehavior.Restrict);
+
         builder.HasIndex(f => f.DocumentReviewTaskId);
         builder.HasIndex(f => f.Status);
         builder.HasIndex(f => f.IsMandatory);
+        builder.HasIndex(f => f.RevisionFileId);
     }
 }

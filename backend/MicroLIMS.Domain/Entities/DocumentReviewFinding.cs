@@ -18,6 +18,11 @@ public class DocumentReviewFinding
     public string CommentText { get; set; } = string.Empty;
     public bool IsMandatory { get; set; } = true;
 
+    // Release 1d: Linkage to specific source file version
+    public int? RevisionFileId { get; set; }
+    public RevisionFile? RevisionFile { get; set; }
+    public int? SourceFileVersion { get; set; }
+
     public ReviewFindingStatus Status { get; set; } = ReviewFindingStatus.Open;
 
     public string? AuthorResponse { get; set; }

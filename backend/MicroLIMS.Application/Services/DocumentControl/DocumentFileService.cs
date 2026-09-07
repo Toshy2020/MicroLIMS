@@ -91,6 +91,11 @@ public class DocumentFileService : IDocumentFileService
         var now = DateTime.UtcNow;
 
         var existingActiveFile = revision.Files.FirstOrDefault(f => f.FileRole == fileRole && f.IsActive);
+        var currentMaxVersion = revision.Files
+            .Where(f => f.FileRole == fileRole)
+            .Select(f => f.FileVersion)
+            .DefaultIfEmpty(0)
+            .Max();
 
         var newFile = new RevisionFile
         {
@@ -102,6 +107,7 @@ public class DocumentFileService : IDocumentFileService
             ContentSha256 = sha256,
             StorageKey = "pending",
             IsActive = true,
+            FileVersion = currentMaxVersion + 1,
             UploadedAt = now,
             UploadedByUserId = userId
         };

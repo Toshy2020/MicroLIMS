@@ -29,4 +29,11 @@ public class DocumentApprovalTask
     public string? SubmissionNotes { get; set; }
 
     public DateTime? TargetEffectiveDate { get; set; }
+
+    // Release 1d: Approval dossier linkages
+    public int? ApprovedSourceFileId { get; set; }
+    public RevisionFile? ApprovedSourceFile { get; set; }
+
+    public int? GeneratedControlledPdfId { get; set; }
+    public RevisionFile? GeneratedControlledPdf { get; set; }
 }

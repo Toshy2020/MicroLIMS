@@ -621,7 +621,10 @@ public class DocumentRevisionService : IDocumentRevisionService
             f.SupersededByFileId,
             f.UploadedAt,
             f.UploadedByUserId,
-            f.UploadedByUser?.FullName ?? ""
+            f.UploadedByUser?.FullName ?? "",
+            f.FileVersion,
+            f.IsApprovedFinalSource,
+            f.GeneratedFromSourceFileId
         )).ToList();
 
         return new DocumentRevisionDto(

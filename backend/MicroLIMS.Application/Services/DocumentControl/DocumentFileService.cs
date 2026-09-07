@@ -51,6 +51,8 @@ public class DocumentFileService : IDocumentFileService
 
         var ext = Path.GetExtension(originalFileName).ToLowerInvariant();
 
+        string canonicalContentType;
+
         // Validate formats
         if (fileRole == FileRole.ControlledPdf)
         {
@@ -63,19 +65,50 @@ public class DocumentFileService : IDocumentFileService
             {
                 throw new ArgumentException("Invalid file format. The uploaded file is not a valid PDF document.", nameof(content));
             }
+
+            canonicalContentType = "application/pdf";
         }
         else if (fileRole == FileRole.SourceFile)
         {
             if (ext != ".docx" && ext != ".doc")
                 throw new ArgumentException("Source document file must be a Word document (.docx or .doc).", nameof(originalFileName));
+
+            var (isValidWord, mimeType) = ValidateWordDocument(ext, content);
+            if (!isValidWord)
+            {
+                throw new ArgumentException("Invalid file format. The uploaded file is not a valid Word document.", nameof(content));
+            }
+
+            canonicalContentType = mimeType;
+        }
+        else
+        {
+            canonicalContentType = string.IsNullOrWhiteSpace(declaredContentType)
+                ? "application/octet-stream"
+                : declaredContentType.Trim();
         }
 
         var canUpload = await _authService.CanUploadOrReplaceDraftFileAsync(revisionId, userId);
         if (!canUpload)
+        {
+            await _auditEventService.RecordUserEventAsync(
+                actionCode: "UnauthorizedFileAccessAttempted",
+                actionCategory: AuditActionCategory.Security,
+                recordType: nameof(RevisionFile),
+                documentRevisionId: revisionId,
+                reason: $"Unauthorized attempt to upload or replace file on revision {revisionId} by user {userId}.",
+                changes: new List<AuditFieldChange>
+                {
+                    new("RevisionId", revisionId.ToString(), null),
+                    new("FileRole", fileRole.ToString(), null),
+                    new("UserId", userId.ToString(), null)
+                },
+                entityId: revisionId.ToString());
+
             throw new UnauthorizedAccessException("You do not have permission to upload or replace files for this revision.");
+        }
 
         var revision = await _db.DocumentRevisions
-            .Include(r => r.Files)
             .Include(r => r.DocumentMaster)
             .FirstOrDefaultAsync(r => r.Id == revisionId)
             ?? throw new KeyNotFoundException($"Document Revision {revisionId} not found.");
@@ -90,36 +123,53 @@ public class DocumentFileService : IDocumentFileService
         var safeFileName = Path.GetFileName(originalFileName);
         var now = DateTime.UtcNow;
 
-        var existingActiveFile = revision.Files.FirstOrDefault(f => f.FileRole == fileRole && f.IsActive);
-        var currentMaxVersion = revision.Files
-            .Where(f => f.FileRole == fileRole)
-            .Select(f => f.FileVersion)
-            .DefaultIfEmpty(0)
-            .Max();
+        RevisionFile newFile = null!;
+        RevisionFile? existingActiveFile = null;
 
-        var newFile = new RevisionFile
+        const int maxRetries = 3;
+        for (var attempt = 1; attempt <= maxRetries; attempt++)
         {
-            DocumentRevisionId = revisionId,
-            FileRole = fileRole,
-            FileName = safeFileName,
-            ContentType = string.IsNullOrWhiteSpace(declaredContentType) ? "application/octet-stream" : declaredContentType.Trim(),
-            SizeBytes = content.Length,
-            ContentSha256 = sha256,
-            StorageKey = "pending",
-            IsActive = true,
-            FileVersion = currentMaxVersion + 1,
-            UploadedAt = now,
-            UploadedByUserId = userId
-        };
+            try
+            {
+                existingActiveFile = await _db.RevisionFiles
+                    .FirstOrDefaultAsync(f => f.DocumentRevisionId == revisionId && f.FileRole == fileRole && f.IsActive);
 
-        if (existingActiveFile != null)
-        {
-            existingActiveFile.IsActive = false;
+                var currentMaxVersion = await _db.RevisionFiles
+                    .Where(f => f.DocumentRevisionId == revisionId && f.FileRole == fileRole)
+                    .Select(f => (int?)f.FileVersion)
+                    .MaxAsync() ?? 0;
+
+                newFile = new RevisionFile
+                {
+                    DocumentRevisionId = revisionId,
+                    FileRole = fileRole,
+                    FileName = safeFileName,
+                    ContentType = canonicalContentType,
+                    SizeBytes = content.Length,
+                    ContentSha256 = sha256,
+                    StorageKey = "pending",
+                    IsActive = true,
+                    FileVersion = currentMaxVersion + 1,
+                    UploadedAt = now,
+                    UploadedByUserId = userId
+                };
+
+                if (existingActiveFile != null)
+                {
+                    existingActiveFile.IsActive = false;
+                }
+
+                _db.RevisionFiles.Add(newFile);
+                _db.CurrentUserId = userId;
+                await _db.SaveChangesAsync(); // Generates newFile.Id without filtered unique index collision
+                break;
+            }
+            catch (DbUpdateException ex) when (attempt < maxRetries && IsUniqueConstraintViolation(ex))
+            {
+                _db.ChangeTracker.Clear();
+                await Task.Delay(50 * attempt);
+            }
         }
-
-        _db.RevisionFiles.Add(newFile);
-        _db.CurrentUserId = userId;
-        await _db.SaveChangesAsync(); // Generates newFile.Id without filtered unique index collision
 
         // Relative storage key
         var storageKey = $"documents/{revisionId}/{newFile.Id}_{fileRole.ToString().ToLower()}{ext}";
@@ -137,7 +187,8 @@ public class DocumentFileService : IDocumentFileService
                 new("SupersededFileId", existingActiveFile.Id.ToString(), newFile.Id.ToString()),
                 new("PreviousFileName", existingActiveFile.FileName, newFile.FileName),
                 new("PreviousSizeBytes", existingActiveFile.SizeBytes.ToString(), newFile.SizeBytes.ToString()),
-                new("PreviousSha256", existingActiveFile.ContentSha256, newFile.ContentSha256)
+                new("PreviousSha256", existingActiveFile.ContentSha256, newFile.ContentSha256),
+                new("FileVersion", null, newFile.FileVersion.ToString())
             };
 
             await _auditEventService.RecordUserEventAsync(
@@ -146,7 +197,7 @@ public class DocumentFileService : IDocumentFileService
                 recordType: nameof(RevisionFile),
                 documentMasterId: revision.DocumentMasterId,
                 documentRevisionId: revisionId,
-                reason: $"Replacement of active {fileRole} file on Draft revision {revision.RevisionNumber}",
+                reason: $"Replacement of active {fileRole} file (v{newFile.FileVersion}) on Draft revision {revision.RevisionNumber}",
                 changes: changes,
                 entityId: newFile.Id.ToString());
         }
@@ -159,7 +210,8 @@ public class DocumentFileService : IDocumentFileService
                 new("FileRole", null, fileRole.ToString()),
                 new("FileName", null, newFile.FileName),
                 new("SizeBytes", null, newFile.SizeBytes.ToString()),
-                new("ContentSha256", null, newFile.ContentSha256)
+                new("ContentSha256", null, newFile.ContentSha256),
+                new("FileVersion", null, newFile.FileVersion.ToString())
             };
 
             await _auditEventService.RecordUserEventAsync(
@@ -168,7 +220,7 @@ public class DocumentFileService : IDocumentFileService
                 recordType: nameof(RevisionFile),
                 documentMasterId: revision.DocumentMasterId,
                 documentRevisionId: revisionId,
-                reason: $"Upload of initial {fileRole} file on Draft revision {revision.RevisionNumber}",
+                reason: $"Upload of initial {fileRole} file (v{newFile.FileVersion}) on Draft revision {revision.RevisionNumber}",
                 changes: changes,
                 entityId: newFile.Id.ToString());
         }
@@ -186,7 +238,10 @@ public class DocumentFileService : IDocumentFileService
             newFile.SupersededByFileId,
             newFile.UploadedAt,
             newFile.UploadedByUserId,
-            uploaderName
+            uploaderName,
+            newFile.FileVersion,
+            newFile.IsApprovedFinalSource,
+            newFile.GeneratedFromSourceFileId
         );
     }
 
@@ -202,17 +257,51 @@ public class DocumentFileService : IDocumentFileService
         {
             var canAccessSource = await _authService.CanAccessSourceFileAsync(fileId, userId);
             if (!canAccessSource)
+            {
+                await _auditEventService.RecordUserEventAsync(
+                    actionCode: "UnauthorizedFileAccessAttempted",
+                    actionCategory: AuditActionCategory.Security,
+                    recordType: nameof(RevisionFile),
+                    documentMasterId: file.DocumentRevision?.DocumentMasterId,
+                    documentRevisionId: file.DocumentRevisionId,
+                    reason: $"Unauthorized attempt to access source file {fileId} by user {userId}.",
+                    changes: new List<AuditFieldChange>
+                    {
+                        new("FileId", fileId.ToString(), null),
+                        new("FileRole", file.FileRole.ToString(), null),
+                        new("UserId", userId.ToString(), null)
+                    },
+                    entityId: fileId.ToString());
+
                 throw new UnauthorizedAccessException("Access to source/editable document files is restricted.");
+            }
         }
         else
         {
             var canAccessPdf = await _authService.CanAccessControlledPdfAsync(fileId, userId);
             if (!canAccessPdf)
+            {
+                await _auditEventService.RecordUserEventAsync(
+                    actionCode: "UnauthorizedFileAccessAttempted",
+                    actionCategory: AuditActionCategory.Security,
+                    recordType: nameof(RevisionFile),
+                    documentMasterId: file.DocumentRevision?.DocumentMasterId,
+                    documentRevisionId: file.DocumentRevisionId,
+                    reason: $"Unauthorized attempt to access controlled PDF file {fileId} by user {userId}.",
+                    changes: new List<AuditFieldChange>
+                    {
+                        new("FileId", fileId.ToString(), null),
+                        new("FileRole", file.FileRole.ToString(), null),
+                        new("UserId", userId.ToString(), null)
+                    },
+                    entityId: fileId.ToString());
+
                 throw new UnauthorizedAccessException("You do not have permission to view or download this controlled document PDF.");
+            }
         }
 
-        // Controlled copy policy check
-        if (isDownload)
+        // Controlled copy policy check (applies only to Controlled PDF copies)
+        if (isDownload && file.FileRole == FileRole.ControlledPdf)
         {
             var downloadSetting = await _db.ConfigurationSettings
                 .AsNoTracking()
@@ -264,8 +353,12 @@ public class DocumentFileService : IDocumentFileService
         }
 
         // Log successful access
+        var actionCode = file.FileRole == FileRole.SourceFile
+            ? (isDownload ? "SourceFileDownloaded" : "SourceFileViewed")
+            : (isDownload ? "ControlledFileDownloaded" : "ControlledFileViewed");
+
         await _auditEventService.RecordUserEventAsync(
-            actionCode: isDownload ? "ControlledFileDownloaded" : "ControlledFileViewed",
+            actionCode: actionCode,
             actionCategory: AuditActionCategory.Document,
             recordType: nameof(RevisionFile),
             documentMasterId: file.DocumentRevision?.DocumentMasterId,
@@ -284,10 +377,49 @@ public class DocumentFileService : IDocumentFileService
             file.SupersededByFileId,
             file.UploadedAt,
             file.UploadedByUserId,
-            file.UploadedByUser?.FullName ?? "Unknown"
+            file.UploadedByUser?.FullName ?? "Unknown",
+            file.FileVersion,
+            file.IsApprovedFinalSource,
+            file.GeneratedFromSourceFileId
         );
 
         return (dto, content);
+    }
+
+    private static (bool IsValid, string CanonicalMimeType) ValidateWordDocument(string ext, byte[] content)
+    {
+        if (ext == ".docx")
+        {
+            // PK ZIP header: 0x50, 0x4B, 0x03, 0x04
+            if (content.Length >= 4 &&
+                content[0] == 0x50 && content[1] == 0x4B && content[2] == 0x03 && content[3] == 0x04)
+            {
+                return (true, "application/vnd.openxmlformats-officedocument.wordprocessingml.document");
+            }
+            return (false, string.Empty);
+        }
+
+        if (ext == ".doc")
+        {
+            // OLE Compound File Binary header: 0xD0, 0xCF, 0x11, 0xE0, 0xA1, 0xB1, 0x1A, 0xE1
+            if (content.Length >= 8 &&
+                content[0] == 0xD0 && content[1] == 0xCF && content[2] == 0x11 && content[3] == 0xE0 &&
+                content[4] == 0xA1 && content[5] == 0xB1 && content[6] == 0x1A && content[7] == 0xE1)
+            {
+                return (true, "application/msword");
+            }
+            return (false, string.Empty);
+        }
+
+        return (false, string.Empty);
+    }
+
+    private static bool IsUniqueConstraintViolation(DbUpdateException ex)
+    {
+        var msg = ex.InnerException?.Message ?? ex.Message;
+        return msg.Contains("23505") ||
+               msg.Contains("IX_RevisionFiles_DocumentRevisionId_FileRole_FileVersion", StringComparison.OrdinalIgnoreCase) ||
+               msg.Contains("unique", StringComparison.OrdinalIgnoreCase);
     }
 
     private async Task<(bool IsActive, RoleType? RoleType)> GetUserRoleAsync(int userId)

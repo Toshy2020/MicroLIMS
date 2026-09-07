@@ -794,7 +794,10 @@ public class DocumentMasterService : IDocumentMasterService
                 f.SupersededByFileId,
                 f.UploadedAt,
                 f.UploadedByUserId,
-                f.UploadedByUser?.FullName ?? ""
+                f.UploadedByUser?.FullName ?? "",
+                f.FileVersion,
+                f.IsApprovedFinalSource,
+                f.GeneratedFromSourceFileId
             )).ToList()
         );
     }

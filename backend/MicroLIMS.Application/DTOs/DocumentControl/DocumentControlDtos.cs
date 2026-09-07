@@ -113,7 +113,10 @@ public record RevisionFileDto(
     int? SupersededByFileId,
     DateTime UploadedAt,
     int UploadedByUserId,
-    string UploadedByName
+    string UploadedByName,
+    int FileVersion = 1,
+    bool IsApprovedFinalSource = false,
+    int? GeneratedFromSourceFileId = null
 );
 
 // Requests

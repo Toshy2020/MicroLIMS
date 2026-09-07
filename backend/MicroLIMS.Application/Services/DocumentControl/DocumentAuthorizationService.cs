@@ -124,11 +124,42 @@ public class DocumentAuthorizationService : IDocumentAuthorizationService
 
         if (file == null || file.DocumentRevision == null) return false;
 
-        // Source file is restricted: Admin, Doc Controller, or Owner/Author
+        // Source access applies strictly to SourceFile
+        if (file.FileRole != FileRole.SourceFile)
+            return false;
+
+        // 1. Privileged Governance Roles: SystemAdministrator or Document Controller (SectionHead)
         if (role == RoleType.SystemAdministrator || role == RoleType.SectionHead)
             return true;
 
-        return await IsOwnerOrAssignedAuthorAsync(file.DocumentRevision.DocumentMasterId, userId);
+        // 2. Author/Owner: Must be the designated Document Owner or assigned Author for THIS specific document
+        var isAuthor = await IsOwnerOrAssignedAuthorAsync(file.DocumentRevision.DocumentMasterId, userId);
+        if (isAuthor)
+            return true;
+
+        // 3. Technical Reviewer: Must be assigned as active reviewer on an open review task for THIS specific revision
+        // Access is read-only and denied once the review assignment is no longer active (Completed, ReturnedForCorrection, Cancelled)
+        var isActiveReviewer = await _db.DocumentReviewTasks
+            .AsNoTracking()
+            .AnyAsync(t => t.DocumentRevisionId == file.DocumentRevisionId &&
+                           t.AssignedReviewerUserId == userId &&
+                           (t.Status == ReviewTaskStatus.Pending || t.Status == ReviewTaskStatus.InProgress));
+
+        if (isActiveReviewer)
+            return true;
+
+        // 4. Approver: Must be assigned to an active approval task for THIS specific revision
+        // Access is read-only and denied once the approval task is no longer active (Approved, ReturnedForCorrection, Declined, Cancelled)
+        var isActiveApprover = await _db.DocumentApprovalTasks
+            .AsNoTracking()
+            .AnyAsync(t => t.DocumentRevisionId == file.DocumentRevisionId &&
+                           t.AssignedApproverUserId == userId &&
+                           t.Status == DocumentApprovalTaskStatus.Pending);
+
+        if (isActiveApprover)
+            return true;
+
+        return false;
     }
 
     public async Task<bool> CanAccessControlledPdfAsync(int fileId, int userId)

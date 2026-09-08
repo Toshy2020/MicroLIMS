@@ -77,6 +77,9 @@ builder.Services.AddControllers(options => options.Filters.Add<ValidationFilter>
         options.JsonSerializerOptions.Converters.Add(new UtcDateTimeConverter());
         options.JsonSerializerOptions.Converters.Add(new UtcNullableDateTimeConverter());
     });
+// Protects the anonymous client-error endpoint (see RateLimitingExtensions).
+builder.Services.AddMicroLimsRateLimiting(builder.Configuration);
+
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
@@ -148,6 +151,8 @@ app.UseAuthorization();
 // Stamps the current user onto the DbContext for audit trail capture -
 // must run after UseAuthentication so HttpContext.User is populated.
 app.UseMicroLimsAuditPipeline();
+
+app.UseRateLimiter();
 
 // ---- Health Check Endpoint ----
 app.MapGet("/health", () => Results.Ok(new { status = "Healthy", timestamp = DateTime.UtcNow }));

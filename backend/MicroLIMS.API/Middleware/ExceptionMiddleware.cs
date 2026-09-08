@@ -66,6 +66,18 @@ public class ExceptionMiddleware
                 DatabaseErrorClassifier.Classify(ex), DatabaseErrorClassifier.BuildRawContext(ex));
             await WriteResponse(context, ApiResponse<object>.Fail("An unexpected error occurred."));
         }
+        catch (BadHttpRequestException ex)
+        {
+            // Kestrel rejecting the request itself - an oversized body, a
+            // malformed chunked encoding, a request-body timeout. It
+            // carries its own status, and without this arm it fell into
+            // the generic 500 below: the anonymous client-error endpoint's
+            // own size cap then let any caller manufacture a Critical
+            // incident just by posting something too big.
+            context.Response.StatusCode = ex.StatusCode;
+            await CaptureAsync(context, ex, ErrorSource.Backend, ErrorSeverity.Warning);
+            await WriteResponse(context, ApiResponse<object>.Fail(ex.Message));
+        }
         catch (InvalidOperationException ex)
         {
             // The services (CryovialService, MediaPreparationService,

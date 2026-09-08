@@ -55,8 +55,33 @@ public class ErrorCaptureService : IErrorCaptureService
 
     private async Task WriteAsync(ErrorCaptureRequest request, CancellationToken cancellationToken)
     {
-        using var scope = _scopeFactory.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<MicroLimsDbContext>();
+        // Incident.CorrelationId is unique, so two writers racing on the
+        // same id - a browser reporting a client error while the backend
+        // captures the exception behind it - will see one insert lose.
+        // Retried once with a clean scope: by then the winner's Incident
+        // exists and this entry attaches to it, which is the whole point
+        // of the constraint.
+        const int maxAttempts = 2;
+
+        for (var attempt = 1; ; attempt++)
+        {
+            using var scope = _scopeFactory.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<MicroLimsDbContext>();
+
+            try
+            {
+                await AttachAsync(db, request, cancellationToken);
+                return;
+            }
+            catch (DbUpdateException) when (attempt < maxAttempts)
+            {
+            }
+        }
+    }
+
+    private async Task AttachAsync(
+        MicroLimsDbContext db, ErrorCaptureRequest request, CancellationToken cancellationToken)
+    {
 
         var now = DateTime.UtcNow;
         var correlationId = Truncate(request.CorrelationId, CorrelationIdMaxLength) ?? string.Empty;
@@ -84,6 +109,15 @@ public class ErrorCaptureService : IErrorCaptureService
         else
         {
             incident.LastSeenUtc = now;
+
+            // A recurrence after triage is news. Left Resolved, the
+            // Incident keeps accumulating children while sitting in the
+            // admin page's "handled" bucket, and the return of a problem
+            // someone signed off on is exactly what must not be silent.
+            // The resolution fields are kept so the page can still show
+            // who closed it and when - Status is the authority.
+            if (incident.Status == IncidentStatus.Resolved)
+                incident.Status = IncidentStatus.Open;
 
             // Roll the incident up to the max of its children, honouring
             // any admin override, plus the entry being attached now. The

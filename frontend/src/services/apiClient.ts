@@ -25,6 +25,30 @@ const baseURL = getApiBaseUrl();
 
 export const apiClient = axios.create({ baseURL });
 
+// The backend stamps every response with X-Correlation-Id and exposes it
+// via CORS. Holding on to the most recent failing one lets a client-side
+// crash report attach to the same Incident as the backend error behind
+// it, instead of the admin seeing two unrelated rows for one user action.
+let lastCorrelationId: string | undefined;
+
+// Stale ids are worse than none: attaching a fresh crash to an unrelated
+// failure from ten minutes ago silently merges two incidents.
+const CORRELATION_ID_TTL_MS = 30_000;
+let lastCorrelationAt = 0;
+
+export function getLastCorrelationId(): string | undefined {
+  if (!lastCorrelationId) return undefined;
+  return Date.now() - lastCorrelationAt <= CORRELATION_ID_TTL_MS ? lastCorrelationId : undefined;
+}
+
+function rememberCorrelationId(error: AxiosError): void {
+  const header = error.response?.headers?.["x-correlation-id"];
+  if (typeof header === "string" && header) {
+    lastCorrelationId = header;
+    lastCorrelationAt = Date.now();
+  }
+}
+
 apiClient.interceptors.request.use((config) => {
   const token = localStorage.getItem("microlims_token");
   if (token) config.headers.Authorization = `Bearer ${token}`;
@@ -80,6 +104,8 @@ function refreshAccessToken(): Promise<string | null> {
 apiClient.interceptors.response.use(
   (response) => response,
   async (error: AxiosError) => {
+    rememberCorrelationId(error);
+
     const config = error.config as RetryableRequestConfig | undefined;
     const isAuthEndpoint = config?.url?.includes("/auth/refresh") || config?.url?.includes("/auth/login");
 

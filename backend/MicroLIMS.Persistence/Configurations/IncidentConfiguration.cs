@@ -30,7 +30,10 @@ public class IncidentConfiguration : IEntityTypeConfiguration<Incident>
             .HasForeignKey(i => i.ResolvedByUserId)
             .OnDelete(DeleteBehavior.SetNull);
 
-        builder.HasIndex(i => i.CorrelationId);
+        // Unique: an Incident IS its correlation id. Without this the
+        // lookup-then-insert in ErrorCaptureService can run twice
+        // concurrently and split one user action across two Incidents.
+        builder.HasIndex(i => i.CorrelationId).IsUnique();
 
         // Primary admin-UI filter columns.
         builder.HasIndex(i => i.Status);

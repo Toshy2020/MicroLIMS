@@ -93,7 +93,12 @@ builder.Services.AddCors(options =>
     options.AddPolicy("Frontend", policy =>
         policy.WithOrigins(allowedOrigins)
               .AllowAnyHeader()
-              .AllowAnyMethod());
+              .AllowAnyMethod()
+              // AllowAnyHeader covers request headers only. Without this
+              // the browser hides X-Correlation-Id from JS entirely, and
+              // client-side error reports cannot be tied to the backend
+              // error from the same action.
+              .WithExposedHeaders(MicroLIMS.API.Middleware.CorrelationIdMiddleware.HeaderName));
 });
 
 var app = builder.Build();

@@ -151,6 +151,11 @@ public class MicroLimsDbContext : Microsoft.EntityFrameworkCore.DbContext
     public DbSet<DocumentAcknowledgementRecord> DocumentAcknowledgementRecords => Set<DocumentAcknowledgementRecord>();
     public DbSet<DocumentEscalationRecord> DocumentEscalationRecords => Set<DocumentEscalationRecord>();
 
+    // Error Log & Monitoring - operational/technical data, not a GxP
+    // record. Excluded from CaptureAuditEntries below and prunable.
+    public DbSet<Incident> Incidents => Set<Incident>();
+    public DbSet<ErrorLog> ErrorLogs => Set<ErrorLog>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         // Individual per-table configuration classes live in
@@ -188,6 +193,8 @@ public class MicroLimsDbContext : Microsoft.EntityFrameworkCore.DbContext
                         e.Entity is not AuditEventChange && // append-only; excluded to prevent recursive audit
                         e.Entity is not MaterialDocumentAccessLog && // append-only; excluded to prevent recursive audit
                         e.Entity is not EquipmentDocumentAccessLog && // append-only; excluded to prevent recursive audit
+                        e.Entity is not Incident && // operational error monitoring; not a GxP record
+                        e.Entity is not ErrorLog && // operational error monitoring; not a GxP record
                         (e.State == EntityState.Added || e.State == EntityState.Modified || e.State == EntityState.Deleted))
             .ToList();
 

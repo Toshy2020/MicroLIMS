@@ -111,6 +111,13 @@ public static class UserReferenceRegistry
         new UserReferenceEntry(typeof(PasswordResetToken), nameof(PasswordResetToken.UserId), UserReferenceDisposition.Excluded, "Cascade FK - reset tokens are per-user housekeeping, deleted with the user"),
         new UserReferenceEntry(typeof(RefreshToken), nameof(RefreshToken.UserId), UserReferenceDisposition.Excluded, "Cascade FK - refresh tokens are per-user housekeeping, deleted with the user"),
 
+        // Error monitoring is operational/technical data, not GxP evidence -
+        // a user who once triggered a 500 must not thereby become undeletable.
+        // Both columns are SetNull FKs, so the database drops the attribution
+        // by itself and the error entry survives without it.
+        new UserReferenceEntry(typeof(ErrorLog), nameof(ErrorLog.UserId), UserReferenceDisposition.Excluded, "SetNull FK - operational error log, not a GxP record; attribution clears with the user"),
+        new UserReferenceEntry(typeof(Incident), nameof(Incident.ResolvedByUserId), UserReferenceDisposition.Excluded, "SetNull FK - operational incident triage, not a GxP record; attribution clears with the user"),
+
         // ---- Group B: no DB FK constraint at all - blocked at application level only ----
         new UserReferenceEntry(typeof(AuditLog), nameof(AuditLog.UserId), UserReferenceDisposition.Blocks, "No DB FK - traceability record"),
         new UserReferenceEntry(typeof(LoginHistory), nameof(LoginHistory.UserId), UserReferenceDisposition.Blocks, "No DB FK - login history record"),

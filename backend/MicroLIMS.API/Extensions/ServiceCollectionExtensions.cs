@@ -95,6 +95,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IDocumentAcknowledgementService, DocumentAcknowledgementService>();
         services.AddScoped<IDocumentEscalationService, DocumentEscalationService>();
         services.AddHostedService<MicroLIMS.API.BackgroundServices.DocumentEffectiveDateWorker>();
+        services.AddHostedService<MicroLIMS.API.BackgroundServices.DatabaseHealthMonitorWorker>();
         services.AddScoped<MaterialService>();
         services.AddScoped<EquipmentInventoryService>();
         services.AddScoped<EquipmentConfigurationService>();
@@ -140,6 +141,11 @@ public static class ServiceCollectionExtensions
             config["Smtp:Password"] ?? "",
             config["Smtp:FromAddress"] ?? "no-reply@microlims.local",
             bool.TryParse(config["Smtp:EnableSsl"], out var ssl) && ssl));
+        // Error capture is a singleton that opens its own DbContext
+        // scope per write - the request-scoped context is typically
+        // mid-exception when an error is captured.
+        services.AddSingleton<IErrorCaptureService, ErrorCaptureService>();
+
         services.AddSingleton<NotificationService>();
         services.AddSingleton<INotificationService>(sp => sp.GetRequiredService<NotificationService>());
         services.AddScoped<IFileStorageService>(_ => new LocalFileStorageService(config["Storage:BasePath"] ?? "storage"));

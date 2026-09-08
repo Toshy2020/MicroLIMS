@@ -37,12 +37,12 @@ public class RolePermissionSeedDataTests
     }
 
     [Fact]
-    public async Task ExactlyTwentyTwoPermissionsAreSeeded()
+    public async Task ExactlyTwentyThreePermissionsAreSeeded()
     {
         var db = CreateSeededDbContext();
         var codes = await db.Permissions.Select(p => p.Code).ToListAsync();
 
-        Assert.Equal(22, codes.Count);
+        Assert.Equal(23, codes.Count);
         Assert.Equal(PermissionConstants.All.OrderBy(c => c), codes.OrderBy(c => c));
     }
 
@@ -62,11 +62,11 @@ public class RolePermissionSeedDataTests
     }
 
     [Fact]
-    public async Task SystemAdministrator_HoldsAllTwentyTwoPermissions()
+    public async Task SystemAdministrator_HoldsAllTwentyThreePermissions()
     {
         var db = CreateSeededDbContext();
         var codes = await CodesForRole(db, RoleType.SystemAdministrator);
-        Assert.Equal(22, codes.Count);
+        Assert.Equal(23, codes.Count);
         Assert.Equal(PermissionConstants.All.OrderBy(c => c), codes.OrderBy(c => c));
     }
 
@@ -137,12 +137,12 @@ public class RolePermissionSeedDataTests
     }
 
     [Fact]
-    public async Task TotalGrantCount_IsFiftyFive()
+    public async Task TotalGrantCount_IsFiftySix()
     {
-        // 22 (SysAdmin) + 19 (SectionHead) + 7 (Reviewer) + 7 (Analyst) = 55
+        // 23 (SysAdmin) + 19 (SectionHead) + 7 (Reviewer) + 7 (Analyst) = 56
         var db = CreateSeededDbContext();
         var total = await db.RolePermissions.CountAsync();
-        Assert.Equal(55, total);
+        Assert.Equal(56, total);
     }
 
     [Fact]
@@ -151,7 +151,7 @@ public class RolePermissionSeedDataTests
         var db = CreateSeededDbContext();
         DbSeeder.SeedPermissionsAndGrants(db); // second call
 
-        Assert.Equal(22, await db.Permissions.CountAsync());
-        Assert.Equal(55, await db.RolePermissions.CountAsync());
+        Assert.Equal(23, await db.Permissions.CountAsync());
+        Assert.Equal(56, await db.RolePermissions.CountAsync());
     }
 }

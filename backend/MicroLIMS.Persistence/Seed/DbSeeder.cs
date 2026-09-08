@@ -405,7 +405,7 @@ public static class DbSeeder
         });
     }
 
-    // The 18 Permission rows and their RolePermission grants from
+    // The Permission rows and their RolePermission grants from
     // rbac-permission-catalog.md - reproduces today's 112
     // [Authorize(Roles=...)] occurrences exactly. Public (not private) and
     // called both from Seed() and directly from tests, so tests don't have
@@ -415,32 +415,48 @@ public static class DbSeeder
     {
         if (!db.Roles.Any()) return; // Roles must exist first - Seed() guarantees this ordering.
 
-        if (!db.Permissions.Any())
+        // Inserted per code rather than all-or-nothing. The error
+        // monitoring migration inserts System.ViewErrorLog directly (it
+        // has to, to reach databases seeded before that code existed), so
+        // Permissions is no longer guaranteed empty on a fresh database -
+        // a blanket `if (!db.Permissions.Any())` guard would then skip
+        // every other code. Any future added code now lands the same way.
+        var catalog = new (string Code, string Description)[]
         {
-            db.Permissions.AddRange(
-                new Permission { Code = PermissionConstants.UsersManage, Description = "Manage user accounts (create, edit, lock/unlock, password resets)." },
-                new Permission { Code = PermissionConstants.RolesManage, Description = "Manage roles and their granted permissions." },
-                new Permission { Code = PermissionConstants.AuditView, Description = "View audit logs and traceability records." },
-                new Permission { Code = PermissionConstants.ReportingAdmin, Description = "Run administrative reporting operations (e.g. ResultRecord backfill)." },
-                new Permission { Code = PermissionConstants.SamplesReview, Description = "Submit a technical review decision on a sample." },
-                new Permission { Code = PermissionConstants.SamplesApprove, Description = "Submit a release/approval decision on a sample." },
-                new Permission { Code = PermissionConstants.SignaturesManage, Description = "View the electronic signature trail for a record." },
-                new Permission { Code = PermissionConstants.TestWorkflowExecute, Description = "Execute pathogen session and media evaluation workflow steps." },
-                new Permission { Code = PermissionConstants.TestWorkflowBiochemicalDecision, Description = "Record a biochemical confirmation decision." },
-                new Permission { Code = PermissionConstants.CryovialsManage, Description = "General cryovial operations (prepare, destroy, thaw, view summaries)." },
-                new Permission { Code = PermissionConstants.CryovialsApprove, Description = "Approve (release) a cryovial batch." },
-                new Permission { Code = PermissionConstants.MaterialsManage, Description = "Manage inventory materials (receive, update)." },
-                new Permission { Code = PermissionConstants.MaterialsDocumentControl, Description = "Supersede or void a material document." },
-                new Permission { Code = PermissionConstants.EquipmentManage, Description = "Manage inventory equipment." },
-                new Permission { Code = PermissionConstants.EquipmentDocumentControl, Description = "Supersede or void an equipment document." },
-                new Permission { Code = PermissionConstants.ItemsManage, Description = "Manage Items master data (create, update, freeze/unfreeze, delete)." },
-                new Permission { Code = PermissionConstants.ItemsDocumentUpload, Description = "Upload a controlled document to an Item." },
-                new Permission { Code = PermissionConstants.MasterDataManage, Description = "Manage laboratory configuration master data (water, EM, after-cleaning, specs, equipment config, media, organisms, test definitions)." },
-                new Permission { Code = PermissionConstants.DiscussionsView, Description = "View discussions and posts." },
-                new Permission { Code = PermissionConstants.DiscussionsCreate, Description = "Create discussion posts and add comments." },
-                new Permission { Code = PermissionConstants.DiscussionsEditAny, Description = "Edit or delete any discussion post or comment." },
-                new Permission { Code = PermissionConstants.MessagesUse, Description = "Send and receive direct/group messages." }
-            );
+            (PermissionConstants.UsersManage, "Manage user accounts (create, edit, lock/unlock, password resets)."),
+            (PermissionConstants.RolesManage, "Manage roles and their granted permissions."),
+            (PermissionConstants.AuditView, "View audit logs and traceability records."),
+            (PermissionConstants.ReportingAdmin, "Run administrative reporting operations (e.g. ResultRecord backfill)."),
+            (PermissionConstants.SamplesReview, "Submit a technical review decision on a sample."),
+            (PermissionConstants.SamplesApprove, "Submit a release/approval decision on a sample."),
+            (PermissionConstants.SignaturesManage, "View the electronic signature trail for a record."),
+            (PermissionConstants.TestWorkflowExecute, "Execute pathogen session and media evaluation workflow steps."),
+            (PermissionConstants.TestWorkflowBiochemicalDecision, "Record a biochemical confirmation decision."),
+            (PermissionConstants.CryovialsManage, "General cryovial operations (prepare, destroy, thaw, view summaries)."),
+            (PermissionConstants.CryovialsApprove, "Approve (release) a cryovial batch."),
+            (PermissionConstants.MaterialsManage, "Manage inventory materials (receive, update)."),
+            (PermissionConstants.MaterialsDocumentControl, "Supersede or void a material document."),
+            (PermissionConstants.EquipmentManage, "Manage inventory equipment."),
+            (PermissionConstants.EquipmentDocumentControl, "Supersede or void an equipment document."),
+            (PermissionConstants.ItemsManage, "Manage Items master data (create, update, freeze/unfreeze, delete)."),
+            (PermissionConstants.ItemsDocumentUpload, "Upload a controlled document to an Item."),
+            (PermissionConstants.MasterDataManage, "Manage laboratory configuration master data (water, EM, after-cleaning, specs, equipment config, media, organisms, test definitions)."),
+            (PermissionConstants.DiscussionsView, "View discussions and posts."),
+            (PermissionConstants.DiscussionsCreate, "Create discussion posts and add comments."),
+            (PermissionConstants.DiscussionsEditAny, "Edit or delete any discussion post or comment."),
+            (PermissionConstants.MessagesUse, "Send and receive direct/group messages."),
+            (PermissionConstants.SystemViewErrorLog, "View the technical error log and monitoring page."),
+        };
+
+        var existingCodes = db.Permissions.Select(p => p.Code).ToHashSet();
+        var missing = catalog
+            .Where(c => !existingCodes.Contains(c.Code))
+            .Select(c => new Permission { Code = c.Code, Description = c.Description })
+            .ToList();
+
+        if (missing.Count > 0)
+        {
+            db.Permissions.AddRange(missing);
             db.SaveChanges();
         }
 

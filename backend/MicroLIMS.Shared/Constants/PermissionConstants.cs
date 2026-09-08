@@ -1,6 +1,6 @@
 namespace MicroLIMS.Shared.Constants;
 
-// The 18 permission codes from rbac-permission-catalog.md, reproducing
+// The permission codes from rbac-permission-catalog.md, reproducing
 // today's 112 [Authorize(Roles=...)] occurrences exactly. Referenced by
 // DbSeeder (seed rows), PermissionPolicyProvider (which policy names
 // resolve dynamically), and eventually by controllers migrating off
@@ -30,6 +30,10 @@ public static class PermissionConstants
     public const string DiscussionsEditAny = "Discussions.EditAny";
     public const string MessagesUse = "Messages.Use";
 
+    // Error Log & Monitoring admin page. Permission-gated from day
+    // one - there is no legacy [Authorize(Roles=...)] equivalent.
+    public const string SystemViewErrorLog = "System.ViewErrorLog";
+
     public static readonly IReadOnlyList<string> All = new[]
     {
         UsersManage, RolesManage, AuditView, ReportingAdmin,
@@ -40,6 +44,7 @@ public static class PermissionConstants
         EquipmentManage, EquipmentDocumentControl,
         ItemsManage, ItemsDocumentUpload,
         MasterDataManage,
-        DiscussionsView, DiscussionsCreate, DiscussionsEditAny, MessagesUse
+        DiscussionsView, DiscussionsCreate, DiscussionsEditAny, MessagesUse,
+        SystemViewErrorLog
     };
 }

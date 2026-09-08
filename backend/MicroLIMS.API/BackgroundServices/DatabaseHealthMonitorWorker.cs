@@ -46,8 +46,14 @@ public class DatabaseHealthMonitorWorker : BackgroundService
     // blocked across ten consecutive cycles produces one row, not ten.
     private readonly HashSet<string> _reportedActivity = new();
 
+    // PostgreSQL substitutes this for query text the current role may not
+    // see - it lacks pg_read_all_stats and did not run the statement itself.
+    private const string UnreadableQueryText = "<insufficient privilege>";
+
     // Latched so an unavailable extension is reported once, not once a minute.
     private bool _statStatementsUnavailableLogged;
+    private bool _queryTextUnreadableLogged;
+    private bool _hiddenStatementsLogged;
 
     // Set after the first successful poll. Before it, an unknown queryid is
     // pre-existing history; after it, an unknown queryid is genuinely new.
@@ -155,9 +161,13 @@ public class DatabaseHealthMonitorWorker : BackgroundService
             "SELECT s.queryid, s.query, s.calls, s.total_exec_time, s.mean_exec_time, s.max_exec_time " +
             "FROM pg_stat_statements s " +
             "JOIN pg_database d ON d.oid = s.dbid " +
-            "WHERE d.datname = current_database() AND s.queryid IS NOT NULL";
+            "WHERE d.datname = current_database()";
 
         var rows = new List<(long QueryId, string Query, long Calls, double TotalMs, double MeanMs, double MaxMs)>();
+
+        // Rows PostgreSQL will not identify for this role. Counted rather
+        // than filtered away in SQL, so the blind spot can be reported.
+        var hiddenStatements = 0;
 
         try
         {
@@ -165,6 +175,18 @@ public class DatabaseHealthMonitorWorker : BackgroundService
             await using var reader = await command.ExecuteReaderAsync(cancellationToken);
             while (await reader.ReadAsync(cancellationToken))
             {
+                if (reader.IsDBNull(0))
+                {
+                    // PostgreSQL nulls queryid *and* query together for a
+                    // role without pg_read_all_stats. With no stable id
+                    // there is nothing to group recurrences by and nothing
+                    // to name the statement, so the row cannot become a
+                    // useful finding - but staying silent about it would
+                    // present an empty page as a healthy one.
+                    hiddenStatements++;
+                    continue;
+                }
+
                 rows.Add((
                     reader.GetInt64(0),
                     reader.IsDBNull(1) ? string.Empty : reader.GetString(1),
@@ -190,6 +212,14 @@ public class DatabaseHealthMonitorWorker : BackgroundService
                     ProcessName, ex.SqlState, ex.MessageText);
             }
             return false;
+        }
+
+        if (hiddenStatements > 0 && !_hiddenStatementsLogged)
+        {
+            _hiddenStatementsLogged = true;
+            _logger.LogWarning(
+                "[{Worker}] PostgreSQL is withholding queryid and query text for {Count} statement(s) from this role, so they cannot be captured as slow-query findings. Slow-query coverage is INCOMPLETE. Grant the application role pg_read_all_stats (GRANT pg_read_all_stats TO <role>) to restore full visibility.",
+                ProcessName, hiddenStatements);
         }
 
         var threshold = SlowQueryThresholdMs;
@@ -247,7 +277,7 @@ public class DatabaseHealthMonitorWorker : BackgroundService
                 break;
             }
 
-            var queryText = Truncate(row.Query, QueryTextMaxLength) ?? string.Empty;
+            var queryText = ReadableQueryOrNull(Truncate(row.Query, QueryTextMaxLength));
 
             await capture.CaptureAsync(new ErrorCaptureRequest(
                 Source: ErrorSource.Database,
@@ -263,6 +293,7 @@ public class DatabaseHealthMonitorWorker : BackgroundService
                     ["kind"] = "slowQuery",
                     ["queryId"] = row.QueryId,
                     ["query"] = queryText,
+                    ["queryTextAvailable"] = queryText is not null,
                     ["windowMeanMs"] = Math.Round(windowMeanMs, 2),
                     ["windowCalls"] = deltaCalls,
                     ["lifetimeMeanMs"] = Math.Round(row.MeanMs, 2),
@@ -270,7 +301,9 @@ public class DatabaseHealthMonitorWorker : BackgroundService
                     ["lifetimeCalls"] = row.Calls,
                     ["thresholdMs"] = threshold
                 }),
-                Summary: $"Slow query {windowMeanMs:F0}ms - {Excerpt(queryText)}"), cancellationToken);
+                Summary: queryText is null
+                    ? $"Slow query {windowMeanMs:F0}ms - queryid {row.QueryId}"
+                    : $"Slow query {windowMeanMs:F0}ms - {Excerpt(queryText)}"), cancellationToken);
         }
 
         _statementBaselineEstablished = true;
@@ -355,7 +388,7 @@ public class DatabaseHealthMonitorWorker : BackgroundService
 
         foreach (var finding in findings.Take(MaxFindingsPerCycle))
         {
-            var queryText = Truncate(RedactLiterals(finding.Query), QueryTextMaxLength) ?? string.Empty;
+            var queryText = ReadableQueryOrNull(Truncate(RedactLiterals(finding.Query), QueryTextMaxLength));
 
             var message = finding.IsBlocked
                 ? $"Query blocked for {finding.ElapsedMs:F0}ms by pid(s) {string.Join(", ", finding.BlockedBy)} (threshold {blockedThreshold}ms)."
@@ -380,11 +413,12 @@ public class DatabaseHealthMonitorWorker : BackgroundService
                     ["blockedByPids"] = finding.BlockedBy,
                     ["sustained"] = finding.Sustained,
                     ["query"] = queryText,
+                    ["queryTextAvailable"] = queryText is not null,
                     ["thresholdMs"] = finding.IsBlocked ? blockedThreshold : slowThreshold
                 }),
                 Summary: finding.IsBlocked
-                    ? $"Query blocked by pid {string.Join(", ", finding.BlockedBy)} - {Excerpt(queryText)}"
-                    : $"Long-running query {finding.ElapsedMs:F0}ms - {Excerpt(queryText)}"), cancellationToken);
+                    ? $"Query blocked by pid {string.Join(", ", finding.BlockedBy)}{Suffix(queryText)}"
+                    : $"Long-running query {finding.ElapsedMs:F0}ms{Suffix(queryText)}"), cancellationToken);
         }
     }
 
@@ -399,6 +433,26 @@ public class DatabaseHealthMonitorWorker : BackgroundService
         string? WaitEvent,
         string Query,
         int[] BlockedBy);
+
+    // Returns null when the text is the privilege placeholder rather than a
+    // real statement. The finding is still worth recording - queryid, timings
+    // and blocking pids remain actionable - but storing the placeholder would
+    // fill the admin page with rows whose only detail is that there is none.
+    private string? ReadableQueryOrNull(string? query)
+    {
+        if (string.IsNullOrWhiteSpace(query)) return null;
+        if (!query.Contains(UnreadableQueryText, StringComparison.Ordinal)) return query;
+
+        if (!_queryTextUnreadableLogged)
+        {
+            _queryTextUnreadableLogged = true;
+            _logger.LogWarning(
+                "[{Worker}] PostgreSQL is withholding query text from this role ({Placeholder}). Findings are still recorded, without the statement. Grant the application role pg_read_all_stats to restore it.",
+                ProcessName, UnreadableQueryText);
+        }
+
+        return null;
+    }
 
     // pg_stat_activity.query is the RAW statement - unlike
     // pg_stat_statements, PostgreSQL does not normalize it. A blocked or
@@ -421,6 +475,9 @@ public class DatabaseHealthMonitorWorker : BackgroundService
 
     // Collapses a statement to one short line so the incident list reads
     // as distinct rows rather than a column of identical "SlowQuery".
+    private static string Suffix(string? queryText) =>
+        queryText is null ? string.Empty : $" - {Excerpt(queryText)}";
+
     private static string Excerpt(string query)
     {
         var collapsed = string.Join(' ', query.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));

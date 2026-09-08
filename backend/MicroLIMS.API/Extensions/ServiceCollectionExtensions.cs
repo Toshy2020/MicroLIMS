@@ -96,6 +96,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IDocumentEscalationService, DocumentEscalationService>();
         services.AddHostedService<MicroLIMS.API.BackgroundServices.DocumentEffectiveDateWorker>();
         services.AddHostedService<MicroLIMS.API.BackgroundServices.DatabaseHealthMonitorWorker>();
+        services.AddHostedService<MicroLIMS.API.BackgroundServices.ErrorLogRetentionWorker>();
         services.AddScoped<MaterialService>();
         services.AddScoped<EquipmentInventoryService>();
         services.AddScoped<EquipmentConfigurationService>();
@@ -145,6 +146,9 @@ public static class ServiceCollectionExtensions
         // scope per write - the request-scoped context is typically
         // mid-exception when an error is captured.
         services.AddSingleton<IErrorCaptureService, ErrorCaptureService>();
+
+        // Read/triage side of the same data - scoped, ordinary querying.
+        services.AddScoped<IErrorMonitoringService, ErrorMonitoringService>();
 
         services.AddSingleton<NotificationService>();
         services.AddSingleton<INotificationService>(sp => sp.GetRequiredService<NotificationService>());

@@ -53,6 +53,7 @@ const APP_ROUTES = {
 
   // Audit
   AUDIT_SEARCH: "/audit-search",
+  ERROR_MONITORING: "/error-monitoring",
   OOS_TRACKING: "/oos-tracking",
 
   // Administration
@@ -154,3 +155,9 @@ export function resolveTraceabilityRoute(
   return null;
 }
 
+// Permission codes the frontend gates on. Mirrors
+// MicroLIMS.Shared/Constants/PermissionConstants.cs - the backend is
+// still the enforcement point; this only decides what to render.
+export const PERMISSIONS = {
+  SYSTEM_VIEW_ERROR_LOG: "System.ViewErrorLog"
+} as const;

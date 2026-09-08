@@ -3,6 +3,8 @@ import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { PublicRoutes } from "./PublicRoutes";
 import { AuthenticatedRoutes } from "./AuthenticatedRoutes";
 import { SystemAdministratorRoutes } from "./SystemAdministratorRoutes";
+import { PermissionRoute } from "./PermissionRoute";
+import { PERMISSIONS } from "./routes";
 import { SectionHeadRoutes } from "./SectionHeadRoutes";
 import { InventoryRoutes } from "./InventoryRoutes";
 import { MainLayout } from "../layouts/MainLayout";
@@ -44,6 +46,7 @@ const RolesPage = lazy(() => import("../modules/roles/RolesPage").then((m) => ({
 const RoleDetailPage = lazy(() => import("../modules/roles/RoleDetailPage").then((m) => ({ default: m.RoleDetailPage })));
 const CreateRolePage = lazy(() => import("../modules/roles/CreateRolePage").then((m) => ({ default: m.CreateRolePage })));
 const AuditSearchPage = lazy(() => import("../modules/auditSearch/AuditSearchPage").then((m) => ({ default: m.AuditSearchPage })));
+const ErrorMonitoringPage = lazy(() => import("../modules/errorMonitoring/ErrorMonitoringPage").then((m) => ({ default: m.ErrorMonitoringPage })));
 const OosTrackingPage = lazy(() => import("../modules/oosTracking/OosTrackingPage").then((m) => ({ default: m.OosTrackingPage })));
 const MaterialsPage = lazy(() => import("../modules/inventory/materials/MaterialsPage").then((m) => ({ default: m.MaterialsPage })));
 const EquipmentInventoryPage = lazy(() => import("../modules/inventory/equipment/EquipmentInventoryPage").then((m) => ({ default: m.EquipmentInventoryPage })));
@@ -128,6 +131,12 @@ export function AppRoutes() {
               <Route path="/inventory/equipment" element={<EquipmentInventoryPage />} />
               <Route path="/inventory/approved-media" element={<ApprovedMediaListPage />} />
               <Route path="/inventory/approved-cryovials" element={<ApprovedCryovialListPage />} />
+            </Route>
+
+            {/* Permission-gated rather than role-gated - a new capability
+                with no legacy role equivalent to reproduce. */}
+            <Route element={<PermissionRoute code={PERMISSIONS.SYSTEM_VIEW_ERROR_LOG} />}>
+              <Route path="/error-monitoring" element={<ErrorMonitoringPage />} />
             </Route>
 
             <Route element={<SystemAdministratorRoutes />}>

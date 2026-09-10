@@ -36,14 +36,22 @@ var connectionString = builder.Configuration.GetConnectionString("Default")
 builder.Services.AddDbContext<MicroLimsDbContext>(options =>
     options.UseNpgsql(connectionString));
 
+// ---- JWT configuration ----
+// Resolved and validated before any service is registered, so a
+// deployment without a real signing key fails at startup rather than at
+// the first login. Registered as a singleton because the signing side
+// (JwtTokenService) resolves the same instance - there is deliberately
+// no second read of Jwt:Key anywhere.
+var jwtSettings = JwtConfiguration.Resolve(builder.Configuration, builder.Environment);
+builder.Services.AddSingleton(jwtSettings);
+
 // ---- Application/Infrastructure services (see Extensions/ServiceCollectionExtensions.cs) ----
 builder.Services.AddApplicationServices(builder.Configuration);
 
-// ---- JWT Authentication ----
-var jwtKey = builder.Configuration["Jwt:Key"]
-    ?? builder.Configuration["Jwt__Key"]
-    ?? "DEV_ONLY_INSECURE_SECRET_KEY_CHANGE_IN_PRODUCTION_MIN_32_CHARS";
+// ---- Liveness / readiness probes (see Extensions/HealthCheckExtensions.cs) ----
+builder.Services.AddMicroLimsHealthChecks();
 
+// ---- JWT Authentication ----
 builder.Services.AddAuthentication(options =>
 {
     options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
@@ -57,9 +65,9 @@ builder.Services.AddAuthentication(options =>
         ValidateAudience = true,
         ValidateLifetime = true,
         ValidateIssuerSigningKey = true,
-        ValidIssuer = builder.Configuration["Jwt:Issuer"] ?? "MicroLIMS",
-        ValidAudience = builder.Configuration["Jwt:Audience"] ?? "MicroLIMS.Client",
-        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey))
+        ValidIssuer = jwtSettings.Issuer,
+        ValidAudience = jwtSettings.Audience,
+        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSettings.Key))
     };
 });
 
@@ -154,8 +162,10 @@ app.UseMicroLimsAuditPipeline();
 
 app.UseRateLimiter();
 
-// ---- Health Check Endpoint ----
-app.MapGet("/health", () => Results.Ok(new { status = "Healthy", timestamp = DateTime.UtcNow }));
+// ---- Health Check Endpoints ----
+// /health is liveness (process alive), /health/ready is readiness
+// (PostgreSQL reachable and schema current). See HealthCheckExtensions.
+app.MapMicroLimsHealthChecks();
 
 app.MapControllers();
 

@@ -34,6 +34,11 @@ public static class PermissionConstants
     // one - there is no legacy [Authorize(Roles=...)] equivalent.
     public const string SystemViewErrorLog = "System.ViewErrorLog";
 
+    // Security Audit Trail (SecurityAuditEvent). Separate from AuditView,
+    // which governs the GxP audit trail - the two are different domains
+    // and are deliberately not granted together.
+    public const string SystemViewSecurityAudit = "System.ViewSecurityAudit";
+
     public static readonly IReadOnlyList<string> All = new[]
     {
         UsersManage, RolesManage, AuditView, ReportingAdmin,
@@ -45,6 +50,6 @@ public static class PermissionConstants
         ItemsManage, ItemsDocumentUpload,
         MasterDataManage,
         DiscussionsView, DiscussionsCreate, DiscussionsEditAny, MessagesUse,
-        SystemViewErrorLog
+        SystemViewErrorLog, SystemViewSecurityAudit
     };
 }

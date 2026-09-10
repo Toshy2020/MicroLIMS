@@ -446,6 +446,7 @@ public static class DbSeeder
             (PermissionConstants.DiscussionsEditAny, "Edit or delete any discussion post or comment."),
             (PermissionConstants.MessagesUse, "Send and receive direct/group messages."),
             (PermissionConstants.SystemViewErrorLog, "View the technical error log and monitoring page."),
+            (PermissionConstants.SystemViewSecurityAudit, "View the security audit trail (authentication, session and account security events)."),
         };
 
         var existingCodes = db.Permissions.Select(p => p.Code).ToHashSet();

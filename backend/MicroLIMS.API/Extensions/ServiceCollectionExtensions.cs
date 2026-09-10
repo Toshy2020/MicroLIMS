@@ -1,4 +1,4 @@
-﻿using MicroLIMS.Application.Interfaces;
+using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Application.Interfaces.DocumentControl;
 using MicroLIMS.Application.Services;
 using MicroLIMS.Application.Services.DocumentControl;
@@ -35,6 +35,14 @@ public static class ServiceCollectionExtensions
         services.AddScoped<WorkflowStateResolver>();
         services.AddScoped<IResultService, ResultService>();
         services.AddScoped<IReportService, ReportService>();
+        // Security Audit Trail. Scoped so an event is appended to the same
+        // DbContext (and therefore the same transaction) as the state
+        // change that caused it. The HTTP-backed request context supplies
+        // the technical correlation id, IP and user agent.
+        services.AddHttpContextAccessor();
+        services.AddScoped<ISecurityRequestContext, HttpSecurityRequestContext>();
+        services.AddScoped<ISecurityAuditService, SecurityAuditService>();
+
         services.AddScoped<IAuthenticationService, AuthenticationService>();
         services.AddScoped<IElectronicSignatureService, ElectronicSignatureService>();
         services.AddScoped<SegregationOfDutiesGuard>();
@@ -154,8 +162,15 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<INotificationService>(sp => sp.GetRequiredService<NotificationService>());
         services.AddScoped<IFileStorageService>(_ => new LocalFileStorageService(config["Storage:BasePath"] ?? "storage"));
 
-        services.AddSingleton<IJwtTokenService>(_ => new JwtTokenService(
-            config["Jwt:Key"]!, config["Jwt:Issuer"]!, config["Jwt:Audience"]!));
+        // Takes the validated JwtSettings registered in Program.cs rather
+        // than reading Jwt:Key again - a second read is what allowed the
+        // signing key and the validation key to differ when the setting
+        // was absent (signing got null, validation got the fallback).
+        services.AddSingleton<IJwtTokenService>(sp =>
+        {
+            var jwt = sp.GetRequiredService<JwtSettings>();
+            return new JwtTokenService(jwt.Key, jwt.Issuer, jwt.Audience);
+        });
 
         // AuthenticationService needs a token-issuing delegate - wire it
         // from IJwtTokenService so Application does not reference Infrastructure directly.

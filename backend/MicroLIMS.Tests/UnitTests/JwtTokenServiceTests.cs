@@ -6,8 +6,13 @@ namespace MicroLIMS.Tests.UnitTests;
 
 public class JwtTokenServiceTests
 {
+    // A throwaway signing key for these tests only - deliberately not the
+    // old development placeholder, which JwtConfiguration now rejects
+    // outside Development (see JwtConfigurationTests).
+    internal const string TestSigningKey = "unit-test-signing-key-not-a-secret-0123456789";
+
     private static JwtTokenService CreateService() =>
-        new("DEV_ONLY_INSECURE_SECRET_KEY_CHANGE_IN_PRODUCTION_MIN_32_CHARS", "MicroLIMS", "MicroLIMS.Client");
+        new(TestSigningKey, "MicroLIMS", "MicroLIMS.Client");
 
     [Fact]
     public void IssueToken_AddsOnePermissionClaimPerCode()

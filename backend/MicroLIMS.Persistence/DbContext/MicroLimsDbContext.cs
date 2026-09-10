@@ -18,6 +18,7 @@ public class MicroLimsDbContext : Microsoft.EntityFrameworkCore.DbContext
     public DbSet<RolePermission> RolePermissions => Set<RolePermission>();
     public DbSet<LoginHistory> LoginHistories => Set<LoginHistory>();
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
+    public DbSet<SecurityAuditEvent> SecurityAuditEvents => Set<SecurityAuditEvent>();
     public DbSet<PasswordResetToken> PasswordResetTokens => Set<PasswordResetToken>();
     public DbSet<PasswordHistory> PasswordHistories => Set<PasswordHistory>();
     public DbSet<AdminPasswordRecovery> AdminPasswordRecoveries => Set<AdminPasswordRecovery>();
@@ -195,6 +196,8 @@ public class MicroLimsDbContext : Microsoft.EntityFrameworkCore.DbContext
                         e.Entity is not EquipmentDocumentAccessLog && // append-only; excluded to prevent recursive audit
                         e.Entity is not Incident && // operational error monitoring; not a GxP record
                         e.Entity is not ErrorLog && // operational error monitoring; not a GxP record
+                        e.Entity is not RefreshToken && // session state; recorded in the Security Audit Trail instead
+                        e.Entity is not SecurityAuditEvent && // security evidence, not a GxP record; also prevents recursive audit
                         (e.State == EntityState.Added || e.State == EntityState.Modified || e.State == EntityState.Deleted))
             .ToList();
 

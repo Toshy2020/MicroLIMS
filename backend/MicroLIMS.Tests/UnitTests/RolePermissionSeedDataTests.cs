@@ -37,12 +37,12 @@ public class RolePermissionSeedDataTests
     }
 
     [Fact]
-    public async Task ExactlyTwentyThreePermissionsAreSeeded()
+    public async Task ExactlyTwentyFourPermissionsAreSeeded()
     {
         var db = CreateSeededDbContext();
         var codes = await db.Permissions.Select(p => p.Code).ToListAsync();
 
-        Assert.Equal(23, codes.Count);
+        Assert.Equal(24, codes.Count);
         Assert.Equal(PermissionConstants.All.OrderBy(c => c), codes.OrderBy(c => c));
     }
 
@@ -62,11 +62,11 @@ public class RolePermissionSeedDataTests
     }
 
     [Fact]
-    public async Task SystemAdministrator_HoldsAllTwentyThreePermissions()
+    public async Task SystemAdministrator_HoldsAllTwentyFourPermissions()
     {
         var db = CreateSeededDbContext();
         var codes = await CodesForRole(db, RoleType.SystemAdministrator);
-        Assert.Equal(23, codes.Count);
+        Assert.Equal(24, codes.Count);
         Assert.Equal(PermissionConstants.All.OrderBy(c => c), codes.OrderBy(c => c));
     }
 
@@ -137,12 +137,13 @@ public class RolePermissionSeedDataTests
     }
 
     [Fact]
-    public async Task TotalGrantCount_IsFiftySix()
+    public async Task TotalGrantCount_IsFiftySeven()
     {
-        // 23 (SysAdmin) + 19 (SectionHead) + 7 (Reviewer) + 7 (Analyst) = 56
+        // 24 (SysAdmin) + 19 (SectionHead) + 7 (Reviewer) + 7 (Analyst) = 57
+        // System.ViewSecurityAudit is granted to SystemAdministrator only.
         var db = CreateSeededDbContext();
         var total = await db.RolePermissions.CountAsync();
-        Assert.Equal(56, total);
+        Assert.Equal(57, total);
     }
 
     [Fact]
@@ -151,7 +152,7 @@ public class RolePermissionSeedDataTests
         var db = CreateSeededDbContext();
         DbSeeder.SeedPermissionsAndGrants(db); // second call
 
-        Assert.Equal(23, await db.Permissions.CountAsync());
-        Assert.Equal(56, await db.RolePermissions.CountAsync());
+        Assert.Equal(24, await db.Permissions.CountAsync());
+        Assert.Equal(57, await db.RolePermissions.CountAsync());
     }
 }

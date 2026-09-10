@@ -188,7 +188,7 @@ cp .env.example .env
 # edit .env: VITE_API_BASE_URL must match the backend's actual URL + /api
 npm run dev
 ```
-Open `http://localhost:5173`, log in with `admin` / `ChangeMe123!`
+Open `http://localhost:5173` and log in with the `admin` account. Its password is the one you set in `Seed:InitialAdminPassword` (see `backend/README.md`); the first sign-in forces you to replace it.
 (change immediately), and you're connected end to end.
 
 ---

@@ -2,6 +2,7 @@ using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Persistence.DbContext;
 using MicroLIMS.Shared.Constants;
+using MicroLIMS.Shared.Validation;
 
 namespace MicroLIMS.Persistence.Seed;
 
@@ -13,7 +14,10 @@ namespace MicroLIMS.Persistence.Seed;
 // Reference Strain can ever be received).
 public static class DbSeeder
 {
-    public static void Seed(MicroLimsDbContext db)
+    // initialAdminPassword must be supplied out of band (configuration /
+    // hosting secret). When it is absent no administrator is created - see
+    // SeedInitialAdministrator for why that is the safe default.
+    public static void Seed(MicroLimsDbContext db, string? initialAdminPassword = null)
     {
         if (!db.Roles.Any())
         {
@@ -28,18 +32,7 @@ public static class DbSeeder
 
         SeedPermissionsAndGrants(db);
 
-        if (!db.Users.Any())
-        {
-            var adminRole = db.Roles.First(r => r.Type == RoleType.SystemAdministrator);
-            db.Users.Add(new User
-            {
-                FullName = "System Administrator",
-                Username = "admin",
-                PasswordHash = BCrypt.Net.BCrypt.HashPassword("ChangeMe123!"),
-                RoleId = adminRole.Id
-            });
-            db.SaveChanges();
-        }
+        SeedInitialAdministrator(db, initialAdminPassword);
 
         if (!db.CausesOfTesting.Any())
         {
@@ -411,6 +404,50 @@ public static class DbSeeder
     // called both from Seed() and directly from tests, so tests don't have
     // to run the entire unrelated master-data seed pipeline just to verify
     // permission grants.
+    // Creates the first System Administrator, and only ever on a database
+    // that has no users at all.
+    //
+    // The password is never in this repository. It used to be a constant,
+    // which - the repository being public - meant every fresh deployment
+    // came up with an account whose password anyone could read. Setting
+    // MustChangePassword alone would not have fixed that: whoever reached
+    // the login form first would simply have chosen the new password and
+    // taken the account.
+    //
+    // So the rule is fail-closed. No password supplied, no administrator.
+    // An installation with no way in is recoverable; one that strangers can
+    // log into is not.
+    //
+    // Idempotent by the same "no users exist" guard the old code used, so
+    // this never updates, re-hashes, or overwrites an account that already
+    // exists - an existing production administrator is untouched.
+    private static void SeedInitialAdministrator(MicroLimsDbContext db, string? initialPassword)
+    {
+        if (db.Users.Any()) return;
+        if (string.IsNullOrWhiteSpace(initialPassword)) return;
+
+        // The bootstrap account is held to the same policy as every other
+        // account - seeding must not be a way round it.
+        var failures = PasswordPolicy.Validate(initialPassword);
+        if (failures.Count > 0)
+            throw new InvalidOperationException(
+                "The configured initial administrator password does not meet the password policy: "
+                + string.Join(" ", failures));
+
+        var adminRole = db.Roles.First(r => r.Type == RoleType.SystemAdministrator);
+        db.Users.Add(new User
+        {
+            FullName = "System Administrator",
+            Username = "admin",
+            PasswordHash = BCrypt.Net.BCrypt.HashPassword(initialPassword),
+            RoleId = adminRole.Id,
+            // The provisioning secret is a delivery mechanism, not a
+            // credential: it must be replaced at first sign-in.
+            MustChangePassword = true
+        });
+        db.SaveChanges();
+    }
+
     public static void SeedPermissionsAndGrants(MicroLimsDbContext db)
     {
         if (!db.Roles.Any()) return; // Roles must exist first - Seed() guarantees this ordering.

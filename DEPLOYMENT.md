@@ -83,6 +83,7 @@ This guide explains how to deploy the **MicroLIMS** application online for devel
 | `Jwt__Key` | `A_VERY_LONG_RANDOM_SECRET_KEY_AT_LEAST_32_CHARS_LONG!` | Random secure signing key for JWT tokens |
 | `Frontend__Origin` | `http://localhost:5173,https://<your-pages-name>.pages.dev` | Allowed CORS origins (comma-separated) |
 | `APPLY_MIGRATIONS` | `true` *(First deployment only)* | Tells the API to run EF Core migrations and initialize tables |
+| `Seed__InitialAdminPassword` | *(a unique password you generate)* | **First deployment only.** Password for the initial `admin` account, which is forced to change it at first sign-in. Without it no administrator is created. Delete this variable once the first sign-in has completed. |
 
 6. Click **Create Web Service**.
 7. Once deployment finishes, your API URL will be: `https://microlims-api.onrender.com`.
@@ -133,7 +134,9 @@ This guide explains how to deploy the **MicroLIMS** application online for devel
 The backend contains 52 Code-First migrations that manage the database schema.
 
 - **First-time database initialization**:
-  Set `APPLY_MIGRATIONS=true` in Render. During container startup, the application runs `db.Database.Migrate()` and initializes default roles and the initial administrator account (`admin` / `ChangeMe123!`).
+  Set `APPLY_MIGRATIONS=true` in Render **and** set `Seed__InitialAdminPassword` to a unique, randomly generated password that meets the password policy. During container startup the application runs `db.Database.Migrate()`, initializes default roles, and creates the initial `admin` account using that password with a **forced password change** on first sign-in.
+
+  > There is no built-in default password. If `Seed__InitialAdminPassword` is not set, **no administrator is created** and the startup log says so - a fresh deployment that nobody can sign into is recoverable, one that strangers can sign into is not. Remove the variable from Render once the first sign-in has completed.
 - **Normal Operation**:
   Set `APPLY_MIGRATIONS=false` in Render. The API will start quickly without checking migration status.
 - **Applying New Migrations in the Future**:

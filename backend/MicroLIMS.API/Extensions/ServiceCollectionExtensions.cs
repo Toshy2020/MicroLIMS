@@ -105,6 +105,7 @@ public static class ServiceCollectionExtensions
         services.AddHostedService<MicroLIMS.API.BackgroundServices.DocumentEffectiveDateWorker>();
         services.AddHostedService<MicroLIMS.API.BackgroundServices.DatabaseHealthMonitorWorker>();
         services.AddHostedService<MicroLIMS.API.BackgroundServices.ErrorLogRetentionWorker>();
+        services.AddHostedService<MicroLIMS.API.BackgroundServices.CriticalAlertWorker>();
         services.AddScoped<MaterialService>();
         services.AddScoped<EquipmentInventoryService>();
         services.AddScoped<EquipmentConfigurationService>();
@@ -157,6 +158,15 @@ public static class ServiceCollectionExtensions
 
         // Read/triage side of the same data - scoped, ordinary querying.
         services.AddScoped<IErrorMonitoringService, ErrorMonitoringService>();
+
+        // Critical incident alerting. Disabled unless explicitly enabled,
+        // so no environment can mail anyone by accident. Driven by
+        // CriticalAlertWorker rather than the request thread.
+        services.AddSingleton(new CriticalAlertOptions(
+            Enabled: config.GetValue("ErrorMonitoring:CriticalAlerts:Enabled", false),
+            Recipient: config["ErrorMonitoring:CriticalAlerts:Recipient"],
+            EnvironmentName: Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Unknown"));
+        services.AddScoped<ICriticalAlertService, CriticalAlertService>();
 
         services.AddSingleton<NotificationService>();
         services.AddSingleton<INotificationService>(sp => sp.GetRequiredService<NotificationService>());

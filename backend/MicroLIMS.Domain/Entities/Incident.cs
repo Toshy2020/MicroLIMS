@@ -32,6 +32,12 @@ public class Incident
     // POST /api/results". Built from the first attached ErrorLog.
     public string Summary { get; set; } = string.Empty;
 
+    // Set once, when a Critical alert has actually been sent for this
+    // incident. Persisted rather than held in memory so a restart cannot
+    // resend an alert that already went out, and so one outage producing
+    // dozens of ErrorLog rows still produces exactly one email.
+    public DateTime? AlertedAtUtc { get; set; }
+
     public int? ResolvedByUserId { get; set; }
     public User? ResolvedByUser { get; set; }
     public DateTime? ResolvedAtUtc { get; set; }

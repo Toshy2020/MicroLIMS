@@ -12,6 +12,10 @@ using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// ---- Operational logging (see Extensions/LoggingExtensions.cs) ----
+// Configured first so startup itself is logged in the chosen format.
+builder.AddMicroLimsLogging();
+
 // ---- Dynamic Port Binding for Render / Cloud Hosting ----
 var hostPort = Environment.GetEnvironmentVariable("PORT");
 if (!string.IsNullOrEmpty(hostPort))
@@ -78,7 +82,12 @@ builder.Services.AddAuthorization();
 // PermissionPolicyProvider, no per-code AddPolicy() call needed.
 builder.Services.AddSingleton<IAuthorizationPolicyProvider, PermissionPolicyProvider>();
 builder.Services.AddSingleton<IAuthorizationHandler, PermissionAuthorizationHandler>();
-builder.Services.AddControllers(options => options.Filters.Add<ValidationFilter>())
+builder.Services.AddControllers(options =>
+    {
+        options.Filters.Add<ValidationFilter>();
+        // Server-side enforcement of MustChangePassword - see the filter.
+        options.Filters.Add<MustChangePasswordFilter>();
+    })
     .AddJsonOptions(options =>
     {
         options.JsonSerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter());
@@ -123,6 +132,13 @@ if (string.IsNullOrWhiteSpace(builder.Configuration["Smtp:Host"]))
 }
 
 // ---- Database Migrations & Seeding ----
+// Password for the very first System Administrator, supplied out of band
+// (user-secrets locally, a hosting secret in production). Absent by
+// design: with no value, DbSeeder creates no administrator at all rather
+// than one whose password could be read from this repository.
+var initialAdminPassword = builder.Configuration["Seed:InitialAdminPassword"]
+    ?? builder.Configuration["Seed__InitialAdminPassword"];
+
 var applyMigrations = builder.Configuration.GetValue<bool>("APPLY_MIGRATIONS") ||
     string.Equals(Environment.GetEnvironmentVariable("APPLY_MIGRATIONS"), "true", StringComparison.OrdinalIgnoreCase);
 
@@ -136,7 +152,7 @@ if (app.Environment.IsDevelopment())
     using var scope = app.Services.CreateScope();
     var db = scope.ServiceProvider.GetRequiredService<MicroLimsDbContext>();
     db.Database.Migrate();
-    MicroLIMS.Persistence.Seed.DbSeeder.Seed(db);
+    MicroLIMS.Persistence.Seed.DbSeeder.Seed(db, initialAdminPassword);
 }
 else if (applyMigrations)
 {
@@ -144,8 +160,33 @@ else if (applyMigrations)
     using var scope = app.Services.CreateScope();
     var db = scope.ServiceProvider.GetRequiredService<MicroLimsDbContext>();
     db.Database.Migrate();
-    MicroLIMS.Persistence.Seed.DbSeeder.Seed(db);
+    MicroLIMS.Persistence.Seed.DbSeeder.Seed(db, initialAdminPassword);
     app.Logger.LogInformation("Database migrations applied successfully.");
+}
+
+// A fresh database with no users means no administrator was provisioned,
+// because no Seed:InitialAdminPassword was supplied. Say so loudly - the
+// deployment is up but nobody can sign in yet.
+using (var startupScope = app.Services.CreateScope())
+{
+    var startupDb = startupScope.ServiceProvider.GetRequiredService<MicroLimsDbContext>();
+    try
+    {
+        if (!startupDb.Users.Any())
+        {
+            app.Logger.LogWarning(
+                "No user accounts exist and no initial administrator was created. Set 'Seed:InitialAdminPassword' " +
+                "(environment variable 'Seed__InitialAdminPassword') to a password meeting the password policy, then " +
+                "restart with migrations/seeding enabled. The account is created with a forced password change. " +
+                "No default password is built into this application.");
+        }
+    }
+    catch (Exception ex)
+    {
+        // The database may be unreachable at startup; readiness reports
+        // that. Never let this advisory check stop the process.
+        app.Logger.LogDebug(ex, "Could not check whether an administrator account exists at startup.");
+    }
 }
 
 app.UseCors("Frontend");

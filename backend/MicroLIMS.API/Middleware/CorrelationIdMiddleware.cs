@@ -19,10 +19,12 @@ public class CorrelationIdMiddleware
     private const int MaxLength = 100;
 
     private readonly RequestDelegate _next;
+    private readonly ILogger<CorrelationIdMiddleware> _logger;
 
-    public CorrelationIdMiddleware(RequestDelegate next)
+    public CorrelationIdMiddleware(RequestDelegate next, ILogger<CorrelationIdMiddleware> logger)
     {
         _next = next;
+        _logger = logger;
     }
 
     public async Task InvokeAsync(HttpContext context)
@@ -37,7 +39,15 @@ public class CorrelationIdMiddleware
         // which needs WithExposedHeaders on the CORS policy to be readable.
         context.Response.Headers[HeaderName] = correlationId;
 
-        await _next(context);
+        // Every log entry written while this request is in flight carries
+        // the same id, so an operational log line, the ErrorLog row, the
+        // Incident and the browser's own error report can all be lined up
+        // afterwards. This is the technical correlation id - not the Guid
+        // AuditLog.CorrelationId used to group GxP document events.
+        using (_logger.BeginScope(new Dictionary<string, object> { ["CorrelationId"] = correlationId }))
+        {
+            await _next(context);
+        }
     }
 
     public static string GetCorrelationId(HttpContext context) =>

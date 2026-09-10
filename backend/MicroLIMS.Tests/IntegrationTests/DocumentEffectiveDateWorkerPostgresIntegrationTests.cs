@@ -125,7 +125,7 @@ public class DocumentEffectiveDateWorkerPostgresIntegrationTests
         return (master.Id, effRev.Id, futRev.Id);
     }
 
-    [Fact]
+    [PostgresFact]
     public async Task Postgres_ProcessMaturedRevisions_ExecutesAtomicActivationAndSupersession()
     {
         await using var db = _fixture.CreateDbContext();
@@ -166,7 +166,7 @@ public class DocumentEffectiveDateWorkerPostgresIntegrationTests
         Assert.Null(activationAudit.UserId);
     }
 
-    [Fact]
+    [PostgresFact]
     public async Task Postgres_ProcessMaturedRevisions_IsIdempotentOnRepeatedExecution()
     {
         await using var db = _fixture.CreateDbContext();
@@ -194,7 +194,7 @@ public class DocumentEffectiveDateWorkerPostgresIntegrationTests
         Assert.Single(audits);
     }
 
-    [Fact]
+    [PostgresFact]
     public async Task Postgres_ProcessMaturedRevisions_DowntimeCatchup_FlagsDelayedExecution()
     {
         await using var db = _fixture.CreateDbContext();

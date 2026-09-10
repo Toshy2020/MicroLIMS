@@ -657,31 +657,4 @@ public class PathogenSessionServiceTests
         var incCount = await db.Incubations.CountAsync(i => i.TestOrderId.HasValue && orders.Select(o => o.Id).Contains(i.TestOrderId.Value));
         Assert.Equal(0, incCount);
     }
-
-    [Fact]
-    public async Task ResetRealSamples52And53_DatabaseExecution()
-    {
-        var connStr = "Host=localhost;Port=5432;Database=LIMSV2;Username=postgres;Password=";
-        var optionsBuilder = new DbContextOptionsBuilder<MicroLimsDbContext>();
-        optionsBuilder.UseNpgsql(connStr);
-
-        try
-        {
-            using var db = new MicroLimsDbContext(optionsBuilder.Options);
-            var service = new PathogenSessionService(db);
-
-            foreach (var sampleId in new[] { 52, 53 })
-            {
-                var sample = await db.Samples.Include(s => s.TestOrders).FirstOrDefaultAsync(s => s.Id == sampleId);
-                if (sample != null)
-                {
-                    await service.ResetSessionAsync(sampleId, "Analyst requested session workflow reset for sample #52 and #53", 1);
-                }
-            }
-        }
-        catch
-        {
-            // If postgres is not running during isolated CI test runs, ignore
-        }
-    }
 }

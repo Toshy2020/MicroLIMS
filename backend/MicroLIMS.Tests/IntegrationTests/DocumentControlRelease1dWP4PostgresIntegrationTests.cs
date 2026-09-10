@@ -100,7 +100,7 @@ public class DocumentControlRelease1dWP4PostgresIntegrationTests
         return (author, reviewer, master, rev);
     }
 
-    [Fact]
+    [PostgresFact]
     public async Task Postgres_MultiCycleReview_EndToEndLifecycle_WithWordVersioning_AndMandatoryGateAcrossCycles()
     {
         await using var db = _fixture.CreateDbContext();
@@ -265,7 +265,7 @@ public class DocumentControlRelease1dWP4PostgresIntegrationTests
         Assert.Contains(auditEvents, a => a.ActionCode == "TechnicalReviewCompleted");
     }
 
-    [Fact]
+    [PostgresFact]
     public async Task Postgres_SegregationOfDuties_AuthorCannotReviewOwnWork_OrResolveFindings_EvenIfAdmin()
     {
         await using var db = _fixture.CreateDbContext();
@@ -338,7 +338,7 @@ public class DocumentControlRelease1dWP4PostgresIntegrationTests
         Assert.Contains("Segregation of Duties Violation", exDecide.Message);
     }
 
-    [Fact]
+    [PostgresFact]
     public async Task Postgres_GetReviewTasksByRevisionId_ReturnsCompleteMultiCycleHistory_WithLineage()
     {
         await using var db = _fixture.CreateDbContext();

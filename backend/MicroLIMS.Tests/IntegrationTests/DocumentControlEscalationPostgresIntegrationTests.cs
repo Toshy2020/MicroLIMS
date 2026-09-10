@@ -127,7 +127,7 @@ public class DocumentControlEscalationPostgresIntegrationTests
         return (master.Id, rev.Id, assignment.Id);
     }
 
-    [Fact]
+    [PostgresFact]
     public async Task Postgres_ProcessDueEscalations_PersistsRecordsAndSetsOverdueStatus()
     {
         await using var db = _fixture.CreateDbContext();
@@ -156,7 +156,7 @@ public class DocumentControlEscalationPostgresIntegrationTests
         Assert.Equal(TrainingAssignmentStatus.Overdue, updatedAssignment!.Status);
     }
 
-    [Fact]
+    [PostgresFact]
     public async Task Postgres_UniqueIndex_BlocksDuplicateEscalationForSameAssignmentAndLevel()
     {
         await using var db = _fixture.CreateDbContext();
@@ -206,7 +206,7 @@ public class DocumentControlEscalationPostgresIntegrationTests
         Assert.NotNull(ex.InnerException);
     }
 
-    [Fact]
+    [PostgresFact]
     public async Task Postgres_SchedulerCatchUp_MissedWindowsExecuteOnceWithoutDuplication()
     {
         await using var db = _fixture.CreateDbContext();
@@ -226,7 +226,7 @@ public class DocumentControlEscalationPostgresIntegrationTests
         Assert.True(result2.SkippedAlreadyEscalatedCount >= 1);
     }
 
-    [Fact]
+    [PostgresFact]
     public async Task Postgres_AcknowledgedAssignment_HaltsFurtherOverdueEscalations()
     {
         await using var db = _fixture.CreateDbContext();
@@ -266,7 +266,7 @@ public class DocumentControlEscalationPostgresIntegrationTests
         Assert.Equal(DocumentEscalationLevel.Due, historicalEscalations[0].EscalationLevel);
     }
 
-    [Fact]
+    [PostgresFact]
     public async Task Postgres_RetrainingCascade_PreservesHistoricalEscalationsOnOldRevision()
     {
         await using var db = _fixture.CreateDbContext();

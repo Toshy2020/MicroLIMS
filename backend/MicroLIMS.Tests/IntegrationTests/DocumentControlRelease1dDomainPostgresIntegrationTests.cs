@@ -73,7 +73,7 @@ public class DocumentControlRelease1dDomainPostgresIntegrationTests
         };
     }
 
-    [Fact]
+    [PostgresFact]
     public async Task Postgres_PersistsExplicitFileVersions_AndBlocksDuplicates()
     {
         await using var db = _fixture.CreateDbContext();
@@ -104,7 +104,7 @@ public class DocumentControlRelease1dDomainPostgresIntegrationTests
         Assert.NotNull(ex.InnerException);
     }
 
-    [Fact]
+    [PostgresFact]
     public async Task Postgres_FilteredUniqueIndex_AllowsOnlyOneApprovedFinalSourcePerRevision()
     {
         await using var db = _fixture.CreateDbContext();
@@ -122,7 +122,7 @@ public class DocumentControlRelease1dDomainPostgresIntegrationTests
         Assert.NotNull(ex.InnerException);
     }
 
-    [Fact]
+    [PostgresFact]
     public async Task Postgres_CheckConstraint_ApprovedFinalSourceRole_RejectsControlledPdf()
     {
         await using var db = _fixture.CreateDbContext();
@@ -137,7 +137,7 @@ public class DocumentControlRelease1dDomainPostgresIntegrationTests
         Assert.Contains("CK_RevisionFiles_ApprovedFinalSourceRole", ex.InnerException.Message);
     }
 
-    [Fact]
+    [PostgresFact]
     public async Task Postgres_CheckConstraint_GeneratedFromSourceRole_RejectsSourceFile()
     {
         await using var db = _fixture.CreateDbContext();
@@ -156,7 +156,7 @@ public class DocumentControlRelease1dDomainPostgresIntegrationTests
         Assert.Contains("CK_RevisionFiles_GeneratedFromSourceRole", ex.InnerException.Message);
     }
 
-    [Fact]
+    [PostgresFact]
     public async Task Postgres_CheckConstraint_NotSelfGenerated_BlocksSelfReference()
     {
         await using var db = _fixture.CreateDbContext();
@@ -174,7 +174,7 @@ public class DocumentControlRelease1dDomainPostgresIntegrationTests
         Assert.Contains("CK_RevisionFiles_NotSelfGenerated", ex.InnerException.Message);
     }
 
-    [Fact]
+    [PostgresFact]
     public async Task Postgres_ControlledPdf_SuccessfullyLinksToExactWordSourceProvenance()
     {
         await using var db = _fixture.CreateDbContext();
@@ -201,7 +201,7 @@ public class DocumentControlRelease1dDomainPostgresIntegrationTests
         Assert.True(retrieved.GeneratedFromSourceFile.IsApprovedFinalSource);
     }
 
-    [Fact]
+    [PostgresFact]
     public async Task Postgres_DocumentRevision_LinksApprovedSourceAndControlledPdf()
     {
         await using var db = _fixture.CreateDbContext();
@@ -234,7 +234,7 @@ public class DocumentControlRelease1dDomainPostgresIntegrationTests
         Assert.Equal("pdf", retrieved.ControlledPdfFile!.FileName.Split('.').Last());
     }
 
-    [Fact]
+    [PostgresFact]
     public async Task Postgres_DocumentApprovalTask_LinksApprovedSourceAndControlledPdf()
     {
         await using var db = _fixture.CreateDbContext();
@@ -272,7 +272,7 @@ public class DocumentControlRelease1dDomainPostgresIntegrationTests
         Assert.Equal(controlledPdf.Id, retrieved.GeneratedControlledPdfId);
     }
 
-    [Fact]
+    [PostgresFact]
     public async Task Postgres_DocumentReviewFinding_LinksToSpecificSourceFileVersion()
     {
         await using var db = _fixture.CreateDbContext();
@@ -319,7 +319,7 @@ public class DocumentControlRelease1dDomainPostgresIntegrationTests
         Assert.Equal(wordSourceV1.FileName, retrieved.RevisionFile!.FileName);
     }
 
-    [Fact]
+    [PostgresFact]
     public async Task Postgres_DocumentReviewTask_SupportsMultiCycleAndReviewedSource()
     {
         await using var db = _fixture.CreateDbContext();
@@ -375,7 +375,7 @@ public class DocumentControlRelease1dDomainPostgresIntegrationTests
         Assert.Equal(wordSourceV2.Id, cycles[1].ReviewedSourceFileId);
     }
 
-    [Fact]
+    [PostgresFact]
     public async Task Postgres_DeleteBehaviorRestrict_PreventsDeletionOfReferencedFile()
     {
         await using var db = _fixture.CreateDbContext();

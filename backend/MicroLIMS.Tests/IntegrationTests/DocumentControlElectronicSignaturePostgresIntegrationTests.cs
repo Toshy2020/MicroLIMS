@@ -122,7 +122,7 @@ public class DocumentControlElectronicSignaturePostgresIntegrationTests
         return (author.Id, reviewer.Id, approver.Id, masterDto.Id, revId);
     }
 
-    [Fact]
+    [PostgresFact]
     public async Task Postgres_SignApproval_PersistsImmutableSignature_AndBindsToRevision()
     {
         await using var db = _fixture.CreateDbContext();
@@ -166,7 +166,7 @@ public class DocumentControlElectronicSignaturePostgresIntegrationTests
         Assert.NotNull(sigAudit);
     }
 
-    [Fact]
+    [PostgresFact]
     public async Task Postgres_ElectronicSignature_DirectSqlUpdate_IsProhibitedByTrigger()
     {
         await using var db = _fixture.CreateDbContext();
@@ -197,7 +197,7 @@ public class DocumentControlElectronicSignaturePostgresIntegrationTests
         Assert.Contains("append-only: UPDATE and DELETE operations are prohibited by GMP regulations", ex.Message);
     }
 
-    [Fact]
+    [PostgresFact]
     public async Task Postgres_ElectronicSignature_DirectSqlDelete_IsProhibitedByTrigger()
     {
         await using var db = _fixture.CreateDbContext();
@@ -228,7 +228,7 @@ public class DocumentControlElectronicSignaturePostgresIntegrationTests
         Assert.Contains("append-only: UPDATE and DELETE operations are prohibited by GMP regulations", ex.Message);
     }
 
-    [Fact]
+    [PostgresFact]
     public async Task Postgres_SignApproval_AtomicTransaction_FailedPasswordMutatesNoRecords()
     {
         await using var db = _fixture.CreateDbContext();

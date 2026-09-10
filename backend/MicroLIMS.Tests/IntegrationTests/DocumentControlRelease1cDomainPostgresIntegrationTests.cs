@@ -76,7 +76,7 @@ public class DocumentControlRelease1cDomainPostgresIntegrationTests
         return (master.Id, rev.Id);
     }
 
-    [Fact]
+    [PostgresFact]
     public async Task Postgres_PersistsTrainingAssignment_WithValidForeignKeys()
     {
         await using var db = _fixture.CreateDbContext();
@@ -113,7 +113,7 @@ public class DocumentControlRelease1cDomainPostgresIntegrationTests
         Assert.Equal(TrainingAssignmentStatus.Assigned, retrieved.Status);
     }
 
-    [Fact]
+    [PostgresFact]
     public async Task Postgres_PreventsDuplicateActiveAssignment_PerUserRevisionAndType()
     {
         await using var db = _fixture.CreateDbContext();
@@ -150,7 +150,7 @@ public class DocumentControlRelease1cDomainPostgresIntegrationTests
         Assert.NotNull(ex.InnerException);
     }
 
-    [Fact]
+    [PostgresFact]
     public async Task Postgres_RejectsAssignment_WithInvalidRevisionForeignKey()
     {
         await using var db = _fixture.CreateDbContext();
@@ -172,7 +172,7 @@ public class DocumentControlRelease1cDomainPostgresIntegrationTests
         Assert.NotNull(ex.InnerException);
     }
 
-    [Fact]
+    [PostgresFact]
     public async Task Postgres_PersistsTrainingConfiguration_ForDocumentTypeAndMaster()
     {
         await using var db = _fixture.CreateDbContext();
@@ -205,7 +205,7 @@ public class DocumentControlRelease1cDomainPostgresIntegrationTests
         Assert.Equal("Custom statement for master SOP", retrieved.DefaultAcknowledgementStatement);
     }
 
-    [Fact]
+    [PostgresFact]
     public async Task Postgres_PersistsRoleCurriculum_AndItems_WithCascade()
     {
         await using var db = _fixture.CreateDbContext();
@@ -246,7 +246,7 @@ public class DocumentControlRelease1cDomainPostgresIntegrationTests
         Assert.Null(orphanItem);
     }
 
-    [Fact]
+    [PostgresFact]
     public async Task Postgres_TransactionRollback_PreservesDataIntegrity()
     {
         await using var db = _fixture.CreateDbContext();

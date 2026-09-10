@@ -194,7 +194,7 @@ public class Release1cIntegrationVerificationPostgresTests
     }
 
     #region Scenario A: New Effective Revision & Cascade
-    [Fact]
+    [PostgresFact]
     public async Task ScenarioA_NewEffectiveRevision_CascadesAssignments_FollowsGraceHierarchy_AndAudits()
     {
         await using var db = _fixture.CreateDbContext();
@@ -233,7 +233,7 @@ public class Release1cIntegrationVerificationPostgresTests
     #endregion
 
     #region Scenario B: User Reading Workflow
-    [Fact]
+    [PostgresFact]
     public async Task ScenarioB_UserReadingWorkflow_ProgressIsInformational_AcknowledgementPersistsEvidence_UpdatesCompliance()
     {
         await using var db = _fixture.CreateDbContext();
@@ -305,7 +305,7 @@ public class Release1cIntegrationVerificationPostgresTests
     #endregion
 
     #region Scenario C: Overdue & Escalation Management
-    [Fact]
+    [PostgresFact]
     public async Task ScenarioC_OverdueAndEscalation_ProcessesLevels_Idempotent_PreservesHistory()
     {
         await using var db = _fixture.CreateDbContext();
@@ -365,7 +365,7 @@ public class Release1cIntegrationVerificationPostgresTests
     #endregion
 
     #region Scenario D: Retraining & Supersession
-    [Fact]
+    [PostgresFact]
     public async Task ScenarioD_RetrainingCascade_PreservesHistory_SetsSourceAncestry_IdentifiesSupersededGap()
     {
         await using var db = _fixture.CreateDbContext();
@@ -437,7 +437,7 @@ public class Release1cIntegrationVerificationPostgresTests
     #endregion
 
     #region Scenario E: Document Obsolescence
-    [Fact]
+    [PostgresFact]
     public async Task ScenarioE_DocumentObsolescence_CancelsOutstandingTraining_PreservesEvidence()
     {
         await using var db = _fixture.CreateDbContext();
@@ -475,7 +475,7 @@ public class Release1cIntegrationVerificationPostgresTests
     #endregion
 
     #region Scenario F: Authorization & Segregation of Duties
-    [Fact]
+    [PostgresFact]
     public async Task ScenarioF_AuthorizationAndSoD_EnforcesScoping_AndRejectsCrossUserActions()
     {
         await using var db = _fixture.CreateDbContext();
@@ -525,7 +525,7 @@ public class Release1cIntegrationVerificationPostgresTests
     #endregion
 
     #region Scenario G: Immutability Trigger Defense
-    [Fact]
+    [PostgresFact]
     public async Task ScenarioG_ImmutabilityTriggers_DirectSqlUpdateOrDelete_IsProhibitedOnPostgres()
     {
         await using var db = _fixture.CreateDbContext();
@@ -559,7 +559,7 @@ public class Release1cIntegrationVerificationPostgresTests
     #endregion
 
     #region Scenario H: DocumentEffectiveDateWorker Integrated Cycle
-    [Fact]
+    [PostgresFact]
     public async Task ScenarioH_DocumentEffectiveDateWorker_IntegratedExecution_ProcessesAllCyclesIdempotently()
     {
         await using var db = _fixture.CreateDbContext();

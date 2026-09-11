@@ -46,6 +46,7 @@ export interface CoaRow {
 export interface CoaTestConclusion {
   testOrderId: number;
   testCode: string;
+  testDisplayName: string;
   conforms: boolean;
   failingLocationNames: string[];
   unconfiguredLocationNames: string[];
@@ -172,6 +173,7 @@ export function buildCoaMatrix(testOrders: TestOrderSummaryDetail[]): CoaMatrix 
     return {
       testOrderId: t.testOrderId,
       testCode: t.testCode,
+      testDisplayName: t.testDisplayName,
       conforms: fails.length === 0 && unconfigured.length === 0,
       failingLocationNames: fails,
       unconfiguredLocationNames: unconfigured
@@ -200,10 +202,10 @@ export function buildOverallConclusionText(matrix: CoaMatrix): string {
   }
   const fails = matrix.testConclusions
     .filter((c) => c.failingLocationNames.length > 0)
-    .map((c) => `${c.testCode} at ${c.failingLocationNames.join(", ")}`);
+    .map((c) => `${c.testDisplayName || c.testCode} at ${c.failingLocationNames.join(", ")}`);
   const unconfigured = matrix.testConclusions
     .filter((c) => c.unconfiguredLocationNames.length > 0)
-    .map((c) => `${c.testCode} at ${c.unconfiguredLocationNames.join(", ")}`);
+    .map((c) => `${c.testDisplayName || c.testCode} at ${c.unconfiguredLocationNames.join(", ")}`);
 
   if (fails.length > 0 && unconfigured.length > 0) {
     return `This sample does not comply with the specified requirements. Exceptions: ${fails.join("; ")}. Additionally, cannot certify — limits are not configured for: ${unconfigured.join("; ")}.`;

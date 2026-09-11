@@ -220,7 +220,7 @@ export function SampleCoaPage() {
                     <tr>
                       <th className="loc-col" rowSpan={2}>Location</th>
                       {matrix.columns.map((c) => (
-                        <th key={c.testOrderId} className="grp" colSpan={c.isQuantitative ? 4 : 1}>{c.testCode}</th>
+                        <th key={c.testOrderId} className="grp" colSpan={c.isQuantitative ? 4 : 1}>{c.testDisplayName || c.testCode}</th>
                       ))}
                     </tr>
                     <tr>{renderSubHeaderRow(matrix.columns)}</tr>
@@ -306,7 +306,7 @@ export function SampleCoaPage() {
                       return (
                       <tr key={r.testOrderId}>
                         <td>
-                          {r.testCode} — {r.testDisplayName}
+                          {r.testDisplayName || r.testCode}
                           {sourceRef && <div style={{ fontSize: 10, color: "var(--coa-ink3)" }}>via retest {sourceRef}</div>}
                         </td>
                         <td>{r.specification ?? "—"}</td>

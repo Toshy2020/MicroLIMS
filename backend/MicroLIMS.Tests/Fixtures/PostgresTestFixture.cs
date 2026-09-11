@@ -44,16 +44,24 @@ public class PostgresTestFixture : IAsyncLifetime
     public int SeededDepartmentId { get; private set; }
     public int SeededSectionId { get; private set; }
 
-    public MicroLimsDbContext CreateDbContext()
+    public string? TestConnectionString => _testConnectionString;
+
+    public MicroLimsDbContext CreateDbContext() => CreateDbContext(Array.Empty<Microsoft.EntityFrameworkCore.Diagnostics.IInterceptor>());
+
+    public MicroLimsDbContext CreateDbContext(params Microsoft.EntityFrameworkCore.Diagnostics.IInterceptor[] interceptors)
     {
         if (_testConnectionString is null)
             throw new InvalidOperationException(PostgresTestConfiguration.SkipReason);
 
-        var options = new DbContextOptionsBuilder<MicroLimsDbContext>()
-            .UseNpgsql(_testConnectionString)
-            .Options;
+        var builder = new DbContextOptionsBuilder<MicroLimsDbContext>()
+            .UseNpgsql(_testConnectionString);
 
-        return new MicroLimsDbContext(options);
+        if (interceptors is { Length: > 0 })
+        {
+            builder.AddInterceptors(interceptors);
+        }
+
+        return new MicroLimsDbContext(builder.Options);
     }
 
     public IDatabaseSequenceHelper CreateSequenceHelper(MicroLimsDbContext db)

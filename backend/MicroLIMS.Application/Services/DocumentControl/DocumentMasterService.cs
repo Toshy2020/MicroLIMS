@@ -30,6 +30,10 @@ public class DocumentMasterService : IDocumentMasterService
 
     public async Task<DocumentMasterDto> RegisterDocumentMasterAsync(RegisterDocumentMasterRequest request, int userId)
     {
+        var canRegister = await _authService.CanRegisterDocumentMasterAsync(userId);
+        if (!canRegister)
+            throw new UnauthorizedAccessException("Only the Document Controller or a System Administrator can register a Document Master.");
+
         // 1. Validation
         if (string.IsNullOrWhiteSpace(request.CompanyDocumentCode))
             throw new ArgumentException("Company Document Code is required.", nameof(request.CompanyDocumentCode));
@@ -339,6 +343,7 @@ public class DocumentMasterService : IDocumentMasterService
                 m.RecordStatus,
                 m.CurrentEffectiveRevisionId,
                 curRev?.RevisionNumber,
+                curRev?.RevisionStatus,
                 curRev?.EffectiveDate,
                 curRev?.NextReviewDate,
                 hasPdf,

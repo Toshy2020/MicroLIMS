@@ -10,7 +10,7 @@ public interface IDocumentRevisionService
     Task<DocumentRevisionDto> GetRevisionDetailsAsync(int revisionId, int userId);
     Task<RevisionChangeItemDto> AddChangeItemAsync(int revisionId, AddChangeItemRequest request, int userId);
     Task<RevisionChangeItemDto> UpdateChangeItemAsync(int changeItemId, UpdateChangeItemRequest request, int userId);
-    Task DeleteChangeItemAsync(int changeItemId, int userId);
+    Task DeactivateChangeItemAsync(int changeItemId, int userId);
     Task<IReadOnlyList<RevisionChangeItemDto>> GetChangeItemsAsync(int revisionId, int userId);
     Task<RevisionChangeItemDto> ConvertFindingToChangeItemAsync(int revisionId, int findingId, ConvertFindingRequest request, int userId);
     Task<RevisionImpactAssessmentDto> SaveImpactAssessmentAsync(int revisionId, SaveImpactAssessmentRequest request, int userId);

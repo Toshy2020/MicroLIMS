@@ -23,6 +23,14 @@ public record DocumentMasterSummaryDto(
     DocumentRecordStatus RecordStatus,
     int? CurrentEffectiveRevisionId,
     string? CurrentEffectiveRevisionNumber,
+    // Status of the master's current revision - the effective one where there
+    // is one, otherwise the newest by RevisionSequence (the same selection
+    // DocumentMasterDto uses). FRS-1A §5:104 requires a Status column on the
+    // Document Library, and without this the client could only infer
+    // "effective or not" from CurrentEffectiveRevisionId and was labelling
+    // every other lifecycle state as Draft. Null only when a master somehow
+    // holds no revisions at all.
+    DocumentRevisionStatus? CurrentRevisionStatus,
     DateTime? EffectiveDate,
     DateTime? NextReviewDate,
     bool HasControlledPdf,

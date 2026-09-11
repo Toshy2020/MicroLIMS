@@ -54,6 +54,7 @@ import type {
   DocumentComplianceDetailDto
 } from "../types/trainingMatrixTypes";
 import type { DocumentDepartmentDto } from "../types/documentControlTypes";
+import { compactChipStrongSx, compactChipSx } from "../documentControlStyles";
 
 export function TrainingMatrixPage() {
   const navigate = useNavigate();
@@ -182,7 +183,7 @@ export function TrainingMatrixPage() {
               label="Qualified"
               size="small"
               color="success"
-              sx={{ height: 20, fontSize: 10, fontWeight: 700 }}
+              sx={compactChipStrongSx}
               onClick={() => setSelectedCell(cell)}
             />
           </Tooltip>
@@ -195,7 +196,7 @@ export function TrainingMatrixPage() {
               label="Pending"
               size="small"
               color="warning"
-              sx={{ height: 20, fontSize: 10, fontWeight: 700 }}
+              sx={compactChipStrongSx}
               onClick={() => setSelectedCell(cell)}
             />
           </Tooltip>
@@ -208,7 +209,7 @@ export function TrainingMatrixPage() {
               label="Overdue"
               size="small"
               color="error"
-              sx={{ height: 20, fontSize: 10, fontWeight: 700 }}
+              sx={compactChipStrongSx}
               onClick={() => setSelectedCell(cell)}
             />
           </Tooltip>
@@ -218,10 +219,10 @@ export function TrainingMatrixPage() {
           <Tooltip title="Qualified on Prior Revision Only — Retraining Gap">
             <Chip
               icon={<WarningIcon sx={{ fontSize: "14px !important" }} />}
-              label="Superseded Gap"
+              label="Trained on Superseded Only"
               size="small"
               color="warning"
-              sx={{ height: 20, fontSize: 10, fontWeight: 700 }}
+              sx={compactChipStrongSx}
               onClick={() => setSelectedCell(cell)}
             />
           </Tooltip>
@@ -232,7 +233,7 @@ export function TrainingMatrixPage() {
             label={cell.cellStatus}
             size="small"
             variant="outlined"
-            sx={{ height: 20, fontSize: 10 }}
+            sx={compactChipSx}
             onClick={() => setSelectedCell(cell)}
           />
         );
@@ -344,7 +345,7 @@ export function TrainingMatrixPage() {
                 ),
                 endAdornment: searchQuery ? (
                   <InputAdornment position="end">
-                    <IconButton size="small" onClick={() => setSearchQuery("")}>
+                    <IconButton aria-label="Clear search" size="small" onClick={() => setSearchQuery("")}>
                       <ClearIcon fontSize="small" />
                     </IconButton>
                   </InputAdornment>
@@ -384,7 +385,7 @@ export function TrainingMatrixPage() {
                 <MenuItem value="Qualified">Qualified</MenuItem>
                 <MenuItem value="Pending">Pending</MenuItem>
                 <MenuItem value="Overdue">Overdue</MenuItem>
-                <MenuItem value="TrainedOnSupersededOnly">Superseded Gap</MenuItem>
+                <MenuItem value="TrainedOnSupersededOnly">Trained on Superseded Only</MenuItem>
               </Select>
             </FormControl>
           </Stack>
@@ -431,7 +432,7 @@ export function TrainingMatrixPage() {
                       <Chip
                         label={`Rev ${doc.currentEffectiveRevisionNumber || "N/A"}`}
                         size="small"
-                        sx={{ height: 16, fontSize: 9, mt: 0.2 }}
+                        sx={{ ...compactChipSx, mt: 0.2 }}
                       />
                     </Box>
                   </Tooltip>
@@ -531,7 +532,7 @@ export function TrainingMatrixPage() {
               {selectedUser?.fullName} ({selectedUser?.roleName})
             </Typography>
           </Box>
-          <IconButton size="small" onClick={() => setSelectedUser(null)}>
+          <IconButton aria-label="Close user training details" size="small" onClick={() => setSelectedUser(null)}>
             <CloseIcon />
           </IconButton>
         </Box>
@@ -599,7 +600,7 @@ export function TrainingMatrixPage() {
               {selectedDoc?.companyDocumentCode} — {selectedDoc?.title}
             </Typography>
           </Box>
-          <IconButton size="small" onClick={() => setSelectedDoc(null)}>
+          <IconButton aria-label="Close document training details" size="small" onClick={() => setSelectedDoc(null)}>
             <CloseIcon />
           </IconButton>
         </Box>

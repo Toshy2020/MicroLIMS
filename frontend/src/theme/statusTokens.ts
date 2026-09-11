@@ -81,7 +81,55 @@ const STATUS_TONE: Record<string, StatusTone> = {
   Detected: "detected", Absent: "notDetected",
   DueSoon: "action", DueToday: "action", DueTomorrow: "notDetected",
   Passed: "notDetected", Failed: "detected", Pending: "pending",
-  Returned: "action"
+  Returned: "action",
+
+  // Document Control lifecycle. Before this block every DC status fell
+  // through statusTone()'s "pending" default, so Draft, Effective, Void and
+  // Superseded all rendered as the same grey pill - in a GMP system that is
+  // the failure mode that lets an analyst work from an unapproved SOP, so
+  // the tones below are grouped by "is this revision safe to execute?":
+  //   pending (grey)      - pre-control, not yet a controlled copy
+  //   info/action/purple  - inside the approval workflow
+  //   notDetected (green) - Effective, the ONLY executable state
+  //   inconclusive (amber)- historical, was controlled, superseded
+  //   detected (red)      - terminal / do-not-use
+  // Canonical 8 revision states per ML-DC-FRS-1B-001 §4:376-389.
+  Draft: "pending",
+  InReview: "info",
+  AwaitingApproval: "action",
+  FutureEffective: "purple", "Future Effective": "purple",
+  Effective: "notDetected",
+  Superseded: "inconclusive",
+  Obsolete: "detected",
+  Cancelled: "detected",
+  // DocumentMaster.RecordStatus (ML-DC-FRS-1A-001 §5:102,117). "Active" is
+  // already mapped above for equipment/media and resolves to green there too.
+  Void: "detected",
+  // Fallback for a master holding no revisions at all - see
+  // documentControl/documentStatusDisplay.ts. Grey = not a controlled copy.
+  "No Revision": "pending",
+  // Reading assignments (ML-DC-FRS-1C-001 §2). Overdue/Cancelled share the
+  // entries above; Acknowledged is the terminal compliant state.
+  Assigned: "info",
+  Reading: "info",
+  Acknowledged: "notDetected",
+  CompletedPassed: "notDetected",
+  SupersededIncomplete: "inconclusive",
+  // Training matrix cell states (ML-DC-FRS-1C-001 §2:188-192). The spec assigns
+  // these specific colors: Qualified green, Pending yellow, Overdue red,
+  // TrainedOnSupersededOnly orange warning, NotAssigned grey dash.
+  Qualified: "notDetected",
+  TrainedOnSupersededOnly: "inconclusive",
+  NotAssigned: "pending",
+  // Periodic review outcomes + technical review task/finding states.
+  RemainsValid: "notDetected",
+  RevisionRequired: "action",
+  ObsolescenceRecommended: "detected",
+  ReturnedForCorrection: "action",
+  Open: "action",
+  AuthorResponded: "info",
+  ReviewerVerified: "purple",
+  Resolved: "notDetected"
 };
 
 export function statusTone(status: string): StatusTone {

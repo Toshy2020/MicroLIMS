@@ -1,4 +1,4 @@
-using System.Security.Cryptography;
+﻿using System.Security.Cryptography;
 using System.Text;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.DTOs.DocumentControl;
@@ -10,6 +10,7 @@ using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Infrastructure.Storage;
 using MicroLIMS.Persistence.DbContext;
+using MicroLIMS.Persistence.Seed;
 using MicroLIMS.Persistence.Helpers;
 using Xunit;
 
@@ -57,6 +58,9 @@ public class DocumentControlReviewUnitTests
         var analystRole = new Role { Type = RoleType.Analyst, Name = "Analyst", IsActive = true };
         _db.Roles.AddRange(adminRole, controllerRole, analystRole);
         _db.SaveChanges();
+
+        // Seeds the real production permission grants - see DocumentControlUnitTests.
+        DbSeeder.SeedPermissionsAndGrants(_db);
 
         // Seed Users
         var adminUser = new User { Username = "admin", FullName = "System Admin", Email = "admin@lims.local", PasswordHash = "x", RoleId = adminRole.Id, IsActive = true };
@@ -328,7 +332,18 @@ public class DocumentControlReviewUnitTests
             IsMandatory = true
         }, _reviewerUserId);
 
-        // Resolve finding
+        // Resolve the finding by walking the lifecycle ladder. Resolved is only
+        // reachable from ReviewerVerified (FRS-1B §3.3:251, §3.3:265 "via
+        // reviewer verification"), so the author responds and the reviewer
+        // verifies before it can be resolved.
+        await _reviewService.RespondToFindingAsync(finding.Id, new RespondToFindingRequest
+        {
+            Response = "Correction applied as requested."
+        }, _authorUserId);
+        await _reviewService.VerifyFindingAsync(finding.Id, new VerifyFindingRequest
+        {
+            VerificationNotes = "Correction confirmed against the revised draft."
+        }, _reviewerUserId);
         await _reviewService.ResolveFindingAsync(finding.Id, _reviewerUserId);
 
         // Now complete review
@@ -393,6 +408,17 @@ public class DocumentControlReviewUnitTests
             IsMandatory = false
         }, _reviewerUserId);
 
+        // Resolved is reachable only from ReviewerVerified (FRS-1B §3.3:251), so
+        // the full ladder is walked here - which also means the audit trail must
+        // carry the response and verification events, not just the resolution.
+        await _reviewService.RespondToFindingAsync(finding.Id, new RespondToFindingRequest
+        {
+            Response = "Addressed in the revised draft."
+        }, _authorUserId);
+        await _reviewService.VerifyFindingAsync(finding.Id, new VerifyFindingRequest
+        {
+            VerificationNotes = "Response checked against the draft."
+        }, _reviewerUserId);
         await _reviewService.ResolveFindingAsync(finding.Id, _reviewerUserId);
 
         await _reviewService.DecideReviewAsync(task.Id, new ReviewDecisionRequest

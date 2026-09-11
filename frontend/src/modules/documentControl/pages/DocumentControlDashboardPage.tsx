@@ -1,3 +1,4 @@
+import { compactChipSx } from "../documentControlStyles";
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
@@ -32,8 +33,10 @@ import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 import { PageHeader } from "../../../components/PageHeader";
 import { tableHeadSx } from "../../../theme";
 import { StatusBadge } from "../../../components/StatusBadge";
+import { documentMasterStatusLabel } from "../documentStatusDisplay";
 import { documentControlService } from "../services/documentControlService";
 import { RegisterDocumentDialog } from "../components/RegisterDocumentDialog";
+import { useAuth } from "../../../contexts/AuthContext";
 import MenuBookOutlinedIcon from "@mui/icons-material/MenuBookOutlined";
 import type {
   DocumentMasterSummaryDto,
@@ -43,6 +46,9 @@ import type {
 export function DocumentControlDashboardPage() {
   const theme = useTheme();
   const navigate = useNavigate();
+  const { role } = useAuth();
+  // Mirrors CanRegisterDocumentMasterAsync; the server check is the control.
+  const canRegister = role === "SectionHead" || role === "SystemAdministrator";
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -72,12 +78,23 @@ export function DocumentControlDashboardPage() {
       .then(([libRes, auditRes]) => {
         const items = libRes.items;
         const now = new Date();
-        setRecentDocs(items.slice(0, 5));
+        // FS-1a-173: cancelled and voided records are excluded by default from
+        // the library, search results, counts and active work lists. This query
+        // has to pass includeCancelledAndVoided so the Void KPI below can be
+        // counted, so the work list must filter them back out itself.
+        // Only Void is filterable here - Cancelled is a revision status and
+        // DocumentMasterSummaryDto carries no revision status (see
+        // documentStatusDisplay.ts), so a master whose newest revision is
+        // Cancelled cannot be excluded client-side yet.
+        setRecentDocs(items.filter((d) => d.recordStatus === "Active").slice(0, 5));
         setRecentAudit(auditRes.items);
 
         setTotalMasters(libRes.totalCount);
         setEffectiveCount(items.filter((d) => d.currentEffectiveRevisionId != null && d.recordStatus === "Active").length);
-        setDraftCount(items.filter((d) => d.currentEffectiveRevisionId == null && d.recordStatus === "Active").length);
+        // Counts actual Drafts. This used to count every active master with no
+        // effective revision, which lumped InReview, AwaitingApproval,
+        // FutureEffective and Cancelled in with Draft and overstated the tile.
+        setDraftCount(items.filter((d) => d.currentRevisionStatus === "Draft" && d.recordStatus === "Active").length);
         setVoidCount(items.filter((d) => d.recordStatus === "Void").length);
         setFilesPendingCount(items.filter((d) => !d.hasControlledPdf && d.recordStatus === "Active").length);
         setOverdueCount(items.filter((d) => d.currentEffectiveRevisionId != null && d.recordStatus === "Active" && d.nextReviewDate != null && new Date(d.nextReviewDate) < now).length);
@@ -114,13 +131,15 @@ export function DocumentControlDashboardPage() {
           >
             Document Library
           </Button>
-          <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            onClick={() => setRegisterOpen(true)}
-          >
-            Register Document
-          </Button>
+          {canRegister && (
+            <Button
+              variant="contained"
+              startIcon={<AddIcon />}
+              onClick={() => setRegisterOpen(true)}
+            >
+              Register Document
+            </Button>
+          )}
         </Box>
       </Box>
 
@@ -293,14 +312,14 @@ export function DocumentControlDashboardPage() {
                       {doc.title}
                     </TableCell>
                     <TableCell>
-                      <Chip label={doc.documentTypeCode} size="small" variant="outlined" sx={{ height: 20, fontSize: 10 }} />
+                      <Chip label={doc.documentTypeCode} size="small" variant="outlined" sx={compactChipSx} />
                     </TableCell>
                     <TableCell>
-                      <StatusBadge status={doc.recordStatus === "Void" ? "Void" : (doc.currentEffectiveRevisionId ? "Effective" : "Draft")} />
+                      <StatusBadge status={documentMasterStatusLabel(doc)} />
                     </TableCell>
                     <TableCell>
                       {doc.hasControlledPdf ? (
-                        <Chip label="PDF" size="small" color="primary" sx={{ height: 18, fontSize: 9 }} />
+                        <Chip label="PDF" size="small" color="primary" sx={compactChipSx} />
                       ) : (
                         <Typography variant="caption" color="text.secondary">None</Typography>
                       )}
@@ -369,7 +388,7 @@ export function DocumentControlDashboardPage() {
                   <Typography variant="caption" color="text.secondary">
                     By: <strong>{log.userName || "System"}</strong>
                   </Typography>
-                  <Chip label={log.actionCategory} size="small" variant="outlined" sx={{ height: 18, fontSize: 9 }} />
+                  <Chip label={log.actionCategory} size="small" variant="outlined" sx={compactChipSx} />
                 </Box>
                 {log.reason && (
                   <Typography variant="caption" sx={{ fontStyle: "italic", color: "text.secondary" }}>

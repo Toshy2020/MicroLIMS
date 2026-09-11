@@ -13,10 +13,8 @@ import {
   Chip,
   Alert,
   CircularProgress,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
+  Tabs,
+  Tab,
   TextField,
   InputAdornment,
   IconButton,
@@ -36,7 +34,6 @@ import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
-import FilterListIcon from "@mui/icons-material/FilterList";
 import ClearIcon from "@mui/icons-material/Clear";
 
 import { PageHeader } from "../../../components/PageHeader";
@@ -53,6 +50,38 @@ import type {
   TrainingAssignmentStatus
 } from "../types/trainingAssignmentTypes";
 import type { AcknowledgementPresentationDto } from "../types/acknowledgementTypes";
+import { compactChipStrongSx, compactChipSx } from "../documentControlStyles";
+
+/**
+ * The views ML-DC-FRS-1C-001 §2:87 requires of My Reading List: Pending ("active
+ * assignments where DueDateUtc >= UtcNow"), Overdue ("DueDateUtc < UtcNow") and
+ * Completed, plus the superseded archive §2:174 asks for.
+ *
+ * Note that Pending deliberately EXCLUDES overdue work. The spec splits them on
+ * the due date, and an assignment cannot sensibly be counted under both - the
+ * previous filter put overdue items in its "Action Required" group as well as in
+ * Overdue, which double-counted them.
+ */
+type ReadingCategory = "PENDING" | "OVERDUE" | "COMPLETED" | "SUPERSEDED" | "OTHER";
+
+function categoryOf(a: DocumentTrainingAssignmentDto): ReadingCategory {
+  if (a.status === "Acknowledged" || a.status === "CompletedPassed") return "COMPLETED";
+  if (a.status === "SupersededIncomplete" || a.status === "TrainedOnSupersededOnly")
+    return "SUPERSEDED";
+  // Overdue is checked before Pending: an assignment past its due date belongs to
+  // Overdue even though its status is still Assigned or Reading.
+  if (a.isOverdue || a.status === "Overdue") return "OVERDUE";
+  if (a.status === "Assigned" || a.status === "Reading") return "PENDING";
+  return "OTHER";
+}
+
+const READING_TABS: { value: ReadingCategory | "ALL"; label: string }[] = [
+  { value: "PENDING", label: "To read" },
+  { value: "OVERDUE", label: "Overdue" },
+  { value: "COMPLETED", label: "Completed" },
+  { value: "SUPERSEDED", label: "Superseded" },
+  { value: "ALL", label: "All" }
+];
 
 export function MyReadingListPage() {
   const theme = useTheme();
@@ -64,7 +93,8 @@ export function MyReadingListPage() {
   const [error, setError] = useState<string | null>(null);
 
   // Filters
-  const [statusFilter, setStatusFilter] = useState<string>("ALL");
+  // Opens on work the reader still has to do, which is why they came here.
+  const [statusFilter, setStatusFilter] = useState<ReadingCategory | "ALL">("PENDING");
   const [searchQuery, setSearchQuery] = useState("");
 
   // Reading Progress State tracking per assignment (assignmentId -> percent)
@@ -103,24 +133,7 @@ export function MyReadingListPage() {
   // Filtered Assignments
   const filteredAssignments = useMemo(() => {
     return assignments.filter((item) => {
-      // Status filter
-      if (statusFilter === "ACTIVE") {
-        if (
-          item.status !== "Assigned" &&
-          item.status !== "Reading" &&
-          item.status !== "Overdue"
-        ) {
-          return false;
-        }
-      } else if (statusFilter === "OVERDUE") {
-        if (!item.isOverdue && item.status !== "Overdue") return false;
-      } else if (statusFilter === "ACKNOWLEDGED") {
-        if (item.status !== "Acknowledged" && item.status !== "CompletedPassed") return false;
-      } else if (statusFilter === "SUPERSEDED") {
-        if (item.status !== "SupersededIncomplete" && item.status !== "TrainedOnSupersededOnly") return false;
-      } else if (statusFilter !== "ALL") {
-        if (item.status !== statusFilter) return false;
-      }
+      if (statusFilter !== "ALL" && categoryOf(item) !== statusFilter) return false;
 
       // Search query filter (Document title, code, MicroLIMS ID, or revision)
       if (searchQuery.trim()) {
@@ -138,19 +151,21 @@ export function MyReadingListPage() {
     });
   }, [assignments, statusFilter, searchQuery]);
 
-  // Metrics calculation
+  // Metrics calculation. Derived from categoryOf so the figures on the cards and
+  // the counts on the tabs can never disagree with what the tab actually lists -
+  // "pending" used to be defined once here and again inside the filter with
+  // different rules, so an assignment that was both Assigned and overdue counted
+  // as pending here while the Overdue view also claimed it.
   const metrics = useMemo(() => {
-    const total = assignments.length;
-    const pending = assignments.filter(
-      (a) => a.status === "Assigned" || a.status === "Reading"
-    ).length;
-    const overdue = assignments.filter(
-      (a) => a.isOverdue || a.status === "Overdue"
-    ).length;
-    const completed = assignments.filter(
-      (a) => a.status === "Acknowledged" || a.status === "CompletedPassed"
-    ).length;
-    return { total, pending, overdue, completed };
+    const count = (c: ReadingCategory) =>
+      assignments.filter((a) => categoryOf(a) === c).length;
+    return {
+      total: assignments.length,
+      pending: count("PENDING"),
+      overdue: count("OVERDUE"),
+      completed: count("COMPLETED"),
+      superseded: count("SUPERSEDED")
+    };
   }, [assignments]);
 
   // Open Controlled Document Viewer for an assignment
@@ -330,7 +345,7 @@ export function MyReadingListPage() {
                 ),
                 endAdornment: searchQuery ? (
                   <InputAdornment position="end">
-                    <IconButton size="small" onClick={() => setSearchQuery("")}>
+                    <IconButton aria-label="Clear search" size="small" onClick={() => setSearchQuery("")}>
                       <ClearIcon fontSize="small" />
                     </IconButton>
                   </InputAdornment>
@@ -338,32 +353,6 @@ export function MyReadingListPage() {
               }}
             />
 
-            <FormControl size="small" sx={{ minWidth: 200 }}>
-              <InputLabel id="status-filter-label">Filter Status</InputLabel>
-              <Select
-                labelId="status-filter-label"
-                value={statusFilter}
-                label="Filter Status"
-                onChange={(e) => setStatusFilter(e.target.value)}
-                startAdornment={
-                  <InputAdornment position="start">
-                    <FilterListIcon fontSize="small" color="action" />
-                  </InputAdornment>
-                }
-              >
-                <MenuItem value="ALL">All Statuses ({assignments.length})</MenuItem>
-                <MenuItem value="ACTIVE">Action Required (Assigned / Reading / Overdue)</MenuItem>
-                <MenuItem value="OVERDUE">Overdue Only</MenuItem>
-                <MenuItem value="ACKNOWLEDGED">Acknowledged / Completed</MenuItem>
-                <MenuItem value="SUPERSEDED">Superseded / Retraining Required</MenuItem>
-                <MenuItem value="Assigned">Assigned</MenuItem>
-                <MenuItem value="Reading">Reading</MenuItem>
-                <MenuItem value="Acknowledged">Acknowledged</MenuItem>
-                <MenuItem value="Overdue">Overdue</MenuItem>
-                <MenuItem value="SupersededIncomplete">Superseded Incomplete</MenuItem>
-                <MenuItem value="Cancelled">Cancelled</MenuItem>
-              </Select>
-            </FormControl>
           </Stack>
 
           <Button
@@ -379,6 +368,38 @@ export function MyReadingListPage() {
       </Paper>
 
       {/* Assignments Table */}
+      {/* The three views ML-DC-FRS-1C-001 §2:87 requires, plus the superseded
+          archive from §2:174. These replaced an eleven-option status dropdown that
+          mixed grouped semantics ("Action Required") with raw enum values
+          ("Assigned", "Reading") and offered two near-duplicate ways to see
+          overdue work. Tabs also put the counts on screen: whether anything is
+          overdue is the question this page exists to answer, and a dropdown hid
+          it behind a click. */}
+      <Paper variant="outlined" sx={{ mb: 2 }}>
+        <Tabs
+          value={statusFilter}
+          onChange={(_e, v: ReadingCategory | "ALL") => setStatusFilter(v)}
+          variant="scrollable"
+          scrollButtons="auto"
+          aria-label="Reading list views"
+          sx={{ px: 1 }}
+        >
+          {READING_TABS.map((t) => {
+            const n =
+              t.value === "ALL"
+                ? metrics.total
+                : t.value === "PENDING"
+                  ? metrics.pending
+                  : t.value === "OVERDUE"
+                    ? metrics.overdue
+                    : t.value === "COMPLETED"
+                      ? metrics.completed
+                      : metrics.superseded;
+            return <Tab key={t.value} value={t.value} label={`${t.label} (${n})`} />;
+          })}
+        </Tabs>
+      </Paper>
+
       <TableContainer component={Paper} variant="outlined">
         <Table size="medium">
           <TableHead sx={tableHeadSx(theme)}>
@@ -452,7 +473,7 @@ export function MyReadingListPage() {
                             label={`MicroLIMS: ${assignment.microLimsDocumentId}`}
                             size="small"
                             variant="outlined"
-                            sx={{ height: 18, fontSize: 10 }}
+                            sx={compactChipSx}
                           />
                         </Box>
                         <Typography variant="body2" fontWeight="medium" sx={{ mt: 0.5 }}>
@@ -486,7 +507,7 @@ export function MyReadingListPage() {
                             label={`Overdue by ${Math.abs(assignment.daysRemainingOrOverdue)}d`}
                             size="small"
                             color="error"
-                            sx={{ height: 20, fontSize: 10, fontWeight: 700 }}
+                            sx={compactChipStrongSx}
                           />
                         )}
 
@@ -496,7 +517,7 @@ export function MyReadingListPage() {
                             label="Superseded Revision"
                             size="small"
                             color="warning"
-                            sx={{ height: 20, fontSize: 10 }}
+                            sx={compactChipSx}
                           />
                         )}
                       </Box>

@@ -37,12 +37,15 @@ public class RolePermissionSeedDataTests
     }
 
     [Fact]
-    public async Task ExactlyTwentyFourPermissionsAreSeeded()
+    public async Task EveryCatalogPermissionIsSeeded()
     {
         var db = CreateSeededDbContext();
         var codes = await db.Permissions.Select(p => p.Code).ToListAsync();
 
-        Assert.Equal(24, codes.Count);
+        // Counted from the catalog rather than a literal, so adding a permission
+        // does not require editing this assertion - the per-role sets below stay
+        // literal on purpose, as a guard against grants changing by accident.
+        Assert.Equal(PermissionConstants.All.Count, codes.Count);
         Assert.Equal(PermissionConstants.All.OrderBy(c => c), codes.OrderBy(c => c));
     }
 
@@ -62,12 +65,20 @@ public class RolePermissionSeedDataTests
     }
 
     [Fact]
-    public async Task SystemAdministrator_HoldsAllTwentyFourPermissions()
+    public async Task SystemAdministrator_HoldsEveryPermission()
     {
         var db = CreateSeededDbContext();
         var codes = await CodesForRole(db, RoleType.SystemAdministrator);
-        Assert.Equal(24, codes.Count);
+        Assert.Equal(PermissionConstants.All.Count, codes.Count);
         Assert.Equal(PermissionConstants.All.OrderBy(c => c), codes.OrderBy(c => c));
+
+        // Document Control capabilities the specification denies the
+        // administrator are deliberately absent from the catalog entirely, so
+        // granting All cannot confer them: voiding a Document Master (FS-1a-111,
+        // "not even SystemAdministrator") and overriding a revision number
+        // (FRS-1B §3.2:184) remain fixed Document Controller rules.
+        Assert.DoesNotContain("Documents.Void", codes);
+        Assert.DoesNotContain("Documents.RevisionOverrideNumber", codes);
     }
 
     [Fact]
@@ -86,10 +97,15 @@ public class RolePermissionSeedDataTests
             PermissionConstants.ItemsManage, PermissionConstants.ItemsDocumentUpload,
             PermissionConstants.MasterDataManage,
             PermissionConstants.DiscussionsView, PermissionConstants.DiscussionsCreate,
-            PermissionConstants.DiscussionsEditAny, PermissionConstants.MessagesUse
+            PermissionConstants.DiscussionsEditAny, PermissionConstants.MessagesUse,
+            // Document Control, per the FRS-1A permission matrix.
+            PermissionConstants.DocumentsRegister, PermissionConstants.DocumentsDraftEdit,
+            PermissionConstants.DocumentsRevisionCreate, PermissionConstants.DocumentsPeriodicReview,
+            PermissionConstants.DocumentsApprove,
+            PermissionConstants.DocumentsTrainingAssign, PermissionConstants.DocumentsTrainingViewMatrix
         };
 
-        Assert.Equal(19, codes.Count);
+        Assert.Equal(26, codes.Count);
         Assert.Equal(expected.OrderBy(c => c), codes.OrderBy(c => c));
         // Not granted to SectionHead per the catalog:
         Assert.DoesNotContain(PermissionConstants.UsersManage, codes);
@@ -108,12 +124,19 @@ public class RolePermissionSeedDataTests
             PermissionConstants.SamplesReview, PermissionConstants.TestWorkflowExecute,
             PermissionConstants.TestWorkflowBiochemicalDecision, PermissionConstants.CryovialsManage,
             PermissionConstants.DiscussionsView, PermissionConstants.DiscussionsCreate,
-            PermissionConstants.MessagesUse
+            PermissionConstants.MessagesUse,
+            // Technical reviewer / QA auditor. Review, periodic review and
+            // approval are each still gated on the per-document assignment.
+            PermissionConstants.DocumentsReview, PermissionConstants.DocumentsPeriodicReview,
+            PermissionConstants.DocumentsApprove, PermissionConstants.DocumentsTrainingViewMatrix
         };
 
-        Assert.Equal(7, codes.Count);
+        Assert.Equal(11, codes.Count);
         Assert.Equal(expected.OrderBy(c => c), codes.OrderBy(c => c));
         Assert.DoesNotContain(PermissionConstants.SamplesApprove, codes);
+        // A reviewer does not register documents or edit drafts.
+        Assert.DoesNotContain(PermissionConstants.DocumentsRegister, codes);
+        Assert.DoesNotContain(PermissionConstants.DocumentsDraftEdit, codes);
     }
 
     [Fact]
@@ -127,23 +150,31 @@ public class RolePermissionSeedDataTests
             PermissionConstants.TestWorkflowExecute, PermissionConstants.CryovialsManage,
             PermissionConstants.MaterialsManage, PermissionConstants.EquipmentManage,
             PermissionConstants.DiscussionsView, PermissionConstants.DiscussionsCreate,
-            PermissionConstants.MessagesUse
+            PermissionConstants.MessagesUse,
+            // Document Author capabilities (FRS-1A matrix grants registration to
+            // Document Author). RoleType has no Document Author, so these sit on
+            // Analyst and a lab can revoke them on the Roles screen.
+            PermissionConstants.DocumentsRegister, PermissionConstants.DocumentsDraftEdit,
+            PermissionConstants.DocumentsRevisionCreate
         };
 
-        Assert.Equal(7, codes.Count);
+        Assert.Equal(10, codes.Count);
         Assert.Equal(expected.OrderBy(c => c), codes.OrderBy(c => c));
         Assert.DoesNotContain(PermissionConstants.SamplesReview, codes);
         Assert.DoesNotContain(PermissionConstants.CryovialsApprove, codes);
+        // An author neither reviews nor approves - the SoD invariant (BR-013).
+        Assert.DoesNotContain(PermissionConstants.DocumentsReview, codes);
+        Assert.DoesNotContain(PermissionConstants.DocumentsApprove, codes);
     }
 
     [Fact]
-    public async Task TotalGrantCount_IsFiftySeven()
+    public async Task TotalGrantCount_MatchesTheCatalog()
     {
-        // 24 (SysAdmin) + 19 (SectionHead) + 7 (Reviewer) + 7 (Analyst) = 57
+        // 33 (SysAdmin) + 26 (SectionHead) + 11 (Reviewer) + 10 (Analyst) = 80
         // System.ViewSecurityAudit is granted to SystemAdministrator only.
         var db = CreateSeededDbContext();
         var total = await db.RolePermissions.CountAsync();
-        Assert.Equal(57, total);
+        Assert.Equal(80, total);
     }
 
     [Fact]
@@ -152,7 +183,7 @@ public class RolePermissionSeedDataTests
         var db = CreateSeededDbContext();
         DbSeeder.SeedPermissionsAndGrants(db); // second call
 
-        Assert.Equal(24, await db.Permissions.CountAsync());
-        Assert.Equal(57, await db.RolePermissions.CountAsync());
+        Assert.Equal(PermissionConstants.All.Count, await db.Permissions.CountAsync());
+        Assert.Equal(80, await db.RolePermissions.CountAsync());
     }
 }

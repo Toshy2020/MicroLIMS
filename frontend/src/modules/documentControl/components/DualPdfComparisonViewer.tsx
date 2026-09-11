@@ -22,6 +22,7 @@ import SecurityIcon from "@mui/icons-material/Security";
 import { documentControlService } from "../services/documentControlService";
 import { StatusBadge } from "../../../components/StatusBadge";
 import { toast } from "sonner";
+import { compactChipStrongSx, compactChipSx, documentCodeSx } from "../documentControlStyles";
 
 export interface DualPdfComparisonViewerProps {
   open: boolean;
@@ -180,7 +181,7 @@ export function DualPdfComparisonViewer({
                 size="small"
                 color="secondary"
                 variant="outlined"
-                sx={{ height: 20, fontSize: 10, fontWeight: 700 }}
+                sx={compactChipStrongSx}
               />
             </Box>
             <Typography variant="h6" sx={{ fontWeight: 700, lineHeight: 1.2 }}>
@@ -236,7 +237,7 @@ export function DualPdfComparisonViewer({
                       size="small"
                       color="success"
                       variant="outlined"
-                      sx={{ height: 22, fontSize: 11, fontFamily: "monospace" }}
+                      sx={{ ...compactChipSx, ...documentCodeSx }}
                     />
                   </Tooltip>
                 )}
@@ -252,7 +253,7 @@ export function DualPdfComparisonViewer({
                       )
                     }
                     disabled={loadingEffective || downloading}
-                    sx={{ height: 26, fontSize: 11 }}
+                    sx={compactChipSx}
                   >
                     Download
                   </Button>
@@ -344,7 +345,7 @@ export function DualPdfComparisonViewer({
                       size="small"
                       color="primary"
                       variant="outlined"
-                      sx={{ height: 22, fontSize: 11, fontFamily: "monospace" }}
+                      sx={{ ...compactChipSx, ...documentCodeSx }}
                     />
                   </Tooltip>
                 )}
@@ -360,7 +361,7 @@ export function DualPdfComparisonViewer({
                       )
                     }
                     disabled={loadingProposed || downloading}
-                    sx={{ height: 26, fontSize: 11 }}
+                    sx={compactChipSx}
                   >
                     Download
                   </Button>

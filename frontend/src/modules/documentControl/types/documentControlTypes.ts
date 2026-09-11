@@ -5,13 +5,18 @@
 
 export type DocumentRecordStatus = "Active" | "Void";
 
+// The canonical eight states, matching MicroLIMS.Domain.Enums.DocumentRevisionStatus
+// exactly (ML-DC-FRS-1B-001 §4:376-389). This union previously also carried
+// "InApproval" and "Approved": neither exists in the backend enum, so the API
+// could never return either. "Approved" came from the pre-baseline state set in
+// DocumentControl_Integration_Report §5:446 and was eliminated by FRS-1B §4,
+// which branches approval straight to Effective or FutureEffective; "InApproval"
+// was never defined in any specification.
 export type DocumentRevisionStatus =
   | "Draft"
   | "InReview"
-  | "InApproval"
   | "AwaitingApproval"
   | "FutureEffective"
-  | "Approved"
   | "Effective"
   | "Superseded"
   | "Obsolete"
@@ -165,6 +170,12 @@ export interface DocumentMasterSummaryDto {
   recordStatus: DocumentRecordStatus;
   currentEffectiveRevisionId: number | null;
   currentRevisionNumber: string | null;
+  // Status of the master's current revision - the effective one where there is
+  // one, else the newest by revision sequence. Null only if the master holds no
+  // revisions at all. Required to render the Library Status column (FRS-1A
+  // §5:104); before it existed the client could only tell effective from
+  // not-effective and mislabelled six other lifecycle states as Draft.
+  currentRevisionStatus: DocumentRevisionStatus | null;
   effectiveDate: string | null;
   nextReviewDate: string | null;
   hasControlledPdf: boolean;

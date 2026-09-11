@@ -38,6 +38,15 @@ const chartSequentialByMode = {
 };
 // Shared across both modes - typography/shape/spacing/component shape
 // don't change with theme, only color does.
+// Controlled-document identifiers (SOP-QC-042, DOC-0000042, SHA-256 digests,
+// revision numbers) are compared character by character by the people reading
+// them, so they are set in a monospace face where 0/O and 1/l stay distinct and
+// digits line up between table rows. Lived as a hardcoded "monospace" string at
+// eleven call sites before this token existed, which meant no control over the
+// fallback stack and no single place to change the treatment.
+export const monospaceFontFamily =
+  "'Cascadia Mono', Consolas, 'SF Mono', 'Roboto Mono', ui-monospace, monospace";
+
 export const baseThemeOptions: ThemeOptions = {
   typography: {
     fontFamily: "'Segoe UI', Roboto, Arial, sans-serif"

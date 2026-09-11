@@ -95,8 +95,13 @@ public class DocumentRevisionService : IDocumentRevisionService
             var user = await _db.Users.Include(u => u.Role).FirstOrDefaultAsync(u => u.Id == userId)
                 ?? throw new KeyNotFoundException($"User {userId} not found.");
 
-            // Strict Role Check: Override requires Document Controller (SectionHead) or SystemAdministrator
-            if (user.Role.Type != RoleType.SectionHead && user.Role.Type != RoleType.SystemAdministrator)
+            // Document Controller (SectionHead) only. ML-DC-FRS-1B-001 §3.2:184
+            // permits the override "only for Document Controller (SectionHead)"
+            // and the FRS-1A permission matrix records System Administrator as
+            // No for Override Revision Number. This previously also admitted
+            // SystemAdministrator, contradicting the error message below and the
+            // zero-administrative-exemption rule (DC-URS-166, BR-013).
+            if (user.Role.Type != RoleType.SectionHead)
             {
                 throw new UnauthorizedAccessException("Only Document Controllers are authorized to override the proposed revision number.");
             }
@@ -302,7 +307,14 @@ public class DocumentRevisionService : IDocumentRevisionService
         return MapChangeItemDto(item, item.CreatedByUser?.Username ?? "", item.CreatedByUser?.FullName ?? "");
     }
 
-    public async Task DeleteChangeItemAsync(int changeItemId, int userId)
+    // Deactivates a change item instead of deleting it. DC-URS-184 forbids
+    // permanent deletion of any controlled document, revision, workflow,
+    // training, assessment or audit record, and BR-015 states controlled
+    // records are never deleted - records created in error are cancelled or
+    // voided with a recorded reason and remain retrievable. This previously
+    // called _db.RevisionChangeItems.Remove(item), which destroyed the record;
+    // the audit event survived but the thing it described did not.
+    public async Task DeactivateChangeItemAsync(int changeItemId, int userId)
     {
         var item = await _db.RevisionChangeItems
             .Include(c => c.DocumentRevision)
@@ -314,28 +326,35 @@ public class DocumentRevisionService : IDocumentRevisionService
 
         var canEdit = await _authService.CanEditDraftMetadataAsync(item.DocumentRevision.DocumentMasterId, userId);
         if (!canEdit)
-            throw new UnauthorizedAccessException("You do not have permission to delete change items for this draft.");
+            throw new UnauthorizedAccessException("You do not have permission to remove change items for this draft.");
 
-        _db.RevisionChangeItems.Remove(item);
+        if (!item.IsActive)
+            throw new InvalidOperationException("Change item has already been removed.");
+
+        item.IsActive = false;
+        item.ModifiedAt = DateTime.UtcNow;
         _db.CurrentUserId = userId;
         await _db.SaveChangesAsync();
 
         await _auditEventService.RecordUserEventAsync(
-            actionCode: "RevisionChangeItemDeleted",
+            actionCode: "RevisionChangeItemDeactivated",
             actionCategory: AuditActionCategory.Document,
             recordType: nameof(RevisionChangeItem),
             documentMasterId: item.DocumentRevision.DocumentMasterId,
             documentRevisionId: item.DocumentRevisionId,
-            reason: $"Deleted change item for section {item.SectionNumber}",
+            changes: new List<AuditFieldChange> { new("IsActive", "true", "false") },
+            reason: $"Removed change item for section {item.SectionNumber}",
             entityId: changeItemId.ToString()
         );
     }
 
     public async Task<IReadOnlyList<RevisionChangeItemDto>> GetChangeItemsAsync(int revisionId, int userId)
     {
+        // Deactivated items are retained as records but excluded from the
+        // active working list (FS-1a-173).
         var items = await _db.RevisionChangeItems
             .Include(c => c.CreatedByUser)
-            .Where(c => c.DocumentRevisionId == revisionId)
+            .Where(c => c.DocumentRevisionId == revisionId && c.IsActive)
             .OrderBy(c => c.SectionNumber)
             .ToListAsync();
 

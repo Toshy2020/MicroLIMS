@@ -1,3 +1,5 @@
+import { monospaceFontFamily } from "../../../theme/palette";
+import { compactChipSx } from "../documentControlStyles";
 import { useState, useEffect } from "react";
 import {
   Box,
@@ -284,14 +286,14 @@ export function DocumentConfigurationPage() {
                           <TableCell>{t.defaultReviewCycleMonths} Months</TableCell>
                           <TableCell>
                             {t.isActive ? (
-                              <Chip label="ACTIVE" size="small" color="success" sx={{ height: 20, fontSize: 10 }} />
+                              <Chip label="ACTIVE" size="small" color="success" sx={compactChipSx} />
                             ) : (
-                              <Chip label="DEACTIVATED" size="small" color="default" sx={{ height: 20, fontSize: 10 }} />
+                              <Chip label="DEACTIVATED" size="small" color="default" sx={compactChipSx} />
                             )}
                           </TableCell>
                           <TableCell align="right">
                             <Tooltip title="Edit Type">
-                              <IconButton
+                              <IconButton aria-label={`Edit document type ${t.code}`}
                                 size="small"
                                 onClick={() => {
                                   setEditingType(t);
@@ -341,9 +343,9 @@ export function DocumentConfigurationPage() {
                             {dept.code} — {dept.name}
                           </Typography>
                           {dept.isActive ? (
-                            <Chip label="ACTIVE" size="small" color="success" sx={{ height: 18, fontSize: 9 }} />
+                            <Chip label="ACTIVE" size="small" color="success" sx={compactChipSx} />
                           ) : (
-                            <Chip label="DEACTIVATED" size="small" color="default" sx={{ height: 18, fontSize: 9 }} />
+                            <Chip label="DEACTIVATED" size="small" color="default" sx={compactChipSx} />
                           )}
                         </Box>
 
@@ -361,7 +363,7 @@ export function DocumentConfigurationPage() {
                           >
                             Add Section
                           </Button>
-                          <IconButton
+                          <IconButton aria-label={`Edit department ${dept.code}`}
                             size="small"
                             onClick={() => {
                               setEditingDept(dept);
@@ -390,13 +392,13 @@ export function DocumentConfigurationPage() {
                                 <TableCell>{sec.name}</TableCell>
                                 <TableCell>
                                   {sec.isActive ? (
-                                    <Chip label="ACTIVE" size="small" color="success" sx={{ height: 18, fontSize: 9 }} />
+                                    <Chip label="ACTIVE" size="small" color="success" sx={compactChipSx} />
                                   ) : (
-                                    <Chip label="DEACTIVATED" size="small" color="default" sx={{ height: 18, fontSize: 9 }} />
+                                    <Chip label="DEACTIVATED" size="small" color="default" sx={compactChipSx} />
                                   )}
                                 </TableCell>
                                 <TableCell align="right">
-                                  <IconButton
+                                  <IconButton aria-label={`Edit section ${sec.name}`}
                                     size="small"
                                     onClick={() => {
                                       setTargetDeptId(dept.id);
@@ -440,7 +442,7 @@ export function DocumentConfigurationPage() {
                   <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700, textTransform: "uppercase" }}>
                     Sample Generated Document ID
                   </Typography>
-                  <Typography variant="h5" sx={{ fontFamily: "monospace", fontWeight: 700, color: "primary.main", my: 1 }}>
+                  <Typography variant="h5" sx={{ fontFamily: monospaceFontFamily, fontWeight: 700, color: "primary.main", my: 1 }}>
                     {numbering.sampleNextId}
                   </Typography>
                   <Typography variant="caption" color="text.secondary">
@@ -508,7 +510,7 @@ export function DocumentConfigurationPage() {
                       {settings.map((s) => (
                         <TableRow key={s.id} hover>
                           <TableCell sx={{ fontWeight: 600 }}>{s.settingGroup}</TableCell>
-                          <TableCell sx={{ fontFamily: "monospace" }}>{s.settingKey}</TableCell>
+                          <TableCell sx={{ fontFamily: monospaceFontFamily }}>{s.settingKey}</TableCell>
                           <TableCell>
                             <Chip label={s.settingValue} size="small" variant="outlined" />
                           </TableCell>
@@ -518,7 +520,7 @@ export function DocumentConfigurationPage() {
                             <Typography variant="caption" color="text.secondary">{new Date(s.modifiedAt).toLocaleDateString()}</Typography>
                           </TableCell>
                           <TableCell align="right">
-                            <IconButton
+                            <IconButton aria-label={`Edit setting ${s.settingKey}`}
                               size="small"
                               onClick={() => {
                                 setEditingSetting(s);

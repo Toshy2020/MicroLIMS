@@ -6,7 +6,6 @@ import RateReviewOutlinedIcon from "@mui/icons-material/RateReviewOutlined";
 import ScheduleOutlinedIcon from "@mui/icons-material/ScheduleOutlined";
 import PersonOutlineIcon from "@mui/icons-material/PersonOutline";
 import PersonOffOutlinedIcon from "@mui/icons-material/PersonOffOutlined";
-import { SampleRecord } from "../types/receivingTypes";
 import { StatusTone } from "../../../theme/statusTokens";
 
 // These tiles used to count sample categories (Product/RM/PM/Water/AC/EM),
@@ -22,58 +21,16 @@ export type WorkloadFilterKey =
   | "mine"
   | "unassigned";
 
-export interface WorkloadContext {
-  userId: number | null;
-  isSectionHeadOrAdmin: boolean;
-  now: number;
-}
-
-const OVERDUE_AFTER_MS = 24 * 60 * 60 * 1000;
-
-// A sample past one of these is finished; it is not outstanding work no
-// matter how long ago it arrived. Without this an "Overdue" count grows
-// forever, because every approved sample eventually passes 24h.
-const CLOSED_SAMPLE_STATUSES = new Set([
-  "Approved",
-  "Rejected",
-  "RetestRequested",
-  "Cancelled",
-  "Voided"
-]);
-
-export function isClosedSample(r: SampleRecord): boolean {
-  return CLOSED_SAMPLE_STATUSES.has(r.status);
-}
-
-// The single source of truth for what each tile means. The tiles count with
-// these and the register filters with these, so a tile can never claim a
-// number that the list underneath it does not show - which in a GMP system
-// is a credibility problem, not just a cosmetic one.
-export const WORKLOAD_PREDICATES: Record<
-  WorkloadFilterKey,
-  (r: SampleRecord, ctx: WorkloadContext) => boolean
-> = {
-  needsPreparation: (r) => r.preparationStatus === "NeedsPreparation" && !isClosedSample(r),
-
-  readyToRead: (r) =>
-    Boolean(r.assignedTests?.some((t) => t.workflowStatus === "ReadyToRead" || t.workflowStatus === "EnterResult")),
-
-  awaitingReview: (r) =>
-    r.status === "UnderReview" ||
-    Boolean(r.assignedTests?.some((t) => t.status === "ResultEntered" || t.workflowStatus === "PendingReview")),
-
-  overdue: (r, ctx) => !isClosedSample(r) && ctx.now - new Date(r.receivedAt).getTime() > OVERDUE_AFTER_MS,
-
-  mine: (r, ctx) =>
-    ctx.userId != null &&
-    (r.assignedAnalystId === ctx.userId ||
-      Boolean(r.assignedTests?.some((t) => t.assignedAnalystId === ctx.userId))),
-
-  unassigned: (r) =>
-    !isClosedSample(r) &&
-    !r.assignedAnalystId &&
-    !r.assignedTests?.some((t) => t.assignedAnalystId != null)
-};
+// The rules these tiles represent live on the server, in
+// TestingWorkspaceService: one definition drives both GET /api/testorders/counts
+// (the numbers on these tiles) and GET /api/testorders/page (the list beneath
+// them), so a tile still cannot claim a number the register does not show.
+//
+// They used to be duplicated here as WORKLOAD_PREDICATES, evaluated over every
+// sample the browser had downloaded. That copy is gone rather than left
+// unreferenced: two definitions of one GMP rule drift, and the frontend is not
+// where laboratory logic belongs. What stays below is presentation only -
+// label, hint, icon and tone.
 
 interface TileConfig {
   key: WorkloadFilterKey;
@@ -135,9 +92,6 @@ interface Props {
   activeKey: WorkloadFilterKey | null;
   onSelect: (key: WorkloadFilterKey) => void;
   isSectionHeadOrAdmin: boolean;
-  // Optional legacy props maintained for backward compatibility:
-  samples?: SampleRecord[];
-  userId?: number | null;
 }
 
 export function SampleStatusKpiCards({ counts, activeKey, onSelect, isSectionHeadOrAdmin }: Props) {

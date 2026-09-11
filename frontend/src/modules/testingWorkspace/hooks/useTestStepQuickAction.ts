@@ -257,6 +257,12 @@ export function useTestStepQuickAction({
       return startedIncubation;
     } catch (err: any) {
       setError(err?.response?.data?.message || "Failed to start incubation.");
+      // Rethrow. Swallowing this returned undefined instead of failing, so a
+      // caller that had already flipped to an optimistic "incubating" state
+      // never learned the server had refused and left a countdown on screen
+      // for an incubation that does not exist. The inline message above is for
+      // this panel; the throw is what lets the caller undo what it showed.
+      throw err;
     } finally {
       setSubmitting(false);
     }

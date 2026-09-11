@@ -202,14 +202,14 @@ jobs:
             }
 
   # ---------------------------------------------------------------------
-  # Frontend: type-check and production build.
+  # Frontend: lint, type-check and production build.
   #
-  # `npm run lint` is deliberately absent. The script exists, but the
-  # repository has no eslint.config.* file, so eslint 10 exits 2 with a
-  # configuration error before it inspects a single line. Wiring that in
-  # would fail every pull request for a reason unrelated to the change
-  # under review. Restoring the lint configuration is tracked separately;
-  # this step should be added back once `npm run lint` runs.
+  # The lint step is back: frontend/eslint.config.js now exists, so eslint
+  # 10 no longer exits 2 on a configuration error. It reports errors only
+  # for genuine defects; the ~800 pre-existing violations are warnings, so
+  # this step passes today and still fails on a new rules-of-hooks break.
+  # To stop that backlog growing, pin it - `npm run lint -- --max-warnings
+  # <current count>` - once the count is stable enough not to churn.
   # ---------------------------------------------------------------------
   frontend:
     name: Frontend build
@@ -230,6 +230,9 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+
+      - name: Lint
+        run: npm run lint
 
       - name: TypeScript
         run: npx tsc -b

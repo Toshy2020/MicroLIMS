@@ -130,6 +130,33 @@ export function GroupedActionRow({
         predecessorStepName: group.predecessorStepName
       });
 
+      // The endpoint answers 200 even when it refused every order it was
+      // given: each refusal lands in resp.skipped with a reason, and nothing
+      // was reading it. A batch that the backend declined in full therefore
+      // read as success, the panel closed, and the tests appeared to be
+      // incubating when nothing had been inoculated - which a refresh then
+      // silently corrected. In a GMP lab that is the dangerous direction for
+      // an error to fail in, so a partial or total refusal is surfaced here
+      // rather than swallowed.
+      if (resp.skippedCount > 0) {
+        const reasons = resp.skipped
+          .map((s) => `${s.sampleReference} (#${s.testOrderId}): ${s.reason}`)
+          .join(" ");
+
+        if (resp.succeededCount === 0) {
+          // Nothing started. Keep the panel open with the selection intact so
+          // the analyst can act on the reason rather than re-enter everything.
+          setSubmitError(`No tests were started. ${reasons}`);
+          return;
+        }
+
+        setSubmitError(
+          `${resp.succeededCount} of ${resp.totalRequested} started. ${resp.skippedCount} refused - ${reasons}`
+        );
+        onActionComplete(resp);
+        return;
+      }
+
       setExpanded(false);
       onActionComplete(resp);
     } catch (err: any) {

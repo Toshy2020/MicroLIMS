@@ -9,6 +9,7 @@ import {
   TableRow,
   TableCell,
   TableBody,
+  TablePagination,
   Typography,
   Alert,
   Snackbar,
@@ -25,12 +26,10 @@ import { tableHeadSx } from "../../theme";
 
 // Receiving Components & Dialogs
 import { SampleRecord, TestOrderSummary as ReceivingTestOrderSummary } from "../receiving/types/receivingTypes";
-import { ReceiveService } from "../receiving/services/ReceiveService";
+import { ReceiveService, TestingWorkspaceFilter, WorkspaceTileCounts } from "../receiving/services/ReceiveService";
 import {
   SampleStatusKpiCards,
-  WorkloadFilterKey,
-  WORKLOAD_PREDICATES,
-  WorkloadContext
+  WorkloadFilterKey
 } from "../receiving/components/SampleStatusKpiCards";
 import { SelectionSummaryBar } from "../receiving/components/SelectionSummaryBar";
 import { SampleFilterBar } from "../receiving/components/SampleFilterBar";
@@ -79,24 +78,47 @@ function exportSamplesToCsv(samples: SampleRecord[]) {
 
 export function ReceivingTestingWorkspacePage() {
   const theme = useTheme();
-  const { userId, role } = useAuth();
+  const { role } = useAuth();
   const [searchParams] = useSearchParams();
 
   // Core Data State
   const [records, setRecords] = useState<SampleRecord[] | null>(null);
+  const [totalCount, setTotalCount] = useState(0);
+  const [page, setPage] = useState(() => {
+    const p = searchParams.get("page");
+    return p ? Math.max(1, parseInt(p, 10)) : 1;
+  });
+  const [pageSize, setPageSize] = useState(() => {
+    const ps = searchParams.get("pageSize");
+    return ps ? Math.min(200, Math.max(1, parseInt(ps, 10))) : 50;
+  });
+  const [workloadCounts, setWorkloadCounts] = useState<WorkspaceTileCounts | null>(null);
   const [loading, setLoading] = useState(false);
   const [notification, setNotification] = useState<{ text: string; severity: "success" | "error" | "info" | "warning" } | null>(null);
 
-  // Display View State. There is no operational tab strip: the workload KPI
-  // tiles are the "what needs doing" control now, and they filter through the
-  // same predicates they count with.
-  const [viewMode, setViewMode] = useState<WorkspaceDisplayView>("table");
+  // Display View State
+  const [viewMode, setViewMode] = useState<WorkspaceDisplayView>(() => {
+    const v = searchParams.get("view");
+    return v === "table" || v === "card" || v === "kanban" ? v : "table";
+  });
 
   // Selection for Master-Detail Split Pane
-  const [selectedSampleId, setSelectedSampleId] = useState<number | null>(null);
+  const [selectedSampleId, setSelectedSampleId] = useState<number | null>(() => {
+    const s = searchParams.get("sampleId");
+    return s ? Number(s) : null;
+  });
+  const [extraSelectedSample, setExtraSelectedSample] = useState<SampleRecord | null>(null);
 
   // Multi-select Sample Checkboxes for Grouped Actions
-  const [checkedSampleIds, setCheckedSampleIds] = useState<Set<number>>(new Set());
+  const [checkedSampleIds, setCheckedSampleIds] = useState<Set<number>>(() => {
+    const paramSampleIds = searchParams.get("sampleIds");
+    if (paramSampleIds) {
+      const ids = paramSampleIds.split(",").map(Number).filter((id) => !isNaN(id) && id > 0);
+      if (ids.length >= 2) return new Set(ids);
+    }
+    return new Set();
+  });
+  const checkedSamplesCache = useRef<Map<number, SampleRecord>>(new Map());
 
   // Reveals every checked sample regardless of the active filters, so nobody
   // signs a grouped action over a set they cannot see in full.
@@ -107,8 +129,18 @@ export function ReceivingTestingWorkspacePage() {
       const next = new Set(prev);
       if (checked) {
         next.add(sampleId);
+        const s = records?.find((r) => r.sampleId === sampleId) ||
+          (extraSelectedSample?.sampleId === sampleId ? extraSelectedSample : null);
+        if (s) {
+          checkedSamplesCache.current.set(sampleId, s);
+        } else {
+          ReceiveService.getSample(sampleId).then((fetched) => {
+            if (fetched) checkedSamplesCache.current.set(sampleId, fetched);
+          }).catch(() => {});
+        }
       } else {
         next.delete(sampleId);
+        checkedSamplesCache.current.delete(sampleId);
       }
       return next;
     });
@@ -119,8 +151,15 @@ export function ReceivingTestingWorkspacePage() {
     setCheckedSampleIds((prev) => {
       const next = new Set(prev);
       for (const id of sampleIds) {
-        if (checked) next.add(id);
-        else next.delete(id);
+        if (checked) {
+          next.add(id);
+          const s = records?.find((r) => r.sampleId === id) ||
+            (extraSelectedSample?.sampleId === id ? extraSelectedSample : null);
+          if (s) checkedSamplesCache.current.set(id, s);
+        } else {
+          next.delete(id);
+          checkedSamplesCache.current.delete(id);
+        }
       }
       return next;
     });
@@ -128,19 +167,45 @@ export function ReceivingTestingWorkspacePage() {
 
   const handleDeselectAllChecked = () => {
     setCheckedSampleIds(new Set());
+    checkedSamplesCache.current.clear();
     setShowSelectedOnly(false);
   };
 
-  // Filter State
-  const [workloadFilter, setWorkloadFilter] = useState<WorkloadFilterKey | null>(null);
-  const [search, setSearch] = useState("");
-  const [categoryFilter, setCategoryFilter] = useState("ALL");
-  const [sampleStatusFilter, setSampleStatusFilter] = useState("ALL");
-  const [testStatusFilter, setTestStatusFilter] = useState("ALL");
-  const [analystIdFilter, setAnalystIdFilter] = useState<number | null>(null);
-  const [urgencyFilter, setUrgencyFilter] = useState<string>("");
-  const [fromDate, setFromDate] = useState("");
-  const [toDate, setToDate] = useState("");
+  // Filter State initialized from URL query params
+  const [workloadFilter, setWorkloadFilter] = useState<WorkloadFilterKey | null>(() => {
+    const status = searchParams.get("status");
+    if (status === "Active") return null;
+    const scope = searchParams.get("scope");
+    if (scope === "mine") return "mine";
+    return null;
+  });
+
+  const [search, setSearch] = useState(() => searchParams.get("search") || "");
+  const [debouncedSearch, setDebouncedSearch] = useState(() => searchParams.get("search") || "");
+  const [categoryFilter, setCategoryFilter] = useState(() => searchParams.get("category") || "ALL");
+  const [sampleStatusFilter, setSampleStatusFilter] = useState(() => {
+    const status = searchParams.get("status");
+    if (status && status !== "Active") return status;
+    return searchParams.get("sampleStatus") || "ALL";
+  });
+  const [testStatusFilter, setTestStatusFilter] = useState(() => searchParams.get("testStatus") || "ALL");
+  const [analystIdFilter, setAnalystIdFilter] = useState<number | null>(() => {
+    const a = searchParams.get("analystId");
+    return a ? Number(a) : null;
+  });
+  const [urgencyFilter, setUrgencyFilter] = useState<string>(() => searchParams.get("urgency") || "");
+  const [fromDate, setFromDate] = useState(() => searchParams.get("fromDate") || "");
+  const [toDate, setToDate] = useState(() => searchParams.get("toDate") || "");
+
+  // Debounce search input by 300 ms while keeping input responsive
+  useEffect(() => {
+    if (search === debouncedSearch) return;
+    const timer = setTimeout(() => {
+      setDebouncedSearch(search);
+      setPage(1);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [search, debouncedSearch]);
 
   // Dialogs State
   const [newSampleDialogOpen, setNewSampleDialogOpen] = useState(false);
@@ -155,11 +220,40 @@ export function ReceivingTestingWorkspacePage() {
 
   const processedDeepLinkKeyRef = useRef<string | null>(null);
 
+  const filterRef = useRef<TestingWorkspaceFilter>({});
+  filterRef.current = {
+    page,
+    pageSize,
+    search: debouncedSearch,
+    category: categoryFilter,
+    sampleStatus: sampleStatusFilter,
+    testStatus: testStatusFilter,
+    analystId: analystIdFilter,
+    urgency: urgencyFilter,
+    fromDate,
+    toDate,
+    workloadFilter
+  };
+
   const loadRecords = async (silent = false) => {
     if (!silent) setLoading(true);
     try {
-      const data = await ReceiveService.getRecords();
-      setRecords(data);
+      const currentFilter = filterRef.current;
+      const [pagedData, countsData] = await Promise.all([
+        ReceiveService.getRecordsPaged(currentFilter),
+        ReceiveService.getWorkloadCounts()
+      ]);
+      setRecords(pagedData.items);
+      setTotalCount(pagedData.totalCount);
+      setWorkloadCounts(countsData);
+
+      // If a sample is selected, refresh its details if present in the reloaded page
+      if (selectedSampleId) {
+        const matching = pagedData.items.find((s) => s.sampleId === selectedSampleId);
+        if (matching) {
+          setExtraSelectedSample(matching);
+        }
+      }
     } catch (err: any) {
       setNotification({
         text: err?.response?.data?.message || "Failed to load laboratory sample records.",
@@ -170,14 +264,25 @@ export function ReceivingTestingWorkspacePage() {
     }
   };
 
+  // Re-fetch whenever page, pageSize, or any filter changes
   useEffect(() => {
     loadRecords();
-  }, []);
+  }, [
+    page,
+    pageSize,
+    debouncedSearch,
+    workloadFilter,
+    categoryFilter,
+    sampleStatusFilter,
+    testStatusFilter,
+    analystIdFilter,
+    urgencyFilter,
+    fromDate,
+    toDate
+  ]);
 
   // Deep-Link URL Parameter Processing (Strict Backward Compatibility)
   useEffect(() => {
-    if (!records) return;
-
     const paramSampleId = searchParams.get("sampleId");
     const paramTestOrderId = searchParams.get("testOrderId");
     const paramOpenSummary = searchParams.get("openSummary");
@@ -202,7 +307,10 @@ export function ReceivingTestingWorkspacePage() {
     if (paramUrgency) setUrgencyFilter(paramUrgency);
     if (paramScope === "mine") setWorkloadFilter("mine");
     if (paramView === "table" || paramView === "card" || paramView === "kanban") setViewMode(paramView);
-    if (paramSearch) setSearch(paramSearch);
+    if (paramSearch && paramSearch !== search) {
+      setSearch(paramSearch);
+      setDebouncedSearch(paramSearch);
+    }
 
     const currentDeepLinkKey = `${paramSampleId ?? ""}:${paramTestOrderId ?? ""}:${paramOpenSummary ?? ""}`;
     if (processedDeepLinkKeyRef.current === currentDeepLinkKey) {
@@ -210,16 +318,40 @@ export function ReceivingTestingWorkspacePage() {
     }
     processedDeepLinkKeyRef.current = currentDeepLinkKey;
 
-    if (paramSampleId) {
-      const sId = Number(paramSampleId);
+    const sId = paramSampleId ? Number(paramSampleId) : null;
+    const tId = paramTestOrderId ? Number(paramTestOrderId) : null;
+
+    if (sId) {
       setSelectedSampleId(sId);
       if (paramOpenSummary === "true") {
         setSummarySampleId(sId);
       }
-    }
 
-    if (paramTestOrderId) {
-      const tId = Number(paramTestOrderId);
+      const foundInRecords = records?.find((s) => s.sampleId === sId);
+      if (foundInRecords) {
+        setExtraSelectedSample(foundInRecords);
+        if (tId) {
+          const foundTest = foundInRecords.assignedTests?.find((t) => t.testOrderId === tId);
+          if (foundTest) {
+            setActiveTest(foundTest as unknown as WorkspaceTestOrderSummary);
+            setActiveSampleForTest(foundInRecords as unknown as WorkspaceSampleCard);
+          }
+        }
+      } else {
+        ReceiveService.getSample(sId).then((fetched) => {
+          if (fetched) {
+            setExtraSelectedSample(fetched);
+            if (tId) {
+              const foundTest = fetched.assignedTests?.find((t) => t.testOrderId === tId);
+              if (foundTest) {
+                setActiveTest(foundTest as unknown as WorkspaceTestOrderSummary);
+                setActiveSampleForTest(fetched as unknown as WorkspaceSampleCard);
+              }
+            }
+          }
+        }).catch(() => {});
+      }
+    } else if (tId && records) {
       for (const sample of records) {
         const foundTest = sample.assignedTests?.find((t) => t.testOrderId === tId);
         if (foundTest) {
@@ -236,24 +368,68 @@ export function ReceivingTestingWorkspacePage() {
       const ids = paramSampleIds.split(",").map(Number).filter((id) => !isNaN(id) && id > 0);
       if (ids.length >= 2) {
         setCheckedSampleIds(new Set(ids));
+        ids.forEach(async (id) => {
+          if (!checkedSamplesCache.current.has(id)) {
+            try {
+              const s = await ReceiveService.getSample(id);
+              if (s) checkedSamplesCache.current.set(id, s);
+            } catch {
+              // ignore
+            }
+          }
+        });
       }
     }
-  }, [records, searchParams]);
+  }, [records, searchParams, search]);
 
-  // Workload tiles are a toggle: clicking the active one clears it. Category
-  // is no longer mirrored here - the Item Type dropdown owns it outright,
-  // which is what these tiles used to duplicate.
+  // Ensure selectedSampleId always resolves to a full sample even if not on page 1
+  useEffect(() => {
+    if (!selectedSampleId) return;
+    const inRecords = records?.find((s) => s.sampleId === selectedSampleId);
+    if (inRecords) {
+      setExtraSelectedSample(inRecords);
+      return;
+    }
+    if (extraSelectedSample?.sampleId === selectedSampleId) return;
+    ReceiveService.getSample(selectedSampleId).then((sample) => {
+      if (sample) setExtraSelectedSample(sample);
+    }).catch(() => {});
+  }, [selectedSampleId, records, extraSelectedSample]);
+
+  // Workload tiles are a toggle: clicking the active one clears it.
   const handleSelectWorkload = (key: WorkloadFilterKey) => {
     setWorkloadFilter((prev) => (prev === key ? null : key));
+    setPage(1);
   };
 
-  // Sync Sample Status Filter changes
+  const handleCategoryFilterChange = (cat: string) => {
+    setCategoryFilter(cat);
+    setPage(1);
+  };
+
   const handleSampleStatusFilterChange = (status: string) => {
     setSampleStatusFilter(status);
+    setPage(1);
+  };
+
+  const handleTestStatusFilterChange = (ts: string) => {
+    setTestStatusFilter(ts);
+    setPage(1);
+  };
+
+  const handleFromDateChange = (from: string) => {
+    setFromDate(from);
+    setPage(1);
+  };
+
+  const handleToDateChange = (to: string) => {
+    setToDate(to);
+    setPage(1);
   };
 
   const handleResetFilters = () => {
     setSearch("");
+    setDebouncedSearch("");
     setShowSelectedOnly(false);
     setWorkloadFilter(null);
     setCategoryFilter("ALL");
@@ -263,6 +439,7 @@ export function ReceivingTestingWorkspacePage() {
     setUrgencyFilter("");
     setFromDate("");
     setToDate("");
+    setPage(1);
   };
 
   const hasActiveFilters = Boolean(
@@ -277,147 +454,75 @@ export function ReceivingTestingWorkspacePage() {
     toDate
   );
 
-  // Filtered Samples Computation
-  const filteredRecords = useMemo(() => {
-    if (!records) return [];
-    const workloadCtx: WorkloadContext = {
-      userId,
-      isSectionHeadOrAdmin: role === "SectionHead" || role === "SystemAdministrator",
-      now: Date.now()
-    };
-
-    // "Show selected only" deliberately overrides everything else - its whole
-    // job is to surface checked samples the other filters are hiding.
+  // Filtered/Displayed Samples Computation:
+  // When showSelectedOnly is true, surface all checked samples from cache/records.
+  // Otherwise, display server-filtered and paged records.
+  const displayRecords = useMemo(() => {
     if (showSelectedOnly) {
-      return records.filter((r) => checkedSampleIds.has(r.sampleId));
-    }
-
-    return records.filter((r) => {
-      // 1. Workload tile - the very predicate the tile counted with, so the
-      // number on the tile and the length of this list cannot disagree.
-      if (workloadFilter && !WORKLOAD_PREDICATES[workloadFilter](r, workloadCtx)) {
-        return false;
-      }
-
-      // 2. Free Text Search
-      if (search.trim()) {
-        const q = search.trim().toLowerCase();
-        const matches =
-          String(r.sampleId).includes(q) ||
-          r.displayName?.toLowerCase().includes(q) ||
-          r.referenceNumber?.toLowerCase().includes(q) ||
-          (r.batchNumber && r.batchNumber.toLowerCase().includes(q)) ||
-          r.controlNumber?.toLowerCase().includes(q) ||
-          r.causeOfTesting?.toLowerCase().includes(q) ||
-          (r.sampledBy && r.sampledBy.toLowerCase().includes(q));
-
-        if (!matches) return false;
-      }
-
-      // 3. Category Filter
-      if (categoryFilter !== "ALL" && r.category !== categoryFilter) {
-        return false;
-      }
-
-      // 4. Sample Status Filter
-      if (sampleStatusFilter !== "ALL") {
-        if (sampleStatusFilter === "PendingReview") {
-          if (r.status !== "UnderReview" && r.status !== "UnderApproval" && r.status !== "PendingReview") {
-            return false;
-          }
-        } else if (sampleStatusFilter === "RetestRequested") {
-          if (r.status !== "RetestRequested" && r.status !== "Cancelled" && r.status !== "Voided") {
-            return false;
-          }
-        } else if (r.status !== sampleStatusFilter) {
-          return false;
-        }
-      }
-
-      // 6. Test Status Filter
-      if (testStatusFilter !== "ALL") {
-        const tests = r.assignedTests || [];
-        if (testStatusFilter === "Waiting" || testStatusFilter === "Pending") {
-          if (!tests.some((t) => t.status === "Waiting" || t.status === "NotStarted" || t.status === "Pending")) return false;
-        } else if (testStatusFilter === "InProgress") {
-          if (!tests.some((t) => t.status === "InProgress" || t.status === "Running" || t.status === "Incubating"))
-            return false;
-        } else if (testStatusFilter === "ReadyToRead") {
-          if (!tests.some((t) => t.workflowStatus === "ReadyToRead" || t.workflowStatus === "EnterResult")) return false;
-        } else if (testStatusFilter === "ResultEntered" || testStatusFilter === "UnderReview") {
-          if (!tests.some((t) => t.status === "ResultEntered" || t.status === "UnderReview" || t.status === "Reviewed")) return false;
+      const list: SampleRecord[] = [];
+      for (const id of checkedSampleIds) {
+        const cached = checkedSamplesCache.current.get(id);
+        if (cached) {
+          list.push(cached);
         } else {
-          if (!tests.some((t) => t.status === testStatusFilter || t.workflowStatus === testStatusFilter)) return false;
+          const inRecords = records?.find((r) => r.sampleId === id);
+          if (inRecords) {
+            list.push(inRecords);
+            checkedSamplesCache.current.set(id, inRecords);
+          }
         }
       }
+      return list;
+    }
+    return records || [];
+  }, [showSelectedOnly, checkedSampleIds, records]);
 
-      // 7. Analyst ID Filter
-      if (analystIdFilter !== null) {
-        const matchesAnalyst =
-          r.assignedAnalystId === analystIdFilter ||
-          r.assignedTests?.some((t) => t.assignedAnalystId === analystIdFilter);
-        if (!matchesAnalyst) return false;
-      }
-
-      // 8. Urgency Filter - shares the Overdue tile's predicate so a
-      // ?urgency=overdue deep link and the tile never disagree. (This also
-      // stops long-closed samples counting as overdue forever.)
-      if (urgencyFilter === "overdue" && !WORKLOAD_PREDICATES.overdue(r, workloadCtx)) {
-        return false;
-      }
-
-      // 9. Date Range Filters
-      if (r.receivedAt) {
-        const dateStr = r.receivedAt.slice(0, 10);
-        if (fromDate && dateStr < fromDate) return false;
-        if (toDate && dateStr > toDate) return false;
-      }
-
-      return true;
-    });
-  }, [
-    records,
-    showSelectedOnly,
-    checkedSampleIds,
-    search,
-    workloadFilter,
-    categoryFilter,
-    sampleStatusFilter,
-    testStatusFilter,
-    analystIdFilter,
-    urgencyFilter,
-    fromDate,
-    toDate,
-    userId,
-    role
-  ]);
-
-  // Checked samples the current filters have pushed out of view. Checked ids
-  // are never silently dropped when a filter changes, so this is what makes
-  // the difference visible instead of surprising.
+  // Checked samples the current filters/page have pushed out of view.
   const hiddenCheckedCount = useMemo(() => {
     if (checkedSampleIds.size === 0) return 0;
-    const visible = new Set(filteredRecords.map((r) => r.sampleId));
+    if (showSelectedOnly) return 0;
+    const visible = new Set((records || []).map((r) => r.sampleId));
     let hidden = 0;
     checkedSampleIds.forEach((id) => {
       if (!visible.has(id)) hidden += 1;
     });
     return hidden;
-  }, [checkedSampleIds, filteredRecords]);
+  }, [checkedSampleIds, records, showSelectedOnly]);
 
   // Derive Selected Sample Object
   const selectedSample = useMemo(() => {
-    if (!selectedSampleId || !records) return null;
-    return records.find((s) => s.sampleId === selectedSampleId) || null;
-  }, [selectedSampleId, records]);
+    if (!selectedSampleId) return null;
+    if (records) {
+      const found = records.find((s) => s.sampleId === selectedSampleId);
+      if (found) return found;
+    }
+    if (extraSelectedSample && extraSelectedSample.sampleId === selectedSampleId) {
+      return extraSelectedSample;
+    }
+    if (checkedSamplesCache.current.has(selectedSampleId)) {
+      return checkedSamplesCache.current.get(selectedSampleId) || null;
+    }
+    return null;
+  }, [selectedSampleId, records, extraSelectedSample]);
+
+  const handlePageChange = (_: unknown, newPage: number) => {
+    setPage(newPage + 1);
+  };
+
+  const handleRowsPerPageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setPageSize(parseInt(event.target.value, 10));
+    setPage(1);
+  };
 
   // Event Handlers
   const handleSelectSample = (sample: SampleRecord | WorkspaceSampleCard) => {
     setSelectedSampleId(sample.sampleId);
+    setExtraSelectedSample(sample as SampleRecord);
   };
 
   const handleDeselectSample = () => {
     setSelectedSampleId(null);
+    setExtraSelectedSample(null);
   };
 
   const handleTestClick = (test: ReceivingTestOrderSummary | WorkspaceTestOrderSummary, sample: SampleRecord | WorkspaceSampleCard) => {
@@ -506,32 +611,31 @@ export function ReceivingTestingWorkspacePage() {
 
       {/* Unified KPI Status Cards */}
       <SampleStatusKpiCards
-        samples={records || []}
+        counts={workloadCounts}
         activeKey={workloadFilter}
         onSelect={handleSelectWorkload}
-        userId={userId}
         isSectionHeadOrAdmin={role === "SectionHead" || role === "SystemAdministrator"}
       />
 
-      {/* Unified Filter Bar - search, display-mode toggle, and export all live here now (the separate All/Mine/Needs Action/Completed tab strip above it was dropped, its counts overlapped this bar's own Sample Status filter) */}
+      {/* Unified Filter Bar - search, display-mode toggle, and export all live here */}
       <SampleFilterBar
         search={search}
         onSearchChange={setSearch}
         categoryFilter={categoryFilter}
-        onCategoryFilterChange={setCategoryFilter}
+        onCategoryFilterChange={handleCategoryFilterChange}
         sampleStatusFilter={sampleStatusFilter}
         onSampleStatusFilterChange={handleSampleStatusFilterChange}
         testStatusFilter={testStatusFilter}
-        onTestStatusFilterChange={setTestStatusFilter}
+        onTestStatusFilterChange={handleTestStatusFilterChange}
         fromDate={fromDate}
-        onFromDateChange={setFromDate}
+        onFromDateChange={handleFromDateChange}
         toDate={toDate}
-        onToDateChange={setToDate}
+        onToDateChange={handleToDateChange}
         onResetFilters={handleResetFilters}
         hasActiveFilters={hasActiveFilters}
         viewMode={viewMode}
         onViewModeChange={setViewMode}
-        onExport={() => exportSamplesToCsv(filteredRecords)}
+        onExport={() => exportSamplesToCsv(displayRecords)}
       />
 
       {/* Selection summary - rendered above the layout branch so it survives
@@ -572,8 +676,8 @@ export function ReceivingTestingWorkspacePage() {
           >
             <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <Typography sx={{ fontSize: 14, fontWeight: 700, color: theme.palette.primary.main }}>
-                Laboratory Register ({filteredRecords.length}
-                {records && filteredRecords.length !== records.length ? ` of ${records.length}` : ""})
+                Laboratory Register ({displayRecords.length}
+                {!showSelectedOnly && totalCount > displayRecords.length ? ` of ${totalCount}` : ""})
               </Typography>
               <Typography sx={{ fontSize: 11, color: "text.secondary" }}>
                 {checkedSampleIds.size} checked
@@ -602,7 +706,7 @@ export function ReceivingTestingWorkspacePage() {
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {filteredRecords.map((s) => (
+                  {displayRecords.map((s) => (
                     <SampleTableRow
                       key={s.sampleId}
                       sample={s as unknown as WorkspaceSampleCard}
@@ -618,7 +722,7 @@ export function ReceivingTestingWorkspacePage() {
                       onLifecycleBadgeClick={setSummarySampleId}
                     />
                   ))}
-                  {filteredRecords.length === 0 && (
+                  {displayRecords.length === 0 && (
                     <TableRow>
                       <TableCell colSpan={4} align="center" sx={{ py: 3, color: "text.secondary", fontSize: 12 }}>
                         No matching samples found.
@@ -627,6 +731,28 @@ export function ReceivingTestingWorkspacePage() {
                   )}
                 </TableBody>
               </Table>
+              {!showSelectedOnly && totalCount > 0 && (
+                <TablePagination
+                  component="div"
+                  count={totalCount}
+                  page={Math.max(0, page - 1)}
+                  onPageChange={handlePageChange}
+                  rowsPerPage={pageSize}
+                  onRowsPerPageChange={handleRowsPerPageChange}
+                  rowsPerPageOptions={[25, 50, 100]}
+                  sx={{
+                    borderTop: "1px solid",
+                    borderColor: "divider",
+                    "& .MuiTablePagination-selectLabel, & .MuiTablePagination-displayedRows": {
+                      fontSize: 11
+                    },
+                    "& .MuiTablePagination-toolbar": {
+                      minHeight: 36,
+                      px: 1
+                    }
+                  }}
+                />
+              )}
             </Paper>
           </Box>
 
@@ -644,7 +770,8 @@ export function ReceivingTestingWorkspacePage() {
               selectedSampleIds={Array.from(checkedSampleIds)}
               onDeselectAll={handleDeselectAllChecked}
               onOpenWorkflow={(sampleId, testOrderId) => {
-                const sample = records.find((r) => r.sampleId === sampleId);
+                const sample = displayRecords.find((r) => r.sampleId === sampleId) ||
+                  (extraSelectedSample?.sampleId === sampleId ? extraSelectedSample : null);
                 const test = sample?.assignedTests?.find((t) => t.testOrderId === testOrderId);
                 if (sample && test) {
                   handleTestClick(test as unknown as WorkspaceTestOrderSummary, sample as unknown as WorkspaceSampleCard);
@@ -690,8 +817,8 @@ export function ReceivingTestingWorkspacePage() {
           >
             <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <Typography sx={{ fontSize: 14, fontWeight: 700, color: theme.palette.primary.main }}>
-                Laboratory Register ({filteredRecords.length}
-                {records && filteredRecords.length !== records.length ? ` of ${records.length}` : ""})
+                Laboratory Register ({displayRecords.length}
+                {!showSelectedOnly && totalCount > displayRecords.length ? ` of ${totalCount}` : ""})
               </Typography>
               <Typography sx={{ fontSize: 11, color: "text.secondary" }}>
                 Click a sample to switch
@@ -719,7 +846,7 @@ export function ReceivingTestingWorkspacePage() {
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {filteredRecords.map((s) => (
+                  {displayRecords.map((s) => (
                     <SampleTableRow
                       key={s.sampleId}
                       sample={s as unknown as WorkspaceSampleCard}
@@ -735,7 +862,7 @@ export function ReceivingTestingWorkspacePage() {
                       onLifecycleBadgeClick={setSummarySampleId}
                     />
                   ))}
-                  {filteredRecords.length === 0 && (
+                  {displayRecords.length === 0 && (
                     <TableRow>
                       <TableCell colSpan={4} align="center" sx={{ py: 3, color: "text.secondary", fontSize: 12 }}>
                         No matching samples found.
@@ -744,6 +871,28 @@ export function ReceivingTestingWorkspacePage() {
                   )}
                 </TableBody>
               </Table>
+              {!showSelectedOnly && totalCount > 0 && (
+                <TablePagination
+                  component="div"
+                  count={totalCount}
+                  page={Math.max(0, page - 1)}
+                  onPageChange={handlePageChange}
+                  rowsPerPage={pageSize}
+                  onRowsPerPageChange={handleRowsPerPageChange}
+                  rowsPerPageOptions={[25, 50, 100]}
+                  sx={{
+                    borderTop: "1px solid",
+                    borderColor: "divider",
+                    "& .MuiTablePagination-selectLabel, & .MuiTablePagination-displayedRows": {
+                      fontSize: 11
+                    },
+                    "& .MuiTablePagination-toolbar": {
+                      minHeight: 36,
+                      px: 1
+                    }
+                  }}
+                />
+              )}
             </Paper>
           </Box>
 
@@ -772,15 +921,31 @@ export function ReceivingTestingWorkspacePage() {
       ) : (
         /* FULL-WIDTH WORKSPACE REGISTER (When no sample is selected) */
         <>
-          <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1.5 }}>
+          <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1.5, flexWrap: "wrap", gap: 1 }}>
             <Typography sx={{ fontSize: 16, fontWeight: 700, color: theme.palette.primary.main }}>
-              Laboratory Register {records ? `(${filteredRecords.length}${filteredRecords.length !== records.length ? ` of ${records.length}` : ""})` : ""}
+              Laboratory Register {records ? `(${showSelectedOnly ? displayRecords.length : totalCount} ${totalCount === 1 ? "sample" : "samples"})` : ""}
             </Typography>
+
+            {!showSelectedOnly && totalCount > 0 && (
+              <TablePagination
+                component="div"
+                count={totalCount}
+                page={Math.max(0, page - 1)}
+                onPageChange={handlePageChange}
+                rowsPerPage={pageSize}
+                onRowsPerPageChange={handleRowsPerPageChange}
+                rowsPerPageOptions={[25, 50, 100, 200]}
+                sx={{
+                  "& .MuiTablePagination-toolbar": { minHeight: 36, px: 0 },
+                  "& .MuiTablePagination-selectLabel, & .MuiTablePagination-displayedRows": { fontSize: 12 }
+                }}
+              />
+            )}
           </Box>
 
           {viewMode === "table" && (
             <SampleRegisterTable
-              samples={filteredRecords}
+              samples={displayRecords}
               selectedSampleId={selectedSampleId}
               checkedSampleIds={checkedSampleIds}
               onToggleCheck={handleToggleCheckSample}
@@ -803,7 +968,7 @@ export function ReceivingTestingWorkspacePage() {
 
           {viewMode === "card" && (
             <SampleCardView
-              samples={filteredRecords as unknown as WorkspaceSampleCard[]}
+              samples={displayRecords as unknown as WorkspaceSampleCard[]}
               selectedSampleId={selectedSampleId}
               onSelectSample={(s) => setSelectedSampleId(s.sampleId)}
               onNeedsPreparationClick={(s) => handlePrepareSample(s)}
@@ -813,11 +978,39 @@ export function ReceivingTestingWorkspacePage() {
 
           {viewMode === "kanban" && (
             <SampleKanbanView
-              samples={filteredRecords as unknown as WorkspaceSampleCard[]}
+              samples={displayRecords as unknown as WorkspaceSampleCard[]}
               onCardClick={(sampleId) => {
                 setSelectedSampleId(sampleId);
               }}
             />
+          )}
+
+          {!showSelectedOnly && totalCount > pageSize && (
+            <Paper
+              elevation={0}
+              sx={{
+                mt: 1.5,
+                border: "1px solid",
+                borderColor: "divider",
+                borderRadius: 2,
+                bgcolor: "background.paper"
+              }}
+            >
+              <TablePagination
+                component="div"
+                count={totalCount}
+                page={Math.max(0, page - 1)}
+                onPageChange={handlePageChange}
+                rowsPerPage={pageSize}
+                onRowsPerPageChange={handleRowsPerPageChange}
+                rowsPerPageOptions={[25, 50, 100, 200]}
+                sx={{
+                  "& .MuiTablePagination-selectLabel, & .MuiTablePagination-displayedRows": {
+                    fontSize: 12
+                  }
+                }}
+              />
+            </Paper>
           )}
         </>
       )}

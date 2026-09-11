@@ -131,14 +131,16 @@ const TILES: TileConfig[] = [
 ];
 
 interface Props {
-  samples: SampleRecord[];
+  counts?: Record<WorkloadFilterKey, number> | null;
   activeKey: WorkloadFilterKey | null;
   onSelect: (key: WorkloadFilterKey) => void;
-  userId: number | null;
   isSectionHeadOrAdmin: boolean;
+  // Optional legacy props maintained for backward compatibility:
+  samples?: SampleRecord[];
+  userId?: number | null;
 }
 
-export function SampleStatusKpiCards({ samples, activeKey, onSelect, userId, isSectionHeadOrAdmin }: Props) {
+export function SampleStatusKpiCards({ counts, activeKey, onSelect, isSectionHeadOrAdmin }: Props) {
   const theme = useTheme();
 
   const visibleTiles = useMemo(
@@ -146,25 +148,11 @@ export function SampleStatusKpiCards({ samples, activeKey, onSelect, userId, isS
     [isSectionHeadOrAdmin]
   );
 
-  // One pass over the samples for all tiles, rather than one pass per tile.
-  const counts = useMemo(() => {
-    const ctx: WorkloadContext = { userId, isSectionHeadOrAdmin, now: Date.now() };
-    const totals = {} as Record<WorkloadFilterKey, number>;
-    for (const tile of visibleTiles) totals[tile.key] = 0;
-
-    for (const sample of samples) {
-      for (const tile of visibleTiles) {
-        if (WORKLOAD_PREDICATES[tile.key](sample, ctx)) totals[tile.key] += 1;
-      }
-    }
-    return totals;
-  }, [samples, visibleTiles, userId, isSectionHeadOrAdmin]);
-
   return (
     <Grid container spacing={1.5} sx={{ mb: 2.5 }}>
       {visibleTiles.map((card) => {
         const isActive = activeKey === card.key;
-        const count = counts[card.key] ?? 0;
+        const count = counts?.[card.key] ?? 0;
         const iconTokens = theme.custom.status[card.tone];
         const activeTokens = theme.custom.status.purple;
 

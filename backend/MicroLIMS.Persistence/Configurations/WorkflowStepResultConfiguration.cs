@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using MicroLIMS.Domain.Entities;
 
@@ -15,6 +15,13 @@ public class WorkflowStepResultConfiguration : IEntityTypeConfiguration<Workflow
         // Not unique: a BiochemicalTest result deliberately shares the
         // confirmatory step's incubation, since it has no window of its own.
         builder.HasIndex(r => r.IncubationId);
+
+        // One result row per step of a test order. The shared-TSB paths all
+        // guard their insert by reading first, which two concurrent requests
+        // can clear before either writes - that produced two "Broth
+        // enrichment" rows ~100ms apart on live test orders and broke
+        // GetCurrentStep for them. Only the database can settle that race.
+        builder.HasIndex(r => new { r.TestOrderId, r.StepName }).IsUnique();
 
         builder.HasOne(r => r.Incubation)
             .WithMany()

@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.DTOs;
@@ -247,9 +247,18 @@ public class TestWorkflowController : ControllerBase
             minimumDurationOverriddenAt = openIncubation.MinimumDurationOverriddenAt
         };
 
-        var wsrDict = await _db.WorkflowStepResults
-            .Where(r => r.TestOrderId == testOrderId)
-            .ToDictionaryAsync(r => r.StepName, r => r.IsSharedSessionStep);
+        // Grouped rather than keyed straight off the query: a pre-existing
+        // race could leave two rows for the same (TestOrderId, StepName),
+        // and ToDictionaryAsync threw ArgumentException on the duplicate key
+        // - taking the whole step down for a test order over a flag lookup.
+        // The unique index added in AddWorkflowStepResultUniqueStepName stops
+        // new duplicates; this keeps the read working for any that predate it.
+        var wsrDict = (await _db.WorkflowStepResults
+                .Where(r => r.TestOrderId == testOrderId)
+                .Select(r => new { r.StepName, r.IsSharedSessionStep })
+                .ToListAsync())
+            .GroupBy(r => r.StepName)
+            .ToDictionary(g => g.Key, g => g.Any(r => r.IsSharedSessionStep == true));
 
         var previousSteps = await _db.Incubations
             .Where(i => i.TestOrderId == testOrderId)

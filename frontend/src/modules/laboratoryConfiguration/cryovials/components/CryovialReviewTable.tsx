@@ -24,7 +24,7 @@ import { StatusBadge } from "../../../../components/StatusBadge";
 import { formatLabDate } from "../../../../utils/formatDate";
 import { CryovialItem } from "../types/cryovialTypes";
 import { isMaterialExpiringSoon } from "../../../inventory/materials/components/MaterialKpiCards";
-import { brandColors } from "../../../../theme";
+import { brandColors, tableHeadSx } from "../../../../theme";
 
 interface CryovialReviewTableProps {
   items: CryovialItem[];
@@ -62,7 +62,7 @@ export function CryovialReviewTable({
       <TableContainer sx={{ maxHeight: "calc(100vh - 360px)", minHeight: 300 }}>
         <Table size="small" stickyHeader>
           <TableHead>
-            <TableRow>
+            <TableRow sx={tableHeadSx}>
               <TableCell sx={{ fontWeight: 700, fontSize: 12, bgcolor: theme.custom.chrome.tableHeaderBg, color: theme.custom.chrome.tableHeaderText }}>
                 Code
               </TableCell>

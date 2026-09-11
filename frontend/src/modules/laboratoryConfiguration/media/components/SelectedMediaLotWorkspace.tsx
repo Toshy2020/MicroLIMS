@@ -505,12 +505,8 @@ export function SelectedMediaLotWorkspace({
                     variant="contained"
                     endIcon={<ArrowForwardIcon sx={{ fontSize: 14 }} />}
                     onClick={() => onOpenEvaluation(ev.id)}
-                    sx={{
-                      bgcolor: brandColors.sectionTitle,
-                      fontSize: 12,
-                      fontWeight: 700,
-                      "&:hover": { bgcolor: "#632273" }
-                    }}
+                    color="primary"
+                    sx={{ fontSize: 12, fontWeight: 700 }}
                   >
                     {ev.status === "Completed" ? "View Evaluation Workflow" : "Open / Continue Evaluation"}
                   </Button>

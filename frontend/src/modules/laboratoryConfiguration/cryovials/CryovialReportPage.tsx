@@ -9,6 +9,7 @@ import {
 import { ArchivedRecordsService, ArchivedRecordSummary } from "../../testingWorkspace/services/ArchivedRecordsService";
 import { CryovialSummary } from "./types/cryovialSummaryTypes";
 import { PinnedLightTheme } from "../../../theme/PinnedLightTheme";
+import { lightTheme } from "../../../theme";
 
 function approvalTone(s: CryovialSummary): "" | "is-danger" | "is-warning" | "is-neutral" {
   if (s.isDestroyed || s.approvalStatus === "Rejected") return "is-danger";
@@ -41,8 +42,8 @@ export function CryovialReportPage() {
     if (summary) document.title = `Cryovial Batch Record - ${summary.code}`;
   }, [summary]);
 
-  if (error) return <PinnedLightTheme><div style={{ padding: 32, fontFamily: "Segoe UI, sans-serif", color: "#dc2626" }}>{error}</div></PinnedLightTheme>;
-  if (!summary) return <PinnedLightTheme><div style={{ padding: 32, fontFamily: "Segoe UI, sans-serif", color: "#666" }}>Loading record…</div></PinnedLightTheme>;
+  if (error) return <PinnedLightTheme><div style={{ padding: 32, fontFamily: "Segoe UI, sans-serif", color: lightTheme.palette.error.main }}>{error}</div></PinnedLightTheme>;
+  if (!summary) return <PinnedLightTheme><div style={{ padding: 32, fontFamily: "Segoe UI, sans-serif", color: lightTheme.palette.text.secondary }}>Loading record…</div></PinnedLightTheme>;
 
   const s = summary;
   const tone = approvalTone(s);
@@ -104,7 +105,7 @@ export function CryovialReportPage() {
               : (s.physicalCheckText || "No physical check recorded")}
           </div>
           {s.physicalCheckConfirmed && s.physicalCheckText && (
-            <div style={{ fontSize: 13, color: "#666", marginTop: 4 }}>
+            <div style={{ fontSize: 13, color: "var(--color-text-tertiary)", marginTop: 4 }}>
               Notes: {s.physicalCheckText}
             </div>
           )}
@@ -131,7 +132,7 @@ export function CryovialReportPage() {
             </div>
             <div className="observation-row">
               {s.identityConfirmations.length === 0 ? (
-                <span style={{ fontSize: 13, color: "#888" }}>No panel rows recorded.</span>
+                <span style={{ fontSize: 13, color: "var(--color-text-quaternary)" }}>No panel rows recorded.</span>
               ) : (
                 s.identityConfirmations.map((i, idx) => (
                   <div className="observation-item" key={idx}>

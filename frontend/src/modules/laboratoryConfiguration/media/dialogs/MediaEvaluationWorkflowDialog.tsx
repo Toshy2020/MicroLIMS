@@ -17,7 +17,6 @@ import { MediaEvaluationService } from "../../mediaEvaluation/services/MediaEval
 import { CryovialService } from "../../cryovials/services/CryovialService";
 import { MaterialService } from "../../../inventory/materials/services/MaterialService";
 import { masterDataOptions, evaluationTypeLabel } from "../../../../services/masterDataOptions";
-import { brandColors } from "../../../../theme";
 
 interface Props {
   open: boolean;
@@ -347,7 +346,7 @@ export function MediaEvaluationWorkflowDialog({ open, evaluationId, onClose, onU
                               variant="contained"
                               disabled={!form.sourceSelection}
                               onClick={() => pickOrganismSource(c)}
-                              sx={{ bgcolor: brandColors.sectionTitle, "&:hover": { bgcolor: "#632273" } }}
+                              color="primary"
                             >
                               Assign
                             </Button>
@@ -394,7 +393,7 @@ export function MediaEvaluationWorkflowDialog({ open, evaluationId, onClose, onU
                             variant="contained"
                             disabled={!form.incubatorEquipmentId}
                             onClick={() => recordIncubation(c)}
-                            sx={{ bgcolor: brandColors.sectionTitle, "&:hover": { bgcolor: "#632273" } }}
+                            color="primary"
                           >
                             Record Incubation
                           </Button>
@@ -531,7 +530,7 @@ export function MediaEvaluationWorkflowDialog({ open, evaluationId, onClose, onU
                             size="small"
                             variant="contained"
                             onClick={() => recordResult(c)}
-                            sx={{ bgcolor: brandColors.sectionTitle, "&:hover": { bgcolor: "#632273" } }}
+                            color="primary"
                           >
                             Record Result
                           </Button>

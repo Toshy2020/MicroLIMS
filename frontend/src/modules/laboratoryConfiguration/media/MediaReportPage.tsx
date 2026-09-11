@@ -9,6 +9,7 @@ import {
 import { ArchivedRecordsService, ArchivedRecordSummary } from "../../testingWorkspace/services/ArchivedRecordsService";
 import { MediaSummary, MediaChallengeSummary } from "./types/mediaSummaryTypes";
 import { PinnedLightTheme } from "../../../theme/PinnedLightTheme";
+import { lightTheme } from "../../../theme";
 
 function releaseTone(s: MediaSummary): "" | "is-danger" | "is-warning" | "is-neutral" {
   if (s.status === "OutOfStock") return "is-neutral";
@@ -45,8 +46,8 @@ export function MediaReportPage() {
     if (summary) document.title = `Media Lot Record - ${summary.lotNumber}`;
   }, [summary]);
 
-  if (error) return <PinnedLightTheme><div style={{ padding: 32, fontFamily: "Segoe UI, sans-serif", color: "#dc2626" }}>{error}</div></PinnedLightTheme>;
-  if (!summary) return <PinnedLightTheme><div style={{ padding: 32, fontFamily: "Segoe UI, sans-serif", color: "#666" }}>Loading record…</div></PinnedLightTheme>;
+  if (error) return <PinnedLightTheme><div style={{ padding: 32, fontFamily: "Segoe UI, sans-serif", color: lightTheme.palette.error.main }}>{error}</div></PinnedLightTheme>;
+  if (!summary) return <PinnedLightTheme><div style={{ padding: 32, fontFamily: "Segoe UI, sans-serif", color: lightTheme.palette.text.secondary }}>Loading record…</div></PinnedLightTheme>;
 
   const s = summary;
   const tone = releaseTone(s);
@@ -128,7 +129,7 @@ export function MediaReportPage() {
             <div className="line" />
           </div>
           {!s.evaluation ? (
-            <div className="section-card"><span style={{ fontSize: 13, color: "#888" }}>No evaluation assigned.</span></div>
+            <div className="section-card"><span style={{ fontSize: 13, color: "var(--color-text-quaternary)" }}>No evaluation assigned.</span></div>
           ) : (
             <div className="test-card">
               <div className="test-header">
@@ -154,7 +155,7 @@ export function MediaReportPage() {
 
               <div className="observation-row">
                 {s.evaluation.challenges.length === 0 ? (
-                  <span style={{ fontSize: 13, color: "#888" }}>
+                  <span style={{ fontSize: 13, color: "var(--color-text-quaternary)" }}>
                     No challenge organisms configured for this material — the lot cannot conform until challenge specs exist.
                   </span>
                 ) : s.evaluation.evaluationType === "GrowthPromotion" ? (

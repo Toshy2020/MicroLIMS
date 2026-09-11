@@ -21,7 +21,6 @@ import { MaterialService } from "../../../inventory/materials/services/MaterialS
 import { EquipmentConfigurationService, AutoclaveProgram } from "../../masterDataSimple/services/EquipmentConfigurationService";
 import { masterDataOptions } from "../../../../services/masterDataOptions";
 import { apiClient } from "../../../../services/apiClient";
-import { brandColors } from "../../../../theme";
 
 interface Props {
   open: boolean;
@@ -363,11 +362,8 @@ export function MediaPreparationDialog({ open, onClose, onSuccess }: Props) {
             type="submit"
             variant="contained"
             disabled={saving}
-            sx={{
-              bgcolor: brandColors.sectionTitle,
-              fontWeight: 700,
-              "&:hover": { bgcolor: "#632273" }
-            }}
+            color="primary"
+            sx={{ fontWeight: 700 }}
           >
             {saving ? "Saving…" : "Save Prepared Lot"}
           </Button>

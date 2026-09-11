@@ -10,6 +10,7 @@ import { FloatingDialog } from "../../../components/FloatingDialog";
 import { MediaEvaluationService } from "./services/MediaEvaluationService";
 import { CryovialService } from "../cryovials/services/CryovialService";
 import { masterDataOptions, mediaClassLabel, evaluationTypeLabel } from "../../../services/masterDataOptions";
+import { tableHeadSx } from "../../../theme";
 
 const STATUSES = ["Assigned", "InProgress", "Completed"];
 
@@ -125,7 +126,7 @@ export function MediaEvaluationPage() {
           {STATUSES.map((s) => <MenuItem key={s} value={s}>{s}</MenuItem>)}
         </Select>
         <Table size="small">
-          <TableHead><TableRow>
+          <TableHead><TableRow sx={tableHeadSx}>
             <TableCell>Lot</TableCell><TableCell>Media Type</TableCell><TableCell>Evaluation Type</TableCell>
             <TableCell>Status</TableCell><TableCell>Outcome</TableCell>
           </TableRow></TableHead>

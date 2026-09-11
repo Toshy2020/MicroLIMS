@@ -31,6 +31,7 @@ import { OrganismPicker } from "../../../components/OrganismPicker";
 import { ConfirmationDialog } from "../../../components/ConfirmationDialog";
 import { masterDataOptions, evaluationTypeLabel } from "../../../services/masterDataOptions";
 import { MaterialService } from "../../inventory/materials/services/MaterialService";
+import { tableHeadSx } from "../../../theme";
 
 const EVALUATION_TYPES = [
   { value: "GrowthPromotion", label: "Growth Promotion" },
@@ -434,7 +435,7 @@ export function MediaConfigurationPage() {
           <Paper variant="outlined" sx={{ p: 1, mb: 2, backgroundColor: "background.default" }}>
             <Table size="small">
               <TableHead>
-                <TableRow>
+                <TableRow sx={tableHeadSx}>
                   <TableCell>Organism</TableCell>
                   <TableCell>ATCC / Ref</TableCell>
                   <TableCell>Role</TableCell>
@@ -480,7 +481,7 @@ export function MediaConfigurationPage() {
       <Paper sx={{ p: 2.5 }}>
         <Table>
           <TableHead>
-            <TableRow>
+            <TableRow sx={tableHeadSx}>
               <TableCell sx={{ width: 40 }} />
               <TableCell>Media Name</TableCell>
               <TableCell>Evaluation Type</TableCell>
@@ -553,7 +554,7 @@ export function MediaConfigurationPage() {
                             </Typography>
                             <Table size="small" sx={{ mb: 2 }}>
                               <TableHead>
-                                <TableRow>
+                                <TableRow sx={tableHeadSx}>
                                   <TableCell>Scientific Name</TableCell>
                                   <TableCell>ATCC Number</TableCell>
                                   <TableCell>Role</TableCell>

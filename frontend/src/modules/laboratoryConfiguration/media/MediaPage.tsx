@@ -189,9 +189,10 @@ export function MediaPage() {
           <Button
             size="small"
             variant="contained"
+            color="primary"
             startIcon={<AddIcon />}
             onClick={() => setPrepDialogOpen(true)}
-            sx={{ bgcolor: brandColors.sectionTitle, fontWeight: 700, "&:hover": { bgcolor: brandColors.pageTitle } }}
+            sx={{ fontWeight: 700 }}
           >
             + Prepare New Media Lot
           </Button>

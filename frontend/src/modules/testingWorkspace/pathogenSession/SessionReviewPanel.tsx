@@ -14,29 +14,19 @@ import {
   Alert,
   Divider,
   CircularProgress,
-  Collapse,
-  IconButton,
   Card,
   CardContent,
   Tooltip,
   useTheme
 } from "@mui/material";
-import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 import VerifiedUserOutlinedIcon from "@mui/icons-material/VerifiedUserOutlined";
-import ScienceOutlinedIcon from "@mui/icons-material/ScienceOutlined";
-import FactCheckOutlinedIcon from "@mui/icons-material/FactCheckOutlined";
 import TaskAltIcon from "@mui/icons-material/TaskAlt";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import KeyboardArrowUpIcon from "@mui/icons-material/KeyboardArrowUp";
 import WarningAmberOutlinedIcon from "@mui/icons-material/WarningAmberOutlined";
-import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
-import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import {
   PathogenTestingSessionDto,
-  MatrixCellResultDto,
-  SessionLocationDto,
-  GrowthObservation,
-  ConfirmationResult
+  MatrixCellResultDto
 } from "../types/pathogenSessionTypes";
 import { PathogenSessionService } from "../services/PathogenSessionService";
 import { SharedTsbStatusCard } from "./SharedTsbStatusCard";

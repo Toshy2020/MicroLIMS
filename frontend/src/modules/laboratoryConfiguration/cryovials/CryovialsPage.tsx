@@ -13,7 +13,6 @@ import { CryovialReviewTable } from "./components/CryovialReviewTable";
 import { PrepareCryovialBatchDialog } from "./components/PrepareCryovialBatchDialog";
 import { ThawVialReasonDialog } from "./components/ThawVialReasonDialog";
 import { DestroyCryovialDialog } from "./components/DestroyCryovialDialog";
-import { brandColors } from "../../../theme";
 
 const INITIAL_FILTERS: CryovialFilterState = {
   search: "",
@@ -176,9 +175,8 @@ export function CryovialsPage() {
           variant="contained"
           startIcon={<AddIcon />}
           onClick={() => setIsPrepareOpen(true)}
+          color="primary"
           sx={{
-            bgcolor: brandColors.pageTitle,
-            "&:hover": { bgcolor: "#581c87" },
             px: 2.5,
             py: 1,
             fontWeight: 700,

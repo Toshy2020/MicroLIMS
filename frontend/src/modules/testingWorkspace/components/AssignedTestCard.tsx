@@ -49,6 +49,15 @@ export function AssignedTestCard({
   onActionComplete
 }: AssignedTestCardProps) {
   const theme = useTheme();
+
+  // Water, EM and After Cleaning create their test orders inside PrepareAsync,
+  // so before preparation those samples have no tests to interact with at all.
+  // Product-like samples get their tests at receipt, so the tests sit here
+  // fully clickable while the sample is still unprepared - the analyst starts
+  // one, the backend correctly refuses it, and the only feedback is an error.
+  // Offer the action only once it can actually succeed.
+  const awaitingPreparation = sample.preparationStatus === "NeedsPreparation";
+
   const [expanded, setExpanded] = useState(false);
   const [optimisticIncubating, setOptimisticIncubating] = useState(false);
   const [optimisticDetails, setOptimisticDetails] = useState<{
@@ -358,7 +367,18 @@ export function AssignedTestCard({
 
     try {
       const started = await handleStartIncubation();
-      if (started?.expectedReadingAt || started?.incubationEndUtc) {
+
+      // A refusal must never leave the optimistic state standing: showing a
+      // countdown for an incubation that was never created is the one failure
+      // this card must not have. Treat "no incubation came back" as a failure
+      // as well, so this does not depend solely on the hook throwing.
+      if (!started) {
+        setOptimisticIncubating(false);
+        setOptimisticDetails(null);
+        return;
+      }
+
+      if (started.expectedReadingAt || started.incubationEndUtc) {
         const actualEndUtc = started.expectedReadingAt || started.incubationEndUtc;
         setOptimisticDetails((prev) => (prev ? { ...prev, endUtc: actualEndUtc } : null));
       }
@@ -422,30 +442,43 @@ export function AssignedTestCard({
 
         {/* Right: "Open Workflow ->" Link + 24x24px Chevron Toggle */}
         <Box sx={{ display: "flex", alignItems: "center", gap: 0.75, flexShrink: 0 }} onClick={(e) => e.stopPropagation()}>
-          <Button
-            size="small"
-            variant="text"
-            data-no-row-click="true"
-            endIcon={<ArrowForwardIcon sx={{ fontSize: 13 }} />}
-            onClick={(e) => {
-              e.stopPropagation();
-              onTestClick(test, sample);
-            }}
-            sx={{
-              color: theme.palette.primary.main,
-              fontSize: 11.5,
-              fontWeight: 700,
-              p: 0,
-              minWidth: "auto",
-              textTransform: "none",
-              "&:hover": { bgcolor: "transparent", textDecoration: "underline" }
-            }}
+          <Tooltip
+            title={
+              awaitingPreparation
+                ? "Complete and sign the sample preparation before starting laboratory testing."
+                : ""
+            }
           >
-            Open Workflow
-          </Button>
+            {/* span: a disabled MUI Button fires no events, so the tooltip
+                needs a wrapper that still does. */}
+            <span>
+              <Button
+                size="small"
+                variant="text"
+                data-no-row-click="true"
+                disabled={awaitingPreparation}
+                endIcon={<ArrowForwardIcon sx={{ fontSize: 13 }} />}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onTestClick(test, sample);
+                }}
+                sx={{
+                  color: theme.palette.primary.main,
+                  fontSize: 11.5,
+                  fontWeight: 700,
+                  p: 0,
+                  minWidth: "auto",
+                  textTransform: "none",
+                  "&:hover": { bgcolor: "transparent", textDecoration: "underline" }
+                }}
+              >
+                Open Workflow
+              </Button>
+            </span>
+          </Tooltip>
 
           {/* Chevron button: 24x24px. Shown when step requires media lot + incubator setup */}
-          {!effectiveIsIncubating && test.status !== "Approved" && requiresMediaSetup && (
+          {!effectiveIsIncubating && test.status !== "Approved" && requiresMediaSetup && !awaitingPreparation && (
             <Tooltip title={expanded ? "Close quick setup" : "Quick setup: Select Media & Incubator"}>
               <IconButton
                 size="small"

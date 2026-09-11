@@ -7,6 +7,9 @@ public static class ApplicationBuilderExtensions
     // Runs before authentication: safe to log/catch exceptions this early.
     public static IApplicationBuilder UseMicroLimsEarlyPipeline(this IApplicationBuilder app)
     {
+        // First in the pipeline - ExceptionMiddleware needs the
+        // correlation id to already exist when it catches.
+        app.UseMiddleware<CorrelationIdMiddleware>();
         app.UseMiddleware<ExceptionMiddleware>();
         app.UseMiddleware<RequestLoggingMiddleware>();
         return app;

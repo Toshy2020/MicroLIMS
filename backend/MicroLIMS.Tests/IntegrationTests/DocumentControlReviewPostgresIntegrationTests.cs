@@ -88,7 +88,7 @@ public class DocumentControlReviewPostgresIntegrationTests
         return (author.Id, reviewer.Id, master.Id, revId);
     }
 
-    [Fact]
+    [PostgresFact]
     public async Task Postgres_CompleteReviewLifecycle_WithAuditing_AndMandatoryGate()
     {
         await using var db = _fixture.CreateDbContext();
@@ -174,7 +174,7 @@ public class DocumentControlReviewPostgresIntegrationTests
         Assert.Contains(auditLogs, a => a.ActionCode == "TechnicalReviewCompleted");
     }
 
-    [Fact]
+    [PostgresFact]
     public async Task Postgres_SoD_AuthorCannotReviewOrResolveFindings()
     {
         await using var db = _fixture.CreateDbContext();

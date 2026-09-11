@@ -91,7 +91,7 @@ public class DocumentControlTrainingAssignmentEnginePostgresIntegrationTests
         return (master.Id, rev1.Id);
     }
 
-    [Fact]
+    [PostgresFact]
     public async Task Postgres_UniqueIndex_EnforcesSingleAssignmentPerUserRevisionAndType()
     {
         await using var db = _fixture.CreateDbContext();
@@ -131,7 +131,7 @@ public class DocumentControlTrainingAssignmentEnginePostgresIntegrationTests
         Assert.NotNull(ex.InnerException);
     }
 
-    [Fact]
+    [PostgresFact]
     public async Task Postgres_EndToEndCascade_WithEffectiveDateWorkerActivation()
     {
         await using var db = _fixture.CreateDbContext();
@@ -219,7 +219,7 @@ public class DocumentControlTrainingAssignmentEnginePostgresIntegrationTests
         Assert.Equal(TrainingAssignmentStatus.Assigned, newAssignment.Status);
     }
 
-    [Fact]
+    [PostgresFact]
     public async Task Postgres_Obsolescence_CancelsOpenAssignmentsAcrossRevisions()
     {
         await using var db = _fixture.CreateDbContext();

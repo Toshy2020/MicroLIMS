@@ -124,7 +124,7 @@ public class DocumentControlAcknowledgementPostgresIntegrationTests
         return (master.Id, rev.Id, file.Id, assignment.Id);
     }
 
-    [Fact]
+    [PostgresFact]
     public async Task Postgres_AcknowledgeAssignment_PersistsEvidentiaryRecord_AndUpdatesAssignment()
     {
         await using var db = _fixture.CreateDbContext();
@@ -166,7 +166,7 @@ public class DocumentControlAcknowledgementPostgresIntegrationTests
         Assert.Equal(TrainingAssignmentStatus.Acknowledged, record.DocumentTrainingAssignment.Status);
     }
 
-    [Fact]
+    [PostgresFact]
     public async Task Postgres_DatabaseTrigger_BlocksDirectUpdateAndDeleteOnAcknowledgementRecords()
     {
         await using var db = _fixture.CreateDbContext();
@@ -201,7 +201,7 @@ public class DocumentControlAcknowledgementPostgresIntegrationTests
         Assert.Contains("append-only", deleteEx.Message, StringComparison.OrdinalIgnoreCase);
     }
 
-    [Fact]
+    [PostgresFact]
     public async Task Postgres_UniqueIndex_PreventsDuplicateAcknowledgementRecordsForSameAssignment()
     {
         await using var db = _fixture.CreateDbContext();
@@ -238,7 +238,7 @@ public class DocumentControlAcknowledgementPostgresIntegrationTests
         Assert.NotNull(ex.InnerException);
     }
 
-    [Fact]
+    [PostgresFact]
     public async Task Postgres_EndToEnd_ReadingProgressToAcknowledgementAndRetrainingPreservation()
     {
         await using var db = _fixture.CreateDbContext();

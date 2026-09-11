@@ -3,7 +3,6 @@ import {
   Box,
   Typography,
   Popover,
-  Paper,
   Divider,
   Button,
   List,
@@ -18,7 +17,6 @@ import FiberManualRecordIcon from "@mui/icons-material/FiberManualRecord";
 import { SampleRecord, TestOrderSummary } from "../types/receivingTypes";
 import { StatusBadge, statusColor } from "../../../components/StatusBadge";
 import { StatusTone } from "../../../theme/statusTokens";
-import { brandColors } from "../../../theme";
 
 interface Props {
   sample: SampleRecord;

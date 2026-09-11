@@ -23,12 +23,9 @@ import {
   CircularProgress,
   IconButton,
   Tooltip,
-  Divider
+  useTheme
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
-import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
-import WarningAmberIcon from "@mui/icons-material/WarningAmber";
-import HistoryIcon from "@mui/icons-material/History";
 import AddCommentIcon from "@mui/icons-material/AddComment";
 import DoneIcon from "@mui/icons-material/Done";
 import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
@@ -41,6 +38,7 @@ import type {
   PeriodicReviewOutcome
 } from "../types/documentControlTypes";
 import { useAuth } from "../../../contexts/AuthContext";
+import { tableHeadSx } from "../../../theme";
 
 interface PeriodicReviewWorkspaceDialogProps {
   open: boolean;
@@ -58,6 +56,7 @@ export function PeriodicReviewWorkspaceDialog({
   onTriggerCreateRevision
 }: PeriodicReviewWorkspaceDialogProps) {
   const { userId } = useAuth();
+  const theme = useTheme();
   const [loading, setLoading] = useState(false);
   const [workspace, setWorkspace] = useState<PeriodicReviewWorkspaceDto | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -174,7 +173,7 @@ export function PeriodicReviewWorkspaceDialog({
   return (
     <>
       <Dialog open={open} onClose={onClose} maxWidth="lg" fullWidth>
-        <DialogTitle sx={{ m: 0, p: 2, display: "flex", justifyContent: "space-between", alignItems: "center", bgcolor: "grey.50" }}>
+        <DialogTitle sx={{ m: 0, p: 2, display: "flex", justifyContent: "space-between", alignItems: "center", bgcolor: (t) => t.palette.mode === "dark" ? "action.hover" : "grey.50" }}>
           <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
             <AutoModeIcon color="primary" />
             <Box>
@@ -213,7 +212,7 @@ export function PeriodicReviewWorkspaceDialog({
           {!loading && workspace && (
             <Box sx={{ display: "flex", flexDirection: "column", gap: 2.5 }}>
               {/* Header Metadata Ribbon */}
-              <Paper variant="outlined" sx={{ p: 2, bgcolor: "grey.50" }}>
+              <Paper variant="outlined" sx={{ p: 2, bgcolor: (t) => t.palette.mode === "dark" ? "action.hover" : "grey.50" }}>
                 <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "repeat(3, 1fr)", md: "repeat(6, 1fr)" }, gap: 1.5 }}>
                   <Box>
                     <Typography variant="caption" color="text.secondary" display="block">MicroLIMS ID</Typography>
@@ -328,7 +327,7 @@ export function PeriodicReviewWorkspaceDialog({
 
                   <TableContainer component={Paper} variant="outlined">
                     <Table size="small">
-                      <TableHead sx={{ bgcolor: "grey.50" }}>
+                      <TableHead sx={tableHeadSx(theme)}>
                         <TableRow>
                           <TableCell sx={{ fontWeight: 700, width: 90 }}>Page #</TableCell>
                           <TableCell sx={{ fontWeight: 700, width: 110 }}>Section</TableCell>
@@ -385,7 +384,7 @@ export function PeriodicReviewWorkspaceDialog({
               {currentTab === 1 && (
                 <TableContainer component={Paper} variant="outlined">
                   <Table size="small">
-                    <TableHead sx={{ bgcolor: "grey.50" }}>
+                    <TableHead sx={tableHeadSx(theme)}>
                       <TableRow>
                         <TableCell sx={{ fontWeight: 700 }}>Review Date</TableCell>
                         <TableCell sx={{ fontWeight: 700 }}>Revision</TableCell>

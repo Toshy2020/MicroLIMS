@@ -13,7 +13,6 @@ import { MediaGptReportService } from "../services/MediaGptReportService";
 import { MediaGptDetailDialog } from "./MediaGptDetailDialog";
 import { exportMediaGptPdf } from "../utils/exportMediaGptPdf";
 import { useAuth } from "../../../contexts/AuthContext";
-import { brandColors } from "../../../theme";
 import { DataTable, Column } from "../../../components/DataTable";
 
 const ROWS_PER_PAGE_OPTIONS = [10, 25, 50, 100];
@@ -158,7 +157,7 @@ export function MediaGptResultsTable({
           sx={{ fontSize: 10.5, height: 20, fontWeight: 600 }}
         />
         {r.isReleasedForUse && (
-          <Typography variant="caption" sx={{ display: "block", color: brandColors.ok, fontWeight: 700, fontSize: 10 }}>
+          <Typography variant="caption" sx={{ display: "block", color: "success.main", fontWeight: 700, fontSize: 10 }}>
             Released
           </Typography>
         )}
@@ -213,10 +212,11 @@ export function MediaGptResultsTable({
           <Button
             size="small"
             variant="contained"
+            color="primary"
             startIcon={<PictureAsPdfIcon />}
             onClick={handleExportPdf}
             disabled={items.length === 0}
-            sx={{ bgcolor: brandColors.sectionTitle, "&:hover": { bgcolor: "#4a0f61" }, fontWeight: 600 }}
+            sx={{ fontWeight: 600 }}
           >
             Print / PDF View {selectedIds.length > 0 ? `(${selectedIds.length})` : ""}
           </Button>

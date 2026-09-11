@@ -1,7 +1,6 @@
 import {
   Button, Box, Typography,
-  Grid, Paper, Table, TableHead, TableRow, TableCell, TableBody, Chip, Divider,
-  Stack, useTheme
+  Grid, Paper, Table, TableHead, TableRow, TableCell, TableBody, Chip, useTheme
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import ScienceIcon from "@mui/icons-material/Science";

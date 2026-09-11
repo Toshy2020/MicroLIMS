@@ -2418,6 +2418,74 @@ namespace MicroLIMS.Persistence.Migrations
                     b.ToTable("EquipmentStatusHistories");
                 });
 
+            modelBuilder.Entity("MicroLIMS.Domain.Entities.ErrorLog", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("CorrelationId")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("ExceptionType")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)");
+
+                    b.Property<string>("HttpMethod")
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)");
+
+                    b.Property<Guid>("IncidentId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Message")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("OccurredAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("RawContext")
+                        .HasColumnType("jsonb");
+
+                    b.Property<string>("RequestPath")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<int>("Severity")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("SeverityOverride")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Source")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("StackTrace")
+                        .HasColumnType("text");
+
+                    b.Property<int?>("StatusCode")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("UserId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CorrelationId");
+
+                    b.HasIndex("IncidentId");
+
+                    b.HasIndex("OccurredAtUtc");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("ErrorLogs", (string)null);
+                });
+
             modelBuilder.Entity("MicroLIMS.Domain.Entities.IdentityConfirmationEntry", b =>
                 {
                     b.Property<int>("Id")
@@ -2454,6 +2522,63 @@ namespace MicroLIMS.Persistence.Migrations
                     b.HasIndex("MediaId");
 
                     b.ToTable("IdentityConfirmationEntries");
+                });
+
+            modelBuilder.Entity("MicroLIMS.Domain.Entities.Incident", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("AlertedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CorrelationId")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<DateTime>("FirstSeenUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("LastSeenUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ResolutionNotes")
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)");
+
+                    b.Property<DateTime?>("ResolvedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("ResolvedByUserId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Severity")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Summary")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CorrelationId")
+                        .IsUnique();
+
+                    b.HasIndex("LastSeenUtc");
+
+                    b.HasIndex("ResolvedByUserId");
+
+                    b.HasIndex("Severity");
+
+                    b.HasIndex("Status");
+
+                    b.ToTable("Incidents", (string)null);
                 });
 
             modelBuilder.Entity("MicroLIMS.Domain.Entities.Incubation", b =>
@@ -4969,6 +5094,81 @@ namespace MicroLIMS.Persistence.Migrations
                     b.ToTable("SamplingConfigurations");
                 });
 
+            modelBuilder.Entity("MicroLIMS.Domain.Entities.SecurityAuditEvent", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<bool>("ActorIsSystem")
+                        .HasColumnType("boolean");
+
+                    b.Property<int?>("ActorUserId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("CorrelationId")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("EventCode")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("IpAddress")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("Metadata")
+                        .HasColumnType("jsonb");
+
+                    b.Property<DateTime>("OccurredAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("Outcome")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Reason")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<string>("RequestPath")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("Source")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<int?>("TargetUserId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("TargetUsername")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
+
+                    b.Property<string>("UserAgent")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ActorUserId");
+
+                    b.HasIndex("CorrelationId");
+
+                    b.HasIndex("OccurredAtUtc");
+
+                    b.HasIndex("EventCode", "OccurredAtUtc");
+
+                    b.HasIndex("TargetUserId", "OccurredAtUtc");
+
+                    b.ToTable("SecurityAuditEvents", (string)null);
+                });
+
             modelBuilder.Entity("MicroLIMS.Domain.Entities.Specification", b =>
                 {
                     b.Property<int>("Id")
@@ -6510,6 +6710,24 @@ namespace MicroLIMS.Persistence.Migrations
                     b.Navigation("EquipmentInventory");
                 });
 
+            modelBuilder.Entity("MicroLIMS.Domain.Entities.ErrorLog", b =>
+                {
+                    b.HasOne("MicroLIMS.Domain.Entities.Incident", "Incident")
+                        .WithMany("ErrorLogs")
+                        .HasForeignKey("IncidentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("MicroLIMS.Domain.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Incident");
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("MicroLIMS.Domain.Entities.IdentityConfirmationEntry", b =>
                 {
                     b.HasOne("MicroLIMS.Domain.Entities.Cryovial", "Cryovial")
@@ -6535,6 +6753,16 @@ namespace MicroLIMS.Persistence.Migrations
                     b.Navigation("IncubatorEquipment");
 
                     b.Navigation("Media");
+                });
+
+            modelBuilder.Entity("MicroLIMS.Domain.Entities.Incident", b =>
+                {
+                    b.HasOne("MicroLIMS.Domain.Entities.User", "ResolvedByUser")
+                        .WithMany()
+                        .HasForeignKey("ResolvedByUserId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("ResolvedByUser");
                 });
 
             modelBuilder.Entity("MicroLIMS.Domain.Entities.Incubation", b =>
@@ -7293,6 +7521,23 @@ namespace MicroLIMS.Persistence.Migrations
                     b.Navigation("WaterSamplingPoint");
                 });
 
+            modelBuilder.Entity("MicroLIMS.Domain.Entities.SecurityAuditEvent", b =>
+                {
+                    b.HasOne("MicroLIMS.Domain.Entities.User", "Actor")
+                        .WithMany()
+                        .HasForeignKey("ActorUserId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("MicroLIMS.Domain.Entities.User", "Target")
+                        .WithMany()
+                        .HasForeignKey("TargetUserId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Actor");
+
+                    b.Navigation("Target");
+                });
+
             modelBuilder.Entity("MicroLIMS.Domain.Entities.Specification", b =>
                 {
                     b.HasOne("MicroLIMS.Domain.Entities.Item", "Item")
@@ -7565,6 +7810,11 @@ namespace MicroLIMS.Persistence.Migrations
             modelBuilder.Entity("MicroLIMS.Domain.Entities.DocumentTrainingAssignment", b =>
                 {
                     b.Navigation("AcknowledgementRecord");
+                });
+
+            modelBuilder.Entity("MicroLIMS.Domain.Entities.Incident", b =>
+                {
+                    b.Navigation("ErrorLogs");
                 });
 
             modelBuilder.Entity("MicroLIMS.Domain.Entities.Item", b =>

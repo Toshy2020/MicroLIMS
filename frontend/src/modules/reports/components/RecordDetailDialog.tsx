@@ -1,7 +1,6 @@
 import { Button, Grid, Typography, Box, Divider , useTheme} from "@mui/material";
 import { ResultRecordItem } from "../types/reportingTypes";
 import { StatusBadge, CategoryBadge } from "../../../components/StatusBadge";
-import { brandColors } from "../../../theme";
 import { useState } from "react";
 import { AuditHistoryDialog } from "../../../components/AuditHistoryDialog";
 import { FloatingDialog } from "../../../components/FloatingDialog";

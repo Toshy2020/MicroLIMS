@@ -33,6 +33,17 @@ public class NoOpEmailSender : MicroLIMS.Infrastructure.Email.IEmailSender
     public Task SendAsync(string to, string subject, string body) => Task.CompletedTask;
 }
 
+public class SpyEmailSender : MicroLIMS.Infrastructure.Email.IEmailSender
+{
+    public List<(string To, string Subject, string Body)> Sent { get; } = new();
+
+    public Task SendAsync(string to, string subject, string body)
+    {
+        Sent.Add((to, subject, body));
+        return Task.CompletedTask;
+    }
+}
+
 // For the handful of tests that DO need to assert delivery (e.g. the
 // reviewer send-back notifying the analyst).
 public class SpyNotificationService : INotificationService

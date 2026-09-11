@@ -20,7 +20,7 @@ import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import AddIcon from "@mui/icons-material/Add";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import { ReceiveRowItem, SampleCategoryKey } from "../types/receivingTypes";
-import { brandColors, tableHeadSx } from "../../../theme";
+import { tableHeadSx } from "../../../theme";
 
 interface MasterData {
   items: any[];

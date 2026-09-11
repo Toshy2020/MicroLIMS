@@ -111,8 +111,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // on apiClient's request interceptor) because that interceptor reads
     // localStorage on a later microtask - by then clearLocalState() below
     // would already have removed the token, sending the call unauthenticated.
+    // The refresh token is sent so the backend revokes just this session
+    // rather than signing the account out everywhere. Read from storage
+    // rather than state for the same reason the header is set explicitly.
     if (token) {
-      apiClient.post("/auth/logout", null, { headers: { Authorization: `Bearer ${token}` } }).catch(() => {});
+      const storedRefreshToken = localStorage.getItem("microlims_refresh_token");
+      apiClient
+        .post(
+          "/auth/logout",
+          { refreshToken: storedRefreshToken },
+          { headers: { Authorization: `Bearer ${token}` } }
+        )
+        .catch(() => {});
     }
     clearLocalState();
   };

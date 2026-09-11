@@ -1,4 +1,4 @@
-﻿using MicroLIMS.Application.Interfaces;
+using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Application.Interfaces.DocumentControl;
 using MicroLIMS.Application.Services;
 using MicroLIMS.Application.Services.DocumentControl;
@@ -35,6 +35,14 @@ public static class ServiceCollectionExtensions
         services.AddScoped<WorkflowStateResolver>();
         services.AddScoped<IResultService, ResultService>();
         services.AddScoped<IReportService, ReportService>();
+        // Security Audit Trail. Scoped so an event is appended to the same
+        // DbContext (and therefore the same transaction) as the state
+        // change that caused it. The HTTP-backed request context supplies
+        // the technical correlation id, IP and user agent.
+        services.AddHttpContextAccessor();
+        services.AddScoped<ISecurityRequestContext, HttpSecurityRequestContext>();
+        services.AddScoped<ISecurityAuditService, SecurityAuditService>();
+
         services.AddScoped<IAuthenticationService, AuthenticationService>();
         services.AddScoped<IElectronicSignatureService, ElectronicSignatureService>();
         services.AddScoped<SegregationOfDutiesGuard>();
@@ -95,6 +103,9 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IDocumentAcknowledgementService, DocumentAcknowledgementService>();
         services.AddScoped<IDocumentEscalationService, DocumentEscalationService>();
         services.AddHostedService<MicroLIMS.API.BackgroundServices.DocumentEffectiveDateWorker>();
+        services.AddHostedService<MicroLIMS.API.BackgroundServices.DatabaseHealthMonitorWorker>();
+        services.AddHostedService<MicroLIMS.API.BackgroundServices.ErrorLogRetentionWorker>();
+        services.AddHostedService<MicroLIMS.API.BackgroundServices.CriticalAlertWorker>();
         services.AddScoped<MaterialService>();
         services.AddScoped<EquipmentInventoryService>();
         services.AddScoped<EquipmentConfigurationService>();
@@ -133,19 +144,40 @@ public static class ServiceCollectionExtensions
         // Infrastructure
         services.AddScoped<IPdfGenerator, PdfGenerator>();
         services.AddScoped<IWordGenerator, WordGenerator>();
-        services.AddScoped<IEmailSender>(_ => new EmailSender(
-            config["Smtp:Host"] ?? "",
-            int.TryParse(config["Smtp:Port"], out var p) ? p : 587,
-            config["Smtp:Username"] ?? "",
-            config["Smtp:Password"] ?? "",
-            config["Smtp:FromAddress"] ?? "no-reply@microlims.local",
-            bool.TryParse(config["Smtp:EnableSsl"], out var ssl) && ssl));
+        var smtpOptions = SmtpConfiguration.Resolve(config);
+        services.AddSingleton(smtpOptions);
+        services.Configure<SmtpOptions>(config.GetSection(SmtpOptions.SectionName));
+        services.AddScoped<IEmailSender>(sp => new EmailSender(sp.GetRequiredService<SmtpOptions>()));
+        // Error capture is a singleton that opens its own DbContext
+        // scope per write - the request-scoped context is typically
+        // mid-exception when an error is captured.
+        services.AddSingleton<IErrorCaptureService, ErrorCaptureService>();
+
+        // Read/triage side of the same data - scoped, ordinary querying.
+        services.AddScoped<IErrorMonitoringService, ErrorMonitoringService>();
+
+        // Critical incident alerting. Disabled unless explicitly enabled,
+        // so no environment can mail anyone by accident. Driven by
+        // CriticalAlertWorker rather than the request thread.
+        services.AddSingleton(new CriticalAlertOptions(
+            Enabled: config.GetValue("ErrorMonitoring:CriticalAlerts:Enabled", false),
+            Recipient: config["ErrorMonitoring:CriticalAlerts:Recipient"],
+            EnvironmentName: Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Unknown"));
+        services.AddScoped<ICriticalAlertService, CriticalAlertService>();
+
         services.AddSingleton<NotificationService>();
         services.AddSingleton<INotificationService>(sp => sp.GetRequiredService<NotificationService>());
         services.AddScoped<IFileStorageService>(_ => new LocalFileStorageService(config["Storage:BasePath"] ?? "storage"));
 
-        services.AddSingleton<IJwtTokenService>(_ => new JwtTokenService(
-            config["Jwt:Key"]!, config["Jwt:Issuer"]!, config["Jwt:Audience"]!));
+        // Takes the validated JwtSettings registered in Program.cs rather
+        // than reading Jwt:Key again - a second read is what allowed the
+        // signing key and the validation key to differ when the setting
+        // was absent (signing got null, validation got the fallback).
+        services.AddSingleton<IJwtTokenService>(sp =>
+        {
+            var jwt = sp.GetRequiredService<JwtSettings>();
+            return new JwtTokenService(jwt.Key, jwt.Issuer, jwt.Audience);
+        });
 
         // AuthenticationService needs a token-issuing delegate - wire it
         // from IJwtTokenService so Application does not reference Infrastructure directly.

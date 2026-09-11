@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import {
-  Box, Paper, Typography, TextField, FormControl, InputLabel, Select, MenuItem,
-  Button, Grid, Stack, Chip, Divider, IconButton, Tooltip, useTheme, Menu, Alert
+  Box, Paper, Typography, FormControl, InputLabel, Select, MenuItem,
+  Button, Grid, Stack, Chip, useTheme, Menu, Alert
 } from "@mui/material";
 import TableChartIcon from "@mui/icons-material/TableChart";
 import FileDownloadIcon from "@mui/icons-material/FileDownload";
@@ -9,7 +9,7 @@ import CompareArrowsIcon from "@mui/icons-material/CompareArrows";
 import LocationOnIcon from "@mui/icons-material/LocationOn";
 import {
   ResponsiveContainer, ComposedChart, Line, XAxis, YAxis, Tooltip as RechartsTooltip,
-  CartesianGrid, Legend, Dot, BarChart, Bar
+  CartesianGrid, Legend
 } from "recharts";
 import {
   NumericTrendPoint,

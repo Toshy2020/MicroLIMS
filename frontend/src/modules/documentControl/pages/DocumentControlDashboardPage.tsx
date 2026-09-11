@@ -1,11 +1,10 @@
-﻿import { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Box,
   Typography,
   Paper,
   Button,
-  Grid,
   Card,
   CardContent,
   CardActionArea,
@@ -17,7 +16,8 @@ import {
   TableRow,
   Chip,
   Alert,
-  CircularProgress
+  CircularProgress,
+  useTheme
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import LibraryBooksOutlinedIcon from "@mui/icons-material/LibraryBooksOutlined";
@@ -30,6 +30,7 @@ import HistoryOutlinedIcon from "@mui/icons-material/HistoryOutlined";
 import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 
 import { PageHeader } from "../../../components/PageHeader";
+import { tableHeadSx } from "../../../theme";
 import { StatusBadge } from "../../../components/StatusBadge";
 import { documentControlService } from "../services/documentControlService";
 import { RegisterDocumentDialog } from "../components/RegisterDocumentDialog";
@@ -40,6 +41,7 @@ import type {
 } from "../types/documentControlTypes";
 
 export function DocumentControlDashboardPage() {
+  const theme = useTheme();
   const navigate = useNavigate();
 
   const [loading, setLoading] = useState(true);
@@ -89,7 +91,7 @@ export function DocumentControlDashboardPage() {
   }, []);
 
   return (
-    <Box sx={{ p: 3, maxWidth: 1600, mx: "auto" }}>
+    <Box sx={{ pb: 4 }}>
       {/* Header */}
       <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", mb: 3 }}>
         <PageHeader
@@ -266,7 +268,7 @@ export function DocumentControlDashboardPage() {
 
           <TableContainer>
             <Table size="small">
-              <TableHead sx={{ bgcolor: "grey.50" }}>
+              <TableHead sx={tableHeadSx(theme)}>
                 <TableRow>
                   <TableCell sx={{ fontWeight: 700 }}>Company Code</TableCell>
                   <TableCell sx={{ fontWeight: 700 }}>Title</TableCell>
@@ -347,7 +349,7 @@ export function DocumentControlDashboardPage() {
                 sx={{
                   p: 1.5,
                   borderRadius: 1,
-                  bgcolor: "grey.50",
+                  bgcolor: (t) => t.palette.mode === "dark" ? "action.hover" : "grey.50",
                   border: "1px solid",
                   borderColor: "divider",
                   display: "flex",

@@ -12,7 +12,6 @@ import {
   MenuItem,
   Alert,
   Box,
-  Typography,
   CircularProgress
 } from "@mui/material";
 import { documentReviewService } from "../services/documentReviewService";

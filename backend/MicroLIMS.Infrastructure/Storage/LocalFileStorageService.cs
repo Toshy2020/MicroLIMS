@@ -1,6 +1,12 @@
 namespace MicroLIMS.Infrastructure.Storage;
 
-// Placeholder - swap for Azure Blob / S3 in production deployments.
+// Filesystem-backed implementation. Durable only if the directory behind
+// Storage:BasePath is itself durable - inside a container it is not, and
+// the files here include GxP evidence (see RecordArchiveService).
+//
+// Note SaveAsync returns the combined path rather than the key it was
+// given; callers persist that, which is what couples the database to this
+// location. See docs/Storage_Migration_Implications.md.
 public class LocalFileStorageService : IFileStorageService
 {
     private readonly string _basePath;

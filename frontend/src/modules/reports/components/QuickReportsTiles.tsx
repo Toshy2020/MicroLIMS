@@ -1,4 +1,4 @@
-import { Box, Paper, Typography, Tooltip, useTheme } from "@mui/material";
+import { Box, Paper, Typography, useTheme } from "@mui/material";
 import { brandColors } from "../../../theme";
 import { SampleCategory } from "../types/reportingTypes";
 

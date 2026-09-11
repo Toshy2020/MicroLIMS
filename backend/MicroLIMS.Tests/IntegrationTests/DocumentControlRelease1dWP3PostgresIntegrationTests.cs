@@ -129,7 +129,7 @@ public class DocumentControlRelease1dWP3PostgresIntegrationTests
         return (author, reviewer, approver, randomUser, master, rev);
     }
 
-    [Fact]
+    [PostgresFact]
     public async Task Test01_ActiveTechnicalReviewer_CanDownloadWordSourceFile_ForAssignedTask()
     {
         await using var db = _fixture.CreateDbContext();
@@ -171,7 +171,7 @@ public class DocumentControlRelease1dWP3PostgresIntegrationTests
         Assert.NotNull(auditLog);
     }
 
-    [Fact]
+    [PostgresFact]
     public async Task Test02_UnassignedTechnicalReviewer_IsDeniedDownloadOfWordSourceFile()
     {
         await using var db = _fixture.CreateDbContext();
@@ -198,7 +198,7 @@ public class DocumentControlRelease1dWP3PostgresIntegrationTests
         Assert.NotNull(auditLog);
     }
 
-    [Fact]
+    [PostgresFact]
     public async Task Test03_ReviewerAssignedToDocA_CannotDownloadWordSourceForDocB()
     {
         await using var db = _fixture.CreateDbContext();
@@ -232,7 +232,7 @@ public class DocumentControlRelease1dWP3PostgresIntegrationTests
             fileService.GetFileContentAsync(fileB.Id, reviewer.Id, isDownload: true));
     }
 
-    [Fact]
+    [PostgresFact]
     public async Task Test04_ReviewerWithCompletedOrCancelledTask_CannotDownloadWordSource()
     {
         await using var db = _fixture.CreateDbContext();
@@ -272,7 +272,7 @@ public class DocumentControlRelease1dWP3PostgresIntegrationTests
             fileService.GetFileContentAsync(uploadedFile.Id, reviewer.Id, isDownload: true));
     }
 
-    [Fact]
+    [PostgresFact]
     public async Task Test05_ActiveApprover_CanDownloadFinalWordSourceFile_ForAssignedApprovalTask()
     {
         await using var db = _fixture.CreateDbContext();
@@ -307,7 +307,7 @@ public class DocumentControlRelease1dWP3PostgresIntegrationTests
         Assert.Equal(1, metadata.FileVersion);
     }
 
-    [Fact]
+    [PostgresFact]
     public async Task Test06_UnassignedApprover_IsDeniedDownloadOfWordSourceFile()
     {
         await using var db = _fixture.CreateDbContext();
@@ -328,7 +328,7 @@ public class DocumentControlRelease1dWP3PostgresIntegrationTests
             fileService.GetFileContentAsync(uploadedFile.Id, approver.Id, isDownload: true));
     }
 
-    [Fact]
+    [PostgresFact]
     public async Task Test07_ApproverAssignedToDocA_CannotDownloadWordSourceForDocB()
     {
         await using var db = _fixture.CreateDbContext();
@@ -360,7 +360,7 @@ public class DocumentControlRelease1dWP3PostgresIntegrationTests
             fileService.GetFileContentAsync(fileB.Id, approver.Id, isDownload: true));
     }
 
-    [Fact]
+    [PostgresFact]
     public async Task Test08_TechnicalReviewer_CannotUploadReplacementWordSourceFile()
     {
         await using var db = _fixture.CreateDbContext();
@@ -390,7 +390,7 @@ public class DocumentControlRelease1dWP3PostgresIntegrationTests
         Assert.Contains("permission to upload or replace", ex.Message);
     }
 
-    [Fact]
+    [PostgresFact]
     public async Task Test09_Approver_CannotUploadReplacementWordSourceFile()
     {
         await using var db = _fixture.CreateDbContext();
@@ -420,7 +420,7 @@ public class DocumentControlRelease1dWP3PostgresIntegrationTests
         Assert.Contains("permission to upload or replace", ex.Message);
     }
 
-    [Fact]
+    [PostgresFact]
     public async Task Test10_UnauthenticatedOrAnonymousRequest_ToDownloadWordSourceFile_IsRejected()
     {
         await using var db = _fixture.CreateDbContext();
@@ -445,7 +445,7 @@ public class DocumentControlRelease1dWP3PostgresIntegrationTests
         Assert.NotEmpty(authAttrs);
     }
 
-    [Fact]
+    [PostgresFact]
     public async Task Test11_RandomAuthenticatedUser_GuessingFileId_CannotDownloadWordSourceFile()
     {
         await using var db = _fixture.CreateDbContext();
@@ -468,7 +468,7 @@ public class DocumentControlRelease1dWP3PostgresIntegrationTests
         Assert.Contains("restricted", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
-    [Fact]
+    [PostgresFact]
     public async Task Test12_InitialWordUpload_CreatesFileVersion1_Active_SupersededNull()
     {
         await using var db = _fixture.CreateDbContext();
@@ -502,7 +502,7 @@ public class DocumentControlRelease1dWP3PostgresIntegrationTests
         Assert.NotNull(auditLog);
     }
 
-    [Fact]
+    [PostgresFact]
     public async Task Test13_SecondWordUpload_CreatesFileVersion2_MarksV1Inactive_AndSetsSupersededBy()
     {
         await using var db = _fixture.CreateDbContext();
@@ -539,7 +539,7 @@ public class DocumentControlRelease1dWP3PostgresIntegrationTests
         Assert.NotNull(auditLog);
     }
 
-    [Fact]
+    [PostgresFact]
     public async Task Test14_ThirdWordUpload_CreatesFileVersion3_MarksV2Inactive_AndSetsSupersededBy()
     {
         await using var db = _fixture.CreateDbContext();
@@ -579,7 +579,7 @@ public class DocumentControlRelease1dWP3PostgresIntegrationTests
         Assert.Null(dbV3.SupersededByFileId);
     }
 
-    [Fact]
+    [PostgresFact]
     public async Task Test15_SupersededPhysicalFiles_ArePreservedOnDisk_AndSha256Verified()
     {
         await using var db = _fixture.CreateDbContext();
@@ -626,7 +626,7 @@ public class DocumentControlRelease1dWP3PostgresIntegrationTests
         Assert.NotNull(integrityLog);
     }
 
-    [Fact]
+    [PostgresFact]
     public async Task Test16_UploadingNonWordFile_AsSourceFile_IsRejectedWithArgumentException()
     {
         await using var db = _fixture.CreateDbContext();
@@ -652,7 +652,7 @@ public class DocumentControlRelease1dWP3PostgresIntegrationTests
             fileService.UploadRevisionFileAsync(rev.Id, FileRole.SourceFile, "file.txt", "text/plain", txtBytes, author.Id));
     }
 
-    [Fact]
+    [PostgresFact]
     public async Task Test17_UploadingInvalidOrCorruptWordFile_IsRejectedWithArgumentException()
     {
         await using var db = _fixture.CreateDbContext();
@@ -677,7 +677,7 @@ public class DocumentControlRelease1dWP3PostgresIntegrationTests
         Assert.Contains("valid Word document", exDoc.Message);
     }
 
-    [Fact]
+    [PostgresFact]
     public async Task Test18_ClientProvidedFileVersion_IsIgnoredAndCalculatedServerSide()
     {
         await using var db = _fixture.CreateDbContext();
@@ -702,7 +702,7 @@ public class DocumentControlRelease1dWP3PostgresIntegrationTests
         Assert.Equal(2, result2.FileVersion);
     }
 
-    [Fact]
+    [PostgresFact]
     public async Task Test19_ConcurrentSourceFileUploads_HandleVersionCollisionGracefully()
     {
         await using var db = _fixture.CreateDbContext();

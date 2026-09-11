@@ -148,7 +148,7 @@ public class DocumentControlLifecycleEndToEndPostgresIntegrationTests
         };
     }
 
-    [Fact]
+    [PostgresFact]
     public async Task WP8_EndToEnd_UnbrokenDocumentControlLifecycle_Postgres()
     {
         // -----------------------------------------------------------------------------------------
@@ -445,7 +445,7 @@ public class DocumentControlLifecycleEndToEndPostgresIntegrationTests
         Assert.Equal(expectedNextReview.Month, rev2InDb.NextReviewDate.Value.Month);
     }
 
-    [Fact]
+    [PostgresFact]
     public async Task WP8_PeriodicReview_RevisionRequired_Handoff_Postgres()
     {
         await using var db = _fixture.CreateDbContext();
@@ -525,7 +525,7 @@ public class DocumentControlLifecycleEndToEndPostgresIntegrationTests
         Assert.Contains(changeItems, c => c.SectionNumber == "3.2");
     }
 
-    [Fact]
+    [PostgresFact]
     public async Task WP8_PeriodicReview_ObsolescenceRecommended_Approval_Postgres()
     {
         await using var db = _fixture.CreateDbContext();
@@ -573,7 +573,7 @@ public class DocumentControlLifecycleEndToEndPostgresIntegrationTests
         Assert.Equal(DocumentApprovalTaskStatus.Pending, approvalTask.Status);
     }
 
-    [Fact]
+    [PostgresFact]
     public async Task WP8_SegregationOfDuties_CrossRoleEnforcement_Postgres()
     {
         await using var db = _fixture.CreateDbContext();
@@ -643,7 +643,7 @@ public class DocumentControlLifecycleEndToEndPostgresIntegrationTests
         );
     }
 
-    [Fact]
+    [PostgresFact]
     public async Task WP8_Concurrency_DoubleWorkerActivation_Postgres()
     {
         await using var db = _fixture.CreateDbContext();

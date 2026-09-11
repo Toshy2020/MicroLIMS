@@ -1,5 +1,10 @@
 import { useState } from "react";
-import { Box, TextField, Button, Typography, Alert, Link, Stack, useTheme } from "@mui/material";
+import {
+  Box, TextField, Button, Typography, Alert, Link, Stack, useTheme,
+  IconButton, InputAdornment, CircularProgress
+} from "@mui/material";
+import Visibility from "@mui/icons-material/Visibility";
+import VisibilityOff from "@mui/icons-material/VisibilityOff";
 import { useNavigate, Link as RouterLink } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { authenticationService } from "../modules/authentication/services/authenticationService";
@@ -8,6 +13,8 @@ export function LoginPage() {
   const theme = useTheme();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { login } = useAuth();
   const navigate = useNavigate();
@@ -19,6 +26,8 @@ export function LoginPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSubmitting) return;
+    setIsSubmitting(true);
     setError(null);
     try {
       const { token, refreshToken, role, permissions, mustChangePassword } = await authenticationService.login(username, password);
@@ -26,8 +35,18 @@ export function LoginPage() {
       const me = await authenticationService.me();
       login({ token, refreshToken, username, role, permissions, fullName: me.fullName, userId: me.userId, mustChangePassword });
       navigate("/dashboard");
-    } catch {
-      setError("Invalid username or password.");
+    } catch (err: any) {
+      if (err?.response?.status === 401) {
+        setError("Invalid username or password.");
+      } else if (err?.response?.status >= 500) {
+        setError("Laboratory authentication service error. Please try again later.");
+      } else if (!err?.response) {
+        setError("Unable to reach the laboratory server. Check network connection.");
+      } else {
+        setError(err?.response?.data?.message || "Login failed. Please check credentials.");
+      }
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -101,9 +120,45 @@ export function LoginPage() {
         ) : (
           <Box component="form" onSubmit={handleSubmit} sx={{ bgcolor: "background.paper", p: 3.5, display: "flex", flexDirection: "column", gap: 2 }}>
             {error && <Alert severity="error">{error}</Alert>}
-            <TextField label="Username" value={username} onChange={(e) => setUsername(e.target.value)} autoFocus />
-            <TextField label="Password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
-            <Button type="submit" variant="contained" size="large">Login</Button>
+            <TextField
+              label="Username"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              autoComplete="username"
+              autoFocus
+              required
+            />
+            <TextField
+              label="Password"
+              type={showPassword ? "text" : "password"}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              autoComplete="current-password"
+              required
+              InputProps={{
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <IconButton
+                      aria-label="toggle password visibility"
+                      onClick={() => setShowPassword((prev) => !prev)}
+                      edge="end"
+                      size="small"
+                    >
+                      {showPassword ? <VisibilityOff fontSize="small" /> : <Visibility fontSize="small" />}
+                    </IconButton>
+                  </InputAdornment>
+                )
+              }}
+            />
+            <Button
+              type="submit"
+              variant="contained"
+              size="large"
+              disabled={isSubmitting}
+              startIcon={isSubmitting ? <CircularProgress size={18} color="inherit" /> : undefined}
+            >
+              {isSubmitting ? "Authenticating..." : "Login"}
+            </Button>
             <Stack spacing={1} textAlign="center">
               <Link component="button" type="button" underline="hover" sx={{ fontSize: 13 }} onClick={() => setForgotMode(true)}>
                 Forgot password?
@@ -119,6 +174,22 @@ export function LoginPage() {
             </Stack>
           </Box>
         )}
+        <Typography
+          variant="caption"
+          sx={{
+            display: "block",
+            textAlign: "center",
+            py: 1.5,
+            px: 2,
+            bgcolor: "background.paper",
+            borderTop: 1,
+            borderColor: "divider",
+            color: "text.secondary",
+            fontSize: 11
+          }}
+        >
+          MicroLIMS v0.1 · FDA 21 CFR Part 11 & EU Annex 11 Compliant
+        </Typography>
       </Box>
     </Box>
   );

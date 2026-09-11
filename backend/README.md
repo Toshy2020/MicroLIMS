@@ -44,7 +44,14 @@ temporary call right after `app.Build()` in `Program.cs` guarded by
 `app.Environment.IsDevelopment()`, then remove it once you've logged in
 and changed the password.
 
-Default seeded login: `admin` / `ChangeMe123!` — **change this immediately.**
+Initial login: the seeder creates an `admin` account only when you provide a password out of band, and that account must change its password at first sign-in. There is no default password.
+
+```bash
+cd backend/MicroLIMS.API
+dotnet user-secrets set "Seed:InitialAdminPassword" "<a unique password you generate>"
+```
+
+Without it, seeding creates no administrator and the startup log explains why.
 
 ## Running tests
 

@@ -11,7 +11,6 @@ import {
   StepButton,
   Chip,
   Alert,
-  Paper,
   Button,
   TextField,
   DialogActions,

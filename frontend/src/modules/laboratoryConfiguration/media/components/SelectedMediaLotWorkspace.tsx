@@ -26,11 +26,11 @@ import InventoryOutlinedIcon from "@mui/icons-material/InventoryOutlined";
 import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 import { Link } from "react-router-dom";
 import { StatusBadge } from "../../../../components/StatusBadge";
-import { mediaClassLabel, evaluationTypeLabel } from "../../../../services/masterDataOptions";
+import { evaluationTypeLabel } from "../../../../services/masterDataOptions";
 import { MediaSummary } from "../types/mediaSummaryTypes";
 import { apiClient } from "../../../../services/apiClient";
 import { lifecycleOf } from "./MediaLotKpiCards";
-import { brandColors, tableHeadSx } from "../../../../theme";
+import { tableHeadSx } from "../../../../theme";
 import { useAuth } from "../../../../contexts/AuthContext";
 
 function formatDateDDMMYY(value: string | number | Date | null | undefined): string {
@@ -251,7 +251,7 @@ export function SelectedMediaLotWorkspace({
             fontWeight: 700
           },
           "& .MuiTabs-indicator": {
-            backgroundColor: brandColors.sectionTitle
+            backgroundColor: theme.palette.primary.main
           }
         }}
       >
@@ -505,12 +505,8 @@ export function SelectedMediaLotWorkspace({
                     variant="contained"
                     endIcon={<ArrowForwardIcon sx={{ fontSize: 14 }} />}
                     onClick={() => onOpenEvaluation(ev.id)}
-                    sx={{
-                      bgcolor: brandColors.sectionTitle,
-                      fontSize: 12,
-                      fontWeight: 700,
-                      "&:hover": { bgcolor: "#632273" }
-                    }}
+                    color="primary"
+                    sx={{ fontSize: 12, fontWeight: 700 }}
                   >
                     {ev.status === "Completed" ? "View Evaluation Workflow" : "Open / Continue Evaluation"}
                   </Button>

@@ -146,7 +146,7 @@ public class DocumentControlPeriodicReviewPostgresIntegrationTests
         );
     }
 
-    [Fact]
+    [PostgresFact]
     public async Task Postgres_GenerateDueReviewTasks_PersistsTaskAndLogsSystemAudit()
     {
         await using var db = _fixture.CreateDbContext();
@@ -177,7 +177,7 @@ public class DocumentControlPeriodicReviewPostgresIntegrationTests
         Assert.Equal(ActorType.System, auditLog.ActorType);
     }
 
-    [Fact]
+    [PostgresFact]
     public async Task Postgres_GenerateDueReviewTasks_IsStrictlyIdempotent()
     {
         await using var db = _fixture.CreateDbContext();
@@ -196,7 +196,7 @@ public class DocumentControlPeriodicReviewPostgresIntegrationTests
         Assert.Equal(1, taskCount);
     }
 
-    [Fact]
+    [PostgresFact]
     public async Task Postgres_CompleteReview_RemainsValid_AdvancesNextReviewDateInPostgres()
     {
         await using var db = _fixture.CreateDbContext();
@@ -238,7 +238,7 @@ public class DocumentControlPeriodicReviewPostgresIntegrationTests
         Assert.NotNull(audit);
     }
 
-    [Fact]
+    [PostgresFact]
     public async Task Postgres_CompleteReview_ObsolescenceRecommended_CreatesApprovalTaskInPostgres()
     {
         await using var db = _fixture.CreateDbContext();
@@ -266,7 +266,7 @@ public class DocumentControlPeriodicReviewPostgresIntegrationTests
         Assert.Equal(DocumentRevisionStatus.Effective, rev!.RevisionStatus);
     }
 
-    [Fact]
+    [PostgresFact]
     public async Task Postgres_AuthorCannotReviewOrComplete_EnforcesSegregationOfDuties()
     {
         await using var db = _fixture.CreateDbContext();

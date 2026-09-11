@@ -17,7 +17,6 @@ import MoreVertIcon from "@mui/icons-material/MoreVert";
 import { useNavigate, useLocation, Link } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { apiClient } from "../services/apiClient";
-import { brandColors } from "../theme";
 import { getGroupedMenuForRole, MenuItem as MenuItemType } from "../routes/menuConfig";
 
 const EXPANDED_SIDEBAR_WIDTH = 250;
@@ -69,9 +68,12 @@ export function Sidebar({ mobileOpen, onMobileClose, collapsed, onToggleCollapse
 
   useEffect(() => {
     loadUnreadMessages();
-    const interval = setInterval(loadUnreadMessages, 60_000);
+    const interval = setInterval(() => {
+      if (document.hidden) return;
+      loadUnreadMessages();
+    }, 60_000);
     return () => clearInterval(interval);
-  }, [location.pathname]);
+  }, []);
 
   const handleSignOut = () => {
     setProfileAnchor(null);
@@ -386,7 +388,7 @@ export function Sidebar({ mobileOpen, onMobileClose, collapsed, onToggleCollapse
                 }}
               >
                 <Badge badgeContent={unreadMessages} color="error" overlap="circular">
-                  <Avatar sx={{ width: 32, height: 32, bgcolor: "#fff", color: brandColors.sectionTitle, fontWeight: 700, fontSize: 13 }}>
+                  <Avatar sx={{ width: 32, height: 32, bgcolor: "#fff", color: theme.palette.primary.main, fontWeight: 700, fontSize: 13 }}>
                     {initial}
                   </Avatar>
                 </Badge>
@@ -408,7 +410,7 @@ export function Sidebar({ mobileOpen, onMobileClose, collapsed, onToggleCollapse
             }}
           >
             <Badge badgeContent={unreadMessages} color="error" overlap="circular">
-              <Avatar sx={{ width: 32, height: 32, bgcolor: "#fff", color: brandColors.sectionTitle, fontWeight: 700, fontSize: 13 }}>
+              <Avatar sx={{ width: 32, height: 32, bgcolor: "#fff", color: theme.palette.primary.main, fontWeight: 700, fontSize: 13 }}>
                 {initial}
               </Avatar>
             </Badge>

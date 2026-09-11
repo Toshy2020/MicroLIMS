@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import {
   Dialog,
   DialogTitle,
@@ -20,6 +20,7 @@ import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 import MenuBookIcon from "@mui/icons-material/MenuBook";
 import { documentControlService } from "../services/documentControlService";
 import { StatusBadge } from "../../../components/StatusBadge";
+import { toast } from "sonner";
 
 export interface ControlledPdfViewerProps {
   open: boolean;
@@ -120,7 +121,7 @@ export function ControlledPdfViewer({
       await documentControlService.downloadFile(fileId, fileName || `${companyDocumentCode}_rev${revisionNumber}.pdf`);
     } catch (err: any) {
       const errMsg = err.response?.data?.message || err.message || "Download failed.";
-      alert(errMsg);
+      toast.error(errMsg);
     } finally {
       setDownloading(false);
     }
@@ -220,7 +221,7 @@ export function ControlledPdfViewer({
         )}
       </DialogTitle>
 
-      <DialogContent sx={{ p: 0, height: "100%", display: "flex", flexDirection: "column", bgcolor: "grey.100" }}>
+      <DialogContent sx={{ p: 0, height: "100%", display: "flex", flexDirection: "column", bgcolor: (t) => t.palette.mode === "dark" ? "background.default" : "grey.100" }}>
         {loading && (
           <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "100%", gap: 2 }}>
             <CircularProgress />

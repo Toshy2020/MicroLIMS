@@ -23,7 +23,6 @@ import AccessTimeOutlinedIcon from "@mui/icons-material/AccessTimeOutlined";
 import WarningAmberOutlinedIcon from "@mui/icons-material/WarningAmberOutlined";
 import ArrowForwardOutlinedIcon from "@mui/icons-material/ArrowForwardOutlined";
 import PeopleAltOutlinedIcon from "@mui/icons-material/PeopleAltOutlined";
-import TrendingUpOutlinedIcon from "@mui/icons-material/TrendingUpOutlined";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
 import { PageHeader } from "../../components/PageHeader";
@@ -136,7 +135,7 @@ export function SectionHeadDashboardPage() {
         <Grid item xs={6} sm={4} md={1.71}>
           <Paper
             component={Link}
-            to="/testing-workspace?status=Active"
+            to="/receiving-testing?status=Active"
             sx={{
               p: 1.75,
               cursor: "pointer",
@@ -164,7 +163,7 @@ export function SectionHeadDashboardPage() {
         <Grid item xs={6} sm={4} md={1.71}>
           <Paper
             component={Link}
-            to="/testing-workspace?view=kanban"
+            to="/receiving-testing?view=kanban"
             sx={{
               p: 1.75,
               cursor: "pointer",
@@ -192,7 +191,7 @@ export function SectionHeadDashboardPage() {
         <Grid item xs={6} sm={4} md={1.71}>
           <Paper
             component={Link}
-            to="/testing-workspace?testStatus=ReadyToRead"
+            to="/receiving-testing?testStatus=ReadyToRead"
             sx={{
               p: 1.75,
               cursor: "pointer",
@@ -220,7 +219,7 @@ export function SectionHeadDashboardPage() {
         <Grid item xs={6} sm={4} md={1.71}>
           <Paper
             component={Link}
-            to="/testing-workspace?testStatus=ResultEntered"
+            to="/receiving-testing?testStatus=ResultEntered"
             sx={{
               p: 1.75,
               cursor: "pointer",
@@ -248,7 +247,7 @@ export function SectionHeadDashboardPage() {
         <Grid item xs={6} sm={4} md={1.71}>
           <Paper
             component={Link}
-            to="/testing-workspace?testStatus=Reviewed"
+            to="/receiving-testing?testStatus=Reviewed"
             sx={{
               p: 1.75,
               cursor: "pointer",
@@ -276,7 +275,7 @@ export function SectionHeadDashboardPage() {
         <Grid item xs={6} sm={4} md={1.71}>
           <Paper
             component={Link}
-            to="/testing-workspace?urgency=overdue"
+            to="/receiving-testing?urgency=overdue"
             sx={{
               p: 1.75,
               cursor: "pointer",
@@ -350,11 +349,11 @@ export function SectionHeadDashboardPage() {
               carried no stage identity at all. An ordered sequence wants an
               ordinal ramp: one hue deepening stage by stage. */}
           {[
-            { label: "1. Testing / Preparation", count: data.testingBottleneck, color: theme.custom.chartSequential[0], link: "/testing-workspace?status=Active" },
-            { label: "2. Incubation", count: data.incubationBottleneck, color: theme.custom.chartSequential[1], link: "/testing-workspace" },
-            { label: "3. Ready to Read", count: data.readyToReadBottleneck, color: theme.custom.chartSequential[2], link: "/testing-workspace?testStatus=ReadyToRead" },
-            { label: "4. Scientific Review", count: data.reviewBottleneck, color: theme.custom.chartSequential[3], link: "/testing-workspace?testStatus=ResultEntered" },
-            { label: "5. Final Approval", count: data.approvalBottleneck, color: theme.custom.chartSequential[4], link: "/testing-workspace?testStatus=Reviewed" }
+            { label: "1. Testing / Preparation", count: data.testingBottleneck, color: theme.custom.chartSequential[0], link: "/receiving-testing?status=Active" },
+            { label: "2. Incubation", count: data.incubationBottleneck, color: theme.custom.chartSequential[1], link: "/receiving-testing" },
+            { label: "3. Ready to Read", count: data.readyToReadBottleneck, color: theme.custom.chartSequential[2], link: "/receiving-testing?testStatus=ReadyToRead" },
+            { label: "4. Scientific Review", count: data.reviewBottleneck, color: theme.custom.chartSequential[3], link: "/receiving-testing?testStatus=ResultEntered" },
+            { label: "5. Final Approval", count: data.approvalBottleneck, color: theme.custom.chartSequential[4], link: "/receiving-testing?testStatus=Reviewed" }
           ].map((stage, idx) => (
             <Grid item xs={12} sm={6} md={2.4} key={idx}>
               <Paper
@@ -432,7 +431,7 @@ export function SectionHeadDashboardPage() {
                     </Box>
                     <Button
                       component={Link}
-                      to={item.testOrderId ? `/testing-workspace?sampleId=${item.sampleId}&testOrderId=${item.testOrderId}` : `/testing-workspace?sampleId=${item.sampleId}`}
+                      to={item.testOrderId ? `/receiving-testing?sampleId=${item.sampleId}&testOrderId=${item.testOrderId}` : `/receiving-testing?sampleId=${item.sampleId}`}
                       variant="outlined"
                       color="error"
                       size="small"
@@ -477,7 +476,7 @@ export function SectionHeadDashboardPage() {
               </Box>
               <Button
                 component={Link}
-                to="/testing-workspace?testStatus=ResultEntered"
+                to="/receiving-testing?testStatus=ResultEntered"
                 variant="text"
                 size="small"
                 sx={{ textTransform: "none", fontWeight: 600, fontSize: 12 }}
@@ -511,7 +510,7 @@ export function SectionHeadDashboardPage() {
                         <TableCell sx={{ fontSize: 11, fontWeight: 700 }}>
                           <Typography
                             component={Link}
-                            to={`/testing-workspace?sampleId=${row.sampleId}&testOrderId=${row.testOrderId}`}
+                            to={`/receiving-testing?sampleId=${row.sampleId}&testOrderId=${row.testOrderId}`}
                             sx={{
                               fontSize: 11,
                               fontWeight: 700,
@@ -529,7 +528,7 @@ export function SectionHeadDashboardPage() {
                         <TableCell sx={{ textAlign: "right" }}>
                           <Button
                             component={Link}
-                            to={`/testing-workspace?sampleId=${row.sampleId}&testOrderId=${row.testOrderId}`}
+                            to={`/receiving-testing?sampleId=${row.sampleId}&testOrderId=${row.testOrderId}`}
                             variant="outlined"
                             size="small"
                             sx={{ textTransform: "none", fontSize: 10, py: 0.2, fontWeight: 600 }}
@@ -560,7 +559,7 @@ export function SectionHeadDashboardPage() {
               </Box>
               <Button
                 component={Link}
-                to="/testing-workspace?testStatus=Reviewed"
+                to="/receiving-testing?testStatus=Reviewed"
                 variant="text"
                 size="small"
                 sx={{ textTransform: "none", fontWeight: 600, fontSize: 12 }}
@@ -594,7 +593,7 @@ export function SectionHeadDashboardPage() {
                         <TableCell sx={{ fontSize: 11, fontWeight: 700 }}>
                           <Typography
                             component={Link}
-                            to={`/testing-workspace?sampleId=${row.sampleId}&testOrderId=${row.testOrderId}`}
+                            to={`/receiving-testing?sampleId=${row.sampleId}&testOrderId=${row.testOrderId}`}
                             sx={{
                               fontSize: 11,
                               fontWeight: 700,
@@ -612,7 +611,7 @@ export function SectionHeadDashboardPage() {
                         <TableCell sx={{ textAlign: "right" }}>
                           <Button
                             component={Link}
-                            to={`/testing-workspace?sampleId=${row.sampleId}&testOrderId=${row.testOrderId}`}
+                            to={`/receiving-testing?sampleId=${row.sampleId}&testOrderId=${row.testOrderId}`}
                             variant="outlined"
                             size="small"
                             color="success"
@@ -671,7 +670,7 @@ export function SectionHeadDashboardPage() {
                         <TableCell sx={{ fontSize: 12, fontWeight: 700 }}>
                           <Typography
                             component={Link}
-                            to={`/testing-workspace?analystId=${a.analystId}`}
+                            to={`/receiving-testing?analystId=${a.analystId}`}
                             sx={{
                               fontSize: 12,
                               fontWeight: 700,
@@ -694,7 +693,7 @@ export function SectionHeadDashboardPage() {
                           {a.overdueCount > 0 ? (
                             <Chip
                               component={Link}
-                              to={`/testing-workspace?analystId=${a.analystId}&urgency=overdue`}
+                              to={`/receiving-testing?analystId=${a.analystId}&urgency=overdue`}
                               label={`${a.overdueCount} overdue`}
                               size="small"
                               clickable
@@ -710,7 +709,7 @@ export function SectionHeadDashboardPage() {
                         <TableCell sx={{ textAlign: "right" }}>
                           <Button
                             component={Link}
-                            to={`/testing-workspace?analystId=${a.analystId}`}
+                            to={`/receiving-testing?analystId=${a.analystId}`}
                             variant="text"
                             size="small"
                             sx={{ textTransform: "none", fontSize: 11, fontWeight: 600 }}
@@ -781,7 +780,7 @@ export function SectionHeadDashboardPage() {
                         <TableCell sx={{ textAlign: "right" }}>
                           <Button
                             component={Link}
-                            to={`/testing-workspace?testStatus=${inc.readyToRead > 0 ? "ReadyToRead" : ""}`}
+                            to={`/receiving-testing?testStatus=${inc.readyToRead > 0 ? "ReadyToRead" : ""}`}
                             variant="text"
                             size="small"
                             sx={{ textTransform: "none", fontSize: 11, fontWeight: 600 }}

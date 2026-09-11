@@ -5,6 +5,32 @@ import { buildCoaMatrix, buildOverallConclusionText, buildCoaSimpleRows, buildSi
 import { SampleSummary, SignatureTrailItem } from "./types/sampleSummaryTypes";
 import { CoaColumn } from "./coaAggregation";
 import { reportStyles } from "./reportStyles";
+
+// Certificate-only print overrides, deliberately kept out of reportStyles:
+// that stylesheet is shared with the media and cryovial reports, and this
+// route is the only one that should lose its @page margins.
+//
+// A certificate is a controlled document, so the browser's own header and
+// footer do not belong on it - they stamp the print time, the tab title, the
+// page number and the full URL over a record that already carries its own
+// "Generated" line and Document ID. Chromium only omits them at margin: 0.
+//
+// A named @page was tried first and was wrong: changing the page name on an
+// element forces a page break before it, so the certificate opened with a
+// blank sheet. Because this component mounts alone on its route and injects
+// its own styles, overriding the default @page here reaches nothing else.
+//
+// The margins come back as padding. That applies once rather than per page,
+// so a certificate long enough to break onto a second page would start it at
+// the paper edge; certificates are a single page today. The reader can also
+// re-enable headers from the print dialog - this sets the default, it cannot
+// override the browser.
+const coaPrintStyles = `
+@media print {
+  @page { size: A4 portrait; margin: 0; }
+  .coa-page { padding: 18mm 16mm 22mm 16mm !important; }
+}
+`;
 import { dt, d, humanize } from "./SampleReportPage";
 import { PinnedLightTheme } from "../../theme/PinnedLightTheme";
 
@@ -160,6 +186,7 @@ export function SampleCoaPage() {
     <PinnedLightTheme>
       <div className="coa-root">
         <style>{reportStyles}</style>
+        <style>{coaPrintStyles}</style>
 
         <div className="coa-page">
           <div className="coa-head">
@@ -193,7 +220,7 @@ export function SampleCoaPage() {
                     <tr>
                       <th className="loc-col" rowSpan={2}>Location</th>
                       {matrix.columns.map((c) => (
-                        <th key={c.testOrderId} className="grp" colSpan={c.isQuantitative ? 4 : 1}>{c.testCode}</th>
+                        <th key={c.testOrderId} className="grp" colSpan={c.isQuantitative ? 4 : 1}>{c.testDisplayName || c.testCode}</th>
                       ))}
                     </tr>
                     <tr>{renderSubHeaderRow(matrix.columns)}</tr>
@@ -279,7 +306,7 @@ export function SampleCoaPage() {
                       return (
                       <tr key={r.testOrderId}>
                         <td>
-                          {r.testCode} — {r.testDisplayName}
+                          {r.testDisplayName || r.testCode}
                           {sourceRef && <div style={{ fontSize: 10, color: "var(--coa-ink3)" }}>via retest {sourceRef}</div>}
                         </td>
                         <td>{r.specification ?? "—"}</td>

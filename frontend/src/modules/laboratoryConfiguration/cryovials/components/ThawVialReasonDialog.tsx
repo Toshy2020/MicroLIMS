@@ -11,7 +11,6 @@ import {
 } from "@mui/material";
 import AcUnitIcon from "@mui/icons-material/AcUnit";
 import { CryovialItem } from "../types/cryovialTypes";
-import { brandColors } from "../../../../theme";
 import { FloatingDialog } from "../../../../components/FloatingDialog";
 
 interface ThawVialReasonDialogProps {
@@ -96,10 +95,7 @@ export function ThawVialReasonDialog({
             onClick={handleConfirm}
             disabled={!isReasonValid || submitting}
             startIcon={<AcUnitIcon />}
-            sx={{
-              bgcolor: brandColors.sectionTitle,
-              "&:hover": { bgcolor: brandColors.pageTitle }
-            }}
+            color="primary"
           >
             {submitting ? "Thawing..." : "Confirm Thaw"}
           </Button>

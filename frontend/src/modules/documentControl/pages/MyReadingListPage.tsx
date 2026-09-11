@@ -1,4 +1,4 @@
-﻿import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import {
   Box,
   Typography,
@@ -25,7 +25,8 @@ import {
   Stack,
   Card,
   CardContent,
-  Grid
+  Grid,
+  useTheme
 } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
 import RefreshIcon from "@mui/icons-material/Refresh";
@@ -39,6 +40,7 @@ import FilterListIcon from "@mui/icons-material/FilterList";
 import ClearIcon from "@mui/icons-material/Clear";
 
 import { PageHeader } from "../../../components/PageHeader";
+import { tableHeadSx } from "../../../theme";
 import { StatusBadge } from "../../../components/StatusBadge";
 import { useAuth } from "../../../contexts/AuthContext";
 import { trainingAssignmentService } from "../services/trainingAssignmentService";
@@ -53,6 +55,7 @@ import type {
 import type { AcknowledgementPresentationDto } from "../types/acknowledgementTypes";
 
 export function MyReadingListPage() {
+  const theme = useTheme();
   const { fullName, username } = useAuth();
 
   // Assignment List State
@@ -242,7 +245,7 @@ export function MyReadingListPage() {
   };
 
   return (
-    <Box sx={{ p: 3, maxWidth: 1400, margin: "0 auto" }}>
+    <Box sx={{ pb: 4 }}>
       <PageHeader
         title="My Reading List"
         subtitle={`Active document training and standard operating procedures assigned to ${fullName || username || "you"}.`}
@@ -378,7 +381,7 @@ export function MyReadingListPage() {
       {/* Assignments Table */}
       <TableContainer component={Paper} variant="outlined">
         <Table size="medium">
-          <TableHead sx={{ bgcolor: "grey.50" }}>
+          <TableHead sx={tableHeadSx(theme)}>
             <TableRow>
               <TableCell sx={{ fontWeight: 700 }}>Company Document Code & Title</TableCell>
               <TableCell sx={{ fontWeight: 700 }}>Revision</TableCell>
@@ -433,9 +436,9 @@ export function MyReadingListPage() {
                     hover
                     sx={{
                       bgcolor: isOverdue
-                        ? "error.50"
+                        ? (t) => t.palette.mode === "dark" ? "rgba(211, 47, 47, 0.15)" : "error.50"
                         : isSuperseded
-                        ? "grey.50"
+                        ? (t) => t.palette.mode === "dark" ? "action.hover" : "grey.50"
                         : "inherit"
                     }}
                   >

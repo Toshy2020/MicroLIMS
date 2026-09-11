@@ -163,7 +163,7 @@ export const DocumentAcknowledgementDialog: React.FC<DocumentAcknowledgementDial
             variant="outlined"
             sx={{
               p: 2,
-              bgcolor: "#f8f9fa",
+              bgcolor: (t) => t.palette.mode === "dark" ? "action.hover" : "#f8f9fa",
               borderColor: "primary.main",
               borderLeftWidth: 4
             }}

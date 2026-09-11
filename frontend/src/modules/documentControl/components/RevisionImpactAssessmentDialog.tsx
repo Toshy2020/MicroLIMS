@@ -191,8 +191,14 @@ export const RevisionImpactAssessmentDialog: React.FC<RevisionImpactAssessmentDi
             {success && <Alert severity="success">{success}</Alert>}
 
             {existingAssessment && (
-              <Box sx={{ p: 1.5, bgcolor: "success.50", border: "1px solid #c8e6c9", borderRadius: 1 }}>
-                <Typography variant="caption" sx={{ color: "success.dark", fontWeight: 600 }}>
+              <Box sx={{
+                p: 1.5,
+                bgcolor: (t) => t.palette.mode === "dark" ? "rgba(46, 125, 50, 0.15)" : "success.50",
+                border: "1px solid",
+                borderColor: (t) => t.palette.mode === "dark" ? "success.dark" : "#c8e6c9",
+                borderRadius: 1
+              }}>
+                <Typography variant="caption" sx={{ color: (t) => t.palette.mode === "dark" ? "success.light" : "success.dark", fontWeight: 600 }}>
                   Assessment Status: COMPLETE &bull; Last Completed by: {existingAssessment.completedByFullName} ({existingAssessment.completedByUsername}) on {new Date(existingAssessment.completedAt).toLocaleString()}
                 </Typography>
               </Box>

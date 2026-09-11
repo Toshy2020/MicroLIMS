@@ -4,6 +4,9 @@ import {
   Chip, Tooltip, Table,
   TableBody, TableCell, TableContainer, TableHead, TableRow, IconButton
 } from "@mui/material";
+import { useTheme } from "@mui/material/styles";
+import { toast } from "sonner";
+import { tableHeadSx } from "../../theme";
 import { FloatingDialog } from "../../components/FloatingDialog";
 import EditIcon from "@mui/icons-material/Edit";
 import LockOpenIcon from "@mui/icons-material/LockOpen";
@@ -24,10 +27,10 @@ import { RoleService, RoleRecord } from "../roles/services/RoleService";
 import { useAuth } from "../../contexts/AuthContext";
 
 export function UsersPage() {
+  const theme = useTheme();
   const { userId: currentUserId } = useAuth();
   const [users, setUsers] = useState<UserRecord[]>([]);
   const [roles, setRoles] = useState<RoleRecord[]>([]);
-  const [message, setMessage] = useState<{ text: string; ok: boolean } | null>(null);
 
   // New user form state
   const [fullName, setFullName] = useState("");
@@ -75,18 +78,17 @@ export function UsersPage() {
   useEffect(() => { load(); }, []);
 
   const handleCreateUser = async () => {
-    setMessage(null);
     if (!fullName || !username || !password || !roleId) {
-      setMessage({ text: "Full Name, Username, Password, and Role are required.", ok: false });
+      toast.error("Full Name, Username, Password, and Role are required.");
       return;
     }
     try {
       await UserService.create(fullName, username, password, Number(roleId), email);
-      setMessage({ text: `User "${username}" created successfully.`, ok: true });
+      toast.success(`User "${username}" created successfully.`);
       setFullName(""); setUsername(""); setPassword(""); setEmail(""); setRoleId("");
       load();
     } catch (e: any) {
-      setMessage({ text: e?.response?.data?.message ?? "Could not create user.", ok: false });
+      toast.error(e?.response?.data?.message ?? "Could not create user.");
     }
   };
 
@@ -102,11 +104,11 @@ export function UsersPage() {
     if (!editProfileUser) return;
     try {
       await UserService.updateProfile(editProfileUser.id, editFullName, editUsername, editEmail || null);
-      setMessage({ text: `Profile updated for ${editUsername}.`, ok: true });
+      toast.success(`Profile updated for ${editUsername}.`);
       setEditProfileUser(null);
       load();
     } catch (e: any) {
-      setMessage({ text: e?.response?.data?.message ?? "Could not update profile.", ok: false });
+      toast.error(e?.response?.data?.message ?? "Could not update profile.");
     }
   };
 
@@ -119,16 +121,16 @@ export function UsersPage() {
 
   const handleSaveRole = async () => {
     if (!roleDialogUser || !newRoleId || !roleReason) {
-      setMessage({ text: "Selected Role and a Reason are required for role change.", ok: false });
+      toast.error("Selected Role and a Reason are required for role change.");
       return;
     }
     try {
       await UserService.changeRole(roleDialogUser.id, Number(newRoleId), roleReason);
-      setMessage({ text: `Role changed for ${roleDialogUser.username}.`, ok: true });
+      toast.success(`Role changed for ${roleDialogUser.username}.`);
       setRoleDialogUser(null);
       load();
     } catch (e: any) {
-      setMessage({ text: e?.response?.data?.message ?? "Could not change role.", ok: false });
+      toast.error(e?.response?.data?.message ?? "Could not change role.");
     }
   };
 
@@ -142,16 +144,16 @@ export function UsersPage() {
     if (!statusDialogUser) return;
     const newStatus = !statusDialogUser.isActive;
     if (!newStatus && !statusReason) {
-      setMessage({ text: "A reason is required to disable a user account.", ok: false });
+      toast.error("A reason is required to disable a user account.");
       return;
     }
     try {
       await UserService.setStatus(statusDialogUser.id, newStatus, statusReason);
-      setMessage({ text: `Account ${newStatus ? "enabled" : "disabled"} for ${statusDialogUser.username}.`, ok: true });
+      toast.success(`Account ${newStatus ? "enabled" : "disabled"} for ${statusDialogUser.username}.`);
       setStatusDialogUser(null);
       load();
     } catch (e: any) {
-      setMessage({ text: e?.response?.data?.message ?? "Could not update account status.", ok: false });
+      toast.error(e?.response?.data?.message ?? "Could not update account status.");
     }
   };
 
@@ -165,11 +167,11 @@ export function UsersPage() {
     if (!unlockDialogUser) return;
     try {
       await UserService.unlock(unlockDialogUser.id, unlockReason);
-      setMessage({ text: `Account unlocked for ${unlockDialogUser.username}.`, ok: true });
+      toast.success(`Account unlocked for ${unlockDialogUser.username}.`);
       setUnlockDialogUser(null);
       load();
     } catch (e: any) {
-      setMessage({ text: e?.response?.data?.message ?? "Could not unlock account.", ok: false });
+      toast.error(e?.response?.data?.message ?? "Could not unlock account.");
     }
   };
 
@@ -183,11 +185,11 @@ export function UsersPage() {
     if (!resetDialogUser) return;
     try {
       await UserService.initiatePasswordReset(resetDialogUser.id, resetReason);
-      setMessage({ text: `Password reset instructions initiated for ${resetDialogUser.username}.`, ok: true });
+      toast.success(`Password reset instructions initiated for ${resetDialogUser.username}.`);
       setResetDialogUser(null);
       load();
     } catch (e: any) {
-      setMessage({ text: e?.response?.data?.message ?? "Could not initiate password reset.", ok: false });
+      toast.error(e?.response?.data?.message ?? "Could not initiate password reset.");
     }
   };
 
@@ -201,15 +203,15 @@ export function UsersPage() {
 
   const handleGenerateRecoveryCode = async () => {
     if (!adminRecoveryUser || !adminRecoveryReason) {
-      setMessage({ text: "A reason is required for admin-assisted password recovery.", ok: false });
+      toast.error("A reason is required for admin-assisted password recovery.");
       return;
     }
     try {
       const result = await UserService.adminPasswordRecovery(adminRecoveryUser.id, adminRecoveryReason);
       setGeneratedCode(result.recoveryCode);
-      setMessage({ text: `Recovery code generated for ${adminRecoveryUser.username}.`, ok: true });
+      toast.success(`Recovery code generated for ${adminRecoveryUser.username}.`);
     } catch (e: any) {
-      setMessage({ text: e?.response?.data?.message ?? "Could not generate recovery code.", ok: false });
+      toast.error(e?.response?.data?.message ?? "Could not generate recovery code.");
     }
   };
 
@@ -217,6 +219,7 @@ export function UsersPage() {
     if (generatedCode) {
       navigator.clipboard.writeText(generatedCode);
       setCodeCopied(true);
+      toast.success("Recovery code copied to clipboard.");
       setTimeout(() => setCodeCopied(false), 3000);
     }
   };
@@ -237,11 +240,11 @@ export function UsersPage() {
     if (!forcePwdUser) return;
     try {
       await UserService.forcePasswordChange(forcePwdUser.id);
-      setMessage({ text: `Forced password change set for ${forcePwdUser.username}.`, ok: true });
+      toast.success(`Forced password change set for ${forcePwdUser.username}.`);
       setForcePwdUser(null);
       load();
     } catch (e: any) {
-      setMessage({ text: e?.response?.data?.message ?? "Could not force password change.", ok: false });
+      toast.error(e?.response?.data?.message ?? "Could not force password change.");
     }
   };
 
@@ -263,7 +266,7 @@ export function UsersPage() {
     setDeleteError(null);
     try {
       await UserService.hardDelete(deleteDialogUser.id);
-      setMessage({ text: `User "${deleteDialogUser.username}" was permanently deleted.`, ok: true });
+      toast.success(`User "${deleteDialogUser.username}" was permanently deleted.`);
       setDeleteDialogUser(null);
       load();
     } catch (e: any) {
@@ -276,28 +279,87 @@ export function UsersPage() {
   return (
     <>
       <PageHeader title="User Management" subtitle="Manage system users, role assignments, security status, and account access." />
-      {message && <Alert severity={message.ok ? "success" : "error"} sx={{ mb: 2 }} onClose={() => setMessage(null)}>{message.text}</Alert>}
-
       <SectionTitle>Create New User</SectionTitle>
       <Paper sx={{ p: 2.5, mb: 3 }}>
-        <Stack direction="row" spacing={2} flexWrap="wrap" alignItems="center">
-          <TextField size="small" label="Full Name" value={fullName} onChange={(e) => setFullName(e.target.value)} />
-          <TextField size="small" label="Username" value={username} onChange={(e) => setUsername(e.target.value)} />
-          <TextField size="small" label="Email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} helperText="Password reset destination" />
-          <TextField size="small" label="Password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} helperText="Min 8 chars (upper, lower, digit, symbol)" />
-          <Select size="small" displayEmpty value={roleId} onChange={(e) => setRoleId(e.target.value)} sx={{ minWidth: 200 }}>
-            <MenuItem value=""><em>Select Role</em></MenuItem>
+        <Box
+          component="form"
+          onSubmit={(e) => {
+            e.preventDefault();
+            handleCreateUser();
+          }}
+          sx={{
+            display: "grid",
+            gridTemplateColumns: {
+              xs: "1fr",
+              sm: "1fr 1fr",
+              md: "repeat(3, 1fr)",
+              lg: "1.2fr 1fr 1.2fr 1.2fr 1.2fr auto"
+            },
+            gap: 2,
+            alignItems: "start"
+          }}
+        >
+          <TextField
+            size="small"
+            label="Full Name"
+            value={fullName}
+            onChange={(e) => setFullName(e.target.value)}
+            required
+            fullWidth
+          />
+          <TextField
+            size="small"
+            label="Username"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+            required
+            fullWidth
+          />
+          <TextField
+            size="small"
+            label="Email"
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            helperText="Password reset destination"
+            fullWidth
+          />
+          <TextField
+            size="small"
+            label="Password"
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            helperText="Min 8 chars"
+            required
+            fullWidth
+          />
+          <Select
+            size="small"
+            displayEmpty
+            value={roleId}
+            onChange={(e) => setRoleId(e.target.value)}
+            fullWidth
+          >
+            <MenuItem value=""><em>Select Role *</em></MenuItem>
             {roles.map((r) => <MenuItem key={r.id} value={r.id}>{r.name}</MenuItem>)}
           </Select>
-          <Button variant="contained" color="primary" onClick={handleCreateUser}>Create User</Button>
-        </Stack>
+          <Button
+            type="submit"
+            variant="contained"
+            color="primary"
+            sx={{ height: 40, whiteSpace: "nowrap" }}
+          >
+            Create User
+          </Button>
+        </Box>
       </Paper>
 
       <SectionTitle>All System Users</SectionTitle>
       <TableContainer component={Paper}>
         <Table size="small">
           <TableHead>
-            <TableRow sx={{ backgroundColor: "action.hover" }}>
+            <TableRow sx={tableHeadSx(theme)}>
               <TableCell>User</TableCell>
               <TableCell>Email</TableCell>
               <TableCell>Role</TableCell>
@@ -573,7 +635,7 @@ export function UsersPage() {
               <Box
                 sx={{
                   p: 2.5,
-                  backgroundColor: "grey.100",
+                  bgcolor: theme.palette.mode === "dark" ? "action.hover" : "grey.100",
                   borderRadius: 2,
                   border: "2px dashed",
                   borderColor: "warning.main",

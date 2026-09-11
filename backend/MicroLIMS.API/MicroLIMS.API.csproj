@@ -3,6 +3,9 @@
     <TargetFramework>net8.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <!-- Local developer secrets (Jwt:Key) live outside the repository.
+         appsettings.Development.json is git-ignored and works too. -->
+    <UserSecretsId>microlims-api-dev-secrets</UserSecretsId>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.8" />

@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
 using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Application.Services;
 using MicroLIMS.Shared.Responses;
@@ -8,6 +9,7 @@ namespace MicroLIMS.API.Controllers;
 
 public record LoginRequest(string Username, string Password);
 public record RefreshRequest(string RefreshToken);
+public record LogoutRequest(string? RefreshToken);
 public record RequestPasswordResetRequest(string Username);
 public record ConfirmPasswordResetRequest(string ResetToken, string NewPassword);
 public record ChangePasswordRequest(string CurrentPassword, string NewPassword);
@@ -93,9 +95,17 @@ public class AuthenticationController : ControllerBase
         return success ? Ok(ApiResponse<object>.Ok(new { })) : BadRequest(ApiResponse<object>.Fail("Current password is incorrect."));
     }
 
+    // The body is optional so an older client that posts nothing still
+    // logs out - it just revokes every session instead of the named one.
     [HttpPost("logout")]
     [Authorize]
-    public IActionResult Logout() => Ok(ApiResponse<object>.Ok(new { }, "Logged out. Discard tokens client-side."));
+    public async Task<IActionResult> Logout(
+        [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Allow)] LogoutRequest? request)
+    {
+        var userId = int.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)!.Value);
+        await _authService.LogoutAsync(userId, request?.RefreshToken);
+        return Ok(ApiResponse<object>.Ok(new { }, "Logged out."));
+    }
 
     [HttpGet("me")]
     [Authorize]

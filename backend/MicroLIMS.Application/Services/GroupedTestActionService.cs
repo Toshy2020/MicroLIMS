@@ -97,6 +97,8 @@ public class GroupedTestActionService
             // unprepared sample offers no incubation action at all.
             if (sample.PreparationStatus != SamplePreparationStatus.Ready)
                 continue;
+            if (sample.ItemId != null && !await _db.SamplePreparations.AnyAsync(p => p.SampleId == sample.Id, ct))
+                continue;
 
             CurrentStepResult stepResult;
             try
@@ -544,10 +546,16 @@ public class GroupedTestActionService
                 continue;
             }
 
-            if (order.Sample != null && order.Sample.PreparationStatus != SamplePreparationStatus.Ready)
+            var isPrepared = order.Sample != null && order.Sample.PreparationStatus == SamplePreparationStatus.Ready;
+            if (isPrepared && order.Sample!.ItemId != null)
+            {
+                isPrepared = await _db.SamplePreparations.AnyAsync(p => p.SampleId == order.Sample.Id);
+            }
+
+            if (!isPrepared)
             {
                 skipped.Add(new BatchActionSkippedItem(id, sampleRef,
-                    order.Sample.Category is SampleCategory.EnvironmentalMonitoring or SampleCategory.AfterCleaning
+                    order.Sample?.Category is SampleCategory.EnvironmentalMonitoring or SampleCategory.AfterCleaning
                         ? "Sample preparation is not complete (locations/swabs not verified)."
                         : "Test Preparation is not complete for this sample."));
                 continue;

@@ -135,7 +135,7 @@ public class DocumentControlRestApiPostgresIntegrationTests
         return (master.Id, rev.Id, assignment.Id);
     }
 
-    [Fact]
+    [PostgresFact]
     public async Task Postgres_GetAssignments_And_GetMyAssignments_QueryRealDatabase()
     {
         await using var db = _fixture.CreateDbContext();
@@ -156,7 +156,7 @@ public class DocumentControlRestApiPostgresIntegrationTests
         Assert.Contains(apiRes.Data, a => a.Id == assignmentId);
     }
 
-    [Fact]
+    [PostgresFact]
     public async Task Postgres_SubmitAcknowledgement_PersistsEvidentiaryRecord_ThroughApiController()
     {
         await using var db = _fixture.CreateDbContext();
@@ -194,7 +194,7 @@ public class DocumentControlRestApiPostgresIntegrationTests
         Assert.Contains("Postgres API Integration Ack", record.Comments);
     }
 
-    [Fact]
+    [PostgresFact]
     public async Task Postgres_ProcessDueEscalations_And_ResolveEscalation_ThroughApiController()
     {
         await using var db = _fixture.CreateDbContext();
@@ -240,7 +240,7 @@ public class DocumentControlRestApiPostgresIntegrationTests
         Assert.Equal(DocumentEscalationStatus.Resolved, apiRes3.Data.Status);
     }
 
-    [Fact]
+    [PostgresFact]
     public async Task Postgres_EndToEnd_ReadingListWorkflow_ViewRevision_RecordProgress_AndAcknowledge()
     {
         await using var db = _fixture.CreateDbContext();
@@ -319,7 +319,7 @@ public class DocumentControlRestApiPostgresIntegrationTests
         Assert.NotNull(completedAssignment.AcknowledgedAtUtc);
     }
 
-    [Fact]
+    [PostgresFact]
     public async Task Postgres_TrainingMatrix_And_ComplianceKpis_CalculatesAccurately()
     {
         await using var db = _fixture.CreateDbContext();

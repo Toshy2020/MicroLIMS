@@ -518,10 +518,160 @@ public class CountTestWorkflowTests
         await db.SaveChangesAsync();
 
         var engine = TestServiceFactory.TestWorkflow(db);
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<WorkflowStepException>(() =>
             engine.SelectMediaAsync(order.Id, "CountIncubation", generalAgarMedia.Id, incubatorEquipmentId: 1, userId: 1));
 
+        Assert.Equal(WorkflowErrorCodes.PreparationNotConfirmed, ex.ErrorCode);
         Assert.Contains("Test Preparation must be completed", ex.Message);
         Assert.Empty(await db.Incubations.ToListAsync());
+
+        var auditLog = Assert.Single(await db.AuditLogs.Where(a => a.Action == "TestStartRefused").ToListAsync());
+        Assert.Equal("TestStartRefused", auditLog.Action);
+        Assert.Equal(order.Id, auditLog.TestOrderId);
+        Assert.Equal(1, auditLog.UserId);
+        Assert.Contains("GMP Refusal", auditLog.Reason);
+
+        var history = Assert.Single(await db.WorkflowHistories.Where(h => h.Note != null && h.Note.Contains("Transition refused")).ToListAsync());
+        Assert.Equal(order.Id, history.TestOrderId);
+        Assert.Equal(WorkflowStep.Waiting, history.FromStep);
+        Assert.Equal(WorkflowStep.Waiting, history.ToStep);
+        Assert.Contains("Transition refused", history.Note);
+    }
+
+    [Fact]
+    public async Task SelectMediaAsync_WhenItemBasedSampleHasNoSamplePreparationRecord_ThrowsWorkflowStepExceptionAndLogsRefusal()
+    {
+        await using var db = NewDb();
+        var (order, generalAgarMedia, _) = await SeedTamcOrderAsync(db);
+        var item = new Item { Name = "Test Product", Code = "TP-01", Category = SampleCategory.FinishedProduct };
+        db.Items.Add(item);
+        await db.SaveChangesAsync();
+
+        var sample = await db.Samples.FirstAsync(s => s.Id == order.SampleId);
+        sample.Category = SampleCategory.FinishedProduct;
+        sample.ItemId = item.Id;
+        sample.PreparationStatus = SamplePreparationStatus.Ready; // Status is Ready, but no SamplePreparation row exists
+        await db.SaveChangesAsync();
+
+        var engine = TestServiceFactory.TestWorkflow(db);
+        var ex = await Assert.ThrowsAsync<WorkflowStepException>(() =>
+            engine.SelectMediaAsync(order.Id, "CountIncubation", generalAgarMedia.Id, incubatorEquipmentId: 1, userId: 1));
+
+        Assert.Equal(WorkflowErrorCodes.PreparationNotConfirmed, ex.ErrorCode);
+        Assert.Contains("Test Preparation must be completed and confirmed", ex.Message);
+        Assert.Empty(await db.Incubations.ToListAsync());
+
+        var auditLog = Assert.Single(await db.AuditLogs.Where(a => a.Action == "TestStartRefused").ToListAsync());
+        Assert.Equal("TestStartRefused", auditLog.Action);
+        Assert.Equal(order.Id, auditLog.TestOrderId);
+        Assert.Contains("GMP Refusal", auditLog.Reason);
+
+        var history = Assert.Single(await db.WorkflowHistories.Where(h => h.Note != null && h.Note.Contains("Transition refused")).ToListAsync());
+        Assert.Equal(order.Id, history.TestOrderId);
+        Assert.Equal(WorkflowStep.Waiting, history.FromStep);
+        Assert.Equal(WorkflowStep.Waiting, history.ToStep);
+    }
+
+    [Fact]
+    public async Task SelectMediaAsync_WhenItemBasedSamplePreparationConfirmed_Succeeds()
+    {
+        await using var db = NewDb();
+        var (order, generalAgarMedia, _) = await SeedTamcOrderAsync(db);
+        var item = new Item { Name = "Test Product", Code = "TP-01", Category = SampleCategory.FinishedProduct };
+        db.Items.Add(item);
+        await db.SaveChangesAsync();
+
+        var sample = await db.Samples.FirstAsync(s => s.Id == order.SampleId);
+        sample.Category = SampleCategory.FinishedProduct;
+        sample.ItemId = item.Id;
+        sample.PreparationStatus = SamplePreparationStatus.Ready;
+        db.SamplePreparations.Add(new SamplePreparation { SampleId = sample.Id, Amount = 10, Technique = "PourPlate", Diluent = "Buffer", Neutralizer = "Tween" });
+        await db.SaveChangesAsync();
+
+        var engine = TestServiceFactory.TestWorkflow(db);
+        var incubation = await engine.SelectMediaAsync(order.Id, "CountIncubation", generalAgarMedia.Id, incubatorEquipmentId: 1, userId: 1);
+
+        Assert.NotNull(incubation);
+        var updatedOrder = await db.TestOrders.FirstAsync(o => o.Id == order.Id);
+        Assert.Equal(WorkflowStep.Incubating, updatedOrder.CurrentStep);
+        Assert.Equal(ApprovalStatus.InProgress, updatedOrder.Status);
+    }
+
+    [Fact]
+    public async Task AdvanceAsync_WhenPreparationNotConfirmed_ThrowsAndLogsRefusal()
+    {
+        await using var db = NewDb();
+        var (order, _, _) = await SeedTamcOrderAsync(db);
+
+        var sample = await db.Samples.FirstAsync(s => s.Id == order.SampleId);
+        sample.PreparationStatus = SamplePreparationStatus.NeedsPreparation;
+        await db.SaveChangesAsync();
+
+        var engine = TestServiceFactory.TestWorkflow(db);
+        var ex = await Assert.ThrowsAsync<WorkflowStepException>(() =>
+            engine.AdvanceAsync(order.Id, performedByUserId: 1));
+
+        Assert.Equal(WorkflowErrorCodes.PreparationNotConfirmed, ex.ErrorCode);
+        Assert.Contains("Test Preparation must be completed and confirmed", ex.Message);
+
+        var updatedOrder = await db.TestOrders.FirstAsync(o => o.Id == order.Id);
+        Assert.Equal(WorkflowStep.Waiting, updatedOrder.CurrentStep);
+
+        var auditLog = Assert.Single(await db.AuditLogs.Where(a => a.Action == "TestStartRefused").ToListAsync());
+        Assert.Equal("TestStartRefused", auditLog.Action);
+        Assert.Equal(order.Id, auditLog.TestOrderId);
+
+        var history = Assert.Single(await db.WorkflowHistories.Where(h => h.Note != null && h.Note.Contains("Transition refused")).ToListAsync());
+        Assert.Equal(order.Id, history.TestOrderId);
+        Assert.Equal(WorkflowStep.Waiting, history.FromStep);
+        Assert.Equal(WorkflowStep.Waiting, history.ToStep);
+    }
+
+    [Fact]
+    public async Task ProductWorkflowEngine_AdvanceAsync_WhenPreparationNotConfirmed_ThrowsAndLogsRefusal()
+    {
+        await using var db = NewDb();
+        var item = new Item { Name = "Finished Tablet", Code = "FT-01", Category = SampleCategory.FinishedProduct, IsActive = true };
+        item.AssignedTests.Add(new SampleTest { TestCode = "TAMC" });
+        db.Items.Add(item);
+        await db.SaveChangesAsync();
+
+        var productEngine = new ProductWorkflowEngine(db, new ReferenceNumberGenerator(db));
+        var sample = await productEngine.ReceiveAsync(new ItemBasedReceiveRequest(
+            item.Id, 1, "100g", "Analyst", "LOT-99", "CTRL-99", DateTime.UtcNow, DateTime.UtcNow.AddYears(2), "Bulk", 1));
+
+        var order = sample.TestOrders.First();
+        Assert.Equal(WorkflowStep.Waiting, order.CurrentStep);
+        Assert.Equal(SamplePreparationStatus.NeedsPreparation, sample.PreparationStatus);
+
+        var ex = await Assert.ThrowsAsync<WorkflowStepException>(() =>
+            productEngine.AdvanceAsync(order.Id, performedByUserId: 1));
+
+        Assert.Equal(WorkflowErrorCodes.PreparationNotConfirmed, ex.ErrorCode);
+
+        var updatedOrder = await db.TestOrders.FirstAsync(o => o.Id == order.Id);
+        Assert.Equal(WorkflowStep.Waiting, updatedOrder.CurrentStep);
+
+        var auditLog = Assert.Single(await db.AuditLogs.Where(a => a.Action == "TestStartRefused").ToListAsync());
+        Assert.Equal("TestStartRefused", auditLog.Action);
+        Assert.Equal(order.Id, auditLog.TestOrderId);
+
+        var history = Assert.Single(await db.WorkflowHistories.Where(h => h.Note != null && h.Note.Contains("Transition refused")).ToListAsync());
+        Assert.Equal(order.Id, history.TestOrderId);
+        Assert.Equal(WorkflowStep.Waiting, history.FromStep);
+        Assert.Equal(WorkflowStep.Waiting, history.ToStep);
+
+        // Now confirm preparation
+        sample.PreparationStatus = SamplePreparationStatus.Ready;
+        db.SamplePreparations.Add(new SamplePreparation { SampleId = sample.Id, Amount = 10, Technique = "PourPlate", Diluent = "Buffer", Neutralizer = "Tween" });
+        await db.SaveChangesAsync();
+
+        // Advance should now succeed
+        var nextStep = await productEngine.AdvanceAsync(order.Id, performedByUserId: 1);
+        Assert.Equal(WorkflowStep.Running, nextStep);
+
+        var advancedOrder = await db.TestOrders.FirstAsync(o => o.Id == order.Id);
+        Assert.Equal(WorkflowStep.Running, advancedOrder.CurrentStep);
+        Assert.Equal(ApprovalStatus.InProgress, advancedOrder.Status);
     }
 }

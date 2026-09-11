@@ -179,7 +179,7 @@ export function FileUploadDialog({
         </Box>
 
         {selectedFile && (
-          <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, p: 1.5, bgcolor: "grey.50", borderRadius: 1, border: "1px solid", borderColor: "divider" }}>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, p: 1.5, bgcolor: (t) => t.palette.mode === "dark" ? "action.hover" : "grey.50", borderRadius: 1, border: "1px solid", borderColor: "divider" }}>
             <InsertDriveFileOutlinedIcon color="primary" />
             <Box sx={{ flexGrow: 1, minWidth: 0 }}>
               <Typography variant="body2" sx={{ fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>

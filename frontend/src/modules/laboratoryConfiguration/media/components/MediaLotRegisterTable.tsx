@@ -18,7 +18,7 @@ import DescriptionOutlinedIcon from "@mui/icons-material/DescriptionOutlined";
 import { Link } from "react-router-dom";
 import { StatusBadge } from "../../../../components/StatusBadge";
 import { lifecycleOf } from "./MediaLotKpiCards";
-import { brandColors, tableHeadSx } from "../../../../theme";
+import { tableHeadSx } from "../../../../theme";
 import { useAuth } from "../../../../contexts/AuthContext";
 
 function formatDateDDMMYY(value: string | number | Date | null | undefined): string {
@@ -95,7 +95,7 @@ export function MediaLotRegisterTable({
                     cursor: "pointer",
                     bgcolor: isSelected ? theme.custom.status.purple.bg : "inherit",
                     borderLeft: isSelected
-                      ? `4px solid ${brandColors.sectionTitle}`
+                      ? `4px solid ${theme.palette.primary.main}`
                       : "4px solid transparent",
                     "&:hover": { bgcolor: isSelected ? theme.custom.status.purple.bg : "background.default" }
                   }}
@@ -105,7 +105,7 @@ export function MediaLotRegisterTable({
                   </TableCell>
 
                   <TableCell sx={{ py: 1.25 }}>
-                    <Typography sx={{ fontWeight: isSelected ? 700 : 600, fontSize: 12.5, color: isSelected ? brandColors.pageTitle : "text.primary" }}>
+                    <Typography sx={{ fontWeight: isSelected ? 700 : 600, fontSize: 12.5, color: isSelected ? "primary.main" : "text.primary" }}>
                       {lot.material?.materialName || "Dehydrated Material"}
                     </Typography>
                     <Typography sx={{ fontSize: 11, color: "text.secondary" }}>
@@ -171,7 +171,7 @@ export function MediaLotRegisterTable({
                   cursor: "pointer",
                   bgcolor: isSelected ? theme.custom.status.purple.bg : "inherit",
                   borderLeft: isSelected
-                    ? `4px solid ${brandColors.sectionTitle}`
+                    ? `4px solid ${theme.palette.primary.main}`
                     : "4px solid transparent",
                   "&:hover": { bgcolor: isSelected ? theme.custom.status.purple.bg : "background.default" }
                 }}
@@ -201,7 +201,7 @@ export function MediaLotRegisterTable({
 
                 {/* 3. Lot Number */}
                 <TableCell sx={{ py: 1.5 }}>
-                  <Typography sx={{ fontWeight: 700, fontSize: 13, color: isSelected ? brandColors.pageTitle : "text.primary" }}>
+                  <Typography sx={{ fontWeight: 700, fontSize: 13, color: isSelected ? "primary.main" : "text.primary" }}>
                     {lot.lotNumber}
                   </Typography>
                   <Typography sx={{ fontSize: 11, color: "text.secondary" }}>

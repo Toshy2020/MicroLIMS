@@ -13,7 +13,6 @@ import { ReferenceStrainReportService } from "../services/ReferenceStrainReportS
 import { ReferenceStrainDetailDialog } from "./ReferenceStrainDetailDialog";
 import { exportReferenceStrainPdf } from "../utils/exportReferenceStrainPdf";
 import { useAuth } from "../../../contexts/AuthContext";
-import { brandColors } from "../../../theme";
 import { DataTable, Column } from "../../../components/DataTable";
 
 const ROWS_PER_PAGE_OPTIONS = [10, 25, 50, 100];
@@ -161,7 +160,7 @@ export function ReferenceStrainResultsTable({
           sx={{ fontSize: 10.5, height: 20, fontWeight: 600 }}
         />
         {r.isDestroyed && (
-          <Typography variant="caption" sx={{ display: "block", color: brandColors.err, fontWeight: 700, fontSize: 10 }}>
+          <Typography variant="caption" sx={{ display: "block", color: "error.main", fontWeight: 700, fontSize: 10 }}>
             Destroyed
           </Typography>
         )}
@@ -223,10 +222,11 @@ export function ReferenceStrainResultsTable({
           <Button
             size="small"
             variant="contained"
+            color="primary"
             startIcon={<PictureAsPdfIcon />}
             onClick={handleExportPdf}
             disabled={items.length === 0}
-            sx={{ bgcolor: brandColors.sectionTitle, "&:hover": { bgcolor: "#4a0f61" }, fontWeight: 600 }}
+            sx={{ fontWeight: 600 }}
           >
             Print / PDF View {selectedIds.length > 0 ? `(${selectedIds.length})` : ""}
           </Button>

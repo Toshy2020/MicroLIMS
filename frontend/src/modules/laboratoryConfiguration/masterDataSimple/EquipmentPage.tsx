@@ -32,7 +32,8 @@ import RefreshIcon from "@mui/icons-material/Refresh";
 import { PageHeader } from "../../../components/PageHeader";
 import { SectionTitle } from "../../../components/SectionTitle";
 import { FloatingDialog } from "../../../components/FloatingDialog";
-import { brandColors } from "../../../theme";
+import { tableHeadSx } from "../../../theme";
+import { toast } from "sonner";
 import { useNavigate, Link } from "react-router-dom";
 import {
   EquipmentConfigurationService,
@@ -230,8 +231,9 @@ export function EquipmentPage() {
     try {
       await EquipmentConfigurationService.setAutoclaveProgramStatus(prog.id, newStatus, comment);
       await loadData();
+      toast.success(newStatus ? "Program activated" : "Program deactivated");
     } catch (err: any) {
-      alert(err?.response?.data?.message ?? err?.message ?? "Status update failed.");
+      toast.error(err?.response?.data?.message ?? err?.message ?? "Status update failed.");
     }
   };
 
@@ -251,8 +253,9 @@ export function EquipmentPage() {
       await EquipmentConfigurationService.linkInventory(invId);
       setInventoryDialogOpen(false);
       await loadData();
+      toast.success("Equipment linked successfully");
     } catch (err: any) {
-      alert(err?.response?.data?.message ?? err?.message ?? "Could not link equipment.");
+      toast.error(err?.response?.data?.message ?? err?.message ?? "Could not link equipment.");
     }
   };
 
@@ -297,7 +300,7 @@ export function EquipmentPage() {
             variant="contained"
             startIcon={<AddIcon />}
             onClick={() => setInventoryDialogOpen(true)}
-            sx={{ bgcolor: brandColors.sectionTitle, "&:hover": { bgcolor: "#632273" } }}
+            color="primary"
           >
             Select from Inventory
           </Button>
@@ -367,7 +370,7 @@ export function EquipmentPage() {
                           p: 1.5,
                           borderRadius: 1.5,
                           border: 1,
-                          borderColor: isSelected ? brandColors.sectionTitle : "divider",
+                          borderColor: isSelected ? "primary.main" : "divider",
                           bgcolor: isSelected ? "action.selected" : "background.paper",
                           cursor: "pointer",
                           transition: "all 0.15s ease",
@@ -494,7 +497,7 @@ export function EquipmentPage() {
                           variant="contained"
                           startIcon={<EditIcon />}
                           onClick={handleOpenEditSetPoint}
-                          sx={{ bgcolor: brandColors.sectionTitle, "&:hover": { bgcolor: "#632273" } }}
+                          color="primary"
                         >
                           Edit Set Point
                         </Button>
@@ -506,7 +509,7 @@ export function EquipmentPage() {
 
                       <Table size="small">
                         <TableHead>
-                          <TableRow>
+                          <TableRow sx={tableHeadSx}>
                             <TableCell>Effective On</TableCell>
                             <TableCell align="right">Previous</TableCell>
                             <TableCell align="right">New</TableCell>
@@ -545,7 +548,7 @@ export function EquipmentPage() {
                           size="small"
                           startIcon={<AddIcon />}
                           onClick={handleOpenAddProgram}
-                          sx={{ bgcolor: brandColors.sectionTitle, "&:hover": { bgcolor: "#632273" } }}
+                          color="primary"
                         >
                           Add Program / Load
                         </Button>
@@ -553,7 +556,7 @@ export function EquipmentPage() {
 
                       <Table size="small">
                         <TableHead>
-                          <TableRow>
+                          <TableRow sx={tableHeadSx}>
                             <TableCell>Program</TableCell>
                             <TableCell>Program / Load Name</TableCell>
                             <TableCell>Load Type</TableCell>
@@ -640,7 +643,7 @@ export function EquipmentPage() {
               <SectionTitle>All Configured Autoclave Programs / Loads</SectionTitle>
               <Table size="small">
                 <TableHead>
-                  <TableRow>
+                  <TableRow sx={tableHeadSx}>
                     <TableCell>Autoclave</TableCell>
                     <TableCell>Program Code</TableCell>
                     <TableCell>Program / Load Name</TableCell>
@@ -702,7 +705,7 @@ export function EquipmentPage() {
               </Typography>
               <Table size="small">
                 <TableHead>
-                  <TableRow>
+                  <TableRow sx={tableHeadSx}>
                     <TableCell>Effective On</TableCell>
                     <TableCell>Equipment Code</TableCell>
                     <TableCell>Category</TableCell>
@@ -752,7 +755,7 @@ export function EquipmentPage() {
               onClick={handleSaveSetPoint}
               variant="contained"
               disabled={saving}
-              sx={{ bgcolor: brandColors.sectionTitle, "&:hover": { bgcolor: "#632273" } }}
+              color="primary"
             >
               {saving ? "Saving…" : "Save Changes"}
             </Button>
@@ -769,7 +772,7 @@ export function EquipmentPage() {
           </Box>
           <Box>
             <Typography variant="caption" color="text.secondary">Current Set Point</Typography>
-            <Typography variant="body1" fontWeight={700} color={brandColors.sectionTitle}>
+            <Typography variant="body1" fontWeight={700} color="primary.main">
               {selectedEquipment?.setPointTemperature ? `${selectedEquipment.setPointTemperature} °C` : "Not Configured"}
             </Typography>
           </Box>
@@ -809,7 +812,7 @@ export function EquipmentPage() {
               onClick={handleSaveProgram}
               variant="contained"
               disabled={saving}
-              sx={{ bgcolor: brandColors.sectionTitle, "&:hover": { bgcolor: "#632273" } }}
+              color="primary"
             >
               {saving ? "Saving…" : "Save Program"}
             </Button>
@@ -894,7 +897,7 @@ export function EquipmentPage() {
       >
           <Table size="small">
             <TableHead>
-              <TableRow>
+              <TableRow sx={tableHeadSx}>
                 <TableCell>Date / Time</TableCell>
                 <TableCell>Action</TableCell>
                 <TableCell>Program Name</TableCell>
@@ -949,7 +952,7 @@ export function EquipmentPage() {
           </Typography>
           <Table size="small">
             <TableHead>
-              <TableRow>
+              <TableRow sx={tableHeadSx}>
                 <TableCell>Equipment Code</TableCell>
                 <TableCell>Instrument Type</TableCell>
                 <TableCell>Manufacturer</TableCell>

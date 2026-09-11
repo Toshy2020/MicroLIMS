@@ -120,7 +120,7 @@ public class DocumentControlApprovalPostgresIntegrationTests
         return (author.Id, reviewer.Id, approver.Id, masterDto.Id, revId);
     }
 
-    [Fact]
+    [PostgresFact]
     public async Task Postgres_CreateApprovalTask_EnforcesRelationalFKs_AndAudits()
     {
         await using var db = _fixture.CreateDbContext();
@@ -160,7 +160,7 @@ public class DocumentControlApprovalPostgresIntegrationTests
         Assert.NotEmpty(auditLogs);
     }
 
-    [Fact]
+    [PostgresFact]
     public async Task Postgres_ApprovalDecision_ImmediateEffective_SupersedesPriorInSingleTransaction()
     {
         await using var db = _fixture.CreateDbContext();
@@ -199,7 +199,7 @@ public class DocumentControlApprovalPostgresIntegrationTests
         Assert.NotNull(approvalAudit);
     }
 
-    [Fact]
+    [PostgresFact]
     public async Task Postgres_ApprovalDecision_FutureEffective_PreservesEffectivePrior()
     {
         await using var db = _fixture.CreateDbContext();

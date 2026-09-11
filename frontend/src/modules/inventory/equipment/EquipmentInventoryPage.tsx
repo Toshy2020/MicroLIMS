@@ -45,7 +45,7 @@ import { EquipmentFilterBar } from "./components/EquipmentFilterBar";
 import { RegisterEquipmentDialog } from "./components/RegisterEquipmentDialog";
 import { EquipmentDetailsDialog } from "./components/EquipmentDetailsDialog";
 import { ActiveEquipmentView } from "./components/ActiveEquipmentView";
-import { brandColors, tableHeadSx } from "../../../theme";
+import { tableHeadSx } from "../../../theme";
 
 const INITIAL_FILTERS: EquipmentFilterState = {
   search: "",
@@ -184,18 +184,17 @@ export function EquipmentInventoryPage() {
           <Button
             className="no-print"
             variant="contained"
+            color="primary"
             startIcon={<AddIcon />}
             onClick={() => {
               setEditingItem(null);
               setIsRegisterOpen(true);
             }}
             sx={{
-              bgcolor: brandColors.sectionTitle,
               px: 2.5,
               py: 1,
               fontWeight: 600,
-              whiteSpace: "nowrap",
-              "&:hover": { bgcolor: brandColors.pageTitle }
+              whiteSpace: "nowrap"
             }}
           >
             + Register Equipment

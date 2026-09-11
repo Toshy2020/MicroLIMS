@@ -12,6 +12,7 @@ import { SectionTitle } from "../../../components/SectionTitle";
 import { TestCodePicker } from "../../../components/TestCodePicker";
 import { ConfirmationDialog } from "../../../components/ConfirmationDialog";
 import { EMConfigService } from "./services/EMConfigService";
+import { tableHeadSx } from "../../../theme";
 
 const TEST_TYPES = ["PassiveAirSample", "SurfaceAirSample"];
 
@@ -67,7 +68,7 @@ function RoomTestConfigSection({ roomId }: { roomId: number }) {
       {configs.length > 0 ? (
         <Table size="small" sx={{ mb: 1.5 }}>
           <TableHead>
-            <TableRow><TableCell>Test Type</TableCell><TableCell>Test Code</TableCell><TableCell>Alert</TableCell><TableCell>Action</TableCell><TableCell>Spec</TableCell><TableCell>Unit</TableCell><TableCell /></TableRow>
+            <TableRow sx={tableHeadSx}><TableCell>Test Type</TableCell><TableCell>Test Code</TableCell><TableCell>Alert</TableCell><TableCell>Action</TableCell><TableCell>Spec</TableCell><TableCell>Unit</TableCell><TableCell /></TableRow>
           </TableHead>
           <TableBody>
             {configs.map((c) => (
@@ -235,7 +236,7 @@ export function EMConfigPage() {
       <SectionTitle>Departments</SectionTitle>
       <Paper sx={{ p: 2.5 }}>
         <Table>
-          <TableHead><TableRow><TableCell sx={{ width: 40 }} /><TableCell>Department</TableCell><TableCell>Class</TableCell><TableCell>Testing Frequency</TableCell><TableCell /></TableRow></TableHead>
+          <TableHead><TableRow sx={tableHeadSx}><TableCell sx={{ width: 40 }} /><TableCell>Department</TableCell><TableCell>Class</TableCell><TableCell>Testing Frequency</TableCell><TableCell /></TableRow></TableHead>
           <TableBody>
             {departments.map((d) => (
               <Fragment key={d.id}>
@@ -261,7 +262,7 @@ export function EMConfigPage() {
                           <Typography variant="body2" color="text.secondary">No rooms configured yet.</Typography>
                         ) : (
                           <Table size="small">
-                            <TableHead><TableRow><TableCell sx={{ width: 40 }} /><TableCell>Room</TableCell><TableCell>Grade</TableCell><TableCell /></TableRow></TableHead>
+                            <TableHead><TableRow sx={tableHeadSx}><TableCell sx={{ width: 40 }} /><TableCell>Room</TableCell><TableCell>Grade</TableCell><TableCell /></TableRow></TableHead>
                             <TableBody>
                               {(d.rooms ?? []).map((r: any) => (
                                 <Fragment key={r.id}>

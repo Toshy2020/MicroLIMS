@@ -75,7 +75,7 @@ public class MasterDataController : ControllerBase
     // ---- Water Sampling Points ----
     [HttpGet("water-sampling-points")]
     public async Task<IActionResult> GetWaterSamplingPoints() =>
-        Ok(ApiResponse<object>.Ok(await _db.WaterSamplingPoints.ToListAsync()));
+        Ok(ApiResponse<object>.Ok(await _db.WaterSamplingPoints.AsNoTracking().ToListAsync()));
 
     [Authorize(Roles = RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
     [HttpPost("water-sampling-points")]
@@ -183,7 +183,7 @@ public class MasterDataController : ControllerBase
     // ---- Water Sampling Configurations (per sample location x test limits) ----
     [HttpGet("water-sampling-configurations")]
     public async Task<IActionResult> GetWaterSamplingConfigurations([FromQuery] int pointId) =>
-        Ok(ApiResponse<object>.Ok(await _db.SamplingConfigurations.Where(c => c.WaterSamplingPointId == pointId).ToListAsync()));
+        Ok(ApiResponse<object>.Ok(await _db.SamplingConfigurations.AsNoTracking().Where(c => c.WaterSamplingPointId == pointId).ToListAsync()));
 
     [Authorize(Roles = RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
     [HttpPost("water-sampling-configurations")]
@@ -233,7 +233,7 @@ public class MasterDataController : ControllerBase
         // Shaped to avoid the Department.Rooms <-> Room.Department
         // navigation cycle EF's relationship fixup creates when both
         // sides are tracked in the same query - same pattern as GetMachines.
-        var departments = await _db.Departments.Include(d => d.Rooms)
+        var departments = await _db.Departments
             .Select(d => new { d.Id, d.Name, d.Class, d.TestingFrequency, Rooms = d.Rooms.Select(r => new { r.Id, r.Name, r.DepartmentId, r.GradeClassification }) })
             .ToListAsync();
         return Ok(ApiResponse<object>.Ok(departments));
@@ -287,7 +287,7 @@ public class MasterDataController : ControllerBase
         // navigation cycle EF's relationship fixup creates when both
         // sides are tracked in the same query (raw entities would crash
         // JSON serialization here).
-        var rooms = await _db.Rooms.Include(r => r.Department)
+        var rooms = await _db.Rooms
             .Select(r => new { r.Id, r.Name, r.DepartmentId, r.GradeClassification, Department = r.Department == null ? null : new { r.Department.Id, r.Department.Name } })
             .ToListAsync();
         return Ok(ApiResponse<object>.Ok(rooms));
@@ -348,7 +348,7 @@ public class MasterDataController : ControllerBase
         // Shaped to avoid the Machine.Parts <-> MachinePart.Machine
         // navigation cycle EF's relationship fixup creates when both
         // sides are tracked in the same query.
-        var machines = await _db.Machines.Include(m => m.Parts)
+        var machines = await _db.Machines
             .Select(m => new { m.Id, m.Name, Parts = m.Parts.Select(p => new { p.Id, p.Name, p.MachineId }) })
             .ToListAsync();
         return Ok(ApiResponse<object>.Ok(machines));
@@ -442,7 +442,7 @@ public class MasterDataController : ControllerBase
     // ---- Specifications (Product) ----
     [HttpGet("specifications")]
     public async Task<IActionResult> GetSpecifications([FromQuery] int itemId) =>
-        Ok(ApiResponse<object>.Ok(await _db.Specifications.Where(s => s.ItemId == itemId).ToListAsync()));
+        Ok(ApiResponse<object>.Ok(await _db.Specifications.AsNoTracking().Where(s => s.ItemId == itemId).ToListAsync()));
 
     [Authorize(Roles = RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
     [HttpPost("specifications")]
@@ -491,7 +491,7 @@ public class MasterDataController : ControllerBase
 
     // ---- Cause of Testing ----
     [HttpGet("causes-of-testing")]
-    public async Task<IActionResult> GetCausesOfTesting() => Ok(ApiResponse<object>.Ok(await _db.CausesOfTesting.Where(c => c.IsActive).ToListAsync()));
+    public async Task<IActionResult> GetCausesOfTesting() => Ok(ApiResponse<object>.Ok(await _db.CausesOfTesting.AsNoTracking().Where(c => c.IsActive).ToListAsync()));
 
     [Authorize(Roles = RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
     [HttpPost("causes-of-testing")]
@@ -544,7 +544,7 @@ public class MasterDataController : ControllerBase
     // Sample - not an FK, so no delete guard needed: removing a name here
     // never touches historical Sample rows, which store the string directly) ----
     [HttpGet("samplers")]
-    public async Task<IActionResult> GetSamplers() => Ok(ApiResponse<object>.Ok(await _db.Samplers.Where(s => s.IsActive).OrderBy(s => s.Name).ToListAsync()));
+    public async Task<IActionResult> GetSamplers() => Ok(ApiResponse<object>.Ok(await _db.Samplers.AsNoTracking().Where(s => s.IsActive).OrderBy(s => s.Name).ToListAsync()));
 
     [Authorize(Roles = RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
     [HttpPost("samplers")]
@@ -590,7 +590,7 @@ public class MasterDataController : ControllerBase
     // receiving form's Production Stage field - not an FK, same rationale
     // as Samplers above) ----
     [HttpGet("production-stages")]
-    public async Task<IActionResult> GetProductionStages() => Ok(ApiResponse<object>.Ok(await _db.ProductionStages.Where(s => s.IsActive).OrderBy(s => s.Name).ToListAsync()));
+    public async Task<IActionResult> GetProductionStages() => Ok(ApiResponse<object>.Ok(await _db.ProductionStages.AsNoTracking().Where(s => s.IsActive).OrderBy(s => s.Name).ToListAsync()));
 
     [Authorize(Roles = RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
     [HttpPost("production-stages")]
@@ -634,7 +634,7 @@ public class MasterDataController : ControllerBase
 
     // ---- Diluent Types ----
     [HttpGet("diluent-types")]
-    public async Task<IActionResult> GetDiluentTypes() => Ok(ApiResponse<object>.Ok(await _db.DiluentTypes.ToListAsync()));
+    public async Task<IActionResult> GetDiluentTypes() => Ok(ApiResponse<object>.Ok(await _db.DiluentTypes.AsNoTracking().ToListAsync()));
 
     [Authorize(Roles = RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
     [HttpPost("diluent-types")]
@@ -648,7 +648,7 @@ public class MasterDataController : ControllerBase
 
     // ---- Neutralizers ----
     [HttpGet("neutralizers")]
-    public async Task<IActionResult> GetNeutralizers() => Ok(ApiResponse<object>.Ok(await _db.Neutralizers.Where(n => n.IsActive).ToListAsync()));
+    public async Task<IActionResult> GetNeutralizers() => Ok(ApiResponse<object>.Ok(await _db.Neutralizers.AsNoTracking().Where(n => n.IsActive).ToListAsync()));
 
     [Authorize(Roles = RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
     [HttpPost("neutralizers")]
@@ -664,7 +664,7 @@ public class MasterDataController : ControllerBase
     [HttpGet("equipment")]
     public async Task<IActionResult> GetEquipment([FromQuery] EquipmentType? type)
     {
-        var query = _db.Equipment.AsQueryable();
+        var query = _db.Equipment.AsNoTracking().AsQueryable();
         if (type.HasValue) query = query.Where(e => e.Type == type.Value);
         return Ok(ApiResponse<object>.Ok(await query.ToListAsync()));
     }
@@ -776,7 +776,7 @@ public class MasterDataController : ControllerBase
     // ---- Room Test Configurations (EM) ----
     [HttpGet("room-test-configurations")]
     public async Task<IActionResult> GetRoomTestConfigurations([FromQuery] int roomId) =>
-        Ok(ApiResponse<object>.Ok(await _db.RoomTestConfigurations.Where(c => c.RoomId == roomId).ToListAsync()));
+        Ok(ApiResponse<object>.Ok(await _db.RoomTestConfigurations.AsNoTracking().Where(c => c.RoomId == roomId).ToListAsync()));
 
     [Authorize(Roles = RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
     [HttpPost("room-test-configurations")]
@@ -825,7 +825,7 @@ public class MasterDataController : ControllerBase
     // ---- Machine Part Test Configurations (After Cleaning) ----
     [HttpGet("machine-part-configurations")]
     public async Task<IActionResult> GetMachinePartConfigurations([FromQuery] int machinePartId) =>
-        Ok(ApiResponse<object>.Ok(await _db.MachinePartConfigurations.Where(c => c.MachinePartId == machinePartId).ToListAsync()));
+        Ok(ApiResponse<object>.Ok(await _db.MachinePartConfigurations.AsNoTracking().Where(c => c.MachinePartId == machinePartId).ToListAsync()));
 
     [Authorize(Roles = RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
     [HttpPost("machine-part-configurations")]
@@ -878,8 +878,6 @@ public class MasterDataController : ControllerBase
     public async Task<IActionResult> GetMediaConfigurations()
     {
         var configs = await _db.MediaConfigurations
-            .Include(m => m.Challenges)
-            .ThenInclude(c => c.Organism)
             .OrderBy(m => m.Name)
             .ThenBy(m => m.IncubationMinHours)
             .Select(m => new
@@ -1195,7 +1193,7 @@ public class MasterDataController : ControllerBase
     // MediaChallengeSpec, MediaEvaluationChallenge, Cryovial, Material) ----
     [HttpGet("organisms")]
     public async Task<IActionResult> GetOrganisms() =>
-        Ok(ApiResponse<object>.Ok(await _db.Organisms.OrderBy(o => o.ScientificName).ToListAsync()));
+        Ok(ApiResponse<object>.Ok(await _db.Organisms.AsNoTracking().OrderBy(o => o.ScientificName).ToListAsync()));
 
     [Authorize(Roles = RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
     [HttpPost("organisms")]
@@ -1263,7 +1261,7 @@ public class MasterDataController : ControllerBase
     // exists.
     [HttpGet("test-definitions")]
     public async Task<IActionResult> GetTestDefinitions() =>
-        Ok(ApiResponse<object>.Ok(await _db.TestDefinitions.OrderBy(t => t.Code).ToListAsync()));
+        Ok(ApiResponse<object>.Ok(await _db.TestDefinitions.AsNoTracking().OrderBy(t => t.Code).ToListAsync()));
 
     [Authorize(Roles = RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
     [HttpPost("test-definitions")]
@@ -1333,11 +1331,6 @@ public class MasterDataController : ControllerBase
     [HttpGet("test-definitions/{id}/steps")]
     public async Task<IActionResult> GetTestWorkflowSteps(int id) =>
         Ok(ApiResponse<object>.Ok(await _db.TestWorkflowSteps
-            .Include(s => s.TargetOrganism)
-            .Include(s => s.StepMedia).ThenInclude(m => m.Material)
-            .Include(s => s.StepMedia).ThenInclude(m => m.MediaConfiguration)
-            .Include(s => s.IncubationStages)
-            .Include(s => s.PhenotypicTests)
             .Where(s => s.TestDefinitionId == id)
             .OrderBy(s => s.StepOrder)
             .Select(s => new

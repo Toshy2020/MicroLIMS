@@ -11,7 +11,6 @@ import {
   Alert,
   CircularProgress,
   Stack,
-  Divider,
   useTheme
 } from "@mui/material";
 import PersonOutlineIcon from "@mui/icons-material/PersonOutline";

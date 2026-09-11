@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import {
   Box, Paper, Stack, Typography, TextField, Button, Table, TableHead,
   TableRow, TableCell, TableBody, TableContainer, TablePagination, Chip, Alert, IconButton,
-  Tooltip, Grid, CircularProgress, Divider, useTheme
+  Tooltip, Grid, CircularProgress, useTheme
 } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
 import VisibilityIcon from "@mui/icons-material/Visibility";
@@ -15,7 +15,6 @@ import {
   EquipmentInventoryService, ActiveEquipmentDto, EquipmentActivityDto, WhereIsItResultDto
 } from "../services/EquipmentInventoryService";
 import { formatLabDate, formatLabDateTime } from "../../../../utils/formatDate";
-import { brandColors } from "../../../../theme";
 
 interface ActiveEquipmentViewProps {
   onOpenDetails: (equipmentId: number) => void;
@@ -415,7 +414,7 @@ export function ActiveEquipmentView({ onOpenDetails }: ActiveEquipmentViewProps)
                                   {(() => {
                                     const targetRoute =
                                       act.entityType === "Sample"
-                                        ? "/testing-workspace"
+                                        ? "/receiving-testing"
                                         : act.entityType === "Media"
                                         ? "/laboratory-configuration/media"
                                         : act.entityType === "Cryovial"

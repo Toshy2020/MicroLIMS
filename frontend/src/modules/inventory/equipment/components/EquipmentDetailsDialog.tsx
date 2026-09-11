@@ -21,9 +21,8 @@ import type {
   EquipmentItem,
   EquipmentStatusHistoryItem
 } from "../types/equipmentTypes";
-import {
-  EQUIPMENT_STATUS_LABELS
-} from "../types/equipmentTypes";
+
+
 import {
   isEquipmentCalibrationDueSoon,
   isEquipmentCalibrationOverdue

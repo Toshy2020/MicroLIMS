@@ -21,15 +21,17 @@ import {
   Select,
   FormControl,
   InputLabel,
-  Paper
+  Paper,
+  Tooltip,
+  useTheme
 } from "@mui/material";
 import DeleteIcon from "@mui/icons-material/Delete";
-import EditIcon from "@mui/icons-material/Edit";
 import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline";
 import { documentRevisionService } from "../services/documentRevisionService";
+import { ConfirmationDialog } from "../../../components/ConfirmationDialog";
+import { tableHeadSx } from "../../../theme";
 import type {
-  RevisionChangeItemDto,
-  AddChangeItemRequest
+  RevisionChangeItemDto
 } from "../types/documentControlTypes";
 
 interface RevisionChangeItemsDialogProps {
@@ -51,6 +53,7 @@ export const RevisionChangeItemsDialog: React.FC<RevisionChangeItemsDialogProps>
   isEditable,
   onChanged
 }) => {
+  const theme = useTheme();
   const [items, setItems] = useState<RevisionChangeItemDto[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
@@ -63,27 +66,7 @@ export const RevisionChangeItemsDialog: React.FC<RevisionChangeItemsDialogProps>
   const [rationale, setRationale] = useState<string>("");
   const [category, setCategory] = useState<string>("Modification");
   const [adding, setAdding] = useState<boolean>(false);
-
-  useEffect(() => {
-    if (open) {
-      loadItems();
-      setShowAdd(false);
-      resetForm();
-    }
-  }, [open, revisionId]);
-
-  const loadItems = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await documentRevisionService.getChangeItems(revisionId);
-      setItems(res);
-    } catch (err: any) {
-      setError("Failed to load revision change items.");
-    } finally {
-      setLoading(false);
-    }
-  };
+  const [itemToDelete, setItemToDelete] = useState<number | null>(null);
 
   const resetForm = () => {
     setSectionNumber("");
@@ -93,23 +76,41 @@ export const RevisionChangeItemsDialog: React.FC<RevisionChangeItemsDialogProps>
     setCategory("Modification");
   };
 
-  const handleAddItem = async () => {
-    if (!sectionNumber.trim() || !sectionTitle.trim() || !description.trim() || !rationale.trim()) {
-      setError("All fields are required to add a change item.");
+  useEffect(() => {
+    if (open) {
+      loadItems();
+    }
+  }, [open, revisionId]);
+
+  const loadItems = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await documentRevisionService.getChangeItems(revisionId);
+      setItems(data);
+    } catch (err: any) {
+      setError(err.response?.data?.message || err.message || "Failed to load change items.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleAddItem = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!description.trim()) {
+      setError("Description of change is required.");
       return;
     }
-
     setAdding(true);
     setError(null);
     try {
-      const req: AddChangeItemRequest = {
+      await documentRevisionService.addChangeItem(revisionId, {
         sectionNumber: sectionNumber.trim(),
         sectionTitle: sectionTitle.trim(),
         descriptionOfChange: description.trim(),
         changeRationale: rationale.trim(),
         changeCategory: category
-      };
-      await documentRevisionService.addChangeItem(revisionId, req);
+      });
       resetForm();
       setShowAdd(false);
       await loadItems();
@@ -121,10 +122,16 @@ export const RevisionChangeItemsDialog: React.FC<RevisionChangeItemsDialogProps>
     }
   };
 
-  const handleDeleteItem = async (itemId: number) => {
-    if (!window.confirm("Are you sure you want to delete this change item?")) return;
+  const handleDeleteItem = (itemId: number) => {
+    setItemToDelete(itemId);
+  };
+
+  const confirmDeleteItem = async () => {
+    if (!itemToDelete) return;
+    const id = itemToDelete;
+    setItemToDelete(null);
     try {
-      await documentRevisionService.deleteChangeItem(itemId);
+      await documentRevisionService.deleteChangeItem(id);
       await loadItems();
       if (onChanged) onChanged();
     } catch (err: any) {
@@ -169,7 +176,7 @@ export const RevisionChangeItemsDialog: React.FC<RevisionChangeItemsDialogProps>
         {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
 
         {showAdd && (
-          <Paper variant="outlined" sx={{ p: 2.5, mb: 3, bgcolor: "grey.50" }}>
+          <Paper variant="outlined" sx={{ p: 2.5, mb: 3, bgcolor: (t) => t.palette.mode === "dark" ? "action.hover" : "grey.50" }}>
             <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 2 }}>
               Add New Section Change Item
             </Typography>
@@ -251,7 +258,7 @@ export const RevisionChangeItemsDialog: React.FC<RevisionChangeItemsDialogProps>
           </Alert>
         ) : (
           <Table size="small">
-            <TableHead>
+            <TableHead sx={tableHeadSx(theme)}>
               <TableRow>
                 <TableCell sx={{ fontWeight: 600 }}>Section</TableCell>
                 <TableCell sx={{ fontWeight: 600 }}>Category</TableCell>
@@ -291,9 +298,11 @@ export const RevisionChangeItemsDialog: React.FC<RevisionChangeItemsDialogProps>
                   </TableCell>
                   {isEditable && (
                     <TableCell sx={{ textAlign: "right" }}>
-                      <IconButton size="small" color="error" onClick={() => handleDeleteItem(item.id)}>
-                        <DeleteIcon fontSize="small" />
-                      </IconButton>
+                      <Tooltip title="Delete change item">
+                        <IconButton size="small" color="error" onClick={() => handleDeleteItem(item.id)} aria-label="Delete change item">
+                          <DeleteIcon fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
                     </TableCell>
                   )}
                 </TableRow>
@@ -305,6 +314,16 @@ export const RevisionChangeItemsDialog: React.FC<RevisionChangeItemsDialogProps>
       <DialogActions sx={{ px: 3, py: 2 }}>
         <Button onClick={onClose}>Close</Button>
       </DialogActions>
+
+      <ConfirmationDialog
+        open={itemToDelete !== null}
+        title="Delete Change Item"
+        message="Are you sure you want to delete this change item? This action cannot be undone."
+        confirmText="Delete Item"
+        destructive
+        onConfirm={confirmDeleteItem}
+        onCancel={() => setItemToDelete(null)}
+      />
     </Dialog>
   );
 };

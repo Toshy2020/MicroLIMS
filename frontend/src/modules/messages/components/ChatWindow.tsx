@@ -15,6 +15,7 @@ import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import { ConversationSummary, DirectMessage } from "../types/messageTypes";
 import { messageService } from "../services/messageService";
 import { brandColors } from "../../../theme";
+import { toast } from "sonner";
 
 interface Props {
   conversation: ConversationSummary;
@@ -72,7 +73,7 @@ export function ChatWindow({ conversation, currentUserId, onBack, onMessageSent 
       setMessages((prev) => [...prev, msg]);
       onMessageSent();
     } catch (err: any) {
-      alert("Failed to send message.");
+      toast.error("Failed to send message.");
     } finally {
       setSending(false);
     }

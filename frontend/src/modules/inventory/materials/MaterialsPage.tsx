@@ -45,7 +45,7 @@ import {
 import { MaterialFilterBar } from "./components/MaterialFilterBar";
 import { AddMaterialDialog } from "./components/AddMaterialDialog";
 import { MaterialLotDetailsDialog } from "./components/MaterialLotDetailsDialog";
-import { brandColors, tableHeadSx } from "../../../theme";
+import { tableHeadSx } from "../../../theme";
 
 const INITIAL_FILTERS: MaterialFilterState = {
   search: "",
@@ -193,18 +193,17 @@ export function MaterialsPage() {
         <Button
           className="no-print"
           variant="contained"
+          color="primary"
           startIcon={<AddIcon />}
           onClick={() => {
             setEditingItem(null);
             setIsAddOpen(true);
           }}
           sx={{
-            bgcolor: brandColors.sectionTitle,
             px: 2.5,
             py: 1,
             fontWeight: 600,
-            whiteSpace: "nowrap",
-            "&:hover": { bgcolor: brandColors.pageTitle }
+            whiteSpace: "nowrap"
           }}
         >
           + Add to Stock

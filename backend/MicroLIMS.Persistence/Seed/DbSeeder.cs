@@ -2,6 +2,7 @@ using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Persistence.DbContext;
 using MicroLIMS.Shared.Constants;
+using MicroLIMS.Shared.Validation;
 
 namespace MicroLIMS.Persistence.Seed;
 
@@ -13,7 +14,10 @@ namespace MicroLIMS.Persistence.Seed;
 // Reference Strain can ever be received).
 public static class DbSeeder
 {
-    public static void Seed(MicroLimsDbContext db)
+    // initialAdminPassword must be supplied out of band (configuration /
+    // hosting secret). When it is absent no administrator is created - see
+    // SeedInitialAdministrator for why that is the safe default.
+    public static void Seed(MicroLimsDbContext db, string? initialAdminPassword = null)
     {
         if (!db.Roles.Any())
         {
@@ -28,18 +32,7 @@ public static class DbSeeder
 
         SeedPermissionsAndGrants(db);
 
-        if (!db.Users.Any())
-        {
-            var adminRole = db.Roles.First(r => r.Type == RoleType.SystemAdministrator);
-            db.Users.Add(new User
-            {
-                FullName = "System Administrator",
-                Username = "admin",
-                PasswordHash = BCrypt.Net.BCrypt.HashPassword("ChangeMe123!"),
-                RoleId = adminRole.Id
-            });
-            db.SaveChanges();
-        }
+        SeedInitialAdministrator(db, initialAdminPassword);
 
         if (!db.CausesOfTesting.Any())
         {
@@ -405,42 +398,103 @@ public static class DbSeeder
         });
     }
 
-    // The 18 Permission rows and their RolePermission grants from
+    // The Permission rows and their RolePermission grants from
     // rbac-permission-catalog.md - reproduces today's 112
     // [Authorize(Roles=...)] occurrences exactly. Public (not private) and
     // called both from Seed() and directly from tests, so tests don't have
     // to run the entire unrelated master-data seed pipeline just to verify
     // permission grants.
+    // Creates the first System Administrator, and only ever on a database
+    // that has no users at all.
+    //
+    // The password is never in this repository. It used to be a constant,
+    // which - the repository being public - meant every fresh deployment
+    // came up with an account whose password anyone could read. Setting
+    // MustChangePassword alone would not have fixed that: whoever reached
+    // the login form first would simply have chosen the new password and
+    // taken the account.
+    //
+    // So the rule is fail-closed. No password supplied, no administrator.
+    // An installation with no way in is recoverable; one that strangers can
+    // log into is not.
+    //
+    // Idempotent by the same "no users exist" guard the old code used, so
+    // this never updates, re-hashes, or overwrites an account that already
+    // exists - an existing production administrator is untouched.
+    private static void SeedInitialAdministrator(MicroLimsDbContext db, string? initialPassword)
+    {
+        if (db.Users.Any()) return;
+        if (string.IsNullOrWhiteSpace(initialPassword)) return;
+
+        // The bootstrap account is held to the same policy as every other
+        // account - seeding must not be a way round it.
+        var failures = PasswordPolicy.Validate(initialPassword);
+        if (failures.Count > 0)
+            throw new InvalidOperationException(
+                "The configured initial administrator password does not meet the password policy: "
+                + string.Join(" ", failures));
+
+        var adminRole = db.Roles.First(r => r.Type == RoleType.SystemAdministrator);
+        db.Users.Add(new User
+        {
+            FullName = "System Administrator",
+            Username = "admin",
+            PasswordHash = BCrypt.Net.BCrypt.HashPassword(initialPassword),
+            RoleId = adminRole.Id,
+            // The provisioning secret is a delivery mechanism, not a
+            // credential: it must be replaced at first sign-in.
+            MustChangePassword = true
+        });
+        db.SaveChanges();
+    }
+
     public static void SeedPermissionsAndGrants(MicroLimsDbContext db)
     {
         if (!db.Roles.Any()) return; // Roles must exist first - Seed() guarantees this ordering.
 
-        if (!db.Permissions.Any())
+        // Inserted per code rather than all-or-nothing. The error
+        // monitoring migration inserts System.ViewErrorLog directly (it
+        // has to, to reach databases seeded before that code existed), so
+        // Permissions is no longer guaranteed empty on a fresh database -
+        // a blanket `if (!db.Permissions.Any())` guard would then skip
+        // every other code. Any future added code now lands the same way.
+        var catalog = new (string Code, string Description)[]
         {
-            db.Permissions.AddRange(
-                new Permission { Code = PermissionConstants.UsersManage, Description = "Manage user accounts (create, edit, lock/unlock, password resets)." },
-                new Permission { Code = PermissionConstants.RolesManage, Description = "Manage roles and their granted permissions." },
-                new Permission { Code = PermissionConstants.AuditView, Description = "View audit logs and traceability records." },
-                new Permission { Code = PermissionConstants.ReportingAdmin, Description = "Run administrative reporting operations (e.g. ResultRecord backfill)." },
-                new Permission { Code = PermissionConstants.SamplesReview, Description = "Submit a technical review decision on a sample." },
-                new Permission { Code = PermissionConstants.SamplesApprove, Description = "Submit a release/approval decision on a sample." },
-                new Permission { Code = PermissionConstants.SignaturesManage, Description = "View the electronic signature trail for a record." },
-                new Permission { Code = PermissionConstants.TestWorkflowExecute, Description = "Execute pathogen session and media evaluation workflow steps." },
-                new Permission { Code = PermissionConstants.TestWorkflowBiochemicalDecision, Description = "Record a biochemical confirmation decision." },
-                new Permission { Code = PermissionConstants.CryovialsManage, Description = "General cryovial operations (prepare, destroy, thaw, view summaries)." },
-                new Permission { Code = PermissionConstants.CryovialsApprove, Description = "Approve (release) a cryovial batch." },
-                new Permission { Code = PermissionConstants.MaterialsManage, Description = "Manage inventory materials (receive, update)." },
-                new Permission { Code = PermissionConstants.MaterialsDocumentControl, Description = "Supersede or void a material document." },
-                new Permission { Code = PermissionConstants.EquipmentManage, Description = "Manage inventory equipment." },
-                new Permission { Code = PermissionConstants.EquipmentDocumentControl, Description = "Supersede or void an equipment document." },
-                new Permission { Code = PermissionConstants.ItemsManage, Description = "Manage Items master data (create, update, freeze/unfreeze, delete)." },
-                new Permission { Code = PermissionConstants.ItemsDocumentUpload, Description = "Upload a controlled document to an Item." },
-                new Permission { Code = PermissionConstants.MasterDataManage, Description = "Manage laboratory configuration master data (water, EM, after-cleaning, specs, equipment config, media, organisms, test definitions)." },
-                new Permission { Code = PermissionConstants.DiscussionsView, Description = "View discussions and posts." },
-                new Permission { Code = PermissionConstants.DiscussionsCreate, Description = "Create discussion posts and add comments." },
-                new Permission { Code = PermissionConstants.DiscussionsEditAny, Description = "Edit or delete any discussion post or comment." },
-                new Permission { Code = PermissionConstants.MessagesUse, Description = "Send and receive direct/group messages." }
-            );
+            (PermissionConstants.UsersManage, "Manage user accounts (create, edit, lock/unlock, password resets)."),
+            (PermissionConstants.RolesManage, "Manage roles and their granted permissions."),
+            (PermissionConstants.AuditView, "View audit logs and traceability records."),
+            (PermissionConstants.ReportingAdmin, "Run administrative reporting operations (e.g. ResultRecord backfill)."),
+            (PermissionConstants.SamplesReview, "Submit a technical review decision on a sample."),
+            (PermissionConstants.SamplesApprove, "Submit a release/approval decision on a sample."),
+            (PermissionConstants.SignaturesManage, "View the electronic signature trail for a record."),
+            (PermissionConstants.TestWorkflowExecute, "Execute pathogen session and media evaluation workflow steps."),
+            (PermissionConstants.TestWorkflowBiochemicalDecision, "Record a biochemical confirmation decision."),
+            (PermissionConstants.CryovialsManage, "General cryovial operations (prepare, destroy, thaw, view summaries)."),
+            (PermissionConstants.CryovialsApprove, "Approve (release) a cryovial batch."),
+            (PermissionConstants.MaterialsManage, "Manage inventory materials (receive, update)."),
+            (PermissionConstants.MaterialsDocumentControl, "Supersede or void a material document."),
+            (PermissionConstants.EquipmentManage, "Manage inventory equipment."),
+            (PermissionConstants.EquipmentDocumentControl, "Supersede or void an equipment document."),
+            (PermissionConstants.ItemsManage, "Manage Items master data (create, update, freeze/unfreeze, delete)."),
+            (PermissionConstants.ItemsDocumentUpload, "Upload a controlled document to an Item."),
+            (PermissionConstants.MasterDataManage, "Manage laboratory configuration master data (water, EM, after-cleaning, specs, equipment config, media, organisms, test definitions)."),
+            (PermissionConstants.DiscussionsView, "View discussions and posts."),
+            (PermissionConstants.DiscussionsCreate, "Create discussion posts and add comments."),
+            (PermissionConstants.DiscussionsEditAny, "Edit or delete any discussion post or comment."),
+            (PermissionConstants.MessagesUse, "Send and receive direct/group messages."),
+            (PermissionConstants.SystemViewErrorLog, "View the technical error log and monitoring page."),
+            (PermissionConstants.SystemViewSecurityAudit, "View the security audit trail (authentication, session and account security events)."),
+        };
+
+        var existingCodes = db.Permissions.Select(p => p.Code).ToHashSet();
+        var missing = catalog
+            .Where(c => !existingCodes.Contains(c.Code))
+            .Select(c => new Permission { Code = c.Code, Description = c.Description })
+            .ToList();
+
+        if (missing.Count > 0)
+        {
+            db.Permissions.AddRange(missing);
             db.SaveChanges();
         }
 

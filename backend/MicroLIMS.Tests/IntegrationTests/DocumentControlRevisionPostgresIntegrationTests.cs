@@ -99,7 +99,7 @@ public class DocumentControlRevisionPostgresIntegrationTests
         return (author.Id, reviewer.Id, _fixture.SeededControllerUserId, masterDto.Id, revId);
     }
 
-    [Fact]
+    [PostgresFact]
     public async Task Postgres_CreateRevision_FromEffective_EnforcesSequenceAndForeignKeys()
     {
         await using var db = _fixture.CreateDbContext();
@@ -148,7 +148,7 @@ public class DocumentControlRevisionPostgresIntegrationTests
         Assert.Contains(auditLogs, a => a.ActionCode == "DocumentRevisionCreated");
     }
 
-    [Fact]
+    [PostgresFact]
     public async Task Postgres_StructuredChangeItems_AndImpactAssessment_PersistsAndAudits()
     {
         await using var db = _fixture.CreateDbContext();

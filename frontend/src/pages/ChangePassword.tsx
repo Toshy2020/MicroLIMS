@@ -1,10 +1,9 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Box, TextField, Button, Typography, Alert, Paper, List, ListItem, ListItemIcon, ListItemText } from "@mui/material";
+import { Box, TextField, Button, Typography, Alert, Paper, List, ListItem, ListItemIcon, ListItemText, CircularProgress } from "@mui/material";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import RadioButtonUncheckedIcon from "@mui/icons-material/RadioButtonUnchecked";
 import { PageHeader } from "../components/PageHeader";
-import { SectionTitle } from "../components/SectionTitle";
 import { authenticationService } from "../modules/authentication/services/authenticationService";
 import { useAuth } from "../contexts/AuthContext";
 
@@ -58,8 +57,10 @@ export function ChangePasswordPage() {
 
   return (
     <>
-      <PageHeader title="Change Password" />
-      <SectionTitle>Update Your Password</SectionTitle>
+      <PageHeader
+        title="Change Password"
+        subtitle="Update your laboratory credentials in compliance with periodic security policy."
+      />
       <Paper sx={{ p: 3, maxWidth: 480 }}>
         {success ? (
           <Alert severity="success">Password changed successfully. Returning to your profile...</Alert>
@@ -78,7 +79,7 @@ export function ChangePasswordPage() {
               label="Confirm New Password" type="password" value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)} required
               error={confirmPassword.length > 0 && confirmPassword !== newPassword}
-              helperText={confirmPassword.length > 0 && confirmPassword !== newPassword ? "Passwords do not match." : " "}
+              helperText={confirmPassword.length > 0 && confirmPassword !== newPassword ? "Passwords do not match." : undefined}
             />
 
             <Box>
@@ -98,8 +99,14 @@ export function ChangePasswordPage() {
               </List>
             </Box>
 
-            <Button type="submit" variant="contained" size="large" disabled={submitting}>
-              {submitting ? "Changing..." : "Change Password"}
+            <Button
+              type="submit"
+              variant="contained"
+              size="large"
+              disabled={submitting}
+              startIcon={submitting ? <CircularProgress size={18} color="inherit" /> : undefined}
+            >
+              {submitting ? "Updating Credentials..." : "Change Password"}
             </Button>
           </Box>
         )}

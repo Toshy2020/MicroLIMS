@@ -16,7 +16,6 @@ import { MarkOutOfStockDialog } from "./dialogs/MarkOutOfStockDialog";
 import { MediaPreparationService } from "./services/MediaPreparationService";
 import { MediaEvaluationService } from "../mediaEvaluation/services/MediaEvaluationService";
 import { masterDataOptions } from "../../../services/masterDataOptions";
-import { brandColors } from "../../../theme";
 
 export function MediaPage() {
   const [lots, setLots] = useState<any[]>([]);
@@ -189,9 +188,10 @@ export function MediaPage() {
           <Button
             size="small"
             variant="contained"
+            color="primary"
             startIcon={<AddIcon />}
             onClick={() => setPrepDialogOpen(true)}
-            sx={{ bgcolor: brandColors.sectionTitle, fontWeight: 700, "&:hover": { bgcolor: brandColors.pageTitle } }}
+            sx={{ fontWeight: 700 }}
           >
             + Prepare New Media Lot
           </Button>

@@ -15,7 +15,6 @@ import {
   StepContent,
   useTheme
 } from "@mui/material";
-import ScienceOutlinedIcon from "@mui/icons-material/ScienceOutlined";
 import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import LockOutlinedIcon from "@mui/icons-material/LockOutlined";

@@ -239,6 +239,34 @@ public class PathogenSessionServiceTests
     }
 
     [Fact]
+    public async Task StartSharedTsbAsync_WhenPreparationNotConfirmed_ThrowsAndLogsRefusal()
+    {
+        var (db, sampleId, _) = SetupTestEnvironment(1);
+        var sample = await db.Samples.FirstAsync(s => s.Id == sampleId);
+        sample.PreparationStatus = SamplePreparationStatus.NeedsPreparation;
+        await db.SaveChangesAsync();
+
+        var service = new PathogenSessionService(db);
+
+        var ex = await Assert.ThrowsAsync<WorkflowStepException>(() =>
+            service.StartSharedTsbAsync(sampleId, new StartSharedTsbRequest(
+                MediaLotId: 20,
+                IncubatorEquipmentId: 3,
+                IncubationStartUtc: DateTime.UtcNow
+            ), userId: 5));
+
+        Assert.Equal(MicroLIMS.Shared.Constants.WorkflowErrorCodes.PreparationNotConfirmed, ex.ErrorCode);
+        Assert.Contains("Test Preparation must be completed and confirmed", ex.Message);
+
+        var auditLogs = await db.AuditLogs.Where(a => a.Action == "TestStartRefused").ToListAsync();
+        Assert.NotEmpty(auditLogs);
+        Assert.All(auditLogs, a => Assert.Equal(5, a.UserId));
+
+        var histories = await db.WorkflowHistories.Where(h => h.Note != null && h.Note.Contains("Transition refused")).ToListAsync();
+        Assert.NotEmpty(histories);
+    }
+
+    [Fact]
     public async Task Scenario_3Locations_6AssignedTests_TsbIncubation_Gating_And_Counters()
     {
         var (db, sampleId, _) = SetupTestEnvironment(3);
@@ -658,30 +686,48 @@ public class PathogenSessionServiceTests
         Assert.Equal(0, incCount);
     }
 
+    // Rejecting takes a Section Head; this endpoint takes an Analyst. If a reset
+    // could return a Rejected sample to Received, the lower privilege would be
+    // undoing the higher one's decision about the material.
     [Fact]
-    public async Task ResetRealSamples52And53_DatabaseExecution()
+    public async Task ResetSessionAsync_RefusesToResetARejectedSample()
     {
-        var connStr = "Host=localhost;Port=5432;Database=LIMSV2;Username=postgres;Password=";
-        var optionsBuilder = new DbContextOptionsBuilder<MicroLimsDbContext>();
-        optionsBuilder.UseNpgsql(connStr);
+        var (db, sampleId, _) = SetupTestEnvironment(3);
+        var service = new PathogenSessionService(db);
 
-        try
-        {
-            using var db = new MicroLimsDbContext(optionsBuilder.Options);
-            var service = new PathogenSessionService(db);
+        await service.StartSharedTsbAsync(sampleId, new StartSharedTsbRequest(20, 3, DateTime.UtcNow), 5);
 
-            foreach (var sampleId in new[] { 52, 53 })
-            {
-                var sample = await db.Samples.Include(s => s.TestOrders).FirstOrDefaultAsync(s => s.Id == sampleId);
-                if (sample != null)
-                {
-                    await service.ResetSessionAsync(sampleId, "Analyst requested session workflow reset for sample #52 and #53", 1);
-                }
-            }
-        }
-        catch
-        {
-            // If postgres is not running during isolated CI test runs, ignore
-        }
+        var sample = await db.Samples.FirstAsync(s => s.Id == sampleId);
+        sample.Status = SampleStatus.Rejected;
+        await db.SaveChangesAsync();
+
+        var ex = await Assert.ThrowsAsync<WorkflowStepException>(
+            () => service.ResetSessionAsync(sampleId, "Analyst tries to undo a rejection", 1));
+        Assert.Equal("SampleRejected", ex.ErrorCode);
+
+        // The refusal must leave the session untouched - a partially applied
+        // reset would be worse than either outcome.
+        var afterSample = await db.Samples.FirstAsync(s => s.Id == sampleId);
+        Assert.Equal(SampleStatus.Rejected, afterSample.Status);
+
+        var session = await service.GetSessionAsync(sampleId);
+        Assert.NotNull(session);
+        Assert.True(session.SharedTsb.IsStarted);
+    }
+
+    [Fact]
+    public async Task ResetSessionAsync_StillResetsASampleUnderReview()
+    {
+        var (db, sampleId, _) = SetupTestEnvironment(3);
+        var service = new PathogenSessionService(db);
+
+        var sample = await db.Samples.FirstAsync(s => s.Id == sampleId);
+        sample.Status = SampleStatus.UnderReview;
+        await db.SaveChangesAsync();
+
+        await service.ResetSessionAsync(sampleId, "Reviewer sends it back", 1);
+
+        var afterSample = await db.Samples.FirstAsync(s => s.Id == sampleId);
+        Assert.Equal(SampleStatus.Received, afterSample.Status);
     }
 }

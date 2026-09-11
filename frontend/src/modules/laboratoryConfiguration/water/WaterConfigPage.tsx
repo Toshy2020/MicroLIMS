@@ -13,6 +13,7 @@ import { TestCodePickerMulti } from "../../../components/TestCodePickerMulti";
 import { ConfirmationDialog } from "../../../components/ConfirmationDialog";
 import { useTestDefinitions } from "../../../hooks/useTestDefinitions";
 import { WaterConfigService } from "./services/WaterConfigService";
+import { tableHeadSx } from "../../../theme";
 
 interface SamplingPoint { id: number; code: string; location: string; testingFrequency: string; assignedTestCodes: string[]; waterDepartmentId: number | null }
 interface WaterDept { id: number; name: string; samplingPoints: SamplingPoint[] }
@@ -71,7 +72,7 @@ function SamplingPointTestConfigSection({ point }: { point: SamplingPoint }) {
       {configs.length > 0 ? (
         <Table size="small" sx={{ mb: 1.5 }}>
           <TableHead>
-            <TableRow><TableCell>Test Code</TableCell><TableCell>Alert</TableCell><TableCell>Action</TableCell><TableCell>Specification</TableCell><TableCell>Unit</TableCell><TableCell /></TableRow>
+            <TableRow sx={tableHeadSx}><TableCell>Test Code</TableCell><TableCell>Alert</TableCell><TableCell>Action</TableCell><TableCell>Specification</TableCell><TableCell>Unit</TableCell><TableCell /></TableRow>
           </TableHead>
           <TableBody>
             {configs.map((c) => (
@@ -210,7 +211,7 @@ export function WaterConfigPage() {
       <SectionTitle>Departments</SectionTitle>
       <Paper sx={{ p: 2.5 }}>
         <Table>
-          <TableHead><TableRow><TableCell sx={{ width: 40 }} /><TableCell>Department</TableCell><TableCell /></TableRow></TableHead>
+          <TableHead><TableRow sx={tableHeadSx}><TableCell sx={{ width: 40 }} /><TableCell>Department</TableCell><TableCell /></TableRow></TableHead>
           <TableBody>
             {departments.map((d) => (
               <Fragment key={d.id}>
@@ -234,7 +235,7 @@ export function WaterConfigPage() {
                           <Typography variant="body2" color="text.secondary">No sample locations yet.</Typography>
                         ) : (
                           <Table size="small">
-                            <TableHead><TableRow><TableCell sx={{ width: 40 }} /><TableCell>Location Code</TableCell><TableCell>Point Name</TableCell><TableCell>Testing Frequency</TableCell><TableCell>Assigned Tests</TableCell><TableCell /></TableRow></TableHead>
+                            <TableHead><TableRow sx={tableHeadSx}><TableCell sx={{ width: 40 }} /><TableCell>Location Code</TableCell><TableCell>Point Name</TableCell><TableCell>Testing Frequency</TableCell><TableCell>Assigned Tests</TableCell><TableCell /></TableRow></TableHead>
                             <TableBody>
                               {(d.samplingPoints ?? []).map((p) => (
                                 <Fragment key={p.id}>

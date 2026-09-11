@@ -2,7 +2,6 @@ import { useMemo, useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Tabs, Tab, Box } from "@mui/material";
 import { PageHeader } from "../components/PageHeader";
-import { brandColors } from "../theme";
 import { QuickPeriodSelector } from "../modules/reports/components/QuickPeriodSelector";
 import { OverviewTab } from "../modules/reports/components/OverviewTab";
 import { RecordSearchTab } from "../modules/reports/RecordSearchTab";
@@ -92,8 +91,7 @@ export function ReportsPage() {
           onChange={(_, v) => handleTabChange(v)}
           variant="scrollable"
           scrollButtons="auto"
-          TabIndicatorProps={{ style: { backgroundColor: brandColors.sectionTitle } }}
-          sx={{ "& .Mui-selected": { color: `${brandColors.sectionTitle} !important`, fontWeight: 700 } }}
+          sx={{ "& .Mui-selected": { fontWeight: 700 } }}
         >
           {TABS.map((label) => <Tab key={label} label={label} />)}
         </Tabs>

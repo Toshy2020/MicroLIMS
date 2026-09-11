@@ -137,7 +137,7 @@ export const CreateRevisionDialog: React.FC<CreateRevisionDialogProps> = ({
           </FormControl>
 
           {/* Proposed Number Highlight */}
-          <Box sx={{ p: 2, bgcolor: "grey.100", borderRadius: 1.5, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <Box sx={{ p: 2, bgcolor: (t) => t.palette.mode === "dark" ? "action.hover" : "grey.100", borderRadius: 1.5, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <Box>
               <Typography variant="caption" color="text.secondary">
                 Proposed Revision Number:
@@ -153,7 +153,7 @@ export const CreateRevisionDialog: React.FC<CreateRevisionDialogProps> = ({
 
           {/* Document Controller Override Option */}
           {isController && (
-            <Box sx={{ p: 1.5, border: "1px dashed #ccc", borderRadius: 1 }}>
+            <Box sx={{ p: 1.5, border: "1px dashed", borderColor: "divider", borderRadius: 1 }}>
               <FormControlLabel
                 control={
                   <Checkbox

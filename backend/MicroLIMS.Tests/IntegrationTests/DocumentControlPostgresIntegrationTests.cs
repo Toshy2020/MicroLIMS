@@ -27,7 +27,7 @@ public class DocumentControlPostgresIntegrationTests
         _fixture = fixture;
     }
 
-    [Fact]
+    [PostgresFact]
     public async Task AuditLogs_Update_ThrowsPostgresException()
     {
         await using var db = _fixture.CreateDbContext();
@@ -56,7 +56,7 @@ public class DocumentControlPostgresIntegrationTests
         Assert.Contains("prohibited", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
-    [Fact]
+    [PostgresFact]
     public async Task AuditLogs_Delete_ThrowsPostgresException()
     {
         await using var db = _fixture.CreateDbContext();
@@ -84,7 +84,7 @@ public class DocumentControlPostgresIntegrationTests
         Assert.Contains("append-only", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
-    [Fact]
+    [PostgresFact]
     public async Task AuditEventChanges_Update_ThrowsPostgresException()
     {
         await using var db = _fixture.CreateDbContext();
@@ -122,7 +122,7 @@ public class DocumentControlPostgresIntegrationTests
         Assert.Contains("append-only", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
-    [Fact]
+    [PostgresFact]
     public async Task AuditEventChanges_Delete_ThrowsPostgresException()
     {
         await using var db = _fixture.CreateDbContext();
@@ -160,7 +160,7 @@ public class DocumentControlPostgresIntegrationTests
         Assert.Contains("append-only", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
-    [Fact]
+    [PostgresFact]
     public async Task ElectronicSignatures_Update_ThrowsPostgresException()
     {
         await using var db = _fixture.CreateDbContext();
@@ -191,7 +191,7 @@ public class DocumentControlPostgresIntegrationTests
         Assert.Contains("append-only", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
-    [Fact]
+    [PostgresFact]
     public async Task ElectronicSignatures_Delete_ThrowsPostgresException()
     {
         await using var db = _fixture.CreateDbContext();
@@ -222,7 +222,7 @@ public class DocumentControlPostgresIntegrationTests
         Assert.Contains("append-only", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
-    [Fact]
+    [PostgresFact]
     public async Task DocumentNumberSequence_ProducesGaplessValuesUnderNormalLoad()
     {
         await using var db = _fixture.CreateDbContext();
@@ -242,7 +242,7 @@ public class DocumentControlPostgresIntegrationTests
         }
     }
 
-    [Fact]
+    [PostgresFact]
     public async Task DocumentNumberSequence_PreservesGapsOnRolledBackTransaction()
     {
         await using var db = _fixture.CreateDbContext();
@@ -268,7 +268,7 @@ public class DocumentControlPostgresIntegrationTests
         Assert.True(val2 > val1, $"Expected val2 ({val2}) to be strictly greater than val1 ({val1})");
     }
 
-    [Fact]
+    [PostgresFact]
     public async Task UniqueCompanyCode_EnforcedAcrossActive_ReleasedAcrossVoid()
     {
         await using var db = _fixture.CreateDbContext();
@@ -349,7 +349,7 @@ public class DocumentControlPostgresIntegrationTests
         Assert.True(doc3.Id > 0);
     }
 
-    [Fact]
+    [PostgresFact]
     public async Task Postgres_RegisterDocumentMaster_DrawsSequenceAndCreatesAuditedDraft()
     {
         await using var db = _fixture.CreateDbContext();
@@ -395,7 +395,7 @@ public class DocumentControlPostgresIntegrationTests
         Assert.Contains(auditLog.Changes, c => c.FieldName == "CompanyDocumentCode" && c.NewValue == request.CompanyDocumentCode);
     }
 
-    [Fact]
+    [PostgresFact]
     public async Task Postgres_UploadAndVerifyFile_ComputesSha256AndDetectsIntegrityFailure()
     {
         await using var db = _fixture.CreateDbContext();
@@ -450,7 +450,7 @@ public class DocumentControlPostgresIntegrationTests
         Assert.Equal(AuditActionCategory.Security, securityAudit.ActionCategory);
     }
 
-    [Fact]
+    [PostgresFact]
     public async Task Postgres_VoidDocumentMaster_EnforcesControllerRoleAndUpdatesAudit()
     {
         await using var db = _fixture.CreateDbContext();
@@ -515,7 +515,7 @@ public class DocumentControlPostgresIntegrationTests
         return user;
     }
 
-    [Fact]
+    [PostgresFact]
     public async Task Postgres_DraftMetadataUpdate_RecordsSemanticFieldChangesAndRejectsUnauthorizedUser()
     {
         await using var db = _fixture.CreateDbContext();
@@ -570,7 +570,7 @@ public class DocumentControlPostgresIntegrationTests
         Assert.Contains(auditLog.Changes, c => c.FieldName == "Confidentiality" && c.NewValue == "Restricted");
     }
 
-    [Fact]
+    [PostgresFact]
     public async Task Postgres_WorkflowRoleAssignments_GrantsAuthorPermissionsAndRecordsAudit()
     {
         await using var db = _fixture.CreateDbContext();
@@ -639,7 +639,7 @@ public class DocumentControlPostgresIntegrationTests
         Assert.NotNull(removeLog);
     }
 
-    [Fact]
+    [PostgresFact]
     public async Task Postgres_DraftFileReplacement_DeactivatesPreviousFileAndPreservesHistoricalLink()
     {
         await using var db = _fixture.CreateDbContext();
@@ -690,7 +690,7 @@ public class DocumentControlPostgresIntegrationTests
         Assert.Equal(file2.Id.ToString(), replaceAudit.EntityId);
     }
 
-    [Fact]
+    [PostgresFact]
     public async Task Postgres_CancelDraftRevision_EnforcesReasonLengthAndDeactivatesFiles()
     {
         await using var db = _fixture.CreateDbContext();
@@ -747,7 +747,7 @@ public class DocumentControlPostgresIntegrationTests
         Assert.Equal(cancelReason, cancelAudit.Reason);
     }
 
-    [Fact]
+    [PostgresFact]
     public async Task Postgres_ConfigurationService_EnforcesSoftDeactivationAndAuditsSettings()
     {
         await using var db = _fixture.CreateDbContext();
@@ -821,7 +821,7 @@ public class DocumentControlPostgresIntegrationTests
         }
     }
 
-    [Fact]
+    [PostgresFact]
     public async Task Postgres_DocumentLibrary_FiltersByStatusAndExcludesVoidByDefault()
     {
         await using var db = _fixture.CreateDbContext();
@@ -872,7 +872,7 @@ public class DocumentControlPostgresIntegrationTests
         Assert.Contains(resAll.Items, d => d.Id == doc2.Id && d.RecordStatus == DocumentRecordStatus.Void);
     }
 
-    [Fact]
+    [PostgresFact]
     public async Task Postgres_DocumentAuditService_FiltersLogsAndEmitsSelfAuditedCsvExport()
     {
         await using var db = _fixture.CreateDbContext();

@@ -93,7 +93,7 @@ export function AnalystDashboardPage() {
           </Button>
           <Button
             component={Link}
-            to="/testing-workspace"
+            to="/receiving-testing"
             variant="contained"
             startIcon={<ScienceOutlinedIcon />}
             sx={{ textTransform: "none", fontWeight: 600, borderRadius: 2 }}

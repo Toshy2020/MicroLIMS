@@ -5,22 +5,12 @@ import {
   Paper,
   Typography,
   Button,
-  Chip,
-  Table,
-  TableHead,
-  TableRow,
-  TableCell,
-  TableBody,
   useTheme
 } from "@mui/material";
-import AdminPanelSettingsOutlinedIcon from "@mui/icons-material/AdminPanelSettingsOutlined";
 import PeopleAltOutlinedIcon from "@mui/icons-material/PeopleAltOutlined";
 import SecurityOutlinedIcon from "@mui/icons-material/SecurityOutlined";
 import SearchOutlinedIcon from "@mui/icons-material/SearchOutlined";
 import DescriptionOutlinedIcon from "@mui/icons-material/DescriptionOutlined";
-import SettingsOutlinedIcon from "@mui/icons-material/SettingsOutlined";
-import ScienceOutlinedIcon from "@mui/icons-material/ScienceOutlined";
-import HistoryOutlinedIcon from "@mui/icons-material/HistoryOutlined";
 import ArrowForwardOutlinedIcon from "@mui/icons-material/ArrowForwardOutlined";
 import { Link } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
@@ -261,7 +251,7 @@ export function AdminDashboardPage() {
           <Grid item xs={6} sm={4} md={2}>
             <Paper
               component={Link}
-              to="/testing-workspace?status=Active"
+              to="/receiving-testing?status=Active"
               variant="outlined"
               sx={{
                 p: 1.5,
@@ -282,7 +272,7 @@ export function AdminDashboardPage() {
           <Grid item xs={6} sm={4} md={2}>
             <Paper
               component={Link}
-              to="/testing-workspace?testStatus=ResultEntered"
+              to="/receiving-testing?testStatus=ResultEntered"
               variant="outlined"
               sx={{
                 p: 1.5,
@@ -303,7 +293,7 @@ export function AdminDashboardPage() {
           <Grid item xs={6} sm={4} md={2}>
             <Paper
               component={Link}
-              to="/testing-workspace?testStatus=Reviewed"
+              to="/receiving-testing?testStatus=Reviewed"
               variant="outlined"
               sx={{
                 p: 1.5,
@@ -347,7 +337,7 @@ export function AdminDashboardPage() {
           <Grid item xs={6} sm={4} md={2}>
             <Paper
               component={Link}
-              to="/testing-workspace?urgency=overdue"
+              to="/receiving-testing?urgency=overdue"
               variant="outlined"
               sx={{
                 p: 1.5,

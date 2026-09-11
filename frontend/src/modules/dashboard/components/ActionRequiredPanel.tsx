@@ -1,5 +1,4 @@
 import { Paper, Box, Typography, Stack, Button, useTheme } from "@mui/material";
-import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 import LayersIcon from "@mui/icons-material/Layers";
 import { Link } from "react-router-dom";
@@ -20,11 +19,11 @@ function getTaskRoute(task: MyTask): string {
   if (task.mediaId) {
     return "/laboratory-configuration/media";
   } else if (task.sampleId && task.testOrderId) {
-    return `/testing-workspace?sampleId=${task.sampleId}&testOrderId=${task.testOrderId}`;
+    return `/receiving-testing?sampleId=${task.sampleId}&testOrderId=${task.testOrderId}`;
   } else if (task.sampleId) {
-    return `/testing-workspace?sampleId=${task.sampleId}`;
+    return `/receiving-testing?sampleId=${task.sampleId}`;
   } else {
-    return "/testing-workspace?scope=mine";
+    return "/receiving-testing?scope=mine";
   }
 }
 
@@ -45,7 +44,7 @@ export function ActionRequiredPanel({ tasks, loading }: ActionRequiredPanelProps
         tabs={[
           {
             label: "Open Testing Workspace",
-            to: "/testing-workspace"
+            to: "/receiving-testing"
           }
         ]}
       >
@@ -94,7 +93,7 @@ export function ActionRequiredPanel({ tasks, loading }: ActionRequiredPanelProps
               <Box sx={{ flexShrink: 0 }}>
                 <Button
                   component={Link}
-                  to={`/testing-workspace?sampleIds=${g.testOrders.map((t) => t.sampleId).join(",")}`}
+                  to={`/receiving-testing?sampleIds=${g.testOrders.map((t) => t.sampleId).join(",")}`}
                   size="small"
                   variant="contained"
                   startIcon={<LayersIcon sx={{ fontSize: 16 }} />}

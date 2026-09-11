@@ -1,5 +1,6 @@
 import { createContext, ReactNode, useContext, useEffect, useMemo, useState } from "react";
 import { ThemeProvider, CssBaseline } from "@mui/material";
+import { Toaster } from "sonner";
 import { getTheme } from "./index";
 
 export type ThemeMode = "light" | "dark";
@@ -61,6 +62,7 @@ export function ThemeModeProvider({ children }: { children: ReactNode }) {
     <ThemeModeContext.Provider value={value}>
       <ThemeProvider theme={theme}>
         <CssBaseline />
+        <Toaster position="top-right" richColors closeButton theme={mode} />
         {children}
       </ThemeProvider>
     </ThemeModeContext.Provider>

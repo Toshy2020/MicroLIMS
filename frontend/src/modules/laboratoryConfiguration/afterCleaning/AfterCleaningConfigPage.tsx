@@ -12,6 +12,7 @@ import { SectionTitle } from "../../../components/SectionTitle";
 import { TestCodePicker } from "../../../components/TestCodePicker";
 import { ConfirmationDialog } from "../../../components/ConfirmationDialog";
 import { AfterCleaningConfigService } from "./services/AfterCleaningConfigService";
+import { tableHeadSx } from "../../../theme";
 
 const TEST_TYPES = ["Swab", "Rinse", "Pathogen"];
 
@@ -66,7 +67,7 @@ function PartConfigSection({ machinePartId }: { machinePartId: number }) {
       {configs.length > 0 ? (
         <Table size="small" sx={{ mb: 1.5 }}>
           <TableHead>
-            <TableRow><TableCell>Test Type</TableCell><TableCell>Test Code</TableCell><TableCell>Alert</TableCell><TableCell>Action</TableCell><TableCell>Spec</TableCell><TableCell>Unit</TableCell><TableCell>Pathogen</TableCell><TableCell /></TableRow>
+            <TableRow sx={tableHeadSx}><TableCell>Test Type</TableCell><TableCell>Test Code</TableCell><TableCell>Alert</TableCell><TableCell>Action</TableCell><TableCell>Spec</TableCell><TableCell>Unit</TableCell><TableCell>Pathogen</TableCell><TableCell /></TableRow>
           </TableHead>
           <TableBody>
             {configs.map((c) => (
@@ -227,7 +228,7 @@ export function AfterCleaningConfigPage() {
       <SectionTitle>Machines</SectionTitle>
       <Paper sx={{ p: 2.5 }}>
         <Table>
-          <TableHead><TableRow><TableCell sx={{ width: 40 }} /><TableCell>Machine</TableCell><TableCell /></TableRow></TableHead>
+          <TableHead><TableRow sx={tableHeadSx}><TableCell sx={{ width: 40 }} /><TableCell>Machine</TableCell><TableCell /></TableRow></TableHead>
           <TableBody>
             {machines.map((m) => (
               <Fragment key={m.id}>
@@ -251,7 +252,7 @@ export function AfterCleaningConfigPage() {
                           <Typography variant="body2" color="text.secondary">No parts configured yet.</Typography>
                         ) : (
                           <Table size="small">
-                            <TableHead><TableRow><TableCell sx={{ width: 40 }} /><TableCell>Part</TableCell><TableCell /></TableRow></TableHead>
+                            <TableHead><TableRow sx={tableHeadSx}><TableCell sx={{ width: 40 }} /><TableCell>Part</TableCell><TableCell /></TableRow></TableHead>
                             <TableBody>
                               {(m.parts ?? []).map((p: any) => (
                                 <Fragment key={p.id}>

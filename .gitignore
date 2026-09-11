@@ -48,3 +48,8 @@ frontend/navigation_audit.txt
 .wrangler
 .dev.vars*
 !.dev.vars.example
+
+# Python bytecode. Skill directories under .agents/ and .claude/ ship
+# .py helper scripts, and running one leaves a __pycache__ beside it.
+__pycache__/
+*.pyc

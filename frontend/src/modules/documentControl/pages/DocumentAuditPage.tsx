@@ -15,20 +15,24 @@ import {
   TablePagination,
   Chip,
   Alert,
-  CircularProgress
+  CircularProgress,
+  useTheme
 } from "@mui/material";
 import FileDownloadOutlinedIcon from "@mui/icons-material/FileDownloadOutlined";
 import FilterAltOutlinedIcon from "@mui/icons-material/FilterAltOutlined";
 import ClearIcon from "@mui/icons-material/Clear";
 
 import { PageHeader } from "../../../components/PageHeader";
+import { tableHeadSx } from "../../../theme";
 import { documentControlService } from "../services/documentControlService";
+import { toast } from "sonner";
 import type {
   DocumentAuditItemDto,
   AuditActionCategory
 } from "../types/documentControlTypes";
 
 export function DocumentAuditPage() {
+  const theme = useTheme();
   const [logs, setLogs] = useState<DocumentAuditItemDto[]>([]);
   const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -90,14 +94,14 @@ export function DocumentAuditPage() {
       setExportSuccessMsg("Audit trail exported successfully. (The export operation has been logged in the audit trail per 21 CFR Part 11).");
       fetchLogs(); // refresh to show the export audit event
     } catch (err: any) {
-      alert("Failed to export audit trail: " + (err.response?.data?.message || err.message));
+      toast.error("Failed to export audit trail: " + (err.response?.data?.message || err.message));
     } finally {
       setExporting(false);
     }
   };
 
   return (
-    <Box sx={{ p: 3, maxWidth: 1600, mx: "auto" }}>
+    <Box sx={{ pb: 4 }}>
       <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", mb: 2 }}>
         <PageHeader
           title="Document Control Audit Trail"
@@ -188,7 +192,7 @@ export function DocumentAuditPage() {
       {/* Audit Log Table */}
       <TableContainer component={Paper}>
         <Table size="small">
-          <TableHead sx={{ bgcolor: "grey.50" }}>
+          <TableHead sx={tableHeadSx(theme)}>
             <TableRow>
               <TableCell sx={{ fontWeight: 700 }}>Timestamp (UTC)</TableCell>
               <TableCell sx={{ fontWeight: 700 }}>Event UID</TableCell>

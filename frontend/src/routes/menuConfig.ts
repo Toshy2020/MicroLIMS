@@ -1,7 +1,6 @@
 ﻿import { ComponentType } from "react";
 import SpaceDashboardOutlinedIcon from "@mui/icons-material/SpaceDashboardOutlined";
 import ScienceOutlinedIcon from "@mui/icons-material/ScienceOutlined";
-import MoveToInboxOutlinedIcon from "@mui/icons-material/MoveToInboxOutlined";
 import MedicationLiquidOutlinedIcon from "@mui/icons-material/MedicationLiquidOutlined";
 import AcUnitOutlinedIcon from "@mui/icons-material/AcUnitOutlined";
 import Inventory2OutlinedIcon from "@mui/icons-material/Inventory2Outlined";
@@ -11,6 +10,7 @@ import FactCheckOutlinedIcon from "@mui/icons-material/FactCheckOutlined";
 import DescriptionOutlinedIcon from "@mui/icons-material/DescriptionOutlined";
 import SearchOutlinedIcon from "@mui/icons-material/SearchOutlined";
 import ReportProblemOutlinedIcon from "@mui/icons-material/ReportProblemOutlined";
+import BugReportOutlinedIcon from "@mui/icons-material/BugReportOutlined";
 import SettingsOutlinedIcon from "@mui/icons-material/SettingsOutlined";
 import PeopleAltOutlinedIcon from "@mui/icons-material/PeopleAltOutlined";
 import AdminPanelSettingsOutlinedIcon from "@mui/icons-material/AdminPanelSettingsOutlined";
@@ -37,6 +37,10 @@ const cryovialsItem: MenuItem = { label: "Reference Cryovials", path: "/laborato
 const reportsItem: MenuItem = { label: "Reports", path: "/reports", icon: DescriptionOutlinedIcon, group: "REPORTS" };
 const auditSearchItem: MenuItem = { label: "Audit Search", path: "/audit-search", icon: SearchOutlinedIcon, group: "AUDIT & COMPLIANCE" };
 const oosTrackingItem: MenuItem = { label: "OOS Tracking", path: "/oos-tracking", icon: ReportProblemOutlinedIcon, group: "AUDIT & COMPLIANCE" };
+// Listed for System Administrators, but the route itself is gated on the
+// System.ViewErrorLog permission - a role granted that code reaches the
+// page directly even though the menu does not offer it.
+const errorMonitoringItem: MenuItem = { label: "Error Monitoring", path: "/error-monitoring", icon: BugReportOutlinedIcon, group: "SYSTEM" };
 
 const inventoryItem: MenuItem = {
   label: "Inventory",
@@ -155,7 +159,8 @@ const menuByRole: Record<Role, MenuItem[]> = {
     rolesItem,
     reportsItem,
     auditSearchItem,
-    oosTrackingItem
+    oosTrackingItem,
+    errorMonitoringItem
   ]
 };
 

@@ -1,0 +1,241 @@
+name: CI
+
+# Build and test gate. This workflow deliberately does NOT deploy anything -
+# it ends at a green build. Deployment remains a separate, manual concern
+# (see DEPLOYMENT.md).
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# A newer push to the same branch supersedes an in-flight run.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # net8.0 across every project in backend/MicroLIMS.sln. Pinned to the
+  # 8.0 feature band rather than the runner default so a newer SDK on the
+  # image cannot silently change build behaviour.
+  DOTNET_VERSION: "8.0.x"
+  # Matches the developer environment (24.18.0) and satisfies the Node
+  # requirement of eslint 10 (^20.19 || ^22.13 || >=24) for when the
+  # frontend lint configuration is restored.
+  NODE_VERSION: "24"
+  DOTNET_NOLOGO: "true"
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: "true"
+  DOTNET_CLI_TELEMETRY_OPTOUT: "true"
+
+jobs:
+  # ---------------------------------------------------------------------
+  # Backend: build, then the test suite twice - once without a database so
+  # the PostgreSQL tests report as skipped, and once with one so they
+  # actually execute. The second run is the one that gates.
+  # ---------------------------------------------------------------------
+  backend:
+    name: Backend build and tests
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        # PostgreSQL 16 is the version this system is documented and
+        # qualified against (see docs/Release_1b_*). Explicit major, never
+        # "latest", so a new PostgreSQL release cannot change CI results.
+        image: postgres:16
+        env:
+          # Trust auth on a container reachable only from this runner's
+          # localhost, destroyed when the job ends. This is what removes
+          # the need for any database credential in this file.
+          POSTGRES_HOST_AUTH_METHOD: trust
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U postgres"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      # Packages only - never bin/obj, which would risk a stale build
+      # passing the gate.
+      - name: Cache NuGet packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('backend/**/*.csproj') }}
+          restore-keys: nuget-${{ runner.os }}-
+
+      - name: Restore
+        run: dotnet restore backend/MicroLIMS.sln
+
+      - name: Build (Release)
+        run: dotnet build backend/MicroLIMS.sln --configuration Release --no-restore
+
+      # The application fails closed without a signing key, so the test
+      # host needs one. Generated per run and masked: nothing is committed,
+      # no repository secret has to be configured, and the value never
+      # appears in a log.
+      - name: Generate a test-only JWT signing key
+        run: |
+          KEY="$(openssl rand -base64 48)"
+          echo "::add-mask::${KEY}"
+          echo "Jwt__Key=${KEY}" >> "$GITHUB_ENV"
+
+      # Least privilege: the fixture needs to create and drop its own
+      # database and nothing more. CREATEDB grants exactly that. The role
+      # is deliberately not a superuser.
+      - name: Create the least-privilege CI database role
+        run: |
+          psql -h localhost -U postgres -d postgres -v ON_ERROR_STOP=1 \
+            -c "CREATE ROLE microlims_ci LOGIN CREATEDB;"
+          psql -h localhost -U postgres -d postgres -v ON_ERROR_STOP=1 \
+            -c "SELECT rolname, rolcreatedb, rolsuper FROM pg_roles WHERE rolname = 'microlims_ci';"
+
+      # ---- Run 1: no database configured ----
+      # PostgresTestFixture stays unavailable and [PostgresFact] reports
+      # every integration test as SKIPPED. Classification comes from the
+      # attribute, not from a name filter that could silently re-include a
+      # test that touches a real database.
+      - name: Test - no database available (integration tests must skip)
+        run: |
+          dotnet test backend/MicroLIMS.Tests/MicroLIMS.Tests.csproj \
+            --configuration Release --no-build \
+            --logger "trx;LogFileName=unit.trx" \
+            --results-directory backend/TestResults
+
+      # ---- Run 2: the real gate ----
+      # MICROLIMS_TEST_POSTGRES names only the maintenance database. The
+      # fixture generates its own microlims_test_<32 hex> database, applies
+      # the committed EF migrations to it, runs the suite, and drops it.
+      - name: Test - full suite against PostgreSQL
+        env:
+          MICROLIMS_TEST_POSTGRES: "Host=localhost;Port=5432;Database=postgres;Username=microlims_ci"
+        run: |
+          dotnet test backend/MicroLIMS.Tests/MicroLIMS.Tests.csproj \
+            --configuration Release --no-build \
+            --logger "trx;LogFileName=integration.trx" \
+            --results-directory backend/TestResults
+
+      # A green run full of skipped integration tests is not a green run.
+      # This fails the job if run 2 skipped anything, or executed fewer
+      # tests than run 1 did.
+      - name: Verify the integration tests actually executed
+        run: python3 .github/scripts/verify_test_results.py backend/TestResults/unit.trx backend/TestResults/integration.trx
+
+      - name: Confirm the CI database was cleaned up
+        if: always()
+        run: |
+          LEFTOVER="$(psql -h localhost -U postgres -d postgres -tAc \
+            "SELECT count(*) FROM pg_database WHERE datname LIKE 'microlims\_test\_%';")"
+          echo "Leftover test databases: ${LEFTOVER}"
+          test "${LEFTOVER}" = "0"
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-test-results
+          path: backend/TestResults/*.trx
+          retention-days: 7
+
+  # ---------------------------------------------------------------------
+  # Migration drift: has the model changed without a migration being
+  # committed? Design-time only - it never opens a database connection.
+  # ---------------------------------------------------------------------
+  migration-check:
+    name: EF migration drift
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Cache NuGet packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('backend/**/*.csproj') }}
+          restore-keys: nuget-${{ runner.os }}-
+
+      - name: Install dotnet-ef
+        run: dotnet tool install --global dotnet-ef --version 8.*
+
+      - name: Restore
+        run: dotnet restore backend/MicroLIMS.sln
+
+      - name: Generate a test-only JWT signing key
+        # dotnet ef builds and starts the host to resolve the DbContext,
+        # and the host fails closed without a signing key.
+        run: |
+          KEY="$(openssl rand -base64 48)"
+          echo "::add-mask::${KEY}"
+          echo "Jwt__Key=${KEY}" >> "$GITHUB_ENV"
+
+      - name: Check for model changes with no committed migration
+        env:
+          # Present so the DbContext can be constructed. Deliberately
+          # unreachable - this check compares the model against the
+          # committed snapshot and must never touch a database.
+          ConnectionStrings__Default: "Host=127.0.0.1;Port=1;Database=unused;Username=unused;Timeout=1"
+        run: |
+          dotnet ef migrations has-pending-model-changes \
+            --project backend/MicroLIMS.Persistence \
+            --startup-project backend/MicroLIMS.API || {
+              echo "::error::The EF model has changes with no corresponding migration. Run: dotnet ef migrations add <Name> --project backend/MicroLIMS.Persistence --startup-project backend/MicroLIMS.API"
+              exit 1
+            }
+
+  # ---------------------------------------------------------------------
+  # Frontend: lint, type-check and production build.
+  #
+  # The lint step is back: frontend/eslint.config.js now exists, so eslint
+  # 10 no longer exits 2 on a configuration error. It reports errors only
+  # for genuine defects; the ~800 pre-existing violations are warnings, so
+  # this step passes today and still fails on a new rules-of-hooks break.
+  # To stop that backlog growing, pin it - `npm run lint -- --max-warnings
+  # <current count>` - once the count is stable enough not to churn.
+  # ---------------------------------------------------------------------
+  frontend:
+    name: Frontend build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: TypeScript
+        run: npx tsc -b
+
+      - name: Build
+        run: npm run build

@@ -7,7 +7,6 @@ import {
   Button,
   Avatar,
   Chip,
-  Divider,
   TextField,
   IconButton,
   CircularProgress,
@@ -37,6 +36,8 @@ import { DiscussionCategoryBadge } from "./components/DiscussionCategoryBadge";
 import { EditDiscussionDialog } from "./components/EditDiscussionDialog";
 import { DiscussionHistoryDialog } from "./components/DiscussionHistoryDialog";
 import { brandColors } from "../../theme";
+import { toast } from "sonner";
+import { ConfirmationDialog } from "../../components/ConfirmationDialog";
 
 export function DiscussionDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -62,6 +63,8 @@ export function DiscussionDetailPage() {
   const [editDialogOpen, setEditDialogOpen] = useState<boolean>(false);
   const [historyOpen, setHistoryOpen] = useState<boolean>(false);
   const [menuAnchor, setMenuAnchor] = useState<null | HTMLElement>(null);
+  const [confirmDeletePostOpen, setConfirmDeletePostOpen] = useState<boolean>(false);
+  const [commentToDelete, setCommentToDelete] = useState<number | null>(null);
 
   const loadPost = useCallback(async () => {
     if (isNaN(postId)) return;
@@ -86,20 +89,27 @@ export function DiscussionDetailPage() {
     try {
       const isImportant = await discussionService.toggleImportant(post.id);
       setPost((prev) => (prev ? { ...prev, isImportant } : null));
+      toast.success(isImportant ? "Marked as important" : "Unmarked as important");
     } catch {
-      alert("Failed to toggle important status.");
+      toast.error("Failed to toggle important status.");
     }
   };
 
-  const handleDeletePost = async () => {
+  const handleDeletePost = () => {
     if (!post) return;
-    if (window.confirm("Are you sure you want to delete this discussion post?")) {
-      try {
-        await discussionService.deletePost(post.id);
-        navigate("/discussions");
-      } catch {
-        alert("Failed to delete discussion post.");
-      }
+    setConfirmDeletePostOpen(true);
+  };
+
+  const confirmDeletePost = async () => {
+    if (!post) return;
+    try {
+      await discussionService.deletePost(post.id);
+      toast.success("Discussion post deleted");
+      navigate("/discussions");
+    } catch {
+      toast.error("Failed to delete discussion post.");
+    } finally {
+      setConfirmDeletePostOpen(false);
     }
   };
 
@@ -110,8 +120,9 @@ export function DiscussionDetailPage() {
       const created = await discussionService.addComment(post.id, newCommentText.trim());
       setPost((prev) => (prev ? { ...prev, comments: [...prev.comments, created] } : null));
       setNewCommentText("");
+      toast.success("Comment added");
     } catch (err: any) {
-      alert(err.response?.data?.message || "Failed to post comment.");
+      toast.error(err.response?.data?.message || "Failed to post comment.");
     } finally {
       setSubmittingComment(false);
     }
@@ -135,27 +146,34 @@ export function DiscussionDetailPage() {
           : null
       );
       setEditingCommentId(null);
+      toast.success("Comment updated");
     } catch (err: any) {
-      alert(err.response?.data?.message || "Failed to save comment.");
+      toast.error(err.response?.data?.message || "Failed to save comment.");
     }
   };
 
-  const handleDeleteComment = async (commentId: number) => {
-    if (!post) return;
-    if (window.confirm("Are you sure you want to delete this comment?")) {
-      try {
-        await discussionService.deleteComment(post.id, commentId);
-        setPost((prev) =>
-          prev
-            ? {
-                ...prev,
-                comments: prev.comments.filter((c) => c.id !== commentId)
-              }
-            : null
-        );
-      } catch {
-        alert("Failed to delete comment.");
-      }
+  const handleDeleteComment = (commentId: number) => {
+    setCommentToDelete(commentId);
+  };
+
+  const confirmDeleteComment = async () => {
+    if (!post || commentToDelete === null) return;
+    const targetId = commentToDelete;
+    try {
+      await discussionService.deleteComment(post.id, targetId);
+      setPost((prev) =>
+        prev
+          ? {
+              ...prev,
+              comments: prev.comments.filter((c) => c.id !== targetId)
+            }
+          : null
+      );
+      toast.success("Comment deleted");
+    } catch {
+      toast.error("Failed to delete comment.");
+    } finally {
+      setCommentToDelete(null);
     }
   };
 
@@ -510,6 +528,26 @@ export function DiscussionDetailPage() {
         postId={post.id}
         postTitle={post.title}
         onClose={() => setHistoryOpen(false)}
+      />
+
+      <ConfirmationDialog
+        open={confirmDeletePostOpen}
+        title="Delete Discussion Post"
+        message="Are you sure you want to delete this discussion post? This action cannot be undone."
+        confirmText="Delete Post"
+        destructive
+        onConfirm={confirmDeletePost}
+        onCancel={() => setConfirmDeletePostOpen(false)}
+      />
+
+      <ConfirmationDialog
+        open={commentToDelete !== null}
+        title="Delete Comment"
+        message="Are you sure you want to delete this comment? This action cannot be undone."
+        confirmText="Delete Comment"
+        destructive
+        onConfirm={confirmDeleteComment}
+        onCancel={() => setCommentToDelete(null)}
       />
     </Box>
   );

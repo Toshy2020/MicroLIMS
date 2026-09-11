@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Centralized Application Route Constants and Resolvers for MicroLIMS.
  * 
  * All routes match the active route tree in AppRoutes.tsx.
@@ -19,7 +19,7 @@ const APP_ROUTES = {
   // Core Laboratory Workflows
   RECEIVING_TESTING: "/receiving-testing",
   RECEIVING: "/receiving",
-  TESTING_WORKSPACE: "/testing-workspace",
+  TESTING_WORKSPACE: "/receiving-testing",
 
   // Laboratory Configuration & Master Data
   MEDIA_PREPARATION: "/laboratory-configuration/media",
@@ -53,6 +53,7 @@ const APP_ROUTES = {
 
   // Audit
   AUDIT_SEARCH: "/audit-search",
+  ERROR_MONITORING: "/error-monitoring",
   OOS_TRACKING: "/oos-tracking",
 
   // Administration
@@ -154,3 +155,9 @@ export function resolveTraceabilityRoute(
   return null;
 }
 
+// Permission codes the frontend gates on. Mirrors
+// MicroLIMS.Shared/Constants/PermissionConstants.cs - the backend is
+// still the enforcement point; this only decides what to render.
+export const PERMISSIONS = {
+  SYSTEM_VIEW_ERROR_LOG: "System.ViewErrorLog"
+} as const;

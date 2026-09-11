@@ -5,24 +5,19 @@ import {
   Typography,
   Stack,
   Button,
-  Divider,
-  Tooltip,
   useTheme
 } from "@mui/material";
 import { Theme } from "@mui/material/styles";
 import CloseIcon from "@mui/icons-material/Close";
 import DescriptionOutlinedIcon from "@mui/icons-material/DescriptionOutlined";
-import PictureAsPdfOutlinedIcon from "@mui/icons-material/PictureAsPdfOutlined";
 import HistoryOutlinedIcon from "@mui/icons-material/HistoryOutlined";
 import ScienceOutlinedIcon from "@mui/icons-material/ScienceOutlined";
-import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import FiberManualRecordIcon from "@mui/icons-material/FiberManualRecord";
 import WarningAmberOutlinedIcon from "@mui/icons-material/WarningAmberOutlined";
 import BlockOutlinedIcon from "@mui/icons-material/BlockOutlined";
-import { Link } from "react-router-dom";
 import { SampleCard as SampleCardType, TestOrderSummary } from "./types/workspaceTypes";
-import { CategoryBadge, StatusBadge, statusColor } from "../../components/StatusBadge";
+import { CategoryBadge } from "../../components/StatusBadge";
 import { SampleLifecycleBadge } from "./SampleLifecycleBadge";
 import { EditableCell } from "./EditableCell";
 import { WorkspaceService } from "./services/WorkspaceService";
@@ -175,31 +170,6 @@ export function SelectedSampleTestingPanel({
             }}
           >
             Sample Summary
-          </Button>
-
-          <Button
-            component={Link}
-            to={`/samples/${sample.sampleId}/report`}
-            target="_blank"
-            rel="noopener"
-            size="small"
-            variant="outlined"
-            startIcon={<PictureAsPdfOutlinedIcon sx={{ fontSize: 13 }} />}
-            sx={{
-              height: 25,
-              px: 1,
-              py: 0.25,
-              fontSize: "0.72rem",
-              fontWeight: 600,
-              textTransform: "none",
-              minWidth: "auto",
-              borderColor: theme.custom.status.info.border,
-              color: theme.custom.status.info.text,
-              bgcolor: theme.custom.status.info.bg,
-              "&:hover": { bgcolor: theme.custom.status.info.border, borderColor: theme.custom.status.info.text }
-            }}
-          >
-            View Full Report
           </Button>
 
           <Button
@@ -507,7 +477,9 @@ export function SelectedSampleTestingPanel({
                   Sample Needs Preparation
                 </Typography>
                 <Typography sx={{ fontSize: 12, color: theme.custom.status.inconclusive.text }}>
-                  Test locations and configuration must be completed before starting laboratory tests.
+                  {isProductLike
+                    ? "Record the sample preparation and sign for it before starting laboratory tests."
+                    : "Test locations and configuration must be completed before starting laboratory tests."}
                 </Typography>
               </Box>
             </Box>

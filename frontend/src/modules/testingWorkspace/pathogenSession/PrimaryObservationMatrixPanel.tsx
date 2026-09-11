@@ -26,8 +26,6 @@ import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
 import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 import DoneAllIcon from "@mui/icons-material/DoneAll";
 import FilterListIcon from "@mui/icons-material/FilterList";
-import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
-import ScienceOutlinedIcon from "@mui/icons-material/ScienceOutlined";
 import {
   PathogenTestingSessionDto,
   GrowthObservation,

@@ -4,6 +4,7 @@ using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Persistence.DbContext;
+using MicroLIMS.Shared.Constants;
 using MicroLIMS.Shared.Validation;
 
 namespace MicroLIMS.Application.Services;
@@ -38,9 +39,11 @@ public class UserService
 {
     private readonly MicroLimsDbContext _db;
     private readonly IAuthenticationService _authService;
+    private readonly ISecurityAuditService _securityAudit;
 
-    public UserService(MicroLimsDbContext db, IAuthenticationService authService)
+    public UserService(MicroLimsDbContext db, IAuthenticationService authService, ISecurityAuditService securityAudit)
     {
+        _securityAudit = securityAudit;
         _db = db;
         _authService = authService;
     }
@@ -165,6 +168,16 @@ public class UserService
         var prevRoleName = user.Role?.Name ?? "Unknown";
         user.RoleId = newRoleId;
 
+        // A role change alters what GMP-controlled actions the account may
+        // perform, so it is security-relevant regardless of whether any
+        // session is revoked (it deliberately is not - see the session
+        // revocation work: refresh already re-reads the current role).
+        _securityAudit.Record(new SecurityEventRequest(
+            SecurityEventCodes.RoleChanged, SecurityEventOutcome.Success,
+            ActorUserId: actingUserId, TargetUserId: targetUserId, TargetUsername: user.Username,
+            Reason: reason,
+            Metadata: $"{{\"fromRole\":\"{prevRoleName}\",\"toRole\":\"{newRole.Name}\"}}"));
+
         _db.AuditLogs.Add(new AuditLog
         {
             EntityName = nameof(User),
@@ -194,6 +207,25 @@ public class UserService
 
         var prevStatus = user.IsActive;
         user.IsActive = isActive;
+
+        // Disabling has to end the account's existing sessions in the same
+        // transaction as the status change - otherwise the user stays
+        // blocked from the login form while their refresh token keeps
+        // minting new access tokens. Re-enabling revokes nothing: it
+        // restores access rather than withdrawing it.
+        var revokedSessions = 0;
+        if (!isActive)
+            revokedSessions = await _authService.RevokeAllRefreshTokensAsync(targetUserId);
+
+        // Two identities: the administrator who acted, and the account
+        // acted upon. The GxP AuditLog entry below is unchanged - this
+        // records the same action as security evidence, not instead of it.
+        _securityAudit.Record(new SecurityEventRequest(
+            isActive ? SecurityEventCodes.AccountEnabled : SecurityEventCodes.AccountDisabled,
+            SecurityEventOutcome.Success,
+            ActorUserId: actingUserId, TargetUserId: targetUserId, TargetUsername: user.Username,
+            Reason: reason,
+            Metadata: isActive ? null : $"{{\"revokedSessionCount\":{revokedSessions}}}"));
 
         _db.AuditLogs.Add(new AuditLog
         {
@@ -233,6 +265,11 @@ public class UserService
 
         user.FailedLoginAttempts = 0;
         user.LockedUntil = null;
+
+        _securityAudit.Record(new SecurityEventRequest(
+            SecurityEventCodes.AccountUnlocked, SecurityEventOutcome.Success,
+            ActorUserId: actingUserId, TargetUserId: targetUserId, TargetUsername: user.Username,
+            Reason: reason));
 
         _db.AuditLogs.Add(new AuditLog
         {

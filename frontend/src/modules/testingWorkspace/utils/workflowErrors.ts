@@ -19,7 +19,8 @@ export type WorkflowErrorCode =
   | "SEGREGATION_OF_DUTIES_VIOLATION"
   | "ANALYST_DECISION_ALREADY_RECORDED"
   | "INCUBATION_STAGE1_NOT_COMPLETE"
-  | "INCUBATION_STAGE2_NOT_STARTED";
+  | "INCUBATION_STAGE2_NOT_STARTED"
+  | "PREPARATION_NOT_CONFIRMED";
 
 export interface ParsedWorkflowError {
   code: WorkflowErrorCode | null;
@@ -42,7 +43,7 @@ export function parseWorkflowError(e: any): ParsedWorkflowError {
     "CONFIRMATORY_ALREADY_RECORDED", "CONFIRMATORY_SETUP_ALREADY_SUBMITTED", "MEDIA_NOT_IN_PERMITTED_LIST",
     "NO_MEDIA_SELECTED", "INCOMPLETE_CONFIRMATORY_SETUP", "INCUBATOR_TEMP_OUT_OF_RANGE",
     "BIOCHEMICAL_RESULT_REQUIRED", "SEGREGATION_OF_DUTIES_VIOLATION", "ANALYST_DECISION_ALREADY_RECORDED",
-    "INCUBATION_STAGE1_NOT_COMPLETE", "INCUBATION_STAGE2_NOT_STARTED"
+    "INCUBATION_STAGE1_NOT_COMPLETE", "INCUBATION_STAGE2_NOT_STARTED", "PREPARATION_NOT_CONFIRMED"
   ];
   const code = knownCodes.includes(rawCode as WorkflowErrorCode) ? (rawCode as WorkflowErrorCode) : null;
   const remainingSeconds = code === "INCUBATION_NOT_COMPLETE" && errors?.[1] ? Number(errors[1]) : null;
@@ -59,6 +60,8 @@ export function workflowErrorDisplayMessage(parsed: ParsedWorkflowError): string
       return "This confirmatory plating has already been read out. Showing the recorded result.";
     case "CONFIRMATORY_SETUP_ALREADY_SUBMITTED":
       return "Confirmatory media have already been selected for this step and are incubating - go read the plates instead of selecting again.";
+    case "PREPARATION_NOT_CONFIRMED":
+      return "Test preparation has not been confirmed for this sample. Complete sample preparation before starting laboratory testing.";
     default:
       return parsed.message;
   }

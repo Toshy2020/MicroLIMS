@@ -15,7 +15,6 @@ import {
 import SearchIcon from "@mui/icons-material/Search";
 import RotateLeftIcon from "@mui/icons-material/RotateLeft";
 import { CryovialItem, CryovialFilterState } from "../types/cryovialTypes";
-import { brandColors } from "../../../../theme";
 
 interface CryovialFilterBarProps {
   items: CryovialItem[];
@@ -65,10 +64,10 @@ export function CryovialFilterBar({ items, filters, onFilterChange, onReset }: C
               variant={filters.status === "" ? "contained" : "outlined"}
               onClick={() => handleShortcutStatus("")}
               sx={{
-                bgcolor: filters.status === "" ? brandColors.sectionTitle : undefined,
-                color: filters.status === "" ? "#ffffff" : "text.secondary",
+                bgcolor: filters.status === "" ? "primary.main" : undefined,
+                color: filters.status === "" ? "primary.contrastText" : "text.secondary",
                 borderColor: "divider",
-                "&:hover": { bgcolor: filters.status === "" ? brandColors.pageTitle : "background.default" }
+                "&:hover": { bgcolor: filters.status === "" ? "primary.dark" : "background.default" }
               }}
             >
               All
@@ -78,7 +77,7 @@ export function CryovialFilterBar({ items, filters, onFilterChange, onReset }: C
               onClick={() => handleShortcutStatus("Approved")}
               sx={{
                 bgcolor: filters.status === "Approved" ? notDetected.text : undefined,
-                color: filters.status === "Approved" ? "#ffffff" : notDetected.text,
+                color: filters.status === "Approved" ? theme.palette.getContrastText(notDetected.text) : notDetected.text,
                 borderColor: "divider",
                 "&:hover": { bgcolor: filters.status === "Approved" ? notDetected.text : notDetected.bg }
               }}
@@ -90,7 +89,7 @@ export function CryovialFilterBar({ items, filters, onFilterChange, onReset }: C
               onClick={() => handleShortcutStatus("PendingReview")}
               sx={{
                 bgcolor: filters.status === "PendingReview" ? action.text : undefined,
-                color: filters.status === "PendingReview" ? "#ffffff" : action.text,
+                color: filters.status === "PendingReview" ? theme.palette.getContrastText(action.text) : action.text,
                 borderColor: "divider",
                 "&:hover": { bgcolor: filters.status === "PendingReview" ? action.text : action.bg }
               }}
@@ -102,7 +101,7 @@ export function CryovialFilterBar({ items, filters, onFilterChange, onReset }: C
               onClick={() => handleShortcutStatus("Rejected")}
               sx={{
                 bgcolor: filters.status === "Rejected" ? detected.text : undefined,
-                color: filters.status === "Rejected" ? "#ffffff" : detected.text,
+                color: filters.status === "Rejected" ? theme.palette.getContrastText(detected.text) : detected.text,
                 borderColor: "divider",
                 "&:hover": { bgcolor: filters.status === "Rejected" ? detected.text : detected.bg }
               }}

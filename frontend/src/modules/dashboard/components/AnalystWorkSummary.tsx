@@ -62,10 +62,10 @@ function SummaryCard({ label, count, icon: Icon, color, bgWash, to }: SummaryCar
 }
 
 const CATEGORY_ROUTES: Record<string, string> = {
-  Overdue: "/testing-workspace?scope=mine&urgency=overdue",
-  DueNow: "/testing-workspace?scope=mine",
-  DueToday: "/testing-workspace?scope=mine",
-  ReadyToRead: "/testing-workspace?scope=mine&testStatus=ReadyToRead"
+  Overdue: "/receiving-testing?scope=mine&urgency=overdue",
+  DueNow: "/receiving-testing?scope=mine",
+  DueToday: "/receiving-testing?scope=mine",
+  ReadyToRead: "/receiving-testing?scope=mine&testStatus=ReadyToRead"
 };
 
 interface AnalystWorkSummaryProps {

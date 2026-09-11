@@ -17,6 +17,7 @@ import SearchIcon from "@mui/icons-material/Search";
 import AddCommentIcon from "@mui/icons-material/AddComment";
 import ForumOutlinedIcon from "@mui/icons-material/ForumOutlined";
 import StarIcon from "@mui/icons-material/Star";
+import { toast } from "sonner";
 import { PageHeader } from "../../components/PageHeader";
 import { useAuth } from "../../contexts/AuthContext";
 import { DISCUSSION_CATEGORIES, DiscussionCategory, DiscussionPostSummary } from "./types/discussionTypes";
@@ -71,8 +72,9 @@ export function DiscussionsFeedPage() {
       setPosts((prev) =>
         prev.map((p) => (p.id === id ? { ...p, isImportant } : p))
       );
-    } catch (err: any) {
-      alert("Failed to toggle important status.");
+      toast.success(isImportant ? "Marked as important" : "Unmarked as important");
+    } catch {
+      toast.error("Failed to toggle important status.");
     }
   };
 
@@ -81,8 +83,9 @@ export function DiscussionsFeedPage() {
       await discussionService.deletePost(id);
       setPosts((prev) => prev.filter((p) => p.id !== id));
       setTotalCount((c) => Math.max(0, c - 1));
-    } catch (err: any) {
-      alert("Failed to delete discussion post.");
+      toast.success("Discussion post deleted.");
+    } catch {
+      toast.error("Failed to delete discussion post.");
     }
   };
 

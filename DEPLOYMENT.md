@@ -84,6 +84,12 @@ This guide explains how to deploy the **MicroLIMS** application online for devel
 | `Frontend__Origin` | `http://localhost:5173,https://<your-pages-name>.pages.dev` | Allowed CORS origins (comma-separated) |
 | `APPLY_MIGRATIONS` | `true` *(First deployment only)* | Tells the API to run EF Core migrations and initialize tables |
 | `Seed__InitialAdminPassword` | *(a unique password you generate)* | **First deployment only.** Password for the initial `admin` account, which is forced to change it at first sign-in. Without it no administrator is created. Delete this variable once the first sign-in has completed. |
+| `Smtp__Host` | `smtp.sendgrid.net` | *(Optional)* SMTP host for password-reset and alert emails. If omitted or empty, delivery is disabled (safe no-op). |
+| `Smtp__Port` | `587` | *(Optional)* SMTP port (default: `587`). |
+| `Smtp__Username` | `apikey` | *(Optional)* SMTP username. |
+| `Smtp__Password` | *(your SMTP password / API key)* | *(Optional)* SMTP password or token (never committed to git). |
+| `Smtp__FromAddress` | `no-reply@yourdomain.com` | *(Optional)* From address on outgoing system emails (default: `no-reply@microlims.local`). |
+| `Smtp__EnableSsl` | `true` | *(Optional)* Enable SSL/TLS (default: `true`). |
 
 6. Click **Create Web Service**.
 7. Once deployment finishes, your API URL will be: `https://microlims-api.onrender.com`.

@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Centralized Application Route Constants and Resolvers for MicroLIMS.
  * 
  * All routes match the active route tree in AppRoutes.tsx.
@@ -19,7 +19,7 @@ const APP_ROUTES = {
   // Core Laboratory Workflows
   RECEIVING_TESTING: "/receiving-testing",
   RECEIVING: "/receiving",
-  TESTING_WORKSPACE: "/testing-workspace",
+  TESTING_WORKSPACE: "/receiving-testing",
 
   // Laboratory Configuration & Master Data
   MEDIA_PREPARATION: "/laboratory-configuration/media",

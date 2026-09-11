@@ -125,10 +125,16 @@ var app = builder.Build();
 
 app.UseForwardedHeaders();
 
-// Smtp warning if unconfigured
-if (string.IsNullOrWhiteSpace(builder.Configuration["Smtp:Host"]))
+// Smtp startup check
+var smtp = app.Services.GetRequiredService<MicroLIMS.Infrastructure.Email.SmtpOptions>();
+if (!smtp.IsConfigured)
 {
     app.Logger.LogWarning("Smtp:Host is not configured - password reset emails will not actually be sent. Set the Smtp section in appsettings to enable delivery.");
+}
+else
+{
+    app.Logger.LogInformation("SMTP email delivery configured for host {Host}:{Port} with sender {FromAddress} (SSL: {EnableSsl}).",
+        smtp.Host, smtp.Port, smtp.FromAddress, smtp.EnableSsl);
 }
 
 // ---- Database Migrations & Seeding ----

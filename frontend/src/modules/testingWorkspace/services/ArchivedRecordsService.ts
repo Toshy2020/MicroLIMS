@@ -1,4 +1,5 @@
 import { apiClient } from "../../../services/apiClient";
+import { toast } from "sonner";
 
 export interface ArchivedRecordSummary {
   id: number;
@@ -24,9 +25,9 @@ export const ArchivedRecordsService = {
   async download(id: number, fileName: string): Promise<void> {
     const res = await apiClient.get(`/archived-records/${id}/download`, { responseType: "blob" });
     if (res.headers["x-archive-integrity"] === "FAILED") {
-      // eslint-disable-next-line no-alert
-      window.alert(
-        "Warning: this archived copy failed its integrity check - the stored file no longer matches the hash recorded when it was signed. Do not treat it as authoritative; report this to a System Administrator."
+      toast.error(
+        "Warning: this archived copy failed its integrity check - the stored file no longer matches the hash recorded when it was signed. Do not treat it as authoritative; report this to a System Administrator.",
+        { duration: 10000 }
       );
     }
     const url = window.URL.createObjectURL(res.data);

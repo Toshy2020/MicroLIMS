@@ -4,6 +4,7 @@ using MicroLIMS.Application.Workflows;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Persistence.DbContext;
+using MicroLIMS.Shared.Constants;
 
 namespace MicroLIMS.Application.Services;
 
@@ -784,6 +785,62 @@ public class PathogenSessionService
             .Include(s => s.TestOrders)
             .FirstOrDefaultAsync(s => s.Id == sampleId)
             ?? throw new InvalidOperationException($"Sample #{sampleId} not found.");
+
+        var isPrepared = sample.PreparationStatus == SamplePreparationStatus.Ready;
+        if (isPrepared && sample.ItemId != null)
+        {
+            isPrepared = await _db.SamplePreparations.AnyAsync(p => p.SampleId == sample.Id);
+        }
+
+        if (!isPrepared)
+        {
+            if (sample.TestOrders.Count > 0)
+            {
+                foreach (var to in sample.TestOrders)
+                {
+                    _db.AuditLogs.Add(new AuditLog
+                    {
+                        EntityName = "TestOrder",
+                        EntityId = to.Id.ToString(),
+                        Action = "TestStartRefused",
+                        UserId = userId,
+                        SampleId = sample.Id,
+                        TestOrderId = to.Id,
+                        SampleReferenceNumber = sample.ReferenceNumber,
+                        Reason = $"GMP Refusal: Test preparation stage must be confirmed for sample {sample.ReferenceNumber} before starting shared TSB enrichment."
+                    });
+
+                    _db.WorkflowHistories.Add(new WorkflowHistory
+                    {
+                        TestOrderId = to.Id,
+                        FromStep = to.CurrentStep,
+                        ToStep = to.CurrentStep,
+                        Note = $"Transition refused: Test preparation not confirmed for sample {sample.ReferenceNumber} (step \"Shared TSB\").",
+                        PerformedByUserId = userId,
+                        Timestamp = DateTime.UtcNow
+                    });
+                }
+            }
+            else
+            {
+                _db.AuditLogs.Add(new AuditLog
+                {
+                    EntityName = "Sample",
+                    EntityId = sample.Id.ToString(),
+                    Action = "TestStartRefused",
+                    UserId = userId,
+                    SampleId = sample.Id,
+                    SampleReferenceNumber = sample.ReferenceNumber,
+                    Reason = $"GMP Refusal: Test preparation stage must be confirmed for sample {sample.ReferenceNumber} before starting shared TSB enrichment."
+                });
+            }
+
+            await _db.SaveChangesAsync();
+
+            throw new WorkflowStepException(
+                WorkflowErrorCodes.PreparationNotConfirmed,
+                $"Test Preparation must be completed and confirmed for sample {sample.ReferenceNumber} before incubation can be started for step \"Shared TSB\".");
+        }
 
         var media = await _db.Media
             .Include(m => m.Material)

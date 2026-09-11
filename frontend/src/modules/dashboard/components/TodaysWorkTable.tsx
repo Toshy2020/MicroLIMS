@@ -52,7 +52,7 @@ export function TodaysWorkTable({ items }: { items: TodaysWorkItem[] }) {
 
   return (
     <>
-      <SectionTitle tabs={[{ label: "View all", to: "/testing-workspace" }]}>Today's Laboratory Work</SectionTitle>
+      <SectionTitle tabs={[{ label: "View all", to: "/receiving-testing" }]}>Today's Laboratory Work</SectionTitle>
       <ToggleButtonGroup
         value={tab} exclusive size="small"
         onChange={(_, v) => v && setTab(v)}
@@ -93,7 +93,7 @@ export function TodaysWorkTable({ items }: { items: TodaysWorkItem[] }) {
                 <TableCell>
                   <Typography
                     component={Link}
-                    to={`/testing-workspace?sampleId=${item.sampleId}`}
+                    to={`/receiving-testing?sampleId=${item.sampleId}`}
                     sx={{
                       fontWeight: 600,
                       fontSize: 13,

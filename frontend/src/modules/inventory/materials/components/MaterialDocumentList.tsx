@@ -19,6 +19,7 @@ import type { MaterialDocument, MaterialDocumentStatus } from "../types/material
 import { MATERIAL_DOCUMENT_TYPE_LABELS } from "../types/materialTypes";
 import { SupersedeMaterialDocumentDialog } from "./SupersedeMaterialDocumentDialog";
 import { VoidMaterialDocumentDialog } from "./VoidMaterialDocumentDialog";
+import { toast } from "sonner";
 
 interface Props {
   materialId: number;
@@ -64,7 +65,7 @@ export function MaterialDocumentList({ materialId, isExpired, refreshKey, onDocu
       const url = URL.createObjectURL(blob);
       window.open(url, "_blank", "noopener,noreferrer");
     } catch {
-      alert("Failed to retrieve document. Please try again.");
+      toast.error("Failed to retrieve document. Please try again.");
     }
   };
 

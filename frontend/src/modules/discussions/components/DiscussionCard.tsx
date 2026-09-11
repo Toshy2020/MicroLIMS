@@ -25,6 +25,7 @@ import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import { DiscussionPostSummary } from "../types/discussionTypes";
 import { DiscussionCategoryBadge } from "./DiscussionCategoryBadge";
 import { brandColors } from "../../../theme";
+import { ConfirmationDialog } from "../../../components/ConfirmationDialog";
 
 interface Props {
   post: DiscussionPostSummary;
@@ -46,6 +47,7 @@ export function DiscussionCard({
   const navigate = useNavigate();
   const [menuAnchor, setMenuAnchor] = useState<null | HTMLElement>(null);
 
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
   const isAuthor = currentUserId === post.authorUserId;
   const canModify = isAuthor || canEditAny;
 
@@ -67,9 +69,7 @@ export function DiscussionCard({
   const handleDelete = (e: MouseEvent) => {
     e.stopPropagation();
     handleMenuClose();
-    if (window.confirm("Are you sure you want to delete this discussion post?")) {
-      onDelete(post.id);
-    }
+    setConfirmDeleteOpen(true);
   };
 
   const authorInitial = (post.authorName || "U").charAt(0).toUpperCase();
@@ -283,6 +283,18 @@ export function DiscussionCard({
           </Typography>
         </Box>
       </CardContent>
+      <ConfirmationDialog
+        open={confirmDeleteOpen}
+        title="Delete Discussion Post"
+        message="Are you sure you want to delete this discussion post? This action cannot be undone."
+        confirmText="Delete Post"
+        destructive
+        onConfirm={() => {
+          setConfirmDeleteOpen(false);
+          onDelete(post.id);
+        }}
+        onCancel={() => setConfirmDeleteOpen(false)}
+      />
     </Card>
   );
 }

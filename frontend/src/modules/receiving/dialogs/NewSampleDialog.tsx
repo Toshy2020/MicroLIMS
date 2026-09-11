@@ -16,7 +16,6 @@ import { SampleTypeSelector } from "./SampleTypeSelector";
 import { MultiSampleEntryGrid } from "./MultiSampleEntryGrid";
 import { ReceiveService } from "../services/ReceiveService";
 import { masterDataOptions } from "../../../services/masterDataOptions";
-import { brandColors } from "../../../theme";
 import { FloatingDialog } from "../../../components/FloatingDialog";
 
 interface Props {
@@ -317,19 +316,18 @@ export function NewSampleDialog({ open, onClose, onSuccess }: Props) {
       actions={
         step === 1 ? (
           <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%" }}>
-            <Button onClick={onClose} color="inherit" sx={{ color: "#4b5563" }}>
+            <Button onClick={onClose} color="inherit">
               Cancel
             </Button>
             <Button
               variant="contained"
+              color="primary"
               disabled={!category}
               onClick={handleNextStep}
               endIcon={<ArrowForwardIcon />}
               sx={{
-                bgcolor: brandColors.sectionTitle,
                 fontWeight: 600,
-                px: 3,
-                "&:hover": { bgcolor: "#631f74" }
+                px: 3
               }}
             >
               Next
@@ -342,7 +340,6 @@ export function NewSampleDialog({ open, onClose, onSuccess }: Props) {
               disabled={loading}
               startIcon={<ArrowBackIcon />}
               color="inherit"
-              sx={{ color: "#4b5563" }}
             >
               Back
             </Button>
@@ -352,19 +349,18 @@ export function NewSampleDialog({ open, onClose, onSuccess }: Props) {
             </Typography>
 
             <Box sx={{ display: "flex", gap: 1.5 }}>
-              <Button onClick={onClose} disabled={loading} color="inherit" sx={{ color: "#4b5563" }}>
+              <Button onClick={onClose} disabled={loading} color="inherit">
                 Cancel
               </Button>
               <Button
                 variant="contained"
+                color="primary"
                 onClick={handleSaveAll}
                 disabled={loading}
                 startIcon={loading ? <CircularProgress size={18} color="inherit" /> : <CheckIcon />}
                 sx={{
-                  bgcolor: brandColors.sectionTitle,
                   fontWeight: 600,
-                  px: 3,
-                  "&:hover": { bgcolor: "#631f74" }
+                  px: 3
                 }}
               >
                 {loading ? "Receiving..." : "Save All Samples"}

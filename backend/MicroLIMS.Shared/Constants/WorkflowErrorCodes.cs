@@ -61,5 +61,10 @@ public static class WorkflowErrorCodes
     // to SamplePreparation.Unit, which was removed in the 2026-09
     // Preparation Configuration simplification.
     public const string CfuUnitNotConfigured = "CFU_UNIT_NOT_CONFIGURED";
+
+    // The sample preparation stage has not been confirmed for this sample
+    // (Product/RM/PM missing confirmed SamplePreparation row, or EM/AfterCleaning missing locations,
+    // or sample preparation status not Ready).
+    public const string PreparationNotConfirmed = "PREPARATION_NOT_CONFIRMED";
 }
 

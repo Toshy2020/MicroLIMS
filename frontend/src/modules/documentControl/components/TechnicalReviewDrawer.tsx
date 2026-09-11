@@ -268,7 +268,7 @@ export const TechnicalReviewDrawer: React.FC<TechnicalReviewDrawerProps> = ({
               </Box>
             )}
             {reviewTask.submissionNotes && (
-              <Box sx={{ mt: 1, pt: 1, borderTop: "1px dashed #e0e0e0" }}>
+              <Box sx={{ mt: 1, pt: 1, borderTop: "1px dashed", borderColor: "divider" }}>
                 <Typography variant="caption" color="text.secondary" display="block">
                   Author Submission Notes:
                 </Typography>
@@ -399,7 +399,7 @@ export const TechnicalReviewDrawer: React.FC<TechnicalReviewDrawerProps> = ({
 
                 {/* Reviewer Verification Block */}
                 {f.reviewerVerificationNotes && (
-                  <Box sx={{ bgcolor: "info.lighter", p: 1, borderRadius: 1, mb: 1, borderLeft: "3px solid #0288d1" }}>
+                  <Box sx={{ bgcolor: (t) => t.palette.mode === "dark" ? "action.hover" : "rgba(2, 136, 209, 0.08)", p: 1, borderRadius: 1, mb: 1, borderLeft: "3px solid", borderColor: "info.main" }}>
                     <Typography variant="caption" sx={{ fontWeight: 600, color: "info.main" }}>
                       Reviewer Verification:
                     </Typography>

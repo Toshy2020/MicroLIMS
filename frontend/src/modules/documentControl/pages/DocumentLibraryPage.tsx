@@ -21,7 +21,8 @@ import {
   FormControlLabel,
   Switch,
   Alert,
-  CircularProgress
+  CircularProgress,
+  useTheme
 } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
 import AddIcon from "@mui/icons-material/Add";
@@ -33,6 +34,8 @@ import FilterListOutlinedIcon from "@mui/icons-material/FilterListOutlined";
 import ClearIcon from "@mui/icons-material/Clear";
 
 import { PageHeader } from "../../../components/PageHeader";
+import { tableHeadSx } from "../../../theme";
+import { toast } from "sonner";
 import { StatusBadge } from "../../../components/StatusBadge";
 import { useAuth } from "../../../contexts/AuthContext";
 import { documentControlService } from "../services/documentControlService";
@@ -47,6 +50,7 @@ import type {
 } from "../types/documentControlTypes";
 
 export function DocumentLibraryPage() {
+  const theme = useTheme();
   const navigate = useNavigate();
   const { role } = useAuth();
   const isController = role === "SectionHead";
@@ -173,15 +177,15 @@ export function DocumentLibraryPage() {
           status: currentRev.revisionStatus
         });
       } else {
-        alert("No active controlled PDF file is currently attached to this document revision.");
+        toast.warning("No active controlled PDF file is currently attached to this document revision.");
       }
     } catch (err: any) {
-      alert("Failed to load document file details: " + (err.response?.data?.message || err.message));
+      toast.error("Failed to load document file details: " + (err.response?.data?.message || err.message));
     }
   };
 
   return (
-    <Box sx={{ p: 3, maxWidth: 1600, mx: "auto" }}>
+    <Box sx={{ pb: 4 }}>
       <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", mb: 2 }}>
         <PageHeader
           title="Document Library"
@@ -326,7 +330,7 @@ export function DocumentLibraryPage() {
       {/* Library Table */}
       <TableContainer component={Paper}>
         <Table size="small">
-          <TableHead sx={{ bgcolor: "grey.50" }}>
+          <TableHead sx={tableHeadSx(theme)}>
             <TableRow>
               <TableCell sx={{ fontWeight: 700 }}>Company Code</TableCell>
               <TableCell sx={{ fontWeight: 700 }}>MicroLIMS ID</TableCell>

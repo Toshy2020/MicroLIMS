@@ -31,7 +31,7 @@ public class RoleController : ControllerBase
     private int CurrentUserId => int.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)!.Value);
 
     [HttpGet]
-    public async Task<IActionResult> GetAll() => Ok(ApiResponse<List<Role>>.Ok(await _db.Roles.ToListAsync()));
+    public async Task<IActionResult> GetAll() => Ok(ApiResponse<List<Role>>.Ok(await _db.Roles.AsNoTracking().ToListAsync()));
 
     [HttpGet("{id}")]
     public async Task<IActionResult> GetById(int id)

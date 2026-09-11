@@ -23,9 +23,9 @@ interface NotificationDto {
 // Where clicking a notification should take the user
 const NOTIFICATION_ROUTES: Record<string, string> = {
   MediaExpiry: "/laboratory-configuration/media",
-  IncubationReady: "/testing-workspace",
-  ApprovalWaiting: "/testing-workspace",
-  ReviewWaiting: "/testing-workspace",
+  IncubationReady: "/receiving-testing",
+  ApprovalWaiting: "/receiving-testing",
+  ReviewWaiting: "/receiving-testing",
   TestReturnedForRevision: "/receiving-testing",
   DiscussionComment: "/discussions",
   DiscussionPostUpdated: "/discussions",
@@ -56,7 +56,10 @@ export function Header({ onToggleSidebar, sidebarCollapsed }: HeaderProps) {
 
   useEffect(() => {
     loadNotifications();
-    const interval = setInterval(loadNotifications, POLL_INTERVAL_MS);
+    const interval = setInterval(() => {
+      if (document.hidden) return;
+      loadNotifications();
+    }, POLL_INTERVAL_MS);
     return () => clearInterval(interval);
   }, []);
 
@@ -118,6 +121,7 @@ export function Header({ onToggleSidebar, sidebarCollapsed }: HeaderProps) {
           <Switch
             checked={mode === "dark"}
             onChange={toggleMode}
+            inputProps={{ "aria-label": mode === "dark" ? "Switch to light mode" : "Switch to dark mode" }}
             icon={<LightModeIcon sx={{ fontSize: 15, color: "#f2b705", p: "1.5px" }} />}
             checkedIcon={<DarkModeIcon sx={{ fontSize: 15, color: "#2E3542", p: "1.5px" }} />}
             sx={{
@@ -128,13 +132,26 @@ export function Header({ onToggleSidebar, sidebarCollapsed }: HeaderProps) {
           />
         </Tooltip>
         <Tooltip title="Notifications">
-          <IconButton onClick={(e) => setBellAnchor(e.currentTarget)} sx={{ color: "#fff" }}>
+          <IconButton
+            onClick={(e) => setBellAnchor(e.currentTarget)}
+            sx={{ color: "#fff" }}
+            aria-label={`Notifications${unreadCount > 0 ? `, ${unreadCount} unread` : ""}`}
+            aria-controls={bellAnchor ? "header-notifications-menu" : undefined}
+            aria-haspopup="true"
+            aria-expanded={Boolean(bellAnchor)}
+          >
             <Badge badgeContent={unreadCount} color="error">
               <NotificationsIcon />
             </Badge>
           </IconButton>
         </Tooltip>
-        <Menu anchorEl={bellAnchor} open={Boolean(bellAnchor)} onClose={() => setBellAnchor(null)} PaperProps={{ sx: { width: 360, maxHeight: 420 } }}>
+        <Menu
+          id="header-notifications-menu"
+          anchorEl={bellAnchor}
+          open={Boolean(bellAnchor)}
+          onClose={() => setBellAnchor(null)}
+          PaperProps={{ sx: { width: 360, maxHeight: 420 } }}
+        >
           {notifications.length > 0 && (
             <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", px: 2, py: 0.75 }}>
               <Typography sx={{ fontSize: 13, fontWeight: 700 }}>Notifications</Typography>

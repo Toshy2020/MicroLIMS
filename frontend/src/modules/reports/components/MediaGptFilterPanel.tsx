@@ -4,7 +4,6 @@ import {
   Button, Link, Typography, Stack, useTheme
 } from "@mui/material";
 import { EvaluationOutcome, EvaluationType, MediaGptFilterOptions, MediaGptSearchParams } from "../types/mediaGptTypes";
-import { brandColors } from "../../../theme";
 
 interface MediaGptFilterPanelProps {
   filterOptions: MediaGptFilterOptions | null;
@@ -105,9 +104,10 @@ export function MediaGptFilterPanel({
         <Stack direction="row" spacing={1} sx={{ pt: 1 }}>
           <Button
             variant="contained"
+            color="primary"
             fullWidth
             onClick={onSearch}
-            sx={{ bgcolor: brandColors.sectionTitle, "&:hover": { bgcolor: "#4a0f61" }, fontWeight: 700 }}
+            sx={{ fontWeight: 700 }}
           >
             Search Media Lots
           </Button>

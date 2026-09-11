@@ -19,6 +19,7 @@ import type { EquipmentDocument, EquipmentDocumentStatus } from "../types/equipm
 import { EQUIPMENT_DOCUMENT_TYPE_LABELS } from "../types/equipmentTypes";
 import { SupersedeEquipmentDocumentDialog } from "./SupersedeEquipmentDocumentDialog";
 import { VoidEquipmentDocumentDialog } from "./VoidEquipmentDocumentDialog";
+import { toast } from "sonner";
 
 interface Props {
   equipmentId: number;
@@ -63,7 +64,7 @@ export function EquipmentDocumentList({ equipmentId, refreshKey, onDocumentChang
       const url = URL.createObjectURL(blob);
       window.open(url, "_blank", "noopener,noreferrer");
     } catch {
-      alert("Failed to retrieve document. Please try again.");
+      toast.error("Failed to retrieve document. Please try again.");
     }
   };
 

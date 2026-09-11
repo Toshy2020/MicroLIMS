@@ -239,6 +239,34 @@ public class PathogenSessionServiceTests
     }
 
     [Fact]
+    public async Task StartSharedTsbAsync_WhenPreparationNotConfirmed_ThrowsAndLogsRefusal()
+    {
+        var (db, sampleId, _) = SetupTestEnvironment(1);
+        var sample = await db.Samples.FirstAsync(s => s.Id == sampleId);
+        sample.PreparationStatus = SamplePreparationStatus.NeedsPreparation;
+        await db.SaveChangesAsync();
+
+        var service = new PathogenSessionService(db);
+
+        var ex = await Assert.ThrowsAsync<WorkflowStepException>(() =>
+            service.StartSharedTsbAsync(sampleId, new StartSharedTsbRequest(
+                MediaLotId: 20,
+                IncubatorEquipmentId: 3,
+                IncubationStartUtc: DateTime.UtcNow
+            ), userId: 5));
+
+        Assert.Equal(MicroLIMS.Shared.Constants.WorkflowErrorCodes.PreparationNotConfirmed, ex.ErrorCode);
+        Assert.Contains("Test Preparation must be completed and confirmed", ex.Message);
+
+        var auditLogs = await db.AuditLogs.Where(a => a.Action == "TestStartRefused").ToListAsync();
+        Assert.NotEmpty(auditLogs);
+        Assert.All(auditLogs, a => Assert.Equal(5, a.UserId));
+
+        var histories = await db.WorkflowHistories.Where(h => h.Note != null && h.Note.Contains("Transition refused")).ToListAsync();
+        Assert.NotEmpty(histories);
+    }
+
+    [Fact]
     public async Task Scenario_3Locations_6AssignedTests_TsbIncubation_Gating_And_Counters()
     {
         var (db, sampleId, _) = SetupTestEnvironment(3);

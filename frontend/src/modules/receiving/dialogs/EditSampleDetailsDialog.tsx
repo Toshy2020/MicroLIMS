@@ -10,7 +10,6 @@ import {
 } from "@mui/material";
 import { SampleRecord } from "../types/receivingTypes";
 import { ReceiveService } from "../services/ReceiveService";
-import { brandColors } from "../../../theme";
 import { FloatingDialog } from "../../../components/FloatingDialog";
 
 interface Props {
@@ -73,12 +72,11 @@ export function EditSampleDetailsDialog({ open, sample, onClose, onSuccess }: Pr
           </Button>
           <Button
             variant="contained"
+            color="primary"
             onClick={handleSave}
             disabled={loading}
             sx={{
-              bgcolor: brandColors.sectionTitle,
-              fontWeight: 600,
-              "&:hover": { bgcolor: "#631f74" }
+              fontWeight: 600
             }}
           >
             {loading ? <CircularProgress size={20} color="inherit" /> : "Save Changes"}

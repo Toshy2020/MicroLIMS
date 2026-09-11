@@ -253,7 +253,6 @@ public class TestWorkflowController : ControllerBase
 
         var previousSteps = await _db.Incubations
             .Where(i => i.TestOrderId == testOrderId)
-            .Include(i => i.Media).Include(i => i.IncubatorEquipment)
             .OrderBy(i => i.StepNumber).ThenBy(i => i.Id)
             .Select(i => new
             {

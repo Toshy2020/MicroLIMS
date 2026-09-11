@@ -4,7 +4,6 @@ import {
   Button, Link, Typography, Stack, useTheme
 } from "@mui/material";
 import { ReferenceStrainFilterOptions, ReferenceStrainSearchParams } from "../types/referenceStrainTypes";
-import { brandColors } from "../../../theme";
 
 interface ReferenceStrainFilterPanelProps {
   filterOptions: ReferenceStrainFilterOptions | null;
@@ -145,9 +144,10 @@ export function ReferenceStrainFilterPanel({
         <Stack direction="row" spacing={1} sx={{ pt: 1 }}>
           <Button
             variant="contained"
+            color="primary"
             fullWidth
             onClick={onSearch}
-            sx={{ bgcolor: brandColors.sectionTitle, "&:hover": { bgcolor: "#4a0f61" }, fontWeight: 700 }}
+            sx={{ fontWeight: 700 }}
           >
             Search Batches
           </Button>

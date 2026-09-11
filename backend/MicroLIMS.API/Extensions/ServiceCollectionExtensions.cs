@@ -144,13 +144,10 @@ public static class ServiceCollectionExtensions
         // Infrastructure
         services.AddScoped<IPdfGenerator, PdfGenerator>();
         services.AddScoped<IWordGenerator, WordGenerator>();
-        services.AddScoped<IEmailSender>(_ => new EmailSender(
-            config["Smtp:Host"] ?? "",
-            int.TryParse(config["Smtp:Port"], out var p) ? p : 587,
-            config["Smtp:Username"] ?? "",
-            config["Smtp:Password"] ?? "",
-            config["Smtp:FromAddress"] ?? "no-reply@microlims.local",
-            bool.TryParse(config["Smtp:EnableSsl"], out var ssl) && ssl));
+        var smtpOptions = SmtpConfiguration.Resolve(config);
+        services.AddSingleton(smtpOptions);
+        services.Configure<SmtpOptions>(config.GetSection(SmtpOptions.SectionName));
+        services.AddScoped<IEmailSender>(sp => new EmailSender(sp.GetRequiredService<SmtpOptions>()));
         // Error capture is a singleton that opens its own DbContext
         // scope per write - the request-scoped context is typically
         // mid-exception when an error is captured.

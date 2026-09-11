@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   Box,
   Typography,
@@ -17,7 +17,8 @@ import {
   Chip,
   Alert,
   CircularProgress,
-  Stack
+  Stack,
+  useTheme
 } from "@mui/material";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import GridOnIcon from "@mui/icons-material/GridOn";
@@ -28,10 +29,12 @@ import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 import { useNavigate } from "react-router-dom";
 
 import { PageHeader } from "../../../components/PageHeader";
+import { tableHeadSx } from "../../../theme";
 import { trainingMatrixService } from "../services/trainingMatrixService";
 import type { ComplianceKpiSummaryDto } from "../types/trainingMatrixTypes";
 
 export function ComplianceDashboardPage() {
+  const theme = useTheme();
   const navigate = useNavigate();
 
   const [kpis, setKpis] = useState<ComplianceKpiSummaryDto | null>(null);
@@ -56,7 +59,7 @@ export function ComplianceDashboardPage() {
   }, [loadKpis]);
 
   return (
-    <Box sx={{ p: 3, maxWidth: 1400, margin: "0 auto" }}>
+    <Box sx={{ pb: 4 }}>
       <PageHeader
         title="Training Compliance Dashboard"
         subtitle="Executive & operational compliance metrics, departmental ranking, and overdue exceptions."
@@ -163,12 +166,12 @@ export function ComplianceDashboardPage() {
             </Grid>
 
             <Grid item xs={12} sm={6} md={3}>
-              <Card variant="outlined" sx={{ borderTop: "4px solid", borderColor: "#ff9800" }}>
+              <Card variant="outlined" sx={{ borderTop: "4px solid", borderColor: "warning.main" }}>
                 <CardContent>
                   <Typography variant="caption" color="text.secondary" fontWeight="bold">
                     SUPERSEDED GAPS
                   </Typography>
-                  <Typography variant="h3" fontWeight="bold" sx={{ color: "#e65100", my: 0.5 }}>
+                  <Typography variant="h3" fontWeight="bold" sx={{ color: (t) => t.palette.mode === "dark" ? "warning.light" : "#e65100", my: 0.5 }}>
                     {kpis.supersededGapCount}
                   </Typography>
                   <Typography variant="caption" color="text.secondary" sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
@@ -194,7 +197,7 @@ export function ComplianceDashboardPage() {
 
                 <TableContainer>
                   <Table size="small">
-                    <TableHead sx={{ bgcolor: "grey.50" }}>
+                    <TableHead sx={tableHeadSx(theme)}>
                       <TableRow>
                         <TableCell sx={{ fontWeight: 700 }}>Department</TableCell>
                         <TableCell align="right" sx={{ fontWeight: 700 }}>Required</TableCell>
@@ -266,7 +269,7 @@ export function ComplianceDashboardPage() {
 
                 <TableContainer>
                   <Table size="small">
-                    <TableHead sx={{ bgcolor: "grey.50" }}>
+                    <TableHead sx={tableHeadSx(theme)}>
                       <TableRow>
                         <TableCell sx={{ fontWeight: 700 }}>Document Code & Title</TableCell>
                         <TableCell align="right" sx={{ fontWeight: 700 }}>Overdue</TableCell>

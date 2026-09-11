@@ -78,7 +78,7 @@ export function VoidDocumentDialog({
           <strong>Quality Governance Action:</strong> Voiding permanently removes this Document Master from the active register and marks it as Void. It releases the Company Code <code>{companyDocumentCode}</code> for controlled reuse. The document and its complete revision history remain permanently preserved in the immutable audit trail.
         </Alert>
 
-        <Box sx={{ p: 1.5, bgcolor: "grey.50", borderRadius: 1, border: "1px solid", borderColor: "divider" }}>
+        <Box sx={{ p: 1.5, bgcolor: (t) => t.palette.mode === "dark" ? "action.hover" : "grey.50", borderRadius: 1, border: "1px solid", borderColor: "divider" }}>
           <Typography variant="body2">
             Document Code: <strong>{companyDocumentCode}</strong>
           </Typography>

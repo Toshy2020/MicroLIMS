@@ -13,7 +13,6 @@ import {
   useTheme
 } from "@mui/material";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
-import { brandColors } from "../../../theme";
 
 export interface SamplingPointGridItem {
   id: number;
@@ -258,18 +257,17 @@ export function SamplingPointGrid({
       <Box sx={{ display: "flex", justifyContent: "flex-end", alignItems: "center", pt: 1 }}>
         <Button
           variant="contained"
+          color="primary"
           onClick={onConfirm}
           disabled={selectedCount === 0 || loading || confirmDisabled}
           startIcon={<PlayArrowIcon />}
           sx={{
-            bgcolor: brandColors.sectionTitle,
             fontSize: 13,
             fontWeight: 700,
             px: 3,
             py: 0.85,
             textTransform: "none",
             borderRadius: 1.5,
-            "&:hover": { bgcolor: "#631f74" }
           }}
         >
           {loading ? "Starting..." : confirmLabel}

@@ -30,6 +30,7 @@ import { SessionReviewPanel } from "./SessionReviewPanel";
 import { LoadingSpinner } from "../../../components/LoadingSpinner";
 import { FloatingDialog } from "../../../components/FloatingDialog";
 import { brandColors } from "../../../theme";
+import { useAuth } from "../../../contexts/AuthContext";
 
 interface Props {
   open: boolean;
@@ -49,6 +50,9 @@ const STEPS = [
 ];
 
 export function PathogenSessionDialog({ open, sampleId, onClose, onSessionUpdated, onSessionCompleted }: Props) {
+  const { role } = useAuth();
+  // Reset discards every step record and result for the sample - Section Head only.
+  const canResetSession = role === "SectionHead" || role === "SystemAdministrator";
   const [activeStep, setActiveStep] = useState(0);
   const [session, setSession] = useState<PathogenTestingSessionDto | null>(null);
   const [loading, setLoading] = useState(false);
@@ -107,7 +111,7 @@ export function PathogenSessionDialog({ open, sampleId, onClose, onSessionUpdate
     setResetting(true);
     setError(null);
     try {
-      const updated = await PathogenSessionService.resetSession(sampleId, resetReason || "Analyst requested session reset");
+      const updated = await PathogenSessionService.resetSession(sampleId, resetReason || "Section Head requested session reset");
       setSession(updated);
       setActiveStep(0);
       setResetDialogOpen(false);
@@ -198,7 +202,7 @@ export function PathogenSessionDialog({ open, sampleId, onClose, onSessionUpdate
                 }}
               />
             )}
-            {session && (
+            {session && canResetSession && (
               <Button
                 variant="outlined"
                 size="small"

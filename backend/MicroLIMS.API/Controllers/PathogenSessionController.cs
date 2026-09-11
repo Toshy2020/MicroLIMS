@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using MicroLIMS.Application.Services;
 using MicroLIMS.Application.Workflows;
@@ -153,7 +153,10 @@ public class PathogenSessionController : ControllerBase
         }
     }
 
+    // Resetting wipes every step record, incubation and result for the sample,
+    // so it stays with the Section Head rather than the analysts doing the work.
     [HttpPost("{sampleId:int}/reset")]
+    [Authorize(Roles = RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
     public async Task<IActionResult> ResetSession(int sampleId, [FromBody] ResetPathogenSessionRequest? request)
     {
         try

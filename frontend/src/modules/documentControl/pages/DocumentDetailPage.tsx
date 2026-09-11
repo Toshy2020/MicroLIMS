@@ -1,7 +1,15 @@
+import { monospaceFontFamily } from "../../../theme/palette";
+import { MIN_LABEL_FONT_SIZE, compactChipStrongSx, compactChipSx, documentCodeSx } from "../documentControlStyles";
+import MoreVertIcon from "@mui/icons-material/MoreVert";
+import { RevisionLifecycleStrip } from "../components/RevisionLifecycleStrip";
 import { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
   Box,
+  Menu,
+  MenuItem,
+  ListItemIcon,
+  ListItemText,
   Typography,
   Button,
   Paper,
@@ -25,11 +33,10 @@ import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import CloudUploadOutlinedIcon from "@mui/icons-material/CloudUploadOutlined";
 import PictureAsPdfOutlinedIcon from "@mui/icons-material/PictureAsPdfOutlined";
 import DownloadOutlinedIcon from "@mui/icons-material/DownloadOutlined";
-import DescriptionOutlinedIcon from "@mui/icons-material/DescriptionOutlined";
 import BlockOutlinedIcon from "@mui/icons-material/BlockOutlined";
 import CancelOutlinedIcon from "@mui/icons-material/CancelOutlined";
 import PersonAddOutlinedIcon from "@mui/icons-material/PersonAddOutlined";
-import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
+import RemoveCircleOutlineIcon from "@mui/icons-material/RemoveCircleOutline";
 import RateReviewOutlinedIcon from "@mui/icons-material/RateReviewOutlined";
 import AutorenewOutlinedIcon from "@mui/icons-material/AutorenewOutlined";
 import FactCheckOutlinedIcon from "@mui/icons-material/FactCheckOutlined";
@@ -110,6 +117,7 @@ export function DocumentDetailPage() {
   const [periodicReviewDialogOpen, setPeriodicReviewDialogOpen] = useState(false);
   const [assignmentToRemove, setAssignmentToRemove] = useState<number | null>(null);
   const [selectedPeriodicReviewTaskId, setSelectedPeriodicReviewTaskId] = useState<number | null>(null);
+  const [actionMenuAnchor, setActionMenuAnchor] = useState<HTMLElement | null>(null);
 
   const fetchDocument = useCallback(async () => {
     if (!id) return;
@@ -134,7 +142,7 @@ export function DocumentDetailPage() {
 
       // Load review and approval tasks for in-flight revision or effective revision
       const inFlightRev = data.revisions.find(
-        (r) => r.revisionStatus === "Draft" || r.revisionStatus === "InReview" || r.revisionStatus === "InApproval" || r.revisionStatus === "AwaitingApproval"
+        (r) => r.revisionStatus === "Draft" || r.revisionStatus === "InReview" || r.revisionStatus === "AwaitingApproval"
       );
       const effectiveRev = data.currentEffectiveRevisionId
         ? data.revisions.find((r) => r.id === data.currentEffectiveRevisionId)
@@ -200,7 +208,7 @@ export function DocumentDetailPage() {
     : null;
 
   const inWorkflowRevision = document.revisions.find(
-    (r) => r.revisionStatus === "Draft" || r.revisionStatus === "InReview" || r.revisionStatus === "InApproval" || r.revisionStatus === "AwaitingApproval"
+    (r) => r.revisionStatus === "Draft" || r.revisionStatus === "InReview" || r.revisionStatus === "AwaitingApproval"
   );
 
   const currentRevision = inWorkflowRevision || effectiveRevision || document.revisions[0];
@@ -209,16 +217,154 @@ export function DocumentDetailPage() {
   const hasInFlightRev = !!inWorkflowRevision;
   const canCreateRevision = hasEffectiveRev && !hasInFlightRev && document.recordStatus === "Active" && (isAdmin || isController || isOwner || isAssignedAuthor);
 
-  const canEditDraft = (isAdmin || isController || isOwner || isAssignedAuthor) &&
-    document.recordStatus === "Active" &&
-    currentRevision?.revisionStatus === "Draft";
+  // Authority over this document master, mirroring the server's
+  // CanEditDraftMetadataAsync: Administrator, Document Controller, the owner, or
+  // an assigned author. Deliberately carries NO revision-status condition,
+  // because the server's does not either.
+  const canManageDocument =
+    (isAdmin || isController || isOwner || isAssignedAuthor) && document.recordStatus === "Active";
+
+  // The subset of that authority which only applies while the revision is still a
+  // draft - editing metadata, replacing files, cancelling. Do not use this to gate
+  // anything that happens after the draft stage: it is false by definition once
+  // the revision moves on, which is what previously made "Assign approver"
+  // unreachable (it required both AwaitingApproval and this flag, and those two
+  // can never hold at the same time).
+  const canEditDraft = canManageDocument && currentRevision?.revisionStatus === "Draft";
 
   const activePdf = currentRevision?.files.find((f) => f.fileRole === "ControlledPdf" && f.isActive);
-  const activeSource = currentRevision?.files.find((f) => f.fileRole === "SourceFile" && f.isActive);
-  const historicalFiles = currentRevision?.files.filter((f) => !f.isActive) || [];
 
   // Effective PDF for side-by-side comparative inspection (DC-URS-067)
   const effectivePdf = effectiveRevision?.files.find((f) => f.fileRole === "ControlledPdf" && f.isActive);
+
+  const isDraft = currentRevision?.revisionStatus === "Draft";
+  const isAwaitingApproval = currentRevision?.revisionStatus === "AwaitingApproval";
+  const hasPendingApprovalTask = approvalTasks.some((t) => t.status === "Pending");
+  const canVoid =
+    isController && document.recordStatus === "Active" && !document.currentEffectiveRevisionId;
+
+  /**
+   * Everything a person can do to this document right now, in the order they would
+   * reach for it. Exactly one entry is marked `lead`: the action the lifecycle is
+   * actually waiting on, which gets the prominent button. The rest sit behind
+   * "More actions".
+   *
+   * This replaced a flat toolbar that rendered every permitted action at equal
+   * weight - a Draft showed seven buttons side by side, three of them contained,
+   * so nothing indicated which one moved the document forward. The conditions
+   * below are unchanged from that toolbar; only the presentation differs.
+   */
+  const actions: {
+    key: string;
+    label: string;
+    icon: React.ReactNode;
+    onClick: () => void;
+    lead?: boolean;
+    danger?: boolean;
+  }[] = [
+    // Draft: the document is waiting on its author to attach a file, then submit.
+    canEditDraft && isDraft && !activePdf && {
+      key: "upload",
+      label: "Upload controlled file",
+      icon: <CloudUploadOutlinedIcon fontSize="small" />,
+      onClick: () => setUploadDialogOpen(true),
+      lead: true
+    },
+    canEditDraft && isDraft && activePdf && {
+      key: "submit",
+      label: "Submit for technical review",
+      icon: <RateReviewOutlinedIcon fontSize="small" />,
+      onClick: () => setSubmitReviewOpen(true),
+      lead: true
+    },
+    // In review: the reviewer's workspace is the next step.
+    reviewTasks.length > 0 && {
+      key: "review",
+      label: `Open technical review (${reviewTasks[0].status})`,
+      icon: <RateReviewOutlinedIcon fontSize="small" />,
+      onClick: () => {
+        setSelectedReviewTask(reviewTasks[0]);
+        setReviewDrawerOpen(true);
+      },
+      lead: currentRevision?.revisionStatus === "InReview"
+    },
+    // Awaiting approval: route it to an approver, or open the decision workspace.
+    isAwaitingApproval && !hasPendingApprovalTask && canManageDocument && {
+      key: "assign-approver",
+      label: "Assign approver",
+      icon: <AssignmentTurnedInIcon fontSize="small" />,
+      onClick: () => setAssignApproverOpen(true),
+      lead: true
+    },
+    isAwaitingApproval && approvalTasks.length > 0 && {
+      key: "approval",
+      label: `Open approval workspace (${approvalTasks[0].status})`,
+      icon: <FactCheckOutlinedIcon fontSize="small" />,
+      onClick: () => {
+        setSelectedApprovalTaskId(approvalTasks[0].id);
+        setApprovalWorkspaceOpen(true);
+      },
+      lead: true
+    },
+    // Effective: the only forward move is a new revision.
+    canCreateRevision && {
+      key: "create-revision",
+      label: "Create revision",
+      icon: <AutorenewOutlinedIcon fontSize="small" />,
+      onClick: () => setCreateRevisionOpen(true),
+      lead: true
+    },
+    // Supporting draft work - available, but never the headline.
+    canEditDraft && {
+      key: "edit-metadata",
+      label: "Edit metadata",
+      icon: <EditOutlinedIcon fontSize="small" />,
+      onClick: () => setEditMetadataOpen(true)
+    },
+    canEditDraft && isDraft && activePdf && {
+      key: "replace",
+      label: "Replace controlled file",
+      icon: <CloudUploadOutlinedIcon fontSize="small" />,
+      onClick: () => setUploadDialogOpen(true)
+    },
+    canEditDraft && isDraft && {
+      key: "change-items",
+      label: "Change items",
+      icon: <FormatListBulletedOutlinedIcon fontSize="small" />,
+      onClick: () => setChangeItemsOpen(true)
+    },
+    canEditDraft && isDraft && {
+      key: "impact",
+      label: "Impact assessment",
+      icon: <FactCheckOutlinedIcon fontSize="small" />,
+      onClick: () => setImpactAssessmentOpen(true)
+    },
+    // Destructive, and deliberately last.
+    canEditDraft && isDraft && {
+      key: "cancel-draft",
+      label: "Cancel draft revision",
+      icon: <CancelOutlinedIcon fontSize="small" />,
+      onClick: () => setCancelDraftOpen(true),
+      danger: true
+    },
+    canVoid && {
+      key: "void",
+      label: "Void document master",
+      icon: <BlockOutlinedIcon fontSize="small" />,
+      onClick: () => setVoidDialogOpen(true),
+      danger: true
+    }
+  ].filter(Boolean) as {
+    key: string;
+    label: string;
+    icon: React.ReactNode;
+    onClick: () => void;
+    lead?: boolean;
+    danger?: boolean;
+  }[];
+
+  const leadAction = actions.find((a) => a.lead);
+  const menuActions = actions.filter((a) => a !== leadAction);
 
   const handleOpenPdfViewer = (fileId: number, fileName: string) => {
     setActivePdfFileId(fileId);
@@ -288,7 +434,7 @@ export function DocumentDetailPage() {
 
             <Box sx={{ display: "flex", gap: 3, flexWrap: "wrap", color: "text.secondary" }}>
               <Typography variant="caption">
-                MicroLIMS ID: <strong style={{ fontFamily: "monospace" }}>{document.microLimsDocumentId}</strong>
+                MicroLIMS ID: <strong style={{ fontFamily: monospaceFontFamily }}>{document.microLimsDocumentId}</strong>
               </Typography>
               <Typography variant="caption">
                 Department: <strong>{document.departmentName}</strong> ({document.sectionName})
@@ -302,147 +448,77 @@ export function DocumentDetailPage() {
             </Box>
           </Box>
 
-          {/* Action Toolbar */}
-          <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
-            {canEditDraft && (
+          {/* One prominent action - whatever the lifecycle is waiting on - with
+              the remaining permitted actions behind a menu. */}
+          <Box sx={{ display: "flex", gap: 1, alignItems: "center", flexWrap: "wrap" }}>
+            {leadAction && (
+              <Button
+                variant="contained"
+                startIcon={leadAction.icon}
+                onClick={leadAction.onClick}
+              >
+                {leadAction.label}
+              </Button>
+            )}
+
+            {menuActions.length > 0 && (
               <>
                 <Button
                   variant="outlined"
-                  size="small"
-                  startIcon={<EditOutlinedIcon />}
-                  onClick={() => setEditMetadataOpen(true)}
+                  endIcon={<MoreVertIcon />}
+                  onClick={(e) => setActionMenuAnchor(e.currentTarget)}
+                  aria-haspopup="menu"
+                  aria-expanded={Boolean(actionMenuAnchor)}
                 >
-                  Edit Metadata
+                  More actions
                 </Button>
-
-                {currentRevision?.revisionStatus === "Draft" && (
-                  <>
-                    <Button
-                      variant="contained"
-                      size="small"
-                      startIcon={<CloudUploadOutlinedIcon />}
-                      onClick={() => setUploadDialogOpen(true)}
+                <Menu
+                  anchorEl={actionMenuAnchor}
+                  open={Boolean(actionMenuAnchor)}
+                  onClose={() => setActionMenuAnchor(null)}
+                  anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+                  transformOrigin={{ vertical: "top", horizontal: "right" }}
+                >
+                  {menuActions.map((a) => (
+                    <MenuItem
+                      key={a.key}
+                      onClick={() => {
+                        setActionMenuAnchor(null);
+                        a.onClick();
+                      }}
+                      sx={a.danger ? { color: "error.main" } : undefined}
                     >
-                      {activePdf ? "Replace File" : "Upload Draft File"}
-                    </Button>
-
-                    <Button
-                      variant="outlined"
-                      color="warning"
-                      size="small"
-                      startIcon={<CancelOutlinedIcon />}
-                      onClick={() => setCancelDraftOpen(true)}
-                    >
-                      Cancel Draft
-                    </Button>
-
-                    <Button
-                      variant="outlined"
-                      size="small"
-                      startIcon={<FormatListBulletedOutlinedIcon />}
-                      onClick={() => setChangeItemsOpen(true)}
-                    >
-                      Change Items
-                    </Button>
-
-                    <Button
-                      variant="outlined"
-                      size="small"
-                      startIcon={<FactCheckOutlinedIcon />}
-                      onClick={() => setImpactAssessmentOpen(true)}
-                    >
-                      Impact Assessment
-                    </Button>
-
-                    {activePdf && (
-                      <Button
-                        variant="contained"
-                        color="primary"
-                        size="small"
-                        startIcon={<RateReviewOutlinedIcon />}
-                        onClick={() => setSubmitReviewOpen(true)}
-                      >
-                        Submit for Review
-                      </Button>
-                    )}
-                  </>
-                )}
+                      <ListItemIcon sx={a.danger ? { color: "error.main" } : undefined}>
+                        {a.icon}
+                      </ListItemIcon>
+                      <ListItemText>{a.label}</ListItemText>
+                    </MenuItem>
+                  ))}
+                </Menu>
               </>
             )}
 
-            {canCreateRevision && (
-              <Button
-                variant="contained"
-                color="secondary"
-                size="small"
-                startIcon={<AutorenewOutlinedIcon />}
-                onClick={() => setCreateRevisionOpen(true)}
-              >
-                Create Revision
-              </Button>
-            )}
-
-            {reviewTasks.length > 0 && (
-              <Button
-                variant="outlined"
-                color="info"
-                size="small"
-                startIcon={<RateReviewOutlinedIcon />}
-                onClick={() => {
-                  setSelectedReviewTask(reviewTasks[0]);
-                  setReviewDrawerOpen(true);
-                }}
-              >
-                Technical Review ({reviewTasks[0].status})
-              </Button>
-            )}
-
-            {/* Approval Workflow Buttons */}
-            {(currentRevision?.revisionStatus === "AwaitingApproval" ||
-              currentRevision?.revisionStatus === "InApproval") && (
-              <>
-                {!approvalTasks.some((t) => t.status === "Pending") && canEditDraft && (
-                  <Button
-                    variant="contained"
-                    color="primary"
-                    size="small"
-                    startIcon={<AssignmentTurnedInIcon />}
-                    onClick={() => setAssignApproverOpen(true)}
-                  >
-                    Assign Approver
-                  </Button>
-                )}
-
-                {approvalTasks.length > 0 && (
-                  <Button
-                    variant="contained"
-                    color="success"
-                    size="small"
-                    startIcon={<FactCheckOutlinedIcon />}
-                    onClick={() => {
-                      setSelectedApprovalTaskId(approvalTasks[0].id);
-                      setApprovalWorkspaceOpen(true);
-                    }}
-                  >
-                    Approval Workspace ({approvalTasks[0].status})
-                  </Button>
-                )}
-              </>
-            )}
-
-            {/* Void Button: Strictly Document Controller role and document was never effective */}
-            {isController && document.recordStatus === "Active" && !document.currentEffectiveRevisionId && (
-              <Button
-                variant="outlined"
-                color="error"
-                size="small"
-                startIcon={<BlockOutlinedIcon />}
-                onClick={() => setVoidDialogOpen(true)}
-              >
-                Void Document
-              </Button>
+            {actions.length === 0 && (
+              <Typography variant="body2" color="text.secondary" sx={{ maxWidth: "48ch" }}>
+                {isAwaitingApproval
+                  ? hasPendingApprovalTask
+                    ? "Waiting on the assigned approver. Only they can record the approval decision."
+                    : "Waiting for an approver to be assigned. The document owner, an assigned author or the Document Controller can route it for approval."
+                  : currentRevision?.revisionStatus === "InReview"
+                    ? "Waiting on the assigned technical reviewer."
+                    : "No actions are available to you on this document in its current state."}
+              </Typography>
             )}
           </Box>
+        </Box>
+
+        {/* Lifecycle position, directly under the record header so the controlled
+            state is the first thing read rather than one chip among several. */}
+        <Box sx={{ mt: 2.5 }}>
+          <RevisionLifecycleStrip
+            status={currentRevision?.revisionStatus ?? null}
+            revisionNumber={currentRevision?.revisionNumber}
+          />
         </Box>
 
         {/* Future Effective Activation Pending Banner (DC-URS-177) */}
@@ -485,20 +561,25 @@ export function DocumentDetailPage() {
           textColor="primary"
           sx={{ borderBottom: 1, borderColor: "divider", px: 2 }}
         >
-          <Tab label="Overview" />
-          <Tab label={`Document & Files (${(activePdf ? 1 : 0) + (activeSource ? 1 : 0) + historicalFiles.length})`} />
-          <Tab label={`Version History (${document.revisions.length})`} />
-          <Tab label={`Assignments (${document.assignments.length})`} />
-          <Tab label={`Audit Trail (${auditLogs.length})`} />
-          <Tab label={`Technical Review (${reviewTasks.length})`} />
-          <Tab label={`Periodic Review (${periodicReviewTasks.length})`} />
+          {/* Four groups, down from seven. "Overview" and "Document & Files" were
+              showing the same controlled files twice, so they are one tab now;
+              Assignments, Technical Review and Periodic Review are all "who is
+              involved and what is in flight", so they are one Workflow tab. The
+              audit trail keeps its own place - it is the regulatory record, and a
+              reader going to it is doing something different from the others. */}
+          <Tab label="Document" />
+          <Tab label={`Revisions (${document.revisions.length})`} />
+          <Tab
+            label={`Workflow (${document.assignments.length + reviewTasks.length + periodicReviewTasks.length})`}
+          />
+          <Tab label={`Audit trail (${auditLogs.length})`} />
         </Tabs>
 
         {/* Tab 0: Overview */}
         {currentTab === 0 && (
           <Box sx={{ p: 3 }}>
-            <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "2fr 1fr" }, gap: 3 }}>
-              {/* Left Column: Metadata Cards */}
+            <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
+              {/* Governance and classification metadata. The controlled files themselves are listed once, in the section below. */}
               <Box sx={{ display: "flex", flexDirection: "column", gap: 2.5 }}>
                 <Box>
                   <Typography variant="subtitle2" sx={{ fontWeight: 700, color: "text.secondary", mb: 1 }}>
@@ -566,94 +647,12 @@ export function DocumentDetailPage() {
                 </Box>
               </Box>
 
-              {/* Right Column: Quick File Action Cards */}
-              <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
-                <Typography variant="subtitle2" sx={{ fontWeight: 700, color: "text.secondary" }}>
-                  Current Controlled Files
-                </Typography>
-
-                {activePdf ? (
-                  <Paper variant="outlined" sx={{ p: 2, borderColor: "primary.light" }}>
-                    <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, mb: 1 }}>
-                      <PictureAsPdfOutlinedIcon color="error" sx={{ fontSize: 32 }} />
-                      <Box sx={{ minWidth: 0, flexGrow: 1 }}>
-                        <Typography variant="subtitle2" sx={{ fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                          {activePdf.fileName}
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary">
-                          {(activePdf.sizeBytes / 1024).toFixed(1)} KB | Uploaded by {activePdf.uploadedByUserName}
-                        </Typography>
-                      </Box>
-                    </Box>
-                    <Box sx={{ display: "flex", gap: 1, mt: 1.5 }}>
-                      <Button
-                        size="small"
-                        variant="contained"
-                        fullWidth
-                        startIcon={<PictureAsPdfOutlinedIcon />}
-                        onClick={() => handleOpenPdfViewer(activePdf.id, activePdf.fileName)}
-                      >
-                        View PDF
-                      </Button>
-                      <Button
-                        size="small"
-                        variant="outlined"
-                        onClick={() => handleDownloadFile(activePdf.id, activePdf.fileName)}
-                      >
-                        <DownloadOutlinedIcon fontSize="small" />
-                      </Button>
-                    </Box>
-                    {effectivePdf && activePdf && activePdf.id !== effectivePdf.id && (
-                      <Button
-                        size="small"
-                        variant="outlined"
-                        color="secondary"
-                        fullWidth
-                        startIcon={<CompareArrowsIcon />}
-                        onClick={() => setDualPdfViewerOpen(true)}
-                        sx={{ mt: 1 }}
-                      >
-                        Compare with Effective (Side-by-Side)
-                      </Button>
-                    )}
-                  </Paper>
-                ) : (
-                  <Alert severity="info">
-                    No controlled PDF is currently attached to this revision.
-                  </Alert>
-                )}
-
-                {activeSource && (
-                  <Paper variant="outlined" sx={{ p: 2 }}>
-                    <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, mb: 1 }}>
-                      <DescriptionOutlinedIcon color="primary" sx={{ fontSize: 32 }} />
-                      <Box sx={{ minWidth: 0, flexGrow: 1 }}>
-                        <Typography variant="subtitle2" sx={{ fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                          {activeSource.fileName}
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary">
-                          Editable Source (Word .docx)
-                        </Typography>
-                      </Box>
-                    </Box>
-                    <Button
-                      size="small"
-                      variant="outlined"
-                      fullWidth
-                      startIcon={<DownloadOutlinedIcon />}
-                      onClick={() => handleDownloadFile(activeSource.id, activeSource.fileName)}
-                    >
-                      Download Source File
-                    </Button>
-                  </Paper>
-                )}
-              </Box>
             </Box>
           </Box>
         )}
 
         {/* Tab 1: Document & Files */}
-        {currentTab === 1 && (
+        {currentTab === 0 && (
           <Box sx={{ p: 3 }}>
             <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
               <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
@@ -698,23 +697,23 @@ export function DocumentDetailPage() {
                       </TableCell>
                       <TableCell sx={{ fontWeight: 600 }}>{file.fileName}</TableCell>
                       <TableCell>{(file.sizeBytes / 1024).toFixed(1)} KB</TableCell>
-                      <TableCell sx={{ fontFamily: "monospace", fontSize: 11 }}>
+                      <TableCell sx={documentCodeSx}>
                         <Tooltip title={file.contentSha256}>
                           <span>{file.contentSha256.substring(0, 16)}...</span>
                         </Tooltip>
                       </TableCell>
                       <TableCell>
                         {file.isActive ? (
-                          <Chip label="ACTIVE" size="small" color="success" sx={{ height: 20, fontSize: 10 }} />
+                          <Chip label="ACTIVE" size="small" color="success" sx={compactChipSx} />
                         ) : (
-                          <Chip label="SUPERSEDED" size="small" color="default" sx={{ height: 20, fontSize: 10 }} />
+                          <Chip label="SUPERSEDED" size="small" color="default" sx={compactChipSx} />
                         )}
                       </TableCell>
                       <TableCell>{file.uploadedByUserName}</TableCell>
                       <TableCell>{new Date(file.uploadedAt).toLocaleString()}</TableCell>
                       <TableCell align="right">
                         {file.fileRole === "ControlledPdf" && (
-                          <IconButton
+                          <IconButton aria-label={`View controlled PDF ${file.fileName}`}
                             size="small"
                             color="error"
                             onClick={() => handleOpenPdfViewer(file.id, file.fileName)}
@@ -722,7 +721,7 @@ export function DocumentDetailPage() {
                             <PictureAsPdfOutlinedIcon fontSize="small" />
                           </IconButton>
                         )}
-                        <IconButton
+                        <IconButton aria-label={`Download ${file.fileName}`}
                           size="small"
                           onClick={() => handleDownloadFile(file.id, file.fileName)}
                         >
@@ -745,7 +744,7 @@ export function DocumentDetailPage() {
         )}
 
         {/* Tab 2: Version History */}
-        {currentTab === 2 && (
+        {currentTab === 1 && (
           <Box sx={{ p: 3 }}>
             <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 2 }}>
               Revision History Register
@@ -800,7 +799,7 @@ export function DocumentDetailPage() {
         )}
 
         {/* Tab 3: Assignments */}
-        {currentTab === 3 && (
+        {currentTab === 2 && (
           <Box sx={{ p: 3 }}>
             <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
               <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
@@ -857,13 +856,18 @@ export function DocumentDetailPage() {
                       <TableCell>{assign.assignedByUserName}</TableCell>
                       <TableCell align="right">
                         {canEditDraft && (
-                          <IconButton
-                            size="small"
-                            color="error"
-                            onClick={() => handleRemoveAssignment(assign.id)}
-                          >
-                            <DeleteOutlineIcon fontSize="small" />
-                          </IconButton>
+                          <Tooltip title="Remove this workflow assignment">
+                            <IconButton
+                              size="small"
+                              color="error"
+                              onClick={() => handleRemoveAssignment(assign.id)}
+                              aria-label={`Remove ${assign.assignmentRole} assignment for ${assign.userFullName}`}
+                            >
+                              {/* Deactivates and retains the assignment record -
+                                  never a delete (DC-URS-184, FS-1a-170). */}
+                              <RemoveCircleOutlineIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
                         )}
                       </TableCell>
                     </TableRow>
@@ -875,7 +879,7 @@ export function DocumentDetailPage() {
         )}
 
         {/* Tab 4: Audit Trail */}
-        {currentTab === 4 && (
+        {currentTab === 3 && (
           <Box sx={{ p: 3 }}>
             <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 2 }}>
               Immutable Audit History for Record {document.microLimsDocumentId}
@@ -905,7 +909,7 @@ export function DocumentDetailPage() {
                             {log.actionCode || log.action}
                           </Typography>
                           {log.sourceContext && (
-                            <Typography variant="caption" color="text.secondary" sx={{ fontSize: 10 }}>
+                            <Typography variant="caption" color="text.secondary" sx={{ fontSize: MIN_LABEL_FONT_SIZE }}>
                               Ctx: {log.sourceContext}
                             </Typography>
                           )}
@@ -917,7 +921,7 @@ export function DocumentDetailPage() {
                           size="small"
                           color={log.actionCategory === "Security" ? "error" : log.actionCategory === "Approval" ? "success" : "default"}
                           variant="outlined"
-                          sx={{ height: 20, fontSize: 10 }}
+                          sx={compactChipSx}
                         />
                       </TableCell>
                       <TableCell>
@@ -931,7 +935,7 @@ export function DocumentDetailPage() {
                             {log.userName || log.systemProcessName || "System"}
                           </Typography>
                           {log.actorType === "System" && (
-                            <Chip label="AUTO" size="small" color="secondary" sx={{ height: 16, fontSize: "0.6rem", fontWeight: 700 }} />
+                            <Chip label="AUTO" size="small" color="secondary" sx={compactChipStrongSx} />
                           )}
                         </Box>
                       </TableCell>
@@ -944,7 +948,7 @@ export function DocumentDetailPage() {
                         {log.changes.length > 0 ? (
                           <Box sx={{ display: "flex", flexDirection: "column", gap: 0.25 }}>
                             {log.changes.map((c, i) => (
-                              <Typography key={i} variant="caption" sx={{ fontFamily: "monospace" }}>
+                              <Typography key={i} variant="caption" sx={{ fontFamily: monospaceFontFamily }}>
                                 <strong>{c.fieldName}</strong>: {c.previousValue ? `"${c.previousValue}"` : "null"} → "{c.newValue}"
                               </Typography>
                             ))}
@@ -969,7 +973,7 @@ export function DocumentDetailPage() {
         )}
 
         {/* Tab 5: Technical Review */}
-        {currentTab === 5 && (
+        {currentTab === 2 && (
           <Box sx={{ p: 3 }}>
             <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
               <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
@@ -1076,7 +1080,7 @@ export function DocumentDetailPage() {
         )}
 
         {/* Tab 6: Periodic Review */}
-        {currentTab === 6 && (
+        {currentTab === 2 && (
           <Box sx={{ p: 3 }}>
             <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
               <Box>
@@ -1111,7 +1115,7 @@ export function DocumentDetailPage() {
                       <TableCell>
                         <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
                           <span>{new Date(t.scheduledDueDate).toLocaleDateString()}</span>
-                          {t.isOverdue && <Chip label="OVERDUE" color="error" size="small" sx={{ height: 16, fontSize: "0.6rem", fontWeight: 700 }} />}
+                          {t.isOverdue && <Chip label="OVERDUE" color="error" size="small" sx={compactChipStrongSx} />}
                         </Box>
                       </TableCell>
                       <TableCell>
@@ -1285,7 +1289,10 @@ export function DocumentDetailPage() {
         masterId={document.id}
         companyDocumentCode={document.companyDocumentCode}
         currentEffectiveRevisionNumber={effectiveRevision?.revisionNumber || "01"}
-        isController={isController || isAdmin}
+        // Document Controller only - the revision-number override is one of the
+        // controls a System Administrator is explicitly not granted (FRS-1A
+        // permission matrix; FRS-1B §3.2:184).
+        isController={isController}
       />
 
       {/* Revision Impact Assessment Dialog */}
@@ -1345,7 +1352,7 @@ export function DocumentDetailPage() {
       <ConfirmationDialog
         open={assignmentToRemove !== null}
         title="Remove Role Assignment"
-        message="Are you sure you want to remove this role assignment from this document?"
+        message="Remove this role assignment from the document? The assignment record is retained and remains visible in the audit trail, as controlled records are never deleted."
         confirmText="Remove Assignment"
         destructive
         onConfirm={confirmRemoveAssignment}

@@ -21,6 +21,7 @@ import MenuBookIcon from "@mui/icons-material/MenuBook";
 import { documentControlService } from "../services/documentControlService";
 import { StatusBadge } from "../../../components/StatusBadge";
 import { toast } from "sonner";
+import { MIN_LABEL_FONT_SIZE, compactChipStrongSx, compactChipSx } from "../documentControlStyles";
 
 export interface ControlledPdfViewerProps {
   open: boolean;
@@ -146,7 +147,7 @@ export function ControlledPdfViewer({
               <Typography variant="caption" sx={{ fontWeight: 700, color: "primary.main", letterSpacing: 1 }}>
                 CONTROLLED DOCUMENT VIEWER
               </Typography>
-              <Chip label="OFFICIAL COPY" size="small" color="primary" variant="outlined" sx={{ height: 20, fontSize: 10 }} />
+              <Chip label="OFFICIAL COPY" size="small" color="primary" variant="outlined" sx={compactChipSx} />
               <StatusBadge status={revisionStatus} />
               {isSupersededOrObsolete && (
                 <Chip
@@ -154,7 +155,7 @@ export function ControlledPdfViewer({
                   label="HISTORICAL REVISION — NOT CURRENT EFFECTIVE"
                   size="small"
                   color="warning"
-                  sx={{ height: 20, fontSize: 10, fontWeight: 700 }}
+                  sx={compactChipStrongSx}
                 />
               )}
             </Box>
@@ -178,15 +179,18 @@ export function ControlledPdfViewer({
               <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                 <MenuBookIcon fontSize="small" color="action" />
                 <Typography variant="caption" fontWeight="bold" color="text.secondary">
-                  Reading Progress (Informational Only): {localProgress}%
+                  {/* Exact label mandated by ML-DC-FRS-1C-001 §2:133 - scroll
+                      progress is informational and must never be presented as
+                      satisfying the acknowledgement obligation. */}
+                  Reading Progress {localProgress}% — Informational Only — Formal Acknowledgement Required
                 </Typography>
                 {isAcknowledged && (
                   <Chip
                     icon={<VerifiedUserIcon />}
-                    label="EVIDENTIARILY ACKNOWLEDGED"
+                    label="Acknowledged"
                     size="small"
                     color="success"
-                    sx={{ height: 18, fontSize: 10 }}
+                    sx={compactChipSx}
                   />
                 )}
               </Box>
@@ -195,7 +199,7 @@ export function ControlledPdfViewer({
                   <Button
                     size="small"
                     variant={localProgress >= 50 ? "contained" : "outlined"}
-                    sx={{ py: 0.2, px: 1, fontSize: 10, minWidth: 0 }}
+                    sx={{ py: 0.2, px: 1, fontSize: MIN_LABEL_FONT_SIZE, minWidth: 0 }}
                     onClick={() => handleMarkProgress(50)}
                   >
                     50%
@@ -203,7 +207,7 @@ export function ControlledPdfViewer({
                   <Button
                     size="small"
                     variant={localProgress >= 100 ? "contained" : "outlined"}
-                    sx={{ py: 0.2, px: 1, fontSize: 10, minWidth: 0 }}
+                    sx={{ py: 0.2, px: 1, fontSize: MIN_LABEL_FONT_SIZE, minWidth: 0 }}
                     onClick={() => handleMarkProgress(100)}
                   >
                     100% Read

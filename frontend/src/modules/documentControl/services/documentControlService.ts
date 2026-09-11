@@ -80,8 +80,10 @@ export const documentControlService = {
     return res.data.data;
   },
 
+  // Deactivates the assignment (IsActive = false) and retains the record.
+  // Controlled records are never deleted - DC-URS-184, BR-015, FS-1a-170.
   removeAssignment: async (masterId: number, assignmentId: number): Promise<void> => {
-    await apiClient.delete(`/document-control/documents/${masterId}/assignments/${assignmentId}`);
+    await apiClient.post(`/document-control/documents/${masterId}/assignments/${assignmentId}/deactivate`);
   },
 
   // ---- Controlled Files ----

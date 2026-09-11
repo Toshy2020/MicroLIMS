@@ -39,6 +39,41 @@ public static class PermissionConstants
     // and are deliberately not granted together.
     public const string SystemViewSecurityAudit = "System.ViewSecurityAudit";
 
+    // Document Control module. URS v1.1 §5 splits authority in two: "Global role
+    // permissions determine which categories of function a user may access" and
+    // "per-document assignments determine on which documents a user may exercise
+    // review or approval authority", with both required. These codes are that
+    // first half - category access only.
+    //
+    // Deliberately NOT permissions, and left as fixed rules in
+    // DocumentAuthorizationService:
+    //   * Voiding a Document Master. FS-1a-111 reserves it for the Document
+    //     Controller "not even SystemAdministrator", and System Administrator is
+    //     seeded with All - so a Documents.Void code would hand admins exactly
+    //     the capability the specification denies them.
+    //   * The segregation-of-duties invariants (author != reviewer != approver).
+    //     BR-013 states the restriction "cannot be overridden administratively",
+    //     so it must not be expressible as a grant.
+    //   * Overriding a revision number. FRS-1B §3.2:184 reserves it for the
+    //     Document Controller and the FRS-1A matrix records System Administrator
+    //     as No. Unlike Review or Approve it is sufficient on its own - there is
+    //     no second per-document gate behind it - so as a permission inside All
+    //     it would hand admins the capability outright.
+    //
+    // The codes below are all necessary-but-not-sufficient or legitimately the
+    // administrator's: Review, Approve and PeriodicReview still require the
+    // per-document assignment and pass the SoD checks, per the URS's
+    // both-conditions rule.
+    public const string DocumentsRegister = "Documents.Register";
+    public const string DocumentsDraftEdit = "Documents.DraftEdit";
+    public const string DocumentsRevisionCreate = "Documents.RevisionCreate";
+    public const string DocumentsReview = "Documents.Review";
+    public const string DocumentsApprove = "Documents.Approve";
+    public const string DocumentsPeriodicReview = "Documents.PeriodicReview";
+    public const string DocumentsTrainingAssign = "Documents.TrainingAssign";
+    public const string DocumentsTrainingViewMatrix = "Documents.TrainingViewMatrix";
+    public const string DocumentsConfigManage = "Documents.ConfigManage";
+
     public static readonly IReadOnlyList<string> All = new[]
     {
         UsersManage, RolesManage, AuditView, ReportingAdmin,
@@ -50,6 +85,9 @@ public static class PermissionConstants
         ItemsManage, ItemsDocumentUpload,
         MasterDataManage,
         DiscussionsView, DiscussionsCreate, DiscussionsEditAny, MessagesUse,
-        SystemViewErrorLog, SystemViewSecurityAudit
+        SystemViewErrorLog, SystemViewSecurityAudit,
+        DocumentsRegister, DocumentsDraftEdit, DocumentsRevisionCreate,
+        DocumentsReview, DocumentsApprove, DocumentsPeriodicReview,
+        DocumentsTrainingAssign, DocumentsTrainingViewMatrix, DocumentsConfigManage
     };
 }

@@ -1,3 +1,5 @@
+import { monospaceFontFamily } from "../../../theme/palette";
+import { compactChipSx, documentCodeSx } from "../documentControlStyles";
 import { useState, useEffect, useCallback } from "react";
 import {
   Box,
@@ -235,7 +237,7 @@ export function DocumentAuditPage() {
                   <TableCell sx={{ whiteSpace: "nowrap" }}>
                     {new Date(log.timestamp).toLocaleString()}
                   </TableCell>
-                  <TableCell sx={{ fontFamily: "monospace", fontSize: 11 }}>
+                  <TableCell sx={documentCodeSx}>
                     {log.eventUid ? log.eventUid.substring(0, 16) : `#${log.id}`}
                   </TableCell>
                   <TableCell sx={{ fontWeight: 600 }}>
@@ -252,11 +254,11 @@ export function DocumentAuditPage() {
                       size="small"
                       color={log.actionCategory === "Security" ? "error" : "default"}
                       variant="outlined"
-                      sx={{ height: 20, fontSize: 10 }}
+                      sx={compactChipSx}
                     />
                   </TableCell>
                   <TableCell>
-                    <Typography variant="caption" sx={{ fontFamily: "monospace" }}>
+                    <Typography variant="caption" sx={{ fontFamily: monospaceFontFamily }}>
                       {log.recordType} {log.entityId ? `(#${log.entityId})` : ""}
                     </Typography>
                   </TableCell>
@@ -269,7 +271,7 @@ export function DocumentAuditPage() {
                     {log.changes.length > 0 ? (
                       <Box sx={{ display: "flex", flexDirection: "column", gap: 0.25 }}>
                         {log.changes.map((c, i) => (
-                          <Typography key={i} variant="caption" sx={{ fontFamily: "monospace" }}>
+                          <Typography key={i} variant="caption" sx={{ fontFamily: monospaceFontFamily }}>
                             <strong>{c.fieldName}</strong>: {c.previousValue ? `"${c.previousValue}"` : "null"} → "{c.newValue}"
                           </Typography>
                         ))}

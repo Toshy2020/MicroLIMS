@@ -2,6 +2,7 @@ namespace MicroLIMS.Application.Interfaces.DocumentControl;
 
 public interface IDocumentAuthorizationService
 {
+    Task<bool> CanRegisterDocumentMasterAsync(int userId);
     Task<bool> CanViewDocumentAsync(int documentMasterId, int userId);
     Task<bool> CanEditDraftMetadataAsync(int documentMasterId, int userId);
     Task<bool> CanUploadOrReplaceDraftFileAsync(int revisionId, int userId);

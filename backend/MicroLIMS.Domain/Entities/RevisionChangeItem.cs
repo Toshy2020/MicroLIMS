@@ -14,6 +14,12 @@ public class RevisionChangeItem
     public string ChangeCategory { get; set; } = string.Empty; // e.g., "Addition", "Modification", "Deletion", "Clarification"
     public string Status { get; set; } = "Draft"; // "Draft", "Addressed", "Deferred"
 
+    // Controlled records are never deleted (DC-URS-184, BR-015, FS-1a-170):
+    // removing a change item from the active list is a deactivation that
+    // retains the record, mirroring DocumentMasterAssignment.IsActive. Status
+    // above tracks workflow progress and must not be overloaded for this.
+    public bool IsActive { get; set; } = true;
+
     public int? OriginatingReviewFindingId { get; set; }
     public DocumentReviewFinding? OriginatingReviewFinding { get; set; }
 

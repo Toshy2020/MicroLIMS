@@ -25,7 +25,9 @@ import {
   Tooltip,
   useTheme
 } from "@mui/material";
-import DeleteIcon from "@mui/icons-material/Delete";
+// Removal deactivates and retains the record rather than deleting it, so the
+// control must not carry a delete affordance (DC-URS-184, FS-1a-170).
+import RemoveCircleOutlineIcon from "@mui/icons-material/RemoveCircleOutline";
 import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline";
 import { documentRevisionService } from "../services/documentRevisionService";
 import { ConfirmationDialog } from "../../../components/ConfirmationDialog";
@@ -131,11 +133,11 @@ export const RevisionChangeItemsDialog: React.FC<RevisionChangeItemsDialogProps>
     const id = itemToDelete;
     setItemToDelete(null);
     try {
-      await documentRevisionService.deleteChangeItem(id);
+      await documentRevisionService.deactivateChangeItem(id);
       await loadItems();
       if (onChanged) onChanged();
     } catch (err: any) {
-      setError(err.response?.data?.message || err.message || "Failed to delete change item.");
+      setError(err.response?.data?.message || err.message || "Failed to remove change item.");
     }
   };
 
@@ -298,9 +300,9 @@ export const RevisionChangeItemsDialog: React.FC<RevisionChangeItemsDialogProps>
                   </TableCell>
                   {isEditable && (
                     <TableCell sx={{ textAlign: "right" }}>
-                      <Tooltip title="Delete change item">
-                        <IconButton size="small" color="error" onClick={() => handleDeleteItem(item.id)} aria-label="Delete change item">
-                          <DeleteIcon fontSize="small" />
+                      <Tooltip title="Remove change item from this draft">
+                        <IconButton size="small" color="error" onClick={() => handleDeleteItem(item.id)} aria-label="Remove change item from this draft">
+                          <RemoveCircleOutlineIcon fontSize="small" />
                         </IconButton>
                       </Tooltip>
                     </TableCell>
@@ -317,9 +319,9 @@ export const RevisionChangeItemsDialog: React.FC<RevisionChangeItemsDialogProps>
 
       <ConfirmationDialog
         open={itemToDelete !== null}
-        title="Delete Change Item"
-        message="Are you sure you want to delete this change item? This action cannot be undone."
-        confirmText="Delete Item"
+        title="Remove Change Item"
+        message="Remove this change item from the draft? It will no longer appear in the change item list. The record itself is retained and remains visible in the audit trail, as controlled records are never deleted."
+        confirmText="Remove Item"
         destructive
         onConfirm={confirmDeleteItem}
         onCancel={() => setItemToDelete(null)}

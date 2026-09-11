@@ -1,3 +1,4 @@
+import { compactChipSx } from "../documentControlStyles";
 import React, { useState } from "react";
 import {
   Drawer,
@@ -205,7 +206,7 @@ export const TechnicalReviewDrawer: React.FC<TechnicalReviewDrawerProps> = ({
               {reviewTask.companyDocumentCode} • Revision {reviewTask.revisionNumber}
             </Typography>
           </Box>
-          <IconButton onClick={onClose} size="small">
+          <IconButton aria-label="Close technical review" onClick={onClose} size="small">
             <CloseIcon />
           </IconButton>
         </Box>
@@ -366,7 +367,7 @@ export const TechnicalReviewDrawer: React.FC<TechnicalReviewDrawerProps> = ({
                   <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                     {getStatusChip(f.status)}
                     {f.isMandatory && (
-                      <Chip label="Mandatory" size="small" color="error" sx={{ height: 20, fontSize: "0.7rem" }} />
+                      <Chip label="Mandatory" size="small" color="error" sx={compactChipSx} />
                     )}
                   </Box>
                   <Typography variant="caption" color="text.secondary">
@@ -441,7 +442,13 @@ export const TechnicalReviewDrawer: React.FC<TechnicalReviewDrawerProps> = ({
                     </Button>
                   )}
 
-                  {isReviewer && f.status !== "Resolved" && isPendingOrInProgress && (
+                  {/* Resolved is reachable only from ReviewerVerified - the
+                      author responds, the reviewer verifies, then the finding is
+                      resolved (ML-DC-FRS-1B-001 §3.3:251). This used to offer
+                      Resolve for any status except Resolved, so a finding could
+                      be closed straight from Open without the author ever
+                      answering it. The service now refuses that too. */}
+                  {isReviewer && f.status === "ReviewerVerified" && isPendingOrInProgress && (
                     <Button
                       size="small"
                       variant="contained"

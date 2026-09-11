@@ -25,7 +25,24 @@ const statusLabelMap: Record<string, string> = {
   DueSoon: "Due Soon",
   DueToday: "Due Today",
   DueTomorrow: "Due Tomorrow",
-  Returned: "Returned"
+  Returned: "Returned",
+
+  // Document Control. The specs mandate the spaced display strings for the
+  // three multi-word revision states (ML-DC-FRS-1B-001 §3.3:234,273;
+  // CC-DC-R1B-007 §1:37) - without these entries the raw enum leaked to the
+  // user as "InReview" / "AwaitingApproval" / "FutureEffective". The
+  // single-word states (Draft, Effective, Superseded, Obsolete, Cancelled,
+  // Void, Active) already display correctly via the raw-value fallback.
+  InReview: "In Review",
+  AwaitingApproval: "Awaiting Approval",
+  FutureEffective: "Future Effective",
+  SupersededIncomplete: "Superseded — Incomplete",
+  ReturnedForCorrection: "Returned for Correction",
+  AuthorResponded: "Author Responded",
+  ReviewerVerified: "Reviewer Verified",
+  RemainsValid: "Remains Valid",
+  RevisionRequired: "Revision Required",
+  ObsolescenceRecommended: "Obsolescence Recommended"
 };
 
 // Shared color lookup so non-badge UI (e.g. the Result Level segmented

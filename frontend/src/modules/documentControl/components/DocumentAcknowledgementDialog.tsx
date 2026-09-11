@@ -21,6 +21,7 @@ import VerifiedUserIcon from "@mui/icons-material/VerifiedUser";
 import MenuBookIcon from "@mui/icons-material/MenuBook";
 import InfoIcon from "@mui/icons-material/Info";
 import type { AcknowledgementPresentationDto } from "../types/acknowledgementTypes";
+import { monospaceFontFamily } from "../../../theme/palette";
 
 interface DocumentAcknowledgementDialogProps {
   open: boolean;
@@ -125,7 +126,7 @@ export const DocumentAcknowledgementDialog: React.FC<DocumentAcknowledgementDial
               {context.controlledFileName && (
                 <div style={{ gridColumn: "span 2" }}>
                   <Typography variant="caption" color="text.secondary">Controlled File Artifact</Typography>
-                  <Typography variant="body2" sx={{ fontFamily: "monospace", fontSize: "0.8rem" }}>
+                  <Typography variant="body2" sx={{ fontFamily: monospaceFontFamily, fontSize: "0.8rem" }}>
                     {context.controlledFileName}
                   </Typography>
                 </div>
@@ -141,7 +142,14 @@ export const DocumentAcknowledgementDialog: React.FC<DocumentAcknowledgementDial
                 Reading Verification Progress
               </Typography>
               <Typography variant="caption" color="text.secondary" sx={{ ml: "auto" }}>
-                {readingProgress}% View Complete
+                {readingProgress}% viewed
+              </Typography>
+            </Box>
+            {/* Mandated label (ML-DC-FRS-1C-001 §2:133). Must sit on the
+                progress indicator itself, not only in the helper text below. */}
+            <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, mb: 1 }}>
+              <Typography variant="caption" fontWeight="bold" color="text.secondary">
+                Informational Only — Formal Acknowledgement Required
               </Typography>
             </Box>
             <LinearProgress
@@ -195,7 +203,14 @@ export const DocumentAcknowledgementDialog: React.FC<DocumentAcknowledgementDial
               }
               label={
                 <Typography variant="body2" fontWeight="bold">
-                  I explicitly confirm that I have read, understood, and agree to comply with this controlled document revision.
+                  {/* Must attest to the statement rendered above, which comes
+                      from context.legalStatementText and is the text frozen onto
+                      the record as legalStatementFrozen (DC-URS-191: the
+                      statement is configurable and the exact text presented is
+                      retained with the acknowledgement). A second hardcoded
+                      sentence here would mean the wording the user actually
+                      ticked was not the wording retained as evidence. */}
+                  I confirm the evidentiary statement above.
                 </Typography>
               }
             />
@@ -227,7 +242,7 @@ export const DocumentAcknowledgementDialog: React.FC<DocumentAcknowledgementDial
           disabled={!context.canAcknowledge || !confirmedStatement || submitting}
           startIcon={submitting ? <CircularProgress size={18} color="inherit" /> : <VerifiedUserIcon />}
         >
-          {submitting ? "Recording Evidence..." : "Consciously Acknowledge"}
+          {submitting ? "Submitting acknowledgement…" : "Submit acknowledgement"}
         </Button>
       </DialogActions>
     </Dialog>

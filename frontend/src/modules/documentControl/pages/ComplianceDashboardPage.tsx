@@ -32,6 +32,7 @@ import { PageHeader } from "../../../components/PageHeader";
 import { tableHeadSx } from "../../../theme";
 import { trainingMatrixService } from "../services/trainingMatrixService";
 import type { ComplianceKpiSummaryDto } from "../types/trainingMatrixTypes";
+import { compactChipStrongSx, compactChipSx } from "../documentControlStyles";
 
 export function ComplianceDashboardPage() {
   const theme = useTheme();
@@ -221,7 +222,7 @@ export function ComplianceDashboardPage() {
                             <TableCell align="right">{dept.completedCount}</TableCell>
                             <TableCell align="right">
                               {dept.overdueCount > 0 ? (
-                                <Chip label={dept.overdueCount} size="small" color="error" sx={{ height: 20, fontSize: 10 }} />
+                                <Chip label={dept.overdueCount} size="small" color="error" sx={compactChipSx} />
                               ) : (
                                 "0"
                               )}
@@ -301,7 +302,7 @@ export function ComplianceDashboardPage() {
                                 label={`${doc.overdueCount} Overdue`}
                                 size="small"
                                 color="error"
-                                sx={{ height: 20, fontSize: 10, fontWeight: 700 }}
+                                sx={compactChipStrongSx}
                               />
                             </TableCell>
                           </TableRow>

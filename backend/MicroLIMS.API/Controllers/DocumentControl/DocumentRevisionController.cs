@@ -166,12 +166,15 @@ public class DocumentRevisionController : ControllerBase
         }
     }
 
-    [HttpDelete("change-items/{changeItemId:int}")]
-    public async Task<IActionResult> DeleteChangeItem(int changeItemId)
+    // POST, not DELETE: FS-1a-170 requires that no delete endpoint exist for
+    // controlled records, and DC-URS-184 forbids permanent deletion. The change
+    // item is deactivated and retained.
+    [HttpPost("change-items/{changeItemId:int}/deactivate")]
+    public async Task<IActionResult> DeactivateChangeItem(int changeItemId)
     {
         try
         {
-            await _revisionService.DeleteChangeItemAsync(changeItemId, CurrentUserId);
+            await _revisionService.DeactivateChangeItemAsync(changeItemId, CurrentUserId);
             return Ok(ApiResponse<object>.Ok(null!, "Change item removed successfully."));
         }
         catch (KeyNotFoundException ex)

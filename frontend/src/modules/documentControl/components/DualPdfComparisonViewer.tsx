@@ -11,7 +11,6 @@ import {
   Alert,
   Chip,
   Grid,
-  Paper,
   Tooltip,
   IconButton
 } from "@mui/material";
@@ -22,6 +21,7 @@ import VerifiedUserIcon from "@mui/icons-material/VerifiedUser";
 import SecurityIcon from "@mui/icons-material/Security";
 import { documentControlService } from "../services/documentControlService";
 import { StatusBadge } from "../../../components/StatusBadge";
+import { toast } from "sonner";
 
 export interface DualPdfComparisonViewerProps {
   open: boolean;
@@ -145,7 +145,7 @@ export function DualPdfComparisonViewer({
       await documentControlService.downloadFile(fileId, fallbackName);
     } catch (err: any) {
       const errMsg = err.response?.data?.message || err.message || "Download failed.";
-      alert(errMsg);
+      toast.error(errMsg);
     } finally {
       setDownloading(false);
     }
@@ -193,7 +193,7 @@ export function DualPdfComparisonViewer({
         </Box>
       </DialogTitle>
 
-      <DialogContent sx={{ p: 0, flexGrow: 1, display: "flex", flexDirection: "column", bgcolor: "grey.100" }}>
+      <DialogContent sx={{ p: 0, flexGrow: 1, display: "flex", flexDirection: "column", bgcolor: (t) => t.palette.mode === "dark" ? "background.default" : "grey.100" }}>
         <Grid container sx={{ flexGrow: 1, height: "100%" }}>
           {/* LEFT PANE: Currently Effective Controlled Document */}
           <Grid
@@ -223,7 +223,7 @@ export function DualPdfComparisonViewer({
             >
               <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                 <StatusBadge status="Effective" />
-                <Typography variant="subtitle2" sx={{ fontWeight: 700, color: "success.dark" }}>
+                <Typography variant="subtitle2" sx={{ fontWeight: 700, color: (t) => t.palette.mode === "dark" ? "success.light" : "success.dark" }}>
                   Current Effective SOP (Rev {effectiveRevisionNumber})
                 </Typography>
               </Box>
@@ -261,7 +261,7 @@ export function DualPdfComparisonViewer({
             </Box>
 
             {/* Left Viewer Body */}
-            <Box sx={{ flexGrow: 1, position: "relative", bgcolor: "grey.200", height: "calc(100% - 45px)" }}>
+            <Box sx={{ flexGrow: 1, position: "relative", bgcolor: (t) => t.palette.mode === "dark" ? "background.default" : "grey.200", height: "calc(100% - 45px)" }}>
               {loadingEffective && (
                 <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "100%", gap: 2 }}>
                   <CircularProgress size={36} />
@@ -331,7 +331,7 @@ export function DualPdfComparisonViewer({
             >
               <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                 <StatusBadge status="InReview" />
-                <Typography variant="subtitle2" sx={{ fontWeight: 700, color: "primary.dark" }}>
+                <Typography variant="subtitle2" sx={{ fontWeight: 700, color: (t) => t.palette.mode === "dark" ? "info.light" : "primary.dark" }}>
                   Proposed Revision Under Review (Rev {proposedRevisionNumber})
                 </Typography>
               </Box>
@@ -369,7 +369,7 @@ export function DualPdfComparisonViewer({
             </Box>
 
             {/* Right Viewer Body */}
-            <Box sx={{ flexGrow: 1, position: "relative", bgcolor: "grey.200", height: "calc(100% - 45px)" }}>
+            <Box sx={{ flexGrow: 1, position: "relative", bgcolor: (t) => t.palette.mode === "dark" ? "background.default" : "grey.200", height: "calc(100% - 45px)" }}>
               {loadingProposed && (
                 <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "100%", gap: 2 }}>
                   <CircularProgress size={36} />

@@ -10,7 +10,6 @@ import {
   Box,
   Typography,
   CircularProgress,
-  Divider,
   Tabs,
   Tab,
   Chip,
@@ -25,8 +24,10 @@ import {
   Accordion,
   AccordionSummary,
   AccordionDetails,
-  Tooltip
+  Tooltip,
+  useTheme
 } from "@mui/material";
+import { tableHeadSx } from "../../../theme";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import CancelIcon from "@mui/icons-material/Cancel";
@@ -67,6 +68,7 @@ export const ApprovalWorkspaceDialog: React.FC<ApprovalWorkspaceDialogProps> = (
   onOpenComparison,
   hasEffectiveRevision = false
 }) => {
+  const theme = useTheme();
   const [activeTab, setActiveTab] = useState(0);
   const [dossier, setDossier] = useState<ApprovalDossierDto | null>(null);
   const [loading, setLoading] = useState(true);
@@ -488,7 +490,7 @@ export const ApprovalWorkspaceDialog: React.FC<ApprovalWorkspaceDialogProps> = (
                     ) : (
                       <TableContainer>
                         <Table size="small">
-                          <TableHead>
+                          <TableHead sx={tableHeadSx(theme)}>
                             <TableRow>
                               <TableCell sx={{ fontWeight: 700 }}>Section</TableCell>
                               <TableCell sx={{ fontWeight: 700 }}>Title</TableCell>

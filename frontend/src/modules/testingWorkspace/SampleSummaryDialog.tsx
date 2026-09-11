@@ -51,8 +51,7 @@ import {
   SampleSummary,
   TestOrderSummaryDetail,
   SampleLocationDetail,
-  IncubationDetail,
-  SignatureTrailItem
+  IncubationDetail
 } from "./types/sampleSummaryTypes";
 import { pathogenObservationLabel } from "./utils/pathogenObservationLabel";
 import { PathogenSessionDialog } from "./pathogenSession/PathogenSessionDialog";
@@ -939,9 +938,9 @@ function ApprovalSignaturesCard({
           />
           <Button
             variant="contained"
+            color="primary"
             fullWidth
             onClick={onReviewClick}
-            sx={{ bgcolor: brandColors.sectionTitle, "&:hover": { bgcolor: brandColors.pageTitle } }}
           >
             Submit Review
           </Button>
@@ -1079,10 +1078,10 @@ function ApprovalSignaturesCard({
 
           <Button
             variant="contained"
+            color="primary"
             fullWidth
             disabled={!decisionValid}
             onClick={onApproveClick}
-            sx={{ bgcolor: brandColors.sectionTitle, "&:hover": { bgcolor: brandColors.pageTitle } }}
           >
             Submit Decision
           </Button>

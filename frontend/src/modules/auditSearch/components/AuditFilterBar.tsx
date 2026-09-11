@@ -8,15 +8,13 @@ import {
   MenuItem,
   FormControl,
   InputLabel,
-  Collapse,
-  Typography
+  Collapse
 } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
 import RestartAltIcon from "@mui/icons-material/RestartAlt";
 import FilterListIcon from "@mui/icons-material/FilterList";
 import type { AuditSearchFilterState } from "../types/auditTypes";
 import { ENTITY_DISPLAY_NAMES } from "../types/auditTypes";
-import { brandColors } from "../../../theme";
 
 interface Props {
   filters: AuditSearchFilterState;
@@ -216,15 +214,14 @@ export function AuditFilterBar({
             id="audit-search-submit-btn"
             size="small"
             variant="contained"
+            color="primary"
             startIcon={<SearchIcon />}
             onClick={onSearch}
             disabled={loading}
             sx={{
-              bgcolor: brandColors.sectionTitle,
               px: 2.5,
               textTransform: "none",
-              fontWeight: 600,
-              "&:hover": { bgcolor: brandColors.pageTitle }
+              fontWeight: 600
             }}
           >
             {loading ? "Searching..." : "Search Audit Trail"}

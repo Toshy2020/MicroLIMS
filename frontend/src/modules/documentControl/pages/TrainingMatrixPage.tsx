@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useCallback, useMemo } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import {
   Box,
   Typography,
@@ -39,7 +39,6 @@ import WarningIcon from "@mui/icons-material/Warning";
 import RemoveIcon from "@mui/icons-material/Remove";
 import CloseIcon from "@mui/icons-material/Close";
 import PersonIcon from "@mui/icons-material/Person";
-import DescriptionIcon from "@mui/icons-material/Description";
 import AssessmentOutlinedIcon from "@mui/icons-material/AssessmentOutlined";
 import { useNavigate } from "react-router-dom";
 
@@ -221,7 +220,8 @@ export function TrainingMatrixPage() {
               icon={<WarningIcon sx={{ fontSize: "14px !important" }} />}
               label="Superseded Gap"
               size="small"
-              sx={{ height: 20, fontSize: 10, fontWeight: 700, bgcolor: "#ff9800", color: "#fff" }}
+              color="warning"
+              sx={{ height: 20, fontSize: 10, fontWeight: 700 }}
               onClick={() => setSelectedCell(cell)}
             />
           </Tooltip>
@@ -240,7 +240,7 @@ export function TrainingMatrixPage() {
   };
 
   return (
-    <Box sx={{ p: 3, maxWidth: 1600, margin: "0 auto" }}>
+    <Box sx={{ pb: 4 }}>
       <PageHeader
         title="Training Matrix"
         subtitle="Multi-axis qualification matrix mapping personnel to controlled document training requirements."
@@ -312,12 +312,12 @@ export function TrainingMatrixPage() {
             </Card>
           </Grid>
           <Grid item xs={12} sm={6} md={2.4}>
-            <Card variant="outlined" sx={{ bgcolor: "#fff3e0" }}>
+            <Card variant="outlined" sx={{ bgcolor: (t) => t.palette.mode === "dark" ? "rgba(237, 108, 2, 0.15)" : "#fff3e0" }}>
               <CardContent sx={{ py: 1.5, "&:last-child": { pb: 1.5 } }}>
-                <Typography variant="caption" sx={{ color: "#e65100", fontWeight: "bold" }}>
+                <Typography variant="caption" sx={{ color: (t) => t.palette.mode === "dark" ? "warning.light" : "#e65100", fontWeight: "bold" }}>
                   SUPERSEDED GAPS
                 </Typography>
-                <Typography variant="h5" fontWeight="bold" sx={{ color: "#e65100" }}>
+                <Typography variant="h5" fontWeight="bold" sx={{ color: (t) => t.palette.mode === "dark" ? "warning.light" : "#e65100" }}>
                   {gridData.totalSupersededGapCells}
                 </Typography>
               </CardContent>
@@ -406,7 +406,7 @@ export function TrainingMatrixPage() {
         <Table stickyHeader size="small">
           <TableHead>
             <TableRow>
-              <TableCell sx={{ minWidth: 220, bgcolor: "grey.100", fontWeight: 700, zIndex: 3 }}>
+              <TableCell sx={{ minWidth: 220, bgcolor: (t) => t.palette.mode === "dark" ? "background.paper" : "grey.100", fontWeight: 700, zIndex: 3 }}>
                 Personnel / Role
               </TableCell>
               {gridData?.documents.map((doc) => (
@@ -416,10 +416,10 @@ export function TrainingMatrixPage() {
                   sx={{
                     minWidth: 140,
                     maxWidth: 180,
-                    bgcolor: "grey.100",
+                    bgcolor: (t) => t.palette.mode === "dark" ? "background.paper" : "grey.100",
                     fontWeight: 700,
                     cursor: "pointer",
-                    "&:hover": { bgcolor: "grey.200" }
+                    "&:hover": { bgcolor: (t) => t.palette.mode === "dark" ? "action.hover" : "grey.200" }
                   }}
                   onClick={() => handleDocClick(doc)}
                 >
@@ -543,7 +543,7 @@ export function TrainingMatrixPage() {
           </Box>
         ) : userCompliance && (
           <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
-            <Paper variant="outlined" sx={{ p: 2, bgcolor: "grey.50" }}>
+            <Paper variant="outlined" sx={{ p: 2, bgcolor: (t) => t.palette.mode === "dark" ? "action.hover" : "grey.50" }}>
               <Typography variant="caption" color="text.secondary" fontWeight="bold">
                 COMPLIANCE SCORE
               </Typography>
@@ -613,13 +613,13 @@ export function TrainingMatrixPage() {
           <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
             <Grid container spacing={1.5}>
               <Grid item xs={6}>
-                <Paper variant="outlined" sx={{ p: 1.5, textAlign: "center", bgcolor: "success.50" }}>
+                <Paper variant="outlined" sx={{ p: 1.5, textAlign: "center", bgcolor: (t) => t.palette.mode === "dark" ? "rgba(46, 125, 50, 0.15)" : "success.50" }}>
                   <Typography variant="caption" color="success.main" fontWeight="bold">QUALIFIED</Typography>
                   <Typography variant="h5" fontWeight="bold" color="success.main">{docCompliance.completedUserCount}</Typography>
                 </Paper>
               </Grid>
               <Grid item xs={6}>
-                <Paper variant="outlined" sx={{ p: 1.5, textAlign: "center", bgcolor: "error.50" }}>
+                <Paper variant="outlined" sx={{ p: 1.5, textAlign: "center", bgcolor: (t) => t.palette.mode === "dark" ? "rgba(211, 47, 47, 0.15)" : "error.50" }}>
                   <Typography variant="caption" color="error.main" fontWeight="bold">OVERDUE</Typography>
                   <Typography variant="h5" fontWeight="bold" color="error.main">{docCompliance.overdueUserCount}</Typography>
                 </Paper>

@@ -18,7 +18,7 @@ import {
   Tooltip,
   Alert,
   CircularProgress,
-  Divider
+  useTheme
 } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
@@ -37,12 +37,13 @@ import FormatListBulletedOutlinedIcon from "@mui/icons-material/FormatListBullet
 import AssignmentTurnedInIcon from "@mui/icons-material/AssignmentTurnedIn";
 import CompareArrowsIcon from "@mui/icons-material/CompareArrows";
 import EventRepeatIcon from "@mui/icons-material/EventRepeat";
-import SecurityIcon from "@mui/icons-material/Security";
 import PrecisionManufacturingIcon from "@mui/icons-material/PrecisionManufacturing";
 import PersonOutlineIcon from "@mui/icons-material/PersonOutline";
 
-import { PageHeader } from "../../../components/PageHeader";
 import { StatusBadge } from "../../../components/StatusBadge";
+import { ConfirmationDialog } from "../../../components/ConfirmationDialog";
+import { tableHeadSx } from "../../../theme";
+import { toast } from "sonner";
 import { useAuth } from "../../../contexts/AuthContext";
 import { documentControlService } from "../services/documentControlService";
 import { documentReviewService } from "../services/documentReviewService";
@@ -75,6 +76,7 @@ export function DocumentDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { role, userId } = useAuth();
+  const theme = useTheme();
 
   const [document, setDocument] = useState<DocumentMasterDto | null>(null);
   const [auditLogs, setAuditLogs] = useState<DocumentAuditItemDto[]>([]);
@@ -106,6 +108,7 @@ export function DocumentDetailPage() {
   const [selectedApprovalTaskId, setSelectedApprovalTaskId] = useState<number | null>(null);
   const [periodicReviewTasks, setPeriodicReviewTasks] = useState<PeriodicReviewTaskDto[]>([]);
   const [periodicReviewDialogOpen, setPeriodicReviewDialogOpen] = useState(false);
+  const [assignmentToRemove, setAssignmentToRemove] = useState<number | null>(null);
   const [selectedPeriodicReviewTaskId, setSelectedPeriodicReviewTaskId] = useState<number | null>(null);
 
   const fetchDocument = useCallback(async () => {
@@ -227,22 +230,29 @@ export function DocumentDetailPage() {
     try {
       await documentControlService.downloadFile(fileId, fileName);
     } catch (err: any) {
-      alert("Download failed: " + (err.response?.data?.message || err.message));
+      toast.error("Download failed: " + (err.response?.data?.message || err.message));
     }
   };
 
-  const handleRemoveAssignment = async (assignmentId: number) => {
-    if (!window.confirm("Are you sure you want to remove this role assignment?")) return;
+  const handleRemoveAssignment = (assignmentId: number) => {
+    setAssignmentToRemove(assignmentId);
+  };
+
+  const confirmRemoveAssignment = async () => {
+    if (!assignmentToRemove) return;
     try {
-      await documentControlService.removeAssignment(document.id, assignmentId);
+      await documentControlService.removeAssignment(document.id, assignmentToRemove);
+      toast.success("Role assignment removed");
       fetchDocument();
     } catch (err: any) {
-      alert("Failed to remove assignment: " + (err.response?.data?.message || err.message));
+      toast.error("Failed to remove assignment: " + (err.response?.data?.message || err.message));
+    } finally {
+      setAssignmentToRemove(null);
     }
   };
 
   return (
-    <Box sx={{ p: 3, maxWidth: 1600, mx: "auto" }}>
+    <Box sx={{ pb: 4 }}>
       {/* Back button & Breadcrumbs */}
       <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1 }}>
         <Button
@@ -447,7 +457,7 @@ export function DocumentDetailPage() {
               borderColor: (t) => (t.palette.mode === "dark" ? "#244E72" : "#90CAF9")
             }}
           >
-            <Typography variant="subtitle2" sx={{ fontWeight: 700, color: "primary.main" }}>
+            <Typography variant="subtitle2" sx={{ fontWeight: 700, color: (t) => t.palette.mode === "dark" ? "info.light" : "primary.main" }}>
               Revision {currentRevision.revisionNumber} Scheduled for Automatic Activation (Future Effective)
             </Typography>
             <Typography variant="caption" sx={{ display: "block" }}>
@@ -494,7 +504,7 @@ export function DocumentDetailPage() {
                   <Typography variant="subtitle2" sx={{ fontWeight: 700, color: "text.secondary", mb: 1 }}>
                     Document Governance Properties
                   </Typography>
-                  <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, gap: 2, bgcolor: "grey.50", p: 2, borderRadius: 1.5 }}>
+                  <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, gap: 2, bgcolor: (t) => t.palette.mode === "dark" ? "action.hover" : "grey.50", p: 2, borderRadius: 1.5 }}>
                     <Box>
                       <Typography variant="caption" color="text.secondary">Document Classification</Typography>
                       <Typography variant="body2" sx={{ fontWeight: 600 }}>{document.documentTypeName} ({document.documentTypeCode})</Typography>
@@ -539,7 +549,7 @@ export function DocumentDetailPage() {
                   <Typography variant="subtitle2" sx={{ fontWeight: 700, color: "text.secondary", mb: 1 }}>
                     Life-Cycle Timestamps & Traceability
                   </Typography>
-                  <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, gap: 2, bgcolor: "grey.50", p: 2, borderRadius: 1.5 }}>
+                  <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, gap: 2, bgcolor: (t) => t.palette.mode === "dark" ? "action.hover" : "grey.50", p: 2, borderRadius: 1.5 }}>
                     <Box>
                       <Typography variant="caption" color="text.secondary">Created By</Typography>
                       <Typography variant="body2">{document.createdByUserName} ({new Date(document.createdAt).toLocaleString()})</Typography>
@@ -663,7 +673,7 @@ export function DocumentDetailPage() {
 
             <TableContainer component={Paper} variant="outlined" sx={{ mb: 3 }}>
               <Table size="small">
-                <TableHead sx={{ bgcolor: "grey.50" }}>
+                <TableHead sx={tableHeadSx(theme)}>
                   <TableRow>
                     <TableCell sx={{ fontWeight: 700 }}>File Role</TableCell>
                     <TableCell sx={{ fontWeight: 700 }}>File Name</TableCell>
@@ -742,7 +752,7 @@ export function DocumentDetailPage() {
             </Typography>
             <TableContainer component={Paper} variant="outlined">
               <Table size="small">
-                <TableHead sx={{ bgcolor: "grey.50" }}>
+                <TableHead sx={tableHeadSx(theme)}>
                   <TableRow>
                     <TableCell sx={{ fontWeight: 700 }}>Revision</TableCell>
                     <TableCell sx={{ fontWeight: 700 }}>Seq</TableCell>
@@ -810,7 +820,7 @@ export function DocumentDetailPage() {
 
             <TableContainer component={Paper} variant="outlined">
               <Table size="small">
-                <TableHead sx={{ bgcolor: "grey.50" }}>
+                <TableHead sx={tableHeadSx(theme)}>
                   <TableRow>
                     <TableCell sx={{ fontWeight: 700 }}>Role</TableCell>
                     <TableCell sx={{ fontWeight: 700 }}>Assigned Personnel</TableCell>
@@ -873,7 +883,7 @@ export function DocumentDetailPage() {
 
             <TableContainer component={Paper} variant="outlined">
               <Table size="small">
-                <TableHead sx={{ bgcolor: "grey.50" }}>
+                <TableHead sx={tableHeadSx(theme)}>
                   <TableRow>
                     <TableCell sx={{ fontWeight: 700 }}>Timestamp (UTC)</TableCell>
                     <TableCell sx={{ fontWeight: 700 }}>Action Code</TableCell>
@@ -979,7 +989,7 @@ export function DocumentDetailPage() {
 
             <TableContainer component={Paper} variant="outlined">
               <Table size="small">
-                <TableHead sx={{ bgcolor: "grey.50" }}>
+                <TableHead sx={tableHeadSx(theme)}>
                   <TableRow>
                     <TableCell sx={{ fontWeight: 600 }}>Task ID</TableCell>
                     <TableCell sx={{ fontWeight: 600 }}>Revision</TableCell>
@@ -1081,7 +1091,7 @@ export function DocumentDetailPage() {
 
             <TableContainer component={Paper} variant="outlined">
               <Table size="small">
-                <TableHead sx={{ bgcolor: "grey.50" }}>
+                <TableHead sx={tableHeadSx(theme)}>
                   <TableRow>
                     <TableCell sx={{ fontWeight: 600 }}>Task ID</TableCell>
                     <TableCell sx={{ fontWeight: 600 }}>Revision</TableCell>
@@ -1331,6 +1341,16 @@ export function DocumentDetailPage() {
           hasEffectiveRevision={!!effectivePdf}
         />
       )}
+
+      <ConfirmationDialog
+        open={assignmentToRemove !== null}
+        title="Remove Role Assignment"
+        message="Are you sure you want to remove this role assignment from this document?"
+        confirmText="Remove Assignment"
+        destructive
+        onConfirm={confirmRemoveAssignment}
+        onCancel={() => setAssignmentToRemove(null)}
+      />
     </Box>
   );
 }

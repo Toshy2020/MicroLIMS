@@ -1,8 +1,6 @@
-import { Paper, Box, Typography, Stack, LinearProgress, useTheme, Button } from "@mui/material";
+import { Paper, Box, Typography, Stack, LinearProgress, useTheme } from "@mui/material";
 import HourglassEmptyIcon from "@mui/icons-material/HourglassEmpty";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
-import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
-import { useNavigate } from "react-router-dom";
 import { IncubationOverviewRow } from "../types/dashboard";
 import { SectionTitle } from "../../../components/SectionTitle";
 import { brandColors } from "../../../theme";
@@ -21,7 +19,7 @@ export function IncubationObservationPanel({ rows }: IncubationObservationPanelP
         tabs={[
           {
             label: "Open Workspace",
-            to: "/testing-workspace"
+            to: "/receiving-testing"
           }
         ]}
       >

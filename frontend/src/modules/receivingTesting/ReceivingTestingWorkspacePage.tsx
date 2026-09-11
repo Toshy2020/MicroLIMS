@@ -21,7 +21,7 @@ import { PageHeader } from "../../components/PageHeader";
 import { LoadingSpinner } from "../../components/LoadingSpinner";
 import { AuditHistoryDialog } from "../../components/AuditHistoryDialog";
 import { useAuth } from "../../contexts/AuthContext";
-import { brandColors, tableHeadSx } from "../../theme";
+import { tableHeadSx } from "../../theme";
 
 // Receiving Components & Dialogs
 import { SampleRecord, TestOrderSummary as ReceivingTestOrderSummary } from "../receiving/types/receivingTypes";
@@ -41,7 +41,6 @@ import { AssignAnalystDialog } from "../receiving/dialogs/AssignAnalystDialog";
 
 // Testing Workspace Components & Dialogs
 import { SampleCard as WorkspaceSampleCard, TestOrderSummary as WorkspaceTestOrderSummary } from "../testingWorkspace/types/workspaceTypes";
-import { WorkspaceService } from "../testingWorkspace/services/WorkspaceService";
 import { SampleTableRow } from "../testingWorkspace/SampleTableRow";
 import { SampleCardView } from "../testingWorkspace/SampleCardView";
 import { SampleKanbanView } from "../testingWorkspace/SampleKanbanView";
@@ -491,14 +490,13 @@ export function ReceivingTestingWorkspacePage() {
 
           <Button
             variant="contained"
+            color="primary"
             size="medium"
             onClick={() => setNewSampleDialogOpen(true)}
             startIcon={<AddIcon />}
             sx={{
-              bgcolor: brandColors.sectionTitle,
               fontWeight: 600,
-              px: 2.5,
-              "&:hover": { bgcolor: "#631f74" }
+              px: 2.5
             }}
           >
             + New Sample

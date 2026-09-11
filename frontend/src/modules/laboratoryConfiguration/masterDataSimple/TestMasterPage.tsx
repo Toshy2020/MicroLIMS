@@ -12,8 +12,10 @@ import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 import { PageHeader } from "../../../components/PageHeader";
 import { SectionTitle } from "../../../components/SectionTitle";
 import { StatusBadge } from "../../../components/StatusBadge";
+import { ConfirmationDialog } from "../../../components/ConfirmationDialog";
 import { useTestDefinitions, TestDefinitionOption } from "../../../hooks/useTestDefinitions";
-import { masterDataOptions, mediaClassLabel } from "../../../services/masterDataOptions";
+import { masterDataOptions } from "../../../services/masterDataOptions";
+import { tableHeadSx } from "../../../theme";
 
 const WORKFLOW_TYPES = ["CountTest", "Observation"];
 const STEP_TYPES = ["PlateCount", "BrothEnrichment", "SelectiveBroth", "SelectivePlating", "ConfirmatoryPlating", "BiochemicalTest"];
@@ -170,6 +172,7 @@ function WorkflowStepsSection({ test, onWorkflowTypeChanged }: { test: TestDefin
   const [mediaConfigurations, setMediaConfigurations] = useState<any[]>([]);
   const [form, setForm] = useState<StepFormState>(defaultStepForm);
   const [editingStepId, setEditingStepId] = useState<number | null>(null);
+  const [stepToDelete, setStepToDelete] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const loadSteps = () => masterDataOptions.getTestWorkflowSteps(test.id).then(setSteps);
@@ -357,7 +360,7 @@ function WorkflowStepsSection({ test, onWorkflowTypeChanged }: { test: TestDefin
       {steps.length > 0 ? (
         <Table size="small" sx={{ mb: 1.5 }}>
           <TableHead>
-            <TableRow>
+            <TableRow sx={tableHeadSx}>
               <TableCell>#</TableCell><TableCell>Step</TableCell><TableCell>Incubation</TableCell>
               <TableCell>Temp °C</TableCell><TableCell>Step Type</TableCell><TableCell>Media</TableCell><TableCell>Organism</TableCell>
               <TableCell>Status</TableCell><TableCell>Final</TableCell><TableCell /></TableRow>
@@ -433,10 +436,30 @@ function WorkflowStepsSection({ test, onWorkflowTypeChanged }: { test: TestDefin
                   </TableCell>
                   <TableCell>{s.isFinalStep ? "Yes" : "—"}</TableCell>
                   <TableCell align="right">
-                    <IconButton size="small" disabled={i === 0} onClick={() => move(s.id, "up")} title="Move up"><ArrowUpwardIcon fontSize="small" /></IconButton>
-                    <IconButton size="small" disabled={i === steps.length - 1} onClick={() => move(s.id, "down")} title="Move down"><ArrowDownwardIcon fontSize="small" /></IconButton>
-                    <IconButton size="small" onClick={() => startEditStep(s)} title="Edit"><EditIcon fontSize="small" /></IconButton>
-                    <IconButton size="small" color="error" onClick={() => remove(s.id)} title="Delete"><DeleteIcon fontSize="small" /></IconButton>
+                    <Tooltip title="Move up">
+                      <span>
+                        <IconButton size="small" disabled={i === 0} onClick={() => move(s.id, "up")} aria-label="Move up">
+                          <ArrowUpwardIcon fontSize="small" />
+                        </IconButton>
+                      </span>
+                    </Tooltip>
+                    <Tooltip title="Move down">
+                      <span>
+                        <IconButton size="small" disabled={i === steps.length - 1} onClick={() => move(s.id, "down")} aria-label="Move down">
+                          <ArrowDownwardIcon fontSize="small" />
+                        </IconButton>
+                      </span>
+                    </Tooltip>
+                    <Tooltip title="Edit step">
+                      <IconButton size="small" onClick={() => startEditStep(s)} aria-label="Edit step">
+                        <EditIcon fontSize="small" />
+                      </IconButton>
+                    </Tooltip>
+                    <Tooltip title="Delete step">
+                      <IconButton size="small" color="error" onClick={() => setStepToDelete(s.id)} aria-label="Delete step">
+                        <DeleteIcon fontSize="small" />
+                      </IconButton>
+                    </Tooltip>
                   </TableCell>
                 </TableRow>
               );
@@ -607,7 +630,11 @@ function WorkflowStepsSection({ test, onWorkflowTypeChanged }: { test: TestDefin
                     />
                   )}
                   <Typography variant="caption" color="text.secondary">Order {idx + 1}</Typography>
-                  <IconButton size="small" color="error" onClick={() => removeMediaRow(idx)} title="Remove medium"><DeleteIcon fontSize="small" /></IconButton>
+                  <Tooltip title="Remove medium">
+                    <IconButton size="small" color="error" onClick={() => removeMediaRow(idx)} aria-label="Remove medium">
+                      <DeleteIcon fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
                 </Stack>
               );
             })}
@@ -615,6 +642,22 @@ function WorkflowStepsSection({ test, onWorkflowTypeChanged }: { test: TestDefin
           <Button size="small" sx={{ mt: 1 }} disabled={isSingleMedia && form.stepMedia.length >= 1} onClick={addMediaRow}>Add Medium</Button>
         </Box>
       )}
+
+      <ConfirmationDialog
+        open={stepToDelete !== null}
+        title="Delete Workflow Step"
+        message="Are you sure you want to delete this workflow step? This action cannot be undone."
+        confirmText="Delete Step"
+        destructive
+        onConfirm={async () => {
+          if (stepToDelete !== null) {
+            const id = stepToDelete;
+            setStepToDelete(null);
+            await remove(id);
+          }
+        }}
+        onCancel={() => setStepToDelete(null)}
+      />
     </Box>
   );
 }
@@ -697,7 +740,7 @@ export function TestMasterPage() {
       <SectionTitle>All Tests</SectionTitle>
       <Paper sx={{ p: 2.5 }}>
         <Table size="small">
-          <TableHead><TableRow><TableCell /><TableCell>Code</TableCell><TableCell>Display Name</TableCell><TableCell>Status</TableCell><TableCell></TableCell></TableRow></TableHead>
+          <TableHead><TableRow sx={tableHeadSx}><TableCell /><TableCell>Code</TableCell><TableCell>Display Name</TableCell><TableCell>Status</TableCell><TableCell></TableCell></TableRow></TableHead>
           <TableBody>
             {options.map((t) => (
               <Fragment key={t.id}>

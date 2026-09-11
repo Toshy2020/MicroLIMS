@@ -11,8 +11,6 @@ import {
   TableBody,
   Button,
   Chip,
-  IconButton,
-  Tooltip,
   useTheme
 } from "@mui/material";
 import RateReviewOutlinedIcon from "@mui/icons-material/RateReviewOutlined";
@@ -29,7 +27,7 @@ import { PageHeader } from "../../components/PageHeader";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import { DashboardStateGate } from "./components/DashboardStateGate";
 import { DashboardService } from "./services/DashboardService";
-import { ReviewerDashboard, ReviewerQueueItem } from "./types/dashboard";
+import { ReviewerDashboard } from "./types/dashboard";
 import { brandColors, tableHeadSx } from "../../theme";
 
 function formatAge(minutes: number): string {
@@ -99,7 +97,7 @@ export function ReviewerDashboardPage() {
           </Button>
           <Button
             component={Link}
-            to="/testing-workspace"
+            to="/receiving-testing"
             variant="contained"
             startIcon={<ScienceOutlinedIcon />}
             sx={{ textTransform: "none", fontWeight: 600, borderRadius: 2 }}
@@ -114,7 +112,7 @@ export function ReviewerDashboardPage() {
         <Grid item xs={12} sm={6} md={2.4}>
           <Paper
             component={Link}
-            to="/testing-workspace?testStatus=ResultEntered"
+            to="/receiving-testing?testStatus=ResultEntered"
             sx={{
               p: 2,
               cursor: "pointer",
@@ -144,7 +142,7 @@ export function ReviewerDashboardPage() {
         <Grid item xs={12} sm={6} md={2.4}>
           <Paper
             component={Link}
-            to="/testing-workspace?testStatus=ResultEntered&urgency=overdue"
+            to="/receiving-testing?testStatus=ResultEntered&urgency=overdue"
             sx={{
               p: 2,
               cursor: "pointer",
@@ -174,7 +172,7 @@ export function ReviewerDashboardPage() {
         <Grid item xs={12} sm={6} md={2.4}>
           <Paper
             component={Link}
-            to="/testing-workspace?testStatus=ResultEntered"
+            to="/receiving-testing?testStatus=ResultEntered"
             sx={{
               p: 2,
               cursor: "pointer",
@@ -204,7 +202,7 @@ export function ReviewerDashboardPage() {
         <Grid item xs={12} sm={6} md={2.4}>
           <Paper
             component={Link}
-            to="/testing-workspace?testStatus=RetestRequested"
+            to="/receiving-testing?testStatus=RetestRequested"
             sx={{
               p: 2,
               cursor: "pointer",
@@ -292,7 +290,7 @@ export function ReviewerDashboardPage() {
                   </Box>
                   <Button
                     component={Link}
-                    to={`/testing-workspace?sampleId=${item.sampleId}&testOrderId=${item.testOrderId}`}
+                    to={`/receiving-testing?sampleId=${item.sampleId}&testOrderId=${item.testOrderId}`}
                     variant="outlined"
                     color="error"
                     size="small"
@@ -323,7 +321,7 @@ export function ReviewerDashboardPage() {
               </Box>
               <Button
                 component={Link}
-                to="/testing-workspace?testStatus=ResultEntered"
+                to="/receiving-testing?testStatus=ResultEntered"
                 variant="text"
                 size="small"
                 sx={{ textTransform: "none", fontWeight: 600 }}
@@ -364,7 +362,7 @@ export function ReviewerDashboardPage() {
                         <TableCell sx={{ fontSize: 12, fontWeight: 700 }}>
                           <Typography
                             component={Link}
-                            to={`/testing-workspace?sampleId=${row.sampleId}&testOrderId=${row.testOrderId}`}
+                            to={`/receiving-testing?sampleId=${row.sampleId}&testOrderId=${row.testOrderId}`}
                             sx={{
                               fontSize: 12,
                               fontWeight: 700,
@@ -450,7 +448,7 @@ export function ReviewerDashboardPage() {
                         <TableCell sx={{ textAlign: "right" }}>
                           <Button
                             component={Link}
-                            to={`/testing-workspace?sampleId=${row.sampleId}&testOrderId=${row.testOrderId}`}
+                            to={`/receiving-testing?sampleId=${row.sampleId}&testOrderId=${row.testOrderId}`}
                             variant="contained"
                             size="small"
                             startIcon={<RateReviewOutlinedIcon />}
@@ -491,7 +489,7 @@ export function ReviewerDashboardPage() {
                   <Paper
                     key={idx}
                     component={Link}
-                    to={`/testing-workspace?sampleId=${rec.sampleId}&testOrderId=${rec.testOrderId}`}
+                    to={`/receiving-testing?sampleId=${rec.sampleId}&testOrderId=${rec.testOrderId}`}
                     variant="outlined"
                     sx={{
                       p: 1.5,

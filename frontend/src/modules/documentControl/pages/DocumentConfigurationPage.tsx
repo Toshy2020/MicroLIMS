@@ -22,13 +22,15 @@ import {
   Alert,
   CircularProgress,
   IconButton,
-  Tooltip
+  Tooltip,
+  useTheme
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
-import SettingsOutlinedIcon from "@mui/icons-material/SettingsOutlined";
+import { toast } from "sonner";
 
 import { PageHeader } from "../../../components/PageHeader";
+import { tableHeadSx } from "../../../theme";
 import { useAuth } from "../../../contexts/AuthContext";
 import { documentControlService } from "../services/documentControlService";
 import type {
@@ -39,6 +41,7 @@ import type {
 } from "../types/documentControlTypes";
 
 export function DocumentConfigurationPage() {
+  const theme = useTheme();
   const { role } = useAuth();
   const isAdmin = role === "SystemAdministrator";
 
@@ -131,8 +134,9 @@ export function DocumentConfigurationPage() {
       }
       setTypeDialogOpen(false);
       loadAll();
+      toast.success("Document Type saved successfully.");
     } catch (err: any) {
-      alert("Failed to save Document Type: " + (err.response?.data?.message || err.message));
+      toast.error("Failed to save Document Type: " + (err.response?.data?.message || err.message));
     }
   };
 
@@ -152,8 +156,9 @@ export function DocumentConfigurationPage() {
       }
       setDeptDialogOpen(false);
       loadAll();
+      toast.success("Department saved successfully.");
     } catch (err: any) {
-      alert("Failed to save Department: " + (err.response?.data?.message || err.message));
+      toast.error("Failed to save Department: " + (err.response?.data?.message || err.message));
     }
   };
 
@@ -173,8 +178,9 @@ export function DocumentConfigurationPage() {
       }
       setSectionDialogOpen(false);
       loadAll();
+      toast.success("Section saved successfully.");
     } catch (err: any) {
-      alert("Failed to save Section: " + (err.response?.data?.message || err.message));
+      toast.error("Failed to save Section: " + (err.response?.data?.message || err.message));
     }
   };
 
@@ -188,9 +194,9 @@ export function DocumentConfigurationPage() {
         isEnabled: numberingForm.isEnabled
       });
       setNumbering(updated);
-      alert("Numbering configuration updated successfully.");
+      toast.success("Numbering configuration updated successfully.");
     } catch (err: any) {
-      alert("Failed to update numbering: " + (err.response?.data?.message || err.message));
+      toast.error("Failed to update numbering: " + (err.response?.data?.message || err.message));
     } finally {
       setSavingNumbering(false);
     }
@@ -203,13 +209,14 @@ export function DocumentConfigurationPage() {
       await documentControlService.updateSetting(editingSetting.settingKey, settingValue);
       setSettingDialogOpen(false);
       loadAll();
+      toast.success("Setting updated successfully.");
     } catch (err: any) {
-      alert("Failed to update setting: " + (err.response?.data?.message || err.message));
+      toast.error("Failed to update setting: " + (err.response?.data?.message || err.message));
     }
   };
 
   return (
-    <Box sx={{ p: 3, maxWidth: 1600, mx: "auto" }}>
+    <Box sx={{ pb: 4 }}>
       <PageHeader
         title="Document Control Configuration"
         subtitle="System Master Data, Numbering Schemes, Governance Rules, and Module Settings"
@@ -260,7 +267,7 @@ export function DocumentConfigurationPage() {
 
                 <TableContainer component={Paper} variant="outlined">
                   <Table size="small">
-                    <TableHead sx={{ bgcolor: "grey.50" }}>
+                    <TableHead sx={tableHeadSx(theme)}>
                       <TableRow>
                         <TableCell sx={{ fontWeight: 700 }}>Code</TableCell>
                         <TableCell sx={{ fontWeight: 700 }}>Name</TableCell>
@@ -370,7 +377,7 @@ export function DocumentConfigurationPage() {
                       {/* Sections Table */}
                       <TableContainer component={Paper} variant="outlined">
                         <Table size="small">
-                          <TableHead sx={{ bgcolor: "grey.50" }}>
+                          <TableHead sx={tableHeadSx(theme)}>
                             <TableRow>
                               <TableCell sx={{ fontWeight: 700 }}>Section Name</TableCell>
                               <TableCell sx={{ fontWeight: 700 }}>Status</TableCell>
@@ -456,7 +463,7 @@ export function DocumentConfigurationPage() {
                     helperText="E.g. 0000000 (7 digits), 00000 (5 digits)"
                   />
 
-                  <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", p: 1.5, bgcolor: "grey.50", borderRadius: 1 }}>
+                  <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", p: 1.5, bgcolor: (t) => t.palette.mode === "dark" ? "action.hover" : "grey.50", borderRadius: 1 }}>
                     <Box>
                       <Typography variant="body2" sx={{ fontWeight: 600 }}>Enable Automated Sequence Numbering</Typography>
                       <Typography variant="caption" color="text.secondary">Active numbering profile</Typography>
@@ -487,7 +494,7 @@ export function DocumentConfigurationPage() {
 
                 <TableContainer component={Paper} variant="outlined">
                   <Table size="small">
-                    <TableHead sx={{ bgcolor: "grey.50" }}>
+                    <TableHead sx={tableHeadSx(theme)}>
                       <TableRow>
                         <TableCell sx={{ fontWeight: 700 }}>Group</TableCell>
                         <TableCell sx={{ fontWeight: 700 }}>Setting Key</TableCell>

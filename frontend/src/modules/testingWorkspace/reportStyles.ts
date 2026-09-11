@@ -355,7 +355,6 @@ table.result-matrix td:first-child { text-align: left; padding-left: 16px; font-
   * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
 
   @page { size: A4 portrait; margin: 18mm 16mm 22mm 16mm; }
-  @page coa { size: A4 portrait; margin: 0; }
 
   .report-root { background: #fff !important; font-size: 10pt; line-height: 1.45; min-height: 0; }
   .print-btn { display: none !important; }
@@ -609,25 +608,8 @@ table.coa-matrix .coa-unit-sub { font-family: var(--font-sans); font-size: 9px; 
 .coa-footer-note { font-size: 9.5px; color: var(--coa-ink3); text-align: center; margin-top: 30px; line-height: 1.6; }
 
 @media print {
-  /* A certificate of analysis is a controlled document, so the browser's own
-     header and footer do not belong on it: they stamp the print timestamp,
-     the tab title, the page number and - worst - the full URL across a record
-     that already carries its own "Generated" line and Document ID.
-     Chromium only omits them when the page margin is zero, so this gives the
-     CoA a named page of its own and puts the margins back as padding on
-     .coa-page. Naming the page keeps it off every other report, which still
-     wants real @page margins because those repeat on continuation pages.
-     Note the trade-off: padding applies once, not per page, so a CoA long
-     enough to break onto a second page starts that page at the paper edge.
-     Today's certificates are a single page; revisit this if that changes.
-     The reader can still re-enable headers from the print dialog - this
-     changes the default, it cannot override the browser. */
-  .coa-root { background: #fff !important; min-height: 0; font-size: 10pt; page: coa; }
-  .coa-page {
-    max-width: 100% !important;
-    margin: 0 !important;
-    padding: 18mm 16mm 22mm 16mm !important;
-  }
+  .coa-root { background: #fff !important; min-height: 0; font-size: 10pt; }
+  .coa-page { max-width: 100% !important; margin: 0 !important; padding: 0 !important; }
 
   .coa-head { border-bottom: 2pt solid #000 !important; padding-bottom: 10pt !important; margin-bottom: 14pt !important; }
   .coa-title { font-size: 16pt !important; color: #000 !important; }

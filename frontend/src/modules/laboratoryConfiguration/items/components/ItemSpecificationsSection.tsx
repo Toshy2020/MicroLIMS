@@ -28,7 +28,7 @@ import AddIcon from "@mui/icons-material/Add";
 import { Item } from "../services/ItemService";
 import { SpecificationService, SpecificationDto } from "../../specifications/services/SpecificationService";
 import { ConfirmationDialog } from "../../../../components/ConfirmationDialog";
-import { brandColors, tableHeadSx } from "../../../../theme";
+import { tableHeadSx } from "../../../../theme";
 import { masterDataOptions } from "../../../../services/masterDataOptions";
 
 interface ItemSpecificationsSectionProps {
@@ -454,9 +454,8 @@ export const ItemSpecificationsSection: React.FC<ItemSpecificationsSectionProps>
                       startIcon={saving ? <CircularProgress size={14} color="inherit" /> : <AddIcon />}
                       onClick={handleAdd}
                       disabled={saving || !addRow.testCode || !addRow.specLimit.trim()}
+                      color="primary"
                       sx={{
-                        bgcolor: brandColors.sectionTitle,
-                        "&:hover": { bgcolor: brandColors.pageTitle },
                         minWidth: 80,
                         fontWeight: 700,
                         textTransform: "none"

@@ -30,7 +30,7 @@ import { CryovialService } from "../services/CryovialService";
 import { MaterialService } from "../../../inventory/materials/services/MaterialService";
 import { EquipmentInventoryService } from "../../../inventory/equipment/services/EquipmentInventoryService";
 import { masterDataOptions } from "../../../../services/masterDataOptions";
-import { brandColors, tableHeadSx } from "../../../../theme";
+import { tableHeadSx } from "../../../../theme";
 import { FloatingDialog } from "../../../../components/FloatingDialog";
 
 interface PrepareCryovialBatchDialogProps {
@@ -200,10 +200,7 @@ export function PrepareCryovialBatchDialog({
             variant="contained"
             onClick={handleSave}
             disabled={submitting || eligibleFreezers.length === 0}
-            sx={{
-              bgcolor: brandColors.sectionTitle,
-              "&:hover": { bgcolor: brandColors.pageTitle }
-            }}
+            color="primary"
           >
             {submitting ? "Saving Batch..." : "Save Batch"}
           </Button>

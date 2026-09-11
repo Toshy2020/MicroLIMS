@@ -13,6 +13,22 @@ public class TestingWorkspaceService : ITestWorkspaceService
 {
     private readonly MicroLimsDbContext _db;
 
+    // A sample past one of these is finished: it is not outstanding work no
+    // matter how long ago it arrived. Without excluding them an "Overdue" count
+    // grows forever, because every closed sample eventually passes 24 hours.
+    //
+    // Held as an array rather than repeated inline so the tiles and the register
+    // cannot disagree about what "closed" means - EF translates Contains to a
+    // NOT IN (...), so it composes inside any of the predicates below.
+    private static readonly SampleStatus[] ClosedSampleStatuses =
+    {
+        SampleStatus.Approved,
+        SampleStatus.Rejected,
+        SampleStatus.RetestRequested,
+        SampleStatus.Cancelled,
+        SampleStatus.Voided
+    };
+
     public TestingWorkspaceService(MicroLimsDbContext db)
     {
         _db = db;
@@ -52,9 +68,7 @@ public class TestingWorkspaceService : ITestWorkspaceService
             if (string.Equals(wf, "needsPreparation", StringComparison.OrdinalIgnoreCase))
             {
                 query = query.Where(s => s.PreparationStatus == SamplePreparationStatus.NeedsPreparation
-                                      && s.Status != SampleStatus.Approved
-                                      && s.Status != SampleStatus.Rejected
-                                      && s.Status != SampleStatus.RetestRequested);
+                                      && !ClosedSampleStatuses.Contains(s.Status));
             }
             else if (string.Equals(wf, "readyToRead", StringComparison.OrdinalIgnoreCase))
             {
@@ -74,9 +88,7 @@ public class TestingWorkspaceService : ITestWorkspaceService
             else if (string.Equals(wf, "overdue", StringComparison.OrdinalIgnoreCase))
             {
                 var overdueCutoff = now.AddHours(-24);
-                query = query.Where(s => s.Status != SampleStatus.Approved
-                                      && s.Status != SampleStatus.Rejected
-                                      && s.Status != SampleStatus.RetestRequested
+                query = query.Where(s => !ClosedSampleStatuses.Contains(s.Status)
                                       && s.ReceivedAt < overdueCutoff);
             }
             else if (string.Equals(wf, "mine", StringComparison.OrdinalIgnoreCase))
@@ -88,9 +100,7 @@ public class TestingWorkspaceService : ITestWorkspaceService
             }
             else if (string.Equals(wf, "unassigned", StringComparison.OrdinalIgnoreCase))
             {
-                query = query.Where(s => s.Status != SampleStatus.Approved
-                                      && s.Status != SampleStatus.Rejected
-                                      && s.Status != SampleStatus.RetestRequested
+                query = query.Where(s => !ClosedSampleStatuses.Contains(s.Status)
                                       && !s.TestOrders.Any(t => !t.IsSuperseded && t.AssignedAnalystId != null));
             }
         }
@@ -140,9 +150,15 @@ public class TestingWorkspaceService : ITestWorkspaceService
             }
             else if (string.Equals(sampleStatus, "RetestRequested", StringComparison.OrdinalIgnoreCase))
             {
-                // Ambiguity Note: Client TSX matches "RetestRequested", "Cancelled", or "Voided".
-                // In Domain.Enums.SampleStatus, RetestRequested represents this terminal / retest state.
-                query = query.Where(s => s.Status == SampleStatus.RetestRequested);
+                // The client this replaced matched RetestRequested, Cancelled and
+                // Voided together. When that was written the latter two were not
+                // members of SampleStatus, so those two comparisons were dead and
+                // this filter was narrowed to RetestRequested alone. They exist
+                // now, so the original intent is restored: this option means
+                // "closed without an approval", whichever of the three it was.
+                query = query.Where(s => s.Status == SampleStatus.RetestRequested
+                                      || s.Status == SampleStatus.Cancelled
+                                      || s.Status == SampleStatus.Voided);
             }
             else if (Enum.TryParse<SampleStatus>(sampleStatus, true, out var parsedSampleStatus))
             {
@@ -212,9 +228,7 @@ public class TestingWorkspaceService : ITestWorkspaceService
         if (string.Equals(filter.Urgency, "overdue", StringComparison.OrdinalIgnoreCase))
         {
             var overdueCutoff = now.AddHours(-24);
-            query = query.Where(s => s.Status != SampleStatus.Approved
-                                  && s.Status != SampleStatus.Rejected
-                                  && s.Status != SampleStatus.RetestRequested
+            query = query.Where(s => !ClosedSampleStatuses.Contains(s.Status)
                                   && s.ReceivedAt < overdueCutoff);
         }
 
@@ -267,9 +281,7 @@ public class TestingWorkspaceService : ITestWorkspaceService
         var needsPrep = await _db.Samples
             .AsNoTracking()
             .CountAsync(s => s.PreparationStatus == SamplePreparationStatus.NeedsPreparation
-                          && s.Status != SampleStatus.Approved
-                          && s.Status != SampleStatus.Rejected
-                          && s.Status != SampleStatus.RetestRequested);
+                          && !ClosedSampleStatuses.Contains(s.Status));
 
         var readyToRead = await _db.Samples
             .AsNoTracking()
@@ -288,9 +300,7 @@ public class TestingWorkspaceService : ITestWorkspaceService
 
         var overdue = await _db.Samples
             .AsNoTracking()
-            .CountAsync(s => s.Status != SampleStatus.Approved
-                          && s.Status != SampleStatus.Rejected
-                          && s.Status != SampleStatus.RetestRequested
+            .CountAsync(s => !ClosedSampleStatuses.Contains(s.Status)
                           && s.ReceivedAt < overdueCutoff);
 
         var mine = currentUserId.HasValue
@@ -301,9 +311,7 @@ public class TestingWorkspaceService : ITestWorkspaceService
 
         var unassigned = await _db.Samples
             .AsNoTracking()
-            .CountAsync(s => s.Status != SampleStatus.Approved
-                          && s.Status != SampleStatus.Rejected
-                          && s.Status != SampleStatus.RetestRequested
+            .CountAsync(s => !ClosedSampleStatuses.Contains(s.Status)
                           && !s.TestOrders.Any(t => !t.IsSuperseded && t.AssignedAnalystId != null));
 
         return new WorkspaceTileCountsDto

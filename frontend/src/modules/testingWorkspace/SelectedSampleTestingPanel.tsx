@@ -504,7 +504,9 @@ export function SelectedSampleTestingPanel({
                   Sample Needs Preparation
                 </Typography>
                 <Typography sx={{ fontSize: 12, color: theme.custom.status.inconclusive.text }}>
-                  Test locations and configuration must be completed before starting laboratory tests.
+                  {isProductLike
+                    ? "Record the sample preparation and sign for it before starting laboratory tests."
+                    : "Test locations and configuration must be completed before starting laboratory tests."}
                 </Typography>
               </Box>
             </Box>

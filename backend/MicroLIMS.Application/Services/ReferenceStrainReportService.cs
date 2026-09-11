@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.DTOs;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
@@ -302,11 +302,16 @@ public class ReferenceStrainReportService
 
     public async Task<ReferenceStrainFilterOptionsDto> GetFilterOptionsAsync()
     {
+        // Distinct() over the entity, not over the projection: EF Core cannot
+        // translate Distinct() on a projection into a DTO followed by OrderBy
+        // on one of its properties, and threw at runtime on every call. The
+        // organism is deduplicated server-side, then projected.
         var organisms = await _db.Cryovials
             .Where(c => c.Organism != null)
-            .Select(c => new OrganismOptionDto(c.Organism!.Id, c.Organism.ScientificName, c.Organism.AtccNumber))
+            .Select(c => c.Organism!)
             .Distinct()
             .OrderBy(o => o.ScientificName)
+            .Select(o => new OrganismOptionDto(o.Id, o.ScientificName, o.AtccNumber))
             .ToListAsync();
 
         return new ReferenceStrainFilterOptionsDto(organisms);

@@ -657,4 +657,49 @@ public class PathogenSessionServiceTests
         var incCount = await db.Incubations.CountAsync(i => i.TestOrderId.HasValue && orders.Select(o => o.Id).Contains(i.TestOrderId.Value));
         Assert.Equal(0, incCount);
     }
+
+    // Rejecting takes a Section Head; this endpoint takes an Analyst. If a reset
+    // could return a Rejected sample to Received, the lower privilege would be
+    // undoing the higher one's decision about the material.
+    [Fact]
+    public async Task ResetSessionAsync_RefusesToResetARejectedSample()
+    {
+        var (db, sampleId, _) = SetupTestEnvironment(3);
+        var service = new PathogenSessionService(db);
+
+        await service.StartSharedTsbAsync(sampleId, new StartSharedTsbRequest(20, 3, DateTime.UtcNow), 5);
+
+        var sample = await db.Samples.FirstAsync(s => s.Id == sampleId);
+        sample.Status = SampleStatus.Rejected;
+        await db.SaveChangesAsync();
+
+        var ex = await Assert.ThrowsAsync<WorkflowStepException>(
+            () => service.ResetSessionAsync(sampleId, "Analyst tries to undo a rejection", 1));
+        Assert.Equal("SampleRejected", ex.ErrorCode);
+
+        // The refusal must leave the session untouched - a partially applied
+        // reset would be worse than either outcome.
+        var afterSample = await db.Samples.FirstAsync(s => s.Id == sampleId);
+        Assert.Equal(SampleStatus.Rejected, afterSample.Status);
+
+        var session = await service.GetSessionAsync(sampleId);
+        Assert.NotNull(session);
+        Assert.True(session.SharedTsb.IsStarted);
+    }
+
+    [Fact]
+    public async Task ResetSessionAsync_StillResetsASampleUnderReview()
+    {
+        var (db, sampleId, _) = SetupTestEnvironment(3);
+        var service = new PathogenSessionService(db);
+
+        var sample = await db.Samples.FirstAsync(s => s.Id == sampleId);
+        sample.Status = SampleStatus.UnderReview;
+        await db.SaveChangesAsync();
+
+        await service.ResetSessionAsync(sampleId, "Reviewer sends it back", 1);
+
+        var afterSample = await db.Samples.FirstAsync(s => s.Id == sampleId);
+        Assert.Equal(SampleStatus.Received, afterSample.Status);
+    }
 }

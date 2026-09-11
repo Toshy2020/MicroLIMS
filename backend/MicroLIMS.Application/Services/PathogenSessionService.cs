@@ -1420,6 +1420,23 @@ public class PathogenSessionService
             .FirstOrDefaultAsync(s => s.Id == sampleId)
             ?? throw new InvalidOperationException($"Sample #{sampleId} not found.");
 
+        // Rejecting a sample takes SectionHead or SystemAdministrator
+        // (ApprovalController). This endpoint takes Analyst. Resetting used to
+        // send a Rejected sample back to Received, which let the lower
+        // privilege undo the higher one's decision about the material and left
+        // nothing but an audit line behind. A rejection is reversed through the
+        // approval route by someone entitled to reverse it, not by a session
+        // reset.
+        //
+        // Checked before anything is deleted, so a refused reset changes nothing.
+        if (sample.Status == SampleStatus.Rejected)
+        {
+            throw new WorkflowStepException(
+                "SampleRejected",
+                $"Sample #{sample.ReferenceNumber} has been rejected and its testing session cannot be reset. "
+                + "A rejection is reversed through the approval workflow by a Section Head.");
+        }
+
         var testOrderIds = sample.TestOrders.Select(t => t.Id).ToList();
         var locationIds = sample.Locations.Select(l => l.Id).ToList();
         var resetReason = string.IsNullOrWhiteSpace(reason) ? "Analyst requested session workflow reset" : reason.Trim();
@@ -1500,7 +1517,9 @@ public class PathogenSessionService
         }
 
         // 8. Reset Sample Status
-        if (sample.Status == SampleStatus.InTesting || sample.Status == SampleStatus.Rejected || sample.Status == SampleStatus.UnderReview)
+        // Rejected is absent deliberately: the guard at the top of this method
+        // refuses that sample outright, so it can never reach this line.
+        if (sample.Status == SampleStatus.InTesting || sample.Status == SampleStatus.UnderReview)
         {
             sample.Status = SampleStatus.Received;
         }

@@ -11,7 +11,6 @@ import {
   Chip,
   Divider,
   Alert,
-  CircularProgress,
   useTheme,
   Accordion,
   AccordionSummary,
@@ -23,7 +22,6 @@ import VerifiedIcon from "@mui/icons-material/Verified";
 import UploadFileIcon from "@mui/icons-material/UploadFile";
 import HistoryIcon from "@mui/icons-material/History";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
-import RuleIcon from "@mui/icons-material/Rule";
 import { Item } from "../services/ItemService";
 import { CategoryBadge, StatusBadge } from "../../../../components/StatusBadge";
 import { ItemDocumentService, ItemDocumentDto, ItemDocumentType, MaterialDocumentStatus } from "../services/ItemDocumentService";

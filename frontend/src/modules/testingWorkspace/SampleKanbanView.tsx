@@ -1,7 +1,6 @@
 import { Box, Paper, Typography, Stack, useTheme } from "@mui/material";
 import { SampleCard as SampleCardType } from "./types/workspaceTypes";
 import { CategoryBadge } from "../../components/StatusBadge";
-import { brandColors } from "../../theme";
 
 const COLUMNS: { status: string; label: string }[] = [
   { status: "Received", label: "Received" },

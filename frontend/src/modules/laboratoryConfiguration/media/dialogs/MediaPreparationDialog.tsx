@@ -20,7 +20,6 @@ import { MediaPreparationService } from "../services/MediaPreparationService";
 import { MaterialService } from "../../../inventory/materials/services/MaterialService";
 import { EquipmentConfigurationService, AutoclaveProgram } from "../../masterDataSimple/services/EquipmentConfigurationService";
 import { masterDataOptions } from "../../../../services/masterDataOptions";
-import { apiClient } from "../../../../services/apiClient";
 
 interface Props {
   open: boolean;

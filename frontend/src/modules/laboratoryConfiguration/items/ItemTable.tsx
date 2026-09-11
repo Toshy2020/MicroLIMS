@@ -8,7 +8,7 @@ import DescriptionIcon from "@mui/icons-material/Description";
 import { Item } from "./services/ItemService";
 import { CategoryBadge, StatusBadge } from "../../../components/StatusBadge";
 import { ConfirmationDialog } from "../../../components/ConfirmationDialog";
-import { ItemDocumentService, ItemDocumentDto } from "./services/ItemDocumentService";
+import { ItemDocumentService } from "./services/ItemDocumentService";
 
 const ALLOWED_ITEM_CATEGORIES = ["FinishedProduct", "RawMaterial", "PackagingMaterial"];
 

@@ -6,8 +6,7 @@ import {
   Select,
   MenuItem,
   Button,
-  InputAdornment,
-  Box
+  InputAdornment
 } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
 import FilterAltOffOutlinedIcon from "@mui/icons-material/FilterAltOffOutlined";

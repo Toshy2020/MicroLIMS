@@ -1,7 +1,7 @@
 import {
   Button, Box, Typography,
-  Grid, Paper, Table, TableHead, TableRow, TableCell, TableBody, Chip, Divider,
-  Stack, Alert, useTheme
+  Grid, Paper, Table, TableHead, TableRow, TableCell, TableBody, Chip,
+  Stack, useTheme
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import BiocontrolIcon from "@mui/icons-material/Coronavirus";

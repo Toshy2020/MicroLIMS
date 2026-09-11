@@ -26,7 +26,7 @@ import InventoryOutlinedIcon from "@mui/icons-material/InventoryOutlined";
 import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 import { Link } from "react-router-dom";
 import { StatusBadge } from "../../../../components/StatusBadge";
-import { mediaClassLabel, evaluationTypeLabel } from "../../../../services/masterDataOptions";
+import { evaluationTypeLabel } from "../../../../services/masterDataOptions";
 import { MediaSummary } from "../types/mediaSummaryTypes";
 import { apiClient } from "../../../../services/apiClient";
 import { lifecycleOf } from "./MediaLotKpiCards";

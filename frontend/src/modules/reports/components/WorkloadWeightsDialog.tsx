@@ -10,7 +10,6 @@ import CloseIcon from "@mui/icons-material/Close";
 import { WorkloadWeightConfig } from "../types/reportingTypes";
 import { AnalystKpiService } from "../services/AnalystKpiService";
 import { useAuth } from "../../../contexts/AuthContext";
-import { brandColors } from "../../../theme";
 import { FloatingDialog } from "../../../components/FloatingDialog";
 
 interface WorkloadWeightsDialogProps {

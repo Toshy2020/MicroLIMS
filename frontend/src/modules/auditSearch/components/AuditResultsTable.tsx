@@ -14,7 +14,6 @@ import {
   Tooltip
 } from "@mui/material";
 import TimelineIcon from "@mui/icons-material/Timeline";
-import VisibilityOutlinedIcon from "@mui/icons-material/VisibilityOutlined";
 import { formatLabDateTime } from "../../../utils/formatDate";
 import type { AuditLogItem } from "../types/auditTypes";
 import { ENTITY_DISPLAY_NAMES } from "../types/auditTypes";

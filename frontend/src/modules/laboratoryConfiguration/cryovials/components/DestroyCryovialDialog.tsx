@@ -11,7 +11,6 @@ import {
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 import { CryovialItem } from "../types/cryovialTypes";
-import { brandColors } from "../../../../theme";
 import { FloatingDialog } from "../../../../components/FloatingDialog";
 
 interface DestroyCryovialDialogProps {

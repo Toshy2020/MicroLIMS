@@ -1,6 +1,5 @@
 import { FloatingDialog } from "../../components/FloatingDialog";
 import { SampleCard, TestOrderSummary } from "./types/workspaceTypes";
-import { ResultEntryDialog } from "./ResultEntryDialog";
 import { TestWorkflowDialog } from "./TestWorkflowDialog";
 
 interface Props {

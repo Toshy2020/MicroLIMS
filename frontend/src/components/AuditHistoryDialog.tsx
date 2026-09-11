@@ -11,7 +11,6 @@ import {
 } from "@mui/material";
 import HistoryIcon from "@mui/icons-material/History";
 import { formatLabDateTime } from "../utils/formatDate";
-import { brandColors } from "../theme";
 import { FloatingDialog } from "./FloatingDialog";
 import { AuditSearchService } from "../modules/auditSearch/services/AuditSearchService";
 import type { AuditLogItem } from "../modules/auditSearch/types/auditTypes";

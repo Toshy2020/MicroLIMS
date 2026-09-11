@@ -16,7 +16,6 @@ import { MarkOutOfStockDialog } from "./dialogs/MarkOutOfStockDialog";
 import { MediaPreparationService } from "./services/MediaPreparationService";
 import { MediaEvaluationService } from "../mediaEvaluation/services/MediaEvaluationService";
 import { masterDataOptions } from "../../../services/masterDataOptions";
-import { brandColors } from "../../../theme";
 
 export function MediaPage() {
   const [lots, setLots] = useState<any[]>([]);

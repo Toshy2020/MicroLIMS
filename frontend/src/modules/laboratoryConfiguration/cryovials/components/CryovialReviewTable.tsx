@@ -24,7 +24,7 @@ import { StatusBadge } from "../../../../components/StatusBadge";
 import { formatLabDate } from "../../../../utils/formatDate";
 import { CryovialItem } from "../types/cryovialTypes";
 import { isMaterialExpiringSoon } from "../../../inventory/materials/components/MaterialKpiCards";
-import { brandColors, tableHeadSx } from "../../../../theme";
+import { tableHeadSx } from "../../../../theme";
 
 interface CryovialReviewTableProps {
   items: CryovialItem[];

@@ -1,5 +1,4 @@
 import { Box, Button, TextField, Paper , useTheme} from "@mui/material";
-import { brandColors } from "../../../theme";
 import { QUICK_PERIOD_OPTIONS, QuickPeriod, toDateInputValue } from "../utils/dateRange";
 
 interface QuickPeriodSelectorProps {

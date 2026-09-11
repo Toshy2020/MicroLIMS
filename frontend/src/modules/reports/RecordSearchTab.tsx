@@ -4,7 +4,7 @@ import { ReportFilterPanel } from "./components/ReportFilterPanel";
 import { ReportResultsTable } from "./components/ReportResultsTable";
 import { QuickReportsTiles } from "./components/QuickReportsTiles";
 import { ReportingService } from "./services/ReportingService";
-import { FilterOptionsResponse, ResultRecordItem, ResultRecordSearchParams, ResultRecordSearchResponse, SampleCategory } from "./types/reportingTypes";
+import { FilterOptionsResponse, ResultRecordSearchParams, ResultRecordSearchResponse, SampleCategory } from "./types/reportingTypes";
 
 interface RecordSearchTabProps {
   fromDate: string | undefined;

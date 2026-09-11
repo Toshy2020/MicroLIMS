@@ -1,7 +1,6 @@
 ﻿import { ComponentType } from "react";
 import SpaceDashboardOutlinedIcon from "@mui/icons-material/SpaceDashboardOutlined";
 import ScienceOutlinedIcon from "@mui/icons-material/ScienceOutlined";
-import MoveToInboxOutlinedIcon from "@mui/icons-material/MoveToInboxOutlined";
 import MedicationLiquidOutlinedIcon from "@mui/icons-material/MedicationLiquidOutlined";
 import AcUnitOutlinedIcon from "@mui/icons-material/AcUnitOutlined";
 import Inventory2OutlinedIcon from "@mui/icons-material/Inventory2Outlined";

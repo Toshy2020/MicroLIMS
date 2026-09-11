@@ -4,9 +4,7 @@ import {
   Typography,
   IconButton,
   Chip,
-  Divider,
   Button,
-  Stack,
   useTheme
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
@@ -16,7 +14,6 @@ import EventNoteIcon from "@mui/icons-material/EventNote";
 import TimelineIcon from "@mui/icons-material/Timeline";
 import CodeIcon from "@mui/icons-material/Code";
 import { formatLabDateTime } from "../../../utils/formatDate";
-import { brandColors } from "../../../theme";
 import type { AuditLogItem } from "../types/auditTypes";
 import { ENTITY_DISPLAY_NAMES } from "../types/auditTypes";
 import { AuditDiffViewer } from "./AuditDiffViewer";

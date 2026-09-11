@@ -10,11 +10,9 @@ import {
   TableRow,
   TableCell,
   TableBody,
-  Divider,
   useTheme
 } from "@mui/material";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
-import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 import ScienceOutlinedIcon from "@mui/icons-material/ScienceOutlined";
 import LocationOnOutlinedIcon from "@mui/icons-material/LocationOnOutlined";
 import FactCheckOutlinedIcon from "@mui/icons-material/FactCheckOutlined";

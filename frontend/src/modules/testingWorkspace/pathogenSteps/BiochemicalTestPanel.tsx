@@ -92,7 +92,9 @@ export function BiochemicalTestPanel({ testOrderId, step, confirmatoryOutcome, o
         <Alert severity="warning">
           Submitting as Detected without biochemical confirmation will be flagged for the reviewer.
         </Alert>
-        <Stack direction="row" spacing={1.5} justifyContent="flex-end">
+        <Stack direction="row" spacing={1.5} sx={{
+          justifyContent: "flex-end"
+        }}>
           <Button variant="outlined" color="warning" onClick={() => decide("SubmitAsDetected")}>
             Submit as Detected (skip biochemical)
           </Button>
@@ -123,7 +125,9 @@ export function BiochemicalTestPanel({ testOrderId, step, confirmatoryOutcome, o
           </Alert>
         );
       })()}
-      <Typography variant="body2" color="text.secondary">
+      <Typography variant="body2" sx={{
+        color: "text.secondary"
+      }}>
         Record the biochemical confirmation result (e.g. IMViC pattern, API strip result).
       </Typography>
       <TextField
@@ -142,7 +146,9 @@ export function BiochemicalTestPanel({ testOrderId, step, confirmatoryOutcome, o
         <ToggleButton value="not-detected" color="success">Not Detected</ToggleButton>
         <ToggleButton value="detected" color="error">Detected</ToggleButton>
       </ToggleButtonGroup>
-      <Stack direction="row" justifyContent="flex-end">
+      <Stack direction="row" sx={{
+        justifyContent: "flex-end"
+      }}>
         <Button variant="contained" disabled={!text.trim() || organismDetected === null} onClick={submit}>Submit</Button>
       </Stack>
     </Stack>

@@ -192,7 +192,7 @@ public class DocumentControlElectronicSignaturePostgresIntegrationTests
         // Attempt direct raw SQL UPDATE on ElectronicSignatures table
         // This must be blocked by trg_electronicsignatures_immutable
         var ex = await Assert.ThrowsAsync<PostgresException>(() =>
-            db.Database.ExecuteSqlRawAsync($"UPDATE \"ElectronicSignatures\" SET \"Comment\" = 'Tampered' WHERE \"Id\" = {signature.Id}"));
+            db.Database.ExecuteSqlAsync($"UPDATE \"ElectronicSignatures\" SET \"Comment\" = 'Tampered' WHERE \"Id\" = {signature.Id}"));
 
         Assert.Contains("append-only: UPDATE and DELETE operations are prohibited by GMP regulations", ex.Message);
     }
@@ -223,7 +223,7 @@ public class DocumentControlElectronicSignaturePostgresIntegrationTests
         // Attempt direct raw SQL DELETE on ElectronicSignatures table
         // This must be blocked by trg_electronicsignatures_immutable
         var ex = await Assert.ThrowsAsync<PostgresException>(() =>
-            db.Database.ExecuteSqlRawAsync($"DELETE FROM \"ElectronicSignatures\" WHERE \"Id\" = {signature.Id}"));
+            db.Database.ExecuteSqlAsync($"DELETE FROM \"ElectronicSignatures\" WHERE \"Id\" = {signature.Id}"));
 
         Assert.Contains("append-only: UPDATE and DELETE operations are prohibited by GMP regulations", ex.Message);
     }

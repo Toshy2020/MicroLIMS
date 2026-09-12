@@ -216,7 +216,13 @@ export function MediaPreparationDialog({ open, onClose, onSuccess }: Props) {
                     ))}
                   </Select>
                   {selectedMaterial && (
-                    <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 0.5 }}>
+                    <Typography
+                      variant="caption"
+                      sx={{
+                        color: "text.secondary",
+                        display: "block",
+                        mt: 0.5
+                      }}>
                       Manufacturer: {selectedMaterial.manufacturerName} · Batch: {selectedMaterial.batchNumber}
                     </Typography>
                   )}
@@ -248,7 +254,13 @@ export function MediaPreparationDialog({ open, onClose, onSuccess }: Props) {
               <Typography sx={{ fontSize: 13, fontWeight: 700, color: theme.palette.primary.main, mb: 1.5 }}>
                 2. STERILIZATION & AUTOCLAVE PARAMETERS
               </Typography>
-              <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 1.5 }}>
+              <Typography
+                variant="caption"
+                sx={{
+                  color: "text.secondary",
+                  display: "block",
+                  mb: 1.5
+                }}>
                 Select an autoclave and configured program. Load Type, Temperature, and Cycle Time are automatically set from Laboratory Configuration.
               </Typography>
 
@@ -290,24 +302,30 @@ export function MediaPreparationDialog({ open, onClose, onSuccess }: Props) {
                   size="small"
                   label="Load Type (Read-Only)"
                   value={form.loadType ?? ""}
-                  InputProps={{ readOnly: true }}
                   helperText="Configured in Laboratory Configuration"
+                  slotProps={{
+                    input: { readOnly: true }
+                  }}
                 />
 
                 <TextField
                   size="small"
                   label="Temperature (°C) (Read-Only)"
                   value={form.temperature ? `${form.temperature} °C` : ""}
-                  InputProps={{ readOnly: true }}
                   helperText="Configured in Laboratory Configuration"
+                  slotProps={{
+                    input: { readOnly: true }
+                  }}
                 />
 
                 <TextField
                   size="small"
                   label="Cycle Time (min) (Read-Only)"
                   value={form.cycleTime ? `${form.cycleTime} min` : ""}
-                  InputProps={{ readOnly: true }}
                   helperText="Configured in Laboratory Configuration"
+                  slotProps={{
+                    input: { readOnly: true }
+                  }}
                 />
 
                 <TextField
@@ -334,19 +352,23 @@ export function MediaPreparationDialog({ open, onClose, onSuccess }: Props) {
                   size="small"
                   label="pH (at 25°C) *"
                   type="number"
-                  inputProps={{ step: "0.01" }}
                   placeholder="e.g. 7.30"
                   value={form.ph ?? ""}
                   onChange={(e) => setField("ph", e.target.value)}
+                  slotProps={{
+                    htmlInput: { step: "0.01" }
+                  }}
                 />
 
                 <TextField
                   size="small"
                   label="Expiry Date *"
                   type="date"
-                  InputLabelProps={{ shrink: true }}
                   value={form.expiryDate ?? ""}
                   onChange={(e) => setField("expiryDate", e.target.value)}
+                  slotProps={{
+                    inputLabel: { shrink: true }
+                  }}
                 />
               </Box>
             </Box>

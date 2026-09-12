@@ -87,81 +87,83 @@ export function UploadItemDocumentDialog({
         </>
       }
     >
-        <Stack spacing={2} sx={{ mt: 0.5 }}>
-          {error && <Alert severity="error">{error}</Alert>}
+      <Stack spacing={2} sx={{ mt: 0.5 }}>
+        {error && <Alert severity="error">{error}</Alert>}
 
-          <Typography variant="body2" sx={{ color: "text.secondary" }}>
-            Item: <strong>{itemName}</strong>
+        <Typography variant="body2" sx={{ color: "text.secondary" }}>
+          Item: <strong>{itemName}</strong>
+        </Typography>
+
+        <Box>
+          <Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 600, display: "block", mb: 0.5 }}>
+            Document Type
           </Typography>
-
-          <Box>
-            <Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 600, display: "block", mb: 0.5 }}>
-              Document Type
-            </Typography>
-            <Select
-              size="small"
-              value={docType}
-              onChange={(e) => setDocType(e.target.value as ItemDocumentType)}
-              fullWidth
-            >
-              <MenuItem value={ItemDocumentType.Sop}>SOP</MenuItem>
-              <MenuItem value={ItemDocumentType.VerificationReport}>Verification Report</MenuItem>
-            </Select>
-          </Box>
-
-          <Stack direction="row" spacing={1.5}>
-            <TextField
-              size="small"
-              label="Version"
-              placeholder="e.g. Rev 01"
-              value={version}
-              onChange={(e) => setVersion(e.target.value)}
-              sx={{ flex: 1 }}
-              required
-            />
-            <TextField
-              size="small"
-              label="Effective Date"
-              type="date"
-              value={effectiveDate}
-              onChange={(e) => setEffectiveDate(e.target.value)}
-              InputLabelProps={{ shrink: true }}
-              sx={{ flex: 1 }}
-            />
-          </Stack>
-
-          <Box
-            sx={{
-              p: 2,
-              border: "1px dashed",
-              borderColor: file ? "primary.main" : "divider",
-              borderRadius: 1.5,
-              textAlign: "center",
-              bgcolor: file ? "action.hover" : "transparent",
-            }}
+          <Select
+            size="small"
+            value={docType}
+            onChange={(e) => setDocType(e.target.value as ItemDocumentType)}
+            fullWidth
           >
-            <input
-              type="file"
-              id="item-doc-upload-input"
-              style={{ display: "none" }}
-              accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg"
-              onChange={(e) => {
-                if (e.target.files && e.target.files[0]) {
-                  setFile(e.target.files[0]);
-                }
-              }}
-            />
-            <label htmlFor="item-doc-upload-input" style={{ cursor: "pointer", display: "block" }}>
-              <CloudUploadIcon sx={{ fontSize: 32, color: file ? "primary.main" : "text.secondary", mb: 0.5 }} />
-              <Typography variant="body2" sx={{ fontWeight: 600, color: "text.primary" }}>
-                {file ? file.name : "Choose File"}
-              </Typography>
-              <Typography variant="caption" sx={{ color: "text.secondary" }}>
-                {file ? `${(file.size / 1024).toFixed(1)} KB` : "PDF, Word, Excel, or Image (Max 25MB)"}
-              </Typography>
-            </label>
-          </Box>
+            <MenuItem value={ItemDocumentType.Sop}>SOP</MenuItem>
+            <MenuItem value={ItemDocumentType.VerificationReport}>Verification Report</MenuItem>
+          </Select>
+        </Box>
+
+        <Stack direction="row" spacing={1.5}>
+          <TextField
+            size="small"
+            label="Version"
+            placeholder="e.g. Rev 01"
+            value={version}
+            onChange={(e) => setVersion(e.target.value)}
+            sx={{ flex: 1 }}
+            required
+          />
+          <TextField
+            size="small"
+            label="Effective Date"
+            type="date"
+            value={effectiveDate}
+            onChange={(e) => setEffectiveDate(e.target.value)}
+            sx={{ flex: 1 }}
+            slotProps={{
+              inputLabel: { shrink: true }
+            }}
+          />
         </Stack>
+
+        <Box
+          sx={{
+            p: 2,
+            border: "1px dashed",
+            borderColor: file ? "primary.main" : "divider",
+            borderRadius: 1.5,
+            textAlign: "center",
+            bgcolor: file ? "action.hover" : "transparent",
+          }}
+        >
+          <input
+            type="file"
+            id="item-doc-upload-input"
+            style={{ display: "none" }}
+            accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg"
+            onChange={(e) => {
+              if (e.target.files && e.target.files[0]) {
+                setFile(e.target.files[0]);
+              }
+            }}
+          />
+          <label htmlFor="item-doc-upload-input" style={{ cursor: "pointer", display: "block" }}>
+            <CloudUploadIcon sx={{ fontSize: 32, color: file ? "primary.main" : "text.secondary", mb: 0.5 }} />
+            <Typography variant="body2" sx={{ fontWeight: 600, color: "text.primary" }}>
+              {file ? file.name : "Choose File"}
+            </Typography>
+            <Typography variant="caption" sx={{ color: "text.secondary" }}>
+              {file ? `${(file.size / 1024).toFixed(1)} KB` : "PDF, Word, Excel, or Image (Max 25MB)"}
+            </Typography>
+          </label>
+        </Box>
+      </Stack>
     </FloatingDialog>
   );
 }

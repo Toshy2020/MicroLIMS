@@ -16,7 +16,7 @@ import {
   Tooltip,
   useTheme
 } from "@mui/material";
-import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
+import DeleteOutlineIcon from "@mui/icons-material/DeleteOutlined";
 import AddIcon from "@mui/icons-material/Add";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import { ReceiveRowItem, SampleCategoryKey } from "../types/receivingTypes";
@@ -220,7 +220,9 @@ export function MultiSampleEntryGrid({
                             value={row.previousProductName ?? ""}
                             error={Boolean(errors.previousProductName)}
                             onChange={(e) => onChangeRow(idx, "previousProductName", e.target.value)}
-                            inputProps={{ style: { fontSize: 12 } }}
+                            slotProps={{
+                              htmlInput: { style: { fontSize: 12 } }
+                            }}
                           />
                         </TableCell>
                         <TableCell>
@@ -231,7 +233,9 @@ export function MultiSampleEntryGrid({
                             value={row.previousProductBatchNumber ?? ""}
                             error={Boolean(errors.previousProductBatchNumber)}
                             onChange={(e) => onChangeRow(idx, "previousProductBatchNumber", e.target.value)}
-                            inputProps={{ style: { fontSize: 12 } }}
+                            slotProps={{
+                              htmlInput: { style: { fontSize: 12 } }
+                            }}
                           />
                         </TableCell>
                       </>
@@ -363,7 +367,9 @@ export function MultiSampleEntryGrid({
                           placeholder="e.g. 50g / 100ml"
                           value={row.sampleQuantity ?? ""}
                           onChange={(e) => onChangeRow(idx, "sampleQuantity", e.target.value)}
-                          inputProps={{ style: { fontSize: 12 } }}
+                          slotProps={{
+                            htmlInput: { style: { fontSize: 12 } }
+                          }}
                         />
                       </TableCell>
                     )}
@@ -381,7 +387,10 @@ export function MultiSampleEntryGrid({
                             {...params}
                             placeholder="Sampled By"
                             error={Boolean(errors.sampledBy)}
-                            inputProps={{ ...params.inputProps, style: { fontSize: 12 } }}
+                            slotProps={{
+                              ...params.slotProps,
+                              htmlInput: { ...params.slotProps.htmlInput, style: { fontSize: 12 } }
+                            }}
                           />
                         )}
                       />
@@ -396,7 +405,9 @@ export function MultiSampleEntryGrid({
                           placeholder="Batch No."
                           value={row.batchNumber ?? ""}
                           onChange={(e) => onChangeRow(idx, "batchNumber", e.target.value)}
-                          inputProps={{ style: { fontSize: 12 } }}
+                          slotProps={{
+                            htmlInput: { style: { fontSize: 12 } }
+                          }}
                         />
                       </TableCell>
                     )}
@@ -409,7 +420,9 @@ export function MultiSampleEntryGrid({
                         placeholder="Control No."
                         value={row.controlNumber ?? ""}
                         onChange={(e) => onChangeRow(idx, "controlNumber", e.target.value)}
-                        inputProps={{ style: { fontSize: 12 } }}
+                        slotProps={{
+                          htmlInput: { style: { fontSize: 12 } }
+                        }}
                       />
                     </TableCell>
 
@@ -423,7 +436,9 @@ export function MultiSampleEntryGrid({
                             fullWidth
                             value={row.mfgDate ?? ""}
                             onChange={(e) => onChangeRow(idx, "mfgDate", e.target.value)}
-                            inputProps={{ style: { fontSize: 12 } }}
+                            slotProps={{
+                              htmlInput: { style: { fontSize: 12 } }
+                            }}
                           />
                         </TableCell>
                         <TableCell>
@@ -434,7 +449,9 @@ export function MultiSampleEntryGrid({
                             value={row.expDate ?? ""}
                             error={Boolean(errors.expDate)}
                             onChange={(e) => onChangeRow(idx, "expDate", e.target.value)}
-                            inputProps={{ style: { fontSize: 12 } }}
+                            slotProps={{
+                              htmlInput: { style: { fontSize: 12 } }
+                            }}
                           />
                         </TableCell>
                       </>

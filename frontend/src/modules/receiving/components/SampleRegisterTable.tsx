@@ -15,7 +15,7 @@ import {
   useTheme
 } from "@mui/material";
 import DescriptionIcon from "@mui/icons-material/Description";
-import PersonOutlineIcon from "@mui/icons-material/PersonOutline";
+import PersonOutlineIcon from "@mui/icons-material/PersonOutlined";
 import AssignmentIndIcon from "@mui/icons-material/AssignmentInd";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import KeyboardArrowRightIcon from "@mui/icons-material/KeyboardArrowRight";
@@ -286,10 +286,12 @@ export function SampleRegisterTable({
                     onToggleCheck(sample.sampleId, e.target.checked);
                   }}
                   onClick={(e) => e.stopPropagation()}
-                  inputProps={{
-                    "aria-label": `Select ${sample.displayName} (${sample.referenceNumber}) for grouped actions`
-                  }}
                   sx={{ p: 0.25, mr: 0.25 }}
+                  slotProps={{
+                    input: {
+                      "aria-label": `Select ${sample.displayName} (${sample.referenceNumber}) for grouped actions`
+                    }
+                  }}
                 />
               )}
               {isNested && (
@@ -535,12 +537,14 @@ export function SampleRegisterTable({
                       indeterminate={someOnPageChecked}
                       disabled={idsOnPage.length === 0}
                       onChange={(e) => onToggleCheckMany(idsOnPage, e.target.checked)}
-                      inputProps={{
-                        "aria-label": allOnPageChecked
-                          ? `Deselect all ${idsOnPage.length} samples on this page`
-                          : `Select all ${idsOnPage.length} samples on this page`
-                      }}
                       sx={{ p: 0.25 }}
+                      slotProps={{
+                        input: {
+                          "aria-label": allOnPageChecked
+                            ? `Deselect all ${idsOnPage.length} samples on this page`
+                            : `Select all ${idsOnPage.length} samples on this page`
+                        }
+                      }}
                     />
                   )}
                   Item / Reference

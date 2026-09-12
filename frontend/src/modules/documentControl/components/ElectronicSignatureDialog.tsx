@@ -128,39 +128,62 @@ export const ElectronicSignatureDialog: React.FC<ElectronicSignatureDialogProps>
 
           {/* Signature Manifest Card */}
           <Paper variant="outlined" sx={{ p: 2, mb: 2.5, bgcolor: (t) => t.palette.mode === "dark" ? "#1A2027" : "#F8FAFC" }}>
-            <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, display: "block", mb: 1 }}>
+            <Typography
+              variant="caption"
+              sx={{
+                color: "text.secondary",
+                fontWeight: 700,
+                textTransform: "uppercase",
+                letterSpacing: 0.5,
+                display: "block",
+                mb: 1
+              }}>
               Signature Attribution Record
             </Typography>
             <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 1 }}>
               <Box>
-                <Typography variant="caption" color="text.secondary">Document Code:</Typography>
+                <Typography variant="caption" sx={{
+                  color: "text.secondary"
+                }}>Document Code:</Typography>
                 <Typography variant="body2" sx={{ fontWeight: 600 }}>{documentCode}</Typography>
               </Box>
               <Box>
-                <Typography variant="caption" color="text.secondary">Revision Number:</Typography>
+                <Typography variant="caption" sx={{
+                  color: "text.secondary"
+                }}>Revision Number:</Typography>
                 <Typography variant="body2" sx={{ fontWeight: 600 }}>Rev {revisionNumber}</Typography>
               </Box>
               <Box sx={{ gridColumn: "span 2" }}>
-                <Typography variant="caption" color="text.secondary">Document Title:</Typography>
+                <Typography variant="caption" sx={{
+                  color: "text.secondary"
+                }}>Document Title:</Typography>
                 <Typography variant="body2" sx={{ fontWeight: 500 }}>{documentTitle}</Typography>
               </Box>
             </Box>
             <Divider sx={{ my: 1.5 }} />
             <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 1 }}>
               <Box>
-                <Typography variant="caption" color="text.secondary">Signer Name:</Typography>
+                <Typography variant="caption" sx={{
+                  color: "text.secondary"
+                }}>Signer Name:</Typography>
                 <Typography variant="body2" sx={{ fontWeight: 600 }}>{signerFullName}</Typography>
               </Box>
               <Box>
-                <Typography variant="caption" color="text.secondary">Username:</Typography>
+                <Typography variant="caption" sx={{
+                  color: "text.secondary"
+                }}>Username:</Typography>
                 <Typography variant="body2">{signerUsername}</Typography>
               </Box>
               <Box>
-                <Typography variant="caption" color="text.secondary">Signer Role:</Typography>
+                <Typography variant="caption" sx={{
+                  color: "text.secondary"
+                }}>Signer Role:</Typography>
                 <Typography variant="body2">{signerRole}</Typography>
               </Box>
               <Box>
-                <Typography variant="caption" color="text.secondary">Signature Meaning:</Typography>
+                <Typography variant="caption" sx={{
+                  color: "text.secondary"
+                }}>Signature Meaning:</Typography>
                 <Typography variant="body2" sx={{ fontWeight: 700, color: "success.main" }}>
                   {meaning}
                 </Typography>
@@ -179,20 +202,22 @@ export const ElectronicSignatureDialog: React.FC<ElectronicSignatureDialogProps>
             onChange={(e) => setPassword(e.target.value)}
             disabled={signing}
             placeholder="Account password"
-            InputProps={{
-              endAdornment: (
-                <InputAdornment position="end">
-                  <IconButton
-                    aria-label="toggle password visibility"
-                    onClick={() => setShowPassword(!showPassword)}
-                    edge="end"
-                  >
-                    {showPassword ? <VisibilityOff /> : <Visibility />}
-                  </IconButton>
-                </InputAdornment>
-              )
-            }}
             helperText="Per 21 CFR §11.200, individual password confirmation is required at the time of each signing ceremony."
+            slotProps={{
+              input: {
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <IconButton
+                      aria-label="toggle password visibility"
+                      onClick={() => setShowPassword(!showPassword)}
+                      edge="end"
+                    >
+                      {showPassword ? <VisibilityOff /> : <Visibility />}
+                    </IconButton>
+                  </InputAdornment>
+                )
+              }
+            }}
           />
         </DialogContent>
 

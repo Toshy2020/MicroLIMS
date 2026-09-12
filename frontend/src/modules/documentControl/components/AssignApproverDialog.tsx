@@ -70,7 +70,8 @@ export const AssignApproverDialog: React.FC<AssignApproverDialogProps> = ({
   const fetchEligibleApprovers = async () => {
     try {
       setLoading(true);
-      const res = await apiClient.get("/users");
+      // /users is SystemAdministrator-only; the directory is open to any authenticated user.
+      const res = await apiClient.get("/users/directory");
       const allUsers: UserOption[] = res.data.data || res.data || [];
       // Filter out Author and Reviewer per SoD rules (DC-URS-078)
       const eligible = allUsers.filter(
@@ -167,9 +168,11 @@ export const AssignApproverDialog: React.FC<AssignApproverDialogProps> = ({
               size="small"
               value={targetEffectiveDate}
               onChange={(e) => setTargetEffectiveDate(e.target.value)}
-              InputLabelProps={{ shrink: true }}
               helperText="If set to a future date, document will be approved in Future Effective state until activation."
               fullWidth
+              slotProps={{
+                inputLabel: { shrink: true }
+              }}
             />
 
             <TextField
@@ -178,8 +181,10 @@ export const AssignApproverDialog: React.FC<AssignApproverDialogProps> = ({
               size="small"
               value={dueDate}
               onChange={(e) => setDueDate(e.target.value)}
-              InputLabelProps={{ shrink: true }}
               fullWidth
+              slotProps={{
+                inputLabel: { shrink: true }
+              }}
             />
 
             <TextField

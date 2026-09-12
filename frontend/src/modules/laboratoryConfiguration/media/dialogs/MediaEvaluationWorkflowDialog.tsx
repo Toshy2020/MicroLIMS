@@ -260,7 +260,13 @@ export function MediaEvaluationWorkflowDialog({ open, evaluationId, onClose, onU
                         <Typography sx={{ fontSize: 11, fontWeight: 700, color: "text.secondary", mb: 0.5 }}>
                           REFERENCE LOT (FOR RECOVERY% COMPARISON)
                         </Typography>
-                        <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
+                        <Stack
+                          direction="row"
+                          spacing={1}
+                          sx={{
+                            alignItems: "center",
+                            flexWrap: "wrap"
+                          }}>
                           {referenceLotOptions.length > 0 && (
                             <Select
                               size="small"
@@ -319,7 +325,9 @@ export function MediaEvaluationWorkflowDialog({ open, evaluationId, onClose, onU
                             No approved, unexpired cryovial batches or lyophilized disks available for {c.organism?.scientificName}.
                           </Alert>
                         ) : (
-                          <Stack direction="row" spacing={1} alignItems="center">
+                          <Stack direction="row" spacing={1} sx={{
+                            alignItems: "center"
+                          }}>
                             <Select
                               size="small"
                               displayEmpty
@@ -371,7 +379,9 @@ export function MediaEvaluationWorkflowDialog({ open, evaluationId, onClose, onU
                         <Typography sx={{ fontSize: 11, fontWeight: 700, color: "text.secondary", mb: 0.5 }}>
                           STEP 2: RECORD INCUBATION
                         </Typography>
-                        <Stack direction="row" spacing={1} alignItems="center">
+                        <Stack direction="row" spacing={1} sx={{
+                          alignItems: "center"
+                        }}>
                           <Select
                             size="small"
                             displayEmpty
@@ -493,7 +503,12 @@ export function MediaEvaluationWorkflowDialog({ open, evaluationId, onClose, onU
                                 onChange={(e) => setField(c.id, "observedDescription", e.target.value)}
                                 sx={{ gridColumn: "span 2" }}
                               />
-                              <Typography variant="caption" color="text.secondary" sx={{ gridColumn: "span 2" }}>
+                              <Typography
+                                variant="caption"
+                                sx={{
+                                  color: "text.secondary",
+                                  gridColumn: "span 2"
+                                }}>
                                 Expected: {c.expectedDescription ?? "—"}
                               </Typography>
                               <Select

@@ -133,7 +133,9 @@ export function CreateRolePage() {
             <Typography sx={{ fontSize: 13, fontWeight: 600, mb: 1 }}>
               Starting point: {baseType}'s current permissions (edit freely below)
             </Typography>
-            <Stack direction="row" spacing={1.5} alignItems="center">
+            <Stack direction="row" spacing={1.5} sx={{
+              alignItems: "center"
+            }}>
               <Typography sx={{ fontSize: 13, color: "text.secondary" }}>Or clone permissions from any existing role:</Typography>
               <Select
                 size="small"
@@ -173,7 +175,9 @@ export function CreateRolePage() {
               <Typography sx={{ fontSize: 12, color: "text.secondary", textTransform: "uppercase", mb: 1 }}>
                 Permissions ({checkedCodes.size})
               </Typography>
-              <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+              <Stack direction="row" spacing={1} useFlexGap sx={{
+                flexWrap: "wrap"
+              }}>
                 {Array.from(checkedCodes).sort().map((c) => <Chip key={c} label={c} size="small" />)}
                 {checkedCodes.size === 0 && <Typography sx={{ fontSize: 13, color: "text.secondary" }}>None selected.</Typography>}
               </Stack>

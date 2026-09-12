@@ -4,7 +4,7 @@ import ScienceOutlinedIcon from "@mui/icons-material/ScienceOutlined";
 import VisibilityOutlinedIcon from "@mui/icons-material/VisibilityOutlined";
 import RateReviewOutlinedIcon from "@mui/icons-material/RateReviewOutlined";
 import ScheduleOutlinedIcon from "@mui/icons-material/ScheduleOutlined";
-import PersonOutlineIcon from "@mui/icons-material/PersonOutline";
+import PersonOutlineIcon from "@mui/icons-material/PersonOutlined";
 import PersonOffOutlinedIcon from "@mui/icons-material/PersonOffOutlined";
 import { StatusTone } from "../../../theme/statusTokens";
 
@@ -111,7 +111,13 @@ export function SampleStatusKpiCards({ counts, activeKey, onSelect, isSectionHea
         const activeTokens = theme.custom.status.purple;
 
         return (
-          <Grid item xs={6} sm={4} md={2} key={card.key}>
+          <Grid
+            key={card.key}
+            size={{
+              xs: 6,
+              sm: 4,
+              md: 2
+            }}>
             <Paper
               elevation={isActive ? 2 : 0}
               role="button"

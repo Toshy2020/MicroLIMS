@@ -61,7 +61,8 @@ export const SubmitForReviewDialog: React.FC<SubmitForReviewDialogProps> = ({
   const fetchEligibleReviewers = async () => {
     setLoading(true);
     try {
-      const res = await apiClient.get("/users");
+      // /users is SystemAdministrator-only; the directory is open to any authenticated user.
+      const res = await apiClient.get("/users/directory");
       const allUsers = res.data?.data || res.data || [];
       // Segregation of Duties filter: author cannot be reviewer!
       const eligible = allUsers.filter(
@@ -142,8 +143,10 @@ export const SubmitForReviewDialog: React.FC<SubmitForReviewDialogProps> = ({
             type="date"
             value={dueDate}
             onChange={(e) => setDueDate(e.target.value)}
-            InputLabelProps={{ shrink: true }}
             fullWidth
+            slotProps={{
+              inputLabel: { shrink: true }
+            }}
           />
 
           <TextField

@@ -339,17 +339,19 @@ export function ApprovedCryovialListPage() {
               placeholder="Search by cryovial code, organism, ATCC no., manufacturer..."
               value={filters.search}
               onChange={(e) => handleFilterChange("search", e.target.value)}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <SearchIcon sx={{ color: "text.secondary", fontSize: 20 }} />
-                  </InputAdornment>
-                )
-              }}
               sx={{
                 "& .MuiOutlinedInput-root": {
                   borderRadius: 1.5,
                   bgcolor: "background.default"
+                }
+              }}
+              slotProps={{
+                input: {
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <SearchIcon sx={{ color: "text.secondary", fontSize: 20 }} />
+                    </InputAdornment>
+                  )
                 }
               }}
             />

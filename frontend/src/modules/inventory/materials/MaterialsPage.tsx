@@ -272,7 +272,11 @@ export function MaterialsPage() {
                   {paginatedItems.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={15} sx={{ textAlign: "center", py: 4 }}>
-                        <Typography color="text.secondary" sx={{ fontSize: 14 }}>
+                        <Typography
+                          sx={{
+                            color: "text.secondary",
+                            fontSize: 14
+                          }}>
                           No materials matching the selected filter criteria.
                         </Typography>
                       </TableCell>
@@ -434,7 +438,7 @@ export function MaterialsPage() {
         </Box>
       )}
 
-        {/* Add / Edit Modal Dialog */}
+      {/* Add / Edit Modal Dialog */}
       <AddMaterialDialog
         open={isAddOpen}
         onClose={() => {

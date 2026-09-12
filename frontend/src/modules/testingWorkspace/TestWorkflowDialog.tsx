@@ -364,17 +364,23 @@ export function TestWorkflowDialog({ testOrderId, testCode, category, displayNam
 
       <Typography sx={{ fontWeight: 700, mb: 0.5 }}>
         Step {step.stepOrder}: {step.stepName}
-        {isTwoStageTransfer && <Typography component="span" variant="caption" color="text.secondary"> (Two-stage transfer: Stage {currentStageNumber} of 2)</Typography>}
-        {step.isFinalStep && <Typography component="span" variant="caption" color="text.secondary"> — determines the final result</Typography>}
+        {isTwoStageTransfer && <Typography component="span" variant="caption" sx={{
+          color: "text.secondary"
+        }}> (Two-stage transfer: Stage {currentStageNumber} of 2)</Typography>}
+        {step.isFinalStep && <Typography component="span" variant="caption" sx={{
+          color: "text.secondary"
+        }}> — determines the final result</Typography>}
       </Typography>
 
       {phase === "select-media" && (
         <Stack spacing={1.5}>
-          <Typography variant="body2" color="text.secondary">
+          <Typography variant="body2" sx={{
+            color: "text.secondary"
+          }}>
             Requires {permittedMaterialNames || "an approved"} media.
           </Typography>
 
-          <Select
+          <Select<number | "">
             displayEmpty
             size="small"
             value={mediaId}
@@ -396,12 +402,16 @@ export function TestWorkflowDialog({ testOrderId, testCode, category, displayNam
             <Alert severity="warning">No incubator is set to {stage1TempMin}-{stage1TempMax} °C for this step.</Alert>
           )}
           {mediaId && incubatorId && (
-            <Typography variant="body2" color="text.secondary">
+            <Typography variant="body2" sx={{
+              color: "text.secondary"
+            }}>
               Required Temperature (Stage 1): <strong>{stage1TempMin}-{stage1TempMax} °C</strong>
               {" — "}Incubation Period: <strong>{stage1IncMinHours}-{stage1IncMaxHours} hours</strong>
             </Typography>
           )}
-          <Stack direction="row" justifyContent="flex-end">
+          <Stack direction="row" sx={{
+            justifyContent: "flex-end"
+          }}>
             <Button
               variant="contained"
               disabled={!mediaId || !incubatorId}
@@ -420,10 +430,14 @@ export function TestWorkflowDialog({ testOrderId, testCode, category, displayNam
           </Alert>
 
           <Box sx={{ p: 1.5, bgcolor: "background.default", borderRadius: 1, border: "1px solid", borderColor: "divider" }}>
-            <Typography variant="body2" color="text.secondary">
+            <Typography variant="body2" sx={{
+              color: "text.secondary"
+            }}>
               Media Lot (inherited): <strong>{openIncubationRow?.lotNumber ?? "Selected in Stage 1"}</strong>
             </Typography>
-            <Typography variant="body2" color="text.secondary">
+            <Typography variant="body2" sx={{
+              color: "text.secondary"
+            }}>
               Stage 2 Required Temperature: <strong>{stage2Config.tempMin}-{stage2Config.tempMax} °C</strong>
               {" — "}Incubation Period: <strong>{stage2Config.incubationMinHours}-{stage2Config.incubationMaxHours} hours</strong>
             </Typography>
@@ -448,7 +462,9 @@ export function TestWorkflowDialog({ testOrderId, testCode, category, displayNam
             <Alert severity="warning">No incubator is set to {stage2Config.tempMin}-{stage2Config.tempMax} °C for Stage 2.</Alert>
           )}
 
-          <Stack direction="row" spacing={1} justifyContent="flex-end">
+          <Stack direction="row" spacing={1} sx={{
+            justifyContent: "flex-end"
+          }}>
             <Button variant="outlined" onClick={() => setPhase("awaiting-result")}>Back</Button>
             <Button
               variant="contained"
@@ -475,7 +491,9 @@ export function TestWorkflowDialog({ testOrderId, testCode, category, displayNam
           {minimumDurationOverridden && (
             <Alert severity="info">Minimum wait time was skipped by a Section Head/System Administrator.</Alert>
           )}
-          <Stack direction="row" justifyContent="space-between">
+          <Stack direction="row" sx={{
+            justifyContent: "space-between"
+          }}>
             {canOverrideWait && !isTimeReady ? (
               <Button variant="outlined" color="warning" onClick={() => setSkipDialogOpen(true)} disabled={skipping}>
                 Skip Wait
@@ -553,7 +571,13 @@ export function TestWorkflowDialog({ testOrderId, testCode, category, displayNam
                   No Dilution Factor is configured for this test on the item's Specifications tab. Ask a Section Head/Admin to configure it before recording a result.
                 </Alert>
               ) : (
-                <Stack direction="row" spacing={1} alignItems="flex-start" sx={{ mb: 1 }}>
+                <Stack
+                  direction="row"
+                  spacing={1}
+                  sx={{
+                    alignItems: "flex-start",
+                    mb: 1
+                  }}>
                   <TextField
                     label="Dilution Factor"
                     type="number"
@@ -567,8 +591,10 @@ export function TestWorkflowDialog({ testOrderId, testCode, category, displayNam
                           ? "Enter multiplier: 10 for 1:10 dilution, 100 for 1:100"
                           : `Configured value from Specifications${configuredDilutionFactor != null ? ` (${configuredDilutionFactor})` : ""}`
                     }
-                    inputProps={{ step: "1", min: "1" }}
                     sx={{ maxWidth: 300 }}
+                    slotProps={{
+                      htmlInput: { step: "1", min: "1" }
+                    }}
                   />
                   {!isDirectCount && !dilutionFactorOverriding && (
                     <IconButton
@@ -613,7 +639,9 @@ export function TestWorkflowDialog({ testOrderId, testCode, category, displayNam
 
               <Stack spacing={1}>
                 {readings.map((r, i) => (
-                  <Stack direction="row" spacing={1} key={i} alignItems="center">
+                  <Stack direction="row" spacing={1} key={i} sx={{
+                    alignItems: "center"
+                  }}>
                     <TextField
                       size="small"
                       label={`Plate ${i + 1}`}
@@ -666,7 +694,9 @@ export function TestWorkflowDialog({ testOrderId, testCode, category, displayNam
           {!isTimeReady && minReadyAt && (
             <Alert severity="warning">Results cannot be submitted before {minReadyAt.toLocaleString()}.</Alert>
           )}
-          <Stack direction="row" justifyContent="flex-end">
+          <Stack direction="row" sx={{
+            justifyContent: "flex-end"
+          }}>
             <Button
               variant="contained"
               disabled={!isTimeReady || dilutionFactorNotConfigured || (dilutionFactorDiffersFromConfigured && !dilutionFactorOverrideNote.trim())}
@@ -690,7 +720,9 @@ export function TestWorkflowDialog({ testOrderId, testCode, category, displayNam
               {lastOutcome.outcomeSummary} - this step must be repeated with a fresh media lot.
             </Alert>
           )}
-          <Stack direction="row" justifyContent="flex-end">
+          <Stack direction="row" sx={{
+            justifyContent: "flex-end"
+          }}>
             <Button variant="contained" onClick={load}>{lastOutcome.isDefinitive ? "Proceed to Next Step" : "Retry This Step"}</Button>
           </Stack>
         </Stack>

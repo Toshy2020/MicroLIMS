@@ -8,7 +8,7 @@ import {
   Stack,
   useTheme
 } from "@mui/material";
-import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
+import DeleteOutlineIcon from "@mui/icons-material/DeleteOutlined";
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 import { CryovialItem } from "../types/cryovialTypes";
 import { FloatingDialog } from "../../../../components/FloatingDialog";

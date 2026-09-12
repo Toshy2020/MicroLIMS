@@ -446,14 +446,14 @@ public class ReturnToAnalystTests
         // First poll
         var poll1 = await notificationService.GetNotificationsAsync(RoleType.Analyst, analyst.Id);
         Assert.Contains(poll1, n => n.Type == "TestReturnedForRevision");
-        Assert.Single(spyPush.Sent.Where(s => s.UserId == analyst.Id));
+        Assert.Single(spyPush.Sent, s => s.UserId == analyst.Id);
 
         // Second poll immediately after (simulating periodic 60s polling)
         var poll2 = await notificationService.GetNotificationsAsync(RoleType.Analyst, analyst.Id);
         Assert.Contains(poll2, n => n.Type == "TestReturnedForRevision");
 
         // Assert no duplicate push notification was sent
-        Assert.Single(spyPush.Sent.Where(s => s.UserId == analyst.Id));
+        Assert.Single(spyPush.Sent, s => s.UserId == analyst.Id);
 
         // Assert exactly one NotificationLog row exists in DB for this user and event
         var persistedLogs = await db.NotificationLogs

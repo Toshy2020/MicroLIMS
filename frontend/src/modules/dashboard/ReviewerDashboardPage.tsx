@@ -15,7 +15,7 @@ import {
 } from "@mui/material";
 import RateReviewOutlinedIcon from "@mui/icons-material/RateReviewOutlined";
 import WarningAmberOutlinedIcon from "@mui/icons-material/WarningAmberOutlined";
-import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
+import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutlined";
 import AccessTimeOutlinedIcon from "@mui/icons-material/AccessTimeOutlined";
 import UndoOutlinedIcon from "@mui/icons-material/UndoOutlined";
 import ArrowForwardOutlinedIcon from "@mui/icons-material/ArrowForwardOutlined";
@@ -109,7 +109,12 @@ export function ReviewerDashboardPage() {
 
       {/* Tier 1: Summary Cards */}
       <Grid container spacing={2} sx={{ mb: 2.5 }}>
-        <Grid item xs={12} sm={6} md={2.4}>
+        <Grid
+          size={{
+            xs: 12,
+            sm: 6,
+            md: 2.4
+          }}>
           <Paper
             component={Link}
             to="/receiving-testing?testStatus=ResultEntered"
@@ -139,7 +144,12 @@ export function ReviewerDashboardPage() {
           </Paper>
         </Grid>
 
-        <Grid item xs={12} sm={6} md={2.4}>
+        <Grid
+          size={{
+            xs: 12,
+            sm: 6,
+            md: 2.4
+          }}>
           <Paper
             component={Link}
             to="/receiving-testing?testStatus=ResultEntered&urgency=overdue"
@@ -169,7 +179,12 @@ export function ReviewerDashboardPage() {
           </Paper>
         </Grid>
 
-        <Grid item xs={12} sm={6} md={2.4}>
+        <Grid
+          size={{
+            xs: 12,
+            sm: 6,
+            md: 2.4
+          }}>
           <Paper
             component={Link}
             to="/receiving-testing?testStatus=ResultEntered"
@@ -199,7 +214,12 @@ export function ReviewerDashboardPage() {
           </Paper>
         </Grid>
 
-        <Grid item xs={12} sm={6} md={2.4}>
+        <Grid
+          size={{
+            xs: 12,
+            sm: 6,
+            md: 2.4
+          }}>
           <Paper
             component={Link}
             to="/receiving-testing?testStatus=RetestRequested"
@@ -229,7 +249,12 @@ export function ReviewerDashboardPage() {
           </Paper>
         </Grid>
 
-        <Grid item xs={12} sm={6} md={2.4}>
+        <Grid
+          size={{
+            xs: 12,
+            sm: 6,
+            md: 2.4
+          }}>
           <Paper
             sx={{
               p: 2,
@@ -264,7 +289,12 @@ export function ReviewerDashboardPage() {
           </Box>
           <Grid container spacing={1.5}>
             {data.attentionItems.map((item, idx) => (
-              <Grid item xs={12} md={6} key={idx}>
+              <Grid
+                key={idx}
+                size={{
+                  xs: 12,
+                  md: 6
+                }}>
                 <Paper
                   variant="outlined"
                   sx={{
@@ -308,7 +338,11 @@ export function ReviewerDashboardPage() {
 
       {/* Tier 3: Central Review Queue Table */}
       <Grid container spacing={2.5}>
-        <Grid item xs={12} lg={8.5}>
+        <Grid
+          size={{
+            xs: 12,
+            lg: 8.5
+          }}>
           <Paper sx={{ p: 2, mb: 2 }}>
             <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
               <Box>
@@ -467,7 +501,11 @@ export function ReviewerDashboardPage() {
         </Grid>
 
         {/* Tier 4: Recently Reviewed Panel */}
-        <Grid item xs={12} lg={3.5}>
+        <Grid
+          size={{
+            xs: 12,
+            lg: 3.5
+          }}>
           <Paper sx={{ p: 2 }}>
             <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1.5 }}>
               <HistoryOutlinedIcon sx={{ color: theme.palette.primary.main }} />

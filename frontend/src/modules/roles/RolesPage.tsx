@@ -48,7 +48,9 @@ export function RolesPage() {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           sx={{ minWidth: 260 }}
-          InputProps={{ startAdornment: <InputAdornment position="start"><SearchIcon fontSize="small" /></InputAdornment> }}
+          slotProps={{
+            input: { startAdornment: <InputAdornment position="start"><SearchIcon fontSize="small" /></InputAdornment> }
+          }}
         />
         <Button variant="contained" startIcon={<AddIcon />} onClick={() => navigate("/roles/new")}>
           Create Role

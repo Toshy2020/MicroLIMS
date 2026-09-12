@@ -134,7 +134,12 @@ export function BrothWaitingPanel({
       )}
 
       {/* Complete Step button — disabled until minReadyAt has passed (or overridden) */}
-      <Stack direction="row" justifyContent="space-between" alignItems="center">
+      <Stack
+        direction="row"
+        sx={{
+          justifyContent: "space-between",
+          alignItems: "center"
+        }}>
         {canOverride && !isTimeReady && !alreadyOverridden ? (
           <Button variant="outlined" color="warning" onClick={() => setSkipDialogOpen(true)} disabled={skipping}>
             Skip Wait

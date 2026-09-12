@@ -13,7 +13,7 @@ import {
   Stack,
   useTheme
 } from "@mui/material";
-import PersonOutlineIcon from "@mui/icons-material/PersonOutline";
+import PersonOutlineIcon from "@mui/icons-material/PersonOutlined";
 import AssignmentIndIcon from "@mui/icons-material/AssignmentInd";
 import { SampleRecord } from "../types/receivingTypes";
 import { ReceiveService } from "../services/ReceiveService";

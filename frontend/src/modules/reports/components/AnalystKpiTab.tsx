@@ -9,7 +9,7 @@ import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
 import TuneIcon from "@mui/icons-material/Tune";
 import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
-import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
+import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutlined";
 import {
   ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip as RechartsTooltip,
   PieChart, Pie, Cell, LineChart, Line, CartesianGrid, Legend
@@ -218,8 +218,15 @@ export function AnalystKpiTab() {
     <Box sx={{ pb: 4 }}>
       {/* Top Filter & Access Control Bar */}
       <Paper sx={{ p: 2, mb: 2.5 }}>
-        <Grid container spacing={1.5} alignItems="center">
-          <Grid item xs={12} sm={6} md={2}>
+        <Grid container spacing={1.5} sx={{
+          alignItems: "center"
+        }}>
+          <Grid
+            size={{
+              xs: 12,
+              sm: 6,
+              md: 2
+            }}>
             <FormControl fullWidth size="small">
               <InputLabel>Date Range</InputLabel>
               <Select
@@ -236,7 +243,12 @@ export function AnalystKpiTab() {
             </FormControl>
           </Grid>
 
-          <Grid item xs={12} sm={6} md={2}>
+          <Grid
+            size={{
+              xs: 12,
+              sm: 6,
+              md: 2
+            }}>
             <FormControl fullWidth size="small">
               <InputLabel>Analyst</InputLabel>
               <Select
@@ -261,7 +273,12 @@ export function AnalystKpiTab() {
             )}
           </Grid>
 
-          <Grid item xs={12} sm={6} md={2}>
+          <Grid
+            size={{
+              xs: 12,
+              sm: 6,
+              md: 2
+            }}>
             <FormControl fullWidth size="small">
               <InputLabel>Category</InputLabel>
               <Select
@@ -277,7 +294,12 @@ export function AnalystKpiTab() {
             </FormControl>
           </Grid>
 
-          <Grid item xs={12} sm={6} md={2}>
+          <Grid
+            size={{
+              xs: 12,
+              sm: 6,
+              md: 2
+            }}>
             <FormControl fullWidth size="small">
               <InputLabel>Location / Subject</InputLabel>
               <Select
@@ -293,7 +315,12 @@ export function AnalystKpiTab() {
             </FormControl>
           </Grid>
 
-          <Grid item xs={12} sm={6} md={1.5}>
+          <Grid
+            size={{
+              xs: 12,
+              sm: 6,
+              md: 1.5
+            }}>
             <FormControl fullWidth size="small">
               <InputLabel>Test Code</InputLabel>
               <Select
@@ -309,8 +336,15 @@ export function AnalystKpiTab() {
             </FormControl>
           </Grid>
 
-          <Grid item xs={12} sm={12} md={2.5}>
-            <Stack direction="row" spacing={1} justifyContent="flex-end">
+          <Grid
+            size={{
+              xs: 12,
+              sm: 12,
+              md: 2.5
+            }}>
+            <Stack direction="row" spacing={1} sx={{
+              justifyContent: "flex-end"
+            }}>
               <Button
                 size="small"
                 variant="outlined"
@@ -350,22 +384,52 @@ export function AnalystKpiTab() {
 
       {/* Top 6 Analyst Performance KPI Cards */}
       <Grid container spacing={2} sx={{ mb: 2.5 }}>
-        <Grid item xs={12} sm={6} md={2}>
+        <Grid
+          size={{
+            xs: 12,
+            sm: 6,
+            md: 2
+          }}>
           <KpiCard data={data.testsAssigned} />
         </Grid>
-        <Grid item xs={12} sm={6} md={2}>
+        <Grid
+          size={{
+            xs: 12,
+            sm: 6,
+            md: 2
+          }}>
           <KpiCard data={data.testsCompleted} />
         </Grid>
-        <Grid item xs={12} sm={6} md={2}>
+        <Grid
+          size={{
+            xs: 12,
+            sm: 6,
+            md: 2
+          }}>
           <KpiCard data={data.completionRate} />
         </Grid>
-        <Grid item xs={12} sm={6} md={2}>
+        <Grid
+          size={{
+            xs: 12,
+            sm: 6,
+            md: 2
+          }}>
           <KpiCard data={data.onTimeCompletion} />
         </Grid>
-        <Grid item xs={12} sm={6} md={2}>
+        <Grid
+          size={{
+            xs: 12,
+            sm: 6,
+            md: 2
+          }}>
           <KpiCard data={data.averageTestingTat} />
         </Grid>
-        <Grid item xs={12} sm={6} md={2}>
+        <Grid
+          size={{
+            xs: 12,
+            sm: 6,
+            md: 2
+          }}>
           <KpiCard data={data.pendingOverdue} />
         </Grid>
       </Grid>
@@ -374,7 +438,11 @@ export function AnalystKpiTab() {
           (samples vs. tests), kept as two separate cards rather than
           merged into one block. */}
       <Grid container spacing={2} sx={{ mb: 2.5 }}>
-        <Grid item xs={12} md={6}>
+        <Grid
+          size={{
+            xs: 12,
+            md: 6
+          }}>
           <Paper sx={{ p: 2.5, height: "100%" }}>
             <Typography sx={{ fontSize: 13, fontWeight: 700, color: theme.palette.primary.main, mb: 0.5 }}>
               Total Assigned Samples
@@ -401,7 +469,11 @@ export function AnalystKpiTab() {
             </Stack>
           </Paper>
         </Grid>
-        <Grid item xs={12} md={6}>
+        <Grid
+          size={{
+            xs: 12,
+            md: 6
+          }}>
           <Paper sx={{ p: 2.5, height: "100%" }}>
             <Typography sx={{ fontSize: 13, fontWeight: 700, color: theme.palette.primary.main, mb: 0.5 }}>
               Total Assigned Tests
@@ -439,7 +511,11 @@ export function AnalystKpiTab() {
       {/* Visualizations Row */}
       <Grid container spacing={2} sx={{ mb: 2.5 }}>
         {/* Tests Completed by Month */}
-        <Grid item xs={12} md={5}>
+        <Grid
+          size={{
+            xs: 12,
+            md: 5
+          }}>
           <Paper sx={{ p: 2.5, height: 320 }}>
             <Typography sx={{ fontSize: 14, fontWeight: 700, color: theme.palette.primary.main, mb: 1 }}>
               Tests Completed by Month
@@ -461,7 +537,11 @@ export function AnalystKpiTab() {
         </Grid>
 
         {/* Tests by Category Donut */}
-        <Grid item xs={12} md={4}>
+        <Grid
+          size={{
+            xs: 12,
+            md: 4
+          }}>
           <Paper sx={{ p: 2.5, height: 320, display: "flex", flexDirection: "column" }}>
             <Typography sx={{ fontSize: 14, fontWeight: 700, color: theme.palette.primary.main, mb: 1 }}>
               Tests by Category
@@ -508,7 +588,11 @@ export function AnalystKpiTab() {
         </Grid>
 
         {/* Average TAT Trend */}
-        <Grid item xs={12} md={3}>
+        <Grid
+          size={{
+            xs: 12,
+            md: 3
+          }}>
           <Paper sx={{ p: 2.5, height: 320 }}>
             <Typography sx={{ fontSize: 14, fontWeight: 700, color: theme.palette.primary.main, mb: 1.5 }}>
               Avg Result Turnaround (Days)
@@ -519,7 +603,7 @@ export function AnalystKpiTab() {
                   <CartesianGrid vertical={false} stroke={theme.palette.divider} />
                   <XAxis dataKey="month" tick={{ fontSize: 11, fill: theme.palette.text.secondary }} />
                   <YAxis domain={[0, 4]} tick={{ fontSize: 11, fill: theme.palette.text.secondary }} />
-                  <RechartsTooltip formatter={(val: number) => [`${val} days`, "Testing TAT"]} />
+                  <RechartsTooltip formatter={(val: unknown) => [`${val} days`, "Testing TAT"]} />
                   <Line type="monotone" dataKey="tatDays" stroke={theme.custom.status.info.text} strokeWidth={2.5} dot={{ r: 4 }} />
                 </LineChart>
               </ResponsiveContainer>
@@ -530,13 +614,17 @@ export function AnalystKpiTab() {
 
       {/* Workflow Queue & TAT Separation Cards */}
       <Grid container spacing={2} sx={{ mb: 2.5 }}>
-        <Grid item xs={12} md={6}>
+        <Grid
+          size={{
+            xs: 12,
+            md: 6
+          }}>
           <Paper sx={{ p: 2 }}>
             <Typography sx={{ fontSize: 13, fontWeight: 700, color: theme.palette.primary.main, mb: 1.5 }}>
               Workflow Bottleneck (Records in Queue)
             </Typography>
             <Grid container spacing={1}>
-              <Grid item xs={4}>
+              <Grid size={4}>
                 <Box sx={{ p: 1.5, bgcolor: "background.default", borderRadius: 1, textAlign: "center" }}>
                   <Typography sx={{ fontSize: 11, color: "text.secondary" }}>Testing Queue</Typography>
                   <Typography sx={{ fontSize: 18, fontWeight: 800, color: theme.palette.primary.main }}>
@@ -545,7 +633,7 @@ export function AnalystKpiTab() {
                   <Typography sx={{ fontSize: 10, color: theme.custom.status.notDetected.text }}>{formatDeltaVsPrev(data.workflowBottleneck.testingQueueDeltaPercent)}</Typography>
                 </Box>
               </Grid>
-              <Grid item xs={4}>
+              <Grid size={4}>
                 <Box sx={{ p: 1.5, bgcolor: theme.custom.status.purple.bg, borderRadius: 1, textAlign: "center" }}>
                   <Typography sx={{ fontSize: 11, color: "text.secondary" }}>Review Queue</Typography>
                   <Typography sx={{ fontSize: 18, fontWeight: 800, color: theme.custom.status.purple.text }}>
@@ -554,7 +642,7 @@ export function AnalystKpiTab() {
                   <Typography sx={{ fontSize: 10, color: theme.custom.status.notDetected.text }}>{formatDeltaVsPrev(data.workflowBottleneck.reviewQueueDeltaPercent)}</Typography>
                 </Box>
               </Grid>
-              <Grid item xs={4}>
+              <Grid size={4}>
                 <Box sx={{ p: 1.5, bgcolor: theme.custom.status.notDetected.bg, borderRadius: 1, textAlign: "center" }}>
                   <Typography sx={{ fontSize: 11, color: "text.secondary" }}>Approval Queue</Typography>
                   <Typography sx={{ fontSize: 18, fontWeight: 800, color: theme.custom.status.notDetected.text }}>
@@ -567,13 +655,17 @@ export function AnalystKpiTab() {
           </Paper>
         </Grid>
 
-        <Grid item xs={12} md={6}>
+        <Grid
+          size={{
+            xs: 12,
+            md: 6
+          }}>
           <Paper sx={{ p: 2 }}>
             <Typography sx={{ fontSize: 13, fontWeight: 700, color: theme.palette.primary.main, mb: 1.5 }}>
               TAT Stage Summary (Days) — Segregated by Responsibility
             </Typography>
             <Grid container spacing={1}>
-              <Grid item xs={3}>
+              <Grid size={3}>
                 <Box sx={{ p: 1.5, bgcolor: theme.custom.status.info.bg, borderRadius: 1, textAlign: "center" }}>
                   <Typography sx={{ fontSize: 10.5, color: "text.secondary" }}>Testing (Analyst)</Typography>
                   <Typography sx={{ fontSize: 18, fontWeight: 800, color: theme.custom.status.info.text }}>
@@ -582,7 +674,7 @@ export function AnalystKpiTab() {
                   <Typography sx={{ fontSize: 10, color: "text.secondary" }}>Assignment → Submitted</Typography>
                 </Box>
               </Grid>
-              <Grid item xs={3}>
+              <Grid size={3}>
                 <Box sx={{ p: 1.5, bgcolor: "background.default", borderRadius: 1, textAlign: "center" }}>
                   <Typography sx={{ fontSize: 10.5, color: "text.secondary" }}>Review Stage</Typography>
                   <Typography sx={{ fontSize: 18, fontWeight: 800 }}>
@@ -591,7 +683,7 @@ export function AnalystKpiTab() {
                   <Typography sx={{ fontSize: 10, color: "text.secondary" }}>Submitted → Reviewed</Typography>
                 </Box>
               </Grid>
-              <Grid item xs={3}>
+              <Grid size={3}>
                 <Box sx={{ p: 1.5, bgcolor: "background.default", borderRadius: 1, textAlign: "center" }}>
                   <Typography sx={{ fontSize: 10.5, color: "text.secondary" }}>Approval Stage</Typography>
                   <Typography sx={{ fontSize: 18, fontWeight: 800 }}>
@@ -600,7 +692,7 @@ export function AnalystKpiTab() {
                   <Typography sx={{ fontSize: 10, color: "text.secondary" }}>Reviewed → Decided</Typography>
                 </Box>
               </Grid>
-              <Grid item xs={3}>
+              <Grid size={3}>
                 <Box sx={{ p: 1.5, bgcolor: theme.custom.status.purple.bg, borderRadius: 1, textAlign: "center" }}>
                   <Typography sx={{ fontSize: 10.5, color: "text.secondary" }}>Total Lifecycle</Typography>
                   <Typography sx={{ fontSize: 18, fontWeight: 800, color: theme.palette.primary.main }}>
@@ -751,7 +843,12 @@ export function AnalystKpiTab() {
 
           <Grid container spacing={2}>
             {/* Panel A: Workload */}
-            <Grid item xs={12} sm={6} md={3}>
+            <Grid
+              size={{
+                xs: 12,
+                sm: 6,
+                md: 3
+              }}>
               <Box sx={{ p: 2, bgcolor: "background.default", borderRadius: 1.5, height: "100%", border: "1px solid", borderColor: "divider" }}>
                 <Typography sx={{ fontSize: 13, fontWeight: 700, color: theme.palette.primary.main, mb: 1.5 }}>
                   A. Workload Execution
@@ -780,7 +877,12 @@ export function AnalystKpiTab() {
             </Grid>
 
             {/* Panel B: Timeliness */}
-            <Grid item xs={12} sm={6} md={3}>
+            <Grid
+              size={{
+                xs: 12,
+                sm: 6,
+                md: 3
+              }}>
               <Box sx={{ p: 2, bgcolor: "background.default", borderRadius: 1.5, height: "100%", border: "1px solid", borderColor: "divider" }}>
                 <Typography sx={{ fontSize: 13, fontWeight: 700, color: theme.palette.primary.main, mb: 1.5 }}>
                   B. Timeliness & TAT
@@ -815,7 +917,12 @@ export function AnalystKpiTab() {
             </Grid>
 
             {/* Panel C: Documentation & Review Quality */}
-            <Grid item xs={12} sm={6} md={3}>
+            <Grid
+              size={{
+                xs: 12,
+                sm: 6,
+                md: 3
+              }}>
               <Box sx={{ p: 2, bgcolor: "background.default", borderRadius: 1.5, height: "100%", border: "1px solid", borderColor: "divider" }}>
                 <Typography sx={{ fontSize: 13, fontWeight: 700, color: theme.palette.primary.main, mb: 1.5 }}>
                   C. Documentation Quality
@@ -844,7 +951,12 @@ export function AnalystKpiTab() {
             </Grid>
 
             {/* Panel D: Compliance */}
-            <Grid item xs={12} sm={6} md={3}>
+            <Grid
+              size={{
+                xs: 12,
+                sm: 6,
+                md: 3
+              }}>
               <Box sx={{ p: 2, bgcolor: "background.default", borderRadius: 1.5, height: "100%", border: "1px solid", borderColor: "divider" }}>
                 <Typography sx={{ fontSize: 13, fontWeight: 700, color: theme.palette.primary.main, mb: 1.5 }}>
                   D. Compliance & Training

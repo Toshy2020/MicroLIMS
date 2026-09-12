@@ -117,7 +117,9 @@ export function PathogenStepDialog({ testOrderId, onClose }: Props) {
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
       <Typography sx={{ fontWeight: 700, mb: 0.5 }}>
         Step {step.stepOrder}: {step.stepName}
-        {step.isFinalStep && <Typography component="span" variant="caption" color="text.secondary"> — determines the final result</Typography>}
+        {step.isFinalStep && <Typography component="span" variant="caption" sx={{
+          color: "text.secondary"
+        }}> — determines the final result</Typography>}
       </Typography>
 
       {step.stepType === "BrothEnrichment" || step.stepType === "SelectiveBroth" ? (

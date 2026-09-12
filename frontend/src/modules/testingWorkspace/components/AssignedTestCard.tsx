@@ -543,7 +543,7 @@ export function AssignedTestCard({
               }}
             >
               {/* Media Lot Dropdown (height: 28px) */}
-              <Select
+              <Select<number | "">
                 size="small"
                 displayEmpty
                 data-no-row-click="true"
@@ -574,7 +574,7 @@ export function AssignedTestCard({
               </Select>
 
               {/* Incubator Dropdown (height: 28px) */}
-              <Select
+              <Select<number | "">
                 size="small"
                 displayEmpty
                 data-no-row-click="true"

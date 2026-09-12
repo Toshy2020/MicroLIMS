@@ -13,8 +13,8 @@ import LockOpenIcon from "@mui/icons-material/LockOpen";
 import LockResetIcon from "@mui/icons-material/LockReset";
 import SecurityIcon from "@mui/icons-material/Security";
 import BlockIcon from "@mui/icons-material/Block";
-import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
-import PersonOutlineIcon from "@mui/icons-material/PersonOutline";
+import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutlined";
+import PersonOutlineIcon from "@mui/icons-material/PersonOutlined";
 import KeyIcon from "@mui/icons-material/Key";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import DeleteForeverIcon from "@mui/icons-material/DeleteForever";
@@ -406,7 +406,9 @@ export function UsersPage() {
                     </Typography>
                   </TableCell>
                   <TableCell align="right">
-                    <Stack direction="row" spacing={0.5} justifyContent="flex-end">
+                    <Stack direction="row" spacing={0.5} sx={{
+                      justifyContent: "flex-end"
+                    }}>
                       <Tooltip title="Edit Profile">
                         <IconButton size="small" onClick={() => openEditProfile(u)}><EditIcon fontSize="small" /></IconButton>
                       </Tooltip>
@@ -629,7 +631,9 @@ export function UsersPage() {
               <Alert severity="success" sx={{ width: "100%" }}>
                 One-time recovery code generated successfully!
               </Alert>
-              <Typography variant="subtitle2" color="text.secondary">
+              <Typography variant="subtitle2" sx={{
+                color: "text.secondary"
+              }}>
                 Provide this recovery code to <strong>{adminRecoveryUser?.fullName}</strong>:
               </Typography>
               <Box
@@ -654,7 +658,9 @@ export function UsersPage() {
                   {generatedCode}
                 </Typography>
               </Box>
-              <Stack direction="row" spacing={1} alignItems="center">
+              <Stack direction="row" spacing={1} sx={{
+                alignItems: "center"
+              }}>
                 <Button
                   variant="outlined"
                   color="primary"

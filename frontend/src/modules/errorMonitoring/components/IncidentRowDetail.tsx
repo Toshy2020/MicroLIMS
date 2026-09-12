@@ -62,8 +62,18 @@ export function IncidentRowDetail({ incident, onChanged }: Props) {
     <Box sx={{ p: 2, bgcolor: "action.hover" }}>
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
 
-      <Stack direction="row" spacing={2} alignItems="center" sx={{ mb: 2 }} flexWrap="wrap" useFlexGap>
-        <Typography variant="body2" color="text.secondary">
+      <Stack
+        direction="row"
+        spacing={2}
+        useFlexGap
+        sx={{
+          alignItems: "center",
+          flexWrap: "wrap",
+          mb: 2
+        }}>
+        <Typography variant="body2" sx={{
+          color: "text.secondary"
+        }}>
           Correlation id: <code>{detail.correlationId}</code>
         </Typography>
 
@@ -82,7 +92,9 @@ export function IncidentRowDetail({ incident, onChanged }: Props) {
           </>
         ) : (
           <>
-            <Typography variant="body2" color="text.secondary">
+            <Typography variant="body2" sx={{
+              color: "text.secondary"
+            }}>
               Resolved {detail.resolvedAtUtc ? formatLabDateTime(detail.resolvedAtUtc) : ""}
               {detail.resolvedByUserName ? ` by ${detail.resolvedByUserName}` : ""}
               {detail.resolutionNotes ? ` - ${detail.resolutionNotes}` : ""}
@@ -100,25 +112,41 @@ export function IncidentRowDetail({ incident, onChanged }: Props) {
       <Stack spacing={2}>
         {detail.errorLogs.map((log) => (
           <Paper key={log.id} variant="outlined" sx={{ p: 2 }}>
-            <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap sx={{ mb: 1 }}>
+            <Stack
+              direction="row"
+              spacing={1}
+              useFlexGap
+              sx={{
+                alignItems: "center",
+                flexWrap: "wrap",
+                mb: 1
+              }}>
               <Chip size="small" label={log.source} />
               <Chip size="small" color={SEVERITY_COLORS[log.effectiveSeverity]} label={log.effectiveSeverity} />
               {log.severityOverride && (
                 <Chip size="small" variant="outlined" label={`overridden from ${log.severity}`} />
               )}
-              <Typography variant="body2" color="text.secondary">
+              <Typography variant="body2" sx={{
+                color: "text.secondary"
+              }}>
                 {formatLabDateTime(log.occurredAtUtc)}
               </Typography>
               {log.httpMethod && log.requestPath && (
-                <Typography variant="body2" color="text.secondary">
+                <Typography variant="body2" sx={{
+                  color: "text.secondary"
+                }}>
                   {log.httpMethod} {log.requestPath}{log.statusCode ? ` -> ${log.statusCode}` : ""}
                 </Typography>
               )}
               {!log.httpMethod && log.requestPath && (
-                <Typography variant="body2" color="text.secondary">{log.requestPath}</Typography>
+                <Typography variant="body2" sx={{
+                  color: "text.secondary"
+                }}>{log.requestPath}</Typography>
               )}
               {log.userName && (
-                <Typography variant="body2" color="text.secondary">by {log.userName}</Typography>
+                <Typography variant="body2" sx={{
+                  color: "text.secondary"
+                }}>by {log.userName}</Typography>
               )}
 
               <Box sx={{ flexGrow: 1 }} />

@@ -91,15 +91,28 @@ function SamplingPointTestConfigSection({ point }: { point: SamplingPoint }) {
           </TableBody>
         </Table>
       ) : (
-        <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>No limits configured yet for this location.</Typography>
+        <Typography
+          variant="body2"
+          sx={{
+            color: "text.secondary",
+            mb: 1.5
+          }}>No limits configured yet for this location.</Typography>
       )}
 
       {countTestCodes.length === 0 ? (
-        <Typography variant="body2" color="text.secondary">Assign a count test (e.g. TAMC-Water) to this location to set Alert/Action/Specification limits.</Typography>
+        <Typography variant="body2" sx={{
+          color: "text.secondary"
+        }}>Assign a count test (e.g. TAMC-Water) to this location to set Alert/Action/Specification limits.</Typography>
       ) : (
         <>
           <Typography sx={{ fontWeight: 700, fontSize: 13, mb: 1 }}>{editingId ? "Edit Limits" : "Add Limits"}</Typography>
-          <Stack direction="row" spacing={1.5} flexWrap="wrap" alignItems="center">
+          <Stack
+            direction="row"
+            spacing={1.5}
+            sx={{
+              flexWrap: "wrap",
+              alignItems: "center"
+            }}>
             <Select size="small" displayEmpty value={form.testCode ?? ""} onChange={(e) => setField("testCode", e.target.value)} sx={{ minWidth: 180 }}>
               <MenuItem value=""><em>Count Test</em></MenuItem>
               {countTestCodes.map((code) => <MenuItem key={code} value={code}>{code}</MenuItem>)}
@@ -185,7 +198,13 @@ export function WaterConfigPage() {
 
       <SectionTitle>{editingDeptId ? "Edit Department" : "New Department"}</SectionTitle>
       <Paper sx={{ p: 2.5, mb: 3 }}>
-        <Stack direction="row" spacing={2} flexWrap="wrap" alignItems="center">
+        <Stack
+          direction="row"
+          spacing={2}
+          sx={{
+            flexWrap: "wrap",
+            alignItems: "center"
+          }}>
           <TextField size="small" label="Name" value={deptForm.name ?? ""} onChange={(e) => setDeptForm({ ...deptForm, name: e.target.value })} />
           {editingDeptId && <Button onClick={cancelDeptEdit}>Cancel</Button>}
           <Button variant="outlined" onClick={saveDept}>{editingDeptId ? "Save Changes" : "Add Department"}</Button>
@@ -194,7 +213,13 @@ export function WaterConfigPage() {
 
       <SectionTitle>{editingPointId ? "Edit Sample Location" : "New Sample Location"}</SectionTitle>
       <Paper sx={{ p: 2.5, mb: 3 }}>
-        <Stack direction="row" spacing={2} flexWrap="wrap" alignItems="center">
+        <Stack
+          direction="row"
+          spacing={2}
+          sx={{
+            flexWrap: "wrap",
+            alignItems: "center"
+          }}>
           <TextField size="small" label="Point Code" value={pointForm.code ?? ""} onChange={(e) => setPointForm({ ...pointForm, code: e.target.value })} />
           <TextField size="small" label="Point Name" value={pointForm.location ?? ""} onChange={(e) => setPointForm({ ...pointForm, location: e.target.value })} />
           <TextField size="small" label="Testing Frequency" value={pointForm.frequency ?? ""} onChange={(e) => setPointForm({ ...pointForm, frequency: e.target.value })} placeholder="e.g. Weekly" />
@@ -232,7 +257,9 @@ export function WaterConfigPage() {
                     <Collapse in={expandedDeptId === d.id} unmountOnExit>
                       <Box sx={{ p: 2, bgcolor: "background.default" }}>
                         {(d.samplingPoints ?? []).length === 0 ? (
-                          <Typography variant="body2" color="text.secondary">No sample locations yet.</Typography>
+                          <Typography variant="body2" sx={{
+                            color: "text.secondary"
+                          }}>No sample locations yet.</Typography>
                         ) : (
                           <Table size="small">
                             <TableHead><TableRow sx={tableHeadSx}><TableCell sx={{ width: 40 }} /><TableCell>Location Code</TableCell><TableCell>Point Name</TableCell><TableCell>Testing Frequency</TableCell><TableCell>Assigned Tests</TableCell><TableCell /></TableRow></TableHead>

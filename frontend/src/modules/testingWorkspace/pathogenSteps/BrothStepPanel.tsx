@@ -5,7 +5,7 @@ import {
   ListItemIcon, ListItemText, CircularProgress, useTheme
 } from "@mui/material";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
-import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
+import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutlined";
 import CheckIcon from "@mui/icons-material/Check";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import { TestWorkflowService } from "../services/TestWorkflowService";
@@ -238,7 +238,9 @@ export function BrothStepPanel({ testOrderId, step, current, onSubmitted }: Prop
       <Typography variant="body2">
         <strong>Assigned Incubation:</strong> {step.incubationMinHours}–{step.incubationMaxHours} h
       </Typography>
-      <Stack direction="row" justifyContent="flex-end">
+      <Stack direction="row" sx={{
+        justifyContent: "flex-end"
+      }}>
         <Button variant="contained" onClick={handleStartIncubation} disabled={saving}>
           {saving ? "Starting..." : "Start Incubation"}
         </Button>

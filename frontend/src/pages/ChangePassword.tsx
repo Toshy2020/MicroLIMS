@@ -92,7 +92,9 @@ export function ChangePasswordPage() {
                       <ListItemIcon sx={{ minWidth: 28 }}>
                         {met ? <CheckCircleIcon fontSize="small" color="success" /> : <RadioButtonUncheckedIcon fontSize="small" color="disabled" />}
                       </ListItemIcon>
-                      <ListItemText primaryTypographyProps={{ fontSize: 13, color: met ? "text.primary" : "text.secondary" }} primary={rule.label} />
+                      <ListItemText primary={rule.label} slotProps={{
+                        primary: { sx: { fontSize: 13, color: met ? "text.primary" : "text.secondary" } }
+                      }} />
                     </ListItem>
                   );
                 })}

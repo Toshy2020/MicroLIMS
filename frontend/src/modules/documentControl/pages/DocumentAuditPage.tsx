@@ -159,11 +159,13 @@ export function DocumentAuditPage() {
             size="small"
             label="Date From"
             type="date"
-            InputLabelProps={{ shrink: true }}
             value={dateFrom}
             onChange={(e) => {
               setDateFrom(e.target.value);
               setPage(0);
+            }}
+            slotProps={{
+              inputLabel: { shrink: true }
             }}
           />
 
@@ -171,11 +173,13 @@ export function DocumentAuditPage() {
             size="small"
             label="Date To"
             type="date"
-            InputLabelProps={{ shrink: true }}
             value={dateTo}
             onChange={(e) => {
               setDateTo(e.target.value);
               setPage(0);
+            }}
+            slotProps={{
+              inputLabel: { shrink: true }
             }}
           />
 
@@ -211,7 +215,12 @@ export function DocumentAuditPage() {
               <TableRow>
                 <TableCell colSpan={8} align="center" sx={{ py: 6 }}>
                   <CircularProgress size={32} />
-                  <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                  <Typography
+                    variant="body2"
+                    sx={{
+                      color: "text.secondary",
+                      mt: 1
+                    }}>
                     Loading audit trail records...
                   </Typography>
                 </TableCell>
@@ -263,7 +272,9 @@ export function DocumentAuditPage() {
                     </Typography>
                   </TableCell>
                   <TableCell sx={{ maxWidth: 260 }}>
-                    <Typography variant="caption" color="text.secondary">
+                    <Typography variant="caption" sx={{
+                      color: "text.secondary"
+                    }}>
                       {log.reason || "—"}
                     </Typography>
                   </TableCell>
@@ -277,7 +288,9 @@ export function DocumentAuditPage() {
                         ))}
                       </Box>
                     ) : (
-                      <Typography variant="caption" color="text.secondary">—</Typography>
+                      <Typography variant="caption" sx={{
+                        color: "text.secondary"
+                      }}>—</Typography>
                     )}
                   </TableCell>
                 </TableRow>

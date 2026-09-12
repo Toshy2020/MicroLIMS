@@ -72,7 +72,13 @@ export function OrganismsPage() {
 
       <SectionTitle>{editingId ? "Edit Organism" : "Add Organism"}</SectionTitle>
       <Paper sx={{ p: 2.5, mb: 3 }}>
-        <Stack direction="row" spacing={1.5} flexWrap="wrap" alignItems="center">
+        <Stack
+          direction="row"
+          spacing={1.5}
+          sx={{
+            flexWrap: "wrap",
+            alignItems: "center"
+          }}>
           <TextField size="small" label="Scientific Name" placeholder="e.g. Escherichia coli" value={scientificName} onChange={(e) => setScientificName(e.target.value)} sx={{ minWidth: 240 }} />
           <TextField size="small" label="ATCC No." placeholder="e.g. 25922" value={atccNumber} onChange={(e) => setAtccNumber(e.target.value)} sx={{ minWidth: 160 }} />
           <TextField size="small" label="Common Name (optional)" value={commonName} onChange={(e) => setCommonName(e.target.value)} sx={{ minWidth: 200 }} />

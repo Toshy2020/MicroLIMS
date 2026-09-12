@@ -41,7 +41,14 @@ export function DownstreamWorkflowsPanel({ session, onNext }: Props) {
       )}
 
       <Paper sx={{ p: 2.5, borderRadius: 2, border: "1px solid", borderColor: "divider" }}>
-        <Stack direction={{ xs: "column", sm: "row" }} justifyContent="space-between" alignItems={{ sm: "center" }} spacing={2} sx={{ mb: 2 }}>
+        <Stack
+          direction={{ xs: "column", sm: "row" }}
+          spacing={2}
+          sx={{
+            justifyContent: "space-between",
+            alignItems: { sm: "center" },
+            mb: 2
+          }}>
           <Box>
             <Typography sx={{ fontSize: 16, fontWeight: 700, color: "text.primary" }}>
               Assigned Test Workflows ({session.assignedTests.length})
@@ -82,7 +89,9 @@ export function DownstreamWorkflowsPanel({ session, onNext }: Props) {
             <Tab
               key={t.testCode}
               label={
-                <Stack direction="row" spacing={1} alignItems="center">
+                <Stack direction="row" spacing={1} sx={{
+                  alignItems: "center"
+                }}>
                   <span>{t.testCode}</span>
                   {t.requiresTsb && (
                     <Chip
@@ -147,35 +156,39 @@ export function DownstreamWorkflowsPanel({ session, onNext }: Props) {
                   return (
                     <Step key={s.stepName} active={true} completed={isStepDone}>
                       <StepLabel
-                        StepIconComponent={() => (
-                          <Box
-                            sx={{
-                              width: 28,
-                              height: 28,
-                              borderRadius: "50%",
-                              // done/locked stay solid (mode-invariant) fills - they're a
-                              // deliberately "filled" state vs. pending's outline-style
-                              // treatment below, which does need a dark-aware pale token.
-                              bgcolor: isStepDone ? "#059669" : isStepLocked ? "#64748b" : theme.custom.status.pending.bg,
-                              color: isStepDone || isStepLocked ? "#ffffff" : "text.secondary",
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "center",
-                              fontSize: 12,
-                              fontWeight: 700
-                            }}
-                          >
-                            {isStepDone ? (
-                              <CheckCircleIcon sx={{ fontSize: 18 }} />
-                            ) : isStepLocked ? (
-                              <LockOutlinedIcon sx={{ fontSize: 15 }} />
-                            ) : (
-                              s.stepOrder
-                            )}
-                          </Box>
-                        )}
+                        slots={{
+                          stepIcon: () => (
+                            <Box
+                              sx={{
+                                width: 28,
+                                height: 28,
+                                borderRadius: "50%",
+                                // done/locked stay solid (mode-invariant) fills - they're a
+                                // deliberately "filled" state vs. pending's outline-style
+                                // treatment below, which does need a dark-aware pale token.
+                                bgcolor: isStepDone ? "#059669" : isStepLocked ? "#64748b" : theme.custom.status.pending.bg,
+                                color: isStepDone || isStepLocked ? "#ffffff" : "text.secondary",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                fontSize: 12,
+                                fontWeight: 700
+                              }}
+                            >
+                              {isStepDone ? (
+                                <CheckCircleIcon sx={{ fontSize: 18 }} />
+                              ) : isStepLocked ? (
+                                <LockOutlinedIcon sx={{ fontSize: 15 }} />
+                              ) : (
+                                s.stepOrder
+                              )}
+                            </Box>
+                          )
+                        }}
                       >
-                        <Stack direction="row" spacing={1.5} alignItems="center">
+                        <Stack direction="row" spacing={1.5} sx={{
+                          alignItems: "center"
+                        }}>
                           <Typography sx={{ fontSize: 14, fontWeight: 700, color: isStepLocked ? "text.secondary" : "text.primary" }}>
                             {s.stepName}
                           </Typography>

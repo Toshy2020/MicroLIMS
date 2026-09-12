@@ -23,8 +23,8 @@ import {
 import RefreshIcon from "@mui/icons-material/Refresh";
 import GridOnIcon from "@mui/icons-material/GridOn";
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
-import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
-import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
+import ErrorOutlineIcon from "@mui/icons-material/ErrorOutlined";
+import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutlined";
 import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 import { useNavigate } from "react-router-dom";
 
@@ -94,7 +94,9 @@ export function ComplianceDashboardPage() {
       {loading ? (
         <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", py: 10 }}>
           <CircularProgress size={40} sx={{ mb: 2 }} />
-          <Typography variant="body2" color="text.secondary">
+          <Typography variant="body2" sx={{
+            color: "text.secondary"
+          }}>
             Aggregating organizational training compliance metrics...
           </Typography>
         </Box>
@@ -102,16 +104,34 @@ export function ComplianceDashboardPage() {
         <>
           {/* Top KPI Cards */}
           <Grid container spacing={2.5} sx={{ mb: 4 }}>
-            <Grid item xs={12} sm={6} md={3}>
+            <Grid
+              size={{
+                xs: 12,
+                sm: 6,
+                md: 3
+              }}>
               <Card variant="outlined" sx={{ borderTop: "4px solid", borderColor: "primary.main" }}>
                 <CardContent>
-                  <Typography variant="caption" color="text.secondary" fontWeight="bold">
+                  <Typography
+                    variant="caption"
+                    sx={{
+                      color: "text.secondary",
+                      fontWeight: "bold"
+                    }}>
                     OVERALL COMPLIANCE RATE
                   </Typography>
-                  <Typography variant="h3" fontWeight="bold" color="primary.main" sx={{ my: 0.5 }}>
+                  <Typography
+                    variant="h3"
+                    sx={{
+                      fontWeight: "bold",
+                      color: "primary.main",
+                      my: 0.5
+                    }}>
                     {kpis.overallComplianceRatePercentage}%
                   </Typography>
-                  <Typography variant="caption" color="text.secondary">
+                  <Typography variant="caption" sx={{
+                    color: "text.secondary"
+                  }}>
                     {kpis.completedAssignments} / {kpis.totalRequiredAssignments} required training assignments
                   </Typography>
                   <LinearProgress
@@ -124,23 +144,46 @@ export function ComplianceDashboardPage() {
               </Card>
             </Grid>
 
-            <Grid item xs={12} sm={6} md={3}>
+            <Grid
+              size={{
+                xs: 12,
+                sm: 6,
+                md: 3
+              }}>
               <Card variant="outlined" sx={{ borderTop: "4px solid", borderColor: "success.main" }}>
                 <CardContent>
-                  <Typography variant="caption" color="text.secondary" fontWeight="bold">
+                  <Typography
+                    variant="caption"
+                    sx={{
+                      color: "text.secondary",
+                      fontWeight: "bold"
+                    }}>
                     QUALIFIED & COMPLETED
                   </Typography>
-                  <Typography variant="h3" fontWeight="bold" color="success.main" sx={{ my: 0.5 }}>
+                  <Typography
+                    variant="h3"
+                    sx={{
+                      fontWeight: "bold",
+                      color: "success.main",
+                      my: 0.5
+                    }}>
                     {kpis.completedAssignments}
                   </Typography>
-                  <Typography variant="caption" color="text.secondary">
+                  <Typography variant="caption" sx={{
+                    color: "text.secondary"
+                  }}>
                     Across {kpis.totalTrackedUsers} personnel & {kpis.totalEffectiveDocuments} effective documents
                   </Typography>
                 </CardContent>
               </Card>
             </Grid>
 
-            <Grid item xs={12} sm={6} md={3}>
+            <Grid
+              size={{
+                xs: 12,
+                sm: 6,
+                md: 3
+              }}>
               <Card
                 variant="outlined"
                 sx={{
@@ -152,13 +195,31 @@ export function ComplianceDashboardPage() {
                 onClick={() => navigate("/document-control/training-matrix")}
               >
                 <CardContent>
-                  <Typography variant="caption" color="text.secondary" fontWeight="bold">
+                  <Typography
+                    variant="caption"
+                    sx={{
+                      color: "text.secondary",
+                      fontWeight: "bold"
+                    }}>
                     OVERDUE EXCEPTIONS
                   </Typography>
-                  <Typography variant="h3" fontWeight="bold" color="error.main" sx={{ my: 0.5 }}>
+                  <Typography
+                    variant="h3"
+                    sx={{
+                      fontWeight: "bold",
+                      color: "error.main",
+                      my: 0.5
+                    }}>
                     {kpis.overdueAssignments}
                   </Typography>
-                  <Typography variant="caption" color="error.main" sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+                  <Typography
+                    variant="caption"
+                    sx={{
+                      color: "error.main",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 0.5
+                    }}>
                     <ErrorOutlineIcon fontSize="inherit" />
                     Action required — click to filter matrix
                   </Typography>
@@ -166,16 +227,39 @@ export function ComplianceDashboardPage() {
               </Card>
             </Grid>
 
-            <Grid item xs={12} sm={6} md={3}>
+            <Grid
+              size={{
+                xs: 12,
+                sm: 6,
+                md: 3
+              }}>
               <Card variant="outlined" sx={{ borderTop: "4px solid", borderColor: "warning.main" }}>
                 <CardContent>
-                  <Typography variant="caption" color="text.secondary" fontWeight="bold">
+                  <Typography
+                    variant="caption"
+                    sx={{
+                      color: "text.secondary",
+                      fontWeight: "bold"
+                    }}>
                     SUPERSEDED GAPS
                   </Typography>
-                  <Typography variant="h3" fontWeight="bold" sx={{ color: (t) => t.palette.mode === "dark" ? "warning.light" : "#e65100", my: 0.5 }}>
+                  <Typography
+                    variant="h3"
+                    sx={{
+                      fontWeight: "bold",
+                      color: (t) => t.palette.mode === "dark" ? "warning.light" : "#e65100",
+                      my: 0.5
+                    }}>
                     {kpis.supersededGapCount}
                   </Typography>
-                  <Typography variant="caption" color="text.secondary" sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+                  <Typography
+                    variant="caption"
+                    sx={{
+                      color: "text.secondary",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 0.5
+                    }}>
                     <WarningAmberIcon fontSize="inherit" />
                     Qualified on prior revision only
                   </Typography>
@@ -187,12 +271,23 @@ export function ComplianceDashboardPage() {
           {/* Department Rankings & Top Overdue Documents */}
           <Grid container spacing={3}>
             {/* Department Ranking */}
-            <Grid item xs={12} md={7}>
+            <Grid
+              size={{
+                xs: 12,
+                md: 7
+              }}>
               <Paper variant="outlined" sx={{ p: 2.5 }}>
-                <Typography variant="h6" fontWeight="bold" gutterBottom>
+                <Typography variant="h6" gutterBottom sx={{
+                  fontWeight: "bold"
+                }}>
                   Departmental Compliance Ranking
                 </Typography>
-                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                <Typography
+                  variant="body2"
+                  sx={{
+                    color: "text.secondary",
+                    mb: 2
+                  }}>
                   Organizational compliance breakdown categorized by department.
                 </Typography>
 
@@ -235,7 +330,12 @@ export function ComplianceDashboardPage() {
                                   color={dept.complianceRatePercentage >= 90 ? "success" : "warning"}
                                   sx={{ flexGrow: 1, height: 6, borderRadius: 1 }}
                                 />
-                                <Typography variant="caption" fontWeight="bold" sx={{ minWidth: 40 }}>
+                                <Typography
+                                  variant="caption"
+                                  sx={{
+                                    fontWeight: "bold",
+                                    minWidth: 40
+                                  }}>
                                   {dept.complianceRatePercentage}%
                                 </Typography>
                               </Box>
@@ -250,10 +350,16 @@ export function ComplianceDashboardPage() {
             </Grid>
 
             {/* Top Overdue Documents */}
-            <Grid item xs={12} md={5}>
+            <Grid
+              size={{
+                xs: 12,
+                md: 5
+              }}>
               <Paper variant="outlined" sx={{ p: 2.5 }}>
                 <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1 }}>
-                  <Typography variant="h6" fontWeight="bold">
+                  <Typography variant="h6" sx={{
+                    fontWeight: "bold"
+                  }}>
                     Top Overdue Documents
                   </Typography>
                   <Button
@@ -264,7 +370,12 @@ export function ComplianceDashboardPage() {
                     View All
                   </Button>
                 </Box>
-                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                <Typography
+                  variant="body2"
+                  sx={{
+                    color: "text.secondary",
+                    mb: 2
+                  }}>
                   Controlled documents with the highest volume of overdue reading assignments.
                 </Typography>
 
@@ -281,7 +392,9 @@ export function ComplianceDashboardPage() {
                         <TableRow>
                           <TableCell colSpan={2} align="center" sx={{ py: 3 }}>
                             <CheckCircleOutlineIcon color="success" sx={{ mb: 0.5 }} />
-                            <Typography variant="body2" color="text.secondary">
+                            <Typography variant="body2" sx={{
+                              color: "text.secondary"
+                            }}>
                               Zero overdue documents! All assignments are on schedule.
                             </Typography>
                           </TableCell>
@@ -290,10 +403,17 @@ export function ComplianceDashboardPage() {
                         kpis.topOverdueDocuments.map((doc) => (
                           <TableRow key={doc.documentMasterId} hover>
                             <TableCell>
-                              <Typography variant="subtitle2" fontWeight="bold" color="primary.main">
+                              <Typography
+                                variant="subtitle2"
+                                sx={{
+                                  fontWeight: "bold",
+                                  color: "primary.main"
+                                }}>
                                 {doc.companyDocumentCode}
                               </Typography>
-                              <Typography variant="caption" color="text.secondary">
+                              <Typography variant="caption" sx={{
+                                color: "text.secondary"
+                              }}>
                                 {doc.title}
                               </Typography>
                             </TableCell>

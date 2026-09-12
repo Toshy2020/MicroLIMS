@@ -54,19 +54,28 @@ export function MediaLotFilterBar({
         bgcolor: "background.paper"
       }}
     >
-      <Stack direction="row" spacing={1.5} alignItems="center" flexWrap="wrap" rowGap={1}>
+      <Stack
+        direction="row"
+        spacing={1.5}
+        sx={{
+          alignItems: "center",
+          flexWrap: "wrap",
+          rowGap: 1
+        }}>
         <TextField
           size="small"
           placeholder="Search by lot number, dehydrated material, batch…"
           value={search}
           onChange={(e) => onSearchChange(e.target.value)}
           sx={{ minWidth: 280, flex: 1 }}
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <SearchIcon fontSize="small" sx={{ color: "text.secondary" }} />
-              </InputAdornment>
-            )
+          slotProps={{
+            input: {
+              startAdornment: (
+                <InputAdornment position="start">
+                  <SearchIcon fontSize="small" sx={{ color: "text.secondary" }} />
+                </InputAdornment>
+              )
+            }
           }}
         />
 

@@ -35,7 +35,7 @@ import LockIcon from "@mui/icons-material/Lock";
 import DescriptionIcon from "@mui/icons-material/Description";
 import HistoryEduIcon from "@mui/icons-material/HistoryEdu";
 import AssignmentTurnedInIcon from "@mui/icons-material/AssignmentTurnedIn";
-import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
+import ErrorOutlineIcon from "@mui/icons-material/ErrorOutlined";
 import VerifiedUserIcon from "@mui/icons-material/VerifiedUser";
 import CompareArrowsIcon from "@mui/icons-material/CompareArrows";
 import SecurityIcon from "@mui/icons-material/Security";
@@ -181,13 +181,17 @@ export const ApprovalWorkspaceDialog: React.FC<ApprovalWorkspaceDialogProps> = (
             <Typography variant="h6" sx={{ fontWeight: 700 }}>
               Approval Workspace — {dossier?.master.companyDocumentCode} Rev {dossier?.revision.revisionNumber}
             </Typography>
-            <Typography variant="caption" color="text.secondary">
+            <Typography variant="caption" sx={{
+              color: "text.secondary"
+            }}>
               {dossier?.master.title}
             </Typography>
           </Box>
           {dossier && (
             <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
-              <Typography variant="caption" color="text.secondary">
+              <Typography variant="caption" sx={{
+                color: "text.secondary"
+              }}>
                 Task Status:
               </Typography>
               <StatusBadge status={dossier.task.status} />
@@ -331,40 +335,50 @@ export const ApprovalWorkspaceDialog: React.FC<ApprovalWorkspaceDialogProps> = (
                     Revision Metadata & Change Rationale
                   </Typography>
                   <Grid container spacing={2}>
-                    <Grid item xs={6}>
-                      <Typography variant="caption" color="text.secondary">
+                    <Grid size={6}>
+                      <Typography variant="caption" sx={{
+                        color: "text.secondary"
+                      }}>
                         Document Code / Title:
                       </Typography>
                       <Typography variant="body2" sx={{ fontWeight: 600 }}>
                         {dossier.master.companyDocumentCode} — {dossier.master.title}
                       </Typography>
                     </Grid>
-                    <Grid item xs={3}>
-                      <Typography variant="caption" color="text.secondary">
+                    <Grid size={3}>
+                      <Typography variant="caption" sx={{
+                        color: "text.secondary"
+                      }}>
                         Revision Sequence / Number:
                       </Typography>
                       <Typography variant="body2" sx={{ fontWeight: 600 }}>
                         Rev {dossier.revision.revisionNumber} (Seq #{dossier.revision.revisionSequence})
                       </Typography>
                     </Grid>
-                    <Grid item xs={3}>
-                      <Typography variant="caption" color="text.secondary">
+                    <Grid size={3}>
+                      <Typography variant="caption" sx={{
+                        color: "text.secondary"
+                      }}>
                         Classification:
                       </Typography>
                       <Typography variant="body2" sx={{ fontWeight: 600 }}>
                         {dossier.revision.revisionType}
                       </Typography>
                     </Grid>
-                    <Grid item xs={12}>
-                      <Typography variant="caption" color="text.secondary">
+                    <Grid size={12}>
+                      <Typography variant="caption" sx={{
+                        color: "text.secondary"
+                      }}>
                         Reason for Revision:
                       </Typography>
                       <Typography variant="body2">{dossier.revision.reasonForRevision}</Typography>
                     </Grid>
 
                     {dossier.revision.changeReference && (
-                      <Grid item xs={6}>
-                        <Typography variant="caption" color="text.secondary">
+                      <Grid size={6}>
+                        <Typography variant="caption" sx={{
+                          color: "text.secondary"
+                        }}>
                           Change Reference (CAPA/CR):
                         </Typography>
                         <Typography variant="body2">{dossier.revision.changeReference}</Typography>
@@ -384,7 +398,9 @@ export const ApprovalWorkspaceDialog: React.FC<ApprovalWorkspaceDialogProps> = (
                         <Typography variant="body2" sx={{ fontWeight: 600 }}>
                           {dossier.controlledPdf.fileName}
                         </Typography>
-                        <Typography variant="caption" color="text.secondary">
+                        <Typography variant="caption" sx={{
+                          color: "text.secondary"
+                        }}>
                           SHA-256: {dossier.controlledPdf.contentSha256} | Size:{" "}
                           {(dossier.controlledPdf.sizeBytes / 1024).toFixed(1)} KB
                         </Typography>
@@ -437,35 +453,73 @@ export const ApprovalWorkspaceDialog: React.FC<ApprovalWorkspaceDialogProps> = (
                       </Typography>
                     </Box>
                     <Grid container spacing={1.5}>
-                      <Grid item xs={6} sm={3}>
-                        <Typography variant="caption" color="text.secondary">Signer Name:</Typography>
+                      <Grid
+                        size={{
+                          xs: 6,
+                          sm: 3
+                        }}>
+                        <Typography variant="caption" sx={{
+                          color: "text.secondary"
+                        }}>Signer Name:</Typography>
                         <Typography variant="body2" sx={{ fontWeight: 600 }}>{dossier.activeSignature.userFullNameSnapshot}</Typography>
                       </Grid>
-                      <Grid item xs={6} sm={3}>
-                        <Typography variant="caption" color="text.secondary">Username:</Typography>
+                      <Grid
+                        size={{
+                          xs: 6,
+                          sm: 3
+                        }}>
+                        <Typography variant="caption" sx={{
+                          color: "text.secondary"
+                        }}>Username:</Typography>
                         <Typography variant="body2">{dossier.activeSignature.usernameSnapshot}</Typography>
                       </Grid>
-                      <Grid item xs={6} sm={3}>
-                        <Typography variant="caption" color="text.secondary">Signer Role:</Typography>
+                      <Grid
+                        size={{
+                          xs: 6,
+                          sm: 3
+                        }}>
+                        <Typography variant="caption" sx={{
+                          color: "text.secondary"
+                        }}>Signer Role:</Typography>
                         <Typography variant="body2">{dossier.activeSignature.roleSnapshot}</Typography>
                       </Grid>
-                      <Grid item xs={6} sm={3}>
-                        <Typography variant="caption" color="text.secondary">Meaning of Signature:</Typography>
+                      <Grid
+                        size={{
+                          xs: 6,
+                          sm: 3
+                        }}>
+                        <Typography variant="caption" sx={{
+                          color: "text.secondary"
+                        }}>Meaning of Signature:</Typography>
                         <Typography variant="body2" sx={{ fontWeight: 700, color: "success.main" }}>{dossier.activeSignature.meaningOfSignature}</Typography>
                       </Grid>
-                      <Grid item xs={12} sm={6}>
-                        <Typography variant="caption" color="text.secondary">Signed Timestamp (UTC):</Typography>
+                      <Grid
+                        size={{
+                          xs: 12,
+                          sm: 6
+                        }}>
+                        <Typography variant="caption" sx={{
+                          color: "text.secondary"
+                        }}>Signed Timestamp (UTC):</Typography>
                         <Typography variant="body2">{new Date(dossier.activeSignature.signedAt).toUTCString()}</Typography>
                       </Grid>
                       {dossier.activeSignature.ipAddress && (
-                        <Grid item xs={12} sm={6}>
-                          <Typography variant="caption" color="text.secondary">Signer IP Address:</Typography>
+                        <Grid
+                          size={{
+                            xs: 12,
+                            sm: 6
+                          }}>
+                          <Typography variant="caption" sx={{
+                            color: "text.secondary"
+                          }}>Signer IP Address:</Typography>
                           <Typography variant="body2">{dossier.activeSignature.ipAddress}</Typography>
                         </Grid>
                       )}
                       {dossier.activeSignature.comment && (
-                        <Grid item xs={12}>
-                          <Typography variant="caption" color="text.secondary">Signature Note / Comment:</Typography>
+                        <Grid size={12}>
+                          <Typography variant="caption" sx={{
+                            color: "text.secondary"
+                          }}>Signature Note / Comment:</Typography>
                           <Typography variant="body2">{dossier.activeSignature.comment}</Typography>
                         </Grid>
                       )}
@@ -483,7 +537,9 @@ export const ApprovalWorkspaceDialog: React.FC<ApprovalWorkspaceDialogProps> = (
                   <AccordionDetails sx={{ p: 0 }}>
                     {dossier.changeItems.length === 0 ? (
                       <Box sx={{ p: 2 }}>
-                        <Typography variant="caption" color="text.secondary">
+                        <Typography variant="caption" sx={{
+                          color: "text.secondary"
+                        }}>
                           No specific section change items recorded.
                         </Typography>
                       </Box>
@@ -543,7 +599,12 @@ export const ApprovalWorkspaceDialog: React.FC<ApprovalWorkspaceDialogProps> = (
                           { label: "Regulatory Commitment", flag: dossier.impactAssessment.regulatoryCommitmentImpact, details: dossier.impactAssessment.regulatoryCommitmentDetails },
                           { label: "Related Documents", flag: dossier.impactAssessment.relatedDocumentsImpact, details: dossier.impactAssessment.relatedDocumentsDetails }
                         ].map((cat, idx) => (
-                          <Grid item xs={12} sm={6} key={idx}>
+                          <Grid
+                            key={idx}
+                            size={{
+                              xs: 12,
+                              sm: 6
+                            }}>
                             <Box sx={{ display: "flex", alignItems: "flex-start", gap: 1 }}>
                               <Chip
                                 size="small"
@@ -556,7 +617,12 @@ export const ApprovalWorkspaceDialog: React.FC<ApprovalWorkspaceDialogProps> = (
                                   {cat.label}
                                 </Typography>
                                 {cat.flag && cat.details && (
-                                  <Typography variant="body2" color="text.secondary" sx={{ fontSize: 12 }}>
+                                  <Typography
+                                    variant="body2"
+                                    sx={{
+                                      color: "text.secondary",
+                                      fontSize: 12
+                                    }}>
                                     {cat.details}
                                   </Typography>
                                 )}
@@ -566,7 +632,9 @@ export const ApprovalWorkspaceDialog: React.FC<ApprovalWorkspaceDialogProps> = (
                         ))}
                       </Grid>
                     ) : (
-                      <Typography variant="caption" color="text.secondary">
+                      <Typography variant="caption" sx={{
+                        color: "text.secondary"
+                      }}>
                         No impact assessment required for initial revision sequence #1.
                       </Typography>
                     )}
@@ -587,12 +655,16 @@ export const ApprovalWorkspaceDialog: React.FC<ApprovalWorkspaceDialogProps> = (
                           <Typography variant="body2" sx={{ fontWeight: 600 }}>
                             Reviewer: {rt.assignedReviewerFullName} ({rt.assignedReviewerUsername})
                           </Typography>
-                          <Typography variant="caption" color="text.secondary">
+                          <Typography variant="caption" sx={{
+                            color: "text.secondary"
+                          }}>
                             Decision: {rt.decision} on {rt.decisionAt ? new Date(rt.decisionAt).toLocaleDateString() : "N/A"}
                           </Typography>
                         </Box>
                         {rt.reviewNotes && (
-                          <Typography variant="caption" color="text.secondary">
+                          <Typography variant="caption" sx={{
+                            color: "text.secondary"
+                          }}>
                             Notes: {rt.reviewNotes}
                           </Typography>
                         )}
@@ -686,12 +758,18 @@ export const ApprovalWorkspaceDialog: React.FC<ApprovalWorkspaceDialogProps> = (
                 <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1 }}>
                   Select Approver Decision
                 </Typography>
-                <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 2.5 }}>
+                <Typography
+                  variant="caption"
+                  sx={{
+                    color: "text.secondary",
+                    display: "block",
+                    mb: 2.5
+                  }}>
                   Designated approver: {dossier.task.assignedApproverFullName} ({dossier.task.assignedApproverUsername})
                 </Typography>
 
                 <Grid container spacing={2} sx={{ mb: 3 }}>
-                  <Grid item xs={4}>
+                  <Grid size={4}>
                     <Tooltip
                       title={
                         !dossier.readiness.isSegregationOfDutiesSatisfied
@@ -717,7 +795,7 @@ export const ApprovalWorkspaceDialog: React.FC<ApprovalWorkspaceDialogProps> = (
                       </span>
                     </Tooltip>
                   </Grid>
-                  <Grid item xs={4}>
+                  <Grid size={4}>
                     <Button
                       fullWidth
                       variant={decisionMode === "ReturnForCorrection" ? "contained" : "outlined"}
@@ -728,7 +806,7 @@ export const ApprovalWorkspaceDialog: React.FC<ApprovalWorkspaceDialogProps> = (
                       Return for Correction
                     </Button>
                   </Grid>
-                  <Grid item xs={4}>
+                  <Grid size={4}>
                     <Button
                       fullWidth
                       variant={decisionMode === "Decline" ? "contained" : "outlined"}
@@ -743,7 +821,13 @@ export const ApprovalWorkspaceDialog: React.FC<ApprovalWorkspaceDialogProps> = (
 
                 {decisionMode === "Approve" && (
                   <Paper variant="outlined" sx={{ p: 2.5, bgcolor: (t) => t.palette.mode === "dark" ? "#1B2A1E" : "#F4FAF5" }}>
-                    <Typography variant="subtitle2" color="success.main" sx={{ fontWeight: 700, mb: 1 }}>
+                    <Typography
+                      variant="subtitle2"
+                      sx={{
+                        color: "success.main",
+                        fontWeight: 700,
+                        mb: 1
+                      }}>
                       Approving Revision {dossier.revision.revisionNumber}
                     </Typography>
                     <Typography variant="body2" sx={{ mb: 2 }}>
@@ -758,10 +842,12 @@ export const ApprovalWorkspaceDialog: React.FC<ApprovalWorkspaceDialogProps> = (
                       size="small"
                       value={effectiveDateOverride}
                       onChange={(e) => setEffectiveDateOverride(e.target.value)}
-                      InputLabelProps={{ shrink: true }}
                       helperText="Leave blank or select today for immediate activation; select a future date for deferred activation."
                       fullWidth
                       sx={{ mb: 2 }}
+                      slotProps={{
+                        inputLabel: { shrink: true }
+                      }}
                     />
 
                     <TextField
@@ -779,7 +865,13 @@ export const ApprovalWorkspaceDialog: React.FC<ApprovalWorkspaceDialogProps> = (
 
                 {decisionMode === "ReturnForCorrection" && (
                   <Paper variant="outlined" sx={{ p: 2.5, bgcolor: (t) => t.palette.mode === "dark" ? "#2E2415" : "#FFFBF2" }}>
-                    <Typography variant="subtitle2" color="warning.main" sx={{ fontWeight: 700, mb: 1 }}>
+                    <Typography
+                      variant="subtitle2"
+                      sx={{
+                        color: "warning.main",
+                        fontWeight: 700,
+                        mb: 1
+                      }}>
                       Return Revision for Author Correction
                     </Typography>
                     <Typography variant="body2" sx={{ mb: 2 }}>
@@ -804,7 +896,13 @@ export const ApprovalWorkspaceDialog: React.FC<ApprovalWorkspaceDialogProps> = (
 
                 {decisionMode === "Decline" && (
                   <Paper variant="outlined" sx={{ p: 2.5, bgcolor: (t) => t.palette.mode === "dark" ? "#2F1919" : "#FFF5F5" }}>
-                    <Typography variant="subtitle2" color="error.main" sx={{ fontWeight: 700, mb: 1 }}>
+                    <Typography
+                      variant="subtitle2"
+                      sx={{
+                        color: "error.main",
+                        fontWeight: 700,
+                        mb: 1
+                      }}>
                       Decline & Cancel Revision
                     </Typography>
                     <Typography variant="body2" sx={{ mb: 2 }}>

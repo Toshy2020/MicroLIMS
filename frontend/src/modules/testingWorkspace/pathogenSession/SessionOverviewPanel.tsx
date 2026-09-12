@@ -44,7 +44,9 @@ export function SessionOverviewPanel({ session, onStartWorkflow }: Props) {
         }}
       >
         <Paper sx={{ p: 2.5, borderRadius: 2, border: "1px solid", borderColor: "divider" }}>
-          <Stack direction="row" spacing={1.5} alignItems="center">
+          <Stack direction="row" spacing={1.5} sx={{
+            alignItems: "center"
+          }}>
             <Box
               sx={{
                 width: 40,
@@ -71,7 +73,9 @@ export function SessionOverviewPanel({ session, onStartWorkflow }: Props) {
         </Paper>
 
         <Paper sx={{ p: 2.5, borderRadius: 2, border: "1px solid", borderColor: "divider" }}>
-          <Stack direction="row" spacing={1.5} alignItems="center">
+          <Stack direction="row" spacing={1.5} sx={{
+            alignItems: "center"
+          }}>
             <Box
               sx={{
                 width: 40,
@@ -98,7 +102,9 @@ export function SessionOverviewPanel({ session, onStartWorkflow }: Props) {
         </Paper>
 
         <Paper sx={{ p: 2.5, borderRadius: 2, border: "1px solid", borderColor: "divider" }}>
-          <Stack direction="row" spacing={1.5} alignItems="center">
+          <Stack direction="row" spacing={1.5} sx={{
+            alignItems: "center"
+          }}>
             <Box
               sx={{
                 width: 40,
@@ -125,7 +131,9 @@ export function SessionOverviewPanel({ session, onStartWorkflow }: Props) {
         </Paper>
 
         <Paper sx={{ p: 2.5, borderRadius: 2, border: "1px solid", borderColor: "divider" }}>
-          <Stack direction="row" spacing={1.5} alignItems="center">
+          <Stack direction="row" spacing={1.5} sx={{
+            alignItems: "center"
+          }}>
             <Box
               sx={{
                 width: 40,
@@ -154,9 +162,21 @@ export function SessionOverviewPanel({ session, onStartWorkflow }: Props) {
 
       {/* Session Scope & Rules Callout */}
       <Paper sx={{ p: 2.5, borderRadius: 2, bgcolor: theme.custom.status.purple.bg, border: "1px solid", borderColor: theme.custom.status.purple.border }}>
-        <Stack direction={{ xs: "column", sm: "row" }} justifyContent="space-between" alignItems={{ sm: "center" }} spacing={2}>
+        <Stack
+          direction={{ xs: "column", sm: "row" }}
+          spacing={2}
+          sx={{
+            justifyContent: "space-between",
+            alignItems: { sm: "center" }
+          }}>
           <Box>
-            <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 0.5 }}>
+            <Stack
+              direction="row"
+              spacing={1}
+              sx={{
+                alignItems: "center",
+                mb: 0.5
+              }}>
               <Chip
                 label="Master Data Driven"
                 size="small"
@@ -187,7 +207,13 @@ export function SessionOverviewPanel({ session, onStartWorkflow }: Props) {
       <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" }, gap: 3 }}>
         {/* Assigned Tests List */}
         <Paper sx={{ p: 2.5, borderRadius: 2, border: "1px solid", borderColor: "divider" }}>
-          <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
+          <Stack
+            direction="row"
+            sx={{
+              justifyContent: "space-between",
+              alignItems: "center",
+              mb: 2
+            }}>
             <Typography sx={{ fontSize: 15, fontWeight: 700, color: "text.primary" }}>
               Assigned Tests ({session.assignedTests.length})
             </Typography>
@@ -240,7 +266,13 @@ export function SessionOverviewPanel({ session, onStartWorkflow }: Props) {
 
         {/* Sampling Locations List */}
         <Paper sx={{ p: 2.5, borderRadius: 2, border: "1px solid", borderColor: "divider" }}>
-          <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
+          <Stack
+            direction="row"
+            sx={{
+              justifyContent: "space-between",
+              alignItems: "center",
+              mb: 2
+            }}>
             <Typography sx={{ fontSize: 15, fontWeight: 700, color: "text.primary" }}>
               Sampling Locations ({session.locations.length})
             </Typography>

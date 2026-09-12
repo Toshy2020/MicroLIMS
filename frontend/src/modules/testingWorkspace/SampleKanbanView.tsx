@@ -26,7 +26,13 @@ export function SampleKanbanView({ samples, onCardClick }: { samples: SampleCard
         const items = samples.filter((s) => s.status === col.status);
         return (
           <Box key={col.status} sx={{ minWidth: 260, flex: "0 0 260px" }}>
-            <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1 }}>
+            <Stack
+              direction="row"
+              sx={{
+                justifyContent: "space-between",
+                alignItems: "center",
+                mb: 1
+              }}>
               <Typography sx={{ fontSize: 13, fontWeight: 700, color: theme.palette.primary.main }}>{col.label}</Typography>
               <Typography sx={{ fontSize: 12, color: "text.secondary" }}>{items.length}</Typography>
             </Stack>
@@ -38,7 +44,12 @@ export function SampleKanbanView({ samples, onCardClick }: { samples: SampleCard
                 >
                   <Typography sx={{ fontSize: 13, fontWeight: 600 }}>{s.displayName}</Typography>
                   <Typography sx={{ fontSize: 11, color: "text.secondary", mb: 0.5 }}>{s.referenceNumber}</Typography>
-                  <Stack direction="row" justifyContent="space-between" alignItems="center">
+                  <Stack
+                    direction="row"
+                    sx={{
+                      justifyContent: "space-between",
+                      alignItems: "center"
+                    }}>
                     <CategoryBadge category={s.category} />
                     <Typography sx={{ fontSize: 10, color: "text.secondary" }}>{formatDate(s.receivedAt)}</Typography>
                   </Stack>

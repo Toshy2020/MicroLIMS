@@ -158,13 +158,15 @@ export function DualPdfComparisonViewer({
       onClose={onClose}
       maxWidth={false}
       fullWidth
-      PaperProps={{
-        sx: {
-          width: "96vw",
-          height: "94vh",
-          maxWidth: "1920px",
-          display: "flex",
-          flexDirection: "column"
+      slotProps={{
+        paper: {
+          sx: {
+            width: "96vw",
+            height: "94vh",
+            maxWidth: "1920px",
+            display: "flex",
+            flexDirection: "column"
+          }
         }
       }}
     >
@@ -198,9 +200,6 @@ export function DualPdfComparisonViewer({
         <Grid container sx={{ flexGrow: 1, height: "100%" }}>
           {/* LEFT PANE: Currently Effective Controlled Document */}
           <Grid
-            item
-            xs={12}
-            md={6}
             sx={{
               height: "100%",
               display: "flex",
@@ -208,7 +207,10 @@ export function DualPdfComparisonViewer({
               borderRight: { md: "2px solid" },
               borderColor: { md: "divider" }
             }}
-          >
+            size={{
+              xs: 12,
+              md: 6
+            }}>
             {/* Header Banner */}
             <Box
               sx={{
@@ -266,7 +268,9 @@ export function DualPdfComparisonViewer({
               {loadingEffective && (
                 <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "100%", gap: 2 }}>
                   <CircularProgress size={36} />
-                  <Typography variant="body2" color="text.secondary">
+                  <Typography variant="body2" sx={{
+                    color: "text.secondary"
+                  }}>
                     Verifying SHA-256 and loading effective PDF...
                   </Typography>
                 </Box>
@@ -308,15 +312,15 @@ export function DualPdfComparisonViewer({
 
           {/* RIGHT PANE: Proposed Draft Revision Document */}
           <Grid
-            item
-            xs={12}
-            md={6}
             sx={{
               height: "100%",
               display: "flex",
               flexDirection: "column"
             }}
-          >
+            size={{
+              xs: 12,
+              md: 6
+            }}>
             {/* Header Banner */}
             <Box
               sx={{
@@ -374,7 +378,9 @@ export function DualPdfComparisonViewer({
               {loadingProposed && (
                 <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "100%", gap: 2 }}>
                   <CircularProgress size={36} />
-                  <Typography variant="body2" color="text.secondary">
+                  <Typography variant="body2" sx={{
+                    color: "text.secondary"
+                  }}>
                     Verifying SHA-256 and loading proposed revision PDF...
                   </Typography>
                 </Box>
@@ -419,7 +425,9 @@ export function DualPdfComparisonViewer({
       <DialogActions sx={{ px: 3, py: 1.5, borderTop: "1px solid", borderColor: "divider", justifyContent: "space-between" }}>
         <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
           <VerifiedUserIcon color="primary" fontSize="small" />
-          <Typography variant="caption" color="text.secondary">
+          <Typography variant="caption" sx={{
+            color: "text.secondary"
+          }}>
             MicroLIMS Controlled Dual Inspection Workspace • Cryptographic Integrity Verified
           </Typography>
         </Box>

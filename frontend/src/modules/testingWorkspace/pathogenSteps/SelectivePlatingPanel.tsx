@@ -207,7 +207,9 @@ export function SelectivePlatingPanel({ testOrderId, step, current, onSubmitted 
             </Typography>
           </Box>
 
-          <Stack direction="row" justifyContent="flex-end">
+          <Stack direction="row" sx={{
+            justifyContent: "flex-end"
+          }}>
             <Button
               variant="contained"
               onClick={handleStartIncubation}
@@ -255,7 +257,12 @@ export function SelectivePlatingPanel({ testOrderId, step, current, onSubmitted 
             </Alert>
           )}
 
-          <Stack direction="row" justifyContent="space-between" alignItems="center">
+          <Stack
+            direction="row"
+            sx={{
+              justifyContent: "space-between",
+              alignItems: "center"
+            }}>
             {canOverride ? (
               <Button variant="outlined" color="warning" onClick={() => setSkipDialogOpen(true)} disabled={skipping}>
                 Skip Wait
@@ -319,7 +326,9 @@ export function SelectivePlatingPanel({ testOrderId, step, current, onSubmitted 
             helperText="Optional notes on colony characteristics observed on the plate."
           />
 
-          <Stack direction="row" justifyContent="flex-end">
+          <Stack direction="row" sx={{
+            justifyContent: "flex-end"
+          }}>
             <Button
               variant="contained"
               onClick={handleSubmitObservation}

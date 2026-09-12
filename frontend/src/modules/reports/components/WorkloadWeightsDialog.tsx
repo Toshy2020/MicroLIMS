@@ -102,90 +102,92 @@ export function WorkloadWeightsDialog({ open, onClose, onUpdated }: WorkloadWeig
       }
       actions={<Button onClick={onClose}>Close</Button>}
     >
-        {error && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>{error}</Alert>}
-        {success && <Alert severity="success" sx={{ mb: 2 }} onClose={() => setSuccess(null)}>{success}</Alert>}
+      {error && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>{error}</Alert>}
+      {success && <Alert severity="success" sx={{ mb: 2 }} onClose={() => setSuccess(null)}>{success}</Alert>}
 
-        <Table size="small" sx={{ "& th": { fontWeight: 700, fontSize: 12 } }}>
-          <TableHead>
-            <TableRow>
-              <TableCell>Test Code</TableCell>
-              <TableCell>Test Name</TableCell>
-              <TableCell>Category</TableCell>
-              <TableCell align="center">Workload Weight</TableCell>
-              <TableCell>Effective Date</TableCell>
-              <TableCell>Reason for Change / Audit</TableCell>
-              {isAuthorized && <TableCell align="center">Action</TableCell>}
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {weights.map((w) => {
-              const isEditing = editingCode === w.testCode;
+      <Table size="small" sx={{ "& th": { fontWeight: 700, fontSize: 12 } }}>
+        <TableHead>
+          <TableRow>
+            <TableCell>Test Code</TableCell>
+            <TableCell>Test Name</TableCell>
+            <TableCell>Category</TableCell>
+            <TableCell align="center">Workload Weight</TableCell>
+            <TableCell>Effective Date</TableCell>
+            <TableCell>Reason for Change / Audit</TableCell>
+            {isAuthorized && <TableCell align="center">Action</TableCell>}
+          </TableRow>
+        </TableHead>
+        <TableBody>
+          {weights.map((w) => {
+            const isEditing = editingCode === w.testCode;
 
-              return (
-                <TableRow key={w.testCode} hover>
-                  <TableCell sx={{ fontWeight: 600 }}>{w.testCode}</TableCell>
-                  <TableCell>{w.testName}</TableCell>
-                  <TableCell>{w.category}</TableCell>
+            return (
+              <TableRow key={w.testCode} hover>
+                <TableCell sx={{ fontWeight: 600 }}>{w.testCode}</TableCell>
+                <TableCell>{w.testName}</TableCell>
+                <TableCell>{w.category}</TableCell>
+                <TableCell align="center">
+                  {isEditing ? (
+                    <TextField
+                      size="small"
+                      type="number"
+                      value={editValue}
+                      onChange={(e) => setEditValue(parseFloat(e.target.value) || 1.0)}
+                      sx={{ width: 80 }}
+                      slotProps={{
+                        htmlInput: { step: 0.1, min: 0.1 }
+                      }}
+                    />
+                  ) : (
+                    <Chip
+                      size="small"
+                      label={`${w.workloadWeight}x`}
+                      sx={{ fontWeight: 700, bgcolor: "#ede9fe", color: "#6d28d9" }}
+                    />
+                  )}
+                </TableCell>
+                <TableCell>{w.effectiveDate}</TableCell>
+                <TableCell sx={{ maxWidth: 220 }}>
+                  {isEditing ? (
+                    <TextField
+                      size="small"
+                      placeholder="Reason for change..."
+                      value={editReason}
+                      onChange={(e) => setEditReason(e.target.value)}
+                      fullWidth
+                    />
+                  ) : (
+                    <Typography sx={{ fontSize: 11, color: "text.secondary" }}>
+                      {w.reasonForChange || "Baseline configuration"}
+                      {w.changedBy ? ` (by ${w.changedBy})` : ""}
+                    </Typography>
+                  )}
+                </TableCell>
+                {isAuthorized && (
                   <TableCell align="center">
                     {isEditing ? (
-                      <TextField
-                        size="small"
-                        type="number"
-                        inputProps={{ step: 0.1, min: 0.1 }}
-                        value={editValue}
-                        onChange={(e) => setEditValue(parseFloat(e.target.value) || 1.0)}
-                        sx={{ width: 80 }}
-                      />
+                      <Box sx={{ display: "flex", gap: 0.5 }}>
+                        <IconButton size="small" color="primary" onClick={() => saveEdit(w.testCode)}>
+                          <CheckIcon fontSize="small" />
+                        </IconButton>
+                        <IconButton size="small" onClick={cancelEdit}>
+                          <CloseIcon fontSize="small" />
+                        </IconButton>
+                      </Box>
                     ) : (
-                      <Chip
-                        size="small"
-                        label={`${w.workloadWeight}x`}
-                        sx={{ fontWeight: 700, bgcolor: "#ede9fe", color: "#6d28d9" }}
-                      />
+                      <Tooltip title="Modify test complexity weight">
+                        <IconButton size="small" onClick={() => startEdit(w)}>
+                          <EditIcon fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
                     )}
                   </TableCell>
-                  <TableCell>{w.effectiveDate}</TableCell>
-                  <TableCell sx={{ maxWidth: 220 }}>
-                    {isEditing ? (
-                      <TextField
-                        size="small"
-                        placeholder="Reason for change..."
-                        value={editReason}
-                        onChange={(e) => setEditReason(e.target.value)}
-                        fullWidth
-                      />
-                    ) : (
-                      <Typography sx={{ fontSize: 11, color: "text.secondary" }}>
-                        {w.reasonForChange || "Baseline configuration"}
-                        {w.changedBy ? ` (by ${w.changedBy})` : ""}
-                      </Typography>
-                    )}
-                  </TableCell>
-                  {isAuthorized && (
-                    <TableCell align="center">
-                      {isEditing ? (
-                        <Box sx={{ display: "flex", gap: 0.5 }}>
-                          <IconButton size="small" color="primary" onClick={() => saveEdit(w.testCode)}>
-                            <CheckIcon fontSize="small" />
-                          </IconButton>
-                          <IconButton size="small" onClick={cancelEdit}>
-                            <CloseIcon fontSize="small" />
-                          </IconButton>
-                        </Box>
-                      ) : (
-                        <Tooltip title="Modify test complexity weight">
-                          <IconButton size="small" onClick={() => startEdit(w)}>
-                            <EditIcon fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
-                      )}
-                    </TableCell>
-                  )}
-                </TableRow>
-              );
-            })}
-          </TableBody>
-        </Table>
+                )}
+              </TableRow>
+            );
+          })}
+        </TableBody>
+      </Table>
     </FloatingDialog>
   );
 }

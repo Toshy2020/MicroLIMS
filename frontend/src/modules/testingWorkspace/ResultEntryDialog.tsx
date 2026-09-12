@@ -31,11 +31,21 @@ export function ResultEntryDialog({ testOrderId, testCode }: Props) {
   return (
     <Box>
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
-      <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
+      <Typography
+        variant="body2"
+        sx={{
+          color: "text.secondary",
+          mb: 1.5
+        }}>
         Enter the result for {testCode}. TAMC/TYMC counts are rounded to whole numbers by the backend.
       </Typography>
       <TextField size="small" fullWidth label="Result" value={value} onChange={(e) => setValue(e.target.value)} />
-      <Stack direction="row" justifyContent="flex-end" sx={{ mt: 2 }}>
+      <Stack
+        direction="row"
+        sx={{
+          justifyContent: "flex-end",
+          mt: 2
+        }}>
         <Button variant="contained" onClick={submit} disabled={!value}>Save Result</Button>
       </Stack>
     </Box>

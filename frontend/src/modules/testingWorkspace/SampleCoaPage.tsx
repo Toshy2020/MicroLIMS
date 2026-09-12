@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useState } from "react";
+import { Fragment, useEffect, useState, type JSX } from "react";
 import { useParams } from "react-router-dom";
 import { SampleSummaryService } from "./services/SampleSummaryService";
 import { buildCoaMatrix, buildOverallConclusionText, buildCoaSimpleRows, buildSimpleConclusionText, computeResultDate } from "./coaAggregation";

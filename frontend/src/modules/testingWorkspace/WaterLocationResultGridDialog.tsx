@@ -151,7 +151,9 @@ export function WaterLocationResultGridDialog({ open, testOrderId, testCode, dis
                     <TableCell>
                       <Stack spacing={0.5}>
                         {(readingsByLocation[r.id] ?? [""]).map((v, i) => (
-                          <Stack direction="row" spacing={0.5} key={i} alignItems="center">
+                          <Stack direction="row" spacing={0.5} key={i} sx={{
+                            alignItems: "center"
+                          }}>
                             <TextField
                               size="small" type="number" sx={{ width: 90 }}
                               value={v}
@@ -178,7 +180,9 @@ export function WaterLocationResultGridDialog({ open, testOrderId, testCode, dis
           {!isTimeReady && minReadyAt && (
             <Alert severity="warning">Results cannot be submitted before {minReadyAt.toLocaleString()}.</Alert>
           )}
-          <Stack direction="row" justifyContent="flex-end">
+          <Stack direction="row" sx={{
+            justifyContent: "flex-end"
+          }}>
             <Button variant="contained" disabled={!allEntered || !isTimeReady || submitting} onClick={submit}>
               {submitting ? "Submitting…" : "Submit Results"}
             </Button>

@@ -1,8 +1,8 @@
 import { Grid, Paper, Typography, Box, useTheme } from "@mui/material";
 import DevicesOtherOutlinedIcon from "@mui/icons-material/DevicesOtherOutlined";
-import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
-import PauseCircleOutlineIcon from "@mui/icons-material/PauseCircleOutline";
-import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
+import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutlined";
+import PauseCircleOutlineIcon from "@mui/icons-material/PauseCircleOutlined";
+import ErrorOutlineIcon from "@mui/icons-material/ErrorOutlined";
 import AlarmOnOutlinedIcon from "@mui/icons-material/AlarmOnOutlined";
 import { SvgIconComponent } from "@mui/icons-material";
 import { EquipmentItem, EquipmentKpiFilter } from "../types/equipmentTypes";
@@ -63,7 +63,13 @@ export function EquipmentKpiCards({ items, activeFilter, onFilterSelect }: Equip
         const isActive = activeFilter === card.key;
         const tokens = theme.custom.status[card.tone];
         return (
-          <Grid item xs={12} sm={6} md={2.4} key={card.key}>
+          <Grid
+            key={card.key}
+            size={{
+              xs: 12,
+              sm: 6,
+              md: 2.4
+            }}>
             <Paper
               onClick={() => onFilterSelect(isActive && card.key !== "all" ? "all" : card.key)}
               sx={{

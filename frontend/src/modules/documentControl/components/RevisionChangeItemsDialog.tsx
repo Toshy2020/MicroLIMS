@@ -27,8 +27,8 @@ import {
 } from "@mui/material";
 // Removal deactivates and retains the record rather than deleting it, so the
 // control must not carry a delete affordance (DC-URS-184, FS-1a-170).
-import RemoveCircleOutlineIcon from "@mui/icons-material/RemoveCircleOutline";
-import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline";
+import RemoveCircleOutlineIcon from "@mui/icons-material/RemoveCircleOutlined";
+import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutlined";
 import { documentRevisionService } from "../services/documentRevisionService";
 import { ConfirmationDialog } from "../../../components/ConfirmationDialog";
 import { tableHeadSx } from "../../../theme";
@@ -286,7 +286,9 @@ export const RevisionChangeItemsDialog: React.FC<RevisionChangeItemsDialogProps>
                     {item.originatingReviewFindingId ? (
                       <Chip label={`Finding #${item.originatingReviewFindingId}`} size="small" color="secondary" />
                     ) : (
-                      <Typography variant="caption" color="text.secondary">Author Added</Typography>
+                      <Typography variant="caption" sx={{
+                        color: "text.secondary"
+                      }}>Author Added</Typography>
                     )}
                   </TableCell>
                   <TableCell>

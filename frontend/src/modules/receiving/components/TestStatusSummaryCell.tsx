@@ -165,14 +165,16 @@ export function TestStatusSummaryCell({ sample, onTestClick, onViewAllTests, onP
           onClick={(e) => e.stopPropagation()}
           anchorOrigin={{ vertical: "bottom", horizontal: "left" }}
           transformOrigin={{ vertical: "top", horizontal: "left" }}
-          PaperProps={{
-            sx: {
-              width: 290,
-              p: 1.5,
-              borderRadius: 2,
-              boxShadow: "0 4px 20px rgba(0,0,0,0.12)",
-              border: "1px solid",
-              borderColor: "divider"
+          slotProps={{
+            paper: {
+              sx: {
+                width: 290,
+                p: 1.5,
+                borderRadius: 2,
+                boxShadow: "0 4px 20px rgba(0,0,0,0.12)",
+                border: "1px solid",
+                borderColor: "divider"
+              }
             }
           }}
         >

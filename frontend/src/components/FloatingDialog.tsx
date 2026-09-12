@@ -41,8 +41,10 @@ export function FloatingDialog({ open, title, onClose, children, actions, maxWid
       onClose={handleClose}
       maxWidth={maxWidth}
       fullWidth
-      PaperProps={paperSx ? { sx: paperSx } : undefined}
       onClick={(e) => e.stopPropagation()}
+      slotProps={{
+        paper: paperSx ? { sx: paperSx } : undefined
+      }}
     >
       <DialogTitle sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", ...titleSx }}>
         {title}

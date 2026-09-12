@@ -8,9 +8,9 @@ import ExpandLess from "@mui/icons-material/ExpandLess";
 import ExpandMore from "@mui/icons-material/ExpandMore";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
-import PersonOutlineIcon from "@mui/icons-material/PersonOutline";
+import PersonOutlineIcon from "@mui/icons-material/PersonOutlined";
 import ForumOutlinedIcon from "@mui/icons-material/ForumOutlined";
-import MailOutlineIcon from "@mui/icons-material/MailOutline";
+import MailOutlineIcon from "@mui/icons-material/MailOutlined";
 import LockResetIcon from "@mui/icons-material/LockReset";
 import LogoutIcon from "@mui/icons-material/Logout";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
@@ -233,10 +233,11 @@ export function Sidebar({ mobileOpen, onMobileClose, collapsed, onToggleCollapse
                     {!effectiveCollapsed && (
                       <ListItemText
                         primary={item.label}
-                        primaryTypographyProps={{
-                          fontSize: 13,
-                          fontWeight: active ? 700 : 500,
-                          noWrap: true
+                        slotProps={{
+                          primary: {
+                            noWrap: true,
+                            sx: { fontSize: 13, fontWeight: active ? 700 : 500 }
+                          }
                         }}
                       />
                     )}
@@ -288,10 +289,11 @@ export function Sidebar({ mobileOpen, onMobileClose, collapsed, onToggleCollapse
                               >
                                 <ListItemText
                                   primary={child.label}
-                                  primaryTypographyProps={{
-                                    fontSize: 12,
-                                    fontWeight: childActive ? 700 : 400,
-                                    noWrap: true
+                                  slotProps={{
+                                    primary: {
+                                      noWrap: true,
+                                      sx: { fontSize: 12, fontWeight: childActive ? 700 : 400 }
+                                    }
                                   }}
                                 />
                               </ListItemButton>
@@ -352,7 +354,9 @@ export function Sidebar({ mobileOpen, onMobileClose, collapsed, onToggleCollapse
                                         <ChildIcon fontSize="small" />
                                       </ListItemIcon>
                                     )}
-                                    <ListItemText primary={child.label} primaryTypographyProps={{ fontSize: 13 }} />
+                                    <ListItemText primary={child.label} slotProps={{
+                                      primary: { sx: { fontSize: 13 } }
+                                    }} />
                                   </MenuItem>
                                 );
                               })}
@@ -438,7 +442,7 @@ export function Sidebar({ mobileOpen, onMobileClose, collapsed, onToggleCollapse
             vertical: "bottom",
             horizontal: "left"
           }}
-          PaperProps={{ sx: { minWidth: 230, py: 0.5, mb: 1 } }}
+          slotProps={{ paper: { sx: { minWidth: 230, py: 0.5, mb: 1 } } }}
         >
           <Box sx={{ px: 2, py: 1 }}>
             <Typography sx={{ fontWeight: 700, fontSize: 13.5 }}>{fullName ?? username}</Typography>
@@ -448,11 +452,15 @@ export function Sidebar({ mobileOpen, onMobileClose, collapsed, onToggleCollapse
           <Divider />
           <MenuItem component={Link} to="/profile" onClick={() => { setProfileAnchor(null); if (isMobile) onMobileClose(); }}>
             <ListItemIcon><PersonOutlineIcon fontSize="small" /></ListItemIcon>
-            <ListItemText primary="My Profile" primaryTypographyProps={{ fontSize: 13 }} />
+            <ListItemText primary="My Profile" slotProps={{
+              primary: { sx: { fontSize: 13 } }
+            }} />
           </MenuItem>
           <MenuItem component={Link} to="/discussions" onClick={() => { setProfileAnchor(null); if (isMobile) onMobileClose(); }}>
             <ListItemIcon><ForumOutlinedIcon fontSize="small" /></ListItemIcon>
-            <ListItemText primary="Discussions" primaryTypographyProps={{ fontSize: 13 }} />
+            <ListItemText primary="Discussions" slotProps={{
+              primary: { sx: { fontSize: 13 } }
+            }} />
           </MenuItem>
           <MenuItem component={Link} to="/messages" onClick={() => { setProfileAnchor(null); if (isMobile) onMobileClose(); }}>
             <ListItemIcon>
@@ -460,7 +468,9 @@ export function Sidebar({ mobileOpen, onMobileClose, collapsed, onToggleCollapse
                 <MailOutlineIcon fontSize="small" />
               </Badge>
             </ListItemIcon>
-            <ListItemText primary="Messages" primaryTypographyProps={{ fontSize: 13 }} />
+            <ListItemText primary="Messages" slotProps={{
+              primary: { sx: { fontSize: 13 } }
+            }} />
             {unreadMessages > 0 && (
               <Typography sx={{ fontSize: 11, bgcolor: "error.main", color: "#fff", px: 0.75, py: 0.1, borderRadius: 1, fontWeight: 700 }}>
                 {unreadMessages}
@@ -469,12 +479,16 @@ export function Sidebar({ mobileOpen, onMobileClose, collapsed, onToggleCollapse
           </MenuItem>
           <MenuItem component={Link} to="/change-password" onClick={() => { setProfileAnchor(null); if (isMobile) onMobileClose(); }}>
             <ListItemIcon><LockResetIcon fontSize="small" /></ListItemIcon>
-            <ListItemText primary="Change Password" primaryTypographyProps={{ fontSize: 13 }} />
+            <ListItemText primary="Change Password" slotProps={{
+              primary: { sx: { fontSize: 13 } }
+            }} />
           </MenuItem>
           <Divider />
           <MenuItem onClick={handleSignOut}>
             <ListItemIcon><LogoutIcon fontSize="small" /></ListItemIcon>
-            <ListItemText primary="Sign Out" primaryTypographyProps={{ fontSize: 13 }} />
+            <ListItemText primary="Sign Out" slotProps={{
+              primary: { sx: { fontSize: 13 } }
+            }} />
           </MenuItem>
         </Menu>
       </Box>

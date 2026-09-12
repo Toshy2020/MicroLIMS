@@ -230,9 +230,21 @@ export function SessionReviewPanel({ session, onSessionCompleted, onBackToMatrix
     <Stack spacing={3}>
       {/* Session Metadata Banner */}
       <Paper sx={{ p: 3, borderRadius: 2, border: "1px solid", borderColor: "divider", bgcolor: theme.custom.status.purple.bg }}>
-        <Stack direction={{ xs: "column", md: "row" }} justifyContent="space-between" alignItems={{ md: "center" }} spacing={2}>
+        <Stack
+          direction={{ xs: "column", md: "row" }}
+          spacing={2}
+          sx={{
+            justifyContent: "space-between",
+            alignItems: { md: "center" }
+          }}>
           <Box>
-            <Stack direction="row" spacing={1.5} alignItems="center" sx={{ mb: 1 }}>
+            <Stack
+              direction="row"
+              spacing={1.5}
+              sx={{
+                alignItems: "center",
+                mb: 1
+              }}>
               <Typography sx={{ fontSize: 18, fontWeight: 800, color: "text.primary" }}>
                 Testing Session Review — {session.sampleReferenceNumber}
               </Typography>
@@ -289,7 +301,13 @@ export function SessionReviewPanel({ session, onSessionCompleted, onBackToMatrix
 
       {/* Results Matrix Review Table with Evidence Expansion */}
       <Paper sx={{ p: 2.5, borderRadius: 2, border: "1px solid", borderColor: "divider" }}>
-        <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
+        <Stack
+          direction="row"
+          sx={{
+            justifyContent: "space-between",
+            alignItems: "center",
+            mb: 2
+          }}>
           <Box>
             <Typography sx={{ fontSize: 16, fontWeight: 800, color: "text.primary" }}>
               Final Analytical Results Summary
@@ -300,7 +318,9 @@ export function SessionReviewPanel({ session, onSessionCompleted, onBackToMatrix
             </Typography>
           </Box>
 
-          <Stack direction="row" spacing={1.5} alignItems="center">
+          <Stack direction="row" spacing={1.5} sx={{
+            alignItems: "center"
+          }}>
             <Button
               variant="outlined"
               size="small"
@@ -514,7 +534,13 @@ export function SessionReviewPanel({ session, onSessionCompleted, onBackToMatrix
       {/* Audit & Traceability Card */}
       <Card sx={{ borderRadius: 2, border: "1px solid", borderColor: "divider", bgcolor: theme.custom.status.purple.bg }}>
         <CardContent sx={{ p: 2.5 }}>
-          <Stack direction="row" spacing={1.5} alignItems="center" sx={{ mb: 1 }}>
+          <Stack
+            direction="row"
+            spacing={1.5}
+            sx={{
+              alignItems: "center",
+              mb: 1
+            }}>
             <VerifiedUserOutlinedIcon sx={{ fontSize: 20, color: theme.palette.primary.main }} />
             <Typography sx={{ fontSize: 15, fontWeight: 800, color: "text.primary" }}>
               Audit & Traceability (ALCOA+ Compliance)

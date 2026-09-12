@@ -169,7 +169,12 @@ export function TrendingTab({ initialTestCode, initialSubjectName }: TrendingTab
     setExportError(null);
     setExportMenuAnchor(null);
     try {
-      const svg = chartContainerRef.current?.querySelector("svg");
+      // The plot surface is the direct <svg> child of .recharts-wrapper.
+      // Recharts 3 portals the Legend into that same wrapper, and every
+      // legend item draws its icon as its own svg.recharts-surface - so a
+      // bare querySelector("svg") returned a 14px legend icon whenever the
+      // legend rendered first, and that icon was exported as the "chart".
+      const svg = chartContainerRef.current?.querySelector<SVGSVGElement>(".recharts-wrapper > svg.recharts-surface");
       if (!svg) throw new Error("No chart is currently rendered to capture.");
       const imageDataUrl = await captureSvgAsPng(svg);
       exportTrendPdfWithChart(exportContext(), imageDataUrl);
@@ -510,7 +515,12 @@ export function TrendingTab({ initialTestCode, initialSubjectName }: TrendingTab
 
           {analysis?.isNumeric && analysis.numericStats ? (
             <Grid container spacing={1.5}>
-              <Grid item xs={6} sm={4} md={2.4}>
+              <Grid
+                size={{
+                  xs: 6,
+                  sm: 4,
+                  md: 2.4
+                }}>
                 <Box sx={{ p: 1.5, bgcolor: "background.default", borderRadius: 1, textAlign: "center" }}>
                   <Typography sx={{ fontSize: 11, color: "text.secondary" }}>No. of Results</Typography>
                   <Typography sx={{ fontSize: 18, fontWeight: 800, color: theme.palette.primary.main }}>
@@ -519,7 +529,12 @@ export function TrendingTab({ initialTestCode, initialSubjectName }: TrendingTab
                 </Box>
               </Grid>
 
-              <Grid item xs={6} sm={4} md={2.4}>
+              <Grid
+                size={{
+                  xs: 6,
+                  sm: 4,
+                  md: 2.4
+                }}>
                 <Box sx={{ p: 1.5, bgcolor: "background.default", borderRadius: 1, textAlign: "center" }}>
                   <Typography sx={{ fontSize: 11, color: "text.secondary" }}>Minimum</Typography>
                   <Typography sx={{ fontSize: 18, fontWeight: 800 }}>
@@ -528,7 +543,12 @@ export function TrendingTab({ initialTestCode, initialSubjectName }: TrendingTab
                 </Box>
               </Grid>
 
-              <Grid item xs={6} sm={4} md={2.4}>
+              <Grid
+                size={{
+                  xs: 6,
+                  sm: 4,
+                  md: 2.4
+                }}>
                 <Box sx={{ p: 1.5, bgcolor: "background.default", borderRadius: 1, textAlign: "center" }}>
                   <Typography sx={{ fontSize: 11, color: "text.secondary" }}>Maximum</Typography>
                   <Typography sx={{ fontSize: 18, fontWeight: 800 }}>
@@ -537,7 +557,12 @@ export function TrendingTab({ initialTestCode, initialSubjectName }: TrendingTab
                 </Box>
               </Grid>
 
-              <Grid item xs={6} sm={4} md={2.4}>
+              <Grid
+                size={{
+                  xs: 6,
+                  sm: 4,
+                  md: 2.4
+                }}>
                 <Box sx={{ p: 1.5, bgcolor: "background.default", borderRadius: 1, textAlign: "center" }}>
                   <Typography sx={{ fontSize: 11, color: "text.secondary" }}>Mean</Typography>
                   <Typography sx={{ fontSize: 18, fontWeight: 800, color: theme.palette.primary.main }}>
@@ -546,7 +571,12 @@ export function TrendingTab({ initialTestCode, initialSubjectName }: TrendingTab
                 </Box>
               </Grid>
 
-              <Grid item xs={6} sm={4} md={2.4}>
+              <Grid
+                size={{
+                  xs: 6,
+                  sm: 4,
+                  md: 2.4
+                }}>
                 <Box sx={{ p: 1.5, bgcolor: "background.default", borderRadius: 1, textAlign: "center" }}>
                   <Typography sx={{ fontSize: 11, color: "text.secondary" }}>Median</Typography>
                   <Typography sx={{ fontSize: 18, fontWeight: 800 }}>
@@ -555,7 +585,12 @@ export function TrendingTab({ initialTestCode, initialSubjectName }: TrendingTab
                 </Box>
               </Grid>
 
-              <Grid item xs={6} sm={4} md={2.4}>
+              <Grid
+                size={{
+                  xs: 6,
+                  sm: 4,
+                  md: 2.4
+                }}>
                 <Box sx={{ p: 1.5, bgcolor: "background.default", borderRadius: 1, textAlign: "center" }}>
                   <Typography sx={{ fontSize: 11, color: "text.secondary" }}>Std. Deviation</Typography>
                   <Typography sx={{ fontSize: 18, fontWeight: 800 }}>
@@ -564,7 +599,12 @@ export function TrendingTab({ initialTestCode, initialSubjectName }: TrendingTab
                 </Box>
               </Grid>
 
-              <Grid item xs={6} sm={4} md={2.4}>
+              <Grid
+                size={{
+                  xs: 6,
+                  sm: 4,
+                  md: 2.4
+                }}>
                 <Box sx={{ p: 1.5, bgcolor: theme.custom.status.notDetected.bg, borderRadius: 1, textAlign: "center" }}>
                   <Typography sx={{ fontSize: 11, color: "text.secondary" }}>% Within Spec</Typography>
                   <Typography sx={{ fontSize: 18, fontWeight: 800, color: theme.custom.status.notDetected.text }}>
@@ -573,7 +613,12 @@ export function TrendingTab({ initialTestCode, initialSubjectName }: TrendingTab
                 </Box>
               </Grid>
 
-              <Grid item xs={6} sm={4} md={2.4}>
+              <Grid
+                size={{
+                  xs: 6,
+                  sm: 4,
+                  md: 2.4
+                }}>
                 <Box sx={{ p: 1.5, bgcolor: theme.custom.status.inconclusive.bg, borderRadius: 1, textAlign: "center" }}>
                   <Typography sx={{ fontSize: 11, color: "text.secondary" }}>% Alert Level</Typography>
                   <Typography sx={{ fontSize: 18, fontWeight: 800, color: theme.custom.status.inconclusive.text }}>
@@ -582,7 +627,12 @@ export function TrendingTab({ initialTestCode, initialSubjectName }: TrendingTab
                 </Box>
               </Grid>
 
-              <Grid item xs={6} sm={4} md={2.4}>
+              <Grid
+                size={{
+                  xs: 6,
+                  sm: 4,
+                  md: 2.4
+                }}>
                 <Box sx={{ p: 1.5, bgcolor: theme.custom.status.action.bg, borderRadius: 1, textAlign: "center" }}>
                   <Typography sx={{ fontSize: 11, color: "text.secondary" }}>% Action Level</Typography>
                   <Typography sx={{ fontSize: 18, fontWeight: 800, color: theme.custom.status.action.text }}>
@@ -591,7 +641,12 @@ export function TrendingTab({ initialTestCode, initialSubjectName }: TrendingTab
                 </Box>
               </Grid>
 
-              <Grid item xs={6} sm={4} md={2.4}>
+              <Grid
+                size={{
+                  xs: 6,
+                  sm: 4,
+                  md: 2.4
+                }}>
                 <Box sx={{ p: 1.5, bgcolor: analysis.numericStats.outOfSpecCount > 0 ? theme.custom.status.detected.bg : "background.default", borderRadius: 1, textAlign: "center" }}>
                   <Typography sx={{ fontSize: 11, color: "text.secondary" }}>Out of Spec</Typography>
                   <Typography sx={{ fontSize: 18, fontWeight: 800, color: analysis.numericStats.outOfSpecCount > 0 ? theme.custom.status.detected.text : "text.primary" }}>
@@ -602,7 +657,11 @@ export function TrendingTab({ initialTestCode, initialSubjectName }: TrendingTab
             </Grid>
           ) : (
             <Grid container spacing={2}>
-              <Grid item xs={6} sm={3}>
+              <Grid
+                size={{
+                  xs: 6,
+                  sm: 3
+                }}>
                 <Box sx={{ p: 1.5, bgcolor: (analysis?.qualitativeEvents?.length ?? 0) > 0 ? theme.custom.status.detected.bg : theme.custom.status.notDetected.bg, borderRadius: 1, textAlign: "center" }}>
                   <Typography sx={{ fontSize: 11, color: "text.secondary" }}>Detection Events</Typography>
                   <Typography sx={{ fontSize: 18, fontWeight: 800, color: (analysis?.qualitativeEvents?.length ?? 0) > 0 ? theme.custom.status.detected.text : theme.custom.status.notDetected.text }}>
@@ -610,7 +669,11 @@ export function TrendingTab({ initialTestCode, initialSubjectName }: TrendingTab
                   </Typography>
                 </Box>
               </Grid>
-              <Grid item xs={6} sm={3}>
+              <Grid
+                size={{
+                  xs: 6,
+                  sm: 3
+                }}>
                 <Box sx={{ p: 1.5, bgcolor: "background.default", borderRadius: 1, textAlign: "center" }}>
                   <Typography sx={{ fontSize: 11, color: "text.secondary" }}>Pathogen Parameter</Typography>
                   <Typography sx={{ fontSize: 15, fontWeight: 700 }} noWrap>
@@ -618,7 +681,11 @@ export function TrendingTab({ initialTestCode, initialSubjectName }: TrendingTab
                   </Typography>
                 </Box>
               </Grid>
-              <Grid item xs={6} sm={3}>
+              <Grid
+                size={{
+                  xs: 6,
+                  sm: 3
+                }}>
                 <Box sx={{ p: 1.5, bgcolor: theme.custom.status.notDetected.bg, borderRadius: 1, textAlign: "center" }}>
                   <Typography sx={{ fontSize: 11, color: "text.secondary" }}>Surveillance Result</Typography>
                   <Typography sx={{ fontSize: 14, fontWeight: 800, color: (analysis?.qualitativeEvents?.length ?? 0) === 0 ? theme.custom.status.notDetected.text : theme.custom.status.detected.text }}>
@@ -626,7 +693,11 @@ export function TrendingTab({ initialTestCode, initialSubjectName }: TrendingTab
                   </Typography>
                 </Box>
               </Grid>
-              <Grid item xs={6} sm={3}>
+              <Grid
+                size={{
+                  xs: 6,
+                  sm: 3
+                }}>
                 <Box sx={{ p: 1.5, bgcolor: "background.default", borderRadius: 1, textAlign: "center" }}>
                   <Typography sx={{ fontSize: 11, color: "text.secondary" }}>Period Range</Typography>
                   <Typography sx={{ fontSize: 15, fontWeight: 700 }}>

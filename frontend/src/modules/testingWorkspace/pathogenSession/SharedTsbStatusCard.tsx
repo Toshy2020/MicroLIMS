@@ -1,7 +1,7 @@
 import { Box, Typography, Stack, Chip, Divider, useTheme } from "@mui/material";
 import ScienceOutlinedIcon from "@mui/icons-material/ScienceOutlined";
 import AccessTimeOutlinedIcon from "@mui/icons-material/AccessTimeOutlined";
-import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
+import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutlined";
 import VerifiedUserOutlinedIcon from "@mui/icons-material/VerifiedUserOutlined";
 import { SharedTsbStateDto } from "../types/pathogenSessionTypes";
 import { brandColors } from "../../../theme";
@@ -53,8 +53,16 @@ export function SharedTsbStatusCard({ sharedTsb }: Props) {
         bgcolor: theme.custom.status.purple.bg
       }}
     >
-      <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 2 }}>
-        <Stack direction="row" spacing={1.5} alignItems="center">
+      <Stack
+        direction="row"
+        sx={{
+          alignItems: "center",
+          justifyContent: "space-between",
+          mb: 2
+        }}>
+        <Stack direction="row" spacing={1.5} sx={{
+          alignItems: "center"
+        }}>
           <Box
             sx={{
               width: 36,
@@ -109,7 +117,13 @@ export function SharedTsbStatusCard({ sharedTsb }: Props) {
           <Typography sx={{ fontSize: 13, fontWeight: 700, color: "text.primary" }}>
             {sharedTsb.mediaLotNumber ?? "—"}
           </Typography>
-          <Stack direction="row" spacing={0.5} alignItems="center" sx={{ mt: 0.5 }}>
+          <Stack
+            direction="row"
+            spacing={0.5}
+            sx={{
+              alignItems: "center",
+              mt: 0.5
+            }}>
             <VerifiedUserOutlinedIcon sx={{ fontSize: 13, color: theme.custom.status.notDetected.text }} />
             <Typography sx={{ fontSize: 11, color: theme.custom.status.notDetected.text, fontWeight: 600 }}>
               {sharedTsb.gptStatus ?? "GPT Conform"}

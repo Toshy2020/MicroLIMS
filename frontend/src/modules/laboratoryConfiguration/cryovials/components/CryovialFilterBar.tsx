@@ -118,12 +118,14 @@ export function CryovialFilterBar({ items, filters, onFilterChange, onReset }: C
             placeholder="Search by code, organism, material..."
             value={filters.search}
             onChange={(e) => updateField("search", e.target.value)}
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <SearchIcon fontSize="small" sx={{ color: "text.secondary" }} />
-                </InputAdornment>
-              )
+            slotProps={{
+              input: {
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SearchIcon fontSize="small" sx={{ color: "text.secondary" }} />
+                  </InputAdornment>
+                )
+              }
             }}
           />
         </Box>

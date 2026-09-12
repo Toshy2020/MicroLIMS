@@ -8,12 +8,26 @@ export default defineConfig({
   },
   build: {
     chunkSizeWarningLimit: 650,
-    rollupOptions: {
+    // Vite 8 bundles with Rolldown, which rejects the object form of
+    // manualChunks. The same three vendor chunks are declared as
+    // codeSplitting groups; [\\/] matches both Windows and POSIX paths.
+    rolldownOptions: {
       output: {
-        manualChunks: {
-          'vendor-react': ['react', 'react-dom', 'react-router-dom', 'axios', 'sonner'],
-          'vendor-mui': ['@mui/material', '@mui/icons-material', '@emotion/react', '@emotion/styled'],
-          'vendor-charts': ['recharts']
+        codeSplitting: {
+          groups: [
+            {
+              name: 'vendor-react',
+              test: /[\\/]node_modules[\\/](react|react-dom|react-router|react-router-dom|@remix-run[\\/]router|scheduler|axios|sonner)[\\/]/
+            },
+            {
+              name: 'vendor-mui',
+              test: /[\\/]node_modules[\\/](@mui|@emotion)[\\/]/
+            },
+            {
+              name: 'vendor-charts',
+              test: /[\\/]node_modules[\\/]recharts[\\/]/
+            }
+          ]
         }
       }
     }

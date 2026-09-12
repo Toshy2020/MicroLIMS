@@ -11,7 +11,7 @@ interface MediaGptFilterPanelProps {
   onChange: (patch: Partial<MediaGptSearchParams>) => void;
   onSearch: () => void;
   onReset: () => void;
-  searchInputRef?: RefObject<HTMLInputElement>;
+  searchInputRef?: RefObject<HTMLInputElement | null>;
 }
 
 export function MediaGptFilterPanel({

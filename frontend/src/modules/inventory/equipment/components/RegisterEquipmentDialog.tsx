@@ -147,120 +147,122 @@ export function RegisterEquipmentDialog({
         </Box>
       }
     >
-        {error && (
-          <Alert severity="error" sx={{ mb: 2.5 }}>
-            {error}
-          </Alert>
-        )}
+      {error && (
+        <Alert severity="error" sx={{ mb: 2.5 }}>
+          {error}
+        </Alert>
+      )}
 
-        {/* SECTION 1 — Equipment Information */}
-        <Typography sx={{ fontSize: 12, fontWeight: 700, textTransform: "uppercase", color: "text.secondary", mb: 1.5 }}>
-          1. Instrument Information
-        </Typography>
-        <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "repeat(2, 1fr)" }, gap: 2, mb: 3 }}>
+      {/* SECTION 1 — Equipment Information */}
+      <Typography sx={{ fontSize: 12, fontWeight: 700, textTransform: "uppercase", color: "text.secondary", mb: 1.5 }}>
+        1. Instrument Information
+      </Typography>
+      <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "repeat(2, 1fr)" }, gap: 2, mb: 3 }}>
+        <TextField
+          size="small"
+          required
+          label="Instrument Type"
+          placeholder="e.g. Incubator, Pipette, pH Meter, Balance"
+          value={form.instrumentType}
+          onChange={(e) => setForm({ ...form, instrumentType: e.target.value })}
+        />
+
+        <TextField
+          size="small"
+          label="Manufacturer"
+          placeholder="e.g. Memmert, Mettler Toledo, Sartorius"
+          value={form.manufacturerName}
+          onChange={(e) => setForm({ ...form, manufacturerName: e.target.value })}
+        />
+
+        <TextField
+          size="small"
+          required
+          label="Equipment Code"
+          placeholder="e.g. INC-F-ML-F-01-003"
+          value={form.code}
+          onChange={(e) => setForm({ ...form, code: e.target.value })}
+        />
+
+        <TextField
+          size="small"
+          required
+          label="Location"
+          placeholder="e.g. Microbiology Lab Room 102"
+          value={form.location}
+          onChange={(e) => setForm({ ...form, location: e.target.value })}
+        />
+
+        <TextField
+          size="small"
+          label="Serial Number"
+          placeholder="e.g. SN-8823941"
+          value={form.serialNumber}
+          onChange={(e) => setForm({ ...form, serialNumber: e.target.value })}
+        />
+
+        <TextField
+          size="small"
+          label="Firmware Version"
+          placeholder="e.g. v2.4.1"
+          value={form.firmwareVersion}
+          onChange={(e) => setForm({ ...form, firmwareVersion: e.target.value })}
+        />
+      </Box>
+
+      <Divider sx={{ my: 2.5 }} />
+
+      {/* SECTION 2 — Calibration & Operational Status */}
+      <Typography sx={{ fontSize: 12, fontWeight: 700, textTransform: "uppercase", color: "text.secondary", mb: 1.5 }}>
+        2. Calibration & Operational Status
+      </Typography>
+      <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "repeat(2, 1fr)" }, gap: 2, mb: isStatusChanged ? 2 : 0 }}>
+        <TextField
+          size="small"
+          type="date"
+          label="Calibration Due Date"
+          value={form.calibrationDueDate}
+          onChange={(e) => setForm({ ...form, calibrationDueDate: e.target.value })}
+          slotProps={{
+            inputLabel: { shrink: true }
+          }}
+        />
+
+        <FormControl size="small" fullWidth required>
+          <InputLabel id="dialog-equip-status-label">Operational Status</InputLabel>
+          <Select
+            labelId="dialog-equip-status-label"
+            id="dialog-equip-status-select"
+            label="Operational Status"
+            value={form.status}
+            onChange={(e) => setForm({ ...form, status: e.target.value as EquipmentStatus })}
+          >
+            {STATUS_OPTIONS.map((opt) => (
+              <MenuItem key={opt.value} value={opt.value}>
+                {opt.label}
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+      </Box>
+
+      {isStatusChanged && (
+        <Box sx={{ mt: 2 }}>
           <TextField
+            id="equip-status-change-comment"
+            label="Status Change Comment *"
+            placeholder="Provide a mandatory reason for changing the operational status (e.g., Sent for calibration, Returned from vendor maintenance, Decommissioned)"
+            fullWidth
             size="small"
             required
-            label="Instrument Type"
-            placeholder="e.g. Incubator, Pipette, pH Meter, Balance"
-            value={form.instrumentType}
-            onChange={(e) => setForm({ ...form, instrumentType: e.target.value })}
-          />
-
-          <TextField
-            size="small"
-            label="Manufacturer"
-            placeholder="e.g. Memmert, Mettler Toledo, Sartorius"
-            value={form.manufacturerName}
-            onChange={(e) => setForm({ ...form, manufacturerName: e.target.value })}
-          />
-
-          <TextField
-            size="small"
-            required
-            label="Equipment Code"
-            placeholder="e.g. INC-F-ML-F-01-003"
-            value={form.code}
-            onChange={(e) => setForm({ ...form, code: e.target.value })}
-          />
-
-          <TextField
-            size="small"
-            required
-            label="Location"
-            placeholder="e.g. Microbiology Lab Room 102"
-            value={form.location}
-            onChange={(e) => setForm({ ...form, location: e.target.value })}
-          />
-
-          <TextField
-            size="small"
-            label="Serial Number"
-            placeholder="e.g. SN-8823941"
-            value={form.serialNumber}
-            onChange={(e) => setForm({ ...form, serialNumber: e.target.value })}
-          />
-
-          <TextField
-            size="small"
-            label="Firmware Version"
-            placeholder="e.g. v2.4.1"
-            value={form.firmwareVersion}
-            onChange={(e) => setForm({ ...form, firmwareVersion: e.target.value })}
+            multiline
+            rows={2}
+            value={form.statusChangeComment || ""}
+            onChange={(e) => setForm({ ...form, statusChangeComment: e.target.value })}
+            helperText="Required whenever the operational status changes."
           />
         </Box>
-
-        <Divider sx={{ my: 2.5 }} />
-
-        {/* SECTION 2 — Calibration & Operational Status */}
-        <Typography sx={{ fontSize: 12, fontWeight: 700, textTransform: "uppercase", color: "text.secondary", mb: 1.5 }}>
-          2. Calibration & Operational Status
-        </Typography>
-        <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "repeat(2, 1fr)" }, gap: 2, mb: isStatusChanged ? 2 : 0 }}>
-          <TextField
-            size="small"
-            type="date"
-            label="Calibration Due Date"
-            InputLabelProps={{ shrink: true }}
-            value={form.calibrationDueDate}
-            onChange={(e) => setForm({ ...form, calibrationDueDate: e.target.value })}
-          />
-
-          <FormControl size="small" fullWidth required>
-            <InputLabel id="dialog-equip-status-label">Operational Status</InputLabel>
-            <Select
-              labelId="dialog-equip-status-label"
-              id="dialog-equip-status-select"
-              label="Operational Status"
-              value={form.status}
-              onChange={(e) => setForm({ ...form, status: e.target.value as EquipmentStatus })}
-            >
-              {STATUS_OPTIONS.map((opt) => (
-                <MenuItem key={opt.value} value={opt.value}>
-                  {opt.label}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-        </Box>
-
-        {isStatusChanged && (
-          <Box sx={{ mt: 2 }}>
-            <TextField
-              id="equip-status-change-comment"
-              label="Status Change Comment *"
-              placeholder="Provide a mandatory reason for changing the operational status (e.g., Sent for calibration, Returned from vendor maintenance, Decommissioned)"
-              fullWidth
-              size="small"
-              required
-              multiline
-              rows={2}
-              value={form.statusChangeComment || ""}
-              onChange={(e) => setForm({ ...form, statusChangeComment: e.target.value })}
-              helperText="Required whenever the operational status changes."
-            />
-          </Box>
-        )}
+      )}
     </FloatingDialog>
   );
 }

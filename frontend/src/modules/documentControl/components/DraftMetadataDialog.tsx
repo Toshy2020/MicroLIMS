@@ -161,7 +161,9 @@ export function DraftMetadataDialog({
           <Typography variant="h6" sx={{ fontWeight: 700 }}>
             Edit Draft Metadata
           </Typography>
-          <Typography variant="caption" color="text.secondary">
+          <Typography variant="caption" sx={{
+            color: "text.secondary"
+          }}>
             MicroLIMS ID: <strong>{document.microLimsDocumentId}</strong> | Revision: <strong>{document.currentRevisionNumber || "01"} (Draft)</strong>
           </Typography>
         </Box>

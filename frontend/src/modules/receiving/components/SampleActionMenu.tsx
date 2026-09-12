@@ -145,10 +145,12 @@ export function SampleActionMenu({
         onClose={handleCloseMenu}
         anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
         transformOrigin={{ vertical: "top", horizontal: "right" }}
-        PaperProps={{
-          sx: {
-            minWidth: 180,
-            borderRadius: 1.5
+        slotProps={{
+          paper: {
+            sx: {
+              minWidth: 180,
+              borderRadius: 1.5
+            }
           }
         }}
       >
@@ -162,7 +164,9 @@ export function SampleActionMenu({
             <ListItemIcon>
               <AssignmentIndOutlinedIcon sx={{ fontSize: 18, color: theme.palette.primary.main }} />
             </ListItemIcon>
-            <ListItemText primary="Assign Analyst" primaryTypographyProps={{ fontSize: 13, fontWeight: 600 }} />
+            <ListItemText primary="Assign Analyst" slotProps={{
+              primary: { sx: { fontSize: 13, fontWeight: 600 } }
+            }} />
           </MenuItem>
         )}
 
@@ -176,7 +180,9 @@ export function SampleActionMenu({
             <ListItemIcon>
               <ScienceOutlinedIcon sx={{ fontSize: 18, color: theme.custom.status.action.text }} />
             </ListItemIcon>
-            <ListItemText primary="Prepare Sample" primaryTypographyProps={{ fontSize: 13, fontWeight: 600 }} />
+            <ListItemText primary="Prepare Sample" slotProps={{
+              primary: { sx: { fontSize: 13, fontWeight: 600 } }
+            }} />
           </MenuItem>
         )}
 
@@ -195,7 +201,9 @@ export function SampleActionMenu({
           </ListItemIcon>
           <ListItemText
             primary="Void Sample"
-            primaryTypographyProps={{ fontSize: 13, fontWeight: 600, color: theme.custom.status.detected.text }}
+            slotProps={{
+              primary: { sx: { fontSize: 13, fontWeight: 600, color: theme.custom.status.detected.text } }
+            }}
           />
         </MenuItem>
 
@@ -209,7 +217,9 @@ export function SampleActionMenu({
           <ListItemIcon>
             <PictureAsPdfOutlinedIcon sx={{ fontSize: 18, color: theme.custom.status.info.text }} />
           </ListItemIcon>
-          <ListItemText primary="View Full Report" primaryTypographyProps={{ fontSize: 13 }} />
+          <ListItemText primary="View Full Report" slotProps={{
+            primary: { sx: { fontSize: 13 } }
+          }} />
         </MenuItem>
 
         <MenuItem
@@ -221,7 +231,9 @@ export function SampleActionMenu({
           <ListItemIcon>
             <HistoryOutlinedIcon sx={{ fontSize: 18, color: "text.secondary" }} />
           </ListItemIcon>
-          <ListItemText primary="Audit History" primaryTypographyProps={{ fontSize: 13 }} />
+          <ListItemText primary="Audit History" slotProps={{
+            primary: { sx: { fontSize: 13 } }
+          }} />
         </MenuItem>
       </Menu>
     </Box>

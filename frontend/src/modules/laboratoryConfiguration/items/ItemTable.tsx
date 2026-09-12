@@ -140,7 +140,14 @@ function ItemRowCard({
             </Typography>
           </Typography>
 
-          <Stack direction="row" spacing={0.75} alignItems="center" flexWrap="wrap" sx={{ mt: 0.5 }}>
+          <Stack
+            direction="row"
+            spacing={0.75}
+            sx={{
+              alignItems: "center",
+              flexWrap: "wrap",
+              mt: 0.5
+            }}>
             <CategoryBadge category={item.category} />
             <StatusBadge status={item.isActive ? "Active" : "Frozen"} />
 

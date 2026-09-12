@@ -180,7 +180,9 @@ export function RegisterDocumentDialog({
           <Typography variant="h6" sx={{ fontWeight: 700 }}>
             Register New Document Master
           </Typography>
-          <Typography variant="caption" color="text.secondary">
+          <Typography variant="caption" sx={{
+            color: "text.secondary"
+          }}>
             Initial Draft Registration | Permanent MicroLIMS Document ID will be sequence-assigned
           </Typography>
         </Box>

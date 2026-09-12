@@ -1,5 +1,5 @@
 import { Paper, Box, Typography, Stack, useTheme } from "@mui/material";
-import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
+import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutlined";
 import MedicationLiquidIcon from "@mui/icons-material/MedicationLiquid";
 import { SectionTitle } from "../../../components/SectionTitle";
 import { AnalystMetrics } from "../types/dashboard";

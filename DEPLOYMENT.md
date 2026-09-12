@@ -13,7 +13,7 @@ This guide explains how to deploy the **MicroLIMS** application online for devel
                    ▼                                       ▼
      Cloudflare Workers / Pages                 Render (Backend API)
     ┌───────────────────────────┐           ┌───────────────────────────┐
-    │ React 18 + Vite + MUI     │           │ ASP.NET Core 8 Web API    │
+    │ React 18 + Vite + MUI     │           │ ASP.NET Core 10 Web API   │
     │ Client-Side SPA (HTTPS)   │──HTTPS───▶│ Container (Docker Linux)  │
     │ (Workers Static Assets)   │           │                           │
     └───────────────────────────┘           └─────────────┬─────────────┘

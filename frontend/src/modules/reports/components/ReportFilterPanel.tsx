@@ -27,7 +27,7 @@ interface ReportFilterPanelProps {
   onChange: (patch: Partial<ResultRecordSearchParams>) => void;
   onSearch: () => void;
   onReset: () => void;
-  searchInputRef?: RefObject<HTMLInputElement>;
+  searchInputRef?: RefObject<HTMLInputElement | null>;
 }
 
 // Left-column filter panel for the Record Search tab. Every field here
@@ -142,14 +142,18 @@ export function ReportFilterPanel({ filterOptions, draft, onChange, onSearch, on
           <Typography sx={{ fontSize: 12, color: "text.secondary", mb: 0.75 }}>Date Range</Typography>
           <Box sx={{ display: "flex", gap: 1 }}>
             <TextField
-              size="small" type="date" fullWidth InputLabelProps={{ shrink: true }}
-              value={isoToDateInput(draft.fromDate)}
+              size="small" type="date" fullWidth value={isoToDateInput(draft.fromDate)}
               onChange={(e) => onChange({ fromDate: e.target.value ? `${e.target.value}T00:00:00.000Z` : undefined })}
+              slotProps={{
+                inputLabel: { shrink: true }
+              }}
             />
             <TextField
-              size="small" type="date" fullWidth InputLabelProps={{ shrink: true }}
-              value={isoToDateInput(draft.toDate)}
+              size="small" type="date" fullWidth value={isoToDateInput(draft.toDate)}
               onChange={(e) => onChange({ toDate: e.target.value ? `${e.target.value}T23:59:59.999Z` : undefined })}
+              slotProps={{
+                inputLabel: { shrink: true }
+              }}
             />
           </Box>
         </Box>

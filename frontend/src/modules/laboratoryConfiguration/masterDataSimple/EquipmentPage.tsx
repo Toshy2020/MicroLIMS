@@ -387,7 +387,12 @@ export function EquipmentPage() {
                             sx={{ height: 20, fontSize: 11 }}
                           />
                         </Box>
-                        <Typography variant="body2" color="text.secondary" sx={{ fontSize: 12 }}>
+                        <Typography
+                          variant="body2"
+                          sx={{
+                            color: "text.secondary",
+                            fontSize: 12
+                          }}>
                           {eq.name}
                         </Typography>
 
@@ -413,12 +418,24 @@ export function EquipmentPage() {
                     );
                   })}
                   {safeSummaryList.length === 0 && (
-                    <Typography variant="body2" color="text.secondary" sx={{ textAlign: "center", py: 4 }}>
+                    <Typography
+                      variant="body2"
+                      sx={{
+                        color: "text.secondary",
+                        textAlign: "center",
+                        py: 4
+                      }}>
                       No equipment configured for this laboratory.
                     </Typography>
                   )}
                   {safeSummaryList.length > 0 && filteredSummary.length === 0 && (
-                    <Typography variant="body2" color="text.secondary" sx={{ textAlign: "center", py: 4 }}>
+                    <Typography
+                      variant="body2"
+                      sx={{
+                        color: "text.secondary",
+                        textAlign: "center",
+                        py: 4
+                      }}>
                       No equipment matching search filter.
                     </Typography>
                   )}
@@ -435,7 +452,9 @@ export function EquipmentPage() {
                         <Typography sx={{ fontSize: 20, fontWeight: 700, color: theme.palette.primary.main }}>
                           {selectedEquipment.code} — {selectedEquipment.name}
                         </Typography>
-                        <Typography variant="body2" color="text.secondary">
+                        <Typography variant="body2" sx={{
+                          color: "text.secondary"
+                        }}>
                           Master Inventory Information (Read-Only)
                         </Typography>
                       </Box>
@@ -452,28 +471,51 @@ export function EquipmentPage() {
 
                     <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr 1fr", sm: "repeat(5, 1fr)" }, gap: 2 }}>
                       <Box>
-                        <Typography variant="caption" color="text.secondary">Equipment Type</Typography>
-                        <Typography variant="body2" fontWeight={600}>{selectedEquipment.type}</Typography>
+                        <Typography variant="caption" sx={{
+                          color: "text.secondary"
+                        }}>Equipment Type</Typography>
+                        <Typography variant="body2" sx={{
+                          fontWeight: 600
+                        }}>{selectedEquipment.type}</Typography>
                       </Box>
                       <Box>
-                        <Typography variant="caption" color="text.secondary">Serial Number</Typography>
-                        <Typography variant="body2" fontWeight={700} sx={{ color: theme.palette.primary.main }}>
+                        <Typography variant="caption" sx={{
+                          color: "text.secondary"
+                        }}>Serial Number</Typography>
+                        <Typography
+                          variant="body2"
+                          sx={{
+                            fontWeight: 700,
+                            color: theme.palette.primary.main
+                          }}>
                           {selectedEquipment.serialNumber || "—"}
                         </Typography>
                       </Box>
                       <Box>
-                        <Typography variant="caption" color="text.secondary">Location</Typography>
-                        <Typography variant="body2" fontWeight={600}>{selectedEquipment.inventoryLocation || selectedEquipment.location || "—"}</Typography>
+                        <Typography variant="caption" sx={{
+                          color: "text.secondary"
+                        }}>Location</Typography>
+                        <Typography variant="body2" sx={{
+                          fontWeight: 600
+                        }}>{selectedEquipment.inventoryLocation || selectedEquipment.location || "—"}</Typography>
                       </Box>
                       <Box>
-                        <Typography variant="caption" color="text.secondary">Calibration Due Date</Typography>
-                        <Typography variant="body2" fontWeight={600}>
+                        <Typography variant="caption" sx={{
+                          color: "text.secondary"
+                        }}>Calibration Due Date</Typography>
+                        <Typography variant="body2" sx={{
+                          fontWeight: 600
+                        }}>
                           {selectedEquipment.calibrationDueDate ? new Date(selectedEquipment.calibrationDueDate).toLocaleDateString() : "—"}
                         </Typography>
                       </Box>
                       <Box>
-                        <Typography variant="caption" color="text.secondary">Operational Status</Typography>
-                        <Typography variant="body2" fontWeight={600}>{selectedEquipment.inventoryStatus || "In Service"}</Typography>
+                        <Typography variant="caption" sx={{
+                          color: "text.secondary"
+                        }}>Operational Status</Typography>
+                        <Typography variant="body2" sx={{
+                          fontWeight: 600
+                        }}>{selectedEquipment.inventoryStatus || "In Service"}</Typography>
                       </Box>
                     </Box>
                   </Paper>
@@ -487,7 +529,9 @@ export function EquipmentPage() {
                         <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
                           <ThermostatIcon sx={{ fontSize: 36, color: theme.palette.primary.main }} />
                           <Box>
-                            <Typography variant="caption" color="text.secondary">Current Set Point Temperature</Typography>
+                            <Typography variant="caption" sx={{
+                              color: "text.secondary"
+                            }}>Current Set Point Temperature</Typography>
                             <Typography sx={{ fontSize: 26, fontWeight: 800, color: theme.palette.primary.main }}>
                               {selectedEquipment.setPointTemperature ? `${selectedEquipment.setPointTemperature} °C` : "Not Configured"}
                             </Typography>
@@ -619,7 +663,9 @@ export function EquipmentPage() {
                   {selectedEquipment.type !== "Incubator" && selectedEquipment.type !== 0 && selectedEquipment.type !== "Autoclave" && selectedEquipment.type !== 1 && (
                     <Paper sx={{ p: 2.5 }}>
                       <SectionTitle>Equipment Configuration</SectionTitle>
-                      <Typography variant="body2" color="text.secondary">
+                      <Typography variant="body2" sx={{
+                        color: "text.secondary"
+                      }}>
                         This equipment item is configured for general laboratory usage. Additional specific operational parameters may be set under Master Data.
                       </Typography>
                     </Paper>
@@ -627,7 +673,9 @@ export function EquipmentPage() {
                 </Stack>
               ) : (
                 <Paper sx={{ p: 4, textAlign: "center" }}>
-                  <Typography color="text.secondary">
+                  <Typography sx={{
+                    color: "text.secondary"
+                  }}>
                     {safeSummaryList.length === 0
                       ? "No equipment configured for this laboratory."
                       : "Select an equipment item from the list to view its configuration."}
@@ -700,7 +748,12 @@ export function EquipmentPage() {
           {activeTab === 2 && (
             <Paper sx={{ p: 2.5 }}>
               <SectionTitle>Laboratory Configuration Change History</SectionTitle>
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+              <Typography
+                variant="body2"
+                sx={{
+                  color: "text.secondary",
+                  mb: 2
+                }}>
                 Complete audit trail of incubator set point changes and autoclave program configuration events.
               </Typography>
               <Table size="small">
@@ -765,24 +818,37 @@ export function EquipmentPage() {
         {dialogError && <Alert severity="error" sx={{ mb: 2 }}>{dialogError}</Alert>}
         <Stack spacing={2}>
           <Box>
-            <Typography variant="caption" color="text.secondary">Equipment</Typography>
-            <Typography variant="body1" fontWeight={700}>
+            <Typography variant="caption" sx={{
+              color: "text.secondary"
+            }}>Equipment</Typography>
+            <Typography variant="body1" sx={{
+              fontWeight: 700
+            }}>
               {selectedEquipment?.code} — {selectedEquipment?.name}
             </Typography>
           </Box>
           <Box>
-            <Typography variant="caption" color="text.secondary">Current Set Point</Typography>
-            <Typography variant="body1" fontWeight={700} color="primary.main">
+            <Typography variant="caption" sx={{
+              color: "text.secondary"
+            }}>Current Set Point</Typography>
+            <Typography
+              variant="body1"
+              sx={{
+                fontWeight: 700,
+                color: "primary.main"
+              }}>
               {selectedEquipment?.setPointTemperature ? `${selectedEquipment.setPointTemperature} °C` : "Not Configured"}
             </Typography>
           </Box>
           <TextField
             label="New Set Point (°C) *"
             type="number"
-            inputProps={{ step: "0.1" }}
             value={newSetPoint}
             onChange={(e) => setNewSetPoint(e.target.value)}
             fullWidth
+            slotProps={{
+              htmlInput: { step: "0.1" }
+            }}
           />
           <TextField
             label="Reason for Change *"
@@ -822,8 +888,12 @@ export function EquipmentPage() {
         {dialogError && <Alert severity="error" sx={{ mb: 2 }}>{dialogError}</Alert>}
         <Stack spacing={2}>
           <Box>
-            <Typography variant="caption" color="text.secondary">Autoclave Equipment</Typography>
-            <Typography variant="body1" fontWeight={700}>
+            <Typography variant="caption" sx={{
+              color: "text.secondary"
+            }}>Autoclave Equipment</Typography>
+            <Typography variant="body1" sx={{
+              fontWeight: 700
+            }}>
               {selectedEquipment?.code} — {selectedEquipment?.name}
             </Typography>
           </Box>
@@ -947,7 +1017,12 @@ export function EquipmentPage() {
           </Button>
         }
       >
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+          <Typography
+            variant="body2"
+            sx={{
+              color: "text.secondary",
+              mb: 2
+            }}>
             Register physical equipment from Inventory into Laboratory Configuration. Master equipment identity and calibration remain managed by Inventory.
           </Typography>
           <Table size="small">

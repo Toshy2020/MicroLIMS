@@ -1,5 +1,5 @@
 import { Box, Paper, Typography, Stack, Grid, Chip, useTheme } from "@mui/material";
-import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
+import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutlined";
 import HighlightOffIcon from "@mui/icons-material/HighlightOff";
 import HourglassEmptyIcon from "@mui/icons-material/HourglassEmpty";
 import AssessmentIcon from "@mui/icons-material/Assessment";
@@ -33,7 +33,12 @@ export function MediaGptSummaryCard({ summary }: MediaGptSummaryCardProps) {
       </Box>
 
       <Grid container spacing={2} sx={{ mb: 2 }}>
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid
+          size={{
+            xs: 12,
+            sm: 6,
+            md: 3
+          }}>
           <Box sx={{ p: 1.5, bgcolor: "background.default", borderRadius: 1.5, border: "1px solid", borderColor: "divider" }}>
             <Typography sx={{ fontSize: 11.5, color: "text.secondary", fontWeight: 600 }}>Overall GPT Pass Rate</Typography>
             <Typography sx={{ fontSize: 24, fontWeight: 800, color: summary.overallPassRatePercent >= 90 ? brandColors.ok : brandColors.badgePM }}>
@@ -45,7 +50,12 @@ export function MediaGptSummaryCard({ summary }: MediaGptSummaryCardProps) {
           </Box>
         </Grid>
 
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid
+          size={{
+            xs: 12,
+            sm: 6,
+            md: 3
+          }}>
           <Box sx={{ p: 1.5, bgcolor: theme.custom.status.notDetected.bg, borderRadius: 1.5 }}>
             <Box sx={{ display: "flex", alignItems: "center", gap: 0.75 }}>
               <CheckCircleOutlineIcon sx={{ color: brandColors.ok, fontSize: 18 }} />
@@ -58,7 +68,12 @@ export function MediaGptSummaryCard({ summary }: MediaGptSummaryCardProps) {
           </Box>
         </Grid>
 
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid
+          size={{
+            xs: 12,
+            sm: 6,
+            md: 3
+          }}>
           <Box sx={{ p: 1.5, bgcolor: theme.custom.status.detected.bg, borderRadius: 1.5 }}>
             <Box sx={{ display: "flex", alignItems: "center", gap: 0.75 }}>
               <HighlightOffIcon sx={{ color: brandColors.err, fontSize: 18 }} />
@@ -71,7 +86,12 @@ export function MediaGptSummaryCard({ summary }: MediaGptSummaryCardProps) {
           </Box>
         </Grid>
 
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid
+          size={{
+            xs: 12,
+            sm: 6,
+            md: 3
+          }}>
           <Box sx={{ p: 1.5, bgcolor: theme.custom.status.inconclusive.bg, borderRadius: 1.5 }}>
             <Box sx={{ display: "flex", alignItems: "center", gap: 0.75 }}>
               <HourglassEmptyIcon sx={{ color: brandColors.badgePM, fontSize: 18 }} />

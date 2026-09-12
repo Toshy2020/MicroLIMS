@@ -32,7 +32,7 @@ import ViewColumnIcon from "@mui/icons-material/ViewColumn";
 import DescriptionOutlinedIcon from "@mui/icons-material/DescriptionOutlined";
 import FilterAltOffIcon from "@mui/icons-material/FilterAltOff";
 import ScienceOutlinedIcon from "@mui/icons-material/ScienceOutlined";
-import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
+import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutlined";
 import WarningAmberOutlinedIcon from "@mui/icons-material/WarningAmberOutlined";
 import CategoryOutlinedIcon from "@mui/icons-material/CategoryOutlined";
 import { Link } from "react-router-dom";
@@ -363,7 +363,13 @@ export function ApprovedMediaListPage() {
           {kpiData.map((card) => {
             const tokens = theme.custom.status[card.tone];
             return (
-              <Grid item xs={12} sm={6} md={3} key={card.label}>
+              <Grid
+                key={card.label}
+                size={{
+                  xs: 12,
+                  sm: 6,
+                  md: 3
+                }}>
                 <Paper
                   elevation={0}
                   sx={{
@@ -443,17 +449,19 @@ export function ApprovedMediaListPage() {
               placeholder="Search by lot number, media type, manufacturer, batch..."
               value={filters.search}
               onChange={(e) => handleFilterChange("search", e.target.value)}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <SearchIcon sx={{ color: "text.secondary", fontSize: 20 }} />
-                  </InputAdornment>
-                )
-              }}
               sx={{
                 "& .MuiOutlinedInput-root": {
                   borderRadius: 1.5,
                   bgcolor: "background.default"
+                }
+              }}
+              slotProps={{
+                input: {
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <SearchIcon sx={{ color: "text.secondary", fontSize: 20 }} />
+                    </InputAdornment>
+                  )
                 }
               }}
             />

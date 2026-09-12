@@ -147,7 +147,14 @@ export function ItemWorkspace({ item, onClose, onItemUpdated }: ItemWorkspacePro
         }}
       >
         <Box>
-          <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" sx={{ mb: 0.5 }}>
+          <Stack
+            direction="row"
+            spacing={1}
+            sx={{
+              alignItems: "center",
+              flexWrap: "wrap",
+              mb: 0.5
+            }}>
             <Typography variant="h6" sx={{ fontWeight: 700, fontSize: 16, color: "text.primary" }}>
               {item.name}
             </Typography>
@@ -156,7 +163,9 @@ export function ItemWorkspace({ item, onClose, onItemUpdated }: ItemWorkspacePro
             </Typography>
           </Stack>
 
-          <Stack direction="row" spacing={1} alignItems="center">
+          <Stack direction="row" spacing={1} sx={{
+            alignItems: "center"
+          }}>
             <CategoryBadge category={item.category} />
             <StatusBadge status={item.isActive ? "Active" : "Frozen"} />
             {item.sopNumber && (
@@ -391,7 +400,13 @@ export function ItemWorkspace({ item, onClose, onItemUpdated }: ItemWorkspacePro
 
             {/* SOP Section */}
             <Box>
-              <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1.5 }}>
+              <Stack
+                direction="row"
+                sx={{
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  mb: 1.5
+                }}>
                 <Typography variant="subtitle2" sx={{ fontWeight: 700, display: "flex", alignItems: "center", gap: 1 }}>
                   <DescriptionIcon fontSize="small" sx={{ color: theme.custom.status.purple.text }} />
                   SOP (Standard Operating Procedure)
@@ -446,7 +461,13 @@ export function ItemWorkspace({ item, onClose, onItemUpdated }: ItemWorkspacePro
 
             {/* Verification Report Section */}
             <Box>
-              <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1.5 }}>
+              <Stack
+                direction="row"
+                sx={{
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  mb: 1.5
+                }}>
                 <Typography variant="subtitle2" sx={{ fontWeight: 700, display: "flex", alignItems: "center", gap: 1 }}>
                   <VerifiedIcon fontSize="small" sx={{ color: "success.main" }} />
                   Verification Report
@@ -510,7 +531,9 @@ export function ItemWorkspace({ item, onClose, onItemUpdated }: ItemWorkspacePro
 
         {/* Tab 5: Audit History */}
         {activeTab === 5 && (
-          <Stack spacing={2} alignItems="flex-start">
+          <Stack spacing={2} sx={{
+            alignItems: "flex-start"
+          }}>
             <Typography variant="body2" sx={{ color: "text.secondary" }}>
               View full GxP audit log history for Item <strong>{item.name}</strong> ({item.code}).
             </Typography>
@@ -574,9 +597,21 @@ function DocumentCard({
         opacity: isHistorical ? 0.8 : 1,
       }}
     >
-      <Stack direction="row" justifyContent="space-between" alignItems="flex-start" spacing={1}>
+      <Stack
+        direction="row"
+        spacing={1}
+        sx={{
+          justifyContent: "space-between",
+          alignItems: "flex-start"
+        }}>
         <Box>
-          <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 0.5 }}>
+          <Stack
+            direction="row"
+            spacing={1}
+            sx={{
+              alignItems: "center",
+              mb: 0.5
+            }}>
             <Typography variant="subtitle2" sx={{ fontWeight: 700, color: "text.primary" }}>
               {doc.originalFileName}
             </Typography>

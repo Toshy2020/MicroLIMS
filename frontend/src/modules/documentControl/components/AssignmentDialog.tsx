@@ -130,7 +130,9 @@ export function AssignmentDialog({
       </DialogTitle>
 
       <DialogContent dividers sx={{ display: "flex", flexDirection: "column", gap: 2.5 }}>
-        <Typography variant="caption" color="text.secondary">
+        <Typography variant="caption" sx={{
+          color: "text.secondary"
+        }}>
           Document: <strong>{companyDocumentCode}</strong>
         </Typography>
 
@@ -166,14 +168,18 @@ export function AssignmentDialog({
               label="Select Personnel *"
               placeholder="Search by name, username, or title..."
               fullWidth
-              InputProps={{
-                ...params.InputProps,
-                endAdornment: (
-                  <>
-                    {loadingUsers ? <CircularProgress color="inherit" size={20} /> : null}
-                    {params.InputProps.endAdornment}
-                  </>
-                )
+              slotProps={{
+                ...params.slotProps,
+
+                input: {
+                  ...params.slotProps.input,
+                  endAdornment: (
+                    <>
+                      {loadingUsers ? <CircularProgress color="inherit" size={20} /> : null}
+                      {params.slotProps.input.endAdornment}
+                    </>
+                  )
+                }
               }}
             />
           )}
@@ -181,11 +187,15 @@ export function AssignmentDialog({
             <Box component="li" {...props} key={option.id} sx={{ display: "flex", flexDirection: "column", py: 1 }}>
               <Typography variant="body2" sx={{ fontWeight: 600 }}>
                 {option.fullName}{" "}
-                <Typography component="span" variant="caption" color="text.secondary">
+                <Typography component="span" variant="caption" sx={{
+                  color: "text.secondary"
+                }}>
                   ({option.username})
                 </Typography>
               </Typography>
-              <Typography variant="caption" color="text.secondary">
+              <Typography variant="caption" sx={{
+                color: "text.secondary"
+              }}>
                 {option.jobTitle || "Personnel"} &bull; {option.roleName || "Staff"}
               </Typography>
             </Box>
@@ -194,10 +204,17 @@ export function AssignmentDialog({
 
         {selectedUser && (
           <Box sx={{ p: 1.5, bgcolor: "action.hover", borderRadius: 1 }}>
-            <Typography variant="caption" color="text.secondary" sx={{ display: "block" }}>
+            <Typography
+              variant="caption"
+              sx={{
+                color: "text.secondary",
+                display: "block"
+              }}>
               Selected Personnel: <strong>{selectedUser.fullName}</strong> ({selectedUser.username})
             </Typography>
-            <Typography variant="caption" color="text.secondary">
+            <Typography variant="caption" sx={{
+              color: "text.secondary"
+            }}>
               Role/Title: {selectedUser.jobTitle || "N/A"} &bull; System Role: {selectedUser.roleName || "Staff"}
             </Typography>
           </Box>

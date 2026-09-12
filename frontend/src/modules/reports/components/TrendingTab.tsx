@@ -169,7 +169,12 @@ export function TrendingTab({ initialTestCode, initialSubjectName }: TrendingTab
     setExportError(null);
     setExportMenuAnchor(null);
     try {
-      const svg = chartContainerRef.current?.querySelector("svg");
+      // The plot surface is the direct <svg> child of .recharts-wrapper.
+      // Recharts 3 portals the Legend into that same wrapper, and every
+      // legend item draws its icon as its own svg.recharts-surface - so a
+      // bare querySelector("svg") returned a 14px legend icon whenever the
+      // legend rendered first, and that icon was exported as the "chart".
+      const svg = chartContainerRef.current?.querySelector<SVGSVGElement>(".recharts-wrapper > svg.recharts-surface");
       if (!svg) throw new Error("No chart is currently rendered to capture.");
       const imageDataUrl = await captureSvgAsPng(svg);
       exportTrendPdfWithChart(exportContext(), imageDataUrl);

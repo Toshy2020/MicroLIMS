@@ -96,7 +96,8 @@ public class DocumentRevisionService : IDocumentRevisionService
                 ?? throw new KeyNotFoundException($"User {userId} not found.");
 
             // Strict Role Check: Override requires Document Controller (SectionHead) or SystemAdministrator
-            if (user.Role.Type != RoleType.SectionHead && user.Role.Type != RoleType.SystemAdministrator)
+            var roleType = user.Role?.Type;
+            if (roleType != RoleType.SectionHead && roleType != RoleType.SystemAdministrator)
             {
                 throw new UnauthorizedAccessException("Only Document Controllers are authorized to override the proposed revision number.");
             }

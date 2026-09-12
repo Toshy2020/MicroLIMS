@@ -181,7 +181,9 @@ export function PeriodicReviewWorkspaceDialog({
               <Typography variant="h6" sx={{ fontWeight: 700, lineHeight: 1.2 }}>
                 Periodic Review Workspace
               </Typography>
-              <Typography variant="caption" color="text.secondary">
+              <Typography variant="caption" sx={{
+                color: "text.secondary"
+              }}>
                 {workspace?.master.companyDocumentCode} — {workspace?.master.title} (Rev {workspace?.revision.revisionNumber})
               </Typography>
             </Box>
@@ -216,15 +218,30 @@ export function PeriodicReviewWorkspaceDialog({
               <Paper variant="outlined" sx={{ p: 2, bgcolor: (t) => t.palette.mode === "dark" ? "action.hover" : "grey.50" }}>
                 <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "repeat(3, 1fr)", md: "repeat(6, 1fr)" }, gap: 1.5 }}>
                   <Box>
-                    <Typography variant="caption" color="text.secondary" display="block">MicroLIMS ID</Typography>
+                    <Typography
+                      variant="caption"
+                      sx={{
+                        color: "text.secondary",
+                        display: "block"
+                      }}>MicroLIMS ID</Typography>
                     <Typography variant="body2" sx={{ fontWeight: 700 }}>{workspace.master.microLimsDocumentId}</Typography>
                   </Box>
                   <Box>
-                    <Typography variant="caption" color="text.secondary" display="block">Effective Revision</Typography>
+                    <Typography
+                      variant="caption"
+                      sx={{
+                        color: "text.secondary",
+                        display: "block"
+                      }}>Effective Revision</Typography>
                     <Typography variant="body2" sx={{ fontWeight: 700 }}>Rev {workspace.revision.revisionNumber}</Typography>
                   </Box>
                   <Box>
-                    <Typography variant="caption" color="text.secondary" display="block">Review Due Date</Typography>
+                    <Typography
+                      variant="caption"
+                      sx={{
+                        color: "text.secondary",
+                        display: "block"
+                      }}>Review Due Date</Typography>
                     <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
                       <Typography variant="body2" sx={{ fontWeight: 700, color: workspace.task.isOverdue ? "error.main" : "text.primary" }}>
                         {new Date(workspace.task.scheduledDueDate).toLocaleDateString()}
@@ -233,15 +250,30 @@ export function PeriodicReviewWorkspaceDialog({
                     </Box>
                   </Box>
                   <Box>
-                    <Typography variant="caption" color="text.secondary" display="block">Review Cycle</Typography>
+                    <Typography
+                      variant="caption"
+                      sx={{
+                        color: "text.secondary",
+                        display: "block"
+                      }}>Review Cycle</Typography>
                     <Typography variant="body2" sx={{ fontWeight: 600 }}>{workspace.task.reviewCycleMonths} Months</Typography>
                   </Box>
                   <Box>
-                    <Typography variant="caption" color="text.secondary" display="block">Assigned Reviewer</Typography>
+                    <Typography
+                      variant="caption"
+                      sx={{
+                        color: "text.secondary",
+                        display: "block"
+                      }}>Assigned Reviewer</Typography>
                     <Typography variant="body2" sx={{ fontWeight: 600 }}>{workspace.task.assignedReviewerFullName || "Unassigned"}</Typography>
                   </Box>
                   <Box>
-                    <Typography variant="caption" color="text.secondary" display="block">Status</Typography>
+                    <Typography
+                      variant="caption"
+                      sx={{
+                        color: "text.secondary",
+                        display: "block"
+                      }}>Status</Typography>
                     <Chip
                       label={workspace.task.status}
                       color={workspace.task.status === "Completed" ? "success" : workspace.task.status === "InProgress" ? "info" : "default"}
@@ -260,7 +292,9 @@ export function PeriodicReviewWorkspaceDialog({
                     <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
                       Controlled Effective PDF
                     </Typography>
-                    <Typography variant="caption" color="text.secondary">
+                    <Typography variant="caption" sx={{
+                      color: "text.secondary"
+                    }}>
                       {workspace.controlledPdf ? `${workspace.controlledPdf.fileName} (SHA-256 Verified)` : "No active controlled PDF attached"}
                     </Typography>
                   </Box>
@@ -345,8 +379,12 @@ export function PeriodicReviewWorkspaceDialog({
                             <TableCell>{f.sectionNumber || "—"}</TableCell>
                             <TableCell>{f.noteText}</TableCell>
                             <TableCell>
-                              <Typography variant="caption" display="block">{f.createdByFullName}</Typography>
-                              <Typography variant="caption" color="text.secondary">{new Date(f.createdAt).toLocaleDateString()}</Typography>
+                              <Typography variant="caption" sx={{
+                                display: "block"
+                              }}>{f.createdByFullName}</Typography>
+                              <Typography variant="caption" sx={{
+                                color: "text.secondary"
+                              }}>{new Date(f.createdAt).toLocaleDateString()}</Typography>
                             </TableCell>
                             <TableCell>
                               <Chip

@@ -264,61 +264,128 @@ export function TrainingMatrixPage() {
       {/* KPI Summary Bar */}
       {gridData && (
         <Grid container spacing={2} sx={{ mb: 3 }}>
-          <Grid item xs={12} sm={6} md={2.4}>
+          <Grid
+            size={{
+              xs: 12,
+              sm: 6,
+              md: 2.4
+            }}>
             <Card variant="outlined">
               <CardContent sx={{ py: 1.5, "&:last-child": { pb: 1.5 } }}>
-                <Typography variant="caption" color="text.secondary" fontWeight="bold">
+                <Typography
+                  variant="caption"
+                  sx={{
+                    color: "text.secondary",
+                    fontWeight: "bold"
+                  }}>
                   PERSONNEL TRACKED
                 </Typography>
-                <Typography variant="h5" fontWeight="bold">
+                <Typography variant="h5" sx={{
+                  fontWeight: "bold"
+                }}>
                   {gridData.totalUsers}
                 </Typography>
               </CardContent>
             </Card>
           </Grid>
-          <Grid item xs={12} sm={6} md={2.4}>
+          <Grid
+            size={{
+              xs: 12,
+              sm: 6,
+              md: 2.4
+            }}>
             <Card variant="outlined" sx={{ bgcolor: "success.50" }}>
               <CardContent sx={{ py: 1.5, "&:last-child": { pb: 1.5 } }}>
-                <Typography variant="caption" color="success.main" fontWeight="bold">
+                <Typography
+                  variant="caption"
+                  sx={{
+                    color: "success.main",
+                    fontWeight: "bold"
+                  }}>
                   QUALIFIED CELLS
                 </Typography>
-                <Typography variant="h5" fontWeight="bold" color="success.main">
+                <Typography
+                  variant="h5"
+                  sx={{
+                    fontWeight: "bold",
+                    color: "success.main"
+                  }}>
                   {gridData.totalCompliantCells}
                 </Typography>
               </CardContent>
             </Card>
           </Grid>
-          <Grid item xs={12} sm={6} md={2.4}>
+          <Grid
+            size={{
+              xs: 12,
+              sm: 6,
+              md: 2.4
+            }}>
             <Card variant="outlined" sx={{ bgcolor: "warning.50" }}>
               <CardContent sx={{ py: 1.5, "&:last-child": { pb: 1.5 } }}>
-                <Typography variant="caption" color="warning.main" fontWeight="bold">
+                <Typography
+                  variant="caption"
+                  sx={{
+                    color: "warning.main",
+                    fontWeight: "bold"
+                  }}>
                   PENDING CELLS
                 </Typography>
-                <Typography variant="h5" fontWeight="bold" color="warning.main">
+                <Typography
+                  variant="h5"
+                  sx={{
+                    fontWeight: "bold",
+                    color: "warning.main"
+                  }}>
                   {gridData.totalPendingCells}
                 </Typography>
               </CardContent>
             </Card>
           </Grid>
-          <Grid item xs={12} sm={6} md={2.4}>
+          <Grid
+            size={{
+              xs: 12,
+              sm: 6,
+              md: 2.4
+            }}>
             <Card variant="outlined" sx={{ bgcolor: "error.50" }}>
               <CardContent sx={{ py: 1.5, "&:last-child": { pb: 1.5 } }}>
-                <Typography variant="caption" color="error.main" fontWeight="bold">
+                <Typography
+                  variant="caption"
+                  sx={{
+                    color: "error.main",
+                    fontWeight: "bold"
+                  }}>
                   OVERDUE CELLS
                 </Typography>
-                <Typography variant="h5" fontWeight="bold" color="error.main">
+                <Typography
+                  variant="h5"
+                  sx={{
+                    fontWeight: "bold",
+                    color: "error.main"
+                  }}>
                   {gridData.totalOverdueCells}
                 </Typography>
               </CardContent>
             </Card>
           </Grid>
-          <Grid item xs={12} sm={6} md={2.4}>
+          <Grid
+            size={{
+              xs: 12,
+              sm: 6,
+              md: 2.4
+            }}>
             <Card variant="outlined" sx={{ bgcolor: (t) => t.palette.mode === "dark" ? "rgba(237, 108, 2, 0.15)" : "#fff3e0" }}>
               <CardContent sx={{ py: 1.5, "&:last-child": { pb: 1.5 } }}>
                 <Typography variant="caption" sx={{ color: (t) => t.palette.mode === "dark" ? "warning.light" : "#e65100", fontWeight: "bold" }}>
                   SUPERSEDED GAPS
                 </Typography>
-                <Typography variant="h5" fontWeight="bold" sx={{ color: (t) => t.palette.mode === "dark" ? "warning.light" : "#e65100" }}>
+                <Typography
+                  variant="h5"
+                  sx={{
+                    fontWeight: "bold",
+                    color: (t) => t.palette.mode === "dark" ? "warning.light" : "#e65100"
+                  }}>
                   {gridData.totalSupersededGapCells}
                 </Typography>
               </CardContent>
@@ -329,27 +396,42 @@ export function TrainingMatrixPage() {
 
       {/* Filter Toolbar */}
       <Paper variant="outlined" sx={{ p: 2, mb: 3 }}>
-        <Stack direction={{ xs: "column", sm: "row" }} spacing={2} alignItems="center" justifyContent="space-between">
-          <Stack direction={{ xs: "column", sm: "row" }} spacing={2} alignItems="center" sx={{ width: "100%", maxWidth: 850 }}>
+        <Stack
+          direction={{ xs: "column", sm: "row" }}
+          spacing={2}
+          sx={{
+            alignItems: "center",
+            justifyContent: "space-between"
+          }}>
+          <Stack
+            direction={{ xs: "column", sm: "row" }}
+            spacing={2}
+            sx={{
+              alignItems: "center",
+              width: "100%",
+              maxWidth: 850
+            }}>
             <TextField
               size="small"
               placeholder="Search personnel name, username, or role..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               sx={{ minWidth: 320 }}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <SearchIcon fontSize="small" color="action" />
-                  </InputAdornment>
-                ),
-                endAdornment: searchQuery ? (
-                  <InputAdornment position="end">
-                    <IconButton aria-label="Clear search" size="small" onClick={() => setSearchQuery("")}>
-                      <ClearIcon fontSize="small" />
-                    </IconButton>
-                  </InputAdornment>
-                ) : null
+              slotProps={{
+                input: {
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <SearchIcon fontSize="small" color="action" />
+                    </InputAdornment>
+                  ),
+                  endAdornment: searchQuery ? (
+                    <InputAdornment position="end">
+                      <IconButton aria-label="Clear search" size="small" onClick={() => setSearchQuery("")}>
+                        <ClearIcon fontSize="small" />
+                      </IconButton>
+                    </InputAdornment>
+                  ) : null
+                }
               }}
             />
 
@@ -426,7 +508,14 @@ export function TrainingMatrixPage() {
                 >
                   <Tooltip title={`${doc.companyDocumentCode} — ${doc.title} (Current Rev: ${doc.currentEffectiveRevisionNumber || "None"})`}>
                     <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
-                      <Typography variant="caption" fontWeight="bold" color="primary.main" noWrap sx={{ maxWidth: 160 }}>
+                      <Typography
+                        variant="caption"
+                        noWrap
+                        sx={{
+                          fontWeight: "bold",
+                          color: "primary.main",
+                          maxWidth: 160
+                        }}>
                         {doc.companyDocumentCode}
                       </Typography>
                       <Chip
@@ -445,7 +534,9 @@ export function TrainingMatrixPage() {
               <TableRow>
                 <TableCell colSpan={(gridData?.documents.length || 0) + 1} align="center" sx={{ py: 8 }}>
                   <CircularProgress size={36} sx={{ mb: 1 }} />
-                  <Typography variant="body2" color="text.secondary">
+                  <Typography variant="body2" sx={{
+                    color: "text.secondary"
+                  }}>
                     Computing real-time training qualification matrix...
                   </Typography>
                 </TableCell>
@@ -453,7 +544,9 @@ export function TrainingMatrixPage() {
             ) : filteredUsers.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={(gridData?.documents.length || 0) + 1} align="center" sx={{ py: 6 }}>
-                  <Typography variant="body2" color="text.secondary">
+                  <Typography variant="body2" sx={{
+                    color: "text.secondary"
+                  }}>
                     No personnel records matched your filter criteria.
                   </Typography>
                 </TableCell>
@@ -475,10 +568,14 @@ export function TrainingMatrixPage() {
                     <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                       <PersonIcon fontSize="small" color="action" />
                       <Box>
-                        <Typography variant="body2" fontWeight="bold">
+                        <Typography variant="body2" sx={{
+                          fontWeight: "bold"
+                        }}>
                           {user.fullName}
                         </Typography>
-                        <Typography variant="caption" color="text.secondary">
+                        <Typography variant="caption" sx={{
+                          color: "text.secondary"
+                        }}>
                           {user.roleName}
                         </Typography>
                       </Box>
@@ -521,14 +618,20 @@ export function TrainingMatrixPage() {
         anchor="right"
         open={Boolean(selectedUser)}
         onClose={() => setSelectedUser(null)}
-        PaperProps={{ sx: { width: { xs: "100%", sm: 500 }, p: 3 } }}
+        slotProps={{
+          paper: { sx: { width: { xs: "100%", sm: 500 }, p: 3 } }
+        }}
       >
         <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", mb: 2 }}>
           <Box>
-            <Typography variant="h6" fontWeight="bold">
+            <Typography variant="h6" sx={{
+              fontWeight: "bold"
+            }}>
               User Compliance Profile
             </Typography>
-            <Typography variant="body2" color="text.secondary">
+            <Typography variant="body2" sx={{
+              color: "text.secondary"
+            }}>
               {selectedUser?.fullName} ({selectedUser?.roleName})
             </Typography>
           </Box>
@@ -545,18 +648,29 @@ export function TrainingMatrixPage() {
         ) : userCompliance && (
           <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
             <Paper variant="outlined" sx={{ p: 2, bgcolor: (t) => t.palette.mode === "dark" ? "action.hover" : "grey.50" }}>
-              <Typography variant="caption" color="text.secondary" fontWeight="bold">
+              <Typography
+                variant="caption"
+                sx={{
+                  color: "text.secondary",
+                  fontWeight: "bold"
+                }}>
                 COMPLIANCE SCORE
               </Typography>
-              <Typography variant="h4" fontWeight="bold" color={userCompliance.complianceRatePercentage >= 90 ? "success.main" : "warning.main"}>
+              <Typography variant="h4" color={userCompliance.complianceRatePercentage >= 90 ? "success.main" : "warning.main"} sx={{
+                fontWeight: "bold"
+              }}>
                 {userCompliance.complianceRatePercentage}%
               </Typography>
-              <Typography variant="caption" color="text.secondary">
+              <Typography variant="caption" sx={{
+                color: "text.secondary"
+              }}>
                 {userCompliance.completedDocuments} of {userCompliance.totalRequiredDocuments} documents qualified
               </Typography>
             </Paper>
 
-            <Typography variant="subtitle2" fontWeight="bold">
+            <Typography variant="subtitle2" sx={{
+              fontWeight: "bold"
+            }}>
               Document Training Breakdown
             </Typography>
             <Stack spacing={1}>
@@ -564,13 +678,25 @@ export function TrainingMatrixPage() {
                 <Paper key={ds.documentMasterId} variant="outlined" sx={{ p: 1.5 }}>
                   <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
                     <Box>
-                      <Typography variant="body2" fontWeight="bold" color="primary.main">
+                      <Typography
+                        variant="body2"
+                        sx={{
+                          fontWeight: "bold",
+                          color: "primary.main"
+                        }}>
                         {ds.companyDocumentCode}
                       </Typography>
-                      <Typography variant="caption" color="text.secondary" display="block">
+                      <Typography
+                        variant="caption"
+                        sx={{
+                          color: "text.secondary",
+                          display: "block"
+                        }}>
                         {ds.documentTitle}
                       </Typography>
-                      <Typography variant="caption" color="text.secondary">
+                      <Typography variant="caption" sx={{
+                        color: "text.secondary"
+                      }}>
                         Current Rev: {ds.currentEffectiveRevisionNumber || "N/A"}
                         {ds.assignedRevisionNumber ? ` | Trained: Rev ${ds.assignedRevisionNumber}` : ""}
                       </Typography>
@@ -589,14 +715,20 @@ export function TrainingMatrixPage() {
         anchor="right"
         open={Boolean(selectedDoc)}
         onClose={() => setSelectedDoc(null)}
-        PaperProps={{ sx: { width: { xs: "100%", sm: 500 }, p: 3 } }}
+        slotProps={{
+          paper: { sx: { width: { xs: "100%", sm: 500 }, p: 3 } }
+        }}
       >
         <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", mb: 2 }}>
           <Box>
-            <Typography variant="h6" fontWeight="bold">
+            <Typography variant="h6" sx={{
+              fontWeight: "bold"
+            }}>
               Document Compliance Profile
             </Typography>
-            <Typography variant="body2" color="text.secondary">
+            <Typography variant="body2" sx={{
+              color: "text.secondary"
+            }}>
               {selectedDoc?.companyDocumentCode} — {selectedDoc?.title}
             </Typography>
           </Box>
@@ -613,21 +745,43 @@ export function TrainingMatrixPage() {
         ) : docCompliance && (
           <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
             <Grid container spacing={1.5}>
-              <Grid item xs={6}>
+              <Grid size={6}>
                 <Paper variant="outlined" sx={{ p: 1.5, textAlign: "center", bgcolor: (t) => t.palette.mode === "dark" ? "rgba(46, 125, 50, 0.15)" : "success.50" }}>
-                  <Typography variant="caption" color="success.main" fontWeight="bold">QUALIFIED</Typography>
-                  <Typography variant="h5" fontWeight="bold" color="success.main">{docCompliance.completedUserCount}</Typography>
+                  <Typography
+                    variant="caption"
+                    sx={{
+                      color: "success.main",
+                      fontWeight: "bold"
+                    }}>QUALIFIED</Typography>
+                  <Typography
+                    variant="h5"
+                    sx={{
+                      fontWeight: "bold",
+                      color: "success.main"
+                    }}>{docCompliance.completedUserCount}</Typography>
                 </Paper>
               </Grid>
-              <Grid item xs={6}>
+              <Grid size={6}>
                 <Paper variant="outlined" sx={{ p: 1.5, textAlign: "center", bgcolor: (t) => t.palette.mode === "dark" ? "rgba(211, 47, 47, 0.15)" : "error.50" }}>
-                  <Typography variant="caption" color="error.main" fontWeight="bold">OVERDUE</Typography>
-                  <Typography variant="h5" fontWeight="bold" color="error.main">{docCompliance.overdueUserCount}</Typography>
+                  <Typography
+                    variant="caption"
+                    sx={{
+                      color: "error.main",
+                      fontWeight: "bold"
+                    }}>OVERDUE</Typography>
+                  <Typography
+                    variant="h5"
+                    sx={{
+                      fontWeight: "bold",
+                      color: "error.main"
+                    }}>{docCompliance.overdueUserCount}</Typography>
                 </Paper>
               </Grid>
             </Grid>
 
-            <Typography variant="subtitle2" fontWeight="bold">
+            <Typography variant="subtitle2" sx={{
+              fontWeight: "bold"
+            }}>
               Personnel Training Statuses
             </Typography>
             <Stack spacing={1}>
@@ -635,11 +789,15 @@ export function TrainingMatrixPage() {
                 <Paper key={us.userId} variant="outlined" sx={{ p: 1.5 }}>
                   <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                     <Box>
-                      <Typography variant="body2" fontWeight="bold">
+                      <Typography variant="body2" sx={{
+                        fontWeight: "bold"
+                      }}>
                         {us.userName}
                       </Typography>
                       {us.dueDateUtc && (
-                        <Typography variant="caption" color="text.secondary">
+                        <Typography variant="caption" sx={{
+                          color: "text.secondary"
+                        }}>
                           Due: {new Date(us.dueDateUtc).toLocaleDateString()}
                         </Typography>
                       )}

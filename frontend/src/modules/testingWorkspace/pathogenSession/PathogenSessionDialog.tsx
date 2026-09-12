@@ -162,8 +162,17 @@ export function PathogenSessionDialog({ open, sampleId, onClose, onSessionUpdate
         px: 3
       }}
       title={
-        <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ flex: 1, minWidth: 0 }}>
-          <Stack direction="row" spacing={1.5} alignItems="center">
+        <Stack
+          direction="row"
+          sx={{
+            justifyContent: "space-between",
+            alignItems: "center",
+            flex: 1,
+            minWidth: 0
+          }}>
+          <Stack direction="row" spacing={1.5} sx={{
+            alignItems: "center"
+          }}>
             <Box
               sx={{
                 width: 38,
@@ -189,7 +198,9 @@ export function PathogenSessionDialog({ open, sampleId, onClose, onSessionUpdate
             </Box>
           </Stack>
 
-          <Stack direction="row" spacing={1.5} alignItems="center">
+          <Stack direction="row" spacing={1.5} sx={{
+            alignItems: "center"
+          }}>
             {session && (
               <Chip
                 label={session.overallSessionStatusDisplay ?? session.overallSessionStatus}
@@ -254,7 +265,9 @@ export function PathogenSessionDialog({ open, sampleId, onClose, onSessionUpdate
                         }
                       }}
                     >
-                      <Stack direction="row" spacing={0.5} alignItems="center">
+                      <Stack direction="row" spacing={0.5} sx={{
+                        alignItems: "center"
+                      }}>
                         <span>{label} {stepLabelSuffix}</span>
                         {isStepDisabled && <LockOutlinedIcon sx={{ fontSize: 12, color: "text.secondary" }} />}
                       </Stack>
@@ -267,68 +280,68 @@ export function PathogenSessionDialog({ open, sampleId, onClose, onSessionUpdate
         )
       }
     >
-        {loading && <LoadingSpinner />}
-        {error && !session && <Alert severity="error">{error}</Alert>}
+      {loading && <LoadingSpinner />}
+      {error && !session && <Alert severity="error">{error}</Alert>}
 
-        {session && (
-          <Box>
-            {activeStep === 0 && (
-              <SessionOverviewPanel
-                session={session}
-                onStartWorkflow={() => {
-                  const hasTsb = session.assignedTests.some((t) => t.requiresTsb);
-                  setActiveStep(hasTsb ? 1 : 2);
-                }}
-              />
-            )}
+      {session && (
+        <Box>
+          {activeStep === 0 && (
+            <SessionOverviewPanel
+              session={session}
+              onStartWorkflow={() => {
+                const hasTsb = session.assignedTests.some((t) => t.requiresTsb);
+                setActiveStep(hasTsb ? 1 : 2);
+              }}
+            />
+          )}
 
-            {activeStep === 1 && (
-              <SharedTsbEnrichmentPanel
-                session={session}
-                onUpdated={handleSessionUpdated}
-                onNext={() => setActiveStep(2)}
-              />
-            )}
+          {activeStep === 1 && (
+            <SharedTsbEnrichmentPanel
+              session={session}
+              onUpdated={handleSessionUpdated}
+              onNext={() => setActiveStep(2)}
+            />
+          )}
 
-            {activeStep === 2 && (
-              <DownstreamWorkflowsPanel
-                session={session}
-                onNext={() => setActiveStep(3)}
-              />
-            )}
+          {activeStep === 2 && (
+            <DownstreamWorkflowsPanel
+              session={session}
+              onNext={() => setActiveStep(3)}
+            />
+          )}
 
-            {activeStep === 3 && (
-              <PrimaryObservationMatrixPanel
-                session={session}
-                onUpdated={handleSessionUpdated}
-                onNext={(skipToReview) => {
-                  if (skipToReview || !hasEligibleConfirmations) {
-                    setActiveStep(5);
-                  } else {
-                    setActiveStep(4);
-                  }
-                }}
-              />
-            )}
+          {activeStep === 3 && (
+            <PrimaryObservationMatrixPanel
+              session={session}
+              onUpdated={handleSessionUpdated}
+              onNext={(skipToReview) => {
+                if (skipToReview || !hasEligibleConfirmations) {
+                  setActiveStep(5);
+                } else {
+                  setActiveStep(4);
+                }
+              }}
+            />
+          )}
 
-            {activeStep === 4 && (
-              <BatchConfirmatoryPlatingPanel
-                session={session}
-                onBack={() => setActiveStep(3)}
-                onNext={() => setActiveStep(5)}
-                onUpdated={handleSessionUpdated}
-              />
-            )}
+          {activeStep === 4 && (
+            <BatchConfirmatoryPlatingPanel
+              session={session}
+              onBack={() => setActiveStep(3)}
+              onNext={() => setActiveStep(5)}
+              onUpdated={handleSessionUpdated}
+            />
+          )}
 
-            {activeStep === 5 && (
-              <SessionReviewPanel
-                session={session}
-                onSessionCompleted={handleCompleted}
-                onBackToMatrix={() => setActiveStep(3)}
-              />
-            )}
-          </Box>
-        )}
+          {activeStep === 5 && (
+            <SessionReviewPanel
+              session={session}
+              onSessionCompleted={handleCompleted}
+              onBackToMatrix={() => setActiveStep(3)}
+            />
+          )}
+        </Box>
+      )}
 
       {/* Reset Confirmation Dialog */}
       <Dialog
@@ -336,7 +349,9 @@ export function PathogenSessionDialog({ open, sampleId, onClose, onSessionUpdate
         onClose={() => !resetting && setResetDialogOpen(false)}
         maxWidth="sm"
         fullWidth
-        PaperProps={{ sx: { borderRadius: 2 } }}
+        slotProps={{
+          paper: { sx: { borderRadius: 2 } }
+        }}
       >
         <DialogTitle sx={{ fontWeight: 700 }}>Reset Testing Session & Steps?</DialogTitle>
         <DialogContent>

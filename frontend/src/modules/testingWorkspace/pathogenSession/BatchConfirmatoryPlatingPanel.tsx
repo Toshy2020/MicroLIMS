@@ -26,7 +26,7 @@ import {
   useTheme
 } from "@mui/material";
 import ScienceOutlinedIcon from "@mui/icons-material/ScienceOutlined";
-import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
+import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutlined";
 import WarningAmberOutlinedIcon from "@mui/icons-material/WarningAmberOutlined";
 import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
@@ -421,7 +421,9 @@ export function BatchConfirmatoryPlatingPanel({ session, onNext, onBack, onUpdat
           All sampling locations in this batch were recorded as <strong>No Growth (-)</strong> during primary plate observation.
           No confirmatory plating is required for this session.
         </Typography>
-        <Stack direction="row" spacing={2} justifyContent="center">
+        <Stack direction="row" spacing={2} sx={{
+          justifyContent: "center"
+        }}>
           <Button variant="outlined" onClick={onBack}>
             Back to Primary Matrix
           </Button>
@@ -437,9 +439,21 @@ export function BatchConfirmatoryPlatingPanel({ session, onNext, onBack, onUpdat
     <Stack spacing={2.5}>
       {/* Top Banner */}
       <Paper sx={{ p: 2.5, borderRadius: 2, border: "1px solid", borderColor: theme.custom.status.purple.border, bgcolor: theme.custom.status.purple.bg }}>
-        <Stack direction={{ xs: "column", sm: "row" }} justifyContent="space-between" alignItems={{ sm: "center" }} spacing={2}>
+        <Stack
+          direction={{ xs: "column", sm: "row" }}
+          spacing={2}
+          sx={{
+            justifyContent: "space-between",
+            alignItems: { sm: "center" }
+          }}>
           <Box>
-            <Stack direction="row" spacing={1.5} alignItems="center" sx={{ mb: 0.75 }}>
+            <Stack
+              direction="row"
+              spacing={1.5}
+              sx={{
+                alignItems: "center",
+                mb: 0.75
+              }}>
               <Typography sx={{ fontSize: 16, fontWeight: 800, color: "text.primary" }}>
                 Confirmatory Plating (Panel B)
               </Typography>
@@ -454,7 +468,9 @@ export function BatchConfirmatoryPlatingPanel({ session, onNext, onBack, onUpdat
             </Typography>
           </Box>
 
-          <Stack direction="row" spacing={1.5} alignItems="center">
+          <Stack direction="row" spacing={1.5} sx={{
+            alignItems: "center"
+          }}>
             <Button
               variant={phase === "setup" ? "contained" : "outlined"}
               size="small"
@@ -497,7 +513,9 @@ export function BatchConfirmatoryPlatingPanel({ session, onNext, onBack, onUpdat
             <Tab
               key={p.testCode}
               label={
-                <Stack direction="row" spacing={1} alignItems="center">
+                <Stack direction="row" spacing={1} sx={{
+                  alignItems: "center"
+                }}>
                   <span>{p.testDisplayName} ({p.testCode})</span>
                   <Chip label={`${p.locations.length} loc`} size="small" sx={{ fontSize: 10, height: 18 }} />
                 </Stack>
@@ -510,7 +528,13 @@ export function BatchConfirmatoryPlatingPanel({ session, onNext, onBack, onUpdat
       {/* PHASE 1: SHARED MEDIA SETUP FORM */}
       {phase === "setup" && currentPathogen && (
         <Paper sx={{ p: 3, borderRadius: 2, border: "1px solid", borderColor: "divider" }}>
-          <Stack direction="row" spacing={1.5} alignItems="center" sx={{ mb: 2 }}>
+          <Stack
+            direction="row"
+            spacing={1.5}
+            sx={{
+              alignItems: "center",
+              mb: 2
+            }}>
             <Box
               sx={{
                 width: 36,
@@ -539,7 +563,9 @@ export function BatchConfirmatoryPlatingPanel({ session, onNext, onBack, onUpdat
             <Typography sx={{ fontSize: 12, fontWeight: 700, color: "text.secondary", mb: 1 }}>
               FLAGGED SAMPLING LOCATIONS ({currentPathogen.locations.length}):
             </Typography>
-            <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+            <Stack direction="row" spacing={1} useFlexGap sx={{
+              flexWrap: "wrap"
+            }}>
               {currentPathogen.locations.map((loc) => (
                 <Chip
                   key={loc.locationId}
@@ -618,7 +644,9 @@ export function BatchConfirmatoryPlatingPanel({ session, onNext, onBack, onUpdat
                 helperText="Contemporaneously recorded start timestamp"
                 fullWidth
                 size="small"
-                InputLabelProps={{ shrink: true }}
+                slotProps={{
+                  inputLabel: { shrink: true }
+                }}
               />
 
               {/* Read-only Incubation Duration from Test Master */}
@@ -636,7 +664,13 @@ export function BatchConfirmatoryPlatingPanel({ session, onNext, onBack, onUpdat
             </Box>
           )}
 
-          <Stack direction="row" spacing={2} justifyContent="flex-end" sx={{ mt: 3 }}>
+          <Stack
+            direction="row"
+            spacing={2}
+            sx={{
+              justifyContent: "flex-end",
+              mt: 3
+            }}>
             <Button variant="outlined" startIcon={<ArrowBackIcon />} onClick={onBack}>
               Back to Primary Matrix
             </Button>
@@ -659,8 +693,20 @@ export function BatchConfirmatoryPlatingPanel({ session, onNext, onBack, onUpdat
         <Stack spacing={2.5}>
           {/* Agreement Stats Bar */}
           <Paper sx={{ p: 2, borderRadius: 2, border: "1px solid", borderColor: theme.custom.status.purple.border, bgcolor: theme.custom.status.purple.bg }}>
-            <Stack direction={{ xs: "column", md: "row" }} justifyContent="space-between" alignItems={{ md: "center" }} spacing={2}>
-              <Stack direction="row" spacing={1.5} alignItems="center" flexWrap="wrap">
+            <Stack
+              direction={{ xs: "column", md: "row" }}
+              spacing={2}
+              sx={{
+                justifyContent: "space-between",
+                alignItems: { md: "center" }
+              }}>
+              <Stack
+                direction="row"
+                spacing={1.5}
+                sx={{
+                  alignItems: "center",
+                  flexWrap: "wrap"
+                }}>
                 <Typography sx={{ fontSize: 14, fontWeight: 800, color: "text.primary" }}>
                   Multi-Media Agreement Status:
                 </Typography>
@@ -872,7 +918,9 @@ export function BatchConfirmatoryPlatingPanel({ session, onNext, onBack, onUpdat
           )}
 
           {/* Action Footer */}
-          <Stack direction="row" spacing={2} justifyContent="flex-end">
+          <Stack direction="row" spacing={2} sx={{
+            justifyContent: "flex-end"
+          }}>
             <Button variant="outlined" startIcon={<ArrowBackIcon />} onClick={() => setPhase("setup")}>
               Back to Setup
             </Button>

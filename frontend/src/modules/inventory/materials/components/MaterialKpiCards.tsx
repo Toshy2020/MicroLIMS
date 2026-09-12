@@ -1,8 +1,8 @@
 import { Grid, Paper, Typography, Box, useTheme } from "@mui/material";
 import Inventory2OutlinedIcon from "@mui/icons-material/Inventory2Outlined";
-import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
+import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutlined";
 import WarningAmberOutlinedIcon from "@mui/icons-material/WarningAmberOutlined";
-import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
+import ErrorOutlineIcon from "@mui/icons-material/ErrorOutlined";
 import HourglassBottomOutlinedIcon from "@mui/icons-material/HourglassBottomOutlined";
 import { SvgIconComponent } from "@mui/icons-material";
 import { MaterialItem, MaterialKpiFilter } from "../types/materialTypes";
@@ -76,7 +76,13 @@ export function MaterialKpiCards({ items, activeFilter, onFilterSelect }: Materi
         const isActive = activeFilter === card.key;
         const tokens = theme.custom.status[card.tone];
         return (
-          <Grid item xs={12} sm={6} md={2.4} key={card.key}>
+          <Grid
+            key={card.key}
+            size={{
+              xs: 12,
+              sm: 6,
+              md: 2.4
+            }}>
             <Paper
               onClick={() => onFilterSelect(isActive && card.key !== "all" ? "all" : card.key)}
               sx={{

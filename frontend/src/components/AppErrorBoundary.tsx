@@ -57,7 +57,9 @@ export class AppErrorBoundary extends Component<Props, State> {
         <Paper sx={{ p: 4, maxWidth: 520 }} elevation={3}>
           <Stack spacing={2}>
             <Typography variant="h6">Something went wrong</Typography>
-            <Typography variant="body2" color="text.secondary">
+            <Typography variant="body2" sx={{
+              color: "text.secondary"
+            }}>
               This screen stopped responding and could not recover. The problem has
               been reported to your system administrator automatically. No work you
               had already saved is affected.

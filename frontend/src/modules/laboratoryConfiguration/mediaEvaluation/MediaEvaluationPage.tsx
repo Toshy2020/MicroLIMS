@@ -177,7 +177,9 @@ export function MediaEvaluationPage() {
                         <Typography sx={{ fontWeight: 700 }}>
                           {c.organism?.scientificName}{c.challengeRole ? ` (${c.challengeRole})` : ""}
                         </Typography>
-                        {c.outcome ? <StatusBadge status={c.outcome} /> : <Typography variant="caption" color="text.secondary">Pending</Typography>}
+                        {c.outcome ? <StatusBadge status={c.outcome} /> : <Typography variant="caption" sx={{
+                          color: "text.secondary"
+                        }}>Pending</Typography>}
                       </Box>
 
                       <Typography variant="body2" sx={{ mb: 1 }}>Initial Inoculum: <strong>{c.initialInoculum}</strong></Typography>
@@ -190,7 +192,9 @@ export function MediaEvaluationPage() {
                           {options.length === 0 ? (
                             <Alert severity="warning" sx={{ mb: 1 }}>No approved cryovial batches available for {c.organism?.scientificName}.</Alert>
                           ) : (
-                            <Stack direction="row" spacing={1} alignItems="center">
+                            <Stack direction="row" spacing={1} sx={{
+                              alignItems: "center"
+                            }}>
                               <Select size="small" displayEmpty value={form.cryovialId ?? ""} onChange={(e) => setField(c.id, "cryovialId", e.target.value)} sx={{ minWidth: 240 }}>
                                 <MenuItem value=""><em>Cryovial batch</em></MenuItem>
                                 {options.map((o: any) => <MenuItem key={o.id} value={o.id}>{o.code} ({o.vialsRemaining} of {o.numberOfVialsPrepared} vials)</MenuItem>)}
@@ -209,7 +213,13 @@ export function MediaEvaluationPage() {
                           {isReadyToRead(c) ? "ready to read" : `earliest reading ${new Date(c.incubation.expectedReadingAt).toLocaleString()}`}
                         </Typography>
                       ) : (
-                        <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
+                        <Stack
+                          direction="row"
+                          spacing={1}
+                          sx={{
+                            alignItems: "center",
+                            mb: 1
+                          }}>
                           <Select size="small" displayEmpty value={form.incubatorEquipmentId ?? ""} onChange={(e) => setField(c.id, "incubatorEquipmentId", e.target.value)} sx={{ minWidth: 200 }}>
                             <MenuItem value=""><em>Incubator</em></MenuItem>
                             {incubators.map((i: any) => <MenuItem key={i.id} value={i.id}>{i.name}</MenuItem>)}
@@ -259,7 +269,12 @@ export function MediaEvaluationPage() {
                           {c.challengeRole === "Indication" && (
                             <>
                               <TextField size="small" label="Observed Description" value={form.observedDescription ?? ""} onChange={(e) => setField(c.id, "observedDescription", e.target.value)} sx={{ gridColumn: "span 2" }} />
-                              <Typography variant="caption" color="text.secondary" sx={{ gridColumn: "span 2" }}>Expected: {c.expectedDescription ?? "—"}</Typography>
+                              <Typography
+                                variant="caption"
+                                sx={{
+                                  color: "text.secondary",
+                                  gridColumn: "span 2"
+                                }}>Expected: {c.expectedDescription ?? "—"}</Typography>
                               <Select size="small" displayEmpty value={form.manualConform ?? ""} onChange={(e) => setField(c.id, "manualConform", e.target.value)}>
                                 <MenuItem value=""><em>Judgment</em></MenuItem>
                                 <MenuItem value="conform">Conform</MenuItem>

@@ -168,9 +168,11 @@ export const AssignApproverDialog: React.FC<AssignApproverDialogProps> = ({
               size="small"
               value={targetEffectiveDate}
               onChange={(e) => setTargetEffectiveDate(e.target.value)}
-              InputLabelProps={{ shrink: true }}
               helperText="If set to a future date, document will be approved in Future Effective state until activation."
               fullWidth
+              slotProps={{
+                inputLabel: { shrink: true }
+              }}
             />
 
             <TextField
@@ -179,8 +181,10 @@ export const AssignApproverDialog: React.FC<AssignApproverDialogProps> = ({
               size="small"
               value={dueDate}
               onChange={(e) => setDueDate(e.target.value)}
-              InputLabelProps={{ shrink: true }}
               fullWidth
+              slotProps={{
+                inputLabel: { shrink: true }
+              }}
             />
 
             <TextField

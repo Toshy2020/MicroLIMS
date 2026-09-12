@@ -112,7 +112,13 @@ export function SharedTsbEnrichmentPanel({ session, onUpdated, onNext }: Props) 
         <SharedTsbStatusCard sharedTsb={session.sharedTsb} />
 
         <Paper sx={{ p: 3, borderRadius: 2, border: "1px solid", borderColor: "divider", bgcolor: "background.default" }}>
-          <Stack direction="row" spacing={1.5} alignItems="center" sx={{ mb: 2 }}>
+          <Stack
+            direction="row"
+            spacing={1.5}
+            sx={{
+              alignItems: "center",
+              mb: 2
+            }}>
             <Box
               sx={{
                 width: 36,
@@ -145,7 +151,9 @@ export function SharedTsbEnrichmentPanel({ session, onUpdated, onNext }: Props) 
               : "TSB Enrichment incubation is currently in progress. Downstream steps and final result entry remain locked until completion."}
           </Alert>
 
-          <Stack direction="row" spacing={2} justifyContent="flex-end">
+          <Stack direction="row" spacing={2} sx={{
+            justifyContent: "flex-end"
+          }}>
             <Button
               variant="contained"
               color="primary"
@@ -164,7 +172,13 @@ export function SharedTsbEnrichmentPanel({ session, onUpdated, onNext }: Props) 
   return (
     <Stack spacing={3}>
       <Paper sx={{ p: 3, borderRadius: 2, border: "1px solid", borderColor: "divider" }}>
-        <Stack direction="row" spacing={1.5} alignItems="center" sx={{ mb: 2 }}>
+        <Stack
+          direction="row"
+          spacing={1.5}
+          sx={{
+            alignItems: "center",
+            mb: 2
+          }}>
           <Box
             sx={{
               width: 36,
@@ -195,7 +209,9 @@ export function SharedTsbEnrichmentPanel({ session, onUpdated, onNext }: Props) 
           <Typography sx={{ fontSize: 12, fontWeight: 600, color: "text.secondary", mb: 1 }}>
             APPLICABLE WORKFLOW SCOPE:
           </Typography>
-          <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+          <Stack direction="row" spacing={1} useFlexGap sx={{
+            flexWrap: "wrap"
+          }}>
             <Chip
               label={`${session.totalLocations} Sampling Locations`}
               size="small"
@@ -263,8 +279,10 @@ export function SharedTsbEnrichmentPanel({ session, onUpdated, onNext }: Props) 
               helperText="Controlled specification from approved Test Master workflow"
               fullWidth
               size="small"
-              InputProps={{ readOnly: true }}
               sx={{ bgcolor: "background.default" }}
+              slotProps={{
+                input: { readOnly: true }
+              }}
             />
 
             <TextField
@@ -273,13 +291,21 @@ export function SharedTsbEnrichmentPanel({ session, onUpdated, onNext }: Props) 
               helperText="Controlled duration from approved Test Master workflow"
               fullWidth
               size="small"
-              InputProps={{ readOnly: true }}
               sx={{ bgcolor: "background.default" }}
+              slotProps={{
+                input: { readOnly: true }
+              }}
             />
           </Box>
         )}
 
-        <Stack direction="row" spacing={2} justifyContent="flex-end" sx={{ mt: 3 }}>
+        <Stack
+          direction="row"
+          spacing={2}
+          sx={{
+            justifyContent: "flex-end",
+            mt: 3
+          }}>
           <Button
             variant="contained"
             color="primary"

@@ -99,7 +99,13 @@ export function RoleDetailPage() {
       <Button startIcon={<ArrowBackIcon />} onClick={() => navigate("/roles")} sx={{ mb: 1 }}>
         Back to Roles
       </Button>
-      <Stack direction="row" justifyContent="space-between" alignItems="flex-start" sx={{ mb: 1 }}>
+      <Stack
+        direction="row"
+        sx={{
+          justifyContent: "space-between",
+          alignItems: "flex-start",
+          mb: 1
+        }}>
         <PageHeader title={role.name} subtitle="Edit this role's name, description, and granted permissions." />
         {!role.isSystemRole && (
           <Button
@@ -116,7 +122,13 @@ export function RoleDetailPage() {
       {message && <Alert severity={message.ok ? "success" : "error"} sx={{ mb: 2 }} onClose={() => setMessage(null)}>{message.text}</Alert>}
 
       <Paper sx={{ p: 2.5, mb: 3 }}>
-        <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 2 }}>
+        <Stack
+          direction="row"
+          spacing={1}
+          sx={{
+            alignItems: "center",
+            mb: 2
+          }}>
           {role.isSystemRole && <Chip label="System Role" size="small" color="secondary" />}
           <Chip label={`Base Type: ${role.type}`} size="small" variant="outlined" />
         </Stack>

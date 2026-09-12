@@ -32,7 +32,7 @@ import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import PrintIcon from "@mui/icons-material/Print";
 import FactCheckOutlinedIcon from "@mui/icons-material/FactCheckOutlined";
 import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
-import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
+import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutlined";
 import VerifiedUserOutlinedIcon from "@mui/icons-material/VerifiedUserOutlined";
 import ScienceOutlinedIcon from "@mui/icons-material/ScienceOutlined";
 import TimelineOutlinedIcon from "@mui/icons-material/TimelineOutlined";
@@ -654,7 +654,13 @@ function TestResultsSection({
                 expandIcon={<ExpandMoreIcon />}
                 sx={{ bgcolor: "background.default", px: 2.5, py: 0.5, borderBottom: "1px solid", borderBottomColor: "divider" }}
               >
-                <Stack direction="row" spacing={1.5} alignItems="center" flexWrap="wrap">
+                <Stack
+                  direction="row"
+                  spacing={1.5}
+                  sx={{
+                    alignItems: "center",
+                    flexWrap: "wrap"
+                  }}>
                   <Typography sx={{ fontWeight: 700, fontSize: 14, color: "text.primary" }}>
                     {order.testCode} — {order.testDisplayName}
                   </Typography>
@@ -1045,7 +1051,7 @@ function ApprovalSignaturesCard({
               <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5}>
                 <FormControl fullWidth size="small">
                   <InputLabel>New Sample 1 - Analyst</InputLabel>
-                  <Select
+                  <Select<number | "">
                     label="New Sample 1 - Analyst"
                     value={newSampleAnalystOneId}
                     onChange={(e) => setNewSampleAnalystOneId(e.target.value === "" ? "" : Number(e.target.value))}
@@ -1057,7 +1063,7 @@ function ApprovalSignaturesCard({
                 </FormControl>
                 <FormControl fullWidth size="small">
                   <InputLabel>New Sample 2 - Analyst</InputLabel>
-                  <Select
+                  <Select<number | "">
                     label="New Sample 2 - Analyst"
                     value={newSampleAnalystTwoId}
                     onChange={(e) => setNewSampleAnalystTwoId(e.target.value === "" ? "" : Number(e.target.value))}

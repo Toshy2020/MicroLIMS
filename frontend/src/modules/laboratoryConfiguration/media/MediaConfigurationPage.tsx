@@ -22,8 +22,8 @@ import {
 } from "@mui/material";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import KeyboardArrowUpIcon from "@mui/icons-material/KeyboardArrowUp";
-import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline";
-import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
+import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutlined";
+import DeleteOutlineIcon from "@mui/icons-material/DeleteOutlined";
 import EditIcon from "@mui/icons-material/Edit";
 import { PageHeader } from "../../../components/PageHeader";
 import { SectionTitle } from "../../../components/SectionTitle";
@@ -527,7 +527,9 @@ export function MediaConfigurationPage() {
                           sx={{ cursor: "pointer" }}
                         />
                       ) : (
-                        <Typography variant="body2" color="text.secondary">None</Typography>
+                        <Typography variant="body2" sx={{
+                          color: "text.secondary"
+                        }}>None</Typography>
                       )}
                     </TableCell>
                     <TableCell align="right">

@@ -33,7 +33,13 @@ export function SampleCardView({
         const isSelected = selectedSampleId === sample.sampleId;
 
         return (
-          <Grid item xs={12} sm={6} md={4} key={sample.sampleId}>
+          <Grid
+            key={sample.sampleId}
+            size={{
+              xs: 12,
+              sm: 6,
+              md: 4
+            }}>
             <Paper
               tabIndex={0}
               role="button"
@@ -69,7 +75,13 @@ export function SampleCardView({
                 }
               }}
             >
-              <Stack direction="row" justifyContent="space-between" alignItems="flex-start" sx={{ mb: 1 }}>
+              <Stack
+                direction="row"
+                sx={{
+                  justifyContent: "space-between",
+                  alignItems: "flex-start",
+                  mb: 1
+                }}>
                 <Box>
                   <Typography sx={{ fontWeight: isSelected ? 700 : 600, fontSize: 14, color: isSelected ? brandColors.pageTitle : "text.primary" }}>
                     {sample.displayName}
@@ -89,7 +101,12 @@ export function SampleCardView({
                 {sample.batchNumber ? `Batch: ${sample.batchNumber}` : `Control: ${sample.controlNumber}`} · Tests: {sample.assignedTests.length}
               </Typography>
 
-              <Stack direction="row" justifyContent="space-between" alignItems="center">
+              <Stack
+                direction="row"
+                sx={{
+                  justifyContent: "space-between",
+                  alignItems: "center"
+                }}>
                 <Typography sx={{ fontSize: 11, color: "text.secondary" }}>
                   {sample.assignedTests.find((t) => t.assignedAnalystName)?.assignedAnalystName ?? "Unassigned"}
                 </Typography>
@@ -104,7 +121,7 @@ export function SampleCardView({
         );
       })}
       {samples.length === 0 && (
-        <Grid item xs={12}>
+        <Grid size={12}>
           <Typography sx={{ color: "text.secondary", fontSize: 13, p: 2 }}>
             No samples match this filter.
           </Typography>

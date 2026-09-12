@@ -88,11 +88,22 @@ function PartConfigSection({ machinePartId }: { machinePartId: number }) {
           </TableBody>
         </Table>
       ) : (
-        <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>No test configurations yet for this part.</Typography>
+        <Typography
+          variant="body2"
+          sx={{
+            color: "text.secondary",
+            mb: 1.5
+          }}>No test configurations yet for this part.</Typography>
       )}
 
       <Typography sx={{ fontWeight: 700, fontSize: 13, mb: 1 }}>{editingId ? "Edit Configuration" : "Add Configuration"}</Typography>
-      <Stack direction="row" spacing={1.5} flexWrap="wrap" alignItems="center">
+      <Stack
+        direction="row"
+        spacing={1.5}
+        sx={{
+          flexWrap: "wrap",
+          alignItems: "center"
+        }}>
         <Select size="small" value={form.testType} onChange={(e) => setField("testType", e.target.value)} sx={{ minWidth: 120 }}>
           {TEST_TYPES.map((t) => <MenuItem key={t} value={t}>{t}</MenuItem>)}
         </Select>
@@ -205,7 +216,9 @@ export function AfterCleaningConfigPage() {
 
       <SectionTitle>{editingMachineId ? "Edit Machine" : "New Machine"}</SectionTitle>
       <Paper sx={{ p: 2.5, mb: 3 }}>
-        <Stack direction="row" spacing={2} alignItems="center">
+        <Stack direction="row" spacing={2} sx={{
+          alignItems: "center"
+        }}>
           <TextField size="small" label="Machine Name" value={machineName} onChange={(e) => setMachineName(e.target.value)} />
           {editingMachineId && <Button onClick={cancelMachineEdit}>Cancel</Button>}
           <Button variant="outlined" onClick={saveMachine}>{editingMachineId ? "Save Changes" : "Add Machine"}</Button>
@@ -214,7 +227,13 @@ export function AfterCleaningConfigPage() {
 
       <SectionTitle>{editingPartId ? "Edit Part" : "New Part"}</SectionTitle>
       <Paper sx={{ p: 2.5, mb: 3 }}>
-        <Stack direction="row" spacing={2} flexWrap="wrap" alignItems="center">
+        <Stack
+          direction="row"
+          spacing={2}
+          sx={{
+            flexWrap: "wrap",
+            alignItems: "center"
+          }}>
           <Select size="small" displayEmpty value={machineId} onChange={(e) => setMachineId(e.target.value)} sx={{ minWidth: 180 }}>
             <MenuItem value=""><em>Machine</em></MenuItem>
             {machines.map((m) => <MenuItem key={m.id} value={m.id}>{m.name}</MenuItem>)}
@@ -249,7 +268,9 @@ export function AfterCleaningConfigPage() {
                     <Collapse in={expandedMachineId === m.id} unmountOnExit>
                       <Box sx={{ p: 2, bgcolor: "background.default" }}>
                         {(m.parts ?? []).length === 0 ? (
-                          <Typography variant="body2" color="text.secondary">No parts configured yet.</Typography>
+                          <Typography variant="body2" sx={{
+                            color: "text.secondary"
+                          }}>No parts configured yet.</Typography>
                         ) : (
                           <Table size="small">
                             <TableHead><TableRow sx={tableHeadSx}><TableCell sx={{ width: 40 }} /><TableCell>Part</TableCell><TableCell /></TableRow></TableHead>

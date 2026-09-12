@@ -47,7 +47,12 @@ export function IncidentTable({
             {items.length === 0 && (
               <TableRow>
                 <TableCell colSpan={8}>
-                  <Typography sx={{ py: 3, textAlign: "center" }} color="text.secondary">
+                  <Typography
+                    sx={{
+                      color: "text.secondary",
+                      py: 3,
+                      textAlign: "center"
+                    }}>
                     No incidents match these filters.
                   </Typography>
                 </TableCell>

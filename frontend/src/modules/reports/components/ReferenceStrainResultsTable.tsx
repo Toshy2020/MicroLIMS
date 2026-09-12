@@ -208,7 +208,9 @@ export function ReferenceStrainResultsTable({
           </Typography>
         </Box>
 
-        <Stack direction="row" spacing={1} alignItems="center">
+        <Stack direction="row" spacing={1} sx={{
+          alignItems: "center"
+        }}>
           <Button
             size="small"
             variant="outlined"
@@ -288,7 +290,9 @@ export function ReferenceStrainResultsTable({
           </FormControl>
         </Box>
 
-        <Stack direction="row" spacing={1} alignItems="center">
+        <Stack direction="row" spacing={1} sx={{
+          alignItems: "center"
+        }}>
           <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
             Page {page} of {totalPages}
           </Typography>

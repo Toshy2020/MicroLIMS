@@ -31,8 +31,8 @@ import RefreshIcon from "@mui/icons-material/Refresh";
 import MenuBookIcon from "@mui/icons-material/MenuBook";
 import VerifiedUserIcon from "@mui/icons-material/VerifiedUser";
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
-import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
-import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
+import ErrorOutlineIcon from "@mui/icons-material/ErrorOutlined";
+import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutlined";
 import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
 import ClearIcon from "@mui/icons-material/Clear";
 
@@ -274,52 +274,112 @@ export function MyReadingListPage() {
 
       {/* Summary KPI Cards */}
       <Grid container spacing={2} sx={{ mb: 3 }}>
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid
+          size={{
+            xs: 12,
+            sm: 6,
+            md: 3
+          }}>
           <Card variant="outlined">
             <CardContent sx={{ py: 1.5, "&:last-child": { pb: 1.5 } }}>
-              <Typography variant="caption" color="text.secondary" fontWeight="bold">
+              <Typography
+                variant="caption"
+                sx={{
+                  color: "text.secondary",
+                  fontWeight: "bold"
+                }}>
                 TOTAL ASSIGNMENTS
               </Typography>
-              <Typography variant="h5" fontWeight="bold" color="text.primary">
+              <Typography
+                variant="h5"
+                sx={{
+                  fontWeight: "bold",
+                  color: "text.primary"
+                }}>
                 {metrics.total}
               </Typography>
             </CardContent>
           </Card>
         </Grid>
 
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid
+          size={{
+            xs: 12,
+            sm: 6,
+            md: 3
+          }}>
           <Card variant="outlined" sx={{ bgcolor: metrics.pending > 0 ? "info.50" : "inherit" }}>
             <CardContent sx={{ py: 1.5, "&:last-child": { pb: 1.5 } }}>
-              <Typography variant="caption" color="info.main" fontWeight="bold">
+              <Typography
+                variant="caption"
+                sx={{
+                  color: "info.main",
+                  fontWeight: "bold"
+                }}>
                 PENDING READING / ACKNOWLEDGEMENT
               </Typography>
-              <Typography variant="h5" fontWeight="bold" color="info.main">
+              <Typography
+                variant="h5"
+                sx={{
+                  fontWeight: "bold",
+                  color: "info.main"
+                }}>
                 {metrics.pending}
               </Typography>
             </CardContent>
           </Card>
         </Grid>
 
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid
+          size={{
+            xs: 12,
+            sm: 6,
+            md: 3
+          }}>
           <Card variant="outlined" sx={{ bgcolor: metrics.overdue > 0 ? "error.50" : "inherit" }}>
             <CardContent sx={{ py: 1.5, "&:last-child": { pb: 1.5 } }}>
-              <Typography variant="caption" color="error.main" fontWeight="bold">
+              <Typography
+                variant="caption"
+                sx={{
+                  color: "error.main",
+                  fontWeight: "bold"
+                }}>
                 OVERDUE ASSIGNMENTS
               </Typography>
-              <Typography variant="h5" fontWeight="bold" color="error.main">
+              <Typography
+                variant="h5"
+                sx={{
+                  fontWeight: "bold",
+                  color: "error.main"
+                }}>
                 {metrics.overdue}
               </Typography>
             </CardContent>
           </Card>
         </Grid>
 
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid
+          size={{
+            xs: 12,
+            sm: 6,
+            md: 3
+          }}>
           <Card variant="outlined" sx={{ bgcolor: metrics.completed > 0 ? "success.50" : "inherit" }}>
             <CardContent sx={{ py: 1.5, "&:last-child": { pb: 1.5 } }}>
-              <Typography variant="caption" color="success.main" fontWeight="bold">
+              <Typography
+                variant="caption"
+                sx={{
+                  color: "success.main",
+                  fontWeight: "bold"
+                }}>
                 COMPLETED & ACKNOWLEDGED
               </Typography>
-              <Typography variant="h5" fontWeight="bold" color="success.main">
+              <Typography
+                variant="h5"
+                sx={{
+                  fontWeight: "bold",
+                  color: "success.main"
+                }}>
                 {metrics.completed}
               </Typography>
             </CardContent>
@@ -329,27 +389,42 @@ export function MyReadingListPage() {
 
       {/* Filter Toolbar */}
       <Paper variant="outlined" sx={{ p: 2, mb: 3 }}>
-        <Stack direction={{ xs: "column", sm: "row" }} spacing={2} alignItems="center" justifyContent="space-between">
-          <Stack direction={{ xs: "column", sm: "row" }} spacing={2} alignItems="center" sx={{ width: "100%", maxWidth: 800 }}>
+        <Stack
+          direction={{ xs: "column", sm: "row" }}
+          spacing={2}
+          sx={{
+            alignItems: "center",
+            justifyContent: "space-between"
+          }}>
+          <Stack
+            direction={{ xs: "column", sm: "row" }}
+            spacing={2}
+            sx={{
+              alignItems: "center",
+              width: "100%",
+              maxWidth: 800
+            }}>
             <TextField
               size="small"
               placeholder="Search document title, code, MicroLIMS ID..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               sx={{ minWidth: 320 }}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <SearchIcon fontSize="small" color="action" />
-                  </InputAdornment>
-                ),
-                endAdornment: searchQuery ? (
-                  <InputAdornment position="end">
-                    <IconButton aria-label="Clear search" size="small" onClick={() => setSearchQuery("")}>
-                      <ClearIcon fontSize="small" />
-                    </IconButton>
-                  </InputAdornment>
-                ) : null
+              slotProps={{
+                input: {
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <SearchIcon fontSize="small" color="action" />
+                    </InputAdornment>
+                  ),
+                  endAdornment: searchQuery ? (
+                    <InputAdornment position="end">
+                      <IconButton aria-label="Clear search" size="small" onClick={() => setSearchQuery("")}>
+                        <ClearIcon fontSize="small" />
+                      </IconButton>
+                    </InputAdornment>
+                  ) : null
+                }
               }}
             />
 
@@ -418,7 +493,9 @@ export function MyReadingListPage() {
               <TableRow>
                 <TableCell colSpan={7} align="center" sx={{ py: 6 }}>
                   <CircularProgress size={32} sx={{ mb: 1 }} />
-                  <Typography variant="body2" color="text.secondary">
+                  <Typography variant="body2" sx={{
+                    color: "text.secondary"
+                  }}>
                     Loading your document training assignments...
                   </Typography>
                 </TableCell>
@@ -427,10 +504,14 @@ export function MyReadingListPage() {
               <TableRow>
                 <TableCell colSpan={7} align="center" sx={{ py: 6 }}>
                   <MenuBookIcon sx={{ fontSize: 48, color: "text.disabled", mb: 1 }} />
-                  <Typography variant="subtitle1" fontWeight="bold">
+                  <Typography variant="subtitle1" sx={{
+                    fontWeight: "bold"
+                  }}>
                     No Training Assignments Found
                   </Typography>
-                  <Typography variant="body2" color="text.secondary">
+                  <Typography variant="body2" sx={{
+                    color: "text.secondary"
+                  }}>
                     {searchQuery || statusFilter !== "ALL"
                       ? "No assignments matched your selected filter criteria."
                       : "You have no active or completed document reading assignments."}
@@ -466,7 +547,12 @@ export function MyReadingListPage() {
                     <TableCell>
                       <Box sx={{ display: "flex", flexDirection: "column" }}>
                         <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                          <Typography variant="subtitle2" fontWeight="bold" color="primary.main">
+                          <Typography
+                            variant="subtitle2"
+                            sx={{
+                              fontWeight: "bold",
+                              color: "primary.main"
+                            }}>
                             {assignment.companyDocumentCode}
                           </Typography>
                           <Chip
@@ -476,7 +562,12 @@ export function MyReadingListPage() {
                             sx={compactChipSx}
                           />
                         </Box>
-                        <Typography variant="body2" fontWeight="medium" sx={{ mt: 0.5 }}>
+                        <Typography
+                          variant="body2"
+                          sx={{
+                            fontWeight: "medium",
+                            mt: 0.5
+                          }}>
                           {assignment.documentTitle}
                         </Typography>
                       </Box>
@@ -492,7 +583,9 @@ export function MyReadingListPage() {
                     </TableCell>
 
                     <TableCell>
-                      <Typography variant="body2" color="text.secondary">
+                      <Typography variant="body2" sx={{
+                        color: "text.secondary"
+                      }}>
                         {assignment.assignmentType}
                       </Typography>
                     </TableCell>
@@ -529,14 +622,23 @@ export function MyReadingListPage() {
                           {new Date(assignment.dueDateUtc).toLocaleDateString()}
                         </Typography>
                         {!isAcknowledged && !isOverdue && (
-                          <Typography variant="caption" color="text.secondary">
+                          <Typography variant="caption" sx={{
+                            color: "text.secondary"
+                          }}>
                             {assignment.daysRemainingOrOverdue > 0
                               ? `${assignment.daysRemainingOrOverdue} days remaining`
                               : "Due today"}
                           </Typography>
                         )}
                         {isAcknowledged && assignment.acknowledgedAtUtc && (
-                          <Typography variant="caption" color="success.main" sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+                          <Typography
+                            variant="caption"
+                            sx={{
+                              color: "success.main",
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 0.5
+                            }}>
                             <CheckCircleOutlineIcon fontSize="inherit" />
                             Ack: {new Date(assignment.acknowledgedAtUtc).toLocaleDateString()}
                           </Typography>
@@ -547,7 +649,9 @@ export function MyReadingListPage() {
                     <TableCell sx={{ minWidth: 160 }}>
                       <Box sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}>
                         <Box sx={{ display: "flex", justifyContent: "space-between" }}>
-                          <Typography variant="caption" color="text.secondary">
+                          <Typography variant="caption" sx={{
+                            color: "text.secondary"
+                          }}>
                             {isAcknowledged ? "Completed" : `${currentProgress}% Read`}
                           </Typography>
                         </Box>
@@ -561,7 +665,9 @@ export function MyReadingListPage() {
                     </TableCell>
 
                     <TableCell align="right">
-                      <Stack direction="row" spacing={1} justifyContent="flex-end">
+                      <Stack direction="row" spacing={1} sx={{
+                        justifyContent: "flex-end"
+                      }}>
                         <Tooltip title="Open Controlled Revision in PDF Viewer">
                           <Button
                             variant="outlined"

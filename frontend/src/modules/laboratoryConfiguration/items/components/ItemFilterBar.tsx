@@ -38,19 +38,23 @@ export function ItemFilterBar({
 
   return (
     <Box sx={{ mb: 2.5, p: 2, bgcolor: "background.paper", borderRadius: 1.5, border: "1px solid", borderColor: "divider" }}>
-      <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5} alignItems="center">
+      <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5} sx={{
+        alignItems: "center"
+      }}>
         <TextField
           size="small"
           placeholder="Search by item name, item code, SOP number..."
           value={searchQuery}
           onChange={(e) => onSearchChange(e.target.value)}
           sx={{ flexGrow: 1, minWidth: { xs: "100%", sm: 280 } }}
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <SearchIcon fontSize="small" sx={{ color: "text.secondary" }} />
-              </InputAdornment>
-            ),
+          slotProps={{
+            input: {
+              startAdornment: (
+                <InputAdornment position="start">
+                  <SearchIcon fontSize="small" sx={{ color: "text.secondary" }} />
+                </InputAdornment>
+              ),
+            }
           }}
         />
 

@@ -339,9 +339,22 @@ export function PrimaryObservationMatrixPanel({ session, onUpdated, onNext }: Pr
 
       {/* Completion & Tri-State Header Card */}
       <Paper sx={{ p: 2.5, borderRadius: 2, border: "1px solid", borderColor: theme.custom.status.purple.border, bgcolor: theme.custom.status.purple.bg }}>
-        <Stack direction={{ xs: "column", md: "row" }} justifyContent="space-between" alignItems={{ md: "center" }} spacing={2}>
+        <Stack
+          direction={{ xs: "column", md: "row" }}
+          spacing={2}
+          sx={{
+            justifyContent: "space-between",
+            alignItems: { md: "center" }
+          }}>
           <Box sx={{ flex: 1 }}>
-            <Stack direction="row" spacing={1.5} alignItems="center" flexWrap="wrap" sx={{ mb: 1.25 }}>
+            <Stack
+              direction="row"
+              spacing={1.5}
+              sx={{
+                alignItems: "center",
+                flexWrap: "wrap",
+                mb: 1.25
+              }}>
               <Typography sx={{ fontSize: 16, fontWeight: 800, color: "text.primary" }}>
                 Primary Observation Matrix (Panel A)
               </Typography>
@@ -391,7 +404,13 @@ export function PrimaryObservationMatrixPanel({ session, onUpdated, onNext }: Pr
             />
           </Box>
 
-          <Stack direction="row" spacing={1.5} alignItems="center" flexWrap="wrap">
+          <Stack
+            direction="row"
+            spacing={1.5}
+            sx={{
+              alignItems: "center",
+              flexWrap: "wrap"
+            }}>
             <Button
               variant="outlined"
               size="small"
@@ -436,20 +455,28 @@ export function PrimaryObservationMatrixPanel({ session, onUpdated, onNext }: Pr
       )}
 
       {/* Filter and Search Bar */}
-      <Stack direction="row" spacing={2} alignItems="center" flexWrap="wrap">
+      <Stack
+        direction="row"
+        spacing={2}
+        sx={{
+          alignItems: "center",
+          flexWrap: "wrap"
+        }}>
         <TextField
           size="small"
           placeholder="Filter by location name..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <SearchIcon sx={{ fontSize: 18, color: "text.secondary" }} />
-              </InputAdornment>
-            )
-          }}
           sx={{ width: { xs: "100%", sm: 300 } }}
+          slotProps={{
+            input: {
+              startAdornment: (
+                <InputAdornment position="start">
+                  <SearchIcon sx={{ fontSize: 18, color: "text.secondary" }} />
+                </InputAdornment>
+              )
+            }
+          }}
         />
 
         <Button
@@ -511,7 +538,13 @@ export function PrimaryObservationMatrixPanel({ session, onUpdated, onNext }: Pr
                         borderRightColor: "divider"
                       }}
                     >
-                      <Stack direction="row" spacing={0.5} justifyContent="center" alignItems="center">
+                      <Stack
+                        direction="row"
+                        spacing={0.5}
+                        sx={{
+                          justifyContent: "center",
+                          alignItems: "center"
+                        }}>
                         <Typography sx={{ fontSize: 13, fontWeight: 800 }}>
                           {t.testCode}
                         </Typography>
@@ -522,7 +555,14 @@ export function PrimaryObservationMatrixPanel({ session, onUpdated, onNext }: Pr
                         {t.displayName}
                       </Typography>
 
-                      <Stack direction="row" spacing={0.5} justifyContent="center" alignItems="center" sx={{ mt: 0.5 }}>
+                      <Stack
+                        direction="row"
+                        spacing={0.5}
+                        sx={{
+                          justifyContent: "center",
+                          alignItems: "center",
+                          mt: 0.5
+                        }}>
                         <Chip
                           label={t.testSessionStateDisplay}
                           size="small"
@@ -574,7 +614,13 @@ export function PrimaryObservationMatrixPanel({ session, onUpdated, onNext }: Pr
                     <Typography sx={{ fontSize: 13, fontWeight: 700, color: "text.primary" }}>
                       {loc.locationName}
                     </Typography>
-                    <Stack direction="row" spacing={0.5} alignItems="center" sx={{ mt: 0.25 }}>
+                    <Stack
+                      direction="row"
+                      spacing={0.5}
+                      sx={{
+                        alignItems: "center",
+                        mt: 0.25
+                      }}>
                       <Typography sx={{ fontSize: 11, color: "text.secondary" }}>
                         {loc.locationType}
                       </Typography>
@@ -713,10 +759,6 @@ export function PrimaryObservationMatrixPanel({ session, onUpdated, onNext }: Pr
                             placeholder="CFU"
                             value={val?.numericValue ?? ""}
                             onChange={(e) => handleQuantitativeChange(slocId, t.testCode, e.target.value)}
-                            InputProps={{
-                              endAdornment: <InputAdornment position="end">CFU</InputAdornment>
-                            }}
-                            inputProps={{ min: 0, max: 10000, step: 1 }}
                             sx={{
                               width: 120,
                               "& .MuiInputBase-root": {
@@ -725,7 +767,13 @@ export function PrimaryObservationMatrixPanel({ session, onUpdated, onNext }: Pr
                                 bgcolor: "background.paper"
                               }
                             }}
-                          />
+                            slotProps={{
+                              input: {
+                                endAdornment: <InputAdornment position="end">CFU</InputAdornment>
+                              },
+
+                              htmlInput: { min: 0, max: 10000, step: 1 }
+                            }} />
                         ) : (
                           <TextField
                             select

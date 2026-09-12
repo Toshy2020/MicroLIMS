@@ -121,13 +121,15 @@ export function Header({ onToggleSidebar, sidebarCollapsed }: HeaderProps) {
           <Switch
             checked={mode === "dark"}
             onChange={toggleMode}
-            inputProps={{ "aria-label": mode === "dark" ? "Switch to light mode" : "Switch to dark mode" }}
             icon={<LightModeIcon sx={{ fontSize: 15, color: "#f2b705", p: "1.5px" }} />}
             checkedIcon={<DarkModeIcon sx={{ fontSize: 15, color: "#2E3542", p: "1.5px" }} />}
             sx={{
               "& .MuiSwitch-track": { backgroundColor: "rgba(255,255,255,0.28)", opacity: 1 },
               "& .MuiSwitch-thumb": { backgroundColor: "#fff" },
               "& .Mui-checked+.MuiSwitch-track": { backgroundColor: "rgba(255,255,255,0.28) !important", opacity: 1 }
+            }}
+            slotProps={{
+              input: { "aria-label": mode === "dark" ? "Switch to light mode" : "Switch to dark mode" }
             }}
           />
         </Tooltip>
@@ -150,7 +152,7 @@ export function Header({ onToggleSidebar, sidebarCollapsed }: HeaderProps) {
           anchorEl={bellAnchor}
           open={Boolean(bellAnchor)}
           onClose={() => setBellAnchor(null)}
-          PaperProps={{ sx: { width: 360, maxHeight: 420 } }}
+          slotProps={{ paper: { sx: { width: 360, maxHeight: 420 } } }}
         >
           {notifications.length > 0 && (
             <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", px: 2, py: 0.75 }}>
@@ -183,9 +185,10 @@ export function Header({ onToggleSidebar, sidebarCollapsed }: HeaderProps) {
                 <ListItemText
                   primary={n.message}
                   secondary={new Date(n.timestamp).toLocaleString()}
-                  primaryTypographyProps={{ fontWeight: n.isRead ? 400 : 700, fontSize: 13 }}
-                  secondaryTypographyProps={{ fontSize: 11 }}
-                />
+                  slotProps={{
+                    primary: { sx: { fontWeight: n.isRead ? 400 : 700, fontSize: 13 } },
+                    secondary: { sx: { fontSize: 11 } }
+                  }} />
               </MenuItem>
             );
           })}

@@ -53,7 +53,9 @@ export function DataTable<T>({ columns, rows, getRowId, onRowClick, selection, l
                   checked={selection.headerChecked}
                   indeterminate={selection.headerIndeterminate}
                   onChange={selection.onToggleAll}
-                  inputProps={{ "aria-label": "Select all rows" }}
+                  slotProps={{
+                    input: { "aria-label": "Select all rows" }
+                  }}
                 />
               </TableCell>
             )}
@@ -102,7 +104,9 @@ export function DataTable<T>({ columns, rows, getRowId, onRowClick, selection, l
                         checked={isSelected}
                         disabled={selection.isSelectable ? !selection.isSelectable(row) : false}
                         onChange={() => selection.onToggle(row)}
-                        inputProps={{ "aria-label": `Select row ${getRowId(row)}` }}
+                        slotProps={{
+                          input: { "aria-label": `Select row ${getRowId(row)}` }
+                        }}
                       />
                     </TableCell>
                   )}

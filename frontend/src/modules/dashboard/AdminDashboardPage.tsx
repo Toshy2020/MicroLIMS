@@ -105,7 +105,12 @@ export function AdminDashboardPage() {
 
       {/* Tier 1: Administrative Control Pillars */}
       <Grid container spacing={2} sx={{ mb: 2.5 }}>
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid
+          size={{
+            xs: 12,
+            sm: 6,
+            md: 3
+          }}>
           <Paper
             component={Link}
             to="/users"
@@ -135,7 +140,12 @@ export function AdminDashboardPage() {
           </Paper>
         </Grid>
 
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid
+          size={{
+            xs: 12,
+            sm: 6,
+            md: 3
+          }}>
           <Paper
             component={Link}
             to="/roles"
@@ -165,7 +175,12 @@ export function AdminDashboardPage() {
           </Paper>
         </Grid>
 
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid
+          size={{
+            xs: 12,
+            sm: 6,
+            md: 3
+          }}>
           <Paper
             component={Link}
             to="/audit-search"
@@ -195,7 +210,12 @@ export function AdminDashboardPage() {
           </Paper>
         </Grid>
 
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid
+          size={{
+            xs: 12,
+            sm: 6,
+            md: 3
+          }}>
           <Paper
             component={Link}
             to="/reports"
@@ -232,7 +252,12 @@ export function AdminDashboardPage() {
           Laboratory Operational Oversight
         </Typography>
         <Grid container spacing={2}>
-          <Grid item xs={6} sm={4} md={2}>
+          <Grid
+            size={{
+              xs: 6,
+              sm: 4,
+              md: 2
+            }}>
             <Paper variant="outlined" sx={{ p: 1.5, textAlign: "center" }}>
               <Typography sx={{ fontSize: 11, color: "text.secondary", fontWeight: 700 }}>Total Samples</Typography>
               <Typography sx={{ fontSize: 22, fontWeight: 800, color: theme.palette.primary.main }}>
@@ -240,7 +265,12 @@ export function AdminDashboardPage() {
               </Typography>
             </Paper>
           </Grid>
-          <Grid item xs={6} sm={4} md={2}>
+          <Grid
+            size={{
+              xs: 6,
+              sm: 4,
+              md: 2
+            }}>
             <Paper variant="outlined" sx={{ p: 1.5, textAlign: "center" }}>
               <Typography sx={{ fontSize: 11, color: "text.secondary", fontWeight: 700 }}>Total Tests</Typography>
               <Typography sx={{ fontSize: 22, fontWeight: 800, color: theme.palette.primary.main }}>
@@ -248,7 +278,12 @@ export function AdminDashboardPage() {
               </Typography>
             </Paper>
           </Grid>
-          <Grid item xs={6} sm={4} md={2}>
+          <Grid
+            size={{
+              xs: 6,
+              sm: 4,
+              md: 2
+            }}>
             <Paper
               component={Link}
               to="/receiving-testing?status=Active"
@@ -269,7 +304,12 @@ export function AdminDashboardPage() {
               </Typography>
             </Paper>
           </Grid>
-          <Grid item xs={6} sm={4} md={2}>
+          <Grid
+            size={{
+              xs: 6,
+              sm: 4,
+              md: 2
+            }}>
             <Paper
               component={Link}
               to="/receiving-testing?testStatus=ResultEntered"
@@ -290,7 +330,12 @@ export function AdminDashboardPage() {
               </Typography>
             </Paper>
           </Grid>
-          <Grid item xs={6} sm={4} md={2}>
+          <Grid
+            size={{
+              xs: 6,
+              sm: 4,
+              md: 2
+            }}>
             <Paper
               component={Link}
               to="/receiving-testing?testStatus=Reviewed"
@@ -312,7 +357,12 @@ export function AdminDashboardPage() {
             </Paper>
           </Grid>
           {summary.pendingPreparationConfigApproval > 0 && (
-            <Grid item xs={6} sm={4} md={2}>
+            <Grid
+              size={{
+                xs: 6,
+                sm: 4,
+                md: 2
+              }}>
               <Paper
                 component={Link}
                 to="/laboratory-configuration/items"
@@ -334,7 +384,12 @@ export function AdminDashboardPage() {
               </Paper>
             </Grid>
           )}
-          <Grid item xs={6} sm={4} md={2}>
+          <Grid
+            size={{
+              xs: 6,
+              sm: 4,
+              md: 2
+            }}>
             <Paper
               component={Link}
               to="/receiving-testing?urgency=overdue"
@@ -372,7 +427,13 @@ export function AdminDashboardPage() {
             { label: "Items & Materials", path: "/laboratory-configuration/items" },
             { label: "Equipment Inventory", path: "/inventory/equipment" }
           ].map((item, idx) => (
-            <Grid item xs={12} sm={6} md={4} key={idx}>
+            <Grid
+              key={idx}
+              size={{
+                xs: 12,
+                sm: 6,
+                md: 4
+              }}>
               <Paper
                 component={Link}
                 to={item.path}

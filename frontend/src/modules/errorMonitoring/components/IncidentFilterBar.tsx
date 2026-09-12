@@ -19,7 +19,14 @@ export function IncidentFilterBar({ filters, onChange, onReset, onExport, export
 
   return (
     <Paper sx={{ p: 2, mb: 2 }}>
-      <Stack direction="row" spacing={2} flexWrap="wrap" useFlexGap alignItems="flex-end">
+      <Stack
+        direction="row"
+        spacing={2}
+        useFlexGap
+        sx={{
+          flexWrap: "wrap",
+          alignItems: "flex-end"
+        }}>
         <TextField
           select size="small" label="Severity" sx={{ minWidth: 140 }}
           value={filters.severity}
@@ -48,12 +55,16 @@ export function IncidentFilterBar({ filters, onChange, onReset, onExport, export
         </TextField>
 
         <TextField
-          size="small" type="date" label="Active from" InputLabelProps={{ shrink: true }}
-          value={filters.fromDate} onChange={(e) => set("fromDate", e.target.value)}
+          size="small" type="date" label="Active from" value={filters.fromDate}
+          onChange={(e) => set("fromDate", e.target.value)} slotProps={{
+          inputLabel: { shrink: true }
+        }}
         />
         <TextField
-          size="small" type="date" label="Active to" InputLabelProps={{ shrink: true }}
-          value={filters.toDate} onChange={(e) => set("toDate", e.target.value)}
+          size="small" type="date" label="Active to" value={filters.toDate}
+          onChange={(e) => set("toDate", e.target.value)} slotProps={{
+          inputLabel: { shrink: true }
+        }}
         />
 
         <TextField

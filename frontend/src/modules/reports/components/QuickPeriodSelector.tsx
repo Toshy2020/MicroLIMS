@@ -33,15 +33,25 @@ export function QuickPeriodSelector({ period, customFrom, customTo, onPeriodChan
       {period === "custom" && (
         <Box sx={{ display: "flex", alignItems: "center", gap: 1, ml: 1 }}>
           <TextField
-            size="small" type="date" label="From" InputLabelProps={{ shrink: true }}
-            value={customFrom} inputProps={{ max: customTo || today }}
+            size="small"
+            type="date"
+            label="From"
+            value={customFrom}
             onChange={(e) => onCustomChange(e.target.value, customTo)}
-          />
+            slotProps={{
+              htmlInput: { max: customTo || today },
+              inputLabel: { shrink: true }
+            }} />
           <TextField
-            size="small" type="date" label="To" InputLabelProps={{ shrink: true }}
-            value={customTo} inputProps={{ min: customFrom, max: today }}
+            size="small"
+            type="date"
+            label="To"
+            value={customTo}
             onChange={(e) => onCustomChange(customFrom, e.target.value)}
-          />
+            slotProps={{
+              htmlInput: { min: customFrom, max: today },
+              inputLabel: { shrink: true }
+            }} />
         </Box>
       )}
     </Paper>

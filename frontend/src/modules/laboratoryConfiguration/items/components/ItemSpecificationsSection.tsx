@@ -199,7 +199,13 @@ export const ItemSpecificationsSection: React.FC<ItemSpecificationsSectionProps>
 
   return (
     <Box sx={{ p: 0.5 }}>
-      <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1.5 }}>
+      <Stack
+        direction="row"
+        sx={{
+          justifyContent: "space-between",
+          alignItems: "center",
+          mb: 1.5
+        }}>
         <Typography
           variant="subtitle2"
           sx={{ fontWeight: 700, color: theme.palette.primary.main, textTransform: "uppercase", fontSize: 12, letterSpacing: "0.5px" }}
@@ -299,15 +305,19 @@ export const ItemSpecificationsSection: React.FC<ItemSpecificationsSectionProps>
                               placeholder="e.g. 10"
                               value={editRow.dilutionFactor ?? ""}
                               onChange={(e) => setEditRow((r) => ({ ...r, dilutionFactor: e.target.value === "" ? null : Number(e.target.value) }))}
-                              inputProps={{ step: "1", min: "1" }}
                               sx={{ width: 100 }}
+                              slotProps={{
+                                htmlInput: { step: "1", min: "1" }
+                              }}
                             />
                           ) : (
                             <Typography variant="body2" sx={{ color: "text.disabled", fontSize: 13 }}>—</Typography>
                           )}
                         </TableCell>
                         <TableCell align="right">
-                          <Stack direction="row" spacing={0.5} justifyContent="flex-end">
+                          <Stack direction="row" spacing={0.5} sx={{
+                            justifyContent: "flex-end"
+                          }}>
                             <IconButton
                               size="small"
                               color="success"
@@ -341,7 +351,9 @@ export const ItemSpecificationsSection: React.FC<ItemSpecificationsSectionProps>
                           {isCountTypeTest(spec.testCode) ? (spec.dilutionFactor ?? "—") : "—"}
                         </TableCell>
                         <TableCell align="right">
-                          <Stack direction="row" spacing={0.5} justifyContent="flex-end">
+                          <Stack direction="row" spacing={0.5} sx={{
+                            justifyContent: "flex-end"
+                          }}>
                             <IconButton
                               size="small"
                               onClick={() => {
@@ -440,8 +452,10 @@ export const ItemSpecificationsSection: React.FC<ItemSpecificationsSectionProps>
                         placeholder="e.g. 10"
                         value={addRow.dilutionFactor}
                         onChange={(e) => setAddRow((r) => ({ ...r, dilutionFactor: e.target.value }))}
-                        inputProps={{ step: "1", min: "1" }}
                         sx={{ width: 100 }}
+                        slotProps={{
+                          htmlInput: { step: "1", min: "1" }
+                        }}
                       />
                     ) : (
                       <Typography variant="body2" sx={{ color: "text.disabled", fontSize: 13 }}>—</Typography>

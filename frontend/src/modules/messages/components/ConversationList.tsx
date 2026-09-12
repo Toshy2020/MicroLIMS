@@ -62,12 +62,14 @@ export function ConversationList({ conversations, selectedId, onSelect, currentU
           onChange={(e) => setFilter(e.target.value)}
           size="small"
           fullWidth
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <SearchIcon fontSize="small" sx={{ color: "text.secondary" }} />
-              </InputAdornment>
-            )
+          slotProps={{
+            input: {
+              startAdornment: (
+                <InputAdornment position="start">
+                  <SearchIcon fontSize="small" sx={{ color: "text.secondary" }} />
+                </InputAdornment>
+              )
+            }
           }}
         />
       </Box>

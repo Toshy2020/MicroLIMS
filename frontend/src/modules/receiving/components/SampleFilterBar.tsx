@@ -74,17 +74,19 @@ export function SampleFilterBar({
             placeholder="Search by item, reference number, control number, batch number..."
             value={search}
             onChange={(e) => onSearchChange(e.target.value)}
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <SearchIcon sx={{ color: "text.secondary", fontSize: 20 }} />
-                </InputAdornment>
-              )
-            }}
             sx={{
               "& .MuiOutlinedInput-root": {
                 borderRadius: 1.5,
                 bgcolor: "background.default"
+              }
+            }}
+            slotProps={{
+              input: {
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SearchIcon sx={{ color: "text.secondary", fontSize: 20 }} />
+                  </InputAdornment>
+                )
               }
             }}
           />
@@ -203,10 +205,12 @@ export function SampleFilterBar({
             size="small"
             type="date"
             label="Received From"
-            InputLabelProps={{ shrink: true }}
             value={fromDate}
             onChange={(e) => onFromDateChange(e.target.value)}
             fullWidth
+            slotProps={{
+              inputLabel: { shrink: true }
+            }}
           />
 
           {/* Received To Date */}
@@ -214,10 +218,12 @@ export function SampleFilterBar({
             size="small"
             type="date"
             label="Received To"
-            InputLabelProps={{ shrink: true }}
             value={toDate}
             onChange={(e) => onToDateChange(e.target.value)}
             fullWidth
+            slotProps={{
+              inputLabel: { shrink: true }
+            }}
           />
 
           {/* Clear / Reset Filters Button */}

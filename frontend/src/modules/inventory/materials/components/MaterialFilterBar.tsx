@@ -67,12 +67,14 @@ export function MaterialFilterBar({ items, filters, onFilterChange, onReset }: M
           placeholder="Search by name, lot no., code..."
           value={filters.search}
           onChange={(e) => updateField("search", e.target.value)}
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <SearchIcon fontSize="small" sx={{ color: "text.secondary" }} />
-              </InputAdornment>
-            )
+          slotProps={{
+            input: {
+              startAdornment: (
+                <InputAdornment position="start">
+                  <SearchIcon fontSize="small" sx={{ color: "text.secondary" }} />
+                </InputAdornment>
+              )
+            }
           }}
         />
 

@@ -88,11 +88,22 @@ function RoomTestConfigSection({ roomId }: { roomId: number }) {
           </TableBody>
         </Table>
       ) : (
-        <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>No test configurations yet for this room.</Typography>
+        <Typography
+          variant="body2"
+          sx={{
+            color: "text.secondary",
+            mb: 1.5
+          }}>No test configurations yet for this room.</Typography>
       )}
 
       <Typography sx={{ fontWeight: 700, fontSize: 13, mb: 1 }}>{editingId ? "Edit Configuration" : "Add Configuration"}</Typography>
-      <Stack direction="row" spacing={1.5} flexWrap="wrap" alignItems="center">
+      <Stack
+        direction="row"
+        spacing={1.5}
+        sx={{
+          flexWrap: "wrap",
+          alignItems: "center"
+        }}>
         <Select size="small" value={form.testType} onChange={(e) => setField("testType", e.target.value)} sx={{ minWidth: 160 }}>
           {TEST_TYPES.map((t) => <MenuItem key={t} value={t}>{t}</MenuItem>)}
         </Select>
@@ -208,7 +219,13 @@ export function EMConfigPage() {
 
       <SectionTitle>{editingDeptId ? "Edit Department" : "New Department"}</SectionTitle>
       <Paper sx={{ p: 2.5, mb: 3 }}>
-        <Stack direction="row" spacing={2} flexWrap="wrap" alignItems="center">
+        <Stack
+          direction="row"
+          spacing={2}
+          sx={{
+            flexWrap: "wrap",
+            alignItems: "center"
+          }}>
           <TextField size="small" label="Name" value={deptForm.name ?? ""} onChange={(e) => setDeptForm({ ...deptForm, name: e.target.value })} />
           <TextField size="small" label="Class" value={deptForm.class ?? ""} onChange={(e) => setDeptForm({ ...deptForm, class: e.target.value })} placeholder="e.g. Grade C" />
           <TextField size="small" label="Testing Frequency" value={deptForm.frequency ?? ""} onChange={(e) => setDeptForm({ ...deptForm, frequency: e.target.value })} placeholder="e.g. Monthly" />
@@ -219,7 +236,13 @@ export function EMConfigPage() {
 
       <SectionTitle>{editingRoomId ? "Edit Room" : "New Room"}</SectionTitle>
       <Paper sx={{ p: 2.5, mb: 3 }}>
-        <Stack direction="row" spacing={2} flexWrap="wrap" alignItems="center">
+        <Stack
+          direction="row"
+          spacing={2}
+          sx={{
+            flexWrap: "wrap",
+            alignItems: "center"
+          }}>
           <TextField size="small" label="Room Name" value={roomForm.name ?? ""} onChange={(e) => setRoomForm({ ...roomForm, name: e.target.value })} />
           <Select size="small" displayEmpty value={roomForm.departmentId ?? ""} onChange={(e) => setRoomForm({ ...roomForm, departmentId: e.target.value })} sx={{ minWidth: 180 }}>
             <MenuItem value=""><em>Department</em></MenuItem>
@@ -259,7 +282,9 @@ export function EMConfigPage() {
                     <Collapse in={expandedDeptId === d.id} unmountOnExit>
                       <Box sx={{ p: 2, bgcolor: "background.default" }}>
                         {(d.rooms ?? []).length === 0 ? (
-                          <Typography variant="body2" color="text.secondary">No rooms configured yet.</Typography>
+                          <Typography variant="body2" sx={{
+                            color: "text.secondary"
+                          }}>No rooms configured yet.</Typography>
                         ) : (
                           <Table size="small">
                             <TableHead><TableRow sx={tableHeadSx}><TableCell sx={{ width: 40 }} /><TableCell>Room</TableCell><TableCell>Grade</TableCell><TableCell /></TableRow></TableHead>

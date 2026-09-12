@@ -349,7 +349,13 @@ function WorkflowStepsSection({ test, onWorkflowTypeChanged }: { test: TestDefin
 
   return (
     <Box sx={{ p: 2, bgcolor: "background.default", borderTop: "1px solid", borderTopColor: "divider" }}>
-      <Stack direction="row" spacing={1.5} alignItems="center" sx={{ mb: 1.5 }}>
+      <Stack
+        direction="row"
+        spacing={1.5}
+        sx={{
+          alignItems: "center",
+          mb: 1.5
+        }}>
         <Typography sx={{ fontWeight: 700, fontSize: 13 }}>Workflow Steps</Typography>
         <Select size="small" value={test.workflowType} onChange={(e) => changeWorkflowType(e.target.value)}>
           {WORKFLOW_TYPES.map((w) => <MenuItem key={w} value={w}>{w}</MenuItem>)}
@@ -373,7 +379,9 @@ function WorkflowStepsSection({ test, onWorkflowTypeChanged }: { test: TestDefin
                 <TableRow key={s.id}>
                   <TableCell>{s.stepOrder}</TableCell>
                   <TableCell>
-                    <Stack direction="row" spacing={1} alignItems="center">
+                    <Stack direction="row" spacing={1} sx={{
+                      alignItems: "center"
+                    }}>
                       <span>{s.stepName}</span>
                       {isTwoStage && (
                         <Chip
@@ -407,7 +415,9 @@ function WorkflowStepsSection({ test, onWorkflowTypeChanged }: { test: TestDefin
                     )}
                   </TableCell>
                   <TableCell>
-                    <Stack direction="row" spacing={0.5} alignItems="center">
+                    <Stack direction="row" spacing={0.5} sx={{
+                      alignItems: "center"
+                    }}>
                       <span>{s.stepType}</span>
                       {isTwoStage && (
                         <Chip
@@ -467,14 +477,31 @@ function WorkflowStepsSection({ test, onWorkflowTypeChanged }: { test: TestDefin
           </TableBody>
         </Table>
       ) : (
-        <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>No workflow steps configured yet.</Typography>
+        <Typography
+          variant="body2"
+          sx={{
+            color: "text.secondary",
+            mb: 1.5
+          }}>No workflow steps configured yet.</Typography>
       )}
 
       <Typography sx={{ fontWeight: 700, fontSize: 12, mb: 1 }}>{editingStepId ? "Edit Step" : "Add Step"}</Typography>
-      <Stack direction="row" spacing={1.5} flexWrap="wrap" alignItems="center">
+      <Stack
+        direction="row"
+        spacing={1.5}
+        sx={{
+          flexWrap: "wrap",
+          alignItems: "center"
+        }}>
         <TextField size="small" label="Step Name" placeholder="e.g. TSB" value={form.stepName ?? ""} onChange={(e) => setForm({ ...form, stepName: e.target.value })} sx={{ minWidth: 140 }} />
         {isBiochemical && (
-          <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
+          <Stack
+            direction="row"
+            spacing={1}
+            sx={{
+              alignItems: "center",
+              flexWrap: "wrap"
+            }}>
             <Select size="small" displayEmpty value={pendingPhenotypicTest} onChange={(e) => setPendingPhenotypicTest(e.target.value as string)} sx={{ minWidth: 180 }}>
               <MenuItem value=""><em>Phenotypic Test Type</em></MenuItem>
               {PHENOTYPIC_TEST_TYPES
@@ -527,7 +554,13 @@ function WorkflowStepsSection({ test, onWorkflowTypeChanged }: { test: TestDefin
           <Typography sx={{ fontWeight: 700, fontSize: 12, mb: 1, color: "text.primary" }}>
             Stage 2 Incubation (Transfer)
           </Typography>
-          <Stack direction="row" spacing={1.5} flexWrap="wrap" alignItems="center">
+          <Stack
+            direction="row"
+            spacing={1.5}
+            sx={{
+              flexWrap: "wrap",
+              alignItems: "center"
+            }}>
             <TextField
               size="small"
               type="number"
@@ -565,8 +598,14 @@ function WorkflowStepsSection({ test, onWorkflowTypeChanged }: { test: TestDefin
       )}
 
       {needsOrganism && (
-        <Stack direction="row" spacing={1.5} alignItems="center" sx={{ mt: 1.5 }}>
-          <Select size="small" displayEmpty value={form.targetOrganismId ?? ""} onChange={(e) => setForm({ ...form, targetOrganismId: e.target.value === "" ? null : Number(e.target.value) })} sx={{ minWidth: 220 }}>
+        <Stack
+          direction="row"
+          spacing={1.5}
+          sx={{
+            alignItems: "center",
+            mt: 1.5
+          }}>
+          <Select<number | ""> size="small" displayEmpty value={form.targetOrganismId ?? ""} onChange={(e) => setForm({ ...form, targetOrganismId: e.target.value === "" ? null : Number(e.target.value) })} sx={{ minWidth: 220 }}>
             <MenuItem value=""><em>Target Organism (required)</em></MenuItem>
             {organisms.map((o) => <MenuItem key={o.id} value={o.id}>{o.scientificName}</MenuItem>)}
           </Select>
@@ -575,9 +614,17 @@ function WorkflowStepsSection({ test, onWorkflowTypeChanged }: { test: TestDefin
 
       {!hasNoMedia && (
         <Box sx={{ mt: 1.5 }}>
-          <Stack direction="row" spacing={1.5} alignItems="center" sx={{ mb: 0.5 }}>
+          <Stack
+            direction="row"
+            spacing={1.5}
+            sx={{
+              alignItems: "center",
+              mb: 0.5
+            }}>
             <Typography sx={{ fontWeight: 700, fontSize: 12 }}>Step Media</Typography>
-            {isSingleMedia && <Typography variant="caption" color="text.secondary">This step type allows exactly one medium.</Typography>}
+            {isSingleMedia && <Typography variant="caption" sx={{
+              color: "text.secondary"
+            }}>This step type allows exactly one medium.</Typography>}
           </Stack>
           {/* Update replaces the whole StepMedia set server-side (no merge) -
               flagged here so an admin editing an existing step isn't
@@ -585,7 +632,13 @@ function WorkflowStepsSection({ test, onWorkflowTypeChanged }: { test: TestDefin
           {editingStepId && (
             <Alert severity="info" sx={{ mb: 1, maxWidth: 520 }}>Saving replaces this step's entire medium list with what's shown below.</Alert>
           )}
-          <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 1 }}>
+          <Typography
+            variant="caption"
+            sx={{
+              color: "text.secondary",
+              display: "block",
+              mb: 1
+            }}>
             Pick a Media Configuration to derive this medium's temperature and incubation range (recommended - keeps
             this in sync with the profile approved on the Media Configurations page). Material stays a separate pick:
             it identifies the specific product for release/traceability, while the configuration governs its window.
@@ -594,12 +647,19 @@ function WorkflowStepsSection({ test, onWorkflowTypeChanged }: { test: TestDefin
             {form.stepMedia.map((row, idx) => {
               const hasConfig = row.mediaConfigurationId !== "";
               return (
-                <Stack key={idx} direction="row" spacing={1.5} alignItems="center" flexWrap="wrap">
-                  <Select size="small" displayEmpty value={row.materialId} onChange={(e) => updateMediaRow(idx, { materialId: e.target.value === "" ? "" : Number(e.target.value) })} sx={{ minWidth: 200 }}>
+                <Stack
+                  key={idx}
+                  direction="row"
+                  spacing={1.5}
+                  sx={{
+                    alignItems: "center",
+                    flexWrap: "wrap"
+                  }}>
+                  <Select<number | ""> size="small" displayEmpty value={row.materialId} onChange={(e) => updateMediaRow(idx, { materialId: e.target.value === "" ? "" : Number(e.target.value) })} sx={{ minWidth: 200 }}>
                     <MenuItem value=""><em>Material</em></MenuItem>
                     {materials.map((m) => <MenuItem key={m.id} value={m.id}>{m.materialName}</MenuItem>)}
                   </Select>
-                  <Select size="small" displayEmpty value={row.mediaConfigurationId} onChange={(e) => updateMediaRow(idx, { mediaConfigurationId: e.target.value === "" ? "" : Number(e.target.value) })} sx={{ minWidth: 260 }}>
+                  <Select<number | ""> size="small" displayEmpty value={row.mediaConfigurationId} onChange={(e) => updateMediaRow(idx, { mediaConfigurationId: e.target.value === "" ? "" : Number(e.target.value) })} sx={{ minWidth: 260 }}>
                     <MenuItem value=""><em>Media Configuration (optional)</em></MenuItem>
                     {mediaConfigurations.map((c) => (
                       <MenuItem key={c.id} value={c.id}>
@@ -629,7 +689,9 @@ function WorkflowStepsSection({ test, onWorkflowTypeChanged }: { test: TestDefin
                       label="Required"
                     />
                   )}
-                  <Typography variant="caption" color="text.secondary">Order {idx + 1}</Typography>
+                  <Typography variant="caption" sx={{
+                    color: "text.secondary"
+                  }}>Order {idx + 1}</Typography>
                   <Tooltip title="Remove medium">
                     <IconButton size="small" color="error" onClick={() => removeMediaRow(idx)} aria-label="Remove medium">
                       <DeleteIcon fontSize="small" />
@@ -729,7 +791,13 @@ export function TestMasterPage() {
 
       <SectionTitle>{editingId ? "Edit Test" : "Add Test"}</SectionTitle>
       <Paper sx={{ p: 2.5, mb: 3 }}>
-        <Stack direction="row" spacing={1.5} flexWrap="wrap" alignItems="center">
+        <Stack
+          direction="row"
+          spacing={1.5}
+          sx={{
+            flexWrap: "wrap",
+            alignItems: "center"
+          }}>
           <TextField size="small" label="Code" placeholder="e.g. PATHOGEN_SALMONELLA" value={code} onChange={(e) => setCode(e.target.value)} sx={{ minWidth: 220 }} />
           <TextField size="small" label="Display Name" placeholder="e.g. Pathogen - Salmonella" value={displayName} onChange={(e) => setDisplayName(e.target.value)} sx={{ minWidth: 260 }} />
           {editingId && <Button onClick={cancelEdit}>Cancel</Button>}

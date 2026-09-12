@@ -49,11 +49,13 @@ export function AuditEventDrawer({
       anchor="right"
       open={open}
       onClose={onClose}
-      PaperProps={{
-        sx: {
-          width: { xs: "100%", sm: 540, md: 580 },
-          p: 0,
-          boxShadow: theme.palette.mode === "dark" ? "-4px 0 20px rgba(0,0,0,0.4)" : "-4px 0 20px rgba(0,0,0,0.08)"
+      slotProps={{
+        paper: {
+          sx: {
+            width: { xs: "100%", sm: 540, md: 580 },
+            p: 0,
+            boxShadow: theme.palette.mode === "dark" ? "-4px 0 20px rgba(0,0,0,0.4)" : "-4px 0 20px rgba(0,0,0,0.08)"
+          }
         }
       }}
     >

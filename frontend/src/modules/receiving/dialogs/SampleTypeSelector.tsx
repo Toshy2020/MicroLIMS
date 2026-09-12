@@ -36,7 +36,13 @@ export function SampleTypeSelector({ selectedCategory, onSelectCategory }: Props
         {RECEIVING_CATEGORIES.map((cat) => {
           const isSelected = selectedCategory === cat.key;
           return (
-            <Grid item xs={12} sm={6} md={4} key={cat.key}>
+            <Grid
+              key={cat.key}
+              size={{
+                xs: 12,
+                sm: 6,
+                md: 4
+              }}>
               <Paper
                 elevation={0}
                 onClick={() => onSelectCategory(cat.key)}

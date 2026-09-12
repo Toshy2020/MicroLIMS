@@ -97,7 +97,9 @@ export function LoginPage() {
                 </Button>
               </>
             )}
-            <Stack spacing={1} textAlign="center">
+            <Stack spacing={1} sx={{
+              textAlign: "center"
+            }}>
               <Link
                 component="button"
                 type="button"
@@ -135,19 +137,21 @@ export function LoginPage() {
               onChange={(e) => setPassword(e.target.value)}
               autoComplete="current-password"
               required
-              InputProps={{
-                endAdornment: (
-                  <InputAdornment position="end">
-                    <IconButton
-                      aria-label="toggle password visibility"
-                      onClick={() => setShowPassword((prev) => !prev)}
-                      edge="end"
-                      size="small"
-                    >
-                      {showPassword ? <VisibilityOff fontSize="small" /> : <Visibility fontSize="small" />}
-                    </IconButton>
-                  </InputAdornment>
-                )
+              slotProps={{
+                input: {
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <IconButton
+                        aria-label="toggle password visibility"
+                        onClick={() => setShowPassword((prev) => !prev)}
+                        edge="end"
+                        size="small"
+                      >
+                        {showPassword ? <VisibilityOff fontSize="small" /> : <Visibility fontSize="small" />}
+                      </IconButton>
+                    </InputAdornment>
+                  )
+                }
               }}
             />
             <Button
@@ -159,7 +163,9 @@ export function LoginPage() {
             >
               {isSubmitting ? "Authenticating..." : "Login"}
             </Button>
-            <Stack spacing={1} textAlign="center">
+            <Stack spacing={1} sx={{
+              textAlign: "center"
+            }}>
               <Link component="button" type="button" underline="hover" sx={{ fontSize: 13 }} onClick={() => setForgotMode(true)}>
                 Forgot password?
               </Link>

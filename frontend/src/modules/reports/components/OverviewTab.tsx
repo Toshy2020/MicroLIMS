@@ -6,7 +6,7 @@ import SearchIcon from "@mui/icons-material/Search";
 import ShowChartIcon from "@mui/icons-material/ShowChart";
 import AssessmentIcon from "@mui/icons-material/Assessment";
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
-import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
+import ErrorOutlineIcon from "@mui/icons-material/ErrorOutlined";
 import HourglassEmptyIcon from "@mui/icons-material/HourglassEmpty";
 import VerifiedUserIcon from "@mui/icons-material/VerifiedUser";
 import { ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip as RechartsTooltip, LabelList } from "recharts";
@@ -125,22 +125,52 @@ export function OverviewTab({ fromDate, toDate, onNavigateTab }: OverviewTabProp
 
       {/* Top 6 KPI Cards */}
       <Grid container spacing={2} sx={{ mb: 2.5 }}>
-        <Grid item xs={12} sm={6} md={2}>
+        <Grid
+          size={{
+            xs: 12,
+            sm: 6,
+            md: 2
+          }}>
           <KpiCard data={data.totalTests} />
         </Grid>
-        <Grid item xs={12} sm={6} md={2}>
+        <Grid
+          size={{
+            xs: 12,
+            sm: 6,
+            md: 2
+          }}>
           <KpiCard data={data.approvedResults} />
         </Grid>
-        <Grid item xs={12} sm={6} md={2}>
+        <Grid
+          size={{
+            xs: 12,
+            sm: 6,
+            md: 2
+          }}>
           <KpiCard data={data.pendingReview} />
         </Grid>
-        <Grid item xs={12} sm={6} md={2}>
+        <Grid
+          size={{
+            xs: 12,
+            sm: 6,
+            md: 2
+          }}>
           <KpiCard data={data.pendingApproval} />
         </Grid>
-        <Grid item xs={12} sm={6} md={2}>
+        <Grid
+          size={{
+            xs: 12,
+            sm: 6,
+            md: 2
+          }}>
           <KpiCard data={data.outOfSpec} />
         </Grid>
-        <Grid item xs={12} sm={6} md={2}>
+        <Grid
+          size={{
+            xs: 12,
+            sm: 6,
+            md: 2
+          }}>
           <KpiCard data={data.alertActionLevel} />
         </Grid>
       </Grid>
@@ -148,7 +178,11 @@ export function OverviewTab({ fromDate, toDate, onNavigateTab }: OverviewTabProp
       {/* Middle Row: 3 Visualizations */}
       <Grid container spacing={2} sx={{ mb: 2.5 }}>
         {/* Results by Category */}
-        <Grid item xs={12} md={4}>
+        <Grid
+          size={{
+            xs: 12,
+            md: 4
+          }}>
           <Paper sx={{ p: 2.5, height: 340, display: "flex", flexDirection: "column" }}>
             <Typography sx={{ fontSize: 14, fontWeight: 700, color: theme.palette.primary.main, mb: 1 }}>
               Results by Category
@@ -217,7 +251,11 @@ export function OverviewTab({ fromDate, toDate, onNavigateTab }: OverviewTabProp
         </Grid>
 
         {/* Results by Test */}
-        <Grid item xs={12} md={4}>
+        <Grid
+          size={{
+            xs: 12,
+            md: 4
+          }}>
           <Paper sx={{ p: 2.5, height: 340, display: "flex", flexDirection: "column" }}>
             <Typography sx={{ fontSize: 14, fontWeight: 700, color: theme.palette.primary.main, mb: 1 }}>
               Results by Test
@@ -244,7 +282,7 @@ export function OverviewTab({ fromDate, toDate, onNavigateTab }: OverviewTabProp
                   />
                   <RechartsTooltip
                     cursor={{ fill: theme.palette.action.hover }}
-                    formatter={(val: number) => [`${val} tests`, "Volume"]}
+                    formatter={(val: unknown) => [`${val} tests`, "Volume"]}
                   />
                   <Bar dataKey="count" fill={theme.palette.primary.main} radius={[0, 4, 4, 0]} barSize={14}>
                     <LabelList
@@ -261,7 +299,11 @@ export function OverviewTab({ fromDate, toDate, onNavigateTab }: OverviewTabProp
         </Grid>
 
         {/* Results by Location / Point */}
-        <Grid item xs={12} md={4}>
+        <Grid
+          size={{
+            xs: 12,
+            md: 4
+          }}>
           <Paper sx={{ p: 2.5, height: 340, display: "flex", flexDirection: "column" }}>
             <Typography sx={{ fontSize: 14, fontWeight: 700, color: theme.palette.primary.main, mb: 1 }}>
               Results by Location / Point
@@ -282,7 +324,7 @@ export function OverviewTab({ fromDate, toDate, onNavigateTab }: OverviewTabProp
                         <Cell key={idx} fill={entry.color} />
                       ))}
                     </Pie>
-                    <RechartsTooltip formatter={(val: number, name: string) => [`${val} tests`, name]} />
+                    <RechartsTooltip formatter={(val: unknown, name: unknown) => [`${val} tests`, String(name)]} />
                   </PieChart>
                 </ResponsiveContainer>
                 <Box sx={{
@@ -319,7 +361,11 @@ export function OverviewTab({ fromDate, toDate, onNavigateTab }: OverviewTabProp
       {/* Bottom Row: Recent Results, Quality Signals, Quick Actions */}
       <Grid container spacing={2}>
         {/* Recent Results */}
-        <Grid item xs={12} md={6}>
+        <Grid
+          size={{
+            xs: 12,
+            md: 6
+          }}>
           <Paper sx={{ p: 2.5, height: "100%" }}>
             <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1.5 }}>
               <Typography sx={{ fontSize: 14, fontWeight: 700, color: theme.palette.primary.main }}>
@@ -371,7 +417,11 @@ export function OverviewTab({ fromDate, toDate, onNavigateTab }: OverviewTabProp
         </Grid>
 
         {/* Quality Signals */}
-        <Grid item xs={12} md={3}>
+        <Grid
+          size={{
+            xs: 12,
+            md: 3
+          }}>
           <Paper sx={{ p: 2.5, height: "100%" }}>
             <Typography sx={{ fontSize: 14, fontWeight: 700, color: theme.palette.primary.main, mb: 1.5 }}>
               Quality Signals
@@ -421,7 +471,11 @@ export function OverviewTab({ fromDate, toDate, onNavigateTab }: OverviewTabProp
         </Grid>
 
         {/* Quick Actions */}
-        <Grid item xs={12} md={3}>
+        <Grid
+          size={{
+            xs: 12,
+            md: 3
+          }}>
           <Paper sx={{ p: 2.5, height: "100%" }}>
             <Typography sx={{ fontSize: 14, fontWeight: 700, color: theme.palette.primary.main, mb: 1.5 }}>
               Quick Actions

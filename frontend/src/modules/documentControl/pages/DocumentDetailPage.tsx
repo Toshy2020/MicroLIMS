@@ -36,7 +36,7 @@ import DownloadOutlinedIcon from "@mui/icons-material/DownloadOutlined";
 import BlockOutlinedIcon from "@mui/icons-material/BlockOutlined";
 import CancelOutlinedIcon from "@mui/icons-material/CancelOutlined";
 import PersonAddOutlinedIcon from "@mui/icons-material/PersonAddOutlined";
-import RemoveCircleOutlineIcon from "@mui/icons-material/RemoveCircleOutline";
+import RemoveCircleOutlineIcon from "@mui/icons-material/RemoveCircleOutlined";
 import RateReviewOutlinedIcon from "@mui/icons-material/RateReviewOutlined";
 import AutorenewOutlinedIcon from "@mui/icons-material/AutorenewOutlined";
 import FactCheckOutlinedIcon from "@mui/icons-material/FactCheckOutlined";
@@ -45,7 +45,7 @@ import AssignmentTurnedInIcon from "@mui/icons-material/AssignmentTurnedIn";
 import CompareArrowsIcon from "@mui/icons-material/CompareArrows";
 import EventRepeatIcon from "@mui/icons-material/EventRepeat";
 import PrecisionManufacturingIcon from "@mui/icons-material/PrecisionManufacturing";
-import PersonOutlineIcon from "@mui/icons-material/PersonOutline";
+import PersonOutlineIcon from "@mui/icons-material/PersonOutlined";
 
 import { StatusBadge } from "../../../components/StatusBadge";
 import { ConfirmationDialog } from "../../../components/ConfirmationDialog";
@@ -178,7 +178,12 @@ export function DocumentDetailPage() {
     return (
       <Box sx={{ p: 6, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
         <CircularProgress size={40} />
-        <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
+        <Typography
+          variant="body2"
+          sx={{
+            color: "text.secondary",
+            mt: 2
+          }}>
           Loading document record...
         </Typography>
       </Box>
@@ -499,7 +504,12 @@ export function DocumentDetailPage() {
             )}
 
             {actions.length === 0 && (
-              <Typography variant="body2" color="text.secondary" sx={{ maxWidth: "48ch" }}>
+              <Typography
+                variant="body2"
+                sx={{
+                  color: "text.secondary",
+                  maxWidth: "48ch"
+                }}>
                 {isAwaitingApproval
                   ? hasPendingApprovalTask
                     ? "Waiting on the assigned approver. Only they can record the approval decision."
@@ -587,27 +597,39 @@ export function DocumentDetailPage() {
                   </Typography>
                   <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, gap: 2, bgcolor: (t) => t.palette.mode === "dark" ? "action.hover" : "grey.50", p: 2, borderRadius: 1.5 }}>
                     <Box>
-                      <Typography variant="caption" color="text.secondary">Document Classification</Typography>
+                      <Typography variant="caption" sx={{
+                        color: "text.secondary"
+                      }}>Document Classification</Typography>
                       <Typography variant="body2" sx={{ fontWeight: 600 }}>{document.documentTypeName} ({document.documentTypeCode})</Typography>
                     </Box>
                     <Box>
-                      <Typography variant="caption" color="text.secondary">Confidentiality Level</Typography>
+                      <Typography variant="caption" sx={{
+                        color: "text.secondary"
+                      }}>Confidentiality Level</Typography>
                       <Typography variant="body2" sx={{ fontWeight: 600 }}>{document.confidentiality}</Typography>
                     </Box>
                     <Box>
-                      <Typography variant="caption" color="text.secondary">Department & Section</Typography>
+                      <Typography variant="caption" sx={{
+                        color: "text.secondary"
+                      }}>Department & Section</Typography>
                       <Typography variant="body2" sx={{ fontWeight: 600 }}>{document.departmentName} — {document.sectionName}</Typography>
                     </Box>
                     <Box>
-                      <Typography variant="caption" color="text.secondary">Category</Typography>
+                      <Typography variant="caption" sx={{
+                        color: "text.secondary"
+                      }}>Category</Typography>
                       <Typography variant="body2" sx={{ fontWeight: 600 }}>{document.category || "—"}</Typography>
                     </Box>
                     <Box>
-                      <Typography variant="caption" color="text.secondary">Review Cycle</Typography>
+                      <Typography variant="caption" sx={{
+                        color: "text.secondary"
+                      }}>Review Cycle</Typography>
                       <Typography variant="body2" sx={{ fontWeight: 600 }}>{currentRevision?.reviewCycleMonths || 24} Months</Typography>
                     </Box>
                     <Box>
-                      <Typography variant="caption" color="text.secondary">Record Origin</Typography>
+                      <Typography variant="caption" sx={{
+                        color: "text.secondary"
+                      }}>Record Origin</Typography>
                       <Typography variant="body2" sx={{ fontWeight: 600 }}>{document.recordOrigin}</Typography>
                     </Box>
                   </Box>
@@ -621,7 +643,9 @@ export function DocumentDetailPage() {
                     {document.keywords.length > 0 ? (
                       document.keywords.map((kw) => <Chip key={kw} label={kw} size="small" />)
                     ) : (
-                      <Typography variant="caption" color="text.secondary">No keywords assigned.</Typography>
+                      <Typography variant="caption" sx={{
+                        color: "text.secondary"
+                      }}>No keywords assigned.</Typography>
                     )}
                   </Box>
                 </Box>
@@ -632,11 +656,15 @@ export function DocumentDetailPage() {
                   </Typography>
                   <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, gap: 2, bgcolor: (t) => t.palette.mode === "dark" ? "action.hover" : "grey.50", p: 2, borderRadius: 1.5 }}>
                     <Box>
-                      <Typography variant="caption" color="text.secondary">Created By</Typography>
+                      <Typography variant="caption" sx={{
+                        color: "text.secondary"
+                      }}>Created By</Typography>
                       <Typography variant="body2">{document.createdByUserName} ({new Date(document.createdAt).toLocaleString()})</Typography>
                     </Box>
                     <Box>
-                      <Typography variant="caption" color="text.secondary">Last Modified By</Typography>
+                      <Typography variant="caption" sx={{
+                        color: "text.secondary"
+                      }}>Last Modified By</Typography>
                       <Typography variant="body2">
                         {document.modifiedByUserName
                           ? `${document.modifiedByUserName} (${new Date(document.modifiedAt!).toLocaleString()})`
@@ -776,7 +804,9 @@ export function DocumentDetailPage() {
                       <TableCell>{rev.effectiveDate ? new Date(rev.effectiveDate).toLocaleDateString() : "—"}</TableCell>
                       <TableCell>{rev.nextReviewDate ? new Date(rev.nextReviewDate).toLocaleDateString() : "—"}</TableCell>
                       <TableCell sx={{ maxWidth: 260 }}>
-                        <Typography variant="caption" display="block">
+                        <Typography variant="caption" sx={{
+                          display: "block"
+                        }}>
                           {rev.reasonForRevision || "—"}
                         </Typography>
                         {rev.cancelReason && (
@@ -787,8 +817,12 @@ export function DocumentDetailPage() {
                       </TableCell>
                       <TableCell>{rev.files.length} attached</TableCell>
                       <TableCell>
-                        <Typography variant="caption" display="block">{rev.createdByUserName}</Typography>
-                        <Typography variant="caption" color="text.secondary">{new Date(rev.createdAt).toLocaleDateString()}</Typography>
+                        <Typography variant="caption" sx={{
+                          display: "block"
+                        }}>{rev.createdByUserName}</Typography>
+                        <Typography variant="caption" sx={{
+                          color: "text.secondary"
+                        }}>{new Date(rev.createdAt).toLocaleDateString()}</Typography>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -840,7 +874,9 @@ export function DocumentDetailPage() {
                     <TableCell>{new Date(document.createdAt).toLocaleString()}</TableCell>
                     <TableCell>{document.createdByUserName || document.createdByName || "System"}</TableCell>
                     <TableCell align="right">
-                      <Typography variant="caption" color="text.secondary">Primary Owner</Typography>
+                      <Typography variant="caption" sx={{
+                        color: "text.secondary"
+                      }}>Primary Owner</Typography>
                     </TableCell>
                   </TableRow>
 
@@ -909,7 +945,12 @@ export function DocumentDetailPage() {
                             {log.actionCode || log.action}
                           </Typography>
                           {log.sourceContext && (
-                            <Typography variant="caption" color="text.secondary" sx={{ fontSize: MIN_LABEL_FONT_SIZE }}>
+                            <Typography
+                              variant="caption"
+                              sx={{
+                                color: "text.secondary",
+                                fontSize: MIN_LABEL_FONT_SIZE
+                              }}>
                               Ctx: {log.sourceContext}
                             </Typography>
                           )}
@@ -940,7 +981,12 @@ export function DocumentDetailPage() {
                         </Box>
                       </TableCell>
                       <TableCell sx={{ maxWidth: 260 }}>
-                        <Typography variant="caption" color="text.secondary" sx={{ display: "block" }}>
+                        <Typography
+                          variant="caption"
+                          sx={{
+                            color: "text.secondary",
+                            display: "block"
+                          }}>
                           {log.reason || "—"}
                         </Typography>
                       </TableCell>
@@ -954,7 +1000,9 @@ export function DocumentDetailPage() {
                             ))}
                           </Box>
                         ) : (
-                          <Typography variant="caption" color="text.secondary">—</Typography>
+                          <Typography variant="caption" sx={{
+                            color: "text.secondary"
+                          }}>—</Typography>
                         )}
                       </TableCell>
                     </TableRow>
@@ -1087,7 +1135,9 @@ export function DocumentDetailPage() {
                 <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
                   Independent Periodic Review History
                 </Typography>
-                <Typography variant="caption" color="text.secondary">
+                <Typography variant="caption" sx={{
+                  color: "text.secondary"
+                }}>
                   Complete independent review records preserved across all revisions of this document master
                 </Typography>
               </Box>

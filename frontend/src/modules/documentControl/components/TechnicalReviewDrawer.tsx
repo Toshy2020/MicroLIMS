@@ -24,7 +24,7 @@ import {
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import AddCommentIcon from "@mui/icons-material/AddComment";
-import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
+import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutlined";
 import AssignmentReturnIcon from "@mui/icons-material/AssignmentReturn";
 import DoneAllIcon from "@mui/icons-material/DoneAll";
 import VerifiedUserIcon from "@mui/icons-material/VerifiedUser";
@@ -194,7 +194,9 @@ export const TechnicalReviewDrawer: React.FC<TechnicalReviewDrawerProps> = ({
   };
 
   return (
-    <Drawer anchor="right" open={open} onClose={onClose} PaperProps={{ sx: { width: { xs: "100%", sm: 540 } } }}>
+    <Drawer anchor="right" open={open} onClose={onClose} slotProps={{
+      paper: { sx: { width: { xs: "100%", sm: 540 } } }
+    }}>
       <Box sx={{ p: 3, display: "flex", flexDirection: "column", height: "100%" }}>
         {/* Header */}
         <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
@@ -202,7 +204,9 @@ export const TechnicalReviewDrawer: React.FC<TechnicalReviewDrawerProps> = ({
             <Typography variant="h6" sx={{ fontWeight: 600 }}>
               Technical Review
             </Typography>
-            <Typography variant="caption" color="text.secondary">
+            <Typography variant="caption" sx={{
+              color: "text.secondary"
+            }}>
               {reviewTask.companyDocumentCode} • Revision {reviewTask.revisionNumber}
             </Typography>
           </Box>
@@ -235,7 +239,9 @@ export const TechnicalReviewDrawer: React.FC<TechnicalReviewDrawerProps> = ({
         <Card variant="outlined" sx={{ mb: 2.5, bgcolor: "background.default" }}>
           <CardContent sx={{ py: 1.5, "&:last-child": { pb: 1.5 } }}>
             <Box sx={{ display: "flex", justifyContent: "space-between", mb: 1 }}>
-              <Typography variant="body2" color="text.secondary">
+              <Typography variant="body2" sx={{
+                color: "text.secondary"
+              }}>
                 Review Status:
               </Typography>
               <Chip
@@ -251,7 +257,9 @@ export const TechnicalReviewDrawer: React.FC<TechnicalReviewDrawerProps> = ({
               />
             </Box>
             <Box sx={{ display: "flex", justifyContent: "space-between", mb: 1 }}>
-              <Typography variant="body2" color="text.secondary">
+              <Typography variant="body2" sx={{
+                color: "text.secondary"
+              }}>
                 Assigned Reviewer:
               </Typography>
               <Typography variant="body2" sx={{ fontWeight: 500 }}>
@@ -260,7 +268,9 @@ export const TechnicalReviewDrawer: React.FC<TechnicalReviewDrawerProps> = ({
             </Box>
             {reviewTask.dueDate && (
               <Box sx={{ display: "flex", justifyContent: "space-between", mb: 1 }}>
-                <Typography variant="body2" color="text.secondary">
+                <Typography variant="body2" sx={{
+                  color: "text.secondary"
+                }}>
                   Due Date:
                 </Typography>
                 <Typography variant="body2">
@@ -270,7 +280,12 @@ export const TechnicalReviewDrawer: React.FC<TechnicalReviewDrawerProps> = ({
             )}
             {reviewTask.submissionNotes && (
               <Box sx={{ mt: 1, pt: 1, borderTop: "1px dashed", borderColor: "divider" }}>
-                <Typography variant="caption" color="text.secondary" display="block">
+                <Typography
+                  variant="caption"
+                  sx={{
+                    color: "text.secondary",
+                    display: "block"
+                  }}>
                   Author Submission Notes:
                 </Typography>
                 <Typography variant="body2" sx={{ fontStyle: "italic", mt: 0.5 }}>
@@ -370,7 +385,9 @@ export const TechnicalReviewDrawer: React.FC<TechnicalReviewDrawerProps> = ({
                       <Chip label="Mandatory" size="small" color="error" sx={compactChipSx} />
                     )}
                   </Box>
-                  <Typography variant="caption" color="text.secondary">
+                  <Typography variant="caption" sx={{
+                    color: "text.secondary"
+                  }}>
                     {new Date(f.createdAt).toLocaleDateString()}
                   </Typography>
                 </Box>

@@ -293,7 +293,9 @@ export function ConfirmatoryPlatingPanel({ testOrderId, step, current, onSubmitt
                     Expected appearance of a target-positive colony: <strong>{m.expectedAppearance}</strong>
                   </Alert>
                 )}
-                <Stack direction="row" spacing={1} flexWrap="wrap">
+                <Stack direction="row" spacing={1} sx={{
+                  flexWrap: "wrap"
+                }}>
                   <Select
                     displayEmpty size="small" value={row.mediaLotId} disabled={!row.checked}
                     onChange={(e) => setLot(m.stepMediaId, Number(e.target.value))}
@@ -327,7 +329,9 @@ export function ConfirmatoryPlatingPanel({ testOrderId, step, current, onSubmitt
               Shared by every selected medium
             </Typography>
           </Box>
-          <Stack direction="row" justifyContent="flex-end">
+          <Stack direction="row" sx={{
+            justifyContent: "flex-end"
+          }}>
             <Button
               variant="contained"
               onClick={submitSetup}
@@ -374,7 +378,12 @@ export function ConfirmatoryPlatingPanel({ testOrderId, step, current, onSubmitt
             </Alert>
           )}
 
-          <Stack direction="row" justifyContent="space-between" alignItems="center">
+          <Stack
+            direction="row"
+            sx={{
+              justifyContent: "space-between",
+              alignItems: "center"
+            }}>
             {canOverride ? (
               <Button variant="outlined" color="warning" onClick={() => setSkipDialogOpen(true)} disabled={skipping}>
                 Skip Wait
@@ -437,7 +446,9 @@ export function ConfirmatoryPlatingPanel({ testOrderId, step, current, onSubmitt
               </Box>
             );
           })}
-          <Stack direction="row" justifyContent="flex-end">
+          <Stack direction="row" sx={{
+            justifyContent: "flex-end"
+          }}>
             <Button
               variant="contained"
               onClick={submitReadout}
@@ -459,7 +470,9 @@ export function ConfirmatoryPlatingPanel({ testOrderId, step, current, onSubmitt
             Per SOP, choose whether to conclude detection from this conforming confirmatory result alone,
             or proceed with biochemical confirmation.
           </Typography>
-          <Stack direction="row" spacing={2} justifyContent="flex-end">
+          <Stack direction="row" spacing={2} sx={{
+            justifyContent: "flex-end"
+          }}>
             <Button
               variant="contained" color="error" onClick={() => decide("SubmitAsDetected")}
               disabled={submitting}

@@ -15,8 +15,8 @@ import {
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
-import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
-import PersonOutlineIcon from "@mui/icons-material/PersonOutline";
+import DeleteOutlineIcon from "@mui/icons-material/DeleteOutlined";
+import PersonOutlineIcon from "@mui/icons-material/PersonOutlined";
 import AssignmentOutlinedIcon from "@mui/icons-material/AssignmentOutlined";
 import LayersOutlinedIcon from "@mui/icons-material/LayersOutlined";
 import { PageHeader } from "../../../components/PageHeader";
@@ -172,7 +172,9 @@ function NameListCard({
         </Typography>
 
         {/* Add / rename form - one visible label, Enter submits */}
-        <Stack direction="row" spacing={1} alignItems="flex-start">
+        <Stack direction="row" spacing={1} sx={{
+          alignItems: "flex-start"
+        }}>
           <TextField
             inputRef={inputRef}
             size="small"

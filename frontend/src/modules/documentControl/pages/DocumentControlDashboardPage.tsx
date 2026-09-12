@@ -152,7 +152,13 @@ export function DocumentControlDashboardPage() {
           <CardActionArea onClick={() => navigate("/document-control/library")}>
             <CardContent sx={{ p: 2 }}>
               <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1 }}>
-                <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700, textTransform: "uppercase" }}>
+                <Typography
+                  variant="caption"
+                  sx={{
+                    color: "text.secondary",
+                    fontWeight: 700,
+                    textTransform: "uppercase"
+                  }}>
                   Total Documents
                 </Typography>
                 <LibraryBooksOutlinedIcon color="primary" fontSize="small" />
@@ -160,7 +166,9 @@ export function DocumentControlDashboardPage() {
               <Typography variant="h4" sx={{ fontWeight: 800, color: "text.primary" }}>
                 {loading ? <CircularProgress size={24} /> : totalMasters}
               </Typography>
-              <Typography variant="caption" color="text.secondary">
+              <Typography variant="caption" sx={{
+                color: "text.secondary"
+              }}>
                 In system catalog
               </Typography>
             </CardContent>
@@ -172,7 +180,13 @@ export function DocumentControlDashboardPage() {
           <CardActionArea onClick={() => navigate("/document-control/library")}>
             <CardContent sx={{ p: 2 }}>
               <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1 }}>
-                <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700, textTransform: "uppercase" }}>
+                <Typography
+                  variant="caption"
+                  sx={{
+                    color: "text.secondary",
+                    fontWeight: 700,
+                    textTransform: "uppercase"
+                  }}>
                   Effective Records
                 </Typography>
                 <CheckCircleOutlineOutlinedIcon color="success" fontSize="small" />
@@ -180,7 +194,9 @@ export function DocumentControlDashboardPage() {
               <Typography variant="h4" sx={{ fontWeight: 800, color: "success.main" }}>
                 {loading ? <CircularProgress size={24} /> : effectiveCount}
               </Typography>
-              <Typography variant="caption" color="text.secondary">
+              <Typography variant="caption" sx={{
+                color: "text.secondary"
+              }}>
                 Active & released
               </Typography>
             </CardContent>
@@ -212,7 +228,13 @@ export function DocumentControlDashboardPage() {
           <CardActionArea onClick={() => navigate("/document-control/library")}>
             <CardContent sx={{ p: 2 }}>
               <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1 }}>
-                <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700, textTransform: "uppercase" }}>
+                <Typography
+                  variant="caption"
+                  sx={{
+                    color: "text.secondary",
+                    fontWeight: 700,
+                    textTransform: "uppercase"
+                  }}>
                   Draft Revisions
                 </Typography>
                 <EditNoteOutlinedIcon color="info" fontSize="small" />
@@ -220,7 +242,9 @@ export function DocumentControlDashboardPage() {
               <Typography variant="h4" sx={{ fontWeight: 800, color: "info.main" }}>
                 {loading ? <CircularProgress size={24} /> : draftCount}
               </Typography>
-              <Typography variant="caption" color="text.secondary">
+              <Typography variant="caption" sx={{
+                color: "text.secondary"
+              }}>
                 Pending publication
               </Typography>
             </CardContent>
@@ -232,7 +256,13 @@ export function DocumentControlDashboardPage() {
           <CardActionArea onClick={() => navigate("/document-control/library")}>
             <CardContent sx={{ p: 2 }}>
               <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1 }}>
-                <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700, textTransform: "uppercase" }}>
+                <Typography
+                  variant="caption"
+                  sx={{
+                    color: "text.secondary",
+                    fontWeight: 700,
+                    textTransform: "uppercase"
+                  }}>
                   File Pending
                 </Typography>
                 <PendingActionsOutlinedIcon color="warning" fontSize="small" />
@@ -240,7 +270,9 @@ export function DocumentControlDashboardPage() {
               <Typography variant="h4" sx={{ fontWeight: 800, color: "warning.main" }}>
                 {loading ? <CircularProgress size={24} /> : filesPendingCount}
               </Typography>
-              <Typography variant="caption" color="text.secondary">
+              <Typography variant="caption" sx={{
+                color: "text.secondary"
+              }}>
                 No PDF attached
               </Typography>
             </CardContent>
@@ -252,7 +284,13 @@ export function DocumentControlDashboardPage() {
           <CardActionArea onClick={() => navigate("/document-control/library")}>
             <CardContent sx={{ p: 2 }}>
               <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1 }}>
-                <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700, textTransform: "uppercase" }}>
+                <Typography
+                  variant="caption"
+                  sx={{
+                    color: "text.secondary",
+                    fontWeight: 700,
+                    textTransform: "uppercase"
+                  }}>
                   Voided Masters
                 </Typography>
                 <BlockOutlinedIcon color="error" fontSize="small" />
@@ -260,7 +298,9 @@ export function DocumentControlDashboardPage() {
               <Typography variant="h4" sx={{ fontWeight: 800, color: "error.main" }}>
                 {loading ? <CircularProgress size={24} /> : voidCount}
               </Typography>
-              <Typography variant="caption" color="text.secondary">
+              <Typography variant="caption" sx={{
+                color: "text.secondary"
+              }}>
                 Retired records
               </Typography>
             </CardContent>
@@ -321,11 +361,15 @@ export function DocumentControlDashboardPage() {
                       {doc.hasControlledPdf ? (
                         <Chip label="PDF" size="small" color="primary" sx={compactChipSx} />
                       ) : (
-                        <Typography variant="caption" color="text.secondary">None</Typography>
+                        <Typography variant="caption" sx={{
+                          color: "text.secondary"
+                        }}>None</Typography>
                       )}
                     </TableCell>
                     <TableCell>
-                      <Typography variant="caption" color="text.secondary">
+                      <Typography variant="caption" sx={{
+                        color: "text.secondary"
+                      }}>
                         {new Date(doc.createdAt).toLocaleDateString()}
                       </Typography>
                     </TableCell>
@@ -380,12 +424,16 @@ export function DocumentControlDashboardPage() {
                   <Typography variant="body2" sx={{ fontWeight: 600, color: "text.primary" }}>
                     {log.actionCode || log.action}
                   </Typography>
-                  <Typography variant="caption" color="text.secondary">
+                  <Typography variant="caption" sx={{
+                    color: "text.secondary"
+                  }}>
                     {new Date(log.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                   </Typography>
                 </Box>
                 <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <Typography variant="caption" color="text.secondary">
+                  <Typography variant="caption" sx={{
+                    color: "text.secondary"
+                  }}>
                     By: <strong>{log.userName || "System"}</strong>
                   </Typography>
                   <Chip label={log.actionCategory} size="small" variant="outlined" sx={compactChipSx} />
@@ -398,7 +446,13 @@ export function DocumentControlDashboardPage() {
               </Box>
             ))}
             {recentAudit.length === 0 && (
-              <Typography variant="caption" color="text.secondary" sx={{ py: 3, textAlign: "center" }}>
+              <Typography
+                variant="caption"
+                sx={{
+                  color: "text.secondary",
+                  py: 3,
+                  textAlign: "center"
+                }}>
                 No recent audit events.
               </Typography>
             )}

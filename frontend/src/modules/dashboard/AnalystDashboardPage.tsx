@@ -128,10 +128,18 @@ export function AnalystDashboardPage() {
 
       {/* Tier 3: Attention Required & Incubation Monitoring */}
       <Grid container spacing={2} sx={{ mb: 2 }}>
-        <Grid item xs={12} md={6}>
+        <Grid
+          size={{
+            xs: 12,
+            md: 6
+          }}>
           <AttentionRequiredPanel />
         </Grid>
-        <Grid item xs={12} md={6}>
+        <Grid
+          size={{
+            xs: 12,
+            md: 6
+          }}>
           <IncubationObservationPanel rows={incubations} loading={loading} />
         </Grid>
       </Grid>
@@ -143,10 +151,18 @@ export function AnalystDashboardPage() {
 
       {/* Tier 5: Daily Throughput & Operational Metrics */}
       <Grid container spacing={2} sx={{ mb: 2 }}>
-        <Grid item xs={12} md={6}>
+        <Grid
+          size={{
+            xs: 12,
+            md: 6
+          }}>
           <CompletedTodayPanel metrics={metrics} />
         </Grid>
-        <Grid item xs={12} md={6}>
+        <Grid
+          size={{
+            xs: 12,
+            md: 6
+          }}>
           <AnalystPerformancePanel metrics={metrics} />
         </Grid>
       </Grid>

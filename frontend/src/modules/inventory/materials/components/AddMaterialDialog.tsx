@@ -220,362 +220,370 @@ export function AddMaterialDialog({ open, onClose, onSuccess, editingItem }: Add
         </Box>
       }
     >
-        {error && (
-          <Alert severity="error" sx={{ mb: 2.5 }}>
-            {error}
-          </Alert>
-        )}
+      {error && (
+        <Alert severity="error" sx={{ mb: 2.5 }}>
+          {error}
+        </Alert>
+      )}
 
-        {/* SECTION 1 — Material Information */}
-        <Typography sx={{ fontSize: 12, fontWeight: 700, textTransform: "uppercase", color: "text.secondary", mb: 1.5 }}>
-          1. Material Information
-        </Typography>
-        <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "repeat(2, 1fr)" }, gap: 2, mb: 3 }}>
-          <FormControl size="small" fullWidth required>
-            <InputLabel id="dialog-material-type-label">Material Type</InputLabel>
-            <Select
-              labelId="dialog-material-type-label"
-              label="Material Type"
-              value={form.materialType}
-              onChange={(e) => onMaterialTypeChange(e.target.value as MaterialType)}
-            >
-              {MATERIAL_TYPE_OPTIONS.map((opt) => (
-                <MenuItem key={opt.value} value={opt.value}>
-                  {opt.label}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
+      {/* SECTION 1 — Material Information */}
+      <Typography sx={{ fontSize: 12, fontWeight: 700, textTransform: "uppercase", color: "text.secondary", mb: 1.5 }}>
+        1. Material Information
+      </Typography>
+      <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "repeat(2, 1fr)" }, gap: 2, mb: 3 }}>
+        <FormControl size="small" fullWidth required>
+          <InputLabel id="dialog-material-type-label">Material Type</InputLabel>
+          <Select
+            labelId="dialog-material-type-label"
+            label="Material Type"
+            value={form.materialType}
+            onChange={(e) => onMaterialTypeChange(e.target.value as MaterialType)}
+          >
+            {MATERIAL_TYPE_OPTIONS.map((opt) => (
+              <MenuItem key={opt.value} value={opt.value}>
+                {opt.label}
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
 
-          <TextField
-            size="small"
-            required
-            label="Material Name"
-            placeholder="e.g. Tryptic Soy Agar Powder"
-            value={form.materialName}
-            onChange={(e) => setForm({ ...form, materialName: e.target.value })}
-          />
+        <TextField
+          size="small"
+          required
+          label="Material Name"
+          placeholder="e.g. Tryptic Soy Agar Powder"
+          value={form.materialName}
+          onChange={(e) => setForm({ ...form, materialName: e.target.value })}
+        />
 
-          <TextField
-            size="small"
-            label="Manufacturer"
-            placeholder="e.g. Oxoid, Merck, Difco"
-            value={form.manufacturerName}
-            onChange={(e) => setForm({ ...form, manufacturerName: e.target.value })}
-          />
+        <TextField
+          size="small"
+          label="Manufacturer"
+          placeholder="e.g. Oxoid, Merck, Difco"
+          value={form.manufacturerName}
+          onChange={(e) => setForm({ ...form, manufacturerName: e.target.value })}
+        />
 
-          <TextField
-            size="small"
-            label="Code / Catalog No."
-            placeholder="e.g. CM0131B"
-            value={form.code}
-            onChange={(e) => setForm({ ...form, code: e.target.value })}
-          />
+        <TextField
+          size="small"
+          label="Code / Catalog No."
+          placeholder="e.g. CM0131B"
+          value={form.code}
+          onChange={(e) => setForm({ ...form, code: e.target.value })}
+        />
 
-          {form.materialType === "LyophilizedMicroorganism" && (
-            <>
-              <Box sx={{ gridColumn: { xs: "1", sm: "span 2" } }}>
-                <OrganismPicker
-                  value={form.organismId}
-                  onChange={(id) => setForm({ ...form, organismId: id })}
-                />
-              </Box>
-              <TextField
-                size="small"
-                label="ATCC No."
-                placeholder="e.g. ATCC 6538"
-                value={form.atccNumber}
-                onChange={(e) => setForm({ ...form, atccNumber: e.target.value })}
+        {form.materialType === "LyophilizedMicroorganism" && (
+          <>
+            <Box sx={{ gridColumn: { xs: "1", sm: "span 2" } }}>
+              <OrganismPicker
+                value={form.organismId}
+                onChange={(id) => setForm({ ...form, organismId: id })}
               />
-            </>
-          )}
-        </Box>
+            </Box>
+            <TextField
+              size="small"
+              label="ATCC No."
+              placeholder="e.g. ATCC 6538"
+              value={form.atccNumber}
+              onChange={(e) => setForm({ ...form, atccNumber: e.target.value })}
+            />
+          </>
+        )}
+      </Box>
 
-        <Divider sx={{ my: 2.5 }} />
+      <Divider sx={{ my: 2.5 }} />
 
-        {/* SECTION 2 — Batch & Quantity */}
-        <Typography sx={{ fontSize: 12, fontWeight: 700, textTransform: "uppercase", color: "text.secondary", mb: 1.5 }}>
-          2. Batch &amp; Quantity
-        </Typography>
-        <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "repeat(3, 1fr)" }, gap: 2, mb: 1.5 }}>
-          <TextField
-            size="small"
-            required
-            label="Batch / Lot No."
-            placeholder="e.g. 3458921"
-            value={form.batchNumber}
-            onChange={(e) => setForm({ ...form, batchNumber: e.target.value })}
-          />
+      {/* SECTION 2 — Batch & Quantity */}
+      <Typography sx={{ fontSize: 12, fontWeight: 700, textTransform: "uppercase", color: "text.secondary", mb: 1.5 }}>
+        2. Batch &amp; Quantity
+      </Typography>
+      <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "repeat(3, 1fr)" }, gap: 2, mb: 1.5 }}>
+        <TextField
+          size="small"
+          required
+          label="Batch / Lot No."
+          placeholder="e.g. 3458921"
+          value={form.batchNumber}
+          onChange={(e) => setForm({ ...form, batchNumber: e.target.value })}
+        />
 
-          <FormControl size="small" fullWidth required sx={{ gridColumn: { sm: "span 2", md: "span 2" } }}>
-            <InputLabel id="storage-location-label">Storage Location</InputLabel>
-            <Select
-              labelId="storage-location-label"
-              label="Storage Location"
-              value={form.location}
-              onChange={(e) => setForm({ ...form, location: e.target.value })}
-              disabled={equipmentLoading}
-            >
-              <MenuItem value="">
-                <em>{equipmentLoading ? "Loading storage locations..." : "Select storage location..."}</em>
-              </MenuItem>
+        <FormControl size="small" fullWidth required sx={{ gridColumn: { sm: "span 2", md: "span 2" } }}>
+          <InputLabel id="storage-location-label">Storage Location</InputLabel>
+          <Select
+            labelId="storage-location-label"
+            label="Storage Location"
+            value={form.location}
+            onChange={(e) => setForm({ ...form, location: e.target.value })}
+            disabled={equipmentLoading}
+          >
+            <MenuItem value="">
+              <em>{equipmentLoading ? "Loading storage locations..." : "Select storage location..."}</em>
+            </MenuItem>
 
-              <ListSubheader sx={{ fontWeight: 700, fontSize: 11, color: "text.secondary", textTransform: "uppercase", lineHeight: "28px" }}>
-                Equipment — Refrigerator
-              </ListSubheader>
-              {refrigerators.length > 0 ? (
-                refrigerators.map((eq) => {
-                  const val = `${eq.instrumentType} — ${eq.manufacturerName} (${eq.code})`;
-                  return (
-                    <MenuItem key={eq.id} value={val}>
-                      {val}
-                    </MenuItem>
-                  );
-                })
-              ) : (
-                <MenuItem disabled value="no-ref" sx={{ fontSize: 12, fontStyle: "italic" }}>
-                  No in-service refrigerator configured
-                </MenuItem>
-              )}
-
-              <ListSubheader sx={{ fontWeight: 700, fontSize: 11, color: "text.secondary", textTransform: "uppercase", lineHeight: "28px" }}>
-                Equipment — Deep Freezer
-              </ListSubheader>
-              {deepFreezers.length > 0 ? (
-                deepFreezers.map((eq) => {
-                  const val = `${eq.instrumentType} — ${eq.manufacturerName} (${eq.code})`;
-                  return (
-                    <MenuItem key={eq.id} value={val}>
-                      {val}
-                    </MenuItem>
-                  );
-                })
-              ) : (
-                <MenuItem disabled value="no-df" sx={{ fontSize: 12, fontStyle: "italic" }}>
-                  No in-service deep freezer configured
-                </MenuItem>
-              )}
-
-              <ListSubheader sx={{ fontWeight: 700, fontSize: 11, color: "text.secondary", textTransform: "uppercase", lineHeight: "28px" }}>
-                Equipment — Freezer
-              </ListSubheader>
-              {freezers.length > 0 ? (
-                freezers.map((eq) => {
-                  const val = `${eq.instrumentType} — ${eq.manufacturerName} (${eq.code})`;
-                  return (
-                    <MenuItem key={eq.id} value={val}>
-                      {val}
-                    </MenuItem>
-                  );
-                })
-              ) : (
-                <MenuItem disabled value="no-fr" sx={{ fontSize: 12, fontStyle: "italic" }}>
-                  No in-service freezer configured
-                </MenuItem>
-              )}
-
-              <ListSubheader sx={{ fontWeight: 700, fontSize: 11, color: "text.secondary", textTransform: "uppercase", lineHeight: "28px" }}>
-                Other
-              </ListSubheader>
-              <MenuItem value="Microbiology Lab">
-                Microbiology Lab
-              </MenuItem>
-
-              {/* Fallback for legacy material locations when editing */}
-              {form.location &&
-                form.location !== "Microbiology Lab" &&
-                !inServiceEquipment.some(
-                  (eq) => `${eq.instrumentType} — ${eq.manufacturerName} (${eq.code})` === form.location
-                ) && (
-                  <MenuItem value={form.location}>
-                    {form.location} (Current Location)
+            <ListSubheader sx={{ fontWeight: 700, fontSize: 11, color: "text.secondary", textTransform: "uppercase", lineHeight: "28px" }}>
+              Equipment — Refrigerator
+            </ListSubheader>
+            {refrigerators.length > 0 ? (
+              refrigerators.map((eq) => {
+                const val = `${eq.instrumentType} — ${eq.manufacturerName} (${eq.code})`;
+                return (
+                  <MenuItem key={eq.id} value={val}>
+                    {val}
                   </MenuItem>
-                )}
-            </Select>
-          </FormControl>
+                );
+              })
+            ) : (
+              <MenuItem disabled value="no-ref" sx={{ fontSize: 12, fontStyle: "italic" }}>
+                No in-service refrigerator configured
+              </MenuItem>
+            )}
 
-          <TextField
-            size="small"
-            required
-            type="number"
-            label="Quantity Received"
-            value={form.quantityReceived}
-            onChange={(e) => setForm({ ...form, quantityReceived: e.target.value })}
-            inputProps={{ min: 0, step: "any" }}
-          />
+            <ListSubheader sx={{ fontWeight: 700, fontSize: 11, color: "text.secondary", textTransform: "uppercase", lineHeight: "28px" }}>
+              Equipment — Deep Freezer
+            </ListSubheader>
+            {deepFreezers.length > 0 ? (
+              deepFreezers.map((eq) => {
+                const val = `${eq.instrumentType} — ${eq.manufacturerName} (${eq.code})`;
+                return (
+                  <MenuItem key={eq.id} value={val}>
+                    {val}
+                  </MenuItem>
+                );
+              })
+            ) : (
+              <MenuItem disabled value="no-df" sx={{ fontSize: 12, fontStyle: "italic" }}>
+                No in-service deep freezer configured
+              </MenuItem>
+            )}
 
-          <FormControl size="small" fullWidth required>
-            <InputLabel id="dialog-unit-label">Unit</InputLabel>
-            <Select
-              labelId="dialog-unit-label"
-              label="Unit"
-              value={form.unit}
-              onChange={(e) => setForm({ ...form, unit: e.target.value as MaterialUnit })}
-            >
-              {MATERIAL_UNITS.map((u) => (
-                <MenuItem key={u} value={u}>
-                  {u}
+            <ListSubheader sx={{ fontWeight: 700, fontSize: 11, color: "text.secondary", textTransform: "uppercase", lineHeight: "28px" }}>
+              Equipment — Freezer
+            </ListSubheader>
+            {freezers.length > 0 ? (
+              freezers.map((eq) => {
+                const val = `${eq.instrumentType} — ${eq.manufacturerName} (${eq.code})`;
+                return (
+                  <MenuItem key={eq.id} value={val}>
+                    {val}
+                  </MenuItem>
+                );
+              })
+            ) : (
+              <MenuItem disabled value="no-fr" sx={{ fontSize: 12, fontStyle: "italic" }}>
+                No in-service freezer configured
+              </MenuItem>
+            )}
+
+            <ListSubheader sx={{ fontWeight: 700, fontSize: 11, color: "text.secondary", textTransform: "uppercase", lineHeight: "28px" }}>
+              Other
+            </ListSubheader>
+            <MenuItem value="Microbiology Lab">
+              Microbiology Lab
+            </MenuItem>
+
+            {/* Fallback for legacy material locations when editing */}
+            {form.location &&
+              form.location !== "Microbiology Lab" &&
+              !inServiceEquipment.some(
+                (eq) => `${eq.instrumentType} — ${eq.manufacturerName} (${eq.code})` === form.location
+              ) && (
+                <MenuItem value={form.location}>
+                  {form.location} (Current Location)
                 </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
+              )}
+          </Select>
+        </FormControl>
 
-          <TextField
-            size="small"
-            type="number"
-            label="Min. Stock Level (optional)"
-            placeholder="e.g. 500"
-            value={form.minimumStockLevel}
-            onChange={(e) => setForm({ ...form, minimumStockLevel: e.target.value })}
-            inputProps={{ min: 0, step: "any" }}
-          />
-        </Box>
+        <TextField
+          size="small"
+          required
+          type="number"
+          label="Quantity Received"
+          value={form.quantityReceived}
+          onChange={(e) => setForm({ ...form, quantityReceived: e.target.value })}
+          slotProps={{
+            htmlInput: { min: 0, step: "any" }
+          }}
+        />
 
-        {/* Selected Equipment Read-Only Details Card */}
-        {selectedEquipment && (
-          <Paper
-            variant="outlined"
+        <FormControl size="small" fullWidth required>
+          <InputLabel id="dialog-unit-label">Unit</InputLabel>
+          <Select
+            labelId="dialog-unit-label"
+            label="Unit"
+            value={form.unit}
+            onChange={(e) => setForm({ ...form, unit: e.target.value as MaterialUnit })}
+          >
+            {MATERIAL_UNITS.map((u) => (
+              <MenuItem key={u} value={u}>
+                {u}
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+
+        <TextField
+          size="small"
+          type="number"
+          label="Min. Stock Level (optional)"
+          placeholder="e.g. 500"
+          value={form.minimumStockLevel}
+          onChange={(e) => setForm({ ...form, minimumStockLevel: e.target.value })}
+          slotProps={{
+            htmlInput: { min: 0, step: "any" }
+          }}
+        />
+      </Box>
+
+      {/* Selected Equipment Read-Only Details Card */}
+      {selectedEquipment && (
+        <Paper
+          variant="outlined"
+          sx={{
+            mb: 3,
+            p: 1.5,
+            bgcolor: "background.default",
+            borderColor: "divider",
+            borderRadius: 1
+          }}
+        >
+          <Box
             sx={{
-              mb: 3,
-              p: 1.5,
-              bgcolor: "background.default",
-              borderColor: "divider",
-              borderRadius: 1
+              display: "grid",
+              gridTemplateColumns: {
+                xs: "1fr",
+                sm: "repeat(2, 1fr)",
+                md: "repeat(4, 1fr)"
+              },
+              gap: 1.5
             }}
           >
-            <Box
-              sx={{
-                display: "grid",
-                gridTemplateColumns: {
-                  xs: "1fr",
-                  sm: "repeat(2, 1fr)",
-                  md: "repeat(4, 1fr)"
-                },
-                gap: 1.5
-              }}
-            >
-              <Box>
-                <Typography sx={{ fontSize: 10.5, fontWeight: 700, color: "text.secondary", textTransform: "uppercase" }}>
-                  Selected Storage
-                </Typography>
-                <Typography sx={{ fontSize: 13, fontWeight: 700, color: brandColors.sectionTitle }}>
-                  {selectedEquipment.instrumentType} — {selectedEquipment.manufacturerName || "Asset"}
-                </Typography>
-              </Box>
-              <Box>
-                <Typography sx={{ fontSize: 10.5, fontWeight: 700, color: "text.secondary", textTransform: "uppercase" }}>
-                  Code
-                </Typography>
-                <Typography sx={{ fontSize: 13, fontWeight: 600, color: "text.primary" }}>
-                  {selectedEquipment.code}
-                </Typography>
-              </Box>
-              <Box>
-                <Typography sx={{ fontSize: 10.5, fontWeight: 700, color: "text.secondary", textTransform: "uppercase" }}>
-                  Location
-                </Typography>
-                <Typography sx={{ fontSize: 13, fontWeight: 600, color: "text.primary" }}>
-                  {selectedEquipment.location || "—"}
-                </Typography>
-              </Box>
-              <Box>
-                <Typography sx={{ fontSize: 10.5, fontWeight: 700, color: "text.secondary", textTransform: "uppercase" }}>
-                  Status
-                </Typography>
-                <Typography sx={{ fontSize: 13, fontWeight: 600, color: "success.main" }}>
-                  In Service
-                </Typography>
-              </Box>
+            <Box>
+              <Typography sx={{ fontSize: 10.5, fontWeight: 700, color: "text.secondary", textTransform: "uppercase" }}>
+                Selected Storage
+              </Typography>
+              <Typography sx={{ fontSize: 13, fontWeight: 700, color: brandColors.sectionTitle }}>
+                {selectedEquipment.instrumentType} — {selectedEquipment.manufacturerName || "Asset"}
+              </Typography>
             </Box>
-          </Paper>
-        )}
-
-        {/* Microbiology Lab Read-Only Details Card */}
-        {form.location === "Microbiology Lab" && (
-          <Paper
-            variant="outlined"
-            sx={{
-              mb: 3,
-              p: 1.5,
-              bgcolor: "background.default",
-              borderColor: "divider",
-              borderRadius: 1
-            }}
-          >
-            <Box
-              sx={{
-                display: "grid",
-                gridTemplateColumns: {
-                  xs: "1fr",
-                  sm: "repeat(2, 1fr)",
-                  md: "repeat(3, 1fr)"
-                },
-                gap: 1.5
-              }}
-            >
-              <Box>
-                <Typography sx={{ fontSize: 10.5, fontWeight: 700, color: "text.secondary", textTransform: "uppercase" }}>
-                  Selected Storage
-                </Typography>
-                <Typography sx={{ fontSize: 13, fontWeight: 700, color: brandColors.sectionTitle }}>
-                  Microbiology Lab
-                </Typography>
-              </Box>
-              <Box>
-                <Typography sx={{ fontSize: 10.5, fontWeight: 700, color: "text.secondary", textTransform: "uppercase" }}>
-                  Storage Type
-                </Typography>
-                <Typography sx={{ fontSize: 13, fontWeight: 600, color: "text.primary" }}>
-                  Ambient / Room Storage
-                </Typography>
-              </Box>
-              <Box>
-                <Typography sx={{ fontSize: 10.5, fontWeight: 700, color: "text.secondary", textTransform: "uppercase" }}>
-                  Location
-                </Typography>
-                <Typography sx={{ fontSize: 13, fontWeight: 600, color: "text.primary" }}>
-                  Microbiology Laboratory
-                </Typography>
-              </Box>
+            <Box>
+              <Typography sx={{ fontSize: 10.5, fontWeight: 700, color: "text.secondary", textTransform: "uppercase" }}>
+                Code
+              </Typography>
+              <Typography sx={{ fontSize: 13, fontWeight: 600, color: "text.primary" }}>
+                {selectedEquipment.code}
+              </Typography>
             </Box>
-          </Paper>
-        )}
-
-        <Divider sx={{ my: 2.5 }} />
-
-        {/* SECTION 3 — Dates */}
-        <Typography sx={{ fontSize: 12, fontWeight: 700, textTransform: "uppercase", color: "text.secondary", mb: 1.5 }}>
-          3. Dates & Traceability
-        </Typography>
-        <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "repeat(2, 1fr)" }, gap: 2 }}>
-          <TextField
-            size="small"
-            required
-            type="date"
-            label="Receiving Date"
-            InputLabelProps={{ shrink: true }}
-            value={form.receivingDate}
-            onChange={(e) => setForm({ ...form, receivingDate: e.target.value })}
-          />
-
-          <TextField
-            size="small"
-            type="date"
-            label="Expiry Date"
-            InputLabelProps={{ shrink: true }}
-            value={form.expiryDate}
-            onChange={(e) => setForm({ ...form, expiryDate: e.target.value })}
-          />
-        </Box>
-
-        {editingItem && (
-          <Box sx={{ mt: 2.5, p: 1.5, bgcolor: "background.default", borderRadius: 1.5, border: "1px solid", borderColor: "divider" }}>
-            <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
-              <strong>Note:</strong> Changing Quantity Received adjusts Quantity Remaining by the difference (a receiving correction) —
-              it preserves consumption already recorded by Media Preparation or Cryovials.
-            </Typography>
+            <Box>
+              <Typography sx={{ fontSize: 10.5, fontWeight: 700, color: "text.secondary", textTransform: "uppercase" }}>
+                Location
+              </Typography>
+              <Typography sx={{ fontSize: 13, fontWeight: 600, color: "text.primary" }}>
+                {selectedEquipment.location || "—"}
+              </Typography>
+            </Box>
+            <Box>
+              <Typography sx={{ fontSize: 10.5, fontWeight: 700, color: "text.secondary", textTransform: "uppercase" }}>
+                Status
+              </Typography>
+              <Typography sx={{ fontSize: 13, fontWeight: 600, color: "success.main" }}>
+                In Service
+              </Typography>
+            </Box>
           </Box>
-        )}
+        </Paper>
+      )}
+
+      {/* Microbiology Lab Read-Only Details Card */}
+      {form.location === "Microbiology Lab" && (
+        <Paper
+          variant="outlined"
+          sx={{
+            mb: 3,
+            p: 1.5,
+            bgcolor: "background.default",
+            borderColor: "divider",
+            borderRadius: 1
+          }}
+        >
+          <Box
+            sx={{
+              display: "grid",
+              gridTemplateColumns: {
+                xs: "1fr",
+                sm: "repeat(2, 1fr)",
+                md: "repeat(3, 1fr)"
+              },
+              gap: 1.5
+            }}
+          >
+            <Box>
+              <Typography sx={{ fontSize: 10.5, fontWeight: 700, color: "text.secondary", textTransform: "uppercase" }}>
+                Selected Storage
+              </Typography>
+              <Typography sx={{ fontSize: 13, fontWeight: 700, color: brandColors.sectionTitle }}>
+                Microbiology Lab
+              </Typography>
+            </Box>
+            <Box>
+              <Typography sx={{ fontSize: 10.5, fontWeight: 700, color: "text.secondary", textTransform: "uppercase" }}>
+                Storage Type
+              </Typography>
+              <Typography sx={{ fontSize: 13, fontWeight: 600, color: "text.primary" }}>
+                Ambient / Room Storage
+              </Typography>
+            </Box>
+            <Box>
+              <Typography sx={{ fontSize: 10.5, fontWeight: 700, color: "text.secondary", textTransform: "uppercase" }}>
+                Location
+              </Typography>
+              <Typography sx={{ fontSize: 13, fontWeight: 600, color: "text.primary" }}>
+                Microbiology Laboratory
+              </Typography>
+            </Box>
+          </Box>
+        </Paper>
+      )}
+
+      <Divider sx={{ my: 2.5 }} />
+
+      {/* SECTION 3 — Dates */}
+      <Typography sx={{ fontSize: 12, fontWeight: 700, textTransform: "uppercase", color: "text.secondary", mb: 1.5 }}>
+        3. Dates & Traceability
+      </Typography>
+      <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "repeat(2, 1fr)" }, gap: 2 }}>
+        <TextField
+          size="small"
+          required
+          type="date"
+          label="Receiving Date"
+          value={form.receivingDate}
+          onChange={(e) => setForm({ ...form, receivingDate: e.target.value })}
+          slotProps={{
+            inputLabel: { shrink: true }
+          }}
+        />
+
+        <TextField
+          size="small"
+          type="date"
+          label="Expiry Date"
+          value={form.expiryDate}
+          onChange={(e) => setForm({ ...form, expiryDate: e.target.value })}
+          slotProps={{
+            inputLabel: { shrink: true }
+          }}
+        />
+      </Box>
+
+      {editingItem && (
+        <Box sx={{ mt: 2.5, p: 1.5, bgcolor: "background.default", borderRadius: 1.5, border: "1px solid", borderColor: "divider" }}>
+          <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
+            <strong>Note:</strong> Changing Quantity Received adjusts Quantity Remaining by the difference (a receiving correction) —
+            it preserves consumption already recorded by Media Preparation or Cryovials.
+          </Typography>
+        </Box>
+      )}
     </FloatingDialog>
   );
 }

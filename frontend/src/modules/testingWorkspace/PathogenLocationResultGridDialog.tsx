@@ -106,7 +106,9 @@ export function PathogenLocationResultGridDialog({ open, testOrderId, testCode, 
           {!isTimeReady && minReadyAt && (
             <Alert severity="warning">Results cannot be submitted before {minReadyAt.toLocaleString()}.</Alert>
           )}
-          <Stack direction="row" justifyContent="flex-end">
+          <Stack direction="row" sx={{
+            justifyContent: "flex-end"
+          }}>
             <Button variant="contained" disabled={!allEntered || !isTimeReady || submitting} onClick={submit}>
               {submitting ? "Submitting…" : "Submit Results"}
             </Button>

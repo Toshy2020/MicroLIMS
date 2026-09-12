@@ -179,14 +179,18 @@ export function NewConversationDialog({ open, currentUserId, onClose, onCreated 
               placeholder="Search colleagues by name..."
               size="small"
               required
-              InputProps={{
-                ...params.InputProps,
-                endAdornment: (
-                  <>
-                    {loadingDirectory ? <CircularProgress color="inherit" size={18} /> : null}
-                    {params.InputProps.endAdornment}
-                  </>
-                )
+              slotProps={{
+                ...params.slotProps,
+
+                input: {
+                  ...params.slotProps.input,
+                  endAdornment: (
+                    <>
+                      {loadingDirectory ? <CircularProgress color="inherit" size={18} /> : null}
+                      {params.slotProps.input.endAdornment}
+                    </>
+                  )
+                }
               }}
             />
           )}
@@ -203,20 +207,26 @@ export function NewConversationDialog({ open, currentUserId, onClose, onCreated 
               </Box>
             </Box>
           )}
-          renderTags={(value, getTagProps) =>
-            value.map((option, index) => (
-              <Chip
-                {...getTagProps({ index })}
-                key={option.id}
-                label={option.fullName}
-                size="small"
-                avatar={
-                  <Avatar sx={{ width: 20, height: 20, fontSize: 10, bgcolor: brandColors.sectionTitle }}>
-                    {option.fullName.charAt(0).toUpperCase()}
-                  </Avatar>
-                }
-              />
-            ))
+          renderValue={
+            // renderTags (v5) only ran in multiple mode. renderValue also
+            // renders a single selection, so it is passed for groups only -
+            // a one-to-one recipient keeps showing as plain input text.
+            isGroup
+              ? (value, getItemProps) =>
+                  (value as UserDirectoryItem[]).map((option, index) => (
+                    <Chip
+                      {...getItemProps({ index })}
+                      key={option.id}
+                      label={option.fullName}
+                      size="small"
+                      avatar={
+                        <Avatar sx={{ width: 20, height: 20, fontSize: 10, bgcolor: brandColors.sectionTitle }}>
+                          {option.fullName.charAt(0).toUpperCase()}
+                        </Avatar>
+                      }
+                    />
+                  ))
+              : undefined
           }
         />
 

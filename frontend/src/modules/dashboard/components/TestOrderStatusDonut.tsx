@@ -37,14 +37,18 @@ export function TestOrderStatusDonut({ statusDist }: { statusDist: DistributionS
               ))}
             </Pie>
             <Tooltip
-              formatter={(value: number, name: string) => [`${value}`, name]}
+              formatter={(value: unknown, name: unknown) => [`${value}`, String(name)]}
               contentStyle={{ background: theme.palette.background.paper, border: `1px solid ${theme.palette.divider}`, color: theme.palette.text.primary }}
             />
             <Legend />
           </PieChart>
         </ResponsiveContainer>
       ) : (
-        <Typography color="text.secondary" sx={{ mt: 4 }}>No data yet.</Typography>
+        <Typography
+          sx={{
+            color: "text.secondary",
+            mt: 4
+          }}>No data yet.</Typography>
       )}
     </Paper>
   );

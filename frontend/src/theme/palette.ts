@@ -97,7 +97,9 @@ export const lightThemeOptions: ThemeOptions = {
     },
     MuiButton: {
       styleOverrides: {
-        containedPrimary: { "&:hover": { backgroundColor: "#631f74" } }
+        // MUI v9 removed the containedPrimary style slot; the same element is
+        // targeted through its variant + color classes instead.
+        root: { "&.MuiButton-contained.MuiButton-colorPrimary:hover": { backgroundColor: "#631f74" } }
       }
     },
     MuiPaper: {
@@ -154,7 +156,9 @@ export const darkThemeOptions: ThemeOptions = {
     },
     MuiButton: {
       styleOverrides: {
-        containedPrimary: { "&:hover": { backgroundColor: "#9b3fa8" } }
+        // See the light theme: v9 removed containedPrimary, so target the
+        // variant + color classes.
+        root: { "&.MuiButton-contained.MuiButton-colorPrimary:hover": { backgroundColor: "#9b3fa8" } }
       }
     },
     MuiPaper: {

@@ -1,8 +1,8 @@
 import { Grid, Paper, Typography, Box, useTheme } from "@mui/material";
 import ScienceOutlinedIcon from "@mui/icons-material/ScienceOutlined";
-import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
+import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutlined";
 import WarningAmberOutlinedIcon from "@mui/icons-material/WarningAmberOutlined";
-import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
+import ErrorOutlineIcon from "@mui/icons-material/ErrorOutlined";
 import { SvgIconComponent } from "@mui/icons-material";
 import { CryovialItem } from "../types/cryovialTypes";
 import { StatusTone } from "../../../../theme/statusTokens";
@@ -70,7 +70,13 @@ export function CryovialKpiCards({ items }: CryovialKpiCardsProps) {
       {cards.map((card) => {
         const tokens = theme.custom.status[card.tone];
         return (
-          <Grid item xs={12} sm={6} md={3} key={card.label}>
+          <Grid
+            key={card.label}
+            size={{
+              xs: 12,
+              sm: 6,
+              md: 3
+            }}>
             <Paper
               elevation={0}
               sx={{

@@ -146,9 +146,13 @@ export function ActiveEquipmentView({ onOpenDetails }: ActiveEquipmentViewProps)
       {/* 1. Global "Where is it?" Traceability Search Bar */}
       <Paper sx={{ p: 2.5, borderRadius: 2, border: "1px solid", borderColor: "divider" }}>
         <Stack spacing={2}>
-          <Stack direction="row" alignItems="center" spacing={1}>
+          <Stack direction="row" spacing={1} sx={{
+            alignItems: "center"
+          }}>
             <PlaceIcon color="primary" />
-            <Typography variant="subtitle1" fontWeight={700}>
+            <Typography variant="subtitle1" sx={{
+              fontWeight: 700
+            }}>
               Where is it? — Global Traceability Search
             </Typography>
           </Stack>
@@ -175,21 +179,38 @@ export function ActiveEquipmentView({ onOpenDetails }: ActiveEquipmentViewProps)
           {/* Where is it? Search Results Display */}
           {whereResult && (
             <Paper variant="outlined" sx={{ p: 2, bgcolor: "background.paper", mt: 1 }}>
-              <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 1.5 }}>
+              <Typography
+                variant="subtitle2"
+                sx={{
+                  fontWeight: 700,
+                  mb: 1.5
+                }}>
                 Traceability Results for "{whereResult.searchTerm}":
               </Typography>
 
               {whereResult.currentActivity ? (
                 <Box sx={{ mb: 2, p: 2, bgcolor: theme.custom.status.notDetected.bg, border: "1px solid", borderColor: theme.custom.status.notDetected.border, borderRadius: 1.5 }}>
-                  <Stack direction="row" justifyContent="space-between" alignItems="center">
+                  <Stack
+                    direction="row"
+                    sx={{
+                      justifyContent: "space-between",
+                      alignItems: "center"
+                    }}>
                     <Box>
-                      <Typography variant="body2" fontWeight={700} color="success.dark">
+                      <Typography
+                        variant="body2"
+                        sx={{
+                          fontWeight: 700,
+                          color: "success.dark"
+                        }}>
                         CURRENT LOCATION: {whereResult.currentEquipmentCode} — {whereResult.currentEquipmentName}
                       </Typography>
                       <Typography variant="body2">
                         Activity: <strong>{whereResult.currentActivity.activityType}</strong> | Item: <strong>{whereResult.currentActivity.itemName} (@{whereResult.currentActivity.itemCode})</strong>
                       </Typography>
-                      <Typography variant="caption" color="text.secondary">
+                      <Typography variant="caption" sx={{
+                        color: "text.secondary"
+                      }}>
                         Started: {formatLabDateTime(whereResult.currentActivity.startedOn)} | Analyst: {whereResult.currentActivity.startedBy}
                       </Typography>
                     </Box>
@@ -247,7 +268,13 @@ export function ActiveEquipmentView({ onOpenDetails }: ActiveEquipmentViewProps)
                   />
                 </>
               ) : (
-                <Typography variant="body2" color="text.secondary" align="center" sx={{ py: 1 }}>
+                <Typography
+                  variant="body2"
+                  align="center"
+                  sx={{
+                    color: "text.secondary",
+                    py: 1
+                  }}>
                   No location history records found matching this query.
                 </Typography>
               )}
@@ -259,17 +286,36 @@ export function ActiveEquipmentView({ onOpenDetails }: ActiveEquipmentViewProps)
       {/* 2. Main Active Equipment Split Layout */}
       <Grid container spacing={3}>
         {/* LEFT PANEL: Active Equipment List */}
-        <Grid item xs={12} md={4}>
+        <Grid
+          size={{
+            xs: 12,
+            md: 4
+          }}>
           <Paper sx={{ p: 2, borderRadius: 2, border: "1px solid", borderColor: "divider", minHeight: 500 }}>
-            <Typography variant="subtitle1" fontWeight={700} sx={{ mb: 0.25 }}>
+            <Typography
+              variant="subtitle1"
+              sx={{
+                fontWeight: 700,
+                mb: 0.25
+              }}>
               Equipment ({activeEquipment.length})
             </Typography>
-            <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 2 }}>
+            <Typography
+              variant="caption"
+              sx={{
+                color: "text.secondary",
+                display: "block",
+                mb: 2
+              }}>
               {activeEquipment.filter((e) => e.activeItemCount > 0).length} currently in use — select any equipment to view its traceability history
             </Typography>
 
             {loadingActive ? (
-              <Box textAlign="center" py={4}><CircularProgress size={32} /></Box>
+              <Box
+                sx={{
+                  textAlign: "center",
+                  py: 4
+                }}><CircularProgress size={32} /></Box>
             ) : activeEquipment.length === 0 ? (
               <Alert severity="info" sx={{ fontSize: 13 }}>
                 No equipment records found.
@@ -295,7 +341,13 @@ export function ActiveEquipmentView({ onOpenDetails }: ActiveEquipmentViewProps)
                         "&:hover": { borderColor: "primary.main", bgcolor: isSelected ? theme.custom.status.purple.bg : "action.hover", opacity: 1 }
                       }}
                     >
-                      <Stack direction="row" justifyContent="space-between" alignItems="flex-start" sx={{ mb: 1 }}>
+                      <Stack
+                        direction="row"
+                        sx={{
+                          justifyContent: "space-between",
+                          alignItems: "flex-start",
+                          mb: 1
+                        }}>
                         <Typography sx={{ fontFamily: "monospace", fontWeight: 700, fontSize: 14, color: "primary.main" }}>
                           {eq.code}
                         </Typography>
@@ -318,21 +370,37 @@ export function ActiveEquipmentView({ onOpenDetails }: ActiveEquipmentViewProps)
         </Grid>
 
         {/* RIGHT MAIN PANEL: Selected Equipment Details & Activities */}
-        <Grid item xs={12} md={8}>
+        <Grid
+          size={{
+            xs: 12,
+            md: 8
+          }}>
           {selectedEquipment ? (
             <Stack spacing={3}>
               {/* Equipment Info Header Card */}
               <Paper sx={{ p: 2.5, borderRadius: 2, border: "1px solid", borderColor: "divider" }}>
-                <Stack direction="row" justifyContent="space-between" alignItems="flex-start" sx={{ mb: 2 }}>
+                <Stack
+                  direction="row"
+                  sx={{
+                    justifyContent: "space-between",
+                    alignItems: "flex-start",
+                    mb: 2
+                  }}>
                   <Box>
-                    <Typography variant="h6" fontWeight={700}>
+                    <Typography variant="h6" sx={{
+                      fontWeight: 700
+                    }}>
                       {selectedEquipment.code} — {selectedEquipment.instrumentType}
                     </Typography>
-                    <Typography variant="body2" color="text.secondary">
+                    <Typography variant="body2" sx={{
+                      color: "text.secondary"
+                    }}>
                       Location: {selectedEquipment.location}
                     </Typography>
                   </Box>
-                  <Stack direction="row" spacing={1} alignItems="center">
+                  <Stack direction="row" spacing={1} sx={{
+                    alignItems: "center"
+                  }}>
                     <Chip
                       label={selectedEquipment.activeItemCount > 0 ? "In Use" : "Idle"}
                       color={selectedEquipment.activeItemCount > 0 ? "success" : "default"}
@@ -345,37 +413,93 @@ export function ActiveEquipmentView({ onOpenDetails }: ActiveEquipmentViewProps)
                 </Stack>
 
                 <Grid container spacing={2} sx={{ pt: 1, borderTop: "1px solid", borderTopColor: "divider" }}>
-                  <Grid item xs={6} sm={3}>
-                    <Typography variant="caption" color="text.secondary" display="block">Manufacturer</Typography>
-                    <Typography variant="body2" fontWeight={600}>{selectedEquipment.manufacturerName || "—"}</Typography>
+                  <Grid
+                    size={{
+                      xs: 6,
+                      sm: 3
+                    }}>
+                    <Typography
+                      variant="caption"
+                      sx={{
+                        color: "text.secondary",
+                        display: "block"
+                      }}>Manufacturer</Typography>
+                    <Typography variant="body2" sx={{
+                      fontWeight: 600
+                    }}>{selectedEquipment.manufacturerName || "—"}</Typography>
                   </Grid>
-                  <Grid item xs={6} sm={3}>
-                    <Typography variant="caption" color="text.secondary" display="block">Set Temperature</Typography>
-                    <Typography variant="body2" fontWeight={600}>
+                  <Grid
+                    size={{
+                      xs: 6,
+                      sm: 3
+                    }}>
+                    <Typography
+                      variant="caption"
+                      sx={{
+                        color: "text.secondary",
+                        display: "block"
+                      }}>Set Temperature</Typography>
+                    <Typography variant="body2" sx={{
+                      fontWeight: 600
+                    }}>
                       {selectedEquipment.setPointTemperature ? `${selectedEquipment.setPointTemperature} °C` : "N/A"}
                     </Typography>
                   </Grid>
-                  <Grid item xs={6} sm={3}>
-                    <Typography variant="caption" color="text.secondary" display="block">Calibration Due</Typography>
-                    <Typography variant="body2" fontWeight={600}>
+                  <Grid
+                    size={{
+                      xs: 6,
+                      sm: 3
+                    }}>
+                    <Typography
+                      variant="caption"
+                      sx={{
+                        color: "text.secondary",
+                        display: "block"
+                      }}>Calibration Due</Typography>
+                    <Typography variant="body2" sx={{
+                      fontWeight: 600
+                    }}>
                       {selectedEquipment.calibrationDueDate ? formatLabDate(selectedEquipment.calibrationDueDate) : "—"}
                     </Typography>
                   </Grid>
-                  <Grid item xs={6} sm={3}>
-                    <Typography variant="caption" color="text.secondary" display="block">Current Active Items</Typography>
-                    <Typography variant="body2" fontWeight={700} color="primary.main">{selectedEquipment.activeItemCount}</Typography>
+                  <Grid
+                    size={{
+                      xs: 6,
+                      sm: 3
+                    }}>
+                    <Typography
+                      variant="caption"
+                      sx={{
+                        color: "text.secondary",
+                        display: "block"
+                      }}>Current Active Items</Typography>
+                    <Typography
+                      variant="body2"
+                      sx={{
+                        fontWeight: 700,
+                        color: "primary.main"
+                      }}>{selectedEquipment.activeItemCount}</Typography>
                   </Grid>
                 </Grid>
               </Paper>
 
               {/* Current Activities / Items Table */}
               <Paper sx={{ p: 2.5, borderRadius: 2, border: "1px solid", borderColor: "divider" }}>
-                <Typography variant="subtitle1" fontWeight={700} sx={{ mb: 1.5 }}>
+                <Typography
+                  variant="subtitle1"
+                  sx={{
+                    fontWeight: 700,
+                    mb: 1.5
+                  }}>
                   Current Activities / Items ({activities.length})
                 </Typography>
 
                 {loadingActivities ? (
-                  <Box textAlign="center" py={3}><CircularProgress size={28} /></Box>
+                  <Box
+                    sx={{
+                      textAlign: "center",
+                      py: 3
+                    }}><CircularProgress size={28} /></Box>
                 ) : activities.length === 0 ? (
                   <Alert severity="info" sx={{ fontSize: 13 }}>No active activities currently running in this equipment.</Alert>
                 ) : (
@@ -459,16 +583,26 @@ export function ActiveEquipmentView({ onOpenDetails }: ActiveEquipmentViewProps)
               {/* Date-to-Date Activity History Search */}
               <Paper sx={{ p: 2.5, borderRadius: 2, border: "1px solid", borderColor: "divider" }}>
                 <Stack spacing={2}>
-                  <Stack direction="row" alignItems="center" spacing={1}>
+                  <Stack direction="row" spacing={1} sx={{
+                    alignItems: "center"
+                  }}>
                     <HistoryIcon color="action" />
-                    <Typography variant="subtitle1" fontWeight={700}>
+                    <Typography variant="subtitle1" sx={{
+                      fontWeight: 700
+                    }}>
                       Search Activity History — {selectedEquipment.code}
                     </Typography>
                   </Stack>
 
                   <Box component="form" onSubmit={handleHistorySearch}>
-                    <Grid container spacing={2} alignItems="center">
-                      <Grid item xs={12} sm={4}>
+                    <Grid container spacing={2} sx={{
+                      alignItems: "center"
+                    }}>
+                      <Grid
+                        size={{
+                          xs: 12,
+                          sm: 4
+                        }}>
                         <TextField
                           size="small"
                           label="Item / Code Filter"
@@ -478,29 +612,45 @@ export function ActiveEquipmentView({ onOpenDetails }: ActiveEquipmentViewProps)
                           fullWidth
                         />
                       </Grid>
-                      <Grid item xs={6} sm={3}>
+                      <Grid
+                        size={{
+                          xs: 6,
+                          sm: 3
+                        }}>
                         <TextField
                           size="small"
                           label="From Date"
                           type="date"
-                          InputLabelProps={{ shrink: true }}
                           value={historyFromDate}
                           onChange={(e) => setHistoryFromDate(e.target.value)}
                           fullWidth
+                          slotProps={{
+                            inputLabel: { shrink: true }
+                          }}
                         />
                       </Grid>
-                      <Grid item xs={6} sm={3}>
+                      <Grid
+                        size={{
+                          xs: 6,
+                          sm: 3
+                        }}>
                         <TextField
                           size="small"
                           label="To Date"
                           type="date"
-                          InputLabelProps={{ shrink: true }}
                           value={historyToDate}
                           onChange={(e) => setHistoryToDate(e.target.value)}
                           fullWidth
+                          slotProps={{
+                            inputLabel: { shrink: true }
+                          }}
                         />
                       </Grid>
-                      <Grid item xs={12} sm={2}>
+                      <Grid
+                        size={{
+                          xs: 12,
+                          sm: 2
+                        }}>
                         <Button type="submit" variant="outlined" color="primary" fullWidth disabled={loadingHistory}>
                           {loadingHistory ? "Searching..." : "Search"}
                         </Button>
@@ -528,7 +678,11 @@ export function ActiveEquipmentView({ onOpenDetails }: ActiveEquipmentViewProps)
                             {historyResults.length === 0 ? (
                               <TableRow>
                                 <TableCell colSpan={8} align="center" sx={{ py: 3 }}>
-                                  <Typography color="text.secondary" sx={{ fontSize: 13 }}>
+                                  <Typography
+                                    sx={{
+                                      color: "text.secondary",
+                                      fontSize: 13
+                                    }}>
                                     No historical activities found matching the selected search criteria.
                                   </Typography>
                                 </TableCell>
@@ -576,7 +730,9 @@ export function ActiveEquipmentView({ onOpenDetails }: ActiveEquipmentViewProps)
             </Stack>
           ) : (
             <Paper sx={{ p: 4, textAlign: "center", borderRadius: 2, border: "1px solid", borderColor: "divider" }}>
-              <Typography variant="body1" color="text.secondary">
+              <Typography variant="body1" sx={{
+                color: "text.secondary"
+              }}>
                 Select an active equipment record from the left panel to inspect its current activities and traceability history.
               </Typography>
             </Paper>

@@ -3,7 +3,7 @@ import { Grid, Paper, Typography, Box, useTheme } from "@mui/material";
 import ScienceOutlinedIcon from "@mui/icons-material/ScienceOutlined";
 import PendingActionsOutlinedIcon from "@mui/icons-material/PendingActionsOutlined";
 import HowToRegOutlinedIcon from "@mui/icons-material/HowToRegOutlined";
-import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
+import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutlined";
 import BlockOutlinedIcon from "@mui/icons-material/BlockOutlined";
 import InventoryOutlinedIcon from "@mui/icons-material/InventoryOutlined";
 import { StatusTone } from "../../../../theme/statusTokens";
@@ -66,7 +66,13 @@ export function MediaLotKpiCards({ lots, awaitingApprovalIds, activeKpi, onSelec
         const iconTokens = theme.custom.status[card.tone];
         const activeTokens = theme.custom.status.purple;
         return (
-          <Grid item xs={6} sm={4} md={2} key={card.key}>
+          <Grid
+            key={card.key}
+            size={{
+              xs: 6,
+              sm: 4,
+              md: 2
+            }}>
             <Paper
               elevation={isActive ? 2 : 0}
               onClick={() => onSelectKpi(card.key)}

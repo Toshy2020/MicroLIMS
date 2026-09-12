@@ -58,9 +58,9 @@ export function TestCodePickerMulti({ value, onChange, label = "Assigned Tests",
           {"isNew" in option ? `+ Add "${option.inputValue}" to Test Master` : `${option.code} — ${option.displayName}`}
         </li>
       )}
-      renderTags={(tagValue, getTagProps) =>
+      renderValue={(tagValue, getItemProps) =>
         tagValue.map((option, index) =>
-          "code" in option ? <Chip label={option.code} size="small" {...getTagProps({ index })} key={option.code} /> : null
+          "code" in option ? <Chip label={option.code} size="small" {...getItemProps({ index })} key={option.code} /> : null
         )
       }
       renderInput={(params) => <TextField {...params} label={label} placeholder="e.g. TAMC, PATHOGEN_ECOLI" />}

@@ -99,8 +99,10 @@ export function MainLayout() {
         </Box>
       </Box>
 
-      {/* GMP session-timeout control - not dismissable via escape/backdrop, no "stay logged out" bypass. */}
-      <Dialog open={showWarning} disableEscapeKeyDown onClose={() => {}}>
+      {/* GMP session-timeout control - not dismissable via escape/backdrop, no "stay logged out" bypass.
+          onClose ignores every close reason (escapeKeyDown, backdropClick), which is what keeps it open;
+          MUI v9 removed disableEscapeKeyDown in favour of exactly this. */}
+      <Dialog open={showWarning} onClose={() => {}}>
         <DialogTitle>Session Timeout Warning</DialogTitle>
         <DialogContent>
           <DialogContentText>

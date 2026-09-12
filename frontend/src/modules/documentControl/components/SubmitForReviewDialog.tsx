@@ -143,8 +143,10 @@ export const SubmitForReviewDialog: React.FC<SubmitForReviewDialogProps> = ({
             type="date"
             value={dueDate}
             onChange={(e) => setDueDate(e.target.value)}
-            InputLabelProps={{ shrink: true }}
             fullWidth
+            slotProps={{
+              inputLabel: { shrink: true }
+            }}
           />
 
           <TextField

@@ -71,18 +71,22 @@ export function AuditFilterBar({
           size="small"
           type="date"
           label="From Date"
-          InputLabelProps={{ shrink: true }}
           value={filters.fromDate}
           onChange={(e) => handleChange("fromDate", e.target.value)}
+          slotProps={{
+            inputLabel: { shrink: true }
+          }}
         />
 
         <TextField
           size="small"
           type="date"
           label="To Date"
-          InputLabelProps={{ shrink: true }}
           value={filters.toDate}
           onChange={(e) => handleChange("toDate", e.target.value)}
+          slotProps={{
+            inputLabel: { shrink: true }
+          }}
         />
 
         <FormControl size="small" fullWidth>

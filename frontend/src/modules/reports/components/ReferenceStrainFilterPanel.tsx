@@ -78,7 +78,7 @@ export function ReferenceStrainFilterPanel({
 
         <FormControl fullWidth size="small">
           <InputLabel>Active / Destroyed</InputLabel>
-          <Select
+          <Select<"" | "true" | "false">
             label="Active / Destroyed"
             value={draft.isDestroyed === undefined ? "" : draft.isDestroyed ? "true" : "false"}
             onChange={(e) => onChange({ isDestroyed: e.target.value === "" ? undefined : e.target.value === "true" })}
@@ -98,19 +98,23 @@ export function ReferenceStrainFilterPanel({
               size="small"
               type="date"
               label="From"
-              InputLabelProps={{ shrink: true }}
               value={draft.receiptFromDate?.slice(0, 10) ?? ""}
               onChange={(e) => onChange({ receiptFromDate: e.target.value ? `${e.target.value}T00:00:00.000Z` : undefined })}
               fullWidth
+              slotProps={{
+                inputLabel: { shrink: true }
+              }}
             />
             <TextField
               size="small"
               type="date"
               label="To"
-              InputLabelProps={{ shrink: true }}
               value={draft.receiptToDate?.slice(0, 10) ?? ""}
               onChange={(e) => onChange({ receiptToDate: e.target.value ? `${e.target.value}T23:59:59.999Z` : undefined })}
               fullWidth
+              slotProps={{
+                inputLabel: { shrink: true }
+              }}
             />
           </Stack>
         </Box>
@@ -124,19 +128,23 @@ export function ReferenceStrainFilterPanel({
               size="small"
               type="date"
               label="From"
-              InputLabelProps={{ shrink: true }}
               value={draft.usageFromDate?.slice(0, 10) ?? ""}
               onChange={(e) => onChange({ usageFromDate: e.target.value ? `${e.target.value}T00:00:00.000Z` : undefined })}
               fullWidth
+              slotProps={{
+                inputLabel: { shrink: true }
+              }}
             />
             <TextField
               size="small"
               type="date"
               label="To"
-              InputLabelProps={{ shrink: true }}
               value={draft.usageToDate?.slice(0, 10) ?? ""}
               onChange={(e) => onChange({ usageToDate: e.target.value ? `${e.target.value}T23:59:59.999Z` : undefined })}
               fullWidth
+              slotProps={{
+                inputLabel: { shrink: true }
+              }}
             />
           </Stack>
         </Box>

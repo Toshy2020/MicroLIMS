@@ -109,7 +109,9 @@ export function FileUploadDialog({
         <Typography variant="h6" sx={{ fontWeight: 700 }}>
           {hasExistingActiveFile ? "Replace Draft File" : "Upload Draft File"}
         </Typography>
-        <Typography variant="caption" color="text.secondary">
+        <Typography variant="caption" sx={{
+          color: "text.secondary"
+        }}>
           Document: <strong>{companyDocumentCode}</strong> | Revision: <strong>{revisionNumber} (Draft)</strong>
         </Typography>
       </DialogTitle>
@@ -173,7 +175,12 @@ export function FileUploadDialog({
           <Typography variant="body1" sx={{ fontWeight: 600 }}>
             {selectedFile ? selectedFile.name : "Click or browse to choose a file"}
           </Typography>
-          <Typography variant="caption" color="text.secondary" display="block">
+          <Typography
+            variant="caption"
+            sx={{
+              color: "text.secondary",
+              display: "block"
+            }}>
             {fileRole === "ControlledPdf" ? "Accepts .pdf format (max 50 MB)" : "Accepts .docx or .doc format (max 50 MB)"}
           </Typography>
         </Box>
@@ -185,7 +192,9 @@ export function FileUploadDialog({
               <Typography variant="body2" sx={{ fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                 {selectedFile.name}
               </Typography>
-              <Typography variant="caption" color="text.secondary">
+              <Typography variant="caption" sx={{
+                color: "text.secondary"
+              }}>
                 {formatBytes(selectedFile.size)}
               </Typography>
             </Box>

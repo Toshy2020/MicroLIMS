@@ -109,7 +109,13 @@ export function TodaysWorkTable({ items }: { items: TodaysWorkItem[] }) {
                 </TableCell>
                 <TableCell><CategoryBadge category={item.category} /></TableCell>
                 <TableCell>
-                  <Stack direction="row" spacing={0.5} flexWrap="wrap" rowGap={0.5}>
+                  <Stack
+                    direction="row"
+                    spacing={0.5}
+                    sx={{
+                      flexWrap: "wrap",
+                      rowGap: 0.5
+                    }}>
                     {item.tests.map((t) => (
                       <Box key={t.testOrderId} sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
                         <Typography sx={{ fontSize: 12 }}>{t.testCode}</Typography>

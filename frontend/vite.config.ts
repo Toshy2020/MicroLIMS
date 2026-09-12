@@ -3,15 +3,6 @@ import react from '@vitejs/plugin-react'
 
 export default defineConfig({
   plugins: [react()],
-  // MUI 5 publishes @mui/icons-material/<Icon> as CommonJS with
-  // exports.default, and the codebase default-imports ~640 of them by path.
-  // Vite 8's consistent CJS interop hands those imports the whole exports
-  // object, so every icon renders as an invalid element (React error #130).
-  // Restores the pre-Vite-8 interop until MUI 9, whose icons ship an
-  // exports map with ESM entries - remove this flag with that upgrade.
-  legacy: {
-    inconsistentCjsInterop: true
-  },
   server: {
     port: process.env.PORT ? Number(process.env.PORT) : 5173
   },

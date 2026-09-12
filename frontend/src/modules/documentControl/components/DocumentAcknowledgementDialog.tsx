@@ -74,7 +74,9 @@ export const DocumentAcknowledgementDialog: React.FC<DocumentAcknowledgementDial
     <Dialog open={open} onClose={submitting ? undefined : onClose} maxWidth="md" fullWidth>
       <DialogTitle sx={{ pb: 1, display: "flex", alignItems: "center", gap: 1.5 }}>
         <VerifiedUserIcon color="primary" />
-        <Typography variant="h6" component="span" fontWeight="bold">
+        <Typography variant="h6" component="span" sx={{
+          fontWeight: "bold"
+        }}>
           Controlled Document Training Acknowledgement
         </Typography>
       </DialogTitle>
@@ -93,13 +95,19 @@ export const DocumentAcknowledgementDialog: React.FC<DocumentAcknowledgementDial
           <Paper variant="outlined" sx={{ p: 2, bgcolor: "background.default" }}>
             <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", mb: 1.5 }}>
               <div>
-                <Typography variant="subtitle2" color="text.secondary">
+                <Typography variant="subtitle2" sx={{
+                  color: "text.secondary"
+                }}>
                   Document Code & Revision
                 </Typography>
-                <Typography variant="h6" fontWeight="bold">
+                <Typography variant="h6" sx={{
+                  fontWeight: "bold"
+                }}>
                   {context.companyDocumentCode} (Rev {context.revisionNumber})
                 </Typography>
-                <Typography variant="body2" color="text.secondary">
+                <Typography variant="body2" sx={{
+                  color: "text.secondary"
+                }}>
                   {context.documentTitle}
                 </Typography>
               </div>
@@ -114,18 +122,26 @@ export const DocumentAcknowledgementDialog: React.FC<DocumentAcknowledgementDial
 
             <Box sx={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 1.5 }}>
               <div>
-                <Typography variant="caption" color="text.secondary">Assigned User</Typography>
-                <Typography variant="body2" fontWeight="medium">{context.assignedUserName}</Typography>
+                <Typography variant="caption" sx={{
+                  color: "text.secondary"
+                }}>Assigned User</Typography>
+                <Typography variant="body2" sx={{
+                  fontWeight: "medium"
+                }}>{context.assignedUserName}</Typography>
               </div>
               <div>
-                <Typography variant="caption" color="text.secondary">Due Date (UTC)</Typography>
+                <Typography variant="caption" sx={{
+                  color: "text.secondary"
+                }}>Due Date (UTC)</Typography>
                 <Typography variant="body2">
                   {context.dueDateUtc ? new Date(context.dueDateUtc).toLocaleDateString() : "No fixed due date"}
                 </Typography>
               </div>
               {context.controlledFileName && (
                 <div style={{ gridColumn: "span 2" }}>
-                  <Typography variant="caption" color="text.secondary">Controlled File Artifact</Typography>
+                  <Typography variant="caption" sx={{
+                    color: "text.secondary"
+                  }}>Controlled File Artifact</Typography>
                   <Typography variant="body2" sx={{ fontFamily: monospaceFontFamily, fontSize: "0.8rem" }}>
                     {context.controlledFileName}
                   </Typography>
@@ -138,17 +154,29 @@ export const DocumentAcknowledgementDialog: React.FC<DocumentAcknowledgementDial
           <Paper variant="outlined" sx={{ p: 2 }}>
             <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1 }}>
               <MenuBookIcon color="action" fontSize="small" />
-              <Typography variant="subtitle2" fontWeight="bold">
+              <Typography variant="subtitle2" sx={{
+                fontWeight: "bold"
+              }}>
                 Reading Verification Progress
               </Typography>
-              <Typography variant="caption" color="text.secondary" sx={{ ml: "auto" }}>
+              <Typography
+                variant="caption"
+                sx={{
+                  color: "text.secondary",
+                  ml: "auto"
+                }}>
                 {readingProgress}% viewed
               </Typography>
             </Box>
             {/* Mandated label (ML-DC-FRS-1C-001 §2:133). Must sit on the
                 progress indicator itself, not only in the helper text below. */}
             <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, mb: 1 }}>
-              <Typography variant="caption" fontWeight="bold" color="text.secondary">
+              <Typography
+                variant="caption"
+                sx={{
+                  fontWeight: "bold",
+                  color: "text.secondary"
+                }}>
                 Informational Only — Formal Acknowledgement Required
               </Typography>
             </Box>
@@ -160,7 +188,9 @@ export const DocumentAcknowledgementDialog: React.FC<DocumentAcknowledgementDial
             />
             <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, mt: 1 }}>
               <InfoIcon fontSize="inherit" color="action" />
-              <Typography variant="caption" color="text.secondary">
+              <Typography variant="caption" sx={{
+                color: "text.secondary"
+              }}>
                 Progress tracks viewport/scroll interaction. Legal acknowledgement requires the explicit confirmation below.
               </Typography>
             </Box>
@@ -176,7 +206,9 @@ export const DocumentAcknowledgementDialog: React.FC<DocumentAcknowledgementDial
               borderLeftWidth: 4
             }}
           >
-            <Typography variant="subtitle2" color="primary" fontWeight="bold" gutterBottom>
+            <Typography variant="subtitle2" color="primary" gutterBottom sx={{
+              fontWeight: "bold"
+            }}>
               Legal & Regulatory Evidentiary Statement (GMP / 21 CFR Part 11)
             </Typography>
             <Typography
@@ -202,7 +234,9 @@ export const DocumentAcknowledgementDialog: React.FC<DocumentAcknowledgementDial
                 />
               }
               label={
-                <Typography variant="body2" fontWeight="bold">
+                <Typography variant="body2" sx={{
+                  fontWeight: "bold"
+                }}>
                   {/* Must attest to the statement rendered above, which comes
                       from context.legalStatementText and is the text frozen onto
                       the record as legalStatementFrozen (DC-URS-191: the

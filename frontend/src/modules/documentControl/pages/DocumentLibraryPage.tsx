@@ -231,12 +231,14 @@ export function DocumentLibraryPage() {
               setPage(0);
             }}
             sx={{ minWidth: 280, flexGrow: 1 }}
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <SearchIcon fontSize="small" color="action" />
-                </InputAdornment>
-              )
+            slotProps={{
+              input: {
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SearchIcon fontSize="small" color="action" />
+                  </InputAdornment>
+                )
+              }
             }}
           />
 
@@ -369,7 +371,12 @@ export function DocumentLibraryPage() {
               <TableRow>
                 <TableCell colSpan={11} align="center" sx={{ py: 6 }}>
                   <CircularProgress size={32} />
-                  <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                  <Typography
+                    variant="body2"
+                    sx={{
+                      color: "text.secondary",
+                      mt: 1
+                    }}>
                     Loading Document Library...
                   </Typography>
                 </TableCell>
@@ -381,7 +388,9 @@ export function DocumentLibraryPage() {
                   <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
                     No controlled documents match the selected filters
                   </Typography>
-                  <Typography variant="caption" color="text.secondary">
+                  <Typography variant="caption" sx={{
+                    color: "text.secondary"
+                  }}>
                     Try adjusting your search criteria or register a new document master.
                   </Typography>
                 </TableCell>
@@ -433,10 +442,17 @@ export function DocumentLibraryPage() {
                     <Chip label={doc.documentTypeCode} size="small" variant="outlined" sx={compactChipSx} />
                   </TableCell>
                   <TableCell>
-                    <Typography variant="caption" display="block" sx={{ fontWeight: 600 }}>
+                    <Typography
+                      variant="caption"
+                      sx={{
+                        display: "block",
+                        fontWeight: 600
+                      }}>
                       {doc.departmentName}
                     </Typography>
-                    <Typography variant="caption" color="text.secondary">
+                    <Typography variant="caption" sx={{
+                      color: "text.secondary"
+                    }}>
                       {doc.sectionName}
                     </Typography>
                   </TableCell>
@@ -480,12 +496,16 @@ export function DocumentLibraryPage() {
                         </Tooltip>
                       )}
                       {!doc.hasControlledPdf && !doc.hasSourceFile && (
-                        <Typography variant="caption" color="text.disabled">—</Typography>
+                        <Typography variant="caption" sx={{
+                          color: "text.disabled"
+                        }}>—</Typography>
                       )}
                     </Box>
                   </TableCell>
                   <TableCell>
-                    <Typography variant="caption" color="text.secondary">
+                    <Typography variant="caption" sx={{
+                      color: "text.secondary"
+                    }}>
                       {doc.effectiveDate ? new Date(doc.effectiveDate).toLocaleDateString() : "Pending"}
                     </Typography>
                   </TableCell>

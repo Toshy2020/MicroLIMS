@@ -139,14 +139,18 @@ export const CreateRevisionDialog: React.FC<CreateRevisionDialogProps> = ({
           {/* Proposed Number Highlight */}
           <Box sx={{ p: 2, bgcolor: (t) => t.palette.mode === "dark" ? "action.hover" : "grey.100", borderRadius: 1.5, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <Box>
-              <Typography variant="caption" color="text.secondary">
+              <Typography variant="caption" sx={{
+                color: "text.secondary"
+              }}>
                 Proposed Revision Number:
               </Typography>
               <Typography variant="h6" sx={{ fontWeight: 700, color: "primary.main" }}>
                 {loadingProposed ? <CircularProgress size={20} /> : `Rev ${proposedNumber || "—"}`}
               </Typography>
             </Box>
-            <Typography variant="caption" color="text.secondary">
+            <Typography variant="caption" sx={{
+              color: "text.secondary"
+            }}>
               Current: Rev {currentEffectiveRevisionNumber}
             </Typography>
           </Box>

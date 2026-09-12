@@ -1,8 +1,8 @@
 import { Grid, Paper, Typography, Box, useTheme } from "@mui/material";
-import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
+import ErrorOutlineIcon from "@mui/icons-material/ErrorOutlined";
 import AccessTimeIcon from "@mui/icons-material/AccessTime";
 import TodayIcon from "@mui/icons-material/Today";
-import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
+import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutlined";
 import { SvgIconComponent } from "@mui/icons-material";
 import { Link } from "react-router-dom";
 import { MyTask } from "../types/dashboard";
@@ -118,7 +118,13 @@ export function AnalystWorkSummary({ tasks, readyToReadCount }: AnalystWorkSumma
   return (
     <Grid container spacing={2} sx={{ mb: 2 }}>
       {cards.map((c) => (
-        <Grid item xs={12} sm={6} md={3} key={c.label}>
+        <Grid
+          key={c.label}
+          size={{
+            xs: 12,
+            sm: 6,
+            md: 3
+          }}>
           <SummaryCard
             label={c.label}
             count={c.count}

@@ -115,7 +115,9 @@ function ItemDocRow({
       }}
     >
       <Box sx={{ minWidth: 0, flex: 1 }}>
-        <Stack direction="row" spacing={0.75} alignItems="center">
+        <Stack direction="row" spacing={0.75} sx={{
+          alignItems: "center"
+        }}>
           {icon}
           <Typography variant="body2" sx={{ fontWeight: 700, fontSize: 12, color: "text.primary" }}>
             {title}

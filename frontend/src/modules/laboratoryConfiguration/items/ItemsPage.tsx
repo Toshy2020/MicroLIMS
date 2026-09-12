@@ -170,8 +170,19 @@ export function ItemsPage() {
       {selectedItem ? (
         <Grid container spacing={2.5}>
           {/* Left Panel: ~35-40% compact register */}
-          <Grid item xs={12} md={4.5} lg={4}>
-            <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1 }}>
+          <Grid
+            size={{
+              xs: 12,
+              md: 4.5,
+              lg: 4
+            }}>
+            <Stack
+              direction="row"
+              sx={{
+                justifyContent: "space-between",
+                alignItems: "center",
+                mb: 1
+              }}>
               <Typography variant="subtitle2" sx={{ fontWeight: 700, color: "text.primary" }}>
                 Configured Items ({filteredItems.length})
               </Typography>
@@ -187,7 +198,12 @@ export function ItemsPage() {
           </Grid>
 
           {/* Right Workspace Panel: ~60-65% detailed workspace */}
-          <Grid item xs={12} md={7.5} lg={8}>
+          <Grid
+            size={{
+              xs: 12,
+              md: 7.5,
+              lg: 8
+            }}>
             <ItemWorkspace
               item={selectedItem}
               onClose={() => setSelectedItemId(null)}

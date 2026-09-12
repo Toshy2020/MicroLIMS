@@ -439,13 +439,21 @@ export function DocumentConfigurationPage() {
                 </Alert>
 
                 <Paper variant="outlined" sx={{ p: 2.5, mb: 3 }}>
-                  <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700, textTransform: "uppercase" }}>
+                  <Typography
+                    variant="caption"
+                    sx={{
+                      color: "text.secondary",
+                      fontWeight: 700,
+                      textTransform: "uppercase"
+                    }}>
                     Sample Generated Document ID
                   </Typography>
                   <Typography variant="h5" sx={{ fontFamily: monospaceFontFamily, fontWeight: 700, color: "primary.main", my: 1 }}>
                     {numbering.sampleNextId}
                   </Typography>
-                  <Typography variant="caption" color="text.secondary">
+                  <Typography variant="caption" sx={{
+                    color: "text.secondary"
+                  }}>
                     Last modified by: {numbering.modifiedByUserName} on {new Date(numbering.modifiedAt).toLocaleString()}
                   </Typography>
                 </Paper>
@@ -468,7 +476,9 @@ export function DocumentConfigurationPage() {
                   <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", p: 1.5, bgcolor: (t) => t.palette.mode === "dark" ? "action.hover" : "grey.50", borderRadius: 1 }}>
                     <Box>
                       <Typography variant="body2" sx={{ fontWeight: 600 }}>Enable Automated Sequence Numbering</Typography>
-                      <Typography variant="caption" color="text.secondary">Active numbering profile</Typography>
+                      <Typography variant="caption" sx={{
+                        color: "text.secondary"
+                      }}>Active numbering profile</Typography>
                     </Box>
                     <Switch
                       checked={numberingForm.isEnabled}
@@ -516,8 +526,12 @@ export function DocumentConfigurationPage() {
                           </TableCell>
                           <TableCell>{s.dataType}</TableCell>
                           <TableCell>
-                            <Typography variant="caption" display="block">{s.modifiedByUserName || "System"}</Typography>
-                            <Typography variant="caption" color="text.secondary">{new Date(s.modifiedAt).toLocaleDateString()}</Typography>
+                            <Typography variant="caption" sx={{
+                              display: "block"
+                            }}>{s.modifiedByUserName || "System"}</Typography>
+                            <Typography variant="caption" sx={{
+                              color: "text.secondary"
+                            }}>{new Date(s.modifiedAt).toLocaleDateString()}</Typography>
                           </TableCell>
                           <TableCell align="right">
                             <IconButton aria-label={`Edit setting ${s.settingKey}`}
@@ -646,7 +660,9 @@ export function DocumentConfigurationPage() {
       <Dialog open={settingDialogOpen} onClose={() => setSettingDialogOpen(false)} maxWidth="xs" fullWidth>
         <DialogTitle>Edit Configuration Setting</DialogTitle>
         <DialogContent dividers sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
-          <Typography variant="caption" color="text.secondary">
+          <Typography variant="caption" sx={{
+            color: "text.secondary"
+          }}>
             Key: <strong>{editingSetting?.settingKey}</strong>
           </Typography>
           <TextField

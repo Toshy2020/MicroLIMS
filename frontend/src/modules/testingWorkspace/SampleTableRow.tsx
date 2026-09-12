@@ -114,10 +114,12 @@ export function SampleTableRow({
                   onToggleCheck(sample.sampleId, e.target.checked);
                 }}
                 onClick={(e) => e.stopPropagation()}
-                inputProps={{
-                  "aria-label": `Select ${sample.displayName} (${sample.referenceNumber}) for grouped actions`
-                }}
                 sx={{ p: 0.25, mr: 0.25 }}
+                slotProps={{
+                  input: {
+                    "aria-label": `Select ${sample.displayName} (${sample.referenceNumber}) for grouped actions`
+                  }
+                }}
               />
             )}
             <Box sx={{ minWidth: 0 }}>
@@ -195,10 +197,12 @@ export function SampleTableRow({
                   onToggleCheck(sample.sampleId, e.target.checked);
                 }}
                 onClick={(e) => e.stopPropagation()}
-                inputProps={{
-                  "aria-label": `Select ${sample.displayName} (${sample.referenceNumber}) for grouped actions`
-                }}
                 sx={{ p: 0.25, mr: 0.25 }}
+                slotProps={{
+                  input: {
+                    "aria-label": `Select ${sample.displayName} (${sample.referenceNumber}) for grouped actions`
+                  }
+                }}
               />
             )}
             <Box sx={{ minWidth: 0 }}>

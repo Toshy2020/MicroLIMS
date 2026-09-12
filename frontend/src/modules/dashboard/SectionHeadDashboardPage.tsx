@@ -132,7 +132,12 @@ export function SectionHeadDashboardPage() {
 
       {/* Tier 1: Laboratory Overview KPI Strip */}
       <Grid container spacing={1.5} sx={{ mb: 2.5 }}>
-        <Grid item xs={6} sm={4} md={1.71}>
+        <Grid
+          size={{
+            xs: 6,
+            sm: 4,
+            md: 1.71
+          }}>
           <Paper
             component={Link}
             to="/receiving-testing?status=Active"
@@ -160,7 +165,12 @@ export function SectionHeadDashboardPage() {
           </Paper>
         </Grid>
 
-        <Grid item xs={6} sm={4} md={1.71}>
+        <Grid
+          size={{
+            xs: 6,
+            sm: 4,
+            md: 1.71
+          }}>
           <Paper
             component={Link}
             to="/receiving-testing?view=kanban"
@@ -188,7 +198,12 @@ export function SectionHeadDashboardPage() {
           </Paper>
         </Grid>
 
-        <Grid item xs={6} sm={4} md={1.71}>
+        <Grid
+          size={{
+            xs: 6,
+            sm: 4,
+            md: 1.71
+          }}>
           <Paper
             component={Link}
             to="/receiving-testing?testStatus=ReadyToRead"
@@ -216,7 +231,12 @@ export function SectionHeadDashboardPage() {
           </Paper>
         </Grid>
 
-        <Grid item xs={6} sm={4} md={1.71}>
+        <Grid
+          size={{
+            xs: 6,
+            sm: 4,
+            md: 1.71
+          }}>
           <Paper
             component={Link}
             to="/receiving-testing?testStatus=ResultEntered"
@@ -244,7 +264,12 @@ export function SectionHeadDashboardPage() {
           </Paper>
         </Grid>
 
-        <Grid item xs={6} sm={4} md={1.71}>
+        <Grid
+          size={{
+            xs: 6,
+            sm: 4,
+            md: 1.71
+          }}>
           <Paper
             component={Link}
             to="/receiving-testing?testStatus=Reviewed"
@@ -272,7 +297,12 @@ export function SectionHeadDashboardPage() {
           </Paper>
         </Grid>
 
-        <Grid item xs={6} sm={4} md={1.71}>
+        <Grid
+          size={{
+            xs: 6,
+            sm: 4,
+            md: 1.71
+          }}>
           <Paper
             component={Link}
             to="/receiving-testing?urgency=overdue"
@@ -300,7 +330,12 @@ export function SectionHeadDashboardPage() {
           </Paper>
         </Grid>
 
-        <Grid item xs={12} sm={4} md={1.71}>
+        <Grid
+          size={{
+            xs: 12,
+            sm: 4,
+            md: 1.71
+          }}>
           <Paper
             onClick={() => {
               const el = document.getElementById("attention-section");
@@ -355,7 +390,13 @@ export function SectionHeadDashboardPage() {
             { label: "4. Scientific Review", count: data.reviewBottleneck, color: theme.custom.chartSequential[3], link: "/receiving-testing?testStatus=ResultEntered" },
             { label: "5. Final Approval", count: data.approvalBottleneck, color: theme.custom.chartSequential[4], link: "/receiving-testing?testStatus=Reviewed" }
           ].map((stage, idx) => (
-            <Grid item xs={12} sm={6} md={2.4} key={idx}>
+            <Grid
+              key={idx}
+              size={{
+                xs: 12,
+                sm: 6,
+                md: 2.4
+              }}>
               <Paper
                 component={Link}
                 to={stage.link}
@@ -405,7 +446,12 @@ export function SectionHeadDashboardPage() {
             </Box>
             <Grid container spacing={1.5}>
               {data.attentionItems.map((item, idx) => (
-                <Grid item xs={12} md={6} key={idx}>
+                <Grid
+                  key={idx}
+                  size={{
+                    xs: 12,
+                    md: 6
+                  }}>
                   <Paper
                     variant="outlined"
                     sx={{
@@ -463,7 +509,11 @@ export function SectionHeadDashboardPage() {
       {/* Tier 4: Review Queue & Approval Queue Summaries */}
       <Grid container spacing={2.5} sx={{ mb: 2.5 }}>
         {/* Review Queue Summary */}
-        <Grid item xs={12} lg={6}>
+        <Grid
+          size={{
+            xs: 12,
+            lg: 6
+          }}>
           <Paper sx={{ p: 2, height: "100%", display: "flex", flexDirection: "column" }}>
             <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1.5 }}>
               <Box>
@@ -546,7 +596,11 @@ export function SectionHeadDashboardPage() {
         </Grid>
 
         {/* Approval Queue Summary */}
-        <Grid item xs={12} lg={6}>
+        <Grid
+          size={{
+            xs: 12,
+            lg: 6
+          }}>
           <Paper sx={{ p: 2, height: "100%", display: "flex", flexDirection: "column" }}>
             <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1.5 }}>
               <Box>
@@ -633,7 +687,11 @@ export function SectionHeadDashboardPage() {
       {/* Tier 5: Laboratory Workload & Incubation Status */}
       <Grid container spacing={2.5} sx={{ mb: 2.5 }}>
         {/* Analyst Workload Allocation */}
-        <Grid item xs={12} lg={7}>
+        <Grid
+          size={{
+            xs: 12,
+            lg: 7
+          }}>
           <Paper sx={{ p: 2 }}>
             <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1 }}>
               <PeopleAltOutlinedIcon sx={{ color: theme.palette.primary.main }} />
@@ -727,7 +785,11 @@ export function SectionHeadDashboardPage() {
         </Grid>
 
         {/* Incubation Summary */}
-        <Grid item xs={12} lg={5}>
+        <Grid
+          size={{
+            xs: 12,
+            lg: 5
+          }}>
           <Paper sx={{ p: 2 }}>
             <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1 }}>
               <ThermostatOutlinedIcon sx={{ color: theme.palette.primary.main }} />
@@ -800,10 +862,18 @@ export function SectionHeadDashboardPage() {
 
       {/* Tier 6: Laboratory Trends & Distribution */}
       <Grid container spacing={2} sx={{ mb: 2 }}>
-        <Grid item xs={12} md={8}>
+        <Grid
+          size={{
+            xs: 12,
+            md: 8
+          }}>
           <SamplesTrendChart trend={trend} months={months} onMonthsChange={setMonths} />
         </Grid>
-        <Grid item xs={12} md={4}>
+        <Grid
+          size={{
+            xs: 12,
+            md: 4
+          }}>
           <TestOrderStatusDonut statusDist={statusDist} />
         </Grid>
       </Grid>

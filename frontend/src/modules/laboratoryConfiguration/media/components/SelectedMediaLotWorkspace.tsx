@@ -154,7 +154,14 @@ export function SelectedMediaLotWorkspace({
       </Box>
 
       {/* Action Toolbar */}
-      <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap sx={{ pt: 0.5 }}>
+      <Stack
+        direction="row"
+        spacing={1}
+        useFlexGap
+        sx={{
+          flexWrap: "wrap",
+          pt: 0.5
+        }}>
         <Button
           component={Link}
           to={`/media/${lot.id}/report`}

@@ -138,7 +138,9 @@ export function ControlledPdfViewer({
   const isSupersededOrObsolete = revisionStatus === "Superseded" || revisionStatus === "Obsolete" || revisionStatus === "Cancelled";
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="lg" fullWidth PaperProps={{ sx: { height: "92vh" } }}>
+    <Dialog open={open} onClose={onClose} maxWidth="lg" fullWidth slotProps={{
+      paper: { sx: { height: "92vh" } }
+    }}>
       <DialogTitle sx={{ pb: 1, borderBottom: "1px solid", borderColor: "divider" }}>
         <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
           <Box>
@@ -162,7 +164,9 @@ export function ControlledPdfViewer({
             <Typography variant="h6" sx={{ fontWeight: 700, lineHeight: 1.2 }}>
               {companyDocumentCode} — {title}
             </Typography>
-            <Typography variant="caption" color="text.secondary">
+            <Typography variant="caption" sx={{
+              color: "text.secondary"
+            }}>
               MicroLIMS ID: <strong>{microLimsDocumentId}</strong> | Revision: <strong>{revisionNumber}</strong>
               {assignmentId ? ` | Assignment ID: #${assignmentId}` : ""}
             </Typography>
@@ -178,7 +182,12 @@ export function ControlledPdfViewer({
             <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 0.5 }}>
               <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                 <MenuBookIcon fontSize="small" color="action" />
-                <Typography variant="caption" fontWeight="bold" color="text.secondary">
+                <Typography
+                  variant="caption"
+                  sx={{
+                    fontWeight: "bold",
+                    color: "text.secondary"
+                  }}>
                   {/* Exact label mandated by ML-DC-FRS-1C-001 §2:133 - scroll
                       progress is informational and must never be presented as
                       satisfying the acknowledgement obligation. */}
@@ -229,7 +238,9 @@ export function ControlledPdfViewer({
         {loading && (
           <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "100%", gap: 2 }}>
             <CircularProgress />
-            <Typography variant="body2" color="text.secondary">
+            <Typography variant="body2" sx={{
+              color: "text.secondary"
+            }}>
               Verifying cryptographic SHA-256 signature and loading PDF...
             </Typography>
           </Box>
@@ -258,7 +269,9 @@ export function ControlledPdfViewer({
       </DialogContent>
 
       <DialogActions sx={{ px: 3, py: 1.5, borderTop: "1px solid", borderColor: "divider", justifyContent: "space-between" }}>
-        <Typography variant="caption" color="text.secondary">
+        <Typography variant="caption" sx={{
+          color: "text.secondary"
+        }}>
           MicroLIMS Document Control | Server-Verified SHA-256 Integrity
         </Typography>
         <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>

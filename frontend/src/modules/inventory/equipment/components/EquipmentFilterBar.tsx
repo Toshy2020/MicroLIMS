@@ -53,12 +53,14 @@ export function EquipmentFilterBar({ items, filters, onFilterChange, onReset }: 
           placeholder="Search by type, manufacturer, serial no., code, location..."
           value={filters.search}
           onChange={(e) => updateField("search", e.target.value)}
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <SearchIcon fontSize="small" sx={{ color: "text.secondary" }} />
-              </InputAdornment>
-            )
+          slotProps={{
+            input: {
+              startAdornment: (
+                <InputAdornment position="start">
+                  <SearchIcon fontSize="small" sx={{ color: "text.secondary" }} />
+                </InputAdornment>
+              )
+            }
           }}
         />
 

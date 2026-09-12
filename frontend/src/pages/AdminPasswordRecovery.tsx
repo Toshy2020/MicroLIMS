@@ -44,19 +44,30 @@ export function AdminPasswordRecovery() {
     <Box sx={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", bgcolor: "grey.100", p: 2 }}>
       <Paper sx={{ p: 4, maxWidth: 450, width: "100%", borderRadius: 2 }}>
         <Stack spacing={3}>
-          <Stack spacing={1} alignItems="center" textAlign="center">
+          <Stack
+            spacing={1}
+            sx={{
+              alignItems: "center",
+              textAlign: "center"
+            }}>
             <LockResetIcon color="primary" sx={{ fontSize: 48 }} />
-            <Typography variant="h5" fontWeight={700}>
+            <Typography variant="h5" sx={{
+              fontWeight: 700
+            }}>
               Password Recovery
             </Typography>
-            <Typography variant="body2" color="text.secondary">
+            <Typography variant="body2" sx={{
+              color: "text.secondary"
+            }}>
               Administrator-Assisted Account Access Recovery
             </Typography>
           </Stack>
 
           {error && <Alert severity="error">{error}</Alert>}
           {success ? (
-            <Stack spacing={2} textAlign="center">
+            <Stack spacing={2} sx={{
+              textAlign: "center"
+            }}>
               <Alert severity="success">
                 Your password has been successfully reset! You can now log in using your new password.
               </Alert>
@@ -118,7 +129,11 @@ export function AdminPasswordRecovery() {
             </form>
           )}
 
-          <Box textAlign="center" sx={{ mt: 1 }}>
+          <Box
+            sx={{
+              textAlign: "center",
+              mt: 1
+            }}>
             <Link component={RouterLink} to="/login" variant="body2" underline="hover">
               Return to Login
             </Link>

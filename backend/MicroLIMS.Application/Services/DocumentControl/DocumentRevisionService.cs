@@ -95,14 +95,11 @@ public class DocumentRevisionService : IDocumentRevisionService
             var user = await _db.Users.Include(u => u.Role).FirstOrDefaultAsync(u => u.Id == userId)
                 ?? throw new KeyNotFoundException($"User {userId} not found.");
 
-// Document Controller (SectionHead) only. ML-DC-FRS-1B-001 §3.2:184
-// permits the override only for Document Controller (SectionHead).
-// FRS-1A permission matrix records System Administrator as No for Override Revision Number;
-// disallow SystemAdministrator here to enforce zero-administrative-exemption (DC-URS-166, BR-013).
-if (user.Role?.Type != RoleType.SectionHead)
-{
-    throw new UnauthorizedAccessException("Only Document Controllers are authorized to override the proposed revision number.");
-}
+            // Document Controller (SectionHead) only. ML-DC-FRS-1B-001 §3.2:184
+            // permits the override only for Document Controller (SectionHead).
+            // FRS-1A permission matrix records System Administrator as No for Override Revision Number;
+            // disallow SystemAdministrator here to enforce zero-administrative-exemption (DC-URS-166, BR-013).
+            if (user.Role?.Type != RoleType.SectionHead)
             {
                 throw new UnauthorizedAccessException("Only Document Controllers are authorized to override the proposed revision number.");
             }

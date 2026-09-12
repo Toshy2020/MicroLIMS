@@ -4,6 +4,7 @@ using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Persistence.DbContext;
 using MicroLIMS.Persistence.Helpers;
+using MicroLIMS.Persistence.Seed;
 using Npgsql;
 using Xunit;
 
@@ -154,6 +155,18 @@ public class PostgresTestFixture : IAsyncLifetime
             db.Users.Add(controllerUser);
             await db.SaveChangesAsync();
             SeededControllerUserId = controllerUser.Id;
+
+            // Document Control authority is permission-based. The migrations run
+            // against an empty Roles table, so their grant inserts join to nothing;
+            // create every role type first, then seed the production grant matrix.
+            // Test classes look roles up by type before creating one, so they
+            // pick up these granted rows.
+            db.Roles.AddRange(
+                new Role { Type = RoleType.Reviewer, Name = "Reviewer", IsActive = true },
+                new Role { Type = RoleType.Analyst, Name = "Analyst", IsActive = true });
+            await db.SaveChangesAsync();
+
+            DbSeeder.SeedPermissionsAndGrants(db);
 
             var docType = new DocumentType
             {

@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Interfaces.DocumentControl;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Persistence.DbContext;
+using MicroLIMS.Shared.Constants;
 
 namespace MicroLIMS.Application.Services.DocumentControl;
 
@@ -27,6 +28,29 @@ public class DocumentAuthorizationService : IDocumentAuthorizationService
         return (true, user.Role?.Type);
     }
 
+    // Category access comes from the role's granted permissions, so a lab can
+    // change who may perform a Document Control function from the Roles screen
+    // instead of needing a code change (URS v1.1 §5: "Global role permissions
+    // determine which categories of function a user may access").
+    //
+    // Per-document authority and the segregation-of-duties invariants are NOT
+    // expressed this way - they stay as fixed rules below, because BR-013 states
+    // the SoD restriction "cannot be overridden administratively".
+    private async Task<bool> HasPermissionAsync(int userId, string permissionCode)
+    {
+        var user = await _db.Users
+            .AsNoTracking()
+            .FirstOrDefaultAsync(u => u.Id == userId);
+
+        if (user == null || !user.IsActive)
+            return false;
+
+        return await _db.RolePermissions
+            .Include(rp => rp.Permission)
+            .AsNoTracking()
+            .AnyAsync(rp => rp.RoleId == user.RoleId && rp.Permission!.Code == permissionCode);
+    }
+
     private async Task<bool> IsOwnerOrAssignedAuthorAsync(int documentMasterId, int userId)
     {
         var isOwner = await _db.DocumentMasters
@@ -43,6 +67,23 @@ public class DocumentAuthorizationService : IDocumentAuthorizationService
                            a.IsActive);
 
         return isAuthor;
+    }
+
+    // Registering a Document Master had no authorization check of any kind:
+    // RegisterDocumentMasterAsync validated its input and the controller carried
+    // only a bare [Authorize], so any authenticated user could create a master
+    // and permanently consume a MicroLIMS Document ID (FS-1a-121 never reissues
+    // one).
+    //
+    // Granted by permission rather than hardcoded role, because RoleType has no
+    // Document Author: Analyst covers both Document Author (the FRS-1A matrix
+    // grants registration) and General Reader (the same matrix denies it), so no
+    // role check can satisfy both rows. Documents.Register is seeded to
+    // Administrator, Document Controller and Analyst, and a lab that wants
+    // registration restricted further revokes it on the Roles screen.
+    public async Task<bool> CanRegisterDocumentMasterAsync(int userId)
+    {
+        return await HasPermissionAsync(userId, PermissionConstants.DocumentsRegister);
     }
 
     public async Task<bool> CanViewDocumentAsync(int documentMasterId, int userId)

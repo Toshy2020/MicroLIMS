@@ -1,4 +1,4 @@
-using System.Security.Cryptography;
+﻿using System.Security.Cryptography;
 using System.Text;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.DTOs.DocumentControl;
@@ -10,6 +10,7 @@ using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Infrastructure.Storage;
 using MicroLIMS.Persistence.DbContext;
+using MicroLIMS.Persistence.Seed;
 using MicroLIMS.Persistence.Helpers;
 using Xunit;
 
@@ -58,6 +59,11 @@ public class DocumentControlUnitTests
         var analystRole = new Role { Type = RoleType.Analyst, Name = "Analyst", IsActive = true };
         _db.Roles.AddRange(adminRole, controllerRole, analystRole);
         _db.SaveChanges();
+
+        // Document Control authority is permission-based, so the fixture seeds
+        // the real production grant matrix rather than a test-local copy - that
+        // way these tests fail if a grant the module depends on is withdrawn.
+        DbSeeder.SeedPermissionsAndGrants(_db);
 
         // Seed Users
         var adminUser = new User { FullName = "Admin User", Username = "admin", PasswordHash = "hash", RoleId = adminRole.Id, IsActive = true };
@@ -504,6 +510,47 @@ public class DocumentControlUnitTests
         var envResults = await _masterService.GetLibraryAsync(new DocumentLibraryFilterRequest { SearchTerm = "ENV" }, _authorUserId);
         Assert.Single(envResults.Items);
         Assert.Equal("SOP-ENV-200", envResults.Items[0].CompanyDocumentCode);
+    }
+
+    // ML-DC-FRS-1A-001 §5:104 requires a Status column on the Document Library.
+    // The summary DTO used to carry no revision status, so the client inferred
+    // one from CurrentEffectiveRevisionId and labelled every master without an
+    // effective revision "Draft" - including revisions actually InReview,
+    // AwaitingApproval, FutureEffective, Superseded, Obsolete or Cancelled.
+    [Fact]
+    public async Task DocumentLibrary_ReportsCurrentRevisionStatus_NotJustWhetherEffective()
+    {
+        var registered = await _masterService.RegisterDocumentMasterAsync(new RegisterDocumentMasterRequest(
+            CompanyDocumentCode: "SOP-STAT-300",
+            Title: "Revision Status Surfacing",
+            DocumentTypeId: _docTypeId,
+            DepartmentId: _deptId,
+            SectionId: _sectionId,
+            DocumentOwnerUserId: _authorUserId
+        ), _authorUserId);
+
+        // Registration creates Rev 01 as a Draft and no effective revision.
+        var afterRegister = await _masterService.GetLibraryAsync(
+            new DocumentLibraryFilterRequest { SearchTerm = "SOP-STAT-300" }, _authorUserId);
+        var draftRow = Assert.Single(afterRegister.Items);
+        Assert.Null(draftRow.CurrentEffectiveRevisionId);
+        Assert.Equal(DocumentRevisionStatus.Draft, draftRow.CurrentRevisionStatus);
+
+        // Cancelling the draft must change the reported status. Under the old
+        // inference these two states were indistinguishable, because neither
+        // has an effective revision.
+        var revisionId = registered.Revisions.Single().Id;
+        await _masterService.CancelDraftRevisionAsync(
+            revisionId,
+            new CancelDraftRevisionRequest("Registered against the wrong section."),
+            _authorUserId);
+
+        var afterCancel = await _masterService.GetLibraryAsync(
+            new DocumentLibraryFilterRequest { SearchTerm = "SOP-STAT-300", IncludeCancelledAndVoided = true },
+            _authorUserId);
+        var cancelledRow = Assert.Single(afterCancel.Items);
+        Assert.Null(cancelledRow.CurrentEffectiveRevisionId);
+        Assert.Equal(DocumentRevisionStatus.Cancelled, cancelledRow.CurrentRevisionStatus);
     }
 
     [Fact]

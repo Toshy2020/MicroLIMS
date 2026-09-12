@@ -474,6 +474,20 @@ public class DocumentReviewService : IDocumentReviewService
         if (!isAssignedReviewer && role != RoleType.SectionHead && role != RoleType.SystemAdministrator)
             throw new UnauthorizedAccessException("Only the assigned technical reviewer or document controller may resolve review findings.");
 
+        // The finding lifecycle is a ladder, not a set of interchangeable states:
+        // Open -> AuthorResponded -> ReviewerVerified -> Resolved
+        // (ML-DC-FRS-1B-001 §3.3:251). §3.3:265 requires mandatory findings to
+        // reach Resolved "via reviewer verification", so Resolved is only
+        // reachable from ReviewerVerified. Without this the status could be set
+        // from Open, closing a finding the author had never answered and that
+        // nobody had verified - while still counting toward the gate that
+        // releases the technical review.
+        if (finding.Status != ReviewFindingStatus.ReviewerVerified)
+            throw new InvalidOperationException(
+                $"A review finding can only be resolved once it has been verified by the reviewer. " +
+                $"Current status is {finding.Status}; it must be {ReviewFindingStatus.ReviewerVerified} " +
+                $"(the author responds, the reviewer verifies, then the finding is resolved).");
+
         var prevStatus = finding.Status.ToString();
         finding.ResolvedAt = DateTime.UtcNow;
         finding.ResolvedByUserId = userId;

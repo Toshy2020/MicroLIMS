@@ -192,7 +192,11 @@ public class DocumentControlController : ControllerBase
         }
     }
 
-    [HttpDelete("documents/{id:int}/assignments/{assignmentId:int}")]
+    // POST, not DELETE. RemoveAssignmentAsync already retains the record by
+    // setting IsActive = false, so DC-URS-184 was satisfied, but FS-1a-170
+    // requires that no delete endpoint exist for controlled records - a DELETE
+    // verb here advertised a capability the system must not offer.
+    [HttpPost("documents/{id:int}/assignments/{assignmentId:int}/deactivate")]
     public async Task<IActionResult> RemoveAssignment(int id, int assignmentId)
     {
         try

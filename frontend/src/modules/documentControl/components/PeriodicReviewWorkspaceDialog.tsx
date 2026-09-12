@@ -1,3 +1,4 @@
+import { compactChipStrongSx } from "../documentControlStyles";
 import { useState, useEffect } from "react";
 import {
   Dialog,
@@ -185,7 +186,7 @@ export function PeriodicReviewWorkspaceDialog({
               </Typography>
             </Box>
           </Box>
-          <IconButton onClick={onClose} size="small">
+          <IconButton aria-label="Close periodic review workspace" onClick={onClose} size="small">
             <CloseIcon />
           </IconButton>
         </DialogTitle>
@@ -228,7 +229,7 @@ export function PeriodicReviewWorkspaceDialog({
                       <Typography variant="body2" sx={{ fontWeight: 700, color: workspace.task.isOverdue ? "error.main" : "text.primary" }}>
                         {new Date(workspace.task.scheduledDueDate).toLocaleDateString()}
                       </Typography>
-                      {workspace.task.isOverdue && <Chip label="OVERDUE" color="error" size="small" sx={{ height: 18, fontSize: "0.65rem", fontWeight: 800 }} />}
+                      {workspace.task.isOverdue && <Chip label="OVERDUE" color="error" size="small" sx={compactChipStrongSx} />}
                     </Box>
                   </Box>
                   <Box>
@@ -358,7 +359,7 @@ export function PeriodicReviewWorkspaceDialog({
                               <TableCell align="right">
                                 {f.status === "Open" && (
                                   <Tooltip title="Mark Resolved">
-                                    <IconButton size="small" color="success" onClick={() => handleResolveFinding(f.id)}>
+                                    <IconButton aria-label="Mark finding resolved" size="small" color="success" onClick={() => handleResolveFinding(f.id)}>
                                       <DoneIcon fontSize="small" />
                                     </IconButton>
                                   </Tooltip>

@@ -308,6 +308,7 @@ public class PeriodicReviewService : IPeriodicReviewService
             master.RecordStatus,
             master.CurrentEffectiveRevisionId,
             rev.RevisionNumber,
+            rev.RevisionStatus,
             rev.EffectiveDate,
             rev.NextReviewDate,
             pdfFile != null,

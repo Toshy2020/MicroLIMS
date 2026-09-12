@@ -71,8 +71,10 @@ export const documentRevisionService = {
     return res.data.data;
   },
 
-  deleteChangeItem: async (changeItemId: number): Promise<void> => {
-    await apiClient.delete(`/document-control/change-items/${changeItemId}`);
+  // Deactivates the change item and retains the record. It used to be
+  // physically deleted, which DC-URS-184 and BR-015 prohibit.
+  deactivateChangeItem: async (changeItemId: number): Promise<void> => {
+    await apiClient.post(`/document-control/change-items/${changeItemId}/deactivate`);
   },
 
   convertFindingToChangeItem: async (

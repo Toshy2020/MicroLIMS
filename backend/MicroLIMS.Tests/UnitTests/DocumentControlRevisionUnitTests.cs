@@ -212,6 +212,42 @@ public class DocumentControlRevisionUnitTests
         Assert.Contains("Only Document Controllers are authorized to override", ex.Message);
     }
 
+    // DC-URS-166 / BR-013 negative test. The revision-number override is
+    // reserved for the Document Controller, and the FRS-1A permission matrix
+    // records System Administrator as No for it. The service used to admit
+    // SystemAdministrator here - contradicting its own error message and the
+    // rule that administrators get no exemption from controlled-action
+    // restrictions.
+    [Fact]
+    public async Task CreateRevision_OverrideBySystemAdministrator_IsRefused()
+    {
+        var (db, _, _, _, master, _) = await CreateSeededContextWithEffectiveDocumentAsync();
+
+        var adminRole = new Role { Type = RoleType.SystemAdministrator, Name = "System Administrator", IsActive = true };
+        db.Roles.Add(adminRole);
+        await db.SaveChangesAsync();
+
+        var admin = new User { FullName = "System Administrator", Username = "admin1", RoleId = adminRole.Id, IsActive = true, PasswordHash = "x" };
+        db.Users.Add(admin);
+        await db.SaveChangesAsync();
+
+        var seqHelper = new DatabaseSequenceHelper(db);
+        var audit = new AuditEventService(db, seqHelper);
+        var auth = new DocumentAuthorizationService(db);
+        var revisionService = new DocumentRevisionService(db, audit, auth);
+
+        var request = new CreateRevisionRequest(
+            RevisionType: RevisionType.Major,
+            ReasonForRevision: "Administrative renumbering requested outside change control.",
+            CustomRevisionNumber: "99-ADMIN"
+        );
+
+        var ex = await Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
+            revisionService.CreateRevisionFromEffectiveAsync(master.Id, request, admin.Id));
+
+        Assert.Contains("Only Document Controllers are authorized to override", ex.Message);
+    }
+
     [Fact]
     public async Task CreateRevision_MandatoryReasonValidation_RejectsShortOrEmpty()
     {
@@ -304,10 +340,21 @@ public class DocumentControlRevisionUnitTests
         var list = await revisionService.GetChangeItemsAsync(draft.Id, author.Id);
         Assert.Single(list);
 
-        // 4. Delete Change Item
-        await revisionService.DeleteChangeItemAsync(item.Id, author.Id);
+        // 4. Remove Change Item. DC-URS-184 and BR-015 forbid permanent
+        // deletion of a workflow record, so this deactivates and retains it:
+        // it leaves the active list but must still exist in the database.
+        await revisionService.DeactivateChangeItemAsync(item.Id, author.Id);
         var listAfter = await revisionService.GetChangeItemsAsync(draft.Id, author.Id);
         Assert.Empty(listAfter);
+
+        var retained = await db.RevisionChangeItems.FirstOrDefaultAsync(c => c.Id == item.Id);
+        Assert.NotNull(retained);
+        Assert.False(retained!.IsActive);
+        Assert.Equal("Increased homogenizer speed to 2000 RPM for 60 seconds.", retained.DescriptionOfChange);
+
+        // Removing it twice is rejected rather than silently re-applied.
+        await Assert.ThrowsAsync<InvalidOperationException>(
+            () => revisionService.DeactivateChangeItemAsync(item.Id, author.Id));
 
         // 5. Verify audit logs
         var auditLogs = await db.AuditLogs
@@ -316,7 +363,7 @@ public class DocumentControlRevisionUnitTests
             .ToListAsync();
         Assert.Contains(auditLogs, a => a.ActionCode == "RevisionChangeItemAdded");
         Assert.Contains(auditLogs, a => a.ActionCode == "RevisionChangeItemUpdated");
-        Assert.Contains(auditLogs, a => a.ActionCode == "RevisionChangeItemDeleted");
+        Assert.Contains(auditLogs, a => a.ActionCode == "RevisionChangeItemDeactivated");
     }
 
     [Fact]

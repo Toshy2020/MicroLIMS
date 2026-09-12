@@ -1,3 +1,5 @@
+import { monospaceFontFamily } from "../../../theme/palette";
+import { compactChipStrongSx, compactChipSx } from "../documentControlStyles";
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import {
@@ -37,6 +39,7 @@ import { PageHeader } from "../../../components/PageHeader";
 import { tableHeadSx } from "../../../theme";
 import { toast } from "sonner";
 import { StatusBadge } from "../../../components/StatusBadge";
+import { documentMasterStatusLabel } from "../documentStatusDisplay";
 import { useAuth } from "../../../contexts/AuthContext";
 import { documentControlService } from "../services/documentControlService";
 import { RegisterDocumentDialog } from "../components/RegisterDocumentDialog";
@@ -54,6 +57,10 @@ export function DocumentLibraryPage() {
   const navigate = useNavigate();
   const { role } = useAuth();
   const isController = role === "SectionHead";
+  // Voiding stays Controller-only (a System Administrator is explicitly
+  // excluded, FRS-1A §4.1:86), so registration needs its own flag rather than
+  // reusing isController.
+  const canRegister = isController || role === "SystemAdministrator";
 
   // Data state
   const [documents, setDocuments] = useState<DocumentMasterSummaryDto[]>([]);
@@ -191,14 +198,19 @@ export function DocumentLibraryPage() {
           title="Document Library"
           subtitle="Authoritative repository of controlled documents, Standard Operating Procedures, and quality records"
         />
-        <Button
-          variant="contained"
-          startIcon={<AddIcon />}
-          onClick={() => setRegisterOpen(true)}
-          sx={{ fontWeight: 600 }}
-        >
-          Register New Document
-        </Button>
+        {/* Mirrors CanRegisterDocumentMasterAsync. The server check is the
+            control; hiding the button just avoids offering an action that will
+            be refused. */}
+        {canRegister && (
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={() => setRegisterOpen(true)}
+            sx={{ fontWeight: 600 }}
+          >
+            Register New Document
+          </Button>
+        )}
       </Box>
 
       {error && (
@@ -277,12 +289,19 @@ export function DocumentLibraryPage() {
             }}
             sx={{ minWidth: 150 }}
           >
+            {/* The canonical eight revision states, in lifecycle order, exactly
+                as the backend DocumentRevisionStatus enum defines them. This
+                list previously offered "Approved" - a value absent from that
+                enum, so the filter could never match - while omitting
+                AwaitingApproval, FutureEffective and Obsolete entirely. */}
             <MenuItem value="">All Statuses</MenuItem>
             <MenuItem value="Draft">Draft</MenuItem>
-            <MenuItem value="Effective">Effective</MenuItem>
             <MenuItem value="InReview">In Review</MenuItem>
-            <MenuItem value="Approved">Approved</MenuItem>
+            <MenuItem value="AwaitingApproval">Awaiting Approval</MenuItem>
+            <MenuItem value="FutureEffective">Future Effective</MenuItem>
+            <MenuItem value="Effective">Effective</MenuItem>
             <MenuItem value="Superseded">Superseded</MenuItem>
+            <MenuItem value="Obsolete">Obsolete</MenuItem>
             <MenuItem value="Cancelled">Cancelled</MenuItem>
           </TextField>
 
@@ -392,7 +411,7 @@ export function DocumentLibraryPage() {
                     </Typography>
                   </TableCell>
                   <TableCell>
-                    <Typography variant="caption" sx={{ fontFamily: "monospace" }}>
+                    <Typography variant="caption" sx={{ fontFamily: monospaceFontFamily }}>
                       {doc.microLimsDocumentId}
                     </Typography>
                   </TableCell>
@@ -411,7 +430,7 @@ export function DocumentLibraryPage() {
                     </Typography>
                   </TableCell>
                   <TableCell>
-                    <Chip label={doc.documentTypeCode} size="small" variant="outlined" sx={{ height: 20, fontSize: 11 }} />
+                    <Chip label={doc.documentTypeCode} size="small" variant="outlined" sx={compactChipSx} />
                   </TableCell>
                   <TableCell>
                     <Typography variant="caption" display="block" sx={{ fontWeight: 600 }}>
@@ -434,9 +453,9 @@ export function DocumentLibraryPage() {
                       <StatusBadge status="Void" label="VOID" />
                     ) : (
                       <Box sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}>
-                        <StatusBadge status={doc.currentEffectiveRevisionId ? "Effective" : "Draft"} />
+                        <StatusBadge status={documentMasterStatusLabel(doc)} />
                         {doc.currentEffectiveRevisionId && doc.nextReviewDate && new Date(doc.nextReviewDate) < new Date() && (
-                          <Chip label="REVIEW OVERDUE" color="error" size="small" sx={{ height: 16, fontSize: "0.55rem", fontWeight: 800, width: "fit-content" }} />
+                          <Chip label="REVIEW OVERDUE" color="error" size="small" sx={{ ...compactChipStrongSx, width: "fit-content" }} />
                         )}
                       </Box>
                     )}
@@ -445,7 +464,7 @@ export function DocumentLibraryPage() {
                     <Box sx={{ display: "flex", justifyContent: "center", gap: 0.5 }}>
                       {doc.hasControlledPdf && (
                         <Tooltip title="View Controlled PDF">
-                          <IconButton
+                          <IconButton aria-label={`View controlled PDF for ${doc.companyDocumentCode}`}
                             size="small"
                             color="error"
                             onClick={() => handleOpenPdf(doc)}
@@ -473,7 +492,7 @@ export function DocumentLibraryPage() {
                   <TableCell align="right">
                     <Box sx={{ display: "flex", justifyContent: "flex-end", gap: 0.5 }}>
                       <Tooltip title="View Document Details">
-                        <IconButton
+                        <IconButton aria-label={`Open details for ${doc.companyDocumentCode}`}
                           size="small"
                           onClick={() => navigate(`/document-control/documents/${doc.id}`)}
                         >
@@ -484,7 +503,7 @@ export function DocumentLibraryPage() {
                       {/* Void Button - Only Document Controller can void and only if never effective */}
                       {isController && doc.recordStatus === "Active" && !doc.currentEffectiveRevisionId && (
                         <Tooltip title="Void Document Master">
-                          <IconButton
+                          <IconButton aria-label={`Void document master ${doc.companyDocumentCode}`}
                             size="small"
                             color="error"
                             onClick={() =>

@@ -484,6 +484,15 @@ public static class DbSeeder
             (PermissionConstants.MessagesUse, "Send and receive direct/group messages."),
             (PermissionConstants.SystemViewErrorLog, "View the technical error log and monitoring page."),
             (PermissionConstants.SystemViewSecurityAudit, "View the security audit trail (authentication, session and account security events)."),
+            (PermissionConstants.DocumentsRegister, "Register a new controlled Document Master."),
+            (PermissionConstants.DocumentsDraftEdit, "Edit draft metadata and controlled files, and cancel a draft revision."),
+            (PermissionConstants.DocumentsRevisionCreate, "Create a new revision from the current effective revision."),
+            (PermissionConstants.DocumentsReview, "Perform technical review of a document revision (still requires being the assigned reviewer)."),
+            (PermissionConstants.DocumentsApprove, "Execute an approval decision on a document revision (still requires being the designated approver)."),
+            (PermissionConstants.DocumentsPeriodicReview, "Perform a periodic review of an effective document."),
+            (PermissionConstants.DocumentsTrainingAssign, "Assign document reading and training curricula to personnel."),
+            (PermissionConstants.DocumentsTrainingViewMatrix, "View and export the document training matrix."),
+            (PermissionConstants.DocumentsConfigManage, "Manage Document Control configuration (types, departments, sections, numbering, settings)."),
         };
 
         var existingCodes = db.Permissions.Select(p => p.Code).ToHashSet();
@@ -516,21 +525,42 @@ public static class DbSeeder
                     PermissionConstants.ItemsManage, PermissionConstants.ItemsDocumentUpload,
                     PermissionConstants.MasterDataManage,
                     PermissionConstants.DiscussionsView, PermissionConstants.DiscussionsCreate,
-                    PermissionConstants.DiscussionsEditAny, PermissionConstants.MessagesUse
+                    PermissionConstants.DiscussionsEditAny, PermissionConstants.MessagesUse,
+                    // Document Controller per the FRS-1A permission matrix. Voiding
+                    // is absent by design - it stays a fixed Controller-only rule
+                    // (FS-1a-111) rather than a grant, as does the revision-number
+                    // override (FRS-1B §3.2:184).
+                    PermissionConstants.DocumentsRegister, PermissionConstants.DocumentsDraftEdit,
+                    PermissionConstants.DocumentsRevisionCreate, PermissionConstants.DocumentsPeriodicReview,
+                    PermissionConstants.DocumentsApprove,
+                    PermissionConstants.DocumentsTrainingAssign, PermissionConstants.DocumentsTrainingViewMatrix
                 }),
                 (RoleType.Reviewer, new[]
                 {
                     PermissionConstants.SamplesReview, PermissionConstants.TestWorkflowExecute,
                     PermissionConstants.TestWorkflowBiochemicalDecision, PermissionConstants.CryovialsManage,
                     PermissionConstants.DiscussionsView, PermissionConstants.DiscussionsCreate,
-                    PermissionConstants.MessagesUse
+                    PermissionConstants.MessagesUse,
+                    // Reviewer acts as technical reviewer and QA auditor: review and
+                    // periodic review (both still gated on the per-document
+                    // assignment), plus read access to the training matrix.
+                    PermissionConstants.DocumentsReview, PermissionConstants.DocumentsPeriodicReview,
+                    PermissionConstants.DocumentsApprove, PermissionConstants.DocumentsTrainingViewMatrix
                 }),
                 (RoleType.Analyst, new[]
                 {
                     PermissionConstants.TestWorkflowExecute, PermissionConstants.CryovialsManage,
                     PermissionConstants.MaterialsManage, PermissionConstants.EquipmentManage,
                     PermissionConstants.DiscussionsView, PermissionConstants.DiscussionsCreate,
-                    PermissionConstants.MessagesUse
+                    PermissionConstants.MessagesUse,
+                    // Analyst carries the Document Author capabilities the FRS-1A
+                    // matrix grants: register, edit own drafts, create revisions.
+                    // RoleType has no separate Document Author or General Reader,
+                    // so a lab that wants registration restricted to the Document
+                    // Controller now revokes Documents.Register from this role on
+                    // the Roles screen instead of needing a code change.
+                    PermissionConstants.DocumentsRegister, PermissionConstants.DocumentsDraftEdit,
+                    PermissionConstants.DocumentsRevisionCreate
                 })
             };
 

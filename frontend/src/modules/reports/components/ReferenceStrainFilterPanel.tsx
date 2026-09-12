@@ -11,7 +11,7 @@ interface ReferenceStrainFilterPanelProps {
   onChange: (patch: Partial<ReferenceStrainSearchParams>) => void;
   onSearch: () => void;
   onReset: () => void;
-  searchInputRef?: RefObject<HTMLInputElement>;
+  searchInputRef?: RefObject<HTMLInputElement | null>;
 }
 
 export function ReferenceStrainFilterPanel({

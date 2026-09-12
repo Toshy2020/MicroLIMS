@@ -27,7 +27,7 @@ interface ReportFilterPanelProps {
   onChange: (patch: Partial<ResultRecordSearchParams>) => void;
   onSearch: () => void;
   onReset: () => void;
-  searchInputRef?: RefObject<HTMLInputElement>;
+  searchInputRef?: RefObject<HTMLInputElement | null>;
 }
 
 // Left-column filter panel for the Record Search tab. Every field here

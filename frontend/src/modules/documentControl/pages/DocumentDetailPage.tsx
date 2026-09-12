@@ -1249,7 +1249,7 @@ export function DocumentDetailPage() {
           onClose={() => setSubmitReviewOpen(false)}
           onSubmitted={() => fetchDocument()}
           revisionId={currentRevision.id}
-          authorUserId={document.documentOwnerUserId}
+          authorUserId={currentRevision.createdByUserId}
           currentUserId={userId || 0}
         />
       )}

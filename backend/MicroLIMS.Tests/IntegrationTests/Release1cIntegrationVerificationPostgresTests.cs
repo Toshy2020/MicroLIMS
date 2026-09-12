@@ -548,12 +548,12 @@ public class Release1cIntegrationVerificationPostgresTests
 
         // Direct raw SQL UPDATE on DocumentAcknowledgementRecords MUST be blocked by PostgreSQL trigger
         var updateEx = await Assert.ThrowsAsync<PostgresException>(() =>
-            db.Database.ExecuteSqlRawAsync($"UPDATE \"DocumentAcknowledgementRecords\" SET \"StatementText\" = 'Tampered' WHERE \"Id\" = {ackRecord.Id}"));
+            db.Database.ExecuteSqlAsync($"UPDATE \"DocumentAcknowledgementRecords\" SET \"StatementText\" = 'Tampered' WHERE \"Id\" = {ackRecord.Id}"));
         Assert.Contains("append-only: UPDATE and DELETE operations are prohibited by GMP regulations", updateEx.Message);
 
         // Direct raw SQL DELETE on DocumentAcknowledgementRecords MUST be blocked by PostgreSQL trigger
         var deleteEx = await Assert.ThrowsAsync<PostgresException>(() =>
-            db.Database.ExecuteSqlRawAsync($"DELETE FROM \"DocumentAcknowledgementRecords\" WHERE \"Id\" = {ackRecord.Id}"));
+            db.Database.ExecuteSqlAsync($"DELETE FROM \"DocumentAcknowledgementRecords\" WHERE \"Id\" = {ackRecord.Id}"));
         Assert.Contains("append-only: UPDATE and DELETE operations are prohibited by GMP regulations", deleteEx.Message);
     }
     #endregion

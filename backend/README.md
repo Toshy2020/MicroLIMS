@@ -1,6 +1,6 @@
 # MicroLIMS Backend
 
-ASP.NET Core 8, Clean Architecture, EF Core + PostgreSQL, JWT auth.
+ASP.NET Core 10, Clean Architecture, EF Core + PostgreSQL, JWT auth.
 
 ## Projects (build order = dependency order)
 
@@ -16,7 +16,7 @@ ASP.NET Core 8, Clean Architecture, EF Core + PostgreSQL, JWT auth.
 
 ## Getting it running
 
-Requires .NET 8 SDK and PostgreSQL (local or Docker).
+Requires .NET 10 SDK and PostgreSQL (local or Docker).
 
 ```bash
 cd backend

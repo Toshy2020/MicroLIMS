@@ -1,8 +1,8 @@
-# Multi-stage Dockerfile for MicroLIMS ASP.NET Core 8 Web API
+# Multi-stage Dockerfile for MicroLIMS ASP.NET Core 10 Web API
 # Build Context: backend/ (or repo root with -f backend/Dockerfile)
 
 # ---- Stage 1: Build & Publish ----
-FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
 
 # Copy project files for dependency layer caching
@@ -24,7 +24,7 @@ WORKDIR /src/MicroLIMS.API
 RUN dotnet publish MicroLIMS.API.csproj -c Release -o /app/publish --no-restore
 
 # ---- Stage 2: Runtime Image ----
-FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS final
+FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS final
 WORKDIR /app
 
 # Ensure storage directory exists with app user ownership before switching user

@@ -18,10 +18,10 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  # net8.0 across every project in backend/MicroLIMS.sln. Pinned to the
-  # 8.0 feature band rather than the runner default so a newer SDK on the
+  # net10.0 across every project in backend/MicroLIMS.sln. Pinned to the
+  # 10.0 feature band rather than the runner default so a newer SDK on the
   # image cannot silently change build behaviour.
-  DOTNET_VERSION: "8.0.x"
+  DOTNET_VERSION: "10.0.x"
   # Matches the developer environment (24.18.0) and satisfies the Node
   # requirement of eslint 10 (^20.19 || ^22.13 || >=24) for when the
   # frontend lint configuration is restored.
@@ -42,10 +42,10 @@ jobs:
 
     services:
       postgres:
-        # PostgreSQL 16 is the version this system is documented and
-        # qualified against (see docs/Release_1b_*). Explicit major, never
-        # "latest", so a new PostgreSQL release cannot change CI results.
-        image: postgres:16
+        # PostgreSQL 18 matches the developer and deployment environment
+        # (the Release 1b deployment record verified 18.4). Explicit major,
+        # never "latest", so a new PostgreSQL release cannot change CI results.
+        image: postgres:18
         env:
           # Trust auth on a container reachable only from this runner's
           # localhost, destroyed when the job ends. This is what removes
@@ -61,17 +61,17 @@ jobs:
           --health-retries=10
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Set up .NET
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v6
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
 
       # Packages only - never bin/obj, which would risk a stale build
       # passing the gate.
       - name: Cache NuGet packages
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~/.nuget/packages
           key: nuget-${{ runner.os }}-${{ hashFiles('backend/**/*.csproj') }}
@@ -144,7 +144,7 @@ jobs:
 
       - name: Upload test results
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: backend-test-results
           path: backend/TestResults/*.trx
@@ -159,22 +159,22 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Set up .NET
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v6
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
 
       - name: Cache NuGet packages
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~/.nuget/packages
           key: nuget-${{ runner.os }}-${{ hashFiles('backend/**/*.csproj') }}
           restore-keys: nuget-${{ runner.os }}-
 
       - name: Install dotnet-ef
-        run: dotnet tool install --global dotnet-ef --version 8.*
+        run: dotnet tool install --global dotnet-ef --version 10.*
 
       - name: Restore
         run: dotnet restore backend/MicroLIMS.sln
@@ -219,10 +219,10 @@ jobs:
         working-directory: frontend
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Set up Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm

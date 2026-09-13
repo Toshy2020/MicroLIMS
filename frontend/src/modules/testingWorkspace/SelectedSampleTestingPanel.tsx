@@ -16,11 +16,10 @@ import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import FiberManualRecordIcon from "@mui/icons-material/FiberManualRecord";
 import WarningAmberOutlinedIcon from "@mui/icons-material/WarningAmberOutlined";
 import BlockOutlinedIcon from "@mui/icons-material/BlockOutlined";
+import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import { SampleCard as SampleCardType, TestOrderSummary } from "./types/workspaceTypes";
 import { CategoryBadge } from "../../components/StatusBadge";
 import { SampleLifecycleBadge } from "./SampleLifecycleBadge";
-import { EditableCell } from "./EditableCell";
-import { WorkspaceService } from "./services/WorkspaceService";
 import { brandColors } from "../../theme";
 import { useAuth } from "../../contexts/AuthContext";
 import { PathogenSessionDialog } from "./pathogenSession/PathogenSessionDialog";
@@ -35,6 +34,7 @@ interface Props {
   onLifecycleBadgeClick: (sampleId: number) => void;
   onCorrected: () => void;
   onViewAuditHistory: (sampleId: number) => void;
+  onEdit?: (sample: SampleCardType) => void;
   onVoid?: (sample: SampleCardType) => void;
 }
 
@@ -106,6 +106,7 @@ export function SelectedSampleTestingPanel({
   onLifecycleBadgeClick,
   onCorrected,
   onViewAuditHistory,
+  onEdit,
   onVoid
 }: Props) {
   const { role } = useAuth();
@@ -114,15 +115,8 @@ export function SelectedSampleTestingPanel({
   const needsPreparation = sample.preparationStatus === "NeedsPreparation";
   const isProductLike = PRODUCT_LIKE.includes(sample.category);
   const isWater = sample.category === "Water";
-
-  const correct = async (field: "batchNumber" | "controlNumber", value: string) => {
-    await WorkspaceService.correctSample(
-      sample.sampleId,
-      field === "batchNumber" ? value : undefined,
-      field === "controlNumber" ? value : undefined
-    );
-    onCorrected();
-  };
+  // Mirrors SampleController: Analysts cannot correct or void (the backend enforces it).
+  const canManageSample = role === "Reviewer" || role === "SectionHead" || role === "SystemAdministrator";
 
   const handleOpenReport = () => {
     window.open(`/samples/${sample.sampleId}/report`, "_blank");
@@ -208,28 +202,56 @@ export function SelectedSampleTestingPanel({
             Audit History
           </Button>
 
-          <Button
-            size="small"
-            variant="outlined"
-            color="error"
-            startIcon={<BlockOutlinedIcon sx={{ fontSize: 13 }} />}
-            onClick={() => (onVoid ? onVoid(sample) : onLifecycleBadgeClick(sample.sampleId))}
-            sx={{
-              height: 25,
-              px: 1,
-              py: 0.25,
-              fontSize: "0.72rem",
-              fontWeight: 600,
-              textTransform: "none",
-              minWidth: "auto",
-              borderColor: theme.custom.status.detected.border,
-              color: theme.custom.status.detected.text,
-              bgcolor: theme.custom.status.detected.bg,
-              "&:hover": { bgcolor: theme.custom.status.detected.border, borderColor: theme.custom.status.detected.text }
-            }}
-          >
-            Void Sample
-          </Button>
+          {canManageSample && onEdit && (
+            <Button
+              size="small"
+              variant="outlined"
+              startIcon={<EditOutlinedIcon sx={{ fontSize: 13 }} />}
+              onClick={() => onEdit(sample)}
+              disabled={!sample.canEditDetails}
+              title={sample.canEditDetails ? "Correct sample details (signed)" : "Locked: the sample has been submitted for review"}
+              sx={{
+                height: 25,
+                px: 1,
+                py: 0.25,
+                fontSize: "0.72rem",
+                fontWeight: 600,
+                textTransform: "none",
+                minWidth: "auto",
+                borderColor: "divider",
+                color: "text.secondary",
+                bgcolor: "background.paper",
+                "&:hover": { bgcolor: "background.default" }
+              }}
+            >
+              Edit Details
+            </Button>
+          )}
+
+          {canManageSample && sample.status !== "Voided" && (
+            <Button
+              size="small"
+              variant="outlined"
+              color="error"
+              startIcon={<BlockOutlinedIcon sx={{ fontSize: 13 }} />}
+              onClick={() => (onVoid ? onVoid(sample) : onLifecycleBadgeClick(sample.sampleId))}
+              sx={{
+                height: 25,
+                px: 1,
+                py: 0.25,
+                fontSize: "0.72rem",
+                fontWeight: 600,
+                textTransform: "none",
+                minWidth: "auto",
+                borderColor: theme.custom.status.detected.border,
+                color: theme.custom.status.detected.text,
+                bgcolor: theme.custom.status.detected.bg,
+                "&:hover": { bgcolor: theme.custom.status.detected.border, borderColor: theme.custom.status.detected.text }
+              }}
+            >
+              Void Sample
+            </Button>
+          )}
 
           {needsPreparation && (
             <Button
@@ -325,23 +347,9 @@ export function SelectedSampleTestingPanel({
           <Typography sx={{ fontSize: "0.64rem", lineHeight: 1.1, textTransform: "uppercase", color: "text.secondary", fontWeight: 600, letterSpacing: "0.03em", mb: 0.25 }}>
             BATCH NUMBER
           </Typography>
-          <Box sx={{ fontSize: "0.72rem", fontWeight: 600, color: "text.primary" }}>
-            {isProductLike ? (
-              <EditableCell
-                value={sample.batchNumber ?? ""}
-                editable={!sample.incubationStarted}
-                onSave={(v) => correct("batchNumber", v)}
-              />
-            ) : sample.category === "AfterCleaning" ? (
-              <EditableCell
-                value={sample.previousProductBatchNumber || sample.batchNumber || ""}
-                editable={!sample.incubationStarted}
-                onSave={(v) => correct("batchNumber", v)}
-              />
-            ) : (
-              <span>{sample.batchNumber || "—"}</span>
-            )}
-          </Box>
+          <Typography sx={{ fontSize: "0.72rem", fontWeight: 600, color: "text.primary", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+            {(sample.category === "AfterCleaning" ? sample.previousProductBatchNumber || sample.batchNumber : sample.batchNumber) || "—"}
+          </Typography>
         </Box>
 
         {/* 5. CONTROL NUMBER */}
@@ -349,13 +357,9 @@ export function SelectedSampleTestingPanel({
           <Typography sx={{ fontSize: "0.64rem", lineHeight: 1.1, textTransform: "uppercase", color: "text.secondary", fontWeight: 600, letterSpacing: "0.03em", mb: 0.25 }}>
             CONTROL NUMBER
           </Typography>
-          <Box sx={{ fontSize: "0.72rem", fontWeight: 600, color: "text.primary" }}>
-            <EditableCell
-              value={sample.controlNumber}
-              editable={!sample.incubationStarted}
-              onSave={(v) => correct("controlNumber", v)}
-            />
-          </Box>
+          <Typography sx={{ fontSize: "0.72rem", fontWeight: 600, color: "text.primary", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+            {sample.controlNumber || "—"}
+          </Typography>
         </Box>
 
         {/* 6. RECEIVED AT */}

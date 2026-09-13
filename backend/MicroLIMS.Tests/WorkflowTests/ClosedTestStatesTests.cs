@@ -90,10 +90,12 @@ public class ClosedTestStatesTests
         var cause = await SeedCauseAsync(db);
 
         var role = new Role { Type = RoleType.Analyst, Name = "Analyst" };
-        db.Roles.Add(role);
+        var headRole = new Role { Type = RoleType.SectionHead, Name = "Section Head" };
+        db.Roles.AddRange(role, headRole);
         await db.SaveChangesAsync();
         var analyst = new User { FullName = "Ana Lyst", Username = "analyst", RoleId = role.Id, PasswordHash = "not-used" };
-        db.Users.Add(analyst);
+        var sectionHead = new User { FullName = "Sam Head", Username = "samhead", RoleId = headRole.Id, PasswordHash = BCrypt.Net.BCrypt.HashPassword("Void-Pass-1") };
+        db.Users.AddRange(analyst, sectionHead);
         await db.SaveChangesAsync();
 
         var sample = new Sample { ReferenceNumber = "FP-VOID", Status = SampleStatus.InTesting, CauseOfTesting = cause };
@@ -106,7 +108,7 @@ public class ClosedTestStatesTests
         // Before the void the test is active work.
         Assert.Equal(1, (await TestServiceFactory.Dashboard(db).GetSectionHeadDashboardAsync()).ActiveTests);
 
-        await new SampleCorrectionService(db).VoidAsync(sample.Id, "Registered twice", analyst.Id);
+        await TestServiceFactory.SampleCorrection(db).VoidAsync(sample.Id, "Registered twice", "Void-Pass-1", sectionHead.Id, null);
 
         var test = Assert.Single((await WorkspaceRowAsync(db, sample.Id)).AssignedTests);
         Assert.Equal("VOIDED", test.WorkflowState);

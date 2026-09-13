@@ -28,7 +28,8 @@ public class AuditEventService : IAuditEventService
         string? sourceContext = null,
         IEnumerable<AuditFieldChange>? changes = null,
         string? entityId = null,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        int? sampleId = null)
     {
         var seqVal = await _sequenceHelper.GetNextSequenceValueAsync("audit_event_seq", cancellationToken);
         var eventUid = $"EVT-{seqVal:D7}";
@@ -37,6 +38,8 @@ public class AuditEventService : IAuditEventService
         {
             EventUid = eventUid,
             ActorType = ActorType.User,
+            // Sample-scoped events carry the sample so audit search by sample finds them.
+            SampleId = sampleId,
             SystemProcessName = null,
             ActionCode = actionCode,
             ActionCategory = actionCategory,

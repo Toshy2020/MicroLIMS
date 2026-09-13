@@ -81,6 +81,10 @@ public static class TestServiceFactory
     public static ReviewService Review(MicroLimsDbContext db) =>
         new(db, new SegregationOfDutiesGuard(db), new ElectronicSignatureService(db));
 
+    public static SampleCorrectionService SampleCorrection(MicroLimsDbContext db) =>
+        new(db, new ElectronicSignatureService(db),
+            new AuditEventService(db, new MicroLIMS.Persistence.Helpers.DatabaseSequenceHelper(db)));
+
     public static RecordArchiveService Archive(MicroLimsDbContext db, IFileStorageService? storage = null) =>
         new(db, new PdfGenerator(), storage ?? new InMemoryFileStorageService(), NullLogger<RecordArchiveService>.Instance);
 

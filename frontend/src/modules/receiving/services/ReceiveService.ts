@@ -4,6 +4,7 @@ import {
   WaterReceiveRequest,
   EMReceiveRequest,
   AfterCleaningReceiveRequest,
+  SampleCorrectionPayload,
   SampleRecord
 } from "../types/receivingTypes";
 
@@ -87,8 +88,9 @@ export const ReceiveService = {
     return res.data.data;
   },
 
-  async correctSample(sampleId: number, batchNumber?: string, controlNumber?: string): Promise<SampleRecord> {
-    const res = await apiClient.put(`/samples/${sampleId}/correct`, { batchNumber, controlNumber });
+  // Signed: the payload carries the reason and the signer's password.
+  async correctSample(sampleId: number, payload: SampleCorrectionPayload): Promise<SampleRecord> {
+    const res = await apiClient.put(`/samples/${sampleId}/correct`, payload);
     return res.data.data;
   },
 
@@ -97,8 +99,8 @@ export const ReceiveService = {
     return res.data.data;
   },
 
-  async voidSample(sampleId: number, reason: string): Promise<SampleRecord> {
-    const res = await apiClient.post(`/samples/${sampleId}/void`, { reason });
+  async voidSample(sampleId: number, reason: string, password: string): Promise<SampleRecord> {
+    const res = await apiClient.post(`/samples/${sampleId}/void`, { reason, password });
     return res.data.data;
   }
 };

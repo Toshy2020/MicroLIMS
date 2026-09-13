@@ -32,6 +32,57 @@ public class SampleCorrectionTests
     }
 
     [Fact]
+    public async Task VoidAsync_SetsSampleAndCurrentTestsVoided_AndRecordsNoApprovalDecision()
+    {
+        await using var db = NewDb();
+        var sample = await SeedSample(db);
+        var liveOrder = sample.TestOrders.Single();
+        var supersededOrder = new TestOrder { SampleId = sample.Id, TestCode = "TYMC", Status = ApprovalStatus.Reviewed, CurrentStep = WorkflowStep.Reviewed, IsSuperseded = true };
+        db.TestOrders.Add(supersededOrder);
+        db.ResultRecords.Add(new ResultRecord { SampleId = sample.Id, TestOrderId = liveOrder.Id, TestCode = "TAMC", SampleStatus = SampleStatus.InTesting });
+        await db.SaveChangesAsync();
+        var service = new SampleCorrectionService(db);
+
+        var dto = await service.VoidAsync(sample.Id, "  Received against the wrong batch  ", actingUserId: 7);
+
+        var reloaded = await db.Samples.Include(s => s.TestOrders).FirstAsync(s => s.Id == sample.Id);
+        Assert.Equal(SampleStatus.Voided, reloaded.Status);
+        Assert.Equal("Voided", dto.Status);
+
+        // A void is not a decision about the material.
+        Assert.Null(reloaded.ApprovalDecision);
+        Assert.Null(reloaded.ApprovedByUserId);
+        Assert.Null(reloaded.ApprovedAt);
+        Assert.Equal("Voided: Received against the wrong batch", reloaded.CertificateRemarks);
+
+        Assert.Equal(ApprovalStatus.Voided, reloaded.TestOrders.Single(t => t.Id == liveOrder.Id).Status);
+        Assert.Equal(ApprovalStatus.Reviewed, reloaded.TestOrders.Single(t => t.Id == supersededOrder.Id).Status);
+
+        Assert.Equal(SampleStatus.Voided, (await db.ResultRecords.SingleAsync()).SampleStatus);
+
+        var voidEvent = Assert.Single(await db.ReviewWorkflowEvents
+            .Where(e => e.EntityType == ReviewEntityTypes.Sample && e.EntityId == sample.Id)
+            .ToListAsync());
+        Assert.Equal(ReviewWorkflowEventType.SampleVoided, voidEvent.EventType);
+        Assert.Equal(7, voidEvent.PerformedByUserId);
+        Assert.Equal("Received against the wrong batch", voidEvent.Comment);
+    }
+
+    [Fact]
+    public async Task VoidAsync_AlreadyVoided_IsRefused()
+    {
+        await using var db = NewDb();
+        var sample = await SeedSample(db);
+        var service = new SampleCorrectionService(db);
+        await service.VoidAsync(sample.Id, "Duplicate registration", actingUserId: 7);
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            service.VoidAsync(sample.Id, "Again", actingUserId: 7));
+
+        Assert.Equal("Sample is already voided.", ex.Message);
+    }
+
+    [Fact]
     public async Task CorrectAsync_BeforeIncubation_UpdatesBatchAndControlNumber()
     {
         await using var db = NewDb();

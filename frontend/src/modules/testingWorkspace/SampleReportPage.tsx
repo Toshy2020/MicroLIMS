@@ -91,12 +91,17 @@ function buildTimeline(s: SampleSummary) {
     .sort()[0] ?? null;
 
   const decided = s.status === "Approved" || s.status === "Rejected";
+  // A void is not a decision about the material - it closes the record
+  // under its own label, timed by the SampleVoided event.
+  const voided = s.status === "Voided";
   return [
     { label: "Received", at: s.receivedAt },
     { label: "In testing", at: firstIncubation },
     { label: "Under review", at: eventAt("SubmittedForReview") },
     { label: "Under approval", at: s.reviewedAt },
-    { label: s.status === "Rejected" ? "Rejected" : "Approved", at: decided ? s.approvedAt ?? eventAt("ApprovalDecisionMade") : null, danger: s.status === "Rejected" }
+    voided
+      ? { label: "Voided", at: eventAt("SampleVoided"), danger: true }
+      : { label: s.status === "Rejected" ? "Rejected" : "Approved", at: decided ? s.approvedAt ?? eventAt("ApprovalDecisionMade") : null, danger: s.status === "Rejected" }
   ];
 }
 

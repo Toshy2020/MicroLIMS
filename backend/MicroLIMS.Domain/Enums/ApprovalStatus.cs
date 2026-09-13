@@ -8,5 +8,10 @@ public enum ApprovalStatus
     Reviewed,
     Approved,
     Rejected,
-    RetestRequested
+    RetestRequested,
+
+    // Appended, never inserted: persisted as int. The test's sample was
+    // voided - struck from the record, not a judgement about the material,
+    // so never Rejected. Closed: excluded from every active work queue.
+    Voided
 }

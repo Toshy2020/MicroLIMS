@@ -490,7 +490,7 @@ public class TestingWorkspaceService : ITestWorkspaceService
                 (!string.IsNullOrEmpty(step.StepName) && step.StepName.Contains("TSB", StringComparison.OrdinalIgnoreCase))) ?? false;
 
             var testIncubations = sampleIncubations.Where(i => i.TestOrderId == t.Id).ToList();
-            var stateResult = WorkflowStateResolver.Resolve(t, usesTsb, sharedTsbInc, testIncubations, null, DateTime.UtcNow, 24, def?.Steps);
+            var stateResult = WorkflowStateResolver.Resolve(t, usesTsb, sharedTsbInc, testIncubations, null, DateTime.UtcNow, 24, def?.Steps, s.Status);
 
             return new TestOrderSummaryDto
             {

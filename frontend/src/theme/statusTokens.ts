@@ -70,6 +70,9 @@ const STATUS_TONE: Record<string, StatusTone> = {
   PendingReview: "action", "Pending Review": "action",
   Completed: "notDetected", Approved: "notDetected",
   Rejected: "detected", RetestRequested: "action",
+  // Closed sample/test states (WorkflowStateResolver): Voided is terminal like
+  // Rejected; On Hold waits on a retest outcome.
+  Voided: "detected", OnHold: "inconclusive", "On Hold": "inconclusive",
   Active: "notDetected", Inactive: "pending", Frozen: "pending",
   InStock: "notDetected", LowStock: "inconclusive", Depleted: "action", Expired: "detected",
   "Pending Evaluation": "pending", "Awaiting Approval": "action", Released: "notDetected", "Out of Stock": "pending", OutOfStock: "pending",

@@ -495,6 +495,17 @@ export function SessionReviewPanel({ session, onSessionCompleted, onBackToMatrix
                                   label = "Pending Review"; bgcolor = theme.custom.status.action.bg; color = theme.custom.status.action.text; border = `1px solid ${theme.custom.status.action.border}`; break;
                                 case "REVIEWED":
                                   label = "Reviewed"; bgcolor = theme.custom.status.action.bg; color = theme.custom.status.action.text; border = `1px solid ${theme.custom.status.action.border}`; break;
+                                case "APPROVED":
+                                  label = "Approved"; bgcolor = theme.custom.status.notDetected.bg; color = theme.custom.status.notDetected.text; border = `1px solid ${theme.custom.status.notDetected.border}`; break;
+                                case "REJECTED":
+                                case "VOIDED":
+                                case "CANCELLED":
+                                  label = t.testSessionState === "REJECTED" ? "Rejected" : t.testSessionState === "VOIDED" ? "Voided" : "Cancelled";
+                                  bgcolor = theme.custom.status.detected.bg; color = theme.custom.status.detected.text; border = `1px solid ${theme.custom.status.detected.border}`; break;
+                                case "SUPERSEDED":
+                                case "ON_HOLD":
+                                  label = t.testSessionState === "SUPERSEDED" ? "Superseded" : "On Hold";
+                                  bgcolor = theme.custom.status.inconclusive.bg; color = theme.custom.status.inconclusive.text; border = `1px solid ${theme.custom.status.inconclusive.border}`; break;
                                 default:
                                   label = "Pending"; bgcolor = theme.custom.status.detected.bg; color = theme.custom.status.detected.text; border = `1px solid ${theme.custom.status.detected.border}`; break;
                               }

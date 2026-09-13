@@ -63,6 +63,11 @@ public class SampleCorrectionService
         return TestingWorkspaceService.ToDto(sample);
     }
 
+    // Voiding strikes the record - the sample was received in error or its
+    // results cannot stand. It is deliberately NOT a rejection: rejection is a
+    // Section Head's judgement that the material does not conform, so a void
+    // records no approval decision, approver or decision time, and reports
+    // and the certificate must never read it as one.
     public async Task<SampleDto> VoidAsync(int sampleId, string reason, int actingUserId)
     {
         if (string.IsNullOrWhiteSpace(reason))
@@ -79,16 +84,30 @@ public class SampleCorrectionService
             .FirstOrDefaultAsync(s => s.Id == sampleId)
             ?? throw new InvalidOperationException($"Sample {sampleId} not found.");
 
-        sample.Status = Domain.Enums.SampleStatus.Rejected;
-        sample.ApprovalDecision = Domain.Enums.ApprovalDecision.Reject;
-        sample.ApprovedByUserId = actingUserId;
-        sample.ApprovedAt = DateTime.UtcNow;
-        sample.CertificateRemarks = $"Voided: {reason.Trim()}";
+        if (sample.Status == Domain.Enums.SampleStatus.Voided)
+            throw new InvalidOperationException("Sample is already voided.");
 
-        foreach (var order in sample.TestOrders)
+        var trimmedReason = reason.Trim();
+        sample.Status = Domain.Enums.SampleStatus.Voided;
+        // Kept so the reason still shows wherever the sample's remarks are displayed.
+        sample.CertificateRemarks = $"Voided: {trimmedReason}";
+
+        // Superseded orders are already history - their retest lives on another sample.
+        foreach (var order in sample.TestOrders.Where(t => !t.IsSuperseded))
         {
-            order.Status = Domain.Enums.ApprovalStatus.Rejected;
+            order.Status = Domain.Enums.ApprovalStatus.Voided;
         }
+
+        // Reports read the sample status off each result projection row.
+        var records = await _db.ResultRecords.Where(r => r.SampleId == sampleId).ToListAsync();
+        foreach (var record in records)
+        {
+            record.SampleStatus = Domain.Enums.SampleStatus.Voided;
+            record.UpdatedAt = DateTime.UtcNow;
+        }
+
+        await ReviewEventLog.LogAsync(_db, ReviewEntityTypes.Sample, sampleId, actingUserId,
+            Domain.Enums.ReviewWorkflowEventType.SampleVoided, trimmedReason);
 
         await _db.SaveChangesAsync();
 

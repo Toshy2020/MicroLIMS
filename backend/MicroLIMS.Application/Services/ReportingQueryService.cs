@@ -98,13 +98,17 @@ public class ReportingQueryService
         _db = db;
     }
 
-    // "Approved"/"Pending"/"Rejected", derived from SampleStatus rather
-    // than stored - Received/InTesting/UnderReview/UnderApproval/
-    // RetestRequested are all still "Pending" from a reporting standpoint.
+    // "Approved"/"Rejected"/"Voided"/"Cancelled"/"Pending", derived from
+    // SampleStatus rather than stored - Received/InTesting/UnderReview/
+    // UnderApproval/RetestRequested are all still "Pending" from a reporting
+    // standpoint. Voided and Cancelled are closed without a decision about the
+    // material, so they must never read as Pending or as Rejected.
     public static string DeriveApprovalStatus(SampleStatus status) => status switch
     {
         SampleStatus.Approved => "Approved",
         SampleStatus.Rejected => "Rejected",
+        SampleStatus.Voided => "Voided",
+        SampleStatus.Cancelled => "Cancelled",
         _ => "Pending"
     };
 

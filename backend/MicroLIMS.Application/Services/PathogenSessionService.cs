@@ -508,7 +508,7 @@ public class PathogenSessionService
             }
 
             // Determine Test Session State & Result Entry Allowance
-            var stateResult = WorkflowStateResolver.Resolve(to, requiresTsb, sharedTsbIncubation, toIncubations, stepDtos, DateTime.UtcNow, requiredTsbHoursMin, steps);
+            var stateResult = WorkflowStateResolver.Resolve(to, requiresTsb, sharedTsbIncubation, toIncubations, stepDtos, DateTime.UtcNow, requiredTsbHoursMin, steps, sample.Status);
             string testSessionState = stateResult.WorkflowState;
             string testSessionStateDisplay = stateResult.WorkflowStateDisplay;
             bool isResultEntryAllowed = stateResult.IsResultEntryAllowed;
@@ -1491,6 +1491,15 @@ public class PathogenSessionService
         // reset.
         //
         // Checked before anything is deleted, so a refused reset changes nothing.
+        // A voided sample is closed for the same reason: resetting it would
+        // quietly bring a record struck from the register back into testing.
+        if (sample.Status == SampleStatus.Voided)
+        {
+            throw new WorkflowStepException(
+                "SampleVoided",
+                $"Sample #{sample.ReferenceNumber} has been voided and its testing session cannot be reset.");
+        }
+
         if (sample.Status == SampleStatus.Rejected)
         {
             throw new WorkflowStepException(

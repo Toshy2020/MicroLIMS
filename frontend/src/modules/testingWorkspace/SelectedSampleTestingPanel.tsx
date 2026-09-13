@@ -49,8 +49,16 @@ function resolveEffectiveTestStatus(
   const infoColor = theme.custom.status.info.text;
   const pendingColor = theme.custom.status.pending.text;
   const inconclusiveColor = theme.custom.status.inconclusive.text;
+  const dangerColor = theme.custom.status.detected.text;
 
   if (test.workflowStateDisplay) {
+    // Closed states are decided by the backend (WorkflowStateResolver).
+    if (test.workflowState === "REJECTED" || test.workflowState === "VOIDED" || test.workflowState === "CANCELLED") {
+      return { label: test.workflowStateDisplay, icon: <FiberManualRecordIcon sx={{ fontSize: 12, color: dangerColor }} />, color: dangerColor };
+    }
+    if (test.workflowState === "SUPERSEDED" || test.workflowState === "ON_HOLD") {
+      return { label: test.workflowStateDisplay, icon: <FiberManualRecordIcon sx={{ fontSize: 12, color: inconclusiveColor }} />, color: inconclusiveColor };
+    }
     if (test.workflowState === "APPROVED" || test.status === "Approved") {
       return { label: "Completed & Approved", icon: <CheckCircleIcon sx={{ fontSize: 14, color: successColor }} />, color: successColor };
     }

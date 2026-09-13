@@ -14,16 +14,31 @@ public record ReceiveItemBasedSampleRequest(
     int ItemId, int CauseOfTestingId, string SampleQuantity, string SampledBy,
     string BatchNumber, string ControlNumber, DateTime? MfgDate, DateTime? ExpDate, string? ProductionStage);
 
+// The sample's full corrected details (see SampleCorrectionRequest), plus the
+// reason and the signer's password.
 public record CorrectSampleRequest(
-    string? BatchNumber,
-    string? ControlNumber,
+    string Reason,
+    string Password,
+    string ControlNumber,
+    string SampledBy,
+    int CauseOfTestingId,
+    string? BatchNumber = null,
+    DateTime? MfgDate = null,
+    DateTime? ExpDate = null,
+    string? SampleQuantity = null,
+    string? ProductionStage = null,
     string? PreviousProductName = null,
-    string? PreviousProductBatchNumber = null
-);
+    string? PreviousProductBatchNumber = null,
+    string? StorageCondition = null,
+    int? StorageTimeHours = null,
+    int? ItemId = null,
+    int? WaterDepartmentId = null,
+    int? DepartmentId = null,
+    int? MachineId = null);
 
 public record AssignAnalystRequest(int? AnalystUserId, string? Reason);
 
-public record VoidSampleRequest(string Reason);
+public record VoidSampleRequest(string Reason, string Password);
 
 [ApiController]
 [Route("api/samples")]
@@ -64,18 +79,26 @@ public class SampleController : ControllerBase
         }
     }
 
+    // Analysts record the work; correcting or voiding the sample record is
+    // for a Reviewer, Section Head or System Administrator.
     [HttpPut("{id}/correct")]
-    [Authorize(Roles = RoleConstants.Analyst + "," + RoleConstants.Reviewer + "," + RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
+    [Authorize(Roles = RoleConstants.Reviewer + "," + RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
     public async Task<IActionResult> Correct(int id, CorrectSampleRequest request)
     {
         try
         {
             var sample = await _correctionService.CorrectAsync(
                 id,
-                request.BatchNumber,
-                request.ControlNumber,
-                request.PreviousProductName,
-                request.PreviousProductBatchNumber);
+                new SampleCorrectionRequest(
+                    request.ControlNumber, request.SampledBy, request.CauseOfTestingId,
+                    request.BatchNumber, request.MfgDate, request.ExpDate, request.SampleQuantity,
+                    request.ProductionStage, request.PreviousProductName, request.PreviousProductBatchNumber,
+                    request.StorageCondition, request.StorageTimeHours,
+                    request.ItemId, request.WaterDepartmentId, request.DepartmentId, request.MachineId),
+                request.Reason,
+                request.Password,
+                CurrentUserId,
+                HttpContext.Connection.RemoteIpAddress?.ToString());
             return Ok(ApiResponse<object>.Ok(sample));
         }
         catch (InvalidOperationException ex)
@@ -100,12 +123,13 @@ public class SampleController : ControllerBase
     }
 
     [HttpPost("{id}/void")]
-    [Authorize(Roles = RoleConstants.Analyst + "," + RoleConstants.Reviewer + "," + RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
+    [Authorize(Roles = RoleConstants.Reviewer + "," + RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
     public async Task<IActionResult> Void(int id, [FromBody] VoidSampleRequest request)
     {
         try
         {
-            var sample = await _correctionService.VoidAsync(id, request.Reason, CurrentUserId);
+            var sample = await _correctionService.VoidAsync(
+                id, request.Reason, request.Password, CurrentUserId, HttpContext.Connection.RemoteIpAddress?.ToString());
             return Ok(ApiResponse<object>.Ok(sample));
         }
         catch (InvalidOperationException ex)

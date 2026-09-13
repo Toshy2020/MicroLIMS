@@ -28,6 +28,7 @@ export interface SampleRecord {
   waterDepartmentId: number | null;
   productionStage: string | null;
   causeOfTesting: string;
+  causeOfTestingId?: number;
   batchNumber: string | null;
   controlNumber: string;
   status: string;
@@ -42,6 +43,9 @@ export interface SampleRecord {
   storageCondition?: string | null;
   storageTimeHours?: number | null;
   incubationStarted?: boolean;
+  // Display hints only - the backend re-checks both on every correction.
+  canEditDetails?: boolean;
+  canChangeItemOrLocation?: boolean;
   assignedAnalystId?: number | null;
   assignedAnalystName?: string | null;
   previousProductName?: string | null;
@@ -50,6 +54,29 @@ export interface SampleRecord {
   originReferenceNumber?: string | null;
   oosGroupCode?: string | null;
   assignedTests: TestOrderSummary[];
+}
+
+// Mirrors backend CorrectSampleRequest: the sample's full corrected details
+// (a null optional field clears it) plus the reason and the signer's password.
+export interface SampleCorrectionPayload {
+  reason: string;
+  password: string;
+  controlNumber: string;
+  sampledBy: string;
+  causeOfTestingId: number;
+  batchNumber: string | null;
+  mfgDate: string | null;
+  expDate: string | null;
+  sampleQuantity: string | null;
+  productionStage: string | null;
+  previousProductName: string | null;
+  previousProductBatchNumber: string | null;
+  storageCondition: string | null;
+  storageTimeHours: number | null;
+  itemId: number | null;
+  waterDepartmentId: number | null;
+  departmentId: number | null;
+  machineId: number | null;
 }
 
 // Mirrors backend ItemBasedReceiveRequest (Product/RM/PM).

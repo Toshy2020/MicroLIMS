@@ -20,6 +20,17 @@ public class WorkflowStateResult
 
 public class WorkflowStateResolver
 {
+    // A closed test: read-only, no result entry, no next step.
+    private static WorkflowStateResult Closed(WorkflowStateResult result, string state, string display, string status)
+    {
+        result.WorkflowState = state;
+        result.WorkflowStateDisplay = display;
+        result.WorkflowStatus = status;
+        result.IsWorkflowLocked = true;
+        result.IsResultEntryAllowed = false;
+        return result;
+    }
+
     public static WorkflowStateResult Resolve(
         TestOrder testOrder,
         bool requiresTsb,
@@ -28,9 +39,21 @@ public class WorkflowStateResolver
         IReadOnlyList<SessionWorkflowStepDto>? stepDtos,
         DateTime utcNow,
         decimal requiredTsbHoursMin = 24,
-        IEnumerable<TestWorkflowStep>? steps = null)
+        IEnumerable<TestWorkflowStep>? steps = null,
+        SampleStatus? sampleStatus = null)
     {
         var result = new WorkflowStateResult();
+
+        // 0. Closed states. Once a test is superseded or voided, or its sample
+        // is cancelled, nothing about its step or incubation timing applies -
+        // callers pass the sample's own status so a closed sample never shows
+        // a next step.
+        if (testOrder.IsSuperseded)
+            return Closed(result, "SUPERSEDED", "Superseded — retested on a new sample", "Superseded");
+        if (testOrder.Status == ApprovalStatus.Voided || sampleStatus == SampleStatus.Voided)
+            return Closed(result, "VOIDED", "Voided — struck from the record", "Voided");
+        if (sampleStatus == SampleStatus.Cancelled)
+            return Closed(result, "CANCELLED", "Cancelled", "Cancelled");
 
         // 1. Approved
         if (testOrder.Status == ApprovalStatus.Approved)
@@ -43,18 +66,27 @@ public class WorkflowStateResolver
             return result;
         }
 
-        // 1b. Rejected - a final sample-level decision, same as Approved:
-        // nothing past this point (CurrentStep/incubation timing) is still
-        // relevant, and it must never fall through to "Pending Review".
-        if (testOrder.Status == ApprovalStatus.Rejected)
+        // 1b. Rejected - a final decision about the material. Judged by the
+        // sample too, so a test whose own status predates the sample-level
+        // decision still reads as rejected, never as a step to continue.
+        if (testOrder.Status == ApprovalStatus.Rejected || sampleStatus == SampleStatus.Rejected)
+            return Closed(result, "REJECTED", "Rejected", "Rejected");
+
+        // Same for an approved sample whose test status never caught up.
+        if (sampleStatus == SampleStatus.Approved)
         {
-            result.WorkflowState = "REJECTED";
-            result.WorkflowStateDisplay = "Completed & Rejected";
+            result.WorkflowState = "APPROVED";
+            result.WorkflowStateDisplay = "Completed & Approved";
             result.WorkflowStatus = "Completed";
-            result.IsWorkflowLocked = true;
+            result.IsWorkflowLocked = false;
             result.IsResultEntryAllowed = false;
             return result;
         }
+
+        // A retest was ordered: the original sample's remaining tests wait for
+        // the retest outcome to decide them (SampleApprovalService.PropagateOosOutcomeAsync).
+        if (sampleStatus == SampleStatus.RetestRequested)
+            return Closed(result, "ON_HOLD", "On hold — awaiting retest outcome", "OnHold");
 
         // 1c. Reviewed — Pending Approval
         if (testOrder.Status == ApprovalStatus.Reviewed || testOrder.CurrentStep == WorkflowStep.Reviewed)

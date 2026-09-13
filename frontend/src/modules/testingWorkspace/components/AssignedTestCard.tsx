@@ -41,6 +41,16 @@ function formatDuration(seconds: number): string {
   return `${secs}s remaining`;
 }
 
+// Closed test states come from the backend (WorkflowStateResolver). A closed
+// test has no next step, so these win over every incubation/step rule below.
+const CLOSED_TEST_STATES: Record<string, { status: string; label: string; text: string }> = {
+  REJECTED: { status: "Rejected", label: "Rejected", text: "✗ Rejected" },
+  VOIDED: { status: "Voided", label: "Voided", text: "Voided — struck from the record" },
+  CANCELLED: { status: "Cancelled", label: "Cancelled", text: "Cancelled" },
+  SUPERSEDED: { status: "Superseded", label: "Superseded", text: "Superseded — retested on a new sample" },
+  ON_HOLD: { status: "OnHold", label: "On Hold", text: "On hold — awaiting retest outcome" }
+};
+
 export function AssignedTestCard({
   test,
   sample,
@@ -142,6 +152,10 @@ export function AssignedTestCard({
 
   // Dynamic Badge resolution: distinguish between media/incubator setup vs actual result entry
   const dynamicBadge = useMemo(() => {
+    const closed = test.workflowState ? CLOSED_TEST_STATES[test.workflowState] : undefined;
+    if (closed) {
+      return { status: closed.status, label: closed.label };
+    }
     if (test.workflowState === "APPROVED" || test.status === "Approved") {
       return { status: "Approved", label: "Approved" };
     }
@@ -234,6 +248,10 @@ export function AssignedTestCard({
 
   // Center text resolution (e.g. Ready for Selective Plating or countdown timer)
   const centerText = useMemo(() => {
+    const closed = test.workflowState ? CLOSED_TEST_STATES[test.workflowState] : undefined;
+    if (closed) {
+      return closed.text;
+    }
     if (test.workflowState === "APPROVED" || test.status === "Approved") {
       return "✓ Approved & Complete";
     }

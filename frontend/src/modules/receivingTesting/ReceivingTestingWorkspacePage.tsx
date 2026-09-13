@@ -587,7 +587,7 @@ export function ReceivingTestingWorkspacePage() {
 
   const handleEditSuccess = () => {
     setNotification({
-      text: "Sample information updated successfully.",
+      text: "Sample details corrected and signed.",
       severity: "success"
     });
     loadRecords();
@@ -770,9 +770,7 @@ export function ReceivingTestingWorkspacePage() {
                       isCompact={true}
                       visibleColumns={new Set(["category", "batch", "control", "status"])}
                       colSpan={4}
-                      onNeedsPreparationClick={() => handlePrepareSample(s)}
-                      onCorrected={() => loadRecords(true)}
-                      onLifecycleBadgeClick={setSummarySampleId}
+                      onNeedsPreparationClick={() => handlePrepareSample(s)}                      onLifecycleBadgeClick={setSummarySampleId}
                     />
                   ))}
                   {displayRecords.length === 0 && (
@@ -910,9 +908,7 @@ export function ReceivingTestingWorkspacePage() {
                       isCompact={true}
                       visibleColumns={new Set(["category", "batch", "control", "status"])}
                       colSpan={4}
-                      onNeedsPreparationClick={() => handlePrepareSample(s)}
-                      onCorrected={() => loadRecords(true)}
-                      onLifecycleBadgeClick={setSummarySampleId}
+                      onNeedsPreparationClick={() => handlePrepareSample(s)}                      onLifecycleBadgeClick={setSummarySampleId}
                     />
                   ))}
                   {displayRecords.length === 0 && (
@@ -967,6 +963,7 @@ export function ReceivingTestingWorkspacePage() {
               onLifecycleBadgeClick={setSummarySampleId}
               onCorrected={() => loadRecords(true)}
               onViewAuditHistory={(sampleId) => setAuditSampleId(sampleId)}
+              onEdit={(sample) => setEditSample(sample as unknown as SampleRecord)}
               onVoid={(sample) => setVoidingSample(sample as unknown as SampleRecord)}
             />
           </Box>
@@ -1077,7 +1074,7 @@ export function ReceivingTestingWorkspacePage() {
         onSuccess={handleReceiveSuccess}
       />
 
-      {/* 2. Edit Batch / Control Number Dialog */}
+      {/* 2. Signed Sample Details Correction Dialog */}
       <EditSampleDetailsDialog
         open={Boolean(editSample)}
         sample={editSample}

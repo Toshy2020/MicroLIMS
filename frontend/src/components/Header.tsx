@@ -18,9 +18,22 @@ interface NotificationDto {
   timestamp: string;
   severity: string;
   isRead: boolean;
+  sampleId?: number | null;
+  testOrderId?: number | null;
 }
 
-// Where clicking a notification should take the user
+// A notification about one test on one sample opens that sample (and test)
+// in the workspace; everything else goes to its type's page.
+function notificationTarget(notification: NotificationDto): string | undefined {
+  if (notification.sampleId) {
+    const testPart = notification.testOrderId ? `&testOrderId=${notification.testOrderId}` : "";
+    return `/receiving-testing?sampleId=${notification.sampleId}${testPart}`;
+  }
+  return NOTIFICATION_ROUTES[notification.type];
+}
+
+// Where clicking a notification should take the user when it is not about a
+// specific sample
 const NOTIFICATION_ROUTES: Record<string, string> = {
   MediaExpiry: "/laboratory-configuration/media",
   IncubationReady: "/receiving-testing",
@@ -70,7 +83,7 @@ export function Header({ onToggleSidebar, sidebarCollapsed }: HeaderProps) {
       apiClient.post(`/dashboard/notifications/${notification.id}/read`).catch(() => {});
       setNotifications((prev) => prev.map((n) => (n.id === notification.id ? { ...n, isRead: true } : n)));
     }
-    const target = NOTIFICATION_ROUTES[notification.type];
+    const target = notificationTarget(notification);
     if (target) navigate(target);
   };
 
@@ -175,7 +188,7 @@ export function Header({ onToggleSidebar, sidebarCollapsed }: HeaderProps) {
             </MenuItem>
           )}
           {notifications.map((n, i) => {
-            const target = NOTIFICATION_ROUTES[n.type];
+            const target = notificationTarget(n);
             return (
               <MenuItem
                 key={n.id ?? i}

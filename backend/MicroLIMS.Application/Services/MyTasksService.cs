@@ -51,7 +51,11 @@ public class MyTasksService
 
         var testOrders = await _db.TestOrders
             .Where(t => t.AssignedAnalystId == userId)
-            .Where(t => t.Status != ApprovalStatus.Approved && t.Status != ApprovalStatus.Rejected)
+            // Closed tests (decided, voided or superseded by a retest) are nobody's task.
+            .Where(t => !t.IsSuperseded
+                && t.Status != ApprovalStatus.Approved
+                && t.Status != ApprovalStatus.Rejected
+                && t.Status != ApprovalStatus.Voided)
             .Include(t => t.Sample!).ThenInclude(s => s.Item)
             .Include(t => t.Sample!).ThenInclude(s => s.WaterSamplingPoint)
             .Include(t => t.Sample!).ThenInclude(s => s.Department)

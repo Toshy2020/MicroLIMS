@@ -2511,7 +2511,9 @@ public class TestWorkflowEngine : ITestWorkflowEngine
                 UserId = analystId,
                 Type = "TestReturnedForBiochemical",
                 Message = returnMessage,
-                Severity = "warning"
+                Severity = "warning",
+                SampleId = order.SampleId,
+                TestOrderId = order.Id
             });
         }
 

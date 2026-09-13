@@ -14,6 +14,7 @@ const statusLabelMap: Record<string, string> = {
   Reviewed: "Reviewed — Pending Approval",
   ResultEntered: "Result Entered",
   RetestRequested: "Retest Requested",
+  OnHold: "On Hold",
   WithinLimits: "Within Limits",
   AlertLimitExceeded: "Alert Limit Exceeded",
   ActionLimitExceeded: "Action Limit Exceeded",

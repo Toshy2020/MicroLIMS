@@ -1,0 +1,38 @@
+﻿using Microsoft.EntityFrameworkCore.Migrations;
+
+#nullable disable
+
+namespace MicroLIMS.Persistence.Migrations
+{
+    /// <inheritdoc />
+    public partial class AddNotificationLogSampleLinks : Migration
+    {
+        /// <inheritdoc />
+        protected override void Up(MigrationBuilder migrationBuilder)
+        {
+            migrationBuilder.AddColumn<int>(
+                name: "SampleId",
+                table: "NotificationLogs",
+                type: "integer",
+                nullable: true);
+
+            migrationBuilder.AddColumn<int>(
+                name: "TestOrderId",
+                table: "NotificationLogs",
+                type: "integer",
+                nullable: true);
+        }
+
+        /// <inheritdoc />
+        protected override void Down(MigrationBuilder migrationBuilder)
+        {
+            migrationBuilder.DropColumn(
+                name: "SampleId",
+                table: "NotificationLogs");
+
+            migrationBuilder.DropColumn(
+                name: "TestOrderId",
+                table: "NotificationLogs");
+        }
+    }
+}

@@ -3,8 +3,6 @@ import { TableRow, TableCell, Box, Typography, Collapse, IconButton, Checkbox, u
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import { SampleCard as SampleCardType } from "./types/workspaceTypes";
-import { EditableCell } from "./EditableCell";
-import { WorkspaceService } from "./services/WorkspaceService";
 import { CategoryBadge } from "../../components/StatusBadge";
 import { SampleLifecycleBadge } from "./SampleLifecycleBadge";
 import { useAuth } from "../../contexts/AuthContext";
@@ -15,7 +13,6 @@ interface Props {
   isSelected?: boolean;
   onSelectSample?: (sample: SampleCardType) => void;
   onNeedsPreparationClick: () => void;
-  onCorrected: () => void;
   onLifecycleBadgeClick: (sampleId: number) => void;
   visibleColumns: Set<string>;
   colSpan: number;
@@ -39,7 +36,6 @@ export function SampleTableRow({
   isSelected,
   onSelectSample,
   onNeedsPreparationClick,
-  onCorrected,
   onLifecycleBadgeClick,
   visibleColumns,
   colSpan,
@@ -55,15 +51,6 @@ export function SampleTableRow({
   const isWater = sample.category === "Water";
   const isEmOrAfterCleaning = sample.category === "EnvironmentalMonitoring" || sample.category === "AfterCleaning";
   const hasDetails = !isCompact && (isProductLike || isWater || (!isEmOrAfterCleaning && sample.sampleQuantity) || sample.sampledBy);
-
-  const correct = async (field: "batchNumber" | "controlNumber", value: string) => {
-    await WorkspaceService.correctSample(
-      sample.sampleId,
-      field === "batchNumber" ? value : undefined,
-      field === "controlNumber" ? value : undefined
-    );
-    onCorrected();
-  };
 
   const handleRowClick = (e: React.MouseEvent<HTMLTableRowElement>) => {
     if (isInteractiveElement(e.target, e.currentTarget)) {
@@ -220,28 +207,13 @@ export function SampleTableRow({
           </TableCell>
         )}
 
+        {/* Corrections go through the signed Edit Details dialog. */}
         {visibleColumns.has("batch") && (
-          <TableCell onClick={(e) => e.stopPropagation()}>
-            {isProductLike ? (
-              <EditableCell
-                value={sample.batchNumber ?? ""}
-                editable={!sample.incubationStarted}
-                onSave={(v) => correct("batchNumber", v)}
-              />
-            ) : (
-              "—"
-            )}
-          </TableCell>
+          <TableCell sx={{ fontSize: 12 }}>{isProductLike ? sample.batchNumber || "—" : "—"}</TableCell>
         )}
 
         {visibleColumns.has("control") && (
-          <TableCell onClick={(e) => e.stopPropagation()}>
-            <EditableCell
-              value={sample.controlNumber}
-              editable={!sample.incubationStarted}
-              onSave={(v) => correct("controlNumber", v)}
-            />
-          </TableCell>
+          <TableCell sx={{ fontSize: 12 }}>{sample.controlNumber}</TableCell>
         )}
 
         {visibleColumns.has("cause") && (

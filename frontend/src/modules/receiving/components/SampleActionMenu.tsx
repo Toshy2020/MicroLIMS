@@ -58,7 +58,10 @@ export function SampleActionMenu({
     setAnchorEl(null);
   };
 
-  const isEditable = !sample.incubationStarted;
+  // Mirrors SampleController: Analysts cannot correct or void (the backend enforces it).
+  const canManageSample = role === "Reviewer" || role === "SectionHead" || role === "SystemAdministrator";
+  const isEditable = Boolean(sample.canEditDetails);
+  const canVoid = canManageSample && sample.status !== "Voided";
   const needsPreparation = sample.preparationStatus === "NeedsPreparation";
 
   return (
@@ -80,52 +83,56 @@ export function SampleActionMenu({
         </IconButton>
       </Tooltip>
 
-      {/* Edit Sample Action (Batch / Control correction) */}
-      <Tooltip
-        title={
-          isEditable
-            ? "Edit Batch / Control Number"
-            : "Locked: Incubation has already started for this sample"
-        }
-      >
-        <span>
-          <IconButton
-            size="small"
-            disabled={!isEditable}
-            onClick={(e) => {
-              e.stopPropagation();
-              onEdit(sample);
-            }}
-            sx={{
-              color: isEditable ? "text.secondary" : "text.disabled",
-              "&:hover": isEditable ? { color: theme.custom.status.purple.text, bgcolor: theme.custom.status.purple.bg } : undefined
-            }}
-          >
-            <EditOutlinedIcon sx={{ fontSize: 18 }} />
-          </IconButton>
-        </span>
-      </Tooltip>
+      {/* Edit Sample Action (signed correction of the sample's details) */}
+      {canManageSample && (
+        <Tooltip
+          title={
+            isEditable
+              ? "Edit Sample Details"
+              : "Locked: the sample has been submitted for review"
+          }
+        >
+          <span>
+            <IconButton
+              size="small"
+              disabled={!isEditable}
+              onClick={(e) => {
+                e.stopPropagation();
+                onEdit(sample);
+              }}
+              sx={{
+                color: isEditable ? "text.secondary" : "text.disabled",
+                "&:hover": isEditable ? { color: theme.custom.status.purple.text, bgcolor: theme.custom.status.purple.bg } : undefined
+              }}
+            >
+              <EditOutlinedIcon sx={{ fontSize: 18 }} />
+            </IconButton>
+          </span>
+        </Tooltip>
+      )}
 
       {/* Void Sample Action */}
-      <Tooltip title="Void Sample">
-        <IconButton
-          size="small"
-          onClick={(e) => {
-            e.stopPropagation();
-            if (onVoid) {
-              onVoid(sample);
-            } else {
-              onViewSummary(sample);
-            }
-          }}
-          sx={{
-            color: "text.secondary",
-            "&:hover": { color: theme.custom.status.detected.text, bgcolor: theme.custom.status.detected.bg }
-          }}
-        >
-          <BlockOutlinedIcon sx={{ fontSize: 18 }} />
-        </IconButton>
-      </Tooltip>
+      {canVoid && (
+        <Tooltip title="Void Sample">
+          <IconButton
+            size="small"
+            onClick={(e) => {
+              e.stopPropagation();
+              if (onVoid) {
+                onVoid(sample);
+              } else {
+                onViewSummary(sample);
+              }
+            }}
+            sx={{
+              color: "text.secondary",
+              "&:hover": { color: theme.custom.status.detected.text, bgcolor: theme.custom.status.detected.bg }
+            }}
+          >
+            <BlockOutlinedIcon sx={{ fontSize: 18 }} />
+          </IconButton>
+        </Tooltip>
+      )}
 
       {/* More Actions Menu */}
       <IconButton
@@ -186,26 +193,28 @@ export function SampleActionMenu({
           </MenuItem>
         )}
 
-        <MenuItem
-          onClick={() => {
-            handleCloseMenu();
-            if (onVoid) {
-              onVoid(sample);
-            } else {
-              onViewSummary(sample);
-            }
-          }}
-        >
-          <ListItemIcon>
-            <BlockOutlinedIcon sx={{ fontSize: 18, color: theme.custom.status.detected.text }} />
-          </ListItemIcon>
-          <ListItemText
-            primary="Void Sample"
-            slotProps={{
-              primary: { sx: { fontSize: 13, fontWeight: 600, color: theme.custom.status.detected.text } }
+        {canVoid && (
+          <MenuItem
+            onClick={() => {
+              handleCloseMenu();
+              if (onVoid) {
+                onVoid(sample);
+              } else {
+                onViewSummary(sample);
+              }
             }}
-          />
-        </MenuItem>
+          >
+            <ListItemIcon>
+              <BlockOutlinedIcon sx={{ fontSize: 18, color: theme.custom.status.detected.text }} />
+            </ListItemIcon>
+            <ListItemText
+              primary="Void Sample"
+              slotProps={{
+                primary: { sx: { fontSize: 13, fontWeight: 600, color: theme.custom.status.detected.text } }
+              }}
+            />
+          </MenuItem>
+        )}
 
         <MenuItem
           component={Link}

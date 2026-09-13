@@ -1,7 +1,10 @@
 using Microsoft.EntityFrameworkCore;
+using MicroLIMS.Application.Helpers;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
+using MicroLIMS.Persistence.Configurations;
 using MicroLIMS.Persistence.DbContext;
+using MicroLIMS.Persistence.Helpers;
 
 namespace MicroLIMS.Application.Services;
 
@@ -69,18 +72,12 @@ public class CryovialService
         // both the stock and the cryovial batch untouched.
         await _materialService.ConsumeAsync(request.MaterialId, MaterialType.LyophilizedMicroorganism, request.DiscsUsed, request.UserId);
 
-        var yearStart = new DateTime(DateTime.UtcNow.Year, 1, 1, 0, 0, 0, DateTimeKind.Utc);
-        var yearEnd = yearStart.AddYears(1);
-        var countThisYear = await _db.Cryovials.CountAsync(c =>
-            c.MaterialId == material.Id && c.PreparedAt >= yearStart && c.PreparedAt < yearEnd);
-
-        var sequence = (countThisYear + 1).ToString("D2");
-        var codePrefix = !string.IsNullOrWhiteSpace(material.Code) ? material.Code : SanitizeForCodePrefix(material.MaterialName);
-        var code = $"{codePrefix}/{sequence}/{DateTime.UtcNow:yy}";
+        // Same numbering as media lots (see PreparedLotNumber).
+        var codePrefix = PreparedLotNumber.PrefixFor(material);
 
         var cryovial = new Cryovial
         {
-            Code = code,
+            Code = await PreparedLotNumber.NextAsync(_db.Cryovials.Select(c => c.Code), codePrefix),
             MaterialId = material.Id,
             OrganismId = material.OrganismId.Value,
             OrganismNameSnapshot = material.Organism.ScientificName,
@@ -105,7 +102,19 @@ public class CryovialService
         }
 
         _db.Cryovials.Add(cryovial);
-        await _db.SaveChangesAsync();
+
+        // Two batches prepared under the same code at the same moment both
+        // pick the same next code. The unique index rejects the second
+        // save, which then takes the code after the one that won. A second
+        // clash in a row is reported rather than retried again.
+        if (!await UniqueIndexSave.TrySaveChangesAsync(_db, CryovialConfiguration.CodeIndexName))
+        {
+            cryovial.Code = await PreparedLotNumber.NextAsync(_db.Cryovials.Select(c => c.Code), codePrefix);
+            if (!await UniqueIndexSave.TrySaveChangesAsync(_db, CryovialConfiguration.CodeIndexName))
+                throw new InvalidOperationException(
+                    $"Cryovial code {cryovial.Code} was taken by another preparation at the same moment. Nothing was saved - submit the preparation again.");
+        }
+
         return cryovial;
     }
 
@@ -186,10 +195,4 @@ public class CryovialService
     // Used by GPT: a Cryovial batch can only supply challenge organisms if approved.
     public async Task<bool> IsCryovialApprovedAsync(int cryovialId) =>
         await _db.Cryovials.AnyAsync(c => c.Id == cryovialId && c.ApprovalStatus == ApprovalGateStatus.Approved && !c.IsDestroyed);
-
-    // Material.Code isn't guaranteed present (nullable) - falls back to
-    // an alphanumeric, uppercased version of the material's name so the
-    // code always has a usable prefix. Mirrors MediaPreparationService.
-    private static string SanitizeForCodePrefix(string materialName) =>
-        new string(materialName.Where(char.IsLetterOrDigit).ToArray()).ToUpperInvariant();
 }

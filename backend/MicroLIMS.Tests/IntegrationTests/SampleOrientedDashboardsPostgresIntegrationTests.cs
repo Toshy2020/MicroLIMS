@@ -222,7 +222,10 @@ public class SampleOrientedDashboardsPostgresIntegrationTests
         var sectionHeadNotifications = await notifications.GetNotificationsAsync(RoleType.SectionHead, _fixture.SeededControllerUserId);
         Assert.Contains(sectionHeadNotifications, n => n.Type == "ReviewWaiting" && n.Message == "1 sample(s) awaiting review.");
         Assert.Contains(sectionHeadNotifications, n => n.Type == "ApprovalWaiting" && n.Message == "1 sample(s) awaiting approval.");
-        Assert.Contains(sectionHeadNotifications, n => n.Type == "IncubationReady" && n.Message == "TYMC (Stage 1) for sample PG-WS-TEST is ready.");
+        Assert.Contains(sectionHeadNotifications, n => n.Type == "IncubationReady"
+            && n.Message == "TYMC (Stage 1) for sample PG-WS-TEST is ready."
+            && n.SampleId == stillTesting.Id
+            && n.TestOrderId == incubating.Id);
 
         var analystNotifications = await notifications.GetNotificationsAsync(RoleType.Analyst, analystId);
         Assert.DoesNotContain(analystNotifications, n => n.Type == "ReviewWaiting" || n.Type == "ApprovalWaiting");

@@ -399,6 +399,8 @@ public class ReturnToAnalystTests
         Assert.NotNull(returnNotification);
         Assert.Equal("warning", returnNotification.Severity);
         Assert.Equal("Test TAMC for sample FP0107026 was returned for revision: Plate count recount requested due to bubble artifact", returnNotification.Message);
+        Assert.Equal(order.SampleId, returnNotification.SampleId);
+        Assert.Equal(order.Id, returnNotification.TestOrderId);
 
         // Other analyst should not receive the notification
         var otherNotifications = await notificationService.GetNotificationsAsync(RoleType.Analyst, 999);

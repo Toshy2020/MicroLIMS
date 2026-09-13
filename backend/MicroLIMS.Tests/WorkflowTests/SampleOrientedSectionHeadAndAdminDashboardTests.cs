@@ -372,5 +372,7 @@ public class SampleOrientedSectionHeadAndAdminDashboardTests
 
         var ready = Assert.Single(notifications, n => n.Type == "IncubationReady");
         Assert.Equal("TAMC (Stage 1) for sample FP0107026 is ready.", ready.Message);
+        Assert.Equal(sample.Id, ready.SampleId);
+        Assert.Equal(sample.TestOrders.Single().Id, ready.TestOrderId);
     }
 }

@@ -29,6 +29,8 @@ export interface NotificationItem {
   timestamp: string;
   severity: string;
   isRead: boolean;
+  sampleId?: number | null;
+  testOrderId?: number | null;
 }
 
 export type TaskUrgency = "Overdue" | "DueSoon" | "DueToday" | "DueTomorrow";

@@ -7,7 +7,10 @@ using MicroLIMS.Persistence.DbContext;
 
 namespace MicroLIMS.Application.Services;
 
-public record NotificationDto(int? Id, string Type, string Message, DateTime Timestamp, string Severity, bool IsRead);
+// SampleId/TestOrderId are set when a notification is about one test on one
+// sample, so the client can open that sample and test directly. They are null
+// for lab-wide or non-sample notifications, which route by Type instead.
+public record NotificationDto(int? Id, string Type, string Message, DateTime Timestamp, string Severity, bool IsRead, int? SampleId = null, int? TestOrderId = null);
 
 // Computed live from current state (media expiry, incubation ready,
 // approval waiting, review waiting), then persisted to NotificationLog
@@ -40,7 +43,7 @@ public class DashboardNotificationService
             .Take(30)
             .ToListAsync();
 
-        return persisted.Select(n => new NotificationDto(n.Id, n.Type, n.Message, n.CreatedAt, n.Severity, n.IsRead)).ToList();
+        return persisted.Select(n => new NotificationDto(n.Id, n.Type, n.Message, n.CreatedAt, n.Severity, n.IsRead, n.SampleId, n.TestOrderId)).ToList();
     }
 
     public async Task MarkAsReadAsync(int notificationId, int userId)
@@ -58,9 +61,11 @@ public class DashboardNotificationService
             .ExecuteUpdateAsync(s => s.SetProperty(n => n.IsRead, true));
     }
 
-    private async Task<List<(string Type, string Message, string Severity)>> ComputeAsync(RoleType role, int userId)
+    private sealed record ComputedNotification(string Type, string Message, string Severity, int? SampleId = null, int? TestOrderId = null);
+
+    private async Task<List<ComputedNotification>> ComputeAsync(RoleType role, int userId)
     {
-        var results = new List<(string, string, string)>();
+        var results = new List<ComputedNotification>();
         var now = DateTime.UtcNow;
 
         var expiringMedia = await _db.Media
@@ -70,7 +75,7 @@ public class DashboardNotificationService
         foreach (var m in expiringMedia)
         {
             var expired = m.ExpiryDate <= now;
-            results.Add(("MediaExpiry", $"{m.Material?.MaterialName} (Lot {m.LotNumber}) {(expired ? "has expired" : $"expires {m.ExpiryDate:dd-MMM-yyyy}")}.", expired ? "error" : "warning"));
+            results.Add(new ComputedNotification("MediaExpiry", $"{m.Material?.MaterialName} (Lot {m.LotNumber}) {(expired ? "has expired" : $"expires {m.ExpiryDate:dd-MMM-yyyy}")}.", expired ? "error" : "warning"));
         }
 
         var readyIncubations = await _db.Incubations
@@ -90,28 +95,28 @@ public class DashboardNotificationService
             var subject = i.TestOrder?.Sample?.ReferenceNumber is { } reference
                 ? $"sample {reference}"
                 : $"test order #{i.TestOrderId}";
-            results.Add(("IncubationReady", $"{testCode} ({step}) for {subject} is ready.", "info"));
+            results.Add(new ComputedNotification("IncubationReady", $"{testCode} ({step}) for {subject} is ready.", "info", i.TestOrder?.SampleId, i.TestOrderId));
         }
 
         if (role is RoleType.SectionHead or RoleType.SystemAdministrator)
         {
             var approvalCount = await _db.Samples.CountAsync(s => s.Status == SampleStatus.UnderApproval);
             if (approvalCount > 0)
-                results.Add(("ApprovalWaiting", $"{approvalCount} sample(s) awaiting approval.", "info"));
+                results.Add(new ComputedNotification("ApprovalWaiting", $"{approvalCount} sample(s) awaiting approval.", "info"));
 
             // Auto-seeded from an analyst's first manual entry - already in
             // use, so this is a review-after-the-fact prompt, not a blocker.
             var pendingConfigCount = await _db.ItemPreparationConfigurations
                 .CountAsync(c => c.ApprovalStatus == ApprovalGateStatus.PendingReview);
             if (pendingConfigCount > 0)
-                results.Add(("PendingPreparationConfigApproval", $"{pendingConfigCount} preparation configuration(s) awaiting approval.", "info"));
+                results.Add(new ComputedNotification("PendingPreparationConfigApproval", $"{pendingConfigCount} preparation configuration(s) awaiting approval.", "info"));
         }
 
         if (role is RoleType.Reviewer or RoleType.SectionHead or RoleType.SystemAdministrator)
         {
             var reviewCount = await _db.Samples.CountAsync(s => s.Status == SampleStatus.UnderReview);
             if (reviewCount > 0)
-                results.Add(("ReviewWaiting", $"{reviewCount} sample(s) awaiting review.", "info"));
+                results.Add(new ComputedNotification("ReviewWaiting", $"{reviewCount} sample(s) awaiting review.", "info"));
         }
 
         var returnedTests = await _db.TestReturnEvents
@@ -129,13 +134,13 @@ public class DashboardNotificationService
                 ? $"Test {testCode} for sample {sampleRef} was returned for revision."
                 : $"Test {testCode} for sample {sampleRef} was returned for revision: {r.Reason.Trim()}";
 
-            results.Add(("TestReturnedForRevision", message, "warning"));
+            results.Add(new ComputedNotification("TestReturnedForRevision", message, "warning", r.TestOrder?.SampleId, r.TestOrderId));
         }
 
         return results;
     }
 
-    private async Task PersistAndDeliverAsync(int userId, List<(string Type, string Message, string Severity)> computed)
+    private async Task PersistAndDeliverAsync(int userId, List<ComputedNotification> computed)
     {
         var cutoff = DateTime.UtcNow.Subtract(DedupeWindow);
         var recent = await _db.NotificationLogs
@@ -143,21 +148,29 @@ public class DashboardNotificationService
             .Select(n => n.Message)
             .ToListAsync();
 
-        foreach (var (type, message, severity) in computed)
+        foreach (var notification in computed)
         {
-            if (recent.Contains(message)) continue; // don't spam duplicate notifications within the dedupe window
+            if (recent.Contains(notification.Message)) continue; // don't spam duplicate notifications within the dedupe window
 
-            var log = new NotificationLog { UserId = userId, Type = type, Message = message, Severity = severity };
+            var log = new NotificationLog
+            {
+                UserId = userId,
+                Type = notification.Type,
+                Message = notification.Message,
+                Severity = notification.Severity,
+                SampleId = notification.SampleId,
+                TestOrderId = notification.TestOrderId
+            };
             _db.NotificationLogs.Add(log);
 
-            await _pushService.NotifyAsync(userId, message);
+            await _pushService.NotifyAsync(userId, notification.Message);
 
-            if (severity == "error")
+            if (notification.Severity == "error")
             {
                 log.EmailSent = true;
                 var user = await _db.Users.FirstOrDefaultAsync(u => u.Id == userId);
                 if (user is not null)
-                    await _emailSender.SendAsync($"{user.Username}@microlims.local", $"MicroLIMS Alert: {type}", message);
+                    await _emailSender.SendAsync($"{user.Username}@microlims.local", $"MicroLIMS Alert: {notification.Type}", notification.Message);
             }
         }
 

@@ -101,7 +101,7 @@ Uploaded documents, discussion attachments and archived record PDFs must not liv
 | :--- | :--- | :--- |
 | `ConnectionStrings__Default` | `Host=ep-...neon.tech;Database=neondb;...` | Your full Neon PostgreSQL connection string |
 | `Jwt__Key` | `A_VERY_LONG_RANDOM_SECRET_KEY_AT_LEAST_32_CHARS_LONG!` | Random secure signing key for JWT tokens |
-| `Frontend__Origin` | `http://localhost:5173,https://<your-pages-name>.pages.dev` | Allowed CORS origins (comma-separated) |
+| `Frontend__Origin` | `http://localhost:5173,https://<your-pages-name>.pages.dev,https://<your-project>.vercel.app` | Allowed CORS origins (comma-separated, exact match, no trailing slash) - every URL the frontend is served from |
 | `APPLY_MIGRATIONS` | `true` *(First deployment only)* | Tells the API to run EF Core migrations and initialize tables |
 | `Seed__InitialAdminPassword` | *(a unique password you generate)* | **First deployment only.** Password for the initial `admin` account, which is forced to change it at first sign-in. Without it no administrator is created. Delete this variable once the first sign-in has completed. |
 | `Smtp__Host` | `smtp.sendgrid.net` | *(Optional)* SMTP host for password-reset and alert emails. If omitted or empty, delivery is disabled (safe no-op). |
@@ -158,6 +158,13 @@ Uploaded documents, discussion attachments and archived record PDFs must not liv
 5. Click **Save and Deploy**.
 6. Cloudflare will build the frontend and provide your public URL (e.g. `https://microlims.toshy2020.workers.dev` or `https://microlims.pages.dev`).
 7. **Important**: Copy your Cloudflare URL, go back to **Render** → `microlims-api` → **Environment**, and ensure `Frontend__Origin` contains your Cloudflare URL.
+
+#### Option C: Deploy via Vercel (Git-connected)
+1. Go to [Vercel](https://vercel.com) → **Add New** → **Project** and import the **MicroLIMS** repository.
+2. **Settings** → **Build and Deployment** → **Root Directory**: `frontend`. The rest comes from `frontend/vercel.json`: Vite, `npm ci`, `npm run build`, output `dist`, and a rewrite that serves `index.html` for every route that is not a built file - without it, refreshing a page or opening a link such as `/receiving-testing?sampleId=…` returns 404.
+3. The API URL is already built in from `frontend/.env.production` (`VITE_API_BASE_URL`). Set it under **Settings** → **Environment Variables** only if the API moves.
+4. **Important**: add the Vercel production URL (e.g. `https://micro-lims-microlab.vercel.app`) to `Frontend__Origin` on **Render**, then let the API restart. Origins are matched exactly, so preview deployment URLs are not allowed and previews cannot sign in - by design, since they would otherwise work against production data.
+5. **Settings** → **Deployment Protection**: with **Vercel Authentication** covering production, users are sent to a Vercel sign-in before the app loads. Turn it off for production (or serve production from a custom domain) so users only see the MicroLIMS sign-in.
 
 ---
 

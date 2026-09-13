@@ -1,20 +1,21 @@
 namespace MicroLIMS.Infrastructure.Storage;
 
 // The seam between the application and wherever files physically live.
-// Verified to be the only route to file I/O in the codebase: nothing
-// outside LocalFileStorageService touches File, FileStream or Directory,
-// no consumer parses what SaveAsync returns, and only the DI registration
-// names a concrete implementation. Replacing local disk with durable
-// object storage is therefore one new class and one registration change.
+// Nothing outside the implementations touches File, FileStream or
+// Directory, and only the DI registration names a concrete class.
 //
-// One caveat that is not visible from this interface: SaveAsync returns
-// the base-path-combined location, and callers persist that value, so the
-// database is coupled to where files currently live. Moving them - to a
-// mounted disk or to an object store - invalidates seven columns of
-// stored references unless they are migrated with it.
+// Contract:
+// - SaveAsync returns the key callers persist. It is relative
+//   ("documents/2/2_controlledpdf.pdf"), never a location, so moving files
+//   does not invalidate stored references.
+// - ReadAsync accepts that key, and also the base-path-combined values that
+//   rows written before keys were relative still hold (see StorageKey).
+// - ReadAsync throws StoredFileNotFoundException when no bytes exist for
+//   the key, whichever provider is in use.
 //
-// Read docs/Storage_Migration_Implications.md before implementing a
-// replacement. The migration is deferred, not designed away.
+// Implementations: LocalFileStorageService (development) and
+// S3FileStorageService (production, on Backblaze B2). What is still
+// outstanding is recorded in docs/Storage_Migration_Implications.md.
 public interface IFileStorageService
 {
     Task<string> SaveAsync(string fileName, byte[] content);

@@ -101,10 +101,26 @@ function refreshAccessToken(): Promise<string | null> {
   return refreshPromise;
 }
 
+// File view and download requests use responseType "blob", so their error
+// bodies arrive as Blobs too and every caller reading
+// err.response.data.message sees nothing. Decode JSON error bodies back
+// into objects so the backend's message reaches the UI.
+async function decodeBlobErrorBody(error: AxiosError): Promise<void> {
+  const response = error.response;
+  const body = response?.data;
+  if (!response || !(body instanceof Blob) || !body.type.includes("json")) return;
+  try {
+    response.data = JSON.parse(await body.text());
+  } catch {
+    // Not valid JSON - leave the original body in place.
+  }
+}
+
 apiClient.interceptors.response.use(
   (response) => response,
   async (error: AxiosError) => {
     rememberCorrelationId(error);
+    await decodeBlobErrorBody(error);
 
     const config = error.config as RetryableRequestConfig | undefined;
     const isAuthEndpoint = config?.url?.includes("/auth/refresh") || config?.url?.includes("/auth/login");

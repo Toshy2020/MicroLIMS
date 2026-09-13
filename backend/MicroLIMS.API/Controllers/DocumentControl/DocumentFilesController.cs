@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using MicroLIMS.Application.DTOs.DocumentControl;
 using MicroLIMS.Application.Interfaces.DocumentControl;
 using MicroLIMS.Domain.Enums;
+using MicroLIMS.Infrastructure.Storage;
 using MicroLIMS.Shared.Responses;
 
 namespace MicroLIMS.API.Controllers.DocumentControl;
@@ -13,6 +14,12 @@ namespace MicroLIMS.API.Controllers.DocumentControl;
 [Route("api/document-control")]
 public class DocumentFilesController : ControllerBase
 {
+    // A record whose bytes are gone is a server-side loss, not a bad request.
+    // The storage key stays out of the response; the audit event carries it.
+    private const string StoredFileMissingMessage =
+        "The file for this record is missing from storage and cannot be delivered. " +
+        "The loss has been recorded in the audit trail - contact your system administrator.";
+
     private readonly IDocumentFileService _fileService;
 
     public DocumentFilesController(IDocumentFileService fileService)
@@ -92,6 +99,10 @@ public class DocumentFilesController : ControllerBase
         {
             return StatusCode(403, ApiResponse<object>.Fail(ex.Message));
         }
+        catch (StoredFileNotFoundException)
+        {
+            return StatusCode(500, ApiResponse<object>.Fail(StoredFileMissingMessage));
+        }
         catch (InvalidOperationException ex) when (ex.Message.Contains("integrity"))
         {
             return StatusCode(500, ApiResponse<object>.Fail(ex.Message));
@@ -126,6 +137,10 @@ public class DocumentFilesController : ControllerBase
         catch (UnauthorizedAccessException ex)
         {
             return StatusCode(403, ApiResponse<object>.Fail(ex.Message));
+        }
+        catch (StoredFileNotFoundException)
+        {
+            return StatusCode(500, ApiResponse<object>.Fail(StoredFileMissingMessage));
         }
         catch (InvalidOperationException ex) when (ex.Message.Contains("integrity"))
         {

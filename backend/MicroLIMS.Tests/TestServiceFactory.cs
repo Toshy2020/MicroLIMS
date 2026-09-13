@@ -19,7 +19,12 @@ public class InMemoryFileStorageService : IFileStorageService
         return Task.FromResult(fileName);
     }
 
-    public Task<byte[]> ReadAsync(string path) => Task.FromResult(Files[path]);
+    // Mirrors the real implementations: a missing key is a
+    // StoredFileNotFoundException, not a dictionary KeyNotFoundException.
+    public Task<byte[]> ReadAsync(string path) =>
+        Files.TryGetValue(path, out var content)
+            ? Task.FromResult(content)
+            : Task.FromException<byte[]>(new StoredFileNotFoundException(path));
 }
 
 // Tests assert on persisted state, not on delivery.

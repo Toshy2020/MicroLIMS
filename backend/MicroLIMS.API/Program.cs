@@ -137,6 +137,19 @@ else
         smtp.Host, smtp.Port, smtp.FromAddress, smtp.EnableSsl);
 }
 
+// File storage startup check - local disk in a Render container does not
+// survive a restart, so say so loudly rather than lose uploads silently.
+var storageProvider = app.Configuration["Storage:Provider"] ?? "Local";
+if (string.Equals(storageProvider, "S3", StringComparison.OrdinalIgnoreCase))
+{
+    app.Logger.LogInformation("File storage: S3-compatible bucket {BucketName} at {ServiceUrl}.",
+        app.Configuration["Storage:S3:BucketName"], app.Configuration["Storage:S3:ServiceUrl"]);
+}
+else if (app.Environment.IsProduction())
+{
+    app.Logger.LogWarning("Storage:Provider is Local in Production - uploaded files are written to the container disk and will be lost on the next restart or redeploy. Set Storage__Provider=S3 and the Storage__S3__* variables.");
+}
+
 // ---- Database Migrations & Seeding ----
 // Password for the very first System Administrator, supplied out of band
 // (user-secrets locally, a hosting secret in production). Absent by

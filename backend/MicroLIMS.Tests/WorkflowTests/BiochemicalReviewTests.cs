@@ -157,6 +157,8 @@ public class BiochemicalReviewTests
         Assert.Equal(expectedMessage, logged.Message);
         Assert.Equal("warning", logged.Severity);
         Assert.False(logged.IsRead);
+        Assert.Equal(order.SampleId, logged.SampleId);
+        Assert.Equal(orderId, logged.TestOrderId);
     }
 
     [Fact]

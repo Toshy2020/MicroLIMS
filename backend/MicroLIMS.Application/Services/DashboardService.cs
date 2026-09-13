@@ -417,7 +417,8 @@ public class DashboardService
     // mirrors "inspected vs non-inspected" from the reference design.
     public async Task<List<object>> GetStatusDistributionAsync()
     {
-        var total = await _db.TestOrders.CountAsync();
+        // Voided tests were struck from the record - not pending, not decided.
+        var total = await _db.TestOrders.CountAsync(t => t.Status != ApprovalStatus.Voided);
         if (total == 0) return new List<object>();
 
         var approved = await _db.TestOrders.CountAsync(t => t.Status == ApprovalStatus.Approved);

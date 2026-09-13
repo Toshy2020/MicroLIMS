@@ -25,7 +25,21 @@ interface Props {
   onPrepareSample?: (sample: SampleRecord) => void;
 }
 
+// Closed samples: the summary states how the record closed, ahead of any
+// preparation or test-progress wording that would suggest work remains.
+const CLOSED_SAMPLE_SUMMARY: Record<string, { text: string; tone: StatusTone }> = {
+  Rejected: { text: "Rejected", tone: "detected" },
+  Voided: { text: "Voided", tone: "detected" },
+  Cancelled: { text: "Cancelled", tone: "detected" },
+  RetestRequested: { text: "On Hold — Retest", tone: "inconclusive" }
+};
+
 function getSummaryText(tests: TestOrderSummary[], preparationStatus: string, sampleStatus: string): { text: string; tone: StatusTone; isDirectAction: boolean } {
+  const closed = CLOSED_SAMPLE_SUMMARY[sampleStatus];
+  if (closed) {
+    return { text: closed.text, tone: closed.tone, isDirectAction: false };
+  }
+
   if (preparationStatus === "NeedsPreparation") {
     return { text: "Needs Preparation", tone: "inconclusive", isDirectAction: true };
   }
@@ -88,7 +102,8 @@ export function TestStatusSummaryCell({ sample, onTestClick, onViewAllTests, onP
     event.stopPropagation(); // Stop propagation to row selection
 
     // 1. Stage: Needs Preparation -> Direct shortcut to Preparation Dialog
-    if (sample.preparationStatus === "NeedsPreparation") {
+    // (never for a closed sample - there is no preparation left to do)
+    if (sample.preparationStatus === "NeedsPreparation" && !CLOSED_SAMPLE_SUMMARY[sample.status]) {
       onPrepareSample?.(sample);
       return;
     }

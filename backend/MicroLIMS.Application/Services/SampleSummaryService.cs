@@ -262,7 +262,9 @@ public class SampleSummaryService
                     step.StepName.Contains("TSB", StringComparison.OrdinalIgnoreCase)) ?? false;
 
                 var orderIncubations = incubations.Where(i => i.TestOrderId == order.Id).ToList();
-                var stateResult = WorkflowStateResolver.Resolve(order, usesTsb, sharedTsbInc, orderIncubations, null, DateTime.UtcNow, 24, def?.Steps);
+                // Effective orders can come from retest descendants, so each is
+                // judged by its own sample's status, not this sample's.
+                var stateResult = WorkflowStateResolver.Resolve(order, usesTsb, sharedTsbInc, orderIncubations, null, DateTime.UtcNow, 24, def?.Steps, order.Sample?.Status ?? sample.Status);
 
                 var orderPathogenObs = locationPathogenObservations.Where(o => o.TestOrderId == order.Id).ToList();
 

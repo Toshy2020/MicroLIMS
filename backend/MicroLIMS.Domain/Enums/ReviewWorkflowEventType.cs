@@ -8,5 +8,13 @@ public enum ReviewWorkflowEventType
     SubmittedForReview,
     ReviewCompleted,
     SubmittedForApproval,
-    ApprovalDecisionMade
+    ApprovalDecisionMade,
+
+    // Appended, never inserted: persisted as int. A sample struck from the
+    // record - not an approval decision. The reason is the event's Comment.
+    SampleVoided,
+
+    // A signed correction of a received sample's details; the Comment holds
+    // the reason and the fields changed.
+    SampleCorrected
 }

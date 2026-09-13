@@ -490,7 +490,7 @@ public class TestingWorkspaceService : ITestWorkspaceService
                 (!string.IsNullOrEmpty(step.StepName) && step.StepName.Contains("TSB", StringComparison.OrdinalIgnoreCase))) ?? false;
 
             var testIncubations = sampleIncubations.Where(i => i.TestOrderId == t.Id).ToList();
-            var stateResult = WorkflowStateResolver.Resolve(t, usesTsb, sharedTsbInc, testIncubations, null, DateTime.UtcNow, 24, def?.Steps);
+            var stateResult = WorkflowStateResolver.Resolve(t, usesTsb, sharedTsbInc, testIncubations, null, DateTime.UtcNow, 24, def?.Steps, s.Status);
 
             return new TestOrderSummaryDto
             {
@@ -531,6 +531,7 @@ public class TestingWorkspaceService : ITestWorkspaceService
             WaterDepartmentId = s.WaterDepartmentId,
             ProductionStage = s.ProductionStage,
             CauseOfTesting = s.CauseOfTesting?.Name ?? string.Empty,
+            CauseOfTestingId = s.CauseOfTestingId,
             BatchNumber = s.BatchNumber,
             ControlNumber = s.ControlNumber,
             Status = s.Status.ToString(),
@@ -545,6 +546,11 @@ public class TestingWorkspaceService : ITestWorkspaceService
             StorageCondition = s.StorageCondition,
             StorageTimeHours = s.StorageTimeHours,
             IncubationStarted = sampleIncubations.Count > 0,
+            CanEditDetails = SampleCorrectionService.IsCorrectable(s.Status),
+            CanChangeItemOrLocation = s.Status == SampleStatus.Received
+                && s.OriginSampleId == null
+                && sampleIncubations.Count == 0
+                && s.TestOrders.All(t => t.CurrentStep == WorkflowStep.Waiting),
             AssignedAnalystId = assignedTests.FirstOrDefault(t => t.AssignedAnalystId != null)?.AssignedAnalystId,
             AssignedAnalystName = assignedTests.FirstOrDefault(t => !string.IsNullOrEmpty(t.AssignedAnalystName))?.AssignedAnalystName,
             AssignedTests = assignedTests,

@@ -42,6 +42,7 @@ public class SampleDto
     public int? WaterDepartmentId { get; set; }
     public string? ProductionStage { get; set; }
     public string CauseOfTesting { get; set; } = string.Empty;
+    public int CauseOfTestingId { get; set; }
     public string? BatchNumber { get; set; }
     public string ControlNumber { get; set; } = string.Empty;
     public string Status { get; set; } = string.Empty;
@@ -57,10 +58,14 @@ public class SampleDto
     public string? StorageCondition { get; set; }
     public int? StorageTimeHours { get; set; }
 
-    // True once any Incubation record exists for any of this sample's
-    // TestOrders - the frontend uses this to lock the Batch/Control
-    // Number correction affordance (see SampleCorrectionService).
+    // True once any Incubation record exists for any of this sample's TestOrders.
     public bool IncubationStarted { get; set; }
+
+    // Display hints for the signed correction dialog - SampleCorrectionService
+    // re-checks both. Details are correctable until submitted for review; the
+    // item / location only until any test work exists.
+    public bool CanEditDetails { get; set; }
+    public bool CanChangeItemOrLocation { get; set; }
 
     public int? AssignedAnalystId { get; set; }
     public string? AssignedAnalystName { get; set; }

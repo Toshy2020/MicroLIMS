@@ -43,7 +43,9 @@ public static class ReportDocumentMapper
         ["Approved"] = "I approve the release of this record for its intended use.",
         ["Rejected"] = "I reject this record; it does not conform to specification.",
         ["RetestRequested"] = "I am ordering a retest of the retained sample.",
-        ["InvestigationOrdered"] = "I am ordering an investigation into these results."
+        ["InvestigationOrdered"] = "I am ordering an investigation into these results.",
+        ["SampleCorrected"] = "I confirm these corrections to the sample record are accurate and justified.",
+        ["SampleVoided"] = "I void this sample record; it is struck from the register."
     };
 
     private static SignatureBlock ToSignatureBlock(List<SignatureDto> signatures) => new()

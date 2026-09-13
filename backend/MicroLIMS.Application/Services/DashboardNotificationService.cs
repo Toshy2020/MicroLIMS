@@ -82,7 +82,11 @@ public class DashboardNotificationService
             .Where(i => i.CompletedAt != null)
             .Include(i => i.TestOrder)
                 .ThenInclude(t => t!.Sample)
-            .Where(i => i.TestOrder!.CurrentStep == WorkflowStep.Incubating || i.TestOrder.CurrentStep == WorkflowStep.Running)
+            // Active tests only - a voided, rejected or superseded test can still
+            // carry an Incubating step, but nobody should read its plates.
+            .Where(i => (i.TestOrder!.CurrentStep == WorkflowStep.Incubating || i.TestOrder.CurrentStep == WorkflowStep.Running)
+                && !i.TestOrder.IsSuperseded
+                && (i.TestOrder.Status == ApprovalStatus.Pending || i.TestOrder.Status == ApprovalStatus.InProgress))
             .OrderByDescending(i => i.CompletedAt)
             .Take(20)
             .ToListAsync();

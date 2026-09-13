@@ -35,6 +35,7 @@ export interface SampleCard {
   waterDepartmentId: number | null;
   productionStage: string | null;
   causeOfTesting: string;
+  causeOfTestingId?: number;
   batchNumber: string | null;
   controlNumber: string;
   status: string;
@@ -49,6 +50,9 @@ export interface SampleCard {
   storageCondition: string | null;
   storageTimeHours: number | null;
   incubationStarted: boolean;
+  // Display hints only - the backend re-checks both on every correction.
+  canEditDetails?: boolean;
+  canChangeItemOrLocation?: boolean;
   assignedAnalystId?: number | null;
   assignedAnalystName?: string | null;
   previousProductName?: string | null;

@@ -18,7 +18,8 @@ public interface IAuditEventService
         string? sourceContext = null,
         IEnumerable<AuditFieldChange>? changes = null,
         string? entityId = null,
-        CancellationToken cancellationToken = default);
+        CancellationToken cancellationToken = default,
+        int? sampleId = null);
 
     Task<AuditLog> RecordSystemEventAsync(
         string systemProcessName,

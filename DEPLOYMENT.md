@@ -32,6 +32,7 @@ This guide explains how to deploy the **MicroLIMS** application online for devel
 | **Frontend** | [Cloudflare](https://dash.cloudflare.com) | Workers Static Assets / Pages (SPA) | Unlimited bandwidth & requests, Global CDN, `wrangler.jsonc` |
 | **Backend** | [Render](https://render.com) | Web Service (Docker Container) | 512 MB RAM, 0.1 CPU, Auto-sleep after 15m inactivity |
 | **Database** | [Neon](https://neon.tech) | Serverless PostgreSQL | 0.5 GB storage, SSL connection, Automated branching |
+| **File Storage** | [Backblaze B2](https://www.backblaze.com/cloud-storage) | S3-compatible object storage | 10 GB storage, no credit card required |
 
 ---
 
@@ -59,6 +60,25 @@ This guide explains how to deploy the **MicroLIMS** application online for devel
      ```
      Host=ep-sample-12345.eu-central-1.aws.neon.tech;Database=neondb;Username=user;Password=your_password;SSL Mode=Require;Trust Server Certificate=true;
      ```
+
+---
+
+### Step 1b: Create File Storage on Backblaze B2 (free)
+Uploaded documents, discussion attachments and archived record PDFs must not live on the Render container's disk: it is wiped on every restart, redeploy and free-tier sleep, while the database rows pointing at the files survive. The API stores them in a Backblaze B2 bucket instead (10 GB free, no credit card).
+
+1. Sign up at [Backblaze](https://www.backblaze.com/sign-up/cloud-storage) and open **B2 Cloud Storage**.
+2. **Buckets** → **Create a Bucket**:
+   - **Bucket Unique Name**: e.g. `microlims-files`
+   - **Files in Bucket are**: **Private**
+   - **Default Encryption**: Enable
+   - Keep the lifecycle setting at **Keep all versions of the file**, so an overwritten file stays recoverable.
+3. Note the bucket's **Endpoint**, e.g. `s3.us-west-004.backblazeb2.com`. The region is the part after `s3.` — here `us-west-004`.
+4. **Application Keys** → **Add a New Application Key**:
+   - **Allow access to Bucket(s)**: only the bucket above
+   - **Type of Access**: **Read and Write**
+   - Copy the **keyID** and **applicationKey** straight away — the application key is shown only once.
+5. Under **Caps & Alerts**, set daily caps so the account cannot run up charges beyond the free allowance.
+6. Add the `Storage__*` variables listed in Step 2 to Render.
 
 ---
 
@@ -90,6 +110,12 @@ This guide explains how to deploy the **MicroLIMS** application online for devel
 | `Smtp__Password` | *(your SMTP password / API key)* | *(Optional)* SMTP password or token (never committed to git). |
 | `Smtp__FromAddress` | `no-reply@yourdomain.com` | *(Optional)* From address on outgoing system emails (default: `no-reply@microlims.local`). |
 | `Smtp__EnableSsl` | `true` | *(Optional)* Enable SSL/TLS (default: `true`). |
+| `Storage__Provider` | `S3` | **Required in production.** Where uploaded files are stored. The default, `Local`, writes to the container disk, which Render wipes on every restart and redeploy. |
+| `Storage__S3__ServiceUrl` | `https://s3.us-west-004.backblazeb2.com` | B2 bucket endpoint from Step 1b, with `https://`. |
+| `Storage__S3__Region` | `us-west-004` | Region part of the endpoint. |
+| `Storage__S3__BucketName` | `microlims-files` | The private bucket from Step 1b. |
+| `Storage__S3__AccessKeyId` | *(B2 keyID)* | Application key ID from Step 1b. |
+| `Storage__S3__SecretAccessKey` | *(B2 applicationKey)* | Application key secret (never committed to git). |
 
 6. Click **Create Web Service**.
 7. Once deployment finishes, your API URL will be: `https://microlims-api.onrender.com`.

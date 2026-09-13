@@ -324,6 +324,29 @@ public class DocumentFileService : IDocumentFileService
         {
             content = await _storage.ReadAsync(file.StorageKey);
         }
+        catch (StoredFileNotFoundException)
+        {
+            // The record exists but its bytes do not - controlled evidence has
+            // been lost from storage. Record it as a security event, as an
+            // integrity failure is, so the loss shows in the audit trail and
+            // not only as a failed request.
+            await _auditEventService.RecordUserEventAsync(
+                actionCode: "StoredFileMissing",
+                actionCategory: AuditActionCategory.Security,
+                recordType: nameof(RevisionFile),
+                documentMasterId: file.DocumentRevision?.DocumentMasterId,
+                documentRevisionId: file.DocumentRevisionId,
+                reason: $"STORAGE FAILURE: No stored content exists for file {file.Id} (storage key {file.StorageKey}).",
+                changes: new List<AuditFieldChange>
+                {
+                    new("FileId", file.Id.ToString(), null),
+                    new("StorageKey", file.StorageKey, null),
+                    new("ContentSha256", file.ContentSha256, null)
+                },
+                entityId: file.Id.ToString());
+
+            throw;
+        }
         catch (Exception ex)
         {
             throw new InvalidOperationException($"The document file could not be read from storage: {ex.Message}");

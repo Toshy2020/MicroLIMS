@@ -451,6 +451,37 @@ public class DocumentControlUnitTests
     }
 
     [Fact]
+    public async Task GetFileContent_StoredFileMissing_ThrowsAndRecordsSecurityAuditEvent()
+    {
+        var registered = await _masterService.RegisterDocumentMasterAsync(new RegisterDocumentMasterRequest(
+            CompanyDocumentCode: "SOP-QC-055",
+            Title: "Doc Missing From Storage",
+            DocumentTypeId: _docTypeId,
+            DepartmentId: _deptId,
+            SectionId: _sectionId,
+            DocumentOwnerUserId: _authorUserId
+        ), _authorUserId);
+
+        var revId = registered.Revisions[0].Id;
+        var fileDto = await _fileService.UploadRevisionFileAsync(
+            revId, FileRole.ControlledPdf, "original.pdf", "application/pdf",
+            Encoding.UTF8.GetBytes("%PDF-1.7 Original Content"), _authorUserId);
+
+        // The record survives but its bytes do not - what a container restart
+        // did to local disk in production.
+        var savedFile = await _db.RevisionFiles.FindAsync(fileDto.Id);
+        _storage.Files.Remove(savedFile!.StorageKey);
+
+        await Assert.ThrowsAsync<StoredFileNotFoundException>(() =>
+            _fileService.GetFileContentAsync(fileDto.Id, _authorUserId));
+
+        var audit = await _db.AuditLogs
+            .FirstOrDefaultAsync(a => a.ActionCode == "StoredFileMissing" && a.EntityId == fileDto.Id.ToString());
+        Assert.NotNull(audit);
+        Assert.Equal(AuditActionCategory.Security, audit.ActionCategory);
+    }
+
+    [Fact]
     public async Task DocumentAuthorization_OwnerAndAssignedAuthor_GrantedDraftAccess()
     {
         var registered = await _masterService.RegisterDocumentMasterAsync(new RegisterDocumentMasterRequest(

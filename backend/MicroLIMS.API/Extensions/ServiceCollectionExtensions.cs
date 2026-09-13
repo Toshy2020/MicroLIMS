@@ -1,3 +1,5 @@
+using Amazon.Runtime;
+using Amazon.S3;
 using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Application.Interfaces.DocumentControl;
 using MicroLIMS.Application.Services;
@@ -167,7 +169,49 @@ public static class ServiceCollectionExtensions
 
         services.AddSingleton<NotificationService>();
         services.AddSingleton<INotificationService>(sp => sp.GetRequiredService<NotificationService>());
-        services.AddScoped<IFileStorageService>(_ => new LocalFileStorageService(config["Storage:BasePath"] ?? "storage"));
+        // Where uploaded files physically live. "Local" writes under
+        // Storage:BasePath and is for development only - on Render that
+        // directory is wiped on every restart and redeploy. "S3" writes to an
+        // S3-compatible bucket (Backblaze B2 in production).
+        var storageProvider = config["Storage:Provider"] ?? "Local";
+        var storageBasePath = config["Storage:BasePath"] ?? "storage";
+        if (string.Equals(storageProvider, "S3", StringComparison.OrdinalIgnoreCase))
+        {
+            string RequiredS3Setting(string name) =>
+                config[$"Storage:S3:{name}"] is { Length: > 0 } value
+                    ? value
+                    : throw new InvalidOperationException(
+                        $"Storage:Provider is S3 but Storage:S3:{name} is not set (environment variable Storage__S3__{name}).");
+
+            var bucketName = RequiredS3Setting("BucketName");
+            var s3Client = new AmazonS3Client(
+                new BasicAWSCredentials(RequiredS3Setting("AccessKeyId"), RequiredS3Setting("SecretAccessKey")),
+                new AmazonS3Config
+                {
+                    ServiceURL = RequiredS3Setting("ServiceUrl"),
+                    AuthenticationRegion = RequiredS3Setting("Region"),
+                    ForcePathStyle = true,
+                    // Send and check only the checksums an operation requires.
+                    // The SDK's newer defaults add checksum headers that
+                    // S3-compatible providers, B2 included, have rejected.
+                    RequestChecksumCalculation = RequestChecksumCalculation.WHEN_REQUIRED,
+                    ResponseChecksumValidation = ResponseChecksumValidation.WHEN_REQUIRED
+                });
+
+            services.AddSingleton<IAmazonS3>(s3Client);
+            // Legacy base path: rows written to local disk before the move
+            // resolve to the key a re-upload of the original would use.
+            services.AddSingleton<IFileStorageService>(sp =>
+                new S3FileStorageService(sp.GetRequiredService<IAmazonS3>(), bucketName, storageBasePath));
+        }
+        else if (string.Equals(storageProvider, "Local", StringComparison.OrdinalIgnoreCase))
+        {
+            services.AddScoped<IFileStorageService>(_ => new LocalFileStorageService(storageBasePath));
+        }
+        else
+        {
+            throw new InvalidOperationException($"Unknown Storage:Provider '{storageProvider}'. Use 'Local' or 'S3'.");
+        }
 
         // Takes the validated JwtSettings registered in Program.cs rather
         // than reading Jwt:Key again - a second read is what allowed the

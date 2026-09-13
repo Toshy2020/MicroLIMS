@@ -1,6 +1,6 @@
 # Storage Migration Implications
 
-**Status:** assessment only. **The storage migration is deferred — no provider has been selected and no code has been changed.**
+**Status (2026-09-13):** provider selected and implemented — **Backblaze B2** (free tier) through `S3FileStorageService`, chosen because it costs nothing and needs no card. Section 6 step 1 is answered: the Render disk is **not** persistent, and production files uploaded before a restart were lost (confirmed live on `RevisionFile` 2). Done: keys are persisted relative (section 2's recommended convention), both implementations still read the older combined paths via `StorageKey.Normalize` so no column migration is needed, `DiscussionService` is reconciled by the same change, and a missing file raises `StoredFileNotFoundException`. **Still outstanding:** streaming and `CancellationToken` (section 3), and a demonstrated combined database + file restore (section 4, step 8). The assessment below is kept as written.
 
 This document records whether `IFileStorageService` is a usable seam for replacing local
 filesystem storage with durable object storage, and what a future migration must account for.

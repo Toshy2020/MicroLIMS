@@ -44,6 +44,9 @@ frontend/navigation_audit.txt
 .claude/worktrees/
 .superpowers/
 
+# Locally installed Claude Code skills - per-developer tooling, not project source
+.claude/skills/
+
 # wrangler files
 .wrangler
 .dev.vars*

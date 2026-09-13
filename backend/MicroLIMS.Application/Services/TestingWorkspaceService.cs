@@ -531,6 +531,7 @@ public class TestingWorkspaceService : ITestWorkspaceService
             WaterDepartmentId = s.WaterDepartmentId,
             ProductionStage = s.ProductionStage,
             CauseOfTesting = s.CauseOfTesting?.Name ?? string.Empty,
+            CauseOfTestingId = s.CauseOfTestingId,
             BatchNumber = s.BatchNumber,
             ControlNumber = s.ControlNumber,
             Status = s.Status.ToString(),
@@ -545,6 +546,11 @@ public class TestingWorkspaceService : ITestWorkspaceService
             StorageCondition = s.StorageCondition,
             StorageTimeHours = s.StorageTimeHours,
             IncubationStarted = sampleIncubations.Count > 0,
+            CanEditDetails = SampleCorrectionService.IsCorrectable(s.Status),
+            CanChangeItemOrLocation = s.Status == SampleStatus.Received
+                && s.OriginSampleId == null
+                && sampleIncubations.Count == 0
+                && s.TestOrders.All(t => t.CurrentStep == WorkflowStep.Waiting),
             AssignedAnalystId = assignedTests.FirstOrDefault(t => t.AssignedAnalystId != null)?.AssignedAnalystId,
             AssignedAnalystName = assignedTests.FirstOrDefault(t => !string.IsNullOrEmpty(t.AssignedAnalystName))?.AssignedAnalystName,
             AssignedTests = assignedTests,

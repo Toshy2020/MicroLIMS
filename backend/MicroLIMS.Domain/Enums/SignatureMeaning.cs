@@ -7,5 +7,9 @@ public enum SignatureMeaning
     Rejected,
     RetestRequested,
     InvestigationOrdered,
-    PreparationConfirmed
+    PreparationConfirmed,
+
+    // Appended, never inserted: persisted as int.
+    SampleCorrected,
+    SampleVoided
 }

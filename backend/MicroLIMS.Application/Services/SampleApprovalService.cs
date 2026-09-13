@@ -222,13 +222,37 @@ public class SampleApprovalService
                 // Comment above - the Approver must explicitly type this,
                 // or leave it null, at the moment of approval only.
                 sample.CertificateRemarks = string.IsNullOrWhiteSpace(certificateRemarks) ? null : certificateRemarks.Trim();
-                foreach (var order in currentOrders) order.Status = ApprovalStatus.Approved;
+                foreach (var order in currentOrders)
+                {
+                    var previousStep = order.CurrentStep;
+                    order.Status = ApprovalStatus.Approved;
+                    order.CurrentStep = WorkflowStep.Approved;
+                    _db.WorkflowHistories.Add(new WorkflowHistory
+                    {
+                        TestOrderId = order.Id,
+                        FromStep = previousStep,
+                        ToStep = WorkflowStep.Approved,
+                        Note = $"Sample approved by {signature.UserFullNameSnapshot}",
+                        PerformedByUserId = sectionHeadUserId
+                    });
+                }
                 break;
 
             case ApprovalDecision.Reject:
                 sample.Status = SampleStatus.Rejected;
                 sample.ApprovalDecision = ApprovalDecision.Reject;
-                foreach (var order in currentOrders) order.Status = ApprovalStatus.Rejected;
+                foreach (var order in currentOrders)
+                {
+                    order.Status = ApprovalStatus.Rejected;
+                    _db.WorkflowHistories.Add(new WorkflowHistory
+                    {
+                        TestOrderId = order.Id,
+                        FromStep = order.CurrentStep,
+                        ToStep = order.CurrentStep,
+                        Note = $"Sample rejected by {signature.UserFullNameSnapshot}",
+                        PerformedByUserId = sectionHeadUserId
+                    });
+                }
                 break;
 
             case ApprovalDecision.RetestRetainedSample:
@@ -429,6 +453,10 @@ public class SampleApprovalService
         {
             var conforms = await DetermineOwnResultConformanceAsync(order.Id);
             order.Status = conforms ? ApprovalStatus.Approved : ApprovalStatus.Rejected;
+            if (conforms)
+            {
+                order.CurrentStep = WorkflowStep.Approved;
+            }
         }
 
         await _db.SaveChangesAsync();

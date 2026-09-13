@@ -54,6 +54,9 @@ function resolveEffectiveTestStatus(
     if (test.workflowState === "APPROVED" || test.status === "Approved") {
       return { label: "Completed & Approved", icon: <CheckCircleIcon sx={{ fontSize: 14, color: successColor }} />, color: successColor };
     }
+    if (test.workflowState === "REVIEWED" || test.status === "Reviewed") {
+      return { label: test.workflowStateDisplay || "Reviewed — Pending Approval", icon: <FiberManualRecordIcon sx={{ fontSize: 12, color: inconclusiveColor }} />, color: inconclusiveColor };
+    }
     if (test.workflowState === "TSB_INCUBATING") {
       return { label: "TSB Incubating", icon: <FiberManualRecordIcon sx={{ fontSize: 12, color: infoColor }} />, color: infoColor };
     }
@@ -77,6 +80,9 @@ function resolveEffectiveTestStatus(
 
   if (test.status === "Approved") {
     return { label: "Completed & Approved", icon: <CheckCircleIcon sx={{ fontSize: 14, color: successColor }} />, color: successColor };
+  }
+  if (test.status === "Reviewed") {
+    return { label: "Reviewed — Pending Approval", icon: <FiberManualRecordIcon sx={{ fontSize: 12, color: inconclusiveColor }} />, color: inconclusiveColor };
   }
   if (test.status === "UnderReview") {
     return { label: "Under Review", icon: <FiberManualRecordIcon sx={{ fontSize: 12, color: inconclusiveColor }} />, color: inconclusiveColor };

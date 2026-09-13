@@ -76,18 +76,28 @@ public class DashboardNotificationService
         var readyIncubations = await _db.Incubations
             .Where(i => i.CompletedAt != null)
             .Include(i => i.TestOrder)
+                .ThenInclude(t => t!.Sample)
             .Where(i => i.TestOrder!.CurrentStep == WorkflowStep.Incubating || i.TestOrder.CurrentStep == WorkflowStep.Running)
             .OrderByDescending(i => i.CompletedAt)
             .Take(20)
             .ToListAsync();
         foreach (var i in readyIncubations)
-            results.Add(("IncubationReady", $"{i.StepName} for TestOrder #{i.TestOrderId} is ready.", "info"));
+        {
+            // Named by test and sample - a bare TestOrder id gives the
+            // analyst nothing to find the plates by.
+            var testCode = i.TestOrder?.TestCode ?? "Test";
+            var step = string.IsNullOrWhiteSpace(i.StepName) ? "incubation" : i.StepName;
+            var subject = i.TestOrder?.Sample?.ReferenceNumber is { } reference
+                ? $"sample {reference}"
+                : $"test order #{i.TestOrderId}";
+            results.Add(("IncubationReady", $"{testCode} ({step}) for {subject} is ready.", "info"));
+        }
 
         if (role is RoleType.SectionHead or RoleType.SystemAdministrator)
         {
-            var approvalCount = await _db.TestOrders.CountAsync(t => t.Status == ApprovalStatus.Reviewed);
+            var approvalCount = await _db.Samples.CountAsync(s => s.Status == SampleStatus.UnderApproval);
             if (approvalCount > 0)
-                results.Add(("ApprovalWaiting", $"{approvalCount} test order(s) awaiting approval.", "info"));
+                results.Add(("ApprovalWaiting", $"{approvalCount} sample(s) awaiting approval.", "info"));
 
             // Auto-seeded from an analyst's first manual entry - already in
             // use, so this is a review-after-the-fact prompt, not a blocker.
@@ -99,9 +109,9 @@ public class DashboardNotificationService
 
         if (role is RoleType.Reviewer or RoleType.SectionHead or RoleType.SystemAdministrator)
         {
-            var reviewCount = await _db.TestOrders.CountAsync(t => t.Status == ApprovalStatus.ResultEntered);
+            var reviewCount = await _db.Samples.CountAsync(s => s.Status == SampleStatus.UnderReview);
             if (reviewCount > 0)
-                results.Add(("ReviewWaiting", $"{reviewCount} test order(s) awaiting review.", "info"));
+                results.Add(("ReviewWaiting", $"{reviewCount} sample(s) awaiting review.", "info"));
         }
 
         var returnedTests = await _db.TestReturnEvents

@@ -434,6 +434,22 @@ public class PathogenSessionServiceTests
         // 4. Complete Session
         var completedSession = await service.CompleteSessionAsync(sampleId, 5);
         Assert.Equal("READY_FOR_REVIEW", completedSession.OverallSessionStatus);
+
+        var orders = await db.TestOrders.Where(t => t.SampleId == sampleId).ToListAsync();
+        Assert.NotEmpty(orders);
+        Assert.All(orders, o =>
+        {
+            Assert.Equal(ApprovalStatus.ResultEntered, o.Status);
+            Assert.Equal(WorkflowStep.Ready, o.CurrentStep);
+        });
+
+        var sampleEvents = await db.ReviewWorkflowEvents
+            .Where(e => e.EntityType == ReviewEntityTypes.Sample && e.EntityId == sampleId)
+            .ToListAsync();
+        var submitEvent = Assert.Single(sampleEvents);
+        Assert.Equal(ReviewWorkflowEventType.SubmittedForReview, submitEvent.EventType);
+        Assert.Equal(5, submitEvent.PerformedByUserId);
+        Assert.Contains("submitted for review", submitEvent.Comment, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]

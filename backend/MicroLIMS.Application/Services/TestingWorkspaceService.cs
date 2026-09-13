@@ -13,22 +13,6 @@ public class TestingWorkspaceService : ITestWorkspaceService
 {
     private readonly MicroLimsDbContext _db;
 
-    // A sample past one of these is finished: it is not outstanding work no
-    // matter how long ago it arrived. Without excluding them an "Overdue" count
-    // grows forever, because every closed sample eventually passes 24 hours.
-    //
-    // Held as an array rather than repeated inline so the tiles and the register
-    // cannot disagree about what "closed" means - EF translates Contains to a
-    // NOT IN (...), so it composes inside any of the predicates below.
-    private static readonly SampleStatus[] ClosedSampleStatuses =
-    {
-        SampleStatus.Approved,
-        SampleStatus.Rejected,
-        SampleStatus.RetestRequested,
-        SampleStatus.Cancelled,
-        SampleStatus.Voided
-    };
-
     public TestingWorkspaceService(MicroLimsDbContext db)
     {
         _db = db;
@@ -68,7 +52,7 @@ public class TestingWorkspaceService : ITestWorkspaceService
             if (string.Equals(wf, "needsPreparation", StringComparison.OrdinalIgnoreCase))
             {
                 query = query.Where(s => s.PreparationStatus == SamplePreparationStatus.NeedsPreparation
-                                      && !ClosedSampleStatuses.Contains(s.Status));
+                                      && !SampleWorkflowQueues.ClosedSampleStatuses.Contains(s.Status));
             }
             else if (string.Equals(wf, "readyToRead", StringComparison.OrdinalIgnoreCase))
             {
@@ -81,14 +65,12 @@ public class TestingWorkspaceService : ITestWorkspaceService
             }
             else if (string.Equals(wf, "awaitingReview", StringComparison.OrdinalIgnoreCase))
             {
-                query = query.Where(s => s.Status == SampleStatus.UnderReview
-                    || s.TestOrders.Any(t => !t.IsSuperseded
-                        && (t.Status == ApprovalStatus.ResultEntered || t.CurrentStep == WorkflowStep.Ready)));
+                query = query.Where(s => s.Status == SampleStatus.UnderReview);
             }
             else if (string.Equals(wf, "overdue", StringComparison.OrdinalIgnoreCase))
             {
                 var overdueCutoff = now.AddHours(-24);
-                query = query.Where(s => !ClosedSampleStatuses.Contains(s.Status)
+                query = query.Where(s => !SampleWorkflowQueues.ClosedSampleStatuses.Contains(s.Status)
                                       && s.ReceivedAt < overdueCutoff);
             }
             else if (string.Equals(wf, "mine", StringComparison.OrdinalIgnoreCase))
@@ -100,8 +82,22 @@ public class TestingWorkspaceService : ITestWorkspaceService
             }
             else if (string.Equals(wf, "unassigned", StringComparison.OrdinalIgnoreCase))
             {
-                query = query.Where(s => !ClosedSampleStatuses.Contains(s.Status)
+                query = query.Where(s => !SampleWorkflowQueues.ClosedSampleStatuses.Contains(s.Status)
                                       && !s.TestOrders.Any(t => !t.IsSuperseded && t.AssignedAnalystId != null));
+            }
+            else if (string.Equals(wf, "retestInProgress", StringComparison.OrdinalIgnoreCase))
+            {
+                query = query.WhereRetestInProgress();
+            }
+            else if (string.Equals(wf, "reviewOverdue", StringComparison.OrdinalIgnoreCase))
+            {
+                var overdueIds = await SampleWorkflowQueues.GetOverdueReviewSampleIdsAsync(_db, now, TimeSpan.FromHours(24));
+                query = query.Where(s => overdueIds.Contains(s.Id));
+            }
+            else if (string.Equals(wf, "approvalOverdue", StringComparison.OrdinalIgnoreCase))
+            {
+                var overdueIds = await SampleWorkflowQueues.GetOverdueApprovalSampleIdsAsync(_db, now, TimeSpan.FromHours(24));
+                query = query.Where(s => overdueIds.Contains(s.Id));
             }
         }
 
@@ -228,7 +224,7 @@ public class TestingWorkspaceService : ITestWorkspaceService
         if (string.Equals(filter.Urgency, "overdue", StringComparison.OrdinalIgnoreCase))
         {
             var overdueCutoff = now.AddHours(-24);
-            query = query.Where(s => !ClosedSampleStatuses.Contains(s.Status)
+            query = query.Where(s => !SampleWorkflowQueues.ClosedSampleStatuses.Contains(s.Status)
                                   && s.ReceivedAt < overdueCutoff);
         }
 
@@ -281,7 +277,7 @@ public class TestingWorkspaceService : ITestWorkspaceService
         var needsPrep = await _db.Samples
             .AsNoTracking()
             .CountAsync(s => s.PreparationStatus == SamplePreparationStatus.NeedsPreparation
-                          && !ClosedSampleStatuses.Contains(s.Status));
+                          && !SampleWorkflowQueues.ClosedSampleStatuses.Contains(s.Status));
 
         var readyToRead = await _db.Samples
             .AsNoTracking()
@@ -294,13 +290,11 @@ public class TestingWorkspaceService : ITestWorkspaceService
 
         var awaitingReview = await _db.Samples
             .AsNoTracking()
-            .CountAsync(s => s.Status == SampleStatus.UnderReview
-                          || s.TestOrders.Any(t => !t.IsSuperseded
-                              && (t.Status == ApprovalStatus.ResultEntered || t.CurrentStep == WorkflowStep.Ready)));
+            .CountAsync(s => s.Status == SampleStatus.UnderReview);
 
         var overdue = await _db.Samples
             .AsNoTracking()
-            .CountAsync(s => !ClosedSampleStatuses.Contains(s.Status)
+            .CountAsync(s => !SampleWorkflowQueues.ClosedSampleStatuses.Contains(s.Status)
                           && s.ReceivedAt < overdueCutoff);
 
         var mine = currentUserId.HasValue
@@ -311,7 +305,7 @@ public class TestingWorkspaceService : ITestWorkspaceService
 
         var unassigned = await _db.Samples
             .AsNoTracking()
-            .CountAsync(s => !ClosedSampleStatuses.Contains(s.Status)
+            .CountAsync(s => !SampleWorkflowQueues.ClosedSampleStatuses.Contains(s.Status)
                           && !s.TestOrders.Any(t => !t.IsSuperseded && t.AssignedAnalystId != null));
 
         return new WorkspaceTileCountsDto

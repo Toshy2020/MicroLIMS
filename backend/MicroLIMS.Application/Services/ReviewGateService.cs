@@ -53,16 +53,35 @@ public class ReviewGateService
     // For transitions the system makes on a user's behalf rather than a
     // user signing for - currently only the automatic
     // "all tests complete, submitted for review" hop.
-    public async Task LogEventAsync(
+    public Task LogEventAsync(
         string entityType, int entityId, int userId,
+        ReviewWorkflowEventType eventType, string? comment, ApprovalDecision? decision = null) =>
+        ReviewEventLog.LogAsync(_db, entityType, entityId, userId, eventType, comment, decision);
+
+    public Task<List<ReviewWorkflowEvent>> GetTimelineAsync(string entityType, int entityId) =>
+        _db.ReviewWorkflowEvents
+            .Where(e => e.EntityType == entityType && e.EntityId == entityId)
+            .OrderBy(e => e.Timestamp)
+            .ToListAsync();
+}
+
+// The unsigned half of ReviewGateService, needing only the DbContext - so a
+// service that records a lifecycle event but never signs anything (e.g.
+// PathogenSessionService completing a testing session) does not have to take
+// on the electronic-signature dependency just to write one. Stages only; the
+// caller's SaveChangesAsync commits the event with its own state change.
+public static class ReviewEventLog
+{
+    public static async Task LogAsync(
+        MicroLimsDbContext db, string entityType, int entityId, int userId,
         ReviewWorkflowEventType eventType, string? comment, ApprovalDecision? decision = null)
     {
-        var performedByName = await _db.Users
+        var performedByName = await db.Users
             .Where(u => u.Id == userId)
             .Select(u => u.FullName)
             .FirstOrDefaultAsync() ?? "Unknown";
 
-        _db.ReviewWorkflowEvents.Add(new ReviewWorkflowEvent
+        db.ReviewWorkflowEvents.Add(new ReviewWorkflowEvent
         {
             EntityType = entityType,
             EntityId = entityId,
@@ -73,12 +92,6 @@ public class ReviewGateService
             Decision = decision
         });
     }
-
-    public Task<List<ReviewWorkflowEvent>> GetTimelineAsync(string entityType, int entityId) =>
-        _db.ReviewWorkflowEvents
-            .Where(e => e.EntityType == entityType && e.EntityId == entityId)
-            .OrderBy(e => e.Timestamp)
-            .ToListAsync();
 }
 
 // Entity type discriminators for ReviewWorkflowEvent/ElectronicSignature.

@@ -11,10 +11,9 @@ public record AnalystMetricsDto(int TestsCompletedToday, int MediaLotsPreparedTo
 
 public record SectionHeadAttentionItemDto(
     int SampleId,
-    int? TestOrderId,
     string ReferenceNumber,
     string SubjectName,
-    string TestCode,
+    List<string> TestCodes,
     string Urgency,
     string Reason,
     string ActionType,
@@ -23,29 +22,26 @@ public record SectionHeadAttentionItemDto(
 
 public record SectionHeadReviewQueueItemDto(
     int SampleId,
-    int TestOrderId,
     string ReferenceNumber,
     string SubjectName,
     string Category,
-    string TestCode,
-    string? AnalystName,
-    DateTime ResultEnteredAt,
+    List<string> TestCodes,
+    List<string> AnalystNames,
+    DateTime SubmittedForReviewAt,
     double AgeHours,
-    string? ResultLevel,
-    string? ReportedValue,
-    string? Unit
+    string? WorstResultLevel
 );
 
 public record SectionHeadApprovalQueueItemDto(
     int SampleId,
-    int TestOrderId,
     string ReferenceNumber,
     string SubjectName,
     string Category,
-    string TestCode,
+    List<string> TestCodes,
     string? ReviewerName,
-    DateTime? ReviewedAt,
-    double AgeHours
+    DateTime ReviewedAt,
+    double AgeHours,
+    string? WorstResultLevel
 );
 
 public record SectionHeadAnalystWorkloadDto(
@@ -83,21 +79,25 @@ public record SectionHeadDashboardDto(
     List<SectionHeadAnalystWorkloadDto> AnalystWorkloads
 );
 
-public record ReviewerQueueItemDto(
-    int SampleId,
+public record ReviewerQueueTestDto(
     int TestOrderId,
-    string ReferenceNumber,
-    string SubjectName,
-    string Category,
     string TestCode,
     string TestDisplayName,
     string? AnalystName,
-    DateTime ResultEnteredAt,
+    string? ResultLevel
+);
+
+public record ReviewerQueueItemDto(
+    int SampleId,
+    string ReferenceNumber,
+    string SubjectName,
+    string Category,
+    DateTime SubmittedForReviewAt,
     int AgeMinutes,
     string Priority,
-    string? ResultLevel,
-    string? ReportedValue,
-    string? Unit
+    string? WorstResultLevel,
+    List<string> AnalystNames,
+    List<ReviewerQueueTestDto> Tests
 );
 
 public record ReviewerRecentlyReviewedDto(
@@ -114,10 +114,9 @@ public record ReviewerRecentlyReviewedDto(
 
 public record ReviewerAttentionItemDto(
     int SampleId,
-    int TestOrderId,
     string ReferenceNumber,
     string SubjectName,
-    string TestCode,
+    List<string> TestCodes,
     string Urgency,
     string Reason,
     DateTime Timestamp
@@ -127,7 +126,7 @@ public record ReviewerDashboardDto(
     int PendingReviewCount,
     int OverdueReviewCount,
     int DueTodayCount,
-    int ReturnedCount,
+    int RetestsInProgressCount,
     int CompletedTodayCount,
     List<ReviewerQueueItemDto> ReviewQueue,
     List<ReviewerAttentionItemDto> AttentionItems,
@@ -176,8 +175,8 @@ public class DashboardService
             .CountAsync();
 
         var samplesToday = await _db.Samples.CountAsync(s => s.ReceivedAt >= todayStart);
-        var reviewerQueue = await _db.TestOrders.CountAsync(t => t.Status == ApprovalStatus.ResultEntered);
-        var approvalQueue = await _db.TestOrders.CountAsync(t => t.Status == ApprovalStatus.Reviewed);
+        var reviewerQueue = await _db.Samples.CountAsync(s => s.Status == SampleStatus.UnderReview);
+        var approvalQueue = await _db.Samples.CountAsync(s => s.Status == SampleStatus.UnderApproval);
         var preparationQueue = await _db.Samples.CountAsync(s => s.PreparationStatus == SamplePreparationStatus.NeedsPreparation);
 
         // Preparation configs auto-created from an analyst's first manual
@@ -472,8 +471,8 @@ public class DashboardService
         var incubating = openIncubations.Count(i => i.ExpectedReadingAt == null || i.ExpectedReadingAt > now);
         var readyToRead = openIncubations.Count(i => i.ExpectedReadingAt != null && i.ExpectedReadingAt <= now);
 
-        var pendingReview = await _db.TestOrders.CountAsync(t => !t.IsSuperseded && t.Status == ApprovalStatus.ResultEntered);
-        var pendingApproval = await _db.TestOrders.CountAsync(t => !t.IsSuperseded && t.Status == ApprovalStatus.Reviewed);
+        var pendingReview = await _db.Samples.CountAsync(s => s.Status == SampleStatus.UnderReview);
+        var pendingApproval = await _db.Samples.CountAsync(s => s.Status == SampleStatus.UnderApproval);
 
         // Rule #1's 7-day Analyst-stage SLA (KpiService.
         // GetOverdueAnalystStageSamplesAsync - the SLA determination
@@ -492,7 +491,10 @@ public class DashboardService
         var liveOverdueTestOrders = await _db.TestOrders
             .Where(t => !t.IsSuperseded && (t.Status == ApprovalStatus.Pending || t.Status == ApprovalStatus.InProgress)
                 && overdueAssignedAtBySampleId.Keys.Contains(t.SampleId))
-            .Select(t => new { t.SampleId, t.AssignedAnalystId })
+            .Include(t => t.Sample).ThenInclude(s => s!.Item)
+            .Include(t => t.Sample).ThenInclude(s => s!.WaterSamplingPoint)
+            .Include(t => t.Sample).ThenInclude(s => s!.Department)
+            .Include(t => t.Sample).ThenInclude(s => s!.Machine)
             .ToListAsync();
 
         var overdue = liveOverdueTestOrders.Select(t => t.SampleId).Distinct().Count();
@@ -505,31 +507,84 @@ public class DashboardService
         var users = await _db.Users.AsNoTracking().Include(u => u.Role).ToListAsync();
         var userMap = users.ToDictionary(u => u.Id, u => u.FullName);
 
-        // Review Queue details
-        var reviewOrders = await _db.TestOrders
-            .Where(t => !t.IsSuperseded && t.Status == ApprovalStatus.ResultEntered)
-            .Include(t => t.Sample).ThenInclude(s => s!.Item)
-            .Include(t => t.Sample).ThenInclude(s => s!.WaterSamplingPoint)
-            .Include(t => t.Sample).ThenInclude(s => s!.Department)
-            .Include(t => t.Sample).ThenInclude(s => s!.Machine)
-            .Include(t => t.Results)
+        // Review Queue details: one row per UnderReview sample
+        var underReviewSamples = await _db.Samples
+            .AsNoTracking()
+            .Where(s => s.Status == SampleStatus.UnderReview)
+            .Include(s => s.Item)
+            .Include(s => s.WaterSamplingPoint)
+            .Include(s => s.Department)
+            .Include(s => s.Machine)
+            .Include(s => s.TestOrders).ThenInclude(t => t.Results)
             .ToListAsync();
 
-        var reviewQueueItems = reviewOrders
-            .Select(t =>
+        var reviewSampleIds = underReviewSamples.Select(s => s.Id).ToList();
+        var reviewClockStarts = await SampleWorkflowQueues.GetReviewClockStartsAsync(_db, reviewSampleIds);
+        var reviewWorstLevels = await SampleWorkflowQueues.GetWorstResultLevelsAsync(_db, reviewSampleIds);
+
+        var reviewNonSupersededOrders = underReviewSamples
+            .SelectMany(s => s.TestOrders.Where(t => !t.IsSuperseded))
+            .ToList();
+        var reviewTestOrderIds = reviewNonSupersededOrders.Select(t => t.Id).ToList();
+
+        var reviewResultRecords = await _db.ResultRecords
+            .AsNoTracking()
+            .Where(r => reviewTestOrderIds.Contains(r.TestOrderId))
+            .Select(r => new { r.TestOrderId, r.ResultEnteredByUserId, r.ResultEnteredByName, r.ResultEnteredAt })
+            .ToListAsync();
+
+        var reviewQueueItems = underReviewSamples
+            .Select(s =>
             {
-                var latestResult = t.Results.OrderByDescending(r => r.EnteredAt).FirstOrDefault();
-                var enteredAt = latestResult?.EnteredAt ?? t.Sample?.ReceivedAt ?? now;
-                var ageHours = Math.Round((now - enteredAt).TotalHours, 1);
-                var analystName = t.AssignedAnalystId.HasValue && userMap.TryGetValue(t.AssignedAnalystId.Value, out var aName)
-                    ? aName
-                    : (latestResult != null && userMap.TryGetValue(latestResult.EnteredByUserId, out var eName) ? eName : null);
-                var displayName = t.Sample?.Item?.Name ?? t.Sample?.WaterSamplingPoint?.Code ?? t.Sample?.Department?.Name ?? t.Sample?.Machine?.Name ?? t.Sample?.ReferenceNumber ?? "Sample";
+                var submittedAt = reviewClockStarts.GetValueOrDefault(s.Id, s.ReceivedAt);
+                var ageHours = Math.Round((now - submittedAt).TotalHours, 1);
+                var worstLevel = reviewWorstLevels.GetValueOrDefault(s.Id)?.ToString();
+
+                var nonSuperseded = s.TestOrders.Where(t => !t.IsSuperseded).ToList();
+                var testCodes = nonSuperseded.Select(t => t.TestCode).ToList();
+
+                var analystNames = nonSuperseded.Select(t =>
+                {
+                    if (t.AssignedAnalystId.HasValue && userMap.TryGetValue(t.AssignedAnalystId.Value, out var assignedName))
+                    {
+                        return assignedName;
+                    }
+                    var latestResult = t.Results.OrderByDescending(r => r.EnteredAt).FirstOrDefault();
+                    var latestRecord = reviewResultRecords.Where(r => r.TestOrderId == t.Id).OrderByDescending(r => r.ResultEnteredAt).FirstOrDefault();
+
+                    if (latestResult != null && (latestRecord == null || latestResult.EnteredAt >= latestRecord.ResultEnteredAt))
+                    {
+                        return userMap.TryGetValue(latestResult.EnteredByUserId, out var n) ? n : null;
+                    }
+                    if (latestRecord != null)
+                    {
+                        return !string.IsNullOrWhiteSpace(latestRecord.ResultEnteredByName)
+                            ? latestRecord.ResultEnteredByName
+                            : (userMap.TryGetValue(latestRecord.ResultEnteredByUserId, out var n) ? n : null);
+                    }
+                    return null;
+                })
+                .Where(n => !string.IsNullOrWhiteSpace(n))
+                .Select(n => n!)
+                .Distinct()
+                .ToList();
+
+                var displayName = s.Item?.Name
+                    ?? s.WaterSamplingPoint?.Code
+                    ?? s.Department?.Name
+                    ?? s.Machine?.Name
+                    ?? (string.IsNullOrWhiteSpace(s.ReferenceNumber) ? "Sample" : s.ReferenceNumber);
 
                 return new SectionHeadReviewQueueItemDto(
-                    t.SampleId, t.Id, t.Sample?.ReferenceNumber ?? "", displayName,
-                    t.Sample?.Category.ToString() ?? "", t.TestCode, analystName, enteredAt,
-                    ageHours, latestResult?.Type.ToString(), latestResult?.InterpretedValue ?? latestResult?.RawValue, null
+                    s.Id,
+                    s.ReferenceNumber ?? "",
+                    displayName,
+                    s.Category.ToString(),
+                    testCodes,
+                    analystNames,
+                    submittedAt,
+                    ageHours,
+                    worstLevel
                 );
             })
             .OrderByDescending(r => r.AgeHours)
@@ -538,26 +593,46 @@ public class DashboardService
         var reviewQueueOverdue = reviewQueueItems.Count(r => r.AgeHours >= 24);
         var reviewQueueOldestHours = reviewQueueItems.Count > 0 ? reviewQueueItems.Max(r => r.AgeHours) : 0;
 
-        // Approval Queue details
-        var approvalOrders = await _db.TestOrders
-            .Where(t => !t.IsSuperseded && t.Status == ApprovalStatus.Reviewed)
-            .Include(t => t.Sample).ThenInclude(s => s!.Item)
-            .Include(t => t.Sample).ThenInclude(s => s!.WaterSamplingPoint)
-            .Include(t => t.Sample).ThenInclude(s => s!.Department)
-            .Include(t => t.Sample).ThenInclude(s => s!.Machine)
+        // Approval Queue details: one row per UnderApproval sample
+        var underApprovalSamples = await _db.Samples
+            .AsNoTracking()
+            .Where(s => s.Status == SampleStatus.UnderApproval)
+            .Include(s => s.Item)
+            .Include(s => s.WaterSamplingPoint)
+            .Include(s => s.Department)
+            .Include(s => s.Machine)
+            .Include(s => s.TestOrders)
             .ToListAsync();
 
-        var approvalQueueItems = approvalOrders
-            .Select(t =>
+        var approvalSampleIds = underApprovalSamples.Select(s => s.Id).ToList();
+        var approvalWorstLevels = await SampleWorkflowQueues.GetWorstResultLevelsAsync(_db, approvalSampleIds);
+
+        var approvalQueueItems = underApprovalSamples
+            .Select(s =>
             {
-                var reviewedAt = t.Sample?.ReviewedAt ?? t.Sample?.ReceivedAt ?? now;
+                var reviewedAt = SampleWorkflowQueues.GetApprovalClockStart(s);
                 var ageHours = Math.Round((now - reviewedAt).TotalHours, 1);
-                var reviewerName = t.Sample?.ReviewedByUserId.HasValue == true && userMap.TryGetValue(t.Sample.ReviewedByUserId.Value, out var rName) ? rName : null;
-                var displayName = t.Sample?.Item?.Name ?? t.Sample?.WaterSamplingPoint?.Code ?? t.Sample?.Department?.Name ?? t.Sample?.Machine?.Name ?? t.Sample?.ReferenceNumber ?? "Sample";
+                var reviewerName = s.ReviewedByUserId.HasValue && userMap.TryGetValue(s.ReviewedByUserId.Value, out var rName) ? rName : null;
+                var displayName = s.Item?.Name
+                    ?? s.WaterSamplingPoint?.Code
+                    ?? s.Department?.Name
+                    ?? s.Machine?.Name
+                    ?? (string.IsNullOrWhiteSpace(s.ReferenceNumber) ? "Sample" : s.ReferenceNumber);
+
+                var nonSuperseded = s.TestOrders.Where(t => !t.IsSuperseded).ToList();
+                var testCodes = nonSuperseded.Select(t => t.TestCode).ToList();
+                var worstLevel = approvalWorstLevels.GetValueOrDefault(s.Id)?.ToString();
 
                 return new SectionHeadApprovalQueueItemDto(
-                    t.SampleId, t.Id, t.Sample?.ReferenceNumber ?? "", displayName,
-                    t.Sample?.Category.ToString() ?? "", t.TestCode, reviewerName, reviewedAt, ageHours
+                    s.Id,
+                    s.ReferenceNumber ?? "",
+                    displayName,
+                    s.Category.ToString(),
+                    testCodes,
+                    reviewerName,
+                    reviewedAt,
+                    ageHours,
+                    worstLevel
                 );
             })
             .OrderByDescending(a => a.AgeHours)
@@ -585,55 +660,125 @@ public class DashboardService
         // Attention items
         var attentionItems = new List<SectionHeadAttentionItemDto>();
 
-        // 1. Overdue tests - the same live-filtered, Rule #1 7-day
-        // Analyst-stage SLA set as the tile and AnalystWorkloads above,
-        // detail-fetched for display (Sample.Item, TestCode) rather than
-        // re-derived against Sample.ReceivedAt here.
-        var overdueList = (await _db.TestOrders
-            .Where(t => !t.IsSuperseded && (t.Status == ApprovalStatus.Pending || t.Status == ApprovalStatus.InProgress) && overdueAssignedAtBySampleId.Keys.Contains(t.SampleId))
-            .Include(t => t.Sample).ThenInclude(s => s!.Item)
-            .ToListAsync())
+        // 1. Overdue tests - 7-day Analyst-stage SLA samples, one item per sample (not per first order); TestCodes = that sample's non-superseded Pending/InProgress test codes; reason text unchanged.
+        var overdueSampleGroups = liveOverdueTestOrders
             .GroupBy(t => t.SampleId)
-            .Select(g => g.First())
-            .OrderBy(t => overdueAssignedAtBySampleId[t.SampleId])
+            .OrderBy(g => overdueAssignedAtBySampleId[g.Key])
             .Take(5)
             .ToList();
-        foreach (var ot in overdueList)
+
+        foreach (var g in overdueSampleGroups)
         {
-            var name = ot.Sample?.Item?.Name ?? ot.Sample?.ReferenceNumber ?? "Sample";
-            var assignedAt = overdueAssignedAtBySampleId[ot.SampleId];
+            var sample = g.First().Sample;
+            var name = sample?.Item?.Name
+                ?? sample?.WaterSamplingPoint?.Code
+                ?? sample?.Department?.Name
+                ?? sample?.Machine?.Name
+                ?? (string.IsNullOrWhiteSpace(sample?.ReferenceNumber) ? "Sample" : sample.ReferenceNumber);
+            var assignedAt = overdueAssignedAtBySampleId[g.Key];
             var delayHours = (int)Math.Floor((now - assignedAt).TotalHours);
+            var testCodes = g.Select(t => t.TestCode).Distinct().ToList();
+
             attentionItems.Add(new SectionHeadAttentionItemDto(
-                ot.SampleId, ot.Id, ot.Sample?.ReferenceNumber ?? "", name, ot.TestCode,
-                "High", $"Testing stage pending for {delayHours}h (>168h / 7-day Analyst SLA)", "OverdueTest", assignedAt
+                g.Key,
+                sample?.ReferenceNumber ?? "",
+                name,
+                testCodes,
+                "High",
+                $"Testing stage pending for {delayHours}h (>168h / 7-day Analyst SLA)",
+                "OverdueTest",
+                assignedAt
             ));
         }
 
-        // 2. Retests requested
-        var retests = await _db.TestOrders
-            .Where(t => !t.IsSuperseded && t.Status == ApprovalStatus.RetestRequested)
-            .Include(t => t.Sample).ThenInclude(s => s!.Item)
+        // 2. Retests requested: retests in progress (D2), top 5 by ReceivedAt ascending;
+        // Reason = $"Retest sample in progress (origin {originReferenceNumber})" (fall back to "Retest sample in progress" if the origin can't be loaded);
+        // Urgency "High"; Timestamp = the retest sample's ReceivedAt; TestCodes = its non-superseded test codes.
+        var totalRetestsInProgress = await _db.Samples.WhereRetestInProgress().CountAsync();
+        var retestSamples = await _db.Samples
+            .AsNoTracking()
+            .WhereRetestInProgress()
+            .OrderBy(s => s.ReceivedAt)
             .Take(5)
+            .Include(s => s.Item)
+            .Include(s => s.WaterSamplingPoint)
+            .Include(s => s.Department)
+            .Include(s => s.Machine)
+            .Include(s => s.TestOrders)
             .ToListAsync();
-        foreach (var rt in retests)
+
+        var originIds = retestSamples
+            .Where(s => s.OriginSampleId.HasValue)
+            .Select(s => s.OriginSampleId!.Value)
+            .Distinct()
+            .ToList();
+
+        var originRefs = originIds.Count > 0
+            ? await _db.Samples
+                .AsNoTracking()
+                .Where(s => originIds.Contains(s.Id))
+                .ToDictionaryAsync(s => s.Id, s => s.ReferenceNumber)
+            : new Dictionary<int, string>();
+
+        foreach (var rs in retestSamples)
         {
-            var name = rt.Sample?.Item?.Name ?? rt.Sample?.ReferenceNumber ?? "Sample";
+            var name = rs.Item?.Name
+                ?? rs.WaterSamplingPoint?.Code
+                ?? rs.Department?.Name
+                ?? rs.Machine?.Name
+                ?? (string.IsNullOrWhiteSpace(rs.ReferenceNumber) ? "Sample" : rs.ReferenceNumber);
+
+            string reason = "Retest sample in progress";
+            if (rs.OriginSampleId.HasValue && originRefs.TryGetValue(rs.OriginSampleId.Value, out var originRef) && !string.IsNullOrWhiteSpace(originRef))
+            {
+                reason = $"Retest sample in progress (origin {originRef})";
+            }
+
+            var testCodes = rs.TestOrders.Where(t => !t.IsSuperseded).Select(t => t.TestCode).ToList();
+
             attentionItems.Add(new SectionHeadAttentionItemDto(
-                rt.SampleId, rt.Id, rt.Sample?.ReferenceNumber ?? "", name, rt.TestCode,
-                "High", "Retest requested on sample", "RetestRequired", now
+                rs.Id,
+                rs.ReferenceNumber ?? "",
+                name,
+                testCodes,
+                "High",
+                reason,
+                "RetestRequired",
+                rs.ReceivedAt
             ));
         }
 
-        // 3. Delayed reviews (>24h in result entered)
+        // 3. Delayed reviews (>24h in UnderReview)
         foreach (var ro in reviewQueueItems.Where(r => r.AgeHours >= 24).Take(5))
         {
             attentionItems.Add(new SectionHeadAttentionItemDto(
-                ro.SampleId, ro.TestOrderId, ro.ReferenceNumber, ro.SubjectName, ro.TestCode,
-                "Medium", $"Scientific review delayed by {ro.AgeHours}h", "DelayedReview", ro.ResultEnteredAt
+                ro.SampleId,
+                ro.ReferenceNumber,
+                ro.SubjectName,
+                ro.TestCodes,
+                "Medium",
+                $"Scientific review delayed by {ro.AgeHours}h",
+                "DelayedReview",
+                ro.SubmittedForReviewAt
             ));
         }
 
-        var attentionCount = overdue + retests.Count + reviewQueueOverdue + approvalQueueOverdue;
+        // 4. Delayed approvals (>24h in UnderApproval)
+        foreach (var ao in approvalQueueItems.Where(a => a.AgeHours >= 24).Take(5))
+        {
+            attentionItems.Add(new SectionHeadAttentionItemDto(
+                ao.SampleId,
+                ao.ReferenceNumber,
+                ao.SubjectName,
+                ao.TestCodes,
+                "Medium",
+                $"Final approval delayed by {ao.AgeHours}h",
+                "DelayedApproval",
+                ao.ReviewedAt
+            ));
+        }
+
+        var attentionCount = overdue + totalRetestsInProgress + reviewQueueOverdue + approvalQueueOverdue;
 
         return new SectionHeadDashboardDto(
             activeTests,
@@ -667,62 +812,181 @@ public class DashboardService
         var now = DateTime.UtcNow;
         var todayStart = now.Date;
 
-        var users = await _db.Users.AsNoTracking().ToListAsync();
-        var userMap = users.ToDictionary(u => u.Id, u => u.FullName);
-
-        var reviewOrders = await _db.TestOrders
-            .Where(t => !t.IsSuperseded && t.Status == ApprovalStatus.ResultEntered)
-            .Include(t => t.Sample).ThenInclude(s => s!.Item)
-            .Include(t => t.Sample).ThenInclude(s => s!.WaterSamplingPoint)
-            .Include(t => t.Sample).ThenInclude(s => s!.Department)
-            .Include(t => t.Sample).ThenInclude(s => s!.Machine)
-            .Include(t => t.Results)
+        // Decision D1 & Semantics: Review queue = one row per sample with Status == SampleStatus.UnderReview.
+        // Tests = that sample's non-superseded TestOrders.
+        var underReviewSamples = await _db.Samples
+            .AsNoTracking()
+            .Where(s => s.Status == SampleStatus.UnderReview)
+            .Include(s => s.Item)
+            .Include(s => s.WaterSamplingPoint)
+            .Include(s => s.Department)
+            .Include(s => s.Machine)
+            .Include(s => s.TestOrders)
+                .ThenInclude(t => t.Results)
             .ToListAsync();
 
-        var reviewQueue = reviewOrders
-            .Select(t =>
+        var sampleIds = underReviewSamples.Select(s => s.Id).ToList();
+
+        // Batched review clock starts (Decision D3)
+        var clockStarts = await SampleWorkflowQueues.GetReviewClockStartsAsync(_db, sampleIds);
+
+        // Batched worst-of result levels (Decision D4)
+        var sampleWorstLevels = await SampleWorkflowQueues.GetWorstResultLevelsAsync(_db, sampleIds);
+
+        // All non-superseded test orders across these samples
+        var allNonSupersededOrders = underReviewSamples
+            .SelectMany(s => s.TestOrders.Where(t => !t.IsSuperseded))
+            .ToList();
+
+        var testOrderIds = allNonSupersededOrders.Select(t => t.Id).ToList();
+        var allTestCodes = allNonSupersededOrders.Select(t => t.TestCode).Distinct().ToList();
+
+        // Test display names from TestDefinitions
+        var testDefs = await _db.TestDefinitions
+            .AsNoTracking()
+            .Where(td => allTestCodes.Contains(td.Code))
+            .ToDictionaryAsync(td => td.Code, td => td.DisplayName);
+
+        // Test-order level worst ResultLevels
+        var testOrderWorstLevels = await SampleWorkflowQueues.GetTestOrderWorstResultLevelsAsync(_db, testOrderIds);
+
+        // Query ResultRecords for test orders to resolve analyst who entered result/reading if assigned analyst is null
+        var resultRecords = await _db.ResultRecords
+            .AsNoTracking()
+            .Where(r => testOrderIds.Contains(r.TestOrderId))
+            .Select(r => new { r.TestOrderId, r.ResultEnteredByUserId, r.ResultEnteredByName, r.ResultEnteredAt })
+            .ToListAsync();
+
+        var userIds = allNonSupersededOrders
+            .Where(t => t.AssignedAnalystId.HasValue)
+            .Select(t => t.AssignedAnalystId!.Value)
+            .Concat(allNonSupersededOrders.SelectMany(t => t.Results.Select(r => r.EnteredByUserId)))
+            .Concat(resultRecords.Select(r => r.ResultEnteredByUserId))
+            .Distinct()
+            .ToList();
+
+        var users = await _db.Users
+            .AsNoTracking()
+            .Where(u => userIds.Contains(u.Id))
+            .ToDictionaryAsync(u => u.Id, u => u.FullName);
+
+        var reviewQueue = underReviewSamples
+            .Select(s =>
             {
-                var latestResult = t.Results.OrderByDescending(r => r.EnteredAt).FirstOrDefault();
-                var enteredAt = latestResult?.EnteredAt ?? t.Sample?.ReceivedAt ?? now;
-                var ageMins = (int)Math.Max(0, (now - enteredAt).TotalMinutes);
-                var analystName = t.AssignedAnalystId.HasValue && userMap.TryGetValue(t.AssignedAnalystId.Value, out var aName)
-                    ? aName
-                    : (latestResult != null && userMap.TryGetValue(latestResult.EnteredByUserId, out var eName) ? eName : "Analyst");
-                var displayName = t.Sample?.Item?.Name ?? t.Sample?.WaterSamplingPoint?.Code ?? t.Sample?.Department?.Name ?? t.Sample?.Machine?.Name ?? t.Sample?.ReferenceNumber ?? "Sample";
-                var priority = ageMins > 1440 ? "High" : (ageMins > 480 ? "Medium" : "Normal");
+                var submittedAt = clockStarts.GetValueOrDefault(s.Id, s.ReceivedAt);
+                var ageMins = (int)Math.Max(0, (now - submittedAt).TotalMinutes);
+
+                var worstLevel = sampleWorstLevels.GetValueOrDefault(s.Id);
+                var worstLevelStr = worstLevel?.ToString();
+
+                var nonSupersededOrders = s.TestOrders.Where(t => !t.IsSuperseded).ToList();
+
+                var tests = nonSupersededOrders.Select(t =>
+                {
+                    var testDisplayName = testDefs.TryGetValue(t.TestCode, out var dn) && !string.IsNullOrWhiteSpace(dn)
+                        ? dn
+                        : t.TestCode;
+
+                    string? analystName = null;
+                    if (t.AssignedAnalystId.HasValue && users.TryGetValue(t.AssignedAnalystId.Value, out var assignedName))
+                    {
+                        analystName = assignedName;
+                    }
+                    else
+                    {
+                        var latestResult = t.Results.OrderByDescending(r => r.EnteredAt).FirstOrDefault();
+                        var latestRecord = resultRecords.Where(r => r.TestOrderId == t.Id).OrderByDescending(r => r.ResultEnteredAt).FirstOrDefault();
+
+                        if (latestResult != null && (latestRecord == null || latestResult.EnteredAt >= latestRecord.ResultEnteredAt))
+                        {
+                            analystName = users.TryGetValue(latestResult.EnteredByUserId, out var n) ? n : null;
+                        }
+                        else if (latestRecord != null)
+                        {
+                            analystName = !string.IsNullOrWhiteSpace(latestRecord.ResultEnteredByName)
+                                ? latestRecord.ResultEnteredByName
+                                : (users.TryGetValue(latestRecord.ResultEnteredByUserId, out var n) ? n : null);
+                        }
+                    }
+
+                    var testLevel = testOrderWorstLevels.GetValueOrDefault(t.Id)?.ToString();
+
+                    return new ReviewerQueueTestDto(t.Id, t.TestCode, testDisplayName, analystName, testLevel);
+                }).ToList();
+
+                var analystNames = tests
+                    .Select(t => t.AnalystName)
+                    .Where(n => !string.IsNullOrWhiteSpace(n))
+                    .Select(n => n!)
+                    .Distinct()
+                    .ToList();
+
+                // Priority: "High" if WorstResultLevel is OutOfSpecification OR AgeMinutes > 1440;
+                // else "Medium" if AgeMinutes > 480; else "Normal".
+                var isOos = worstLevel == ResultLevel.OutOfSpecification;
+                var priority = (isOos || ageMins > 1440)
+                    ? "High"
+                    : (ageMins > 480 ? "Medium" : "Normal");
+
+                var displayName = s.Item?.Name
+                    ?? s.WaterSamplingPoint?.Code
+                    ?? s.Department?.Name
+                    ?? s.Machine?.Name
+                    ?? (string.IsNullOrWhiteSpace(s.ReferenceNumber) ? "Sample" : s.ReferenceNumber);
 
                 return new ReviewerQueueItemDto(
-                    t.SampleId, t.Id, t.Sample?.ReferenceNumber ?? "", displayName,
-                    t.Sample?.Category.ToString() ?? "", t.TestCode, t.TestCode,
-                    analystName, enteredAt, ageMins, priority,
-                    latestResult?.Type.ToString(), latestResult?.InterpretedValue ?? latestResult?.RawValue, null
+                    s.Id,
+                    s.ReferenceNumber,
+                    displayName,
+                    s.Category.ToString(),
+                    submittedAt,
+                    ageMins,
+                    priority,
+                    worstLevelStr,
+                    analystNames,
+                    tests
                 );
             })
+            // Order by priority (High, Medium, Normal) then AgeMinutes desc
             .OrderByDescending(r => r.Priority == "High" ? 3 : (r.Priority == "Medium" ? 2 : 1))
             .ThenByDescending(r => r.AgeMinutes)
             .ToList();
 
-        var overdueReviews = reviewQueue.Count(r => r.AgeMinutes >= 1440);
-        var dueToday = reviewQueue.Count(r => r.ResultEnteredAt >= todayStart);
-        var returnedCount = await _db.TestOrders.CountAsync(t => !t.IsSuperseded && t.Status == ApprovalStatus.RetestRequested);
+        var pendingReviewCount = reviewQueue.Count;
+        var overdueReviewCount = reviewQueue.Count(r => r.AgeMinutes >= 1440);
+        var dueTodayCount = reviewQueue.Count(r => r.SubmittedForReviewAt >= todayStart);
 
-        // Completed today by this reviewer or all
+        // Retests in progress (Decision D2)
+        var retestsInProgressCount = await _db.Samples.WhereRetestInProgress().CountAsync();
+
+        // Completed today unchanged
         var completedTodayCount = await _db.Samples.CountAsync(s => s.ReviewedByUserId == reviewerUserId && s.ReviewedAt >= todayStart);
 
-        // Attention items for reviewer
+        // Attention items: rows where Priority == "High", top 5 in queue order
         var attentionItems = new List<ReviewerAttentionItemDto>();
-        foreach (var ro in reviewQueue.Where(r => r.Priority == "High" || r.ResultLevel == "OutOfSpecification").Take(5))
+        foreach (var ro in reviewQueue.Where(r => r.Priority == "High").Take(5))
         {
-            var reason = ro.ResultLevel == "OutOfSpecification"
-                ? "Out of Specification result requires critical review"
-                : $"Review pending for {(int)(ro.AgeMinutes / 60)}h (>24h SLA)";
+            var oosTestCodes = ro.Tests
+                .Where(t => t.ResultLevel == nameof(ResultLevel.OutOfSpecification))
+                .Select(t => t.TestCode)
+                .ToList();
+
+            var reason = oosTestCodes.Count > 0
+                ? $"Out of Specification result requires critical review ({string.Join(", ", oosTestCodes)})"
+                : $"Review pending for {ro.AgeMinutes / 60}h (>24h SLA)";
+
             attentionItems.Add(new ReviewerAttentionItemDto(
-                ro.SampleId, ro.TestOrderId, ro.ReferenceNumber, ro.SubjectName, ro.TestCode,
-                "High", reason, ro.ResultEnteredAt
+                ro.SampleId,
+                ro.ReferenceNumber,
+                ro.SubjectName,
+                ro.Tests.Select(t => t.TestCode).ToList(),
+                "High",
+                reason,
+                ro.SubmittedForReviewAt
             ));
         }
 
-        // Recently reviewed samples
+        // Recently reviewed samples (unchanged)
         var recentSamples = await _db.Samples
             .Where(s => s.ReviewedAt != null)
             .Include(s => s.Item)
@@ -742,10 +1006,10 @@ public class DashboardService
         }).ToList();
 
         return new ReviewerDashboardDto(
-            reviewQueue.Count,
-            overdueReviews,
-            dueToday,
-            returnedCount,
+            pendingReviewCount,
+            overdueReviewCount,
+            dueTodayCount,
+            retestsInProgressCount,
             completedTodayCount,
             reviewQueue,
             attentionItems,

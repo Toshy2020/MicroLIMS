@@ -2494,11 +2494,31 @@ public class TestWorkflowEngine : ITestWorkflowEngine
 
         await _reviewGate.LogEventAsync(ReviewEntityTypes.Sample, order.SampleId, reviewerUserId,
             ReviewWorkflowEventType.ReviewCompleted, comment, ApprovalDecision.Investigation);
+
+        // Persisted as well as pushed, so the analyst still finds it in the
+        // notification bell after the live push is gone - and staged here so
+        // it commits in the same save as the return itself.
+        string? returnMessage = null;
+        if (order.AssignedAnalystId is int analystId)
+        {
+            var sampleReference = await _db.Samples
+                .Where(s => s.Id == order.SampleId)
+                .Select(s => s.ReferenceNumber)
+                .FirstOrDefaultAsync();
+            returnMessage = $"Test {order.TestCode} for sample {sampleReference ?? $"#{order.SampleId}"} was returned for biochemical confirmation: {comment!.Trim()}";
+            _db.NotificationLogs.Add(new NotificationLog
+            {
+                UserId = analystId,
+                Type = "TestReturnedForBiochemical",
+                Message = returnMessage,
+                Severity = "warning"
+            });
+        }
+
         await _db.SaveChangesAsync();
 
-        if (order.AssignedAnalystId is int analystId)
-            await _notifications.NotifyAsync(analystId,
-                $"Test order #{result.TestOrderId} was returned for biochemical confirmation.");
+        if (returnMessage is not null)
+            await _notifications.NotifyAsync(order.AssignedAnalystId!.Value, returnMessage);
 
         return new StepResultDto(result.IncubationId, result.StepType.ToString(), "ReturnedForBiochemical",
             result.SubmittedByUserId, result.SubmittedAtUtc, NextStepUnlocked: true,

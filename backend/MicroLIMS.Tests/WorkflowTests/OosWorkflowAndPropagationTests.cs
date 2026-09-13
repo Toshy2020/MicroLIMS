@@ -178,6 +178,10 @@ public class OosWorkflowAndPropagationTests
         Assert.NotNull(resolvedOrigin.ApprovedAt);
         Assert.Equal(ApprovalDecision.RetestRetainedSample, resolvedOrigin.ApprovalDecision); // decision is preserved
 
+        var resolvedOriginOrder = await db.TestOrders.FirstAsync(t => t.Id == order.Id);
+        Assert.Equal(ApprovalStatus.Approved, resolvedOriginOrder.Status);
+        Assert.Equal(WorkflowStep.Approved, resolvedOriginOrder.CurrentStep);
+
         // Verify archived COA created for origin
         var originArchives = await db.ArchivedRecords
             .Where(a => a.EntityType == ReviewEntityTypes.Sample && a.EntityId == origin.Id)

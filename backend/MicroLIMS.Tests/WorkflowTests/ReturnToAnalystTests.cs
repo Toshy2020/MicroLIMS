@@ -656,4 +656,38 @@ public class ReturnToAnalystTests
         var otherAnalystCounts = await kpiService.GetReturnToAnalystCountAsync(999, fromDate, toDate);
         Assert.Equal(0, otherAnalystCounts[999]);
     }
+
+    [Fact]
+    public async Task ReturnToAnalyst_WhenSampleUnderApproval_ThrowsInvalidOperationException()
+    {
+        await using var db = NewDb();
+        var (order, _, reviewer, _) = await SeedCompletedTamcOrderAsync(db);
+
+        var sample = await db.Samples.FirstAsync(s => s.Id == order.SampleId);
+        sample.Status = SampleStatus.UnderApproval;
+        await db.SaveChangesAsync();
+
+        var reviewService = TestServiceFactory.Review(db);
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            reviewService.ReturnToAnalystAsync(order.Id, reviewer.Id, "Need recount"));
+
+        Assert.Equal("Cannot return a test to the analyst after the sample has been reviewed. Use Reject or Retest at approval instead.", ex.Message);
+    }
+
+    [Fact]
+    public async Task ReturnToAnalyst_WhenSampleApproved_ThrowsInvalidOperationException()
+    {
+        await using var db = NewDb();
+        var (order, _, reviewer, _) = await SeedCompletedTamcOrderAsync(db);
+
+        var sample = await db.Samples.FirstAsync(s => s.Id == order.SampleId);
+        sample.Status = SampleStatus.Approved;
+        await db.SaveChangesAsync();
+
+        var reviewService = TestServiceFactory.Review(db);
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            reviewService.ReturnToAnalystAsync(order.Id, reviewer.Id, "Need recount"));
+
+        Assert.Equal("Cannot return a test to the analyst after the sample has been reviewed. Use Reject or Retest at approval instead.", ex.Message);
+    }
 }

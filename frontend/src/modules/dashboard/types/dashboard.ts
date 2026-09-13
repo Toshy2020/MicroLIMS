@@ -92,10 +92,9 @@ export interface AnalystMetrics {
 
 export interface SectionHeadAttentionItem {
   sampleId: number;
-  testOrderId: number | null;
   referenceNumber: string;
   subjectName: string;
-  testCode: string;
+  testCodes: string[];
   urgency: "High" | "Medium" | "Low";
   reason: string;
   actionType: "OverdueTest" | "DelayedReview" | "DelayedApproval" | "RetestRequired" | "OOS";
@@ -104,29 +103,26 @@ export interface SectionHeadAttentionItem {
 
 export interface SectionHeadReviewQueueItem {
   sampleId: number;
-  testOrderId: number;
   referenceNumber: string;
   subjectName: string;
   category: string;
-  testCode: string;
-  analystName: string | null;
-  resultEnteredAt: string;
+  testCodes: string[];
+  analystNames: string[];
+  submittedForReviewAt: string;
   ageHours: number;
-  resultLevel: string | null;
-  reportedValue: string | null;
-  unit: string | null;
+  worstResultLevel: string | null;
 }
 
 export interface SectionHeadApprovalQueueItem {
   sampleId: number;
-  testOrderId: number;
   referenceNumber: string;
   subjectName: string;
   category: string;
-  testCode: string;
+  testCodes: string[];
   reviewerName: string | null;
   reviewedAt: string;
   ageHours: number;
+  worstResultLevel: string | null;
 }
 
 export interface SectionHeadAnalystWorkload {
@@ -164,21 +160,25 @@ export interface SectionHeadDashboard {
   analystWorkloads: SectionHeadAnalystWorkload[];
 }
 
-export interface ReviewerQueueItem {
-  sampleId: number;
+export interface ReviewerQueueTest {
   testOrderId: number;
-  referenceNumber: string;
-  subjectName: string;
-  category: string;
   testCode: string;
   testDisplayName: string;
   analystName: string | null;
-  resultEnteredAt: string;
+  resultLevel: string | null;
+}
+
+export interface ReviewerQueueItem {
+  sampleId: number;
+  referenceNumber: string;
+  subjectName: string;
+  category: string;
+  submittedForReviewAt: string;
   ageMinutes: number;
   priority: "High" | "Medium" | "Normal";
-  resultLevel: string | null;
-  reportedValue: string | null;
-  unit: string | null;
+  worstResultLevel: string | null;
+  analystNames: string[];
+  tests: ReviewerQueueTest[];
 }
 
 export interface ReviewerRecentlyReviewed {
@@ -195,10 +195,9 @@ export interface ReviewerRecentlyReviewed {
 
 export interface ReviewerAttentionItem {
   sampleId: number;
-  testOrderId: number;
   referenceNumber: string;
   subjectName: string;
-  testCode: string;
+  testCodes: string[];
   urgency: string;
   reason: string;
   timestamp: string;
@@ -208,7 +207,7 @@ export interface ReviewerDashboard {
   pendingReviewCount: number;
   overdueReviewCount: number;
   dueTodayCount: number;
-  returnedCount: number;
+  retestsInProgressCount: number;
   completedTodayCount: number;
   reviewQueue: ReviewerQueueItem[];
   attentionItems: ReviewerAttentionItem[];

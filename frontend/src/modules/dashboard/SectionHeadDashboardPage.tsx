@@ -23,7 +23,7 @@ import AccessTimeOutlinedIcon from "@mui/icons-material/AccessTimeOutlined";
 import WarningAmberOutlinedIcon from "@mui/icons-material/WarningAmberOutlined";
 import ArrowForwardOutlinedIcon from "@mui/icons-material/ArrowForwardOutlined";
 import PeopleAltOutlinedIcon from "@mui/icons-material/PeopleAltOutlined";
-import { useNavigate, Link } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
 import { PageHeader } from "../../components/PageHeader";
 import RefreshIcon from "@mui/icons-material/Refresh";
@@ -36,7 +36,6 @@ import { tableHeadSx } from "../../theme";
 
 export function SectionHeadDashboardPage() {
   const theme = useTheme();
-  const navigate = useNavigate();
   const { username, fullName } = useAuth();
   const displayName = fullName ?? username ?? "Section Head";
 
@@ -161,7 +160,7 @@ export function SectionHeadDashboardPage() {
             <Typography sx={{ fontSize: 24, fontWeight: 800, color: theme.palette.primary.main, my: 0.25 }}>
               {data.activeTests}
             </Typography>
-            <Typography sx={{ fontSize: 10, color: "text.secondary" }}>In progress</Typography>
+            <Typography sx={{ fontSize: 10, color: "text.secondary" }}>Tests in progress</Typography>
           </Paper>
         </Grid>
 
@@ -194,7 +193,7 @@ export function SectionHeadDashboardPage() {
             <Typography sx={{ fontSize: 24, fontWeight: 800, color: theme.custom.status.info.text, my: 0.25 }}>
               {data.incubating}
             </Typography>
-            <Typography sx={{ fontSize: 10, color: "text.secondary" }}>Active chambers</Typography>
+            <Typography sx={{ fontSize: 10, color: "text.secondary" }}>Tests incubating</Typography>
           </Paper>
         </Grid>
 
@@ -227,7 +226,7 @@ export function SectionHeadDashboardPage() {
             <Typography sx={{ fontSize: 24, fontWeight: 800, color: theme.custom.status.notDetected.text, my: 0.25 }}>
               {data.readyToRead}
             </Typography>
-            <Typography sx={{ fontSize: 10, color: "text.secondary" }}>Readings pending</Typography>
+            <Typography sx={{ fontSize: 10, color: "text.secondary" }}>Test readings pending</Typography>
           </Paper>
         </Grid>
 
@@ -239,7 +238,7 @@ export function SectionHeadDashboardPage() {
           }}>
           <Paper
             component={Link}
-            to="/receiving-testing?testStatus=ResultEntered"
+            to="/receiving-testing?status=UnderReview"
             sx={{
               p: 1.75,
               cursor: "pointer",
@@ -253,14 +252,14 @@ export function SectionHeadDashboardPage() {
           >
             <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <Typography sx={{ fontSize: 11, fontWeight: 700, color: "text.secondary", textTransform: "uppercase" }}>
-                Review Queue
+                Pending Review
               </Typography>
               <RateReviewOutlinedIcon sx={{ color: theme.custom.status.inconclusive.text, fontSize: 18 }} />
             </Box>
             <Typography sx={{ fontSize: 24, fontWeight: 800, color: theme.custom.status.inconclusive.text, my: 0.25 }}>
               {data.pendingReview}
             </Typography>
-            <Typography sx={{ fontSize: 10, color: "text.secondary" }}>Awaiting review</Typography>
+            <Typography sx={{ fontSize: 10, color: "text.secondary" }}>Samples awaiting review</Typography>
           </Paper>
         </Grid>
 
@@ -272,7 +271,7 @@ export function SectionHeadDashboardPage() {
           }}>
           <Paper
             component={Link}
-            to="/receiving-testing?testStatus=Reviewed"
+            to="/receiving-testing?status=UnderApproval"
             sx={{
               p: 1.75,
               cursor: "pointer",
@@ -286,14 +285,14 @@ export function SectionHeadDashboardPage() {
           >
             <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <Typography sx={{ fontSize: 11, fontWeight: 700, color: "text.secondary", textTransform: "uppercase" }}>
-                Approval Queue
+                Pending Approval
               </Typography>
               <VerifiedUserOutlinedIcon sx={{ color: theme.custom.status.notDetected.text, fontSize: 18 }} />
             </Box>
             <Typography sx={{ fontSize: 24, fontWeight: 800, color: theme.custom.status.notDetected.text, my: 0.25 }}>
               {data.pendingApproval}
             </Typography>
-            <Typography sx={{ fontSize: 10, color: "text.secondary" }}>Awaiting release</Typography>
+            <Typography sx={{ fontSize: 10, color: "text.secondary" }}>Samples awaiting release</Typography>
           </Paper>
         </Grid>
 
@@ -384,11 +383,11 @@ export function SectionHeadDashboardPage() {
               carried no stage identity at all. An ordered sequence wants an
               ordinal ramp: one hue deepening stage by stage. */}
           {[
-            { label: "1. Testing / Preparation", count: data.testingBottleneck, color: theme.custom.chartSequential[0], link: "/receiving-testing?status=Active" },
-            { label: "2. Incubation", count: data.incubationBottleneck, color: theme.custom.chartSequential[1], link: "/receiving-testing" },
-            { label: "3. Ready to Read", count: data.readyToReadBottleneck, color: theme.custom.chartSequential[2], link: "/receiving-testing?testStatus=ReadyToRead" },
-            { label: "4. Scientific Review", count: data.reviewBottleneck, color: theme.custom.chartSequential[3], link: "/receiving-testing?testStatus=ResultEntered" },
-            { label: "5. Final Approval", count: data.approvalBottleneck, color: theme.custom.chartSequential[4], link: "/receiving-testing?testStatus=Reviewed" }
+            { label: "1. Testing / Preparation", count: data.testingBottleneck, color: theme.custom.chartSequential[0], link: "/receiving-testing?status=Active", unit: "tests" },
+            { label: "2. Incubation", count: data.incubationBottleneck, color: theme.custom.chartSequential[1], link: "/receiving-testing", unit: "tests" },
+            { label: "3. Ready to Read", count: data.readyToReadBottleneck, color: theme.custom.chartSequential[2], link: "/receiving-testing?testStatus=ReadyToRead", unit: "tests" },
+            { label: "4. Scientific Review", count: data.reviewBottleneck, color: theme.custom.chartSequential[3], link: "/receiving-testing?status=UnderReview", unit: "samples" },
+            { label: "5. Final Approval", count: data.approvalBottleneck, color: theme.custom.chartSequential[4], link: "/receiving-testing?status=UnderApproval", unit: "samples" }
           ].map((stage, idx) => (
             <Grid
               key={idx}
@@ -416,7 +415,10 @@ export function SectionHeadDashboardPage() {
                   {stage.label}
                 </Typography>
                 <Typography sx={{ fontSize: 22, fontWeight: 800, color: stage.color, my: 0.5 }}>
-                  {stage.count}
+                  {stage.count}{" "}
+                  <Box component="span" sx={{ fontSize: 12, fontWeight: 500, color: "text.secondary" }}>
+                    {stage.unit}
+                  </Box>
                 </Typography>
                 <LinearProgress
                   variant="determinate"
@@ -445,50 +447,60 @@ export function SectionHeadDashboardPage() {
               </Typography>
             </Box>
             <Grid container spacing={1.5}>
-              {data.attentionItems.map((item, idx) => (
-                <Grid
-                  key={idx}
-                  size={{
-                    xs: 12,
-                    md: 6
-                  }}>
-                  <Paper
-                    variant="outlined"
-                    sx={{
-                      p: 1.5,
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                      gap: 1.5,
-                      borderColor: "divider",
-                      "&:hover": { bgcolor: "action.hover" }
-                    }}
-                  >
-                    <Box>
-                      <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                        <Typography sx={{ fontSize: 13, fontWeight: 700 }}>
-                          {item.referenceNumber} — {item.subjectName}
-                        </Typography>
-                        <Chip label={item.testCode} size="small" sx={{ fontSize: 10, height: 20 }} />
-                      </Box>
-                      <Typography sx={{ fontSize: 12, color: theme.custom.status.detected.text, mt: 0.25 }}>
-                        {item.reason}
-                      </Typography>
-                    </Box>
-                    <Button
-                      component={Link}
-                      to={item.testOrderId ? `/receiving-testing?sampleId=${item.sampleId}&testOrderId=${item.testOrderId}` : `/receiving-testing?sampleId=${item.sampleId}`}
+              {data.attentionItems.map((item, idx) => {
+                const itemLink = (item.actionType === "DelayedReview" || item.actionType === "DelayedApproval")
+                  ? `/receiving-testing?sampleId=${item.sampleId}&openSummary=true`
+                  : `/receiving-testing?sampleId=${item.sampleId}`;
+
+                return (
+                  <Grid
+                    key={`${item.actionType}-${item.sampleId}-${idx}`}
+                    size={{
+                      xs: 12,
+                      md: 6
+                    }}>
+                    <Paper
                       variant="outlined"
-                      color="error"
-                      size="small"
-                      endIcon={<ArrowForwardOutlinedIcon />}
-                      sx={{ textTransform: "none", fontSize: 12, fontWeight: 600, flexShrink: 0 }}
+                      sx={{
+                        p: 1.5,
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                        gap: 1.5,
+                        borderColor: "divider",
+                        "&:hover": { bgcolor: "action.hover" }
+                      }}
                     >
-                      Intervene
-                    </Button>
-                  </Paper>
-                </Grid>
-              ))}
+                      <Box>
+                        <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap" }}>
+                          <Typography sx={{ fontSize: 13, fontWeight: 700 }}>
+                            {item.referenceNumber} — {item.subjectName}
+                          </Typography>
+                          <Box sx={{ display: "flex", gap: 0.5, flexWrap: "wrap" }}>
+                            {item.testCodes.map((tc, tcIdx) => (
+                              <Chip key={`${tcIdx}-${tc}`} label={tc} size="small" sx={{ fontSize: 10, height: 20 }} />
+                            ))}
+                          </Box>
+                        </Box>
+                        <Typography sx={{ fontSize: 12, color: theme.custom.status.detected.text, mt: 0.25 }}>
+                          {item.reason}
+                        </Typography>
+                      </Box>
+                      <Button
+                        component={Link}
+                        to={itemLink}
+                        variant="outlined"
+                        color="error"
+                        size="small"
+                        endIcon={<ArrowForwardOutlinedIcon />}
+                        sx={{ textTransform: "none", fontSize: 12, fontWeight: 600, flexShrink: 0 }}
+                      >
+                        Intervene
+                      </Button>
+                    </Paper>
+                  </Grid>
+                );
+              })}
             </Grid>
           </Paper>
         ) : (
@@ -521,12 +533,26 @@ export function SectionHeadDashboardPage() {
                   Review Queue ({data.reviewQueueCount})
                 </Typography>
                 <Typography sx={{ fontSize: 11, color: "text.secondary" }}>
-                  Overdue: {data.reviewQueueOverdueCount} | Oldest: {data.reviewQueueOldestHours}h
+                  Overdue:{" "}
+                  <Typography
+                    component={Link}
+                    to="/receiving-testing?status=UnderReview&workload=reviewOverdue"
+                    sx={{
+                      fontSize: 11,
+                      fontWeight: 700,
+                      color: data.reviewQueueOverdueCount > 0 ? theme.custom.status.detected.text : "text.secondary",
+                      textDecoration: "none",
+                      "&:hover": { textDecoration: "underline" }
+                    }}
+                  >
+                    {data.reviewQueueOverdueCount}
+                  </Typography>
+                  {" "}| Oldest: {data.reviewQueueOldestHours}h
                 </Typography>
               </Box>
               <Button
                 component={Link}
-                to="/receiving-testing?testStatus=ResultEntered"
+                to="/receiving-testing?status=UnderReview"
                 variant="text"
                 size="small"
                 sx={{ textTransform: "none", fontWeight: 600, fontSize: 12 }}
@@ -545,8 +571,9 @@ export function SectionHeadDashboardPage() {
                   <TableHead>
                     <TableRow sx={tableHeadSx}>
                       <TableCell sx={{ fontWeight: 700, fontSize: 11 }}>Sample / Ref</TableCell>
-                      <TableCell sx={{ fontWeight: 700, fontSize: 11 }}>Test</TableCell>
-                      <TableCell sx={{ fontWeight: 700, fontSize: 11 }}>Analyst</TableCell>
+                      <TableCell sx={{ fontWeight: 700, fontSize: 11 }}>Tests</TableCell>
+                      <TableCell sx={{ fontWeight: 700, fontSize: 11 }}>Analyst(s)</TableCell>
+                      <TableCell sx={{ fontWeight: 700, fontSize: 11 }}>Worst Result</TableCell>
                       <TableCell sx={{ fontWeight: 700, fontSize: 11 }}>Age</TableCell>
                       <TableCell sx={{ fontWeight: 700, fontSize: 11, textAlign: "right" }}>Action</TableCell>
                     </TableRow>
@@ -554,13 +581,13 @@ export function SectionHeadDashboardPage() {
                   <TableBody>
                     {data.reviewQueueItems.slice(0, 5).map((row) => (
                       <TableRow
-                        key={row.testOrderId}
+                        key={row.sampleId}
                         hover
                       >
                         <TableCell sx={{ fontSize: 11, fontWeight: 700 }}>
                           <Typography
                             component={Link}
-                            to={`/receiving-testing?sampleId=${row.sampleId}&testOrderId=${row.testOrderId}`}
+                            to={`/receiving-testing?sampleId=${row.sampleId}`}
                             sx={{
                               fontSize: 11,
                               fontWeight: 700,
@@ -572,13 +599,50 @@ export function SectionHeadDashboardPage() {
                             {row.referenceNumber}
                           </Typography>
                         </TableCell>
-                        <TableCell sx={{ fontSize: 11 }}><Chip label={row.testCode} size="small" sx={{ fontSize: 10, height: 18 }} /></TableCell>
-                        <TableCell sx={{ fontSize: 11, color: "text.secondary" }}>{row.analystName ?? "—"}</TableCell>
-                        <TableCell sx={{ fontSize: 11, color: row.ageHours >= 24 ? theme.custom.status.detected.text : "text.primary" }}>{row.ageHours}h</TableCell>
+                        <TableCell sx={{ fontSize: 11 }}>
+                          <Box sx={{ display: "flex", gap: 0.5, flexWrap: "wrap" }}>
+                            {row.testCodes.map((code, cIdx) => (
+                              <Chip key={`${cIdx}-${code}`} label={code} size="small" sx={{ fontSize: 10, height: 18 }} />
+                            ))}
+                          </Box>
+                        </TableCell>
+                        <TableCell sx={{ fontSize: 11, color: "text.secondary" }}>
+                          {row.analystNames.length > 0 ? row.analystNames.join(", ") : "—"}
+                        </TableCell>
+                        <TableCell sx={{ fontSize: 11 }}>
+                          {row.worstResultLevel ? (
+                            <Chip
+                              label={row.worstResultLevel.replace(/([a-z])([A-Z])/g, "$1 $2")}
+                              size="small"
+                              sx={{
+                                fontSize: 10,
+                                height: 18,
+                                bgcolor:
+                                  row.worstResultLevel === "OutOfSpecification"
+                                    ? theme.custom.status.detected.text + "22"
+                                    : row.worstResultLevel === "ActionLevel" || row.worstResultLevel === "AlertLevel"
+                                    ? theme.custom.status.inconclusive.text + "22"
+                                    : theme.custom.status.notDetected.text + "22",
+                                color:
+                                  row.worstResultLevel === "OutOfSpecification"
+                                    ? theme.custom.status.detected.text
+                                    : row.worstResultLevel === "ActionLevel" || row.worstResultLevel === "AlertLevel"
+                                    ? theme.custom.status.inconclusive.text
+                                    : theme.custom.status.notDetected.text,
+                                fontWeight: 700
+                              }}
+                            />
+                          ) : (
+                            <Typography sx={{ fontSize: 11, color: "text.secondary" }}>—</Typography>
+                          )}
+                        </TableCell>
+                        <TableCell sx={{ fontSize: 11, color: row.ageHours >= 24 ? theme.custom.status.detected.text : "text.primary" }}>
+                          {row.ageHours}h
+                        </TableCell>
                         <TableCell sx={{ textAlign: "right" }}>
                           <Button
                             component={Link}
-                            to={`/receiving-testing?sampleId=${row.sampleId}&testOrderId=${row.testOrderId}`}
+                            to={`/receiving-testing?sampleId=${row.sampleId}&openSummary=true`}
                             variant="outlined"
                             size="small"
                             sx={{ textTransform: "none", fontSize: 10, py: 0.2, fontWeight: 600 }}
@@ -608,12 +672,26 @@ export function SectionHeadDashboardPage() {
                   Approval Queue ({data.approvalQueueCount})
                 </Typography>
                 <Typography sx={{ fontSize: 11, color: "text.secondary" }}>
-                  Overdue: {data.approvalQueueOverdueCount} | Oldest: {data.approvalQueueOldestHours}h
+                  Overdue:{" "}
+                  <Typography
+                    component={Link}
+                    to="/receiving-testing?status=UnderApproval&workload=approvalOverdue"
+                    sx={{
+                      fontSize: 11,
+                      fontWeight: 700,
+                      color: data.approvalQueueOverdueCount > 0 ? theme.custom.status.detected.text : "text.secondary",
+                      textDecoration: "none",
+                      "&:hover": { textDecoration: "underline" }
+                    }}
+                  >
+                    {data.approvalQueueOverdueCount}
+                  </Typography>
+                  {" "}| Oldest: {data.approvalQueueOldestHours}h
                 </Typography>
               </Box>
               <Button
                 component={Link}
-                to="/receiving-testing?testStatus=Reviewed"
+                to="/receiving-testing?status=UnderApproval"
                 variant="text"
                 size="small"
                 sx={{ textTransform: "none", fontWeight: 600, fontSize: 12 }}
@@ -632,7 +710,7 @@ export function SectionHeadDashboardPage() {
                   <TableHead>
                     <TableRow sx={tableHeadSx}>
                       <TableCell sx={{ fontWeight: 700, fontSize: 11 }}>Sample / Ref</TableCell>
-                      <TableCell sx={{ fontWeight: 700, fontSize: 11 }}>Test</TableCell>
+                      <TableCell sx={{ fontWeight: 700, fontSize: 11 }}>Tests</TableCell>
                       <TableCell sx={{ fontWeight: 700, fontSize: 11 }}>Reviewer</TableCell>
                       <TableCell sx={{ fontWeight: 700, fontSize: 11 }}>Age</TableCell>
                       <TableCell sx={{ fontWeight: 700, fontSize: 11, textAlign: "right" }}>Action</TableCell>
@@ -641,13 +719,13 @@ export function SectionHeadDashboardPage() {
                   <TableBody>
                     {data.approvalQueueItems.slice(0, 5).map((row) => (
                       <TableRow
-                        key={row.testOrderId}
+                        key={row.sampleId}
                         hover
                       >
                         <TableCell sx={{ fontSize: 11, fontWeight: 700 }}>
                           <Typography
                             component={Link}
-                            to={`/receiving-testing?sampleId=${row.sampleId}&testOrderId=${row.testOrderId}`}
+                            to={`/receiving-testing?sampleId=${row.sampleId}`}
                             sx={{
                               fontSize: 11,
                               fontWeight: 700,
@@ -659,13 +737,19 @@ export function SectionHeadDashboardPage() {
                             {row.referenceNumber}
                           </Typography>
                         </TableCell>
-                        <TableCell sx={{ fontSize: 11 }}><Chip label={row.testCode} size="small" sx={{ fontSize: 10, height: 18 }} /></TableCell>
+                        <TableCell sx={{ fontSize: 11 }}>
+                          <Box sx={{ display: "flex", gap: 0.5, flexWrap: "wrap" }}>
+                            {row.testCodes.map((code, cIdx) => (
+                              <Chip key={`${cIdx}-${code}`} label={code} size="small" sx={{ fontSize: 10, height: 18 }} />
+                            ))}
+                          </Box>
+                        </TableCell>
                         <TableCell sx={{ fontSize: 11, color: "text.secondary" }}>{row.reviewerName ?? "—"}</TableCell>
                         <TableCell sx={{ fontSize: 11, color: row.ageHours >= 24 ? theme.custom.status.detected.text : "text.primary" }}>{row.ageHours}h</TableCell>
                         <TableCell sx={{ textAlign: "right" }}>
                           <Button
                             component={Link}
-                            to={`/receiving-testing?sampleId=${row.sampleId}&testOrderId=${row.testOrderId}`}
+                            to={`/receiving-testing?sampleId=${row.sampleId}&openSummary=true`}
                             variant="outlined"
                             size="small"
                             color="success"

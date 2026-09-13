@@ -21,6 +21,13 @@ export type WorkloadFilterKey =
   | "mine"
   | "unassigned";
 
+export type DeepLinkWorkloadFilterKey =
+  | "retestInProgress"
+  | "reviewOverdue"
+  | "approvalOverdue";
+
+export type AllWorkloadFilterKey = WorkloadFilterKey | DeepLinkWorkloadFilterKey;
+
 // The rules these tiles represent live on the server, in
 // TestingWorkspaceService: one definition drives both GET /api/testorders/counts
 // (the numbers on these tiles) and GET /api/testorders/page (the list beneath
@@ -59,7 +66,7 @@ const TILES: TileConfig[] = [
   {
     key: "awaitingReview",
     label: "Awaiting Review",
-    hint: "Results entered, awaiting reviewer",
+    hint: "All tests complete, awaiting reviewer",
     icon: <RateReviewOutlinedIcon sx={{ fontSize: 20 }} />,
     tone: "info"
   },
@@ -89,7 +96,7 @@ const TILES: TileConfig[] = [
 
 interface Props {
   counts?: Record<WorkloadFilterKey, number> | null;
-  activeKey: WorkloadFilterKey | null;
+  activeKey: AllWorkloadFilterKey | null;
   onSelect: (key: WorkloadFilterKey) => void;
   isSectionHeadOrAdmin: boolean;
 }

@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Persistence.DbContext;
 
@@ -64,16 +65,36 @@ public class SampleReviewService
                 throw new InvalidOperationException("You cannot review a sample you tested.");
         }
 
+        var currentOrders = sample.TestOrders.Where(t => !t.IsSuperseded).ToList();
+        if (currentOrders.Any(t => t.CurrentStep != WorkflowStep.Ready))
+            throw new InvalidOperationException("Cannot complete review: one or more tests are not in Ready step.");
+
         // Signs first - if password verification fails, nothing below is
         // written (the signature, the event, and the state change below
         // commit together in the single SaveChangesAsync at the end).
-        await _reviewGate.SignAndLogAsync(
+        var signature = await _reviewGate.SignAndLogAsync(
             ReviewEntityTypes.Sample, sampleId, reviewerUserId, password,
             SignatureMeaning.Reviewed, ReviewWorkflowEventType.ReviewCompleted, comment, ipAddress);
 
         sample.Status = SampleStatus.UnderApproval;
         sample.ReviewedByUserId = reviewerUserId;
         sample.ReviewedAt = DateTime.UtcNow;
+
+        foreach (var order in currentOrders)
+        {
+            var fromStep = order.CurrentStep;
+            order.Status = ApprovalStatus.Reviewed;
+            order.CurrentStep = WorkflowStep.Reviewed;
+
+            _db.WorkflowHistories.Add(new WorkflowHistory
+            {
+                TestOrderId = order.Id,
+                FromStep = fromStep,
+                ToStep = WorkflowStep.Reviewed,
+                Note = $"Sample review completed by {signature.UserFullNameSnapshot}",
+                PerformedByUserId = reviewerUserId
+            });
+        }
 
         await _db.SaveChangesAsync();
     }

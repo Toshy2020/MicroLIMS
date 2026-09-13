@@ -145,6 +145,9 @@ export function AssignedTestCard({
     if (test.workflowState === "APPROVED" || test.status === "Approved") {
       return { status: "Approved", label: "Approved" };
     }
+    if (test.workflowState === "REVIEWED" || test.status === "Reviewed") {
+      return { status: "Reviewed", label: "Reviewed — Pending Approval" };
+    }
     if (test.workflowState === "RESULTS_RECORDED" || test.status === "UnderReview") {
       return { status: "PendingReview", label: "Pending Review" };
     }
@@ -233,6 +236,9 @@ export function AssignedTestCard({
   const centerText = useMemo(() => {
     if (test.workflowState === "APPROVED" || test.status === "Approved") {
       return "✓ Approved & Complete";
+    }
+    if (test.workflowState === "REVIEWED" || test.status === "Reviewed") {
+      return "✓ Reviewed — Pending Approval";
     }
     if (test.workflowState === "RESULTS_RECORDED" || test.status === "UnderReview") {
       return "Result Recorded — Pending Review";

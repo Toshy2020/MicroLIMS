@@ -1449,7 +1449,7 @@ public class PathogenSessionService
         foreach (var order in sample.TestOrders)
         {
             order.CurrentStep = WorkflowStep.Ready;
-            order.Status = ApprovalStatus.Pending;
+            order.Status = ApprovalStatus.ResultEntered;
 
             _db.WorkflowHistories.Add(new WorkflowHistory
             {
@@ -1464,6 +1464,11 @@ public class PathogenSessionService
 
         sample.Status = SampleStatus.UnderReview;
         sample.ReviewedAt = null;
+
+        await ReviewEventLog.LogAsync(
+            _db, ReviewEntityTypes.Sample, sampleId, userId,
+            ReviewWorkflowEventType.SubmittedForReview,
+            "Testing session completed - submitted for review");
 
         await _db.SaveChangesAsync();
         return (await GetSessionAsync(sampleId))!;

@@ -11,6 +11,7 @@ import {
   TableBody,
   TablePagination,
   Typography,
+  Chip,
   Alert,
   Snackbar,
   useTheme
@@ -29,7 +30,8 @@ import { SampleRecord, TestOrderSummary as ReceivingTestOrderSummary } from "../
 import { ReceiveService, TestingWorkspaceFilter, WorkspaceTileCounts } from "../receiving/services/ReceiveService";
 import {
   SampleStatusKpiCards,
-  WorkloadFilterKey
+  WorkloadFilterKey,
+  AllWorkloadFilterKey
 } from "../receiving/components/SampleStatusKpiCards";
 import { SelectionSummaryBar } from "../receiving/components/SelectionSummaryBar";
 import { SampleFilterBar } from "../receiving/components/SampleFilterBar";
@@ -51,6 +53,24 @@ import { PreparationDialog } from "../testPreparation/PreparationDialog";
 import { VoidSampleConfirmationDialog } from "../receiving/dialogs/VoidSampleConfirmationDialog";
 
 export type WorkspaceDisplayView = "table" | "card" | "kanban";
+
+// Workload filters a URL may set via ?workload= - the tile keys plus the
+// deep-link-only ones dashboards link to (no tile of their own).
+const WHITELISTED_WORKLOADS: readonly AllWorkloadFilterKey[] = [
+  "needsPreparation",
+  "readyToRead",
+  "awaitingReview",
+  "overdue",
+  "mine",
+  "unassigned",
+  "retestInProgress",
+  "reviewOverdue",
+  "approvalOverdue"
+];
+
+function isWhitelistedWorkload(key: string | null): key is AllWorkloadFilterKey {
+  return key !== null && (WHITELISTED_WORKLOADS as readonly string[]).includes(key);
+}
 
 function exportSamplesToCsv(samples: SampleRecord[]) {
   const headers = ["Sample ID", "Reference", "Item / Display Name", "Category", "Batch No", "Control No", "Cause of Testing", "Sampled By", "Received At", "Status"];
@@ -172,11 +192,13 @@ export function ReceivingTestingWorkspacePage() {
   };
 
   // Filter State initialized from URL query params
-  const [workloadFilter, setWorkloadFilter] = useState<WorkloadFilterKey | null>(() => {
+  const [workloadFilter, setWorkloadFilter] = useState<AllWorkloadFilterKey | null>(() => {
     const status = searchParams.get("status");
     if (status === "Active") return null;
     const scope = searchParams.get("scope");
     if (scope === "mine") return "mine";
+    const workload = searchParams.get("workload");
+    if (isWhitelistedWorkload(workload)) return workload;
     return null;
   });
 
@@ -305,7 +327,12 @@ export function ReceivingTestingWorkspacePage() {
     if (paramTestStatus) setTestStatusFilter(paramTestStatus);
     if (paramAnalystId) setAnalystIdFilter(Number(paramAnalystId));
     if (paramUrgency) setUrgencyFilter(paramUrgency);
-    if (paramScope === "mine") setWorkloadFilter("mine");
+    const paramWorkload = searchParams.get("workload");
+    if (paramScope === "mine") {
+      setWorkloadFilter("mine");
+    } else if (isWhitelistedWorkload(paramWorkload)) {
+      setWorkloadFilter(paramWorkload);
+    }
     if (paramView === "table" || paramView === "card" || paramView === "kanban") setViewMode(paramView);
     if (paramSearch && paramSearch !== search) {
       setSearch(paramSearch);
@@ -616,6 +643,32 @@ export function ReceivingTestingWorkspacePage() {
         onSelect={handleSelectWorkload}
         isSectionHeadOrAdmin={role === "SectionHead" || role === "SystemAdministrator"}
       />
+
+      {/* Deep-link-only workload filter indicator */}
+      {workloadFilter && (workloadFilter === "retestInProgress" || workloadFilter === "reviewOverdue" || workloadFilter === "approvalOverdue") && (
+        <Box sx={{ mb: 1.5, display: "flex", alignItems: "center", gap: 1 }}>
+          <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
+            Active Workload Filter:
+          </Typography>
+          <Chip
+            label={
+              workloadFilter === "retestInProgress"
+                ? "Retests in Progress"
+                : workloadFilter === "reviewOverdue"
+                ? "Overdue Review (>24h)"
+                : "Overdue Approval (>24h)"
+            }
+            color="primary"
+            variant="outlined"
+            size="small"
+            onDelete={() => {
+              setWorkloadFilter(null);
+              setPage(1);
+            }}
+            sx={{ fontWeight: 600 }}
+          />
+        </Box>
+      )}
 
       {/* Unified Filter Bar - search, display-mode toggle, and export all live here */}
       <SampleFilterBar

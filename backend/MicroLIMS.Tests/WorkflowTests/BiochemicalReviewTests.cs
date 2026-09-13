@@ -144,9 +144,19 @@ public class BiochemicalReviewTests
         Assert.Equal(ReviewerId, stored.ReturnedByUserId);
         Assert.NotNull(stored.ReturnedAtUtc);
 
+        var order = await db.TestOrders.Include(t => t.Sample).SingleAsync(t => t.Id == orderId);
+        var expectedMessage = $"Test {order.TestCode} for sample {order.Sample!.ReferenceNumber} was returned for biochemical confirmation: Required per SOP-MB-007.";
+
         var notification = Assert.Single(spy.Sent);
         Assert.Equal(AnalystId, notification.UserId);
-        Assert.Contains("biochemical", notification.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal(expectedMessage, notification.Message);
+
+        // Also persisted, so it survives in the analyst's notification bell.
+        var logged = Assert.Single(await db.NotificationLogs.Where(n => n.Type == "TestReturnedForBiochemical").ToListAsync());
+        Assert.Equal(AnalystId, logged.UserId);
+        Assert.Equal(expectedMessage, logged.Message);
+        Assert.Equal("warning", logged.Severity);
+        Assert.False(logged.IsRead);
     }
 
     [Fact]

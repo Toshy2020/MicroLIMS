@@ -56,6 +56,17 @@ public class WorkflowStateResolver
             return result;
         }
 
+        // 1c. Reviewed — Pending Approval
+        if (testOrder.Status == ApprovalStatus.Reviewed || testOrder.CurrentStep == WorkflowStep.Reviewed)
+        {
+            result.WorkflowState = "REVIEWED";
+            result.WorkflowStateDisplay = "Reviewed — Pending Approval";
+            result.WorkflowStatus = "Reviewed";
+            result.IsWorkflowLocked = true;
+            result.IsResultEntryAllowed = false;
+            return result;
+        }
+
         // 2. Results Recorded — Pending Review
         if (testOrder.CurrentStep == WorkflowStep.Ready)
         {

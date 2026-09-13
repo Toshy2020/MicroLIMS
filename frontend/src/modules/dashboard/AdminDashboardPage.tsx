@@ -312,7 +312,7 @@ export function AdminDashboardPage() {
             }}>
             <Paper
               component={Link}
-              to="/receiving-testing?testStatus=ResultEntered"
+              to="/receiving-testing?status=UnderReview"
               variant="outlined"
               sx={{
                 p: 1.5,
@@ -328,6 +328,7 @@ export function AdminDashboardPage() {
               <Typography sx={{ fontSize: 22, fontWeight: 800, color: brandColors.warn }}>
                 {summary.reviewerQueue}
               </Typography>
+              <Typography sx={{ fontSize: 10, color: "text.secondary" }}>Samples</Typography>
             </Paper>
           </Grid>
           <Grid
@@ -338,7 +339,7 @@ export function AdminDashboardPage() {
             }}>
             <Paper
               component={Link}
-              to="/receiving-testing?testStatus=Reviewed"
+              to="/receiving-testing?status=UnderApproval"
               variant="outlined"
               sx={{
                 p: 1.5,
@@ -354,6 +355,7 @@ export function AdminDashboardPage() {
               <Typography sx={{ fontSize: 22, fontWeight: 800, color: brandColors.ok }}>
                 {summary.approvalQueue}
               </Typography>
+              <Typography sx={{ fontSize: 10, color: "text.secondary" }}>Samples</Typography>
             </Paper>
           </Grid>
           {summary.pendingPreparationConfigApproval > 0 && (

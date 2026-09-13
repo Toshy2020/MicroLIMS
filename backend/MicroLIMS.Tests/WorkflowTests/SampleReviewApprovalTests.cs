@@ -172,6 +172,11 @@ public class SampleReviewApprovalTests
 
         var reloadedOrder = await db.TestOrders.FirstAsync(t => t.Id == order.Id);
         Assert.Equal(ApprovalStatus.Approved, reloadedOrder.Status);
+        Assert.Equal(WorkflowStep.Approved, reloadedOrder.CurrentStep);
+
+        var histories = await db.WorkflowHistories.Where(h => h.TestOrderId == order.Id).ToListAsync();
+        Assert.Contains(histories, h => h.FromStep == WorkflowStep.Ready && h.ToStep == WorkflowStep.Reviewed && h.PerformedByUserId == 2);
+        Assert.Contains(histories, h => h.FromStep == WorkflowStep.Reviewed && h.ToStep == WorkflowStep.Approved && h.PerformedByUserId == 3);
     }
 
     // CertificateRemarks is the Approver-only, customer-facing field added
@@ -440,5 +445,111 @@ public class SampleReviewApprovalTests
             approvalService.DecideAsync(sample.Id, sectionHeadUserId: 3, Password, ApprovalDecision.RetestRetainedSample,
                 null, null, selectedTestOrderIds: new List<int> { 999999 }));
         Assert.Contains("do not belong to this sample", ex.Message);
+    }
+
+    [Fact]
+    public async Task CompleteReviewAsync_SetsNonSupersededOrdersReviewed_AddsHistory_LeavesSupersededUntouched()
+    {
+        await using var db = NewDb();
+        var (sample, order, media) = await SeedSingleTestSampleAsync(db);
+        await SeedUser(db, 1); // analyst
+        var reviewer = await SeedUser(db, 2); // reviewer
+        await CompleteTestAsync(db, order, media, analystId: 1);
+
+        // Add a superseded order on the same sample
+        var supersededOrder = new TestOrder
+        {
+            SampleId = sample.Id,
+            TestCode = "TAMC-OLD",
+            Status = ApprovalStatus.Pending,
+            CurrentStep = WorkflowStep.Waiting,
+            IsSuperseded = true
+        };
+        db.TestOrders.Add(supersededOrder);
+        await db.SaveChangesAsync();
+
+        var reviewService = NewReviewService(db);
+        await reviewService.CompleteReviewAsync(sample.Id, reviewerUserId: 2, Password, "Looks good", null);
+
+        var reloadedSample = await db.Samples.FirstAsync(s => s.Id == sample.Id);
+        Assert.Equal(SampleStatus.UnderApproval, reloadedSample.Status);
+
+        var reloadedOrder = await db.TestOrders.FirstAsync(t => t.Id == order.Id);
+        Assert.Equal(ApprovalStatus.Reviewed, reloadedOrder.Status);
+        Assert.Equal(WorkflowStep.Reviewed, reloadedOrder.CurrentStep);
+
+        var histories = await db.WorkflowHistories.Where(h => h.TestOrderId == order.Id).ToListAsync();
+        var reviewHistory = Assert.Single(histories, h => h.ToStep == WorkflowStep.Reviewed);
+        Assert.Equal(WorkflowStep.Ready, reviewHistory.FromStep);
+        Assert.Equal(2, reviewHistory.PerformedByUserId);
+        Assert.Contains(reviewer.FullName, reviewHistory.Note);
+
+        var reloadedSuperseded = await db.TestOrders.FirstAsync(t => t.Id == supersededOrder.Id);
+        Assert.Equal(ApprovalStatus.Pending, reloadedSuperseded.Status);
+        Assert.Equal(WorkflowStep.Waiting, reloadedSuperseded.CurrentStep);
+        Assert.True(reloadedSuperseded.IsSuperseded);
+        Assert.Empty(await db.WorkflowHistories.Where(h => h.TestOrderId == supersededOrder.Id).ToListAsync());
+    }
+
+    [Fact]
+    public async Task CompleteReviewAsync_WhenNonSupersededOrderNotReady_ThrowsAndWritesNothing()
+    {
+        await using var db = NewDb();
+        var (sample, order, _) = await SeedSingleTestSampleAsync(db);
+        await SeedUser(db, 1); // analyst
+        await SeedUser(db, 2); // reviewer
+
+        // Set sample to UnderReview manually, but leave test order at Waiting
+        sample.Status = SampleStatus.UnderReview;
+        order.CurrentStep = WorkflowStep.Waiting;
+        await db.SaveChangesAsync();
+
+        var reviewService = NewReviewService(db);
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            reviewService.CompleteReviewAsync(sample.Id, reviewerUserId: 2, Password, null, null));
+        Assert.Contains("not in Ready step", ex.Message);
+
+        var reloadedSample = await db.Samples.FirstAsync(s => s.Id == sample.Id);
+        Assert.Equal(SampleStatus.UnderReview, reloadedSample.Status);
+        Assert.Null(reloadedSample.ReviewedByUserId);
+
+        var reloadedOrder = await db.TestOrders.FirstAsync(t => t.Id == order.Id);
+        Assert.Equal(WorkflowStep.Waiting, reloadedOrder.CurrentStep);
+        Assert.Equal(ApprovalStatus.Pending, reloadedOrder.Status);
+
+        Assert.Empty(await db.WorkflowHistories.ToListAsync());
+        Assert.Empty(await db.ElectronicSignatures.ToListAsync());
+    }
+
+    [Fact]
+    public async Task DecideAsync_Reject_SetsSampleAndTestOrdersRejected_WithWorkflowHistory()
+    {
+        await using var db = NewDb();
+        var (sample, order, media) = await SeedSingleTestSampleAsync(db);
+        await SeedUser(db, 1); // analyst
+        await SeedUser(db, 2); // reviewer
+        var sectionHead = await SeedUser(db, 3); // section head
+        await CompleteTestAsync(db, order, media, analystId: 1);
+
+        var reviewService = NewReviewService(db);
+        await reviewService.CompleteReviewAsync(sample.Id, reviewerUserId: 2, Password, null, null);
+
+        var approvalService = NewApprovalService(db);
+        await approvalService.DecideAsync(sample.Id, sectionHeadUserId: 3, Password, ApprovalDecision.Reject, "Data discrepancy", null);
+
+        var reloadedSample = await db.Samples.FirstAsync(s => s.Id == sample.Id);
+        Assert.Equal(SampleStatus.Rejected, reloadedSample.Status);
+        Assert.Equal(ApprovalDecision.Reject, reloadedSample.ApprovalDecision);
+
+        var reloadedOrder = await db.TestOrders.FirstAsync(t => t.Id == order.Id);
+        Assert.Equal(ApprovalStatus.Rejected, reloadedOrder.Status);
+        Assert.Equal(WorkflowStep.Reviewed, reloadedOrder.CurrentStep); // CurrentStep left unchanged on Reject
+
+        var histories = await db.WorkflowHistories.Where(h => h.TestOrderId == order.Id).ToListAsync();
+        var rejectHistory = Assert.Single(histories, h => h.Note != null && h.Note.Contains("rejected"));
+        Assert.Equal(WorkflowStep.Reviewed, rejectHistory.FromStep);
+        Assert.Equal(WorkflowStep.Reviewed, rejectHistory.ToStep);
+        Assert.Equal(3, rejectHistory.PerformedByUserId);
+        Assert.Contains(sectionHead.FullName, rejectHistory.Note);
     }
 }

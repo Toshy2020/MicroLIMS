@@ -50,6 +50,8 @@ export const SAMPLE_STATUS_OPTIONS = [
   { value: "Received", label: "Received" },
   { value: "InTesting", label: "Under Testing" },
   { value: "PendingReview", label: "Pending Review" },
+  { value: "UnderReview", label: "Under Review" },
+  { value: "UnderApproval", label: "Under Approval" },
   { value: "Approved", label: "Approved" },
   { value: "Rejected", label: "Rejected" },
   { value: "RetestRequested", label: "Cancelled / Voided" }

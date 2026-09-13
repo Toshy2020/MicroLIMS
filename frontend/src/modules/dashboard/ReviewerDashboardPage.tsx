@@ -117,7 +117,7 @@ export function ReviewerDashboardPage() {
           }}>
           <Paper
             component={Link}
-            to="/receiving-testing?testStatus=ResultEntered"
+            to="/receiving-testing?status=UnderReview"
             sx={{
               p: 2,
               cursor: "pointer",
@@ -139,7 +139,7 @@ export function ReviewerDashboardPage() {
               {data.pendingReviewCount}
             </Typography>
             <Typography sx={{ fontSize: 11, color: "text.secondary" }}>
-              Awaiting scientific verification
+              Samples awaiting scientific review
             </Typography>
           </Paper>
         </Grid>
@@ -152,7 +152,7 @@ export function ReviewerDashboardPage() {
           }}>
           <Paper
             component={Link}
-            to="/receiving-testing?testStatus=ResultEntered&urgency=overdue"
+            to="/receiving-testing?status=UnderReview&workload=reviewOverdue"
             sx={{
               p: 2,
               cursor: "pointer",
@@ -174,7 +174,7 @@ export function ReviewerDashboardPage() {
               {data.overdueReviewCount}
             </Typography>
             <Typography sx={{ fontSize: 11, color: brandColors.err }}>
-              Waiting &gt;24 hours
+              In review &gt;24 hours
             </Typography>
           </Paper>
         </Grid>
@@ -187,7 +187,7 @@ export function ReviewerDashboardPage() {
           }}>
           <Paper
             component={Link}
-            to="/receiving-testing?testStatus=ResultEntered"
+            to="/receiving-testing?status=UnderReview"
             sx={{
               p: 2,
               cursor: "pointer",
@@ -209,7 +209,7 @@ export function ReviewerDashboardPage() {
               {data.dueTodayCount}
             </Typography>
             <Typography sx={{ fontSize: 11, color: "text.secondary" }}>
-              Results submitted today
+              Submitted for review today
             </Typography>
           </Paper>
         </Grid>
@@ -222,7 +222,7 @@ export function ReviewerDashboardPage() {
           }}>
           <Paper
             component={Link}
-            to="/receiving-testing?testStatus=RetestRequested"
+            to="/receiving-testing?workload=retestInProgress"
             sx={{
               p: 2,
               cursor: "pointer",
@@ -236,15 +236,15 @@ export function ReviewerDashboardPage() {
           >
             <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <Typography sx={{ fontSize: 12, fontWeight: 700, color: "text.secondary", textTransform: "uppercase" }}>
-                Retests / Actions
+                Retests in Progress
               </Typography>
               <UndoOutlinedIcon sx={{ color: brandColors.info, fontSize: 20 }} />
             </Box>
             <Typography sx={{ fontSize: 28, fontWeight: 800, color: brandColors.info, my: 0.5 }}>
-              {data.returnedCount}
+              {data.retestsInProgressCount}
             </Typography>
             <Typography sx={{ fontSize: 11, color: "text.secondary" }}>
-              Retest or action required
+              Retest samples not yet closed
             </Typography>
           </Paper>
         </Grid>
@@ -288,9 +288,9 @@ export function ReviewerDashboardPage() {
             </Typography>
           </Box>
           <Grid container spacing={1.5}>
-            {data.attentionItems.map((item, idx) => (
+            {data.attentionItems.map((item) => (
               <Grid
-                key={idx}
+                key={item.sampleId}
                 size={{
                   xs: 12,
                   md: 6
@@ -308,11 +308,13 @@ export function ReviewerDashboardPage() {
                   }}
                 >
                   <Box>
-                    <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                    <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap" }}>
                       <Typography sx={{ fontSize: 13, fontWeight: 700 }}>
                         {item.referenceNumber} — {item.subjectName}
                       </Typography>
-                      <Chip label={item.testCode} size="small" sx={{ fontSize: 11, height: 20 }} />
+                      {item.testCodes.map((code) => (
+                        <Chip key={code} label={code} size="small" sx={{ fontSize: 11, height: 20 }} />
+                      ))}
                     </Box>
                     <Typography sx={{ fontSize: 12, color: brandColors.err, mt: 0.25 }}>
                       {item.reason}
@@ -320,7 +322,7 @@ export function ReviewerDashboardPage() {
                   </Box>
                   <Button
                     component={Link}
-                    to={`/receiving-testing?sampleId=${item.sampleId}&testOrderId=${item.testOrderId}`}
+                    to={`/receiving-testing?sampleId=${item.sampleId}&openSummary=true`}
                     variant="outlined"
                     color="error"
                     size="small"
@@ -350,12 +352,12 @@ export function ReviewerDashboardPage() {
                   Central Review Queue ({data.reviewQueue.length})
                 </Typography>
                 <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
-                  Results submitted by laboratory analysts requiring independent scientific verification.
+                  Samples whose tests are all complete, awaiting independent scientific review.
                 </Typography>
               </Box>
               <Button
                 component={Link}
-                to="/receiving-testing?testStatus=ResultEntered"
+                to="/receiving-testing?status=UnderReview"
                 variant="text"
                 size="small"
                 sx={{ textTransform: "none", fontWeight: 600 }}
@@ -369,7 +371,7 @@ export function ReviewerDashboardPage() {
                 <CheckCircleOutlineIcon sx={{ color: brandColors.ok, fontSize: 48, mb: 1 }} />
                 <Typography sx={{ fontSize: 14, fontWeight: 600 }}>Review Queue is Clear</Typography>
                 <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
-                  No completed results are currently waiting for scientific review.
+                  No samples are currently waiting for scientific review.
                 </Typography>
               </Box>
             ) : (
@@ -379,10 +381,10 @@ export function ReviewerDashboardPage() {
                     <TableRow sx={tableHeadSx}>
                       <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Sample / Ref</TableCell>
                       <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Item / Location</TableCell>
-                      <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Test</TableCell>
-                      <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Analyst</TableCell>
-                      <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Reported Result</TableCell>
-                      <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Age</TableCell>
+                      <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Tests</TableCell>
+                      <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Analyst(s)</TableCell>
+                      <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Worst Result</TableCell>
+                      <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>In Review</TableCell>
                       <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Priority</TableCell>
                       <TableCell sx={{ fontWeight: 700, fontSize: 12, textAlign: "right" }}>Action</TableCell>
                     </TableRow>
@@ -390,13 +392,13 @@ export function ReviewerDashboardPage() {
                   <TableBody>
                     {data.reviewQueue.map((row) => (
                       <TableRow
-                        key={row.testOrderId}
+                        key={row.sampleId}
                         hover
                       >
                         <TableCell sx={{ fontSize: 12, fontWeight: 700 }}>
                           <Typography
                             component={Link}
-                            to={`/receiving-testing?sampleId=${row.sampleId}&testOrderId=${row.testOrderId}`}
+                            to={`/receiving-testing?sampleId=${row.sampleId}`}
                             sx={{
                               fontSize: 12,
                               fontWeight: 700,
@@ -412,37 +414,40 @@ export function ReviewerDashboardPage() {
                           {row.subjectName}
                         </TableCell>
                         <TableCell sx={{ fontSize: 12 }}>
-                          <Chip label={row.testCode} size="small" sx={{ fontSize: 11, height: 22, fontWeight: 600 }} />
+                          <Box sx={{ display: "flex", gap: 0.5, flexWrap: "wrap" }}>
+                            {row.tests.map((t) => (
+                              <Chip key={t.testOrderId} label={t.testCode} size="small" sx={{ fontSize: 11, height: 22, fontWeight: 600 }} />
+                            ))}
+                          </Box>
                         </TableCell>
                         <TableCell sx={{ fontSize: 12, color: "text.secondary" }}>
-                          {row.analystName ?? "—"}
+                          {row.analystNames.length > 0 ? row.analystNames.join(", ") : "—"}
                         </TableCell>
                         <TableCell sx={{ fontSize: 12 }}>
-                          <Typography sx={{ fontSize: 12, fontWeight: 600 }}>
-                            {row.reportedValue ?? "Entered"} {row.unit ?? ""}
-                          </Typography>
-                          {row.resultLevel && (
+                          {row.worstResultLevel ? (
                             <Chip
-                              label={row.resultLevel}
+                              label={row.worstResultLevel.replace(/([a-z])([A-Z])/g, "$1 $2")}
                               size="small"
                               sx={{
                                 fontSize: 10,
                                 height: 18,
                                 bgcolor:
-                                  row.resultLevel === "OutOfSpecification"
+                                  row.worstResultLevel === "OutOfSpecification"
                                     ? brandColors.err + "22"
-                                    : row.resultLevel === "ActionLimit"
+                                    : row.worstResultLevel === "ActionLevel" || row.worstResultLevel === "AlertLevel"
                                     ? brandColors.warn + "22"
                                     : brandColors.ok + "22",
                                 color:
-                                  row.resultLevel === "OutOfSpecification"
+                                  row.worstResultLevel === "OutOfSpecification"
                                     ? brandColors.err
-                                    : row.resultLevel === "ActionLimit"
+                                    : row.worstResultLevel === "ActionLevel" || row.worstResultLevel === "AlertLevel"
                                     ? brandColors.warn
                                     : brandColors.ok,
                                 fontWeight: 700
                               }}
                             />
+                          ) : (
+                            "—"
                           )}
                         </TableCell>
                         <TableCell sx={{ fontSize: 12 }}>
@@ -482,7 +487,7 @@ export function ReviewerDashboardPage() {
                         <TableCell sx={{ textAlign: "right" }}>
                           <Button
                             component={Link}
-                            to={`/receiving-testing?sampleId=${row.sampleId}&testOrderId=${row.testOrderId}`}
+                            to={`/receiving-testing?sampleId=${row.sampleId}&openSummary=true`}
                             variant="contained"
                             size="small"
                             startIcon={<RateReviewOutlinedIcon />}
@@ -523,11 +528,11 @@ export function ReviewerDashboardPage() {
               </Typography>
             ) : (
               <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
-                {data.recentlyReviewed.map((rec, idx) => (
+                {data.recentlyReviewed.map((rec) => (
                   <Paper
-                    key={idx}
+                    key={rec.sampleId}
                     component={Link}
-                    to={`/receiving-testing?sampleId=${rec.sampleId}&testOrderId=${rec.testOrderId}`}
+                    to={`/receiving-testing?sampleId=${rec.sampleId}`}
                     variant="outlined"
                     sx={{
                       p: 1.5,

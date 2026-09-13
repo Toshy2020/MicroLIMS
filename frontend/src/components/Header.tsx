@@ -24,9 +24,10 @@ interface NotificationDto {
 const NOTIFICATION_ROUTES: Record<string, string> = {
   MediaExpiry: "/laboratory-configuration/media",
   IncubationReady: "/receiving-testing",
-  ApprovalWaiting: "/receiving-testing",
-  ReviewWaiting: "/receiving-testing",
+  ApprovalWaiting: "/receiving-testing?status=UnderApproval",
+  ReviewWaiting: "/receiving-testing?status=UnderReview",
   TestReturnedForRevision: "/receiving-testing",
+  TestReturnedForBiochemical: "/receiving-testing",
   DiscussionComment: "/discussions",
   DiscussionPostUpdated: "/discussions",
   DirectMessage: "/messages"

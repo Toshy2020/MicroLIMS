@@ -11,6 +11,7 @@ const statusLabelMap: Record<string, string> = {
   "Ready: Setup": "Ready: Setup",
   "Ready: Confirmatory": "Ready: Confirmatory",
   PendingReview: "Pending Review",
+  Reviewed: "Reviewed — Pending Approval",
   ResultEntered: "Result Entered",
   RetestRequested: "Retest Requested",
   WithinLimits: "Within Limits",

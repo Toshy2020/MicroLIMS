@@ -88,6 +88,17 @@ public class ReviewService
         var order = await _db.TestOrders.FirstOrDefaultAsync(t => t.Id == testOrderId)
             ?? throw new InvalidOperationException($"Test order {testOrderId} not found.");
 
+        var sample = await _db.Samples.FirstOrDefaultAsync(s => s.Id == order.SampleId);
+        if (sample != null && sample.Status is SampleStatus.UnderApproval
+            or SampleStatus.Approved
+            or SampleStatus.Rejected
+            or SampleStatus.RetestRequested
+            or SampleStatus.Cancelled
+            or SampleStatus.Voided)
+        {
+            throw new InvalidOperationException("Cannot return a test to the analyst after the sample has been reviewed. Use Reject or Retest at approval instead.");
+        }
+
         if (order.Status != ApprovalStatus.ResultEntered)
             throw new InvalidOperationException($"Cannot return a test order in {order.Status} status. Only test orders in ResultEntered status can be returned to the analyst.");
 
@@ -120,7 +131,6 @@ public class ReviewService
         }
 
         // 3. If parent sample was auto-submitted for review, revert it to InTesting
-        var sample = await _db.Samples.FirstOrDefaultAsync(s => s.Id == order.SampleId);
         if (sample != null && sample.Status == SampleStatus.UnderReview)
         {
             sample.Status = SampleStatus.InTesting;

@@ -267,6 +267,9 @@ public class PathogenSessionService
             .Include(t => t.Steps)
                 .ThenInclude(s => s.StepMedia)
                     .ThenInclude(m => m.Material)
+            .Include(t => t.Steps)
+                .ThenInclude(s => s.StepMedia)
+                    .ThenInclude(m => m.MediaConfiguration)
             .Where(t => testCodes.Contains(t.Code))
             .ToDictionaryAsync(t => t.Code);
 
@@ -471,6 +474,13 @@ public class PathogenSessionService
         // Build Assigned Test DTOs and evaluate test-specific workflow states
         var assignedTestDtos = new List<SessionAssignedTestDto>();
 
+        var mediaLookup = incubations
+            .Where(i => i.MediaId.HasValue && i.Media != null)
+            .GroupBy(i => i.MediaId!.Value)
+            .ToDictionary(
+                g => g.Key,
+                g => (MaterialId: g.First().Media!.MaterialId, MediaProductId: g.First().Media!.Material?.MediaProductId));
+
         foreach (var to in sample.TestOrders)
         {
             testDefs.TryGetValue(to.TestCode, out var def);
@@ -508,7 +518,7 @@ public class PathogenSessionService
             }
 
             // Determine Test Session State & Result Entry Allowance
-            var stateResult = WorkflowStateResolver.Resolve(to, requiresTsb, sharedTsbIncubation, toIncubations, stepDtos, DateTime.UtcNow, requiredTsbHoursMin, steps, sample.Status);
+            var stateResult = WorkflowStateResolver.Resolve(to, requiresTsb, sharedTsbIncubation, toIncubations, stepDtos, DateTime.UtcNow, requiredTsbHoursMin, steps, sample.Status, mediaLookup);
             string testSessionState = stateResult.WorkflowState;
             string testSessionStateDisplay = stateResult.WorkflowStateDisplay;
             bool isResultEntryAllowed = stateResult.IsResultEntryAllowed;

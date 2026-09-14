@@ -102,4 +102,5 @@ public static class ReviewEntityTypes
     public const string Sample = "Sample";
     public const string Media = "Media";
     public const string Cryovial = "Cryovial";
+    public const string MediaProduct = "MediaProduct";
 }

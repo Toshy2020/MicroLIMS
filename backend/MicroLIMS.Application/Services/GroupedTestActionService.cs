@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.DTOs;
+using MicroLIMS.Application.Helpers;
 using MicroLIMS.Application.Workflows;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
@@ -86,6 +87,17 @@ public class GroupedTestActionService
         var excludedResultEntry = new List<ExcludedResultEntryTestOrderDto>();
         var seenTsbSampleIds = new HashSet<int>();
 
+        // Every batch id per media product, loaded once for the whole
+        // candidate list: step media accept a lot from any batch of their
+        // product, so each candidate's permitted batch list is widened from
+        // this instead of a query per candidate.
+        var materialIdsByProduct = (await _db.Materials
+                .Where(m => m.MediaProductId != null)
+                .Select(m => new { m.Id, ProductId = m.MediaProductId!.Value })
+                .ToListAsync(ct))
+            .GroupBy(m => m.ProductId)
+            .ToDictionary(g => g.Key, g => g.Select(m => m.Id).ToList());
+
         foreach (var order in candidateOrders)
         {
             var sample = order.Sample;
@@ -134,8 +146,11 @@ public class GroupedTestActionService
                 {
                     if (openInc.MediaId.HasValue && step.StepMedia != null && step.StepMedia.Count > 0)
                     {
-                        var mediaRow = await _db.Media.Where(m => m.Id == openInc.MediaId.Value).Select(m => new { m.MaterialId }).FirstOrDefaultAsync(ct);
-                        var stepMedia = mediaRow != null ? step.StepMedia.FirstOrDefault(sm => sm.MaterialId == mediaRow.MaterialId) : null;
+                        var mediaRow = await _db.Media.Where(m => m.Id == openInc.MediaId.Value).Select(m => new { m.MaterialId, m.Material!.MediaProductId }).FirstOrDefaultAsync(ct);
+                        var stepMedia = mediaRow != null
+                            ? (step.StepMedia.FirstOrDefault(sm => sm.MaterialId == mediaRow.MaterialId)
+                               ?? step.StepMedia.FirstOrDefault(sm => StepMediumMatcher.Matches(sm, mediaRow.MaterialId, mediaRow.MediaProductId)))
+                            : null;
                         minHours = stepMedia?.IncubationMinHours ?? step.IncubationMinHours;
                     }
                     else
@@ -163,10 +178,20 @@ public class GroupedTestActionService
                     {
                         var nextStepMedias = await _db.TestWorkflowStepMedias
                             .Include(m => m.Material)
+                            .Include(m => m.MediaConfiguration)
                             .Where(m => m.TestWorkflowStepId == nextStep.Id)
                             .ToListAsync(ct);
 
-                        var permittedMaterialIds = nextStepMedias.Select(m => m.MaterialId).Distinct().ToList();
+                        var productIds = nextStepMedias
+                            .Select(StepMediumMatcher.ProductOf)
+                            .Where(p => p.HasValue)
+                            .Select(p => p!.Value)
+                            .Distinct()
+                            .ToList();
+
+                        var siblingMaterialIds = productIds.SelectMany(p => materialIdsByProduct.TryGetValue(p, out var ids) ? ids : new List<int>());
+                        var permittedMaterialIds = nextStepMedias.Select(m => m.MaterialId).Union(siblingMaterialIds).Distinct().ToList();
+
                         var permittedNames = string.Join(" / ", nextStepMedias.Select(m => m.Material?.MaterialName).Where(n => !string.IsNullOrEmpty(n)).Distinct());
 
                         var transitionLabel = $"{step.StepName} → {nextStep.StepName}";
@@ -307,10 +332,20 @@ public class GroupedTestActionService
 
                 var stepMediaList = await _db.TestWorkflowStepMedias
                     .Include(m => m.Material)
+                    .Include(m => m.MediaConfiguration)
                     .Where(m => m.TestWorkflowStepId == step.Id)
                     .ToListAsync(ct);
 
-                var permittedMaterialIds = stepMediaList.Select(m => m.MaterialId).Distinct().ToList();
+                var productIds = stepMediaList
+                    .Select(StepMediumMatcher.ProductOf)
+                    .Where(p => p.HasValue)
+                    .Select(p => p!.Value)
+                    .Distinct()
+                    .ToList();
+
+                var siblingMaterialIds = productIds.SelectMany(p => materialIdsByProduct.TryGetValue(p, out var ids) ? ids : new List<int>());
+                var permittedMaterialIds = stepMediaList.Select(m => m.MaterialId).Union(siblingMaterialIds).Distinct().ToList();
+
                 var permittedNames = string.Join(" / ", stepMediaList.Select(m => m.Material?.MaterialName).Where(n => !string.IsNullOrEmpty(n)).Distinct());
 
                 candidates.Add(new CandidateActionItem(
@@ -775,6 +810,7 @@ public class GroupedTestActionService
             ?? throw new InvalidOperationException($"Test order {testOrderId} not found.");
         var definition = await _db.TestDefinitions
             .Include(t => t.Steps).ThenInclude(s => s.StepMedia).ThenInclude(m => m.Material)
+            .Include(t => t.Steps).ThenInclude(s => s.StepMedia).ThenInclude(m => m.MediaConfiguration)
             .Include(t => t.Steps).ThenInclude(s => s.IncubationStages)
             .FirstOrDefaultAsync(t => t.Code == order.TestCode, ct)
             ?? throw new InvalidOperationException($"Test definition \"{order.TestCode}\" not found.");

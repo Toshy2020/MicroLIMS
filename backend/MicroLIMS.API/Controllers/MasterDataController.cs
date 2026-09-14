@@ -32,9 +32,12 @@ public record CreateDiluentTypeRequest(string Name, bool RequiresBatchTracking, 
 public record CreateEquipmentRequest(string Name, string Code, EquipmentType Type, string? Location, decimal? SetPointTemperature, DateTime? CalibrationDueDate);
 public record CreateRoomTestConfigRequest(int RoomId, string TestType, string TestCode, string AlertLimit, string ActionLimit, string SpecLimit, string? Unit = null);
 public record CreateMachinePartConfigRequest(int MachinePartId, string TestType, string TestCode, string AlertLimit, string ActionLimit, string SpecLimit, bool IsPathogenTest, string? Unit = null);
+public record CreateMediaProductRequest(string Name, string Code);
+public record UpdateMediaProductRequest(string Name);
+public record ChangeMediaProductCodeRequest(string Code, string Reason, string Password);
 public record CreateMediaConfigurationChallengeRequest(int OrganismId, ChallengeRole? ChallengeRole, string? ExpectedDescription, string? InitialInoculum);
-public record CreateMediaConfigurationRequest(string Name, EvaluationType EvaluationType, int IncubationMinHours, int IncubationMaxHours, decimal TemperatureMin, decimal TemperatureMax, decimal? RecoveryPercentMin, decimal? RecoveryPercentMax, List<CreateMediaConfigurationChallengeRequest>? Challenges);
-public record UpdateMediaConfigurationRequest(string Name, EvaluationType EvaluationType, int IncubationMinHours, int IncubationMaxHours, decimal TemperatureMin, decimal TemperatureMax, decimal? RecoveryPercentMin, decimal? RecoveryPercentMax, List<CreateMediaConfigurationChallengeRequest>? Challenges);
+public record CreateMediaConfigurationRequest(int MediaProductId, EvaluationType EvaluationType, int IncubationMinHours, int IncubationMaxHours, decimal TemperatureMin, decimal TemperatureMax, decimal? RecoveryPercentMin, decimal? RecoveryPercentMax, List<CreateMediaConfigurationChallengeRequest>? Challenges);
+public record UpdateMediaConfigurationRequest(int MediaProductId, EvaluationType EvaluationType, int IncubationMinHours, int IncubationMaxHours, decimal TemperatureMin, decimal TemperatureMax, decimal? RecoveryPercentMin, decimal? RecoveryPercentMax, List<CreateMediaConfigurationChallengeRequest>? Challenges);
 public record CreateOrganismRequest(string ScientificName, string? AtccNumber, string? CommonName, string? Description);
 public record UpdateOrganismRequest(string ScientificName, string? AtccNumber, string? CommonName, string? Description);
 public record CreateTestDefinitionRequest(string Code, string DisplayName);
@@ -63,11 +66,16 @@ public class MasterDataController : ControllerBase
 {
     private readonly MicroLimsDbContext _db;
     private readonly EquipmentConfigurationService _configService;
+    private readonly MediaProductService _mediaProductService;
 
-    public MasterDataController(MicroLimsDbContext db, EquipmentConfigurationService configService)
+    public MasterDataController(
+        MicroLimsDbContext db,
+        EquipmentConfigurationService configService,
+        MediaProductService mediaProductService)
     {
         _db = db;
         _configService = configService;
+        _mediaProductService = mediaProductService;
     }
 
     private int CurrentUserId => int.TryParse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value, out var uid) ? uid : 0;
@@ -873,6 +881,35 @@ public class MasterDataController : ControllerBase
         return Ok(ApiResponse<object>.Ok(new { }));
     }
 
+    // ---- Media Products (Media Product Master) ----
+    [HttpGet("media-products")]
+    public async Task<IActionResult> GetMediaProducts() =>
+        Ok(ApiResponse<object>.Ok(await _mediaProductService.GetAllAsync()));
+
+    [Authorize(Roles = RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
+    [HttpPost("media-products")]
+    public async Task<IActionResult> CreateMediaProduct(CreateMediaProductRequest request) =>
+        Ok(ApiResponse<object>.Ok(await _mediaProductService.CreateAsync(request.Name, request.Code)));
+
+    [Authorize(Roles = RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
+    [HttpPut("media-products/{id}")]
+    public async Task<IActionResult> UpdateMediaProduct(int id, UpdateMediaProductRequest request) =>
+        Ok(ApiResponse<object>.Ok(await _mediaProductService.RenameAsync(id, request.Name)));
+
+    [Authorize(Roles = RoleConstants.SectionHead)]
+    [HttpPut("media-products/{id}/code")]
+    public async Task<IActionResult> ChangeMediaProductCode(int id, ChangeMediaProductCodeRequest request) =>
+        Ok(ApiResponse<object>.Ok(await _mediaProductService.ChangeCodeAsync(
+            id, request.Code, request.Reason, request.Password, CurrentUserId, HttpContext.Connection.RemoteIpAddress?.ToString())));
+
+    [Authorize(Roles = RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
+    [HttpDelete("media-products/{id}")]
+    public async Task<IActionResult> DeleteMediaProduct(int id)
+    {
+        await _mediaProductService.DeleteAsync(id);
+        return Ok(ApiResponse<object>.Ok(new { }));
+    }
+
     // ---- Media Configurations (Media Configuration Migration) ----
     [HttpGet("media-configurations")]
     public async Task<IActionResult> GetMediaConfigurations()
@@ -884,6 +921,8 @@ public class MasterDataController : ControllerBase
             {
                 m.Id,
                 m.Name,
+                m.MediaProductId,
+                MediaProductCode = m.MediaProduct != null ? m.MediaProduct.Code : null,
                 m.EvaluationType,
                 m.IncubationMinHours,
                 m.IncubationMaxHours,
@@ -917,8 +956,8 @@ public class MasterDataController : ControllerBase
     [HttpPost("media-configurations")]
     public async Task<IActionResult> CreateMediaConfiguration(CreateMediaConfigurationRequest request)
     {
-        if (string.IsNullOrWhiteSpace(request.Name))
-            throw new InvalidOperationException("Media configuration name is required.");
+        var product = await _db.MediaProducts.FirstOrDefaultAsync(p => p.Id == request.MediaProductId)
+            ?? throw new InvalidOperationException($"Media product with ID {request.MediaProductId} not found.");
 
         if (!Enum.IsDefined(typeof(EvaluationType), request.EvaluationType))
             throw new InvalidOperationException("Valid evaluation type is required.");
@@ -942,7 +981,7 @@ public class MasterDataController : ControllerBase
         }
 
         var exists = await _db.MediaConfigurations.AnyAsync(m =>
-            m.Name == request.Name.Trim() &&
+            m.MediaProductId == request.MediaProductId &&
             m.IncubationMinHours == request.IncubationMinHours &&
             m.IncubationMaxHours == request.IncubationMaxHours &&
             m.TemperatureMin == request.TemperatureMin &&
@@ -951,12 +990,13 @@ public class MasterDataController : ControllerBase
         if (exists)
         {
             throw new InvalidOperationException(
-                $"A media configuration for '{request.Name.Trim()}' with incubation {request.IncubationMinHours}–{request.IncubationMaxHours}h and temperature {request.TemperatureMin}–{request.TemperatureMax}°C already exists.");
+                $"A media configuration for '{product.Name}' with incubation {request.IncubationMinHours}–{request.IncubationMaxHours}h and temperature {request.TemperatureMin}–{request.TemperatureMax}°C already exists.");
         }
 
         var entity = new MediaConfiguration
         {
-            Name = request.Name.Trim(),
+            MediaProductId = product.Id,
+            Name = product.Name,
             EvaluationType = request.EvaluationType,
             IncubationMinHours = request.IncubationMinHours,
             IncubationMaxHours = request.IncubationMaxHours,
@@ -999,6 +1039,8 @@ public class MasterDataController : ControllerBase
         {
             entity.Id,
             entity.Name,
+            entity.MediaProductId,
+            MediaProductCode = product.Code,
             entity.EvaluationType,
             entity.IncubationMinHours,
             entity.IncubationMaxHours,
@@ -1029,8 +1071,8 @@ public class MasterDataController : ControllerBase
             .FirstOrDefaultAsync(m => m.Id == id)
             ?? throw new InvalidOperationException($"Media configuration {id} not found.");
 
-        if (string.IsNullOrWhiteSpace(request.Name))
-            throw new InvalidOperationException("Media configuration name is required.");
+        var product = await _db.MediaProducts.FirstOrDefaultAsync(p => p.Id == request.MediaProductId)
+            ?? throw new InvalidOperationException($"Media product with ID {request.MediaProductId} not found.");
 
         if (!Enum.IsDefined(typeof(EvaluationType), request.EvaluationType))
             throw new InvalidOperationException("Valid evaluation type is required.");
@@ -1055,7 +1097,7 @@ public class MasterDataController : ControllerBase
 
         var exists = await _db.MediaConfigurations.AnyAsync(m =>
             m.Id != id &&
-            m.Name == request.Name.Trim() &&
+            m.MediaProductId == request.MediaProductId &&
             m.IncubationMinHours == request.IncubationMinHours &&
             m.IncubationMaxHours == request.IncubationMaxHours &&
             m.TemperatureMin == request.TemperatureMin &&
@@ -1064,10 +1106,21 @@ public class MasterDataController : ControllerBase
         if (exists)
         {
             throw new InvalidOperationException(
-                $"A media configuration for '{request.Name.Trim()}' with incubation {request.IncubationMinHours}–{request.IncubationMaxHours}h and temperature {request.TemperatureMin}–{request.TemperatureMax}°C already exists.");
+                $"A media configuration for '{product.Name}' with incubation {request.IncubationMinHours}–{request.IncubationMaxHours}h and temperature {request.TemperatureMin}–{request.TemperatureMax}°C already exists.");
         }
 
-        entity.Name = request.Name.Trim();
+        // Workflow steps accept lots by this configuration's product, so
+        // moving a configuration that a step already uses to another product
+        // would silently change what that step accepts.
+        if (entity.MediaProductId != product.Id &&
+            await _db.TestWorkflowStepMedias.AnyAsync(sm => sm.MediaConfigurationId == id))
+        {
+            throw new InvalidOperationException(
+                "This media configuration is used by workflow steps in Test Master, so it can't be moved to a different media product.");
+        }
+
+        entity.MediaProductId = product.Id;
+        entity.Name = product.Name;
         entity.EvaluationType = request.EvaluationType;
         entity.IncubationMinHours = request.IncubationMinHours;
         entity.IncubationMaxHours = request.IncubationMaxHours;
@@ -1144,6 +1197,8 @@ public class MasterDataController : ControllerBase
         {
             entity.Id,
             entity.Name,
+            entity.MediaProductId,
+            MediaProductCode = product.Code,
             entity.EvaluationType,
             entity.IncubationMinHours,
             entity.IncubationMaxHours,

@@ -14,8 +14,9 @@ public record PrepareMediaRequest(
     int CycleTime, int CycleNumber, decimal Ph, DateTime ExpiryDate, int UserId);
 
 // The Media Preparation module - captures the full prepared-lot record.
-// Lot number format: {Material.Code}/{seq:D2}/{yy} - one sequence per code
-// per year, continuing past the highest number already issued (see
+// Lot number format: {Product.Code}/{seq:D2}/{yy} - the prefix comes from the
+// product code, so a code change starts a new /01/ series (one sequence per
+// code per year, continuing past the highest number already issued - see
 // PreparedLotNumber). ManufacturerLot/ManufacturerName are copied from the
 // consumed Material, never caller-supplied - the analyst picks a
 // Material, not a manufacturer. Nothing here is usable in routine
@@ -52,21 +53,28 @@ public class MediaPreparationService
         // instead of a second lookup.
         var material = await _materialService.ConsumeAsync(request.MaterialId, MaterialType.DehydratedMedia, request.TotalWeight, request.UserId);
 
+        if (material.MediaProductId is null)
+            throw new InvalidOperationException(
+                $"Batch {material.BatchNumber} of {material.MaterialName} isn't linked to a configured media product - edit it in Inventory > Materials Stock and choose the product before preparing.");
+
+        var product = await _db.MediaProducts.FirstOrDefaultAsync(p => p.Id == material.MediaProductId.Value)
+            ?? throw new InvalidOperationException($"Media product with ID {material.MediaProductId.Value} not found.");
+
         // A product can have more than one MediaConfiguration row (e.g.
         // Tryptic Soy Agar's Standard vs. Extended Transfer usages - see
         // the Media Configuration Migration plan). All rows sharing a
-        // Name carry the same EvaluationType and challenge organisms
+        // product carry the same EvaluationType and challenge organisms
         // (Phase 3 duplicated challenges across every row for exactly
         // this reason), so picking the lowest-Id row is a stable,
         // deterministic choice, not an arbitrary one, for GPT-evaluation
         // purposes specifically.
         var config = await _db.MediaConfigurations.Include(c => c.Challenges)
-            .Where(c => c.Name == material.MaterialName)
+            .Where(c => c.MediaProductId == product.Id)
             .OrderBy(c => c.Id)
             .FirstOrDefaultAsync()
-            ?? throw new InvalidOperationException($"No Media Configuration exists yet for \"{material.MaterialName}\" - configure it in Laboratory Configuration before preparing a lot.");
+            ?? throw new InvalidOperationException($"No Media Configuration exists yet for \"{product.Name}\" - configure it in Laboratory Configuration before preparing a lot.");
 
-        var lotPrefix = PreparedLotNumber.PrefixFor(material);
+        var lotPrefix = product.Code;
 
         var media = new Media
         {

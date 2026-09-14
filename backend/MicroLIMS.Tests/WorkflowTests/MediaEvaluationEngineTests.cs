@@ -26,11 +26,17 @@ public class MediaEvaluationEngineTests
         MicroLimsDbContext db, MediaClass mediaClass, string materialName, List<MediaConfigurationChallenge> specs,
         decimal? recoveryMin = 50, decimal? recoveryMax = 200)
     {
+        var safeCode = (materialName.Length >= 2 && materialName.Length <= 10 && !materialName.Contains(' '))
+            ? materialName
+            : "MED" + Math.Abs(materialName.GetHashCode() % 10000).ToString("D4");
+        var product = await MediaProductTestData.CreateOrGetAsync(db, materialName, safeCode);
+
         var material = new Material
         {
             MaterialType = MaterialType.DehydratedMedia, MaterialName = materialName, ManufacturerName = "Himedia",
             BatchNumber = "LOT-1", ReceivingDate = DateTime.UtcNow.AddDays(-5), ExpiryDate = DateTime.UtcNow.AddYears(1),
-            Code = "MAT", Location = "Micro Lab", QuantityReceived = 500, QuantityRemaining = 500, Unit = MaterialUnit.Gram
+            Code = product.Code, Location = "Micro Lab", QuantityReceived = 500, QuantityRemaining = 500, Unit = MaterialUnit.Gram,
+            MediaProductId = product.Id
         };
         var autoclave = new Equipment { Name = "Autoclave 1", Code = "AUT-01", Type = EquipmentType.Autoclave };
         db.Materials.Add(material);
@@ -45,6 +51,7 @@ public class MediaEvaluationEngineTests
         };
         db.MediaConfigurations.Add(new MediaConfiguration
         {
+            MediaProductId = product.Id,
             Name = materialName, EvaluationType = evaluationType,
             IncubationMinHours = 24, IncubationMaxHours = 48,
             TemperatureMin = 30, TemperatureMax = 35,

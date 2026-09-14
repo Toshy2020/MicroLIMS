@@ -105,17 +105,20 @@ public class PreparedLotNumberTests
     // One Material row per received batch; the MediaConfiguration is per product name.
     private static async Task<Material> SeedDehydratedMedia(MicroLimsDbContext db, string name, string code, string batch)
     {
+        var product = await MediaProductTestData.CreateOrGetAsync(db, name, code);
         var material = new Material
         {
             MaterialType = MaterialType.DehydratedMedia, MaterialName = name, ManufacturerName = "Himedia",
             BatchNumber = batch, ReceivingDate = DateTime.UtcNow.AddDays(-10), ExpiryDate = DateTime.UtcNow.AddYears(1),
-            Code = code, Location = "Micro Lab", QuantityReceived = 500, QuantityRemaining = 500, Unit = MaterialUnit.Gram
+            Code = code, Location = "Micro Lab", QuantityReceived = 500, QuantityRemaining = 500, Unit = MaterialUnit.Gram,
+            MediaProductId = product.Id
         };
         db.Materials.Add(material);
-        if (!await db.MediaConfigurations.AnyAsync(c => c.Name == name))
+        if (!await db.MediaConfigurations.AnyAsync(c => c.MediaProductId == product.Id))
         {
             db.MediaConfigurations.Add(new MediaConfiguration
             {
+                MediaProductId = product.Id,
                 Name = name, EvaluationType = EvaluationType.GrowthPromotion,
                 IncubationMinHours = 24, IncubationMaxHours = 48, TemperatureMin = 30, TemperatureMax = 35,
                 RecoveryPercentMin = 50, RecoveryPercentMax = 200
@@ -161,11 +164,13 @@ public class PreparedLotNumberTests
     // row that PrepareCryovialsAsync requires.
     private static async Task<(Media media, Equipment incubator)> SeedReleasedMediaAndIncubator(MicroLimsDbContext db)
     {
+        var product = await MediaProductTestData.CreateOrGetAsync(db, "TSA Powder", "TSA");
         var mediaMaterial = new Material
         {
             MaterialType = MaterialType.DehydratedMedia, MaterialName = "TSA Powder", ManufacturerName = "Himedia",
             BatchNumber = "LOT-TSA", ReceivingDate = DateTime.UtcNow.AddDays(-30), ExpiryDate = DateTime.UtcNow.AddYears(1),
-            Code = "TSA", Location = "Micro Lab", QuantityReceived = 500, QuantityRemaining = 500, Unit = MaterialUnit.Gram
+            Code = "TSA", Location = "Micro Lab", QuantityReceived = 500, QuantityRemaining = 500, Unit = MaterialUnit.Gram,
+            MediaProductId = product.Id
         };
         var incubator = new Equipment { Name = "Incubator 1", Code = "INC-01", Type = EquipmentType.Incubator };
         db.Materials.Add(mediaMaterial);

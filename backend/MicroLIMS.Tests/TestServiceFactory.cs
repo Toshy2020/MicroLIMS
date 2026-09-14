@@ -139,4 +139,9 @@ public static class TestServiceFactory
 
     public static MessageService Message(MicroLimsDbContext db, INotificationService? notifications = null) =>
         new(db, notifications ?? new NoOpNotificationService(), NullLogger<MessageService>.Instance);
+
+    public static MediaProductService MediaProduct(MicroLimsDbContext db) =>
+        new(db, new ElectronicSignatureService(db),
+            new AuditEventService(db, new MicroLIMS.Persistence.Helpers.DatabaseSequenceHelper(db)));
 }
+

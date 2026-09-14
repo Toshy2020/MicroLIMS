@@ -4,14 +4,15 @@ namespace MicroLIMS.Domain.Entities;
 
 // Phase 1 of the MediaType/MediaChallengeSpec retirement (see the
 // Media Configuration Migration plan). One row per configured usage of a
-// dehydrated media product - Name is deliberately NOT unique, because the
-// same product can be used under more than one incubation/temperature
-// profile (e.g. Tryptic Soy Agar's "Standard" 1-2h use vs. its
-// "Extended Transfer" 24-72h use). No separate disambiguating label - the
-// row's own Incubation/Temperature fields already distinguish it from any
-// other row sharing its Name (enforced by the unique index on all five
-// together), so anything displaying these rows formats them from that
-// data directly rather than maintaining a redundant free-text field.
+// dehydrated media product (MediaProduct). Multiple configurations can
+// belong to the same product under different incubation/temperature profiles
+// (e.g. Tryptic Soy Agar's "Standard" 1-2h use vs. its "Extended Transfer"
+// 24-72h use). No separate disambiguating label - the row's own
+// Incubation/Temperature fields distinguish it from any other row sharing
+// its MediaProductId (enforced by the unique index on MediaProductId and
+// the four profile fields together), so anything displaying these rows formats
+// them from that data directly rather than maintaining a redundant free-text
+// field.
 //
 // No Class field either. MediaType.Class only ever existed to derive
 // EvaluationType (see the switch in MediaPreparationService.cs) and to
@@ -29,6 +30,10 @@ public class MediaConfiguration
 {
     public int Id { get; set; }
 
+    public int MediaProductId { get; set; }
+    public MediaProduct? MediaProduct { get; set; }
+
+    // Display copy of MediaProduct.Name kept in sync by the Application layer - never match on it.
     public string Name { get; set; } = string.Empty;
 
     public EvaluationType EvaluationType { get; set; }

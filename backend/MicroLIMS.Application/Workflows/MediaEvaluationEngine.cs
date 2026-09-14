@@ -272,10 +272,15 @@ public class MediaEvaluationEngine : IMediaEvaluationEngine
     // row is the confirmed canonical one (see the Media Configuration
     // Migration plan: for Tryptic Soy Agar this resolves to "Standard",
     // 1-2h @ 30-35C, not "Extended Transfer").
-    private async Task<MediaConfiguration> GetCanonicalConfigAsync(Media media) =>
-        await _db.MediaConfigurations
-            .Where(c => c.Name == media.Material!.MaterialName)
+    private async Task<MediaConfiguration> GetCanonicalConfigAsync(Media media)
+    {
+        var productId = media.Material?.MediaProductId
+            ?? throw new InvalidOperationException($"Media lot \"{media.LotNumber}\" is not linked to a configured media product.");
+
+        return await _db.MediaConfigurations
+            .Where(c => c.MediaProductId == productId)
             .OrderBy(c => c.Id)
             .FirstOrDefaultAsync()
-        ?? throw new InvalidOperationException($"No Media Configuration exists for \"{media.Material!.MaterialName}\".");
+            ?? throw new InvalidOperationException($"No Media Configuration exists for media lot \"{media.LotNumber}\".");
+    }
 }

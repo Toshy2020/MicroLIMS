@@ -23,13 +23,15 @@ public class MediaAppearanceSnapshotTests
 
     private static async Task<(int materialId, int organismId)> SeedAsync(MicroLimsDbContext db, string? expectedDescription)
     {
+        var product = await MediaProductTestData.CreateOrGetAsync(db, "EMB Agar", "EMB");
         var organism = new Organism { ScientificName = "Escherichia coli" };
         db.Organisms.Add(organism);
         var material = new Material
         {
             MaterialType = MaterialType.DehydratedMedia, MaterialName = "EMB Agar", ManufacturerName = "Himedia",
             BatchNumber = "B-1", ReceivingDate = DateTime.UtcNow, Location = "Micro Lab",
-            QuantityReceived = 100, QuantityRemaining = 100, Unit = MaterialUnit.Gram
+            QuantityReceived = 100, QuantityRemaining = 100, Unit = MaterialUnit.Gram,
+            MediaProductId = product.Id
         };
         db.Materials.Add(material);
         await db.SaveChangesAsync();
@@ -38,6 +40,7 @@ public class MediaAppearanceSnapshotTests
         {
             db.MediaConfigurations.Add(new MediaConfiguration
             {
+                MediaProductId = product.Id,
                 Name = "EMB Agar", EvaluationType = EvaluationType.IndicationInhibition,
                 IncubationMinHours = 18, IncubationMaxHours = 24, TemperatureMin = 30, TemperatureMax = 35,
                 Challenges = new List<MediaConfigurationChallenge>

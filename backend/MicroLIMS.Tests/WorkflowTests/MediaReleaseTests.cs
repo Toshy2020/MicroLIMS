@@ -43,19 +43,22 @@ public class MediaReleaseTests
     // challenge to the given outcome, leaving the lot qualified-but-unreleased.
     private static async Task<Media> PrepareAndEvaluateAsync(MicroLimsDbContext db, bool conform)
     {
+        var product = await MediaProductTestData.CreateOrGetAsync(db, "TSA", "TSA");
         var organism = new Organism { ScientificName = "E. coli" };
         db.Organisms.Add(organism);
         var material = new Material
         {
             MaterialType = MaterialType.DehydratedMedia, MaterialName = "TSA", ManufacturerName = "Himedia",
             BatchNumber = "LOT-1", ReceivingDate = DateTime.UtcNow.AddDays(-5), ExpiryDate = DateTime.UtcNow.AddYears(1),
-            Code = "MAT", Location = "Micro Lab", QuantityReceived = 500, QuantityRemaining = 500, Unit = MaterialUnit.Gram
+            Code = "TSA", Location = "Micro Lab", QuantityReceived = 500, QuantityRemaining = 500, Unit = MaterialUnit.Gram,
+            MediaProductId = product.Id
         };
         var autoclave = new Equipment { Name = "Autoclave 1", Code = "AUT-01", Type = EquipmentType.Autoclave };
         db.Materials.Add(material);
         db.Equipment.Add(autoclave);
         db.MediaConfigurations.Add(new MediaConfiguration
         {
+            MediaProductId = product.Id,
             Name = "TSA", EvaluationType = EvaluationType.GrowthPromotion,
             IncubationMinHours = 24, IncubationMaxHours = 48,
             TemperatureMin = 30, TemperatureMax = 35,

@@ -31,6 +31,46 @@ public class WorkflowStateResolver
         return result;
     }
 
+    private static TestWorkflowStepMedia? MatchStepMedium(
+        TestWorkflowStep step,
+        int? mediaLotId,
+        Media? incubationMedia,
+        IReadOnlyDictionary<int, (int MaterialId, int? MediaProductId)>? mediaLookup)
+    {
+        if (step.StepMedia == null || step.StepMedia.Count == 0) return null;
+
+        if (mediaLotId.HasValue)
+        {
+            int? matId = null;
+            int? prodId = null;
+
+            if (mediaLookup != null && mediaLookup.TryGetValue(mediaLotId.Value, out var lotInfo))
+            {
+                matId = lotInfo.MaterialId;
+                prodId = lotInfo.MediaProductId;
+            }
+            else if (incubationMedia != null)
+            {
+                matId = incubationMedia.MaterialId;
+                prodId = incubationMedia.Material?.MediaProductId;
+            }
+
+            if (matId.HasValue)
+            {
+                var matched = step.StepMedia.FirstOrDefault(m => m.MaterialId == matId.Value)
+                    ?? step.StepMedia.FirstOrDefault(m => StepMediumMatcher.Matches(m, matId.Value, prodId));
+                if (matched != null) return matched;
+            }
+
+            // No fallback comparing mediaLotId with MaterialId: a media lot id
+            // and a batch id are unrelated, so an equal number would pick the
+            // wrong medium (the bug this method replaces). Callers fall back
+            // to the step's first medium instead.
+        }
+
+        return null;
+    }
+
     public static WorkflowStateResult Resolve(
         TestOrder testOrder,
         bool requiresTsb,
@@ -40,7 +80,8 @@ public class WorkflowStateResolver
         DateTime utcNow,
         decimal requiredTsbHoursMin = 24,
         IEnumerable<TestWorkflowStep>? steps = null,
-        SampleStatus? sampleStatus = null)
+        SampleStatus? sampleStatus = null,
+        IReadOnlyDictionary<int, (int MaterialId, int? MediaProductId)>? mediaLookup = null)
     {
         var result = new WorkflowStateResult();
 
@@ -157,7 +198,7 @@ public class WorkflowStateResolver
                             var matchedStep = steps.FirstOrDefault(s => s.StepName == inc.StepName);
                             if (matchedStep != null)
                             {
-                                var medium = matchedStep.StepMedia?.FirstOrDefault(m => m.MaterialId == inc.MediaId);
+                                var medium = MatchStepMedium(matchedStep, inc.MediaId, inc.Media, mediaLookup);
                                 minHours = medium?.IncubationMinHours ?? matchedStep.StepMedia?.FirstOrDefault()?.IncubationMinHours ?? matchedStep.IncubationMinHours;
                             }
                         }
@@ -255,7 +296,7 @@ public class WorkflowStateResolver
                     }
                     else
                     {
-                        var medium = matchedStep.StepMedia?.FirstOrDefault(m => m.MaterialId == openCountIncubation.MediaId);
+                        var medium = MatchStepMedium(matchedStep, openCountIncubation.MediaId, openCountIncubation.Media, mediaLookup);
                         minHours = medium?.IncubationMinHours ?? matchedStep.StepMedia?.FirstOrDefault()?.IncubationMinHours ?? matchedStep.IncubationMinHours;
                     }
                 }

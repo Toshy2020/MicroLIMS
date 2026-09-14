@@ -15,6 +15,7 @@ import {
   Tooltip,
   Typography,
   ButtonBase,
+  Chip,
   useTheme
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
@@ -298,7 +299,17 @@ export function MaterialsPage() {
                           </TableCell>
                           {/* Material Name + optional organism/ATCC secondary line */}
                           <TableCell sx={{ fontSize: 12, fontWeight: 600 }}>
-                            {m.materialName}
+                            <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap" }}>
+                              <span>{m.materialName}</span>
+                              {m.materialType === "DehydratedMedia" && m.mediaProductId == null && (
+                                <Chip
+                                  label="Not linked to a media product"
+                                  size="small"
+                                  color="warning"
+                                  sx={{ fontSize: 10.5, height: 20, fontWeight: 600 }}
+                                />
+                              )}
+                            </Box>
                             {(() => {
                               // Canonical ATCC: organism.atccNumber first, material.atccNumber as fallback
                               const canonicalAtcc = m.organism?.atccNumber ?? m.atccNumber;

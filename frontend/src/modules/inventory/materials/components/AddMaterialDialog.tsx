@@ -15,6 +15,8 @@ import {
   useTheme
 } from "@mui/material";
 import { OrganismPicker } from "../../../../components/OrganismPicker";
+import { MediaProductPicker } from "../../../../components/MediaProductPicker";
+import type { MediaProductOption } from "../../../../hooks/useMediaProducts";
 import { MaterialService } from "../services/MaterialService";
 import { EquipmentInventoryService } from "../../equipment/services/EquipmentInventoryService";
 import { MaterialFormState, MaterialItem, MaterialType, MaterialUnit } from "../types/materialTypes";
@@ -55,7 +57,8 @@ const INITIAL_FORM: MaterialFormState = {
   unit: "Gram",
   minimumStockLevel: "",
   atccNumber: "",
-  organismId: null
+  organismId: null,
+  mediaProductId: null
 };
 
 export function AddMaterialDialog({ open, onClose, onSuccess, editingItem }: AddMaterialDialogProps) {
@@ -81,7 +84,8 @@ export function AddMaterialDialog({ open, onClose, onSuccess, editingItem }: Add
         unit: editingItem.unit,
         minimumStockLevel: editingItem.minimumStockLevel ?? "",
         atccNumber: editingItem.atccNumber ?? "",
-        organismId: editingItem.organismId ?? null
+        organismId: editingItem.organismId ?? null,
+        mediaProductId: editingItem.mediaProductId ?? null
       });
     } else {
       setForm({
@@ -131,14 +135,65 @@ export function AddMaterialDialog({ open, onClose, onSuccess, editingItem }: Add
   const onMaterialTypeChange = async (type: MaterialType) => {
     try {
       const defaultUnit = await MaterialService.getDefaultUnit(type);
-      setForm((f) => ({ ...f, materialType: type, unit: defaultUnit as MaterialUnit }));
+      setForm((f) => ({
+        ...f,
+        materialType: type,
+        unit: defaultUnit as MaterialUnit,
+        mediaProductId: type === "DehydratedMedia" ? f.mediaProductId : null
+      }));
     } catch {
-      setForm((f) => ({ ...f, materialType: type }));
+      setForm((f) => ({
+        ...f,
+        materialType: type,
+        mediaProductId: type === "DehydratedMedia" ? f.mediaProductId : null
+      }));
+    }
+  };
+
+  const handleMediaProductChange = (id: number | null, product: MediaProductOption | null) => {
+    if (!product || id === null) {
+      if (editingItem && editingItem.mediaProductId === null) {
+        setForm((f) => ({
+          ...f,
+          mediaProductId: null,
+          materialName: editingItem.materialName,
+          code: editingItem.code ?? ""
+        }));
+      } else {
+        setForm((f) => ({
+          ...f,
+          mediaProductId: null,
+          materialName: "",
+          code: ""
+        }));
+      }
+      return;
+    }
+
+    if (editingItem && editingItem.mediaProductId !== null && id === editingItem.mediaProductId) {
+      setForm((f) => ({
+        ...f,
+        mediaProductId: id,
+        materialName: editingItem.materialName,
+        code: editingItem.code ?? ""
+      }));
+    } else {
+      setForm((f) => ({
+        ...f,
+        mediaProductId: id,
+        materialName: product.name,
+        code: product.code
+      }));
     }
   };
 
   const handleSave = async () => {
     setError(null);
+    if (form.materialType === "DehydratedMedia" && !form.mediaProductId) {
+      setError("Choose the configured media product for this dehydrated media.");
+      return;
+    }
+
     if (
       !form.materialName.trim() ||
       !form.batchNumber.trim() ||
@@ -169,7 +224,8 @@ export function AddMaterialDialog({ open, onClose, onSuccess, editingItem }: Add
       unit: form.unit,
       minimumStockLevel: form.minimumStockLevel === "" ? null : Number(form.minimumStockLevel),
       atccNumber: form.materialType === "LyophilizedMicroorganism" ? form.atccNumber.trim() || null : null,
-      organismId: form.materialType === "LyophilizedMicroorganism" ? form.organismId || null : null
+      organismId: form.materialType === "LyophilizedMicroorganism" ? form.organismId || null : null,
+      mediaProductId: form.materialType === "DehydratedMedia" ? form.mediaProductId : null
     };
 
     setSaving(true);
@@ -231,7 +287,12 @@ export function AddMaterialDialog({ open, onClose, onSuccess, editingItem }: Add
         1. Material Information
       </Typography>
       <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "repeat(2, 1fr)" }, gap: 2, mb: 3 }}>
-        <FormControl size="small" fullWidth required>
+        <FormControl
+          size="small"
+          fullWidth
+          required
+          sx={{ gridColumn: { xs: "1", sm: form.materialType === "DehydratedMedia" ? "span 2" : "1" } }}
+        >
           <InputLabel id="dialog-material-type-label">Material Type</InputLabel>
           <Select
             labelId="dialog-material-type-label"
@@ -247,6 +308,17 @@ export function AddMaterialDialog({ open, onClose, onSuccess, editingItem }: Add
           </Select>
         </FormControl>
 
+        {form.materialType === "DehydratedMedia" && (
+          <Box sx={{ gridColumn: { xs: "1", sm: "span 2" } }}>
+            <MediaProductPicker
+              value={form.mediaProductId}
+              onChange={handleMediaProductChange}
+              required
+              helperText="Media not listed? A Section Head adds it in Laboratory Configuration > Media Configuration."
+            />
+          </Box>
+        )}
+
         <TextField
           size="small"
           required
@@ -254,6 +326,7 @@ export function AddMaterialDialog({ open, onClose, onSuccess, editingItem }: Add
           placeholder="e.g. Tryptic Soy Agar Powder"
           value={form.materialName}
           onChange={(e) => setForm({ ...form, materialName: e.target.value })}
+          disabled={form.materialType === "DehydratedMedia"}
         />
 
         <TextField
@@ -266,10 +339,11 @@ export function AddMaterialDialog({ open, onClose, onSuccess, editingItem }: Add
 
         <TextField
           size="small"
-          label="Code / Catalog No."
-          placeholder="e.g. CM0131B"
+          label={form.materialType === "DehydratedMedia" ? "Media code" : "Code / Catalog No."}
+          placeholder={form.materialType === "DehydratedMedia" ? "e.g. TSA" : "e.g. CM0131B"}
           value={form.code}
           onChange={(e) => setForm({ ...form, code: e.target.value })}
+          disabled={form.materialType === "DehydratedMedia"}
         />
 
         {form.materialType === "LyophilizedMicroorganism" && (

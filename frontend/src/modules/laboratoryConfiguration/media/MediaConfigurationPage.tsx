@@ -12,25 +12,35 @@ import {
   TableCell,
   TableBody,
   Alert,
-  Autocomplete,
   IconButton,
   Collapse,
   Typography,
   Chip,
   Divider,
-  Tooltip
+  Tooltip,
+  Stack
 } from "@mui/material";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import KeyboardArrowUpIcon from "@mui/icons-material/KeyboardArrowUp";
 import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutlined";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutlined";
 import EditIcon from "@mui/icons-material/Edit";
+import AddIcon from "@mui/icons-material/Add";
+import KeyIcon from "@mui/icons-material/Key";
 import { PageHeader } from "../../../components/PageHeader";
 import { SectionTitle } from "../../../components/SectionTitle";
 import { OrganismPicker } from "../../../components/OrganismPicker";
+import { MediaProductPicker } from "../../../components/MediaProductPicker";
 import { ConfirmationDialog } from "../../../components/ConfirmationDialog";
-import { masterDataOptions, evaluationTypeLabel } from "../../../services/masterDataOptions";
-import { MaterialService } from "../../inventory/materials/services/MaterialService";
+import { FloatingDialog } from "../../../components/FloatingDialog";
+import { SignatureDialog } from "../../../components/SignatureDialog";
+import { useAuth } from "../../../contexts/AuthContext";
+import { OrganismOption } from "../../../hooks/useOrganisms";
+import {
+  masterDataOptions,
+  evaluationTypeLabel,
+  MediaProductOption
+} from "../../../services/masterDataOptions";
 import { tableHeadSx } from "../../../theme";
 
 const EVALUATION_TYPES = [
@@ -40,6 +50,36 @@ const EVALUATION_TYPES = [
 ];
 
 const CHALLENGE_ROLES = ["Inhibition", "Indication"];
+
+interface ChallengeItem {
+  id: number;
+  mediaConfigurationId: number;
+  organismId: number;
+  challengeRole?: string | null;
+  expectedDescription?: string | null;
+  initialInoculum?: string | null;
+  organism?: {
+    id: number;
+    scientificName: string;
+    atccNumber?: string | null;
+    commonName?: string | null;
+  } | null;
+}
+
+interface MediaConfigurationItem {
+  id: number;
+  name: string;
+  mediaProductId: number;
+  mediaProductCode?: string | null;
+  evaluationType: string;
+  incubationMinHours: number;
+  incubationMaxHours: number;
+  temperatureMin: number;
+  temperatureMax: number;
+  recoveryPercentMin?: number | null;
+  recoveryPercentMax?: number | null;
+  challenges: ChallengeItem[];
+}
 
 interface StagedChallenge {
   organismId: number;
@@ -57,17 +97,24 @@ interface StagedChallenge {
 // not a single universal constant.
 const defaultInitialInoculum = (evalType: string) => (evalType === "IndicationInhibition" ? "" : "10^2");
 
+const getErrorMessage = (err: unknown, fallback: string) =>
+  (err as { response?: { data?: { message?: string } } })?.response?.data?.message ?? fallback;
+
 export function MediaConfigurationPage() {
-  const [configurations, setConfigurations] = useState<any[]>([]);
-  const [materialNames, setMaterialNames] = useState<string[]>([]);
-  const [organisms, setOrganisms] = useState<any[]>([]);
+  const { role } = useAuth();
+  const isManager = role === "SectionHead" || role === "SystemAdministrator";
+  const isSectionHead = role === "SectionHead";
+
+  const [configurations, setConfigurations] = useState<MediaConfigurationItem[]>([]);
+  const [mediaProducts, setMediaProducts] = useState<MediaProductOption[]>([]);
+  const [organisms, setOrganisms] = useState<OrganismOption[]>([]);
   const [expandedRows, setExpandedRows] = useState<Record<number, boolean>>({});
   const [message, setMessage] = useState<{ text: string; ok: boolean } | null>(null);
-  const [pendingDelete, setPendingDelete] = useState<any>(null);
+  const [pendingDelete, setPendingDelete] = useState<MediaConfigurationItem | null>(null);
 
   // Form State
   const [editingId, setEditingId] = useState<number | null>(null);
-  const [name, setName] = useState("");
+  const [mediaProductId, setMediaProductId] = useState<number | null>(null);
   const [evaluationType, setEvaluationType] = useState("GrowthPromotion");
   const [incubationMinHours, setIncubationMinHours] = useState<number | "">("");
   const [incubationMaxHours, setIncubationMaxHours] = useState<number | "">("");
@@ -83,18 +130,37 @@ export function MediaConfigurationPage() {
   const [expectedDescription, setExpectedDescription] = useState<string>("");
   const [initialInoculum, setInitialInoculum] = useState<string>(defaultInitialInoculum("GrowthPromotion"));
 
+  // Media Products dialog states
+  const [addProductOpen, setAddProductOpen] = useState(false);
+  const [newProductName, setNewProductName] = useState("");
+  const [newProductCode, setNewProductCode] = useState("");
+  const [addProductError, setAddProductError] = useState<string | null>(null);
+  const [addingProduct, setAddingProduct] = useState(false);
+
+  const [renameProduct, setRenameProduct] = useState<MediaProductOption | null>(null);
+  const [renameName, setRenameName] = useState("");
+  const [renameError, setRenameError] = useState<string | null>(null);
+  const [renaming, setRenaming] = useState(false);
+
+  const [pendingDeleteProduct, setPendingDeleteProduct] = useState<MediaProductOption | null>(null);
+
+  const [changeCodeProduct, setChangeCodeProduct] = useState<MediaProductOption | null>(null);
+  const [newCode, setNewCode] = useState("");
+  const [changeCodeReason, setChangeCodeReason] = useState("");
+  const [signatureOpen, setSignatureOpen] = useState(false);
+
   const loadData = async () => {
     try {
-      const [configs, materials, orgList] = await Promise.all([
+      const [configs, products, orgList] = await Promise.all([
         masterDataOptions.getMediaConfigurations(),
-        MaterialService.getAll("DehydratedMedia"),
+        masterDataOptions.getMediaProducts(),
         masterDataOptions.getOrganisms()
       ]);
       setConfigurations(configs);
-      setMaterialNames(Array.from(new Set(materials.map((m: any) => m.materialName))));
+      setMediaProducts(products);
       setOrganisms(orgList);
-    } catch (err: any) {
-      setMessage({ text: err?.response?.data?.message ?? "Failed to load media configurations.", ok: false });
+    } catch (err: unknown) {
+      setMessage({ text: getErrorMessage(err, "Failed to load media configuration data."), ok: false });
     }
   };
 
@@ -113,7 +179,7 @@ export function MediaConfigurationPage() {
     const newChallenge: StagedChallenge = {
       organismId: selectedOrganismId,
       organismName: org?.scientificName ?? `Organism #${selectedOrganismId}`,
-      atccNumber: org?.atccNumber,
+      atccNumber: org?.atccNumber ?? undefined,
       challengeRole: evaluationType === "IndicationInhibition" ? (challengeRole || null) : null,
       expectedDescription: (evaluationType === "IndicationInhibition" && challengeRole === "Indication") ? (expectedDescription.trim() || null) : null,
       initialInoculum: initialInoculum.trim() || null
@@ -142,7 +208,7 @@ export function MediaConfigurationPage() {
 
   const resetForm = () => {
     setEditingId(null);
-    setName("");
+    setMediaProductId(null);
     setEvaluationType("GrowthPromotion");
     setIncubationMinHours("");
     setIncubationMaxHours("");
@@ -157,9 +223,9 @@ export function MediaConfigurationPage() {
     setInitialInoculum(defaultInitialInoculum("GrowthPromotion"));
   };
 
-  const startEdit = (config: any) => {
+  const startEdit = (config: MediaConfigurationItem) => {
     setEditingId(config.id);
-    setName(config.name ?? "");
+    setMediaProductId(config.mediaProductId ?? null);
     setEvaluationType(config.evaluationType ?? "GrowthPromotion");
     setIncubationMinHours(config.incubationMinHours ?? "");
     setIncubationMaxHours(config.incubationMaxHours ?? "");
@@ -168,10 +234,10 @@ export function MediaConfigurationPage() {
     setRecoveryPercentMin(config.recoveryPercentMin ?? "");
     setRecoveryPercentMax(config.recoveryPercentMax ?? "");
     setStagedChallenges(
-      (config.challenges ?? []).map((c: any) => ({
+      (config.challenges ?? []).map((c) => ({
         organismId: c.organismId,
         organismName: c.organism?.scientificName ?? `Organism #${c.organismId}`,
-        atccNumber: c.organism?.atccNumber,
+        atccNumber: c.organism?.atccNumber ?? undefined,
         challengeRole: c.challengeRole ?? null,
         expectedDescription: c.expectedDescription ?? null,
         initialInoculum: c.initialInoculum ?? null
@@ -185,16 +251,16 @@ export function MediaConfigurationPage() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  const deleteConfiguration = async (config: any) => {
+  const deleteConfiguration = async (config: MediaConfigurationItem) => {
     setMessage(null);
     try {
       await masterDataOptions.deleteMediaConfiguration(config.id);
       setPendingDelete(null);
       await loadData();
       setMessage({ text: `Media configuration for "${config.name}" deleted.`, ok: true });
-    } catch (e: any) {
+    } catch (e: unknown) {
       setPendingDelete(null);
-      setMessage({ text: e?.response?.data?.message ?? "Could not delete this media configuration.", ok: false });
+      setMessage({ text: getErrorMessage(e, "Could not delete this media configuration."), ok: false });
     }
   };
 
@@ -202,8 +268,8 @@ export function MediaConfigurationPage() {
     setMessage(null);
 
     // Validation
-    if (!name.trim()) {
-      setMessage({ text: "Media name is required.", ok: false });
+    if (!mediaProductId) {
+      setMessage({ text: "Media product is required.", ok: false });
       return;
     }
     if (incubationMinHours === "" || incubationMaxHours === "") {
@@ -236,7 +302,7 @@ export function MediaConfigurationPage() {
     }
 
     const payload = {
-      name: name.trim(),
+      mediaProductId,
       evaluationType,
       incubationMinHours: Number(incubationMinHours),
       incubationMaxHours: Number(incubationMaxHours),
@@ -255,22 +321,102 @@ export function MediaConfigurationPage() {
     try {
       if (editingId) {
         await masterDataOptions.updateMediaConfiguration(editingId, payload);
-        setMessage({ text: `Media configuration for "${payload.name}" updated successfully.`, ok: true });
+        setMessage({ text: "Media configuration updated successfully.", ok: true });
       } else {
         await masterDataOptions.createMediaConfiguration(payload);
-        setMessage({ text: `Media configuration for "${payload.name}" created successfully.`, ok: true });
+        setMessage({ text: "Media configuration created successfully.", ok: true });
       }
       resetForm();
-      loadData();
-    } catch (err: any) {
-      setMessage({ text: err?.response?.data?.message ?? (editingId ? "Failed to update media configuration." : "Failed to create media configuration."), ok: false });
+      await loadData();
+    } catch (err: unknown) {
+      setMessage({
+        text: getErrorMessage(err, editingId ? "Failed to update media configuration." : "Failed to create media configuration."),
+        ok: false
+      });
     }
+  };
+
+  // Media Products Actions
+  const handleAddProduct = async () => {
+    if (!newProductName.trim() || !newProductCode.trim()) {
+      setAddProductError("Both product name and code are required.");
+      return;
+    }
+    setAddingProduct(true);
+    setAddProductError(null);
+    try {
+      await masterDataOptions.createMediaProduct(newProductName.trim(), newProductCode.trim());
+      setAddProductOpen(false);
+      setNewProductName("");
+      setNewProductCode("");
+      await loadData();
+      setMessage({ text: `Media product "${newProductName.trim()}" created successfully.`, ok: true });
+    } catch (err: unknown) {
+      setAddProductError(getErrorMessage(err, "Failed to create media product."));
+    } finally {
+      setAddingProduct(false);
+    }
+  };
+
+  const openRenameDialog = (p: MediaProductOption) => {
+    setRenameProduct(p);
+    setRenameName(p.name);
+    setRenameError(null);
+  };
+
+  const handleRenameProduct = async () => {
+    if (!renameProduct || !renameName.trim()) {
+      setRenameError("Product name is required.");
+      return;
+    }
+    setRenaming(true);
+    setRenameError(null);
+    try {
+      await masterDataOptions.renameMediaProduct(renameProduct.id, renameName.trim());
+      const oldName = renameProduct.name;
+      const updatedName = renameName.trim();
+      setRenameProduct(null);
+      await loadData();
+      setMessage({ text: `Media product "${oldName}" renamed to "${updatedName}".`, ok: true });
+    } catch (err: unknown) {
+      setRenameError(getErrorMessage(err, "Failed to rename media product."));
+    } finally {
+      setRenaming(false);
+    }
+  };
+
+  const handleDeleteProduct = async () => {
+    if (!pendingDeleteProduct) return;
+    const prod = pendingDeleteProduct;
+    setPendingDeleteProduct(null);
+    setMessage(null);
+    try {
+      await masterDataOptions.deleteMediaProduct(prod.id);
+      await loadData();
+      setMessage({ text: `Media product "${prod.name}" deleted.`, ok: true });
+    } catch (err: unknown) {
+      setMessage({
+        text: getErrorMessage(err, "Could not delete this media product."),
+        ok: false
+      });
+    }
+  };
+
+  const openChangeCodeDialog = (p: MediaProductOption) => {
+    setChangeCodeProduct(p);
+    setNewCode("");
+    setChangeCodeReason("");
+    setSignatureOpen(false);
   };
 
   const isAddChallengeValid =
     selectedOrganismId != null &&
     (evaluationType !== "IndicationInhibition" || !!challengeRole) &&
     (challengeRole !== "Indication" || !!expectedDescription.trim());
+
+  const selectedProductName = mediaProducts.find((p) => p.id === mediaProductId)?.name
+    ?? (editingId ? configurations.find((c) => c.id === editingId)?.name : "")
+    ?? "";
 
   return (
     <>
@@ -285,200 +431,207 @@ export function MediaConfigurationPage() {
         </Alert>
       )}
 
-      {/* CREATE / EDIT FORM */}
-      <SectionTitle>{editingId ? `Edit Media Configuration: ${name || "Selected Profile"}` : "New Media Configuration"}</SectionTitle>
-      <Paper sx={{ p: 2.5, mb: 4 }}>
-        <Box sx={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 2, mb: 2 }}>
-          <Autocomplete
-            freeSolo
-            options={materialNames}
-            value={name}
-            onChange={(_e, v) => setName(v ?? "")}
-            onInputChange={(_e, v) => setName(v)}
-            renderInput={(params) => <TextField {...params} label="Media Product Name" placeholder="e.g. Tryptic Soy Agar" size="small" required />}
-          />
-
-          <Select
-            size="small"
-            value={evaluationType}
-            onChange={(e) => {
-              setEvaluationType(e.target.value);
-              setStagedChallenges([]);
-              setChallengeRole("");
-              setExpectedDescription("");
-              setInitialInoculum(defaultInitialInoculum(e.target.value));
-            }}
-          >
-            {EVALUATION_TYPES.map((t) => (
-              <MenuItem key={t.value} value={t.value}>
-                {t.label}
-              </MenuItem>
-            ))}
-          </Select>
-
-          <Box sx={{ display: "flex", gap: 1 }}>
-            <TextField
-              size="small"
-              type="number"
-              label="Incubation Min (h)"
-              value={incubationMinHours}
-              onChange={(e) => setIncubationMinHours(e.target.value === "" ? "" : Number(e.target.value))}
-              required
-            />
-            <TextField
-              size="small"
-              type="number"
-              label="Incubation Max (h)"
-              value={incubationMaxHours}
-              onChange={(e) => setIncubationMaxHours(e.target.value === "" ? "" : Number(e.target.value))}
-              required
-            />
-          </Box>
-
-          <Box sx={{ display: "flex", gap: 1 }}>
-            <TextField
-              size="small"
-              type="number"
-              label="Temp Min (°C)"
-              value={temperatureMin}
-              onChange={(e) => setTemperatureMin(e.target.value === "" ? "" : Number(e.target.value))}
-              required
-            />
-            <TextField
-              size="small"
-              type="number"
-              label="Temp Max (°C)"
-              value={temperatureMax}
-              onChange={(e) => setTemperatureMax(e.target.value === "" ? "" : Number(e.target.value))}
-              required
-            />
-          </Box>
-
-          {evaluationType === "GrowthPromotion" && (
-            <Box sx={{ display: "flex", gap: 1 }}>
-              <TextField
-                size="small"
-                type="number"
-                label="Recovery Min (%)"
-                placeholder="e.g. 70"
-                value={recoveryPercentMin}
-                onChange={(e) => setRecoveryPercentMin(e.target.value === "" ? "" : Number(e.target.value))}
+      {/* CREATE / EDIT FORM (Managers only) */}
+      {isManager && (
+        <>
+          <SectionTitle>{editingId ? `Edit Media Configuration: ${selectedProductName || "Selected Profile"}` : "New Media Configuration"}</SectionTitle>
+          <Paper sx={{ p: 2.5, mb: 4 }}>
+            <Box sx={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 2, mb: 2 }}>
+              <MediaProductPicker
+                value={mediaProductId}
+                onChange={(id, product) => {
+                  setMediaProductId(id);
+                  if (product && !mediaProducts.some((p) => p.id === product.id)) {
+                    loadData();
+                  }
+                }}
+                required
+                allowCreate={isManager}
               />
-              <TextField
+
+              <Select
                 size="small"
-                type="number"
-                label="Recovery Max (%)"
-                placeholder="e.g. 200"
-                value={recoveryPercentMax}
-                onChange={(e) => setRecoveryPercentMax(e.target.value === "" ? "" : Number(e.target.value))}
-              />
-            </Box>
-          )}
-        </Box>
-
-        <Divider sx={{ my: 2 }} />
-
-        {/* Staged Challenge Organisms Builder */}
-        <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
-          Challenge Organisms (Optional)
-        </Typography>
-
-        <Box sx={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 2, alignItems: "center", mb: 2 }}>
-          <OrganismPicker value={selectedOrganismId} onChange={(id) => setSelectedOrganismId(id)} />
-
-          {evaluationType === "IndicationInhibition" && (
-            <Select
-              size="small"
-              displayEmpty
-              value={challengeRole}
-              onChange={(e) => setChallengeRole(e.target.value)}
-            >
-              <MenuItem value=""><em>Select Challenge Role</em></MenuItem>
-              {CHALLENGE_ROLES.map((r) => (
-                <MenuItem key={r} value={r}>{r}</MenuItem>
-              ))}
-            </Select>
-          )}
-
-          {evaluationType === "IndicationInhibition" && challengeRole === "Indication" && (
-            <TextField
-              size="small"
-              label="Expected Colony Description"
-              placeholder="e.g. Pink-red with precipitation"
-              value={expectedDescription}
-              onChange={(e) => setExpectedDescription(e.target.value)}
-            />
-          )}
-
-          <TextField
-            size="small"
-            label="Initial Inoculum (CFU)"
-            placeholder="e.g. 10^2, ≤100, ≥1000"
-            value={initialInoculum}
-            onChange={(e) => setInitialInoculum(e.target.value)}
-          />
-
-          <Box>
-            <Button
-              variant="outlined"
-              size="small"
-              startIcon={<AddCircleOutlineIcon />}
-              disabled={!isAddChallengeValid}
-              onClick={handleAddChallenge}
-            >
-              Add Organism
-            </Button>
-          </Box>
-        </Box>
-
-        {stagedChallenges.length > 0 && (
-          <Paper variant="outlined" sx={{ p: 1, mb: 2, backgroundColor: "background.default" }}>
-            <Table size="small">
-              <TableHead>
-                <TableRow sx={tableHeadSx}>
-                  <TableCell>Organism</TableCell>
-                  <TableCell>ATCC / Ref</TableCell>
-                  <TableCell>Role</TableCell>
-                  <TableCell>Expected Description</TableCell>
-                  <TableCell>Initial Inoculum</TableCell>
-                  <TableCell align="right" />
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {stagedChallenges.map((c, idx) => (
-                  <TableRow key={idx}>
-                    <TableCell sx={{ fontWeight: 500 }}>{c.organismName}</TableCell>
-                    <TableCell>{c.atccNumber ?? "—"}</TableCell>
-                    <TableCell>{c.challengeRole ?? "—"}</TableCell>
-                    <TableCell>{c.expectedDescription ?? "—"}</TableCell>
-                    <TableCell>{c.initialInoculum ?? "—"}</TableCell>
-                    <TableCell align="right">
-                      <IconButton size="small" color="error" onClick={() => handleRemoveChallenge(idx)}>
-                        <DeleteOutlineIcon fontSize="small" />
-                      </IconButton>
-                    </TableCell>
-                  </TableRow>
+                value={evaluationType}
+                onChange={(e) => {
+                  setEvaluationType(e.target.value);
+                  setStagedChallenges([]);
+                  setChallengeRole("");
+                  setExpectedDescription("");
+                  setInitialInoculum(defaultInitialInoculum(e.target.value));
+                }}
+              >
+                {EVALUATION_TYPES.map((t) => (
+                  <MenuItem key={t.value} value={t.value}>
+                    {t.label}
+                  </MenuItem>
                 ))}
-              </TableBody>
-            </Table>
+              </Select>
+
+              <Box sx={{ display: "flex", gap: 1 }}>
+                <TextField
+                  size="small"
+                  type="number"
+                  label="Incubation Min (h)"
+                  value={incubationMinHours}
+                  onChange={(e) => setIncubationMinHours(e.target.value === "" ? "" : Number(e.target.value))}
+                  required
+                />
+                <TextField
+                  size="small"
+                  type="number"
+                  label="Incubation Max (h)"
+                  value={incubationMaxHours}
+                  onChange={(e) => setIncubationMaxHours(e.target.value === "" ? "" : Number(e.target.value))}
+                  required
+                />
+              </Box>
+
+              <Box sx={{ display: "flex", gap: 1 }}>
+                <TextField
+                  size="small"
+                  type="number"
+                  label="Temp Min (°C)"
+                  value={temperatureMin}
+                  onChange={(e) => setTemperatureMin(e.target.value === "" ? "" : Number(e.target.value))}
+                  required
+                />
+                <TextField
+                  size="small"
+                  type="number"
+                  label="Temp Max (°C)"
+                  value={temperatureMax}
+                  onChange={(e) => setTemperatureMax(e.target.value === "" ? "" : Number(e.target.value))}
+                  required
+                />
+              </Box>
+
+              {evaluationType === "GrowthPromotion" && (
+                <Box sx={{ display: "flex", gap: 1 }}>
+                  <TextField
+                    size="small"
+                    type="number"
+                    label="Recovery Min (%)"
+                    placeholder="e.g. 70"
+                    value={recoveryPercentMin}
+                    onChange={(e) => setRecoveryPercentMin(e.target.value === "" ? "" : Number(e.target.value))}
+                  />
+                  <TextField
+                    size="small"
+                    type="number"
+                    label="Recovery Max (%)"
+                    placeholder="e.g. 200"
+                    value={recoveryPercentMax}
+                    onChange={(e) => setRecoveryPercentMax(e.target.value === "" ? "" : Number(e.target.value))}
+                  />
+                </Box>
+              )}
+            </Box>
+
+            <Divider sx={{ my: 2 }} />
+
+            {/* Staged Challenge Organisms Builder */}
+            <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
+              Challenge Organisms (Optional)
+            </Typography>
+
+            <Box sx={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 2, alignItems: "center", mb: 2 }}>
+              <OrganismPicker value={selectedOrganismId} onChange={(id) => setSelectedOrganismId(id)} />
+
+              {evaluationType === "IndicationInhibition" && (
+                <Select
+                  size="small"
+                  displayEmpty
+                  value={challengeRole}
+                  onChange={(e) => setChallengeRole(e.target.value)}
+                >
+                  <MenuItem value=""><em>Select Challenge Role</em></MenuItem>
+                  {CHALLENGE_ROLES.map((r) => (
+                    <MenuItem key={r} value={r}>{r}</MenuItem>
+                  ))}
+                </Select>
+              )}
+
+              {evaluationType === "IndicationInhibition" && challengeRole === "Indication" && (
+                <TextField
+                  size="small"
+                  label="Expected Colony Description"
+                  placeholder="e.g. Pink-red with precipitation"
+                  value={expectedDescription}
+                  onChange={(e) => setExpectedDescription(e.target.value)}
+                />
+              )}
+
+              <TextField
+                size="small"
+                label="Initial Inoculum (CFU)"
+                placeholder="e.g. 10^2, ≤100, ≥1000"
+                value={initialInoculum}
+                onChange={(e) => setInitialInoculum(e.target.value)}
+              />
+
+              <Box>
+                <Button
+                  variant="outlined"
+                  size="small"
+                  startIcon={<AddCircleOutlineIcon />}
+                  disabled={!isAddChallengeValid}
+                  onClick={handleAddChallenge}
+                >
+                  Add Organism
+                </Button>
+              </Box>
+            </Box>
+
+            {stagedChallenges.length > 0 && (
+              <Paper variant="outlined" sx={{ p: 1, mb: 2, backgroundColor: "background.default" }}>
+                <Table size="small">
+                  <TableHead>
+                    <TableRow sx={tableHeadSx}>
+                      <TableCell>Organism</TableCell>
+                      <TableCell>ATCC / Ref</TableCell>
+                      <TableCell>Role</TableCell>
+                      <TableCell>Expected Description</TableCell>
+                      <TableCell>Initial Inoculum</TableCell>
+                      <TableCell align="right" />
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {stagedChallenges.map((c, idx) => (
+                      <TableRow key={idx}>
+                        <TableCell sx={{ fontWeight: 500 }}>{c.organismName}</TableCell>
+                        <TableCell>{c.atccNumber ?? "—"}</TableCell>
+                        <TableCell>{c.challengeRole ?? "—"}</TableCell>
+                        <TableCell>{c.expectedDescription ?? "—"}</TableCell>
+                        <TableCell>{c.initialInoculum ?? "—"}</TableCell>
+                        <TableCell align="right">
+                          <IconButton size="small" color="error" onClick={() => handleRemoveChallenge(idx)}>
+                            <DeleteOutlineIcon fontSize="small" />
+                          </IconButton>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </Paper>
+            )}
+
+            <Box sx={{ display: "flex", justifyContent: "flex-end", gap: 1, mt: 2 }}>
+              {editingId ? (
+                <Button onClick={resetForm}>Cancel Edit</Button>
+              ) : (
+                <Button onClick={resetForm}>Reset</Button>
+              )}
+              <Button variant="contained" onClick={handleSave}>
+                {editingId ? "Save Changes" : "Create Media Configuration"}
+              </Button>
+            </Box>
           </Paper>
-        )}
+        </>
+      )}
 
-        <Box sx={{ display: "flex", justifyContent: "flex-end", gap: 1, mt: 2 }}>
-          {editingId ? (
-            <Button onClick={resetForm}>Cancel Edit</Button>
-          ) : (
-            <Button onClick={resetForm}>Reset</Button>
-          )}
-          <Button variant="contained" onClick={handleSave}>
-            {editingId ? "Save Changes" : "Create Media Configuration"}
-          </Button>
-        </Box>
-      </Paper>
-
-      {/* LIST TABLE */}
+      {/* EXISTING CONFIGURATIONS LIST */}
       <SectionTitle>{`Existing Configurations (${configurations.length})`}</SectionTitle>
-      <Paper sx={{ p: 2.5 }}>
+      <Paper sx={{ p: 2.5, mb: 4 }}>
         <Table>
           <TableHead>
             <TableRow sx={tableHeadSx}>
@@ -489,7 +642,7 @@ export function MediaConfigurationPage() {
               <TableCell>Temperature</TableCell>
               <TableCell>Recovery% Band</TableCell>
               <TableCell>Challenge Organisms</TableCell>
-              <TableCell align="right">Actions</TableCell>
+              {isManager && <TableCell align="right">Actions</TableCell>}
             </TableRow>
           </TableHead>
           <TableBody>
@@ -498,8 +651,8 @@ export function MediaConfigurationPage() {
               const challengeCount = m.challenges?.length ?? 0;
 
               return (
-                <>
-                  <TableRow key={m.id} hover sx={{ "& > *": { borderBottom: isExpanded ? "unset" : undefined } }}>
+                <Box component="tbody" key={m.id} sx={{ display: "contents" }}>
+                  <TableRow hover sx={{ "& > *": { borderBottom: isExpanded ? "unset" : undefined } }}>
                     <TableCell>
                       {challengeCount > 0 ? (
                         <IconButton size="small" onClick={() => toggleRow(m.id)}>
@@ -507,7 +660,14 @@ export function MediaConfigurationPage() {
                         </IconButton>
                       ) : null}
                     </TableCell>
-                    <TableCell sx={{ fontWeight: 600 }}>{m.name}</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>
+                      {m.name}
+                      {m.mediaProductCode ? (
+                        <Typography component="span" variant="body2" sx={{ ml: 1, color: "text.secondary", fontWeight: 400 }}>
+                          ({m.mediaProductCode})
+                        </Typography>
+                      ) : null}
+                    </TableCell>
                     <TableCell>
                       <Chip size="small" label={evaluationTypeLabel(m.evaluationType)} variant="outlined" />
                     </TableCell>
@@ -527,28 +687,28 @@ export function MediaConfigurationPage() {
                           sx={{ cursor: "pointer" }}
                         />
                       ) : (
-                        <Typography variant="body2" sx={{
-                          color: "text.secondary"
-                        }}>None</Typography>
+                        <Typography variant="body2" sx={{ color: "text.secondary" }}>None</Typography>
                       )}
                     </TableCell>
-                    <TableCell align="right">
-                      <Tooltip title="Edit configuration">
-                        <IconButton size="small" onClick={() => startEdit(m)}>
-                          <EditIcon fontSize="small" />
-                        </IconButton>
-                      </Tooltip>
-                      <Tooltip title="Delete configuration">
-                        <IconButton size="small" color="error" onClick={() => setPendingDelete(m)}>
-                          <DeleteOutlineIcon fontSize="small" />
-                        </IconButton>
-                      </Tooltip>
-                    </TableCell>
+                    {isManager && (
+                      <TableCell align="right">
+                        <Tooltip title="Edit configuration">
+                          <IconButton size="small" onClick={() => startEdit(m)}>
+                            <EditIcon fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                        <Tooltip title="Delete configuration">
+                          <IconButton size="small" color="error" onClick={() => setPendingDelete(m)}>
+                            <DeleteOutlineIcon fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                      </TableCell>
+                    )}
                   </TableRow>
 
                   {challengeCount > 0 && (
-                    <TableRow key={`${m.id}-detail`}>
-                      <TableCell style={{ paddingBottom: 0, paddingTop: 0 }} colSpan={8}>
+                    <TableRow>
+                      <TableCell style={{ paddingBottom: 0, paddingTop: 0 }} colSpan={isManager ? 8 : 7}>
                         <Collapse in={isExpanded} timeout="auto" unmountOnExit>
                           <Box sx={{ margin: 2, pl: 4 }}>
                             <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
@@ -565,7 +725,7 @@ export function MediaConfigurationPage() {
                                 </TableRow>
                               </TableHead>
                               <TableBody>
-                                {m.challenges.map((c: any) => (
+                                {m.challenges.map((c) => (
                                   <TableRow key={c.id}>
                                     <TableCell sx={{ fontWeight: 500 }}>{c.organism?.scientificName ?? `Organism #${c.organismId}`}</TableCell>
                                     <TableCell>{c.organism?.atccNumber ?? "—"}</TableCell>
@@ -581,19 +741,277 @@ export function MediaConfigurationPage() {
                       </TableCell>
                     </TableRow>
                   )}
-                </>
+                </Box>
               );
             })}
+            {configurations.length === 0 && (
+              <TableRow>
+                <TableCell colSpan={isManager ? 8 : 7} align="center" sx={{ py: 3, color: "text.secondary" }}>
+                  No media configurations found.
+                </TableCell>
+              </TableRow>
+            )}
           </TableBody>
         </Table>
       </Paper>
 
+      {/* MEDIA PRODUCTS SECTION */}
+      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mt: 4, mb: 1.5 }}>
+        <SectionTitle>{`Media Products (${mediaProducts.length})`}</SectionTitle>
+        {isManager && (
+          <Button
+            variant="contained"
+            size="small"
+            startIcon={<AddIcon />}
+            onClick={() => {
+              setAddProductOpen(true);
+              setNewProductName("");
+              setNewProductCode("");
+              setAddProductError(null);
+            }}
+          >
+            Add Media Product
+          </Button>
+        )}
+      </Box>
+      <Paper sx={{ p: 2.5, mb: 4 }}>
+        <Table>
+          <TableHead>
+            <TableRow sx={tableHeadSx}>
+              <TableCell>Code</TableCell>
+              <TableCell>Name</TableCell>
+              <TableCell>Configurations</TableCell>
+              <TableCell>Batches</TableCell>
+              {isManager && <TableCell align="right">Actions</TableCell>}
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {mediaProducts.map((p) => (
+              <TableRow key={p.id} hover>
+                <TableCell sx={{ fontWeight: 600 }}>{p.code}</TableCell>
+                <TableCell>{p.name}</TableCell>
+                <TableCell>{p.configurationCount}</TableCell>
+                <TableCell>{p.batchCount}</TableCell>
+                {isManager && (
+                  <TableCell align="right">
+                    <Tooltip title="Rename product">
+                      <IconButton size="small" onClick={() => openRenameDialog(p)}>
+                        <EditIcon fontSize="small" />
+                      </IconButton>
+                    </Tooltip>
+                    {isSectionHead && (
+                      <Tooltip title="Change code (Section Head)">
+                        <IconButton size="small" color="primary" onClick={() => openChangeCodeDialog(p)}>
+                          <KeyIcon fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
+                    )}
+                    <Tooltip title="Delete product">
+                      <IconButton size="small" color="error" onClick={() => setPendingDeleteProduct(p)}>
+                        <DeleteOutlineIcon fontSize="small" />
+                      </IconButton>
+                    </Tooltip>
+                  </TableCell>
+                )}
+              </TableRow>
+            ))}
+            {mediaProducts.length === 0 && (
+              <TableRow>
+                <TableCell colSpan={isManager ? 5 : 4} align="center" sx={{ py: 3, color: "text.secondary" }}>
+                  No media products found.
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </Paper>
+
+      {/* DIALOGS */}
+      {/* Configuration Delete Confirmation */}
       <ConfirmationDialog
         open={pendingDelete != null}
         message={pendingDelete ? `Delete media configuration for "${pendingDelete.name}"? This cannot be undone.` : ""}
         onCancel={() => setPendingDelete(null)}
         onConfirm={() => pendingDelete && deleteConfiguration(pendingDelete)}
       />
+
+      {/* Media Product Delete Confirmation */}
+      <ConfirmationDialog
+        open={pendingDeleteProduct != null}
+        message={
+          pendingDeleteProduct
+            ? `Delete media product "${pendingDeleteProduct.name}" (${pendingDeleteProduct.code})? This cannot be undone.`
+            : ""
+        }
+        onCancel={() => setPendingDeleteProduct(null)}
+        onConfirm={handleDeleteProduct}
+      />
+
+      {/* Add Media Product Dialog */}
+      <FloatingDialog
+        open={addProductOpen}
+        title="Add Media Product"
+        onClose={() => setAddProductOpen(false)}
+        maxWidth="xs"
+        actions={
+          <>
+            <Button onClick={() => setAddProductOpen(false)} disabled={addingProduct}>
+              Cancel
+            </Button>
+            <Button
+              variant="contained"
+              onClick={handleAddProduct}
+              disabled={!newProductName.trim() || !newProductCode.trim() || addingProduct}
+            >
+              {addingProduct ? "Adding..." : "Add Product"}
+            </Button>
+          </>
+        }
+      >
+        <Stack spacing={2} sx={{ mt: 1 }}>
+          {addProductError && <Alert severity="error">{addProductError}</Alert>}
+          <TextField
+            label="Product Name"
+            required
+            value={newProductName}
+            onChange={(e) => setNewProductName(e.target.value)}
+            placeholder="e.g. Tryptic Soy Agar"
+            autoFocus
+            size="small"
+          />
+          <TextField
+            label="Product Code"
+            required
+            value={newProductCode}
+            onChange={(e) => setNewProductCode(e.target.value)}
+            placeholder="e.g. TSA"
+            helperText="2-10 characters (letters, digits, dot, hyphen)"
+            size="small"
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && newProductName.trim() && newProductCode.trim() && !addingProduct) {
+                handleAddProduct();
+              }
+            }}
+          />
+        </Stack>
+      </FloatingDialog>
+
+      {/* Rename Media Product Dialog */}
+      <FloatingDialog
+        open={renameProduct != null}
+        title={`Rename Media Product: ${renameProduct?.name ?? ""}`}
+        onClose={() => setRenameProduct(null)}
+        maxWidth="xs"
+        actions={
+          <>
+            <Button onClick={() => setRenameProduct(null)} disabled={renaming}>
+              Cancel
+            </Button>
+            <Button
+              variant="contained"
+              onClick={handleRenameProduct}
+              disabled={!renameName.trim() || renaming}
+            >
+              {renaming ? "Saving..." : "Save"}
+            </Button>
+          </>
+        }
+      >
+        <Stack spacing={2} sx={{ mt: 1 }}>
+          {renameError && <Alert severity="error">{renameError}</Alert>}
+          <TextField
+            label="Product Name"
+            required
+            value={renameName}
+            onChange={(e) => setRenameName(e.target.value)}
+            autoFocus
+            size="small"
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && renameName.trim() && !renaming) {
+                handleRenameProduct();
+              }
+            }}
+          />
+        </Stack>
+      </FloatingDialog>
+
+      {/* Change Code Dialog */}
+      <FloatingDialog
+        open={changeCodeProduct != null && !signatureOpen}
+        title={`Change Code: ${changeCodeProduct?.name ?? ""}`}
+        onClose={() => setChangeCodeProduct(null)}
+        maxWidth="xs"
+        actions={
+          <>
+            <Button onClick={() => setChangeCodeProduct(null)}>Cancel</Button>
+            <Button
+              variant="contained"
+              disabled={!newCode.trim() || !changeCodeReason.trim()}
+              onClick={() => setSignatureOpen(true)}
+            >
+              Continue to sign
+            </Button>
+          </>
+        }
+      >
+        <Stack spacing={2} sx={{ mt: 1 }}>
+          <TextField
+            label="Current Code"
+            value={changeCodeProduct?.code ?? ""}
+            slotProps={{ input: { readOnly: true } }}
+            size="small"
+          />
+          <TextField
+            label="New Code"
+            required
+            value={newCode}
+            onChange={(e) => setNewCode(e.target.value)}
+            placeholder="e.g. TSA2"
+            helperText="2-10 characters (alphanumeric, '.', or '-'). Backend will validate."
+            size="small"
+            autoFocus
+          />
+          <TextField
+            label="Reason"
+            required
+            multiline
+            rows={3}
+            value={changeCodeReason}
+            onChange={(e) => setChangeCodeReason(e.target.value)}
+            placeholder="Enter the justification for changing this product code..."
+            size="small"
+          />
+        </Stack>
+      </FloatingDialog>
+
+      {/* Electronic Signature Dialog for Change Code */}
+      {changeCodeProduct && (
+        <SignatureDialog
+          open={signatureOpen}
+          meaningStatement={`I am changing the code of media product "${changeCodeProduct.name}" from ${changeCodeProduct.code} to ${newCode.trim()}. Lots prepared from now on will be numbered ${newCode.trim()}/01/${String(new Date().getFullYear()).slice(-2)} onwards. Reason: ${changeCodeReason.trim()}`}
+          onCancel={() => setSignatureOpen(false)}
+          onConfirm={async (password: string) => {
+            if (!changeCodeProduct) return;
+            await masterDataOptions.changeMediaProductCode(
+              changeCodeProduct.id,
+              newCode.trim(),
+              changeCodeReason.trim(),
+              password
+            );
+            const prodName = changeCodeProduct.name;
+            const appliedCode = newCode.trim();
+            setSignatureOpen(false);
+            setChangeCodeProduct(null);
+            setNewCode("");
+            setChangeCodeReason("");
+            await loadData();
+            setMessage({
+              text: `Code for "${prodName}" changed to "${appliedCode}".`,
+              ok: true
+            });
+          }}
+        />
+      )}
     </>
   );
 }

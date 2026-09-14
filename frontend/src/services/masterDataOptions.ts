@@ -1,10 +1,18 @@
 import { apiClient } from "./apiClient";
 
+export type MediaProductOption = {
+  id: number;
+  name: string;
+  code: string;
+  configurationCount: number;
+  batchCount: number;
+};
+
 // Shared lookup lists used across receiving, preparation, and master
 // data screens. All hit /api/masterdata/*.
 export const masterDataOptions = {
   getItems: (category?: string) =>
-    apiClient.get("/items").then((r) => (category ? r.data.data.filter((i: any) => i.category === category) : r.data.data)),
+    apiClient.get("/items").then((r) => (category ? r.data.data.filter((i: { category?: string }) => i.category === category) : r.data.data)),
   getWaterSamplingPoints: () => apiClient.get("/masterdata/water-sampling-points").then((r) => r.data.data),
   getDepartments: () => apiClient.get("/masterdata/departments").then((r) => r.data.data),
   getWaterDepartments: () => apiClient.get("/masterdata/water-departments").then((r) => r.data.data),
@@ -34,10 +42,19 @@ export const masterDataOptions = {
     apiClient.get("/masterdata/equipment", { params: type ? { type } : {} }).then((r) => r.data.data),
   getReleasedMedia: (materialId?: number, opts?: { includeExpired?: boolean; excludeId?: number }) =>
     apiClient.get("/media/released", { params: { ...(materialId ? { materialId } : {}), ...opts } }).then((r) => r.data.data),
+  getMediaProducts: () =>
+    apiClient.get("/masterdata/media-products").then((r) => r.data.data),
+  createMediaProduct: (name: string, code: string) =>
+    apiClient.post("/masterdata/media-products", { name, code }).then((r) => r.data.data),
+  renameMediaProduct: (id: number, name: string) =>
+    apiClient.put(`/masterdata/media-products/${id}`, { name }).then((r) => r.data.data),
+  changeMediaProductCode: (id: number, code: string, reason: string, password: string) =>
+    apiClient.put(`/masterdata/media-products/${id}/code`, { code, reason, password }).then((r) => r.data.data),
+  deleteMediaProduct: (id: number) => apiClient.delete(`/masterdata/media-products/${id}`),
   getMediaConfigurations: () =>
     apiClient.get("/masterdata/media-configurations").then((r) => r.data.data),
   createMediaConfiguration: (payload: {
-    name: string;
+    mediaProductId: number;
     evaluationType: string;
     incubationMinHours: number;
     incubationMaxHours: number;
@@ -53,7 +70,7 @@ export const masterDataOptions = {
     }[];
   }) => apiClient.post("/masterdata/media-configurations", payload).then((r) => r.data.data),
   updateMediaConfiguration: (id: number, payload: {
-    name: string;
+    mediaProductId: number;
     evaluationType: string;
     incubationMinHours: number;
     incubationMaxHours: number;

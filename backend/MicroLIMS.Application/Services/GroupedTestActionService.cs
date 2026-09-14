@@ -144,19 +144,12 @@ public class GroupedTestActionService
                 }
                 else
                 {
-                    if (openInc.MediaId.HasValue && step.StepMedia != null && step.StepMedia.Count > 0)
-                    {
-                        var mediaRow = await _db.Media.Where(m => m.Id == openInc.MediaId.Value).Select(m => new { m.MaterialId, m.Material!.MediaProductId }).FirstOrDefaultAsync(ct);
-                        var stepMedia = mediaRow != null
-                            ? (step.StepMedia.FirstOrDefault(sm => sm.MaterialId == mediaRow.MaterialId)
-                               ?? step.StepMedia.FirstOrDefault(sm => StepMediumMatcher.Matches(sm, mediaRow.MaterialId, mediaRow.MediaProductId)))
-                            : null;
-                        minHours = stepMedia?.IncubationMinHours ?? step.IncubationMinHours;
-                    }
-                    else
-                    {
-                        minHours = step.IncubationMinHours;
-                    }
+                    // Timed by the medium this test used; an unconfigured window
+                    // offers no grouped action (the engine would refuse it).
+                    var window = await IncubationWindowResolver.ForIncubationAsync(_db, step, openInc, ct);
+                    if (window is null)
+                        continue;
+                    minHours = window.MinHours;
                 }
 
                 var minReadyAt = startUtc != default ? startUtc.AddHours(minHours) : (DateTime?)null;
@@ -196,6 +189,10 @@ public class GroupedTestActionService
 
                         var transitionLabel = $"{step.StepName} → {nextStep.StepName}";
 
+                        var nextWindow = IncubationWindowResolver.ForStep(nextStepMedias);
+                        if (nextWindow is null)
+                            continue;
+
                         candidates.Add(new CandidateActionItem(
                             Order: order,
                             Sample: sample,
@@ -211,10 +208,10 @@ public class GroupedTestActionService
                             DisplayName: displayName,
                             PermittedMaterialIds: permittedMaterialIds,
                             PermittedMaterialNames: permittedNames,
-                            TempMin: nextStep.TemperatureMin,
-                            TempMax: nextStep.TemperatureMax,
-                            IncubationMinHours: nextStep.IncubationMinHours,
-                            IncubationMaxHours: nextStep.IncubationMaxHours,
+                            TempMin: nextWindow.TempMin,
+                            TempMax: nextWindow.TempMax,
+                            IncubationMinHours: nextWindow.MinHours,
+                            IncubationMaxHours: nextWindow.MaxHours,
                             AssignedAnalystName: analystName
                         ));
                     }
@@ -348,6 +345,10 @@ public class GroupedTestActionService
 
                 var permittedNames = string.Join(" / ", stepMediaList.Select(m => m.Material?.MaterialName).Where(n => !string.IsNullOrEmpty(n)).Distinct());
 
+                var setupWindow = IncubationWindowResolver.ForStep(stepMediaList);
+                if (setupWindow is null)
+                    continue;
+
                 candidates.Add(new CandidateActionItem(
                     Order: order,
                     Sample: sample,
@@ -363,10 +364,10 @@ public class GroupedTestActionService
                     DisplayName: displayName,
                     PermittedMaterialIds: permittedMaterialIds,
                     PermittedMaterialNames: permittedNames,
-                    TempMin: step.TemperatureMin,
-                    TempMax: step.TemperatureMax,
-                    IncubationMinHours: step.IncubationMinHours,
-                    IncubationMaxHours: step.IncubationMaxHours,
+                    TempMin: setupWindow.TempMin,
+                    TempMax: setupWindow.TempMax,
+                    IncubationMinHours: setupWindow.MinHours,
+                    IncubationMaxHours: setupWindow.MaxHours,
                     AssignedAnalystName: analystName
                 ));
             }
@@ -621,8 +622,23 @@ public class GroupedTestActionService
             if (activeInc != null && activeInc.CompletedAt == null)
             {
                 var startUtc = activeInc.IncubationStartUtc ?? activeInc.StartedAt;
-                var isReady = activeInc.MinimumDurationOverriddenByUserId.HasValue ||
-                    (startUtc != default && DateTime.UtcNow >= startUtc.AddHours(activeStep.IncubationMinHours));
+                // Stage 1 is timed by the test's own medium; stage 2 stays as it
+                // was. An incubation whose window can't be resolved is never
+                // treated as ready here - the engine then refuses the start with
+                // its own reason (e.g. media already selected).
+                bool isReady;
+                if (activeInc.StageNumber == 2)
+                {
+                    isReady = activeInc.MinimumDurationOverriddenByUserId.HasValue ||
+                        (startUtc != default && DateTime.UtcNow >= startUtc.AddHours(activeStep.IncubationMinHours));
+                }
+                else
+                {
+                    var activeWindow = await IncubationWindowResolver.ForIncubationAsync(_db, activeStep, activeInc, ct);
+                    isReady = activeWindow is not null &&
+                        (activeInc.MinimumDurationOverriddenByUserId.HasValue ||
+                         (startUtc != default && DateTime.UtcNow >= activeWindow.MinReadyAt(startUtc)));
+                }
 
                 if (isReady)
                 {

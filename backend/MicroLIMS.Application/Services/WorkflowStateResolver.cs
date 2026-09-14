@@ -31,59 +31,73 @@ public class WorkflowStateResolver
         return result;
     }
 
-    private static TestWorkflowStepMedia? MatchStepMedium(
-        TestWorkflowStep step,
-        int? mediaLotId,
-        Media? incubationMedia,
-        IReadOnlyDictionary<int, (int MaterialId, int? MediaProductId)>? mediaLookup)
+    // An open incubation whose window can't be resolved from the test's own
+    // medium in Test Master. The medium is the only source of a window (see
+    // IncubationWindowResolver), so the test is locked rather than timed
+    // against a guessed number.
+    private static WorkflowStateResult WindowNotConfigured(WorkflowStateResult result, string stepName)
     {
-        if (step.StepMedia == null || step.StepMedia.Count == 0) return null;
+        result.WorkflowState = "WINDOW_NOT_CONFIGURED";
+        result.WorkflowStateDisplay = "Incubation window not configured";
+        result.WorkflowStatus = "Blocked";
+        result.IsWorkflowLocked = true;
+        result.IsResultEntryAllowed = false;
+        result.LockReason = $"The incubation window for step \"{stepName}\" is not configured - set it on the medium in Test Master.";
+        return result;
+    }
 
-        if (mediaLotId.HasValue)
+    private static TestWorkflowStep? StepFor(IReadOnlyList<TestWorkflowStep>? steps, Incubation incubation) =>
+        steps?.FirstOrDefault(s => s.StepName == incubation.StepName);
+
+    // Stage 2 is the transfer window, not a property of any medium, so it
+    // keeps resolving exactly as it did before the step-media rule.
+    private static int Stage2MinHours(
+        Incubation incubation,
+        TestWorkflowStep? matchedStep,
+        IReadOnlyList<SessionWorkflowStepDto>? stepDtos,
+        DateTime start)
+    {
+        int minHours = 0;
+        if (matchedStep != null)
         {
-            int? matId = null;
-            int? prodId = null;
-
-            if (mediaLookup != null && mediaLookup.TryGetValue(mediaLotId.Value, out var lotInfo))
-            {
-                matId = lotInfo.MaterialId;
-                prodId = lotInfo.MediaProductId;
-            }
-            else if (incubationMedia != null)
-            {
-                matId = incubationMedia.MaterialId;
-                prodId = incubationMedia.Material?.MediaProductId;
-            }
-
-            if (matId.HasValue)
-            {
-                var matched = step.StepMedia.FirstOrDefault(m => m.MaterialId == matId.Value)
-                    ?? step.StepMedia.FirstOrDefault(m => StepMediumMatcher.Matches(m, matId.Value, prodId));
-                if (matched != null) return matched;
-            }
-
-            // No fallback comparing mediaLotId with MaterialId: a media lot id
-            // and a batch id are unrelated, so an equal number would pick the
-            // wrong medium (the bug this method replaces). Callers fall back
-            // to the step's first medium instead.
+            var stage2 = matchedStep.IncubationStages?.FirstOrDefault(s => s.StageNumber == 2);
+            minHours = stage2?.IncubationMinHours ?? matchedStep.IncubationMinHours;
         }
 
-        return null;
+        if (minHours == 0 && stepDtos != null)
+        {
+            var matchedDto = stepDtos.FirstOrDefault(s => s.StepName == incubation.StepName);
+            if (matchedDto != null && matchedDto.IncubationMinHours > 0) minHours = matchedDto.IncubationMinHours;
+        }
+
+        if (minHours == 0 && !string.IsNullOrEmpty(incubation.Duration))
+        {
+            var match = System.Text.RegularExpressions.Regex.Match(incubation.Duration, @"^(\d+)");
+            if (match.Success && int.TryParse(match.Groups[1].Value, out var parsed))
+                minHours = parsed;
+        }
+
+        if (minHours == 0 && incubation.IncubationEndUtc.HasValue)
+        {
+            var total = (int)Math.Round((incubation.IncubationEndUtc.Value - start).TotalHours);
+            if (total > 0) minHours = total;
+        }
+
+        return minHours;
     }
 
     public static WorkflowStateResult Resolve(
         TestOrder testOrder,
         bool requiresTsb,
-        Incubation? sharedTsb,
         IReadOnlyList<Incubation> testOrderIncubations,
         IReadOnlyList<SessionWorkflowStepDto>? stepDtos,
         DateTime utcNow,
-        decimal requiredTsbHoursMin = 24,
         IEnumerable<TestWorkflowStep>? steps = null,
         SampleStatus? sampleStatus = null,
         IReadOnlyDictionary<int, (int MaterialId, int? MediaProductId)>? mediaLookup = null)
     {
         var result = new WorkflowStateResult();
+        var stepList = steps?.ToList();
 
         // 0. Closed states. Once a test is superseded or voided, or its sample
         // is cancelled, nothing about its step or incubation timing applies -
@@ -151,14 +165,13 @@ public class WorkflowStateResolver
             return result;
         }
 
-        // 3. Tests requiring TSB
+        // 3. Tests requiring TSB. Each test is timed by its own TSB incubation
+        // and its own medium's window - a shared TSB start only triggers the
+        // incubation; it never lends one test's timing to another.
         if (requiresTsb)
         {
-            bool tsbStarted = sharedTsb != null;
-            bool tsbIncubating = TsbDetectionHelper.IsTsbIncubating(sharedTsb, requiredTsbHoursMin, utcNow);
-            bool tsbCompleted = TsbDetectionHelper.IsTsbComplete(sharedTsb, requiredTsbHoursMin, utcNow);
-
-            if (!tsbStarted)
+            var tsb = TsbDetectionHelper.FindSharedTsbIncubation(testOrderIncubations);
+            if (tsb == null)
             {
                 result.WorkflowState = "PENDING";
                 result.WorkflowStateDisplay = "Pending";
@@ -168,6 +181,16 @@ public class WorkflowStateResolver
                 result.LockReason = "TSB broth enrichment setup required";
                 return result;
             }
+
+            var tsbStep = stepList?.FirstOrDefault(s => string.Equals(s.StepName, tsb.StepName, StringComparison.OrdinalIgnoreCase))
+                ?? stepList?.FirstOrDefault(s => s.StepType == StepType.BrothEnrichment || s.StepName.Contains("TSB", StringComparison.OrdinalIgnoreCase));
+            var tsbWindow = tsbStep is null ? null : IncubationWindowResolver.ForIncubation(tsbStep, tsb, mediaLookup);
+            if (tsbWindow is null)
+                return WindowNotConfigured(result, tsbStep?.StepName ?? tsb.StepName);
+
+            bool tsbIncubating = TsbDetectionHelper.IsTsbIncubating(tsb, tsbWindow.MinHours, utcNow);
+            bool tsbCompleted = TsbDetectionHelper.IsTsbComplete(tsb, tsbWindow.MinHours, utcNow);
+
             if (tsbIncubating)
             {
                 result.WorkflowState = "TSB_INCUBATING";
@@ -192,31 +215,13 @@ public class WorkflowStateResolver
                     if (inc.CompletedAt == null && (inc.IncubationStartUtc.HasValue || inc.StartedAt != default))
                     {
                         var start = inc.IncubationStartUtc ?? inc.StartedAt;
-                        int minHours = 0;
-                        if (steps != null)
-                        {
-                            var matchedStep = steps.FirstOrDefault(s => s.StepName == inc.StepName);
-                            if (matchedStep != null)
-                            {
-                                var medium = MatchStepMedium(matchedStep, inc.MediaId, inc.Media, mediaLookup);
-                                minHours = medium?.IncubationMinHours ?? matchedStep.StepMedia?.FirstOrDefault()?.IncubationMinHours ?? matchedStep.IncubationMinHours;
-                            }
-                        }
-                        if (minHours == 0 && stepDtos != null)
-                        {
-                            var matchedStep = stepDtos.FirstOrDefault(s => s.StepName == inc.StepName);
-                            if (matchedStep != null && matchedStep.IncubationMinHours > 0) minHours = matchedStep.IncubationMinHours;
-                        }
-                        if (minHours == 0 && !string.IsNullOrEmpty(inc.Duration))
-                        {
-                            var match = System.Text.RegularExpressions.Regex.Match(inc.Duration, @"^(\d+)");
-                            if (match.Success && int.TryParse(match.Groups[1].Value, out var parsed))
-                                minHours = parsed;
-                        }
-                        if (minHours == 0) minHours = 24;
+                        var incStep = StepFor(stepList, inc);
+                        var window = incStep is null ? null : IncubationWindowResolver.ForIncubation(incStep, inc, mediaLookup);
+                        if (window is null)
+                            return WindowNotConfigured(result, inc.StepName);
 
                         bool isOverridden = inc.MinimumDurationOverriddenByUserId.HasValue;
-                        if (!isOverridden && utcNow < start.AddHours(minHours))
+                        if (!isOverridden && utcNow < window.MinReadyAt(start))
                         {
                             downstreamIncubating = true;
                             break;
@@ -281,49 +286,19 @@ public class WorkflowStateResolver
         if (openCountIncubation != null)
         {
             var start = openCountIncubation.IncubationStartUtc ?? openCountIncubation.StartedAt;
-            int minHours = 0;
+            var matchedStep = StepFor(stepList, openCountIncubation);
+            int minHours;
 
-            // 1. Check TestWorkflowStep entity configuration
-            if (steps != null)
+            if (openCountIncubation.StageNumber == 2)
             {
-                var matchedStep = steps.FirstOrDefault(s => s.StepName == openCountIncubation.StepName);
-                if (matchedStep != null)
-                {
-                    if (openCountIncubation.StageNumber == 2)
-                    {
-                        var stage2 = matchedStep.IncubationStages?.FirstOrDefault(s => s.StageNumber == 2);
-                        minHours = stage2?.IncubationMinHours ?? matchedStep.IncubationMinHours;
-                    }
-                    else
-                    {
-                        var medium = MatchStepMedium(matchedStep, openCountIncubation.MediaId, openCountIncubation.Media, mediaLookup);
-                        minHours = medium?.IncubationMinHours ?? matchedStep.StepMedia?.FirstOrDefault()?.IncubationMinHours ?? matchedStep.IncubationMinHours;
-                    }
-                }
+                minHours = Stage2MinHours(openCountIncubation, matchedStep, stepDtos, start);
             }
-
-            // 2. Check stepDtos
-            if (minHours == 0 && stepDtos != null)
+            else
             {
-                var matchedStep = stepDtos.FirstOrDefault(s => s.StepName == openCountIncubation.StepName);
-                if (matchedStep != null && matchedStep.IncubationMinHours > 0) minHours = matchedStep.IncubationMinHours;
-            }
-
-            // 3. Fallback: Parse from Incubation.Duration (e.g., "1-2 hours", "72-96 hours", "48-72 hours", "24-48 hours")
-            if (minHours == 0 && !string.IsNullOrEmpty(openCountIncubation.Duration))
-            {
-                var match = System.Text.RegularExpressions.Regex.Match(openCountIncubation.Duration, @"^(\d+)");
-                if (match.Success && int.TryParse(match.Groups[1].Value, out var parsed))
-                {
-                    minHours = parsed;
-                }
-            }
-
-            // 4. Fallback: Total window duration if IncubationEndUtc is set
-            if (minHours == 0 && openCountIncubation.IncubationEndUtc.HasValue)
-            {
-                var total = (int)Math.Round((openCountIncubation.IncubationEndUtc.Value - start).TotalHours);
-                if (total > 0) minHours = total;
+                var window = matchedStep is null ? null : IncubationWindowResolver.ForIncubation(matchedStep, openCountIncubation, mediaLookup);
+                if (window is null)
+                    return WindowNotConfigured(result, openCountIncubation.StepName);
+                minHours = window.MinHours;
             }
 
             var minReadyAt = start.AddHours(minHours);

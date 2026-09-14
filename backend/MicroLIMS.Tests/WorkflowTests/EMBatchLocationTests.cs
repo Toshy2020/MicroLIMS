@@ -24,11 +24,12 @@ public class EMBatchLocationTests
 
     // Seeds a single-step CountTest workflow template for the given test
     // code, plus a released media lot and incubator for it. minHours
-    // defaults to 0 so most tests can record results immediately without
-    // needing to fake elapsed time - tests specifically covering the
-    // minimum-duration gate pass a real value (e.g. 72, matching Test
-    // Master's actual EM/After Cleaning configuration).
-    private static async Task<(Media media, Equipment equipment)> SeedCountTestWorkflowAsync(MicroLimsDbContext db, string testCode, int minHours = 0)
+    // defaults to 24 (step and medium then get 24 / 48); tests that record
+    // results call IncubationTestClock.ElapseOpenIncubationsAsync first.
+    // Tests specifically covering the minimum-duration gate pass a real
+    // value (e.g. 72, matching Test Master's actual EM/After Cleaning
+    // configuration).
+    private static async Task<(Media media, Equipment equipment)> SeedCountTestWorkflowAsync(MicroLimsDbContext db, string testCode, int minHours = 24)
     {
         var testDefinition = new TestDefinition { Code = testCode, DisplayName = testCode, WorkflowType = WorkflowType.CountTest };
         db.TestDefinitions.Add(testDefinition);
@@ -137,7 +138,7 @@ public class EMBatchLocationTests
         };
         db.Materials.Add(material);
         await db.SaveChangesAsync();
-        db.TestWorkflowStepMedias.Add(new TestWorkflowStepMedia { TestWorkflowStepId = step.Id, MaterialId = material.Id, TempMin = 35, TempMax = 37 });
+        db.TestWorkflowStepMedias.Add(new TestWorkflowStepMedia { TestWorkflowStepId = step.Id, MaterialId = material.Id, TempMin = 35, TempMax = 37, IncubationMinHours = 18, IncubationMaxHours = 24 });
 
         var media = new Media
         {
@@ -203,7 +204,7 @@ public class EMBatchLocationTests
         db.RoomTestConfigurations.AddRange(configA, configB);
         await db.SaveChangesAsync();
 
-        var (media, equipment) = await SeedCountTestWorkflowAsync(db, "TAMC", minHours: 0);
+        var (media, equipment) = await SeedCountTestWorkflowAsync(db, "TAMC");
 
         var emEngine = new EMWorkflowEngine(db, new ReferenceNumberGenerator(db));
         var sample = await emEngine.ReceiveAsync(new EMReceiveRequest(dept.Id, 0, "Analyst", "CTRL-3", 1));
@@ -216,6 +217,7 @@ public class EMBatchLocationTests
         var locations = await workflowEngine.GetLocationsAsync(order.Id);
         var onlyOne = new List<BatchLocationReadings> { new(locations[0].Id, new List<decimal> { 5 }) };
 
+        await IncubationTestClock.ElapseOpenIncubationsAsync(db, order.Id);
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
             workflowEngine.RecordBatchResultsAsync(order.Id, onlyOne, 1));
         Assert.Contains(locations[1].RoomTestConfiguration!.Room!.Name, ex.Message);
@@ -241,7 +243,7 @@ public class EMBatchLocationTests
         db.RoomTestConfigurations.AddRange(configs);
         await db.SaveChangesAsync();
 
-        var (media, equipment) = await SeedCountTestWorkflowAsync(db, "TAMC", minHours: 0);
+        var (media, equipment) = await SeedCountTestWorkflowAsync(db, "TAMC");
 
         var emEngine = new EMWorkflowEngine(db, new ReferenceNumberGenerator(db));
         var sample = await emEngine.ReceiveAsync(new EMReceiveRequest(dept.Id, 0, "Analyst", "CTRL-4", 1));
@@ -258,6 +260,7 @@ public class EMBatchLocationTests
         Assert.Equal(3, locations.Count);
 
         var submissions = locations.Select(l => new BatchLocationReadings(l.Id, new List<decimal> { 0 })).ToList();
+        await IncubationTestClock.ElapseOpenIncubationsAsync(db, order.Id);
         var result = await workflowEngine.RecordBatchResultsAsync(order.Id, submissions, 1);
 
         Assert.True(result.AllStepsComplete);
@@ -297,7 +300,7 @@ public class EMBatchLocationTests
         db.RoomTestConfigurations.AddRange(configs);
         await db.SaveChangesAsync();
 
-        var (media, equipment) = await SeedCountTestWorkflowAsync(db, "TAMC", minHours: 0);
+        var (media, equipment) = await SeedCountTestWorkflowAsync(db, "TAMC");
 
         var emEngine = new EMWorkflowEngine(db, new ReferenceNumberGenerator(db));
         var sample = await emEngine.ReceiveAsync(new EMReceiveRequest(dept.Id, 0, "Analyst", "CTRL-MR", 1));
@@ -315,6 +318,7 @@ public class EMBatchLocationTests
             new(locations[0].Id, new List<decimal> { 2, 4, 6 }), // average 4
             new(locations[1].Id, new List<decimal> { 10 })       // single reading, average 10
         };
+        await IncubationTestClock.ElapseOpenIncubationsAsync(db, order.Id);
         var result = await workflowEngine.RecordBatchResultsAsync(order.Id, submissions, 1);
         Assert.True(result.AllStepsComplete);
 
@@ -344,7 +348,7 @@ public class EMBatchLocationTests
         db.RoomTestConfigurations.Add(config);
         await db.SaveChangesAsync();
 
-        var (media, equipment) = await SeedCountTestWorkflowAsync(db, "TAMC", minHours: 0);
+        var (media, equipment) = await SeedCountTestWorkflowAsync(db, "TAMC");
 
         var emEngine = new EMWorkflowEngine(db, new ReferenceNumberGenerator(db));
         var sample = await emEngine.ReceiveAsync(new EMReceiveRequest(dept.Id, 0, "Analyst", "CTRL-NR", 1));
@@ -357,6 +361,7 @@ public class EMBatchLocationTests
         var locations = await workflowEngine.GetLocationsAsync(order.Id);
         var submissions = new List<BatchLocationReadings> { new(locations[0].Id, new List<decimal>()) };
 
+        await IncubationTestClock.ElapseOpenIncubationsAsync(db, order.Id);
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
             workflowEngine.RecordBatchResultsAsync(order.Id, submissions, 1));
         Assert.Contains(locations[0].RoomTestConfiguration!.Room!.Name, ex.Message);
@@ -382,7 +387,7 @@ public class EMBatchLocationTests
         db.RoomTestConfigurations.Add(config);
         await db.SaveChangesAsync();
 
-        var (media, _) = await SeedCountTestWorkflowAsync(db, "TAMC", minHours: 0); // step medium is 30-35C
+        var (media, _) = await SeedCountTestWorkflowAsync(db, "TAMC"); // step medium is 30-35C
         var outOfRangeIncubator = new Equipment { Name = "Cold Room", Code = "INC-COLD", Type = EquipmentType.Incubator, SetPointTemperature = 4 };
         db.Equipment.Add(outOfRangeIncubator);
         await db.SaveChangesAsync();
@@ -413,8 +418,8 @@ public class EMBatchLocationTests
         db.RoomTestConfigurations.AddRange(tamcConfig, tymcConfig);
         await db.SaveChangesAsync();
 
-        var (tamcMedia, tamcEquipment) = await SeedCountTestWorkflowAsync(db, "TAMC", minHours: 0);
-        var (tymcMedia, tymcEquipment) = await SeedCountTestWorkflowAsync(db, "TYMC", minHours: 0);
+        var (tamcMedia, tamcEquipment) = await SeedCountTestWorkflowAsync(db, "TAMC");
+        var (tymcMedia, tymcEquipment) = await SeedCountTestWorkflowAsync(db, "TYMC");
 
         var emEngine = new EMWorkflowEngine(db, new ReferenceNumberGenerator(db));
         var sample = await emEngine.ReceiveAsync(new EMReceiveRequest(dept.Id, 0, "Analyst", "CTRL-5", 1));
@@ -428,6 +433,7 @@ public class EMBatchLocationTests
 
         await workflowEngine.SelectMediaAsync(tamcOrder.Id, "CountIncubation", tamcMedia.Id, tamcEquipment.Id, 1);
         var tamcLocations = await workflowEngine.GetLocationsAsync(tamcOrder.Id);
+        await IncubationTestClock.ElapseOpenIncubationsAsync(db, tamcOrder.Id);
         await workflowEngine.RecordBatchResultsAsync(tamcOrder.Id, tamcLocations.Select(l => new BatchLocationReadings(l.Id, new List<decimal> { 2 })).ToList(), 1);
 
         // Only one of two TestOrders done - Sample must still be in testing.
@@ -436,6 +442,7 @@ public class EMBatchLocationTests
 
         await workflowEngine.SelectMediaAsync(tymcOrder.Id, "CountIncubation", tymcMedia.Id, tymcEquipment.Id, 1);
         var tymcLocations = await workflowEngine.GetLocationsAsync(tymcOrder.Id);
+        await IncubationTestClock.ElapseOpenIncubationsAsync(db, tymcOrder.Id);
         await workflowEngine.RecordBatchResultsAsync(tymcOrder.Id, tymcLocations.Select(l => new BatchLocationReadings(l.Id, new List<decimal> { 2 })).ToList(), 1);
 
         var finalSample = await db.Samples.FirstAsync(s => s.Id == sample.Id);
@@ -591,6 +598,7 @@ public class EMBatchLocationTests
             new(locations[1].Id, GrowthObserved: false)
         };
 
+        await IncubationTestClock.ElapseOpenIncubationsAsync(db, order.Id);
         var result = await workflowEngine.RecordBatchPathogenResultsAsync(order.Id, observations, 1);
         Assert.Equal("Detected", result.FinalResult); // overall result is Detected if ANY location is
 

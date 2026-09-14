@@ -2,11 +2,21 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using MicroLIMS.Domain.Entities;
+using MicroLIMS.Domain.Enums;
 
 namespace MicroLIMS.Application.Helpers;
 
 public static class TsbDetectionHelper
 {
+    /// <summary>
+    /// The common broth enrichment step a shared TSB lot lands on. SelectiveBroth
+    /// (e.g. MBP for E. coli, RVS for Salmonella) is species-specific and never
+    /// shares the TSB lot.
+    /// </summary>
+    public static bool IsSharedTsbStep(TestWorkflowStep step) =>
+        step.StepType == StepType.BrothEnrichment ||
+        step.StepName.Contains("TSB", StringComparison.OrdinalIgnoreCase);
+
     /// <summary>
     /// Returns true if shared TSB enrichment is complete
     /// (minHours elapsed OR manually completed).

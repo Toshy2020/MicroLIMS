@@ -78,6 +78,13 @@ public static class WorkflowTemplateValidator
         foreach (var duplicate in media.GroupBy(m => m.MaterialId).Where(g => g.Count() > 1))
             Fail(6, $"Medium {duplicate.Key} is assigned to this step more than once.");
 
+        // The medium is the only source of an incubation's window (see
+        // IncubationWindowResolver), so a step that incubates can't be saved
+        // with a medium whose hours aren't configured.
+        if (step.StepType != StepType.BiochemicalTest)
+            foreach (var medium in media.Where(m => m.IncubationMinHours <= 0 || m.IncubationMaxHours < m.IncubationMinHours))
+                Fail(9, $"Medium {medium.MaterialId}: the incubation-hours range must have a positive minimum and a maximum no less than the minimum - set it on the media configuration.");
+
         if (step.StepType == StepType.PlateCount && step.RequiresIncubationTransfer)
         {
             var stage2 = step.IncubationStages.FirstOrDefault(s => s.StageNumber == 2);

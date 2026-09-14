@@ -1,7 +1,10 @@
 using Microsoft.EntityFrameworkCore;
+using MicroLIMS.Application.Helpers;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
+using MicroLIMS.Persistence.Configurations;
 using MicroLIMS.Persistence.DbContext;
+using MicroLIMS.Persistence.Helpers;
 
 namespace MicroLIMS.Application.Services;
 
@@ -11,8 +14,9 @@ public record PrepareMediaRequest(
     int CycleTime, int CycleNumber, decimal Ph, DateTime ExpiryDate, int UserId);
 
 // The Media Preparation module - captures the full prepared-lot record.
-// Lot number format: {Material.Code}/{seq:D2}/{yy}, sequence resets
-// every year. ManufacturerLot/ManufacturerName are copied from the
+// Lot number format: {Material.Code}/{seq:D2}/{yy} - one sequence per code
+// per year, continuing past the highest number already issued (see
+// PreparedLotNumber). ManufacturerLot/ManufacturerName are copied from the
 // consumed Material, never caller-supplied - the analyst picks a
 // Material, not a manufacturer. Nothing here is usable in routine
 // testing until its auto-assigned MediaEvaluation completes Conform
@@ -62,19 +66,12 @@ public class MediaPreparationService
             .FirstOrDefaultAsync()
             ?? throw new InvalidOperationException($"No Media Configuration exists yet for \"{material.MaterialName}\" - configure it in Laboratory Configuration before preparing a lot.");
 
-        var yearStart = new DateTime(DateTime.UtcNow.Year, 1, 1, 0, 0, 0, DateTimeKind.Utc);
-        var yearEnd = yearStart.AddYears(1);
-        var countThisYear = await _db.Media.CountAsync(m =>
-            m.MaterialId == material.Id && m.PreparedAt >= yearStart && m.PreparedAt < yearEnd);
-
-        var sequence = (countThisYear + 1).ToString("D2");
-        var lotPrefix = !string.IsNullOrWhiteSpace(material.Code) ? material.Code : SanitizeForLotPrefix(material.MaterialName);
-        var lotNumber = $"{lotPrefix}/{sequence}/{DateTime.UtcNow:yy}";
+        var lotPrefix = PreparedLotNumber.PrefixFor(material);
 
         var media = new Media
         {
             MaterialId = material.Id,
-            LotNumber = lotNumber,
+            LotNumber = await PreparedLotNumber.NextAsync(_db.Media.Select(m => m.LotNumber), lotPrefix),
             ManufacturerLot = material.BatchNumber,
             ManufacturerName = material.ManufacturerName,
             TotalWeight = request.TotalWeight,
@@ -115,7 +112,18 @@ public class MediaPreparationService
         }
         _db.MediaEvaluations.Add(evaluation);
 
-        await _db.SaveChangesAsync();
+        // Two preparations under the same code at the same moment both
+        // pick the same next number. The unique index rejects the second
+        // save, which then takes the number after the one that won. A
+        // second clash in a row is reported rather than retried again.
+        if (!await UniqueIndexSave.TrySaveChangesAsync(_db, MediaLotConfiguration.LotNumberIndexName))
+        {
+            media.LotNumber = await PreparedLotNumber.NextAsync(_db.Media.Select(m => m.LotNumber), lotPrefix);
+            if (!await UniqueIndexSave.TrySaveChangesAsync(_db, MediaLotConfiguration.LotNumberIndexName))
+                throw new InvalidOperationException(
+                    $"Lot number {media.LotNumber} was taken by another preparation at the same moment. Nothing was saved - submit the preparation again.");
+        }
+
         return media;
     }
 
@@ -157,10 +165,4 @@ public class MediaPreparationService
 
         await _db.SaveChangesAsync();
     }
-
-    // Material.Code isn't guaranteed present (nullable) - falls back to
-    // an alphanumeric, uppercased version of the material's name so the
-    // lot number always has a usable prefix.
-    private static string SanitizeForLotPrefix(string materialName) =>
-        new string(materialName.Where(char.IsLetterOrDigit).ToArray()).ToUpperInvariant();
 }

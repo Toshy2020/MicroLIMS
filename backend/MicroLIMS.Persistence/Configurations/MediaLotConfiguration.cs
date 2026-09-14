@@ -10,6 +10,10 @@ namespace MicroLIMS.Persistence.Configurations;
 // class configures Media (a prepared lot), not that new entity.
 public class MediaLotConfiguration : IEntityTypeConfiguration<Media>
 {
+    // EF's default name for the unique LotNumber index below - how
+    // MediaPreparationService recognises a lot-number clash on save.
+    public const string LotNumberIndexName = "IX_Media_LotNumber";
+
     public void Configure(EntityTypeBuilder<Media> builder)
     {
         builder.HasKey(m => m.Id);

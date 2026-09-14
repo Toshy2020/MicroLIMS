@@ -88,12 +88,7 @@ builder.Services.AddControllers(options =>
         // Server-side enforcement of MustChangePassword - see the filter.
         options.Filters.Add<MustChangePasswordFilter>();
     })
-    .AddJsonOptions(options =>
-    {
-        options.JsonSerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter());
-        options.JsonSerializerOptions.Converters.Add(new UtcDateTimeConverter());
-        options.JsonSerializerOptions.Converters.Add(new UtcNullableDateTimeConverter());
-    });
+    .AddJsonOptions(options => ApiJsonOptions.Configure(options.JsonSerializerOptions));
 // Protects the anonymous client-error endpoint (see RateLimitingExtensions).
 builder.Services.AddMicroLimsRateLimiting(builder.Configuration);
 

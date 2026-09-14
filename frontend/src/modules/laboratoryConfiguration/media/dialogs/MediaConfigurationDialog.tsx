@@ -21,10 +21,11 @@ import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutlined";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutlined";
 import { FloatingDialog } from "../../../../components/FloatingDialog";
 import { OrganismPicker } from "../../../../components/OrganismPicker";
-import { masterDataOptions } from "../../../../services/masterDataOptions";
+import { masterDataOptions, incubationConditionLabel } from "../../../../services/masterDataOptions";
 import { tableHeadSx } from "../../../../theme";
 import {
   MediaConfigurationItem,
+  MediaIncubationConditionOption,
   MediaProductOption,
   StagedChallenge,
 } from "../types/mediaConfigurationTypes";
@@ -45,6 +46,8 @@ interface MediaConfigurationDialogProps {
   open: boolean;
   product: MediaProductOption;
   configToEdit: MediaConfigurationItem | null;
+  // The product's own incubation conditions - the configuration picks one.
+  conditions: MediaIncubationConditionOption[];
   organisms: OrganismOption[];
   onClose: () => void;
   onSuccess: () => void;
@@ -54,15 +57,13 @@ export function MediaConfigurationDialog({
   open,
   product,
   configToEdit,
+  conditions,
   organisms,
   onClose,
   onSuccess,
 }: MediaConfigurationDialogProps) {
   const [evaluationType, setEvaluationType] = useState("GrowthPromotion");
-  const [incubationMinHours, setIncubationMinHours] = useState<number | "">("");
-  const [incubationMaxHours, setIncubationMaxHours] = useState<number | "">("");
-  const [temperatureMin, setTemperatureMin] = useState<number | "">("");
-  const [temperatureMax, setTemperatureMax] = useState<number | "">("");
+  const [conditionId, setConditionId] = useState<number | "">("");
   const [recoveryPercentMin, setRecoveryPercentMin] = useState<number | "">("");
   const [recoveryPercentMax, setRecoveryPercentMax] = useState<number | "">("");
 
@@ -82,10 +83,7 @@ export function MediaConfigurationDialog({
     if (open) {
       if (configToEdit) {
         setEvaluationType(configToEdit.evaluationType ?? "GrowthPromotion");
-        setIncubationMinHours(configToEdit.incubationMinHours ?? "");
-        setIncubationMaxHours(configToEdit.incubationMaxHours ?? "");
-        setTemperatureMin(configToEdit.temperatureMin ?? "");
-        setTemperatureMax(configToEdit.temperatureMax ?? "");
+        setConditionId(configToEdit.mediaIncubationConditionId ?? "");
         setRecoveryPercentMin(configToEdit.recoveryPercentMin ?? "");
         setRecoveryPercentMax(configToEdit.recoveryPercentMax ?? "");
         setStagedChallenges(
@@ -101,10 +99,7 @@ export function MediaConfigurationDialog({
         setInitialInoculum(defaultInitialInoculum(configToEdit.evaluationType ?? "GrowthPromotion"));
       } else {
         setEvaluationType("GrowthPromotion");
-        setIncubationMinHours("");
-        setIncubationMaxHours("");
-        setTemperatureMin("");
-        setTemperatureMax("");
+        setConditionId("");
         setRecoveryPercentMin("");
         setRecoveryPercentMax("");
         setStagedChallenges([]);
@@ -171,24 +166,8 @@ export function MediaConfigurationDialog({
   const handleSave = async () => {
     setError(null);
 
-    if (incubationMinHours === "" || incubationMaxHours === "") {
-      setError("Incubation range (min and max hours) is required.");
-      return;
-    }
-    if (Number(incubationMinHours) < 0) {
-      setError("Incubation min hours cannot be negative.");
-      return;
-    }
-    if (Number(incubationMinHours) > Number(incubationMaxHours)) {
-      setError("Incubation min hours cannot exceed max hours.");
-      return;
-    }
-    if (temperatureMin === "" || temperatureMax === "") {
-      setError("Temperature range (min and max °C) is required.");
-      return;
-    }
-    if (Number(temperatureMin) > Number(temperatureMax)) {
-      setError("Temperature min cannot exceed max.");
+    if (conditionId === "") {
+      setError("Choose an incubation condition.");
       return;
     }
     if (evaluationType === "GrowthPromotion") {
@@ -203,10 +182,7 @@ export function MediaConfigurationDialog({
     const payload = {
       mediaProductId: product.id,
       evaluationType,
-      incubationMinHours: Number(incubationMinHours),
-      incubationMaxHours: Number(incubationMaxHours),
-      temperatureMin: Number(temperatureMin),
-      temperatureMax: Number(temperatureMax),
+      mediaIncubationConditionId: Number(conditionId),
       recoveryPercentMin:
         evaluationType === "GrowthPromotion" && recoveryPercentMin !== ""
           ? Number(recoveryPercentMin)
@@ -257,7 +233,7 @@ export function MediaConfigurationDialog({
           <Button onClick={onClose} disabled={saving} color="inherit">
             Cancel
           </Button>
-          <Button variant="contained" onClick={handleSave} disabled={saving}>
+          <Button variant="contained" onClick={handleSave} disabled={saving || conditions.length === 0}>
             {saving ? "Saving..." : configToEdit ? "Save Changes" : "Save Configuration"}
           </Button>
         </>
@@ -265,6 +241,11 @@ export function MediaConfigurationDialog({
     >
       <Stack spacing={2} sx={{ mt: 0.5 }}>
         {error && <Alert severity="error">{error}</Alert>}
+        {conditions.length === 0 && (
+          <Alert severity="info">
+            {product.name} has no incubation conditions yet. Add one in the Incubation Conditions tab first.
+          </Alert>
+        )}
 
         <Box sx={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 2 }}>
           <Box>
@@ -285,46 +266,27 @@ export function MediaConfigurationDialog({
             </Select>
           </Box>
 
-          <Box sx={{ display: "flex", gap: 1, alignItems: "flex-end" }}>
-            <TextField
+          <Box>
+            <Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 600, display: "block", mb: 0.5 }}>
+              Incubation Condition
+            </Typography>
+            <Select<number | "">
               size="small"
-              type="number"
-              label="Incubation Min (h)"
-              value={incubationMinHours}
-              onChange={(e) => setIncubationMinHours(e.target.value === "" ? "" : Number(e.target.value))}
-              required
               fullWidth
-            />
-            <TextField
-              size="small"
-              type="number"
-              label="Incubation Max (h)"
-              value={incubationMaxHours}
-              onChange={(e) => setIncubationMaxHours(e.target.value === "" ? "" : Number(e.target.value))}
-              required
-              fullWidth
-            />
-          </Box>
-
-          <Box sx={{ display: "flex", gap: 1, alignItems: "flex-end" }}>
-            <TextField
-              size="small"
-              type="number"
-              label="Temp Min (°C)"
-              value={temperatureMin}
-              onChange={(e) => setTemperatureMin(e.target.value === "" ? "" : Number(e.target.value))}
-              required
-              fullWidth
-            />
-            <TextField
-              size="small"
-              type="number"
-              label="Temp Max (°C)"
-              value={temperatureMax}
-              onChange={(e) => setTemperatureMax(e.target.value === "" ? "" : Number(e.target.value))}
-              required
-              fullWidth
-            />
+              displayEmpty
+              value={conditionId}
+              disabled={conditions.length === 0}
+              onChange={(e) => setConditionId(e.target.value === "" ? "" : Number(e.target.value))}
+            >
+              <MenuItem value="">
+                <em>Select a condition *</em>
+              </MenuItem>
+              {conditions.map((c) => (
+                <MenuItem key={c.id} value={c.id}>
+                  {incubationConditionLabel(c)}
+                </MenuItem>
+              ))}
+            </Select>
           </Box>
 
           {evaluationType === "GrowthPromotion" && (

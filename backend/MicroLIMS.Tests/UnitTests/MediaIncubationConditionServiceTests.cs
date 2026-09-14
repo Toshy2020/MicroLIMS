@@ -131,7 +131,8 @@ public class MediaIncubationConditionServiceTests
     [Theory]
     [InlineData(0, 24, 30, 35, "Incubation min hours must be greater than zero.")]
     [InlineData(48, 24, 30, 35, "Incubation max hours cannot be less than min hours.")]
-    [InlineData(24, 48, 40, 35, "Temperature min cannot exceed max.")]
+    [InlineData(24, 48, 40, 35, "Temperature min must be below temperature max.")]
+    [InlineData(24, 48, 35, 35, "Temperature min must be below temperature max.")]
     public async Task CreateAsync_InvalidRanges_ThrowsAndNothingSaved(
         int minH, int maxH, decimal tMin, decimal tMax, string expectedMessage)
     {

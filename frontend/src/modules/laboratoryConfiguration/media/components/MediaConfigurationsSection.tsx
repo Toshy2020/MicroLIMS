@@ -29,6 +29,7 @@ import {
 } from "../../../../services/masterDataOptions";
 import {
   MediaConfigurationItem,
+  MediaIncubationConditionOption,
   MediaProductOption,
 } from "../types/mediaConfigurationTypes";
 import { OrganismOption } from "../../../../hooks/useOrganisms";
@@ -36,6 +37,7 @@ import { MediaConfigurationDialog } from "../dialogs/MediaConfigurationDialog";
 
 interface MediaConfigurationsSectionProps {
   product: MediaProductOption;
+  conditions: MediaIncubationConditionOption[];
   configurations: MediaConfigurationItem[];
   organisms: OrganismOption[];
   onUpdated: (successMessage?: string) => void;
@@ -44,6 +46,7 @@ interface MediaConfigurationsSectionProps {
 
 export function MediaConfigurationsSection({
   product,
+  conditions,
   configurations,
   organisms,
   onUpdated,
@@ -98,7 +101,8 @@ export function MediaConfigurationsSection({
         <Typography variant="subtitle2" sx={{ fontWeight: 700, color: "text.primary" }}>
           Configurations
         </Typography>
-        {isManager && (
+        {/* A medium has a single evaluation configuration - edit it rather than adding another. */}
+        {isManager && configurations.length === 0 && (
           <Button
             size="small"
             variant="contained"
@@ -130,8 +134,8 @@ export function MediaConfigurationsSection({
         >
           <Typography variant="body2" sx={{ color: "text.secondary" }}>
             {isManager
-              ? "No configurations yet. Add one to define how this medium is evaluated."
-              : "No configurations yet."}
+              ? "No configuration yet. Add one to define how this medium is evaluated."
+              : "No configuration yet."}
           </Typography>
         </Paper>
       ) : (
@@ -278,6 +282,7 @@ export function MediaConfigurationsSection({
         open={configDialogOpen}
         product={product}
         configToEdit={editingConfig}
+        conditions={conditions}
         organisms={organisms}
         onClose={() => setConfigDialogOpen(false)}
         onSuccess={() => {

@@ -138,8 +138,10 @@ public class MediaIncubationConditionService
             throw new InvalidOperationException("Incubation min hours must be greater than zero.");
         if (maxH < minH)
             throw new InvalidOperationException("Incubation max hours cannot be less than min hours.");
-        if (tMin > tMax)
-            throw new InvalidOperationException("Temperature min cannot exceed max.");
+        // Strictly below, matching WorkflowTemplateValidator rule 5 for the
+        // step media that copy these values.
+        if (tMin >= tMax)
+            throw new InvalidOperationException("Temperature min must be below temperature max.");
     }
 
     private async Task EnsureNotLockedAsync(int id)

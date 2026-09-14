@@ -1,6 +1,6 @@
-import { MediaProductOption } from "../../../../services/masterDataOptions";
+import { MediaIncubationConditionOption, MediaProductOption } from "../../../../services/masterDataOptions";
 
-export type { MediaProductOption };
+export type { MediaIncubationConditionOption, MediaProductOption };
 
 export interface ChallengeItem {
   id: number;
@@ -23,6 +23,8 @@ export interface MediaConfigurationItem {
   mediaProductId: number;
   mediaProductCode?: string | null;
   evaluationType: string;
+  // The chosen incubation condition - the four values below are read from it.
+  mediaIncubationConditionId: number;
   incubationMinHours: number;
   incubationMaxHours: number;
   temperatureMin: number;

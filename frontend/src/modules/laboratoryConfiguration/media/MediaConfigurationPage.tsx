@@ -8,10 +8,11 @@ import { OrganismOption } from "../../../hooks/useOrganisms";
 import {
   MediaProductOption,
   MediaConfigurationItem,
+  MediaIncubationConditionOption,
 } from "./types/mediaConfigurationTypes";
 import { MediaProductFilterBar } from "./components/MediaProductFilterBar";
 import { MediaProductList } from "./components/MediaProductList";
-import { MediaProductWorkspace } from "./components/MediaProductWorkspace";
+import { MediaProductWorkspace, WORKSPACE_TABS } from "./components/MediaProductWorkspace";
 import { AddMediaProductDialog } from "./dialogs/AddMediaProductDialog";
 import { RenameMediaProductDialog } from "./dialogs/RenameMediaProductDialog";
 import { ChangeMediaProductCodeDialog } from "./dialogs/ChangeMediaProductCodeDialog";
@@ -22,10 +23,11 @@ export function MediaConfigurationPage() {
   const isSectionHead = role === "SectionHead";
 
   const [products, setProducts] = useState<MediaProductOption[]>([]);
+  const [conditions, setConditions] = useState<MediaIncubationConditionOption[]>([]);
   const [configurations, setConfigurations] = useState<MediaConfigurationItem[]>([]);
   const [organisms, setOrganisms] = useState<OrganismOption[]>([]);
   const [selectedProductId, setSelectedProductId] = useState<number | null>(null);
-  const [workspaceTab, setWorkspaceTab] = useState<number>(0);
+  const [workspaceTab, setWorkspaceTab] = useState<number>(WORKSPACE_TABS.overview);
 
   // Search state
   const [searchQuery, setSearchQuery] = useState("");
@@ -40,13 +42,15 @@ export function MediaConfigurationPage() {
 
   const loadData = async () => {
     try {
-      const [configs, prods, orgList] = await Promise.all([
+      const [configs, prods, conditionList, orgList] = await Promise.all([
         masterDataOptions.getMediaConfigurations(),
         masterDataOptions.getMediaProducts(),
+        masterDataOptions.getMediaIncubationConditions(),
         masterDataOptions.getOrganisms(),
       ]);
       setConfigurations(configs);
       setProducts(prods);
+      setConditions(conditionList);
       setOrganisms(orgList);
     } catch (err: unknown) {
       const text =
@@ -93,7 +97,8 @@ export function MediaConfigurationPage() {
   const handleProductCreated = (newProduct: MediaProductOption) => {
     setMessage({ text: `Media product "${newProduct.name}" created successfully.`, ok: true });
     setSelectedProductId(newProduct.id);
-    setWorkspaceTab(1); // open its Configurations tab
+    // A new medium needs an incubation condition before it can be configured.
+    setWorkspaceTab(WORKSPACE_TABS.conditions);
     loadData();
   };
 
@@ -202,6 +207,7 @@ export function MediaConfigurationPage() {
           >
             <MediaProductWorkspace
               product={selectedProduct}
+              conditions={conditions.filter((c) => c.mediaProductId === selectedProduct.id)}
               configurations={configurations.filter((c) => c.mediaProductId === selectedProduct.id)}
               organisms={organisms}
               onClose={() => setSelectedProductId(null)}

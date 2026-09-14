@@ -14,7 +14,7 @@ import { SectionTitle } from "../../../components/SectionTitle";
 import { StatusBadge } from "../../../components/StatusBadge";
 import { ConfirmationDialog } from "../../../components/ConfirmationDialog";
 import { useTestDefinitions, TestDefinitionOption } from "../../../hooks/useTestDefinitions";
-import { masterDataOptions } from "../../../services/masterDataOptions";
+import { masterDataOptions, incubationConditionLabel, MediaIncubationConditionOption } from "../../../services/masterDataOptions";
 import { tableHeadSx } from "../../../theme";
 
 const WORKFLOW_TYPES = ["CountTest", "Observation"];
@@ -33,15 +33,10 @@ const PHENOTYPIC_TEST_TYPE_LABELS: Record<string, string> = {
   Antibiogram: "Antibiogram", IdentificationKit: "Identification Kit"
 };
 
-// TempMin/TempMax/incubationMinHours/incubationMaxHours are derived from
-// mediaConfigurationId (read-only once one is picked) - see the Media
-// Configuration Migration plan's Test Master reversal. A row with no
-// mediaConfigurationId falls back to the free-typed fields, for the rare
-// product with no matching MediaConfiguration profile yet.
-type StepMediaRow = {
-  materialId: number | ""; mediaConfigurationId: number | ""; tempMin: string; tempMax: string;
-  incubationMinHours: string; incubationMaxHours: string; isRequired: boolean; displayOrder: number
-};
+// Each step medium picks one incubation condition of its material's media
+// product. The server copies that condition's temperature and hours onto
+// the step medium when it saves (MasterDataController.BuildStepMediaAsync).
+type StepMediaRow = { materialId: number | ""; mediaIncubationConditionId: number | ""; isRequired: boolean; displayOrder: number };
 
 interface StepFormState {
   stepName?: string;
@@ -113,11 +108,7 @@ function validateStepForm(form: StepFormState): string | null {
     return "At least one medium is required for this step type.";
   for (const m of form.stepMedia) {
     if (m.materialId === "") return "Every medium row needs a selected material.";
-    if (m.mediaConfigurationId === "" && (m.tempMin === "" || m.tempMax === "" || m.incubationMinHours === "" || m.incubationMaxHours === ""))
-      return "Every medium row needs either a media configuration or its own temperature and incubation range.";
-    if (Number(m.tempMin) >= Number(m.tempMax)) return "Every medium's minimum temperature must be below its maximum.";
-    if (Number(m.incubationMinHours) <= 0 || Number(m.incubationMaxHours) < Number(m.incubationMinHours))
-      return "Every medium's incubation range must have a positive minimum and a maximum no less than the minimum.";
+    if (m.mediaIncubationConditionId === "") return "Every medium row needs an incubation condition.";
   }
   const materialIds = form.stepMedia.map((m) => m.materialId);
   if (new Set(materialIds).size !== materialIds.length) return "The same medium cannot be assigned to this step more than once.";
@@ -169,7 +160,7 @@ function WorkflowStepsSection({ test, onWorkflowTypeChanged }: { test: TestDefin
   const [steps, setSteps] = useState<any[]>([]);
   const [organisms, setOrganisms] = useState<any[]>([]);
   const [materials, setMaterials] = useState<any[]>([]);
-  const [mediaConfigurations, setMediaConfigurations] = useState<any[]>([]);
+  const [conditions, setConditions] = useState<MediaIncubationConditionOption[]>([]);
   const [form, setForm] = useState<StepFormState>(defaultStepForm);
   const [editingStepId, setEditingStepId] = useState<number | null>(null);
   const [stepToDelete, setStepToDelete] = useState<number | null>(null);
@@ -179,7 +170,7 @@ function WorkflowStepsSection({ test, onWorkflowTypeChanged }: { test: TestDefin
   useEffect(() => {
     masterDataOptions.getOrganisms().then(setOrganisms);
     masterDataOptions.getMaterials("DehydratedMedia").then(setMaterials);
-    masterDataOptions.getMediaConfigurations().then(setMediaConfigurations);
+    masterDataOptions.getMediaIncubationConditions().then(setConditions);
     loadSteps();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [test.id]);
@@ -201,10 +192,10 @@ function WorkflowStepsSection({ test, onWorkflowTypeChanged }: { test: TestDefin
       stepName: s.stepName, isFinalStep: s.isFinalStep, stepType: s.stepType,
       targetOrganismId: s.targetOrganismId ?? null,
       stepMedia: (s.stepMedia ?? []).map((m: any) => ({
-        materialId: m.materialId, mediaConfigurationId: m.mediaConfigurationId ?? "",
-        tempMin: String(m.tempMin), tempMax: String(m.tempMax),
-        incubationMinHours: String(m.incubationMinHours ?? ""), incubationMaxHours: String(m.incubationMaxHours ?? ""),
-        isRequired: m.isRequired, displayOrder: m.displayOrder
+        materialId: m.materialId,
+        mediaIncubationConditionId: m.mediaIncubationConditionId ?? "",
+        isRequired: m.isRequired,
+        displayOrder: m.displayOrder
       })),
       requiresIncubationTransfer: !!s.requiresIncubationTransfer,
       stage2TempMin: stage2 ? String(stage2.tempMin) : undefined,
@@ -248,27 +239,23 @@ function WorkflowStepsSection({ test, onWorkflowTypeChanged }: { test: TestDefin
   const addMediaRow = () => setForm({
     ...form,
     stepMedia: [...form.stepMedia, {
-      materialId: "", mediaConfigurationId: "", tempMin: "", tempMax: "",
-      incubationMinHours: "", incubationMaxHours: "", isRequired: false, displayOrder: form.stepMedia.length
+      materialId: "", mediaIncubationConditionId: "", isRequired: false, displayOrder: form.stepMedia.length
     }]
   });
-  // Picking a MediaConfiguration derives its temp/incubation range into the
-  // row for display; the server re-derives from the FK at save time
-  // regardless (see MasterDataController.BuildStepMediaAsync), so this is
-  // just keeping the admin's on-screen preview honest, not the source of
-  // truth actually saved.
+  // A condition belongs to one media product, so changing the material
+  // clears a condition that no longer fits.
   const updateMediaRow = (index: number, patch: Partial<StepMediaRow>) => setForm({
     ...form,
     stepMedia: form.stepMedia.map((m, i) => {
       if (i !== index) return m;
       const next = { ...m, ...patch };
-      if (patch.mediaConfigurationId !== undefined) {
-        const config = mediaConfigurations.find((c) => c.id === patch.mediaConfigurationId);
-        if (config) {
-          next.tempMin = String(config.temperatureMin);
-          next.tempMax = String(config.temperatureMax);
-          next.incubationMinHours = String(config.incubationMinHours);
-          next.incubationMaxHours = String(config.incubationMaxHours);
+      if (patch.materialId !== undefined) {
+        const material = materials.find((mat) => mat.id === patch.materialId);
+        const matchesProduct = conditions.some(
+          (c) => c.id === next.mediaIncubationConditionId && material?.mediaProductId != null && c.mediaProductId === material.mediaProductId
+        );
+        if (!matchesProduct) {
+          next.mediaIncubationConditionId = "";
         }
       }
       return next;
@@ -298,10 +285,9 @@ function WorkflowStepsSection({ test, onWorkflowTypeChanged }: { test: TestDefin
       isFinalStep: !!form.isFinalStep, stepType: form.stepType, targetOrganismId: form.targetOrganismId,
       stepMedia: form.stepMedia.map((m, i) => ({
         materialId: Number(m.materialId),
-        mediaConfigurationId: m.mediaConfigurationId === "" ? null : Number(m.mediaConfigurationId),
-        tempMin: Number(m.tempMin) || 0, tempMax: Number(m.tempMax) || 0,
-        incubationMinHours: Number(m.incubationMinHours) || 0, incubationMaxHours: Number(m.incubationMaxHours) || 0,
-        isRequired: form.stepType === "ConfirmatoryPlating" ? false : !!m.isRequired, displayOrder: i
+        mediaIncubationConditionId: m.mediaIncubationConditionId === "" ? null : Number(m.mediaIncubationConditionId),
+        isRequired: form.stepType === "ConfirmatoryPlating" ? false : !!m.isRequired,
+        displayOrder: i
       })),
       requiresIncubationTransfer: form.stepType === "PlateCount" && !!form.requiresIncubationTransfer,
       incubationStages: (form.stepType === "PlateCount" && form.requiresIncubationTransfer) ? [
@@ -639,13 +625,12 @@ function WorkflowStepsSection({ test, onWorkflowTypeChanged }: { test: TestDefin
               display: "block",
               mb: 1
             }}>
-            Pick a Media Configuration to derive this medium's temperature and incubation range (recommended - keeps
-            this in sync with the profile approved on the Media Configurations page). Material stays a separate pick:
-            it identifies the specific product for release/traceability, while the configuration governs its window.
+            Pick the medium, then one of its incubation conditions. The condition sets this medium's temperature and incubation hours. Conditions are added on the Media Configurations page.
           </Typography>
           <Stack spacing={1}>
             {form.stepMedia.map((row, idx) => {
-              const hasConfig = row.mediaConfigurationId !== "";
+              const material = materials.find((mat) => mat.id === row.materialId);
+              const productConditions = material?.mediaProductId ? conditions.filter((c) => c.mediaProductId === material.mediaProductId) : [];
               return (
                 <Stack
                   key={idx}
@@ -659,30 +644,31 @@ function WorkflowStepsSection({ test, onWorkflowTypeChanged }: { test: TestDefin
                     <MenuItem value=""><em>Material</em></MenuItem>
                     {materials.map((m) => <MenuItem key={m.id} value={m.id}>{m.materialName}</MenuItem>)}
                   </Select>
-                  <Select<number | ""> size="small" displayEmpty value={row.mediaConfigurationId} onChange={(e) => updateMediaRow(idx, { mediaConfigurationId: e.target.value === "" ? "" : Number(e.target.value) })} sx={{ minWidth: 260 }}>
-                    <MenuItem value=""><em>Media Configuration (optional)</em></MenuItem>
-                    {mediaConfigurations.map((c) => (
+                  <Select<number | "">
+                    size="small"
+                    displayEmpty
+                    value={row.mediaIncubationConditionId}
+                    disabled={productConditions.length === 0}
+                    onChange={(e) => updateMediaRow(idx, { mediaIncubationConditionId: e.target.value === "" ? "" : Number(e.target.value) })}
+                    sx={{ minWidth: 240 }}>
+                    <MenuItem value=""><em>Incubation condition</em></MenuItem>
+                    {productConditions.map((c) => (
                       <MenuItem key={c.id} value={c.id}>
-                        {c.name} — {c.incubationMinHours}–{c.incubationMaxHours}h @ {c.temperatureMin}–{c.temperatureMax}°C
+                        {incubationConditionLabel(c)}
                       </MenuItem>
                     ))}
                   </Select>
-                  <TextField
-                    size="small" type="number" label="Temp Min" value={row.tempMin} disabled={hasConfig}
-                    onChange={(e) => updateMediaRow(idx, { tempMin: e.target.value })} sx={{ width: 90 }}
-                  />
-                  <TextField
-                    size="small" type="number" label="Temp Max" value={row.tempMax} disabled={hasConfig}
-                    onChange={(e) => updateMediaRow(idx, { tempMax: e.target.value })} sx={{ width: 90 }}
-                  />
-                  <TextField
-                    size="small" type="number" label="Min Hours" value={row.incubationMinHours} disabled={hasConfig}
-                    onChange={(e) => updateMediaRow(idx, { incubationMinHours: e.target.value })} sx={{ width: 100 }}
-                  />
-                  <TextField
-                    size="small" type="number" label="Max Hours" value={row.incubationMaxHours} disabled={hasConfig}
-                    onChange={(e) => updateMediaRow(idx, { incubationMaxHours: e.target.value })} sx={{ width: 100 }}
-                  />
+                  {row.materialId !== "" && (
+                    !material?.mediaProductId ? (
+                      <Typography variant="caption" sx={{ color: "text.secondary" }}>
+                        This batch isn't linked to a media product.
+                      </Typography>
+                    ) : productConditions.length === 0 ? (
+                      <Typography variant="caption" sx={{ color: "text.secondary" }}>
+                        This medium has no incubation conditions yet.
+                      </Typography>
+                    ) : null
+                  )}
                   {!isConfirmatory && (
                     <FormControlLabel
                       control={<Checkbox checked={row.isRequired} onChange={(e) => updateMediaRow(idx, { isRequired: e.target.checked })} />}

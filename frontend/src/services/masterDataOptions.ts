@@ -6,6 +6,49 @@ export type MediaProductOption = {
   code: string;
   configurationCount: number;
   batchCount: number;
+  incubationConditionCount: number;
+};
+
+type IncubationConditionValues = {
+  incubationMinHours: number;
+  incubationMaxHours: number;
+  temperatureMin: number;
+  temperatureMax: number;
+};
+
+// A time + temperature pair a media product can be incubated at. The
+// product's evaluation configuration and Test Master step media each pick
+// one; the server locks a condition once either count is above zero.
+export type MediaIncubationConditionOption = IncubationConditionValues & {
+  id: number;
+  mediaProductId: number;
+  configurationCount: number;
+  stepMediaCount: number;
+};
+
+type MediaConfigurationPayload = {
+  mediaProductId: number;
+  evaluationType: string;
+  mediaIncubationConditionId: number;
+  recoveryPercentMin?: number | null;
+  recoveryPercentMax?: number | null;
+  challenges?: {
+    organismId: number;
+    challengeRole?: string | null;
+    expectedDescription?: string | null;
+    initialInoculum?: string | null;
+  }[];
+};
+
+// Step media send only the chosen condition - the server copies its
+// temperature and hours onto the step medium when it saves.
+type TestWorkflowStepPayload = {
+  stepName: string; incubationMinHours: number; incubationMaxHours: number;
+  temperatureMin: number; temperatureMax: number; isFinalStep: boolean; stepType: string;
+  targetOrganismId: number | null; phenotypicTestType: string | null; phenotypicTestTypes?: string[];
+  stepMedia: { materialId: number; mediaIncubationConditionId: number | null; isRequired: boolean; displayOrder: number }[];
+  requiresIncubationTransfer: boolean;
+  incubationStages: { stageNumber: number; tempMin: number; tempMax: number; incubationMinHours: number; incubationMaxHours: number }[];
 };
 
 // Shared lookup lists used across receiving, preparation, and master
@@ -51,40 +94,19 @@ export const masterDataOptions = {
   changeMediaProductCode: (id: number, code: string, reason: string, password: string) =>
     apiClient.put(`/masterdata/media-products/${id}/code`, { code, reason, password }).then((r) => r.data.data),
   deleteMediaProduct: (id: number) => apiClient.delete(`/masterdata/media-products/${id}`),
+  getMediaIncubationConditions: (mediaProductId?: number): Promise<MediaIncubationConditionOption[]> =>
+    apiClient.get("/masterdata/media-incubation-conditions", { params: mediaProductId ? { mediaProductId } : {} }).then((r) => r.data.data),
+  createMediaIncubationCondition: (payload: IncubationConditionValues & { mediaProductId: number }) =>
+    apiClient.post("/masterdata/media-incubation-conditions", payload).then((r) => r.data.data),
+  updateMediaIncubationCondition: (id: number, payload: IncubationConditionValues) =>
+    apiClient.put(`/masterdata/media-incubation-conditions/${id}`, payload).then((r) => r.data.data),
+  deleteMediaIncubationCondition: (id: number) => apiClient.delete(`/masterdata/media-incubation-conditions/${id}`),
   getMediaConfigurations: () =>
     apiClient.get("/masterdata/media-configurations").then((r) => r.data.data),
-  createMediaConfiguration: (payload: {
-    mediaProductId: number;
-    evaluationType: string;
-    incubationMinHours: number;
-    incubationMaxHours: number;
-    temperatureMin: number;
-    temperatureMax: number;
-    recoveryPercentMin?: number | null;
-    recoveryPercentMax?: number | null;
-    challenges?: {
-      organismId: number;
-      challengeRole?: string | null;
-      expectedDescription?: string | null;
-      initialInoculum?: string | null;
-    }[];
-  }) => apiClient.post("/masterdata/media-configurations", payload).then((r) => r.data.data),
-  updateMediaConfiguration: (id: number, payload: {
-    mediaProductId: number;
-    evaluationType: string;
-    incubationMinHours: number;
-    incubationMaxHours: number;
-    temperatureMin: number;
-    temperatureMax: number;
-    recoveryPercentMin?: number | null;
-    recoveryPercentMax?: number | null;
-    challenges?: {
-      organismId: number;
-      challengeRole?: string | null;
-      expectedDescription?: string | null;
-      initialInoculum?: string | null;
-    }[];
-  }) => apiClient.put(`/masterdata/media-configurations/${id}`, payload).then((r) => r.data.data),
+  createMediaConfiguration: (payload: MediaConfigurationPayload) =>
+    apiClient.post("/masterdata/media-configurations", payload).then((r) => r.data.data),
+  updateMediaConfiguration: (id: number, payload: MediaConfigurationPayload) =>
+    apiClient.put(`/masterdata/media-configurations/${id}`, payload).then((r) => r.data.data),
   deleteMediaConfiguration: (id: number) => apiClient.delete(`/masterdata/media-configurations/${id}`),
   getOrganisms: () => apiClient.get("/masterdata/organisms").then((r) => r.data.data),
   createOrganism: (scientificName: string, atccNumber?: string | null, commonName?: string | null, description?: string | null) =>
@@ -107,32 +129,18 @@ export const masterDataOptions = {
     apiClient.get(`/masterdata/test-definitions/${testDefinitionId}/steps`).then((r) => r.data.data),
   getMaterials: (type?: string) =>
     apiClient.get("/inventory/materials", { params: type ? { type } : {} }).then((r) => r.data.data),
-  createTestWorkflowStep: (testDefinitionId: number, payload: {
-    stepName: string; incubationMinHours: number; incubationMaxHours: number;
-    temperatureMin: number; temperatureMax: number; isFinalStep: boolean; stepType: string;
-    targetOrganismId: number | null; phenotypicTestType: string | null; phenotypicTestTypes?: string[];
-    stepMedia: {
-      materialId: number; mediaConfigurationId: number | null; tempMin: number; tempMax: number;
-      incubationMinHours: number; incubationMaxHours: number; isRequired: boolean; displayOrder: number
-    }[];
-    requiresIncubationTransfer: boolean;
-    incubationStages: { stageNumber: number; tempMin: number; tempMax: number; incubationMinHours: number; incubationMaxHours: number }[];
-  }) => apiClient.post(`/masterdata/test-definitions/${testDefinitionId}/steps`, payload).then((r) => r.data.data),
-  updateTestWorkflowStep: (stepId: number, payload: {
-    stepName: string; incubationMinHours: number; incubationMaxHours: number;
-    temperatureMin: number; temperatureMax: number; isFinalStep: boolean; stepType: string;
-    targetOrganismId: number | null; phenotypicTestType: string | null; phenotypicTestTypes?: string[];
-    stepMedia: {
-      materialId: number; mediaConfigurationId: number | null; tempMin: number; tempMax: number;
-      incubationMinHours: number; incubationMaxHours: number; isRequired: boolean; displayOrder: number
-    }[];
-    requiresIncubationTransfer: boolean;
-    incubationStages: { stageNumber: number; tempMin: number; tempMax: number; incubationMinHours: number; incubationMaxHours: number }[];
-  }) => apiClient.put(`/masterdata/test-definitions/steps/${stepId}`, payload).then((r) => r.data.data),
+  createTestWorkflowStep: (testDefinitionId: number, payload: TestWorkflowStepPayload) =>
+    apiClient.post(`/masterdata/test-definitions/${testDefinitionId}/steps`, payload).then((r) => r.data.data),
+  updateTestWorkflowStep: (stepId: number, payload: TestWorkflowStepPayload) =>
+    apiClient.put(`/masterdata/test-definitions/steps/${stepId}`, payload).then((r) => r.data.data),
   moveTestWorkflowStep: (stepId: number, direction: "up" | "down") =>
     apiClient.put(`/masterdata/test-definitions/steps/${stepId}/move`, { direction }).then((r) => r.data.data),
   deleteTestWorkflowStep: (stepId: number) => apiClient.delete(`/masterdata/test-definitions/steps/${stepId}`)
 };
+
+// "18–24 h at 35–37 °C" - how an incubation condition is shown everywhere.
+export const incubationConditionLabel = (c: IncubationConditionValues) =>
+  `${c.incubationMinHours}–${c.incubationMaxHours} h at ${c.temperatureMin}–${c.temperatureMax} °C`;
 
 // MediaType is a fixed set of 4 rows, one per MediaClass - it no longer
 // has a Name/Code, so this is the friendly label used everywhere a

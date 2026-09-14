@@ -15,13 +15,20 @@ import KeyIcon from "@mui/icons-material/Key";
 import { monospaceFontFamily } from "../../../../theme/palette";
 import {
   MediaConfigurationItem,
+  MediaIncubationConditionOption,
   MediaProductOption,
 } from "../types/mediaConfigurationTypes";
 import { OrganismOption } from "../../../../hooks/useOrganisms";
 import { MediaConfigurationsSection } from "./MediaConfigurationsSection";
+import { MediaIncubationConditionsSection } from "./MediaIncubationConditionsSection";
+
+// Tab order follows setup order: a medium needs an incubation condition
+// before its evaluation configuration can pick one.
+export const WORKSPACE_TABS = { overview: 0, conditions: 1, configurations: 2 } as const;
 
 interface MediaProductWorkspaceProps {
   product: MediaProductOption;
+  conditions: MediaIncubationConditionOption[];
   configurations: MediaConfigurationItem[];
   organisms: OrganismOption[];
   onClose: () => void;
@@ -35,6 +42,7 @@ interface MediaProductWorkspaceProps {
 
 export function MediaProductWorkspace({
   product,
+  conditions,
   configurations,
   organisms,
   onClose,
@@ -108,6 +116,12 @@ export function MediaProductWorkspace({
               sx={{ fontFamily: monospaceFontFamily, fontSize: 11, height: 22, fontWeight: 600 }}
             />
             <Chip
+              label={`${conditions.length} ${conditions.length === 1 ? "Condition" : "Conditions"}`}
+              size="small"
+              variant="outlined"
+              sx={{ fontSize: 11, height: 22, fontWeight: 500 }}
+            />
+            <Chip
               label={`${configurations.length} ${configurations.length === 1 ? "Configuration" : "Configurations"}`}
               size="small"
               sx={{
@@ -142,6 +156,10 @@ export function MediaProductWorkspace({
         >
           <Tab label="Overview" sx={{ textTransform: "none", fontWeight: 600, fontSize: 13 }} />
           <Tab
+            label={`Incubation Conditions (${conditions.length})`}
+            sx={{ textTransform: "none", fontWeight: 600, fontSize: 13 }}
+          />
+          <Tab
             label={`Configurations (${configurations.length})`}
             sx={{ textTransform: "none", fontWeight: 600, fontSize: 13 }}
           />
@@ -150,8 +168,7 @@ export function MediaProductWorkspace({
 
       {/* Tab Content */}
       <Box sx={{ p: 2.5, flexGrow: 1, overflowY: "auto" }}>
-        {/* Tab 0: Overview */}
-        {activeTab === 0 && (
+        {activeTab === WORKSPACE_TABS.overview && (
           <Stack spacing={2.5}>
             <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, gap: 2 }}>
               <Paper sx={{ p: 2, bgcolor: "background.default", border: "1px solid", borderColor: "divider" }}>
@@ -232,34 +249,57 @@ export function MediaProductWorkspace({
                 Configuration Summary
               </Typography>
               <Stack spacing={1}>
-                <Box
-                  sx={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                    cursor: "pointer",
-                    p: 0.5,
-                    borderRadius: 1,
-                    "&:hover": { bgcolor: "action.hover" },
-                  }}
-                  onClick={() => onTabChange(1)}
-                >
-                  <Typography variant="body2" sx={{ color: "text.secondary" }}>
-                    Configurations:
-                  </Typography>
-                  <Typography variant="body2" sx={{ fontWeight: 600, color: "primary.main" }}>
-                    {configurations.length} {configurations.length === 1 ? "configuration" : "configurations"} defined →
-                  </Typography>
-                </Box>
+                {[
+                  {
+                    label: "Incubation conditions:",
+                    value: `${conditions.length} ${conditions.length === 1 ? "condition" : "conditions"} defined →`,
+                    tab: WORKSPACE_TABS.conditions,
+                  },
+                  {
+                    label: "Configurations:",
+                    value: `${configurations.length} ${configurations.length === 1 ? "configuration" : "configurations"} defined →`,
+                    tab: WORKSPACE_TABS.configurations,
+                  },
+                ].map((row) => (
+                  <Box
+                    key={row.tab}
+                    sx={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      cursor: "pointer",
+                      p: 0.5,
+                      borderRadius: 1,
+                      "&:hover": { bgcolor: "action.hover" },
+                    }}
+                    onClick={() => onTabChange(row.tab)}
+                  >
+                    <Typography variant="body2" sx={{ color: "text.secondary" }}>
+                      {row.label}
+                    </Typography>
+                    <Typography variant="body2" sx={{ fontWeight: 600, color: "primary.main" }}>
+                      {row.value}
+                    </Typography>
+                  </Box>
+                ))}
               </Stack>
             </Paper>
           </Stack>
         )}
 
-        {/* Tab 1: Configurations */}
-        {activeTab === 1 && (
+        {activeTab === WORKSPACE_TABS.conditions && (
+          <MediaIncubationConditionsSection
+            product={product}
+            conditions={conditions}
+            onUpdated={onUpdated}
+            isManager={isManager}
+          />
+        )}
+
+        {activeTab === WORKSPACE_TABS.configurations && (
           <MediaConfigurationsSection
             product={product}
+            conditions={conditions}
             configurations={configurations}
             organisms={organisms}
             onUpdated={onUpdated}

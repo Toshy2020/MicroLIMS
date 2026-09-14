@@ -110,6 +110,7 @@ public static class ServiceCollectionExtensions
         services.AddHostedService<MicroLIMS.API.BackgroundServices.CriticalAlertWorker>();
         services.AddScoped<MaterialService>();
         services.AddScoped<MediaProductService>();
+        services.AddScoped<MediaIncubationConditionService>();
         services.AddScoped<EquipmentInventoryService>();
         services.AddScoped<EquipmentConfigurationService>();
         services.AddScoped<PathogenSessionService>();

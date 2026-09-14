@@ -7,7 +7,7 @@ using MicroLIMS.Persistence.DbContext;
 
 namespace MicroLIMS.Application.Services;
 
-public record MediaProductDto(int Id, string Name, string Code, int ConfigurationCount, int BatchCount);
+public record MediaProductDto(int Id, string Name, string Code, int ConfigurationCount, int BatchCount, int IncubationConditionCount);
 
 // Master catalog of dehydrated media products. One MediaProduct exists per
 // medium, holding a free-text Name and a unique short Code (2-10 chars)
@@ -50,7 +50,8 @@ public class MediaProductService
                 p.Name,
                 p.Code,
                 p.Configurations.Count,
-                _db.Materials.Count(m => m.MediaProductId == p.Id)))
+                _db.Materials.Count(m => m.MediaProductId == p.Id),
+                p.IncubationConditions.Count))
             .ToListAsync();
     }
 
@@ -160,6 +161,20 @@ public class MediaProductService
             throw new InvalidOperationException(
                 $"Cannot delete media product '{product.Name}' because it is referenced by {configCount} media configuration(s) and {batchCount} material batch(es).");
         }
+
+        var stepMediaCount = await _db.TestWorkflowStepMedias
+            .CountAsync(sm => sm.IncubationCondition != null && sm.IncubationCondition.MediaProductId == id);
+
+        if (stepMediaCount > 0)
+        {
+            throw new InvalidOperationException(
+                $"Cannot delete media product '{product.Name}' because its incubation conditions are used by {stepMediaCount} Test Master step medium/media.");
+        }
+
+        var unusedConditions = await _db.MediaIncubationConditions
+            .Where(c => c.MediaProductId == id)
+            .ToListAsync();
+        _db.MediaIncubationConditions.RemoveRange(unusedConditions);
 
         _db.MediaProducts.Remove(product);
         await _db.SaveChangesAsync();

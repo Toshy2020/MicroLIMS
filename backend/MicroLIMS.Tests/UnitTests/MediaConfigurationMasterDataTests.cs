@@ -23,34 +23,40 @@ public class MediaConfigurationMasterDataTests
     }
 
     private static MasterDataController CreateController(MicroLimsDbContext db) =>
-        new(db, new EquipmentConfigurationService(db), TestServiceFactory.MediaProduct(db));
+        new(db, new EquipmentConfigurationService(db), TestServiceFactory.MediaProduct(db), TestServiceFactory.MediaIncubationCondition(db));
+
+    private static async Task<MediaConfiguration> AddConfigurationAsync(
+        MicroLimsDbContext db, MediaProduct product, MediaIncubationCondition condition,
+        EvaluationType evaluationType = EvaluationType.GrowthPromotion,
+        List<MediaConfigurationChallenge>? challenges = null)
+    {
+        var config = new MediaConfiguration
+        {
+            MediaProductId = product.Id,
+            Name = product.Name,
+            EvaluationType = evaluationType,
+            MediaIncubationConditionId = condition.Id,
+            Challenges = challenges ?? new List<MediaConfigurationChallenge>()
+        };
+        db.MediaConfigurations.Add(config);
+        await db.SaveChangesAsync();
+        return config;
+    }
 
     [Fact]
     public async Task GetMediaConfigurations_ReturnsConfigurationsWithChallengesAndOrganisms()
     {
         await using var db = NewDb();
         var product = await MediaProductTestData.CreateOrGetAsync(db, "Tryptic Soy Agar", "TSA");
+        var condition = await MediaProductTestData.AddConditionAsync(db, product, 24, 48, 30.0m, 35.0m);
         var org = new Organism { ScientificName = "Staphylococcus aureus", AtccNumber = "6538" };
         db.Organisms.Add(org);
         await db.SaveChangesAsync();
 
-        var config = new MediaConfiguration
-        {
-            MediaProductId = product.Id,
-            Name = product.Name,
-            EvaluationType = EvaluationType.GrowthPromotion,
-            IncubationMinHours = 24,
-            IncubationMaxHours = 48,
-            TemperatureMin = 30.0m,
-            TemperatureMax = 35.0m,
-            RecoveryPercentMin = 70.0m,
-            RecoveryPercentMax = 200.0m,
-            Challenges = new List<MediaConfigurationChallenge>
-            {
-                new() { OrganismId = org.Id }
-            }
-        };
-        db.MediaConfigurations.Add(config);
+        var config = await AddConfigurationAsync(db, product, condition,
+            challenges: new List<MediaConfigurationChallenge> { new() { OrganismId = org.Id } });
+        config.RecoveryPercentMin = 70.0m;
+        config.RecoveryPercentMax = 200.0m;
         await db.SaveChangesAsync();
 
         var controller = CreateController(db);
@@ -67,6 +73,7 @@ public class MediaConfigurationMasterDataTests
     {
         await using var db = NewDb();
         var product = await MediaProductTestData.CreateOrGetAsync(db, "MacConkey Agar", "MCA");
+        var condition = await MediaProductTestData.AddConditionAsync(db, product, 18, 24, 35.0m, 37.0m);
         var org = new Organism { ScientificName = "Escherichia coli", AtccNumber = "8739" };
         db.Organisms.Add(org);
         await db.SaveChangesAsync();
@@ -75,10 +82,7 @@ public class MediaConfigurationMasterDataTests
         var req = new CreateMediaConfigurationRequest(
             product.Id,
             EvaluationType.IndicationInhibition,
-            18,
-            24,
-            35.0m,
-            37.0m,
+            condition.Id,
             null,
             null,
             new List<CreateMediaConfigurationChallengeRequest>
@@ -99,10 +103,7 @@ public class MediaConfigurationMasterDataTests
         Assert.Equal(product.Id, saved.MediaProductId);
         Assert.Equal(product.Name, saved.Name);
         Assert.Equal(EvaluationType.IndicationInhibition, saved.EvaluationType);
-        Assert.Equal(18, saved.IncubationMinHours);
-        Assert.Equal(24, saved.IncubationMaxHours);
-        Assert.Equal(35.0m, saved.TemperatureMin);
-        Assert.Equal(37.0m, saved.TemperatureMax);
+        Assert.Equal(condition.Id, saved.MediaIncubationConditionId);
         Assert.Single(saved.Challenges);
         Assert.Equal(org.Id, saved.Challenges[0].OrganismId);
         Assert.Equal(ChallengeRole.Indication, saved.Challenges[0].ChallengeRole);
@@ -120,94 +121,55 @@ public class MediaConfigurationMasterDataTests
     {
         await using var db = NewDb();
         var controller = CreateController(db);
-        var req = new CreateMediaConfigurationRequest(
-            9999,
-            EvaluationType.GrowthPromotion,
-            24,
-            48,
-            30.0m,
-            35.0m,
-            null,
-            null,
-            null
-        );
+        var req = new CreateMediaConfigurationRequest(9999, EvaluationType.GrowthPromotion, 1, null, null, null);
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => controller.CreateMediaConfiguration(req));
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => controller.CreateMediaConfiguration(req));
+        Assert.Contains("Media product with ID 9999 not found", ex.Message);
     }
 
     [Fact]
-    public async Task CreateMediaConfiguration_InvalidIncubationRange_Throws()
+    public async Task CreateMediaConfiguration_MissingCondition_ThrowsNotFound()
     {
         await using var db = NewDb();
         var product = await MediaProductTestData.CreateOrGetAsync(db, "TSA", "TSA");
         var controller = CreateController(db);
-        var req = new CreateMediaConfigurationRequest(
-            product.Id,
-            EvaluationType.GrowthPromotion,
-            48,
-            24, // Min > Max
-            30.0m,
-            35.0m,
-            null,
-            null,
-            null
-        );
+        var req = new CreateMediaConfigurationRequest(product.Id, EvaluationType.GrowthPromotion, 9999, null, null, null);
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => controller.CreateMediaConfiguration(req));
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => controller.CreateMediaConfiguration(req));
+        Assert.Equal("Incubation condition 9999 not found.", ex.Message);
+        Assert.False(await db.MediaConfigurations.AnyAsync());
     }
 
     [Fact]
-    public async Task CreateMediaConfiguration_InvalidTemperatureRange_Throws()
+    public async Task CreateMediaConfiguration_ConditionOfAnotherProduct_Throws()
     {
         await using var db = NewDb();
         var product = await MediaProductTestData.CreateOrGetAsync(db, "TSA", "TSA");
+        var otherProduct = await MediaProductTestData.CreateOrGetAsync(db, "R2A Agar", "R2A");
+        var otherCondition = await MediaProductTestData.AddConditionAsync(db, otherProduct);
         var controller = CreateController(db);
-        var req = new CreateMediaConfigurationRequest(
-            product.Id,
-            EvaluationType.GrowthPromotion,
-            24,
-            48,
-            40.0m,
-            35.0m, // Min > Max
-            null,
-            null,
-            null
-        );
+        var req = new CreateMediaConfigurationRequest(product.Id, EvaluationType.GrowthPromotion, otherCondition.Id, null, null, null);
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => controller.CreateMediaConfiguration(req));
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => controller.CreateMediaConfiguration(req));
+        Assert.Contains("belongs to a different media product", ex.Message);
+        Assert.False(await db.MediaConfigurations.AnyAsync());
     }
 
     [Fact]
-    public async Task CreateMediaConfiguration_DuplicateProfile_Throws()
+    public async Task CreateMediaConfiguration_SecondConfigurationForSameProduct_Throws()
     {
         await using var db = NewDb();
         var product = await MediaProductTestData.CreateOrGetAsync(db, "Sabouraud Dextrose Agar", "SDA");
-        db.MediaConfigurations.Add(new MediaConfiguration
-        {
-            MediaProductId = product.Id,
-            Name = product.Name,
-            EvaluationType = EvaluationType.GrowthPromotion,
-            IncubationMinHours = 48,
-            IncubationMaxHours = 120,
-            TemperatureMin = 20.0m,
-            TemperatureMax = 25.0m
-        });
-        await db.SaveChangesAsync();
+        var existingCondition = await MediaProductTestData.AddConditionAsync(db, product, 48, 120, 20.0m, 25.0m);
+        var otherCondition = await MediaProductTestData.AddConditionAsync(db, product, 72, 120, 30.0m, 35.0m);
+        await AddConfigurationAsync(db, product, existingCondition);
 
         var controller = CreateController(db);
-        var req = new CreateMediaConfigurationRequest(
-            product.Id,
-            EvaluationType.GrowthPromotion,
-            48,
-            120,
-            20.0m,
-            25.0m,
-            null,
-            null,
-            null
-        );
+        var req = new CreateMediaConfigurationRequest(product.Id, EvaluationType.GrowthPromotion, otherCondition.Id, null, null, null);
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => controller.CreateMediaConfiguration(req));
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => controller.CreateMediaConfiguration(req));
+        Assert.Contains("already has an evaluation configuration", ex.Message);
+        Assert.Single(await db.MediaConfigurations.ToListAsync());
     }
 
     [Fact]
@@ -215,14 +177,12 @@ public class MediaConfigurationMasterDataTests
     {
         await using var db = NewDb();
         var product = await MediaProductTestData.CreateOrGetAsync(db, "Blood Agar", "BA");
+        var condition = await MediaProductTestData.AddConditionAsync(db, product, 24, 48, 35.0m, 37.0m);
         var controller = CreateController(db);
         var req = new CreateMediaConfigurationRequest(
             product.Id,
             EvaluationType.GrowthPromotion,
-            24,
-            48,
-            35.0m,
-            37.0m,
+            condition.Id,
             null,
             null,
             new List<CreateMediaConfigurationChallengeRequest>
@@ -235,40 +195,28 @@ public class MediaConfigurationMasterDataTests
     }
 
     [Fact]
-    public async Task UpdateMediaConfiguration_ValidPayload_UpdatesEntityAndChildChallenges()
+    public async Task UpdateMediaConfiguration_ValidPayload_UpdatesConditionAndChildChallenges()
     {
         await using var db = NewDb();
-        var product1 = await MediaProductTestData.CreateOrGetAsync(db, "XLD Agar", "XLD");
-        var product2 = await MediaProductTestData.CreateOrGetAsync(db, "Xylose Lysine Deoxycholate Agar", "XLDA");
+        var product = await MediaProductTestData.CreateOrGetAsync(db, "XLD Agar", "XLD");
+        var conditionA = await MediaProductTestData.AddConditionAsync(db, product, 18, 24, 35.0m, 37.0m);
+        var conditionB = await MediaProductTestData.AddConditionAsync(db, product, 24, 48, 35.0m, 37.0m);
         var org1 = new Organism { ScientificName = "Escherichia coli", AtccNumber = "8739" };
         var org2 = new Organism { ScientificName = "Salmonella enterica", AtccNumber = "14028" };
         db.Organisms.AddRange(org1, org2);
+        await db.SaveChangesAsync();
 
-        var config = new MediaConfiguration
-        {
-            MediaProductId = product1.Id,
-            Name = product1.Name,
-            EvaluationType = EvaluationType.IndicationInhibition,
-            IncubationMinHours = 18,
-            IncubationMaxHours = 24,
-            TemperatureMin = 35.0m,
-            TemperatureMax = 37.0m,
-            Challenges = new List<MediaConfigurationChallenge>
+        var config = await AddConfigurationAsync(db, product, conditionA, EvaluationType.IndicationInhibition,
+            new List<MediaConfigurationChallenge>
             {
                 new() { OrganismId = org1.Id, ChallengeRole = ChallengeRole.Inhibition }
-            }
-        };
-        db.MediaConfigurations.Add(config);
-        await db.SaveChangesAsync();
+            });
 
         var controller = CreateController(db);
         var req = new UpdateMediaConfigurationRequest(
-            product2.Id,
+            product.Id,
             EvaluationType.IndicationInhibition,
-            24,
-            48,
-            35.0m,
-            37.0m,
+            conditionB.Id,
             null,
             null,
             new List<CreateMediaConfigurationChallengeRequest>
@@ -286,10 +234,9 @@ public class MediaConfigurationMasterDataTests
             .Include(m => m.Challenges)
             .SingleAsync(m => m.Id == config.Id);
 
-        Assert.Equal(product2.Id, updated.MediaProductId);
-        Assert.Equal("Xylose Lysine Deoxycholate Agar", updated.Name);
-        Assert.Equal(24, updated.IncubationMinHours);
-        Assert.Equal(48, updated.IncubationMaxHours);
+        Assert.Equal(product.Id, updated.MediaProductId);
+        Assert.Equal(product.Name, updated.Name);
+        Assert.Equal(conditionB.Id, updated.MediaIncubationConditionId);
         Assert.Single(updated.Challenges);
         Assert.Equal(org2.Id, updated.Challenges[0].OrganismId);
         Assert.Equal(ChallengeRole.Indication, updated.Challenges[0].ChallengeRole);
@@ -302,91 +249,63 @@ public class MediaConfigurationMasterDataTests
     }
 
     [Fact]
-    public async Task UpdateMediaConfiguration_SameProfileSelf_SucceedsWithoutDuplicateError()
+    public async Task UpdateMediaConfiguration_ChangedProduct_Throws()
     {
         await using var db = NewDb();
-        var product = await MediaProductTestData.CreateOrGetAsync(db, "Nutrient Agar", "NA");
-        var config = new MediaConfiguration
-        {
-            MediaProductId = product.Id,
-            Name = product.Name,
-            EvaluationType = EvaluationType.GrowthPromotion,
-            IncubationMinHours = 24,
-            IncubationMaxHours = 48,
-            TemperatureMin = 30.0m,
-            TemperatureMax = 35.0m
-        };
-        db.MediaConfigurations.Add(config);
-        await db.SaveChangesAsync();
+        var product1 = await MediaProductTestData.CreateOrGetAsync(db, "TSA 1", "TSA1");
+        var product2 = await MediaProductTestData.CreateOrGetAsync(db, "TSA 2", "TSA2");
+        var condition1 = await MediaProductTestData.AddConditionAsync(db, product1);
+        var condition2 = await MediaProductTestData.AddConditionAsync(db, product2);
+        var config = await AddConfigurationAsync(db, product1, condition1);
 
         var controller = CreateController(db);
-        var req = new UpdateMediaConfigurationRequest(
-            product.Id,
-            EvaluationType.GrowthPromotion,
-            24,
-            48,
-            30.0m,
-            35.0m,
-            80.0m,
-            150.0m,
-            null
-        );
+        var req = new UpdateMediaConfigurationRequest(product2.Id, EvaluationType.GrowthPromotion, condition2.Id, null, null, null);
 
-        var result = await controller.UpdateMediaConfiguration(config.Id, req);
-        var okResult = Assert.IsType<OkObjectResult>(result);
-        var response = Assert.IsAssignableFrom<ApiResponse<object>>(okResult.Value);
-        Assert.True(response.Success);
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => controller.UpdateMediaConfiguration(config.Id, req));
+        Assert.Contains("can't be moved to another media product", ex.Message);
 
-        var updated = await db.MediaConfigurations.SingleAsync(m => m.Id == config.Id);
-        Assert.Equal(product.Id, updated.MediaProductId);
-        Assert.Equal(product.Name, updated.Name);
-        Assert.Equal(80.0m, updated.RecoveryPercentMin);
-        Assert.Equal(150.0m, updated.RecoveryPercentMax);
+        var reloaded = await db.MediaConfigurations.AsNoTracking().SingleAsync(m => m.Id == config.Id);
+        Assert.Equal(product1.Id, reloaded.MediaProductId);
+        Assert.Equal(condition1.Id, reloaded.MediaIncubationConditionId);
     }
 
     [Fact]
-    public async Task UpdateMediaConfiguration_DuplicateProfileOtherRow_Throws()
+    public async Task UpdateMediaConfiguration_MissingCondition_ThrowsNotFound()
+    {
+        await using var db = NewDb();
+        var product = await MediaProductTestData.CreateOrGetAsync(db, "Nutrient Agar", "NA");
+        var condition = await MediaProductTestData.AddConditionAsync(db, product);
+        var config = await AddConfigurationAsync(db, product, condition);
+
+        var controller = CreateController(db);
+        var req = new UpdateMediaConfigurationRequest(product.Id, EvaluationType.GrowthPromotion, 9999, 80.0m, 150.0m, null);
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => controller.UpdateMediaConfiguration(config.Id, req));
+        Assert.Equal("Incubation condition 9999 not found.", ex.Message);
+
+        var reloaded = await db.MediaConfigurations.AsNoTracking().SingleAsync(m => m.Id == config.Id);
+        Assert.Equal(condition.Id, reloaded.MediaIncubationConditionId);
+        Assert.Null(reloaded.RecoveryPercentMin);
+    }
+
+    [Fact]
+    public async Task UpdateMediaConfiguration_ConditionOfAnotherProduct_Throws()
     {
         await using var db = NewDb();
         var product = await MediaProductTestData.CreateOrGetAsync(db, "Cetrimide Agar", "CA");
-        var configA = new MediaConfiguration
-        {
-            MediaProductId = product.Id,
-            Name = product.Name,
-            EvaluationType = EvaluationType.GrowthPromotion,
-            IncubationMinHours = 18,
-            IncubationMaxHours = 24,
-            TemperatureMin = 35.0m,
-            TemperatureMax = 37.0m
-        };
-        var configB = new MediaConfiguration
-        {
-            MediaProductId = product.Id,
-            Name = product.Name,
-            EvaluationType = EvaluationType.GrowthPromotion,
-            IncubationMinHours = 24,
-            IncubationMaxHours = 48,
-            TemperatureMin = 35.0m,
-            TemperatureMax = 37.0m
-        };
-        db.MediaConfigurations.AddRange(configA, configB);
-        await db.SaveChangesAsync();
+        var otherProduct = await MediaProductTestData.CreateOrGetAsync(db, "R2A Agar", "R2A");
+        var condition = await MediaProductTestData.AddConditionAsync(db, product, 18, 24, 35.0m, 37.0m);
+        var otherCondition = await MediaProductTestData.AddConditionAsync(db, otherProduct, 18, 24, 35.0m, 37.0m);
+        var config = await AddConfigurationAsync(db, product, condition);
 
         var controller = CreateController(db);
-        // Attempt to update B to have configA's profile (18-24h @ 35-37C)
-        var req = new UpdateMediaConfigurationRequest(
-            product.Id,
-            EvaluationType.GrowthPromotion,
-            18,
-            24,
-            35.0m,
-            37.0m,
-            null,
-            null,
-            null
-        );
+        var req = new UpdateMediaConfigurationRequest(product.Id, EvaluationType.GrowthPromotion, otherCondition.Id, null, null, null);
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => controller.UpdateMediaConfiguration(configB.Id, req));
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => controller.UpdateMediaConfiguration(config.Id, req));
+        Assert.Contains("belongs to a different media product", ex.Message);
+
+        var reloaded = await db.MediaConfigurations.AsNoTracking().SingleAsync(m => m.Id == config.Id);
+        Assert.Equal(condition.Id, reloaded.MediaIncubationConditionId);
     }
 
     [Fact]
@@ -394,230 +313,26 @@ public class MediaConfigurationMasterDataTests
     {
         await using var db = NewDb();
         var product = await MediaProductTestData.CreateOrGetAsync(db, "TSA", "TSA");
+        var condition = await MediaProductTestData.AddConditionAsync(db, product);
         var controller = CreateController(db);
-        var req = new UpdateMediaConfigurationRequest(
-            product.Id,
-            EvaluationType.GrowthPromotion,
-            24,
-            48,
-            30.0m,
-            35.0m,
-            null,
-            null,
-            null
-        );
+        var req = new UpdateMediaConfigurationRequest(product.Id, EvaluationType.GrowthPromotion, condition.Id, null, null, null);
 
         await Assert.ThrowsAsync<InvalidOperationException>(() => controller.UpdateMediaConfiguration(9999, req));
     }
 
     [Fact]
-    public async Task DeleteMediaConfiguration_NotReferenced_Succeeds()
+    public async Task DeleteMediaConfiguration_NotReferenced_SucceedsAndKeepsCondition()
     {
         await using var db = NewDb();
         var product = await MediaProductTestData.CreateOrGetAsync(db, "Unused Agar", "UA");
-        var config = new MediaConfiguration
-        {
-            MediaProductId = product.Id,
-            Name = product.Name,
-            EvaluationType = EvaluationType.GrowthPromotion,
-            IncubationMinHours = 24,
-            IncubationMaxHours = 48,
-            TemperatureMin = 30.0m,
-            TemperatureMax = 35.0m
-        };
-        db.MediaConfigurations.Add(config);
-        await db.SaveChangesAsync();
+        var condition = await MediaProductTestData.AddConditionAsync(db, product);
+        var config = await AddConfigurationAsync(db, product, condition);
 
         var controller = CreateController(db);
         var result = await controller.DeleteMediaConfiguration(config.Id);
 
         Assert.IsType<OkObjectResult>(result);
         Assert.False(await db.MediaConfigurations.AnyAsync(m => m.Id == config.Id));
-    }
-
-    [Fact]
-    public async Task DeleteMediaConfiguration_ReferencedByStepMedia_ThrowsNamingTheStep()
-    {
-        await using var db = NewDb();
-        var product = await MediaProductTestData.CreateOrGetAsync(db, "Tryptic Soy Agar", "TSA");
-        var config = new MediaConfiguration
-        {
-            MediaProductId = product.Id,
-            Name = product.Name,
-            EvaluationType = EvaluationType.GrowthPromotion,
-            IncubationMinHours = 1,
-            IncubationMaxHours = 2,
-            TemperatureMin = 30.0m,
-            TemperatureMax = 35.0m
-        };
-        db.MediaConfigurations.Add(config);
-        var material = new Material
-        {
-            MaterialType = MaterialType.DehydratedMedia,
-            MaterialName = product.Name,
-            ManufacturerName = "Himedia",
-            BatchNumber = "LOT-1",
-            ReceivingDate = DateTime.UtcNow,
-            Location = "Micro Lab",
-            QuantityReceived = 500,
-            QuantityRemaining = 500,
-            Unit = MaterialUnit.Gram
-        };
-        db.Materials.Add(material);
-        MediaProductTestData.Link(material, product);
-
-        var testDefinition = new TestDefinition { Code = "TAMC", DisplayName = "TAMC", WorkflowType = WorkflowType.CountTest };
-        db.TestDefinitions.Add(testDefinition);
-        await db.SaveChangesAsync();
-
-        var step = new TestWorkflowStep
-        {
-            TestDefinitionId = testDefinition.Id,
-            StepOrder = 1,
-            StepName = "CountIncubation",
-            IncubationMinHours = 1,
-            IncubationMaxHours = 2,
-            TemperatureMin = 30,
-            TemperatureMax = 35,
-            IsFinalStep = true,
-            StepType = StepType.PlateCount
-        };
-        db.TestWorkflowSteps.Add(step);
-        await db.SaveChangesAsync();
-        db.TestWorkflowStepMedias.Add(new TestWorkflowStepMedia
-        {
-            TestWorkflowStepId = step.Id,
-            MaterialId = material.Id,
-            MediaConfigurationId = config.Id,
-            TempMin = 30,
-            TempMax = 35
-        });
-        await db.SaveChangesAsync();
-
-        var controller = CreateController(db);
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => controller.DeleteMediaConfiguration(config.Id));
-        Assert.Contains("CountIncubation", ex.Message);
-
-        Assert.True(await db.MediaConfigurations.AnyAsync(m => m.Id == config.Id));
-    }
-
-    [Fact]
-    public async Task UpdateMediaConfiguration_ReferencedByStepMedia_RefusesMovingToDifferentProduct()
-    {
-        await using var db = NewDb();
-        var product1 = await MediaProductTestData.CreateOrGetAsync(db, "TSA 1", "TSA1");
-        var product2 = await MediaProductTestData.CreateOrGetAsync(db, "TSA 2", "TSA2");
-
-        var config = new MediaConfiguration
-        {
-            MediaProductId = product1.Id,
-            Name = product1.Name,
-            EvaluationType = EvaluationType.GrowthPromotion,
-            IncubationMinHours = 24,
-            IncubationMaxHours = 48,
-            TemperatureMin = 30,
-            TemperatureMax = 35
-        };
-        db.MediaConfigurations.Add(config);
-
-        var material = new Material
-        {
-            MaterialType = MaterialType.DehydratedMedia,
-            MaterialName = product1.Name,
-            ManufacturerName = "Himedia",
-            BatchNumber = "LOT-1",
-            ReceivingDate = DateTime.UtcNow,
-            Location = "Lab",
-            QuantityReceived = 100,
-            QuantityRemaining = 100,
-            Unit = MaterialUnit.Gram
-        };
-        db.Materials.Add(material);
-        MediaProductTestData.Link(material, product1);
-
-        var testDef = new TestDefinition { Code = "TEST1", DisplayName = "Test 1", WorkflowType = WorkflowType.CountTest };
-        db.TestDefinitions.Add(testDef);
-        await db.SaveChangesAsync();
-
-        var step = new TestWorkflowStep
-        {
-            TestDefinitionId = testDef.Id,
-            StepOrder = 1,
-            StepName = "Step 1",
-            IncubationMinHours = 24,
-            IncubationMaxHours = 48,
-            TemperatureMin = 30,
-            TemperatureMax = 35,
-            StepType = StepType.PlateCount
-        };
-        db.TestWorkflowSteps.Add(step);
-        await db.SaveChangesAsync();
-
-        db.TestWorkflowStepMedias.Add(new TestWorkflowStepMedia
-        {
-            TestWorkflowStepId = step.Id,
-            MaterialId = material.Id,
-            MediaConfigurationId = config.Id,
-            TempMin = 30,
-            TempMax = 35
-        });
-        await db.SaveChangesAsync();
-
-        var controller = CreateController(db);
-        var req = new UpdateMediaConfigurationRequest(
-            product2.Id,
-            EvaluationType.GrowthPromotion,
-            24,
-            48,
-            30,
-            35,
-            null,
-            null,
-            null
-        );
-
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => controller.UpdateMediaConfiguration(config.Id, req));
-        Assert.Contains("This media configuration is used by workflow steps in Test Master, so it can't be moved to a different media product.", ex.Message);
-    }
-
-    [Fact]
-    public async Task UpdateMediaConfiguration_Unreferenced_AllowsMovingToDifferentProduct()
-    {
-        await using var db = NewDb();
-        var product1 = await MediaProductTestData.CreateOrGetAsync(db, "TSA 1", "TSA1");
-        var product2 = await MediaProductTestData.CreateOrGetAsync(db, "TSA 2", "TSA2");
-
-        var config = new MediaConfiguration
-        {
-            MediaProductId = product1.Id,
-            Name = product1.Name,
-            EvaluationType = EvaluationType.GrowthPromotion,
-            IncubationMinHours = 24,
-            IncubationMaxHours = 48,
-            TemperatureMin = 30,
-            TemperatureMax = 35
-        };
-        db.MediaConfigurations.Add(config);
-        await db.SaveChangesAsync();
-
-        var controller = CreateController(db);
-        var req = new UpdateMediaConfigurationRequest(
-            product2.Id,
-            EvaluationType.GrowthPromotion,
-            24,
-            48,
-            30,
-            35,
-            null,
-            null,
-            null
-        );
-
-        var result = await controller.UpdateMediaConfiguration(config.Id, req);
-        Assert.IsType<OkObjectResult>(result);
-
-        var updated = await db.MediaConfigurations.SingleAsync(m => m.Id == config.Id);
-        Assert.Equal(product2.Id, updated.MediaProductId);
-        Assert.Equal(product2.Name, updated.Name);
+        Assert.True(await db.MediaIncubationConditions.AnyAsync(c => c.Id == condition.Id));
     }
 }

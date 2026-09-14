@@ -107,10 +107,7 @@ public class MediaProductServiceTests
             MediaProductId = product.Id,
             Name = product.Name,
             EvaluationType = EvaluationType.GrowthPromotion,
-            IncubationMinHours = 24,
-            IncubationMaxHours = 48,
-            TemperatureMin = 30,
-            TemperatureMax = 35
+            IncubationCondition = MediaProductTestData.Condition(product)
         };
         db.MediaConfigurations.Add(config);
 
@@ -154,10 +151,7 @@ public class MediaProductServiceTests
             MediaProductId = product.Id,
             Name = product.Name,
             EvaluationType = EvaluationType.GrowthPromotion,
-            IncubationMinHours = 24,
-            IncubationMaxHours = 48,
-            TemperatureMin = 30,
-            TemperatureMax = 35
+            IncubationCondition = MediaProductTestData.Condition(product)
         });
         await db.SaveChangesAsync();
 
@@ -205,6 +199,78 @@ public class MediaProductServiceTests
         await service.DeleteAsync(product.Id);
 
         Assert.False(await db.MediaProducts.AnyAsync(p => p.Id == product.Id));
+    }
+
+    [Fact]
+    public async Task DeleteAsync_RemovesUnusedIncubationConditions()
+    {
+        await using var db = NewDb();
+        var service = TestServiceFactory.MediaProduct(db);
+        var product = await service.CreateAsync("TSA", "TSA");
+        await MediaProductTestData.AddConditionAsync(db, product, 24, 48, 30, 35);
+        await MediaProductTestData.AddConditionAsync(db, product, 48, 72, 20, 25);
+
+        await service.DeleteAsync(product.Id);
+
+        Assert.False(await db.MediaProducts.AnyAsync(p => p.Id == product.Id));
+        Assert.False(await db.MediaIncubationConditions.AnyAsync(c => c.MediaProductId == product.Id));
+    }
+
+    [Fact]
+    public async Task DeleteAsync_BlockedWhenConditionUsedByStepMedia()
+    {
+        await using var db = NewDb();
+        var service = TestServiceFactory.MediaProduct(db);
+        var product = await service.CreateAsync("TSA", "TSA");
+        var condition = await MediaProductTestData.AddConditionAsync(db, product);
+
+        // The step medium's batch isn't linked to the product, so only the
+        // condition ties the step medium to it.
+        var material = new Material
+        {
+            MaterialType = MaterialType.DehydratedMedia,
+            MaterialName = "Legacy TSA",
+            ManufacturerName = "Himedia",
+            BatchNumber = "BATCH-1",
+            ReceivingDate = DateTime.UtcNow,
+            Location = "Lab",
+            QuantityReceived = 100,
+            QuantityRemaining = 100,
+            Unit = MaterialUnit.Gram
+        };
+        db.Materials.Add(material);
+        var testDefinition = new TestDefinition { Code = "TAMC", DisplayName = "TAMC", WorkflowType = WorkflowType.CountTest };
+        db.TestDefinitions.Add(testDefinition);
+        await db.SaveChangesAsync();
+
+        var step = new TestWorkflowStep
+        {
+            TestDefinitionId = testDefinition.Id,
+            StepOrder = 1,
+            StepName = "CountIncubation",
+            IsFinalStep = true,
+            StepType = StepType.PlateCount
+        };
+        db.TestWorkflowSteps.Add(step);
+        await db.SaveChangesAsync();
+
+        db.TestWorkflowStepMedias.Add(new TestWorkflowStepMedia
+        {
+            TestWorkflowStepId = step.Id,
+            MaterialId = material.Id,
+            MediaIncubationConditionId = condition.Id,
+            TempMin = 30,
+            TempMax = 35,
+            IncubationMinHours = 24,
+            IncubationMaxHours = 48
+        });
+        await db.SaveChangesAsync();
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+            () => service.DeleteAsync(product.Id));
+        Assert.Contains("used by 1 Test Master step medium/media", ex.Message);
+        Assert.True(await db.MediaProducts.AnyAsync(p => p.Id == product.Id));
+        Assert.True(await db.MediaIncubationConditions.AnyAsync(c => c.Id == condition.Id));
     }
 
     [Fact]

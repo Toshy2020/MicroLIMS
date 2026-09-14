@@ -61,7 +61,7 @@ public class MaterialConsumptionTests
         {
             MediaProductId = product.Id,
             Name = material.MaterialName, EvaluationType = EvaluationType.GrowthPromotion,
-            IncubationMinHours = 24, IncubationMaxHours = 48, TemperatureMin = 30, TemperatureMax = 35,
+            IncubationCondition = MediaProductTestData.Condition(product),
             RecoveryPercentMin = 50, RecoveryPercentMax = 200
         });
         await db.SaveChangesAsync();

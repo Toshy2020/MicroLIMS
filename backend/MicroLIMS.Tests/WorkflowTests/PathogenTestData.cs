@@ -72,14 +72,14 @@ public static class PathogenTestData
             {
                 MediaProductId = xldProduct.Id,
                 Name = "XLD Agar", EvaluationType = EvaluationType.IndicationInhibition,
-                IncubationMinHours = 18, IncubationMaxHours = 24, TemperatureMin = 35, TemperatureMax = 37,
+                IncubationCondition = MediaProductTestData.Condition(xldProduct, 18, 24, 35, 37),
                 Challenges = new List<MediaConfigurationChallenge> { new() { OrganismId = organism.Id, ExpectedDescription = "Red colonies with black centres" } }
             },
             new MediaConfiguration
             {
                 MediaProductId = tsiProduct.Id,
                 Name = "TSI Agar", EvaluationType = EvaluationType.IndicationInhibition,
-                IncubationMinHours = 18, IncubationMaxHours = 24, TemperatureMin = 35, TemperatureMax = 37,
+                IncubationCondition = MediaProductTestData.Condition(tsiProduct, 18, 24, 35, 37),
                 Challenges = new List<MediaConfigurationChallenge> { new() { OrganismId = organism.Id, ExpectedDescription = "Alkaline slant, acid butt, H2S positive" } }
             });
         await db.SaveChangesAsync();

@@ -128,6 +128,9 @@ public class MediaEvaluationEngine : IMediaEvaluationEngine
         var evaluation = challenge.MediaEvaluation!;
         var config = await GetCanonicalConfigAsync(evaluation.Media!);
 
+        var condition = config.IncubationCondition
+            ?? throw new InvalidOperationException($"Media Configuration for lot \"{evaluation.Media!.LotNumber}\" is missing an incubation condition.");
+
         var startedAt = DateTime.UtcNow;
         var incubation = new Incubation
         {
@@ -136,13 +139,13 @@ public class MediaEvaluationEngine : IMediaEvaluationEngine
             IncubatorEquipmentId = incubatorEquipmentId,
             StartedAt = startedAt,
             StartedByUserId = userId,
-            Temperature = $"{config.TemperatureMin}-{config.TemperatureMax}",
-            Duration = $"{config.IncubationMinHours}-{config.IncubationMaxHours}",
+            Temperature = $"{condition.TemperatureMin}-{condition.TemperatureMax}",
+            Duration = $"{condition.IncubationMinHours}-{condition.IncubationMaxHours}",
             // The Duration's minimum is a hard gate, not a suggestion -
             // RecordResultAsync refuses to record a result before this
             // time, so a result can never be entered right after
             // incubation is set up.
-            ExpectedReadingAt = startedAt.AddHours(config.IncubationMinHours)
+            ExpectedReadingAt = startedAt.AddHours(condition.IncubationMinHours)
         };
         _db.Incubations.Add(incubation);
         await _db.SaveChangesAsync();
@@ -265,19 +268,15 @@ public class MediaEvaluationEngine : IMediaEvaluationEngine
         return challenge;
     }
 
-    // A product can have more than one MediaConfiguration row (e.g.
-    // Tryptic Soy Agar's Standard vs. Extended Transfer usages). For the
-    // GPT/challenge evaluation specifically - a property of the prepared
-    // lot itself, not of any downstream TestWorkflowStep - the lowest-Id
-    // row is the confirmed canonical one (see the Media Configuration
-    // Migration plan: for Tryptic Soy Agar this resolves to "Standard",
-    // 1-2h @ 30-35C, not "Extended Transfer").
+    // Exactly one MediaConfiguration exists per product (unique on MediaProductId).
+    // Includes IncubationCondition so evaluation incubation parameters can be read.
     private async Task<MediaConfiguration> GetCanonicalConfigAsync(Media media)
     {
         var productId = media.Material?.MediaProductId
             ?? throw new InvalidOperationException($"Media lot \"{media.LotNumber}\" is not linked to a configured media product.");
 
         return await _db.MediaConfigurations
+            .Include(c => c.IncubationCondition)
             .Where(c => c.MediaProductId == productId)
             .OrderBy(c => c.Id)
             .FirstOrDefaultAsync()

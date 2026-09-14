@@ -178,7 +178,7 @@ public class GroupedTestActionService
                     {
                         var nextStepMedias = await _db.TestWorkflowStepMedias
                             .Include(m => m.Material)
-                            .Include(m => m.MediaConfiguration)
+                            .Include(m => m.IncubationCondition)
                             .Where(m => m.TestWorkflowStepId == nextStep.Id)
                             .ToListAsync(ct);
 
@@ -332,7 +332,7 @@ public class GroupedTestActionService
 
                 var stepMediaList = await _db.TestWorkflowStepMedias
                     .Include(m => m.Material)
-                    .Include(m => m.MediaConfiguration)
+                    .Include(m => m.IncubationCondition)
                     .Where(m => m.TestWorkflowStepId == step.Id)
                     .ToListAsync(ct);
 
@@ -810,7 +810,7 @@ public class GroupedTestActionService
             ?? throw new InvalidOperationException($"Test order {testOrderId} not found.");
         var definition = await _db.TestDefinitions
             .Include(t => t.Steps).ThenInclude(s => s.StepMedia).ThenInclude(m => m.Material)
-            .Include(t => t.Steps).ThenInclude(s => s.StepMedia).ThenInclude(m => m.MediaConfiguration)
+            .Include(t => t.Steps).ThenInclude(s => s.StepMedia).ThenInclude(m => m.IncubationCondition)
             .Include(t => t.Steps).ThenInclude(s => s.IncubationStages)
             .FirstOrDefaultAsync(t => t.Code == order.TestCode, ct)
             ?? throw new InvalidOperationException($"Test definition \"{order.TestCode}\" not found.");

@@ -22,15 +22,30 @@ public class StepMediumProductMatchingTests
     }
 
     [Fact]
-    public void StepMediumMatcher_SameProductViaMediaConfiguration_Matches()
+    public void StepMediumMatcher_SameProductViaIncubationCondition_Matches()
     {
         var stepMedium = new TestWorkflowStepMedia
         {
             MaterialId = 10,
-            MediaConfiguration = new MediaConfiguration { MediaProductId = 5 }
+            IncubationCondition = new MediaIncubationCondition { MediaProductId = 5 }
         };
 
         Assert.True(StepMediumMatcher.Matches(stepMedium, 20, 5));
+    }
+
+    [Fact]
+    public void StepMediumMatcher_ConditionProductTakesPrecedenceOverMaterialProduct()
+    {
+        var stepMedium = new TestWorkflowStepMedia
+        {
+            MaterialId = 10,
+            Material = new Material { MediaProductId = 6 },
+            IncubationCondition = new MediaIncubationCondition { MediaProductId = 5 }
+        };
+
+        Assert.Equal(5, StepMediumMatcher.ProductOf(stepMedium));
+        Assert.True(StepMediumMatcher.Matches(stepMedium, 20, 5));
+        Assert.False(StepMediumMatcher.Matches(stepMedium, 20, 6));
     }
 
     [Fact]
@@ -51,7 +66,7 @@ public class StepMediumProductMatchingTests
         var stepMedium = new TestWorkflowStepMedia
         {
             MaterialId = 10,
-            MediaConfiguration = new MediaConfiguration { MediaProductId = 5 }
+            IncubationCondition = new MediaIncubationCondition { MediaProductId = 5 }
         };
 
         Assert.False(StepMediumMatcher.Matches(stepMedium, 20, 6));
@@ -176,7 +191,7 @@ public class StepMediumProductMatchingTests
 
         // Forget everything seeded above, so the engine loads the step medium
         // from the store the way a real request does - without this, change
-        // tracking fills in its Material/MediaConfiguration and the test
+        // tracking fills in its Material/IncubationCondition and the test
         // would pass even if RequireSingleStepMediumAsync never loaded them.
         db.ChangeTracker.Clear();
 

@@ -53,8 +53,7 @@ public class MediaEvaluationEngineTests
         {
             MediaProductId = product.Id,
             Name = materialName, EvaluationType = evaluationType,
-            IncubationMinHours = 24, IncubationMaxHours = 48,
-            TemperatureMin = 30, TemperatureMax = 35,
+            IncubationCondition = MediaProductTestData.Condition(product),
             RecoveryPercentMin = recoveryMin, RecoveryPercentMax = recoveryMax,
             Challenges = specs
         });

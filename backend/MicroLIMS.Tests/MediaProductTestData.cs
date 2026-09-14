@@ -56,6 +56,24 @@ public static class MediaProductTestData
         material.Code = product.Code;
     }
 
+    public static MediaIncubationCondition Condition(MediaProduct product, int minHours = 24, int maxHours = 48, decimal tempMin = 30, decimal tempMax = 35) =>
+        new()
+        {
+            MediaProductId = product.Id,
+            IncubationMinHours = minHours,
+            IncubationMaxHours = maxHours,
+            TemperatureMin = tempMin,
+            TemperatureMax = tempMax
+        };
+
+    public static async Task<MediaIncubationCondition> AddConditionAsync(MicroLimsDbContext db, MediaProduct product, int minHours = 24, int maxHours = 48, decimal tempMin = 30, decimal tempMax = 35)
+    {
+        var condition = Condition(product, minHours, maxHours, tempMin, tempMax);
+        db.MediaIncubationConditions.Add(condition);
+        await db.SaveChangesAsync();
+        return condition;
+    }
+
     public static void Link(MediaConfiguration config, MediaProduct product)
     {
         config.MediaProductId = product.Id;

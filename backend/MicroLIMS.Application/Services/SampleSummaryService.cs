@@ -123,7 +123,7 @@ public class SampleSummaryService
                     .ThenInclude(m => m.Material)
             .Include(t => t.Steps)
                 .ThenInclude(s => s.StepMedia)
-                    .ThenInclude(m => m.MediaConfiguration)
+                    .ThenInclude(m => m.IncubationCondition)
             .Include(t => t.Steps)
                 .ThenInclude(s => s.IncubationStages)
             .Where(t => effectiveTestOrders.Select(o => o.TestCode).Contains(t.Code))

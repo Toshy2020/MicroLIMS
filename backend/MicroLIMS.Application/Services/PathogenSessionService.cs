@@ -269,7 +269,7 @@ public class PathogenSessionService
                     .ThenInclude(m => m.Material)
             .Include(t => t.Steps)
                 .ThenInclude(s => s.StepMedia)
-                    .ThenInclude(m => m.MediaConfiguration)
+                    .ThenInclude(m => m.IncubationCondition)
             .Where(t => testCodes.Contains(t.Code))
             .ToDictionaryAsync(t => t.Code);
 

@@ -42,7 +42,7 @@ public class MediaAppearanceSnapshotTests
             {
                 MediaProductId = product.Id,
                 Name = "EMB Agar", EvaluationType = EvaluationType.IndicationInhibition,
-                IncubationMinHours = 18, IncubationMaxHours = 24, TemperatureMin = 30, TemperatureMax = 35,
+                IncubationCondition = MediaProductTestData.Condition(product, 18, 24),
                 Challenges = new List<MediaConfigurationChallenge>
                 {
                     new() { OrganismId = organism.Id, ExpectedDescription = expectedDescription }

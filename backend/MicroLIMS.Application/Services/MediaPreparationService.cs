@@ -60,14 +60,9 @@ public class MediaPreparationService
         var product = await _db.MediaProducts.FirstOrDefaultAsync(p => p.Id == material.MediaProductId.Value)
             ?? throw new InvalidOperationException($"Media product with ID {material.MediaProductId.Value} not found.");
 
-        // A product can have more than one MediaConfiguration row (e.g.
-        // Tryptic Soy Agar's Standard vs. Extended Transfer usages - see
-        // the Media Configuration Migration plan). All rows sharing a
-        // product carry the same EvaluationType and challenge organisms
-        // (Phase 3 duplicated challenges across every row for exactly
-        // this reason), so picking the lowest-Id row is a stable,
-        // deterministic choice, not an arbitrary one, for GPT-evaluation
-        // purposes specifically.
+        // Exactly one MediaConfiguration exists per product (unique on
+        // MediaProductId), carrying its EvaluationType and challenge organisms.
+        // The OrderBy(c => c.Id) is preserved for consistency with earlier phases.
         var config = await _db.MediaConfigurations.Include(c => c.Challenges)
             .Where(c => c.MediaProductId == product.Id)
             .OrderBy(c => c.Id)

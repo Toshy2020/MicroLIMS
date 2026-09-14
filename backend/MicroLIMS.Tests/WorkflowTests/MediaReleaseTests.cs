@@ -60,8 +60,7 @@ public class MediaReleaseTests
         {
             MediaProductId = product.Id,
             Name = "TSA", EvaluationType = EvaluationType.GrowthPromotion,
-            IncubationMinHours = 24, IncubationMaxHours = 48,
-            TemperatureMin = 30, TemperatureMax = 35,
+            IncubationCondition = MediaProductTestData.Condition(product),
             RecoveryPercentMin = 50, RecoveryPercentMax = 200,
             Challenges = new List<MediaConfigurationChallenge> { new() { OrganismId = organism.Id } }
         });

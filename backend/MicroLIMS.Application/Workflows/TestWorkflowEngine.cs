@@ -201,7 +201,7 @@ public class TestWorkflowEngine : ITestWorkflowEngine
         var definition = await _db.TestDefinitions
             .Include(t => t.Steps).ThenInclude(s => s.IncubationStages)
             .Include(t => t.Steps).ThenInclude(s => s.StepMedia).ThenInclude(m => m.Material)
-            .Include(t => t.Steps).ThenInclude(s => s.StepMedia).ThenInclude(m => m.MediaConfiguration)
+            .Include(t => t.Steps).ThenInclude(s => s.StepMedia).ThenInclude(m => m.IncubationCondition)
             .Include(t => t.Steps).ThenInclude(s => s.PhenotypicTests)
             .FirstOrDefaultAsync(t => t.Code == order.TestCode)
             ?? throw new InvalidOperationException($"Test code \"{order.TestCode}\" has no workflow template configured in Test Master.");
@@ -583,7 +583,7 @@ public class TestWorkflowEngine : ITestWorkflowEngine
             throw new InvalidOperationException($"Media lot \"{media.LotNumber}\" is not released for use, out of stock, or rejected.");
 
         var stepMedia = await _db.TestWorkflowStepMedias
-            .Include(m => m.MediaConfiguration)
+            .Include(m => m.IncubationCondition)
             .Include(m => m.Material)
             .Where(m => m.TestWorkflowStepId == step.Id)
             .ToListAsync();
@@ -1731,22 +1731,22 @@ public class TestWorkflowEngine : ITestWorkflowEngine
     {
         var medium = step.StepMedia.FirstOrDefault()
             ?? await _db.TestWorkflowStepMedias
-                .Include(m => m.MediaConfiguration)
+                .Include(m => m.IncubationCondition)
                 .Include(m => m.Material)
                 .FirstOrDefaultAsync(m => m.TestWorkflowStepId == step.Id)
             ?? throw new InvalidOperationException(
                 $"Step \"{step.StepName}\" has no assigned medium - complete this step's template in Test Master before recording results.");
 
         // StepMediumMatcher reads the product through Material and
-        // MediaConfiguration. LoadWithTemplateAsync includes them, but a
+        // IncubationCondition. LoadWithTemplateAsync includes them, but a
         // template loaded without them would make LoadReleasedLotAsync
         // silently refuse a lot from another batch of the same product - so
         // this reloads the medium when they're missing (guarded by
         // StepMediumProductMatchingTests, which clears the change tracker).
-        if (medium.Material is null || (medium.MediaConfigurationId != null && medium.MediaConfiguration is null))
+        if (medium.Material is null || (medium.MediaIncubationConditionId != null && medium.IncubationCondition is null))
         {
             medium = await _db.TestWorkflowStepMedias
-                .Include(m => m.MediaConfiguration)
+                .Include(m => m.IncubationCondition)
                 .Include(m => m.Material)
                 .FirstAsync(m => m.Id == medium.Id);
         }
@@ -1777,7 +1777,7 @@ public class TestWorkflowEngine : ITestWorkflowEngine
             ?? throw new InvalidOperationException($"Media lot {mediaLotId} not found.");
 
         var stepMedia = await _db.TestWorkflowStepMedias
-            .Include(m => m.MediaConfiguration)
+            .Include(m => m.IncubationCondition)
             .Include(m => m.Material)
             .Where(m => m.TestWorkflowStepId == stepId)
             .ToListAsync();
@@ -2150,7 +2150,7 @@ public class TestWorkflowEngine : ITestWorkflowEngine
                 "At least one confirmatory medium must be selected.");
 
         var permitted = await _db.TestWorkflowStepMedias
-            .Include(m => m.MediaConfiguration)
+            .Include(m => m.IncubationCondition)
             .Include(m => m.Material)
             .Where(m => m.TestWorkflowStepId == step.Id)
             .ToDictionaryAsync(m => m.Id);

@@ -130,10 +130,7 @@ public class MediaProductPreparationTests
             MediaProductId = product.Id,
             Name = product.Name,
             EvaluationType = EvaluationType.GrowthPromotion,
-            IncubationMinHours = 24,
-            IncubationMaxHours = 48,
-            TemperatureMin = 30,
-            TemperatureMax = 35
+            IncubationCondition = MediaProductTestData.Condition(product)
         });
         await db.SaveChangesAsync();
         await SeedCurrentCoaAsync(db, material.Id);
@@ -174,10 +171,7 @@ public class MediaProductPreparationTests
             MediaProductId = product.Id,
             Name = product.Name,
             EvaluationType = EvaluationType.GrowthPromotion,
-            IncubationMinHours = 24,
-            IncubationMaxHours = 48,
-            TemperatureMin = 30,
-            TemperatureMax = 35
+            IncubationCondition = MediaProductTestData.Condition(product)
         });
 
         // Existing lot TSA/03/{Yy}
@@ -234,10 +228,7 @@ public class MediaProductPreparationTests
             MediaProductId = product.Id,
             Name = "Different Display Name On Configuration",
             EvaluationType = EvaluationType.GrowthPromotion,
-            IncubationMinHours = 24,
-            IncubationMaxHours = 48,
-            TemperatureMin = 30,
-            TemperatureMax = 35,
+            IncubationCondition = MediaProductTestData.Condition(product),
             RecoveryPercentMin = 70,
             RecoveryPercentMax = 200,
             Challenges = new List<MediaConfigurationChallenge>

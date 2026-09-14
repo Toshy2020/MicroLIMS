@@ -83,6 +83,7 @@ public class MicroLimsDbContext : Microsoft.EntityFrameworkCore.DbContext
 
     // Media Configuration
     public DbSet<MediaProduct> MediaProducts => Set<MediaProduct>();
+    public DbSet<MediaIncubationCondition> MediaIncubationConditions => Set<MediaIncubationCondition>();
     public DbSet<MediaConfiguration> MediaConfigurations => Set<MediaConfiguration>();
     public DbSet<MediaConfigurationChallenge> MediaConfigurationChallenges => Set<MediaConfigurationChallenge>();
 

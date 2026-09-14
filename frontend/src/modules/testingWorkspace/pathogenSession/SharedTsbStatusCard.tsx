@@ -1,4 +1,4 @@
-import { Box, Typography, Stack, Chip, Divider, useTheme } from "@mui/material";
+import { Alert, Box, Typography, Stack, Chip, Divider, useTheme } from "@mui/material";
 import ScienceOutlinedIcon from "@mui/icons-material/ScienceOutlined";
 import AccessTimeOutlinedIcon from "@mui/icons-material/AccessTimeOutlined";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutlined";
@@ -89,7 +89,7 @@ export function SharedTsbStatusCard({ sharedTsb }: Props) {
 
         <Chip
           icon={sharedTsb.isCompleted ? <CheckCircleOutlineIcon /> : <AccessTimeOutlinedIcon />}
-          label={sharedTsb.isCompleted ? "Incubation Completed" : "Incubating in Progress"}
+          label={sharedTsb.isCompleted ? "Incubation Completed" : sharedTsb.windowNotConfigured ? "Window Not Configured" : "Incubating in Progress"}
           size="small"
           sx={{
             fontWeight: 700,
@@ -102,6 +102,13 @@ export function SharedTsbStatusCard({ sharedTsb }: Props) {
       </Stack>
 
       <Divider sx={{ my: 1.5, borderColor: theme.custom.status.purple.border }} />
+
+      {sharedTsb.windowNotConfigured && (
+        <Alert severity="error" sx={{ mb: 2 }}>
+          A test on this shared TSB has no incubation window configured for its medium in Test Master, so the TSB can't be
+          reported as ready. Set the medium's incubation hours and temperature in Test Master.
+        </Alert>
+      )}
 
       <Box
         sx={{
@@ -139,7 +146,7 @@ export function SharedTsbStatusCard({ sharedTsb }: Props) {
             {sharedTsb.incubatorCode ?? "—"}
           </Typography>
           <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
-            {sharedTsb.temperature ?? "30–35 °C"}
+            {sharedTsb.temperature ?? "—"}
           </Typography>
         </Box>
 
@@ -160,10 +167,10 @@ export function SharedTsbStatusCard({ sharedTsb }: Props) {
             Available From
           </Typography>
           <Typography sx={{ fontSize: 13, fontWeight: 700, color: theme.custom.status.notDetected.text }}>
-            {formatDate(sharedTsb.minReadyAt ?? sharedTsb.actualStartUtc)}
+            {formatDate(sharedTsb.minReadyAt)}
           </Typography>
           <Typography sx={{ fontSize: 11, color: theme.custom.status.notDetected.text, fontWeight: 600 }}>
-            Unlock Point ({sharedTsb.requiredDurationRange ?? "18–24 h"})
+            Unlock Point ({sharedTsb.requiredDurationRange ?? "not configured"})
           </Typography>
         </Box>
 
@@ -175,7 +182,7 @@ export function SharedTsbStatusCard({ sharedTsb }: Props) {
             {formatDate(sharedTsb.expectedCompletionUtc)}
           </Typography>
           <Typography sx={{ fontSize: 11, color: "text.secondary" }}>
-            Max Duration: {sharedTsb.incubationDurationHours ?? 24} h
+            Max Duration: {sharedTsb.incubationDurationHours != null ? `${sharedTsb.incubationDurationHours} h` : "—"}
           </Typography>
         </Box>
       </Box>

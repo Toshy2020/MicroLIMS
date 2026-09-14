@@ -275,8 +275,11 @@ export function SharedTsbEnrichmentPanel({ session, onUpdated, onNext }: Props) 
             {/* Read-Only Controlled Parameters from Test Master */}
             <TextField
               label="Required Incubation Temperature *"
-              value={session.sharedTsb.requiredTemperatureRange ?? "30.0 – 35.0 °C"}
-              helperText="Controlled specification from approved Test Master workflow"
+              value={session.sharedTsb.requiredTemperatureRange ?? "Not configured in Test Master"}
+              helperText={session.sharedTsb.windowNotConfigured
+                ? "A TSB test's medium has no incubation window in Test Master - a start on that medium is refused until it is set"
+                : "Each test's own TSB medium from the approved Test Master workflow"}
+              error={Boolean(session.sharedTsb.windowNotConfigured)}
               fullWidth
               size="small"
               sx={{ bgcolor: "background.default" }}
@@ -287,8 +290,9 @@ export function SharedTsbEnrichmentPanel({ session, onUpdated, onNext }: Props) 
 
             <TextField
               label="Required Incubation Time *"
-              value={session.sharedTsb.requiredDurationRange ?? "18 – 24 h"}
-              helperText="Controlled duration from approved Test Master workflow"
+              value={session.sharedTsb.requiredDurationRange ?? "Not configured in Test Master"}
+              helperText="Each test keeps its own duration; the shared tube only starts them together"
+              error={Boolean(session.sharedTsb.windowNotConfigured)}
               fullWidth
               size="small"
               sx={{ bgcolor: "background.default" }}

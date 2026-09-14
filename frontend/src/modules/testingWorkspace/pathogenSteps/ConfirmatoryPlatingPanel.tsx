@@ -9,6 +9,7 @@ import {
   GrowthObservation, AnalystDecision
 } from "../types/testWorkflowTypes";
 import { parseWorkflowError, workflowErrorDisplayMessage } from "../utils/workflowErrors";
+import { INCUBATION_WINDOW_NOT_CONFIGURED_MESSAGE, serverIncubationWindow } from "../utils/incubationWindow";
 import { useAuth } from "../../../contexts/AuthContext";
 import { ConfirmationDialog } from "../../../components/ConfirmationDialog";
 
@@ -67,31 +68,13 @@ export function ConfirmatoryPlatingPanel({ testOrderId, step, current, onSubmitt
     : null;
   const isStepIncubating = Boolean(openIncubationRow || current?.incubationLock?.isLocked);
 
-  const incubationStartUtc = openIncubationRow?.incubationStartUtc
-    ? new Date(openIncubationRow.incubationStartUtc)
-    : null;
-
-  // Incubation specifications: stepMedia is authoritative, step fallback
-  const firstMedia = step?.stepMedia?.[0];
-  const tempMin = (firstMedia && firstMedia.tempMin > 0) ? firstMedia.tempMin : step?.temperatureMin;
-  const tempMax = (firstMedia && firstMedia.tempMax > 0) ? firstMedia.tempMax : step?.temperatureMax;
-  const incMinHours = (firstMedia && (firstMedia.incubationMinHours ?? 0) > 0) ? firstMedia.incubationMinHours! : step?.incubationMinHours;
-  const incMaxHours = (firstMedia && (firstMedia.incubationMaxHours ?? 0) > 0) ? firstMedia.incubationMaxHours! : step?.incubationMaxHours;
-
-  const minReadyAt = incubationStartUtc && incMinHours != null
-    ? new Date(incubationStartUtc.getTime() + incMinHours * 3600 * 1000)
-    : null;
-
-  const expectedEndAt = current?.incubationLock?.incubationEndUtc
-    ? new Date(current.incubationLock.incubationEndUtc)
-    : (incubationStartUtc && incMaxHours != null
-        ? new Date(incubationStartUtc.getTime() + incMaxHours * 3600 * 1000)
-        : null);
-
-  const isTimeReady = (minReadyAt != null
-    ? new Date() >= minReadyAt
-    : (current?.incubationLock ? current.incubationLock.remainingSeconds <= 0 : true))
-    || (current?.incubationLock?.minimumDurationOverridden ?? false);
+  // Window, start, readiness and expected end exactly as the server resolved
+  // them (the panel's longest window across its chosen media) - no local
+  // hour calculations.
+  const {
+    tempMin, tempMax, minHours: incMinHours, maxHours: incMaxHours,
+    incubationStartUtc, minReadyAt, expectedEndAt, windowNotConfigured, isTimeReady
+  } = serverIncubationWindow(step, current);
 
   const initialPhase: Phase =
     !isStepIncubating ? "setup" :
@@ -323,10 +306,12 @@ export function ConfirmatoryPlatingPanel({ testOrderId, step, current, onSubmitt
               Incubation Duration (from Test Master)
             </Typography>
             <Typography variant="body2" sx={{ fontWeight: 600 }}>
-              {step.incubationMinHours}–{step.incubationMaxHours} hours
+              {step.incubationMaxHours > 0
+                ? `${step.incubationMinHours}–${step.incubationMaxHours} hours`
+                : "Not configured in Test Master"}
             </Typography>
             <Typography variant="caption" sx={{ color: "text.secondary" }}>
-              Shared by every selected medium
+              Each medium keeps its own window; the shared incubation runs to the longest one selected
             </Typography>
           </Box>
           <Stack direction="row" sx={{
@@ -372,6 +357,10 @@ export function ConfirmatoryPlatingPanel({ testOrderId, step, current, onSubmitt
             )}
           </Alert>
 
+          {windowNotConfigured && (
+            <Alert severity="error">{INCUBATION_WINDOW_NOT_CONFIGURED_MESSAGE}</Alert>
+          )}
+
           {minReadyAt && (
             <Alert severity="warning">
               Not ready yet — available from <strong>{minReadyAt.toLocaleString()}</strong>. Confirmatory plate observation entry will unlock once the incubation period has completed.
@@ -384,7 +373,7 @@ export function ConfirmatoryPlatingPanel({ testOrderId, step, current, onSubmitt
               justifyContent: "space-between",
               alignItems: "center"
             }}>
-            {canOverride ? (
+            {canOverride && !windowNotConfigured ? (
               <Button variant="outlined" color="warning" onClick={() => setSkipDialogOpen(true)} disabled={skipping}>
                 Skip Wait
               </Button>

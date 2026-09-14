@@ -13,6 +13,7 @@ import {
   TestWorkflowStepDto, PermittedConfirmatoryMediaEntry, CurrentStepResponse, SiblingPathogenOrder
 } from "../types/testWorkflowTypes";
 import { parseWorkflowError, workflowErrorDisplayMessage } from "../utils/workflowErrors";
+import { INCUBATION_WINDOW_NOT_CONFIGURED_MESSAGE } from "../utils/incubationWindow";
 import { FloatingDialog } from "../../../components/FloatingDialog";
 
 interface Props {
@@ -96,13 +97,17 @@ export function BrothStepPanel({ testOrderId, step, current, onSubmitted }: Prop
   };
 
   if (isSharedTsbApplied) {
+    // Without the server's shared TSB summary, show only what the recorded
+    // incubation row says - never a made-up readiness time or completion.
+    const sharedRow = current?.previousSteps?.find((p) => p.isSharedSessionStep);
     const summary = sharedTsb ?? {
-      mediaLotNumber: current?.previousSteps?.find((p) => p.isSharedSessionStep)?.lotNumber ?? "TSB Lot",
-      incubatorCode: current?.previousSteps?.find((p) => p.isSharedSessionStep)?.incubatorName ?? "INC",
-      incubationStartUtc: current?.previousSteps?.find((p) => p.isSharedSessionStep)?.incubationStartUtc ?? new Date().toISOString(),
-      minReadyAt: current?.previousSteps?.find((p) => p.isSharedSessionStep)?.incubationEndUtc ?? new Date().toISOString(),
+      mediaLotNumber: sharedRow?.lotNumber ?? null,
+      incubatorCode: sharedRow?.incubatorName ?? null,
+      incubationStartUtc: sharedRow?.incubationStartUtc ?? null,
+      minReadyAt: null,
       startedByUserName: "Analyst",
-      isCompleted: true
+      isCompleted: sharedRow?.status === "Complete",
+      windowNotConfigured: false
     };
 
     if (error) {
@@ -119,6 +124,12 @@ export function BrothStepPanel({ testOrderId, step, current, onSubmitted }: Prop
           <AlertTitle sx={{ fontWeight: 700 }}>Shared TSB Applied</AlertTitle>
           This test is linked to the shared TSB for this sample. There is one shared tube per sample — no separate broth entry required.
         </Alert>
+
+        {summary.windowNotConfigured && (
+          <Alert severity="error" sx={{ mb: 2 }}>
+            {INCUBATION_WINDOW_NOT_CONFIGURED_MESSAGE}
+          </Alert>
+        )}
 
         <Box sx={{ backgroundColor: theme.custom.status.notDetected.bg, border: "1px solid", borderColor: theme.custom.status.notDetected.border, borderRadius: 1.5, p: 2, mb: 2 }}>
           <Typography variant="body2" sx={{ mb: 0.5 }}>
@@ -144,7 +155,7 @@ export function BrothStepPanel({ testOrderId, step, current, onSubmitted }: Prop
           <Button
             variant="contained"
             onClick={handleProceedSharedTsb}
-            disabled={saving}
+            disabled={saving || Boolean(summary.windowNotConfigured)}
             startIcon={saving ? <CircularProgress size={16} color="inherit" /> : undefined}
           >
             {saving ? "Advancing..." : "Proceed to Next Step →"}

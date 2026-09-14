@@ -8,6 +8,7 @@ import {
   TestWorkflowStepDto, CurrentStepResponse, PermittedConfirmatoryMediaEntry, GrowthObservation
 } from "../types/testWorkflowTypes";
 import { parseWorkflowError, workflowErrorDisplayMessage } from "../utils/workflowErrors";
+import { INCUBATION_WINDOW_NOT_CONFIGURED_MESSAGE, serverIncubationWindow } from "../utils/incubationWindow";
 import { useAuth } from "../../../contexts/AuthContext";
 import { ConfirmationDialog } from "../../../components/ConfirmationDialog";
 
@@ -32,7 +33,6 @@ export function SelectivePlatingPanel({ testOrderId, step, current, onSubmitted 
   const [skipping, setSkipping] = useState(false);
   const { role } = useAuth();
   const canOverride = role === "SectionHead" || role === "SystemAdministrator";
-  const alreadyOverridden = current?.incubationLock?.minimumDurationOverridden ?? false;
 
   useEffect(() => {
     setLoading(true);
@@ -58,31 +58,12 @@ export function SelectivePlatingPanel({ testOrderId, step, current, onSubmitted 
     : null;
   const isStepIncubating = Boolean(openIncubationRow || current?.incubationLock?.isLocked);
 
-  // Derive timestamps from incubationStartUtc
-  const incubationStartUtc = openIncubationRow?.incubationStartUtc
-    ? new Date(openIncubationRow.incubationStartUtc)
-    : null;
-
-  // Incubation specifications: stepMedia is authoritative, step fallback
-  const firstMedia = step?.stepMedia?.[0];
-  const tempMin = (firstMedia && firstMedia.tempMin > 0) ? firstMedia.tempMin : step?.temperatureMin;
-  const tempMax = (firstMedia && firstMedia.tempMax > 0) ? firstMedia.tempMax : step?.temperatureMax;
-  const incMinHours = (firstMedia && (firstMedia.incubationMinHours ?? 0) > 0) ? firstMedia.incubationMinHours! : step?.incubationMinHours;
-  const incMaxHours = (firstMedia && (firstMedia.incubationMaxHours ?? 0) > 0) ? firstMedia.incubationMaxHours! : step?.incubationMaxHours;
-
-  // Available from: start + minHours
-  const minReadyAt = incubationStartUtc && incMinHours != null
-    ? new Date(incubationStartUtc.getTime() + incMinHours * 3600 * 1000)
-    : null;
-
-  // Expected reading end: from incubationLock or start + maxHours
-  const expectedEndAt = current?.incubationLock?.incubationEndUtc
-    ? new Date(current.incubationLock.incubationEndUtc)
-    : (incubationStartUtc && incMaxHours != null
-        ? new Date(incubationStartUtc.getTime() + incMaxHours * 3600 * 1000)
-        : null);
-
-  const isTimeReady = (minReadyAt != null && new Date() >= minReadyAt) || alreadyOverridden;
+  // Window, start, readiness and expected end exactly as the server resolved
+  // them from this test's own medium - no local hour calculations.
+  const {
+    tempMin, tempMax, minHours: incMinHours, maxHours: incMaxHours,
+    incubationStartUtc, minReadyAt, expectedEndAt, windowNotConfigured, isTimeReady
+  } = serverIncubationWindow(step, current);
 
   const phase: "setup" | "waiting" | "readout" =
     !isStepIncubating ? "setup" :
@@ -251,6 +232,10 @@ export function SelectivePlatingPanel({ testOrderId, step, current, onSubmitted 
             )}
           </Alert>
 
+          {windowNotConfigured && (
+            <Alert severity="error">{INCUBATION_WINDOW_NOT_CONFIGURED_MESSAGE}</Alert>
+          )}
+
           {minReadyAt && (
             <Alert severity="warning">
               Not ready yet — available from {minReadyAt.toLocaleString()}.
@@ -263,7 +248,7 @@ export function SelectivePlatingPanel({ testOrderId, step, current, onSubmitted 
               justifyContent: "space-between",
               alignItems: "center"
             }}>
-            {canOverride ? (
+            {canOverride && !windowNotConfigured ? (
               <Button variant="outlined" color="warning" onClick={() => setSkipDialogOpen(true)} disabled={skipping}>
                 Skip Wait
               </Button>

@@ -13,6 +13,7 @@ import { WaterLocationResultGridDialog } from "./WaterLocationResultGridDialog";
 import { PathogenStepDialog } from "./PathogenStepDialog";
 import { useAuth } from "../../contexts/AuthContext";
 import { ConfirmationDialog } from "../../components/ConfirmationDialog";
+import { INCUBATION_WINDOW_NOT_CONFIGURED_MESSAGE } from "./utils/incubationWindow";
 
 interface Props { testOrderId: number; testCode: string; category: string; displayName: string; onClose?: () => void; }
 
@@ -134,10 +135,13 @@ export function TestWorkflowDialog({ testOrderId, testCode, category, displayNam
   const selectedStepMedium = (step?.stepMedia ?? []).find((m: any) => m.materialId === selectedMediaLot?.materialId);
   const activeStage1Medium = selectedStepMedium ?? ((step?.stepMedia?.length === 1) ? step.stepMedia[0] : null);
 
-  const stage1TempMin = activeStage1Medium?.tempMin ?? (step?.stepMedia?.length > 0 ? Math.min(...step.stepMedia.map((m: any) => m.tempMin)) : (step?.temperatureMin ?? 0));
-  const stage1TempMax = activeStage1Medium?.tempMax ?? (step?.stepMedia?.length > 0 ? Math.max(...step.stepMedia.map((m: any) => m.tempMax)) : (step?.temperatureMax ?? 0));
-  const stage1IncMinHours = activeStage1Medium?.incubationMinHours ?? (step?.stepMedia?.length > 0 ? Math.min(...step.stepMedia.map((m: any) => m.incubationMinHours)) : (step?.incubationMinHours ?? 0));
-  const stage1IncMaxHours = activeStage1Medium?.incubationMaxHours ?? (step?.stepMedia?.length > 0 ? Math.max(...step.stepMedia.map((m: any) => m.incubationMaxHours)) : (step?.incubationMaxHours ?? 0));
+  // The chosen medium's own Test Master window; otherwise the step window the
+  // server resolved (the open incubation's medium, or the permitted media's
+  // range) - never a locally computed or default value.
+  const stage1TempMin = activeStage1Medium?.tempMin ?? step?.temperatureMin ?? 0;
+  const stage1TempMax = activeStage1Medium?.tempMax ?? step?.temperatureMax ?? 0;
+  const stage1IncMinHours = activeStage1Medium?.incubationMinHours ?? step?.incubationMinHours ?? 0;
+  const stage1IncMaxHours = activeStage1Medium?.incubationMaxHours ?? step?.incubationMaxHours ?? 0;
 
   // Only offer incubators whose set point actually falls within this
   // step's required temperature range - one out of calibration/set to
@@ -167,15 +171,13 @@ export function TestWorkflowDialog({ testOrderId, testCode, category, displayNam
   const activeIncMinHours = isStage2 && stage2Config ? stage2Config.incubationMinHours : stage1IncMinHours;
   const activeIncMaxHours = isStage2 && stage2Config ? stage2Config.incubationMaxHours : stage1IncMaxHours;
 
-  // Minimum-duration gate, mirrored from the server (TestWorkflowEngine.
-  // RequireMinimumDurationElapsed) so the button disables itself instead
-  // of just bouncing off a server error - the server still enforces it
-  // as the source of truth.
-  const minReadyAt = openIncubationRow && activeIncMinHours != null
-    ? new Date(new Date(openIncubationRow.incubationStartUtc).getTime() + activeIncMinHours * 3600 * 1000)
-    : null;
+  // Minimum-duration gate as the server computed it (stage-aware, from the
+  // open incubation's own medium) so the button disables itself instead of
+  // bouncing off a server error - the server still enforces it.
+  const minReadyAt = current?.incubationLock?.minReadyAt ? new Date(current.incubationLock.minReadyAt) : null;
+  const windowNotConfigured = current?.incubationLock?.windowNotConfigured ?? false;
   const minimumDurationOverridden = current?.incubationLock?.minimumDurationOverridden ?? false;
-  const isTimeReady = !minReadyAt || new Date() >= minReadyAt || minimumDurationOverridden;
+  const isTimeReady = !windowNotConfigured && (!minReadyAt || new Date() >= minReadyAt || minimumDurationOverridden);
 
   const { role } = useAuth();
   const canOverrideWait = role === "SectionHead" || role === "SystemAdministrator";
@@ -485,6 +487,9 @@ export function TestWorkflowDialog({ testOrderId, testCode, category, displayNam
           <Typography variant="body2">Temperature: <strong>{activeTempMin}-{activeTempMax} °C</strong></Typography>
           <Typography variant="body2">Duration: <strong>{activeIncMinHours}-{activeIncMaxHours} hours</strong></Typography>
           <Typography variant="body2">Expected reading: <strong>{new Date(current.incubationLock.incubationEndUtc).toLocaleString()}</strong></Typography>
+          {windowNotConfigured && (
+            <Alert severity="error">{INCUBATION_WINDOW_NOT_CONFIGURED_MESSAGE}</Alert>
+          )}
           {!isTimeReady && minReadyAt && (
             <Alert severity="warning">Not ready yet - available from {minReadyAt.toLocaleString()}.</Alert>
           )}
@@ -494,7 +499,7 @@ export function TestWorkflowDialog({ testOrderId, testCode, category, displayNam
           <Stack direction="row" sx={{
             justifyContent: "space-between"
           }}>
-            {canOverrideWait && !isTimeReady ? (
+            {canOverrideWait && !isTimeReady && !windowNotConfigured ? (
               <Button variant="outlined" color="warning" onClick={() => setSkipDialogOpen(true)} disabled={skipping}>
                 Skip Wait
               </Button>

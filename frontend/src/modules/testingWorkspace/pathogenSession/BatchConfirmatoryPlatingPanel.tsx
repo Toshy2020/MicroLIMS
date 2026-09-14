@@ -170,6 +170,12 @@ export function BatchConfirmatoryPlatingPanel({ session, onNext, onBack, onUpdat
 
   const currentPathogen = eligiblePathogens[activeTab] ?? eligiblePathogens[0];
 
+  // The confirmatory step window the server resolved from this test's own
+  // media in Test Master (0 when none is configured) - never a default.
+  const confirmatoryStepWindow = session.assignedTests
+    .find((t) => t.testOrderId === currentPathogen?.testOrderId)
+    ?.steps.find((s) => s.stepType === "ConfirmatoryPlating");
+
   // Initialize setup state for current pathogen
   useEffect(() => {
     if (!currentPathogen) return;
@@ -654,11 +660,13 @@ export function BatchConfirmatoryPlatingPanel({ session, onNext, onBack, onUpdat
                 <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>
                   Incubation Duration (from Test Master)
                 </Typography>
-                <Typography variant="body2" sx={{ fontWeight: 700, color: "text.primary" }}>
-                  18–24 hours
+                <Typography variant="body2" sx={{ fontWeight: 700, color: confirmatoryStepWindow && confirmatoryStepWindow.incubationMaxHours > 0 ? "text.primary" : "error.main" }}>
+                  {confirmatoryStepWindow && confirmatoryStepWindow.incubationMaxHours > 0
+                    ? `${confirmatoryStepWindow.incubationMinHours}–${confirmatoryStepWindow.incubationMaxHours} hours`
+                    : "Not configured in Test Master"}
                 </Typography>
                 <Typography variant="caption" sx={{ color: "text.secondary" }}>
-                  Protocol duration is automatically applied to all selected media
+                  Each medium keeps its own window; the shared incubation runs to the longest one selected
                 </Typography>
               </Box>
             </Box>

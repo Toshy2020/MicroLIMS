@@ -60,10 +60,12 @@ public static class ServiceCollectionExtensions
         services.AddScoped<SampleSummaryService>();
         services.AddScoped<OosTrackingService>();
         services.AddScoped<DashboardService>();
+        services.AddSingleton(new NotificationRecomputeThrottle(TimeSpan.FromMinutes(5)));
         services.AddScoped<DashboardNotificationService>();
         services.AddScoped<RecentActivityService>();
         services.AddScoped<MyTasksService>();
         services.AddScoped<GroupedTestActionService>();
+        services.AddScoped<CurrentStepViewService>();
         services.AddScoped<MediaExpiryService>();
         services.AddScoped<KpiService>();
         services.AddScoped<CryovialService>();

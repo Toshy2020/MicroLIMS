@@ -24,20 +24,31 @@ public class DashboardNotificationService
     private readonly MicroLimsDbContext _db;
     private readonly INotificationService _pushService;
     private readonly IEmailSender _emailSender;
+    private readonly NotificationRecomputeThrottle? _recomputeThrottle;
 
-    public DashboardNotificationService(MicroLimsDbContext db, INotificationService pushService, IEmailSender emailSender)
+    public DashboardNotificationService(MicroLimsDbContext db, INotificationService pushService, IEmailSender emailSender, NotificationRecomputeThrottle? recomputeThrottle = null)
     {
         _db = db;
         _pushService = pushService;
         _emailSender = emailSender;
+        _recomputeThrottle = recomputeThrottle;
     }
 
     public async Task<List<NotificationDto>> GetNotificationsAsync(RoleType role, int userId)
     {
-        var computed = await ComputeAsync(role, userId);
-        await PersistAndDeliverAsync(userId, computed);
+        // Without a throttle every call recomputes. With one, polls inside the
+        // window return the persisted list only, so a new notification can
+        // appear up to one window late.
+        var now = DateTime.UtcNow;
+        if (_recomputeThrottle is null || _recomputeThrottle.IsDue(userId, now))
+        {
+            var computed = await ComputeAsync(role, userId);
+            await PersistAndDeliverAsync(userId, computed);
+            _recomputeThrottle?.MarkComputed(userId, now);
+        }
 
         var persisted = await _db.NotificationLogs
+            .AsNoTracking()
             .Where(n => n.UserId == userId)
             .OrderByDescending(n => n.CreatedAt)
             .Take(30)

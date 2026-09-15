@@ -184,15 +184,17 @@ public class DashboardService
         var pendingPreparationConfigApproval = await _db.ItemPreparationConfigurations
             .CountAsync(c => c.ApprovalStatus == ApprovalGateStatus.PendingReview);
 
-        // Open incubations split ready-vs-still-incubating - feeds the KPI
-        // strip's "Incubating" / "Ready to Read" tiles (same open-incubation
+        // Open incubations on active tests, split ready-vs-still-incubating by
+        // the Workspace's ready-to-read rule - feeds the KPI strip's
+        // "Incubating" / "Ready to Read" tiles (same open-incubation
         // definition GetIncubationOverviewAsync groups by test code).
-        var openIncubationReadings = await _db.Incubations
-            .Where(i => i.CompletedAt == null && i.TestOrderId != null)
-            .Select(i => i.ExpectedReadingAt)
+        var openIncubations = await _db.Incubations
+            .Where(SampleWorkflowQueues.IsOpenIncubationOnActiveTest)
+            .Select(i => new { i.ExpectedReadingAt, i.IncubationEndUtc, i.MinimumDurationOverriddenByUserId })
             .ToListAsync();
-        var readyToReadCount = openIncubationReadings.Count(r => r != null && r <= now);
-        var incubatingCount = openIncubationReadings.Count(r => r == null || r > now);
+        var readyToReadCount = openIncubations.Count(i =>
+            SampleWorkflowQueues.IsIncubationReadyToRead(i.ExpectedReadingAt, i.IncubationEndUtc, i.MinimumDurationOverriddenByUserId, now));
+        var incubatingCount = openIncubations.Count - readyToReadCount;
 
         return new
         {
@@ -262,7 +264,7 @@ public class DashboardService
     {
         var now = DateTime.UtcNow;
         var query = _db.Incubations
-            .Where(i => i.CompletedAt == null && i.TestOrderId != null)
+            .Where(SampleWorkflowQueues.IsOpenIncubationOnActiveTest)
             .Include(i => i.TestOrder)
             .AsQueryable();
 
@@ -278,8 +280,8 @@ public class DashboardService
             .GroupBy(i => i.TestOrder!.TestCode)
             .Select(g => new IncubationOverviewDto(
                 g.Key,
-                g.Count(i => i.ExpectedReadingAt != null && i.ExpectedReadingAt <= now),
-                g.Count(i => i.ExpectedReadingAt == null || i.ExpectedReadingAt > now)))
+                g.Count(i => SampleWorkflowQueues.IsIncubationReadyToRead(i, now)),
+                g.Count(i => !SampleWorkflowQueues.IsIncubationReadyToRead(i, now))))
             .OrderByDescending(x => x.ReadyToRead + x.Incubating)
             .ToList();
     }
@@ -466,11 +468,11 @@ public class DashboardService
         var activeTests = await _db.TestOrders.CountAsync(t => !t.IsSuperseded && (t.Status == ApprovalStatus.Pending || t.Status == ApprovalStatus.InProgress));
 
         var openIncubations = await _db.Incubations
-            .Where(i => i.CompletedAt == null && i.TestOrderId != null)
+            .Where(SampleWorkflowQueues.IsOpenIncubationOnActiveTest)
             .Include(i => i.TestOrder)
             .ToListAsync();
-        var incubating = openIncubations.Count(i => i.ExpectedReadingAt == null || i.ExpectedReadingAt > now);
-        var readyToRead = openIncubations.Count(i => i.ExpectedReadingAt != null && i.ExpectedReadingAt <= now);
+        var readyToRead = openIncubations.Count(i => SampleWorkflowQueues.IsIncubationReadyToRead(i, now));
+        var incubating = openIncubations.Count - readyToRead;
 
         var pendingReview = await _db.Samples.CountAsync(s => s.Status == SampleStatus.UnderReview);
         var pendingApproval = await _db.Samples.CountAsync(s => s.Status == SampleStatus.UnderApproval);

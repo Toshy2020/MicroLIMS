@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Box, Typography, Stack, Alert, Button, useTheme } from "@mui/material";
+import { Box, Typography, Alert, Button, useTheme } from "@mui/material";
 import { LoadingSpinner } from "../../components/LoadingSpinner";
 import { TestWorkflowService } from "./services/TestWorkflowService";
 import { CurrentStepResponse } from "./types/testWorkflowTypes";
@@ -10,14 +10,9 @@ import { SelectivePlatingPanel } from "./pathogenSteps/SelectivePlatingPanel";
 import { UnsupportedStepPanel } from "./pathogenSteps/UnsupportedStepPanel";
 import { ConfirmatoryPlatingPanel } from "./pathogenSteps/ConfirmatoryPlatingPanel";
 import { BiochemicalTestPanel } from "./pathogenSteps/BiochemicalTestPanel";
+import { StepChainStrip } from "./components/StepChainStrip";
 
 interface Props { testOrderId: number; testCode: string; displayName: string; onClose?: () => void; }
-
-// Verified against backend/MicroLIMS.Application/Workflows/TestWorkflowEngine.cs:
-// CompletedStepSummary.outcome for a ConfirmatoryPlating step is set directly to
-// result.ConfirmatoryResult.ToString() (TestWorkflowEngine.cs ~line 1208), i.e. the
-// outcome field is exactly "AllConforming" or "Inconclusive" with no surrounding text.
-const INCONCLUSIVE_OUTCOME_MARKER = "Inconclusive";
 
 // Shared lookup so the Inconclusive-terminal check and the BiochemicalTest
 // panel's confirmatoryOutcome prop can never drift apart - both read the
@@ -25,33 +20,6 @@ const INCONCLUSIVE_OUTCOME_MARKER = "Inconclusive";
 function getConfirmatoryOutcome(current: CurrentStepResponse): string | null {
   const confirmatoryStep = current.completedSteps.find((s) => s.stepType === "ConfirmatoryPlating");
   return confirmatoryStep?.outcome ?? null;
-}
-
-function StepChainStrip({ current }: { current: CurrentStepResponse }) {
-  const theme = useTheme();
-  const completedByOrder = new Map(current.completedSteps.map((s) => [s.stepOrder, s]));
-  const currentOrder = current.step?.stepOrder ?? null;
-  return (
-    <Stack direction="row" spacing={1} sx={{ mb: 2, flexWrap: "wrap" }}>
-      {current.allSteps.map((s) => {
-        const done = completedByOrder.get(s.stepOrder);
-        const isCurrent = s.stepOrder === currentOrder;
-        const isInconclusive = done?.outcome?.includes(INCONCLUSIVE_OUTCOME_MARKER);
-        let tone = theme.custom.status.pending, label = s.stepName;
-        if (done) {
-          label = `${s.stepName}: ${done.outcome}`;
-          tone = isInconclusive ? theme.custom.status.detected : theme.custom.status.notDetected;
-        } else if (isCurrent) {
-          label = `${s.stepName}: In progress`; tone = theme.custom.status.info;
-        }
-        return (
-          <Box key={s.stepOrder} sx={{ px: 1.25, py: 0.5, borderRadius: 999, fontSize: 12, fontWeight: 600, bgcolor: tone.bg, color: tone.text, border: `1px solid ${tone.border}` }}>
-            {done ? (isInconclusive ? "✗ " : "✓ ") : ""}{label}
-          </Box>
-        );
-      })}
-    </Stack>
-  );
 }
 
 export function PathogenStepDialog({ testOrderId, onClose }: Props) {

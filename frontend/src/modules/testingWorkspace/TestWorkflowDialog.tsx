@@ -13,46 +13,12 @@ import { WaterLocationResultGridDialog } from "./WaterLocationResultGridDialog";
 import { PathogenStepDialog } from "./PathogenStepDialog";
 import { useAuth } from "../../contexts/AuthContext";
 import { ConfirmationDialog } from "../../components/ConfirmationDialog";
+import { StepChainStrip } from "./components/StepChainStrip";
 import { INCUBATION_WINDOW_NOT_CONFIGURED_MESSAGE } from "./utils/incubationWindow";
 
 interface Props { testOrderId: number; testCode: string; category: string; displayName: string; onClose?: () => void; }
 
 type Phase = "loading" | "select-media" | "awaiting-result" | "transfer-stage-2" | "enter-result" | "step-complete" | "all-complete";
-
-// Read-only progress strip above the phase content - one chip per step
-// in the template, sourced from current-step's allSteps/completedSteps/
-// step fields. No click actions.
-function StepChainStrip({ current }: { current: any }) {
-  const theme = useTheme();
-  const completedByOrder = new Map<number, any>((current.completedSteps ?? []).map((s: any) => [s.stepOrder, s]));
-  const currentOrder = current.step?.stepOrder ?? null;
-
-  return (
-    <Stack direction="row" spacing={1} sx={{ mb: 2, flexWrap: "wrap" }}>
-      {(current.allSteps ?? []).map((s: any) => {
-        const done = completedByOrder.get(s.stepOrder);
-        const isCurrent = s.stepOrder === currentOrder;
-        const isInconclusive = done?.outcome?.startsWith("Inconclusive");
-
-        let tone = theme.custom.status.pending;
-        let label = s.stepName;
-        if (done) {
-          label = `${s.stepName}: ${done.outcome}`;
-          tone = isInconclusive ? theme.custom.status.detected : theme.custom.status.notDetected;
-        } else if (isCurrent) {
-          label = `${s.stepName}: In progress`;
-          tone = theme.custom.status.info;
-        }
-
-        return (
-          <Box key={s.stepOrder} sx={{ px: 1.25, py: 0.5, borderRadius: 999, fontSize: 12, fontWeight: 600, bgcolor: tone.bg, color: tone.text, border: `1px solid ${tone.border}` }}>
-            {done ? (isInconclusive ? "✗ " : "✓ ") : ""}{label}
-          </Box>
-        );
-      })}
-    </Stack>
-  );
-}
 
 // Universal workflow dialog for any TestDefinition with a configured
 // step template (WorkflowType + TestWorkflowStep) - reads

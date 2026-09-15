@@ -7,13 +7,10 @@ import {
   Button,
   useTheme
 } from "@mui/material";
-import { Theme } from "@mui/material/styles";
 import CloseIcon from "@mui/icons-material/Close";
 import DescriptionOutlinedIcon from "@mui/icons-material/DescriptionOutlined";
 import HistoryOutlinedIcon from "@mui/icons-material/HistoryOutlined";
 import ScienceOutlinedIcon from "@mui/icons-material/ScienceOutlined";
-import CheckCircleIcon from "@mui/icons-material/CheckCircle";
-import FiberManualRecordIcon from "@mui/icons-material/FiberManualRecord";
 import WarningAmberOutlinedIcon from "@mui/icons-material/WarningAmberOutlined";
 import BlockOutlinedIcon from "@mui/icons-material/BlockOutlined";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
@@ -40,63 +37,6 @@ interface Props {
 
 const PRODUCT_LIKE = ["FinishedProduct", "RawMaterial", "PackagingMaterial"];
 const formatDate = (d: string | null) => (d ? new Date(d).toLocaleDateString() : "—");
-
-function resolveEffectiveTestStatus(
-  test: TestOrderSummary,
-  theme: Theme
-): { label: string; icon: React.ReactNode; color: string } {
-  const successColor = theme.custom.status.notDetected.text;
-  const infoColor = theme.custom.status.info.text;
-  const pendingColor = theme.custom.status.pending.text;
-  const inconclusiveColor = theme.custom.status.inconclusive.text;
-  const dangerColor = theme.custom.status.detected.text;
-
-  if (test.workflowStateDisplay) {
-    // Closed states are decided by the backend (WorkflowStateResolver).
-    if (test.workflowState === "REJECTED" || test.workflowState === "VOIDED" || test.workflowState === "CANCELLED") {
-      return { label: test.workflowStateDisplay, icon: <FiberManualRecordIcon sx={{ fontSize: 12, color: dangerColor }} />, color: dangerColor };
-    }
-    if (test.workflowState === "SUPERSEDED" || test.workflowState === "ON_HOLD") {
-      return { label: test.workflowStateDisplay, icon: <FiberManualRecordIcon sx={{ fontSize: 12, color: inconclusiveColor }} />, color: inconclusiveColor };
-    }
-    if (test.workflowState === "APPROVED" || test.status === "Approved") {
-      return { label: "Completed & Approved", icon: <CheckCircleIcon sx={{ fontSize: 14, color: successColor }} />, color: successColor };
-    }
-    if (test.workflowState === "REVIEWED" || test.status === "Reviewed") {
-      return { label: test.workflowStateDisplay || "Reviewed — Pending Approval", icon: <FiberManualRecordIcon sx={{ fontSize: 12, color: inconclusiveColor }} />, color: inconclusiveColor };
-    }
-    if (test.workflowState === "TSB_INCUBATING") {
-      return { label: "TSB Incubating", icon: <FiberManualRecordIcon sx={{ fontSize: 12, color: infoColor }} />, color: infoColor };
-    }
-    if (test.workflowState === "DOWNSTREAM_INCUBATING") {
-      return { label: "Selective Plating In Progress", icon: <FiberManualRecordIcon sx={{ fontSize: 12, color: infoColor }} />, color: infoColor };
-    }
-    if (test.workflowState === "READY_FOR_DOWNSTREAM") {
-      return { label: "Ready for Downstream Testing", icon: <CheckCircleIcon sx={{ fontSize: 14, color: infoColor }} />, color: infoColor };
-    }
-    if (test.workflowState === "COUNT_INCUBATING" || test.workflowState === "INCUBATING" || test.workflowState === "RUNNING") {
-      return { label: test.workflowStateDisplay || "Incubation In Progress", icon: <FiberManualRecordIcon sx={{ fontSize: 12, color: infoColor }} />, color: infoColor };
-    }
-    if (test.workflowState === "AWAITING_RESULTS") {
-      return { label: test.workflowStateDisplay || "Ready for Result Entry", icon: <FiberManualRecordIcon sx={{ fontSize: 12, color: infoColor }} />, color: infoColor };
-    }
-    if (test.workflowState === "RESULTS_RECORDED") {
-      return { label: "Result Recorded — Pending Review", icon: <FiberManualRecordIcon sx={{ fontSize: 12, color: infoColor }} />, color: infoColor };
-    }
-    return { label: test.workflowStateDisplay, icon: <FiberManualRecordIcon sx={{ fontSize: 12, color: pendingColor }} />, color: pendingColor };
-  }
-
-  if (test.status === "Approved") {
-    return { label: "Completed & Approved", icon: <CheckCircleIcon sx={{ fontSize: 14, color: successColor }} />, color: successColor };
-  }
-  if (test.status === "Reviewed") {
-    return { label: "Reviewed — Pending Approval", icon: <FiberManualRecordIcon sx={{ fontSize: 12, color: inconclusiveColor }} />, color: inconclusiveColor };
-  }
-  if (test.status === "UnderReview") {
-    return { label: "Under Review", icon: <FiberManualRecordIcon sx={{ fontSize: 12, color: inconclusiveColor }} />, color: inconclusiveColor };
-  }
-  return { label: test.status || "Pending", icon: <FiberManualRecordIcon sx={{ fontSize: 12, color: pendingColor }} />, color: pendingColor };
-}
 
 export function SelectedSampleTestingPanel({
   sample,
@@ -526,19 +466,15 @@ export function SelectedSampleTestingPanel({
           </Typography>
         ) : (
           <Stack spacing={1.5}>
-            {sample.assignedTests.map((test) => {
-              const stepInfo = resolveEffectiveTestStatus(test, theme);
-              return (
-                <AssignedTestCard
-                  key={test.testOrderId}
-                  test={test}
-                  sample={sample}
-                  stepInfo={stepInfo}
-                  onTestClick={onTestClick}
-                  onActionComplete={onCorrected}
-                />
-              );
-            })}
+            {sample.assignedTests.map((test) => (
+              <AssignedTestCard
+                key={test.testOrderId}
+                test={test}
+                sample={sample}
+                onTestClick={onTestClick}
+                onActionComplete={onCorrected}
+              />
+            ))}
           </Stack>
         )}
       </Box>

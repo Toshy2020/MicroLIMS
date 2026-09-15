@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import type { ReactNode } from "react";
 import { useSearchParams } from "react-router-dom";
 import {
   Box,
@@ -14,6 +15,7 @@ import {
   Chip,
   Alert,
   Snackbar,
+  LinearProgress,
   useTheme
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
@@ -257,17 +259,20 @@ export function ReceivingTestingWorkspacePage() {
     workloadFilter
   };
 
-  const loadRecords = async (silent = false) => {
+  // The workload tile counts don't depend on the filters or page, so filter
+  // and page changes skip them; first load, Refresh and every reload after a
+  // change to the data still fetch them.
+  const loadRecords = async (silent = false, includeCounts = true) => {
     if (!silent) setLoading(true);
     try {
       const currentFilter = filterRef.current;
       const [pagedData, countsData] = await Promise.all([
         ReceiveService.getRecordsPaged(currentFilter),
-        ReceiveService.getWorkloadCounts()
+        includeCounts ? ReceiveService.getWorkloadCounts() : Promise.resolve(null)
       ]);
       setRecords(pagedData.items);
       setTotalCount(pagedData.totalCount);
-      setWorkloadCounts(countsData);
+      if (countsData) setWorkloadCounts(countsData);
 
       // If a sample is selected, refresh its details if present in the reloaded page
       if (selectedSampleId) {
@@ -288,7 +293,7 @@ export function ReceivingTestingWorkspacePage() {
 
   // Re-fetch whenever page, pageSize, or any filter changes
   useEffect(() => {
-    loadRecords();
+    loadRecords(false, workloadCounts === null);
   }, [
     page,
     pageSize,
@@ -593,6 +598,98 @@ export function ReceivingTestingWorkspacePage() {
     loadRecords();
   };
 
+  // Compact register beside the grouped-actions panel and the selected-sample
+  // panel - the two layouts differ only in the note beside the title.
+  const renderCompactRegister = (headerNote: ReactNode) => (
+    <Box
+      sx={{
+        width: { xs: "100%", md: "38%" },
+        display: "flex",
+        flexDirection: "column",
+        gap: 1.5,
+        flexShrink: 0
+      }}
+    >
+      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <Typography sx={{ fontSize: 14, fontWeight: 700, color: theme.palette.primary.main }}>
+          Laboratory Register ({displayRecords.length}
+          {!showSelectedOnly && totalCount > displayRecords.length ? ` of ${totalCount}` : ""})
+        </Typography>
+        <Typography sx={{ fontSize: 11, color: "text.secondary" }}>
+          {headerNote}
+        </Typography>
+      </Box>
+
+      <Paper
+        elevation={0}
+        sx={{
+          border: "1px solid",
+          borderColor: "divider",
+          borderRadius: 2,
+          overflowY: "auto",
+          maxHeight: { xs: "340px", md: "calc(100vh - 330px)" },
+          bgcolor: "background.paper"
+        }}
+      >
+        <Table size="small" stickyHeader>
+          <TableHead>
+            <TableRow sx={[tableHeadSx, { "& th": { fontWeight: 700, fontSize: 11, py: 1 } }]}>
+              <TableCell>Item / Reference</TableCell>
+              <TableCell sx={{ width: 65 }}>Type</TableCell>
+              <TableCell sx={{ width: 95 }}>Batch/Ctrl</TableCell>
+              <TableCell sx={{ width: 85 }}>Status</TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {displayRecords.map((s) => (
+              <SampleTableRow
+                key={s.sampleId}
+                sample={s as unknown as WorkspaceSampleCard}
+                isSelected={selectedSampleId === s.sampleId}
+                isChecked={checkedSampleIds.has(s.sampleId)}
+                onToggleCheck={handleToggleCheckSample}
+                onSelectSample={(sample) => handleSelectSample(sample)}
+                isCompact={true}
+                visibleColumns={new Set(["category", "batch", "control", "status"])}
+                colSpan={4}
+                onNeedsPreparationClick={() => handlePrepareSample(s)}                      onLifecycleBadgeClick={setSummarySampleId}
+              />
+            ))}
+            {displayRecords.length === 0 && (
+              <TableRow>
+                <TableCell colSpan={4} align="center" sx={{ py: 3, color: "text.secondary", fontSize: 12 }}>
+                  No matching samples found.
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+        {!showSelectedOnly && totalCount > 0 && (
+          <TablePagination
+            component="div"
+            count={totalCount}
+            page={Math.max(0, page - 1)}
+            onPageChange={handlePageChange}
+            rowsPerPage={pageSize}
+            onRowsPerPageChange={handleRowsPerPageChange}
+            rowsPerPageOptions={[25, 50, 100]}
+            sx={{
+              borderTop: "1px solid",
+              borderColor: "divider",
+              "& .MuiTablePagination-selectLabel, & .MuiTablePagination-displayedRows": {
+                fontSize: 11
+              },
+              "& .MuiTablePagination-toolbar": {
+                minHeight: 36,
+                px: 1
+              }
+            }}
+          />
+        )}
+      </Paper>
+    </Box>
+  );
+
   return (
     <>
       {/* Header Section */}
@@ -693,7 +790,7 @@ export function ReceivingTestingWorkspacePage() {
 
       {/* Selection summary - rendered above the layout branch so it survives
           the swap into the grouped-actions split view at 2+ selected. */}
-      {records && !loading && (
+      {records && (
         <SelectionSummaryBar
           selectedCount={checkedSampleIds.size}
           hiddenCount={hiddenCheckedCount}
@@ -703,8 +800,11 @@ export function ReceivingTestingWorkspacePage() {
         />
       )}
 
-      {/* Loading State */}
-      {!records || loading ? (
+      {/* Loading State - the spinner only covers the very first load. Later
+          reloads keep the register and selected sample on screen under a thin
+          progress bar, so the test cards don't unmount and refetch. */}
+      {records && loading && <LinearProgress sx={{ mb: 1, borderRadius: 1 }} />}
+      {!records ? (
         <LoadingSpinner />
       ) : checkedSampleIds.size >= 2 ? (
         /* GROUPED ACTIONS SPLIT-PANE LAYOUT (When 2+ samples are checked) */
@@ -718,94 +818,12 @@ export function ReceivingTestingWorkspacePage() {
           }}
         >
           {/* Left Panel: Compact Sample Register with Checkboxes */}
-          <Box
-            sx={{
-              width: { xs: "100%", md: "38%" },
-              display: "flex",
-              flexDirection: "column",
-              gap: 1.5,
-              flexShrink: 0
-            }}
-          >
-            <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <Typography sx={{ fontSize: 14, fontWeight: 700, color: theme.palette.primary.main }}>
-                Laboratory Register ({displayRecords.length}
-                {!showSelectedOnly && totalCount > displayRecords.length ? ` of ${totalCount}` : ""})
-              </Typography>
-              <Typography sx={{ fontSize: 11, color: "text.secondary" }}>
-                {checkedSampleIds.size} checked
-                {hiddenCheckedCount > 0 ? ` · ${hiddenCheckedCount} hidden` : ""}
-              </Typography>
-            </Box>
-
-            <Paper
-              elevation={0}
-              sx={{
-                border: "1px solid",
-                borderColor: "divider",
-                borderRadius: 2,
-                overflowY: "auto",
-                maxHeight: { xs: "340px", md: "calc(100vh - 330px)" },
-                bgcolor: "background.paper"
-              }}
-            >
-              <Table size="small" stickyHeader>
-                <TableHead>
-                  <TableRow sx={[tableHeadSx, { "& th": { fontWeight: 700, fontSize: 11, py: 1 } }]}>
-                    <TableCell>Item / Reference</TableCell>
-                    <TableCell sx={{ width: 65 }}>Type</TableCell>
-                    <TableCell sx={{ width: 95 }}>Batch/Ctrl</TableCell>
-                    <TableCell sx={{ width: 85 }}>Status</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {displayRecords.map((s) => (
-                    <SampleTableRow
-                      key={s.sampleId}
-                      sample={s as unknown as WorkspaceSampleCard}
-                      isSelected={selectedSampleId === s.sampleId}
-                      isChecked={checkedSampleIds.has(s.sampleId)}
-                      onToggleCheck={handleToggleCheckSample}
-                      onSelectSample={(sample) => handleSelectSample(sample)}
-                      isCompact={true}
-                      visibleColumns={new Set(["category", "batch", "control", "status"])}
-                      colSpan={4}
-                      onNeedsPreparationClick={() => handlePrepareSample(s)}                      onLifecycleBadgeClick={setSummarySampleId}
-                    />
-                  ))}
-                  {displayRecords.length === 0 && (
-                    <TableRow>
-                      <TableCell colSpan={4} align="center" sx={{ py: 3, color: "text.secondary", fontSize: 12 }}>
-                        No matching samples found.
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
-              {!showSelectedOnly && totalCount > 0 && (
-                <TablePagination
-                  component="div"
-                  count={totalCount}
-                  page={Math.max(0, page - 1)}
-                  onPageChange={handlePageChange}
-                  rowsPerPage={pageSize}
-                  onRowsPerPageChange={handleRowsPerPageChange}
-                  rowsPerPageOptions={[25, 50, 100]}
-                  sx={{
-                    borderTop: "1px solid",
-                    borderColor: "divider",
-                    "& .MuiTablePagination-selectLabel, & .MuiTablePagination-displayedRows": {
-                      fontSize: 11
-                    },
-                    "& .MuiTablePagination-toolbar": {
-                      minHeight: 36,
-                      px: 1
-                    }
-                  }}
-                />
-              )}
-            </Paper>
-          </Box>
+          {renderCompactRegister(
+            <>
+              {checkedSampleIds.size} checked
+              {hiddenCheckedCount > 0 ? ` · ${hiddenCheckedCount} hidden` : ""}
+            </>
+          )}
 
           {/* Right Panel: Grouped Actions Panel */}
           <Box
@@ -857,93 +875,7 @@ export function ReceivingTestingWorkspacePage() {
           }}
         >
           {/* Left Panel: Compact Sample Register */}
-          <Box
-            sx={{
-              width: { xs: "100%", md: "38%" },
-              display: "flex",
-              flexDirection: "column",
-              gap: 1.5,
-              flexShrink: 0
-            }}
-          >
-            <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <Typography sx={{ fontSize: 14, fontWeight: 700, color: theme.palette.primary.main }}>
-                Laboratory Register ({displayRecords.length}
-                {!showSelectedOnly && totalCount > displayRecords.length ? ` of ${totalCount}` : ""})
-              </Typography>
-              <Typography sx={{ fontSize: 11, color: "text.secondary" }}>
-                Click a sample to switch
-              </Typography>
-            </Box>
-
-            <Paper
-              elevation={0}
-              sx={{
-                border: "1px solid",
-                borderColor: "divider",
-                borderRadius: 2,
-                overflowY: "auto",
-                maxHeight: { xs: "340px", md: "calc(100vh - 330px)" },
-                bgcolor: "background.paper"
-              }}
-            >
-              <Table size="small" stickyHeader>
-                <TableHead>
-                  <TableRow sx={[tableHeadSx, { "& th": { fontWeight: 700, fontSize: 11, py: 1 } }]}>
-                    <TableCell>Item / Reference</TableCell>
-                    <TableCell sx={{ width: 65 }}>Type</TableCell>
-                    <TableCell sx={{ width: 95 }}>Batch/Ctrl</TableCell>
-                    <TableCell sx={{ width: 85 }}>Status</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {displayRecords.map((s) => (
-                    <SampleTableRow
-                      key={s.sampleId}
-                      sample={s as unknown as WorkspaceSampleCard}
-                      isSelected={selectedSampleId === s.sampleId}
-                      isChecked={checkedSampleIds.has(s.sampleId)}
-                      onToggleCheck={handleToggleCheckSample}
-                      onSelectSample={(sample) => handleSelectSample(sample)}
-                      isCompact={true}
-                      visibleColumns={new Set(["category", "batch", "control", "status"])}
-                      colSpan={4}
-                      onNeedsPreparationClick={() => handlePrepareSample(s)}                      onLifecycleBadgeClick={setSummarySampleId}
-                    />
-                  ))}
-                  {displayRecords.length === 0 && (
-                    <TableRow>
-                      <TableCell colSpan={4} align="center" sx={{ py: 3, color: "text.secondary", fontSize: 12 }}>
-                        No matching samples found.
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
-              {!showSelectedOnly && totalCount > 0 && (
-                <TablePagination
-                  component="div"
-                  count={totalCount}
-                  page={Math.max(0, page - 1)}
-                  onPageChange={handlePageChange}
-                  rowsPerPage={pageSize}
-                  onRowsPerPageChange={handleRowsPerPageChange}
-                  rowsPerPageOptions={[25, 50, 100]}
-                  sx={{
-                    borderTop: "1px solid",
-                    borderColor: "divider",
-                    "& .MuiTablePagination-selectLabel, & .MuiTablePagination-displayedRows": {
-                      fontSize: 11
-                    },
-                    "& .MuiTablePagination-toolbar": {
-                      minHeight: 36,
-                      px: 1
-                    }
-                  }}
-                />
-              )}
-            </Paper>
-          </Box>
+          {renderCompactRegister("Click a sample to switch")}
 
           {/* Right Panel: Selected Sample & Analytical Workflows Panel */}
           <Box

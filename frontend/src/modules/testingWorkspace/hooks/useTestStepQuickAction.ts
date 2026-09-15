@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { TestWorkflowService } from "../services/TestWorkflowService";
 import { lookupCache, ReleasedMediaItem, IncubatorEquipmentItem } from "../../../services/lookupCache";
 import { CurrentStepResponse, TestWorkflowStepDto } from "../types/testWorkflowTypes";
@@ -18,6 +18,12 @@ interface UseTestStepQuickActionOptions {
   testOrderId: number;
   testCode: string;
   expanded: boolean;
+  // False when the card never reads step data (closed tests), so the
+  // current-step call - 12-26 queries each - is not made at all.
+  enabled?: boolean;
+  // Changes when the test's server-side state changes. Cards stay mounted
+  // across register reloads, so this is what makes them refetch their step.
+  refreshKey?: string;
   onSuccess?: () => void;
 }
 
@@ -25,9 +31,13 @@ export function useTestStepQuickAction({
   testOrderId,
   testCode,
   expanded,
+  enabled = true,
+  refreshKey,
   onSuccess
 }: UseTestStepQuickActionOptions) {
-  const [loading, setLoading] = useState(false);
+  const [stepLoading, setStepLoading] = useState(false);
+  const [lookupsLoading, setLookupsLoading] = useState(false);
+  const loading = (enabled && stepLoading) || lookupsLoading;
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -45,41 +55,59 @@ export function useTestStepQuickAction({
   const [selectedMediaId, setSelectedMediaId] = useState<number | "">("");
   const [selectedIncubatorId, setSelectedIncubatorId] = useState<number | "">("");
 
-  // Load step details and lookups when expanded
-  const loadData = useCallback(async (forceRefresh = false) => {
-    setLoading(true);
+  const loadStep = useCallback(async (forceRefresh = false) => {
+    const cached = stepCache.get(testOrderId);
+    if (!forceRefresh && cached && Date.now() - cached.timestamp < STEP_CACHE_TTL_MS) {
+      setCurrentStepData(cached.data);
+      return;
+    }
+    setStepLoading(true);
     setError(null);
     try {
-      const cached = stepCache.get(testOrderId);
-      let stepDataPromise: Promise<CurrentStepResponse>;
-      if (!forceRefresh && cached && Date.now() - cached.timestamp < STEP_CACHE_TTL_MS) {
-        stepDataPromise = Promise.resolve(cached.data);
-      } else {
-        stepDataPromise = TestWorkflowService.getCurrentStep(testOrderId).then((data) => {
-          stepCache.set(testOrderId, { data, timestamp: Date.now() });
-          return data;
-        });
-      }
+      const data = await TestWorkflowService.getCurrentStep(testOrderId);
+      stepCache.set(testOrderId, { data, timestamp: Date.now() });
+      setCurrentStepData(data);
+    } catch (err: any) {
+      setError(err?.response?.data?.message || `Could not load step details for ${testCode}.`);
+    } finally {
+      setStepLoading(false);
+    }
+  }, [testOrderId, testCode]);
 
-      const [stepData, mediaList, incubatorList] = await Promise.all([
-        stepDataPromise,
+  // Media lots and incubators only feed the quick-setup drawer, so they load
+  // when it opens. Starting an incubation marks them stale (lot availability
+  // changes), and the next open refreshes them.
+  const lookupsStaleRef = useRef(false);
+  const loadLookups = useCallback(async (forceRefresh = false) => {
+    setLookupsLoading(true);
+    try {
+      const [mediaList, incubatorList] = await Promise.all([
         lookupCache.getReleasedMedia(forceRefresh),
         lookupCache.getIncubators(forceRefresh)
       ]);
-
-      setCurrentStepData(stepData);
       setReleasedMedia(mediaList);
       setIncubators(incubatorList);
     } catch (err: any) {
       setError(err?.response?.data?.message || `Could not load step details for ${testCode}.`);
     } finally {
-      setLoading(false);
+      setLookupsLoading(false);
     }
-  }, [testOrderId, testCode]);
+  }, [testCode]);
+
+  const lastRefreshKeyRef = useRef(refreshKey);
+  useEffect(() => {
+    if (!enabled) return;
+    const stateChanged = lastRefreshKeyRef.current !== refreshKey;
+    lastRefreshKeyRef.current = refreshKey;
+    loadStep(stateChanged);
+  }, [enabled, refreshKey, loadStep]);
 
   useEffect(() => {
-    loadData();
-  }, [loadData]);
+    if (!expanded) return;
+    const forceRefresh = lookupsStaleRef.current;
+    lookupsStaleRef.current = false;
+    loadLookups(forceRefresh);
+  }, [expanded, loadLookups]);
 
   const step: TestWorkflowStepDto | null = currentStepData?.step ?? null;
 
@@ -249,10 +277,11 @@ export function useTestStepQuickAction({
         );
       }
       invalidateStepCache(testOrderId);
+      lookupsStaleRef.current = true;
       setSelectedMediaId("");
       setSelectedIncubatorId("");
       // Immediately reload data from server so currentStepData has the active incubation & lock
-      await loadData(true);
+      await loadStep(true);
       if (onSuccess) {
         onSuccess();
       }
@@ -295,6 +324,9 @@ export function useTestStepQuickAction({
     openIncubationRow,
     ctaLabel,
     handleStartIncubation,
-    reload: () => loadData(true)
+    reload: () => {
+      loadStep(true);
+      if (expanded) loadLookups(true);
+    }
   };
 }

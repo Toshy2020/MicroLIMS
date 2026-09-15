@@ -14,6 +14,7 @@ import {
   Chip,
   Alert,
   Snackbar,
+  LinearProgress,
   useTheme
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
@@ -257,17 +258,20 @@ export function ReceivingTestingWorkspacePage() {
     workloadFilter
   };
 
-  const loadRecords = async (silent = false) => {
+  // The workload tile counts don't depend on the filters or page, so filter
+  // and page changes skip them; first load, Refresh and every reload after a
+  // change to the data still fetch them.
+  const loadRecords = async (silent = false, includeCounts = true) => {
     if (!silent) setLoading(true);
     try {
       const currentFilter = filterRef.current;
       const [pagedData, countsData] = await Promise.all([
         ReceiveService.getRecordsPaged(currentFilter),
-        ReceiveService.getWorkloadCounts()
+        includeCounts ? ReceiveService.getWorkloadCounts() : Promise.resolve(null)
       ]);
       setRecords(pagedData.items);
       setTotalCount(pagedData.totalCount);
-      setWorkloadCounts(countsData);
+      if (countsData) setWorkloadCounts(countsData);
 
       // If a sample is selected, refresh its details if present in the reloaded page
       if (selectedSampleId) {
@@ -288,7 +292,7 @@ export function ReceivingTestingWorkspacePage() {
 
   // Re-fetch whenever page, pageSize, or any filter changes
   useEffect(() => {
-    loadRecords();
+    loadRecords(false, workloadCounts === null);
   }, [
     page,
     pageSize,
@@ -693,7 +697,7 @@ export function ReceivingTestingWorkspacePage() {
 
       {/* Selection summary - rendered above the layout branch so it survives
           the swap into the grouped-actions split view at 2+ selected. */}
-      {records && !loading && (
+      {records && (
         <SelectionSummaryBar
           selectedCount={checkedSampleIds.size}
           hiddenCount={hiddenCheckedCount}
@@ -703,8 +707,11 @@ export function ReceivingTestingWorkspacePage() {
         />
       )}
 
-      {/* Loading State */}
-      {!records || loading ? (
+      {/* Loading State - the spinner only covers the very first load. Later
+          reloads keep the register and selected sample on screen under a thin
+          progress bar, so the test cards don't unmount and refetch. */}
+      {records && loading && <LinearProgress sx={{ mb: 1, borderRadius: 1 }} />}
+      {!records ? (
         <LoadingSpinner />
       ) : checkedSampleIds.size >= 2 ? (
         /* GROUPED ACTIONS SPLIT-PANE LAYOUT (When 2+ samples are checked) */

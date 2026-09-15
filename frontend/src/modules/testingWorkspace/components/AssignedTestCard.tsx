@@ -78,6 +78,14 @@ export function AssignedTestCard({
 
   const [nowMs, setNowMs] = useState<number>(Date.now());
 
+  // For closed tests and tests past result entry, dynamicBadge and centerText
+  // return before reading any step data, so their current step isn't fetched.
+  const stepDataUnused =
+    Boolean(test.workflowState && CLOSED_TEST_STATES[test.workflowState]) ||
+    test.workflowState === "APPROVED" || test.status === "Approved" ||
+    test.workflowState === "REVIEWED" || test.status === "Reviewed" ||
+    test.workflowState === "RESULTS_RECORDED" || test.status === "UnderReview";
+
   const {
     loading,
     submitting,
@@ -106,6 +114,8 @@ export function AssignedTestCard({
     testOrderId: test.testOrderId,
     testCode: test.testCode,
     expanded,
+    enabled: !stepDataUnused,
+    refreshKey: `${test.status}|${test.workflowState ?? ""}|${test.workflowStatus ?? ""}`,
     onSuccess: () => {
       setExpanded(false);
       onActionComplete();

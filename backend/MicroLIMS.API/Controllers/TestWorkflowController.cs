@@ -1,7 +1,8 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.DTOs;
+using MicroLIMS.Application.Helpers;
 using MicroLIMS.Application.Services;
 using MicroLIMS.Application.Workflows;
 using MicroLIMS.Domain.Enums;
@@ -212,8 +213,11 @@ public class TestWorkflowController : ControllerBase
             {
                 if (openIncubation.MediaId.HasValue && current.Step?.StepMedia != null)
                 {
-                    var mediaRow = await _db.Media.Where(m => m.Id == openIncubation.MediaId.Value).Select(m => new { m.MaterialId }).FirstOrDefaultAsync();
-                    var stepMedia = mediaRow != null ? current.Step.StepMedia.FirstOrDefault(sm => sm.MaterialId == mediaRow.MaterialId) : null;
+                    var mediaRow = await _db.Media.Where(m => m.Id == openIncubation.MediaId.Value).Select(m => new { m.MaterialId, m.Material!.MediaProductId }).FirstOrDefaultAsync();
+                    var stepMedia = mediaRow != null
+                        ? (current.Step.StepMedia.FirstOrDefault(sm => sm.MaterialId == mediaRow.MaterialId)
+                           ?? current.Step.StepMedia.FirstOrDefault(sm => StepMediumMatcher.Matches(sm, mediaRow.MaterialId, mediaRow.MediaProductId)))
+                        : null;
                     minHours = stepMedia?.IncubationMinHours ?? current.Step?.IncubationMinHours ?? 0;
                 }
                 else

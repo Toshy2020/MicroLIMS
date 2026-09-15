@@ -64,17 +64,22 @@ public static class PathogenTestData
         var tsiStepMedia = new TestWorkflowStepMedia { TestWorkflowStepId = steps[3].Id, MaterialId = tsiMaterial.Id, TempMin = 35, TempMax = 37, IncubationMinHours = 18, IncubationMaxHours = 24, IsRequired = false, DisplayOrder = 2 };
         db.TestWorkflowStepMedias.AddRange(xldStepMedia, tsiStepMedia);
 
+        var xldProduct = await MediaProductTestData.CreateOrGetAsync(db, "XLD Agar", "XLD");
+        var tsiProduct = await MediaProductTestData.CreateOrGetAsync(db, "TSI Agar", "TSI");
+
         db.MediaConfigurations.AddRange(
             new MediaConfiguration
             {
+                MediaProductId = xldProduct.Id,
                 Name = "XLD Agar", EvaluationType = EvaluationType.IndicationInhibition,
-                IncubationMinHours = 18, IncubationMaxHours = 24, TemperatureMin = 35, TemperatureMax = 37,
+                IncubationCondition = MediaProductTestData.Condition(xldProduct, 18, 24, 35, 37),
                 Challenges = new List<MediaConfigurationChallenge> { new() { OrganismId = organism.Id, ExpectedDescription = "Red colonies with black centres" } }
             },
             new MediaConfiguration
             {
+                MediaProductId = tsiProduct.Id,
                 Name = "TSI Agar", EvaluationType = EvaluationType.IndicationInhibition,
-                IncubationMinHours = 18, IncubationMaxHours = 24, TemperatureMin = 35, TemperatureMax = 37,
+                IncubationCondition = MediaProductTestData.Condition(tsiProduct, 18, 24, 35, 37),
                 Challenges = new List<MediaConfigurationChallenge> { new() { OrganismId = organism.Id, ExpectedDescription = "Alkaline slant, acid butt, H2S positive" } }
             });
         await db.SaveChangesAsync();
@@ -97,11 +102,14 @@ public static class PathogenTestData
 
     private static async Task<(Material material, Media lot)> AddMediumAsync(MicroLimsDbContext db, string materialName, string lotNumber)
     {
+        var code = lotNumber.Split('/')[0];
+        var product = await MediaProductTestData.CreateOrGetAsync(db, materialName, code);
         var material = new Material
         {
             MaterialType = MaterialType.DehydratedMedia, MaterialName = materialName, ManufacturerName = "Himedia",
             BatchNumber = $"LOT-{lotNumber}", ReceivingDate = DateTime.UtcNow.AddDays(-10), Location = "Micro Lab",
-            QuantityReceived = 500, QuantityRemaining = 500, Unit = MaterialUnit.Gram
+            QuantityReceived = 500, QuantityRemaining = 500, Unit = MaterialUnit.Gram,
+            Code = code, MediaProductId = product.Id
         };
         db.Materials.Add(material);
         await db.SaveChangesAsync();

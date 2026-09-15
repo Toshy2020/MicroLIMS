@@ -8,7 +8,8 @@ namespace MicroLIMS.Application.Services;
 public record SaveMaterialRequest(
     MaterialType MaterialType, string MaterialName, string ManufacturerName, string BatchNumber,
     DateTime ReceivingDate, DateTime? ExpiryDate, string? Code, string Location,
-    decimal QuantityReceived, MaterialUnit Unit, decimal? MinimumStockLevel, string? AtccNumber, int? OrganismId);
+    decimal QuantityReceived, MaterialUnit Unit, decimal? MinimumStockLevel, string? AtccNumber, int? OrganismId,
+    int? MediaProductId = null);
 
 // Materials Stock register (Inventory module) - dehydrated media, discs,
 // ID kits/reagents, chemicals, indicators, reference buffers, disposable
@@ -49,7 +50,7 @@ public class MaterialService
 
     public async Task<List<Material>> GetAllAsync(MaterialType? type = null)
     {
-        var query = _db.Materials.Include(m => m.Organism).AsQueryable();
+        var query = _db.Materials.Include(m => m.Organism).Include(m => m.MediaProduct).AsQueryable();
         if (type.HasValue) query = query.Where(m => m.MaterialType == type.Value);
         return await query.OrderBy(m => m.MaterialType).ThenBy(m => m.MaterialName).ToListAsync();
     }
@@ -63,15 +64,44 @@ public class MaterialService
 
     public async Task<Material> CreateAsync(SaveMaterialRequest r, int currentUserId)
     {
+        int? mediaProductId = null;
+        string materialName = r.MaterialName;
+        string? code = r.Code;
+
+        if (r.MaterialType == MaterialType.DehydratedMedia)
+        {
+            if (!r.MediaProductId.HasValue)
+                throw new InvalidOperationException("Choose the configured media product for this dehydrated media.");
+
+            var product = await _db.MediaProducts.FirstOrDefaultAsync(p => p.Id == r.MediaProductId.Value)
+                ?? throw new InvalidOperationException($"Media product with ID {r.MediaProductId.Value} not found.");
+
+            mediaProductId = product.Id;
+            materialName = product.Name;
+            code = product.Code;
+        }
+
         var entity = new Material
         {
-            MaterialType = r.MaterialType, MaterialName = r.MaterialName, ManufacturerName = r.ManufacturerName,
-            BatchNumber = r.BatchNumber, ReceivingDate = r.ReceivingDate, ExpiryDate = r.ExpiryDate,
-            Code = r.Code, Location = r.Location, AtccNumber = r.AtccNumber, OrganismId = r.OrganismId,
-            QuantityReceived = r.QuantityReceived, QuantityRemaining = r.QuantityReceived, // full balance at receipt
-            Unit = r.Unit, MinimumStockLevel = r.MinimumStockLevel,
-            CreatedByUserId = currentUserId, CreatedAt = DateTime.UtcNow,
-            LastModifiedByUserId = currentUserId, LastModifiedAt = DateTime.UtcNow
+            MaterialType = r.MaterialType,
+            MediaProductId = mediaProductId,
+            MaterialName = materialName,
+            ManufacturerName = r.ManufacturerName,
+            BatchNumber = r.BatchNumber,
+            ReceivingDate = r.ReceivingDate,
+            ExpiryDate = r.ExpiryDate,
+            Code = code,
+            Location = r.Location,
+            AtccNumber = r.AtccNumber,
+            OrganismId = r.OrganismId,
+            QuantityReceived = r.QuantityReceived,
+            QuantityRemaining = r.QuantityReceived, // full balance at receipt
+            Unit = r.Unit,
+            MinimumStockLevel = r.MinimumStockLevel,
+            CreatedByUserId = currentUserId,
+            CreatedAt = DateTime.UtcNow,
+            LastModifiedByUserId = currentUserId,
+            LastModifiedAt = DateTime.UtcNow
         };
         _db.Materials.Add(entity);
         await _db.SaveChangesAsync();
@@ -88,15 +118,49 @@ public class MaterialService
         var entity = await _db.Materials.FindAsync(id)
             ?? throw new InvalidOperationException($"Material {id} not found.");
 
+        int? mediaProductId = null;
+        string materialName = r.MaterialName;
+        string? code = r.Code;
+
+        if (r.MaterialType == MaterialType.DehydratedMedia)
+        {
+            if (!r.MediaProductId.HasValue)
+                throw new InvalidOperationException("Choose the configured media product for this dehydrated media.");
+
+            if (r.MediaProductId.Value != entity.MediaProductId)
+            {
+                // Linking a batch that has no product yet is always allowed -
+                // media preparation refuses unlinked batches, so a legacy batch
+                // that already has lots must still be linkable. Moving a linked
+                // batch to a different product is not, once lots cite it.
+                if (entity.MediaProductId != null && await _db.Media.AnyAsync(m => m.MaterialId == entity.Id))
+                    throw new InvalidOperationException($"Lots have already been prepared from batch {entity.BatchNumber} - its media product can't be changed.");
+
+                var product = await _db.MediaProducts.FirstOrDefaultAsync(p => p.Id == r.MediaProductId.Value)
+                    ?? throw new InvalidOperationException($"Media product with ID {r.MediaProductId.Value} not found.");
+
+                mediaProductId = product.Id;
+                materialName = product.Name;
+                code = product.Code;
+            }
+            else
+            {
+                mediaProductId = entity.MediaProductId;
+                materialName = entity.MaterialName;
+                code = entity.Code;
+            }
+        }
+
         var receivedDelta = r.QuantityReceived - entity.QuantityReceived;
 
         entity.MaterialType = r.MaterialType;
-        entity.MaterialName = r.MaterialName;
+        entity.MediaProductId = mediaProductId;
+        entity.MaterialName = materialName;
         entity.ManufacturerName = r.ManufacturerName;
         entity.BatchNumber = r.BatchNumber;
         entity.ReceivingDate = r.ReceivingDate;
         entity.ExpiryDate = r.ExpiryDate;
-        entity.Code = r.Code;
+        entity.Code = code;
         entity.Location = r.Location;
         entity.AtccNumber = r.AtccNumber;
         entity.OrganismId = r.OrganismId;

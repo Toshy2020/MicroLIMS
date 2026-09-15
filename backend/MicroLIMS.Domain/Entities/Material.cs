@@ -36,6 +36,11 @@ public class Material
     public string? Code { get; set; }
     public string Location { get; set; } = string.Empty;
 
+    // Only for MaterialType.DehydratedMedia; MaterialName and Code are
+    // snapshots copied from the product when the batch is received.
+    public int? MediaProductId { get; set; }
+    public MediaProduct? MediaProduct { get; set; }
+
     // Only meaningful for LyophilizedMicroorganism rows. AtccNumber is
     // kept as a transitional snapshot (pre-Organism-master data) - the
     // canonical source going forward is OrganismId; CryovialService

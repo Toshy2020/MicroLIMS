@@ -28,6 +28,7 @@ public class MediaGptReportService
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
             .Include(m => m.Material)
+                .ThenInclude(mat => mat!.MediaProduct)
             .ToListAsync();
 
         var mediaIds = mediaLots.Select(m => m.Id).ToList();
@@ -60,7 +61,7 @@ public class MediaGptReportService
             return new MediaGptListDto(
                 Id: m.Id,
                 LotNumber: m.LotNumber,
-                MediaType: m.Material?.MaterialName ?? string.Empty,
+                MediaType: (m.Material?.MediaProduct != null ? m.Material.MediaProduct.Name : m.Material?.MaterialName) ?? string.Empty,
                 PreparedAt: m.PreparedAt,
                 ExpiryDate: m.ExpiryDate,
                 EvaluationType: eval?.EvaluationType.ToString() ?? EvaluationType.GrowthPromotion.ToString(),
@@ -83,6 +84,7 @@ public class MediaGptReportService
     {
         var media = await _db.Media
             .Include(m => m.Material)
+                .ThenInclude(mat => mat!.MediaProduct)
             .Include(m => m.AutoclaveEquipment)
             .FirstOrDefaultAsync(m => m.Id == mediaId);
 
@@ -96,8 +98,11 @@ public class MediaGptReportService
             .FirstOrDefaultAsync(e => e.MediaId == mediaId);
 
         var configRanges = await GetMediaConfigurationRangesAsync();
-        var materialName = media.Material?.MaterialName ?? string.Empty;
-        configRanges.TryGetValue(materialName, out var range);
+        (decimal? Min, decimal? Max) range = default;
+        if (media.Material?.MediaProductId is int prodId && configRanges.TryGetValue(prodId, out var r))
+        {
+            range = r;
+        }
 
         var userIds = new HashSet<int>();
         if (media.PreparedByUserId > 0) userIds.Add(media.PreparedByUserId);
@@ -152,7 +157,7 @@ public class MediaGptReportService
         return new MediaGptDetailDto(
             Id: media.Id,
             LotNumber: media.LotNumber,
-            MediaType: media.Material?.MaterialName ?? string.Empty,
+            MediaType: (media.Material?.MediaProduct != null ? media.Material.MediaProduct.Name : media.Material?.MaterialName) ?? string.Empty,
             ManufacturerName: media.ManufacturerName,
             ManufacturerLot: media.ManufacturerLot,
             TotalWeight: media.TotalWeight,
@@ -182,12 +187,15 @@ public class MediaGptReportService
 
     public async Task<MediaGptSummaryDto> GetSummaryAsync(DateTime? fromDate, DateTime? toDate, string? mediaType)
     {
-        var query = _db.Media.Include(m => m.Material).AsQueryable();
+        var query = _db.Media
+            .Include(m => m.Material)
+                .ThenInclude(mat => mat!.MediaProduct)
+            .AsQueryable();
 
         if (fromDate.HasValue) query = query.Where(m => m.PreparedAt >= fromDate.Value);
         if (toDate.HasValue) query = query.Where(m => m.PreparedAt <= toDate.Value);
         if (!string.IsNullOrWhiteSpace(mediaType))
-            query = query.Where(m => m.Material != null && m.Material.MaterialName == mediaType);
+            query = query.Where(m => m.Material != null && (m.Material.MediaProduct != null ? m.Material.MediaProduct.Name : m.Material.MaterialName) == mediaType);
 
         var mediaList = await query.ToListAsync();
         var mediaIds = mediaList.Select(m => m.Id).ToList();
@@ -199,7 +207,7 @@ public class MediaGptReportService
         var evalMap = evaluations.ToDictionary(e => e.MediaId);
 
         var grouped = mediaList
-            .GroupBy(m => m.Material?.MaterialName ?? "Unknown Media")
+            .GroupBy(m => (m.Material?.MediaProduct != null ? m.Material.MediaProduct.Name : m.Material?.MaterialName) ?? "Unknown Media")
             .Select(g =>
             {
                 var typeName = g.Key;
@@ -244,6 +252,7 @@ public class MediaGptReportService
         var baseQuery = ApplySort(BuildFilteredQuery(request), request);
         var mediaLots = await baseQuery
             .Include(m => m.Material)
+                .ThenInclude(mat => mat!.MediaProduct)
             .ToListAsync();
 
         var mediaIds = mediaLots.Select(m => m.Id).ToList();
@@ -285,8 +294,12 @@ public class MediaGptReportService
         foreach (var m in mediaLots)
         {
             evalMap.TryGetValue(m.Id, out var eval);
-            var materialName = m.Material?.MaterialName ?? string.Empty;
-            configRanges.TryGetValue(materialName, out var range);
+            var mediaTypeName = (m.Material?.MediaProduct != null ? m.Material.MediaProduct.Name : m.Material?.MaterialName) ?? string.Empty;
+            (decimal? Min, decimal? Max) range = default;
+            if (m.Material?.MediaProductId is int prodId && configRanges.TryGetValue(prodId, out var r))
+            {
+                range = r;
+            }
             var expectedRangeStr = (range.Min.HasValue && range.Max.HasValue)
                 ? $"{range.Min:0.#}% - {range.Max:0.#}%"
                 : "-";
@@ -297,7 +310,7 @@ public class MediaGptReportService
             {
                 rows.Add(new MediaGptExportRowDto(
                     LotNumber: m.LotNumber,
-                    MediaType: materialName,
+                    MediaType: mediaTypeName,
                     PreparedAt: m.PreparedAt,
                     ExpiryDate: m.ExpiryDate,
                     ApprovalStatus: m.ApprovalStatus.ToString(),
@@ -340,7 +353,7 @@ public class MediaGptReportService
 
                     rows.Add(new MediaGptExportRowDto(
                         LotNumber: m.LotNumber,
-                        MediaType: materialName,
+                        MediaType: mediaTypeName,
                         PreparedAt: m.PreparedAt,
                         ExpiryDate: m.ExpiryDate,
                         ApprovalStatus: m.ApprovalStatus.ToString(),
@@ -386,7 +399,7 @@ public class MediaGptReportService
     {
         var mediaTypes = await _db.Media
             .Where(m => m.Material != null)
-            .Select(m => m.Material!.MaterialName)
+            .Select(m => m.Material!.MediaProduct != null ? m.Material!.MediaProduct.Name : m.Material!.MaterialName)
             .Distinct()
             .OrderBy(n => n)
             .ToListAsync();
@@ -405,12 +418,12 @@ public class MediaGptReportService
             var term = request.Search.Trim().ToLower();
             query = query.Where(m =>
                 m.LotNumber.ToLower().Contains(term) ||
-                (m.Material != null && m.Material.MaterialName.ToLower().Contains(term)));
+                (m.Material != null && (m.Material.MediaProduct != null ? m.Material.MediaProduct.Name.ToLower() : m.Material.MaterialName.ToLower()).Contains(term)));
         }
 
         if (!string.IsNullOrWhiteSpace(request.MediaType))
         {
-            query = query.Where(m => m.Material != null && m.Material.MaterialName == request.MediaType);
+            query = query.Where(m => m.Material != null && (m.Material.MediaProduct != null ? m.Material.MediaProduct.Name : m.Material.MaterialName) == request.MediaType);
         }
 
         if (request.FromDate.HasValue)
@@ -447,24 +460,26 @@ public class MediaGptReportService
         request.SortBy switch
         {
             "LotNumber" => request.SortDescending ? query.OrderByDescending(m => m.LotNumber) : query.OrderBy(m => m.LotNumber),
-            "MediaType" => request.SortDescending ? query.OrderByDescending(m => m.Material != null ? m.Material.MaterialName : "") : query.OrderBy(m => m.Material != null ? m.Material.MaterialName : ""),
+            "MediaType" => request.SortDescending
+                ? query.OrderByDescending(m => m.Material != null ? (m.Material.MediaProduct != null ? m.Material.MediaProduct.Name : m.Material.MaterialName) : "")
+                : query.OrderBy(m => m.Material != null ? (m.Material.MediaProduct != null ? m.Material.MediaProduct.Name : m.Material.MaterialName) : ""),
             "ExpiryDate" => request.SortDescending ? query.OrderByDescending(m => m.ExpiryDate) : query.OrderBy(m => m.ExpiryDate),
             "ApprovalStatus" => request.SortDescending ? query.OrderByDescending(m => m.ApprovalStatus) : query.OrderBy(m => m.ApprovalStatus),
             _ => request.SortDescending ? query.OrderByDescending(m => m.PreparedAt) : query.OrderBy(m => m.PreparedAt)
         };
 
-    private async Task<Dictionary<string, (decimal? Min, decimal? Max)>> GetMediaConfigurationRangesAsync()
+    private async Task<Dictionary<int, (decimal? Min, decimal? Max)>> GetMediaConfigurationRangesAsync()
     {
         var configs = await _db.MediaConfigurations
             .OrderBy(c => c.Id)
             .ToListAsync();
 
-        var dict = new Dictionary<string, (decimal? Min, decimal? Max)>(StringComparer.OrdinalIgnoreCase);
+        var dict = new Dictionary<int, (decimal? Min, decimal? Max)>();
         foreach (var c in configs)
         {
-            if (!dict.ContainsKey(c.Name))
+            if (!dict.ContainsKey(c.MediaProductId))
             {
-                dict[c.Name] = (c.RecoveryPercentMin, c.RecoveryPercentMax);
+                dict[c.MediaProductId] = (c.RecoveryPercentMin, c.RecoveryPercentMax);
             }
         }
         return dict;

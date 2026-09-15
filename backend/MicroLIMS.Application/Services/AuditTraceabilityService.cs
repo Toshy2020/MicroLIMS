@@ -87,6 +87,7 @@ public class AuditTraceabilityService
         // 2. Media Chain
         if (log.EntityName == nameof(Media) ||
             log.EntityName == nameof(MediaEvaluation) ||
+            log.EntityName == nameof(MediaIncubationCondition) ||
             log.EntityName == nameof(MediaConfiguration) ||
             log.EntityName == nameof(MediaConfigurationChallenge) ||
             log.EntityName == "MediaChallengeSpec" ||

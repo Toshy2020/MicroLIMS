@@ -18,6 +18,7 @@ import {
 import ScienceOutlinedIcon from "@mui/icons-material/ScienceOutlined";
 import { MediaPreparationService } from "../services/MediaPreparationService";
 import { MaterialService } from "../../../inventory/materials/services/MaterialService";
+import { MaterialItem } from "../../../inventory/materials/types/materialTypes";
 import { EquipmentConfigurationService, AutoclaveProgram } from "../../masterDataSimple/services/EquipmentConfigurationService";
 import { masterDataOptions } from "../../../../services/masterDataOptions";
 
@@ -30,7 +31,7 @@ interface Props {
 export function MediaPreparationDialog({ open, onClose, onSuccess }: Props) {
   const theme = useTheme();
   const [autoclaves, setAutoclaves] = useState<any[]>([]);
-  const [dehydratedMedia, setDehydratedMedia] = useState<any[]>([]);
+  const [dehydratedMedia, setDehydratedMedia] = useState<MaterialItem[]>([]);
   const [autoclavePrograms, setAutoclavePrograms] = useState<AutoclaveProgram[]>([]);
   const [form, setForm] = useState<Record<string, any>>({});
   const [error, setError] = useState<string | null>(null);
@@ -100,6 +101,10 @@ export function MediaPreparationDialog({ open, onClose, onSuccess }: Props) {
     // Basic required field validation
     if (!form.materialId) {
       setError("Please select a Dehydrated Media Stock item from inventory.");
+      return;
+    }
+    if (selectedMaterial && selectedMaterial.mediaProductId == null) {
+      setError("The selected dehydrated media is not linked to a media product. Edit it in Inventory > Materials Stock before preparing.");
       return;
     }
     if (!form.totalWeight) {
@@ -209,11 +214,18 @@ export function MediaPreparationDialog({ open, onClose, onSuccess }: Props) {
                     <MenuItem value="">
                       <em>Dehydrated Media Stock (Inventory) *</em>
                     </MenuItem>
-                    {usableStock.map((m) => (
-                      <MenuItem key={m.id} value={m.id}>
-                        {m.materialName} — batch {m.batchNumber} ({m.quantityRemaining} {m.unit} left)
-                      </MenuItem>
-                    ))}
+                    {usableStock.map((m) => {
+                      const codePrefix = m.code ? `${m.code} — ` : "";
+                      const label = m.mediaProductId == null
+                        ? `${codePrefix}${m.materialName} — batch ${m.batchNumber} (not linked to a media product - edit it in Inventory > Materials Stock)`
+                        : `${codePrefix}${m.materialName} — batch ${m.batchNumber} (${m.quantityRemaining} ${m.unit} left)`;
+
+                      return (
+                        <MenuItem key={m.id} value={m.id} disabled={m.mediaProductId == null}>
+                          {label}
+                        </MenuItem>
+                      );
+                    })}
                   </Select>
                   {selectedMaterial && (
                     <Typography

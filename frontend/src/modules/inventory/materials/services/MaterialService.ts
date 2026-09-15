@@ -1,6 +1,23 @@
 import { apiClient } from "../../../../services/apiClient";
 import type { MaterialDocumentType } from "../types/materialTypes";
 
+export interface SaveMaterialPayload {
+  materialType: string;
+  materialName: string;
+  manufacturerName: string;
+  batchNumber: string;
+  receivingDate: string;
+  expiryDate: string | null;
+  code: string | null;
+  location: string;
+  quantityReceived: number;
+  unit: string;
+  minimumStockLevel: number | null;
+  atccNumber: string | null;
+  organismId: number | null;
+  mediaProductId: number | null;
+}
+
 export const MaterialService = {
   // ---- Materials Stock ----
   getAll: (materialType?: string) =>
@@ -8,8 +25,8 @@ export const MaterialService = {
   getForPrint: () => apiClient.get("/inventory/materials/print").then((r) => r.data.data),
   getDefaultUnit: (materialType: string) =>
     apiClient.get("/inventory/materials/default-unit", { params: { materialType } }).then((r) => r.data.data.unit),
-  create: (payload: any) => apiClient.post("/inventory/materials", payload).then((r) => r.data.data),
-  update: (id: number, payload: any) => apiClient.put(`/inventory/materials/${id}`, payload).then((r) => r.data.data),
+  create: (payload: SaveMaterialPayload) => apiClient.post("/inventory/materials", payload).then((r) => r.data.data),
+  update: (id: number, payload: SaveMaterialPayload) => apiClient.put(`/inventory/materials/${id}`, payload).then((r) => r.data.data),
 
   // ---- Lot Documents ----
   getDocuments: (materialId: number) =>

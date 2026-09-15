@@ -328,6 +328,10 @@ public class TestingWorkspaceService : ITestWorkspaceService
             .AsNoTracking()
             .Include(t => t.Steps)
                 .ThenInclude(s => s.StepMedia)
+                    .ThenInclude(sm => sm.Material)
+            .Include(t => t.Steps)
+                .ThenInclude(s => s.StepMedia)
+                    .ThenInclude(sm => sm.IncubationCondition)
             .Include(t => t.Steps)
                 .ThenInclude(s => s.IncubationStages)
             .Where(t => allTestCodes.Contains(t.Code))
@@ -335,6 +339,8 @@ public class TestingWorkspaceService : ITestWorkspaceService
 
         var incubations = await _db.Incubations
             .AsNoTracking()
+            .Include(i => i.Media)
+                .ThenInclude(m => m!.Material)
             .Where(i => i.TestOrderId != null && testOrderIds.Contains(i.TestOrderId.Value))
             .ToListAsync();
 
@@ -366,8 +372,15 @@ public class TestingWorkspaceService : ITestWorkspaceService
             bucket.Add(i);
         }
 
+        var mediaLookup = incubations
+            .Where(i => i.MediaId.HasValue && i.Media != null)
+            .GroupBy(i => i.MediaId!.Value)
+            .ToDictionary(
+                g => g.Key,
+                g => (MaterialId: g.First().Media!.MaterialId, MediaProductId: g.First().Media!.Material?.MediaProductId));
+
         return samples
-            .Select(s => ToDto(s, testDefs, incubations, locationCounts, analystNames, incubationsBySampleId))
+            .Select(s => ToDto(s, testDefs, incubations, locationCounts, analystNames, incubationsBySampleId, mediaLookup))
             .ToList();
     }
 
@@ -393,6 +406,10 @@ public class TestingWorkspaceService : ITestWorkspaceService
             .AsNoTracking()
             .Include(t => t.Steps)
                 .ThenInclude(s => s.StepMedia)
+                    .ThenInclude(sm => sm.Material)
+            .Include(t => t.Steps)
+                .ThenInclude(s => s.StepMedia)
+                    .ThenInclude(sm => sm.IncubationCondition)
             .Include(t => t.Steps)
                 .ThenInclude(s => s.IncubationStages)
             .Where(t => allTestCodes.Contains(t.Code))
@@ -400,13 +417,22 @@ public class TestingWorkspaceService : ITestWorkspaceService
 
         var incubations = await _db.Incubations
             .AsNoTracking()
+            .Include(i => i.Media)
+                .ThenInclude(m => m!.Material)
             .Where(i => i.TestOrderId != null && testOrderIds.Contains(i.TestOrderId.Value))
             .ToListAsync();
 
         var locationCounts = await GetLocationCountsAsync(testOrderIds);
         var analystNames = await GetAnalystNamesAsync(sample.TestOrders.Select(t => t.AssignedAnalystId));
 
-        return ToDto(sample, testDefs, incubations, locationCounts, analystNames);
+        var mediaLookup = incubations
+            .Where(i => i.MediaId.HasValue && i.Media != null)
+            .GroupBy(i => i.MediaId!.Value)
+            .ToDictionary(
+                g => g.Key,
+                g => (MaterialId: g.First().Media!.MaterialId, MediaProductId: g.First().Media!.Material?.MediaProductId));
+
+        return ToDto(sample, testDefs, incubations, locationCounts, analystNames, mediaLookup: mediaLookup);
     }
 
     private async Task<Dictionary<int, int>> GetLocationCountsAsync(List<int> testOrderIds)
@@ -439,7 +465,8 @@ public class TestingWorkspaceService : ITestWorkspaceService
         // is not re-scanned per sample. Buckets must be in the same order a
         // filtered pass over allIncubations would have produced - see the call
         // site in GetActiveSamplesAsync.
-        Dictionary<int, List<Incubation>>? incubationsBySampleId = null)
+        Dictionary<int, List<Incubation>>? incubationsBySampleId = null,
+        IReadOnlyDictionary<int, (int MaterialId, int? MediaProductId)>? mediaLookup = null)
     {
         var locationCounts = locationCountsByTestOrderId
             ?? (s.Locations != null
@@ -480,6 +507,13 @@ public class TestingWorkspaceService : ITestWorkspaceService
         bool tsbIncubating = TsbDetectionHelper.IsTsbIncubating(sharedTsbInc, tsbHoursMin, DateTime.UtcNow);
         bool tsbCompleted = TsbDetectionHelper.IsTsbComplete(sharedTsbInc, tsbHoursMin, DateTime.UtcNow);
 
+        var lookup = mediaLookup ?? sampleIncubations
+            .Where(i => i.MediaId.HasValue && i.Media != null)
+            .GroupBy(i => i.MediaId!.Value)
+            .ToDictionary(
+                g => g.Key,
+                g => (MaterialId: g.First().Media!.MaterialId, MediaProductId: g.First().Media!.Material?.MediaProductId));
+
         var assignedTests = s.TestOrders.Select(t =>
         {
             TestDefinition? def = null;
@@ -490,7 +524,7 @@ public class TestingWorkspaceService : ITestWorkspaceService
                 (!string.IsNullOrEmpty(step.StepName) && step.StepName.Contains("TSB", StringComparison.OrdinalIgnoreCase))) ?? false;
 
             var testIncubations = sampleIncubations.Where(i => i.TestOrderId == t.Id).ToList();
-            var stateResult = WorkflowStateResolver.Resolve(t, usesTsb, sharedTsbInc, testIncubations, null, DateTime.UtcNow, 24, def?.Steps, s.Status);
+            var stateResult = WorkflowStateResolver.Resolve(t, usesTsb, sharedTsbInc, testIncubations, null, DateTime.UtcNow, 24, def?.Steps, s.Status, lookup);
 
             return new TestOrderSummaryDto
             {

@@ -181,28 +181,6 @@ public class SampleSummaryService
         int? assignedAnalystId = assignedOrder?.AssignedAnalystId;
         string? assignedAnalystName = assignedAnalystId.HasValue ? NameOf(assignedAnalystId.Value) : null;
 
-        var sharedTsbInc = TsbDetectionHelper.FindSharedTsbIncubation(incubations);
-
-        int tsbHoursMin = 24;
-        foreach (var def in testDefinitions.Values)
-        {
-            var tsbStep = def.Steps.FirstOrDefault(step =>
-                step.StepType is StepType.BrothEnrichment ||
-                (!string.IsNullOrEmpty(step.StepName) && step.StepName.Contains("TSB", StringComparison.OrdinalIgnoreCase)));
-            if (tsbStep != null && tsbStep.IncubationMinHours > 0)
-            {
-                tsbHoursMin = tsbStep.IncubationMinHours;
-                break;
-            }
-        }
-
-        bool tsbStarted = sharedTsbInc != null;
-        DateTime? tsbStart = sharedTsbInc?.IncubationStartUtc ?? sharedTsbInc?.StartedAt;
-        DateTime? tsbMinReadyAt = TsbDetectionHelper.GetTsbMinReadyAt(sharedTsbInc, tsbHoursMin);
-
-        bool tsbIncubating = TsbDetectionHelper.IsTsbIncubating(sharedTsbInc, tsbHoursMin, DateTime.UtcNow);
-        bool tsbCompleted = TsbDetectionHelper.IsTsbComplete(sharedTsbInc, tsbHoursMin, DateTime.UtcNow);
-
         string summaryDisplayName = sample.Category switch
         {
             SampleCategory.AfterCleaning => sample.Machine?.Name ?? string.Empty,
@@ -275,7 +253,7 @@ public class SampleSummaryService
                 var orderIncubations = incubations.Where(i => i.TestOrderId == order.Id).ToList();
                 // Effective orders can come from retest descendants, so each is
                 // judged by its own sample's status, not this sample's.
-                var stateResult = WorkflowStateResolver.Resolve(order, usesTsb, sharedTsbInc, orderIncubations, null, DateTime.UtcNow, 24, def?.Steps, order.Sample?.Status ?? sample.Status, mediaLookup);
+                var stateResult = WorkflowStateResolver.Resolve(order, usesTsb, orderIncubations, null, DateTime.UtcNow, def?.Steps, order.Sample?.Status ?? sample.Status, mediaLookup);
 
                 var orderPathogenObs = locationPathogenObservations.Where(o => o.TestOrderId == order.Id).ToList();
 

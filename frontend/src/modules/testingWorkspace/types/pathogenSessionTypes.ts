@@ -182,6 +182,9 @@ export interface SharedTsbStateDto {
   startedByUserName: string | null;
   applicableTestCodes: string[];
   applicableLocationCount: number;
+  // A TSB test's own window can't be resolved from Test Master; the ranges
+  // above then read "not configured" for that test.
+  windowNotConfigured?: boolean;
 }
 
 export interface MatrixCellResultDto {

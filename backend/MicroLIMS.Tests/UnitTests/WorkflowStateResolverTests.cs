@@ -20,7 +20,6 @@ public class WorkflowStateResolverTests
         var result = WorkflowStateResolver.Resolve(
             testOrder,
             requiresTsb: false,
-            sharedTsb: null,
             testOrderIncubations: new List<Incubation>(),
             stepDtos: null,
             utcNow: DateTime.UtcNow);
@@ -45,7 +44,6 @@ public class WorkflowStateResolverTests
         var result = WorkflowStateResolver.Resolve(
             testOrder,
             requiresTsb: true,
-            sharedTsb: null,
             testOrderIncubations: new List<Incubation>(),
             stepDtos: null,
             utcNow: DateTime.UtcNow);
@@ -67,7 +65,7 @@ public class WorkflowStateResolverTests
             CurrentStep = WorkflowStep.Reviewed
         };
         var approvedResult = WorkflowStateResolver.Resolve(
-            approvedOrder, false, null, new List<Incubation>(), null, DateTime.UtcNow);
+            approvedOrder, false, new List<Incubation>(), null, DateTime.UtcNow);
         Assert.Equal("APPROVED", approvedResult.WorkflowState);
 
         var rejectedOrder = new TestOrder
@@ -77,12 +75,12 @@ public class WorkflowStateResolverTests
             CurrentStep = WorkflowStep.Reviewed
         };
         var rejectedResult = WorkflowStateResolver.Resolve(
-            rejectedOrder, false, null, new List<Incubation>(), null, DateTime.UtcNow);
+            rejectedOrder, false, new List<Incubation>(), null, DateTime.UtcNow);
         Assert.Equal("REJECTED", rejectedResult.WorkflowState);
     }
 
     private static WorkflowStateResult ResolveFor(TestOrder order, SampleStatus? sampleStatus) =>
-        WorkflowStateResolver.Resolve(order, false, null, new List<Incubation>(), null, DateTime.UtcNow, 24, null, sampleStatus);
+        WorkflowStateResolver.Resolve(order, false, new List<Incubation>(), null, DateTime.UtcNow, null, sampleStatus);
 
     // Sample #85's shape among them: a rejected sample whose tests sat at
     // CurrentStep Ready used to fall through to "Next: Ready".
@@ -149,7 +147,10 @@ public class WorkflowStateResolverTests
         {
             MaterialId = 10,
             Material = new Material { Id = 10, MediaProductId = 5 },
-            IncubationMinHours = 48
+            IncubationMinHours = 48,
+            IncubationMaxHours = 72,
+            TempMin = 30,
+            TempMax = 35
         };
 
         // medium2 has MaterialId = 50, unrelated product, and requires 24h
@@ -157,7 +158,10 @@ public class WorkflowStateResolverTests
         {
             MaterialId = 50,
             Material = new Material { Id = 50, MediaProductId = 99 },
-            IncubationMinHours = 24
+            IncubationMinHours = 24,
+            IncubationMaxHours = 48,
+            TempMin = 30,
+            TempMax = 35
         };
 
         var step = new TestWorkflowStep
@@ -183,11 +187,9 @@ public class WorkflowStateResolverTests
         var result = WorkflowStateResolver.Resolve(
             order,
             requiresTsb: false,
-            sharedTsb: null,
             testOrderIncubations: new List<Incubation> { incubation },
             stepDtos: null,
             utcNow: utcNow,
-            requiredTsbHoursMin: 24,
             steps: new List<TestWorkflowStep> { step },
             sampleStatus: SampleStatus.InTesting,
             mediaLookup: mediaLookup);
@@ -209,7 +211,10 @@ public class WorkflowStateResolverTests
         {
             MaterialId = 10,
             Material = new Material { Id = 10, MediaProductId = 5 },
-            IncubationMinHours = 48
+            IncubationMinHours = 48,
+            IncubationMaxHours = 72,
+            TempMin = 30,
+            TempMax = 35
         };
 
         var step = new TestWorkflowStep
@@ -235,11 +240,9 @@ public class WorkflowStateResolverTests
         var resultAt30h = WorkflowStateResolver.Resolve(
             order,
             requiresTsb: false,
-            sharedTsb: null,
             testOrderIncubations: new List<Incubation> { incubation },
             stepDtos: null,
             utcNow: utcNow,
-            requiredTsbHoursMin: 24,
             steps: new List<TestWorkflowStep> { step },
             sampleStatus: SampleStatus.InTesting,
             mediaLookup: mediaLookup);
@@ -249,11 +252,9 @@ public class WorkflowStateResolverTests
         var resultAt50h = WorkflowStateResolver.Resolve(
             order,
             requiresTsb: false,
-            sharedTsb: null,
             testOrderIncubations: new List<Incubation> { incubation },
             stepDtos: null,
             utcNow: incubation.IncubationStartUtc.Value.AddHours(50),
-            requiredTsbHoursMin: 24,
             steps: new List<TestWorkflowStep> { step },
             sampleStatus: SampleStatus.InTesting,
             mediaLookup: mediaLookup);
@@ -272,7 +273,10 @@ public class WorkflowStateResolverTests
         {
             MaterialId = 10,
             Material = new Material { Id = 10, MediaProductId = 5 },
-            IncubationMinHours = 48
+            IncubationMinHours = 48,
+            IncubationMaxHours = 72,
+            TempMin = 30,
+            TempMax = 35
         };
 
         var step = new TestWorkflowStep
@@ -299,11 +303,9 @@ public class WorkflowStateResolverTests
         var result = WorkflowStateResolver.Resolve(
             order,
             requiresTsb: false,
-            sharedTsb: null,
             testOrderIncubations: new List<Incubation> { incubation },
             stepDtos: null,
             utcNow: utcNow,
-            requiredTsbHoursMin: 24,
             steps: new List<TestWorkflowStep> { step },
             sampleStatus: SampleStatus.InTesting,
             mediaLookup: null);

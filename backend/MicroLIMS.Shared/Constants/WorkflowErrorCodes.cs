@@ -13,6 +13,11 @@ public static class WorkflowErrorCodes
     public const string IncubationWindowInvalid = "INCUBATION_WINDOW_INVALID";
     public const string IncubationWindowTooShort = "INCUBATION_WINDOW_TOO_SHORT";
 
+    // The test's selected medium in Test Master has no usable incubation
+    // hours/temperature. The medium is the only source of a window (see
+    // IncubationWindowResolver), so this blocks instead of falling back.
+    public const string IncubationWindowNotConfigured = "INCUBATION_WINDOW_NOT_CONFIGURED";
+
     // A confirmatory plating run has already been read out for this step.
     public const string ConfirmatoryAlreadyRecorded = "CONFIRMATORY_ALREADY_RECORDED";
 

@@ -54,8 +54,8 @@ public class BiochemicalPredecessorTests
         await db.SaveChangesAsync();
 
         db.TestWorkflowStepMedias.AddRange(
-            new TestWorkflowStepMedia { TestWorkflowStepId = steps[0].Id, MaterialId = brothMaterial.Id, TempMin = 35, TempMax = 37, IsRequired = true, DisplayOrder = 1 },
-            new TestWorkflowStepMedia { TestWorkflowStepId = steps[1].Id, MaterialId = platingMaterial.Id, TempMin = 35, TempMax = 37, IsRequired = true, DisplayOrder = 1 });
+            new TestWorkflowStepMedia { TestWorkflowStepId = steps[0].Id, MaterialId = brothMaterial.Id, TempMin = 35, TempMax = 37, IncubationMinHours = 18, IncubationMaxHours = 24, IsRequired = true, DisplayOrder = 1 },
+            new TestWorkflowStepMedia { TestWorkflowStepId = steps[1].Id, MaterialId = platingMaterial.Id, TempMin = 35, TempMax = 37, IncubationMinHours = 18, IncubationMaxHours = 24, IsRequired = true, DisplayOrder = 1 });
         await db.SaveChangesAsync();
 
         var sample = new Sample { Category = SampleCategory.FinishedProduct, ControlNumber = "CTRL-BCC-1", Status = SampleStatus.Received };

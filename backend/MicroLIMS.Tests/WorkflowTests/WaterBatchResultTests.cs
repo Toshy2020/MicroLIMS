@@ -95,7 +95,7 @@ public class WaterBatchResultTests
         };
         db.Materials.Add(material);
         await db.SaveChangesAsync();
-        db.TestWorkflowStepMedias.Add(new TestWorkflowStepMedia { TestWorkflowStepId = step.Id, MaterialId = material.Id, TempMin = 20, TempMax = 25 });
+        db.TestWorkflowStepMedias.Add(new TestWorkflowStepMedia { TestWorkflowStepId = step.Id, MaterialId = material.Id, TempMin = 20, TempMax = 25, IncubationMinHours = 18, IncubationMaxHours = 24 });
 
         var media = new Media
         {
@@ -128,6 +128,7 @@ public class WaterBatchResultTests
         await using var db = NewDb();
         var (engine, testOrderId, locationAId, locationBId) = await SetupPreparedWaterCountOrderAsync(db);
 
+        await IncubationTestClock.ElapseOpenIncubationsAsync(db, testOrderId);
         var result = await engine.RecordWaterBatchReadingsAsync(testOrderId, new List<MicroLIMS.Application.Workflows.WaterBatchLocationReadings>
         {
             new(locationAId, new List<decimal> { 12, 14 }),   // avg 13 -> AlertLimitExceeded
@@ -153,6 +154,7 @@ public class WaterBatchResultTests
         await using var db = NewDb();
         var (engine, testOrderId, locationAId, locationBId) = await SetupPreparedWaterCountOrderAsync(db);
 
+        await IncubationTestClock.ElapseOpenIncubationsAsync(db, testOrderId);
         await engine.RecordWaterBatchReadingsAsync(testOrderId, new List<MicroLIMS.Application.Workflows.WaterBatchLocationReadings>
         {
             new(locationAId, new List<decimal> { 1 }),
@@ -193,6 +195,7 @@ public class WaterBatchResultTests
         await using var db = NewDb();
         var (engine, testOrderId, locationAId, locationBId) = await SetupPreparedWaterCountOrderAsync(db);
 
+        await IncubationTestClock.ElapseOpenIncubationsAsync(db, testOrderId);
         await engine.RecordWaterBatchReadingsAsync(testOrderId, new List<MicroLIMS.Application.Workflows.WaterBatchLocationReadings>
         {
             new(locationAId, new List<decimal> { 1 }),

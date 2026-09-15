@@ -47,6 +47,8 @@ export interface TestWorkflowStepDto {
 
 export interface IncubationLock {
   isLocked: boolean;
+  // The open incubation's medium has no window in Test Master - locked, with no readiness time.
+  windowNotConfigured?: boolean;
   incubationEndUtc: string;
   remainingSeconds: number;
   minReadyAt?: string | null;
@@ -87,6 +89,7 @@ export interface SharedTsbSummary {
   remainingMinimumSeconds?: number;
   minimumDurationOverridden?: boolean;
   isLocked?: boolean;
+  windowNotConfigured?: boolean;
   startedByUserName: string;
   isCompleted: boolean;
 }

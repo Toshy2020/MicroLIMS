@@ -56,3 +56,8 @@ frontend/navigation_audit.txt
 # .py helper scripts, and running one leaves a __pycache__ beside it.
 __pycache__/
 *.pyc
+/excel_validation_vit_d3
+osteocare_vitd3_worksheet.html
+workbook_details.json
+test_worksheet.js
+workbook_copy.xlsx

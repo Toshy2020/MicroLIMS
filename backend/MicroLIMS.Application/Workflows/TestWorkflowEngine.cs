@@ -747,9 +747,16 @@ public class TestWorkflowEngine : ITestWorkflowEngine
         // that check at all, a pre-existing gap unrelated to this
         // migration's origin, closed here so every step type is held to
         // the same standard.
-        var selectedStepMedium = stepMedia.FirstOrDefault(m => m.MaterialId == media.MaterialId)
-            ?? stepMedia.First(m => StepMediumMatcher.Matches(m, media.MaterialId, media.Material?.MediaProductId));
+        var selectedStepMedium = IncubationWindowResolver.MatchStepMedium(stepMedia, media.MaterialId, media.Material?.MediaProductId)!;
+        var window = IncubationWindowResolver.Require(selectedStepMedium, stepName);
         await RequireEligibleIncubatorAsync(selectedStepMedium.Id, incubatorEquipmentId);
+
+        // A TSB lot is shared with the sample's other tests - checked
+        // before anything is saved, so a test that can't join blocks the
+        // whole start instead of leaving this one started alone.
+        var isSharedTsbStep = TsbDetectionHelper.IsSharedTsbStep(step);
+        if (isSharedTsbStep)
+            await RequireSharedTsbSiblingsCanJoinAsync(order, media, incubatorEquipmentId);
 
         var startedAt = DateTime.UtcNow;
         // Incubation window is locked from Test Master: analyst cannot override.
@@ -763,12 +770,12 @@ public class TestWorkflowEngine : ITestWorkflowEngine
             StageNumber = 1,
             MediaId = mediaLotId,
             IncubatorEquipmentId = incubatorEquipmentId,
-            Temperature = $"{selectedStepMedium.TempMin}-{selectedStepMedium.TempMax} °C",
-            Duration = $"{selectedStepMedium.IncubationMinHours}-{selectedStepMedium.IncubationMaxHours} hours",
+            Temperature = window.TemperatureText,
+            Duration = window.DurationText,
             StartedAt = startedAt,
             IncubationStartUtc = startedAt,
-            IncubationEndUtc = startedAt.AddHours(selectedStepMedium.IncubationMaxHours),
-            ExpectedReadingAt = startedAt.AddHours(selectedStepMedium.IncubationMaxHours),
+            IncubationEndUtc = window.EndAt(startedAt),
+            ExpectedReadingAt = window.EndAt(startedAt),
             WindowReceivedAtUtc = startedAt,
             StartedByUserId = userId
         };
@@ -788,7 +795,7 @@ public class TestWorkflowEngine : ITestWorkflowEngine
         else
             await _db.SaveChangesAsync();
 
-        if (step.StepType == StepType.BrothEnrichment || step.StepName.Contains("TSB", StringComparison.OrdinalIgnoreCase))
+        if (isSharedTsbStep)
         {
             await PropagateSharedTsbToSiblingOrdersAsync(testOrderId, incubation.Id, userId);
         }
@@ -847,91 +854,79 @@ public class TestWorkflowEngine : ITestWorkflowEngine
 
         var incubation = await _db.Incubations
             .Include(i => i.Media)
+                .ThenInclude(m => m!.Material)
             .Include(i => i.IncubatorEquipment)
             .FirstOrDefaultAsync(i => i.Id == incubationId, ct)
             ?? throw new InvalidOperationException($"Incubation #{incubationId} not found.");
 
-        var siblings = await _db.TestOrders
-            .Where(t => t.SampleId == sourceOrder.SampleId && t.Id != testOrderId && t.Status != ApprovalStatus.Approved && !t.IsSuperseded)
-            .ToListAsync(ct);
+        // Without a lot there is nothing a sibling's own medium could accept.
+        if (incubation.Media is null) return;
 
-        if (!siblings.Any()) return;
-
-        var testCodes = siblings.Select(t => t.TestCode).Distinct().ToList();
-        var testDefs = await _db.TestDefinitions
-            .Include(t => t.Steps)
-            .Where(t => testCodes.Contains(t.Code))
-            .ToDictionaryAsync(t => t.Code, ct);
+        var siblings = await FindSharedTsbSiblingsAsync(sourceOrder, incubation.Media, ct);
+        if (siblings.Count == 0) return;
 
         var brothStepName = "Broth Enrichment";
-        var mediaLotNumber = incubation.Media?.LotNumber ?? "TSB";
+        var mediaLotNumber = incubation.Media.LotNumber;
         var incubatorCode = incubation.IncubatorEquipment?.Code ?? "INC";
+        var sourceStartUtc = incubation.IncubationStartUtc ?? incubation.StartedAt;
 
         foreach (var sibling in siblings)
         {
-            if (!testDefs.TryGetValue(sibling.TestCode, out var def)) continue;
-
-            var tsbStep = def.Steps.FirstOrDefault(s =>
-                s.StepType == StepType.BrothEnrichment ||
-                s.StepName.Contains("TSB", StringComparison.OrdinalIgnoreCase));
-
-            if (tsbStep == null) continue;
-
-            var targetStepName = tsbStep.StepName;
-
-            // Ensure an Incubation row exists for sibling
-            var existingInc = await _db.Incubations
-                .Where(i => i.TestOrderId == sibling.Id && (i.StepName == targetStepName || i.StepName == brothStepName))
-                .OrderByDescending(i => i.StartedAt)
-                .FirstOrDefaultAsync(ct);
+            var targetStepName = sibling.Step.StepName;
+            // Each test keeps its own window from its own TSB medium - the
+            // shared TSB only lends the lot, incubator and start.
+            var window = IncubationWindowResolver.TryGet(sibling.Medium);
 
             int siblingIncId;
-            if (existingInc == null)
+            if (sibling.ExistingIncubation is null)
             {
+                // SelectMediaAsync refuses a start that a joining test can't
+                // take; a TSB started before that check still leaves such a
+                // test to start on its own rather than guess its window.
+                if (window is null || incubation.IncubatorEquipmentId is not int incubatorId
+                    || !await _incubatorEligibility.IsWithinRangeAsync(sibling.Medium.Id, incubatorId, ct))
+                    continue;
+
                 var newInc = new Incubation
                 {
-                    TestOrderId = sibling.Id,
-                    StepNumber = tsbStep.StepOrder,
+                    TestOrderId = sibling.Order.Id,
+                    StepNumber = sibling.Step.StepOrder,
                     StepName = targetStepName,
                     StageNumber = 1,
                     MediaId = incubation.MediaId,
                     IncubatorEquipmentId = incubation.IncubatorEquipmentId,
-                    Temperature = incubation.Temperature,
-                    Duration = incubation.Duration,
+                    Temperature = window.TemperatureText,
+                    Duration = window.DurationText,
                     StartedAt = incubation.StartedAt,
                     IncubationStartUtc = incubation.IncubationStartUtc,
-                    IncubationEndUtc = incubation.IncubationEndUtc,
-                    ExpectedReadingAt = incubation.ExpectedReadingAt,
+                    IncubationEndUtc = window.EndAt(sourceStartUtc),
+                    ExpectedReadingAt = window.EndAt(sourceStartUtc),
                     WindowReceivedAtUtc = incubation.WindowReceivedAtUtc,
-                    CompletedAt = incubation.CompletedAt,
-                    CompletedByUserId = incubation.CompletedByUserId,
-                    Outcome = incubation.Outcome,
                     StartedByUserId = userId
                 };
+                CopyCompletionOnceOwnMinimumElapsed(incubation, newInc, window);
                 _db.Incubations.Add(newInc);
                 await _db.SaveChangesAsync(ct);
                 siblingIncId = newInc.Id;
             }
             else
             {
-                if (incubation.CompletedAt.HasValue && !existingInc.CompletedAt.HasValue)
-                {
-                    existingInc.CompletedAt = incubation.CompletedAt;
-                    existingInc.CompletedByUserId = incubation.CompletedByUserId;
-                    existingInc.Outcome = incubation.Outcome;
-                }
-                siblingIncId = existingInc.Id;
+                // A test that started its own TSB on another lot is not part of this one.
+                if (sibling.ExistingIncubation.MediaId != incubation.MediaId) continue;
+                if (window is not null)
+                    CopyCompletionOnceOwnMinimumElapsed(incubation, sibling.ExistingIncubation, window);
+                siblingIncId = sibling.ExistingIncubation.Id;
             }
 
             // Ensure WorkflowStepResult exists for sibling
             var existsWsr = await _db.WorkflowStepResults
-                .AnyAsync(r => r.TestOrderId == sibling.Id && (r.StepName == targetStepName || r.StepName == brothStepName), ct);
+                .AnyAsync(r => r.TestOrderId == sibling.Order.Id && (r.StepName == targetStepName || r.StepName == brothStepName), ct);
 
             if (!existsWsr)
             {
                 _db.WorkflowStepResults.Add(new WorkflowStepResult
                 {
-                    TestOrderId = sibling.Id,
+                    TestOrderId = sibling.Order.Id,
                     StepName = targetStepName,
                     StepType = StepType.BrothEnrichment,
                     IncubationId = siblingIncId,
@@ -940,18 +935,18 @@ public class TestWorkflowEngine : ITestWorkflowEngine
                     SubmittedAtUtc = DateTime.UtcNow
                 });
 
-                if (sibling.CurrentStep == WorkflowStep.Waiting)
+                if (sibling.Order.CurrentStep == WorkflowStep.Waiting)
                 {
-                    await WorkflowStateMachine.TransitionAsync(_db, sibling, WorkflowStep.Incubating, userId,
+                    await WorkflowStateMachine.TransitionAsync(_db, sibling.Order, WorkflowStep.Incubating, userId,
                         $"Broth enrichment linked to shared TSB (propagated from Test Order #{testOrderId}). Lot: {mediaLotNumber}, Incubator: {incubatorCode}.");
                 }
                 else
                 {
                     _db.WorkflowHistories.Add(new WorkflowHistory
                     {
-                        TestOrderId = sibling.Id,
-                        FromStep = sibling.CurrentStep,
-                        ToStep = sibling.CurrentStep,
+                        TestOrderId = sibling.Order.Id,
+                        FromStep = sibling.Order.CurrentStep,
+                        ToStep = sibling.Order.CurrentStep,
                         Note = $"Broth enrichment linked to shared TSB (propagated from Test Order #{testOrderId}). Lot: {mediaLotNumber}, Incubator: {incubatorCode}.",
                         PerformedByUserId = userId,
                         Timestamp = DateTime.UtcNow
@@ -961,6 +956,88 @@ public class TestWorkflowEngine : ITestWorkflowEngine
         }
 
         await _db.SaveChangesAsync(ct);
+    }
+
+    private sealed record SharedTsbSibling(TestOrder Order, TestWorkflowStep Step, TestWorkflowStepMedia Medium, Incubation? ExistingIncubation);
+
+    // The sample's other open tests that join a shared TSB on this lot. A
+    // test joins only when its own TSB step medium accepts the lot; one
+    // configured with a different medium is left to start on its own.
+    private async Task<List<SharedTsbSibling>> FindSharedTsbSiblingsAsync(TestOrder sourceOrder, Media lot, CancellationToken ct = default)
+    {
+        var siblings = await _db.TestOrders
+            .Where(t => t.SampleId == sourceOrder.SampleId && t.Id != sourceOrder.Id && t.Status != ApprovalStatus.Approved && !t.IsSuperseded)
+            .ToListAsync(ct);
+        if (siblings.Count == 0) return new List<SharedTsbSibling>();
+
+        var testCodes = siblings.Select(t => t.TestCode).Distinct().ToList();
+        var testDefs = await _db.TestDefinitions
+            .Include(t => t.Steps)
+                .ThenInclude(s => s.StepMedia)
+                    .ThenInclude(m => m.Material)
+            .Include(t => t.Steps)
+                .ThenInclude(s => s.StepMedia)
+                    .ThenInclude(m => m.IncubationCondition)
+            .Where(t => testCodes.Contains(t.Code))
+            .ToDictionaryAsync(t => t.Code, ct);
+
+        var siblingIds = siblings.Select(t => t.Id).ToList();
+        var incubations = await _db.Incubations
+            .Where(i => i.TestOrderId.HasValue && siblingIds.Contains(i.TestOrderId.Value))
+            .ToListAsync(ct);
+
+        var lotProductId = lot.Material?.MediaProductId;
+        var result = new List<SharedTsbSibling>();
+        foreach (var sibling in siblings)
+        {
+            if (!testDefs.TryGetValue(sibling.TestCode, out var def)) continue;
+
+            var tsbStep = def.Steps.OrderBy(s => s.StepOrder).FirstOrDefault(TsbDetectionHelper.IsSharedTsbStep);
+            if (tsbStep is null) continue;
+
+            var medium = IncubationWindowResolver.MatchStepMedium(tsbStep.StepMedia, lot.MaterialId, lotProductId);
+            if (medium is null) continue;
+
+            var existing = incubations
+                .Where(i => i.TestOrderId == sibling.Id && (i.StepName == tsbStep.StepName || i.StepName == "Broth Enrichment"))
+                .OrderByDescending(i => i.StartedAt)
+                .FirstOrDefault();
+            result.Add(new SharedTsbSibling(sibling, tsbStep, medium, existing));
+        }
+        return result;
+    }
+
+    // Every test that would newly join the shared TSB must be able to take
+    // it: an unconfigured window, or an incubator outside that test's own
+    // medium range, refuses the whole start and names the test.
+    private async Task RequireSharedTsbSiblingsCanJoinAsync(TestOrder order, Media lot, int incubatorEquipmentId)
+    {
+        foreach (var sibling in await FindSharedTsbSiblingsAsync(order, lot))
+        {
+            if (sibling.ExistingIncubation is not null) continue;
+
+            var mediumName = sibling.Medium.Material?.MaterialName ?? lot.Material?.MaterialName ?? "TSB";
+            if (IncubationWindowResolver.TryGet(sibling.Medium) is null)
+                throw new WorkflowStepException(WorkflowErrorCodes.IncubationWindowNotConfigured,
+                    $"The shared TSB can't start: the incubation window for \"{mediumName}\" on test {sibling.Order.TestCode} (step \"{sibling.Step.StepName}\") is not configured - set its incubation hours and temperature in Test Master.");
+
+            if (!await _incubatorEligibility.IsWithinRangeAsync(sibling.Medium.Id, incubatorEquipmentId))
+                throw new WorkflowStepException(WorkflowErrorCodes.IncubatorTempOutOfRange,
+                    $"The shared TSB can't start: the selected incubator's set point is outside the {sibling.Medium.TempMin}-{sibling.Medium.TempMax} °C range of \"{mediumName}\" on test {sibling.Order.TestCode}.");
+        }
+    }
+
+    // A sibling's completion is copied from the shared TSB only when its own
+    // minimum had elapsed by the time the source was completed; otherwise it
+    // stays open and is completed once its own window allows.
+    private static void CopyCompletionOnceOwnMinimumElapsed(Incubation source, Incubation target, IncubationWindow window)
+    {
+        if (source.CompletedAt is not DateTime completedAt || target.CompletedAt.HasValue) return;
+        if (completedAt < window.MinReadyAt(target.IncubationStartUtc ?? target.StartedAt)) return;
+
+        target.CompletedAt = completedAt;
+        target.CompletedByUserId = source.CompletedByUserId;
+        target.Outcome = source.Outcome;
     }
 
     // The transfer IS starting stage 2 - there is no separate
@@ -987,10 +1064,11 @@ public class TestWorkflowEngine : ITestWorkflowEngine
             throw new InvalidOperationException($"Stage 2 incubation has already been started for step \"{stepName}\".");
 
         var stage1Medium = await ResolveSelectedStepMediumAsync(step.Id, openIncubation.MediaId!.Value);
-        var stage1MinReadyAt = openIncubation.IncubationStartUtc!.Value.AddHours(stage1Medium.IncubationMinHours);
+        var stage1Window = IncubationWindowResolver.Require(stage1Medium, stepName);
+        var stage1MinReadyAt = stage1Window.MinReadyAt(openIncubation.IncubationStartUtc!.Value);
         if (DateTime.UtcNow < stage1MinReadyAt && !openIncubation.MinimumDurationOverriddenByUserId.HasValue)
             throw new WorkflowStepException(WorkflowErrorCodes.IncubationStage1NotComplete,
-                $"Stage 1 incubation for step \"{stepName}\" requires at least {stage1Medium.IncubationMinHours} hours of incubation - not ready until {stage1MinReadyAt:yyyy-MM-dd HH:mm} UTC.",
+                $"Stage 1 incubation for step \"{stepName}\" requires at least {stage1Window.MinHours} hours of incubation - not ready until {stage1MinReadyAt:yyyy-MM-dd HH:mm} UTC.",
                 Math.Max(0, (long)Math.Ceiling((stage1MinReadyAt - DateTime.UtcNow).TotalSeconds)));
 
         var stage2Config = await _db.TestWorkflowStepIncubationStages
@@ -1189,11 +1267,12 @@ public class TestWorkflowEngine : ITestWorkflowEngine
 
     private static void RequireMinimumDurationElapsed(Incubation incubation, TestWorkflowStepMedia stepMedium)
     {
+        var window = IncubationWindowResolver.Require(stepMedium);
         if (incubation.MinimumDurationOverriddenByUserId.HasValue) return;
-        var minReadyAt = incubation.StartedAt.AddHours((double)stepMedium.IncubationMinHours);
+        var minReadyAt = window.MinReadyAt(incubation.StartedAt);
         if (DateTime.UtcNow < minReadyAt)
             throw new InvalidOperationException(
-                $"This incubation window needs at least {stepMedium.IncubationMinHours} hours - not ready until {minReadyAt:yyyy-MM-dd HH:mm} UTC.");
+                $"This incubation window needs at least {window.MinHours} hours - not ready until {minReadyAt:yyyy-MM-dd HH:mm} UTC.");
     }
 
     // Stage 2 (the PlateCount transfer window) is explicitly out of scope
@@ -1922,8 +2001,7 @@ public class TestWorkflowEngine : ITestWorkflowEngine
             .Where(m => m.TestWorkflowStepId == stepId)
             .ToListAsync();
 
-        return stepMedia.FirstOrDefault(m => m.MaterialId == mediaRow.MaterialId)
-            ?? stepMedia.FirstOrDefault(m => StepMediumMatcher.Matches(m, mediaRow.MaterialId, mediaRow.MediaProductId))
+        return IncubationWindowResolver.MatchStepMedium(stepMedia, mediaRow.MaterialId, mediaRow.MediaProductId)
             ?? throw new WorkflowStepException(WorkflowErrorCodes.MediaNotInPermittedList,
                 "That medium is not on this step's permitted list.");
     }
@@ -2043,12 +2121,13 @@ public class TestWorkflowEngine : ITestWorkflowEngine
         // actually picked at selection time (not the step's own fields -
         // see TestWorkflowStepMedia.IncubationMinHours/MaxHours).
         var brothMedium = await ResolveSelectedStepMediumAsync(step.Id, incubation.MediaId!.Value);
+        var brothWindow = IncubationWindowResolver.Require(brothMedium, step.StepName);
         if (!incubation.MinimumDurationOverriddenByUserId.HasValue)
         {
-            var minReadyAt = incubation.IncubationStartUtc!.Value.AddHours((double)brothMedium.IncubationMinHours);
+            var minReadyAt = brothWindow.MinReadyAt(incubation.IncubationStartUtc!.Value);
             if (DateTime.UtcNow < minReadyAt)
                 throw new WorkflowStepException(WorkflowErrorCodes.IncubationNotComplete,
-                    $"This step requires at least {brothMedium.IncubationMinHours} hours of incubation - not ready until {minReadyAt:yyyy-MM-dd HH:mm} UTC.",
+                    $"This step requires at least {brothWindow.MinHours} hours of incubation - not ready until {minReadyAt:yyyy-MM-dd HH:mm} UTC.",
                     Math.Max(0, (long)Math.Ceiling((minReadyAt - DateTime.UtcNow).TotalSeconds)));
         }
 
@@ -2121,6 +2200,7 @@ public class TestWorkflowEngine : ITestWorkflowEngine
 
         var stepMedium = await RequireSingleStepMediumAsync(step);
         var lot = await LoadReleasedLotAsync(mediaLotId, stepMedium);
+        var window = IncubationWindowResolver.Require(stepMedium, step.StepName);
         await RequireEligibleIncubatorAsync(stepMedium.Id, equipmentId);
 
         var startedAt = incubationStartUtc ?? DateTime.UtcNow;
@@ -2132,12 +2212,12 @@ public class TestWorkflowEngine : ITestWorkflowEngine
             StageNumber = 1,
             MediaId = lot.Id,
             IncubatorEquipmentId = equipmentId,
-            Temperature = $"{stepMedium.TempMin}-{stepMedium.TempMax} °C",
-            Duration = $"{stepMedium.IncubationMinHours}-{stepMedium.IncubationMaxHours} hours",
+            Temperature = window.TemperatureText,
+            Duration = window.DurationText,
             StartedAt = DateTime.UtcNow,
             IncubationStartUtc = startedAt,
-            IncubationEndUtc = startedAt.AddHours(stepMedium.IncubationMaxHours),
-            ExpectedReadingAt = startedAt.AddHours(stepMedium.IncubationMaxHours),
+            IncubationEndUtc = window.EndAt(startedAt),
+            ExpectedReadingAt = window.EndAt(startedAt),
             WindowReceivedAtUtc = DateTime.UtcNow,
             StartedByUserId = userId
         };
@@ -2172,9 +2252,10 @@ public class TestWorkflowEngine : ITestWorkflowEngine
 
         // GMP GATE: enforce minimum incubation time server-side, per the
         // medium actually picked (see TestWorkflowStepMedia.IncubationMinHours).
+        var window = IncubationWindowResolver.Require(stepMedium, step.StepName);
         if (!incubation.MinimumDurationOverriddenByUserId.HasValue)
         {
-            var minReadyAt = incubation.IncubationStartUtc!.Value.AddHours((double)stepMedium.IncubationMinHours);
+            var minReadyAt = window.MinReadyAt(incubation.IncubationStartUtc!.Value);
             if (DateTime.UtcNow < minReadyAt)
             {
                 var remainingSeconds = Math.Max(0, (long)Math.Ceiling((minReadyAt - DateTime.UtcNow).TotalSeconds));
@@ -2323,10 +2404,10 @@ public class TestWorkflowEngine : ITestWorkflowEngine
         // own maximum. Each medium's own eligibility (temperature) is
         // already enforced individually above, per selection - this is
         // only about the panel's one shared start/end window.
-        var durationMax = resolved.Max(r => r.Medium.IncubationMaxHours);
-        if (durationMax <= 0) durationMax = 24;
+        var windows = resolved.Select(r => IncubationWindowResolver.Require(r.Medium, step.StepName)).ToList();
+        var durationMax = windows.Max(w => w.MaxHours);
         incubationEndUtc = incubationStartUtc.AddHours((double)durationMax);
-        var minHoursRequired = resolved.Max(r => r.Medium.IncubationMinHours);
+        var minHoursRequired = windows.Max(w => w.MinHours);
         RequireValidIncubationWindow(step.StepName, minHoursRequired, incubationStartUtc, incubationEndUtc);
 
         var distinctRanges = resolved.Select(r => (r.Medium.TempMin, r.Medium.TempMax)).Distinct().ToList();

@@ -481,6 +481,8 @@ export function SessionReviewPanel({ session, onSessionCompleted, onBackToMatrix
                               border = `1px solid ${theme.custom.status.pending.border}`;
                             } else {
                               switch (t.testSessionState) {
+                                case "WINDOW_NOT_CONFIGURED":
+                                  label = "Window Not Configured"; bgcolor = theme.custom.status.detected.bg; color = theme.custom.status.detected.text; border = `1px solid ${theme.custom.status.detected.border}`; break;
                                 case "TSB_INCUBATING":
                                   label = "TSB Incubating"; bgcolor = theme.custom.status.info.bg; color = theme.custom.status.info.text; border = `1px solid ${theme.custom.status.info.border}`; break;
                                 case "DOWNSTREAM_INCUBATING":

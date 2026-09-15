@@ -48,7 +48,7 @@ public class ResultProjectionTests
         };
         db.Materials.Add(material);
         await db.SaveChangesAsync();
-        db.TestWorkflowStepMedias.Add(new TestWorkflowStepMedia { TestWorkflowStepId = step.Id, MaterialId = material.Id, TempMin = 30, TempMax = 35 });
+        db.TestWorkflowStepMedias.Add(new TestWorkflowStepMedia { TestWorkflowStepId = step.Id, MaterialId = material.Id, TempMin = 30, TempMax = 35, IncubationMinHours = 18, IncubationMaxHours = 24 });
 
         var media = new Media { MaterialId = material.Id, LotNumber = "TSA/1/26", IsReleasedForUse = true, Status = MediaStatus.Active, ExpiryDate = DateTime.UtcNow.AddDays(30) };
         db.Media.Add(media);
@@ -187,7 +187,7 @@ public class ResultProjectionTests
         };
         db.Materials.Add(material);
         await db.SaveChangesAsync();
-        db.TestWorkflowStepMedias.Add(new TestWorkflowStepMedia { TestWorkflowStepId = step.Id, MaterialId = material.Id, TempMin = 30, TempMax = 35 });
+        db.TestWorkflowStepMedias.Add(new TestWorkflowStepMedia { TestWorkflowStepId = step.Id, MaterialId = material.Id, TempMin = 30, TempMax = 35, IncubationMinHours = 18, IncubationMaxHours = 24 });
 
         var media = new Media { MaterialId = material.Id, LotNumber = "TSA/EM", IsReleasedForUse = true, Status = MediaStatus.Active, ExpiryDate = DateTime.UtcNow.AddDays(30) };
         var equipment = new Equipment { Name = "Incubator EM", Code = "INC-EM", Type = EquipmentType.Incubator, SetPointTemperature = 32 };
@@ -205,6 +205,7 @@ public class ResultProjectionTests
 
         var locations = await workflowEngine.GetLocationsAsync(order.Id);
         Assert.Equal(5, locations.Count);
+        await IncubationTestClock.ElapseOpenIncubationsAsync(db, order.Id);
         await workflowEngine.RecordBatchResultsAsync(order.Id, locations.Select(l => new BatchLocationReadings(l.Id, new List<decimal> { 0 })).ToList(), 1);
 
         var records = await db.ResultRecords.Where(r => r.TestOrderId == order.Id).ToListAsync();

@@ -455,32 +455,6 @@ public class TestingWorkspaceService : ITestWorkspaceService
                     .Where(i => i.TestOrderId.HasValue && toIds.Contains(i.TestOrderId.Value))
                     .ToList();
 
-        // Check if shared TSB is incubating/complete for this sample
-        var sharedTsbInc = TsbDetectionHelper.FindSharedTsbIncubation(sampleIncubations);
-
-        int tsbHoursMin = 24;
-        if (testDefs != null)
-        {
-            foreach (var def in testDefs.Values)
-            {
-                var tsbStep = def.Steps.FirstOrDefault(step =>
-                    step.StepType is StepType.BrothEnrichment ||
-                    (!string.IsNullOrEmpty(step.StepName) && step.StepName.Contains("TSB", StringComparison.OrdinalIgnoreCase)));
-                if (tsbStep != null && tsbStep.IncubationMinHours > 0)
-                {
-                    tsbHoursMin = tsbStep.IncubationMinHours;
-                    break;
-                }
-            }
-        }
-
-        bool tsbStarted = sharedTsbInc != null;
-        DateTime? tsbStart = sharedTsbInc?.IncubationStartUtc ?? sharedTsbInc?.StartedAt;
-        DateTime? tsbMinReadyAt = TsbDetectionHelper.GetTsbMinReadyAt(sharedTsbInc, tsbHoursMin);
-
-        bool tsbIncubating = TsbDetectionHelper.IsTsbIncubating(sharedTsbInc, tsbHoursMin, DateTime.UtcNow);
-        bool tsbCompleted = TsbDetectionHelper.IsTsbComplete(sharedTsbInc, tsbHoursMin, DateTime.UtcNow);
-
         var lookup = mediaLookup ?? sampleIncubations
             .Where(i => i.MediaId.HasValue && i.Media != null)
             .GroupBy(i => i.MediaId!.Value)
@@ -498,7 +472,7 @@ public class TestingWorkspaceService : ITestWorkspaceService
                 (!string.IsNullOrEmpty(step.StepName) && step.StepName.Contains("TSB", StringComparison.OrdinalIgnoreCase))) ?? false;
 
             var testIncubations = sampleIncubations.Where(i => i.TestOrderId == t.Id).ToList();
-            var stateResult = WorkflowStateResolver.Resolve(t, usesTsb, sharedTsbInc, testIncubations, null, DateTime.UtcNow, 24, def?.Steps, s.Status, lookup);
+            var stateResult = WorkflowStateResolver.Resolve(t, usesTsb, testIncubations, null, DateTime.UtcNow, def?.Steps, s.Status, lookup);
 
             return new TestOrderSummaryDto
             {

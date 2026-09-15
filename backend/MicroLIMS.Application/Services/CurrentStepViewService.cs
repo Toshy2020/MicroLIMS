@@ -98,6 +98,10 @@ public class CurrentStepViewService
         var openIncubation = current.OpenIncubation;
         DateTime? minReadyAtUtc = null;
         long remainingMinSeconds = 0;
+        // Stage 1 is timed only by the medium this test actually used (see
+        // IncubationWindowResolver); stage 2 keeps its own transfer settings.
+        IncubationWindow? openWindow = null;
+        var windowNotConfigured = false;
         if (openIncubation != null)
         {
             var startUtc = openIncubation.IncubationStartUtc ?? openIncubation.StartedAt;
@@ -109,21 +113,11 @@ public class CurrentStepViewService
             }
             else
             {
-                if (openIncubation.MediaId.HasValue && current.Step?.StepMedia != null)
-                {
-                    var mediaRow = openIncubation.Media is { } media
-                        ? new { MaterialId = media.MaterialId, MediaProductId = media.Material?.MediaProductId }
-                        : null;
-                    var stepMedia = mediaRow != null
-                        ? (current.Step.StepMedia.FirstOrDefault(sm => sm.MaterialId == mediaRow.MaterialId)
-                           ?? current.Step.StepMedia.FirstOrDefault(sm => StepMediumMatcher.Matches(sm, mediaRow.MaterialId, mediaRow.MediaProductId)))
-                        : null;
-                    minHours = stepMedia?.IncubationMinHours ?? current.Step?.IncubationMinHours ?? 0;
-                }
-                else
-                {
-                    minHours = current.Step?.IncubationMinHours ?? 0;
-                }
+                // The incubations' lots and materials were loaded above, so
+                // the window resolves from them without another query.
+                openWindow = current.Step is null ? null : IncubationWindowResolver.ForIncubation(current.Step, openIncubation);
+                windowNotConfigured = openWindow is null;
+                minHours = openWindow?.MinHours ?? 0;
             }
 
             if (minHours > 0)
@@ -131,7 +125,7 @@ public class CurrentStepViewService
                 minReadyAtUtc = startUtc.AddHours(minHours);
                 remainingMinSeconds = Math.Max(0, (long)Math.Ceiling((minReadyAtUtc.Value - DateTime.UtcNow).TotalSeconds));
             }
-            else if (openIncubation.IncubationEndUtc.HasValue)
+            else if (!windowNotConfigured && openIncubation.IncubationEndUtc.HasValue)
             {
                 minReadyAtUtc = openIncubation.IncubationEndUtc.Value;
                 remainingMinSeconds = Math.Max(0, (long)Math.Ceiling((openIncubation.IncubationEndUtc.Value - DateTime.UtcNow).TotalSeconds));
@@ -141,7 +135,8 @@ public class CurrentStepViewService
         var isMinLockActive = openIncubation != null && minReadyAtUtc.HasValue && DateTime.UtcNow < minReadyAtUtc.Value && !openIncubation.MinimumDurationOverriddenByUserId.HasValue;
         var incubationLock = openIncubation?.IncubationEndUtc is null ? null : new
         {
-            isLocked = isMinLockActive || !openIncubation.IsIncubationComplete,
+            isLocked = windowNotConfigured || isMinLockActive || !openIncubation.IsIncubationComplete,
+            windowNotConfigured,
             incubationEndUtc = openIncubation.IncubationEndUtc,
             remainingSeconds = Math.Max(0, (long)Math.Ceiling((openIncubation.IncubationEndUtc.Value - DateTime.UtcNow).TotalSeconds)),
             minReadyAt = minReadyAtUtc,
@@ -208,7 +203,7 @@ public class CurrentStepViewService
             ? null
             : facts.Incubations.FirstOrDefault(i => i.Id == sharedTsbResult.IncubationId)
               ?? await _db.Incubations
-                  .Include(i => i.Media)
+                  .Include(i => i.Media).ThenInclude(m => m!.Material)
                   .Include(i => i.IncubatorEquipment)
                   .FirstOrDefaultAsync(i => i.Id == sharedTsbResult.IncubationId);
 
@@ -221,11 +216,15 @@ public class CurrentStepViewService
                 : null;
 
             var tsbStep = await _db.TestWorkflowSteps
+                .Include(s => s.StepMedia).ThenInclude(m => m.Material)
+                .Include(s => s.StepMedia).ThenInclude(m => m.IncubationCondition)
                 .Where(s => s.TestDefinition != null && s.TestDefinition.Code == order.TestCode && (s.StepName == tsbStepName || s.StepType == StepType.BrothEnrichment || s.StepName.Contains("TSB")))
+                .OrderBy(s => s.StepName == tsbStepName ? 0 : 1)
                 .FirstOrDefaultAsync();
-            var minHours = tsbStep?.IncubationMinHours > 0 ? tsbStep.IncubationMinHours : 18;
+            // This test's own TSB medium decides its window - never a default.
+            var tsbWindow = tsbStep is null ? null : IncubationWindowResolver.ForIncubation(tsbStep, inc);
 
-            var tsbMinReady = inc.IncubationStartUtc?.AddHours(minHours);
+            var tsbMinReady = tsbWindow is null ? null : inc.IncubationStartUtc?.AddHours(tsbWindow.MinHours);
             var tsbRemMinSec = tsbMinReady.HasValue ? Math.Max(0, (long)Math.Ceiling((tsbMinReady.Value - DateTime.UtcNow).TotalSeconds)) : 0;
             var tsbOverridden = inc.MinimumDurationOverriddenByUserId.HasValue;
 
@@ -238,17 +237,21 @@ public class CurrentStepViewService
                 minReadyAt = tsbMinReady,
                 remainingMinimumSeconds = tsbRemMinSec,
                 minimumDurationOverridden = tsbOverridden,
-                isLocked = (tsbMinReady.HasValue && DateTime.UtcNow < tsbMinReady.Value && !tsbOverridden) || !inc.IsIncubationComplete,
+                isLocked = tsbWindow is null || (tsbMinReady.HasValue && DateTime.UtcNow < tsbMinReady.Value && !tsbOverridden) || !inc.IsIncubationComplete,
+                windowNotConfigured = tsbWindow is null,
                 startedByUserName = startedUser ?? "Analyst",
                 isCompleted = inc.CompletedAt.HasValue
             };
         }
 
-        var firstMedia = current.Step?.StepMedia.OrderBy(m => m.DisplayOrder).FirstOrDefault();
-        var tempMin = current.Step == null ? 0 : (current.Step.TemperatureMin > 0 ? current.Step.TemperatureMin : (firstMedia?.TempMin ?? 0));
-        var tempMax = current.Step == null ? 0 : (current.Step.TemperatureMax > 0 ? current.Step.TemperatureMax : (firstMedia?.TempMax ?? 0));
-        var incMin = current.Step == null ? 0 : (current.Step.IncubationMinHours > 0 ? current.Step.IncubationMinHours : (firstMedia?.IncubationMinHours ?? 0));
-        var incMax = current.Step == null ? 0 : (current.Step.IncubationMaxHours > 0 ? current.Step.IncubationMaxHours : (firstMedia?.IncubationMaxHours ?? 0));
+        // Shown window: the medium this test is incubating on, else the step's
+        // configured media (their overall range when more than one is
+        // permitted) - never the step-level fields.
+        var shownWindow = openWindow ?? IncubationWindowResolver.ForStep(current.Step?.StepMedia);
+        var tempMin = shownWindow?.TempMin ?? 0;
+        var tempMax = shownWindow?.TempMax ?? 0;
+        var incMin = shownWindow?.MinHours ?? 0;
+        var incMax = shownWindow?.MaxHours ?? 0;
 
         var returnInfo = await TestReturnHelper.GetPendingReturnAsync(_db, testOrderId, hasActiveReadings: facts.ActiveCountReadings.Count > 0);
 

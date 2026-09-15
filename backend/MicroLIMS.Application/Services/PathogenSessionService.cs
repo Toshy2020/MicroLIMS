@@ -166,7 +166,10 @@ public record SharedTsbStateDto(
     int? StartedByUserId,
     string? StartedByUserName,
     List<string> ApplicableTestCodes,
-    int ApplicableLocationCount);
+    int ApplicableLocationCount,
+    // True when a test's own TSB window can't be resolved from Test Master -
+    // the TSB then never reports ready instead of using a guessed window.
+    bool WindowNotConfigured = false);
 
 public record MatrixCellResultDto(
     int SampleLocationId,
@@ -224,17 +227,20 @@ public class PathogenSessionService
     private readonly MediaAppearanceSnapshotService? _appearanceSnapshot;
     private readonly ConfirmationAgreementEvaluator _agreementEvaluator;
     private readonly LocationPathogenObservationService _locationObsService;
+    private readonly IncubatorEligibilityService _incubatorEligibility;
 
     public PathogenSessionService(
         MicroLimsDbContext db,
         MediaAppearanceSnapshotService? appearanceSnapshot = null,
         ConfirmationAgreementEvaluator? agreementEvaluator = null,
-        LocationPathogenObservationService? locationObsService = null)
+        LocationPathogenObservationService? locationObsService = null,
+        IncubatorEligibilityService? incubatorEligibility = null)
     {
         _db = db;
         _appearanceSnapshot = appearanceSnapshot;
         _agreementEvaluator = agreementEvaluator ?? new ConfirmationAgreementEvaluator();
         _locationObsService = locationObsService ?? new LocationPathogenObservationService(db);
+        _incubatorEligibility = incubatorEligibility ?? new IncubatorEligibilityService(db);
     }
 
     public async Task<PathogenTestingSessionDto?> GetSessionAsync(int sampleId)
@@ -364,58 +370,69 @@ public class PathogenSessionService
             .Where(c => toIds.Contains(c.TestOrderId))
             .ToListAsync();
 
-        // 1. Identify which tests require TSB from Test Master configuration
-        var tsbApplicableCodes = new List<string>();
-        decimal requiredTsbTempMin = 30;
-        decimal requiredTsbTempMax = 35;
-        int requiredTsbHoursMin = 18;
-        int requiredTsbHoursMax = 24;
+        var mediaLookup = incubations
+            .Where(i => i.MediaId.HasValue && i.Media != null)
+            .GroupBy(i => i.MediaId!.Value)
+            .ToDictionary(
+                g => g.Key,
+                g => (MaterialId: g.First().Media!.MaterialId, MediaProductId: g.First().Media!.Material?.MediaProductId));
 
+        var utcNow = DateTime.UtcNow;
+
+        // 1. Tests requiring TSB, each timed by its own TSB medium from Test
+        // Master - never step-level hours/temperatures or 18-24 h / 30-35 °C
+        // defaults. A shared start only triggers each test's own incubation.
+        var tsbStepByOrder = new Dictionary<int, TestWorkflowStep>();
         foreach (var to in sample.TestOrders)
         {
-            if (testDefs.TryGetValue(to.TestCode, out var def))
-            {
-                // SelectiveBroth (e.g. MBP for E.coli, RVS for Salmonella) is
-                // species-specific and never shares this generic TSB lot -
-                // matching it here was the bug that let a shared TSB batch
-                // land on the wrong step. Only the true, common broth
-                // enrichment step (or an explicitly TSB-named one) qualifies.
-                var tsbStep = def.Steps.FirstOrDefault(s =>
-                    s.StepType is StepType.BrothEnrichment ||
-                    s.StepName.Contains("TSB", StringComparison.OrdinalIgnoreCase));
+            if (testDefs.TryGetValue(to.TestCode, out var def)
+                && def.Steps.OrderBy(s => s.StepOrder).FirstOrDefault(TsbDetectionHelper.IsSharedTsbStep) is { } tsbStep)
+                tsbStepByOrder[to.Id] = tsbStep;
+        }
+        var tsbApplicableCodes = sample.TestOrders.Where(t => tsbStepByOrder.ContainsKey(t.Id)).Select(t => t.TestCode).ToList();
 
-                if (tsbStep != null)
-                {
-                    tsbApplicableCodes.Add(to.TestCode);
-                    var firstMedia = tsbStep.StepMedia.OrderBy(m => m.DisplayOrder).FirstOrDefault();
-                    if (tsbStep.TemperatureMin > 0) requiredTsbTempMin = tsbStep.TemperatureMin;
-                    else if (firstMedia?.TempMin > 0) requiredTsbTempMin = firstMedia.TempMin;
-
-                    if (tsbStep.TemperatureMax > 0) requiredTsbTempMax = tsbStep.TemperatureMax;
-                    else if (firstMedia?.TempMax > 0) requiredTsbTempMax = firstMedia.TempMax;
-
-                    if (tsbStep.IncubationMinHours > 0) requiredTsbHoursMin = tsbStep.IncubationMinHours;
-                    else if (firstMedia?.IncubationMinHours > 0) requiredTsbHoursMin = firstMedia.IncubationMinHours;
-
-                    if (tsbStep.IncubationMaxHours > 0) requiredTsbHoursMax = tsbStep.IncubationMaxHours;
-                    else if (firstMedia?.IncubationMaxHours > 0) requiredTsbHoursMax = firstMedia.IncubationMaxHours;
-                }
-            }
+        // Each test's own TSB incubation, its window (null when unresolved)
+        // and whether its own minimum has elapsed.
+        var ownTsbByOrder = new Dictionary<int, (Incubation Incubation, IncubationWindow? Window, bool IsComplete)>();
+        foreach (var (orderId, tsbStep) in tsbStepByOrder)
+        {
+            var ownTsb = TsbDetectionHelper.FindSharedTsbIncubation(incubations.Where(i => i.TestOrderId == orderId));
+            if (ownTsb == null) continue;
+            var window = IncubationWindowResolver.ForIncubation(tsbStep, ownTsb, mediaLookup);
+            ownTsbByOrder[orderId] = (ownTsb, window, window != null && TsbDetectionHelper.IsTsbComplete(ownTsb, window.MinHours, utcNow));
         }
 
-        // Shared TSB State
+        // Shared TSB State. The tests that joined it share its lot and start
+        // but keep their own windows, so it is complete once all of them are.
         var sharedTsbIncubation = TsbDetectionHelper.FindSharedTsbIncubation(incubations);
-
-        bool tsbStarted = sharedTsbIncubation != null;
         DateTime? tsbStart = sharedTsbIncubation?.IncubationStartUtc ?? sharedTsbIncubation?.StartedAt;
-        DateTime? tsbMinReadyAt = TsbDetectionHelper.GetTsbMinReadyAt(sharedTsbIncubation, requiredTsbHoursMin);
+        var joined = sample.TestOrders
+            .Where(t => sharedTsbIncubation != null
+                && ownTsbByOrder.TryGetValue(t.Id, out var own)
+                && own.Incubation.MediaId == sharedTsbIncubation.MediaId
+                && (own.Incubation.IncubationStartUtc ?? own.Incubation.StartedAt) == tsbStart)
+            .Select(t => (t.TestCode, Own: ownTsbByOrder[t.Id]))
+            .ToList();
 
-        bool tsbIncubating = TsbDetectionHelper.IsTsbIncubating(sharedTsbIncubation, requiredTsbHoursMin, DateTime.UtcNow);
-        bool tsbCompleted = TsbDetectionHelper.IsTsbComplete(sharedTsbIncubation, requiredTsbHoursMin, DateTime.UtcNow);
+        bool tsbWindowNotConfigured = sharedTsbIncubation != null && (joined.Count == 0 || joined.Any(j => j.Own.Window == null));
+        bool tsbCompleted = sharedTsbIncubation != null && !tsbWindowNotConfigured && joined.All(j => j.Own.IsComplete);
+        bool tsbIncubating = sharedTsbIncubation != null && !tsbCompleted;
+        DateTime? tsbMinReadyAt = sharedTsbIncubation == null || tsbWindowNotConfigured
+            ? null
+            : joined.Max(j => j.Own.Window!.MinReadyAt(j.Own.Incubation.IncubationStartUtc ?? j.Own.Incubation.StartedAt));
+
+        var rangeTests = sharedTsbIncubation != null
+            ? joined.Select(j => (j.TestCode, Windows: j.Own.Window == null ? new List<IncubationWindow>() : new List<IncubationWindow> { j.Own.Window })).ToList()
+            : sample.TestOrders.Where(t => tsbStepByOrder.ContainsKey(t.Id))
+                .Select(t => (t.TestCode, Windows: IncubationWindowResolver.ConfiguredWindows(tsbStepByOrder[t.Id].StepMedia))).ToList();
+        var requiredTemperatureRange = DescribeTsbRanges(rangeTests, w => $"{w.TempMin:0.0} – {w.TempMax:0.0} °C");
+        var requiredDurationRange = DescribeTsbRanges(rangeTests, w => $"{w.MinHours} – {w.MaxHours} h");
 
         SharedTsbStateDto sharedTsbDto;
         if (sharedTsbIncubation != null)
         {
+            var expectedCompletionUtc = joined.Count > 0 ? joined.Max(j => j.Own.Incubation.IncubationEndUtc) : sharedTsbIncubation.IncubationEndUtc;
+            var temperatures = joined.Select(j => j.Own.Incubation.Temperature).Where(t => !string.IsNullOrWhiteSpace(t)).Distinct().ToList();
             sharedTsbDto = new SharedTsbStateDto(
                 IsStarted: true,
                 IsIncubating: tsbIncubating,
@@ -427,21 +444,22 @@ public class PathogenSessionService
                 GptStatus: sharedTsbIncubation.Media?.IsReleasedForUse == true ? "Passed (GPT Conform)" : "Pending",
                 SterilityStatus: "Passed",
                 IncubatorEquipmentId: sharedTsbIncubation.IncubatorEquipmentId,
-                IncubatorCode: sharedTsbIncubation.IncubatorEquipment?.Code ?? _db.EquipmentInventories.FirstOrDefault(e => e.Id == sharedTsbIncubation.IncubatorEquipmentId)?.Code,
-                RequiredTemperatureRange: $"{requiredTsbTempMin:0.0} – {requiredTsbTempMax:0.0} °C",
-                RequiredDurationRange: $"{requiredTsbHoursMin} – {requiredTsbHoursMax} h",
-                Temperature: sharedTsbIncubation.Temperature,
-                IncubationDurationHours: sharedTsbIncubation.IncubationEndUtc.HasValue && sharedTsbIncubation.IncubationStartUtc.HasValue
-                    ? (int)(sharedTsbIncubation.IncubationEndUtc.Value - sharedTsbIncubation.IncubationStartUtc.Value).TotalHours
+                IncubatorCode: sharedTsbIncubation.IncubatorEquipment?.Code,
+                RequiredTemperatureRange: requiredTemperatureRange,
+                RequiredDurationRange: requiredDurationRange,
+                Temperature: temperatures.Count > 0 ? string.Join("; ", temperatures) : sharedTsbIncubation.Temperature,
+                IncubationDurationHours: expectedCompletionUtc.HasValue && tsbStart.HasValue
+                    ? (int)(expectedCompletionUtc.Value - tsbStart.Value).TotalHours
                     : null,
                 ActualStartUtc: tsbStart,
                 MinReadyAt: tsbMinReadyAt,
-                ExpectedCompletionUtc: sharedTsbIncubation.IncubationEndUtc,
+                ExpectedCompletionUtc: expectedCompletionUtc,
                 CompletedAtUtc: sharedTsbIncubation.CompletedAt,
                 StartedByUserId: sharedTsbIncubation.StartedByUserId,
                 StartedByUserName: UserName(sharedTsbIncubation.StartedByUserId),
-                ApplicableTestCodes: tsbApplicableCodes.Distinct().ToList(),
-                ApplicableLocationCount: groupedLocations.Count);
+                ApplicableTestCodes: joined.Select(j => j.TestCode).Distinct().ToList(),
+                ApplicableLocationCount: groupedLocations.Count,
+                WindowNotConfigured: tsbWindowNotConfigured);
         }
         else
         {
@@ -457,8 +475,8 @@ public class PathogenSessionService
                 SterilityStatus: null,
                 IncubatorEquipmentId: null,
                 IncubatorCode: null,
-                RequiredTemperatureRange: $"{requiredTsbTempMin:0.0} – {requiredTsbTempMax:0.0} °C",
-                RequiredDurationRange: $"{requiredTsbHoursMin} – {requiredTsbHoursMax} h",
+                RequiredTemperatureRange: requiredTemperatureRange,
+                RequiredDurationRange: requiredDurationRange,
                 Temperature: null,
                 IncubationDurationHours: null,
                 ActualStartUtc: null,
@@ -468,18 +486,12 @@ public class PathogenSessionService
                 StartedByUserId: null,
                 StartedByUserName: null,
                 ApplicableTestCodes: tsbApplicableCodes.Distinct().ToList(),
-                ApplicableLocationCount: groupedLocations.Count);
+                ApplicableLocationCount: groupedLocations.Count,
+                WindowNotConfigured: rangeTests.Any(t => t.Windows.Count == 0));
         }
 
         // Build Assigned Test DTOs and evaluate test-specific workflow states
         var assignedTestDtos = new List<SessionAssignedTestDto>();
-
-        var mediaLookup = incubations
-            .Where(i => i.MediaId.HasValue && i.Media != null)
-            .GroupBy(i => i.MediaId!.Value)
-            .ToDictionary(
-                g => g.Key,
-                g => (MaterialId: g.First().Media!.MaterialId, MediaProductId: g.First().Media!.Material?.MediaProductId));
 
         foreach (var to in sample.TestOrders)
         {
@@ -493,32 +505,38 @@ public class PathogenSessionService
             var confirmatoryStep = steps.FirstOrDefault(s => s.StepType == StepType.ConfirmatoryPlating);
             var confirmatoryMediaCount = confirmatoryStep?.ConfirmatoryMediaCount ?? (def?.Code.Contains("SALMONELLA", StringComparison.OrdinalIgnoreCase) == true ? 2 : 1);
 
+            var ownTsbComplete = ownTsbByOrder.TryGetValue(to.Id, out var ownTsb) && ownTsb.IsComplete;
+
             var stepDtos = new List<SessionWorkflowStepDto>();
             foreach (var s in steps)
             {
                 var inc = toIncubations.FirstOrDefault(i => i.StepName == s.StepName || (requiresTsb && s.StepOrder == 1 && i.StepName.Contains("TSB")));
                 var res = toStepResults.FirstOrDefault(r => r.StepName == s.StepName);
-                var isDone = (inc != null && inc.CompletedAt.HasValue) || res != null || (requiresTsb && s.StepOrder == 1 && tsbCompleted);
+                var isDone = (inc != null && inc.CompletedAt.HasValue) || res != null || (requiresTsb && s.StepOrder == 1 && ownTsbComplete);
                 var outcome = inc?.Outcome ?? (res != null ? "Complete" : (isDone ? "Complete" : null));
 
-                var firstMedia = s.StepMedia.OrderBy(m => m.DisplayOrder).FirstOrDefault();
+                // The medium its incubation actually used; before a lot is
+                // chosen, the step media's range - never step-level hours.
+                var stepWindow = inc != null
+                    ? IncubationWindowResolver.ForIncubation(s, inc, mediaLookup)
+                    : IncubationWindowResolver.ForStep(s.StepMedia);
                 stepDtos.Add(new SessionWorkflowStepDto(
                     s.StepOrder,
                     s.StepName,
                     s.StepType.ToString(),
                     null,
                     s.StepType == StepType.BiochemicalTest ? null : s.StepType.ToString(),
-                    s.IncubationMinHours > 0 ? s.IncubationMinHours : (firstMedia?.IncubationMinHours ?? 0),
-                    s.IncubationMaxHours > 0 ? s.IncubationMaxHours : (firstMedia?.IncubationMaxHours ?? 0),
-                    s.TemperatureMin > 0 ? s.TemperatureMin : (firstMedia?.TempMin ?? 0),
-                    s.TemperatureMax > 0 ? s.TemperatureMax : (firstMedia?.TempMax ?? 0),
+                    stepWindow?.MinHours ?? 0,
+                    stepWindow?.MaxHours ?? 0,
+                    stepWindow?.TempMin ?? 0,
+                    stepWindow?.TempMax ?? 0,
                     isDone,
                     outcome,
                     inc?.CompletedAt ?? res?.SubmittedAtUtc));
             }
 
             // Determine Test Session State & Result Entry Allowance
-            var stateResult = WorkflowStateResolver.Resolve(to, requiresTsb, sharedTsbIncubation, toIncubations, stepDtos, DateTime.UtcNow, requiredTsbHoursMin, steps, sample.Status, mediaLookup);
+            var stateResult = WorkflowStateResolver.Resolve(to, requiresTsb, toIncubations, stepDtos, DateTime.UtcNow, steps, sample.Status, mediaLookup);
             string testSessionState = stateResult.WorkflowState;
             string testSessionStateDisplay = stateResult.WorkflowStateDisplay;
             bool isResultEntryAllowed = stateResult.IsResultEntryAllowed;
@@ -789,6 +807,19 @@ public class PathogenSessionService
             missingResults);
     }
 
+    // One range when every test agrees; otherwise each test's own, so a test
+    // with a different window is never hidden behind another's.
+    private static string? DescribeTsbRanges(IEnumerable<(string TestCode, List<IncubationWindow> Windows)> tests, Func<IncubationWindow, string> text)
+    {
+        var perTest = tests
+            .Select(t => (t.TestCode, Text: t.Windows.Count == 0 ? "not configured" : string.Join(" / ", t.Windows.Select(text).Distinct())))
+            .ToList();
+        if (perTest.Count == 0) return null;
+
+        var distinct = perTest.Select(p => p.Text).Distinct().ToList();
+        return distinct.Count == 1 ? distinct[0] : string.Join("; ", perTest.Select(p => $"{p.TestCode}: {p.Text}"));
+    }
+
     public async Task<SharedTsbStateDto> StartSharedTsbAsync(int sampleId, StartSharedTsbRequest request, int userId)
     {
         var sample = await _db.Samples
@@ -860,53 +891,66 @@ public class PathogenSessionService
         if (media.ExpiryDate.Date < DateTime.UtcNow.Date)
             throw new WorkflowStepException("MediaExpired", $"Media lot #{media.LotNumber} expired on {media.ExpiryDate:yyyy-MM-dd}.");
 
-        var incubator = await _db.EquipmentInventories.FirstOrDefaultAsync(e => e.Id == request.IncubatorEquipmentId)
+        // The incubator is Laboratory Configuration equipment, which carries
+        // the set point - never the EquipmentInventories asset register.
+        var incubator = await _db.Equipment.FirstOrDefaultAsync(e => e.Id == request.IncubatorEquipmentId && e.Type == EquipmentType.Incubator)
             ?? throw new InvalidOperationException($"Incubator #{request.IncubatorEquipmentId} not found.");
 
         var testCodes = sample.TestOrders.Select(t => t.TestCode).Distinct().ToList();
         var testDefs = await _db.TestDefinitions
             .Include(t => t.Steps)
+                .ThenInclude(s => s.StepMedia)
+                    .ThenInclude(m => m.Material)
+            .Include(t => t.Steps)
+                .ThenInclude(s => s.StepMedia)
+                    .ThenInclude(m => m.IncubationCondition)
             .Where(t => testCodes.Contains(t.Code))
             .ToDictionaryAsync(t => t.Code);
 
-        var tsbOrders = new List<TestOrder>();
-        decimal tsbTempMin = 30;
-        decimal tsbTempMax = 35;
-        int tsbDurationMin = 18;
-        int tsbDurationMax = 24;
-
+        // Each test is timed by its own TSB medium from Test Master. A test
+        // joins only when that medium accepts this lot - one configured with a
+        // different medium starts on its own. Among the joining tests, an
+        // unconfigured window or an incubator outside a test's range refuses
+        // the whole start, naming the test.
+        var hasTsbTests = false;
+        var joining = new List<(TestOrder Order, TestWorkflowStep Step, IncubationWindow Window)>();
         foreach (var to in sample.TestOrders)
         {
-            if (testDefs.TryGetValue(to.TestCode, out var def))
-            {
-                // SelectiveBroth (e.g. MBP for E.coli, RVS for Salmonella) is
-                // species-specific and never shares this generic TSB lot -
-                // matching it here was the bug that let a shared TSB batch
-                // land on the wrong step. Only the true, common broth
-                // enrichment step (or an explicitly TSB-named one) qualifies.
-                var tsbStep = def.Steps.FirstOrDefault(s =>
-                    s.StepType is StepType.BrothEnrichment ||
-                    s.StepName.Contains("TSB", StringComparison.OrdinalIgnoreCase));
+            if (!testDefs.TryGetValue(to.TestCode, out var def)) continue;
 
-                if (tsbStep != null)
-                {
-                    tsbOrders.Add(to);
-                    if (tsbStep.TemperatureMin > 0) tsbTempMin = tsbStep.TemperatureMin;
-                    if (tsbStep.TemperatureMax > 0) tsbTempMax = tsbStep.TemperatureMax;
-                    if (tsbStep.IncubationMinHours > 0) tsbDurationMin = tsbStep.IncubationMinHours;
-                    if (tsbStep.IncubationMaxHours > 0) tsbDurationMax = tsbStep.IncubationMaxHours;
-                }
-            }
+            // SelectiveBroth (e.g. MBP for E.coli, RVS for Salmonella) is
+            // species-specific and never shares this generic TSB lot -
+            // matching it here was the bug that let a shared TSB batch
+            // land on the wrong step.
+            var tsbStep = def.Steps.OrderBy(s => s.StepOrder).FirstOrDefault(TsbDetectionHelper.IsSharedTsbStep);
+            if (tsbStep == null) continue;
+            hasTsbTests = true;
+
+            var medium = IncubationWindowResolver.MatchStepMedium(tsbStep.StepMedia, media.MaterialId, media.Material?.MediaProductId);
+            if (medium == null) continue;
+
+            var mediumName = medium.Material?.MaterialName ?? media.Material?.MaterialName ?? "TSB";
+            var window = IncubationWindowResolver.TryGet(medium)
+                ?? throw new WorkflowStepException(WorkflowErrorCodes.IncubationWindowNotConfigured,
+                    $"The shared TSB can't start: the incubation window for \"{mediumName}\" on test {to.TestCode} (step \"{tsbStep.StepName}\") is not configured - set its incubation hours and temperature in Test Master.");
+
+            if (!await _incubatorEligibility.IsWithinRangeAsync(medium.Id, incubator.Id))
+                throw new WorkflowStepException(WorkflowErrorCodes.IncubatorTempOutOfRange,
+                    $"The shared TSB can't start: incubator {incubator.Code}'s set point is outside the {window.TemperatureText} range of \"{mediumName}\" on test {to.TestCode}.");
+
+            joining.Add((to, tsbStep, window));
         }
 
-        if (tsbOrders.Count == 0)
+        if (!hasTsbTests)
             throw new WorkflowStepException("NoTsbTests", "None of the assigned tests on this sample require TSB enrichment.");
 
-        var startUtc = request.IncubationStartUtc ?? DateTime.UtcNow;
-        var endUtc = startUtc.AddHours(tsbDurationMax);
-        var targetTemp = $"{(tsbTempMin + tsbTempMax) / 2m:0.0} °C ({tsbTempMin:0.0} – {tsbTempMax:0.0} °C)";
+        if (joining.Count == 0)
+            throw new WorkflowStepException(WorkflowErrorCodes.MediaNotInPermittedList,
+                $"Media lot #{media.LotNumber} ({media.Material?.MaterialName ?? "unknown"}) is not the TSB medium of any test on this sample.");
 
-        var toIds = tsbOrders.Select(t => t.Id).ToList();
+        var startUtc = request.IncubationStartUtc ?? DateTime.UtcNow;
+
+        var toIds = joining.Select(j => j.Order.Id).ToList();
         var existingIncubations = await _db.Incubations
             .Where(i => i.TestOrderId.HasValue && toIds.Contains(i.TestOrderId.Value) && (i.StepName.Contains("TSB") || i.StepName.Contains("Enrichment") || i.StepName == "Broth Enrichment"))
             .ToListAsync();
@@ -914,22 +958,19 @@ public class PathogenSessionService
         if (existingIncubations.Count > 0)
             _db.Incubations.RemoveRange(existingIncubations);
 
-        foreach (var to in tsbOrders)
+        var started = new List<(TestOrder Order, TestWorkflowStep Step, Incubation Incubation)>();
+        foreach (var (to, tsbStep, window) in joining)
         {
-            var def = testDefs.TryGetValue(to.TestCode, out var d) ? d : null;
-            var tsbStep = def?.Steps.FirstOrDefault(s =>
-                s.StepType is StepType.BrothEnrichment ||
-                s.StepName.Contains("TSB", StringComparison.OrdinalIgnoreCase));
-
+            var endUtc = window.EndAt(startUtc);
             var inc = new Incubation
             {
                 TestOrderId = to.Id,
-                StepNumber = tsbStep?.StepOrder ?? 1,
-                StepName = tsbStep?.StepName ?? "Broth enrichment",
+                StepNumber = tsbStep.StepOrder,
+                StepName = tsbStep.StepName,
                 MediaId = request.MediaLotId,
-                IncubatorEquipmentId = request.IncubatorEquipmentId,
-                Temperature = targetTemp,
-                Duration = $"{tsbDurationMin} – {tsbDurationMax} hours",
+                IncubatorEquipmentId = incubator.Id,
+                Temperature = window.TemperatureText,
+                Duration = window.DurationText,
                 StartedAt = startUtc,
                 IncubationStartUtc = startUtc,
                 IncubationEndUtc = endUtc,
@@ -937,6 +978,7 @@ public class PathogenSessionService
                 StartedByUserId = userId
             };
             _db.Incubations.Add(inc);
+            started.Add((to, tsbStep, inc));
 
             to.CurrentStep = WorkflowStep.Incubating;
             to.Status = ApprovalStatus.Pending;
@@ -946,7 +988,7 @@ public class PathogenSessionService
                 TestOrderId = to.Id,
                 FromStep = WorkflowStep.Running,
                 ToStep = WorkflowStep.Incubating,
-                Note = $"Shared TSB Enrichment started: Media #{media.LotNumber} ({media.Material?.MaterialName ?? "TSB"}), Incubator {incubator.Code}, {tsbDurationMin}-{tsbDurationMax}h @ {targetTemp}.",
+                Note = $"Shared TSB Enrichment started: Media #{media.LotNumber} ({media.Material?.MaterialName ?? "TSB"}), Incubator {incubator.Code}, {window.DurationText} @ {window.TemperatureText}.",
                 PerformedByUserId = userId,
                 Timestamp = DateTime.UtcNow
             });
@@ -954,38 +996,24 @@ public class PathogenSessionService
 
         await _db.SaveChangesAsync();
 
-        foreach (var to in tsbOrders)
+        foreach (var (to, tsbStep, inc) in started)
         {
-            var def = testDefs.TryGetValue(to.TestCode, out var d) ? d : null;
-            var tsbStep = def?.Steps.FirstOrDefault(s =>
-                s.StepType is StepType.BrothEnrichment ||
-                s.StepName.Contains("TSB", StringComparison.OrdinalIgnoreCase));
-            var stepName = tsbStep?.StepName ?? "Broth Enrichment";
-
-            var inc = await _db.Incubations
-                .Where(i => i.TestOrderId == to.Id)
-                .OrderByDescending(i => i.StartedAt)
-                .FirstOrDefaultAsync();
-
-            if (inc != null)
+            var stepNamesToAdd = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "Broth Enrichment", "Broth enrichment", tsbStep.StepName };
+            foreach (var name in stepNamesToAdd)
             {
-                var stepNamesToAdd = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "Broth Enrichment", "Broth enrichment", stepName };
-                foreach (var name in stepNamesToAdd)
+                var exists = await _db.WorkflowStepResults.AnyAsync(r => r.TestOrderId == to.Id && r.StepName == name);
+                if (!exists)
                 {
-                    var exists = await _db.WorkflowStepResults.AnyAsync(r => r.TestOrderId == to.Id && r.StepName == name);
-                    if (!exists)
+                    _db.WorkflowStepResults.Add(new WorkflowStepResult
                     {
-                        _db.WorkflowStepResults.Add(new WorkflowStepResult
-                        {
-                            TestOrderId = to.Id,
-                            StepName = name,
-                            StepType = StepType.BrothEnrichment,
-                            IncubationId = inc.Id,
-                            IsSharedSessionStep = true,
-                            SubmittedByUserId = userId,
-                            SubmittedAtUtc = DateTime.UtcNow
-                        });
-                    }
+                        TestOrderId = to.Id,
+                        StepName = name,
+                        StepType = StepType.BrothEnrichment,
+                        IncubationId = inc.Id,
+                        IsSharedSessionStep = true,
+                        SubmittedByUserId = userId,
+                        SubmittedAtUtc = DateTime.UtcNow
+                    });
                 }
             }
         }
@@ -1135,6 +1163,11 @@ public class PathogenSessionService
 
         var testDef = await _db.TestDefinitions
             .Include(d => d.Steps)
+                .ThenInclude(s => s.StepMedia)
+                    .ThenInclude(m => m.Material)
+            .Include(d => d.Steps)
+                .ThenInclude(s => s.StepMedia)
+                    .ThenInclude(m => m.IncubationCondition)
             .FirstOrDefaultAsync(d => d.Code == testOrder.TestCode, cancellationToken);
 
         var confirmatoryStep = testDef?.Steps.FirstOrDefault(s => s.StepType == StepType.ConfirmatoryPlating);
@@ -1161,21 +1194,51 @@ public class PathogenSessionService
             }
         }
 
-        var incubator = await _db.EquipmentInventories.FirstOrDefaultAsync(e => e.Id == request.IncubatorEquipmentId, cancellationToken)
+        if (confirmatoryStep == null)
+            throw new InvalidOperationException($"Test \"{testOrder.TestCode}\" has no confirmatory plating step in Test Master.");
+
+        // Laboratory Configuration equipment (carries the set point), never
+        // the EquipmentInventories asset register.
+        var incubator = await _db.Equipment.FirstOrDefaultAsync(e => e.Id == request.IncubatorEquipmentId && e.Type == EquipmentType.Incubator, cancellationToken)
             ?? throw new InvalidOperationException($"Incubator #{request.IncubatorEquipmentId} not found.");
 
+        // One incubation holds every chosen plate, each medium timed by its own
+        // configuration on this step (never step-level or default hours): it
+        // runs to the longest maximum, never short of the longest minimum, and
+        // the incubator must suit every medium's temperature range - the same
+        // rule as TestWorkflowEngine.SubmitConfirmatorySetupAsync.
+        var materialIds = request.MediaMaterialIds.Distinct().ToList();
+        var productByMaterial = await _db.Materials
+            .Where(m => materialIds.Contains(m.Id))
+            .ToDictionaryAsync(m => m.Id, m => m.MediaProductId, cancellationToken);
+
+        var chosen = new List<(TestWorkflowStepMedia Medium, IncubationWindow Window)>();
+        foreach (var materialId in materialIds)
+        {
+            var medium = IncubationWindowResolver.MatchStepMedium(confirmatoryStep.StepMedia, materialId, productByMaterial.GetValueOrDefault(materialId))
+                ?? throw new WorkflowStepException(WorkflowErrorCodes.MediaNotInPermittedList,
+                    $"Material #{materialId} is not on the permitted media list of step \"{confirmatoryStep.StepName}\".");
+            var window = IncubationWindowResolver.Require(medium, confirmatoryStep.StepName);
+
+            if (!await _incubatorEligibility.IsWithinRangeAsync(medium.Id, incubator.Id, cancellationToken))
+                throw new WorkflowStepException(WorkflowErrorCodes.IncubatorTempOutOfRange,
+                    $"Incubator {incubator.Code}'s set point is outside the {window.TemperatureText} range of \"{medium.Material?.MaterialName ?? $"material #{materialId}"}\".");
+
+            chosen.Add((medium, window));
+        }
+
         var startUtc = request.IncubationStartUtc ?? DateTime.UtcNow;
-        var endUtc = startUtc.AddHours(confirmatoryStep?.IncubationMaxHours > 0 ? confirmatoryStep.IncubationMaxHours : 24);
+        var endUtc = startUtc.AddHours(chosen.Max(c => c.Window.MaxHours));
 
         var inc = new Incubation
         {
             TestOrderId = testOrder.Id,
-            StepNumber = confirmatoryStep?.StepOrder ?? 4,
-            StepName = confirmatoryStep?.StepName ?? "Confirmatory Plating",
+            StepNumber = confirmatoryStep.StepOrder,
+            StepName = confirmatoryStep.StepName,
             MediaId = request.MediaLotIds?.FirstOrDefault() ?? 0,
-            IncubatorEquipmentId = request.IncubatorEquipmentId,
-            Temperature = $"{confirmatoryStep?.TemperatureMin ?? 35:0.0} – {confirmatoryStep?.TemperatureMax ?? 37:0.0} °C",
-            Duration = $"{confirmatoryStep?.IncubationMinHours ?? 18} – {confirmatoryStep?.IncubationMaxHours ?? 24} hours",
+            IncubatorEquipmentId = incubator.Id,
+            Temperature = string.Join("; ", chosen.Select(c => $"{c.Window.TempMin}-{c.Window.TempMax}").Distinct()),
+            Duration = string.Join("; ", chosen.Select(c => $"{c.Window.MinHours}-{c.Window.MaxHours}h").Distinct()),
             StartedAt = startUtc,
             IncubationStartUtc = startUtc,
             IncubationEndUtc = endUtc,

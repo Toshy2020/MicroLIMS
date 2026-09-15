@@ -46,9 +46,24 @@ public class PathogenMultiLocationConfirmationTests
         };
         db.Media.Add(tsbMedia);
 
+        var xldMedia = new Media
+        {
+            Id = 21,
+            MaterialId = 101,
+            Material = xldMat,
+            LotNumber = "XLD-LOT-01",
+            Status = MediaStatus.Prepared,
+            IsReleasedForUse = true,
+            ExpiryDate = DateTime.UtcNow.AddMonths(2),
+            PreparedAt = DateTime.UtcNow.AddDays(-5)
+        };
+        db.Media.Add(xldMedia);
+
         // Seed Incubator
-        var inc = new EquipmentInventory { Id = 10, Code = "INC-01", InstrumentType = "Incubator", Status = EquipmentOperationalStatus.InService };
-        db.EquipmentInventories.Add(inc);
+        // Laboratory Configuration equipment; set point inside the
+        // confirmatory media's 35-37 °C range.
+        var inc = new Equipment { Id = 10, Name = "INC-01", Code = "INC-01", Type = EquipmentType.Incubator, SetPointTemperature = 36 };
+        db.Equipment.Add(inc);
 
         // Seed Test Definition for Salmonella with ConfirmatoryMediaCount = 2
         var testSalm = new TestDefinition
@@ -59,8 +74,35 @@ public class PathogenMultiLocationConfirmationTests
             WorkflowType = WorkflowType.Observation,
             Steps = new List<TestWorkflowStep>
             {
-                new() { StepOrder = 1, StepName = "TSB Enrichment", StepType = StepType.BrothEnrichment, IncubationMinHours = 18, IncubationMaxHours = 24, TemperatureMin = 30, TemperatureMax = 35 },
-                new() { StepOrder = 2, StepName = "Selective Plating (XLD)", StepType = StepType.SelectivePlating, IncubationMinHours = 18, IncubationMaxHours = 24, TemperatureMin = 35, TemperatureMax = 37, TargetOrganismId = 1 },
+                new()
+                {
+                    StepOrder = 1,
+                    StepName = "TSB Enrichment",
+                    StepType = StepType.BrothEnrichment,
+                    IncubationMinHours = 18,
+                    IncubationMaxHours = 24,
+                    TemperatureMin = 30,
+                    TemperatureMax = 35,
+                    StepMedia = new List<TestWorkflowStepMedia>
+                    {
+                        new() { MaterialId = 10, IncubationMinHours = 18, IncubationMaxHours = 24, TempMin = 30, TempMax = 35, IsRequired = true, DisplayOrder = 1 }
+                    }
+                },
+                new()
+                {
+                    StepOrder = 2,
+                    StepName = "Selective Plating (XLD)",
+                    StepType = StepType.SelectivePlating,
+                    IncubationMinHours = 18,
+                    IncubationMaxHours = 24,
+                    TemperatureMin = 35,
+                    TemperatureMax = 37,
+                    TargetOrganismId = 1,
+                    StepMedia = new List<TestWorkflowStepMedia>
+                    {
+                        new() { MaterialId = 101, IncubationMinHours = 18, IncubationMaxHours = 24, TempMin = 35, TempMax = 37, IsRequired = true, DisplayOrder = 1 }
+                    }
+                },
                 new()
                 {
                     StepOrder = 3,
@@ -76,8 +118,8 @@ public class PathogenMultiLocationConfirmationTests
                     ConfirmatoryMediaCount = 2, // 2 confirmatory media required (e.g. XLD + TSI)
                     StepMedia = new List<TestWorkflowStepMedia>
                     {
-                        new() { MaterialId = 101, TempMin = 35, TempMax = 37, DisplayOrder = 1 },
-                        new() { MaterialId = 102, TempMin = 35, TempMax = 37, DisplayOrder = 2 }
+                        new() { MaterialId = 101, IncubationMinHours = 18, IncubationMaxHours = 24, TempMin = 35, TempMax = 37, DisplayOrder = 1 },
+                        new() { MaterialId = 102, IncubationMinHours = 18, IncubationMaxHours = 24, TempMin = 35, TempMax = 37, DisplayOrder = 2 }
                     }
                 }
             }
@@ -276,6 +318,65 @@ public class PathogenMultiLocationConfirmationTests
             service.StartSharedConfirmatorySetupAsync(sampleId, setupRequest, userId: 5));
 
         Assert.Equal("InvalidMediaCount", ex.ErrorCode);
+    }
+
+    // One incubation holds both plates: it runs to the longest medium
+    // maximum from Test Master, not the step-level 24 h.
+    [Fact]
+    public async Task StartSharedConfirmatorySetup_WindowFromChosenMedia()
+    {
+        var (db, sampleId, orderId, locIds) = SetupSalmonellaBatchEnvironment();
+        var tsi = await db.TestWorkflowStepMedias.FirstAsync(m => m.MaterialId == 102);
+        tsi.IncubationMinHours = 24;
+        tsi.IncubationMaxHours = 48;
+        await db.SaveChangesAsync();
+
+        var service = new PathogenSessionService(db);
+        await service.SavePrimaryObservationsAsync(sampleId, new SavePrimaryObservationsRequest(new List<PrimaryObservationInput>
+        {
+            new(locIds[1], "Salmonella", GrowthObservation.GrowthConforming)
+        }), userId: 5);
+
+        var start = DateTime.UtcNow;
+        await service.StartSharedConfirmatorySetupAsync(sampleId, new BatchConfirmatorySetupRequest(
+            TestOrderId: orderId,
+            LocationIds: new List<int> { locIds[1] },
+            MediaMaterialIds: new List<int> { 101, 102 },
+            MediaLotIds: null,
+            IncubatorEquipmentId: 10,
+            IncubationStartUtc: start), userId: 5);
+
+        var inc = await db.Incubations.SingleAsync(i => i.TestOrderId == orderId && i.StepName == "Confirmatory Plating");
+        Assert.Equal(start.AddHours(48), inc.IncubationEndUtc);
+        Assert.Equal("18-24h; 24-48h", inc.Duration);
+    }
+
+    [Fact]
+    public async Task StartSharedConfirmatorySetup_IncubatorOutsideAChosenMediumRange_Throws()
+    {
+        var (db, sampleId, orderId, locIds) = SetupSalmonellaBatchEnvironment();
+        var tsi = await db.TestWorkflowStepMedias.FirstAsync(m => m.MaterialId == 102);
+        tsi.TempMin = 40; // INC-01 is set to 36 °C
+        tsi.TempMax = 45;
+        await db.SaveChangesAsync();
+
+        var service = new PathogenSessionService(db);
+        await service.SavePrimaryObservationsAsync(sampleId, new SavePrimaryObservationsRequest(new List<PrimaryObservationInput>
+        {
+            new(locIds[1], "Salmonella", GrowthObservation.GrowthConforming)
+        }), userId: 5);
+
+        var ex = await Assert.ThrowsAsync<WorkflowStepException>(() =>
+            service.StartSharedConfirmatorySetupAsync(sampleId, new BatchConfirmatorySetupRequest(
+                TestOrderId: orderId,
+                LocationIds: new List<int> { locIds[1] },
+                MediaMaterialIds: new List<int> { 101, 102 },
+                MediaLotIds: null,
+                IncubatorEquipmentId: 10,
+                IncubationStartUtc: DateTime.UtcNow), userId: 5));
+
+        Assert.Equal(MicroLIMS.Shared.Constants.WorkflowErrorCodes.IncubatorTempOutOfRange, ex.ErrorCode);
+        Assert.False(await db.Incubations.AnyAsync(i => i.TestOrderId == orderId && i.StepName == "Confirmatory Plating"));
     }
 
     [Fact]

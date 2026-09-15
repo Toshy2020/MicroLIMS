@@ -152,17 +152,18 @@ export function AssignedTestCard({
     if (remainingSeconds > 0) {
       return remainingSeconds;
     }
-    if (optimisticDetails) {
-      return (stage1IncMinHours || 24) * 3600;
-    }
     return 0;
-  }, [optimisticDetails, incubationEndUtc, activeIncubation, nowMs, remainingSeconds, stage1IncMinHours]);
+  }, [optimisticDetails, incubationEndUtc, activeIncubation, nowMs, remainingSeconds]);
 
   // Dynamic Badge resolution: distinguish between media/incubator setup vs actual result entry
   const dynamicBadge = useMemo(() => {
     const closed = test.workflowState ? CLOSED_TEST_STATES[test.workflowState] : undefined;
     if (closed) {
       return { status: closed.status, label: closed.label };
+    }
+    // Blocked by the server: never shown as ready, whatever the timestamps say.
+    if (test.workflowState === "WINDOW_NOT_CONFIGURED") {
+      return { status: "Blocked", label: "Window Not Configured" };
     }
     if (test.workflowState === "APPROVED" || test.status === "Approved") {
       return { status: "Approved", label: "Approved" };
@@ -259,6 +260,9 @@ export function AssignedTestCard({
     const closed = test.workflowState ? CLOSED_TEST_STATES[test.workflowState] : undefined;
     if (closed) {
       return closed.text;
+    }
+    if (test.workflowState === "WINDOW_NOT_CONFIGURED") {
+      return "Blocked — incubation window not configured in Test Master";
     }
     if (test.workflowState === "APPROVED" || test.status === "Approved") {
       return "✓ Approved & Complete";
@@ -385,8 +389,11 @@ export function AssignedTestCard({
     const chosenMedia = matchingMedia.find((m) => m.id === selectedMediaId);
     const chosenInc = matchingIncubators.find((i) => i.id === selectedIncubatorId);
 
-    const incHours = stage1IncMinHours || 24;
-    const estimatedEndUtc = new Date(Date.now() + incHours * 3600 * 1000).toISOString();
+    // Estimated only from the chosen medium's Test Master window; the server's
+    // real end time replaces it below. No guessed default when unconfigured.
+    const estimatedEndUtc = stage1IncMaxHours > 0
+      ? new Date(Date.now() + stage1IncMaxHours * 3600 * 1000).toISOString()
+      : undefined;
 
     // Optimistic UI state flip with live estimated end time
     setOptimisticIncubating(true);

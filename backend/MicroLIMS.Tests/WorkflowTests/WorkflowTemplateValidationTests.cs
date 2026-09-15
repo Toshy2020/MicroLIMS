@@ -43,12 +43,12 @@ public class WorkflowTemplateValidationTests
             IncubationMinHours = incubationMinHours, IncubationMaxHours = incubationMaxHours
         };
         if (hasMedia)
-            step.StepMedia.Add(new TestWorkflowStepMedia { MaterialId = 1, IsRequired = true, TempMin = tempMin, TempMax = tempMax });
+            step.StepMedia.Add(new TestWorkflowStepMedia { MaterialId = 1, IsRequired = true, TempMin = tempMin, TempMax = tempMax, IncubationMinHours = 18, IncubationMaxHours = 24 });
         return step;
     }
 
     private static TestWorkflowStepMedia Medium(int materialId, bool isRequired, decimal tempMin = 35, decimal tempMax = 37) =>
-        new() { MaterialId = materialId, IsRequired = isRequired, TempMin = tempMin, TempMax = tempMax };
+        new() { MaterialId = materialId, IsRequired = isRequired, TempMin = tempMin, TempMax = tempMax, IncubationMinHours = 18, IncubationMaxHours = 24 };
 
     [Theory]
     [InlineData(StepType.BrothEnrichment)]

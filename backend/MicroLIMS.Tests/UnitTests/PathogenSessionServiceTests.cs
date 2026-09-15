@@ -32,10 +32,11 @@ public class PathogenSessionServiceTests
         };
         db.Users.Add(user);
 
-        // Seed Incubators
-        var inc3 = new EquipmentInventory { Id = 3, Code = "INC-03", InstrumentType = "Incubator", Status = EquipmentOperationalStatus.InService };
-        var inc4 = new EquipmentInventory { Id = 4, Code = "INC-04", InstrumentType = "Incubator", Status = EquipmentOperationalStatus.InService };
-        db.EquipmentInventories.AddRange(inc3, inc4);
+        // Seed Incubators - Laboratory Configuration equipment, whose set point
+        // is checked against each test's own TSB medium range (30-35 °C).
+        var inc3 = new Equipment { Id = 3, Name = "INC-03", Code = "INC-03", Type = EquipmentType.Incubator, SetPointTemperature = 32.5m };
+        var inc4 = new Equipment { Id = 4, Name = "INC-04", Code = "INC-04", Type = EquipmentType.Incubator, SetPointTemperature = 32.5m };
+        db.Equipment.AddRange(inc3, inc4);
 
         // Seed Material & Released TSB Media Lot
         var tsbMat = new Material { Id = 10, MaterialName = "Tryptic Soy Broth Powder", MaterialType = MaterialType.DehydratedMedia, BatchNumber = "TSB-MAT-01" };
@@ -53,6 +54,54 @@ public class PathogenSessionServiceTests
             PreparedAt = DateTime.UtcNow.AddDays(-5)
         };
         db.Media.Add(tsbMedia);
+
+        var bcaMat = new Material { Id = 11, MaterialName = "BCA Selective Medium Powder", MaterialType = MaterialType.DehydratedMedia, BatchNumber = "BCA-MAT-01" };
+        db.Materials.Add(bcaMat);
+
+        var bcaMedia = new Media
+        {
+            Id = 21,
+            MaterialId = 11,
+            Material = bcaMat,
+            LotNumber = "BCA-LOT-25114",
+            Status = MediaStatus.Prepared,
+            IsReleasedForUse = true,
+            ExpiryDate = DateTime.UtcNow.AddMonths(2),
+            PreparedAt = DateTime.UtcNow.AddDays(-5)
+        };
+        db.Media.Add(bcaMedia);
+
+        var rvsMat = new Material { Id = 12, MaterialName = "RVS Selective Broth Powder", MaterialType = MaterialType.DehydratedMedia, BatchNumber = "RVS-MAT-01" };
+        db.Materials.Add(rvsMat);
+
+        var rvsMedia = new Media
+        {
+            Id = 22,
+            MaterialId = 12,
+            Material = rvsMat,
+            LotNumber = "RVS-LOT-25115",
+            Status = MediaStatus.Prepared,
+            IsReleasedForUse = true,
+            ExpiryDate = DateTime.UtcNow.AddMonths(2),
+            PreparedAt = DateTime.UtcNow.AddDays(-5)
+        };
+        db.Media.Add(rvsMedia);
+
+        var plateMat = new Material { Id = 13, MaterialName = "Plate Incubation Agar Powder", MaterialType = MaterialType.DehydratedMedia, BatchNumber = "PLATE-MAT-01" };
+        db.Materials.Add(plateMat);
+
+        var plateMedia = new Media
+        {
+            Id = 23,
+            MaterialId = 13,
+            Material = plateMat,
+            LotNumber = "PLATE-LOT-25116",
+            Status = MediaStatus.Prepared,
+            IsReleasedForUse = true,
+            ExpiryDate = DateTime.UtcNow.AddMonths(2),
+            PreparedAt = DateTime.UtcNow.AddDays(-5)
+        };
+        db.Media.Add(plateMedia);
 
         var eval = new MediaEvaluation
         {
@@ -73,8 +122,34 @@ public class PathogenSessionServiceTests
             WorkflowType = WorkflowType.Observation,
             Steps = new List<TestWorkflowStep>
             {
-                new() { StepOrder = 1, StepName = "TSB Enrichment", StepType = StepType.BrothEnrichment, IncubationMinHours = 18, IncubationMaxHours = 24, TemperatureMin = 30, TemperatureMax = 35 },
-                new() { StepOrder = 2, StepName = "BCA Selective Medium", StepType = StepType.SelectivePlating, IncubationMinHours = 24, IncubationMaxHours = 48, TemperatureMin = 35, TemperatureMax = 37 }
+                new()
+                {
+                    StepOrder = 1,
+                    StepName = "TSB Enrichment",
+                    StepType = StepType.BrothEnrichment,
+                    IncubationMinHours = 18,
+                    IncubationMaxHours = 24,
+                    TemperatureMin = 30,
+                    TemperatureMax = 35,
+                    StepMedia = new List<TestWorkflowStepMedia>
+                    {
+                        new() { MaterialId = 10, IncubationMinHours = 18, IncubationMaxHours = 24, TempMin = 30, TempMax = 35, IsRequired = true, DisplayOrder = 1 }
+                    }
+                },
+                new()
+                {
+                    StepOrder = 2,
+                    StepName = "BCA Selective Medium",
+                    StepType = StepType.SelectivePlating,
+                    IncubationMinHours = 24,
+                    IncubationMaxHours = 48,
+                    TemperatureMin = 35,
+                    TemperatureMax = 37,
+                    StepMedia = new List<TestWorkflowStepMedia>
+                    {
+                        new() { MaterialId = 11, IncubationMinHours = 24, IncubationMaxHours = 48, TempMin = 35, TempMax = 37, IsRequired = true, DisplayOrder = 1 }
+                    }
+                }
             }
         };
 
@@ -86,8 +161,34 @@ public class PathogenSessionServiceTests
             WorkflowType = WorkflowType.Observation,
             Steps = new List<TestWorkflowStep>
             {
-                new() { StepOrder = 1, StepName = "TSB Pre-enrichment", StepType = StepType.BrothEnrichment, IncubationMinHours = 18, IncubationMaxHours = 24, TemperatureMin = 30, TemperatureMax = 35 },
-                new() { StepOrder = 2, StepName = "RVS Selective Broth", StepType = StepType.SelectiveBroth, IncubationMinHours = 24, IncubationMaxHours = 24, TemperatureMin = 41.5m, TemperatureMax = 42.5m }
+                new()
+                {
+                    StepOrder = 1,
+                    StepName = "TSB Pre-enrichment",
+                    StepType = StepType.BrothEnrichment,
+                    IncubationMinHours = 18,
+                    IncubationMaxHours = 24,
+                    TemperatureMin = 30,
+                    TemperatureMax = 35,
+                    StepMedia = new List<TestWorkflowStepMedia>
+                    {
+                        new() { MaterialId = 10, IncubationMinHours = 18, IncubationMaxHours = 24, TempMin = 30, TempMax = 35, IsRequired = true, DisplayOrder = 1 }
+                    }
+                },
+                new()
+                {
+                    StepOrder = 2,
+                    StepName = "RVS Selective Broth",
+                    StepType = StepType.SelectiveBroth,
+                    IncubationMinHours = 24,
+                    IncubationMaxHours = 24,
+                    TemperatureMin = 41.5m,
+                    TemperatureMax = 42.5m,
+                    StepMedia = new List<TestWorkflowStepMedia>
+                    {
+                        new() { MaterialId = 12, IncubationMinHours = 24, IncubationMaxHours = 24, TempMin = 41.5m, TempMax = 42.5m, IsRequired = true, DisplayOrder = 1 }
+                    }
+                }
             }
         };
 
@@ -99,7 +200,20 @@ public class PathogenSessionServiceTests
             WorkflowType = WorkflowType.CountTest,
             Steps = new List<TestWorkflowStep>
             {
-                new() { StepOrder = 1, StepName = "Plate Incubation", StepType = StepType.SelectivePlating, IncubationMinHours = 48, IncubationMaxHours = 72, TemperatureMin = 30, TemperatureMax = 35 }
+                new()
+                {
+                    StepOrder = 1,
+                    StepName = "Plate Incubation",
+                    StepType = StepType.SelectivePlating,
+                    IncubationMinHours = 48,
+                    IncubationMaxHours = 72,
+                    TemperatureMin = 30,
+                    TemperatureMax = 35,
+                    StepMedia = new List<TestWorkflowStepMedia>
+                    {
+                        new() { MaterialId = 13, IncubationMinHours = 48, IncubationMaxHours = 72, TempMin = 30, TempMax = 35, IsRequired = true, DisplayOrder = 1 }
+                    }
+                }
             }
         };
 
@@ -111,7 +225,20 @@ public class PathogenSessionServiceTests
             WorkflowType = WorkflowType.Observation,
             Steps = new List<TestWorkflowStep>
             {
-                new() { StepOrder = 1, StepName = "TSB Enrichment", StepType = StepType.BrothEnrichment, IncubationMinHours = 18, IncubationMaxHours = 24, TemperatureMin = 30, TemperatureMax = 35 }
+                new()
+                {
+                    StepOrder = 1,
+                    StepName = "TSB Enrichment",
+                    StepType = StepType.BrothEnrichment,
+                    IncubationMinHours = 18,
+                    IncubationMaxHours = 24,
+                    TemperatureMin = 30,
+                    TemperatureMax = 35,
+                    StepMedia = new List<TestWorkflowStepMedia>
+                    {
+                        new() { MaterialId = 10, IncubationMinHours = 18, IncubationMaxHours = 24, TempMin = 30, TempMax = 35, IsRequired = true, DisplayOrder = 1 }
+                    }
+                }
             }
         };
 
@@ -123,7 +250,20 @@ public class PathogenSessionServiceTests
             WorkflowType = WorkflowType.Observation,
             Steps = new List<TestWorkflowStep>
             {
-                new() { StepOrder = 1, StepName = "TSB Enrichment", StepType = StepType.BrothEnrichment, IncubationMinHours = 18, IncubationMaxHours = 24, TemperatureMin = 30, TemperatureMax = 35 }
+                new()
+                {
+                    StepOrder = 1,
+                    StepName = "TSB Enrichment",
+                    StepType = StepType.BrothEnrichment,
+                    IncubationMinHours = 18,
+                    IncubationMaxHours = 24,
+                    TemperatureMin = 30,
+                    TemperatureMax = 35,
+                    StepMedia = new List<TestWorkflowStepMedia>
+                    {
+                        new() { MaterialId = 10, IncubationMinHours = 18, IncubationMaxHours = 24, TempMin = 30, TempMax = 35, IsRequired = true, DisplayOrder = 1 }
+                    }
+                }
             }
         };
 
@@ -135,7 +275,20 @@ public class PathogenSessionServiceTests
             WorkflowType = WorkflowType.Observation,
             Steps = new List<TestWorkflowStep>
             {
-                new() { StepOrder = 1, StepName = "TSB Enrichment", StepType = StepType.BrothEnrichment, IncubationMinHours = 18, IncubationMaxHours = 24, TemperatureMin = 30, TemperatureMax = 35 }
+                new()
+                {
+                    StepOrder = 1,
+                    StepName = "TSB Enrichment",
+                    StepType = StepType.BrothEnrichment,
+                    IncubationMinHours = 18,
+                    IncubationMaxHours = 24,
+                    TemperatureMin = 30,
+                    TemperatureMax = 35,
+                    StepMedia = new List<TestWorkflowStepMedia>
+                    {
+                        new() { MaterialId = 10, IncubationMinHours = 18, IncubationMaxHours = 24, TempMin = 30, TempMax = 35, IsRequired = true, DisplayOrder = 1 }
+                    }
+                }
             }
         };
 
@@ -264,6 +417,180 @@ public class PathogenSessionServiceTests
 
         var histories = await db.WorkflowHistories.Where(h => h.Note != null && h.Note.Contains("Transition refused")).ToListAsync();
         Assert.NotEmpty(histories);
+    }
+
+    private static async Task<TestWorkflowStepMedia> TsbMediumAsync(MicroLimsDbContext db, string testCode)
+    {
+        var def = await db.TestDefinitions
+            .Include(d => d.Steps).ThenInclude(s => s.StepMedia)
+            .FirstAsync(d => d.Code == testCode);
+        return def.Steps.OrderBy(s => s.StepOrder).First().StepMedia.First();
+    }
+
+    // Each test is timed by its own TSB medium from Test Master; the shared
+    // start only triggers it. The step-level 18-24 h must not leak in either.
+    [Fact]
+    public async Task StartSharedTsbAsync_EachTestGetsItsOwnMediumWindow()
+    {
+        var (db, sampleId, _) = SetupTestEnvironment(1);
+        var ecoliMedium = await TsbMediumAsync(db, "E. coli");
+        ecoliMedium.IncubationMinHours = 20;
+        ecoliMedium.IncubationMaxHours = 48;
+        await db.SaveChangesAsync();
+
+        var service = new PathogenSessionService(db);
+        var start = DateTime.UtcNow;
+        var tsb = await service.StartSharedTsbAsync(sampleId, new StartSharedTsbRequest(20, 3, start), 5);
+
+        var ecoli = await db.Incubations.SingleAsync(i => i.TestOrderId == 205);
+        Assert.Equal("20-48 hours", ecoli.Duration);
+        Assert.Equal(start.AddHours(48), ecoli.IncubationEndUtc);
+
+        var salmonella = await db.Incubations.SingleAsync(i => i.TestOrderId == 201);
+        Assert.Equal("18-24 hours", salmonella.Duration);
+        Assert.Equal(start.AddHours(24), salmonella.IncubationEndUtc);
+
+        Assert.Contains("E. coli: 20 – 48 h", tsb.RequiredDurationRange);
+        Assert.Contains("BCC: 18 – 24 h", tsb.RequiredDurationRange);
+        Assert.Equal(start.AddHours(20), tsb.MinReadyAt);
+        Assert.False(tsb.WindowNotConfigured);
+    }
+
+    [Fact]
+    public async Task StartSharedTsbAsync_TestWithDifferentTsbMedium_DoesNotJoin()
+    {
+        var (db, sampleId, _) = SetupTestEnvironment(1);
+        db.Materials.Add(new Material { Id = 14, MaterialName = "Buffered Peptone Water", MaterialType = MaterialType.DehydratedMedia, BatchNumber = "BPW-MAT-01" });
+        (await TsbMediumAsync(db, "S. aureus")).MaterialId = 14;
+        await db.SaveChangesAsync();
+
+        var service = new PathogenSessionService(db);
+        var tsb = await service.StartSharedTsbAsync(sampleId, new StartSharedTsbRequest(20, 3, DateTime.UtcNow), 5);
+
+        Assert.False(await db.Incubations.AnyAsync(i => i.TestOrderId == 203));
+        Assert.False(await db.WorkflowStepResults.AnyAsync(r => r.TestOrderId == 203));
+        Assert.True(await db.Incubations.AnyAsync(i => i.TestOrderId == 200));
+        Assert.DoesNotContain("S. aureus", tsb.ApplicableTestCodes);
+
+        var session = await service.GetSessionAsync(sampleId);
+        Assert.Equal("PENDING", session!.AssignedTests.First(t => t.TestCode == "S. aureus").TestSessionState);
+    }
+
+    [Fact]
+    public async Task StartSharedTsbAsync_JoiningTestWindowNotConfigured_RefusesWholeStart()
+    {
+        var (db, sampleId, _) = SetupTestEnvironment(1);
+        (await TsbMediumAsync(db, "P. aeruginosa")).IncubationMinHours = 0;
+        await db.SaveChangesAsync();
+
+        var service = new PathogenSessionService(db);
+        var ex = await Assert.ThrowsAsync<WorkflowStepException>(() =>
+            service.StartSharedTsbAsync(sampleId, new StartSharedTsbRequest(20, 3, DateTime.UtcNow), 5));
+
+        Assert.Equal(MicroLIMS.Shared.Constants.WorkflowErrorCodes.IncubationWindowNotConfigured, ex.ErrorCode);
+        Assert.Contains("P. aeruginosa", ex.Message);
+        Assert.False(await db.Incubations.AnyAsync());
+    }
+
+    [Fact]
+    public async Task StartSharedTsbAsync_IncubatorOutsideAJoiningTestRange_RefusesWholeStart()
+    {
+        var (db, sampleId, _) = SetupTestEnvironment(1);
+        (await TsbMediumAsync(db, "BCC")).TempMin = 33; // INC-03 is set to 32.5 °C
+        await db.SaveChangesAsync();
+
+        var service = new PathogenSessionService(db);
+        var ex = await Assert.ThrowsAsync<WorkflowStepException>(() =>
+            service.StartSharedTsbAsync(sampleId, new StartSharedTsbRequest(20, 3, DateTime.UtcNow), 5));
+
+        Assert.Equal(MicroLIMS.Shared.Constants.WorkflowErrorCodes.IncubatorTempOutOfRange, ex.ErrorCode);
+        Assert.Contains("BCC", ex.Message);
+        Assert.False(await db.Incubations.AnyAsync());
+    }
+
+    // The session panel sends Laboratory Configuration equipment ids; an id
+    // that exists only in the asset register is not an incubator.
+    [Fact]
+    public async Task StartSharedTsbAsync_IncubatorOnlyInAssetRegister_NotFound()
+    {
+        var (db, sampleId, _) = SetupTestEnvironment(1);
+        db.EquipmentInventories.Add(new EquipmentInventory { Id = 50, Code = "INC-50", InstrumentType = "Incubator", Status = EquipmentOperationalStatus.InService });
+        await db.SaveChangesAsync();
+
+        var service = new PathogenSessionService(db);
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            service.StartSharedTsbAsync(sampleId, new StartSharedTsbRequest(20, 50, DateTime.UtcNow), 5));
+        Assert.False(await db.Incubations.AnyAsync());
+    }
+
+    [Fact]
+    public async Task PropagateSharedTsb_CompletionNotCopiedBeforeSiblingsOwnMinimum()
+    {
+        var (db, sampleId, _) = SetupTestEnvironment(1);
+        var ecoliMedium = await TsbMediumAsync(db, "E. coli");
+        ecoliMedium.IncubationMinHours = 30;
+        ecoliMedium.IncubationMaxHours = 48;
+        await db.SaveChangesAsync();
+
+        var start = DateTime.UtcNow.AddHours(-20);
+        var inc = new Incubation
+        {
+            TestOrderId = 200, StepNumber = 1, StepName = "TSB Enrichment", MediaId = 20, IncubatorEquipmentId = 3,
+            StartedAt = start, IncubationStartUtc = start, IncubationEndUtc = start.AddHours(24),
+            CompletedAt = DateTime.UtcNow, CompletedByUserId = 5, Outcome = "Turbid"
+        };
+        db.Incubations.Add(inc);
+        await db.SaveChangesAsync();
+
+        await TestServiceFactory.TestWorkflow(db).PropagateSharedTsbToSiblingOrdersAsync(200, inc.Id, 5);
+
+        var ecoli = await db.Incubations.SingleAsync(i => i.TestOrderId == 205);
+        Assert.Null(ecoli.CompletedAt);
+        Assert.Equal("30-48 hours", ecoli.Duration);
+        Assert.Equal(start.AddHours(48), ecoli.IncubationEndUtc);
+
+        var salmonella = await db.Incubations.SingleAsync(i => i.TestOrderId == 201);
+        Assert.Equal(inc.CompletedAt, salmonella.CompletedAt);
+    }
+
+    [Fact]
+    public async Task PropagateSharedTsb_SiblingWithDifferentTsbMedium_NotLinked()
+    {
+        var (db, sampleId, _) = SetupTestEnvironment(1);
+        db.Materials.Add(new Material { Id = 14, MaterialName = "Buffered Peptone Water", MaterialType = MaterialType.DehydratedMedia, BatchNumber = "BPW-MAT-01" });
+        (await TsbMediumAsync(db, "S. aureus")).MaterialId = 14;
+        var start = DateTime.UtcNow.AddHours(-2);
+        var inc = new Incubation
+        {
+            TestOrderId = 200, StepNumber = 1, StepName = "TSB Enrichment", MediaId = 20, IncubatorEquipmentId = 3,
+            StartedAt = start, IncubationStartUtc = start, IncubationEndUtc = start.AddHours(24)
+        };
+        db.Incubations.Add(inc);
+        await db.SaveChangesAsync();
+
+        await TestServiceFactory.TestWorkflow(db).PropagateSharedTsbToSiblingOrdersAsync(200, inc.Id, 5);
+
+        Assert.False(await db.Incubations.AnyAsync(i => i.TestOrderId == 203));
+        Assert.False(await db.WorkflowStepResults.AnyAsync(r => r.TestOrderId == 203));
+        Assert.True(await db.Incubations.AnyAsync(i => i.TestOrderId == 201));
+    }
+
+    // Validated before the source's own incubation is saved, so a refused
+    // shared start never leaves one test started alone.
+    [Fact]
+    public async Task SelectMediaAsync_SharedTsbSiblingNotConfigured_BlocksBeforeSavingSource()
+    {
+        var (db, _, _) = SetupTestEnvironment(1);
+        (await TsbMediumAsync(db, "E. coli")).IncubationMaxHours = 0;
+        await db.SaveChangesAsync();
+
+        var engine = TestServiceFactory.TestWorkflow(db);
+        var ex = await Assert.ThrowsAsync<WorkflowStepException>(() =>
+            engine.SelectMediaAsync(200, "TSB Enrichment", 20, 3, 5));
+
+        Assert.Equal(MicroLIMS.Shared.Constants.WorkflowErrorCodes.IncubationWindowNotConfigured, ex.ErrorCode);
+        Assert.Contains("E. coli", ex.Message);
+        Assert.False(await db.Incubations.AnyAsync());
     }
 
     [Fact]
@@ -465,6 +792,7 @@ public class PathogenSessionServiceTests
             TestOrderId = tamcOrder.Id,
             StepName = "Plate Incubation",
             StepNumber = 1,
+            MediaId = 23,
             StartedAt = start,
             IncubationStartUtc = start,
             IncubationEndUtc = start.AddHours(72),
@@ -495,6 +823,7 @@ public class PathogenSessionServiceTests
             TestOrderId = tamcOrder.Id,
             StepName = "Plate Incubation",
             StepNumber = 1,
+            MediaId = 23,
             StartedAt = start,
             IncubationStartUtc = start,
             IncubationEndUtc = start.AddHours(72),
@@ -526,6 +855,7 @@ public class PathogenSessionServiceTests
             TestOrderId = tamcOrder.Id,
             StepName = "Plate Incubation",
             StepNumber = 1,
+            MediaId = 23,
             StartedAt = start,
             IncubationStartUtc = start,
             IncubationEndUtc = start.AddHours(72),

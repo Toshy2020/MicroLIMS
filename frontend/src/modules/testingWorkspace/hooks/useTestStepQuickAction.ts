@@ -141,10 +141,12 @@ export function useTestStepQuickAction({
 
   const activeMedium = selectedStepMedium ?? (step?.stepMedia?.length === 1 ? step.stepMedia[0] : null);
 
-  const stage1TempMin = activeMedium?.tempMin ?? (step?.stepMedia && step.stepMedia.length > 0 ? Math.min(...step.stepMedia.map((m) => m.tempMin)) : (step?.temperatureMin ?? 0));
-  const stage1TempMax = activeMedium?.tempMax ?? (step?.stepMedia && step.stepMedia.length > 0 ? Math.max(...step.stepMedia.map((m) => m.tempMax)) : (step?.temperatureMax ?? 0));
-  const stage1IncMinHours = activeMedium?.incubationMinHours ?? (step?.stepMedia && step.stepMedia.length > 0 ? Math.min(...step.stepMedia.map((m) => m.incubationMinHours ?? 0)) : (step?.incubationMinHours ?? 0));
-  const stage1IncMaxHours = activeMedium?.incubationMaxHours ?? (step?.stepMedia && step.stepMedia.length > 0 ? Math.max(...step.stepMedia.map((m) => m.incubationMaxHours ?? 0)) : (step?.incubationMaxHours ?? 0));
+  // The chosen medium's own Test Master window; otherwise the step window the
+  // server resolved - never a locally computed or default value.
+  const stage1TempMin = activeMedium?.tempMin ?? step?.temperatureMin ?? 0;
+  const stage1TempMax = activeMedium?.tempMax ?? step?.temperatureMax ?? 0;
+  const stage1IncMinHours = activeMedium?.incubationMinHours ?? step?.incubationMinHours ?? 0;
+  const stage1IncMaxHours = activeMedium?.incubationMaxHours ?? step?.incubationMaxHours ?? 0;
 
   // Eligible incubators matching temperature range
   const matchingIncubators = useMemo(() => {
@@ -186,7 +188,7 @@ export function useTestStepQuickAction({
       return {
         incubationEndUtc: endUtc,
         remainingSeconds: remSec,
-        isLocked: !tsb.isCompleted,
+        isLocked: tsb.isLocked ?? !tsb.isCompleted,
         mediaName: tsb.mediaLotNumber,
         incubatorName: tsb.incubatorCode
       };

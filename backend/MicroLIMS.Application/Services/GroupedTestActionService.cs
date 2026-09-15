@@ -98,6 +98,41 @@ public class GroupedTestActionService
             .GroupBy(m => m.ProductId)
             .ToDictionary(g => g.Key, g => g.Select(m => m.Id).ToList());
 
+        // Preparation records, each eligible candidate's current step and the
+        // media behind open incubations, loaded once for the whole candidate
+        // list rather than per order.
+        var itemSampleIds = candidateOrders
+            .Where(o => o.Sample?.ItemId != null)
+            .Select(o => o.SampleId)
+            .Distinct()
+            .ToList();
+        var preparedSampleIds = (await _db.SamplePreparations
+                .Where(p => itemSampleIds.Contains(p.SampleId))
+                .Select(p => p.SampleId)
+                .Distinct()
+                .ToListAsync(ct))
+            .ToHashSet();
+
+        var eligibleOrderIds = candidateOrders
+            .Where(o => o.Sample != null
+                && o.Sample.PreparationStatus == SamplePreparationStatus.Ready
+                && (o.Sample.ItemId == null || preparedSampleIds.Contains(o.Sample.Id)))
+            .Select(o => o.Id)
+            .ToList();
+        var stepLookups = await _workflowEngine.GetCurrentStepDetailsForOrdersAsync(eligibleOrderIds);
+
+        var openMediaIds = candidateOrders
+            .SelectMany(o => o.Incubations)
+            .Where(i => i.CompletedAt == null && i.MediaId.HasValue)
+            .Select(i => i.MediaId!.Value)
+            .Distinct()
+            .ToList();
+        var openMediaRows = (await _db.Media
+                .Where(m => openMediaIds.Contains(m.Id))
+                .Select(m => new { m.Id, m.MaterialId, m.Material!.MediaProductId })
+                .ToListAsync(ct))
+            .ToDictionary(m => m.Id);
+
         foreach (var order in candidateOrders)
         {
             var sample = order.Sample;
@@ -109,24 +144,18 @@ public class GroupedTestActionService
             // unprepared sample offers no incubation action at all.
             if (sample.PreparationStatus != SamplePreparationStatus.Ready)
                 continue;
-            if (sample.ItemId != null && !await _db.SamplePreparations.AnyAsync(p => p.SampleId == sample.Id, ct))
+            if (sample.ItemId != null && !preparedSampleIds.Contains(sample.Id))
                 continue;
 
-            CurrentStepDetails stepDetails;
-            try
-            {
-                stepDetails = await _workflowEngine.GetCurrentStepDetailsAsync(order.Id);
-            }
-            catch
-            {
+            if (!stepLookups.TryGetValue(order.Id, out var lookup) || lookup.Details is null)
                 continue;
-            }
+            var stepDetails = lookup.Details;
             var stepResult = stepDetails.Result;
 
             if (stepResult.AllStepsComplete || stepResult.Step == null)
                 continue;
 
-            var (loadedOrder, definition) = await LoadDefinitionAsync(order.Id, ct);
+            var definition = stepDetails.Definition;
             var step = stepResult.Step;
             var displayName = sample.Item?.Name ?? sample.WaterSamplingPoint?.Code ?? sample.Department?.Name ?? sample.Machine?.Name ?? sample.ReferenceNumber;
             var analystName = order.AssignedAnalystId.HasValue && analystNames.TryGetValue(order.AssignedAnalystId.Value, out var an) ? an : null;
@@ -147,7 +176,7 @@ public class GroupedTestActionService
                 {
                     if (openInc.MediaId.HasValue && step.StepMedia != null && step.StepMedia.Count > 0)
                     {
-                        var mediaRow = await _db.Media.Where(m => m.Id == openInc.MediaId.Value).Select(m => new { m.MaterialId, m.Material!.MediaProductId }).FirstOrDefaultAsync(ct);
+                        var mediaRow = openMediaRows.GetValueOrDefault(openInc.MediaId.Value);
                         var stepMedia = mediaRow != null
                             ? (step.StepMedia.FirstOrDefault(sm => sm.MaterialId == mediaRow.MaterialId)
                                ?? step.StepMedia.FirstOrDefault(sm => StepMediumMatcher.Matches(sm, mediaRow.MaterialId, mediaRow.MediaProductId)))

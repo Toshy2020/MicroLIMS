@@ -95,6 +95,10 @@ public record CurrentStepResult(
 // the step view can build its response without querying the same rows again.
 public record CurrentStepDetails(CurrentStepResult Result, TestOrder Order, TestDefinition Definition, TestStepFacts Facts);
 
+// One order's entry from GetCurrentStepDetailsForOrdersAsync: the details, or
+// the message GetCurrentStepDetailsAsync would have thrown for that order.
+public record CurrentStepLookup(CurrentStepDetails? Details, string? Error);
+
 // Every row the step-completion rules read for one test order, loaded once
 // instead of two or three queries per step checked.
 public record TestStepFacts(
@@ -135,6 +139,7 @@ public interface ITestWorkflowEngine : IStatefulWorkflowEngine
 {
     Task<CurrentStepResult> GetCurrentStepAsync(int testOrderId);
     Task<CurrentStepDetails> GetCurrentStepDetailsAsync(int testOrderId);
+    Task<IReadOnlyDictionary<int, CurrentStepLookup>> GetCurrentStepDetailsForOrdersAsync(IReadOnlyCollection<int> testOrderIds);
     Task<bool> IsStepDoneAsync(int testOrderId, WorkflowType workflowType, TestWorkflowStep step);
     Task<List<SiblingPathogenOrderDto>> GetSiblingPathogenOrdersAsync(int testOrderId, CancellationToken ct = default);
     Task PropagateSharedTsbToSiblingOrdersAsync(int testOrderId, int incubationId, int userId, CancellationToken ct = default);
@@ -215,18 +220,25 @@ public class TestWorkflowEngine : ITestWorkflowEngine
     private async Task<(TestOrder order, TestDefinition definition)> LoadWithTemplateAsync(int testOrderId)
     {
         var order = await WorkflowStateMachine.LoadOrThrowAsync(_db, testOrderId);
-        var definition = await _db.TestDefinitions
-            .Include(t => t.Steps).ThenInclude(s => s.IncubationStages)
-            .Include(t => t.Steps).ThenInclude(s => s.StepMedia).ThenInclude(m => m.Material)
-            .Include(t => t.Steps).ThenInclude(s => s.StepMedia).ThenInclude(m => m.IncubationCondition)
-            .Include(t => t.Steps).ThenInclude(s => s.PhenotypicTests)
-            .FirstOrDefaultAsync(t => t.Code == order.TestCode)
-            ?? throw new InvalidOperationException($"Test code \"{order.TestCode}\" has no workflow template configured in Test Master.");
+        var definition = await TemplatesWithSteps().FirstOrDefaultAsync(t => t.Code == order.TestCode);
+        return (order, RequireTemplate(order, definition));
+    }
+
+    private IQueryable<TestDefinition> TemplatesWithSteps() => _db.TestDefinitions
+        .Include(t => t.Steps).ThenInclude(s => s.IncubationStages)
+        .Include(t => t.Steps).ThenInclude(s => s.StepMedia).ThenInclude(m => m.Material)
+        .Include(t => t.Steps).ThenInclude(s => s.StepMedia).ThenInclude(m => m.IncubationCondition)
+        .Include(t => t.Steps).ThenInclude(s => s.PhenotypicTests);
+
+    private static TestDefinition RequireTemplate(TestOrder order, TestDefinition? definition)
+    {
+        if (definition is null)
+            throw new InvalidOperationException($"Test code \"{order.TestCode}\" has no workflow template configured in Test Master.");
 
         if (definition.Steps.Count == 0)
             throw new InvalidOperationException($"Test code \"{order.TestCode}\" has no workflow steps configured yet - add them in Test Master.");
 
-        return (order, definition);
+        return definition;
     }
 
     // The five pathogen step types record their completion as a
@@ -269,28 +281,55 @@ public class TestWorkflowEngine : ITestWorkflowEngine
     // returned them; the other rows are read-only projections.
     private async Task<TestStepFacts> LoadStepFactsAsync(int testOrderId, IEnumerable<Incubation>? loadedIncubations = null)
     {
-        var hasLocations = await _db.SampleLocations.AnyAsync(l => l.TestOrderId == testOrderId);
         var incubations = loadedIncubations?.ToList()
             ?? await _db.Incubations.Where(i => i.TestOrderId == testOrderId).ToListAsync();
-        var stepResults = await _db.WorkflowStepResults
-            .AsNoTracking()
-            .Where(r => r.TestOrderId == testOrderId)
-            .Select(r => new StepResultFact(r.Id, r.IncubationId, r.StepName, r.IsSharedSessionStep, r.ConfirmatoryResult != null,
-                r.BiochemicalResultText, r.BiochemicalOrganismDetected, r.SubmittedAtUtc))
-            .ToListAsync();
-        var activeCountReadings = await _db.CountTestReadings
-            .AsNoTracking()
-            .Where(r => r.TestOrderId == testOrderId && r.IsActive)
-            .Select(r => new CountReadingFact(r.Id, r.StepName, r.ReportedResult, r.CalculatedResult, r.Status, r.EnteredAt))
-            .ToListAsync();
-        var observationStepNames = await _db.PathogenObservations
-            .Where(o => o.TestOrderId == testOrderId)
-            .Select(o => o.StepName)
-            .Distinct()
-            .ToListAsync();
+        var facts = await LoadStepFactsForOrdersAsync(new Dictionary<int, List<Incubation>> { [testOrderId] = incubations });
+        return facts[testOrderId];
+    }
 
-        return new TestStepFacts(hasLocations, incubations, stepResults, activeCountReadings,
-            observationStepNames.ToHashSet(StringComparer.Ordinal));
+    // The same facts for any number of orders, in the same fixed number of
+    // queries. Keyed by order id, with each order's incubations supplied.
+    private async Task<Dictionary<int, TestStepFacts>> LoadStepFactsForOrdersAsync(IReadOnlyDictionary<int, List<Incubation>> incubationsByOrderId)
+    {
+        var ids = incubationsByOrderId.Keys.ToList();
+
+        var ordersWithLocations = (await _db.SampleLocations
+                .Where(l => ids.Contains(l.TestOrderId))
+                .Select(l => l.TestOrderId)
+                .Distinct()
+                .ToListAsync())
+            .ToHashSet();
+        var stepResults = (await _db.WorkflowStepResults
+                .AsNoTracking()
+                .Where(r => ids.Contains(r.TestOrderId))
+                .Select(r => new
+                {
+                    r.TestOrderId, r.Id, r.IncubationId, r.StepName, r.IsSharedSessionStep,
+                    HasConfirmatoryResult = r.ConfirmatoryResult != null,
+                    r.BiochemicalResultText, r.BiochemicalOrganismDetected, r.SubmittedAtUtc
+                })
+                .ToListAsync())
+            .ToLookup(r => r.TestOrderId, r => new StepResultFact(r.Id, r.IncubationId, r.StepName, r.IsSharedSessionStep,
+                r.HasConfirmatoryResult, r.BiochemicalResultText, r.BiochemicalOrganismDetected, r.SubmittedAtUtc));
+        var activeCountReadings = (await _db.CountTestReadings
+                .AsNoTracking()
+                .Where(r => ids.Contains(r.TestOrderId) && r.IsActive)
+                .Select(r => new { r.TestOrderId, r.Id, r.StepName, r.ReportedResult, r.CalculatedResult, r.Status, r.EnteredAt })
+                .ToListAsync())
+            .ToLookup(r => r.TestOrderId, r => new CountReadingFact(r.Id, r.StepName, r.ReportedResult, r.CalculatedResult, r.Status, r.EnteredAt));
+        var observationStepNames = (await _db.PathogenObservations
+                .Where(o => ids.Contains(o.TestOrderId))
+                .Select(o => new { o.TestOrderId, o.StepName })
+                .Distinct()
+                .ToListAsync())
+            .ToLookup(o => o.TestOrderId, o => o.StepName);
+
+        return ids.ToDictionary(id => id, id => new TestStepFacts(
+            ordersWithLocations.Contains(id),
+            incubationsByOrderId[id],
+            stepResults[id].ToList(),
+            activeCountReadings[id].ToList(),
+            observationStepNames[id].ToHashSet(StringComparer.Ordinal)));
     }
 
     // The completion rules, evaluated against loaded facts. String
@@ -371,6 +410,55 @@ public class TestWorkflowEngine : ITestWorkflowEngine
         var (order, definition) = await LoadWithTemplateAsync(testOrderId);
         // LoadWithTemplateAsync already loaded the order's incubations.
         var facts = await LoadStepFactsAsync(testOrderId, order.Incubations);
+        return BuildCurrentStepDetails(order, definition, facts);
+    }
+
+    // For callers walking many orders (grouped actions): per order, the same
+    // result GetCurrentStepDetailsAsync gives, from one load of all orders,
+    // templates and facts. An order whose step can't be computed carries the
+    // message GetCurrentStepDetailsAsync would have thrown instead.
+    public async Task<IReadOnlyDictionary<int, CurrentStepLookup>> GetCurrentStepDetailsForOrdersAsync(IReadOnlyCollection<int> testOrderIds)
+    {
+        var ids = testOrderIds.Distinct().ToList();
+        var lookups = new Dictionary<int, CurrentStepLookup>();
+        if (ids.Count == 0) return lookups;
+
+        var orders = await _db.TestOrders
+            .Include(t => t.Incubations)
+            .Include(t => t.Results)
+            .Where(t => ids.Contains(t.Id))
+            .ToListAsync();
+        var codes = orders.Select(o => o.TestCode).Distinct().ToList();
+        var definitionsByCode = (await TemplatesWithSteps().Where(t => codes.Contains(t.Code)).ToListAsync())
+            .GroupBy(t => t.Code)
+            .ToDictionary(g => g.Key, g => g.OrderBy(t => t.Id).First());
+        var facts = await LoadStepFactsForOrdersAsync(orders.ToDictionary(o => o.Id, o => o.Incubations.ToList()));
+
+        foreach (var id in ids)
+        {
+            var order = orders.FirstOrDefault(o => o.Id == id);
+            if (order is null)
+            {
+                lookups[id] = new CurrentStepLookup(null, $"Test order {id} not found.");
+                continue;
+            }
+
+            try
+            {
+                var definition = RequireTemplate(order, definitionsByCode.GetValueOrDefault(order.TestCode));
+                lookups[id] = new CurrentStepLookup(BuildCurrentStepDetails(order, definition, facts[id]), null);
+            }
+            catch (Exception ex)
+            {
+                lookups[id] = new CurrentStepLookup(null, ex.Message);
+            }
+        }
+
+        return lookups;
+    }
+
+    private static CurrentStepDetails BuildCurrentStepDetails(TestOrder order, TestDefinition definition, TestStepFacts facts)
+    {
         var totalSteps = definition.Steps.Count;
         var allSteps = definition.Steps.OrderBy(s => s.StepOrder).Select(s => new StepOutline(s.StepOrder, s.StepName)).ToList();
 

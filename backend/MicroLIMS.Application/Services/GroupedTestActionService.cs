@@ -112,15 +112,16 @@ public class GroupedTestActionService
             if (sample.ItemId != null && !await _db.SamplePreparations.AnyAsync(p => p.SampleId == sample.Id, ct))
                 continue;
 
-            CurrentStepResult stepResult;
+            CurrentStepDetails stepDetails;
             try
             {
-                stepResult = await _workflowEngine.GetCurrentStepAsync(order.Id);
+                stepDetails = await _workflowEngine.GetCurrentStepDetailsAsync(order.Id);
             }
             catch
             {
                 continue;
             }
+            var stepResult = stepDetails.Result;
 
             if (stepResult.AllStepsComplete || stepResult.Step == null)
                 continue;
@@ -307,7 +308,7 @@ public class GroupedTestActionService
                 bool allPredecessorsDone = true;
                 foreach (var pred in predecessors)
                 {
-                    if (!await _workflowEngine.IsStepDoneAsync(order.Id, definition.WorkflowType, pred))
+                    if (!TestWorkflowEngine.IsStepDone(stepDetails.Facts, definition.WorkflowType, pred))
                     {
                         allPredecessorsDone = false;
                         break;

@@ -34,6 +34,21 @@ public static class TestReturnHelper
         return new TestReturnInfo(latestEvent.Reason, latestEvent.ReturnedAt);
     }
 
+    // Same rule, for callers that already know whether the order has active
+    // readings - one query instead of three.
+    public static async Task<TestReturnInfo?> GetPendingReturnAsync(MicroLimsDbContext db, int testOrderId, bool hasActiveReadings)
+    {
+        if (hasActiveReadings)
+            return null;
+
+        var latestEvent = await db.TestReturnEvents
+            .Where(e => e.TestOrderId == testOrderId)
+            .OrderByDescending(e => e.ReturnedAt)
+            .FirstOrDefaultAsync();
+
+        return latestEvent == null ? null : new TestReturnInfo(latestEvent.Reason, latestEvent.ReturnedAt);
+    }
+
     public static async Task<Dictionary<int, TestReturnInfo>> GetPendingReturnsForOrdersAsync(MicroLimsDbContext db, IEnumerable<int> testOrderIds)
     {
         var idList = testOrderIds.Distinct().ToList();

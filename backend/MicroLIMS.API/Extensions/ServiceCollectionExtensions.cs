@@ -65,6 +65,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<RecentActivityService>();
         services.AddScoped<MyTasksService>();
         services.AddScoped<GroupedTestActionService>();
+        services.AddScoped<CurrentStepViewService>();
         services.AddScoped<MediaExpiryService>();
         services.AddScoped<KpiService>();
         services.AddScoped<CryovialService>();

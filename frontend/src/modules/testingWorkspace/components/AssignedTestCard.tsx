@@ -22,7 +22,6 @@ import { useTestStepQuickAction } from "../hooks/useTestStepQuickAction";
 interface AssignedTestCardProps {
   test: TestOrderSummary;
   sample: WorkspaceSampleCard;
-  stepInfo: { label: string; icon: React.ReactNode; color: string };
   onTestClick: (test: TestOrderSummary, sample: WorkspaceSampleCard) => void;
   onActionComplete: () => void;
 }
@@ -54,7 +53,6 @@ const CLOSED_TEST_STATES: Record<string, { status: string; label: string; text: 
 export function AssignedTestCard({
   test,
   sample,
-  stepInfo,
   onTestClick,
   onActionComplete
 }: AssignedTestCardProps) {

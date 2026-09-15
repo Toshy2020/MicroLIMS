@@ -1,3 +1,4 @@
+using System.Linq.Expressions;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
@@ -24,6 +25,53 @@ public static class SampleWorkflowQueues
         SampleStatus.Cancelled,
         SampleStatus.Voided
     };
+
+    // Workspace queues. The register filters and the workload tile counts
+    // both use these, so a tile and the list it opens cannot disagree.
+
+    public static readonly Expression<Func<Sample, bool>> NeedsPreparation = s =>
+        s.PreparationStatus == SamplePreparationStatus.NeedsPreparation && !ClosedSampleStatuses.Contains(s.Status);
+
+    /// <summary>
+    /// A sample with an active (non-superseded, Pending/InProgress) test holding an open incubation that
+    /// can be read now. <see cref="IsIncubationReadyToRead(Incubation, DateTime)"/> is the same rule for one incubation.
+    /// </summary>
+    public static Expression<Func<Sample, bool>> HasTestReadyToRead(DateTime now) => s =>
+        s.TestOrders.Any(t => !t.IsSuperseded
+            && (t.Status == ApprovalStatus.Pending || t.Status == ApprovalStatus.InProgress)
+            && t.Incubations.Any(i => i.CompletedAt == null
+                && ((i.ExpectedReadingAt != null && i.ExpectedReadingAt <= now)
+                    || (i.IncubationEndUtc != null && i.IncubationEndUtc <= now)
+                    || i.MinimumDurationOverriddenByUserId != null)));
+
+    public static Expression<Func<Sample, bool>> IsOverdue(DateTime now)
+    {
+        var overdueCutoff = now.AddHours(-24);
+        return s => !ClosedSampleStatuses.Contains(s.Status) && s.ReceivedAt < overdueCutoff;
+    }
+
+    public static Expression<Func<Sample, bool>> HasTestAssignedTo(int userId) => s =>
+        s.TestOrders.Any(t => !t.IsSuperseded && t.AssignedAnalystId == userId);
+
+    public static readonly Expression<Func<Sample, bool>> IsUnassigned = s =>
+        !ClosedSampleStatuses.Contains(s.Status) && !s.TestOrders.Any(t => !t.IsSuperseded && t.AssignedAnalystId != null);
+
+    // Incubation-level bench counts (dashboards). An open incubation counts
+    // only while its test is still active work, and is ready to read by the
+    // same rule HasTestReadyToRead applies per sample.
+
+    public static readonly Expression<Func<Incubation, bool>> IsOpenIncubationOnActiveTest = i =>
+        i.CompletedAt == null && i.TestOrderId != null
+        && !i.TestOrder!.IsSuperseded
+        && (i.TestOrder.Status == ApprovalStatus.Pending || i.TestOrder.Status == ApprovalStatus.InProgress);
+
+    public static bool IsIncubationReadyToRead(DateTime? expectedReadingAt, DateTime? incubationEndUtc, int? minimumDurationOverriddenByUserId, DateTime now) =>
+        (expectedReadingAt != null && expectedReadingAt <= now)
+        || (incubationEndUtc != null && incubationEndUtc <= now)
+        || minimumDurationOverriddenByUserId != null;
+
+    public static bool IsIncubationReadyToRead(Incubation incubation, DateTime now) =>
+        IsIncubationReadyToRead(incubation.ExpectedReadingAt, incubation.IncubationEndUtc, incubation.MinimumDurationOverriddenByUserId, now);
 
     /// <summary>
     /// Decision D2: "Retests in progress" = samples with OriginSampleId != null whose Status is not closed.

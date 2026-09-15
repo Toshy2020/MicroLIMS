@@ -179,9 +179,12 @@ public class MediaGptAndReferenceStrainReportTests
     {
         await using var db = NewDb();
 
+        var product = await MediaProductTestData.CreateOrGetAsync(db, "Tryptic Soy Agar", "TSA");
+
         var config = new MediaConfiguration
         {
             Id = 1,
+            MediaProductId = product.Id,
             Name = "Tryptic Soy Agar",
             EvaluationType = EvaluationType.GrowthPromotion,
             RecoveryPercentMin = 50.0m,
@@ -190,7 +193,7 @@ public class MediaGptAndReferenceStrainReportTests
         db.MediaConfigurations.Add(config);
 
         var organism = new Organism { Id = 10, ScientificName = "Staphylococcus aureus", AtccNumber = "6538" };
-        var material = new Material { Id = 1, MaterialName = "Tryptic Soy Agar", MaterialType = MaterialType.DehydratedMedia, ReceivingDate = DateTime.UtcNow };
+        var material = new Material { Id = 1, MediaProductId = product.Id, Code = product.Code, MaterialName = "Tryptic Soy Agar", MaterialType = MaterialType.DehydratedMedia, ReceivingDate = DateTime.UtcNow };
         db.Organisms.Add(organism);
         db.Materials.Add(material);
 

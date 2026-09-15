@@ -82,6 +82,8 @@ public class MicroLimsDbContext : Microsoft.EntityFrameworkCore.DbContext
     public DbSet<WorkloadWeightHistory> WorkloadWeightHistories => Set<WorkloadWeightHistory>();
 
     // Media Configuration
+    public DbSet<MediaProduct> MediaProducts => Set<MediaProduct>();
+    public DbSet<MediaIncubationCondition> MediaIncubationConditions => Set<MediaIncubationCondition>();
     public DbSet<MediaConfiguration> MediaConfigurations => Set<MediaConfiguration>();
     public DbSet<MediaConfigurationChallenge> MediaConfigurationChallenges => Set<MediaConfigurationChallenge>();
 

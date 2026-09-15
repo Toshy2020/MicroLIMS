@@ -10,16 +10,11 @@ namespace MicroLIMS.Application.Services;
 // criteria as they stood when the analyst looked at the plate
 // (ALCOA+ Original and Contemporaneous).
 //
-// MediaConfiguration.Name is populated from Material.MaterialName at
-// creation time (see the Media Configuration Migration plan Phase 3, and
-// the MediaConfiguration admin page's Material picker) rather than typed
-// independently on a separate admin page the way the old
-// MediaChallengeSpec.MaterialName was - that independence is what let the
-// two live mismatches (Burkholderia's leading space, Tryptic Soy Agar's
-// suffix) drift silently for real. A product can have more than one
-// MediaConfiguration row (different incubation profiles); every row
-// sharing a Name carries the same challenge organisms (Phase 3 duplicated
-// them for exactly this reason), so matching on any one of them is enough.
+// Resolution links the batch's Material.MediaProductId directly to
+// MediaConfiguration.MediaProductId, eliminating any name matching.
+// A product can have more than one MediaConfiguration row (different
+// incubation profiles); every row of a product carries the same challenge
+// organisms, so matching on any one of them is enough.
 public class MediaAppearanceSnapshotService
 {
     private readonly MicroLimsDbContext _db;
@@ -34,26 +29,26 @@ public class MediaAppearanceSnapshotService
     public async Task<string?> GetExpectedAppearanceSnapshotAsync(
         int materialId, int organismId, CancellationToken cancellationToken = default)
     {
-        var materialName = await _db.Materials
+        var productId = await _db.Materials
             .Where(m => m.Id == materialId)
-            .Select(m => m.MaterialName)
+            .Select(m => m.MediaProductId)
             .FirstOrDefaultAsync(cancellationToken);
 
-        if (materialName is null)
+        if (productId is null)
         {
-            _logger.LogWarning("No material {MaterialId} - appearance snapshot recorded as null.", materialId);
+            _logger.LogWarning("No media product linked for material {MaterialId} - appearance snapshot recorded as null.", materialId);
             return null;
         }
 
         var expected = await _db.MediaConfigurationChallenges
-            .Where(c => c.MediaConfiguration!.Name == materialName && c.OrganismId == organismId)
+            .Where(c => c.MediaConfiguration!.MediaProductId == productId && c.OrganismId == organismId)
             .Select(c => c.ExpectedDescription)
             .FirstOrDefaultAsync(cancellationToken);
 
         if (expected is null)
             _logger.LogWarning(
-                "No MediaConfigurationChallenge for material '{MaterialName}' and organism {OrganismId} - appearance snapshot recorded as null.",
-                materialName, organismId);
+                "No MediaConfigurationChallenge for media product {ProductId} and organism {OrganismId} - appearance snapshot recorded as null.",
+                productId, organismId);
 
         return expected;
     }

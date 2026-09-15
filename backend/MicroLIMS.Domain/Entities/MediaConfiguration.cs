@@ -2,41 +2,25 @@ using MicroLIMS.Domain.Enums;
 
 namespace MicroLIMS.Domain.Entities;
 
-// Phase 1 of the MediaType/MediaChallengeSpec retirement (see the
-// Media Configuration Migration plan). One row per configured usage of a
-// dehydrated media product - Name is deliberately NOT unique, because the
-// same product can be used under more than one incubation/temperature
-// profile (e.g. Tryptic Soy Agar's "Standard" 1-2h use vs. its
-// "Extended Transfer" 24-72h use). No separate disambiguating label - the
-// row's own Incubation/Temperature fields already distinguish it from any
-// other row sharing its Name (enforced by the unique index on all five
-// together), so anything displaying these rows formats them from that
-// data directly rather than maintaining a redundant free-text field.
-//
-// No Class field either. MediaType.Class only ever existed to derive
-// EvaluationType (see the switch in MediaPreparationService.cs) and to
-// distinguish broth-vs-agar physical form for a handful of unrelated
-// broth-enrichment-detection call sites (TestingWorkspaceService,
-// PathogenSessionService, SampleSummaryService) - those read the OLD
-// MediaType.Class via TestWorkflowStep.MediaTypeId, a separate object
-// graph this migration doesn't touch until Phase 4d, and are already
-// slated to move to StepType independently of this migration (see the
-// original planning prompt's context on SampleSummaryService). Since
-// EvaluationType is now captured directly per row instead of derived,
-// Class has no remaining purpose here. Not yet read or written by any
-// other code - additive only.
+// Evaluation configuration for a dehydrated media product (MediaProduct).
+// There is exactly one configuration per product (unique on MediaProductId), defining
+// its evaluation type, recovery percentages (for GrowthPromotion), and challenge organisms.
+// Time and temperature are not stored directly on this row; instead, the configuration
+// links to one chosen MediaIncubationCondition belonging to the same product.
 public class MediaConfiguration
 {
     public int Id { get; set; }
 
+    public int MediaProductId { get; set; }
+    public MediaProduct? MediaProduct { get; set; }
+
+    // Display copy of MediaProduct.Name kept in sync by the Application layer - never match on it.
     public string Name { get; set; } = string.Empty;
 
     public EvaluationType EvaluationType { get; set; }
 
-    public int IncubationMinHours { get; set; }
-    public int IncubationMaxHours { get; set; }
-    public decimal TemperatureMin { get; set; }
-    public decimal TemperatureMax { get; set; }
+    public int MediaIncubationConditionId { get; set; }
+    public MediaIncubationCondition? IncubationCondition { get; set; }
 
     // GrowthPromotion only - null for other EvaluationTypes, mirroring
     // how MediaType.RecoveryPercentMin/Max is used today.

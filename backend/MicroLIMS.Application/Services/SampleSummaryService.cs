@@ -120,10 +120,21 @@ public class SampleSummaryService
         var testDefinitions = await _db.TestDefinitions
             .Include(t => t.Steps)
                 .ThenInclude(s => s.StepMedia)
+                    .ThenInclude(m => m.Material)
+            .Include(t => t.Steps)
+                .ThenInclude(s => s.StepMedia)
+                    .ThenInclude(m => m.IncubationCondition)
             .Include(t => t.Steps)
                 .ThenInclude(s => s.IncubationStages)
             .Where(t => effectiveTestOrders.Select(o => o.TestCode).Contains(t.Code))
             .ToDictionaryAsync(t => t.Code);
+
+        var mediaLookup = incubations
+            .Where(i => i.MediaId.HasValue && i.Media != null)
+            .GroupBy(i => i.MediaId!.Value)
+            .ToDictionary(
+                g => g.Key,
+                g => (MaterialId: g.First().Media!.MaterialId, MediaProductId: g.First().Media!.Material?.MediaProductId));
 
         var preparation = await _db.SamplePreparations
             .FirstOrDefaultAsync(p => p.SampleId == sampleId);
@@ -264,7 +275,7 @@ public class SampleSummaryService
                 var orderIncubations = incubations.Where(i => i.TestOrderId == order.Id).ToList();
                 // Effective orders can come from retest descendants, so each is
                 // judged by its own sample's status, not this sample's.
-                var stateResult = WorkflowStateResolver.Resolve(order, usesTsb, sharedTsbInc, orderIncubations, null, DateTime.UtcNow, 24, def?.Steps, order.Sample?.Status ?? sample.Status);
+                var stateResult = WorkflowStateResolver.Resolve(order, usesTsb, sharedTsbInc, orderIncubations, null, DateTime.UtcNow, 24, def?.Steps, order.Sample?.Status ?? sample.Status, mediaLookup);
 
                 var orderPathogenObs = locationPathogenObservations.Where(o => o.TestOrderId == order.Id).ToList();
 

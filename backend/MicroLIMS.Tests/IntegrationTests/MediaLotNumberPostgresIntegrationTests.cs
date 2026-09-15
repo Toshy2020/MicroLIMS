@@ -82,20 +82,30 @@ public class MediaLotNumberPostgresIntegrationTests
     {
         await using var db = _fixture.CreateDbContext();
 
+        var product = new MediaProduct
+        {
+            Name = $"Lot number test media {code}",
+            Code = code
+        };
+        db.MediaProducts.Add(product);
+        await db.SaveChangesAsync();
+
         var autoclave = new Equipment { Name = $"Autoclave {code}", Code = $"AUT-{code}", Type = EquipmentType.Autoclave };
         var material = new Material
         {
-            MaterialType = MaterialType.DehydratedMedia, MaterialName = $"Lot number test media {code}", ManufacturerName = "Himedia",
+            MaterialType = MaterialType.DehydratedMedia, MaterialName = product.Name, ManufacturerName = "Himedia",
             BatchNumber = $"BATCH-{code}", ReceivingDate = DateTime.UtcNow.AddDays(-10), ExpiryDate = DateTime.UtcNow.AddYears(1),
             Code = code, Location = "Micro Lab", QuantityReceived = 500, QuantityRemaining = 500, Unit = MaterialUnit.Gram,
-            CreatedByUserId = _fixture.SeededUserId, LastModifiedByUserId = _fixture.SeededUserId
+            CreatedByUserId = _fixture.SeededUserId, LastModifiedByUserId = _fixture.SeededUserId,
+            MediaProductId = product.Id
         };
         db.Equipment.Add(autoclave);
         db.Materials.Add(material);
         db.MediaConfigurations.Add(new MediaConfiguration
         {
+            MediaProductId = product.Id,
             Name = material.MaterialName, EvaluationType = EvaluationType.GrowthPromotion,
-            IncubationMinHours = 24, IncubationMaxHours = 48, TemperatureMin = 30, TemperatureMax = 35,
+            IncubationCondition = MediaProductTestData.Condition(product),
             RecoveryPercentMin = 50, RecoveryPercentMax = 200
         });
         await db.SaveChangesAsync();

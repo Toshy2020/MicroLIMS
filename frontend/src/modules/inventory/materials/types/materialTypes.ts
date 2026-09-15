@@ -43,6 +43,8 @@ export interface MaterialItem {
   expiryDate: string | null;
   code: string | null;
   location: string;
+  mediaProductId: number | null;
+  mediaProduct?: { id: number; name: string; code: string } | null;
   organismId: number | null;
   organism?: OrganismSummary | null;
   atccNumber: string | null;
@@ -67,6 +69,7 @@ export interface MaterialFormState {
   minimumStockLevel: number | string;
   atccNumber: string;
   organismId: number | null;
+  mediaProductId: number | null;
 }
 
 export type MaterialKpiFilter = "all" | "in_stock" | "low_stock" | "out_of_stock" | "expiring_soon";

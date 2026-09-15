@@ -12,13 +12,18 @@ public class MediaConfigurationConfiguration : IEntityTypeConfiguration<MediaCon
 
         builder.Property(m => m.Name).IsRequired();
 
-        // Name is deliberately not unique on its own - the same product can
-        // have more than one configured usage (e.g. two Tryptic Soy Agar
-        // rows with different incubation windows). There's no separate
-        // disambiguating field - the full profile together is what must be
-        // unique, which also blocks a genuine accidental duplicate (same
-        // product, same profile, entered twice).
-        builder.HasIndex(m => new { m.Name, m.IncubationMinHours, m.IncubationMaxHours, m.TemperatureMin, m.TemperatureMax }).IsUnique();
+        builder.HasOne(m => m.MediaProduct)
+            .WithMany(p => p.Configurations)
+            .HasForeignKey(m => m.MediaProductId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasOne(m => m.IncubationCondition)
+            .WithMany()
+            .HasForeignKey(m => m.MediaIncubationConditionId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        // Exactly one evaluation configuration per media product.
+        builder.HasIndex(m => m.MediaProductId).IsUnique();
     }
 }
 

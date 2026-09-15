@@ -23,7 +23,9 @@ public class MaterialConfiguration : IEntityTypeConfiguration<Material>
         // received again under a new batch/lot, exactly like the source list.
         builder.HasIndex(m => m.Code);
         builder.HasIndex(m => m.MaterialType);
+        builder.HasIndex(m => m.MediaProductId);
         builder.HasOne(m => m.Organism).WithMany().HasForeignKey(m => m.OrganismId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasOne(m => m.MediaProduct).WithMany().HasForeignKey(m => m.MediaProductId).OnDelete(DeleteBehavior.Restrict);
 
         builder.Ignore(m => m.Status);
         builder.Ignore(m => m.IsUsable);

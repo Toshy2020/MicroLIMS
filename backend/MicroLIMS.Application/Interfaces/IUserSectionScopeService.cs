@@ -9,4 +9,5 @@ public interface IUserSectionScopeService
     Task EnsureSampleAccessAsync(int userId, int sampleId, CancellationToken ct = default);
     Task EnsureIncubationAccessAsync(int userId, int incubationId, CancellationToken ct = default);
     Task EnsurePathogenSampleAccessAsync(int userId, int sampleId, CancellationToken ct = default);
+    Task EnsureMaterialAccessAsync(int userId, int materialId, CancellationToken ct = default);
 }

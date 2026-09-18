@@ -1,6 +1,7 @@
 using System.Security.Cryptography;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Infrastructure.Storage;
@@ -77,23 +78,28 @@ public class MaterialDocumentService
     private readonly IFileStorageService _storage;
     private readonly MaterialDocumentFileValidator _validator;
     private readonly ILogger<MaterialDocumentService> _logger;
+    private readonly IUserSectionScopeService _scope;
 
     public MaterialDocumentService(
         MicroLimsDbContext db,
         IFileStorageService storage,
         MaterialDocumentFileValidator validator,
-        ILogger<MaterialDocumentService> logger)
+        ILogger<MaterialDocumentService> logger,
+        IUserSectionScopeService scope)
     {
         _db = db;
         _storage = storage;
         _validator = validator;
         _logger = logger;
+        _scope = scope;
     }
 
     // ---- List ----
 
     public async Task<List<MaterialDocumentDto>> GetDocumentsAsync(int materialId, int requestingUserId)
     {
+        await _scope.EnsureMaterialAccessAsync(requestingUserId, materialId);
+
         // Verify material exists and record a View access event.
         var materialExists = await _db.Materials.AnyAsync(m => m.Id == materialId);
         if (!materialExists)
@@ -119,6 +125,8 @@ public class MaterialDocumentService
 
     public async Task<MaterialDocumentDto> UploadAsync(int materialId, UploadMaterialDocumentRequest request, int uploadingUserId)
     {
+        await _scope.EnsureMaterialAccessAsync(uploadingUserId, materialId);
+
         // Verify material.
         var material = await _db.Materials.FindAsync(materialId)
             ?? throw new InvalidOperationException($"Material {materialId} not found.");
@@ -181,6 +189,8 @@ public class MaterialDocumentService
 
     public async Task<(MaterialDocumentDto Metadata, byte[] Content)> GetContentAsync(int documentId, int materialId, int requestingUserId)
     {
+        await _scope.EnsureMaterialAccessAsync(requestingUserId, materialId);
+
         var document = await _db.MaterialDocuments
             .FirstOrDefaultAsync(d => d.Id == documentId && d.MaterialId == materialId)
             ?? throw new InvalidOperationException($"Document {documentId} not found for material {materialId}.");
@@ -223,6 +233,8 @@ public class MaterialDocumentService
     // Both operations commit in the same SaveChanges to ensure consistency.
     public async Task<MaterialDocumentDto> SupersedeAsync(int documentId, int materialId, SupersedeMaterialDocumentRequest request, int actingUserId)
     {
+        await _scope.EnsureMaterialAccessAsync(actingUserId, materialId);
+
         if (string.IsNullOrWhiteSpace(request.Reason))
             throw new InvalidOperationException("A supersession reason is required.");
 
@@ -305,6 +317,8 @@ public class MaterialDocumentService
 
     public async Task<MaterialDocumentDto> VoidAsync(int documentId, int materialId, VoidMaterialDocumentRequest request, int actingUserId)
     {
+        await _scope.EnsureMaterialAccessAsync(actingUserId, materialId);
+
         if (string.IsNullOrWhiteSpace(request.Reason))
             throw new InvalidOperationException("A void reason is required.");
 

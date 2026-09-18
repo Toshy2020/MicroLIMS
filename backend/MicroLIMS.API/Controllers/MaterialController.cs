@@ -34,11 +34,11 @@ public class MaterialController : ControllerBase
     // down to just the usable dehydrated media containers.
     [HttpGet]
     public async Task<IActionResult> GetAll([FromQuery] MaterialType? type) =>
-        Ok(ApiResponse<object>.Ok(await _service.GetAllAsync(type)));
+        Ok(ApiResponse<object>.Ok(await _service.GetAllAsync(CurrentUserId, type)));
 
     // Print/view list - excludes expired and depleted rows.
     [HttpGet("print")]
-    public async Task<IActionResult> GetForPrint() => Ok(ApiResponse<object>.Ok(await _service.GetForPrintAsync()));
+    public async Task<IActionResult> GetForPrint() => Ok(ApiResponse<object>.Ok(await _service.GetForPrintAsync(CurrentUserId)));
 
     [HttpGet("default-unit")]
     public IActionResult GetDefaultUnit([FromQuery] MaterialType materialType) =>

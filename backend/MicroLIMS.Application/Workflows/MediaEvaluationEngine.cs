@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Application.Services;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
@@ -38,11 +39,13 @@ public class MediaEvaluationEngine : IMediaEvaluationEngine
 {
     private readonly MicroLimsDbContext _db;
     private readonly MaterialService _materialService;
+    private readonly IUserSectionScopeService _scope;
 
-    public MediaEvaluationEngine(MicroLimsDbContext db, MaterialService materialService)
+    public MediaEvaluationEngine(MicroLimsDbContext db, MaterialService materialService, IUserSectionScopeService scope)
     {
         _db = db;
         _materialService = materialService;
+        _scope = scope;
     }
 
     // Validates the cryovial is Approved/not destroyed/not expired AND
@@ -91,6 +94,8 @@ public class MediaEvaluationEngine : IMediaEvaluationEngine
 
         if (challenge.LyophilizedDiskId == materialId)
             return; // already selected - no new disc to consume
+
+        await _scope.EnsureMaterialAccessAsync(userId, materialId);
 
         var material = await _db.Materials.Include(m => m.Organism).FirstOrDefaultAsync(m => m.Id == materialId)
             ?? throw new InvalidOperationException($"Material {materialId} not found.");

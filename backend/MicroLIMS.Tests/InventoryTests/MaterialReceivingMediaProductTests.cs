@@ -90,6 +90,7 @@ public class MaterialReceivingMediaProductTests
 
         var material = new Material
         {
+            SectionId = TestServiceFactory.EnsureMicroSection(db).Id,
             MaterialType = MaterialType.DehydratedMedia,
             MediaProductId = product.Id,
             MaterialName = "Tryptic Soy Agar Stored Snapshot",
@@ -127,6 +128,7 @@ public class MaterialReceivingMediaProductTests
 
         var material = new Material
         {
+            SectionId = TestServiceFactory.EnsureMicroSection(db).Id,
             MaterialType = MaterialType.DehydratedMedia,
             MediaProductId = product1.Id,
             MaterialName = product1.Name,
@@ -167,6 +169,7 @@ public class MaterialReceivingMediaProductTests
 
         var material = new Material
         {
+            SectionId = TestServiceFactory.EnsureMicroSection(db).Id,
             MaterialType = MaterialType.DehydratedMedia,
             MediaProductId = null,
             MaterialName = "Legacy Unlinked Dehydrated Media",
@@ -212,6 +215,7 @@ public class MaterialReceivingMediaProductTests
 
         var material = new Material
         {
+            SectionId = TestServiceFactory.EnsureMicroSection(db).Id,
             MaterialType = MaterialType.DehydratedMedia,
             MediaProductId = product1.Id,
             MaterialName = product1.Name,

@@ -51,17 +51,22 @@ public class MaterialService
         _ => MaterialUnit.Piece
     };
 
-    public async Task<List<Material>> GetAllAsync(MaterialType? type = null)
+    public async Task<List<Material>> GetAllAsync(int currentUserId, MaterialType? type = null)
     {
+        var scope = await _scope.GetAccessibleSectionIdsAsync(currentUserId);
         var query = _db.Materials.Include(m => m.Organism).Include(m => m.MediaProduct).AsQueryable();
+        if (scope != null)
+        {
+            query = query.Where(m => scope.Contains(m.SectionId));
+        }
         if (type.HasValue) query = query.Where(m => m.MaterialType == type.Value);
         return await query.OrderBy(m => m.MaterialType).ThenBy(m => m.MaterialName).ToListAsync();
     }
 
     // Print/view list per Mohamed's spec: excludes Expired and Depleted rows.
-    public async Task<List<Material>> GetForPrintAsync()
+    public async Task<List<Material>> GetForPrintAsync(int currentUserId)
     {
-        var all = await GetAllAsync();
+        var all = await GetAllAsync(currentUserId);
         return all.Where(m => m.Status == StockStatus.InStock).ToList();
     }
 
@@ -121,6 +126,8 @@ public class MaterialService
     // rather than silently resetting consumption history.
     public async Task UpdateAsync(int id, SaveMaterialRequest r, int currentUserId)
     {
+        await _scope.EnsureMaterialAccessAsync(currentUserId, id);
+
         var entity = await _db.Materials.FindAsync(id)
             ?? throw new InvalidOperationException($"Material {id} not found.");
 
@@ -194,6 +201,8 @@ public class MaterialService
     // or doesn't have enough remaining quantity.
     public async Task<Material> ConsumeAsync(int materialId, MaterialType expectedType, decimal quantityUsed, int currentUserId)
     {
+        await _scope.EnsureMaterialAccessAsync(currentUserId, materialId);
+
         var material = await _db.Materials.FindAsync(materialId)
             ?? throw new InvalidOperationException($"Material {materialId} not found.");
 

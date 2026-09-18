@@ -232,4 +232,23 @@ public class UserSectionScopeService : IUserSectionScopeService
             throw new UnauthorizedAccessException("This test belongs to a laboratory section you are not assigned to.");
         }
     }
+
+    public async Task EnsureMaterialAccessAsync(int userId, int materialId, CancellationToken ct = default)
+    {
+        var scope = await GetAccessibleSectionIdsAsync(userId, ct);
+        if (scope is null) return;
+
+        var sectionId = await _db.Materials
+            .AsNoTracking()
+            .Where(m => m.Id == materialId)
+            .Select(m => (int?)m.SectionId)
+            .FirstOrDefaultAsync(ct);
+
+        if (sectionId is null) return;
+
+        if (!scope.Contains(sectionId.Value))
+        {
+            throw new UnauthorizedAccessException("This material belongs to a laboratory section you are not assigned to.");
+        }
+    }
 }

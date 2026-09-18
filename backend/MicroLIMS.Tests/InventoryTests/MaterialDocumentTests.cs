@@ -21,14 +21,17 @@ public class MaterialDocumentTests
         var options = new DbContextOptionsBuilder<MicroLimsDbContext>()
             .UseInMemoryDatabase(Guid.NewGuid().ToString())
             .Options;
-        return new MicroLimsDbContext(options);
+        var db = new MicroLimsDbContext(options);
+        TestServiceFactory.AssignUserToMicroSection(db, 1);
+        TestServiceFactory.AssignUserToMicroSection(db, 2);
+        return db;
     }
 
     private static MaterialDocumentService BuildService(MicroLimsDbContext db, IFileStorageService? storage = null)
     {
         var validator = new MaterialDocumentFileValidator(maxFileSizeBytes: 26_214_400L);
         return new MaterialDocumentService(db, storage ?? new InMemoryFileStorageService(),
-            validator, NullLogger<MaterialDocumentService>.Instance);
+            validator, NullLogger<MaterialDocumentService>.Instance, new UserSectionScopeService(db));
     }
 
     private static async Task<Material> SeedMaterial(MicroLimsDbContext db,
@@ -37,6 +40,7 @@ public class MaterialDocumentTests
     {
         var material = new Material
         {
+            SectionId = TestServiceFactory.EnsureMicroSection(db).Id,
             MaterialType = type,
             MaterialName = "Test Material",
             ManufacturerName = "Test Mfg",
@@ -139,7 +143,7 @@ public class MaterialDocumentTests
         var material = await SeedMaterial(db, MaterialType.Chemical);
         var smallLimit = new MaterialDocumentFileValidator(maxFileSizeBytes: 4);
         var service = new MaterialDocumentService(db, new InMemoryFileStorageService(), smallLimit,
-            NullLogger<MaterialDocumentService>.Instance);
+            NullLogger<MaterialDocumentService>.Instance, new UserSectionScopeService(db));
 
         var req = new UploadMaterialDocumentRequest(MaterialDocumentType.COA, "COA.pdf", "application/pdf", MakePdf());
         // MakePdf() is 8 bytes; limit is 4 bytes → should be rejected

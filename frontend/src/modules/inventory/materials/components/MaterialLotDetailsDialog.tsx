@@ -112,6 +112,9 @@ export function MaterialLotDetailsDialog({ open, material, onClose }: Props) {
           <MetaRow label="Batch / Lot" value={<span style={{ fontFamily: "monospace", fontWeight: 700 }}>{material.batchNumber}</span>} />
           <MetaRow label="Received" value={formatLabDate(material.receivingDate)} />
           <MetaRow label="Expiry" value={material.expiryDate ? formatLabDate(material.expiryDate) : "None"} />
+          {material.materialType === "ReferenceStandard" && (
+            <MetaRow label="Purity" value={material.purity != null ? `${material.purity}%` : "—"} />
+          )}
           <MetaRow label="Quantity" value={`${material.quantityRemaining} / ${material.quantityReceived} ${material.unit}`} />
           <MetaRow
             label="Status"

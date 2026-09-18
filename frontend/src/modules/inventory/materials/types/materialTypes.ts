@@ -9,7 +9,8 @@ export type MaterialType =
   | "Indicator"
   | "ReferenceBuffer"
   | "DisposableTool"
-  | "Other";
+  | "Other"
+  | "ReferenceStandard";
 
 export type MaterialUnit =
   | "Gram"
@@ -52,6 +53,7 @@ export interface MaterialItem {
   quantityRemaining: number;
   unit: MaterialUnit;
   minimumStockLevel: number | null;
+  purity?: number | null;
   status: StockStatus;
 }
 
@@ -67,6 +69,7 @@ export interface MaterialFormState {
   quantityReceived: number | string;
   unit: MaterialUnit;
   minimumStockLevel: number | string;
+  purity: number | string;
   atccNumber: string;
   organismId: number | null;
   mediaProductId: number | null;

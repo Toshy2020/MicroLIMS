@@ -34,6 +34,7 @@ const APP_ROUTES = {
   AFTER_CLEANING: "/laboratory-configuration/after-cleaning",
   RECEIVING_CONFIGURATION: "/laboratory-configuration/receiving-configuration",
   LAB_EQUIPMENT: "/laboratory-configuration/equipment",
+  CHROMATOGRAPHY_COLUMNS: "/laboratory-configuration/columns",
 
   // Inventory & Stock
   INVENTORY_MATERIALS: "/inventory/materials",
@@ -104,6 +105,9 @@ export function resolveTraceabilityRoute(
   if (target === "equipment") {
     return APP_ROUTES.INVENTORY_EQUIPMENT;
   }
+  if (target === "columns" || target === "chromatography-columns") {
+    return APP_ROUTES.CHROMATOGRAPHY_COLUMNS;
+  }
   if (target === "items") {
     return APP_ROUTES.ITEMS;
   }
@@ -150,6 +154,9 @@ export function resolveTraceabilityRoute(
   }
   if (type === "equipment" || type === "equipmentdocument" || type === "equipmentstatushistory") {
     return APP_ROUTES.INVENTORY_EQUIPMENT;
+  }
+  if (type === "column" || type === "chromatographycolumn") {
+    return APP_ROUTES.CHROMATOGRAPHY_COLUMNS;
   }
 
   return null;

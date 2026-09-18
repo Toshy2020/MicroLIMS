@@ -41,6 +41,7 @@ const AfterCleaningConfigPage = lazy(() => import("../modules/laboratoryConfigur
 const CryovialsPage = lazy(() => import("../modules/laboratoryConfiguration/cryovials/CryovialsPage").then((m) => ({ default: m.CryovialsPage })));
 const ReceivingConfigurationPage = lazy(() => import("../modules/laboratoryConfiguration/masterDataSimple/ReceivingConfigurationPage").then((m) => ({ default: m.ReceivingConfigurationPage })));
 const EquipmentPage = lazy(() => import("../modules/laboratoryConfiguration/masterDataSimple/EquipmentPage").then((m) => ({ default: m.EquipmentPage })));
+const ChromatographyColumnsPage = lazy(() => import("../modules/laboratoryConfiguration/masterDataSimple/ChromatographyColumnsPage").then((m) => ({ default: m.ChromatographyColumnsPage })));
 const UsersPage = lazy(() => import("../modules/users/UsersPage").then((m) => ({ default: m.UsersPage })));
 const RolesPage = lazy(() => import("../modules/roles/RolesPage").then((m) => ({ default: m.RolesPage })));
 const RoleDetailPage = lazy(() => import("../modules/roles/RoleDetailPage").then((m) => ({ default: m.RoleDetailPage })));
@@ -115,6 +116,7 @@ export function AppRoutes() {
               <Route path="/laboratory-configuration/receiving-configuration" element={<ReceivingConfigurationPage />} />
               <Route path="/laboratory-configuration/cause-of-testing" element={<LegacyRedirect to="/laboratory-configuration/receiving-configuration" />} />
               <Route path="/laboratory-configuration/equipment" element={<EquipmentPage />} />
+              <Route path="/laboratory-configuration/columns" element={<ChromatographyColumnsPage />} />
             </Route>
 
             {/* Document Control Module (Release 1a) */}

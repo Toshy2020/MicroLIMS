@@ -295,7 +295,7 @@ export function MaterialsPage() {
                           }}
                         >
                           <TableCell sx={{ fontSize: 12, whiteSpace: "nowrap" }}>
-                            {m.materialType}
+                            {m.materialType === "ReferenceStandard" ? "Reference Standard" : m.materialType}
                           </TableCell>
                           {/* Material Name + optional organism/ATCC secondary line */}
                           <TableCell sx={{ fontSize: 12, fontWeight: 600 }}>
@@ -306,6 +306,15 @@ export function MaterialsPage() {
                                   label="Not linked to a media product"
                                   size="small"
                                   color="warning"
+                                  sx={{ fontSize: 10.5, height: 20, fontWeight: 600 }}
+                                />
+                              )}
+                              {m.materialType === "ReferenceStandard" && m.purity != null && (
+                                <Chip
+                                  label={`Purity: ${m.purity}%`}
+                                  size="small"
+                                  color="primary"
+                                  variant="outlined"
                                   sx={{ fontSize: 10.5, height: 20, fontWeight: 600 }}
                                 />
                               )}

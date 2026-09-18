@@ -57,6 +57,7 @@ const INITIAL_FORM: MaterialFormState = {
   quantityReceived: "",
   unit: "Gram",
   minimumStockLevel: "",
+  purity: "",
   atccNumber: "",
   organismId: null,
   mediaProductId: null
@@ -86,6 +87,7 @@ export function AddMaterialDialog({ open, onClose, onSuccess, editingItem }: Add
         quantityReceived: editingItem.quantityReceived,
         unit: editingItem.unit,
         minimumStockLevel: editingItem.minimumStockLevel ?? "",
+        purity: editingItem.purity != null ? editingItem.purity : "",
         atccNumber: editingItem.atccNumber ?? "",
         organismId: editingItem.organismId ?? null,
         mediaProductId: editingItem.mediaProductId ?? null
@@ -157,13 +159,15 @@ export function AddMaterialDialog({ open, onClose, onSuccess, editingItem }: Add
         ...f,
         materialType: type,
         unit: defaultUnit as MaterialUnit,
-        mediaProductId: type === "DehydratedMedia" ? f.mediaProductId : null
+        mediaProductId: type === "DehydratedMedia" ? f.mediaProductId : null,
+        purity: type === "ReferenceStandard" ? f.purity : ""
       }));
     } catch {
       setForm((f) => ({
         ...f,
         materialType: type,
-        mediaProductId: type === "DehydratedMedia" ? f.mediaProductId : null
+        mediaProductId: type === "DehydratedMedia" ? f.mediaProductId : null,
+        purity: type === "ReferenceStandard" ? f.purity : ""
       }));
     }
   };
@@ -212,6 +216,18 @@ export function AddMaterialDialog({ open, onClose, onSuccess, editingItem }: Add
       return;
     }
 
+    if (form.materialType === "ReferenceStandard") {
+      if (form.purity === "" || form.purity == null) {
+        setError("Purity percentage is required for reference standards.");
+        return;
+      }
+      const p = Number(form.purity);
+      if (isNaN(p) || p <= 0 || p > 100) {
+        setError("Purity must be greater than 0 and less than or equal to 100.");
+        return;
+      }
+    }
+
     if (
       !form.materialName.trim() ||
       !form.batchNumber.trim() ||
@@ -249,6 +265,7 @@ export function AddMaterialDialog({ open, onClose, onSuccess, editingItem }: Add
       atccNumber: form.materialType === "LyophilizedMicroorganism" ? form.atccNumber.trim() || null : null,
       organismId: form.materialType === "LyophilizedMicroorganism" ? form.organismId || null : null,
       mediaProductId: form.materialType === "DehydratedMedia" ? form.mediaProductId : null,
+      purity: form.materialType === "ReferenceStandard" && form.purity !== "" ? Number(form.purity) : null,
       ...(!editingItem && mySections.length > 1 && selectedSectionId !== "" ? { sectionId: Number(selectedSectionId) } : {})
     };
 
@@ -407,6 +424,22 @@ export function AddMaterialDialog({ open, onClose, onSuccess, editingItem }: Add
               onChange={(e) => setForm({ ...form, atccNumber: e.target.value })}
             />
           </>
+        )}
+
+        {form.materialType === "ReferenceStandard" && (
+          <TextField
+            size="small"
+            required
+            label="Purity (%)"
+            placeholder="e.g. 99.8"
+            type="number"
+            value={form.purity}
+            onChange={(e) => setForm({ ...form, purity: e.target.value })}
+            slotProps={{
+              htmlInput: { step: "0.001", min: "0.001", max: "100" }
+            }}
+            helperText="Purity percentage (0 < p ≤ 100)"
+          />
         )}
       </Box>
 

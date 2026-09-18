@@ -1,4 +1,4 @@
-﻿import { ComponentType } from "react";
+import { ComponentType } from "react";
 import SpaceDashboardOutlinedIcon from "@mui/icons-material/SpaceDashboardOutlined";
 import ScienceOutlinedIcon from "@mui/icons-material/ScienceOutlined";
 import MedicationLiquidOutlinedIcon from "@mui/icons-material/MedicationLiquidOutlined";
@@ -67,7 +67,8 @@ const laboratoryConfigurationItem: MenuItem = {
     { label: "Environmental Monitoring", path: "/laboratory-configuration/environmental-monitoring" },
     { label: "After Cleaning", path: "/laboratory-configuration/after-cleaning" },
     { label: "Receiving Configuration", path: "/laboratory-configuration/receiving-configuration" },
-    { label: "Equipment", path: "/laboratory-configuration/equipment" }
+    { label: "Equipment", path: "/laboratory-configuration/equipment" },
+    { label: "Chromatography Columns", path: "/laboratory-configuration/columns" }
   ]
 };
 

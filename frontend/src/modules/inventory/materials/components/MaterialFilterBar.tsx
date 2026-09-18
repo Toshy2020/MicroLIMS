@@ -16,7 +16,8 @@ export const MATERIAL_TYPE_OPTIONS: { label: string; value: MaterialType }[] = [
   { label: "Indicator", value: "Indicator" },
   { label: "Reference Buffer", value: "ReferenceBuffer" },
   { label: "Disposable Tool", value: "DisposableTool" },
-  { label: "Other", value: "Other" }
+  { label: "Other", value: "Other" },
+  { label: "Reference Standard", value: "ReferenceStandard" }
 ];
 
 interface MaterialFilterBarProps {

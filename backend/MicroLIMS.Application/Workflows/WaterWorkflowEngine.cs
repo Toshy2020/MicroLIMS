@@ -30,7 +30,7 @@ public interface IWaterWorkflowEngine : IStatefulWorkflowEngine
     // guard at the top of the method.
     Task<WaterComparisonResult> CalculateAndCompareAsync(int testOrderId, List<decimal> readings);
 
-    Task<List<WaterComparisonResult>> GetDailyAggregateAsync(DateTime date);
+    Task<List<WaterComparisonResult>> GetDailyAggregateAsync(DateTime date, IReadOnlyCollection<int>? sectionIds = null);
 }
 
 public class WaterWorkflowEngine : IWaterWorkflowEngine
@@ -221,10 +221,11 @@ public class WaterWorkflowEngine : IWaterWorkflowEngine
         return ("WithinLimits", null);
     }
 
-    public async Task<List<WaterComparisonResult>> GetDailyAggregateAsync(DateTime date)
+    public async Task<List<WaterComparisonResult>> GetDailyAggregateAsync(DateTime date, IReadOnlyCollection<int>? sectionIds = null)
     {
         var results = await _db.Results
             .Where(r => r.EnteredAt.Date == date.Date)
+            .Where(r => sectionIds == null || _db.TestOrders.Any(t => t.Id == r.TestOrderId && sectionIds.Contains(t.SectionId)))
             .Where(r => _db.TestOrders.Any(t => t.Id == r.TestOrderId &&
                         _db.Samples.Any(s => s.Id == t.SampleId && s.Category == SampleCategory.Water)))
             .ToListAsync();

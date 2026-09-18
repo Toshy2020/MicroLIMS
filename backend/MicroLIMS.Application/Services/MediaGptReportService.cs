@@ -15,12 +15,12 @@ public class MediaGptReportService
         _db = db;
     }
 
-    public async Task<MediaGptSearchResult> SearchAsync(MediaGptSearchRequest request)
+    public async Task<MediaGptSearchResult> SearchAsync(MediaGptSearchRequest request, IReadOnlyCollection<int>? sectionIds = null)
     {
         var pageSize = Math.Clamp(request.PageSize <= 0 ? 25 : request.PageSize, 1, 200);
         var page = request.Page <= 0 ? 1 : request.Page;
 
-        var baseQuery = BuildFilteredQuery(request);
+        var baseQuery = BuildFilteredQuery(request, sectionIds);
         var totalCount = await baseQuery.CountAsync();
 
         var sortedQuery = ApplySort(baseQuery, request);
@@ -185,9 +185,9 @@ public class MediaGptReportService
         );
     }
 
-    public async Task<MediaGptSummaryDto> GetSummaryAsync(DateTime? fromDate, DateTime? toDate, string? mediaType)
+    public async Task<MediaGptSummaryDto> GetSummaryAsync(DateTime? fromDate, DateTime? toDate, string? mediaType, IReadOnlyCollection<int>? sectionIds = null)
     {
-        var query = _db.Media
+        var query = MediaIn(sectionIds)
             .Include(m => m.Material)
                 .ThenInclude(mat => mat!.MediaProduct)
             .AsQueryable();
@@ -247,9 +247,9 @@ public class MediaGptReportService
         );
     }
 
-    public async Task<MediaGptExportResult> GetForExportAsync(MediaGptSearchRequest request, int maxRows)
+    public async Task<MediaGptExportResult> GetForExportAsync(MediaGptSearchRequest request, int maxRows, IReadOnlyCollection<int>? sectionIds = null)
     {
-        var baseQuery = ApplySort(BuildFilteredQuery(request), request);
+        var baseQuery = ApplySort(BuildFilteredQuery(request, sectionIds), request);
         var mediaLots = await baseQuery
             .Include(m => m.Material)
                 .ThenInclude(mat => mat!.MediaProduct)
@@ -395,9 +395,9 @@ public class MediaGptReportService
         return new MediaGptExportResult(rows, rows.Count, Exceeded: false);
     }
 
-    public async Task<MediaGptFilterOptionsDto> GetFilterOptionsAsync()
+    public async Task<MediaGptFilterOptionsDto> GetFilterOptionsAsync(IReadOnlyCollection<int>? sectionIds = null)
     {
-        var mediaTypes = await _db.Media
+        var mediaTypes = await MediaIn(sectionIds)
             .Where(m => m.Material != null)
             .Select(m => m.Material!.MediaProduct != null ? m.Material!.MediaProduct.Name : m.Material!.MaterialName)
             .Distinct()
@@ -409,9 +409,14 @@ public class MediaGptReportService
         return new MediaGptFilterOptionsDto(mediaTypes, evalTypes);
     }
 
-    private IQueryable<Media> BuildFilteredQuery(MediaGptSearchRequest request)
+    // Media lots limited to the viewer's laboratory sections (null =
+    // unrestricted) through the material each lot was prepared from.
+    private IQueryable<Media> MediaIn(IReadOnlyCollection<int>? sectionIds) =>
+        sectionIds is null ? _db.Media : _db.Media.Where(m => sectionIds.Contains(m.Material!.SectionId));
+
+    private IQueryable<Media> BuildFilteredQuery(MediaGptSearchRequest request, IReadOnlyCollection<int>? sectionIds)
     {
-        var query = _db.Media.AsQueryable();
+        var query = MediaIn(sectionIds);
 
         if (!string.IsNullOrWhiteSpace(request.Search))
         {

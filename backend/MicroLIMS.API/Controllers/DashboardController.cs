@@ -69,7 +69,7 @@ public class DashboardController : ControllerBase
     }
 
     [HttpGet("recent-activity")]
-    public async Task<IActionResult> GetRecentActivity([FromQuery] int take = 25) => Ok(ApiResponse<object>.Ok(await _activityService.GetRecentAsync(take)));
+    public async Task<IActionResult> GetRecentActivity([FromQuery] int take = 25) => Ok(ApiResponse<object>.Ok(await _activityService.GetRecentAsync(take, await Scope())));
 
     // Analyst-only personal task list - not meaningful for lab-wide roles,
     // so it's rejected server-side rather than just hidden client-side.

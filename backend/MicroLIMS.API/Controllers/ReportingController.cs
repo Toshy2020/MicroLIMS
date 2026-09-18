@@ -5,6 +5,7 @@ using System.Text.Json;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using MicroLIMS.Application.DTOs;
+using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Application.Services;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
@@ -29,13 +30,19 @@ public class ReportingController : ControllerBase
     private readonly DataExportAuditService _exportAudit;
     private readonly MediaGptReportService _mediaGptReport;
     private readonly ReferenceStrainReportService _referenceStrainReport;
+    private readonly IUserSectionScopeService _scopeService;
+
+    // Every report covers only the caller's laboratory sections.
+    private Task<IReadOnlyList<int>?> Scope() => _scopeService.GetAccessibleSectionIdsAsync(int.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)!.Value));
 
     public ReportingController(
         ReportingQueryService query,
         DataExportAuditService exportAudit,
         MediaGptReportService mediaGptReport,
-        ReferenceStrainReportService referenceStrainReport)
+        ReferenceStrainReportService referenceStrainReport,
+        IUserSectionScopeService scopeService)
     {
+        _scopeService = scopeService;
         _query = query;
         _exportAudit = exportAudit;
         _mediaGptReport = mediaGptReport;
@@ -61,7 +68,7 @@ public class ReportingController : ControllerBase
     {
         var result = await _query.SearchAsync(new ResultRecordSearchRequest(
             search, category, testCode, resultLevel, sampleStatus, approvalStatus, fromDate, toDate,
-            subjectName, resultKind, page, pageSize, sortBy, sortDescending));
+            subjectName, resultKind, page, pageSize, sortBy, sortDescending), await Scope());
 
         var items = result.Items.Select(r => new
         {
@@ -81,7 +88,7 @@ public class ReportingController : ControllerBase
     [HttpGet("results/{id}")]
     public async Task<IActionResult> GetById([FromRoute] int id)
     {
-        var record = await _query.GetByIdAsync(id);
+        var record = await _query.GetByIdAsync(id, await Scope());
         if (record is null) return NotFound(ApiResponse<object>.Fail($"ResultRecord {id} not found."));
 
         return Ok(ApiResponse<object>.Ok(new
@@ -99,34 +106,34 @@ public class ReportingController : ControllerBase
 
     [HttpGet("overview")]
     public async Task<IActionResult> GetOverview([FromQuery] DateTime? fromDate, [FromQuery] DateTime? toDate) =>
-        Ok(ApiResponse<object>.Ok(await _query.GetOverviewAggregateAsync(fromDate, toDate)));
+        Ok(ApiResponse<object>.Ok(await _query.GetOverviewAggregateAsync(fromDate, toDate, await Scope())));
 
     [HttpGet("qualitative-events")]
     public async Task<IActionResult> GetQualitativeEvents(
         [FromQuery] string? testCode, [FromQuery] string? subjectName,
         [FromQuery] SampleCategory? category, [FromQuery] DateTime? fromDate, [FromQuery] DateTime? toDate) =>
-        Ok(ApiResponse<object>.Ok(await _query.GetQualitativeEventsAsync(testCode, subjectName, category, fromDate, toDate)));
+        Ok(ApiResponse<object>.Ok(await _query.GetQualitativeEventsAsync(testCode, subjectName, category, fromDate, toDate, await Scope())));
 
     [HttpGet("trend")]
     public async Task<IActionResult> GetTrend([FromQuery] string testCode, [FromQuery] string subjectName, [FromQuery] DateTime? fromDate, [FromQuery] DateTime? toDate) =>
-        Ok(ApiResponse<object>.Ok(await _query.GetTrendAsync(testCode, subjectName, fromDate, toDate)));
+        Ok(ApiResponse<object>.Ok(await _query.GetTrendAsync(testCode, subjectName, fromDate, toDate, await Scope())));
 
     [HttpGet("compare")]
     public async Task<IActionResult> GetCompare(
         [FromQuery] string testCode, [FromQuery] SampleCategory category,
         [FromQuery] DateTime? fromDate, [FromQuery] DateTime? toDate) =>
-        Ok(ApiResponse<object>.Ok(await _query.GetCompareBySubjectAsync(testCode, category, fromDate, toDate)));
+        Ok(ApiResponse<object>.Ok(await _query.GetCompareBySubjectAsync(testCode, category, fromDate, toDate, await Scope())));
 
     [HttpGet("completed-by-month")]
     public async Task<IActionResult> GetCompletedByMonth([FromQuery] int months = 6) =>
-        Ok(ApiResponse<object>.Ok(await _query.GetCompletedByMonthAsync(months)));
+        Ok(ApiResponse<object>.Ok(await _query.GetCompletedByMonthAsync(months, await Scope())));
 
     // Distinct values actually present in ResultRecords - not master
     // data - so the filter panel's dropdowns never offer a choice that
     // comes back empty.
     [HttpGet("filter-options")]
     public async Task<IActionResult> GetFilterOptions() =>
-        Ok(ApiResponse<object>.Ok(await _query.GetFilterOptionsAsync()));
+        Ok(ApiResponse<object>.Ok(await _query.GetFilterOptionsAsync(await Scope())));
 
     [HttpGet("results/export")]
     public async Task<IActionResult> ExportResults(
@@ -151,7 +158,7 @@ public class ReportingController : ControllerBase
         // same pattern as GetTrendAsync's validation) when the filter
         // matches more than MaxExportRows - a too-broad export must be
         // narrowed, never silently truncated.
-        var result = await _query.GetForExportAsync(request, MaxExportRows);
+        var result = await _query.GetForExportAsync(request, MaxExportRows, await Scope());
         if (result.Exceeded)
             throw new InvalidOperationException(
                 $"This filter matches {result.TotalCount} rows, which exceeds the {MaxExportRows:N0}-row export limit. Narrow your filters (e.g. a shorter date range) and try again.");
@@ -192,13 +199,14 @@ public class ReportingController : ControllerBase
             search, mediaType, evaluationType, outcome, approvalStatus,
             fromDate, toDate, page, pageSize, sortBy, sortDescending);
 
-        var result = await _mediaGptReport.SearchAsync(request);
+        var result = await _mediaGptReport.SearchAsync(request, await Scope());
         return Ok(ApiResponse<object>.Ok(new { items = result.Items, result.TotalCount, result.Page, result.PageSize }));
     }
 
     [HttpGet("media-gpt/{id}")]
     public async Task<IActionResult> GetMediaGptById([FromRoute] int id)
     {
+        await _scopeService.EnsureMediaAccessAsync(int.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)!.Value), id);
         var detail = await _mediaGptReport.GetDetailAsync(id);
         if (detail is null) return NotFound(ApiResponse<object>.Fail($"Media lot {id} not found."));
 
@@ -211,14 +219,14 @@ public class ReportingController : ControllerBase
         [FromQuery] DateTime? toDate,
         [FromQuery] string? mediaType)
     {
-        var summary = await _mediaGptReport.GetSummaryAsync(fromDate, toDate, mediaType);
+        var summary = await _mediaGptReport.GetSummaryAsync(fromDate, toDate, mediaType, await Scope());
         return Ok(ApiResponse<object>.Ok(summary));
     }
 
     [HttpGet("media-gpt/filter-options")]
     public async Task<IActionResult> GetMediaGptFilterOptions()
     {
-        var options = await _mediaGptReport.GetFilterOptionsAsync();
+        var options = await _mediaGptReport.GetFilterOptionsAsync(await Scope());
         return Ok(ApiResponse<object>.Ok(options));
     }
 
@@ -238,7 +246,7 @@ public class ReportingController : ControllerBase
             search, mediaType, evaluationType, outcome, approvalStatus,
             fromDate, toDate, SortBy: sortBy, SortDescending: sortDescending);
 
-        var result = await _mediaGptReport.GetForExportAsync(request, MaxExportRows);
+        var result = await _mediaGptReport.GetForExportAsync(request, MaxExportRows, await Scope());
         if (result.Exceeded)
             throw new InvalidOperationException(
                 $"This filter matches {result.TotalCount} challenge rows, which exceeds the {MaxExportRows:N0}-row export limit. Narrow your filters (e.g. a shorter date range) and try again.");
@@ -281,13 +289,14 @@ public class ReportingController : ControllerBase
             receiptFromDate, receiptToDate, usageFromDate, usageToDate,
             page, pageSize, sortBy, sortDescending);
 
-        var result = await _referenceStrainReport.SearchAsync(request);
+        var result = await _referenceStrainReport.SearchAsync(request, await Scope());
         return Ok(ApiResponse<object>.Ok(new { items = result.Items, result.TotalCount, result.Page, result.PageSize }));
     }
 
     [HttpGet("reference-strains/{id}")]
     public async Task<IActionResult> GetReferenceStrainById([FromRoute] int id)
     {
+        await _scopeService.EnsureCryovialAccessAsync(int.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)!.Value), id);
         var detail = await _referenceStrainReport.GetDetailAsync(id);
         if (detail is null) return NotFound(ApiResponse<object>.Fail($"Cryovial batch {id} not found."));
 
@@ -297,7 +306,7 @@ public class ReportingController : ControllerBase
     [HttpGet("reference-strains/filter-options")]
     public async Task<IActionResult> GetReferenceStrainFilterOptions()
     {
-        var options = await _referenceStrainReport.GetFilterOptionsAsync();
+        var options = await _referenceStrainReport.GetFilterOptionsAsync(await Scope());
         return Ok(ApiResponse<object>.Ok(options));
     }
 
@@ -319,7 +328,7 @@ public class ReportingController : ControllerBase
             receiptFromDate, receiptToDate, usageFromDate, usageToDate,
             SortBy: sortBy, SortDescending: sortDescending);
 
-        var result = await _referenceStrainReport.GetForExportAsync(request, MaxExportRows);
+        var result = await _referenceStrainReport.GetForExportAsync(request, MaxExportRows, await Scope());
         if (result.Exceeded)
             throw new InvalidOperationException(
                 $"This filter matches {result.TotalCount} rows, which exceeds the {MaxExportRows:N0}-row export limit. Narrow your filters and try again.");

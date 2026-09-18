@@ -1404,13 +1404,23 @@ export function SampleSummaryDialog({ open, sampleId, onClose }: Props) {
   // from the pulled-through resolving retest's results (see
   // SampleSummaryService.ResolveEffectiveTestOrdersAsync), not this
   // sample's own now-superseded TestOrders.
-  const coaEligible = useMemo(
-    () =>
-      !!summary &&
-      (summary.status === "Approved" || summary.status === "Rejected") &&
-      (buildCoaMatrix(summary.testOrders) !== null || buildCoaSimpleRows(summary.testOrders) !== null),
-    [summary]
-  );
+  const coaEligible = useMemo(() => {
+    if (!summary) return false;
+    const hasResults =
+      buildCoaMatrix(summary.testOrders) !== null || buildCoaSimpleRows(summary.testOrders) !== null;
+    if (!hasResults) return false;
+
+    // Single-section sample (sections <= 1): exactly as today
+    if (!summary.sections || summary.sections.length <= 1) {
+      return summary.status === "Approved" || summary.status === "Rejected";
+    }
+
+    // Multi-section sample: available if Combined is eligible (2a) or any single-section is eligible (2b)
+    const isCombinedEligible =
+      Boolean(summary.allSectionsVisible && summary.sections.length > 0 && summary.sections.every((s) => s.status === "Approved"));
+    const hasEligibleSection = summary.sections.some((s) => s.canView && s.status === "Approved");
+    return isCombinedEligible || hasEligibleSection;
+  }, [summary]);
 
   return (
     <>

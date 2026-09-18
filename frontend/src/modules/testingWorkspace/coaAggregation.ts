@@ -371,3 +371,48 @@ export function computeResultDate(testOrders: TestOrderSummaryDetail[]): string 
   }
   return max;
 }
+
+// Filters test orders for a single laboratory section.
+export function filterTestOrdersBySection(
+  testOrders: TestOrderSummaryDetail[],
+  sectionId: number
+): TestOrderSummaryDetail[] {
+  return testOrders.filter((t) => t.sectionId === sectionId);
+}
+
+export interface SectionTestOrdersGroup {
+  sectionId: number;
+  sectionName: string;
+  testOrders: TestOrderSummaryDetail[];
+}
+
+// Groups test orders by laboratory section, preserving the order of the
+// provided sections list (or grouping by sectionId/sectionName on the test orders).
+export function groupTestOrdersBySection(
+  testOrders: TestOrderSummaryDetail[],
+  sections?: { sectionId: number; sectionName: string }[]
+): SectionTestOrdersGroup[] {
+  if (sections && sections.length > 0) {
+    return sections
+      .map((sec) => ({
+        sectionId: sec.sectionId,
+        sectionName: sec.sectionName,
+        testOrders: testOrders.filter((t) => t.sectionId === sec.sectionId)
+      }))
+      .filter((g) => g.testOrders.length > 0);
+  }
+
+  const map = new Map<number, SectionTestOrdersGroup>();
+  for (const t of testOrders) {
+    const secId = t.sectionId ?? 0;
+    const secName = t.sectionName ?? "General";
+    let group = map.get(secId);
+    if (!group) {
+      group = { sectionId: secId, sectionName: secName, testOrders: [] };
+      map.set(secId, group);
+    }
+    group.testOrders.push(t);
+  }
+  return Array.from(map.values());
+}
+

@@ -1,10 +1,28 @@
 import { Fragment, useEffect, useState, type JSX } from "react";
 import { useParams } from "react-router-dom";
+import { Box, ToggleButtonGroup, ToggleButton, Alert, Typography } from "@mui/material";
 import { SampleSummaryService } from "./services/SampleSummaryService";
-import { buildCoaMatrix, buildOverallConclusionText, buildCoaSimpleRows, buildSimpleConclusionText, computeResultDate } from "./coaAggregation";
-import { SampleSummary, SignatureTrailItem } from "./types/sampleSummaryTypes";
-import { CoaColumn } from "./coaAggregation";
+import {
+  buildCoaMatrix,
+  buildOverallConclusionText,
+  buildCoaSimpleRows,
+  buildSimpleConclusionText,
+  computeResultDate,
+  filterTestOrdersBySection,
+  groupTestOrdersBySection,
+  CoaMatrix,
+  CoaSimpleResult,
+  CoaColumn
+} from "./coaAggregation";
+import {
+  SampleSummary,
+  SignatureTrailItem,
+  TestOrderSummaryDetail,
+  SampleSectionSummaryDetail
+} from "./types/sampleSummaryTypes";
 import { reportStyles } from "./reportStyles";
+import { dt, d, humanize } from "./SampleReportPage";
+import { PinnedLightTheme } from "../../theme/PinnedLightTheme";
 
 // Certificate-only print overrides, deliberately kept out of reportStyles:
 // that stylesheet is shared with the media and cryovial reports, and this
@@ -29,10 +47,9 @@ const coaPrintStyles = `
 @media print {
   @page { size: A4 portrait; margin: 0; }
   .coa-page { padding: 18mm 16mm 22mm 16mm !important; }
+  .no-print { display: none !important; }
 }
 `;
-import { dt, d, humanize } from "./SampleReportPage";
-import { PinnedLightTheme } from "../../theme/PinnedLightTheme";
 
 // Duplicated in SampleReportPage.MEANING_TEXT and SampleSummaryDialog.
 // SIGNATURE_STATEMENTS too - same small map, three places, matching how
@@ -118,10 +135,125 @@ function SignatureBlock({
   );
 }
 
+function CoaMatrixTable({ matrix }: { matrix: CoaMatrix }) {
+  return (
+    <>
+      <div style={{ overflowX: "auto" }}>
+        <table className="coa-matrix">
+          <thead>
+            <tr>
+              <th className="loc-col" rowSpan={2}>Location</th>
+              {matrix.columns.map((c) => (
+                <th key={c.testOrderId} className="grp" colSpan={c.isQuantitative ? 4 : 1}>
+                  {c.testDisplayName || c.testCode}
+                </th>
+              ))}
+            </tr>
+            <tr>{renderSubHeaderRow(matrix.columns)}</tr>
+          </thead>
+          <tbody>
+            {matrix.rows.map((r) => (
+              <tr key={r.locationKey}>
+                <td className="loc-col">{r.locationName}</td>
+                {r.cells.map((cell, i) => {
+                  const col = matrix.columns[i];
+                  if (!cell) {
+                    return col.isQuantitative ? (
+                      <Fragment key={col.testOrderId}>
+                        <td>—</td>
+                        <td>—</td>
+                        <td>—</td>
+                        <td>—</td>
+                      </Fragment>
+                    ) : (
+                      <td key={col.testOrderId}>—</td>
+                    );
+                  }
+                  if (cell.kind === "quantitative") {
+                    return (
+                      <Fragment key={col.testOrderId}>
+                        <td className="lim-dim">{cell.alert ?? "—"}</td>
+                        <td className="lim-dim">{cell.action ?? "—"}</td>
+                        <td className="lim-dim">{cell.spec ?? "—"}</td>
+                        <td className={cell.conform ? "r-pass" : "r-fail"}>{cell.result}</td>
+                      </Fragment>
+                    );
+                  }
+                  return (
+                    <td key={col.testOrderId} className={cell.conform ? "r-pass" : "r-fail"}>
+                      {cell.result}
+                    </td>
+                  );
+                })}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <div className="coa-footnote">
+        {matrix.units.length > 0 && (
+          <>Alert / Action / Spec shown in {matrix.units.join(", ")}, configured per sampling location. </>
+        )}
+        "Spec: {QUALITATIVE_SPEC_LABEL}" indicates absence is required by method in a 10 mL sample; the Result column states the actual finding for that location.
+      </div>
+    </>
+  );
+}
+
+function CoaSimpleTable({ simple, testOrders }: { simple: CoaSimpleResult; testOrders: TestOrderSummaryDetail[] }) {
+  return (
+    <div style={{ overflowX: "auto" }}>
+      <table className="coa-simple">
+        <thead>
+          <tr>
+            <th>Test</th>
+            <th>Specification</th>
+            <th>Sample Result</th>
+            <th>Analyst</th>
+          </tr>
+        </thead>
+        <tbody>
+          {simple.rows.map((r) => {
+            const sourceRef = testOrders.find((t) => t.testOrderId === r.testOrderId)?.sourceSampleReferenceNumber;
+            return (
+              <tr key={r.testOrderId}>
+                <td>
+                  {r.testDisplayName || r.testCode}
+                  {sourceRef && (
+                    <div style={{ fontSize: 10, color: "var(--coa-ink3)" }}>
+                      via retest {sourceRef}
+                    </div>
+                  )}
+                </td>
+                <td>{r.specification ?? "—"}</td>
+                <td className={r.conform ? "r-pass" : "r-fail"}>{r.result}</td>
+                <td>
+                  {r.analystName ? (
+                    <>
+                      {r.analystName}
+                      <br />
+                      <span style={{ color: "var(--coa-ink3)", fontSize: 11 }}>
+                        {dt(r.analystAt)}
+                      </span>
+                    </>
+                  ) : (
+                    "—"
+                  )}
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 export function SampleCoaPage() {
   const { id } = useParams();
   const [summary, setSummary] = useState<SampleSummary | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [selectedVariant, setSelectedVariant] = useState<string | null>(null);
 
   useEffect(() => {
     if (!id) return;
@@ -130,57 +262,132 @@ export function SampleCoaPage() {
       .catch((e) => setError(e?.response?.data?.message ?? "Failed to load the certificate of analysis."));
   }, [id]);
 
+  const isMultiSection = Boolean(summary?.sections && summary.sections.length > 1);
+
+  const isCombinedEligible = Boolean(
+    isMultiSection &&
+    summary?.allSectionsVisible &&
+    summary?.sections &&
+    summary.sections.length > 0 &&
+    summary.sections.every((sec) => sec.status === "Approved")
+  );
+
+  const eligibleSections: SampleSectionSummaryDetail[] = isMultiSection && summary?.sections
+    ? summary.sections.filter((sec) => sec.canView && sec.status === "Approved")
+    : [];
+
+  const defaultVariant = isCombinedEligible
+    ? "combined"
+    : eligibleSections.length > 0
+    ? String(eligibleSections[0].sectionId)
+    : null;
+
+  const activeVariant =
+    selectedVariant &&
+    (selectedVariant === "combined"
+      ? isCombinedEligible
+      : eligibleSections.some((sec) => String(sec.sectionId) === selectedVariant))
+      ? selectedVariant
+      : defaultVariant;
+
+  const activeSection =
+    isMultiSection && activeVariant && activeVariant !== "combined"
+      ? eligibleSections.find((sec) => String(sec.sectionId) === activeVariant) ?? null
+      : null;
+
   useEffect(() => {
-    if (summary) document.title = `Certificate of Analysis - ${summary.referenceNumber}`;
-  }, [summary]);
+    if (!summary) return;
+    if (activeSection) {
+      document.title = `Certificate of Analysis - ${activeSection.sectionName} - ${summary.referenceNumber}`;
+    } else {
+      document.title = `Certificate of Analysis - ${summary.referenceNumber}`;
+    }
+  }, [summary, activeSection]);
 
-  if (error) return <PinnedLightTheme><div style={{ padding: 32, fontFamily: "Segoe UI, sans-serif", color: "#dc2626" }}>{error}</div></PinnedLightTheme>;
-  if (!summary) return <PinnedLightTheme><div style={{ padding: 32, fontFamily: "Segoe UI, sans-serif", color: "#666" }}>Loading certificate…</div></PinnedLightTheme>;
-
-  const s = summary;
-  const matrix = buildCoaMatrix(s.testOrders);
-  // Product/RM/PM branch - only computed when the sample has no located
-  // tests at all, mirroring buildCoaMatrix's own discriminator so the two
-  // branches are mutually exclusive by construction.
-  const simple = matrix ? null : buildCoaSimpleRows(s.testOrders);
-
-  if (s.status !== "Approved" && s.status !== "Rejected") {
+  if (error) {
     return (
       <PinnedLightTheme>
-        <div style={{ padding: 32, fontFamily: "Segoe UI, sans-serif", color: "#666" }}>
-          A Certificate of Analysis is only available once this sample has been approved or rejected. Current status: {humanize(s.status)}.
+        <div style={{ padding: 32, fontFamily: "Segoe UI, sans-serif", color: "#dc2626" }}>
+          {error}
         </div>
       </PinnedLightTheme>
     );
   }
 
-  if (!matrix && !simple) {
+  if (!summary) {
     return (
       <PinnedLightTheme>
         <div style={{ padding: 32, fontFamily: "Segoe UI, sans-serif", color: "#666" }}>
-          A Certificate of Analysis is not available for this sample - none of its tests have recorded results yet.
+          Loading certificate…
         </div>
+      </PinnedLightTheme>
+    );
+  }
+
+  const s = summary;
+  const matrix = buildCoaMatrix(s.testOrders);
+  const simple = matrix ? null : buildCoaSimpleRows(s.testOrders);
+
+  if (!isMultiSection) {
+    if (s.status !== "Approved" && s.status !== "Rejected") {
+      return (
+        <PinnedLightTheme>
+          <div style={{ padding: 32, fontFamily: "Segoe UI, sans-serif", color: "#666" }}>
+            A Certificate of Analysis is only available once this sample has been approved or rejected. Current status: {humanize(s.status)}.
+          </div>
+        </PinnedLightTheme>
+      );
+    }
+
+    if (!matrix && !simple) {
+      return (
+        <PinnedLightTheme>
+          <div style={{ padding: 32, fontFamily: "Segoe UI, sans-serif", color: "#666" }}>
+            A Certificate of Analysis is not available for this sample - none of its tests have recorded results yet.
+          </div>
+        </PinnedLightTheme>
+      );
+    }
+  }
+
+  if (isMultiSection && !activeVariant) {
+    const unapprovedSections = (s.sections ?? []).filter((sec) => sec.status !== "Approved");
+    return (
+      <PinnedLightTheme>
+        <Box sx={{ maxWidth: 800, margin: "40px auto", px: 3 }}>
+          <Alert severity="info">
+            <Typography sx={{ fontWeight: 600, mb: 1 }}>
+              Certificate of Analysis Not Available
+            </Typography>
+            <Typography variant="body2" sx={{ mb: unapprovedSections.length > 0 ? 1 : 0 }}>
+              {unapprovedSections.length > 0
+                ? "A Certificate of Analysis is not available yet. The following sections are not yet approved:"
+                : "No approved laboratory sections are currently accessible."}
+            </Typography>
+            {unapprovedSections.length > 0 && (
+              <ul style={{ margin: "8px 0 0 0", paddingLeft: 20 }}>
+                {unapprovedSections.map((sec) => (
+                  <li key={sec.sectionId} style={{ fontSize: 13, marginTop: 4 }}>
+                    <strong>{sec.sectionName}</strong>: {humanize(sec.status)}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Alert>
+        </Box>
       </PinnedLightTheme>
     );
   }
 
   const reviewerSig = lastSignatureByMeaning(s.signatures, "Reviewed");
-  // A sample resolved via an OOS retest chain (RetestRetainedSample /
-  // NewSampleRequest) never gets its own Approved/Rejected signature for
-  // the mirrored outcome - its own signature is from the earlier decision
-  // that sent it to retest in the first place (e.g. NewSampleRequest
-  // always signs "Rejected", even when the chain later resolves Approved),
-  // so looking it up here would show the wrong decision. Only a sample
-  // that was itself directly Approved/Rejected has a signature worth
-  // showing; the propagated case falls back to approvedByName/approvedAt.
   const isPropagatedOutcome = s.approvalDecision === "RetestRetainedSample" || s.approvalDecision === "NewSampleRequest";
   const approverFallbackMeaning = s.status === "Rejected" ? "Rejected" : "Approved";
   const approverSig = isPropagatedOutcome ? undefined : lastSignatureByMeaning(s.signatures, approverFallbackMeaning);
   const generatedAt = dt(new Date().toISOString());
-  const conclusionText = matrix ? buildOverallConclusionText(matrix) : buildSimpleConclusionText(simple!);
-  const overallComplies = matrix ? matrix.overallComplies : simple!.overallComplies;
-  const resultDate = matrix ? null : computeResultDate(s.testOrders);
-  const remarksText = s.certificateRemarks?.trim() || null;
+
+  const coaTitle = activeSection
+    ? `Certificate of Analysis - ${activeSection.sectionName}`
+    : "Certificate of Analysis";
 
   return (
     <PinnedLightTheme>
@@ -188,10 +395,54 @@ export function SampleCoaPage() {
         <style>{reportStyles}</style>
         <style>{coaPrintStyles}</style>
 
+        {isMultiSection && (
+          <Box
+            className="no-print"
+            sx={{
+              display: "flex",
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 2,
+              pt: 2.5,
+              pb: 1
+            }}
+          >
+            <Typography variant="body2" sx={{ fontWeight: 600, color: "var(--coa-ink2)" }}>
+              Certificate Variant:
+            </Typography>
+            <ToggleButtonGroup
+              value={activeVariant}
+              exclusive
+              size="small"
+              onChange={(_, val) => {
+                if (val) setSelectedVariant(val);
+              }}
+              aria-label="Certificate variant"
+              sx={{ bgcolor: "#fff" }}
+            >
+              {isCombinedEligible && (
+                <ToggleButton value="combined" sx={{ px: 2, py: 0.5, fontWeight: 600, textTransform: "none" }}>
+                  Combined
+                </ToggleButton>
+              )}
+              {eligibleSections.map((sec) => (
+                <ToggleButton
+                  key={sec.sectionId}
+                  value={String(sec.sectionId)}
+                  sx={{ px: 2, py: 0.5, fontWeight: 600, textTransform: "none" }}
+                >
+                  {sec.sectionName}
+                </ToggleButton>
+              ))}
+            </ToggleButtonGroup>
+          </Box>
+        )}
+
         <div className="coa-page">
           <div className="coa-head">
             <div>
-              <div className="coa-title">Certificate of Analysis</div>
+              <div className="coa-title">{coaTitle}</div>
               <div className="coa-sub">
                 {humanize(s.category)}
                 {s.displayName ? <> · {s.displayName}</> : ""}
@@ -204,135 +455,270 @@ export function SampleCoaPage() {
             </div>
           </div>
 
-          {matrix ? (
+          {!isMultiSection ? (
+            /* Single-section sample (sections.length <= 1) - EXACTLY as today */
             <>
-              <div className="coa-id-strip">
-                <div><div className="il">Reference</div><div className="iv">{s.referenceNumber}</div></div>
-                <div><div className="il">Category</div><div className="iv">{humanize(s.category)}</div></div>
-                <div><div className="il">Batch / Control</div><div className="iv">{s.batchNumber ?? s.controlNumber}</div></div>
-                <div><div className="il">Received</div><div className="iv">{d(s.receivedAt)}</div></div>
+              {matrix ? (
+                <>
+                  <div className="coa-id-strip">
+                    <div><div className="il">Reference</div><div className="iv">{s.referenceNumber}</div></div>
+                    <div><div className="il">Category</div><div className="iv">{humanize(s.category)}</div></div>
+                    <div><div className="il">Batch / Control</div><div className="iv">{s.batchNumber ?? s.controlNumber}</div></div>
+                    <div><div className="il">Received</div><div className="iv">{d(s.receivedAt)}</div></div>
+                  </div>
+
+                  <div className="coa-section-h">Test Results by Location</div>
+                  <CoaMatrixTable matrix={matrix} />
+                </>
+              ) : (
+                <>
+                  <div className="coa-item-strip">
+                    <div className="coa-item-name-row">
+                      <div>
+                        <div className="coa-item-name">{s.displayName}</div>
+                        <div className="coa-item-sub">{humanize(s.category)}</div>
+                      </div>
+                      {s.sampleQuantity && <div className="coa-item-qty">Qty: {s.sampleQuantity}</div>}
+                    </div>
+                    <div className="coa-dates-grid">
+                      <div><div className="il">Batch No.</div><div className="iv">{s.batchNumber ?? "—"}</div></div>
+                      <div><div className="il">Mfg. Date</div><div className="iv">{d(s.mfgDate)}</div></div>
+                      <div><div className="il">Exp. Date</div><div className="iv">{d(s.expDate)}</div></div>
+                      <div><div className="il">Sampling / Arrival</div><div className="iv">{d(s.receivedAt)}</div></div>
+                      <div><div className="il">Test Date</div><div className="iv">{d(s.preparation?.preparedAt ?? null)}</div></div>
+                      <div><div className="il">Result Date</div><div className="iv">{d(computeResultDate(s.testOrders))}</div></div>
+                      <div><div className="il">QC No.</div><div className="iv">{s.controlNumber}</div></div>
+                      <div><div className="il">Certificate Date</div><div className="iv">{d(s.approvedAt)}</div></div>
+                    </div>
+                  </div>
+
+                  <div className="coa-section-h">Test Results</div>
+                  <CoaSimpleTable simple={simple!} testOrders={s.testOrders} />
+
+                  <div className="coa-section-h">Remarks</div>
+                  {(() => {
+                    const remarks = s.sections?.[0]?.certificateRemarks?.trim() || s.certificateRemarks?.trim() || null;
+                    return (
+                      <div className={`coa-remarks-box ${remarks ? "" : "is-empty"}`}>
+                        {remarks ?? "No remarks."}
+                      </div>
+                    );
+                  })()}
+                </>
+              )}
+
+              <div className={`coa-overall ${(matrix ? matrix.overallComplies : simple!.overallComplies) ? "" : "is-fail"}`}>
+                <div className="ot">Overall Conclusion</div>
+                <div className="od">
+                  {matrix ? buildOverallConclusionText(matrix) : buildSimpleConclusionText(simple!)}
+                </div>
               </div>
 
-              <div className="coa-section-h">Test Results by Location</div>
-              <div style={{ overflowX: "auto" }}>
-                <table className="coa-matrix">
-                  <thead>
-                    <tr>
-                      <th className="loc-col" rowSpan={2}>Location</th>
-                      {matrix.columns.map((c) => (
-                        <th key={c.testOrderId} className="grp" colSpan={c.isQuantitative ? 4 : 1}>{c.testDisplayName || c.testCode}</th>
-                      ))}
-                    </tr>
-                    <tr>{renderSubHeaderRow(matrix.columns)}</tr>
-                  </thead>
-                  <tbody>
-                    {matrix.rows.map((r) => (
-                      <tr key={r.locationKey}>
-                        <td className="loc-col">{r.locationName}</td>
-                        {r.cells.map((cell, i) => {
-                          const col = matrix.columns[i];
-                          if (!cell) {
-                            return col.isQuantitative ? (
-                              <Fragment key={col.testOrderId}>
-                                <td>—</td>
-                                <td>—</td>
-                                <td>—</td>
-                                <td>—</td>
-                              </Fragment>
-                            ) : (
-                              <td key={col.testOrderId}>—</td>
-                            );
-                          }
-                          if (cell.kind === "quantitative") {
-                            return (
-                              <Fragment key={col.testOrderId}>
-                                <td className="lim-dim">{cell.alert ?? "—"}</td>
-                                <td className="lim-dim">{cell.action ?? "—"}</td>
-                                <td className="lim-dim">{cell.spec ?? "—"}</td>
-                                <td className={cell.conform ? "r-pass" : "r-fail"}>{cell.result}</td>
-                              </Fragment>
-                            );
-                          }
-                          return (
-                            <td key={col.testOrderId} className={cell.conform ? "r-pass" : "r-fail"}>{cell.result}</td>
-                          );
-                        })}
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-              <div className="coa-footnote">
-                {matrix.units.length > 0 && <>Alert / Action / Spec shown in {matrix.units.join(", ")}, configured per sampling location. </>}
-                "Spec: {QUALITATIVE_SPEC_LABEL}" indicates absence is required by method in a 10 mL sample; the Result column states the actual finding for that location.
+              <div className="coa-sig-strip">
+                <SignatureBlock fallbackRole="Reviewer" sig={reviewerSig} fallbackName={s.reviewedByName} fallbackAt={s.reviewedAt} />
+                <SignatureBlock fallbackRole="Approver" sig={approverSig} fallbackName={s.approvedByName} fallbackAt={s.approvedAt} fallbackMeaning={approverFallbackMeaning} />
               </div>
             </>
-          ) : (
+          ) : activeVariant === "combined" ? (
+            /* Multi-section combined variant */
             <>
-              <div className="coa-item-strip">
-                <div className="coa-item-name-row">
-                  <div>
-                    <div className="coa-item-name">{s.displayName}</div>
-                    <div className="coa-item-sub">{humanize(s.category)}</div>
+              {s.testOrders.some((t) => t.locations.length > 0 && !t.isSuperseded) ? (
+                <div className="coa-id-strip">
+                  <div><div className="il">Reference</div><div className="iv">{s.referenceNumber}</div></div>
+                  <div><div className="il">Category</div><div className="iv">{humanize(s.category)}</div></div>
+                  <div><div className="il">Batch / Control</div><div className="iv">{s.batchNumber ?? s.controlNumber}</div></div>
+                  <div><div className="il">Received</div><div className="iv">{d(s.receivedAt)}</div></div>
+                </div>
+              ) : (
+                <div className="coa-item-strip">
+                  <div className="coa-item-name-row">
+                    <div>
+                      <div className="coa-item-name">{s.displayName}</div>
+                      <div className="coa-item-sub">{humanize(s.category)}</div>
+                    </div>
+                    {s.sampleQuantity && <div className="coa-item-qty">Qty: {s.sampleQuantity}</div>}
                   </div>
-                  {s.sampleQuantity && <div className="coa-item-qty">Qty: {s.sampleQuantity}</div>}
+                  <div className="coa-dates-grid">
+                    <div><div className="il">Batch No.</div><div className="iv">{s.batchNumber ?? "—"}</div></div>
+                    <div><div className="il">Mfg. Date</div><div className="iv">{d(s.mfgDate)}</div></div>
+                    <div><div className="il">Exp. Date</div><div className="iv">{d(s.expDate)}</div></div>
+                    <div><div className="il">Sampling / Arrival</div><div className="iv">{d(s.receivedAt)}</div></div>
+                    <div><div className="il">Test Date</div><div className="iv">{d(s.preparation?.preparedAt ?? null)}</div></div>
+                    <div><div className="il">Result Date</div><div className="iv">{d(computeResultDate(s.testOrders))}</div></div>
+                    <div><div className="il">QC No.</div><div className="iv">{s.controlNumber}</div></div>
+                    <div><div className="il">Certificate Date</div><div className="iv">{d(s.approvedAt)}</div></div>
+                  </div>
                 </div>
-                <div className="coa-dates-grid">
-                  <div><div className="il">Batch No.</div><div className="iv">{s.batchNumber ?? "—"}</div></div>
-                  <div><div className="il">Mfg. Date</div><div className="iv">{d(s.mfgDate)}</div></div>
-                  <div><div className="il">Exp. Date</div><div className="iv">{d(s.expDate)}</div></div>
-                  <div><div className="il">Sampling / Arrival</div><div className="iv">{d(s.receivedAt)}</div></div>
-                  <div><div className="il">Test Date</div><div className="iv">{d(s.preparation?.preparedAt ?? null)}</div></div>
-                  <div><div className="il">Result Date</div><div className="iv">{d(resultDate)}</div></div>
-                  <div><div className="il">QC No.</div><div className="iv">{s.controlNumber}</div></div>
-                  <div><div className="il">Certificate Date</div><div className="iv">{d(s.approvedAt)}</div></div>
-                </div>
-              </div>
+              )}
 
-              <div className="coa-section-h">Test Results</div>
-              <div style={{ overflowX: "auto" }}>
-                <table className="coa-simple">
-                  <thead>
-                    <tr>
-                      <th>Test</th>
-                      <th>Specification</th>
-                      <th>Sample Result</th>
-                      <th>Analyst</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {simple!.rows.map((r) => {
-                      const sourceRef = s.testOrders.find((t) => t.testOrderId === r.testOrderId)?.sourceSampleReferenceNumber;
+              {(() => {
+                const sections = s.sections ?? [];
+                return (
+                  <>
+                    {groupTestOrdersBySection(s.testOrders, sections).map((group) => {
+                      const groupMatrix = buildCoaMatrix(group.testOrders);
+                      const groupSimple = groupMatrix ? null : buildCoaSimpleRows(group.testOrders);
+                      const secDetail = sections.find((sec) => sec.sectionId === group.sectionId);
+                      const secRemarks = secDetail?.certificateRemarks?.trim() || null;
+
                       return (
-                      <tr key={r.testOrderId}>
-                        <td>
-                          {r.testDisplayName || r.testCode}
-                          {sourceRef && <div style={{ fontSize: 10, color: "var(--coa-ink3)" }}>via retest {sourceRef}</div>}
-                        </td>
-                        <td>{r.specification ?? "—"}</td>
-                        <td className={r.conform ? "r-pass" : "r-fail"}>{r.result}</td>
-                        <td>{r.analystName ? <>{r.analystName}<br /><span style={{ color: "var(--coa-ink3)", fontSize: 11 }}>{dt(r.analystAt)}</span></> : "—"}</td>
-                      </tr>
+                        <div key={group.sectionId} style={{ marginBottom: 24 }}>
+                          <div className="coa-section-h" style={{ fontSize: 13, color: "var(--coa-ink)", marginBottom: 8 }}>
+                            {group.sectionName} — Test Results
+                          </div>
+                          {groupMatrix && <CoaMatrixTable matrix={groupMatrix} />}
+                          {groupSimple && <CoaSimpleTable simple={groupSimple} testOrders={group.testOrders} />}
+                          {!groupMatrix && !groupSimple && (
+                            <div style={{ color: "var(--coa-ink3)", fontStyle: "italic", marginBottom: 12, fontSize: 12 }}>
+                              No recorded results for this section.
+                            </div>
+                          )}
+                          <div style={{ marginTop: 10, marginBottom: 16 }}>
+                            <div className="coa-section-h" style={{ fontSize: 11, marginBottom: 4 }}>
+                              Remarks ({group.sectionName})
+                            </div>
+                            <div className={`coa-remarks-box ${secRemarks ? "" : "is-empty"}`} style={{ marginBottom: 12 }}>
+                              {secRemarks ?? "No remarks."}
+                            </div>
+                          </div>
+                        </div>
                       );
                     })}
-                  </tbody>
-                </table>
-              </div>
 
-              <div className="coa-section-h">Remarks</div>
-              <div className={`coa-remarks-box ${remarksText ? "" : "is-empty"}`}>{remarksText ?? "No remarks."}</div>
+                    {(() => {
+                      const cMatrix = buildCoaMatrix(s.testOrders);
+                      const cSimple = cMatrix ? null : buildCoaSimpleRows(s.testOrders);
+                      const complies = cMatrix ? cMatrix.overallComplies : (cSimple ? cSimple.overallComplies : true);
+                      const conclusion = cMatrix
+                        ? buildOverallConclusionText(cMatrix)
+                        : cSimple
+                        ? buildSimpleConclusionText(cSimple)
+                        : "This sample complies with the specified requirements.";
+
+                      return (
+                        <div className={`coa-overall ${complies ? "" : "is-fail"}`}>
+                          <div className="ot">Overall Conclusion</div>
+                          <div className="od">{conclusion}</div>
+                        </div>
+                      );
+                    })()}
+
+                    <div
+                      className="coa-sig-strip"
+                      style={{
+                        gridTemplateColumns: sections.length > 2 ? "repeat(auto-fit, minmax(200px, 1fr))" : "1fr 1fr"
+                      }}
+                    >
+                      {sections.map((sec) => (
+                        <div className="coa-sig-block" key={sec.sectionId}>
+                          <div className="sn">{sec.approvedByName ?? "—"}</div>
+                          <div className="sr">Approver — {sec.sectionName}</div>
+                          <div className="sm">"{MEANING_TEXT["Approved"]}"</div>
+                          <div className="st">{dt(sec.approvedAt)}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                );
+              })()}
             </>
-          )}
+          ) : activeSection ? (
+            /* Multi-section single-section variant */
+            (() => {
+              const secTests = filterTestOrdersBySection(s.testOrders, activeSection.sectionId);
+              const secMatrix = buildCoaMatrix(secTests);
+              const secSimple = secMatrix ? null : buildCoaSimpleRows(secTests);
+              const secRemarks = activeSection.certificateRemarks?.trim() || null;
+              const complies = secMatrix ? secMatrix.overallComplies : (secSimple ? secSimple.overallComplies : true);
+              const conclusion = secMatrix
+                ? buildOverallConclusionText(secMatrix)
+                : secSimple
+                ? buildSimpleConclusionText(secSimple)
+                : "This section complies with the specified requirements.";
 
-          <div className={`coa-overall ${overallComplies ? "" : "is-fail"}`}>
-            <div className="ot">Overall Conclusion</div>
-            <div className="od">{conclusionText}</div>
-          </div>
+              return (
+                <>
+                  {secMatrix ? (
+                    <>
+                      <div className="coa-id-strip">
+                        <div><div className="il">Reference</div><div className="iv">{s.referenceNumber}</div></div>
+                        <div><div className="il">Category</div><div className="iv">{humanize(s.category)}</div></div>
+                        <div><div className="il">Batch / Control</div><div className="iv">{s.batchNumber ?? s.controlNumber}</div></div>
+                        <div><div className="il">Received</div><div className="iv">{d(s.receivedAt)}</div></div>
+                      </div>
 
-          <div className="coa-sig-strip">
-            <SignatureBlock fallbackRole="Reviewer" sig={reviewerSig} fallbackName={s.reviewedByName} fallbackAt={s.reviewedAt} />
-            <SignatureBlock fallbackRole="Approver" sig={approverSig} fallbackName={s.approvedByName} fallbackAt={s.approvedAt} fallbackMeaning={approverFallbackMeaning} />
-          </div>
+                      <div className="coa-section-h">Test Results by Location</div>
+                      <CoaMatrixTable matrix={secMatrix} />
+                    </>
+                  ) : secSimple ? (
+                    <>
+                      <div className="coa-item-strip">
+                        <div className="coa-item-name-row">
+                          <div>
+                            <div className="coa-item-name">{s.displayName}</div>
+                            <div className="coa-item-sub">{humanize(s.category)}</div>
+                          </div>
+                          {s.sampleQuantity && <div className="coa-item-qty">Qty: {s.sampleQuantity}</div>}
+                        </div>
+                        <div className="coa-dates-grid">
+                          <div><div className="il">Batch No.</div><div className="iv">{s.batchNumber ?? "—"}</div></div>
+                          <div><div className="il">Mfg. Date</div><div className="iv">{d(s.mfgDate)}</div></div>
+                          <div><div className="il">Exp. Date</div><div className="iv">{d(s.expDate)}</div></div>
+                          <div><div className="il">Sampling / Arrival</div><div className="iv">{d(s.receivedAt)}</div></div>
+                          <div><div className="il">Test Date</div><div className="iv">{d(s.preparation?.preparedAt ?? null)}</div></div>
+                          <div><div className="il">Result Date</div><div className="iv">{d(computeResultDate(secTests))}</div></div>
+                          <div><div className="il">QC No.</div><div className="iv">{s.controlNumber}</div></div>
+                          <div><div className="il">Certificate Date</div><div className="iv">{d(activeSection.approvedAt ?? s.approvedAt)}</div></div>
+                        </div>
+                      </div>
+
+                      <div className="coa-section-h">Test Results</div>
+                      <CoaSimpleTable simple={secSimple} testOrders={secTests} />
+                    </>
+                  ) : (
+                    <div style={{ padding: 24, textAlign: "center", color: "var(--coa-ink3)", fontStyle: "italic" }}>
+                      A Certificate of Analysis is not available for this section - none of its tests have recorded results yet.
+                    </div>
+                  )}
+
+                  <div className="coa-section-h">Remarks</div>
+                  <div className={`coa-remarks-box ${secRemarks ? "" : "is-empty"}`}>
+                    {secRemarks ?? "No remarks."}
+                  </div>
+
+                  <div className={`coa-overall ${complies ? "" : "is-fail"}`}>
+                    <div className="ot">Overall Conclusion</div>
+                    <div className="od">{conclusion}</div>
+                  </div>
+
+                  <div
+                    className="coa-sig-strip"
+                    style={{
+                      gridTemplateColumns: activeSection.reviewedByName ? "1fr 1fr" : "1fr",
+                      maxWidth: activeSection.reviewedByName ? undefined : 320
+                    }}
+                  >
+                    {activeSection.reviewedByName && (
+                      <SignatureBlock
+                        fallbackRole="Reviewer"
+                        sig={undefined}
+                        fallbackName={activeSection.reviewedByName}
+                        fallbackAt={activeSection.reviewedAt}
+                        fallbackMeaning="Reviewed"
+                      />
+                    )}
+                    <SignatureBlock
+                      fallbackRole="Approver"
+                      sig={undefined}
+                      fallbackName={activeSection.approvedByName}
+                      fallbackAt={activeSection.approvedAt}
+                      fallbackMeaning="Approved"
+                    />
+                  </div>
+                </>
+              );
+            })()
+          ) : null}
 
           <div className="coa-footer-note">
             This Certificate of Analysis is a controlled document generated by MicroLIMS. Any printed copy is uncontrolled.<br />

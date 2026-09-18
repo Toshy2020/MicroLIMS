@@ -33,4 +33,15 @@ public class TestDefinition
     // rendering correctly on anything that already references their
     // Code) so existing assignments aren't disrupted.
     public bool IsActive { get; set; } = true;
+
+    // Finished Product / HPLC fields
+    public EquationType EquationType { get; set; } = EquationType.None;
+    public bool RequiresSystemSuitability { get; set; }
+    public string? MethodAbbreviation { get; set; }
+
+    // Acceptance criteria, all nullable (null = not checked)
+    public decimal? SstMaxRsdPercent { get; set; }
+    public decimal? SstMinResolution { get; set; }
+    public decimal? SstMaxTailingFactor { get; set; }
+    public decimal? SstMinTheoreticalPlates { get; set; }
 }

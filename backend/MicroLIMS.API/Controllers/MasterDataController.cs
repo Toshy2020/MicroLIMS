@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using MicroLIMS.Application.DTOs;
 using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Application.Services;
 using MicroLIMS.Domain.Entities;
@@ -65,10 +66,32 @@ public record CreateMediaConfigurationRequest(int MediaProductId, EvaluationType
 public record UpdateMediaConfigurationRequest(int MediaProductId, EvaluationType EvaluationType, int MediaIncubationConditionId, decimal? RecoveryPercentMin, decimal? RecoveryPercentMax, List<CreateMediaConfigurationChallengeRequest>? Challenges);
 public record CreateOrganismRequest(string ScientificName, string? AtccNumber, string? CommonName, string? Description);
 public record UpdateOrganismRequest(string ScientificName, string? AtccNumber, string? CommonName, string? Description);
-public record CreateTestDefinitionRequest(string Code, string DisplayName, int? SectionId = null);
+public record CreateTestDefinitionRequest(
+    string Code,
+    string DisplayName,
+    int? SectionId = null,
+    WorkflowType WorkflowType = WorkflowType.Observation,
+    EquationType EquationType = EquationType.None,
+    bool RequiresSystemSuitability = false,
+    string? MethodAbbreviation = null,
+    decimal? SstMaxRsdPercent = null,
+    decimal? SstMinResolution = null,
+    decimal? SstMaxTailingFactor = null,
+    decimal? SstMinTheoreticalPlates = null);
 // SectionId: move the test to another laboratory section (null = keep). Test
 // orders already created keep the section they were created with.
-public record UpdateTestDefinitionRequest(string Code, string DisplayName, int? SectionId = null);
+public record UpdateTestDefinitionRequest(
+    string Code,
+    string DisplayName,
+    int? SectionId = null,
+    WorkflowType? WorkflowType = null,
+    EquationType? EquationType = null,
+    bool? RequiresSystemSuitability = null,
+    string? MethodAbbreviation = null,
+    decimal? SstMaxRsdPercent = null,
+    decimal? SstMinResolution = null,
+    decimal? SstMaxTailingFactor = null,
+    decimal? SstMinTheoreticalPlates = null);
 public record UpdateWorkflowTypeRequest(WorkflowType WorkflowType);
 public record StepMediaRequest(int MaterialId, bool IsRequired, int DisplayOrder, int? MediaIncubationConditionId);
 public record IncubationStageRequest(int StageNumber, decimal TempMin, decimal TempMax, int IncubationMinHours, int IncubationMaxHours);
@@ -1451,6 +1474,46 @@ public class MasterDataController : ControllerBase
         return Ok(ApiResponse<object>.Ok(new { }));
     }
 
+    // Equation Types (REQ-FP-030/042)
+    [HttpGet("equation-types")]
+    public IActionResult GetEquationTypes()
+    {
+        var types = new[]
+        {
+            new EquationTypeDto(
+                Code: nameof(EquationType.None),
+                Name: "None",
+                FormulaText: string.Empty,
+                RequiredInputs: Array.Empty<string>()),
+            new EquationTypeDto(
+                Code: nameof(EquationType.HplcAssay),
+                Name: "HPLC Assay",
+                FormulaText: "% Assay = (SampleArea / StandardMeanArea) * (StandardWeightMg / SampleWeightMg) * (StandardPurityPercent / 100) * (SampleDilution / StandardDilution) * 100",
+                RequiredInputs: new[]
+                {
+                    "SampleArea",
+                    "StandardMeanArea",
+                    "SampleWeightMg",
+                    "StandardWeightMg",
+                    "StandardPurityPercent",
+                    "SampleDilution",
+                    "StandardDilution"
+                }),
+            new EquationTypeDto(
+                Code: nameof(EquationType.SystemSuitability),
+                Name: "System Suitability",
+                FormulaText: "RSD <= MaxRSD, Resolution >= MinResolution, Tailing <= MaxTailing, Plates >= MinPlates",
+                RequiredInputs: new[]
+                {
+                    "RsdPercent",
+                    "Resolution",
+                    "TailingFactor",
+                    "TheoreticalPlates"
+                })
+        };
+        return Ok(ApiResponse<object>.Ok(types));
+    }
+
     // ---- Test Master ----
     // The canonical Code/DisplayName list backing every TestCode picker
     // in the app (Items, Water Sampling Points, Room Test Configurations,
@@ -1470,11 +1533,43 @@ public class MasterDataController : ControllerBase
         var userId = CurrentUserId;
         var sectionId = await _scope.ResolveSectionForCreateAsync(userId, request.SectionId);
 
+        string? methodAbbr = string.IsNullOrWhiteSpace(request.MethodAbbreviation)
+            ? null
+            : request.MethodAbbreviation.Trim().ToUpperInvariant();
+
+        if (request.RequiresSystemSuitability)
+        {
+            if (string.IsNullOrEmpty(methodAbbr))
+                throw new InvalidOperationException("Method abbreviation is required when system suitability is enabled.");
+
+            if (!System.Text.RegularExpressions.Regex.IsMatch(methodAbbr, "^[A-Z0-9-]{1,20}$"))
+                throw new InvalidOperationException("Method abbreviation must be 1-20 uppercase alphanumeric characters or hyphens.");
+
+            if (!request.SstMaxRsdPercent.HasValue && !request.SstMinResolution.HasValue &&
+                !request.SstMaxTailingFactor.HasValue && !request.SstMinTheoreticalPlates.HasValue)
+            {
+                throw new InvalidOperationException("At least one system suitability criterion is required when system suitability is enabled.");
+            }
+        }
+        else if (methodAbbr != null)
+        {
+            if (!System.Text.RegularExpressions.Regex.IsMatch(methodAbbr, "^[A-Z0-9-]{1,20}$"))
+                throw new InvalidOperationException("Method abbreviation must be 1-20 uppercase alphanumeric characters or hyphens.");
+        }
+
         var entity = new TestDefinition
         {
             Code = request.Code,
             DisplayName = request.DisplayName,
-            SectionId = sectionId
+            SectionId = sectionId,
+            WorkflowType = request.WorkflowType,
+            EquationType = request.EquationType,
+            RequiresSystemSuitability = request.RequiresSystemSuitability,
+            MethodAbbreviation = methodAbbr,
+            SstMaxRsdPercent = request.SstMaxRsdPercent,
+            SstMinResolution = request.SstMinResolution,
+            SstMaxTailingFactor = request.SstMaxTailingFactor,
+            SstMinTheoreticalPlates = request.SstMinTheoreticalPlates
         };
         _db.TestDefinitions.Add(entity);
         await _db.SaveChangesAsync();
@@ -1499,8 +1594,45 @@ public class MasterDataController : ControllerBase
         if (request.SectionId.HasValue && request.SectionId.Value != entity.SectionId)
             entity.SectionId = await _scope.ResolveSectionForCreateAsync(CurrentUserId, request.SectionId);
 
+        var effectiveRequiresSst = request.RequiresSystemSuitability ?? entity.RequiresSystemSuitability;
+        var effectiveMethodAbbr = request.MethodAbbreviation != null
+            ? (string.IsNullOrWhiteSpace(request.MethodAbbreviation) ? null : request.MethodAbbreviation.Trim().ToUpperInvariant())
+            : entity.MethodAbbreviation;
+        var effectiveRsd = request.SstMaxRsdPercent ?? entity.SstMaxRsdPercent;
+        var effectiveRes = request.SstMinResolution ?? entity.SstMinResolution;
+        var effectiveTailing = request.SstMaxTailingFactor ?? entity.SstMaxTailingFactor;
+        var effectivePlates = request.SstMinTheoreticalPlates ?? entity.SstMinTheoreticalPlates;
+
+        if (effectiveRequiresSst)
+        {
+            if (string.IsNullOrEmpty(effectiveMethodAbbr))
+                throw new InvalidOperationException("Method abbreviation is required when system suitability is enabled.");
+
+            if (!System.Text.RegularExpressions.Regex.IsMatch(effectiveMethodAbbr, "^[A-Z0-9-]{1,20}$"))
+                throw new InvalidOperationException("Method abbreviation must be 1-20 uppercase alphanumeric characters or hyphens.");
+
+            if (!effectiveRsd.HasValue && !effectiveRes.HasValue && !effectiveTailing.HasValue && !effectivePlates.HasValue)
+            {
+                throw new InvalidOperationException("At least one system suitability criterion is required when system suitability is enabled.");
+            }
+        }
+        else if (effectiveMethodAbbr != null)
+        {
+            if (!System.Text.RegularExpressions.Regex.IsMatch(effectiveMethodAbbr, "^[A-Z0-9-]{1,20}$"))
+                throw new InvalidOperationException("Method abbreviation must be 1-20 uppercase alphanumeric characters or hyphens.");
+        }
+
         entity.Code = request.Code;
         entity.DisplayName = request.DisplayName;
+        if (request.WorkflowType.HasValue) entity.WorkflowType = request.WorkflowType.Value;
+        if (request.EquationType.HasValue) entity.EquationType = request.EquationType.Value;
+        if (request.RequiresSystemSuitability.HasValue) entity.RequiresSystemSuitability = request.RequiresSystemSuitability.Value;
+        if (request.MethodAbbreviation != null) entity.MethodAbbreviation = effectiveMethodAbbr;
+        if (request.SstMaxRsdPercent.HasValue) entity.SstMaxRsdPercent = request.SstMaxRsdPercent;
+        if (request.SstMinResolution.HasValue) entity.SstMinResolution = request.SstMinResolution;
+        if (request.SstMaxTailingFactor.HasValue) entity.SstMaxTailingFactor = request.SstMaxTailingFactor;
+        if (request.SstMinTheoreticalPlates.HasValue) entity.SstMinTheoreticalPlates = request.SstMinTheoreticalPlates;
+
         await _db.SaveChangesAsync();
         return Ok(ApiResponse<object>.Ok(entity));
     }

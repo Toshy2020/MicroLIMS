@@ -34,6 +34,10 @@ public class TestOrder
     public int? RoomId { get; set; }
     public Room? Room { get; set; }
 
+    // HPLC System Suitability Run link (REQ-FP-003)
+    public int? SystemSuitabilityRunId { get; set; }
+    public SystemSuitabilityRun? SystemSuitabilityRun { get; set; }
+
     public List<Result> Results { get; set; } = new();
     public List<Incubation> Incubations { get; set; } = new();
     public List<WorkflowHistory> WorkflowHistory { get; set; } = new();

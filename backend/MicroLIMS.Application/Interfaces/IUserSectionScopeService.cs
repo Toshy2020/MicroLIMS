@@ -18,6 +18,7 @@ public interface IUserSectionScopeService
     Task EnsureMediaEvaluationChallengeAccessAsync(int userId, int challengeId, CancellationToken ct = default);
     Task EnsureEquipmentAccessAsync(int userId, int equipmentId, CancellationToken ct = default);
     Task EnsureColumnAccessAsync(int userId, int columnId, CancellationToken ct = default);
+    Task EnsureSuitabilityRunAccessAsync(int userId, int runId, CancellationToken ct = default);
     // An OOS group belongs to the section(s) of its retest samples (each
     // carries only the deciding section's tests), not every section of the
     // origin sample.

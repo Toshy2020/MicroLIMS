@@ -151,6 +151,9 @@ public static class TestServiceFactory
 
     public static MediaIncubationConditionService MediaIncubationCondition(MicroLimsDbContext db) => new(db);
 
+    public static SystemSuitabilityService SystemSuitability(MicroLimsDbContext db, IUserSectionScopeService? scope = null, IElectronicSignatureService? signatures = null) =>
+        new(db, signatures ?? new ElectronicSignatureService(db), scope ?? new UserSectionScopeService(db));
+
     public static DocumentSection EnsureMicroSection(MicroLimsDbContext db)
     {
         var dept = db.DocumentDepartments.FirstOrDefault(d => d.Code == "QC");

@@ -118,6 +118,8 @@ public static class ServiceCollectionExtensions
         services.AddScoped<EquipmentInventoryService>();
         services.AddScoped<EquipmentConfigurationService>();
         services.AddScoped<ChromatographyColumnService>();
+        services.AddScoped<ISystemSuitabilityService, SystemSuitabilityService>();
+        services.AddScoped<SystemSuitabilityService>();
         services.AddScoped<PathogenSessionService>();
         services.AddScoped<LocationPathogenObservationService>();
         services.AddScoped<ConfirmationAgreementEvaluator>();

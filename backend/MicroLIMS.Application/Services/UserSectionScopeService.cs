@@ -337,4 +337,23 @@ public class UserSectionScopeService : IUserSectionScopeService
             throw new UnauthorizedAccessException("This chromatography column belongs to a laboratory section you are not assigned to.");
         }
     }
+
+    public async Task EnsureSuitabilityRunAccessAsync(int userId, int runId, CancellationToken ct = default)
+    {
+        var scope = await GetAccessibleSectionIdsAsync(userId, ct);
+        if (scope is null) return;
+
+        var sectionId = await _db.SystemSuitabilityRuns
+            .AsNoTracking()
+            .Where(r => r.Id == runId)
+            .Select(r => (int?)r.SectionId)
+            .FirstOrDefaultAsync(ct);
+
+        if (sectionId is null) return;
+
+        if (!scope.Contains(sectionId.Value))
+        {
+            throw new UnauthorizedAccessException("This system suitability run belongs to a laboratory section you are not assigned to.");
+        }
+    }
 }

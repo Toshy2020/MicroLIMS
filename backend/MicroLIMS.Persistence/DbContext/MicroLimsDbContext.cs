@@ -71,6 +71,7 @@ public class MicroLimsDbContext : Microsoft.EntityFrameworkCore.DbContext
     public DbSet<ProductionStage> ProductionStages => Set<ProductionStage>();
     public DbSet<Equipment> Equipment => Set<Equipment>();
     public DbSet<ChromatographyColumn> ChromatographyColumns => Set<ChromatographyColumn>();
+    public DbSet<SystemSuitabilityRun> SystemSuitabilityRuns => Set<SystemSuitabilityRun>();
     public DbSet<IncubatorSetPointHistory> IncubatorSetPointHistories => Set<IncubatorSetPointHistory>();
     public DbSet<AutoclaveProgram> AutoclavePrograms => Set<AutoclaveProgram>();
     public DbSet<AutoclaveProgramHistory> AutoclaveProgramHistories => Set<AutoclaveProgramHistory>();

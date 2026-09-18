@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using MicroLIMS.Application.Services;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Persistence.DbContext;
@@ -205,21 +206,8 @@ public class WaterWorkflowEngine : IWaterWorkflowEngine
 
     // Alert -> Action -> Specification, in ascending order of severity -
     // the first limit exceeded (starting from Spec, the most severe) wins.
-    private static (string status, string? exceeded) Compare(decimal average, string? alert, string? action, string? spec)
-    {
-        var hasSpec = decimal.TryParse(spec, out var specLimit);
-        if (hasSpec && average > specLimit)
-            return ("OutOfSpecification", "Specification");
-        var hasAction = decimal.TryParse(action, out var actionLimit);
-        if (hasAction && average > actionLimit)
-            return ("ActionLimitExceeded", "Action");
-        var hasAlert = decimal.TryParse(alert, out var alertLimit);
-        if (hasAlert && average > alertLimit)
-            return ("AlertLimitExceeded", "Alert");
-        if (!hasSpec && !hasAction && !hasAlert)
-            return ("LimitsNotConfigured", null);
-        return ("WithinLimits", null);
-    }
+    public static (string status, string? exceeded) Compare(decimal average, string? alert, string? action, string? spec) =>
+        SpecLimitParser.Compare(average, alert, action, spec);
 
     public async Task<List<WaterComparisonResult>> GetDailyAggregateAsync(DateTime date, IReadOnlyCollection<int>? sectionIds = null)
     {

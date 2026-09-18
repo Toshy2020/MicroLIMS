@@ -1863,21 +1863,8 @@ public class TestWorkflowEngine : ITestWorkflowEngine
 
     // Same Spec -> Action -> Alert precedence (most severe first) as
     // WaterWorkflowEngine.Compare/CountTestWorkflowEngine.Compare.
-    private static (string status, string? exceeded) Compare(decimal value, string? alert, string? action, string? spec)
-    {
-        var hasSpec = decimal.TryParse(spec, out var specLimit);
-        if (hasSpec && value > specLimit)
-            return ("OutOfSpecification", "Specification");
-        var hasAction = decimal.TryParse(action, out var actionLimit);
-        if (hasAction && value > actionLimit)
-            return ("ActionLimitExceeded", "Action");
-        var hasAlert = decimal.TryParse(alert, out var alertLimit);
-        if (hasAlert && value > alertLimit)
-            return ("AlertLimitExceeded", "Alert");
-        if (!hasSpec && !hasAction && !hasAlert)
-            return ("LimitsNotConfigured", null);
-        return ("WithinLimits", null);
-    }
+    public static (string status, string? exceeded) Compare(decimal value, string? alert, string? action, string? spec) =>
+        SpecLimitParser.Compare(value, alert, action, spec);
 
     // Resolves the step template by name and guards workflow order,
     // reusing the existing order-violation message.

@@ -278,6 +278,46 @@ public class MultiSectionReviewApprovalTests
     }
 
     [Fact]
+    public async Task Kpis_CountOnlyTheViewersSections()
+    {
+        await using var db = NewDb();
+        var w = await SeedAsync(db, fpReady: false);
+        var review = TestServiceFactory.SampleReview(db);
+        await review.AutoSubmitForReviewIfReadyAsync(w.Sample.Id, 1);
+        await db.SaveChangesAsync();
+        var kpi = TestServiceFactory.Kpi(db);
+        var scope = new UserSectionScopeService(db);
+        var micro = await scope.GetAccessibleSectionIdsAsync(w.HeadMicro);
+        var fp = await scope.GetAccessibleSectionIdsAsync(w.HeadFp);
+
+        Assert.Equal(1, (await kpi.GetSampleQueueCountsAsync(sectionIds: micro)).ReviewQueueCount);
+        Assert.Equal(0, (await kpi.GetSampleQueueCountsAsync(sectionIds: fp)).ReviewQueueCount);
+
+        // Each Section Head sees only their own section's analysts.
+        Assert.Equal(new[] { 1 }, (await kpi.GetAnalystKpisAsync(sectionIds: micro)).Select(a => a.UserId).ToArray());
+        Assert.Equal(new[] { 2 }, (await kpi.GetAnalystKpisAsync(sectionIds: fp)).Select(a => a.UserId).ToArray());
+    }
+
+    [Fact]
+    public async Task Oos_AGroupBelongsToTheSectionThatOrderedTheRetest()
+    {
+        await using var db = NewDb();
+        var w = await SeedUnderApprovalAsync(db);
+        await TestServiceFactory.SampleApproval(db).DecideAsync(w.Sample.Id, w.HeadMicro, Password, ApprovalDecision.RetestRetainedSample,
+            null, null, selectedTestOrderIds: new List<int> { w.MicroTamc.Id });
+        var groupCode = (await db.Samples.AsNoTracking().FirstAsync(s => s.Id == w.Sample.Id)).OosGroupCode!;
+        var scope = new UserSectionScopeService(db);
+        var oos = new OosTrackingService(db);
+
+        // The origin also carries FP tests, but the OOS is Microbiology's.
+        Assert.Single(await oos.GetOosGroupsAsync(await scope.GetAccessibleSectionIdsAsync(w.HeadMicro)));
+        Assert.Empty(await oos.GetOosGroupsAsync(await scope.GetAccessibleSectionIdsAsync(w.HeadFp)));
+
+        await scope.EnsureOosGroupAccessAsync(w.HeadMicro, groupCode);
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => scope.EnsureOosGroupAccessAsync(w.HeadFp, groupCode));
+    }
+
+    [Fact]
     public async Task Retest_CarriesOnlyTheDecidingSectionsTests_AndItsOutcomeResolvesThatSection()
     {
         await using var db = NewDb();

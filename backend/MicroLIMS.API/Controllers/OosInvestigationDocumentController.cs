@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Application.Services;
 using MicroLIMS.Shared.Constants;
 using MicroLIMS.Shared.Responses;
@@ -13,9 +14,11 @@ namespace MicroLIMS.API.Controllers;
 public class OosInvestigationDocumentController : ControllerBase
 {
     private readonly OosInvestigationDocumentService _service;
+    private readonly IUserSectionScopeService _scopeService;
 
-    public OosInvestigationDocumentController(OosInvestigationDocumentService service)
+    public OosInvestigationDocumentController(OosInvestigationDocumentService service, IUserSectionScopeService scopeService)
     {
+        _scopeService = scopeService;
         _service = service;
     }
 
@@ -27,6 +30,7 @@ public class OosInvestigationDocumentController : ControllerBase
     {
         try
         {
+            await _scopeService.EnsureOosGroupAccessAsync(CurrentUserId, oosGroupCode);
             var result = await _service.GetDocumentsAsync(oosGroupCode);
             return Ok(ApiResponse<object>.Ok(result));
         }
@@ -53,6 +57,7 @@ public class OosInvestigationDocumentController : ControllerBase
 
         try
         {
+            await _scopeService.EnsureOosGroupAccessAsync(CurrentUserId, oosGroupCode);
             var result = await _service.UploadAsync(oosGroupCode, new UploadOosInvestigationDocumentRequest(
                 file.FileName,
                 file.ContentType,
@@ -71,6 +76,7 @@ public class OosInvestigationDocumentController : ControllerBase
     {
         try
         {
+            await _scopeService.EnsureOosGroupAccessAsync(CurrentUserId, oosGroupCode);
             var (meta, bytes) = await _service.GetContentAsync(documentId, oosGroupCode, CurrentUserId);
             return File(bytes, meta.ContentType, meta.OriginalFileName);
         }
@@ -99,6 +105,7 @@ public class OosInvestigationDocumentController : ControllerBase
 
         try
         {
+            await _scopeService.EnsureOosGroupAccessAsync(CurrentUserId, oosGroupCode);
             var result = await _service.SupersedeAsync(documentId, oosGroupCode, new SupersedeOosInvestigationDocumentRequest(
                 file.FileName,
                 file.ContentType,
@@ -121,6 +128,7 @@ public class OosInvestigationDocumentController : ControllerBase
 
         try
         {
+            await _scopeService.EnsureOosGroupAccessAsync(CurrentUserId, oosGroupCode);
             var result = await _service.VoidAsync(documentId, oosGroupCode, request, CurrentUserId);
             return Ok(ApiResponse<object>.Ok(result));
         }

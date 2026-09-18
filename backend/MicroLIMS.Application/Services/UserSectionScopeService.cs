@@ -283,4 +283,20 @@ public class UserSectionScopeService : IUserSectionScopeService
             .Where(c => c.Id == challengeId)
             .Select(c => (int?)_db.MediaEvaluations.Where(e => e.Id == c.MediaEvaluationId).Select(e => e.Media!.Material!.SectionId).FirstOrDefault())
             .FirstOrDefaultAsync(ct), ct);
+
+    public async Task EnsureOosGroupAccessAsync(int userId, string oosGroupCode, CancellationToken ct = default)
+    {
+        var scope = await GetAccessibleSectionIdsAsync(userId, ct);
+        if (scope is null) return;
+
+        var groupSections = await _db.TestOrders.AsNoTracking()
+            .Where(t => t.Sample!.OosGroupCode == oosGroupCode && t.Sample.OriginSampleId != null)
+            .Select(t => t.SectionId)
+            .Distinct()
+            .ToListAsync(ct);
+        if (groupSections.Count == 0) return; // unknown group - left to not-found handling
+
+        if (!groupSections.Any(scope.Contains))
+            throw new UnauthorizedAccessException("This OOS investigation belongs to a laboratory section you are not assigned to.");
+    }
 }

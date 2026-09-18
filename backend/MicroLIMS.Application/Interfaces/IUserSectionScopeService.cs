@@ -16,4 +16,8 @@ public interface IUserSectionScopeService
     Task EnsureCryovialAccessAsync(int userId, int cryovialId, CancellationToken ct = default);
     Task EnsureMediaEvaluationAccessAsync(int userId, int evaluationId, CancellationToken ct = default);
     Task EnsureMediaEvaluationChallengeAccessAsync(int userId, int challengeId, CancellationToken ct = default);
+    // An OOS group belongs to the section(s) of its retest samples (each
+    // carries only the deciding section's tests), not every section of the
+    // origin sample.
+    Task EnsureOosGroupAccessAsync(int userId, string oosGroupCode, CancellationToken ct = default);
 }

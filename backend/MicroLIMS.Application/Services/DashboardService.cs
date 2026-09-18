@@ -546,7 +546,7 @@ public class DashboardService
         // on to Review/Approval/Approved no longer belongs in a
         // currently-actionable count, even though it's still correctly
         // counted as a past SLA breach over on the Reports page.
-        var overdueAnalystSamples = await _kpiService.GetOverdueAnalystStageSamplesAsync(Epoch, now);
+        var overdueAnalystSamples = await _kpiService.GetOverdueAnalystStageSamplesAsync(Epoch, now, sectionIds);
         var overdueAssignedAtBySampleId = overdueAnalystSamples.ToDictionary(x => x.SampleId, x => x.AssignedAt);
 
         var liveOverdueTestOrders = await scopedOrders

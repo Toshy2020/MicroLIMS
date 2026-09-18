@@ -10,7 +10,7 @@ public record SaveMaterialRequest(
     MaterialType MaterialType, string MaterialName, string ManufacturerName, string BatchNumber,
     DateTime ReceivingDate, DateTime? ExpiryDate, string? Code, string Location,
     decimal QuantityReceived, MaterialUnit Unit, decimal? MinimumStockLevel, string? AtccNumber, int? OrganismId,
-    int? MediaProductId = null, int? SectionId = null);
+    int? MediaProductId = null, int? SectionId = null, decimal? Purity = null);
 
 // Materials Stock register (Inventory module) - dehydrated media, discs,
 // ID kits/reagents, chemicals, indicators, reference buffers, disposable
@@ -48,8 +48,25 @@ public class MaterialService
         MaterialType.Indicator => MaterialUnit.Piece,
         MaterialType.ReferenceBuffer => MaterialUnit.Bottle,
         MaterialType.DisposableTool => MaterialUnit.Piece,
+        MaterialType.ReferenceStandard => MaterialUnit.Gram,
         _ => MaterialUnit.Piece
     };
+
+    public static void ValidatePurity(MaterialType type, decimal? purity)
+    {
+        if (type == MaterialType.ReferenceStandard)
+        {
+            if (!purity.HasValue)
+                throw new InvalidOperationException("Purity is required for reference standards.");
+            if (purity.Value <= 0m || purity.Value > 100m)
+                throw new InvalidOperationException("Purity must be greater than 0 and less than or equal to 100.");
+        }
+        else
+        {
+            if (purity.HasValue)
+                throw new InvalidOperationException("Purity is only allowed for reference standards.");
+        }
+    }
 
     public async Task<List<Material>> GetAllAsync(int currentUserId, MaterialType? type = null)
     {
@@ -89,6 +106,8 @@ public class MaterialService
             code = product.Code;
         }
 
+        ValidatePurity(r.MaterialType, r.Purity);
+
         var sectionId = await _scope.ResolveSectionForCreateAsync(currentUserId, r.SectionId);
 
         var entity = new Material
@@ -109,6 +128,7 @@ public class MaterialService
             QuantityRemaining = r.QuantityReceived, // full balance at receipt
             Unit = r.Unit,
             MinimumStockLevel = r.MinimumStockLevel,
+            Purity = r.Purity,
             CreatedByUserId = currentUserId,
             CreatedAt = DateTime.UtcNow,
             LastModifiedByUserId = currentUserId,
@@ -164,6 +184,8 @@ public class MaterialService
             }
         }
 
+        ValidatePurity(r.MaterialType, r.Purity);
+
         var receivedDelta = r.QuantityReceived - entity.QuantityReceived;
 
         entity.MaterialType = r.MaterialType;
@@ -181,10 +203,28 @@ public class MaterialService
         entity.QuantityRemaining += receivedDelta;
         entity.Unit = r.Unit;
         entity.MinimumStockLevel = r.MinimumStockLevel;
+        entity.Purity = r.Purity;
         entity.LastModifiedByUserId = currentUserId;
         entity.LastModifiedAt = DateTime.UtcNow;
 
         await _db.SaveChangesAsync();
+    }
+
+    // Suitability Run picker (REQ-FP-012): usable (in stock, not expired) reference standards in the caller's sections.
+    public async Task<List<Material>> GetUsableReferenceStandardsAsync(int currentUserId)
+    {
+        var scope = await _scope.GetAccessibleSectionIdsAsync(currentUserId);
+        var query = _db.Materials.AsNoTracking().AsQueryable();
+        if (scope != null)
+        {
+            query = query.Where(m => scope.Contains(m.SectionId));
+        }
+        query = query.Where(m => m.MaterialType == MaterialType.ReferenceStandard);
+
+        var today = DateTime.UtcNow.Date;
+        query = query.Where(m => m.QuantityRemaining > 0 && (!m.ExpiryDate.HasValue || m.ExpiryDate.Value.Date >= today));
+
+        return await query.OrderBy(m => m.MaterialName).ThenBy(m => m.BatchNumber).ToListAsync();
     }
 
     // Material types that require at least one current COA before consumption.

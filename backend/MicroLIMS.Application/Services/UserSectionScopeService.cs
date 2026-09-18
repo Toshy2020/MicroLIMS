@@ -299,4 +299,42 @@ public class UserSectionScopeService : IUserSectionScopeService
         if (!groupSections.Any(scope.Contains))
             throw new UnauthorizedAccessException("This OOS investigation belongs to a laboratory section you are not assigned to.");
     }
+
+    public async Task EnsureEquipmentAccessAsync(int userId, int equipmentId, CancellationToken ct = default)
+    {
+        var scope = await GetAccessibleSectionIdsAsync(userId, ct);
+        if (scope is null) return;
+
+        var sectionId = await _db.Equipment
+            .AsNoTracking()
+            .Where(e => e.Id == equipmentId)
+            .Select(e => (int?)e.SectionId)
+            .FirstOrDefaultAsync(ct);
+
+        if (sectionId is null) return;
+
+        if (!scope.Contains(sectionId.Value))
+        {
+            throw new UnauthorizedAccessException("This equipment belongs to a laboratory section you are not assigned to.");
+        }
+    }
+
+    public async Task EnsureColumnAccessAsync(int userId, int columnId, CancellationToken ct = default)
+    {
+        var scope = await GetAccessibleSectionIdsAsync(userId, ct);
+        if (scope is null) return;
+
+        var sectionId = await _db.ChromatographyColumns
+            .AsNoTracking()
+            .Where(c => c.Id == columnId)
+            .Select(c => (int?)c.SectionId)
+            .FirstOrDefaultAsync(ct);
+
+        if (sectionId is null) return;
+
+        if (!scope.Contains(sectionId.Value))
+        {
+            throw new UnauthorizedAccessException("This chromatography column belongs to a laboratory section you are not assigned to.");
+        }
+    }
 }

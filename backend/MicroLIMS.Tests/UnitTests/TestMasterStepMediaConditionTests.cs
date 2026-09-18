@@ -31,7 +31,8 @@ public class TestMasterStepMediaConditionTests
             new EquipmentConfigurationService(db),
             TestServiceFactory.MediaProduct(db),
             TestServiceFactory.MediaIncubationCondition(db),
-            new UserSectionScopeService(db));
+            new UserSectionScopeService(db),
+            new ChromatographyColumnService(db, new UserSectionScopeService(db)));
 
     private static async Task<TestDefinition> SeedTestDefinitionAsync(MicroLimsDbContext db)
     {

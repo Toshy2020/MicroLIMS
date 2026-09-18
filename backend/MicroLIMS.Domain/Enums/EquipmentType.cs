@@ -7,5 +7,8 @@ public enum EquipmentType
     LafCabinet,
     BiologicalSafetyCabinet,
     WaterBath,
-    Other
+    Other,
+    Hplc,
+    PhMeter,
+    Balance
 }

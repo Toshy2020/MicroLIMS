@@ -139,6 +139,11 @@ public class EquipmentConfigurationService
                            : inv.InstrumentType.Contains("Cabinet", StringComparison.OrdinalIgnoreCase) ? EquipmentType.LafCabinet
                            : EquipmentType.Other;
 
+        // The inventory register predates sections and only holds
+        // Microbiology equipment, so a linked master lands in MICRO.
+        var sectionId = await _db.DocumentSections.Where(s => s.Code == "MICRO").Select(s => (int?)s.Id).FirstOrDefaultAsync()
+            ?? throw new InvalidOperationException("The Microbiology laboratory section (code MICRO) is missing.");
+
         var master = new Equipment
         {
             Name = inv.InstrumentType,
@@ -146,7 +151,8 @@ public class EquipmentConfigurationService
             Type = type,
             Location = inv.Location,
             CalibrationDueDate = inv.CalibrationDueDate,
-            SetPointTemperature = type == EquipmentType.Incubator ? 32.5m : null
+            SetPointTemperature = type == EquipmentType.Incubator ? 32.5m : null,
+            SectionId = sectionId
         };
 
         _db.Equipment.Add(master);

@@ -16,4 +16,16 @@ public class Equipment
     // Incubator-only fields (null for other equipment types).
     public decimal? SetPointTemperature { get; set; }
     public DateTime? CalibrationDueDate { get; set; }
+
+    // Section segregation
+    public int SectionId { get; set; }
+    public DocumentSection? Section { get; set; }
+
+    // Finished Product / HPLC fields
+    public string? Vendor { get; set; }
+    public CdsSoftware? CdsSoftware { get; set; }
+    public string? ConnectionSettings { get; set; }
+
+    // Many-to-many relationship with compatible columns (HPLC instruments only)
+    public List<ChromatographyColumn> CompatibleColumns { get; set; } = new();
 }

@@ -19,5 +19,6 @@ public enum MaterialType
     Indicator,
     ReferenceBuffer,
     DisposableTool,
-    Other
+    Other,
+    ReferenceStandard
 }

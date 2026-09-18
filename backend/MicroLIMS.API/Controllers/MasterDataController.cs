@@ -30,7 +30,29 @@ public record UpdateMachinePartConfigRequest(string TestType, string TestCode, s
 public record CreateSpecificationRequest(int ItemId, string TestCode, string AlertLimit, string ActionLimit, string SpecLimit, string? Unit = null, decimal? DilutionFactor = null);
 public record UpdateSpecificationRequest(string TestCode, string AlertLimit, string ActionLimit, string SpecLimit, string? Unit = null, decimal? DilutionFactor = null);
 public record CreateDiluentTypeRequest(string Name, bool RequiresBatchTracking, int? MaterialId);
-public record CreateEquipmentRequest(string Name, string Code, EquipmentType Type, string? Location, decimal? SetPointTemperature, DateTime? CalibrationDueDate);
+public record CreateEquipmentRequest(
+    string Name,
+    string Code,
+    EquipmentType Type,
+    string? Location,
+    decimal? SetPointTemperature,
+    DateTime? CalibrationDueDate,
+    string? Vendor = null,
+    CdsSoftware? CdsSoftware = null,
+    string? ConnectionSettings = null,
+    int? SectionId = null);
+
+public record UpdateEquipmentRequest(
+    string Name,
+    string Code,
+    EquipmentType Type,
+    string? Location,
+    decimal? SetPointTemperature,
+    DateTime? CalibrationDueDate,
+    string? Vendor = null,
+    CdsSoftware? CdsSoftware = null,
+    string? ConnectionSettings = null,
+    int? SectionId = null);
 public record CreateRoomTestConfigRequest(int RoomId, string TestType, string TestCode, string AlertLimit, string ActionLimit, string SpecLimit, string? Unit = null);
 public record CreateMachinePartConfigRequest(int MachinePartId, string TestType, string TestCode, string AlertLimit, string ActionLimit, string SpecLimit, bool IsPathogenTest, string? Unit = null);
 public record CreateMediaProductRequest(string Name, string Code);
@@ -74,19 +96,22 @@ public class MasterDataController : ControllerBase
     private readonly MediaProductService _mediaProductService;
     private readonly MediaIncubationConditionService _mediaIncubationConditionService;
     private readonly IUserSectionScopeService _scope;
+    private readonly ChromatographyColumnService _columnService;
 
     public MasterDataController(
         MicroLimsDbContext db,
         EquipmentConfigurationService configService,
         MediaProductService mediaProductService,
         MediaIncubationConditionService mediaIncubationConditionService,
-        IUserSectionScopeService scope)
+        IUserSectionScopeService scope,
+        ChromatographyColumnService columnService)
     {
         _db = db;
         _configService = configService;
         _mediaProductService = mediaProductService;
         _mediaIncubationConditionService = mediaIncubationConditionService;
         _scope = scope;
+        _columnService = columnService;
     }
 
     private int CurrentUserId => int.TryParse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value, out var uid) ? uid : 0;
@@ -683,9 +708,24 @@ public class MasterDataController : ControllerBase
     [HttpGet("equipment")]
     public async Task<IActionResult> GetEquipment([FromQuery] EquipmentType? type)
     {
-        var query = _db.Equipment.AsNoTracking().AsQueryable();
+        var scope = await _scope.GetAccessibleSectionIdsAsync(CurrentUserId);
+        var query = _db.Equipment.AsNoTracking().Include(e => e.Section).AsQueryable();
+        if (scope != null) query = query.Where(e => scope.Contains(e.SectionId));
         if (type.HasValue) query = query.Where(e => e.Type == type.Value);
         return Ok(ApiResponse<object>.Ok(await query.ToListAsync()));
+    }
+
+    [HttpGet("equipment/{id:int}")]
+    public async Task<IActionResult> GetEquipmentById(int id)
+    {
+        await _scope.EnsureEquipmentAccessAsync(CurrentUserId, id);
+        var eq = await _db.Equipment.AsNoTracking()
+            .Include(e => e.Section)
+            .Include(e => e.CompatibleColumns)
+            .FirstOrDefaultAsync(e => e.Id == id);
+        if (eq == null)
+            throw new InvalidOperationException($"Equipment {id} not found.");
+        return Ok(ApiResponse<object>.Ok(eq));
     }
 
     [HttpGet("equipment/configured-summary")]
@@ -704,6 +744,7 @@ public class MasterDataController : ControllerBase
     [HttpPut("equipment/{id:int}/set-point")]
     public async Task<IActionResult> UpdateSetPoint(int id, [FromBody] UpdateIncubatorSetPointRequest request)
     {
+        await _scope.EnsureEquipmentAccessAsync(CurrentUserId, id);
         try
         {
             var updated = await _configService.UpdateIncubatorSetPointAsync(id, request, CurrentUserId);
@@ -716,12 +757,18 @@ public class MasterDataController : ControllerBase
     }
 
     [HttpGet("equipment/{id:int}/set-point-history")]
-    public async Task<IActionResult> GetSetPointHistory(int id) =>
-        Ok(ApiResponse<object>.Ok(await _configService.GetIncubatorSetPointHistoryAsync(id)));
+    public async Task<IActionResult> GetSetPointHistory(int id)
+    {
+        await _scope.EnsureEquipmentAccessAsync(CurrentUserId, id);
+        return Ok(ApiResponse<object>.Ok(await _configService.GetIncubatorSetPointHistoryAsync(id)));
+    }
 
     [HttpGet("equipment/{id:int}/autoclave-programs")]
-    public async Task<IActionResult> GetAutoclavePrograms(int id, [FromQuery] bool? activeOnly) =>
-        Ok(ApiResponse<object>.Ok(await _configService.GetAutoclaveProgramsAsync(id, activeOnly)));
+    public async Task<IActionResult> GetAutoclavePrograms(int id, [FromQuery] bool? activeOnly)
+    {
+        await _scope.EnsureEquipmentAccessAsync(CurrentUserId, id);
+        return Ok(ApiResponse<object>.Ok(await _configService.GetAutoclaveProgramsAsync(id, activeOnly)));
+    }
 
     [HttpGet("equipment/autoclave-programs/all")]
     public async Task<IActionResult> GetAllAutoclavePrograms([FromQuery] bool? activeOnly) =>
@@ -731,6 +778,7 @@ public class MasterDataController : ControllerBase
     [HttpPost("equipment/{id:int}/autoclave-programs")]
     public async Task<IActionResult> SaveAutoclaveProgram(int id, [FromBody] SaveAutoclaveProgramRequest request)
     {
+        await _scope.EnsureEquipmentAccessAsync(CurrentUserId, id);
         try
         {
             var req = request with { EquipmentId = id };
@@ -782,15 +830,119 @@ public class MasterDataController : ControllerBase
     [HttpPost("equipment")]
     public async Task<IActionResult> CreateEquipment(CreateEquipmentRequest request)
     {
+        if (string.IsNullOrWhiteSpace(request.Name))
+            throw new InvalidOperationException("Name is required.");
+        if (string.IsNullOrWhiteSpace(request.Code))
+            throw new InvalidOperationException("Code is required.");
+        if (await _db.Equipment.AnyAsync(e => e.Code == request.Code.Trim()))
+            throw new InvalidOperationException($"Equipment code \"{request.Code}\" already exists.");
+
+        if (!string.IsNullOrWhiteSpace(request.Vendor) && request.Vendor.Length > 100)
+            throw new InvalidOperationException("Vendor cannot exceed 100 characters.");
+
+        if (request.Type == EquipmentType.Hplc)
+        {
+            if (!request.CdsSoftware.HasValue)
+                throw new InvalidOperationException("CDS Software is required for HPLC equipment.");
+        }
+        else
+        {
+            if (request.CdsSoftware.HasValue)
+                throw new InvalidOperationException("CDS Software is only allowed for HPLC equipment.");
+        }
+
+        var sectionId = await _scope.ResolveSectionForCreateAsync(CurrentUserId, request.SectionId);
+
         var entity = new Equipment
         {
-            Name = request.Name, Code = request.Code, Type = request.Type, Location = request.Location,
-            SetPointTemperature = request.SetPointTemperature, CalibrationDueDate = request.CalibrationDueDate
+            Name = request.Name.Trim(),
+            Code = request.Code.Trim(),
+            Type = request.Type,
+            Location = request.Location,
+            SetPointTemperature = request.SetPointTemperature,
+            CalibrationDueDate = request.CalibrationDueDate,
+            Vendor = request.Vendor?.Trim(),
+            CdsSoftware = request.CdsSoftware,
+            ConnectionSettings = request.ConnectionSettings,
+            SectionId = sectionId
         };
         _db.Equipment.Add(entity);
         await _db.SaveChangesAsync();
         return Ok(ApiResponse<object>.Ok(entity));
     }
+
+    [Authorize(Roles = RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
+    [HttpPut("equipment/{id:int}")]
+    public async Task<IActionResult> UpdateEquipment(int id, UpdateEquipmentRequest request)
+    {
+        await _scope.EnsureEquipmentAccessAsync(CurrentUserId, id);
+
+        var entity = await _db.Equipment.FirstOrDefaultAsync(e => e.Id == id)
+            ?? throw new InvalidOperationException($"Equipment {id} not found.");
+
+        if (string.IsNullOrWhiteSpace(request.Name))
+            throw new InvalidOperationException("Name is required.");
+        if (string.IsNullOrWhiteSpace(request.Code))
+            throw new InvalidOperationException("Code is required.");
+        if (await _db.Equipment.AnyAsync(e => e.Code == request.Code.Trim() && e.Id != id))
+            throw new InvalidOperationException($"Equipment code \"{request.Code}\" already exists.");
+
+        if (!string.IsNullOrWhiteSpace(request.Vendor) && request.Vendor.Length > 100)
+            throw new InvalidOperationException("Vendor cannot exceed 100 characters.");
+
+        if (request.Type == EquipmentType.Hplc)
+        {
+            if (!request.CdsSoftware.HasValue)
+                throw new InvalidOperationException("CDS Software is required for HPLC equipment.");
+        }
+        else
+        {
+            if (request.CdsSoftware.HasValue)
+                throw new InvalidOperationException("CDS Software is only allowed for HPLC equipment.");
+        }
+
+        if (request.SectionId.HasValue && request.SectionId.Value != entity.SectionId)
+        {
+            entity.SectionId = await _scope.ResolveSectionForCreateAsync(CurrentUserId, request.SectionId);
+        }
+
+        entity.Name = request.Name.Trim();
+        entity.Code = request.Code.Trim();
+        entity.Type = request.Type;
+        entity.Location = request.Location;
+        entity.SetPointTemperature = request.SetPointTemperature;
+        entity.CalibrationDueDate = request.CalibrationDueDate;
+        entity.Vendor = request.Vendor?.Trim();
+        entity.CdsSoftware = request.CdsSoftware;
+        entity.ConnectionSettings = request.ConnectionSettings;
+
+        await _db.SaveChangesAsync();
+        return Ok(ApiResponse<object>.Ok(entity));
+    }
+
+    // ---- Column Master (REQ-FP-011) ----
+    [HttpGet("columns")]
+    public async Task<IActionResult> GetColumns([FromQuery] bool? activeOnly) =>
+        Ok(ApiResponse<object>.Ok(await _columnService.GetAllAsync(CurrentUserId, activeOnly)));
+
+    [HttpGet("columns/{id:int}")]
+    public async Task<IActionResult> GetColumnById(int id) =>
+        Ok(ApiResponse<object>.Ok(await _columnService.GetByIdAsync(id, CurrentUserId)));
+
+    [Authorize(Policy = PermissionConstants.EquipmentManage)]
+    [HttpPost("columns")]
+    public async Task<IActionResult> CreateColumn([FromBody] CreateChromatographyColumnRequest request) =>
+        Ok(ApiResponse<object>.Ok(await _columnService.CreateAsync(request, CurrentUserId)));
+
+    [Authorize(Policy = PermissionConstants.EquipmentManage)]
+    [HttpPut("columns/{id:int}")]
+    public async Task<IActionResult> UpdateColumn(int id, [FromBody] UpdateChromatographyColumnRequest request) =>
+        Ok(ApiResponse<object>.Ok(await _columnService.UpdateAsync(id, request, CurrentUserId)));
+
+    [Authorize(Policy = PermissionConstants.EquipmentManage)]
+    [HttpPut("columns/{id:int}/deactivate")]
+    public async Task<IActionResult> DeactivateColumn(int id) =>
+        Ok(ApiResponse<object>.Ok(await _columnService.DeactivateAsync(id, CurrentUserId)));
 
     // ---- Room Test Configurations (EM) ----
     [HttpGet("room-test-configurations")]

@@ -117,6 +117,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<MediaIncubationConditionService>();
         services.AddScoped<EquipmentInventoryService>();
         services.AddScoped<EquipmentConfigurationService>();
+        services.AddScoped<ChromatographyColumnService>();
         services.AddScoped<PathogenSessionService>();
         services.AddScoped<LocationPathogenObservationService>();
         services.AddScoped<ConfirmationAgreementEvaluator>();

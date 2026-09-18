@@ -102,8 +102,8 @@ public class CryovialCodePostgresIntegrationTests
         await using var db = _fixture.CreateDbContext();
 
         var organism = new Organism { ScientificName = $"Pseudomonas aeruginosa {code}", AtccNumber = $"ATCC {code}" };
-        var incubator = new Equipment { Name = $"Incubator {code}", Code = $"INC-{code}", Type = EquipmentType.Incubator };
         var microSectionId = (await db.DocumentSections.FirstAsync(s => s.Code == "MICRO")).Id;
+        var incubator = new Equipment { SectionId = microSectionId, Name = $"Incubator {code}", Code = $"INC-{code}", Type = EquipmentType.Incubator };
         var panelMaterial = new Material
         {
             SectionId = microSectionId,

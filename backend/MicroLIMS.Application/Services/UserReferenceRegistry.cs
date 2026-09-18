@@ -179,5 +179,9 @@ public static class UserReferenceRegistry
         new UserReferenceEntry(typeof(EquipmentDocumentAccessLog), nameof(EquipmentDocumentAccessLog.UserId), UserReferenceDisposition.Blocks, "No DB FK - append-only access log, confirmed same pattern as ItemDocumentAccessLog"),
         new UserReferenceEntry(typeof(WorkloadWeight), nameof(WorkloadWeight.ChangedByUserId), UserReferenceDisposition.Blocks, "No DB FK - workload weight configuration provenance"),
         new UserReferenceEntry(typeof(WorkloadWeightHistory), nameof(WorkloadWeightHistory.ChangedByUserId), UserReferenceDisposition.Blocks, "No DB FK - workload weight history provenance"),
+
+        // FP HPLC Phase 3 - Slice A1 ChromatographyColumn
+        new UserReferenceEntry(typeof(ChromatographyColumn), nameof(ChromatographyColumn.CreatedByUserId), UserReferenceDisposition.Blocks, "No DB FK - provenance"),
+        new UserReferenceEntry(typeof(ChromatographyColumn), nameof(ChromatographyColumn.LastModifiedByUserId), UserReferenceDisposition.Blocks, "No DB FK - provenance"),
     };
 }

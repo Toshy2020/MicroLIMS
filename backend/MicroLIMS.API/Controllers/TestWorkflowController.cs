@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.DTOs;
 using MicroLIMS.Application.Helpers;
+using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Application.Services;
 using MicroLIMS.Application.Workflows;
 using MicroLIMS.Domain.Entities;
@@ -61,12 +62,14 @@ public class TestWorkflowController : ControllerBase
     private readonly MicroLimsDbContext _db;
     private readonly IncubatorEligibilityService _incubatorEligibility;
     private readonly MediaAppearanceSnapshotService _appearanceSnapshot;
+    private readonly IUserSectionScopeService _scopeService;
     private readonly GroupedTestActionService _groupedTestActionService;
     private readonly CurrentStepViewService _currentStepView;
 
     public TestWorkflowController(
         ITestWorkflowEngine engine, MicroLimsDbContext db,
         IncubatorEligibilityService incubatorEligibility, MediaAppearanceSnapshotService appearanceSnapshot,
+        IUserSectionScopeService scopeService,
         GroupedTestActionService? groupedTestActionService = null,
         CurrentStepViewService? currentStepView = null)
     {
@@ -74,6 +77,7 @@ public class TestWorkflowController : ControllerBase
         _db = db;
         _incubatorEligibility = incubatorEligibility;
         _appearanceSnapshot = appearanceSnapshot;
+        _scopeService = scopeService;
         _groupedTestActionService = groupedTestActionService ?? new GroupedTestActionService(db, engine, incubatorEligibility);
         _currentStepView = currentStepView ?? new CurrentStepViewService(db, engine);
     }
@@ -98,8 +102,10 @@ public class TestWorkflowController : ControllerBase
                 .ToList();
         }
 
+        var userScope = await _scopeService.GetAccessibleSectionIdsAsync(CurrentUserId, ct);
+
         var result = await _groupedTestActionService.GetActionableGroupsAsync(
-            CurrentUserId, CurrentRole, scope, actionType, parsedSampleIds, ct);
+            CurrentUserId, CurrentRole, scope, actionType, parsedSampleIds, userScope, ct);
         return Ok(ApiResponse<ActionableGroupsResponse>.Ok(result));
     }
 
@@ -108,6 +114,11 @@ public class TestWorkflowController : ControllerBase
         [FromBody] BatchSelectMediaRequest request,
         CancellationToken ct = default)
     {
+        if (request.TestOrderIds != null && request.TestOrderIds.Count > 0)
+        {
+            await _scopeService.EnsureTestOrdersAccessAsync(CurrentUserId, request.TestOrderIds, ct);
+        }
+
         try
         {
             var result = await _groupedTestActionService.ExecuteBatchSelectMediaAsync(
@@ -139,11 +150,16 @@ public class TestWorkflowController : ControllerBase
     }
 
     [HttpGet("{testOrderId}/current-step")]
-    public Task<IActionResult> GetCurrentStep(int testOrderId) => RunAsync(() => _currentStepView.GetAsync(testOrderId));
+    public async Task<IActionResult> GetCurrentStep(int testOrderId)
+    {
+        await _scopeService.EnsureTestOrderAccessAsync(CurrentUserId, testOrderId);
+        return await RunAsync(() => _currentStepView.GetAsync(testOrderId));
+    }
 
     [HttpGet("{testOrderId}/sibling-pathogen-orders")]
     public async Task<IActionResult> GetSiblingPathogenOrders(int testOrderId, CancellationToken ct)
     {
+        await _scopeService.EnsureTestOrderAccessAsync(CurrentUserId, testOrderId, ct);
         var siblings = await _engine.GetSiblingPathogenOrdersAsync(testOrderId, ct);
         return Ok(ApiResponse<List<SiblingPathogenOrderDto>>.Ok(siblings));
     }
@@ -151,6 +167,7 @@ public class TestWorkflowController : ControllerBase
     [HttpGet("{testOrderId}/eligible-incubators/{stepMediaId}")]
     public async Task<IActionResult> GetEligibleIncubators(int testOrderId, int stepMediaId)
     {
+        await _scopeService.EnsureTestOrderAccessAsync(CurrentUserId, testOrderId);
         var incubators = await _incubatorEligibility.GetEligibleIncubatorsAsync(stepMediaId);
         var stepMedia = await _db.TestWorkflowStepMedias.FirstOrDefaultAsync(m => m.Id == stepMediaId)
             ?? throw new InvalidOperationException($"Step media {stepMediaId} not found.");
@@ -170,6 +187,7 @@ public class TestWorkflowController : ControllerBase
     [HttpGet("{testOrderId}/permitted-confirmatory-media")]
     public async Task<IActionResult> GetPermittedConfirmatoryMedia(int testOrderId, [FromQuery] string stepName)
     {
+        await _scopeService.EnsureTestOrderAccessAsync(CurrentUserId, testOrderId);
         var order = await _db.TestOrders.FirstOrDefaultAsync(t => t.Id == testOrderId)
             ?? throw new InvalidOperationException($"Test order {testOrderId} not found.");
         var step = await _db.TestWorkflowSteps
@@ -214,119 +232,156 @@ public class TestWorkflowController : ControllerBase
     }
 
     [HttpPost("{testOrderId}/select-media")]
-    public Task<IActionResult> SelectMedia(int testOrderId, SelectMediaRequest request) => RunAsync(async () =>
+    public async Task<IActionResult> SelectMedia(int testOrderId, SelectMediaRequest request)
     {
-        var incubation = await _engine.SelectMediaAsync(testOrderId, request.StepName, request.MediaLotId, request.IncubatorId, CurrentUserId);
-        return new
+        await _scopeService.EnsureTestOrderAccessAsync(CurrentUserId, testOrderId);
+        return await RunAsync(async () =>
         {
-            incubation.Id, incubation.StepName, incubation.Temperature, incubation.Duration,
-            incubation.StartedAt, incubation.ExpectedReadingAt
-        };
-    });
+            var incubation = await _engine.SelectMediaAsync(testOrderId, request.StepName, request.MediaLotId, request.IncubatorId, CurrentUserId);
+            return new
+            {
+                incubation.Id, incubation.StepName, incubation.Temperature, incubation.Duration,
+                incubation.StartedAt, incubation.ExpectedReadingAt
+            };
+        });
+    }
 
     // The transfer IS this call - starting stage 2's incubation closes
     // stage 1 and opens a new Incubation row in one step. See
     // TestWorkflowEngine.StartStage2IncubationAsync.
     [HttpPost("{testOrderId}/start-stage-2-incubation")]
-    public Task<IActionResult> StartStage2Incubation(int testOrderId, StartStage2IncubationRequest request) => RunAsync(async () =>
+    public async Task<IActionResult> StartStage2Incubation(int testOrderId, StartStage2IncubationRequest request)
     {
-        var incubation = await _engine.StartStage2IncubationAsync(testOrderId, request.StepName, request.IncubatorId, CurrentUserId);
-        return new
+        await _scopeService.EnsureTestOrderAccessAsync(CurrentUserId, testOrderId);
+        return await RunAsync(async () =>
         {
-            incubation.Id, incubation.StepName, incubation.StageNumber, incubation.ParentIncubationId,
-            incubation.Temperature, incubation.Duration, incubation.StartedAt, incubation.ExpectedReadingAt
-        };
-    });
+            var incubation = await _engine.StartStage2IncubationAsync(testOrderId, request.StepName, request.IncubatorId, CurrentUserId);
+            return new
+            {
+                incubation.Id, incubation.StepName, incubation.StageNumber, incubation.ParentIncubationId,
+                incubation.Temperature, incubation.Duration, incubation.StartedAt, incubation.ExpectedReadingAt
+            };
+        });
+    }
 
     [HttpPost("{testOrderId}/record-result")]
-    public Task<IActionResult> RecordResult(int testOrderId, RecordTestResultRequest request) => RunAsync(() =>
+    public async Task<IActionResult> RecordResult(int testOrderId, RecordTestResultRequest request)
     {
-        // record-result serves CountTest (PlateCount) steps
-        CountTestPayload payload;
-        if (request.RawPlateReadings is { Count: > 0 })
+        await _scopeService.EnsureTestOrderAccessAsync(CurrentUserId, testOrderId);
+        return await RunAsync(() =>
         {
-            payload = new CountTestPayload(request.RawPlateReadings, request.DilutionFactor ?? 1, request.DilutionFactorOverrideNote);
-        }
-        else if (request.PlateReadings is { Count: > 0 })
-        {
-            payload = new CountTestPayload(request.PlateReadings, request.DilutionFactor ?? 1, request.DilutionFactorOverrideNote);
-        }
-        else
-        {
-            throw new InvalidOperationException("Plate readings are required.");
-        }
+            // record-result serves CountTest (PlateCount) steps
+            CountTestPayload payload;
+            if (request.RawPlateReadings is { Count: > 0 })
+            {
+                payload = new CountTestPayload(request.RawPlateReadings, request.DilutionFactor ?? 1, request.DilutionFactorOverrideNote);
+            }
+            else if (request.PlateReadings is { Count: > 0 })
+            {
+                payload = new CountTestPayload(request.PlateReadings, request.DilutionFactor ?? 1, request.DilutionFactorOverrideNote);
+            }
+            else
+            {
+                throw new InvalidOperationException("Plate readings are required.");
+            }
 
-        return _engine.RecordResultAsync(testOrderId, request.StepName, payload, CurrentUserId);
-    });
+            return _engine.RecordResultAsync(testOrderId, request.StepName, payload, CurrentUserId);
+        });
+    }
 
     // EM/After Cleaning batch grid - one row per location, populated
     // before any result is entered so the analyst can see limits up front.
     [HttpGet("{testOrderId}/locations")]
-    public Task<IActionResult> GetLocations(int testOrderId) => RunAsync(async () =>
+    public async Task<IActionResult> GetLocations(int testOrderId)
     {
-        var locations = await _engine.GetLocationsAsync(testOrderId);
-        return locations.Select(l => new
+        await _scopeService.EnsureTestOrderAccessAsync(CurrentUserId, testOrderId);
+        return await RunAsync(async () =>
         {
-            l.Id,
-            locationType = l.LocationType.ToString(),
-            locationName = l.RoomTestConfiguration?.Room?.Name ?? l.MachinePartConfiguration?.MachinePart?.Name ?? l.WaterSamplingPoint?.Code ?? string.Empty,
-            gradeClassification = l.RoomTestConfiguration?.Room?.GradeClassification,
-            alertLimit = l.AlertLimit ?? l.RoomTestConfiguration?.AlertLimit ?? l.MachinePartConfiguration?.AlertLimit ?? l.SamplingConfiguration?.AlertLimit,
-            actionLimit = l.ActionLimit ?? l.RoomTestConfiguration?.ActionLimit ?? l.MachinePartConfiguration?.ActionLimit ?? l.SamplingConfiguration?.ActionLimit,
-            specLimit = l.SpecLimit ?? l.RoomTestConfiguration?.SpecLimit ?? l.MachinePartConfiguration?.SpecLimit ?? l.SamplingConfiguration?.SpecLimit,
-            l.CFUResult,
-            l.CalculatedResult,
-            l.ReportedResult,
-            l.RawReadings,
-            l.Status,
-            l.EnteredAt
+            var locations = await _engine.GetLocationsAsync(testOrderId);
+            return locations.Select(l => new
+            {
+                l.Id,
+                locationType = l.LocationType.ToString(),
+                locationName = l.RoomTestConfiguration?.Room?.Name ?? l.MachinePartConfiguration?.MachinePart?.Name ?? l.WaterSamplingPoint?.Code ?? string.Empty,
+                gradeClassification = l.RoomTestConfiguration?.Room?.GradeClassification,
+                alertLimit = l.AlertLimit ?? l.RoomTestConfiguration?.AlertLimit ?? l.MachinePartConfiguration?.AlertLimit ?? l.SamplingConfiguration?.AlertLimit,
+                actionLimit = l.ActionLimit ?? l.RoomTestConfiguration?.ActionLimit ?? l.MachinePartConfiguration?.ActionLimit ?? l.SamplingConfiguration?.ActionLimit,
+                specLimit = l.SpecLimit ?? l.RoomTestConfiguration?.SpecLimit ?? l.MachinePartConfiguration?.SpecLimit ?? l.SamplingConfiguration?.SpecLimit,
+                l.CFUResult,
+                l.CalculatedResult,
+                l.ReportedResult,
+                l.RawReadings,
+                l.Status,
+                l.EnteredAt
+            });
         });
-    });
+    }
 
     [HttpPost("{testOrderId}/batch-results")]
-    public Task<IActionResult> RecordBatchResults(int testOrderId, BatchResultsRequest request) => RunAsync(() =>
+    public async Task<IActionResult> RecordBatchResults(int testOrderId, BatchResultsRequest request)
     {
-        var locations = request.Locations.Select(l => new BatchLocationReadings(l.SampleLocationId, l.Readings)).ToList();
-        return _engine.RecordBatchResultsAsync(testOrderId, locations, CurrentUserId);
-    });
+        await _scopeService.EnsureTestOrderAccessAsync(CurrentUserId, testOrderId);
+        return await RunAsync(() =>
+        {
+            var locations = request.Locations.Select(l => new BatchLocationReadings(l.SampleLocationId, l.Readings)).ToList();
+            return _engine.RecordBatchResultsAsync(testOrderId, locations, CurrentUserId);
+        });
+    }
 
     // Water batch count entry - one set of plate readings per sampling
     // point, averaged with no shared dilution factor (see
     // TestWorkflowEngine.RecordWaterBatchReadingsAsync).
     [HttpPost("{testOrderId}/water-batch-readings")]
-    public Task<IActionResult> RecordWaterBatchReadings(int testOrderId, WaterBatchReadingsRequest request) => RunAsync(() =>
+    public async Task<IActionResult> RecordWaterBatchReadings(int testOrderId, WaterBatchReadingsRequest request)
     {
-        var locations = request.Locations.Select(l => new WaterBatchLocationReadings(l.SampleLocationId, l.Readings)).ToList();
-        return _engine.RecordWaterBatchReadingsAsync(testOrderId, locations, CurrentUserId);
-    });
+        await _scopeService.EnsureTestOrderAccessAsync(CurrentUserId, testOrderId);
+        return await RunAsync(() =>
+        {
+            var locations = request.Locations.Select(l => new WaterBatchLocationReadings(l.SampleLocationId, l.Readings)).ToList();
+            return _engine.RecordWaterBatchReadingsAsync(testOrderId, locations, CurrentUserId);
+        });
+    }
 
     // EM/After Cleaning multi-window incubation - closes the currently
     // open (non-final) window once its minimum duration has elapsed.
     // The analyst then calls select-media again for the next step, same
     // as opening the first window.
     [HttpPost("{testOrderId}/close-incubation-window")]
-    public Task<IActionResult> CloseIncubationWindow(int testOrderId) => RunAsync(async () =>
+    public async Task<IActionResult> CloseIncubationWindow(int testOrderId)
     {
-        var incubation = await _engine.CloseCurrentIncubationWindowAsync(testOrderId, CurrentUserId);
-        return new { incubation.Id, incubation.StepName, incubation.CompletedAt };
-    });
+        await _scopeService.EnsureTestOrderAccessAsync(CurrentUserId, testOrderId);
+        return await RunAsync(async () =>
+        {
+            var incubation = await _engine.CloseCurrentIncubationWindowAsync(testOrderId, CurrentUserId);
+            return new { incubation.Id, incubation.StepName, incubation.CompletedAt };
+        });
+    }
 
     [HttpPost("{testOrderId}/batch-pathogen-results")]
-    public Task<IActionResult> RecordBatchPathogenResults(int testOrderId, BatchPathogenResultsRequest request) => RunAsync(() =>
+    public async Task<IActionResult> RecordBatchPathogenResults(int testOrderId, BatchPathogenResultsRequest request)
     {
-        var observations = request.Locations.Select(l => new BatchLocationObservation(
-            l.SampleLocationId,
-            l.GrowthObserved ?? throw new InvalidOperationException("A growth observation is required for every location."))).ToList();
-        return _engine.RecordBatchPathogenResultsAsync(testOrderId, observations, CurrentUserId);
-    });
+        await _scopeService.EnsureTestOrderAccessAsync(CurrentUserId, testOrderId);
+        return await RunAsync(() =>
+        {
+            var observations = request.Locations.Select(l => new BatchLocationObservation(
+                l.SampleLocationId,
+                l.GrowthObserved ?? throw new InvalidOperationException("A growth observation is required for every location."))).ToList();
+            return _engine.RecordBatchPathogenResultsAsync(testOrderId, observations, CurrentUserId);
+        });
+    }
 
     [HttpPost("{testOrderId}/submit-broth")]
-    public Task<IActionResult> SubmitBroth(int testOrderId, SubmitBrothRequest request) =>
-        RunAsync(() => _engine.SubmitBrothAsync(testOrderId, request.StepName, request.Observation, CurrentUserId));
+    public async Task<IActionResult> SubmitBroth(int testOrderId, SubmitBrothRequest request)
+    {
+        await _scopeService.EnsureTestOrderAccessAsync(CurrentUserId, testOrderId);
+        return await RunAsync(() => _engine.SubmitBrothAsync(testOrderId, request.StepName, request.Observation, CurrentUserId));
+    }
 
     [HttpPost("{testOrderId}/start-selective-plating-incubation")]
-    public Task<IActionResult> StartSelectivePlatingIncubation(int testOrderId, StartSelectivePlatingIncubationRequest request) =>
-        RunAsync(async () =>
+    public async Task<IActionResult> StartSelectivePlatingIncubation(int testOrderId, StartSelectivePlatingIncubationRequest request)
+    {
+        await _scopeService.EnsureTestOrderAccessAsync(CurrentUserId, testOrderId);
+        return await RunAsync(async () =>
         {
             var incubation = await _engine.StartSelectivePlatingIncubationAsync(
                 testOrderId, request.StepName, request.MediaLotId, request.EquipmentId, request.IncubationStartUtc, CurrentUserId);
@@ -339,11 +394,15 @@ public class TestWorkflowController : ControllerBase
                 incubation.ExpectedReadingAt
             };
         });
+    }
 
     [HttpPost("{testOrderId}/submit-selective-plating-observation")]
-    public Task<IActionResult> SubmitSelectivePlatingObservation(int testOrderId, SubmitSelectivePlatingObservationRequest request) =>
-        RunAsync(() => _engine.SubmitSelectivePlatingObservationAsync(
+    public async Task<IActionResult> SubmitSelectivePlatingObservation(int testOrderId, SubmitSelectivePlatingObservationRequest request)
+    {
+        await _scopeService.EnsureTestOrderAccessAsync(CurrentUserId, testOrderId);
+        return await RunAsync(() => _engine.SubmitSelectivePlatingObservationAsync(
             testOrderId, request.StepName, request.Observation, request.ObservedAppearanceNote, CurrentUserId));
+    }
 
     [HttpPost("{testOrderId}/submit-selective-plating")]
     [Obsolete("Use start-selective-plating-incubation followed by submit-selective-plating-observation.")]
@@ -362,36 +421,63 @@ public class TestWorkflowController : ControllerBase
     }
 
     [HttpPost("{testOrderId}/submit-confirmatory-setup")]
-    public Task<IActionResult> SubmitConfirmatorySetup(int testOrderId, SubmitConfirmatorySetupRequest request) =>
-        RunAsync(() => _engine.SubmitConfirmatorySetupAsync(testOrderId, request.StepName,
+    public async Task<IActionResult> SubmitConfirmatorySetup(int testOrderId, SubmitConfirmatorySetupRequest request)
+    {
+        await _scopeService.EnsureTestOrderAccessAsync(CurrentUserId, testOrderId);
+        return await RunAsync(() => _engine.SubmitConfirmatorySetupAsync(testOrderId, request.StepName,
             request.Selections.Select(s => new ConfirmatorySelectionInput(s.StepMediaId, s.MediaLotId, s.EquipmentId)).ToList(),
             request.IncubationStartUtc, request.IncubationEndUtc, CurrentUserId));
+    }
 
     [HttpPost("{testOrderId}/submit-confirmatory-observations")]
-    public Task<IActionResult> SubmitConfirmatoryObservations(int testOrderId, SubmitConfirmatoryObservationsRequest request) =>
-        RunAsync(() => _engine.SubmitConfirmatoryObservationsAsync(testOrderId, request.StepName,
+    public async Task<IActionResult> SubmitConfirmatoryObservations(int testOrderId, SubmitConfirmatoryObservationsRequest request)
+    {
+        await _scopeService.EnsureTestOrderAccessAsync(CurrentUserId, testOrderId);
+        return await RunAsync(() => _engine.SubmitConfirmatoryObservationsAsync(testOrderId, request.StepName,
             request.Observations.Select(o => new ConfirmatoryObservationInput(o.MaterialId, o.Observation)).ToList(),
             CurrentUserId));
+    }
 
     [HttpPost("{testOrderId}/analyst-decision")]
-    public Task<IActionResult> RecordAnalystDecision(int testOrderId, AnalystDecisionRequest request) =>
-        RunAsync(() => _engine.RecordAnalystDecisionAsync(testOrderId, request.Decision, CurrentUserId));
+    public async Task<IActionResult> RecordAnalystDecision(int testOrderId, AnalystDecisionRequest request)
+    {
+        await _scopeService.EnsureTestOrderAccessAsync(CurrentUserId, testOrderId);
+        return await RunAsync(() => _engine.RecordAnalystDecisionAsync(testOrderId, request.Decision, CurrentUserId));
+    }
 
     [HttpPost("{testOrderId}/submit-biochemical")]
-    public Task<IActionResult> SubmitBiochemical(int testOrderId, SubmitBiochemicalRequest request) =>
-        RunAsync(() => _engine.SubmitBiochemicalAsync(testOrderId, request.StepName,
+    public async Task<IActionResult> SubmitBiochemical(int testOrderId, SubmitBiochemicalRequest request)
+    {
+        await _scopeService.EnsureTestOrderAccessAsync(CurrentUserId, testOrderId);
+        return await RunAsync(() => _engine.SubmitBiochemicalAsync(testOrderId, request.StepName,
             request.BiochemicalResultText, request.AttachmentId, request.OrganismDetected, CurrentUserId));
+    }
 
     [Authorize(Roles = RoleConstants.Reviewer + "," + RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
     [HttpPost("results/{workflowStepResultId}/biochemical-decision")]
-    public Task<IActionResult> RecordBiochemicalDecision(int workflowStepResultId, BiochemicalReviewRequest request) =>
-        RunAsync(() => _engine.RecordBiochemicalReviewDecisionAsync(
+    public async Task<IActionResult> RecordBiochemicalDecision(int workflowStepResultId, BiochemicalReviewRequest request)
+    {
+        var testOrderId = await _db.WorkflowStepResults
+            .AsNoTracking()
+            .Where(w => w.Id == workflowStepResultId)
+            .Select(w => (int?)w.TestOrderId)
+            .FirstOrDefaultAsync();
+        if (testOrderId.HasValue)
+        {
+            await _scopeService.EnsureTestOrderAccessAsync(CurrentUserId, testOrderId.Value);
+        }
+
+        return await RunAsync(() => _engine.RecordBiochemicalReviewDecisionAsync(
             workflowStepResultId, request.Approve, request.Comment, CurrentUserId));
+    }
 
     // Bypasses the minimum-duration wait gate for the currently open
     // incubation only - never changes the recorded window/temperature.
     [Authorize(Roles = RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
     [HttpPost("{testOrderId}/override-minimum-duration")]
-    public Task<IActionResult> OverrideMinimumDuration(int testOrderId) =>
-        RunAsync(() => _engine.OverrideMinimumDurationAsync(testOrderId, CurrentUserId));
+    public async Task<IActionResult> OverrideMinimumDuration(int testOrderId)
+    {
+        await _scopeService.EnsureTestOrderAccessAsync(CurrentUserId, testOrderId);
+        return await RunAsync(() => _engine.OverrideMinimumDurationAsync(testOrderId, CurrentUserId));
+    }
 }

@@ -1,5 +1,6 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Application.Services;
 using MicroLIMS.Application.Workflows;
 using MicroLIMS.Shared.Constants;
@@ -13,10 +14,12 @@ namespace MicroLIMS.API.Controllers;
 public class PathogenSessionController : ControllerBase
 {
     private readonly PathogenSessionService _sessionService;
+    private readonly IUserSectionScopeService _scopeService;
 
-    public PathogenSessionController(PathogenSessionService sessionService)
+    public PathogenSessionController(PathogenSessionService sessionService, IUserSectionScopeService scopeService)
     {
         _sessionService = sessionService;
+        _scopeService = scopeService;
     }
 
     private int CurrentUserId => int.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)!.Value);
@@ -24,6 +27,7 @@ public class PathogenSessionController : ControllerBase
     [HttpGet("{sampleId:int}")]
     public async Task<IActionResult> GetSession(int sampleId)
     {
+        await _scopeService.EnsurePathogenSampleAccessAsync(CurrentUserId, sampleId);
         var session = await _sessionService.GetSessionAsync(sampleId);
         if (session == null)
             return NotFound(ApiResponse<string>.Fail("Testing session / sample not found."));
@@ -34,6 +38,7 @@ public class PathogenSessionController : ControllerBase
     [HttpPost("{sampleId:int}/start-tsb")]
     public async Task<IActionResult> StartSharedTsb(int sampleId, [FromBody] StartSharedTsbRequest request)
     {
+        await _scopeService.EnsurePathogenSampleAccessAsync(CurrentUserId, sampleId);
         try
         {
             var res = await _sessionService.StartSharedTsbAsync(sampleId, request, CurrentUserId);
@@ -52,6 +57,7 @@ public class PathogenSessionController : ControllerBase
     [HttpPost("{sampleId:int}/save-matrix")]
     public async Task<IActionResult> SaveResultMatrix(int sampleId, [FromBody] SaveResultMatrixRequest request)
     {
+        await _scopeService.EnsurePathogenSampleAccessAsync(CurrentUserId, sampleId);
         try
         {
             var session = await _sessionService.SaveResultMatrixAsync(sampleId, request, CurrentUserId);
@@ -70,6 +76,7 @@ public class PathogenSessionController : ControllerBase
     [HttpPost("{sampleId:int}/save-primary-observations")]
     public async Task<IActionResult> SavePrimaryObservations(int sampleId, [FromBody] SavePrimaryObservationsRequest request)
     {
+        await _scopeService.EnsurePathogenSampleAccessAsync(CurrentUserId, sampleId);
         try
         {
             var session = await _sessionService.SavePrimaryObservationsAsync(sampleId, request, CurrentUserId);
@@ -88,6 +95,7 @@ public class PathogenSessionController : ControllerBase
     [HttpGet("{sampleId:int}/eligible-confirmations")]
     public async Task<IActionResult> GetEligibleConfirmations(int sampleId, [FromQuery] int? testOrderId = null)
     {
+        await _scopeService.EnsurePathogenSampleAccessAsync(CurrentUserId, sampleId);
         try
         {
             var eligible = await _sessionService.GetEligibleLocationsForConfirmationAsync(sampleId, testOrderId);
@@ -102,6 +110,7 @@ public class PathogenSessionController : ControllerBase
     [HttpPost("{sampleId:int}/start-confirmatory-setup")]
     public async Task<IActionResult> StartConfirmatorySetup(int sampleId, [FromBody] BatchConfirmatorySetupRequest request)
     {
+        await _scopeService.EnsurePathogenSampleAccessAsync(CurrentUserId, sampleId);
         try
         {
             var session = await _sessionService.StartSharedConfirmatorySetupAsync(sampleId, request, CurrentUserId);
@@ -120,6 +129,7 @@ public class PathogenSessionController : ControllerBase
     [HttpPost("{sampleId:int}/save-confirmatory-readings")]
     public async Task<IActionResult> SaveConfirmatoryReadings(int sampleId, [FromBody] SaveBatchConfirmatoryPlateReadingsRequest request)
     {
+        await _scopeService.EnsurePathogenSampleAccessAsync(CurrentUserId, sampleId);
         try
         {
             var session = await _sessionService.SaveBatchConfirmatoryPlateReadingsAsync(sampleId, request, CurrentUserId);
@@ -138,6 +148,7 @@ public class PathogenSessionController : ControllerBase
     [HttpPost("{sampleId:int}/complete")]
     public async Task<IActionResult> CompleteSession(int sampleId)
     {
+        await _scopeService.EnsurePathogenSampleAccessAsync(CurrentUserId, sampleId);
         try
         {
             var session = await _sessionService.CompleteSessionAsync(sampleId, CurrentUserId);
@@ -159,6 +170,7 @@ public class PathogenSessionController : ControllerBase
     [Authorize(Roles = RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
     public async Task<IActionResult> ResetSession(int sampleId, [FromBody] ResetPathogenSessionRequest? request)
     {
+        await _scopeService.EnsurePathogenSampleAccessAsync(CurrentUserId, sampleId);
         try
         {
             var session = await _sessionService.ResetSessionAsync(sampleId, request?.Reason, CurrentUserId);

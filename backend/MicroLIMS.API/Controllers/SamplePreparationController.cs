@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using MicroLIMS.Application.DTOs;
+using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Application.Services;
 using MicroLIMS.Shared.Responses;
 
@@ -27,10 +28,12 @@ public record BatchConfirmPreparationHttpRequest(List<int> SampleIds, int Config
 public class SamplePreparationController : ControllerBase
 {
     private readonly SamplePreparationService _service;
+    private readonly IUserSectionScopeService _scopeService;
 
-    public SamplePreparationController(SamplePreparationService service)
+    public SamplePreparationController(SamplePreparationService service, IUserSectionScopeService scopeService)
     {
         _service = service;
+        _scopeService = scopeService;
     }
 
     private int CurrentUserId => int.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)!.Value);
@@ -39,6 +42,7 @@ public class SamplePreparationController : ControllerBase
     [HttpPost]
     public async Task<IActionResult> Prepare(PrepareSampleHttpRequest r)
     {
+        await _scopeService.EnsureSampleAccessAsync(CurrentUserId, r.SampleId);
         var prep = await _service.PrepareAsync(new PrepareSampleRequest(
             r.SampleId, r.Amount, r.Technique, r.FiltrationVolume, r.WashingVolume,
             r.Diluent, r.Neutralizer, CurrentUserId, r.Password), ClientIp);
@@ -49,6 +53,7 @@ public class SamplePreparationController : ControllerBase
     [HttpPost("confirm")]
     public async Task<IActionResult> Confirm(ConfirmPreparationHttpRequest r)
     {
+        await _scopeService.EnsureSampleAccessAsync(CurrentUserId, r.SampleId);
         var prep = await _service.ConfirmFromConfigurationAsync(
             new ConfirmPreparationRequest(r.SampleId, CurrentUserId, r.Password), ClientIp);
 
@@ -68,6 +73,9 @@ public class SamplePreparationController : ControllerBase
             .Select(id => id!.Value)
             .ToList();
 
+        foreach (var id in ids)
+            await _scopeService.EnsureSampleAccessAsync(CurrentUserId, id, ct);
+
         var result = await _service.GetGroupedPreparationAsync(ids, CurrentUserId, ct);
         return Ok(ApiResponse<GroupedPreparationResponse>.Ok(result));
     }
@@ -75,6 +83,14 @@ public class SamplePreparationController : ControllerBase
     [HttpPost("batch-confirm")]
     public async Task<IActionResult> BatchConfirm(BatchConfirmPreparationHttpRequest r, CancellationToken ct = default)
     {
+        if (r.SampleIds != null && r.SampleIds.Count > 0)
+        {
+            foreach (var sampleId in r.SampleIds)
+            {
+                await _scopeService.EnsureSampleAccessAsync(CurrentUserId, sampleId, ct);
+            }
+        }
+
         var result = await _service.ConfirmBatchFromConfigurationAsync(
             new BatchConfirmPreparationRequest(r.SampleIds, r.ConfigurationId, r.Password),
             CurrentUserId, ClientIp, ct);
@@ -83,8 +99,11 @@ public class SamplePreparationController : ControllerBase
     }
 
     [HttpGet("{sampleId}/is-prepared")]
-    public async Task<IActionResult> IsPrepared(int sampleId) =>
-        Ok(ApiResponse<object>.Ok(new { prepared = await _service.IsPreparedAsync(sampleId) }));
+    public async Task<IActionResult> IsPrepared(int sampleId)
+    {
+        await _scopeService.EnsureSampleAccessAsync(CurrentUserId, sampleId);
+        return Ok(ApiResponse<object>.Ok(new { prepared = await _service.IsPreparedAsync(sampleId) }));
+    }
 
     // Avoid the SamplePreparation <-> Sample <-> TestOrders navigation
     // cycle when serializing (auto-assign loads the sample's TestOrders

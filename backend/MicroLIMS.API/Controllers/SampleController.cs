@@ -48,15 +48,18 @@ public class SampleController : ControllerBase
     private readonly IReceivingService _receivingService;
     private readonly SampleCorrectionService _correctionService;
     private readonly SampleAssignmentService _assignmentService;
+    private readonly IUserSectionScopeService _scopeService;
 
     public SampleController(
         IReceivingService receivingService,
         SampleCorrectionService correctionService,
-        SampleAssignmentService assignmentService)
+        SampleAssignmentService assignmentService,
+        IUserSectionScopeService scopeService)
     {
         _receivingService = receivingService;
         _correctionService = correctionService;
         _assignmentService = assignmentService;
+        _scopeService = scopeService;
     }
 
     private int CurrentUserId => int.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)!.Value);
@@ -85,6 +88,7 @@ public class SampleController : ControllerBase
     [Authorize(Roles = RoleConstants.Reviewer + "," + RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
     public async Task<IActionResult> Correct(int id, CorrectSampleRequest request)
     {
+        await _scopeService.EnsureSampleAccessAsync(CurrentUserId, id);
         try
         {
             var sample = await _correctionService.CorrectAsync(
@@ -111,6 +115,7 @@ public class SampleController : ControllerBase
     [Authorize(Roles = RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
     public async Task<IActionResult> AssignAnalyst(int id, AssignAnalystRequest request)
     {
+        await _scopeService.EnsureSampleAccessAsync(CurrentUserId, id);
         try
         {
             var sample = await _assignmentService.AssignAnalystAsync(id, request.AnalystUserId, CurrentUserId, request.Reason);
@@ -126,6 +131,7 @@ public class SampleController : ControllerBase
     [Authorize(Roles = RoleConstants.Reviewer + "," + RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
     public async Task<IActionResult> Void(int id, [FromBody] VoidSampleRequest request)
     {
+        await _scopeService.EnsureSampleAccessAsync(CurrentUserId, id);
         try
         {
             var sample = await _correctionService.VoidAsync(

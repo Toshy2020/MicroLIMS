@@ -513,10 +513,26 @@ public class ReturnToAnalystTests
         await using var db = NewDb();
         var (order, analyst, reviewer, _) = await SeedCompletedTamcOrderAsync(db);
 
+        var section = TestServiceFactory.EnsureMicroSection(db);
+        order.SectionId = section.Id;
+        await db.SaveChangesAsync();
+        TestServiceFactory.AssignUserToMicroSection(db, analyst.Id);
+
         var engine = TestServiceFactory.TestWorkflow(db);
         var eligibility = TestServiceFactory.IncubatorEligibility(db);
         var snapshot = TestServiceFactory.AppearanceSnapshot(db);
-        var controller = new TestWorkflowController(engine, db, eligibility, snapshot);
+        var controller = new TestWorkflowController(engine, db, eligibility, snapshot, new UserSectionScopeService(db));
+        controller.ControllerContext = new ControllerContext
+        {
+            HttpContext = new Microsoft.AspNetCore.Http.DefaultHttpContext
+            {
+                User = new System.Security.Claims.ClaimsPrincipal(new System.Security.Claims.ClaimsIdentity(new[]
+                {
+                    new System.Security.Claims.Claim(System.Security.Claims.ClaimTypes.NameIdentifier, analyst.Id.ToString()),
+                    new System.Security.Claims.Claim(System.Security.Claims.ClaimTypes.Role, RoleType.Analyst.ToString())
+                }, "TestAuth"))
+            }
+        };
 
         // Before return: returnInfo is null
         var actionResultBefore = await controller.GetCurrentStep(order.Id);

@@ -52,6 +52,7 @@ public class GroupedTestActionService
         string? scope = "mine",
         string? actionType = null,
         List<int>? sampleIds = null,
+        IReadOnlyList<int>? sectionScope = null,
         CancellationToken ct = default)
     {
         var query = _db.TestOrders
@@ -62,6 +63,11 @@ public class GroupedTestActionService
             .Include(t => t.Incubations)
             .Where(t => !t.IsSuperseded && (t.Status == ApprovalStatus.Pending || t.Status == ApprovalStatus.InProgress))
             .AsQueryable();
+
+        if (sectionScope != null)
+        {
+            query = query.Where(t => sectionScope.Contains(t.SectionId));
+        }
 
         var isMineScope = string.Equals(scope, "mine", StringComparison.OrdinalIgnoreCase) ||
                           (currentRole == RoleType.Analyst && !string.Equals(scope, "all", StringComparison.OrdinalIgnoreCase));

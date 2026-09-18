@@ -117,4 +117,119 @@ public class UserSectionScopeService : IUserSectionScopeService
 
         throw new InvalidOperationException("Choose a laboratory section - you belong to more than one.");
     }
+
+    public async Task EnsureTestOrderAccessAsync(int userId, int testOrderId, CancellationToken ct = default)
+    {
+        var scope = await GetAccessibleSectionIdsAsync(userId, ct);
+        if (scope is null) return;
+
+        var sectionId = await _db.TestOrders
+            .AsNoTracking()
+            .Where(t => t.Id == testOrderId)
+            .Select(t => (int?)t.SectionId)
+            .FirstOrDefaultAsync(ct);
+
+        if (sectionId is null) return;
+
+        if (!scope.Contains(sectionId.Value))
+        {
+            throw new UnauthorizedAccessException("This test belongs to a laboratory section you are not assigned to.");
+        }
+    }
+
+    public async Task EnsureTestOrdersAccessAsync(int userId, IEnumerable<int> testOrderIds, CancellationToken ct = default)
+    {
+        var scope = await GetAccessibleSectionIdsAsync(userId, ct);
+        if (scope is null) return;
+
+        var idList = testOrderIds as IReadOnlyCollection<int> ?? testOrderIds.Distinct().ToList();
+        if (idList.Count == 0) return;
+
+        var sectionIds = await _db.TestOrders
+            .AsNoTracking()
+            .Where(t => idList.Contains(t.Id))
+            .Select(t => t.SectionId)
+            .Distinct()
+            .ToListAsync(ct);
+
+        if (sectionIds.Any(s => !scope.Contains(s)))
+        {
+            throw new UnauthorizedAccessException("This test belongs to a laboratory section you are not assigned to.");
+        }
+    }
+
+    public async Task EnsureSampleAccessAsync(int userId, int sampleId, CancellationToken ct = default)
+    {
+        var scope = await GetAccessibleSectionIdsAsync(userId, ct);
+        if (scope is null) return;
+
+        var sampleInfo = await _db.Samples
+            .AsNoTracking()
+            .Where(s => s.Id == sampleId)
+            .Select(s => new
+            {
+                OrderSectionIds = s.TestOrders
+                    .Where(t => !t.IsSuperseded)
+                    .Select(t => t.SectionId)
+                    .ToList()
+            })
+            .FirstOrDefaultAsync(ct);
+
+        if (sampleInfo is null) return;
+
+        if (!sampleInfo.OrderSectionIds.Any(s => scope.Contains(s)))
+        {
+            throw new UnauthorizedAccessException("This test belongs to a laboratory section you are not assigned to.");
+        }
+    }
+
+    public async Task EnsureIncubationAccessAsync(int userId, int incubationId, CancellationToken ct = default)
+    {
+        var scope = await GetAccessibleSectionIdsAsync(userId, ct);
+        if (scope is null) return;
+
+        var incInfo = await _db.Incubations
+            .AsNoTracking()
+            .Where(i => i.Id == incubationId)
+            .Select(i => new
+            {
+                i.TestOrderId,
+                SectionId = i.TestOrder != null ? (int?)i.TestOrder.SectionId : null
+            })
+            .FirstOrDefaultAsync(ct);
+
+        if (incInfo is null) return;
+        if (!incInfo.TestOrderId.HasValue) return;
+
+        if (!incInfo.SectionId.HasValue || !scope.Contains(incInfo.SectionId.Value))
+        {
+            throw new UnauthorizedAccessException("This test belongs to a laboratory section you are not assigned to.");
+        }
+    }
+
+    public async Task EnsurePathogenSampleAccessAsync(int userId, int sampleId, CancellationToken ct = default)
+    {
+        var scope = await GetAccessibleSectionIdsAsync(userId, ct);
+        if (scope is null) return;
+
+        var sampleExists = await _db.Samples
+            .AsNoTracking()
+            .AnyAsync(s => s.Id == sampleId, ct);
+
+        if (!sampleExists) return;
+
+        var pathogenSectionIds = await (
+            from t in _db.TestOrders.AsNoTracking()
+            join td in _db.TestDefinitions.AsNoTracking() on t.TestCode equals td.Code
+            where t.SampleId == sampleId
+                  && !t.IsSuperseded
+                  && td.WorkflowType == WorkflowType.Observation
+            select t.SectionId
+        ).ToListAsync(ct);
+
+        if (pathogenSectionIds.Any(s => !scope.Contains(s)))
+        {
+            throw new UnauthorizedAccessException("This test belongs to a laboratory section you are not assigned to.");
+        }
+    }
 }

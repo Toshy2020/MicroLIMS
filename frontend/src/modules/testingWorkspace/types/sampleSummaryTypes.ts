@@ -115,6 +115,8 @@ export interface TestOrderSummaryDetail {
   isResultEntryAllowed?: boolean;
   resultLockReason?: string | null;
   isSuperseded: boolean;
+  sectionId?: number;
+  sectionName?: string;
   incubations: IncubationDetail[];
   results: ResultDetail[];
   countTestReadings: CountTestReadingDetail[];
@@ -122,6 +124,30 @@ export interface TestOrderSummaryDetail {
   biochemicalResults: BiochemicalResultDetail[];
   workflowHistory: WorkflowHistoryDetail[];
   locations: SampleLocationDetail[];
+}
+
+export type LaboratorySectionStatus =
+  | "InTesting"
+  | "UnderReview"
+  | "UnderApproval"
+  | "Approved"
+  | "Rejected"
+  | "RetestRequested"
+  | "Cancelled"
+  | "Voided";
+
+export interface SampleSectionSummaryDetail {
+  sectionId: number;
+  sectionCode: string;
+  sectionName: string;
+  status: LaboratorySectionStatus;
+  canView: boolean;
+  reviewedByName: string | null;
+  reviewedAt: string | null;
+  approvedByName: string | null;
+  approvedAt: string | null;
+  approvalDecision: string | null;
+  certificateRemarks: string | null;
 }
 
 export interface SamplePreparationSummary {
@@ -191,4 +217,6 @@ export interface SampleSummary {
   testOrders: TestOrderSummaryDetail[];
   timeline: SampleWorkflowEvent[];
   signatures: SignatureTrailItem[];
+  sections?: SampleSectionSummaryDetail[];
+  allSectionsVisible?: boolean;
 }

@@ -51,7 +51,8 @@ import {
   SampleSummary,
   TestOrderSummaryDetail,
   SampleLocationDetail,
-  IncubationDetail
+  IncubationDetail,
+  SampleSectionSummaryDetail
 } from "./types/sampleSummaryTypes";
 import { pathogenObservationLabel } from "./utils/pathogenObservationLabel";
 import { PathogenSessionDialog } from "./pathogenSession/PathogenSessionDialog";
@@ -62,6 +63,29 @@ interface Props {
   sampleId: number | null;
   onClose: () => void;
 }
+
+const formatSectionStatus = (status: string): string => {
+  switch (status) {
+    case "InTesting":
+      return "In testing";
+    case "UnderReview":
+      return "Under review";
+    case "UnderApproval":
+      return "Under approval";
+    case "Approved":
+      return "Approved";
+    case "Rejected":
+      return "Rejected";
+    case "RetestRequested":
+      return "Retest requested";
+    case "Cancelled":
+      return "Cancelled";
+    case "Voided":
+      return "Voided";
+    default:
+      return status.replace(/([a-z])([A-Z])/g, "$1 $2");
+  }
+};
 
 const formatDate = (d: string | null | undefined) =>
   d
@@ -664,6 +688,14 @@ function TestResultsSection({
                   <Typography sx={{ fontWeight: 700, fontSize: 14, color: "text.primary" }}>
                     {order.testCode} — {order.testDisplayName}
                   </Typography>
+                  {order.sectionName && (
+                    <Chip
+                      label={order.sectionName}
+                      size="small"
+                      variant="outlined"
+                      sx={{ fontSize: 11, height: 20 }}
+                    />
+                  )}
                   <StatusBadge status={order.workflowStateDisplay || order.status} />
                   {order.isSuperseded && <StatusBadge status="Superseded" />}
                 </Stack>
@@ -794,7 +826,14 @@ function ApprovalSignaturesCard({
   newSampleAnalystTwoId,
   setNewSampleAnalystTwoId,
   onReviewClick,
-  onApproveClick
+  onApproveClick,
+  reviewableSections,
+  reviewSectionId,
+  onReviewSectionChange,
+  approvableSections,
+  approvalSectionId,
+  onApprovalSectionChange,
+  effectiveApprovalSectionId
 }: {
   summary: SampleSummary;
   canReview: boolean;
@@ -814,6 +853,13 @@ function ApprovalSignaturesCard({
   setNewSampleAnalystTwoId: (id: number | "") => void;
   onReviewClick: () => void;
   onApproveClick: () => void;
+  reviewableSections: SampleSectionSummaryDetail[];
+  reviewSectionId: number | "";
+  onReviewSectionChange: (id: number | "") => void;
+  approvableSections: SampleSectionSummaryDetail[];
+  approvalSectionId: number | "";
+  onApprovalSectionChange: (id: number | "") => void;
+  effectiveApprovalSectionId: number | undefined;
 }) {
   const theme = useTheme();
   const hasSignatures = summary.signatures.length > 0;
@@ -821,11 +867,20 @@ function ApprovalSignaturesCard({
   const isRejected = summary.status === "Rejected";
 
   const isRetestDecision = decision === "RetestRetainedSample" || decision === "NewSampleRequest";
+  const sectionChosen = approvableSections.length <= 1 || approvalSectionId !== "";
   const decisionValid =
-    !isRetestDecision ||
-    (selectedTestOrderIds.length > 0 &&
-      (decision !== "NewSampleRequest" ||
-        (newSampleAnalystOneId !== "" && newSampleAnalystTwoId !== "" && newSampleAnalystOneId !== newSampleAnalystTwoId)));
+    sectionChosen &&
+    (!isRetestDecision ||
+      (selectedTestOrderIds.length > 0 &&
+        (decision !== "NewSampleRequest" ||
+          (newSampleAnalystOneId !== "" && newSampleAnalystTwoId !== "" && newSampleAnalystOneId !== newSampleAnalystTwoId))));
+
+  const eligibleRetestOrders = summary.testOrders.filter(
+    (t) => !t.isSuperseded && (effectiveApprovalSectionId == null || t.sectionId === effectiveApprovalSectionId)
+  );
+
+  const activeReviewSectionId = reviewableSections.length === 1 ? reviewableSections[0].sectionId : reviewSectionId;
+  const activeReviewSection = reviewableSections.find((s) => s.sectionId === activeReviewSectionId);
 
   return (
     <Paper sx={{ p: 2.5, border: "1px solid", borderColor: "divider", borderRadius: 2, height: "100%", bgcolor: "background.paper" }}>
@@ -929,8 +984,28 @@ function ApprovalSignaturesCard({
           <Typography sx={{ fontWeight: 700, fontSize: 13, mb: 1, color: theme.palette.primary.main }}>
             Submit Technical Review
           </Typography>
+          {reviewableSections.length > 1 && (
+            <TextField
+              select
+              fullWidth
+              size="small"
+              label="Laboratory Section"
+              required
+              value={reviewSectionId}
+              onChange={(e) => onReviewSectionChange(Number(e.target.value))}
+              sx={{ mb: 1.5 }}
+            >
+              {reviewableSections.map((sec) => (
+                <MenuItem key={sec.sectionId} value={sec.sectionId}>
+                  {sec.sectionName}
+                </MenuItem>
+              ))}
+            </TextField>
+          )}
           <Alert severity="info" sx={{ fontSize: 11, py: 0.5, mb: 1.5 }}>
-            By submitting, I confirm I have reviewed all test results for this sample.
+            {activeReviewSection
+              ? `By submitting, I confirm I have reviewed all test results for ${activeReviewSection.sectionName}.`
+              : "By submitting, I confirm I have reviewed all test results for this sample."}
           </Alert>
           <TextField
             fullWidth
@@ -946,6 +1021,7 @@ function ApprovalSignaturesCard({
             variant="contained"
             color="primary"
             fullWidth
+            disabled={reviewableSections.length > 1 && !reviewSectionId}
             onClick={onReviewClick}
           >
             Submit Review
@@ -959,6 +1035,24 @@ function ApprovalSignaturesCard({
           <Typography sx={{ fontWeight: 700, fontSize: 13, mb: 1, color: theme.palette.primary.main }}>
             Submit Release Decision
           </Typography>
+          {approvableSections.length > 1 && (
+            <TextField
+              select
+              fullWidth
+              size="small"
+              label="Laboratory Section"
+              required
+              value={approvalSectionId}
+              onChange={(e) => onApprovalSectionChange(Number(e.target.value))}
+              sx={{ mb: 1.5 }}
+            >
+              {approvableSections.map((sec) => (
+                <MenuItem key={sec.sectionId} value={sec.sectionId}>
+                  {sec.sectionName}
+                </MenuItem>
+              ))}
+            </TextField>
+          )}
           <TextField
             fullWidth
             size="small"
@@ -1005,10 +1099,13 @@ function ApprovalSignaturesCard({
               <Typography sx={{ fontSize: 11, color: "text.secondary", mb: 1 }}>
                 Non-conforming tests are pre-checked. Adjust as needed - only the checked test(s) move to the new sample{decision === "NewSampleRequest" ? "s" : ""}; everything else on this sample is left untouched.
               </Typography>
-              <FormGroup>
-                {summary.testOrders
-                  .filter((t) => !t.isSuperseded)
-                  .map((t) => (
+              {approvableSections.length > 1 && !approvalSectionId ? (
+                <Alert severity="info" sx={{ fontSize: 11, py: 0.5, mb: 1 }}>
+                  Please select a laboratory section above to view tests to retest.
+                </Alert>
+              ) : (
+                <FormGroup>
+                  {eligibleRetestOrders.map((t) => (
                     <FormControlLabel
                       key={t.testOrderId}
                       control={
@@ -1026,13 +1123,30 @@ function ApprovalSignaturesCard({
                       }
                       label={
                         <Typography sx={{ fontSize: 12 }}>
-                          {t.testDisplayName} {isTestOrderNonPassing(t) && <Chip size="small" label="Non-conforming" color="error" sx={{ ml: 0.5, height: 16, fontSize: 9 }} />}
+                          {t.testDisplayName}
+                          {t.sectionName && (
+                            <Chip
+                              size="small"
+                              label={t.sectionName}
+                              variant="outlined"
+                              sx={{ ml: 0.5, height: 16, fontSize: 9 }}
+                            />
+                          )}
+                          {isTestOrderNonPassing(t) && (
+                            <Chip
+                              size="small"
+                              label="Non-conforming"
+                              color="error"
+                              sx={{ ml: 0.5, height: 16, fontSize: 9 }}
+                            />
+                          )}
                         </Typography>
                       }
                     />
                   ))}
-              </FormGroup>
-              {selectedTestOrderIds.length === 0 && (
+                </FormGroup>
+              )}
+              {selectedTestOrderIds.length === 0 && (approvableSections.length <= 1 || approvalSectionId !== "") && (
                 <Alert severity="warning" sx={{ fontSize: 11, py: 0, mt: 0.5 }}>
                   Select at least one test to retest.
                 </Alert>
@@ -1116,6 +1230,32 @@ export function SampleSummaryDialog({ open, sampleId, onClose }: Props) {
   const [exporting, setExporting] = useState<"pdf" | null>(null);
   const [exportError, setExportError] = useState<string | null>(null);
 
+  const [reviewSectionId, setReviewSectionId] = useState<number | "">("");
+  const [approvalSectionId, setApprovalSectionId] = useState<number | "">("");
+
+  const reviewableSections = useMemo(
+    () => (summary?.sections ?? []).filter((s) => s.canView && s.status === "UnderReview"),
+    [summary?.sections]
+  );
+  const approvableSections = useMemo(
+    () => (summary?.sections ?? []).filter((s) => s.canView && s.status === "UnderApproval"),
+    [summary?.sections]
+  );
+
+  const effectiveReviewSectionId =
+    reviewableSections.length === 1
+      ? reviewableSections[0].sectionId
+      : reviewSectionId !== ""
+      ? Number(reviewSectionId)
+      : undefined;
+
+  const effectiveApprovalSectionId =
+    approvableSections.length === 1
+      ? approvableSections[0].sectionId
+      : approvalSectionId !== ""
+      ? Number(approvalSectionId)
+      : undefined;
+
   useEffect(() => {
     if (open && sampleId) {
       setSummary(null);
@@ -1127,8 +1267,21 @@ export function SampleSummaryDialog({ open, sampleId, onClose }: Props) {
       setNewSampleAnalystOneId("");
       setNewSampleAnalystTwoId("");
       setReturningTestOrder(null);
+      setReviewSectionId("");
+      setApprovalSectionId("");
       SampleSummaryService.getSummary(sampleId)
-        .then(setSummary)
+        .then((data) => {
+          setSummary(data);
+          const rev = (data.sections ?? []).filter((s) => s.canView && s.status === "UnderReview");
+          if (rev.length === 1) {
+            setReviewSectionId(rev[0].sectionId);
+          }
+          const app = (data.sections ?? []).filter((s) => s.canView && s.status === "UnderApproval");
+          if (app.length === 1) {
+            setApprovalSectionId(app[0].sectionId);
+            setCertificateRemarks(app[0].certificateRemarks ?? "");
+          }
+        })
         .catch((e) => {
           setLoadError(e?.response?.data?.message ?? "Failed to load sample summary.");
         });
@@ -1138,15 +1291,27 @@ export function SampleSummaryDialog({ open, sampleId, onClose }: Props) {
     }
   }, [open, sampleId, role]);
 
+  const handleApprovalSectionChange = (newSectionId: number | "") => {
+    setApprovalSectionId(newSectionId);
+    if (newSectionId !== "") {
+      const sec = approvableSections.find((s) => s.sectionId === newSectionId);
+      setCertificateRemarks(sec?.certificateRemarks ?? "");
+    } else {
+      setCertificateRemarks("");
+    }
+  };
+
   // Re-pre-check the retest checklist toward whichever tests are actually
   // non-conforming whenever the decision switches to a retest flavor (or
   // the summary first loads) - the Section Head can still freely adjust it.
   useEffect(() => {
     if (!summary) return;
     if (decision !== "RetestRetainedSample" && decision !== "NewSampleRequest") return;
-    const nonPassing = summary.testOrders.filter((t) => !t.isSuperseded && isTestOrderNonPassing(t)).map((t) => t.testOrderId);
+    const nonPassing = summary.testOrders
+      .filter((t) => !t.isSuperseded && (effectiveApprovalSectionId == null || t.sectionId === effectiveApprovalSectionId) && isTestOrderNonPassing(t))
+      .map((t) => t.testOrderId);
     setSelectedTestOrderIds(nonPassing);
-  }, [decision, summary]);
+  }, [decision, summary, effectiveApprovalSectionId]);
 
   const handleReturnConfirm = async (reason?: string) => {
     if (!sampleId || !returningTestOrder) return;
@@ -1158,7 +1323,7 @@ export function SampleSummaryDialog({ open, sampleId, onClose }: Props) {
 
   const handleReviewConfirm = async (password: string) => {
     if (!sampleId) return;
-    await SampleSummaryService.completeReview(sampleId, password, comment || undefined);
+    await SampleSummaryService.completeReview(sampleId, password, comment || undefined, effectiveReviewSectionId);
     setConfirmingReview(false);
     onClose();
   };
@@ -1171,19 +1336,22 @@ export function SampleSummaryDialog({ open, sampleId, onClose }: Props) {
       decision === "Approve" ? (certificateRemarks || undefined) : undefined,
       isRetestDecision ? selectedTestOrderIds : undefined,
       decision === "NewSampleRequest" && newSampleAnalystOneId !== "" ? newSampleAnalystOneId : undefined,
-      decision === "NewSampleRequest" && newSampleAnalystTwoId !== "" ? newSampleAnalystTwoId : undefined
+      decision === "NewSampleRequest" && newSampleAnalystTwoId !== "" ? newSampleAnalystTwoId : undefined,
+      effectiveApprovalSectionId
     );
     setConfirmingDecision(false);
     onClose();
   };
 
   const canReview =
-    summary?.status === "UnderReview" &&
+    // Only when one of the viewer's own sections is waiting - the sample can
+    // be under review while none of them is.
+    reviewableSections.length > 0 &&
     (role === "Reviewer" || role === "SectionHead" || role === "SystemAdministrator");
   const canReturn =
     role === "Reviewer" || role === "SectionHead" || role === "SystemAdministrator";
   const canApprove =
-    summary?.status === "UnderApproval" &&
+    approvableSections.length > 0 &&
     (role === "SectionHead" || role === "SystemAdministrator");
 
   const handleExport = async (format: "pdf") => {
@@ -1327,6 +1495,28 @@ export function SampleSummaryDialog({ open, sampleId, onClose }: Props) {
               </Stack>
             </Box>
 
+            {/* Laboratory Sections Chips */}
+            {summary.sections && summary.sections.length > 0 && (
+              <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1, alignItems: "center" }}>
+                <Typography sx={{ fontSize: 12, fontWeight: 700, color: "text.secondary" }}>
+                  Sections:
+                </Typography>
+                {summary.sections.map((sec) => (
+                  <Chip
+                    key={sec.sectionId}
+                    size="small"
+                    label={`${sec.sectionName}: ${formatSectionStatus(sec.status)}`}
+                    variant={sec.canView ? "filled" : "outlined"}
+                    sx={{
+                      fontSize: 11,
+                      fontWeight: 600,
+                      ...(!sec.canView ? { color: "text.secondary", borderColor: "divider" } : {})
+                    }}
+                  />
+                ))}
+              </Box>
+            )}
+
             {/* 1. Sample Identity */}
             <SampleIdentityCard summary={summary} />
 
@@ -1366,6 +1556,13 @@ export function SampleSummaryDialog({ open, sampleId, onClose }: Props) {
               setNewSampleAnalystTwoId={setNewSampleAnalystTwoId}
               onReviewClick={() => setConfirmingReview(true)}
               onApproveClick={() => setConfirmingDecision(true)}
+              reviewableSections={reviewableSections}
+              reviewSectionId={reviewSectionId}
+              onReviewSectionChange={setReviewSectionId}
+              approvableSections={approvableSections}
+              approvalSectionId={approvalSectionId}
+              onApprovalSectionChange={handleApprovalSectionChange}
+              effectiveApprovalSectionId={effectiveApprovalSectionId}
             />
 
             {/* 4. Full-Width Open Printable Report / View COA Buttons */}
@@ -1447,7 +1644,11 @@ export function SampleSummaryDialog({ open, sampleId, onClose }: Props) {
       {summary && (
         <SignatureDialog
           open={confirmingReview}
-          meaningStatement="By submitting, I confirm I have reviewed all test results for this sample."
+          meaningStatement={
+            reviewableSections.find((s) => s.sectionId === effectiveReviewSectionId)
+              ? `By submitting, I confirm I have reviewed all test results for ${reviewableSections.find((s) => s.sectionId === effectiveReviewSectionId)?.sectionName}.`
+              : "By submitting, I confirm I have reviewed all test results for this sample."
+          }
           onCancel={() => setConfirmingReview(false)}
           onConfirm={handleReviewConfirm}
         />

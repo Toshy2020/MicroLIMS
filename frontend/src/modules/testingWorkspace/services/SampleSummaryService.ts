@@ -29,8 +29,12 @@ export const SampleSummaryService = {
   exportWord(sampleId: number, referenceNumber: string): Promise<void> {
     return downloadBlob(`/samples/${sampleId}/summary/word`, `SampleSummary_${referenceNumber}.docx`);
   },
-  async completeReview(sampleId: number, password: string, comment: string | undefined): Promise<void> {
-    await apiClient.post(`/samples/${sampleId}/review/complete`, { password, comment });
+  async completeReview(sampleId: number, password: string, comment: string | undefined, sectionId?: number): Promise<void> {
+    await apiClient.post(`/samples/${sampleId}/review/complete`, {
+      password,
+      comment,
+      ...(sectionId !== undefined ? { sectionId } : {})
+    });
   },
   async returnTestToAnalyst(sampleId: number, testOrderId: number, reason?: string): Promise<void> {
     const trimmedReason = reason?.trim();
@@ -48,11 +52,13 @@ export const SampleSummaryService = {
   async decideApproval(
     sampleId: number, password: string, decision: SampleApprovalDecision,
     comment: string | undefined, certificateRemarks?: string,
-    selectedTestOrderIds?: number[], newSampleAnalystOneId?: number, newSampleAnalystTwoId?: number
+    selectedTestOrderIds?: number[], newSampleAnalystOneId?: number, newSampleAnalystTwoId?: number,
+    sectionId?: number
   ): Promise<void> {
     await apiClient.post(`/samples/${sampleId}/approval/decide`, {
       password, decision, comment, certificateRemarks,
-      selectedTestOrderIds, newSampleAnalystOneId, newSampleAnalystTwoId
+      selectedTestOrderIds, newSampleAnalystOneId, newSampleAnalystTwoId,
+      ...(sectionId !== undefined ? { sectionId } : {})
     });
   }
 };

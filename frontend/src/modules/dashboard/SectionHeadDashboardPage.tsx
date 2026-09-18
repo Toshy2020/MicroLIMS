@@ -581,7 +581,7 @@ export function SectionHeadDashboardPage() {
                   <TableBody>
                     {data.reviewQueueItems.slice(0, 5).map((row) => (
                       <TableRow
-                        key={row.sampleId}
+                        key={`${row.sampleId}-${row.sectionId ?? "all"}`}
                         hover
                       >
                         <TableCell sx={{ fontSize: 11, fontWeight: 700 }}>
@@ -598,6 +598,14 @@ export function SectionHeadDashboardPage() {
                           >
                             {row.referenceNumber}
                           </Typography>
+                          {row.sectionName && (
+                            <Chip
+                              label={row.sectionName}
+                              size="small"
+                              variant="outlined"
+                              sx={{ fontSize: 9, height: 16, mt: 0.25, display: "inline-flex" }}
+                            />
+                          )}
                         </TableCell>
                         <TableCell sx={{ fontSize: 11 }}>
                           <Box sx={{ display: "flex", gap: 0.5, flexWrap: "wrap" }}>
@@ -719,7 +727,7 @@ export function SectionHeadDashboardPage() {
                   <TableBody>
                     {data.approvalQueueItems.slice(0, 5).map((row) => (
                       <TableRow
-                        key={row.sampleId}
+                        key={`${row.sampleId}-${row.sectionId ?? "all"}`}
                         hover
                       >
                         <TableCell sx={{ fontSize: 11, fontWeight: 700 }}>
@@ -736,6 +744,14 @@ export function SectionHeadDashboardPage() {
                           >
                             {row.referenceNumber}
                           </Typography>
+                          {row.sectionName && (
+                            <Chip
+                              label={row.sectionName}
+                              size="small"
+                              variant="outlined"
+                              sx={{ fontSize: 9, height: 16, mt: 0.25, display: "inline-flex" }}
+                            />
+                          )}
                         </TableCell>
                         <TableCell sx={{ fontSize: 11 }}>
                           <Box sx={{ display: "flex", gap: 0.5, flexWrap: "wrap" }}>

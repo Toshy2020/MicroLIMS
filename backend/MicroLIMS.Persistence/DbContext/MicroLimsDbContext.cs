@@ -33,6 +33,7 @@ public class MicroLimsDbContext : Microsoft.EntityFrameworkCore.DbContext
     public DbSet<ThawEvent> ThawEvents => Set<ThawEvent>();
     public DbSet<NotificationLog> NotificationLogs => Set<NotificationLog>();
     public DbSet<Sample> Samples => Set<Sample>();
+    public DbSet<SampleSectionSignoff> SampleSectionSignoffs => Set<SampleSectionSignoff>();
     public DbSet<SampleTest> SampleTests => Set<SampleTest>();
     public DbSet<TestOrder> TestOrders => Set<TestOrder>();
     public DbSet<Result> Results => Set<Result>();

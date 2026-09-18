@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Application.Services;
 using MicroLIMS.Shared.Constants;
 using MicroLIMS.Shared.Responses;
@@ -20,10 +21,12 @@ public record ReturnToAnalystRequest(int TestOrderId, string? Reason);
 public class ReviewController : ControllerBase
 {
     private readonly ReviewService _reviewService;
+    private readonly IUserSectionScopeService _scopeService;
 
-    public ReviewController(ReviewService reviewService)
+    public ReviewController(ReviewService reviewService, IUserSectionScopeService scopeService)
     {
         _reviewService = reviewService;
+        _scopeService = scopeService;
     }
 
     [HttpPost]
@@ -31,6 +34,7 @@ public class ReviewController : ControllerBase
     {
         var reviewerId = int.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)!.Value);
         var ip = HttpContext.Connection.RemoteIpAddress?.ToString();
+        await _scopeService.EnsureTestOrderAccessAsync(reviewerId, request.TestOrderId);
         await _reviewService.MarkReviewedAsync(request.TestOrderId, reviewerId, request.Comment, request.Password, ip, request.Mode);
         return Ok(ApiResponse<object>.Ok(new { }));
     }
@@ -39,6 +43,7 @@ public class ReviewController : ControllerBase
     public async Task<IActionResult> ReturnToAnalyst([FromBody] ReturnToAnalystRequest request)
     {
         var reviewerId = int.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)!.Value);
+        await _scopeService.EnsureTestOrderAccessAsync(reviewerId, request.TestOrderId);
         var result = await _reviewService.ReturnToAnalystAsync(request.TestOrderId, reviewerId, request.Reason);
         return Ok(ApiResponse<object>.Ok(result));
     }
@@ -49,6 +54,7 @@ public class ReviewController : ControllerBase
     {
         var reviewerId = int.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)!.Value);
         var ip = HttpContext.Connection.RemoteIpAddress?.ToString();
+        await _scopeService.EnsureTestOrdersAccessAsync(reviewerId, request.TestOrderIds);
         var result = await _reviewService.QuickReviewBatchAsync(request.TestOrderIds, reviewerId, request.Password, ip);
         return Ok(ApiResponse<object>.Ok(new { reviewed = result.Reviewed, skipped = result.Skipped }));
     }

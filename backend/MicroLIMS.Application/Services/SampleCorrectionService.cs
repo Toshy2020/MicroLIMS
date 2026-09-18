@@ -250,6 +250,13 @@ public class SampleCorrectionService
             order.Status = ApprovalStatus.Voided;
         }
 
+        // Voiding strikes the whole sample, so every section's sign-off
+        // closes with it (who reviewed/approved it stays on the row).
+        foreach (var sectionId in SampleSectionRollup.SectionIds(sample))
+        {
+            SampleSectionRollup.GetOrAdd(sample, sectionId).Status = SectionSignoffStatus.Voided;
+        }
+
         // Reports read the sample status off each result projection row.
         var records = await _db.ResultRecords.Where(r => r.SampleId == sampleId).ToListAsync();
         foreach (var record in records)
@@ -426,6 +433,7 @@ public class SampleCorrectionService
             .Include(s => s.Machine)
             .Include(s => s.CauseOfTesting)
             .Include(s => s.TestOrders)
+            .Include(s => s.SectionSignoffs)
             .Include(s => s.Locations)
             .FirstOrDefaultAsync(s => s.Id == sampleId)
         ?? throw new InvalidOperationException($"Sample {sampleId} not found.");

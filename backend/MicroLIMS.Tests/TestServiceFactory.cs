@@ -100,7 +100,7 @@ public static class TestServiceFactory
         new(db, new PdfGenerator(), new MicroLIMS.Infrastructure.Word.WordGenerator(), ReviewGate(db));
 
     public static SampleReviewService SampleReview(MicroLimsDbContext db) =>
-        new(db, new SegregationOfDutiesGuard(db), ReviewGate(db));
+        new(db, new SegregationOfDutiesGuard(db), ReviewGate(db), new UserSectionScopeService(db));
 
     public static ResultProjectionService ResultProjection(MicroLimsDbContext db) =>
         new(db, NullLogger<ResultProjectionService>.Instance);
@@ -110,7 +110,7 @@ public static class TestServiceFactory
             new SegregationOfDutiesGuard(db), ReviewGate(db), notifications ?? new NoOpNotificationService());
 
     public static SampleApprovalService SampleApproval(MicroLimsDbContext db, IFileStorageService? storage = null) =>
-        new(db, ReviewGate(db), SampleSummary(db), Archive(db, storage), ResultProjection(db), new ReferenceNumberGenerator(db));
+        new(db, ReviewGate(db), SampleSummary(db), Archive(db, storage), ResultProjection(db), new ReferenceNumberGenerator(db), new UserSectionScopeService(db));
 
     public static MediaReleaseService MediaRelease(MicroLimsDbContext db, IFileStorageService? storage = null) =>
         new(db, new SegregationOfDutiesGuard(db), ReviewGate(db), MediaSummary(db), Archive(db, storage));

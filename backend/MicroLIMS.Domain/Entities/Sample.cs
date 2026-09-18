@@ -81,6 +81,7 @@ public class Sample
     public string? OosGroupCode { get; set; }
 
     public List<TestOrder> TestOrders { get; set; } = new();
+    public List<SampleSectionSignoff> SectionSignoffs { get; set; } = new();
     public List<SampleLocation> Locations { get; set; } = new();
     public SamplePreparation? SamplePreparation { get; set; }
 }

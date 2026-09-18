@@ -1,12 +1,15 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Application.Services;
 using MicroLIMS.Shared.Constants;
 using MicroLIMS.Shared.Responses;
 
 namespace MicroLIMS.API.Controllers;
 
-public record CompleteSampleReviewRequest(string Password, string? Comment);
+// SectionId: which laboratory section's tests are being reviewed. Optional -
+// needed only when more than one section of the sample is under review.
+public record CompleteSampleReviewRequest(string Password, string? Comment, int? SectionId = null);
 public record ReturnTestToAnalystRequest(int TestOrderId, string? Reason);
 
 // Sample-level review, reached by clicking a Sample's lifecycle badge in
@@ -18,11 +21,13 @@ public class SampleReviewController : ControllerBase
 {
     private readonly SampleReviewService _reviewService;
     private readonly ReviewService _testOrderReviewService;
+    private readonly IUserSectionScopeService _scopeService;
 
-    public SampleReviewController(SampleReviewService reviewService, ReviewService testOrderReviewService)
+    public SampleReviewController(SampleReviewService reviewService, ReviewService testOrderReviewService, IUserSectionScopeService scopeService)
     {
         _reviewService = reviewService;
         _testOrderReviewService = testOrderReviewService;
+        _scopeService = scopeService;
     }
 
     private int CurrentUserId => int.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)!.Value);
@@ -31,7 +36,7 @@ public class SampleReviewController : ControllerBase
     public async Task<IActionResult> Complete(int id, CompleteSampleReviewRequest request)
     {
         var ip = HttpContext.Connection.RemoteIpAddress?.ToString();
-        await _reviewService.CompleteReviewAsync(id, CurrentUserId, request.Password, request.Comment, ip);
+        await _reviewService.CompleteReviewAsync(id, CurrentUserId, request.Password, request.Comment, ip, request.SectionId);
         return Ok(ApiResponse<object>.Ok(new { }));
     }
 
@@ -46,6 +51,7 @@ public class SampleReviewController : ControllerBase
     [HttpPost("return-test")]
     public async Task<IActionResult> ReturnTestToAnalyst(int id, ReturnTestToAnalystRequest request)
     {
+        await _scopeService.EnsureTestOrderAccessAsync(CurrentUserId, request.TestOrderId);
         var result = await _testOrderReviewService.ReturnToAnalystAsync(request.TestOrderId, CurrentUserId, request.Reason);
         return Ok(ApiResponse<object>.Ok(result));
     }

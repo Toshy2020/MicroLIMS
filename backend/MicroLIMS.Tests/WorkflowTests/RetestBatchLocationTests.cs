@@ -33,6 +33,7 @@ public class RetestBatchLocationTests
         var user = new User { Id = id, FullName = $"User {id}", Username = $"user{id}", RoleId = role.Id, PasswordHash = BCrypt.Net.BCrypt.HashPassword(Password) };
         db.Users.Add(user);
         await db.SaveChangesAsync();
+        TestServiceFactory.AssignUserToMicroSection(db, user.Id);
         return user;
     }
 
@@ -77,6 +78,7 @@ public class RetestBatchLocationTests
         };
         var order = new TestOrder
         {
+            SectionId = TestServiceFactory.EnsureMicroSection(db).Id,
             TestCode = "TAMC",
             Status = ApprovalStatus.Reviewed,
             CurrentStep = WorkflowStep.Reviewed,

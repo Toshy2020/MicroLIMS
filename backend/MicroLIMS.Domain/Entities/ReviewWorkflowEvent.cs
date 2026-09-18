@@ -33,4 +33,8 @@ public class ReviewWorkflowEvent
 
     // Only set on ApprovalDecisionMade events.
     public ApprovalDecision? Decision { get; set; }
+
+    // Set for sample review/approval events: the laboratory section the
+    // event was for. Null for events that are not section-specific.
+    public int? SectionId { get; set; }
 }

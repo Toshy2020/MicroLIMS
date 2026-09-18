@@ -88,13 +88,19 @@ public class ReviewService
         var order = await _db.TestOrders.FirstOrDefaultAsync(t => t.Id == testOrderId)
             ?? throw new InvalidOperationException($"Test order {testOrderId} not found.");
 
-        var sample = await _db.Samples.FirstOrDefaultAsync(s => s.Id == order.SampleId);
-        if (sample != null && sample.Status is SampleStatus.UnderApproval
+        var sample = await _db.Samples.Include(s => s.TestOrders).Include(s => s.SectionSignoffs)
+            .FirstOrDefaultAsync(s => s.Id == order.SampleId);
+        // Review is per section: this test's own section must not have been
+        // reviewed yet. A sample that is past review as a whole (every
+        // section is, then) or closed is refused outright.
+        var sectionStatus = sample is null ? SectionSignoffStatus.InTesting : SampleSectionRollup.StatusOf(sample, order.SectionId);
+        if (sample != null && (sample.Status is SampleStatus.UnderApproval
             or SampleStatus.Approved
             or SampleStatus.Rejected
             or SampleStatus.RetestRequested
             or SampleStatus.Cancelled
-            or SampleStatus.Voided)
+            or SampleStatus.Voided
+            || sectionStatus is not (SectionSignoffStatus.InTesting or SectionSignoffStatus.UnderReview)))
         {
             throw new InvalidOperationException("Cannot return a test to the analyst after the sample has been reviewed. Use Reject or Retest at approval instead.");
         }
@@ -130,10 +136,12 @@ public class ReviewService
             latestIncubation.Outcome = null;
         }
 
-        // 3. If parent sample was auto-submitted for review, revert it to InTesting
-        if (sample != null && sample.Status == SampleStatus.UnderReview)
+        // 3. If this test's section was auto-submitted for review, send the
+        // section back to testing and roll the sample status up again
+        if (sample != null && sectionStatus == SectionSignoffStatus.UnderReview)
         {
-            sample.Status = SampleStatus.InTesting;
+            SampleSectionRollup.GetOrAdd(sample, order.SectionId).Status = SectionSignoffStatus.InTesting;
+            SampleSectionRollup.Apply(sample);
         }
 
         // 4. Revert TestOrder state back to Incubating (keeps AssignedAnalystId unchanged)

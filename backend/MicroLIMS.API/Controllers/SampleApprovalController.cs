@@ -15,9 +15,12 @@ namespace MicroLIMS.API.Controllers;
 // TwoId are required for NewSampleRequest only - the two analysts for the
 // two new samples (must differ from each other and from whoever tested
 // the original sample; enforced server-side in SampleApprovalService).
+// SectionId: which laboratory section's tests are being decided. Optional -
+// needed only when more than one section of the sample is under approval.
 public record DecideSampleApprovalRequest(
     string Password, ApprovalDecision Decision, string? Comment, string? CertificateRemarks = null,
-    List<int>? SelectedTestOrderIds = null, int? NewSampleAnalystOneId = null, int? NewSampleAnalystTwoId = null);
+    List<int>? SelectedTestOrderIds = null, int? NewSampleAnalystOneId = null, int? NewSampleAnalystTwoId = null,
+    int? SectionId = null);
 
 // Sample-level approval, reached by clicking a Sample's lifecycle badge
 // in the Testing Workspace rather than a standalone Approval page.
@@ -40,7 +43,8 @@ public class SampleApprovalController : ControllerBase
     {
         var ip = HttpContext.Connection.RemoteIpAddress?.ToString();
         await _approvalService.DecideAsync(id, CurrentUserId, request.Password, request.Decision, request.Comment, ip,
-            request.CertificateRemarks, request.SelectedTestOrderIds, request.NewSampleAnalystOneId, request.NewSampleAnalystTwoId);
+            request.CertificateRemarks, request.SelectedTestOrderIds, request.NewSampleAnalystOneId, request.NewSampleAnalystTwoId,
+            request.SectionId);
         return Ok(ApiResponse<object>.Ok(new { }));
     }
 }

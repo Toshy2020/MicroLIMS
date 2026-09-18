@@ -15,5 +15,7 @@ public class ReviewWorkflowEventConfiguration : IEntityTypeConfiguration<ReviewW
         // So a record's full lifecycle timeline can be retrieved without
         // a table scan - same index shape as ElectronicSignature's.
         builder.HasIndex(e => new { e.EntityType, e.EntityId });
+
+        builder.HasOne<DocumentSection>().WithMany().HasForeignKey(e => e.SectionId).OnDelete(DeleteBehavior.Restrict);
     }
 }

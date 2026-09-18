@@ -1,0 +1,256 @@
+using Microsoft.EntityFrameworkCore;
+using MicroLIMS.Application.Services;
+using MicroLIMS.Domain.Entities;
+using MicroLIMS.Domain.Enums;
+using MicroLIMS.Persistence.DbContext;
+using Xunit;
+
+namespace MicroLIMS.Tests.WorkflowTests;
+
+// Per-section review/approval on a sample tested by two laboratory
+// sections (Microbiology + Finished Product): each section is reviewed and
+// approved by its own people, and Sample.Status is rolled up from both.
+public class MultiSectionReviewApprovalTests
+{
+    private const string Password = "Correct-Horse-1!";
+
+    private static MicroLimsDbContext NewDb()
+    {
+        var options = new DbContextOptionsBuilder<MicroLimsDbContext>()
+            .UseInMemoryDatabase(Guid.NewGuid().ToString())
+            .Options;
+        return new MicroLimsDbContext(options);
+    }
+
+    private sealed record World(
+        Sample Sample, int Micro, int Fp,
+        TestOrder MicroTamc, TestOrder MicroTymc, TestOrder FpAssay,
+        int ReviewerMicro, int ReviewerFp, int HeadMicro, int HeadFp, int Admin);
+
+    private static async Task<int> SeedUserAsync(MicroLimsDbContext db, int id, RoleType type, int departmentId, int? sectionId)
+    {
+        var role = new Role { Type = type, Name = type.ToString() };
+        db.Roles.Add(role);
+        await db.SaveChangesAsync();
+        db.Users.Add(new User { Id = id, FullName = $"User {id}", Username = $"user{id}", RoleId = role.Id, PasswordHash = BCrypt.Net.BCrypt.HashPassword(Password) });
+        if (type != RoleType.SystemAdministrator)
+            db.UserOrgMemberships.Add(new UserOrgMembership { UserId = id, DepartmentId = departmentId, SectionId = sectionId });
+        await db.SaveChangesAsync();
+        return id;
+    }
+
+    // Both sections' tests finished (Ready); the sample is still InTesting.
+    private static async Task<World> SeedAsync(MicroLimsDbContext db, bool fpReady = true)
+    {
+        var micro = TestServiceFactory.EnsureMicroSection(db);
+        var fp = new DocumentSection { Name = "Finished Product Laboratory", Code = "FP", DepartmentId = micro.DepartmentId, IsActive = true };
+        db.DocumentSections.Add(fp);
+        await db.SaveChangesAsync();
+
+        await SeedUserAsync(db, 1, RoleType.Analyst, micro.DepartmentId, micro.Id);
+        await SeedUserAsync(db, 2, RoleType.Analyst, micro.DepartmentId, fp.Id);
+        var reviewerMicro = await SeedUserAsync(db, 3, RoleType.Reviewer, micro.DepartmentId, micro.Id);
+        var reviewerFp = await SeedUserAsync(db, 4, RoleType.Reviewer, micro.DepartmentId, fp.Id);
+        var headMicro = await SeedUserAsync(db, 5, RoleType.SectionHead, micro.DepartmentId, micro.Id);
+        var headFp = await SeedUserAsync(db, 6, RoleType.SectionHead, micro.DepartmentId, fp.Id);
+        var admin = await SeedUserAsync(db, 7, RoleType.SystemAdministrator, micro.DepartmentId, null);
+
+        var sample = new Sample { Category = SampleCategory.FinishedProduct, ControlNumber = "CTRL-MIX-1", Status = SampleStatus.InTesting };
+        var tamc = new TestOrder { SectionId = micro.Id, TestCode = "TAMC", Status = ApprovalStatus.ResultEntered, CurrentStep = WorkflowStep.Ready, AssignedAnalystId = 1 };
+        var tymc = new TestOrder { SectionId = micro.Id, TestCode = "TYMC", Status = ApprovalStatus.ResultEntered, CurrentStep = WorkflowStep.Ready, AssignedAnalystId = 1 };
+        var assay = new TestOrder
+        {
+            SectionId = fp.Id, TestCode = "ASSAY", AssignedAnalystId = 2,
+            Status = fpReady ? ApprovalStatus.ResultEntered : ApprovalStatus.InProgress,
+            CurrentStep = fpReady ? WorkflowStep.Ready : WorkflowStep.Incubating
+        };
+        sample.TestOrders.AddRange(new[] { tamc, tymc, assay });
+        db.Samples.Add(sample);
+        db.CausesOfTesting.Add(new CauseOfTesting { Name = "Retest", IsActive = true });
+        await db.SaveChangesAsync();
+
+        return new World(sample, micro.Id, fp.Id, tamc, tymc, assay, reviewerMicro, reviewerFp, headMicro, headFp, admin);
+    }
+
+    private static async Task<SampleSectionSignoff?> SignoffAsync(MicroLimsDbContext db, int sampleId, int sectionId) =>
+        await db.SampleSectionSignoffs.AsNoTracking().FirstOrDefaultAsync(s => s.SampleId == sampleId && s.SectionId == sectionId);
+
+    private static async Task<SampleStatus> StatusAsync(MicroLimsDbContext db, int sampleId) =>
+        (await db.Samples.AsNoTracking().FirstAsync(s => s.Id == sampleId)).Status;
+
+    // Both sections submitted and reviewed by their own reviewers.
+    private static async Task<World> SeedUnderApprovalAsync(MicroLimsDbContext db)
+    {
+        var w = await SeedAsync(db);
+        var review = TestServiceFactory.SampleReview(db);
+        await review.AutoSubmitForReviewIfReadyAsync(w.Sample.Id, 1);
+        await db.SaveChangesAsync();
+        await review.CompleteReviewAsync(w.Sample.Id, w.ReviewerMicro, Password, null, null);
+        await review.CompleteReviewAsync(w.Sample.Id, w.ReviewerFp, Password, null, null);
+        return w;
+    }
+
+    [Fact]
+    public async Task AutoSubmit_MovesOnlyTheFinishedSectionToReview_SampleWaitsForTheOther()
+    {
+        await using var db = NewDb();
+        var w = await SeedAsync(db, fpReady: false);
+        var review = TestServiceFactory.SampleReview(db);
+
+        await review.AutoSubmitForReviewIfReadyAsync(w.Sample.Id, 1);
+        await db.SaveChangesAsync();
+
+        Assert.Equal(SectionSignoffStatus.UnderReview, (await SignoffAsync(db, w.Sample.Id, w.Micro))!.Status);
+        Assert.Null(await SignoffAsync(db, w.Sample.Id, w.Fp));
+        Assert.Equal(SampleStatus.InTesting, await StatusAsync(db, w.Sample.Id));
+
+        var assay = await db.TestOrders.FirstAsync(t => t.Id == w.FpAssay.Id);
+        assay.CurrentStep = WorkflowStep.Ready;
+        await db.SaveChangesAsync();
+        await review.AutoSubmitForReviewIfReadyAsync(w.Sample.Id, 2);
+        await db.SaveChangesAsync();
+
+        Assert.Equal(SectionSignoffStatus.UnderReview, (await SignoffAsync(db, w.Sample.Id, w.Fp))!.Status);
+        Assert.Equal(SampleStatus.UnderReview, await StatusAsync(db, w.Sample.Id));
+        Assert.Equal(2, await db.ReviewWorkflowEvents.CountAsync(e => e.EntityId == w.Sample.Id && e.EventType == ReviewWorkflowEventType.SubmittedForReview && e.SectionId != null));
+    }
+
+    [Fact]
+    public async Task Review_CoversOnlyTheReviewersSection_AndCannotReachAnotherSection()
+    {
+        await using var db = NewDb();
+        var w = await SeedAsync(db);
+        var review = TestServiceFactory.SampleReview(db);
+        await review.AutoSubmitForReviewIfReadyAsync(w.Sample.Id, 1);
+        await db.SaveChangesAsync();
+
+        // No section named: the FP reviewer's only waiting section is FP.
+        await review.CompleteReviewAsync(w.Sample.Id, w.ReviewerFp, Password, null, null);
+
+        var fp = await SignoffAsync(db, w.Sample.Id, w.Fp);
+        Assert.Equal(SectionSignoffStatus.UnderApproval, fp!.Status);
+        Assert.Equal(w.ReviewerFp, fp.ReviewedByUserId);
+        Assert.NotNull(fp.ReviewSignatureId);
+        Assert.Equal(SectionSignoffStatus.UnderReview, (await SignoffAsync(db, w.Sample.Id, w.Micro))!.Status);
+        Assert.Equal(SampleStatus.UnderReview, await StatusAsync(db, w.Sample.Id));
+        Assert.Equal(WorkflowStep.Ready, (await db.TestOrders.AsNoTracking().FirstAsync(t => t.Id == w.MicroTamc.Id)).CurrentStep);
+
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
+            review.CompleteReviewAsync(w.Sample.Id, w.ReviewerFp, Password, null, null, sectionId: w.Micro));
+    }
+
+    [Fact]
+    public async Task Admin_WithTwoSectionsWaiting_MustChooseASection()
+    {
+        await using var db = NewDb();
+        var w = await SeedAsync(db);
+        var review = TestServiceFactory.SampleReview(db);
+        await review.AutoSubmitForReviewIfReadyAsync(w.Sample.Id, 1);
+        await db.SaveChangesAsync();
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            review.CompleteReviewAsync(w.Sample.Id, w.Admin, Password, null, null));
+        Assert.Contains("Choose a laboratory section", ex.Message);
+
+        await review.CompleteReviewAsync(w.Sample.Id, w.Admin, Password, null, null, sectionId: w.Micro);
+        Assert.Equal(SectionSignoffStatus.UnderApproval, (await SignoffAsync(db, w.Sample.Id, w.Micro))!.Status);
+    }
+
+    [Fact]
+    public async Task Approve_SampleIsApprovedOnlyWhenTheLastSectionApproves()
+    {
+        await using var db = NewDb();
+        var w = await SeedUnderApprovalAsync(db);
+        var approval = TestServiceFactory.SampleApproval(db);
+
+        await approval.DecideAsync(w.Sample.Id, w.HeadMicro, Password, ApprovalDecision.Approve, null, null, certificateRemarks: "Micro remark");
+
+        Assert.Equal(SampleStatus.UnderApproval, await StatusAsync(db, w.Sample.Id));
+        Assert.Equal(ApprovalStatus.Approved, (await db.TestOrders.AsNoTracking().FirstAsync(t => t.Id == w.MicroTamc.Id)).Status);
+        Assert.Equal(ApprovalStatus.Reviewed, (await db.TestOrders.AsNoTracking().FirstAsync(t => t.Id == w.FpAssay.Id)).Status);
+
+        await approval.DecideAsync(w.Sample.Id, w.HeadFp, Password, ApprovalDecision.Approve, null, null, certificateRemarks: "FP remark");
+
+        var sample = await db.Samples.AsNoTracking().FirstAsync(s => s.Id == w.Sample.Id);
+        Assert.Equal(SampleStatus.Approved, sample.Status);
+        Assert.Equal(w.HeadFp, sample.ApprovedByUserId);
+        Assert.Null(sample.CertificateRemarks); // per section when more than one section tested it
+        Assert.Equal("Micro remark", (await SignoffAsync(db, w.Sample.Id, w.Micro))!.CertificateRemarks);
+        Assert.Equal("FP remark", (await SignoffAsync(db, w.Sample.Id, w.Fp))!.CertificateRemarks);
+        Assert.Equal(ApprovalStatus.Approved, (await db.TestOrders.AsNoTracking().FirstAsync(t => t.Id == w.FpAssay.Id)).Status);
+    }
+
+    [Fact]
+    public async Task Approve_SectionHeadCannotDecideAnotherSection()
+    {
+        await using var db = NewDb();
+        var w = await SeedUnderApprovalAsync(db);
+        var approval = TestServiceFactory.SampleApproval(db);
+
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
+            approval.DecideAsync(w.Sample.Id, w.HeadFp, Password, ApprovalDecision.Approve, null, null, sectionId: w.Micro));
+        Assert.Equal(SectionSignoffStatus.UnderApproval, (await SignoffAsync(db, w.Sample.Id, w.Micro))!.Status);
+    }
+
+    [Fact]
+    public async Task Reject_ByOneSection_RejectsTheSampleAndClosesTheOtherSection()
+    {
+        await using var db = NewDb();
+        var w = await SeedUnderApprovalAsync(db);
+        var approval = TestServiceFactory.SampleApproval(db);
+
+        await approval.DecideAsync(w.Sample.Id, w.HeadMicro, Password, ApprovalDecision.Reject, "Out of limits", null);
+
+        Assert.Equal(SampleStatus.Rejected, await StatusAsync(db, w.Sample.Id));
+        Assert.Equal(SectionSignoffStatus.Rejected, (await SignoffAsync(db, w.Sample.Id, w.Micro))!.Status);
+        Assert.Equal(SectionSignoffStatus.Cancelled, (await SignoffAsync(db, w.Sample.Id, w.Fp))!.Status);
+        Assert.Equal(ApprovalStatus.Rejected, (await db.TestOrders.AsNoTracking().FirstAsync(t => t.Id == w.FpAssay.Id)).Status);
+    }
+
+    [Fact]
+    public async Task Reject_KeepsAnotherSectionsEarlierApproval()
+    {
+        await using var db = NewDb();
+        var w = await SeedUnderApprovalAsync(db);
+        var approval = TestServiceFactory.SampleApproval(db);
+
+        await approval.DecideAsync(w.Sample.Id, w.HeadFp, Password, ApprovalDecision.Approve, null, null);
+        await approval.DecideAsync(w.Sample.Id, w.HeadMicro, Password, ApprovalDecision.Reject, null, null);
+
+        Assert.Equal(SampleStatus.Rejected, await StatusAsync(db, w.Sample.Id));
+        Assert.Equal(SectionSignoffStatus.Approved, (await SignoffAsync(db, w.Sample.Id, w.Fp))!.Status);
+        Assert.Equal(ApprovalStatus.Approved, (await db.TestOrders.AsNoTracking().FirstAsync(t => t.Id == w.FpAssay.Id)).Status);
+    }
+
+    [Fact]
+    public async Task Retest_CarriesOnlyTheDecidingSectionsTests_AndItsOutcomeResolvesThatSection()
+    {
+        await using var db = NewDb();
+        var w = await SeedUnderApprovalAsync(db);
+        var approval = TestServiceFactory.SampleApproval(db);
+
+        await approval.DecideAsync(w.Sample.Id, w.HeadMicro, Password, ApprovalDecision.RetestRetainedSample, null, null,
+            selectedTestOrderIds: new List<int> { w.MicroTamc.Id });
+
+        var spinoff = await db.Samples.Include(s => s.TestOrders).AsNoTracking().FirstAsync(s => s.OriginSampleId == w.Sample.Id);
+        Assert.Equal(new[] { "TAMC" }, spinoff.TestOrders.Select(t => t.TestCode).ToArray());
+        Assert.All(spinoff.TestOrders, t => Assert.Equal(w.Micro, t.SectionId));
+        Assert.Equal(SectionSignoffStatus.RetestRequested, (await SignoffAsync(db, w.Sample.Id, w.Micro))!.Status);
+        Assert.Equal(SampleStatus.UnderApproval, await StatusAsync(db, w.Sample.Id)); // FP still to decide
+
+        await approval.DecideAsync(w.Sample.Id, w.HeadFp, Password, ApprovalDecision.Approve, null, null);
+        var origin = await db.Samples.AsNoTracking().FirstAsync(s => s.Id == w.Sample.Id);
+        Assert.Equal(SampleStatus.RetestRequested, origin.Status); // waiting only on the Micro retest
+        Assert.Equal(ApprovalDecision.RetestRetainedSample, origin.ApprovalDecision);
+
+        // The retest comes back and is approved - that resolves Micro on the origin.
+        var retest = await db.Samples.FirstAsync(s => s.Id == spinoff.Id);
+        retest.Status = SampleStatus.UnderApproval;
+        retest.ReviewedByUserId = w.ReviewerMicro;
+        await db.SaveChangesAsync();
+        await approval.DecideAsync(retest.Id, w.HeadMicro, Password, ApprovalDecision.Approve, null, null);
+
+        Assert.Equal(SectionSignoffStatus.Approved, (await SignoffAsync(db, w.Sample.Id, w.Micro))!.Status);
+        Assert.Equal(SampleStatus.Approved, await StatusAsync(db, w.Sample.Id));
+    }
+}

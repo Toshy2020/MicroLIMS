@@ -48,6 +48,8 @@ public static class UserReferenceRegistry
         new UserReferenceEntry(typeof(Sample), nameof(Sample.ReceivedByUserId), UserReferenceDisposition.Blocks, "DB FK Restrict (added alongside this feature)"),
         new UserReferenceEntry(typeof(Sample), nameof(Sample.ReviewedByUserId), UserReferenceDisposition.Blocks, "DB FK Restrict"),
         new UserReferenceEntry(typeof(Sample), nameof(Sample.ApprovedByUserId), UserReferenceDisposition.Blocks, "DB FK Restrict"),
+        new UserReferenceEntry(typeof(SampleSectionSignoff), nameof(SampleSectionSignoff.ReviewedByUserId), UserReferenceDisposition.Blocks, "DB FK Restrict - per-section review sign-off"),
+        new UserReferenceEntry(typeof(SampleSectionSignoff), nameof(SampleSectionSignoff.ApprovedByUserId), UserReferenceDisposition.Blocks, "DB FK Restrict - per-section approval sign-off"),
         new UserReferenceEntry(typeof(TestReturnEvent), nameof(TestReturnEvent.ReviewerUserId), UserReferenceDisposition.Blocks, "DB FK Restrict"),
         new UserReferenceEntry(typeof(TestReturnEvent), nameof(TestReturnEvent.AssignedAnalystId), UserReferenceDisposition.Blocks, "DB FK Restrict"),
         new UserReferenceEntry(typeof(DiscussionPost), nameof(DiscussionPost.AuthorUserId), UserReferenceDisposition.Blocks, "DB FK Restrict - post author"),

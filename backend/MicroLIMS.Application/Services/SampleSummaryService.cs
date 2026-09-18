@@ -104,6 +104,10 @@ public class SampleSummaryService
             .ToListAsync();
         var results = await _db.Results.Where(r => testOrderIds.Contains(r.TestOrderId)).ToListAsync();
         var countTestReadings = await _db.CountTestReadings.Where(r => testOrderIds.Contains(r.TestOrderId)).ToListAsync();
+        var hplcResults = await _db.HplcAssayResults.AsNoTracking()
+            .Where(r => testOrderIds.Contains(r.TestOrderId) && r.IsActive)
+            .Select(r => new { r.TestOrderId, r.ReportedResult, r.MeanAssayPercent, r.ComparisonStatus, r.SpecLimit, r.SampleWeightMg, r.SampleDilution, r.ReplicatesJson, RunCode = r.SystemSuitabilityRun!.Code, r.EnteredByUserId, r.EnteredAt })
+            .ToListAsync();
         var pathogenObservations = await _db.PathogenObservations.Where(p => testOrderIds.Contains(p.TestOrderId)).ToListAsync();
         var biochemicalResults = await _db.WorkflowStepResults
             .Where(r => testOrderIds.Contains(r.TestOrderId) && r.BiochemicalResultText != null)
@@ -471,6 +475,19 @@ public class SampleSummaryService
                     EnteredByName = NameOf(r.EnteredByUserId),
                     EnteredAt = r.EnteredAt
                 }).ToList(),
+                HplcAssay = hplcResults.Where(h => h.TestOrderId == order.Id).Select(h => new HplcAssayDetailDto
+                {
+                    ReportedResult = h.ReportedResult,
+                    MeanAssayPercent = h.MeanAssayPercent,
+                    Status = h.ComparisonStatus,
+                    SpecLimit = h.SpecLimit,
+                    SampleWeightMg = h.SampleWeightMg,
+                    SampleDilution = h.SampleDilution,
+                    Replicates = System.Text.Json.JsonSerializer.Deserialize<List<HplcAssayReplicate>>(h.ReplicatesJson) ?? new(),
+                    SuitabilityRunCode = h.RunCode,
+                    EnteredByName = NameOf(h.EnteredByUserId),
+                    EnteredAt = h.EnteredAt
+                }).FirstOrDefault(),
                 PathogenObservations = pathogenObservations.Where(p => p.TestOrderId == order.Id).Select(p => new PathogenObservationDetailDto
                 {
                     StepName = p.StepName,
@@ -651,6 +668,15 @@ public class SampleSummaryService
                     lines.Add($"    Limits (Alert/Action/Spec): {FormatLimit(r.AlertLimit)} / {FormatLimit(r.ActionLimit)} / {FormatLimit(r.SpecLimit)}");
                     lines.Add($"    Entered By: {r.EnteredByName}   Entered At: {FormatDateTime(r.EnteredAt)}");
                 }
+            }
+            else if (order.HplcAssay is { } hplc)
+            {
+                lines.Add("  FINAL RESULT (HPLC ASSAY):");
+                lines.Add($"    Suitability Run: {hplc.SuitabilityRunCode}   Sample Weight (mg): {hplc.SampleWeightMg}   Sample Dilution: {hplc.SampleDilution}");
+                foreach (var rep in hplc.Replicates)
+                    lines.Add($"    Replicate {rep.ReplicateNumber}: Area {rep.Area}   Assay {Math.Round(rep.AssayPercent, 2)} %");
+                lines.Add($"    Mean Assay: {hplc.ReportedResult}   Spec: {FormatLimit(hplc.SpecLimit)}   Status: {hplc.Status}");
+                lines.Add($"    Entered By: {hplc.EnteredByName}   Entered At: {FormatDateTime(hplc.EnteredAt)}");
             }
             else if (order.PathogenObservations.Count > 0)
             {

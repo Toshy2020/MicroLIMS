@@ -120,6 +120,8 @@ export interface TestOrderSummaryDetail {
   incubations: IncubationDetail[];
   results: ResultDetail[];
   countTestReadings: CountTestReadingDetail[];
+  // HPLC Assay only - the active result, null for other tests.
+  hplcAssay?: HplcAssayDetail | null;
   pathogenObservations: PathogenObservationDetail[];
   biochemicalResults: BiochemicalResultDetail[];
   workflowHistory: WorkflowHistoryDetail[];
@@ -219,4 +221,17 @@ export interface SampleSummary {
   signatures: SignatureTrailItem[];
   sections?: SampleSectionSummaryDetail[];
   allSectionsVisible?: boolean;
+}
+
+export interface HplcAssayDetail {
+  reportedResult: string;
+  meanAssayPercent: number;
+  status: string;
+  specLimit: string | null;
+  sampleWeightMg: number;
+  sampleDilution: number;
+  replicates: { replicateNumber: number; area: number; assayPercent: number }[];
+  suitabilityRunCode: string;
+  enteredByName: string | null;
+  enteredAt: string;
 }

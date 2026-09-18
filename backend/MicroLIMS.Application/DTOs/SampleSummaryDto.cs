@@ -1,3 +1,4 @@
+using MicroLIMS.Domain.Entities;
 namespace MicroLIMS.Application.DTOs;
 
 // Everything the floating Sample Summary page (reviewer/Section Head)
@@ -112,6 +113,8 @@ public class TestOrderSummaryDetailDto
     public List<IncubationDetailDto> Incubations { get; set; } = new();
     public List<ResultDetailDto> Results { get; set; } = new();
     public List<CountTestReadingDetailDto> CountTestReadings { get; set; } = new();
+    // HPLC Assay only - the active (not returned) result, null otherwise.
+    public HplcAssayDetailDto? HplcAssay { get; set; }
     public List<PathogenObservationDetailDto> PathogenObservations { get; set; } = new();
     public List<BiochemicalResultDetailDto> BiochemicalResults { get; set; } = new();
     public List<WorkflowHistoryDetailDto> WorkflowHistory { get; set; } = new();
@@ -183,6 +186,20 @@ public class ResultDetailDto
     public string? InterpretedValue { get; set; }
     public string Type { get; set; } = string.Empty;
     public string EnteredByName { get; set; } = string.Empty;
+    public DateTime EnteredAt { get; set; }
+}
+
+public class HplcAssayDetailDto
+{
+    public string ReportedResult { get; set; } = string.Empty; // e.g. "99.5 %"
+    public decimal MeanAssayPercent { get; set; }
+    public string Status { get; set; } = string.Empty; // WithinLimits / OutOfSpecification / ...
+    public string? SpecLimit { get; set; }
+    public decimal SampleWeightMg { get; set; }
+    public decimal SampleDilution { get; set; }
+    public List<HplcAssayReplicate> Replicates { get; set; } = new();
+    public string SuitabilityRunCode { get; set; } = string.Empty;
+    public string? EnteredByName { get; set; }
     public DateTime EnteredAt { get; set; }
 }
 

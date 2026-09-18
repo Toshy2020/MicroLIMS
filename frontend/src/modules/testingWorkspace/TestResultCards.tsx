@@ -30,7 +30,49 @@ function isQuantitative(test: TestOrderSummaryDetail): boolean {
 // result is conceptually a qualitative call too ("the recorded value"),
 // never a computed CFU.
 export function TestResultCard({ test }: { test: TestOrderSummaryDetail }) {
+  if (test.hplcAssay) return <HplcAssayCard test={test} />;
   return isQuantitative(test) ? <CountTestCard test={test} /> : <DetectionTestCard test={test} />;
+}
+
+// HPLC Assay: mean % assay (server-calculated) against the spec, with the
+// suitability run it was calculated from and each replicate behind a toggle.
+function HplcAssayCard({ test }: { test: TestOrderSummaryDetail }) {
+  const h = test.hplcAssay!;
+  const hasException = !test.isSuperseded && !isConforming(h.status);
+  const tone = test.isSuperseded ? "is-neutral" : hasException ? "is-danger" : "";
+  return (
+    <CollapsibleTestCard
+      icon={test.isSuperseded ? <DotIcon /> : hasException ? <CrossIcon /> : <CheckIcon />}
+      iconTone={tone}
+      title={`${test.testCode} — ${test.testDisplayName}`}
+      subtitle={<>{test.isSuperseded && <strong>Superseded by retest · </strong>}Suitability run: {h.suitabilityRunCode}</>}
+      badgeText={test.isSuperseded ? "Superseded" : `${h.reportedResult} · ${humanize(h.status)}`}
+      badgeTone={tone}
+      defaultOpen={hasException}
+      isSuperseded={test.isSuperseded}
+    >
+      <SecondaryToggle label={`Show replicates (${h.replicates.length})`}>
+        <div className="plate-readings" style={{ border: "1px solid var(--color-border)", borderRadius: 8, marginTop: 8 }}>
+          <div className="plate-readings-label">replicate injections</div>
+          <div className="plate-stats">
+            {h.replicates.map((r) => (
+              <div className="plate-stat" key={r.replicateNumber}>
+                <div className="stat-label">Replicate {r.replicateNumber} · area {r.area}</div>
+                <div className="stat-value">{r.assayPercent.toFixed(2)} %</div>
+              </div>
+            ))}
+          </div>
+          <div className="plate-meta">
+            <span>Mean: <strong>{h.reportedResult}</strong></span>
+            <span>Spec: <strong>{h.specLimit ?? "—"}</strong></span>
+            <span>Sample weight / dilution: <strong>{h.sampleWeightMg} mg / {h.sampleDilution}</strong></span>
+            <span>Entered by: <strong>{h.enteredByName}</strong></span>
+            <span>Entered at: <strong className="mono">{dt(h.enteredAt)}</strong></span>
+          </div>
+        </div>
+      </SecondaryToggle>
+    </CollapsibleTestCard>
+  );
 }
 
 function subtitle(test: TestOrderSummaryDetail, incubation: IncubationDetail | undefined) {

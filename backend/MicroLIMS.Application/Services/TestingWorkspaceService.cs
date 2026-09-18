@@ -79,8 +79,7 @@ public class TestingWorkspaceService : ITestWorkspaceService
             }
             else if (string.Equals(wf, "awaitingReview", StringComparison.OrdinalIgnoreCase))
             {
-                // Phase 2b: per-section review state
-                query = query.Where(s => s.Status == SampleStatus.UnderReview);
+                query = SectionReviewQueues.Candidates(query, SectionSignoffStatus.UnderReview, scope);
             }
             else if (string.Equals(wf, "overdue", StringComparison.OrdinalIgnoreCase))
             {
@@ -103,14 +102,12 @@ public class TestingWorkspaceService : ITestWorkspaceService
             }
             else if (string.Equals(wf, "reviewOverdue", StringComparison.OrdinalIgnoreCase))
             {
-                // Phase 2b: per-section review state
-                var overdueIds = await SampleWorkflowQueues.GetOverdueReviewSampleIdsAsync(_db, now, TimeSpan.FromHours(24));
+                var overdueIds = await SectionReviewQueues.OverdueSampleIdsAsync(_db, SectionSignoffStatus.UnderReview, now, TimeSpan.FromHours(24), scope);
                 query = query.Where(s => overdueIds.Contains(s.Id));
             }
             else if (string.Equals(wf, "approvalOverdue", StringComparison.OrdinalIgnoreCase))
             {
-                // Phase 2b: per-section review state
-                var overdueIds = await SampleWorkflowQueues.GetOverdueApprovalSampleIdsAsync(_db, now, TimeSpan.FromHours(24));
+                var overdueIds = await SectionReviewQueues.OverdueSampleIdsAsync(_db, SectionSignoffStatus.UnderApproval, now, TimeSpan.FromHours(24), scope);
                 query = query.Where(s => overdueIds.Contains(s.Id));
             }
         }
@@ -156,7 +153,12 @@ public class TestingWorkspaceService : ITestWorkspaceService
             {
                 // Ambiguity Note: Client TSX matches "UnderReview", "UnderApproval", or "PendingReview".
                 // In Domain.Enums.SampleStatus, samples awaiting review/approval are UnderReview or UnderApproval.
-                query = query.Where(s => s.Status == SampleStatus.UnderReview || s.Status == SampleStatus.UnderApproval);
+                // Per section: a sample one of whose (visible) sections is
+                // under review or approval, even while another section of it
+                // is still in testing.
+                var underReview = SectionReviewQueues.Candidates(_db.Samples, SectionSignoffStatus.UnderReview, scope).Select(s => s.Id);
+                var underApproval = SectionReviewQueues.Candidates(_db.Samples, SectionSignoffStatus.UnderApproval, scope).Select(s => s.Id);
+                query = query.Where(s => underReview.Contains(s.Id) || underApproval.Contains(s.Id));
             }
             else if (string.Equals(sampleStatus, "RetestRequested", StringComparison.OrdinalIgnoreCase))
             {
@@ -296,9 +298,7 @@ public class TestingWorkspaceService : ITestWorkspaceService
         var readyToRead = await baseQuery
             .CountAsync(SampleWorkflowQueues.HasTestReadyToRead(now, scope));
 
-        // Phase 2b: per-section review state
-        var awaitingReview = await baseQuery
-            .CountAsync(s => s.Status == SampleStatus.UnderReview);
+        var awaitingReview = await SectionReviewQueues.Candidates(baseQuery, SectionSignoffStatus.UnderReview, scope).CountAsync();
 
         var overdue = await baseQuery
             .CountAsync(SampleWorkflowQueues.IsOverdue(now));

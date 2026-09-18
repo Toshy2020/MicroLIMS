@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using MicroLIMS.Application.DTOs;
 using MicroLIMS.Application.Services;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
@@ -55,7 +56,8 @@ public class MultiSectionReviewApprovalTests
         var headFp = await SeedUserAsync(db, 6, RoleType.SectionHead, micro.DepartmentId, fp.Id);
         var admin = await SeedUserAsync(db, 7, RoleType.SystemAdministrator, micro.DepartmentId, null);
 
-        var sample = new Sample { Category = SampleCategory.FinishedProduct, ControlNumber = "CTRL-MIX-1", Status = SampleStatus.InTesting };
+        var routine = new CauseOfTesting { Name = "Routine", IsActive = true };
+        var sample = new Sample { Category = SampleCategory.FinishedProduct, ControlNumber = "CTRL-MIX-1", Status = SampleStatus.InTesting, CauseOfTesting = routine };
         var tamc = new TestOrder { SectionId = micro.Id, TestCode = "TAMC", Status = ApprovalStatus.ResultEntered, CurrentStep = WorkflowStep.Ready, AssignedAnalystId = 1 };
         var tymc = new TestOrder { SectionId = micro.Id, TestCode = "TYMC", Status = ApprovalStatus.ResultEntered, CurrentStep = WorkflowStep.Ready, AssignedAnalystId = 1 };
         var assay = new TestOrder
@@ -220,6 +222,59 @@ public class MultiSectionReviewApprovalTests
         Assert.Equal(SampleStatus.Rejected, await StatusAsync(db, w.Sample.Id));
         Assert.Equal(SectionSignoffStatus.Approved, (await SignoffAsync(db, w.Sample.Id, w.Fp))!.Status);
         Assert.Equal(ApprovalStatus.Approved, (await db.TestOrders.AsNoTracking().FirstAsync(t => t.Id == w.FpAssay.Id)).Status);
+    }
+
+    [Fact]
+    public async Task Dashboards_QueueRowsArePerSection_AndLimitedToTheViewersSections()
+    {
+        await using var db = NewDb();
+        var w = await SeedAsync(db, fpReady: false);
+        var review = TestServiceFactory.SampleReview(db);
+        await review.AutoSubmitForReviewIfReadyAsync(w.Sample.Id, 1);
+        await db.SaveChangesAsync();
+        var dashboard = TestServiceFactory.Dashboard(db);
+        var scope = new UserSectionScopeService(db);
+
+        // Micro waits for review while FP is still testing; the sample as a
+        // whole is still InTesting.
+        Assert.Equal(SampleStatus.InTesting, await StatusAsync(db, w.Sample.Id));
+
+        var microQueue = await dashboard.GetReviewerDashboardAsync(w.ReviewerMicro, await scope.GetAccessibleSectionIdsAsync(w.ReviewerMicro));
+        var row = Assert.Single(microQueue.ReviewQueue);
+        Assert.Equal(w.Micro, row.SectionId);
+        Assert.Equal("Microbiology Laboratory", row.SectionName);
+        Assert.Equal(new[] { "TAMC", "TYMC" }, row.Tests.Select(t => t.TestCode).OrderBy(c => c).ToArray());
+
+        var fpQueue = await dashboard.GetReviewerDashboardAsync(w.ReviewerFp, await scope.GetAccessibleSectionIdsAsync(w.ReviewerFp));
+        Assert.Empty(fpQueue.ReviewQueue);
+
+        // The Micro Section Head's review tile counts the waiting section.
+        var head = await dashboard.GetSectionHeadDashboardAsync(await scope.GetAccessibleSectionIdsAsync(w.HeadMicro));
+        Assert.Equal(1, head.PendingReview);
+
+        // The workspace's awaiting-review filter finds the sample for Micro only.
+        var workspace = new TestingWorkspaceService(db, scope);
+        var microPage = await workspace.GetActiveSamplesAsync(new TestingWorkspaceFilterDto { WorkloadFilter = "awaitingReview" }, w.ReviewerMicro);
+        Assert.Single(microPage.Items);
+        var fpPage = await workspace.GetActiveSamplesAsync(new TestingWorkspaceFilterDto { WorkloadFilter = "awaitingReview" }, w.ReviewerFp);
+        Assert.Empty(fpPage.Items);
+    }
+
+    [Fact]
+    public async Task Dashboards_BothSectionsWaiting_UnrestrictedViewerSeesOneRowPerSection()
+    {
+        await using var db = NewDb();
+        var w = await SeedAsync(db);
+        var review = TestServiceFactory.SampleReview(db);
+        await review.AutoSubmitForReviewIfReadyAsync(w.Sample.Id, 1);
+        await db.SaveChangesAsync();
+
+        var reviewer = await TestServiceFactory.Dashboard(db).GetReviewerDashboardAsync(w.Admin);
+        Assert.Equal(2, reviewer.PendingReviewCount);
+        Assert.Equal(new[] { w.Micro, w.Fp }.OrderBy(x => x), reviewer.ReviewQueue.Select(r => r.SectionId!.Value).OrderBy(x => x));
+
+        var notifications = await TestServiceFactory.DashboardNotification(db).GetNotificationsAsync(RoleType.Reviewer, w.ReviewerFp);
+        Assert.Contains(notifications, n => n.Type == "ReviewWaiting" && n.Message == "1 sample(s) awaiting review.");
     }
 
     [Fact]

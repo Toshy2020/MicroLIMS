@@ -48,6 +48,7 @@ public class SampleOrientedSectionHeadAndAdminDashboardTests
         var user = new User { FullName = fullName, Username = fullName.Replace(" ", "").ToLowerInvariant(), RoleId = role.Id, PasswordHash = "not-used" };
         db.Users.Add(user);
         await db.SaveChangesAsync();
+        TestServiceFactory.AssignUserToMicroSection(db, user.Id);
         return user;
     }
 
@@ -310,6 +311,9 @@ public class SampleOrientedSectionHeadAndAdminDashboardTests
             NewSample("REV-2", SampleStatus.UnderReview, now.AddHours(-3), ApprovalStatus.ResultEntered, WorkflowStep.Ready, "TAMC"),
             NewSample("APP-1", SampleStatus.UnderApproval, now.AddHours(-3), ApprovalStatus.Reviewed, WorkflowStep.Reviewed, "TAMC", "TYMC"));
         await db.SaveChangesAsync();
+        foreach (var order in db.TestOrders)
+            order.SectionId = TestServiceFactory.EnsureMicroSection(db).Id;
+        await db.SaveChangesAsync();
 
         var service = TestServiceFactory.DashboardNotification(db);
 
@@ -357,6 +361,9 @@ public class SampleOrientedSectionHeadAndAdminDashboardTests
 
         var sample = NewSample("FP0107026", SampleStatus.InTesting, DateTime.UtcNow.AddDays(-2), ApprovalStatus.InProgress, WorkflowStep.Incubating, "TAMC");
         db.Samples.Add(sample);
+        await db.SaveChangesAsync();
+        foreach (var order in db.TestOrders)
+            order.SectionId = TestServiceFactory.EnsureMicroSection(db).Id;
         await db.SaveChangesAsync();
 
         db.Incubations.Add(new Incubation

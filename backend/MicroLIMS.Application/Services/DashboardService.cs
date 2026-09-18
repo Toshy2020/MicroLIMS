@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Persistence.DbContext;
 
@@ -29,7 +30,9 @@ public record SectionHeadReviewQueueItemDto(
     List<string> AnalystNames,
     DateTime SubmittedForReviewAt,
     double AgeHours,
-    string? WorstResultLevel
+    string? WorstResultLevel,
+    int? SectionId = null,
+    string? SectionName = null
 );
 
 public record SectionHeadApprovalQueueItemDto(
@@ -41,7 +44,9 @@ public record SectionHeadApprovalQueueItemDto(
     string? ReviewerName,
     DateTime ReviewedAt,
     double AgeHours,
-    string? WorstResultLevel
+    string? WorstResultLevel,
+    int? SectionId = null,
+    string? SectionName = null
 );
 
 public record SectionHeadAnalystWorkloadDto(
@@ -97,7 +102,9 @@ public record ReviewerQueueItemDto(
     string Priority,
     string? WorstResultLevel,
     List<string> AnalystNames,
-    List<ReviewerQueueTestDto> Tests
+    List<ReviewerQueueTestDto> Tests,
+    int? SectionId = null,
+    string? SectionName = null
 );
 
 public record ReviewerRecentlyReviewedDto(
@@ -137,6 +144,10 @@ public record ReviewerDashboardDto(
 // "Pending Tests" is their own queue; a Reviewer's is everyone's - see
 // the per-role filtering below). Delayed = still not ready 24h+ after
 // the sample was received.
+//
+// Every figure is limited to the viewer's laboratory sections: sectionIds
+// is the viewer's scope (IUserSectionScopeService), null for unrestricted.
+// Review/approval queues are per (sample, section) - SectionReviewQueues.
 public class DashboardService
 {
     private static readonly TimeSpan DelayThreshold = TimeSpan.FromHours(24);
@@ -157,27 +168,52 @@ public class DashboardService
         _kpiService = kpiService;
     }
 
-    public async Task<object> GetSummaryAsync(RoleType role, int userId)
+    // (sample, section) pairs waiting in a review/approval queue, among the
+    // viewer's sections. include adds whatever navigation the caller shows.
+    private async Task<List<SectionQueueEntry>> QueueEntriesAsync(
+        SectionSignoffStatus status, IReadOnlyCollection<int>? sectionIds, Func<IQueryable<Sample>, IQueryable<Sample>> include)
+    {
+        var query = SectionReviewQueues.Candidates(_db.Samples.AsNoTracking(), status, sectionIds)
+            .Include(s => s.TestOrders)
+            .Include(s => s.SectionSignoffs);
+        var samples = await include(query).ToListAsync();
+        return SectionReviewQueues.Entries(samples, status, sectionIds);
+    }
+
+    private Task<Dictionary<int, string>> SectionNamesAsync() =>
+        _db.DocumentSections.AsNoTracking().ToDictionaryAsync(s => s.Id, s => s.Name);
+
+    // Worst current result among one queue entry's tests.
+    private static string? WorstLevel(SectionQueueEntry entry, Dictionary<int, ResultLevel?> orderLevels) =>
+        SampleWorkflowQueues.GetWorstResultLevel(entry.Orders
+            .Select(o => orderLevels.GetValueOrDefault(o.Id))
+            .Where(l => l.HasValue)
+            .Select(l => l!.Value))?.ToString();
+
+    public async Task<object> GetSummaryAsync(RoleType role, int userId, IReadOnlyCollection<int>? sectionIds = null)
     {
         var now = DateTime.UtcNow;
         var cutoff = now.Subtract(DelayThreshold);
         var todayStart = now.Date;
 
-        var pendingQuery = _db.TestOrders.Where(t => t.Status == ApprovalStatus.Pending || t.Status == ApprovalStatus.InProgress);
+        var pendingQuery = _db.TestOrders.Where(SectionReviewQueues.OrderIn(sectionIds))
+            .Where(t => t.Status == ApprovalStatus.Pending || t.Status == ApprovalStatus.InProgress);
         if (role == RoleType.Analyst)
             pendingQuery = pendingQuery.Where(t => t.AssignedAnalystId == userId);
 
         var pendingTests = await pendingQuery.CountAsync();
 
         var delayedTests = await _db.TestOrders
+            .Where(SectionReviewQueues.OrderIn(sectionIds))
             .Where(t => (t.Status == ApprovalStatus.Pending || t.Status == ApprovalStatus.InProgress))
             .Where(t => _db.Samples.Any(s => s.Id == t.SampleId && s.ReceivedAt < cutoff))
             .CountAsync();
 
-        var samplesToday = await _db.Samples.CountAsync(s => s.ReceivedAt >= todayStart);
-        var reviewerQueue = await _db.Samples.CountAsync(s => s.Status == SampleStatus.UnderReview);
-        var approvalQueue = await _db.Samples.CountAsync(s => s.Status == SampleStatus.UnderApproval);
-        var preparationQueue = await _db.Samples.CountAsync(s => s.PreparationStatus == SamplePreparationStatus.NeedsPreparation);
+        var scopedSamples = _db.Samples.Where(SectionReviewQueues.SampleIn(sectionIds));
+        var samplesToday = await scopedSamples.CountAsync(s => s.ReceivedAt >= todayStart);
+        var reviewerQueue = (await QueueEntriesAsync(SectionSignoffStatus.UnderReview, sectionIds, q => q)).Count;
+        var approvalQueue = (await QueueEntriesAsync(SectionSignoffStatus.UnderApproval, sectionIds, q => q)).Count;
+        var preparationQueue = await scopedSamples.CountAsync(s => s.PreparationStatus == SamplePreparationStatus.NeedsPreparation);
 
         // Preparation configs auto-created from an analyst's first manual
         // entry are usable immediately but still owe a Section Head review.
@@ -190,6 +226,7 @@ public class DashboardService
         // definition GetIncubationOverviewAsync groups by test code).
         var openIncubations = await _db.Incubations
             .Where(SampleWorkflowQueues.IsOpenIncubationOnActiveTest)
+            .Where(SectionReviewQueues.IncubationIn(sectionIds))
             .Select(i => new { i.ExpectedReadingAt, i.IncubationEndUtc, i.MinimumDurationOverriddenByUserId })
             .ToListAsync();
         var readyToReadCount = openIncubations.Count(i =>
@@ -214,7 +251,7 @@ public class DashboardService
     // NextAction per TestOrder status and TimeRemaining from the nearest
     // open Incubation. Analyst role scopes to their own assigned tests,
     // same filtering rule as GetSummaryAsync's pendingTests above.
-    public async Task<List<TodaysWorkItemDto>> GetTodaysWorkAsync(RoleType role, int userId)
+    public async Task<List<TodaysWorkItemDto>> GetTodaysWorkAsync(RoleType role, int userId, IReadOnlyCollection<int>? sectionIds = null)
     {
         var todayStart = DateTime.UtcNow.Date;
         var now = DateTime.UtcNow;
@@ -226,12 +263,16 @@ public class DashboardService
             .Include(s => s.Machine)
             .Include(s => s.TestOrders).ThenInclude(t => t.Incubations)
             .Where(s => s.ReceivedAt >= todayStart)
+            .Where(SectionReviewQueues.SampleIn(sectionIds))
             .AsQueryable();
 
         if (role == RoleType.Analyst)
             query = query.Where(s => s.TestOrders.Any(t => t.AssignedAnalystId == userId));
 
         var samples = await query.OrderByDescending(s => s.ReceivedAt).ToListAsync();
+        if (sectionIds is not null)
+            foreach (var s in samples)
+                s.TestOrders = s.TestOrders.Where(t => sectionIds.Contains(t.SectionId)).ToList();
 
         var allTestOrderIds = samples.SelectMany(s => s.TestOrders).Select(t => t.Id).ToList();
         var pendingReturns = await TestReturnHelper.GetPendingReturnsForOrdersAsync(_db, allTestOrderIds);
@@ -260,11 +301,13 @@ public class DashboardService
 
     // Open incubations grouped by TestCode, split into ready-to-read vs
     // still-incubating - powers the Incubation Overview widget.
-    public async Task<List<IncubationOverviewDto>> GetIncubationOverviewAsync(bool myIncubationsOnly = false, int? userId = null)
+    public async Task<List<IncubationOverviewDto>> GetIncubationOverviewAsync(bool myIncubationsOnly = false, int? userId = null,
+        IReadOnlyCollection<int>? sectionIds = null)
     {
         var now = DateTime.UtcNow;
         var query = _db.Incubations
             .Where(SampleWorkflowQueues.IsOpenIncubationOnActiveTest)
+            .Where(SectionReviewQueues.IncubationIn(sectionIds))
             .Include(i => i.TestOrder)
             .AsQueryable();
 
@@ -376,13 +419,14 @@ public class DashboardService
 
     // Samples lodged vs test requests (TestOrders) lodged, per month,
     // for the last N months - powers the trend bar chart.
-    public async Task<List<object>> GetMonthlyTrendAsync(int months = 6)
+    public async Task<List<object>> GetMonthlyTrendAsync(int months = 6, IReadOnlyCollection<int>? sectionIds = null)
     {
         var now = DateTime.UtcNow;
         var start = new DateTime(now.Year, now.Month, 1, 0, 0, 0, DateTimeKind.Utc).AddMonths(-(months - 1));
 
-        var samples = await _db.Samples.Where(s => s.ReceivedAt >= start).Select(s => s.ReceivedAt).ToListAsync();
+        var samples = await _db.Samples.Where(SectionReviewQueues.SampleIn(sectionIds)).Where(s => s.ReceivedAt >= start).Select(s => s.ReceivedAt).ToListAsync();
         var testOrders = await _db.TestOrders
+            .Where(SectionReviewQueues.OrderIn(sectionIds))
             .Where(t => _db.Samples.Any(s => s.Id == t.SampleId && s.ReceivedAt >= start))
             .Join(_db.Samples, t => t.SampleId, s => s.Id, (t, s) => s.ReceivedAt)
             .ToListAsync();
@@ -403,12 +447,13 @@ public class DashboardService
     }
 
     // Sample category breakdown (Product/RM/PM/Water/EM/AfterCleaning/GPT) - donut chart.
-    public async Task<List<object>> GetCategoryDistributionAsync()
+    public async Task<List<object>> GetCategoryDistributionAsync(IReadOnlyCollection<int>? sectionIds = null)
     {
-        var total = await _db.Samples.CountAsync();
+        var samples = _db.Samples.Where(SectionReviewQueues.SampleIn(sectionIds));
+        var total = await samples.CountAsync();
         if (total == 0) return new List<object>();
 
-        var grouped = await _db.Samples.GroupBy(s => s.Category)
+        var grouped = await samples.GroupBy(s => s.Category)
             .Select(g => new { category = g.Key.ToString(), count = g.Count() })
             .ToListAsync();
 
@@ -417,14 +462,15 @@ public class DashboardService
 
     // TestOrder status breakdown (Approved / Pending-or-InProgress / Rejected) - donut chart,
     // mirrors "inspected vs non-inspected" from the reference design.
-    public async Task<List<object>> GetStatusDistributionAsync()
+    public async Task<List<object>> GetStatusDistributionAsync(IReadOnlyCollection<int>? sectionIds = null)
     {
+        var orders = _db.TestOrders.Where(SectionReviewQueues.OrderIn(sectionIds));
         // Voided tests were struck from the record - not pending, not decided.
-        var total = await _db.TestOrders.CountAsync(t => t.Status != ApprovalStatus.Voided);
+        var total = await orders.CountAsync(t => t.Status != ApprovalStatus.Voided);
         if (total == 0) return new List<object>();
 
-        var approved = await _db.TestOrders.CountAsync(t => t.Status == ApprovalStatus.Approved);
-        var rejected = await _db.TestOrders.CountAsync(t => t.Status == ApprovalStatus.Rejected);
+        var approved = await orders.CountAsync(t => t.Status == ApprovalStatus.Approved);
+        var rejected = await orders.CountAsync(t => t.Status == ApprovalStatus.Rejected);
         var pending = total - approved - rejected;
 
         return new List<object>
@@ -436,17 +482,20 @@ public class DashboardService
     }
 
     // Month-over-month deltas for the KPI cards.
-    public async Task<object> GetKpiDeltasAsync()
+    public async Task<object> GetKpiDeltasAsync(IReadOnlyCollection<int>? sectionIds = null)
     {
         var now = DateTime.UtcNow;
         var thisMonthStart = new DateTime(now.Year, now.Month, 1, 0, 0, 0, DateTimeKind.Utc);
         var lastMonthStart = thisMonthStart.AddMonths(-1);
 
-        var samplesThisMonth = await _db.Samples.CountAsync(s => s.ReceivedAt >= thisMonthStart);
-        var samplesLastMonth = await _db.Samples.CountAsync(s => s.ReceivedAt >= lastMonthStart && s.ReceivedAt < thisMonthStart);
+        var scopedSamples = _db.Samples.Where(SectionReviewQueues.SampleIn(sectionIds));
+        var scopedOrders = _db.TestOrders.Where(SectionReviewQueues.OrderIn(sectionIds));
 
-        var testsThisMonth = await _db.TestOrders.CountAsync(t => _db.Samples.Any(s => s.Id == t.SampleId && s.ReceivedAt >= thisMonthStart));
-        var testsLastMonth = await _db.TestOrders.CountAsync(t => _db.Samples.Any(s => s.Id == t.SampleId && s.ReceivedAt >= lastMonthStart && s.ReceivedAt < thisMonthStart));
+        var samplesThisMonth = await scopedSamples.CountAsync(s => s.ReceivedAt >= thisMonthStart);
+        var samplesLastMonth = await scopedSamples.CountAsync(s => s.ReceivedAt >= lastMonthStart && s.ReceivedAt < thisMonthStart);
+
+        var testsThisMonth = await scopedOrders.CountAsync(t => _db.Samples.Any(s => s.Id == t.SampleId && s.ReceivedAt >= thisMonthStart));
+        var testsLastMonth = await scopedOrders.CountAsync(t => _db.Samples.Any(s => s.Id == t.SampleId && s.ReceivedAt >= lastMonthStart && s.ReceivedAt < thisMonthStart));
 
         return new
         {
@@ -454,28 +503,37 @@ public class DashboardService
             samplesDeltaPercent = samplesLastMonth == 0 ? 0 : Math.Round((samplesThisMonth - samplesLastMonth) * 100.0 / samplesLastMonth, 1),
             testsThisMonth,
             testsDeltaPercent = testsLastMonth == 0 ? 0 : Math.Round((testsThisMonth - testsLastMonth) * 100.0 / testsLastMonth, 1),
-            totalSamples = await _db.Samples.CountAsync(),
-            totalTests = await _db.TestOrders.CountAsync()
+            totalSamples = await scopedSamples.CountAsync(),
+            totalTests = await scopedOrders.CountAsync()
         };
     }
 
-    public async Task<SectionHeadDashboardDto> GetSectionHeadDashboardAsync()
+    public async Task<SectionHeadDashboardDto> GetSectionHeadDashboardAsync(IReadOnlyCollection<int>? sectionIds = null)
     {
         var now = DateTime.UtcNow;
         var cutoff = now.Subtract(DelayThreshold);
         var todayStart = now.Date;
+        var scopedOrders = _db.TestOrders.Where(SectionReviewQueues.OrderIn(sectionIds));
 
-        var activeTests = await _db.TestOrders.CountAsync(t => !t.IsSuperseded && (t.Status == ApprovalStatus.Pending || t.Status == ApprovalStatus.InProgress));
+        var activeTests = await scopedOrders.CountAsync(t => !t.IsSuperseded && (t.Status == ApprovalStatus.Pending || t.Status == ApprovalStatus.InProgress));
 
         var openIncubations = await _db.Incubations
             .Where(SampleWorkflowQueues.IsOpenIncubationOnActiveTest)
+            .Where(SectionReviewQueues.IncubationIn(sectionIds))
             .Include(i => i.TestOrder)
             .ToListAsync();
         var readyToRead = openIncubations.Count(i => SampleWorkflowQueues.IsIncubationReadyToRead(i, now));
         var incubating = openIncubations.Count - readyToRead;
 
-        var pendingReview = await _db.Samples.CountAsync(s => s.Status == SampleStatus.UnderReview);
-        var pendingApproval = await _db.Samples.CountAsync(s => s.Status == SampleStatus.UnderApproval);
+        var sectionNames = await SectionNamesAsync();
+        var reviewEntries = await QueueEntriesAsync(SectionSignoffStatus.UnderReview, sectionIds, q => q
+            .Include(s => s.Item).Include(s => s.WaterSamplingPoint).Include(s => s.Department).Include(s => s.Machine)
+            .Include(s => s.TestOrders).ThenInclude(t => t.Results));
+        var approvalEntries = await QueueEntriesAsync(SectionSignoffStatus.UnderApproval, sectionIds, q => q
+            .Include(s => s.Item).Include(s => s.WaterSamplingPoint).Include(s => s.Department).Include(s => s.Machine));
+
+        var pendingReview = reviewEntries.Count;
+        var pendingApproval = approvalEntries.Count;
 
         // Rule #1's 7-day Analyst-stage SLA (KpiService.
         // GetOverdueAnalystStageSamplesAsync - the SLA determination
@@ -491,7 +549,7 @@ public class DashboardService
         var overdueAnalystSamples = await _kpiService.GetOverdueAnalystStageSamplesAsync(Epoch, now);
         var overdueAssignedAtBySampleId = overdueAnalystSamples.ToDictionary(x => x.SampleId, x => x.AssignedAt);
 
-        var liveOverdueTestOrders = await _db.TestOrders
+        var liveOverdueTestOrders = await scopedOrders
             .Where(t => !t.IsSuperseded && (t.Status == ApprovalStatus.Pending || t.Status == ApprovalStatus.InProgress)
                 && overdueAssignedAtBySampleId.Keys.Contains(t.SampleId))
             .Include(t => t.Sample).ThenInclude(s => s!.Item)
@@ -510,25 +568,12 @@ public class DashboardService
         var users = await _db.Users.AsNoTracking().Include(u => u.Role).ToListAsync();
         var userMap = users.ToDictionary(u => u.Id, u => u.FullName);
 
-        // Review Queue details: one row per UnderReview sample
-        var underReviewSamples = await _db.Samples
-            .AsNoTracking()
-            .Where(s => s.Status == SampleStatus.UnderReview)
-            .Include(s => s.Item)
-            .Include(s => s.WaterSamplingPoint)
-            .Include(s => s.Department)
-            .Include(s => s.Machine)
-            .Include(s => s.TestOrders).ThenInclude(t => t.Results)
-            .ToListAsync();
-
-        var reviewSampleIds = underReviewSamples.Select(s => s.Id).ToList();
+        // Review Queue details: one row per (sample, section) under review
+        var reviewSampleIds = reviewEntries.Select(e => e.Sample.Id).Distinct().ToList();
         var reviewClockStarts = await SampleWorkflowQueues.GetReviewClockStartsAsync(_db, reviewSampleIds);
-        var reviewWorstLevels = await SampleWorkflowQueues.GetWorstResultLevelsAsync(_db, reviewSampleIds);
 
-        var reviewNonSupersededOrders = underReviewSamples
-            .SelectMany(s => s.TestOrders.Where(t => !t.IsSuperseded))
-            .ToList();
-        var reviewTestOrderIds = reviewNonSupersededOrders.Select(t => t.Id).ToList();
+        var reviewTestOrderIds = reviewEntries.SelectMany(e => e.Orders).Select(t => t.Id).ToList();
+        var reviewOrderLevels = await SampleWorkflowQueues.GetTestOrderWorstResultLevelsAsync(_db, reviewTestOrderIds);
 
         var reviewResultRecords = await _db.ResultRecords
             .AsNoTracking()
@@ -536,14 +581,15 @@ public class DashboardService
             .Select(r => new { r.TestOrderId, r.ResultEnteredByUserId, r.ResultEnteredByName, r.ResultEnteredAt })
             .ToListAsync();
 
-        var reviewQueueItems = underReviewSamples
-            .Select(s =>
+        var reviewQueueItems = reviewEntries
+            .Select(entry =>
             {
-                var submittedAt = reviewClockStarts.GetValueOrDefault(s.Id, s.ReceivedAt);
+                var s = entry.Sample;
+                var submittedAt = entry.Signoff?.SubmittedForReviewAt ?? reviewClockStarts.GetValueOrDefault(s.Id, s.ReceivedAt);
                 var ageHours = Math.Round((now - submittedAt).TotalHours, 1);
-                var worstLevel = reviewWorstLevels.GetValueOrDefault(s.Id)?.ToString();
+                var worstLevel = WorstLevel(entry, reviewOrderLevels);
 
-                var nonSuperseded = s.TestOrders.Where(t => !t.IsSuperseded).ToList();
+                var nonSuperseded = entry.Orders;
                 var testCodes = nonSuperseded.Select(t => t.TestCode).ToList();
 
                 var analystNames = nonSuperseded.Select(t =>
@@ -587,7 +633,9 @@ public class DashboardService
                     analystNames,
                     submittedAt,
                     ageHours,
-                    worstLevel
+                    worstLevel,
+                    entry.SectionId,
+                    sectionNames.GetValueOrDefault(entry.SectionId)
                 );
             })
             .OrderByDescending(r => r.AgeHours)
@@ -596,35 +644,26 @@ public class DashboardService
         var reviewQueueOverdue = reviewQueueItems.Count(r => r.AgeHours >= 24);
         var reviewQueueOldestHours = reviewQueueItems.Count > 0 ? reviewQueueItems.Max(r => r.AgeHours) : 0;
 
-        // Approval Queue details: one row per UnderApproval sample
-        var underApprovalSamples = await _db.Samples
-            .AsNoTracking()
-            .Where(s => s.Status == SampleStatus.UnderApproval)
-            .Include(s => s.Item)
-            .Include(s => s.WaterSamplingPoint)
-            .Include(s => s.Department)
-            .Include(s => s.Machine)
-            .Include(s => s.TestOrders)
-            .ToListAsync();
+        // Approval Queue details: one row per (sample, section) under approval
+        var approvalOrderLevels = await SampleWorkflowQueues.GetTestOrderWorstResultLevelsAsync(
+            _db, approvalEntries.SelectMany(e => e.Orders).Select(t => t.Id).ToList());
 
-        var approvalSampleIds = underApprovalSamples.Select(s => s.Id).ToList();
-        var approvalWorstLevels = await SampleWorkflowQueues.GetWorstResultLevelsAsync(_db, approvalSampleIds);
-
-        var approvalQueueItems = underApprovalSamples
-            .Select(s =>
+        var approvalQueueItems = approvalEntries
+            .Select(entry =>
             {
-                var reviewedAt = SampleWorkflowQueues.GetApprovalClockStart(s);
+                var s = entry.Sample;
+                var reviewedAt = entry.Signoff?.ReviewedAt ?? SampleWorkflowQueues.GetApprovalClockStart(s);
                 var ageHours = Math.Round((now - reviewedAt).TotalHours, 1);
-                var reviewerName = s.ReviewedByUserId.HasValue && userMap.TryGetValue(s.ReviewedByUserId.Value, out var rName) ? rName : null;
+                var reviewerId = entry.Signoff?.ReviewedByUserId ?? s.ReviewedByUserId;
+                var reviewerName = reviewerId.HasValue && userMap.TryGetValue(reviewerId.Value, out var rName) ? rName : null;
                 var displayName = s.Item?.Name
                     ?? s.WaterSamplingPoint?.Code
                     ?? s.Department?.Name
                     ?? s.Machine?.Name
                     ?? (string.IsNullOrWhiteSpace(s.ReferenceNumber) ? "Sample" : s.ReferenceNumber);
 
-                var nonSuperseded = s.TestOrders.Where(t => !t.IsSuperseded).ToList();
-                var testCodes = nonSuperseded.Select(t => t.TestCode).ToList();
-                var worstLevel = approvalWorstLevels.GetValueOrDefault(s.Id)?.ToString();
+                var testCodes = entry.Orders.Select(t => t.TestCode).ToList();
+                var worstLevel = WorstLevel(entry, approvalOrderLevels);
 
                 return new SectionHeadApprovalQueueItemDto(
                     s.Id,
@@ -635,7 +674,9 @@ public class DashboardService
                     reviewerName,
                     reviewedAt,
                     ageHours,
-                    worstLevel
+                    worstLevel,
+                    entry.SectionId,
+                    sectionNames.GetValueOrDefault(entry.SectionId)
                 );
             })
             .OrderByDescending(a => a.AgeHours)
@@ -645,16 +686,26 @@ public class DashboardService
         var approvalQueueOldestHours = approvalQueueItems.Count > 0 ? approvalQueueItems.Max(a => a.AgeHours) : 0;
 
         // Incubation summary grouped
-        var incubationSummary = await GetIncubationOverviewAsync(false, null);
+        var incubationSummary = await GetIncubationOverviewAsync(false, null, sectionIds);
 
         // Analyst workloads. Overdue reuses the same live-filtered
         // per-sample set as the top-level Overdue tile above - one shared
         // computation, not a second one re-derived per analyst.
         var analysts = users.Where(u => u.IsActive && u.Role != null && u.Role.Type == RoleType.Analyst).ToList();
+        if (sectionIds is not null)
+        {
+            // Analysts who belong to one of the viewer's sections, directly
+            // or through their whole department.
+            var viewerDepartments = await _db.DocumentSections.Where(x => sectionIds.Contains(x.Id)).Select(x => x.DepartmentId).Distinct().ToListAsync();
+            var inScopeAnalystIds = (await _db.UserOrgMemberships
+                .Where(m => m.SectionId != null ? sectionIds.Contains(m.SectionId.Value) : viewerDepartments.Contains(m.DepartmentId))
+                .Select(m => m.UserId).Distinct().ToListAsync()).ToHashSet();
+            analysts = analysts.Where(a => inScopeAnalystIds.Contains(a.Id)).ToList();
+        }
         var analystWorkloads = new List<SectionHeadAnalystWorkloadDto>();
         foreach (var a in analysts)
         {
-            var aActive = await _db.TestOrders.CountAsync(t => !t.IsSuperseded && t.AssignedAnalystId == a.Id && (t.Status == ApprovalStatus.Pending || t.Status == ApprovalStatus.InProgress));
+            var aActive = await scopedOrders.CountAsync(t => !t.IsSuperseded && t.AssignedAnalystId == a.Id && (t.Status == ApprovalStatus.Pending || t.Status == ApprovalStatus.InProgress));
             var aOverdue = liveOverdueCountByAnalyst.TryGetValue(a.Id, out var cnt) ? cnt : 0;
             var aCompletedToday = await _db.Results.CountAsync(r => r.EnteredByUserId == a.Id && r.EnteredAt >= todayStart);
             analystWorkloads.Add(new SectionHeadAnalystWorkloadDto(a.Id, a.FullName, a.Username, aActive, aOverdue, aCompletedToday));
@@ -697,9 +748,10 @@ public class DashboardService
         // 2. Retests requested: retests in progress (D2), top 5 by ReceivedAt ascending;
         // Reason = $"Retest sample in progress (origin {originReferenceNumber})" (fall back to "Retest sample in progress" if the origin can't be loaded);
         // Urgency "High"; Timestamp = the retest sample's ReceivedAt; TestCodes = its non-superseded test codes.
-        var totalRetestsInProgress = await _db.Samples.WhereRetestInProgress().CountAsync();
+        var totalRetestsInProgress = await _db.Samples.Where(SectionReviewQueues.SampleIn(sectionIds)).WhereRetestInProgress().CountAsync();
         var retestSamples = await _db.Samples
             .AsNoTracking()
+            .Where(SectionReviewQueues.SampleIn(sectionIds))
             .WhereRetestInProgress()
             .OrderBy(s => s.ReceivedAt)
             .Take(5)
@@ -810,36 +862,27 @@ public class DashboardService
         );
     }
 
-    public async Task<ReviewerDashboardDto> GetReviewerDashboardAsync(int reviewerUserId)
+    public async Task<ReviewerDashboardDto> GetReviewerDashboardAsync(int reviewerUserId, IReadOnlyCollection<int>? sectionIds = null)
     {
         var now = DateTime.UtcNow;
         var todayStart = now.Date;
 
-        // Decision D1 & Semantics: Review queue = one row per sample with Status == SampleStatus.UnderReview.
-        // Tests = that sample's non-superseded TestOrders.
-        var underReviewSamples = await _db.Samples
-            .AsNoTracking()
-            .Where(s => s.Status == SampleStatus.UnderReview)
-            .Include(s => s.Item)
-            .Include(s => s.WaterSamplingPoint)
-            .Include(s => s.Department)
-            .Include(s => s.Machine)
-            .Include(s => s.TestOrders)
-                .ThenInclude(t => t.Results)
-            .ToListAsync();
+        // Decision D1 & Semantics: Review queue = one row per (sample, section)
+        // under review, among the reviewer's sections. Tests = that section's
+        // non-superseded TestOrders.
+        var entries = await QueueEntriesAsync(SectionSignoffStatus.UnderReview, sectionIds, q => q
+            .Include(s => s.Item).Include(s => s.WaterSamplingPoint).Include(s => s.Department).Include(s => s.Machine)
+            .Include(s => s.TestOrders).ThenInclude(t => t.Results));
+        var sectionNames = await SectionNamesAsync();
 
-        var sampleIds = underReviewSamples.Select(s => s.Id).ToList();
+        var sampleIds = entries.Select(e => e.Sample.Id).Distinct().ToList();
 
-        // Batched review clock starts (Decision D3)
+        // Batched review clock starts (Decision D3) - for sections reviewed
+        // before per-section sign-off existed
         var clockStarts = await SampleWorkflowQueues.GetReviewClockStartsAsync(_db, sampleIds);
 
-        // Batched worst-of result levels (Decision D4)
-        var sampleWorstLevels = await SampleWorkflowQueues.GetWorstResultLevelsAsync(_db, sampleIds);
-
-        // All non-superseded test orders across these samples
-        var allNonSupersededOrders = underReviewSamples
-            .SelectMany(s => s.TestOrders.Where(t => !t.IsSuperseded))
-            .ToList();
+        // All non-superseded test orders across these entries
+        var allNonSupersededOrders = entries.SelectMany(e => e.Orders).ToList();
 
         var testOrderIds = allNonSupersededOrders.Select(t => t.Id).ToList();
         var allTestCodes = allNonSupersededOrders.Select(t => t.TestCode).Distinct().ToList();
@@ -873,16 +916,20 @@ public class DashboardService
             .Where(u => userIds.Contains(u.Id))
             .ToDictionaryAsync(u => u.Id, u => u.FullName);
 
-        var reviewQueue = underReviewSamples
-            .Select(s =>
+        var reviewQueue = entries
+            .Select(entry =>
             {
-                var submittedAt = clockStarts.GetValueOrDefault(s.Id, s.ReceivedAt);
+                var s = entry.Sample;
+                var submittedAt = entry.Signoff?.SubmittedForReviewAt ?? clockStarts.GetValueOrDefault(s.Id, s.ReceivedAt);
                 var ageMins = (int)Math.Max(0, (now - submittedAt).TotalMinutes);
 
-                var worstLevel = sampleWorstLevels.GetValueOrDefault(s.Id);
+                var worstLevel = SampleWorkflowQueues.GetWorstResultLevel(entry.Orders
+                    .Select(o => testOrderWorstLevels.GetValueOrDefault(o.Id))
+                    .Where(l => l.HasValue)
+                    .Select(l => l!.Value));
                 var worstLevelStr = worstLevel?.ToString();
 
-                var nonSupersededOrders = s.TestOrders.Where(t => !t.IsSuperseded).ToList();
+                var nonSupersededOrders = entry.Orders;
 
                 var tests = nonSupersededOrders.Select(t =>
                 {
@@ -947,7 +994,9 @@ public class DashboardService
                     priority,
                     worstLevelStr,
                     analystNames,
-                    tests
+                    tests,
+                    entry.SectionId,
+                    sectionNames.GetValueOrDefault(entry.SectionId)
                 );
             })
             // Order by priority (High, Medium, Normal) then AgeMinutes desc
@@ -960,10 +1009,10 @@ public class DashboardService
         var dueTodayCount = reviewQueue.Count(r => r.SubmittedForReviewAt >= todayStart);
 
         // Retests in progress (Decision D2)
-        var retestsInProgressCount = await _db.Samples.WhereRetestInProgress().CountAsync();
+        var retestsInProgressCount = await _db.Samples.Where(SectionReviewQueues.SampleIn(sectionIds)).WhereRetestInProgress().CountAsync();
 
-        // Completed today unchanged
-        var completedTodayCount = await _db.Samples.CountAsync(s => s.ReviewedByUserId == reviewerUserId && s.ReviewedAt >= todayStart);
+        // Section reviews this reviewer signed today
+        var completedTodayCount = await _db.SampleSectionSignoffs.CountAsync(r => r.ReviewedByUserId == reviewerUserId && r.ReviewedAt >= todayStart);
 
         // Attention items: rows where Priority == "High", top 5 in queue order
         var attentionItems = new List<ReviewerAttentionItemDto>();
@@ -989,22 +1038,25 @@ public class DashboardService
             ));
         }
 
-        // Recently reviewed samples (unchanged)
-        var recentSamples = await _db.Samples
-            .Where(s => s.ReviewedAt != null)
-            .Include(s => s.Item)
-            .Include(s => s.TestOrders)
-            .OrderByDescending(s => s.ReviewedAt)
+        // Recently reviewed sections, among the reviewer's sections
+        var recentSignoffs = await _db.SampleSectionSignoffs
+            .AsNoTracking()
+            .Where(r => r.ReviewedAt != null && (sectionIds == null || sectionIds.Contains(r.SectionId)))
+            .Include(r => r.Sample!).ThenInclude(x => x.Item)
+            .Include(r => r.Sample!).ThenInclude(x => x.TestOrders)
+            .OrderByDescending(r => r.ReviewedAt)
             .Take(10)
             .ToListAsync();
 
-        var recentlyReviewed = recentSamples.Select(s =>
+        var recentlyReviewed = recentSignoffs.Select(r =>
         {
+            var s = r.Sample!;
+            var orders = s.TestOrders.Where(t => t.SectionId == r.SectionId).ToList();
             var displayName = s.Item?.Name ?? s.ReferenceNumber;
-            var testCodes = string.Join(", ", s.TestOrders.Select(t => t.TestCode));
+            var testCodes = string.Join(", ", orders.Select(t => t.TestCode));
             return new ReviewerRecentlyReviewedDto(
-                s.Id, s.TestOrders.FirstOrDefault()?.Id ?? 0, s.ReferenceNumber, displayName,
-                s.Category.ToString(), testCodes, s.ReviewedAt!.Value, s.Status.ToString(), s.ApprovalDecision?.ToString()
+                s.Id, orders.FirstOrDefault()?.Id ?? 0, s.ReferenceNumber, displayName,
+                s.Category.ToString(), testCodes, r.ReviewedAt!.Value, s.Status.ToString(), r.ApprovalDecision?.ToString()
             );
         }).ToList();
 

@@ -169,15 +169,19 @@ public class SampleOrientedDashboardsPostgresIntegrationTests
         var now = DateTime.UtcNow;
         var analystId = await EnsureAnalystAsync(db);
         var microSection = await db.DocumentSections.FirstAsync(s => s.Code == "MICRO");
-        if (!await db.UserOrgMemberships.AnyAsync(m => m.UserId == analystId && m.SectionId == microSection.Id))
+        // Both notification recipients below work in Microbiology.
+        foreach (var userId in new[] { analystId, _fixture.SeededControllerUserId })
         {
-            db.UserOrgMemberships.Add(new UserOrgMembership
+            if (!await db.UserOrgMemberships.AnyAsync(m => m.UserId == userId && m.SectionId == microSection.Id))
             {
-                UserId = analystId,
-                DepartmentId = microSection.DepartmentId,
-                SectionId = microSection.Id
-            });
-            await db.SaveChangesAsync();
+                db.UserOrgMemberships.Add(new UserOrgMembership
+                {
+                    UserId = userId,
+                    DepartmentId = microSection.DepartmentId,
+                    SectionId = microSection.Id
+                });
+                await db.SaveChangesAsync();
+            }
         }
 
         var inReview = NewSample("PG-WS-REV", SampleStatus.UnderReview, now.AddDays(-3), causeId, itemId);

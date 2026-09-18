@@ -1,3 +1,4 @@
+using MicroLIMS.Application.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
@@ -25,10 +26,13 @@ public class DashboardNotificationService
     private readonly INotificationService _pushService;
     private readonly IEmailSender _emailSender;
     private readonly NotificationRecomputeThrottle? _recomputeThrottle;
+    private readonly IUserSectionScopeService _scope;
 
-    public DashboardNotificationService(MicroLimsDbContext db, INotificationService pushService, IEmailSender emailSender, NotificationRecomputeThrottle? recomputeThrottle = null)
+    public DashboardNotificationService(MicroLimsDbContext db, INotificationService pushService, IEmailSender emailSender,
+        IUserSectionScopeService scope, NotificationRecomputeThrottle? recomputeThrottle = null)
     {
         _db = db;
+        _scope = scope;
         _pushService = pushService;
         _emailSender = emailSender;
         _recomputeThrottle = recomputeThrottle;
@@ -78,10 +82,13 @@ public class DashboardNotificationService
     {
         var results = new List<ComputedNotification>();
         var now = DateTime.UtcNow;
+        // Everything a user is told about is limited to their laboratory sections.
+        var sectionIds = await _scope.GetAccessibleSectionIdsAsync(userId);
 
         var expiringMedia = await _db.Media
             .Include(m => m.Material)
             .Where(m => m.Status == MediaStatus.Active && m.ExpiryDate <= now.Add(ExpiryWarningWindow))
+            .Where(m => sectionIds == null || sectionIds.Contains(m.Material!.SectionId))
             .ToListAsync();
         foreach (var m in expiringMedia)
         {
@@ -91,6 +98,7 @@ public class DashboardNotificationService
 
         var readyIncubations = await _db.Incubations
             .Where(i => i.CompletedAt != null)
+            .Where(SectionReviewQueues.IncubationIn(sectionIds))
             .Include(i => i.TestOrder)
                 .ThenInclude(t => t!.Sample)
             // Active tests only - a voided, rejected or superseded test can still
@@ -115,7 +123,7 @@ public class DashboardNotificationService
 
         if (role is RoleType.SectionHead or RoleType.SystemAdministrator)
         {
-            var approvalCount = await _db.Samples.CountAsync(s => s.Status == SampleStatus.UnderApproval);
+            var approvalCount = await SectionReviewQueues.Candidates(_db.Samples, SectionSignoffStatus.UnderApproval, sectionIds).CountAsync();
             if (approvalCount > 0)
                 results.Add(new ComputedNotification("ApprovalWaiting", $"{approvalCount} sample(s) awaiting approval.", "info"));
 
@@ -129,7 +137,7 @@ public class DashboardNotificationService
 
         if (role is RoleType.Reviewer or RoleType.SectionHead or RoleType.SystemAdministrator)
         {
-            var reviewCount = await _db.Samples.CountAsync(s => s.Status == SampleStatus.UnderReview);
+            var reviewCount = await SectionReviewQueues.Candidates(_db.Samples, SectionSignoffStatus.UnderReview, sectionIds).CountAsync();
             if (reviewCount > 0)
                 results.Add(new ComputedNotification("ReviewWaiting", $"{reviewCount} sample(s) awaiting review.", "info"));
         }

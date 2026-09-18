@@ -70,7 +70,7 @@ public class SpyNotificationService : INotificationService
 public static class TestServiceFactory
 {
     public static DashboardNotificationService DashboardNotification(MicroLimsDbContext db, INotificationService? notifications = null, MicroLIMS.Infrastructure.Email.IEmailSender? emailSender = null) =>
-        new(db, notifications ?? new NoOpNotificationService(), emailSender ?? new NoOpEmailSender());
+        new(db, notifications ?? new NoOpNotificationService(), emailSender ?? new NoOpEmailSender(), new UserSectionScopeService(db));
     public static ReviewGateService ReviewGate(MicroLimsDbContext db) =>
         new(db, new ElectronicSignatureService(db));
 

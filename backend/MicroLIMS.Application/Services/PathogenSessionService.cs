@@ -1478,22 +1478,9 @@ public class PathogenSessionService
         return (await GetSessionAsync(sampleId))!;
     }
 
-    // Same semantics as TestWorkflowEngine's private Compare(...) - kept
-    // as a separate copy rather than shared, since that method is
-    // internal to a different service and already covered by its own
-    // tests; duplicating this small pure comparison is lower risk than
-    // reaching into another service's implementation detail.
-    private static string CompareAgainstLimits(decimal value, string? alert, string? action, string? spec)
-    {
-        var hasSpec = decimal.TryParse(spec, out var specLimit);
-        if (hasSpec && value > specLimit) return "OutOfSpecification";
-        var hasAction = decimal.TryParse(action, out var actionLimit);
-        if (hasAction && value > actionLimit) return "ActionLimitExceeded";
-        var hasAlert = decimal.TryParse(alert, out var alertLimit);
-        if (hasAlert && value > alertLimit) return "AlertLimitExceeded";
-        if (!hasSpec && !hasAction && !hasAlert) return "LimitsNotConfigured";
-        return "WithinLimits";
-    }
+    // Same semantics as TestWorkflowEngine's Compare(...) - delegates to shared SpecLimitParser
+    private static string CompareAgainstLimits(decimal value, string? alert, string? action, string? spec) =>
+        SpecLimitParser.CompareAgainstLimits(value, alert, action, spec);
 
     public async Task<PathogenTestingSessionDto> CompleteSessionAsync(int sampleId, int userId)
     {

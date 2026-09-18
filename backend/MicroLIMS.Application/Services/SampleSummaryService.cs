@@ -742,12 +742,24 @@ public class SampleSummaryService
         return $"Location {loc.Id}";
     }
 
-    private static string? FormatSpecificationText(Specification? spec)
+    public static string? FormatSpecificationText(Specification? spec)
     {
         if (spec is null || string.IsNullOrWhiteSpace(spec.SpecLimit))
             return null;
 
         var raw = spec.SpecLimit.Trim();
+        var parsed = SpecLimitParser.Parse(raw);
+
+        if (parsed.IsRange)
+        {
+            var minStr = parsed.MinRaw ?? parsed.Min!.Value.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            var maxStr = parsed.MaxRaw ?? parsed.Max!.Value.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            var unit = !string.IsNullOrWhiteSpace(spec.Unit) ? spec.Unit.Trim() : parsed.Unit?.Trim();
+            return string.IsNullOrWhiteSpace(unit)
+                ? $"{minStr} – {maxStr}"
+                : $"{minStr} – {maxStr} {unit}";
+        }
+
         if (decimal.TryParse(raw, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out _))
         {
             if (!string.IsNullOrWhiteSpace(spec.Unit))

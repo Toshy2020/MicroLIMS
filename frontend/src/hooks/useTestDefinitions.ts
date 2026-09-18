@@ -1,5 +1,9 @@
 import { useEffect, useState } from "react";
-import { masterDataOptions } from "../services/masterDataOptions";
+import {
+  masterDataOptions,
+  CreateTestDefinitionPayload,
+  UpdateTestDefinitionPayload
+} from "../services/masterDataOptions";
 
 export interface TestDefinitionOption {
   id: number;
@@ -7,6 +11,13 @@ export interface TestDefinitionOption {
   displayName: string;
   isActive: boolean;
   workflowType: string;
+  equationType?: string;
+  requiresSystemSuitability?: boolean;
+  methodAbbreviation?: string | null;
+  sstMaxRsdPercent?: number | null;
+  sstMinResolution?: number | null;
+  sstMaxTailingFactor?: number | null;
+  sstMinTheoreticalPlates?: number | null;
   sectionId?: number;
   section?: {
     id: number;
@@ -40,14 +51,23 @@ export function useTestDefinitions() {
   // Adds a brand-new test to the Test Master (used when the analyst
   // types a code that doesn't exist yet) and returns it so the caller
   // can select it immediately.
-  const addNew = async (code: string, displayName: string, sectionId?: number | null) => {
-    const created = await masterDataOptions.createTestDefinition(code, displayName, sectionId);
+  const addNew = async (
+    codeOrPayload: string | CreateTestDefinitionPayload,
+    displayName?: string,
+    sectionId?: number | null
+  ) => {
+    const created = await masterDataOptions.createTestDefinition(codeOrPayload, displayName, sectionId);
     await reload();
     return created as TestDefinitionOption;
   };
 
-  const update = async (id: number, code: string, displayName: string, sectionId?: number | null) => {
-    const updated = await masterDataOptions.updateTestDefinition(id, code, displayName, sectionId);
+  const update = async (
+    id: number,
+    codeOrPayload: string | UpdateTestDefinitionPayload,
+    displayName?: string,
+    sectionId?: number | null
+  ) => {
+    const updated = await masterDataOptions.updateTestDefinition(id, codeOrPayload, displayName, sectionId);
     await reload();
     return updated as TestDefinitionOption;
   };

@@ -30,6 +30,7 @@ const MediaReportPage = lazy(() => import("../modules/laboratoryConfiguration/me
 const CryovialReportPage = lazy(() => import("../modules/laboratoryConfiguration/cryovials/CryovialReportPage").then((m) => ({ default: m.CryovialReportPage })));
 const ItemsPage = lazy(() => import("../modules/laboratoryConfiguration/items/ItemsPage").then((m) => ({ default: m.ItemsPage })));
 const TestMasterPage = lazy(() => import("../modules/laboratoryConfiguration/masterDataSimple/TestMasterPage").then((m) => ({ default: m.TestMasterPage })));
+const EquationTypesPage = lazy(() => import("../modules/laboratoryConfiguration/masterDataSimple/EquationTypesPage").then((m) => ({ default: m.EquationTypesPage })));
 const OrganismsPage = lazy(() => import("../modules/laboratoryConfiguration/masterDataSimple/OrganismsPage").then((m) => ({ default: m.OrganismsPage })));
 const SpecificationsPage = lazy(() => import("../modules/laboratoryConfiguration/specifications/SpecificationsPage").then((m) => ({ default: m.SpecificationsPage })));
 const MediaPage = lazy(() => import("../modules/laboratoryConfiguration/media/MediaPage").then((m) => ({ default: m.MediaPage })));
@@ -106,6 +107,7 @@ export function AppRoutes() {
               <Route path="/audit-search" element={<AuditSearchPage />} />
               <Route path="/oos-tracking" element={<OosTrackingPage />} />
               <Route path="/laboratory-configuration/test-master" element={<TestMasterPage />} />
+              <Route path="/laboratory-configuration/equation-types" element={<EquationTypesPage />} />
               <Route path="/laboratory-configuration/organisms" element={<OrganismsPage />} />
               <Route path="/laboratory-configuration/items" element={<ItemsPage />} />
               <Route path="/laboratory-configuration/specifications" element={<SpecificationsPage />} />

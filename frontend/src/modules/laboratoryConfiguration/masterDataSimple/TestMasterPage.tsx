@@ -1,5 +1,30 @@
 import { Fragment, useEffect, useState } from "react";
-import { Paper, TextField, Button, Table, TableHead, TableRow, TableCell, TableBody, Stack, Alert, IconButton, Select, MenuItem, Collapse, Box, Typography, Checkbox, FormControlLabel, Chip, Tooltip, FormControl, InputLabel, FormHelperText } from "@mui/material";
+import {
+  Paper,
+  TextField,
+  Button,
+  Table,
+  TableHead,
+  TableRow,
+  TableCell,
+  TableBody,
+  Stack,
+  Alert,
+  IconButton,
+  Select,
+  MenuItem,
+  Collapse,
+  Box,
+  Typography,
+  Checkbox,
+  FormControlLabel,
+  Chip,
+  Tooltip,
+  FormControl,
+  InputLabel,
+  FormHelperText,
+  Switch
+} from "@mui/material";
 import { getMySections, LaboratorySection } from "../../../services/laboratorySectionService";
 import EditIcon from "@mui/icons-material/Edit";
 import BlockIcon from "@mui/icons-material/Block";
@@ -10,15 +35,35 @@ import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
 import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
 import DeleteIcon from "@mui/icons-material/Delete";
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
+import AddIcon from "@mui/icons-material/Add";
 import { PageHeader } from "../../../components/PageHeader";
 import { SectionTitle } from "../../../components/SectionTitle";
 import { StatusBadge } from "../../../components/StatusBadge";
 import { ConfirmationDialog } from "../../../components/ConfirmationDialog";
+import { FloatingDialog } from "../../../components/FloatingDialog";
 import { useTestDefinitions, TestDefinitionOption } from "../../../hooks/useTestDefinitions";
-import { masterDataOptions, incubationConditionLabel, MediaIncubationConditionOption } from "../../../services/masterDataOptions";
+import {
+  masterDataOptions,
+  incubationConditionLabel,
+  MediaIncubationConditionOption,
+  CreateTestDefinitionPayload,
+  UpdateTestDefinitionPayload
+} from "../../../services/masterDataOptions";
 import { tableHeadSx } from "../../../theme";
 
-const WORKFLOW_TYPES = ["CountTest", "Observation"];
+const WORKFLOW_TYPES = ["CountTest", "Observation", "HplcAssay"];
+const WORKFLOW_TYPE_LABELS: Record<string, string> = {
+  CountTest: "Count Test",
+  Observation: "Observation",
+  HplcAssay: "HPLC Assay"
+};
+
+const EQUATION_TYPES = ["None", "HplcAssay", "SystemSuitability"];
+const EQUATION_TYPE_LABELS: Record<string, string> = {
+  None: "None",
+  HplcAssay: "HPLC Assay",
+  SystemSuitability: "System Suitability"
+};
 const STEP_TYPES = ["PlateCount", "BrothEnrichment", "SelectiveBroth", "SelectivePlating", "ConfirmatoryPlating", "BiochemicalTest"];
 const STEP_TYPES_REQUIRING_ORGANISM = ["SelectivePlating", "ConfirmatoryPlating"];
 const STEP_TYPES_WITH_NO_MEDIA = ["BiochemicalTest"];
@@ -345,9 +390,39 @@ function WorkflowStepsSection({ test, onWorkflowTypeChanged }: { test: TestDefin
         }}>
         <Typography sx={{ fontWeight: 700, fontSize: 13 }}>Workflow Steps</Typography>
         <Select size="small" value={test.workflowType} onChange={(e) => changeWorkflowType(e.target.value)}>
-          {WORKFLOW_TYPES.map((w) => <MenuItem key={w} value={w}>{w}</MenuItem>)}
+          {WORKFLOW_TYPES.map((w) => <MenuItem key={w} value={w}>{WORKFLOW_TYPE_LABELS[w] ?? w}</MenuItem>)}
         </Select>
       </Stack>
+      {test.workflowType === "HplcAssay" && (
+        <Box sx={{ mb: 2, p: 1.5, bgcolor: "background.paper", borderRadius: 1, border: "1px solid", borderColor: "divider" }}>
+          <Typography sx={{ fontWeight: 700, fontSize: 12, mb: 1, color: "primary.main" }}>HPLC Configuration</Typography>
+          <Stack direction="row" spacing={3} sx={{ flexWrap: "wrap", alignItems: "center" }}>
+            <Box>
+              <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>Equation Type</Typography>
+              <Typography variant="body2" sx={{ fontWeight: 600 }}>{EQUATION_TYPE_LABELS[test.equationType ?? "None"] ?? test.equationType ?? "None"}</Typography>
+            </Box>
+            <Box>
+              <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>System Suitability</Typography>
+              <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                {test.requiresSystemSuitability ? `Required (${test.methodAbbreviation ?? "No abbr"})` : "Not required"}
+              </Typography>
+            </Box>
+            {test.requiresSystemSuitability && (
+              <Box>
+                <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>SST Criteria</Typography>
+                <Typography variant="body2">
+                  {[
+                    test.sstMaxRsdPercent != null ? `Max RSD: ${test.sstMaxRsdPercent}%` : null,
+                    test.sstMinResolution != null ? `Min Res: ${test.sstMinResolution}` : null,
+                    test.sstMaxTailingFactor != null ? `Max Tailing: ${test.sstMaxTailingFactor}` : null,
+                    test.sstMinTheoreticalPlates != null ? `Min Plates: ${test.sstMinTheoreticalPlates}` : null
+                  ].filter(Boolean).join(", ") || "None specified"}
+                </Typography>
+              </Box>
+            )}
+          </Stack>
+        </Box>
+      )}
       {error && <Alert severity="error" sx={{ mb: 1.5 }}>{error}</Alert>}
 
       {steps.length > 0 ? (
@@ -729,6 +804,19 @@ export function TestMasterPage() {
   const [code, setCode] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [sectionId, setSectionId] = useState<number | "">("");
+  const [workflowType, setWorkflowType] = useState<string>("Observation");
+  const [equationType, setEquationType] = useState<string>("None");
+  const [requiresSystemSuitability, setRequiresSystemSuitability] = useState<boolean>(false);
+  const [methodAbbreviation, setMethodAbbreviation] = useState<string>("");
+  const [sstMaxRsdPercent, setSstMaxRsdPercent] = useState<string>("");
+  const [sstMinResolution, setSstMinResolution] = useState<string>("");
+  const [sstMaxTailingFactor, setSstMaxTailingFactor] = useState<string>("");
+  const [sstMinTheoreticalPlates, setSstMinTheoreticalPlates] = useState<string>("");
+
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [dialogError, setDialogError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editingSectionId, setEditingSectionId] = useState<number | null>(null);
   const [editingTest, setEditingTest] = useState<TestDefinitionOption | null>(null);
@@ -747,6 +835,25 @@ export function TestMasterPage() {
       .catch(() => {});
   }, []);
 
+  const openCreateDialog = () => {
+    setEditingId(null);
+    setEditingTest(null);
+    setCode("");
+    setDisplayName("");
+    setSectionId(mySections.length === 1 ? mySections[0].sectionId : "");
+    setEditingSectionId(null);
+    setWorkflowType("Observation");
+    setEquationType("None");
+    setRequiresSystemSuitability(false);
+    setMethodAbbreviation("");
+    setSstMaxRsdPercent("");
+    setSstMinResolution("");
+    setSstMaxTailingFactor("");
+    setSstMinTheoreticalPlates("");
+    setDialogError(null);
+    setDialogOpen(true);
+  };
+
   const startEdit = (t: TestDefinitionOption) => {
     setEditingId(t.id);
     setEditingTest(t);
@@ -754,40 +861,105 @@ export function TestMasterPage() {
     setDisplayName(t.displayName);
     setSectionId(t.sectionId ?? (mySections.length === 1 ? mySections[0].sectionId : ""));
     setEditingSectionId(t.sectionId ?? null);
-    setMessage(null);
+    setWorkflowType(t.workflowType || "Observation");
+    setEquationType(t.equationType || (t.workflowType === "HplcAssay" ? "HplcAssay" : "None"));
+    setRequiresSystemSuitability(!!t.requiresSystemSuitability);
+    setMethodAbbreviation(t.methodAbbreviation ?? "");
+    setSstMaxRsdPercent(t.sstMaxRsdPercent != null ? String(t.sstMaxRsdPercent) : "");
+    setSstMinResolution(t.sstMinResolution != null ? String(t.sstMinResolution) : "");
+    setSstMaxTailingFactor(t.sstMaxTailingFactor != null ? String(t.sstMaxTailingFactor) : "");
+    setSstMinTheoreticalPlates(t.sstMinTheoreticalPlates != null ? String(t.sstMinTheoreticalPlates) : "");
+    setDialogError(null);
+    setDialogOpen(true);
   };
 
-  const cancelEdit = () => {
+  const closeDialog = () => {
+    setDialogOpen(false);
     setEditingId(null);
     setEditingTest(null);
-    setCode("");
-    setDisplayName("");
-    setSectionId(mySections.length === 1 ? mySections[0].sectionId : "");
-    setEditingSectionId(null);
+    setDialogError(null);
   };
 
   const save = async () => {
+    setDialogError(null);
     setMessage(null);
-    if (!code || !displayName) {
-      setMessage({ text: "Both Code and Display Name are required.", ok: false });
+
+    const trimmedCode = code.trim();
+    const trimmedDisplayName = displayName.trim();
+
+    if (!trimmedCode || !trimmedDisplayName) {
+      setDialogError("Both Code and Display Name are required.");
       return;
     }
     if (mySections.length > 1 && sectionId === "") {
-      setMessage({ text: "Laboratory section is required.", ok: false });
+      setDialogError("Laboratory section is required.");
       return;
     }
-    const chosenSectionId = sectionId !== "" ? Number(sectionId) : undefined;
+
+    const chosenSectionId = sectionId !== "" ? Number(sectionId) : null;
+    const isHplc = workflowType === "HplcAssay";
+
+    if (isHplc && requiresSystemSuitability) {
+      const trimmedAbbr = methodAbbreviation.trim().toUpperCase();
+      if (!trimmedAbbr) {
+        setDialogError("Method abbreviation is required when system suitability is enabled.");
+        return;
+      }
+      if (!/^[A-Z0-9-]{1,20}$/.test(trimmedAbbr)) {
+        setDialogError("Method abbreviation must be 1-20 uppercase alphanumeric characters or hyphens.");
+        return;
+      }
+      const hasRsd = sstMaxRsdPercent.trim() !== "";
+      const hasRes = sstMinResolution.trim() !== "";
+      const hasTailing = sstMaxTailingFactor.trim() !== "";
+      const hasPlates = sstMinTheoreticalPlates.trim() !== "";
+
+      if (!hasRsd && !hasRes && !hasTailing && !hasPlates) {
+        setDialogError("At least one system suitability criterion is required when system suitability is enabled.");
+        return;
+      }
+    }
+
+    setSaving(true);
     try {
       if (editingId) {
-        await update(editingId, code, displayName, chosenSectionId);
-        setMessage({ text: `Test "${code}" updated.`, ok: true });
+        const payload: UpdateTestDefinitionPayload = {
+          code: trimmedCode,
+          displayName: trimmedDisplayName,
+          sectionId: chosenSectionId,
+          workflowType,
+          equationType: isHplc ? equationType : "None",
+          requiresSystemSuitability: isHplc ? requiresSystemSuitability : false,
+          methodAbbreviation: isHplc && requiresSystemSuitability ? methodAbbreviation.trim().toUpperCase() : null,
+          sstMaxRsdPercent: isHplc && requiresSystemSuitability && sstMaxRsdPercent.trim() !== "" ? Number(sstMaxRsdPercent) : null,
+          sstMinResolution: isHplc && requiresSystemSuitability && sstMinResolution.trim() !== "" ? Number(sstMinResolution) : null,
+          sstMaxTailingFactor: isHplc && requiresSystemSuitability && sstMaxTailingFactor.trim() !== "" ? Number(sstMaxTailingFactor) : null,
+          sstMinTheoreticalPlates: isHplc && requiresSystemSuitability && sstMinTheoreticalPlates.trim() !== "" ? Number(sstMinTheoreticalPlates) : null
+        };
+        await update(editingId, payload);
+        setMessage({ text: `Test "${trimmedCode}" updated.`, ok: true });
       } else {
-        await addNew(code, displayName, chosenSectionId);
-        setMessage({ text: `Test "${code}" added to the Test Master.`, ok: true });
+        const payload: CreateTestDefinitionPayload = {
+          code: trimmedCode,
+          displayName: trimmedDisplayName,
+          sectionId: chosenSectionId,
+          workflowType,
+          equationType: isHplc ? equationType : "None",
+          requiresSystemSuitability: isHplc ? requiresSystemSuitability : false,
+          methodAbbreviation: isHplc && requiresSystemSuitability ? methodAbbreviation.trim().toUpperCase() : null,
+          sstMaxRsdPercent: isHplc && requiresSystemSuitability && sstMaxRsdPercent.trim() !== "" ? Number(sstMaxRsdPercent) : null,
+          sstMinResolution: isHplc && requiresSystemSuitability && sstMinResolution.trim() !== "" ? Number(sstMinResolution) : null,
+          sstMaxTailingFactor: isHplc && requiresSystemSuitability && sstMaxTailingFactor.trim() !== "" ? Number(sstMaxTailingFactor) : null,
+          sstMinTheoreticalPlates: isHplc && requiresSystemSuitability && sstMinTheoreticalPlates.trim() !== "" ? Number(sstMinTheoreticalPlates) : null
+        };
+        await addNew(payload);
+        setMessage({ text: `Test "${trimmedCode}" added to the Test Master.`, ok: true });
       }
-      cancelEdit();
+      closeDialog();
     } catch (e: any) {
-      setMessage({ text: e?.response?.data?.message ?? `Could not ${editingId ? "update" : "add"} this test.`, ok: false });
+      setDialogError(e?.response?.data?.message ?? `Could not ${editingId ? "update" : "add"} this test.`);
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -803,50 +975,23 @@ export function TestMasterPage() {
 
   return (
     <>
-      <PageHeader title="Test Master" subtitle="The canonical list of tests available to assign to Items, Sampling Points, Rooms, and Machine Parts." />
+      <PageHeader
+        title="Test Master"
+        subtitle="The canonical list of tests available to assign to Items, Sampling Points, Rooms, and Machine Parts."
+      >
+        <Button variant="contained" startIcon={<AddIcon />} onClick={openCreateDialog}>
+          Add Test
+        </Button>
+      </PageHeader>
       {message && <Alert severity={message.ok ? "success" : "error"} sx={{ mb: 2 }}>{message.text}</Alert>}
 
-      <SectionTitle>{editingId ? "Edit Test" : "Add Test"}</SectionTitle>
-      <Paper sx={{ p: 2.5, mb: 3 }}>
-        <Stack
-          direction="row"
-          spacing={1.5}
-          sx={{
-            flexWrap: "wrap",
-            alignItems: "center"
-          }}>
-          <TextField size="small" label="Code" placeholder="e.g. PATHOGEN_SALMONELLA" value={code} onChange={(e) => setCode(e.target.value)} sx={{ minWidth: 220 }} />
-          <TextField size="small" label="Display Name" placeholder="e.g. Pathogen - Salmonella" value={displayName} onChange={(e) => setDisplayName(e.target.value)} sx={{ minWidth: 260 }} />
-          <FormControl size="small" sx={{ minWidth: 220 }} required={mySections.length > 1}>
-            <InputLabel id="test-section-select-label">Section</InputLabel>
-            <Select<number | "">
-              labelId="test-section-select-label"
-              label="Section"
-              value={sectionId}
-              onChange={(e) => setSectionId(e.target.value === "" ? "" : Number(e.target.value))}
-            >
-              {mySections.length > 1 && <MenuItem value=""><em>Select Section</em></MenuItem>}
-              {editingSectionId !== null && !mySections.some((s) => s.sectionId === editingSectionId) && (
-                <MenuItem value={editingSectionId}>
-                  {editingTest?.section?.name ?? `Section #${editingSectionId}`} (Current)
-                </MenuItem>
-              )}
-              {mySections.map((s) => (
-                <MenuItem key={s.sectionId} value={s.sectionId}>
-                  {s.sectionName} ({s.departmentName})
-                </MenuItem>
-              ))}
-            </Select>
-            {editingId && editingSectionId !== null && sectionId !== "" && sectionId !== editingSectionId && (
-              <FormHelperText>Existing test orders keep their current section.</FormHelperText>
-            )}
-          </FormControl>
-          {editingId && <Button onClick={cancelEdit}>Cancel</Button>}
-          <Button variant="contained" onClick={save}>{editingId ? "Save Changes" : "Add Test"}</Button>
-        </Stack>
-      </Paper>
+      <Stack direction="row" spacing={1.5} sx={{ justifyContent: "space-between", alignItems: "center", mb: 1.5 }}>
+        <SectionTitle>All Tests</SectionTitle>
+        <Button variant="outlined" size="small" startIcon={<AddIcon />} onClick={openCreateDialog}>
+          Add Test
+        </Button>
+      </Stack>
 
-      <SectionTitle>All Tests</SectionTitle>
       <Paper sx={{ p: 2.5 }}>
         <Table size="small">
           <TableHead>
@@ -864,12 +1009,43 @@ export function TestMasterPage() {
               <Fragment key={t.id}>
                 <TableRow sx={{ opacity: t.isActive ? 1 : 0.6 }}>
                   <TableCell sx={{ width: 40 }}>
-                    <IconButton size="small" onClick={() => setExpandedId(expandedId === t.id ? null : t.id)} title="Approved Media">
+                    <IconButton size="small" onClick={() => setExpandedId(expandedId === t.id ? null : t.id)} title="Details & Workflow Steps">
                       {expandedId === t.id ? <ExpandLessIcon fontSize="small" /> : <ExpandMoreIcon fontSize="small" />}
                     </IconButton>
                   </TableCell>
                   <TableCell>{t.code}</TableCell>
-                  <TableCell>{t.displayName}</TableCell>
+                  <TableCell>
+                    <Stack direction="row" spacing={1} sx={{ alignItems: "center", flexWrap: "wrap" }}>
+                      <span>{t.displayName}</span>
+                      {t.workflowType === "HplcAssay" && (
+                        <Chip
+                          size="small"
+                          color="primary"
+                          variant="outlined"
+                          label="HPLC"
+                          sx={{ height: 20, fontSize: "0.68rem", fontWeight: 700 }}
+                        />
+                      )}
+                      {t.requiresSystemSuitability && (
+                        <Tooltip
+                          title={[
+                            t.sstMaxRsdPercent != null ? `Max RSD: ${t.sstMaxRsdPercent}%` : null,
+                            t.sstMinResolution != null ? `Min Res: ${t.sstMinResolution}` : null,
+                            t.sstMaxTailingFactor != null ? `Max Tailing: ${t.sstMaxTailingFactor}` : null,
+                            t.sstMinTheoreticalPlates != null ? `Min Plates: ${t.sstMinTheoreticalPlates}` : null
+                          ].filter(Boolean).join(" | ") || "System suitability required"}
+                        >
+                          <Chip
+                            size="small"
+                            color="info"
+                            variant="outlined"
+                            label={`SST: ${t.methodAbbreviation ?? "Required"}`}
+                            sx={{ height: 20, fontSize: "0.68rem", fontWeight: 700 }}
+                          />
+                        </Tooltip>
+                      )}
+                    </Stack>
+                  </TableCell>
                   <TableCell>{t.section?.name ?? "—"}</TableCell>
                   <TableCell><StatusBadge status={t.isActive ? "Active" : "Frozen"} /></TableCell>
                   <TableCell align="right">
@@ -891,6 +1067,205 @@ export function TestMasterPage() {
           </TableBody>
         </Table>
       </Paper>
+
+      {/* Test Master Create / Edit Dialog */}
+      <FloatingDialog
+        open={dialogOpen}
+        title={editingId ? "Edit Test" : "Add Test"}
+        onClose={closeDialog}
+        maxWidth="md"
+        actions={
+          <>
+            <Button onClick={closeDialog} variant="outlined" disabled={saving}>
+              Cancel
+            </Button>
+            <Button variant="contained" onClick={save} disabled={saving}>
+              {saving ? "Saving…" : editingId ? "Save Changes" : "Add Test"}
+            </Button>
+          </>
+        }
+      >
+        {dialogError && <Alert severity="error" sx={{ mb: 2 }}>{dialogError}</Alert>}
+
+        <Stack spacing={2} sx={{ pt: 1 }}>
+          <Stack direction="row" spacing={2} sx={{ flexWrap: "wrap", alignItems: "center" }}>
+            <TextField
+              size="small"
+              label="Code"
+              placeholder="e.g. HPLC_VITC"
+              value={code}
+              onChange={(e) => setCode(e.target.value)}
+              required
+              sx={{ flex: 1, minWidth: 200 }}
+            />
+            <TextField
+              size="small"
+              label="Display Name"
+              placeholder="e.g. Vitamin C Assay"
+              value={displayName}
+              onChange={(e) => setDisplayName(e.target.value)}
+              required
+              sx={{ flex: 1.5, minWidth: 240 }}
+            />
+          </Stack>
+
+          <Stack direction="row" spacing={2} sx={{ flexWrap: "wrap", alignItems: "center" }}>
+            <FormControl size="small" sx={{ flex: 1, minWidth: 200 }} required={mySections.length > 1}>
+              <InputLabel id="test-section-select-label">Section</InputLabel>
+              <Select<number | "">
+                labelId="test-section-select-label"
+                label="Section"
+                value={sectionId}
+                onChange={(e) => setSectionId(e.target.value === "" ? "" : Number(e.target.value))}
+              >
+                {mySections.length > 1 && <MenuItem value=""><em>Select Section</em></MenuItem>}
+                {editingSectionId !== null && !mySections.some((s) => s.sectionId === editingSectionId) && (
+                  <MenuItem value={editingSectionId}>
+                    {editingTest?.section?.name ?? `Section #${editingSectionId}`} (Current)
+                  </MenuItem>
+                )}
+                {mySections.map((s) => (
+                  <MenuItem key={s.sectionId} value={s.sectionId}>
+                    {s.sectionName} ({s.departmentName})
+                  </MenuItem>
+                ))}
+              </Select>
+              {editingId && editingSectionId !== null && sectionId !== "" && sectionId !== editingSectionId && (
+                <FormHelperText>Existing test orders keep their current section.</FormHelperText>
+              )}
+            </FormControl>
+
+            <FormControl size="small" sx={{ flex: 1, minWidth: 200 }}>
+              <InputLabel id="dialog-workflow-type-label">Workflow Type</InputLabel>
+              <Select
+                labelId="dialog-workflow-type-label"
+                label="Workflow Type"
+                value={workflowType}
+                onChange={(e) => {
+                  const next = e.target.value;
+                  setWorkflowType(next);
+                  if (next === "HplcAssay") {
+                    if (equationType === "None") setEquationType("HplcAssay");
+                  } else {
+                    setEquationType("None");
+                    setRequiresSystemSuitability(false);
+                  }
+                }}
+              >
+                {WORKFLOW_TYPES.map((w) => (
+                  <MenuItem key={w} value={w}>
+                    {WORKFLOW_TYPE_LABELS[w] ?? w}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Stack>
+
+          <FormControl size="small" fullWidth disabled={workflowType !== "HplcAssay"}>
+            <InputLabel id="dialog-equation-type-label">Equation Type</InputLabel>
+            <Select
+              labelId="dialog-equation-type-label"
+              label="Equation Type"
+              value={workflowType === "HplcAssay" ? equationType : "None"}
+              onChange={(e) => setEquationType(e.target.value)}
+            >
+              {EQUATION_TYPES.map((eq) => (
+                <MenuItem key={eq} value={eq}>
+                  {EQUATION_TYPE_LABELS[eq] ?? eq}
+                </MenuItem>
+              ))}
+            </Select>
+            {workflowType !== "HplcAssay" && (
+              <FormHelperText>Equation types only apply to HPLC Assay tests.</FormHelperText>
+            )}
+          </FormControl>
+
+          {workflowType === "HplcAssay" && (
+            <Box sx={{ p: 2, bgcolor: "action.hover", borderRadius: 1, border: "1px solid", borderColor: "divider" }}>
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={requiresSystemSuitability}
+                    onChange={(e) => setRequiresSystemSuitability(e.target.checked)}
+                  />
+                }
+                label="Requires system suitability"
+              />
+
+              {requiresSystemSuitability && (
+                <Box sx={{ mt: 2, pt: 2, borderTop: "1px dashed", borderTopColor: "divider" }}>
+                  <TextField
+                    size="small"
+                    label="Method Abbreviation"
+                    placeholder="e.g. VIT-C"
+                    value={methodAbbreviation}
+                    onChange={(e) => setMethodAbbreviation(e.target.value.toUpperCase())}
+                    required
+                    fullWidth
+                    slotProps={{
+                      htmlInput: {
+                        maxLength: 20
+                      }
+                    }}
+                    helperText="1–20 uppercase alphanumeric characters or hyphens (auto-uppercased)"
+                    sx={{ mb: 2 }}
+                  />
+
+                  <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 0.5 }}>
+                    System Suitability Acceptance Criteria
+                  </Typography>
+                  <Typography variant="caption" sx={{ color: "text.secondary", display: "block", mb: 1.5 }}>
+                    At least one criterion is required when system suitability is enabled.
+                  </Typography>
+
+                  <Stack direction="row" spacing={1.5} sx={{ flexWrap: "wrap", alignItems: "center" }}>
+                    <TextField
+                      size="small"
+                      type="number"
+                      label="Max RSD (%)"
+                      placeholder="e.g. 2.0"
+                      value={sstMaxRsdPercent}
+                      onChange={(e) => setSstMaxRsdPercent(e.target.value)}
+                      slotProps={{ htmlInput: { min: 0, step: "any" } }}
+                      sx={{ flex: "1 1 180px", minWidth: 140 }}
+                    />
+                    <TextField
+                      size="small"
+                      type="number"
+                      label="Min Resolution"
+                      placeholder="e.g. 1.5"
+                      value={sstMinResolution}
+                      onChange={(e) => setSstMinResolution(e.target.value)}
+                      slotProps={{ htmlInput: { min: 0, step: "any" } }}
+                      sx={{ flex: "1 1 180px", minWidth: 140 }}
+                    />
+                    <TextField
+                      size="small"
+                      type="number"
+                      label="Max Tailing Factor"
+                      placeholder="e.g. 2.0"
+                      value={sstMaxTailingFactor}
+                      onChange={(e) => setSstMaxTailingFactor(e.target.value)}
+                      slotProps={{ htmlInput: { min: 0, step: "any" } }}
+                      sx={{ flex: "1 1 180px", minWidth: 140 }}
+                    />
+                    <TextField
+                      size="small"
+                      type="number"
+                      label="Min Theoretical Plates"
+                      placeholder="e.g. 2000"
+                      value={sstMinTheoreticalPlates}
+                      onChange={(e) => setSstMinTheoreticalPlates(e.target.value)}
+                      slotProps={{ htmlInput: { min: 0, step: "any" } }}
+                      sx={{ flex: "1 1 180px", minWidth: 140 }}
+                    />
+                  </Stack>
+                </Box>
+              )}
+            </Box>
+          )}
+        </Stack>
+      </FloatingDialog>
     </>
   );
 }

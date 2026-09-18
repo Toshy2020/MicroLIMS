@@ -51,6 +51,41 @@ type TestWorkflowStepPayload = {
   incubationStages: { stageNumber: number; tempMin: number; tempMax: number; incubationMinHours: number; incubationMaxHours: number }[];
 };
 
+export interface EquationTypeDto {
+  code: string;
+  name: string;
+  formulaText: string;
+  requiredInputs: string[];
+}
+
+export interface CreateTestDefinitionPayload {
+  code: string;
+  displayName: string;
+  sectionId?: number | null;
+  workflowType?: string;
+  equationType?: string;
+  requiresSystemSuitability?: boolean;
+  methodAbbreviation?: string | null;
+  sstMaxRsdPercent?: number | null;
+  sstMinResolution?: number | null;
+  sstMaxTailingFactor?: number | null;
+  sstMinTheoreticalPlates?: number | null;
+}
+
+export interface UpdateTestDefinitionPayload {
+  code?: string;
+  displayName?: string;
+  sectionId?: number | null;
+  workflowType?: string;
+  equationType?: string;
+  requiresSystemSuitability?: boolean;
+  methodAbbreviation?: string | null;
+  sstMaxRsdPercent?: number | null;
+  sstMinResolution?: number | null;
+  sstMaxTailingFactor?: number | null;
+  sstMinTheoreticalPlates?: number | null;
+}
+
 // Shared lookup lists used across receiving, preparation, and master
 // data screens. All hit /api/masterdata/*.
 export const masterDataOptions = {
@@ -114,11 +149,21 @@ export const masterDataOptions = {
   updateOrganism: (id: number, scientificName: string, atccNumber?: string | null, commonName?: string | null, description?: string | null) =>
     apiClient.put(`/masterdata/organisms/${id}`, { scientificName, atccNumber: atccNumber || null, commonName: commonName || null, description: description || null }).then((r) => r.data.data),
   deleteOrganism: (id: number) => apiClient.delete(`/masterdata/organisms/${id}`),
+  getEquationTypes: (): Promise<EquationTypeDto[]> =>
+    apiClient.get("/masterdata/equation-types").then((r) => r.data.data),
   getTestDefinitions: () => apiClient.get("/masterdata/test-definitions").then((r) => r.data.data),
-  createTestDefinition: (code: string, displayName: string, sectionId?: number | null) =>
-    apiClient.post("/masterdata/test-definitions", { code, displayName, ...(sectionId != null ? { sectionId } : {}) }).then((r) => r.data.data),
-  updateTestDefinition: (id: number, code: string, displayName: string, sectionId?: number | null) =>
-    apiClient.put(`/masterdata/test-definitions/${id}`, { code, displayName, ...(sectionId != null ? { sectionId } : {}) }).then((r) => r.data.data),
+  createTestDefinition: (codeOrPayload: string | CreateTestDefinitionPayload, displayName?: string, sectionId?: number | null) => {
+    const payload = typeof codeOrPayload === "string"
+      ? { code: codeOrPayload, displayName: displayName ?? codeOrPayload, ...(sectionId != null ? { sectionId } : {}) }
+      : codeOrPayload;
+    return apiClient.post("/masterdata/test-definitions", payload).then((r) => r.data.data);
+  },
+  updateTestDefinition: (id: number, codeOrPayload: string | UpdateTestDefinitionPayload, displayName?: string, sectionId?: number | null) => {
+    const payload = typeof codeOrPayload === "string"
+      ? { code: codeOrPayload, displayName: displayName ?? codeOrPayload, ...(sectionId != null ? { sectionId } : {}) }
+      : codeOrPayload;
+    return apiClient.put(`/masterdata/test-definitions/${id}`, payload).then((r) => r.data.data);
+  },
   freezeTestDefinition: (id: number) =>
     apiClient.put(`/masterdata/test-definitions/${id}/freeze`).then((r) => r.data.data),
   unfreezeTestDefinition: (id: number) =>

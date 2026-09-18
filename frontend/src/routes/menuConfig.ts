@@ -60,6 +60,7 @@ const laboratoryConfigurationItem: MenuItem = {
   group: "LAB CONFIGURATION",
   children: [
     { label: "Test Master", path: "/laboratory-configuration/test-master" },
+    { label: "Equation Types", path: "/laboratory-configuration/equation-types" },
     { label: "Organisms", path: "/laboratory-configuration/organisms" },
     { label: "Items", path: "/laboratory-configuration/items" },
     { label: "Media Configurations", path: "/laboratory-configuration/media-configurations" },

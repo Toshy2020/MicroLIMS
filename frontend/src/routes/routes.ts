@@ -26,6 +26,7 @@ const APP_ROUTES = {
   MEDIA_EVALUATION: "/laboratory-configuration/media-evaluation",
   CRYOVIALS: "/laboratory-configuration/cryovials",
   TEST_MASTER: "/laboratory-configuration/test-master",
+  EQUATION_TYPES: "/laboratory-configuration/equation-types",
   ORGANISMS: "/laboratory-configuration/organisms",
   ITEMS: "/laboratory-configuration/items",
   MEDIA_CONFIGURATIONS: "/laboratory-configuration/media-configurations",

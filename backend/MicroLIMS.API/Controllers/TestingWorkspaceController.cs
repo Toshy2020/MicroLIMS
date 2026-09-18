@@ -28,7 +28,7 @@ public class TestingWorkspaceController : ControllerBase
     // PagedResult here instead would break every one of them.
     [HttpGet]
     public async Task<IActionResult> GetActive() =>
-        Ok(ApiResponse<object>.Ok(await _workspaceService.GetActiveSamplesAsync()));
+        Ok(ApiResponse<object>.Ok(await _workspaceService.GetActiveSamplesAsync(CurrentUserId)));
 
     // The paged, filtered route the Receiving & Testing workspace moves to.
     // Additive, so callers migrate one at a time rather than all at once.
@@ -49,7 +49,7 @@ public class TestingWorkspaceController : ControllerBase
     [HttpGet("{id:int}")]
     public async Task<IActionResult> GetOne(int id)
     {
-        var sample = await _workspaceService.GetSampleAsync(id);
+        var sample = await _workspaceService.GetSampleAsync(id, CurrentUserId);
         return sample is null ? NotFound(ApiResponse<object>.Fail("Not found.")) : Ok(ApiResponse<object>.Ok(sample));
     }
 

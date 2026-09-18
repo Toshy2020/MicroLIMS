@@ -31,7 +31,7 @@ public class ClosedTestStatesTests
 
     private static async Task<SampleDto> WorkspaceRowAsync(MicroLimsDbContext db, int sampleId)
     {
-        var page = await new TestingWorkspaceService(db).GetActiveSamplesAsync(new TestingWorkspaceFilterDto { PageSize = 200 });
+        var page = await new TestingWorkspaceService(db, new UserSectionScopeService(db)).GetActiveSamplesAsync(new TestingWorkspaceFilterDto { PageSize = 200 });
         return Assert.Single(page.Items, s => s.SampleId == sampleId);
     }
 

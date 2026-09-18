@@ -649,7 +649,7 @@ public class PathogenSessionServiceTests
         Assert.True(tamcCell.IsEditable);
 
         // Also verify TestingWorkspaceService.ToDto generates the exact same state for test cards
-        var sampleDto = await new TestingWorkspaceService(db).GetSampleAsync(sampleId);
+        var sampleDto = await new TestingWorkspaceService(db, new UserSectionScopeService(db)).GetSampleAsync(sampleId);
         Assert.NotNull(sampleDto);
         var bccCard = sampleDto.AssignedTests.First(t => t.TestCode == "BCC");
         Assert.Equal("TSB_INCUBATING", bccCard.WorkflowState);

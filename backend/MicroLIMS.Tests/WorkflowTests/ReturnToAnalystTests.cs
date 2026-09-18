@@ -600,6 +600,10 @@ public class ReturnToAnalystTests
     {
         await using var db = NewDb();
         var (order, analyst, reviewer, _) = await SeedCompletedTamcOrderAsync(db);
+        var section = TestServiceFactory.EnsureMicroSection(db);
+        order.SectionId = section.Id;
+        await db.SaveChangesAsync();
+        TestServiceFactory.AssignUserToMicroSection(db, analyst.Id);
 
         var myTasksService = TestServiceFactory.MyTasks(db);
 

@@ -339,7 +339,7 @@ public class SampleOrientedSectionHeadAndAdminDashboardTests
         db.Samples.AddRange(underReview, inTestingWithReadyTest);
         await db.SaveChangesAsync();
 
-        var service = new TestingWorkspaceService(db);
+        var service = new TestingWorkspaceService(db, new UserSectionScopeService(db));
 
         var counts = await service.GetWorkloadCountsAsync();
         Assert.Equal(1, counts.AwaitingReview);

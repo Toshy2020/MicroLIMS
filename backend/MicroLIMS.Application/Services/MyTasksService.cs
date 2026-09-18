@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Persistence.DbContext;
@@ -37,25 +38,35 @@ public class MyTasksService
     private static readonly TimeSpan LookaheadWindow = TimeSpan.FromDays(2);
 
     private readonly MicroLimsDbContext _db;
+    private readonly IUserSectionScopeService _scope;
 
-    public MyTasksService(MicroLimsDbContext db)
+    public MyTasksService(MicroLimsDbContext db, IUserSectionScopeService scope)
     {
         _db = db;
+        _scope = scope;
     }
 
     public async Task<List<MyTaskDto>> GetMyTasksAsync(int userId)
     {
+        var scope = await _scope.GetAccessibleSectionIdsAsync(userId);
         var now = DateTime.UtcNow;
         var horizon = now.Add(LookaheadWindow);
         var tasks = new List<MyTaskDto>();
 
-        var testOrders = await _db.TestOrders
+        var testOrdersQuery = _db.TestOrders
             .Where(t => t.AssignedAnalystId == userId)
             // Closed tests (decided, voided or superseded by a retest) are nobody's task.
             .Where(t => !t.IsSuperseded
                 && t.Status != ApprovalStatus.Approved
                 && t.Status != ApprovalStatus.Rejected
-                && t.Status != ApprovalStatus.Voided)
+                && t.Status != ApprovalStatus.Voided);
+
+        if (scope != null)
+        {
+            testOrdersQuery = testOrdersQuery.Where(t => scope.Contains(t.SectionId));
+        }
+
+        var testOrders = await testOrdersQuery
             .Include(t => t.Sample!).ThenInclude(s => s.Item)
             .Include(t => t.Sample!).ThenInclude(s => s.WaterSamplingPoint)
             .Include(t => t.Sample!).ThenInclude(s => s.Department)

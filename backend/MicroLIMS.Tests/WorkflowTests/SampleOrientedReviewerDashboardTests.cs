@@ -296,7 +296,7 @@ public class SampleOrientedReviewerDashboardTests
     public async Task TestingWorkspaceService_WorkloadFilters_ReturnExpectedSamples()
     {
         await using var db = NewDb();
-        var workspaceService = new TestingWorkspaceService(db);
+        var workspaceService = new TestingWorkspaceService(db, new UserSectionScopeService(db));
         var now = DateTime.UtcNow;
 
         var cause = new CauseOfTesting { Name = "Routine Release" };

@@ -12,16 +12,27 @@ namespace MicroLIMS.Application.Services;
 public class TestingWorkspaceService : ITestWorkspaceService
 {
     private readonly MicroLimsDbContext _db;
+    private readonly IUserSectionScopeService _scope;
 
-    public TestingWorkspaceService(MicroLimsDbContext db)
+    public TestingWorkspaceService(MicroLimsDbContext db, IUserSectionScopeService scope)
     {
         _db = db;
+        _scope = scope;
     }
 
-    public async Task<List<SampleDto>> GetActiveSamplesAsync()
+    public async Task<List<SampleDto>> GetActiveSamplesAsync(int? currentUserId = null)
     {
-        var samples = await _db.Samples
-            .AsNoTracking()
+        var scope = currentUserId.HasValue
+            ? await _scope.GetAccessibleSectionIdsAsync(currentUserId.Value)
+            : null;
+
+        var query = _db.Samples.AsNoTracking();
+        if (scope != null)
+        {
+            query = query.Where(SampleWorkflowQueues.HasTestInSections(scope));
+        }
+
+        var samples = await query
             .Include(s => s.OriginSample)
             .Include(s => s.Item)
             .Include(s => s.WaterSamplingPoint)
@@ -33,7 +44,7 @@ public class TestingWorkspaceService : ITestWorkspaceService
             .OrderByDescending(s => s.ReceivedAt)
             .ToListAsync();
 
-        return await MapSamplesToDtosAsync(samples);
+        return await MapSamplesToDtosAsync(samples, scope);
     }
 
     public async Task<PagedResult<SampleDto>> GetActiveSamplesAsync(TestingWorkspaceFilterDto filter, int? currentUserId = null)
@@ -42,7 +53,16 @@ public class TestingWorkspaceService : ITestWorkspaceService
         // Default 50, hard server-side max 200: caller cannot request unbounded data
         int pageSize = filter.PageSize <= 0 ? 50 : Math.Min(filter.PageSize, 200);
 
+        var scope = currentUserId.HasValue
+            ? await _scope.GetAccessibleSectionIdsAsync(currentUserId.Value)
+            : null;
+
         var query = _db.Samples.AsNoTracking();
+        if (scope != null)
+        {
+            query = query.Where(SampleWorkflowQueues.HasTestInSections(scope));
+        }
+
         var now = DateTime.UtcNow;
 
         // 1. Workload Tile Filter (when clicking or deep-linking to a specific tile)
@@ -55,10 +75,11 @@ public class TestingWorkspaceService : ITestWorkspaceService
             }
             else if (string.Equals(wf, "readyToRead", StringComparison.OrdinalIgnoreCase))
             {
-                query = query.Where(SampleWorkflowQueues.HasTestReadyToRead(now));
+                query = query.Where(SampleWorkflowQueues.HasTestReadyToRead(now, scope));
             }
             else if (string.Equals(wf, "awaitingReview", StringComparison.OrdinalIgnoreCase))
             {
+                // Phase 2b: per-section review state
                 query = query.Where(s => s.Status == SampleStatus.UnderReview);
             }
             else if (string.Equals(wf, "overdue", StringComparison.OrdinalIgnoreCase))
@@ -69,12 +90,12 @@ public class TestingWorkspaceService : ITestWorkspaceService
             {
                 if (currentUserId.HasValue)
                 {
-                    query = query.Where(SampleWorkflowQueues.HasTestAssignedTo(currentUserId.Value));
+                    query = query.Where(SampleWorkflowQueues.HasTestAssignedTo(currentUserId.Value, scope));
                 }
             }
             else if (string.Equals(wf, "unassigned", StringComparison.OrdinalIgnoreCase))
             {
-                query = query.Where(SampleWorkflowQueues.IsUnassigned);
+                query = query.Where(SampleWorkflowQueues.IsUnassignedIn(scope));
             }
             else if (string.Equals(wf, "retestInProgress", StringComparison.OrdinalIgnoreCase))
             {
@@ -82,11 +103,13 @@ public class TestingWorkspaceService : ITestWorkspaceService
             }
             else if (string.Equals(wf, "reviewOverdue", StringComparison.OrdinalIgnoreCase))
             {
+                // Phase 2b: per-section review state
                 var overdueIds = await SampleWorkflowQueues.GetOverdueReviewSampleIdsAsync(_db, now, TimeSpan.FromHours(24));
                 query = query.Where(s => overdueIds.Contains(s.Id));
             }
             else if (string.Equals(wf, "approvalOverdue", StringComparison.OrdinalIgnoreCase))
             {
+                // Phase 2b: per-section review state
                 var overdueIds = await SampleWorkflowQueues.GetOverdueApprovalSampleIdsAsync(_db, now, TimeSpan.FromHours(24));
                 query = query.Where(s => overdueIds.Contains(s.Id));
             }
@@ -170,7 +193,7 @@ public class TestingWorkspaceService : ITestWorkspaceService
             }
             else if (string.Equals(ts, "ReadyToRead", StringComparison.OrdinalIgnoreCase))
             {
-                query = query.Where(SampleWorkflowQueues.HasTestReadyToRead(now));
+                query = query.Where(SampleWorkflowQueues.HasTestReadyToRead(now, scope));
             }
             else if (string.Equals(ts, "ResultEntered", StringComparison.OrdinalIgnoreCase) || string.Equals(ts, "UnderReview", StringComparison.OrdinalIgnoreCase))
             {
@@ -242,7 +265,7 @@ public class TestingWorkspaceService : ITestWorkspaceService
             .Include(s => s.TestOrders)
             .ToListAsync();
 
-        var dtos = await MapSamplesToDtosAsync(pagedSamples);
+        var dtos = await MapSamplesToDtosAsync(pagedSamples, scope);
 
         return new PagedResult<SampleDto>
         {
@@ -255,32 +278,38 @@ public class TestingWorkspaceService : ITestWorkspaceService
 
     public async Task<WorkspaceTileCountsDto> GetWorkloadCountsAsync(int? currentUserId = null)
     {
+        var scope = currentUserId.HasValue
+            ? await _scope.GetAccessibleSectionIdsAsync(currentUserId.Value)
+            : null;
+
         var now = DateTime.UtcNow;
-        var needsPrep = await _db.Samples
-            .AsNoTracking()
+
+        var baseQuery = _db.Samples.AsNoTracking();
+        if (scope != null)
+        {
+            baseQuery = baseQuery.Where(SampleWorkflowQueues.HasTestInSections(scope));
+        }
+
+        var needsPrep = await baseQuery
             .CountAsync(SampleWorkflowQueues.NeedsPreparation);
 
-        var readyToRead = await _db.Samples
-            .AsNoTracking()
-            .CountAsync(SampleWorkflowQueues.HasTestReadyToRead(now));
+        var readyToRead = await baseQuery
+            .CountAsync(SampleWorkflowQueues.HasTestReadyToRead(now, scope));
 
-        var awaitingReview = await _db.Samples
-            .AsNoTracking()
+        // Phase 2b: per-section review state
+        var awaitingReview = await baseQuery
             .CountAsync(s => s.Status == SampleStatus.UnderReview);
 
-        var overdue = await _db.Samples
-            .AsNoTracking()
+        var overdue = await baseQuery
             .CountAsync(SampleWorkflowQueues.IsOverdue(now));
 
         var mine = currentUserId.HasValue
-            ? await _db.Samples
-                .AsNoTracking()
-                .CountAsync(SampleWorkflowQueues.HasTestAssignedTo(currentUserId.Value))
+            ? await baseQuery
+                .CountAsync(SampleWorkflowQueues.HasTestAssignedTo(currentUserId.Value, scope))
             : 0;
 
-        var unassigned = await _db.Samples
-            .AsNoTracking()
-            .CountAsync(SampleWorkflowQueues.IsUnassigned);
+        var unassigned = await baseQuery
+            .CountAsync(SampleWorkflowQueues.IsUnassignedIn(scope));
 
         return new WorkspaceTileCountsDto
         {
@@ -293,8 +322,15 @@ public class TestingWorkspaceService : ITestWorkspaceService
         };
     }
 
-    private async Task<List<SampleDto>> MapSamplesToDtosAsync(List<Sample> samples)
+    private async Task<List<SampleDto>> MapSamplesToDtosAsync(List<Sample> samples, IReadOnlyCollection<int>? scope = null)
     {
+        if (scope != null)
+        {
+            foreach (var s in samples)
+            {
+                s.TestOrders = s.TestOrders.Where(t => scope.Contains(t.SectionId)).ToList();
+            }
+        }
         var testOrderIds = samples.SelectMany(s => s.TestOrders.Select(t => t.Id)).ToList();
         var allTestCodes = samples.SelectMany(s => s.TestOrders.Select(t => t.TestCode)).Distinct().ToList();
 
@@ -358,8 +394,12 @@ public class TestingWorkspaceService : ITestWorkspaceService
             .ToList();
     }
 
-    public async Task<SampleDto?> GetSampleAsync(int sampleId)
+    public async Task<SampleDto?> GetSampleAsync(int sampleId, int? currentUserId = null)
     {
+        var scope = currentUserId.HasValue
+            ? await _scope.GetAccessibleSectionIdsAsync(currentUserId.Value)
+            : null;
+
         var sample = await _db.Samples
             .AsNoTracking()
             .Include(s => s.OriginSample)
@@ -373,40 +413,14 @@ public class TestingWorkspaceService : ITestWorkspaceService
             .FirstOrDefaultAsync(s => s.Id == sampleId);
         if (sample is null) return null;
 
-        var testOrderIds = sample.TestOrders.Select(t => t.Id).ToList();
-        var allTestCodes = sample.TestOrders.Select(t => t.TestCode).Distinct().ToList();
+        if (scope != null)
+        {
+            var hasInScopeNonSuperseded = sample.TestOrders.Any(t => !t.IsSuperseded && scope.Contains(t.SectionId));
+            if (!hasInScopeNonSuperseded) return null;
+        }
 
-        var testDefs = await _db.TestDefinitions
-            .AsNoTracking()
-            .Include(t => t.Steps)
-                .ThenInclude(s => s.StepMedia)
-                    .ThenInclude(sm => sm.Material)
-            .Include(t => t.Steps)
-                .ThenInclude(s => s.StepMedia)
-                    .ThenInclude(sm => sm.IncubationCondition)
-            .Include(t => t.Steps)
-                .ThenInclude(s => s.IncubationStages)
-            .Where(t => allTestCodes.Contains(t.Code))
-            .ToDictionaryAsync(t => t.Code);
-
-        var incubations = await _db.Incubations
-            .AsNoTracking()
-            .Include(i => i.Media)
-                .ThenInclude(m => m!.Material)
-            .Where(i => i.TestOrderId != null && testOrderIds.Contains(i.TestOrderId.Value))
-            .ToListAsync();
-
-        var locationCounts = await GetLocationCountsAsync(testOrderIds);
-        var analystNames = await GetAnalystNamesAsync(sample.TestOrders.Select(t => t.AssignedAnalystId));
-
-        var mediaLookup = incubations
-            .Where(i => i.MediaId.HasValue && i.Media != null)
-            .GroupBy(i => i.MediaId!.Value)
-            .ToDictionary(
-                g => g.Key,
-                g => (MaterialId: g.First().Media!.MaterialId, MediaProductId: g.First().Media!.Material?.MediaProductId));
-
-        return ToDto(sample, testDefs, incubations, locationCounts, analystNames, mediaLookup: mediaLookup);
+        var dtos = await MapSamplesToDtosAsync(new List<Sample> { sample }, scope);
+        return dtos.FirstOrDefault();
     }
 
     private async Task<Dictionary<int, int>> GetLocationCountsAsync(List<int> testOrderIds)

@@ -92,8 +92,8 @@ public class DashboardReadyToReadRuleTests
         await using var db = NewDb();
         await SeedAsync(db);
 
-        var counts = await new TestingWorkspaceService(db).GetWorkloadCountsAsync();
-        var page = await new TestingWorkspaceService(db).GetActiveSamplesAsync(new TestingWorkspaceFilterDto { WorkloadFilter = "readyToRead" });
+        var counts = await new TestingWorkspaceService(db, new UserSectionScopeService(db)).GetWorkloadCountsAsync();
+        var page = await new TestingWorkspaceService(db, new UserSectionScopeService(db)).GetActiveSamplesAsync(new TestingWorkspaceFilterDto { WorkloadFilter = "readyToRead" });
 
         Assert.Equal(1, counts.ReadyToRead);
         Assert.Single(page.Items);

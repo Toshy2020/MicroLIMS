@@ -102,7 +102,7 @@ public class TestingWorkspacePerformancePostgresIntegrationTests
         // --- Phase 1: Seed N samples and measure SQL command count ---
         await SeedSamplesBulkAsync(db, BaseSampleCountN, startIndex: 1, batchTag: "N", causeId, itemId);
 
-        var service = new TestingWorkspaceService(db);
+        var service = new TestingWorkspaceService(db, new UserSectionScopeService(db));
 
         interceptor.Reset();
         var samplesN = await service.GetActiveSamplesAsync();
@@ -148,7 +148,7 @@ public class TestingWorkspacePerformancePostgresIntegrationTests
         const int seededCount = 250;
         await SeedSamplesBulkAsync(db, seededCount, startIndex: 1, batchTag: "PAGE", causeId, itemId);
 
-        var service = new TestingWorkspaceService(db);
+        var service = new TestingWorkspaceService(db, new UserSectionScopeService(db));
 
         // 1. Default request (no filter / default page size 50)
         var defaultResult = await service.GetActiveSamplesAsync(new TestingWorkspaceFilterDto());
@@ -187,7 +187,7 @@ public class TestingWorkspacePerformancePostgresIntegrationTests
         // 1. Seed N samples
         await SeedSamplesBulkAsync(db, BaseSampleCountN, startIndex: 1, batchTag: "LN_N", causeId, itemId);
 
-        var service = new TestingWorkspaceService(db);
+        var service = new TestingWorkspaceService(db, new UserSectionScopeService(db));
 
         // Discard warm-up call before timing (warms EF Core query compilation, model caches, connection pool)
         var warmupResult = await service.GetActiveSamplesAsync();

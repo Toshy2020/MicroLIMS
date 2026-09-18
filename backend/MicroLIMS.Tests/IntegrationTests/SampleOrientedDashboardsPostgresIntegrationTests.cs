@@ -168,6 +168,17 @@ public class SampleOrientedDashboardsPostgresIntegrationTests
         var (causeId, itemId) = await ResetAsync(db);
         var now = DateTime.UtcNow;
         var analystId = await EnsureAnalystAsync(db);
+        var microSection = await db.DocumentSections.FirstAsync(s => s.Code == "MICRO");
+        if (!await db.UserOrgMemberships.AnyAsync(m => m.UserId == analystId && m.SectionId == microSection.Id))
+        {
+            db.UserOrgMemberships.Add(new UserOrgMembership
+            {
+                UserId = analystId,
+                DepartmentId = microSection.DepartmentId,
+                SectionId = microSection.Id
+            });
+            await db.SaveChangesAsync();
+        }
 
         var inReview = NewSample("PG-WS-REV", SampleStatus.UnderReview, now.AddDays(-3), causeId, itemId);
         AddOrder(inReview, "TAMC", ApprovalStatus.ResultEntered, WorkflowStep.Ready);
@@ -204,7 +215,7 @@ public class SampleOrientedDashboardsPostgresIntegrationTests
         db.ReviewWorkflowEvents.Add(NewSubmittedForReviewEvent(inReview.Id, now.AddHours(-25)));
         await db.SaveChangesAsync();
 
-        var workspace = new TestingWorkspaceService(db);
+        var workspace = new TestingWorkspaceService(db, new UserSectionScopeService(db));
 
         var counts = await workspace.GetWorkloadCountsAsync(analystId);
         Assert.Equal(1, counts.AwaitingReview);

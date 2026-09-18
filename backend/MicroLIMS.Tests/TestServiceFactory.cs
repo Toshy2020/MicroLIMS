@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Logging.Abstractions;
+using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Application.Services;
 using MicroLIMS.Application.Workflows;
 using MicroLIMS.Domain.Entities;
@@ -130,7 +131,10 @@ public static class TestServiceFactory
 
     public static DashboardService Dashboard(MicroLimsDbContext db) => new(db, Kpi(db));
 
-    public static MyTasksService MyTasks(MicroLimsDbContext db) => new(db);
+    public static MyTasksService MyTasks(MicroLimsDbContext db) => new(db, new UserSectionScopeService(db));
+
+    public static TestingWorkspaceService TestingWorkspace(MicroLimsDbContext db, IUserSectionScopeService? scope = null) =>
+        new(db, scope ?? new UserSectionScopeService(db));
 
     public static GroupedTestActionService GroupedTestAction(MicroLimsDbContext db) =>
         new(db, TestWorkflow(db), IncubatorEligibility(db));

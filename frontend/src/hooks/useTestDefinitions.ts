@@ -7,6 +7,12 @@ export interface TestDefinitionOption {
   displayName: string;
   isActive: boolean;
   workflowType: string;
+  sectionId?: number;
+  section?: {
+    id: number;
+    name: string;
+    code: string;
+  };
 }
 
 // Backs every TestCode picker in the app (Items, Water Sampling Points,
@@ -34,14 +40,14 @@ export function useTestDefinitions() {
   // Adds a brand-new test to the Test Master (used when the analyst
   // types a code that doesn't exist yet) and returns it so the caller
   // can select it immediately.
-  const addNew = async (code: string, displayName: string) => {
-    const created = await masterDataOptions.createTestDefinition(code, displayName);
+  const addNew = async (code: string, displayName: string, sectionId?: number | null) => {
+    const created = await masterDataOptions.createTestDefinition(code, displayName, sectionId);
     await reload();
     return created as TestDefinitionOption;
   };
 
-  const update = async (id: number, code: string, displayName: string) => {
-    const updated = await masterDataOptions.updateTestDefinition(id, code, displayName);
+  const update = async (id: number, code: string, displayName: string, sectionId?: number | null) => {
+    const updated = await masterDataOptions.updateTestDefinition(id, code, displayName, sectionId);
     await reload();
     return updated as TestDefinitionOption;
   };

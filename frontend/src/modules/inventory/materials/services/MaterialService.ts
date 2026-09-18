@@ -16,6 +16,7 @@ export interface SaveMaterialPayload {
   atccNumber: string | null;
   organismId: number | null;
   mediaProductId: number | null;
+  sectionId?: number | null;
 }
 
 export const MaterialService = {

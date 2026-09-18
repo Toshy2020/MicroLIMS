@@ -1,5 +1,6 @@
 import { Fragment, useEffect, useState } from "react";
-import { Paper, TextField, Button, Table, TableHead, TableRow, TableCell, TableBody, Stack, Alert, IconButton, Select, MenuItem, Collapse, Box, Typography, Checkbox, FormControlLabel, Chip, Tooltip } from "@mui/material";
+import { Paper, TextField, Button, Table, TableHead, TableRow, TableCell, TableBody, Stack, Alert, IconButton, Select, MenuItem, Collapse, Box, Typography, Checkbox, FormControlLabel, Chip, Tooltip, FormControl, InputLabel, FormHelperText } from "@mui/material";
+import { getMySections, LaboratorySection } from "../../../services/laboratorySectionService";
 import EditIcon from "@mui/icons-material/Edit";
 import BlockIcon from "@mui/icons-material/Block";
 import LockOpenIcon from "@mui/icons-material/LockOpen";
@@ -727,18 +728,43 @@ export function TestMasterPage() {
   const { options, addNew, update, setActive, reload } = useTestDefinitions();
   const [code, setCode] = useState("");
   const [displayName, setDisplayName] = useState("");
+  const [sectionId, setSectionId] = useState<number | "">("");
   const [editingId, setEditingId] = useState<number | null>(null);
+  const [editingSectionId, setEditingSectionId] = useState<number | null>(null);
+  const [editingTest, setEditingTest] = useState<TestDefinitionOption | null>(null);
+  const [mySections, setMySections] = useState<LaboratorySection[]>([]);
   const [message, setMessage] = useState<{ text: string; ok: boolean } | null>(null);
   const [expandedId, setExpandedId] = useState<number | null>(null);
 
+  useEffect(() => {
+    getMySections()
+      .then((secs) => {
+        setMySections(secs);
+        if (secs.length === 1) {
+          setSectionId(secs[0].sectionId);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
   const startEdit = (t: TestDefinitionOption) => {
     setEditingId(t.id);
+    setEditingTest(t);
     setCode(t.code);
     setDisplayName(t.displayName);
+    setSectionId(t.sectionId ?? (mySections.length === 1 ? mySections[0].sectionId : ""));
+    setEditingSectionId(t.sectionId ?? null);
     setMessage(null);
   };
 
-  const cancelEdit = () => { setEditingId(null); setCode(""); setDisplayName(""); };
+  const cancelEdit = () => {
+    setEditingId(null);
+    setEditingTest(null);
+    setCode("");
+    setDisplayName("");
+    setSectionId(mySections.length === 1 ? mySections[0].sectionId : "");
+    setEditingSectionId(null);
+  };
 
   const save = async () => {
     setMessage(null);
@@ -746,12 +772,17 @@ export function TestMasterPage() {
       setMessage({ text: "Both Code and Display Name are required.", ok: false });
       return;
     }
+    if (mySections.length > 1 && sectionId === "") {
+      setMessage({ text: "Laboratory section is required.", ok: false });
+      return;
+    }
+    const chosenSectionId = sectionId !== "" ? Number(sectionId) : undefined;
     try {
       if (editingId) {
-        await update(editingId, code, displayName);
+        await update(editingId, code, displayName, chosenSectionId);
         setMessage({ text: `Test "${code}" updated.`, ok: true });
       } else {
-        await addNew(code, displayName);
+        await addNew(code, displayName, chosenSectionId);
         setMessage({ text: `Test "${code}" added to the Test Master.`, ok: true });
       }
       cancelEdit();
@@ -786,6 +817,30 @@ export function TestMasterPage() {
           }}>
           <TextField size="small" label="Code" placeholder="e.g. PATHOGEN_SALMONELLA" value={code} onChange={(e) => setCode(e.target.value)} sx={{ minWidth: 220 }} />
           <TextField size="small" label="Display Name" placeholder="e.g. Pathogen - Salmonella" value={displayName} onChange={(e) => setDisplayName(e.target.value)} sx={{ minWidth: 260 }} />
+          <FormControl size="small" sx={{ minWidth: 220 }} required={mySections.length > 1}>
+            <InputLabel id="test-section-select-label">Section</InputLabel>
+            <Select<number | "">
+              labelId="test-section-select-label"
+              label="Section"
+              value={sectionId}
+              onChange={(e) => setSectionId(e.target.value === "" ? "" : Number(e.target.value))}
+            >
+              {mySections.length > 1 && <MenuItem value=""><em>Select Section</em></MenuItem>}
+              {editingSectionId !== null && !mySections.some((s) => s.sectionId === editingSectionId) && (
+                <MenuItem value={editingSectionId}>
+                  {editingTest?.section?.name ?? `Section #${editingSectionId}`} (Current)
+                </MenuItem>
+              )}
+              {mySections.map((s) => (
+                <MenuItem key={s.sectionId} value={s.sectionId}>
+                  {s.sectionName} ({s.departmentName})
+                </MenuItem>
+              ))}
+            </Select>
+            {editingId && editingSectionId !== null && sectionId !== "" && sectionId !== editingSectionId && (
+              <FormHelperText>Existing test orders keep their current section.</FormHelperText>
+            )}
+          </FormControl>
           {editingId && <Button onClick={cancelEdit}>Cancel</Button>}
           <Button variant="contained" onClick={save}>{editingId ? "Save Changes" : "Add Test"}</Button>
         </Stack>
@@ -794,7 +849,16 @@ export function TestMasterPage() {
       <SectionTitle>All Tests</SectionTitle>
       <Paper sx={{ p: 2.5 }}>
         <Table size="small">
-          <TableHead><TableRow sx={tableHeadSx}><TableCell /><TableCell>Code</TableCell><TableCell>Display Name</TableCell><TableCell>Status</TableCell><TableCell></TableCell></TableRow></TableHead>
+          <TableHead>
+            <TableRow sx={tableHeadSx}>
+              <TableCell />
+              <TableCell>Code</TableCell>
+              <TableCell>Display Name</TableCell>
+              <TableCell>Section</TableCell>
+              <TableCell>Status</TableCell>
+              <TableCell />
+            </TableRow>
+          </TableHead>
           <TableBody>
             {options.map((t) => (
               <Fragment key={t.id}>
@@ -806,6 +870,7 @@ export function TestMasterPage() {
                   </TableCell>
                   <TableCell>{t.code}</TableCell>
                   <TableCell>{t.displayName}</TableCell>
+                  <TableCell>{t.section?.name ?? "—"}</TableCell>
                   <TableCell><StatusBadge status={t.isActive ? "Active" : "Frozen"} /></TableCell>
                   <TableCell align="right">
                     <IconButton size="small" onClick={() => startEdit(t)} title="Edit"><EditIcon fontSize="small" /></IconButton>
@@ -815,7 +880,7 @@ export function TestMasterPage() {
                   </TableCell>
                 </TableRow>
                 <TableRow>
-                  <TableCell sx={{ p: 0, border: 0 }} colSpan={5}>
+                  <TableCell sx={{ p: 0, border: 0 }} colSpan={6}>
                     <Collapse in={expandedId === t.id} unmountOnExit>
                       <WorkflowStepsSection test={t} onWorkflowTypeChanged={reload} />
                     </Collapse>

@@ -115,10 +115,10 @@ export const masterDataOptions = {
     apiClient.put(`/masterdata/organisms/${id}`, { scientificName, atccNumber: atccNumber || null, commonName: commonName || null, description: description || null }).then((r) => r.data.data),
   deleteOrganism: (id: number) => apiClient.delete(`/masterdata/organisms/${id}`),
   getTestDefinitions: () => apiClient.get("/masterdata/test-definitions").then((r) => r.data.data),
-  createTestDefinition: (code: string, displayName: string) =>
-    apiClient.post("/masterdata/test-definitions", { code, displayName }).then((r) => r.data.data),
-  updateTestDefinition: (id: number, code: string, displayName: string) =>
-    apiClient.put(`/masterdata/test-definitions/${id}`, { code, displayName }).then((r) => r.data.data),
+  createTestDefinition: (code: string, displayName: string, sectionId?: number | null) =>
+    apiClient.post("/masterdata/test-definitions", { code, displayName, ...(sectionId != null ? { sectionId } : {}) }).then((r) => r.data.data),
+  updateTestDefinition: (id: number, code: string, displayName: string, sectionId?: number | null) =>
+    apiClient.put(`/masterdata/test-definitions/${id}`, { code, displayName, ...(sectionId != null ? { sectionId } : {}) }).then((r) => r.data.data),
   freezeTestDefinition: (id: number) =>
     apiClient.put(`/masterdata/test-definitions/${id}/freeze`).then((r) => r.data.data),
   unfreezeTestDefinition: (id: number) =>

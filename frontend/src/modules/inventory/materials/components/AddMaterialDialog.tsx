@@ -23,6 +23,7 @@ import { MaterialFormState, MaterialItem, MaterialType, MaterialUnit } from "../
 import { MATERIAL_TYPE_OPTIONS } from "./MaterialFilterBar";
 import { brandColors } from "../../../../theme";
 import { FloatingDialog } from "../../../../components/FloatingDialog";
+import { getMySections, LaboratorySection } from "../../../../services/laboratorySectionService";
 
 const MATERIAL_UNITS: MaterialUnit[] = [
   "Gram",
@@ -64,6 +65,8 @@ const INITIAL_FORM: MaterialFormState = {
 export function AddMaterialDialog({ open, onClose, onSuccess, editingItem }: AddMaterialDialogProps) {
   const theme = useTheme();
   const [form, setForm] = useState<MaterialFormState>(INITIAL_FORM);
+  const [mySections, setMySections] = useState<LaboratorySection[]>([]);
+  const [selectedSectionId, setSelectedSectionId] = useState<number | "">("");
   const [equipmentList, setEquipmentList] = useState<any[]>([]);
   const [equipmentLoading, setEquipmentLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -87,11 +90,26 @@ export function AddMaterialDialog({ open, onClose, onSuccess, editingItem }: Add
         organismId: editingItem.organismId ?? null,
         mediaProductId: editingItem.mediaProductId ?? null
       });
+      setSelectedSectionId("");
     } else {
       setForm({
         ...INITIAL_FORM,
         receivingDate: new Date().toISOString().slice(0, 10)
       });
+      if (open) {
+        getMySections()
+          .then((secs) => {
+            setMySections(secs);
+            if (secs.length === 1) {
+              setSelectedSectionId(secs[0].sectionId);
+            } else {
+              setSelectedSectionId("");
+            }
+          })
+          .catch(() => setMySections([]));
+      } else {
+        setSelectedSectionId("");
+      }
     }
     setError(null);
 
@@ -211,6 +229,11 @@ export function AddMaterialDialog({ open, onClose, onSuccess, editingItem }: Add
       return;
     }
 
+    if (!editingItem && mySections.length > 1 && !selectedSectionId) {
+      setError("Laboratory section is required.");
+      return;
+    }
+
     const payload = {
       materialType: form.materialType,
       materialName: form.materialName.trim(),
@@ -225,7 +248,8 @@ export function AddMaterialDialog({ open, onClose, onSuccess, editingItem }: Add
       minimumStockLevel: form.minimumStockLevel === "" ? null : Number(form.minimumStockLevel),
       atccNumber: form.materialType === "LyophilizedMicroorganism" ? form.atccNumber.trim() || null : null,
       organismId: form.materialType === "LyophilizedMicroorganism" ? form.organismId || null : null,
-      mediaProductId: form.materialType === "DehydratedMedia" ? form.mediaProductId : null
+      mediaProductId: form.materialType === "DehydratedMedia" ? form.mediaProductId : null,
+      ...(!editingItem && mySections.length > 1 && selectedSectionId !== "" ? { sectionId: Number(selectedSectionId) } : {})
     };
 
     setSaving(true);
@@ -317,6 +341,27 @@ export function AddMaterialDialog({ open, onClose, onSuccess, editingItem }: Add
               helperText="Media not listed? A Section Head adds it in Laboratory Configuration > Media Configuration."
             />
           </Box>
+        )}
+
+        {!editingItem && mySections.length > 1 && (
+          <FormControl size="small" fullWidth required sx={{ gridColumn: { xs: "1", sm: "span 2" } }}>
+            <InputLabel id="dialog-section-label">Laboratory Section</InputLabel>
+            <Select<number | "">
+              labelId="dialog-section-label"
+              label="Laboratory Section"
+              value={selectedSectionId}
+              onChange={(e) => setSelectedSectionId(e.target.value === "" ? "" : Number(e.target.value))}
+            >
+              <MenuItem value="">
+                <em>Select Laboratory Section...</em>
+              </MenuItem>
+              {mySections.map((s) => (
+                <MenuItem key={s.sectionId} value={s.sectionId}>
+                  {s.sectionName} ({s.departmentName})
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
         )}
 
         <TextField

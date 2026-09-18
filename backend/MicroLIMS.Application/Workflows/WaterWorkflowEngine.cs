@@ -113,6 +113,7 @@ public class WaterWorkflowEngine : IWaterWorkflowEngine
         // One TestOrder per distinct TestCode across every selected point -
         // the whole batch shares a single workflow per test type, same as
         // EMWorkflowEngine.PrepareAsync.
+        var testSections = await TestSectionLookup.ResolveAsync(_db, allCodes);
         var testOrdersByCode = new Dictionary<string, TestOrder>();
         foreach (var point in points)
         {
@@ -123,6 +124,7 @@ public class WaterWorkflowEngine : IWaterWorkflowEngine
                     order = new TestOrder
                     {
                         TestCode = testCode,
+                        SectionId = testSections[testCode],
                         Status = ApprovalStatus.Pending,
                         CurrentStep = WorkflowStep.Waiting,
                         AssignedAnalystId = userId

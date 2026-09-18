@@ -81,6 +81,7 @@ public class EMWorkflowEngine : IEMWorkflowEngine
 
         // One TestOrder per distinct TestCode across every selected room -
         // the whole batch shares a single incubation setup per test type.
+        var testSections = await TestSectionLookup.ResolveAsync(_db, configs.Select(c => c.TestCode));
         var testOrdersByCode = new Dictionary<string, TestOrder>();
         foreach (var config in configs)
         {
@@ -89,6 +90,7 @@ public class EMWorkflowEngine : IEMWorkflowEngine
                 order = new TestOrder
                 {
                     TestCode = config.TestCode,
+                    SectionId = testSections[config.TestCode],
                     Status = ApprovalStatus.Pending,
                     CurrentStep = WorkflowStep.Waiting,
                     AssignedAnalystId = userId

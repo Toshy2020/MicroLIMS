@@ -32,6 +32,7 @@ public class InitialAdministratorSeedTests
             new Role { Id = 2, Type = RoleType.SectionHead, Name = "Section Head", IsSystemRole = true, IsActive = true },
             new Role { Id = 3, Type = RoleType.Reviewer, Name = "Reviewer", IsSystemRole = true, IsActive = true },
             new Role { Id = 4, Type = RoleType.Analyst, Name = "Analyst", IsSystemRole = true, IsActive = true });
+        TestServiceFactory.EnsureMicroSection(db);
         db.SaveChanges();
         return db;
     }

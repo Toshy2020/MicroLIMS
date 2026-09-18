@@ -30,7 +30,8 @@ public class TestMasterStepMediaConditionTests
             db,
             new EquipmentConfigurationService(db),
             TestServiceFactory.MediaProduct(db),
-            TestServiceFactory.MediaIncubationCondition(db));
+            TestServiceFactory.MediaIncubationCondition(db),
+            new UserSectionScopeService(db));
 
     private static async Task<TestDefinition> SeedTestDefinitionAsync(MicroLimsDbContext db)
     {
@@ -38,7 +39,8 @@ public class TestMasterStepMediaConditionTests
         {
             Code = "TAMC",
             DisplayName = "TAMC",
-            WorkflowType = WorkflowType.CountTest
+            WorkflowType = WorkflowType.CountTest,
+            SectionId = TestServiceFactory.EnsureMicroSection(db).Id
         };
         db.TestDefinitions.Add(testDefinition);
         await db.SaveChangesAsync();
@@ -52,6 +54,7 @@ public class TestMasterStepMediaConditionTests
     {
         var material = new Material
         {
+            SectionId = TestServiceFactory.EnsureMicroSection(db).Id,
             MaterialType = MaterialType.DehydratedMedia,
             MaterialName = materialName,
             ManufacturerName = "Himedia",

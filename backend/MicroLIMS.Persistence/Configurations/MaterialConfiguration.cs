@@ -27,6 +27,13 @@ public class MaterialConfiguration : IEntityTypeConfiguration<Material>
         builder.HasOne(m => m.Organism).WithMany().HasForeignKey(m => m.OrganismId).OnDelete(DeleteBehavior.Restrict);
         builder.HasOne(m => m.MediaProduct).WithMany().HasForeignKey(m => m.MediaProductId).OnDelete(DeleteBehavior.Restrict);
 
+        builder.HasOne(m => m.Section)
+            .WithMany()
+            .HasForeignKey(m => m.SectionId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasIndex(m => m.SectionId);
+
         builder.Ignore(m => m.Status);
         builder.Ignore(m => m.IsUsable);
     }

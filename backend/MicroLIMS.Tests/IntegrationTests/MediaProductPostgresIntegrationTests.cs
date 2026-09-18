@@ -91,8 +91,10 @@ public class MediaProductPostgresIntegrationTests
         };
         db.Equipment.Add(autoclave);
 
+        var microSectionId = (await db.DocumentSections.FirstAsync(s => s.Code == "MICRO")).Id;
         var material = new Material
         {
+            SectionId = microSectionId,
             MaterialType = MaterialType.DehydratedMedia,
             MaterialName = productName,
             ManufacturerName = "Himedia",

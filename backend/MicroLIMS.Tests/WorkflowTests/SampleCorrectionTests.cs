@@ -49,9 +49,16 @@ public class SampleCorrectionTests
 
     private static async Task<Item> SeedItemAsync(MicroLimsDbContext db, string name, SampleCategory category, params string[] testCodes)
     {
+        var section = TestServiceFactory.EnsureMicroSection(db);
         var item = new Item { Name = name, Code = name.Replace(" ", "").ToUpperInvariant(), Category = category, IsActive = true };
         foreach (var code in testCodes)
+        {
             item.AssignedTests.Add(new SampleTest { TestCode = code, DisplayName = code });
+            if (!db.TestDefinitions.Any(td => td.Code == code))
+            {
+                db.TestDefinitions.Add(new TestDefinition { Code = code, DisplayName = code, SectionId = section.Id });
+            }
+        }
         db.Items.Add(item);
         await db.SaveChangesAsync();
         return item;
@@ -63,6 +70,7 @@ public class SampleCorrectionTests
         var signer = await SeedSignerAsync(db);
         var cause = await SeedCauseAsync(db, "Routine");
         var item = await SeedItemAsync(db, "Paracetamol 500", SampleCategory.FinishedProduct, "TAMC", "TYMC");
+        var section = TestServiceFactory.EnsureMicroSection(db);
 
         var sample = new Sample
         {
@@ -77,8 +85,8 @@ public class SampleCorrectionTests
             Status = SampleStatus.Received,
             PreparationStatus = SamplePreparationStatus.NeedsPreparation
         };
-        sample.TestOrders.Add(new TestOrder { TestCode = "TAMC", Status = ApprovalStatus.Pending, CurrentStep = WorkflowStep.Waiting });
-        sample.TestOrders.Add(new TestOrder { TestCode = "TYMC", Status = ApprovalStatus.Pending, CurrentStep = WorkflowStep.Waiting });
+        sample.TestOrders.Add(new TestOrder { TestCode = "TAMC", Status = ApprovalStatus.Pending, CurrentStep = WorkflowStep.Waiting, SectionId = section.Id });
+        sample.TestOrders.Add(new TestOrder { TestCode = "TYMC", Status = ApprovalStatus.Pending, CurrentStep = WorkflowStep.Waiting, SectionId = section.Id });
         db.Samples.Add(sample);
         await db.SaveChangesAsync();
         return new Seeded(sample, signer, cause);

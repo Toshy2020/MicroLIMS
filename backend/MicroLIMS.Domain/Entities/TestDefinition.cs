@@ -22,6 +22,9 @@ public class TestDefinition
     public string Code { get; set; } = string.Empty; // e.g. "TAMC", "PATHOGEN_SALMONELLA"
     public string DisplayName { get; set; } = string.Empty; // e.g. "Total Aerobic Microbial Count", "Pathogen - Salmonella"
 
+    public int SectionId { get; set; }
+    public DocumentSection? Section { get; set; }
+
     public WorkflowType WorkflowType { get; set; } = WorkflowType.Observation;
     public List<TestWorkflowStep> Steps { get; set; } = new();
 

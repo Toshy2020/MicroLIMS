@@ -23,7 +23,7 @@ public class MediaConfigurationMasterDataTests
     }
 
     private static MasterDataController CreateController(MicroLimsDbContext db) =>
-        new(db, new EquipmentConfigurationService(db), TestServiceFactory.MediaProduct(db), TestServiceFactory.MediaIncubationCondition(db));
+        new(db, new EquipmentConfigurationService(db), TestServiceFactory.MediaProduct(db), TestServiceFactory.MediaIncubationCondition(db), new UserSectionScopeService(db));
 
     private static async Task<MediaConfiguration> AddConfigurationAsync(
         MicroLimsDbContext db, MediaProduct product, MediaIncubationCondition condition,

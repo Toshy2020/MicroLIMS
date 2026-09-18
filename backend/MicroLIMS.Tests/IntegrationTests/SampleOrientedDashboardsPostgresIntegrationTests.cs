@@ -20,6 +20,7 @@ public class SampleOrientedDashboardsPostgresIntegrationTests
     private const string SeededUserFullName = "QA Document Admin";
 
     private readonly PostgresTestFixture _fixture;
+    private int _microSectionId;
 
     public SampleOrientedDashboardsPostgresIntegrationTests(PostgresTestFixture fixture)
     {
@@ -237,7 +238,7 @@ public class SampleOrientedDashboardsPostgresIntegrationTests
     // WorkflowHistory). Review events and notification logs hold plain id
     // columns rather than foreign keys, so the rows these tests read are
     // cleared explicitly.
-    private static async Task<(int CauseId, int ItemId)> ResetAsync(MicroLimsDbContext db)
+    private async Task<(int CauseId, int ItemId)> ResetAsync(MicroLimsDbContext db)
     {
         await db.Database.ExecuteSqlRawAsync("TRUNCATE TABLE \"Samples\" CASCADE;");
         await db.ReviewWorkflowEvents.Where(e => e.EntityType == ReviewEntityTypes.Sample).ExecuteDeleteAsync();
@@ -260,6 +261,7 @@ public class SampleOrientedDashboardsPostgresIntegrationTests
         }
 
         await db.SaveChangesAsync();
+        _microSectionId = (await db.DocumentSections.FirstAsync(s => s.Code == "MICRO")).Id;
         return (cause.Id, item.Id);
     }
 
@@ -296,9 +298,9 @@ public class SampleOrientedDashboardsPostgresIntegrationTests
         ReceivedAt = receivedAt
     };
 
-    private static TestOrder AddOrder(Sample sample, string testCode, ApprovalStatus status, WorkflowStep step)
+    private TestOrder AddOrder(Sample sample, string testCode, ApprovalStatus status, WorkflowStep step)
     {
-        var order = new TestOrder { Sample = sample, TestCode = testCode, Status = status, CurrentStep = step };
+        var order = new TestOrder { Sample = sample, TestCode = testCode, Status = status, CurrentStep = step, SectionId = _microSectionId };
         sample.TestOrders.Add(order);
         return order;
     }

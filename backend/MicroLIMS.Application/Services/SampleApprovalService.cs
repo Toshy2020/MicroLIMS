@@ -277,6 +277,7 @@ public class SampleApprovalService
                     var newOrder = new TestOrder
                     {
                         TestCode = order.TestCode,
+                        SectionId = order.SectionId,
                         Status = ApprovalStatus.Pending,
                         CurrentStep = WorkflowStep.Waiting,
                         AssignedAnalystId = order.AssignedAnalystId,
@@ -336,6 +337,7 @@ public class SampleApprovalService
                         var newOrder = new TestOrder
                         {
                             TestCode = order.TestCode,
+                            SectionId = order.SectionId,
                             Status = ApprovalStatus.Pending,
                             CurrentStep = WorkflowStep.Waiting,
                             AssignedAnalystId = analystId,

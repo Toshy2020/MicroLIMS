@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Logging.Abstractions;
 using MicroLIMS.Application.Services;
 using MicroLIMS.Application.Workflows;
+using MicroLIMS.Domain.Entities;
 using MicroLIMS.Infrastructure.Notifications;
 using MicroLIMS.Infrastructure.Pdf;
 using MicroLIMS.Infrastructure.Storage;
@@ -114,11 +115,11 @@ public static class TestServiceFactory
         new(db, new SegregationOfDutiesGuard(db), ReviewGate(db), MediaSummary(db), Archive(db, storage));
 
     public static CryovialService Cryovial(MicroLimsDbContext db, IFileStorageService? storage = null) =>
-        new(db, new MaterialService(db), new SegregationOfDutiesGuard(db), ReviewGate(db),
+        new(db, new MaterialService(db, new UserSectionScopeService(db)), new SegregationOfDutiesGuard(db), ReviewGate(db),
             CryovialSummary(db), Archive(db, storage));
 
     public static MediaPreparationService MediaPreparation(MicroLimsDbContext db) =>
-        new(db, new MaterialService(db), ReviewGate(db));
+        new(db, new MaterialService(db, new UserSectionScopeService(db)), ReviewGate(db));
 
     public static IncubatorEligibilityService IncubatorEligibility(MicroLimsDbContext db) => new(db);
 
@@ -145,5 +146,44 @@ public static class TestServiceFactory
             new AuditEventService(db, new MicroLIMS.Persistence.Helpers.DatabaseSequenceHelper(db)));
 
     public static MediaIncubationConditionService MediaIncubationCondition(MicroLimsDbContext db) => new(db);
+
+    public static DocumentSection EnsureMicroSection(MicroLimsDbContext db)
+    {
+        var dept = db.DocumentDepartments.FirstOrDefault(d => d.Code == "QC");
+        if (dept == null)
+        {
+            dept = new DocumentDepartment { Name = "Quality Control", Code = "QC", IsActive = true };
+            db.DocumentDepartments.Add(dept);
+            db.SaveChanges();
+        }
+
+        var section = db.DocumentSections.FirstOrDefault(s => s.Code == "MICRO");
+        if (section == null)
+        {
+            section = new DocumentSection { Name = "Microbiology Laboratory", Code = "MICRO", DepartmentId = dept.Id, IsActive = true };
+            db.DocumentSections.Add(section);
+            db.SaveChanges();
+        }
+
+        return section;
+    }
+
+    public static UserOrgMembership AssignUserToMicroSection(MicroLimsDbContext db, int userId)
+    {
+        var section = EnsureMicroSection(db);
+        var membership = db.UserOrgMemberships.FirstOrDefault(m => m.UserId == userId && (m.SectionId == section.Id || (m.DepartmentId == section.DepartmentId && m.SectionId == null)));
+        if (membership == null)
+        {
+            membership = new UserOrgMembership
+            {
+                UserId = userId,
+                DepartmentId = section.DepartmentId,
+                SectionId = section.Id
+            };
+            db.UserOrgMemberships.Add(membership);
+            db.SaveChanges();
+        }
+        return membership;
+    }
 }
 

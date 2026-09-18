@@ -110,6 +110,7 @@ public static class UserReferenceRegistry
         new UserReferenceEntry(typeof(PasswordHistory), nameof(PasswordHistory.UserId), UserReferenceDisposition.Excluded, "Cascade FK - password history is per-user housekeeping, deleted with the user"),
         new UserReferenceEntry(typeof(PasswordResetToken), nameof(PasswordResetToken.UserId), UserReferenceDisposition.Excluded, "Cascade FK - reset tokens are per-user housekeeping, deleted with the user"),
         new UserReferenceEntry(typeof(RefreshToken), nameof(RefreshToken.UserId), UserReferenceDisposition.Excluded, "Cascade FK - refresh tokens are per-user housekeeping, deleted with the user"),
+        new UserReferenceEntry(typeof(UserOrgMembership), nameof(UserOrgMembership.UserId), UserReferenceDisposition.Excluded, "DB FK Cascade - org membership housekeeping"),
 
         // Error monitoring is operational/technical data, not GxP evidence -
         // a user who once triggered a 500 must not thereby become undeletable.

@@ -118,6 +118,8 @@ public class WaterAndEMEngineTests
         await db.SaveChangesAsync();
         var point = new WaterSamplingPoint { Code = "SP-1", WaterDepartmentId = department.Id, AssignedTestCodes = new() { "TAMC" } };
         db.WaterSamplingPoints.Add(point);
+        var section = TestServiceFactory.EnsureMicroSection(db);
+        db.TestDefinitions.Add(new TestDefinition { Code = "TAMC", DisplayName = "TAMC", SectionId = section.Id });
         await db.SaveChangesAsync();
 
         var engine = new WaterWorkflowEngine(db, new ReferenceNumberGenerator(db));

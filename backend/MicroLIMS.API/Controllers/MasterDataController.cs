@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Application.Services;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
@@ -42,7 +43,7 @@ public record CreateMediaConfigurationRequest(int MediaProductId, EvaluationType
 public record UpdateMediaConfigurationRequest(int MediaProductId, EvaluationType EvaluationType, int MediaIncubationConditionId, decimal? RecoveryPercentMin, decimal? RecoveryPercentMax, List<CreateMediaConfigurationChallengeRequest>? Challenges);
 public record CreateOrganismRequest(string ScientificName, string? AtccNumber, string? CommonName, string? Description);
 public record UpdateOrganismRequest(string ScientificName, string? AtccNumber, string? CommonName, string? Description);
-public record CreateTestDefinitionRequest(string Code, string DisplayName);
+public record CreateTestDefinitionRequest(string Code, string DisplayName, int? SectionId = null);
 public record UpdateTestDefinitionRequest(string Code, string DisplayName);
 public record UpdateWorkflowTypeRequest(WorkflowType WorkflowType);
 public record StepMediaRequest(int MaterialId, bool IsRequired, int DisplayOrder, int? MediaIncubationConditionId);
@@ -70,17 +71,20 @@ public class MasterDataController : ControllerBase
     private readonly EquipmentConfigurationService _configService;
     private readonly MediaProductService _mediaProductService;
     private readonly MediaIncubationConditionService _mediaIncubationConditionService;
+    private readonly IUserSectionScopeService _scope;
 
     public MasterDataController(
         MicroLimsDbContext db,
         EquipmentConfigurationService configService,
         MediaProductService mediaProductService,
-        MediaIncubationConditionService mediaIncubationConditionService)
+        MediaIncubationConditionService mediaIncubationConditionService,
+        IUserSectionScopeService scope)
     {
         _db = db;
         _configService = configService;
         _mediaProductService = mediaProductService;
         _mediaIncubationConditionService = mediaIncubationConditionService;
+        _scope = scope;
     }
 
     private int CurrentUserId => int.TryParse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value, out var uid) ? uid : 0;
@@ -1309,7 +1313,15 @@ public class MasterDataController : ControllerBase
         if (await _db.TestDefinitions.AnyAsync(t => t.Code == request.Code))
             throw new InvalidOperationException($"Test code \"{request.Code}\" already exists in the Test Master.");
 
-        var entity = new TestDefinition { Code = request.Code, DisplayName = request.DisplayName };
+        var userId = CurrentUserId;
+        var sectionId = await _scope.ResolveSectionForCreateAsync(userId, request.SectionId);
+
+        var entity = new TestDefinition
+        {
+            Code = request.Code,
+            DisplayName = request.DisplayName,
+            SectionId = sectionId
+        };
         _db.TestDefinitions.Add(entity);
         await _db.SaveChangesAsync();
         return Ok(ApiResponse<object>.Ok(entity));

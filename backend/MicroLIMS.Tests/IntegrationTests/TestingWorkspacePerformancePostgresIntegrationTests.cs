@@ -264,6 +264,8 @@ public class TestingWorkspacePerformancePostgresIntegrationTests
             .Select(t => t.Code)
             .ToListAsync();
 
+        var microSectionId = (await db.DocumentSections.FirstAsync(s => s.Code == "MICRO")).Id;
+
         foreach (var code in testCodes)
         {
             if (!existingCodes.Contains(code))
@@ -274,6 +276,7 @@ public class TestingWorkspacePerformancePostgresIntegrationTests
                     DisplayName = $"Assay {code}",
                     WorkflowType = WorkflowType.Observation,
                     IsActive = true,
+                    SectionId = microSectionId,
                     Steps = new List<TestWorkflowStep>
                     {
                         new()
@@ -308,6 +311,7 @@ public class TestingWorkspacePerformancePostgresIntegrationTests
         var testCodes = new[] { "TAMC", "TYMC", "EC", "SA" };
         var baseTime = DateTime.UtcNow;
         var samples = new List<Sample>(count);
+        var microSectionId = (await db.DocumentSections.FirstAsync(s => s.Code == "MICRO")).Id;
 
         for (int i = 0; i < count; i++)
         {
@@ -334,7 +338,8 @@ public class TestingWorkspacePerformancePostgresIntegrationTests
                     TestCode = testCodes[t % testCodes.Length],
                     Status = ApprovalStatus.InProgress,
                     CurrentStep = WorkflowStep.Incubating,
-                    AssignedAnalystId = _fixture.SeededUserId
+                    AssignedAnalystId = _fixture.SeededUserId,
+                    SectionId = microSectionId
                 };
 
                 for (int inc = 1; inc <= IncubationsPerTestOrder; inc++)

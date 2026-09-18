@@ -13,5 +13,12 @@ public class TestOrderConfiguration : IEntityTypeConfiguration<TestOrder>
         // Never let deleting/reconfiguring a Room cascade into deleting
         // TestOrder history - same reasoning as the Media/Material FKs.
         builder.HasOne(t => t.Room).WithMany().HasForeignKey(t => t.RoomId).OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasOne(t => t.Section)
+            .WithMany()
+            .HasForeignKey(t => t.SectionId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasIndex(t => t.SectionId);
     }
 }

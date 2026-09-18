@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Persistence.DbContext;
@@ -9,7 +10,7 @@ public record SaveMaterialRequest(
     MaterialType MaterialType, string MaterialName, string ManufacturerName, string BatchNumber,
     DateTime ReceivingDate, DateTime? ExpiryDate, string? Code, string Location,
     decimal QuantityReceived, MaterialUnit Unit, decimal? MinimumStockLevel, string? AtccNumber, int? OrganismId,
-    int? MediaProductId = null);
+    int? MediaProductId = null, int? SectionId = null);
 
 // Materials Stock register (Inventory module) - dehydrated media, discs,
 // ID kits/reagents, chemicals, indicators, reference buffers, disposable
@@ -25,10 +26,12 @@ public record SaveMaterialRequest(
 public class MaterialService
 {
     private readonly MicroLimsDbContext _db;
+    private readonly IUserSectionScopeService _scope;
 
-    public MaterialService(MicroLimsDbContext db)
+    public MaterialService(MicroLimsDbContext db, IUserSectionScopeService scope)
     {
         _db = db;
+        _scope = scope;
     }
 
     // Suggested default unit per material type - the analyst can still
@@ -81,8 +84,11 @@ public class MaterialService
             code = product.Code;
         }
 
+        var sectionId = await _scope.ResolveSectionForCreateAsync(currentUserId, r.SectionId);
+
         var entity = new Material
         {
+            SectionId = sectionId,
             MaterialType = r.MaterialType,
             MediaProductId = mediaProductId,
             MaterialName = materialName,

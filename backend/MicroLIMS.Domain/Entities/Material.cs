@@ -21,6 +21,9 @@ public class Material
 {
     public int Id { get; set; }
 
+    public int SectionId { get; set; }
+    public DocumentSection? Section { get; set; }
+
     public MaterialType MaterialType { get; set; }
     public string MaterialName { get; set; } = string.Empty;
     public string ManufacturerName { get; set; } = string.Empty;

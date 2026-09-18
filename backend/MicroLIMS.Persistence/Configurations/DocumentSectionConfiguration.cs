@@ -16,6 +16,13 @@ public class DocumentSectionConfiguration : IEntityTypeConfiguration<DocumentSec
             .IsRequired()
             .HasMaxLength(200);
 
+        builder.Property(s => s.Code)
+            .IsRequired()
+            .HasMaxLength(20);
+
+        builder.HasIndex(s => s.Code)
+            .IsUnique();
+
         builder.HasOne(s => s.Department)
             .WithMany(d => d.Sections)
             .HasForeignKey(s => s.DepartmentId)

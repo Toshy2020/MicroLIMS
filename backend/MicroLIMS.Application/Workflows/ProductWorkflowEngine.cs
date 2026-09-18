@@ -67,11 +67,16 @@ public class ProductWorkflowEngine : IProductWorkflowEngine
             PreparationStatus = SamplePreparationStatus.NeedsPreparation
         };
 
+        var testSections = await TestSectionLookup.ResolveAsync(
+            _db,
+            item.AssignedTests.Select(t => t.TestCode));
+
         foreach (var test in item.AssignedTests)
         {
             sample.TestOrders.Add(new TestOrder
             {
                 TestCode = test.TestCode,
+                SectionId = testSections[test.TestCode],
                 Status = ApprovalStatus.Pending,
                 CurrentStep = WorkflowStep.Waiting
             });

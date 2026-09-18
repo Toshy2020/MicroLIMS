@@ -190,8 +190,12 @@ public static class DbSeeder
         {
             var adminUser = db.Users.FirstOrDefault(u => u.Username == "admin") ?? db.Users.FirstOrDefault();
             int adminUserId = adminUser?.Id ?? 1;
+            // Created by the AddOrgSectionSegregation migration, which always runs before seeding.
+            var microSectionId = db.DocumentSections.FirstOrDefault(s => s.Code == "MICRO")?.Id
+                ?? throw new InvalidOperationException("Laboratory section 'MICRO' is missing - migrations must run before seeding.");
             var tsaMaterial = new Material
             {
+                SectionId = microSectionId,
                 MaterialType = MaterialType.DehydratedMedia,
                 MaterialName = "Tryptic Soy Agar",
                 ManufacturerName = "Seed Data",

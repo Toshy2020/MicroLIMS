@@ -128,6 +128,7 @@ public class MicroLimsDbContext : Microsoft.EntityFrameworkCore.DbContext
     public DbSet<DocumentType> DocumentTypes => Set<DocumentType>();
     public DbSet<DocumentDepartment> DocumentDepartments => Set<DocumentDepartment>();
     public DbSet<DocumentSection> DocumentSections => Set<DocumentSection>();
+    public DbSet<UserOrgMembership> UserOrgMemberships => Set<UserOrgMembership>();
     public DbSet<DocumentNumberingConfiguration> DocumentNumberingConfigurations => Set<DocumentNumberingConfiguration>();
     public DbSet<ConfigurationSetting> ConfigurationSettings => Set<ConfigurationSetting>();
 

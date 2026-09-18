@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.DTOs;
 using MicroLIMS.Application.Interfaces;
+using MicroLIMS.Application.Workflows;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Persistence.DbContext;
@@ -398,11 +399,16 @@ public class SampleCorrectionService
 
         if (change.NewItem is not null)
         {
-            foreach (var test in change.NewItem.AssignedTests.Where(t => sample.TestOrders.All(o => o.TestCode != t.TestCode)))
+            var newTests = change.NewItem.AssignedTests
+                .Where(t => sample.TestOrders.All(o => o.TestCode != t.TestCode))
+                .ToList();
+            var testSections = await TestSectionLookup.ResolveAsync(_db, newTests.Select(t => t.TestCode));
+            foreach (var test in newTests)
             {
                 sample.TestOrders.Add(new TestOrder
                 {
                     TestCode = test.TestCode,
+                    SectionId = testSections[test.TestCode],
                     Status = ApprovalStatus.Pending,
                     CurrentStep = WorkflowStep.Waiting,
                     AssignedAnalystId = assignedAnalystId

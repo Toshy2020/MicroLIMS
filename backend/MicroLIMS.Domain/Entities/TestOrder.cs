@@ -10,6 +10,11 @@ public class TestOrder
     public int SampleId { get; set; }
     public Sample? Sample { get; set; }
     public string TestCode { get; set; } = string.Empty;
+
+    // Copied from the TestDefinition at creation; never recomputed if the test later moves section.
+    public int SectionId { get; set; }
+    public DocumentSection? Section { get; set; }
+
     public ApprovalStatus Status { get; set; } = ApprovalStatus.Pending;
     public WorkflowStep CurrentStep { get; set; } = WorkflowStep.Waiting;
     public int? AssignedAnalystId { get; set; }

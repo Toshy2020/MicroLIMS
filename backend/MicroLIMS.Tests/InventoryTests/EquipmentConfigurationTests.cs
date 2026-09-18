@@ -30,6 +30,7 @@ public class EquipmentConfigurationTests
             db.SaveChanges();
         }
 
+        TestServiceFactory.EnsureMicroSection(db);
         return db;
     }
 

@@ -12,5 +12,12 @@ public class TestDefinitionConfiguration : IEntityTypeConfiguration<TestDefiniti
         builder.Property(t => t.Code).IsRequired().HasMaxLength(100);
         builder.Property(t => t.DisplayName).IsRequired().HasMaxLength(200);
         builder.HasIndex(t => t.Code).IsUnique(); // one canonical row per code - the whole point of a master list
+
+        builder.HasOne(t => t.Section)
+            .WithMany()
+            .HasForeignKey(t => t.SectionId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasIndex(t => t.SectionId);
     }
 }

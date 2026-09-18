@@ -111,6 +111,7 @@ public static class ServiceCollectionExtensions
         services.AddHostedService<MicroLIMS.API.BackgroundServices.ErrorLogRetentionWorker>();
         services.AddHostedService<MicroLIMS.API.BackgroundServices.CriticalAlertWorker>();
         services.AddScoped<IUserSectionScopeService, UserSectionScopeService>();
+        services.AddScoped<LaboratoryOrganizationService>();
         services.AddScoped<MaterialService>();
         services.AddScoped<MediaProductService>();
         services.AddScoped<MediaIncubationConditionService>();

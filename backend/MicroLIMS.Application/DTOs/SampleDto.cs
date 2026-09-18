@@ -3,6 +3,7 @@ namespace MicroLIMS.Application.DTOs;
 public class TestOrderSummaryDto
 {
     public int TestOrderId { get; set; }
+    public int SectionId { get; set; }
     public string TestCode { get; set; } = string.Empty;
     public string Status { get; set; } = string.Empty;
     public string CurrentStep { get; set; } = string.Empty;

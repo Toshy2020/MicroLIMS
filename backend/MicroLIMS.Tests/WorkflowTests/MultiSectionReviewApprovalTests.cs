@@ -318,6 +318,45 @@ public class MultiSectionReviewApprovalTests
     }
 
     [Fact]
+    public async Task Summary_ShowsOnlyTheViewersTests_ButListsEverySectionsState()
+    {
+        await using var db = NewDb();
+        var w = await SeedAsync(db, fpReady: false);
+        await TestServiceFactory.SampleReview(db).AutoSubmitForReviewIfReadyAsync(w.Sample.Id, 1);
+        await db.SaveChangesAsync();
+        var scope = new UserSectionScopeService(db);
+
+        var fpView = await TestServiceFactory.SampleSummary(db).GetSummaryAsync(w.Sample.Id, await scope.GetAccessibleSectionIdsAsync(w.ReviewerFp));
+        Assert.Equal(new[] { "ASSAY" }, fpView!.TestOrders.Select(t => t.TestCode).ToArray());
+        Assert.False(fpView.AllSectionsVisible);
+        var microRow = fpView.Sections.Single(s => s.SectionId == w.Micro);
+        Assert.False(microRow.CanView);
+        Assert.Equal("UnderReview", microRow.Status);
+        Assert.Equal("InTesting", fpView.Sections.Single(s => s.SectionId == w.Fp).Status);
+
+        var adminView = await TestServiceFactory.SampleSummary(db).GetSummaryAsync(w.Sample.Id);
+        Assert.Equal(3, adminView!.TestOrders.Count);
+        Assert.True(adminView.AllSectionsVisible);
+    }
+
+    [Fact]
+    public async Task Memberships_AreValidated_AndReplaced()
+    {
+        await using var db = NewDb();
+        var w = await SeedAsync(db);
+        var org = new LaboratoryOrganizationService(db, new UserSectionScopeService(db));
+        var qc = (await db.DocumentSections.FirstAsync(s => s.Id == w.Micro)).DepartmentId;
+
+        // A section must belong to the department it is listed under.
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            org.ReplaceMembershipsAsync(w.ReviewerMicro, new[] { new UserOrgMembershipDto(qc + 999, w.Micro) }, w.Admin));
+
+        var result = await org.ReplaceMembershipsAsync(w.ReviewerMicro, new[] { new UserOrgMembershipDto(qc, w.Fp) }, w.Admin);
+        Assert.Equal(new[] { new UserOrgMembershipDto(qc, w.Fp) }, result);
+        Assert.Equal(new[] { w.Fp }, await new UserSectionScopeService(db).GetAccessibleSectionIdsAsync(w.ReviewerMicro));
+    }
+
+    [Fact]
     public async Task Retest_CarriesOnlyTheDecidingSectionsTests_AndItsOutcomeResolvesThatSection()
     {
         await using var db = NewDb();

@@ -44,7 +44,9 @@ public record UpdateMediaConfigurationRequest(int MediaProductId, EvaluationType
 public record CreateOrganismRequest(string ScientificName, string? AtccNumber, string? CommonName, string? Description);
 public record UpdateOrganismRequest(string ScientificName, string? AtccNumber, string? CommonName, string? Description);
 public record CreateTestDefinitionRequest(string Code, string DisplayName, int? SectionId = null);
-public record UpdateTestDefinitionRequest(string Code, string DisplayName);
+// SectionId: move the test to another laboratory section (null = keep). Test
+// orders already created keep the section they were created with.
+public record UpdateTestDefinitionRequest(string Code, string DisplayName, int? SectionId = null);
 public record UpdateWorkflowTypeRequest(WorkflowType WorkflowType);
 public record StepMediaRequest(int MaterialId, bool IsRequired, int DisplayOrder, int? MediaIncubationConditionId);
 public record IncubationStageRequest(int StageNumber, decimal TempMin, decimal TempMax, int IncubationMinHours, int IncubationMaxHours);
@@ -1304,7 +1306,7 @@ public class MasterDataController : ControllerBase
     // exists.
     [HttpGet("test-definitions")]
     public async Task<IActionResult> GetTestDefinitions() =>
-        Ok(ApiResponse<object>.Ok(await _db.TestDefinitions.AsNoTracking().OrderBy(t => t.Code).ToListAsync()));
+        Ok(ApiResponse<object>.Ok(await _db.TestDefinitions.AsNoTracking().Include(t => t.Section).OrderBy(t => t.Code).ToListAsync()));
 
     [Authorize(Roles = RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
     [HttpPost("test-definitions")]
@@ -1336,6 +1338,14 @@ public class MasterDataController : ControllerBase
 
         if (await _db.TestDefinitions.AnyAsync(t => t.Code == request.Code && t.Id != id))
             throw new InvalidOperationException($"Test code \"{request.Code}\" already exists in the Test Master.");
+
+        // Only a member of the test's section may change it, and only into a
+        // section they belong to.
+        var scope = await _scope.GetAccessibleSectionIdsAsync(CurrentUserId);
+        if (scope is not null && !scope.Contains(entity.SectionId))
+            throw new UnauthorizedAccessException("This test belongs to a laboratory section you are not assigned to.");
+        if (request.SectionId.HasValue && request.SectionId.Value != entity.SectionId)
+            entity.SectionId = await _scope.ResolveSectionForCreateAsync(CurrentUserId, request.SectionId);
 
         entity.Code = request.Code;
         entity.DisplayName = request.DisplayName;

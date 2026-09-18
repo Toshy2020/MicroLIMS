@@ -491,6 +491,7 @@ public class TestingWorkspaceService : ITestWorkspaceService
             return new TestOrderSummaryDto
             {
                 TestOrderId = t.Id,
+                SectionId = t.SectionId,
                 TestCode = t.TestCode,
                 Status = t.Status.ToString(),
                 CurrentStep = t.CurrentStep.ToString(),

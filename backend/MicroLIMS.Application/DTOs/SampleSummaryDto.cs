@@ -44,6 +44,29 @@ public class SampleSummaryDto
     public List<TestOrderSummaryDetailDto> TestOrders { get; set; } = new();
     public List<SampleWorkflowEventDto> Timeline { get; set; } = new();
     public List<SignatureDto> Signatures { get; set; } = new();
+
+    // Every laboratory section with tests on this sample and its own
+    // review/approval state. TestOrders only lists the tests of sections the
+    // viewer can see (CanView); AllSectionsVisible says whether this summary
+    // covers the whole sample (a combined Certificate of Analysis) or only
+    // some of its sections.
+    public List<SampleSectionSummaryDto> Sections { get; set; } = new();
+    public bool AllSectionsVisible { get; set; } = true;
+}
+
+public class SampleSectionSummaryDto
+{
+    public int SectionId { get; set; }
+    public string SectionCode { get; set; } = string.Empty;
+    public string SectionName { get; set; } = string.Empty;
+    public string Status { get; set; } = string.Empty;
+    public bool CanView { get; set; }
+    public string? ReviewedByName { get; set; }
+    public DateTime? ReviewedAt { get; set; }
+    public string? ApprovedByName { get; set; }
+    public DateTime? ApprovedAt { get; set; }
+    public string? ApprovalDecision { get; set; }
+    public string? CertificateRemarks { get; set; }
 }
 
 public class SamplePreparationSummaryDto
@@ -61,6 +84,8 @@ public class SamplePreparationSummaryDto
 public class TestOrderSummaryDetailDto
 {
     public int TestOrderId { get; set; }
+    public int SectionId { get; set; }
+    public string SectionName { get; set; } = string.Empty;
     public string TestCode { get; set; } = string.Empty;
     public string TestDisplayName { get; set; } = string.Empty;
     // Set only when this row was pulled in from a different Sample - the

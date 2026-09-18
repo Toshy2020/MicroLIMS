@@ -71,9 +71,13 @@ public class SampleSummaryService
         return (orders, sourceRef);
     }
 
-    public async Task<SampleSummaryDto?> GetSummaryAsync(int sampleId)
+    // sectionIds: the viewer's laboratory sections (null = unrestricted). Only
+    // those sections' tests are shown; every section is still listed in
+    // Sections with its review/approval state.
+    public async Task<SampleSummaryDto?> GetSummaryAsync(int sampleId, IReadOnlyCollection<int>? sectionIds = null)
     {
         var sample = await _db.Samples
+            .Include(s => s.SectionSignoffs)
             .Include(s => s.Item)
             .Include(s => s.WaterSamplingPoint)
             .Include(s => s.Department)
@@ -86,6 +90,10 @@ public class SampleSummaryService
         var timeline = await _reviewGate.GetTimelineAsync(ReviewEntityTypes.Sample, sampleId);
 
         var (effectiveTestOrders, sourceRefByOrderId) = await ResolveEffectiveTestOrdersAsync(sample);
+        if (sectionIds is not null)
+            effectiveTestOrders = effectiveTestOrders.Where(t => sectionIds.Contains(t.SectionId)).ToList();
+        var sectionRows = await _db.DocumentSections.AsNoTracking()
+            .ToDictionaryAsync(s => s.Id, s => new { s.Code, s.Name });
 
         var testOrderIds = effectiveTestOrders.Select(t => t.Id).ToList();
 
@@ -173,6 +181,11 @@ public class SampleSummaryService
         if (preparation is not null) userIds.Add(preparation.PreparedByUserId);
         if (sample.ReviewedByUserId is not null) userIds.Add(sample.ReviewedByUserId.Value);
         if (sample.ApprovedByUserId is not null) userIds.Add(sample.ApprovedByUserId.Value);
+        foreach (var signoff in sample.SectionSignoffs)
+        {
+            if (signoff.ReviewedByUserId is int reviewerId) userIds.Add(reviewerId);
+            if (signoff.ApprovedByUserId is int approverId) userIds.Add(approverId);
+        }
 
         var names = await _db.Users.Where(u => userIds.Contains(u.Id)).ToDictionaryAsync(u => u.Id, u => u.FullName);
         string NameOf(int userId) => names.TryGetValue(userId, out var n) ? n : "Unknown";
@@ -348,6 +361,8 @@ public class SampleSummaryService
                 return new TestOrderSummaryDetailDto
                 {
                     TestOrderId = order.Id,
+                    SectionId = order.SectionId,
+                    SectionName = sectionRows.TryGetValue(order.SectionId, out var sectionRow) ? sectionRow.Name : string.Empty,
                     TestCode = order.TestCode,
                     TestDisplayName = def?.DisplayName ?? order.TestCode,
                     SourceSampleReferenceNumber = sourceRefByOrderId.TryGetValue(order.Id, out var sourceRef) ? sourceRef : null,
@@ -485,23 +500,47 @@ public class SampleSummaryService
             }).ToList()
         };
 
+        var sampleSectionIds = SampleSectionRollup.SectionIds(sample);
+        dto.Sections = sampleSectionIds.Select(id =>
+        {
+            var signoff = sample.SectionSignoffs.FirstOrDefault(r => r.SectionId == id);
+            var canView = sectionIds is null || sectionIds.Contains(id);
+            sectionRows.TryGetValue(id, out var row);
+            return new SampleSectionSummaryDto
+            {
+                SectionId = id,
+                SectionCode = row?.Code ?? string.Empty,
+                SectionName = row?.Name ?? string.Empty,
+                Status = SampleSectionRollup.StatusOf(sample, id).ToString(),
+                CanView = canView,
+                // Another section's reviewer/approver/remarks stay with that section.
+                ReviewedByName = canView && signoff?.ReviewedByUserId is int reviewer ? NameOf(reviewer) : null,
+                ReviewedAt = canView ? signoff?.ReviewedAt : null,
+                ApprovedByName = canView && signoff?.ApprovedByUserId is int approver ? NameOf(approver) : null,
+                ApprovedAt = canView ? signoff?.ApprovedAt : null,
+                ApprovalDecision = canView ? signoff?.ApprovalDecision?.ToString() : null,
+                CertificateRemarks = canView ? signoff?.CertificateRemarks : null
+            };
+        }).ToList();
+        dto.AllSectionsVisible = dto.Sections.All(x => x.CanView);
+
         return dto;
     }
 
     // Uses the laid-out renderer (cards, stat boxes, signature blocks) -
     // the same document that gets archived on final decision, so what a
     // user downloads matches the frozen copy exactly.
-    public async Task<(string fileNameStem, byte[] bytes)?> GenerateSummaryPdfAsync(int sampleId)
+    public async Task<(string fileNameStem, byte[] bytes)?> GenerateSummaryPdfAsync(int sampleId, IReadOnlyCollection<int>? sectionIds = null)
     {
-        var summary = await GetSummaryAsync(sampleId);
+        var summary = await GetSummaryAsync(sampleId, sectionIds);
         if (summary is null) return null;
         var pdf = await _pdfGenerator.GenerateReportAsync(ReportDocumentMapper.ForSample(summary));
         return (FileStemFor(summary), pdf);
     }
 
-    public async Task<(string fileNameStem, byte[] bytes)?> GenerateSummaryWordAsync(int sampleId)
+    public async Task<(string fileNameStem, byte[] bytes)?> GenerateSummaryWordAsync(int sampleId, IReadOnlyCollection<int>? sectionIds = null)
     {
-        var summary = await GetSummaryAsync(sampleId);
+        var summary = await GetSummaryAsync(sampleId, sectionIds);
         if (summary is null) return null;
         var doc = await _wordGenerator.GenerateFromLinesAsync(TitleFor(summary), BuildReportLines(summary));
         return (FileStemFor(summary), doc);

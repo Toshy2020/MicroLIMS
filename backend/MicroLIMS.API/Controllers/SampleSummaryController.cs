@@ -31,7 +31,7 @@ public class SampleSummaryController : ControllerBase
     public async Task<IActionResult> GetSummary(int id)
     {
         await _scopeService.EnsureSampleAccessAsync(CurrentUserId, id);
-        var summary = await _summaryService.GetSummaryAsync(id);
+        var summary = await _summaryService.GetSummaryAsync(id, await _scopeService.GetAccessibleSectionIdsAsync(CurrentUserId));
         if (summary is null) return NotFound(ApiResponse<object>.Fail($"Sample {id} not found."));
         return Ok(ApiResponse<object>.Ok(summary));
     }
@@ -40,7 +40,7 @@ public class SampleSummaryController : ControllerBase
     public async Task<IActionResult> GetSummaryPdf(int id)
     {
         await _scopeService.EnsureSampleAccessAsync(CurrentUserId, id);
-        var result = await _summaryService.GenerateSummaryPdfAsync(id);
+        var result = await _summaryService.GenerateSummaryPdfAsync(id, await _scopeService.GetAccessibleSectionIdsAsync(CurrentUserId));
         if (result is null) return NotFound(ApiResponse<object>.Fail($"Sample {id} not found."));
         return File(result.Value.bytes, "application/pdf", $"{result.Value.fileNameStem}.pdf");
     }
@@ -49,7 +49,7 @@ public class SampleSummaryController : ControllerBase
     public async Task<IActionResult> GetSummaryWord(int id)
     {
         await _scopeService.EnsureSampleAccessAsync(CurrentUserId, id);
-        var result = await _summaryService.GenerateSummaryWordAsync(id);
+        var result = await _summaryService.GenerateSummaryWordAsync(id, await _scopeService.GetAccessibleSectionIdsAsync(CurrentUserId));
         if (result is null) return NotFound(ApiResponse<object>.Fail($"Sample {id} not found."));
         return File(result.Value.bytes, "application/vnd.openxmlformats-officedocument.wordprocessingml.document", $"{result.Value.fileNameStem}.docx");
     }

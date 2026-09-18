@@ -39,8 +39,11 @@ public class CryovialService
         _archive = archive;
     }
 
-    public async Task<List<Cryovial>> GetAllAsync() =>
-        await _db.Cryovials.Include(c => c.Material).Include(c => c.Organism).Include(c => c.IdentityConfirmations).OrderByDescending(c => c.Id).ToListAsync();
+    // sectionIds: the caller's laboratory sections (null = unrestricted).
+    public async Task<List<Cryovial>> GetAllAsync(IReadOnlyCollection<int>? sectionIds = null) =>
+        await _db.Cryovials.Include(c => c.Material).Include(c => c.Organism).Include(c => c.IdentityConfirmations)
+            .Where(c => sectionIds == null || sectionIds.Contains(c.Material!.SectionId))
+            .OrderByDescending(c => c.Id).ToListAsync();
 
     public async Task<Cryovial> PrepareCryovialsAsync(PrepareCryovialsRequest request)
     {
@@ -63,6 +66,9 @@ public class CryovialService
             if (!media.IsReleasedForUse || media.Status == MediaStatus.OutOfStock || media.Status == MediaStatus.QuarantineFailed)
                 throw new InvalidOperationException($"Media lot {media.LotNumber} is not GPT-released, out of stock, or rejected - cannot be used for identity confirmation.");
         }
+
+        // Identity-confirmation media must be this section's own lots.
+        await SectionMediaRule.EnsureLotsAsync(_db, request.Panel.Select(p => p.MediaId), material.SectionId);
 
         if (request.Panel.Count == 0)
             throw new InvalidOperationException("At least one identity confirmation row is required.");

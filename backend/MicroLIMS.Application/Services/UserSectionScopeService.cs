@@ -251,4 +251,36 @@ public class UserSectionScopeService : IUserSectionScopeService
             throw new UnauthorizedAccessException("This material belongs to a laboratory section you are not assigned to.");
         }
     }
+
+    private const string OtherSectionsMaterial = "This record was made from another laboratory section's material and you are not assigned to that section.";
+
+    private async Task EnsureSectionAsync(int userId, Func<Task<int?>> sectionOf, CancellationToken ct)
+    {
+        var scope = await GetAccessibleSectionIdsAsync(userId, ct);
+        if (scope is null) return;
+
+        var sectionId = await sectionOf();
+        if (sectionId is null) return; // not found - left to the caller's own not-found handling
+
+        if (!scope.Contains(sectionId.Value))
+            throw new UnauthorizedAccessException(OtherSectionsMaterial);
+    }
+
+    public Task EnsureMediaAccessAsync(int userId, int mediaId, CancellationToken ct = default) =>
+        EnsureSectionAsync(userId, () => _db.Media.AsNoTracking()
+            .Where(m => m.Id == mediaId).Select(m => (int?)m.Material!.SectionId).FirstOrDefaultAsync(ct), ct);
+
+    public Task EnsureCryovialAccessAsync(int userId, int cryovialId, CancellationToken ct = default) =>
+        EnsureSectionAsync(userId, () => _db.Cryovials.AsNoTracking()
+            .Where(c => c.Id == cryovialId).Select(c => (int?)c.Material!.SectionId).FirstOrDefaultAsync(ct), ct);
+
+    public Task EnsureMediaEvaluationAccessAsync(int userId, int evaluationId, CancellationToken ct = default) =>
+        EnsureSectionAsync(userId, () => _db.MediaEvaluations.AsNoTracking()
+            .Where(e => e.Id == evaluationId).Select(e => (int?)e.Media!.Material!.SectionId).FirstOrDefaultAsync(ct), ct);
+
+    public Task EnsureMediaEvaluationChallengeAccessAsync(int userId, int challengeId, CancellationToken ct = default) =>
+        EnsureSectionAsync(userId, () => _db.MediaEvaluationChallenges.AsNoTracking()
+            .Where(c => c.Id == challengeId)
+            .Select(c => (int?)_db.MediaEvaluations.Where(e => e.Id == c.MediaEvaluationId).Select(e => e.Media!.Material!.SectionId).FirstOrDefault())
+            .FirstOrDefaultAsync(ct), ct);
 }

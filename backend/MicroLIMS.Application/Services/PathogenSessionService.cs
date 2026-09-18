@@ -948,6 +948,9 @@ public class PathogenSessionService
             throw new WorkflowStepException(WorkflowErrorCodes.MediaNotInPermittedList,
                 $"Media lot #{media.LotNumber} ({media.Material?.MaterialName ?? "unknown"}) is not the TSB medium of any test on this sample.");
 
+        foreach (var sectionId in joining.Select(j => j.Order.SectionId).Distinct())
+            SectionMediaRule.EnsureLot(media, sectionId);
+
         var startUtc = request.IncubationStartUtc ?? DateTime.UtcNow;
 
         var toIds = joining.Select(j => j.Order.Id).ToList();
@@ -1208,6 +1211,9 @@ public class PathogenSessionService
         // the incubator must suit every medium's temperature range - the same
         // rule as TestWorkflowEngine.SubmitConfirmatorySetupAsync.
         var materialIds = request.MediaMaterialIds.Distinct().ToList();
+        await SectionMediaRule.EnsureMaterialsAsync(_db, materialIds, testOrder.SectionId, cancellationToken);
+        if (request.MediaLotIds is { Count: > 0 })
+            await SectionMediaRule.EnsureLotsAsync(_db, request.MediaLotIds, testOrder.SectionId, cancellationToken);
         var productByMaterial = await _db.Materials
             .Where(m => materialIds.Contains(m.Id))
             .ToDictionaryAsync(m => m.Id, m => m.MediaProductId, cancellationToken);

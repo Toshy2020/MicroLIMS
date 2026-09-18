@@ -20,7 +20,7 @@ public class MediaExpiryService
         _db = db;
     }
 
-    public async Task<List<MediaExpiryDto>> GetExpiringAsync(int withinDays = 7)
+    public async Task<List<MediaExpiryDto>> GetExpiringAsync(int withinDays = 7, IReadOnlyCollection<int>? sectionIds = null)
     {
         var now = DateTime.UtcNow;
         var horizon = now.AddDays(withinDays);
@@ -28,6 +28,7 @@ public class MediaExpiryService
         var lots = await _db.Media
             .Include(m => m.Material)
             .Where(m => m.Status == MediaStatus.Active && m.ExpiryDate <= horizon)
+            .Where(m => sectionIds == null || sectionIds.Contains(m.Material!.SectionId))
             .OrderBy(m => m.ExpiryDate)
             .ToListAsync();
         if (lots.Count == 0) return new List<MediaExpiryDto>();

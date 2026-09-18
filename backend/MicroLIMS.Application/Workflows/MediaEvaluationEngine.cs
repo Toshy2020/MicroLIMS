@@ -59,9 +59,12 @@ public class MediaEvaluationEngine : IMediaEvaluationEngine
             .FirstOrDefaultAsync(c => c.Id == challengeId)
             ?? throw new InvalidOperationException($"Challenge {challengeId} not found.");
 
-        var cryovial = await _db.Cryovials.Include(c => c.Organism)
+        var cryovial = await _db.Cryovials.Include(c => c.Organism).Include(c => c.Material)
             .FirstOrDefaultAsync(c => c.Id == cryovialId)
             ?? throw new InvalidOperationException($"Cryovial {cryovialId} not found.");
+
+        if (cryovial.Material!.SectionId != await EvaluatedLotSectionAsync(challenge.MediaEvaluationId))
+            throw new InvalidOperationException($"Cryovial batch {cryovial.Code} belongs to another laboratory section and cannot challenge this media lot.");
 
         EnsureCryovialApproved(cryovial);
 
@@ -99,6 +102,9 @@ public class MediaEvaluationEngine : IMediaEvaluationEngine
 
         var material = await _db.Materials.Include(m => m.Organism).FirstOrDefaultAsync(m => m.Id == materialId)
             ?? throw new InvalidOperationException($"Material {materialId} not found.");
+
+        if (material.SectionId != await EvaluatedLotSectionAsync(challenge.MediaEvaluationId))
+            throw new InvalidOperationException($"Material {material.MaterialName} belongs to another laboratory section and cannot challenge this media lot.");
 
         if (material.MaterialType != MaterialType.LyophilizedMicroorganism)
             throw new InvalidOperationException($"Material {material.MaterialName} is not a lyophilized microorganism disk.");
@@ -199,9 +205,12 @@ public class MediaEvaluationEngine : IMediaEvaluationEngine
 
                 if (hasLinkedReference)
                 {
-                    var referenceMediaExists = await _db.Media.AnyAsync(m => m.Id == request.ReferenceMediaId!.Value);
-                    if (!referenceMediaExists)
+                    var referenceSection = await _db.Media.Where(m => m.Id == request.ReferenceMediaId!.Value)
+                        .Select(m => (int?)m.Material!.SectionId).FirstOrDefaultAsync();
+                    if (referenceSection is null)
                         throw new InvalidOperationException($"Reference media lot {request.ReferenceMediaId} not found.");
+                    if (referenceSection != await EvaluatedLotSectionAsync(challenge.MediaEvaluationId))
+                        throw new InvalidOperationException($"Reference media lot {request.ReferenceMediaId} belongs to another laboratory section.");
                 }
 
                 var recovery = Math.Round(request.NewMediaCount.Value / request.OldMediaCount.Value * 100, 1);
@@ -287,4 +296,10 @@ public class MediaEvaluationEngine : IMediaEvaluationEngine
             .FirstOrDefaultAsync()
             ?? throw new InvalidOperationException($"No Media Configuration exists for media lot \"{media.LotNumber}\".");
     }
+
+    // The section of the lot under evaluation (the section of the material
+    // it was prepared from): everything used to challenge it - cryovial,
+    // lyophilized disk, reference lot - must come from the same section.
+    private Task<int> EvaluatedLotSectionAsync(int evaluationId) =>
+        _db.MediaEvaluations.Where(e => e.Id == evaluationId).Select(e => e.Media!.Material!.SectionId).FirstAsync();
 }

@@ -619,6 +619,14 @@ public class GroupedTestActionService
                 continue;
             }
 
+            // A test only uses media made from its own section's material.
+            if (media?.Material != null && media.Material.SectionId != order.SectionId)
+            {
+                skipped.Add(new BatchActionSkippedItem(id, sampleRef,
+                    $"Media lot \"{media.LotNumber}\" was prepared from another laboratory section's material."));
+                continue;
+            }
+
             var isPrepared = order.Sample != null && order.Sample.PreparationStatus == SamplePreparationStatus.Ready;
             if (isPrepared && order.Sample!.ItemId != null)
             {

@@ -721,6 +721,7 @@ public class TestWorkflowEngine : ITestWorkflowEngine
 
         if (!media.IsReleasedForUse || media.Status == MediaStatus.OutOfStock || media.Status == MediaStatus.QuarantineFailed)
             throw new InvalidOperationException($"Media lot \"{media.LotNumber}\" is not released for use, out of stock, or rejected.");
+        SectionMediaRule.EnsureLot(media, order.SectionId);
 
         var stepMedia = await _db.TestWorkflowStepMedias
             .Include(m => m.IncubationCondition)
@@ -2050,12 +2051,13 @@ public class TestWorkflowEngine : ITestWorkflowEngine
     // equality) was redundant once the MaterialId check above it existed -
     // deleted rather than translated, per the Media Configuration
     // Migration plan §3.
-    private async Task<Media> LoadReleasedLotAsync(int mediaLotId, TestWorkflowStepMedia stepMedium)
+    private async Task<Media> LoadReleasedLotAsync(int mediaLotId, TestWorkflowStepMedia stepMedium, int testOrderId)
     {
         var lot = await _db.Media.Include(m => m.Material).FirstOrDefaultAsync(m => m.Id == mediaLotId)
             ?? throw new InvalidOperationException($"Media lot {mediaLotId} not found.");
         if (!lot.IsReleasedForUse || lot.Status == MediaStatus.OutOfStock || lot.Status == MediaStatus.QuarantineFailed)
             throw new InvalidOperationException($"Media lot {lot.LotNumber} is not released for use, out of stock, or rejected.");
+        await SectionMediaRule.EnsureLotForTestOrderAsync(_db, lot, testOrderId);
         if (!StepMediumMatcher.Matches(stepMedium, lot.MaterialId, lot.Material?.MediaProductId))
             throw new WorkflowStepException(WorkflowErrorCodes.MediaNotInPermittedList,
                 $"Media lot {lot.LotNumber} is not a lot of the permitted medium for this step.");
@@ -2199,7 +2201,7 @@ public class TestWorkflowEngine : ITestWorkflowEngine
             throw new InvalidOperationException($"Incubation has already been started for step \"{stepName}\" - awaiting its result.");
 
         var stepMedium = await RequireSingleStepMediumAsync(step);
-        var lot = await LoadReleasedLotAsync(mediaLotId, stepMedium);
+        var lot = await LoadReleasedLotAsync(mediaLotId, stepMedium, testOrderId);
         var window = IncubationWindowResolver.Require(stepMedium, step.StepName);
         await RequireEligibleIncubatorAsync(stepMedium.Id, equipmentId);
 
@@ -2390,7 +2392,7 @@ public class TestWorkflowEngine : ITestWorkflowEngine
                 throw new WorkflowStepException(WorkflowErrorCodes.IncompleteConfirmatorySetup,
                     "Every selected medium needs a lot and an incubator.");
 
-            var lot = await LoadReleasedLotAsync(selection.MediaLotId, medium);
+            var lot = await LoadReleasedLotAsync(selection.MediaLotId, medium, testOrderId);
             await RequireEligibleIncubatorAsync(medium.Id, selection.EquipmentId);
             resolved.Add((medium, lot, selection.EquipmentId));
         }

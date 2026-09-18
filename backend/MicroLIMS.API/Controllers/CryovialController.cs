@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Application.Services;
 using MicroLIMS.Shared.Constants;
 using MicroLIMS.Shared.Responses;
@@ -23,9 +24,11 @@ public class CryovialController : ControllerBase
 {
     private readonly CryovialService _service;
     private readonly CryovialSummaryService _summary;
+    private readonly IUserSectionScopeService _scopeService;
 
-    public CryovialController(CryovialService service, CryovialSummaryService summary)
+    public CryovialController(CryovialService service, CryovialSummaryService summary, IUserSectionScopeService scopeService)
     {
+        _scopeService = scopeService;
         _service = service;
         _summary = summary;
     }
@@ -33,7 +36,7 @@ public class CryovialController : ControllerBase
     private int CurrentUserId => int.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)!.Value);
 
     [HttpGet]
-    public async Task<IActionResult> GetAll() => Ok(ApiResponse<object>.Ok(await _service.GetAllAsync()));
+    public async Task<IActionResult> GetAll() => Ok(ApiResponse<object>.Ok(await _service.GetAllAsync((await _scopeService.GetAccessibleSectionIdsAsync(CurrentUserId)))));
 
     [HttpPost("prepare")]
     public async Task<IActionResult> PrepareCryovials(PrepareCryovialsHttpRequest r) =>
@@ -46,6 +49,7 @@ public class CryovialController : ControllerBase
     [Authorize(Roles = RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
     public async Task<IActionResult> Approve(int id, ApproveRequest r)
     {
+        await _scopeService.EnsureCryovialAccessAsync(CurrentUserId, id);
         var ip = HttpContext.Connection.RemoteIpAddress?.ToString();
         return Ok(ApiResponse<object>.Ok(await _service.ApproveAsync(id, r.Approved, CurrentUserId, r.Password, r.Comment, ip)));
     }
@@ -53,6 +57,7 @@ public class CryovialController : ControllerBase
     [HttpPost("{id}/destroy")]
     public async Task<IActionResult> Destroy(int id)
     {
+        await _scopeService.EnsureCryovialAccessAsync(CurrentUserId, id);
         await _service.DestroyAsync(id);
         return Ok(ApiResponse<object>.Ok(new { }));
     }
@@ -60,6 +65,7 @@ public class CryovialController : ControllerBase
     [HttpPost("{id}/thaw")]
     public async Task<IActionResult> ThawVial(int id, ThawVialRequest r)
     {
+        await _scopeService.EnsureCryovialAccessAsync(CurrentUserId, id);
         await _service.ThawVialAsync(id, CurrentUserId, r.Notes);
         return Ok(ApiResponse<object>.Ok(new { }));
     }
@@ -67,6 +73,7 @@ public class CryovialController : ControllerBase
     [HttpGet("{id}/summary")]
     public async Task<IActionResult> GetSummary(int id)
     {
+        await _scopeService.EnsureCryovialAccessAsync(CurrentUserId, id);
         var summary = await _summary.GetSummaryAsync(id);
         if (summary is null) return NotFound(ApiResponse<object>.Fail($"Cryovial batch {id} not found."));
         return Ok(ApiResponse<object>.Ok(summary));
@@ -75,6 +82,7 @@ public class CryovialController : ControllerBase
     [HttpGet("{id}/summary/pdf")]
     public async Task<IActionResult> GetSummaryPdf(int id)
     {
+        await _scopeService.EnsureCryovialAccessAsync(CurrentUserId, id);
         var result = await _summary.GenerateSummaryPdfAsync(id);
         if (result is null) return NotFound(ApiResponse<object>.Fail($"Cryovial batch {id} not found."));
         return File(result.Value.bytes, "application/pdf", $"{result.Value.fileNameStem}.pdf");
@@ -83,6 +91,7 @@ public class CryovialController : ControllerBase
     [HttpGet("{id}/summary/word")]
     public async Task<IActionResult> GetSummaryWord(int id)
     {
+        await _scopeService.EnsureCryovialAccessAsync(CurrentUserId, id);
         var result = await _summary.GenerateSummaryWordAsync(id);
         if (result is null) return NotFound(ApiResponse<object>.Fail($"Cryovial batch {id} not found."));
         return File(result.Value.bytes, "application/vnd.openxmlformats-officedocument.wordprocessingml.document", $"{result.Value.fileNameStem}.docx");

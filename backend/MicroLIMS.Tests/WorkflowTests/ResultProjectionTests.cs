@@ -28,7 +28,7 @@ public class ResultProjectionTests
     // CountTestWorkflowTests.SeedTamcOrderAsync.
     private static async Task<(TestOrder order, Media media)> SeedTamcOrderAsync(MicroLimsDbContext db)
     {
-        var testDefinition = new TestDefinition { Code = "TAMC", DisplayName = "Total Aerobic Microbial Count", WorkflowType = WorkflowType.CountTest };
+        var testDefinition = new TestDefinition { SectionId = TestServiceFactory.EnsureMicroSection(db).Id, Code = "TAMC", DisplayName = "Total Aerobic Microbial Count", WorkflowType = WorkflowType.CountTest };
         db.TestDefinitions.Add(testDefinition);
         await db.SaveChangesAsync();
 
@@ -42,6 +42,7 @@ public class ResultProjectionTests
 
         var material = new Material
         {
+            SectionId = TestServiceFactory.EnsureMicroSection(db).Id,
             MaterialType = MaterialType.DehydratedMedia, MaterialName = "TSA Powder", ManufacturerName = "Himedia",
             BatchNumber = "LOT-001", ReceivingDate = DateTime.UtcNow.AddDays(-10), Code = "TSA",
             Location = "Micro Lab", QuantityReceived = 500, QuantityRemaining = 500, Unit = MaterialUnit.Gram
@@ -168,7 +169,7 @@ public class ResultProjectionTests
         db.RoomTestConfigurations.AddRange(configs);
         await db.SaveChangesAsync();
 
-        var testDefinition = new TestDefinition { Code = "TAMC", DisplayName = "TAMC", WorkflowType = WorkflowType.CountTest };
+        var testDefinition = new TestDefinition { SectionId = TestServiceFactory.EnsureMicroSection(db).Id, Code = "TAMC", DisplayName = "TAMC", WorkflowType = WorkflowType.CountTest };
         db.TestDefinitions.Add(testDefinition);
         await db.SaveChangesAsync();
 
@@ -181,6 +182,7 @@ public class ResultProjectionTests
 
         var material = new Material
         {
+            SectionId = TestServiceFactory.EnsureMicroSection(db).Id,
             MaterialType = MaterialType.DehydratedMedia, MaterialName = "TSA Powder", ManufacturerName = "Himedia",
             BatchNumber = "LOT-001", ReceivingDate = DateTime.UtcNow.AddDays(-10), Code = "TSA-EM",
             Location = "Micro Lab", QuantityReceived = 500, QuantityRemaining = 500, Unit = MaterialUnit.Gram
@@ -260,7 +262,7 @@ public class ResultProjectionTests
     public async Task GetTrendAsync_PathogenTestCode_ThrowsInsteadOfReturningEmptyChart()
     {
         await using var db = NewDb();
-        db.TestDefinitions.Add(new TestDefinition { Code = "PATHOGEN_ECOLI", DisplayName = "E. coli", WorkflowType = WorkflowType.Observation });
+        db.TestDefinitions.Add(new TestDefinition { SectionId = TestServiceFactory.EnsureMicroSection(db).Id, Code = "PATHOGEN_ECOLI", DisplayName = "E. coli", WorkflowType = WorkflowType.Observation });
         await db.SaveChangesAsync();
 
         var query = new ReportingQueryService(db);

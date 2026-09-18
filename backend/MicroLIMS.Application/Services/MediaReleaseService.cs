@@ -32,7 +32,7 @@ public class MediaReleaseService
 
     // Lots whose evaluation has completed Conform and which are still
     // awaiting a release decision - the Section Head's queue.
-    public async Task<List<Media>> GetAwaitingApprovalAsync()
+    public async Task<List<Media>> GetAwaitingApprovalAsync(IReadOnlyCollection<int>? sectionIds = null)
     {
         var qualifiedMediaIds = await _db.MediaEvaluations
             .Where(e => e.Status == MediaEvaluationStatus.Completed && e.Outcome == EvaluationOutcome.Conform)
@@ -41,6 +41,7 @@ public class MediaReleaseService
 
         return await _db.Media
             .Include(m => m.Material)
+            .Where(m => sectionIds == null || sectionIds.Contains(m.Material!.SectionId))
             .Where(m => qualifiedMediaIds.Contains(m.Id) && m.ApprovalStatus == ApprovalGateStatus.PendingReview)
             .OrderByDescending(m => m.Id)
             .ToListAsync();

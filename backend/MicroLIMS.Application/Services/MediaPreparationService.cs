@@ -130,17 +130,22 @@ public class MediaPreparationService
         return media;
     }
 
-    public async Task<List<Media>> GetAllAsync() =>
-        await _db.Media.Include(m => m.Material).OrderByDescending(m => m.Id).ToListAsync();
+    // sectionIds: the caller's laboratory sections (null = unrestricted).
+    public async Task<List<Media>> GetAllAsync(IReadOnlyCollection<int>? sectionIds = null) =>
+        await _db.Media.Include(m => m.Material)
+            .Where(m => sectionIds == null || sectionIds.Contains(m.Material!.SectionId))
+            .OrderByDescending(m => m.Id).ToListAsync();
 
     // includeExpired: the reference-lot lookup for a new GrowthPromotion
     // evaluation (MediaEvaluationController) wants any lot that was ever
     // released, since it's citing a historical count, not asking what can
     // be pulled off the shelf right now - every other caller wants the
     // latter and leaves this false.
-    public async Task<List<Media>> GetReleasedAsync(int? materialId = null, bool includeExpired = false, int? excludeId = null)
+    public async Task<List<Media>> GetReleasedAsync(int? materialId = null, bool includeExpired = false, int? excludeId = null,
+        IReadOnlyCollection<int>? sectionIds = null)
     {
         var query = _db.Media.Include(m => m.Material).Where(m => m.IsReleasedForUse);
+        if (sectionIds != null) query = query.Where(m => sectionIds.Contains(m.Material!.SectionId));
         if (!includeExpired) query = query.Where(m => m.Status == MediaStatus.Active && m.ExpiryDate > DateTime.UtcNow);
         if (materialId.HasValue) query = query.Where(m => m.MaterialId == materialId.Value);
         if (excludeId.HasValue) query = query.Where(m => m.Id != excludeId.Value);

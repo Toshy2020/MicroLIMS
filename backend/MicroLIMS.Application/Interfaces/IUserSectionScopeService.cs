@@ -10,4 +10,10 @@ public interface IUserSectionScopeService
     Task EnsureIncubationAccessAsync(int userId, int incubationId, CancellationToken ct = default);
     Task EnsurePathogenSampleAccessAsync(int userId, int sampleId, CancellationToken ct = default);
     Task EnsureMaterialAccessAsync(int userId, int materialId, CancellationToken ct = default);
+    // Prepared media lots and cryovials belong to the section of the
+    // Material they were made from.
+    Task EnsureMediaAccessAsync(int userId, int mediaId, CancellationToken ct = default);
+    Task EnsureCryovialAccessAsync(int userId, int cryovialId, CancellationToken ct = default);
+    Task EnsureMediaEvaluationAccessAsync(int userId, int evaluationId, CancellationToken ct = default);
+    Task EnsureMediaEvaluationChallengeAccessAsync(int userId, int challengeId, CancellationToken ct = default);
 }

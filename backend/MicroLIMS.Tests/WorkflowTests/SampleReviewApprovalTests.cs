@@ -60,6 +60,7 @@ public class SampleReviewApprovalTests
 
         var material = new Material
         {
+            SectionId = TestServiceFactory.EnsureMicroSection(db).Id,
             MaterialType = MaterialType.DehydratedMedia, MaterialName = "TSA Powder", ManufacturerName = "Himedia",
             BatchNumber = "LOT-001", ReceivingDate = DateTime.UtcNow.AddDays(-10), Code = "TSA",
             Location = "Micro Lab", QuantityReceived = 500, QuantityRemaining = 500, Unit = MaterialUnit.Gram

@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Helpers;
+using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Application.Services;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
@@ -21,6 +22,7 @@ public sealed record CountTestPayload(List<string> RawPlateReadings, decimal Dil
     }
 }
 public sealed record ObservationPayload(GrowthObservation Observation) : ResultPayload;
+public sealed record HplcAssayPayload(decimal SampleWeightMg, decimal SampleDilution, List<decimal> SampleAreas, string Password, string? Comment = null) : ResultPayload;
 
 // A business-rule failure that carries a machine-readable code for the
 // frontend. Derives from InvalidOperationException so that if a call
@@ -103,7 +105,8 @@ public record CurrentStepLookup(CurrentStepDetails? Details, string? Error);
 // instead of two or three queries per step checked.
 public record TestStepFacts(
     bool HasLocations, IReadOnlyList<Incubation> Incubations, IReadOnlyList<StepResultFact> StepResults,
-    IReadOnlyList<CountReadingFact> ActiveCountReadings, IReadOnlySet<string> ObservationStepNames);
+    IReadOnlyList<CountReadingFact> ActiveCountReadings, IReadOnlySet<string> ObservationStepNames,
+    bool HasActiveHplcResult = false);
 
 public record StepResultFact(
     int Id, int IncubationId, string StepName, bool? IsSharedSessionStep, bool HasConfirmatoryResult,
@@ -146,6 +149,7 @@ public interface ITestWorkflowEngine : IStatefulWorkflowEngine
     Task<Incubation> SelectMediaAsync(int testOrderId, string stepName, int mediaLotId, int incubatorEquipmentId, int userId);
     Task<Incubation> StartStage2IncubationAsync(int testOrderId, string stepName, int incubatorEquipmentId, int userId);
     Task<TestWorkflowResult> RecordResultAsync(int testOrderId, string stepName, ResultPayload payload, int userId);
+    Task<TestWorkflowResult> RecordHplcAssayResultAsync(int testOrderId, HplcAssayPayload payload, int userId, string? ipAddress = null);
     Task<List<SampleLocation>> GetLocationsAsync(int testOrderId);
     Task<Incubation> CloseCurrentIncubationWindowAsync(int testOrderId, int userId);
     // Section Head/System Administrator only (enforced at the controller) -
@@ -201,11 +205,15 @@ public class TestWorkflowEngine : ITestWorkflowEngine
     private readonly SegregationOfDutiesGuard _sodGuard;
     private readonly ReviewGateService _reviewGate;
     private readonly INotificationService _notifications;
+    private readonly IElectronicSignatureService _signatureService;
+    private readonly IUserSectionScopeService _sectionScope;
 
     public TestWorkflowEngine(
         MicroLimsDbContext db, SampleReviewService sampleReviewService, ResultProjectionService resultProjection,
         IncubatorEligibilityService incubatorEligibility, MediaAppearanceSnapshotService appearanceSnapshot,
-        SegregationOfDutiesGuard sodGuard, ReviewGateService reviewGate, INotificationService notifications)
+        SegregationOfDutiesGuard sodGuard, ReviewGateService reviewGate, INotificationService notifications,
+        IElectronicSignatureService? signatureService = null,
+        IUserSectionScopeService? sectionScope = null)
     {
         _db = db;
         _sampleReviewService = sampleReviewService;
@@ -215,6 +223,8 @@ public class TestWorkflowEngine : ITestWorkflowEngine
         _sodGuard = sodGuard;
         _reviewGate = reviewGate;
         _notifications = notifications;
+        _signatureService = signatureService ?? new ElectronicSignatureService(db);
+        _sectionScope = sectionScope ?? new UserSectionScopeService(db);
     }
 
     private async Task<(TestOrder order, TestDefinition definition)> LoadWithTemplateAsync(int testOrderId)
@@ -235,7 +245,7 @@ public class TestWorkflowEngine : ITestWorkflowEngine
         if (definition is null)
             throw new InvalidOperationException($"Test code \"{order.TestCode}\" has no workflow template configured in Test Master.");
 
-        if (definition.Steps.Count == 0)
+        if (definition.Steps.Count == 0 && definition.WorkflowType != WorkflowType.HplcAssay)
             throw new InvalidOperationException($"Test code \"{order.TestCode}\" has no workflow steps configured yet - add them in Test Master.");
 
         return definition;
@@ -323,13 +333,21 @@ public class TestWorkflowEngine : ITestWorkflowEngine
                 .Distinct()
                 .ToListAsync())
             .ToLookup(o => o.TestOrderId, o => o.StepName);
+        var activeHplcOrderIds = (await _db.HplcAssayResults
+                .AsNoTracking()
+                .Where(r => ids.Contains(r.TestOrderId) && r.IsActive)
+                .Select(r => r.TestOrderId)
+                .Distinct()
+                .ToListAsync())
+            .ToHashSet();
 
         return ids.ToDictionary(id => id, id => new TestStepFacts(
             ordersWithLocations.Contains(id),
             incubationsByOrderId[id],
             stepResults[id].ToList(),
             activeCountReadings[id].ToList(),
-            observationStepNames[id].ToHashSet(StringComparer.Ordinal)));
+            observationStepNames[id].ToHashSet(StringComparer.Ordinal),
+            activeHplcOrderIds.Contains(id)));
     }
 
     // The completion rules, evaluated against loaded facts. String
@@ -359,6 +377,9 @@ public class TestWorkflowEngine : ITestWorkflowEngine
 
         if (workflowType == WorkflowType.CountTest)
             return facts.ActiveCountReadings.Any(r => r.StepName == step.StepName);
+
+        if (workflowType == WorkflowType.HplcAssay)
+            return facts.HasActiveHplcResult;
 
         if (IsPathogenStepType(step.StepType))
         {
@@ -475,6 +496,18 @@ public class TestWorkflowEngine : ITestWorkflowEngine
             var completed = BuildCompletedSteps(facts, definition, currentStep: null);
             return new CurrentStepDetails(
                 new CurrentStepResult(null, definition.WorkflowType, null, true, doneResult, completed, totalSteps, allSteps),
+                order, definition, facts);
+        }
+
+        if (definition.WorkflowType == WorkflowType.HplcAssay)
+        {
+            var isDone = facts.HasActiveHplcResult;
+            var hplcFinalResult = isDone
+                ? (order.Results.OrderByDescending(r => r.Id).FirstOrDefault()?.InterpretedValue
+                   ?? order.Results.OrderByDescending(r => r.Id).FirstOrDefault()?.RawValue)
+                : null;
+            return new CurrentStepDetails(
+                new CurrentStepResult(null, definition.WorkflowType, null, isDone, hplcFinalResult, new List<CompletedStepSummary>(), totalSteps, allSteps),
                 order, definition, facts);
         }
 
@@ -1113,6 +1146,9 @@ public class TestWorkflowEngine : ITestWorkflowEngine
 
     public async Task<TestWorkflowResult> RecordResultAsync(int testOrderId, string stepName, ResultPayload payload, int userId)
     {
+        if (payload is HplcAssayPayload hplcPayload)
+            return await RecordHplcAssayResultAsync(testOrderId, hplcPayload, userId);
+
         var (order, definition) = await LoadWithTemplateAsync(testOrderId);
         var step = definition.Steps.FirstOrDefault(s => s.StepName == stepName)
             ?? throw new InvalidOperationException($"Step \"{stepName}\" is not part of the workflow template for \"{order.TestCode}\".");
@@ -1200,9 +1236,9 @@ public class TestWorkflowEngine : ITestWorkflowEngine
         if (!isFinalStep)
             return new TestWorkflowResult(outcomeSummary, true, false, null, average, calculatedResult, status);
 
-        // Final step - CountTest already wrote its own Result row above;
+        // Final step - CountTest and HplcAssay already write their own Result row;
         // Observation needs one written here with the definitive call.
-        if (definition.WorkflowType != WorkflowType.CountTest)
+        if (definition.WorkflowType != WorkflowType.CountTest && definition.WorkflowType != WorkflowType.HplcAssay)
         {
             _db.Results.Add(new Result
             {
@@ -1865,6 +1901,147 @@ public class TestWorkflowEngine : ITestWorkflowEngine
     // WaterWorkflowEngine.Compare/CountTestWorkflowEngine.Compare.
     public static (string status, string? exceeded) Compare(decimal value, string? alert, string? action, string? spec) =>
         SpecLimitParser.Compare(value, alert, action, spec);
+
+    public async Task<TestWorkflowResult> RecordHplcAssayResultAsync(int testOrderId, HplcAssayPayload payload, int userId, string? ipAddress = null)
+    {
+        if (payload.SampleWeightMg <= 0)
+            throw new InvalidOperationException("Sample weight must be greater than 0.");
+        if (payload.SampleDilution <= 0)
+            throw new InvalidOperationException("Sample dilution must be greater than 0.");
+        if (payload.SampleAreas == null || payload.SampleAreas.Count == 0)
+            throw new InvalidOperationException("At least one sample replicate area is required.");
+        if (payload.SampleAreas.Any(a => a <= 0))
+            throw new InvalidOperationException("Sample replicate area must be greater than 0.");
+        if (string.IsNullOrWhiteSpace(payload.Password))
+            throw new InvalidOperationException("Password is required to sign the result.");
+
+        var order = await _db.TestOrders
+            .Include(t => t.Results)
+            .Include(t => t.Sample)
+            .FirstOrDefaultAsync(t => t.Id == testOrderId)
+            ?? throw new InvalidOperationException($"Test order {testOrderId} not found.");
+
+        RequireOrderNotFinalized(order);
+
+        if (order.IsSuperseded)
+            throw new InvalidOperationException("Cannot record result for a superseded test order.");
+
+        var definition = await _db.TestDefinitions
+            .FirstOrDefaultAsync(t => t.Code == order.TestCode)
+            ?? throw new InvalidOperationException($"Test definition \"{order.TestCode}\" not found.");
+
+        if (definition.WorkflowType != WorkflowType.HplcAssay)
+            throw new InvalidOperationException($"Test order {testOrderId} is not an HPLC Assay workflow.");
+
+        await _sectionScope.EnsureTestOrderAccessAsync(userId, testOrderId);
+
+        var existingActive = await _db.HplcAssayResults.AnyAsync(r => r.TestOrderId == testOrderId && r.IsActive);
+        if (existingActive)
+            throw new InvalidOperationException("An active HPLC assay result already exists for this test order.");
+
+        if (!order.SystemSuitabilityRunId.HasValue)
+            throw new InvalidOperationException("Test order must be linked to a system suitability run before recording an HPLC assay result.");
+
+        var run = await _db.SystemSuitabilityRuns
+            .FirstOrDefaultAsync(r => r.Id == order.SystemSuitabilityRunId.Value)
+            ?? throw new InvalidOperationException($"Linked system suitability run {order.SystemSuitabilityRunId.Value} not found.");
+
+        if (!run.Passed)
+            throw new InvalidOperationException("Linked system suitability run did not pass.");
+
+        if (run.TestDefinitionId != definition.Id)
+            throw new InvalidOperationException("Linked system suitability run is for a different test method.");
+
+        if (run.SectionId != definition.SectionId)
+            throw new InvalidOperationException("Linked system suitability run is for a different laboratory section.");
+
+        if (run.StandardMeanArea <= 0 || run.StandardWeightMg <= 0 || run.StandardDilution <= 0 || run.StandardPurityPercent <= 0)
+            throw new InvalidOperationException("Linked system suitability run contains invalid standard values.");
+
+        _db.CurrentUserId = userId;
+        var signature = await _signatureService.SignAsync(
+            userId,
+            payload.Password,
+            SignatureMeaning.ResultRecorded,
+            "TestOrder",
+            order.Id,
+            payload.Comment,
+            ipAddress);
+
+        var replicates = new List<HplcAssayReplicate>();
+        for (int i = 0; i < payload.SampleAreas.Count; i++)
+        {
+            var area = payload.SampleAreas[i];
+            var replicateAssay = (area / run.StandardMeanArea)
+                * (run.StandardWeightMg / payload.SampleWeightMg)
+                * (run.StandardPurityPercent / 100m)
+                * (payload.SampleDilution / run.StandardDilution)
+                * 100m;
+            replicates.Add(new HplcAssayReplicate(i + 1, area, replicateAssay));
+        }
+
+        var mean = replicates.Select(r => r.AssayPercent).Average();
+        var reportedDisplay = Math.Round(mean, 1, MidpointRounding.AwayFromZero).ToString("0.0", System.Globalization.CultureInfo.InvariantCulture) + " %";
+
+        string? alertLimit = null, actionLimit = null, specLimit = null;
+        if (order.Sample?.ItemId is not null)
+        {
+            var spec = await _db.Specifications.FirstOrDefaultAsync(s => s.ItemId == order.Sample.ItemId && s.TestCode == order.TestCode);
+            alertLimit = spec?.AlertLimit;
+            actionLimit = spec?.ActionLimit;
+            specLimit = spec?.SpecLimit;
+        }
+
+        var (status, _) = Compare(mean, alertLimit, actionLimit, specLimit);
+
+        var hplcResult = new HplcAssayResult
+        {
+            TestOrderId = order.Id,
+            SystemSuitabilityRunId = run.Id,
+            StandardPurityPercent = run.StandardPurityPercent,
+            StandardWeightMg = run.StandardWeightMg,
+            StandardDilution = run.StandardDilution,
+            StandardMeanArea = run.StandardMeanArea,
+            SampleWeightMg = payload.SampleWeightMg,
+            SampleDilution = payload.SampleDilution,
+            ReplicatesJson = System.Text.Json.JsonSerializer.Serialize(replicates),
+            MeanAssayPercent = mean,
+            ReportedResult = reportedDisplay,
+            AlertLimit = alertLimit,
+            ActionLimit = actionLimit,
+            SpecLimit = specLimit,
+            ComparisonStatus = status,
+            IsActive = true,
+            EnteredByUserId = userId,
+            EnteredAt = DateTime.UtcNow,
+            // Navigation, not signature.Id: the signature is not saved yet, so
+            // its Id is still 0 here. EF fills the FK in on SaveChanges.
+            Signature = signature
+        };
+
+        _db.HplcAssayResults.Add(hplcResult);
+
+        _db.Results.Add(new Result
+        {
+            TestOrderId = order.Id,
+            RawValue = string.Join(",", payload.SampleAreas.Select(a => a.ToString(System.Globalization.CultureInfo.InvariantCulture))),
+            InterpretedValue = $"{reportedDisplay} ({status})",
+            Type = ResultType.Numeric,
+            EnteredByUserId = userId,
+            EnteredAt = DateTime.UtcNow
+        });
+
+        await _db.SaveChangesAsync();
+
+        await _resultProjection.UpsertFromHplcAssayResultAsync(hplcResult.Id);
+        await _db.SaveChangesAsync();
+
+        await WorkflowStateMachine.TransitionAsync(_db, order, WorkflowStep.Ready, userId, $"HPLC assay complete: {reportedDisplay}");
+        await _sampleReviewService.AutoSubmitForReviewIfReadyAsync(order.SampleId, userId);
+        await _db.SaveChangesAsync();
+
+        return new TestWorkflowResult(reportedDisplay, true, true, reportedDisplay, mean, mean, status);
+    }
 
     // Resolves the step template by name and guards workflow order,
     // reusing the existing order-violation message.

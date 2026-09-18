@@ -282,7 +282,7 @@ public class ReturnToAnalystTests
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
             reviewService.ReturnToAnalystAsync(order.Id, reviewerId: 99, "Try again"));
 
-        Assert.Contains("only supported for Count Test workflows", ex.Message);
+        Assert.Contains("only supported for Count Test and HPLC Assay workflows", ex.Message);
     }
 
     [Fact]

@@ -22,6 +22,7 @@ namespace MicroLIMS.API.Controllers;
 public record SelectMediaRequest(string StepName, int MediaLotId, int IncubatorId);
 public record StartStage2IncubationRequest(string StepName, int IncubatorId);
 public record RecordTestResultRequest(string StepName, List<decimal>? PlateReadings, decimal? DilutionFactor, List<string>? RawPlateReadings = null, string? DilutionFactorOverrideNote = null);
+public record RecordHplcAssayResultRequest(decimal SampleWeightMg, decimal SampleDilution, List<decimal> SampleAreas, string Password, string? Comment = null);
 public record BatchResultLocationRequest(int SampleLocationId, List<decimal> Readings);
 public record BatchResultsRequest(List<BatchResultLocationRequest> Locations);
 public record WaterBatchLocationRequest(int SampleLocationId, List<decimal> Readings);
@@ -84,6 +85,7 @@ public class TestWorkflowController : ControllerBase
 
     private int CurrentUserId => int.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)!.Value);
     private RoleType CurrentRole => Enum.TryParse<RoleType>(User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value, out var r) ? r : RoleType.Analyst;
+    private string? ClientIpAddress => HttpContext.Connection.RemoteIpAddress?.ToString();
 
     [HttpGet("actionable-groups")]
     public async Task<IActionResult> GetActionableGroups(
@@ -286,6 +288,17 @@ public class TestWorkflowController : ControllerBase
             }
 
             return _engine.RecordResultAsync(testOrderId, request.StepName, payload, CurrentUserId);
+        });
+    }
+
+    [HttpPost("{testOrderId}/record-hplc-result")]
+    public async Task<IActionResult> RecordHplcResult(int testOrderId, RecordHplcAssayResultRequest request)
+    {
+        await _scopeService.EnsureTestOrderAccessAsync(CurrentUserId, testOrderId);
+        return await RunAsync(() =>
+        {
+            var payload = new HplcAssayPayload(request.SampleWeightMg, request.SampleDilution, request.SampleAreas, request.Password, request.Comment);
+            return _engine.RecordHplcAssayResultAsync(testOrderId, payload, CurrentUserId, ClientIpAddress);
         });
     }
 

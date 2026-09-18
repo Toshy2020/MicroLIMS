@@ -240,7 +240,7 @@ public class ReportingQueryService
 
         // Enforced here, server-side, rather than left to the UI to avoid
         // requesting it - a trend chart over Detected/Absent has no meaning.
-        if (testDefinition.WorkflowType != WorkflowType.CountTest)
+        if (testDefinition.WorkflowType != WorkflowType.CountTest && testDefinition.WorkflowType != WorkflowType.HplcAssay)
             throw new InvalidOperationException($"Trending is only available for numeric results. {testCode} produces qualitative results.");
 
         var query = Records(sectionIds).Where(r => r.TestCode == testCode && r.SubjectName == subjectName);
@@ -437,7 +437,7 @@ public class ReportingQueryService
 
         var testDefinition = await _db.TestDefinitions.FirstOrDefaultAsync(t => t.Code == testCode)
             ?? throw new InvalidOperationException($"Test code \"{testCode}\" is not configured in Test Master.");
-        var isNumeric = testDefinition.WorkflowType == WorkflowType.CountTest;
+        var isNumeric = testDefinition.WorkflowType is WorkflowType.CountTest or WorkflowType.HplcAssay;
 
         var query = Records(sectionIds).Where(r => r.TestCode == testCode && r.Category == category);
         if (fromDate is not null) query = query.Where(r => r.ResultEnteredAt >= fromDate);

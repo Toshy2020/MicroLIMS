@@ -111,29 +111,43 @@ public class ReviewService
         var definition = await _db.TestDefinitions.FirstOrDefaultAsync(d => d.Code == order.TestCode)
             ?? throw new InvalidOperationException($"Test definition \"{order.TestCode}\" not found.");
 
-        if (definition.WorkflowType != WorkflowType.CountTest)
-            throw new InvalidOperationException($"Return to Analyst is only supported for Count Test workflows. \"{order.TestCode}\" is a {definition.WorkflowType} workflow.");
+        if (definition.WorkflowType != WorkflowType.CountTest && definition.WorkflowType != WorkflowType.HplcAssay)
+            throw new InvalidOperationException($"Return to Analyst is only supported for Count Test and HPLC Assay workflows. \"{order.TestCode}\" is a {definition.WorkflowType} workflow.");
 
-        // 1. Soft-supersede all active CountTestReading rows for this test order
-        var activeReadings = await _db.CountTestReadings
-            .Where(r => r.TestOrderId == testOrderId && r.IsActive)
-            .ToListAsync();
-        foreach (var r in activeReadings)
+        if (definition.WorkflowType == WorkflowType.CountTest)
         {
-            r.IsActive = false;
+            // 1. Soft-supersede all active CountTestReading rows for this test order
+            var activeReadings = await _db.CountTestReadings
+                .Where(r => r.TestOrderId == testOrderId && r.IsActive)
+                .ToListAsync();
+            foreach (var r in activeReadings)
+            {
+                r.IsActive = false;
+            }
+
+            // 2. Reopen the closed Incubation row for this count test step
+            var latestIncubation = await _db.Incubations
+                .Where(i => i.TestOrderId == testOrderId)
+                .OrderByDescending(i => i.Id)
+                .FirstOrDefaultAsync();
+
+            if (latestIncubation != null)
+            {
+                latestIncubation.CompletedAt = null;
+                latestIncubation.CompletedByUserId = null;
+                latestIncubation.Outcome = null;
+            }
         }
-
-        // 2. Reopen the closed Incubation row for this count test step
-        var latestIncubation = await _db.Incubations
-            .Where(i => i.TestOrderId == testOrderId)
-            .OrderByDescending(i => i.Id)
-            .FirstOrDefaultAsync();
-
-        if (latestIncubation != null)
+        else if (definition.WorkflowType == WorkflowType.HplcAssay)
         {
-            latestIncubation.CompletedAt = null;
-            latestIncubation.CompletedByUserId = null;
-            latestIncubation.Outcome = null;
+            // 1. Soft-supersede all active HplcAssayResult rows for this test order
+            var activeHplcResults = await _db.HplcAssayResults
+                .Where(r => r.TestOrderId == testOrderId && r.IsActive)
+                .ToListAsync();
+            foreach (var r in activeHplcResults)
+            {
+                r.IsActive = false;
+            }
         }
 
         // 3. If this test's section was auto-submitted for review, send the
@@ -144,12 +158,16 @@ public class ReviewService
             SampleSectionRollup.Apply(sample);
         }
 
-        // 4. Revert TestOrder state back to Incubating (keeps AssignedAnalystId unchanged)
+        // 4. Revert TestOrder state back to Incubating/Running (keeps AssignedAnalystId unchanged)
         var transitionNote = string.IsNullOrWhiteSpace(reason)
             ? "Returned to analyst by reviewer"
             : $"Returned to analyst: {reason.Trim()}";
 
-        await WorkflowStateMachine.TransitionAsync(_db, order, WorkflowStep.Incubating, reviewerId, transitionNote);
+        var targetStep = definition.WorkflowType == WorkflowType.HplcAssay
+            ? WorkflowStep.Running
+            : WorkflowStep.Incubating;
+
+        await WorkflowStateMachine.TransitionAsync(_db, order, targetStep, reviewerId, transitionNote);
 
         // 5. Create distinct queryable audit record for Return to Analyst event
         var returnEvent = new Domain.Entities.TestReturnEvent

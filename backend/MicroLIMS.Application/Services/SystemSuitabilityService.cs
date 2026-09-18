@@ -319,6 +319,27 @@ public class SystemSuitabilityService : ISystemSuitabilityService
             .ToListAsync(ct);
     }
 
+    // The run a test order is currently linked to (null when not linked yet).
+    public async Task<SystemSuitabilityRun?> GetLinkedRunForTestOrderAsync(int testOrderId, int userId, CancellationToken ct = default)
+    {
+        await _scope.EnsureTestOrderAccessAsync(userId, testOrderId, ct);
+
+        var runId = await _db.TestOrders.AsNoTracking()
+            .Where(o => o.Id == testOrderId)
+            .Select(o => o.SystemSuitabilityRunId)
+            .FirstOrDefaultAsync(ct);
+        if (runId is null) return null;
+
+        return await _db.SystemSuitabilityRuns.AsNoTracking()
+            .Include(r => r.TestDefinition)
+            .Include(r => r.Section)
+            .Include(r => r.Equipment)
+            .Include(r => r.ChromatographyColumn)
+            .Include(r => r.ReferenceStandardMaterial)
+            .Include(r => r.Signature)
+            .FirstOrDefaultAsync(r => r.Id == runId.Value, ct);
+    }
+
     public async Task LinkTestOrdersAsync(
         int runId,
         IEnumerable<int> testOrderIds,
@@ -368,7 +389,14 @@ public class SystemSuitabilityService : ISystemSuitabilityService
                 throw new InvalidOperationException($"Test order {order.Id} has test code \"{order.TestCode}\", which does not match run method \"{run.TestDefinition.Code}\".");
             }
 
-            // TODO (Slice C): Block relink once an HPLC assay result exists for this test order (e.g. HplcAssayResult exists for order.Id).
+            // Block relink once an active HPLC assay result exists for this test order (REQ-FP-003)
+            var hasActiveResult = await _db.HplcAssayResults
+                .AnyAsync(r => r.TestOrderId == order.Id && r.IsActive, ct);
+            if (hasActiveResult)
+            {
+                throw new InvalidOperationException($"Cannot link test order {order.Id} because an active HPLC assay result already exists for it.");
+            }
+
             order.SystemSuitabilityRunId = run.Id;
         }
 

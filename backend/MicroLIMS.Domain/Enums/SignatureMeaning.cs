@@ -13,5 +13,6 @@ public enum SignatureMeaning
     SampleCorrected,
     SampleVoided,
     MasterDataChanged,
-    SuitabilityRunPerformed
+    SuitabilityRunPerformed,
+    ResultRecorded
 }

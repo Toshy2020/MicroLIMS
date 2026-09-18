@@ -35,6 +35,11 @@ export const TestWorkflowService = {
   recordCountResult: (testOrderId: number, payload: { stepName: string; rawPlateReadings: string[]; dilutionFactor: number; dilutionFactorOverrideNote?: string }) =>
     apiClient.post(`/test-workflow/${testOrderId}/record-result`, payload).then((r) => r.data.data),
 
+  // HPLC Assay only. Signed; the server calculates % assay per replicate and
+  // the mean, and rejects the call unless a passed suitability run is linked.
+  recordHplcResult: (testOrderId: number, payload: { sampleWeightMg: number; sampleDilution: number; sampleAreas: number[]; password: string; comment?: string | null }) =>
+    apiClient.post(`/test-workflow/${testOrderId}/record-hplc-result`, payload).then((r) => r.data.data),
+
   getLocations: (testOrderId: number) =>
     apiClient.get(`/test-workflow/${testOrderId}/locations`).then((r) => r.data.data),
 

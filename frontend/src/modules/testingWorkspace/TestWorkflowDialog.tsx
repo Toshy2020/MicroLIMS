@@ -14,6 +14,7 @@ import { PathogenStepDialog } from "./PathogenStepDialog";
 import { useAuth } from "../../contexts/AuthContext";
 import { ConfirmationDialog } from "../../components/ConfirmationDialog";
 import { StepChainStrip } from "./components/StepChainStrip";
+import { HplcAssayPanel } from "./HplcAssayPanel";
 import { INCUBATION_WINDOW_NOT_CONFIGURED_MESSAGE } from "./utils/incubationWindow";
 
 interface Props { testOrderId: number; testCode: string; category: string; displayName: string; onClose?: () => void; }
@@ -282,6 +283,12 @@ export function TestWorkflowDialog({ testOrderId, testCode, category, displayNam
         {error ? <Alert severity="error">{error}</Alert> : <LoadingSpinner />}
       </Box>
     );
+  }
+
+  // HPLC Assay has no incubation steps - suitability run link + signed
+  // sample entry only.
+  if (current.workflowType === "HplcAssay") {
+    return <HplcAssayPanel testOrderId={testOrderId} displayName={displayName} current={current} onRecorded={load} onClose={onClose} />;
   }
 
   // Water's TAMC-Water TestOrder is also SampleLocation-batched (Phase 1

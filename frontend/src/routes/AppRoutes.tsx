@@ -39,6 +39,7 @@ const MediaEvaluationPage = lazy(() => import("../modules/laboratoryConfiguratio
 const WaterConfigPage = lazy(() => import("../modules/laboratoryConfiguration/water/WaterConfigPage").then((m) => ({ default: m.WaterConfigPage })));
 const EMConfigPage = lazy(() => import("../modules/laboratoryConfiguration/environmentalMonitoring/EMConfigPage").then((m) => ({ default: m.EMConfigPage })));
 const AfterCleaningConfigPage = lazy(() => import("../modules/laboratoryConfiguration/afterCleaning/AfterCleaningConfigPage").then((m) => ({ default: m.AfterCleaningConfigPage })));
+const SystemSuitabilityRunsPage = lazy(() => import("../modules/systemSuitability/SystemSuitabilityRunsPage").then((m) => ({ default: m.SystemSuitabilityRunsPage })));
 const CryovialsPage = lazy(() => import("../modules/laboratoryConfiguration/cryovials/CryovialsPage").then((m) => ({ default: m.CryovialsPage })));
 const ReceivingConfigurationPage = lazy(() => import("../modules/laboratoryConfiguration/masterDataSimple/ReceivingConfigurationPage").then((m) => ({ default: m.ReceivingConfigurationPage })));
 const EquipmentPage = lazy(() => import("../modules/laboratoryConfiguration/masterDataSimple/EquipmentPage").then((m) => ({ default: m.EquipmentPage })));
@@ -102,6 +103,7 @@ export function AppRoutes() {
             <Route path="/laboratory-configuration/media" element={<MediaPage />} />
             <Route path="/laboratory-configuration/media-evaluation" element={<MediaEvaluationPage />} />
             <Route path="/laboratory-configuration/cryovials" element={<CryovialsPage />} />
+            <Route path="/laboratory/system-suitability" element={<SystemSuitabilityRunsPage />} />
 
             <Route element={<SectionHeadRoutes />}>
               <Route path="/audit-search" element={<AuditSearchPage />} />

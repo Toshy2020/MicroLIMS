@@ -3,6 +3,7 @@ import SpaceDashboardOutlinedIcon from "@mui/icons-material/SpaceDashboardOutlin
 import ScienceOutlinedIcon from "@mui/icons-material/ScienceOutlined";
 import MedicationLiquidOutlinedIcon from "@mui/icons-material/MedicationLiquidOutlined";
 import AcUnitOutlinedIcon from "@mui/icons-material/AcUnitOutlined";
+import TimelineOutlinedIcon from "@mui/icons-material/TimelineOutlined";
 import Inventory2OutlinedIcon from "@mui/icons-material/Inventory2Outlined";
 import PrecisionManufacturingOutlinedIcon from "@mui/icons-material/PrecisionManufacturingOutlined";
 import RuleOutlinedIcon from "@mui/icons-material/RuleOutlined";
@@ -33,6 +34,7 @@ export interface MenuGroup {
 const dashboardItem: MenuItem = { label: "Dashboard", path: "/dashboard", icon: SpaceDashboardOutlinedIcon, group: "OVERVIEW" };
 const receivingTestingItem: MenuItem = { label: "Receiving & Testing", path: "/receiving-testing", icon: ScienceOutlinedIcon, group: "MY WORK" };
 const mediaWorkspaceItem: MenuItem = { label: "Media Preparation & Evaluation", path: "/laboratory-configuration/media", icon: MedicationLiquidOutlinedIcon, group: "LABORATORY" };
+const systemSuitabilityItem: MenuItem = { label: "System Suitability (HPLC)", path: "/laboratory/system-suitability", icon: TimelineOutlinedIcon, group: "LABORATORY" };
 const cryovialsItem: MenuItem = { label: "Reference Cryovials", path: "/laboratory-configuration/cryovials", icon: AcUnitOutlinedIcon, group: "LABORATORY" };
 const reportsItem: MenuItem = { label: "Reports", path: "/reports", icon: DescriptionOutlinedIcon, group: "REPORTS" };
 const auditSearchItem: MenuItem = { label: "Audit Search", path: "/audit-search", icon: SearchOutlinedIcon, group: "AUDIT & COMPLIANCE" };
@@ -126,6 +128,7 @@ const menuByRole: Record<Role, MenuItem[]> = {
     documentControlUserItem,
     mediaWorkspaceItem,
     cryovialsItem,
+    systemSuitabilityItem,
     inventoryItem,
     reportsItem
   ],
@@ -135,6 +138,7 @@ const menuByRole: Record<Role, MenuItem[]> = {
     documentControlAuditorItem,
     mediaWorkspaceItem,
     cryovialsItem,
+    systemSuitabilityItem,
     reportsItem
   ],
   SectionHead: [
@@ -143,6 +147,7 @@ const menuByRole: Record<Role, MenuItem[]> = {
     documentControlAuditorItem,
     mediaWorkspaceItem,
     cryovialsItem,
+    systemSuitabilityItem,
     inventoryItem,
     laboratoryConfigurationItem,
     reportsItem,
@@ -155,6 +160,7 @@ const menuByRole: Record<Role, MenuItem[]> = {
     documentControlAdminItem,
     mediaWorkspaceItem,
     cryovialsItem,
+    systemSuitabilityItem,
     inventoryItem,
     laboratoryConfigurationItem,
     usersItem,

@@ -25,6 +25,7 @@ const APP_ROUTES = {
   MEDIA_PREPARATION: "/laboratory-configuration/media",
   MEDIA_EVALUATION: "/laboratory-configuration/media-evaluation",
   CRYOVIALS: "/laboratory-configuration/cryovials",
+  SYSTEM_SUITABILITY: "/laboratory/system-suitability",
   TEST_MASTER: "/laboratory-configuration/test-master",
   EQUATION_TYPES: "/laboratory-configuration/equation-types",
   ORGANISMS: "/laboratory-configuration/organisms",

@@ -185,6 +185,65 @@ Unblocked by Revision 3 (Syngistix reports ppm in the sample).
   (`GET api/calibration-runs/{id}/document`, hash verified). The reviewer's approve action for elemental results
   records the audit statement "values checked against the attached report". (Design only.)
 
+### S3 implementation contract (2026-09-19)
+
+Split: **S3a** (data + recording + calculation) then **S3b** (downstream). Mirror the HPLC assay result wherever
+possible: `Domain/Entities/HplcAssayResult.cs`, `TestWorkflowEngine.RecordHplcAssayResultAsync`,
+`TestWorkflowController` `record-hplc-result`, `SampleApprovalService` (~line 150-170 HPLC gate),
+`ReviewService` (~line 110-170 HPLC return), `ResultProjectionService.UpsertFromHplcAssayResultAsync`,
+`SampleSummaryService` HPLC detail.
+
+**S3a**
+- Enum `SampleMatrix` {Solid, Liquid}.
+- `Specification` += `TestAnalyteId` (FK TestAnalyte, nullable), `ResultBasis` (nullable), `SampleMatrix` (nullable),
+  `LabelClaim` numeric(18,6), `LabelClaimUnit` string(20), `ConversionFactor` numeric(18,6) NOT NULL default 1.
+  `SpecificationService.ValidateAsync`: when the spec's test has EquationType CalibrationCurve -> TestAnalyteId
+  required and must belong to that test, one parameter per (item, analyte), ResultBasis + SampleMatrix required,
+  LimitType must be Range / NotMoreThan / NotLessThan / TargetWithTolerance, ConversionFactor > 0, LabelClaim > 0
+  required when ResultBasis = PercentLabelClaim. Other tests: these fields must be null (ConversionFactor 1).
+  Extend the specifications create/update requests in `MasterDataController`.
+- `ElementalAssayEntry` (one signed entry per test order, all elements together): Id, TestOrderId, SampleMatrix
+  (snapshot), UnitAmount numeric(18,6) (g for Solid, mL for Liquid), AnalysedAt (UTC), IsActive, EnteredByUserId,
+  EnteredAt, SignatureId (+ navigation; sign against "TestOrder"/order.Id, meaning ResultRecorded), Comment.
+- `ElementalAssayResult` (one per element): Id, EntryId, TestOrderId, SpecificationId, CalibrationRunAnalyteId,
+  ParameterName / Element snapshots, ReportedPpm numeric(18,6), OverRange bool, BelowLoq bool, MgPerUnit, ResultClaim,
+  PercentLabelClaim (numeric(28,10), null when not computable), ReportedValue numeric(28,10) (null when over range /
+  below LOQ), ReportedDisplay string (e.g. "10.6 mg", "106.3 %", "<LOQ", "Over range"), ResultBasis snapshot,
+  SpecLimit snapshot (canonical text), Unit snapshot, ComparisonStatus, IsActive.
+- `POST api/test-workflow/{testOrderId}/record-elemental-result` (TestWorkflow.Execute) body: unitAmount,
+  analysedAt, elements[{specificationId, calibrationRunAnalyteId, reportedPpm, overRange, belowLoq}], password,
+  comment. Engine method `RecordElementalAssayResultAsync`:
+  - order's test WorkflowType ElementalAssay; section scope; not finalized/superseded; no active entry.
+  - the order's sample has an item; **every** CalibrationCurve parameter of (item, test) supplied exactly once;
+    all parameters share one SampleMatrix (else configuration error).
+  - per element: run analyte exists, analyte `Passed`, run `Status == Active`, run's TestDefinition == order's
+    test, run section == test section, run analyte's TestAnalyteId == spec.TestAnalyteId,
+    `CalibrationAt <= AnalysedAt <= CalibrationAt + CalMaxRunAgeHours`; AnalysedAt not in the future (5 min).
+  - UnitAmount > 0; ReportedPpm >= 0; OverRange and BelowLoq not both.
+  - calculation (decimal, unrounded): Solid `MgPerUnit = C * Wu / 1000`, Liquid `MgPerUnit = C * Vd / 1000`;
+    `ResultClaim = MgPerUnit * CF`; `%LC = ResultClaim / LC * 100` when LC set.
+    ReportedValue by basis: MgPerKg -> C, MgPerUnit -> ResultClaim, PercentLabelClaim -> %LC.
+  - status: OverRange -> "RequiresReview" (no value, never extrapolated); BelowLoq -> "<LOQ": NotMoreThan ->
+    "WithinLimits", other types -> "RequiresReview"; otherwise `SpecificationEvaluator.Evaluate(spec, value)`.
+  - order status/current step move exactly as HPLC does after its result; the order's overall outcome is the worst
+    element (OutOfSpecification > RequiresReview > WithinLimits).
+- Tests: TC1 solid (8500 ppm, 1.25 g, LC 10 mg -> 10.625 mg, 106.25 %), TC1 liquid (200 mg/L, 5 mL, LC 1 mg ->
+  1.0 mg, 100 %), TC6 over range, TC7 <LOQ vs NMT and vs Range, TC8 failing analyte / withdrawn run refused,
+  run-age window (before CalibrationAt and after max age refused), missing element refused, wrong-method run
+  refused, CF applied, spec validation rules. InMemory + one Postgres end-to-end.
+
+**S3b**
+- Approval gate: an ElementalAssay order cannot be approved without an active entry; the section head who entered
+  it cannot approve it (same rule as HPLC).
+- Return to analyst: deactivate the active entry and its results (like HPLC).
+- Projection: one ResultRecord per element result (SourceTable "ElementalAssayResult").
+- Summary DTO: `ElementalAssayDetailDto` per order (entry: matrix, unit amount, AnalysedAt, entered by/at; per
+  element: parameter, element, run code, run analyte pass, ppm, flags, mg/unit, claim, %LC, reported display,
+  spec, status) + export text block; CoA uses each element's reported display and status.
+- Withdrawal consequence: `CalibrationRunService.WithdrawAsync` sets ComparisonStatus "RequiresReview" on active
+  element results linked to the run whose order is not Approved, and returns the list of already-approved orders
+  (sample ref, test, element) in the withdraw response for QA follow-up.
+
 ## Notes (A9)
 
 - **Rounding (Q4):** today both HPLC and elemental assays compare the **unrounded** value with the limit. This is an

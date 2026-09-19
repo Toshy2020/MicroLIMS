@@ -59,7 +59,7 @@ export type TestMasterLab = "micro" | "fp";
 const FP_SECTION_CODE = "FP";
 const WORKFLOW_TYPES_BY_LAB: Record<TestMasterLab, string[]> = {
   micro: ["CountTest", "Observation"],
-  fp: ["HplcAssay", "ElementalAssay", "Measurement", "Gravimetric", "Qualitative"]
+  fp: ["HplcAssay", "ElementalAssay", "Measurement", "Gravimetric", "Qualitative", "Dissolution"]
 };
 const WORKFLOW_TYPE_LABELS: Record<string, string> = {
   CountTest: "Count Test",
@@ -68,7 +68,8 @@ const WORKFLOW_TYPE_LABELS: Record<string, string> = {
   ElementalAssay: "Elemental Assay (ICP-OES)",
   Measurement: "Measurement",
   Gravimetric: "Gravimetric",
-  Qualitative: "Qualitative"
+  Qualitative: "Qualitative",
+  Dissolution: "Dissolution"
 };
 
 const EQUATION_TYPES = [
@@ -79,7 +80,8 @@ const EQUATION_TYPES = [
   "Measurement",
   "GravimetricLoss",
   "GravimetricResidue",
-  "Qualitative"
+  "Qualitative",
+  "Dissolution"
 ];
 const EQUATION_TYPE_LABELS: Record<string, string> = {
   None: "None",
@@ -89,7 +91,8 @@ const EQUATION_TYPE_LABELS: Record<string, string> = {
   Measurement: "Measurement (pH, density…)",
   GravimetricLoss: "Loss on drying / Gravimetric loss",
   GravimetricResidue: "Ash / Gravimetric residue",
-  Qualitative: "Qualitative (appearance, ID)"
+  Qualitative: "Qualitative (appearance, ID)",
+  Dissolution: "Dissolution (HPLC finish, staged S1-S3)"
 };
 const STEP_TYPES = ["PlateCount", "BrothEnrichment", "SelectiveBroth", "SelectivePlating", "ConfirmatoryPlating", "BiochemicalTest"];
 const STEP_TYPES_REQUIRING_ORGANISM = ["SelectivePlating", "ConfirmatoryPlating"];
@@ -846,6 +849,47 @@ function WorkflowStepsSection({ test, workflowTypes, onWorkflowTypeChanged }: { 
             Qualitative tests have no workflow steps: compliance observation is entered per specification parameter directly.
           </Typography>
         </Box>
+      ) : test.workflowType === "Dissolution" ? (
+        <Box sx={{ p: 2, bgcolor: "background.paper", borderRadius: 1, border: "1px solid", borderColor: "divider" }}>
+          <Typography sx={{ fontWeight: 700, fontSize: 12, mb: 1, color: "primary.main" }}>
+            Dissolution Configuration
+          </Typography>
+          <Stack direction="row" spacing={3} sx={{ flexWrap: "wrap", alignItems: "center", mb: 1 }}>
+            <Box>
+              <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>Equation Type</Typography>
+              <Typography variant="body2" sx={{ fontWeight: 600 }}>{EQUATION_TYPE_LABELS[test.equationType ?? "Dissolution"] ?? test.equationType}</Typography>
+            </Box>
+            <Box>
+              <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>System Suitability</Typography>
+              <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                {test.requiresSystemSuitability ? `Required (${test.methodAbbreviation ?? "No abbr"})` : "Required"}
+              </Typography>
+            </Box>
+            <Box>
+              <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>S1 Offset</Typography>
+              <Typography variant="body2" sx={{ fontWeight: 600 }}>≥ Q + {test.dissolutionS1Offset ?? 5} %</Typography>
+            </Box>
+            <Box>
+              <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>S2 Min Offset</Typography>
+              <Typography variant="body2" sx={{ fontWeight: 600 }}>&lt; Q − {test.dissolutionS2MinOffset ?? 15} %</Typography>
+            </Box>
+            <Box>
+              <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>S3 Min Offset</Typography>
+              <Typography variant="body2" sx={{ fontWeight: 600 }}>&lt; Q − {test.dissolutionS3MinOffset ?? 25} %</Typography>
+            </Box>
+            <Box>
+              <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>S3 Max Below S2</Typography>
+              <Typography variant="body2" sx={{ fontWeight: 600 }}>{test.dissolutionS3MaxBelowS2Min ?? 2} units</Typography>
+            </Box>
+            <Box>
+              <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>Condition Fields</Typography>
+              <Typography variant="body2">{test.conditionFields || "None configured"}</Typography>
+            </Box>
+          </Stack>
+          <Typography variant="body2" sx={{ color: "text.secondary" }}>
+            Dissolution tests have no workflow steps: staged vessel peak areas (S1: 6, S2: +6, S3: +12) and condition fields are entered directly.
+          </Typography>
+        </Box>
       ) : (
       <>
       {steps.length > 0 ? (
@@ -1268,6 +1312,11 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
   const [conditionFields, setConditionFields] = useState<string>("");
   const [usesTare, setUsesTare] = useState<boolean>(false);
 
+  const [dissolutionS1Offset, setDissolutionS1Offset] = useState<string>("5");
+  const [dissolutionS2MinOffset, setDissolutionS2MinOffset] = useState<string>("15");
+  const [dissolutionS3MinOffset, setDissolutionS3MinOffset] = useState<string>("25");
+  const [dissolutionS3MaxBelowS2Min, setDissolutionS3MaxBelowS2Min] = useState<string>("2");
+
   const [dialogOpen, setDialogOpen] = useState(false);
   const [dialogError, setDialogError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -1318,6 +1367,10 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
     setEvaluationBasis("Mean");
     setConditionFields("");
     setUsesTare(false);
+    setDissolutionS1Offset("5");
+    setDissolutionS2MinOffset("15");
+    setDissolutionS3MinOffset("25");
+    setDissolutionS3MaxBelowS2Min("2");
     setDialogError(null);
     setDialogOpen(true);
   };
@@ -1330,8 +1383,8 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
     setSectionId(t.sectionId ?? (mySections.length === 1 ? mySections[0].sectionId : ""));
     setEditingSectionId(t.sectionId ?? null);
     setWorkflowType(t.workflowType || defaultWorkflowType);
-    setEquationType(t.equationType || (t.workflowType === "ElementalAssay" ? "CalibrationCurve" : t.workflowType === "HplcAssay" ? "HplcAssay" : t.workflowType === "Measurement" ? "Measurement" : t.workflowType === "Gravimetric" ? "GravimetricLoss" : t.workflowType === "Qualitative" ? "Qualitative" : "None"));
-    setRequiresSystemSuitability(!!t.requiresSystemSuitability);
+    setEquationType(t.equationType || (t.workflowType === "ElementalAssay" ? "CalibrationCurve" : t.workflowType === "HplcAssay" ? "HplcAssay" : t.workflowType === "Measurement" ? "Measurement" : t.workflowType === "Gravimetric" ? "GravimetricLoss" : t.workflowType === "Qualitative" ? "Qualitative" : t.workflowType === "Dissolution" ? "Dissolution" : "None"));
+    setRequiresSystemSuitability(t.workflowType === "Dissolution" ? true : !!t.requiresSystemSuitability);
     setMethodAbbreviation(t.methodAbbreviation ?? "");
     setSstMaxRsdPercent(t.sstMaxRsdPercent != null ? String(t.sstMaxRsdPercent) : "");
     setSstMinResolution(t.sstMinResolution != null ? String(t.sstMinResolution) : "");
@@ -1354,6 +1407,10 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
     setEvaluationBasis(t.evaluationBasis || "Mean");
     setConditionFields(t.conditionFields || "");
     setUsesTare(!!t.usesTare);
+    setDissolutionS1Offset(t.dissolutionS1Offset != null ? String(t.dissolutionS1Offset) : "5");
+    setDissolutionS2MinOffset(t.dissolutionS2MinOffset != null ? String(t.dissolutionS2MinOffset) : "15");
+    setDissolutionS3MinOffset(t.dissolutionS3MinOffset != null ? String(t.dissolutionS3MinOffset) : "25");
+    setDissolutionS3MaxBelowS2Min(t.dissolutionS3MaxBelowS2Min != null ? String(t.dissolutionS3MaxBelowS2Min) : "2");
     setDialogError(null);
     setDialogOpen(true);
   };
@@ -1383,9 +1440,10 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
 
     const chosenSectionId = Number(sectionId);
     const isHplc = workflowType === "HplcAssay";
+    const isDissolution = workflowType === "Dissolution";
     const isCalCurve = isFp && equationType === "CalibrationCurve";
 
-    if (isHplc && requiresSystemSuitability) {
+    if ((isHplc && requiresSystemSuitability) || isDissolution) {
       const trimmedAbbr = methodAbbreviation.trim().toUpperCase();
       if (!trimmedAbbr) {
         setDialogError("Method abbreviation is required when system suitability is enabled.");
@@ -1402,6 +1460,22 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
 
       if (!hasRsd && !hasRes && !hasTailing && !hasPlates) {
         setDialogError("At least one system suitability criterion is required when system suitability is enabled.");
+        return;
+      }
+    }
+
+    if (isDissolution) {
+      const s1 = dissolutionS1Offset.trim() !== "" ? Number(dissolutionS1Offset) : 5;
+      const s2 = dissolutionS2MinOffset.trim() !== "" ? Number(dissolutionS2MinOffset) : 15;
+      const s3 = dissolutionS3MinOffset.trim() !== "" ? Number(dissolutionS3MinOffset) : 25;
+      const maxBelow = dissolutionS3MaxBelowS2Min.trim() !== "" ? Number(dissolutionS3MaxBelowS2Min) : 2;
+
+      if (isNaN(s1) || s1 < 0 || isNaN(s2) || s2 < 0 || isNaN(s3) || s3 < 0 || isNaN(maxBelow) || maxBelow < 0) {
+        setDialogError("Dissolution stage offsets must be greater than or equal to zero.");
+        return;
+      }
+      if (conditionFields.length > 500) {
+        setDialogError("Condition fields cannot exceed 500 characters.");
         return;
       }
     }
@@ -1499,6 +1573,8 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
         ? equationType
         : isQualitative
         ? "Qualitative"
+        : isDissolution
+        ? "Dissolution"
         : "None";
 
       if (editingId) {
@@ -1508,12 +1584,12 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
           sectionId: chosenSectionId,
           workflowType,
           equationType: resolvedEquationType,
-          requiresSystemSuitability: isHplc ? requiresSystemSuitability : false,
-          methodAbbreviation: (isHplc && requiresSystemSuitability) || isCalCurve ? methodAbbreviation.trim().toUpperCase() : null,
-          sstMaxRsdPercent: isHplc && requiresSystemSuitability && sstMaxRsdPercent.trim() !== "" ? Number(sstMaxRsdPercent) : null,
-          sstMinResolution: isHplc && requiresSystemSuitability && sstMinResolution.trim() !== "" ? Number(sstMinResolution) : null,
-          sstMaxTailingFactor: isHplc && requiresSystemSuitability && sstMaxTailingFactor.trim() !== "" ? Number(sstMaxTailingFactor) : null,
-          sstMinTheoreticalPlates: isHplc && requiresSystemSuitability && sstMinTheoreticalPlates.trim() !== "" ? Number(sstMinTheoreticalPlates) : null,
+          requiresSystemSuitability: isDissolution ? true : (isHplc ? requiresSystemSuitability : false),
+          methodAbbreviation: isDissolution || (isHplc && requiresSystemSuitability) || isCalCurve ? methodAbbreviation.trim().toUpperCase() : null,
+          sstMaxRsdPercent: (isDissolution || (isHplc && requiresSystemSuitability)) && sstMaxRsdPercent.trim() !== "" ? Number(sstMaxRsdPercent) : null,
+          sstMinResolution: (isDissolution || (isHplc && requiresSystemSuitability)) && sstMinResolution.trim() !== "" ? Number(sstMinResolution) : null,
+          sstMaxTailingFactor: (isDissolution || (isHplc && requiresSystemSuitability)) && sstMaxTailingFactor.trim() !== "" ? Number(sstMaxTailingFactor) : null,
+          sstMinTheoreticalPlates: (isDissolution || (isHplc && requiresSystemSuitability)) && sstMinTheoreticalPlates.trim() !== "" ? Number(sstMinTheoreticalPlates) : null,
           calibrationEntryMode: isCalCurve ? "InstrumentReported" : null,
           calMinCorrelation: isCalCurve && calMinCorrelation.trim() !== "" ? Number(calMinCorrelation) : null,
           calCorrelationType: isCalCurve ? calCorrelationType : null,
@@ -1531,8 +1607,12 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
           calMaxRunAgeHours: isCalCurve ? (calMaxRunAgeHours.trim() !== "" ? Number(calMaxRunAgeHours) : 24) : null,
           replicateCount: (isMeasurement || isGravimetric) ? Number(replicateCount) : null,
           evaluationBasis: isMeasurement ? evaluationBasis : null,
-          conditionFields: isGravimetric ? (conditionFields.trim() || null) : null,
-          usesTare: isGravimetric ? usesTare : null
+          conditionFields: (isGravimetric || isDissolution) ? (conditionFields.trim() || null) : null,
+          usesTare: isGravimetric ? usesTare : null,
+          dissolutionS1Offset: isDissolution ? (dissolutionS1Offset.trim() !== "" ? Number(dissolutionS1Offset) : 5) : null,
+          dissolutionS2MinOffset: isDissolution ? (dissolutionS2MinOffset.trim() !== "" ? Number(dissolutionS2MinOffset) : 15) : null,
+          dissolutionS3MinOffset: isDissolution ? (dissolutionS3MinOffset.trim() !== "" ? Number(dissolutionS3MinOffset) : 25) : null,
+          dissolutionS3MaxBelowS2Min: isDissolution ? (dissolutionS3MaxBelowS2Min.trim() !== "" ? Number(dissolutionS3MaxBelowS2Min) : 2) : null
         };
         await update(editingId, payload);
         setMessage({ text: `Test "${trimmedCode}" updated.`, ok: true });
@@ -1543,12 +1623,12 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
           sectionId: chosenSectionId,
           workflowType,
           equationType: resolvedEquationType,
-          requiresSystemSuitability: isHplc ? requiresSystemSuitability : false,
-          methodAbbreviation: (isHplc && requiresSystemSuitability) || isCalCurve ? methodAbbreviation.trim().toUpperCase() : null,
-          sstMaxRsdPercent: isHplc && requiresSystemSuitability && sstMaxRsdPercent.trim() !== "" ? Number(sstMaxRsdPercent) : null,
-          sstMinResolution: isHplc && requiresSystemSuitability && sstMinResolution.trim() !== "" ? Number(sstMinResolution) : null,
-          sstMaxTailingFactor: isHplc && requiresSystemSuitability && sstMaxTailingFactor.trim() !== "" ? Number(sstMaxTailingFactor) : null,
-          sstMinTheoreticalPlates: isHplc && requiresSystemSuitability && sstMinTheoreticalPlates.trim() !== "" ? Number(sstMinTheoreticalPlates) : null,
+          requiresSystemSuitability: isDissolution ? true : (isHplc ? requiresSystemSuitability : false),
+          methodAbbreviation: isDissolution || (isHplc && requiresSystemSuitability) || isCalCurve ? methodAbbreviation.trim().toUpperCase() : null,
+          sstMaxRsdPercent: (isDissolution || (isHplc && requiresSystemSuitability)) && sstMaxRsdPercent.trim() !== "" ? Number(sstMaxRsdPercent) : null,
+          sstMinResolution: (isDissolution || (isHplc && requiresSystemSuitability)) && sstMinResolution.trim() !== "" ? Number(sstMinResolution) : null,
+          sstMaxTailingFactor: (isDissolution || (isHplc && requiresSystemSuitability)) && sstMaxTailingFactor.trim() !== "" ? Number(sstMaxTailingFactor) : null,
+          sstMinTheoreticalPlates: (isDissolution || (isHplc && requiresSystemSuitability)) && sstMinTheoreticalPlates.trim() !== "" ? Number(sstMinTheoreticalPlates) : null,
           calibrationEntryMode: isCalCurve ? "InstrumentReported" : null,
           calMinCorrelation: isCalCurve && calMinCorrelation.trim() !== "" ? Number(calMinCorrelation) : null,
           calCorrelationType: isCalCurve ? calCorrelationType : null,
@@ -1566,8 +1646,12 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
           calMaxRunAgeHours: isCalCurve ? (calMaxRunAgeHours.trim() !== "" ? Number(calMaxRunAgeHours) : 24) : null,
           replicateCount: (isMeasurement || isGravimetric) ? Number(replicateCount) : null,
           evaluationBasis: isMeasurement ? evaluationBasis : null,
-          conditionFields: isGravimetric ? (conditionFields.trim() || null) : null,
-          usesTare: isGravimetric ? usesTare : null
+          conditionFields: (isGravimetric || isDissolution) ? (conditionFields.trim() || null) : null,
+          usesTare: isGravimetric ? usesTare : null,
+          dissolutionS1Offset: isDissolution ? (dissolutionS1Offset.trim() !== "" ? Number(dissolutionS1Offset) : 5) : null,
+          dissolutionS2MinOffset: isDissolution ? (dissolutionS2MinOffset.trim() !== "" ? Number(dissolutionS2MinOffset) : 15) : null,
+          dissolutionS3MinOffset: isDissolution ? (dissolutionS3MinOffset.trim() !== "" ? Number(dissolutionS3MinOffset) : 25) : null,
+          dissolutionS3MaxBelowS2Min: isDissolution ? (dissolutionS3MaxBelowS2Min.trim() !== "" ? Number(dissolutionS3MaxBelowS2Min) : 2) : null
         };
         await addNew(payload);
         setMessage({ text: `Test "${trimmedCode}" added to the Test Master.`, ok: true });
@@ -1651,6 +1735,15 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
                           color="secondary"
                           variant="outlined"
                           label="ICP-OES"
+                          sx={{ height: 20, fontSize: "0.68rem", fontWeight: 700 }}
+                        />
+                      )}
+                      {t.workflowType === "Dissolution" && (
+                        <Chip
+                          size="small"
+                          color="info"
+                          variant="outlined"
+                          label="Dissolution"
                           sx={{ height: 20, fontSize: "0.68rem", fontWeight: 700 }}
                         />
                       )}
@@ -1802,6 +1895,9 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
                   } else if (next === "Qualitative") {
                     setEquationType("Qualitative");
                     setRequiresSystemSuitability(false);
+                  } else if (next === "Dissolution") {
+                    setEquationType("Dissolution");
+                    setRequiresSystemSuitability(true);
                   } else {
                     setEquationType("None");
                     setRequiresSystemSuitability(false);
@@ -1833,8 +1929,11 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
                 }}
               >
                 {EQUATION_TYPES.filter((eq) => {
+                  if (workflowType === "Dissolution") {
+                    return eq === "Dissolution";
+                  }
                   if (workflowType === "HplcAssay") {
-                    return eq !== "CalibrationCurve" && eq !== "Measurement" && eq !== "GravimetricLoss" && eq !== "GravimetricResidue" && eq !== "Qualitative";
+                    return eq !== "CalibrationCurve" && eq !== "Measurement" && eq !== "GravimetricLoss" && eq !== "GravimetricResidue" && eq !== "Qualitative" && eq !== "Dissolution";
                   }
                   if (workflowType === "ElementalAssay") {
                     return eq === "CalibrationCurve" || eq === "None";
@@ -1848,7 +1947,7 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
                   if (workflowType === "Qualitative") {
                     return eq === "Qualitative";
                   }
-                  return eq !== "HplcAssay" && eq !== "HplcUniformityOfDosageUnits" && eq !== "HplcDissolutionMultiPoint" && eq !== "Measurement" && eq !== "GravimetricLoss" && eq !== "GravimetricResidue" && eq !== "Qualitative";
+                  return eq !== "HplcAssay" && eq !== "HplcUniformityOfDosageUnits" && eq !== "HplcDissolutionMultiPoint" && eq !== "Measurement" && eq !== "GravimetricLoss" && eq !== "GravimetricResidue" && eq !== "Qualitative" && eq !== "Dissolution";
                 }).map((eq) => (
                   <MenuItem key={eq} value={eq}>
                     {EQUATION_TYPE_LABELS[eq] ?? eq}
@@ -1941,6 +2040,70 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
               <Typography sx={{ fontWeight: 600, fontSize: 13, color: "text.secondary" }}>
                 Qualitative test: records compliance observation against specifications directly (no replicates or steps).
               </Typography>
+            </Box>
+          )}
+
+          {workflowType === "Dissolution" && (
+            <Box sx={{ p: 2, bgcolor: "action.hover", borderRadius: 1, border: "1px solid", borderColor: "divider" }}>
+              <Typography sx={{ fontWeight: 700, fontSize: 13, mb: 1.5 }}>
+                Dissolution Acceptance Offsets (USP &lt;711&gt; / EP 2.9.3)
+              </Typography>
+              <Stack spacing={2}>
+                <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
+                  <TextField
+                    size="small"
+                    type="number"
+                    label="S1: each unit ≥ Q + "
+                    value={dissolutionS1Offset}
+                    onChange={(e) => setDissolutionS1Offset(e.target.value)}
+                    slotProps={{ htmlInput: { min: 0, step: "any" } }}
+                    helperText="Default: 5 (%)"
+                    sx={{ flex: 1 }}
+                  />
+                  <TextField
+                    size="small"
+                    type="number"
+                    label="S2: no unit < Q − "
+                    value={dissolutionS2MinOffset}
+                    onChange={(e) => setDissolutionS2MinOffset(e.target.value)}
+                    slotProps={{ htmlInput: { min: 0, step: "any" } }}
+                    helperText="Default: 15 (%)"
+                    sx={{ flex: 1 }}
+                  />
+                </Stack>
+                <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
+                  <TextField
+                    size="small"
+                    type="number"
+                    label="S3: no unit < Q − "
+                    value={dissolutionS3MinOffset}
+                    onChange={(e) => setDissolutionS3MinOffset(e.target.value)}
+                    slotProps={{ htmlInput: { min: 0, step: "any" } }}
+                    helperText="Default: 25 (%)"
+                    sx={{ flex: 1 }}
+                  />
+                  <TextField
+                    size="small"
+                    type="number"
+                    label="S3: max units < Q − S2 value"
+                    value={dissolutionS3MaxBelowS2Min}
+                    onChange={(e) => setDissolutionS3MaxBelowS2Min(e.target.value)}
+                    slotProps={{ htmlInput: { min: 0, step: 1 } }}
+                    helperText="Default: 2 (units)"
+                    sx={{ flex: 1 }}
+                  />
+                </Stack>
+                <TextField
+                  size="small"
+                  label="Condition fields"
+                  placeholder="Apparatus,RPM,Medium,Temperature (°C),Time (min)"
+                  value={conditionFields}
+                  onChange={(e) => setConditionFields(e.target.value)}
+                  helperText="comma-separated, e.g. Apparatus,RPM,Medium,Temperature (°C),Time (min)"
+                  slotProps={{ htmlInput: { maxLength: 500 } }}
+                  fullWidth
+                />
+              </Stack>
             </Box>
           )}
 
@@ -2146,16 +2309,17 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
             </Box>
           )}
 
-          {workflowType === "HplcAssay" && (
+          {(workflowType === "HplcAssay" || workflowType === "Dissolution") && (
             <Box sx={{ p: 2, bgcolor: "action.hover", borderRadius: 1, border: "1px solid", borderColor: "divider" }}>
               <FormControlLabel
                 control={
                   <Switch
                     checked={requiresSystemSuitability}
+                    disabled={workflowType === "Dissolution"}
                     onChange={(e) => setRequiresSystemSuitability(e.target.checked)}
                   />
                 }
-                label="Requires system suitability"
+                label={workflowType === "Dissolution" ? "Requires system suitability (standard from linked SST run)" : "Requires system suitability"}
               />
 
               {requiresSystemSuitability && (

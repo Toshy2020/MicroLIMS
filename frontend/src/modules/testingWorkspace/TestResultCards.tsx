@@ -205,6 +205,7 @@ export function AnalysisCard({ test }: { test: TestOrderSummaryDetail }) {
 
           {a.parameterResults.map((p, idx) => {
             if (!p.readings || p.readings.length === 0) return null;
+            const isVessel = p.readings.some((r) => r.kind === "Vessel");
             const hasStage = p.readings.some((r) => r.stage !== null && r.stage !== undefined);
             const hasTimePoint = p.readings.some((r) => r.timePointMinutes !== null && r.timePointMinutes !== undefined);
             const hasValue1 = p.readings.some((r) => r.value1 !== null && r.value1 !== undefined);
@@ -226,11 +227,11 @@ export function AnalysisCard({ test }: { test: TestOrderSummaryDetail }) {
                         <th>#</th>
                         {hasStage && <th>Stage</th>}
                         {hasTimePoint && <th>Time Point (min)</th>}
-                        {hasValue1 && <th>Value 1</th>}
+                        {hasValue1 && <th>{isVessel ? "Peak Area" : "Value 1"}</th>}
                         {hasValue2 && <th>Value 2</th>}
                         {hasValue3 && <th>Value 3</th>}
                         {hasText && <th>Text</th>}
-                        {hasComputed && <th>Computed</th>}
+                        {hasComputed && <th>{isVessel ? "% Dissolved" : "Computed"}</th>}
                         {hasPassed && <th>Passed</th>}
                       </tr>
                     </thead>
@@ -238,13 +239,13 @@ export function AnalysisCard({ test }: { test: TestOrderSummaryDetail }) {
                       {p.readings.map((r, rIdx) => (
                         <tr key={r.id || rIdx}>
                           <td>{r.index}</td>
-                          {hasStage && <td>{r.stage ?? "—"}</td>}
+                          {hasStage && <td>{r.stage != null ? (isVessel ? `S${r.stage}` : String(r.stage)) : "—"}</td>}
                           {hasTimePoint && <td>{r.timePointMinutes !== null ? String(r.timePointMinutes) : "—"}</td>}
                           {hasValue1 && <td>{r.value1 !== null ? String(r.value1) : "—"}</td>}
                           {hasValue2 && <td>{r.value2 !== null ? String(r.value2) : "—"}</td>}
                           {hasValue3 && <td>{r.value3 !== null ? String(r.value3) : "—"}</td>}
                           {hasText && <td>{r.text ?? "—"}</td>}
-                          {hasComputed && <td>{r.computedValue !== null ? String(r.computedValue) : "—"}</td>}
+                          {hasComputed && <td>{r.computedValue !== null ? (isVessel ? `${r.computedValue} %` : String(r.computedValue)) : "—"}</td>}
                           {hasPassed && (
                             <td>
                               {r.passed === null || r.passed === undefined ? "—" : r.passed ? "Pass" : "Fail"}

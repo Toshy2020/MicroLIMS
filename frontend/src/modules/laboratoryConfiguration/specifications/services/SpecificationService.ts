@@ -8,7 +8,8 @@ export type LimitType =
   | "CountTiered"
   | "Qualitative"
   | "PresenceAbsence"
-  | "MultiStage";
+  | "MultiStage"
+  | "DissolutionQ";
 
 export type ToleranceMode = "Absolute" | "Percent";
 

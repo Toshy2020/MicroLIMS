@@ -117,6 +117,10 @@ export interface CreateTestDefinitionPayload {
   evaluationBasis?: "Mean" | "EachValue" | "Min" | "Max" | null;
   conditionFields?: string | null;
   usesTare?: boolean | null;
+  dissolutionS1Offset?: number | null;
+  dissolutionS2MinOffset?: number | null;
+  dissolutionS3MinOffset?: number | null;
+  dissolutionS3MaxBelowS2Min?: number | null;
 }
 
 export interface UpdateTestDefinitionPayload {
@@ -150,6 +154,10 @@ export interface UpdateTestDefinitionPayload {
   evaluationBasis?: "Mean" | "EachValue" | "Min" | "Max" | null;
   conditionFields?: string | null;
   usesTare?: boolean | null;
+  dissolutionS1Offset?: number | null;
+  dissolutionS2MinOffset?: number | null;
+  dissolutionS3MinOffset?: number | null;
+  dissolutionS3MaxBelowS2Min?: number | null;
 }
 
 // Shared lookup lists used across receiving, preparation, and master

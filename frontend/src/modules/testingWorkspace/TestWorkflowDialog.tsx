@@ -19,6 +19,7 @@ import { ElementalAssayPanel } from "./ElementalAssayPanel";
 import { MeasurementPanel } from "./MeasurementPanel";
 import { GravimetricPanel } from "./GravimetricPanel";
 import { QualitativePanel } from "./QualitativePanel";
+import { DissolutionPanel } from "./DissolutionPanel";
 import { INCUBATION_WINDOW_NOT_CONFIGURED_MESSAGE } from "./utils/incubationWindow";
 
 interface Props {
@@ -356,6 +357,22 @@ export function TestWorkflowDialog({ testOrderId, testCode, category, displayNam
   if (current.workflowType === "Qualitative") {
     return (
       <QualitativePanel
+        testOrderId={testOrderId}
+        displayName={displayName}
+        testCode={testCode}
+        itemId={itemId}
+        sampleId={sampleId}
+        current={current}
+        onRecorded={load}
+        onClose={onClose}
+      />
+    );
+  }
+
+  // Dissolution workflow (HPLC finish, staged S1-S3)
+  if (current.workflowType === "Dissolution") {
+    return (
+      <DissolutionPanel
         testOrderId={testOrderId}
         displayName={displayName}
         testCode={testCode}

@@ -12,7 +12,25 @@ export type StepType =
 
 export type GrowthObservation = "NoGrowth" | "GrowthNonConforming" | "GrowthConforming";
 
-export type WorkflowType = "CountTest" | "Observation" | "HplcAssay" | "ElementalAssay" | "Measurement" | "Gravimetric" | "Qualitative";
+export type WorkflowType =
+  | "CountTest"
+  | "Observation"
+  | "HplcAssay"
+  | "ElementalAssay"
+  | "Measurement"
+  | "Gravimetric"
+  | "Qualitative"
+  | "Dissolution";
+
+export interface TestWorkflowResult {
+  outcomeSummary: string;
+  isDefinitive: boolean;
+  allStepsComplete: boolean;
+  finalResult: string | null;
+  average?: number | null;
+  calculatedResult?: number | null;
+  status: "NextStageRequired" | "WithinLimits" | "OutOfSpecification" | string | null;
+}
 
 export type ConfirmatoryResult = "AllConforming" | "Inconclusive";
 

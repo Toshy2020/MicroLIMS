@@ -92,6 +92,12 @@ const LIMIT_CHIP_STYLES: Record<string, { label: string; color: string; bg: stri
     color: "#94a3b8",
     bg: "rgba(148, 163, 184, 0.12)",
     border: "rgba(148, 163, 184, 0.35)"
+  },
+  DissolutionQ: {
+    label: "Dissolution Q",
+    color: "#3b82f6",
+    bg: "rgba(59, 130, 246, 0.12)",
+    border: "rgba(59, 130, 246, 0.35)"
   }
 };
 
@@ -170,6 +176,10 @@ export const formatLimitCell = (spec: SpecificationDto): string => {
     }
     case "MultiStage": {
       return "\u2014";
+    }
+    case "DissolutionQ": {
+      const q = formatTrimmedDecimal(spec.lowerLimit);
+      return q ? `Q = ${q} %` : spec.specLimit || "\u2014";
     }
     default:
       return spec.specLimit || "\u2014";
@@ -404,6 +414,7 @@ export const ItemSpecificationsSection: React.FC<ItemSpecificationsSectionProps>
         <LimitTypeBadge type="Qualitative" labelOverride="Qualitative" />
         <LimitTypeBadge type="PresenceAbsence" labelOverride="Presence/Absence" />
         <LimitTypeBadge type="MultiStage" labelOverride="Multi-Stage" />
+        <LimitTypeBadge type="DissolutionQ" labelOverride="Dissolution Q" />
       </Stack>
 
       {error && (
@@ -524,6 +535,22 @@ export const ItemSpecificationsSection: React.FC<ItemSpecificationsSectionProps>
                                 <Chip
                                   size="small"
                                   label={`Dilution Factor \u00D7${spec.dilutionFactor}`}
+                                  sx={{
+                                    height: 20,
+                                    fontSize: 11,
+                                    color: "text.secondary",
+                                    bgcolor: "action.hover",
+                                    border: "1px solid",
+                                    borderColor: "divider"
+                                  }}
+                                />
+                              </Box>
+                            )}
+                            {spec.limitType === "DissolutionQ" && spec.labelClaim != null && (
+                              <Box sx={{ mt: 0.5 }}>
+                                <Chip
+                                  size="small"
+                                  label={`Label Claim ${spec.labelClaim} ${spec.labelClaimUnit || "mg"}`}
                                   sx={{
                                     height: 20,
                                     fontSize: 11,

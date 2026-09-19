@@ -3,7 +3,8 @@ import {
   CurrentStepResponse, StepResultDto, ConfirmatoryOutcomeDto,
   PermittedConfirmatoryMediaResponse, EligibleIncubatorsResponse, AnalystDecision,
   GrowthObservation, SiblingPathogenOrder,
-  ActionableGroupsResponse, BatchSelectMediaRequest, BatchSelectMediaResponse
+  ActionableGroupsResponse, BatchSelectMediaRequest, BatchSelectMediaResponse,
+  TestWorkflowResult
 } from "../types/testWorkflowTypes";
 
 export const TestWorkflowService = {
@@ -113,6 +114,33 @@ export const TestWorkflowService = {
     }
   ) =>
     apiClient.post(`/test-workflow/${testOrderId}/record-qualitative-result`, payload).then((r) => r.data.data),
+
+  // Dissolution analysis (Stage 1). Signed. Returns TestWorkflowResult.
+  recordDissolutionResult: (
+    testOrderId: number,
+    payload: {
+      analysedAt: string;
+      equipmentId?: number | null;
+      conditions: Record<string, string>;
+      mediumVolumeMl: number;
+      dilutionFactor?: number | null;
+      vesselAreas: number[];
+      password: string;
+      comment?: string | null;
+    }
+  ): Promise<TestWorkflowResult> =>
+    apiClient.post(`/test-workflow/${testOrderId}/record-dissolution-result`, payload).then((r) => r.data.data),
+
+  // Dissolution stage progression (Stage 2 or 3). Signed. Returns TestWorkflowResult.
+  recordDissolutionStage: (
+    testOrderId: number,
+    payload: {
+      vesselAreas: number[];
+      password: string;
+      comment?: string | null;
+    }
+  ): Promise<TestWorkflowResult> =>
+    apiClient.post(`/test-workflow/${testOrderId}/record-dissolution-stage`, payload).then((r) => r.data.data),
 
   getLocations: (testOrderId: number) =>
     apiClient.get(`/test-workflow/${testOrderId}/locations`).then((r) => r.data.data),

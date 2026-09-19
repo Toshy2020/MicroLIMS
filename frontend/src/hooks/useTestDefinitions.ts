@@ -37,6 +37,10 @@ export interface TestDefinitionOption {
   evaluationBasis?: "Mean" | "EachValue" | "Min" | "Max" | null;
   conditionFields?: string | null;
   usesTare?: boolean | null;
+  dissolutionS1Offset?: number | null;
+  dissolutionS2MinOffset?: number | null;
+  dissolutionS3MinOffset?: number | null;
+  dissolutionS3MaxBelowS2Min?: number | null;
   sectionId?: number;
   section?: {
     id: number;

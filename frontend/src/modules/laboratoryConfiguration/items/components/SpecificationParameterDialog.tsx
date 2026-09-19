@@ -64,12 +64,14 @@ const LIMIT_TYPE_OPTIONS: { value: LimitType; label: string }[] = [
   { value: "CountTiered", label: "Count-Tiered (Alert / Action / Spec)" },
   { value: "Qualitative", label: "Qualitative (descriptive text)" },
   { value: "PresenceAbsence", label: "Presence / Absence" },
-  { value: "MultiStage", label: "Multi-Stage Criteria" }
+  { value: "MultiStage", label: "Multi-Stage Criteria" },
+  { value: "DissolutionQ", label: "Dissolution Q" }
 ];
 
 export const getDefaultLimitType = (workflowType?: string): LimitType => {
   if (workflowType === "CountTest") return "CountTiered";
   if (workflowType === "Observation") return "PresenceAbsence";
+  if (workflowType === "Dissolution") return "DissolutionQ";
   return "Range";
 };
 
@@ -160,6 +162,10 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
 
   const currentTestDef = testDefs[testCode];
   const isCalibrationCurve = currentTestDef?.equationType === "CalibrationCurve";
+  const isDissolution =
+    workflowTypeByCode[testCode] === "Dissolution" ||
+    currentTestDef?.workflowType === "Dissolution" ||
+    limitType === "DissolutionQ";
 
   useEffect(() => {
     if (!isCalibrationCurve || !currentTestDef?.id) {
@@ -301,10 +307,14 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
 
     const def = testDefs[newCode];
     const isCal = def?.equationType === "CalibrationCurve";
+    const isDis = workflowTypeByCode[newCode] === "Dissolution" || def?.workflowType === "Dissolution";
 
     if (isCal) {
       setLimitType("Range");
       setTestAnalyteId("");
+      setDilutionFactor("");
+    } else if (isDis) {
+      setLimitType("DissolutionQ");
       setDilutionFactor("");
     } else {
       const defType = getDefaultLimitType(workflowTypeByCode[newCode]);
@@ -398,6 +408,26 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
       }
     }
 
+    if (limitType === "DissolutionQ") {
+      const qNum = Number(lowerLimit);
+      if (!lowerLimit.trim() || isNaN(qNum) || qNum <= 0 || qNum > 100) {
+        setError("Lower limit Q (%) must be between 0 and 100 (exclusive of 0, inclusive of 100).");
+        return;
+      }
+      const lcNum = Number(labelClaim);
+      if (!labelClaim.trim() || isNaN(lcNum) || lcNum <= 0) {
+        setError("Label claim must be greater than zero for Dissolution Q specifications.");
+        return;
+      }
+      const otherDissolutionSpec = existingSpecs.find(
+        (s) => s.testCode === testCode && s.id !== editingSpec?.id && s.limitType === "DissolutionQ"
+      );
+      if (otherDissolutionSpec) {
+        setError("Only one DissolutionQ specification is allowed per test.");
+        return;
+      }
+    }
+
     setSaving(true);
     setError(null);
 
@@ -417,11 +447,11 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
           ? Number(dilutionFactor)
           : null,
       lowerLimit:
-        limitType === "Range" || limitType === "NotLessThan"
-          ? lowerLimit.trim() !== ""
-            ? Number(lowerLimit)
-            : null
-          : null,
+        limitType === "DissolutionQ"
+          ? (lowerLimit.trim() !== "" ? Number(lowerLimit) : null)
+          : (limitType === "Range" || limitType === "NotLessThan"
+            ? (lowerLimit.trim() !== "" ? Number(lowerLimit) : null)
+            : null),
       upperLimit:
         limitType === "Range" || limitType === "NotMoreThan"
           ? upperLimit.trim() !== ""
@@ -450,7 +480,10 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
         limitType === "PresenceAbsence" ? sampleQuantityUnit.trim() || null : null,
       alertLimit: limitType === "CountTiered" ? alertLimit.trim() || "" : null,
       actionLimit: limitType === "CountTiered" ? actionLimit.trim() || "" : null,
-      specLimit: limitType === "CountTiered" ? specLimit.trim() : null,
+      specLimit:
+        limitType === "DissolutionQ"
+          ? (lowerLimit.trim() !== "" ? `Q = ${lowerLimit.trim()} %` : null)
+          : (limitType === "CountTiered" ? specLimit.trim() : null),
       stages:
         limitType === "MultiStage"
           ? stages.map((s, idx) => ({
@@ -462,8 +495,14 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
       testAnalyteId: isCalibrationCurve && testAnalyteId !== "" ? Number(testAnalyteId) : null,
       resultBasis: isCalibrationCurve && resultBasis ? (resultBasis as ResultBasis) : null,
       sampleMatrix: isCalibrationCurve && sampleMatrix ? (sampleMatrix as SampleMatrix) : null,
-      labelClaim: isCalibrationCurve && labelClaim.trim() !== "" ? Number(labelClaim) : null,
-      labelClaimUnit: isCalibrationCurve ? labelClaimUnit.trim() || null : null,
+      labelClaim:
+        limitType === "DissolutionQ"
+          ? (labelClaim.trim() !== "" ? Number(labelClaim) : null)
+          : (isCalibrationCurve && labelClaim.trim() !== "" ? Number(labelClaim) : null),
+      labelClaimUnit:
+        limitType === "DissolutionQ"
+          ? "mg"
+          : (isCalibrationCurve ? labelClaimUnit.trim() || null : null),
       conversionFactor: isCalibrationCurve ? (conversionFactor.trim() !== "" ? Number(conversionFactor) : 1) : 1
     };
 
@@ -676,11 +715,13 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
               value={limitType}
               onChange={(e) => handleLimitTypeChange(e.target.value as LimitType)}
             >
-              {(isCalibrationCurve
+              {(isDissolution
+                ? LIMIT_TYPE_OPTIONS.filter((opt) => opt.value === "DissolutionQ")
+                : isCalibrationCurve
                 ? LIMIT_TYPE_OPTIONS.filter((opt) =>
                     ["Range", "NotMoreThan", "NotLessThan", "TargetWithTolerance"].includes(opt.value)
                   )
-                : LIMIT_TYPE_OPTIONS
+                : LIMIT_TYPE_OPTIONS.filter((opt) => opt.value !== "DissolutionQ")
               ).map((opt) => (
                 <MenuItem key={opt.value} value={opt.value}>
                   {opt.label}
@@ -987,6 +1028,54 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
                   </Button>
                 </Box>
               </Stack>
+            )}
+
+            {/* Limit Type: DissolutionQ */}
+            {limitType === "DissolutionQ" && (
+              <Box>
+                <Typography variant="body2" sx={{ fontWeight: 600, mb: 1.5 }}>
+                  Dissolution Acceptance (USP &lt;711&gt; / EP 2.9.3)
+                </Typography>
+                <Stack direction={{ xs: "column", sm: "row" }} spacing={2} sx={{ mb: 1.5 }}>
+                  <TextField
+                    size="small"
+                    type="number"
+                    label="Q (% dissolved) *"
+                    placeholder="e.g. 75"
+                    value={lowerLimit}
+                    onChange={(e) => setLowerLimit(e.target.value)}
+                    slotProps={{ htmlInput: { min: 0.01, max: 100, step: "any" } }}
+                    helperText="Stored in lower limit (0 < Q ≤ 100 %)"
+                    required
+                    sx={{ flex: 1 }}
+                  />
+                  <TextField
+                    size="small"
+                    type="number"
+                    label="Label Claim *"
+                    placeholder="e.g. 100"
+                    value={labelClaim}
+                    onChange={(e) => setLabelClaim(e.target.value)}
+                    slotProps={{ htmlInput: { min: 0.0001, step: "any" } }}
+                    helperText="Active substance per dosage unit"
+                    required
+                    sx={{ flex: 1 }}
+                  />
+                  <TextField
+                    size="small"
+                    label="Unit"
+                    value="mg"
+                    disabled
+                    helperText="Fixed unit for dissolution claim"
+                    sx={{ width: 120 }}
+                  />
+                </Stack>
+                {lowerLimit.trim() !== "" && (
+                  <Typography variant="body2" sx={{ color: "text.secondary" }}>
+                    Specification limit display: <strong>Q = {lowerLimit.trim()} %</strong>
+                  </Typography>
+                )}
+              </Box>
             )}
           </Box>
 

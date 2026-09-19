@@ -721,15 +721,16 @@ function AnalysisReadingsTable({ parameter }: { parameter: ParameterResultDetail
   const cellSx = { fontSize: 12, py: 0.5 };
   const headSx = { fontSize: 11, fontWeight: 700, color: "text.secondary", py: 0.5 };
   const r = parameter.readings;
+  const isVessel = r.some((x) => x.kind === "Vessel");
   type ReadingColumn = { label: string; get: (x: ResultReadingDetail) => string | null };
   const allCols: ReadingColumn[] = [
-    { label: "Stage", get: (x) => (x.stage != null ? String(x.stage) : null) },
+    { label: "Stage", get: (x) => (x.stage != null ? (x.kind === "Vessel" ? `S${x.stage}` : String(x.stage)) : null) },
     { label: "Time (min)", get: (x) => (x.timePointMinutes != null ? num(x.timePointMinutes) : null) },
-    { label: "Value 1", get: (x) => (x.value1 != null ? num(x.value1) : null) },
+    { label: isVessel ? "Peak Area" : "Value 1", get: (x) => (x.value1 != null ? num(x.value1) : null) },
     { label: "Value 2", get: (x) => (x.value2 != null ? num(x.value2) : null) },
     { label: "Value 3", get: (x) => (x.value3 != null ? num(x.value3) : null) },
     { label: "Text", get: (x) => x.text || null },
-    { label: "Computed", get: (x) => (x.computedValue != null ? num(x.computedValue) : null) },
+    { label: isVessel ? "% Dissolved" : "Computed", get: (x) => (x.computedValue != null ? (x.kind === "Vessel" ? `${num(x.computedValue)} %` : num(x.computedValue)) : null) },
     { label: "Pass", get: (x) => (x.passed == null ? null : x.passed ? "Pass" : "Fail") }
   ];
   const cols = allCols.filter((c) => r.some((x) => c.get(x) !== null));

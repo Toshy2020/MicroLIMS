@@ -124,7 +124,22 @@ public record CreateTestDefinitionRequest(
     decimal? SstMaxRsdPercent = null,
     decimal? SstMinResolution = null,
     decimal? SstMaxTailingFactor = null,
-    decimal? SstMinTheoreticalPlates = null);
+    decimal? SstMinTheoreticalPlates = null,
+    CalibrationEntryMode? CalibrationEntryMode = null,
+    decimal? CalMinCorrelation = null,
+    CorrelationType? CalCorrelationType = null,
+    int? CalMinStandards = null,
+    decimal? CalCheckRecoveryLowPercent = null,
+    decimal? CalCheckRecoveryHighPercent = null,
+    decimal? CalBlankMax = null,
+    decimal? CalIsRecoveryLowPercent = null,
+    decimal? CalIsRecoveryHighPercent = null,
+    bool? CalRequireBlank = null,
+    bool? CalRequireIcv = null,
+    bool? CalRequireCcv = null,
+    bool? CalRequireInternalStandard = null,
+    ReportedConcentrationBasis? ReportedConcentrationBasis = null,
+    int? CalMaxRunAgeHours = null);
 // SectionId: move the test to another laboratory section (null = keep). Test
 // orders already created keep the section they were created with.
 public record UpdateTestDefinitionRequest(
@@ -138,8 +153,24 @@ public record UpdateTestDefinitionRequest(
     decimal? SstMaxRsdPercent = null,
     decimal? SstMinResolution = null,
     decimal? SstMaxTailingFactor = null,
-    decimal? SstMinTheoreticalPlates = null);
+    decimal? SstMinTheoreticalPlates = null,
+    CalibrationEntryMode? CalibrationEntryMode = null,
+    decimal? CalMinCorrelation = null,
+    CorrelationType? CalCorrelationType = null,
+    int? CalMinStandards = null,
+    decimal? CalCheckRecoveryLowPercent = null,
+    decimal? CalCheckRecoveryHighPercent = null,
+    decimal? CalBlankMax = null,
+    decimal? CalIsRecoveryLowPercent = null,
+    decimal? CalIsRecoveryHighPercent = null,
+    bool? CalRequireBlank = null,
+    bool? CalRequireIcv = null,
+    bool? CalRequireCcv = null,
+    bool? CalRequireInternalStandard = null,
+    ReportedConcentrationBasis? ReportedConcentrationBasis = null,
+    int? CalMaxRunAgeHours = null);
 public record UpdateWorkflowTypeRequest(WorkflowType WorkflowType);
+
 public record StepMediaRequest(int MaterialId, bool IsRequired, int DisplayOrder, int? MediaIncubationConditionId);
 public record IncubationStageRequest(int StageNumber, decimal TempMin, decimal TempMax, int IncubationMinHours, int IncubationMaxHours);
 // PhenotypicTestType (single) is kept alongside the new PhenotypicTestTypes
@@ -993,10 +1024,15 @@ public class MasterDataController : ControllerBase
             if (!request.CdsSoftware.HasValue)
                 throw new InvalidOperationException("CDS Software is required for HPLC equipment.");
         }
+        else if (request.Type == EquipmentType.IcpOes)
+        {
+            if (!request.CdsSoftware.HasValue)
+                throw new InvalidOperationException("CDS Software is required for ICP-OES equipment.");
+        }
         else
         {
             if (request.CdsSoftware.HasValue)
-                throw new InvalidOperationException("CDS Software is only allowed for HPLC equipment.");
+                throw new InvalidOperationException("CDS Software is only allowed for HPLC and ICP-OES equipment.");
         }
 
         var sectionId = await _scope.ResolveSectionForCreateAsync(CurrentUserId, request.SectionId);
@@ -1043,10 +1079,15 @@ public class MasterDataController : ControllerBase
             if (!request.CdsSoftware.HasValue)
                 throw new InvalidOperationException("CDS Software is required for HPLC equipment.");
         }
+        else if (request.Type == EquipmentType.IcpOes)
+        {
+            if (!request.CdsSoftware.HasValue)
+                throw new InvalidOperationException("CDS Software is required for ICP-OES equipment.");
+        }
         else
         {
             if (request.CdsSoftware.HasValue)
-                throw new InvalidOperationException("CDS Software is only allowed for HPLC equipment.");
+                throw new InvalidOperationException("CDS Software is only allowed for HPLC and ICP-OES equipment.");
         }
 
         if (request.SectionId.HasValue && request.SectionId.Value != entity.SectionId)
@@ -1676,6 +1717,53 @@ public class MasterDataController : ControllerBase
                 throw new InvalidOperationException("At least one system suitability criterion is required when system suitability is enabled.");
             }
         }
+        else if (request.EquationType == EquationType.CalibrationCurve)
+        {
+            if (request.WorkflowType != WorkflowType.ElementalAssay)
+                throw new InvalidOperationException("Workflow type must be ElementalAssay when equation type is CalibrationCurve.");
+
+            if (string.IsNullOrEmpty(methodAbbr))
+                throw new InvalidOperationException("Method abbreviation is required when equation type is CalibrationCurve.");
+
+            if (!System.Text.RegularExpressions.Regex.IsMatch(methodAbbr, "^[A-Z0-9-]{1,20}$"))
+                throw new InvalidOperationException("Method abbreviation must be 1-20 uppercase alphanumeric characters or hyphens.");
+
+            if (!request.CalMinCorrelation.HasValue || request.CalMinCorrelation.Value <= 0m || request.CalMinCorrelation.Value > 1m)
+                throw new InvalidOperationException("Minimum correlation must be in (0, 1] when equation type is CalibrationCurve.");
+
+            if (!request.CalCorrelationType.HasValue)
+                throw new InvalidOperationException("Correlation type is required when equation type is CalibrationCurve.");
+
+            if (!request.CalMinStandards.HasValue || request.CalMinStandards.Value < 1)
+                throw new InvalidOperationException("Minimum standards must be at least 1 when equation type is CalibrationCurve.");
+
+            if (!request.CalCheckRecoveryLowPercent.HasValue || !request.CalCheckRecoveryHighPercent.HasValue)
+                throw new InvalidOperationException("Both check recovery window bounds (low and high) are required when equation type is CalibrationCurve.");
+
+            if (request.CalCheckRecoveryLowPercent.Value > request.CalCheckRecoveryHighPercent.Value)
+                throw new InvalidOperationException("Check recovery low percent must be less than or equal to high percent.");
+
+            if (request.CalRequireInternalStandard == true)
+            {
+                if (!request.CalIsRecoveryLowPercent.HasValue || !request.CalIsRecoveryHighPercent.HasValue)
+                    throw new InvalidOperationException("Both internal standard recovery bounds (low and high) are required when internal standards are required.");
+
+                if (request.CalIsRecoveryLowPercent.Value > request.CalIsRecoveryHighPercent.Value)
+                    throw new InvalidOperationException("Internal standard recovery low percent must be less than or equal to high percent.");
+            }
+            else if (request.CalIsRecoveryLowPercent.HasValue && request.CalIsRecoveryHighPercent.HasValue &&
+                request.CalIsRecoveryLowPercent.Value > request.CalIsRecoveryHighPercent.Value)
+            {
+                throw new InvalidOperationException("Internal standard recovery low percent must be less than or equal to high percent.");
+            }
+
+            if (!request.ReportedConcentrationBasis.HasValue)
+                throw new InvalidOperationException("Reported concentration basis is required when equation type is CalibrationCurve.");
+
+            var maxAge = request.CalMaxRunAgeHours ?? 24;
+            if (maxAge < 1)
+                throw new InvalidOperationException("Maximum run age must be at least 1 hour when equation type is CalibrationCurve.");
+        }
         else if (methodAbbr != null)
         {
             if (!System.Text.RegularExpressions.Regex.IsMatch(methodAbbr, "^[A-Z0-9-]{1,20}$"))
@@ -1694,12 +1782,28 @@ public class MasterDataController : ControllerBase
             SstMaxRsdPercent = request.SstMaxRsdPercent,
             SstMinResolution = request.SstMinResolution,
             SstMaxTailingFactor = request.SstMaxTailingFactor,
-            SstMinTheoreticalPlates = request.SstMinTheoreticalPlates
+            SstMinTheoreticalPlates = request.SstMinTheoreticalPlates,
+            CalibrationEntryMode = request.CalibrationEntryMode,
+            CalMinCorrelation = request.CalMinCorrelation,
+            CalCorrelationType = request.CalCorrelationType,
+            CalMinStandards = request.CalMinStandards,
+            CalCheckRecoveryLowPercent = request.CalCheckRecoveryLowPercent,
+            CalCheckRecoveryHighPercent = request.CalCheckRecoveryHighPercent,
+            CalBlankMax = request.CalBlankMax,
+            CalIsRecoveryLowPercent = request.CalIsRecoveryLowPercent,
+            CalIsRecoveryHighPercent = request.CalIsRecoveryHighPercent,
+            CalRequireBlank = request.CalRequireBlank,
+            CalRequireIcv = request.CalRequireIcv,
+            CalRequireCcv = request.CalRequireCcv,
+            CalRequireInternalStandard = request.CalRequireInternalStandard,
+            ReportedConcentrationBasis = request.ReportedConcentrationBasis,
+            CalMaxRunAgeHours = request.CalMaxRunAgeHours ?? 24
         };
         _db.TestDefinitions.Add(entity);
         await _db.SaveChangesAsync();
         return Ok(ApiResponse<object>.Ok(entity));
     }
+
 
     [Authorize(Roles = RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
     [HttpPut("test-definitions/{id}")]
@@ -1720,6 +1824,8 @@ public class MasterDataController : ControllerBase
             entity.SectionId = await _scope.ResolveSectionForCreateAsync(CurrentUserId, request.SectionId);
 
         var effectiveRequiresSst = request.RequiresSystemSuitability ?? entity.RequiresSystemSuitability;
+        var effectiveEquationType = request.EquationType ?? entity.EquationType;
+        var effectiveWorkflowType = request.WorkflowType ?? entity.WorkflowType;
         var effectiveMethodAbbr = request.MethodAbbreviation != null
             ? (string.IsNullOrWhiteSpace(request.MethodAbbreviation) ? null : request.MethodAbbreviation.Trim().ToUpperInvariant())
             : entity.MethodAbbreviation;
@@ -1727,6 +1833,17 @@ public class MasterDataController : ControllerBase
         var effectiveRes = request.SstMinResolution ?? entity.SstMinResolution;
         var effectiveTailing = request.SstMaxTailingFactor ?? entity.SstMaxTailingFactor;
         var effectivePlates = request.SstMinTheoreticalPlates ?? entity.SstMinTheoreticalPlates;
+
+        var effectiveCalMinCorr = request.CalMinCorrelation ?? entity.CalMinCorrelation;
+        var effectiveCalCorrType = request.CalCorrelationType ?? entity.CalCorrelationType;
+        var effectiveCalMinStds = request.CalMinStandards ?? entity.CalMinStandards;
+        var effectiveCalRecLow = request.CalCheckRecoveryLowPercent ?? entity.CalCheckRecoveryLowPercent;
+        var effectiveCalRecHigh = request.CalCheckRecoveryHighPercent ?? entity.CalCheckRecoveryHighPercent;
+        var effectiveCalIsLow = request.CalIsRecoveryLowPercent ?? entity.CalIsRecoveryLowPercent;
+        var effectiveCalIsHigh = request.CalIsRecoveryHighPercent ?? entity.CalIsRecoveryHighPercent;
+        var effectiveCalRequireIs = request.CalRequireInternalStandard ?? entity.CalRequireInternalStandard;
+        var effectiveBasis = request.ReportedConcentrationBasis ?? entity.ReportedConcentrationBasis;
+        var effectiveMaxAge = request.CalMaxRunAgeHours ?? entity.CalMaxRunAgeHours ?? 24;
 
         if (effectiveRequiresSst)
         {
@@ -1740,6 +1857,51 @@ public class MasterDataController : ControllerBase
             {
                 throw new InvalidOperationException("At least one system suitability criterion is required when system suitability is enabled.");
             }
+        }
+        else if (effectiveEquationType == EquationType.CalibrationCurve)
+        {
+            if (effectiveWorkflowType != WorkflowType.ElementalAssay)
+                throw new InvalidOperationException("Workflow type must be ElementalAssay when equation type is CalibrationCurve.");
+
+            if (string.IsNullOrEmpty(effectiveMethodAbbr))
+                throw new InvalidOperationException("Method abbreviation is required when equation type is CalibrationCurve.");
+
+            if (!System.Text.RegularExpressions.Regex.IsMatch(effectiveMethodAbbr, "^[A-Z0-9-]{1,20}$"))
+                throw new InvalidOperationException("Method abbreviation must be 1-20 uppercase alphanumeric characters or hyphens.");
+
+            if (!effectiveCalMinCorr.HasValue || effectiveCalMinCorr.Value <= 0m || effectiveCalMinCorr.Value > 1m)
+                throw new InvalidOperationException("Minimum correlation must be in (0, 1] when equation type is CalibrationCurve.");
+
+            if (!effectiveCalCorrType.HasValue)
+                throw new InvalidOperationException("Correlation type is required when equation type is CalibrationCurve.");
+
+            if (!effectiveCalMinStds.HasValue || effectiveCalMinStds.Value < 1)
+                throw new InvalidOperationException("Minimum standards must be at least 1 when equation type is CalibrationCurve.");
+
+            if (!effectiveCalRecLow.HasValue || !effectiveCalRecHigh.HasValue)
+                throw new InvalidOperationException("Both check recovery window bounds (low and high) are required when equation type is CalibrationCurve.");
+
+            if (effectiveCalRecLow.Value > effectiveCalRecHigh.Value)
+                throw new InvalidOperationException("Check recovery low percent must be less than or equal to high percent.");
+
+            if (effectiveCalRequireIs == true)
+            {
+                if (!effectiveCalIsLow.HasValue || !effectiveCalIsHigh.HasValue)
+                    throw new InvalidOperationException("Both internal standard recovery bounds (low and high) are required when internal standards are required.");
+
+                if (effectiveCalIsLow.Value > effectiveCalIsHigh.Value)
+                    throw new InvalidOperationException("Internal standard recovery low percent must be less than or equal to high percent.");
+            }
+            else if (effectiveCalIsLow.HasValue && effectiveCalIsHigh.HasValue && effectiveCalIsLow.Value > effectiveCalIsHigh.Value)
+            {
+                throw new InvalidOperationException("Internal standard recovery low percent must be less than or equal to high percent.");
+            }
+
+            if (!effectiveBasis.HasValue)
+                throw new InvalidOperationException("Reported concentration basis is required when equation type is CalibrationCurve.");
+
+            if (effectiveMaxAge < 1)
+                throw new InvalidOperationException("Maximum run age must be at least 1 hour when equation type is CalibrationCurve.");
         }
         else if (effectiveMethodAbbr != null)
         {
@@ -1757,8 +1919,24 @@ public class MasterDataController : ControllerBase
         if (request.SstMinResolution.HasValue) entity.SstMinResolution = request.SstMinResolution;
         if (request.SstMaxTailingFactor.HasValue) entity.SstMaxTailingFactor = request.SstMaxTailingFactor;
         if (request.SstMinTheoreticalPlates.HasValue) entity.SstMinTheoreticalPlates = request.SstMinTheoreticalPlates;
+        if (request.CalibrationEntryMode.HasValue) entity.CalibrationEntryMode = request.CalibrationEntryMode.Value;
+        if (request.CalMinCorrelation.HasValue) entity.CalMinCorrelation = request.CalMinCorrelation;
+        if (request.CalCorrelationType.HasValue) entity.CalCorrelationType = request.CalCorrelationType;
+        if (request.CalMinStandards.HasValue) entity.CalMinStandards = request.CalMinStandards;
+        if (request.CalCheckRecoveryLowPercent.HasValue) entity.CalCheckRecoveryLowPercent = request.CalCheckRecoveryLowPercent;
+        if (request.CalCheckRecoveryHighPercent.HasValue) entity.CalCheckRecoveryHighPercent = request.CalCheckRecoveryHighPercent;
+        if (request.CalBlankMax.HasValue) entity.CalBlankMax = request.CalBlankMax;
+        if (request.CalIsRecoveryLowPercent.HasValue) entity.CalIsRecoveryLowPercent = request.CalIsRecoveryLowPercent;
+        if (request.CalIsRecoveryHighPercent.HasValue) entity.CalIsRecoveryHighPercent = request.CalIsRecoveryHighPercent;
+        if (request.CalRequireBlank.HasValue) entity.CalRequireBlank = request.CalRequireBlank;
+        if (request.CalRequireIcv.HasValue) entity.CalRequireIcv = request.CalRequireIcv;
+        if (request.CalRequireCcv.HasValue) entity.CalRequireCcv = request.CalRequireCcv;
+        if (request.CalRequireInternalStandard.HasValue) entity.CalRequireInternalStandard = request.CalRequireInternalStandard;
+        if (request.ReportedConcentrationBasis.HasValue) entity.ReportedConcentrationBasis = request.ReportedConcentrationBasis;
+        if (request.CalMaxRunAgeHours.HasValue) entity.CalMaxRunAgeHours = request.CalMaxRunAgeHours;
 
         await _db.SaveChangesAsync();
+
         return Ok(ApiResponse<object>.Ok(entity));
     }
 
@@ -2091,5 +2269,142 @@ public class MasterDataController : ControllerBase
 
         await _db.SaveChangesAsync();
         return Ok(ApiResponse<object>.Ok(new { }));
+    }
+
+    // ---- Test Analytes (ICP-OES / Calibration Curve) ----
+    [HttpGet("test-definitions/{id:int}/analytes")]
+    public async Task<IActionResult> GetTestAnalytes(int id)
+    {
+        var test = await _db.TestDefinitions.FindAsync(id)
+            ?? throw new InvalidOperationException($"Test {id} not found.");
+
+        var analytes = await _db.TestAnalytes
+            .Where(a => a.TestDefinitionId == id)
+            .OrderBy(a => a.DisplayOrder)
+            .ThenBy(a => a.Id)
+            .ToListAsync();
+
+        return Ok(ApiResponse<object>.Ok(analytes.Select(TestAnalyteDto.From)));
+    }
+
+    [Authorize(Roles = RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
+    [HttpPost("test-definitions/{id:int}/analytes")]
+    public async Task<IActionResult> CreateTestAnalyte(int id, CreateTestAnalyteRequest request)
+    {
+        var test = await _db.TestDefinitions.FindAsync(id)
+            ?? throw new InvalidOperationException($"Test {id} not found.");
+
+        var scope = await _scope.GetAccessibleSectionIdsAsync(CurrentUserId);
+        if (scope is not null && !scope.Contains(test.SectionId))
+            throw new UnauthorizedAccessException("This test belongs to a laboratory section you are not assigned to.");
+
+        if (string.IsNullOrWhiteSpace(request.Element))
+            throw new InvalidOperationException("Element is required.");
+
+        var element = request.Element.Trim();
+        if (element.Length > 20)
+            throw new InvalidOperationException("Element symbol cannot exceed 20 characters.");
+
+        if (request.WavelengthNm <= 0)
+            throw new InvalidOperationException("Wavelength must be greater than 0.");
+
+        if (request.LoqMgPerL <= 0)
+            throw new InvalidOperationException("LOQ must be greater than 0.");
+
+        if (await _db.TestAnalytes.AnyAsync(a => a.TestDefinitionId == id && a.Element == element && a.WavelengthNm == request.WavelengthNm))
+            throw new InvalidOperationException($"Analyte {element} at {request.WavelengthNm} nm already exists for this test definition.");
+
+        var entity = new TestAnalyte
+        {
+            TestDefinitionId = id,
+            Element = element,
+            WavelengthNm = request.WavelengthNm,
+            View = request.View,
+            LoqMgPerL = request.LoqMgPerL,
+            DisplayOrder = request.DisplayOrder,
+            IsActive = true
+        };
+
+        _db.TestAnalytes.Add(entity);
+        await _db.SaveChangesAsync();
+        return Ok(ApiResponse<object>.Ok(TestAnalyteDto.From(entity)));
+    }
+
+    [Authorize(Roles = RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
+    [HttpPut("test-definitions/{id:int}/analytes/{analyteId:int}")]
+    public async Task<IActionResult> UpdateTestAnalyte(int id, int analyteId, UpdateTestAnalyteRequest request)
+    {
+        var test = await _db.TestDefinitions.FindAsync(id)
+            ?? throw new InvalidOperationException($"Test {id} not found.");
+
+        var scope = await _scope.GetAccessibleSectionIdsAsync(CurrentUserId);
+        if (scope is not null && !scope.Contains(test.SectionId))
+            throw new UnauthorizedAccessException("This test belongs to a laboratory section you are not assigned to.");
+
+        var analyte = await _db.TestAnalytes.FirstOrDefaultAsync(a => a.Id == analyteId && a.TestDefinitionId == id)
+            ?? throw new InvalidOperationException($"Analyte {analyteId} not found for test {id}.");
+
+        var effectiveElement = request.Element != null ? request.Element.Trim() : analyte.Element;
+        var effectiveWavelength = request.WavelengthNm ?? analyte.WavelengthNm;
+
+        if (string.IsNullOrWhiteSpace(effectiveElement))
+            throw new InvalidOperationException("Element is required.");
+        if (effectiveElement.Length > 20)
+            throw new InvalidOperationException("Element symbol cannot exceed 20 characters.");
+        if (effectiveWavelength <= 0)
+            throw new InvalidOperationException("Wavelength must be greater than 0.");
+
+        if (await _db.TestAnalytes.AnyAsync(a => a.TestDefinitionId == id && a.Id != analyteId && a.Element == effectiveElement && a.WavelengthNm == effectiveWavelength))
+            throw new InvalidOperationException($"Analyte {effectiveElement} at {effectiveWavelength} nm already exists for this test definition.");
+
+        analyte.Element = effectiveElement;
+        analyte.WavelengthNm = effectiveWavelength;
+        if (request.View.HasValue) analyte.View = request.View.Value;
+        if (request.LoqMgPerL.HasValue)
+        {
+            if (request.LoqMgPerL.Value <= 0)
+                throw new InvalidOperationException("LOQ must be greater than 0.");
+            analyte.LoqMgPerL = request.LoqMgPerL.Value;
+        }
+        if (request.DisplayOrder.HasValue) analyte.DisplayOrder = request.DisplayOrder.Value;
+        if (request.IsActive.HasValue) analyte.IsActive = request.IsActive.Value;
+
+        await _db.SaveChangesAsync();
+        return Ok(ApiResponse<object>.Ok(TestAnalyteDto.From(analyte)));
+    }
+
+    [Authorize(Roles = RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
+    [HttpDelete("test-definitions/{id:int}/analytes/{analyteId:int}")]
+    public async Task<IActionResult> DeleteTestAnalyte(int id, int analyteId)
+    {
+        var test = await _db.TestDefinitions.FindAsync(id)
+            ?? throw new InvalidOperationException($"Test {id} not found.");
+
+        var scope = await _scope.GetAccessibleSectionIdsAsync(CurrentUserId);
+        if (scope is not null && !scope.Contains(test.SectionId))
+            throw new UnauthorizedAccessException("This test belongs to a laboratory section you are not assigned to.");
+
+        var analyte = await _db.TestAnalytes.FirstOrDefaultAsync(a => a.Id == analyteId && a.TestDefinitionId == id)
+            ?? throw new InvalidOperationException($"Analyte {analyteId} not found for test {id}.");
+
+        var inUse = await _db.CalibrationRunAnalytes.AnyAsync(r => r.TestAnalyteId == analyteId);
+        if (inUse)
+        {
+            analyte.IsActive = false;
+            await _db.SaveChangesAsync();
+            return Ok(ApiResponse<object>.Ok(new
+            {
+                message = $"Analyte {analyte.Element} ({analyte.WavelengthNm} nm) is referenced by calibration runs and has been deactivated instead of deleted.",
+                deactivated = true
+            }));
+        }
+
+        _db.TestAnalytes.Remove(analyte);
+        await _db.SaveChangesAsync();
+        return Ok(ApiResponse<object>.Ok(new
+        {
+            message = $"Analyte {analyte.Element} ({analyte.WavelengthNm} nm) deleted successfully.",
+            deleted = true
+        }));
     }
 }

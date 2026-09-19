@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Application.Services;
@@ -152,8 +153,30 @@ public static class TestServiceFactory
 
     public static MediaIncubationConditionService MediaIncubationCondition(MicroLimsDbContext db) => new(db);
 
-    public static SystemSuitabilityService SystemSuitability(MicroLimsDbContext db, IUserSectionScopeService? scope = null, IElectronicSignatureService? signatures = null) =>
-        new(db, signatures ?? new ElectronicSignatureService(db), scope ?? new UserSectionScopeService(db));
+    public static SystemSuitabilityService SystemSuitability(
+        MicroLimsDbContext db,
+        IUserSectionScopeService? scope = null,
+        IElectronicSignatureService? signatures = null,
+        ILabClock? clock = null) =>
+        new(db,
+            signatures ?? new ElectronicSignatureService(db),
+            scope ?? new UserSectionScopeService(db),
+            clock);
+
+    public static CalibrationRunService CalibrationRun(
+        MicroLimsDbContext db,
+        IFileStorageService? storage = null,
+        IUserSectionScopeService? scope = null,
+        IElectronicSignatureService? signatures = null,
+        ILogger<CalibrationRunService>? logger = null,
+        ILabClock? clock = null) =>
+        new(db,
+            storage ?? new InMemoryFileStorageService(),
+            signatures ?? new ElectronicSignatureService(db),
+            scope ?? new UserSectionScopeService(db),
+            logger ?? NullLogger<CalibrationRunService>.Instance,
+            clock);
+
 
     public static DocumentSection EnsureMicroSection(MicroLimsDbContext db)
     {

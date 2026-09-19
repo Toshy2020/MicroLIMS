@@ -14,5 +14,8 @@ public enum SignatureMeaning
     SampleVoided,
     MasterDataChanged,
     SuitabilityRunPerformed,
-    ResultRecorded
+    ResultRecorded,
+    CalibrationRunPerformed,
+    CalibrationRunWithdrawn
 }
+

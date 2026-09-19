@@ -5,5 +5,6 @@ public enum CdsSoftware
 {
     ShimadzuLabSolutions,
     AgilentOpenLab,
-    WatersEmpower3
+    WatersEmpower3,
+    PerkinElmerSyngistix
 }

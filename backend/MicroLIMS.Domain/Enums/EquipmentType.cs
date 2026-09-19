@@ -10,5 +10,6 @@ public enum EquipmentType
     Other,
     Hplc,
     PhMeter,
-    Balance
+    Balance,
+    IcpOes
 }

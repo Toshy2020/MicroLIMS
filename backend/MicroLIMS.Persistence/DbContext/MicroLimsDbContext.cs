@@ -74,6 +74,11 @@ public class MicroLimsDbContext : Microsoft.EntityFrameworkCore.DbContext
     public DbSet<ChromatographyColumn> ChromatographyColumns => Set<ChromatographyColumn>();
     public DbSet<SystemSuitabilityRun> SystemSuitabilityRuns => Set<SystemSuitabilityRun>();
     public DbSet<HplcAssayResult> HplcAssayResults => Set<HplcAssayResult>();
+    public DbSet<TestAnalyte> TestAnalytes => Set<TestAnalyte>();
+    public DbSet<CalibrationRun> CalibrationRuns => Set<CalibrationRun>();
+    public DbSet<CalibrationRunDocument> CalibrationRunDocuments => Set<CalibrationRunDocument>();
+    public DbSet<CalibrationRunAnalyte> CalibrationRunAnalytes => Set<CalibrationRunAnalyte>();
+    public DbSet<CalibrationRunCheck> CalibrationRunChecks => Set<CalibrationRunCheck>();
     public DbSet<IncubatorSetPointHistory> IncubatorSetPointHistories => Set<IncubatorSetPointHistory>();
     public DbSet<AutoclaveProgram> AutoclavePrograms => Set<AutoclaveProgram>();
     public DbSet<AutoclaveProgramHistory> AutoclaveProgramHistories => Set<AutoclaveProgramHistory>();

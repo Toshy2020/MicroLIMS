@@ -8,15 +8,36 @@ namespace MicroLIMS.Application.Helpers;
 // Continuous per (MethodAbbreviation, calendar year), resetting in January.
 public static class SystemSuitabilityRunCode
 {
+    public static Task<string> NextAsync(
+        IQueryable<string> issuedCodes,
+        string methodAbbreviation,
+        DateTime performedAt,
+        CancellationToken ct = default) =>
+        NextAsync(issuedCodes, methodAbbreviation, performedAt, "S.S", ct);
+
+    public static Task<string> NextAsync(
+        IQueryable<string> issuedCodes,
+        string methodAbbreviation,
+        DateTime performedAtUtc,
+        MicroLIMS.Application.Interfaces.ILabClock clock,
+        string infix = "S.S",
+        CancellationToken ct = default)
+    {
+        var localTime = clock.ToLabLocal(performedAtUtc);
+        return NextAsync(issuedCodes, methodAbbreviation, localTime, infix, ct);
+    }
+
     public static async Task<string> NextAsync(
         IQueryable<string> issuedCodes,
         string methodAbbreviation,
         DateTime performedAt,
+        string infix,
         CancellationToken ct = default)
+
     {
         var yearStr = performedAt.ToString("yyyy", CultureInfo.InvariantCulture);
         var mm = performedAt.ToString("MM", CultureInfo.InvariantCulture);
-        var head = $"{methodAbbreviation} S.S ";
+        var head = $"{methodAbbreviation} {infix} ";
 
         List<string> sameSeries;
         try

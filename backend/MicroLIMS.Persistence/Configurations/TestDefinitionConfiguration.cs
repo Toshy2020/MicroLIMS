@@ -25,5 +25,17 @@ public class TestDefinitionConfiguration : IEntityTypeConfiguration<TestDefiniti
         builder.Property(t => t.SstMinResolution).HasPrecision(18, 4);
         builder.Property(t => t.SstMaxTailingFactor).HasPrecision(18, 4);
         builder.Property(t => t.SstMinTheoreticalPlates).HasPrecision(18, 4);
+
+        builder.Property(t => t.CalMinCorrelation).HasPrecision(10, 6);
+        builder.Property(t => t.CalCheckRecoveryLowPercent).HasPrecision(18, 4);
+        builder.Property(t => t.CalCheckRecoveryHighPercent).HasPrecision(18, 4);
+        builder.Property(t => t.CalBlankMax).HasPrecision(18, 6);
+        builder.Property(t => t.CalIsRecoveryLowPercent).HasPrecision(18, 4);
+        builder.Property(t => t.CalIsRecoveryHighPercent).HasPrecision(18, 4);
+
+        builder.HasMany(t => t.Analytes)
+            .WithOne(a => a.TestDefinition)
+            .HasForeignKey(a => a.TestDefinitionId)
+            .OnDelete(DeleteBehavior.Restrict);
     }
 }

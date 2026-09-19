@@ -15,16 +15,20 @@ public class SystemSuitabilityService : ISystemSuitabilityService
     private readonly MicroLimsDbContext _db;
     private readonly IElectronicSignatureService _signatureService;
     private readonly IUserSectionScopeService _scope;
+    private readonly ILabClock _clock;
 
     public SystemSuitabilityService(
         MicroLimsDbContext db,
         IElectronicSignatureService signatureService,
-        IUserSectionScopeService scope)
+        IUserSectionScopeService scope,
+        ILabClock? clock = null)
     {
         _db = db;
         _signatureService = signatureService;
         _scope = scope;
+        _clock = clock ?? LabClock.Default;
     }
+
 
     public static (bool Passed, string? FailureReasons) EvaluateAcceptanceCriteria(
         TestDefinition test,
@@ -184,7 +188,7 @@ public class SystemSuitabilityService : ISystemSuitabilityService
             request.Comment,
             ipAddress);
 
-        var now = DateTime.UtcNow;
+        var now = _clock.UtcNow.UtcDateTime;
         var methodAbbr = test.MethodAbbreviation.Trim().ToUpperInvariant();
 
         var run = new SystemSuitabilityRun
@@ -214,6 +218,8 @@ public class SystemSuitabilityService : ISystemSuitabilityService
             _db.SystemSuitabilityRuns.Select(r => r.Code),
             methodAbbr,
             run.PerformedAt,
+            _clock,
+            "S.S",
             ct);
 
         _db.SystemSuitabilityRuns.Add(run);
@@ -226,7 +232,10 @@ public class SystemSuitabilityService : ISystemSuitabilityService
                 _db.SystemSuitabilityRuns.Select(r => r.Code),
                 methodAbbr,
                 run.PerformedAt,
+                _clock,
+                "S.S",
                 ct);
+
 
             if (!await UniqueIndexSave.TrySaveChangesAsync(_db, SystemSuitabilityRunConfiguration.CodeIndexName))
             {

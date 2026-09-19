@@ -118,8 +118,15 @@ public static class ServiceCollectionExtensions
         services.AddScoped<EquipmentInventoryService>();
         services.AddScoped<EquipmentConfigurationService>();
         services.AddScoped<ChromatographyColumnService>();
+        services.AddSingleton(TimeProvider.System);
+        services.AddSingleton<ILabClock>(sp => new LabClock(
+            sp.GetRequiredService<TimeProvider>(),
+            sp.GetRequiredService<Microsoft.Extensions.Configuration.IConfiguration>()));
+
         services.AddScoped<ISystemSuitabilityService, SystemSuitabilityService>();
         services.AddScoped<SystemSuitabilityService>();
+        services.AddScoped<ICalibrationRunService, CalibrationRunService>();
+        services.AddScoped<CalibrationRunService>();
         services.AddScoped<PathogenSessionService>();
         services.AddScoped<LocationPathogenObservationService>();
         services.AddScoped<ConfirmationAgreementEvaluator>();

@@ -44,4 +44,24 @@ public class TestDefinition
     public decimal? SstMinResolution { get; set; }
     public decimal? SstMaxTailingFactor { get; set; }
     public decimal? SstMinTheoreticalPlates { get; set; }
+
+    // Finished Product / ICP-OES Calibration Curve criteria
+    public CalibrationEntryMode? CalibrationEntryMode { get; set; }
+    public decimal? CalMinCorrelation { get; set; }
+    public CorrelationType? CalCorrelationType { get; set; }
+    public int? CalMinStandards { get; set; }
+    public decimal? CalCheckRecoveryLowPercent { get; set; }
+    public decimal? CalCheckRecoveryHighPercent { get; set; }
+    public decimal? CalBlankMax { get; set; }
+    public decimal? CalIsRecoveryLowPercent { get; set; }
+    public decimal? CalIsRecoveryHighPercent { get; set; }
+    public bool? CalRequireBlank { get; set; }
+    public bool? CalRequireIcv { get; set; }
+    public bool? CalRequireCcv { get; set; }
+    public bool? CalRequireInternalStandard { get; set; }
+    public ReportedConcentrationBasis? ReportedConcentrationBasis { get; set; }
+    public int? CalMaxRunAgeHours { get; set; } = 24;
+
+    public List<TestAnalyte> Analytes { get; set; } = new();
 }
+

@@ -15,6 +15,8 @@ import BugReportOutlinedIcon from "@mui/icons-material/BugReportOutlined";
 import SettingsOutlinedIcon from "@mui/icons-material/SettingsOutlined";
 import PeopleAltOutlinedIcon from "@mui/icons-material/PeopleAltOutlined";
 import AdminPanelSettingsOutlinedIcon from "@mui/icons-material/AdminPanelSettingsOutlined";
+import BiotechOutlinedIcon from "@mui/icons-material/BiotechOutlined";
+import MedicationOutlinedIcon from "@mui/icons-material/MedicationOutlined";
 import { Role } from "../modules/authentication/types/authTypes";
 
 export interface MenuItem {
@@ -56,26 +58,39 @@ const inventoryItem: MenuItem = {
   ]
 };
 
-const laboratoryConfigurationItem: MenuItem = {
-  label: "Laboratory Configuration",
-  icon: SettingsOutlinedIcon,
+// Laboratory configuration, grouped by lab: shared pages first, then one
+// collapsible section per laboratory.
+const itemsConfigItem: MenuItem = { label: "Items", path: "/laboratory-configuration/items", icon: Inventory2OutlinedIcon, group: "LAB CONFIGURATION" };
+const receivingConfigItem: MenuItem = { label: "Receiving Configuration", path: "/laboratory-configuration/receiving-configuration", icon: FactCheckOutlinedIcon, group: "LAB CONFIGURATION" };
+
+const microConfigurationItem: MenuItem = {
+  label: "Microbiology Configuration",
+  icon: BiotechOutlinedIcon,
   group: "LAB CONFIGURATION",
   children: [
-    { label: "Micro Test Master", path: "/laboratory-configuration/test-master" },
-    { label: "FP Test Master", path: "/laboratory-configuration/fp-test-master" },
-    { label: "Equation Types", path: "/laboratory-configuration/equation-types" },
+    { label: "Test Master", path: "/laboratory-configuration/test-master" },
     { label: "Organisms", path: "/laboratory-configuration/organisms" },
-    { label: "Items", path: "/laboratory-configuration/items" },
     { label: "Media Configurations", path: "/laboratory-configuration/media-configurations" },
     { label: "Water", path: "/laboratory-configuration/water" },
     { label: "Environmental Monitoring", path: "/laboratory-configuration/environmental-monitoring" },
     { label: "After Cleaning", path: "/laboratory-configuration/after-cleaning" },
-    { label: "Receiving Configuration", path: "/laboratory-configuration/receiving-configuration" },
-    { label: "Equipment", path: "/laboratory-configuration/equipment" },
+    { label: "Equipment", path: "/laboratory-configuration/equipment" }
+  ]
+};
+
+const fpConfigurationItem: MenuItem = {
+  label: "F.P. Configuration",
+  icon: MedicationOutlinedIcon,
+  group: "LAB CONFIGURATION",
+  children: [
+    { label: "FP Test Master", path: "/laboratory-configuration/fp-test-master" },
+    { label: "Equation Types", path: "/laboratory-configuration/equation-types" },
     { label: "FP Instruments", path: "/laboratory-configuration/fp-instruments" },
     { label: "Chromatography Columns", path: "/laboratory-configuration/columns" }
   ]
 };
+
+const laboratoryConfigurationItems: MenuItem[] = [itemsConfigItem, receivingConfigItem, microConfigurationItem, fpConfigurationItem];
 
 const usersItem: MenuItem = { label: "Users", path: "/users", icon: PeopleAltOutlinedIcon, group: "ADMINISTRATION" };
 const rolesItem: MenuItem = { label: "Roles", path: "/roles", icon: AdminPanelSettingsOutlinedIcon, group: "ADMINISTRATION" };
@@ -151,7 +166,7 @@ const menuByRole: Record<Role, MenuItem[]> = {
     cryovialsItem,
     systemSuitabilityItem,
     inventoryItem,
-    laboratoryConfigurationItem,
+    ...laboratoryConfigurationItems,
     reportsItem,
     auditSearchItem,
     oosTrackingItem
@@ -164,7 +179,7 @@ const menuByRole: Record<Role, MenuItem[]> = {
     cryovialsItem,
     systemSuitabilityItem,
     inventoryItem,
-    laboratoryConfigurationItem,
+    ...laboratoryConfigurationItems,
     usersItem,
     rolesItem,
     reportsItem,

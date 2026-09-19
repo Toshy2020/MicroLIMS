@@ -155,7 +155,11 @@ public record CreateTestDefinitionRequest(
     int? ReplicateCount = null,
     MeasurementEvaluationBasis? EvaluationBasis = null,
     string? ConditionFields = null,
-    bool? UsesTare = null);
+    bool? UsesTare = null,
+    decimal? DissolutionS1Offset = null,
+    decimal? DissolutionS2MinOffset = null,
+    decimal? DissolutionS3MinOffset = null,
+    decimal? DissolutionS3MaxBelowS2Min = null);
 // SectionId: move the test to another laboratory section (null = keep). Test
 // orders already created keep the section they were created with.
 public record UpdateTestDefinitionRequest(
@@ -188,7 +192,11 @@ public record UpdateTestDefinitionRequest(
     int? ReplicateCount = null,
     MeasurementEvaluationBasis? EvaluationBasis = null,
     string? ConditionFields = null,
-    bool? UsesTare = null);
+    bool? UsesTare = null,
+    decimal? DissolutionS1Offset = null,
+    decimal? DissolutionS2MinOffset = null,
+    decimal? DissolutionS3MinOffset = null,
+    decimal? DissolutionS3MaxBelowS2Min = null);
 public record UpdateWorkflowTypeRequest(WorkflowType WorkflowType);
 
 public record StepMediaRequest(int MaterialId, bool IsRequired, int DisplayOrder, int? MediaIncubationConditionId);
@@ -1878,6 +1886,31 @@ public class MasterDataController : ControllerBase
                 throw new InvalidOperationException("Equation type must be Qualitative when workflow type is Qualitative.");
         }
 
+        if (request.EquationType == EquationType.Dissolution)
+        {
+            if (request.WorkflowType != WorkflowType.Dissolution)
+                throw new InvalidOperationException("Workflow type must be Dissolution when equation type is Dissolution.");
+        }
+        else if (request.WorkflowType == WorkflowType.Dissolution)
+        {
+            if (request.EquationType != EquationType.Dissolution)
+                throw new InvalidOperationException("Equation type must be Dissolution when workflow type is Dissolution.");
+        }
+
+        if (request.WorkflowType == WorkflowType.Dissolution)
+        {
+            if (!request.RequiresSystemSuitability)
+                throw new InvalidOperationException("Dissolution tests must require system suitability: the standard comes from the linked suitability run.");
+
+            decimal s1 = request.DissolutionS1Offset ?? 5m;
+            decimal s2 = request.DissolutionS2MinOffset ?? 15m;
+            decimal s3 = request.DissolutionS3MinOffset ?? 25m;
+            decimal maxBelow = request.DissolutionS3MaxBelowS2Min ?? 2m;
+
+            if (s1 < 0 || s2 < 0 || s3 < 0 || maxBelow < 0)
+                throw new InvalidOperationException("Dissolution stage offsets must be greater than or equal to zero.");
+        }
+
         var entity = new TestDefinition
         {
             Code = request.Code,
@@ -1909,7 +1942,11 @@ public class MasterDataController : ControllerBase
             ReplicateCount = request.ReplicateCount,
             EvaluationBasis = request.EvaluationBasis,
             ConditionFields = request.ConditionFields,
-            UsesTare = request.WorkflowType == WorkflowType.Gravimetric ? (request.UsesTare ?? false) : request.UsesTare
+            UsesTare = request.WorkflowType == WorkflowType.Gravimetric ? (request.UsesTare ?? false) : request.UsesTare,
+            DissolutionS1Offset = request.WorkflowType == WorkflowType.Dissolution ? (request.DissolutionS1Offset ?? 5m) : request.DissolutionS1Offset,
+            DissolutionS2MinOffset = request.WorkflowType == WorkflowType.Dissolution ? (request.DissolutionS2MinOffset ?? 15m) : request.DissolutionS2MinOffset,
+            DissolutionS3MinOffset = request.WorkflowType == WorkflowType.Dissolution ? (request.DissolutionS3MinOffset ?? 25m) : request.DissolutionS3MinOffset,
+            DissolutionS3MaxBelowS2Min = request.WorkflowType == WorkflowType.Dissolution ? (request.DissolutionS3MaxBelowS2Min ?? 2m) : request.DissolutionS3MaxBelowS2Min
         };
         _db.TestDefinitions.Add(entity);
         await _db.SaveChangesAsync();
@@ -2075,6 +2112,34 @@ public class MasterDataController : ControllerBase
                 throw new InvalidOperationException("Equation type must be Qualitative when workflow type is Qualitative.");
         }
 
+        if (effectiveEquationType == EquationType.Dissolution)
+        {
+            if (effectiveWorkflowType != WorkflowType.Dissolution)
+                throw new InvalidOperationException("Workflow type must be Dissolution when equation type is Dissolution.");
+        }
+        else if (effectiveWorkflowType == WorkflowType.Dissolution)
+        {
+            if (effectiveEquationType != EquationType.Dissolution)
+                throw new InvalidOperationException("Equation type must be Dissolution when workflow type is Dissolution.");
+        }
+
+        if (effectiveWorkflowType == WorkflowType.Dissolution)
+        {
+            if (!effectiveRequiresSst)
+                throw new InvalidOperationException("Dissolution tests must require system suitability: the standard comes from the linked suitability run.");
+
+            var effectiveS1 = request.DissolutionS1Offset ?? entity.DissolutionS1Offset;
+            var effectiveS2 = request.DissolutionS2MinOffset ?? entity.DissolutionS2MinOffset;
+            var effectiveS3 = request.DissolutionS3MinOffset ?? entity.DissolutionS3MinOffset;
+            var effectiveMaxBelow = request.DissolutionS3MaxBelowS2Min ?? entity.DissolutionS3MaxBelowS2Min;
+
+            if (!effectiveS1.HasValue || !effectiveS2.HasValue || !effectiveS3.HasValue || !effectiveMaxBelow.HasValue)
+                throw new InvalidOperationException("Dissolution stage offsets are required for Dissolution tests.");
+
+            if (effectiveS1.Value < 0 || effectiveS2.Value < 0 || effectiveS3.Value < 0 || effectiveMaxBelow.Value < 0)
+                throw new InvalidOperationException("Dissolution stage offsets must be greater than or equal to zero.");
+        }
+
         entity.Code = request.Code;
         entity.DisplayName = request.DisplayName;
         if (request.WorkflowType.HasValue) entity.WorkflowType = request.WorkflowType.Value;
@@ -2105,6 +2170,14 @@ public class MasterDataController : ControllerBase
         if (request.ConditionFields != null) entity.ConditionFields = request.ConditionFields;
         if (request.UsesTare.HasValue) entity.UsesTare = request.UsesTare.Value;
         else if (effectiveWorkflowType == WorkflowType.Gravimetric && !entity.UsesTare.HasValue) entity.UsesTare = false;
+        if (request.DissolutionS1Offset.HasValue) entity.DissolutionS1Offset = request.DissolutionS1Offset.Value;
+        else if (effectiveWorkflowType == WorkflowType.Dissolution && !entity.DissolutionS1Offset.HasValue) entity.DissolutionS1Offset = 5m;
+        if (request.DissolutionS2MinOffset.HasValue) entity.DissolutionS2MinOffset = request.DissolutionS2MinOffset.Value;
+        else if (effectiveWorkflowType == WorkflowType.Dissolution && !entity.DissolutionS2MinOffset.HasValue) entity.DissolutionS2MinOffset = 15m;
+        if (request.DissolutionS3MinOffset.HasValue) entity.DissolutionS3MinOffset = request.DissolutionS3MinOffset.Value;
+        else if (effectiveWorkflowType == WorkflowType.Dissolution && !entity.DissolutionS3MinOffset.HasValue) entity.DissolutionS3MinOffset = 25m;
+        if (request.DissolutionS3MaxBelowS2Min.HasValue) entity.DissolutionS3MaxBelowS2Min = request.DissolutionS3MaxBelowS2Min.Value;
+        else if (effectiveWorkflowType == WorkflowType.Dissolution && !entity.DissolutionS3MaxBelowS2Min.HasValue) entity.DissolutionS3MaxBelowS2Min = 2m;
 
         await _db.SaveChangesAsync();
 

@@ -9,5 +9,6 @@ public enum LimitType
     CountTiered = 4,
     Qualitative = 5,
     PresenceAbsence = 6,
-    MultiStage = 7
+    MultiStage = 7,
+    DissolutionQ = 8
 }

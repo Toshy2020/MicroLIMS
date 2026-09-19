@@ -206,15 +206,23 @@ public class SampleApprovalService
                 var analysisOrders = currentOrders.Where(o => testAnalysisCodes.ContainsKey(o.TestCode)).ToList();
                 foreach (var analysisOrder in analysisOrders)
                 {
-                    var hasActiveEntry = await _db.TestAnalyses
-                        .AnyAsync(e => e.TestOrderId == analysisOrder.Id && e.IsActive);
+                    var activeAnalyses = await _db.TestAnalyses
+                        .Include(e => e.ParameterResults)
+                        .Where(e => e.TestOrderId == analysisOrder.Id && e.IsActive)
+                        .ToListAsync();
 
-                    if (!hasActiveEntry)
+                    if (activeAnalyses.Count == 0)
                     {
                         var wfType = testAnalysisCodes[analysisOrder.TestCode];
                         var displayName = AnalysisWorkflows.GetDisplayName(wfType);
                         throw new InvalidOperationException(
                             $"Cannot approve section: test order {analysisOrder.Id} (\"{analysisOrder.TestCode}\") lacks an active {displayName} entry.");
+                    }
+
+                    if (activeAnalyses.Any(e => e.ParameterResults.Any(pr => pr.ComparisonStatus == "NextStageRequired")))
+                    {
+                        throw new InvalidOperationException(
+                            $"Cannot approve section: test order {analysisOrder.Id} (\"{analysisOrder.TestCode}\") has a pending stage.");
                     }
                 }
             }

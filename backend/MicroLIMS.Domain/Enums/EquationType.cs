@@ -9,5 +9,6 @@ public enum EquationType
     Measurement,
     GravimetricLoss,
     GravimetricResidue,
-    Qualitative
+    Qualitative,
+    Dissolution
 }

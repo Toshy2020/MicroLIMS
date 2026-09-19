@@ -70,6 +70,12 @@ public class TestDefinition
     public string? ConditionFields { get; set; }
     public bool? UsesTare { get; set; }
 
+    // Finished Product / Dissolution criteria
+    public decimal? DissolutionS1Offset { get; set; }
+    public decimal? DissolutionS2MinOffset { get; set; }
+    public decimal? DissolutionS3MinOffset { get; set; }
+    public decimal? DissolutionS3MaxBelowS2Min { get; set; }
+
     public List<TestAnalyte> Analytes { get; set; } = new();
 }
 

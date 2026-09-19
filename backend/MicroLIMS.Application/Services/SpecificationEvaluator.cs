@@ -75,6 +75,7 @@ public static class SpecificationEvaluator
             case LimitType.Qualitative:
             case LimitType.PresenceAbsence:
             case LimitType.MultiStage:
+            case LimitType.DissolutionQ:
                 throw new InvalidOperationException($"Specification limit type '{spec.LimitType}' is not numeric and cannot be evaluated against a numeric value.");
 
             default:

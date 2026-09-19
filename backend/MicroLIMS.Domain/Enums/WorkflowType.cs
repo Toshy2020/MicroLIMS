@@ -8,5 +8,6 @@ public enum WorkflowType
     ElementalAssay, // Finished Product ICP-OES elemental assay workflow
     Measurement,
     Gravimetric,
-    Qualitative
+    Qualitative,
+    Dissolution
 }

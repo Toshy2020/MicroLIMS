@@ -48,6 +48,7 @@ public class SpecificationService
             LimitType.PresenceAbsence => spec.ExpectedState == ExpectedPresence.Presence ? "Present" : "Absent",
             LimitType.MultiStage => string.Empty,
             LimitType.CountTiered => spec.SpecLimit ?? string.Empty,
+            LimitType.DissolutionQ => $"Q = {spec.LowerLimit?.ToString(CultureInfo.InvariantCulture)} %",
             _ => spec.SpecLimit ?? string.Empty
         };
     }
@@ -122,6 +123,15 @@ public class SpecificationService
                     throw new InvalidOperationException("Acceptance criteria text is required for every stage.");
                 break;
 
+            case LimitType.DissolutionQ:
+                if (!spec.LowerLimit.HasValue || spec.LowerLimit.Value <= 0 || spec.LowerLimit.Value > 100)
+                    throw new InvalidOperationException("Lower limit (Q) must be between 0 and 100 (exclusive of 0, inclusive of 100) for DissolutionQ specifications.");
+                if (!spec.LabelClaim.HasValue || spec.LabelClaim.Value <= 0)
+                    throw new InvalidOperationException("Label claim must be greater than zero for DissolutionQ specifications.");
+                if (string.IsNullOrWhiteSpace(spec.LabelClaimUnit) || spec.LabelClaimUnit.Trim() != "mg")
+                    throw new InvalidOperationException("Label claim unit must be \"mg\" for DissolutionQ specifications.");
+                break;
+
             case LimitType.CountTiered:
                 break;
 
@@ -151,6 +161,22 @@ public class SpecificationService
 
         var testDef = await _db.TestDefinitions
             .FirstOrDefaultAsync(t => t.Code == spec.TestCode, cancellationToken);
+
+        if (spec.LimitType == LimitType.DissolutionQ)
+        {
+            if (testDef == null || testDef.WorkflowType != WorkflowType.Dissolution)
+                throw new InvalidOperationException("DissolutionQ specifications are only allowed for Dissolution tests.");
+
+            var duplicateDissolution = await _db.Specifications.AnyAsync(
+                s => s.ItemId == spec.ItemId && s.TestCode == spec.TestCode && s.Id != spec.Id,
+                cancellationToken);
+            if (duplicateDissolution)
+                throw new InvalidOperationException($"Only one specification is allowed for Dissolution test '{spec.TestCode}' on this item.");
+        }
+        else if (testDef?.WorkflowType == WorkflowType.Dissolution)
+        {
+            throw new InvalidOperationException("Only DissolutionQ specifications are allowed for Dissolution tests.");
+        }
 
         if (testDef?.EquationType == EquationType.CalibrationCurve)
         {
@@ -190,6 +216,17 @@ public class SpecificationService
                 if (!spec.LabelClaim.HasValue || spec.LabelClaim.Value <= 0)
                     throw new InvalidOperationException("Label claim must be greater than zero when result basis is PercentLabelClaim.");
             }
+        }
+        else if (testDef?.WorkflowType == WorkflowType.Dissolution || spec.LimitType == LimitType.DissolutionQ)
+        {
+            if (spec.TestAnalyteId.HasValue)
+                throw new InvalidOperationException("Test analyte is only allowed for Calibration Curve specifications.");
+            if (spec.ResultBasis.HasValue)
+                throw new InvalidOperationException("Result basis is only allowed for Calibration Curve specifications.");
+            if (spec.SampleMatrix.HasValue)
+                throw new InvalidOperationException("Sample matrix is only allowed for Calibration Curve specifications.");
+            if (spec.ConversionFactor != 1.0m)
+                throw new InvalidOperationException("Conversion factor must be 1.0 for Dissolution specifications.");
         }
         else
         {

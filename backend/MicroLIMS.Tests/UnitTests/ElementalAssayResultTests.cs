@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using MicroLIMS.Application.DTOs;
 using MicroLIMS.Application.Helpers;
 using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Application.Services;
@@ -146,6 +147,20 @@ public class ElementalAssayResultTests
         db.SaveChanges();
 
         var calTime = calibrationAt ?? DateTime.UtcNow.AddHours(-2);
+        var sig = new ElectronicSignature
+        {
+            UserId = fpAnalyst.Id,
+            UserFullNameSnapshot = fpAnalyst.FullName,
+            UsernameSnapshot = fpAnalyst.Username,
+            RoleSnapshot = "Analyst",
+            SignedAt = calTime,
+            MeaningOfSignature = SignatureMeaning.CalibrationRunPerformed,
+            EntityType = nameof(CalibrationRun),
+            EntityId = 1
+        };
+        db.ElectronicSignatures.Add(sig);
+        db.SaveChanges();
+
         var run = new CalibrationRun
         {
             Code = "ICP-MIN CAL 01/092026",
@@ -156,12 +171,27 @@ public class ElementalAssayResultTests
             CalibrationAt = calTime,
             PerformedByUserId = fpAnalyst.Id,
             PerformedAt = calTime,
+            SignatureId = sig.Id,
             Status = CalibrationRunStatus.Active,
             Passed = true,
             AnalytesPassed = 2,
             AnalytesTotal = 2
         };
         db.CalibrationRuns.Add(run);
+        db.SaveChanges();
+
+        var doc = new CalibrationRunDocument
+        {
+            CalibrationRunId = run.Id,
+            OriginalFileName = "cal_report.pdf",
+            ContentType = "application/pdf",
+            SizeBytes = 1024,
+            StorageKey = "cal_report.pdf",
+            ContentSha256 = "abc",
+            UploadedByUserId = fpAnalyst.Id,
+            UploadedAt = calTime
+        };
+        db.CalibrationRunDocuments.Add(doc);
         db.SaveChanges();
 
         var runZn = new CalibrationRunAnalyte
@@ -1098,5 +1128,459 @@ public class ElementalAssayResultTests
         };
         var ex8 = await Assert.ThrowsAsync<InvalidOperationException>(() => specService.ValidateAsync(nonCalSpec));
         Assert.Contains("Test analyte is only allowed for Calibration Curve specifications", ex8.Message);
+    }
+
+    private static User SeedSectionHead(MicroLimsDbContext db, DocumentSection section)
+    {
+        var headRole = db.Roles.FirstOrDefault(r => r.Type == RoleType.SectionHead)
+            ?? db.Roles.Add(new Role { Name = "Section Head", Type = RoleType.SectionHead, IsActive = true }).Entity;
+        db.SaveChanges();
+
+        var passwordHash = BCrypt.Net.BCrypt.HashPassword("ValidPassword123!");
+        var head = new User
+        {
+            Username = "fp_head_" + Guid.NewGuid().ToString("N")[..6],
+            FullName = "FP Section Head",
+            RoleId = headRole.Id,
+            Role = headRole,
+            PasswordHash = passwordHash,
+            IsActive = true
+        };
+        db.Users.Add(head);
+        db.SaveChanges();
+
+        db.UserOrgMemberships.Add(new UserOrgMembership { UserId = head.Id, DepartmentId = section.DepartmentId, SectionId = section.Id });
+        db.SaveChanges();
+
+        return head;
+    }
+
+    [Fact]
+    public async Task S3b_ApprovalGate_BlockedWithoutActiveEntry()
+    {
+        using var db = NewDb();
+        var calTime = DateTime.UtcNow.AddHours(-1);
+        var (sec, _, fpReviewer, testDef, _, _, _, _) = SeedElementalPrerequisites(db, calTime);
+        var (sample, order, _) = SeedSampleAndOrder(db, sec, testDef);
+        var fpHead = SeedSectionHead(db, sec);
+
+        order.CurrentStep = WorkflowStep.Reviewed;
+        order.Status = ApprovalStatus.Approved;
+        sample.Status = SampleStatus.UnderReview;
+
+        db.SampleSectionSignoffs.Add(new SampleSectionSignoff
+        {
+            SampleId = sample.Id,
+            SectionId = sec.Id,
+            Status = SectionSignoffStatus.UnderApproval,
+            ReviewedByUserId = fpReviewer.Id
+        });
+        db.SaveChanges();
+
+        var approvalService = TestServiceFactory.SampleApproval(db);
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+            () => approvalService.DecideAsync(sample.Id, fpHead.Id, "ValidPassword123!", ApprovalDecision.Approve, "approve", "127.0.0.1", sectionId: sec.Id));
+
+        Assert.Contains("lacks an active elemental assay entry", ex.Message);
+    }
+
+    [Fact]
+    public async Task S3b_ApprovalGate_EnteringSectionHeadCannotApprove()
+    {
+        using var db = NewDb();
+        var calTime = DateTime.UtcNow.AddHours(-1);
+        var (sec, _, fpReviewer, testDef, _, run, znAnalyte, caAnalyte) = SeedElementalPrerequisites(db, calTime);
+        var (sample, order, item) = SeedSampleAndOrder(db, sec, testDef);
+        var fpHead = SeedSectionHead(db, sec);
+
+        var runZn = db.CalibrationRunAnalytes.First(a => a.CalibrationRunId == run.Id && a.TestAnalyteId == znAnalyte.Id);
+        var runCa = db.CalibrationRunAnalytes.First(a => a.CalibrationRunId == run.Id && a.TestAnalyteId == caAnalyte.Id);
+
+        var znSpec = new Specification
+        {
+            ItemId = item.Id,
+            TestCode = testDef.Code,
+            ParameterName = "Zinc Assay",
+            TestAnalyteId = znAnalyte.Id,
+            SampleMatrix = SampleMatrix.Solid,
+            ResultBasis = ResultBasis.PercentLabelClaim,
+            LabelClaim = 10.0m,
+            LabelClaimUnit = "mg",
+            ConversionFactor = 1.0m,
+            LimitType = LimitType.Range,
+            LowerLimit = 90.0m,
+            UpperLimit = 110.0m,
+            Unit = "%"
+        };
+        var caSpec = new Specification
+        {
+            ItemId = item.Id,
+            TestCode = testDef.Code,
+            ParameterName = "Calcium Assay",
+            TestAnalyteId = caAnalyte.Id,
+            SampleMatrix = SampleMatrix.Solid,
+            ResultBasis = ResultBasis.PercentLabelClaim,
+            LabelClaim = 100.0m,
+            LabelClaimUnit = "mg",
+            ConversionFactor = 1.0m,
+            LimitType = LimitType.Range,
+            LowerLimit = 90.0m,
+            UpperLimit = 110.0m,
+            Unit = "%"
+        };
+        db.Specifications.AddRange(znSpec, caSpec);
+        db.SaveChanges();
+
+        // Record entry as fpHead
+        var engine = TestServiceFactory.TestWorkflow(db);
+        var payload = new ElementalAssayPayload(
+            UnitAmount: 1.2500m,
+            AnalysedAt: calTime.AddMinutes(10),
+            Elements: new List<ElementalAssayElementInput>
+            {
+                new(znSpec.Id, runZn.Id, 8500m, false, false),
+                new(caSpec.Id, runCa.Id, 80000m, false, false)
+            },
+            Password: "ValidPassword123!");
+
+        await engine.RecordElementalAssayResultAsync(order.Id, payload, fpHead.Id);
+
+        // Move to UnderApproval
+        order.CurrentStep = WorkflowStep.Reviewed;
+        var signoff = SampleSectionRollup.GetOrAdd(sample, sec.Id);
+        signoff.Status = SectionSignoffStatus.UnderApproval;
+        signoff.ReviewedByUserId = fpReviewer.Id;
+        sample.Status = SampleStatus.UnderApproval;
+        db.SaveChanges();
+
+        var approvalService = TestServiceFactory.SampleApproval(db);
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+            () => approvalService.DecideAsync(sample.Id, fpHead.Id, "ValidPassword123!", ApprovalDecision.Approve, "approve", "127.0.0.1", sectionId: sec.Id));
+
+        Assert.Contains("You cannot approve a sample you tested.", ex.Message);
+    }
+
+    [Fact]
+    public async Task S3b_ReturnToAnalyst_DeactivatesActiveEntryAndResults_SetsStepToRunning()
+    {
+        using var db = NewDb();
+        var calTime = DateTime.UtcNow.AddHours(-1);
+        var (sec, analyst, fpReviewer, testDef, _, run, znAnalyte, caAnalyte) = SeedElementalPrerequisites(db, calTime);
+        var (sample, order, item) = SeedSampleAndOrder(db, sec, testDef);
+
+        var runZn = db.CalibrationRunAnalytes.First(a => a.CalibrationRunId == run.Id && a.TestAnalyteId == znAnalyte.Id);
+        var runCa = db.CalibrationRunAnalytes.First(a => a.CalibrationRunId == run.Id && a.TestAnalyteId == caAnalyte.Id);
+
+        var znSpec = new Specification
+        {
+            ItemId = item.Id,
+            TestCode = testDef.Code,
+            ParameterName = "Zinc Assay",
+            TestAnalyteId = znAnalyte.Id,
+            SampleMatrix = SampleMatrix.Solid,
+            ResultBasis = ResultBasis.PercentLabelClaim,
+            LabelClaim = 10.0m,
+            LabelClaimUnit = "mg",
+            ConversionFactor = 1.0m,
+            LimitType = LimitType.Range,
+            LowerLimit = 90.0m,
+            UpperLimit = 110.0m,
+            Unit = "%"
+        };
+        var caSpec = new Specification
+        {
+            ItemId = item.Id,
+            TestCode = testDef.Code,
+            ParameterName = "Calcium Assay",
+            TestAnalyteId = caAnalyte.Id,
+            SampleMatrix = SampleMatrix.Solid,
+            ResultBasis = ResultBasis.PercentLabelClaim,
+            LabelClaim = 100.0m,
+            LabelClaimUnit = "mg",
+            ConversionFactor = 1.0m,
+            LimitType = LimitType.Range,
+            LowerLimit = 90.0m,
+            UpperLimit = 110.0m,
+            Unit = "%"
+        };
+        db.Specifications.AddRange(znSpec, caSpec);
+        db.SaveChanges();
+
+        var engine = TestServiceFactory.TestWorkflow(db);
+        var payload = new ElementalAssayPayload(
+            UnitAmount: 1.2500m,
+            AnalysedAt: calTime.AddMinutes(10),
+            Elements: new List<ElementalAssayElementInput>
+            {
+                new(znSpec.Id, runZn.Id, 8500m, false, false),
+                new(caSpec.Id, runCa.Id, 80000m, false, false)
+            },
+            Password: "ValidPassword123!");
+
+        await engine.RecordElementalAssayResultAsync(order.Id, payload, analyst.Id);
+
+        var entry = await db.ElementalAssayEntries.Include(e => e.Results).FirstAsync(e => e.TestOrderId == order.Id);
+        Assert.True(entry.IsActive);
+        Assert.All(entry.Results, r => Assert.True(r.IsActive));
+
+        var reviewService = TestServiceFactory.Review(db);
+        await reviewService.ReturnToAnalystAsync(order.Id, fpReviewer.Id, "Recalibration required");
+
+        var reloadedEntry = await db.ElementalAssayEntries.Include(e => e.Results).FirstAsync(e => e.TestOrderId == order.Id);
+        Assert.False(reloadedEntry.IsActive);
+        Assert.All(reloadedEntry.Results, r => Assert.False(r.IsActive));
+
+        var reloadedOrder = await db.TestOrders.FindAsync(order.Id);
+        Assert.Equal(WorkflowStep.Running, reloadedOrder!.CurrentStep);
+    }
+
+    [Fact]
+    public async Task S3b_Projection_CreatesOneResultRecordPerElement()
+    {
+        using var db = NewDb();
+        var calTime = DateTime.UtcNow.AddHours(-1);
+        var (sec, analyst, _, testDef, _, run, znAnalyte, caAnalyte) = SeedElementalPrerequisites(db, calTime);
+        var (sample, order, item) = SeedSampleAndOrder(db, sec, testDef);
+
+        var runZn = db.CalibrationRunAnalytes.First(a => a.CalibrationRunId == run.Id && a.TestAnalyteId == znAnalyte.Id);
+        var runCa = db.CalibrationRunAnalytes.First(a => a.CalibrationRunId == run.Id && a.TestAnalyteId == caAnalyte.Id);
+
+        var znSpec = new Specification
+        {
+            ItemId = item.Id,
+            TestCode = testDef.Code,
+            ParameterName = "Zinc Assay",
+            TestAnalyteId = znAnalyte.Id,
+            SampleMatrix = SampleMatrix.Solid,
+            ResultBasis = ResultBasis.PercentLabelClaim,
+            LabelClaim = 10.0m,
+            LabelClaimUnit = "mg",
+            ConversionFactor = 1.0m,
+            LimitType = LimitType.Range,
+            LowerLimit = 90.0m,
+            UpperLimit = 110.0m,
+            Unit = "%"
+        };
+        var caSpec = new Specification
+        {
+            ItemId = item.Id,
+            TestCode = testDef.Code,
+            ParameterName = "Calcium Assay",
+            TestAnalyteId = caAnalyte.Id,
+            SampleMatrix = SampleMatrix.Solid,
+            ResultBasis = ResultBasis.PercentLabelClaim,
+            LabelClaim = 100.0m,
+            LabelClaimUnit = "mg",
+            ConversionFactor = 1.0m,
+            LimitType = LimitType.Range,
+            LowerLimit = 90.0m,
+            UpperLimit = 110.0m,
+            Unit = "%"
+        };
+        db.Specifications.AddRange(znSpec, caSpec);
+        db.SaveChanges();
+
+        var engine = TestServiceFactory.TestWorkflow(db);
+        var payload = new ElementalAssayPayload(
+            UnitAmount: 1.2500m,
+            AnalysedAt: calTime.AddMinutes(10),
+            Elements: new List<ElementalAssayElementInput>
+            {
+                new(znSpec.Id, runZn.Id, 8500m, false, false),
+                new(caSpec.Id, runCa.Id, 80000m, false, false)
+            },
+            Password: "ValidPassword123!");
+
+        await engine.RecordElementalAssayResultAsync(order.Id, payload, analyst.Id);
+
+        var records = await db.ResultRecords.Where(r => r.SourceTable == "ElementalAssayResult" && r.TestOrderId == order.Id).ToListAsync();
+        Assert.Equal(2, records.Count);
+
+        var znRecord = records.FirstOrDefault(r => r.ReportedValue == "106.3 %");
+        Assert.NotNull(znRecord);
+        Assert.Equal(106.25m, znRecord.NumericValue);
+        Assert.Equal("%", znRecord.Unit);
+        Assert.Equal(ResultKind.Quantitative, znRecord.ResultKind);
+        Assert.Equal(ResultLevel.WithinLimit, znRecord.ResultLevel);
+        Assert.Equal("FP Analyst", znRecord.ResultEnteredByName);
+        Assert.False(znRecord.IsBelowDetectionLimit);
+
+        var caRecord = records.FirstOrDefault(r => r.ReportedValue == "100.0 %");
+        Assert.NotNull(caRecord);
+        Assert.Equal(100.0m, caRecord.NumericValue);
+        Assert.Equal("%", caRecord.Unit);
+        Assert.Equal(ResultKind.Quantitative, caRecord.ResultKind);
+        Assert.Equal(ResultLevel.WithinLimit, caRecord.ResultLevel);
+    }
+
+    [Fact]
+    public async Task S3b_Summary_CarriesElementDetails_AndNamesAreNotUnknown()
+    {
+        using var db = NewDb();
+        var calTime = DateTime.UtcNow.AddHours(-1);
+        var (sec, analyst, _, testDef, _, run, znAnalyte, caAnalyte) = SeedElementalPrerequisites(db, calTime);
+        var (sample, order, item) = SeedSampleAndOrder(db, sec, testDef);
+
+        var runZn = db.CalibrationRunAnalytes.First(a => a.CalibrationRunId == run.Id && a.TestAnalyteId == znAnalyte.Id);
+        var runCa = db.CalibrationRunAnalytes.First(a => a.CalibrationRunId == run.Id && a.TestAnalyteId == caAnalyte.Id);
+
+        var znSpec = new Specification
+        {
+            ItemId = item.Id,
+            TestCode = testDef.Code,
+            ParameterName = "Zinc Assay",
+            TestAnalyteId = znAnalyte.Id,
+            SampleMatrix = SampleMatrix.Solid,
+            ResultBasis = ResultBasis.PercentLabelClaim,
+            LabelClaim = 10.0m,
+            LabelClaimUnit = "mg",
+            ConversionFactor = 1.0m,
+            LimitType = LimitType.Range,
+            LowerLimit = 90.0m,
+            UpperLimit = 110.0m,
+            Unit = "%"
+        };
+        var caSpec = new Specification
+        {
+            ItemId = item.Id,
+            TestCode = testDef.Code,
+            ParameterName = "Calcium Assay",
+            TestAnalyteId = caAnalyte.Id,
+            SampleMatrix = SampleMatrix.Solid,
+            ResultBasis = ResultBasis.PercentLabelClaim,
+            LabelClaim = 100.0m,
+            LabelClaimUnit = "mg",
+            ConversionFactor = 1.0m,
+            LimitType = LimitType.Range,
+            LowerLimit = 90.0m,
+            UpperLimit = 110.0m,
+            Unit = "%"
+        };
+        db.Specifications.AddRange(znSpec, caSpec);
+        db.SaveChanges();
+
+        var engine = TestServiceFactory.TestWorkflow(db);
+        var payload = new ElementalAssayPayload(
+            UnitAmount: 1.2500m,
+            AnalysedAt: calTime.AddMinutes(10),
+            Elements: new List<ElementalAssayElementInput>
+            {
+                new(znSpec.Id, runZn.Id, 8500m, false, false),
+                new(caSpec.Id, runCa.Id, 80000m, false, false)
+            },
+            Password: "ValidPassword123!");
+
+        await engine.RecordElementalAssayResultAsync(order.Id, payload, analyst.Id);
+
+        var summaryService = TestServiceFactory.SampleSummary(db);
+        var summary = await summaryService.GetSummaryAsync(sample.Id);
+        Assert.NotNull(summary);
+
+        var orderDto = summary.TestOrders.First(o => o.TestOrderId == order.Id);
+        Assert.NotNull(orderDto.ElementalAssay);
+        Assert.Equal(SampleMatrix.Solid, orderDto.ElementalAssay.SampleMatrix);
+        Assert.Equal(1.2500m, orderDto.ElementalAssay.UnitAmount);
+        Assert.Equal("g", orderDto.ElementalAssay.UnitAmountUnit);
+        Assert.Equal("FP Analyst", orderDto.ElementalAssay.EnteredByName);
+        Assert.NotEqual("Unknown", orderDto.ElementalAssay.EnteredByName);
+
+        Assert.Equal(2, orderDto.ElementalAssay.Elements.Count);
+        var znElem = orderDto.ElementalAssay.Elements.First(e => e.Element == "Zn");
+        Assert.Equal("Zinc Assay", znElem.ParameterName);
+        Assert.Equal(run.Code, znElem.RunCode);
+        Assert.True(znElem.RunAnalytePassed);
+        Assert.Equal(8500m, znElem.ReportedPpm);
+        Assert.Equal(10.625m, znElem.MgPerUnit);
+        Assert.Equal(10.625m, znElem.ResultClaim);
+        Assert.Equal(106.25m, znElem.PercentLabelClaim);
+        Assert.Equal("106.3 %", znElem.ReportedDisplay);
+        Assert.Equal("WithinLimits", znElem.Status);
+
+        var reportLines = SampleSummaryService.BuildReportLines(summary);
+        var exportText = string.Join("\n", reportLines);
+        Assert.Contains("FINAL RESULT (ELEMENTAL ASSAY)", exportText);
+        Assert.Contains("Zn: 8500 ppm x 1.25 g / 1000 = 10.625 mg, Claim: 10.625, %LC: 106.25 %, Status: WithinLimits", exportText);
+    }
+
+    [Fact]
+    public async Task S3b_Withdrawal_FlagsUnapprovedResults_AndListsApprovedOnes()
+    {
+        using var db = NewDb();
+        var calTime = DateTime.UtcNow.AddHours(-1);
+        var (sec, analyst, _, testDef, _, run, znAnalyte, caAnalyte) = SeedElementalPrerequisites(db, calTime);
+        var fpHead = SeedSectionHead(db, sec);
+
+        var (sample1, order1, item1) = SeedSampleAndOrder(db, sec, testDef);
+        var (sample2, order2, item2) = SeedSampleAndOrder(db, sec, testDef);
+
+        var runZn = db.CalibrationRunAnalytes.First(a => a.CalibrationRunId == run.Id && a.TestAnalyteId == znAnalyte.Id);
+
+        var spec1 = new Specification
+        {
+            ItemId = item1.Id,
+            TestCode = testDef.Code,
+            ParameterName = "Zinc Assay 1",
+            TestAnalyteId = znAnalyte.Id,
+            SampleMatrix = SampleMatrix.Solid,
+            ResultBasis = ResultBasis.MgPerKg,
+            ConversionFactor = 1.0m,
+            LimitType = LimitType.Range,
+            LowerLimit = 100m,
+            UpperLimit = 10000m,
+            Unit = "mg/kg"
+        };
+        var spec2 = new Specification
+        {
+            ItemId = item2.Id,
+            TestCode = testDef.Code,
+            ParameterName = "Zinc Assay 2",
+            TestAnalyteId = znAnalyte.Id,
+            SampleMatrix = SampleMatrix.Solid,
+            ResultBasis = ResultBasis.MgPerKg,
+            ConversionFactor = 1.0m,
+            LimitType = LimitType.Range,
+            LowerLimit = 100m,
+            UpperLimit = 10000m,
+            Unit = "mg/kg"
+        };
+        db.Specifications.AddRange(spec1, spec2);
+        db.SaveChanges();
+
+        var engine = TestServiceFactory.TestWorkflow(db);
+
+        // Record for order 1 (remains unapproved)
+        var payload1 = new ElementalAssayPayload(1.0m, calTime.AddMinutes(10), new List<ElementalAssayElementInput> { new(spec1.Id, runZn.Id, 500m, false, false) }, "ValidPassword123!");
+        await engine.RecordElementalAssayResultAsync(order1.Id, payload1, analyst.Id);
+
+        // Record for order 2 and approve it
+        var payload2 = new ElementalAssayPayload(1.0m, calTime.AddMinutes(10), new List<ElementalAssayElementInput> { new(spec2.Id, runZn.Id, 500m, false, false) }, "ValidPassword123!");
+        await engine.RecordElementalAssayResultAsync(order2.Id, payload2, analyst.Id);
+
+        sample2.Status = SampleStatus.Approved;
+        order2.Status = ApprovalStatus.Approved;
+        order2.CurrentStep = WorkflowStep.Approved;
+        db.SaveChanges();
+
+        // Withdraw run
+        var calService = TestServiceFactory.CalibrationRun(db);
+        var withdrawn = await calService.WithdrawAsync(
+            run.Id,
+            new WithdrawCalibrationRunRequest("Analytical standard contaminated", "ValidPassword123!"),
+            fpHead.Id,
+            "127.0.0.1");
+
+        // Order 1 result should be flagged RequiresReview and ReportedDisplay unchanged
+        var res1 = await db.ElementalAssayResults.FirstAsync(r => r.TestOrderId == order1.Id);
+        Assert.Equal("RequiresReview", res1.ComparisonStatus);
+        Assert.Equal("500.0 mg/kg", res1.ReportedDisplay);
+
+        // Order 2 (approved) should be listed in AffectedApprovedOrders
+        Assert.Single(withdrawn.AffectedApprovedOrders);
+        var affected = withdrawn.AffectedApprovedOrders.First();
+        Assert.Equal(sample2.ReferenceNumber, affected.SampleReference);
+        Assert.Equal(testDef.Code, affected.TestCode);
+        Assert.Equal("Zn", affected.Element);
     }
 }

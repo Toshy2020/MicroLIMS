@@ -46,5 +46,13 @@ public class CalibrationRun
 
     public CalibrationRunDocument? Document { get; set; }
     public List<CalibrationRunAnalyte> Analytes { get; set; } = new();
+
+    [System.ComponentModel.DataAnnotations.Schema.NotMapped]
+    public List<AffectedApprovedOrder> AffectedApprovedOrders { get; set; } = new();
 }
+
+public record AffectedApprovedOrder(
+    string SampleReference,
+    string TestCode,
+    string Element);
 

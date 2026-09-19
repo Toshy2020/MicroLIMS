@@ -87,7 +87,7 @@ public class CalibrationRunController : ControllerBase
     public async Task<IActionResult> Withdraw(int id, [FromBody] WithdrawCalibrationRunRequest request)
     {
         var run = await _service.WithdrawAsync(id, request, CurrentUserId, ClientIpAddress);
-        return Ok(ApiResponse<object>.Ok(CalibrationRunView.From(run)));
+        return Ok(ApiResponse<object>.Ok(CalibrationRunWithdrawResponse.From(run)));
     }
 
     // List Calibration Runs with filters and section scoping

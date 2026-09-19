@@ -111,8 +111,8 @@ public class ReviewService
         var definition = await _db.TestDefinitions.FirstOrDefaultAsync(d => d.Code == order.TestCode)
             ?? throw new InvalidOperationException($"Test definition \"{order.TestCode}\" not found.");
 
-        if (definition.WorkflowType != WorkflowType.CountTest && definition.WorkflowType != WorkflowType.HplcAssay)
-            throw new InvalidOperationException($"Return to Analyst is only supported for Count Test and HPLC Assay workflows. \"{order.TestCode}\" is a {definition.WorkflowType} workflow.");
+        if (definition.WorkflowType != WorkflowType.CountTest && definition.WorkflowType != WorkflowType.HplcAssay && definition.WorkflowType != WorkflowType.ElementalAssay)
+            throw new InvalidOperationException($"Return to Analyst is only supported for Count Test, HPLC Assay, and Elemental Assay workflows. \"{order.TestCode}\" is a {definition.WorkflowType} workflow.");
 
         if (definition.WorkflowType == WorkflowType.CountTest)
         {
@@ -149,6 +149,26 @@ public class ReviewService
                 r.IsActive = false;
             }
         }
+        else if (definition.WorkflowType == WorkflowType.ElementalAssay)
+        {
+            // 1. Soft-supersede all active ElementalAssayEntry rows for this test order
+            var activeEntries = await _db.ElementalAssayEntries
+                .Where(e => e.TestOrderId == testOrderId && e.IsActive)
+                .ToListAsync();
+            foreach (var e in activeEntries)
+            {
+                e.IsActive = false;
+            }
+
+            // 2. Soft-supersede all active ElementalAssayResult rows for this test order
+            var activeResults = await _db.ElementalAssayResults
+                .Where(r => r.TestOrderId == testOrderId && r.IsActive)
+                .ToListAsync();
+            foreach (var r in activeResults)
+            {
+                r.IsActive = false;
+            }
+        }
 
         // 3. If this test's section was auto-submitted for review, send the
         // section back to testing and roll the sample status up again
@@ -163,7 +183,7 @@ public class ReviewService
             ? "Returned to analyst by reviewer"
             : $"Returned to analyst: {reason.Trim()}";
 
-        var targetStep = definition.WorkflowType == WorkflowType.HplcAssay
+        var targetStep = (definition.WorkflowType == WorkflowType.HplcAssay || definition.WorkflowType == WorkflowType.ElementalAssay)
             ? WorkflowStep.Running
             : WorkflowStep.Incubating;
 

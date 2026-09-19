@@ -1,4 +1,6 @@
 using MicroLIMS.Domain.Entities;
+using MicroLIMS.Domain.Enums;
+
 namespace MicroLIMS.Application.DTOs;
 
 // Everything the floating Sample Summary page (reviewer/Section Head)
@@ -115,6 +117,8 @@ public class TestOrderSummaryDetailDto
     public List<CountTestReadingDetailDto> CountTestReadings { get; set; } = new();
     // HPLC Assay only - the active (not returned) result, null otherwise.
     public HplcAssayDetailDto? HplcAssay { get; set; }
+    // Elemental Assay only - the active (not returned) entry and results, null otherwise.
+    public ElementalAssayDetailDto? ElementalAssay { get; set; }
     public List<PathogenObservationDetailDto> PathogenObservations { get; set; } = new();
     public List<BiochemicalResultDetailDto> BiochemicalResults { get; set; } = new();
     public List<WorkflowHistoryDetailDto> WorkflowHistory { get; set; } = new();
@@ -226,6 +230,35 @@ public class HplcAssayDetailDto
     public decimal? SstMinResolution { get; set; }
     public decimal? SstMaxTailingFactor { get; set; }
     public decimal? SstMinTheoreticalPlates { get; set; }
+}
+
+public class ElementalAssayDetailDto
+{
+    public SampleMatrix SampleMatrix { get; set; }
+    public decimal UnitAmount { get; set; }
+    public string UnitAmountUnit { get; set; } = string.Empty;
+    public DateTime AnalysedAt { get; set; }
+    public string? EnteredByName { get; set; }
+    public DateTime EnteredAt { get; set; }
+    public List<ElementalAssayElementDetailDto> Elements { get; set; } = new();
+}
+
+public class ElementalAssayElementDetailDto
+{
+    public string ParameterName { get; set; } = string.Empty;
+    public string Element { get; set; } = string.Empty;
+    public string RunCode { get; set; } = string.Empty;
+    public bool RunAnalytePassed { get; set; }
+    public decimal ReportedPpm { get; set; }
+    public bool OverRange { get; set; }
+    public bool BelowLoq { get; set; }
+    public decimal? MgPerUnit { get; set; }
+    public decimal? ResultClaim { get; set; }
+    public decimal? PercentLabelClaim { get; set; }
+    public string ReportedDisplay { get; set; } = string.Empty;
+    public string? SpecLimit { get; set; }
+    public string? Unit { get; set; }
+    public string Status { get; set; } = string.Empty;
 }
 
 public class CountTestReadingDetailDto

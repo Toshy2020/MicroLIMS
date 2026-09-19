@@ -126,6 +126,37 @@ public class SampleSummaryService
                 r.EnteredByUserId, r.EnteredAt
             })
             .ToListAsync();
+        var elementalEntries = await _db.ElementalAssayEntries.AsNoTracking()
+            .Where(e => testOrderIds.Contains(e.TestOrderId) && e.IsActive)
+            .Select(e => new
+            {
+                e.TestOrderId,
+                e.SampleMatrix,
+                e.UnitAmount,
+                e.AnalysedAt,
+                e.EnteredByUserId,
+                e.EnteredAt,
+                Results = e.Results.Where(r => r.IsActive).Select(r => new
+                {
+                    r.ParameterName,
+                    r.Element,
+                    RunCode = r.CalibrationRunAnalyte != null && r.CalibrationRunAnalyte.CalibrationRun != null
+                        ? r.CalibrationRunAnalyte.CalibrationRun.Code
+                        : string.Empty,
+                    RunAnalytePassed = r.CalibrationRunAnalyte != null && r.CalibrationRunAnalyte.Passed,
+                    r.ReportedPpm,
+                    r.OverRange,
+                    r.BelowLoq,
+                    r.MgPerUnit,
+                    r.ResultClaim,
+                    r.PercentLabelClaim,
+                    r.ReportedDisplay,
+                    r.SpecLimit,
+                    r.Unit,
+                    r.ComparisonStatus
+                }).ToList()
+            })
+            .ToListAsync();
         var pathogenObservations = await _db.PathogenObservations.Where(p => testOrderIds.Contains(p.TestOrderId)).ToListAsync();
         var biochemicalResults = await _db.WorkflowStepResults
             .Where(r => testOrderIds.Contains(r.TestOrderId) && r.BiochemicalResultText != null)
@@ -201,6 +232,7 @@ public class SampleSummaryService
             .Concat(countTestReadings.Select(r => r.EnteredByUserId))
             .Concat(hplcResults.Select(h => h.EnteredByUserId))
             .Concat(hplcResults.Select(h => h.RunPerformedByUserId))
+            .Concat(elementalEntries.Select(e => e.EnteredByUserId))
             .Concat(pathogenObservations.Select(p => p.ObservedByUserId))
             .Concat(locationPathogenObservations.Select(o => o.ObservedByUserId))
             .Concat(workflowHistory.Select(w => w.PerformedByUserId))
@@ -535,6 +567,32 @@ public class SampleSummaryService
                     SstMaxTailingFactor = h.SstMaxTailingFactor,
                     SstMinTheoreticalPlates = h.SstMinTheoreticalPlates
                 }).FirstOrDefault(),
+                ElementalAssay = elementalEntries.Where(e => e.TestOrderId == order.Id).Select(e => new ElementalAssayDetailDto
+                {
+                    SampleMatrix = e.SampleMatrix,
+                    UnitAmount = e.UnitAmount,
+                    UnitAmountUnit = e.SampleMatrix == SampleMatrix.Solid ? "g" : "mL",
+                    AnalysedAt = e.AnalysedAt,
+                    EnteredByName = NameOf(e.EnteredByUserId),
+                    EnteredAt = e.EnteredAt,
+                    Elements = e.Results.Select(r => new ElementalAssayElementDetailDto
+                    {
+                        ParameterName = r.ParameterName,
+                        Element = r.Element,
+                        RunCode = r.RunCode,
+                        RunAnalytePassed = r.RunAnalytePassed,
+                        ReportedPpm = r.ReportedPpm,
+                        OverRange = r.OverRange,
+                        BelowLoq = r.BelowLoq,
+                        MgPerUnit = r.MgPerUnit,
+                        ResultClaim = r.ResultClaim,
+                        PercentLabelClaim = r.PercentLabelClaim,
+                        ReportedDisplay = r.ReportedDisplay,
+                        SpecLimit = r.SpecLimit,
+                        Unit = r.Unit,
+                        Status = r.ComparisonStatus
+                    }).ToList()
+                }).FirstOrDefault(),
                 PathogenObservations = pathogenObservations.Where(p => p.TestOrderId == order.Id).Select(p => new PathogenObservationDetailDto
                 {
                     StepName = p.StepName,
@@ -626,7 +684,7 @@ public class SampleSummaryService
     // SimplePdfWriter/SimpleDocxWriter expect - same shape as the 5
     // sections SampleSummaryDialog.tsx renders, so the export reads as
     // the same document, just on paper/in Word instead of a floating page.
-    private static List<string> BuildReportLines(SampleSummaryDto s)
+    public static List<string> BuildReportLines(SampleSummaryDto s)
     {
         var lines = new List<string>
         {
@@ -718,7 +776,7 @@ public class SampleSummaryService
             }
             else if (order.HplcAssay is { } hplc)
             {
-                string V(decimal? d) => d?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? "-";
+                string V(decimal? d) => ExportNumber(d);
                 lines.Add("  SYSTEM SUITABILITY:");
                 lines.Add($"    Run: {hplc.SuitabilityRunCode} ({(hplc.SuitabilityPassed ? "Passed" : "Failed")})   Performed By: {hplc.SuitabilityPerformedByName}   At: {FormatDateTime(hplc.SuitabilityPerformedAt)}");
                 lines.Add($"    Instrument: {hplc.EquipmentCode} {hplc.EquipmentName}   Column: {hplc.ColumnCode} {hplc.ColumnName}");
@@ -732,6 +790,19 @@ public class SampleSummaryService
                     lines.Add($"    Replicate {rep.ReplicateNumber}: ({V(rep.Area)} / {V(hplc.StandardMeanArea)}) x ({V(hplc.StandardWeightMg)} / {V(hplc.SampleWeightMg)}) x ({V(hplc.StandardPurityPercent)} / 100) x ({V(hplc.SampleDilution)} / {V(hplc.StandardDilution)}) x 100 = {V(Math.Round(rep.AssayPercent, 2))} %");
                 lines.Add($"    Mean Assay: {hplc.ReportedResult}   Spec: {FormatLimit(hplc.SpecLimit)}   Status: {hplc.Status}");
                 lines.Add($"    Entered By: {hplc.EnteredByName}   Entered At: {FormatDateTime(hplc.EnteredAt)}");
+            }
+            else if (order.ElementalAssay is { } elemental)
+            {
+                string V(decimal? d) => ExportNumber(d);
+                lines.Add("  FINAL RESULT (ELEMENTAL ASSAY):");
+                lines.Add($"    Matrix: {elemental.SampleMatrix}   Unit Amount: {V(elemental.UnitAmount)} {elemental.UnitAmountUnit}   Analysed At: {FormatDateTime(elemental.AnalysedAt)}");
+                lines.Add($"    Entered By: {elemental.EnteredByName}   Entered At: {FormatDateTime(elemental.EnteredAt)}");
+                foreach (var el in elemental.Elements)
+                {
+                    var claimStr = el.ResultClaim.HasValue ? V(el.ResultClaim) : "-";
+                    var plcStr = el.PercentLabelClaim.HasValue ? $"{V(el.PercentLabelClaim)} %" : "-";
+                    lines.Add($"    {el.Element}: {V(el.ReportedPpm)} ppm x {V(elemental.UnitAmount)} {elemental.UnitAmountUnit} / 1000 = {V(el.MgPerUnit)} mg, Claim: {claimStr}, %LC: {plcStr}, Status: {el.Status}");
+                }
             }
             else if (order.PathogenObservations.Count > 0)
             {
@@ -749,7 +820,7 @@ public class SampleSummaryService
                     lines.Add($"    {b.StepName}: {b.BiochemicalResultText}   Interpretation: {call}   Entered By: {b.SubmittedByName}   Entered At: {FormatDateTime(b.SubmittedAt)}");
                 }
             }
-            else if (order.Results.Count > 0)
+            else if (order.Results.Count > 0 && order.HplcAssay is null && order.ElementalAssay is null)
             {
                 lines.Add("  FINAL RESULT:");
                 foreach (var r in order.Results)
@@ -822,6 +893,11 @@ public class SampleSummaryService
             return loc.MachinePartConfiguration.MachinePart.Name ?? "—";
         return $"Location {loc.Id}";
     }
+
+    // Postgres numeric columns come back with their full scale (8500.000000);
+    // the export shows the value as entered/calculated, without trailing zeros.
+    private static string ExportNumber(decimal? d) =>
+        d is decimal v ? v.ToString("0.##########", System.Globalization.CultureInfo.InvariantCulture) : "-";
 
     public static string? FormatSpecificationsText(IReadOnlyList<Specification>? specs)
     {

@@ -170,7 +170,8 @@ public record CalibrationRunView(
     string? WithdrawalReason,
     int? WithdrawalSignatureId,
     CalibrationRunDocumentView? Document,
-    List<CalibrationRunAnalyteView> Analytes)
+    List<CalibrationRunAnalyteView> Analytes,
+    List<AffectedApprovedOrderDto>? AffectedApprovedOrders = null)
 {
     public static CalibrationRunView From(CalibrationRun r) => new(
         r.Id,
@@ -208,7 +209,28 @@ public record CalibrationRunView(
         r.WithdrawalReason,
         r.WithdrawalSignatureId,
         r.Document != null ? CalibrationRunDocumentView.From(r.Document) : null,
-        r.Analytes?.Select(CalibrationRunAnalyteView.From).ToList() ?? new List<CalibrationRunAnalyteView>());
+        r.Analytes?.Select(CalibrationRunAnalyteView.From).ToList() ?? new List<CalibrationRunAnalyteView>(),
+        r.AffectedApprovedOrders.Count > 0 ? r.AffectedApprovedOrders.Select(AffectedApprovedOrderDto.From).ToList() : null);
+}
+
+public record AffectedApprovedOrderDto(
+    string SampleReference,
+    string TestCode,
+    string Element)
+{
+    public string SampleReferenceNumber => SampleReference;
+
+    public static AffectedApprovedOrderDto From(MicroLIMS.Domain.Entities.AffectedApprovedOrder a) =>
+        new(a.SampleReference, a.TestCode, a.Element);
+}
+
+public record CalibrationRunWithdrawResponse(
+    CalibrationRunView Run,
+    List<AffectedApprovedOrderDto> AffectedApprovedOrders)
+{
+    public static CalibrationRunWithdrawResponse From(CalibrationRun r) => new(
+        CalibrationRunView.From(r),
+        r.AffectedApprovedOrders.Select(AffectedApprovedOrderDto.From).ToList());
 }
 
 public record CalibrationRunReportDetailsDto(

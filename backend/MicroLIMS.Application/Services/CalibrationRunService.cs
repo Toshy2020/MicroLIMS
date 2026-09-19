@@ -583,6 +583,55 @@ public class CalibrationRunService : ICalibrationRunService
         run.WithdrawalReason = request.Reason.Trim();
         run.WithdrawalSignature = signature;
 
+        // Withdrawal consequences on linked active elemental assay results:
+        // - Non-approved test orders: set ComparisonStatus = "RequiresReview" (ReportedDisplay unchanged)
+        // - Already-approved test orders: collect into AffectedApprovedOrders for notification/QA follow-up
+        var analyteIds = run.Analytes.Select(a => a.Id).ToList();
+        if (analyteIds.Count == 0)
+        {
+            analyteIds = await _db.CalibrationRunAnalytes
+                .Where(a => a.CalibrationRunId == run.Id)
+                .Select(a => a.Id)
+                .ToListAsync(ct);
+        }
+
+        var linkedResults = await _db.ElementalAssayResults
+            .Include(r => r.TestOrder!)
+                .ThenInclude(o => o.Sample)
+            .Where(r => r.IsActive && analyteIds.Contains(r.CalibrationRunAnalyteId))
+            .ToListAsync(ct);
+
+        var affectedApproved = new List<AffectedApprovedOrder>();
+
+        foreach (var elemResult in linkedResults)
+        {
+            var order = elemResult.TestOrder;
+            var isApproved = (order != null && (order.Status == ApprovalStatus.Approved || order.CurrentStep == WorkflowStep.Approved))
+                || (order?.Sample != null && order.Sample.Status == SampleStatus.Approved);
+
+            if (isApproved)
+            {
+                affectedApproved.Add(new AffectedApprovedOrder(
+                    order?.Sample?.ReferenceNumber ?? string.Empty,
+                    order?.TestCode ?? string.Empty,
+                    elemResult.Element));
+            }
+            else
+            {
+                elemResult.ComparisonStatus = "RequiresReview";
+
+                var projected = await _db.ResultRecords
+                    .FirstOrDefaultAsync(pr => pr.SourceTable == "ElementalAssayResult" && pr.SourceId == elemResult.Id, ct);
+                if (projected != null)
+                {
+                    projected.ResultLevel = ResultLevel.NotApplicable;
+                    projected.UpdatedAt = _clock.UtcNow.UtcDateTime;
+                }
+            }
+        }
+
+        run.AffectedApprovedOrders = affectedApproved;
+
         await _db.SaveChangesAsync(ct);
 
         _logger.LogInformation(

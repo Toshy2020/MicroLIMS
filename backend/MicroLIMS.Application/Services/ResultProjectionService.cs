@@ -212,6 +212,51 @@ public class ResultProjectionService
         record.UpdatedAt = DateTime.UtcNow;
     }
 
+    public async Task UpsertFromElementalAssayResultAsync(int elementalAssayResultId)
+    {
+        var elemResult = await _db.ElementalAssayResults
+            .Include(r => r.Entry)
+            .Include(r => r.TestOrder!).ThenInclude(o => o.Sample!).ThenInclude(s => s.Item)
+            .FirstOrDefaultAsync(r => r.Id == elementalAssayResultId)
+            ?? throw new InvalidOperationException($"ElementalAssayResult {elementalAssayResultId} not found.");
+
+        var order = elemResult.TestOrder ?? throw new InvalidOperationException($"ElementalAssayResult {elementalAssayResultId} has no TestOrder.");
+        var sample = order.Sample ?? throw new InvalidOperationException($"TestOrder {order.Id} has no Sample - cannot project ElementalAssayResult {elementalAssayResultId}.");
+        var entry = elemResult.Entry ?? await _db.ElementalAssayEntries.FirstOrDefaultAsync(e => e.Id == elemResult.EntryId)
+            ?? throw new InvalidOperationException($"ElementalAssayResult {elementalAssayResultId} has no Entry.");
+
+        var testDefinition = await _db.TestDefinitions.FirstOrDefaultAsync(t => t.Code == order.TestCode);
+        var enteredBy = await _db.Users.FirstOrDefaultAsync(u => u.Id == entry.EnteredByUserId);
+        var round = await ComputeRoundAsync(sample.Id, order.TestCode, order.Id);
+
+        var record = await GetOrCreateAsync("ElementalAssayResult", elemResult.Id, round);
+        record.SampleId = sample.Id;
+        record.TestOrderId = order.Id;
+        record.ReferenceNumber = sample.ReferenceNumber;
+        record.Category = sample.Category;
+        record.SubjectName = sample.Item?.Name ?? string.Empty;
+        record.SubjectDetail = null;
+        record.BatchNumber = sample.BatchNumber;
+        record.ControlNumber = sample.ControlNumber;
+        record.TestCode = order.TestCode;
+        record.TestDisplayName = testDefinition?.DisplayName ?? order.TestCode;
+        record.ResultKind = ResultKind.Quantitative;
+        record.NumericValue = elemResult.ReportedValue;
+        record.ReportedValue = elemResult.ReportedDisplay;
+        record.Unit = elemResult.Unit;
+        record.IsBelowDetectionLimit = elemResult.BelowLoq;
+        record.DetectionLimit = null;
+        record.AlertLimit = null;
+        record.ActionLimit = null;
+        record.SpecLimit = elemResult.SpecLimit;
+        record.ResultLevel = MapResultLevel(elemResult.ComparisonStatus);
+        record.ResultEnteredAt = entry.EnteredAt;
+        record.ResultEnteredByUserId = entry.EnteredByUserId;
+        record.ResultEnteredByName = enteredBy?.FullName ?? string.Empty;
+        record.SampleStatus = sample.Status;
+        record.UpdatedAt = DateTime.UtcNow;
+    }
+
     // Projects only the FINAL workflow step's outcome for a pathogen
     // TestOrder - intermediate stages (enrichment/selective/confirmatory
     // setup) are not independently reportable results, just chain
@@ -487,6 +532,24 @@ public class ResultProjectionService
             {
                 skipped++;
                 errors.Add($"HplcAssayResult {id}: {ex.Message}");
+            }
+        }
+
+        var elementalResultIds = await _db.ElementalAssayResults.Select(r => r.Id).ToListAsync();
+        _logger.LogInformation("ResultRecord backfill: projecting {Count} ElementalAssayResult rows.", elementalResultIds.Count);
+        foreach (var id in elementalResultIds)
+        {
+            var existedBefore = await _db.ResultRecords.AnyAsync(r => r.SourceTable == "ElementalAssayResult" && r.SourceId == id);
+            try
+            {
+                await UpsertFromElementalAssayResultAsync(id);
+                await _db.SaveChangesAsync();
+                if (existedBefore) updated++; else created++;
+            }
+            catch (InvalidOperationException ex)
+            {
+                skipped++;
+                errors.Add($"ElementalAssayResult {id}: {ex.Message}");
             }
         }
 

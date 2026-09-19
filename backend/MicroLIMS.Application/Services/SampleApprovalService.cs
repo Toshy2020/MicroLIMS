@@ -154,7 +154,8 @@ public class SampleApprovalService
             var enteredResult = await _db.Results.AnyAsync(r => r.TestOrderId == order.Id && r.EnteredByUserId == sectionHeadUserId)
                 || await _db.CountTestReadings.AnyAsync(r => r.TestOrderId == order.Id && r.EnteredByUserId == sectionHeadUserId)
                 || await _db.PathogenObservations.AnyAsync(p => p.TestOrderId == order.Id && p.ObservedByUserId == sectionHeadUserId)
-                || await _db.HplcAssayResults.AnyAsync(h => h.TestOrderId == order.Id && h.EnteredByUserId == sectionHeadUserId);
+                || await _db.HplcAssayResults.AnyAsync(h => h.TestOrderId == order.Id && h.EnteredByUserId == sectionHeadUserId)
+                || await _db.ElementalAssayEntries.AnyAsync(e => e.TestOrderId == order.Id && e.EnteredByUserId == sectionHeadUserId);
             if (enteredResult)
                 throw new InvalidOperationException("You cannot approve a sample you tested.");
         }
@@ -187,6 +188,27 @@ public class SampleApprovalService
                     {
                         throw new InvalidOperationException(
                             $"Cannot approve section: test order {hplcOrder.Id} (\"{hplcOrder.TestCode}\") lacks a linked passed system suitability run.");
+                    }
+                }
+            }
+
+            var elementalCodes = await _db.TestDefinitions
+                .Where(t => testCodes.Contains(t.Code) && t.WorkflowType == WorkflowType.ElementalAssay)
+                .Select(t => t.Code)
+                .ToListAsync();
+
+            if (elementalCodes.Count > 0)
+            {
+                var elementalOrders = currentOrders.Where(o => elementalCodes.Contains(o.TestCode)).ToList();
+                foreach (var elementalOrder in elementalOrders)
+                {
+                    var hasActiveEntry = await _db.ElementalAssayEntries
+                        .AnyAsync(e => e.TestOrderId == elementalOrder.Id && e.IsActive);
+
+                    if (!hasActiveEntry)
+                    {
+                        throw new InvalidOperationException(
+                            $"Cannot approve section: test order {elementalOrder.Id} (\"{elementalOrder.TestCode}\") lacks an active elemental assay entry.");
                     }
                 }
             }

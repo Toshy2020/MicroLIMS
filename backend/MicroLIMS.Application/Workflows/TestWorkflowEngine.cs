@@ -2358,6 +2358,12 @@ public class TestWorkflowEngine : ITestWorkflowEngine
 
         await _db.SaveChangesAsync();
 
+        foreach (var elemResult in elementResults)
+        {
+            await _resultProjection.UpsertFromElementalAssayResultAsync(elemResult.Id);
+        }
+        await _db.SaveChangesAsync();
+
         await WorkflowStateMachine.TransitionAsync(_db, order, WorkflowStep.Ready, userId, $"Elemental assay complete: {outcomeSummary}");
         await _sampleReviewService.AutoSubmitForReviewIfReadyAsync(order.SampleId, userId);
         await _db.SaveChangesAsync();

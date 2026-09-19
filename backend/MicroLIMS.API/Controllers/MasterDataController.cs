@@ -647,8 +647,7 @@ public class MasterDataController : ControllerBase
             spec.ActionLimit = request.ActionLimit;
         if (request.SpecLimit != null)
             spec.SpecLimit = request.SpecLimit;
-        if (request.Unit != null)
-            spec.Unit = request.Unit;
+        spec.Unit = request.Unit ?? string.Empty;
         spec.DilutionFactor = request.DilutionFactor;
 
         // Replace-all on stages

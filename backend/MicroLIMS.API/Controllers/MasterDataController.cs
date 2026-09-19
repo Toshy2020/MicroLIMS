@@ -28,8 +28,55 @@ public record UpdateMachineRequest(string Name);
 public record CreateMachinePartRequest(string Name, int MachineId);
 public record UpdateMachinePartRequest(string Name, int MachineId);
 public record UpdateMachinePartConfigRequest(string TestType, string TestCode, string AlertLimit, string ActionLimit, string SpecLimit, bool IsPathogenTest, string? Unit = null);
-public record CreateSpecificationRequest(int ItemId, string TestCode, string AlertLimit, string ActionLimit, string SpecLimit, string? Unit = null, decimal? DilutionFactor = null);
-public record UpdateSpecificationRequest(string TestCode, string AlertLimit, string ActionLimit, string SpecLimit, string? Unit = null, decimal? DilutionFactor = null);
+public record SpecificationStageDto(int? Id, int StageNumber, string StageLabel, string AcceptanceCriteriaText);
+public record CreateSpecificationRequest(
+    int ItemId,
+    string TestCode,
+    string? AlertLimit = null,
+    string? ActionLimit = null,
+    string? SpecLimit = null,
+    string? Unit = null,
+    decimal? DilutionFactor = null,
+    string? ParameterName = null,
+    int? DisplayOrder = null,
+    LimitType? LimitType = null,
+    string? ReferenceStandard = null,
+    decimal? LowerLimit = null,
+    decimal? UpperLimit = null,
+    bool? LowerInclusive = null,
+    bool? UpperInclusive = null,
+    decimal? Target = null,
+    decimal? Tolerance = null,
+    ToleranceMode? ToleranceMode = null,
+    string? ExpectedResultText = null,
+    ExpectedPresence? ExpectedState = null,
+    decimal? SampleQuantity = null,
+    string? SampleQuantityUnit = null,
+    List<SpecificationStageDto>? Stages = null);
+
+public record UpdateSpecificationRequest(
+    string TestCode,
+    string? AlertLimit = null,
+    string? ActionLimit = null,
+    string? SpecLimit = null,
+    string? Unit = null,
+    decimal? DilutionFactor = null,
+    string? ParameterName = null,
+    int? DisplayOrder = null,
+    LimitType? LimitType = null,
+    string? ReferenceStandard = null,
+    decimal? LowerLimit = null,
+    decimal? UpperLimit = null,
+    bool? LowerInclusive = null,
+    bool? UpperInclusive = null,
+    decimal? Target = null,
+    decimal? Tolerance = null,
+    ToleranceMode? ToleranceMode = null,
+    string? ExpectedResultText = null,
+    ExpectedPresence? ExpectedState = null,
+    decimal? SampleQuantity = null,
+    string? SampleQuantityUnit = null,
+    List<SpecificationStageDto>? Stages = null);
 public record CreateDiluentTypeRequest(string Name, bool RequiresBatchTracking, int? MaterialId);
 public record CreateEquipmentRequest(
     string Name,
@@ -120,6 +167,7 @@ public class MasterDataController : ControllerBase
     private readonly MediaIncubationConditionService _mediaIncubationConditionService;
     private readonly IUserSectionScopeService _scope;
     private readonly ChromatographyColumnService _columnService;
+    private readonly SpecificationService _specificationService;
 
     public MasterDataController(
         MicroLimsDbContext db,
@@ -127,7 +175,8 @@ public class MasterDataController : ControllerBase
         MediaProductService mediaProductService,
         MediaIncubationConditionService mediaIncubationConditionService,
         IUserSectionScopeService scope,
-        ChromatographyColumnService columnService)
+        ChromatographyColumnService columnService,
+        SpecificationService? specificationService = null)
     {
         _db = db;
         _configService = configService;
@@ -135,6 +184,7 @@ public class MasterDataController : ControllerBase
         _mediaIncubationConditionService = mediaIncubationConditionService;
         _scope = scope;
         _columnService = columnService;
+        _specificationService = specificationService ?? new SpecificationService(db);
     }
 
     private int CurrentUserId => int.TryParse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value, out var uid) ? uid : 0;
@@ -509,18 +559,55 @@ public class MasterDataController : ControllerBase
     // ---- Specifications (Product) ----
     [HttpGet("specifications")]
     public async Task<IActionResult> GetSpecifications([FromQuery] int itemId) =>
-        Ok(ApiResponse<object>.Ok(await _db.Specifications.AsNoTracking().Where(s => s.ItemId == itemId).ToListAsync()));
+        Ok(ApiResponse<object>.Ok(await _specificationService.GetForItemAsync(itemId)));
 
     [Authorize(Roles = RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
     [HttpPost("specifications")]
     public async Task<IActionResult> CreateSpecification(CreateSpecificationRequest request)
     {
+        var limitType = request.LimitType ?? LimitType.CountTiered;
+        var paramName = request.ParameterName;
+        if (string.IsNullOrWhiteSpace(paramName))
+        {
+            var testDef = await _db.TestDefinitions.FirstOrDefaultAsync(t => t.Code == request.TestCode);
+            paramName = !string.IsNullOrWhiteSpace(testDef?.DisplayName) ? testDef.DisplayName : request.TestCode;
+        }
+
         var spec = new Specification
         {
-            ItemId = request.ItemId, TestCode = request.TestCode,
-            AlertLimit = request.AlertLimit, ActionLimit = request.ActionLimit, SpecLimit = request.SpecLimit,
-            Unit = request.Unit ?? string.Empty, DilutionFactor = request.DilutionFactor
+            ItemId = request.ItemId,
+            TestCode = request.TestCode,
+            ParameterName = paramName,
+            DisplayOrder = request.DisplayOrder ?? 0,
+            LimitType = limitType,
+            ReferenceStandard = request.ReferenceStandard,
+            LowerLimit = request.LowerLimit,
+            UpperLimit = request.UpperLimit,
+            LowerInclusive = request.LowerInclusive ?? true,
+            UpperInclusive = request.UpperInclusive ?? true,
+            Target = request.Target,
+            Tolerance = request.Tolerance,
+            ToleranceMode = request.ToleranceMode,
+            ExpectedResultText = request.ExpectedResultText,
+            ExpectedState = request.ExpectedState,
+            SampleQuantity = request.SampleQuantity,
+            SampleQuantityUnit = request.SampleQuantityUnit,
+            AlertLimit = request.AlertLimit ?? string.Empty,
+            ActionLimit = request.ActionLimit ?? string.Empty,
+            SpecLimit = request.SpecLimit ?? string.Empty,
+            Unit = request.Unit ?? string.Empty,
+            DilutionFactor = request.DilutionFactor,
+            Stages = request.Stages?.Select(s => new SpecificationStage
+            {
+                StageNumber = s.StageNumber,
+                StageLabel = s.StageLabel,
+                AcceptanceCriteriaText = s.AcceptanceCriteriaText
+            }).ToList() ?? new List<SpecificationStage>()
         };
+
+        SpecificationService.ApplyCanonicalSpecLimit(spec);
+        await _specificationService.ValidateAsync(spec);
+
         _db.Specifications.Add(spec);
         await _db.SaveChangesAsync();
         return Ok(ApiResponse<object>.Ok(spec));
@@ -530,14 +617,53 @@ public class MasterDataController : ControllerBase
     [HttpPut("specifications/{id}")]
     public async Task<IActionResult> UpdateSpecification(int id, UpdateSpecificationRequest request)
     {
-        var spec = await _db.Specifications.FirstOrDefaultAsync(s => s.Id == id)
+        var spec = await _db.Specifications.Include(s => s.Stages).FirstOrDefaultAsync(s => s.Id == id)
             ?? throw new InvalidOperationException($"Specification {id} not found.");
+
         spec.TestCode = request.TestCode;
-        spec.AlertLimit = request.AlertLimit;
-        spec.ActionLimit = request.ActionLimit;
-        spec.SpecLimit = request.SpecLimit;
-        spec.Unit = request.Unit ?? string.Empty;
+        if (request.ParameterName != null)
+            spec.ParameterName = request.ParameterName;
+        if (request.DisplayOrder.HasValue)
+            spec.DisplayOrder = request.DisplayOrder.Value;
+        if (request.LimitType.HasValue)
+            spec.LimitType = request.LimitType.Value;
+        spec.ReferenceStandard = request.ReferenceStandard;
+        spec.LowerLimit = request.LowerLimit;
+        spec.UpperLimit = request.UpperLimit;
+        if (request.LowerInclusive.HasValue)
+            spec.LowerInclusive = request.LowerInclusive.Value;
+        if (request.UpperInclusive.HasValue)
+            spec.UpperInclusive = request.UpperInclusive.Value;
+        spec.Target = request.Target;
+        spec.Tolerance = request.Tolerance;
+        spec.ToleranceMode = request.ToleranceMode;
+        spec.ExpectedResultText = request.ExpectedResultText;
+        spec.ExpectedState = request.ExpectedState;
+        spec.SampleQuantity = request.SampleQuantity;
+        spec.SampleQuantityUnit = request.SampleQuantityUnit;
+        if (request.AlertLimit != null)
+            spec.AlertLimit = request.AlertLimit;
+        if (request.ActionLimit != null)
+            spec.ActionLimit = request.ActionLimit;
+        if (request.SpecLimit != null)
+            spec.SpecLimit = request.SpecLimit;
+        if (request.Unit != null)
+            spec.Unit = request.Unit;
         spec.DilutionFactor = request.DilutionFactor;
+
+        // Replace-all on stages
+        _db.SpecificationStages.RemoveRange(spec.Stages);
+        spec.Stages = request.Stages?.Select(s => new SpecificationStage
+        {
+            SpecificationId = spec.Id,
+            StageNumber = s.StageNumber,
+            StageLabel = s.StageLabel,
+            AcceptanceCriteriaText = s.AcceptanceCriteriaText
+        }).ToList() ?? new List<SpecificationStage>();
+
+        SpecificationService.ApplyCanonicalSpecLimit(spec);
+        await _specificationService.ValidateAsync(spec);
+
         await _db.SaveChangesAsync();
         return Ok(ApiResponse<object>.Ok(spec));
     }

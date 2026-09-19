@@ -1708,7 +1708,7 @@ public class TestWorkflowEngine : ITestWorkflowEngine
         var dilutionFactorOverridden = false;
         if (!isDirectCount && sample.ItemId is not null)
         {
-            var itemSpec = await _db.Specifications.FirstOrDefaultAsync(s => s.ItemId == sample.ItemId && s.TestCode == order.TestCode);
+            var itemSpec = await SpecificationLookup.PrimaryAsync(_db, sample.ItemId.Value, order.TestCode);
             configuredDilutionFactor = itemSpec?.DilutionFactor;
 
             if (configuredDilutionFactor is null)
@@ -1797,7 +1797,7 @@ public class TestWorkflowEngine : ITestWorkflowEngine
             string? alertLimit = null, actionLimit = null, specLimit = null, configuredUnit = null;
             if (sample.ItemId is not null)
             {
-                var spec = await _db.Specifications.FirstOrDefaultAsync(s => s.ItemId == sample.ItemId && s.TestCode == order.TestCode);
+                var spec = await SpecificationLookup.PrimaryAsync(_db, sample.ItemId.Value, order.TestCode);
                 alertLimit = spec?.AlertLimit; actionLimit = spec?.ActionLimit; specLimit = spec?.SpecLimit;
                 configuredUnit = spec?.Unit;
             }
@@ -1987,15 +1987,26 @@ public class TestWorkflowEngine : ITestWorkflowEngine
         var reportedDisplay = Math.Round(mean, 1, MidpointRounding.AwayFromZero).ToString("0.0", System.Globalization.CultureInfo.InvariantCulture) + " %";
 
         string? alertLimit = null, actionLimit = null, specLimit = null;
+        string status;
         if (order.Sample?.ItemId is not null)
         {
-            var spec = await _db.Specifications.FirstOrDefaultAsync(s => s.ItemId == order.Sample.ItemId && s.TestCode == order.TestCode);
-            alertLimit = spec?.AlertLimit;
-            actionLimit = spec?.ActionLimit;
-            specLimit = spec?.SpecLimit;
+            var spec = await SpecificationLookup.PrimaryAsync(_db, order.Sample.ItemId.Value, order.TestCode);
+            if (spec is not null)
+            {
+                alertLimit = spec.AlertLimit;
+                actionLimit = spec.ActionLimit;
+                specLimit = spec.SpecLimit;
+                status = SpecificationEvaluator.Evaluate(spec, mean);
+            }
+            else
+            {
+                (status, _) = Compare(mean, alertLimit, actionLimit, specLimit);
+            }
         }
-
-        var (status, _) = Compare(mean, alertLimit, actionLimit, specLimit);
+        else
+        {
+            (status, _) = Compare(mean, alertLimit, actionLimit, specLimit);
+        }
 
         var hplcResult = new HplcAssayResult
         {

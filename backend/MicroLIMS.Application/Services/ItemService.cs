@@ -24,7 +24,7 @@ public class ItemService
     }
 
     public async Task<List<Item>> GetAllAsync() =>
-        await _db.Items.Include(i => i.AssignedTests).Include(i => i.Specifications).ToListAsync();
+        await _db.Items.Include(i => i.AssignedTests).Include(i => i.Specifications).ThenInclude(s => s.Stages).AsSplitQuery().ToListAsync();
 
     public async Task<Item> CreateAsync(Item item)
     {

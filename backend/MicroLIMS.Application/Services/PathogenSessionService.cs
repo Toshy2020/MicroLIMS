@@ -556,7 +556,7 @@ public class PathogenSessionService
                 string? configuredUnit = null;
                 if (sample.ItemId is not null)
                 {
-                    var spec = await _db.Specifications.FirstOrDefaultAsync(s => s.ItemId == sample.ItemId && s.TestCode == to.TestCode);
+                    var spec = await SpecificationLookup.PrimaryAsync(_db, sample.ItemId.Value, to.TestCode);
                     configuredUnit = spec?.Unit;
                 }
                 else if (sample.WaterSamplingPointId is not null)

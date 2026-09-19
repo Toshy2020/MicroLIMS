@@ -41,6 +41,11 @@ public static class SpecLimitParser
         @"^(?<min>(?:\d+(?:\.\d+)?|\.\d+))\s*[-–—―\u2212]\s*(?<max>(?:\d+(?:\.\d+)?|\.\d+))(?:\s*(?<unit>[^\d\s\.\-–—―\u2212].*))?$",
         RegexOptions.Compiled | RegexOptions.CultureInvariant);
 
+    // Regex for Target ± Tolerance: "6.0 ± 0.5", "6.0 +/- 0.5", "100 ± 5%", "100 +/- 5 %", "6.0 ± 0.5 pH"
+    private static readonly Regex TargetToleranceRegex = new(
+        @"^(?<target>(?:\d+(?:\.\d+)?|\.\d+))\s*(?:±|\+\/-|\+-)\s*(?<tol>(?:\d+(?:\.\d+)?|\.\d+))\s*(?<percent>%)?(?:\s*(?<unit>[^\d\s\.\-–—―\u2212].*))?$",
+        RegexOptions.Compiled | RegexOptions.CultureInvariant);
+
     // Regex for NMT (Not More Than): "NMT 100", "nmt 100.5 %", "NMT: 100", "NMT100"
     private static readonly Regex NmtRegex = new(
         @"^NMT\s*[:]?\s*(?<val>(?:\d+(?:\.\d+)?|\.\d+))(?:\s*(?<unit>[^\d\s\.\-–—―\u2212].*))?$",
@@ -69,7 +74,40 @@ public static class SpecLimitParser
         if (decimal.TryParse(text, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out var legacy))
             return new ParsedSpecLimit(Min: null, Max: legacy, MaxRaw: text);
 
-        // 1. Try Range: x-y, x - y, x–y
+        // 1. Try Target ± Tolerance: "6.0 ± 0.5", "6.0 +/- 0.5", "100 ± 5%"
+        var targetMatch = TargetToleranceRegex.Match(text);
+        if (targetMatch.Success)
+        {
+            var targetStr = targetMatch.Groups["target"].Value;
+            var tolStr = targetMatch.Groups["tol"].Value;
+            if (decimal.TryParse(targetStr, NumberStyles.Any, CultureInfo.InvariantCulture, out var target) &&
+                decimal.TryParse(tolStr, NumberStyles.Any, CultureInfo.InvariantCulture, out var tol))
+            {
+                if (tol >= 0)
+                {
+                    var percentGroup = targetMatch.Groups["percent"];
+                    var isPercent = percentGroup.Success && !string.IsNullOrWhiteSpace(percentGroup.Value);
+                    var tolValue = isPercent ? (target * tol / 100m) : tol;
+                    var min = target - tolValue;
+                    var max = target + tolValue;
+
+                    var unitGroup = targetMatch.Groups["unit"];
+                    var unit = unitGroup.Success && !string.IsNullOrWhiteSpace(unitGroup.Value)
+                        ? unitGroup.Value.Trim()
+                        : (isPercent ? "%" : null);
+
+                    return new ParsedSpecLimit(
+                        Min: min,
+                        Max: max,
+                        Unit: unit,
+                        MinRaw: min.ToString(CultureInfo.InvariantCulture),
+                        MaxRaw: max.ToString(CultureInfo.InvariantCulture));
+                }
+            }
+            return ParsedSpecLimit.None;
+        }
+
+        // 2. Try Range: x-y, x - y, x–y
         var rangeMatch = RangeRegex.Match(text);
         if (rangeMatch.Success)
         {

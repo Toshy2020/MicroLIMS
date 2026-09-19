@@ -1,4 +1,5 @@
 using System.Text.Json.Serialization;
+using MicroLIMS.Domain.Enums;
 
 namespace MicroLIMS.Domain.Entities;
 
@@ -20,4 +21,23 @@ public class Specification
     // rather than silently defaulting to 1, so an unconfigured DF can't
     // slip through unnoticed.
     public decimal? DilutionFactor { get; set; }
+
+    // Universal Specifications
+    public string ParameterName { get; set; } = string.Empty;
+    public int DisplayOrder { get; set; } = 0;
+    public LimitType LimitType { get; set; } = LimitType.CountTiered;
+    public string? ReferenceStandard { get; set; }
+    public decimal? LowerLimit { get; set; }
+    public decimal? UpperLimit { get; set; }
+    public bool LowerInclusive { get; set; } = true;
+    public bool UpperInclusive { get; set; } = true;
+    public decimal? Target { get; set; }
+    public decimal? Tolerance { get; set; }
+    public ToleranceMode? ToleranceMode { get; set; }
+    public string? ExpectedResultText { get; set; }
+    public ExpectedPresence? ExpectedState { get; set; }
+    public decimal? SampleQuantity { get; set; }
+    public string? SampleQuantityUnit { get; set; }
+
+    public List<SpecificationStage> Stages { get; set; } = new();
 }

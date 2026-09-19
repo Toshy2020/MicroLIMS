@@ -3,6 +3,18 @@
 Scoping: `E:\files\files\microlims-finished-product-calibration-curve-scoping.md`. Recon + gate:
 `docs/FP_Calibration_Curve_Phase0_Recon.md`. Local branch `feat/fp-hplc-foundation`, never pushed.
 
+## Revision 3 (Syngistix basis confirmed, 2026-09-19)
+
+The user confirmed scoping Q2: **the Syngistix method template already applies sample weight, digest volume and
+dilution, and reports ppm in the sample** - mg/kg for solids, **mg/L for liquids**. S3 is unblocked and changes:
+- `ReportedConcentrationBasis` gains `SamplePpm` (required for CalibrationCurve tests; `SolutionMgPerL` is reserved
+  and refused). The LIMS never applies weight, volume or dilution.
+- Over-range and below-LOQ can no longer be computed (the standards are in solution mg/L): the analyst ticks the
+  flags shown on the Syngistix report.
+- Per sample the analyst enters only each element's ppm, the average unit weight (solids, g) or dose volume
+  (liquids, mL), and the analysis time. No sample weight / volume / DF entry.
+- The calibration run (S1) is unchanged: its standards, blanks and checks are in solution mg/L, as reported.
+
 ## Revision 2 (review fixes, 2026-09-19)
 
 From `E:\files\files\prompt-fp-calibration-curve-s1-hardening.md`:
@@ -144,16 +156,27 @@ a Withdrawn badge; withdraw action (Section Head) with reason + signature; print
 
 ## Slice S3 - element results (backend) / S4 - result entry + summary/CoA (frontend)
 
-**S3 is blocked until the user confirms from a sample Syngistix report that the method template reports the
-concentration in the measured solution before dilution, weight or volume correction (scoping Q2).**
+Unblocked by Revision 3 (Syngistix reports ppm in the sample).
 
-- `Specification` += ResultBasis, LabelClaim, LabelClaimUnit, ConversionFactor (default 1.0), TestAnalyteId.
-- Digest record per test order: W (g), V (mL), Wu (g), **`AnalysedAt`** (from the report).
-- Element result per (TestOrder, Specification) with calculation snapshot (scoping §6, TC1). Entry label:
-  "Reported concentration in measured solution (mg/L), before dilution, weight or volume correction."
+- `Specification` += ResultBasis (MgPerKg / MgPerUnit / PercentLabelClaim), LabelClaim, LabelClaimUnit,
+  ConversionFactor (default 1.0), TestAnalyteId, **SampleMatrix** (Solid / Liquid - per item assignment; Solid =
+  ppm is mg/kg, Liquid = ppm is mg/L).
+- Per test order (one entry for all elements): **unit amount** - average unit weight Wu (g) for Solid, dose volume
+  Vd (mL) for Liquid - and **`AnalysedAt`** (from the report). No sample weight, digest volume or dilution.
+- Element result per (TestOrder, Specification): reported ppm `C`, flags **OverRange** and **BelowLoq** ticked by
+  the analyst from the report, the linked `CalibrationRunAnalyteId`, and a calculation snapshot:
+  - Solid: `mg per unit = C × Wu / 1000` (C in mg/kg, Wu in g)
+  - Liquid: `mg per dose = C × Vd / 1000` (C in mg/L, Vd in mL)
+  - `Result (claim) = mg per unit × CF`; `%LC = Result (claim) / LC × 100`
+  - Reported value depends on ResultBasis: MgPerKg -> C (for liquids the spec's unit is mg/L), MgPerUnit -> claim,
+    PercentLabelClaim -> %LC. All decimal, compared unrounded (A9).
+  - **TC1 (revised):** C = 8500 ppm (mg/kg), Wu = 1.2500 g, CF = 1.0, LC = 10.0 mg -> 10.625 mg/unit,
+    106.25 %LC. Liquid case: C = 200 mg/L, Vd = 5 mL, LC = 1.0 mg -> 1.0 mg/dose, 100 %LC.
+- Entry label: "Concentration in the sample as reported by Syngistix (ppm: mg/kg for solids, mg/L for liquids)."
+- Flags: OverRange -> RequiresReview (never extrapolated; the analyst dilutes and reruns - TC6). BelowLoq -> reported
+  as "<LOQ"; against an NMT limit it conforms, against Range/NLT/Target it goes to RequiresReview (TC7).
 - Only analytes with **`IsUsable`** (passed, run Active) of the order's method and section are selectable (TC8),
   and `AnalysedAt` must be within `[CalibrationAt, CalibrationAt + CalMaxRunAgeHours]` of the linked run (A7).
-- OverRange / <LOQ flags -> RequiresReview (TC6/TC7).
 - **Withdrawal consequence (A1):** withdrawing a run sets `RequiresReview` on every linked element result not yet
   released, and produces a list of already-released results for QA follow-up.
 - Approval gate, review return, projection, summary and CoA per element.

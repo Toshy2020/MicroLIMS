@@ -1759,6 +1759,8 @@ public class MasterDataController : ControllerBase
 
             if (!request.ReportedConcentrationBasis.HasValue)
                 throw new InvalidOperationException("Reported concentration basis is required when equation type is CalibrationCurve.");
+            if (request.ReportedConcentrationBasis != ReportedConcentrationBasis.SamplePpm)
+                throw new InvalidOperationException("Only 'ppm in the sample' is supported: Syngistix applies weight, volume and dilution itself.");
 
             var maxAge = request.CalMaxRunAgeHours ?? 24;
             if (maxAge < 1)
@@ -1899,6 +1901,8 @@ public class MasterDataController : ControllerBase
 
             if (!effectiveBasis.HasValue)
                 throw new InvalidOperationException("Reported concentration basis is required when equation type is CalibrationCurve.");
+            if (effectiveBasis != ReportedConcentrationBasis.SamplePpm)
+                throw new InvalidOperationException("Only 'ppm in the sample' is supported: Syngistix applies weight, volume and dilution itself.");
 
             if (effectiveMaxAge < 1)
                 throw new InvalidOperationException("Maximum run age must be at least 1 hour when equation type is CalibrationCurve.");

@@ -106,7 +106,7 @@ public class CalibrationCurveRunPostgresIntegrationTests
             CalRequireIcv = true,
             CalRequireCcv = false,
             CalRequireInternalStandard = false,
-            ReportedConcentrationBasis = ReportedConcentrationBasis.SolutionMgPerL,
+            ReportedConcentrationBasis = ReportedConcentrationBasis.SamplePpm,
             CalMaxRunAgeHours = 24
         };
         db.TestDefinitions.Add(test);

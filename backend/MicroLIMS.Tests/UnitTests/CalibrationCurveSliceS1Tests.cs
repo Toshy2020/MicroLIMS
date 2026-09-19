@@ -119,7 +119,7 @@ public class CalibrationCurveSliceS1Tests
             CalRequireIcv = true,
             CalRequireCcv = false,
             CalRequireInternalStandard = false,
-            ReportedConcentrationBasis = ReportedConcentrationBasis.SolutionMgPerL,
+            ReportedConcentrationBasis = ReportedConcentrationBasis.SamplePpm,
             CalMaxRunAgeHours = 24
         };
         db.TestDefinitions.Add(test);
@@ -804,7 +804,7 @@ public class CalibrationCurveSliceS1Tests
             CalMinStandards: 3,
             CalCheckRecoveryLowPercent: 90m,
             CalCheckRecoveryHighPercent: 110m,
-            ReportedConcentrationBasis: ReportedConcentrationBasis.SolutionMgPerL);
+            ReportedConcentrationBasis: ReportedConcentrationBasis.SamplePpm);
 
         var ex1 = await Assert.ThrowsAsync<InvalidOperationException>(() => controller.CreateTestDefinition(req1));
         Assert.Contains("Method abbreviation is required", ex1.Message);

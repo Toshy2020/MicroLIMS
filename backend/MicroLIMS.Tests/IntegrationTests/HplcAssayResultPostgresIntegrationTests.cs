@@ -215,5 +215,14 @@ public class HplcAssayResultPostgresIntegrationTests
         Assert.Equal(3, hplc.Replicates.Count);
         Assert.NotEqual("Unknown", hplc.EnteredByName);
         Assert.NotNull(await TestServiceFactory.SampleSummary(verifyDb).GenerateSummaryPdfAsync(sample.Id));
+
+        // Suitability run report: signature and the linked test with its result
+        var report = await TestServiceFactory.SystemSuitability(verifyDb).GetReportDetailsAsync(run.Id, _fixture.SeededUserId);
+        Assert.NotNull(report.Signature);
+        var linked = Assert.Single(report.LinkedTests);
+        Assert.Equal(order.Id, linked.TestOrderId);
+        Assert.Equal(sample.ReferenceNumber, linked.SampleReferenceNumber);
+        Assert.Equal("99.5 %", linked.ReportedResult);
+        Assert.Equal("WithinLimits", linked.ResultStatus);
     }
 }

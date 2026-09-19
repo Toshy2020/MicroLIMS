@@ -1,4 +1,5 @@
 import { apiClient } from "../../../services/apiClient";
+import type { SignatureLike } from "../../testingWorkspace/reportPrimitives";
 
 // Mirrors backend SystemSuitabilityRunView (SystemSuitabilityController.cs).
 export interface SystemSuitabilityRun {
@@ -51,7 +52,37 @@ export interface CreateSystemSuitabilityRunPayload {
   comment?: string | null;
 }
 
+export interface SuitabilityRunLinkedTest {
+  testOrderId: number;
+  sampleId: number;
+  sampleReferenceNumber: string;
+  itemName: string | null;
+  batchNumber: string | null;
+  testCode: string;
+  reportedResult: string | null;
+  resultStatus: string | null;
+  resultEnteredAt: string | null;
+}
+
+// Mirrors backend SuitabilityRunReportDetailsDto + the run view.
+export interface SuitabilityRunReport {
+  run: SystemSuitabilityRun;
+  details: {
+    sstMaxRsdPercent: number | null;
+    sstMinResolution: number | null;
+    sstMaxTailingFactor: number | null;
+    sstMinTheoreticalPlates: number | null;
+    equipmentVendor: string | null;
+    cdsSoftware: string | null;
+    columnSerialNumber: string | null;
+    signature: SignatureLike | null;
+    linkedTests: SuitabilityRunLinkedTest[];
+  };
+}
+
 export const SystemSuitabilityService = {
+  getReport: (id: number): Promise<SuitabilityRunReport> =>
+    apiClient.get(`/system-suitability-runs/${id}/report`).then((r) => r.data.data),
   getAll: (filter?: { testDefinitionId?: number; passed?: boolean }): Promise<SystemSuitabilityRun[]> =>
     apiClient.get("/system-suitability-runs", { params: filter ?? {} }).then((r) => r.data.data),
   getById: (id: number): Promise<SystemSuitabilityRun> =>

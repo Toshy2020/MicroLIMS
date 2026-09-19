@@ -5,6 +5,7 @@ import {
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import RefreshIcon from "@mui/icons-material/Refresh";
+import DescriptionOutlinedIcon from "@mui/icons-material/DescriptionOutlined";
 import { PageHeader } from "../../components/PageHeader";
 import { FloatingDialog } from "../../components/FloatingDialog";
 import { SignatureDialog } from "../../components/SignatureDialog";
@@ -174,12 +175,16 @@ export function SystemSuitabilityRunsPage() {
                 <TableCell>Method</TableCell>
                 <TableCell>Instrument / Column</TableCell>
                 <TableCell>Reference standard</TableCell>
+                <TableCell align="right">Std weight (mg)</TableCell>
+                <TableCell align="right">Std dilution</TableCell>
+                <TableCell align="right">Mean peak area</TableCell>
                 <TableCell align="right">RSD %</TableCell>
                 <TableCell align="right">Resolution</TableCell>
                 <TableCell align="right">Tailing</TableCell>
                 <TableCell align="right">Plates</TableCell>
                 <TableCell>Result</TableCell>
                 <TableCell>Performed</TableCell>
+                <TableCell />
               </TableRow>
             </TableHead>
             <TableBody>
@@ -194,6 +199,9 @@ export function SystemSuitabilityRunsPage() {
                       Batch {r.referenceStandardBatch} · purity {r.standardPurityPercent}%
                     </Typography>
                   </TableCell>
+                  <TableCell align="right">{fmt(r.standardWeightMg)}</TableCell>
+                  <TableCell align="right">{fmt(r.standardDilution)}</TableCell>
+                  <TableCell align="right">{fmt(r.standardMeanArea)}</TableCell>
                   <TableCell align="right">{fmt(r.rsdPercent)}</TableCell>
                   <TableCell align="right">{fmt(r.resolution)}</TableCell>
                   <TableCell align="right">{fmt(r.tailingFactor)}</TableCell>
@@ -211,11 +219,22 @@ export function SystemSuitabilityRunsPage() {
                     {r.performedByName}
                     <Typography sx={{ fontSize: 12, color: "text.secondary" }}>{new Date(r.performedAt).toLocaleString()}</Typography>
                   </TableCell>
+                  <TableCell>
+                    <Button
+                      size="small"
+                      startIcon={<DescriptionOutlinedIcon />}
+                      href={`/laboratory/system-suitability/${r.id}/report`}
+                      target="_blank"
+                      rel="noopener"
+                    >
+                      Report
+                    </Button>
+                  </TableCell>
                 </TableRow>
               ))}
               {runs.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={10} align="center" sx={{ py: 3, color: "text.secondary" }}>No suitability runs yet.</TableCell>
+                  <TableCell colSpan={14} align="center" sx={{ py: 3, color: "text.secondary" }}>No suitability runs yet.</TableCell>
                 </TableRow>
               )}
             </TableBody>

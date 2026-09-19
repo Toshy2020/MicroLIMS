@@ -27,6 +27,7 @@ const ReceivingTestingWorkspacePage = lazy(() => import("../modules/receivingTes
 const SampleReportPage = lazy(() => import("../modules/testingWorkspace/SampleReportPage").then((m) => ({ default: m.SampleReportPage })));
 const SampleCoaPage = lazy(() => import("../modules/testingWorkspace/SampleCoaPage").then((m) => ({ default: m.SampleCoaPage })));
 const MediaReportPage = lazy(() => import("../modules/laboratoryConfiguration/media/MediaReportPage").then((m) => ({ default: m.MediaReportPage })));
+const SuitabilityRunReportPage = lazy(() => import("../modules/systemSuitability/SuitabilityRunReportPage").then((m) => ({ default: m.SuitabilityRunReportPage })));
 const CryovialReportPage = lazy(() => import("../modules/laboratoryConfiguration/cryovials/CryovialReportPage").then((m) => ({ default: m.CryovialReportPage })));
 const ItemsPage = lazy(() => import("../modules/laboratoryConfiguration/items/ItemsPage").then((m) => ({ default: m.ItemsPage })));
 const TestMasterPage = lazy(() => import("../modules/laboratoryConfiguration/masterDataSimple/TestMasterPage").then((m) => ({ default: m.TestMasterPage })));
@@ -84,6 +85,7 @@ export function AppRoutes() {
           <Route path="/samples/:id/coa" element={<SampleCoaPage />} />
           <Route path="/media/:id/report" element={<MediaReportPage />} />
           <Route path="/cryovials/:id/report" element={<CryovialReportPage />} />
+          <Route path="/laboratory/system-suitability/:id/report" element={<SuitabilityRunReportPage />} />
 
           <Route element={<MainLayout />}>
             <Route path="/" element={<Navigate to="/dashboard" replace />} />

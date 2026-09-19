@@ -103,6 +103,19 @@ public class SystemSuitabilityController : ControllerBase
         return Ok(ApiResponse<object>.Ok(SystemSuitabilityRunView.From(run)));
     }
 
+    // Printable run report: the run, its acceptance criteria, signature and
+    // every test linked to it.
+    [HttpGet("{id:int}/report")]
+    public async Task<IActionResult> GetReport(int id)
+    {
+        var run = await _service.GetByIdAsync(id, CurrentUserId);
+        if (run is null)
+            return NotFound(ApiResponse<object>.Fail($"System suitability run {id} not found."));
+
+        var details = await _service.GetReportDetailsAsync(id, CurrentUserId);
+        return Ok(ApiResponse<object>.Ok(new { Run = SystemSuitabilityRunView.From(run), Details = details }));
+    }
+
     // List passed runs selectable for a given TestOrder (REQ-FP-003)
     [HttpGet("selectable")]
     public async Task<IActionResult> GetSelectable([FromQuery] int testOrderId)

@@ -295,6 +295,57 @@ public class SystemSuitabilityService : ISystemSuitabilityService
             .FirstOrDefaultAsync(r => r.Id == id, ct);
     }
 
+    public async Task<SuitabilityRunReportDetailsDto> GetReportDetailsAsync(int runId, int userId, CancellationToken ct = default)
+    {
+        await _scope.EnsureSuitabilityRunAccessAsync(userId, runId, ct);
+
+        var run = await _db.SystemSuitabilityRuns.AsNoTracking()
+            .Where(r => r.Id == runId)
+            .Select(r => new
+            {
+                r.TestDefinition!.SstMaxRsdPercent,
+                r.TestDefinition.SstMinResolution,
+                r.TestDefinition.SstMaxTailingFactor,
+                r.TestDefinition.SstMinTheoreticalPlates,
+                r.Equipment!.Vendor,
+                r.Equipment.CdsSoftware,
+                ColumnSerial = r.ChromatographyColumn!.SerialNumber,
+                r.SignatureId
+            })
+            .FirstOrDefaultAsync(ct)
+            ?? throw new InvalidOperationException($"System suitability run {runId} not found.");
+
+        var signature = await _db.ElectronicSignatures.AsNoTracking()
+            .Where(s => s.Id == run.SignatureId)
+            .Select(s => new SignatureDto(s.UserFullNameSnapshot, s.UsernameSnapshot, s.RoleSnapshot, s.MeaningOfSignature.ToString(), s.SignedAt, s.Comment))
+            .FirstOrDefaultAsync(ct);
+
+        var linked = await _db.TestOrders.AsNoTracking()
+            .Where(o => o.SystemSuitabilityRunId == runId)
+            .OrderBy(o => o.Sample!.ReferenceNumber)
+            .Select(o => new
+            {
+                o.Id,
+                o.SampleId,
+                o.Sample!.ReferenceNumber,
+                ItemName = o.Sample.Item != null ? o.Sample.Item.Name : null,
+                o.Sample.BatchNumber,
+                o.TestCode,
+                Result = _db.HplcAssayResults
+                    .Where(h => h.TestOrderId == o.Id && h.IsActive)
+                    .Select(h => new { h.ReportedResult, h.ComparisonStatus, h.EnteredAt })
+                    .FirstOrDefault()
+            })
+            .ToListAsync(ct);
+
+        return new SuitabilityRunReportDetailsDto(
+            run.SstMaxRsdPercent, run.SstMinResolution, run.SstMaxTailingFactor, run.SstMinTheoreticalPlates,
+            run.Vendor, run.CdsSoftware?.ToString(), run.ColumnSerial, signature,
+            linked.Select(l => new SuitabilityRunLinkedTestDto(
+                l.Id, l.SampleId, l.ReferenceNumber, l.ItemName, l.BatchNumber, l.TestCode,
+                l.Result?.ReportedResult, l.Result?.ComparisonStatus, l.Result?.EnteredAt)).ToList());
+    }
+
     public async Task<List<SystemSuitabilityRun>> GetSelectableRunsForTestOrderAsync(
         int testOrderId,
         int userId,

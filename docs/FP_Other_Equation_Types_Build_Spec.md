@@ -1,8 +1,18 @@
-# FP Equation Types beyond HPLC Assay and Calibration Curve - Build Spec (DRAFT, Gate 0 pending)
+# FP Equation Types beyond HPLC Assay and Calibration Curve - Build Spec
 
 Recon: `docs/FP_Other_Equation_Types_Phase0_Recon.md`. Style and rules follow
 `docs/FP_Calibration_Curve_Build_Spec.md`. Local branch `feat/fp-hplc-foundation`, never pushed.
-**Nothing here is decided until Gate 0 (G1-G8 below) is signed off.**
+## Gate 0 decisions (user, 2026-09-19)
+
+- G1, G2, G3, G4, G8: **accepted as recommended.**
+- Product forms: **tablet, capsule, soft capsule, liquid** (no gummies, no effervescent-specific tests).
+- Pharmacopoeias: **USP (online)** and **BP (online)** - the two presets for G2.
+- G6: **compare unrounded** (current behaviour); only the displayed value is rounded.
+- G7: **omega-3 by GC is in scope** (Tier 3 GC internal-standard ratio moves up); acid value / peroxide value
+  **not sure - left out** until confirmed.
+- One disintegration tester (the duplicate line on the instrument list is the same instrument).
+- Still open (G5 trimming): which tests each product form actually runs; which actives have dissolution / CU specs;
+  how per-unit assay values for CU are produced.
 
 ## Global rules (all types)
 
@@ -161,7 +171,7 @@ when the engine says so. Used by T4, T6, T7. Keeping Multi-Stage manual would le
 ## Slices (dependencies in brackets)
 
 1. **F0 foundation backend** - TestAnalysis / ParameterResult / ResultReading, generic downstream, move Calibration
-   Curve S3 onto it, shared validity-record helpers. [G1, G4]
+   Curve S3 onto it (contract below). Validity-record helpers come with the first record that needs them (UV, slice 4). [G1]
 2. **F0 frontend** - generic summary/CoA rendering, reusable `UnitEntryGrid` (paste + keyboard). [1]
 3. **Tier 1** - T1 Measurement, T2 Gravimetric, T3 Qualitative (+ equipment types G8). [1, 2]
 4. **T5 UV Assay** + UVS record. [1, 2]
@@ -183,3 +193,33 @@ Optional: instrument calibration-due gate on analysis date (recon F7).
 | G6 | Rounding | (a) compare unrounded (today); (b) round to the limit's decimals before comparing (USP GN 7.20) | lab decision; build `ReportDecimals` + `RoundBeforeCompare` per spec so either can be chosen |
 | G7 | Softgel/oil tests (acid value, peroxide value, omega-3 GC) | in / out | depends on products; a GC exists on the instrument list |
 | G8 | Equipment types to add | from the instrument list: UvVis, DissolutionTester, DisintegrationTester, KarlFischer, Titrator, Viscometer, Refractometer, Polarimeter, ConductivityMeter, MeltingPoint, Oven, Furnace, Gc, Aas, DigestionMicrowave, Caliper/Micrometer | add all present on the list; **not** hardness/friability (no instrument listed) |
+
+## F0 contract - shared result foundation (backend)
+
+Goal: the elemental assay runs on the generic tables with **no API or DTO change** (frontend untouched), and the
+generic downstream is ready for the next types.
+
+- `TestAnalysis` (table `TestAnalyses`): Id, TestOrderId (FK), AnalysisType (WorkflowType, int), EquipmentId?,
+  AnalysedAt (UTC), UnitAmount numeric(18,6)?, SampleMatrix?, ConditionsJson jsonb?, ValidityRecordType string(40)?,
+  IsActive, EnteredByUserId, EnteredAt, SignatureId (+ navigation), Comment. Index (TestOrderId, IsActive).
+- `ParameterResult` (table `ParameterResults`): Id, TestAnalysisId (FK cascade), TestOrderId, SpecificationId (FK),
+  ParameterName, ReportedValue numeric(28,10)?, ReportedDisplay, Unit, SpecLimit, ResultBasis?, ComparisonStatus,
+  OverRange bool, BelowLoq bool, ValidityRecordItemId int? (elemental: CalibrationRunAnalyteId, FK to
+  CalibrationRunAnalytes nullable), CalculationJson jsonb (elemental: reportedPpm, mgPerUnit, resultClaim,
+  percentLabelClaim, element, runCode...), StageReached int?, IsActive.
+- `ResultReading` (table `ResultReadings`): Id, ParameterResultId (FK cascade), Kind (enum ReadingKind {Replicate, Unit,
+  Vessel, TimePoint, Weight, Titration}), Index, Stage?, TimePointMinutes numeric(18,6)?, Value1/Value2/Value3
+  numeric(28,10)?, Text string(500)?, ComputedValue numeric(28,10)?, Passed bool?. (Empty for elemental.)
+- Migration `SharedResultFoundation`: create the three tables; LIMSV2 has 0 elemental rows, but copy any existing
+  ElementalAssayEntries/Results rows (preserving values; update ResultRecords SourceTable "ElementalAssayResult" ->
+  "ParameterResult" with the new ids), then drop `ElementalAssayResults` and `ElementalAssayEntries`. Down reverses.
+- Code moves: `TestWorkflowEngine.RecordElementalAssayResultAsync` writes TestAnalysis (AnalysisType ElementalAssay)
+  + ParameterResults; `CalibrationRunService.WithdrawAsync` flags ParameterResults by ValidityRecordItemId;
+  SampleApprovalService / ReviewService / ResultProjectionService (`UpsertFromParameterResultAsync`, SourceTable
+  "ParameterResult", backfill) / SampleSummaryService use a **generic helper** keyed on "workflow types that use
+  TestAnalysis" (today: ElementalAssay) - not per-type branches. `ElementalAssayDetailDto` keeps its exact fields,
+  mapped from TestAnalysis + ParameterResult + CalculationJson. Add a generic `AnalysisDetailDto` (analysis fields +
+  parameter results + readings) on the test order detail for future types.
+- Tests: every existing elemental test (unit + Postgres) passes unchanged in behaviour (update only storage-level
+  assertions); new tests for the generic helpers (approval gate, return, projection) using a non-elemental
+  AnalysisType fixture; migration Up/Down verified on a copy of LIMSV2.

@@ -46,7 +46,23 @@ export const FP_INSTRUMENT_TYPES = [
   { value: "Hplc", label: "HPLC" },
   { value: "IcpOes", label: "ICP-OES" },
   { value: "PhMeter", label: "pH Meter" },
-  { value: "Balance", label: "Balance" }
+  { value: "Balance", label: "Balance" },
+  { value: "UvVis", label: "UV-Vis" },
+  { value: "DissolutionTester", label: "Dissolution tester" },
+  { value: "DisintegrationTester", label: "Disintegration tester" },
+  { value: "KarlFischer", label: "Karl Fischer" },
+  { value: "Titrator", label: "Titrator" },
+  { value: "Viscometer", label: "Viscometer" },
+  { value: "Refractometer", label: "Refractometer" },
+  { value: "Polarimeter", label: "Polarimeter" },
+  { value: "ConductivityMeter", label: "Conductivity meter" },
+  { value: "MeltingPoint", label: "Melting point" },
+  { value: "Oven", label: "Oven" },
+  { value: "Furnace", label: "Furnace" },
+  { value: "Gc", label: "GC" },
+  { value: "Aas", label: "AAS" },
+  { value: "DigestionMicrowave", label: "Digestion microwave" },
+  { value: "Caliper", label: "Caliper" }
 ];
 const FP_TYPE_VALUES = FP_INSTRUMENT_TYPES.map((t) => t.value);
 

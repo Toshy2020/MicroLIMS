@@ -113,6 +113,10 @@ export interface CreateTestDefinitionPayload {
   calRequireInternalStandard?: boolean | null;
   reportedConcentrationBasis?: string | null;
   calMaxRunAgeHours?: number | null;
+  replicateCount?: number | null;
+  evaluationBasis?: "Mean" | "EachValue" | "Min" | "Max" | null;
+  conditionFields?: string | null;
+  usesTare?: boolean | null;
 }
 
 export interface UpdateTestDefinitionPayload {
@@ -142,6 +146,10 @@ export interface UpdateTestDefinitionPayload {
   calRequireInternalStandard?: boolean | null;
   reportedConcentrationBasis?: string | null;
   calMaxRunAgeHours?: number | null;
+  replicateCount?: number | null;
+  evaluationBasis?: "Mean" | "EachValue" | "Min" | "Max" | null;
+  conditionFields?: string | null;
+  usesTare?: boolean | null;
 }
 
 // Shared lookup lists used across receiving, preparation, and master

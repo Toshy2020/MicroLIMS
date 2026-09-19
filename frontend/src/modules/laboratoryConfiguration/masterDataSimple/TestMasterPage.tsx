@@ -59,21 +59,37 @@ export type TestMasterLab = "micro" | "fp";
 const FP_SECTION_CODE = "FP";
 const WORKFLOW_TYPES_BY_LAB: Record<TestMasterLab, string[]> = {
   micro: ["CountTest", "Observation"],
-  fp: ["HplcAssay", "ElementalAssay"]
+  fp: ["HplcAssay", "ElementalAssay", "Measurement", "Gravimetric", "Qualitative"]
 };
 const WORKFLOW_TYPE_LABELS: Record<string, string> = {
   CountTest: "Count Test",
   Observation: "Observation",
   HplcAssay: "HPLC Assay",
-  ElementalAssay: "Elemental Assay (ICP-OES)"
+  ElementalAssay: "Elemental Assay (ICP-OES)",
+  Measurement: "Measurement",
+  Gravimetric: "Gravimetric",
+  Qualitative: "Qualitative"
 };
 
-const EQUATION_TYPES = ["None", "HplcAssay", "SystemSuitability", "CalibrationCurve"];
+const EQUATION_TYPES = [
+  "None",
+  "HplcAssay",
+  "SystemSuitability",
+  "CalibrationCurve",
+  "Measurement",
+  "GravimetricLoss",
+  "GravimetricResidue",
+  "Qualitative"
+];
 const EQUATION_TYPE_LABELS: Record<string, string> = {
   None: "None",
   HplcAssay: "HPLC Assay",
   SystemSuitability: "System Suitability",
-  CalibrationCurve: "Calibration Curve"
+  CalibrationCurve: "Calibration Curve",
+  Measurement: "Measurement (pH, density…)",
+  GravimetricLoss: "Loss on drying / Gravimetric loss",
+  GravimetricResidue: "Ash / Gravimetric residue",
+  Qualitative: "Qualitative (appearance, ID)"
 };
 const STEP_TYPES = ["PlateCount", "BrothEnrichment", "SelectiveBroth", "SelectivePlating", "ConfirmatoryPlating", "BiochemicalTest"];
 const STEP_TYPES_REQUIRING_ORGANISM = ["SelectivePlating", "ConfirmatoryPlating"];
@@ -656,7 +672,7 @@ function WorkflowStepsSection({ test, workflowTypes, onWorkflowTypeChanged }: { 
           mb: 1.5
         }}>
         <Typography sx={{ fontWeight: 700, fontSize: 13 }}>
-          {test.workflowType === "HplcAssay" || test.workflowType === "ElementalAssay" ? "Workflow Type" : "Workflow Steps"}
+          {["HplcAssay", "ElementalAssay", "Measurement", "Gravimetric", "Qualitative"].includes(test.workflowType) ? "Workflow Type" : "Workflow Steps"}
         </Typography>
         <Select size="small" value={test.workflowType} onChange={(e) => changeWorkflowType(e.target.value)}>
           {workflowTypes.map((w) => <MenuItem key={w} value={w}>{WORKFLOW_TYPE_LABELS[w] ?? w}</MenuItem>)}
@@ -765,6 +781,71 @@ function WorkflowStepsSection({ test, workflowTypes, onWorkflowTypeChanged }: { 
         <Typography variant="body2" sx={{ color: "text.secondary" }}>
           HPLC assay tests have no workflow steps or media: the result is entered from the chromatography data against a passed System Suitability run.
         </Typography>
+      ) : test.workflowType === "Measurement" ? (
+        <Box sx={{ p: 2, bgcolor: "background.paper", borderRadius: 1, border: "1px solid", borderColor: "divider" }}>
+          <Typography sx={{ fontWeight: 700, fontSize: 12, mb: 1, color: "primary.main" }}>
+            Measurement Configuration
+          </Typography>
+          <Stack direction="row" spacing={3} sx={{ flexWrap: "wrap", alignItems: "center", mb: 1 }}>
+            <Box>
+              <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>Equation Type</Typography>
+              <Typography variant="body2" sx={{ fontWeight: 600 }}>{EQUATION_TYPE_LABELS[test.equationType ?? "Measurement"] ?? test.equationType}</Typography>
+            </Box>
+            <Box>
+              <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>Evaluation Basis</Typography>
+              <Typography variant="body2" sx={{ fontWeight: 600 }}>{test.evaluationBasis ?? "Mean"}</Typography>
+            </Box>
+            <Box>
+              <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>Replicate Count</Typography>
+              <Typography variant="body2" sx={{ fontWeight: 600 }}>{test.replicateCount ?? 1}</Typography>
+            </Box>
+          </Stack>
+          <Typography variant="body2" sx={{ color: "text.secondary" }}>
+            Measurement tests have no workflow steps: readings are entered per specification parameter directly.
+          </Typography>
+        </Box>
+      ) : test.workflowType === "Gravimetric" ? (
+        <Box sx={{ p: 2, bgcolor: "background.paper", borderRadius: 1, border: "1px solid", borderColor: "divider" }}>
+          <Typography sx={{ fontWeight: 700, fontSize: 12, mb: 1, color: "primary.main" }}>
+            Gravimetric Configuration
+          </Typography>
+          <Stack direction="row" spacing={3} sx={{ flexWrap: "wrap", alignItems: "center", mb: 1 }}>
+            <Box>
+              <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>Equation Type</Typography>
+              <Typography variant="body2" sx={{ fontWeight: 600 }}>{EQUATION_TYPE_LABELS[test.equationType ?? "GravimetricLoss"] ?? test.equationType}</Typography>
+            </Box>
+            <Box>
+              <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>Replicate Count</Typography>
+              <Typography variant="body2" sx={{ fontWeight: 600 }}>{test.replicateCount ?? 1}</Typography>
+            </Box>
+            <Box>
+              <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>Uses Tare</Typography>
+              <Typography variant="body2" sx={{ fontWeight: 600 }}>{test.usesTare ? "Yes" : "No"}</Typography>
+            </Box>
+            <Box>
+              <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>Condition Fields</Typography>
+              <Typography variant="body2">{test.conditionFields || "None configured"}</Typography>
+            </Box>
+          </Stack>
+          <Typography variant="body2" sx={{ color: "text.secondary" }}>
+            Gravimetric tests have no workflow steps: container/sample weights and condition fields are entered directly.
+          </Typography>
+        </Box>
+      ) : test.workflowType === "Qualitative" ? (
+        <Box sx={{ p: 2, bgcolor: "background.paper", borderRadius: 1, border: "1px solid", borderColor: "divider" }}>
+          <Typography sx={{ fontWeight: 700, fontSize: 12, mb: 1, color: "primary.main" }}>
+            Qualitative Configuration
+          </Typography>
+          <Stack direction="row" spacing={3} sx={{ flexWrap: "wrap", alignItems: "center", mb: 1 }}>
+            <Box>
+              <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>Equation Type</Typography>
+              <Typography variant="body2" sx={{ fontWeight: 600 }}>{EQUATION_TYPE_LABELS[test.equationType ?? "Qualitative"] ?? test.equationType}</Typography>
+            </Box>
+          </Stack>
+          <Typography variant="body2" sx={{ color: "text.secondary" }}>
+            Qualitative tests have no workflow steps: compliance observation is entered per specification parameter directly.
+          </Typography>
+        </Box>
       ) : (
       <>
       {steps.length > 0 ? (
@@ -1182,6 +1263,11 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
   const [calRequireInternalStandard, setCalRequireInternalStandard] = useState<boolean>(false);
   const [calMaxRunAgeHours, setCalMaxRunAgeHours] = useState<string>("24");
 
+  const [replicateCount, setReplicateCount] = useState<string>("1");
+  const [evaluationBasis, setEvaluationBasis] = useState<"Mean" | "EachValue" | "Min" | "Max">("Mean");
+  const [conditionFields, setConditionFields] = useState<string>("");
+  const [usesTare, setUsesTare] = useState<boolean>(false);
+
   const [dialogOpen, setDialogOpen] = useState(false);
   const [dialogError, setDialogError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -1228,6 +1314,10 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
     setCalRequireCcv(true);
     setCalRequireInternalStandard(false);
     setCalMaxRunAgeHours("24");
+    setReplicateCount("1");
+    setEvaluationBasis("Mean");
+    setConditionFields("");
+    setUsesTare(false);
     setDialogError(null);
     setDialogOpen(true);
   };
@@ -1240,7 +1330,7 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
     setSectionId(t.sectionId ?? (mySections.length === 1 ? mySections[0].sectionId : ""));
     setEditingSectionId(t.sectionId ?? null);
     setWorkflowType(t.workflowType || defaultWorkflowType);
-    setEquationType(t.equationType || (t.workflowType === "ElementalAssay" ? "CalibrationCurve" : t.workflowType === "HplcAssay" ? "HplcAssay" : "None"));
+    setEquationType(t.equationType || (t.workflowType === "ElementalAssay" ? "CalibrationCurve" : t.workflowType === "HplcAssay" ? "HplcAssay" : t.workflowType === "Measurement" ? "Measurement" : t.workflowType === "Gravimetric" ? "GravimetricLoss" : t.workflowType === "Qualitative" ? "Qualitative" : "None"));
     setRequiresSystemSuitability(!!t.requiresSystemSuitability);
     setMethodAbbreviation(t.methodAbbreviation ?? "");
     setSstMaxRsdPercent(t.sstMaxRsdPercent != null ? String(t.sstMaxRsdPercent) : "");
@@ -1260,6 +1350,10 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
     setCalRequireCcv(t.calRequireCcv !== false);
     setCalRequireInternalStandard(!!t.calRequireInternalStandard);
     setCalMaxRunAgeHours(t.calMaxRunAgeHours != null ? String(t.calMaxRunAgeHours) : "24");
+    setReplicateCount(t.replicateCount != null ? String(t.replicateCount) : "1");
+    setEvaluationBasis(t.evaluationBasis || "Mean");
+    setConditionFields(t.conditionFields || "");
+    setUsesTare(!!t.usesTare);
     setDialogError(null);
     setDialogOpen(true);
   };
@@ -1361,15 +1455,59 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
       }
     }
 
+    const isMeasurement = workflowType === "Measurement";
+    const isGravimetric = workflowType === "Gravimetric";
+    const isQualitative = workflowType === "Qualitative";
+
+    if (isMeasurement) {
+      const rep = Number(replicateCount);
+      if (!rep || rep < 1 || rep > 30) {
+        setDialogError("Replicate count must be between 1 and 30 for Measurement tests.");
+        return;
+      }
+      if (!evaluationBasis) {
+        setDialogError("Evaluation basis is required for Measurement tests.");
+        return;
+      }
+    }
+
+    if (isGravimetric) {
+      const rep = Number(replicateCount);
+      if (!rep || rep < 1 || rep > 30) {
+        setDialogError("Replicate count must be between 1 and 30 for Gravimetric tests.");
+        return;
+      }
+      if (equationType !== "GravimetricLoss" && equationType !== "GravimetricResidue") {
+        setDialogError("Equation type must be GravimetricLoss or GravimetricResidue for Gravimetric tests.");
+        return;
+      }
+      if (conditionFields.length > 500) {
+        setDialogError("Condition fields cannot exceed 500 characters.");
+        return;
+      }
+    }
+
     setSaving(true);
     try {
+      const resolvedEquationType = isCalCurve
+        ? "CalibrationCurve"
+        : isHplc
+        ? equationType
+        : isMeasurement
+        ? "Measurement"
+        : isGravimetric
+        ? equationType
+        : isQualitative
+        ? "Qualitative"
+        : "None";
+
       if (editingId) {
         const payload: UpdateTestDefinitionPayload = {
           code: trimmedCode,
           displayName: trimmedDisplayName,
           sectionId: chosenSectionId,
           workflowType,
-          equationType: isCalCurve ? "CalibrationCurve" : isHplc ? equationType : "None",
+          equationType: resolvedEquationType,
           requiresSystemSuitability: isHplc ? requiresSystemSuitability : false,
           methodAbbreviation: (isHplc && requiresSystemSuitability) || isCalCurve ? methodAbbreviation.trim().toUpperCase() : null,
           sstMaxRsdPercent: isHplc && requiresSystemSuitability && sstMaxRsdPercent.trim() !== "" ? Number(sstMaxRsdPercent) : null,
@@ -1390,7 +1528,11 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
           calRequireCcv: isCalCurve ? calRequireCcv : null,
           calRequireInternalStandard: isCalCurve ? calRequireInternalStandard : null,
           reportedConcentrationBasis: isCalCurve ? "SamplePpm" : null,
-          calMaxRunAgeHours: isCalCurve ? (calMaxRunAgeHours.trim() !== "" ? Number(calMaxRunAgeHours) : 24) : null
+          calMaxRunAgeHours: isCalCurve ? (calMaxRunAgeHours.trim() !== "" ? Number(calMaxRunAgeHours) : 24) : null,
+          replicateCount: (isMeasurement || isGravimetric) ? Number(replicateCount) : null,
+          evaluationBasis: isMeasurement ? evaluationBasis : null,
+          conditionFields: isGravimetric ? (conditionFields.trim() || null) : null,
+          usesTare: isGravimetric ? usesTare : null
         };
         await update(editingId, payload);
         setMessage({ text: `Test "${trimmedCode}" updated.`, ok: true });
@@ -1400,7 +1542,7 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
           displayName: trimmedDisplayName,
           sectionId: chosenSectionId,
           workflowType,
-          equationType: isCalCurve ? "CalibrationCurve" : isHplc ? equationType : "None",
+          equationType: resolvedEquationType,
           requiresSystemSuitability: isHplc ? requiresSystemSuitability : false,
           methodAbbreviation: (isHplc && requiresSystemSuitability) || isCalCurve ? methodAbbreviation.trim().toUpperCase() : null,
           sstMaxRsdPercent: isHplc && requiresSystemSuitability && sstMaxRsdPercent.trim() !== "" ? Number(sstMaxRsdPercent) : null,
@@ -1421,7 +1563,11 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
           calRequireCcv: isCalCurve ? calRequireCcv : null,
           calRequireInternalStandard: isCalCurve ? calRequireInternalStandard : null,
           reportedConcentrationBasis: isCalCurve ? "SamplePpm" : null,
-          calMaxRunAgeHours: isCalCurve ? (calMaxRunAgeHours.trim() !== "" ? Number(calMaxRunAgeHours) : 24) : null
+          calMaxRunAgeHours: isCalCurve ? (calMaxRunAgeHours.trim() !== "" ? Number(calMaxRunAgeHours) : 24) : null,
+          replicateCount: (isMeasurement || isGravimetric) ? Number(replicateCount) : null,
+          evaluationBasis: isMeasurement ? evaluationBasis : null,
+          conditionFields: isGravimetric ? (conditionFields.trim() || null) : null,
+          usesTare: isGravimetric ? usesTare : null
         };
         await addNew(payload);
         setMessage({ text: `Test "${trimmedCode}" added to the Test Master.`, ok: true });
@@ -1641,8 +1787,20 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
                   setWorkflowType(next);
                   if (next === "HplcAssay") {
                     if (equationType === "None") setEquationType("HplcAssay");
+                    setRequiresSystemSuitability(false);
                   } else if (next === "ElementalAssay") {
                     setEquationType("CalibrationCurve");
+                    setRequiresSystemSuitability(false);
+                  } else if (next === "Measurement") {
+                    setEquationType("Measurement");
+                    setRequiresSystemSuitability(false);
+                  } else if (next === "Gravimetric") {
+                    if (equationType !== "GravimetricLoss" && equationType !== "GravimetricResidue") {
+                      setEquationType("GravimetricLoss");
+                    }
+                    setRequiresSystemSuitability(false);
+                  } else if (next === "Qualitative") {
+                    setEquationType("Qualitative");
                     setRequiresSystemSuitability(false);
                   } else {
                     setEquationType("None");
@@ -1676,12 +1834,21 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
               >
                 {EQUATION_TYPES.filter((eq) => {
                   if (workflowType === "HplcAssay") {
-                    return eq !== "CalibrationCurve";
+                    return eq !== "CalibrationCurve" && eq !== "Measurement" && eq !== "GravimetricLoss" && eq !== "GravimetricResidue" && eq !== "Qualitative";
                   }
                   if (workflowType === "ElementalAssay") {
                     return eq === "CalibrationCurve" || eq === "None";
                   }
-                  return eq !== "HplcAssay" && eq !== "HplcUniformityOfDosageUnits" && eq !== "HplcDissolutionMultiPoint";
+                  if (workflowType === "Measurement") {
+                    return eq === "Measurement";
+                  }
+                  if (workflowType === "Gravimetric") {
+                    return eq === "GravimetricLoss" || eq === "GravimetricResidue";
+                  }
+                  if (workflowType === "Qualitative") {
+                    return eq === "Qualitative";
+                  }
+                  return eq !== "HplcAssay" && eq !== "HplcUniformityOfDosageUnits" && eq !== "HplcDissolutionMultiPoint" && eq !== "Measurement" && eq !== "GravimetricLoss" && eq !== "GravimetricResidue" && eq !== "Qualitative";
                 }).map((eq) => (
                   <MenuItem key={eq} value={eq}>
                     {EQUATION_TYPE_LABELS[eq] ?? eq}
@@ -1689,6 +1856,92 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
                 ))}
               </Select>
             </FormControl>
+          )}
+
+          {workflowType === "Measurement" && (
+            <Box sx={{ p: 2, bgcolor: "action.hover", borderRadius: 1, border: "1px solid", borderColor: "divider" }}>
+              <Typography sx={{ fontWeight: 700, fontSize: 13, mb: 1.5 }}>
+                Measurement Settings
+              </Typography>
+              <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
+                <TextField
+                  size="small"
+                  type="number"
+                  label="Replicate Count *"
+                  value={replicateCount}
+                  onChange={(e) => setReplicateCount(e.target.value)}
+                  slotProps={{ htmlInput: { min: 1, max: 30, step: 1 } }}
+                  helperText="Replicates per parameter (1–30)"
+                  required
+                  sx={{ flex: 1 }}
+                />
+                <FormControl size="small" sx={{ flex: 1 }} required>
+                  <InputLabel id="dialog-eval-basis-label">Evaluation Basis *</InputLabel>
+                  <Select
+                    labelId="dialog-eval-basis-label"
+                    label="Evaluation Basis *"
+                    value={evaluationBasis}
+                    onChange={(e) => setEvaluationBasis(e.target.value as "Mean" | "EachValue" | "Min" | "Max")}
+                  >
+                    <MenuItem value="Mean">Mean</MenuItem>
+                    <MenuItem value="EachValue">Each Value</MenuItem>
+                    <MenuItem value="Min">Minimum</MenuItem>
+                    <MenuItem value="Max">Maximum</MenuItem>
+                  </Select>
+                </FormControl>
+              </Stack>
+            </Box>
+          )}
+
+          {workflowType === "Gravimetric" && (
+            <Box sx={{ p: 2, bgcolor: "action.hover", borderRadius: 1, border: "1px solid", borderColor: "divider" }}>
+              <Typography sx={{ fontWeight: 700, fontSize: 13, mb: 1.5 }}>
+                Gravimetric Settings
+              </Typography>
+              <Stack spacing={2}>
+                <Stack direction={{ xs: "column", sm: "row" }} spacing={2} sx={{ alignItems: "center" }}>
+                  <TextField
+                    size="small"
+                    type="number"
+                    label="Replicate Count *"
+                    value={replicateCount}
+                    onChange={(e) => setReplicateCount(e.target.value)}
+                    slotProps={{ htmlInput: { min: 1, max: 30, step: 1 } }}
+                    helperText="Replicates per parameter (1–30)"
+                    required
+                    sx={{ flex: 1 }}
+                  />
+                  <FormControlLabel
+                    control={
+                      <Switch
+                        checked={usesTare}
+                        onChange={(e) => setUsesTare(e.target.checked)}
+                      />
+                    }
+                    label="Uses tare (container weight)"
+                    sx={{ flex: 1 }}
+                  />
+                </Stack>
+                <TextField
+                  size="small"
+                  label="Condition fields"
+                  placeholder="e.g. Temperature (°C),Time (h)"
+                  value={conditionFields}
+                  onChange={(e) => setConditionFields(e.target.value)}
+                  helperText="comma-separated, e.g. Temperature (°C),Time (h)"
+                  slotProps={{ htmlInput: { maxLength: 500 } }}
+                  fullWidth
+                />
+              </Stack>
+            </Box>
+          )}
+
+          {workflowType === "Qualitative" && (
+            <Box sx={{ p: 2, bgcolor: "action.hover", borderRadius: 1, border: "1px solid", borderColor: "divider" }}>
+              <Typography sx={{ fontWeight: 600, fontSize: 13, color: "text.secondary" }}>
+                Qualitative test: records compliance observation against specifications directly (no replicates or steps).
+              </Typography>
+            </Box>
           )}
 
           {equationType === "CalibrationCurve" && (

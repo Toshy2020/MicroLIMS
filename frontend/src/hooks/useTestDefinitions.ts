@@ -33,6 +33,10 @@ export interface TestDefinitionOption {
   calRequireInternalStandard?: boolean | null;
   reportedConcentrationBasis?: string | null;
   calMaxRunAgeHours?: number | null;
+  replicateCount?: number | null;
+  evaluationBasis?: "Mean" | "EachValue" | "Min" | "Max" | null;
+  conditionFields?: string | null;
+  usesTare?: boolean | null;
   sectionId?: number;
   section?: {
     id: number;

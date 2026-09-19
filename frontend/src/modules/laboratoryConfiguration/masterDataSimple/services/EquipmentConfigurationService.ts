@@ -17,7 +17,23 @@ export type EquipmentType =
   | "Hplc"
   | "PhMeter"
   | "Balance"
-  | "IcpOes";
+  | "IcpOes"
+  | "UvVis"
+  | "DissolutionTester"
+  | "DisintegrationTester"
+  | "KarlFischer"
+  | "Titrator"
+  | "Viscometer"
+  | "Refractometer"
+  | "Polarimeter"
+  | "ConductivityMeter"
+  | "MeltingPoint"
+  | "Oven"
+  | "Furnace"
+  | "Gc"
+  | "Aas"
+  | "DigestionMicrowave"
+  | "Caliper";
 
 export type CdsSoftware =
   | "ShimadzuLabSolutions"

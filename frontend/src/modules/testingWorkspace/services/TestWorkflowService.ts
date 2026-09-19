@@ -60,6 +60,60 @@ export const TestWorkflowService = {
   ) =>
     apiClient.post(`/test-workflow/${testOrderId}/record-elemental-result`, payload).then((r) => r.data.data),
 
+  // Numeric measurement (pH, density, viscosity, etc.). Signed.
+  recordMeasurementResult: (
+    testOrderId: number,
+    payload: {
+      analysedAt: string;
+      equipmentId?: number | null;
+      parameters: {
+        specificationId: number;
+        readings: number[];
+      }[];
+      password: string;
+      comment?: string | null;
+    }
+  ) =>
+    apiClient.post(`/test-workflow/${testOrderId}/record-measurement-result`, payload).then((r) => r.data.data),
+
+  // Gravimetric analysis (loss on drying, ash/residue). Signed.
+  recordGravimetricResult: (
+    testOrderId: number,
+    payload: {
+      analysedAt: string;
+      equipmentId?: number | null;
+      conditions: Record<string, string>;
+      parameters: {
+        specificationId: number;
+        replicates: {
+          container?: number | null;
+          initial: number;
+          final: number;
+        }[];
+      }[];
+      password: string;
+      comment?: string | null;
+    }
+  ) =>
+    apiClient.post(`/test-workflow/${testOrderId}/record-gravimetric-result`, payload).then((r) => r.data.data),
+
+  // Qualitative analysis (appearance, ID, odor, etc.). Signed.
+  recordQualitativeResult: (
+    testOrderId: number,
+    payload: {
+      analysedAt: string;
+      equipmentId?: number | null;
+      parameters: {
+        specificationId: number;
+        conforms: boolean;
+        observation?: string | null;
+      }[];
+      password: string;
+      comment?: string | null;
+    }
+  ) =>
+    apiClient.post(`/test-workflow/${testOrderId}/record-qualitative-result`, payload).then((r) => r.data.data),
+
   getLocations: (testOrderId: number) =>
     apiClient.get(`/test-workflow/${testOrderId}/locations`).then((r) => r.data.data),
 

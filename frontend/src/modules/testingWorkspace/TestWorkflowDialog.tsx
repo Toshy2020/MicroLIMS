@@ -16,6 +16,9 @@ import { ConfirmationDialog } from "../../components/ConfirmationDialog";
 import { StepChainStrip } from "./components/StepChainStrip";
 import { HplcAssayPanel } from "./HplcAssayPanel";
 import { ElementalAssayPanel } from "./ElementalAssayPanel";
+import { MeasurementPanel } from "./MeasurementPanel";
+import { GravimetricPanel } from "./GravimetricPanel";
+import { QualitativePanel } from "./QualitativePanel";
 import { INCUBATION_WINDOW_NOT_CONFIGURED_MESSAGE } from "./utils/incubationWindow";
 
 interface Props {
@@ -305,6 +308,54 @@ export function TestWorkflowDialog({ testOrderId, testCode, category, displayNam
   if (current.workflowType === "ElementalAssay") {
     return (
       <ElementalAssayPanel
+        testOrderId={testOrderId}
+        displayName={displayName}
+        testCode={testCode}
+        itemId={itemId}
+        sampleId={sampleId}
+        current={current}
+        onRecorded={load}
+        onClose={onClose}
+      />
+    );
+  }
+
+  // Measurement workflow (pH, density, etc.)
+  if (current.workflowType === "Measurement") {
+    return (
+      <MeasurementPanel
+        testOrderId={testOrderId}
+        displayName={displayName}
+        testCode={testCode}
+        itemId={itemId}
+        sampleId={sampleId}
+        current={current}
+        onRecorded={load}
+        onClose={onClose}
+      />
+    );
+  }
+
+  // Gravimetric workflow (loss on drying, ash/residue)
+  if (current.workflowType === "Gravimetric") {
+    return (
+      <GravimetricPanel
+        testOrderId={testOrderId}
+        displayName={displayName}
+        testCode={testCode}
+        itemId={itemId}
+        sampleId={sampleId}
+        current={current}
+        onRecorded={load}
+        onClose={onClose}
+      />
+    );
+  }
+
+  // Qualitative workflow (appearance, identification, etc.)
+  if (current.workflowType === "Qualitative") {
+    return (
+      <QualitativePanel
         testOrderId={testOrderId}
         displayName={displayName}
         testCode={testCode}

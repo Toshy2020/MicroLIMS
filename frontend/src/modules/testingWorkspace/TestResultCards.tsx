@@ -51,13 +51,30 @@ function HplcAssayCard({ test }: { test: TestOrderSummaryDetail }) {
       defaultOpen={hasException}
       isSuperseded={test.isSuperseded}
     >
-      <SecondaryToggle label={`Show replicates (${h.replicates.length})`}>
+      <SecondaryToggle label={`Show raw data and calculation (${h.replicates.length} replicates)`}>
         <div className="plate-readings" style={{ border: "1px solid var(--color-border)", borderRadius: 8, marginTop: 8 }}>
-          <div className="plate-readings-label">replicate injections</div>
+          <div className="plate-readings-label">system suitability · {h.suitabilityRunCode} · {h.suitabilityPassed ? "passed" : "failed"}</div>
+          <div className="plate-meta">
+            <span>Instrument: <strong>{h.equipmentCode ?? "—"}</strong></span>
+            <span>Column: <strong>{h.columnCode ?? "—"}</strong></span>
+            <span>Standard: <strong>{h.referenceStandardName ?? "—"}{h.referenceStandardBatch ? ` (${h.referenceStandardBatch})` : ""}</strong></span>
+            <span>Purity: <strong>{h.standardPurityPercent} %</strong></span>
+            <span>Std weight / dilution: <strong>{h.standardWeightMg} mg / {h.standardDilution}</strong></span>
+            <span>Std mean area: <strong>{h.standardMeanArea}</strong></span>
+            <span>%RSD: <strong>{h.rsdPercent ?? "—"}</strong></span>
+            <span>Resolution: <strong>{h.resolution ?? "—"}</strong></span>
+            <span>Tailing: <strong>{h.tailingFactor ?? "—"}</strong></span>
+            <span>Plates: <strong>{h.theoreticalPlates ?? "—"}</strong></span>
+          </div>
+          <div className="plate-readings-label">
+            assay % = (sample area ÷ std mean area) × (std weight ÷ sample weight) × (purity ÷ 100) × (sample dilution ÷ std dilution) × 100
+          </div>
           <div className="plate-stats">
             {h.replicates.map((r) => (
               <div className="plate-stat" key={r.replicateNumber}>
-                <div className="stat-label">Replicate {r.replicateNumber} · area {r.area}</div>
+                <div className="stat-label">
+                  Replicate {r.replicateNumber}: ({r.area} ÷ {h.standardMeanArea}) × ({h.standardWeightMg} ÷ {h.sampleWeightMg}) × ({h.standardPurityPercent} ÷ 100) × ({h.sampleDilution} ÷ {h.standardDilution}) × 100
+                </div>
                 <div className="stat-value">{r.assayPercent.toFixed(2)} %</div>
               </div>
             ))}

@@ -234,4 +234,25 @@ export interface HplcAssayDetail {
   suitabilityRunCode: string;
   enteredByName: string | null;
   enteredAt: string;
+  standardPurityPercent: number;
+  standardWeightMg: number;
+  standardDilution: number;
+  standardMeanArea: number;
+  suitabilityPassed: boolean;
+  suitabilityPerformedByName: string | null;
+  suitabilityPerformedAt: string;
+  equipmentCode: string | null;
+  equipmentName: string | null;
+  columnCode: string | null;
+  columnName: string | null;
+  referenceStandardName: string | null;
+  referenceStandardBatch: string | null;
+  rsdPercent: number | null;
+  resolution: number | null;
+  tailingFactor: number | null;
+  theoreticalPlates: number | null;
+  sstMaxRsdPercent: number | null;
+  sstMinResolution: number | null;
+  sstMaxTailingFactor: number | null;
+  sstMinTheoreticalPlates: number | null;
 }

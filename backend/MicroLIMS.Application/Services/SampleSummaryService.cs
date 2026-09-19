@@ -106,7 +106,25 @@ public class SampleSummaryService
         var countTestReadings = await _db.CountTestReadings.Where(r => testOrderIds.Contains(r.TestOrderId)).ToListAsync();
         var hplcResults = await _db.HplcAssayResults.AsNoTracking()
             .Where(r => testOrderIds.Contains(r.TestOrderId) && r.IsActive)
-            .Select(r => new { r.TestOrderId, r.ReportedResult, r.MeanAssayPercent, r.ComparisonStatus, r.SpecLimit, r.SampleWeightMg, r.SampleDilution, r.ReplicatesJson, RunCode = r.SystemSuitabilityRun!.Code, r.EnteredByUserId, r.EnteredAt })
+            .Select(r => new
+            {
+                r.TestOrderId, r.ReportedResult, r.MeanAssayPercent, r.ComparisonStatus, r.SpecLimit, r.SampleWeightMg, r.SampleDilution, r.ReplicatesJson,
+                r.StandardPurityPercent, r.StandardWeightMg, r.StandardDilution, r.StandardMeanArea,
+                RunCode = r.SystemSuitabilityRun!.Code,
+                RunPassed = r.SystemSuitabilityRun.Passed,
+                RunPerformedByUserId = r.SystemSuitabilityRun.PerformedByUserId,
+                RunPerformedAt = r.SystemSuitabilityRun.PerformedAt,
+                EquipmentCode = r.SystemSuitabilityRun.Equipment!.Code,
+                EquipmentName = r.SystemSuitabilityRun.Equipment.Name,
+                ColumnCode = r.SystemSuitabilityRun.ChromatographyColumn!.Code,
+                ColumnName = r.SystemSuitabilityRun.ChromatographyColumn.Name,
+                StandardName = r.SystemSuitabilityRun.ReferenceStandardMaterial!.MaterialName,
+                StandardBatch = r.SystemSuitabilityRun.ReferenceStandardMaterial.BatchNumber,
+                r.SystemSuitabilityRun.RsdPercent, r.SystemSuitabilityRun.Resolution, r.SystemSuitabilityRun.TailingFactor, r.SystemSuitabilityRun.TheoreticalPlates,
+                r.SystemSuitabilityRun.TestDefinition!.SstMaxRsdPercent, r.SystemSuitabilityRun.TestDefinition.SstMinResolution,
+                r.SystemSuitabilityRun.TestDefinition.SstMaxTailingFactor, r.SystemSuitabilityRun.TestDefinition.SstMinTheoreticalPlates,
+                r.EnteredByUserId, r.EnteredAt
+            })
             .ToListAsync();
         var pathogenObservations = await _db.PathogenObservations.Where(p => testOrderIds.Contains(p.TestOrderId)).ToListAsync();
         var biochemicalResults = await _db.WorkflowStepResults
@@ -175,6 +193,8 @@ public class SampleSummaryService
         // this summary, instead of a query per row.
         var userIds = new HashSet<int>(results.Select(r => r.EnteredByUserId)
             .Concat(countTestReadings.Select(r => r.EnteredByUserId))
+            .Concat(hplcResults.Select(h => h.EnteredByUserId))
+            .Concat(hplcResults.Select(h => h.RunPerformedByUserId))
             .Concat(pathogenObservations.Select(p => p.ObservedByUserId))
             .Concat(locationPathogenObservations.Select(o => o.ObservedByUserId))
             .Concat(workflowHistory.Select(w => w.PerformedByUserId))
@@ -486,7 +506,28 @@ public class SampleSummaryService
                     Replicates = System.Text.Json.JsonSerializer.Deserialize<List<HplcAssayReplicate>>(h.ReplicatesJson) ?? new(),
                     SuitabilityRunCode = h.RunCode,
                     EnteredByName = NameOf(h.EnteredByUserId),
-                    EnteredAt = h.EnteredAt
+                    EnteredAt = h.EnteredAt,
+                    StandardPurityPercent = h.StandardPurityPercent,
+                    StandardWeightMg = h.StandardWeightMg,
+                    StandardDilution = h.StandardDilution,
+                    StandardMeanArea = h.StandardMeanArea,
+                    SuitabilityPassed = h.RunPassed,
+                    SuitabilityPerformedByName = NameOf(h.RunPerformedByUserId),
+                    SuitabilityPerformedAt = h.RunPerformedAt,
+                    EquipmentCode = h.EquipmentCode,
+                    EquipmentName = h.EquipmentName,
+                    ColumnCode = h.ColumnCode,
+                    ColumnName = h.ColumnName,
+                    ReferenceStandardName = h.StandardName,
+                    ReferenceStandardBatch = h.StandardBatch,
+                    RsdPercent = h.RsdPercent,
+                    Resolution = h.Resolution,
+                    TailingFactor = h.TailingFactor,
+                    TheoreticalPlates = h.TheoreticalPlates,
+                    SstMaxRsdPercent = h.SstMaxRsdPercent,
+                    SstMinResolution = h.SstMinResolution,
+                    SstMaxTailingFactor = h.SstMaxTailingFactor,
+                    SstMinTheoreticalPlates = h.SstMinTheoreticalPlates
                 }).FirstOrDefault(),
                 PathogenObservations = pathogenObservations.Where(p => p.TestOrderId == order.Id).Select(p => new PathogenObservationDetailDto
                 {
@@ -671,10 +712,18 @@ public class SampleSummaryService
             }
             else if (order.HplcAssay is { } hplc)
             {
+                string V(decimal? d) => d?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? "-";
+                lines.Add("  SYSTEM SUITABILITY:");
+                lines.Add($"    Run: {hplc.SuitabilityRunCode} ({(hplc.SuitabilityPassed ? "Passed" : "Failed")})   Performed By: {hplc.SuitabilityPerformedByName}   At: {FormatDateTime(hplc.SuitabilityPerformedAt)}");
+                lines.Add($"    Instrument: {hplc.EquipmentCode} {hplc.EquipmentName}   Column: {hplc.ColumnCode} {hplc.ColumnName}");
+                lines.Add($"    Reference Standard: {hplc.ReferenceStandardName} (Batch {hplc.ReferenceStandardBatch ?? "-"})   Purity: {V(hplc.StandardPurityPercent)} %");
+                lines.Add($"    Standard Weight (mg): {V(hplc.StandardWeightMg)}   Standard Dilution: {V(hplc.StandardDilution)}   Standard Mean Area: {V(hplc.StandardMeanArea)}");
+                lines.Add($"    %RSD: {V(hplc.RsdPercent)} (NMT {V(hplc.SstMaxRsdPercent)})   Resolution: {V(hplc.Resolution)} (NLT {V(hplc.SstMinResolution)})   Tailing: {V(hplc.TailingFactor)} (NMT {V(hplc.SstMaxTailingFactor)})   Plates: {V(hplc.TheoreticalPlates)} (NLT {V(hplc.SstMinTheoreticalPlates)})");
                 lines.Add("  FINAL RESULT (HPLC ASSAY):");
-                lines.Add($"    Suitability Run: {hplc.SuitabilityRunCode}   Sample Weight (mg): {hplc.SampleWeightMg}   Sample Dilution: {hplc.SampleDilution}");
+                lines.Add("    Assay % = (Sample Area / Std Mean Area) x (Std Weight / Sample Weight) x (Purity / 100) x (Sample Dilution / Std Dilution) x 100");
+                lines.Add($"    Sample Weight (mg): {V(hplc.SampleWeightMg)}   Sample Dilution: {V(hplc.SampleDilution)}");
                 foreach (var rep in hplc.Replicates)
-                    lines.Add($"    Replicate {rep.ReplicateNumber}: Area {rep.Area}   Assay {Math.Round(rep.AssayPercent, 2)} %");
+                    lines.Add($"    Replicate {rep.ReplicateNumber}: ({V(rep.Area)} / {V(hplc.StandardMeanArea)}) x ({V(hplc.StandardWeightMg)} / {V(hplc.SampleWeightMg)}) x ({V(hplc.StandardPurityPercent)} / 100) x ({V(hplc.SampleDilution)} / {V(hplc.StandardDilution)}) x 100 = {V(Math.Round(rep.AssayPercent, 2))} %");
                 lines.Add($"    Mean Assay: {hplc.ReportedResult}   Spec: {FormatLimit(hplc.SpecLimit)}   Status: {hplc.Status}");
                 lines.Add($"    Entered By: {hplc.EnteredByName}   Entered At: {FormatDateTime(hplc.EnteredAt)}");
             }

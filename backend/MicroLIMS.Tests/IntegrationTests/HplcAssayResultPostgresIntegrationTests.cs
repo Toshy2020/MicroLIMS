@@ -199,5 +199,21 @@ public class HplcAssayResultPostgresIntegrationTests
         var genericResult = await verifyDb.Results.FirstOrDefaultAsync(r => r.TestOrderId == order.Id);
         Assert.NotNull(genericResult);
         Assert.Contains("99.5 %", genericResult.InterpretedValue);
+
+        // Sample summary carries the raw data behind the result (translates on Postgres)
+        var summary = await TestServiceFactory.SampleSummary(verifyDb).GetSummaryAsync(sample.Id);
+        var hplc = Assert.Single(summary!.TestOrders, t => t.TestOrderId == order.Id).HplcAssay;
+        Assert.NotNull(hplc);
+        Assert.Equal(run.Code, hplc.SuitabilityRunCode);
+        Assert.True(hplc.SuitabilityPassed);
+        Assert.Equal(1000m, hplc.StandardMeanArea);
+        Assert.Equal(50.0m, hplc.StandardWeightMg);
+        Assert.Equal(100.0m, hplc.StandardDilution);
+        Assert.Equal(equip.Code, hplc.EquipmentCode);
+        Assert.Equal(col.Code, hplc.ColumnCode);
+        Assert.Equal(1.0m, hplc.RsdPercent);
+        Assert.Equal(3, hplc.Replicates.Count);
+        Assert.NotEqual("Unknown", hplc.EnteredByName);
+        Assert.NotNull(await TestServiceFactory.SampleSummary(verifyDb).GenerateSummaryPdfAsync(sample.Id));
     }
 }

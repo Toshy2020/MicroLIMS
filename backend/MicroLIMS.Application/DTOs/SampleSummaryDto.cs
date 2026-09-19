@@ -201,6 +201,31 @@ public class HplcAssayDetailDto
     public string SuitabilityRunCode { get; set; } = string.Empty;
     public string? EnteredByName { get; set; }
     public DateTime EnteredAt { get; set; }
+
+    // Raw data behind the calculation: the standard values snapshotted on
+    // the result, and the suitability run they came from.
+    public decimal StandardPurityPercent { get; set; }
+    public decimal StandardWeightMg { get; set; }
+    public decimal StandardDilution { get; set; }
+    public decimal StandardMeanArea { get; set; }
+    public bool SuitabilityPassed { get; set; }
+    public string? SuitabilityPerformedByName { get; set; }
+    public DateTime SuitabilityPerformedAt { get; set; }
+    public string? EquipmentCode { get; set; }
+    public string? EquipmentName { get; set; }
+    public string? ColumnCode { get; set; }
+    public string? ColumnName { get; set; }
+    public string? ReferenceStandardName { get; set; }
+    public string? ReferenceStandardBatch { get; set; }
+    public decimal? RsdPercent { get; set; }
+    public decimal? Resolution { get; set; }
+    public decimal? TailingFactor { get; set; }
+    public decimal? TheoreticalPlates { get; set; }
+    // Acceptance criteria as currently set on the Test Master.
+    public decimal? SstMaxRsdPercent { get; set; }
+    public decimal? SstMinResolution { get; set; }
+    public decimal? SstMaxTailingFactor { get; set; }
+    public decimal? SstMinTheoreticalPlates { get; set; }
 }
 
 public class CountTestReadingDetailDto

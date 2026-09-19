@@ -21,8 +21,16 @@ Recon: `docs/FP_Other_Equation_Types_Phase0_Recon.md`. Style and rules follow
 - Lab answers (2026-09-19): multivitamin assays are the **water-soluble vitamins, vitamin A, C, D and E**;
   **all three pharmaceuticals have dissolution**; **content uniformity is deferred** (drop CU from T7 for now;
   weight variation stays).
+- Lab answers (2026-09-19, second round): **dissolution is finished by HPLC**; **all vitamin assays are HPLC**
+  (including vitamin C). Consequences: T5 UV Assay is **dropped** (no UV test confirmed); T8 titration is **dropped**
+  for now (KF only if a water-content test is confirmed); dissolution takes its standard response from the linked
+  passing `SystemSuitabilityRun`, exactly like the HPLC assay.
+- Gap found (2026-09-19): the current `HplcAssay` is **single-analyte** (one SST standard, one primary spec) and
+  reports `% = (A/A_std)(W_std/W)(P/100)(D/D_std)100`, not mg/unit or %LC. Multivitamin HPLC runs usually quantify
+  several vitamins per injection against per-vitamin standards and report against the label claim. Open decision:
+  configure one test per vitamin on the current HPLC assay, or build a multi-analyte HPLC assay with label claim.
 - Still open: the full common multivitamin test list beyond the assays (appearance, LOD, disintegration, weight
-  variation?) and the assay technique per vitamin (HPLC vs UV vs titration).
+  variation?).
 
 ## Global rules (all types)
 
@@ -172,6 +180,27 @@ New `EquationType` values: `Measurement`, `GravimetricLoss`, `GravimetricResidue
 ### Tier 3 (later, only if confirmed)
 Related substances (area normalisation / vs standard with RRF, reporting threshold, totals); GC internal-standard ratio
 (omega-3) - the lab has a GC (recon open question 1).
+
+### T6 slice contract (2026-09-19, HPLC finish, single time point)
+- Enums (append): `WorkflowType.Dissolution`, `EquationType.Dissolution`, `LimitType.DissolutionQ`.
+- Specification (per item): `LimitType.DissolutionQ`, Q stored in `LowerLimit` (0 < Q <= 100, %), `LabelClaim` (> 0)
+  with `LabelClaimUnit` "mg" = LC per unit; SpecLimit text "Q = {Q} %". Exactly one dissolution spec per test/item.
+- Test Master (TestDefinition, nullable, required for Dissolution): stage table offsets with USP <711> / EP 2.9.3
+  immediate-release defaults - `DissolutionS1Offset` 5, `DissolutionS2MinOffset` 15, `DissolutionS3MinOffset` 25,
+  `DissolutionS3MaxBelowS2Min` 2; `ConditionFields` reused for apparatus/rpm/medium/temperature/time;
+  `RequiresSystemSuitability` must be true (standard comes from the SST run). No steps.
+- Standard: order must be linked to a PASSED SST run of the same test/section (same checks as the HPLC assay).
+  `C_s = W_std x (P/100) / D_std` (mg/mL).
+- Per vessel: `% = (A_u / A_std_mean) x C_s x V x DF x 100 / LC` (V medium volume mL, DF sample dilution, default 1).
+  Multiply before divide. Media replacement / multi-point profile: out of scope now.
+- Stages: S1 6 vessels; S2 +6 (12 total); S3 +12 (24 total). Pure `DissolutionStageEvaluator` returns
+  {Complies, NextStageRequired, DoesNotComply} + stage reached + reasons, from the rules in T6.
+- Flow: `record-dissolution-result` creates the signed TestAnalysis with the stage-1 vessels. If the outcome is
+  NextStageRequired the order is NOT finalized (stays Running, StageReached = 1). `record-dissolution-stage` (signed,
+  new vessels only, conditions/volume unchanged) appends the next stage's readings to the same active analysis,
+  re-evaluates all units and finalizes when Complies/DoesNotComply or after S3. Reported value = mean % of all units
+  (0 dp display), status WithinLimits / OutOfSpecification. Readings: Kind Vessel, Stage, Value1 = area,
+  ComputedValue = %, Passed = per-unit check of the stage it was entered in.
 
 ## G3 - Staged evaluation engine (recommended now, in the Dissolution slice)
 One pure engine: input = typed criteria + unit values per stage; output = stage reached, outcome, reasons. Stage state

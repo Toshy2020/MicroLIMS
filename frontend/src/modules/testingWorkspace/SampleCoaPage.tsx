@@ -216,7 +216,7 @@ function CoaSimpleTable({ simple, testOrders }: { simple: CoaSimpleResult; testO
           {simple.rows.map((r) => {
             const sourceRef = testOrders.find((t) => t.testOrderId === r.testOrderId)?.sourceSampleReferenceNumber;
             return (
-              <tr key={r.testOrderId}>
+              <tr key={`${r.testOrderId}-${r.testCode}`}>
                 <td>
                   {r.testDisplayName || r.testCode}
                   {sourceRef && (

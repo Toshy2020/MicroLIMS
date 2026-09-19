@@ -12,7 +12,7 @@ export type StepType =
 
 export type GrowthObservation = "NoGrowth" | "GrowthNonConforming" | "GrowthConforming";
 
-export type WorkflowType = "CountTest" | "Observation" | "HplcAssay";
+export type WorkflowType = "CountTest" | "Observation" | "HplcAssay" | "ElementalAssay";
 
 export type ConfirmatoryResult = "AllConforming" | "Inconclusive";
 

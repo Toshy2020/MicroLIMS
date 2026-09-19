@@ -122,6 +122,8 @@ export interface TestOrderSummaryDetail {
   countTestReadings: CountTestReadingDetail[];
   // HPLC Assay only - the active result, null for other tests.
   hplcAssay?: HplcAssayDetail | null;
+  // Elemental Assay only - the active result, null for other tests.
+  elementalAssay?: ElementalAssayDetail | null;
   pathogenObservations: PathogenObservationDetail[];
   biochemicalResults: BiochemicalResultDetail[];
   workflowHistory: WorkflowHistoryDetail[];
@@ -255,4 +257,31 @@ export interface HplcAssayDetail {
   sstMinResolution: number | null;
   sstMaxTailingFactor: number | null;
   sstMinTheoreticalPlates: number | null;
+}
+
+export interface ElementalAssayElementDetail {
+  parameterName: string;
+  element: string;
+  runCode: string;
+  runAnalytePassed: boolean;
+  reportedPpm: number;
+  overRange: boolean;
+  belowLoq: boolean;
+  mgPerUnit: number | null;
+  resultClaim: number | null;
+  percentLabelClaim: number | null;
+  reportedDisplay: string;
+  specLimit: string | null;
+  unit: string | null;
+  status: string;
+}
+
+export interface ElementalAssayDetail {
+  sampleMatrix: "Solid" | "Liquid" | string;
+  unitAmount: number;
+  unitAmountUnit: string;
+  analysedAt: string;
+  enteredByName: string | null;
+  enteredAt: string;
+  elements: ElementalAssayElementDetail[];
 }

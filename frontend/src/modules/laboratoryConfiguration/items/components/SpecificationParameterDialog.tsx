@@ -29,9 +29,20 @@ import {
   LimitType,
   ToleranceMode,
   ExpectedPresence,
+  ResultBasis,
+  SampleMatrix,
   CreateSpecificationPayload,
   UpdateSpecificationPayload
 } from "../../specifications/services/SpecificationService";
+import { masterDataOptions, TestAnalyteDto } from "../../../../services/masterDataOptions";
+
+export interface TestDefinitionSummary {
+  id: number;
+  code: string;
+  displayName: string;
+  workflowType: string;
+  equationType?: string;
+}
 
 interface SpecificationParameterDialogProps {
   open: boolean;
@@ -39,6 +50,7 @@ interface SpecificationParameterDialogProps {
   editingSpec?: SpecificationDto | null;
   preselectedTestCode?: string | null;
   workflowTypeByCode: Record<string, string>;
+  testDefinitionByCode?: Record<string, TestDefinitionSummary>;
   existingSpecs: SpecificationDto[];
   onClose: () => void;
   onSuccess: () => void;
@@ -74,6 +86,7 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
   editingSpec,
   preselectedTestCode,
   workflowTypeByCode,
+  testDefinitionByCode,
   existingSpecs,
   onClose,
   onSuccess
@@ -88,6 +101,17 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
   const [referenceStandard, setReferenceStandard] = useState("");
   const [unit, setUnit] = useState("");
   const [dilutionFactor, setDilutionFactor] = useState("");
+
+  // CalibrationCurve states
+  const [testDefs, setTestDefs] = useState<Record<string, TestDefinitionSummary>>(testDefinitionByCode || {});
+  const [testAnalyteId, setTestAnalyteId] = useState<number | "">("");
+  const [resultBasis, setResultBasis] = useState<ResultBasis | "">("MgPerKg");
+  const [sampleMatrix, setSampleMatrix] = useState<SampleMatrix | "">("Solid");
+  const [labelClaim, setLabelClaim] = useState("");
+  const [labelClaimUnit, setLabelClaimUnit] = useState("");
+  const [conversionFactor, setConversionFactor] = useState("1");
+  const [analytes, setAnalytes] = useState<TestAnalyteDto[]>([]);
+  const [loadingAnalytes, setLoadingAnalytes] = useState(false);
 
   // Range
   const [lowerLimit, setLowerLimit] = useState("");
@@ -121,6 +145,41 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  useEffect(() => {
+    if (testDefinitionByCode && Object.keys(testDefinitionByCode).length > 0) {
+      setTestDefs(testDefinitionByCode);
+    } else {
+      masterDataOptions
+        .getTestDefinitions()
+        .then((defs: any[]) => {
+          setTestDefs(Object.fromEntries(defs.map((d) => [d.code, d])));
+        })
+        .catch(() => {});
+    }
+  }, [testDefinitionByCode]);
+
+  const currentTestDef = testDefs[testCode];
+  const isCalibrationCurve = currentTestDef?.equationType === "CalibrationCurve";
+
+  useEffect(() => {
+    if (!isCalibrationCurve || !currentTestDef?.id) {
+      setAnalytes([]);
+      return;
+    }
+    setLoadingAnalytes(true);
+    masterDataOptions
+      .getTestAnalytes(currentTestDef.id)
+      .then((res) => {
+        setAnalytes(res.filter((a) => a.isActive !== false));
+      })
+      .catch(() => {
+        setAnalytes([]);
+      })
+      .finally(() => {
+        setLoadingAnalytes(false);
+      });
+  }, [isCalibrationCurve, currentTestDef?.id]);
+
   const getTestDisplayName = (code: string) => {
     const match = assignedTests.find((t) => t.testCode === code);
     return match?.displayName && match.displayName !== code
@@ -142,6 +201,15 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
       setUnit(editingSpec.unit ?? "");
       setDilutionFactor(
         editingSpec.dilutionFactor != null ? String(editingSpec.dilutionFactor) : ""
+      );
+
+      setTestAnalyteId(editingSpec.testAnalyteId ?? "");
+      setResultBasis((editingSpec.resultBasis as ResultBasis) || "MgPerKg");
+      setSampleMatrix((editingSpec.sampleMatrix as SampleMatrix) || "Solid");
+      setLabelClaim(formatTrimmedDecimal(editingSpec.labelClaim));
+      setLabelClaimUnit(editingSpec.labelClaimUnit ?? "");
+      setConversionFactor(
+        editingSpec.conversionFactor != null ? String(editingSpec.conversionFactor) : "1"
       );
 
       setLowerLimit(formatTrimmedDecimal(editingSpec.lowerLimit));
@@ -182,12 +250,22 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
       const initialParam = match?.displayName || initialCode;
       setParameterName(initialParam);
 
-      const defaultType = getDefaultLimitType(workflowTypeByCode[initialCode]);
+      const def = testDefs[initialCode];
+      const isCal = def?.equationType === "CalibrationCurve";
+      const defaultType = isCal ? "Range" : getDefaultLimitType(workflowTypeByCode[initialCode]);
       setLimitType(defaultType);
 
       setReferenceStandard("");
       setUnit("");
       setDilutionFactor("");
+
+      setTestAnalyteId("");
+      setResultBasis("MgPerKg");
+      const existingMatrix = existingSpecs.find((s) => s.sampleMatrix)?.sampleMatrix as SampleMatrix | undefined;
+      setSampleMatrix(existingMatrix || "Solid");
+      setLabelClaim("");
+      setLabelClaimUnit("");
+      setConversionFactor("1");
 
       setLowerLimit("");
       setUpperLimit("");
@@ -214,17 +292,38 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
         { stageNumber: 3, stageLabel: "Stage 3 (S1+S2+S3, n=24)", acceptanceCriteriaText: "" }
       ]);
     }
-  }, [open, editingSpec, preselectedTestCode, item, workflowTypeByCode, assignedTests]);
+  }, [open, editingSpec, preselectedTestCode, item, workflowTypeByCode, assignedTests, testDefs, existingSpecs]);
 
   const handleTestChange = (newCode: string) => {
     setTestCode(newCode);
     const match = assignedTests.find((t) => t.testCode === newCode);
     setParameterName(match?.displayName || newCode);
 
-    const defType = getDefaultLimitType(workflowTypeByCode[newCode]);
-    setLimitType(defType);
-    if (defType !== "CountTiered") {
+    const def = testDefs[newCode];
+    const isCal = def?.equationType === "CalibrationCurve";
+
+    if (isCal) {
+      setLimitType("Range");
+      setTestAnalyteId("");
       setDilutionFactor("");
+    } else {
+      const defType = getDefaultLimitType(workflowTypeByCode[newCode]);
+      setLimitType(defType);
+      if (defType !== "CountTiered") {
+        setDilutionFactor("");
+      }
+    }
+  };
+
+  const handleAnalyteChange = (analyteId: number) => {
+    setTestAnalyteId(analyteId);
+    const chosen = analytes.find((a) => a.id === analyteId);
+    if (chosen) {
+      const prevMatchesAnalyte = analytes.some((a) => a.element === parameterName);
+      const prevMatchesTest = assignedTests.some((t) => t.displayName === parameterName || t.testCode === parameterName);
+      if (!parameterName.trim() || prevMatchesAnalyte || prevMatchesTest) {
+        setParameterName(chosen.element);
+      }
     }
   };
 
@@ -272,6 +371,33 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
       return;
     }
 
+    if (isCalibrationCurve) {
+      if (!testAnalyteId) {
+        setError("Please select an element analyte.");
+        return;
+      }
+      if (!resultBasis) {
+        setError("Please select a result basis.");
+        return;
+      }
+      if (!sampleMatrix) {
+        setError("Please select a sample matrix.");
+        return;
+      }
+      if (resultBasis === "PercentLabelClaim") {
+        const lcNum = Number(labelClaim);
+        if (!labelClaim.trim() || isNaN(lcNum) || lcNum <= 0) {
+          setError("Label claim must be greater than 0 when result basis is % label claim.");
+          return;
+        }
+      }
+      const cfNum = conversionFactor.trim() !== "" ? Number(conversionFactor) : 1;
+      if (isNaN(cfNum) || cfNum <= 0) {
+        setError("Conversion factor must be greater than 0.");
+        return;
+      }
+    }
+
     setSaving(true);
     setError(null);
 
@@ -287,7 +413,7 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
       referenceStandard: referenceStandard.trim() || null,
       unit: unit.trim() || null,
       dilutionFactor:
-        limitType === "CountTiered" && dilutionFactor.trim() !== ""
+        !isCalibrationCurve && limitType === "CountTiered" && dilutionFactor.trim() !== ""
           ? Number(dilutionFactor)
           : null,
       lowerLimit:
@@ -332,7 +458,13 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
               stageLabel: s.stageLabel.trim(),
               acceptanceCriteriaText: s.acceptanceCriteriaText.trim()
             }))
-          : undefined
+          : undefined,
+      testAnalyteId: isCalibrationCurve && testAnalyteId !== "" ? Number(testAnalyteId) : null,
+      resultBasis: isCalibrationCurve && resultBasis ? (resultBasis as ResultBasis) : null,
+      sampleMatrix: isCalibrationCurve && sampleMatrix ? (sampleMatrix as SampleMatrix) : null,
+      labelClaim: isCalibrationCurve && labelClaim.trim() !== "" ? Number(labelClaim) : null,
+      labelClaimUnit: isCalibrationCurve ? labelClaimUnit.trim() || null : null,
+      conversionFactor: isCalibrationCurve ? (conversionFactor.trim() !== "" ? Number(conversionFactor) : 1) : 1
     };
 
     try {
@@ -419,6 +551,122 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
             />
           </Box>
 
+          {/* Calibration Curve Parameters Block */}
+          {isCalibrationCurve && (
+            <Box
+              sx={{
+                border: "1px solid",
+                borderColor: "primary.main",
+                borderRadius: 1,
+                p: 2,
+                bgcolor: "action.hover"
+              }}
+            >
+              <Typography
+                variant="caption"
+                sx={{
+                  fontWeight: 700,
+                  letterSpacing: "0.5px",
+                  color: "primary.main",
+                  textTransform: "uppercase",
+                  display: "block",
+                  mb: 1.5
+                }}
+              >
+                Calibration Curve Specifications (ICP-OES)
+              </Typography>
+
+              <Stack spacing={2}>
+                <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr 1fr" }, gap: 2 }}>
+                  <FormControl size="small" fullWidth required>
+                    <InputLabel id="element-analyte-label">Element *</InputLabel>
+                    <Select
+                      labelId="element-analyte-label"
+                      label="Element *"
+                      value={testAnalyteId}
+                      onChange={(e) => handleAnalyteChange(Number(e.target.value))}
+                      disabled={loadingAnalytes}
+                    >
+                      {loadingAnalytes ? (
+                        <MenuItem disabled value=""><em>Loading analytes...</em></MenuItem>
+                      ) : analytes.length === 0 ? (
+                        <MenuItem disabled value=""><em>No active analytes configured for this test</em></MenuItem>
+                      ) : (
+                        analytes.map((a) => (
+                          <MenuItem key={a.id} value={a.id}>
+                            {a.element} ({a.wavelengthNm} nm &middot; {a.view})
+                          </MenuItem>
+                        ))
+                      )}
+                    </Select>
+                  </FormControl>
+
+                  <FormControl size="small" fullWidth required>
+                    <InputLabel id="result-basis-label">Result Basis *</InputLabel>
+                    <Select
+                      labelId="result-basis-label"
+                      label="Result Basis *"
+                      value={resultBasis}
+                      onChange={(e) => setResultBasis(e.target.value as ResultBasis)}
+                    >
+                      <MenuItem value="MgPerKg">mg/kg or mg/L per sample</MenuItem>
+                      <MenuItem value="MgPerUnit">mg per unit</MenuItem>
+                      <MenuItem value="PercentLabelClaim">% label claim</MenuItem>
+                    </Select>
+                  </FormControl>
+
+                  <FormControl size="small" fullWidth required>
+                    <InputLabel id="sample-matrix-label">Sample Matrix *</InputLabel>
+                    <Select
+                      labelId="sample-matrix-label"
+                      label="Sample Matrix *"
+                      value={sampleMatrix}
+                      onChange={(e) => setSampleMatrix(e.target.value as SampleMatrix)}
+                    >
+                      <MenuItem value="Solid">Solid (ppm is mg/kg)</MenuItem>
+                      <MenuItem value="Liquid">Liquid (ppm is mg/L)</MenuItem>
+                    </Select>
+                  </FormControl>
+                </Box>
+
+                <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr 1fr" }, gap: 2 }}>
+                  <TextField
+                    size="small"
+                    label={resultBasis === "PercentLabelClaim" ? "Label Claim *" : "Label Claim"}
+                    type="number"
+                    value={labelClaim}
+                    onChange={(e) => setLabelClaim(e.target.value)}
+                    required={resultBasis === "PercentLabelClaim"}
+                    helperText={resultBasis === "PercentLabelClaim" ? "Required for % label claim" : "Optional"}
+                    slotProps={{ htmlInput: { step: "any", min: "0" } }}
+                    fullWidth
+                  />
+
+                  <TextField
+                    size="small"
+                    label="Label Claim Unit"
+                    value={labelClaimUnit}
+                    onChange={(e) => setLabelClaimUnit(e.target.value)}
+                    placeholder="e.g. mg"
+                    fullWidth
+                  />
+
+                  <TextField
+                    size="small"
+                    label="Conversion Factor *"
+                    type="number"
+                    value={conversionFactor}
+                    onChange={(e) => setConversionFactor(e.target.value)}
+                    placeholder="1"
+                    helperText="Multiplier to claim (default 1)"
+                    slotProps={{ htmlInput: { step: "any", min: "0.000001" } }}
+                    fullWidth
+                  />
+                </Box>
+              </Stack>
+            </Box>
+          )}
+
           {/* Row 2: Limit Type */}
           <FormControl size="small" fullWidth>
             <InputLabel id="limit-type-label">Limit Type *</InputLabel>
@@ -428,7 +676,12 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
               value={limitType}
               onChange={(e) => handleLimitTypeChange(e.target.value as LimitType)}
             >
-              {LIMIT_TYPE_OPTIONS.map((opt) => (
+              {(isCalibrationCurve
+                ? LIMIT_TYPE_OPTIONS.filter((opt) =>
+                    ["Range", "NotMoreThan", "NotLessThan", "TargetWithTolerance"].includes(opt.value)
+                  )
+                : LIMIT_TYPE_OPTIONS
+              ).map((opt) => (
                 <MenuItem key={opt.value} value={opt.value}>
                   {opt.label}
                 </MenuItem>
@@ -758,18 +1011,20 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
           </Box>
 
           {/* Row 5: Dilution Factor */}
-          <TextField
-            size="small"
-            label="Dilution Factor"
-            type="number"
-            value={dilutionFactor}
-            onChange={(e) => setDilutionFactor(e.target.value)}
-            disabled={limitType !== "CountTiered"}
-            helperText="DILUTION FACTOR — editable only for Count-Tiered parameters"
-            placeholder={limitType === "CountTiered" ? "e.g. 10" : "—"}
-            slotProps={{ htmlInput: { step: "1", min: "1" } }}
-            fullWidth
-          />
+          {!isCalibrationCurve && (
+            <TextField
+              size="small"
+              label="Dilution Factor"
+              type="number"
+              value={dilutionFactor}
+              onChange={(e) => setDilutionFactor(e.target.value)}
+              disabled={limitType !== "CountTiered"}
+              helperText="DILUTION FACTOR — editable only for Count-Tiered parameters"
+              placeholder={limitType === "CountTiered" ? "e.g. 10" : "—"}
+              slotProps={{ htmlInput: { step: "1", min: "1" } }}
+              fullWidth
+            />
+          )}
         </Stack>
       </DialogContent>
 

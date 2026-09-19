@@ -40,6 +40,26 @@ export const TestWorkflowService = {
   recordHplcResult: (testOrderId: number, payload: { sampleWeightMg: number; sampleDilution: number; sampleAreas: number[]; password: string; comment?: string | null }) =>
     apiClient.post(`/test-workflow/${testOrderId}/record-hplc-result`, payload).then((r) => r.data.data),
 
+  // Elemental Assay (ICP-OES Calibration Curve). Signed; the server calculates
+  // per-element recovery / claim / %LC and comparison status.
+  recordElementalResult: (
+    testOrderId: number,
+    payload: {
+      unitAmount: number;
+      analysedAt: string;
+      elements: {
+        specificationId: number;
+        calibrationRunAnalyteId: number;
+        reportedPpm: number;
+        overRange: boolean;
+        belowLoq: boolean;
+      }[];
+      password: string;
+      comment?: string | null;
+    }
+  ) =>
+    apiClient.post(`/test-workflow/${testOrderId}/record-elemental-result`, payload).then((r) => r.data.data),
+
   getLocations: (testOrderId: number) =>
     apiClient.get(`/test-workflow/${testOrderId}/locations`).then((r) => r.data.data),
 

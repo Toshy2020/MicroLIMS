@@ -26,9 +26,10 @@ import {
 } from "../../specifications/services/SpecificationService";
 import { ConfirmationDialog } from "../../../../components/ConfirmationDialog";
 import { tableHeadSx } from "../../../../theme";
-import { masterDataOptions } from "../../../../services/masterDataOptions";
+import { masterDataOptions, TestAnalyteDto } from "../../../../services/masterDataOptions";
 import {
   SpecificationParameterDialog,
+  TestDefinitionSummary,
   formatTrimmedDecimal
 } from "./SpecificationParameterDialog";
 
@@ -175,6 +176,20 @@ export const formatLimitCell = (spec: SpecificationDto): string => {
   }
 };
 
+const formatResultBasis = (basis?: string | null, matrix?: string | null) => {
+  if (!basis) return null;
+  switch (basis) {
+    case "MgPerKg":
+      return matrix === "Liquid" ? "mg/L per sample" : "mg/kg per sample";
+    case "MgPerUnit":
+      return matrix === "Liquid" ? "mg per dose" : "mg per unit";
+    case "PercentLabelClaim":
+      return "% label claim";
+    default:
+      return basis;
+  }
+};
+
 export const ItemSpecificationsSection: React.FC<ItemSpecificationsSectionProps> = ({
   item,
   onSpecsChanged
@@ -184,6 +199,8 @@ export const ItemSpecificationsSection: React.FC<ItemSpecificationsSectionProps>
   const [specs, setSpecs] = useState<SpecificationDto[]>(item.specifications ?? []);
   const [loading, setLoading] = useState(false);
   const [workflowTypeByCode, setWorkflowTypeByCode] = useState<Record<string, string>>({});
+  const [testDefinitionByCode, setTestDefinitionByCode] = useState<Record<string, TestDefinitionSummary>>({});
+  const [analyteById, setAnalyteById] = useState<Record<number, TestAnalyteDto>>({});
   const [error, setError] = useState<string | null>(null);
 
   // Dialog state
@@ -198,8 +215,32 @@ export const ItemSpecificationsSection: React.FC<ItemSpecificationsSectionProps>
   useEffect(() => {
     masterDataOptions
       .getTestDefinitions()
-      .then((defs: { code: string; workflowType: string }[]) => {
+      .then(async (defs: any[]) => {
+        const byCode: Record<string, TestDefinitionSummary> = {};
+        const calDefs: any[] = [];
+        for (const d of defs) {
+          byCode[d.code] = d;
+          if (d.equationType === "CalibrationCurve") calDefs.push(d);
+        }
+        setTestDefinitionByCode(byCode);
         setWorkflowTypeByCode(Object.fromEntries(defs.map((d) => [d.code, d.workflowType])));
+
+        if (calDefs.length > 0) {
+          const map: Record<number, TestAnalyteDto> = {};
+          await Promise.all(
+            calDefs.map((cd) =>
+              masterDataOptions
+                .getTestAnalytes(cd.id)
+                .then((analytes) => {
+                  for (const a of analytes) {
+                    map[a.id] = a;
+                  }
+                })
+                .catch(() => {})
+            )
+          );
+          setAnalyteById(map);
+        }
       })
       .catch(() => {
         // Non-fatal fallback
@@ -440,6 +481,38 @@ export const ItemSpecificationsSection: React.FC<ItemSpecificationsSectionProps>
                         >
                           <TableCell sx={{ fontWeight: 600, fontSize: 13 }}>
                             {displayName}
+                            {(spec.resultBasis || spec.testAnalyteId) && (
+                              <Box sx={{ display: "flex", gap: 0.75, mt: 0.5, flexWrap: "wrap", alignItems: "center" }}>
+                                {spec.testAnalyteId && analyteById[spec.testAnalyteId] && (
+                                  <Chip
+                                    size="small"
+                                    label={`Element: ${analyteById[spec.testAnalyteId].element}`}
+                                    sx={{
+                                      height: 20,
+                                      fontSize: 11,
+                                      color: "primary.main",
+                                      bgcolor: "primary.50",
+                                      border: "1px solid",
+                                      borderColor: "primary.200"
+                                    }}
+                                  />
+                                )}
+                                {spec.resultBasis && (
+                                  <Chip
+                                    size="small"
+                                    label={`Basis: ${formatResultBasis(spec.resultBasis as string, spec.sampleMatrix as string)}`}
+                                    sx={{
+                                      height: 20,
+                                      fontSize: 11,
+                                      color: "text.secondary",
+                                      bgcolor: "action.hover",
+                                      border: "1px solid",
+                                      borderColor: "divider"
+                                    }}
+                                  />
+                                )}
+                              </Box>
+                            )}
                           </TableCell>
                           <TableCell>
                             <LimitTypeBadge type={spec.limitType ?? "CountTiered"} />
@@ -576,9 +649,43 @@ export const ItemSpecificationsSection: React.FC<ItemSpecificationsSectionProps>
                                   >
                                     &#8627;
                                   </Typography>
-                                  <Typography sx={{ fontWeight: 600, fontSize: 13 }}>
-                                    {spec.parameterName}
-                                  </Typography>
+                                  <Box>
+                                    <Typography sx={{ fontWeight: 600, fontSize: 13 }}>
+                                      {spec.parameterName}
+                                    </Typography>
+                                    {(spec.resultBasis || spec.testAnalyteId) && (
+                                      <Box sx={{ display: "flex", gap: 0.75, mt: 0.5, flexWrap: "wrap", alignItems: "center" }}>
+                                        {spec.testAnalyteId && analyteById[spec.testAnalyteId] && (
+                                          <Chip
+                                            size="small"
+                                            label={`Element: ${analyteById[spec.testAnalyteId].element}`}
+                                            sx={{
+                                              height: 20,
+                                              fontSize: 11,
+                                              color: "primary.main",
+                                              bgcolor: "primary.50",
+                                              border: "1px solid",
+                                              borderColor: "primary.200"
+                                            }}
+                                          />
+                                        )}
+                                        {spec.resultBasis && (
+                                          <Chip
+                                            size="small"
+                                            label={`Basis: ${formatResultBasis(spec.resultBasis as string, spec.sampleMatrix as string)}`}
+                                            sx={{
+                                              height: 20,
+                                              fontSize: 11,
+                                              color: "text.secondary",
+                                              bgcolor: "action.hover",
+                                              border: "1px solid",
+                                              borderColor: "divider"
+                                            }}
+                                          />
+                                        )}
+                                      </Box>
+                                    )}
+                                  </Box>
                                 </Stack>
                               </TableCell>
                               <TableCell>
@@ -720,6 +827,7 @@ export const ItemSpecificationsSection: React.FC<ItemSpecificationsSectionProps>
         editingSpec={editingSpec}
         preselectedTestCode={preselectedTestCode}
         workflowTypeByCode={workflowTypeByCode}
+        testDefinitionByCode={testDefinitionByCode}
         existingSpecs={specs}
         onClose={() => setDialogOpen(false)}
         onSuccess={async () => {

@@ -269,7 +269,26 @@ export function buildCoaSimpleRows(testOrders: TestOrderSummaryDetail[]): CoaSim
 
   let overallComplies = true;
 
-  const rows: CoaSimpleRow[] = plainTests.map((t) => {
+  const rows: CoaSimpleRow[] = plainTests.flatMap((t) => {
+    if (t.elementalAssay) {
+      return t.elementalAssay.elements.map((elem) => {
+        const conform = elem.status === "WithinLimits";
+        const isUnconfigured = elem.status === "LimitsNotConfigured";
+        if (!conform) overallComplies = false;
+        return {
+          testOrderId: t.testOrderId,
+          testCode: `${t.testCode}:${elem.element}`,
+          testDisplayName: elem.parameterName,
+          specification: elem.specLimit ? `${elem.specLimit}${elem.unit ? ` ${elem.unit}` : ""}` : null,
+          result: elem.reportedDisplay,
+          analystName: t.elementalAssay!.enteredByName,
+          analystAt: t.elementalAssay!.enteredAt,
+          conform,
+          limitsNotConfigured: isUnconfigured
+        };
+      });
+    }
+
     let result: string;
     let analystName: string | null;
     let analystAt: string | null;
@@ -312,7 +331,7 @@ export function buildCoaSimpleRows(testOrders: TestOrderSummaryDetail[]): CoaSim
 
     if (!conform) overallComplies = false;
 
-    return {
+    return [{
       testOrderId: t.testOrderId,
       testCode: t.testCode,
       testDisplayName: t.testDisplayName,
@@ -322,7 +341,7 @@ export function buildCoaSimpleRows(testOrders: TestOrderSummaryDetail[]): CoaSim
       analystAt,
       conform,
       limitsNotConfigured: isUnconfigured
-    };
+    }];
   });
 
   // A TestCode can appear more than once here - most commonly when a

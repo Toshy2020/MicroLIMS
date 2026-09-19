@@ -14,6 +14,10 @@ export type ToleranceMode = "Absolute" | "Percent";
 
 export type ExpectedPresence = "Presence" | "Absence";
 
+export type ResultBasis = "MgPerKg" | "MgPerUnit" | "PercentLabelClaim";
+
+export type SampleMatrix = "Solid" | "Liquid";
+
 export interface SpecificationStageDto {
   id?: number;
   stageNumber: number;
@@ -46,6 +50,12 @@ export interface SpecificationDto {
   unit?: string | null;
   dilutionFactor?: number | null;
   stages?: SpecificationStageDto[];
+  testAnalyteId?: number | null;
+  resultBasis?: ResultBasis | string | null;
+  sampleMatrix?: SampleMatrix | string | null;
+  labelClaim?: number | string | null;
+  labelClaimUnit?: string | null;
+  conversionFactor?: number | string | null;
 }
 
 export interface CreateSpecificationPayload {
@@ -72,6 +82,12 @@ export interface CreateSpecificationPayload {
   unit?: string | null;
   dilutionFactor?: number | null;
   stages?: Array<{ stageNumber: number; stageLabel: string; acceptanceCriteriaText: string }>;
+  testAnalyteId?: number | null;
+  resultBasis?: ResultBasis | null;
+  sampleMatrix?: SampleMatrix | null;
+  labelClaim?: number | null;
+  labelClaimUnit?: string | null;
+  conversionFactor?: number | null;
 }
 
 export type UpdateSpecificationPayload = Omit<CreateSpecificationPayload, "itemId">;

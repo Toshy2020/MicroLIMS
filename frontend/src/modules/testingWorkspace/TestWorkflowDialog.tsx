@@ -15,9 +15,18 @@ import { useAuth } from "../../contexts/AuthContext";
 import { ConfirmationDialog } from "../../components/ConfirmationDialog";
 import { StepChainStrip } from "./components/StepChainStrip";
 import { HplcAssayPanel } from "./HplcAssayPanel";
+import { ElementalAssayPanel } from "./ElementalAssayPanel";
 import { INCUBATION_WINDOW_NOT_CONFIGURED_MESSAGE } from "./utils/incubationWindow";
 
-interface Props { testOrderId: number; testCode: string; category: string; displayName: string; onClose?: () => void; }
+interface Props {
+  testOrderId: number;
+  testCode: string;
+  category: string;
+  displayName: string;
+  itemId?: number | null;
+  sampleId?: number | null;
+  onClose?: () => void;
+}
 
 type Phase = "loading" | "select-media" | "awaiting-result" | "transfer-stage-2" | "enter-result" | "step-complete" | "all-complete";
 
@@ -34,7 +43,7 @@ type Phase = "loading" | "select-media" | "awaiting-result" | "transfer-stage-2"
 // samples, which still incubate through this component's phases and
 // only hand off to LocationResultGridDialog/PathogenLocationResultGrid-
 // Dialog for their per-location batch result entry, exactly as today.
-export function TestWorkflowDialog({ testOrderId, testCode, category, displayName, onClose }: Props) {
+export function TestWorkflowDialog({ testOrderId, testCode, category, displayName, itemId, sampleId, onClose }: Props) {
   const theme = useTheme();
   const isEmOrAfterCleaning = category === "EnvironmentalMonitoring" || category === "AfterCleaning";
   const [phase, setPhase] = useState<Phase>("loading");
@@ -289,6 +298,23 @@ export function TestWorkflowDialog({ testOrderId, testCode, category, displayNam
   // sample entry only.
   if (current.workflowType === "HplcAssay") {
     return <HplcAssayPanel testOrderId={testOrderId} displayName={displayName} current={current} onRecorded={load} onClose={onClose} />;
+  }
+
+  // Elemental Assay (ICP-OES Calibration Curve) - signed calibration run analyte
+  // link + ppm entry.
+  if (current.workflowType === "ElementalAssay") {
+    return (
+      <ElementalAssayPanel
+        testOrderId={testOrderId}
+        displayName={displayName}
+        testCode={testCode}
+        itemId={itemId}
+        sampleId={sampleId}
+        current={current}
+        onRecorded={load}
+        onClose={onClose}
+      />
+    );
   }
 
   // Water's TAMC-Water TestOrder is also SampleLocation-batched (Phase 1

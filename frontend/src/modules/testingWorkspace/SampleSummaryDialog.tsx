@@ -53,7 +53,8 @@ import {
   SampleLocationDetail,
   IncubationDetail,
   SampleSectionSummaryDetail,
-  HplcAssayDetail
+  HplcAssayDetail,
+  ElementalAssayDetail
 } from "./types/sampleSummaryTypes";
 import { pathogenObservationLabel } from "./utils/pathogenObservationLabel";
 import { PathogenSessionDialog } from "./pathogenSession/PathogenSessionDialog";
@@ -120,6 +121,7 @@ function isTestOrderNonPassing(order: TestOrderSummaryDetail): boolean {
   if (order.locations.some((l) => l.status && l.status !== "WithinLimits" && l.status !== "Absent")) return true;
   if (order.countTestReadings.some((r) => r.status !== "WithinLimits")) return true;
   if (order.hplcAssay && order.hplcAssay.status !== "WithinLimits") return true;
+  if (order.elementalAssay && order.elementalAssay.elements.some((e) => e.status !== "WithinLimits")) return true;
   const biochemical = order.biochemicalResults;
   if (biochemical.some((b) => b.organismDetected === true)) return true;
   const pathogens = order.pathogenObservations;
@@ -574,9 +576,80 @@ function HplcAssayResultBlock({ h }: { h: HplcAssayDetail }) {
   );
 }
 
+function ElementalAssayResultBlock({ assay }: { assay: ElementalAssayDetail }) {
+  const cellSx = { fontSize: 12, py: 0.75 };
+  const headSx = { fontSize: 11, fontWeight: 700, color: "text.secondary", textTransform: "uppercase" as const, py: 0.75 };
+
+  return (
+    <Box sx={{ p: 2, border: "1px solid", borderColor: "divider", borderRadius: 1.5, bgcolor: "background.default" }}>
+      <Typography sx={{ fontSize: 13, fontWeight: 700, mb: 0.5 }}>Elemental Assay Results</Typography>
+      <Typography sx={{ fontSize: 12, color: "text.secondary", mb: 1.5, fontFamily: "monospace" }}>
+        mg per unit = ppm × amount ÷ 1000; claim = mg per unit × conversion factor; %LC = claim ÷ label claim × 100
+      </Typography>
+      <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "repeat(2, 1fr)", md: "repeat(4, 1fr)" }, gap: 1.5, mb: 1.5 }}>
+        <SummaryField label="Matrix" value={assay.sampleMatrix} />
+        <SummaryField label="Unit Amount" value={`${num(assay.unitAmount)} ${assay.unitAmountUnit}`} />
+        <SummaryField label="Analysis Time (UTC)" value={formatDate(assay.analysedAt)} />
+        <SummaryField label="Entered By / At" value={`${assay.enteredByName ?? "—"} · ${formatDate(assay.enteredAt)}`} />
+      </Box>
+      <Table size="small">
+        <TableHead>
+          <TableRow>
+            <TableCell sx={headSx}>Parameter</TableCell>
+            <TableCell sx={headSx}>Element</TableCell>
+            <TableCell sx={headSx}>Calibration Run</TableCell>
+            <TableCell sx={headSx}>PPM</TableCell>
+            <TableCell sx={headSx}>Flags</TableCell>
+            <TableCell sx={headSx}>mg / unit</TableCell>
+            <TableCell sx={headSx}>Claim</TableCell>
+            <TableCell sx={headSx}>%LC</TableCell>
+            <TableCell sx={headSx}>Reported</TableCell>
+            <TableCell sx={headSx}>Specification</TableCell>
+            <TableCell sx={headSx}>Status</TableCell>
+          </TableRow>
+        </TableHead>
+        <TableBody>
+          {assay.elements.map((elem, idx) => {
+            const flags = [elem.overRange ? ">Range" : null, elem.belowLoq ? "<LOQ" : null].filter(Boolean).join(", ") || "—";
+            return (
+              <TableRow key={idx}>
+                <TableCell sx={cellSx}>{elem.parameterName}</TableCell>
+                <TableCell sx={cellSx}>{elem.element}</TableCell>
+                <TableCell sx={cellSx}>
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 0.75 }}>
+                    <Typography sx={{ fontSize: 12 }}>{elem.runCode}</Typography>
+                    <Chip
+                      size="small"
+                      label={elem.runAnalytePassed ? "Pass" : "Fail"}
+                      color={elem.runAnalytePassed ? "success" : "error"}
+                      variant="outlined"
+                      sx={{ height: 18, fontSize: "0.65rem" }}
+                    />
+                  </Box>
+                </TableCell>
+                <TableCell sx={cellSx}>{num(elem.reportedPpm)}</TableCell>
+                <TableCell sx={cellSx}>{flags}</TableCell>
+                <TableCell sx={cellSx}>{elem.mgPerUnit !== null ? num(elem.mgPerUnit, 4) : "—"}</TableCell>
+                <TableCell sx={cellSx}>{elem.resultClaim !== null ? num(elem.resultClaim, 4) : "—"}</TableCell>
+                <TableCell sx={cellSx}>{elem.percentLabelClaim !== null ? `${num(elem.percentLabelClaim, 2)}%` : "—"}</TableCell>
+                <TableCell sx={{ ...cellSx, fontWeight: 600 }}>{elem.reportedDisplay}</TableCell>
+                <TableCell sx={cellSx}>{elem.specLimit ? `${elem.specLimit}${elem.unit ? ` ${elem.unit}` : ""}` : "—"}</TableCell>
+                <TableCell sx={cellSx}>
+                  <StatusBadge status={elem.status} />
+                </TableCell>
+              </TableRow>
+            );
+          })}
+        </TableBody>
+      </Table>
+    </Box>
+  );
+}
+
 // Final Result Section component (Separated from Incubation)
 function FinalResultBlock({ order }: { order: TestOrderSummaryDetail }) {
   if (order.hplcAssay) return <HplcAssayResultBlock h={order.hplcAssay} />;
+  if (order.elementalAssay) return <ElementalAssayResultBlock assay={order.elementalAssay} />;
 
   const hasLocations = order.locations.length > 0;
   const hasCountReadings = order.countTestReadings.length > 0;

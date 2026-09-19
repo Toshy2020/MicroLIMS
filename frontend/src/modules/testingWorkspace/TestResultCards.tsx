@@ -31,7 +31,71 @@ function isQuantitative(test: TestOrderSummaryDetail): boolean {
 // never a computed CFU.
 export function TestResultCard({ test }: { test: TestOrderSummaryDetail }) {
   if (test.hplcAssay) return <HplcAssayCard test={test} />;
+  if (test.elementalAssay) return <ElementalAssayCard test={test} />;
   return isQuantitative(test) ? <CountTestCard test={test} /> : <DetectionTestCard test={test} />;
+}
+
+// Elemental Assay: per-element reported results, curve run, and calculations.
+function ElementalAssayCard({ test }: { test: TestOrderSummaryDetail }) {
+  const ea = test.elementalAssay!;
+  const hasException = !test.isSuperseded && ea.elements.some((e) => !isConforming(e.status));
+  const tone = test.isSuperseded ? "is-neutral" : hasException ? "is-danger" : "";
+  const summaryBadge = test.isSuperseded
+    ? "Superseded"
+    : `${ea.elements.length} element${ea.elements.length === 1 ? "" : "s"} · ${hasException ? "Out of Limits" : "Within Limits"}`;
+
+  return (
+    <CollapsibleTestCard
+      icon={test.isSuperseded ? <DotIcon /> : hasException ? <CrossIcon /> : <CheckIcon />}
+      iconTone={tone}
+      title={`${test.testCode} — ${test.testDisplayName}`}
+      subtitle={
+        <>
+          {test.isSuperseded && <strong>Superseded by retest · </strong>}
+          Matrix: {ea.sampleMatrix} · Unit amount: {ea.unitAmount} {ea.unitAmountUnit}
+        </>
+      }
+      badgeText={summaryBadge}
+      badgeTone={tone}
+      defaultOpen={hasException}
+      isSuperseded={test.isSuperseded}
+    >
+      <SecondaryToggle label={`Show elemental results and calculation (${ea.elements.length} elements)`}>
+        <div className="plate-readings" style={{ border: "1px solid var(--color-border)", borderRadius: 8, marginTop: 8 }}>
+          <div className="plate-readings-label">
+            mg per unit = ppm × amount ÷ 1000; claim = mg per unit × conversion factor; %LC = claim ÷ label claim × 100
+          </div>
+          <div className="plate-meta">
+            <span>Matrix: <strong>{ea.sampleMatrix}</strong></span>
+            <span>Unit Amount: <strong>{ea.unitAmount} {ea.unitAmountUnit}</strong></span>
+            <span>Analysed: <strong className="mono">{dt(ea.analysedAt)}</strong></span>
+            <span>Entered by: <strong>{ea.enteredByName ?? "—"}</strong></span>
+            <span>Entered at: <strong className="mono">{dt(ea.enteredAt)}</strong></span>
+          </div>
+          <div className="plate-stats">
+            {ea.elements.map((elem, idx) => {
+              const flags = [elem.overRange ? ">Range" : null, elem.belowLoq ? "<LOQ" : null].filter(Boolean).join(", ");
+              return (
+                <div className="plate-stat" key={idx}>
+                  <div className="stat-label">
+                    <strong>{elem.parameterName} ({elem.element})</strong> — Run: {elem.runCode} ({elem.runAnalytePassed ? "passed" : "failed"})
+                    {flags ? ` [${flags}]` : ""}
+                    {elem.mgPerUnit !== null && ` · ${elem.mgPerUnit.toFixed(4)} mg/unit`}
+                    {elem.resultClaim !== null && ` · Claim: ${elem.resultClaim.toFixed(4)}`}
+                    {elem.percentLabelClaim !== null && ` · ${elem.percentLabelClaim.toFixed(2)}% LC`}
+                    {elem.specLimit ? ` · Spec: ${elem.specLimit}${elem.unit ? ` ${elem.unit}` : ""}` : ""}
+                  </div>
+                  <div className="stat-value">
+                    {elem.reportedDisplay} · {humanize(elem.status)}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </SecondaryToggle>
+    </CollapsibleTestCard>
+  );
 }
 
 // HPLC Assay: mean % assay (server-calculated) against the spec, with the

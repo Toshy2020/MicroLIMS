@@ -178,8 +178,9 @@ public class SampleCorrectionService
                 : string.Empty; // location categories create their tests at preparation
             if (previousTests != newTests)
                 changes.Add(new AuditFieldChange("Tests", Blank(previousTests), Blank(newTests)));
-            if (sample.PreparationStatus != SamplePreparationStatus.NeedsPreparation)
-                changes.Add(new AuditFieldChange("Preparation Status", sample.PreparationStatus.ToString(), nameof(SamplePreparationStatus.NeedsPreparation)));
+            var newPreparationStatus = await PreparationStatusAfterChangeAsync(structural.NewItem);
+            if (sample.PreparationStatus != newPreparationStatus)
+                changes.Add(new AuditFieldChange("Preparation Status", sample.PreparationStatus.ToString(), newPreparationStatus.ToString()));
             if (sample.StorageCondition is not null && category == SampleCategory.Water)
                 changes.Add(new AuditFieldChange("Storage Condition", sample.StorageCondition, null));
         }
@@ -422,6 +423,18 @@ public class SampleCorrectionService
                 });
             }
         }
+
+        sample.PreparationStatus = await PreparationStatusAfterChangeAsync(change.NewItem);
+    }
+
+    // Location categories create their tests at preparation, so they always
+    // need it; an item's tests decide (FP-only items have no preparation).
+    private async Task<SamplePreparationStatus> PreparationStatusAfterChangeAsync(Item? newItem)
+    {
+        if (newItem is null)
+            return SamplePreparationStatus.NeedsPreparation;
+        var sections = await TestSectionLookup.ResolveAsync(_db, newItem.AssignedTests.Select(t => t.TestCode));
+        return await PreparationRules.InitialStatusAsync(_db, sections.Values);
     }
 
     private async Task<Sample> LoadSampleAsync(int sampleId) =>

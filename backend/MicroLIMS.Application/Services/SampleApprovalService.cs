@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Interfaces;
+using MicroLIMS.Application.Workflows;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Persistence.DbContext;
@@ -377,6 +378,8 @@ public class SampleApprovalService
                 // the "retest everything" bug this exists to prevent.
                 if (carriedAnyLocations)
                     newSample.PreparationStatus = SamplePreparationStatus.Ready;
+                else
+                    newSample.PreparationStatus = await PreparationRules.InitialStatusAsync(_db, newSample.TestOrders.Select(o => o.SectionId));
 
                 _db.Samples.Add(newSample);
                 break;
@@ -425,6 +428,8 @@ public class SampleApprovalService
                     // branch above - same reasoning, applied per spinoff.
                     if (carriedAnyLocations)
                         spinoff.PreparationStatus = SamplePreparationStatus.Ready;
+                    else
+                        spinoff.PreparationStatus = await PreparationRules.InitialStatusAsync(_db, spinoff.TestOrders.Select(o => o.SectionId));
 
                     _db.Samples.Add(spinoff);
                     await _db.SaveChangesAsync();

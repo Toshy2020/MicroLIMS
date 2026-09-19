@@ -82,6 +82,8 @@ public class ProductWorkflowEngine : IProductWorkflowEngine
             });
         }
 
+        sample.PreparationStatus = await PreparationRules.InitialStatusAsync(_db, testSections.Values);
+
         _db.Samples.Add(sample);
         await _db.SaveChangesAsync();
 
@@ -92,7 +94,7 @@ public class ProductWorkflowEngine : IProductWorkflowEngine
     {
         var order = await WorkflowStateMachine.LoadOrThrowAsync(_db, testOrderId);
 
-        if (order.CurrentStep == WorkflowStep.Waiting)
+        if (order.CurrentStep == WorkflowStep.Waiting && !await PreparationRules.TestOrderSkipsPreparationAsync(_db, testOrderId))
         {
             var sample = await _db.Samples
                 .Where(s => s.Id == order.SampleId)
@@ -156,7 +158,7 @@ public class ProductWorkflowEngine : IProductWorkflowEngine
         var order = await WorkflowStateMachine.LoadOrThrowAsync(_db, testOrderId);
         var errors = new List<string>();
 
-        if (order.CurrentStep == WorkflowStep.Waiting)
+        if (order.CurrentStep == WorkflowStep.Waiting && !await PreparationRules.TestOrderSkipsPreparationAsync(_db, testOrderId))
         {
             var sample = await _db.Samples
                 .Where(s => s.Id == order.SampleId)

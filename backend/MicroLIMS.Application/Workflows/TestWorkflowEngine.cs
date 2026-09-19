@@ -647,6 +647,9 @@ public class TestWorkflowEngine : ITestWorkflowEngine
     // in accordance with GMP data integrity requirements.
     private async Task RequireSamplePreparedAsync(int testOrderId, int sampleId, string stepName, int userId, WorkflowStep currentStep)
     {
+        if (await PreparationRules.TestOrderSkipsPreparationAsync(_db, testOrderId))
+            return;
+
         var sample = await _db.Samples
             .Where(s => s.Id == sampleId)
             .Select(s => new { s.Id, s.Category, s.PreparationStatus, s.ItemId, s.ReferenceNumber })
@@ -3020,7 +3023,7 @@ public class TestWorkflowEngine : ITestWorkflowEngine
                 .Select(s => new { s.Category, s.PreparationStatus, s.ItemId, s.ReferenceNumber })
                 .FirstOrDefaultAsync();
 
-            if (sample != null)
+            if (sample != null && !await PreparationRules.TestOrderSkipsPreparationAsync(_db, testOrderId))
             {
                 var isPrepared = sample.PreparationStatus == SamplePreparationStatus.Ready;
                 if (isPrepared && sample.ItemId != null)

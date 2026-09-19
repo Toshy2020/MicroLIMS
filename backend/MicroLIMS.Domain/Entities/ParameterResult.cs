@@ -57,6 +57,23 @@ public class ParameterResult
     }
 
     [NotMapped]
+    public MeasurementCalculationData? MeasurementCalculation
+    {
+        get
+        {
+            if (string.IsNullOrWhiteSpace(CalculationJson)) return null;
+            try
+            {
+                return JsonSerializer.Deserialize<MeasurementCalculationData>(CalculationJson, JsonOptions);
+            }
+            catch
+            {
+                return null;
+            }
+        }
+    }
+
+    [NotMapped]
     public string Element => ElementalCalculation?.Element ?? string.Empty;
 
     [NotMapped]

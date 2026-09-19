@@ -5,5 +5,9 @@ public enum EquationType
     None = 0,
     HplcAssay,
     SystemSuitability,
-    CalibrationCurve
+    CalibrationCurve,
+    Measurement,
+    GravimetricLoss,
+    GravimetricResidue,
+    Qualitative
 }

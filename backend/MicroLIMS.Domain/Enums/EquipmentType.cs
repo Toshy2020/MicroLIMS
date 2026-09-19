@@ -11,5 +11,21 @@ public enum EquipmentType
     Hplc,
     PhMeter,
     Balance,
-    IcpOes
+    IcpOes,
+    UvVis,
+    DissolutionTester,
+    DisintegrationTester,
+    KarlFischer,
+    Titrator,
+    Viscometer,
+    Refractometer,
+    Polarimeter,
+    ConductivityMeter,
+    MeltingPoint,
+    Oven,
+    Furnace,
+    Gc,
+    Aas,
+    DigestionMicrowave,
+    Caliper
 }

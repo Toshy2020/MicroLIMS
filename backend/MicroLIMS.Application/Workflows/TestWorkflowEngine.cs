@@ -107,7 +107,7 @@ public record TestStepFacts(
     bool HasLocations, IReadOnlyList<Incubation> Incubations, IReadOnlyList<StepResultFact> StepResults,
     IReadOnlyList<CountReadingFact> ActiveCountReadings, IReadOnlySet<string> ObservationStepNames,
     bool HasActiveHplcResult = false,
-    bool HasActiveElementalResult = false);
+    bool HasActiveAnalysis = false);
 
 public record StepResultFact(
     int Id, int IncubationId, string StepName, bool? IsSharedSessionStep, bool HasConfirmatoryResult,
@@ -130,6 +130,17 @@ public record ElementalAssayPayload(
     decimal UnitAmount,
     DateTime AnalysedAt,
     List<ElementalAssayElementInput> Elements,
+    string Password,
+    string? Comment = null);
+
+public record MeasurementParameterInput(
+    int SpecificationId,
+    List<decimal> Readings);
+
+public record MeasurementPayload(
+    DateTime AnalysedAt,
+    int? EquipmentId,
+    List<MeasurementParameterInput> Parameters,
     string Password,
     string? Comment = null);
 
@@ -166,6 +177,7 @@ public interface ITestWorkflowEngine : IStatefulWorkflowEngine
     Task<TestWorkflowResult> RecordResultAsync(int testOrderId, string stepName, ResultPayload payload, int userId);
     Task<TestWorkflowResult> RecordHplcAssayResultAsync(int testOrderId, HplcAssayPayload payload, int userId, string? ipAddress = null);
     Task<TestWorkflowResult> RecordElementalAssayResultAsync(int testOrderId, ElementalAssayPayload payload, int userId, string? ipAddress = null);
+    Task<TestWorkflowResult> RecordMeasurementResultAsync(int testOrderId, MeasurementPayload payload, int userId, string? ipAddress = null);
     Task<List<SampleLocation>> GetLocationsAsync(int testOrderId);
     Task<Incubation> CloseCurrentIncubationWindowAsync(int testOrderId, int userId);
     // Section Head/System Administrator only (enforced at the controller) -
@@ -264,7 +276,7 @@ public class TestWorkflowEngine : ITestWorkflowEngine
         if (definition is null)
             throw new InvalidOperationException($"Test code \"{order.TestCode}\" has no workflow template configured in Test Master.");
 
-        if (definition.Steps.Count == 0 && definition.WorkflowType != WorkflowType.HplcAssay && definition.WorkflowType != WorkflowType.ElementalAssay)
+        if (definition.Steps.Count == 0 && definition.WorkflowType != WorkflowType.HplcAssay && !AnalysisWorkflows.UsesTestAnalysis(definition.WorkflowType))
             throw new InvalidOperationException($"Test code \"{order.TestCode}\" has no workflow steps configured yet - add them in Test Master.");
 
         return definition;
@@ -359,7 +371,7 @@ public class TestWorkflowEngine : ITestWorkflowEngine
                 .Distinct()
                 .ToListAsync())
             .ToHashSet();
-        var activeElementalOrderIds = (await _db.TestAnalyses
+        var activeAnalysisOrderIds = (await _db.TestAnalyses
                 .AsNoTracking()
                 .Where(e => ids.Contains(e.TestOrderId) && e.IsActive)
                 .Select(e => e.TestOrderId)
@@ -374,7 +386,7 @@ public class TestWorkflowEngine : ITestWorkflowEngine
             activeCountReadings[id].ToList(),
             observationStepNames[id].ToHashSet(StringComparer.Ordinal),
             activeHplcOrderIds.Contains(id),
-            activeElementalOrderIds.Contains(id)));
+            activeAnalysisOrderIds.Contains(id)));
     }
 
     // The completion rules, evaluated against loaded facts. String
@@ -408,8 +420,8 @@ public class TestWorkflowEngine : ITestWorkflowEngine
         if (workflowType == WorkflowType.HplcAssay)
             return facts.HasActiveHplcResult;
 
-        if (workflowType == WorkflowType.ElementalAssay)
-            return facts.HasActiveElementalResult;
+        if (AnalysisWorkflows.UsesTestAnalysis(workflowType))
+            return facts.HasActiveAnalysis;
 
         if (IsPathogenStepType(step.StepType))
         {
@@ -541,15 +553,15 @@ public class TestWorkflowEngine : ITestWorkflowEngine
                 order, definition, facts);
         }
 
-        if (definition.WorkflowType == WorkflowType.ElementalAssay)
+        if (AnalysisWorkflows.UsesTestAnalysis(definition.WorkflowType))
         {
-            var isDone = facts.HasActiveElementalResult;
-            var elementalFinalResult = isDone
+            var isDone = facts.HasActiveAnalysis;
+            var analysisFinalResult = isDone
                 ? (order.Results.OrderByDescending(r => r.Id).FirstOrDefault()?.InterpretedValue
                    ?? order.Results.OrderByDescending(r => r.Id).FirstOrDefault()?.RawValue)
                 : null;
             return new CurrentStepDetails(
-                new CurrentStepResult(null, definition.WorkflowType, null, isDone, elementalFinalResult, new List<CompletedStepSummary>(), totalSteps, allSteps),
+                new CurrentStepResult(null, definition.WorkflowType, null, isDone, analysisFinalResult, new List<CompletedStepSummary>(), totalSteps, allSteps),
                 order, definition, facts);
         }
 
@@ -2390,6 +2402,213 @@ public class TestWorkflowEngine : ITestWorkflowEngine
         await _db.SaveChangesAsync();
 
         await WorkflowStateMachine.TransitionAsync(_db, order, WorkflowStep.Ready, userId, $"Elemental assay complete: {outcomeSummary}");
+        await _sampleReviewService.AutoSubmitForReviewIfReadyAsync(order.SampleId, userId);
+        await _db.SaveChangesAsync();
+
+        return new TestWorkflowResult(outcomeSummary, true, true, outcomeSummary, null, null, overallStatus);
+    }
+
+    public async Task<TestWorkflowResult> RecordMeasurementResultAsync(
+        int testOrderId, MeasurementPayload payload, int userId, string? ipAddress = null)
+    {
+        if (string.IsNullOrWhiteSpace(payload.Password))
+            throw new InvalidOperationException("Password is required to sign the result.");
+        if (payload.Parameters == null || payload.Parameters.Count == 0)
+            throw new InvalidOperationException("At least one parameter result is required.");
+
+        var nowUtc = _clock.UtcNow.UtcDateTime;
+        var analysedAtUtc = payload.AnalysedAt.Kind switch
+        {
+            DateTimeKind.Utc => payload.AnalysedAt,
+            DateTimeKind.Local => payload.AnalysedAt.ToUniversalTime(),
+            _ => DateTime.SpecifyKind(payload.AnalysedAt, DateTimeKind.Utc)
+        };
+
+        if (analysedAtUtc > nowUtc.AddMinutes(5))
+            throw new InvalidOperationException("Analysis time cannot be in the future.");
+
+        var order = await _db.TestOrders
+            .Include(t => t.Results)
+            .Include(t => t.Sample)
+            .FirstOrDefaultAsync(t => t.Id == testOrderId)
+            ?? throw new InvalidOperationException($"Test order {testOrderId} not found.");
+
+        RequireOrderNotFinalized(order);
+
+        if (order.IsSuperseded)
+            throw new InvalidOperationException("Cannot record result for a superseded test order.");
+
+        var definition = await _db.TestDefinitions
+            .FirstOrDefaultAsync(t => t.Code == order.TestCode)
+            ?? throw new InvalidOperationException($"Test definition \"{order.TestCode}\" not found.");
+
+        if (definition.WorkflowType != WorkflowType.Measurement)
+            throw new InvalidOperationException($"Test order {testOrderId} is not a Measurement workflow.");
+
+        if (!definition.ReplicateCount.HasValue || definition.ReplicateCount.Value < 1 || definition.ReplicateCount.Value > 30)
+            throw new InvalidOperationException("Test definition does not have a valid replicate count (1-30).");
+
+        if (!definition.EvaluationBasis.HasValue)
+            throw new InvalidOperationException("Test definition does not have an evaluation basis configured.");
+
+        int replicateCount = definition.ReplicateCount.Value;
+        var evaluationBasis = definition.EvaluationBasis.Value;
+
+        await _sectionScope.EnsureTestOrderAccessAsync(userId, testOrderId);
+
+        if (await _db.TestAnalyses.AnyAsync(e => e.TestOrderId == testOrderId && e.IsActive))
+            throw new InvalidOperationException("An active measurement entry already exists for this test order.");
+
+        if (payload.EquipmentId.HasValue)
+        {
+            var equip = await _db.Equipment
+                .Include(e => e.Section)
+                .FirstOrDefaultAsync(e => e.Id == payload.EquipmentId.Value)
+                ?? throw new InvalidOperationException($"Equipment {payload.EquipmentId.Value} not found.");
+
+            var inventoryEquip = await _db.EquipmentInventories
+                .FirstOrDefaultAsync(i => i.Code == equip.Code);
+            if (inventoryEquip != null && inventoryEquip.Status != EquipmentOperationalStatus.InService)
+                throw new InvalidOperationException($"Equipment \"{equip.Name}\" is not active.");
+
+            var equipSectionCode = equip.Section?.Code
+                ?? (await _db.DocumentSections.Where(s => s.Id == equip.SectionId).Select(s => s.Code).FirstOrDefaultAsync());
+
+            if (!string.Equals(equipSectionCode, "FP", StringComparison.OrdinalIgnoreCase))
+                throw new InvalidOperationException($"Equipment \"{equip.Name}\" is not in the Finished Product (FP) section.");
+        }
+
+        if (order.Sample?.ItemId is null)
+            throw new InvalidOperationException("Test order sample must be linked to an item with specifications.");
+
+        var itemId = order.Sample.ItemId.Value;
+
+        var specs = await _db.Specifications
+            .Where(s => s.ItemId == itemId && s.TestCode == order.TestCode)
+            .ToListAsync();
+
+        if (specs.Count == 0)
+            throw new InvalidOperationException("No specifications configured for this test and item.");
+
+        if (payload.Parameters.Count != specs.Count)
+            throw new InvalidOperationException($"Expected {specs.Count} parameter results matching specifications, but received {payload.Parameters.Count}.");
+
+        var specIds = specs.Select(s => s.Id).ToHashSet();
+        var suppliedSpecIds = payload.Parameters.Select(p => p.SpecificationId).ToList();
+        if (suppliedSpecIds.Distinct().Count() != payload.Parameters.Count || !specIds.SetEquals(suppliedSpecIds))
+            throw new InvalidOperationException("Every specification for this test must be supplied exactly once.");
+
+        foreach (var param in payload.Parameters)
+        {
+            if (param.Readings == null || param.Readings.Count != replicateCount)
+                throw new InvalidOperationException($"Each parameter must have exactly {replicateCount} readings.");
+        }
+
+        var specById = specs.ToDictionary(s => s.Id);
+        var parameterResults = new List<ParameterResult>();
+
+        foreach (var param in payload.Parameters)
+        {
+            var spec = specById[param.SpecificationId];
+            var calcResult = MeasurementCalculator.Calculate(param.Readings, evaluationBasis, spec);
+
+            var canonicalLimit = !string.IsNullOrWhiteSpace(spec.SpecLimit)
+                ? spec.SpecLimit
+                : SpecificationService.BuildCanonicalSpecLimit(spec);
+
+            var paramResult = new ParameterResult
+            {
+                TestOrderId = order.Id,
+                SpecificationId = spec.Id,
+                ParameterName = spec.ParameterName,
+                ReportedValue = calcResult.ReportedValue,
+                ReportedDisplay = calcResult.ReportedDisplay,
+                Unit = spec.Unit,
+                SpecLimit = canonicalLimit,
+                ResultBasis = null,
+                ComparisonStatus = calcResult.ComparisonStatus,
+                OverRange = false,
+                BelowLoq = false,
+                CalculationJson = calcResult.CalculationJson,
+                StageReached = null,
+                IsActive = true
+            };
+
+            for (int i = 0; i < param.Readings.Count; i++)
+            {
+                paramResult.Readings.Add(new ResultReading
+                {
+                    Kind = ReadingKind.Replicate,
+                    Index = i + 1,
+                    Value1 = param.Readings[i]
+                });
+            }
+
+            parameterResults.Add(paramResult);
+        }
+
+        _db.CurrentUserId = userId;
+        var signature = await _signatureService.SignAsync(
+            userId,
+            payload.Password,
+            SignatureMeaning.ResultRecorded,
+            "TestOrder",
+            order.Id,
+            payload.Comment,
+            ipAddress);
+
+        var entry = new TestAnalysis
+        {
+            TestOrderId = order.Id,
+            AnalysisType = WorkflowType.Measurement,
+            EquipmentId = payload.EquipmentId,
+            AnalysedAt = analysedAtUtc,
+            UnitAmount = null,
+            SampleMatrix = null,
+            ConditionsJson = null,
+            ValidityRecordType = null,
+            ValidityRecordId = null,
+            IsActive = true,
+            EnteredByUserId = userId,
+            EnteredAt = _clock.UtcNow.UtcDateTime,
+            Signature = signature,
+            Comment = payload.Comment,
+            ParameterResults = parameterResults
+        };
+
+        _db.TestAnalyses.Add(entry);
+
+        string overallStatus;
+        if (parameterResults.Any(r => r.ComparisonStatus == "OutOfSpecification"))
+            overallStatus = "OutOfSpecification";
+        else if (parameterResults.Any(r => r.ComparisonStatus == "RequiresReview"))
+            overallStatus = "RequiresReview";
+        else if (parameterResults.Any(r => r.ComparisonStatus == "WithinLimits"))
+            overallStatus = "WithinLimits";
+        else
+            overallStatus = parameterResults.First().ComparisonStatus;
+
+        var outcomeSummary = string.Join(", ", parameterResults.Select(r => $"{r.ParameterName}: {r.ReportedDisplay}"));
+
+        _db.Results.Add(new Result
+        {
+            TestOrderId = order.Id,
+            RawValue = string.Join(",", parameterResults.Select(r => $"{r.ParameterName}={(r.ReportedValue.HasValue ? r.ReportedValue.Value.ToString(System.Globalization.CultureInfo.InvariantCulture) : r.ReportedDisplay)}")),
+            InterpretedValue = $"{outcomeSummary} ({overallStatus})",
+            Type = ResultType.Numeric,
+            EnteredByUserId = userId,
+            EnteredAt = _clock.UtcNow.UtcDateTime
+        });
+
+        await _db.SaveChangesAsync();
+
+        foreach (var pr in parameterResults)
+        {
+            await _resultProjection.UpsertFromParameterResultAsync(pr.Id);
+        }
+        await _db.SaveChangesAsync();
+
+        await WorkflowStateMachine.TransitionAsync(_db, order, WorkflowStep.Ready, userId, $"Measurement complete: {outcomeSummary}");
         await _sampleReviewService.AutoSubmitForReviewIfReadyAsync(order.SampleId, userId);
         await _db.SaveChangesAsync();
 

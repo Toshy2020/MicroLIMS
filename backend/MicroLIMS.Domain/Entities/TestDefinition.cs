@@ -62,6 +62,10 @@ public class TestDefinition
     public ReportedConcentrationBasis? ReportedConcentrationBasis { get; set; }
     public int? CalMaxRunAgeHours { get; set; } = 24;
 
+    // Finished Product / Numeric Measurement criteria
+    public int? ReplicateCount { get; set; }
+    public MeasurementEvaluationBasis? EvaluationBasis { get; set; }
+
     public List<TestAnalyte> Analytes { get; set; } = new();
 }
 

@@ -913,7 +913,7 @@ public class SystemSuitabilitySliceA2Tests
         var list = envelope.Data as IEnumerable<EquationTypeDto>;
         Assert.NotNull(list);
         var items = list.ToList();
-        Assert.Equal(3, items.Count);
+        Assert.True(items.Count >= 3);
         Assert.Contains(items, i => i.Code == "None");
         Assert.Contains(items, i => i.Code == "HplcAssay");
         Assert.Contains(items, i => i.Code == "SystemSuitability");

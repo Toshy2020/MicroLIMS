@@ -151,7 +151,9 @@ public record CreateTestDefinitionRequest(
     bool? CalRequireCcv = null,
     bool? CalRequireInternalStandard = null,
     ReportedConcentrationBasis? ReportedConcentrationBasis = null,
-    int? CalMaxRunAgeHours = null);
+    int? CalMaxRunAgeHours = null,
+    int? ReplicateCount = null,
+    MeasurementEvaluationBasis? EvaluationBasis = null);
 // SectionId: move the test to another laboratory section (null = keep). Test
 // orders already created keep the section they were created with.
 public record UpdateTestDefinitionRequest(
@@ -180,7 +182,9 @@ public record UpdateTestDefinitionRequest(
     bool? CalRequireCcv = null,
     bool? CalRequireInternalStandard = null,
     ReportedConcentrationBasis? ReportedConcentrationBasis = null,
-    int? CalMaxRunAgeHours = null);
+    int? CalMaxRunAgeHours = null,
+    int? ReplicateCount = null,
+    MeasurementEvaluationBasis? EvaluationBasis = null);
 public record UpdateWorkflowTypeRequest(WorkflowType WorkflowType);
 
 public record StepMediaRequest(int MaterialId, bool IsRequired, int DisplayOrder, int? MediaIncubationConditionId);
@@ -1700,7 +1704,32 @@ public class MasterDataController : ControllerBase
                     "Resolution",
                     "TailingFactor",
                     "TheoreticalPlates"
-                })
+                }),
+            new EquationTypeDto(
+                Code: nameof(EquationType.CalibrationCurve),
+                Name: "Calibration Curve",
+                FormulaText: "Linear regression y = mx + b, correlation, blank and check recovery criteria",
+                RequiredInputs: new[] { "ReportedPpm" }),
+            new EquationTypeDto(
+                Code: nameof(EquationType.Measurement),
+                Name: "Numeric Measurement",
+                FormulaText: "Mean, Min, Max, SD, RSD over replicate readings; evaluated against specification",
+                RequiredInputs: new[] { "Readings" }),
+            new EquationTypeDto(
+                Code: nameof(EquationType.GravimetricLoss),
+                Name: "Gravimetric % Loss",
+                FormulaText: "% Loss = (W1 - W2) / W1 * 100",
+                RequiredInputs: new[] { "W1", "W2" }),
+            new EquationTypeDto(
+                Code: nameof(EquationType.GravimetricResidue),
+                Name: "Gravimetric % Residue",
+                FormulaText: "% Residue = W2 / W1 * 100",
+                RequiredInputs: new[] { "W1", "W2" }),
+            new EquationTypeDto(
+                Code: nameof(EquationType.Qualitative),
+                Name: "Qualitative / Identification",
+                FormulaText: "Conforms / Does Not Conform evaluated against expected text",
+                RequiredInputs: new[] { "Conforms" })
         };
         return Ok(ApiResponse<object>.Ok(types));
     }
@@ -1797,6 +1826,45 @@ public class MasterDataController : ControllerBase
                 throw new InvalidOperationException("Method abbreviation must be 1-20 uppercase alphanumeric characters or hyphens.");
         }
 
+        if (request.EquationType == EquationType.Measurement)
+        {
+            if (request.WorkflowType != WorkflowType.Measurement)
+                throw new InvalidOperationException("Workflow type must be Measurement when equation type is Measurement.");
+
+            if (!request.ReplicateCount.HasValue || request.ReplicateCount.Value < 1 || request.ReplicateCount.Value > 30)
+                throw new InvalidOperationException("Replicate count must be between 1 and 30 when equation type is Measurement.");
+
+            if (!request.EvaluationBasis.HasValue)
+                throw new InvalidOperationException("Evaluation basis is required when equation type is Measurement.");
+        }
+        else if (request.WorkflowType == WorkflowType.Measurement)
+        {
+            if (request.EquationType != EquationType.Measurement)
+                throw new InvalidOperationException("Equation type must be Measurement when workflow type is Measurement.");
+        }
+
+        if (request.EquationType is EquationType.GravimetricLoss or EquationType.GravimetricResidue)
+        {
+            if (request.WorkflowType != WorkflowType.Gravimetric)
+                throw new InvalidOperationException($"Workflow type must be Gravimetric when equation type is {request.EquationType}.");
+        }
+        else if (request.WorkflowType == WorkflowType.Gravimetric)
+        {
+            if (request.EquationType is not (EquationType.GravimetricLoss or EquationType.GravimetricResidue))
+                throw new InvalidOperationException("Equation type must be GravimetricLoss or GravimetricResidue when workflow type is Gravimetric.");
+        }
+
+        if (request.EquationType == EquationType.Qualitative)
+        {
+            if (request.WorkflowType != WorkflowType.Qualitative)
+                throw new InvalidOperationException("Workflow type must be Qualitative when equation type is Qualitative.");
+        }
+        else if (request.WorkflowType == WorkflowType.Qualitative)
+        {
+            if (request.EquationType != EquationType.Qualitative)
+                throw new InvalidOperationException("Equation type must be Qualitative when workflow type is Qualitative.");
+        }
+
         var entity = new TestDefinition
         {
             Code = request.Code,
@@ -1824,7 +1892,9 @@ public class MasterDataController : ControllerBase
             CalRequireCcv = request.CalRequireCcv,
             CalRequireInternalStandard = request.CalRequireInternalStandard,
             ReportedConcentrationBasis = request.ReportedConcentrationBasis,
-            CalMaxRunAgeHours = request.CalMaxRunAgeHours ?? 24
+            CalMaxRunAgeHours = request.CalMaxRunAgeHours ?? 24,
+            ReplicateCount = request.ReplicateCount,
+            EvaluationBasis = request.EvaluationBasis
         };
         _db.TestDefinitions.Add(entity);
         await _db.SaveChangesAsync();
@@ -1871,6 +1941,8 @@ public class MasterDataController : ControllerBase
         var effectiveCalRequireIs = request.CalRequireInternalStandard ?? entity.CalRequireInternalStandard;
         var effectiveBasis = request.ReportedConcentrationBasis ?? entity.ReportedConcentrationBasis;
         var effectiveMaxAge = request.CalMaxRunAgeHours ?? entity.CalMaxRunAgeHours ?? 24;
+        var effectiveReplicateCount = request.ReplicateCount ?? entity.ReplicateCount;
+        var effectiveEvaluationBasis = request.EvaluationBasis ?? entity.EvaluationBasis;
 
         if (effectiveRequiresSst)
         {
@@ -1938,6 +2010,45 @@ public class MasterDataController : ControllerBase
                 throw new InvalidOperationException("Method abbreviation must be 1-20 uppercase alphanumeric characters or hyphens.");
         }
 
+        if (effectiveEquationType == EquationType.Measurement)
+        {
+            if (effectiveWorkflowType != WorkflowType.Measurement)
+                throw new InvalidOperationException("Workflow type must be Measurement when equation type is Measurement.");
+
+            if (!effectiveReplicateCount.HasValue || effectiveReplicateCount.Value < 1 || effectiveReplicateCount.Value > 30)
+                throw new InvalidOperationException("Replicate count must be between 1 and 30 when equation type is Measurement.");
+
+            if (!effectiveEvaluationBasis.HasValue)
+                throw new InvalidOperationException("Evaluation basis is required when equation type is Measurement.");
+        }
+        else if (effectiveWorkflowType == WorkflowType.Measurement)
+        {
+            if (effectiveEquationType != EquationType.Measurement)
+                throw new InvalidOperationException("Equation type must be Measurement when workflow type is Measurement.");
+        }
+
+        if (effectiveEquationType is EquationType.GravimetricLoss or EquationType.GravimetricResidue)
+        {
+            if (effectiveWorkflowType != WorkflowType.Gravimetric)
+                throw new InvalidOperationException($"Workflow type must be Gravimetric when equation type is {effectiveEquationType}.");
+        }
+        else if (effectiveWorkflowType == WorkflowType.Gravimetric)
+        {
+            if (effectiveEquationType is not (EquationType.GravimetricLoss or EquationType.GravimetricResidue))
+                throw new InvalidOperationException("Equation type must be GravimetricLoss or GravimetricResidue when workflow type is Gravimetric.");
+        }
+
+        if (effectiveEquationType == EquationType.Qualitative)
+        {
+            if (effectiveWorkflowType != WorkflowType.Qualitative)
+                throw new InvalidOperationException("Workflow type must be Qualitative when equation type is Qualitative.");
+        }
+        else if (effectiveWorkflowType == WorkflowType.Qualitative)
+        {
+            if (effectiveEquationType != EquationType.Qualitative)
+                throw new InvalidOperationException("Equation type must be Qualitative when workflow type is Qualitative.");
+        }
+
         entity.Code = request.Code;
         entity.DisplayName = request.DisplayName;
         if (request.WorkflowType.HasValue) entity.WorkflowType = request.WorkflowType.Value;
@@ -1963,6 +2074,8 @@ public class MasterDataController : ControllerBase
         if (request.CalRequireInternalStandard.HasValue) entity.CalRequireInternalStandard = request.CalRequireInternalStandard;
         if (request.ReportedConcentrationBasis.HasValue) entity.ReportedConcentrationBasis = request.ReportedConcentrationBasis;
         if (request.CalMaxRunAgeHours.HasValue) entity.CalMaxRunAgeHours = request.CalMaxRunAgeHours;
+        if (request.ReplicateCount.HasValue) entity.ReplicateCount = request.ReplicateCount.Value;
+        if (request.EvaluationBasis.HasValue) entity.EvaluationBasis = request.EvaluationBasis.Value;
 
         await _db.SaveChangesAsync();
 
@@ -2128,6 +2241,8 @@ public class MasterDataController : ControllerBase
             ?? throw new InvalidOperationException($"Test {id} not found.");
         if (test.WorkflowType == WorkflowType.HplcAssay)
             throw new InvalidOperationException("HPLC assay tests have no workflow steps.");
+        if (AnalysisWorkflows.UsesTestAnalysis(test.WorkflowType))
+            throw new InvalidOperationException($"{test.WorkflowType} tests have no workflow steps.");
 
         var nextOrder = 1 + await _db.TestWorkflowSteps.Where(s => s.TestDefinitionId == id)
             .Select(s => (int?)s.StepOrder).MaxAsync() ?? 1;

@@ -25,6 +25,8 @@ public record RecordTestResultRequest(string StepName, List<decimal>? PlateReadi
 public record RecordHplcAssayResultRequest(decimal SampleWeightMg, decimal SampleDilution, List<decimal> SampleAreas, string Password, string? Comment = null);
 public record RecordElementalAssayElementRequest(int SpecificationId, int CalibrationRunAnalyteId, decimal ReportedPpm, bool OverRange, bool BelowLoq);
 public record RecordElementalAssayResultRequest(decimal UnitAmount, DateTime AnalysedAt, List<RecordElementalAssayElementRequest> Elements, string Password, string? Comment = null);
+public record RecordMeasurementParameterRequest(int SpecificationId, List<decimal> Readings);
+public record RecordMeasurementResultRequest(DateTime AnalysedAt, int? EquipmentId, List<RecordMeasurementParameterRequest> Parameters, string Password, string? Comment = null);
 public record BatchResultLocationRequest(int SampleLocationId, List<decimal> Readings);
 public record BatchResultsRequest(List<BatchResultLocationRequest> Locations);
 public record WaterBatchLocationRequest(int SampleLocationId, List<decimal> Readings);
@@ -323,6 +325,25 @@ public class TestWorkflowController : ControllerBase
                 request.Password,
                 request.Comment);
             return _engine.RecordElementalAssayResultAsync(testOrderId, payload, CurrentUserId, ClientIpAddress);
+        });
+    }
+
+    [HttpPost("{testOrderId}/record-measurement-result")]
+    [Authorize(Policy = PermissionConstants.TestWorkflowExecute)]
+    public async Task<IActionResult> RecordMeasurementResult(int testOrderId, RecordMeasurementResultRequest request)
+    {
+        await _scopeService.EnsureTestOrderAccessAsync(CurrentUserId, testOrderId);
+        return await RunAsync(() =>
+        {
+            var payload = new MeasurementPayload(
+                request.AnalysedAt,
+                request.EquipmentId,
+                request.Parameters.Select(p => new MeasurementParameterInput(
+                    p.SpecificationId,
+                    p.Readings)).ToList(),
+                request.Password,
+                request.Comment);
+            return _engine.RecordMeasurementResultAsync(testOrderId, payload, CurrentUserId, ClientIpAddress);
         });
     }
 

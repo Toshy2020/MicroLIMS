@@ -1,0 +1,185 @@
+# FP Equation Types beyond HPLC Assay and Calibration Curve - Build Spec (DRAFT, Gate 0 pending)
+
+Recon: `docs/FP_Other_Equation_Types_Phase0_Recon.md`. Style and rules follow
+`docs/FP_Calibration_Curve_Build_Spec.md`. Local branch `feat/fp-hplc-foundation`, never pushed.
+**Nothing here is decided until Gate 0 (G1-G8 below) is signed off.**
+
+## Global rules (all types)
+
+- All quantities are C# `decimal` (entities and request DTOs) and Postgres `numeric`; weights/volumes numeric(18,6),
+  percentages and computed values numeric(28,10). Multiply before divide. No `double`, no `Math.Sqrt` on decimals in
+  comparisons; SD uses a decimal Newton-Raphson square root to 10 dp (display/RSD only).
+- The server computes everything; the frontend sends values exactly as typed (as in S2/S4).
+- Compare unrounded; display rounded to `ReportDecimals` (G6) with `MidpointRounding.AwayFromZero`.
+- Every result is signed (`IElectronicSignatureService`, sign against the TestOrder, set the navigation), audited
+  automatically, section-scoped (`EnsureTestOrderAccessAsync`), and "now" comes from `ILabClock`.
+- FP tests have no preparation stage: weights, dilutions and conditions are entered with the result.
+- Instruments are picked from FP Instruments (Equipment in the FP section); consumables/standards from Material Stock.
+
+## G1 - Shared result foundation (recommended)
+
+Generalise the elemental pair (recon F1) into one foundation used by every new type **and** the Calibration Curve:
+
+- `TestAnalysis` (was `ElementalAssayEntry`): Id, TestOrderId, AnalysisType (= WorkflowType), EquipmentId?,
+  AnalysedAt, common inputs as typed nullable columns (UnitAmount, SampleMatrix) + `ConditionsJson` (jsonb: time,
+  temperature, rpm, medium, apparatus...), IsActive, EnteredByUserId, EnteredAt, Signature, Comment,
+  ValidityRecordId? (link to G4 record).
+- `ParameterResult` (was `ElementalAssayResult`): Id, TestAnalysisId, TestOrderId, SpecificationId, ParameterName
+  snapshot, ReportedValue numeric(28,10)?, ReportedDisplay, Unit, SpecLimit snapshot, ComparisonStatus, Flags
+  (OverRange, BelowLoq, ...), `CalculationJson` (jsonb snapshot of every intermediate), StageReached?, IsActive.
+- `ResultReading` (new): Id, ParameterResultId, Kind (Replicate, Unit, Vessel, TimePoint, Weight, Titration...),
+  Index, Stage?, TimePointMinutes?, Value1/Value2/Value3 numeric(28,10), Text?, computed per-reading value, Passed?.
+- One downstream implementation for all types: approval gate (active analysis required; enterer cannot approve),
+  return-to-analyst (deactivate analysis + results), projection (one ResultRecord per ParameterResult), summary DTO
+  (`AnalysisDetailDto` with parameter results + readings), export text, CoA (one row per ParameterResult).
+- **Impact on Calibration Curve S3:** a mechanical rename/move - `ElementalAssayEntry` -> `TestAnalysis`
+  (UnitAmount, SampleMatrix, AnalysedAt kept as typed columns), `ElementalAssayResult` -> `ParameterResult`
+  (MgPerUnit/ResultClaim/PercentLabelClaim/ReportedPpm move into `CalculationJson` + ReportedValue;
+  CalibrationRunAnalyteId becomes `ValidityRecordItemId`). Endpoint, calculation and tests unchanged in behaviour.
+  LIMSV2 has no elemental results yet, so the data migration is trivial (copy rows if any). HPLC stays on
+  `HplcAssayResult` this round (migrate later if wanted).
+- **Size estimate for the foundation:** one backend slice of roughly the size of S3a+S3b together (entities +
+  migration + generic downstream in ~8 places + move of elemental + tests; ~2.5-3.5 k lines incl. tests) and one
+  frontend slice (generic summary/CoA rendering + the reusable `UnitEntryGrid`, recon F10).
+
+Alternative (not recommended): a new result table per type - ~8 downstream edits per type, eight times.
+
+## G4 - Validity records (recommended: common base)
+
+`ValidityRecord` base pattern (shared code, not necessarily one table): Code `{ABBR} {INFIX} nn/MMyyyy` via the shared
+generator, method (TestDefinition), section, equipment, `PerformedAt` (lab-local, not future), signature, status
+Active/Withdrawn (one-way signed withdrawal, `Samples.Approve`), optional attachment (hash), `ValidUntil`, computed
+`IsUsable` = passed && Active && now <= ValidUntil, preview endpoint using the same gate function. Concrete records:
+- **UV suitability** (`UVS`): blank absorbance, standard preparations (2) with weight/absorbance, gate below.
+- **Titrant standardization** (`STD`): titrant lot (Material), primary standard lot (Material, ReferenceStandard with
+  Purity), n replicate titrations, computed N, RSD limit, ValidUntil = PerformedAt + configured days.
+- **KF titer** (`KFT`): n water-standard titrations, computed F, RSD limit, ValidUntil.
+- **Dissolution apparatus check** (`DIS`): apparatus type, medium text, volume, temperature, rpm, equipment - no pass/fail
+  math beyond temperature/rpm within configured tolerance.
+`SystemSuitabilityRun` and `CalibrationRun` keep their tables; the base is shared services/helpers + UI shell.
+
+## Equation types
+
+New `WorkflowType` values (routing by entry shape): `Measurement`, `Gravimetric`, `Qualitative`, `UnitTimed`,
+`ExternalStandardAssay` (UV now; HPLC may move later), `Dissolution`, `DosageUniformity`, `Titration`.
+New `EquationType` values: `Measurement`, `GravimetricLoss`, `GravimetricResidue`, `Qualitative`, `Disintegration`,
+`UvAssay`, `Dissolution`, `ContentUniformity`, `WeightVariation`, `TitrationAssay`, `KarlFischer`
+(+ `AcidValue`, `PeroxideValue` only if G7 = yes). Pairs validated in MasterDataController like HPLC/CC.
+
+### T1 Numeric Measurement (pH, density, viscosity, refractive index, thickness, diameter, fill volume)
+- Test Master: `ReplicateCount` n (1-30), unit, `EvaluationBasis` {Mean, EachValue, Min, Max}, equipment type filter.
+- Inputs: n readings. Outputs: mean, min, max, SD (n-1), RSD = SD/mean × 100 (null when n < 2 or mean = 0).
+- Evaluation: Range / NMT / NLT / Target via `SpecificationEvaluator` on the basis value; EachValue = every reading
+  must be within (worst status wins).
+- **Worked example:** pH 6.02, 6.05, 5.98 -> mean 6.0166666667, min 5.98, max 6.05, SD 0.0351188458, RSD 0.5837 %.
+  Spec Target 6.0 ± 0.5 (5.5-6.5) on Mean -> WithinLimits, display "6.02".
+- Tests: basis Mean/Each/Min/Max; boundary 6.5 exactly WithinLimits; 6.5000001 OOS; n = 1 has no SD.
+
+### T2 Gravimetric % Loss / Residue (LOD, sulfated ash, friability*)
+- Modes: `PercentLoss = (W1 - W2) / W1 × 100`, `PercentResidue = W2 / W1 × 100`. Optional tare: container, container +
+  sample, container + dried/residue -> W1, W2 derived. Conditions (time, temperature, rpm/revolutions) as configured
+  fields in ConditionsJson. Replicates optional (mean reported).
+- **Worked example (LOD):** container 25.1234 g, + sample 27.1234 g (W1 = 2.0000), after drying 27.0334 g
+  (W2 = 1.9100) -> loss 4.50 %. Spec NMT 5.0 % -> WithinLimits. **Residue:** W1 1.0000 g, residue 0.0020 g -> 0.20 %.
+- Tests: W2 > W1 rejected for loss; W1 = 0 rejected; boundary 5.000 % NMT 5.0 WithinLimits.
+- *Friability only if the lab confirms a friability tester (recon open question 4).
+
+### T3 Qualitative / Identification (appearance, colour, odour, ID by IR/TLC)
+- Result: `Conforms` / `DoesNotConform` + observation text (required when DoesNotConform), evaluated against
+  Qualitative (expected text snapshot shown to the analyst and stored) or PresenceAbsence. Optional attachment (IR
+  overlay, TLC photo) with hash. Not the Observation (pathogen) workflow (recon F4).
+- **Example:** expected "White to off-white, round biconvex effervescent tablets"; analyst selects Conforms and types
+  "White round biconvex tablets, citrus odour" -> WithinLimits, CoA shows "Complies".
+- Tests: DoesNotConform -> OutOfSpecification; DoesNotConform without text rejected; expected text snapshot unchanged
+  after the spec is edited.
+
+### T4 Timed Multi-Unit (disintegration)
+- Test Master: time limit (min), medium, temperature; staged rule (G3): stage 1 = 6 units all disintegrate within the
+  limit; if 1-2 fail, stage 2 = 12 more units and at least 16 of 18 must pass; 3+ failures at stage 1 -> fail.
+- Inputs per unit: time (min) or "not disintegrated"; conditions.
+- **Example:** 12, 14, 15, 13, 16, 18 min, limit 30 -> stage 1 Complies. Stage 2 case: one unit 32 min -> 12 more,
+  all pass -> 17/18 >= 16 -> Complies.
+- Tests: exactly 30.0 min passes; 2 fails at S1 -> S2; 3 fails at S1 -> fail; 16/18 passes, 15/18 fails.
+
+### T5 UV Assay (external standard)
+- Same input model and formula as HPLC (recon F5), response = absorbance:
+  `% = (A_sample / A_std_mean) × (W_std / W_sample) × (P / 100) × (D_sample / D_std) × 100`.
+- Validity record `UVS` gate: blank absorbance <= limit; standard absorbance within [low, high]; agreement of two
+  standard preparations `|RF1 - RF2| / mean(RF) × 100 <= limit` where RF = A / W.
+- **Worked example:** W_std 50.0 mg, D_std 100, P 99.5 %, A_std_mean 0.5000; W_sample 250.0 mg, D_sample 500,
+  A_sample 0.4950 -> 98.505 % -> display "98.5 %". Standard agreement: 0.5000/50.0 = 0.0100000, 0.4925/49.5 =
+  0.0099494949; difference 0.5063 % <= 2.0 -> pass.
+- Tests: std absorbance at the exact bounds passes; agreement exactly 2.0 % passes; withdrawn/expired UVS not usable.
+
+### T6 Dissolution
+- Apparatus record (`DIS`) + per vessel `% dissolved = (A_u / A_s) × C_s × V × DF / LC × 100` (C_s mg/mL, V mL, LC mg
+  per unit). Multi-time-point with media replacement: `mg_n = C_n × V + V_s × Σ_{i<n} C_i`.
+  Finish UV (absorbance) or HPLC (area) - same formula with the response ratio.
+- Acceptance (typed criteria on the spec, G2/G3): Q and the profile S1: 6 units each >= Q + 5; S2: 12 units, mean >= Q
+  and none < Q - 15; S3: 24 units, mean >= Q, at most 2 units < Q - 15, none < Q - 25.
+- **Worked example:** A_s 0.500, C_s 0.0200 mg/mL, V 900 mL, DF 1, LC 18 mg -> % = A_u × 200. Vessels A_u 0.4500,
+  0.4400, 0.4600, 0.4450, 0.4550, 0.4350 -> 90.0, 88.0, 92.0, 89.0, 91.0, 87.0 %; Q = 80 -> every unit >= 85 ->
+  S1 Complies. Media replacement: C_1 0.0100, C_2 0.0180 mg/mL, V 900, V_s 10 mL -> mg_2 = 16.2 + 0.1 = 16.3 mg ->
+  90.5556 %.
+- Tests: unit at exactly Q + 5 passes S1; S1 fail -> S2 needed; S2 mean exactly Q passes; S3 two units < Q - 15 pass,
+  three fail; any unit < Q - 25 fails.
+
+### T7 Uniformity of Dosage Units and Weight Variation
+- **Content uniformity (USP <905> / EP 2.9.40):** `AV = |M - X̄| + k × s`; M = X̄ when 98.5 <= X̄ <= 101.5, else 98.5 or
+  101.5; k = 2.4 (n = 10), 2.0 (n = 30); S1 passes if AV <= L1; S2 (30 units) passes if AV <= L1 and every unit within
+  [(1 - 0.01 L2) M, (1 + 0.01 L2) M]. L1, L2, k are configuration (defaults 15.0, 25.0, 2.4/2.0), per pharmacopoeia (G2).
+  Unit values are %LC per unit from 10/30 unit preparations through HPLC or UV (lab input needed - recon inputs list).
+- **Weight variation (EP 2.9.5):** n (default 20); bands are configuration rows (form, mean-weight range, % limit), e.g.
+  tablets >= 250 mg ±5 %; pass if at most 2 units outside the limit and none outside twice the limit.
+- **Worked example (CU):** 98, 99, 100, 101, 102, 97, 103, 99, 100, 101 %LC -> X̄ 100.0, s = √(30/9) = 1.8257418584,
+  M = 100.0, AV = 2.4 × 1.8257 = 4.3818 <= 15.0 -> Complies. Boundary: X̄ 97.0, s 2.0 -> M 98.5, AV = 1.5 + 4.8 = 6.3.
+- **Worked example (WV):** mean 500 mg, ±5 % band 475-525, twice 450-550; two units at 470 and 530, none outside
+  450-550 -> Complies; a third unit outside ±5 % -> fails.
+- Tests: X̄ exactly 98.5 and 101.5 (M = X̄); AV exactly 15.0 passes; S2 unit at exactly (1 - 0.25)M passes; WV band
+  edges.
+
+### T8 Titration and Karl Fischer
+- **Standardization** (`STD` record): `N = (W_std × P / 100) / (V × Eq)` per replicate (W mg, Eq mg/meq), mean N,
+  RSD <= limit, ValidUntil. **Assay:** `% = (V_s - V_b) × N × F × 100 / W` (F mg per meq, W mg); mg/unit and %LC via
+  ResultBasis / LabelClaim / ConversionFactor (as elemental).
+- **KF (volumetric):** titer `F = W_water(mg) / V(mL)` (`KFT` record); `% water = V × F × 100 / W(mg)`.
+- Optional (G7): acid value `V × N × 56.11 / W(g)`, peroxide value `(V_s - V_b) × N × 1000 / W(g)`.
+- **Worked examples:** KHP 408.44 mg, P 100 %, V 20.00 mL, Eq 204.22 -> N = 0.1000. Assay (ascorbic acid, F 8.806
+  mg/meq): V_s - V_b = 20.00 mL, N 0.1000, W 200.0 mg -> 17.612 mg -> 8.806 %. KF: 50.0 mg water uses 10.00 mL ->
+  F 5.000 mg/mL; sample 500.0 mg uses 0.80 mL -> 0.80 % water.
+- Tests: expired/withdrawn standardization not usable; RSD exactly at limit passes; V_b > V_s rejected.
+
+### Tier 3 (later, only if confirmed)
+Related substances (area normalisation / vs standard with RRF, reporting threshold, totals); GC internal-standard ratio
+(omega-3) - the lab has a GC (recon open question 1).
+
+## G3 - Staged evaluation engine (recommended now, in the Dissolution slice)
+One pure engine: input = typed criteria + unit values per stage; output = stage reached, outcome, reasons. Stage state
+on `ParameterResult.StageReached`; units in `ResultReading` with `Stage`. The analyst adds the next stage's units only
+when the engine says so. Used by T4, T6, T7. Keeping Multi-Stage manual would leave dissolution/UDU unevaluated.
+
+## Slices (dependencies in brackets)
+
+1. **F0 foundation backend** - TestAnalysis / ParameterResult / ResultReading, generic downstream, move Calibration
+   Curve S3 onto it, shared validity-record helpers. [G1, G4]
+2. **F0 frontend** - generic summary/CoA rendering, reusable `UnitEntryGrid` (paste + keyboard). [1]
+3. **Tier 1** - T1 Measurement, T2 Gravimetric, T3 Qualitative (+ equipment types G8). [1, 2]
+4. **T5 UV Assay** + UVS record. [1, 2]
+5. **T6 Dissolution** + DIS record + staged engine (G3); T4 Disintegration on the same engine. [1, 2, 4]
+6. **T7 CU / Weight Variation** (staged engine, G2 configuration). [5]
+7. **T8 Titration / KF** + STD / KFT records. [1, 2]
+8. Tier 3 if confirmed. [1]
+Optional: instrument calibration-due gate on analysis date (recon F7).
+
+## Decisions for Gate 0
+
+| # | Decision | Options | Recommendation |
+|---|---|---|---|
+| G1 | Result storage | (a) shared TestAnalysis/ParameterResult/ResultReading, Calibration Curve moved onto it; (b) one table per type | **(a)** - one downstream implementation; CC move is mechanical and LIMSV2 has no elemental results yet |
+| G2 | Pharmacopoeia for UDU / WV / dissolution / disintegration | (a) configuration per item assignment (chapter + edition + limits); (b) one global default | **(a)**, with USP and EP presets the Section Head selects; limits never hard-coded |
+| G3 | Staged evaluation | (a) build the engine now; (b) keep Multi-Stage manual | **(a)**, delivered with Dissolution |
+| G4 | Validity records | (a) common base (helpers, code, withdrawal, preview, UI shell); (b) separate records | **(a)** |
+| G5 | Order | foundation -> Tier 1 -> UV -> Dissolution/Disintegration -> CU/WV -> Titration/KF -> Tier 3 | as listed, **trimmed to the tests the lab confirms** (inputs list) |
+| G6 | Rounding | (a) compare unrounded (today); (b) round to the limit's decimals before comparing (USP GN 7.20) | lab decision; build `ReportDecimals` + `RoundBeforeCompare` per spec so either can be chosen |
+| G7 | Softgel/oil tests (acid value, peroxide value, omega-3 GC) | in / out | depends on products; a GC exists on the instrument list |
+| G8 | Equipment types to add | from the instrument list: UvVis, DissolutionTester, DisintegrationTester, KarlFischer, Titrator, Viscometer, Refractometer, Polarimeter, ConductivityMeter, MeltingPoint, Oven, Furnace, Gc, Aas, DigestionMicrowave, Caliper/Micrometer | add all present on the list; **not** hardness/friability (no instrument listed) |

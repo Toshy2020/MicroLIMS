@@ -280,9 +280,9 @@ public class ElementalAssayResultPostgresIntegrationTests
 
         // Verify persistence in Postgres
         await using var verifyDb = _fixture.CreateDbContext();
-        var savedEntry = await verifyDb.ElementalAssayEntries
+        var savedEntry = await verifyDb.TestAnalyses
             .Include(e => e.Signature)
-            .Include(e => e.Results)
+            .Include(e => e.ParameterResults)
             .FirstOrDefaultAsync(e => e.TestOrderId == order.Id);
 
         Assert.NotNull(savedEntry);
@@ -323,7 +323,7 @@ public class ElementalAssayResultPostgresIntegrationTests
 
         // S3b: Verify ResultRecord projection in Postgres
         var projectedRecords = await verifyDb.ResultRecords
-            .Where(r => r.SourceTable == "ElementalAssayResult" && r.TestOrderId == order.Id)
+            .Where(r => r.SourceTable == "ParameterResult" && r.TestOrderId == order.Id)
             .ToListAsync();
         Assert.Equal(2, projectedRecords.Count);
         var znProj = projectedRecords.First(r => r.ReportedValue == "106.3 %");
@@ -617,7 +617,7 @@ public class ElementalAssayResultPostgresIntegrationTests
         await reviewService.ReturnToAnalystAsync(order2.Id, headUser.Id, "Return test reason");
 
         await using var verifyDb = _fixture.CreateDbContext();
-        var reloadedEntry = await verifyDb.ElementalAssayEntries.Include(e => e.Results).FirstAsync(e => e.TestOrderId == order2.Id);
+        var reloadedEntry = await verifyDb.TestAnalyses.Include(e => e.ParameterResults).FirstAsync(e => e.TestOrderId == order2.Id);
         Assert.False(reloadedEntry.IsActive);
         Assert.All(reloadedEntry.Results, r => Assert.False(r.IsActive));
         var reloadedOrder2 = await verifyDb.TestOrders.FindAsync(order2.Id);
@@ -666,7 +666,7 @@ public class ElementalAssayResultPostgresIntegrationTests
             headUser.Id,
             "127.0.0.1");
 
-        var unapprovedRes = await verifyDb.ElementalAssayResults.FirstAsync(r => r.TestOrderId == order2.Id && r.IsActive);
+        var unapprovedRes = await verifyDb.ParameterResults.FirstAsync(r => r.TestOrderId == order2.Id && r.IsActive);
         Assert.Equal("RequiresReview", unapprovedRes.ComparisonStatus);
         Assert.Equal("450.0 mg/kg", unapprovedRes.ReportedDisplay);
 

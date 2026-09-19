@@ -333,8 +333,8 @@ public class ElementalAssayResultTests
         Assert.Equal("WithinLimits", result.Status);
         Assert.Contains("106.3 %", result.OutcomeSummary);
 
-        var savedEntry = await db.ElementalAssayEntries
-            .Include(e => e.Results)
+        var savedEntry = await db.TestAnalyses
+            .Include(e => e.ParameterResults)
             .Include(e => e.Signature)
             .FirstOrDefaultAsync(e => e.TestOrderId == order.Id);
 
@@ -405,7 +405,7 @@ public class ElementalAssayResultTests
         Assert.Equal("WithinLimits", result.Status);
         Assert.Contains("10.6 mg", result.OutcomeSummary);
 
-        var savedResult = await db.ElementalAssayResults.FirstOrDefaultAsync(r => r.TestOrderId == order.Id);
+        var savedResult = await db.ParameterResults.FirstOrDefaultAsync(r => r.TestOrderId == order.Id);
         Assert.NotNull(savedResult);
         Assert.Equal(10.625m, savedResult.MgPerUnit);
         Assert.Equal(10.625m, savedResult.ReportedValue);
@@ -457,7 +457,7 @@ public class ElementalAssayResultTests
 
         Assert.Equal("WithinLimits", result.Status);
 
-        var savedEntry = await db.ElementalAssayEntries.Include(e => e.Results).FirstAsync(e => e.TestOrderId == order.Id);
+        var savedEntry = await db.TestAnalyses.Include(e => e.ParameterResults).FirstAsync(e => e.TestOrderId == order.Id);
         Assert.Equal(SampleMatrix.Liquid, savedEntry.SampleMatrix);
         Assert.Equal(5.0m, savedEntry.UnitAmount);
 
@@ -515,7 +515,7 @@ public class ElementalAssayResultTests
         Assert.Equal("RequiresReview", result.Status);
         Assert.Contains("Over range", result.OutcomeSummary);
 
-        var savedResult = await db.ElementalAssayResults.FirstAsync(r => r.TestOrderId == order.Id);
+        var savedResult = await db.ParameterResults.FirstAsync(r => r.TestOrderId == order.Id);
         Assert.True(savedResult.OverRange);
         Assert.Null(savedResult.ReportedValue);
         Assert.Null(savedResult.MgPerUnit);
@@ -566,7 +566,7 @@ public class ElementalAssayResultTests
         Assert.Equal("WithinLimits", result.Status);
         Assert.Contains("<LOQ", result.OutcomeSummary);
 
-        var savedResult = await db.ElementalAssayResults.FirstAsync(r => r.TestOrderId == order.Id);
+        var savedResult = await db.ParameterResults.FirstAsync(r => r.TestOrderId == order.Id);
         Assert.True(savedResult.BelowLoq);
         Assert.Null(savedResult.ReportedValue);
         Assert.Equal("<LOQ", savedResult.ReportedDisplay);
@@ -617,7 +617,7 @@ public class ElementalAssayResultTests
         Assert.Equal("RequiresReview", result.Status);
         Assert.Contains("<LOQ", result.OutcomeSummary);
 
-        var savedResult = await db.ElementalAssayResults.FirstAsync(r => r.TestOrderId == order.Id);
+        var savedResult = await db.ParameterResults.FirstAsync(r => r.TestOrderId == order.Id);
         Assert.Equal("RequiresReview", savedResult.ComparisonStatus);
     }
 
@@ -959,7 +959,7 @@ public class ElementalAssayResultTests
 
         Assert.Equal("WithinLimits", result.Status);
 
-        var savedResult = await db.ElementalAssayResults.FirstAsync(r => r.TestOrderId == order.Id);
+        var savedResult = await db.ParameterResults.FirstAsync(r => r.TestOrderId == order.Id);
         Assert.Equal(1.0m, savedResult.MgPerUnit);
         Assert.Equal(0.5m, savedResult.ResultClaim);
         Assert.Equal(100.0m, savedResult.PercentLabelClaim);
@@ -1321,14 +1321,14 @@ public class ElementalAssayResultTests
 
         await engine.RecordElementalAssayResultAsync(order.Id, payload, analyst.Id);
 
-        var entry = await db.ElementalAssayEntries.Include(e => e.Results).FirstAsync(e => e.TestOrderId == order.Id);
+        var entry = await db.TestAnalyses.Include(e => e.ParameterResults).FirstAsync(e => e.TestOrderId == order.Id);
         Assert.True(entry.IsActive);
         Assert.All(entry.Results, r => Assert.True(r.IsActive));
 
         var reviewService = TestServiceFactory.Review(db);
         await reviewService.ReturnToAnalystAsync(order.Id, fpReviewer.Id, "Recalibration required");
 
-        var reloadedEntry = await db.ElementalAssayEntries.Include(e => e.Results).FirstAsync(e => e.TestOrderId == order.Id);
+        var reloadedEntry = await db.TestAnalyses.Include(e => e.ParameterResults).FirstAsync(e => e.TestOrderId == order.Id);
         Assert.False(reloadedEntry.IsActive);
         Assert.All(reloadedEntry.Results, r => Assert.False(r.IsActive));
 
@@ -1395,7 +1395,7 @@ public class ElementalAssayResultTests
 
         await engine.RecordElementalAssayResultAsync(order.Id, payload, analyst.Id);
 
-        var records = await db.ResultRecords.Where(r => r.SourceTable == "ElementalAssayResult" && r.TestOrderId == order.Id).ToListAsync();
+        var records = await db.ResultRecords.Where(r => r.SourceTable == "ParameterResult" && r.TestOrderId == order.Id).ToListAsync();
         Assert.Equal(2, records.Count);
 
         var znRecord = records.FirstOrDefault(r => r.ReportedValue == "106.3 %");
@@ -1572,7 +1572,7 @@ public class ElementalAssayResultTests
             "127.0.0.1");
 
         // Order 1 result should be flagged RequiresReview and ReportedDisplay unchanged
-        var res1 = await db.ElementalAssayResults.FirstAsync(r => r.TestOrderId == order1.Id);
+        var res1 = await db.ParameterResults.FirstAsync(r => r.TestOrderId == order1.Id);
         Assert.Equal("RequiresReview", res1.ComparisonStatus);
         Assert.Equal("500.0 mg/kg", res1.ReportedDisplay);
 

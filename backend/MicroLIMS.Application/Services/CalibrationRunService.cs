@@ -595,33 +595,34 @@ public class CalibrationRunService : ICalibrationRunService
                 .ToListAsync(ct);
         }
 
-        var linkedResults = await _db.ElementalAssayResults
+        var linkedResults = await _db.ParameterResults
             .Include(r => r.TestOrder!)
                 .ThenInclude(o => o.Sample)
-            .Where(r => r.IsActive && analyteIds.Contains(r.CalibrationRunAnalyteId))
+            .Where(r => r.IsActive && r.ValidityRecordItemId.HasValue && analyteIds.Contains(r.ValidityRecordItemId.Value))
             .ToListAsync(ct);
 
         var affectedApproved = new List<AffectedApprovedOrder>();
 
-        foreach (var elemResult in linkedResults)
+        foreach (var paramResult in linkedResults)
         {
-            var order = elemResult.TestOrder;
+            var order = paramResult.TestOrder;
             var isApproved = (order != null && (order.Status == ApprovalStatus.Approved || order.CurrentStep == WorkflowStep.Approved))
                 || (order?.Sample != null && order.Sample.Status == SampleStatus.Approved);
 
             if (isApproved)
             {
+                var elementOrAnalyte = !string.IsNullOrWhiteSpace(paramResult.Element) ? paramResult.Element : paramResult.ParameterName;
                 affectedApproved.Add(new AffectedApprovedOrder(
                     order?.Sample?.ReferenceNumber ?? string.Empty,
                     order?.TestCode ?? string.Empty,
-                    elemResult.Element));
+                    elementOrAnalyte));
             }
             else
             {
-                elemResult.ComparisonStatus = "RequiresReview";
+                paramResult.ComparisonStatus = "RequiresReview";
 
                 var projected = await _db.ResultRecords
-                    .FirstOrDefaultAsync(pr => pr.SourceTable == "ElementalAssayResult" && pr.SourceId == elemResult.Id, ct);
+                    .FirstOrDefaultAsync(pr => pr.SourceTable == "ParameterResult" && pr.SourceId == paramResult.Id, ct);
                 if (projected != null)
                 {
                     projected.ResultLevel = ResultLevel.NotApplicable;

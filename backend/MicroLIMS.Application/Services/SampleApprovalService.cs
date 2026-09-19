@@ -155,7 +155,7 @@ public class SampleApprovalService
                 || await _db.CountTestReadings.AnyAsync(r => r.TestOrderId == order.Id && r.EnteredByUserId == sectionHeadUserId)
                 || await _db.PathogenObservations.AnyAsync(p => p.TestOrderId == order.Id && p.ObservedByUserId == sectionHeadUserId)
                 || await _db.HplcAssayResults.AnyAsync(h => h.TestOrderId == order.Id && h.EnteredByUserId == sectionHeadUserId)
-                || await _db.ElementalAssayEntries.AnyAsync(e => e.TestOrderId == order.Id && e.EnteredByUserId == sectionHeadUserId);
+                || await _db.TestAnalyses.AnyAsync(e => e.TestOrderId == order.Id && e.EnteredByUserId == sectionHeadUserId);
             if (enteredResult)
                 throw new InvalidOperationException("You cannot approve a sample you tested.");
         }
@@ -192,23 +192,29 @@ public class SampleApprovalService
                 }
             }
 
-            var elementalCodes = await _db.TestDefinitions
-                .Where(t => testCodes.Contains(t.Code) && t.WorkflowType == WorkflowType.ElementalAssay)
-                .Select(t => t.Code)
+            var analysisDefinitions = await _db.TestDefinitions
+                .Where(t => testCodes.Contains(t.Code))
+                .Select(t => new { t.Code, t.WorkflowType })
                 .ToListAsync();
 
-            if (elementalCodes.Count > 0)
+            var testAnalysisCodes = analysisDefinitions
+                .Where(t => AnalysisWorkflows.UsesTestAnalysis(t.WorkflowType))
+                .ToDictionary(t => t.Code, t => t.WorkflowType);
+
+            if (testAnalysisCodes.Count > 0)
             {
-                var elementalOrders = currentOrders.Where(o => elementalCodes.Contains(o.TestCode)).ToList();
-                foreach (var elementalOrder in elementalOrders)
+                var analysisOrders = currentOrders.Where(o => testAnalysisCodes.ContainsKey(o.TestCode)).ToList();
+                foreach (var analysisOrder in analysisOrders)
                 {
-                    var hasActiveEntry = await _db.ElementalAssayEntries
-                        .AnyAsync(e => e.TestOrderId == elementalOrder.Id && e.IsActive);
+                    var hasActiveEntry = await _db.TestAnalyses
+                        .AnyAsync(e => e.TestOrderId == analysisOrder.Id && e.IsActive);
 
                     if (!hasActiveEntry)
                     {
+                        var wfType = testAnalysisCodes[analysisOrder.TestCode];
+                        var displayName = AnalysisWorkflows.GetDisplayName(wfType);
                         throw new InvalidOperationException(
-                            $"Cannot approve section: test order {elementalOrder.Id} (\"{elementalOrder.TestCode}\") lacks an active elemental assay entry.");
+                            $"Cannot approve section: test order {analysisOrder.Id} (\"{analysisOrder.TestCode}\") lacks an active {displayName} entry.");
                     }
                 }
             }

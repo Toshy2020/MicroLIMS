@@ -359,7 +359,7 @@ public class TestWorkflowEngine : ITestWorkflowEngine
                 .Distinct()
                 .ToListAsync())
             .ToHashSet();
-        var activeElementalOrderIds = (await _db.ElementalAssayEntries
+        var activeElementalOrderIds = (await _db.TestAnalyses
                 .AsNoTracking()
                 .Where(e => ids.Contains(e.TestOrderId) && e.IsActive)
                 .Select(e => e.TestOrderId)
@@ -2148,7 +2148,7 @@ public class TestWorkflowEngine : ITestWorkflowEngine
 
         await _sectionScope.EnsureTestOrderAccessAsync(userId, testOrderId);
 
-        var existingActive = await _db.ElementalAssayEntries.AnyAsync(e => e.TestOrderId == testOrderId && e.IsActive);
+        var existingActive = await _db.TestAnalyses.AnyAsync(e => e.TestOrderId == testOrderId && e.IsActive);
         if (existingActive)
             throw new InvalidOperationException("An active elemental assay entry already exists for this test order.");
 
@@ -2180,7 +2180,8 @@ public class TestWorkflowEngine : ITestWorkflowEngine
             throw new InvalidOperationException("Every specification for this test must be supplied exactly once.");
 
         var specById = specs.ToDictionary(s => s.Id);
-        var elementResults = new List<ElementalAssayResult>();
+        var elementResults = new List<ParameterResult>();
+        int? equipmentId = null;
 
         foreach (var elemInput in payload.Elements)
         {
@@ -2196,6 +2197,8 @@ public class TestWorkflowEngine : ITestWorkflowEngine
 
             var run = runAnalyte.CalibrationRun
                 ?? throw new InvalidOperationException($"Calibration run for analyte {elemInput.CalibrationRunAnalyteId} not found.");
+
+            equipmentId = run.EquipmentId;
 
             if (run.Status != CalibrationRunStatus.Active)
                 throw new InvalidOperationException($"Calibration run {run.Code} is not active.");
@@ -2283,29 +2286,46 @@ public class TestWorkflowEngine : ITestWorkflowEngine
                 ? spec.SpecLimit
                 : SpecificationService.BuildCanonicalSpecLimit(spec);
 
-            var elemResult = new ElementalAssayResult
+            var calcData = new ElementalCalculationData(
+                Element: runAnalyte.Element,
+                RunCode: run.Code,
+                RunAnalytePassed: runAnalyte.Passed,
+                ReportedPpm: elemInput.ReportedPpm,
+                OverRange: elemInput.OverRange,
+                BelowLoq: elemInput.BelowLoq,
+                MgPerUnit: mgPerUnit,
+                ResultClaim: resultClaim,
+                PercentLabelClaim: percentLabelClaim,
+                ConversionFactor: spec.ConversionFactor,
+                LabelClaim: spec.LabelClaim,
+                LabelClaimUnit: spec.LabelClaimUnit
+            );
+
+            var calcJson = System.Text.Json.JsonSerializer.Serialize(calcData, new System.Text.Json.JsonSerializerOptions
+            {
+                PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase
+            });
+
+            var paramResult = new ParameterResult
             {
                 TestOrderId = order.Id,
                 SpecificationId = spec.Id,
-                CalibrationRunAnalyteId = elemInput.CalibrationRunAnalyteId,
+                ValidityRecordItemId = elemInput.CalibrationRunAnalyteId,
                 ParameterName = spec.ParameterName,
-                Element = runAnalyte.Element,
-                ReportedPpm = elemInput.ReportedPpm,
-                OverRange = elemInput.OverRange,
-                BelowLoq = elemInput.BelowLoq,
-                MgPerUnit = mgPerUnit,
-                ResultClaim = resultClaim,
-                PercentLabelClaim = percentLabelClaim,
                 ReportedValue = reportedValue,
                 ReportedDisplay = reportedDisplay,
-                ResultBasis = spec.ResultBasis!.Value,
-                SpecLimit = canonicalLimit,
                 Unit = spec.Unit,
+                SpecLimit = canonicalLimit,
+                ResultBasis = spec.ResultBasis,
                 ComparisonStatus = status,
+                OverRange = elemInput.OverRange,
+                BelowLoq = elemInput.BelowLoq,
+                CalculationJson = calcJson,
+                StageReached = null,
                 IsActive = true
             };
 
-            elementResults.Add(elemResult);
+            elementResults.Add(paramResult);
         }
 
         _db.CurrentUserId = userId;
@@ -2318,21 +2338,26 @@ public class TestWorkflowEngine : ITestWorkflowEngine
             payload.Comment,
             ipAddress);
 
-        var entry = new ElementalAssayEntry
+        var entry = new TestAnalysis
         {
             TestOrderId = order.Id,
-            SampleMatrix = sampleMatrix,
-            UnitAmount = payload.UnitAmount,
+            AnalysisType = WorkflowType.ElementalAssay,
+            EquipmentId = equipmentId,
             AnalysedAt = analysedAtUtc,
+            UnitAmount = payload.UnitAmount,
+            SampleMatrix = sampleMatrix,
+            ConditionsJson = null,
+            ValidityRecordType = "CalibrationRun",
+            ValidityRecordId = null,
             IsActive = true,
             EnteredByUserId = userId,
             EnteredAt = _clock.UtcNow.UtcDateTime,
             Signature = signature,
             Comment = payload.Comment,
-            Results = elementResults
+            ParameterResults = elementResults
         };
 
-        _db.ElementalAssayEntries.Add(entry);
+        _db.TestAnalyses.Add(entry);
 
         string overallStatus;
         if (elementResults.Any(r => r.ComparisonStatus == "OutOfSpecification"))
@@ -2349,7 +2374,7 @@ public class TestWorkflowEngine : ITestWorkflowEngine
         _db.Results.Add(new Result
         {
             TestOrderId = order.Id,
-            RawValue = string.Join(",", elementResults.Select(r => $"{r.Element}={r.ReportedPpm.ToString(System.Globalization.CultureInfo.InvariantCulture)}")),
+            RawValue = string.Join(",", elementResults.Select(r => $"{r.Element}={(r.ReportedPpm.HasValue ? r.ReportedPpm.Value.ToString(System.Globalization.CultureInfo.InvariantCulture) : "0")}")),
             InterpretedValue = $"{outcomeSummary} ({overallStatus})",
             Type = ResultType.Numeric,
             EnteredByUserId = userId,
@@ -2360,7 +2385,7 @@ public class TestWorkflowEngine : ITestWorkflowEngine
 
         foreach (var elemResult in elementResults)
         {
-            await _resultProjection.UpsertFromElementalAssayResultAsync(elemResult.Id);
+            await _resultProjection.UpsertFromParameterResultAsync(elemResult.Id);
         }
         await _db.SaveChangesAsync();
 

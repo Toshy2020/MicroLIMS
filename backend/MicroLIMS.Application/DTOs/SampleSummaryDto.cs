@@ -119,6 +119,8 @@ public class TestOrderSummaryDetailDto
     public HplcAssayDetailDto? HplcAssay { get; set; }
     // Elemental Assay only - the active (not returned) entry and results, null otherwise.
     public ElementalAssayDetailDto? ElementalAssay { get; set; }
+    // Shared Result Foundation - generic test analysis, null if not a TestAnalysis workflow
+    public AnalysisDetailDto? Analysis { get; set; }
     public List<PathogenObservationDetailDto> PathogenObservations { get; set; } = new();
     public List<BiochemicalResultDetailDto> BiochemicalResults { get; set; } = new();
     public List<WorkflowHistoryDetailDto> WorkflowHistory { get; set; } = new();
@@ -259,6 +261,60 @@ public class ElementalAssayElementDetailDto
     public string? SpecLimit { get; set; }
     public string? Unit { get; set; }
     public string Status { get; set; } = string.Empty;
+}
+
+public class AnalysisDetailDto
+{
+    public int Id { get; set; }
+    public int TestOrderId { get; set; }
+    public WorkflowType AnalysisType { get; set; }
+    public int? EquipmentId { get; set; }
+    public string? EquipmentCode { get; set; }
+    public string? EquipmentName { get; set; }
+    public DateTime AnalysedAt { get; set; }
+    public decimal? UnitAmount { get; set; }
+    public SampleMatrix? SampleMatrix { get; set; }
+    public string? ConditionsJson { get; set; }
+    public string? ValidityRecordType { get; set; }
+    public int? ValidityRecordId { get; set; }
+    public string? EnteredByName { get; set; }
+    public DateTime EnteredAt { get; set; }
+    public string? Comment { get; set; }
+    public List<ParameterResultDetailDto> ParameterResults { get; set; } = new();
+}
+
+public class ParameterResultDetailDto
+{
+    public int Id { get; set; }
+    public int SpecificationId { get; set; }
+    public string ParameterName { get; set; } = string.Empty;
+    public decimal? ReportedValue { get; set; }
+    public string ReportedDisplay { get; set; } = string.Empty;
+    public string? Unit { get; set; }
+    public string? SpecLimit { get; set; }
+    public ResultBasis? ResultBasis { get; set; }
+    public string ComparisonStatus { get; set; } = string.Empty;
+    public bool OverRange { get; set; }
+    public bool BelowLoq { get; set; }
+    public int? ValidityRecordItemId { get; set; }
+    public string? CalculationJson { get; set; }
+    public int? StageReached { get; set; }
+    public List<ResultReadingDetailDto> Readings { get; set; } = new();
+}
+
+public class ResultReadingDetailDto
+{
+    public int Id { get; set; }
+    public ReadingKind Kind { get; set; }
+    public int Index { get; set; }
+    public int? Stage { get; set; }
+    public decimal? TimePointMinutes { get; set; }
+    public decimal? Value1 { get; set; }
+    public decimal? Value2 { get; set; }
+    public decimal? Value3 { get; set; }
+    public string? Text { get; set; }
+    public decimal? ComputedValue { get; set; }
+    public bool? Passed { get; set; }
 }
 
 public class CountTestReadingDetailDto

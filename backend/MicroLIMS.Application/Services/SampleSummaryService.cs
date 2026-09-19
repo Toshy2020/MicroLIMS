@@ -126,34 +126,60 @@ public class SampleSummaryService
                 r.EnteredByUserId, r.EnteredAt
             })
             .ToListAsync();
-        var elementalEntries = await _db.ElementalAssayEntries.AsNoTracking()
+        var activeAnalyses = await _db.TestAnalyses.AsNoTracking()
             .Where(e => testOrderIds.Contains(e.TestOrderId) && e.IsActive)
+            .Include(e => e.Equipment)
             .Select(e => new
             {
+                e.Id,
                 e.TestOrderId,
-                e.SampleMatrix,
-                e.UnitAmount,
+                e.AnalysisType,
+                e.EquipmentId,
+                EquipmentCode = e.Equipment != null ? e.Equipment.Code : null,
+                EquipmentName = e.Equipment != null ? e.Equipment.Name : null,
                 e.AnalysedAt,
+                e.UnitAmount,
+                e.SampleMatrix,
+                e.ConditionsJson,
+                e.ValidityRecordType,
+                e.ValidityRecordId,
                 e.EnteredByUserId,
                 e.EnteredAt,
-                Results = e.Results.Where(r => r.IsActive).Select(r => new
+                e.Comment,
+                Results = e.ParameterResults.Where(r => r.IsActive).Select(r => new
                 {
+                    r.Id,
+                    r.SpecificationId,
                     r.ParameterName,
-                    r.Element,
+                    r.ReportedValue,
+                    r.ReportedDisplay,
+                    r.Unit,
+                    r.SpecLimit,
+                    r.ResultBasis,
+                    r.ComparisonStatus,
+                    r.OverRange,
+                    r.BelowLoq,
+                    r.ValidityRecordItemId,
+                    r.CalculationJson,
+                    r.StageReached,
                     RunCode = r.CalibrationRunAnalyte != null && r.CalibrationRunAnalyte.CalibrationRun != null
                         ? r.CalibrationRunAnalyte.CalibrationRun.Code
                         : string.Empty,
                     RunAnalytePassed = r.CalibrationRunAnalyte != null && r.CalibrationRunAnalyte.Passed,
-                    r.ReportedPpm,
-                    r.OverRange,
-                    r.BelowLoq,
-                    r.MgPerUnit,
-                    r.ResultClaim,
-                    r.PercentLabelClaim,
-                    r.ReportedDisplay,
-                    r.SpecLimit,
-                    r.Unit,
-                    r.ComparisonStatus
+                    Readings = r.Readings.OrderBy(rd => rd.Index).Select(rd => new ResultReadingDetailDto
+                    {
+                        Id = rd.Id,
+                        Kind = rd.Kind,
+                        Index = rd.Index,
+                        Stage = rd.Stage,
+                        TimePointMinutes = rd.TimePointMinutes,
+                        Value1 = rd.Value1,
+                        Value2 = rd.Value2,
+                        Value3 = rd.Value3,
+                        Text = rd.Text,
+                        ComputedValue = rd.ComputedValue,
+                        Passed = rd.Passed
+                    }).ToList()
                 }).ToList()
             })
             .ToListAsync();
@@ -232,7 +258,7 @@ public class SampleSummaryService
             .Concat(countTestReadings.Select(r => r.EnteredByUserId))
             .Concat(hplcResults.Select(h => h.EnteredByUserId))
             .Concat(hplcResults.Select(h => h.RunPerformedByUserId))
-            .Concat(elementalEntries.Select(e => e.EnteredByUserId))
+            .Concat(activeAnalyses.Select(e => e.EnteredByUserId))
             .Concat(pathogenObservations.Select(p => p.ObservedByUserId))
             .Concat(locationPathogenObservations.Select(o => o.ObservedByUserId))
             .Concat(workflowHistory.Select(w => w.PerformedByUserId))
@@ -567,30 +593,78 @@ public class SampleSummaryService
                     SstMaxTailingFactor = h.SstMaxTailingFactor,
                     SstMinTheoreticalPlates = h.SstMinTheoreticalPlates
                 }).FirstOrDefault(),
-                ElementalAssay = elementalEntries.Where(e => e.TestOrderId == order.Id).Select(e => new ElementalAssayDetailDto
+                ElementalAssay = activeAnalyses.Where(e => e.TestOrderId == order.Id && e.AnalysisType == WorkflowType.ElementalAssay).Select(e => new ElementalAssayDetailDto
                 {
-                    SampleMatrix = e.SampleMatrix,
-                    UnitAmount = e.UnitAmount,
-                    UnitAmountUnit = e.SampleMatrix == SampleMatrix.Solid ? "g" : "mL",
+                    SampleMatrix = e.SampleMatrix ?? SampleMatrix.Solid,
+                    UnitAmount = e.UnitAmount ?? 0m,
+                    UnitAmountUnit = (e.SampleMatrix ?? SampleMatrix.Solid) == SampleMatrix.Solid ? "g" : "mL",
                     AnalysedAt = e.AnalysedAt,
                     EnteredByName = NameOf(e.EnteredByUserId),
                     EnteredAt = e.EnteredAt,
-                    Elements = e.Results.Select(r => new ElementalAssayElementDetailDto
+                    Elements = e.Results.Select(r =>
                     {
+                        ElementalCalculationData? calc = null;
+                        if (!string.IsNullOrWhiteSpace(r.CalculationJson))
+                        {
+                            try
+                            {
+                                calc = System.Text.Json.JsonSerializer.Deserialize<ElementalCalculationData>(r.CalculationJson, new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                            }
+                            catch { }
+                        }
+                        return new ElementalAssayElementDetailDto
+                        {
+                            ParameterName = r.ParameterName,
+                            Element = calc?.Element ?? r.ParameterName,
+                            RunCode = !string.IsNullOrWhiteSpace(calc?.RunCode) ? calc.RunCode : r.RunCode,
+                            RunAnalytePassed = calc?.RunAnalytePassed ?? r.RunAnalytePassed,
+                            ReportedPpm = calc?.ReportedPpm ?? 0m,
+                            OverRange = r.OverRange,
+                            BelowLoq = r.BelowLoq,
+                            MgPerUnit = calc?.MgPerUnit,
+                            ResultClaim = calc?.ResultClaim,
+                            PercentLabelClaim = calc?.PercentLabelClaim,
+                            ReportedDisplay = r.ReportedDisplay,
+                            SpecLimit = r.SpecLimit,
+                            Unit = r.Unit,
+                            Status = r.ComparisonStatus
+                        };
+                    }).ToList()
+                }).FirstOrDefault(),
+                Analysis = activeAnalyses.Where(e => e.TestOrderId == order.Id).Select(e => new AnalysisDetailDto
+                {
+                    Id = e.Id,
+                    TestOrderId = e.TestOrderId,
+                    AnalysisType = e.AnalysisType,
+                    EquipmentId = e.EquipmentId,
+                    EquipmentCode = e.EquipmentCode,
+                    EquipmentName = e.EquipmentName,
+                    AnalysedAt = e.AnalysedAt,
+                    UnitAmount = e.UnitAmount,
+                    SampleMatrix = e.SampleMatrix,
+                    ConditionsJson = e.ConditionsJson,
+                    ValidityRecordType = e.ValidityRecordType,
+                    ValidityRecordId = e.ValidityRecordId,
+                    EnteredByName = NameOf(e.EnteredByUserId),
+                    EnteredAt = e.EnteredAt,
+                    Comment = e.Comment,
+                    ParameterResults = e.Results.Select(r => new ParameterResultDetailDto
+                    {
+                        Id = r.Id,
+                        SpecificationId = r.SpecificationId,
                         ParameterName = r.ParameterName,
-                        Element = r.Element,
-                        RunCode = r.RunCode,
-                        RunAnalytePassed = r.RunAnalytePassed,
-                        ReportedPpm = r.ReportedPpm,
+                        ReportedValue = r.ReportedValue,
+                        ReportedDisplay = r.ReportedDisplay,
+                        Unit = r.Unit,
+                        SpecLimit = r.SpecLimit,
+                        ResultBasis = r.ResultBasis,
+                        ComparisonStatus = r.ComparisonStatus,
                         OverRange = r.OverRange,
                         BelowLoq = r.BelowLoq,
-                        MgPerUnit = r.MgPerUnit,
-                        ResultClaim = r.ResultClaim,
-                        PercentLabelClaim = r.PercentLabelClaim,
-                        ReportedDisplay = r.ReportedDisplay,
-                        SpecLimit = r.SpecLimit,
-                        Unit = r.Unit,
-                        Status = r.ComparisonStatus
+                        ValidityRecordItemId = r.ValidityRecordItemId,
+                        CalculationJson = r.CalculationJson,
+                        StageReached = r.StageReached,
+                        Readings = r.Readings
                     }).ToList()
                 }).FirstOrDefault(),
                 PathogenObservations = pathogenObservations.Where(p => p.TestOrderId == order.Id).Select(p => new PathogenObservationDetailDto
@@ -804,6 +878,15 @@ public class SampleSummaryService
                     lines.Add($"    {el.Element}: {V(el.ReportedPpm)} ppm x {V(elemental.UnitAmount)} {elemental.UnitAmountUnit} / 1000 = {V(el.MgPerUnit)} mg, Claim: {claimStr}, %LC: {plcStr}, Status: {el.Status}");
                 }
             }
+            else if (order.Analysis is { } analysis)
+            {
+                lines.Add($"  FINAL RESULT ({analysis.AnalysisType}):");
+                lines.Add($"    Analysed At: {FormatDateTime(analysis.AnalysedAt)}   Entered By: {analysis.EnteredByName}   Entered At: {FormatDateTime(analysis.EnteredAt)}");
+                foreach (var pr in analysis.ParameterResults)
+                {
+                    lines.Add($"    {pr.ParameterName}: {pr.ReportedDisplay}   Spec: {FormatLimit(pr.SpecLimit)}   Status: {pr.ComparisonStatus}");
+                }
+            }
             else if (order.PathogenObservations.Count > 0)
             {
                 lines.Add("  FINAL RESULT:");
@@ -820,7 +903,7 @@ public class SampleSummaryService
                     lines.Add($"    {b.StepName}: {b.BiochemicalResultText}   Interpretation: {call}   Entered By: {b.SubmittedByName}   Entered At: {FormatDateTime(b.SubmittedAt)}");
                 }
             }
-            else if (order.Results.Count > 0 && order.HplcAssay is null && order.ElementalAssay is null)
+            else if (order.Results.Count > 0 && order.HplcAssay is null && order.ElementalAssay is null && order.Analysis is null)
             {
                 lines.Add("  FINAL RESULT:");
                 foreach (var r in order.Results)

@@ -111,7 +111,7 @@ public class ReviewService
         var definition = await _db.TestDefinitions.FirstOrDefaultAsync(d => d.Code == order.TestCode)
             ?? throw new InvalidOperationException($"Test definition \"{order.TestCode}\" not found.");
 
-        if (definition.WorkflowType != WorkflowType.CountTest && definition.WorkflowType != WorkflowType.HplcAssay && definition.WorkflowType != WorkflowType.ElementalAssay)
+        if (definition.WorkflowType != WorkflowType.CountTest && definition.WorkflowType != WorkflowType.HplcAssay && !AnalysisWorkflows.UsesTestAnalysis(definition.WorkflowType))
             throw new InvalidOperationException($"Return to Analyst is only supported for Count Test, HPLC Assay, and Elemental Assay workflows. \"{order.TestCode}\" is a {definition.WorkflowType} workflow.");
 
         if (definition.WorkflowType == WorkflowType.CountTest)
@@ -149,19 +149,19 @@ public class ReviewService
                 r.IsActive = false;
             }
         }
-        else if (definition.WorkflowType == WorkflowType.ElementalAssay)
+        else if (AnalysisWorkflows.UsesTestAnalysis(definition.WorkflowType))
         {
-            // 1. Soft-supersede all active ElementalAssayEntry rows for this test order
-            var activeEntries = await _db.ElementalAssayEntries
+            // 1. Soft-supersede all active TestAnalysis rows for this test order
+            var activeAnalyses = await _db.TestAnalyses
                 .Where(e => e.TestOrderId == testOrderId && e.IsActive)
                 .ToListAsync();
-            foreach (var e in activeEntries)
+            foreach (var e in activeAnalyses)
             {
                 e.IsActive = false;
             }
 
-            // 2. Soft-supersede all active ElementalAssayResult rows for this test order
-            var activeResults = await _db.ElementalAssayResults
+            // 2. Soft-supersede all active ParameterResult rows for this test order
+            var activeResults = await _db.ParameterResults
                 .Where(r => r.TestOrderId == testOrderId && r.IsActive)
                 .ToListAsync();
             foreach (var r in activeResults)
@@ -183,7 +183,7 @@ public class ReviewService
             ? "Returned to analyst by reviewer"
             : $"Returned to analyst: {reason.Trim()}";
 
-        var targetStep = (definition.WorkflowType == WorkflowType.HplcAssay || definition.WorkflowType == WorkflowType.ElementalAssay)
+        var targetStep = (definition.WorkflowType == WorkflowType.HplcAssay || AnalysisWorkflows.UsesTestAnalysis(definition.WorkflowType))
             ? WorkflowStep.Running
             : WorkflowStep.Incubating;
 

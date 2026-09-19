@@ -4,30 +4,25 @@ using MicroLIMS.Domain.Entities;
 
 namespace MicroLIMS.Persistence.Configurations;
 
-public class ElementalAssayResultConfiguration : IEntityTypeConfiguration<ElementalAssayResult>
+public class ParameterResultConfiguration : IEntityTypeConfiguration<ParameterResult>
 {
-    public void Configure(EntityTypeBuilder<ElementalAssayResult> builder)
+    public void Configure(EntityTypeBuilder<ParameterResult> builder)
     {
+        builder.ToTable("ParameterResults");
         builder.HasKey(r => r.Id);
 
         builder.Property(r => r.ParameterName).IsRequired().HasMaxLength(150);
-        builder.Property(r => r.Element).IsRequired().HasMaxLength(20);
-
-        builder.Property(r => r.ReportedPpm).HasPrecision(18, 6);
-        builder.Property(r => r.MgPerUnit).HasPrecision(28, 10);
-        builder.Property(r => r.ResultClaim).HasPrecision(28, 10);
-        builder.Property(r => r.PercentLabelClaim).HasPrecision(28, 10);
         builder.Property(r => r.ReportedValue).HasPrecision(28, 10);
-
         builder.Property(r => r.ReportedDisplay).IsRequired().HasMaxLength(100);
-        builder.Property(r => r.SpecLimit).HasMaxLength(100);
         builder.Property(r => r.Unit).HasMaxLength(50);
+        builder.Property(r => r.SpecLimit).HasMaxLength(100);
         builder.Property(r => r.ComparisonStatus).IsRequired().HasMaxLength(50);
+        builder.Property(r => r.CalculationJson).HasColumnType("jsonb");
         builder.Property(r => r.IsActive).HasDefaultValue(true);
 
-        builder.HasOne(r => r.Entry)
-            .WithMany(e => e.Results)
-            .HasForeignKey(r => r.EntryId)
+        builder.HasOne(r => r.TestAnalysis)
+            .WithMany(a => a.ParameterResults)
+            .HasForeignKey(r => r.TestAnalysisId)
             .OnDelete(DeleteBehavior.Cascade);
 
         builder.HasOne(r => r.TestOrder)
@@ -42,12 +37,12 @@ public class ElementalAssayResultConfiguration : IEntityTypeConfiguration<Elemen
 
         builder.HasOne(r => r.CalibrationRunAnalyte)
             .WithMany()
-            .HasForeignKey(r => r.CalibrationRunAnalyteId)
+            .HasForeignKey(r => r.ValidityRecordItemId)
             .OnDelete(DeleteBehavior.Restrict);
 
         builder.HasIndex(r => new { r.TestOrderId, r.IsActive });
-        builder.HasIndex(r => r.EntryId);
+        builder.HasIndex(r => r.TestAnalysisId);
         builder.HasIndex(r => r.SpecificationId);
-        builder.HasIndex(r => r.CalibrationRunAnalyteId);
+        builder.HasIndex(r => r.ValidityRecordItemId);
     }
 }

@@ -212,24 +212,24 @@ public class ResultProjectionService
         record.UpdatedAt = DateTime.UtcNow;
     }
 
-    public async Task UpsertFromElementalAssayResultAsync(int elementalAssayResultId)
+    public async Task UpsertFromParameterResultAsync(int parameterResultId)
     {
-        var elemResult = await _db.ElementalAssayResults
-            .Include(r => r.Entry)
+        var paramResult = await _db.ParameterResults
+            .Include(r => r.TestAnalysis)
             .Include(r => r.TestOrder!).ThenInclude(o => o.Sample!).ThenInclude(s => s.Item)
-            .FirstOrDefaultAsync(r => r.Id == elementalAssayResultId)
-            ?? throw new InvalidOperationException($"ElementalAssayResult {elementalAssayResultId} not found.");
+            .FirstOrDefaultAsync(r => r.Id == parameterResultId)
+            ?? throw new InvalidOperationException($"ParameterResult {parameterResultId} not found.");
 
-        var order = elemResult.TestOrder ?? throw new InvalidOperationException($"ElementalAssayResult {elementalAssayResultId} has no TestOrder.");
-        var sample = order.Sample ?? throw new InvalidOperationException($"TestOrder {order.Id} has no Sample - cannot project ElementalAssayResult {elementalAssayResultId}.");
-        var entry = elemResult.Entry ?? await _db.ElementalAssayEntries.FirstOrDefaultAsync(e => e.Id == elemResult.EntryId)
-            ?? throw new InvalidOperationException($"ElementalAssayResult {elementalAssayResultId} has no Entry.");
+        var order = paramResult.TestOrder ?? throw new InvalidOperationException($"ParameterResult {parameterResultId} has no TestOrder.");
+        var sample = order.Sample ?? throw new InvalidOperationException($"TestOrder {order.Id} has no Sample - cannot project ParameterResult {parameterResultId}.");
+        var analysis = paramResult.TestAnalysis ?? await _db.TestAnalyses.FirstOrDefaultAsync(e => e.Id == paramResult.TestAnalysisId)
+            ?? throw new InvalidOperationException($"ParameterResult {parameterResultId} has no TestAnalysis.");
 
         var testDefinition = await _db.TestDefinitions.FirstOrDefaultAsync(t => t.Code == order.TestCode);
-        var enteredBy = await _db.Users.FirstOrDefaultAsync(u => u.Id == entry.EnteredByUserId);
+        var enteredBy = await _db.Users.FirstOrDefaultAsync(u => u.Id == analysis.EnteredByUserId);
         var round = await ComputeRoundAsync(sample.Id, order.TestCode, order.Id);
 
-        var record = await GetOrCreateAsync("ElementalAssayResult", elemResult.Id, round);
+        var record = await GetOrCreateAsync("ParameterResult", paramResult.Id, round);
         record.SampleId = sample.Id;
         record.TestOrderId = order.Id;
         record.ReferenceNumber = sample.ReferenceNumber;
@@ -241,17 +241,17 @@ public class ResultProjectionService
         record.TestCode = order.TestCode;
         record.TestDisplayName = testDefinition?.DisplayName ?? order.TestCode;
         record.ResultKind = ResultKind.Quantitative;
-        record.NumericValue = elemResult.ReportedValue;
-        record.ReportedValue = elemResult.ReportedDisplay;
-        record.Unit = elemResult.Unit;
-        record.IsBelowDetectionLimit = elemResult.BelowLoq;
+        record.NumericValue = paramResult.ReportedValue;
+        record.ReportedValue = paramResult.ReportedDisplay;
+        record.Unit = paramResult.Unit;
+        record.IsBelowDetectionLimit = paramResult.BelowLoq;
         record.DetectionLimit = null;
         record.AlertLimit = null;
         record.ActionLimit = null;
-        record.SpecLimit = elemResult.SpecLimit;
-        record.ResultLevel = MapResultLevel(elemResult.ComparisonStatus);
-        record.ResultEnteredAt = entry.EnteredAt;
-        record.ResultEnteredByUserId = entry.EnteredByUserId;
+        record.SpecLimit = paramResult.SpecLimit;
+        record.ResultLevel = MapResultLevel(paramResult.ComparisonStatus);
+        record.ResultEnteredAt = analysis.EnteredAt;
+        record.ResultEnteredByUserId = analysis.EnteredByUserId;
         record.ResultEnteredByName = enteredBy?.FullName ?? string.Empty;
         record.SampleStatus = sample.Status;
         record.UpdatedAt = DateTime.UtcNow;
@@ -535,21 +535,21 @@ public class ResultProjectionService
             }
         }
 
-        var elementalResultIds = await _db.ElementalAssayResults.Select(r => r.Id).ToListAsync();
-        _logger.LogInformation("ResultRecord backfill: projecting {Count} ElementalAssayResult rows.", elementalResultIds.Count);
-        foreach (var id in elementalResultIds)
+        var parameterResultIds = await _db.ParameterResults.Select(r => r.Id).ToListAsync();
+        _logger.LogInformation("ResultRecord backfill: projecting {Count} ParameterResult rows.", parameterResultIds.Count);
+        foreach (var id in parameterResultIds)
         {
-            var existedBefore = await _db.ResultRecords.AnyAsync(r => r.SourceTable == "ElementalAssayResult" && r.SourceId == id);
+            var existedBefore = await _db.ResultRecords.AnyAsync(r => r.SourceTable == "ParameterResult" && r.SourceId == id);
             try
             {
-                await UpsertFromElementalAssayResultAsync(id);
+                await UpsertFromParameterResultAsync(id);
                 await _db.SaveChangesAsync();
                 if (existedBefore) updated++; else created++;
             }
             catch (InvalidOperationException ex)
             {
                 skipped++;
-                errors.Add($"ElementalAssayResult {id}: {ex.Message}");
+                errors.Add($"ParameterResult {id}: {ex.Message}");
             }
         }
 

@@ -18,8 +18,11 @@ Recon: `docs/FP_Other_Equation_Types_Phase0_Recon.md`. Style and rules follow
   - Dissolution and content uniformity are expected only on the three pharmaceutical products (confirm per product
     against its monograph); G2 presets therefore need both the USP dietary-supplement chapters (multivitamins) and the
     USP/BP medicinal chapters (pharmaceuticals).
-- Still open: the exact common multivitamin test list; which of the three pharmaceuticals carry dissolution / CU
-  specs; how per-unit assay values for CU are produced.
+- Lab answers (2026-09-19): multivitamin assays are the **water-soluble vitamins, vitamin A, C, D and E**;
+  **all three pharmaceuticals have dissolution**; **content uniformity is deferred** (drop CU from T7 for now;
+  weight variation stays).
+- Still open: the full common multivitamin test list beyond the assays (appearance, LOD, disintegration, weight
+  variation?) and the assay technique per vitamin (HPLC vs UV vs titration).
 
 ## Global rules (all types)
 

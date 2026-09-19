@@ -27,6 +27,11 @@ public record RecordElementalAssayElementRequest(int SpecificationId, int Calibr
 public record RecordElementalAssayResultRequest(decimal UnitAmount, DateTime AnalysedAt, List<RecordElementalAssayElementRequest> Elements, string Password, string? Comment = null);
 public record RecordMeasurementParameterRequest(int SpecificationId, List<decimal> Readings);
 public record RecordMeasurementResultRequest(DateTime AnalysedAt, int? EquipmentId, List<RecordMeasurementParameterRequest> Parameters, string Password, string? Comment = null);
+public record GravimetricReplicateRequest(decimal? Container, decimal Initial, decimal Final);
+public record RecordGravimetricParameterRequest(int SpecificationId, List<GravimetricReplicateRequest> Replicates);
+public record RecordGravimetricResultRequest(DateTime AnalysedAt, int? EquipmentId, Dictionary<string, string> Conditions, List<RecordGravimetricParameterRequest> Parameters, string Password, string? Comment = null);
+public record RecordQualitativeParameterRequest(int SpecificationId, bool Conforms, string? Observation);
+public record RecordQualitativeResultRequest(DateTime AnalysedAt, int? EquipmentId, List<RecordQualitativeParameterRequest> Parameters, string Password, string? Comment = null);
 public record BatchResultLocationRequest(int SampleLocationId, List<decimal> Readings);
 public record BatchResultsRequest(List<BatchResultLocationRequest> Locations);
 public record WaterBatchLocationRequest(int SampleLocationId, List<decimal> Readings);
@@ -344,6 +349,46 @@ public class TestWorkflowController : ControllerBase
                 request.Password,
                 request.Comment);
             return _engine.RecordMeasurementResultAsync(testOrderId, payload, CurrentUserId, ClientIpAddress);
+        });
+    }
+
+    [HttpPost("{testOrderId}/record-gravimetric-result")]
+    [Authorize(Policy = PermissionConstants.TestWorkflowExecute)]
+    public async Task<IActionResult> RecordGravimetricResult(int testOrderId, RecordGravimetricResultRequest request)
+    {
+        await _scopeService.EnsureTestOrderAccessAsync(CurrentUserId, testOrderId);
+        return await RunAsync(() =>
+        {
+            var payload = new GravimetricPayload(
+                request.AnalysedAt,
+                request.EquipmentId,
+                request.Conditions,
+                request.Parameters.Select(p => new GravimetricParameterInput(
+                    p.SpecificationId,
+                    p.Replicates.Select(r => new GravimetricReplicateInput(r.Container, r.Initial, r.Final)).ToList())).ToList(),
+                request.Password,
+                request.Comment);
+            return _engine.RecordGravimetricResultAsync(testOrderId, payload, CurrentUserId, ClientIpAddress);
+        });
+    }
+
+    [HttpPost("{testOrderId}/record-qualitative-result")]
+    [Authorize(Policy = PermissionConstants.TestWorkflowExecute)]
+    public async Task<IActionResult> RecordQualitativeResult(int testOrderId, RecordQualitativeResultRequest request)
+    {
+        await _scopeService.EnsureTestOrderAccessAsync(CurrentUserId, testOrderId);
+        return await RunAsync(() =>
+        {
+            var payload = new QualitativePayload(
+                request.AnalysedAt,
+                request.EquipmentId,
+                request.Parameters.Select(p => new QualitativeParameterInput(
+                    p.SpecificationId,
+                    p.Conforms,
+                    p.Observation)).ToList(),
+                request.Password,
+                request.Comment);
+            return _engine.RecordQualitativeResultAsync(testOrderId, payload, CurrentUserId, ClientIpAddress);
         });
     }
 

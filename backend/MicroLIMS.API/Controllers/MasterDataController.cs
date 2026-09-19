@@ -153,7 +153,9 @@ public record CreateTestDefinitionRequest(
     ReportedConcentrationBasis? ReportedConcentrationBasis = null,
     int? CalMaxRunAgeHours = null,
     int? ReplicateCount = null,
-    MeasurementEvaluationBasis? EvaluationBasis = null);
+    MeasurementEvaluationBasis? EvaluationBasis = null,
+    string? ConditionFields = null,
+    bool? UsesTare = null);
 // SectionId: move the test to another laboratory section (null = keep). Test
 // orders already created keep the section they were created with.
 public record UpdateTestDefinitionRequest(
@@ -184,7 +186,9 @@ public record UpdateTestDefinitionRequest(
     ReportedConcentrationBasis? ReportedConcentrationBasis = null,
     int? CalMaxRunAgeHours = null,
     int? ReplicateCount = null,
-    MeasurementEvaluationBasis? EvaluationBasis = null);
+    MeasurementEvaluationBasis? EvaluationBasis = null,
+    string? ConditionFields = null,
+    bool? UsesTare = null);
 public record UpdateWorkflowTypeRequest(WorkflowType WorkflowType);
 
 public record StepMediaRequest(int MaterialId, bool IsRequired, int DisplayOrder, int? MediaIncubationConditionId);
@@ -1843,15 +1847,24 @@ public class MasterDataController : ControllerBase
                 throw new InvalidOperationException("Equation type must be Measurement when workflow type is Measurement.");
         }
 
+        if (request.ConditionFields != null && request.ConditionFields.Length > 500)
+            throw new InvalidOperationException("Condition fields cannot exceed 500 characters.");
+
         if (request.EquationType is EquationType.GravimetricLoss or EquationType.GravimetricResidue)
         {
             if (request.WorkflowType != WorkflowType.Gravimetric)
                 throw new InvalidOperationException($"Workflow type must be Gravimetric when equation type is {request.EquationType}.");
+
+            if (!request.ReplicateCount.HasValue || request.ReplicateCount.Value < 1 || request.ReplicateCount.Value > 30)
+                throw new InvalidOperationException($"Replicate count must be between 1 and 30 when equation type is {request.EquationType}.");
         }
         else if (request.WorkflowType == WorkflowType.Gravimetric)
         {
             if (request.EquationType is not (EquationType.GravimetricLoss or EquationType.GravimetricResidue))
                 throw new InvalidOperationException("Equation type must be GravimetricLoss or GravimetricResidue when workflow type is Gravimetric.");
+
+            if (!request.ReplicateCount.HasValue || request.ReplicateCount.Value < 1 || request.ReplicateCount.Value > 30)
+                throw new InvalidOperationException($"Replicate count must be between 1 and 30 when equation type is {request.EquationType}.");
         }
 
         if (request.EquationType == EquationType.Qualitative)
@@ -1894,7 +1907,9 @@ public class MasterDataController : ControllerBase
             ReportedConcentrationBasis = request.ReportedConcentrationBasis,
             CalMaxRunAgeHours = request.CalMaxRunAgeHours ?? 24,
             ReplicateCount = request.ReplicateCount,
-            EvaluationBasis = request.EvaluationBasis
+            EvaluationBasis = request.EvaluationBasis,
+            ConditionFields = request.ConditionFields,
+            UsesTare = request.WorkflowType == WorkflowType.Gravimetric ? (request.UsesTare ?? false) : request.UsesTare
         };
         _db.TestDefinitions.Add(entity);
         await _db.SaveChangesAsync();
@@ -1943,6 +1958,11 @@ public class MasterDataController : ControllerBase
         var effectiveMaxAge = request.CalMaxRunAgeHours ?? entity.CalMaxRunAgeHours ?? 24;
         var effectiveReplicateCount = request.ReplicateCount ?? entity.ReplicateCount;
         var effectiveEvaluationBasis = request.EvaluationBasis ?? entity.EvaluationBasis;
+        var effectiveConditionFields = request.ConditionFields ?? entity.ConditionFields;
+        var effectiveUsesTare = request.UsesTare ?? entity.UsesTare;
+
+        if (effectiveConditionFields != null && effectiveConditionFields.Length > 500)
+            throw new InvalidOperationException("Condition fields cannot exceed 500 characters.");
 
         if (effectiveRequiresSst)
         {
@@ -2031,11 +2051,17 @@ public class MasterDataController : ControllerBase
         {
             if (effectiveWorkflowType != WorkflowType.Gravimetric)
                 throw new InvalidOperationException($"Workflow type must be Gravimetric when equation type is {effectiveEquationType}.");
+
+            if (!effectiveReplicateCount.HasValue || effectiveReplicateCount.Value < 1 || effectiveReplicateCount.Value > 30)
+                throw new InvalidOperationException($"Replicate count must be between 1 and 30 when equation type is {effectiveEquationType}.");
         }
         else if (effectiveWorkflowType == WorkflowType.Gravimetric)
         {
             if (effectiveEquationType is not (EquationType.GravimetricLoss or EquationType.GravimetricResidue))
                 throw new InvalidOperationException("Equation type must be GravimetricLoss or GravimetricResidue when workflow type is Gravimetric.");
+
+            if (!effectiveReplicateCount.HasValue || effectiveReplicateCount.Value < 1 || effectiveReplicateCount.Value > 30)
+                throw new InvalidOperationException($"Replicate count must be between 1 and 30 when equation type is {effectiveEquationType}.");
         }
 
         if (effectiveEquationType == EquationType.Qualitative)
@@ -2076,6 +2102,9 @@ public class MasterDataController : ControllerBase
         if (request.CalMaxRunAgeHours.HasValue) entity.CalMaxRunAgeHours = request.CalMaxRunAgeHours;
         if (request.ReplicateCount.HasValue) entity.ReplicateCount = request.ReplicateCount.Value;
         if (request.EvaluationBasis.HasValue) entity.EvaluationBasis = request.EvaluationBasis.Value;
+        if (request.ConditionFields != null) entity.ConditionFields = request.ConditionFields;
+        if (request.UsesTare.HasValue) entity.UsesTare = request.UsesTare.Value;
+        else if (effectiveWorkflowType == WorkflowType.Gravimetric && !entity.UsesTare.HasValue) entity.UsesTare = false;
 
         await _db.SaveChangesAsync();
 

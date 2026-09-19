@@ -21,6 +21,7 @@ public class TestDefinitionConfiguration : IEntityTypeConfiguration<TestDefiniti
         builder.HasIndex(t => t.SectionId);
 
         builder.Property(t => t.MethodAbbreviation).HasMaxLength(20);
+        builder.Property(t => t.ConditionFields).HasMaxLength(500);
         builder.Property(t => t.SstMaxRsdPercent).HasPrecision(18, 4);
         builder.Property(t => t.SstMinResolution).HasPrecision(18, 4);
         builder.Property(t => t.SstMaxTailingFactor).HasPrecision(18, 4);

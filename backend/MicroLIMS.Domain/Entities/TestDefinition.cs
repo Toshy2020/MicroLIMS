@@ -66,6 +66,11 @@ public class TestDefinition
     public int? ReplicateCount { get; set; }
     public MeasurementEvaluationBasis? EvaluationBasis { get; set; }
 
+    // Finished Product / Gravimetric criteria
+    public string? ConditionFields { get; set; }
+    public bool? UsesTare { get; set; }
+
     public List<TestAnalyte> Analytes { get; set; } = new();
 }
+
 

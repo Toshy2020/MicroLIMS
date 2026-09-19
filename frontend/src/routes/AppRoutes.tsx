@@ -111,7 +111,8 @@ export function AppRoutes() {
             <Route element={<SectionHeadRoutes />}>
               <Route path="/audit-search" element={<AuditSearchPage />} />
               <Route path="/oos-tracking" element={<OosTrackingPage />} />
-              <Route path="/laboratory-configuration/test-master" element={<TestMasterPage />} />
+              <Route path="/laboratory-configuration/test-master" element={<TestMasterPage lab="micro" />} />
+              <Route path="/laboratory-configuration/fp-test-master" element={<TestMasterPage key="fp" lab="fp" />} />
               <Route path="/laboratory-configuration/equation-types" element={<EquationTypesPage />} />
               <Route path="/laboratory-configuration/organisms" element={<OrganismsPage />} />
               <Route path="/laboratory-configuration/items" element={<ItemsPage />} />

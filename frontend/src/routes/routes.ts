@@ -27,6 +27,7 @@ const APP_ROUTES = {
   CRYOVIALS: "/laboratory-configuration/cryovials",
   SYSTEM_SUITABILITY: "/laboratory/system-suitability",
   TEST_MASTER: "/laboratory-configuration/test-master",
+  FP_TEST_MASTER: "/laboratory-configuration/fp-test-master",
   EQUATION_TYPES: "/laboratory-configuration/equation-types",
   ORGANISMS: "/laboratory-configuration/organisms",
   ITEMS: "/laboratory-configuration/items",

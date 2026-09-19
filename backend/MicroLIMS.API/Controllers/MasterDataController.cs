@@ -1917,8 +1917,10 @@ public class MasterDataController : ControllerBase
     [HttpPost("test-definitions/{id}/steps")]
     public async Task<IActionResult> CreateTestWorkflowStep(int id, CreateTestWorkflowStepRequest request)
     {
-        _ = await _db.TestDefinitions.FirstOrDefaultAsync(t => t.Id == id)
+        var test = await _db.TestDefinitions.FirstOrDefaultAsync(t => t.Id == id)
             ?? throw new InvalidOperationException($"Test {id} not found.");
+        if (test.WorkflowType == WorkflowType.HplcAssay)
+            throw new InvalidOperationException("HPLC assay tests have no workflow steps.");
 
         var nextOrder = 1 + await _db.TestWorkflowSteps.Where(s => s.TestDefinitionId == id)
             .Select(s => (int?)s.StepOrder).MaxAsync() ?? 1;

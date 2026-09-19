@@ -25,7 +25,7 @@ import {
   FormHelperText,
   Switch
 } from "@mui/material";
-import { getMySections, LaboratorySection } from "../../../services/laboratorySectionService";
+import { getMySections, getSections, LaboratorySection } from "../../../services/laboratorySectionService";
 import EditIcon from "@mui/icons-material/Edit";
 import BlockIcon from "@mui/icons-material/Block";
 import LockOpenIcon from "@mui/icons-material/LockOpen";
@@ -51,7 +51,15 @@ import {
 } from "../../../services/masterDataOptions";
 import { tableHeadSx } from "../../../theme";
 
-const WORKFLOW_TYPES = ["CountTest", "Observation", "HplcAssay"];
+// Microbiology and the Finished Product (chemistry) lab each have their own
+// Test Master page: same component, filtered to the lab's section and
+// workflow types. FP tests have no workflow steps or media.
+export type TestMasterLab = "micro" | "fp";
+const FP_SECTION_CODE = "FP";
+const WORKFLOW_TYPES_BY_LAB: Record<TestMasterLab, string[]> = {
+  micro: ["CountTest", "Observation"],
+  fp: ["HplcAssay"]
+};
 const WORKFLOW_TYPE_LABELS: Record<string, string> = {
   CountTest: "Count Test",
   Observation: "Observation",
@@ -202,7 +210,7 @@ function stepNeedsConfiguration(s: any): boolean {
 // of a hardcoded per-test-code chain (see backend TestWorkflowStep.cs).
 // A step can only be deleted if no TestOrder has used it yet (server-
 // enforced); reordering swaps StepOrder with the adjacent step.
-function WorkflowStepsSection({ test, onWorkflowTypeChanged }: { test: TestDefinitionOption; onWorkflowTypeChanged: () => void }) {
+function WorkflowStepsSection({ test, workflowTypes, onWorkflowTypeChanged }: { test: TestDefinitionOption; workflowTypes: string[]; onWorkflowTypeChanged: () => void }) {
   const [steps, setSteps] = useState<any[]>([]);
   const [organisms, setOrganisms] = useState<any[]>([]);
   const [materials, setMaterials] = useState<any[]>([]);
@@ -388,9 +396,9 @@ function WorkflowStepsSection({ test, onWorkflowTypeChanged }: { test: TestDefin
           alignItems: "center",
           mb: 1.5
         }}>
-        <Typography sx={{ fontWeight: 700, fontSize: 13 }}>Workflow Steps</Typography>
+        <Typography sx={{ fontWeight: 700, fontSize: 13 }}>{test.workflowType === "HplcAssay" ? "Workflow Type" : "Workflow Steps"}</Typography>
         <Select size="small" value={test.workflowType} onChange={(e) => changeWorkflowType(e.target.value)}>
-          {WORKFLOW_TYPES.map((w) => <MenuItem key={w} value={w}>{WORKFLOW_TYPE_LABELS[w] ?? w}</MenuItem>)}
+          {workflowTypes.map((w) => <MenuItem key={w} value={w}>{WORKFLOW_TYPE_LABELS[w] ?? w}</MenuItem>)}
         </Select>
       </Stack>
       {test.workflowType === "HplcAssay" && (
@@ -425,6 +433,12 @@ function WorkflowStepsSection({ test, onWorkflowTypeChanged }: { test: TestDefin
       )}
       {error && <Alert severity="error" sx={{ mb: 1.5 }}>{error}</Alert>}
 
+      {test.workflowType === "HplcAssay" ? (
+        <Typography variant="body2" sx={{ color: "text.secondary" }}>
+          HPLC assay tests have no workflow steps or media: the result is entered from the chromatography data against a passed System Suitability run.
+        </Typography>
+      ) : (
+      <>
       {steps.length > 0 ? (
         <Table size="small" sx={{ mb: 1.5 }}>
           <TableHead>
@@ -766,6 +780,8 @@ function WorkflowStepsSection({ test, onWorkflowTypeChanged }: { test: TestDefin
           <Button size="small" sx={{ mt: 1 }} disabled={isSingleMedia && form.stepMedia.length >= 1} onClick={addMediaRow}>Add Medium</Button>
         </Box>
       )}
+      </>
+      )}
 
       <ConfirmationDialog
         open={stepToDelete !== null}
@@ -799,13 +815,24 @@ function WorkflowStepsSection({ test, onWorkflowTypeChanged }: { test: TestDefin
 // Freezing a test hides it from those pickers' dropdown for *new*
 // selections without touching anything that already references its
 // Code - see useTestDefinitions.activeOptions.
-export function TestMasterPage() {
-  const { options, addNew, update, setActive, reload } = useTestDefinitions();
+export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
+  const { options: allOptions, addNew, update, setActive, reload } = useTestDefinitions();
+  const isFp = lab === "fp";
+  const workflowTypes = WORKFLOW_TYPES_BY_LAB[lab];
+  const defaultWorkflowType = isFp ? "HplcAssay" : "Observation";
+  const [fpSectionId, setFpSectionId] = useState<number | null>(null);
+  useEffect(() => {
+    getSections()
+      .then((secs) => setFpSectionId(secs.find((s) => s.sectionCode === FP_SECTION_CODE)?.sectionId ?? null))
+      .catch(() => setFpSectionId(null));
+  }, []);
+  const inLab = (sid?: number | null) => (isFp ? sid === fpSectionId : sid !== fpSectionId);
+  const options = allOptions.filter((t) => fpSectionId !== null && inLab(t.sectionId));
   const [code, setCode] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [sectionId, setSectionId] = useState<number | "">("");
-  const [workflowType, setWorkflowType] = useState<string>("Observation");
-  const [equationType, setEquationType] = useState<string>("None");
+  const [workflowType, setWorkflowType] = useState<string>(defaultWorkflowType);
+  const [equationType, setEquationType] = useState<string>(isFp ? "HplcAssay" : "None");
   const [requiresSystemSuitability, setRequiresSystemSuitability] = useState<boolean>(false);
   const [methodAbbreviation, setMethodAbbreviation] = useState<string>("");
   const [sstMaxRsdPercent, setSstMaxRsdPercent] = useState<string>("");
@@ -820,18 +847,14 @@ export function TestMasterPage() {
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editingSectionId, setEditingSectionId] = useState<number | null>(null);
   const [editingTest, setEditingTest] = useState<TestDefinitionOption | null>(null);
-  const [mySections, setMySections] = useState<LaboratorySection[]>([]);
+  const [allMySections, setMySections] = useState<LaboratorySection[]>([]);
+  const mySections = allMySections.filter((s) => fpSectionId !== null && inLab(s.sectionId));
   const [message, setMessage] = useState<{ text: string; ok: boolean } | null>(null);
   const [expandedId, setExpandedId] = useState<number | null>(null);
 
   useEffect(() => {
     getMySections()
-      .then((secs) => {
-        setMySections(secs);
-        if (secs.length === 1) {
-          setSectionId(secs[0].sectionId);
-        }
-      })
+      .then((secs) => setMySections(secs))
       .catch(() => {});
   }, []);
 
@@ -842,8 +865,8 @@ export function TestMasterPage() {
     setDisplayName("");
     setSectionId(mySections.length === 1 ? mySections[0].sectionId : "");
     setEditingSectionId(null);
-    setWorkflowType("Observation");
-    setEquationType("None");
+    setWorkflowType(defaultWorkflowType);
+    setEquationType(isFp ? "HplcAssay" : "None");
     setRequiresSystemSuitability(false);
     setMethodAbbreviation("");
     setSstMaxRsdPercent("");
@@ -861,7 +884,7 @@ export function TestMasterPage() {
     setDisplayName(t.displayName);
     setSectionId(t.sectionId ?? (mySections.length === 1 ? mySections[0].sectionId : ""));
     setEditingSectionId(t.sectionId ?? null);
-    setWorkflowType(t.workflowType || "Observation");
+    setWorkflowType(t.workflowType || defaultWorkflowType);
     setEquationType(t.equationType || (t.workflowType === "HplcAssay" ? "HplcAssay" : "None"));
     setRequiresSystemSuitability(!!t.requiresSystemSuitability);
     setMethodAbbreviation(t.methodAbbreviation ?? "");
@@ -891,12 +914,12 @@ export function TestMasterPage() {
       setDialogError("Both Code and Display Name are required.");
       return;
     }
-    if (mySections.length > 1 && sectionId === "") {
+    if (sectionId === "") {
       setDialogError("Laboratory section is required.");
       return;
     }
 
-    const chosenSectionId = sectionId !== "" ? Number(sectionId) : null;
+    const chosenSectionId = Number(sectionId);
     const isHplc = workflowType === "HplcAssay";
 
     if (isHplc && requiresSystemSuitability) {
@@ -976,8 +999,10 @@ export function TestMasterPage() {
   return (
     <>
       <PageHeader
-        title="Test Master"
-        subtitle="The canonical list of tests available to assign to Items, Sampling Points, Rooms, and Machine Parts."
+        title={isFp ? "Finished Product Test Master" : "Microbiology Test Master"}
+        subtitle={isFp
+          ? "Finished Product (chemistry) tests: HPLC methods, equation type and system suitability criteria."
+          : "Microbiology tests available to assign to Items, Sampling Points, Rooms, and Machine Parts."}
       >
         <Button variant="contained" startIcon={<AddIcon />} onClick={openCreateDialog}>
           Add Test
@@ -1058,7 +1083,7 @@ export function TestMasterPage() {
                 <TableRow>
                   <TableCell sx={{ p: 0, border: 0 }} colSpan={6}>
                     <Collapse in={expandedId === t.id} unmountOnExit>
-                      <WorkflowStepsSection test={t} onWorkflowTypeChanged={reload} />
+                      <WorkflowStepsSection test={t} workflowTypes={workflowTypes} onWorkflowTypeChanged={reload} />
                     </Collapse>
                   </TableCell>
                 </TableRow>
@@ -1110,7 +1135,7 @@ export function TestMasterPage() {
           </Stack>
 
           <Stack direction="row" spacing={2} sx={{ flexWrap: "wrap", alignItems: "center" }}>
-            <FormControl size="small" sx={{ flex: 1, minWidth: 200 }} required={mySections.length > 1}>
+            <FormControl size="small" sx={{ flex: 1, minWidth: 200 }} required>
               <InputLabel id="test-section-select-label">Section</InputLabel>
               <Select<number | "">
                 labelId="test-section-select-label"
@@ -1152,7 +1177,7 @@ export function TestMasterPage() {
                   }
                 }}
               >
-                {WORKFLOW_TYPES.map((w) => (
+                {workflowTypes.map((w) => (
                   <MenuItem key={w} value={w}>
                     {WORKFLOW_TYPE_LABELS[w] ?? w}
                   </MenuItem>
@@ -1161,6 +1186,7 @@ export function TestMasterPage() {
             </FormControl>
           </Stack>
 
+          {isFp && (
           <FormControl size="small" fullWidth disabled={workflowType !== "HplcAssay"}>
             <InputLabel id="dialog-equation-type-label">Equation Type</InputLabel>
             <Select
@@ -1179,6 +1205,7 @@ export function TestMasterPage() {
               <FormHelperText>Equation types only apply to HPLC Assay tests.</FormHelperText>
             )}
           </FormControl>
+          )}
 
           {workflowType === "HplcAssay" && (
             <Box sx={{ p: 2, bgcolor: "action.hover", borderRadius: 1, border: "1px solid", borderColor: "divider" }}>

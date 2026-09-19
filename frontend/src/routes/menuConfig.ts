@@ -61,7 +61,8 @@ const laboratoryConfigurationItem: MenuItem = {
   icon: SettingsOutlinedIcon,
   group: "LAB CONFIGURATION",
   children: [
-    { label: "Test Master", path: "/laboratory-configuration/test-master" },
+    { label: "Micro Test Master", path: "/laboratory-configuration/test-master" },
+    { label: "FP Test Master", path: "/laboratory-configuration/fp-test-master" },
     { label: "Equation Types", path: "/laboratory-configuration/equation-types" },
     { label: "Organisms", path: "/laboratory-configuration/organisms" },
     { label: "Items", path: "/laboratory-configuration/items" },

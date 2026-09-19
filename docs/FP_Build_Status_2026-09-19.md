@@ -1,8 +1,8 @@
 # MicroLIMS — Build Status (2026-09-19)
 
 Branch: `feat/fp-hplc-foundation` (local only, **never pushed**; nothing applied to production/Neon).
-Local database: **LIMSV2** — all migrations up to `20260919153929_Tier1GravimetricQualitative` are applied.
-Last full backend test run (including Postgres): **1626 passed / 0 failed / 0 skipped**.
+Local database: **LIMSV2** — all migrations up to `20260919182357_Tier2Dissolution` are applied.
+Last full backend test run (including Postgres): **1651 passed / 0 failed / 0 skipped**.
 Frontend: type check and production build are clean. The project has no frontend unit tests.
 
 ---
@@ -58,6 +58,7 @@ Decisions and designs: `docs/FP_Other_Equation_Types_Phase0_Recon.md` and `docs/
 | 2c196ab | **Loss on drying / ash** (% loss or % residue, optional container tare, required test conditions). **Appearance / identification** (complies / does not comply, observation required when it does not comply, expected text saved with the result) |
 | 7058bca | Result-entry screens for all three types, new Test Master fields, new types on the FP Instruments page |
 | 1a80a19 | Dissolution design (HPLC finish, stages S1/S2/S3) recorded in the spec |
+| 9f758db | **Dissolution backend**: standard from the linked passed suitability run, % dissolved per vessel against the label claim, Q per product, stages S1 (6) / S2 (12) / S3 (24) with configurable offsets; a pending stage cannot be submitted or approved |
 
 Every new result is electronically signed, audited and limited to its section. Calculations use exact decimals. Values are compared unrounded; only the display is rounded.
 
@@ -81,17 +82,13 @@ Backups taken:
 - `LIMSV2_before_shared_results_20260919.dump`
 - `LIMSV2_before_tier1_measurement_20260919.dump`
 - `LIMSV2_before_tier1_grav_qual_20260919.dump`
+- `LIMSV2_before_tier2_dissolution_20260919.dump`
 
 ---
 
 ## 2. In progress
 
-- **Dissolution backend**: delegated to agy and running now. Once it finishes:
-  - check its code;
-  - run the full test suite with Postgres;
-  - back up LIMSV2 and test the migration forward and back on a scratch copy before applying it.
-
-  The dissolution screens come after that.
+- **Dissolution screens** (entry of vessel areas per stage, Q/label claim in the specification dialog, stage offsets in Test Master): next slice.
 
 ---
 
@@ -104,10 +101,11 @@ Backups taken:
 | 2 | Full common multivitamin test list beyond the assays (appearance, LOD, disintegration, weight variation, others?) | Decides which remaining types are needed |
 | 3 | Is a water-content (Karl Fischer) test needed on any product? | Decides whether Karl Fischer is built |
 | 4 | Softgel/oil tests: acid value, peroxide value, omega-3 by GC — in or out? | Tier 3 scope |
-| 5 | Admin backup/restore feature: design questions still unanswered | Requested earlier, not started |
+| 5 | Dissolution early stop: if a unit is already below Q-25 % (or too many below Q-15 %) at S1/S2, the stage-3 criteria can no longer be met. The system currently records **Does not comply** at once. USP wording says to continue through the stages. Keep the early fail, or always continue to S3? | Affects when the OOS is raised |
+| 6 | Admin backup/restore feature: design questions still unanswered | Requested earlier, not started |
 
 ### 3.2 Remaining build plan (in order)
-1. **Dissolution**: backend (in progress), then the screens.
+1. **Dissolution screens** (backend done).
 2. **Disintegration**, on the same stage-evaluation engine (6 units, then 12 more if needed).
 3. **Weight variation** (EP 2.9.5 bands). Content uniformity stays deferred.
 4. **Multi-vitamin HPLC assay**, if question 1 is answered "build it".

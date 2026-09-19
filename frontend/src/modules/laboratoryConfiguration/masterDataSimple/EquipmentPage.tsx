@@ -384,18 +384,32 @@ export function EquipmentPage() {
     }
   };
 
-  const handleLinkInventoryEquipment = async (invId: number) => {
-    try {
-      await EquipmentConfigurationService.linkInventory(invId);
-      setInventoryDialogOpen(false);
-      await loadData();
-      toast.success("Equipment linked successfully");
-    } catch (err: any) {
-      toast.error(err?.response?.data?.message ?? err?.message ?? "Could not link equipment.");
-    }
+  // Inventory holds the asset identity; the lab-configuration record also
+  // needs a type, a laboratory section and (for HPLC) the CDS software, so
+  // "Configure for Lab" opens the equipment form pre-filled from inventory
+  // instead of guessing those.
+  const handleConfigureInventoryEquipment = async (inv: any) => {
+    const text = `${inv.instrumentType ?? ""}`.toLowerCase();
+    const guessedType =
+      /h[pb]lc|chromatograph/.test(text) ? "Hplc"
+      : text.includes("incubator") ? "Incubator"
+      : text.includes("autoclave") ? "Autoclave"
+      : text.includes("cabinet") ? "LafCabinet"
+      : text.includes("balance") ? "Balance"
+      : /(^|[^a-z])ph([^a-z]|$)/.test(text) ? "PhMeter"
+      : "Other";
+    await handleOpenAddEquipment({
+      name: inv.instrumentType ?? "",
+      code: inv.code ?? "",
+      type: guessedType,
+      location: inv.location ?? "",
+      vendor: inv.manufacturerName ?? "",
+      calibrationDueDate: inv.calibrationDueDate ? String(inv.calibrationDueDate).slice(0, 10) : ""
+    });
+    setInventoryDialogOpen(false);
   };
 
-  const handleOpenAddEquipment = async () => {
+  const handleOpenAddEquipment = async (prefill?: Partial<typeof equipmentForm>) => {
     setIsEditingEquipment(false);
     setEquipmentForm({
       name: "",
@@ -406,7 +420,8 @@ export function EquipmentPage() {
       cdsSoftware: "",
       connectionSettings: "",
       setPointTemperature: "",
-      calibrationDueDate: ""
+      calibrationDueDate: "",
+      ...prefill
     });
     setDialogEquipmentError(null);
     try {
@@ -529,7 +544,7 @@ export function EquipmentPage() {
           <Button
             variant="contained"
             startIcon={<AddIcon />}
-            onClick={handleOpenAddEquipment}
+            onClick={() => handleOpenAddEquipment()}
             color="primary"
           >
             Add Equipment
@@ -1540,7 +1555,7 @@ export function EquipmentPage() {
                         size="small"
                         variant={isAlreadyLinked ? "outlined" : "contained"}
                         disabled={isAlreadyLinked}
-                        onClick={() => handleLinkInventoryEquipment(inv.id)}
+                        onClick={() => handleConfigureInventoryEquipment(inv)}
                       >
                         {isAlreadyLinked ? "Configured" : "Configure for Lab"}
                       </Button>

@@ -23,6 +23,8 @@ public record SelectMediaRequest(string StepName, int MediaLotId, int IncubatorI
 public record StartStage2IncubationRequest(string StepName, int IncubatorId);
 public record RecordTestResultRequest(string StepName, List<decimal>? PlateReadings, decimal? DilutionFactor, List<string>? RawPlateReadings = null, string? DilutionFactorOverrideNote = null);
 public record RecordHplcAssayResultRequest(decimal SampleWeightMg, decimal SampleDilution, List<decimal> SampleAreas, string Password, string? Comment = null);
+public record RecordElementalAssayElementRequest(int SpecificationId, int CalibrationRunAnalyteId, decimal ReportedPpm, bool OverRange, bool BelowLoq);
+public record RecordElementalAssayResultRequest(decimal UnitAmount, DateTime AnalysedAt, List<RecordElementalAssayElementRequest> Elements, string Password, string? Comment = null);
 public record BatchResultLocationRequest(int SampleLocationId, List<decimal> Readings);
 public record BatchResultsRequest(List<BatchResultLocationRequest> Locations);
 public record WaterBatchLocationRequest(int SampleLocationId, List<decimal> Readings);
@@ -299,6 +301,28 @@ public class TestWorkflowController : ControllerBase
         {
             var payload = new HplcAssayPayload(request.SampleWeightMg, request.SampleDilution, request.SampleAreas, request.Password, request.Comment);
             return _engine.RecordHplcAssayResultAsync(testOrderId, payload, CurrentUserId, ClientIpAddress);
+        });
+    }
+
+    [HttpPost("{testOrderId}/record-elemental-result")]
+    [Authorize(Policy = PermissionConstants.TestWorkflowExecute)]
+    public async Task<IActionResult> RecordElementalResult(int testOrderId, RecordElementalAssayResultRequest request)
+    {
+        await _scopeService.EnsureTestOrderAccessAsync(CurrentUserId, testOrderId);
+        return await RunAsync(() =>
+        {
+            var payload = new ElementalAssayPayload(
+                request.UnitAmount,
+                request.AnalysedAt,
+                request.Elements.Select(e => new ElementalAssayElementInput(
+                    e.SpecificationId,
+                    e.CalibrationRunAnalyteId,
+                    e.ReportedPpm,
+                    e.OverRange,
+                    e.BelowLoq)).ToList(),
+                request.Password,
+                request.Comment);
+            return _engine.RecordElementalAssayResultAsync(testOrderId, payload, CurrentUserId, ClientIpAddress);
         });
     }
 

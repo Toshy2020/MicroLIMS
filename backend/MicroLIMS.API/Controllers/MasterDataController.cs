@@ -52,7 +52,13 @@ public record CreateSpecificationRequest(
     ExpectedPresence? ExpectedState = null,
     decimal? SampleQuantity = null,
     string? SampleQuantityUnit = null,
-    List<SpecificationStageDto>? Stages = null);
+    List<SpecificationStageDto>? Stages = null,
+    int? TestAnalyteId = null,
+    ResultBasis? ResultBasis = null,
+    SampleMatrix? SampleMatrix = null,
+    decimal? LabelClaim = null,
+    string? LabelClaimUnit = null,
+    decimal? ConversionFactor = null);
 
 public record UpdateSpecificationRequest(
     string TestCode,
@@ -76,7 +82,13 @@ public record UpdateSpecificationRequest(
     ExpectedPresence? ExpectedState = null,
     decimal? SampleQuantity = null,
     string? SampleQuantityUnit = null,
-    List<SpecificationStageDto>? Stages = null);
+    List<SpecificationStageDto>? Stages = null,
+    int? TestAnalyteId = null,
+    ResultBasis? ResultBasis = null,
+    SampleMatrix? SampleMatrix = null,
+    decimal? LabelClaim = null,
+    string? LabelClaimUnit = null,
+    decimal? ConversionFactor = null);
 public record CreateDiluentTypeRequest(string Name, bool RequiresBatchTracking, int? MaterialId);
 public record CreateEquipmentRequest(
     string Name,
@@ -628,6 +640,12 @@ public class MasterDataController : ControllerBase
             SpecLimit = request.SpecLimit ?? string.Empty,
             Unit = request.Unit ?? string.Empty,
             DilutionFactor = request.DilutionFactor,
+            TestAnalyteId = request.TestAnalyteId,
+            ResultBasis = request.ResultBasis,
+            SampleMatrix = request.SampleMatrix,
+            LabelClaim = request.LabelClaim,
+            LabelClaimUnit = request.LabelClaimUnit,
+            ConversionFactor = request.ConversionFactor ?? 1.0m,
             Stages = request.Stages?.Select(s => new SpecificationStage
             {
                 StageNumber = s.StageNumber,
@@ -680,6 +698,13 @@ public class MasterDataController : ControllerBase
             spec.SpecLimit = request.SpecLimit;
         spec.Unit = request.Unit ?? string.Empty;
         spec.DilutionFactor = request.DilutionFactor;
+        spec.TestAnalyteId = request.TestAnalyteId;
+        spec.ResultBasis = request.ResultBasis;
+        spec.SampleMatrix = request.SampleMatrix;
+        spec.LabelClaim = request.LabelClaim;
+        spec.LabelClaimUnit = request.LabelClaimUnit;
+        if (request.ConversionFactor.HasValue)
+            spec.ConversionFactor = request.ConversionFactor.Value;
 
         // Replace-all on stages
         _db.SpecificationStages.RemoveRange(spec.Stages);

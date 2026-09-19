@@ -106,10 +106,13 @@ public static class TestServiceFactory
     public static ResultProjectionService ResultProjection(MicroLimsDbContext db) =>
         new(db, NullLogger<ResultProjectionService>.Instance);
 
-    public static TestWorkflowEngine TestWorkflow(MicroLimsDbContext db, INotificationService? notifications = null, IElectronicSignatureService? signatures = null, IUserSectionScopeService? scope = null) =>
+    public static TestWorkflowEngine TestWorkflow(MicroLimsDbContext db, INotificationService? notifications = null, IElectronicSignatureService? signatures = null, IUserSectionScopeService? scope = null, ILabClock? clock = null) =>
         new(db, SampleReview(db), ResultProjection(db), IncubatorEligibility(db), AppearanceSnapshot(db),
             new SegregationOfDutiesGuard(db), ReviewGate(db), notifications ?? new NoOpNotificationService(),
-            signatures ?? new ElectronicSignatureService(db), scope ?? new UserSectionScopeService(db));
+            signatures ?? new ElectronicSignatureService(db), scope ?? new UserSectionScopeService(db),
+            clock ?? LabClock.Default);
+
+    public static SpecificationService Specification(MicroLimsDbContext db) => new(db);
 
     public static SampleApprovalService SampleApproval(MicroLimsDbContext db, IFileStorageService? storage = null) =>
         new(db, ReviewGate(db), SampleSummary(db), Archive(db, storage), ResultProjection(db), new ReferenceNumberGenerator(db), new UserSectionScopeService(db));

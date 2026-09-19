@@ -27,6 +27,15 @@ public class SpecificationConfiguration : IEntityTypeConfiguration<Specification
         builder.Property(s => s.SampleQuantity).HasPrecision(18, 6);
         builder.Property(s => s.SampleQuantityUnit).HasMaxLength(20);
 
+        builder.Property(s => s.LabelClaim).HasPrecision(18, 6);
+        builder.Property(s => s.LabelClaimUnit).HasMaxLength(20);
+        builder.Property(s => s.ConversionFactor).HasPrecision(18, 6).HasDefaultValue(1.0m);
+
+        builder.HasOne(s => s.TestAnalyte)
+            .WithMany()
+            .HasForeignKey(s => s.TestAnalyteId)
+            .OnDelete(DeleteBehavior.Restrict);
+
         builder.HasMany(s => s.Stages)
                .WithOne(st => st.Specification)
                .HasForeignKey(st => st.SpecificationId)

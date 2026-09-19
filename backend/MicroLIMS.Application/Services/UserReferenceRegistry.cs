@@ -188,5 +188,8 @@ public static class UserReferenceRegistry
         new UserReferenceEntry(typeof(ChromatographyColumn), nameof(ChromatographyColumn.LastModifiedByUserId), UserReferenceDisposition.Blocks, "No DB FK - provenance"),
         new UserReferenceEntry(typeof(SystemSuitabilityRun), nameof(SystemSuitabilityRun.PerformedByUserId), UserReferenceDisposition.Blocks, "GMP record - analyst who performed the signed run"),
         new UserReferenceEntry(typeof(HplcAssayResult), nameof(HplcAssayResult.EnteredByUserId), UserReferenceDisposition.Blocks, "GMP record - analyst who entered HPLC assay result"),
+
+        // Calibration Curve (ICP-OES) - Slice S3a
+        new UserReferenceEntry(typeof(ElementalAssayEntry), nameof(ElementalAssayEntry.EnteredByUserId), UserReferenceDisposition.Blocks, "GMP record - analyst who entered elemental assay result"),
     };
 }

@@ -39,5 +39,15 @@ public class Specification
     public decimal? SampleQuantity { get; set; }
     public string? SampleQuantityUnit { get; set; }
 
+    // Elemental Assay / Calibration Curve (Slice S3a)
+    public int? TestAnalyteId { get; set; }
+    [JsonIgnore]
+    public TestAnalyte? TestAnalyte { get; set; }
+    public ResultBasis? ResultBasis { get; set; }
+    public SampleMatrix? SampleMatrix { get; set; }
+    public decimal? LabelClaim { get; set; }
+    public string? LabelClaimUnit { get; set; }
+    public decimal ConversionFactor { get; set; } = 1.0m;
+
     public List<SpecificationStage> Stages { get; set; } = new();
 }

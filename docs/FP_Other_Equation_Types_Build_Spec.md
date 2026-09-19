@@ -193,7 +193,8 @@ Related substances (area normalisation / vs standard with RRF, reporting thresho
   `C_s = W_std x (P/100) / D_std` (mg/mL).
 - Per vessel: `% = (A_u / A_std_mean) x C_s x V x DF x 100 / LC` (V medium volume mL, DF sample dilution, default 1).
   Multiply before divide. Media replacement / multi-point profile: out of scope now.
-- Stages: S1 6 vessels; S2 +6 (12 total); S3 +12 (24 total). Pure `DissolutionStageEvaluator` returns
+- Stages: S1 6 vessels; S2 +6 (12 total); S3 +12 (24 total). Lab decision 2026-09-19: **always continue** to the
+  next stage when S1/S2 do not conform, even when S3 can no longer be met (USP <711> wording); the only fail is at S3. Pure `DissolutionStageEvaluator` returns
   {Complies, NextStageRequired, DoesNotComply} + stage reached + reasons, from the rules in T6.
 - Flow: `record-dissolution-result` creates the signed TestAnalysis with the stage-1 vessels. If the outcome is
   NextStageRequired the order is NOT finalized (stays Running, StageReached = 1). `record-dissolution-stage` (signed,

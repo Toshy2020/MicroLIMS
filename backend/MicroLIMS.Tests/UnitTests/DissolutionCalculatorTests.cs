@@ -92,7 +92,7 @@ public class DissolutionCalculatorTests
     }
 
     [Fact]
-    public void AnyUnitBelowQMinus25_Fails()
+    public void AnyUnitBelowQMinus25_FailsAtS3_ButS1AndS2ContinueToNextStage()
     {
         decimal q = 80m; // Q - 25 = 55
         // Test in Stage 3: 1 unit at 54 (< 55)
@@ -105,11 +105,11 @@ public class DissolutionCalculatorTests
         Assert.Equal(3, resultS3.StageReached);
         Assert.Equal(DissolutionStageOutcome.DoesNotComply, resultS3.Outcome);
 
-        // Test in Stage 1: 1 unit at 54
+        // Stage 1: 1 unit at 54 - S3 can no longer pass, but the lab always continues to the next stage.
         var unitsS1 = new List<decimal> { 54m, 85m, 85m, 85m, 85m, 85m };
         var resultS1 = DissolutionStageEvaluator.Evaluate(unitsS1, q);
         Assert.Equal(1, resultS1.StageReached);
-        Assert.Equal(DissolutionStageOutcome.DoesNotComply, resultS1.Outcome);
+        Assert.Equal(DissolutionStageOutcome.NextStageRequired, resultS1.Outcome);
 
         // Test in Stage 2: 1 unit at 54
         var unitsS2 = new List<decimal> { 54m };
@@ -119,7 +119,17 @@ public class DissolutionCalculatorTests
         }
         var resultS2 = DissolutionStageEvaluator.Evaluate(unitsS2, q);
         Assert.Equal(2, resultS2.StageReached);
-        Assert.Equal(DissolutionStageOutcome.DoesNotComply, resultS2.Outcome);
+        Assert.Equal(DissolutionStageOutcome.NextStageRequired, resultS2.Outcome);
+    }
+
+    [Fact]
+    public void ManyUnitsBelowQMinus15AtS1_StillContinuesToStage2()
+    {
+        // 3 units < Q - 15 at S1: S3 can no longer pass, but testing continues.
+        var units = new List<decimal> { 60m, 60m, 60m, 90m, 90m, 90m };
+        var result = DissolutionStageEvaluator.Evaluate(units, 80m);
+        Assert.Equal(1, result.StageReached);
+        Assert.Equal(DissolutionStageOutcome.NextStageRequired, result.Outcome);
     }
 
     // --- T6 Worked Example ---

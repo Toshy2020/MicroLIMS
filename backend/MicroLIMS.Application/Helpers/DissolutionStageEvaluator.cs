@@ -45,21 +45,8 @@ public static class DissolutionStageEvaluator
                 return new DissolutionStageEvaluationResult(1, DissolutionStageOutcome.Complies, mean, Array.Empty<string>());
             }
 
-            // If any unit is < Q - S3MinOffset or more than S3MaxBelowS2Min are < Q - S2MinOffset, S3 can never pass
-            if (vesselPercentages.Any(v => v < q - s3MinOffset))
-            {
-                var belowS3 = vesselPercentages.Where(v => v < q - s3MinOffset).ToList();
-                return new DissolutionStageEvaluationResult(1, DissolutionStageOutcome.DoesNotComply, mean,
-                    new[] { $"{belowS3.Count} unit(s) below Q - {s3MinOffset}% ({q - s3MinOffset}%)." });
-            }
-
-            var countBelowS2Min = vesselPercentages.Count(v => v < q - s2MinOffset);
-            if (countBelowS2Min > s3MaxBelowS2Min)
-            {
-                return new DissolutionStageEvaluationResult(1, DissolutionStageOutcome.DoesNotComply, mean,
-                    new[] { $"{countBelowS2Min} unit(s) below Q - {s2MinOffset}% ({q - s2MinOffset}%), exceeding maximum allowed ({s3MaxBelowS2Min})." });
-            }
-
+            // USP <711>: continue through the stages unless the results conform at S1 or S2,
+            // even when S3 can no longer be met (lab decision 2026-09-19).
             var belowS1 = vesselPercentages.Where(v => v < q + s1Offset).ToList();
             return new DissolutionStageEvaluationResult(1, DissolutionStageOutcome.NextStageRequired, mean,
                 new[] { $"{belowS1.Count} unit(s) below Q + {s1Offset}% ({q + s1Offset}%). Proceed to Stage 2." });
@@ -73,21 +60,7 @@ public static class DissolutionStageEvaluator
                 return new DissolutionStageEvaluationResult(2, DissolutionStageOutcome.Complies, mean, Array.Empty<string>());
             }
 
-            // Check if S3 is impossible
-            if (vesselPercentages.Any(v => v < q - s3MinOffset))
-            {
-                var belowS3 = vesselPercentages.Where(v => v < q - s3MinOffset).ToList();
-                return new DissolutionStageEvaluationResult(2, DissolutionStageOutcome.DoesNotComply, mean,
-                    new[] { $"{belowS3.Count} unit(s) below Q - {s3MinOffset}% ({q - s3MinOffset}%)." });
-            }
-
             var countBelowS2Min = vesselPercentages.Count(v => v < q - s2MinOffset);
-            if (countBelowS2Min > s3MaxBelowS2Min)
-            {
-                return new DissolutionStageEvaluationResult(2, DissolutionStageOutcome.DoesNotComply, mean,
-                    new[] { $"{countBelowS2Min} unit(s) below Q - {s2MinOffset}% ({q - s2MinOffset}%), exceeding maximum allowed ({s3MaxBelowS2Min})." });
-            }
-
             var reasons = new List<string>();
             if (mean < q) reasons.Add($"Average of 12 units ({mean}%) is below Q ({q}%).");
             if (countBelowS2Min > 0) reasons.Add($"{countBelowS2Min} unit(s) below Q - {s2MinOffset}% ({q - s2MinOffset}%).");

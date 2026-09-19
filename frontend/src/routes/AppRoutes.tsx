@@ -28,6 +28,7 @@ const SampleReportPage = lazy(() => import("../modules/testingWorkspace/SampleRe
 const SampleCoaPage = lazy(() => import("../modules/testingWorkspace/SampleCoaPage").then((m) => ({ default: m.SampleCoaPage })));
 const MediaReportPage = lazy(() => import("../modules/laboratoryConfiguration/media/MediaReportPage").then((m) => ({ default: m.MediaReportPage })));
 const SuitabilityRunReportPage = lazy(() => import("../modules/systemSuitability/SuitabilityRunReportPage").then((m) => ({ default: m.SuitabilityRunReportPage })));
+const CalibrationRunReportPage = lazy(() => import("../modules/calibrationRuns/CalibrationRunReportPage").then((m) => ({ default: m.CalibrationRunReportPage })));
 const CryovialReportPage = lazy(() => import("../modules/laboratoryConfiguration/cryovials/CryovialReportPage").then((m) => ({ default: m.CryovialReportPage })));
 const ItemsPage = lazy(() => import("../modules/laboratoryConfiguration/items/ItemsPage").then((m) => ({ default: m.ItemsPage })));
 const TestMasterPage = lazy(() => import("../modules/laboratoryConfiguration/masterDataSimple/TestMasterPage").then((m) => ({ default: m.TestMasterPage })));
@@ -41,6 +42,7 @@ const WaterConfigPage = lazy(() => import("../modules/laboratoryConfiguration/wa
 const EMConfigPage = lazy(() => import("../modules/laboratoryConfiguration/environmentalMonitoring/EMConfigPage").then((m) => ({ default: m.EMConfigPage })));
 const AfterCleaningConfigPage = lazy(() => import("../modules/laboratoryConfiguration/afterCleaning/AfterCleaningConfigPage").then((m) => ({ default: m.AfterCleaningConfigPage })));
 const SystemSuitabilityRunsPage = lazy(() => import("../modules/systemSuitability/SystemSuitabilityRunsPage").then((m) => ({ default: m.SystemSuitabilityRunsPage })));
+const CalibrationRunsPage = lazy(() => import("../modules/calibrationRuns/CalibrationRunsPage").then((m) => ({ default: m.CalibrationRunsPage })));
 const CryovialsPage = lazy(() => import("../modules/laboratoryConfiguration/cryovials/CryovialsPage").then((m) => ({ default: m.CryovialsPage })));
 const ReceivingConfigurationPage = lazy(() => import("../modules/laboratoryConfiguration/masterDataSimple/ReceivingConfigurationPage").then((m) => ({ default: m.ReceivingConfigurationPage })));
 const EquipmentPage = lazy(() => import("../modules/laboratoryConfiguration/masterDataSimple/EquipmentPage").then((m) => ({ default: m.EquipmentPage })));
@@ -86,6 +88,7 @@ export function AppRoutes() {
           <Route path="/media/:id/report" element={<MediaReportPage />} />
           <Route path="/cryovials/:id/report" element={<CryovialReportPage />} />
           <Route path="/laboratory/system-suitability/:id/report" element={<SuitabilityRunReportPage />} />
+          <Route path="/laboratory/calibration-runs/:id/report" element={<CalibrationRunReportPage />} />
 
           <Route element={<MainLayout />}>
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
@@ -107,6 +110,7 @@ export function AppRoutes() {
             <Route path="/laboratory-configuration/media-evaluation" element={<MediaEvaluationPage />} />
             <Route path="/laboratory-configuration/cryovials" element={<CryovialsPage />} />
             <Route path="/laboratory/system-suitability" element={<SystemSuitabilityRunsPage />} />
+            <Route path="/laboratory/calibration-runs" element={<CalibrationRunsPage />} />
 
             <Route element={<SectionHeadRoutes />}>
               <Route path="/audit-search" element={<AuditSearchPage />} />

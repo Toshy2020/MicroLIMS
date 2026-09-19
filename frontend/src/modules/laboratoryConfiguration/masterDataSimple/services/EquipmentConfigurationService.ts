@@ -16,12 +16,15 @@ export type EquipmentType =
   | "Other"
   | "Hplc"
   | "PhMeter"
-  | "Balance";
+  | "Balance"
+  | "IcpOes";
 
 export type CdsSoftware =
   | "ShimadzuLabSolutions"
   | "AgilentOpenLab"
-  | "WatersEmpower3";
+  | "WatersEmpower3"
+  | "PerkinElmerSyngistix";
+
 
 export interface CreateEquipmentRequest {
   name: string;

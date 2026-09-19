@@ -57,18 +57,20 @@ export const EQUIPMENT_TYPES = [
   { value: "Hplc", label: "HPLC" },
   { value: "PhMeter", label: "pH Meter" },
   { value: "Balance", label: "Balance" },
+  { value: "IcpOes", label: "ICP-OES" },
   { value: "Other", label: "Other" }
 ];
 
-// HPLC, pH meters and balances belong to the Finished Product laboratory
+// HPLC, ICP-OES, pH meters and balances belong to the Finished Product laboratory
 // and are configured on the FP Instruments page, not here.
-export const FP_ONLY_EQUIPMENT_TYPES = ["Hplc", "PhMeter", "Balance"];
+export const FP_ONLY_EQUIPMENT_TYPES = ["Hplc", "PhMeter", "Balance", "IcpOes"];
 const MICRO_EQUIPMENT_TYPES = EQUIPMENT_TYPES.filter((t) => !FP_ONLY_EQUIPMENT_TYPES.includes(t.value));
 
 export const CDS_SOFTWARE_OPTIONS = [
   { value: "ShimadzuLabSolutions", label: "Shimadzu LabSolutions" },
   { value: "AgilentOpenLab", label: "Agilent OpenLab" },
-  { value: "WatersEmpower3", label: "Waters Empower 3" }
+  { value: "WatersEmpower3", label: "Waters Empower 3" },
+  { value: "PerkinElmerSyngistix", label: "PerkinElmer Syngistix" }
 ];
 
 export const formatEquipmentType = (type: string | number): string => {
@@ -90,7 +92,9 @@ export const formatEquipmentType = (type: string | number): string => {
     PhMeter: "pH Meter",
     "7": "pH Meter",
     Balance: "Balance",
-    "8": "Balance"
+    "8": "Balance",
+    IcpOes: "ICP-OES",
+    "9": "ICP-OES"
   };
   return map[String(type)] || String(type);
 };
@@ -105,7 +109,8 @@ export const normalizeEquipmentTypeValue = (type: string | number): string => {
     "5": "Other",
     "6": "Hplc",
     "7": "PhMeter",
-    "8": "Balance"
+    "8": "Balance",
+    "9": "IcpOes"
   };
   return map[String(type)] || String(type);
 };
@@ -118,7 +123,9 @@ export const formatCdsSoftware = (cds?: string | number | null): string => {
     AgilentOpenLab: "Agilent OpenLab",
     "1": "Agilent OpenLab",
     WatersEmpower3: "Waters Empower 3",
-    "2": "Waters Empower 3"
+    "2": "Waters Empower 3",
+    PerkinElmerSyngistix: "PerkinElmer Syngistix",
+    "3": "PerkinElmer Syngistix"
   };
   return map[String(cds)] || String(cds);
 };

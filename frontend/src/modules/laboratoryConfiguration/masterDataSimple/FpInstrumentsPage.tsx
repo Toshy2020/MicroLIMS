@@ -44,6 +44,7 @@ const FP_SECTION_CODE = "FP";
 
 export const FP_INSTRUMENT_TYPES = [
   { value: "Hplc", label: "HPLC" },
+  { value: "IcpOes", label: "ICP-OES" },
   { value: "PhMeter", label: "pH Meter" },
   { value: "Balance", label: "Balance" }
 ];
@@ -175,8 +176,8 @@ export function FpInstrumentsPage() {
       setDialogError("Instrument name is required.");
       return;
     }
-    if (form.type === "Hplc" && !form.cdsSoftware) {
-      setDialogError("CDS software is required for an HPLC.");
+    if ((form.type === "Hplc" || form.type === "IcpOes") && !form.cdsSoftware) {
+      setDialogError(`CDS software is required for an ${form.type === "Hplc" ? "HPLC" : "ICP-OES"}.`);
       return;
     }
 
@@ -189,7 +190,7 @@ export function FpInstrumentsPage() {
       setPointTemperature: null,
       calibrationDueDate: source?.calibrationDueDate ?? editing?.calibrationDueDate ?? null,
       vendor: source?.manufacturerName ?? editing?.vendor ?? null,
-      cdsSoftware: form.type === "Hplc" ? form.cdsSoftware : null,
+      cdsSoftware: (form.type === "Hplc" || form.type === "IcpOes") ? form.cdsSoftware : null,
       connectionSettings: null,
       sectionId: fpSection.sectionId
     };
@@ -218,7 +219,7 @@ export function FpInstrumentsPage() {
     <Box sx={{ p: 3 }}>
       <PageHeader
         title="FP Instruments"
-        subtitle="Finished Product laboratory instruments (HPLC, pH meters, balances). Assets come from the Equipment Inventory."
+        subtitle="Finished Product laboratory instruments (HPLC, ICP-OES, pH meters, balances). Assets come from the Equipment Inventory."
       />
 
       {error && <Alert severity="error" sx={{ mb: 3 }}>{error}</Alert>}
@@ -270,7 +271,7 @@ export function FpInstrumentsPage() {
                     <TableCell>{inv?.manufacturerName ?? inst.vendor ?? "—"}</TableCell>
                     <TableCell>{inv?.serialNumber ?? "—"}</TableCell>
                     <TableCell>
-                      {inst.type === "Hplc" ? (
+                      {inst.type === "Hplc" || inst.type === "IcpOes" ? (
                         <>
                           <Typography sx={{ fontSize: 13 }}>{cdsLabel(inst.cdsSoftware)}</Typography>
                           {inv?.firmwareVersion && (
@@ -348,13 +349,13 @@ export function FpInstrumentsPage() {
               labelId="fp-type-label"
               label="Instrument type"
               value={form.type}
-              onChange={(e) => setForm((f) => ({ ...f, type: e.target.value, cdsSoftware: e.target.value === "Hplc" ? f.cdsSoftware : "" }))}
+              onChange={(e) => setForm((f) => ({ ...f, type: e.target.value, cdsSoftware: (e.target.value === "Hplc" || e.target.value === "IcpOes") ? f.cdsSoftware : "" }))}
             >
               {FP_INSTRUMENT_TYPES.map((t) => <MenuItem key={t.value} value={t.value}>{t.label}</MenuItem>)}
             </Select>
           </FormControl>
 
-          {form.type === "Hplc" && (
+          {(form.type === "Hplc" || form.type === "IcpOes") && (
             <FormControl fullWidth size="small" required>
               <InputLabel id="fp-cds-label">CDS software</InputLabel>
               <Select

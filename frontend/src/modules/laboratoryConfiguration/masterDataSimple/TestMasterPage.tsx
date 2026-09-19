@@ -47,7 +47,8 @@ import {
   incubationConditionLabel,
   MediaIncubationConditionOption,
   CreateTestDefinitionPayload,
-  UpdateTestDefinitionPayload
+  UpdateTestDefinitionPayload,
+  TestAnalyteDto
 } from "../../../services/masterDataOptions";
 import { tableHeadSx } from "../../../theme";
 
@@ -58,19 +59,21 @@ export type TestMasterLab = "micro" | "fp";
 const FP_SECTION_CODE = "FP";
 const WORKFLOW_TYPES_BY_LAB: Record<TestMasterLab, string[]> = {
   micro: ["CountTest", "Observation"],
-  fp: ["HplcAssay"]
+  fp: ["HplcAssay", "ElementalAssay"]
 };
 const WORKFLOW_TYPE_LABELS: Record<string, string> = {
   CountTest: "Count Test",
   Observation: "Observation",
-  HplcAssay: "HPLC Assay"
+  HplcAssay: "HPLC Assay",
+  ElementalAssay: "Elemental Assay (ICP-OES)"
 };
 
-const EQUATION_TYPES = ["None", "HplcAssay", "SystemSuitability"];
+const EQUATION_TYPES = ["None", "HplcAssay", "SystemSuitability", "CalibrationCurve"];
 const EQUATION_TYPE_LABELS: Record<string, string> = {
   None: "None",
   HplcAssay: "HPLC Assay",
-  SystemSuitability: "System Suitability"
+  SystemSuitability: "System Suitability",
+  CalibrationCurve: "Calibration Curve"
 };
 const STEP_TYPES = ["PlateCount", "BrothEnrichment", "SelectiveBroth", "SelectivePlating", "ConfirmatoryPlating", "BiochemicalTest"];
 const STEP_TYPES_REQUIRING_ORGANISM = ["SelectivePlating", "ConfirmatoryPlating"];
@@ -203,6 +206,262 @@ function stepNeedsConfiguration(s: any): boolean {
   if (s.stepType !== "BiochemicalTest" && (s.stepMedia?.length ?? 0) === 0) return true;
   if (s.stepType === "BiochemicalTest" && !s.phenotypicTestType && (s.phenotypicTestTypes?.length ?? 0) === 0) return true;
   return false;
+}
+
+function TestAnalytesSection({ test }: { test: TestDefinitionOption }) {
+  const [analytes, setAnalytes] = useState<TestAnalyteDto[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [editingAnalyte, setEditingAnalyte] = useState<TestAnalyteDto | null>(null);
+  const [element, setElement] = useState("");
+  const [wavelengthNm, setWavelengthNm] = useState("");
+  const [view, setView] = useState<"Axial" | "Radial">("Axial");
+  const [loqMgPerL, setLoqMgPerL] = useState("");
+  const [displayOrder, setDisplayOrder] = useState("");
+  const [dialogError, setDialogError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+
+  const loadAnalytes = () => {
+    setLoading(true);
+    setError(null);
+    masterDataOptions
+      .getTestAnalytes(test.id)
+      .then(setAnalytes)
+      .catch((e: unknown) => {
+        const errObj = e as { response?: { data?: { message?: string } }; message?: string };
+        setError(errObj.response?.data?.message ?? errObj.message ?? "Could not load test analytes.");
+      })
+      .finally(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    loadAnalytes();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [test.id]);
+
+  const openAdd = () => {
+    setEditingAnalyte(null);
+    setElement("");
+    setWavelengthNm("");
+    setView("Axial");
+    setLoqMgPerL("");
+    setDisplayOrder(String(analytes.length + 1));
+    setDialogError(null);
+    setDialogOpen(true);
+  };
+
+  const openEdit = (a: TestAnalyteDto) => {
+    setEditingAnalyte(a);
+    setElement(a.element);
+    setWavelengthNm(String(a.wavelengthNm));
+    setView(a.view);
+    setLoqMgPerL(String(a.loqMgPerL));
+    setDisplayOrder(String(a.displayOrder));
+    setDialogError(null);
+    setDialogOpen(true);
+  };
+
+  const handleSaveAnalyte = async () => {
+    const trimmedEl = element.trim();
+    if (!trimmedEl) {
+      setDialogError("Element symbol is required.");
+      return;
+    }
+    if (trimmedEl.length > 20) {
+      setDialogError("Element symbol cannot exceed 20 characters.");
+      return;
+    }
+    const wave = Number(wavelengthNm);
+    if (!wave || wave <= 0) {
+      setDialogError("Wavelength must be greater than 0.");
+      return;
+    }
+    const loq = Number(loqMgPerL);
+    if (!loq || loq <= 0) {
+      setDialogError("LOQ must be greater than 0.");
+      return;
+    }
+
+    setSaving(true);
+    setDialogError(null);
+    try {
+      if (editingAnalyte) {
+        await masterDataOptions.updateTestAnalyte(test.id, editingAnalyte.id, {
+          element: trimmedEl,
+          wavelengthNm: wave,
+          view,
+          loqMgPerL: loq,
+          displayOrder: displayOrder ? Number(displayOrder) : editingAnalyte.displayOrder
+        });
+      } else {
+        await masterDataOptions.createTestAnalyte(test.id, {
+          element: trimmedEl,
+          wavelengthNm: wave,
+          view,
+          loqMgPerL: loq,
+          displayOrder: displayOrder ? Number(displayOrder) : 0
+        });
+      }
+      setDialogOpen(false);
+      loadAnalytes();
+    } catch (e: unknown) {
+      const errObj = e as { response?: { data?: { message?: string } }; message?: string };
+      setDialogError(errObj.response?.data?.message ?? errObj.message ?? "Could not save analyte.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleToggleActive = async (a: TestAnalyteDto) => {
+    setError(null);
+    try {
+      if (a.isActive) {
+        await masterDataOptions.deleteTestAnalyte(test.id, a.id);
+      } else {
+        await masterDataOptions.updateTestAnalyte(test.id, a.id, { isActive: true });
+      }
+      loadAnalytes();
+    } catch (e: unknown) {
+      const errObj = e as { response?: { data?: { message?: string } }; message?: string };
+      setError(errObj.response?.data?.message ?? errObj.message ?? "Could not update analyte status.");
+    }
+  };
+
+  return (
+    <Box sx={{ mt: 2 }}>
+      <Stack sx={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", mb: 1 }}>
+        <Typography sx={{ fontWeight: 700, fontSize: 13 }}>
+          Test Analytes ({analytes.filter((a) => a.isActive).length} active)
+        </Typography>
+        <Button size="small" variant="outlined" startIcon={<AddIcon />} onClick={openAdd}>
+          Add Analyte
+        </Button>
+      </Stack>
+
+      {error && <Alert severity="error" sx={{ mb: 1.5 }}>{error}</Alert>}
+
+      <Table size="small" sx={{ bgcolor: "background.paper", borderRadius: 1 }}>
+        <TableHead>
+          <TableRow sx={tableHeadSx}>
+            <TableCell>Order</TableCell>
+            <TableCell>Element</TableCell>
+            <TableCell>Wavelength (nm)</TableCell>
+            <TableCell>Plasma View</TableCell>
+            <TableCell>LOQ (mg/L)</TableCell>
+            <TableCell>Status</TableCell>
+            <TableCell align="right">Actions</TableCell>
+          </TableRow>
+        </TableHead>
+        <TableBody>
+          {analytes.map((a) => (
+            <TableRow key={a.id} sx={{ opacity: a.isActive ? 1 : 0.6 }}>
+              <TableCell>{a.displayOrder}</TableCell>
+              <TableCell sx={{ fontWeight: 600 }}>{a.element}</TableCell>
+              <TableCell>{a.wavelengthNm}</TableCell>
+              <TableCell><Chip size="small" label={a.view} variant="outlined" /></TableCell>
+              <TableCell>{a.loqMgPerL}</TableCell>
+              <TableCell>
+                <Chip
+                  size="small"
+                  label={a.isActive ? "Active" : "Deactivated"}
+                  color={a.isActive ? "success" : "default"}
+                />
+              </TableCell>
+              <TableCell align="right">
+                <IconButton size="small" onClick={() => openEdit(a)} title="Edit Analyte">
+                  <EditIcon fontSize="small" />
+                </IconButton>
+                <Tooltip title={a.isActive ? "Deactivate Analyte" : "Re-activate Analyte"}>
+                  <IconButton size="small" color={a.isActive ? "error" : "primary"} onClick={() => handleToggleActive(a)}>
+                    {a.isActive ? <BlockIcon fontSize="small" /> : <LockOpenIcon fontSize="small" />}
+                  </IconButton>
+                </Tooltip>
+              </TableCell>
+            </TableRow>
+          ))}
+          {analytes.length === 0 && !loading && (
+            <TableRow>
+              <TableCell colSpan={7} align="center" sx={{ py: 2, color: "text.secondary" }}>
+                No analytes configured yet. Click "Add Analyte" to configure wavelengths and LOQs for this test method.
+              </TableCell>
+            </TableRow>
+          )}
+        </TableBody>
+      </Table>
+
+      <FloatingDialog
+        open={dialogOpen}
+        title={editingAnalyte ? `Edit Analyte: ${editingAnalyte.element}` : "Add Test Analyte"}
+        onClose={() => setDialogOpen(false)}
+        maxWidth="xs"
+        actions={
+          <>
+            <Button onClick={() => setDialogOpen(false)} disabled={saving}>Cancel</Button>
+            <Button variant="contained" onClick={handleSaveAnalyte} disabled={saving}>
+              {saving ? "Saving…" : editingAnalyte ? "Save Changes" : "Add Analyte"}
+            </Button>
+          </>
+        }
+      >
+        <Stack spacing={2} sx={{ pt: 1 }}>
+          {dialogError && <Alert severity="error">{dialogError}</Alert>}
+          <TextField
+            size="small"
+            label="Element Symbol"
+            placeholder="e.g. Zn, Pb, Ca"
+            value={element}
+            onChange={(e) => setElement(e.target.value.trim())}
+            required
+            fullWidth
+            slotProps={{ htmlInput: { maxLength: 20 } }}
+          />
+          <TextField
+            size="small"
+            type="number"
+            label="Wavelength (nm)"
+            placeholder="e.g. 213.856"
+            value={wavelengthNm}
+            onChange={(e) => setWavelengthNm(e.target.value)}
+            required
+            fullWidth
+            slotProps={{ htmlInput: { min: 0, step: "any" } }}
+          />
+          <FormControl size="small" fullWidth required>
+            <InputLabel id="plasma-view-label">Plasma View</InputLabel>
+            <Select
+              labelId="plasma-view-label"
+              label="Plasma View"
+              value={view}
+              onChange={(e) => setView(e.target.value as "Axial" | "Radial")}
+            >
+              <MenuItem value="Axial">Axial</MenuItem>
+              <MenuItem value="Radial">Radial</MenuItem>
+            </Select>
+          </FormControl>
+          <TextField
+            size="small"
+            type="number"
+            label="Limit of Quantification - LOQ (mg/L)"
+            placeholder="e.g. 0.05"
+            value={loqMgPerL}
+            onChange={(e) => setLoqMgPerL(e.target.value)}
+            required
+            fullWidth
+            slotProps={{ htmlInput: { min: 0, step: "any" } }}
+          />
+          <TextField
+            size="small"
+            type="number"
+            label="Display Order"
+            value={displayOrder}
+            onChange={(e) => setDisplayOrder(e.target.value)}
+            fullWidth
+          />
+        </Stack>
+      </FloatingDialog>
+    </Box>
+  );
 }
 
 // Shown when a Test Master row is expanded, alongside Approved Media -
@@ -396,7 +655,9 @@ function WorkflowStepsSection({ test, workflowTypes, onWorkflowTypeChanged }: { 
           alignItems: "center",
           mb: 1.5
         }}>
-        <Typography sx={{ fontWeight: 700, fontSize: 13 }}>{test.workflowType === "HplcAssay" ? "Workflow Type" : "Workflow Steps"}</Typography>
+        <Typography sx={{ fontWeight: 700, fontSize: 13 }}>
+          {test.workflowType === "HplcAssay" || test.workflowType === "ElementalAssay" ? "Workflow Type" : "Workflow Steps"}
+        </Typography>
         <Select size="small" value={test.workflowType} onChange={(e) => changeWorkflowType(e.target.value)}>
           {workflowTypes.map((w) => <MenuItem key={w} value={w}>{WORKFLOW_TYPE_LABELS[w] ?? w}</MenuItem>)}
         </Select>
@@ -433,7 +694,74 @@ function WorkflowStepsSection({ test, workflowTypes, onWorkflowTypeChanged }: { 
       )}
       {error && <Alert severity="error" sx={{ mb: 1.5 }}>{error}</Alert>}
 
-      {test.workflowType === "HplcAssay" ? (
+      {test.workflowType === "ElementalAssay" || test.equationType === "CalibrationCurve" ? (
+        <>
+          <Box sx={{ mb: 2, p: 1.5, bgcolor: "background.paper", borderRadius: 1, border: "1px solid", borderColor: "divider" }}>
+            <Typography sx={{ fontWeight: 700, fontSize: 12, mb: 1, color: "secondary.main" }}>ICP-OES Calibration Curve Configuration</Typography>
+            <Stack direction="row" spacing={3} sx={{ flexWrap: "wrap", alignItems: "center" }}>
+              <Box>
+                <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>Equation Type</Typography>
+                <Typography variant="body2" sx={{ fontWeight: 600 }}>{EQUATION_TYPE_LABELS[test.equationType ?? "None"] ?? test.equationType ?? "None"}</Typography>
+              </Box>
+              <Box>
+                <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>Method Abbr</Typography>
+                <Typography variant="body2" sx={{ fontWeight: 600 }}>{test.methodAbbreviation ?? "—"}</Typography>
+              </Box>
+              <Box>
+                <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>Min Correlation</Typography>
+                <Typography variant="body2">
+                  {test.calMinCorrelation != null ? `>= ${test.calMinCorrelation} (${test.calCorrelationType === "RSquared" ? "r²" : "r"})` : "—"}
+                </Typography>
+              </Box>
+              <Box>
+                <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>Min Standards</Typography>
+                <Typography variant="body2">{test.calMinStandards ?? "—"}</Typography>
+              </Box>
+              <Box>
+                <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>Check Recovery (ICV/CCV)</Typography>
+                <Typography variant="body2">
+                  {test.calCheckRecoveryLowPercent != null && test.calCheckRecoveryHighPercent != null
+                    ? `${test.calCheckRecoveryLowPercent}% – ${test.calCheckRecoveryHighPercent}%`
+                    : "—"}
+                </Typography>
+              </Box>
+              <Box>
+                <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>Max Blank</Typography>
+                <Typography variant="body2">{test.calBlankMax != null ? `${test.calBlankMax} mg/L` : "Analyte LOQ"}</Typography>
+              </Box>
+              <Box>
+                <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>Internal Standard</Typography>
+                <Typography variant="body2">
+                  {test.calRequireInternalStandard
+                    ? `Required (${test.calIsRecoveryLowPercent ?? "—"}% – ${test.calIsRecoveryHighPercent ?? "—"}%)`
+                    : "Not required"}
+                </Typography>
+              </Box>
+              <Box>
+                <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>Required Checks</Typography>
+                <Stack direction="row" spacing={0.5} sx={{ mt: 0.25, flexWrap: "wrap", alignItems: "center" }}>
+                  {test.calRequireBlank && <Chip size="small" label="Blank" sx={{ height: 18, fontSize: "0.65rem" }} />}
+                  {test.calRequireIcv && <Chip size="small" label="ICV" sx={{ height: 18, fontSize: "0.65rem" }} />}
+                  {test.calRequireCcv && <Chip size="small" label="CCV" sx={{ height: 18, fontSize: "0.65rem" }} />}
+                  {test.calRequireInternalStandard && <Chip size="small" label="IS" sx={{ height: 18, fontSize: "0.65rem" }} />}
+                  {!test.calRequireBlank && !test.calRequireIcv && !test.calRequireCcv && !test.calRequireInternalStandard && (
+                    <Typography variant="body2" sx={{ color: "text.secondary" }}>None</Typography>
+                  )}
+                </Stack>
+              </Box>
+              <Box>
+                <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>Max Run Age</Typography>
+                <Typography variant="body2">{test.calMaxRunAgeHours ?? 24} hours</Typography>
+              </Box>
+              <Box>
+                <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>Reported Basis</Typography>
+                <Typography variant="body2">ppm in the sample (SamplePpm)</Typography>
+              </Box>
+            </Stack>
+          </Box>
+          <TestAnalytesSection test={test} />
+        </>
+      ) : test.workflowType === "HplcAssay" ? (
         <Typography variant="body2" sx={{ color: "text.secondary" }}>
           HPLC assay tests have no workflow steps or media: the result is entered from the chromatography data against a passed System Suitability run.
         </Typography>
@@ -819,7 +1147,7 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
   const { options: allOptions, addNew, update, setActive, reload } = useTestDefinitions();
   const isFp = lab === "fp";
   const workflowTypes = WORKFLOW_TYPES_BY_LAB[lab];
-  const defaultWorkflowType = isFp ? "HplcAssay" : "Observation";
+  const defaultWorkflowType: string = isFp ? "HplcAssay" : "Observation";
   const [fpSectionId, setFpSectionId] = useState<number | null>(null);
   useEffect(() => {
     getSections()
@@ -839,6 +1167,20 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
   const [sstMinResolution, setSstMinResolution] = useState<string>("");
   const [sstMaxTailingFactor, setSstMaxTailingFactor] = useState<string>("");
   const [sstMinTheoreticalPlates, setSstMinTheoreticalPlates] = useState<string>("");
+
+  const [calMinCorrelation, setCalMinCorrelation] = useState<string>("0.999");
+  const [calCorrelationType, setCalCorrelationType] = useState<"R" | "RSquared">("R");
+  const [calMinStandards, setCalMinStandards] = useState<string>("5");
+  const [calCheckRecoveryLowPercent, setCalCheckRecoveryLowPercent] = useState<string>("90");
+  const [calCheckRecoveryHighPercent, setCalCheckRecoveryHighPercent] = useState<string>("110");
+  const [calBlankMax, setCalBlankMax] = useState<string>("");
+  const [calIsRecoveryLowPercent, setCalIsRecoveryLowPercent] = useState<string>("80");
+  const [calIsRecoveryHighPercent, setCalIsRecoveryHighPercent] = useState<string>("120");
+  const [calRequireBlank, setCalRequireBlank] = useState<boolean>(true);
+  const [calRequireIcv, setCalRequireIcv] = useState<boolean>(true);
+  const [calRequireCcv, setCalRequireCcv] = useState<boolean>(true);
+  const [calRequireInternalStandard, setCalRequireInternalStandard] = useState<boolean>(false);
+  const [calMaxRunAgeHours, setCalMaxRunAgeHours] = useState<string>("24");
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [dialogError, setDialogError] = useState<string | null>(null);
@@ -866,13 +1208,26 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
     setSectionId(mySections.length === 1 ? mySections[0].sectionId : "");
     setEditingSectionId(null);
     setWorkflowType(defaultWorkflowType);
-    setEquationType(isFp ? "HplcAssay" : "None");
+    setEquationType(isFp ? (defaultWorkflowType === "ElementalAssay" ? "CalibrationCurve" : "HplcAssay") : "None");
     setRequiresSystemSuitability(false);
     setMethodAbbreviation("");
     setSstMaxRsdPercent("");
     setSstMinResolution("");
     setSstMaxTailingFactor("");
     setSstMinTheoreticalPlates("");
+    setCalMinCorrelation("0.999");
+    setCalCorrelationType("R");
+    setCalMinStandards("5");
+    setCalCheckRecoveryLowPercent("90");
+    setCalCheckRecoveryHighPercent("110");
+    setCalBlankMax("");
+    setCalIsRecoveryLowPercent("80");
+    setCalIsRecoveryHighPercent("120");
+    setCalRequireBlank(true);
+    setCalRequireIcv(true);
+    setCalRequireCcv(true);
+    setCalRequireInternalStandard(false);
+    setCalMaxRunAgeHours("24");
     setDialogError(null);
     setDialogOpen(true);
   };
@@ -885,13 +1240,26 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
     setSectionId(t.sectionId ?? (mySections.length === 1 ? mySections[0].sectionId : ""));
     setEditingSectionId(t.sectionId ?? null);
     setWorkflowType(t.workflowType || defaultWorkflowType);
-    setEquationType(t.equationType || (t.workflowType === "HplcAssay" ? "HplcAssay" : "None"));
+    setEquationType(t.equationType || (t.workflowType === "ElementalAssay" ? "CalibrationCurve" : t.workflowType === "HplcAssay" ? "HplcAssay" : "None"));
     setRequiresSystemSuitability(!!t.requiresSystemSuitability);
     setMethodAbbreviation(t.methodAbbreviation ?? "");
     setSstMaxRsdPercent(t.sstMaxRsdPercent != null ? String(t.sstMaxRsdPercent) : "");
     setSstMinResolution(t.sstMinResolution != null ? String(t.sstMinResolution) : "");
     setSstMaxTailingFactor(t.sstMaxTailingFactor != null ? String(t.sstMaxTailingFactor) : "");
     setSstMinTheoreticalPlates(t.sstMinTheoreticalPlates != null ? String(t.sstMinTheoreticalPlates) : "");
+    setCalMinCorrelation(t.calMinCorrelation != null ? String(t.calMinCorrelation) : "0.999");
+    setCalCorrelationType((t.calCorrelationType as "R" | "RSquared") || "R");
+    setCalMinStandards(t.calMinStandards != null ? String(t.calMinStandards) : "5");
+    setCalCheckRecoveryLowPercent(t.calCheckRecoveryLowPercent != null ? String(t.calCheckRecoveryLowPercent) : "90");
+    setCalCheckRecoveryHighPercent(t.calCheckRecoveryHighPercent != null ? String(t.calCheckRecoveryHighPercent) : "110");
+    setCalBlankMax(t.calBlankMax != null ? String(t.calBlankMax) : "");
+    setCalIsRecoveryLowPercent(t.calIsRecoveryLowPercent != null ? String(t.calIsRecoveryLowPercent) : "80");
+    setCalIsRecoveryHighPercent(t.calIsRecoveryHighPercent != null ? String(t.calIsRecoveryHighPercent) : "120");
+    setCalRequireBlank(t.calRequireBlank !== false);
+    setCalRequireIcv(t.calRequireIcv !== false);
+    setCalRequireCcv(t.calRequireCcv !== false);
+    setCalRequireInternalStandard(!!t.calRequireInternalStandard);
+    setCalMaxRunAgeHours(t.calMaxRunAgeHours != null ? String(t.calMaxRunAgeHours) : "24");
     setDialogError(null);
     setDialogOpen(true);
   };
@@ -921,6 +1289,7 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
 
     const chosenSectionId = Number(sectionId);
     const isHplc = workflowType === "HplcAssay";
+    const isCalCurve = isFp && equationType === "CalibrationCurve";
 
     if (isHplc && requiresSystemSuitability) {
       const trimmedAbbr = methodAbbreviation.trim().toUpperCase();
@@ -943,6 +1312,55 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
       }
     }
 
+    if (isCalCurve) {
+      if (workflowType !== "ElementalAssay") {
+        setDialogError("Workflow type must be Elemental Assay when equation type is Calibration Curve.");
+        return;
+      }
+      const trimmedAbbr = methodAbbreviation.trim().toUpperCase();
+      if (!trimmedAbbr) {
+        setDialogError("Method abbreviation is required when equation type is Calibration Curve.");
+        return;
+      }
+      if (!/^[A-Z0-9-]{1,20}$/.test(trimmedAbbr)) {
+        setDialogError("Method abbreviation must be 1-20 uppercase alphanumeric characters or hyphens.");
+        return;
+      }
+      const minCorr = Number(calMinCorrelation);
+      if (!minCorr || minCorr <= 0 || minCorr > 1) {
+        setDialogError("Minimum correlation must be in (0, 1] when equation type is Calibration Curve.");
+        return;
+      }
+      const minStds = Number(calMinStandards);
+      if (!minStds || minStds < 1) {
+        setDialogError("Minimum standards must be at least 1 when equation type is Calibration Curve.");
+        return;
+      }
+      if (calCheckRecoveryLowPercent.trim() === "" || calCheckRecoveryHighPercent.trim() === "") {
+        setDialogError("Both check recovery window bounds (low and high) are required when equation type is Calibration Curve.");
+        return;
+      }
+      if (Number(calCheckRecoveryLowPercent) > Number(calCheckRecoveryHighPercent)) {
+        setDialogError("Check recovery low percent must be less than or equal to high percent.");
+        return;
+      }
+      if (calRequireInternalStandard) {
+        if (calIsRecoveryLowPercent.trim() === "" || calIsRecoveryHighPercent.trim() === "") {
+          setDialogError("Both internal standard recovery bounds (low and high) are required when internal standards are required.");
+          return;
+        }
+        if (Number(calIsRecoveryLowPercent) > Number(calIsRecoveryHighPercent)) {
+          setDialogError("Internal standard recovery low percent must be less than or equal to high percent.");
+          return;
+        }
+      }
+      const maxAge = calMaxRunAgeHours.trim() === "" ? 24 : Number(calMaxRunAgeHours);
+      if (maxAge < 1) {
+        setDialogError("Maximum run age must be at least 1 hour when equation type is Calibration Curve.");
+        return;
+      }
+    }
+
     setSaving(true);
     try {
       if (editingId) {
@@ -951,13 +1369,28 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
           displayName: trimmedDisplayName,
           sectionId: chosenSectionId,
           workflowType,
-          equationType: isHplc ? equationType : "None",
+          equationType: isCalCurve ? "CalibrationCurve" : isHplc ? equationType : "None",
           requiresSystemSuitability: isHplc ? requiresSystemSuitability : false,
-          methodAbbreviation: isHplc && requiresSystemSuitability ? methodAbbreviation.trim().toUpperCase() : null,
+          methodAbbreviation: (isHplc && requiresSystemSuitability) || isCalCurve ? methodAbbreviation.trim().toUpperCase() : null,
           sstMaxRsdPercent: isHplc && requiresSystemSuitability && sstMaxRsdPercent.trim() !== "" ? Number(sstMaxRsdPercent) : null,
           sstMinResolution: isHplc && requiresSystemSuitability && sstMinResolution.trim() !== "" ? Number(sstMinResolution) : null,
           sstMaxTailingFactor: isHplc && requiresSystemSuitability && sstMaxTailingFactor.trim() !== "" ? Number(sstMaxTailingFactor) : null,
-          sstMinTheoreticalPlates: isHplc && requiresSystemSuitability && sstMinTheoreticalPlates.trim() !== "" ? Number(sstMinTheoreticalPlates) : null
+          sstMinTheoreticalPlates: isHplc && requiresSystemSuitability && sstMinTheoreticalPlates.trim() !== "" ? Number(sstMinTheoreticalPlates) : null,
+          calibrationEntryMode: isCalCurve ? "InstrumentReported" : null,
+          calMinCorrelation: isCalCurve && calMinCorrelation.trim() !== "" ? Number(calMinCorrelation) : null,
+          calCorrelationType: isCalCurve ? calCorrelationType : null,
+          calMinStandards: isCalCurve && calMinStandards.trim() !== "" ? Number(calMinStandards) : null,
+          calCheckRecoveryLowPercent: isCalCurve && calCheckRecoveryLowPercent.trim() !== "" ? Number(calCheckRecoveryLowPercent) : null,
+          calCheckRecoveryHighPercent: isCalCurve && calCheckRecoveryHighPercent.trim() !== "" ? Number(calCheckRecoveryHighPercent) : null,
+          calBlankMax: isCalCurve && calBlankMax.trim() !== "" ? Number(calBlankMax) : null,
+          calIsRecoveryLowPercent: isCalCurve && calIsRecoveryLowPercent.trim() !== "" ? Number(calIsRecoveryLowPercent) : null,
+          calIsRecoveryHighPercent: isCalCurve && calIsRecoveryHighPercent.trim() !== "" ? Number(calIsRecoveryHighPercent) : null,
+          calRequireBlank: isCalCurve ? calRequireBlank : null,
+          calRequireIcv: isCalCurve ? calRequireIcv : null,
+          calRequireCcv: isCalCurve ? calRequireCcv : null,
+          calRequireInternalStandard: isCalCurve ? calRequireInternalStandard : null,
+          reportedConcentrationBasis: isCalCurve ? "SamplePpm" : null,
+          calMaxRunAgeHours: isCalCurve ? (calMaxRunAgeHours.trim() !== "" ? Number(calMaxRunAgeHours) : 24) : null
         };
         await update(editingId, payload);
         setMessage({ text: `Test "${trimmedCode}" updated.`, ok: true });
@@ -967,13 +1400,28 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
           displayName: trimmedDisplayName,
           sectionId: chosenSectionId,
           workflowType,
-          equationType: isHplc ? equationType : "None",
+          equationType: isCalCurve ? "CalibrationCurve" : isHplc ? equationType : "None",
           requiresSystemSuitability: isHplc ? requiresSystemSuitability : false,
-          methodAbbreviation: isHplc && requiresSystemSuitability ? methodAbbreviation.trim().toUpperCase() : null,
+          methodAbbreviation: (isHplc && requiresSystemSuitability) || isCalCurve ? methodAbbreviation.trim().toUpperCase() : null,
           sstMaxRsdPercent: isHplc && requiresSystemSuitability && sstMaxRsdPercent.trim() !== "" ? Number(sstMaxRsdPercent) : null,
           sstMinResolution: isHplc && requiresSystemSuitability && sstMinResolution.trim() !== "" ? Number(sstMinResolution) : null,
           sstMaxTailingFactor: isHplc && requiresSystemSuitability && sstMaxTailingFactor.trim() !== "" ? Number(sstMaxTailingFactor) : null,
-          sstMinTheoreticalPlates: isHplc && requiresSystemSuitability && sstMinTheoreticalPlates.trim() !== "" ? Number(sstMinTheoreticalPlates) : null
+          sstMinTheoreticalPlates: isHplc && requiresSystemSuitability && sstMinTheoreticalPlates.trim() !== "" ? Number(sstMinTheoreticalPlates) : null,
+          calibrationEntryMode: isCalCurve ? "InstrumentReported" : null,
+          calMinCorrelation: isCalCurve && calMinCorrelation.trim() !== "" ? Number(calMinCorrelation) : null,
+          calCorrelationType: isCalCurve ? calCorrelationType : null,
+          calMinStandards: isCalCurve && calMinStandards.trim() !== "" ? Number(calMinStandards) : null,
+          calCheckRecoveryLowPercent: isCalCurve && calCheckRecoveryLowPercent.trim() !== "" ? Number(calCheckRecoveryLowPercent) : null,
+          calCheckRecoveryHighPercent: isCalCurve && calCheckRecoveryHighPercent.trim() !== "" ? Number(calCheckRecoveryHighPercent) : null,
+          calBlankMax: isCalCurve && calBlankMax.trim() !== "" ? Number(calBlankMax) : null,
+          calIsRecoveryLowPercent: isCalCurve && calIsRecoveryLowPercent.trim() !== "" ? Number(calIsRecoveryLowPercent) : null,
+          calIsRecoveryHighPercent: isCalCurve && calIsRecoveryHighPercent.trim() !== "" ? Number(calIsRecoveryHighPercent) : null,
+          calRequireBlank: isCalCurve ? calRequireBlank : null,
+          calRequireIcv: isCalCurve ? calRequireIcv : null,
+          calRequireCcv: isCalCurve ? calRequireCcv : null,
+          calRequireInternalStandard: isCalCurve ? calRequireInternalStandard : null,
+          reportedConcentrationBasis: isCalCurve ? "SamplePpm" : null,
+          calMaxRunAgeHours: isCalCurve ? (calMaxRunAgeHours.trim() !== "" ? Number(calMaxRunAgeHours) : 24) : null
         };
         await addNew(payload);
         setMessage({ text: `Test "${trimmedCode}" added to the Test Master.`, ok: true });
@@ -1051,6 +1499,15 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
                           sx={{ height: 20, fontSize: "0.68rem", fontWeight: 700 }}
                         />
                       )}
+                      {t.workflowType === "ElementalAssay" && (
+                        <Chip
+                          size="small"
+                          color="secondary"
+                          variant="outlined"
+                          label="ICP-OES"
+                          sx={{ height: 20, fontSize: "0.68rem", fontWeight: 700 }}
+                        />
+                      )}
                       {t.requiresSystemSuitability && (
                         <Tooltip
                           title={[
@@ -1065,6 +1522,19 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
                             color="info"
                             variant="outlined"
                             label={`SST: ${t.methodAbbreviation ?? "Required"}`}
+                            sx={{ height: 20, fontSize: "0.68rem", fontWeight: 700 }}
+                          />
+                        </Tooltip>
+                      )}
+                      {t.equationType === "CalibrationCurve" && (
+                        <Tooltip
+                          title={`Calibration Curve (${t.methodAbbreviation ?? "Required"}): min corr ${t.calMinCorrelation ?? "—"}`}
+                        >
+                          <Chip
+                            size="small"
+                            color="info"
+                            variant="outlined"
+                            label={`CAL: ${t.methodAbbreviation ?? "Required"}`}
                             sx={{ height: 20, fontSize: "0.68rem", fontWeight: 700 }}
                           />
                         </Tooltip>
@@ -1171,6 +1641,9 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
                   setWorkflowType(next);
                   if (next === "HplcAssay") {
                     if (equationType === "None") setEquationType("HplcAssay");
+                  } else if (next === "ElementalAssay") {
+                    setEquationType("CalibrationCurve");
+                    setRequiresSystemSuitability(false);
                   } else {
                     setEquationType("None");
                     setRequiresSystemSuitability(false);
@@ -1187,24 +1660,237 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
           </Stack>
 
           {isFp && (
-          <FormControl size="small" fullWidth disabled={workflowType !== "HplcAssay"}>
-            <InputLabel id="dialog-equation-type-label">Equation Type</InputLabel>
-            <Select
-              labelId="dialog-equation-type-label"
-              label="Equation Type"
-              value={workflowType === "HplcAssay" ? equationType : "None"}
-              onChange={(e) => setEquationType(e.target.value)}
-            >
-              {EQUATION_TYPES.map((eq) => (
-                <MenuItem key={eq} value={eq}>
-                  {EQUATION_TYPE_LABELS[eq] ?? eq}
-                </MenuItem>
-              ))}
-            </Select>
-            {workflowType !== "HplcAssay" && (
-              <FormHelperText>Equation types only apply to HPLC Assay tests.</FormHelperText>
-            )}
-          </FormControl>
+            <FormControl size="small" fullWidth>
+              <InputLabel id="dialog-equation-type-label">Equation Type</InputLabel>
+              <Select
+                labelId="dialog-equation-type-label"
+                label="Equation Type"
+                value={equationType}
+                onChange={(e) => {
+                  const next = e.target.value;
+                  setEquationType(next);
+                  if (next === "CalibrationCurve") {
+                    setRequiresSystemSuitability(false);
+                  }
+                }}
+              >
+                {EQUATION_TYPES.filter((eq) => {
+                  if (workflowType === "HplcAssay") {
+                    return eq !== "CalibrationCurve";
+                  }
+                  if (workflowType === "ElementalAssay") {
+                    return eq === "CalibrationCurve" || eq === "None";
+                  }
+                  return eq !== "HplcAssay" && eq !== "HplcUniformityOfDosageUnits" && eq !== "HplcDissolutionMultiPoint";
+                }).map((eq) => (
+                  <MenuItem key={eq} value={eq}>
+                    {EQUATION_TYPE_LABELS[eq] ?? eq}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          )}
+
+          {equationType === "CalibrationCurve" && (
+            <Box sx={{ p: 2, bgcolor: "action.hover", borderRadius: 1, border: "1px solid", borderColor: "divider" }}>
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={true}
+                    disabled
+                  />
+                }
+                label="Requires calibration run (locked)"
+              />
+
+              <Box sx={{ mt: 2, pt: 2, borderTop: "1px dashed", borderTopColor: "divider" }}>
+                <TextField
+                  size="small"
+                  label="Method Abbreviation"
+                  placeholder="e.g. MIN-ICP"
+                  value={methodAbbreviation}
+                  onChange={(e) => setMethodAbbreviation(e.target.value.toUpperCase())}
+                  required
+                  fullWidth
+                  slotProps={{
+                    htmlInput: {
+                      maxLength: 20
+                    }
+                  }}
+                  helperText="1–20 uppercase alphanumeric characters or hyphens (auto-uppercased)"
+                  sx={{ mb: 2 }}
+                />
+
+                <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 0.5 }}>
+                  Calibration Curve Acceptance Criteria
+                </Typography>
+                <Typography variant="caption" sx={{ color: "text.secondary", display: "block", mb: 1.5 }}>
+                  Define the correlation threshold, calibration standard counts, and QC check limits.
+                </Typography>
+
+                <Stack spacing={2}>
+                  <Stack direction="row" spacing={1.5} sx={{ flexWrap: "wrap", alignItems: "center" }}>
+                    <TextField
+                      size="small"
+                      type="number"
+                      label="Min Correlation Coefficient"
+                      placeholder="e.g. 0.9995"
+                      value={calMinCorrelation}
+                      onChange={(e) => setCalMinCorrelation(e.target.value)}
+                      slotProps={{ htmlInput: { min: 0, max: 1, step: "any" } }}
+                      sx={{ flex: "1 1 180px", minWidth: 140 }}
+                    />
+                    <FormControl size="small" sx={{ flex: "1 1 140px", minWidth: 120 }}>
+                      <InputLabel id="cal-corr-type-label">Correlation Type</InputLabel>
+                      <Select
+                        labelId="cal-corr-type-label"
+                        label="Correlation Type"
+                        value={calCorrelationType}
+                        onChange={(e) => setCalCorrelationType(e.target.value as "R" | "RSquared")}
+                      >
+                        <MenuItem value="R">r (Correlation coefficient)</MenuItem>
+                        <MenuItem value="RSquared">r² (Coefficient of determination)</MenuItem>
+                      </Select>
+                    </FormControl>
+                    <TextField
+                      size="small"
+                      type="number"
+                      label="Min Standards"
+                      placeholder="e.g. 5"
+                      value={calMinStandards}
+                      onChange={(e) => setCalMinStandards(e.target.value)}
+                      slotProps={{ htmlInput: { min: 1, step: 1 } }}
+                      sx={{ flex: "1 1 140px", minWidth: 120 }}
+                    />
+                    <TextField
+                      size="small"
+                      type="number"
+                      label="Max Run Age (Hours)"
+                      placeholder="24"
+                      value={calMaxRunAgeHours}
+                      onChange={(e) => setCalMaxRunAgeHours(e.target.value)}
+                      slotProps={{ htmlInput: { min: 1, step: 1 } }}
+                      sx={{ flex: "1 1 140px", minWidth: 120 }}
+                    />
+                  </Stack>
+
+                  <Stack direction="row" spacing={1.5} sx={{ flexWrap: "wrap", alignItems: "center" }}>
+                    <TextField
+                      size="small"
+                      type="number"
+                      label="ICV / CCV Min Recovery (%)"
+                      placeholder="e.g. 90.0"
+                      value={calCheckRecoveryLowPercent}
+                      onChange={(e) => setCalCheckRecoveryLowPercent(e.target.value)}
+                      slotProps={{ htmlInput: { min: 0, step: "any" } }}
+                      sx={{ flex: "1 1 200px", minWidth: 160 }}
+                    />
+                    <TextField
+                      size="small"
+                      type="number"
+                      label="ICV / CCV Max Recovery (%)"
+                      placeholder="e.g. 110.0"
+                      value={calCheckRecoveryHighPercent}
+                      onChange={(e) => setCalCheckRecoveryHighPercent(e.target.value)}
+                      slotProps={{ htmlInput: { min: 0, step: "any" } }}
+                      sx={{ flex: "1 1 200px", minWidth: 160 }}
+                    />
+                  </Stack>
+
+                  <Stack direction="row" spacing={1.5} sx={{ flexWrap: "wrap", alignItems: "center" }}>
+                    <TextField
+                      size="small"
+                      type="number"
+                      label="Blank Max Conc. (mg/L)"
+                      placeholder="LOQ default"
+                      value={calBlankMax}
+                      onChange={(e) => setCalBlankMax(e.target.value)}
+                      helperText="Leave empty to use each analyte's LOQ"
+                      slotProps={{ htmlInput: { min: 0, step: "any" } }}
+                      sx={{ flex: "1 1 200px", minWidth: 160 }}
+                    />
+                    <TextField
+                      size="small"
+                      type="number"
+                      label="IS Min Recovery (%)"
+                      placeholder="e.g. 80.0"
+                      value={calIsRecoveryLowPercent}
+                      onChange={(e) => setCalIsRecoveryLowPercent(e.target.value)}
+                      slotProps={{ htmlInput: { min: 0, step: "any" } }}
+                      sx={{ flex: "1 1 140px", minWidth: 120 }}
+                    />
+                    <TextField
+                      size="small"
+                      type="number"
+                      label="IS Max Recovery (%)"
+                      placeholder="e.g. 120.0"
+                      value={calIsRecoveryHighPercent}
+                      onChange={(e) => setCalIsRecoveryHighPercent(e.target.value)}
+                      slotProps={{ htmlInput: { min: 0, step: "any" } }}
+                      sx={{ flex: "1 1 140px", minWidth: 120 }}
+                    />
+                  </Stack>
+
+                  <Box sx={{ p: 1.5, bgcolor: "background.paper", borderRadius: 1, border: "1px solid", borderColor: "divider" }}>
+                    <Typography variant="caption" sx={{ fontWeight: 600, display: "block", mb: 1, color: "text.secondary" }}>
+                      REQUIRED CALIBRATION CHECKS
+                    </Typography>
+                    <Stack direction="row" spacing={2} sx={{ flexWrap: "wrap" }}>
+                      <FormControlLabel
+                        control={
+                          <Checkbox
+                            checked={calRequireBlank}
+                            onChange={(e) => setCalRequireBlank(e.target.checked)}
+                          />
+                        }
+                        label="Requires Blank"
+                      />
+                      <FormControlLabel
+                        control={
+                          <Checkbox
+                            checked={calRequireIcv}
+                            onChange={(e) => setCalRequireIcv(e.target.checked)}
+                          />
+                        }
+                        label="Requires ICV"
+                      />
+                      <FormControlLabel
+                        control={
+                          <Checkbox
+                            checked={calRequireCcv}
+                            onChange={(e) => setCalRequireCcv(e.target.checked)}
+                          />
+                        }
+                        label="Requires CCV"
+                      />
+                      <FormControlLabel
+                        control={
+                          <Checkbox
+                            checked={calRequireInternalStandard}
+                            onChange={(e) => setCalRequireInternalStandard(e.target.checked)}
+                          />
+                        }
+                        label="Requires Internal Standard"
+                      />
+                    </Stack>
+                    {!calRequireIcv && !calRequireCcv && (
+                      <Alert severity="warning" sx={{ mt: 1 }}>
+                        A valid calibration run requires at least an ICV or a CCV check.
+                      </Alert>
+                    )}
+                  </Box>
+
+                  <Box sx={{ p: 1.5, bgcolor: "background.paper", borderRadius: 1, border: "1px solid", borderColor: "divider" }}>
+                    <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>
+                      Reported Concentration Basis
+                    </Typography>
+                    <Typography variant="body2" sx={{ fontWeight: 600, color: "text.primary", mt: 0.5 }}>
+                      ppm in the sample (Syngistix applies weight, volume and dilution)
+                    </Typography>
+                  </Box>
+                </Stack>
+              </Box>
+            </Box>
           )}
 
           {workflowType === "HplcAssay" && (

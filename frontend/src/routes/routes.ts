@@ -26,6 +26,8 @@ const APP_ROUTES = {
   MEDIA_EVALUATION: "/laboratory-configuration/media-evaluation",
   CRYOVIALS: "/laboratory-configuration/cryovials",
   SYSTEM_SUITABILITY: "/laboratory/system-suitability",
+  CALIBRATION_RUNS: "/laboratory/calibration-runs",
+  CALIBRATION_RUN_REPORT: (id: number | string) => `/laboratory/calibration-runs/${id}/report`,
   TEST_MASTER: "/laboratory-configuration/test-master",
   FP_TEST_MASTER: "/laboratory-configuration/fp-test-master",
   EQUATION_TYPES: "/laboratory-configuration/equation-types",

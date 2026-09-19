@@ -58,6 +58,34 @@ export interface EquationTypeDto {
   requiredInputs: string[];
 }
 
+export interface TestAnalyteDto {
+  id: number;
+  testDefinitionId: number;
+  element: string;
+  wavelengthNm: number;
+  view: "Axial" | "Radial";
+  loqMgPerL: number;
+  displayOrder: number;
+  isActive: boolean;
+}
+
+export interface CreateTestAnalyteRequest {
+  element: string;
+  wavelengthNm: number;
+  view: "Axial" | "Radial";
+  loqMgPerL: number;
+  displayOrder?: number;
+}
+
+export interface UpdateTestAnalyteRequest {
+  element?: string;
+  wavelengthNm?: number;
+  view?: "Axial" | "Radial";
+  loqMgPerL?: number;
+  displayOrder?: number;
+  isActive?: boolean;
+}
+
 export interface CreateTestDefinitionPayload {
   code: string;
   displayName: string;
@@ -70,6 +98,21 @@ export interface CreateTestDefinitionPayload {
   sstMinResolution?: number | null;
   sstMaxTailingFactor?: number | null;
   sstMinTheoreticalPlates?: number | null;
+  calibrationEntryMode?: string | null;
+  calMinCorrelation?: number | null;
+  calCorrelationType?: string | null;
+  calMinStandards?: number | null;
+  calCheckRecoveryLowPercent?: number | null;
+  calCheckRecoveryHighPercent?: number | null;
+  calBlankMax?: number | null;
+  calIsRecoveryLowPercent?: number | null;
+  calIsRecoveryHighPercent?: number | null;
+  calRequireBlank?: boolean | null;
+  calRequireIcv?: boolean | null;
+  calRequireCcv?: boolean | null;
+  calRequireInternalStandard?: boolean | null;
+  reportedConcentrationBasis?: string | null;
+  calMaxRunAgeHours?: number | null;
 }
 
 export interface UpdateTestDefinitionPayload {
@@ -84,6 +127,21 @@ export interface UpdateTestDefinitionPayload {
   sstMinResolution?: number | null;
   sstMaxTailingFactor?: number | null;
   sstMinTheoreticalPlates?: number | null;
+  calibrationEntryMode?: string | null;
+  calMinCorrelation?: number | null;
+  calCorrelationType?: string | null;
+  calMinStandards?: number | null;
+  calCheckRecoveryLowPercent?: number | null;
+  calCheckRecoveryHighPercent?: number | null;
+  calBlankMax?: number | null;
+  calIsRecoveryLowPercent?: number | null;
+  calIsRecoveryHighPercent?: number | null;
+  calRequireBlank?: boolean | null;
+  calRequireIcv?: boolean | null;
+  calRequireCcv?: boolean | null;
+  calRequireInternalStandard?: boolean | null;
+  reportedConcentrationBasis?: string | null;
+  calMaxRunAgeHours?: number | null;
 }
 
 // Shared lookup lists used across receiving, preparation, and master
@@ -150,7 +208,18 @@ export const masterDataOptions = {
     apiClient.put(`/masterdata/organisms/${id}`, { scientificName, atccNumber: atccNumber || null, commonName: commonName || null, description: description || null }).then((r) => r.data.data),
   deleteOrganism: (id: number) => apiClient.delete(`/masterdata/organisms/${id}`),
   getEquationTypes: (): Promise<EquationTypeDto[]> =>
-    apiClient.get("/masterdata/equation-types").then((r) => r.data.data),
+    apiClient.get("/masterdata/equation-types").then((r) => {
+      const list: EquationTypeDto[] = r.data.data || [];
+      if (!list.some((e) => e.code === "CalibrationCurve")) {
+        list.push({
+          code: "CalibrationCurve",
+          name: "Calibration Curve",
+          formulaText: "r / r² >= MinCorrelation, Standards >= MinStandards, ICV/CCV recovery within [Low, High]%, Blank <= MaxBlank (or LOQ), IS recovery within [Low, High]%",
+          requiredInputs: ["CorrelationValue", "CorrelationType", "NumberOfStandards", "LowestStandardMgPerL", "HighestStandardMgPerL", "Checks"]
+        });
+      }
+      return list;
+    }),
   getTestDefinitions: () => apiClient.get("/masterdata/test-definitions").then((r) => r.data.data),
   createTestDefinition: (codeOrPayload: string | CreateTestDefinitionPayload, displayName?: string, sectionId?: number | null) => {
     const payload = typeof codeOrPayload === "string"
@@ -172,6 +241,14 @@ export const masterDataOptions = {
     apiClient.put(`/masterdata/test-definitions/${testDefinitionId}/workflow-type`, { workflowType }).then((r) => r.data.data),
   getTestWorkflowSteps: (testDefinitionId: number) =>
     apiClient.get(`/masterdata/test-definitions/${testDefinitionId}/steps`).then((r) => r.data.data),
+  getTestAnalytes: (testDefinitionId: number): Promise<TestAnalyteDto[]> =>
+    apiClient.get(`/masterdata/test-definitions/${testDefinitionId}/analytes`).then((r) => r.data.data),
+  createTestAnalyte: (testDefinitionId: number, payload: CreateTestAnalyteRequest): Promise<TestAnalyteDto> =>
+    apiClient.post(`/masterdata/test-definitions/${testDefinitionId}/analytes`, payload).then((r) => r.data.data),
+  updateTestAnalyte: (testDefinitionId: number, analyteId: number, payload: UpdateTestAnalyteRequest): Promise<TestAnalyteDto> =>
+    apiClient.put(`/masterdata/test-definitions/${testDefinitionId}/analytes/${analyteId}`, payload).then((r) => r.data.data),
+  deleteTestAnalyte: (testDefinitionId: number, analyteId: number): Promise<{ message?: string; deactivated?: boolean; deleted?: boolean }> =>
+    apiClient.delete(`/masterdata/test-definitions/${testDefinitionId}/analytes/${analyteId}`).then((r) => r.data.data),
   getMaterials: (type?: string) =>
     apiClient.get("/inventory/materials", { params: type ? { type } : {} }).then((r) => r.data.data),
   createTestWorkflowStep: (testDefinitionId: number, payload: TestWorkflowStepPayload) =>

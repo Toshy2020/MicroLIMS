@@ -27,6 +27,14 @@ public class CalibrationRunController : ControllerBase
     private string? ClientIpAddress =>
         HttpContext.Connection.RemoteIpAddress?.ToString();
 
+    // The multipart payload is parsed by hand, so it needs the same
+    // enum-as-string convention as every [FromBody] request.
+    public static readonly JsonSerializerOptions PayloadJsonOptions = new()
+    {
+        PropertyNameCaseInsensitive = true,
+        Converters = { new System.Text.Json.Serialization.JsonStringEnumConverter() }
+    };
+
     // Create a new signed Calibration Run (Slice S1)
     [Authorize(Policy = PermissionConstants.TestWorkflowExecute)]
     [HttpPost]
@@ -42,10 +50,7 @@ public class CalibrationRunController : ControllerBase
         CreateCalibrationRunRequest? request;
         try
         {
-            request = JsonSerializer.Deserialize<CreateCalibrationRunRequest>(payload, new JsonSerializerOptions
-            {
-                PropertyNameCaseInsensitive = true
-            });
+            request = JsonSerializer.Deserialize<CreateCalibrationRunRequest>(payload, PayloadJsonOptions);
         }
         catch (Exception ex)
         {

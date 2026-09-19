@@ -18,6 +18,21 @@ export interface TestDefinitionOption {
   sstMinResolution?: number | null;
   sstMaxTailingFactor?: number | null;
   sstMinTheoreticalPlates?: number | null;
+  calibrationEntryMode?: string | null;
+  calMinCorrelation?: number | null;
+  calCorrelationType?: string | null;
+  calMinStandards?: number | null;
+  calCheckRecoveryLowPercent?: number | null;
+  calCheckRecoveryHighPercent?: number | null;
+  calBlankMax?: number | null;
+  calIsRecoveryLowPercent?: number | null;
+  calIsRecoveryHighPercent?: number | null;
+  calRequireBlank?: boolean | null;
+  calRequireIcv?: boolean | null;
+  calRequireCcv?: boolean | null;
+  calRequireInternalStandard?: boolean | null;
+  reportedConcentrationBasis?: string | null;
+  calMaxRunAgeHours?: number | null;
   sectionId?: number;
   section?: {
     id: number;

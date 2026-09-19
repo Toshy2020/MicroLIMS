@@ -4,6 +4,7 @@ import ScienceOutlinedIcon from "@mui/icons-material/ScienceOutlined";
 import MedicationLiquidOutlinedIcon from "@mui/icons-material/MedicationLiquidOutlined";
 import AcUnitOutlinedIcon from "@mui/icons-material/AcUnitOutlined";
 import TimelineOutlinedIcon from "@mui/icons-material/TimelineOutlined";
+import ShowChartOutlinedIcon from "@mui/icons-material/ShowChartOutlined";
 import Inventory2OutlinedIcon from "@mui/icons-material/Inventory2Outlined";
 import PrecisionManufacturingOutlinedIcon from "@mui/icons-material/PrecisionManufacturingOutlined";
 import RuleOutlinedIcon from "@mui/icons-material/RuleOutlined";
@@ -36,6 +37,7 @@ const dashboardItem: MenuItem = { label: "Dashboard", path: "/dashboard", icon: 
 const receivingTestingItem: MenuItem = { label: "Receiving & Testing", path: "/receiving-testing", icon: ScienceOutlinedIcon, group: "MY WORK" };
 const mediaWorkspaceItem: MenuItem = { label: "Media Preparation & Evaluation", path: "/laboratory-configuration/media", icon: MedicationLiquidOutlinedIcon, group: "LABORATORY" };
 const systemSuitabilityItem: MenuItem = { label: "System Suitability (HPLC)", path: "/laboratory/system-suitability", icon: TimelineOutlinedIcon, group: "LABORATORY" };
+const calibrationRunsItem: MenuItem = { label: "Calibration Runs (ICP-OES)", path: "/laboratory/calibration-runs", icon: ShowChartOutlinedIcon, group: "LABORATORY" };
 const cryovialsItem: MenuItem = { label: "Reference Cryovials", path: "/laboratory-configuration/cryovials", icon: AcUnitOutlinedIcon, group: "LABORATORY" };
 const reportsItem: MenuItem = { label: "Reports", path: "/reports", icon: DescriptionOutlinedIcon, group: "REPORTS" };
 const auditSearchItem: MenuItem = { label: "Audit Search", path: "/audit-search", icon: SearchOutlinedIcon, group: "AUDIT & COMPLIANCE" };
@@ -145,6 +147,7 @@ const menuByRole: Record<Role, MenuItem[]> = {
     mediaWorkspaceItem,
     cryovialsItem,
     systemSuitabilityItem,
+    calibrationRunsItem,
     inventoryItem,
     reportsItem
   ],
@@ -155,6 +158,7 @@ const menuByRole: Record<Role, MenuItem[]> = {
     mediaWorkspaceItem,
     cryovialsItem,
     systemSuitabilityItem,
+    calibrationRunsItem,
     reportsItem
   ],
   SectionHead: [
@@ -164,6 +168,7 @@ const menuByRole: Record<Role, MenuItem[]> = {
     mediaWorkspaceItem,
     cryovialsItem,
     systemSuitabilityItem,
+    calibrationRunsItem,
     inventoryItem,
     ...laboratoryConfigurationItems,
     reportsItem,
@@ -177,6 +182,7 @@ const menuByRole: Record<Role, MenuItem[]> = {
     mediaWorkspaceItem,
     cryovialsItem,
     systemSuitabilityItem,
+    calibrationRunsItem,
     inventoryItem,
     ...laboratoryConfigurationItems,
     usersItem,

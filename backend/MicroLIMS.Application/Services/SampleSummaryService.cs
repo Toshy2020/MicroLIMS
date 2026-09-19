@@ -177,11 +177,17 @@ public class SampleSummaryService
         // for a test code nobody has configured a Specification for yet
         // (e.g. every pathogen test, until Test Master's Items page is used
         // to add one) - not an error, renders as "-" wherever shown.
+        // A test can carry several specification parameters (e.g. Impurity
+        // A / B / Total); they are listed in display order.
         var specificationsByTestCode = sample.ItemId is null
-            ? new Dictionary<string, Specification>()
-            : await _db.Specifications
+            ? new Dictionary<string, List<Specification>>()
+            : (await _db.Specifications
+                .Include(sp => sp.Stages)
                 .Where(sp => sp.ItemId == sample.ItemId.Value)
-                .ToDictionaryAsync(sp => sp.TestCode);
+                .OrderBy(sp => sp.DisplayOrder).ThenBy(sp => sp.Id)
+                .ToListAsync())
+                .GroupBy(sp => sp.TestCode)
+                .ToDictionary(g => g.Key, g => g.ToList());
 
         var signatures = await _db.ElectronicSignatures
             .Where(s => s.EntityType == "Sample" && s.EntityId == sampleId)
@@ -380,7 +386,7 @@ public class SampleSummaryService
                     }).ToList();
                 }
 
-                specificationsByTestCode.TryGetValue(order.TestCode, out var spec);
+                specificationsByTestCode.TryGetValue(order.TestCode, out var testSpecs);
 
                 return new TestOrderSummaryDetailDto
                 {
@@ -390,7 +396,7 @@ public class SampleSummaryService
                     TestCode = order.TestCode,
                     TestDisplayName = def?.DisplayName ?? order.TestCode,
                     SourceSampleReferenceNumber = sourceRefByOrderId.TryGetValue(order.Id, out var sourceRef) ? sourceRef : null,
-                    SpecificationText = FormatSpecificationText(spec),
+                    SpecificationText = FormatSpecificationsText(testSpecs),
                     Status = order.Status.ToString(),
                     CurrentStep = order.CurrentStep.ToString(),
                     WorkflowState = stateResult.WorkflowState,
@@ -817,9 +823,52 @@ public class SampleSummaryService
         return $"Location {loc.Id}";
     }
 
+    public static string? FormatSpecificationsText(IReadOnlyList<Specification>? specs)
+    {
+        if (specs is null || specs.Count == 0)
+            return null;
+        if (specs.Count == 1)
+            return FormatSpecificationText(specs[0]);
+
+        var parts = specs
+            .Select(s => (s.ParameterName, Text: FormatSpecificationText(s)))
+            .Where(p => p.Text is not null)
+            .Select(p => $"{p.ParameterName}: {p.Text}")
+            .ToList();
+        return parts.Count == 0 ? null : string.Join("; ", parts);
+    }
+
     public static string? FormatSpecificationText(Specification? spec)
     {
-        if (spec is null || string.IsNullOrWhiteSpace(spec.SpecLimit))
+        if (spec is null)
+            return null;
+
+        static string WithUnit(string text, string? unit) =>
+            string.IsNullOrWhiteSpace(unit) ? text : $"{text} {unit.Trim()}";
+
+        switch (spec.LimitType)
+        {
+            case LimitType.NotMoreThan:
+            case LimitType.NotLessThan:
+            case LimitType.TargetWithTolerance:
+                return string.IsNullOrWhiteSpace(spec.SpecLimit) ? null : WithUnit(spec.SpecLimit.Trim(), spec.Unit);
+            case LimitType.Qualitative:
+                return string.IsNullOrWhiteSpace(spec.ExpectedResultText) ? null : spec.ExpectedResultText.Trim();
+            case LimitType.PresenceAbsence:
+            {
+                var state = spec.ExpectedState == ExpectedPresence.Presence ? "Present" : "Absent";
+                return spec.SampleQuantity is decimal qty
+                    ? $"{state} in {qty.ToString("0.######", System.Globalization.CultureInfo.InvariantCulture)} {spec.SampleQuantityUnit}".TrimEnd()
+                    : state;
+            }
+            case LimitType.MultiStage:
+                return spec.Stages.Count == 0
+                    ? null
+                    : string.Join("; ", spec.Stages.OrderBy(s => s.StageNumber).Select(s => $"{s.StageLabel}: {s.AcceptanceCriteriaText}"));
+        }
+
+        // Range and Count-Tiered: the original text rules.
+        if (string.IsNullOrWhiteSpace(spec.SpecLimit))
             return null;
 
         var raw = spec.SpecLimit.Trim();

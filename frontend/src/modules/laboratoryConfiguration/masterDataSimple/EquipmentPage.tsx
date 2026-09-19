@@ -60,6 +60,11 @@ export const EQUIPMENT_TYPES = [
   { value: "Other", label: "Other" }
 ];
 
+// HPLC, pH meters and balances belong to the Finished Product laboratory
+// and are configured on the FP Instruments page, not here.
+export const FP_ONLY_EQUIPMENT_TYPES = ["Hplc", "PhMeter", "Balance"];
+const MICRO_EQUIPMENT_TYPES = EQUIPMENT_TYPES.filter((t) => !FP_ONLY_EQUIPMENT_TYPES.includes(t.value));
+
 export const CDS_SOFTWARE_OPTIONS = [
   { value: "ShimadzuLabSolutions", label: "Shimadzu LabSolutions" },
   { value: "AgilentOpenLab", label: "Agilent OpenLab" },
@@ -136,7 +141,7 @@ export function EquipmentPage() {
   const [equipmentForm, setEquipmentForm] = useState({
     name: "",
     code: "",
-    type: "Hplc",
+    type: "Incubator",
     location: "",
     vendor: "",
     cdsSoftware: "",
@@ -385,18 +390,15 @@ export function EquipmentPage() {
   };
 
   // Inventory holds the asset identity; the lab-configuration record also
-  // needs a type, a laboratory section and (for HPLC) the CDS software, so
+  // needs a type and a laboratory section, so
   // "Configure for Lab" opens the equipment form pre-filled from inventory
   // instead of guessing those.
   const handleConfigureInventoryEquipment = async (inv: any) => {
     const text = `${inv.instrumentType ?? ""}`.toLowerCase();
     const guessedType =
-      /h[pb]lc|chromatograph/.test(text) ? "Hplc"
-      : text.includes("incubator") ? "Incubator"
+      text.includes("incubator") ? "Incubator"
       : text.includes("autoclave") ? "Autoclave"
       : text.includes("cabinet") ? "LafCabinet"
-      : text.includes("balance") ? "Balance"
-      : /(^|[^a-z])ph([^a-z]|$)/.test(text) ? "PhMeter"
       : "Other";
     await handleOpenAddEquipment({
       name: inv.instrumentType ?? "",
@@ -414,7 +416,7 @@ export function EquipmentPage() {
     setEquipmentForm({
       name: "",
       code: "",
-      type: "Hplc",
+      type: "Incubator",
       location: "",
       vendor: "",
       cdsSoftware: "",
@@ -511,6 +513,7 @@ export function EquipmentPage() {
 
   // Filters
   const filteredSummary = safeSummaryList.filter((e) => {
+    if (FP_ONLY_EQUIPMENT_TYPES.includes(normalizeEquipmentTypeValue(e.type))) return false;
     const matchType =
       typeFilter === "All"
         ? true
@@ -599,7 +602,7 @@ export function EquipmentPage() {
                   />
                   <Select size="small" value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)}>
                     <MenuItem value="All">All Types</MenuItem>
-                    {EQUIPMENT_TYPES.map((t) => (
+                    {MICRO_EQUIPMENT_TYPES.map((t) => (
                       <MenuItem key={t.value} value={t.value}>
                         {t.label}
                       </MenuItem>
@@ -1195,7 +1198,7 @@ export function EquipmentPage() {
                 });
               }}
             >
-              {EQUIPMENT_TYPES.map((t) => (
+              {MICRO_EQUIPMENT_TYPES.map((t) => (
                 <MenuItem key={t.value} value={t.value}>
                   {t.label}
                 </MenuItem>

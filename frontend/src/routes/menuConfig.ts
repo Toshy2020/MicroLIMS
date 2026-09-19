@@ -71,6 +71,7 @@ const laboratoryConfigurationItem: MenuItem = {
     { label: "After Cleaning", path: "/laboratory-configuration/after-cleaning" },
     { label: "Receiving Configuration", path: "/laboratory-configuration/receiving-configuration" },
     { label: "Equipment", path: "/laboratory-configuration/equipment" },
+    { label: "FP Instruments", path: "/laboratory-configuration/fp-instruments" },
     { label: "Chromatography Columns", path: "/laboratory-configuration/columns" }
   ]
 };

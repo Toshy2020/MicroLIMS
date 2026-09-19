@@ -37,6 +37,7 @@ const APP_ROUTES = {
   RECEIVING_CONFIGURATION: "/laboratory-configuration/receiving-configuration",
   LAB_EQUIPMENT: "/laboratory-configuration/equipment",
   CHROMATOGRAPHY_COLUMNS: "/laboratory-configuration/columns",
+  FP_INSTRUMENTS: "/laboratory-configuration/fp-instruments",
 
   // Inventory & Stock
   INVENTORY_MATERIALS: "/inventory/materials",

@@ -124,6 +124,8 @@ export interface TestOrderSummaryDetail {
   hplcAssay?: HplcAssayDetail | null;
   // Elemental Assay only - the active result, null for other tests.
   elementalAssay?: ElementalAssayDetail | null;
+  // Generic TestAnalysis workflow result, null for other tests.
+  analysis?: AnalysisDetail | null;
   pathogenObservations: PathogenObservationDetail[];
   biochemicalResults: BiochemicalResultDetail[];
   workflowHistory: WorkflowHistoryDetail[];
@@ -285,3 +287,67 @@ export interface ElementalAssayDetail {
   enteredAt: string;
   elements: ElementalAssayElementDetail[];
 }
+
+export type ReadingKind =
+  | "Replicate"
+  | "Unit"
+  | "Vessel"
+  | "TimePoint"
+  | "Weight"
+  | "Titration";
+
+export type ResultBasis = "MgPerKg" | "MgPerUnit" | "PercentLabelClaim";
+
+export type SampleMatrix = "Solid" | "Liquid";
+
+export interface ResultReadingDetail {
+  id: number;
+  kind: ReadingKind;
+  index: number;
+  stage: number | null;
+  timePointMinutes: number | null;
+  value1: number | null;
+  value2: number | null;
+  value3: number | null;
+  text: string | null;
+  computedValue: number | null;
+  passed: boolean | null;
+}
+
+export interface ParameterResultDetail {
+  id: number;
+  specificationId: number;
+  parameterName: string;
+  reportedValue: number | null;
+  reportedDisplay: string;
+  unit: string | null;
+  specLimit: string | null;
+  resultBasis: ResultBasis | null;
+  comparisonStatus: string;
+  overRange: boolean;
+  belowLoq: boolean;
+  validityRecordItemId: number | null;
+  calculationJson: string | null;
+  stageReached: number | null;
+  readings: ResultReadingDetail[];
+}
+
+export interface AnalysisDetail {
+  id: number;
+  testOrderId: number;
+  analysisType: "CountTest" | "Observation" | "HplcAssay" | "ElementalAssay" | string;
+  equipmentId: number | null;
+  equipmentCode: string | null;
+  equipmentName: string | null;
+  analysedAt: string;
+  unitAmount: number | null;
+  sampleMatrix: SampleMatrix | null;
+  conditionsJson: string | null;
+  validityRecordType: string | null;
+  validityRecordId: number | null;
+  enteredByName: string | null;
+  enteredAt: string;
+  comment: string | null;
+  parameterResults: ParameterResultDetail[];
+}
+

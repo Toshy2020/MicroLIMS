@@ -289,6 +289,25 @@ export function buildCoaSimpleRows(testOrders: TestOrderSummaryDetail[]): CoaSim
       });
     }
 
+    if (!t.hplcAssay && t.analysis) {
+      return t.analysis.parameterResults.map((pr) => {
+        const conform = pr.comparisonStatus === "WithinLimits";
+        const isUnconfigured = pr.comparisonStatus === "LimitsNotConfigured";
+        if (!conform) overallComplies = false;
+        return {
+          testOrderId: t.testOrderId,
+          testCode: pr.parameterName ? `${t.testCode}:${pr.parameterName}` : t.testCode,
+          testDisplayName: pr.parameterName || t.testDisplayName,
+          specification: pr.specLimit ? `${pr.specLimit}${pr.unit ? ` ${pr.unit}` : ""}` : null,
+          result: pr.reportedDisplay,
+          analystName: t.analysis!.enteredByName,
+          analystAt: t.analysis!.enteredAt,
+          conform,
+          limitsNotConfigured: isUnconfigured
+        };
+      });
+    }
+
     let result: string;
     let analystName: string | null;
     let analystAt: string | null;

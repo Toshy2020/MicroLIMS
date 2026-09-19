@@ -11,8 +11,15 @@ Recon: `docs/FP_Other_Equation_Types_Phase0_Recon.md`. Style and rules follow
 - G7: **omega-3 by GC is in scope** (Tier 3 GC internal-standard ratio moves up); acid value / peroxide value
   **not sure - left out** until confirmed.
 - One disintegration tester (the duplicate line on the instrument list is the same instrument).
-- Still open (G5 trimming): which tests each product form actually runs; which actives have dissolution / CU specs;
-  how per-unit assay values for CU are produced.
+- Portfolio (2026-09-19): **most products are multivitamins and share one common test set**; the exceptions are
+  the pharmaceutical products **sildenafil, glimepiride, fluconazole**. Consequences for G5:
+  - Tier 1 (measurement, LOD/ash, appearance/ID), disintegration, weight variation and the HPLC/ICP assays cover the
+    multivitamin portfolio - build them first and make them reusable across all items.
+  - Dissolution and content uniformity are expected only on the three pharmaceutical products (confirm per product
+    against its monograph); G2 presets therefore need both the USP dietary-supplement chapters (multivitamins) and the
+    USP/BP medicinal chapters (pharmaceuticals).
+- Still open: the exact common multivitamin test list; which of the three pharmaceuticals carry dissolution / CU
+  specs; how per-unit assay values for CU are produced.
 
 ## Global rules (all types)
 

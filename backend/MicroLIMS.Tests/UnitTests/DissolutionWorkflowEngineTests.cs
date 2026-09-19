@@ -281,4 +281,26 @@ public class DissolutionWorkflowEngineTests
         Assert.Equal("WithinLimits", pr.ComparisonStatus);
         Assert.Equal(12, pr.Readings.Count);
     }
+
+    [Fact]
+    public async Task Relink_AfterStage1_IsBlocked()
+    {
+        using var db = NewDb();
+        var (_, equip, sstRun, _, _, _, order, analyst, _) = SetupDissolutionScenario(db);
+        var engine = TestServiceFactory.TestWorkflow(db);
+
+        await engine.RecordDissolutionResultAsync(order.Id, new DissolutionPayload(
+            AnalysedAt: DateTime.UtcNow,
+            EquipmentId: equip.Id,
+            Conditions: new Dictionary<string, string> { ["Medium"] = "0.01M HCl 900mL", ["RPM"] = "50" },
+            MediumVolumeMl: 900m,
+            DilutionFactor: 1m,
+            VesselAreas: new List<decimal> { 0.4200m, 0.4500m, 0.4500m, 0.4500m, 0.4500m, 0.4500m },
+            Password: "Password123!"), analyst.Id);
+
+        var sst = TestServiceFactory.SystemSuitability(db);
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            sst.LinkTestOrdersAsync(sstRun.Id, new[] { order.Id }, analyst.Id));
+        Assert.Contains("active result already exists", ex.Message);
+    }
 }

@@ -1,8 +1,8 @@
 # MicroLIMS — Build Status (2026-09-19)
 
 Branch: `feat/fp-hplc-foundation` (local only, **never pushed**; nothing applied to production/Neon).
-Local database: **LIMSV2** — all migrations up to `20260921182420_Tier2Disintegration` are applied.
-Last full backend test run (including Postgres): **1692 passed / 0 failed / 0 skipped** (2026-09-21).
+Local database: **LIMSV2** — all migrations up to `20260921193442_Tier2WeightVariation` are applied.
+Last full backend test run (including Postgres): **1729 passed / 0 failed / 0 skipped** (2026-09-21), plus 5 weight-variation boundary tests added after that run (passing).
 Frontend: type check and production build are clean. The project has no frontend unit tests.
 
 ---
@@ -61,6 +61,7 @@ Decisions and designs: `docs/FP_Other_Equation_Types_Phase0_Recon.md` and `docs/
 | 9f758db | **Dissolution backend**: standard from the linked passed suitability run, % dissolved per vessel against the label claim, Q per product, stages S1 (6) / S2 (12) / S3 (24) with configurable offsets; S1/S2 that do not conform **always continue** to the next stage (fail only at S3); a pending stage cannot be submitted or approved; suitability run cannot be relinked once results exist (ae65c89) |
 | e226772 | **Dissolution screens**: stage-by-stage vessel entry, Test Master stage settings, Dissolution Q in the specification dialog |
 | bb6f1b7, 7039aea | **Disintegration backend** (2026-09-21): time limit per product (NMT n min on the specification), time per unit or "not disintegrated"; 6 units, then 12 more if 1-2 fail, at least 16 of 18 (counts set on the Test Master); 3+ failures at stage 1 fail at once; stage 2 judged by the rules captured at stage 1. Screens: unit-time entry per stage, Test Master stage settings, time limit in the specification dialog |
+| 7b8806a, 0d16c08 | **Weight variation backend, USP <2091>** (2026-09-21): dosage form on the specification; USP presets on the Test Master; tablets by average-weight band (at most 2 outside, none beyond double); capsules/softgels with gross and shell weights, intact-capsule shortcut for hard capsules, net contents with 40 more units when 3-6 deviate |
 
 Every new result is electronically signed, audited and limited to its section. Calculations use exact decimals. Values are compared unrounded; only the display is rounded.
 
@@ -86,12 +87,13 @@ Backups taken:
 - `LIMSV2_before_tier1_grav_qual_20260919.dump`
 - `LIMSV2_before_tier2_dissolution_20260919.dump`
 - `LIMSV2_before_tier2_disintegration_20260921.dump`
+- `LIMSV2_before_tier2_weight_variation_20260921.dump`
 
 ---
 
 ## 2. In progress
 
-- Nothing running. Next: weight variation.
+- Weight variation: backend done; screens next.
 
 ---
 
@@ -107,7 +109,7 @@ Backups taken:
 | 5 | Admin backup/restore feature: design questions still unanswered | Requested earlier, not started |
 
 ### 3.2 Remaining build plan (in order)
-1. **Weight variation** (EP 2.9.5 bands). Content uniformity stays deferred.
+1. **Weight variation screens** (backend done 2026-09-21, USP <2091>). Content uniformity stays deferred.
 2. **Multi-vitamin HPLC assay**, if question 1 is answered "build it".
 3. Tier 3, only if confirmed: related substances, omega-3 by GC, and acid/peroxide value.
 

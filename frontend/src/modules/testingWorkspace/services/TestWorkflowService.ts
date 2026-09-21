@@ -167,6 +167,39 @@ export const TestWorkflowService = {
   ): Promise<TestWorkflowResult> =>
     apiClient.post(`/test-workflow/${testOrderId}/record-disintegration-stage`, payload).then((r) => r.data.data),
 
+  // Weight Variation analysis (Stage 1). Signed. Returns TestWorkflowResult.
+  recordWeightVariationResult: (
+    testOrderId: number,
+    payload: {
+      analysedAt: string;
+      equipmentId?: number | null;
+      conditions?: Record<string, string>;
+      units: {
+        weightMg?: number | null;
+        grossMg?: number | null;
+        shellMg?: number | null;
+      }[];
+      password: string;
+      comment?: string | null;
+    }
+  ): Promise<TestWorkflowResult> =>
+    apiClient.post(`/test-workflow/${testOrderId}/record-weight-variation-result`, payload).then((r) => r.data.data),
+
+  // Weight Variation stage progression (Stage 2). Signed. Returns TestWorkflowResult.
+  recordWeightVariationStage: (
+    testOrderId: number,
+    payload: {
+      units: {
+        weightMg?: number | null;
+        grossMg?: number | null;
+        shellMg?: number | null;
+      }[];
+      password: string;
+      comment?: string | null;
+    }
+  ): Promise<TestWorkflowResult> =>
+    apiClient.post(`/test-workflow/${testOrderId}/record-weight-variation-stage`, payload).then((r) => r.data.data),
+
   getLocations: (testOrderId: number) =>
     apiClient.get(`/test-workflow/${testOrderId}/locations`).then((r) => r.data.data),
 

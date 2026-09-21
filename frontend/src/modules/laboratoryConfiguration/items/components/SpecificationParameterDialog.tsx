@@ -32,7 +32,8 @@ import {
   ResultBasis,
   SampleMatrix,
   CreateSpecificationPayload,
-  UpdateSpecificationPayload
+  UpdateSpecificationPayload,
+  DosageForm
 } from "../../specifications/services/SpecificationService";
 import { masterDataOptions, TestAnalyteDto } from "../../../../services/masterDataOptions";
 
@@ -66,7 +67,8 @@ const LIMIT_TYPE_OPTIONS: { value: LimitType; label: string }[] = [
   { value: "PresenceAbsence", label: "Presence / Absence" },
   { value: "MultiStage", label: "Multi-Stage Criteria" },
   { value: "DissolutionQ", label: "Dissolution Q" },
-  { value: "DisintegrationTime", label: "Disintegration Time" }
+  { value: "DisintegrationTime", label: "Disintegration Time" },
+  { value: "WeightVariation", label: "Weight Variation (USP \u003C2091\u003E)" }
 ];
 
 export const getDefaultLimitType = (workflowType?: string): LimitType => {
@@ -74,6 +76,7 @@ export const getDefaultLimitType = (workflowType?: string): LimitType => {
   if (workflowType === "Observation") return "PresenceAbsence";
   if (workflowType === "Dissolution") return "DissolutionQ";
   if (workflowType === "Disintegration") return "DisintegrationTime";
+  if (workflowType === "WeightVariation") return "WeightVariation";
   return "Range";
 };
 
@@ -105,6 +108,7 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
   const [referenceStandard, setReferenceStandard] = useState("");
   const [unit, setUnit] = useState("");
   const [dilutionFactor, setDilutionFactor] = useState("");
+  const [dosageForm, setDosageForm] = useState<DosageForm | "">("");
 
   // CalibrationCurve states
   const [testDefs, setTestDefs] = useState<Record<string, TestDefinitionSummary>>(testDefinitionByCode || {});
@@ -172,6 +176,10 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
     workflowTypeByCode[testCode] === "Disintegration" ||
     currentTestDef?.workflowType === "Disintegration" ||
     limitType === "DisintegrationTime";
+  const isWeightVariation =
+    workflowTypeByCode[testCode] === "WeightVariation" ||
+    currentTestDef?.workflowType === "WeightVariation" ||
+    limitType === "WeightVariation";
 
   useEffect(() => {
     if (!isCalibrationCurve || !currentTestDef?.id) {
@@ -214,6 +222,10 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
       setDilutionFactor(
         editingSpec.dilutionFactor != null ? String(editingSpec.dilutionFactor) : ""
       );
+      setDosageForm((editingSpec.dosageForm as DosageForm) || "");
+      if (editingSpec.limitType === "WeightVariation") {
+        setUnit("mg");
+      }
 
       setTestAnalyteId(editingSpec.testAnalyteId ?? "");
       setResultBasis((editingSpec.resultBasis as ResultBasis) || "MgPerKg");
@@ -268,8 +280,9 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
       setLimitType(defaultType);
 
       setReferenceStandard("");
-      setUnit("");
+      setUnit(defaultType === "WeightVariation" ? "mg" : defaultType === "DisintegrationTime" ? "min" : "");
       setDilutionFactor("");
+      setDosageForm("");
 
       setTestAnalyteId("");
       setResultBasis("MgPerKg");
@@ -315,6 +328,7 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
     const isCal = def?.equationType === "CalibrationCurve";
     const isDis = workflowTypeByCode[newCode] === "Dissolution" || def?.workflowType === "Dissolution";
     const isDisint = workflowTypeByCode[newCode] === "Disintegration" || def?.workflowType === "Disintegration";
+    const isWv = workflowTypeByCode[newCode] === "WeightVariation" || def?.workflowType === "WeightVariation";
 
     if (isCal) {
       setLimitType("Range");
@@ -327,6 +341,11 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
       setLimitType("DisintegrationTime");
       setDilutionFactor("");
       setUnit("min");
+    } else if (isWv) {
+      setLimitType("WeightVariation");
+      setDilutionFactor("");
+      setUnit("mg");
+      setDosageForm("");
     } else {
       const defType = getDefaultLimitType(workflowTypeByCode[newCode]);
       setLimitType(defType);
@@ -454,6 +473,20 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
       }
     }
 
+    if (limitType === "WeightVariation") {
+      if (!dosageForm) {
+        setError("Dosage form is required for Weight Variation specifications.");
+        return;
+      }
+      const otherWvSpec = existingSpecs.find(
+        (s) => s.testCode === testCode && s.id !== editingSpec?.id && s.limitType === "WeightVariation"
+      );
+      if (otherWvSpec) {
+        setError("Only one WeightVariation specification is allowed per test.");
+        return;
+      }
+    }
+
     setSaving(true);
     setError(null);
 
@@ -467,7 +500,13 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
       displayOrder,
       limitType,
       referenceStandard: referenceStandard.trim() || null,
-      unit: limitType === "DisintegrationTime" ? "min" : (unit.trim() || null),
+      unit:
+        limitType === "WeightVariation"
+          ? "mg"
+          : limitType === "DisintegrationTime"
+            ? "min"
+            : (unit.trim() || null),
+      dosageForm: limitType === "WeightVariation" ? (dosageForm || null) : null,
       dilutionFactor:
         !isCalibrationCurve && limitType === "CountTiered" && dilutionFactor.trim() !== ""
           ? Number(dilutionFactor)
@@ -507,11 +546,15 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
       alertLimit: limitType === "CountTiered" ? alertLimit.trim() || "" : null,
       actionLimit: limitType === "CountTiered" ? actionLimit.trim() || "" : null,
       specLimit:
-        limitType === "DisintegrationTime"
-          ? (upperLimit.trim() !== "" ? `NMT ${upperLimit.trim()} min` : null)
-          : (limitType === "DissolutionQ"
-            ? (lowerLimit.trim() !== "" ? `Q = ${lowerLimit.trim()} %` : null)
-            : (limitType === "CountTiered" ? specLimit.trim() : null)),
+        limitType === "WeightVariation"
+          ? (dosageForm === "Tablet"
+            ? "USP <2091>: tablets, limit by average weight"
+            : "USP <2091>: net content 90-110 % of average")
+          : (limitType === "DisintegrationTime"
+            ? (upperLimit.trim() !== "" ? `NMT ${upperLimit.trim()} min` : null)
+            : (limitType === "DissolutionQ"
+              ? (lowerLimit.trim() !== "" ? `Q = ${lowerLimit.trim()} %` : null)
+              : (limitType === "CountTiered" ? specLimit.trim() : null))),
       stages:
         limitType === "MultiStage"
           ? stages.map((s, idx) => ({
@@ -524,13 +567,13 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
       resultBasis: isCalibrationCurve && resultBasis ? (resultBasis as ResultBasis) : null,
       sampleMatrix: isCalibrationCurve && sampleMatrix ? (sampleMatrix as SampleMatrix) : null,
       labelClaim:
-        limitType === "DisintegrationTime"
+        limitType === "WeightVariation" || limitType === "DisintegrationTime"
           ? null
           : (limitType === "DissolutionQ"
             ? (labelClaim.trim() !== "" ? Number(labelClaim) : null)
             : (isCalibrationCurve && labelClaim.trim() !== "" ? Number(labelClaim) : null)),
       labelClaimUnit:
-        limitType === "DisintegrationTime"
+        limitType === "WeightVariation" || limitType === "DisintegrationTime"
           ? null
           : (limitType === "DissolutionQ"
             ? "mg"
@@ -747,7 +790,9 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
               value={limitType}
               onChange={(e) => handleLimitTypeChange(e.target.value as LimitType)}
             >
-              {(isDisintegration
+              {(isWeightVariation
+                ? LIMIT_TYPE_OPTIONS.filter((opt) => opt.value === "WeightVariation")
+                : isDisintegration
                 ? LIMIT_TYPE_OPTIONS.filter((opt) => opt.value === "DisintegrationTime")
                 : isDissolution
                 ? LIMIT_TYPE_OPTIONS.filter((opt) => opt.value === "DissolutionQ")
@@ -755,7 +800,12 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
                 ? LIMIT_TYPE_OPTIONS.filter((opt) =>
                     ["Range", "NotMoreThan", "NotLessThan", "TargetWithTolerance"].includes(opt.value)
                   )
-                : LIMIT_TYPE_OPTIONS.filter((opt) => opt.value !== "DissolutionQ" && opt.value !== "DisintegrationTime")
+                : LIMIT_TYPE_OPTIONS.filter(
+                    (opt) =>
+                      opt.value !== "DissolutionQ" &&
+                      opt.value !== "DisintegrationTime" &&
+                      opt.value !== "WeightVariation"
+                  )
               ).map((opt) => (
                 <MenuItem key={opt.value} value={opt.value}>
                   {opt.label}
@@ -1147,6 +1197,46 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
                 )}
               </Box>
             )}
+
+            {/* Limit Type: WeightVariation */}
+            {limitType === "WeightVariation" && (
+              <Box>
+                <Typography variant="body2" sx={{ fontWeight: 600, mb: 1.5 }}>
+                  Weight Variation Acceptance (USP &lt;2091&gt;)
+                </Typography>
+                <Stack direction={{ xs: "column", sm: "row" }} spacing={2} sx={{ mb: 1.5 }}>
+                  <FormControl size="small" sx={{ flex: 1 }}>
+                    <InputLabel id="wv-dosage-form-label">Dosage Form *</InputLabel>
+                    <Select
+                      labelId="wv-dosage-form-label"
+                      label="Dosage Form *"
+                      value={dosageForm}
+                      onChange={(e) => setDosageForm(e.target.value as DosageForm)}
+                    >
+                      <MenuItem value="Tablet">Tablet</MenuItem>
+                      <MenuItem value="HardCapsule">Hard Capsule</MenuItem>
+                      <MenuItem value="SoftCapsule">Soft Capsule</MenuItem>
+                    </Select>
+                  </FormControl>
+                  <TextField
+                    size="small"
+                    label="Unit"
+                    value="mg"
+                    disabled
+                    helperText="Fixed unit for weight variation"
+                    sx={{ width: 120 }}
+                  />
+                </Stack>
+                <Typography variant="body2" sx={{ color: "text.secondary" }}>
+                  Specification limit display:{" "}
+                  <strong>
+                    {dosageForm === "Tablet"
+                      ? "USP <2091>: tablets, limit by average weight"
+                      : "USP <2091>: net content 90-110 % of average"}
+                  </strong>
+                </Typography>
+              </Box>
+            )}
           </Box>
 
           {/* Row 4: Unit & Reference Standard */}
@@ -1154,10 +1244,16 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
             <TextField
               size="small"
               label="Unit"
-              value={limitType === "DisintegrationTime" ? "min" : unit}
+              value={limitType === "WeightVariation" ? "mg" : limitType === "DisintegrationTime" ? "min" : unit}
               onChange={(e) => setUnit(e.target.value)}
-              disabled={limitType === "DisintegrationTime"}
-              helperText={limitType === "DisintegrationTime" ? "Fixed unit for disintegration time" : undefined}
+              disabled={limitType === "DisintegrationTime" || limitType === "WeightVariation"}
+              helperText={
+                limitType === "WeightVariation"
+                  ? "Fixed unit for weight variation"
+                  : limitType === "DisintegrationTime"
+                  ? "Fixed unit for disintegration time"
+                  : undefined
+              }
               placeholder="e.g. % w/w, CFU/g, pH units"
               fullWidth
             />
@@ -1172,7 +1268,7 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
           </Box>
 
           {/* Row 5: Dilution Factor */}
-          {!isCalibrationCurve && (
+          {!isCalibrationCurve && limitType !== "WeightVariation" && (
             <TextField
               size="small"
               label="Dilution Factor"

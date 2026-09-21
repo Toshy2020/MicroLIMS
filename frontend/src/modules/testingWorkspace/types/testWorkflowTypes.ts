@@ -21,7 +21,8 @@ export type WorkflowType =
   | "Gravimetric"
   | "Qualitative"
   | "Dissolution"
-  | "Disintegration";
+  | "Disintegration"
+  | "WeightVariation";
 
 export interface TestWorkflowResult {
   outcomeSummary: string;

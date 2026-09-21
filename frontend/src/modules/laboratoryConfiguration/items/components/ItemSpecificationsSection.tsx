@@ -104,6 +104,12 @@ const LIMIT_CHIP_STYLES: Record<string, { label: string; color: string; bg: stri
     color: "#0284c7",
     bg: "rgba(2, 132, 199, 0.12)",
     border: "rgba(2, 132, 199, 0.35)"
+  },
+  WeightVariation: {
+    label: "Weight Variation",
+    color: "#7c3aed",
+    bg: "rgba(124, 58, 237, 0.12)",
+    border: "rgba(124, 58, 237, 0.35)"
   }
 };
 
@@ -190,6 +196,15 @@ export const formatLimitCell = (spec: SpecificationDto): string => {
     case "DisintegrationTime": {
       const t = formatTrimmedDecimal(spec.upperLimit);
       return t ? `NMT ${t} min` : spec.specLimit || "\u2014";
+    }
+    case "WeightVariation": {
+      if (spec.dosageForm === "Tablet") {
+        return "USP <2091>: tablets, limit by average weight";
+      }
+      if (spec.dosageForm === "HardCapsule" || spec.dosageForm === "SoftCapsule") {
+        return "USP <2091>: net content 90-110 % of average";
+      }
+      return spec.specLimit || "\u2014";
     }
     default:
       return spec.specLimit || "\u2014";
@@ -426,6 +441,7 @@ export const ItemSpecificationsSection: React.FC<ItemSpecificationsSectionProps>
         <LimitTypeBadge type="MultiStage" labelOverride="Multi-Stage" />
         <LimitTypeBadge type="DissolutionQ" labelOverride="Dissolution Q" />
         <LimitTypeBadge type="DisintegrationTime" labelOverride="Disintegration Time" />
+        <LimitTypeBadge type="WeightVariation" labelOverride="Weight Variation" />
       </Stack>
 
       {error && (

@@ -45,6 +45,19 @@ export interface TestDefinitionOption {
   disintegrationStage2Units?: number | null;
   disintegrationMaxStage1Failures?: number | null;
   disintegrationMinPassTotal?: number | null;
+  wvUnitCount?: number | null;
+  wvTabletBand1MaxMg?: number | null;
+  wvTabletBand1Percent?: number | null;
+  wvTabletBand2MaxMg?: number | null;
+  wvTabletBand2Percent?: number | null;
+  wvTabletBand3Percent?: number | null;
+  wvTabletMaxOutside?: number | null;
+  wvCapsuleInnerPercent?: number | null;
+  wvCapsuleOuterPercent?: number | null;
+  wvCapsuleS1MaxOutside?: number | null;
+  wvCapsuleS1MaxForRetest?: number | null;
+  wvCapsuleS2ExtraUnits?: number | null;
+  wvCapsuleS2MaxOutside?: number | null;
   sectionId?: number;
   section?: {
     id: number;

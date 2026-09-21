@@ -710,34 +710,57 @@ function AnalysisResultBlock({ analysis }: { analysis: AnalysisDetail }) {
         </TableBody>
       </Table>
       {analysis.parameterResults.filter((p) => p.readings.length > 0).map((p) => (
-        <AnalysisReadingsTable key={p.id} parameter={p} />
+        <AnalysisReadingsTable key={p.id} parameter={p} analysisType={analysis.analysisType} />
       ))}
     </Box>
   );
 }
 
 // Raw readings behind one parameter result; only columns with a value are shown.
-function AnalysisReadingsTable({ parameter }: { parameter: ParameterResultDetail }) {
+function AnalysisReadingsTable({ parameter, analysisType }: { parameter: ParameterResultDetail; analysisType?: string }) {
   const cellSx = { fontSize: 12, py: 0.5 };
   const headSx = { fontSize: 11, fontWeight: 700, color: "text.secondary", py: 0.5 };
   const r = parameter.readings;
   const isVessel = r.some((x) => x.kind === "Vessel");
-  const isUnit = r.some((x) => x.kind === "Unit");
+  const isDisintegration = analysisType === "Disintegration";
+  const isWeightVariation = analysisType === "WeightVariation";
+  const isTablet = isWeightVariation && r.every((x) => x.value2 == null);
   type ReadingColumn = { label: string; get: (x: ResultReadingDetail) => string | null };
   const allCols: ReadingColumn[] = [
-    { label: "Stage", get: (x) => (x.stage != null ? (x.kind === "Vessel" || x.kind === "Unit" ? `S${x.stage}` : String(x.stage)) : null) },
-    { label: "Time (min)", get: (x) => (!isUnit && x.timePointMinutes != null ? num(x.timePointMinutes) : null) },
     {
-      label: isVessel ? "Peak Area" : isUnit ? "Time (min)" : "Value 1",
-      get: (x) => (x.value1 != null ? num(x.value1) : isUnit && x.text ? x.text : null)
+      label: "Stage",
+      get: (x) => (x.stage != null ? (isVessel || isDisintegration || isWeightVariation ? `S${x.stage}` : String(x.stage)) : null)
     },
-    { label: "Value 2", get: (x) => (x.value2 != null ? num(x.value2) : null) },
-    { label: "Value 3", get: (x) => (x.value3 != null ? num(x.value3) : null) },
-    { label: "Text", get: (x) => (isUnit ? null : (x.text || null)) },
     {
-      label: isVessel ? "% Dissolved" : "Computed",
+      label: "Time (min)",
+      get: (x) => (!isDisintegration && !isWeightVariation && x.timePointMinutes != null ? num(x.timePointMinutes) : null)
+    },
+    {
+      label: isVessel
+        ? "Peak Area"
+        : isDisintegration
+        ? "Time (min)"
+        : isWeightVariation
+        ? (isTablet ? "Weight (mg)" : "Gross (mg)")
+        : "Value 1",
+      get: (x) => (x.value1 != null ? num(x.value1) : isDisintegration && x.text ? x.text : null)
+    },
+    {
+      label: isWeightVariation ? "Shell (mg)" : "Value 2",
+      get: (x) => (!isTablet && x.value2 != null ? num(x.value2) : null)
+    },
+    {
+      label: isWeightVariation ? "Deviation %" : "Value 3",
+      get: (x) => (x.value3 != null ? (isWeightVariation ? `${num(x.value3)} %` : num(x.value3)) : null)
+    },
+    {
+      label: "Text",
+      get: (x) => (isDisintegration || isWeightVariation ? null : (x.text || null))
+    },
+    {
+      label: isVessel ? "% Dissolved" : isWeightVariation ? "Net (mg)" : "Computed",
       get: (x) =>
-        isUnit
+        isDisintegration || isTablet
           ? null
           : x.computedValue != null
           ? x.kind === "Vessel"
@@ -745,7 +768,10 @@ function AnalysisReadingsTable({ parameter }: { parameter: ParameterResultDetail
             : num(x.computedValue)
           : null
     },
-    { label: "Pass", get: (x) => (x.passed == null ? null : x.passed ? "Pass" : "Fail") }
+    {
+      label: "Pass",
+      get: (x) => (x.passed == null ? null : x.passed ? "Pass" : "Fail")
+    }
   ];
   const cols = allCols.filter((c) => r.some((x) => c.get(x) !== null));
 

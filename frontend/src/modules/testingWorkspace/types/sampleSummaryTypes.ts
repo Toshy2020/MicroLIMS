@@ -335,7 +335,7 @@ export interface ParameterResultDetail {
 export interface AnalysisDetail {
   id: number;
   testOrderId: number;
-  analysisType: "CountTest" | "Observation" | "HplcAssay" | "ElementalAssay" | string;
+  analysisType: "CountTest" | "Observation" | "HplcAssay" | "ElementalAssay" | "Disintegration" | "WeightVariation" | string;
   equipmentId: number | null;
   equipmentCode: string | null;
   equipmentName: string | null;

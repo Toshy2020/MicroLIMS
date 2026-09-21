@@ -10,7 +10,10 @@ export type LimitType =
   | "PresenceAbsence"
   | "MultiStage"
   | "DissolutionQ"
-  | "DisintegrationTime";
+  | "DisintegrationTime"
+  | "WeightVariation";
+
+export type DosageForm = "Tablet" | "HardCapsule" | "SoftCapsule";
 
 export type ToleranceMode = "Absolute" | "Percent";
 
@@ -58,6 +61,7 @@ export interface SpecificationDto {
   labelClaim?: number | string | null;
   labelClaimUnit?: string | null;
   conversionFactor?: number | string | null;
+  dosageForm?: DosageForm | string | null;
 }
 
 export interface CreateSpecificationPayload {
@@ -90,6 +94,7 @@ export interface CreateSpecificationPayload {
   labelClaim?: number | null;
   labelClaimUnit?: string | null;
   conversionFactor?: number | null;
+  dosageForm?: DosageForm | null;
 }
 
 export type UpdateSpecificationPayload = Omit<CreateSpecificationPayload, "itemId">;

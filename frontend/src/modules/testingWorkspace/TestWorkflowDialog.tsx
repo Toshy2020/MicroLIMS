@@ -21,6 +21,7 @@ import { GravimetricPanel } from "./GravimetricPanel";
 import { QualitativePanel } from "./QualitativePanel";
 import { DissolutionPanel } from "./DissolutionPanel";
 import { DisintegrationPanel } from "./DisintegrationPanel";
+import { WeightVariationPanel } from "./WeightVariationPanel";
 import { INCUBATION_WINDOW_NOT_CONFIGURED_MESSAGE } from "./utils/incubationWindow";
 
 interface Props {
@@ -390,6 +391,22 @@ export function TestWorkflowDialog({ testOrderId, testCode, category, displayNam
   if (current.workflowType === "Disintegration") {
     return (
       <DisintegrationPanel
+        testOrderId={testOrderId}
+        displayName={displayName}
+        testCode={testCode}
+        itemId={itemId}
+        sampleId={sampleId}
+        current={current}
+        onRecorded={load}
+        onClose={onClose}
+      />
+    );
+  }
+
+  // Weight Variation workflow (tablet/capsule weight variation, staged S1-S2)
+  if (current.workflowType === "WeightVariation") {
+    return (
+      <WeightVariationPanel
         testOrderId={testOrderId}
         displayName={displayName}
         testCode={testCode}

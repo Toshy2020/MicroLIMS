@@ -59,7 +59,7 @@ export type TestMasterLab = "micro" | "fp";
 const FP_SECTION_CODE = "FP";
 const WORKFLOW_TYPES_BY_LAB: Record<TestMasterLab, string[]> = {
   micro: ["CountTest", "Observation"],
-  fp: ["HplcAssay", "ElementalAssay", "Measurement", "Gravimetric", "Qualitative", "Dissolution", "Disintegration"]
+  fp: ["HplcAssay", "ElementalAssay", "Measurement", "Gravimetric", "Qualitative", "Dissolution", "Disintegration", "WeightVariation"]
 };
 const WORKFLOW_TYPE_LABELS: Record<string, string> = {
   CountTest: "Count Test",
@@ -70,7 +70,8 @@ const WORKFLOW_TYPE_LABELS: Record<string, string> = {
   Gravimetric: "Gravimetric",
   Qualitative: "Qualitative",
   Dissolution: "Dissolution",
-  Disintegration: "Disintegration"
+  Disintegration: "Disintegration",
+  WeightVariation: "Weight Variation"
 };
 
 const EQUATION_TYPES = [
@@ -83,7 +84,8 @@ const EQUATION_TYPES = [
   "GravimetricResidue",
   "Qualitative",
   "Dissolution",
-  "Disintegration"
+  "Disintegration",
+  "WeightVariation"
 ];
 const EQUATION_TYPE_LABELS: Record<string, string> = {
   None: "None",
@@ -95,7 +97,8 @@ const EQUATION_TYPE_LABELS: Record<string, string> = {
   GravimetricResidue: "Ash / Gravimetric residue",
   Qualitative: "Qualitative (appearance, ID)",
   Dissolution: "Dissolution (HPLC finish, staged S1-S3)",
-  Disintegration: "Disintegration (time per unit, staged)"
+  Disintegration: "Disintegration (time per unit, staged)",
+  WeightVariation: "Weight Variation (USP <2091>, staged)"
 };
 const STEP_TYPES = ["PlateCount", "BrothEnrichment", "SelectiveBroth", "SelectivePlating", "ConfirmatoryPlating", "BiochemicalTest"];
 const STEP_TYPES_REQUIRING_ORGANISM = ["SelectivePlating", "ConfirmatoryPlating"];
@@ -928,6 +931,41 @@ function WorkflowStepsSection({ test, workflowTypes, onWorkflowTypeChanged }: { 
             Disintegration tests have no workflow steps: staged unit times (S1: {test.disintegrationStage1Units ?? 6}, S2: +{test.disintegrationStage2Units ?? 12}) and condition fields are entered directly.
           </Typography>
         </Box>
+      ) : test.workflowType === "WeightVariation" ? (
+        <Box sx={{ p: 2, bgcolor: "background.paper", borderRadius: 1, border: "1px solid", borderColor: "divider" }}>
+          <Typography sx={{ fontWeight: 700, fontSize: 12, mb: 1, color: "primary.main" }}>
+            Weight Variation Configuration (USP &lt;2091&gt;)
+          </Typography>
+          <Stack direction="row" spacing={3} sx={{ flexWrap: "wrap", alignItems: "center", mb: 1 }}>
+            <Box>
+              <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>Equation Type</Typography>
+              <Typography variant="body2" sx={{ fontWeight: 600 }}>{EQUATION_TYPE_LABELS[test.equationType ?? "WeightVariation"] ?? test.equationType}</Typography>
+            </Box>
+            <Box>
+              <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>Unit Count</Typography>
+              <Typography variant="body2" sx={{ fontWeight: 600 }}>{test.wvUnitCount ?? 20}</Typography>
+            </Box>
+            <Box>
+              <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>Tablets (Bands / Max Out)</Typography>
+              <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                &le;{test.wvTabletBand1MaxMg ?? 130}mg: {test.wvTabletBand1Percent ?? 10}% | &le;{test.wvTabletBand2MaxMg ?? 324}mg: {test.wvTabletBand2Percent ?? 7.5}% | &gt;324mg: {test.wvTabletBand3Percent ?? 5}% (max {test.wvTabletMaxOutside ?? 2} out)
+              </Typography>
+            </Box>
+            <Box>
+              <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>Capsules (Limits / Retest)</Typography>
+              <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                &plusmn;{test.wvCapsuleInnerPercent ?? 10}% / &plusmn;{test.wvCapsuleOuterPercent ?? 25}% (S1: &le;{test.wvCapsuleS1MaxOutside ?? 2} pass, &le;{test.wvCapsuleS1MaxForRetest ?? 6} retest +{test.wvCapsuleS2ExtraUnits ?? 40} units, S2: &le;{test.wvCapsuleS2MaxOutside ?? 6} out)
+              </Typography>
+            </Box>
+            <Box>
+              <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>Condition Fields</Typography>
+              <Typography variant="body2">{test.conditionFields || "None configured"}</Typography>
+            </Box>
+          </Stack>
+          <Typography variant="body2" sx={{ color: "text.secondary" }}>
+            Weight Variation tests have no workflow steps: unit weights (or gross and shell weights) and condition fields are entered directly.
+          </Typography>
+        </Box>
       ) : (
       <>
       {steps.length > 0 ? (
@@ -1360,6 +1398,20 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
   const [disintegrationMaxStage1Failures, setDisintegrationMaxStage1Failures] = useState<string>("2");
   const [disintegrationMinPassTotal, setDisintegrationMinPassTotal] = useState<string>("16");
 
+  const [wvUnitCount, setWvUnitCount] = useState<string>("20");
+  const [wvTabletBand1MaxMg, setWvTabletBand1MaxMg] = useState<string>("130");
+  const [wvTabletBand1Percent, setWvTabletBand1Percent] = useState<string>("10");
+  const [wvTabletBand2MaxMg, setWvTabletBand2MaxMg] = useState<string>("324");
+  const [wvTabletBand2Percent, setWvTabletBand2Percent] = useState<string>("7.5");
+  const [wvTabletBand3Percent, setWvTabletBand3Percent] = useState<string>("5");
+  const [wvTabletMaxOutside, setWvTabletMaxOutside] = useState<string>("2");
+  const [wvCapsuleInnerPercent, setWvCapsuleInnerPercent] = useState<string>("10");
+  const [wvCapsuleOuterPercent, setWvCapsuleOuterPercent] = useState<string>("25");
+  const [wvCapsuleS1MaxOutside, setWvCapsuleS1MaxOutside] = useState<string>("2");
+  const [wvCapsuleS1MaxForRetest, setWvCapsuleS1MaxForRetest] = useState<string>("6");
+  const [wvCapsuleS2ExtraUnits, setWvCapsuleS2ExtraUnits] = useState<string>("40");
+  const [wvCapsuleS2MaxOutside, setWvCapsuleS2MaxOutside] = useState<string>("6");
+
   const [dialogOpen, setDialogOpen] = useState(false);
   const [dialogError, setDialogError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -1418,6 +1470,19 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
     setDisintegrationStage2Units("12");
     setDisintegrationMaxStage1Failures("2");
     setDisintegrationMinPassTotal("16");
+    setWvUnitCount("20");
+    setWvTabletBand1MaxMg("130");
+    setWvTabletBand1Percent("10");
+    setWvTabletBand2MaxMg("324");
+    setWvTabletBand2Percent("7.5");
+    setWvTabletBand3Percent("5");
+    setWvTabletMaxOutside("2");
+    setWvCapsuleInnerPercent("10");
+    setWvCapsuleOuterPercent("25");
+    setWvCapsuleS1MaxOutside("2");
+    setWvCapsuleS1MaxForRetest("6");
+    setWvCapsuleS2ExtraUnits("40");
+    setWvCapsuleS2MaxOutside("6");
     setDialogError(null);
     setDialogOpen(true);
   };
@@ -1430,8 +1495,8 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
     setSectionId(t.sectionId ?? (mySections.length === 1 ? mySections[0].sectionId : ""));
     setEditingSectionId(t.sectionId ?? null);
     setWorkflowType(t.workflowType || defaultWorkflowType);
-    setEquationType(t.equationType || (t.workflowType === "ElementalAssay" ? "CalibrationCurve" : t.workflowType === "HplcAssay" ? "HplcAssay" : t.workflowType === "Measurement" ? "Measurement" : t.workflowType === "Gravimetric" ? "GravimetricLoss" : t.workflowType === "Qualitative" ? "Qualitative" : t.workflowType === "Dissolution" ? "Dissolution" : t.workflowType === "Disintegration" ? "Disintegration" : "None"));
-    setRequiresSystemSuitability(t.workflowType === "Dissolution" ? true : t.workflowType === "Disintegration" ? false : !!t.requiresSystemSuitability);
+    setEquationType(t.equationType || (t.workflowType === "ElementalAssay" ? "CalibrationCurve" : t.workflowType === "HplcAssay" ? "HplcAssay" : t.workflowType === "Measurement" ? "Measurement" : t.workflowType === "Gravimetric" ? "GravimetricLoss" : t.workflowType === "Qualitative" ? "Qualitative" : t.workflowType === "Dissolution" ? "Dissolution" : t.workflowType === "Disintegration" ? "Disintegration" : t.workflowType === "WeightVariation" ? "WeightVariation" : "None"));
+    setRequiresSystemSuitability(t.workflowType === "Dissolution" ? true : (t.workflowType === "Disintegration" || t.workflowType === "WeightVariation") ? false : !!t.requiresSystemSuitability);
     setMethodAbbreviation(t.methodAbbreviation ?? "");
     setSstMaxRsdPercent(t.sstMaxRsdPercent != null ? String(t.sstMaxRsdPercent) : "");
     setSstMinResolution(t.sstMinResolution != null ? String(t.sstMinResolution) : "");
@@ -1462,6 +1527,19 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
     setDisintegrationStage2Units(t.disintegrationStage2Units != null ? String(t.disintegrationStage2Units) : "12");
     setDisintegrationMaxStage1Failures(t.disintegrationMaxStage1Failures != null ? String(t.disintegrationMaxStage1Failures) : "2");
     setDisintegrationMinPassTotal(t.disintegrationMinPassTotal != null ? String(t.disintegrationMinPassTotal) : "16");
+    setWvUnitCount(t.wvUnitCount != null ? String(t.wvUnitCount) : "20");
+    setWvTabletBand1MaxMg(t.wvTabletBand1MaxMg != null ? String(t.wvTabletBand1MaxMg) : "130");
+    setWvTabletBand1Percent(t.wvTabletBand1Percent != null ? String(t.wvTabletBand1Percent) : "10");
+    setWvTabletBand2MaxMg(t.wvTabletBand2MaxMg != null ? String(t.wvTabletBand2MaxMg) : "324");
+    setWvTabletBand2Percent(t.wvTabletBand2Percent != null ? String(t.wvTabletBand2Percent) : "7.5");
+    setWvTabletBand3Percent(t.wvTabletBand3Percent != null ? String(t.wvTabletBand3Percent) : "5");
+    setWvTabletMaxOutside(t.wvTabletMaxOutside != null ? String(t.wvTabletMaxOutside) : "2");
+    setWvCapsuleInnerPercent(t.wvCapsuleInnerPercent != null ? String(t.wvCapsuleInnerPercent) : "10");
+    setWvCapsuleOuterPercent(t.wvCapsuleOuterPercent != null ? String(t.wvCapsuleOuterPercent) : "25");
+    setWvCapsuleS1MaxOutside(t.wvCapsuleS1MaxOutside != null ? String(t.wvCapsuleS1MaxOutside) : "2");
+    setWvCapsuleS1MaxForRetest(t.wvCapsuleS1MaxForRetest != null ? String(t.wvCapsuleS1MaxForRetest) : "6");
+    setWvCapsuleS2ExtraUnits(t.wvCapsuleS2ExtraUnits != null ? String(t.wvCapsuleS2ExtraUnits) : "40");
+    setWvCapsuleS2MaxOutside(t.wvCapsuleS2MaxOutside != null ? String(t.wvCapsuleS2MaxOutside) : "6");
     setDialogError(null);
     setDialogOpen(true);
   };
@@ -1532,6 +1610,7 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
     }
 
     const isDisintegration = workflowType === "Disintegration";
+    const isWeightVariation = workflowType === "WeightVariation";
 
     if (isDisintegration) {
       const s1 = disintegrationStage1Units.trim() !== "" ? Number(disintegrationStage1Units) : 6;
@@ -1549,6 +1628,60 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
       }
       if (isNaN(minPass) || minPass < 1 || minPass > (s1 + s2)) {
         setDialogError(`Disintegration minimum pass total must be between 1 and ${s1 + s2}.`);
+        return;
+      }
+      if (conditionFields.length > 500) {
+        setDialogError("Condition fields cannot exceed 500 characters.");
+        return;
+      }
+    }
+
+    if (isWeightVariation) {
+      const uCount = wvUnitCount.trim() !== "" ? Number(wvUnitCount) : 20;
+      const b1Mg = wvTabletBand1MaxMg.trim() !== "" ? Number(wvTabletBand1MaxMg) : 130;
+      const b1Pct = wvTabletBand1Percent.trim() !== "" ? Number(wvTabletBand1Percent) : 10;
+      const b2Mg = wvTabletBand2MaxMg.trim() !== "" ? Number(wvTabletBand2MaxMg) : 324;
+      const b2Pct = wvTabletBand2Percent.trim() !== "" ? Number(wvTabletBand2Percent) : 7.5;
+      const b3Pct = wvTabletBand3Percent.trim() !== "" ? Number(wvTabletBand3Percent) : 5;
+      const tabMaxOut = wvTabletMaxOutside.trim() !== "" ? Number(wvTabletMaxOutside) : 2;
+
+      const capInner = wvCapsuleInnerPercent.trim() !== "" ? Number(wvCapsuleInnerPercent) : 10;
+      const capOuter = wvCapsuleOuterPercent.trim() !== "" ? Number(wvCapsuleOuterPercent) : 25;
+      const capS1Out = wvCapsuleS1MaxOutside.trim() !== "" ? Number(wvCapsuleS1MaxOutside) : 2;
+      const capS1Retest = wvCapsuleS1MaxForRetest.trim() !== "" ? Number(wvCapsuleS1MaxForRetest) : 6;
+      const capS2Extra = wvCapsuleS2ExtraUnits.trim() !== "" ? Number(wvCapsuleS2ExtraUnits) : 40;
+      const capS2Out = wvCapsuleS2MaxOutside.trim() !== "" ? Number(wvCapsuleS2MaxOutside) : 6;
+
+      if (isNaN(uCount) || uCount < 1 || isNaN(capS2Extra) || capS2Extra < 1) {
+        setDialogError("Weight variation unit count and extra units must be greater than or equal to 1.");
+        return;
+      }
+      if (isNaN(tabMaxOut) || tabMaxOut < 0 || isNaN(capS1Out) || capS1Out < 0 || isNaN(capS2Out) || capS2Out < 0) {
+        setDialogError("Weight variation maximum outside counts must be greater than or equal to 0.");
+        return;
+      }
+      if (isNaN(b1Mg) || b1Mg <= 0 || isNaN(b2Mg) || b2Mg <= 0) {
+        setDialogError("Weight variation tablet band weight limits must be greater than zero.");
+        return;
+      }
+      if (isNaN(b1Pct) || b1Pct <= 0 || isNaN(b2Pct) || b2Pct <= 0 || isNaN(b3Pct) || b3Pct <= 0 || isNaN(capInner) || capInner <= 0 || isNaN(capOuter) || capOuter <= 0) {
+        setDialogError("Weight variation percentages must be greater than zero.");
+        return;
+      }
+      if (b1Mg >= b2Mg) {
+        setDialogError("Weight variation Tablet Band 1 Max Mg must be less than Band 2 Max Mg.");
+        return;
+      }
+      if (capInner >= capOuter) {
+        setDialogError("Weight variation capsule inner percentage must be less than outer percentage.");
+        return;
+      }
+      if (capS1Out >= capS1Retest || capS1Retest > uCount) {
+        setDialogError("Weight variation capsule Stage 1 max outside must be less than Stage 1 max for retest, which must be less than or equal to unit count.");
+        return;
+      }
+      if (capS2Out >= uCount + capS2Extra) {
+        setDialogError(`Weight variation capsule Stage 2 max outside must be less than total units (${uCount + capS2Extra}).`);
         return;
       }
       if (conditionFields.length > 500) {
@@ -1654,6 +1787,8 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
         ? "Dissolution"
         : isDisintegration
         ? "Disintegration"
+        : isWeightVariation
+        ? "WeightVariation"
         : "None";
 
       if (editingId) {
@@ -1686,7 +1821,7 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
           calMaxRunAgeHours: isCalCurve ? (calMaxRunAgeHours.trim() !== "" ? Number(calMaxRunAgeHours) : 24) : null,
           replicateCount: (isMeasurement || isGravimetric) ? Number(replicateCount) : null,
           evaluationBasis: isMeasurement ? evaluationBasis : null,
-          conditionFields: (isGravimetric || isDissolution || isDisintegration) ? (conditionFields.trim() || null) : null,
+          conditionFields: (isGravimetric || isDissolution || isDisintegration || isWeightVariation) ? (conditionFields.trim() || null) : null,
           usesTare: isGravimetric ? usesTare : null,
           dissolutionS1Offset: isDissolution ? (dissolutionS1Offset.trim() !== "" ? Number(dissolutionS1Offset) : 5) : null,
           dissolutionS2MinOffset: isDissolution ? (dissolutionS2MinOffset.trim() !== "" ? Number(dissolutionS2MinOffset) : 15) : null,
@@ -1695,7 +1830,20 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
           disintegrationStage1Units: isDisintegration ? (disintegrationStage1Units.trim() !== "" ? Number(disintegrationStage1Units) : 6) : null,
           disintegrationStage2Units: isDisintegration ? (disintegrationStage2Units.trim() !== "" ? Number(disintegrationStage2Units) : 12) : null,
           disintegrationMaxStage1Failures: isDisintegration ? (disintegrationMaxStage1Failures.trim() !== "" ? Number(disintegrationMaxStage1Failures) : 2) : null,
-          disintegrationMinPassTotal: isDisintegration ? (disintegrationMinPassTotal.trim() !== "" ? Number(disintegrationMinPassTotal) : 16) : null
+          disintegrationMinPassTotal: isDisintegration ? (disintegrationMinPassTotal.trim() !== "" ? Number(disintegrationMinPassTotal) : 16) : null,
+          wvUnitCount: isWeightVariation ? (wvUnitCount.trim() !== "" ? Number(wvUnitCount) : 20) : null,
+          wvTabletBand1MaxMg: isWeightVariation ? (wvTabletBand1MaxMg.trim() !== "" ? Number(wvTabletBand1MaxMg) : 130) : null,
+          wvTabletBand1Percent: isWeightVariation ? (wvTabletBand1Percent.trim() !== "" ? Number(wvTabletBand1Percent) : 10) : null,
+          wvTabletBand2MaxMg: isWeightVariation ? (wvTabletBand2MaxMg.trim() !== "" ? Number(wvTabletBand2MaxMg) : 324) : null,
+          wvTabletBand2Percent: isWeightVariation ? (wvTabletBand2Percent.trim() !== "" ? Number(wvTabletBand2Percent) : 7.5) : null,
+          wvTabletBand3Percent: isWeightVariation ? (wvTabletBand3Percent.trim() !== "" ? Number(wvTabletBand3Percent) : 5) : null,
+          wvTabletMaxOutside: isWeightVariation ? (wvTabletMaxOutside.trim() !== "" ? Number(wvTabletMaxOutside) : 2) : null,
+          wvCapsuleInnerPercent: isWeightVariation ? (wvCapsuleInnerPercent.trim() !== "" ? Number(wvCapsuleInnerPercent) : 10) : null,
+          wvCapsuleOuterPercent: isWeightVariation ? (wvCapsuleOuterPercent.trim() !== "" ? Number(wvCapsuleOuterPercent) : 25) : null,
+          wvCapsuleS1MaxOutside: isWeightVariation ? (wvCapsuleS1MaxOutside.trim() !== "" ? Number(wvCapsuleS1MaxOutside) : 2) : null,
+          wvCapsuleS1MaxForRetest: isWeightVariation ? (wvCapsuleS1MaxForRetest.trim() !== "" ? Number(wvCapsuleS1MaxForRetest) : 6) : null,
+          wvCapsuleS2ExtraUnits: isWeightVariation ? (wvCapsuleS2ExtraUnits.trim() !== "" ? Number(wvCapsuleS2ExtraUnits) : 40) : null,
+          wvCapsuleS2MaxOutside: isWeightVariation ? (wvCapsuleS2MaxOutside.trim() !== "" ? Number(wvCapsuleS2MaxOutside) : 6) : null
         };
         await update(editingId, payload);
         setMessage({ text: `Test "${trimmedCode}" updated.`, ok: true });
@@ -1729,7 +1877,7 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
           calMaxRunAgeHours: isCalCurve ? (calMaxRunAgeHours.trim() !== "" ? Number(calMaxRunAgeHours) : 24) : null,
           replicateCount: (isMeasurement || isGravimetric) ? Number(replicateCount) : null,
           evaluationBasis: isMeasurement ? evaluationBasis : null,
-          conditionFields: (isGravimetric || isDissolution || isDisintegration) ? (conditionFields.trim() || null) : null,
+          conditionFields: (isGravimetric || isDissolution || isDisintegration || isWeightVariation) ? (conditionFields.trim() || null) : null,
           usesTare: isGravimetric ? usesTare : null,
           dissolutionS1Offset: isDissolution ? (dissolutionS1Offset.trim() !== "" ? Number(dissolutionS1Offset) : 5) : null,
           dissolutionS2MinOffset: isDissolution ? (dissolutionS2MinOffset.trim() !== "" ? Number(dissolutionS2MinOffset) : 15) : null,
@@ -1738,7 +1886,20 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
           disintegrationStage1Units: isDisintegration ? (disintegrationStage1Units.trim() !== "" ? Number(disintegrationStage1Units) : 6) : null,
           disintegrationStage2Units: isDisintegration ? (disintegrationStage2Units.trim() !== "" ? Number(disintegrationStage2Units) : 12) : null,
           disintegrationMaxStage1Failures: isDisintegration ? (disintegrationMaxStage1Failures.trim() !== "" ? Number(disintegrationMaxStage1Failures) : 2) : null,
-          disintegrationMinPassTotal: isDisintegration ? (disintegrationMinPassTotal.trim() !== "" ? Number(disintegrationMinPassTotal) : 16) : null
+          disintegrationMinPassTotal: isDisintegration ? (disintegrationMinPassTotal.trim() !== "" ? Number(disintegrationMinPassTotal) : 16) : null,
+          wvUnitCount: isWeightVariation ? (wvUnitCount.trim() !== "" ? Number(wvUnitCount) : 20) : null,
+          wvTabletBand1MaxMg: isWeightVariation ? (wvTabletBand1MaxMg.trim() !== "" ? Number(wvTabletBand1MaxMg) : 130) : null,
+          wvTabletBand1Percent: isWeightVariation ? (wvTabletBand1Percent.trim() !== "" ? Number(wvTabletBand1Percent) : 10) : null,
+          wvTabletBand2MaxMg: isWeightVariation ? (wvTabletBand2MaxMg.trim() !== "" ? Number(wvTabletBand2MaxMg) : 324) : null,
+          wvTabletBand2Percent: isWeightVariation ? (wvTabletBand2Percent.trim() !== "" ? Number(wvTabletBand2Percent) : 7.5) : null,
+          wvTabletBand3Percent: isWeightVariation ? (wvTabletBand3Percent.trim() !== "" ? Number(wvTabletBand3Percent) : 5) : null,
+          wvTabletMaxOutside: isWeightVariation ? (wvTabletMaxOutside.trim() !== "" ? Number(wvTabletMaxOutside) : 2) : null,
+          wvCapsuleInnerPercent: isWeightVariation ? (wvCapsuleInnerPercent.trim() !== "" ? Number(wvCapsuleInnerPercent) : 10) : null,
+          wvCapsuleOuterPercent: isWeightVariation ? (wvCapsuleOuterPercent.trim() !== "" ? Number(wvCapsuleOuterPercent) : 25) : null,
+          wvCapsuleS1MaxOutside: isWeightVariation ? (wvCapsuleS1MaxOutside.trim() !== "" ? Number(wvCapsuleS1MaxOutside) : 2) : null,
+          wvCapsuleS1MaxForRetest: isWeightVariation ? (wvCapsuleS1MaxForRetest.trim() !== "" ? Number(wvCapsuleS1MaxForRetest) : 6) : null,
+          wvCapsuleS2ExtraUnits: isWeightVariation ? (wvCapsuleS2ExtraUnits.trim() !== "" ? Number(wvCapsuleS2ExtraUnits) : 40) : null,
+          wvCapsuleS2MaxOutside: isWeightVariation ? (wvCapsuleS2MaxOutside.trim() !== "" ? Number(wvCapsuleS2MaxOutside) : 6) : null
         };
         await addNew(payload);
         setMessage({ text: `Test "${trimmedCode}" added to the Test Master.`, ok: true });
@@ -1840,6 +2001,15 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
                           color="info"
                           variant="outlined"
                           label="Disintegration"
+                          sx={{ height: 20, fontSize: "0.68rem", fontWeight: 700 }}
+                        />
+                      )}
+                      {t.workflowType === "WeightVariation" && (
+                        <Chip
+                          size="small"
+                          color="info"
+                          variant="outlined"
+                          label="Weight Variation"
                           sx={{ height: 20, fontSize: "0.68rem", fontWeight: 700 }}
                         />
                       )}
@@ -1997,6 +2167,9 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
                   } else if (next === "Disintegration") {
                     setEquationType("Disintegration");
                     setRequiresSystemSuitability(false);
+                  } else if (next === "WeightVariation") {
+                    setEquationType("WeightVariation");
+                    setRequiresSystemSuitability(false);
                   } else {
                     setEquationType("None");
                     setRequiresSystemSuitability(false);
@@ -2025,6 +2198,9 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
                   if (next === "Disintegration") {
                     setWorkflowType("Disintegration");
                     setRequiresSystemSuitability(false);
+                  } else if (next === "WeightVariation") {
+                    setWorkflowType("WeightVariation");
+                    setRequiresSystemSuitability(false);
                   } else if (next === "Dissolution") {
                     setWorkflowType("Dissolution");
                     setRequiresSystemSuitability(true);
@@ -2037,11 +2213,14 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
                   if (workflowType === "Disintegration") {
                     return eq === "Disintegration";
                   }
+                  if (workflowType === "WeightVariation") {
+                    return eq === "WeightVariation";
+                  }
                   if (workflowType === "Dissolution") {
                     return eq === "Dissolution";
                   }
                   if (workflowType === "HplcAssay") {
-                    return eq !== "CalibrationCurve" && eq !== "Measurement" && eq !== "GravimetricLoss" && eq !== "GravimetricResidue" && eq !== "Qualitative" && eq !== "Dissolution" && eq !== "Disintegration";
+                    return eq !== "CalibrationCurve" && eq !== "Measurement" && eq !== "GravimetricLoss" && eq !== "GravimetricResidue" && eq !== "Qualitative" && eq !== "Dissolution" && eq !== "Disintegration" && eq !== "WeightVariation";
                   }
                   if (workflowType === "ElementalAssay") {
                     return eq === "CalibrationCurve" || eq === "None";
@@ -2055,7 +2234,7 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
                   if (workflowType === "Qualitative") {
                     return eq === "Qualitative";
                   }
-                  return eq !== "HplcAssay" && eq !== "HplcUniformityOfDosageUnits" && eq !== "HplcDissolutionMultiPoint" && eq !== "Measurement" && eq !== "GravimetricLoss" && eq !== "GravimetricResidue" && eq !== "Qualitative" && eq !== "Dissolution" && eq !== "Disintegration";
+                  return eq !== "HplcAssay" && eq !== "HplcUniformityOfDosageUnits" && eq !== "HplcDissolutionMultiPoint" && eq !== "Measurement" && eq !== "GravimetricLoss" && eq !== "GravimetricResidue" && eq !== "Qualitative" && eq !== "Dissolution" && eq !== "Disintegration" && eq !== "WeightVariation";
                 }).map((eq) => (
                   <MenuItem key={eq} value={eq}>
                     {EQUATION_TYPE_LABELS[eq] ?? eq}
@@ -2272,6 +2451,187 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
                   value={conditionFields}
                   onChange={(e) => setConditionFields(e.target.value)}
                   helperText="comma-separated, e.g. Medium,Temperature (°C),Discs"
+                  slotProps={{ htmlInput: { maxLength: 500 } }}
+                  fullWidth
+                />
+              </Stack>
+            </Box>
+          )}
+
+          {workflowType === "WeightVariation" && (
+            <Box sx={{ p: 2, bgcolor: "action.hover", borderRadius: 1, border: "1px solid", borderColor: "divider" }}>
+              <Typography sx={{ fontWeight: 700, fontSize: 13, mb: 1.5 }}>
+                Weight Variation Acceptance (USP &lt;2091&gt;)
+              </Typography>
+              <Stack spacing={2}>
+                <TextField
+                  size="small"
+                  type="number"
+                  label="Unit Count (Stage 1)"
+                  value={wvUnitCount}
+                  onChange={(e) => setWvUnitCount(e.target.value)}
+                  slotProps={{ htmlInput: { min: 1, step: 1 } }}
+                  helperText="Default: 20"
+                  sx={{ maxWidth: 220 }}
+                />
+
+                {/* Group: Tablets */}
+                <Box sx={{ p: 1.5, bgcolor: "background.paper", borderRadius: 1, border: "1px solid", borderColor: "divider" }}>
+                  <Typography sx={{ fontWeight: 700, fontSize: 12, mb: 1.5, color: "text.secondary" }}>
+                    Tablets
+                  </Typography>
+                  <Stack spacing={2}>
+                    <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
+                      <TextField
+                        size="small"
+                        type="number"
+                        label="Band 1 Max (mg)"
+                        value={wvTabletBand1MaxMg}
+                        onChange={(e) => setWvTabletBand1MaxMg(e.target.value)}
+                        slotProps={{ htmlInput: { min: 0.01, step: "any" } }}
+                        helperText="Default: 130"
+                        sx={{ flex: 1 }}
+                      />
+                      <TextField
+                        size="small"
+                        type="number"
+                        label="Band 1 Deviation (%)"
+                        value={wvTabletBand1Percent}
+                        onChange={(e) => setWvTabletBand1Percent(e.target.value)}
+                        slotProps={{ htmlInput: { min: 0.01, step: "any" } }}
+                        helperText="Default: 10"
+                        sx={{ flex: 1 }}
+                      />
+                    </Stack>
+                    <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
+                      <TextField
+                        size="small"
+                        type="number"
+                        label="Band 2 Max (mg)"
+                        value={wvTabletBand2MaxMg}
+                        onChange={(e) => setWvTabletBand2MaxMg(e.target.value)}
+                        slotProps={{ htmlInput: { min: 0.01, step: "any" } }}
+                        helperText="Default: 324"
+                        sx={{ flex: 1 }}
+                      />
+                      <TextField
+                        size="small"
+                        type="number"
+                        label="Band 2 Deviation (%)"
+                        value={wvTabletBand2Percent}
+                        onChange={(e) => setWvTabletBand2Percent(e.target.value)}
+                        slotProps={{ htmlInput: { min: 0.01, step: "any" } }}
+                        helperText="Default: 7.5"
+                        sx={{ flex: 1 }}
+                      />
+                    </Stack>
+                    <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
+                      <TextField
+                        size="small"
+                        type="number"
+                        label="Band 3 Deviation (%)"
+                        value={wvTabletBand3Percent}
+                        onChange={(e) => setWvTabletBand3Percent(e.target.value)}
+                        slotProps={{ htmlInput: { min: 0.01, step: "any" } }}
+                        helperText="Default: 5 (> Band 2)"
+                        sx={{ flex: 1 }}
+                      />
+                      <TextField
+                        size="small"
+                        type="number"
+                        label="Max Outside Count"
+                        value={wvTabletMaxOutside}
+                        onChange={(e) => setWvTabletMaxOutside(e.target.value)}
+                        slotProps={{ htmlInput: { min: 0, step: 1 } }}
+                        helperText="Default: 2"
+                        sx={{ flex: 1 }}
+                      />
+                    </Stack>
+                  </Stack>
+                </Box>
+
+                {/* Group: Capsules */}
+                <Box sx={{ p: 1.5, bgcolor: "background.paper", borderRadius: 1, border: "1px solid", borderColor: "divider" }}>
+                  <Typography sx={{ fontWeight: 700, fontSize: 12, mb: 1.5, color: "text.secondary" }}>
+                    Capsules
+                  </Typography>
+                  <Stack spacing={2}>
+                    <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
+                      <TextField
+                        size="small"
+                        type="number"
+                        label="Inner Limit (%)"
+                        value={wvCapsuleInnerPercent}
+                        onChange={(e) => setWvCapsuleInnerPercent(e.target.value)}
+                        slotProps={{ htmlInput: { min: 0.01, step: "any" } }}
+                        helperText="Default: 10"
+                        sx={{ flex: 1 }}
+                      />
+                      <TextField
+                        size="small"
+                        type="number"
+                        label="Outer Limit (%)"
+                        value={wvCapsuleOuterPercent}
+                        onChange={(e) => setWvCapsuleOuterPercent(e.target.value)}
+                        slotProps={{ htmlInput: { min: 0.01, step: "any" } }}
+                        helperText="Default: 25"
+                        sx={{ flex: 1 }}
+                      />
+                    </Stack>
+                    <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
+                      <TextField
+                        size="small"
+                        type="number"
+                        label="Stage 1 Max Outside"
+                        value={wvCapsuleS1MaxOutside}
+                        onChange={(e) => setWvCapsuleS1MaxOutside(e.target.value)}
+                        slotProps={{ htmlInput: { min: 0, step: 1 } }}
+                        helperText="Default: 2 (pass without retest)"
+                        sx={{ flex: 1 }}
+                      />
+                      <TextField
+                        size="small"
+                        type="number"
+                        label="Stage 1 Max For Retest"
+                        value={wvCapsuleS1MaxForRetest}
+                        onChange={(e) => setWvCapsuleS1MaxForRetest(e.target.value)}
+                        slotProps={{ htmlInput: { min: 0, step: 1 } }}
+                        helperText="Default: 6 (qualifies for S2)"
+                        sx={{ flex: 1 }}
+                      />
+                    </Stack>
+                    <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
+                      <TextField
+                        size="small"
+                        type="number"
+                        label="Stage 2 Extra Units"
+                        value={wvCapsuleS2ExtraUnits}
+                        onChange={(e) => setWvCapsuleS2ExtraUnits(e.target.value)}
+                        slotProps={{ htmlInput: { min: 1, step: 1 } }}
+                        helperText="Default: 40"
+                        sx={{ flex: 1 }}
+                      />
+                      <TextField
+                        size="small"
+                        type="number"
+                        label="Stage 2 Max Outside"
+                        value={wvCapsuleS2MaxOutside}
+                        onChange={(e) => setWvCapsuleS2MaxOutside(e.target.value)}
+                        slotProps={{ htmlInput: { min: 0, step: 1 } }}
+                        helperText="Default: 6 (across S1+S2)"
+                        sx={{ flex: 1 }}
+                      />
+                    </Stack>
+                  </Stack>
+                </Box>
+
+                <TextField
+                  size="small"
+                  label="Condition fields"
+                  placeholder="Balance ID,Temperature (°C)"
+                  value={conditionFields}
+                  onChange={(e) => setConditionFields(e.target.value)}
+                  helperText="comma-separated, e.g. Balance ID,Temperature (°C)"
                   slotProps={{ htmlInput: { maxLength: 500 } }}
                   fullWidth
                 />

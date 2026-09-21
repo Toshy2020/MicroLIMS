@@ -50,6 +50,9 @@ public class SpecificationService
             LimitType.CountTiered => spec.SpecLimit ?? string.Empty,
             LimitType.DissolutionQ => $"Q = {spec.LowerLimit?.ToString(CultureInfo.InvariantCulture)} %",
             LimitType.DisintegrationTime => $"NMT {spec.UpperLimit?.ToString(CultureInfo.InvariantCulture)} min",
+            LimitType.WeightVariation => spec.DosageForm == DosageForm.Tablet
+                ? "USP <2091>: tablets, limit by average weight"
+                : "USP <2091>: net content 90-110 % of average",
             _ => spec.SpecLimit ?? string.Empty
         };
     }
@@ -76,6 +79,9 @@ public class SpecificationService
 
         if (spec.LimitType != LimitType.CountTiered && spec.DilutionFactor.HasValue)
             throw new InvalidOperationException("Dilution factor is only allowed for Count-Tiered specifications.");
+
+        if (spec.LimitType != LimitType.WeightVariation && spec.DosageForm.HasValue)
+            throw new InvalidOperationException("Dosage form is only allowed for WeightVariation specifications.");
 
         switch (spec.LimitType)
         {
@@ -144,6 +150,19 @@ public class SpecificationService
                     throw new InvalidOperationException("Label claim unit is not allowed for DisintegrationTime specifications.");
                 break;
 
+            case LimitType.WeightVariation:
+                if (!spec.DosageForm.HasValue)
+                    throw new InvalidOperationException("Dosage form is required for WeightVariation specifications.");
+                if (string.IsNullOrWhiteSpace(spec.Unit) || spec.Unit.Trim() != "mg")
+                    throw new InvalidOperationException("Unit must be \"mg\" for WeightVariation specifications.");
+                if (spec.LowerLimit.HasValue || spec.UpperLimit.HasValue || spec.Target.HasValue || spec.Tolerance.HasValue)
+                    throw new InvalidOperationException("Limits are not allowed for WeightVariation specifications (configured on Test Master).");
+                if (spec.LabelClaim.HasValue)
+                    throw new InvalidOperationException("Label claim is not allowed for WeightVariation specifications.");
+                if (!string.IsNullOrWhiteSpace(spec.LabelClaimUnit))
+                    throw new InvalidOperationException("Label claim unit is not allowed for WeightVariation specifications.");
+                break;
+
             case LimitType.CountTiered:
                 break;
 
@@ -204,6 +223,22 @@ public class SpecificationService
         else if (testDef?.WorkflowType == WorkflowType.Disintegration)
         {
             throw new InvalidOperationException("Only DisintegrationTime specifications are allowed for Disintegration tests.");
+        }
+
+        if (spec.LimitType == LimitType.WeightVariation)
+        {
+            if (testDef == null || testDef.WorkflowType != WorkflowType.WeightVariation)
+                throw new InvalidOperationException("WeightVariation specifications are only allowed for WeightVariation tests.");
+
+            var duplicateWeightVariation = await _db.Specifications.AnyAsync(
+                s => s.ItemId == spec.ItemId && s.TestCode == spec.TestCode && s.Id != spec.Id,
+                cancellationToken);
+            if (duplicateWeightVariation)
+                throw new InvalidOperationException($"Only one specification is allowed for WeightVariation test '{spec.TestCode}' on this item.");
+        }
+        else if (testDef?.WorkflowType == WorkflowType.WeightVariation)
+        {
+            throw new InvalidOperationException("Only WeightVariation specifications are allowed for WeightVariation tests.");
         }
 
         if (testDef?.EquationType == EquationType.CalibrationCurve)
@@ -270,6 +305,21 @@ public class SpecificationService
                 throw new InvalidOperationException("Label claim unit is not allowed for Disintegration specifications.");
             if (spec.ConversionFactor != 1.0m)
                 throw new InvalidOperationException("Conversion factor must be 1.0 for Disintegration specifications.");
+        }
+        else if (testDef?.WorkflowType == WorkflowType.WeightVariation || spec.LimitType == LimitType.WeightVariation)
+        {
+            if (spec.TestAnalyteId.HasValue)
+                throw new InvalidOperationException("Test analyte is only allowed for Calibration Curve specifications.");
+            if (spec.ResultBasis.HasValue)
+                throw new InvalidOperationException("Result basis is only allowed for Calibration Curve specifications.");
+            if (spec.SampleMatrix.HasValue)
+                throw new InvalidOperationException("Sample matrix is only allowed for Calibration Curve specifications.");
+            if (spec.LabelClaim.HasValue)
+                throw new InvalidOperationException("Label claim is not allowed for WeightVariation specifications.");
+            if (!string.IsNullOrWhiteSpace(spec.LabelClaimUnit))
+                throw new InvalidOperationException("Label claim unit is not allowed for WeightVariation specifications.");
+            if (spec.ConversionFactor != 1.0m)
+                throw new InvalidOperationException("Conversion factor must be 1.0 for WeightVariation specifications.");
         }
         else
         {

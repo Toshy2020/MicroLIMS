@@ -49,5 +49,8 @@ public class Specification
     public string? LabelClaimUnit { get; set; }
     public decimal ConversionFactor { get; set; } = 1.0m;
 
+    // Finished Product / Weight Variation
+    public DosageForm? DosageForm { get; set; }
+
     public List<SpecificationStage> Stages { get; set; } = new();
 }

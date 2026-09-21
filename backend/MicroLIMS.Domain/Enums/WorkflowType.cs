@@ -10,5 +10,6 @@ public enum WorkflowType
     Gravimetric,
     Qualitative,
     Dissolution,
-    Disintegration
+    Disintegration,
+    WeightVariation
 }

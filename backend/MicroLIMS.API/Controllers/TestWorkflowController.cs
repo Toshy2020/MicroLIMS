@@ -36,6 +36,9 @@ public record RecordDissolutionResultRequest(DateTime AnalysedAt, int? Equipment
 public record RecordDissolutionStageRequest(List<decimal> VesselAreas, string Password, string? Comment = null);
 public record RecordDisintegrationResultRequest(DateTime AnalysedAt, int? EquipmentId, Dictionary<string, string>? Conditions, List<decimal?> UnitMinutes, string Password, string? Comment = null);
 public record RecordDisintegrationStageRequest(List<decimal?> UnitMinutes, string Password, string? Comment = null);
+public record RecordWeightVariationUnitRequest(decimal? WeightMg = null, decimal? GrossMg = null, decimal? ShellMg = null);
+public record RecordWeightVariationResultRequest(DateTime AnalysedAt, int? EquipmentId, Dictionary<string, string>? Conditions, List<RecordWeightVariationUnitRequest> Units, string Password, string? Comment = null);
+public record RecordWeightVariationStageRequest(List<RecordWeightVariationUnitRequest> Units, string Password, string? Comment = null);
 public record BatchResultLocationRequest(int SampleLocationId, List<decimal> Readings);
 public record BatchResultsRequest(List<BatchResultLocationRequest> Locations);
 public record WaterBatchLocationRequest(int SampleLocationId, List<decimal> Readings);
@@ -461,6 +464,45 @@ public class TestWorkflowController : ControllerBase
                 request.Password,
                 request.Comment);
             return _engine.RecordDisintegrationStageAsync(testOrderId, payload, CurrentUserId, ClientIpAddress);
+        });
+    }
+
+    [HttpPost("{testOrderId}/record-weight-variation-result")]
+    [Authorize(Policy = PermissionConstants.TestWorkflowExecute)]
+    public async Task<IActionResult> RecordWeightVariationResult(int testOrderId, RecordWeightVariationResultRequest request)
+    {
+        await _scopeService.EnsureTestOrderAccessAsync(CurrentUserId, testOrderId);
+        return await RunAsync(() =>
+        {
+            var units = request.Units?
+                .Select(u => new WeightVariationUnitPayload(u.WeightMg, u.GrossMg, u.ShellMg))
+                .ToList();
+            var payload = new WeightVariationPayload(
+                request.AnalysedAt,
+                request.EquipmentId,
+                request.Conditions,
+                units!,
+                request.Password,
+                request.Comment);
+            return _engine.RecordWeightVariationResultAsync(testOrderId, payload, CurrentUserId, ClientIpAddress);
+        });
+    }
+
+    [HttpPost("{testOrderId}/record-weight-variation-stage")]
+    [Authorize(Policy = PermissionConstants.TestWorkflowExecute)]
+    public async Task<IActionResult> RecordWeightVariationStage(int testOrderId, RecordWeightVariationStageRequest request)
+    {
+        await _scopeService.EnsureTestOrderAccessAsync(CurrentUserId, testOrderId);
+        return await RunAsync(() =>
+        {
+            var units = request.Units?
+                .Select(u => new WeightVariationUnitPayload(u.WeightMg, u.GrossMg, u.ShellMg))
+                .ToList();
+            var payload = new WeightVariationStagePayload(
+                units!,
+                request.Password,
+                request.Comment);
+            return _engine.RecordWeightVariationStageAsync(testOrderId, payload, CurrentUserId, ClientIpAddress);
         });
     }
 

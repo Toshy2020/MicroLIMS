@@ -58,7 +58,8 @@ public record CreateSpecificationRequest(
     SampleMatrix? SampleMatrix = null,
     decimal? LabelClaim = null,
     string? LabelClaimUnit = null,
-    decimal? ConversionFactor = null);
+    decimal? ConversionFactor = null,
+    DosageForm? DosageForm = null);
 
 public record UpdateSpecificationRequest(
     string TestCode,
@@ -88,7 +89,8 @@ public record UpdateSpecificationRequest(
     SampleMatrix? SampleMatrix = null,
     decimal? LabelClaim = null,
     string? LabelClaimUnit = null,
-    decimal? ConversionFactor = null);
+    decimal? ConversionFactor = null,
+    DosageForm? DosageForm = null);
 public record CreateDiluentTypeRequest(string Name, bool RequiresBatchTracking, int? MaterialId);
 public record CreateEquipmentRequest(
     string Name,
@@ -163,7 +165,20 @@ public record CreateTestDefinitionRequest(
     int? DisintegrationStage1Units = null,
     int? DisintegrationStage2Units = null,
     int? DisintegrationMaxStage1Failures = null,
-    int? DisintegrationMinPassTotal = null);
+    int? DisintegrationMinPassTotal = null,
+    int? WvUnitCount = null,
+    decimal? WvTabletBand1MaxMg = null,
+    decimal? WvTabletBand1Percent = null,
+    decimal? WvTabletBand2MaxMg = null,
+    decimal? WvTabletBand2Percent = null,
+    decimal? WvTabletBand3Percent = null,
+    int? WvTabletMaxOutside = null,
+    decimal? WvCapsuleInnerPercent = null,
+    decimal? WvCapsuleOuterPercent = null,
+    int? WvCapsuleS1MaxOutside = null,
+    int? WvCapsuleS1MaxForRetest = null,
+    int? WvCapsuleS2ExtraUnits = null,
+    int? WvCapsuleS2MaxOutside = null);
 // SectionId: move the test to another laboratory section (null = keep). Test
 // orders already created keep the section they were created with.
 public record UpdateTestDefinitionRequest(
@@ -204,7 +219,20 @@ public record UpdateTestDefinitionRequest(
     int? DisintegrationStage1Units = null,
     int? DisintegrationStage2Units = null,
     int? DisintegrationMaxStage1Failures = null,
-    int? DisintegrationMinPassTotal = null);
+    int? DisintegrationMinPassTotal = null,
+    int? WvUnitCount = null,
+    decimal? WvTabletBand1MaxMg = null,
+    decimal? WvTabletBand1Percent = null,
+    decimal? WvTabletBand2MaxMg = null,
+    decimal? WvTabletBand2Percent = null,
+    decimal? WvTabletBand3Percent = null,
+    int? WvTabletMaxOutside = null,
+    decimal? WvCapsuleInnerPercent = null,
+    decimal? WvCapsuleOuterPercent = null,
+    int? WvCapsuleS1MaxOutside = null,
+    int? WvCapsuleS1MaxForRetest = null,
+    int? WvCapsuleS2ExtraUnits = null,
+    int? WvCapsuleS2MaxOutside = null);
 public record UpdateWorkflowTypeRequest(WorkflowType WorkflowType);
 
 public record StepMediaRequest(int MaterialId, bool IsRequired, int DisplayOrder, int? MediaIncubationConditionId);
@@ -670,6 +698,7 @@ public class MasterDataController : ControllerBase
             LabelClaim = request.LabelClaim,
             LabelClaimUnit = request.LabelClaimUnit,
             ConversionFactor = request.ConversionFactor ?? 1.0m,
+            DosageForm = request.DosageForm,
             Stages = request.Stages?.Select(s => new SpecificationStage
             {
                 StageNumber = s.StageNumber,
@@ -727,6 +756,7 @@ public class MasterDataController : ControllerBase
         spec.SampleMatrix = request.SampleMatrix;
         spec.LabelClaim = request.LabelClaim;
         spec.LabelClaimUnit = request.LabelClaimUnit;
+        spec.DosageForm = request.DosageForm;
         if (request.ConversionFactor.HasValue)
             spec.ConversionFactor = request.ConversionFactor.Value;
 
@@ -1780,6 +1810,9 @@ public class MasterDataController : ControllerBase
         if ((request.WorkflowType == WorkflowType.Disintegration || request.EquationType == EquationType.Disintegration) && request.RequiresSystemSuitability)
             throw new InvalidOperationException("Disintegration tests must not require system suitability.");
 
+        if ((request.WorkflowType == WorkflowType.WeightVariation || request.EquationType == EquationType.WeightVariation) && request.RequiresSystemSuitability)
+            throw new InvalidOperationException("Weight variation tests must not require system suitability.");
+
         if (request.RequiresSystemSuitability)
         {
             if (string.IsNullOrEmpty(methodAbbr))
@@ -1951,6 +1984,55 @@ public class MasterDataController : ControllerBase
                 throw new InvalidOperationException($"Disintegration minimum pass total must be between 1 and {s1 + s2}.");
         }
 
+        if (request.EquationType == EquationType.WeightVariation)
+        {
+            if (request.WorkflowType != WorkflowType.WeightVariation)
+                throw new InvalidOperationException("Workflow type must be WeightVariation when equation type is WeightVariation.");
+        }
+        else if (request.WorkflowType == WorkflowType.WeightVariation)
+        {
+            if (request.EquationType != EquationType.WeightVariation)
+                throw new InvalidOperationException("Equation type must be WeightVariation when workflow type is WeightVariation.");
+        }
+
+        if (request.WorkflowType == WorkflowType.WeightVariation)
+        {
+            if (request.RequiresSystemSuitability)
+                throw new InvalidOperationException("Weight variation tests must not require system suitability.");
+
+            int unitCount = request.WvUnitCount ?? 20;
+            decimal band1Mg = request.WvTabletBand1MaxMg ?? 130m;
+            decimal band1Pct = request.WvTabletBand1Percent ?? 10m;
+            decimal band2Mg = request.WvTabletBand2MaxMg ?? 324m;
+            decimal band2Pct = request.WvTabletBand2Percent ?? 7.5m;
+            decimal band3Pct = request.WvTabletBand3Percent ?? 5m;
+            int tabMaxOutside = request.WvTabletMaxOutside ?? 2;
+
+            decimal capInnerPct = request.WvCapsuleInnerPercent ?? 10m;
+            decimal capOuterPct = request.WvCapsuleOuterPercent ?? 25m;
+            int capS1MaxOutside = request.WvCapsuleS1MaxOutside ?? 2;
+            int capS1MaxRetest = request.WvCapsuleS1MaxForRetest ?? 6;
+            int capS2Extra = request.WvCapsuleS2ExtraUnits ?? 40;
+            int capS2MaxOutside = request.WvCapsuleS2MaxOutside ?? 6;
+
+            if (unitCount < 1 || capS2Extra < 1)
+                throw new InvalidOperationException("Weight variation unit count and extra units must be greater than or equal to 1.");
+            if (tabMaxOutside < 0 || capS1MaxOutside < 0 || capS2MaxOutside < 0)
+                throw new InvalidOperationException("Weight variation maximum outside counts must be greater than or equal to 0.");
+            if (band1Mg <= 0m || band2Mg <= 0m)
+                throw new InvalidOperationException("Weight variation tablet band weight limits must be greater than zero.");
+            if (band1Pct <= 0m || band2Pct <= 0m || band3Pct <= 0m || capInnerPct <= 0m || capOuterPct <= 0m)
+                throw new InvalidOperationException("Weight variation percentages must be greater than zero.");
+            if (band1Mg >= band2Mg)
+                throw new InvalidOperationException("Weight variation Tablet Band 1 Max Mg must be less than Band 2 Max Mg.");
+            if (capInnerPct >= capOuterPct)
+                throw new InvalidOperationException("Weight variation capsule inner percentage must be less than outer percentage.");
+            if (capS1MaxOutside >= capS1MaxRetest || capS1MaxRetest > unitCount)
+                throw new InvalidOperationException("Weight variation capsule Stage 1 max outside must be less than Stage 1 max for retest, which must be less than or equal to unit count.");
+            if (capS2MaxOutside >= unitCount + capS2Extra)
+                throw new InvalidOperationException($"Weight variation capsule Stage 2 max outside must be less than total units ({unitCount + capS2Extra}).");
+        }
+
         var entity = new TestDefinition
         {
             Code = request.Code,
@@ -1990,7 +2072,20 @@ public class MasterDataController : ControllerBase
             DisintegrationStage1Units = request.WorkflowType == WorkflowType.Disintegration ? (request.DisintegrationStage1Units ?? 6) : request.DisintegrationStage1Units,
             DisintegrationStage2Units = request.WorkflowType == WorkflowType.Disintegration ? (request.DisintegrationStage2Units ?? 12) : request.DisintegrationStage2Units,
             DisintegrationMaxStage1Failures = request.WorkflowType == WorkflowType.Disintegration ? (request.DisintegrationMaxStage1Failures ?? 2) : request.DisintegrationMaxStage1Failures,
-            DisintegrationMinPassTotal = request.WorkflowType == WorkflowType.Disintegration ? (request.DisintegrationMinPassTotal ?? 16) : request.DisintegrationMinPassTotal
+            DisintegrationMinPassTotal = request.WorkflowType == WorkflowType.Disintegration ? (request.DisintegrationMinPassTotal ?? 16) : request.DisintegrationMinPassTotal,
+            WvUnitCount = request.WorkflowType == WorkflowType.WeightVariation ? (request.WvUnitCount ?? 20) : request.WvUnitCount,
+            WvTabletBand1MaxMg = request.WorkflowType == WorkflowType.WeightVariation ? (request.WvTabletBand1MaxMg ?? 130m) : request.WvTabletBand1MaxMg,
+            WvTabletBand1Percent = request.WorkflowType == WorkflowType.WeightVariation ? (request.WvTabletBand1Percent ?? 10m) : request.WvTabletBand1Percent,
+            WvTabletBand2MaxMg = request.WorkflowType == WorkflowType.WeightVariation ? (request.WvTabletBand2MaxMg ?? 324m) : request.WvTabletBand2MaxMg,
+            WvTabletBand2Percent = request.WorkflowType == WorkflowType.WeightVariation ? (request.WvTabletBand2Percent ?? 7.5m) : request.WvTabletBand2Percent,
+            WvTabletBand3Percent = request.WorkflowType == WorkflowType.WeightVariation ? (request.WvTabletBand3Percent ?? 5m) : request.WvTabletBand3Percent,
+            WvTabletMaxOutside = request.WorkflowType == WorkflowType.WeightVariation ? (request.WvTabletMaxOutside ?? 2) : request.WvTabletMaxOutside,
+            WvCapsuleInnerPercent = request.WorkflowType == WorkflowType.WeightVariation ? (request.WvCapsuleInnerPercent ?? 10m) : request.WvCapsuleInnerPercent,
+            WvCapsuleOuterPercent = request.WorkflowType == WorkflowType.WeightVariation ? (request.WvCapsuleOuterPercent ?? 25m) : request.WvCapsuleOuterPercent,
+            WvCapsuleS1MaxOutside = request.WorkflowType == WorkflowType.WeightVariation ? (request.WvCapsuleS1MaxOutside ?? 2) : request.WvCapsuleS1MaxOutside,
+            WvCapsuleS1MaxForRetest = request.WorkflowType == WorkflowType.WeightVariation ? (request.WvCapsuleS1MaxForRetest ?? 6) : request.WvCapsuleS1MaxForRetest,
+            WvCapsuleS2ExtraUnits = request.WorkflowType == WorkflowType.WeightVariation ? (request.WvCapsuleS2ExtraUnits ?? 40) : request.WvCapsuleS2ExtraUnits,
+            WvCapsuleS2MaxOutside = request.WorkflowType == WorkflowType.WeightVariation ? (request.WvCapsuleS2MaxOutside ?? 6) : request.WvCapsuleS2MaxOutside
         };
         _db.TestDefinitions.Add(entity);
         await _db.SaveChangesAsync();
@@ -2047,6 +2142,9 @@ public class MasterDataController : ControllerBase
 
         if ((effectiveWorkflowType == WorkflowType.Disintegration || effectiveEquationType == EquationType.Disintegration) && effectiveRequiresSst)
             throw new InvalidOperationException("Disintegration tests must not require system suitability.");
+
+        if ((effectiveWorkflowType == WorkflowType.WeightVariation || effectiveEquationType == EquationType.WeightVariation) && effectiveRequiresSst)
+            throw new InvalidOperationException("Weight variation tests must not require system suitability.");
 
         if (effectiveRequiresSst)
         {
@@ -2216,6 +2314,55 @@ public class MasterDataController : ControllerBase
                 throw new InvalidOperationException($"Disintegration minimum pass total must be between 1 and {effectiveS1 + effectiveS2}.");
         }
 
+        if (effectiveEquationType == EquationType.WeightVariation)
+        {
+            if (effectiveWorkflowType != WorkflowType.WeightVariation)
+                throw new InvalidOperationException("Workflow type must be WeightVariation when equation type is WeightVariation.");
+        }
+        else if (effectiveWorkflowType == WorkflowType.WeightVariation)
+        {
+            if (effectiveEquationType != EquationType.WeightVariation)
+                throw new InvalidOperationException("Equation type must be WeightVariation when workflow type is WeightVariation.");
+        }
+
+        if (effectiveWorkflowType == WorkflowType.WeightVariation)
+        {
+            if (effectiveRequiresSst)
+                throw new InvalidOperationException("Weight variation tests must not require system suitability.");
+
+            var effectiveUnitCount = request.WvUnitCount ?? entity.WvUnitCount ?? 20;
+            var effectiveBand1Mg = request.WvTabletBand1MaxMg ?? entity.WvTabletBand1MaxMg ?? 130m;
+            var effectiveBand1Pct = request.WvTabletBand1Percent ?? entity.WvTabletBand1Percent ?? 10m;
+            var effectiveBand2Mg = request.WvTabletBand2MaxMg ?? entity.WvTabletBand2MaxMg ?? 324m;
+            var effectiveBand2Pct = request.WvTabletBand2Percent ?? entity.WvTabletBand2Percent ?? 7.5m;
+            var effectiveBand3Pct = request.WvTabletBand3Percent ?? entity.WvTabletBand3Percent ?? 5m;
+            var effectiveTabMaxOutside = request.WvTabletMaxOutside ?? entity.WvTabletMaxOutside ?? 2;
+
+            var effectiveCapInnerPct = request.WvCapsuleInnerPercent ?? entity.WvCapsuleInnerPercent ?? 10m;
+            var effectiveCapOuterPct = request.WvCapsuleOuterPercent ?? entity.WvCapsuleOuterPercent ?? 25m;
+            var effectiveCapS1MaxOutside = request.WvCapsuleS1MaxOutside ?? entity.WvCapsuleS1MaxOutside ?? 2;
+            var effectiveCapS1MaxRetest = request.WvCapsuleS1MaxForRetest ?? entity.WvCapsuleS1MaxForRetest ?? 6;
+            var effectiveCapS2Extra = request.WvCapsuleS2ExtraUnits ?? entity.WvCapsuleS2ExtraUnits ?? 40;
+            var effectiveCapS2MaxOutside = request.WvCapsuleS2MaxOutside ?? entity.WvCapsuleS2MaxOutside ?? 6;
+
+            if (effectiveUnitCount < 1 || effectiveCapS2Extra < 1)
+                throw new InvalidOperationException("Weight variation unit count and extra units must be greater than or equal to 1.");
+            if (effectiveTabMaxOutside < 0 || effectiveCapS1MaxOutside < 0 || effectiveCapS2MaxOutside < 0)
+                throw new InvalidOperationException("Weight variation maximum outside counts must be greater than or equal to 0.");
+            if (effectiveBand1Mg <= 0m || effectiveBand2Mg <= 0m)
+                throw new InvalidOperationException("Weight variation tablet band weight limits must be greater than zero.");
+            if (effectiveBand1Pct <= 0m || effectiveBand2Pct <= 0m || effectiveBand3Pct <= 0m || effectiveCapInnerPct <= 0m || effectiveCapOuterPct <= 0m)
+                throw new InvalidOperationException("Weight variation percentages must be greater than zero.");
+            if (effectiveBand1Mg >= effectiveBand2Mg)
+                throw new InvalidOperationException("Weight variation Tablet Band 1 Max Mg must be less than Band 2 Max Mg.");
+            if (effectiveCapInnerPct >= effectiveCapOuterPct)
+                throw new InvalidOperationException("Weight variation capsule inner percentage must be less than outer percentage.");
+            if (effectiveCapS1MaxOutside >= effectiveCapS1MaxRetest || effectiveCapS1MaxRetest > effectiveUnitCount)
+                throw new InvalidOperationException("Weight variation capsule Stage 1 max outside must be less than Stage 1 max for retest, which must be less than or equal to unit count.");
+            if (effectiveCapS2MaxOutside >= effectiveUnitCount + effectiveCapS2Extra)
+                throw new InvalidOperationException($"Weight variation capsule Stage 2 max outside must be less than total units ({effectiveUnitCount + effectiveCapS2Extra}).");
+        }
+
         entity.Code = request.Code;
         entity.DisplayName = request.DisplayName;
         if (request.WorkflowType.HasValue) entity.WorkflowType = request.WorkflowType.Value;
@@ -2262,6 +2409,33 @@ public class MasterDataController : ControllerBase
         else if (effectiveWorkflowType == WorkflowType.Disintegration && !entity.DisintegrationMaxStage1Failures.HasValue) entity.DisintegrationMaxStage1Failures = 2;
         if (request.DisintegrationMinPassTotal.HasValue) entity.DisintegrationMinPassTotal = request.DisintegrationMinPassTotal.Value;
         else if (effectiveWorkflowType == WorkflowType.Disintegration && !entity.DisintegrationMinPassTotal.HasValue) entity.DisintegrationMinPassTotal = 16;
+        if (request.WvUnitCount.HasValue) entity.WvUnitCount = request.WvUnitCount.Value;
+        else if (effectiveWorkflowType == WorkflowType.WeightVariation && !entity.WvUnitCount.HasValue) entity.WvUnitCount = 20;
+        if (request.WvTabletBand1MaxMg.HasValue) entity.WvTabletBand1MaxMg = request.WvTabletBand1MaxMg.Value;
+        else if (effectiveWorkflowType == WorkflowType.WeightVariation && !entity.WvTabletBand1MaxMg.HasValue) entity.WvTabletBand1MaxMg = 130m;
+        if (request.WvTabletBand1Percent.HasValue) entity.WvTabletBand1Percent = request.WvTabletBand1Percent.Value;
+        else if (effectiveWorkflowType == WorkflowType.WeightVariation && !entity.WvTabletBand1Percent.HasValue) entity.WvTabletBand1Percent = 10m;
+        if (request.WvTabletBand2MaxMg.HasValue) entity.WvTabletBand2MaxMg = request.WvTabletBand2MaxMg.Value;
+        else if (effectiveWorkflowType == WorkflowType.WeightVariation && !entity.WvTabletBand2MaxMg.HasValue) entity.WvTabletBand2MaxMg = 324m;
+        if (request.WvTabletBand2Percent.HasValue) entity.WvTabletBand2Percent = request.WvTabletBand2Percent.Value;
+        else if (effectiveWorkflowType == WorkflowType.WeightVariation && !entity.WvTabletBand2Percent.HasValue) entity.WvTabletBand2Percent = 7.5m;
+        if (request.WvTabletBand3Percent.HasValue) entity.WvTabletBand3Percent = request.WvTabletBand3Percent.Value;
+        else if (effectiveWorkflowType == WorkflowType.WeightVariation && !entity.WvTabletBand3Percent.HasValue) entity.WvTabletBand3Percent = 5m;
+        if (request.WvTabletMaxOutside.HasValue) entity.WvTabletMaxOutside = request.WvTabletMaxOutside.Value;
+        else if (effectiveWorkflowType == WorkflowType.WeightVariation && !entity.WvTabletMaxOutside.HasValue) entity.WvTabletMaxOutside = 2;
+        if (request.WvCapsuleInnerPercent.HasValue) entity.WvCapsuleInnerPercent = request.WvCapsuleInnerPercent.Value;
+        else if (effectiveWorkflowType == WorkflowType.WeightVariation && !entity.WvCapsuleInnerPercent.HasValue) entity.WvCapsuleInnerPercent = 10m;
+        if (request.WvCapsuleOuterPercent.HasValue) entity.WvCapsuleOuterPercent = request.WvCapsuleOuterPercent.Value;
+        else if (effectiveWorkflowType == WorkflowType.WeightVariation && !entity.WvCapsuleOuterPercent.HasValue) entity.WvCapsuleOuterPercent = 25m;
+        if (request.WvCapsuleS1MaxOutside.HasValue) entity.WvCapsuleS1MaxOutside = request.WvCapsuleS1MaxOutside.Value;
+        else if (effectiveWorkflowType == WorkflowType.WeightVariation && !entity.WvCapsuleS1MaxOutside.HasValue) entity.WvCapsuleS1MaxOutside = 2;
+        if (request.WvCapsuleS1MaxForRetest.HasValue) entity.WvCapsuleS1MaxForRetest = request.WvCapsuleS1MaxForRetest.Value;
+        else if (effectiveWorkflowType == WorkflowType.WeightVariation && !entity.WvCapsuleS1MaxForRetest.HasValue) entity.WvCapsuleS1MaxForRetest = 6;
+        if (request.WvCapsuleS2ExtraUnits.HasValue) entity.WvCapsuleS2ExtraUnits = request.WvCapsuleS2ExtraUnits.Value;
+        else if (effectiveWorkflowType == WorkflowType.WeightVariation && !entity.WvCapsuleS2ExtraUnits.HasValue) entity.WvCapsuleS2ExtraUnits = 40;
+        if (request.WvCapsuleS2MaxOutside.HasValue) entity.WvCapsuleS2MaxOutside = request.WvCapsuleS2MaxOutside.Value;
+        else if (effectiveWorkflowType == WorkflowType.WeightVariation && !entity.WvCapsuleS2MaxOutside.HasValue) entity.WvCapsuleS2MaxOutside = 6;
+
 
         await _db.SaveChangesAsync();
 

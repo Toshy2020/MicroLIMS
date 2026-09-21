@@ -82,6 +82,21 @@ public class TestDefinition
     public int? DisintegrationMaxStage1Failures { get; set; }
     public int? DisintegrationMinPassTotal { get; set; }
 
+    // Finished Product / Weight Variation criteria
+    public int? WvUnitCount { get; set; }
+    public decimal? WvTabletBand1MaxMg { get; set; }
+    public decimal? WvTabletBand1Percent { get; set; }
+    public decimal? WvTabletBand2MaxMg { get; set; }
+    public decimal? WvTabletBand2Percent { get; set; }
+    public decimal? WvTabletBand3Percent { get; set; }
+    public int? WvTabletMaxOutside { get; set; }
+    public decimal? WvCapsuleInnerPercent { get; set; }
+    public decimal? WvCapsuleOuterPercent { get; set; }
+    public int? WvCapsuleS1MaxOutside { get; set; }
+    public int? WvCapsuleS1MaxForRetest { get; set; }
+    public int? WvCapsuleS2ExtraUnits { get; set; }
+    public int? WvCapsuleS2MaxOutside { get; set; }
+
     public List<TestAnalyte> Analytes { get; set; } = new();
 }
 

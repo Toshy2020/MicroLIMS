@@ -11,5 +11,6 @@ public enum LimitType
     PresenceAbsence = 6,
     MultiStage = 7,
     DissolutionQ = 8,
-    DisintegrationTime = 9
+    DisintegrationTime = 9,
+    WeightVariation = 10
 }

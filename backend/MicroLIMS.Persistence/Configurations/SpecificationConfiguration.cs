@@ -30,6 +30,7 @@ public class SpecificationConfiguration : IEntityTypeConfiguration<Specification
         builder.Property(s => s.LabelClaim).HasPrecision(18, 6);
         builder.Property(s => s.LabelClaimUnit).HasMaxLength(20);
         builder.Property(s => s.ConversionFactor).HasPrecision(18, 6).HasDefaultValue(1.0m);
+        builder.Property(s => s.DosageForm);
 
         builder.HasOne(s => s.TestAnalyte)
             .WithMany()

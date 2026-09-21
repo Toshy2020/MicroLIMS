@@ -39,6 +39,14 @@ public class TestDefinitionConfiguration : IEntityTypeConfiguration<TestDefiniti
         builder.Property(t => t.DissolutionS3MinOffset).HasPrecision(28, 10);
         builder.Property(t => t.DissolutionS3MaxBelowS2Min).HasPrecision(28, 10);
 
+        builder.Property(t => t.WvTabletBand1MaxMg).HasPrecision(18, 6);
+        builder.Property(t => t.WvTabletBand2MaxMg).HasPrecision(18, 6);
+        builder.Property(t => t.WvTabletBand1Percent).HasPrecision(28, 10);
+        builder.Property(t => t.WvTabletBand2Percent).HasPrecision(28, 10);
+        builder.Property(t => t.WvTabletBand3Percent).HasPrecision(28, 10);
+        builder.Property(t => t.WvCapsuleInnerPercent).HasPrecision(28, 10);
+        builder.Property(t => t.WvCapsuleOuterPercent).HasPrecision(28, 10);
+
         builder.HasMany(t => t.Analytes)
             .WithOne(a => a.TestDefinition)
             .HasForeignKey(a => a.TestDefinitionId)

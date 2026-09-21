@@ -77,6 +77,7 @@ public static class SpecificationEvaluator
             case LimitType.MultiStage:
             case LimitType.DissolutionQ:
             case LimitType.DisintegrationTime:
+            case LimitType.WeightVariation:
                 throw new InvalidOperationException($"Specification limit type '{spec.LimitType}' is not numeric and cannot be evaluated against a numeric value.");
 
             default:

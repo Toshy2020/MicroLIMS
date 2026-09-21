@@ -76,6 +76,12 @@ public class TestDefinition
     public decimal? DissolutionS3MinOffset { get; set; }
     public decimal? DissolutionS3MaxBelowS2Min { get; set; }
 
+    // Finished Product / Disintegration criteria
+    public int? DisintegrationStage1Units { get; set; }
+    public int? DisintegrationStage2Units { get; set; }
+    public int? DisintegrationMaxStage1Failures { get; set; }
+    public int? DisintegrationMinPassTotal { get; set; }
+
     public List<TestAnalyte> Analytes { get; set; } = new();
 }
 

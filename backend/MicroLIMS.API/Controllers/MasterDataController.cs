@@ -159,7 +159,11 @@ public record CreateTestDefinitionRequest(
     decimal? DissolutionS1Offset = null,
     decimal? DissolutionS2MinOffset = null,
     decimal? DissolutionS3MinOffset = null,
-    decimal? DissolutionS3MaxBelowS2Min = null);
+    decimal? DissolutionS3MaxBelowS2Min = null,
+    int? DisintegrationStage1Units = null,
+    int? DisintegrationStage2Units = null,
+    int? DisintegrationMaxStage1Failures = null,
+    int? DisintegrationMinPassTotal = null);
 // SectionId: move the test to another laboratory section (null = keep). Test
 // orders already created keep the section they were created with.
 public record UpdateTestDefinitionRequest(
@@ -196,7 +200,11 @@ public record UpdateTestDefinitionRequest(
     decimal? DissolutionS1Offset = null,
     decimal? DissolutionS2MinOffset = null,
     decimal? DissolutionS3MinOffset = null,
-    decimal? DissolutionS3MaxBelowS2Min = null);
+    decimal? DissolutionS3MaxBelowS2Min = null,
+    int? DisintegrationStage1Units = null,
+    int? DisintegrationStage2Units = null,
+    int? DisintegrationMaxStage1Failures = null,
+    int? DisintegrationMinPassTotal = null);
 public record UpdateWorkflowTypeRequest(WorkflowType WorkflowType);
 
 public record StepMediaRequest(int MaterialId, bool IsRequired, int DisplayOrder, int? MediaIncubationConditionId);
@@ -1769,6 +1777,9 @@ public class MasterDataController : ControllerBase
             ? null
             : request.MethodAbbreviation.Trim().ToUpperInvariant();
 
+        if ((request.WorkflowType == WorkflowType.Disintegration || request.EquationType == EquationType.Disintegration) && request.RequiresSystemSuitability)
+            throw new InvalidOperationException("Disintegration tests must not require system suitability.");
+
         if (request.RequiresSystemSuitability)
         {
             if (string.IsNullOrEmpty(methodAbbr))
@@ -1911,6 +1922,35 @@ public class MasterDataController : ControllerBase
                 throw new InvalidOperationException("Dissolution stage offsets must be greater than or equal to zero.");
         }
 
+        if (request.EquationType == EquationType.Disintegration)
+        {
+            if (request.WorkflowType != WorkflowType.Disintegration)
+                throw new InvalidOperationException("Workflow type must be Disintegration when equation type is Disintegration.");
+        }
+        else if (request.WorkflowType == WorkflowType.Disintegration)
+        {
+            if (request.EquationType != EquationType.Disintegration)
+                throw new InvalidOperationException("Equation type must be Disintegration when workflow type is Disintegration.");
+        }
+
+        if (request.WorkflowType == WorkflowType.Disintegration)
+        {
+            if (request.RequiresSystemSuitability)
+                throw new InvalidOperationException("Disintegration tests must not require system suitability.");
+
+            int s1 = request.DisintegrationStage1Units ?? 6;
+            int s2 = request.DisintegrationStage2Units ?? 12;
+            int maxFail = request.DisintegrationMaxStage1Failures ?? 2;
+            int minPass = request.DisintegrationMinPassTotal ?? 16;
+
+            if (s1 < 1 || s2 < 1)
+                throw new InvalidOperationException("Disintegration stage units must be greater than or equal to 1.");
+            if (maxFail < 0 || maxFail >= s1)
+                throw new InvalidOperationException($"Disintegration maximum Stage 1 failures must be between 0 and {s1 - 1}.");
+            if (minPass < 1 || minPass > (s1 + s2))
+                throw new InvalidOperationException($"Disintegration minimum pass total must be between 1 and {s1 + s2}.");
+        }
+
         var entity = new TestDefinition
         {
             Code = request.Code,
@@ -1946,7 +1986,11 @@ public class MasterDataController : ControllerBase
             DissolutionS1Offset = request.WorkflowType == WorkflowType.Dissolution ? (request.DissolutionS1Offset ?? 5m) : request.DissolutionS1Offset,
             DissolutionS2MinOffset = request.WorkflowType == WorkflowType.Dissolution ? (request.DissolutionS2MinOffset ?? 15m) : request.DissolutionS2MinOffset,
             DissolutionS3MinOffset = request.WorkflowType == WorkflowType.Dissolution ? (request.DissolutionS3MinOffset ?? 25m) : request.DissolutionS3MinOffset,
-            DissolutionS3MaxBelowS2Min = request.WorkflowType == WorkflowType.Dissolution ? (request.DissolutionS3MaxBelowS2Min ?? 2m) : request.DissolutionS3MaxBelowS2Min
+            DissolutionS3MaxBelowS2Min = request.WorkflowType == WorkflowType.Dissolution ? (request.DissolutionS3MaxBelowS2Min ?? 2m) : request.DissolutionS3MaxBelowS2Min,
+            DisintegrationStage1Units = request.WorkflowType == WorkflowType.Disintegration ? (request.DisintegrationStage1Units ?? 6) : request.DisintegrationStage1Units,
+            DisintegrationStage2Units = request.WorkflowType == WorkflowType.Disintegration ? (request.DisintegrationStage2Units ?? 12) : request.DisintegrationStage2Units,
+            DisintegrationMaxStage1Failures = request.WorkflowType == WorkflowType.Disintegration ? (request.DisintegrationMaxStage1Failures ?? 2) : request.DisintegrationMaxStage1Failures,
+            DisintegrationMinPassTotal = request.WorkflowType == WorkflowType.Disintegration ? (request.DisintegrationMinPassTotal ?? 16) : request.DisintegrationMinPassTotal
         };
         _db.TestDefinitions.Add(entity);
         await _db.SaveChangesAsync();
@@ -2000,6 +2044,9 @@ public class MasterDataController : ControllerBase
 
         if (effectiveConditionFields != null && effectiveConditionFields.Length > 500)
             throw new InvalidOperationException("Condition fields cannot exceed 500 characters.");
+
+        if ((effectiveWorkflowType == WorkflowType.Disintegration || effectiveEquationType == EquationType.Disintegration) && effectiveRequiresSst)
+            throw new InvalidOperationException("Disintegration tests must not require system suitability.");
 
         if (effectiveRequiresSst)
         {
@@ -2140,6 +2187,35 @@ public class MasterDataController : ControllerBase
                 throw new InvalidOperationException("Dissolution stage offsets must be greater than or equal to zero.");
         }
 
+        if (effectiveEquationType == EquationType.Disintegration)
+        {
+            if (effectiveWorkflowType != WorkflowType.Disintegration)
+                throw new InvalidOperationException("Workflow type must be Disintegration when equation type is Disintegration.");
+        }
+        else if (effectiveWorkflowType == WorkflowType.Disintegration)
+        {
+            if (effectiveEquationType != EquationType.Disintegration)
+                throw new InvalidOperationException("Equation type must be Disintegration when workflow type is Disintegration.");
+        }
+
+        if (effectiveWorkflowType == WorkflowType.Disintegration)
+        {
+            if (effectiveRequiresSst)
+                throw new InvalidOperationException("Disintegration tests must not require system suitability.");
+
+            var effectiveS1 = request.DisintegrationStage1Units ?? entity.DisintegrationStage1Units ?? 6;
+            var effectiveS2 = request.DisintegrationStage2Units ?? entity.DisintegrationStage2Units ?? 12;
+            var effectiveMaxF1 = request.DisintegrationMaxStage1Failures ?? entity.DisintegrationMaxStage1Failures ?? 2;
+            var effectiveMinPass = request.DisintegrationMinPassTotal ?? entity.DisintegrationMinPassTotal ?? 16;
+
+            if (effectiveS1 < 1 || effectiveS2 < 1)
+                throw new InvalidOperationException("Disintegration stage units must be greater than or equal to 1.");
+            if (effectiveMaxF1 < 0 || effectiveMaxF1 >= effectiveS1)
+                throw new InvalidOperationException($"Disintegration maximum Stage 1 failures must be between 0 and {effectiveS1 - 1}.");
+            if (effectiveMinPass < 1 || effectiveMinPass > effectiveS1 + effectiveS2)
+                throw new InvalidOperationException($"Disintegration minimum pass total must be between 1 and {effectiveS1 + effectiveS2}.");
+        }
+
         entity.Code = request.Code;
         entity.DisplayName = request.DisplayName;
         if (request.WorkflowType.HasValue) entity.WorkflowType = request.WorkflowType.Value;
@@ -2178,6 +2254,14 @@ public class MasterDataController : ControllerBase
         else if (effectiveWorkflowType == WorkflowType.Dissolution && !entity.DissolutionS3MinOffset.HasValue) entity.DissolutionS3MinOffset = 25m;
         if (request.DissolutionS3MaxBelowS2Min.HasValue) entity.DissolutionS3MaxBelowS2Min = request.DissolutionS3MaxBelowS2Min.Value;
         else if (effectiveWorkflowType == WorkflowType.Dissolution && !entity.DissolutionS3MaxBelowS2Min.HasValue) entity.DissolutionS3MaxBelowS2Min = 2m;
+        if (request.DisintegrationStage1Units.HasValue) entity.DisintegrationStage1Units = request.DisintegrationStage1Units.Value;
+        else if (effectiveWorkflowType == WorkflowType.Disintegration && !entity.DisintegrationStage1Units.HasValue) entity.DisintegrationStage1Units = 6;
+        if (request.DisintegrationStage2Units.HasValue) entity.DisintegrationStage2Units = request.DisintegrationStage2Units.Value;
+        else if (effectiveWorkflowType == WorkflowType.Disintegration && !entity.DisintegrationStage2Units.HasValue) entity.DisintegrationStage2Units = 12;
+        if (request.DisintegrationMaxStage1Failures.HasValue) entity.DisintegrationMaxStage1Failures = request.DisintegrationMaxStage1Failures.Value;
+        else if (effectiveWorkflowType == WorkflowType.Disintegration && !entity.DisintegrationMaxStage1Failures.HasValue) entity.DisintegrationMaxStage1Failures = 2;
+        if (request.DisintegrationMinPassTotal.HasValue) entity.DisintegrationMinPassTotal = request.DisintegrationMinPassTotal.Value;
+        else if (effectiveWorkflowType == WorkflowType.Disintegration && !entity.DisintegrationMinPassTotal.HasValue) entity.DisintegrationMinPassTotal = 16;
 
         await _db.SaveChangesAsync();
 

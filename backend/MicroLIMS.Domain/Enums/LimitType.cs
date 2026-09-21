@@ -10,5 +10,6 @@ public enum LimitType
     Qualitative = 5,
     PresenceAbsence = 6,
     MultiStage = 7,
-    DissolutionQ = 8
+    DissolutionQ = 8,
+    DisintegrationTime = 9
 }

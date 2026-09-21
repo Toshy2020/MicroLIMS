@@ -76,6 +76,7 @@ public static class SpecificationEvaluator
             case LimitType.PresenceAbsence:
             case LimitType.MultiStage:
             case LimitType.DissolutionQ:
+            case LimitType.DisintegrationTime:
                 throw new InvalidOperationException($"Specification limit type '{spec.LimitType}' is not numeric and cannot be evaluated against a numeric value.");
 
             default:

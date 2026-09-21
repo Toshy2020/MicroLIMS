@@ -10,5 +10,6 @@ public enum EquationType
     GravimetricLoss,
     GravimetricResidue,
     Qualitative,
-    Dissolution
+    Dissolution,
+    Disintegration
 }

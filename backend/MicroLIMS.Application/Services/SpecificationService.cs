@@ -49,6 +49,7 @@ public class SpecificationService
             LimitType.MultiStage => string.Empty,
             LimitType.CountTiered => spec.SpecLimit ?? string.Empty,
             LimitType.DissolutionQ => $"Q = {spec.LowerLimit?.ToString(CultureInfo.InvariantCulture)} %",
+            LimitType.DisintegrationTime => $"NMT {spec.UpperLimit?.ToString(CultureInfo.InvariantCulture)} min",
             _ => spec.SpecLimit ?? string.Empty
         };
     }
@@ -132,6 +133,17 @@ public class SpecificationService
                     throw new InvalidOperationException("Label claim unit must be \"mg\" for DissolutionQ specifications.");
                 break;
 
+            case LimitType.DisintegrationTime:
+                if (!spec.UpperLimit.HasValue || spec.UpperLimit.Value <= 0)
+                    throw new InvalidOperationException("Upper limit (time in minutes) must be greater than zero for DisintegrationTime specifications.");
+                if (string.IsNullOrWhiteSpace(spec.Unit) || spec.Unit.Trim() != "min")
+                    throw new InvalidOperationException("Unit must be \"min\" for DisintegrationTime specifications.");
+                if (spec.LabelClaim.HasValue)
+                    throw new InvalidOperationException("Label claim is not allowed for DisintegrationTime specifications.");
+                if (!string.IsNullOrWhiteSpace(spec.LabelClaimUnit))
+                    throw new InvalidOperationException("Label claim unit is not allowed for DisintegrationTime specifications.");
+                break;
+
             case LimitType.CountTiered:
                 break;
 
@@ -176,6 +188,22 @@ public class SpecificationService
         else if (testDef?.WorkflowType == WorkflowType.Dissolution)
         {
             throw new InvalidOperationException("Only DissolutionQ specifications are allowed for Dissolution tests.");
+        }
+
+        if (spec.LimitType == LimitType.DisintegrationTime)
+        {
+            if (testDef == null || testDef.WorkflowType != WorkflowType.Disintegration)
+                throw new InvalidOperationException("DisintegrationTime specifications are only allowed for Disintegration tests.");
+
+            var duplicateDisintegration = await _db.Specifications.AnyAsync(
+                s => s.ItemId == spec.ItemId && s.TestCode == spec.TestCode && s.Id != spec.Id,
+                cancellationToken);
+            if (duplicateDisintegration)
+                throw new InvalidOperationException($"Only one specification is allowed for Disintegration test '{spec.TestCode}' on this item.");
+        }
+        else if (testDef?.WorkflowType == WorkflowType.Disintegration)
+        {
+            throw new InvalidOperationException("Only DisintegrationTime specifications are allowed for Disintegration tests.");
         }
 
         if (testDef?.EquationType == EquationType.CalibrationCurve)
@@ -227,6 +255,21 @@ public class SpecificationService
                 throw new InvalidOperationException("Sample matrix is only allowed for Calibration Curve specifications.");
             if (spec.ConversionFactor != 1.0m)
                 throw new InvalidOperationException("Conversion factor must be 1.0 for Dissolution specifications.");
+        }
+        else if (testDef?.WorkflowType == WorkflowType.Disintegration || spec.LimitType == LimitType.DisintegrationTime)
+        {
+            if (spec.TestAnalyteId.HasValue)
+                throw new InvalidOperationException("Test analyte is only allowed for Calibration Curve specifications.");
+            if (spec.ResultBasis.HasValue)
+                throw new InvalidOperationException("Result basis is only allowed for Calibration Curve specifications.");
+            if (spec.SampleMatrix.HasValue)
+                throw new InvalidOperationException("Sample matrix is only allowed for Calibration Curve specifications.");
+            if (spec.LabelClaim.HasValue)
+                throw new InvalidOperationException("Label claim is not allowed for Disintegration specifications.");
+            if (!string.IsNullOrWhiteSpace(spec.LabelClaimUnit))
+                throw new InvalidOperationException("Label claim unit is not allowed for Disintegration specifications.");
+            if (spec.ConversionFactor != 1.0m)
+                throw new InvalidOperationException("Conversion factor must be 1.0 for Disintegration specifications.");
         }
         else
         {

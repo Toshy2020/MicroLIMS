@@ -9,5 +9,6 @@ public enum WorkflowType
     Measurement,
     Gravimetric,
     Qualitative,
-    Dissolution
+    Dissolution,
+    Disintegration
 }

@@ -34,6 +34,8 @@ public record RecordQualitativeParameterRequest(int SpecificationId, bool Confor
 public record RecordQualitativeResultRequest(DateTime AnalysedAt, int? EquipmentId, List<RecordQualitativeParameterRequest> Parameters, string Password, string? Comment = null);
 public record RecordDissolutionResultRequest(DateTime AnalysedAt, int? EquipmentId, Dictionary<string, string>? Conditions, decimal MediumVolumeMl, decimal? DilutionFactor, List<decimal> VesselAreas, string Password, string? Comment = null);
 public record RecordDissolutionStageRequest(List<decimal> VesselAreas, string Password, string? Comment = null);
+public record RecordDisintegrationResultRequest(DateTime AnalysedAt, int? EquipmentId, Dictionary<string, string>? Conditions, List<decimal?> UnitMinutes, string Password, string? Comment = null);
+public record RecordDisintegrationStageRequest(List<decimal?> UnitMinutes, string Password, string? Comment = null);
 public record BatchResultLocationRequest(int SampleLocationId, List<decimal> Readings);
 public record BatchResultsRequest(List<BatchResultLocationRequest> Locations);
 public record WaterBatchLocationRequest(int SampleLocationId, List<decimal> Readings);
@@ -426,6 +428,39 @@ public class TestWorkflowController : ControllerBase
                 request.Password,
                 request.Comment);
             return _engine.RecordDissolutionStageAsync(testOrderId, payload, CurrentUserId, ClientIpAddress);
+        });
+    }
+
+    [HttpPost("{testOrderId}/record-disintegration-result")]
+    [Authorize(Policy = PermissionConstants.TestWorkflowExecute)]
+    public async Task<IActionResult> RecordDisintegrationResult(int testOrderId, RecordDisintegrationResultRequest request)
+    {
+        await _scopeService.EnsureTestOrderAccessAsync(CurrentUserId, testOrderId);
+        return await RunAsync(() =>
+        {
+            var payload = new DisintegrationPayload(
+                request.AnalysedAt,
+                request.EquipmentId,
+                request.Conditions,
+                request.UnitMinutes,
+                request.Password,
+                request.Comment);
+            return _engine.RecordDisintegrationResultAsync(testOrderId, payload, CurrentUserId, ClientIpAddress);
+        });
+    }
+
+    [HttpPost("{testOrderId}/record-disintegration-stage")]
+    [Authorize(Policy = PermissionConstants.TestWorkflowExecute)]
+    public async Task<IActionResult> RecordDisintegrationStage(int testOrderId, RecordDisintegrationStageRequest request)
+    {
+        await _scopeService.EnsureTestOrderAccessAsync(CurrentUserId, testOrderId);
+        return await RunAsync(() =>
+        {
+            var payload = new DisintegrationStagePayload(
+                request.UnitMinutes,
+                request.Password,
+                request.Comment);
+            return _engine.RecordDisintegrationStageAsync(testOrderId, payload, CurrentUserId, ClientIpAddress);
         });
     }
 

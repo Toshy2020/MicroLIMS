@@ -14,7 +14,8 @@ public static class AnalysisWorkflows
         WorkflowType.Measurement,
         WorkflowType.Gravimetric,
         WorkflowType.Qualitative,
-        WorkflowType.Dissolution
+        WorkflowType.Dissolution,
+        WorkflowType.Disintegration
     };
 
     public static bool UsesTestAnalysis(WorkflowType workflowType) => Workflows.Contains(workflowType);
@@ -28,6 +29,7 @@ public static class AnalysisWorkflows
         WorkflowType.Gravimetric => "gravimetric",
         WorkflowType.Qualitative => "qualitative",
         WorkflowType.Dissolution => "dissolution",
+        WorkflowType.Disintegration => "disintegration",
         _ => "test analysis"
     };
 }

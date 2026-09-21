@@ -1,8 +1,8 @@
 # MicroLIMS — Build Status (2026-09-19)
 
 Branch: `feat/fp-hplc-foundation` (local only, **never pushed**; nothing applied to production/Neon).
-Local database: **LIMSV2** — all migrations up to `20260921193442_Tier2WeightVariation` are applied.
-Last full backend test run (including Postgres): **1729 passed / 0 failed / 0 skipped** (2026-09-21), plus 5 weight-variation boundary tests added after that run (passing).
+Local database: **LIMSV2** — all migrations up to `20260921203855_HplcMultiAnalyteM1` are applied.
+Last full backend test run (including Postgres): **1749 passed / 0 failed / 0 skipped** (2026-09-21).
 Frontend: type check and production build are clean. The project has no frontend unit tests.
 
 ---
@@ -88,12 +88,13 @@ Backups taken:
 - `LIMSV2_before_tier2_dissolution_20260919.dump`
 - `LIMSV2_before_tier2_disintegration_20260921.dump`
 - `LIMSV2_before_tier2_weight_variation_20260921.dump`
+- `LIMSV2_before_hplc_multi_analyte_m1_20260921.dump`
 
 ---
 
 ## 2. In progress
 
-- Nothing running. Tier 2 (dissolution, disintegration, weight variation) is complete.
+- Multi-vitamin HPLC assay (`docs/FP_Multi_Analyte_HPLC_Build_Spec.md`): M1 backend done (383fc0a: vitamins as analytes, suitability run with a row per vitamin); M2 result calculation next, then M3 screens.
 
 ---
 

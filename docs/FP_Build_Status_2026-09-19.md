@@ -94,7 +94,7 @@ Backups taken:
 
 ## 2. In progress
 
-- Multi-vitamin HPLC assay (`docs/FP_Multi_Analyte_HPLC_Build_Spec.md`): M1 backend done (383fc0a: vitamins as analytes, suitability run with a row per vitamin); M2 result calculation next, then M3 screens.
+- Multi-vitamin HPLC assay (`docs/FP_Multi_Analyte_HPLC_Build_Spec.md`): M1 backend done (383fc0a: vitamins as analytes, suitability run with a row per vitamin); M2 backend done (1829290: signed result per vitamin in mg/unit or % label claim, unit weight from weight variation, preparation RSD to review, no migration; 1762/0/0 with Postgres); M3 screens next.
 
 ---
 

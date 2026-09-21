@@ -203,6 +203,43 @@ Related substances (area normalisation / vs standard with RRF, reporting thresho
   (0 dp display), status WithinLimits / OutOfSpecification. Readings: Kind Vessel, Stage, Value1 = area,
   ComputedValue = %, Passed = per-unit check of the stage it was entered in.
 
+### T4 slice contract (2026-09-21)
+User decisions: the time limit is set **per product on the Specification** (like Dissolution Q); the analyst records
+the **time of each unit** in minutes, or marks it "not disintegrated".
+- Enums (append): `WorkflowType.Disintegration`, `EquationType.Disintegration`, `LimitType.DisintegrationTime = 9`.
+  The two types go together (MasterDataController pair rule, create and update), as for Dissolution.
+- Specification (per item): `LimitType.DisintegrationTime`, limit in `UpperLimit` (minutes, > 0), Unit "min";
+  SpecLimit text "NMT {T} min". LabelClaim, TestAnalyteId, ResultBasis and SampleMatrix must be empty; ConversionFactor
+  1.0. Exactly one specification per test/item. DisintegrationTime is allowed only on Disintegration tests, and
+  Disintegration tests allow only DisintegrationTime. `SpecificationEvaluator` treats it like DissolutionQ (not
+  evaluated generically).
+- Test Master (TestDefinition, nullable int, defaulted on save for Disintegration tests; USP <701> / EP 2.9.1):
+  `DisintegrationStage1Units` 6, `DisintegrationStage2Units` 12, `DisintegrationMaxStage1Failures` 2,
+  `DisintegrationMinPassTotal` 16. Rules: units >= 1; 0 <= max failures < stage-1 units;
+  1 <= min pass total <= stage-1 + stage-2 units. `RequiresSystemSuitability` must be false. `ConditionFields`
+  reused (medium, temperature, discs...). No steps. Equipment optional, FP section (same check as the other types).
+- Pure `DisintegrationStageEvaluator.Evaluate(IReadOnlyList<decimal?> unitMinutes, decimal limitMinutes, config)`:
+  a unit passes when its time is not null and <= limit (compared unrounded; exactly at the limit passes).
+  Stage 1 (count = stage-1 units): 0 failures -> Complies; 1..max failures -> NextStageRequired; more ->
+  DoesNotComply (no stage 2: the pharmacopoeia only repeats on 1-2 failures; the dissolution "always continue"
+  rule does not apply here). Stage 2 (count = stage-1 + stage-2 units): passed >= min pass total -> Complies, else
+  DoesNotComply. Any other count throws. Reuses `DissolutionStageOutcome`. Returns stage reached, outcome, passed
+  count, longest time among disintegrated units, reasons.
+- Endpoints (`TestWorkflowExecute`, section check, signed with password): `record-disintegration-result`
+  {AnalysedAt, EquipmentId?, Conditions, UnitMinutes (list of decimal?, null = not disintegrated), Password, Comment?}
+  -> exactly stage-1 units; `record-disintegration-stage` {UnitMinutes, Password, Comment?} -> exactly stage-2
+  units, only while the active analysis is NextStageRequired. Present times must be > 0.
+- Stored as in Dissolution: one TestAnalysis (AnalysisType Disintegration, ConditionsJson) with one ParameterResult;
+  readings Kind `Unit`, Index, Stage, Value1 = minutes (null when not disintegrated), Text "Not disintegrated" when
+  null, Passed. ParameterResult: StageReached; ComparisonStatus WithinLimits / OutOfSpecification /
+  NextStageRequired; ReportedDisplay "Complies" / "Does not comply" / "Stage 2 required"; ReportedValue = longest
+  time among disintegrated units (null if none); CalculationJson = limit, config, units, passed count, longest,
+  outcome, reasons. While NextStageRequired the order is not finalized; the approval gate already blocks a pending
+  stage. The completion path (Result row, projection, Ready, auto-submit for review) matches Dissolution.
+- Tests: exactly 30.0 min passes, 30.0000001 fails; 1 and 2 failures at S1 -> S2; 3 -> DoesNotComply at S1;
+  16/18 Complies, 15/18 DoesNotComply; not-disintegrated counts as a failure; custom Test Master config honoured;
+  wrong unit counts rejected; stage call rejected when not pending; spec rules; Postgres round trip of both calls.
+
 ## G3 - Staged evaluation engine (recommended now, in the Dissolution slice)
 One pure engine: input = typed criteria + unit values per stage; output = stage reached, outcome, reasons. Stage state
 on `ParameterResult.StageReached`; units in `ResultReading` with `Stage`. The analyst adds the next stage's units only

@@ -26,6 +26,7 @@ public class TestDefinitionConfiguration : IEntityTypeConfiguration<TestDefiniti
         builder.Property(t => t.SstMinResolution).HasPrecision(18, 4);
         builder.Property(t => t.SstMaxTailingFactor).HasPrecision(18, 4);
         builder.Property(t => t.SstMinTheoreticalPlates).HasPrecision(18, 4);
+        builder.Property(t => t.HplcMaxPreparationRsdPercent).HasPrecision(18, 4);
 
         builder.Property(t => t.CalMinCorrelation).HasPrecision(10, 6);
         builder.Property(t => t.CalCheckRecoveryLowPercent).HasPrecision(18, 4);

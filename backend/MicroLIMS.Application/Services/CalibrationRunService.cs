@@ -192,6 +192,9 @@ public class CalibrationRunService : ICalibrationRunService
                 ?? await _db.TestAnalytes.FirstOrDefaultAsync(a => a.Id == analyteReq.TestAnalyteId && a.TestDefinitionId == test.Id, ct)
                 ?? throw new InvalidOperationException($"Analyte {analyteReq.TestAnalyteId} is not configured for test {test.Code}.");
 
+            if (!testAnalyte.View.HasValue)
+                throw new InvalidOperationException($"Analyte {testAnalyte.Element} ({testAnalyte.WavelengthNm} nm) does not have a View configured.");
+
             if (!testAnalyte.IsActive)
                 throw new InvalidOperationException($"Analyte {testAnalyte.Element} ({testAnalyte.WavelengthNm} nm) is inactive.");
 
@@ -354,7 +357,7 @@ public class CalibrationRunService : ICalibrationRunService
             a.TestAnalyte.Id,
             a.TestAnalyte.Element,
             a.TestAnalyte.WavelengthNm,
-            a.TestAnalyte.View,
+            a.TestAnalyte.View!.Value,
             a.CorrelationValue,
             a.CorrelationType,
             a.NumberOfStandards,
@@ -458,7 +461,7 @@ public class CalibrationRunService : ICalibrationRunService
                 TestAnalyteId = evalAnalyte.TestAnalyte.Id,
                 Element = evalAnalyte.TestAnalyte.Element,
                 WavelengthNm = evalAnalyte.TestAnalyte.WavelengthNm,
-                View = evalAnalyte.TestAnalyte.View,
+                View = evalAnalyte.TestAnalyte.View!.Value,
                 CorrelationValue = evalAnalyte.CorrelationValue,
                 CorrelationType = evalAnalyte.CorrelationType,
                 NumberOfStandards = evalAnalyte.NumberOfStandards,

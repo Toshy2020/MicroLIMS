@@ -22,4 +22,5 @@ public record SuitabilityRunReportDetailsDto(
     string? CdsSoftware,
     string? ColumnSerialNumber,
     SignatureDto? Signature,
-    List<SuitabilityRunLinkedTestDto> LinkedTests);
+    List<SuitabilityRunLinkedTestDto> LinkedTests,
+    List<SuitabilityRunReportAnalyteDto>? Analytes = null);

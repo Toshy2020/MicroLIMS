@@ -19,7 +19,8 @@ public record SystemSuitabilityRunView(
     int ReferenceStandardMaterialId, string? ReferenceStandardName, string? ReferenceStandardBatch,
     decimal StandardPurityPercent, decimal StandardWeightMg, decimal StandardDilution, decimal StandardMeanArea,
     decimal? RsdPercent, decimal? Resolution, decimal? TailingFactor, decimal? TheoreticalPlates,
-    int PerformedByUserId, string? PerformedByName, DateTime PerformedAt, string? Comment)
+    int PerformedByUserId, string? PerformedByName, DateTime PerformedAt, string? Comment,
+    List<SystemSuitabilityRunAnalyteView>? Analytes = null)
 {
     public static SystemSuitabilityRunView From(SystemSuitabilityRun r) => new(
         r.Id, r.Code, r.Passed, r.FailureReasons,
@@ -30,7 +31,8 @@ public record SystemSuitabilityRunView(
         r.ReferenceStandardMaterialId, r.ReferenceStandardMaterial?.MaterialName, r.ReferenceStandardMaterial?.BatchNumber,
         r.StandardPurityPercent, r.StandardWeightMg, r.StandardDilution, r.StandardMeanArea,
         r.RsdPercent, r.Resolution, r.TailingFactor, r.TheoreticalPlates,
-        r.PerformedByUserId, r.PerformedByUser?.FullName ?? r.Signature?.UserFullNameSnapshot, r.PerformedAt, r.Comment);
+        r.PerformedByUserId, r.PerformedByUser?.FullName ?? r.Signature?.UserFullNameSnapshot, r.PerformedAt, r.Comment,
+        r.Analytes != null && r.Analytes.Count > 0 ? r.Analytes.Select(SystemSuitabilityRunAnalyteView.From).ToList() : null);
 }
 
 [ApiController]

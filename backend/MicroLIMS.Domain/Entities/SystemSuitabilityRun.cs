@@ -50,4 +50,6 @@ public class SystemSuitabilityRun
     public ElectronicSignature? Signature { get; set; }
 
     public string? Comment { get; set; }
+
+    public List<SystemSuitabilityRunAnalyte> Analytes { get; set; } = new();
 }

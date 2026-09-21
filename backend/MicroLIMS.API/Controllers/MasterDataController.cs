@@ -178,7 +178,10 @@ public record CreateTestDefinitionRequest(
     int? WvCapsuleS1MaxOutside = null,
     int? WvCapsuleS1MaxForRetest = null,
     int? WvCapsuleS2ExtraUnits = null,
-    int? WvCapsuleS2MaxOutside = null);
+    int? WvCapsuleS2MaxOutside = null,
+    int? HplcPreparations = null,
+    int? HplcInjectionsPerPreparation = null,
+    decimal? HplcMaxPreparationRsdPercent = null);
 // SectionId: move the test to another laboratory section (null = keep). Test
 // orders already created keep the section they were created with.
 public record UpdateTestDefinitionRequest(
@@ -232,7 +235,10 @@ public record UpdateTestDefinitionRequest(
     int? WvCapsuleS1MaxOutside = null,
     int? WvCapsuleS1MaxForRetest = null,
     int? WvCapsuleS2ExtraUnits = null,
-    int? WvCapsuleS2MaxOutside = null);
+    int? WvCapsuleS2MaxOutside = null,
+    int? HplcPreparations = null,
+    int? HplcInjectionsPerPreparation = null,
+    decimal? HplcMaxPreparationRsdPercent = null);
 public record UpdateWorkflowTypeRequest(WorkflowType WorkflowType);
 
 public record StepMediaRequest(int MaterialId, bool IsRequired, int DisplayOrder, int? MediaIncubationConditionId);
@@ -1745,6 +1751,11 @@ public class MasterDataController : ControllerBase
                     "StandardDilution"
                 }),
             new EquationTypeDto(
+                Code: nameof(EquationType.HplcMultiAnalyte),
+                Name: "HPLC Multi-Analyte",
+                FormulaText: "amount = (Au / As) * Cs * Dsample * UnitAmount / SampleAmount; result = amount * ConversionFactor",
+                RequiredInputs: new[] { "Au", "As", "Cs", "Dsample", "UnitAmount", "SampleAmount" }),
+            new EquationTypeDto(
                 Code: nameof(EquationType.SystemSuitability),
                 Name: "System Suitability",
                 FormulaText: "RSD <= MaxRSD, Resolution >= MinResolution, Tailing <= MaxTailing, Plates >= MinPlates",
@@ -1821,7 +1832,8 @@ public class MasterDataController : ControllerBase
             if (!System.Text.RegularExpressions.Regex.IsMatch(methodAbbr, "^[A-Z0-9-]{1,20}$"))
                 throw new InvalidOperationException("Method abbreviation must be 1-20 uppercase alphanumeric characters or hyphens.");
 
-            if (!request.SstMaxRsdPercent.HasValue && !request.SstMinResolution.HasValue &&
+            if (request.EquationType != EquationType.HplcMultiAnalyte && request.WorkflowType != WorkflowType.HplcMultiAnalyte &&
+                !request.SstMaxRsdPercent.HasValue && !request.SstMinResolution.HasValue &&
                 !request.SstMaxTailingFactor.HasValue && !request.SstMinTheoreticalPlates.HasValue)
             {
                 throw new InvalidOperationException("At least one system suitability criterion is required when system suitability is enabled.");
@@ -2033,6 +2045,34 @@ public class MasterDataController : ControllerBase
                 throw new InvalidOperationException($"Weight variation capsule Stage 2 max outside must be less than total units ({unitCount + capS2Extra}).");
         }
 
+        if (request.EquationType == EquationType.HplcMultiAnalyte)
+        {
+            if (request.WorkflowType != WorkflowType.HplcMultiAnalyte)
+                throw new InvalidOperationException("Workflow type must be HplcMultiAnalyte when equation type is HplcMultiAnalyte.");
+        }
+        else if (request.WorkflowType == WorkflowType.HplcMultiAnalyte)
+        {
+            if (request.EquationType != EquationType.HplcMultiAnalyte)
+                throw new InvalidOperationException("Equation type must be HplcMultiAnalyte when workflow type is HplcMultiAnalyte.");
+        }
+
+        if (request.WorkflowType == WorkflowType.HplcMultiAnalyte)
+        {
+            if (!request.RequiresSystemSuitability)
+                throw new InvalidOperationException("HPLC multi-analyte tests must require system suitability.");
+
+            var preps = request.HplcPreparations ?? 2;
+            if (preps < 1 || preps > 10)
+                throw new InvalidOperationException("HPLC preparations must be between 1 and 10.");
+
+            var injections = request.HplcInjectionsPerPreparation ?? 2;
+            if (injections < 1 || injections > 10)
+                throw new InvalidOperationException("HPLC injections per preparation must be between 1 and 10.");
+
+            if (request.HplcMaxPreparationRsdPercent.HasValue && request.HplcMaxPreparationRsdPercent.Value <= 0m)
+                throw new InvalidOperationException("HPLC maximum preparation RSD percent must be greater than zero.");
+        }
+
         var entity = new TestDefinition
         {
             Code = request.Code,
@@ -2085,7 +2125,10 @@ public class MasterDataController : ControllerBase
             WvCapsuleS1MaxOutside = request.WorkflowType == WorkflowType.WeightVariation ? (request.WvCapsuleS1MaxOutside ?? 2) : request.WvCapsuleS1MaxOutside,
             WvCapsuleS1MaxForRetest = request.WorkflowType == WorkflowType.WeightVariation ? (request.WvCapsuleS1MaxForRetest ?? 6) : request.WvCapsuleS1MaxForRetest,
             WvCapsuleS2ExtraUnits = request.WorkflowType == WorkflowType.WeightVariation ? (request.WvCapsuleS2ExtraUnits ?? 40) : request.WvCapsuleS2ExtraUnits,
-            WvCapsuleS2MaxOutside = request.WorkflowType == WorkflowType.WeightVariation ? (request.WvCapsuleS2MaxOutside ?? 6) : request.WvCapsuleS2MaxOutside
+            WvCapsuleS2MaxOutside = request.WorkflowType == WorkflowType.WeightVariation ? (request.WvCapsuleS2MaxOutside ?? 6) : request.WvCapsuleS2MaxOutside,
+            HplcPreparations = request.WorkflowType == WorkflowType.HplcMultiAnalyte ? (request.HplcPreparations ?? 2) : 2,
+            HplcInjectionsPerPreparation = request.WorkflowType == WorkflowType.HplcMultiAnalyte ? (request.HplcInjectionsPerPreparation ?? 2) : 2,
+            HplcMaxPreparationRsdPercent = request.WorkflowType == WorkflowType.HplcMultiAnalyte ? request.HplcMaxPreparationRsdPercent : null
         };
         _db.TestDefinitions.Add(entity);
         await _db.SaveChangesAsync();
@@ -2154,7 +2197,8 @@ public class MasterDataController : ControllerBase
             if (!System.Text.RegularExpressions.Regex.IsMatch(effectiveMethodAbbr, "^[A-Z0-9-]{1,20}$"))
                 throw new InvalidOperationException("Method abbreviation must be 1-20 uppercase alphanumeric characters or hyphens.");
 
-            if (!effectiveRsd.HasValue && !effectiveRes.HasValue && !effectiveTailing.HasValue && !effectivePlates.HasValue)
+            if (effectiveEquationType != EquationType.HplcMultiAnalyte && effectiveWorkflowType != WorkflowType.HplcMultiAnalyte &&
+                !effectiveRsd.HasValue && !effectiveRes.HasValue && !effectiveTailing.HasValue && !effectivePlates.HasValue)
             {
                 throw new InvalidOperationException("At least one system suitability criterion is required when system suitability is enabled.");
             }
@@ -2363,6 +2407,37 @@ public class MasterDataController : ControllerBase
                 throw new InvalidOperationException($"Weight variation capsule Stage 2 max outside must be less than total units ({effectiveUnitCount + effectiveCapS2Extra}).");
         }
 
+        if (effectiveEquationType == EquationType.HplcMultiAnalyte)
+        {
+            if (effectiveWorkflowType != WorkflowType.HplcMultiAnalyte)
+                throw new InvalidOperationException("Workflow type must be HplcMultiAnalyte when equation type is HplcMultiAnalyte.");
+        }
+        else if (effectiveWorkflowType == WorkflowType.HplcMultiAnalyte)
+        {
+            if (effectiveEquationType != EquationType.HplcMultiAnalyte)
+                throw new InvalidOperationException("Equation type must be HplcMultiAnalyte when workflow type is HplcMultiAnalyte.");
+        }
+
+        if (effectiveWorkflowType == WorkflowType.HplcMultiAnalyte)
+        {
+            if (!effectiveRequiresSst)
+                throw new InvalidOperationException("HPLC multi-analyte tests must require system suitability.");
+
+            var effectivePreps = request.HplcPreparations ?? entity.HplcPreparations;
+            if (effectivePreps < 1 || effectivePreps > 10)
+                throw new InvalidOperationException("HPLC preparations must be between 1 and 10.");
+
+            var effectiveInjections = request.HplcInjectionsPerPreparation ?? entity.HplcInjectionsPerPreparation;
+            if (effectiveInjections < 1 || effectiveInjections > 10)
+                throw new InvalidOperationException("HPLC injections per preparation must be between 1 and 10.");
+
+            var effectiveRsdPercent = request.HplcMaxPreparationRsdPercent.HasValue
+                ? request.HplcMaxPreparationRsdPercent
+                : entity.HplcMaxPreparationRsdPercent;
+            if (effectiveRsdPercent.HasValue && effectiveRsdPercent.Value <= 0m)
+                throw new InvalidOperationException("HPLC maximum preparation RSD percent must be greater than zero.");
+        }
+
         entity.Code = request.Code;
         entity.DisplayName = request.DisplayName;
         if (request.WorkflowType.HasValue) entity.WorkflowType = request.WorkflowType.Value;
@@ -2435,6 +2510,11 @@ public class MasterDataController : ControllerBase
         else if (effectiveWorkflowType == WorkflowType.WeightVariation && !entity.WvCapsuleS2ExtraUnits.HasValue) entity.WvCapsuleS2ExtraUnits = 40;
         if (request.WvCapsuleS2MaxOutside.HasValue) entity.WvCapsuleS2MaxOutside = request.WvCapsuleS2MaxOutside.Value;
         else if (effectiveWorkflowType == WorkflowType.WeightVariation && !entity.WvCapsuleS2MaxOutside.HasValue) entity.WvCapsuleS2MaxOutside = 6;
+        if (request.HplcPreparations.HasValue) entity.HplcPreparations = request.HplcPreparations.Value;
+        else if (effectiveWorkflowType == WorkflowType.HplcMultiAnalyte && entity.HplcPreparations == 0) entity.HplcPreparations = 2;
+        if (request.HplcInjectionsPerPreparation.HasValue) entity.HplcInjectionsPerPreparation = request.HplcInjectionsPerPreparation.Value;
+        else if (effectiveWorkflowType == WorkflowType.HplcMultiAnalyte && entity.HplcInjectionsPerPreparation == 0) entity.HplcInjectionsPerPreparation = 2;
+        if (request.HplcMaxPreparationRsdPercent.HasValue) entity.HplcMaxPreparationRsdPercent = request.HplcMaxPreparationRsdPercent.Value;
 
 
         await _db.SaveChangesAsync();
@@ -2802,18 +2882,49 @@ public class MasterDataController : ControllerBase
         if (scope is not null && !scope.Contains(test.SectionId))
             throw new UnauthorizedAccessException("This test belongs to a laboratory section you are not assigned to.");
 
+        var isHplcMulti = test.WorkflowType == WorkflowType.HplcMultiAnalyte || test.EquationType == EquationType.HplcMultiAnalyte;
+
         if (string.IsNullOrWhiteSpace(request.Element))
             throw new InvalidOperationException("Element is required.");
 
         var element = request.Element.Trim();
         if (element.Length > 20)
-            throw new InvalidOperationException("Element symbol cannot exceed 20 characters.");
+            throw new InvalidOperationException(isHplcMulti ? "Analyte name cannot exceed 20 characters." : "Element symbol cannot exceed 20 characters.");
 
         if (request.WavelengthNm <= 0)
             throw new InvalidOperationException("Wavelength must be greater than 0.");
 
-        if (request.LoqMgPerL <= 0)
-            throw new InvalidOperationException("LOQ must be greater than 0.");
+        if (isHplcMulti)
+        {
+            if (request.View.HasValue)
+                throw new InvalidOperationException("View is not allowed for HPLC multi-analyte tests.");
+
+            if (request.LoqMgPerL.HasValue && request.LoqMgPerL.Value <= 0)
+                throw new InvalidOperationException("LOQ must be greater than 0.");
+
+            if (request.SstMaxRsdPercent.HasValue && request.SstMaxRsdPercent.Value <= 0)
+                throw new InvalidOperationException("SST max RSD percent must be greater than 0.");
+            if (request.SstMinResolution.HasValue && request.SstMinResolution.Value <= 0)
+                throw new InvalidOperationException("SST min resolution must be greater than 0.");
+            if (request.SstMaxTailingFactor.HasValue && request.SstMaxTailingFactor.Value <= 0)
+                throw new InvalidOperationException("SST max tailing factor must be greater than 0.");
+            if (request.SstMinTheoreticalPlates.HasValue && request.SstMinTheoreticalPlates.Value <= 0)
+                throw new InvalidOperationException("SST min theoretical plates must be greater than 0.");
+        }
+        else
+        {
+            if (!request.View.HasValue)
+                throw new InvalidOperationException("View is required for calibration curve tests.");
+
+            if (!request.LoqMgPerL.HasValue || request.LoqMgPerL.Value <= 0)
+                throw new InvalidOperationException("LOQ must be greater than 0.");
+
+            if (request.SstMaxRsdPercent.HasValue || request.SstMinResolution.HasValue ||
+                request.SstMaxTailingFactor.HasValue || request.SstMinTheoreticalPlates.HasValue)
+            {
+                throw new InvalidOperationException("SST criteria are not allowed for calibration curve tests.");
+            }
+        }
 
         if (await _db.TestAnalytes.AnyAsync(a => a.TestDefinitionId == id && a.Element == element && a.WavelengthNm == request.WavelengthNm))
             throw new InvalidOperationException($"Analyte {element} at {request.WavelengthNm} nm already exists for this test definition.");
@@ -2823,9 +2934,13 @@ public class MasterDataController : ControllerBase
             TestDefinitionId = id,
             Element = element,
             WavelengthNm = request.WavelengthNm,
-            View = request.View,
+            View = isHplcMulti ? null : request.View,
             LoqMgPerL = request.LoqMgPerL,
             DisplayOrder = request.DisplayOrder,
+            SstMaxRsdPercent = isHplcMulti ? request.SstMaxRsdPercent : null,
+            SstMinResolution = isHplcMulti ? request.SstMinResolution : null,
+            SstMaxTailingFactor = isHplcMulti ? request.SstMaxTailingFactor : null,
+            SstMinTheoreticalPlates = isHplcMulti ? request.SstMinTheoreticalPlates : null,
             IsActive = true
         };
 
@@ -2848,28 +2963,76 @@ public class MasterDataController : ControllerBase
         var analyte = await _db.TestAnalytes.FirstOrDefaultAsync(a => a.Id == analyteId && a.TestDefinitionId == id)
             ?? throw new InvalidOperationException($"Analyte {analyteId} not found for test {id}.");
 
+        var isHplcMulti = test.WorkflowType == WorkflowType.HplcMultiAnalyte || test.EquationType == EquationType.HplcMultiAnalyte;
+
         var effectiveElement = request.Element != null ? request.Element.Trim() : analyte.Element;
         var effectiveWavelength = request.WavelengthNm ?? analyte.WavelengthNm;
 
         if (string.IsNullOrWhiteSpace(effectiveElement))
             throw new InvalidOperationException("Element is required.");
         if (effectiveElement.Length > 20)
-            throw new InvalidOperationException("Element symbol cannot exceed 20 characters.");
+            throw new InvalidOperationException(isHplcMulti ? "Analyte name cannot exceed 20 characters." : "Element symbol cannot exceed 20 characters.");
         if (effectiveWavelength <= 0)
             throw new InvalidOperationException("Wavelength must be greater than 0.");
+
+        if (isHplcMulti)
+        {
+            if (request.View.HasValue)
+                throw new InvalidOperationException("View is not allowed for HPLC multi-analyte tests.");
+
+            if (request.LoqMgPerL.HasValue)
+            {
+                if (request.LoqMgPerL.Value <= 0)
+                    throw new InvalidOperationException("LOQ must be greater than 0.");
+                analyte.LoqMgPerL = request.LoqMgPerL.Value;
+            }
+
+            if (request.SstMaxRsdPercent.HasValue)
+            {
+                if (request.SstMaxRsdPercent.Value <= 0)
+                    throw new InvalidOperationException("SST max RSD percent must be greater than 0.");
+                analyte.SstMaxRsdPercent = request.SstMaxRsdPercent.Value;
+            }
+            if (request.SstMinResolution.HasValue)
+            {
+                if (request.SstMinResolution.Value <= 0)
+                    throw new InvalidOperationException("SST min resolution must be greater than 0.");
+                analyte.SstMinResolution = request.SstMinResolution.Value;
+            }
+            if (request.SstMaxTailingFactor.HasValue)
+            {
+                if (request.SstMaxTailingFactor.Value <= 0)
+                    throw new InvalidOperationException("SST max tailing factor must be greater than 0.");
+                analyte.SstMaxTailingFactor = request.SstMaxTailingFactor.Value;
+            }
+            if (request.SstMinTheoreticalPlates.HasValue)
+            {
+                if (request.SstMinTheoreticalPlates.Value <= 0)
+                    throw new InvalidOperationException("SST min theoretical plates must be greater than 0.");
+                analyte.SstMinTheoreticalPlates = request.SstMinTheoreticalPlates.Value;
+            }
+        }
+        else
+        {
+            if (request.View.HasValue) analyte.View = request.View.Value;
+            if (request.LoqMgPerL.HasValue)
+            {
+                if (request.LoqMgPerL.Value <= 0)
+                    throw new InvalidOperationException("LOQ must be greater than 0.");
+                analyte.LoqMgPerL = request.LoqMgPerL.Value;
+            }
+            if (request.SstMaxRsdPercent.HasValue || request.SstMinResolution.HasValue ||
+                request.SstMaxTailingFactor.HasValue || request.SstMinTheoreticalPlates.HasValue)
+            {
+                throw new InvalidOperationException("SST criteria are not allowed for calibration curve tests.");
+            }
+        }
 
         if (await _db.TestAnalytes.AnyAsync(a => a.TestDefinitionId == id && a.Id != analyteId && a.Element == effectiveElement && a.WavelengthNm == effectiveWavelength))
             throw new InvalidOperationException($"Analyte {effectiveElement} at {effectiveWavelength} nm already exists for this test definition.");
 
         analyte.Element = effectiveElement;
         analyte.WavelengthNm = effectiveWavelength;
-        if (request.View.HasValue) analyte.View = request.View.Value;
-        if (request.LoqMgPerL.HasValue)
-        {
-            if (request.LoqMgPerL.Value <= 0)
-                throw new InvalidOperationException("LOQ must be greater than 0.");
-            analyte.LoqMgPerL = request.LoqMgPerL.Value;
-        }
         if (request.DisplayOrder.HasValue) analyte.DisplayOrder = request.DisplayOrder.Value;
         if (request.IsActive.HasValue) analyte.IsActive = request.IsActive.Value;
 
@@ -2891,14 +3054,18 @@ public class MasterDataController : ControllerBase
         var analyte = await _db.TestAnalytes.FirstOrDefaultAsync(a => a.Id == analyteId && a.TestDefinitionId == id)
             ?? throw new InvalidOperationException($"Analyte {analyteId} not found for test {id}.");
 
-        var inUse = await _db.CalibrationRunAnalytes.AnyAsync(r => r.TestAnalyteId == analyteId);
-        if (inUse)
+        var inUseCalibration = await _db.CalibrationRunAnalytes.AnyAsync(r => r.TestAnalyteId == analyteId);
+        var inUseSuitability = await _db.SystemSuitabilityRunAnalytes.AnyAsync(r => r.TestAnalyteId == analyteId);
+        if (inUseCalibration || inUseSuitability)
         {
             analyte.IsActive = false;
             await _db.SaveChangesAsync();
+            var runType = inUseCalibration && inUseSuitability ? "calibration and suitability runs"
+                : inUseCalibration ? "calibration runs"
+                : "suitability runs";
             return Ok(ApiResponse<object>.Ok(new
             {
-                message = $"Analyte {analyte.Element} ({analyte.WavelengthNm} nm) is referenced by calibration runs and has been deactivated instead of deleted.",
+                message = $"Analyte {analyte.Element} ({analyte.WavelengthNm} nm) is referenced by {runType} and has been deactivated instead of deleted.",
                 deactivated = true
             }));
         }

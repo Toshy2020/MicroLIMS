@@ -37,53 +37,74 @@ public class SystemSuitabilityService : ISystemSuitabilityService
         decimal? tailingFactor,
         decimal? theoreticalPlates)
     {
+        return EvaluateAcceptanceCriteria(
+            test.SstMaxRsdPercent,
+            test.SstMinResolution,
+            test.SstMaxTailingFactor,
+            test.SstMinTheoreticalPlates,
+            rsdPercent,
+            resolution,
+            tailingFactor,
+            theoreticalPlates);
+    }
+
+    public static (bool Passed, string? FailureReasons) EvaluateAcceptanceCriteria(
+        decimal? maxRsd,
+        decimal? minRes,
+        decimal? maxTailing,
+        decimal? minPlates,
+        decimal? rsdPercent,
+        decimal? resolution,
+        decimal? tailingFactor,
+        decimal? theoreticalPlates)
+    {
         var failures = new List<string>();
 
-        if (test.SstMaxRsdPercent.HasValue)
+        if (maxRsd.HasValue)
         {
             if (!rsdPercent.HasValue)
             {
-                failures.Add($"RSD% is required (max {test.SstMaxRsdPercent.Value}%) but was not provided.");
+                failures.Add($"RSD% is required (max {maxRsd.Value}%) but was not provided.");
             }
-            else if (rsdPercent.Value > test.SstMaxRsdPercent.Value)
+            else if (rsdPercent.Value > maxRsd.Value)
             {
-                failures.Add($"RSD% ({rsdPercent.Value}%) exceeds maximum limit ({test.SstMaxRsdPercent.Value}%).");
+                failures.Add($"RSD% ({rsdPercent.Value}%) exceeds maximum limit ({maxRsd.Value}%).");
             }
         }
 
-        if (test.SstMinResolution.HasValue)
+        if (minRes.HasValue)
         {
             if (!resolution.HasValue)
             {
-                failures.Add($"Resolution is required (min {test.SstMinResolution.Value}) but was not provided.");
+                failures.Add($"Resolution is required (min {minRes.Value}) but was not provided.");
             }
-            else if (resolution.Value < test.SstMinResolution.Value)
+            else if (resolution.Value < minRes.Value)
             {
-                failures.Add($"Resolution ({resolution.Value}) is below minimum limit ({test.SstMinResolution.Value}).");
+                failures.Add($"Resolution ({resolution.Value}) is below minimum limit ({minRes.Value}).");
             }
         }
 
-        if (test.SstMaxTailingFactor.HasValue)
+        if (maxTailing.HasValue)
         {
             if (!tailingFactor.HasValue)
             {
-                failures.Add($"Tailing factor is required (max {test.SstMaxTailingFactor.Value}) but was not provided.");
+                failures.Add($"Tailing factor is required (max {maxTailing.Value}) but was not provided.");
             }
-            else if (tailingFactor.Value > test.SstMaxTailingFactor.Value)
+            else if (tailingFactor.Value > maxTailing.Value)
             {
-                failures.Add($"Tailing factor ({tailingFactor.Value}) exceeds maximum limit ({test.SstMaxTailingFactor.Value}).");
+                failures.Add($"Tailing factor ({tailingFactor.Value}) exceeds maximum limit ({maxTailing.Value}).");
             }
         }
 
-        if (test.SstMinTheoreticalPlates.HasValue)
+        if (minPlates.HasValue)
         {
             if (!theoreticalPlates.HasValue)
             {
-                failures.Add($"Theoretical plates is required (min {test.SstMinTheoreticalPlates.Value}) but was not provided.");
+                failures.Add($"Theoretical plates is required (min {minPlates.Value}) but was not provided.");
             }
-            else if (theoreticalPlates.Value < test.SstMinTheoreticalPlates.Value)
+            else if (theoreticalPlates.Value < minPlates.Value)
             {
-                failures.Add($"Theoretical plates ({theoreticalPlates.Value}) is below minimum limit ({test.SstMinTheoreticalPlates.Value}).");
+                failures.Add($"Theoretical plates ({theoreticalPlates.Value}) is below minimum limit ({minPlates.Value}).");
             }
         }
 
@@ -135,42 +156,196 @@ public class SystemSuitabilityService : ISystemSuitabilityService
         if (col.SectionId != test.SectionId)
             throw new InvalidOperationException("Chromatography column belongs to a different laboratory section than the test definition.");
 
-        // Reference standard material: ReferenceStandard + usable (in stock, not expired) + same section
-        var material = await _db.Materials.FirstOrDefaultAsync(m => m.Id == request.ReferenceStandardMaterialId, ct)
-            ?? throw new InvalidOperationException($"Reference standard material {request.ReferenceStandardMaterialId} not found.");
+        bool isMultiAnalyte = test.WorkflowType == WorkflowType.HplcMultiAnalyte || test.EquationType == EquationType.HplcMultiAnalyte;
 
-        if (material.MaterialType != MaterialType.ReferenceStandard)
-            throw new InvalidOperationException("Material must be a reference standard.");
+        int runRefMatId;
+        decimal runPurity;
+        decimal runWeight;
+        decimal runDilution;
+        decimal runMeanArea;
+        decimal? runRsd;
+        decimal? runResolution;
+        decimal? runTailing;
+        decimal? runPlates;
+        bool passed;
+        string? failureReasons;
+        List<SystemSuitabilityRunAnalyte> runAnalytes = new();
 
-        if (material.SectionId != test.SectionId)
-            throw new InvalidOperationException("Reference standard belongs to a different laboratory section than the test definition.");
+        if (isMultiAnalyte)
+        {
+            if (request.Analytes == null || request.Analytes.Count == 0)
+                throw new InvalidOperationException("Analyte rows are required for HPLC multi-analyte suitability runs.");
 
-        if (material.QuantityRemaining <= 0)
-            throw new InvalidOperationException("Reference standard is depleted.");
+            var activeAnalytes = await _db.TestAnalytes
+                .Where(a => a.TestDefinitionId == test.Id && a.IsActive)
+                .OrderBy(a => a.DisplayOrder)
+                .ThenBy(a => a.Id)
+                .ToListAsync(ct);
 
-        if (material.ExpiryDate.HasValue && material.ExpiryDate.Value.Date < DateTime.UtcNow.Date)
-            throw new InvalidOperationException("Reference standard is expired.");
+            if (activeAnalytes.Count == 0)
+                throw new InvalidOperationException($"Test definition {test.Code} has no active analytes configured.");
 
-        if (!material.Purity.HasValue || material.Purity.Value <= 0 || material.Purity.Value > 100)
-            throw new InvalidOperationException("Reference standard has invalid purity.");
+            var duplicateIds = request.Analytes
+                .GroupBy(a => a.TestAnalyteId)
+                .Where(g => g.Count() > 1)
+                .Select(g => g.Key)
+                .ToList();
+            if (duplicateIds.Count > 0)
+                throw new InvalidOperationException($"Duplicate analyte entry for TestAnalyteId {duplicateIds[0]}.");
 
-        // Numeric checks
-        if (request.StandardWeightMg <= 0)
-            throw new InvalidOperationException("Standard weight must be greater than 0.");
+            var allTestAnalytes = await _db.TestAnalytes
+                .Where(a => a.TestDefinitionId == test.Id)
+                .ToDictionaryAsync(a => a.Id, ct);
 
-        if (request.StandardDilution <= 0)
-            throw new InvalidOperationException("Standard dilution must be greater than 0.");
+            foreach (var reqRow in request.Analytes)
+            {
+                if (!allTestAnalytes.TryGetValue(reqRow.TestAnalyteId, out var analyteEntity))
+                    throw new InvalidOperationException($"Analyte {reqRow.TestAnalyteId} is not configured for test {test.Code}.");
 
-        if (request.StandardMeanArea <= 0)
-            throw new InvalidOperationException("Standard mean area must be greater than 0.");
+                if (!analyteEntity.IsActive)
+                    throw new InvalidOperationException($"Analyte {analyteEntity.Element} is inactive.");
+            }
 
-        // Server-side Pass/Fail evaluation
-        var (passed, failureReasons) = EvaluateAcceptanceCriteria(
-            test,
-            request.RsdPercent,
-            request.Resolution,
-            request.TailingFactor,
-            request.TheoreticalPlates);
+            var reqAnalyteIds = request.Analytes.Select(a => a.TestAnalyteId).ToHashSet();
+            var missingAnalytes = activeAnalytes.Where(a => !reqAnalyteIds.Contains(a.Id)).ToList();
+            if (missingAnalytes.Count > 0)
+                throw new InvalidOperationException($"Missing analyte row for: {string.Join(", ", missingAnalytes.Select(a => a.Element))}.");
+
+            var allFailures = new List<string>();
+
+            foreach (var reqRow in request.Analytes)
+            {
+                var analyteEntity = allTestAnalytes[reqRow.TestAnalyteId];
+
+                var mat = await _db.Materials.FirstOrDefaultAsync(m => m.Id == reqRow.ReferenceStandardMaterialId, ct)
+                    ?? throw new InvalidOperationException($"Reference standard material {reqRow.ReferenceStandardMaterialId} not found.");
+
+                if (mat.MaterialType != MaterialType.ReferenceStandard)
+                    throw new InvalidOperationException($"Material for analyte {analyteEntity.Element} must be a reference standard.");
+
+                if (mat.SectionId != test.SectionId)
+                    throw new InvalidOperationException($"Reference standard for analyte {analyteEntity.Element} belongs to a different laboratory section than the test definition.");
+
+                if (mat.QuantityRemaining <= 0)
+                    throw new InvalidOperationException($"Reference standard for analyte {analyteEntity.Element} is depleted.");
+
+                if (mat.ExpiryDate.HasValue && mat.ExpiryDate.Value.Date < DateTime.UtcNow.Date)
+                    throw new InvalidOperationException($"Reference standard for analyte {analyteEntity.Element} is expired.");
+
+                if (!mat.Purity.HasValue || mat.Purity.Value <= 0 || mat.Purity.Value > 100)
+                    throw new InvalidOperationException($"Reference standard for analyte {analyteEntity.Element} has invalid purity.");
+
+                if (reqRow.StandardWeightMg <= 0)
+                    throw new InvalidOperationException($"Standard weight for analyte {analyteEntity.Element} must be greater than 0.");
+
+                if (reqRow.StandardDilution <= 0)
+                    throw new InvalidOperationException($"Standard dilution for analyte {analyteEntity.Element} must be greater than 0.");
+
+                if (reqRow.StandardMeanArea <= 0)
+                    throw new InvalidOperationException($"Standard mean area for analyte {analyteEntity.Element} must be greater than 0.");
+
+                var (rowPassed, rowFailureReasons) = EvaluateAcceptanceCriteria(
+                    analyteEntity.SstMaxRsdPercent,
+                    analyteEntity.SstMinResolution,
+                    analyteEntity.SstMaxTailingFactor,
+                    analyteEntity.SstMinTheoreticalPlates,
+                    reqRow.RsdPercent,
+                    reqRow.Resolution,
+                    reqRow.TailingFactor,
+                    reqRow.TheoreticalPlates);
+
+                if (!rowPassed && !string.IsNullOrEmpty(rowFailureReasons))
+                {
+                    allFailures.Add($"{analyteEntity.Element}: {rowFailureReasons}");
+                }
+
+                var runAnalyte = new SystemSuitabilityRunAnalyte
+                {
+                    TestAnalyteId = analyteEntity.Id,
+                    AnalyteName = analyteEntity.Element,
+                    WavelengthNm = analyteEntity.WavelengthNm,
+                    ReferenceStandardMaterialId = mat.Id,
+                    ReferenceStandardMaterial = mat,
+                    StandardPurityPercent = mat.Purity.Value,
+                    StandardWeightMg = reqRow.StandardWeightMg,
+                    StandardDilution = reqRow.StandardDilution,
+                    StandardMeanArea = reqRow.StandardMeanArea,
+                    RsdPercent = reqRow.RsdPercent,
+                    Resolution = reqRow.Resolution,
+                    TailingFactor = reqRow.TailingFactor,
+                    TheoreticalPlates = reqRow.TheoreticalPlates,
+                    Passed = rowPassed,
+                    FailureReasons = rowFailureReasons
+                };
+
+                runAnalytes.Add(runAnalyte);
+            }
+
+            passed = runAnalytes.All(a => a.Passed);
+            failureReasons = passed ? null : string.Join("; ", allFailures);
+
+            var first = runAnalytes[0];
+            runRefMatId = first.ReferenceStandardMaterialId;
+            runPurity = first.StandardPurityPercent;
+            runWeight = first.StandardWeightMg;
+            runDilution = first.StandardDilution;
+            runMeanArea = first.StandardMeanArea;
+            runRsd = null;
+            runResolution = null;
+            runTailing = null;
+            runPlates = null;
+        }
+        else
+        {
+            // Reference standard material: ReferenceStandard + usable (in stock, not expired) + same section
+            var material = await _db.Materials.FirstOrDefaultAsync(m => m.Id == request.ReferenceStandardMaterialId, ct)
+                ?? throw new InvalidOperationException($"Reference standard material {request.ReferenceStandardMaterialId} not found.");
+
+            if (material.MaterialType != MaterialType.ReferenceStandard)
+                throw new InvalidOperationException("Material must be a reference standard.");
+
+            if (material.SectionId != test.SectionId)
+                throw new InvalidOperationException("Reference standard belongs to a different laboratory section than the test definition.");
+
+            if (material.QuantityRemaining <= 0)
+                throw new InvalidOperationException("Reference standard is depleted.");
+
+            if (material.ExpiryDate.HasValue && material.ExpiryDate.Value.Date < DateTime.UtcNow.Date)
+                throw new InvalidOperationException("Reference standard is expired.");
+
+            if (!material.Purity.HasValue || material.Purity.Value <= 0 || material.Purity.Value > 100)
+                throw new InvalidOperationException("Reference standard has invalid purity.");
+
+            // Numeric checks
+            if (request.StandardWeightMg <= 0)
+                throw new InvalidOperationException("Standard weight must be greater than 0.");
+
+            if (request.StandardDilution <= 0)
+                throw new InvalidOperationException("Standard dilution must be greater than 0.");
+
+            if (request.StandardMeanArea <= 0)
+                throw new InvalidOperationException("Standard mean area must be greater than 0.");
+
+            // Server-side Pass/Fail evaluation
+            var eval = EvaluateAcceptanceCriteria(
+                test,
+                request.RsdPercent,
+                request.Resolution,
+                request.TailingFactor,
+                request.TheoreticalPlates);
+
+            passed = eval.Passed;
+            failureReasons = eval.FailureReasons;
+            runRefMatId = material.Id;
+            runPurity = material.Purity.Value;
+            runWeight = request.StandardWeightMg;
+            runDilution = request.StandardDilution;
+            runMeanArea = request.StandardMeanArea;
+            runRsd = request.RsdPercent;
+            runResolution = request.Resolution;
+            runTailing = request.TailingFactor;
+            runPlates = request.TheoreticalPlates;
+        }
 
         // Signs first - a wrong password writes nothing below. Signed against
         // the method (TestDefinition) because the run has no Id until
@@ -197,21 +372,22 @@ public class SystemSuitabilityService : ISystemSuitabilityService
             SectionId = test.SectionId,
             EquipmentId = equip.Id,
             ChromatographyColumnId = col.Id,
-            ReferenceStandardMaterialId = material.Id,
-            StandardPurityPercent = material.Purity.Value,
-            StandardWeightMg = request.StandardWeightMg,
-            StandardDilution = request.StandardDilution,
-            StandardMeanArea = request.StandardMeanArea,
-            RsdPercent = request.RsdPercent,
-            Resolution = request.Resolution,
-            TailingFactor = request.TailingFactor,
-            TheoreticalPlates = request.TheoreticalPlates,
+            ReferenceStandardMaterialId = runRefMatId,
+            StandardPurityPercent = runPurity,
+            StandardWeightMg = runWeight,
+            StandardDilution = runDilution,
+            StandardMeanArea = runMeanArea,
+            RsdPercent = runRsd,
+            Resolution = runResolution,
+            TailingFactor = runTailing,
+            TheoreticalPlates = runPlates,
             Passed = passed,
             FailureReasons = failureReasons,
             PerformedByUserId = userId,
             PerformedAt = now,
             Signature = signature,
-            Comment = request.Comment
+            Comment = request.Comment,
+            Analytes = runAnalytes
         };
 
         run.Code = await SystemSuitabilityRunCode.NextAsync(
@@ -235,7 +411,6 @@ public class SystemSuitabilityService : ISystemSuitabilityService
                 _clock,
                 "S.S",
                 ct);
-
 
             if (!await UniqueIndexSave.TrySaveChangesAsync(_db, SystemSuitabilityRunConfiguration.CodeIndexName))
             {
@@ -261,6 +436,8 @@ public class SystemSuitabilityService : ISystemSuitabilityService
             .Include(r => r.ReferenceStandardMaterial)
             .Include(r => r.PerformedByUser)
             .Include(r => r.Signature)
+            .Include(r => r.Analytes)
+                .ThenInclude(a => a.ReferenceStandardMaterial)
             .AsQueryable();
 
         if (scope != null)
@@ -301,6 +478,8 @@ public class SystemSuitabilityService : ISystemSuitabilityService
             .Include(r => r.ReferenceStandardMaterial)
             .Include(r => r.PerformedByUser)
             .Include(r => r.Signature)
+            .Include(r => r.Analytes)
+                .ThenInclude(a => a.ReferenceStandardMaterial)
             .FirstOrDefaultAsync(r => r.Id == id, ct);
     }
 
@@ -347,12 +526,44 @@ public class SystemSuitabilityService : ISystemSuitabilityService
             })
             .ToListAsync(ct);
 
+        var runAnalytes = await _db.SystemSuitabilityRunAnalytes.AsNoTracking()
+            .Where(a => a.SystemSuitabilityRunId == runId)
+            .Include(a => a.ReferenceStandardMaterial)
+            .Include(a => a.TestAnalyte)
+            .OrderBy(a => a.TestAnalyte != null ? a.TestAnalyte.DisplayOrder : 0)
+            .ThenBy(a => a.Id)
+            .ToListAsync(ct);
+
+        List<SuitabilityRunReportAnalyteDto>? reportAnalytes = runAnalytes.Count > 0
+            ? runAnalytes.Select(a => new SuitabilityRunReportAnalyteDto(
+                a.TestAnalyteId,
+                a.AnalyteName,
+                a.WavelengthNm,
+                a.ReferenceStandardMaterial?.MaterialName,
+                a.ReferenceStandardMaterial?.BatchNumber,
+                a.StandardPurityPercent,
+                a.StandardWeightMg,
+                a.StandardDilution,
+                a.StandardMeanArea,
+                a.RsdPercent,
+                a.Resolution,
+                a.TailingFactor,
+                a.TheoreticalPlates,
+                a.TestAnalyte?.SstMaxRsdPercent,
+                a.TestAnalyte?.SstMinResolution,
+                a.TestAnalyte?.SstMaxTailingFactor,
+                a.TestAnalyte?.SstMinTheoreticalPlates,
+                a.Passed,
+                a.FailureReasons)).ToList()
+            : null;
+
         return new SuitabilityRunReportDetailsDto(
             run.SstMaxRsdPercent, run.SstMinResolution, run.SstMaxTailingFactor, run.SstMinTheoreticalPlates,
             run.Vendor, run.CdsSoftware?.ToString(), run.ColumnSerial, signature,
             linked.Select(l => new SuitabilityRunLinkedTestDto(
                 l.Id, l.SampleId, l.ReferenceNumber, l.ItemName, l.BatchNumber, l.TestCode,
-                l.Result?.ReportedResult, l.Result?.ComparisonStatus, l.Result?.EnteredAt)).ToList());
+                l.Result?.ReportedResult, l.Result?.ComparisonStatus, l.Result?.EnteredAt)).ToList(),
+            reportAnalytes);
     }
 
     public async Task<List<SystemSuitabilityRun>> GetSelectableRunsForTestOrderAsync(
@@ -373,6 +584,8 @@ public class SystemSuitabilityService : ISystemSuitabilityService
             .Include(r => r.Equipment)
             .Include(r => r.ChromatographyColumn)
             .Include(r => r.ReferenceStandardMaterial)
+            .Include(r => r.Analytes)
+                .ThenInclude(a => a.ReferenceStandardMaterial)
             .Where(r => r.Passed && r.TestDefinitionId == testDef.Id && r.SectionId == order.SectionId)
             .OrderByDescending(r => r.PerformedAt)
             .ThenByDescending(r => r.Id)
@@ -397,6 +610,8 @@ public class SystemSuitabilityService : ISystemSuitabilityService
             .Include(r => r.ChromatographyColumn)
             .Include(r => r.ReferenceStandardMaterial)
             .Include(r => r.Signature)
+            .Include(r => r.Analytes)
+                .ThenInclude(a => a.ReferenceStandardMaterial)
             .FirstOrDefaultAsync(r => r.Id == runId.Value, ct);
     }
 

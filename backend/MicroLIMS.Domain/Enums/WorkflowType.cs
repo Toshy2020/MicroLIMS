@@ -11,5 +11,6 @@ public enum WorkflowType
     Qualitative,
     Dissolution,
     Disintegration,
-    WeightVariation
+    WeightVariation,
+    HplcMultiAnalyte
 }

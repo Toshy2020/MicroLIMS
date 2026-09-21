@@ -10,9 +10,14 @@ public class TestAnalyteConfiguration : IEntityTypeConfiguration<TestAnalyte>
     {
         builder.HasKey(a => a.Id);
 
-        builder.Property(a => a.Element).IsRequired().HasMaxLength(20);
+        builder.Property(a => a.Element).IsRequired().HasMaxLength(100);
         builder.Property(a => a.WavelengthNm).HasPrecision(10, 4);
         builder.Property(a => a.LoqMgPerL).HasPrecision(18, 6);
+
+        builder.Property(a => a.SstMaxRsdPercent).HasPrecision(18, 4);
+        builder.Property(a => a.SstMinResolution).HasPrecision(18, 4);
+        builder.Property(a => a.SstMaxTailingFactor).HasPrecision(18, 4);
+        builder.Property(a => a.SstMinTheoreticalPlates).HasPrecision(18, 4);
 
         builder.HasIndex(a => new { a.TestDefinitionId, a.Element, a.WavelengthNm }).IsUnique();
 

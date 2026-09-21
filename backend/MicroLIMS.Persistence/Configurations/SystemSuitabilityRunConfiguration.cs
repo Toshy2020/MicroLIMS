@@ -64,6 +64,11 @@ public class SystemSuitabilityRunConfiguration : IEntityTypeConfiguration<System
             .HasForeignKey(r => r.SignatureId)
             .OnDelete(DeleteBehavior.Restrict);
 
+        builder.HasMany(r => r.Analytes)
+            .WithOne(a => a.SystemSuitabilityRun)
+            .HasForeignKey(a => a.SystemSuitabilityRunId)
+            .OnDelete(DeleteBehavior.Cascade);
+
         builder.HasIndex(r => r.SectionId);
         builder.HasIndex(r => r.TestDefinitionId);
         builder.HasIndex(r => r.PerformedAt);

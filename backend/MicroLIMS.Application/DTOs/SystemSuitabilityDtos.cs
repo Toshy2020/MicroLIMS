@@ -1,10 +1,44 @@
+using MicroLIMS.Domain.Entities;
+
 namespace MicroLIMS.Application.DTOs;
+
+public record CreateSystemSuitabilityRunAnalyteRequest(
+    int TestAnalyteId,
+    int ReferenceStandardMaterialId,
+    decimal StandardWeightMg,
+    decimal StandardDilution,
+    decimal StandardMeanArea,
+    decimal? RsdPercent = null,
+    decimal? Resolution = null,
+    decimal? TailingFactor = null,
+    decimal? TheoreticalPlates = null);
 
 public record CreateSystemSuitabilityRunRequest(
     int TestDefinitionId,
     int EquipmentId,
     int ChromatographyColumnId,
+    int ReferenceStandardMaterialId = 0,
+    decimal StandardWeightMg = 0,
+    decimal StandardDilution = 0,
+    decimal StandardMeanArea = 0,
+    decimal? RsdPercent = null,
+    decimal? Resolution = null,
+    decimal? TailingFactor = null,
+    decimal? TheoreticalPlates = null,
+    string Password = "",
+    string? Comment = null,
+    List<CreateSystemSuitabilityRunAnalyteRequest>? Analytes = null);
+
+public record SystemSuitabilityRunAnalyteView(
+    int Id,
+    int SystemSuitabilityRunId,
+    int TestAnalyteId,
+    string AnalyteName,
+    decimal WavelengthNm,
     int ReferenceStandardMaterialId,
+    string? ReferenceStandardName,
+    string? ReferenceStandardBatch,
+    decimal StandardPurityPercent,
     decimal StandardWeightMg,
     decimal StandardDilution,
     decimal StandardMeanArea,
@@ -12,8 +46,50 @@ public record CreateSystemSuitabilityRunRequest(
     decimal? Resolution,
     decimal? TailingFactor,
     decimal? TheoreticalPlates,
-    string Password,
-    string? Comment = null);
+    bool Passed,
+    string? FailureReasons)
+{
+    public static SystemSuitabilityRunAnalyteView From(SystemSuitabilityRunAnalyte a) => new(
+        a.Id,
+        a.SystemSuitabilityRunId,
+        a.TestAnalyteId,
+        a.AnalyteName,
+        a.WavelengthNm,
+        a.ReferenceStandardMaterialId,
+        a.ReferenceStandardMaterial?.MaterialName,
+        a.ReferenceStandardMaterial?.BatchNumber,
+        a.StandardPurityPercent,
+        a.StandardWeightMg,
+        a.StandardDilution,
+        a.StandardMeanArea,
+        a.RsdPercent,
+        a.Resolution,
+        a.TailingFactor,
+        a.TheoreticalPlates,
+        a.Passed,
+        a.FailureReasons);
+}
+
+public record SuitabilityRunReportAnalyteDto(
+    int TestAnalyteId,
+    string AnalyteName,
+    decimal WavelengthNm,
+    string? ReferenceStandardName,
+    string? ReferenceStandardBatch,
+    decimal StandardPurityPercent,
+    decimal StandardWeightMg,
+    decimal StandardDilution,
+    decimal StandardMeanArea,
+    decimal? RsdPercent,
+    decimal? Resolution,
+    decimal? TailingFactor,
+    decimal? TheoreticalPlates,
+    decimal? SstMaxRsdPercent,
+    decimal? SstMinResolution,
+    decimal? SstMaxTailingFactor,
+    decimal? SstMinTheoreticalPlates,
+    bool Passed,
+    string? FailureReasons);
 
 public record SystemSuitabilityRunFilter(
     int? TestDefinitionId = null,

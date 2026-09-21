@@ -672,7 +672,7 @@ public class SystemSuitabilityService : ISystemSuitabilityService
                 throw new InvalidOperationException($"Cannot link test order {order.Id} because an active HPLC assay result already exists for it.");
             }
 
-            // Same for dissolution: its vessels (including a pending next stage) were calculated against this run's standard.
+            // Same for dissolution and HPLC multi-analyte: calculated against this run's standard.
             var hasActiveAnalysis = await _db.TestAnalyses
                 .AnyAsync(a => a.TestOrderId == order.Id && a.IsActive, ct);
             if (hasActiveAnalysis)

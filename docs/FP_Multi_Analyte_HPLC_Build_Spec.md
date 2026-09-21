@@ -111,7 +111,8 @@ from the sample's weight variation when there is one, otherwise typed.
   status by `SpecificationEvaluator`. If `HplcMaxPreparationRsdPercent` is set and preparations >= 2 and the RSD of
   the preparation means exceeds it -> that analyte's status is `RequiresReview` with a reason. Display 1 dp.
 - Storage: one TestAnalysis (AnalysisType HplcMultiAnalyte, SampleMatrix, UnitAmount, EquipmentId); one
-  ParameterResult per analyte spec (ValidityRecordItemId = run analyte row id); readings Kind Replicate, Stage =
+  ParameterResult per analyte spec (run analyte row id in CalculationJson as SystemSuitabilityRunAnalyteId;
+  ValidityRecordItemId stays null because its FK points at CalibrationRunAnalytes - found by the Postgres run); readings Kind Replicate, Stage =
   preparation, Index = injection, Value1 = area, ComputedValue = amount per unit (after conversion). Completion path
   as the other FP types. Relink guard: the run cannot be relinked once an active result exists (as dissolution).
 - Tests: worked example checked by hand; 1 vs 2 preparations; RSD exactly at limit passes; WV unit weight used and a

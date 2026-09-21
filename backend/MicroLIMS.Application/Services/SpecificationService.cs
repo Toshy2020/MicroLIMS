@@ -280,6 +280,45 @@ public class SpecificationService
                     throw new InvalidOperationException("Label claim must be greater than zero when result basis is PercentLabelClaim.");
             }
         }
+        else if (testDef?.WorkflowType == WorkflowType.HplcMultiAnalyte || testDef?.EquationType == EquationType.HplcMultiAnalyte)
+        {
+            if (!spec.TestAnalyteId.HasValue)
+                throw new InvalidOperationException("Test analyte is required for HPLC Multi-Analyte specifications.");
+
+            var analyte = await _db.TestAnalytes
+                .FirstOrDefaultAsync(a => a.Id == spec.TestAnalyteId.Value, cancellationToken);
+            if (analyte == null || analyte.TestDefinitionId != testDef.Id)
+                throw new InvalidOperationException($"Test analyte does not belong to test '{spec.TestCode}'.");
+
+            var duplicateAnalyte = await _db.Specifications.AnyAsync(
+                s => s.ItemId == spec.ItemId && s.TestCode == spec.TestCode && s.TestAnalyteId == spec.TestAnalyteId.Value && s.Id != spec.Id,
+                cancellationToken);
+            if (duplicateAnalyte)
+                throw new InvalidOperationException($"A specification for this analyte already exists for test '{spec.TestCode}' on item {spec.ItemId}.");
+
+            if (!spec.ResultBasis.HasValue)
+                throw new InvalidOperationException("Result basis is required for HPLC Multi-Analyte specifications.");
+
+            if (spec.ResultBasis != ResultBasis.MgPerUnit && spec.ResultBasis != ResultBasis.PercentLabelClaim)
+                throw new InvalidOperationException("Result basis must be MgPerUnit or PercentLabelClaim for HPLC Multi-Analyte specifications.");
+
+            if (spec.LimitType != LimitType.Range &&
+                spec.LimitType != LimitType.NotMoreThan &&
+                spec.LimitType != LimitType.NotLessThan &&
+                spec.LimitType != LimitType.TargetWithTolerance)
+            {
+                throw new InvalidOperationException($"Limit type '{spec.LimitType}' is not supported for HPLC Multi-Analyte specifications. Must be Range, NotMoreThan, NotLessThan, or TargetWithTolerance.");
+            }
+
+            if (spec.ConversionFactor <= 0)
+                throw new InvalidOperationException("Conversion factor must be greater than zero.");
+
+            if (spec.ResultBasis == ResultBasis.PercentLabelClaim)
+            {
+                if (!spec.LabelClaim.HasValue || spec.LabelClaim.Value <= 0)
+                    throw new InvalidOperationException("Label claim must be greater than zero when result basis is PercentLabelClaim.");
+            }
+        }
         else if (testDef?.WorkflowType == WorkflowType.Dissolution || spec.LimitType == LimitType.DissolutionQ)
         {
             if (spec.TestAnalyteId.HasValue)

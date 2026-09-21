@@ -74,19 +74,38 @@ public class ParameterResult
     }
 
     [NotMapped]
-    public string Element => ElementalCalculation?.Element ?? string.Empty;
+    public HplcMultiAnalyteCalculationData? HplcMultiAnalyteCalculation
+    {
+        get
+        {
+            if (string.IsNullOrWhiteSpace(CalculationJson)) return null;
+            try
+            {
+                // Other result types store different JSON shapes; only ours carries preparations.
+                var data = JsonSerializer.Deserialize<HplcMultiAnalyteCalculationData>(CalculationJson, JsonOptions);
+                return data?.Preparations is { Count: > 0 } && !string.IsNullOrEmpty(data.AnalyteName) ? data : null;
+            }
+            catch
+            {
+                return null;
+            }
+        }
+    }
+
+    [NotMapped]
+    public string Element => HplcMultiAnalyteCalculation?.AnalyteName ?? ElementalCalculation?.Element ?? string.Empty;
 
     [NotMapped]
     public decimal? ReportedPpm => ElementalCalculation?.ReportedPpm;
 
     [NotMapped]
-    public decimal? MgPerUnit => ElementalCalculation?.MgPerUnit;
+    public decimal? MgPerUnit => HplcMultiAnalyteCalculation?.Mpu ?? ElementalCalculation?.MgPerUnit;
 
     [NotMapped]
-    public decimal? ResultClaim => ElementalCalculation?.ResultClaim;
+    public decimal? ResultClaim => HplcMultiAnalyteCalculation?.Result ?? ElementalCalculation?.ResultClaim;
 
     [NotMapped]
-    public decimal? PercentLabelClaim => ElementalCalculation?.PercentLabelClaim;
+    public decimal? PercentLabelClaim => HplcMultiAnalyteCalculation?.PercentLabelClaim ?? ElementalCalculation?.PercentLabelClaim;
 
     private static readonly JsonSerializerOptions JsonOptions = new()
     {

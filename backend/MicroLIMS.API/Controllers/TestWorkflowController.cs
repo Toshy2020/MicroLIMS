@@ -23,6 +23,9 @@ public record SelectMediaRequest(string StepName, int MediaLotId, int IncubatorI
 public record StartStage2IncubationRequest(string StepName, int IncubatorId);
 public record RecordTestResultRequest(string StepName, List<decimal>? PlateReadings, decimal? DilutionFactor, List<string>? RawPlateReadings = null, string? DilutionFactorOverrideNote = null);
 public record RecordHplcAssayResultRequest(decimal SampleWeightMg, decimal SampleDilution, List<decimal> SampleAreas, string Password, string? Comment = null);
+public record RecordHplcMultiAnalytePreparationRequest(decimal SampleAmount, decimal SampleDilutionMl);
+public record RecordHplcMultiAnalyteAreaRequest(int TestAnalyteId, int PreparationIndex, int InjectionIndex, decimal Area);
+public record RecordHplcMultiAnalyteResultRequest(DateTime AnalysedAt, int? EquipmentId, SampleMatrix SampleMatrix, List<RecordHplcMultiAnalytePreparationRequest> Preparations, decimal? UnitAmount, List<RecordHplcMultiAnalyteAreaRequest> Areas, string Password, string? Comment = null);
 public record RecordElementalAssayElementRequest(int SpecificationId, int CalibrationRunAnalyteId, decimal ReportedPpm, bool OverRange, bool BelowLoq);
 public record RecordElementalAssayResultRequest(decimal UnitAmount, DateTime AnalysedAt, List<RecordElementalAssayElementRequest> Elements, string Password, string? Comment = null);
 public record RecordMeasurementParameterRequest(int SpecificationId, List<decimal> Readings);
@@ -396,6 +399,26 @@ public class TestWorkflowController : ControllerBase
                 request.Password,
                 request.Comment);
             return _engine.RecordQualitativeResultAsync(testOrderId, payload, CurrentUserId, ClientIpAddress);
+        });
+    }
+
+    [HttpPost("{testOrderId}/record-hplc-multi-analyte-result")]
+    [Authorize(Policy = PermissionConstants.TestWorkflowExecute)]
+    public async Task<IActionResult> RecordHplcMultiAnalyteResult(int testOrderId, RecordHplcMultiAnalyteResultRequest request)
+    {
+        await _scopeService.EnsureTestOrderAccessAsync(CurrentUserId, testOrderId);
+        return await RunAsync(() =>
+        {
+            var payload = new HplcMultiAnalytePayload(
+                request.AnalysedAt,
+                request.EquipmentId,
+                request.SampleMatrix,
+                request.Preparations?.Select(p => new HplcPreparationInput(p.SampleAmount, p.SampleDilutionMl)).ToList() ?? new(),
+                request.UnitAmount,
+                request.Areas?.Select(a => new HplcAreaInput(a.TestAnalyteId, a.PreparationIndex, a.InjectionIndex, a.Area)).ToList() ?? new(),
+                request.Password,
+                request.Comment);
+            return _engine.RecordHplcMultiAnalyteResultAsync(testOrderId, payload, CurrentUserId, ClientIpAddress);
         });
     }
 

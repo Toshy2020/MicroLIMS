@@ -240,6 +240,56 @@ the **time of each unit** in minutes, or marks it "not disintegrated".
   16/18 Complies, 15/18 DoesNotComply; not-disintegrated counts as a failure; custom Test Master config honoured;
   wrong unit counts rejected; stage call rejected when not pending; spec rules; Postgres round trip of both calls.
 
+### T7 weight variation slice contract (2026-09-21, USP <2091>)
+User decisions: **USP <2091>** (Weight Variation of Dietary Supplements) for **every** product, the three
+pharmaceuticals included until content uniformity is built (<905> not built); capsules and softgels record the
+**gross and empty-shell weight** of every unit. Limits are presets on the Test Master (editable), never hard-coded in
+the evaluator. The chapter text below is from memory of USP <2091> - check it against the lab's current USP.
+- Enums (append): `WorkflowType.WeightVariation`, `EquationType.WeightVariation`, `LimitType.WeightVariation = 10`,
+  new `DosageForm { Tablet, HardCapsule, SoftCapsule }`.
+- Specification (per item): `LimitType.WeightVariation`, new nullable column `Specification.DosageForm` (required for
+  this limit type, not allowed on others), Unit "mg"; no limits/label claim on the spec (they come from the Test
+  Master preset). Exactly one per test/item; allowed only on WeightVariation tests and vice versa. SpecLimit text:
+  tablet "USP <2091>: tablets, limit by average weight"; capsules "USP <2091>: net content 90-110 % of average".
+- Test Master (TestDefinition, nullable, defaulted on save for WeightVariation tests; USP <2091> preset):
+  `WvUnitCount` 20; tablets: `WvTabletBand1MaxMg` 130, `WvTabletBand1Percent` 10, `WvTabletBand2MaxMg` 324,
+  `WvTabletBand2Percent` 7.5, `WvTabletBand3Percent` 5, `WvTabletMaxOutside` 2; capsules: `WvCapsuleInnerPercent` 10,
+  `WvCapsuleOuterPercent` 25, `WvCapsuleS1MaxOutside` 2, `WvCapsuleS1MaxForRetest` 6, `WvCapsuleS2ExtraUnits` 40,
+  `WvCapsuleS2MaxOutside` 6. Percentages numeric(28,10), mg numeric(18,6). Validation: counts >= 1, 0 < percents,
+  Band1MaxMg < Band2MaxMg, inner < outer, S1MaxOutside < S1MaxForRetest <= unit count, S2MaxOutside < unit count +
+  extra units. RequiresSystemSuitability false; ConditionFields reused (balance ID etc.); no steps.
+- Pure `WeightVariationEvaluator` (decimal, compare unrounded, deviation % = |x - mean| x 100 / mean):
+  - **Tablet** (inputs: unit weights mg): mean of all units; band = mean <= Band1MaxMg -> Band1Percent; <= Band2MaxMg
+    -> Band2Percent; else Band3Percent (P). Complies if count(dev > P) <= TabletMaxOutside and no dev > 2P; else
+    DoesNotComply. Single stage. Exactly P passes.
+  - **Hard capsule** (inputs: gross + shell per unit; net = gross - shell, shell > 0, shell < gross): step A - if every
+    gross weight is within InnerPercent of the mean gross weight -> Complies (USP shortcut on intact capsules).
+    Otherwise step B on net contents: any dev > OuterPercent -> DoesNotComply; count(dev > InnerPercent) <=
+    S1MaxOutside -> Complies; <= S1MaxForRetest -> NextStageRequired (ExtraUnits more); else DoesNotComply.
+  - **Soft capsule**: step B directly (no intact shortcut).
+  - **Stage 2** (capsules, unit count + extra units): new mean of all net contents; Complies if count(dev > Inner) <=
+    S2MaxOutside and no dev > Outer; else DoesNotComply.
+  - Returns stage reached, outcome (reuse `DissolutionStageOutcome`), mean, band percent used, step A result,
+    per-unit deviation and pass flags, reasons. Wrong unit counts throw.
+- Endpoints (`TestWorkflowExecute`, section check, signed): `record-weight-variation-result` {AnalysedAt,
+  EquipmentId? (balance), Conditions, Units: [{WeightMg} | {GrossMg, ShellMg}], Password, Comment?} -> exactly unit
+  count; `record-weight-variation-stage` {Units, Password, Comment?} -> exactly extra units, only while
+  NextStageRequired. Shape must match the spec's dosage form (tablet: weight only; capsules: gross + shell).
+  Stage 2 uses the criteria and dosage form snapshotted at stage 1 (as disintegration).
+- Stored as disintegration: one TestAnalysis (AnalysisType WeightVariation) + one ParameterResult; readings Kind
+  `Unit`, Index, Stage, Value1 = weight or gross mg, Value2 = shell mg (capsules), ComputedValue = weight or net mg,
+  Value3 = deviation % from the final mean, Passed = within the inner / band limit. ReportedValue = final mean
+  (tablet weight or net content, mg); ReportedDisplay "Complies" / "Does not comply" / "Stage 2 required";
+  CalculationJson = dosage form, criteria snapshot, step A result, means, band, units, outcome, reasons.
+- Frontend display fix: the summary/result-card reading labels must key on the **analysis type**
+  (Disintegration -> "Time (min)"; WeightVariation -> "Weight (mg)" / "Gross (mg)", "Shell (mg)", "Net (mg)",
+  "Deviation %"), not on reading kind `Unit`, which both types use.
+- Tests: tablet band edges (mean exactly 130 -> 10 %, 130.000001 -> 7.5 %, exactly 324 -> 7.5 %); dev exactly P
+  passes; 2 outside P pass, 3 fail; one beyond 2P fails; capsule step A all within 10 % of gross -> Complies without
+  net check; step B 2 outside pass, 3-6 -> stage 2, 7 fail, one > 25 % fails; stage 2 on the 60-unit mean, 6/60 pass,
+  7/60 fail; softgel skips step A; shell >= gross rejected; wrong shape for the dosage form rejected; stage-1
+  snapshot used at stage 2; spec rules; Postgres round trip.
+
 ## G3 - Staged evaluation engine (recommended now, in the Dissolution slice)
 One pure engine: input = typed criteria + unit values per stage; output = stage reached, outcome, reasons. Stage state
 on `ParameterResult.StageReached`; units in `ResultReading` with `Stage`. The analyst adds the next stage's units only

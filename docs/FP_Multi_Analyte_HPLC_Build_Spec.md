@@ -1,6 +1,6 @@
 # Multi-Vitamin (Multi-Analyte) HPLC Assay - Recon and Draft Build Spec
 
-Branch `feat/fp-hplc-foundation` (local, never pushed). Status: **draft, waiting for Gate 0 answers.**
+Branch `feat/fp-hplc-foundation` (local, never pushed). Status: **Gate 0 answered 2026-09-21** - D1 (a), D2 (a), D3 configurable, D4 (b); D5/D6 are Test Master setup (lab input, not blocking).
 Follows the rules in `docs/FP_Other_Equation_Types_Build_Spec.md` (decimal only, server computes, compare unrounded,
 signed + audited + section-scoped, `ILabClock`, FP tests have no preparation stage).
 
@@ -60,3 +60,66 @@ current `HplcAssay` cannot report them:
 | D4 | Unit weight | (a) typed with the result; (b) taken from the sample's weight variation mean when present, else typed | **(b)**, with the source recorded |
 | D5 | Method grouping | which vitamins are run together (e.g. water-soluble B + C in one method, A/D/E in another)? | lab input - does not change the build, only the Test Master setup |
 | D6 | Units | label claims in mg, µg and IU; conversion via `ConversionFactor` per vitamin | as proposed; lab to confirm the IU factors they use |
+
+## Gate 0 answers (user, 2026-09-21)
+D1 one run with a row per vitamin; D2 reuse `TestAnalyte`; D3 configurable preparations/injections/RSD; D4 unit weight
+from the sample's weight variation when there is one, otherwise typed.
+
+## Slice contract
+
+### M1 - analytes and suitability run per analyte (backend)
+- Enums (append): `WorkflowType.HplcMultiAnalyte`, `EquationType.HplcMultiAnalyte` (pair rule as the other FP types).
+  `RequiresSystemSuitability` must be true. No steps.
+- `TestAnalyte`: `View` becomes nullable (still required for CalibrationCurve analytes, not allowed for
+  HplcMultiAnalyte); `WavelengthNm` = detection wavelength for HPLC (> 0); `LoqMgPerL` optional for HPLC (nullable).
+  New nullable per-analyte SST criteria: `SstMaxRsdPercent`, `SstMinResolution`, `SstMaxTailingFactor`,
+  `SstMinTheoreticalPlates` (null = not checked). The analyte CRUD endpoints used by Calibration Curve accept
+  HplcMultiAnalyte tests too, with these rules.
+- Test Master (HplcMultiAnalyte, nullable, defaulted on save): `HplcPreparations` (default 2, 1-10),
+  `HplcInjectionsPerPreparation` (default 2, 1-10), `HplcMaxPreparationRsdPercent` (null = not checked, > 0).
+- New `SystemSuitabilityRunAnalyte` (table `SystemSuitabilityRunAnalytes`): Id, SystemSuitabilityRunId (FK cascade),
+  TestAnalyteId (FK), snapshot `AnalyteName` + `WavelengthNm`, `ReferenceStandardMaterialId` (FK Material),
+  `StandardPurityPercent` (snapshot from Material.Purity, required > 0), `StandardWeightMg`, `StandardDilution`,
+  `StandardMeanArea` (all > 0), `RsdPercent?`, `Resolution?`, `TailingFactor?`, `TheoreticalPlates?`, `Passed`,
+  `FailureReasons`. numeric(28,10) for purity/area/criteria, (18,6) for weight/dilution.
+- `SystemSuitabilityService.CreateAsync` for an HplcMultiAnalyte test: the request carries one analyte row per
+  **active** TestAnalyte of the test (exactly once each; unknown/inactive/duplicate rejected); the run-level single
+  standard fields are not used (store the first analyte's values or zero - keep the columns non-null as today, do not
+  migrate them); each row is evaluated against its analyte's criteria with the same comparison rules as the run-level
+  criteria today; run `Passed` = every row passed; `FailureReasons` lists them prefixed by analyte name. Same code,
+  signature, section, equipment, column and standard-expiry checks as today. Single-analyte tests are unchanged.
+  Get/list/report DTOs include the analyte rows.
+- Tests: create pass/fail per analyte; missing/duplicate/inactive analyte rejected; criteria null = not checked;
+  single-analyte HplcAssay runs unchanged; Postgres round trip.
+
+### M2 - multi-analyte result (backend)
+- Endpoint `record-hplc-multi-analyte-result` (signed, `TestWorkflowExecute`, section check): {AnalysedAt,
+  EquipmentId?, SampleMatrix (Solid/Liquid), Preparations: [{SampleAmount (mg or mL), SampleDilutionMl}],
+  UnitAmount? (mg per unit, or mL per dose for liquids), Areas: [{TestAnalyteId, PreparationIndex, InjectionIndex,
+  Area}], Password, Comment?}. Exactly `HplcPreparations` preparations and, for every spec'd analyte,
+  preparations x injections areas (> 0).
+- Standard: the order's linked passed run (same checks as `HplcAssay`, run analyte row for each analyte).
+  `C_s = W_std x (P/100) / D_std` (mg/mL) per analyte.
+- Unit amount (D4): for Solid, if the sample has a finished weight variation result (active ParameterResult, not
+  NextStageRequired) use its `ReportedValue` (mean tablet weight / mean net content, mg) and reject a typed
+  UnitAmount that is supplied; otherwise UnitAmount is required. Liquid: UnitAmount (mL per dose) always typed.
+  Record `UnitAmountSource` ("WeightVariation #{testOrderId}" or "Typed") in CalculationJson; UnitAmount on
+  TestAnalysis.
+- Per analyte, per injection: `amount (mg per unit) = (A_u / A_s) x C_s x D_sample x UnitAmount / SampleAmount`;
+  per preparation = mean of its injections; `mpu` = mean of preparations; `result = mpu x ConversionFactor`;
+  `%LC = result / LabelClaim x 100`; reported per ResultBasis (MgPerUnit or PercentLabelClaim; MgPerKg not allowed);
+  status by `SpecificationEvaluator`. If `HplcMaxPreparationRsdPercent` is set and preparations >= 2 and the RSD of
+  the preparation means exceeds it -> that analyte's status is `RequiresReview` with a reason. Display 1 dp.
+- Storage: one TestAnalysis (AnalysisType HplcMultiAnalyte, SampleMatrix, UnitAmount, EquipmentId); one
+  ParameterResult per analyte spec (ValidityRecordItemId = run analyte row id); readings Kind Replicate, Stage =
+  preparation, Index = injection, Value1 = area, ComputedValue = amount per unit (after conversion). Completion path
+  as the other FP types. Relink guard: the run cannot be relinked once an active result exists (as dissolution).
+- Tests: worked example checked by hand; 1 vs 2 preparations; RSD exactly at limit passes; WV unit weight used and a
+  typed one rejected when WV exists; typed required when not; liquid path; IU/µg via ConversionFactor; missing area
+  rejected; run for another test/section/failed rejected; Postgres round trip.
+
+### M3 - screens
+Test Master (type, preparations/injections/RSD, analyte rows with wavelength and SST criteria), System Suitability
+page (one row per vitamin for multi-analyte tests), result entry (preparations, unit weight shown with its source,
+area grid analytes x injections with paste), specification dialog (analyte + result basis + label claim for
+HplcMultiAnalyte tests), summary/cards labels by analysis type.

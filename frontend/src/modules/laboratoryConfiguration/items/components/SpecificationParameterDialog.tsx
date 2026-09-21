@@ -65,13 +65,15 @@ const LIMIT_TYPE_OPTIONS: { value: LimitType; label: string }[] = [
   { value: "Qualitative", label: "Qualitative (descriptive text)" },
   { value: "PresenceAbsence", label: "Presence / Absence" },
   { value: "MultiStage", label: "Multi-Stage Criteria" },
-  { value: "DissolutionQ", label: "Dissolution Q" }
+  { value: "DissolutionQ", label: "Dissolution Q" },
+  { value: "DisintegrationTime", label: "Disintegration Time" }
 ];
 
 export const getDefaultLimitType = (workflowType?: string): LimitType => {
   if (workflowType === "CountTest") return "CountTiered";
   if (workflowType === "Observation") return "PresenceAbsence";
   if (workflowType === "Dissolution") return "DissolutionQ";
+  if (workflowType === "Disintegration") return "DisintegrationTime";
   return "Range";
 };
 
@@ -166,6 +168,10 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
     workflowTypeByCode[testCode] === "Dissolution" ||
     currentTestDef?.workflowType === "Dissolution" ||
     limitType === "DissolutionQ";
+  const isDisintegration =
+    workflowTypeByCode[testCode] === "Disintegration" ||
+    currentTestDef?.workflowType === "Disintegration" ||
+    limitType === "DisintegrationTime";
 
   useEffect(() => {
     if (!isCalibrationCurve || !currentTestDef?.id) {
@@ -308,6 +314,7 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
     const def = testDefs[newCode];
     const isCal = def?.equationType === "CalibrationCurve";
     const isDis = workflowTypeByCode[newCode] === "Dissolution" || def?.workflowType === "Dissolution";
+    const isDisint = workflowTypeByCode[newCode] === "Disintegration" || def?.workflowType === "Disintegration";
 
     if (isCal) {
       setLimitType("Range");
@@ -316,6 +323,10 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
     } else if (isDis) {
       setLimitType("DissolutionQ");
       setDilutionFactor("");
+    } else if (isDisint) {
+      setLimitType("DisintegrationTime");
+      setDilutionFactor("");
+      setUnit("min");
     } else {
       const defType = getDefaultLimitType(workflowTypeByCode[newCode]);
       setLimitType(defType);
@@ -428,6 +439,21 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
       }
     }
 
+    if (limitType === "DisintegrationTime") {
+      const tNum = Number(upperLimit);
+      if (!upperLimit.trim() || isNaN(tNum) || tNum <= 0) {
+        setError("Time limit (min) must be greater than zero for Disintegration Time specifications.");
+        return;
+      }
+      const otherDisintegrationSpec = existingSpecs.find(
+        (s) => s.testCode === testCode && s.id !== editingSpec?.id && s.limitType === "DisintegrationTime"
+      );
+      if (otherDisintegrationSpec) {
+        setError("Only one DisintegrationTime specification is allowed per test.");
+        return;
+      }
+    }
+
     setSaving(true);
     setError(null);
 
@@ -441,7 +467,7 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
       displayOrder,
       limitType,
       referenceStandard: referenceStandard.trim() || null,
-      unit: unit.trim() || null,
+      unit: limitType === "DisintegrationTime" ? "min" : (unit.trim() || null),
       dilutionFactor:
         !isCalibrationCurve && limitType === "CountTiered" && dilutionFactor.trim() !== ""
           ? Number(dilutionFactor)
@@ -453,11 +479,11 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
             ? (lowerLimit.trim() !== "" ? Number(lowerLimit) : null)
             : null),
       upperLimit:
-        limitType === "Range" || limitType === "NotMoreThan"
-          ? upperLimit.trim() !== ""
-            ? Number(upperLimit)
-            : null
-          : null,
+        limitType === "DisintegrationTime"
+          ? (upperLimit.trim() !== "" ? Number(upperLimit) : null)
+          : (limitType === "Range" || limitType === "NotMoreThan"
+            ? (upperLimit.trim() !== "" ? Number(upperLimit) : null)
+            : null),
       lowerInclusive: limitType === "Range" ? lowerInclusive : undefined,
       upperInclusive: limitType === "Range" ? upperInclusive : undefined,
       target:
@@ -481,9 +507,11 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
       alertLimit: limitType === "CountTiered" ? alertLimit.trim() || "" : null,
       actionLimit: limitType === "CountTiered" ? actionLimit.trim() || "" : null,
       specLimit:
-        limitType === "DissolutionQ"
-          ? (lowerLimit.trim() !== "" ? `Q = ${lowerLimit.trim()} %` : null)
-          : (limitType === "CountTiered" ? specLimit.trim() : null),
+        limitType === "DisintegrationTime"
+          ? (upperLimit.trim() !== "" ? `NMT ${upperLimit.trim()} min` : null)
+          : (limitType === "DissolutionQ"
+            ? (lowerLimit.trim() !== "" ? `Q = ${lowerLimit.trim()} %` : null)
+            : (limitType === "CountTiered" ? specLimit.trim() : null)),
       stages:
         limitType === "MultiStage"
           ? stages.map((s, idx) => ({
@@ -496,13 +524,17 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
       resultBasis: isCalibrationCurve && resultBasis ? (resultBasis as ResultBasis) : null,
       sampleMatrix: isCalibrationCurve && sampleMatrix ? (sampleMatrix as SampleMatrix) : null,
       labelClaim:
-        limitType === "DissolutionQ"
-          ? (labelClaim.trim() !== "" ? Number(labelClaim) : null)
-          : (isCalibrationCurve && labelClaim.trim() !== "" ? Number(labelClaim) : null),
+        limitType === "DisintegrationTime"
+          ? null
+          : (limitType === "DissolutionQ"
+            ? (labelClaim.trim() !== "" ? Number(labelClaim) : null)
+            : (isCalibrationCurve && labelClaim.trim() !== "" ? Number(labelClaim) : null)),
       labelClaimUnit:
-        limitType === "DissolutionQ"
-          ? "mg"
-          : (isCalibrationCurve ? labelClaimUnit.trim() || null : null),
+        limitType === "DisintegrationTime"
+          ? null
+          : (limitType === "DissolutionQ"
+            ? "mg"
+            : (isCalibrationCurve ? labelClaimUnit.trim() || null : null)),
       conversionFactor: isCalibrationCurve ? (conversionFactor.trim() !== "" ? Number(conversionFactor) : 1) : 1
     };
 
@@ -715,13 +747,15 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
               value={limitType}
               onChange={(e) => handleLimitTypeChange(e.target.value as LimitType)}
             >
-              {(isDissolution
+              {(isDisintegration
+                ? LIMIT_TYPE_OPTIONS.filter((opt) => opt.value === "DisintegrationTime")
+                : isDissolution
                 ? LIMIT_TYPE_OPTIONS.filter((opt) => opt.value === "DissolutionQ")
                 : isCalibrationCurve
                 ? LIMIT_TYPE_OPTIONS.filter((opt) =>
                     ["Range", "NotMoreThan", "NotLessThan", "TargetWithTolerance"].includes(opt.value)
                   )
-                : LIMIT_TYPE_OPTIONS.filter((opt) => opt.value !== "DissolutionQ")
+                : LIMIT_TYPE_OPTIONS.filter((opt) => opt.value !== "DissolutionQ" && opt.value !== "DisintegrationTime")
               ).map((opt) => (
                 <MenuItem key={opt.value} value={opt.value}>
                   {opt.label}
@@ -1077,6 +1111,42 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
                 )}
               </Box>
             )}
+
+            {/* Limit Type: DisintegrationTime */}
+            {limitType === "DisintegrationTime" && (
+              <Box>
+                <Typography variant="body2" sx={{ fontWeight: 600, mb: 1.5 }}>
+                  Disintegration Acceptance (USP &lt;701&gt; / EP 2.9.1)
+                </Typography>
+                <Stack direction={{ xs: "column", sm: "row" }} spacing={2} sx={{ mb: 1.5 }}>
+                  <TextField
+                    size="small"
+                    type="number"
+                    label="Time limit (min) *"
+                    placeholder="e.g. 15"
+                    value={upperLimit}
+                    onChange={(e) => setUpperLimit(e.target.value)}
+                    slotProps={{ htmlInput: { min: 0.01, step: "any" } }}
+                    helperText="Stored in upper limit (NMT time in minutes)"
+                    required
+                    sx={{ flex: 1 }}
+                  />
+                  <TextField
+                    size="small"
+                    label="Unit"
+                    value="min"
+                    disabled
+                    helperText="Fixed unit for disintegration time"
+                    sx={{ width: 120 }}
+                  />
+                </Stack>
+                {upperLimit.trim() !== "" && (
+                  <Typography variant="body2" sx={{ color: "text.secondary" }}>
+                    Specification limit display: <strong>NMT {upperLimit.trim()} min</strong>
+                  </Typography>
+                )}
+              </Box>
+            )}
           </Box>
 
           {/* Row 4: Unit & Reference Standard */}
@@ -1084,8 +1154,10 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
             <TextField
               size="small"
               label="Unit"
-              value={unit}
+              value={limitType === "DisintegrationTime" ? "min" : unit}
               onChange={(e) => setUnit(e.target.value)}
+              disabled={limitType === "DisintegrationTime"}
+              helperText={limitType === "DisintegrationTime" ? "Fixed unit for disintegration time" : undefined}
               placeholder="e.g. % w/w, CFU/g, pH units"
               fullWidth
             />

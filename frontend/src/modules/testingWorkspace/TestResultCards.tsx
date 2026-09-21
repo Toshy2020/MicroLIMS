@@ -206,13 +206,14 @@ export function AnalysisCard({ test }: { test: TestOrderSummaryDetail }) {
           {a.parameterResults.map((p, idx) => {
             if (!p.readings || p.readings.length === 0) return null;
             const isVessel = p.readings.some((r) => r.kind === "Vessel");
+            const isUnit = p.readings.some((r) => r.kind === "Unit");
             const hasStage = p.readings.some((r) => r.stage !== null && r.stage !== undefined);
             const hasTimePoint = p.readings.some((r) => r.timePointMinutes !== null && r.timePointMinutes !== undefined);
-            const hasValue1 = p.readings.some((r) => r.value1 !== null && r.value1 !== undefined);
+            const hasValue1 = p.readings.some((r) => (r.value1 !== null && r.value1 !== undefined) || (isUnit && r.text !== null && r.text !== undefined && r.text !== ""));
             const hasValue2 = p.readings.some((r) => r.value2 !== null && r.value2 !== undefined);
             const hasValue3 = p.readings.some((r) => r.value3 !== null && r.value3 !== undefined);
-            const hasText = p.readings.some((r) => r.text !== null && r.text !== undefined && r.text !== "");
-            const hasComputed = p.readings.some((r) => r.computedValue !== null && r.computedValue !== undefined);
+            const hasText = !isUnit && p.readings.some((r) => r.text !== null && r.text !== undefined && r.text !== "");
+            const hasComputed = !isUnit && p.readings.some((r) => r.computedValue !== null && r.computedValue !== undefined);
             const hasPassed = p.readings.some((r) => r.passed !== null && r.passed !== undefined);
 
             return (
@@ -227,7 +228,7 @@ export function AnalysisCard({ test }: { test: TestOrderSummaryDetail }) {
                         <th>#</th>
                         {hasStage && <th>Stage</th>}
                         {hasTimePoint && <th>Time Point (min)</th>}
-                        {hasValue1 && <th>{isVessel ? "Peak Area" : "Value 1"}</th>}
+                        {hasValue1 && <th>{isVessel ? "Peak Area" : isUnit ? "Time (min)" : "Value 1"}</th>}
                         {hasValue2 && <th>Value 2</th>}
                         {hasValue3 && <th>Value 3</th>}
                         {hasText && <th>Text</th>}
@@ -239,9 +240,9 @@ export function AnalysisCard({ test }: { test: TestOrderSummaryDetail }) {
                       {p.readings.map((r, rIdx) => (
                         <tr key={r.id || rIdx}>
                           <td>{r.index}</td>
-                          {hasStage && <td>{r.stage != null ? (isVessel ? `S${r.stage}` : String(r.stage)) : "—"}</td>}
+                          {hasStage && <td>{r.stage != null ? (isVessel || isUnit ? `S${r.stage}` : String(r.stage)) : "—"}</td>}
                           {hasTimePoint && <td>{r.timePointMinutes !== null ? String(r.timePointMinutes) : "—"}</td>}
-                          {hasValue1 && <td>{r.value1 !== null ? String(r.value1) : "—"}</td>}
+                          {hasValue1 && <td>{r.value1 !== null ? String(r.value1) : (isUnit && r.text ? r.text : "—")}</td>}
                           {hasValue2 && <td>{r.value2 !== null ? String(r.value2) : "—"}</td>}
                           {hasValue3 && <td>{r.value3 !== null ? String(r.value3) : "—"}</td>}
                           {hasText && <td>{r.text ?? "—"}</td>}

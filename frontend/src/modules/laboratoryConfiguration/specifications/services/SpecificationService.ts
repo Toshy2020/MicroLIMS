@@ -9,7 +9,8 @@ export type LimitType =
   | "Qualitative"
   | "PresenceAbsence"
   | "MultiStage"
-  | "DissolutionQ";
+  | "DissolutionQ"
+  | "DisintegrationTime";
 
 export type ToleranceMode = "Absolute" | "Percent";
 

@@ -98,6 +98,12 @@ const LIMIT_CHIP_STYLES: Record<string, { label: string; color: string; bg: stri
     color: "#3b82f6",
     bg: "rgba(59, 130, 246, 0.12)",
     border: "rgba(59, 130, 246, 0.35)"
+  },
+  DisintegrationTime: {
+    label: "Disintegration Time",
+    color: "#0284c7",
+    bg: "rgba(2, 132, 199, 0.12)",
+    border: "rgba(2, 132, 199, 0.35)"
   }
 };
 
@@ -180,6 +186,10 @@ export const formatLimitCell = (spec: SpecificationDto): string => {
     case "DissolutionQ": {
       const q = formatTrimmedDecimal(spec.lowerLimit);
       return q ? `Q = ${q} %` : spec.specLimit || "\u2014";
+    }
+    case "DisintegrationTime": {
+      const t = formatTrimmedDecimal(spec.upperLimit);
+      return t ? `NMT ${t} min` : spec.specLimit || "\u2014";
     }
     default:
       return spec.specLimit || "\u2014";
@@ -415,6 +425,7 @@ export const ItemSpecificationsSection: React.FC<ItemSpecificationsSectionProps>
         <LimitTypeBadge type="PresenceAbsence" labelOverride="Presence/Absence" />
         <LimitTypeBadge type="MultiStage" labelOverride="Multi-Stage" />
         <LimitTypeBadge type="DissolutionQ" labelOverride="Dissolution Q" />
+        <LimitTypeBadge type="DisintegrationTime" labelOverride="Disintegration Time" />
       </Stack>
 
       {error && (

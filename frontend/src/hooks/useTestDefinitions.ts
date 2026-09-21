@@ -41,6 +41,10 @@ export interface TestDefinitionOption {
   dissolutionS2MinOffset?: number | null;
   dissolutionS3MinOffset?: number | null;
   dissolutionS3MaxBelowS2Min?: number | null;
+  disintegrationStage1Units?: number | null;
+  disintegrationStage2Units?: number | null;
+  disintegrationMaxStage1Failures?: number | null;
+  disintegrationMinPassTotal?: number | null;
   sectionId?: number;
   section?: {
     id: number;

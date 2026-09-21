@@ -722,15 +722,29 @@ function AnalysisReadingsTable({ parameter }: { parameter: ParameterResultDetail
   const headSx = { fontSize: 11, fontWeight: 700, color: "text.secondary", py: 0.5 };
   const r = parameter.readings;
   const isVessel = r.some((x) => x.kind === "Vessel");
+  const isUnit = r.some((x) => x.kind === "Unit");
   type ReadingColumn = { label: string; get: (x: ResultReadingDetail) => string | null };
   const allCols: ReadingColumn[] = [
-    { label: "Stage", get: (x) => (x.stage != null ? (x.kind === "Vessel" ? `S${x.stage}` : String(x.stage)) : null) },
-    { label: "Time (min)", get: (x) => (x.timePointMinutes != null ? num(x.timePointMinutes) : null) },
-    { label: isVessel ? "Peak Area" : "Value 1", get: (x) => (x.value1 != null ? num(x.value1) : null) },
+    { label: "Stage", get: (x) => (x.stage != null ? (x.kind === "Vessel" || x.kind === "Unit" ? `S${x.stage}` : String(x.stage)) : null) },
+    { label: "Time (min)", get: (x) => (!isUnit && x.timePointMinutes != null ? num(x.timePointMinutes) : null) },
+    {
+      label: isVessel ? "Peak Area" : isUnit ? "Time (min)" : "Value 1",
+      get: (x) => (x.value1 != null ? num(x.value1) : isUnit && x.text ? x.text : null)
+    },
     { label: "Value 2", get: (x) => (x.value2 != null ? num(x.value2) : null) },
     { label: "Value 3", get: (x) => (x.value3 != null ? num(x.value3) : null) },
-    { label: "Text", get: (x) => x.text || null },
-    { label: isVessel ? "% Dissolved" : "Computed", get: (x) => (x.computedValue != null ? (x.kind === "Vessel" ? `${num(x.computedValue)} %` : num(x.computedValue)) : null) },
+    { label: "Text", get: (x) => (isUnit ? null : (x.text || null)) },
+    {
+      label: isVessel ? "% Dissolved" : "Computed",
+      get: (x) =>
+        isUnit
+          ? null
+          : x.computedValue != null
+          ? x.kind === "Vessel"
+            ? `${num(x.computedValue)} %`
+            : num(x.computedValue)
+          : null
+    },
     { label: "Pass", get: (x) => (x.passed == null ? null : x.passed ? "Pass" : "Fail") }
   ];
   const cols = allCols.filter((c) => r.some((x) => c.get(x) !== null));

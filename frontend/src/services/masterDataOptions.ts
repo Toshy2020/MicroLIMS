@@ -121,6 +121,10 @@ export interface CreateTestDefinitionPayload {
   dissolutionS2MinOffset?: number | null;
   dissolutionS3MinOffset?: number | null;
   dissolutionS3MaxBelowS2Min?: number | null;
+  disintegrationStage1Units?: number | null;
+  disintegrationStage2Units?: number | null;
+  disintegrationMaxStage1Failures?: number | null;
+  disintegrationMinPassTotal?: number | null;
 }
 
 export interface UpdateTestDefinitionPayload {
@@ -158,6 +162,10 @@ export interface UpdateTestDefinitionPayload {
   dissolutionS2MinOffset?: number | null;
   dissolutionS3MinOffset?: number | null;
   dissolutionS3MaxBelowS2Min?: number | null;
+  disintegrationStage1Units?: number | null;
+  disintegrationStage2Units?: number | null;
+  disintegrationMaxStage1Failures?: number | null;
+  disintegrationMinPassTotal?: number | null;
 }
 
 // Shared lookup lists used across receiving, preparation, and master

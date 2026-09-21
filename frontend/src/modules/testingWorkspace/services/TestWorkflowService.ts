@@ -142,6 +142,31 @@ export const TestWorkflowService = {
   ): Promise<TestWorkflowResult> =>
     apiClient.post(`/test-workflow/${testOrderId}/record-dissolution-stage`, payload).then((r) => r.data.data),
 
+  // Disintegration analysis (Stage 1). Signed. Returns TestWorkflowResult.
+  recordDisintegrationResult: (
+    testOrderId: number,
+    payload: {
+      analysedAt: string;
+      equipmentId?: number | null;
+      conditions: Record<string, string>;
+      unitMinutes: (number | null)[];
+      password: string;
+      comment?: string | null;
+    }
+  ): Promise<TestWorkflowResult> =>
+    apiClient.post(`/test-workflow/${testOrderId}/record-disintegration-result`, payload).then((r) => r.data.data),
+
+  // Disintegration stage progression (Stage 2). Signed. Returns TestWorkflowResult.
+  recordDisintegrationStage: (
+    testOrderId: number,
+    payload: {
+      unitMinutes: (number | null)[];
+      password: string;
+      comment?: string | null;
+    }
+  ): Promise<TestWorkflowResult> =>
+    apiClient.post(`/test-workflow/${testOrderId}/record-disintegration-stage`, payload).then((r) => r.data.data),
+
   getLocations: (testOrderId: number) =>
     apiClient.get(`/test-workflow/${testOrderId}/locations`).then((r) => r.data.data),
 

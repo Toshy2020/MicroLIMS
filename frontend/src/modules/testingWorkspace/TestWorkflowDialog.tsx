@@ -20,6 +20,7 @@ import { MeasurementPanel } from "./MeasurementPanel";
 import { GravimetricPanel } from "./GravimetricPanel";
 import { QualitativePanel } from "./QualitativePanel";
 import { DissolutionPanel } from "./DissolutionPanel";
+import { DisintegrationPanel } from "./DisintegrationPanel";
 import { INCUBATION_WINDOW_NOT_CONFIGURED_MESSAGE } from "./utils/incubationWindow";
 
 interface Props {
@@ -373,6 +374,22 @@ export function TestWorkflowDialog({ testOrderId, testCode, category, displayNam
   if (current.workflowType === "Dissolution") {
     return (
       <DissolutionPanel
+        testOrderId={testOrderId}
+        displayName={displayName}
+        testCode={testCode}
+        itemId={itemId}
+        sampleId={sampleId}
+        current={current}
+        onRecorded={load}
+        onClose={onClose}
+      />
+    );
+  }
+
+  // Disintegration workflow (time per unit, staged S1-S2)
+  if (current.workflowType === "Disintegration") {
+    return (
+      <DisintegrationPanel
         testOrderId={testOrderId}
         displayName={displayName}
         testCode={testCode}

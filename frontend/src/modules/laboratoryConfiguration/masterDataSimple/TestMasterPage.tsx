@@ -59,7 +59,7 @@ export type TestMasterLab = "micro" | "fp";
 const FP_SECTION_CODE = "FP";
 const WORKFLOW_TYPES_BY_LAB: Record<TestMasterLab, string[]> = {
   micro: ["CountTest", "Observation"],
-  fp: ["HplcAssay", "ElementalAssay", "Measurement", "Gravimetric", "Qualitative", "Dissolution"]
+  fp: ["HplcAssay", "ElementalAssay", "Measurement", "Gravimetric", "Qualitative", "Dissolution", "Disintegration"]
 };
 const WORKFLOW_TYPE_LABELS: Record<string, string> = {
   CountTest: "Count Test",
@@ -69,7 +69,8 @@ const WORKFLOW_TYPE_LABELS: Record<string, string> = {
   Measurement: "Measurement",
   Gravimetric: "Gravimetric",
   Qualitative: "Qualitative",
-  Dissolution: "Dissolution"
+  Dissolution: "Dissolution",
+  Disintegration: "Disintegration"
 };
 
 const EQUATION_TYPES = [
@@ -81,7 +82,8 @@ const EQUATION_TYPES = [
   "GravimetricLoss",
   "GravimetricResidue",
   "Qualitative",
-  "Dissolution"
+  "Dissolution",
+  "Disintegration"
 ];
 const EQUATION_TYPE_LABELS: Record<string, string> = {
   None: "None",
@@ -92,7 +94,8 @@ const EQUATION_TYPE_LABELS: Record<string, string> = {
   GravimetricLoss: "Loss on drying / Gravimetric loss",
   GravimetricResidue: "Ash / Gravimetric residue",
   Qualitative: "Qualitative (appearance, ID)",
-  Dissolution: "Dissolution (HPLC finish, staged S1-S3)"
+  Dissolution: "Dissolution (HPLC finish, staged S1-S3)",
+  Disintegration: "Disintegration (time per unit, staged)"
 };
 const STEP_TYPES = ["PlateCount", "BrothEnrichment", "SelectiveBroth", "SelectivePlating", "ConfirmatoryPlating", "BiochemicalTest"];
 const STEP_TYPES_REQUIRING_ORGANISM = ["SelectivePlating", "ConfirmatoryPlating"];
@@ -890,6 +893,41 @@ function WorkflowStepsSection({ test, workflowTypes, onWorkflowTypeChanged }: { 
             Dissolution tests have no workflow steps: staged vessel peak areas (S1: 6, S2: +6, S3: +12) and condition fields are entered directly.
           </Typography>
         </Box>
+      ) : test.workflowType === "Disintegration" ? (
+        <Box sx={{ p: 2, bgcolor: "background.paper", borderRadius: 1, border: "1px solid", borderColor: "divider" }}>
+          <Typography sx={{ fontWeight: 700, fontSize: 12, mb: 1, color: "primary.main" }}>
+            Disintegration Configuration
+          </Typography>
+          <Stack direction="row" spacing={3} sx={{ flexWrap: "wrap", alignItems: "center", mb: 1 }}>
+            <Box>
+              <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>Equation Type</Typography>
+              <Typography variant="body2" sx={{ fontWeight: 600 }}>{EQUATION_TYPE_LABELS[test.equationType ?? "Disintegration"] ?? test.equationType}</Typography>
+            </Box>
+            <Box>
+              <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>Stage 1 Units</Typography>
+              <Typography variant="body2" sx={{ fontWeight: 600 }}>{test.disintegrationStage1Units ?? 6}</Typography>
+            </Box>
+            <Box>
+              <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>Stage 2 Units</Typography>
+              <Typography variant="body2" sx={{ fontWeight: 600 }}>{test.disintegrationStage2Units ?? 12}</Typography>
+            </Box>
+            <Box>
+              <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>Max S1 Failures</Typography>
+              <Typography variant="body2" sx={{ fontWeight: 600 }}>{test.disintegrationMaxStage1Failures ?? 2}</Typography>
+            </Box>
+            <Box>
+              <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>Min Pass Total</Typography>
+              <Typography variant="body2" sx={{ fontWeight: 600 }}>{test.disintegrationMinPassTotal ?? 16}</Typography>
+            </Box>
+            <Box>
+              <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>Condition Fields</Typography>
+              <Typography variant="body2">{test.conditionFields || "None configured"}</Typography>
+            </Box>
+          </Stack>
+          <Typography variant="body2" sx={{ color: "text.secondary" }}>
+            Disintegration tests have no workflow steps: staged unit times (S1: {test.disintegrationStage1Units ?? 6}, S2: +{test.disintegrationStage2Units ?? 12}) and condition fields are entered directly.
+          </Typography>
+        </Box>
       ) : (
       <>
       {steps.length > 0 ? (
@@ -1317,6 +1355,11 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
   const [dissolutionS3MinOffset, setDissolutionS3MinOffset] = useState<string>("25");
   const [dissolutionS3MaxBelowS2Min, setDissolutionS3MaxBelowS2Min] = useState<string>("2");
 
+  const [disintegrationStage1Units, setDisintegrationStage1Units] = useState<string>("6");
+  const [disintegrationStage2Units, setDisintegrationStage2Units] = useState<string>("12");
+  const [disintegrationMaxStage1Failures, setDisintegrationMaxStage1Failures] = useState<string>("2");
+  const [disintegrationMinPassTotal, setDisintegrationMinPassTotal] = useState<string>("16");
+
   const [dialogOpen, setDialogOpen] = useState(false);
   const [dialogError, setDialogError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -1371,6 +1414,10 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
     setDissolutionS2MinOffset("15");
     setDissolutionS3MinOffset("25");
     setDissolutionS3MaxBelowS2Min("2");
+    setDisintegrationStage1Units("6");
+    setDisintegrationStage2Units("12");
+    setDisintegrationMaxStage1Failures("2");
+    setDisintegrationMinPassTotal("16");
     setDialogError(null);
     setDialogOpen(true);
   };
@@ -1383,8 +1430,8 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
     setSectionId(t.sectionId ?? (mySections.length === 1 ? mySections[0].sectionId : ""));
     setEditingSectionId(t.sectionId ?? null);
     setWorkflowType(t.workflowType || defaultWorkflowType);
-    setEquationType(t.equationType || (t.workflowType === "ElementalAssay" ? "CalibrationCurve" : t.workflowType === "HplcAssay" ? "HplcAssay" : t.workflowType === "Measurement" ? "Measurement" : t.workflowType === "Gravimetric" ? "GravimetricLoss" : t.workflowType === "Qualitative" ? "Qualitative" : t.workflowType === "Dissolution" ? "Dissolution" : "None"));
-    setRequiresSystemSuitability(t.workflowType === "Dissolution" ? true : !!t.requiresSystemSuitability);
+    setEquationType(t.equationType || (t.workflowType === "ElementalAssay" ? "CalibrationCurve" : t.workflowType === "HplcAssay" ? "HplcAssay" : t.workflowType === "Measurement" ? "Measurement" : t.workflowType === "Gravimetric" ? "GravimetricLoss" : t.workflowType === "Qualitative" ? "Qualitative" : t.workflowType === "Dissolution" ? "Dissolution" : t.workflowType === "Disintegration" ? "Disintegration" : "None"));
+    setRequiresSystemSuitability(t.workflowType === "Dissolution" ? true : t.workflowType === "Disintegration" ? false : !!t.requiresSystemSuitability);
     setMethodAbbreviation(t.methodAbbreviation ?? "");
     setSstMaxRsdPercent(t.sstMaxRsdPercent != null ? String(t.sstMaxRsdPercent) : "");
     setSstMinResolution(t.sstMinResolution != null ? String(t.sstMinResolution) : "");
@@ -1411,6 +1458,10 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
     setDissolutionS2MinOffset(t.dissolutionS2MinOffset != null ? String(t.dissolutionS2MinOffset) : "15");
     setDissolutionS3MinOffset(t.dissolutionS3MinOffset != null ? String(t.dissolutionS3MinOffset) : "25");
     setDissolutionS3MaxBelowS2Min(t.dissolutionS3MaxBelowS2Min != null ? String(t.dissolutionS3MaxBelowS2Min) : "2");
+    setDisintegrationStage1Units(t.disintegrationStage1Units != null ? String(t.disintegrationStage1Units) : "6");
+    setDisintegrationStage2Units(t.disintegrationStage2Units != null ? String(t.disintegrationStage2Units) : "12");
+    setDisintegrationMaxStage1Failures(t.disintegrationMaxStage1Failures != null ? String(t.disintegrationMaxStage1Failures) : "2");
+    setDisintegrationMinPassTotal(t.disintegrationMinPassTotal != null ? String(t.disintegrationMinPassTotal) : "16");
     setDialogError(null);
     setDialogOpen(true);
   };
@@ -1472,6 +1523,32 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
 
       if (isNaN(s1) || s1 < 0 || isNaN(s2) || s2 < 0 || isNaN(s3) || s3 < 0 || isNaN(maxBelow) || maxBelow < 0) {
         setDialogError("Dissolution stage offsets must be greater than or equal to zero.");
+        return;
+      }
+      if (conditionFields.length > 500) {
+        setDialogError("Condition fields cannot exceed 500 characters.");
+        return;
+      }
+    }
+
+    const isDisintegration = workflowType === "Disintegration";
+
+    if (isDisintegration) {
+      const s1 = disintegrationStage1Units.trim() !== "" ? Number(disintegrationStage1Units) : 6;
+      const s2 = disintegrationStage2Units.trim() !== "" ? Number(disintegrationStage2Units) : 12;
+      const maxFail = disintegrationMaxStage1Failures.trim() !== "" ? Number(disintegrationMaxStage1Failures) : 2;
+      const minPass = disintegrationMinPassTotal.trim() !== "" ? Number(disintegrationMinPassTotal) : 16;
+
+      if (isNaN(s1) || s1 < 1 || isNaN(s2) || s2 < 1) {
+        setDialogError("Disintegration stage units must be greater than or equal to 1.");
+        return;
+      }
+      if (isNaN(maxFail) || maxFail < 0 || maxFail >= s1) {
+        setDialogError(`Disintegration maximum Stage 1 failures must be between 0 and ${s1 - 1}.`);
+        return;
+      }
+      if (isNaN(minPass) || minPass < 1 || minPass > (s1 + s2)) {
+        setDialogError(`Disintegration minimum pass total must be between 1 and ${s1 + s2}.`);
         return;
       }
       if (conditionFields.length > 500) {
@@ -1575,6 +1652,8 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
         ? "Qualitative"
         : isDissolution
         ? "Dissolution"
+        : isDisintegration
+        ? "Disintegration"
         : "None";
 
       if (editingId) {
@@ -1607,12 +1686,16 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
           calMaxRunAgeHours: isCalCurve ? (calMaxRunAgeHours.trim() !== "" ? Number(calMaxRunAgeHours) : 24) : null,
           replicateCount: (isMeasurement || isGravimetric) ? Number(replicateCount) : null,
           evaluationBasis: isMeasurement ? evaluationBasis : null,
-          conditionFields: (isGravimetric || isDissolution) ? (conditionFields.trim() || null) : null,
+          conditionFields: (isGravimetric || isDissolution || isDisintegration) ? (conditionFields.trim() || null) : null,
           usesTare: isGravimetric ? usesTare : null,
           dissolutionS1Offset: isDissolution ? (dissolutionS1Offset.trim() !== "" ? Number(dissolutionS1Offset) : 5) : null,
           dissolutionS2MinOffset: isDissolution ? (dissolutionS2MinOffset.trim() !== "" ? Number(dissolutionS2MinOffset) : 15) : null,
           dissolutionS3MinOffset: isDissolution ? (dissolutionS3MinOffset.trim() !== "" ? Number(dissolutionS3MinOffset) : 25) : null,
-          dissolutionS3MaxBelowS2Min: isDissolution ? (dissolutionS3MaxBelowS2Min.trim() !== "" ? Number(dissolutionS3MaxBelowS2Min) : 2) : null
+          dissolutionS3MaxBelowS2Min: isDissolution ? (dissolutionS3MaxBelowS2Min.trim() !== "" ? Number(dissolutionS3MaxBelowS2Min) : 2) : null,
+          disintegrationStage1Units: isDisintegration ? (disintegrationStage1Units.trim() !== "" ? Number(disintegrationStage1Units) : 6) : null,
+          disintegrationStage2Units: isDisintegration ? (disintegrationStage2Units.trim() !== "" ? Number(disintegrationStage2Units) : 12) : null,
+          disintegrationMaxStage1Failures: isDisintegration ? (disintegrationMaxStage1Failures.trim() !== "" ? Number(disintegrationMaxStage1Failures) : 2) : null,
+          disintegrationMinPassTotal: isDisintegration ? (disintegrationMinPassTotal.trim() !== "" ? Number(disintegrationMinPassTotal) : 16) : null
         };
         await update(editingId, payload);
         setMessage({ text: `Test "${trimmedCode}" updated.`, ok: true });
@@ -1646,12 +1729,16 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
           calMaxRunAgeHours: isCalCurve ? (calMaxRunAgeHours.trim() !== "" ? Number(calMaxRunAgeHours) : 24) : null,
           replicateCount: (isMeasurement || isGravimetric) ? Number(replicateCount) : null,
           evaluationBasis: isMeasurement ? evaluationBasis : null,
-          conditionFields: (isGravimetric || isDissolution) ? (conditionFields.trim() || null) : null,
+          conditionFields: (isGravimetric || isDissolution || isDisintegration) ? (conditionFields.trim() || null) : null,
           usesTare: isGravimetric ? usesTare : null,
           dissolutionS1Offset: isDissolution ? (dissolutionS1Offset.trim() !== "" ? Number(dissolutionS1Offset) : 5) : null,
           dissolutionS2MinOffset: isDissolution ? (dissolutionS2MinOffset.trim() !== "" ? Number(dissolutionS2MinOffset) : 15) : null,
           dissolutionS3MinOffset: isDissolution ? (dissolutionS3MinOffset.trim() !== "" ? Number(dissolutionS3MinOffset) : 25) : null,
-          dissolutionS3MaxBelowS2Min: isDissolution ? (dissolutionS3MaxBelowS2Min.trim() !== "" ? Number(dissolutionS3MaxBelowS2Min) : 2) : null
+          dissolutionS3MaxBelowS2Min: isDissolution ? (dissolutionS3MaxBelowS2Min.trim() !== "" ? Number(dissolutionS3MaxBelowS2Min) : 2) : null,
+          disintegrationStage1Units: isDisintegration ? (disintegrationStage1Units.trim() !== "" ? Number(disintegrationStage1Units) : 6) : null,
+          disintegrationStage2Units: isDisintegration ? (disintegrationStage2Units.trim() !== "" ? Number(disintegrationStage2Units) : 12) : null,
+          disintegrationMaxStage1Failures: isDisintegration ? (disintegrationMaxStage1Failures.trim() !== "" ? Number(disintegrationMaxStage1Failures) : 2) : null,
+          disintegrationMinPassTotal: isDisintegration ? (disintegrationMinPassTotal.trim() !== "" ? Number(disintegrationMinPassTotal) : 16) : null
         };
         await addNew(payload);
         setMessage({ text: `Test "${trimmedCode}" added to the Test Master.`, ok: true });
@@ -1744,6 +1831,15 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
                           color="info"
                           variant="outlined"
                           label="Dissolution"
+                          sx={{ height: 20, fontSize: "0.68rem", fontWeight: 700 }}
+                        />
+                      )}
+                      {t.workflowType === "Disintegration" && (
+                        <Chip
+                          size="small"
+                          color="info"
+                          variant="outlined"
+                          label="Disintegration"
                           sx={{ height: 20, fontSize: "0.68rem", fontWeight: 700 }}
                         />
                       )}
@@ -1898,6 +1994,9 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
                   } else if (next === "Dissolution") {
                     setEquationType("Dissolution");
                     setRequiresSystemSuitability(true);
+                  } else if (next === "Disintegration") {
+                    setEquationType("Disintegration");
+                    setRequiresSystemSuitability(false);
                   } else {
                     setEquationType("None");
                     setRequiresSystemSuitability(false);
@@ -1923,17 +2022,26 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
                 onChange={(e) => {
                   const next = e.target.value;
                   setEquationType(next);
-                  if (next === "CalibrationCurve") {
+                  if (next === "Disintegration") {
+                    setWorkflowType("Disintegration");
+                    setRequiresSystemSuitability(false);
+                  } else if (next === "Dissolution") {
+                    setWorkflowType("Dissolution");
+                    setRequiresSystemSuitability(true);
+                  } else if (next === "CalibrationCurve") {
                     setRequiresSystemSuitability(false);
                   }
                 }}
               >
                 {EQUATION_TYPES.filter((eq) => {
+                  if (workflowType === "Disintegration") {
+                    return eq === "Disintegration";
+                  }
                   if (workflowType === "Dissolution") {
                     return eq === "Dissolution";
                   }
                   if (workflowType === "HplcAssay") {
-                    return eq !== "CalibrationCurve" && eq !== "Measurement" && eq !== "GravimetricLoss" && eq !== "GravimetricResidue" && eq !== "Qualitative" && eq !== "Dissolution";
+                    return eq !== "CalibrationCurve" && eq !== "Measurement" && eq !== "GravimetricLoss" && eq !== "GravimetricResidue" && eq !== "Qualitative" && eq !== "Dissolution" && eq !== "Disintegration";
                   }
                   if (workflowType === "ElementalAssay") {
                     return eq === "CalibrationCurve" || eq === "None";
@@ -1947,7 +2055,7 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
                   if (workflowType === "Qualitative") {
                     return eq === "Qualitative";
                   }
-                  return eq !== "HplcAssay" && eq !== "HplcUniformityOfDosageUnits" && eq !== "HplcDissolutionMultiPoint" && eq !== "Measurement" && eq !== "GravimetricLoss" && eq !== "GravimetricResidue" && eq !== "Qualitative" && eq !== "Dissolution";
+                  return eq !== "HplcAssay" && eq !== "HplcUniformityOfDosageUnits" && eq !== "HplcDissolutionMultiPoint" && eq !== "Measurement" && eq !== "GravimetricLoss" && eq !== "GravimetricResidue" && eq !== "Qualitative" && eq !== "Dissolution" && eq !== "Disintegration";
                 }).map((eq) => (
                   <MenuItem key={eq} value={eq}>
                     {EQUATION_TYPE_LABELS[eq] ?? eq}
@@ -2100,6 +2208,70 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
                   value={conditionFields}
                   onChange={(e) => setConditionFields(e.target.value)}
                   helperText="comma-separated, e.g. Apparatus,RPM,Medium,Temperature (°C),Time (min)"
+                  slotProps={{ htmlInput: { maxLength: 500 } }}
+                  fullWidth
+                />
+              </Stack>
+            </Box>
+          )}
+
+          {workflowType === "Disintegration" && (
+            <Box sx={{ p: 2, bgcolor: "action.hover", borderRadius: 1, border: "1px solid", borderColor: "divider" }}>
+              <Typography sx={{ fontWeight: 700, fontSize: 13, mb: 1.5 }}>
+                Disintegration Acceptance (USP &lt;701&gt; / EP 2.9.1)
+              </Typography>
+              <Stack spacing={2}>
+                <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
+                  <TextField
+                    size="small"
+                    type="number"
+                    label="Stage 1 Units"
+                    value={disintegrationStage1Units}
+                    onChange={(e) => setDisintegrationStage1Units(e.target.value)}
+                    slotProps={{ htmlInput: { min: 1, step: 1 } }}
+                    helperText="Default: 6"
+                    sx={{ flex: 1 }}
+                  />
+                  <TextField
+                    size="small"
+                    type="number"
+                    label="Stage 2 Units"
+                    value={disintegrationStage2Units}
+                    onChange={(e) => setDisintegrationStage2Units(e.target.value)}
+                    slotProps={{ htmlInput: { min: 1, step: 1 } }}
+                    helperText="Default: 12"
+                    sx={{ flex: 1 }}
+                  />
+                </Stack>
+                <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
+                  <TextField
+                    size="small"
+                    type="number"
+                    label="Max S1 Failures"
+                    value={disintegrationMaxStage1Failures}
+                    onChange={(e) => setDisintegrationMaxStage1Failures(e.target.value)}
+                    slotProps={{ htmlInput: { min: 0, step: 1 } }}
+                    helperText="Default: 2 (0..S1-1)"
+                    sx={{ flex: 1 }}
+                  />
+                  <TextField
+                    size="small"
+                    type="number"
+                    label="Min Pass Total"
+                    value={disintegrationMinPassTotal}
+                    onChange={(e) => setDisintegrationMinPassTotal(e.target.value)}
+                    slotProps={{ htmlInput: { min: 1, step: 1 } }}
+                    helperText="Default: 16 (1..S1+S2)"
+                    sx={{ flex: 1 }}
+                  />
+                </Stack>
+                <TextField
+                  size="small"
+                  label="Condition fields"
+                  placeholder="Medium,Temperature (°C),Discs"
+                  value={conditionFields}
+                  onChange={(e) => setConditionFields(e.target.value)}
+                  helperText="comma-separated, e.g. Medium,Temperature (°C),Discs"
                   slotProps={{ htmlInput: { maxLength: 500 } }}
                   fullWidth
                 />

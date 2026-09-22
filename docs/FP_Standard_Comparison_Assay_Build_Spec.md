@@ -32,8 +32,10 @@ the same gap (recon F4) — both are replaced by one generalized equation type.
 | Sign-once immutable run pattern | `SystemSuitabilityRun`, `CalibrationRun` | Reusable shape for a lighter AAS run (recon F12) |
 | Instrument-reported calibration entry | `CalibrationEntryMode.InstrumentReported` | Reusable for AAS if confirmed (Q5) |
 
-**Does not exist and has no anchor** (recon F6, F11, F14): `SamplePurpose`, a bulk-powder sample type, a
-titration entry model, a weigh-in-window gate. **Not reused, explicitly** (recon F8): `ResultBasis` /
+**Does not exist and has no anchor**: a titration entry model (recon F11), a weigh-in-window gate (recon F14).
+`SamplePurpose`/tablet-vs-bulk-powder sample type (recon F6) is **not** in this category — resolved 2026-09-22
+by user decision onto the existing `ProductionStage` lookup (recon F15, D-S3), see "Stage model" below.
+**Not reused, explicitly** (recon F8): `ResultBasis` /
 `ConversionFactor` — the Standard-Comparison formula already outputs %LC directly; there is no separate
 concentration→amount→%LC conversion step the way elemental/`HplcMultiAnalyte` have one. Standard-Comparison
 `ParameterResult` rows leave `ResultBasis` null and do not set `ConversionFactor`-driven fields.
@@ -45,11 +47,11 @@ concentration→amount→%LC conversion step the way elemental/`HplcMultiAnalyte
   them — removal is out of scope for a "never invent, never guess" spec; migration is a separate, later slice.)
 - New `ResponseMode` {`PeakArea`, `TitrationVolume`} — on `TestDefinition`, required when `EquationType =
   StandardComparisonAssay`.
-- New `SampleType` {`Tablet`, `BulkPowder`} — see "Sample type and SamplePurpose" below. Alternative: extend the
-  existing `DosageForm` enum with `BulkPowder` instead of adding a new enum (recommendation, not a decision —
-  Q13).
-- New `SamplePurpose` {`Bulk`, `FinishedProduct`, `Stability`} — on `Sample`, alongside `Category` (recon F6: no
-  existing field covers this axis).
+- ~~New `SampleType` {`Tablet`, `BulkPowder`}~~ and ~~new `SamplePurpose` {`Bulk`, `FinishedProduct`, `Stability`}
+  on `Sample`~~ — **superseded 2026-09-22 by user decision (D-S3).** Neither is added. Both axes turned out to be
+  the same thing the lab already tracks via `ProductionStage` (recon F6/F15, corrected — it is not free text with
+  no anchor). See "Stage model" below. New `ProductionStageRole` {`Bulk`, `Finished`, `Stability`, `InProcess`,
+  `Other`} is added instead, on the existing `ProductionStage` entity, not on `Sample` or `Specification`.
 - New `WeighInWindowMode` {`HardBlock`, `WarningWithJustification`} — Test Master config; **gate choice, not
   decided** (Q11). The spec below builds both branches; the build stops after Q11 is answered rather than
   picking a default silently.
@@ -66,10 +68,12 @@ threshold, matching `CalMinCorrelation`).
 ### `TestDefinition` additions (nullable; required when `EquationType = StandardComparisonAssay`)
 
 - `ResponseMode` (`ResponseMode`, required).
-- `StandardReplicatesBulk` / `StandardReplicatesFinishedProduct` / `StandardReplicatesStability` (int, default
-  6/6/3 — quoted by the prompt from the SOP, recon F9, not a TBD).
-- `SampleReplicatesBulk` / `SampleReplicatesFinishedProduct` / `SampleReplicatesStability` (int, default 1/2/3 —
-  same source).
+- `StandardReplicatesBulk` / `StandardReplicatesFinished` / `StandardReplicatesStability` (int, default
+  6/6/3 — quoted by the prompt from the SOP, recon F9, not a TBD). Renamed from `...FinishedProduct` to
+  `...Finished` (2026-09-22) to match `ProductionStageRole.Finished` exactly — see "Stage model" below: these are
+  now keyed by the sample's resolved `ProductionStage.Role` (D-S5), not by a `Sample.SamplePurpose` field.
+- `SampleReplicatesBulk` / `SampleReplicatesFinished` / `SampleReplicatesStability` (int, default 1/2/3 —
+  same source, same rename, same D-S5 keying).
 - `StandardRsdMaxPercent` (numeric(10,6), default 2 — quoted by the prompt, recon F9; nullable override per
   analyte follows the same "null = not checked" convention as the existing `TestAnalyte` SST criteria if a
   product needs a tighter limit than the SOP default).
@@ -85,44 +89,103 @@ threshold, matching `CalMinCorrelation`).
 
 - `ThWtStdMg` (numeric(18,6), nullable) — **value always `<TBD, see Q1/Q2>`**; the column exists so the
   per-analyte target can be configured once the SOP table (Q1) and the Vitamin C ambiguity (Q2) are resolved.
-  Not sample-type-dependent per the prompt ("fixed target weight of the working standard, per analyte").
+  Not sample-type/stage-dependent per the prompt ("fixed target weight of the working standard, per analyte") —
+  confirmed unaffected by the Stage model (D-S4, 2026-09-22): stays a method constant on `TestAnalyte`, keyed
+  only by analyte, product- and stage-independent.
 - Reused as-is for Standard-Comparison analytes: `SstMaxRsdPercent`, `SstMinResolution`, `SstMaxTailingFactor`,
   `SstMinTheoreticalPlates` (all nullable — "not stated in this SOP... enforced only when configured", prompt
   §1 "Suitability"). `LoqMgPerL`/`View` stay nullable/unused for this type, same pattern as `HplcMultiAnalyte`.
 
-### New `StandardComparisonWeightTarget` (child of `TestAnalyte`) — `ThWtTest` keyed by (analyte, sample type)
+### Stage model (D-S1–D-S5, decided by the user 2026-09-22)
 
-Per the prompt: *"`ThWtTest` varies by sample type, not just by analyte... Model this as a value keyed by (Test
-or Analyte, SampleType) — a single per-analyte constant is not sufficient."*
+Resolves recon F6/F15 and Q6/Q13, and **replaces** the `StandardComparisonWeightTarget` (per-analyte,
+`SampleType`-keyed) and `SamplePurpose`/`SampleType` design that appeared in this position in earlier drafts of
+this spec — both are contradicted by the decision below and are not built. There is one axis, not two: the
+sample's **production stage**, which already exists in MicroLIMS as the `ProductionStage` lookup (recon F15) and
+now gets a fixed role. It drives both the test-portion target weight and the replicate count; nothing else.
 
-- `Id`, `TestAnalyteId` (FK), `SampleType` (`SampleType`, or the `DosageForm`-derived equivalent per Q13),
-  `ThWtTestMg` (numeric(18,6)) — **value always `<TBD, see Q1>`**.
-- Unique (`TestAnalyteId`, `SampleType`).
-- One row per analyte × sample type actually used by that test (e.g. a Vitamin E or mineral analyte gets a
-  Tablet row and a BulkPowder row, each independently `<TBD>` — the SOP's "half of each" relationship between
-  the tablet and bulk-powder values, and between the finished-product and mineral halves, is **not** encoded as
-  a computed factor; each is its own configured number, matching how the prompt presents them as two separate
-  known quantities (1099.08 / 1040.08 mg finished-product/bulk, 549.54 / 520.04 mg for Vitamin E and the
-  minerals) rather than one value and a ×0.5 rule).
+**D-S1 — scope.** The stage changes *only* the test-portion target weight (`ThWtTest`, via
+`ItemTestPortionWeights` below) and the replicate counts (`TestDefinition`, D-S5). The %Assay equation itself is
+identical for bulk, finished-product and stability samples — no stage-specific formula, and, for now, no
+stage-specific spec limits (a later change to that is a new decision, not implied here).
 
-### Sample type and `SamplePurpose` — where they live
+**D-S3 — `ProductionStage` gets a fixed role.**
+- New enum `ProductionStageRole` {`Bulk`, `Finished`, `Stability`, `InProcess`, `Other`} — named generically, not
+  after any one lab's stage labels, so a renamed stage keeps working (TC — renamed-stage case, see Test cases).
+- `ProductionStage` (existing entity, `backend/MicroLIMS.Domain/Entities/ProductionStage.cs`, currently
+  `{Id, Name, IsActive}`) gains `Role` (`ProductionStageRole`, required; existing rows default to `Other` until
+  reclassified — see migration below). `Name`/`IsActive` are unchanged; the lab keeps its own labels.
+- Migration: add the `Role` column; data-migrate the six seeded rows (`20260906174124_AddSamplersAndProductionStages`)
+  by name — `B` → `Bulk`, `IP` → `InProcess`, `F.P`/`S.F`/`Coating`/`Compressed Tab` → `Finished` (all read as
+  finished-product-stage variants, consistent with the D-S2 worked example using `F.P`) — and insert a new
+  `Stability` row (`Role = Stability`; no existing name maps to it, recon F15 confirmed no such row exists
+  today). Any stage a lab has since renamed away from these six names is left `Role = Other` and listed in the
+  migration's own output for an admin to reclassify manually — the migration never guesses a role for a name it
+  doesn't recognize.
+- `Sample` linkage: `Sample.ProductionStage` (`Sample.cs:29`) is today a bare name string with no FK (recon
+  F15) — not reliable enough to key `ItemTestPortionWeights`/replicate-count lookups on, since the entity's own
+  comment says renaming/removing a stage "never affects historical records." Add `Sample.ProductionStageId`
+  (`int?`, FK to `ProductionStage`) alongside the existing string, which is kept unchanged for display/reports
+  (`ReportDocumentMapper.cs:105`) and not removed. Backfill for existing rows: match the stored `ProductionStage`
+  name against current `ProductionStage.Name` rows (case-insensitive); a sample whose stored name no longer
+  matches any current row (a stage since renamed or deleted) is left `ProductionStageId = null`, flagged for
+  manual reconciliation, and cannot be used to enter a Standard-Comparison/AAS result until reconciled — it is
+  never silently assigned `Other`.
+- Capture scope: `Sample.ProductionStage` is populated only when `Sample.Category == SampleCategory.FinishedProduct`
+  (recon F15, `CurrentStepViewService.cs:90-96`). Bulk and in-process pulls for this SOP are already received
+  under that same `FinishedProduct` category with a `B`/`IP` stage today, so FP-only capture already covers
+  every stage this rework needs — it does not need to widen to other `SampleCategory` values. What does change:
+  the receiving UI (`NewSampleDialog.tsx`, `MultiSampleEntryGrid.tsx`, `EditSampleDetailsDialog.tsx`) must offer
+  the new `Stability` stage as a pickable option, and `ProductWorkflowEngine.ReceiveAsync` must set
+  `ProductionStageId` alongside the existing `ProductionStage` string at receiving time.
 
-Two independent axes (recon F6, Q13):
+**D-S2 — `ItemTestPortionWeights`: `ThWtTest` keyed by (Item, TestDefinition, stage role), not by analyte.**
 
-- **`SamplePurpose`** (Bulk / FinishedProduct / Stability) drives replicate counts only. New field on `Sample`
-  (`Sample.SamplePurpose`, nullable enum, alongside `Category`), set at receiving like `Category` is. Required
-  when the sample's assigned tests include any `StandardComparisonAssay` or `Aas` test; null otherwise (no
-  behavior change for every other equation type).
-- **Sample type** (Tablet / BulkPowder) drives `ThWtTest` lookup. Recommended: extend `Specification.DosageForm`
-  with `BulkPowder` and read it per (item, test) the same way Weight Variation already does, rather than adding
-  a parallel field — `DosageForm` is already item-scoped, which is the right granularity (a product is either a
-  tablet product or a bulk-powder product, not chosen per sample). Alternative, not recommended: add a
-  `SampleType` field directly on `Item` (also item-scoped, functionally equivalent, but duplicates what
-  `DosageForm` almost already models — the choice is presented at the gate, Q13, not decided here).
-- These are not the same value and are not derived from one another in code: a `Bulk`-purpose sample is
-  expected in practice to always be a `BulkPowder` sample type, but nothing enforces that pairing, matching how
-  the prompt treats the Vitamin E/mineral halving as a per-analyte fact rather than a `SamplePurpose`-driven
-  rule (the halving applies to specific analytes on a `FinishedProduct`-purpose, tablet-sample-type product).
+New table, not a child of `TestAnalyte`. Per the user's own reasoning (2026-09-22): one `ThWtTest` value is
+shared by every analyte of the same test prep, which is why it does not live on `Specification`/`TestAnalyte`
+rows — those are per-parameter and would duplicate and drift.
+
+- `Id`, `ItemId` (FK, required), `TestDefinitionId` (FK, required), `StageRole` (`ProductionStageRole`,
+  required), `ThWtTestMg` (numeric(18,6), required) — **value always `<TBD, see Q1>`**.
+- Unique (`ItemId`, `TestDefinitionId`, `StageRole`).
+- Worked example (D-S2, user-approved shape — the only rows with real numbers; every other item/test/role stays
+  `<TBD, see Q1>`), SOP-quoted (prompt §1, "Constants — method-defined"):
+
+  | Item | TestDefinition | StageRole | `ThWtTestMg` |
+  |---|---|---|---|
+  | Multivitamin tablets | WSV-HPLC | Finished (`F.P`) | 1099.08 |
+  | Multivitamin tablets | WSV-HPLC | Bulk (`B`) | 1040.08 |
+  | Multivitamin tablets | VitE-HPLC | Finished (`F.P`) | 549.54 |
+  | Multivitamin tablets | VitE-HPLC | Bulk (`B`) | 520.04 |
+
+  Shown here only to illustrate the keying shape. The Vitamin E "half" value is its own independently configured
+  row for that `TestDefinition`'s stage roles, not a computed ×0.5 of the water-soluble-vitamins row — matching
+  how the prompt presents both pairs as separately known quantities, not one value and a halving rule.
+
+**D-S4 — `ThWtStd` is unaffected.** Stays exactly as specified under "TestAnalyte additions" above:
+`TestAnalyte.ThWtStdMg`, a method constant per analyte, product- and stage-independent.
+
+**D-S5 — replicate counts, keyed by stage role.** The `TestDefinition` replicate fields under "TestDefinition
+additions" above (`StandardReplicatesBulk/Finished/Stability`, `SampleReplicatesBulk/Finished/Stability`) are
+resolved from the sample's `ProductionStage.Role` (via `Sample.ProductionStageId`, D-S3), not from a
+`Sample.SamplePurpose` field — that field is dropped, superseded by the stage role.
+
+### Gate rule — no `ThWtTest`/replicate count configured for the sample's stage
+
+Server-side, at entry validation (`TestWorkflowEngine`), worded the same way MicroLIMS already blocks other
+unconfigured FP setups in Test Master — e.g. `"Step \"{stepName}\" has no media configured in Test Master."`
+(`TestWorkflowEngine.cs:925`) and `"...the incubation window for \"{mediumName}\" ... is not configured - set
+its incubation hours and temperature in Test Master."` (`TestWorkflowEngine.cs:1215`). Standard-Comparison/AAS
+entry follows the same shape:
+- `Sample.ProductionStageId` is null (unmigrated/unreconciled stage, D-S3): block —
+  `"Sample {ReferenceNumber} has no reconciled production stage - it cannot be resolved to a stage role. Contact
+  a Section Head to set its stage."`
+- `ProductionStageId` resolves but no `ItemTestPortionWeights` row exists for (`Item`, `TestDefinition`, that
+  `StageRole`): block — `"No test-portion weight (ThWtTest) is configured for \"{item.Name}\" / \"{testDefinition.Code}\"
+  at stage \"{stage.Name}\" ({stage.Role}) - configure it in Test Master."` Not a silent fallback or a zero
+  (matches TC12).
+- The resolved `TestDefinition` replicate field for that role is unset/zero: block with the equivalent
+  "replicate count not configured for this stage" message rather than accept an arbitrary replicate count.
 
 ### Standard-Comparison entry — built on `TestAnalysis` / `ParameterResult` (no new result entity)
 
@@ -136,7 +199,9 @@ Following the `HplcMultiAnalyte` pattern (recon F5), not the retired `HplcAssayR
   (the %Assay/%LC, unrounded, `decimal`), `ReportedDisplay` (rounded per F13's existing convention — 1 dp
   AwayFromZero unless Q14 says otherwise), `Unit` = `"%"`, `ComparisonStatus`, `ResultBasis` **left null**
   (recon F8 — this formula has no basis conversion), `CalculationJson` carrying: `ActWtStd`, `ThWtStd` (echoing
-  the configured value used, for audit), `ActWtTest`, `ThWtTest`, `SampleType` used to look it up, `P`
+  the configured value used, for audit), `ActWtTest`, `ThWtTest`, the resolved `ProductionStage.Role`
+  (`StageRole`) used to look up `ItemTestPortionWeights` (D-S2 — supersedes the earlier `SampleType`-keyed
+  design), `P`
   (potency used, and whether it was the Material default or an override, with the override note),
   `MC`, `ResponseValue` (the PeakArea ratio or the titration-volume ratio), `SystemSuitabilityRunAnalyteId`
   (since `ValidityRecordItemId`'s FK is scoped to `CalibrationRunAnalyte` — same workaround `HplcMultiAnalyte`
@@ -264,21 +329,37 @@ part of Slice 1, not separately:**
   and AAS both store their run-analyte link in `CalculationJson` instead (workaround already in production use
   by `HplcMultiAnalyte`).
 
-### Slice 1 — Standard-Comparison Assay, `PeakArea` mode (depends on Slice 0; blocked on Q1, Q2, Q6/Q13 answer, Q9, Q10, Q11, Q12 confirmation)
+### Slice 1 — Stage model: `ProductionStage.Role` migration + `ItemTestPortionWeights` (depends on Slice 0 only; added 2026-09-22, D-S1-D-S5)
 
-Backend: enums, `TestDefinition`/`TestAnalyte`/`StandardComparisonWeightTarget` additions, `Sample.SamplePurpose`
-(+ migration of `Category`-only samples to have it nullable/backfilled), `DosageForm.BulkPowder` (or the Q13
-alternative), the entry endpoint (`record-standard-comparison-result`, `TestWorkflow.Execute`, signed,
-section-scoped), the formula (PeakArea response only in this slice), the weigh-in gate (per Q11's answer), the
-suitability gate (per Q10's answer), the generalized approval gate, review/projection/summary/CoA branches.
-Includes the `HplcAssay` → `StandardComparisonAssay` and `HplcMultiAnalyte` → `StandardComparisonAssay`
-migration **only if Q9 says to migrate** — otherwise `HplcAssay`/`HplcMultiAnalyte` stay as separate types and
-Standard-Comparison is additive (new products only). Frontend: Test Master (equation type, response mode,
-replicate/tolerance/RSD config, weight-target grid keyed by analyte × sample type — all inputs blank/`<TBD>`
-until Q1/Q2 are answered and a lab admin fills them in), result entry screen (standard + sample replicate grid,
-MC and P inputs with override/audit note, weigh-in validation feedback per Q11's mode), summary/CoA labels.
+Backend: `ProductionStageRole` enum, `ProductionStage.Role` column + data migration (seeded-row role backfill,
+new `Stability` row, unrecognized-name rows flagged `Other` for manual reclassification — see "Stage model"
+above), `Sample.ProductionStageId` FK + backfill-by-name migration (unmatched rows left null and flagged),
+receiving-UI change to offer `Stability` as a pickable stage and to set `ProductionStageId` alongside the
+existing string (`NewSampleDialog.tsx`, `MultiSampleEntryGrid.tsx`, `EditSampleDetailsDialog.tsx`,
+`ProductWorkflowEngine.ReceiveAsync`), new `ItemTestPortionWeights` table (schema only — every `ThWtTestMg` row
+is entered later via Test Master once Q1 is answered, none is seeded here except optionally the D-S2 worked
+example if the lab wants Multivitamin tablets usable immediately), the "no configured `ThWtTest`/replicate
+count" gate rules. **This slice is schema/plumbing only and does not require Q1/Q2 to be answered** — it can
+ship before the SOP weight table is finalized, since every `ThWtTestMg` value starts unset and the gate blocks
+entry until an admin fills it in. It does need Q6/Q13 confirmed (done, by D-S2/D-S3 themselves) before it starts.
+Frontend: `ProductionStage` admin screen gains a `Role` picker; Test Master gains the `ItemTestPortionWeights`
+grid (per item × test × stage role, blank/`<TBD>` cells) once Slice 2 needs it — the grid UI itself can be
+built in this slice or deferred to Slice 2, since nothing consumes it until then.
 
-### Slice 2 — Titration mode (depends on Slice 1; blocked on Q3)
+### Slice 2 — Standard-Comparison Assay, `PeakArea` mode (depends on Slice 1; blocked on Q1, Q2, Q9, Q10, Q11, Q12 confirmation)
+
+Backend: enums, `TestDefinition`/`TestAnalyte` additions, the entry endpoint
+(`record-standard-comparison-result`, `TestWorkflow.Execute`, signed, section-scoped), the formula (PeakArea
+response only in this slice), the weigh-in gate (per Q11's answer), the suitability gate (per Q10's answer), the
+generalized approval gate, review/projection/summary/CoA branches. Includes the `HplcAssay` → `StandardComparisonAssay`
+and `HplcMultiAnalyte` → `StandardComparisonAssay` migration **only if Q9 says to migrate** — otherwise
+`HplcAssay`/`HplcMultiAnalyte` stay as separate types and Standard-Comparison is additive (new products only).
+Frontend: Test Master (equation type, response mode, replicate/tolerance/RSD config keyed by stage role, the
+`ItemTestPortionWeights` grid keyed by item × test × stage role — all inputs blank/`<TBD>` until Q1/Q2 are
+answered and a lab admin fills them in), result entry screen (standard + sample replicate grid, MC and P inputs
+with override/audit note, weigh-in validation feedback per Q11's mode), summary/CoA labels.
+
+### Slice 3 — Titration mode (depends on Slice 2; blocked on Q3)
 
 Adds `ResponseMode.TitrationVolume` to the entry screen and engine: blank titre input, `V_test`/`V_std`/`V_blank`
 readings (`ResultReading.Kind = Titration`, matching the already-reserved `ReadingKind.Titration = 6`), and —
@@ -287,12 +368,14 @@ response ratio. Equipment: `EquipmentType.Titrator`/`KarlFischer` (already exist
 FP Instruments the same way `Hplc`/`IcpOes` are. **Do not build any part of this slice before Q3 is answered** —
 the prompt is explicit that the wrong assumption here silently produces a wrong %Assay, not an error.
 
-### Slice 3 — AAS (depends on Slice 0 only, independent of Slices 1/2; blocked on Q4, Q5)
+### Slice 4 — AAS (depends on Slice 0 only, independent of Slices 1-3; blocked on Q4, Q5)
 
 New equation type end to end: `TestAnalyte.TheoWtMg`/`TheoCsMgPerL` (values `<TBD, see Q4>`), the AAS
 calibration run (Option A or B per Q5), the result entry (`ActCs`, `ActWt`, 5 minerals per digest), Test Master
 and FP Instruments wiring for `EquipmentType.Aas`, review/projection/summary/CoA branches. Fully independent of
-whether Slices 1/2 have shipped — AAS shares only Slice 0's foundation, not the Standard-Comparison entities.
+whether Slices 1-3 have shipped — AAS shares only Slice 0's foundation, not the Standard-Comparison entities or
+the Stage model (the prompt gives no indication AAS needs the tablet/bulk-powder split that HPLC does, recon,
+"AAS — new, separate equation type").
 
 ## Test cases (structure only — no real numbers until Q8)
 
@@ -310,10 +393,10 @@ can be implemented yet.
 | TC6 | Standard RSD exactly at the configured max (2% default) | Passes (inclusive), matching the `>=`/`<=` inclusive-bound convention used by Calibration Curve TC13 |
 | TC7 | Resolution/tailing/plates criteria left null on `TestAnalyte` | Not evaluated (existing nullable-criteria convention, unchanged) |
 | TC8 | Multi-analyte Standard-Comparison: one prep, one injection set, 4 analytes (water-soluble vitamins, prompt §1 "Multi-result tests") | 4 `ParameterResult` rows from one `TestAnalysis`, each with its own `ThWtStd`/`P`/`MC`/label claim/spec |
-| TC9 | `SamplePurpose = Stability`: 3 standard replicates, 3 sample replicates required | Fewer/more than configured count rejected |
-| TC10 | `SamplePurpose = Bulk`: 6 standard / 1 sample | Same shape as TC9 |
-| TC11 | Vitamin E / mineral analyte on a `FinishedProduct`, `Tablet` sample: `ThWtTest` resolves to the halved `StandardComparisonWeightTarget` row, not the full tablet value | Confirms the (analyte, sample type) keying, not a (test, sample type) keying |
-| TC12 | Missing `StandardComparisonWeightTarget` row for the sample's (analyte, sample type) | Rejected — "not configured" error, not a silent fallback or a zero |
+| TC9 | Sample's resolved `ProductionStage.Role = Stability` (D-S3): 3 standard replicates, 3 sample replicates required | Fewer/more than the stage-role-configured count (D-S5) rejected |
+| TC10 | Sample's resolved `ProductionStage.Role = Bulk`: 6 standard / 1 sample required | Same shape as TC9, confirms replicate count is keyed by stage role, not a dropped `SamplePurpose` field |
+| TC11 | `VitE-HPLC` on an Item where `ItemTestPortionWeights` has separate `Finished` and `Bulk` rows for that (Item, TestDefinition): `ThWtTest` resolves to the row matching the sample's stage role, e.g. 549.54 mg at `Finished` vs 520.04 mg at `Bulk` | Confirms the (Item, TestDefinition, StageRole) keying (D-S2) — each stage's value is its own configured number, not derived by halving another row |
+| TC12 | Missing `ItemTestPortionWeights` row for the sample's (Item, TestDefinition, StageRole) | Rejected — blocked with the "not configured" message from the Stage model's gate rule, naming item/test/stage, not a silent fallback or a zero |
 | TC13 | `P` overridden from the Material default, with an audit note | Override stored, audited, distinct from the default path |
 | TC14 | `MC` never defaulted from a prior run of the same standard | Each entry requires its own `MC`; reusing a stale value is not possible by construction (no field to copy from) |
 | TC15 | Approval blocked: `StandardComparisonAssay` order with no linked passed run | Same error shape as today's HPLC gate, now driven by the generalized check |
@@ -322,6 +405,8 @@ can be implemented yet.
 | TC18 | AAS formula explicitly does not accept `P` or `MC` inputs | Request DTO has no such fields; a client sending them is ignored/rejected, not silently multiplied in |
 | TC19 | `ResultBasis`/`ConversionFactor` are null/default(1.0) on every Standard-Comparison `ParameterResult` | Confirms recon F8 — no basis-conversion path is silently active |
 | TC20 | Rounding/comparison: unrounded value compared to limit, 1 dp AwayFromZero displayed | Matches F13's existing convention, unless Q14 changes it |
+| TC21 | Stage model, D-S3: a Section Head renames a `ProductionStage` (e.g. `F.P` → `Finished Product (Tablet)`) after `ItemTestPortionWeights` rows and `Sample.ProductionStageId` links already exist for samples at that stage | Entry still resolves the correct `ThWtTest`/replicate count, because every lookup keys on `Role`/`ProductionStageId`, never on `Name` — confirms the Stage model closes the renameable-name risk (recon F15) |
+| TC22 | Stage model, D-S3: a sample's stored `Sample.ProductionStage` name string does not match any current `ProductionStage.Name` at migration time (stage was renamed/deleted before this rework), leaving `Sample.ProductionStageId = null` | Standard-Comparison/AAS entry is blocked with the "no reconciled production stage" message (Stage model gate rule) rather than silently defaulting to `Other` or a guessed role |
 
 InMemory + one Postgres round-trip per slice, following the existing FP test convention (`dotnet test
 backend/MicroLIMS.Tests --artifacts-path <temp dir>` while the API is running, per repo `CLAUDE.md`).

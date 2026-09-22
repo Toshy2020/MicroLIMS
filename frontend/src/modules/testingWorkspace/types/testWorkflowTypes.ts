@@ -15,8 +15,7 @@ export type GrowthObservation = "NoGrowth" | "GrowthNonConforming" | "GrowthConf
 export type WorkflowType =
   | "CountTest"
   | "Observation"
-  | "HplcAssay"
-  | "HplcMultiAnalyte"
+  | "StandardComparison"
   | "ElementalAssay"
   | "Measurement"
   | "Gravimetric"

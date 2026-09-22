@@ -2,7 +2,7 @@ import { apiClient } from "../../../services/apiClient";
 import type { SignatureLike } from "../../testingWorkspace/reportPrimitives";
 
 // Mirrors backend SystemSuitabilityRunAnalyteView (SystemSuitabilityDtos.cs) -
-// one row per vitamin/analyte for an HplcMultiAnalyte run.
+// one row per analyte for a StandardComparison run.
 export interface SystemSuitabilityRunAnalyteView {
   id: number;
   systemSuitabilityRunId: number;
@@ -57,9 +57,9 @@ export interface SystemSuitabilityRun {
   performedByName?: string | null;
   performedAt: string;
   comment?: string | null;
-  // HplcMultiAnalyte only - one row per active vitamin/analyte. Null/empty
-  // for single-analyte (HplcAssay) runs; the run-level standard fields
-  // above are then just the first analyte's snapshot and not meaningful.
+  // StandardComparison only - one row per active analyte. Null/empty
+  // for non-analyte-based runs; the run-level standard fields above are
+  // then just the first analyte's snapshot and not meaningful.
   analytes?: SystemSuitabilityRunAnalyteView[] | null;
 }
 
@@ -90,7 +90,7 @@ export interface CreateSystemSuitabilityRunPayload {
   theoreticalPlates: number | null;
   password: string;
   comment?: string | null;
-  // HplcMultiAnalyte only - one row per active analyte of the test, exactly
+  // StandardComparison only - one row per active analyte of the test, exactly
   // once each. The run-level standard fields above are then ignored by the
   // caller's UI but still required non-null by the backend request type.
   analytes?: CreateSystemSuitabilityRunAnalytePayload[];
@@ -145,7 +145,7 @@ export interface SuitabilityRunReport {
     columnSerialNumber: string | null;
     signature: SignatureLike | null;
     linkedTests: SuitabilityRunLinkedTest[];
-    // HplcMultiAnalyte only - one row per analyte snapshot on the run.
+    // StandardComparison only - one row per analyte snapshot on the run.
     analytes?: SuitabilityRunReportAnalyteDto[] | null;
   };
 }

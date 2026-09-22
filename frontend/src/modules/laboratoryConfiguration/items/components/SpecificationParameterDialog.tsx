@@ -168,14 +168,16 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
 
   const currentTestDef = testDefs[testCode];
   const isCalibrationCurve = currentTestDef?.equationType === "CalibrationCurve";
-  // HPLC Multi-Analyte (multi-vitamin assay) - one specification per
-  // vitamin, each tied to a TestAnalyte row, same as Calibration Curve
-  // but without a sample matrix (that's chosen per-result, not per-spec)
-  // and restricted to MgPerUnit/PercentLabelClaim (mirrors backend
-  // SpecificationService.ValidateAsync's HplcMultiAnalyte branch).
-  const isHplcMultiAnalyte =
-    currentTestDef?.equationType === "HplcMultiAnalyte" || currentTestDef?.workflowType === "HplcMultiAnalyte";
-  const usesAnalytePicker = isCalibrationCurve || isHplcMultiAnalyte;
+  // Standard-Comparison Assay (retired HplcAssay/HplcMultiAnalyte) - one
+  // specification per analyte, each tied to a TestAnalyte row, same
+  // analyte picker as Calibration Curve but with none of Calibration
+  // Curve's result basis/sample matrix/conversion factor: the test always
+  // reports % assay (mirrors backend SpecificationService.ValidateAsync's
+  // WorkflowType.StandardComparison branch, which only requires
+  // TestAnalyteId and restricts LimitType).
+  const isStandardComparison =
+    currentTestDef?.equationType === "StandardComparison" || currentTestDef?.workflowType === "StandardComparison";
+  const usesAnalytePicker = isCalibrationCurve || isStandardComparison;
   const isDissolution =
     workflowTypeByCode[testCode] === "Dissolution" ||
     currentTestDef?.workflowType === "Dissolution" ||
@@ -284,8 +286,8 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
 
       const def = testDefs[initialCode];
       const isCal = def?.equationType === "CalibrationCurve";
-      const isHplcMulti = def?.equationType === "HplcMultiAnalyte" || def?.workflowType === "HplcMultiAnalyte";
-      const defaultType = isCal || isHplcMulti ? "Range" : getDefaultLimitType(workflowTypeByCode[initialCode]);
+      const isStdComp = def?.equationType === "StandardComparison" || def?.workflowType === "StandardComparison";
+      const defaultType = isCal || isStdComp ? "Range" : getDefaultLimitType(workflowTypeByCode[initialCode]);
       setLimitType(defaultType);
 
       setReferenceStandard("");
@@ -294,7 +296,7 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
       setDosageForm("");
 
       setTestAnalyteId("");
-      setResultBasis(isHplcMulti ? "MgPerUnit" : "MgPerKg");
+      setResultBasis("MgPerKg");
       const existingMatrix = existingSpecs.find((s) => s.sampleMatrix)?.sampleMatrix as SampleMatrix | undefined;
       setSampleMatrix(existingMatrix || "Solid");
       setLabelClaim("");
@@ -335,7 +337,7 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
 
     const def = testDefs[newCode];
     const isCal = def?.equationType === "CalibrationCurve";
-    const isHplcMulti = def?.equationType === "HplcMultiAnalyte" || def?.workflowType === "HplcMultiAnalyte";
+    const isStdComp = def?.equationType === "StandardComparison" || def?.workflowType === "StandardComparison";
     const isDis = workflowTypeByCode[newCode] === "Dissolution" || def?.workflowType === "Dissolution";
     const isDisint = workflowTypeByCode[newCode] === "Disintegration" || def?.workflowType === "Disintegration";
     const isWv = workflowTypeByCode[newCode] === "WeightVariation" || def?.workflowType === "WeightVariation";
@@ -345,11 +347,11 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
       setTestAnalyteId("");
       setDilutionFactor("");
       setResultBasis("MgPerKg");
-    } else if (isHplcMulti) {
+    } else if (isStdComp) {
       setLimitType("Range");
       setTestAnalyteId("");
       setDilutionFactor("");
-      setResultBasis("MgPerUnit");
+      setResultBasis("");
       setSampleMatrix("");
     } else if (isDis) {
       setLimitType("DissolutionQ");
@@ -428,34 +430,35 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
       return;
     }
 
-    if (isCalibrationCurve || isHplcMultiAnalyte) {
+    if (isCalibrationCurve || isStandardComparison) {
       if (!testAnalyteId) {
-        setError(isHplcMultiAnalyte ? "Please select a vitamin/analyte." : "Please select an element analyte.");
+        setError(isStandardComparison ? "Please select an analyte." : "Please select an element analyte.");
         return;
       }
-      if (!resultBasis) {
-        setError("Please select a result basis.");
-        return;
-      }
-      if (isHplcMultiAnalyte && resultBasis !== "MgPerUnit" && resultBasis !== "PercentLabelClaim") {
-        setError("Result basis must be mg per unit or % label claim for HPLC Multi-Analyte specifications.");
-        return;
-      }
-      if (isCalibrationCurve && !sampleMatrix) {
-        setError("Please select a sample matrix.");
-        return;
-      }
-      if (resultBasis === "PercentLabelClaim") {
-        const lcNum = Number(labelClaim);
-        if (!labelClaim.trim() || isNaN(lcNum) || lcNum <= 0) {
-          setError("Label claim must be greater than 0 when result basis is % label claim.");
+      // StandardComparison always reports % assay - no result basis, sample
+      // matrix or conversion factor to validate (backend SpecificationService
+      // only requires TestAnalyteId for this branch).
+      if (isCalibrationCurve) {
+        if (!resultBasis) {
+          setError("Please select a result basis.");
           return;
         }
-      }
-      const cfNum = conversionFactor.trim() !== "" ? Number(conversionFactor) : 1;
-      if (isNaN(cfNum) || cfNum <= 0) {
-        setError("Conversion factor must be greater than 0.");
-        return;
+        if (!sampleMatrix) {
+          setError("Please select a sample matrix.");
+          return;
+        }
+        if (resultBasis === "PercentLabelClaim") {
+          const lcNum = Number(labelClaim);
+          if (!labelClaim.trim() || isNaN(lcNum) || lcNum <= 0) {
+            setError("Label claim must be greater than 0 when result basis is % label claim.");
+            return;
+          }
+        }
+        const cfNum = conversionFactor.trim() !== "" ? Number(conversionFactor) : 1;
+        if (isNaN(cfNum) || cfNum <= 0) {
+          setError("Conversion factor must be greater than 0.");
+          return;
+        }
       }
     }
 
@@ -585,21 +588,21 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
             }))
           : undefined,
       testAnalyteId: usesAnalytePicker && testAnalyteId !== "" ? Number(testAnalyteId) : null,
-      resultBasis: usesAnalytePicker && resultBasis ? (resultBasis as ResultBasis) : null,
+      resultBasis: isCalibrationCurve && resultBasis ? (resultBasis as ResultBasis) : null,
       sampleMatrix: isCalibrationCurve && sampleMatrix ? (sampleMatrix as SampleMatrix) : null,
       labelClaim:
         limitType === "WeightVariation" || limitType === "DisintegrationTime"
           ? null
           : (limitType === "DissolutionQ"
             ? (labelClaim.trim() !== "" ? Number(labelClaim) : null)
-            : (usesAnalytePicker && labelClaim.trim() !== "" ? Number(labelClaim) : null)),
+            : (isCalibrationCurve && labelClaim.trim() !== "" ? Number(labelClaim) : null)),
       labelClaimUnit:
         limitType === "WeightVariation" || limitType === "DisintegrationTime"
           ? null
           : (limitType === "DissolutionQ"
             ? "mg"
-            : (usesAnalytePicker ? labelClaimUnit.trim() || null : null)),
-      conversionFactor: usesAnalytePicker ? (conversionFactor.trim() !== "" ? Number(conversionFactor) : 1) : 1
+            : (isCalibrationCurve ? labelClaimUnit.trim() || null : null)),
+      conversionFactor: isCalibrationCurve ? (conversionFactor.trim() !== "" ? Number(conversionFactor) : 1) : 1
     };
 
     try {
@@ -686,7 +689,7 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
             />
           </Box>
 
-          {/* Calibration Curve (ICP-OES) / HPLC Multi-Analyte (multi-vitamin) Parameters Block */}
+          {/* Calibration Curve (ICP-OES) / Standard-Comparison Assay Parameters Block */}
           {usesAnalytePicker && (
             <Box
               sx={{
@@ -708,18 +711,18 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
                   mb: 1.5
                 }}
               >
-                {isHplcMultiAnalyte
-                  ? "HPLC Multi-Analyte Specifications (Multi-Vitamin)"
+                {isStandardComparison
+                  ? "Standard-Comparison Assay Specifications"
                   : "Calibration Curve Specifications (ICP-OES)"}
               </Typography>
 
               <Stack spacing={2}>
-                <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: isHplcMultiAnalyte ? "1fr 1fr" : "1fr 1fr 1fr" }, gap: 2 }}>
+                <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: isStandardComparison ? "1fr" : "1fr 1fr 1fr" }, gap: 2 }}>
                   <FormControl size="small" fullWidth required>
-                    <InputLabel id="element-analyte-label">{isHplcMultiAnalyte ? "Vitamin / Analyte *" : "Element *"}</InputLabel>
+                    <InputLabel id="element-analyte-label">{isStandardComparison ? "Analyte *" : "Element *"}</InputLabel>
                     <Select
                       labelId="element-analyte-label"
-                      label={isHplcMultiAnalyte ? "Vitamin / Analyte *" : "Element *"}
+                      label={isStandardComparison ? "Analyte *" : "Element *"}
                       value={testAnalyteId}
                       onChange={(e) => handleAnalyteChange(Number(e.target.value))}
                       disabled={loadingAnalytes}
@@ -731,28 +734,30 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
                       ) : (
                         analytes.map((a) => (
                           <MenuItem key={a.id} value={a.id}>
-                            {isHplcMultiAnalyte ? a.element : `${a.element} (${a.wavelengthNm} nm · ${a.view})`}
+                            {isStandardComparison ? a.element : `${a.element} (${a.wavelengthNm} nm · ${a.view})`}
                           </MenuItem>
                         ))
                       )}
                     </Select>
                   </FormControl>
 
-                  <FormControl size="small" fullWidth required>
-                    <InputLabel id="result-basis-label">Result Basis *</InputLabel>
-                    <Select
-                      labelId="result-basis-label"
-                      label="Result Basis *"
-                      value={resultBasis}
-                      onChange={(e) => setResultBasis(e.target.value as ResultBasis)}
-                    >
-                      {!isHplcMultiAnalyte && <MenuItem value="MgPerKg">mg/kg or mg/L per sample</MenuItem>}
-                      <MenuItem value="MgPerUnit">mg per unit</MenuItem>
-                      <MenuItem value="PercentLabelClaim">% label claim</MenuItem>
-                    </Select>
-                  </FormControl>
+                  {isCalibrationCurve && (
+                    <FormControl size="small" fullWidth required>
+                      <InputLabel id="result-basis-label">Result Basis *</InputLabel>
+                      <Select
+                        labelId="result-basis-label"
+                        label="Result Basis *"
+                        value={resultBasis}
+                        onChange={(e) => setResultBasis(e.target.value as ResultBasis)}
+                      >
+                        <MenuItem value="MgPerKg">mg/kg or mg/L per sample</MenuItem>
+                        <MenuItem value="MgPerUnit">mg per unit</MenuItem>
+                        <MenuItem value="PercentLabelClaim">% label claim</MenuItem>
+                      </Select>
+                    </FormControl>
+                  )}
 
-                  {!isHplcMultiAnalyte && (
+                  {isCalibrationCurve && (
                     <FormControl size="small" fullWidth required>
                       <InputLabel id="sample-matrix-label">Sample Matrix *</InputLabel>
                       <Select
@@ -767,46 +772,48 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
                     </FormControl>
                   )}
                 </Box>
-                {isHplcMultiAnalyte && (
+                {isStandardComparison && (
                   <Typography variant="caption" sx={{ color: "text.secondary" }}>
-                    Sample matrix (solid/liquid) is chosen per result entry, not per specification.
+                    This test always reports % assay - no result basis, sample matrix or conversion factor to set here.
                   </Typography>
                 )}
 
-                <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr 1fr" }, gap: 2 }}>
-                  <TextField
-                    size="small"
-                    label={resultBasis === "PercentLabelClaim" ? "Label Claim *" : "Label Claim"}
-                    type="number"
-                    value={labelClaim}
-                    onChange={(e) => setLabelClaim(e.target.value)}
-                    required={resultBasis === "PercentLabelClaim"}
-                    helperText={resultBasis === "PercentLabelClaim" ? "Required for % label claim" : "Optional"}
-                    slotProps={{ htmlInput: { step: "any", min: "0" } }}
-                    fullWidth
-                  />
+                {isCalibrationCurve && (
+                  <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr 1fr" }, gap: 2 }}>
+                    <TextField
+                      size="small"
+                      label={resultBasis === "PercentLabelClaim" ? "Label Claim *" : "Label Claim"}
+                      type="number"
+                      value={labelClaim}
+                      onChange={(e) => setLabelClaim(e.target.value)}
+                      required={resultBasis === "PercentLabelClaim"}
+                      helperText={resultBasis === "PercentLabelClaim" ? "Required for % label claim" : "Optional"}
+                      slotProps={{ htmlInput: { step: "any", min: "0" } }}
+                      fullWidth
+                    />
 
-                  <TextField
-                    size="small"
-                    label="Label Claim Unit"
-                    value={labelClaimUnit}
-                    onChange={(e) => setLabelClaimUnit(e.target.value)}
-                    placeholder="e.g. mg"
-                    fullWidth
-                  />
+                    <TextField
+                      size="small"
+                      label="Label Claim Unit"
+                      value={labelClaimUnit}
+                      onChange={(e) => setLabelClaimUnit(e.target.value)}
+                      placeholder="e.g. mg"
+                      fullWidth
+                    />
 
-                  <TextField
-                    size="small"
-                    label="Conversion Factor *"
-                    type="number"
-                    value={conversionFactor}
-                    onChange={(e) => setConversionFactor(e.target.value)}
-                    placeholder="1"
-                    helperText="Multiplier to claim (default 1)"
-                    slotProps={{ htmlInput: { step: "any", min: "0.000001" } }}
-                    fullWidth
-                  />
-                </Box>
+                    <TextField
+                      size="small"
+                      label="Conversion Factor *"
+                      type="number"
+                      value={conversionFactor}
+                      onChange={(e) => setConversionFactor(e.target.value)}
+                      placeholder="1"
+                      helperText="Multiplier to claim (default 1)"
+                      slotProps={{ htmlInput: { step: "any", min: "0.000001" } }}
+                      fullWidth
+                    />
+                  </Box>
+                )}
               </Stack>
             </Box>
           )}

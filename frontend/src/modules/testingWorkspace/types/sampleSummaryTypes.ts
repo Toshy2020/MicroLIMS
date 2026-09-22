@@ -120,8 +120,6 @@ export interface TestOrderSummaryDetail {
   incubations: IncubationDetail[];
   results: ResultDetail[];
   countTestReadings: CountTestReadingDetail[];
-  // HPLC Assay only - the active result, null for other tests.
-  hplcAssay?: HplcAssayDetail | null;
   // Elemental Assay only - the active result, null for other tests.
   elementalAssay?: ElementalAssayDetail | null;
   // Generic TestAnalysis workflow result, null for other tests.
@@ -227,40 +225,6 @@ export interface SampleSummary {
   allSectionsVisible?: boolean;
 }
 
-export interface HplcAssayDetail {
-  reportedResult: string;
-  meanAssayPercent: number;
-  status: string;
-  specLimit: string | null;
-  sampleWeightMg: number;
-  sampleDilution: number;
-  replicates: { replicateNumber: number; area: number; assayPercent: number }[];
-  suitabilityRunCode: string;
-  enteredByName: string | null;
-  enteredAt: string;
-  standardPurityPercent: number;
-  standardWeightMg: number;
-  standardDilution: number;
-  standardMeanArea: number;
-  suitabilityPassed: boolean;
-  suitabilityPerformedByName: string | null;
-  suitabilityPerformedAt: string;
-  equipmentCode: string | null;
-  equipmentName: string | null;
-  columnCode: string | null;
-  columnName: string | null;
-  referenceStandardName: string | null;
-  referenceStandardBatch: string | null;
-  rsdPercent: number | null;
-  resolution: number | null;
-  tailingFactor: number | null;
-  theoreticalPlates: number | null;
-  sstMaxRsdPercent: number | null;
-  sstMinResolution: number | null;
-  sstMaxTailingFactor: number | null;
-  sstMinTheoreticalPlates: number | null;
-}
-
 export interface ElementalAssayElementDetail {
   parameterName: string;
   element: string;
@@ -332,56 +296,10 @@ export interface ParameterResultDetail {
   readings: ResultReadingDetail[];
 }
 
-// Mirrors backend HplcMultiAnalyteInjectionData/PreparationData/
-// CalculationData (Domain.Entities.HplcMultiAnalyteCalculationData) -
-// parsed out of ParameterResultDetail.calculationJson for HplcMultiAnalyte
-// parameter results (camelCase, System.Text.Json default).
-export interface HplcMultiAnalyteInjectionData {
-  preparationIndex: number;
-  injectionIndex: number;
-  area: number;
-  amountPerUnit: number;
-  convertedAmount: number;
-}
-
-export interface HplcMultiAnalytePreparationData {
-  preparationIndex: number;
-  sampleAmount: number;
-  sampleDilutionMl: number;
-  injections: HplcMultiAnalyteInjectionData[];
-  meanAmountPerUnit: number;
-  meanConvertedAmount: number;
-}
-
-export interface HplcMultiAnalyteCalculationData {
-  analyteName: string;
-  testAnalyteId: number;
-  systemSuitabilityRunAnalyteId: number;
-  standardWeightMg: number;
-  standardPurityPercent: number;
-  standardDilution: number;
-  standardMeanArea: number;
-  cs: number;
-  unitAmountSource: string;
-  unitAmount: number;
-  sampleMatrix: SampleMatrix;
-  preparations: HplcMultiAnalytePreparationData[];
-  mpu: number;
-  conversionFactor: number;
-  result: number;
-  labelClaim: number | null;
-  labelClaimUnit: string | null;
-  percentLabelClaim: number | null;
-  preparationRsdPercent: number | null;
-  maxPreparationRsdPercent: number | null;
-  rsdExceeded: boolean;
-  reviewReason: string | null;
-}
-
 export interface AnalysisDetail {
   id: number;
   testOrderId: number;
-  analysisType: "CountTest" | "Observation" | "HplcAssay" | "HplcMultiAnalyte" | "ElementalAssay" | "Disintegration" | "WeightVariation" | string;
+  analysisType: "CountTest" | "Observation" | "StandardComparison" | "ElementalAssay" | "Disintegration" | "WeightVariation" | string;
   equipmentId: number | null;
   equipmentCode: string | null;
   equipmentName: string | null;

@@ -289,7 +289,7 @@ export function buildCoaSimpleRows(testOrders: TestOrderSummaryDetail[]): CoaSim
       });
     }
 
-    if (!t.hplcAssay && t.analysis) {
+    if (t.analysis) {
       return t.analysis.parameterResults.map((pr) => {
         const conform = pr.comparisonStatus === "WithinLimits";
         const isUnconfigured = pr.comparisonStatus === "LimitsNotConfigured";
@@ -314,15 +314,7 @@ export function buildCoaSimpleRows(testOrders: TestOrderSummaryDetail[]): CoaSim
     let conform: boolean;
     let isUnconfigured = false;
 
-    if (t.hplcAssay) {
-      // HPLC Assay - the mean % assay the server compared against the spec;
-      // t.status is the order's approval status, not the comparison.
-      result = t.hplcAssay.reportedResult;
-      analystName = t.hplcAssay.enteredByName;
-      analystAt = t.hplcAssay.enteredAt;
-      isUnconfigured = t.hplcAssay.status === "LimitsNotConfigured";
-      conform = isConforming(t.hplcAssay.status);
-    } else if (isQuantitative(t)) {
+    if (isQuantitative(t)) {
       // Single-value CountTest reading (TAMC/TYMC with no location split) -
       // same source CountTestCard uses for its always-visible reported
       // value and entered-by footer.

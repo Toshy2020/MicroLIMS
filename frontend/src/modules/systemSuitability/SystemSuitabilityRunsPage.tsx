@@ -20,8 +20,8 @@ import { SystemSuitabilityService, SystemSuitabilityRun } from "./services/Syste
 interface HplcInstrument { id: number; code: string; name: string; sectionId: number; type: string }
 interface ReferenceStandard { id: number; materialName: string; batchNumber: string; purity?: number | null; sectionId: number; expiryDate?: string | null }
 
-// One editable row per active TestAnalyte of an HplcMultiAnalyte method -
-// the per-vitamin standard, CDS values and (read-only) criteria hints.
+// One editable row per active TestAnalyte of a StandardComparison method -
+// the per-analyte standard, CDS values and (read-only) criteria hints.
 interface AnalyteRunRow {
   testAnalyteId: number;
   element: string;
@@ -82,14 +82,14 @@ export function SystemSuitabilityRunsPage() {
   const sstMethods = useMemo(() => tests.filter((t) => t.requiresSystemSuitability), [tests]);
   const method: TestDefinitionOption | undefined = sstMethods.find((t) => String(t.id) === form.testDefinitionId);
   const methodSectionId = method?.sectionId;
-  const isMulti = method?.workflowType === "HplcMultiAnalyte";
+  const isMulti = method?.workflowType === "StandardComparison";
 
-  // One row per active analyte of the chosen multi-analyte method - loaded
+  // One row per active analyte of the chosen analyte-based method - loaded
   // fresh whenever the method changes (see backend SystemSuitabilityService.
   // CreateAsync: exactly one row per active TestAnalyte, no more, no fewer).
   useEffect(() => {
     if (!dialogOpen) return;
-    if (!method || method.workflowType !== "HplcMultiAnalyte") {
+    if (!method || method.workflowType !== "StandardComparison") {
       setAnalyteRows([]);
       return;
     }
@@ -293,7 +293,7 @@ export function SystemSuitabilityRunsPage() {
                   {runIsMulti ? (
                     // Run-level standard/weight/dilution/area/RSD/resolution/tailing/plates
                     // are just the first analyte's snapshot for a multi-analyte run and not
-                    // meaningful on their own - show pass/fail per vitamin instead.
+                    // meaningful on their own - show pass/fail per analyte instead.
                     <TableCell colSpan={8}>
                       <Stack direction="row" spacing={0.5} sx={{ flexWrap: "wrap", gap: 0.5 }}>
                         {r.analytes!.map((a) => (
@@ -465,11 +465,11 @@ export function SystemSuitabilityRunsPage() {
             {isMulti && (
               <Box>
                 <Typography sx={{ fontWeight: 600, fontSize: 14, mb: 1 }}>
-                  Per-vitamin standards (one row per active analyte, from the CDS report)
+                  Per-analyte standards (one row per active analyte, from the CDS report)
                 </Typography>
                 {analyteRows.length === 0 && (
                   <Alert severity="warning" sx={{ mb: 1 }}>
-                    No active vitamins/analytes are configured for this test. Configure them in Test Master first.
+                    No active analytes are configured for this test. Configure them in Test Master first.
                   </Alert>
                 )}
                 {analyteRows.length > 0 && (
@@ -477,7 +477,7 @@ export function SystemSuitabilityRunsPage() {
                     <Table size="small">
                       <TableHead>
                         <TableRow sx={tableHeadSx}>
-                          <TableCell>Vitamin / Analyte</TableCell>
+                          <TableCell>Analyte</TableCell>
                           <TableCell>Reference standard</TableCell>
                           <TableCell align="right">Weight (mg)</TableCell>
                           <TableCell align="right">Dilution</TableCell>

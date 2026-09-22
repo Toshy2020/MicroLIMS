@@ -53,7 +53,6 @@ import {
   SampleLocationDetail,
   IncubationDetail,
   SampleSectionSummaryDetail,
-  HplcAssayDetail,
   ElementalAssayDetail,
   AnalysisDetail,
   ParameterResultDetail,
@@ -123,7 +122,6 @@ const formatExactTime = (d: string | null | undefined) =>
 function isTestOrderNonPassing(order: TestOrderSummaryDetail): boolean {
   if (order.locations.some((l) => l.status && l.status !== "WithinLimits" && l.status !== "Absent")) return true;
   if (order.countTestReadings.some((r) => r.status !== "WithinLimits")) return true;
-  if (order.hplcAssay && order.hplcAssay.status !== "WithinLimits") return true;
   if (order.elementalAssay && order.elementalAssay.elements.some((e) => e.status !== "WithinLimits")) return true;
   if (order.analysis && order.analysis.parameterResults.some((p) => p.comparisonStatus !== "WithinLimits")) return true;
   const biochemical = order.biochemicalResults;
@@ -485,101 +483,6 @@ function LocationResultsTable({ locations }: { locations: SampleLocationDetail[]
 const num = (v: number | null | undefined, digits?: number) =>
   v === null || v === undefined ? "—" : digits === undefined ? String(v) : v.toFixed(digits);
 
-// HPLC assay: the suitability run and standard the result was calculated
-// from, each replicate's raw area and its calculation, then the mean. All
-// values are the server's stored ones - nothing is recalculated here.
-function HplcAssayResultBlock({ h }: { h: HplcAssayDetail }) {
-  const criteria: { label: string; value: number | null; limit: number | null; rule: "NMT" | "NLT" }[] = [
-    { label: "%RSD", value: h.rsdPercent, limit: h.sstMaxRsdPercent, rule: "NMT" },
-    { label: "Resolution", value: h.resolution, limit: h.sstMinResolution, rule: "NLT" },
-    { label: "Tailing factor", value: h.tailingFactor, limit: h.sstMaxTailingFactor, rule: "NMT" },
-    { label: "Theoretical plates", value: h.theoreticalPlates, limit: h.sstMinTheoreticalPlates, rule: "NLT" }
-  ];
-  const cellSx = { fontSize: 12, py: 0.75 };
-  const headSx = { fontSize: 11, fontWeight: 700, color: "text.secondary", textTransform: "uppercase" as const, py: 0.75 };
-  return (
-    <Stack spacing={2}>
-      <Box sx={{ p: 2, border: "1px solid", borderColor: "divider", borderRadius: 1.5, bgcolor: "background.default" }}>
-        <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1.5 }}>
-          <Typography sx={{ fontSize: 13, fontWeight: 700 }}>System Suitability — {h.suitabilityRunCode}</Typography>
-          <StatusBadge status={h.suitabilityPassed ? "Passed" : "Failed"} />
-        </Box>
-        <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "repeat(2, 1fr)", md: "repeat(4, 1fr)" }, gap: 1.5, mb: 1.5 }}>
-          <SummaryField label="Instrument" value={[h.equipmentCode, h.equipmentName].filter(Boolean).join(" · ") || "—"} />
-          <SummaryField label="Column" value={[h.columnCode, h.columnName].filter(Boolean).join(" · ") || "—"} />
-          <SummaryField label="Reference Standard" value={`${h.referenceStandardName ?? "—"}${h.referenceStandardBatch ? ` (Batch ${h.referenceStandardBatch})` : ""}`} />
-          <SummaryField label="Standard Purity" value={`${num(h.standardPurityPercent)} %`} />
-          <SummaryField label="Standard Weight" value={`${num(h.standardWeightMg)} mg`} />
-          <SummaryField label="Standard Dilution" value={num(h.standardDilution)} />
-          <SummaryField label="Standard Mean Area" value={num(h.standardMeanArea)} />
-          <SummaryField label="Performed By / At" value={`${h.suitabilityPerformedByName ?? "—"} · ${formatDate(h.suitabilityPerformedAt)}`} />
-        </Box>
-        <Table size="small">
-          <TableHead>
-            <TableRow>
-              <TableCell sx={headSx}>Criterion</TableCell>
-              <TableCell sx={headSx}>Measured</TableCell>
-              <TableCell sx={headSx}>Acceptance (Test Master)</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {criteria.map((c) => (
-              <TableRow key={c.label}>
-                <TableCell sx={cellSx}>{c.label}</TableCell>
-                <TableCell sx={cellSx}>{num(c.value)}</TableCell>
-                <TableCell sx={cellSx}>{c.limit === null ? "Not checked" : `${c.rule} ${c.limit}`}</TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </Box>
-
-      <Box sx={{ p: 2, border: "1px solid", borderColor: "divider", borderRadius: 1.5, bgcolor: "background.default" }}>
-        <Typography sx={{ fontSize: 13, fontWeight: 700, mb: 0.5 }}>Assay Calculation</Typography>
-        <Typography sx={{ fontSize: 12, color: "text.secondary", mb: 1.5, fontFamily: "monospace" }}>
-          Assay % = (Sample Area ÷ Std Mean Area) × (Std Weight ÷ Sample Weight) × (Purity ÷ 100) × (Sample Dilution ÷ Std Dilution) × 100
-        </Typography>
-        <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "repeat(2, 1fr)" }, gap: 1.5, mb: 1.5 }}>
-          <SummaryField label="Sample Weight" value={`${num(h.sampleWeightMg)} mg`} />
-          <SummaryField label="Sample Dilution" value={num(h.sampleDilution)} />
-        </Box>
-        <Table size="small">
-          <TableHead>
-            <TableRow>
-              <TableCell sx={headSx}>Replicate</TableCell>
-              <TableCell sx={headSx}>Sample Area</TableCell>
-              <TableCell sx={headSx}>Calculation</TableCell>
-              <TableCell sx={headSx} align="right">Assay %</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {h.replicates.map((r) => (
-              <TableRow key={r.replicateNumber}>
-                <TableCell sx={cellSx}>{r.replicateNumber}</TableCell>
-                <TableCell sx={cellSx}>{num(r.area)}</TableCell>
-                <TableCell sx={{ ...cellSx, fontFamily: "monospace" }}>
-                  ({num(r.area)} ÷ {num(h.standardMeanArea)}) × ({num(h.standardWeightMg)} ÷ {num(h.sampleWeightMg)}) × ({num(h.standardPurityPercent)} ÷ 100) × ({num(h.sampleDilution)} ÷ {num(h.standardDilution)}) × 100
-                </TableCell>
-                <TableCell sx={cellSx} align="right">{num(r.assayPercent, 2)} %</TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-        <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "repeat(2, 1fr)", md: "repeat(5, 1fr)" }, gap: 1.5, mt: 1.5 }}>
-          <SummaryField label="Mean Assay (Reported)" value={h.reportedResult} highlight />
-          <SummaryField label="Specification" value={h.specLimit ?? "—"} />
-          <Box>
-            <Typography sx={{ fontSize: 11, fontWeight: 600, color: "text.secondary", textTransform: "uppercase" }}>Status</Typography>
-            <Box sx={{ mt: 0.5 }}><StatusBadge status={h.status} /></Box>
-          </Box>
-          <SummaryField label="Entered By" value={h.enteredByName} />
-          <SummaryField label="Entered At" value={formatDate(h.enteredAt)} />
-        </Box>
-      </Box>
-    </Stack>
-  );
-}
-
 function ElementalAssayResultBlock({ assay }: { assay: ElementalAssayDetail }) {
   const cellSx = { fontSize: 12, py: 0.75 };
   const headSx = { fontSize: 11, fontWeight: 700, color: "text.secondary", textTransform: "uppercase" as const, py: 0.75 };
@@ -724,22 +627,21 @@ function AnalysisReadingsTable({ parameter, analysisType }: { parameter: Paramet
   const isVessel = r.some((x) => x.kind === "Vessel");
   const isDisintegration = analysisType === "Disintegration";
   const isWeightVariation = analysisType === "WeightVariation";
-  const isHplcMultiAnalyte = analysisType === "HplcMultiAnalyte";
   const isTablet = isWeightVariation && r.every((x) => x.value2 == null);
   type ReadingColumn = { label: string; get: (x: ResultReadingDetail) => string | null };
   const allCols: ReadingColumn[] = [
     {
-      label: isHplcMultiAnalyte ? "Prep" : "Stage",
+      label: "Stage",
       get: (x) =>
         x.stage != null
-          ? isHplcMultiAnalyte || isVessel || isDisintegration || isWeightVariation
-            ? `${isHplcMultiAnalyte ? "P" : "S"}${x.stage}`
+          ? isVessel || isDisintegration || isWeightVariation
+            ? `S${x.stage}`
             : String(x.stage)
           : null
     },
     {
       label: "Time (min)",
-      get: (x) => (!isDisintegration && !isWeightVariation && !isHplcMultiAnalyte && x.timePointMinutes != null ? num(x.timePointMinutes) : null)
+      get: (x) => (!isDisintegration && !isWeightVariation && x.timePointMinutes != null ? num(x.timePointMinutes) : null)
     },
     {
       label: isVessel
@@ -748,8 +650,6 @@ function AnalysisReadingsTable({ parameter, analysisType }: { parameter: Paramet
         ? "Time (min)"
         : isWeightVariation
         ? (isTablet ? "Weight (mg)" : "Gross (mg)")
-        : isHplcMultiAnalyte
-        ? "Area"
         : "Value 1",
       get: (x) => (x.value1 != null ? num(x.value1) : isDisintegration && x.text ? x.text : null)
     },
@@ -766,14 +666,14 @@ function AnalysisReadingsTable({ parameter, analysisType }: { parameter: Paramet
       get: (x) => (isDisintegration || isWeightVariation ? null : (x.text || null))
     },
     {
-      label: isVessel ? "% Dissolved" : isWeightVariation ? "Net (mg)" : isHplcMultiAnalyte ? "Amount / unit" : "Computed",
+      label: isVessel ? "% Dissolved" : isWeightVariation ? "Net (mg)" : "Computed",
       get: (x) =>
         isDisintegration || isTablet
           ? null
           : x.computedValue != null
           ? x.kind === "Vessel"
             ? `${num(x.computedValue)} %`
-            : num(x.computedValue, isHplcMultiAnalyte ? 4 : undefined)
+            : num(x.computedValue)
           : null
     },
     {
@@ -789,7 +689,7 @@ function AnalysisReadingsTable({ parameter, analysisType }: { parameter: Paramet
       <Table size="small">
         <TableHead>
           <TableRow>
-            <TableCell sx={headSx}>{isHplcMultiAnalyte ? "Inj" : "#"}</TableCell>
+            <TableCell sx={headSx}>#</TableCell>
             {cols.map((c) => <TableCell key={c.label} sx={headSx}>{c.label}</TableCell>)}
           </TableRow>
         </TableHead>
@@ -808,7 +708,6 @@ function AnalysisReadingsTable({ parameter, analysisType }: { parameter: Paramet
 
 // Final Result Section component (Separated from Incubation)
 function FinalResultBlock({ order }: { order: TestOrderSummaryDetail }) {
-  if (order.hplcAssay) return <HplcAssayResultBlock h={order.hplcAssay} />;
   if (order.elementalAssay) return <ElementalAssayResultBlock assay={order.elementalAssay} />;
   if (order.analysis) return <AnalysisResultBlock analysis={order.analysis} />;
 

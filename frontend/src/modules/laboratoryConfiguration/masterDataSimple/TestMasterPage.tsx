@@ -61,13 +61,12 @@ export type TestMasterLab = "micro" | "fp";
 const FP_SECTION_CODE = "FP";
 const WORKFLOW_TYPES_BY_LAB: Record<TestMasterLab, string[]> = {
   micro: ["CountTest", "Observation"],
-  fp: ["HplcAssay", "HplcMultiAnalyte", "ElementalAssay", "Measurement", "Gravimetric", "Qualitative", "Dissolution", "Disintegration", "WeightVariation"]
+  fp: ["StandardComparison", "ElementalAssay", "Measurement", "Gravimetric", "Qualitative", "Dissolution", "Disintegration", "WeightVariation"]
 };
 const WORKFLOW_TYPE_LABELS: Record<string, string> = {
   CountTest: "Count Test",
   Observation: "Observation",
-  HplcAssay: "HPLC Assay",
-  HplcMultiAnalyte: "HPLC assay - multi-analyte (vitamins)",
+  StandardComparison: "Standard-Comparison Assay",
   ElementalAssay: "Elemental Assay (ICP-OES)",
   Measurement: "Measurement",
   Gravimetric: "Gravimetric",
@@ -79,8 +78,7 @@ const WORKFLOW_TYPE_LABELS: Record<string, string> = {
 
 const EQUATION_TYPES = [
   "None",
-  "HplcAssay",
-  "HplcMultiAnalyte",
+  "StandardComparison",
   "SystemSuitability",
   "CalibrationCurve",
   "Measurement",
@@ -93,8 +91,7 @@ const EQUATION_TYPES = [
 ];
 const EQUATION_TYPE_LABELS: Record<string, string> = {
   None: "None",
-  HplcAssay: "HPLC Assay",
-  HplcMultiAnalyte: "HPLC assay - multi-analyte (vitamins)",
+  StandardComparison: "Standard-Comparison Assay",
   SystemSuitability: "System Suitability",
   CalibrationCurve: "Calibration Curve",
   Measurement: "Measurement (pH, density…)",
@@ -239,11 +236,11 @@ function stepNeedsConfiguration(s: any): boolean {
 }
 
 function TestAnalytesSection({ test }: { test: TestDefinitionOption }) {
-  // HplcMultiAnalyte reuses this same TestAnalyte CRUD (Element, WavelengthNm,
+  // StandardComparison reuses this same TestAnalyte CRUD (Element, WavelengthNm,
   // DisplayOrder) but drops the ICP-only Plasma View/LOQ and adds its own
-  // per-vitamin system suitability criteria instead - see backend
+  // per-analyte system suitability criteria instead - see backend
   // MasterDataController.CreateTestAnalyte/UpdateTestAnalyte.
-  const isHplcMulti = test.workflowType === "HplcMultiAnalyte" || test.equationType === "HplcMultiAnalyte";
+  const isHplcMulti = test.workflowType === "StandardComparison" || test.equationType === "StandardComparison";
   const [analytes, setAnalytes] = useState<TestAnalyteDto[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -1075,63 +1072,25 @@ function WorkflowStepsSection({ test, workflowTypes, onWorkflowTypeChanged }: { 
           mb: 1.5
         }}>
         <Typography sx={{ fontWeight: 700, fontSize: 13 }}>
-          {["HplcAssay", "HplcMultiAnalyte", "ElementalAssay", "Measurement", "Gravimetric", "Qualitative"].includes(test.workflowType) ? "Workflow Type" : "Workflow Steps"}
+          {["StandardComparison", "ElementalAssay", "Measurement", "Gravimetric", "Qualitative"].includes(test.workflowType) ? "Workflow Type" : "Workflow Steps"}
         </Typography>
         <Select size="small" value={test.workflowType} onChange={(e) => changeWorkflowType(e.target.value)}>
           {workflowTypes.map((w) => <MenuItem key={w} value={w}>{WORKFLOW_TYPE_LABELS[w] ?? w}</MenuItem>)}
         </Select>
       </Stack>
-      {test.workflowType === "HplcAssay" && (
+      {test.workflowType === "StandardComparison" && (
         <Box sx={{ mb: 2, p: 1.5, bgcolor: "background.paper", borderRadius: 1, border: "1px solid", borderColor: "divider" }}>
-          <Typography sx={{ fontWeight: 700, fontSize: 12, mb: 1, color: "primary.main" }}>HPLC Configuration</Typography>
+          <Typography sx={{ fontWeight: 700, fontSize: 12, mb: 1, color: "primary.main" }}>Standard-Comparison Assay Configuration</Typography>
           <Stack direction="row" spacing={3} sx={{ flexWrap: "wrap", alignItems: "center" }}>
             <Box>
               <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>Equation Type</Typography>
-              <Typography variant="body2" sx={{ fontWeight: 600 }}>{EQUATION_TYPE_LABELS[test.equationType ?? "None"] ?? test.equationType ?? "None"}</Typography>
+              <Typography variant="body2" sx={{ fontWeight: 600 }}>{EQUATION_TYPE_LABELS[test.equationType ?? "StandardComparison"] ?? test.equationType}</Typography>
             </Box>
             <Box>
               <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>System Suitability</Typography>
               <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                {test.requiresSystemSuitability ? `Required (${test.methodAbbreviation ?? "No abbr"})` : "Not required"}
+                Required ({test.methodAbbreviation ?? "No abbr"}) - one row per analyte
               </Typography>
-            </Box>
-            {test.requiresSystemSuitability && (
-              <Box>
-                <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>SST Criteria</Typography>
-                <Typography variant="body2">
-                  {[
-                    test.sstMaxRsdPercent != null ? `Max RSD: ${test.sstMaxRsdPercent}%` : null,
-                    test.sstMinResolution != null ? `Min Res: ${test.sstMinResolution}` : null,
-                    test.sstMaxTailingFactor != null ? `Max Tailing: ${test.sstMaxTailingFactor}` : null,
-                    test.sstMinTheoreticalPlates != null ? `Min Plates: ${test.sstMinTheoreticalPlates}` : null
-                  ].filter(Boolean).join(", ") || "None specified"}
-                </Typography>
-              </Box>
-            )}
-          </Stack>
-        </Box>
-      )}
-      {test.workflowType === "HplcMultiAnalyte" && (
-        <Box sx={{ mb: 2, p: 1.5, bgcolor: "background.paper", borderRadius: 1, border: "1px solid", borderColor: "divider" }}>
-          <Typography sx={{ fontWeight: 700, fontSize: 12, mb: 1, color: "primary.main" }}>Multi-Analyte HPLC Configuration</Typography>
-          <Stack direction="row" spacing={3} sx={{ flexWrap: "wrap", alignItems: "center" }}>
-            <Box>
-              <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>Equation Type</Typography>
-              <Typography variant="body2" sx={{ fontWeight: 600 }}>{EQUATION_TYPE_LABELS[test.equationType ?? "HplcMultiAnalyte"] ?? test.equationType}</Typography>
-            </Box>
-            <Box>
-              <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>System Suitability</Typography>
-              <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                Required ({test.methodAbbreviation ?? "No abbr"}) - one row per vitamin
-              </Typography>
-            </Box>
-            <Box>
-              <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>Preparations</Typography>
-              <Typography variant="body2" sx={{ fontWeight: 600 }}>{test.hplcPreparations ?? 2}</Typography>
-            </Box>
-            <Box>
-              <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>Injections / Preparation</Typography>
-              <Typography variant="body2" sx={{ fontWeight: 600 }}>{test.hplcInjectionsPerPreparation ?? 2}</Typography>
             </Box>
             <Box>
               <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>Max Preparation RSD</Typography>
@@ -1209,15 +1168,11 @@ function WorkflowStepsSection({ test, workflowTypes, onWorkflowTypeChanged }: { 
           </Box>
           <TestAnalytesSection test={test} />
         </>
-      ) : test.workflowType === "HplcAssay" ? (
-        <Typography variant="body2" sx={{ color: "text.secondary" }}>
-          HPLC assay tests have no workflow steps or media: the result is entered from the chromatography data against a passed System Suitability run.
-        </Typography>
-      ) : test.workflowType === "HplcMultiAnalyte" ? (
+      ) : test.workflowType === "StandardComparison" ? (
         <>
           <Typography variant="body2" sx={{ color: "text.secondary", mb: 1 }}>
-            Multi-analyte HPLC tests have no workflow steps: one signed result entry covers every vitamin, against a
-            System Suitability run with a row per vitamin.
+            Standard-Comparison Assay tests have no workflow steps: one signed result entry covers every analyte, against a
+            System Suitability run with a row per analyte.
           </Typography>
           <TestAnalytesSection test={test} />
         </>
@@ -1779,7 +1734,7 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
   const { options: allOptions, addNew, update, setActive, reload } = useTestDefinitions();
   const isFp = lab === "fp";
   const workflowTypes = WORKFLOW_TYPES_BY_LAB[lab];
-  const defaultWorkflowType: string = isFp ? "HplcAssay" : "Observation";
+  const defaultWorkflowType: string = isFp ? "StandardComparison" : "Observation";
   const [fpSectionId, setFpSectionId] = useState<number | null>(null);
   useEffect(() => {
     getSections()
@@ -1792,7 +1747,7 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
   const [displayName, setDisplayName] = useState("");
   const [sectionId, setSectionId] = useState<number | "">("");
   const [workflowType, setWorkflowType] = useState<string>(defaultWorkflowType);
-  const [equationType, setEquationType] = useState<string>(isFp ? "HplcAssay" : "None");
+  const [equationType, setEquationType] = useState<string>(isFp ? "StandardComparison" : "None");
   const [requiresSystemSuitability, setRequiresSystemSuitability] = useState<boolean>(false);
   const [methodAbbreviation, setMethodAbbreviation] = useState<string>("");
   const [sstMaxRsdPercent, setSstMaxRsdPercent] = useState<string>("");
@@ -1843,8 +1798,6 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
   const [wvCapsuleS2ExtraUnits, setWvCapsuleS2ExtraUnits] = useState<string>("40");
   const [wvCapsuleS2MaxOutside, setWvCapsuleS2MaxOutside] = useState<string>("6");
 
-  const [hplcPreparations, setHplcPreparations] = useState<string>("2");
-  const [hplcInjectionsPerPreparation, setHplcInjectionsPerPreparation] = useState<string>("2");
   const [hplcMaxPreparationRsdPercent, setHplcMaxPreparationRsdPercent] = useState<string>("");
 
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -1873,7 +1826,7 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
     setSectionId(mySections.length === 1 ? mySections[0].sectionId : "");
     setEditingSectionId(null);
     setWorkflowType(defaultWorkflowType);
-    setEquationType(isFp ? (defaultWorkflowType === "ElementalAssay" ? "CalibrationCurve" : "HplcAssay") : "None");
+    setEquationType(isFp ? (defaultWorkflowType === "ElementalAssay" ? "CalibrationCurve" : "StandardComparison") : "None");
     setRequiresSystemSuitability(false);
     setMethodAbbreviation("");
     setSstMaxRsdPercent("");
@@ -1918,8 +1871,6 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
     setWvCapsuleS1MaxForRetest("6");
     setWvCapsuleS2ExtraUnits("40");
     setWvCapsuleS2MaxOutside("6");
-    setHplcPreparations("2");
-    setHplcInjectionsPerPreparation("2");
     setHplcMaxPreparationRsdPercent("");
     setDialogError(null);
     setDialogOpen(true);
@@ -1933,8 +1884,8 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
     setSectionId(t.sectionId ?? (mySections.length === 1 ? mySections[0].sectionId : ""));
     setEditingSectionId(t.sectionId ?? null);
     setWorkflowType(t.workflowType || defaultWorkflowType);
-    setEquationType(t.equationType || (t.workflowType === "ElementalAssay" ? "CalibrationCurve" : t.workflowType === "HplcAssay" ? "HplcAssay" : t.workflowType === "HplcMultiAnalyte" ? "HplcMultiAnalyte" : t.workflowType === "Measurement" ? "Measurement" : t.workflowType === "Gravimetric" ? "GravimetricLoss" : t.workflowType === "Qualitative" ? "Qualitative" : t.workflowType === "Dissolution" ? "Dissolution" : t.workflowType === "Disintegration" ? "Disintegration" : t.workflowType === "WeightVariation" ? "WeightVariation" : "None"));
-    setRequiresSystemSuitability((t.workflowType === "Dissolution" || t.workflowType === "HplcMultiAnalyte") ? true : (t.workflowType === "Disintegration" || t.workflowType === "WeightVariation") ? false : !!t.requiresSystemSuitability);
+    setEquationType(t.equationType || (t.workflowType === "ElementalAssay" ? "CalibrationCurve" : t.workflowType === "StandardComparison" ? "StandardComparison" : t.workflowType === "Measurement" ? "Measurement" : t.workflowType === "Gravimetric" ? "GravimetricLoss" : t.workflowType === "Qualitative" ? "Qualitative" : t.workflowType === "Dissolution" ? "Dissolution" : t.workflowType === "Disintegration" ? "Disintegration" : t.workflowType === "WeightVariation" ? "WeightVariation" : "None"));
+    setRequiresSystemSuitability((t.workflowType === "Dissolution" || t.workflowType === "StandardComparison") ? true : (t.workflowType === "Disintegration" || t.workflowType === "WeightVariation") ? false : !!t.requiresSystemSuitability);
     setMethodAbbreviation(t.methodAbbreviation ?? "");
     setSstMaxRsdPercent(t.sstMaxRsdPercent != null ? String(t.sstMaxRsdPercent) : "");
     setSstMinResolution(t.sstMinResolution != null ? String(t.sstMinResolution) : "");
@@ -1978,8 +1929,6 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
     setWvCapsuleS1MaxForRetest(t.wvCapsuleS1MaxForRetest != null ? String(t.wvCapsuleS1MaxForRetest) : "6");
     setWvCapsuleS2ExtraUnits(t.wvCapsuleS2ExtraUnits != null ? String(t.wvCapsuleS2ExtraUnits) : "40");
     setWvCapsuleS2MaxOutside(t.wvCapsuleS2MaxOutside != null ? String(t.wvCapsuleS2MaxOutside) : "6");
-    setHplcPreparations(t.hplcPreparations != null ? String(t.hplcPreparations) : "2");
-    setHplcInjectionsPerPreparation(t.hplcInjectionsPerPreparation != null ? String(t.hplcInjectionsPerPreparation) : "2");
     setHplcMaxPreparationRsdPercent(t.hplcMaxPreparationRsdPercent != null ? String(t.hplcMaxPreparationRsdPercent) : "");
     setDialogError(null);
     setDialogOpen(true);
@@ -2009,12 +1958,11 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
     }
 
     const chosenSectionId = Number(sectionId);
-    const isHplc = workflowType === "HplcAssay";
-    const isHplcMulti = workflowType === "HplcMultiAnalyte";
+    const isHplcMulti = workflowType === "StandardComparison";
     const isDissolution = workflowType === "Dissolution";
     const isCalCurve = isFp && equationType === "CalibrationCurve";
 
-    if ((isHplc && requiresSystemSuitability) || isDissolution || isHplcMulti) {
+    if (isDissolution || isHplcMulti) {
       const trimmedAbbr = methodAbbreviation.trim().toUpperCase();
       if (!trimmedAbbr) {
         setDialogError("Method abbreviation is required when system suitability is enabled.");
@@ -2024,7 +1972,7 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
         setDialogError("Method abbreviation must be 1-20 uppercase alphanumeric characters or hyphens.");
         return;
       }
-      // HplcMultiAnalyte's acceptance criteria live per vitamin (Test
+      // StandardComparison's acceptance criteria live per analyte (Test
       // Analytes below), not on the test itself - no "at least one" gate here.
       if (!isHplcMulti) {
         const hasRsd = sstMaxRsdPercent.trim() !== "";
@@ -2040,16 +1988,6 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
     }
 
     if (isHplcMulti) {
-      const preps = hplcPreparations.trim() !== "" ? Number(hplcPreparations) : 2;
-      const injections = hplcInjectionsPerPreparation.trim() !== "" ? Number(hplcInjectionsPerPreparation) : 2;
-      if (isNaN(preps) || preps < 1 || preps > 10) {
-        setDialogError("HPLC preparations must be between 1 and 10.");
-        return;
-      }
-      if (isNaN(injections) || injections < 1 || injections > 10) {
-        setDialogError("HPLC injections per preparation must be between 1 and 10.");
-        return;
-      }
       if (hplcMaxPreparationRsdPercent.trim() !== "" && Number(hplcMaxPreparationRsdPercent) <= 0) {
         setDialogError("HPLC max preparation RSD must be greater than 0 when provided.");
         return;
@@ -2239,9 +2177,7 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
       const resolvedEquationType = isCalCurve
         ? "CalibrationCurve"
         : isHplcMulti
-        ? "HplcMultiAnalyte"
-        : isHplc
-        ? equationType
+        ? "StandardComparison"
         : isMeasurement
         ? "Measurement"
         : isGravimetric
@@ -2263,12 +2199,12 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
           sectionId: chosenSectionId,
           workflowType,
           equationType: resolvedEquationType,
-          requiresSystemSuitability: (isDissolution || isHplcMulti) ? true : (isHplc ? requiresSystemSuitability : false),
-          methodAbbreviation: isDissolution || (isHplc && requiresSystemSuitability) || isCalCurve || isHplcMulti ? methodAbbreviation.trim().toUpperCase() : null,
-          sstMaxRsdPercent: (isDissolution || (isHplc && requiresSystemSuitability)) && sstMaxRsdPercent.trim() !== "" ? Number(sstMaxRsdPercent) : null,
-          sstMinResolution: (isDissolution || (isHplc && requiresSystemSuitability)) && sstMinResolution.trim() !== "" ? Number(sstMinResolution) : null,
-          sstMaxTailingFactor: (isDissolution || (isHplc && requiresSystemSuitability)) && sstMaxTailingFactor.trim() !== "" ? Number(sstMaxTailingFactor) : null,
-          sstMinTheoreticalPlates: (isDissolution || (isHplc && requiresSystemSuitability)) && sstMinTheoreticalPlates.trim() !== "" ? Number(sstMinTheoreticalPlates) : null,
+          requiresSystemSuitability: (isDissolution || isHplcMulti) ? true : false,
+          methodAbbreviation: isDissolution || isCalCurve || isHplcMulti ? methodAbbreviation.trim().toUpperCase() : null,
+          sstMaxRsdPercent: isDissolution && sstMaxRsdPercent.trim() !== "" ? Number(sstMaxRsdPercent) : null,
+          sstMinResolution: isDissolution && sstMinResolution.trim() !== "" ? Number(sstMinResolution) : null,
+          sstMaxTailingFactor: isDissolution && sstMaxTailingFactor.trim() !== "" ? Number(sstMaxTailingFactor) : null,
+          sstMinTheoreticalPlates: isDissolution && sstMinTheoreticalPlates.trim() !== "" ? Number(sstMinTheoreticalPlates) : null,
           calibrationEntryMode: isCalCurve ? "InstrumentReported" : null,
           calMinCorrelation: isCalCurve && calMinCorrelation.trim() !== "" ? Number(calMinCorrelation) : null,
           calCorrelationType: isCalCurve ? calCorrelationType : null,
@@ -2309,8 +2245,6 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
           wvCapsuleS1MaxForRetest: isWeightVariation ? (wvCapsuleS1MaxForRetest.trim() !== "" ? Number(wvCapsuleS1MaxForRetest) : 6) : null,
           wvCapsuleS2ExtraUnits: isWeightVariation ? (wvCapsuleS2ExtraUnits.trim() !== "" ? Number(wvCapsuleS2ExtraUnits) : 40) : null,
           wvCapsuleS2MaxOutside: isWeightVariation ? (wvCapsuleS2MaxOutside.trim() !== "" ? Number(wvCapsuleS2MaxOutside) : 6) : null,
-          hplcPreparations: isHplcMulti ? (hplcPreparations.trim() !== "" ? Number(hplcPreparations) : 2) : null,
-          hplcInjectionsPerPreparation: isHplcMulti ? (hplcInjectionsPerPreparation.trim() !== "" ? Number(hplcInjectionsPerPreparation) : 2) : null,
           hplcMaxPreparationRsdPercent: isHplcMulti && hplcMaxPreparationRsdPercent.trim() !== "" ? Number(hplcMaxPreparationRsdPercent) : null
         };
         await update(editingId, payload);
@@ -2322,12 +2256,12 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
           sectionId: chosenSectionId,
           workflowType,
           equationType: resolvedEquationType,
-          requiresSystemSuitability: (isDissolution || isHplcMulti) ? true : (isHplc ? requiresSystemSuitability : false),
-          methodAbbreviation: isDissolution || (isHplc && requiresSystemSuitability) || isCalCurve || isHplcMulti ? methodAbbreviation.trim().toUpperCase() : null,
-          sstMaxRsdPercent: (isDissolution || (isHplc && requiresSystemSuitability)) && sstMaxRsdPercent.trim() !== "" ? Number(sstMaxRsdPercent) : null,
-          sstMinResolution: (isDissolution || (isHplc && requiresSystemSuitability)) && sstMinResolution.trim() !== "" ? Number(sstMinResolution) : null,
-          sstMaxTailingFactor: (isDissolution || (isHplc && requiresSystemSuitability)) && sstMaxTailingFactor.trim() !== "" ? Number(sstMaxTailingFactor) : null,
-          sstMinTheoreticalPlates: (isDissolution || (isHplc && requiresSystemSuitability)) && sstMinTheoreticalPlates.trim() !== "" ? Number(sstMinTheoreticalPlates) : null,
+          requiresSystemSuitability: (isDissolution || isHplcMulti) ? true : false,
+          methodAbbreviation: isDissolution || isCalCurve || isHplcMulti ? methodAbbreviation.trim().toUpperCase() : null,
+          sstMaxRsdPercent: isDissolution && sstMaxRsdPercent.trim() !== "" ? Number(sstMaxRsdPercent) : null,
+          sstMinResolution: isDissolution && sstMinResolution.trim() !== "" ? Number(sstMinResolution) : null,
+          sstMaxTailingFactor: isDissolution && sstMaxTailingFactor.trim() !== "" ? Number(sstMaxTailingFactor) : null,
+          sstMinTheoreticalPlates: isDissolution && sstMinTheoreticalPlates.trim() !== "" ? Number(sstMinTheoreticalPlates) : null,
           calibrationEntryMode: isCalCurve ? "InstrumentReported" : null,
           calMinCorrelation: isCalCurve && calMinCorrelation.trim() !== "" ? Number(calMinCorrelation) : null,
           calCorrelationType: isCalCurve ? calCorrelationType : null,
@@ -2368,8 +2302,6 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
           wvCapsuleS1MaxForRetest: isWeightVariation ? (wvCapsuleS1MaxForRetest.trim() !== "" ? Number(wvCapsuleS1MaxForRetest) : 6) : null,
           wvCapsuleS2ExtraUnits: isWeightVariation ? (wvCapsuleS2ExtraUnits.trim() !== "" ? Number(wvCapsuleS2ExtraUnits) : 40) : null,
           wvCapsuleS2MaxOutside: isWeightVariation ? (wvCapsuleS2MaxOutside.trim() !== "" ? Number(wvCapsuleS2MaxOutside) : 6) : null,
-          hplcPreparations: isHplcMulti ? (hplcPreparations.trim() !== "" ? Number(hplcPreparations) : 2) : null,
-          hplcInjectionsPerPreparation: isHplcMulti ? (hplcInjectionsPerPreparation.trim() !== "" ? Number(hplcInjectionsPerPreparation) : 2) : null,
           hplcMaxPreparationRsdPercent: isHplcMulti && hplcMaxPreparationRsdPercent.trim() !== "" ? Number(hplcMaxPreparationRsdPercent) : null
         };
         await addNew(payload);
@@ -2439,21 +2371,12 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
                   <TableCell>
                     <Stack direction="row" spacing={1} sx={{ alignItems: "center", flexWrap: "wrap" }}>
                       <span>{t.displayName}</span>
-                      {t.workflowType === "HplcAssay" && (
+                      {t.workflowType === "StandardComparison" && (
                         <Chip
                           size="small"
                           color="primary"
                           variant="outlined"
-                          label="HPLC"
-                          sx={{ height: 20, fontSize: "0.68rem", fontWeight: 700 }}
-                        />
-                      )}
-                      {t.workflowType === "HplcMultiAnalyte" && (
-                        <Chip
-                          size="small"
-                          color="primary"
-                          variant="outlined"
-                          label="HPLC Multi-Analyte"
+                          label="Standard-Comparison"
                           sx={{ height: 20, fontSize: "0.68rem", fontWeight: 700 }}
                         />
                       )}
@@ -2624,11 +2547,8 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
                 onChange={(e) => {
                   const next = e.target.value;
                   setWorkflowType(next);
-                  if (next === "HplcAssay") {
-                    if (equationType === "None") setEquationType("HplcAssay");
-                    setRequiresSystemSuitability(false);
-                  } else if (next === "HplcMultiAnalyte") {
-                    setEquationType("HplcMultiAnalyte");
+                  if (next === "StandardComparison") {
+                    setEquationType("StandardComparison");
                     setRequiresSystemSuitability(true);
                   } else if (next === "ElementalAssay") {
                     setEquationType("CalibrationCurve");
@@ -2687,8 +2607,8 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
                   } else if (next === "Dissolution") {
                     setWorkflowType("Dissolution");
                     setRequiresSystemSuitability(true);
-                  } else if (next === "HplcMultiAnalyte") {
-                    setWorkflowType("HplcMultiAnalyte");
+                  } else if (next === "StandardComparison") {
+                    setWorkflowType("StandardComparison");
                     setRequiresSystemSuitability(true);
                   } else if (next === "CalibrationCurve") {
                     setRequiresSystemSuitability(false);
@@ -2705,11 +2625,8 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
                   if (workflowType === "Dissolution") {
                     return eq === "Dissolution";
                   }
-                  if (workflowType === "HplcMultiAnalyte") {
-                    return eq === "HplcMultiAnalyte";
-                  }
-                  if (workflowType === "HplcAssay") {
-                    return eq !== "CalibrationCurve" && eq !== "Measurement" && eq !== "GravimetricLoss" && eq !== "GravimetricResidue" && eq !== "Qualitative" && eq !== "Dissolution" && eq !== "Disintegration" && eq !== "WeightVariation" && eq !== "HplcMultiAnalyte";
+                  if (workflowType === "StandardComparison") {
+                    return eq === "StandardComparison";
                   }
                   if (workflowType === "ElementalAssay") {
                     return eq === "CalibrationCurve" || eq === "None";
@@ -2723,7 +2640,7 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
                   if (workflowType === "Qualitative") {
                     return eq === "Qualitative";
                   }
-                  return eq !== "HplcAssay" && eq !== "HplcMultiAnalyte" && eq !== "HplcUniformityOfDosageUnits" && eq !== "HplcDissolutionMultiPoint" && eq !== "Measurement" && eq !== "GravimetricLoss" && eq !== "GravimetricResidue" && eq !== "Qualitative" && eq !== "Dissolution" && eq !== "Disintegration" && eq !== "WeightVariation";
+                  return eq !== "StandardComparison" && eq !== "Measurement" && eq !== "GravimetricLoss" && eq !== "GravimetricResidue" && eq !== "Qualitative" && eq !== "Dissolution" && eq !== "Disintegration" && eq !== "WeightVariation";
                 }).map((eq) => (
                   <MenuItem key={eq} value={eq}>
                     {EQUATION_TYPE_LABELS[eq] ?? eq}
@@ -2819,32 +2736,12 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
             </Box>
           )}
 
-          {workflowType === "HplcMultiAnalyte" && (
+          {workflowType === "StandardComparison" && (
             <Box sx={{ p: 2, bgcolor: "action.hover", borderRadius: 1, border: "1px solid", borderColor: "divider" }}>
               <Typography sx={{ fontWeight: 700, fontSize: 13, mb: 1.5 }}>
-                Multi-Analyte HPLC Replicates
+                Standard-Comparison Assay
               </Typography>
               <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
-                <TextField
-                  size="small"
-                  type="number"
-                  label="Preparations"
-                  value={hplcPreparations}
-                  onChange={(e) => setHplcPreparations(e.target.value)}
-                  slotProps={{ htmlInput: { min: 1, max: 10, step: 1 } }}
-                  helperText="Default: 2 (1-10)"
-                  sx={{ flex: 1 }}
-                />
-                <TextField
-                  size="small"
-                  type="number"
-                  label="Injections per Preparation"
-                  value={hplcInjectionsPerPreparation}
-                  onChange={(e) => setHplcInjectionsPerPreparation(e.target.value)}
-                  slotProps={{ htmlInput: { min: 1, max: 10, step: 1 } }}
-                  helperText="Default: 2 (1-10)"
-                  sx={{ flex: 1 }}
-                />
                 <TextField
                   size="small"
                   type="number"
@@ -2857,7 +2754,7 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
                 />
               </Stack>
               <Typography variant="caption" sx={{ color: "text.secondary", display: "block", mt: 1.5 }}>
-                Vitamins/analytes, their detection wavelengths and their own system suitability criteria are configured
+                Analytes, their detection wavelengths and their own system suitability criteria are configured
                 after saving, in this test's expanded Test Analytes section.
               </Typography>
             </Box>
@@ -3374,26 +3271,26 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
             </Box>
           )}
 
-          {(workflowType === "HplcAssay" || workflowType === "Dissolution" || workflowType === "HplcMultiAnalyte") && (
+          {(workflowType === "Dissolution" || workflowType === "StandardComparison") && (
             <Box sx={{ p: 2, bgcolor: "action.hover", borderRadius: 1, border: "1px solid", borderColor: "divider" }}>
               <FormControlLabel
                 control={
                   <Switch
-                    checked={workflowType === "HplcMultiAnalyte" ? true : requiresSystemSuitability}
-                    disabled={workflowType === "Dissolution" || workflowType === "HplcMultiAnalyte"}
+                    checked={workflowType === "StandardComparison" ? true : requiresSystemSuitability}
+                    disabled={workflowType === "Dissolution" || workflowType === "StandardComparison"}
                     onChange={(e) => setRequiresSystemSuitability(e.target.checked)}
                   />
                 }
                 label={
                   workflowType === "Dissolution"
                     ? "Requires system suitability (standard from linked SST run)"
-                    : workflowType === "HplcMultiAnalyte"
-                    ? "Requires system suitability (one row per vitamin, from linked SST run)"
+                    : workflowType === "StandardComparison"
+                    ? "Requires system suitability (one row per analyte, from linked SST run)"
                     : "Requires system suitability"
                 }
               />
 
-              {(workflowType === "HplcMultiAnalyte" || requiresSystemSuitability) && (
+              {(workflowType === "StandardComparison" || requiresSystemSuitability) && (
                 <Box sx={{ mt: 2, pt: 2, borderTop: "1px dashed", borderTopColor: "divider" }}>
                   <TextField
                     size="small"
@@ -3409,12 +3306,12 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
                       }
                     }}
                     helperText="1–20 uppercase alphanumeric characters or hyphens (auto-uppercased)"
-                    sx={{ mb: workflowType === "HplcMultiAnalyte" ? 0 : 2 }}
+                    sx={{ mb: workflowType === "StandardComparison" ? 0 : 2 }}
                   />
 
-                  {workflowType === "HplcMultiAnalyte" ? (
+                  {workflowType === "StandardComparison" ? (
                     <Typography variant="caption" sx={{ color: "text.secondary", display: "block", mt: 1.5 }}>
-                      Acceptance criteria (RSD, resolution, tailing factor, theoretical plates) are set per vitamin,
+                      Acceptance criteria (RSD, resolution, tailing factor, theoretical plates) are set per analyte,
                       in this test's Test Analytes section, not here.
                     </Typography>
                   ) : (

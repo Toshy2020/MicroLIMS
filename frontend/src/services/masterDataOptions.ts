@@ -91,12 +91,12 @@ export interface TestAnalyteDto {
   testDefinitionId: number;
   element: string;
   wavelengthNm: number;
-  // Set for CalibrationCurve (ICP-OES) analytes; always null for HplcMultiAnalyte.
+  // Set for CalibrationCurve (ICP-OES) analytes; always null for StandardComparison.
   view: "Axial" | "Radial" | null;
   loqMgPerL: number | null;
   displayOrder: number;
   isActive: boolean;
-  // HplcMultiAnalyte only - per-vitamin system suitability criteria
+  // StandardComparison only - per-analyte system suitability criteria
   // (null = not checked). CalibrationCurve (ICP-OES) analytes never set these.
   sstMaxRsdPercent?: number | null;
   sstMinResolution?: number | null;
@@ -181,8 +181,6 @@ export interface CreateTestDefinitionPayload {
   wvCapsuleS1MaxForRetest?: number | null;
   wvCapsuleS2ExtraUnits?: number | null;
   wvCapsuleS2MaxOutside?: number | null;
-  hplcPreparations?: number | null;
-  hplcInjectionsPerPreparation?: number | null;
   hplcMaxPreparationRsdPercent?: number | null;
 }
 
@@ -238,8 +236,6 @@ export interface UpdateTestDefinitionPayload {
   wvCapsuleS1MaxForRetest?: number | null;
   wvCapsuleS2ExtraUnits?: number | null;
   wvCapsuleS2MaxOutside?: number | null;
-  hplcPreparations?: number | null;
-  hplcInjectionsPerPreparation?: number | null;
   hplcMaxPreparationRsdPercent?: number | null;
 }
 

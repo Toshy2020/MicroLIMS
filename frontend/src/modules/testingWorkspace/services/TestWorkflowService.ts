@@ -36,29 +36,6 @@ export const TestWorkflowService = {
   recordCountResult: (testOrderId: number, payload: { stepName: string; rawPlateReadings: string[]; dilutionFactor: number; dilutionFactorOverrideNote?: string }) =>
     apiClient.post(`/test-workflow/${testOrderId}/record-result`, payload).then((r) => r.data.data),
 
-  // HPLC Assay only. Signed; the server calculates % assay per replicate and
-  // the mean, and rejects the call unless a passed suitability run is linked.
-  recordHplcResult: (testOrderId: number, payload: { sampleWeightMg: number; sampleDilution: number; sampleAreas: number[]; password: string; comment?: string | null }) =>
-    apiClient.post(`/test-workflow/${testOrderId}/record-hplc-result`, payload).then((r) => r.data.data),
-
-  // HPLC Multi-Analyte (multi-vitamin) assay. Signed; the server calculates
-  // per-analyte C_s, amount per unit and %LC from the linked suitability
-  // run's per-analyte standard rows - nothing is computed here.
-  recordHplcMultiAnalyteResult: (
-    testOrderId: number,
-    payload: {
-      analysedAt: string;
-      equipmentId?: number | null;
-      sampleMatrix: "Solid" | "Liquid";
-      preparations: { sampleAmount: number; sampleDilutionMl: number }[];
-      unitAmount?: number | null;
-      areas: { testAnalyteId: number; preparationIndex: number; injectionIndex: number; area: number }[];
-      password: string;
-      comment?: string | null;
-    }
-  ): Promise<TestWorkflowResult> =>
-    apiClient.post(`/test-workflow/${testOrderId}/record-hplc-multi-analyte-result`, payload).then((r) => r.data.data),
-
   // Elemental Assay (ICP-OES Calibration Curve). Signed; the server calculates
   // per-element recovery / claim / %LC and comparison status.
   recordElementalResult: (

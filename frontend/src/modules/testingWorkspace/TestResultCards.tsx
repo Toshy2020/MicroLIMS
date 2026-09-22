@@ -30,7 +30,6 @@ function isQuantitative(test: TestOrderSummaryDetail): boolean {
 // result is conceptually a qualitative call too ("the recorded value"),
 // never a computed CFU.
 export function TestResultCard({ test }: { test: TestOrderSummaryDetail }) {
-  if (test.hplcAssay) return <HplcAssayCard test={test} />;
   if (test.elementalAssay) return <ElementalAssayCard test={test} />;
   if (test.analysis) return <AnalysisCard test={test} />;
   return isQuantitative(test) ? <CountTestCard test={test} /> : <DetectionTestCard test={test} />;
@@ -208,10 +207,9 @@ export function AnalysisCard({ test }: { test: TestOrderSummaryDetail }) {
             const isVessel = p.readings.some((r) => r.kind === "Vessel");
             const isDisintegration = a.analysisType === "Disintegration";
             const isWeightVariation = a.analysisType === "WeightVariation";
-            const isHplcMultiAnalyte = a.analysisType === "HplcMultiAnalyte";
             const isTablet = isWeightVariation && p.readings.every((r) => r.value2 == null);
             const hasStage = p.readings.some((r) => r.stage !== null && r.stage !== undefined);
-            const hasTimePoint = !isDisintegration && !isWeightVariation && !isHplcMultiAnalyte && p.readings.some((r) => r.timePointMinutes !== null && r.timePointMinutes !== undefined);
+            const hasTimePoint = !isDisintegration && !isWeightVariation && p.readings.some((r) => r.timePointMinutes !== null && r.timePointMinutes !== undefined);
             const hasValue1 = p.readings.some((r) => (r.value1 !== null && r.value1 !== undefined) || (isDisintegration && r.text !== null && r.text !== undefined && r.text !== ""));
             const hasValue2 = !isTablet && p.readings.some((r) => r.value2 !== null && r.value2 !== undefined);
             const hasValue3 = p.readings.some((r) => r.value3 !== null && r.value3 !== undefined);
@@ -228,8 +226,8 @@ export function AnalysisCard({ test }: { test: TestOrderSummaryDetail }) {
                   <table className="location-table">
                     <thead>
                       <tr>
-                        <th>{isHplcMultiAnalyte ? "Inj" : "#"}</th>
-                        {hasStage && <th>{isHplcMultiAnalyte ? "Prep" : "Stage"}</th>}
+                        <th>#</th>
+                        {hasStage && <th>Stage</th>}
                         {hasTimePoint && <th>Time Point (min)</th>}
                         {hasValue1 && (
                           <th>
@@ -239,15 +237,13 @@ export function AnalysisCard({ test }: { test: TestOrderSummaryDetail }) {
                               ? "Time (min)"
                               : isWeightVariation
                               ? (isTablet ? "Weight (mg)" : "Gross (mg)")
-                              : isHplcMultiAnalyte
-                              ? "Area"
                               : "Value 1"}
                           </th>
                         )}
                         {hasValue2 && <th>{isWeightVariation ? "Shell (mg)" : "Value 2"}</th>}
                         {hasValue3 && <th>{isWeightVariation ? "Deviation %" : "Value 3"}</th>}
                         {hasText && <th>Text</th>}
-                        {hasComputed && <th>{isVessel ? "% Dissolved" : isWeightVariation ? "Net (mg)" : isHplcMultiAnalyte ? "Amount / unit" : "Computed"}</th>}
+                        {hasComputed && <th>{isVessel ? "% Dissolved" : isWeightVariation ? "Net (mg)" : "Computed"}</th>}
                         {hasPassed && <th>Passed</th>}
                       </tr>
                     </thead>
@@ -255,13 +251,13 @@ export function AnalysisCard({ test }: { test: TestOrderSummaryDetail }) {
                       {p.readings.map((r, rIdx) => (
                         <tr key={r.id || rIdx}>
                           <td>{r.index}</td>
-                          {hasStage && <td>{r.stage != null ? (isHplcMultiAnalyte || isVessel || isDisintegration || isWeightVariation ? `${isHplcMultiAnalyte ? "P" : "S"}${r.stage}` : String(r.stage)) : "—"}</td>}
+                          {hasStage && <td>{r.stage != null ? (isVessel || isDisintegration || isWeightVariation ? `S${r.stage}` : String(r.stage)) : "—"}</td>}
                           {hasTimePoint && <td>{r.timePointMinutes !== null ? String(r.timePointMinutes) : "—"}</td>}
                           {hasValue1 && <td>{r.value1 !== null ? String(r.value1) : (isDisintegration && r.text ? r.text : "—")}</td>}
                           {hasValue2 && <td>{r.value2 !== null ? String(r.value2) : "—"}</td>}
                           {hasValue3 && <td>{r.value3 !== null ? (isWeightVariation ? `${Number(r.value3).toFixed(2)} %` : String(r.value3)) : "—"}</td>}
                           {hasText && <td>{r.text ?? "—"}</td>}
-                          {hasComputed && <td>{r.computedValue !== null ? (isVessel ? `${r.computedValue} %` : isHplcMultiAnalyte ? Number(r.computedValue).toFixed(4) : String(r.computedValue)) : "—"}</td>}
+                          {hasComputed && <td>{r.computedValue !== null ? (isVessel ? `${r.computedValue} %` : String(r.computedValue)) : "—"}</td>}
                           {hasPassed && (
                             <td>
                               {r.passed === null || r.passed === undefined ? "—" : r.passed ? "Pass" : "Fail"}
@@ -275,64 +271,6 @@ export function AnalysisCard({ test }: { test: TestOrderSummaryDetail }) {
               </div>
             );
           })}
-        </div>
-      </SecondaryToggle>
-    </CollapsibleTestCard>
-  );
-}
-
-// HPLC Assay: mean % assay (server-calculated) against the spec, with the
-// suitability run it was calculated from and each replicate behind a toggle.
-function HplcAssayCard({ test }: { test: TestOrderSummaryDetail }) {
-  const h = test.hplcAssay!;
-  const hasException = !test.isSuperseded && !isConforming(h.status);
-  const tone = test.isSuperseded ? "is-neutral" : hasException ? "is-danger" : "";
-  return (
-    <CollapsibleTestCard
-      icon={test.isSuperseded ? <DotIcon /> : hasException ? <CrossIcon /> : <CheckIcon />}
-      iconTone={tone}
-      title={`${test.testCode} — ${test.testDisplayName}`}
-      subtitle={<>{test.isSuperseded && <strong>Superseded by retest · </strong>}Suitability run: {h.suitabilityRunCode}</>}
-      badgeText={test.isSuperseded ? "Superseded" : `${h.reportedResult} · ${humanize(h.status)}`}
-      badgeTone={tone}
-      defaultOpen={hasException}
-      isSuperseded={test.isSuperseded}
-    >
-      <SecondaryToggle label={`Show raw data and calculation (${h.replicates.length} replicates)`}>
-        <div className="plate-readings" style={{ border: "1px solid var(--color-border)", borderRadius: 8, marginTop: 8 }}>
-          <div className="plate-readings-label">system suitability · {h.suitabilityRunCode} · {h.suitabilityPassed ? "passed" : "failed"}</div>
-          <div className="plate-meta">
-            <span>Instrument: <strong>{h.equipmentCode ?? "—"}</strong></span>
-            <span>Column: <strong>{h.columnCode ?? "—"}</strong></span>
-            <span>Standard: <strong>{h.referenceStandardName ?? "—"}{h.referenceStandardBatch ? ` (${h.referenceStandardBatch})` : ""}</strong></span>
-            <span>Purity: <strong>{h.standardPurityPercent} %</strong></span>
-            <span>Std weight / dilution: <strong>{h.standardWeightMg} mg / {h.standardDilution}</strong></span>
-            <span>Std mean area: <strong>{h.standardMeanArea}</strong></span>
-            <span>%RSD: <strong>{h.rsdPercent ?? "—"}</strong></span>
-            <span>Resolution: <strong>{h.resolution ?? "—"}</strong></span>
-            <span>Tailing: <strong>{h.tailingFactor ?? "—"}</strong></span>
-            <span>Plates: <strong>{h.theoreticalPlates ?? "—"}</strong></span>
-          </div>
-          <div className="plate-readings-label">
-            assay % = (sample area ÷ std mean area) × (std weight ÷ sample weight) × (purity ÷ 100) × (sample dilution ÷ std dilution) × 100
-          </div>
-          <div className="plate-stats">
-            {h.replicates.map((r) => (
-              <div className="plate-stat" key={r.replicateNumber}>
-                <div className="stat-label">
-                  Replicate {r.replicateNumber}: ({r.area} ÷ {h.standardMeanArea}) × ({h.standardWeightMg} ÷ {h.sampleWeightMg}) × ({h.standardPurityPercent} ÷ 100) × ({h.sampleDilution} ÷ {h.standardDilution}) × 100
-                </div>
-                <div className="stat-value">{r.assayPercent.toFixed(2)} %</div>
-              </div>
-            ))}
-          </div>
-          <div className="plate-meta">
-            <span>Mean: <strong>{h.reportedResult}</strong></span>
-            <span>Spec: <strong>{h.specLimit ?? "—"}</strong></span>
-            <span>Sample weight / dilution: <strong>{h.sampleWeightMg} mg / {h.sampleDilution}</strong></span>
-            <span>Entered by: <strong>{h.enteredByName}</strong></span>
-            <span>Entered at: <strong className="mono">{dt(h.enteredAt)}</strong></span>
-          </div>
         </div>
       </SecondaryToggle>
     </CollapsibleTestCard>

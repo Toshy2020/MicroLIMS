@@ -58,8 +58,6 @@ export interface TestDefinitionOption {
   wvCapsuleS1MaxForRetest?: number | null;
   wvCapsuleS2ExtraUnits?: number | null;
   wvCapsuleS2MaxOutside?: number | null;
-  hplcPreparations?: number | null;
-  hplcInjectionsPerPreparation?: number | null;
   hplcMaxPreparationRsdPercent?: number | null;
   sectionId?: number;
   section?: {

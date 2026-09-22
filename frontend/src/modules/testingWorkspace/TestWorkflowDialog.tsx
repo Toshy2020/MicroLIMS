@@ -14,8 +14,6 @@ import { PathogenStepDialog } from "./PathogenStepDialog";
 import { useAuth } from "../../contexts/AuthContext";
 import { ConfirmationDialog } from "../../components/ConfirmationDialog";
 import { StepChainStrip } from "./components/StepChainStrip";
-import { HplcAssayPanel } from "./HplcAssayPanel";
-import { HplcMultiAnalytePanel } from "./HplcMultiAnalytePanel";
 import { ElementalAssayPanel } from "./ElementalAssayPanel";
 import { MeasurementPanel } from "./MeasurementPanel";
 import { GravimetricPanel } from "./GravimetricPanel";
@@ -301,26 +299,21 @@ export function TestWorkflowDialog({ testOrderId, testCode, category, displayNam
     );
   }
 
-  // HPLC Assay has no incubation steps - suitability run link + signed
-  // sample entry only.
-  if (current.workflowType === "HplcAssay") {
-    return <HplcAssayPanel testOrderId={testOrderId} displayName={displayName} current={current} onRecorded={load} onClose={onClose} />;
-  }
-
-  // HPLC Assay (Multi-Vitamin) - signed multi-analyte suitability run link +
-  // per-vitamin preparation/injection area grid.
-  if (current.workflowType === "HplcMultiAnalyte") {
+  // Standard-Comparison Assay (retired HplcAssay/HplcMultiAnalyte) - result
+  // entry screen is not built yet (SC-5); show a plain placeholder instead
+  // of falling into PathogenStepDialog below.
+  if (current.workflowType === "StandardComparison") {
     return (
-      <HplcMultiAnalytePanel
-        testOrderId={testOrderId}
-        displayName={displayName}
-        testCode={testCode}
-        itemId={itemId}
-        sampleId={sampleId}
-        current={current}
-        onRecorded={load}
-        onClose={onClose}
-      />
+      <Box>
+        <Alert severity="info">Result entry for this test type is not available yet.</Alert>
+        {onClose && (
+          <Box sx={{ display: "flex", justifyContent: "flex-end", mt: 2 }}>
+            <Button variant="contained" onClick={onClose} sx={{ fontWeight: 600, textTransform: "none" }}>
+              Close
+            </Button>
+          </Box>
+        )}
+      </Box>
     );
   }
 

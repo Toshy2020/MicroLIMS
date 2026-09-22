@@ -182,6 +182,9 @@ export interface CreateTestDefinitionPayload {
   wvCapsuleS2ExtraUnits?: number | null;
   wvCapsuleS2MaxOutside?: number | null;
   hplcMaxPreparationRsdPercent?: number | null;
+  // StandardComparison only - "PeakArea" (HPLC) or "TitrationVolume". Rejected
+  // by the backend for non-StandardComparison tests unless left as PeakArea.
+  responseMode?: "PeakArea" | "TitrationVolume";
 }
 
 export interface UpdateTestDefinitionPayload {
@@ -237,6 +240,9 @@ export interface UpdateTestDefinitionPayload {
   wvCapsuleS2ExtraUnits?: number | null;
   wvCapsuleS2MaxOutside?: number | null;
   hplcMaxPreparationRsdPercent?: number | null;
+  // StandardComparison only - cannot change once suitability runs exist
+  // against the test (backend rejects the change with an error message).
+  responseMode?: "PeakArea" | "TitrationVolume";
 }
 
 // Shared lookup lists used across receiving, preparation, and master

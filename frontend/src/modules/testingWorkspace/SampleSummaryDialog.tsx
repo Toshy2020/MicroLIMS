@@ -59,6 +59,7 @@ import {
   ResultReadingDetail
 } from "./types/sampleSummaryTypes";
 import { pathogenObservationLabel } from "./utils/pathogenObservationLabel";
+import { StandardComparisonCalculationData } from "./StandardComparisonPanel";
 import { PathogenSessionDialog } from "./pathogenSession/PathogenSessionDialog";
 import { UserService, UserRecord } from "../users/services/UserService";
 
@@ -612,9 +613,57 @@ function AnalysisResultBlock({ analysis }: { analysis: AnalysisDetail }) {
           })}
         </TableBody>
       </Table>
+      {analysis.analysisType === "StandardComparison" &&
+        analysis.parameterResults
+          .filter((p) => p.calculationJson)
+          .map((p) => <StandardComparisonCalcSummary key={`calc-${p.id}`} parameter={p} />)}
       {analysis.parameterResults.filter((p) => p.readings.length > 0).map((p) => (
         <AnalysisReadingsTable key={p.id} parameter={p} analysisType={analysis.analysisType} />
       ))}
+    </Box>
+  );
+}
+
+// Standard-Comparison Assay: a compact "calculated against" line per
+// analyte - the linked run's standard values and each preparation's
+// weigh-in/deviation/justification, straight from the stored
+// calculationJson (StandardComparisonCalculationData, camelCase JSON).
+// Nothing here is recomputed; it's a readable view of what the server
+// already calculated the reported %Assay against.
+function StandardComparisonCalcSummary({ parameter }: { parameter: ParameterResultDetail }) {
+  let calc: StandardComparisonCalculationData | null = null;
+  try {
+    calc = parameter.calculationJson ? (JSON.parse(parameter.calculationJson) as StandardComparisonCalculationData) : null;
+  } catch {
+    calc = null;
+  }
+  if (!calc) return null;
+
+  const isTitration = calc.responseMode === "TitrationVolume";
+
+  return (
+    <Box sx={{ mt: 1.5, p: 1.25, border: "1px dashed", borderColor: "divider", borderRadius: 1 }}>
+      <Typography sx={{ fontSize: 11, fontWeight: 700, mb: 0.5 }}>
+        Calculated against · {calc.analyteName}
+      </Typography>
+      <Typography sx={{ fontSize: 11, color: "text.secondary" }}>
+        Th.Wt.std {num(calc.standardTheoreticalWeightMg)} mg · Act.Wt.std {num(calc.standardActualWeightMg)} mg ·
+        {" "}P {num(calc.standardPurityPercent)}% · MC {num(calc.moisturePercent)}% ·
+        {" "}Mean std {isTitration ? "titre" : "response"} {num(calc.standardMeanArea)}
+        {isTitration && calc.blankTitreMl != null ? ` · Blank titre ${num(calc.blankTitreMl)} mL` : ""}
+      </Typography>
+      {calc.preparations.map((p) => (
+        <Typography key={p.preparationIndex} sx={{ fontSize: 11, color: p.weighInOutOfWindow ? "warning.main" : "text.secondary", mt: 0.25 }}>
+          P{p.preparationIndex}: Th.Wt.test {num(p.theoreticalWeightMg)} mg · Act.Wt.test {num(p.actualWeightMg)} mg ·
+          {" "}deviation {num(p.weighInDeviationPercent, 2)}%
+          {p.weighInOutOfWindow ? ` (outside window${p.weighInJustification ? ` — ${p.weighInJustification}` : ""})` : ""}
+        </Typography>
+      ))}
+      <Typography sx={{ fontSize: 11, color: calc.rsdExceeded ? "warning.main" : "text.secondary", mt: 0.25 }}>
+        Preparation RSD: {calc.preparationRsdPercent != null ? `${num(calc.preparationRsdPercent, 2)}%` : "—"}
+        {calc.maxPreparationRsdPercent != null ? ` (max ${num(calc.maxPreparationRsdPercent, 2)}%)` : ""}
+        {calc.rsdExceeded && calc.reviewReason ? ` — ${calc.reviewReason}` : ""}
+      </Typography>
     </Box>
   );
 }
@@ -627,14 +676,18 @@ function AnalysisReadingsTable({ parameter, analysisType }: { parameter: Paramet
   const isVessel = r.some((x) => x.kind === "Vessel");
   const isDisintegration = analysisType === "Disintegration";
   const isWeightVariation = analysisType === "WeightVariation";
+  const isStandardComparison = analysisType === "StandardComparison";
+  const isTitration = isStandardComparison && r.some((x) => x.kind === "Titration");
   const isTablet = isWeightVariation && r.every((x) => x.value2 == null);
   type ReadingColumn = { label: string; get: (x: ResultReadingDetail) => string | null };
   const allCols: ReadingColumn[] = [
     {
-      label: "Stage",
+      label: isStandardComparison ? "Prep" : "Stage",
       get: (x) =>
         x.stage != null
-          ? isVessel || isDisintegration || isWeightVariation
+          ? isStandardComparison
+            ? `P${x.stage}`
+            : isVessel || isDisintegration || isWeightVariation
             ? `S${x.stage}`
             : String(x.stage)
           : null
@@ -650,6 +703,8 @@ function AnalysisReadingsTable({ parameter, analysisType }: { parameter: Paramet
         ? "Time (min)"
         : isWeightVariation
         ? (isTablet ? "Weight (mg)" : "Gross (mg)")
+        : isStandardComparison
+        ? (isTitration ? "Titre (mL)" : "Peak area")
         : "Value 1",
       get: (x) => (x.value1 != null ? num(x.value1) : isDisintegration && x.text ? x.text : null)
     },
@@ -666,12 +721,12 @@ function AnalysisReadingsTable({ parameter, analysisType }: { parameter: Paramet
       get: (x) => (isDisintegration || isWeightVariation ? null : (x.text || null))
     },
     {
-      label: isVessel ? "% Dissolved" : isWeightVariation ? "Net (mg)" : "Computed",
+      label: isVessel ? "% Dissolved" : isWeightVariation ? "Net (mg)" : isStandardComparison ? "% Assay" : "Computed",
       get: (x) =>
         isDisintegration || isTablet
           ? null
           : x.computedValue != null
-          ? x.kind === "Vessel"
+          ? x.kind === "Vessel" || isStandardComparison
             ? `${num(x.computedValue)} %`
             : num(x.computedValue)
           : null

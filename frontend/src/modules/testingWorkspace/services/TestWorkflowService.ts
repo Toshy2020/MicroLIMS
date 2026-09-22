@@ -7,6 +7,21 @@ import {
   TestWorkflowResult
 } from "../types/testWorkflowTypes";
 
+// Mirrors backend StandardComparisonContextDto (SystemSuitabilityDtos.cs).
+// message is set when the sample's stage can't be resolved (not
+// reconciled yet / replicate counts not configured) - entry should be
+// blocked client-side until it clears, though the server is still the
+// authority on submit.
+export interface StandardComparisonContext {
+  responseMode: "PeakArea" | "TitrationVolume";
+  stageRole: string | null;
+  sampleReplicates: number | null;
+  standardReplicates: number | null;
+  sampleWeighInTolerancePercent: number;
+  maxPreparationRsdPercent: number | null;
+  message: string | null;
+}
+
 export const TestWorkflowService = {
   getCurrentStep: (testOrderId: number): Promise<CurrentStepResponse> =>
     apiClient.get(`/test-workflow/${testOrderId}/current-step`).then((r) => r.data.data),
@@ -109,6 +124,27 @@ export const TestWorkflowService = {
     }
   ) =>
     apiClient.post(`/test-workflow/${testOrderId}/record-qualitative-result`, payload).then((r) => r.data.data),
+
+  // Standard-Comparison Assay (retired HplcAssay/HplcMultiAnalyte) context:
+  // response mode + this sample's stage replicate counts. message is set
+  // when the stage can't be resolved yet - entry stays blocked.
+  getStandardComparisonContext: (testOrderId: number): Promise<StandardComparisonContext> =>
+    apiClient.get(`/test-workflow/${testOrderId}/standard-comparison-context`).then((r) => r.data.data),
+
+  // Standard-Comparison Assay result (peak area or titration volume,
+  // per the test's ResponseMode). Signed. Returns TestWorkflowResult.
+  recordStandardComparisonResult: (
+    testOrderId: number,
+    payload: {
+      analysedAt: string;
+      equipmentId?: number | null;
+      preparations: { theoreticalWeightMg: number; actualWeightMg: number; weighInJustification?: string | null }[];
+      responses: { testAnalyteId: number; preparationIndex: number; response: number }[];
+      password: string;
+      comment?: string | null;
+    }
+  ): Promise<TestWorkflowResult> =>
+    apiClient.post(`/test-workflow/${testOrderId}/record-standard-comparison-result`, payload).then((r) => r.data.data),
 
   // Dissolution analysis (Stage 1). Signed. Returns TestWorkflowResult.
   recordDissolutionResult: (

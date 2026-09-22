@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  Alert, Box, Button, Chip, CircularProgress, FormControl, InputLabel, MenuItem, Paper, Select,
+  Alert, Box, Button, Chip, CircularProgress, FormControl, IconButton, InputLabel, MenuItem, Paper, Select,
   Stack, Table, TableBody, TableCell, TableHead, TableRow, TextField, Tooltip, Typography
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
+import DeleteIcon from "@mui/icons-material/Delete";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import DescriptionOutlinedIcon from "@mui/icons-material/DescriptionOutlined";
 import { PageHeader } from "../../components/PageHeader";
@@ -21,7 +22,9 @@ interface HplcInstrument { id: number; code: string; name: string; sectionId: nu
 interface ReferenceStandard { id: number; materialName: string; batchNumber: string; purity?: number | null; sectionId: number; expiryDate?: string | null }
 
 // One editable row per active TestAnalyte of a StandardComparison method -
-// the per-analyte standard, CDS values and (read-only) criteria hints.
+// the per-analyte standard, weigh-in, replicate responses and (read-only)
+// criteria hints. `responses` holds one string per replicate injection
+// (peak area for HPLC, titre in mL for titration) - see SC-5a.
 interface AnalyteRunRow {
   testAnalyteId: number;
   element: string;
@@ -31,13 +34,16 @@ interface AnalyteRunRow {
   sstMaxTailingFactor: number | null;
   sstMinTheoreticalPlates: number | null;
   referenceStandardMaterialId: string;
+  theoreticalWeightMg: string;
   standardWeightMg: string;
+  moisturePercent: string;
   standardDilution: string;
-  standardMeanArea: string;
-  rsdPercent: string;
+  responses: string[];
   resolution: string;
   tailingFactor: string;
   theoreticalPlates: string;
+  blankTitreMl: string;
+  weighInJustification: string;
 }
 
 type StatusFilter = "all" | "passed" | "failed";
@@ -55,6 +61,32 @@ const errorMessage = (e: unknown, fallback: string) => {
 
 const numOrNull = (v: string) => (v.trim() === "" ? null : Number(v));
 const fmt = (v?: number | null) => (v === null || v === undefined ? "—" : String(v));
+
+// Standard weigh-in tolerance - mirrors backend
+// SystemSuitabilityService.StandardWeighInTolerancePercent. The backend is
+// the authority on pass/fail; this only decides when to prompt for a
+// justification in the UI.
+const WEIGH_IN_TOLERANCE_PERCENT = 5;
+
+const weighInDeviation = (actualMg: string, theoreticalMg: string): number | null => {
+  const act = Number(actualMg);
+  const th = Number(theoreticalMg);
+  if (!act || !th || th <= 0) return null;
+  return ((act - th) / th) * 100;
+};
+
+// Sample mean + %RSD (n-1) of the numeric responses entered so far - shown
+// live as information only. The backend recomputes this itself from the
+// same responses and that computed RSD is what drives pass/fail.
+const computeMeanRsd = (responses: string[]): { mean: number | null; rsd: number | null } => {
+  const values = responses.map((r) => Number(r)).filter((n) => Number.isFinite(n) && n > 0);
+  if (values.length === 0) return { mean: null, rsd: null };
+  const mean = values.reduce((a, b) => a + b, 0) / values.length;
+  if (values.length < 2 || mean === 0) return { mean, rsd: null };
+  const variance = values.reduce((a, b) => a + (b - mean) ** 2, 0) / (values.length - 1);
+  const rsd = (Math.sqrt(variance) / mean) * 100;
+  return { mean, rsd };
+};
 
 // System Suitability Runs (REQ-FP-001/001a/002). The analyst types the four
 // values already calculated by the CDS; Pass/Fail is decided by the server
@@ -83,6 +115,9 @@ export function SystemSuitabilityRunsPage() {
   const method: TestDefinitionOption | undefined = sstMethods.find((t) => String(t.id) === form.testDefinitionId);
   const methodSectionId = method?.sectionId;
   const isMulti = method?.workflowType === "StandardComparison";
+  // Titration standardisation (SC-4/SC-5a): a titrator instead of an HPLC,
+  // no chromatography column, and only the RSD criterion applies per analyte.
+  const isTitrationRun = isMulti && method?.responseMode === "TitrationVolume";
 
   // One row per active analyte of the chosen analyte-based method - loaded
   // fresh whenever the method changes (see backend SystemSuitabilityService.
@@ -107,13 +142,16 @@ export function SystemSuitabilityRunsPage() {
           sstMaxTailingFactor: a.sstMaxTailingFactor ?? null,
           sstMinTheoreticalPlates: a.sstMinTheoreticalPlates ?? null,
           referenceStandardMaterialId: "",
+          theoreticalWeightMg: "",
           standardWeightMg: "",
+          moisturePercent: "",
           standardDilution: "",
-          standardMeanArea: "",
-          rsdPercent: "",
+          responses: ["", ""],
           resolution: "",
           tailingFactor: "",
-          theoreticalPlates: ""
+          theoreticalPlates: "",
+          blankTitreMl: "",
+          weighInJustification: ""
         })));
       })
       .catch(() => setAnalyteRows([]));
@@ -122,6 +160,17 @@ export function SystemSuitabilityRunsPage() {
 
   const updateAnalyteRow = (idx: number, patch: Partial<AnalyteRunRow>) =>
     setAnalyteRows((rows) => rows.map((r, i) => (i === idx ? { ...r, ...patch } : r)));
+
+  const updateResponse = (rowIdx: number, respIdx: number, value: string) =>
+    setAnalyteRows((rows) => rows.map((r, i) =>
+      i === rowIdx ? { ...r, responses: r.responses.map((v, j) => (j === respIdx ? value : v)) } : r));
+
+  const addResponseRow = (rowIdx: number) =>
+    setAnalyteRows((rows) => rows.map((r, i) => (i === rowIdx ? { ...r, responses: [...r.responses, ""] } : r)));
+
+  const removeResponseRow = (rowIdx: number, respIdx: number) =>
+    setAnalyteRows((rows) => rows.map((r, i) =>
+      i === rowIdx ? { ...r, responses: r.responses.filter((_, j) => j !== respIdx) } : r));
 
   const load = useCallback(() => {
     setLoading(true);
@@ -144,8 +193,11 @@ export function SystemSuitabilityRunsPage() {
     setCreated(null);
     setDialogOpen(true);
     try {
+      // Loaded unfiltered (both HPLC instruments and titrators) - which type
+      // applies is decided once a method is picked (isTitrationRun below),
+      // since titration methods need a titrator instead of an HPLC.
       const [eq, cols, stds] = await Promise.all([
-        EquipmentConfigurationService.getEquipmentList("Hplc"),
+        EquipmentConfigurationService.getEquipmentList(),
         ChromatographyColumnService.getAll(true),
         MaterialService.getUsableReferenceStandards()
       ]);
@@ -159,18 +211,33 @@ export function SystemSuitabilityRunsPage() {
 
   // Everything used in one run must belong to the method's section; the
   // server enforces this too, the filter just keeps the pickers honest.
-  const sectionInstruments = instruments.filter((i) => methodSectionId === undefined || i.sectionId === methodSectionId);
+  const requiredEquipmentType = isTitrationRun ? "Titrator" : "Hplc";
+  const sectionInstruments = instruments.filter((i) =>
+    (methodSectionId === undefined || i.sectionId === methodSectionId) && i.type === requiredEquipmentType);
   const sectionColumns = columns.filter((c) => methodSectionId === undefined || c.sectionId === methodSectionId);
   const sectionStandards = standards.filter((s) => methodSectionId === undefined || s.sectionId === methodSectionId);
   const selectedStandard = sectionStandards.find((s) => String(s.id) === form.standardId);
 
   const set = (key: keyof typeof emptyForm) => (value: string) => setForm((f) => ({ ...f, [key]: value }));
 
+  const rowReady = (a: AnalyteRunRow) => {
+    const validResponses = a.responses.filter((r) => r.trim() !== "" && Number(r) > 0);
+    if (!a.referenceStandardMaterialId || !(Number(a.theoreticalWeightMg) > 0) || !(Number(a.standardWeightMg) > 0)) return false;
+    if (a.moisturePercent.trim() === "") return false;
+    if (validResponses.length === 0) return false;
+    const deviation = weighInDeviation(a.standardWeightMg, a.theoreticalWeightMg);
+    if (deviation !== null && Math.abs(deviation) > WEIGH_IN_TOLERANCE_PERCENT && !a.weighInJustification.trim()) return false;
+    if (isTitrationRun) {
+      if (a.blankTitreMl.trim() === "") return false;
+    } else if (!(Number(a.standardDilution) > 0)) {
+      return false;
+    }
+    return true;
+  };
+
   const readyToSign = isMulti
-    ? !!(form.testDefinitionId && form.equipmentId && form.columnId && analyteRows.length > 0 &&
-        analyteRows.every((a) =>
-          a.referenceStandardMaterialId &&
-          Number(a.standardWeightMg) > 0 && Number(a.standardDilution) > 0 && Number(a.standardMeanArea) > 0))
+    ? !!(form.testDefinitionId && form.equipmentId && (isTitrationRun || form.columnId) && analyteRows.length > 0 &&
+        analyteRows.every(rowReady))
     : !!(form.testDefinitionId && form.equipmentId && form.columnId && form.standardId &&
         Number(form.standardWeightMg) > 0 && Number(form.standardDilution) > 0 && Number(form.standardMeanArea) > 0);
 
@@ -179,13 +246,13 @@ export function SystemSuitabilityRunsPage() {
       ? await SystemSuitabilityService.create({
           testDefinitionId: Number(form.testDefinitionId),
           equipmentId: Number(form.equipmentId),
-          chromatographyColumnId: Number(form.columnId),
+          chromatographyColumnId: isTitrationRun ? null : Number(form.columnId),
           // Required non-null by the backend request type but not used when
           // analytes are supplied - the first row stands in for them.
           referenceStandardMaterialId: Number(analyteRows[0].referenceStandardMaterialId),
           standardWeightMg: Number(analyteRows[0].standardWeightMg),
-          standardDilution: Number(analyteRows[0].standardDilution),
-          standardMeanArea: Number(analyteRows[0].standardMeanArea),
+          standardDilution: isTitrationRun ? 0 : Number(analyteRows[0].standardDilution),
+          standardMeanArea: 0,
           rsdPercent: null,
           resolution: null,
           tailingFactor: null,
@@ -196,12 +263,16 @@ export function SystemSuitabilityRunsPage() {
             testAnalyteId: a.testAnalyteId,
             referenceStandardMaterialId: Number(a.referenceStandardMaterialId),
             standardWeightMg: Number(a.standardWeightMg),
-            standardDilution: Number(a.standardDilution),
-            standardMeanArea: Number(a.standardMeanArea),
-            rsdPercent: numOrNull(a.rsdPercent),
-            resolution: numOrNull(a.resolution),
-            tailingFactor: numOrNull(a.tailingFactor),
-            theoreticalPlates: numOrNull(a.theoreticalPlates)
+            standardDilution: isTitrationRun ? 0 : Number(a.standardDilution),
+            standardMeanArea: 0,
+            resolution: isTitrationRun ? null : numOrNull(a.resolution),
+            tailingFactor: isTitrationRun ? null : numOrNull(a.tailingFactor),
+            theoreticalPlates: isTitrationRun ? null : numOrNull(a.theoreticalPlates),
+            theoreticalWeightMg: numOrNull(a.theoreticalWeightMg),
+            moisturePercent: numOrNull(a.moisturePercent),
+            weighInJustification: a.weighInJustification.trim() || null,
+            responses: a.responses.map((r) => Number(r)).filter((n) => Number.isFinite(n) && n > 0),
+            blankTitreMl: isTitrationRun ? numOrNull(a.blankTitreMl) : null
           }))
         })
       : await SystemSuitabilityService.create({
@@ -289,26 +360,38 @@ export function SystemSuitabilityRunsPage() {
                 <TableRow key={r.id}>
                   <TableCell sx={{ fontWeight: 600, whiteSpace: "nowrap" }}>{r.code}</TableCell>
                   <TableCell>{r.testName}<Typography sx={{ fontSize: 12, color: "text.secondary" }}>{r.sectionName}</Typography></TableCell>
-                  <TableCell>{r.equipmentCode}<Typography sx={{ fontSize: 12, color: "text.secondary" }}>{r.columnCode}</Typography></TableCell>
+                  <TableCell>{r.equipmentCode}<Typography sx={{ fontSize: 12, color: "text.secondary" }}>{r.columnCode ?? "—"}</Typography></TableCell>
                   {runIsMulti ? (
                     // Run-level standard/weight/dilution/area/RSD/resolution/tailing/plates
                     // are just the first analyte's snapshot for a multi-analyte run and not
                     // meaningful on their own - show pass/fail per analyte instead.
                     <TableCell colSpan={8}>
                       <Stack direction="row" spacing={0.5} sx={{ flexWrap: "wrap", gap: 0.5 }}>
-                        {r.analytes!.map((a) => (
-                          <Tooltip
-                            key={a.id}
-                            title={`${a.analyteName}: wt ${a.standardWeightMg}mg, dilution ${a.standardDilution}, mean area ${a.standardMeanArea}${a.failureReasons ? ` — ${a.failureReasons}` : ""}`}
-                          >
-                            <Chip
-                              size="small"
-                              color={a.passed ? "success" : "error"}
-                              variant={a.passed ? "outlined" : "filled"}
-                              label={a.analyteName}
-                            />
-                          </Tooltip>
-                        ))}
+                        {r.analytes!.map((a) => {
+                          const respLabel = a.responses && a.responses.length > 0
+                            ? ` [${a.responses.map((resp) => resp.response).join(", ")}]`
+                            : "";
+                          const titre = a.blankTitreMl != null ? `, blank titre ${a.blankTitreMl} mL` : "";
+                          const weighIn = a.theoreticalWeightMg != null
+                            ? `, Th.Wt.std ${a.theoreticalWeightMg}mg (dev ${fmt(a.standardWeighInDeviationPercent)}%${a.standardWeighInOutOfWindow ? " — OUT OF WINDOW" : ""})`
+                            : "";
+                          const mc = a.moisturePercent != null ? `, MC ${a.moisturePercent}%` : "";
+                          const rsd = a.computedRsdPercent != null ? `, computed RSD ${a.computedRsdPercent}%` : "";
+                          const justification = a.weighInJustification ? ` — justification: ${a.weighInJustification}` : "";
+                          return (
+                            <Tooltip
+                              key={a.id}
+                              title={`${a.analyteName}: wt ${a.standardWeightMg}mg${weighIn}${mc}${respLabel}${rsd}${titre}${a.failureReasons ? ` — ${a.failureReasons}` : ""}${justification}`}
+                            >
+                              <Chip
+                                size="small"
+                                color={a.passed ? "success" : "error"}
+                                variant={a.passed ? "outlined" : "filled"}
+                                label={a.analyteName}
+                              />
+                            </Tooltip>
+                          );
+                        })}
                       </Stack>
                     </TableCell>
                   ) : (
@@ -409,18 +492,25 @@ export function SystemSuitabilityRunsPage() {
 
             <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
               <FormControl size="small" fullWidth disabled={!method}>
-                <InputLabel>HPLC instrument</InputLabel>
-                <Select label="HPLC instrument" value={form.equipmentId} onChange={(e) => set("equipmentId")(e.target.value)}>
+                <InputLabel>{isTitrationRun ? "Titrator" : "HPLC instrument"}</InputLabel>
+                <Select label={isTitrationRun ? "Titrator" : "HPLC instrument"} value={form.equipmentId} onChange={(e) => set("equipmentId")(e.target.value)}>
                   {sectionInstruments.map((i) => <MenuItem key={i.id} value={String(i.id)}>{i.code} — {i.name}</MenuItem>)}
                 </Select>
               </FormControl>
-              <FormControl size="small" fullWidth disabled={!method}>
-                <InputLabel>Column</InputLabel>
-                <Select label="Column" value={form.columnId} onChange={(e) => set("columnId")(e.target.value)}>
-                  {sectionColumns.map((c) => <MenuItem key={c.id} value={String(c.id)}>{c.code} — {c.name}</MenuItem>)}
-                </Select>
-              </FormControl>
+              {!isTitrationRun && (
+                <FormControl size="small" fullWidth disabled={!method}>
+                  <InputLabel>Column</InputLabel>
+                  <Select label="Column" value={form.columnId} onChange={(e) => set("columnId")(e.target.value)}>
+                    {sectionColumns.map((c) => <MenuItem key={c.id} value={String(c.id)}>{c.code} — {c.name}</MenuItem>)}
+                  </Select>
+                </FormControl>
+              )}
             </Stack>
+            {isTitrationRun && (
+              <Typography variant="caption" sx={{ color: "text.secondary" }}>
+                Titration runs use a titrator and do not use a chromatography column.
+              </Typography>
+            )}
 
             {!isMulti && (
               <FormControl size="small" fullWidth disabled={!method}>
@@ -465,91 +555,139 @@ export function SystemSuitabilityRunsPage() {
             {isMulti && (
               <Box>
                 <Typography sx={{ fontWeight: 600, fontSize: 14, mb: 1 }}>
-                  Per-analyte standards (one row per active analyte, from the CDS report)
+                  Per-analyte standards (one card per active analyte, from the CDS report{isTitrationRun ? " / titrator" : ""})
                 </Typography>
                 {analyteRows.length === 0 && (
                   <Alert severity="warning" sx={{ mb: 1 }}>
                     No active analytes are configured for this test. Configure them in Test Master first.
                   </Alert>
                 )}
-                {analyteRows.length > 0 && (
-                  <Box sx={{ overflowX: "auto" }}>
-                    <Table size="small">
-                      <TableHead>
-                        <TableRow sx={tableHeadSx}>
-                          <TableCell>Analyte</TableCell>
-                          <TableCell>Reference standard</TableCell>
-                          <TableCell align="right">Weight (mg)</TableCell>
-                          <TableCell align="right">Dilution</TableCell>
-                          <TableCell align="right">Mean area</TableCell>
-                          <TableCell align="right">RSD %</TableCell>
-                          <TableCell align="right">Resolution</TableCell>
-                          <TableCell align="right">Tailing</TableCell>
-                          <TableCell align="right">Plates</TableCell>
-                        </TableRow>
-                      </TableHead>
-                      <TableBody>
-                        {analyteRows.map((a, idx) => (
-                          <TableRow key={a.testAnalyteId}>
-                            <TableCell sx={{ fontWeight: 600, whiteSpace: "nowrap" }}>
-                              {a.element}
-                              <Typography sx={{ fontSize: 11, color: "text.secondary" }}>{a.wavelengthNm} nm</Typography>
-                            </TableCell>
-                            <TableCell>
-                              <Select
+                <Stack spacing={2}>
+                  {analyteRows.map((a, idx) => {
+                    const deviation = weighInDeviation(a.standardWeightMg, a.theoreticalWeightMg);
+                    const outOfWindow = deviation !== null && Math.abs(deviation) > WEIGH_IN_TOLERANCE_PERCENT;
+                    const { mean, rsd } = computeMeanRsd(a.responses);
+                    return (
+                      <Box key={a.testAnalyteId} sx={{ p: 1.5, border: "1px solid", borderColor: "divider", borderRadius: 1 }}>
+                        <Typography sx={{ fontWeight: 600, mb: 1 }}>
+                          {a.element} <Typography component="span" sx={{ fontSize: 11, color: "text.secondary" }}>({a.wavelengthNm} nm)</Typography>
+                        </Typography>
+
+                        <Stack direction={{ xs: "column", sm: "row" }} spacing={2} sx={{ mb: 1.5 }}>
+                          <FormControl size="small" fullWidth>
+                            <InputLabel>Reference standard</InputLabel>
+                            <Select
+                              label="Reference standard"
+                              value={a.referenceStandardMaterialId}
+                              onChange={(e) => updateAnalyteRow(idx, { referenceStandardMaterialId: e.target.value })}
+                            >
+                              {sectionStandards.map((s) => (
+                                <MenuItem key={s.id} value={String(s.id)}>{s.materialName} — {s.batchNumber} (purity {s.purity}%)</MenuItem>
+                              ))}
+                            </Select>
+                          </FormControl>
+                          {!isTitrationRun && (
+                            <TextField
+                              size="small" fullWidth type="number" label="Standard dilution"
+                              value={a.standardDilution} onChange={(e) => updateAnalyteRow(idx, { standardDilution: e.target.value })}
+                            />
+                          )}
+                        </Stack>
+
+                        <Stack direction={{ xs: "column", sm: "row" }} spacing={2} sx={{ mb: 0.5 }}>
+                          <TextField
+                            size="small" fullWidth type="number" label="Th.Wt.std (mg)"
+                            value={a.theoreticalWeightMg} onChange={(e) => updateAnalyteRow(idx, { theoreticalWeightMg: e.target.value })}
+                            helperText="Method target weighing"
+                          />
+                          <TextField
+                            size="small" fullWidth type="number" label="Act.Wt.std (mg)"
+                            value={a.standardWeightMg} onChange={(e) => updateAnalyteRow(idx, { standardWeightMg: e.target.value })}
+                            helperText="Actual weighed"
+                          />
+                          <TextField
+                            size="small" fullWidth type="number" label="MC (%)"
+                            value={a.moisturePercent} onChange={(e) => updateAnalyteRow(idx, { moisturePercent: e.target.value })}
+                            helperText="Working standard moisture - 0 is a valid (dry) value"
+                          />
+                        </Stack>
+
+                        {deviation !== null && (
+                          <Typography variant="caption" sx={{ display: "block", mb: outOfWindow ? 0.5 : 1.5, color: outOfWindow ? "warning.main" : "text.secondary" }}>
+                            Weigh-in deviation from Th.Wt.std: {deviation.toFixed(2)}%
+                            {outOfWindow ? ` — outside ±${WEIGH_IN_TOLERANCE_PERCENT}%, justification required` : ""}
+                          </Typography>
+                        )}
+                        {outOfWindow && (
+                          <TextField
+                            size="small" fullWidth multiline rows={1} label="Weigh-in justification (required)"
+                            value={a.weighInJustification} onChange={(e) => updateAnalyteRow(idx, { weighInJustification: e.target.value })}
+                            sx={{ mb: 1.5 }}
+                          />
+                        )}
+
+                        {isTitrationRun && (
+                          <TextField
+                            size="small" fullWidth type="number" label="Blank titre (mL)"
+                            value={a.blankTitreMl} onChange={(e) => updateAnalyteRow(idx, { blankTitreMl: e.target.value })}
+                            sx={{ mb: 1.5, maxWidth: 220 }}
+                          />
+                        )}
+
+                        <Typography sx={{ fontSize: 13, fontWeight: 600, mb: 0.5 }}>
+                          Standard replicate responses ({isTitrationRun ? "Titre, mL" : "Area"})
+                        </Typography>
+                        <Stack spacing={1} sx={{ mb: 1 }}>
+                          {a.responses.map((resp, respIdx) => (
+                            <Stack key={respIdx} direction="row" spacing={1} sx={{ alignItems: "center" }}>
+                              <TextField
+                                size="small" type="number" sx={{ width: 140 }}
+                                label={isTitrationRun ? "Titre (mL)" : "Area"}
+                                value={resp}
+                                onChange={(e) => updateResponse(idx, respIdx, e.target.value)}
+                              />
+                              <IconButton
                                 size="small"
-                                sx={{ minWidth: 170 }}
-                                value={a.referenceStandardMaterialId}
-                                onChange={(e) => updateAnalyteRow(idx, { referenceStandardMaterialId: e.target.value })}
+                                disabled={a.responses.length <= 1}
+                                onClick={() => removeResponseRow(idx, respIdx)}
+                                title="Remove replicate"
                               >
-                                {sectionStandards.map((s) => (
-                                  <MenuItem key={s.id} value={String(s.id)}>{s.materialName} — {s.batchNumber}</MenuItem>
-                                ))}
-                              </Select>
-                            </TableCell>
-                            <TableCell align="right">
-                              <TextField size="small" type="number" sx={{ width: 90 }} value={a.standardWeightMg} onChange={(e) => updateAnalyteRow(idx, { standardWeightMg: e.target.value })} />
-                            </TableCell>
-                            <TableCell align="right">
-                              <TextField size="small" type="number" sx={{ width: 90 }} value={a.standardDilution} onChange={(e) => updateAnalyteRow(idx, { standardDilution: e.target.value })} />
-                            </TableCell>
-                            <TableCell align="right">
-                              <TextField size="small" type="number" sx={{ width: 100 }} value={a.standardMeanArea} onChange={(e) => updateAnalyteRow(idx, { standardMeanArea: e.target.value })} />
-                            </TableCell>
-                            <TableCell align="right">
-                              <TextField
-                                size="small" type="number" sx={{ width: 90 }}
-                                value={a.rsdPercent} onChange={(e) => updateAnalyteRow(idx, { rsdPercent: e.target.value })}
-                                helperText={a.sstMaxRsdPercent != null ? `Max ${a.sstMaxRsdPercent}` : "Not checked"}
-                              />
-                            </TableCell>
-                            <TableCell align="right">
-                              <TextField
-                                size="small" type="number" sx={{ width: 90 }}
-                                value={a.resolution} onChange={(e) => updateAnalyteRow(idx, { resolution: e.target.value })}
-                                helperText={a.sstMinResolution != null ? `Min ${a.sstMinResolution}` : "Not checked"}
-                              />
-                            </TableCell>
-                            <TableCell align="right">
-                              <TextField
-                                size="small" type="number" sx={{ width: 90 }}
-                                value={a.tailingFactor} onChange={(e) => updateAnalyteRow(idx, { tailingFactor: e.target.value })}
-                                helperText={a.sstMaxTailingFactor != null ? `Max ${a.sstMaxTailingFactor}` : "Not checked"}
-                              />
-                            </TableCell>
-                            <TableCell align="right">
-                              <TextField
-                                size="small" type="number" sx={{ width: 90 }}
-                                value={a.theoreticalPlates} onChange={(e) => updateAnalyteRow(idx, { theoreticalPlates: e.target.value })}
-                                helperText={a.sstMinTheoreticalPlates != null ? `Min ${a.sstMinTheoreticalPlates}` : "Not checked"}
-                              />
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </Box>
-                )}
+                                <DeleteIcon fontSize="small" />
+                              </IconButton>
+                            </Stack>
+                          ))}
+                          <Button size="small" startIcon={<AddIcon />} onClick={() => addResponseRow(idx)} sx={{ alignSelf: "flex-start" }}>
+                            Add replicate
+                          </Button>
+                        </Stack>
+                        <Typography variant="caption" sx={{ display: "block", mb: 1.5, color: "text.secondary" }}>
+                          Mean: {mean !== null ? mean.toFixed(2) : "—"} · Computed RSD: {rsd !== null ? `${rsd.toFixed(2)}%` : "—"}
+                          {a.sstMaxRsdPercent != null ? ` (max ${a.sstMaxRsdPercent})` : ""} — informational; the server recomputes and decides pass/fail.
+                        </Typography>
+
+                        {!isTitrationRun && (
+                          <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
+                            <TextField
+                              size="small" fullWidth type="number" label="Resolution"
+                              value={a.resolution} onChange={(e) => updateAnalyteRow(idx, { resolution: e.target.value })}
+                              helperText={a.sstMinResolution != null ? `Min ${a.sstMinResolution}` : "Not checked"}
+                            />
+                            <TextField
+                              size="small" fullWidth type="number" label="Tailing factor"
+                              value={a.tailingFactor} onChange={(e) => updateAnalyteRow(idx, { tailingFactor: e.target.value })}
+                              helperText={a.sstMaxTailingFactor != null ? `Max ${a.sstMaxTailingFactor}` : "Not checked"}
+                            />
+                            <TextField
+                              size="small" fullWidth type="number" label="Theoretical plates"
+                              value={a.theoreticalPlates} onChange={(e) => updateAnalyteRow(idx, { theoreticalPlates: e.target.value })}
+                              helperText={a.sstMinTheoreticalPlates != null ? `Min ${a.sstMinTheoreticalPlates}` : "Not checked"}
+                            />
+                          </Stack>
+                        )}
+                      </Box>
+                    );
+                  })}
+                </Stack>
               </Box>
             )}
             <TextField size="small" fullWidth multiline rows={2} label="Comment (optional)" value={comment} onChange={(e) => setComment(e.target.value)} />

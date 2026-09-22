@@ -46,8 +46,14 @@ export function SuitabilityRunReportPage() {
   ];
   const analytes = d.analytes ?? [];
   const isMulti = analytes.length > 0;
+  // Titration runs (SC-5a) never have a chromatography column.
+  const isTitration = isMulti && r.chromatographyColumnId == null;
   const criterionCell = (value: number | null | undefined, limit: number | null | undefined, rule: "NMT" | "NLT") =>
     `${v(value)} (${limit == null ? "not checked" : `${rule} ${limit}`})`;
+  const weighInCell = (a: { theoreticalWeightMg?: number | null; standardWeighInDeviationPercent?: number | null; standardWeighInOutOfWindow?: boolean }) =>
+    a.theoreticalWeightMg == null
+      ? "—"
+      : `${v(a.theoreticalWeightMg)} mg (dev ${v(a.standardWeighInDeviationPercent)}%${a.standardWeighInOutOfWindow ? ", OUT OF WINDOW" : ""})`;
 
   return (
     <PinnedLightTheme>
@@ -74,13 +80,16 @@ export function SuitabilityRunReportPage() {
           <div className="section-card">
             <div className="section-label">instrument &amp; column</div>
             <div className="data-grid">
-              <span className="key">Instrument</span><span className="value mono">{r.equipmentCode}</span>
+              <span className="key">{isTitration ? "Titrator" : "Instrument"}</span><span className="value mono">{r.equipmentCode}</span>
               <span className="key">Name</span><span className="value">{r.equipmentName ?? "—"}</span>
               <span className="key">Manufacturer</span><span className="value">{d.equipmentVendor ?? "—"}</span>
-              <span className="key">CDS software</span><span className="value">{d.cdsSoftware ? (CDS_LABELS[d.cdsSoftware] ?? d.cdsSoftware) : "—"}</span>
-              <span className="key">Column</span><span className="value mono">{r.columnCode}</span>
-              <span className="key">Column name</span><span className="value">{r.columnName ?? "—"}</span>
-              <span className="key">Column serial</span><span className="value mono">{d.columnSerialNumber ?? "—"}</span>
+              {!isTitration && <span className="key">CDS software</span>}
+              {!isTitration && <span className="value">{d.cdsSoftware ? (CDS_LABELS[d.cdsSoftware] ?? d.cdsSoftware) : "—"}</span>}
+              <span className="key">Column</span><span className="value mono">{isTitration ? "—" : (r.columnCode ?? "—")}</span>
+              {!isTitration && <span className="key">Column name</span>}
+              {!isTitration && <span className="value">{r.columnName ?? "—"}</span>}
+              {!isTitration && <span className="key">Column serial</span>}
+              {!isTitration && <span className="value mono">{d.columnSerialNumber ?? "—"}</span>}
             </div>
           </div>
         ) : (
@@ -122,13 +131,16 @@ export function SuitabilityRunReportPage() {
                     <th style={{ padding: "6px 4px" }}>Standard</th>
                     <th style={{ padding: "6px 4px" }}>Batch</th>
                     <th style={{ padding: "6px 4px" }}>Purity %</th>
-                    <th style={{ padding: "6px 4px" }}>Weight (mg)</th>
-                    <th style={{ padding: "6px 4px" }}>Dilution</th>
-                    <th style={{ padding: "6px 4px" }}>Mean area</th>
-                    <th style={{ padding: "6px 4px" }}>%RSD (limit)</th>
-                    <th style={{ padding: "6px 4px" }}>Resolution (limit)</th>
-                    <th style={{ padding: "6px 4px" }}>Tailing (limit)</th>
-                    <th style={{ padding: "6px 4px" }}>Plates (limit)</th>
+                    <th style={{ padding: "6px 4px" }}>Th.Wt.std (dev)</th>
+                    <th style={{ padding: "6px 4px" }}>Act. weight (mg)</th>
+                    <th style={{ padding: "6px 4px" }}>MC %</th>
+                    {!isTitration && <th style={{ padding: "6px 4px" }}>Dilution</th>}
+                    <th style={{ padding: "6px 4px" }}>Responses</th>
+                    <th style={{ padding: "6px 4px" }}>Computed %RSD (limit)</th>
+                    {isTitration && <th style={{ padding: "6px 4px" }}>Blank titre (mL)</th>}
+                    {!isTitration && <th style={{ padding: "6px 4px" }}>Resolution (limit)</th>}
+                    {!isTitration && <th style={{ padding: "6px 4px" }}>Tailing (limit)</th>}
+                    {!isTitration && <th style={{ padding: "6px 4px" }}>Plates (limit)</th>}
                     <th style={{ padding: "6px 4px" }}>Result</th>
                   </tr>
                 </thead>
@@ -142,13 +154,25 @@ export function SuitabilityRunReportPage() {
                       <td style={{ padding: "6px 4px" }}>{a.referenceStandardName ?? "—"}</td>
                       <td style={{ padding: "6px 4px" }} className="mono">{a.referenceStandardBatch ?? "—"}</td>
                       <td style={{ padding: "6px 4px" }} className="mono">{v(a.standardPurityPercent)}</td>
+                      <td style={{ padding: "6px 4px" }} className="mono">
+                        {weighInCell(a)}
+                        {a.standardWeighInOutOfWindow && a.weighInJustification && (
+                          <div style={{ fontSize: 11, color: "var(--color-text-tertiary)" }}>Justification: {a.weighInJustification}</div>
+                        )}
+                      </td>
                       <td style={{ padding: "6px 4px" }} className="mono">{v(a.standardWeightMg)}</td>
-                      <td style={{ padding: "6px 4px" }} className="mono">{v(a.standardDilution)}</td>
-                      <td style={{ padding: "6px 4px" }} className="mono">{v(a.standardMeanArea)}</td>
-                      <td style={{ padding: "6px 4px" }} className="mono">{criterionCell(a.rsdPercent, a.sstMaxRsdPercent, "NMT")}</td>
-                      <td style={{ padding: "6px 4px" }} className="mono">{criterionCell(a.resolution, a.sstMinResolution, "NLT")}</td>
-                      <td style={{ padding: "6px 4px" }} className="mono">{criterionCell(a.tailingFactor, a.sstMaxTailingFactor, "NMT")}</td>
-                      <td style={{ padding: "6px 4px" }} className="mono">{criterionCell(a.theoreticalPlates, a.sstMinTheoreticalPlates, "NLT")}</td>
+                      <td style={{ padding: "6px 4px" }} className="mono">{v(a.moisturePercent)}</td>
+                      {!isTitration && <td style={{ padding: "6px 4px" }} className="mono">{v(a.standardDilution)}</td>}
+                      <td style={{ padding: "6px 4px" }} className="mono">
+                        {a.responses && a.responses.length > 0 ? a.responses.map((resp) => resp.response).join(", ") : v(a.standardMeanArea)}
+                      </td>
+                      <td style={{ padding: "6px 4px" }} className="mono">
+                        {criterionCell(a.computedRsdPercent ?? a.rsdPercent, a.sstMaxRsdPercent, "NMT")}
+                      </td>
+                      {isTitration && <td style={{ padding: "6px 4px" }} className="mono">{v(a.blankTitreMl)}</td>}
+                      {!isTitration && <td style={{ padding: "6px 4px" }} className="mono">{criterionCell(a.resolution, a.sstMinResolution, "NLT")}</td>}
+                      {!isTitration && <td style={{ padding: "6px 4px" }} className="mono">{criterionCell(a.tailingFactor, a.sstMaxTailingFactor, "NMT")}</td>}
+                      {!isTitration && <td style={{ padding: "6px 4px" }} className="mono">{criterionCell(a.theoreticalPlates, a.sstMinTheoreticalPlates, "NLT")}</td>}
                       <td style={{ padding: "6px 4px" }}>
                         {a.passed ? <CheckIcon /> : <CrossIcon />}
                         {a.failureReasons && (

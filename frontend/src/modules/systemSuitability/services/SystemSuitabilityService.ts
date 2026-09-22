@@ -1,6 +1,14 @@
 import { apiClient } from "../../../services/apiClient";
 import type { SignatureLike } from "../../testingWorkspace/reportPrimitives";
 
+// Mirrors backend SystemSuitabilityStandardResponseDto - one replicate
+// standard response (peak area for HPLC, titre in mL for titration).
+export interface SystemSuitabilityStandardResponseDto {
+  id: number;
+  index: number;
+  response: number;
+}
+
 // Mirrors backend SystemSuitabilityRunAnalyteView (SystemSuitabilityDtos.cs) -
 // one row per analyte for a StandardComparison run.
 export interface SystemSuitabilityRunAnalyteView {
@@ -22,6 +30,17 @@ export interface SystemSuitabilityRunAnalyteView {
   theoreticalPlates?: number | null;
   passed: boolean;
   failureReasons?: string | null;
+  // SC-5a: Th.Wt.std, MC, weigh-in deviation/justification, computed RSD from
+  // replicate responses, and (titration only) the blank titre. See backend
+  // SystemSuitabilityService.CreateAsync / StandardWeighInTolerancePercent.
+  theoreticalWeightMg?: number | null;
+  moisturePercent?: number | null;
+  standardWeighInDeviationPercent?: number | null;
+  standardWeighInOutOfWindow?: boolean;
+  weighInJustification?: string | null;
+  computedRsdPercent?: number | null;
+  responses?: SystemSuitabilityStandardResponseDto[] | null;
+  blankTitreMl?: number | null;
 }
 
 // Mirrors backend SystemSuitabilityRunView (SystemSuitabilityController.cs).
@@ -39,7 +58,8 @@ export interface SystemSuitabilityRun {
   equipmentId: number;
   equipmentCode?: string | null;
   equipmentName?: string | null;
-  chromatographyColumnId: number;
+  // Null for a titration run (SC-5a) - titration doesn't use a column.
+  chromatographyColumnId: number | null;
   columnCode?: string | null;
   columnName?: string | null;
   referenceStandardMaterialId: number;
@@ -61,6 +81,12 @@ export interface SystemSuitabilityRun {
   // for non-analyte-based runs; the run-level standard fields above are
   // then just the first analyte's snapshot and not meaningful.
   analytes?: SystemSuitabilityRunAnalyteView[] | null;
+  theoreticalWeightMg?: number | null;
+  moisturePercent?: number | null;
+  standardWeighInDeviationPercent?: number | null;
+  standardWeighInOutOfWindow?: boolean;
+  weighInJustification?: string | null;
+  computedRsdPercent?: number | null;
 }
 
 // One analyte's standard + CDS values for CreateSystemSuitabilityRunPayload.analytes.
@@ -74,12 +100,22 @@ export interface CreateSystemSuitabilityRunAnalytePayload {
   resolution?: number | null;
   tailingFactor?: number | null;
   theoreticalPlates?: number | null;
+  // SC-5a additions - see backend CreateSystemSuitabilityRunAnalyteRequest.
+  theoreticalWeightMg?: number | null;
+  moisturePercent?: number | null;
+  weighInJustification?: string | null;
+  // Standard replicate responses (peak areas or titres). When supplied the
+  // backend computes mean + RSD itself and that RSD drives pass/fail.
+  responses?: number[] | null;
+  // Titration only.
+  blankTitreMl?: number | null;
 }
 
 export interface CreateSystemSuitabilityRunPayload {
   testDefinitionId: number;
   equipmentId: number;
-  chromatographyColumnId: number;
+  // Null for a titration run - titration runs don't use a chromatography column.
+  chromatographyColumnId: number | null;
   referenceStandardMaterialId: number;
   standardWeightMg: number;
   standardDilution: number;
@@ -130,6 +166,14 @@ export interface SuitabilityRunReportAnalyteDto {
   sstMinTheoreticalPlates?: number | null;
   passed: boolean;
   failureReasons?: string | null;
+  theoreticalWeightMg?: number | null;
+  moisturePercent?: number | null;
+  standardWeighInDeviationPercent?: number | null;
+  standardWeighInOutOfWindow?: boolean;
+  weighInJustification?: string | null;
+  computedRsdPercent?: number | null;
+  responses?: SystemSuitabilityStandardResponseDto[] | null;
+  blankTitreMl?: number | null;
 }
 
 // Mirrors backend SuitabilityRunReportDetailsDto + the run view.

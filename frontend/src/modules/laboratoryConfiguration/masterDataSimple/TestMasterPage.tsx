@@ -241,6 +241,9 @@ function TestAnalytesSection({ test }: { test: TestDefinitionOption }) {
   // per-analyte system suitability criteria instead - see backend
   // MasterDataController.CreateTestAnalyte/UpdateTestAnalyte.
   const isHplcMulti = test.workflowType === "StandardComparison" || test.equationType === "StandardComparison";
+  // Titration standard-comparison runs use only the RSD criterion (SC-4/SC-5a) -
+  // resolution, tailing factor and theoretical plates are HPLC-only concepts.
+  const isTitration = isHplcMulti && test.responseMode === "TitrationVolume";
   const [analytes, setAnalytes] = useState<TestAnalyteDto[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -328,12 +331,14 @@ function TestAnalytesSection({ test }: { test: TestDefinitionOption }) {
         return;
       }
     }
-    const sstFields: [string, string][] = [
-      ["Max RSD", sstMaxRsdPercent],
-      ["Min Resolution", sstMinResolution],
-      ["Max Tailing Factor", sstMaxTailingFactor],
-      ["Min Theoretical Plates", sstMinTheoreticalPlates]
-    ];
+    const sstFields: [string, string][] = isTitration
+      ? [["Max RSD", sstMaxRsdPercent]]
+      : [
+          ["Max RSD", sstMaxRsdPercent],
+          ["Min Resolution", sstMinResolution],
+          ["Max Tailing Factor", sstMaxTailingFactor],
+          ["Min Theoretical Plates", sstMinTheoreticalPlates]
+        ];
     if (isHplcMulti) {
       for (const [label, v] of sstFields) {
         if (v.trim() !== "" && Number(v) <= 0) {
@@ -349,9 +354,9 @@ function TestAnalytesSection({ test }: { test: TestDefinitionOption }) {
       const sstPayload = isHplcMulti
         ? {
             sstMaxRsdPercent: sstMaxRsdPercent.trim() !== "" ? Number(sstMaxRsdPercent) : null,
-            sstMinResolution: sstMinResolution.trim() !== "" ? Number(sstMinResolution) : null,
-            sstMaxTailingFactor: sstMaxTailingFactor.trim() !== "" ? Number(sstMaxTailingFactor) : null,
-            sstMinTheoreticalPlates: sstMinTheoreticalPlates.trim() !== "" ? Number(sstMinTheoreticalPlates) : null
+            sstMinResolution: isTitration ? null : sstMinResolution.trim() !== "" ? Number(sstMinResolution) : null,
+            sstMaxTailingFactor: isTitration ? null : sstMaxTailingFactor.trim() !== "" ? Number(sstMaxTailingFactor) : null,
+            sstMinTheoreticalPlates: isTitration ? null : sstMinTheoreticalPlates.trim() !== "" ? Number(sstMinTheoreticalPlates) : null
           }
         : {};
       if (editingAnalyte) {
@@ -436,9 +441,9 @@ function TestAnalytesSection({ test }: { test: TestDefinitionOption }) {
                 <TableCell sx={{ fontSize: 12 }}>
                   {[
                     a.sstMaxRsdPercent != null ? `Max RSD ${a.sstMaxRsdPercent}%` : null,
-                    a.sstMinResolution != null ? `Min Res ${a.sstMinResolution}` : null,
-                    a.sstMaxTailingFactor != null ? `Max Tailing ${a.sstMaxTailingFactor}` : null,
-                    a.sstMinTheoreticalPlates != null ? `Min Plates ${a.sstMinTheoreticalPlates}` : null
+                    !isTitration && a.sstMinResolution != null ? `Min Res ${a.sstMinResolution}` : null,
+                    !isTitration && a.sstMaxTailingFactor != null ? `Max Tailing ${a.sstMaxTailingFactor}` : null,
+                    !isTitration && a.sstMinTheoreticalPlates != null ? `Min Plates ${a.sstMinTheoreticalPlates}` : null
                   ].filter(Boolean).join(", ") || "None specified"}
                 </TableCell>
               )}
@@ -563,36 +568,44 @@ function TestAnalytesSection({ test }: { test: TestDefinitionOption }) {
                 fullWidth
                 slotProps={{ htmlInput: { min: 0, step: "any" } }}
               />
-              <TextField
-                size="small"
-                type="number"
-                label="Min Resolution"
-                placeholder="e.g. 1.5"
-                value={sstMinResolution}
-                onChange={(e) => setSstMinResolution(e.target.value)}
-                fullWidth
-                slotProps={{ htmlInput: { min: 0, step: "any" } }}
-              />
-              <TextField
-                size="small"
-                type="number"
-                label="Max Tailing Factor"
-                placeholder="e.g. 2.0"
-                value={sstMaxTailingFactor}
-                onChange={(e) => setSstMaxTailingFactor(e.target.value)}
-                fullWidth
-                slotProps={{ htmlInput: { min: 0, step: "any" } }}
-              />
-              <TextField
-                size="small"
-                type="number"
-                label="Min Theoretical Plates"
-                placeholder="e.g. 2000"
-                value={sstMinTheoreticalPlates}
-                onChange={(e) => setSstMinTheoreticalPlates(e.target.value)}
-                fullWidth
-                slotProps={{ htmlInput: { min: 0, step: "any" } }}
-              />
+              {isTitration ? (
+                <Typography variant="caption" sx={{ color: "text.secondary" }}>
+                  This test uses titration - resolution, tailing factor and theoretical plates do not apply.
+                </Typography>
+              ) : (
+                <>
+                  <TextField
+                    size="small"
+                    type="number"
+                    label="Min Resolution"
+                    placeholder="e.g. 1.5"
+                    value={sstMinResolution}
+                    onChange={(e) => setSstMinResolution(e.target.value)}
+                    fullWidth
+                    slotProps={{ htmlInput: { min: 0, step: "any" } }}
+                  />
+                  <TextField
+                    size="small"
+                    type="number"
+                    label="Max Tailing Factor"
+                    placeholder="e.g. 2.0"
+                    value={sstMaxTailingFactor}
+                    onChange={(e) => setSstMaxTailingFactor(e.target.value)}
+                    fullWidth
+                    slotProps={{ htmlInput: { min: 0, step: "any" } }}
+                  />
+                  <TextField
+                    size="small"
+                    type="number"
+                    label="Min Theoretical Plates"
+                    placeholder="e.g. 2000"
+                    value={sstMinTheoreticalPlates}
+                    onChange={(e) => setSstMinTheoreticalPlates(e.target.value)}
+                    fullWidth
+                    slotProps={{ htmlInput: { min: 0, step: "any" } }}
+                  />
+                </>
+              )}
             </>
           )}
         </Stack>
@@ -1085,6 +1098,12 @@ function WorkflowStepsSection({ test, workflowTypes, onWorkflowTypeChanged }: { 
             <Box>
               <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>Equation Type</Typography>
               <Typography variant="body2" sx={{ fontWeight: 600 }}>{EQUATION_TYPE_LABELS[test.equationType ?? "StandardComparison"] ?? test.equationType}</Typography>
+            </Box>
+            <Box>
+              <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>Response</Typography>
+              <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                {test.responseMode === "TitrationVolume" ? "Titration volume (titrator, no column)" : "Peak area (HPLC)"}
+              </Typography>
             </Box>
             <Box>
               <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>System Suitability</Typography>
@@ -1799,6 +1818,7 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
   const [wvCapsuleS2MaxOutside, setWvCapsuleS2MaxOutside] = useState<string>("6");
 
   const [hplcMaxPreparationRsdPercent, setHplcMaxPreparationRsdPercent] = useState<string>("");
+  const [responseMode, setResponseMode] = useState<"PeakArea" | "TitrationVolume">("PeakArea");
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [dialogError, setDialogError] = useState<string | null>(null);
@@ -1872,6 +1892,7 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
     setWvCapsuleS2ExtraUnits("40");
     setWvCapsuleS2MaxOutside("6");
     setHplcMaxPreparationRsdPercent("");
+    setResponseMode("PeakArea");
     setDialogError(null);
     setDialogOpen(true);
   };
@@ -1930,6 +1951,7 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
     setWvCapsuleS2ExtraUnits(t.wvCapsuleS2ExtraUnits != null ? String(t.wvCapsuleS2ExtraUnits) : "40");
     setWvCapsuleS2MaxOutside(t.wvCapsuleS2MaxOutside != null ? String(t.wvCapsuleS2MaxOutside) : "6");
     setHplcMaxPreparationRsdPercent(t.hplcMaxPreparationRsdPercent != null ? String(t.hplcMaxPreparationRsdPercent) : "");
+    setResponseMode(t.responseMode === "TitrationVolume" ? "TitrationVolume" : "PeakArea");
     setDialogError(null);
     setDialogOpen(true);
   };
@@ -2245,7 +2267,8 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
           wvCapsuleS1MaxForRetest: isWeightVariation ? (wvCapsuleS1MaxForRetest.trim() !== "" ? Number(wvCapsuleS1MaxForRetest) : 6) : null,
           wvCapsuleS2ExtraUnits: isWeightVariation ? (wvCapsuleS2ExtraUnits.trim() !== "" ? Number(wvCapsuleS2ExtraUnits) : 40) : null,
           wvCapsuleS2MaxOutside: isWeightVariation ? (wvCapsuleS2MaxOutside.trim() !== "" ? Number(wvCapsuleS2MaxOutside) : 6) : null,
-          hplcMaxPreparationRsdPercent: isHplcMulti && hplcMaxPreparationRsdPercent.trim() !== "" ? Number(hplcMaxPreparationRsdPercent) : null
+          hplcMaxPreparationRsdPercent: isHplcMulti && hplcMaxPreparationRsdPercent.trim() !== "" ? Number(hplcMaxPreparationRsdPercent) : null,
+          responseMode: isHplcMulti ? responseMode : "PeakArea"
         };
         await update(editingId, payload);
         setMessage({ text: `Test "${trimmedCode}" updated.`, ok: true });
@@ -2302,7 +2325,8 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
           wvCapsuleS1MaxForRetest: isWeightVariation ? (wvCapsuleS1MaxForRetest.trim() !== "" ? Number(wvCapsuleS1MaxForRetest) : 6) : null,
           wvCapsuleS2ExtraUnits: isWeightVariation ? (wvCapsuleS2ExtraUnits.trim() !== "" ? Number(wvCapsuleS2ExtraUnits) : 40) : null,
           wvCapsuleS2MaxOutside: isWeightVariation ? (wvCapsuleS2MaxOutside.trim() !== "" ? Number(wvCapsuleS2MaxOutside) : 6) : null,
-          hplcMaxPreparationRsdPercent: isHplcMulti && hplcMaxPreparationRsdPercent.trim() !== "" ? Number(hplcMaxPreparationRsdPercent) : null
+          hplcMaxPreparationRsdPercent: isHplcMulti && hplcMaxPreparationRsdPercent.trim() !== "" ? Number(hplcMaxPreparationRsdPercent) : null,
+          responseMode: isHplcMulti ? responseMode : "PeakArea"
         };
         await addNew(payload);
         setMessage({ text: `Test "${trimmedCode}" added to the Test Master.`, ok: true });
@@ -2742,6 +2766,18 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
                 Standard-Comparison Assay
               </Typography>
               <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
+                <FormControl size="small" sx={{ flex: 1 }}>
+                  <InputLabel id="response-mode-label">Response</InputLabel>
+                  <Select
+                    labelId="response-mode-label"
+                    label="Response"
+                    value={responseMode}
+                    onChange={(e) => setResponseMode(e.target.value as "PeakArea" | "TitrationVolume")}
+                  >
+                    <MenuItem value="PeakArea">Peak area (HPLC)</MenuItem>
+                    <MenuItem value="TitrationVolume">Titration volume</MenuItem>
+                  </Select>
+                </FormControl>
                 <TextField
                   size="small"
                   type="number"
@@ -2753,9 +2789,16 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
                   sx={{ flex: 1 }}
                 />
               </Stack>
+              {responseMode === "TitrationVolume" && (
+                <Typography variant="caption" sx={{ color: "warning.main", display: "block", mt: 1 }}>
+                  Titration runs use a titrator (no chromatography column) and the RSD criterion only - resolution,
+                  tailing factor and theoretical plates do not apply.
+                </Typography>
+              )}
               <Typography variant="caption" sx={{ color: "text.secondary", display: "block", mt: 1.5 }}>
                 Analytes, their detection wavelengths and their own system suitability criteria are configured
-                after saving, in this test's expanded Test Analytes section.
+                after saving, in this test's expanded Test Analytes section. The response cannot be changed once
+                suitability runs exist for this test.
               </Typography>
             </Box>
           )}

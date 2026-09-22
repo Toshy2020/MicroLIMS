@@ -21,6 +21,7 @@ import { QualitativePanel } from "./QualitativePanel";
 import { DissolutionPanel } from "./DissolutionPanel";
 import { DisintegrationPanel } from "./DisintegrationPanel";
 import { WeightVariationPanel } from "./WeightVariationPanel";
+import { StandardComparisonPanel } from "./StandardComparisonPanel";
 import { INCUBATION_WINDOW_NOT_CONFIGURED_MESSAGE } from "./utils/incubationWindow";
 
 interface Props {
@@ -299,21 +300,21 @@ export function TestWorkflowDialog({ testOrderId, testCode, category, displayNam
     );
   }
 
-  // Standard-Comparison Assay (retired HplcAssay/HplcMultiAnalyte) - result
-  // entry screen is not built yet (SC-5); show a plain placeholder instead
-  // of falling into PathogenStepDialog below.
+  // Standard-Comparison Assay (retired HplcAssay/HplcMultiAnalyte) - system
+  // suitability run link + per-preparation weigh-in + per-analyte response
+  // (peak area or titration volume) entry (SC-5b).
   if (current.workflowType === "StandardComparison") {
     return (
-      <Box>
-        <Alert severity="info">Result entry for this test type is not available yet.</Alert>
-        {onClose && (
-          <Box sx={{ display: "flex", justifyContent: "flex-end", mt: 2 }}>
-            <Button variant="contained" onClick={onClose} sx={{ fontWeight: 600, textTransform: "none" }}>
-              Close
-            </Button>
-          </Box>
-        )}
-      </Box>
+      <StandardComparisonPanel
+        testOrderId={testOrderId}
+        displayName={displayName}
+        testCode={testCode}
+        itemId={itemId}
+        sampleId={sampleId}
+        current={current}
+        onRecorded={load}
+        onClose={onClose}
+      />
     );
   }
 

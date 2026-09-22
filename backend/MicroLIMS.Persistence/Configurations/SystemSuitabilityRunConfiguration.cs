@@ -26,6 +26,13 @@ public class SystemSuitabilityRunConfiguration : IEntityTypeConfiguration<System
         builder.Property(r => r.TailingFactor).HasPrecision(18, 4);
         builder.Property(r => r.TheoreticalPlates).HasPrecision(18, 4);
 
+        builder.Property(r => r.TheoreticalWeightMg).HasPrecision(18, 6);
+        builder.Property(r => r.MoisturePercent).HasPrecision(28, 10);
+        builder.Property(r => r.StandardWeighInDeviationPercent).HasPrecision(28, 10);
+        builder.Property(r => r.StandardWeighInOutOfWindow).HasDefaultValue(false);
+        builder.Property(r => r.WeighInJustification).HasMaxLength(1000);
+        builder.Property(r => r.ComputedRsdPercent).HasPrecision(28, 10);
+
         builder.Property(r => r.FailureReasons).HasMaxLength(2000);
         builder.Property(r => r.Comment).HasMaxLength(500);
 

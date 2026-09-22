@@ -20,7 +20,13 @@ public record SystemSuitabilityRunView(
     decimal StandardPurityPercent, decimal StandardWeightMg, decimal StandardDilution, decimal StandardMeanArea,
     decimal? RsdPercent, decimal? Resolution, decimal? TailingFactor, decimal? TheoreticalPlates,
     int PerformedByUserId, string? PerformedByName, DateTime PerformedAt, string? Comment,
-    List<SystemSuitabilityRunAnalyteView>? Analytes = null)
+    List<SystemSuitabilityRunAnalyteView>? Analytes = null,
+    decimal? TheoreticalWeightMg = null,
+    decimal? MoisturePercent = null,
+    decimal? StandardWeighInDeviationPercent = null,
+    bool StandardWeighInOutOfWindow = false,
+    string? WeighInJustification = null,
+    decimal? ComputedRsdPercent = null)
 {
     public static SystemSuitabilityRunView From(SystemSuitabilityRun r) => new(
         r.Id, r.Code, r.Passed, r.FailureReasons,
@@ -32,7 +38,13 @@ public record SystemSuitabilityRunView(
         r.StandardPurityPercent, r.StandardWeightMg, r.StandardDilution, r.StandardMeanArea,
         r.RsdPercent, r.Resolution, r.TailingFactor, r.TheoreticalPlates,
         r.PerformedByUserId, r.PerformedByUser?.FullName ?? r.Signature?.UserFullNameSnapshot, r.PerformedAt, r.Comment,
-        r.Analytes != null && r.Analytes.Count > 0 ? r.Analytes.Select(SystemSuitabilityRunAnalyteView.From).ToList() : null);
+        r.Analytes != null && r.Analytes.Count > 0 ? r.Analytes.Select(SystemSuitabilityRunAnalyteView.From).ToList() : null,
+        r.TheoreticalWeightMg,
+        r.MoisturePercent,
+        r.StandardWeighInDeviationPercent,
+        r.StandardWeighInOutOfWindow,
+        r.WeighInJustification,
+        r.ComputedRsdPercent);
 }
 
 [ApiController]

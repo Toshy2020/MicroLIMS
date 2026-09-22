@@ -2,6 +2,11 @@ using MicroLIMS.Domain.Entities;
 
 namespace MicroLIMS.Application.DTOs;
 
+public record SystemSuitabilityStandardResponseDto(
+    int Id,
+    int Index,
+    decimal Response);
+
 public record CreateSystemSuitabilityRunAnalyteRequest(
     int TestAnalyteId,
     int ReferenceStandardMaterialId,
@@ -11,7 +16,11 @@ public record CreateSystemSuitabilityRunAnalyteRequest(
     decimal? RsdPercent = null,
     decimal? Resolution = null,
     decimal? TailingFactor = null,
-    decimal? TheoreticalPlates = null);
+    decimal? TheoreticalPlates = null,
+    decimal? TheoreticalWeightMg = null,
+    decimal? MoisturePercent = null,
+    string? WeighInJustification = null,
+    List<decimal>? Responses = null);
 
 public record CreateSystemSuitabilityRunRequest(
     int TestDefinitionId,
@@ -27,7 +36,11 @@ public record CreateSystemSuitabilityRunRequest(
     decimal? TheoreticalPlates = null,
     string Password = "",
     string? Comment = null,
-    List<CreateSystemSuitabilityRunAnalyteRequest>? Analytes = null);
+    List<CreateSystemSuitabilityRunAnalyteRequest>? Analytes = null,
+    decimal? TheoreticalWeightMg = null,
+    decimal? MoisturePercent = null,
+    string? WeighInJustification = null,
+    List<decimal>? Responses = null);
 
 public record SystemSuitabilityRunAnalyteView(
     int Id,
@@ -47,7 +60,14 @@ public record SystemSuitabilityRunAnalyteView(
     decimal? TailingFactor,
     decimal? TheoreticalPlates,
     bool Passed,
-    string? FailureReasons)
+    string? FailureReasons,
+    decimal? TheoreticalWeightMg = null,
+    decimal? MoisturePercent = null,
+    decimal? StandardWeighInDeviationPercent = null,
+    bool StandardWeighInOutOfWindow = false,
+    string? WeighInJustification = null,
+    decimal? ComputedRsdPercent = null,
+    List<SystemSuitabilityStandardResponseDto>? Responses = null)
 {
     public static SystemSuitabilityRunAnalyteView From(SystemSuitabilityRunAnalyte a) => new(
         a.Id,
@@ -67,7 +87,14 @@ public record SystemSuitabilityRunAnalyteView(
         a.TailingFactor,
         a.TheoreticalPlates,
         a.Passed,
-        a.FailureReasons);
+        a.FailureReasons,
+        a.TheoreticalWeightMg,
+        a.MoisturePercent,
+        a.StandardWeighInDeviationPercent,
+        a.StandardWeighInOutOfWindow,
+        a.WeighInJustification,
+        a.ComputedRsdPercent,
+        a.Responses?.OrderBy(r => r.Index).Select(r => new SystemSuitabilityStandardResponseDto(r.Id, r.Index, r.Response)).ToList());
 }
 
 public record SuitabilityRunReportAnalyteDto(
@@ -89,7 +116,14 @@ public record SuitabilityRunReportAnalyteDto(
     decimal? SstMaxTailingFactor,
     decimal? SstMinTheoreticalPlates,
     bool Passed,
-    string? FailureReasons);
+    string? FailureReasons,
+    decimal? TheoreticalWeightMg = null,
+    decimal? MoisturePercent = null,
+    decimal? StandardWeighInDeviationPercent = null,
+    bool StandardWeighInOutOfWindow = false,
+    string? WeighInJustification = null,
+    decimal? ComputedRsdPercent = null,
+    List<SystemSuitabilityStandardResponseDto>? Responses = null);
 
 public record SystemSuitabilityRunFilter(
     int? TestDefinitionId = null,

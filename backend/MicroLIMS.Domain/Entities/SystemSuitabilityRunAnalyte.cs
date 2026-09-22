@@ -32,4 +32,25 @@ public class SystemSuitabilityRunAnalyte
     // Pass rule evaluated server-side against TestAnalyte acceptance criteria
     public bool Passed { get; set; }
     public string? FailureReasons { get; set; }
+
+    // Th.Wt.std: method target weighing for standard (> 0 when given)
+    public decimal? TheoreticalWeightMg { get; set; }
+
+    // MC: working standard moisture content (%), measured per run, never defaulted or copied from a previous run (0 <= x < 100 when given)
+    public decimal? MoisturePercent { get; set; }
+
+    // Computed deviation of actual weight from theoretical weight (%)
+    public decimal? StandardWeighInDeviationPercent { get; set; }
+
+    // True if deviation exceeds the ±5% window (warning only, never hard failure)
+    public bool StandardWeighInOutOfWindow { get; set; }
+
+    // Justification when standard weight is outside the ±5% window (max 1000)
+    public string? WeighInJustification { get; set; }
+
+    // Computed RSD across replicate responses (drives pass/fail gate when responses are given; transcribed RsdPercent is recorded alongside)
+    public decimal? ComputedRsdPercent { get; set; }
+
+    // Replicate responses for this standard
+    public List<SystemSuitabilityStandardResponse> Responses { get; set; } = new();
 }

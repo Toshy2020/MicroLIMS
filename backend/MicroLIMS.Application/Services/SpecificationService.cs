@@ -319,6 +319,30 @@ public class SpecificationService
                     throw new InvalidOperationException("Label claim must be greater than zero when result basis is PercentLabelClaim.");
             }
         }
+        else if (testDef?.WorkflowType == WorkflowType.StandardComparison || testDef?.EquationType == EquationType.StandardComparison)
+        {
+            if (!spec.TestAnalyteId.HasValue)
+                throw new InvalidOperationException("Test analyte is required for Standard-Comparison specifications.");
+
+            var analyte = await _db.TestAnalytes
+                .FirstOrDefaultAsync(a => a.Id == spec.TestAnalyteId.Value, cancellationToken);
+            if (analyte == null || analyte.TestDefinitionId != testDef.Id)
+                throw new InvalidOperationException($"Test analyte does not belong to test '{spec.TestCode}'.");
+
+            var duplicateAnalyte = await _db.Specifications.AnyAsync(
+                s => s.ItemId == spec.ItemId && s.TestCode == spec.TestCode && s.TestAnalyteId == spec.TestAnalyteId.Value && s.Id != spec.Id,
+                cancellationToken);
+            if (duplicateAnalyte)
+                throw new InvalidOperationException($"A specification for this analyte already exists for test '{spec.TestCode}' on item {spec.ItemId}.");
+
+            if (spec.LimitType != LimitType.Range &&
+                spec.LimitType != LimitType.NotMoreThan &&
+                spec.LimitType != LimitType.NotLessThan &&
+                spec.LimitType != LimitType.TargetWithTolerance)
+            {
+                throw new InvalidOperationException($"Limit type '{spec.LimitType}' is not supported for Standard-Comparison specifications. Must be Range, NotMoreThan, NotLessThan, or TargetWithTolerance.");
+            }
+        }
         else if (testDef?.WorkflowType == WorkflowType.Dissolution || spec.LimitType == LimitType.DissolutionQ)
         {
             if (spec.TestAnalyteId.HasValue)

@@ -371,7 +371,7 @@ public class HplcMultiAnalyteSliceM1Tests
             View: AnalyteView.Axial);
 
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => controller.CreateTestAnalyte(test.Id, createReq));
-        Assert.Equal("View is not allowed for HPLC multi-analyte tests.", ex.Message);
+        Assert.Equal("View is not allowed for analyte-based tests.", ex.Message);
     }
 
     [Fact]

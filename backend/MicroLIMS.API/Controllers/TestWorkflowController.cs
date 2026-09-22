@@ -26,6 +26,9 @@ public record RecordHplcAssayResultRequest(decimal SampleWeightMg, decimal Sampl
 public record RecordHplcMultiAnalytePreparationRequest(decimal SampleAmount, decimal SampleDilutionMl);
 public record RecordHplcMultiAnalyteAreaRequest(int TestAnalyteId, int PreparationIndex, int InjectionIndex, decimal Area);
 public record RecordHplcMultiAnalyteResultRequest(DateTime AnalysedAt, int? EquipmentId, SampleMatrix SampleMatrix, List<RecordHplcMultiAnalytePreparationRequest> Preparations, decimal? UnitAmount, List<RecordHplcMultiAnalyteAreaRequest> Areas, string Password, string? Comment = null);
+public record RecordStandardComparisonPreparationRequest(decimal TheoreticalWeightMg, decimal ActualWeightMg, string? WeighInJustification = null);
+public record RecordStandardComparisonResponseRequest(int TestAnalyteId, int PreparationIndex, decimal Response);
+public record RecordStandardComparisonResultRequest(DateTime AnalysedAt, int? EquipmentId, List<RecordStandardComparisonPreparationRequest> Preparations, List<RecordStandardComparisonResponseRequest> Responses, string Password, string? Comment = null);
 public record RecordElementalAssayElementRequest(int SpecificationId, int CalibrationRunAnalyteId, decimal ReportedPpm, bool OverRange, bool BelowLoq);
 public record RecordElementalAssayResultRequest(decimal UnitAmount, DateTime AnalysedAt, List<RecordElementalAssayElementRequest> Elements, string Password, string? Comment = null);
 public record RecordMeasurementParameterRequest(int SpecificationId, List<decimal> Readings);
@@ -419,6 +422,24 @@ public class TestWorkflowController : ControllerBase
                 request.Password,
                 request.Comment);
             return _engine.RecordHplcMultiAnalyteResultAsync(testOrderId, payload, CurrentUserId, ClientIpAddress);
+        });
+    }
+
+    [HttpPost("{testOrderId}/record-standard-comparison-result")]
+    [Authorize(Policy = PermissionConstants.TestWorkflowExecute)]
+    public async Task<IActionResult> RecordStandardComparisonResult(int testOrderId, RecordStandardComparisonResultRequest request)
+    {
+        await _scopeService.EnsureTestOrderAccessAsync(CurrentUserId, testOrderId);
+        return await RunAsync(() =>
+        {
+            var payload = new StandardComparisonPayload(
+                request.AnalysedAt,
+                request.EquipmentId,
+                request.Preparations?.Select(p => new StandardComparisonPreparationInput(p.TheoreticalWeightMg, p.ActualWeightMg, p.WeighInJustification)).ToList() ?? new(),
+                request.Responses?.Select(r => new StandardComparisonResponseInput(r.TestAnalyteId, r.PreparationIndex, r.Response)).ToList() ?? new(),
+                request.Password,
+                request.Comment);
+            return _engine.RecordStandardComparisonResultAsync(testOrderId, payload, CurrentUserId, ClientIpAddress);
         });
     }
 

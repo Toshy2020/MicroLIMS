@@ -1765,6 +1765,11 @@ public class MasterDataController : ControllerBase
                 FormulaText: "amount = (Au / As) * Cs * Dsample * UnitAmount / SampleAmount; result = amount * ConversionFactor",
                 RequiredInputs: new[] { "Au", "As", "Cs", "Dsample", "UnitAmount", "SampleAmount" }),
             new EquationTypeDto(
+                Code: nameof(EquationType.StandardComparison),
+                Name: "Standard-Comparison Assay",
+                FormulaText: "% Assay = (Response_test / Response_std) * (ActWt_std / ThWt_std) * (ThWt_test / ActWt_test) * ((100 - MC) / 100) * P",
+                RequiredInputs: new[] { "Response_test", "Response_std", "ActWt_std", "ThWt_std", "ThWt_test", "ActWt_test", "MC", "P" }),
+            new EquationTypeDto(
                 Code: nameof(EquationType.SystemSuitability),
                 Name: "System Suitability",
                 FormulaText: "RSD <= MaxRSD, Resolution >= MinResolution, Tailing <= MaxTailing, Plates >= MinPlates",
@@ -1842,6 +1847,7 @@ public class MasterDataController : ControllerBase
                 throw new InvalidOperationException("Method abbreviation must be 1-20 uppercase alphanumeric characters or hyphens.");
 
             if (request.EquationType != EquationType.HplcMultiAnalyte && request.WorkflowType != WorkflowType.HplcMultiAnalyte &&
+                request.EquationType != EquationType.StandardComparison && request.WorkflowType != WorkflowType.StandardComparison &&
                 !request.SstMaxRsdPercent.HasValue && !request.SstMinResolution.HasValue &&
                 !request.SstMaxTailingFactor.HasValue && !request.SstMinTheoreticalPlates.HasValue)
             {
@@ -2065,6 +2071,17 @@ public class MasterDataController : ControllerBase
                 throw new InvalidOperationException("Equation type must be HplcMultiAnalyte when workflow type is HplcMultiAnalyte.");
         }
 
+        if (request.EquationType == EquationType.StandardComparison)
+        {
+            if (request.WorkflowType != WorkflowType.StandardComparison)
+                throw new InvalidOperationException("Workflow type must be StandardComparison when equation type is StandardComparison.");
+        }
+        else if (request.WorkflowType == WorkflowType.StandardComparison)
+        {
+            if (request.EquationType != EquationType.StandardComparison)
+                throw new InvalidOperationException("Equation type must be StandardComparison when workflow type is StandardComparison.");
+        }
+
         if (request.WorkflowType == WorkflowType.HplcMultiAnalyte)
         {
             if (!request.RequiresSystemSuitability)
@@ -2080,6 +2097,14 @@ public class MasterDataController : ControllerBase
 
             if (request.HplcMaxPreparationRsdPercent.HasValue && request.HplcMaxPreparationRsdPercent.Value <= 0m)
                 throw new InvalidOperationException("HPLC maximum preparation RSD percent must be greater than zero.");
+        }
+        else if (request.WorkflowType == WorkflowType.StandardComparison)
+        {
+            if (!request.RequiresSystemSuitability)
+                throw new InvalidOperationException("Standard comparison tests must require system suitability.");
+
+            if (request.HplcMaxPreparationRsdPercent.HasValue && request.HplcMaxPreparationRsdPercent.Value <= 0m)
+                throw new InvalidOperationException("Maximum preparation RSD percent must be greater than zero.");
         }
 
         var entity = new TestDefinition
@@ -2137,7 +2162,7 @@ public class MasterDataController : ControllerBase
             WvCapsuleS2MaxOutside = request.WorkflowType == WorkflowType.WeightVariation ? (request.WvCapsuleS2MaxOutside ?? 6) : request.WvCapsuleS2MaxOutside,
             HplcPreparations = request.WorkflowType == WorkflowType.HplcMultiAnalyte ? (request.HplcPreparations ?? 2) : 2,
             HplcInjectionsPerPreparation = request.WorkflowType == WorkflowType.HplcMultiAnalyte ? (request.HplcInjectionsPerPreparation ?? 2) : 2,
-            HplcMaxPreparationRsdPercent = request.WorkflowType == WorkflowType.HplcMultiAnalyte ? request.HplcMaxPreparationRsdPercent : null
+            HplcMaxPreparationRsdPercent = (request.WorkflowType == WorkflowType.HplcMultiAnalyte || request.WorkflowType == WorkflowType.StandardComparison) ? request.HplcMaxPreparationRsdPercent : null
         };
         _db.TestDefinitions.Add(entity);
         await _db.SaveChangesAsync();
@@ -2207,6 +2232,7 @@ public class MasterDataController : ControllerBase
                 throw new InvalidOperationException("Method abbreviation must be 1-20 uppercase alphanumeric characters or hyphens.");
 
             if (effectiveEquationType != EquationType.HplcMultiAnalyte && effectiveWorkflowType != WorkflowType.HplcMultiAnalyte &&
+                effectiveEquationType != EquationType.StandardComparison && effectiveWorkflowType != WorkflowType.StandardComparison &&
                 !effectiveRsd.HasValue && !effectiveRes.HasValue && !effectiveTailing.HasValue && !effectivePlates.HasValue)
             {
                 throw new InvalidOperationException("At least one system suitability criterion is required when system suitability is enabled.");
@@ -2427,6 +2453,17 @@ public class MasterDataController : ControllerBase
                 throw new InvalidOperationException("Equation type must be HplcMultiAnalyte when workflow type is HplcMultiAnalyte.");
         }
 
+        if (effectiveEquationType == EquationType.StandardComparison)
+        {
+            if (effectiveWorkflowType != WorkflowType.StandardComparison)
+                throw new InvalidOperationException("Workflow type must be StandardComparison when equation type is StandardComparison.");
+        }
+        else if (effectiveWorkflowType == WorkflowType.StandardComparison)
+        {
+            if (effectiveEquationType != EquationType.StandardComparison)
+                throw new InvalidOperationException("Equation type must be StandardComparison when workflow type is StandardComparison.");
+        }
+
         if (effectiveWorkflowType == WorkflowType.HplcMultiAnalyte)
         {
             if (!effectiveRequiresSst)
@@ -2445,6 +2482,17 @@ public class MasterDataController : ControllerBase
                 : entity.HplcMaxPreparationRsdPercent;
             if (effectiveRsdPercent.HasValue && effectiveRsdPercent.Value <= 0m)
                 throw new InvalidOperationException("HPLC maximum preparation RSD percent must be greater than zero.");
+        }
+        else if (effectiveWorkflowType == WorkflowType.StandardComparison)
+        {
+            if (!effectiveRequiresSst)
+                throw new InvalidOperationException("Standard comparison tests must require system suitability.");
+
+            var effectiveRsdPercent = request.HplcMaxPreparationRsdPercent.HasValue
+                ? request.HplcMaxPreparationRsdPercent
+                : entity.HplcMaxPreparationRsdPercent;
+            if (effectiveRsdPercent.HasValue && effectiveRsdPercent.Value <= 0m)
+                throw new InvalidOperationException("Maximum preparation RSD percent must be greater than zero.");
         }
 
         entity.Code = request.Code;
@@ -2891,22 +2939,22 @@ public class MasterDataController : ControllerBase
         if (scope is not null && !scope.Contains(test.SectionId))
             throw new UnauthorizedAccessException("This test belongs to a laboratory section you are not assigned to.");
 
-        var isHplcMulti = test.WorkflowType == WorkflowType.HplcMultiAnalyte || test.EquationType == EquationType.HplcMultiAnalyte;
+        var isAnalyteBasedSst = test.WorkflowType is WorkflowType.HplcMultiAnalyte or WorkflowType.StandardComparison || test.EquationType is EquationType.HplcMultiAnalyte or EquationType.StandardComparison;
 
         if (string.IsNullOrWhiteSpace(request.Element))
             throw new InvalidOperationException("Element is required.");
 
         var element = request.Element.Trim();
         if (element.Length > 20)
-            throw new InvalidOperationException(isHplcMulti ? "Analyte name cannot exceed 20 characters." : "Element symbol cannot exceed 20 characters.");
+            throw new InvalidOperationException(isAnalyteBasedSst ? "Analyte name cannot exceed 20 characters." : "Element symbol cannot exceed 20 characters.");
 
         if (request.WavelengthNm <= 0)
             throw new InvalidOperationException("Wavelength must be greater than 0.");
 
-        if (isHplcMulti)
+        if (isAnalyteBasedSst)
         {
             if (request.View.HasValue)
-                throw new InvalidOperationException("View is not allowed for HPLC multi-analyte tests.");
+                throw new InvalidOperationException("View is not allowed for analyte-based tests.");
 
             if (request.LoqMgPerL.HasValue && request.LoqMgPerL.Value <= 0)
                 throw new InvalidOperationException("LOQ must be greater than 0.");
@@ -2943,13 +2991,13 @@ public class MasterDataController : ControllerBase
             TestDefinitionId = id,
             Element = element,
             WavelengthNm = request.WavelengthNm,
-            View = isHplcMulti ? null : request.View,
+            View = isAnalyteBasedSst ? null : request.View,
             LoqMgPerL = request.LoqMgPerL,
             DisplayOrder = request.DisplayOrder,
-            SstMaxRsdPercent = isHplcMulti ? request.SstMaxRsdPercent : null,
-            SstMinResolution = isHplcMulti ? request.SstMinResolution : null,
-            SstMaxTailingFactor = isHplcMulti ? request.SstMaxTailingFactor : null,
-            SstMinTheoreticalPlates = isHplcMulti ? request.SstMinTheoreticalPlates : null,
+            SstMaxRsdPercent = isAnalyteBasedSst ? request.SstMaxRsdPercent : null,
+            SstMinResolution = isAnalyteBasedSst ? request.SstMinResolution : null,
+            SstMaxTailingFactor = isAnalyteBasedSst ? request.SstMaxTailingFactor : null,
+            SstMinTheoreticalPlates = isAnalyteBasedSst ? request.SstMinTheoreticalPlates : null,
             IsActive = true
         };
 
@@ -2972,7 +3020,7 @@ public class MasterDataController : ControllerBase
         var analyte = await _db.TestAnalytes.FirstOrDefaultAsync(a => a.Id == analyteId && a.TestDefinitionId == id)
             ?? throw new InvalidOperationException($"Analyte {analyteId} not found for test {id}.");
 
-        var isHplcMulti = test.WorkflowType == WorkflowType.HplcMultiAnalyte || test.EquationType == EquationType.HplcMultiAnalyte;
+        var isAnalyteBasedSst = test.WorkflowType is WorkflowType.HplcMultiAnalyte or WorkflowType.StandardComparison || test.EquationType is EquationType.HplcMultiAnalyte or EquationType.StandardComparison;
 
         var effectiveElement = request.Element != null ? request.Element.Trim() : analyte.Element;
         var effectiveWavelength = request.WavelengthNm ?? analyte.WavelengthNm;
@@ -2980,14 +3028,14 @@ public class MasterDataController : ControllerBase
         if (string.IsNullOrWhiteSpace(effectiveElement))
             throw new InvalidOperationException("Element is required.");
         if (effectiveElement.Length > 20)
-            throw new InvalidOperationException(isHplcMulti ? "Analyte name cannot exceed 20 characters." : "Element symbol cannot exceed 20 characters.");
+            throw new InvalidOperationException(isAnalyteBasedSst ? "Analyte name cannot exceed 20 characters." : "Element symbol cannot exceed 20 characters.");
         if (effectiveWavelength <= 0)
             throw new InvalidOperationException("Wavelength must be greater than 0.");
 
-        if (isHplcMulti)
+        if (isAnalyteBasedSst)
         {
             if (request.View.HasValue)
-                throw new InvalidOperationException("View is not allowed for HPLC multi-analyte tests.");
+                throw new InvalidOperationException("View is not allowed for analyte-based tests.");
 
             if (request.LoqMgPerL.HasValue)
             {

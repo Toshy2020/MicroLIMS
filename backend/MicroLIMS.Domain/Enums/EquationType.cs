@@ -13,5 +13,6 @@ public enum EquationType
     Dissolution,
     Disintegration,
     WeightVariation,
-    HplcMultiAnalyte
+    HplcMultiAnalyte,
+    StandardComparison
 }

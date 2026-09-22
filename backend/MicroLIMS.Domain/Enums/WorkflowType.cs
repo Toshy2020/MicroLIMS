@@ -12,5 +12,6 @@ public enum WorkflowType
     Dissolution,
     Disintegration,
     WeightVariation,
-    HplcMultiAnalyte
+    HplcMultiAnalyte,
+    StandardComparison
 }

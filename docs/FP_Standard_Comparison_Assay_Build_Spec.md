@@ -13,9 +13,19 @@ are used as such (cited each time).
 
 **Second gate, 2026-09-22 (D-W1-D-W5).** The user answered further gate questions after the first Stage-model
 pass (D-S1-D-S5, same date). Q1, Q2 and Q3 are now closed/answered and no longer block the build; titration
-(Slice 3) is unblocked. D-S2 (`ItemTestPortionWeights`) and D-S4 (`ThWtStd` on `TestAnalyte`) are **reversed**
-and removed from the design — see "Weight & moisture model (D-W1-D-W5)" below, which supersedes those two
-decisions. Q4, Q5 (AAS) and Q9-Q12, Q14 are untouched and still gate their respective parts.
+(originally Slice 3, renumbered Slice 4 below) is unblocked. D-S2 (`ItemTestPortionWeights`) and D-S4 (`ThWtStd`
+on `TestAnalyte`) are **reversed** and removed from the design — see "Weight & moisture model (D-W1-D-W5)" below,
+which supersedes those two decisions. Q4, Q5 (AAS) and Q9-Q12, Q14 are untouched and still gate their respective
+parts.
+
+**Third gate, 2026-09-22 (D-A1-D-A3).** The user answered the weigh-in-window gate mode and the AAS term/scope
+questions. Q11 is answered (D-A1): warning, not hard block, on both windows — see the rewritten "Weigh-in window
+gate" section below; only whether the justification note is mandatory is still open. Q4 is reworded
+closed-by-design (D-A2/D-A3), the same way Q1 was reworded by D-W5: AAS's four inputs are typed at result entry,
+so there is no constant table to collect; only "which minerals run on AAS vs. ICP-OES" stays open, as a
+master-data fact rather than a build blocker. Q5's calibration-run/RSD-scope decision is explicitly **deferred**
+by the user, not decided — see the rewritten "AAS" section below. The AAS slice is **unblocked and ready to
+build**; it is renumbered Slice 1 below so the slice order reflects that. Q9, Q10, Q12 and Q14 are untouched.
 
 ## Why
 
@@ -59,9 +69,12 @@ concentration→amount→%LC conversion step the way elemental/`HplcMultiAnalyte
   the same thing the lab already tracks via `ProductionStage` (recon F6/F15, corrected — it is not free text with
   no anchor). See "Stage model" below. New `ProductionStageRole` {`Bulk`, `Finished`, `Stability`, `InProcess`,
   `Other`} is added instead, on the existing `ProductionStage` entity, not on `Sample` or `Specification`.
-- New `WeighInWindowMode` {`HardBlock`, `WarningWithJustification`} — Test Master config; **gate choice, not
-  decided** (Q11). The spec below builds both branches; the build stops after Q11 is answered rather than
-  picking a default silently.
+- New `WeighInWindowMode` {`HardBlock`, `WarningWithJustification`} — Test Master config. **Decided 2026-09-22
+  (D-A1, answers Q11): defaults to `WarningWithJustification`.** `HardBlock` stays in the enum (append-only, no
+  removal) for a possible future stricter product, but nothing in this build sets it — the SOP-driven default is
+  `WarningWithJustification` for every Standard-Comparison test. See "Weigh-in window gate" below for the
+  concrete backend/storage/display behavior this now requires. The one remaining open point is narrower than
+  before Q11 was answered: whether the justification note is *mandatory* — see that section.
 - `CalibrationEntryMode` unchanged — reused as-is for AAS if Q5 confirms it (append nothing new unless AAS
   software genuinely needs `LimsFitted`, still reserved/unbuilt).
 
@@ -86,11 +99,12 @@ threshold, matching `CalMinCorrelation`).
   product needs a tighter limit than the SOP default).
 - `StandardWeighInTolerancePercent` (numeric(10,6), default 5 — SOP-quoted). `SampleWeighInTolerancePercent`
   (numeric(10,6), default 10 — SOP-quoted).
-- `WeighInWindowMode` (`WeighInWindowMode`) — **left without a default; the field exists, but no value is
-  written until Q11 is answered.**
+- `WeighInWindowMode` (`WeighInWindowMode`, required, **default `WarningWithJustification`** — decided
+  2026-09-22, D-A1, answers Q11; see "Weigh-in window gate" below for whether the justification note itself is
+  mandatory, still open).
 - Validation when `EquationType = StandardComparisonAssay`: `WorkflowType` must be `StandardComparisonAssay`,
   `ResponseMode` required, all replicate counts ≥ 1, `StandardRsdMaxPercent` and both tolerance percents > 0,
-  `WeighInWindowMode` required (build cannot ship without Q11).
+  `WeighInWindowMode` required (no longer a build blocker — defaults per D-A1).
 
 ### `TestAnalyte` additions
 
@@ -320,28 +334,42 @@ entry (D-W4). Compared **unrounded** against the spec limit (`SpecificationEvalu
 rounded to 1 dp AwayFromZero — same convention as every other FP equation type (recon F13; not reopened unless
 Q14 says otherwise).
 
-### Weigh-in window gate (structure only — behavior depends on Q11)
+### Weigh-in window gate (decided 2026-09-22, D-A1 — answers Q11)
 
-**Reworded 2026-09-22 (D-W3/D-W4) — the two sides of this gate now live in different places**, since `ThWtStd`
-moved to the System Suitability Run and `ThWtTest` is typed at entry rather than both being Test Master-resolved
-values checked at the same point:
+**Warning, not a hard block, on both sides of the gate.** `WeighInWindowMode` (`TestDefinition`) defaults to
+`WarningWithJustification` (see "TestDefinition additions" above) — an out-of-window `ActWt*` never rejects the
+run or the entry outright in this build. `HardBlock` stays in the enum (append-only, no removal) for a possible
+future stricter product, but nothing here sets it. The two sides of this gate still live in different places,
+since `ThWtStd` lives on the System Suitability Run and `ThWtTest` is typed at entry (D-W3/D-W4):
 
 - **Standard side (±5%)** — checked **on the System Suitability Run itself** (`SystemSuitabilityRun`/
   `SystemSuitabilityRunAnalyte`, at run save/sign), comparing the entered `StandardWeightMg` (`ActWtStd`) against
-  `TheoreticalWeightMg × (1 ± StandardWeighInTolerancePercent/100)` (`TestDefinition`, D-W3).
+  `TheoreticalWeightMg × (1 ± StandardWeighInTolerancePercent/100)` (`TestDefinition`, D-W3). Out-of-window: the
+  **backend** raises the warning — `SystemSuitabilityService` computes the deviation and returns a warning result
+  on save/sign rather than throwing, the same call site the hard gates already live in, just a non-throwing path;
+  this is not a client-side-only validation.
 - **Sample side (±10%)** — checked **at Standard-Comparison result entry** (`TestWorkflowEngine`), comparing the
   typed `ActWtTest` against the typed `ThWtTest × (1 ± SampleWeighInTolerancePercent/100)` (`TestDefinition`,
-  D-W4) — both values entered in the same screen, same entry.
-- `WeighInWindowMode = HardBlock`: out-of-window `ActWt*` rejects the entry/run outright
-  (`InvalidOperationException`, same pattern as every other hard gate in `TestWorkflowEngine`/
-  `SystemSuitabilityService`).
-- `WeighInWindowMode = WarningWithJustification`: out-of-window `ActWt*` is accepted only with a non-blank
-  justification note (min length, matching the existing `WithdrawAsync` "reason required (min 10 non-blank
-  characters)" convention), stored alongside the entry/run and surfaced to the reviewer (same visibility pattern
-  as the elemental-assay `RequiresReview` surfacing).
-- Both branches are fully specified for both sides of the gate; **the build does not start until Q11 picks one**
-  (or a hybrid — e.g. hard block beyond some wider secondary tolerance — but no such secondary number exists in
-  the prompt, so a hybrid is not assumed). Q11 itself is unchanged by D-W1-D-W5 — still open.
+  D-W4) — both values entered in the same screen, same entry. Same non-throwing warning path, same "backend
+  raises it" rule.
+- **What is stored, concretely (D-A1: "the out-of-window state and the deviation percent are stored with the
+  record").** `SystemSuitabilityRun`/`SystemSuitabilityRunAnalyte` and the Standard-Comparison `ParameterResult`
+  (in `CalculationJson`, alongside the other weight/potency/moisture values already specified there) each gain a
+  `WeighInWindowBreached` (`bool`) and `WeighInDeviationPercent` (`numeric(10,6)`, signed — positive over target,
+  negative under target) pair, computed and persisted whenever the run/entry is saved, independent of whether
+  anyone later reviews it — the deviation is on the record even if it's never looked at again.
+- **Where it appears (D-A1: "run/result views and the CoA-facing summary").** The System Suitability Run screen
+  and the Standard-Comparison result entry screen both surface the warning inline at save time (same visibility
+  pattern as the elemental-assay `RequiresReview` surfacing); the reviewer sees it on the run/result review
+  views; and the CoA-facing summary path (`SampleSummaryService`, `ReportDocumentMapper`) prints the deviation
+  alongside the reported result rather than dropping it once the order is approved.
+- **Still open (D-A1's one remaining sub-question, narrower than the original Q11):** whether the justification
+  note is *mandatory* before the analyst can proceed past the warning. **Not yet decided by the user.**
+  Recommendation: require it, matching the existing `WithdrawAsync` "reason required (min 10 non-blank
+  characters)" convention — this is a GMP deviation from a validated method's weigh-in target, and an
+  unexplained out-of-window entry with no note is a data-integrity gap. Until this is answered, the note field is
+  specified as present-and-recorded-when-given, with no minimum-length enforcement — making it mandatory later is
+  a small, additive follow-up (one validation rule), not a rework of the storage/display design above.
 
 ### Suitability gate (standard RSD ≤ configured %, plus optional resolution/tailing/plates)
 
@@ -368,27 +396,64 @@ run from `TestAnalysis.ValidityRecordType`/`Id` for `TestAnalysis`-based types a
 cases. This is the one piece of "small remaining gaps" flagged against the otherwise-reused foundation (recon,
 "Status of the shared per-parameter result foundation").
 
-## AAS — new, separate equation type
+## AAS — new, separate equation type (unblocked 2026-09-22, D-A2/D-A3 — calculation only, ready to build)
 
 ```
-%Assay = (ActCs × TheoWt × 100) / (TheoCs × ActWt)
+%Assay = (Act.CS × Theo.Wt × 100) / (Theo.CS × Act.Wt)
 ```
 
-- `TheoWt`, `TheoCs`: **`<TBD, see Q4>`** — constants, configured on `TestAnalyte` (`TheoWtMg` numeric(18,6),
-  `TheoCsMgPerL` numeric(18,6), or equivalent units once Q4 confirms which minerals and units apply). Not
-  sample-type-keyed (the prompt gives no indication AAS needs the tablet/bulk-powder split that HPLC does).
-- `ActCs`: transcribed by the analyst off the AAS readout against its calibration curve (`InstrumentReported`
-  mode, recon F12) — not fitted by the LIMS, mirroring Calibration Curve's `InstrumentReported` default;
-  **confirm this is right for AAS too** (Q5 — AAS software may differ from Syngistix).
-- `ActWt`: measured per run, `decimal`, no weigh-in-window requirement stated for AAS (the prompt's weigh-in
-  window rule is scoped to §1 Standard-Comparison only).
-- **Deliberately excludes** standard weight, `P` and `MC` — not modeled, not added, matching the prompt's
-  explicit instruction that this is a property of the AAS method, not an omission.
-- Built on `TestAnalysis`/`ParameterResult` the same way as Standard-Comparison: one `TestAnalysis`
-  (`AnalysisType = WorkflowType.Aas`) per digest, one `ParameterResult` per mineral spec (5 results per digest
-  per the prompt, "same shared-foundation dependency as §1" — already satisfied, recon F5).
+**Term definitions, in the user's own words (D-A2, 2026-09-22):**
 
-### AAS calibration run — two options, presented, not decided (Q5)
+- `Act.CS` — actual concentration of the test solution, estimated by AAS.
+- `Theo.CS` — theoretical concentration of the test solution.
+- `Theo.Wt` — theoretical weight of test.
+- `Act.Wt` — actual weight of the test sample, from the powdered homogeneous sample, taken during preparation of
+  the Mineral Stock Solution for AAS.
+
+The formula **deliberately has no standard weight, no `P` and no `MC`** — confirmed by the user (D-A2), not this
+spec's inference; do not add them, matching the prompt's own instruction that the omission is a real property of
+the AAS method in this SOP, not something to "fix" by analogy with §1's formula.
+
+**All four inputs are typed at result entry (D-A3, 2026-09-22) — not configured master data.** `Act.CS`,
+`Theo.CS`, `Theo.Wt` and `Act.Wt` are all typed on the AAS result entry screen, per mineral, the same way
+`ActWtTest`/`ThWtTest` are typed on the Standard-Comparison entry rather than resolved from a `TestAnalyte`/Item
+lookup (D-W4). `Act.CS` is transcribed by the analyst from the instrument readout, matching the Calibration
+Curve "instrument-reported" decision (recon F12) — it is not fitted by the LIMS. Consequence: Q4's "constants"
+are no longer a data-collection blocker (reworded the same shape as Q1's D-W5 rewording) — nothing needs to be
+gathered from the lab before this equation type can be built. Pre-filling or cross-checking these typed values
+against a configured reference later remains a future enhancement, out of scope here.
+
+**The one part of Q4 that stays genuinely open:** which minerals in this product are run on AAS versus
+ICP-OES — a master-data/test-setup fact (which `TestDefinition`/`Specification` rows point at
+`EquipmentType.Aas` vs. `EquipmentType.IcpOes`), not a code blocker. Nothing about the calculation itself needs
+this answered first.
+
+- Built on `TestAnalysis`/`ParameterResult` the same way as Standard-Comparison, and on the same shared
+  foundation (`TestAnalysis`/`ParameterResult`/`ResultReading`, recon F5) — **one `ParameterResult` per mineral
+  spec**, the same "one row per analyte spec" convention every other multi-result FP type uses
+  (`HplcMultiAnalyte`, elemental assay): one `TestAnalysis` (`AnalysisType = WorkflowType.Aas`) per digest, one
+  `ParameterResult` per mineral (5 results per digest per the prompt).
+- `ParameterResult.CalculationJson` carries the four typed inputs (`ActCs`, `TheoCs`, `TheoWt`, `ActWt`) for
+  audit/traceability, the same way Standard-Comparison's `CalculationJson` carries its typed weights (D-W4).
+- The existing unused `EquipmentType.Aas` value (recon F12) is wired into `TestAnalysis.EquipmentId` and FP
+  Instruments the same way `Hplc`/`IcpOes` are already wired — no new enum member needed.
+- `ActWt`: no weigh-in-window requirement stated for AAS (the prompt's weigh-in-window rule is scoped to §1
+  Standard-Comparison only) — unaffected by D-A1.
+- **No calibration-run entity in this build (D-A3).** See "AAS calibration curve — deferred" below.
+- **Dependencies: none on the Stage model (Slice 2) or the Standard-Comparison/titration slices (Slices 3-4).**
+  AAS shares only Slice 0's foundation (`TestAnalysis`/`ParameterResult`/`ResultReading`) — it does not use
+  `ProductionStage.Role`, replicate-count-by-stage config, `SystemSuitabilityRun`/`SystemSuitabilityRunAnalyte`,
+  or any Standard-Comparison entity. It can be built and shipped independently of whether Slices 2-4 exist yet —
+  see "Slices, with dependencies" below, where it is now Slice 1.
+
+### AAS calibration curve — deferred 2026-09-22 (D-A3), not cancelled
+
+**Not part of this build.** The calculation-only AAS slice above needs no calibration-run entity: `Act.CS` is
+typed at entry, transcribed off the instrument (D-A2/D-A3). The calibration curve itself (0/2/4/6 ppm, triplicate
+reads, recon F9) and the RSD ≤ 2% scope question (per calibration level vs. whole curve, Q5) are follow-up work,
+explicitly deferred by the user on 2026-09-22 — not decided, not built now, kept in the open list. The two-option
+design below is kept as the design to return to when that follow-up is picked up; **neither option is
+implemented in this build.**
 
 **Option A (recommended): a light standalone "AAS Calibration Run" record**, reusing the sign-once/immutable
 shape of `CalibrationRun`/`SystemSuitabilityRun` but dropping everything ICP-specific:
@@ -429,7 +494,31 @@ part of Slice 1, not separately:**
   and AAS both store their run-analyte link in `CalculationJson` instead (workaround already in production use
   by `HplcMultiAnalyte`).
 
-### Slice 1 — Stage model: `ProductionStage.Role` migration (replicate counts only; `ItemTestPortionWeights` dropped) (depends on Slice 0 only; added 2026-09-22 as D-S1-D-S5, reworked same day per D-W4)
+### Slice 1 — AAS (depends on Slice 0 only, independent of Slices 2-4; UNBLOCKED 2026-09-22, D-A2/D-A3 — ready to build)
+
+**Renumbered and moved 2026-09-22 (D-A2/D-A3).** This was Slice 4, listed last and blocked on Q4/Q5. It is moved
+to Slice 1 because it is now the slice with the fewest open dependencies: Q4's constants are closed-by-design
+(D-A2/D-A3), Q5's calibration-run decision is deferred rather than blocking (the calculation ships without it),
+and AAS depends on nothing from Slice 0's siblings below — not the Stage model, not `SystemSuitabilityRun`, not
+any Standard-Comparison entity. Ordering it first reflects that it can ship independently and immediately; it
+does **not** imply the other slices are lower priority for the lab, only that AAS has no gate left to clear.
+
+Backend: new `EquationType`/`WorkflowType = Aas`, `TestAnalysis`/`ParameterResult` wiring (`AnalysisType =
+WorkflowType.Aas`, one `ParameterResult` per mineral spec — D-A3), the AAS result entry endpoint with typed
+`ActCs`/`TheoCs`/`TheoWt`/`ActWt` fields (D-A2/D-A3, no `TestAnalyte`/Item lookup), the formula
+`%Assay = (ActCs × TheoWt × 100) / (TheoCs × ActWt)` with no `P`/`MC`/standard-weight terms (D-A2, confirmed
+deliberate), `EquipmentType.Aas` wired into `TestAnalysis.EquipmentId` and FP Instruments (recon F12, no new
+enum value needed), review/projection/summary/CoA branches (same generic mechanism as every other
+`TestAnalysis`-based type, recon F2/F5). **No calibration-run entity, no calibration-curve entry, no RSD-scope
+decision in this slice** — see "AAS calibration curve — deferred" above; that remains a separate, later,
+explicitly-deferred piece of work (Q5).
+Frontend: Test Master / FP Instruments wiring for `EquipmentType.Aas`, AAS result entry screen (typed `Act.CS`,
+`Theo.CS`, `Theo.Wt`, `Act.Wt` inputs per mineral, 5 minerals per digest per the prompt), summary/CoA labels.
+**Still open before this slice starts:** which minerals in this product run on AAS vs. ICP-OES (the remaining
+half of Q4) — a master-data/test-setup fact to confirm with the lab, not a code blocker; the endpoint and screen
+themselves need no further gate.
+
+### Slice 2 — Stage model: `ProductionStage.Role` migration (replicate counts only; `ItemTestPortionWeights` dropped) (depends on Slice 0 only; added 2026-09-22 as D-S1-D-S5, reworked same day per D-W4; renumbered from Slice 1 on 2026-09-22 per D-A2/D-A3)
 
 **Reworded 2026-09-22 (D-W4) — one-line reversal note: this slice loses the item weight table.** *As originally
 scoped,* it also built `ItemTestPortionWeights`. That table, its schema, its seeding and its gate branch are
@@ -446,26 +535,26 @@ existing string (`NewSampleDialog.tsx`, `MultiSampleEntryGrid.tsx`, `EditSampleD
 require any of Q1-Q3 to be answered** (more true than before, now that Q1-Q3 are all closed/answered anyway) —
 it can ship immediately. It does need Q6/Q13 confirmed (done, by D-S3 itself) before it starts.
 Frontend: `ProductionStage` admin screen gains a `Role` picker; Test Master gains the per-stage-role replicate
-count inputs (built in this slice or deferred to Slice 2, since nothing consumes them until then).
+count inputs (built in this slice or deferred to Slice 3, since nothing consumes them until then).
 
-### Slice 2 — Standard-Comparison Assay, `PeakArea` mode (depends on Slice 1; blocked on Q9, Q10, Q11, Q12 confirmation — no longer blocked on Q1/Q2, both closed 2026-09-22)
+### Slice 3 — Standard-Comparison Assay, `PeakArea` mode (depends on Slice 2; blocked on Q9, Q10, Q12 confirmation — no longer blocked on Q1/Q2/Q11, all closed/answered 2026-09-22; renumbered from Slice 2 on 2026-09-22 per D-A2/D-A3)
 
 Backend: enums, `TestDefinition`/`TestAnalyte` additions, `SystemSuitabilityRun`/`SystemSuitabilityRunAnalyte`
 additions (`TheoreticalWeightMg`, `MoisturePercent` — D-W3), the entry endpoint
 (`record-standard-comparison-result`, `TestWorkflow.Execute`, signed, section-scoped) with typed
-`ActWtTest`/`ThWtTest` fields (D-W4), the formula (PeakArea response only in this slice), the weigh-in gate (per
-Q11's answer, now split across the run and the entry screen — D-W3/D-W4), the suitability gate (per Q10's
-answer), the generalized approval gate, review/projection/summary/CoA branches. Includes the `HplcAssay` →
+`ActWtTest`/`ThWtTest` fields (D-W4), the formula (PeakArea response only in this slice), the weigh-in gate
+(warning-mode per D-A1/Q11, split across the run and the entry screen — D-W3/D-W4), the suitability gate (per
+Q10's answer), the generalized approval gate, review/projection/summary/CoA branches. Includes the `HplcAssay` →
 `StandardComparisonAssay` and `HplcMultiAnalyte` → `StandardComparisonAssay` migration **only if Q9 says to
 migrate** — otherwise `HplcAssay`/`HplcMultiAnalyte` stay as separate types and Standard-Comparison is additive
 (new products only).
 Frontend: Test Master (equation type, response mode, replicate/tolerance/RSD config keyed by stage role — no
 item-weight grid, dropped D-W4), System Suitability Run entry screen gains `Th.Wt.std` and `MC` inputs per
 standard (per analyte row for multi-analyte tests, D-W3), Standard-Comparison result entry screen (standard +
-sample replicate grid, typed `Th.Wt.test` input next to `Act.Wt.test` per preparation — D-W4 — weigh-in
-validation feedback per Q11's mode), summary/CoA labels.
+sample replicate grid, typed `Th.Wt.test` input next to `Act.Wt.test` per preparation — D-W4 — weigh-in warning
+feedback per D-A1, not a blocking validation), summary/CoA labels.
 
-### Slice 3 — Titration mode (depends on Slice 2; unblocked 2026-09-22 — Q3 answered by D-W2)
+### Slice 4 — Titration mode (depends on Slice 3; unblocked 2026-09-22 — Q3 answered by D-W2; renumbered from Slice 3 on 2026-09-22 per D-A2/D-A3)
 
 **Reworded 2026-09-22 (D-W2) — one-line reversal note: no longer blocked.** *As originally scoped,* this slice
 could not start until Q3 was answered. Q3 is now answered — titration uses the confirmed formula, with N and F
@@ -482,15 +571,6 @@ absent as inputs. This slice's contract:
 - No `Normality`/`EquivalenceFactor` fields anywhere — confirmed absent by D-W2, not modeled "to be safe."
 - Equipment: `EquipmentType.Titrator`/`KarlFischer` (already exist, unused — recon F11) wired into FP
   Instruments the same way `Hplc`/`IcpOes` are.
-
-### Slice 4 — AAS (depends on Slice 0 only, independent of Slices 1-3; blocked on Q4, Q5)
-
-New equation type end to end: `TestAnalyte.TheoWtMg`/`TheoCsMgPerL` (values `<TBD, see Q4>`), the AAS
-calibration run (Option A or B per Q5), the result entry (`ActCs`, `ActWt`, 5 minerals per digest), Test Master
-and FP Instruments wiring for `EquipmentType.Aas`, review/projection/summary/CoA branches. Fully independent of
-whether Slices 1-3 have shipped — AAS shares only Slice 0's foundation, not the Standard-Comparison entities or
-the Stage model (the prompt gives no indication AAS needs the tablet/bulk-powder split that HPLC does, recon,
-"AAS — new, separate equation type").
 
 ## Test cases (structure only — no real numbers until Q8)
 

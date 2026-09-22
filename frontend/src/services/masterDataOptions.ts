@@ -58,6 +58,34 @@ export interface EquationTypeDto {
   requiredInputs: string[];
 }
 
+export type ProductionStageRole = "Other" | "Bulk" | "InProcess" | "Finished" | "Stability";
+
+export interface ProductionStageOption {
+  id: number;
+  name: string;
+  isActive: boolean;
+  role: ProductionStageRole;
+}
+
+export interface TestDefinitionStageReplicateDto {
+  id: number;
+  testDefinitionId: number;
+  role: ProductionStageRole;
+  standardReplicates: number;
+  sampleReplicates: number;
+}
+
+export interface CreateTestDefinitionStageReplicateRequest {
+  role: ProductionStageRole;
+  standardReplicates: number;
+  sampleReplicates: number;
+}
+
+export interface UpdateTestDefinitionStageReplicateRequest {
+  standardReplicates?: number | null;
+  sampleReplicates?: number | null;
+}
+
 export interface TestAnalyteDto {
   id: number;
   testDefinitionId: number;
@@ -237,11 +265,16 @@ export const masterDataOptions = {
   updateSampler: (id: number, name: string) =>
     apiClient.put(`/masterdata/samplers/${id}`, JSON.stringify(name), { headers: { "Content-Type": "application/json" } }).then((r) => r.data.data),
   deleteSampler: (id: number) => apiClient.delete(`/masterdata/samplers/${id}`),
-  getProductionStages: () => apiClient.get("/masterdata/production-stages").then((r) => r.data.data),
-  createProductionStage: (name: string) =>
-    apiClient.post("/masterdata/production-stages", JSON.stringify(name), { headers: { "Content-Type": "application/json" } }).then((r) => r.data.data),
-  updateProductionStage: (id: number, name: string) =>
-    apiClient.put(`/masterdata/production-stages/${id}`, JSON.stringify(name), { headers: { "Content-Type": "application/json" } }).then((r) => r.data.data),
+  getProductionStages: (): Promise<ProductionStageOption[]> => apiClient.get("/masterdata/production-stages").then((r) => r.data.data),
+  // Role is always sent: the backend keys behaviour on it, so a caller must
+  // choose one rather than falling back to Other by accident.
+  createProductionStage: (payload: { name: string; role: ProductionStageRole }): Promise<ProductionStageOption> =>
+    apiClient.post("/masterdata/production-stages", payload).then((r) => r.data.data),
+  updateProductionStage: (
+    id: number,
+    payload: { name: string; role: ProductionStageRole }
+  ): Promise<ProductionStageOption> =>
+    apiClient.put(`/masterdata/production-stages/${id}`, payload).then((r) => r.data.data),
   deleteProductionStage: (id: number) => apiClient.delete(`/masterdata/production-stages/${id}`),
   getDiluentTypes: () => apiClient.get("/masterdata/diluent-types").then((r) => r.data.data),
   getNeutralizers: () => apiClient.get("/masterdata/neutralizers").then((r) => r.data.data),
@@ -320,6 +353,14 @@ export const masterDataOptions = {
     apiClient.put(`/masterdata/test-definitions/${testDefinitionId}/analytes/${analyteId}`, payload).then((r) => r.data.data),
   deleteTestAnalyte: (testDefinitionId: number, analyteId: number): Promise<{ message?: string; deactivated?: boolean; deleted?: boolean }> =>
     apiClient.delete(`/masterdata/test-definitions/${testDefinitionId}/analytes/${analyteId}`).then((r) => r.data.data),
+  getTestDefinitionStageReplicates: (testDefinitionId: number): Promise<TestDefinitionStageReplicateDto[]> =>
+    apiClient.get(`/masterdata/test-definitions/${testDefinitionId}/stage-replicates`).then((r) => r.data.data),
+  createTestDefinitionStageReplicate: (testDefinitionId: number, payload: CreateTestDefinitionStageReplicateRequest): Promise<TestDefinitionStageReplicateDto> =>
+    apiClient.post(`/masterdata/test-definitions/${testDefinitionId}/stage-replicates`, payload).then((r) => r.data.data),
+  updateTestDefinitionStageReplicate: (testDefinitionId: number, replicateId: number, payload: UpdateTestDefinitionStageReplicateRequest): Promise<TestDefinitionStageReplicateDto> =>
+    apiClient.put(`/masterdata/test-definitions/${testDefinitionId}/stage-replicates/${replicateId}`, payload).then((r) => r.data.data),
+  deleteTestDefinitionStageReplicate: (testDefinitionId: number, replicateId: number): Promise<{ message?: string; deleted?: boolean }> =>
+    apiClient.delete(`/masterdata/test-definitions/${testDefinitionId}/stage-replicates/${replicateId}`).then((r) => r.data.data),
   getMaterials: (type?: string) =>
     apiClient.get("/inventory/materials", { params: type ? { type } : {} }).then((r) => r.data.data),
   createTestWorkflowStep: (testDefinitionId: number, payload: TestWorkflowStepPayload) =>

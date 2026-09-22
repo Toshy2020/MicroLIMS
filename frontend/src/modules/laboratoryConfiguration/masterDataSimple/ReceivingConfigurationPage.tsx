@@ -18,10 +18,10 @@ import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutlined";
 import PersonOutlineIcon from "@mui/icons-material/PersonOutlined";
 import AssignmentOutlinedIcon from "@mui/icons-material/AssignmentOutlined";
-import LayersOutlinedIcon from "@mui/icons-material/LayersOutlined";
 import { PageHeader } from "../../../components/PageHeader";
 import { ConfirmationDialog } from "../../../components/ConfirmationDialog";
 import { masterDataOptions } from "../../../services/masterDataOptions";
+import { ProductionStagesCard } from "./ProductionStagesCard";
 
 interface NamedOption {
   id: number;
@@ -328,18 +328,7 @@ export function ReceivingConfigurationPage() {
           remove={masterDataOptions.deleteCauseOfTesting}
         />
 
-        <NameListCard
-          title="Production Stages"
-          usedFor="The stage dropdown on Finished Product receiving. Not shown for other categories."
-          deleteNote="Samples already recorded with this stage keep it — only the dropdown changes."
-          inputLabel="Production stage"
-          addPlaceholder="e.g. Coating"
-          icon={<LayersOutlinedIcon sx={{ fontSize: 19 }} />}
-          load={masterDataOptions.getProductionStages}
-          create={masterDataOptions.createProductionStage}
-          update={masterDataOptions.updateProductionStage}
-          remove={masterDataOptions.deleteProductionStage}
-        />
+        <ProductionStagesCard />
       </Box>
     </>
   );

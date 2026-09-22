@@ -48,7 +48,9 @@ import {
   MediaIncubationConditionOption,
   CreateTestDefinitionPayload,
   UpdateTestDefinitionPayload,
-  TestAnalyteDto
+  TestAnalyteDto,
+  TestDefinitionStageReplicateDto,
+  ProductionStageRole
 } from "../../../services/masterDataOptions";
 import { tableHeadSx } from "../../../theme";
 
@@ -598,6 +600,285 @@ function TestAnalytesSection({ test }: { test: TestDefinitionOption }) {
           )}
         </Stack>
       </FloatingDialog>
+    </Box>
+  );
+}
+
+const ALL_STAGE_ROLES: ProductionStageRole[] = [
+  "Bulk",
+  "InProcess",
+  "Finished",
+  "Stability",
+  "Other"
+];
+
+function TestStageReplicatesSection({ testDefinitionId }: { testDefinitionId: number }) {
+  const [replicates, setReplicates] = useState<TestDefinitionStageReplicateDto[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [editingReplicate, setEditingReplicate] = useState<TestDefinitionStageReplicateDto | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<TestDefinitionStageReplicateDto | null>(null);
+  const [role, setRole] = useState<ProductionStageRole | "">("");
+  const [standardReplicates, setStandardReplicates] = useState("");
+  const [sampleReplicates, setSampleReplicates] = useState("");
+  const [dialogError, setDialogError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+
+  const loadReplicates = () => {
+    setLoading(true);
+    setError(null);
+    masterDataOptions
+      .getTestDefinitionStageReplicates(testDefinitionId)
+      .then(setReplicates)
+      .catch((e: unknown) => {
+        const errObj = e as { response?: { data?: { message?: string } }; message?: string };
+        setError(errObj.response?.data?.message ?? errObj.message ?? "Could not load stage replicates.");
+      })
+      .finally(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    loadReplicates();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [testDefinitionId]);
+
+  const configuredRoles = new Set(replicates.map((r) => r.role));
+  const availableRoles = ALL_STAGE_ROLES.filter((r) => !configuredRoles.has(r));
+
+  const openAdd = () => {
+    setEditingReplicate(null);
+    setRole(availableRoles[0] ?? "");
+    setStandardReplicates("");
+    setSampleReplicates("");
+    setDialogError(null);
+    setDialogOpen(true);
+  };
+
+  const openEdit = (r: TestDefinitionStageReplicateDto) => {
+    setEditingReplicate(r);
+    setRole(r.role);
+    setStandardReplicates(String(r.standardReplicates));
+    setSampleReplicates(String(r.sampleReplicates));
+    setDialogError(null);
+    setDialogOpen(true);
+  };
+
+  const handleSave = async () => {
+    if (!editingReplicate && !role) {
+      setDialogError("Production stage role is required.");
+      return;
+    }
+
+    const stdStr = standardReplicates.trim();
+    if (!stdStr) {
+      setDialogError("Standard replicates is required.");
+      return;
+    }
+    const std = Number(stdStr);
+    if (!Number.isInteger(std) || std < 1) {
+      setDialogError("Standard replicates must be an integer greater than or equal to 1.");
+      return;
+    }
+
+    const smpStr = sampleReplicates.trim();
+    if (!smpStr) {
+      setDialogError("Sample replicates is required.");
+      return;
+    }
+    const smp = Number(smpStr);
+    if (!Number.isInteger(smp) || smp < 1) {
+      setDialogError("Sample replicates must be an integer greater than or equal to 1.");
+      return;
+    }
+
+    setSaving(true);
+    setDialogError(null);
+    try {
+      if (editingReplicate) {
+        await masterDataOptions.updateTestDefinitionStageReplicate(testDefinitionId, editingReplicate.id, {
+          standardReplicates: std,
+          sampleReplicates: smp
+        });
+      } else {
+        await masterDataOptions.createTestDefinitionStageReplicate(testDefinitionId, {
+          role: role as ProductionStageRole,
+          standardReplicates: std,
+          sampleReplicates: smp
+        });
+      }
+      setDialogOpen(false);
+      loadReplicates();
+    } catch (e: unknown) {
+      const errObj = e as { response?: { data?: { message?: string } }; message?: string };
+      setDialogError(errObj.response?.data?.message ?? errObj.message ?? "Could not save stage replicate configuration.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const confirmDelete = async () => {
+    if (!pendingDelete) return;
+    const target = pendingDelete;
+    setPendingDelete(null);
+    setError(null);
+    try {
+      await masterDataOptions.deleteTestDefinitionStageReplicate(testDefinitionId, target.id);
+      loadReplicates();
+    } catch (e: unknown) {
+      const errObj = e as { response?: { data?: { message?: string } }; message?: string };
+      setError(errObj.response?.data?.message ?? errObj.message ?? "Could not delete stage replicate configuration.");
+    }
+  };
+
+  return (
+    <Box sx={{ p: 2, bgcolor: "action.hover", borderRadius: 1, border: "1px solid", borderColor: "divider" }}>
+      <Stack sx={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", mb: 1 }}>
+        <Typography sx={{ fontWeight: 700, fontSize: 13 }}>
+          Replicates per stage ({replicates.length} configured)
+        </Typography>
+        <Button
+          size="small"
+          variant="outlined"
+          startIcon={<AddIcon />}
+          onClick={openAdd}
+          disabled={availableRoles.length === 0 || loading}
+        >
+          Add Stage Replicate
+        </Button>
+      </Stack>
+
+      {error && <Alert severity="error" sx={{ mb: 1.5 }}>{error}</Alert>}
+
+      <Table size="small" sx={{ bgcolor: "background.paper", borderRadius: 1 }}>
+        <TableHead>
+          <TableRow sx={tableHeadSx}>
+            <TableCell>Stage Role</TableCell>
+            <TableCell>Standard Replicates</TableCell>
+            <TableCell>Sample Replicates</TableCell>
+            <TableCell align="right">Actions</TableCell>
+          </TableRow>
+        </TableHead>
+        <TableBody>
+          {replicates.map((r) => (
+            <TableRow key={r.id}>
+              <TableCell>
+                <Chip size="small" label={r.role} variant="outlined" sx={{ fontWeight: 600 }} />
+              </TableCell>
+              <TableCell>{r.standardReplicates}</TableCell>
+              <TableCell>{r.sampleReplicates}</TableCell>
+              <TableCell align="right">
+                <IconButton size="small" onClick={() => openEdit(r)} title="Edit Replicates">
+                  <EditIcon fontSize="small" />
+                </IconButton>
+                <IconButton
+                  size="small"
+                  color="error"
+                  onClick={() => setPendingDelete(r)}
+                  title="Delete Replicate Configuration"
+                >
+                  <DeleteIcon fontSize="small" />
+                </IconButton>
+              </TableCell>
+            </TableRow>
+          ))}
+          {replicates.length === 0 && !loading && (
+            <TableRow>
+              <TableCell colSpan={4} align="center" sx={{ py: 2, color: "text.secondary" }}>
+                No stage replicates configured yet. Click "Add Stage Replicate" to configure replicate counts.
+              </TableCell>
+            </TableRow>
+          )}
+        </TableBody>
+      </Table>
+
+      <Typography variant="caption" sx={{ color: "text.secondary", display: "block", mt: 1 }}>
+        Production stages without a configured row are not configured for this test (not zero). Both counts must be integers ≥ 1.
+      </Typography>
+
+      <FloatingDialog
+        open={dialogOpen}
+        title={editingReplicate ? `Edit Stage Replicates: ${editingReplicate.role}` : "Add Stage Replicate"}
+        onClose={() => setDialogOpen(false)}
+        maxWidth="xs"
+        actions={
+          <>
+            <Button onClick={() => setDialogOpen(false)} variant="outlined" disabled={saving}>
+              Cancel
+            </Button>
+            <Button variant="contained" onClick={handleSave} disabled={saving}>
+              {saving ? "Saving…" : editingReplicate ? "Save Changes" : "Add"}
+            </Button>
+          </>
+        }
+      >
+        {dialogError && <Alert severity="error" sx={{ mb: 2 }}>{dialogError}</Alert>}
+        <Stack spacing={2} sx={{ pt: 1 }}>
+          {editingReplicate ? (
+            <TextField
+              size="small"
+              label="Stage Role"
+              value={editingReplicate.role}
+              disabled
+              fullWidth
+            />
+          ) : (
+            <FormControl size="small" fullWidth required>
+              <InputLabel id="stage-rep-role-select-label">Stage Role</InputLabel>
+              <Select<ProductionStageRole>
+                labelId="stage-rep-role-select-label"
+                label="Stage Role"
+                value={role as ProductionStageRole}
+                onChange={(e) => setRole(e.target.value as ProductionStageRole)}
+              >
+                {availableRoles.map((r) => (
+                  <MenuItem key={r} value={r}>
+                    {r}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          )}
+          <TextField
+            size="small"
+            type="number"
+            label="Standard Replicates *"
+            placeholder="e.g. 6"
+            value={standardReplicates}
+            onChange={(e) => setStandardReplicates(e.target.value)}
+            slotProps={{ htmlInput: { min: 1, step: 1 } }}
+            helperText="Integer ≥ 1"
+            required
+            fullWidth
+          />
+          <TextField
+            size="small"
+            type="number"
+            label="Sample Replicates *"
+            placeholder="e.g. 2"
+            value={sampleReplicates}
+            onChange={(e) => setSampleReplicates(e.target.value)}
+            slotProps={{ htmlInput: { min: 1, step: 1 } }}
+            helperText="Integer ≥ 1"
+            required
+            fullWidth
+          />
+        </Stack>
+      </FloatingDialog>
+
+      <ConfirmationDialog
+        open={pendingDelete != null}
+        title="Delete Stage Replicate Configuration"
+        message={
+          pendingDelete
+            ? `Delete stage replicate configuration for role "${pendingDelete.role}"?`
+            : ""
+        }
+        confirmText="Delete"
+        destructive
+        onConfirm={confirmDelete}
+        onCancel={() => setPendingDelete(null)}
+      />
     </Box>
   );
 }
@@ -3192,6 +3473,21 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
                 </Box>
               )}
             </Box>
+          )}
+
+          {(isFp || (fpSectionId !== null && (sectionId === fpSectionId || editingTest?.sectionId === fpSectionId))) && (
+            editingId ? (
+              <TestStageReplicatesSection testDefinitionId={editingId} />
+            ) : (
+              <Box sx={{ p: 2, bgcolor: "action.hover", borderRadius: 1, border: "1px solid", borderColor: "divider" }}>
+                <Typography sx={{ fontWeight: 700, fontSize: 13, mb: 0.5 }}>
+                  Replicates per stage
+                </Typography>
+                <Typography variant="body2" sx={{ color: "text.secondary" }}>
+                  Save this test first to configure replicates per stage.
+                </Typography>
+              </Box>
+            )
           )}
         </Stack>
       </FloatingDialog>

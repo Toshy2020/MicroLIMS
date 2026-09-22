@@ -5,6 +5,22 @@ Source: `E:\files\files\prompt-fp-standard-comparison-assay-aas-titration.md` (S
 (never pushed). Style follows `docs/FP_Calibration_Curve_Build_Spec.md` and
 `docs/FP_Multi_Analyte_HPLC_Build_Spec.md`.
 
+> **Build status, 2026-09-22 (later than the body of this spec).** The gate is answered and building has
+> started, so read this header before trusting a "blocked" note below.
+> - **Q9 answered: fold both.** The single-analyte `HplcAssay` and the multi-vitamin `HplcMultiAnalyte` types
+>   both become `StandardComparison`, and `HplcAssayResult` is retired. Local data is disposable; nothing is in
+>   production.
+> - **Q10 answered: both.** The analyst enters the standard replicate responses and the LIMS computes the RSD
+>   (sample SD), which drives the gate; a transcribed instrument RSD is kept alongside for comparison only.
+> - **Built and committed on `feat/fp-hplc-foundation`:** the Stage model, back and front (`94ae9c1`,
+>   `644af51`); SC-1, the suitability run carrying `Th.Wt.std`, `MC`, the replicate responses, the computed RSD
+>   and the ±5% weigh-in warning (`0ea44ce`); SC-2, the `StandardComparison` type and calculator in PeakArea
+>   mode, with results on `TestAnalysis`/`ParameterResult` (`ad7c06e`). Postgres suite 1839/0/0.
+> - **Next:** SC-3 folds the two old types in and retires `HplcAssayResult`; then titration (SC-4), the screens
+>   (SC-5) and the AAS calculation.
+> - Still genuinely open: Q8 (a real worked example to validate against), Q12 (generalising the passed-run
+>   approval gate, recommended), Q14 (rounding convention), and the deferred AAS calibration curve.
+
 **This spec ends at a decision gate (Q1-Q14 in the recon doc). No code, migration or test is written from it
 until the gate is answered. Every `ThWtStd`, `ThWtTest`, `TheoWt`, `TheoCs` value below is written
 `<TBD, see Q#>` — none is a real number.** Replicate counts, the RSD ≤ 2% gate, the ±5%/±10% weigh-in windows,

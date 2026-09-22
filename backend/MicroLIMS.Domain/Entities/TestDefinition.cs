@@ -100,6 +100,9 @@ public class TestDefinition
     // Finished Product / Standard-Comparison: max RSD across sample preparations
     public decimal? HplcMaxPreparationRsdPercent { get; set; }
 
+    // Finished Product / Standard-Comparison: peak area (HPLC) or titration volume
+    public ResponseMode ResponseMode { get; set; } = ResponseMode.PeakArea;
+
     public List<TestAnalyte> Analytes { get; set; } = new();
 
     // Finished Product / Standard-Comparison Assay - per-stage-role

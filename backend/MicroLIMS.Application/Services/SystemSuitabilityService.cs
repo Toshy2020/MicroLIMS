@@ -160,27 +160,46 @@ public class SystemSuitabilityService : ISystemSuitabilityService
         if (scope != null && !scope.Contains(test.SectionId))
             throw new UnauthorizedAccessException("This test belongs to a laboratory section you are not assigned to.");
 
-        // Equipment validation: HPLC + same section
+        bool isAnalyteBased = test.WorkflowType == WorkflowType.StandardComparison || test.EquationType == EquationType.StandardComparison;
+        // Titration standardisation: titrator, no column, only the RSD criterion applies (SC-4).
+        bool isTitration = isAnalyteBased && test.ResponseMode == ResponseMode.TitrationVolume;
+
+        // Equipment validation: HPLC (titrator for titration) + same section
         var equip = await _db.Equipment.FirstOrDefaultAsync(e => e.Id == request.EquipmentId, ct)
             ?? throw new InvalidOperationException($"Equipment {request.EquipmentId} not found.");
 
-        if (equip.Type != EquipmentType.Hplc)
+        if (isTitration)
+        {
+            if (equip.Type != EquipmentType.Titrator)
+                throw new InvalidOperationException("Selected equipment must be a titrator.");
+        }
+        else if (equip.Type != EquipmentType.Hplc)
             throw new InvalidOperationException("Selected equipment must be an HPLC instrument.");
 
         if (equip.SectionId != test.SectionId)
             throw new InvalidOperationException("Equipment belongs to a different laboratory section than the test definition.");
 
-        // Column validation: active + same section
-        var col = await _db.ChromatographyColumns.FirstOrDefaultAsync(c => c.Id == request.ChromatographyColumnId, ct)
-            ?? throw new InvalidOperationException($"Chromatography column {request.ChromatographyColumnId} not found.");
+        // Column validation: active + same section (titration runs have no column)
+        ChromatographyColumn? col = null;
+        if (isTitration)
+        {
+            if (request.ChromatographyColumnId.HasValue)
+                throw new InvalidOperationException("Titration runs do not use a chromatography column.");
+        }
+        else
+        {
+            if (!request.ChromatographyColumnId.HasValue)
+                throw new InvalidOperationException("Chromatography column is required.");
 
-        if (!col.IsActive)
-            throw new InvalidOperationException("Chromatography column is not active.");
+            col = await _db.ChromatographyColumns.FirstOrDefaultAsync(c => c.Id == request.ChromatographyColumnId.Value, ct)
+                ?? throw new InvalidOperationException($"Chromatography column {request.ChromatographyColumnId} not found.");
 
-        if (col.SectionId != test.SectionId)
-            throw new InvalidOperationException("Chromatography column belongs to a different laboratory section than the test definition.");
+            if (!col.IsActive)
+                throw new InvalidOperationException("Chromatography column is not active.");
 
-        bool isAnalyteBased = test.WorkflowType == WorkflowType.StandardComparison || test.EquationType == EquationType.StandardComparison;
+            if (col.SectionId != test.SectionId)
+                throw new InvalidOperationException("Chromatography column belongs to a different laboratory section than the test definition.");
+        }
 
         int runRefMatId;
         decimal runPurity;
@@ -268,8 +287,26 @@ public class SystemSuitabilityService : ISystemSuitabilityService
                 if (reqRow.StandardWeightMg <= 0)
                     throw new InvalidOperationException($"Standard weight for analyte {analyteEntity.Element} must be greater than 0.");
 
-                if (reqRow.StandardDilution <= 0)
+                if (!isTitration && reqRow.StandardDilution <= 0)
                     throw new InvalidOperationException($"Standard dilution for analyte {analyteEntity.Element} must be greater than 0.");
+
+                if (isTitration)
+                {
+                    if (reqRow.Responses == null || reqRow.Responses.Count == 0)
+                        throw new InvalidOperationException($"Standard titres are required for analyte {analyteEntity.Element}.");
+                    if (reqRow.Resolution.HasValue || reqRow.TailingFactor.HasValue || reqRow.TheoreticalPlates.HasValue)
+                        throw new InvalidOperationException($"Resolution, tailing and plates do not apply to a titration run (analyte {analyteEntity.Element}).");
+                    if (!reqRow.BlankTitreMl.HasValue)
+                        throw new InvalidOperationException($"Blank titre is required for analyte {analyteEntity.Element}.");
+                    if (reqRow.BlankTitreMl.Value < 0)
+                        throw new InvalidOperationException($"Blank titre for analyte {analyteEntity.Element} must not be negative.");
+                    if (reqRow.Responses.Any(r => r <= reqRow.BlankTitreMl.Value))
+                        throw new InvalidOperationException($"Every standard titre for analyte {analyteEntity.Element} must be greater than the blank titre.");
+                }
+                else if (reqRow.BlankTitreMl.HasValue)
+                {
+                    throw new InvalidOperationException($"Blank titre applies only to titration runs (analyte {analyteEntity.Element}).");
+                }
 
                 // Th.Wt.std: method target weighing for standard (> 0 when given)
                 decimal? rowTheoreticalWeight = reqRow.TheoreticalWeightMg;
@@ -340,9 +377,9 @@ public class SystemSuitabilityService : ISystemSuitabilityService
 
                 var (rowPassed, rowFailureReasons) = EvaluateAcceptanceCriteria(
                     analyteEntity.SstMaxRsdPercent,
-                    analyteEntity.SstMinResolution,
-                    analyteEntity.SstMaxTailingFactor,
-                    analyteEntity.SstMinTheoreticalPlates,
+                    isTitration ? null : analyteEntity.SstMinResolution,
+                    isTitration ? null : analyteEntity.SstMaxTailingFactor,
+                    isTitration ? null : analyteEntity.SstMinTheoreticalPlates,
                     effectiveRsd,
                     reqRow.Resolution,
                     reqRow.TailingFactor,
@@ -376,6 +413,7 @@ public class SystemSuitabilityService : ISystemSuitabilityService
                     StandardWeighInOutOfWindow = rowOutOfWindow,
                     WeighInJustification = rowJustification,
                     ComputedRsdPercent = rowComputedRsd,
+                    BlankTitreMl = isTitration ? reqRow.BlankTitreMl : null,
                     Responses = rowResponses
                 };
 
@@ -532,7 +570,7 @@ public class SystemSuitabilityService : ISystemSuitabilityService
             TestDefinitionId = test.Id,
             SectionId = test.SectionId,
             EquipmentId = equip.Id,
-            ChromatographyColumnId = col.Id,
+            ChromatographyColumnId = col?.Id,
             ReferenceStandardMaterialId = runRefMatId,
             StandardPurityPercent = runPurity,
             StandardWeightMg = runWeight,
@@ -734,7 +772,8 @@ public class SystemSuitabilityService : ISystemSuitabilityService
                 a.StandardWeighInOutOfWindow,
                 a.WeighInJustification,
                 a.ComputedRsdPercent,
-                a.Responses?.OrderBy(r => r.Index).Select(r => new SystemSuitabilityStandardResponseDto(r.Id, r.Index, r.Response)).ToList())).ToList()
+                a.Responses?.OrderBy(r => r.Index).Select(r => new SystemSuitabilityStandardResponseDto(r.Id, r.Index, r.Response)).ToList(),
+                a.BlankTitreMl)).ToList()
             : null;
 
         return new SuitabilityRunReportDetailsDto(

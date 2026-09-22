@@ -16,10 +16,17 @@ Source: `E:\files\files\prompt-fp-standard-comparison-assay-aas-titration.md` (S
 >   `644af51`); SC-1, the suitability run carrying `Th.Wt.std`, `MC`, the replicate responses, the computed RSD
 >   and the ±5% weigh-in warning (`0ea44ce`); SC-2, the `StandardComparison` type and calculator in PeakArea
 >   mode, with results on `TestAnalysis`/`ParameterResult` (`ad7c06e`). Postgres suite 1839/0/0.
-> - **Next:** SC-3 folds the two old types in and retires `HplcAssayResult`; then titration (SC-4), the screens
->   (SC-5) and the AAS calculation.
-> - Still genuinely open: Q8 (a real worked example to validate against), Q12 (generalising the passed-run
->   approval gate, recommended), Q14 (rounding convention), and the deferred AAS calibration curve.
+> - **SC-3 built** (`45b18b8` backend, `fa3af0b` frontend): `HplcAssay`/`HplcMultiAnalyte` retired (enum values
+>   kept, refused by Test Master), `HplcAssayResults` table dropped, the passed-run approval gate generalised to
+>   every test with `RequiresSystemSuitability` (Q12 done). Old local test data deleted by user decision.
+> - **SC-4 (titration) decisions, 2026-09-22:** `EP_blank` is titrated **once with the standard** and entered on
+>   the suitability run (`SystemSuitabilityRunAnalyte.BlankTitreMl`); every sample linked to that run uses it for
+>   both `EP_test` and `EP_std`. Titration **reuses the suitability run** for the standard titres: titrator
+>   instead of HPLC, no column (`ChromatographyColumnId` nullable), RSD is the only criterion. `ResponseMode` lives
+>   on `TestDefinition` and cannot change once runs exist. Entry readings use `ReadingKind.Titration`.
+> - **Next:** the screens (SC-5) and the AAS calculation.
+> - Still genuinely open: Q8 (a real worked example to validate against), Q14 (rounding convention), and the
+>   deferred AAS calibration curve.
 
 **This spec ends at a decision gate (Q1-Q14 in the recon doc). No code, migration or test is written from it
 until the gate is answered. Every `ThWtStd`, `ThWtTest`, `TheoWt`, `TheoCs` value below is written

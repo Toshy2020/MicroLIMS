@@ -15,7 +15,7 @@ public record SystemSuitabilityRunView(
     int TestDefinitionId, string? TestCode, string? TestName, string? MethodAbbreviation,
     int SectionId, string? SectionName,
     int EquipmentId, string? EquipmentCode, string? EquipmentName,
-    int ChromatographyColumnId, string? ColumnCode, string? ColumnName,
+    int? ChromatographyColumnId, string? ColumnCode, string? ColumnName,
     int ReferenceStandardMaterialId, string? ReferenceStandardName, string? ReferenceStandardBatch,
     decimal StandardPurityPercent, decimal StandardWeightMg, decimal StandardDilution, decimal StandardMeanArea,
     decimal? RsdPercent, decimal? Resolution, decimal? TailingFactor, decimal? TheoreticalPlates,

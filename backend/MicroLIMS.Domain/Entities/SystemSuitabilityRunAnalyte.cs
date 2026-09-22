@@ -51,6 +51,10 @@ public class SystemSuitabilityRunAnalyte
     // Computed RSD across replicate responses (drives pass/fail gate when responses are given; transcribed RsdPercent is recorded alongside)
     public decimal? ComputedRsdPercent { get; set; }
 
+    // Titration only: blank titre EP_blank (mL), titrated once with the standard and
+    // subtracted from both EP_test and EP_std for every sample linked to this run
+    public decimal? BlankTitreMl { get; set; }
+
     // Replicate responses for this standard
     public List<SystemSuitabilityStandardResponse> Responses { get; set; } = new();
 }

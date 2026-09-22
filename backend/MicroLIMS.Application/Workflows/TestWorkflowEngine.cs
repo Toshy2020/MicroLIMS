@@ -4020,7 +4020,8 @@ public class TestWorkflowEngine : ITestWorkflowEngine
         if (run.SectionId != definition.SectionId)
             throw new InvalidOperationException("Linked system suitability run is for a different laboratory section.");
 
-        // 4. Validate Responses
+        // 4. Validate Responses (peak areas, or sample titres EP_test in mL for titration)
+        bool isTitration = definition.ResponseMode == ResponseMode.TitrationVolume;
         var specAnalyteIds = specs.Select(s => s.TestAnalyteId!.Value).ToHashSet();
         if (payload.Responses.Any(r => !specAnalyteIds.Contains(r.TestAnalyteId)))
             throw new InvalidOperationException("Responses contain an analyte not configured in specifications.");
@@ -4037,7 +4038,7 @@ public class TestWorkflowEngine : ITestWorkflowEngine
                 if (matches.Count != 1)
                     throw new InvalidOperationException($"Missing or duplicate response for analyte '{s.ParameterName}', preparation {p}.");
                 if (matches[0].Response <= 0)
-                    throw new InvalidOperationException($"Response must be greater than zero for analyte '{s.ParameterName}', preparation {p}.");
+                    throw new InvalidOperationException($"{(isTitration ? "Titre" : "Response")} must be greater than zero for analyte '{s.ParameterName}', preparation {p}.");
             }
         }
 
@@ -4059,6 +4060,12 @@ public class TestWorkflowEngine : ITestWorkflowEngine
             if (!runAnalyte.TheoreticalWeightMg.HasValue || runAnalyte.TheoreticalWeightMg.Value <= 0)
                 throw new InvalidOperationException($"Linked system suitability run analyte '{runAnalyte.AnalyteName}' has missing or invalid theoretical standard weight.");
 
+            // Titration: EP_blank was titrated once with the standard and is carried on the run (SC-4).
+            if (isTitration && !runAnalyte.BlankTitreMl.HasValue)
+                throw new InvalidOperationException($"Linked system suitability run analyte '{runAnalyte.AnalyteName}' has no blank titre - it is not a titration run.");
+            if (!isTitration && runAnalyte.BlankTitreMl.HasValue)
+                throw new InvalidOperationException($"Linked system suitability run analyte '{runAnalyte.AnalyteName}' is a titration run, but this test measures peak area.");
+
             if (!runAnalyte.MoisturePercent.HasValue || runAnalyte.MoisturePercent.Value < 0 || runAnalyte.MoisturePercent.Value >= 100)
                 throw new InvalidOperationException($"Linked system suitability run analyte '{runAnalyte.AnalyteName}' has missing or invalid moisture percent.");
 
@@ -4076,7 +4083,9 @@ public class TestWorkflowEngine : ITestWorkflowEngine
                 spec: s,
                 preparations: payload.Preparations,
                 responses: analyteResponses,
-                maxPreparationRsdPercent: definition.HplcMaxPreparationRsdPercent);
+                maxPreparationRsdPercent: definition.HplcMaxPreparationRsdPercent,
+                responseMode: definition.ResponseMode,
+                blankTitreMl: isTitration ? runAnalyte.BlankTitreMl : null);
 
             var canonicalLimit = !string.IsNullOrWhiteSpace(s.SpecLimit)
                 ? s.SpecLimit
@@ -4105,7 +4114,7 @@ public class TestWorkflowEngine : ITestWorkflowEngine
             {
                 paramResult.Readings.Add(new ResultReading
                 {
-                    Kind = ReadingKind.Replicate,
+                    Kind = isTitration ? ReadingKind.Titration : ReadingKind.Replicate,
                     Stage = prepCalc.PreparationIndex,
                     Index = 1,
                     Value1 = prepCalc.TestResponse,

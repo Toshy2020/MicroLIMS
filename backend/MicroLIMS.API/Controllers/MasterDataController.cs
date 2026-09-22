@@ -181,7 +181,8 @@ public record CreateTestDefinitionRequest(
     int? WvCapsuleS1MaxForRetest = null,
     int? WvCapsuleS2ExtraUnits = null,
     int? WvCapsuleS2MaxOutside = null,
-    decimal? HplcMaxPreparationRsdPercent = null);
+    decimal? HplcMaxPreparationRsdPercent = null,
+    ResponseMode ResponseMode = ResponseMode.PeakArea);
 // SectionId: move the test to another laboratory section (null = keep). Test
 // orders already created keep the section they were created with.
 public record UpdateTestDefinitionRequest(
@@ -236,7 +237,8 @@ public record UpdateTestDefinitionRequest(
     int? WvCapsuleS1MaxForRetest = null,
     int? WvCapsuleS2ExtraUnits = null,
     int? WvCapsuleS2MaxOutside = null,
-    decimal? HplcMaxPreparationRsdPercent = null);
+    decimal? HplcMaxPreparationRsdPercent = null,
+    ResponseMode? ResponseMode = null);
 public record UpdateWorkflowTypeRequest(WorkflowType WorkflowType);
 
 public record StepMediaRequest(int MaterialId, bool IsRequired, int DisplayOrder, int? MediaIncubationConditionId);
@@ -2061,6 +2063,11 @@ public class MasterDataController : ControllerBase
                 throw new InvalidOperationException("Maximum preparation RSD percent must be greater than zero.");
         }
 
+        if (!Enum.IsDefined(request.ResponseMode))
+            throw new InvalidOperationException("Unknown response mode.");
+        if (request.ResponseMode != ResponseMode.PeakArea && request.WorkflowType != WorkflowType.StandardComparison)
+            throw new InvalidOperationException("Response mode applies only to standard-comparison tests.");
+
         var entity = new TestDefinition
         {
             Code = request.Code,
@@ -2114,7 +2121,8 @@ public class MasterDataController : ControllerBase
             WvCapsuleS1MaxForRetest = request.WorkflowType == WorkflowType.WeightVariation ? (request.WvCapsuleS1MaxForRetest ?? 6) : request.WvCapsuleS1MaxForRetest,
             WvCapsuleS2ExtraUnits = request.WorkflowType == WorkflowType.WeightVariation ? (request.WvCapsuleS2ExtraUnits ?? 40) : request.WvCapsuleS2ExtraUnits,
             WvCapsuleS2MaxOutside = request.WorkflowType == WorkflowType.WeightVariation ? (request.WvCapsuleS2MaxOutside ?? 6) : request.WvCapsuleS2MaxOutside,
-            HplcMaxPreparationRsdPercent = request.WorkflowType == WorkflowType.StandardComparison ? request.HplcMaxPreparationRsdPercent : null
+            HplcMaxPreparationRsdPercent = request.WorkflowType == WorkflowType.StandardComparison ? request.HplcMaxPreparationRsdPercent : null,
+            ResponseMode = request.ResponseMode
         };
         _db.TestDefinitions.Add(entity);
         await _db.SaveChangesAsync();
@@ -2421,6 +2429,15 @@ public class MasterDataController : ControllerBase
                 throw new InvalidOperationException("Maximum preparation RSD percent must be greater than zero.");
         }
 
+        var effectiveResponseMode = request.ResponseMode ?? entity.ResponseMode;
+        if (!Enum.IsDefined(effectiveResponseMode))
+            throw new InvalidOperationException("Unknown response mode.");
+        if (effectiveResponseMode != ResponseMode.PeakArea && effectiveWorkflowType != WorkflowType.StandardComparison)
+            throw new InvalidOperationException("Response mode applies only to standard-comparison tests.");
+        // Runs and results are measured one way; switching HPLC <-> titration after that would misread them.
+        if (effectiveResponseMode != entity.ResponseMode && await _db.SystemSuitabilityRuns.AnyAsync(r => r.TestDefinitionId == entity.Id))
+            throw new InvalidOperationException("Response mode cannot be changed once suitability runs exist for this test.");
+
         entity.Code = request.Code;
         entity.DisplayName = request.DisplayName;
         if (request.WorkflowType.HasValue) entity.WorkflowType = request.WorkflowType.Value;
@@ -2494,6 +2511,7 @@ public class MasterDataController : ControllerBase
         if (request.WvCapsuleS2MaxOutside.HasValue) entity.WvCapsuleS2MaxOutside = request.WvCapsuleS2MaxOutside.Value;
         else if (effectiveWorkflowType == WorkflowType.WeightVariation && !entity.WvCapsuleS2MaxOutside.HasValue) entity.WvCapsuleS2MaxOutside = 6;
         if (request.HplcMaxPreparationRsdPercent.HasValue) entity.HplcMaxPreparationRsdPercent = request.HplcMaxPreparationRsdPercent.Value;
+        entity.ResponseMode = effectiveResponseMode;
 
 
         await _db.SaveChangesAsync();

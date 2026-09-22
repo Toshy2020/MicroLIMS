@@ -19,7 +19,8 @@ public class SystemSuitabilityRun
     public int EquipmentId { get; set; }
     public Equipment? Equipment { get; set; }
 
-    public int ChromatographyColumnId { get; set; }
+    // Null for titration runs (no column)
+    public int? ChromatographyColumnId { get; set; }
     public ChromatographyColumn? ChromatographyColumn { get; set; }
 
     public int ReferenceStandardMaterialId { get; set; }

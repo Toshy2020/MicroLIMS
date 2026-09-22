@@ -25,6 +25,7 @@ public record RecordTestResultRequest(string StepName, List<decimal>? PlateReadi
 public record RecordStandardComparisonPreparationRequest(decimal TheoreticalWeightMg, decimal ActualWeightMg, string? WeighInJustification = null);
 public record RecordStandardComparisonResponseRequest(int TestAnalyteId, int PreparationIndex, decimal Response);
 public record RecordStandardComparisonResultRequest(DateTime AnalysedAt, int? EquipmentId, List<RecordStandardComparisonPreparationRequest> Preparations, List<RecordStandardComparisonResponseRequest> Responses, string Password, string? Comment = null);
+public record StandardComparisonContextDto(string ResponseMode, string? StageRole, int? SampleReplicates, int? StandardReplicates, decimal SampleWeighInTolerancePercent, decimal? MaxPreparationRsdPercent, string? Message);
 public record RecordElementalAssayElementRequest(int SpecificationId, int CalibrationRunAnalyteId, decimal ReportedPpm, bool OverRange, bool BelowLoq);
 public record RecordElementalAssayResultRequest(decimal UnitAmount, DateTime AnalysedAt, List<RecordElementalAssayElementRequest> Elements, string Password, string? Comment = null);
 public record RecordMeasurementParameterRequest(int SpecificationId, List<decimal> Readings);
@@ -174,6 +175,35 @@ public class TestWorkflowController : ControllerBase
     {
         await _scopeService.EnsureTestOrderAccessAsync(CurrentUserId, testOrderId);
         return await RunAsync(() => _currentStepView.GetAsync(testOrderId));
+    }
+
+    // What the Standard-Comparison entry screen needs before any typing: the
+    // response mode and how many sample preparations the sample's stage
+    // requires. Message is set when the stage can't be resolved; entry is
+    // still validated server-side on submit.
+    [HttpGet("{testOrderId}/standard-comparison-context")]
+    public async Task<IActionResult> GetStandardComparisonContext(int testOrderId, CancellationToken ct)
+    {
+        await _scopeService.EnsureTestOrderAccessAsync(CurrentUserId, testOrderId, ct);
+        return await RunAsync(async () =>
+        {
+            var testCode = await _db.TestOrders.Where(o => o.Id == testOrderId).Select(o => o.TestCode).FirstOrDefaultAsync(ct)
+                ?? throw new InvalidOperationException($"Test order {testOrderId} not found.");
+            var definition = await _db.TestDefinitions.FirstOrDefaultAsync(t => t.Code == testCode, ct)
+                ?? throw new InvalidOperationException($"Test code '{testCode}' is not in the Test Master.");
+            if (definition.WorkflowType != WorkflowType.StandardComparison)
+                throw new InvalidOperationException($"Test \"{testCode}\" is not a standard-comparison test.");
+
+            var resolution = await StageReplicateResolver.ResolveForTestOrderAsync(_db, testOrderId, ct);
+            return new StandardComparisonContextDto(
+                definition.ResponseMode.ToString(),
+                resolution.StageRole?.ToString(),
+                resolution.IsConfigured ? resolution.SampleReplicates : null,
+                resolution.IsConfigured ? resolution.StandardReplicates : null,
+                StandardComparisonCalculator.SampleWeighInTolerancePercent,
+                definition.HplcMaxPreparationRsdPercent,
+                resolution.IsConfigured ? null : resolution.Message);
+        });
     }
 
     [HttpGet("{testOrderId}/sibling-pathogen-orders")]

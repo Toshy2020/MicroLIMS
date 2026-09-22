@@ -20,12 +20,13 @@ public record CreateSystemSuitabilityRunAnalyteRequest(
     decimal? TheoreticalWeightMg = null,
     decimal? MoisturePercent = null,
     string? WeighInJustification = null,
-    List<decimal>? Responses = null);
+    List<decimal>? Responses = null,
+    decimal? BlankTitreMl = null);
 
 public record CreateSystemSuitabilityRunRequest(
     int TestDefinitionId,
     int EquipmentId,
-    int ChromatographyColumnId,
+    int? ChromatographyColumnId,
     int ReferenceStandardMaterialId = 0,
     decimal StandardWeightMg = 0,
     decimal StandardDilution = 0,
@@ -67,7 +68,8 @@ public record SystemSuitabilityRunAnalyteView(
     bool StandardWeighInOutOfWindow = false,
     string? WeighInJustification = null,
     decimal? ComputedRsdPercent = null,
-    List<SystemSuitabilityStandardResponseDto>? Responses = null)
+    List<SystemSuitabilityStandardResponseDto>? Responses = null,
+    decimal? BlankTitreMl = null)
 {
     public static SystemSuitabilityRunAnalyteView From(SystemSuitabilityRunAnalyte a) => new(
         a.Id,
@@ -94,7 +96,8 @@ public record SystemSuitabilityRunAnalyteView(
         a.StandardWeighInOutOfWindow,
         a.WeighInJustification,
         a.ComputedRsdPercent,
-        a.Responses?.OrderBy(r => r.Index).Select(r => new SystemSuitabilityStandardResponseDto(r.Id, r.Index, r.Response)).ToList());
+        a.Responses?.OrderBy(r => r.Index).Select(r => new SystemSuitabilityStandardResponseDto(r.Id, r.Index, r.Response)).ToList(),
+        a.BlankTitreMl);
 }
 
 public record SuitabilityRunReportAnalyteDto(
@@ -123,7 +126,8 @@ public record SuitabilityRunReportAnalyteDto(
     bool StandardWeighInOutOfWindow = false,
     string? WeighInJustification = null,
     decimal? ComputedRsdPercent = null,
-    List<SystemSuitabilityStandardResponseDto>? Responses = null);
+    List<SystemSuitabilityStandardResponseDto>? Responses = null,
+    decimal? BlankTitreMl = null);
 
 public record SystemSuitabilityRunFilter(
     int? TestDefinitionId = null,

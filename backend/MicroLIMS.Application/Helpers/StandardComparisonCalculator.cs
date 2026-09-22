@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Text.Json;
 using MicroLIMS.Application.Services;
 using MicroLIMS.Domain.Entities;
+using MicroLIMS.Domain.Enums;
 
 namespace MicroLIMS.Application.Helpers;
 
@@ -34,8 +35,20 @@ public static class StandardComparisonCalculator
         decimal thWtTest,
         decimal actWtTest,
         decimal moisturePercent,
-        decimal purityPercent)
+        decimal purityPercent,
+        decimal? blankTitre = null)
     {
+        if (blankTitre.HasValue)
+        {
+            // Titration (SOP STM-PC-013 6.9.2.5): Response = (EP_test - EP_blank) / (EP_std - EP_blank)
+            if (blankTitre.Value < 0m)
+                throw new InvalidOperationException("Blank titre must not be negative.");
+            if (responseTest <= blankTitre.Value)
+                throw new InvalidOperationException("Sample titre must be greater than the blank titre.");
+            if (responseStd <= blankTitre.Value)
+                throw new InvalidOperationException("Standard titre must be greater than the blank titre.");
+        }
+
         if (responseTest <= 0m)
             throw new InvalidOperationException("Test response must be greater than zero.");
         if (responseStd <= 0m)
@@ -54,12 +67,13 @@ public static class StandardComparisonCalculator
             throw new InvalidOperationException("Standard purity percent must be greater than zero.");
 
         // % Assay (of label claim) =
-        //     (Response_test / Response_std)
+        //     (Response_test / Response_std)      [titration: (EP_test - EP_blank) / (EP_std - EP_blank)]
         //   x (ActWt_std / ThWt_std)
         //   x (ThWt_test / ActWt_test)
         //   x ((100 - MC) / 100)
         //   x P
-        decimal responseRatio = responseTest / responseStd;
+        decimal blank = blankTitre ?? 0m;
+        decimal responseRatio = (responseTest - blank) / (responseStd - blank);
         decimal stdWeightRatio = actWtStd / thWtStd;
         decimal sampleWeightRatio = thWtTest / actWtTest;
         decimal moistureCorrection = (100m - moisturePercent) / 100m;
@@ -110,8 +124,15 @@ public static class StandardComparisonCalculator
         Specification spec,
         IReadOnlyList<Workflows.StandardComparisonPreparationInput> preparations,
         IReadOnlyList<Workflows.StandardComparisonResponseInput> responses,
-        decimal? maxPreparationRsdPercent)
+        decimal? maxPreparationRsdPercent,
+        ResponseMode responseMode = ResponseMode.PeakArea,
+        decimal? blankTitreMl = null)
     {
+        if (responseMode == ResponseMode.TitrationVolume && !blankTitreMl.HasValue)
+            throw new InvalidOperationException("Blank titre is required for titration.");
+        if (responseMode == ResponseMode.PeakArea && blankTitreMl.HasValue)
+            throw new InvalidOperationException("Blank titre applies only to titration.");
+
         ArgumentNullException.ThrowIfNull(spec);
         ArgumentNullException.ThrowIfNull(preparations);
         ArgumentNullException.ThrowIfNull(responses);
@@ -135,7 +156,8 @@ public static class StandardComparisonCalculator
                 prep.TheoreticalWeightMg,
                 prep.ActualWeightMg,
                 moisturePercent,
-                standardPurityPercent);
+                standardPurityPercent,
+                blankTitreMl);
 
             prepDataList.Add(new StandardComparisonPreparationData(
                 PreparationIndex: p,
@@ -177,7 +199,9 @@ public static class StandardComparisonCalculator
             PreparationRsdPercent: rsdPercent,
             MaxPreparationRsdPercent: maxPreparationRsdPercent,
             RsdExceeded: rsdExceeded,
-            ReviewReason: reviewReason);
+            ReviewReason: reviewReason,
+            ResponseMode: responseMode.ToString(),
+            BlankTitreMl: blankTitreMl);
 
         string calculationJson = JsonSerializer.Serialize(calcData, JsonOptions);
 

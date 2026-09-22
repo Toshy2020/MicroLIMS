@@ -24,4 +24,8 @@ public record StandardComparisonCalculationData(
     decimal? PreparationRsdPercent,
     decimal? MaxPreparationRsdPercent,
     bool RsdExceeded,
-    string? ReviewReason);
+    string? ReviewReason,
+    // "PeakArea" or "TitrationVolume"; for titration StandardMeanArea holds the mean EP_std (mL)
+    // and TestResponse the EP_test (mL); BlankTitreMl is the run's EP_blank.
+    string ResponseMode = "PeakArea",
+    decimal? BlankTitreMl = null);

@@ -31,6 +31,7 @@ public class SystemSuitabilityRunAnalyteConfiguration : IEntityTypeConfiguration
         builder.Property(a => a.StandardWeighInOutOfWindow).HasDefaultValue(false);
         builder.Property(a => a.WeighInJustification).HasMaxLength(1000);
         builder.Property(a => a.ComputedRsdPercent).HasPrecision(28, 10);
+        builder.Property(a => a.BlankTitreMl).HasPrecision(18, 6);
 
         builder.Property(a => a.FailureReasons).HasMaxLength(2000);
 

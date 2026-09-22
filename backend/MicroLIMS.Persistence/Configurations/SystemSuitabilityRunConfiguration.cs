@@ -54,6 +54,7 @@ public class SystemSuitabilityRunConfiguration : IEntityTypeConfiguration<System
         builder.HasOne(r => r.ChromatographyColumn)
             .WithMany()
             .HasForeignKey(r => r.ChromatographyColumnId)
+            .IsRequired(false)
             .OnDelete(DeleteBehavior.Restrict);
 
         builder.HasOne(r => r.ReferenceStandardMaterial)

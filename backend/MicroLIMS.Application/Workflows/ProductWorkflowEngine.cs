@@ -49,12 +49,28 @@ public class ProductWorkflowEngine : IProductWorkflowEngine
                 $"Item '{item.Name}' has no assigned tests. Configuration must be completed " +
                 "by the Section Head before samples can be received.");
 
+        // FP-only, mirroring the string capture above: resolve the chosen
+        // name to its ProductionStage row so Sample.ProductionStageId can
+        // be set alongside the historical string. An unrecognised name
+        // (renamed/deleted stage, typo) leaves the FK null rather than
+        // failing the receipt - the string still records what was chosen.
+        int? productionStageId = null;
+        if (item.Category == SampleCategory.FinishedProduct && !string.IsNullOrWhiteSpace(request.ProductionStage))
+        {
+            var stageName = request.ProductionStage.Trim();
+            productionStageId = await _db.ProductionStages
+                .Where(p => p.Name.ToLower() == stageName.ToLower())
+                .Select(p => (int?)p.Id)
+                .FirstOrDefaultAsync();
+        }
+
         var sample = new Sample
         {
             ReferenceNumber = await _refNumbers.GenerateAsync(item.Category),
             Category = item.Category,
             ItemId = item.Id,
             ProductionStage = item.Category == SampleCategory.FinishedProduct ? request.ProductionStage : null,
+            ProductionStageId = item.Category == SampleCategory.FinishedProduct ? productionStageId : null,
             CauseOfTestingId = request.CauseOfTestingId,
             SampleQuantity = request.SampleQuantity,
             SampledBy = request.SampledBy,

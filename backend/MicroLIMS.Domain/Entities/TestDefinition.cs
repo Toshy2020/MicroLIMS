@@ -103,6 +103,10 @@ public class TestDefinition
     public decimal? HplcMaxPreparationRsdPercent { get; set; }
 
     public List<TestAnalyte> Analytes { get; set; } = new();
+
+    // Finished Product / Standard-Comparison Assay - per-stage-role
+    // standard/sample replicate counts. See TestDefinitionStageReplicate.
+    public List<TestDefinitionStageReplicate> StageReplicates { get; set; } = new();
 }
 
 

@@ -92,6 +92,8 @@ public record UpdateSpecificationRequest(
     decimal? ConversionFactor = null,
     DosageForm? DosageForm = null);
 public record CreateDiluentTypeRequest(string Name, bool RequiresBatchTracking, int? MaterialId);
+public record CreateProductionStageRequest(string Name, ProductionStageRole Role);
+public record UpdateProductionStageRequest(string Name, ProductionStageRole Role);
 public record CreateEquipmentRequest(
     string Name,
     string Code,
@@ -902,12 +904,15 @@ public class MasterDataController : ControllerBase
 
     [Authorize(Roles = RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
     [HttpPost("production-stages")]
-    public async Task<IActionResult> CreateProductionStage([FromBody] string name)
+    public async Task<IActionResult> CreateProductionStage(CreateProductionStageRequest request)
     {
-        if (await _db.ProductionStages.AnyAsync(s => s.Name.ToLower() == name.ToLower()))
-            throw new InvalidOperationException($"Production Stage \"{name}\" already exists.");
+        if (string.IsNullOrWhiteSpace(request.Name))
+            throw new InvalidOperationException("Name is required.");
 
-        var entity = new ProductionStage { Name = name };
+        if (await _db.ProductionStages.AnyAsync(s => s.Name.ToLower() == request.Name.ToLower()))
+            throw new InvalidOperationException($"Production Stage \"{request.Name}\" already exists.");
+
+        var entity = new ProductionStage { Name = request.Name, Role = request.Role };
         _db.ProductionStages.Add(entity);
         await _db.SaveChangesAsync();
         return Ok(ApiResponse<object>.Ok(entity));
@@ -915,15 +920,19 @@ public class MasterDataController : ControllerBase
 
     [Authorize(Roles = RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
     [HttpPut("production-stages/{id}")]
-    public async Task<IActionResult> UpdateProductionStage(int id, [FromBody] string name)
+    public async Task<IActionResult> UpdateProductionStage(int id, UpdateProductionStageRequest request)
     {
         var entity = await _db.ProductionStages.FirstOrDefaultAsync(s => s.Id == id)
             ?? throw new InvalidOperationException($"Production Stage {id} not found.");
 
-        if (await _db.ProductionStages.AnyAsync(s => s.Id != id && s.Name.ToLower() == name.ToLower()))
-            throw new InvalidOperationException($"Production Stage \"{name}\" already exists.");
+        if (string.IsNullOrWhiteSpace(request.Name))
+            throw new InvalidOperationException("Name is required.");
 
-        entity.Name = name;
+        if (await _db.ProductionStages.AnyAsync(s => s.Id != id && s.Name.ToLower() == request.Name.ToLower()))
+            throw new InvalidOperationException($"Production Stage \"{request.Name}\" already exists.");
+
+        entity.Name = request.Name;
+        entity.Role = request.Role;
         await _db.SaveChangesAsync();
         return Ok(ApiResponse<object>.Ok(entity));
     }
@@ -3075,6 +3084,108 @@ public class MasterDataController : ControllerBase
         return Ok(ApiResponse<object>.Ok(new
         {
             message = $"Analyte {analyte.Element} ({analyte.WavelengthNm} nm) deleted successfully.",
+            deleted = true
+        }));
+    }
+
+    // ---- Test Definition Stage Replicates (FP Standard-Comparison Assay -
+    // per-ProductionStageRole standard/sample replicate counts) ----
+    [HttpGet("test-definitions/{id:int}/stage-replicates")]
+    public async Task<IActionResult> GetTestDefinitionStageReplicates(int id)
+    {
+        var test = await _db.TestDefinitions.FindAsync(id)
+            ?? throw new InvalidOperationException($"Test {id} not found.");
+
+        var replicates = await _db.TestDefinitionStageReplicates
+            .Where(r => r.TestDefinitionId == id)
+            .OrderBy(r => r.Role)
+            .ToListAsync();
+
+        return Ok(ApiResponse<object>.Ok(replicates.Select(TestDefinitionStageReplicateDto.From)));
+    }
+
+    [Authorize(Roles = RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
+    [HttpPost("test-definitions/{id:int}/stage-replicates")]
+    public async Task<IActionResult> CreateTestDefinitionStageReplicate(int id, CreateTestDefinitionStageReplicateRequest request)
+    {
+        var test = await _db.TestDefinitions.FindAsync(id)
+            ?? throw new InvalidOperationException($"Test {id} not found.");
+
+        var scope = await _scope.GetAccessibleSectionIdsAsync(CurrentUserId);
+        if (scope is not null && !scope.Contains(test.SectionId))
+            throw new UnauthorizedAccessException("This test belongs to a laboratory section you are not assigned to.");
+
+        if (request.StandardReplicates < 1)
+            throw new InvalidOperationException("Standard replicates must be at least 1.");
+        if (request.SampleReplicates < 1)
+            throw new InvalidOperationException("Sample replicates must be at least 1.");
+
+        if (await _db.TestDefinitionStageReplicates.AnyAsync(r => r.TestDefinitionId == id && r.Role == request.Role))
+            throw new InvalidOperationException($"Stage replicate configuration for role {request.Role} already exists for this test definition.");
+
+        var entity = new TestDefinitionStageReplicate
+        {
+            TestDefinitionId = id,
+            Role = request.Role,
+            StandardReplicates = request.StandardReplicates,
+            SampleReplicates = request.SampleReplicates
+        };
+
+        _db.TestDefinitionStageReplicates.Add(entity);
+        await _db.SaveChangesAsync();
+        return Ok(ApiResponse<object>.Ok(TestDefinitionStageReplicateDto.From(entity)));
+    }
+
+    [Authorize(Roles = RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
+    [HttpPut("test-definitions/{id:int}/stage-replicates/{replicateId:int}")]
+    public async Task<IActionResult> UpdateTestDefinitionStageReplicate(int id, int replicateId, UpdateTestDefinitionStageReplicateRequest request)
+    {
+        var test = await _db.TestDefinitions.FindAsync(id)
+            ?? throw new InvalidOperationException($"Test {id} not found.");
+
+        var scope = await _scope.GetAccessibleSectionIdsAsync(CurrentUserId);
+        if (scope is not null && !scope.Contains(test.SectionId))
+            throw new UnauthorizedAccessException("This test belongs to a laboratory section you are not assigned to.");
+
+        var replicate = await _db.TestDefinitionStageReplicates.FirstOrDefaultAsync(r => r.Id == replicateId && r.TestDefinitionId == id)
+            ?? throw new InvalidOperationException($"Stage replicate {replicateId} not found for test {id}.");
+
+        if (request.StandardReplicates.HasValue)
+        {
+            if (request.StandardReplicates.Value < 1)
+                throw new InvalidOperationException("Standard replicates must be at least 1.");
+            replicate.StandardReplicates = request.StandardReplicates.Value;
+        }
+        if (request.SampleReplicates.HasValue)
+        {
+            if (request.SampleReplicates.Value < 1)
+                throw new InvalidOperationException("Sample replicates must be at least 1.");
+            replicate.SampleReplicates = request.SampleReplicates.Value;
+        }
+
+        await _db.SaveChangesAsync();
+        return Ok(ApiResponse<object>.Ok(TestDefinitionStageReplicateDto.From(replicate)));
+    }
+
+    [Authorize(Roles = RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
+    [HttpDelete("test-definitions/{id:int}/stage-replicates/{replicateId:int}")]
+    public async Task<IActionResult> DeleteTestDefinitionStageReplicate(int id, int replicateId)
+    {
+        var test = await _db.TestDefinitions.FindAsync(id)
+            ?? throw new InvalidOperationException($"Test {id} not found.");
+
+        var scope = await _scope.GetAccessibleSectionIdsAsync(CurrentUserId);
+        if (scope is not null && !scope.Contains(test.SectionId))
+            throw new UnauthorizedAccessException("This test belongs to a laboratory section you are not assigned to.");
+
+        var replicate = await _db.TestDefinitionStageReplicates.FirstOrDefaultAsync(r => r.Id == replicateId && r.TestDefinitionId == id)
+            ?? throw new InvalidOperationException($"Stage replicate {replicateId} not found for test {id}.");
+
+        _db.TestDefinitionStageReplicates.Remove(replicate);
+        await _db.SaveChangesAsync();
+        return Ok(ApiResponse<object>.Ok(new
+        {
+            message = "Stage replicate configuration deleted.",
             deleted = true
         }));
     }

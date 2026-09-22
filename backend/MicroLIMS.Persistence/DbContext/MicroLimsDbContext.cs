@@ -76,6 +76,7 @@ public class MicroLimsDbContext : Microsoft.EntityFrameworkCore.DbContext
     public DbSet<SystemSuitabilityRunAnalyte> SystemSuitabilityRunAnalytes => Set<SystemSuitabilityRunAnalyte>();
     public DbSet<HplcAssayResult> HplcAssayResults => Set<HplcAssayResult>();
     public DbSet<TestAnalyte> TestAnalytes => Set<TestAnalyte>();
+    public DbSet<TestDefinitionStageReplicate> TestDefinitionStageReplicates => Set<TestDefinitionStageReplicate>();
     public DbSet<CalibrationRun> CalibrationRuns => Set<CalibrationRun>();
     public DbSet<CalibrationRunDocument> CalibrationRunDocuments => Set<CalibrationRunDocument>();
     public DbSet<CalibrationRunAnalyte> CalibrationRunAnalytes => Set<CalibrationRunAnalyte>();

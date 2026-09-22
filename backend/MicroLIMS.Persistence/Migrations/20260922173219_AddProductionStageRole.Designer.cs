@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using MicroLIMS.Persistence.DbContext;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -12,9 +13,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace MicroLIMS.Persistence.Migrations
 {
     [DbContext(typeof(MicroLimsDbContext))]
-    partial class MicroLimsDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260922173219_AddProductionStageRole")]
+    partial class AddProductionStageRole
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -6573,34 +6576,6 @@ namespace MicroLIMS.Persistence.Migrations
                     b.ToTable("TestDefinitions");
                 });
 
-            modelBuilder.Entity("MicroLIMS.Domain.Entities.TestDefinitionStageReplicate", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("Role")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("SampleReplicates")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("StandardReplicates")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("TestDefinitionId")
-                        .HasColumnType("integer");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("TestDefinitionId", "Role")
-                        .IsUnique();
-
-                    b.ToTable("TestDefinitionStageReplicates");
-                });
-
             modelBuilder.Entity("MicroLIMS.Domain.Entities.TestOrder", b =>
                 {
                     b.Property<int>("Id")
@@ -9454,17 +9429,6 @@ namespace MicroLIMS.Persistence.Migrations
                     b.Navigation("Section");
                 });
 
-            modelBuilder.Entity("MicroLIMS.Domain.Entities.TestDefinitionStageReplicate", b =>
-                {
-                    b.HasOne("MicroLIMS.Domain.Entities.TestDefinition", "TestDefinition")
-                        .WithMany("StageReplicates")
-                        .HasForeignKey("TestDefinitionId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("TestDefinition");
-                });
-
             modelBuilder.Entity("MicroLIMS.Domain.Entities.TestOrder", b =>
                 {
                     b.HasOne("MicroLIMS.Domain.Entities.Room", "Room")
@@ -9874,8 +9838,6 @@ namespace MicroLIMS.Persistence.Migrations
             modelBuilder.Entity("MicroLIMS.Domain.Entities.TestDefinition", b =>
                 {
                     b.Navigation("Analytes");
-
-                    b.Navigation("StageReplicates");
 
                     b.Navigation("Steps");
                 });

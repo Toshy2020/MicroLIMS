@@ -15,6 +15,7 @@ import { useAuth } from "../../contexts/AuthContext";
 import { ConfirmationDialog } from "../../components/ConfirmationDialog";
 import { StepChainStrip } from "./components/StepChainStrip";
 import { HplcAssayPanel } from "./HplcAssayPanel";
+import { HplcMultiAnalytePanel } from "./HplcMultiAnalytePanel";
 import { ElementalAssayPanel } from "./ElementalAssayPanel";
 import { MeasurementPanel } from "./MeasurementPanel";
 import { GravimetricPanel } from "./GravimetricPanel";
@@ -304,6 +305,23 @@ export function TestWorkflowDialog({ testOrderId, testCode, category, displayNam
   // sample entry only.
   if (current.workflowType === "HplcAssay") {
     return <HplcAssayPanel testOrderId={testOrderId} displayName={displayName} current={current} onRecorded={load} onClose={onClose} />;
+  }
+
+  // HPLC Assay (Multi-Vitamin) - signed multi-analyte suitability run link +
+  // per-vitamin preparation/injection area grid.
+  if (current.workflowType === "HplcMultiAnalyte") {
+    return (
+      <HplcMultiAnalytePanel
+        testOrderId={testOrderId}
+        displayName={displayName}
+        testCode={testCode}
+        itemId={itemId}
+        sampleId={sampleId}
+        current={current}
+        onRecorded={load}
+        onClose={onClose}
+      />
+    );
   }
 
   // Elemental Assay (ICP-OES Calibration Curve) - signed calibration run analyte

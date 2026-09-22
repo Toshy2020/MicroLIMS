@@ -724,16 +724,22 @@ function AnalysisReadingsTable({ parameter, analysisType }: { parameter: Paramet
   const isVessel = r.some((x) => x.kind === "Vessel");
   const isDisintegration = analysisType === "Disintegration";
   const isWeightVariation = analysisType === "WeightVariation";
+  const isHplcMultiAnalyte = analysisType === "HplcMultiAnalyte";
   const isTablet = isWeightVariation && r.every((x) => x.value2 == null);
   type ReadingColumn = { label: string; get: (x: ResultReadingDetail) => string | null };
   const allCols: ReadingColumn[] = [
     {
-      label: "Stage",
-      get: (x) => (x.stage != null ? (isVessel || isDisintegration || isWeightVariation ? `S${x.stage}` : String(x.stage)) : null)
+      label: isHplcMultiAnalyte ? "Prep" : "Stage",
+      get: (x) =>
+        x.stage != null
+          ? isHplcMultiAnalyte || isVessel || isDisintegration || isWeightVariation
+            ? `${isHplcMultiAnalyte ? "P" : "S"}${x.stage}`
+            : String(x.stage)
+          : null
     },
     {
       label: "Time (min)",
-      get: (x) => (!isDisintegration && !isWeightVariation && x.timePointMinutes != null ? num(x.timePointMinutes) : null)
+      get: (x) => (!isDisintegration && !isWeightVariation && !isHplcMultiAnalyte && x.timePointMinutes != null ? num(x.timePointMinutes) : null)
     },
     {
       label: isVessel
@@ -742,6 +748,8 @@ function AnalysisReadingsTable({ parameter, analysisType }: { parameter: Paramet
         ? "Time (min)"
         : isWeightVariation
         ? (isTablet ? "Weight (mg)" : "Gross (mg)")
+        : isHplcMultiAnalyte
+        ? "Area"
         : "Value 1",
       get: (x) => (x.value1 != null ? num(x.value1) : isDisintegration && x.text ? x.text : null)
     },
@@ -758,14 +766,14 @@ function AnalysisReadingsTable({ parameter, analysisType }: { parameter: Paramet
       get: (x) => (isDisintegration || isWeightVariation ? null : (x.text || null))
     },
     {
-      label: isVessel ? "% Dissolved" : isWeightVariation ? "Net (mg)" : "Computed",
+      label: isVessel ? "% Dissolved" : isWeightVariation ? "Net (mg)" : isHplcMultiAnalyte ? "Amount / unit" : "Computed",
       get: (x) =>
         isDisintegration || isTablet
           ? null
           : x.computedValue != null
           ? x.kind === "Vessel"
             ? `${num(x.computedValue)} %`
-            : num(x.computedValue)
+            : num(x.computedValue, isHplcMultiAnalyte ? 4 : undefined)
           : null
     },
     {
@@ -781,7 +789,7 @@ function AnalysisReadingsTable({ parameter, analysisType }: { parameter: Paramet
       <Table size="small">
         <TableHead>
           <TableRow>
-            <TableCell sx={headSx}>#</TableCell>
+            <TableCell sx={headSx}>{isHplcMultiAnalyte ? "Inj" : "#"}</TableCell>
             {cols.map((c) => <TableCell key={c.label} sx={headSx}>{c.label}</TableCell>)}
           </TableRow>
         </TableHead>

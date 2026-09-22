@@ -16,6 +16,7 @@ export type WorkflowType =
   | "CountTest"
   | "Observation"
   | "HplcAssay"
+  | "HplcMultiAnalyte"
   | "ElementalAssay"
   | "Measurement"
   | "Gravimetric"

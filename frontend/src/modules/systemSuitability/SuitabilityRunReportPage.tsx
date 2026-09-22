@@ -44,6 +44,10 @@ export function SuitabilityRunReportPage() {
     { label: "Tailing factor", value: r.tailingFactor, limit: d.sstMaxTailingFactor, rule: "NMT" },
     { label: "Theoretical plates", value: r.theoreticalPlates, limit: d.sstMinTheoreticalPlates, rule: "NLT" }
   ];
+  const analytes = d.analytes ?? [];
+  const isMulti = analytes.length > 0;
+  const criterionCell = (value: number | null | undefined, limit: number | null | undefined, rule: "NMT" | "NLT") =>
+    `${v(value)} (${limit == null ? "not checked" : `${rule} ${limit}`})`;
 
   return (
     <PinnedLightTheme>
@@ -66,7 +70,7 @@ export function SuitabilityRunReportPage() {
           </div>
         </div>
 
-        <div className="two-col-grid">
+        {isMulti ? (
           <div className="section-card">
             <div className="section-label">instrument &amp; column</div>
             <div className="data-grid">
@@ -79,48 +83,123 @@ export function SuitabilityRunReportPage() {
               <span className="key">Column serial</span><span className="value mono">{d.columnSerialNumber ?? "—"}</span>
             </div>
           </div>
-          <div className="section-card">
-            <div className="section-label">reference standard</div>
-            <div className="data-grid">
-              <span className="key">Standard</span><span className="value">{r.referenceStandardName ?? "—"}</span>
-              <span className="key">Batch</span><span className="value mono">{r.referenceStandardBatch ?? "—"}</span>
-              <span className="key">Purity</span><span className="value mono">{v(r.standardPurityPercent)} %</span>
-              <span className="key">Standard weight</span><span className="value mono">{v(r.standardWeightMg)} mg</span>
-              <span className="key">Standard dilution</span><span className="value mono">{v(r.standardDilution)}</span>
-              <span className="key">Mean peak area</span><span className="value mono">{v(r.standardMeanArea)}</span>
+        ) : (
+          <div className="two-col-grid">
+            <div className="section-card">
+              <div className="section-label">instrument &amp; column</div>
+              <div className="data-grid">
+                <span className="key">Instrument</span><span className="value mono">{r.equipmentCode}</span>
+                <span className="key">Name</span><span className="value">{r.equipmentName ?? "—"}</span>
+                <span className="key">Manufacturer</span><span className="value">{d.equipmentVendor ?? "—"}</span>
+                <span className="key">CDS software</span><span className="value">{d.cdsSoftware ? (CDS_LABELS[d.cdsSoftware] ?? d.cdsSoftware) : "—"}</span>
+                <span className="key">Column</span><span className="value mono">{r.columnCode}</span>
+                <span className="key">Column name</span><span className="value">{r.columnName ?? "—"}</span>
+                <span className="key">Column serial</span><span className="value mono">{d.columnSerialNumber ?? "—"}</span>
+              </div>
+            </div>
+            <div className="section-card">
+              <div className="section-label">reference standard</div>
+              <div className="data-grid">
+                <span className="key">Standard</span><span className="value">{r.referenceStandardName ?? "—"}</span>
+                <span className="key">Batch</span><span className="value mono">{r.referenceStandardBatch ?? "—"}</span>
+                <span className="key">Purity</span><span className="value mono">{v(r.standardPurityPercent)} %</span>
+                <span className="key">Standard weight</span><span className="value mono">{v(r.standardWeightMg)} mg</span>
+                <span className="key">Standard dilution</span><span className="value mono">{v(r.standardDilution)}</span>
+                <span className="key">Mean peak area</span><span className="value mono">{v(r.standardMeanArea)}</span>
+              </div>
             </div>
           </div>
-        </div>
+        )}
 
-        <div className="section-card">
-          <div className="section-label">suitability criteria (entered from the CDS report)</div>
-          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
-            <thead>
-              <tr style={{ textAlign: "left", color: "var(--color-text-tertiary)" }}>
-                <th style={{ padding: "6px 4px" }}>Criterion</th>
-                <th style={{ padding: "6px 4px" }}>Measured</th>
-                <th style={{ padding: "6px 4px" }}>Acceptance (Test Master)</th>
-              </tr>
-            </thead>
-            <tbody>
-              {criteria.map((c) => (
-                <tr key={c.label} style={{ borderTop: "1px solid var(--color-border)" }}>
-                  <td style={{ padding: "6px 4px" }}>{c.label}</td>
-                  <td style={{ padding: "6px 4px" }} className="mono">{v(c.value)}</td>
-                  <td style={{ padding: "6px 4px" }}>{c.limit === null || c.limit === undefined ? "Not checked" : `${c.rule} ${c.limit}`}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          {!r.passed && r.failureReasons && (
-            <div style={{ marginTop: 10, fontSize: 13, color: "var(--color-danger, #b42318)" }}>
-              <strong>Failure reasons:</strong> {r.failureReasons}
+        {isMulti ? (
+          <div className="section-card">
+            <div className="section-label">per-vitamin standards &amp; suitability criteria (entered from the CDS report)</div>
+            <div style={{ overflowX: "auto" }}>
+              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+                <thead>
+                  <tr style={{ textAlign: "left", color: "var(--color-text-tertiary)" }}>
+                    <th style={{ padding: "6px 4px" }}>Vitamin / Analyte</th>
+                    <th style={{ padding: "6px 4px" }}>Standard</th>
+                    <th style={{ padding: "6px 4px" }}>Batch</th>
+                    <th style={{ padding: "6px 4px" }}>Purity %</th>
+                    <th style={{ padding: "6px 4px" }}>Weight (mg)</th>
+                    <th style={{ padding: "6px 4px" }}>Dilution</th>
+                    <th style={{ padding: "6px 4px" }}>Mean area</th>
+                    <th style={{ padding: "6px 4px" }}>%RSD (limit)</th>
+                    <th style={{ padding: "6px 4px" }}>Resolution (limit)</th>
+                    <th style={{ padding: "6px 4px" }}>Tailing (limit)</th>
+                    <th style={{ padding: "6px 4px" }}>Plates (limit)</th>
+                    <th style={{ padding: "6px 4px" }}>Result</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {analytes.map((a) => (
+                    <tr key={a.testAnalyteId} style={{ borderTop: "1px solid var(--color-border)" }}>
+                      <td style={{ padding: "6px 4px" }}>
+                        {a.analyteName}
+                        <div className="mono" style={{ fontSize: 11, color: "var(--color-text-tertiary)" }}>{a.wavelengthNm} nm</div>
+                      </td>
+                      <td style={{ padding: "6px 4px" }}>{a.referenceStandardName ?? "—"}</td>
+                      <td style={{ padding: "6px 4px" }} className="mono">{a.referenceStandardBatch ?? "—"}</td>
+                      <td style={{ padding: "6px 4px" }} className="mono">{v(a.standardPurityPercent)}</td>
+                      <td style={{ padding: "6px 4px" }} className="mono">{v(a.standardWeightMg)}</td>
+                      <td style={{ padding: "6px 4px" }} className="mono">{v(a.standardDilution)}</td>
+                      <td style={{ padding: "6px 4px" }} className="mono">{v(a.standardMeanArea)}</td>
+                      <td style={{ padding: "6px 4px" }} className="mono">{criterionCell(a.rsdPercent, a.sstMaxRsdPercent, "NMT")}</td>
+                      <td style={{ padding: "6px 4px" }} className="mono">{criterionCell(a.resolution, a.sstMinResolution, "NLT")}</td>
+                      <td style={{ padding: "6px 4px" }} className="mono">{criterionCell(a.tailingFactor, a.sstMaxTailingFactor, "NMT")}</td>
+                      <td style={{ padding: "6px 4px" }} className="mono">{criterionCell(a.theoreticalPlates, a.sstMinTheoreticalPlates, "NLT")}</td>
+                      <td style={{ padding: "6px 4px" }}>
+                        {a.passed ? <CheckIcon /> : <CrossIcon />}
+                        {a.failureReasons && (
+                          <div style={{ fontSize: 11, color: "var(--color-danger, #b42318)" }}>{a.failureReasons}</div>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
-          )}
-          <div style={{ marginTop: 10, fontSize: 12, color: "var(--color-text-tertiary)" }}>
-            Pass/Fail was decided when the run was signed. Acceptance limits shown are the current Test Master values.
+            {!r.passed && r.failureReasons && (
+              <div style={{ marginTop: 10, fontSize: 13, color: "var(--color-danger, #b42318)" }}>
+                <strong>Overall failure reasons:</strong> {r.failureReasons}
+              </div>
+            )}
+            <div style={{ marginTop: 10, fontSize: 12, color: "var(--color-text-tertiary)" }}>
+              The run passes only if every vitamin passes its own criteria. Pass/Fail was decided when the run was signed.
+            </div>
           </div>
-        </div>
+        ) : (
+          <div className="section-card">
+            <div className="section-label">suitability criteria (entered from the CDS report)</div>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+              <thead>
+                <tr style={{ textAlign: "left", color: "var(--color-text-tertiary)" }}>
+                  <th style={{ padding: "6px 4px" }}>Criterion</th>
+                  <th style={{ padding: "6px 4px" }}>Measured</th>
+                  <th style={{ padding: "6px 4px" }}>Acceptance (Test Master)</th>
+                </tr>
+              </thead>
+              <tbody>
+                {criteria.map((c) => (
+                  <tr key={c.label} style={{ borderTop: "1px solid var(--color-border)" }}>
+                    <td style={{ padding: "6px 4px" }}>{c.label}</td>
+                    <td style={{ padding: "6px 4px" }} className="mono">{v(c.value)}</td>
+                    <td style={{ padding: "6px 4px" }}>{c.limit === null || c.limit === undefined ? "Not checked" : `${c.rule} ${c.limit}`}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {!r.passed && r.failureReasons && (
+              <div style={{ marginTop: 10, fontSize: 13, color: "var(--color-danger, #b42318)" }}>
+                <strong>Failure reasons:</strong> {r.failureReasons}
+              </div>
+            )}
+            <div style={{ marginTop: 10, fontSize: 12, color: "var(--color-text-tertiary)" }}>
+              Pass/Fail was decided when the run was signed. Acceptance limits shown are the current Test Master values.
+            </div>
+          </div>
+        )}
 
         {r.comment && (
           <div className="section-card">

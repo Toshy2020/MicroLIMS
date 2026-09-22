@@ -255,7 +255,13 @@ export const ItemSpecificationsSection: React.FC<ItemSpecificationsSectionProps>
         const calDefs: any[] = [];
         for (const d of defs) {
           byCode[d.code] = d;
-          if (d.equationType === "CalibrationCurve") calDefs.push(d);
+          // Both spec dialogs (Calibration Curve / ICP-OES elements and
+          // HPLC Multi-Analyte / vitamins) attach a specification to a
+          // TestAnalyte row, so both need their analytes prefetched here
+          // for the badge below to resolve testAnalyteId -> name.
+          if (d.equationType === "CalibrationCurve" || d.equationType === "HplcMultiAnalyte" || d.workflowType === "HplcMultiAnalyte") {
+            calDefs.push(d);
+          }
         }
         setTestDefinitionByCode(byCode);
         setWorkflowTypeByCode(Object.fromEntries(defs.map((d) => [d.code, d.workflowType])));
@@ -524,7 +530,7 @@ export const ItemSpecificationsSection: React.FC<ItemSpecificationsSectionProps>
                                 {spec.testAnalyteId && analyteById[spec.testAnalyteId] && (
                                   <Chip
                                     size="small"
-                                    label={`Element: ${analyteById[spec.testAnalyteId].element}`}
+                                    label={`Analyte: ${analyteById[spec.testAnalyteId].element}`}
                                     sx={{
                                       height: 20,
                                       fontSize: 11,
@@ -712,7 +718,7 @@ export const ItemSpecificationsSection: React.FC<ItemSpecificationsSectionProps>
                                         {spec.testAnalyteId && analyteById[spec.testAnalyteId] && (
                                           <Chip
                                             size="small"
-                                            label={`Element: ${analyteById[spec.testAnalyteId].element}`}
+                                            label={`Analyte: ${analyteById[spec.testAnalyteId].element}`}
                                             sx={{
                                               height: 20,
                                               fontSize: 11,

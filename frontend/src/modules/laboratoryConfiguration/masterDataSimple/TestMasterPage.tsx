@@ -59,12 +59,13 @@ export type TestMasterLab = "micro" | "fp";
 const FP_SECTION_CODE = "FP";
 const WORKFLOW_TYPES_BY_LAB: Record<TestMasterLab, string[]> = {
   micro: ["CountTest", "Observation"],
-  fp: ["HplcAssay", "ElementalAssay", "Measurement", "Gravimetric", "Qualitative", "Dissolution", "Disintegration", "WeightVariation"]
+  fp: ["HplcAssay", "HplcMultiAnalyte", "ElementalAssay", "Measurement", "Gravimetric", "Qualitative", "Dissolution", "Disintegration", "WeightVariation"]
 };
 const WORKFLOW_TYPE_LABELS: Record<string, string> = {
   CountTest: "Count Test",
   Observation: "Observation",
   HplcAssay: "HPLC Assay",
+  HplcMultiAnalyte: "HPLC assay - multi-analyte (vitamins)",
   ElementalAssay: "Elemental Assay (ICP-OES)",
   Measurement: "Measurement",
   Gravimetric: "Gravimetric",
@@ -77,6 +78,7 @@ const WORKFLOW_TYPE_LABELS: Record<string, string> = {
 const EQUATION_TYPES = [
   "None",
   "HplcAssay",
+  "HplcMultiAnalyte",
   "SystemSuitability",
   "CalibrationCurve",
   "Measurement",
@@ -90,6 +92,7 @@ const EQUATION_TYPES = [
 const EQUATION_TYPE_LABELS: Record<string, string> = {
   None: "None",
   HplcAssay: "HPLC Assay",
+  HplcMultiAnalyte: "HPLC assay - multi-analyte (vitamins)",
   SystemSuitability: "System Suitability",
   CalibrationCurve: "Calibration Curve",
   Measurement: "Measurement (pH, density…)",
@@ -234,6 +237,11 @@ function stepNeedsConfiguration(s: any): boolean {
 }
 
 function TestAnalytesSection({ test }: { test: TestDefinitionOption }) {
+  // HplcMultiAnalyte reuses this same TestAnalyte CRUD (Element, WavelengthNm,
+  // DisplayOrder) but drops the ICP-only Plasma View/LOQ and adds its own
+  // per-vitamin system suitability criteria instead - see backend
+  // MasterDataController.CreateTestAnalyte/UpdateTestAnalyte.
+  const isHplcMulti = test.workflowType === "HplcMultiAnalyte" || test.equationType === "HplcMultiAnalyte";
   const [analytes, setAnalytes] = useState<TestAnalyteDto[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -244,6 +252,10 @@ function TestAnalytesSection({ test }: { test: TestDefinitionOption }) {
   const [view, setView] = useState<"Axial" | "Radial">("Axial");
   const [loqMgPerL, setLoqMgPerL] = useState("");
   const [displayOrder, setDisplayOrder] = useState("");
+  const [sstMaxRsdPercent, setSstMaxRsdPercent] = useState("");
+  const [sstMinResolution, setSstMinResolution] = useState("");
+  const [sstMaxTailingFactor, setSstMaxTailingFactor] = useState("");
+  const [sstMinTheoreticalPlates, setSstMinTheoreticalPlates] = useState("");
   const [dialogError, setDialogError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
@@ -272,6 +284,10 @@ function TestAnalytesSection({ test }: { test: TestDefinitionOption }) {
     setView("Axial");
     setLoqMgPerL("");
     setDisplayOrder(String(analytes.length + 1));
+    setSstMaxRsdPercent("");
+    setSstMinResolution("");
+    setSstMaxTailingFactor("");
+    setSstMinTheoreticalPlates("");
     setDialogError(null);
     setDialogOpen(true);
   };
@@ -280,9 +296,13 @@ function TestAnalytesSection({ test }: { test: TestDefinitionOption }) {
     setEditingAnalyte(a);
     setElement(a.element);
     setWavelengthNm(String(a.wavelengthNm));
-    setView(a.view);
-    setLoqMgPerL(String(a.loqMgPerL));
+    setView(a.view ?? "Axial");
+    setLoqMgPerL(a.loqMgPerL != null ? String(a.loqMgPerL) : "");
     setDisplayOrder(String(a.displayOrder));
+    setSstMaxRsdPercent(a.sstMaxRsdPercent != null ? String(a.sstMaxRsdPercent) : "");
+    setSstMinResolution(a.sstMinResolution != null ? String(a.sstMinResolution) : "");
+    setSstMaxTailingFactor(a.sstMaxTailingFactor != null ? String(a.sstMaxTailingFactor) : "");
+    setSstMinTheoreticalPlates(a.sstMinTheoreticalPlates != null ? String(a.sstMinTheoreticalPlates) : "");
     setDialogError(null);
     setDialogOpen(true);
   };
@@ -290,11 +310,11 @@ function TestAnalytesSection({ test }: { test: TestDefinitionOption }) {
   const handleSaveAnalyte = async () => {
     const trimmedEl = element.trim();
     if (!trimmedEl) {
-      setDialogError("Element symbol is required.");
+      setDialogError(isHplcMulti ? "Vitamin / analyte name is required." : "Element symbol is required.");
       return;
     }
     if (trimmedEl.length > 20) {
-      setDialogError("Element symbol cannot exceed 20 characters.");
+      setDialogError(isHplcMulti ? "Vitamin / analyte name cannot exceed 20 characters." : "Element symbol cannot exceed 20 characters.");
       return;
     }
     const wave = Number(wavelengthNm);
@@ -302,30 +322,56 @@ function TestAnalytesSection({ test }: { test: TestDefinitionOption }) {
       setDialogError("Wavelength must be greater than 0.");
       return;
     }
-    const loq = Number(loqMgPerL);
-    if (!loq || loq <= 0) {
-      setDialogError("LOQ must be greater than 0.");
-      return;
+    if (!isHplcMulti) {
+      const loq = Number(loqMgPerL);
+      if (!loq || loq <= 0) {
+        setDialogError("LOQ must be greater than 0.");
+        return;
+      }
+    }
+    const sstFields: [string, string][] = [
+      ["Max RSD", sstMaxRsdPercent],
+      ["Min Resolution", sstMinResolution],
+      ["Max Tailing Factor", sstMaxTailingFactor],
+      ["Min Theoretical Plates", sstMinTheoreticalPlates]
+    ];
+    if (isHplcMulti) {
+      for (const [label, v] of sstFields) {
+        if (v.trim() !== "" && Number(v) <= 0) {
+          setDialogError(`${label} must be greater than 0 when provided.`);
+          return;
+        }
+      }
     }
 
     setSaving(true);
     setDialogError(null);
     try {
+      const sstPayload = isHplcMulti
+        ? {
+            sstMaxRsdPercent: sstMaxRsdPercent.trim() !== "" ? Number(sstMaxRsdPercent) : null,
+            sstMinResolution: sstMinResolution.trim() !== "" ? Number(sstMinResolution) : null,
+            sstMaxTailingFactor: sstMaxTailingFactor.trim() !== "" ? Number(sstMaxTailingFactor) : null,
+            sstMinTheoreticalPlates: sstMinTheoreticalPlates.trim() !== "" ? Number(sstMinTheoreticalPlates) : null
+          }
+        : {};
       if (editingAnalyte) {
         await masterDataOptions.updateTestAnalyte(test.id, editingAnalyte.id, {
           element: trimmedEl,
           wavelengthNm: wave,
-          view,
-          loqMgPerL: loq,
-          displayOrder: displayOrder ? Number(displayOrder) : editingAnalyte.displayOrder
+          view: isHplcMulti ? null : view,
+          loqMgPerL: isHplcMulti ? null : Number(loqMgPerL),
+          displayOrder: displayOrder ? Number(displayOrder) : editingAnalyte.displayOrder,
+          ...sstPayload
         });
       } else {
         await masterDataOptions.createTestAnalyte(test.id, {
           element: trimmedEl,
           wavelengthNm: wave,
-          view,
-          loqMgPerL: loq,
-          displayOrder: displayOrder ? Number(displayOrder) : 0
+          view: isHplcMulti ? null : view,
+          loqMgPerL: isHplcMulti ? null : Number(loqMgPerL),
+          displayOrder: displayOrder ? Number(displayOrder) : 0,
+          ...sstPayload
         });
       }
       setDialogOpen(false);
@@ -357,10 +403,10 @@ function TestAnalytesSection({ test }: { test: TestDefinitionOption }) {
     <Box sx={{ mt: 2 }}>
       <Stack sx={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", mb: 1 }}>
         <Typography sx={{ fontWeight: 700, fontSize: 13 }}>
-          Test Analytes ({analytes.filter((a) => a.isActive).length} active)
+          {isHplcMulti ? "Vitamins / Analytes" : "Test Analytes"} ({analytes.filter((a) => a.isActive).length} active)
         </Typography>
         <Button size="small" variant="outlined" startIcon={<AddIcon />} onClick={openAdd}>
-          Add Analyte
+          {isHplcMulti ? "Add Vitamin / Analyte" : "Add Analyte"}
         </Button>
       </Stack>
 
@@ -370,10 +416,11 @@ function TestAnalytesSection({ test }: { test: TestDefinitionOption }) {
         <TableHead>
           <TableRow sx={tableHeadSx}>
             <TableCell>Order</TableCell>
-            <TableCell>Element</TableCell>
-            <TableCell>Wavelength (nm)</TableCell>
-            <TableCell>Plasma View</TableCell>
-            <TableCell>LOQ (mg/L)</TableCell>
+            <TableCell>{isHplcMulti ? "Vitamin / Analyte" : "Element"}</TableCell>
+            <TableCell>{isHplcMulti ? "Detection Wavelength (nm)" : "Wavelength (nm)"}</TableCell>
+            {!isHplcMulti && <TableCell>Plasma View</TableCell>}
+            {!isHplcMulti && <TableCell>LOQ (mg/L)</TableCell>}
+            {isHplcMulti && <TableCell>SST Criteria</TableCell>}
             <TableCell>Status</TableCell>
             <TableCell align="right">Actions</TableCell>
           </TableRow>
@@ -384,8 +431,18 @@ function TestAnalytesSection({ test }: { test: TestDefinitionOption }) {
               <TableCell>{a.displayOrder}</TableCell>
               <TableCell sx={{ fontWeight: 600 }}>{a.element}</TableCell>
               <TableCell>{a.wavelengthNm}</TableCell>
-              <TableCell><Chip size="small" label={a.view} variant="outlined" /></TableCell>
-              <TableCell>{a.loqMgPerL}</TableCell>
+              {!isHplcMulti && <TableCell><Chip size="small" label={a.view} variant="outlined" /></TableCell>}
+              {!isHplcMulti && <TableCell>{a.loqMgPerL}</TableCell>}
+              {isHplcMulti && (
+                <TableCell sx={{ fontSize: 12 }}>
+                  {[
+                    a.sstMaxRsdPercent != null ? `Max RSD ${a.sstMaxRsdPercent}%` : null,
+                    a.sstMinResolution != null ? `Min Res ${a.sstMinResolution}` : null,
+                    a.sstMaxTailingFactor != null ? `Max Tailing ${a.sstMaxTailingFactor}` : null,
+                    a.sstMinTheoreticalPlates != null ? `Min Plates ${a.sstMinTheoreticalPlates}` : null
+                  ].filter(Boolean).join(", ") || "None specified"}
+                </TableCell>
+              )}
               <TableCell>
                 <Chip
                   size="small"
@@ -407,8 +464,10 @@ function TestAnalytesSection({ test }: { test: TestDefinitionOption }) {
           ))}
           {analytes.length === 0 && !loading && (
             <TableRow>
-              <TableCell colSpan={7} align="center" sx={{ py: 2, color: "text.secondary" }}>
-                No analytes configured yet. Click "Add Analyte" to configure wavelengths and LOQs for this test method.
+              <TableCell colSpan={isHplcMulti ? 6 : 7} align="center" sx={{ py: 2, color: "text.secondary" }}>
+                {isHplcMulti
+                  ? "No vitamins/analytes configured yet. Click \"Add Vitamin / Analyte\" to configure detection wavelengths and suitability criteria for this test."
+                  : "No analytes configured yet. Click \"Add Analyte\" to configure wavelengths and LOQs for this test method."}
               </TableCell>
             </TableRow>
           )}
@@ -417,7 +476,7 @@ function TestAnalytesSection({ test }: { test: TestDefinitionOption }) {
 
       <FloatingDialog
         open={dialogOpen}
-        title={editingAnalyte ? `Edit Analyte: ${editingAnalyte.element}` : "Add Test Analyte"}
+        title={editingAnalyte ? `Edit Analyte: ${editingAnalyte.element}` : (isHplcMulti ? "Add Vitamin / Analyte" : "Add Test Analyte")}
         onClose={() => setDialogOpen(false)}
         maxWidth="xs"
         actions={
@@ -433,10 +492,10 @@ function TestAnalytesSection({ test }: { test: TestDefinitionOption }) {
           {dialogError && <Alert severity="error">{dialogError}</Alert>}
           <TextField
             size="small"
-            label="Element Symbol"
-            placeholder="e.g. Zn, Pb, Ca"
+            label={isHplcMulti ? "Vitamin / analyte" : "Element Symbol"}
+            placeholder={isHplcMulti ? "e.g. Vitamin B1 (thiamine)" : "e.g. Zn, Pb, Ca"}
             value={element}
-            onChange={(e) => setElement(e.target.value.trim())}
+            onChange={(e) => setElement(e.target.value)}
             required
             fullWidth
             slotProps={{ htmlInput: { maxLength: 20 } }}
@@ -444,7 +503,7 @@ function TestAnalytesSection({ test }: { test: TestDefinitionOption }) {
           <TextField
             size="small"
             type="number"
-            label="Wavelength (nm)"
+            label={isHplcMulti ? "Detection Wavelength (nm)" : "Wavelength (nm)"}
             placeholder="e.g. 213.856"
             value={wavelengthNm}
             onChange={(e) => setWavelengthNm(e.target.value)}
@@ -452,29 +511,33 @@ function TestAnalytesSection({ test }: { test: TestDefinitionOption }) {
             fullWidth
             slotProps={{ htmlInput: { min: 0, step: "any" } }}
           />
-          <FormControl size="small" fullWidth required>
-            <InputLabel id="plasma-view-label">Plasma View</InputLabel>
-            <Select
-              labelId="plasma-view-label"
-              label="Plasma View"
-              value={view}
-              onChange={(e) => setView(e.target.value as "Axial" | "Radial")}
-            >
-              <MenuItem value="Axial">Axial</MenuItem>
-              <MenuItem value="Radial">Radial</MenuItem>
-            </Select>
-          </FormControl>
-          <TextField
-            size="small"
-            type="number"
-            label="Limit of Quantification - LOQ (mg/L)"
-            placeholder="e.g. 0.05"
-            value={loqMgPerL}
-            onChange={(e) => setLoqMgPerL(e.target.value)}
-            required
-            fullWidth
-            slotProps={{ htmlInput: { min: 0, step: "any" } }}
-          />
+          {!isHplcMulti && (
+            <FormControl size="small" fullWidth required>
+              <InputLabel id="plasma-view-label">Plasma View</InputLabel>
+              <Select
+                labelId="plasma-view-label"
+                label="Plasma View"
+                value={view}
+                onChange={(e) => setView(e.target.value as "Axial" | "Radial")}
+              >
+                <MenuItem value="Axial">Axial</MenuItem>
+                <MenuItem value="Radial">Radial</MenuItem>
+              </Select>
+            </FormControl>
+          )}
+          {!isHplcMulti && (
+            <TextField
+              size="small"
+              type="number"
+              label="Limit of Quantification - LOQ (mg/L)"
+              placeholder="e.g. 0.05"
+              value={loqMgPerL}
+              onChange={(e) => setLoqMgPerL(e.target.value)}
+              required
+              fullWidth
+              slotProps={{ htmlInput: { min: 0, step: "any" } }}
+            />
+          )}
           <TextField
             size="small"
             type="number"
@@ -483,6 +546,56 @@ function TestAnalytesSection({ test }: { test: TestDefinitionOption }) {
             onChange={(e) => setDisplayOrder(e.target.value)}
             fullWidth
           />
+          {isHplcMulti && (
+            <>
+              <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+                System Suitability Criteria (this vitamin's peak)
+              </Typography>
+              <Typography variant="caption" sx={{ color: "text.secondary", display: "block", mt: -1 }}>
+                Optional - blank means not checked.
+              </Typography>
+              <TextField
+                size="small"
+                type="number"
+                label="Max RSD (%)"
+                placeholder="e.g. 2.0"
+                value={sstMaxRsdPercent}
+                onChange={(e) => setSstMaxRsdPercent(e.target.value)}
+                fullWidth
+                slotProps={{ htmlInput: { min: 0, step: "any" } }}
+              />
+              <TextField
+                size="small"
+                type="number"
+                label="Min Resolution"
+                placeholder="e.g. 1.5"
+                value={sstMinResolution}
+                onChange={(e) => setSstMinResolution(e.target.value)}
+                fullWidth
+                slotProps={{ htmlInput: { min: 0, step: "any" } }}
+              />
+              <TextField
+                size="small"
+                type="number"
+                label="Max Tailing Factor"
+                placeholder="e.g. 2.0"
+                value={sstMaxTailingFactor}
+                onChange={(e) => setSstMaxTailingFactor(e.target.value)}
+                fullWidth
+                slotProps={{ htmlInput: { min: 0, step: "any" } }}
+              />
+              <TextField
+                size="small"
+                type="number"
+                label="Min Theoretical Plates"
+                placeholder="e.g. 2000"
+                value={sstMinTheoreticalPlates}
+                onChange={(e) => setSstMinTheoreticalPlates(e.target.value)}
+                fullWidth
+                slotProps={{ htmlInput: { min: 0, step: "any" } }}
+              />
+            </>
+          )}
         </Stack>
       </FloatingDialog>
     </Box>
@@ -681,7 +794,7 @@ function WorkflowStepsSection({ test, workflowTypes, onWorkflowTypeChanged }: { 
           mb: 1.5
         }}>
         <Typography sx={{ fontWeight: 700, fontSize: 13 }}>
-          {["HplcAssay", "ElementalAssay", "Measurement", "Gravimetric", "Qualitative"].includes(test.workflowType) ? "Workflow Type" : "Workflow Steps"}
+          {["HplcAssay", "HplcMultiAnalyte", "ElementalAssay", "Measurement", "Gravimetric", "Qualitative"].includes(test.workflowType) ? "Workflow Type" : "Workflow Steps"}
         </Typography>
         <Select size="small" value={test.workflowType} onChange={(e) => changeWorkflowType(e.target.value)}>
           {workflowTypes.map((w) => <MenuItem key={w} value={w}>{WORKFLOW_TYPE_LABELS[w] ?? w}</MenuItem>)}
@@ -714,6 +827,35 @@ function WorkflowStepsSection({ test, workflowTypes, onWorkflowTypeChanged }: { 
                 </Typography>
               </Box>
             )}
+          </Stack>
+        </Box>
+      )}
+      {test.workflowType === "HplcMultiAnalyte" && (
+        <Box sx={{ mb: 2, p: 1.5, bgcolor: "background.paper", borderRadius: 1, border: "1px solid", borderColor: "divider" }}>
+          <Typography sx={{ fontWeight: 700, fontSize: 12, mb: 1, color: "primary.main" }}>Multi-Analyte HPLC Configuration</Typography>
+          <Stack direction="row" spacing={3} sx={{ flexWrap: "wrap", alignItems: "center" }}>
+            <Box>
+              <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>Equation Type</Typography>
+              <Typography variant="body2" sx={{ fontWeight: 600 }}>{EQUATION_TYPE_LABELS[test.equationType ?? "HplcMultiAnalyte"] ?? test.equationType}</Typography>
+            </Box>
+            <Box>
+              <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>System Suitability</Typography>
+              <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                Required ({test.methodAbbreviation ?? "No abbr"}) - one row per vitamin
+              </Typography>
+            </Box>
+            <Box>
+              <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>Preparations</Typography>
+              <Typography variant="body2" sx={{ fontWeight: 600 }}>{test.hplcPreparations ?? 2}</Typography>
+            </Box>
+            <Box>
+              <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>Injections / Preparation</Typography>
+              <Typography variant="body2" sx={{ fontWeight: 600 }}>{test.hplcInjectionsPerPreparation ?? 2}</Typography>
+            </Box>
+            <Box>
+              <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>Max Preparation RSD</Typography>
+              <Typography variant="body2" sx={{ fontWeight: 600 }}>{test.hplcMaxPreparationRsdPercent != null ? `${test.hplcMaxPreparationRsdPercent}%` : "Not checked"}</Typography>
+            </Box>
           </Stack>
         </Box>
       )}
@@ -790,6 +932,14 @@ function WorkflowStepsSection({ test, workflowTypes, onWorkflowTypeChanged }: { 
         <Typography variant="body2" sx={{ color: "text.secondary" }}>
           HPLC assay tests have no workflow steps or media: the result is entered from the chromatography data against a passed System Suitability run.
         </Typography>
+      ) : test.workflowType === "HplcMultiAnalyte" ? (
+        <>
+          <Typography variant="body2" sx={{ color: "text.secondary", mb: 1 }}>
+            Multi-analyte HPLC tests have no workflow steps: one signed result entry covers every vitamin, against a
+            System Suitability run with a row per vitamin.
+          </Typography>
+          <TestAnalytesSection test={test} />
+        </>
       ) : test.workflowType === "Measurement" ? (
         <Box sx={{ p: 2, bgcolor: "background.paper", borderRadius: 1, border: "1px solid", borderColor: "divider" }}>
           <Typography sx={{ fontWeight: 700, fontSize: 12, mb: 1, color: "primary.main" }}>
@@ -1412,6 +1562,10 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
   const [wvCapsuleS2ExtraUnits, setWvCapsuleS2ExtraUnits] = useState<string>("40");
   const [wvCapsuleS2MaxOutside, setWvCapsuleS2MaxOutside] = useState<string>("6");
 
+  const [hplcPreparations, setHplcPreparations] = useState<string>("2");
+  const [hplcInjectionsPerPreparation, setHplcInjectionsPerPreparation] = useState<string>("2");
+  const [hplcMaxPreparationRsdPercent, setHplcMaxPreparationRsdPercent] = useState<string>("");
+
   const [dialogOpen, setDialogOpen] = useState(false);
   const [dialogError, setDialogError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -1483,6 +1637,9 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
     setWvCapsuleS1MaxForRetest("6");
     setWvCapsuleS2ExtraUnits("40");
     setWvCapsuleS2MaxOutside("6");
+    setHplcPreparations("2");
+    setHplcInjectionsPerPreparation("2");
+    setHplcMaxPreparationRsdPercent("");
     setDialogError(null);
     setDialogOpen(true);
   };
@@ -1495,8 +1652,8 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
     setSectionId(t.sectionId ?? (mySections.length === 1 ? mySections[0].sectionId : ""));
     setEditingSectionId(t.sectionId ?? null);
     setWorkflowType(t.workflowType || defaultWorkflowType);
-    setEquationType(t.equationType || (t.workflowType === "ElementalAssay" ? "CalibrationCurve" : t.workflowType === "HplcAssay" ? "HplcAssay" : t.workflowType === "Measurement" ? "Measurement" : t.workflowType === "Gravimetric" ? "GravimetricLoss" : t.workflowType === "Qualitative" ? "Qualitative" : t.workflowType === "Dissolution" ? "Dissolution" : t.workflowType === "Disintegration" ? "Disintegration" : t.workflowType === "WeightVariation" ? "WeightVariation" : "None"));
-    setRequiresSystemSuitability(t.workflowType === "Dissolution" ? true : (t.workflowType === "Disintegration" || t.workflowType === "WeightVariation") ? false : !!t.requiresSystemSuitability);
+    setEquationType(t.equationType || (t.workflowType === "ElementalAssay" ? "CalibrationCurve" : t.workflowType === "HplcAssay" ? "HplcAssay" : t.workflowType === "HplcMultiAnalyte" ? "HplcMultiAnalyte" : t.workflowType === "Measurement" ? "Measurement" : t.workflowType === "Gravimetric" ? "GravimetricLoss" : t.workflowType === "Qualitative" ? "Qualitative" : t.workflowType === "Dissolution" ? "Dissolution" : t.workflowType === "Disintegration" ? "Disintegration" : t.workflowType === "WeightVariation" ? "WeightVariation" : "None"));
+    setRequiresSystemSuitability((t.workflowType === "Dissolution" || t.workflowType === "HplcMultiAnalyte") ? true : (t.workflowType === "Disintegration" || t.workflowType === "WeightVariation") ? false : !!t.requiresSystemSuitability);
     setMethodAbbreviation(t.methodAbbreviation ?? "");
     setSstMaxRsdPercent(t.sstMaxRsdPercent != null ? String(t.sstMaxRsdPercent) : "");
     setSstMinResolution(t.sstMinResolution != null ? String(t.sstMinResolution) : "");
@@ -1540,6 +1697,9 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
     setWvCapsuleS1MaxForRetest(t.wvCapsuleS1MaxForRetest != null ? String(t.wvCapsuleS1MaxForRetest) : "6");
     setWvCapsuleS2ExtraUnits(t.wvCapsuleS2ExtraUnits != null ? String(t.wvCapsuleS2ExtraUnits) : "40");
     setWvCapsuleS2MaxOutside(t.wvCapsuleS2MaxOutside != null ? String(t.wvCapsuleS2MaxOutside) : "6");
+    setHplcPreparations(t.hplcPreparations != null ? String(t.hplcPreparations) : "2");
+    setHplcInjectionsPerPreparation(t.hplcInjectionsPerPreparation != null ? String(t.hplcInjectionsPerPreparation) : "2");
+    setHplcMaxPreparationRsdPercent(t.hplcMaxPreparationRsdPercent != null ? String(t.hplcMaxPreparationRsdPercent) : "");
     setDialogError(null);
     setDialogOpen(true);
   };
@@ -1569,10 +1729,11 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
 
     const chosenSectionId = Number(sectionId);
     const isHplc = workflowType === "HplcAssay";
+    const isHplcMulti = workflowType === "HplcMultiAnalyte";
     const isDissolution = workflowType === "Dissolution";
     const isCalCurve = isFp && equationType === "CalibrationCurve";
 
-    if ((isHplc && requiresSystemSuitability) || isDissolution) {
+    if ((isHplc && requiresSystemSuitability) || isDissolution || isHplcMulti) {
       const trimmedAbbr = methodAbbreviation.trim().toUpperCase();
       if (!trimmedAbbr) {
         setDialogError("Method abbreviation is required when system suitability is enabled.");
@@ -1582,13 +1743,34 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
         setDialogError("Method abbreviation must be 1-20 uppercase alphanumeric characters or hyphens.");
         return;
       }
-      const hasRsd = sstMaxRsdPercent.trim() !== "";
-      const hasRes = sstMinResolution.trim() !== "";
-      const hasTailing = sstMaxTailingFactor.trim() !== "";
-      const hasPlates = sstMinTheoreticalPlates.trim() !== "";
+      // HplcMultiAnalyte's acceptance criteria live per vitamin (Test
+      // Analytes below), not on the test itself - no "at least one" gate here.
+      if (!isHplcMulti) {
+        const hasRsd = sstMaxRsdPercent.trim() !== "";
+        const hasRes = sstMinResolution.trim() !== "";
+        const hasTailing = sstMaxTailingFactor.trim() !== "";
+        const hasPlates = sstMinTheoreticalPlates.trim() !== "";
 
-      if (!hasRsd && !hasRes && !hasTailing && !hasPlates) {
-        setDialogError("At least one system suitability criterion is required when system suitability is enabled.");
+        if (!hasRsd && !hasRes && !hasTailing && !hasPlates) {
+          setDialogError("At least one system suitability criterion is required when system suitability is enabled.");
+          return;
+        }
+      }
+    }
+
+    if (isHplcMulti) {
+      const preps = hplcPreparations.trim() !== "" ? Number(hplcPreparations) : 2;
+      const injections = hplcInjectionsPerPreparation.trim() !== "" ? Number(hplcInjectionsPerPreparation) : 2;
+      if (isNaN(preps) || preps < 1 || preps > 10) {
+        setDialogError("HPLC preparations must be between 1 and 10.");
+        return;
+      }
+      if (isNaN(injections) || injections < 1 || injections > 10) {
+        setDialogError("HPLC injections per preparation must be between 1 and 10.");
+        return;
+      }
+      if (hplcMaxPreparationRsdPercent.trim() !== "" && Number(hplcMaxPreparationRsdPercent) <= 0) {
+        setDialogError("HPLC max preparation RSD must be greater than 0 when provided.");
         return;
       }
     }
@@ -1775,6 +1957,8 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
     try {
       const resolvedEquationType = isCalCurve
         ? "CalibrationCurve"
+        : isHplcMulti
+        ? "HplcMultiAnalyte"
         : isHplc
         ? equationType
         : isMeasurement
@@ -1798,8 +1982,8 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
           sectionId: chosenSectionId,
           workflowType,
           equationType: resolvedEquationType,
-          requiresSystemSuitability: isDissolution ? true : (isHplc ? requiresSystemSuitability : false),
-          methodAbbreviation: isDissolution || (isHplc && requiresSystemSuitability) || isCalCurve ? methodAbbreviation.trim().toUpperCase() : null,
+          requiresSystemSuitability: (isDissolution || isHplcMulti) ? true : (isHplc ? requiresSystemSuitability : false),
+          methodAbbreviation: isDissolution || (isHplc && requiresSystemSuitability) || isCalCurve || isHplcMulti ? methodAbbreviation.trim().toUpperCase() : null,
           sstMaxRsdPercent: (isDissolution || (isHplc && requiresSystemSuitability)) && sstMaxRsdPercent.trim() !== "" ? Number(sstMaxRsdPercent) : null,
           sstMinResolution: (isDissolution || (isHplc && requiresSystemSuitability)) && sstMinResolution.trim() !== "" ? Number(sstMinResolution) : null,
           sstMaxTailingFactor: (isDissolution || (isHplc && requiresSystemSuitability)) && sstMaxTailingFactor.trim() !== "" ? Number(sstMaxTailingFactor) : null,
@@ -1843,7 +2027,10 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
           wvCapsuleS1MaxOutside: isWeightVariation ? (wvCapsuleS1MaxOutside.trim() !== "" ? Number(wvCapsuleS1MaxOutside) : 2) : null,
           wvCapsuleS1MaxForRetest: isWeightVariation ? (wvCapsuleS1MaxForRetest.trim() !== "" ? Number(wvCapsuleS1MaxForRetest) : 6) : null,
           wvCapsuleS2ExtraUnits: isWeightVariation ? (wvCapsuleS2ExtraUnits.trim() !== "" ? Number(wvCapsuleS2ExtraUnits) : 40) : null,
-          wvCapsuleS2MaxOutside: isWeightVariation ? (wvCapsuleS2MaxOutside.trim() !== "" ? Number(wvCapsuleS2MaxOutside) : 6) : null
+          wvCapsuleS2MaxOutside: isWeightVariation ? (wvCapsuleS2MaxOutside.trim() !== "" ? Number(wvCapsuleS2MaxOutside) : 6) : null,
+          hplcPreparations: isHplcMulti ? (hplcPreparations.trim() !== "" ? Number(hplcPreparations) : 2) : null,
+          hplcInjectionsPerPreparation: isHplcMulti ? (hplcInjectionsPerPreparation.trim() !== "" ? Number(hplcInjectionsPerPreparation) : 2) : null,
+          hplcMaxPreparationRsdPercent: isHplcMulti && hplcMaxPreparationRsdPercent.trim() !== "" ? Number(hplcMaxPreparationRsdPercent) : null
         };
         await update(editingId, payload);
         setMessage({ text: `Test "${trimmedCode}" updated.`, ok: true });
@@ -1854,8 +2041,8 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
           sectionId: chosenSectionId,
           workflowType,
           equationType: resolvedEquationType,
-          requiresSystemSuitability: isDissolution ? true : (isHplc ? requiresSystemSuitability : false),
-          methodAbbreviation: isDissolution || (isHplc && requiresSystemSuitability) || isCalCurve ? methodAbbreviation.trim().toUpperCase() : null,
+          requiresSystemSuitability: (isDissolution || isHplcMulti) ? true : (isHplc ? requiresSystemSuitability : false),
+          methodAbbreviation: isDissolution || (isHplc && requiresSystemSuitability) || isCalCurve || isHplcMulti ? methodAbbreviation.trim().toUpperCase() : null,
           sstMaxRsdPercent: (isDissolution || (isHplc && requiresSystemSuitability)) && sstMaxRsdPercent.trim() !== "" ? Number(sstMaxRsdPercent) : null,
           sstMinResolution: (isDissolution || (isHplc && requiresSystemSuitability)) && sstMinResolution.trim() !== "" ? Number(sstMinResolution) : null,
           sstMaxTailingFactor: (isDissolution || (isHplc && requiresSystemSuitability)) && sstMaxTailingFactor.trim() !== "" ? Number(sstMaxTailingFactor) : null,
@@ -1899,7 +2086,10 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
           wvCapsuleS1MaxOutside: isWeightVariation ? (wvCapsuleS1MaxOutside.trim() !== "" ? Number(wvCapsuleS1MaxOutside) : 2) : null,
           wvCapsuleS1MaxForRetest: isWeightVariation ? (wvCapsuleS1MaxForRetest.trim() !== "" ? Number(wvCapsuleS1MaxForRetest) : 6) : null,
           wvCapsuleS2ExtraUnits: isWeightVariation ? (wvCapsuleS2ExtraUnits.trim() !== "" ? Number(wvCapsuleS2ExtraUnits) : 40) : null,
-          wvCapsuleS2MaxOutside: isWeightVariation ? (wvCapsuleS2MaxOutside.trim() !== "" ? Number(wvCapsuleS2MaxOutside) : 6) : null
+          wvCapsuleS2MaxOutside: isWeightVariation ? (wvCapsuleS2MaxOutside.trim() !== "" ? Number(wvCapsuleS2MaxOutside) : 6) : null,
+          hplcPreparations: isHplcMulti ? (hplcPreparations.trim() !== "" ? Number(hplcPreparations) : 2) : null,
+          hplcInjectionsPerPreparation: isHplcMulti ? (hplcInjectionsPerPreparation.trim() !== "" ? Number(hplcInjectionsPerPreparation) : 2) : null,
+          hplcMaxPreparationRsdPercent: isHplcMulti && hplcMaxPreparationRsdPercent.trim() !== "" ? Number(hplcMaxPreparationRsdPercent) : null
         };
         await addNew(payload);
         setMessage({ text: `Test "${trimmedCode}" added to the Test Master.`, ok: true });
@@ -1974,6 +2164,15 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
                           color="primary"
                           variant="outlined"
                           label="HPLC"
+                          sx={{ height: 20, fontSize: "0.68rem", fontWeight: 700 }}
+                        />
+                      )}
+                      {t.workflowType === "HplcMultiAnalyte" && (
+                        <Chip
+                          size="small"
+                          color="primary"
+                          variant="outlined"
+                          label="HPLC Multi-Analyte"
                           sx={{ height: 20, fontSize: "0.68rem", fontWeight: 700 }}
                         />
                       )}
@@ -2147,6 +2346,9 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
                   if (next === "HplcAssay") {
                     if (equationType === "None") setEquationType("HplcAssay");
                     setRequiresSystemSuitability(false);
+                  } else if (next === "HplcMultiAnalyte") {
+                    setEquationType("HplcMultiAnalyte");
+                    setRequiresSystemSuitability(true);
                   } else if (next === "ElementalAssay") {
                     setEquationType("CalibrationCurve");
                     setRequiresSystemSuitability(false);
@@ -2204,6 +2406,9 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
                   } else if (next === "Dissolution") {
                     setWorkflowType("Dissolution");
                     setRequiresSystemSuitability(true);
+                  } else if (next === "HplcMultiAnalyte") {
+                    setWorkflowType("HplcMultiAnalyte");
+                    setRequiresSystemSuitability(true);
                   } else if (next === "CalibrationCurve") {
                     setRequiresSystemSuitability(false);
                   }
@@ -2219,8 +2424,11 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
                   if (workflowType === "Dissolution") {
                     return eq === "Dissolution";
                   }
+                  if (workflowType === "HplcMultiAnalyte") {
+                    return eq === "HplcMultiAnalyte";
+                  }
                   if (workflowType === "HplcAssay") {
-                    return eq !== "CalibrationCurve" && eq !== "Measurement" && eq !== "GravimetricLoss" && eq !== "GravimetricResidue" && eq !== "Qualitative" && eq !== "Dissolution" && eq !== "Disintegration" && eq !== "WeightVariation";
+                    return eq !== "CalibrationCurve" && eq !== "Measurement" && eq !== "GravimetricLoss" && eq !== "GravimetricResidue" && eq !== "Qualitative" && eq !== "Dissolution" && eq !== "Disintegration" && eq !== "WeightVariation" && eq !== "HplcMultiAnalyte";
                   }
                   if (workflowType === "ElementalAssay") {
                     return eq === "CalibrationCurve" || eq === "None";
@@ -2234,7 +2442,7 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
                   if (workflowType === "Qualitative") {
                     return eq === "Qualitative";
                   }
-                  return eq !== "HplcAssay" && eq !== "HplcUniformityOfDosageUnits" && eq !== "HplcDissolutionMultiPoint" && eq !== "Measurement" && eq !== "GravimetricLoss" && eq !== "GravimetricResidue" && eq !== "Qualitative" && eq !== "Dissolution" && eq !== "Disintegration" && eq !== "WeightVariation";
+                  return eq !== "HplcAssay" && eq !== "HplcMultiAnalyte" && eq !== "HplcUniformityOfDosageUnits" && eq !== "HplcDissolutionMultiPoint" && eq !== "Measurement" && eq !== "GravimetricLoss" && eq !== "GravimetricResidue" && eq !== "Qualitative" && eq !== "Dissolution" && eq !== "Disintegration" && eq !== "WeightVariation";
                 }).map((eq) => (
                   <MenuItem key={eq} value={eq}>
                     {EQUATION_TYPE_LABELS[eq] ?? eq}
@@ -2326,6 +2534,50 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
             <Box sx={{ p: 2, bgcolor: "action.hover", borderRadius: 1, border: "1px solid", borderColor: "divider" }}>
               <Typography sx={{ fontWeight: 600, fontSize: 13, color: "text.secondary" }}>
                 Qualitative test: records compliance observation against specifications directly (no replicates or steps).
+              </Typography>
+            </Box>
+          )}
+
+          {workflowType === "HplcMultiAnalyte" && (
+            <Box sx={{ p: 2, bgcolor: "action.hover", borderRadius: 1, border: "1px solid", borderColor: "divider" }}>
+              <Typography sx={{ fontWeight: 700, fontSize: 13, mb: 1.5 }}>
+                Multi-Analyte HPLC Replicates
+              </Typography>
+              <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
+                <TextField
+                  size="small"
+                  type="number"
+                  label="Preparations"
+                  value={hplcPreparations}
+                  onChange={(e) => setHplcPreparations(e.target.value)}
+                  slotProps={{ htmlInput: { min: 1, max: 10, step: 1 } }}
+                  helperText="Default: 2 (1-10)"
+                  sx={{ flex: 1 }}
+                />
+                <TextField
+                  size="small"
+                  type="number"
+                  label="Injections per Preparation"
+                  value={hplcInjectionsPerPreparation}
+                  onChange={(e) => setHplcInjectionsPerPreparation(e.target.value)}
+                  slotProps={{ htmlInput: { min: 1, max: 10, step: 1 } }}
+                  helperText="Default: 2 (1-10)"
+                  sx={{ flex: 1 }}
+                />
+                <TextField
+                  size="small"
+                  type="number"
+                  label="Max Preparation RSD (%)"
+                  value={hplcMaxPreparationRsdPercent}
+                  onChange={(e) => setHplcMaxPreparationRsdPercent(e.target.value)}
+                  slotProps={{ htmlInput: { min: 0, step: "any" } }}
+                  helperText="Optional - blank = not checked"
+                  sx={{ flex: 1 }}
+                />
+              </Stack>
+              <Typography variant="caption" sx={{ color: "text.secondary", display: "block", mt: 1.5 }}>
+                Vitamins/analytes, their detection wavelengths and their own system suitability criteria are configured
+                after saving, in this test's expanded Test Analytes section.
               </Typography>
             </Box>
           )}
@@ -2841,20 +3093,26 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
             </Box>
           )}
 
-          {(workflowType === "HplcAssay" || workflowType === "Dissolution") && (
+          {(workflowType === "HplcAssay" || workflowType === "Dissolution" || workflowType === "HplcMultiAnalyte") && (
             <Box sx={{ p: 2, bgcolor: "action.hover", borderRadius: 1, border: "1px solid", borderColor: "divider" }}>
               <FormControlLabel
                 control={
                   <Switch
-                    checked={requiresSystemSuitability}
-                    disabled={workflowType === "Dissolution"}
+                    checked={workflowType === "HplcMultiAnalyte" ? true : requiresSystemSuitability}
+                    disabled={workflowType === "Dissolution" || workflowType === "HplcMultiAnalyte"}
                     onChange={(e) => setRequiresSystemSuitability(e.target.checked)}
                   />
                 }
-                label={workflowType === "Dissolution" ? "Requires system suitability (standard from linked SST run)" : "Requires system suitability"}
+                label={
+                  workflowType === "Dissolution"
+                    ? "Requires system suitability (standard from linked SST run)"
+                    : workflowType === "HplcMultiAnalyte"
+                    ? "Requires system suitability (one row per vitamin, from linked SST run)"
+                    : "Requires system suitability"
+                }
               />
 
-              {requiresSystemSuitability && (
+              {(workflowType === "HplcMultiAnalyte" || requiresSystemSuitability) && (
                 <Box sx={{ mt: 2, pt: 2, borderTop: "1px dashed", borderTopColor: "divider" }}>
                   <TextField
                     size="small"
@@ -2870,58 +3128,67 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
                       }
                     }}
                     helperText="1–20 uppercase alphanumeric characters or hyphens (auto-uppercased)"
-                    sx={{ mb: 2 }}
+                    sx={{ mb: workflowType === "HplcMultiAnalyte" ? 0 : 2 }}
                   />
 
-                  <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 0.5 }}>
-                    System Suitability Acceptance Criteria
-                  </Typography>
-                  <Typography variant="caption" sx={{ color: "text.secondary", display: "block", mb: 1.5 }}>
-                    At least one criterion is required when system suitability is enabled.
-                  </Typography>
+                  {workflowType === "HplcMultiAnalyte" ? (
+                    <Typography variant="caption" sx={{ color: "text.secondary", display: "block", mt: 1.5 }}>
+                      Acceptance criteria (RSD, resolution, tailing factor, theoretical plates) are set per vitamin,
+                      in this test's Test Analytes section, not here.
+                    </Typography>
+                  ) : (
+                    <>
+                      <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 0.5 }}>
+                        System Suitability Acceptance Criteria
+                      </Typography>
+                      <Typography variant="caption" sx={{ color: "text.secondary", display: "block", mb: 1.5 }}>
+                        At least one criterion is required when system suitability is enabled.
+                      </Typography>
 
-                  <Stack direction="row" spacing={1.5} sx={{ flexWrap: "wrap", alignItems: "center" }}>
-                    <TextField
-                      size="small"
-                      type="number"
-                      label="Max RSD (%)"
-                      placeholder="e.g. 2.0"
-                      value={sstMaxRsdPercent}
-                      onChange={(e) => setSstMaxRsdPercent(e.target.value)}
-                      slotProps={{ htmlInput: { min: 0, step: "any" } }}
-                      sx={{ flex: "1 1 180px", minWidth: 140 }}
-                    />
-                    <TextField
-                      size="small"
-                      type="number"
-                      label="Min Resolution"
-                      placeholder="e.g. 1.5"
-                      value={sstMinResolution}
-                      onChange={(e) => setSstMinResolution(e.target.value)}
-                      slotProps={{ htmlInput: { min: 0, step: "any" } }}
-                      sx={{ flex: "1 1 180px", minWidth: 140 }}
-                    />
-                    <TextField
-                      size="small"
-                      type="number"
-                      label="Max Tailing Factor"
-                      placeholder="e.g. 2.0"
-                      value={sstMaxTailingFactor}
-                      onChange={(e) => setSstMaxTailingFactor(e.target.value)}
-                      slotProps={{ htmlInput: { min: 0, step: "any" } }}
-                      sx={{ flex: "1 1 180px", minWidth: 140 }}
-                    />
-                    <TextField
-                      size="small"
-                      type="number"
-                      label="Min Theoretical Plates"
-                      placeholder="e.g. 2000"
-                      value={sstMinTheoreticalPlates}
-                      onChange={(e) => setSstMinTheoreticalPlates(e.target.value)}
-                      slotProps={{ htmlInput: { min: 0, step: "any" } }}
-                      sx={{ flex: "1 1 180px", minWidth: 140 }}
-                    />
-                  </Stack>
+                      <Stack direction="row" spacing={1.5} sx={{ flexWrap: "wrap", alignItems: "center" }}>
+                        <TextField
+                          size="small"
+                          type="number"
+                          label="Max RSD (%)"
+                          placeholder="e.g. 2.0"
+                          value={sstMaxRsdPercent}
+                          onChange={(e) => setSstMaxRsdPercent(e.target.value)}
+                          slotProps={{ htmlInput: { min: 0, step: "any" } }}
+                          sx={{ flex: "1 1 180px", minWidth: 140 }}
+                        />
+                        <TextField
+                          size="small"
+                          type="number"
+                          label="Min Resolution"
+                          placeholder="e.g. 1.5"
+                          value={sstMinResolution}
+                          onChange={(e) => setSstMinResolution(e.target.value)}
+                          slotProps={{ htmlInput: { min: 0, step: "any" } }}
+                          sx={{ flex: "1 1 180px", minWidth: 140 }}
+                        />
+                        <TextField
+                          size="small"
+                          type="number"
+                          label="Max Tailing Factor"
+                          placeholder="e.g. 2.0"
+                          value={sstMaxTailingFactor}
+                          onChange={(e) => setSstMaxTailingFactor(e.target.value)}
+                          slotProps={{ htmlInput: { min: 0, step: "any" } }}
+                          sx={{ flex: "1 1 180px", minWidth: 140 }}
+                        />
+                        <TextField
+                          size="small"
+                          type="number"
+                          label="Min Theoretical Plates"
+                          placeholder="e.g. 2000"
+                          value={sstMinTheoreticalPlates}
+                          onChange={(e) => setSstMinTheoreticalPlates(e.target.value)}
+                          slotProps={{ htmlInput: { min: 0, step: "any" } }}
+                          sx={{ flex: "1 1 180px", minWidth: 140 }}
+                        />
+                      </Stack>
+                    </>
+                  )}
                 </Box>
               )}
             </Box>

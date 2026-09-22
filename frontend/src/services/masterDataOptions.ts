@@ -63,27 +63,42 @@ export interface TestAnalyteDto {
   testDefinitionId: number;
   element: string;
   wavelengthNm: number;
-  view: "Axial" | "Radial";
-  loqMgPerL: number;
+  // Set for CalibrationCurve (ICP-OES) analytes; always null for HplcMultiAnalyte.
+  view: "Axial" | "Radial" | null;
+  loqMgPerL: number | null;
   displayOrder: number;
   isActive: boolean;
+  // HplcMultiAnalyte only - per-vitamin system suitability criteria
+  // (null = not checked). CalibrationCurve (ICP-OES) analytes never set these.
+  sstMaxRsdPercent?: number | null;
+  sstMinResolution?: number | null;
+  sstMaxTailingFactor?: number | null;
+  sstMinTheoreticalPlates?: number | null;
 }
 
 export interface CreateTestAnalyteRequest {
   element: string;
   wavelengthNm: number;
-  view: "Axial" | "Radial";
-  loqMgPerL: number;
+  view?: "Axial" | "Radial" | null;
+  loqMgPerL?: number | null;
   displayOrder?: number;
+  sstMaxRsdPercent?: number | null;
+  sstMinResolution?: number | null;
+  sstMaxTailingFactor?: number | null;
+  sstMinTheoreticalPlates?: number | null;
 }
 
 export interface UpdateTestAnalyteRequest {
   element?: string;
   wavelengthNm?: number;
-  view?: "Axial" | "Radial";
-  loqMgPerL?: number;
+  view?: "Axial" | "Radial" | null;
+  loqMgPerL?: number | null;
   displayOrder?: number;
   isActive?: boolean;
+  sstMaxRsdPercent?: number | null;
+  sstMinResolution?: number | null;
+  sstMaxTailingFactor?: number | null;
+  sstMinTheoreticalPlates?: number | null;
 }
 
 export interface CreateTestDefinitionPayload {
@@ -138,6 +153,9 @@ export interface CreateTestDefinitionPayload {
   wvCapsuleS1MaxForRetest?: number | null;
   wvCapsuleS2ExtraUnits?: number | null;
   wvCapsuleS2MaxOutside?: number | null;
+  hplcPreparations?: number | null;
+  hplcInjectionsPerPreparation?: number | null;
+  hplcMaxPreparationRsdPercent?: number | null;
 }
 
 export interface UpdateTestDefinitionPayload {
@@ -192,6 +210,9 @@ export interface UpdateTestDefinitionPayload {
   wvCapsuleS1MaxForRetest?: number | null;
   wvCapsuleS2ExtraUnits?: number | null;
   wvCapsuleS2MaxOutside?: number | null;
+  hplcPreparations?: number | null;
+  hplcInjectionsPerPreparation?: number | null;
+  hplcMaxPreparationRsdPercent?: number | null;
 }
 
 // Shared lookup lists used across receiving, preparation, and master

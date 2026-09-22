@@ -1,6 +1,29 @@
 import { apiClient } from "../../../services/apiClient";
 import type { SignatureLike } from "../../testingWorkspace/reportPrimitives";
 
+// Mirrors backend SystemSuitabilityRunAnalyteView (SystemSuitabilityDtos.cs) -
+// one row per vitamin/analyte for an HplcMultiAnalyte run.
+export interface SystemSuitabilityRunAnalyteView {
+  id: number;
+  systemSuitabilityRunId: number;
+  testAnalyteId: number;
+  analyteName: string;
+  wavelengthNm: number;
+  referenceStandardMaterialId: number;
+  referenceStandardName?: string | null;
+  referenceStandardBatch?: string | null;
+  standardPurityPercent: number;
+  standardWeightMg: number;
+  standardDilution: number;
+  standardMeanArea: number;
+  rsdPercent?: number | null;
+  resolution?: number | null;
+  tailingFactor?: number | null;
+  theoreticalPlates?: number | null;
+  passed: boolean;
+  failureReasons?: string | null;
+}
+
 // Mirrors backend SystemSuitabilityRunView (SystemSuitabilityController.cs).
 export interface SystemSuitabilityRun {
   id: number;
@@ -34,6 +57,23 @@ export interface SystemSuitabilityRun {
   performedByName?: string | null;
   performedAt: string;
   comment?: string | null;
+  // HplcMultiAnalyte only - one row per active vitamin/analyte. Null/empty
+  // for single-analyte (HplcAssay) runs; the run-level standard fields
+  // above are then just the first analyte's snapshot and not meaningful.
+  analytes?: SystemSuitabilityRunAnalyteView[] | null;
+}
+
+// One analyte's standard + CDS values for CreateSystemSuitabilityRunPayload.analytes.
+export interface CreateSystemSuitabilityRunAnalytePayload {
+  testAnalyteId: number;
+  referenceStandardMaterialId: number;
+  standardWeightMg: number;
+  standardDilution: number;
+  standardMeanArea: number;
+  rsdPercent?: number | null;
+  resolution?: number | null;
+  tailingFactor?: number | null;
+  theoreticalPlates?: number | null;
 }
 
 export interface CreateSystemSuitabilityRunPayload {
@@ -50,6 +90,10 @@ export interface CreateSystemSuitabilityRunPayload {
   theoreticalPlates: number | null;
   password: string;
   comment?: string | null;
+  // HplcMultiAnalyte only - one row per active analyte of the test, exactly
+  // once each. The run-level standard fields above are then ignored by the
+  // caller's UI but still required non-null by the backend request type.
+  analytes?: CreateSystemSuitabilityRunAnalytePayload[];
 }
 
 export interface SuitabilityRunLinkedTest {
@@ -62,6 +106,30 @@ export interface SuitabilityRunLinkedTest {
   reportedResult: string | null;
   resultStatus: string | null;
   resultEnteredAt: string | null;
+}
+
+// Mirrors backend SuitabilityRunReportAnalyteDto - one row per vitamin/
+// analyte, result vs its own criterion (null criterion = not checked).
+export interface SuitabilityRunReportAnalyteDto {
+  testAnalyteId: number;
+  analyteName: string;
+  wavelengthNm: number;
+  referenceStandardName?: string | null;
+  referenceStandardBatch?: string | null;
+  standardPurityPercent: number;
+  standardWeightMg: number;
+  standardDilution: number;
+  standardMeanArea: number;
+  rsdPercent?: number | null;
+  resolution?: number | null;
+  tailingFactor?: number | null;
+  theoreticalPlates?: number | null;
+  sstMaxRsdPercent?: number | null;
+  sstMinResolution?: number | null;
+  sstMaxTailingFactor?: number | null;
+  sstMinTheoreticalPlates?: number | null;
+  passed: boolean;
+  failureReasons?: string | null;
 }
 
 // Mirrors backend SuitabilityRunReportDetailsDto + the run view.
@@ -77,6 +145,8 @@ export interface SuitabilityRunReport {
     columnSerialNumber: string | null;
     signature: SignatureLike | null;
     linkedTests: SuitabilityRunLinkedTest[];
+    // HplcMultiAnalyte only - one row per analyte snapshot on the run.
+    analytes?: SuitabilityRunReportAnalyteDto[] | null;
   };
 }
 

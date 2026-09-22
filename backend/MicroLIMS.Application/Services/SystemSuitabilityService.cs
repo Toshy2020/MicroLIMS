@@ -180,7 +180,7 @@ public class SystemSuitabilityService : ISystemSuitabilityService
         if (col.SectionId != test.SectionId)
             throw new InvalidOperationException("Chromatography column belongs to a different laboratory section than the test definition.");
 
-        bool isMultiAnalyte = test.WorkflowType == WorkflowType.HplcMultiAnalyte || test.EquationType == EquationType.HplcMultiAnalyte;
+        bool isAnalyteBased = test.WorkflowType == WorkflowType.StandardComparison || test.EquationType == EquationType.StandardComparison;
 
         int runRefMatId;
         decimal runPurity;
@@ -201,10 +201,10 @@ public class SystemSuitabilityService : ISystemSuitabilityService
         string? failureReasons;
         List<SystemSuitabilityRunAnalyte> runAnalytes = new();
 
-        if (isMultiAnalyte)
+        if (isAnalyteBased)
         {
             if (request.Analytes == null || request.Analytes.Count == 0)
-                throw new InvalidOperationException("Analyte rows are required for HPLC multi-analyte suitability runs.");
+                throw new InvalidOperationException("Analyte rows are required for standard-comparison suitability runs.");
 
             var activeAnalytes = await _db.TestAnalytes
                 .Where(a => a.TestDefinitionId == test.Id && a.IsActive)
@@ -690,9 +690,10 @@ public class SystemSuitabilityService : ISystemSuitabilityService
                 ItemName = o.Sample.Item != null ? o.Sample.Item.Name : null,
                 o.Sample.BatchNumber,
                 o.TestCode,
-                Result = _db.HplcAssayResults
-                    .Where(h => h.TestOrderId == o.Id && h.IsActive)
-                    .Select(h => new { h.ReportedResult, h.ComparisonStatus, h.EnteredAt })
+                Result = _db.ParameterResults
+                    .Where(p => p.TestOrderId == o.Id && p.IsActive)
+                    .OrderBy(p => p.Id)
+                    .Select(p => new { ReportedResult = p.ReportedDisplay, p.ComparisonStatus, EnteredAt = p.TestAnalysis!.EnteredAt })
                     .FirstOrDefault()
             })
             .ToListAsync(ct);
@@ -847,15 +848,7 @@ public class SystemSuitabilityService : ISystemSuitabilityService
                 throw new InvalidOperationException($"Test order {order.Id} has test code \"{order.TestCode}\", which does not match run method \"{run.TestDefinition.Code}\".");
             }
 
-            // Block relink once an active HPLC assay result exists for this test order (REQ-FP-003)
-            var hasActiveResult = await _db.HplcAssayResults
-                .AnyAsync(r => r.TestOrderId == order.Id && r.IsActive, ct);
-            if (hasActiveResult)
-            {
-                throw new InvalidOperationException($"Cannot link test order {order.Id} because an active HPLC assay result already exists for it.");
-            }
-
-            // Same for dissolution and HPLC multi-analyte: calculated against this run's standard.
+            // Block relink once an active result exists: it was calculated against this run's standard (REQ-FP-003).
             var hasActiveAnalysis = await _db.TestAnalyses
                 .AnyAsync(a => a.TestOrderId == order.Id && a.IsActive, ct);
             if (hasActiveAnalysis)

@@ -740,4 +740,53 @@ public class StandardComparisonWorkflowUnitTests
         Assert.Null(p1.ValidityRecordItemId);
         Assert.Null(p2.ValidityRecordItemId);
     }
+    // Q12 / SC-3: the passed-run approval gate covers every test that requires
+    // system suitability, not only the retired single-analyte HPLC type.
+    [Fact]
+    public async Task Approval_IsBlockedUntilTheOrderHasALinkedPassedRun()
+    {
+        using var db = NewDb();
+        var (fpSec, fpUser, _, _, _, _, _, sample, order, _, _, sstRun) = SetupScenario(db);
+
+        var headRole = db.Roles.FirstOrDefault(r => r.Type == RoleType.SectionHead)
+            ?? new Role { Name = "Section Head", Type = RoleType.SectionHead, IsActive = true };
+        if (headRole.Id == 0) { db.Roles.Add(headRole); db.SaveChanges(); }
+        var fpHead = new User
+        {
+            Username = "sc_head_" + Guid.NewGuid().ToString("N")[..6],
+            FullName = "FP Section Head",
+            RoleId = headRole.Id,
+            Role = headRole,
+            PasswordHash = BCrypt.Net.BCrypt.HashPassword("ValidPassword123!"),
+            IsActive = true
+        };
+        db.Users.Add(fpHead);
+        db.SaveChanges();
+        db.UserOrgMemberships.Add(new UserOrgMembership { UserId = fpHead.Id, DepartmentId = fpSec.DepartmentId, SectionId = fpSec.Id });
+
+        order.CurrentStep = WorkflowStep.Reviewed;
+        order.Status = ApprovalStatus.Approved;
+        order.SystemSuitabilityRunId = null;
+        sample.Status = SampleStatus.UnderReview;
+        db.SampleSectionSignoffs.Add(new SampleSectionSignoff
+        {
+            SampleId = sample.Id,
+            SectionId = fpSec.Id,
+            Status = SectionSignoffStatus.UnderApproval,
+            ReviewedByUserId = fpUser.Id
+        });
+        db.SaveChanges();
+
+        var approvalService = TestServiceFactory.SampleApproval(db);
+        Task Approve() => approvalService.DecideAsync(sample.Id, fpHead.Id, "ValidPassword123!", ApprovalDecision.Approve, "approve", "127.0.0.1", sectionId: fpSec.Id);
+
+        var noRun = await Assert.ThrowsAsync<InvalidOperationException>(Approve);
+        Assert.Contains("lacks a linked system suitability run", noRun.Message);
+
+        order.SystemSuitabilityRunId = sstRun.Id;
+        sstRun.Passed = false;
+        db.SaveChanges();
+        var failedRun = await Assert.ThrowsAsync<InvalidOperationException>(Approve);
+        Assert.Contains("lacks a linked passed system suitability run", failedRun.Message);
+    }
 }

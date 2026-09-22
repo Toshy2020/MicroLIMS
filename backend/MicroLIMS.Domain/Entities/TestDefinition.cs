@@ -97,9 +97,7 @@ public class TestDefinition
     public int? WvCapsuleS2ExtraUnits { get; set; }
     public int? WvCapsuleS2MaxOutside { get; set; }
 
-    // Finished Product / Multi-Vitamin HPLC criteria
-    public int? HplcPreparations { get; set; }
-    public int? HplcInjectionsPerPreparation { get; set; }
+    // Finished Product / Standard-Comparison: max RSD across sample preparations
     public decimal? HplcMaxPreparationRsdPercent { get; set; }
 
     public List<TestAnalyte> Analytes { get; set; } = new();

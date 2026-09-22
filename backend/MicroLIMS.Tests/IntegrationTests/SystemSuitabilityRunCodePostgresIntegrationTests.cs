@@ -127,8 +127,8 @@ public class SystemSuitabilityRunCodePostgresIntegrationTests
             Code = $"{methodAbbr}_TEST",
             DisplayName = $"{methodAbbr} Integration Test",
             SectionId = section.Id,
-            WorkflowType = WorkflowType.HplcAssay,
-            EquationType = EquationType.HplcAssay,
+            WorkflowType = WorkflowType.Dissolution,
+            EquationType = EquationType.Dissolution,
             RequiresSystemSuitability = true,
             MethodAbbreviation = methodAbbr,
             SstMaxRsdPercent = 2.0m

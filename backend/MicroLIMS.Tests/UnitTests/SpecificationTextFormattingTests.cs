@@ -46,7 +46,7 @@ public class SpecificationTextFormattingTests
         await using var db = new MicroLimsDbContext(new DbContextOptionsBuilder<MicroLimsDbContext>()
             .UseInMemoryDatabase(Guid.NewGuid().ToString()).Options);
 
-        db.TestDefinitions.Add(new TestDefinition { Code = "RS", DisplayName = "Related Substances", WorkflowType = WorkflowType.HplcAssay });
+        db.TestDefinitions.Add(new TestDefinition { Code = "RS", DisplayName = "Related Substances", WorkflowType = WorkflowType.Measurement });
         var item = new Item { Name = "Vitamin C Tablets", Code = "VC-01", Category = SampleCategory.FinishedProduct };
         db.Items.Add(item);
         var cause = new CauseOfTesting { Name = "Routine" };

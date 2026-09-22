@@ -115,8 +115,6 @@ public class TestOrderSummaryDetailDto
     public List<IncubationDetailDto> Incubations { get; set; } = new();
     public List<ResultDetailDto> Results { get; set; } = new();
     public List<CountTestReadingDetailDto> CountTestReadings { get; set; } = new();
-    // HPLC Assay only - the active (not returned) result, null otherwise.
-    public HplcAssayDetailDto? HplcAssay { get; set; }
     // Elemental Assay only - the active (not returned) entry and results, null otherwise.
     public ElementalAssayDetailDto? ElementalAssay { get; set; }
     // Shared Result Foundation - generic test analysis, null if not a TestAnalysis workflow
@@ -193,45 +191,6 @@ public class ResultDetailDto
     public string Type { get; set; } = string.Empty;
     public string EnteredByName { get; set; } = string.Empty;
     public DateTime EnteredAt { get; set; }
-}
-
-public class HplcAssayDetailDto
-{
-    public string ReportedResult { get; set; } = string.Empty; // e.g. "99.5 %"
-    public decimal MeanAssayPercent { get; set; }
-    public string Status { get; set; } = string.Empty; // WithinLimits / OutOfSpecification / ...
-    public string? SpecLimit { get; set; }
-    public decimal SampleWeightMg { get; set; }
-    public decimal SampleDilution { get; set; }
-    public List<HplcAssayReplicate> Replicates { get; set; } = new();
-    public string SuitabilityRunCode { get; set; } = string.Empty;
-    public string? EnteredByName { get; set; }
-    public DateTime EnteredAt { get; set; }
-
-    // Raw data behind the calculation: the standard values snapshotted on
-    // the result, and the suitability run they came from.
-    public decimal StandardPurityPercent { get; set; }
-    public decimal StandardWeightMg { get; set; }
-    public decimal StandardDilution { get; set; }
-    public decimal StandardMeanArea { get; set; }
-    public bool SuitabilityPassed { get; set; }
-    public string? SuitabilityPerformedByName { get; set; }
-    public DateTime SuitabilityPerformedAt { get; set; }
-    public string? EquipmentCode { get; set; }
-    public string? EquipmentName { get; set; }
-    public string? ColumnCode { get; set; }
-    public string? ColumnName { get; set; }
-    public string? ReferenceStandardName { get; set; }
-    public string? ReferenceStandardBatch { get; set; }
-    public decimal? RsdPercent { get; set; }
-    public decimal? Resolution { get; set; }
-    public decimal? TailingFactor { get; set; }
-    public decimal? TheoreticalPlates { get; set; }
-    // Acceptance criteria as currently set on the Test Master.
-    public decimal? SstMaxRsdPercent { get; set; }
-    public decimal? SstMinResolution { get; set; }
-    public decimal? SstMaxTailingFactor { get; set; }
-    public decimal? SstMinTheoreticalPlates { get; set; }
 }
 
 public class ElementalAssayDetailDto

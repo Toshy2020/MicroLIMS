@@ -187,7 +187,6 @@ public static class UserReferenceRegistry
         new UserReferenceEntry(typeof(ChromatographyColumn), nameof(ChromatographyColumn.CreatedByUserId), UserReferenceDisposition.Blocks, "No DB FK - provenance"),
         new UserReferenceEntry(typeof(ChromatographyColumn), nameof(ChromatographyColumn.LastModifiedByUserId), UserReferenceDisposition.Blocks, "No DB FK - provenance"),
         new UserReferenceEntry(typeof(SystemSuitabilityRun), nameof(SystemSuitabilityRun.PerformedByUserId), UserReferenceDisposition.Blocks, "GMP record - analyst who performed the signed run"),
-        new UserReferenceEntry(typeof(HplcAssayResult), nameof(HplcAssayResult.EnteredByUserId), UserReferenceDisposition.Blocks, "GMP record - analyst who entered HPLC assay result"),
 
         // Shared Result Foundation (Slice F0)
         new UserReferenceEntry(typeof(TestAnalysis), nameof(TestAnalysis.EnteredByUserId), UserReferenceDisposition.Blocks, "GMP record - analyst who entered test analysis result"),

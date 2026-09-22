@@ -110,8 +110,8 @@ public class SystemSuitabilitySliceA2Tests
             Code = $"{methodAbbr}_ASSAY",
             DisplayName = $"{methodAbbr} Assay",
             SectionId = sectionId,
-            WorkflowType = WorkflowType.HplcAssay,
-            EquationType = EquationType.HplcAssay,
+            WorkflowType = WorkflowType.Dissolution,
+            EquationType = EquationType.Dissolution,
             RequiresSystemSuitability = true,
             MethodAbbreviation = methodAbbr,
             SstMaxRsdPercent = 2.0m,
@@ -915,7 +915,8 @@ public class SystemSuitabilitySliceA2Tests
         var items = list.ToList();
         Assert.True(items.Count >= 3);
         Assert.Contains(items, i => i.Code == "None");
-        Assert.Contains(items, i => i.Code == "HplcAssay");
+        Assert.Contains(items, i => i.Code == "StandardComparison");
+        Assert.DoesNotContain(items, i => i.Code == "HplcAssay" || i.Code == "HplcMultiAnalyte");
         Assert.Contains(items, i => i.Code == "SystemSuitability");
     }
 

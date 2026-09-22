@@ -104,28 +104,6 @@ public class SampleSummaryService
             .ToListAsync();
         var results = await _db.Results.Where(r => testOrderIds.Contains(r.TestOrderId)).ToListAsync();
         var countTestReadings = await _db.CountTestReadings.Where(r => testOrderIds.Contains(r.TestOrderId)).ToListAsync();
-        var hplcResults = await _db.HplcAssayResults.AsNoTracking()
-            .Where(r => testOrderIds.Contains(r.TestOrderId) && r.IsActive)
-            .Select(r => new
-            {
-                r.TestOrderId, r.ReportedResult, r.MeanAssayPercent, r.ComparisonStatus, r.SpecLimit, r.SampleWeightMg, r.SampleDilution, r.ReplicatesJson,
-                r.StandardPurityPercent, r.StandardWeightMg, r.StandardDilution, r.StandardMeanArea,
-                RunCode = r.SystemSuitabilityRun!.Code,
-                RunPassed = r.SystemSuitabilityRun.Passed,
-                RunPerformedByUserId = r.SystemSuitabilityRun.PerformedByUserId,
-                RunPerformedAt = r.SystemSuitabilityRun.PerformedAt,
-                EquipmentCode = r.SystemSuitabilityRun.Equipment!.Code,
-                EquipmentName = r.SystemSuitabilityRun.Equipment.Name,
-                ColumnCode = r.SystemSuitabilityRun.ChromatographyColumn!.Code,
-                ColumnName = r.SystemSuitabilityRun.ChromatographyColumn.Name,
-                StandardName = r.SystemSuitabilityRun.ReferenceStandardMaterial!.MaterialName,
-                StandardBatch = r.SystemSuitabilityRun.ReferenceStandardMaterial.BatchNumber,
-                r.SystemSuitabilityRun.RsdPercent, r.SystemSuitabilityRun.Resolution, r.SystemSuitabilityRun.TailingFactor, r.SystemSuitabilityRun.TheoreticalPlates,
-                r.SystemSuitabilityRun.TestDefinition!.SstMaxRsdPercent, r.SystemSuitabilityRun.TestDefinition.SstMinResolution,
-                r.SystemSuitabilityRun.TestDefinition.SstMaxTailingFactor, r.SystemSuitabilityRun.TestDefinition.SstMinTheoreticalPlates,
-                r.EnteredByUserId, r.EnteredAt
-            })
-            .ToListAsync();
         var activeAnalyses = await _db.TestAnalyses.AsNoTracking()
             .Where(e => testOrderIds.Contains(e.TestOrderId) && e.IsActive)
             .Include(e => e.Equipment)
@@ -256,8 +234,6 @@ public class SampleSummaryService
         // this summary, instead of a query per row.
         var userIds = new HashSet<int>(results.Select(r => r.EnteredByUserId)
             .Concat(countTestReadings.Select(r => r.EnteredByUserId))
-            .Concat(hplcResults.Select(h => h.EnteredByUserId))
-            .Concat(hplcResults.Select(h => h.RunPerformedByUserId))
             .Concat(activeAnalyses.Select(e => e.EnteredByUserId))
             .Concat(pathogenObservations.Select(p => p.ObservedByUserId))
             .Concat(locationPathogenObservations.Select(o => o.ObservedByUserId))
@@ -559,40 +535,6 @@ public class SampleSummaryService
                     EnteredByName = NameOf(r.EnteredByUserId),
                     EnteredAt = r.EnteredAt
                 }).ToList(),
-                HplcAssay = hplcResults.Where(h => h.TestOrderId == order.Id).Select(h => new HplcAssayDetailDto
-                {
-                    ReportedResult = h.ReportedResult,
-                    MeanAssayPercent = h.MeanAssayPercent,
-                    Status = h.ComparisonStatus,
-                    SpecLimit = h.SpecLimit,
-                    SampleWeightMg = h.SampleWeightMg,
-                    SampleDilution = h.SampleDilution,
-                    Replicates = System.Text.Json.JsonSerializer.Deserialize<List<HplcAssayReplicate>>(h.ReplicatesJson) ?? new(),
-                    SuitabilityRunCode = h.RunCode,
-                    EnteredByName = NameOf(h.EnteredByUserId),
-                    EnteredAt = h.EnteredAt,
-                    StandardPurityPercent = h.StandardPurityPercent,
-                    StandardWeightMg = h.StandardWeightMg,
-                    StandardDilution = h.StandardDilution,
-                    StandardMeanArea = h.StandardMeanArea,
-                    SuitabilityPassed = h.RunPassed,
-                    SuitabilityPerformedByName = NameOf(h.RunPerformedByUserId),
-                    SuitabilityPerformedAt = h.RunPerformedAt,
-                    EquipmentCode = h.EquipmentCode,
-                    EquipmentName = h.EquipmentName,
-                    ColumnCode = h.ColumnCode,
-                    ColumnName = h.ColumnName,
-                    ReferenceStandardName = h.StandardName,
-                    ReferenceStandardBatch = h.StandardBatch,
-                    RsdPercent = h.RsdPercent,
-                    Resolution = h.Resolution,
-                    TailingFactor = h.TailingFactor,
-                    TheoreticalPlates = h.TheoreticalPlates,
-                    SstMaxRsdPercent = h.SstMaxRsdPercent,
-                    SstMinResolution = h.SstMinResolution,
-                    SstMaxTailingFactor = h.SstMaxTailingFactor,
-                    SstMinTheoreticalPlates = h.SstMinTheoreticalPlates
-                }).FirstOrDefault(),
                 ElementalAssay = activeAnalyses.Where(e => e.TestOrderId == order.Id && e.AnalysisType == WorkflowType.ElementalAssay).Select(e => new ElementalAssayDetailDto
                 {
                     SampleMatrix = e.SampleMatrix ?? SampleMatrix.Solid,
@@ -848,23 +790,6 @@ public class SampleSummaryService
                     lines.Add($"    Entered By: {r.EnteredByName}   Entered At: {FormatDateTime(r.EnteredAt)}");
                 }
             }
-            else if (order.HplcAssay is { } hplc)
-            {
-                string V(decimal? d) => ExportNumber(d);
-                lines.Add("  SYSTEM SUITABILITY:");
-                lines.Add($"    Run: {hplc.SuitabilityRunCode} ({(hplc.SuitabilityPassed ? "Passed" : "Failed")})   Performed By: {hplc.SuitabilityPerformedByName}   At: {FormatDateTime(hplc.SuitabilityPerformedAt)}");
-                lines.Add($"    Instrument: {hplc.EquipmentCode} {hplc.EquipmentName}   Column: {hplc.ColumnCode} {hplc.ColumnName}");
-                lines.Add($"    Reference Standard: {hplc.ReferenceStandardName} (Batch {hplc.ReferenceStandardBatch ?? "-"})   Purity: {V(hplc.StandardPurityPercent)} %");
-                lines.Add($"    Standard Weight (mg): {V(hplc.StandardWeightMg)}   Standard Dilution: {V(hplc.StandardDilution)}   Standard Mean Area: {V(hplc.StandardMeanArea)}");
-                lines.Add($"    %RSD: {V(hplc.RsdPercent)} (NMT {V(hplc.SstMaxRsdPercent)})   Resolution: {V(hplc.Resolution)} (NLT {V(hplc.SstMinResolution)})   Tailing: {V(hplc.TailingFactor)} (NMT {V(hplc.SstMaxTailingFactor)})   Plates: {V(hplc.TheoreticalPlates)} (NLT {V(hplc.SstMinTheoreticalPlates)})");
-                lines.Add("  FINAL RESULT (HPLC ASSAY):");
-                lines.Add("    Assay % = (Sample Area / Std Mean Area) x (Std Weight / Sample Weight) x (Purity / 100) x (Sample Dilution / Std Dilution) x 100");
-                lines.Add($"    Sample Weight (mg): {V(hplc.SampleWeightMg)}   Sample Dilution: {V(hplc.SampleDilution)}");
-                foreach (var rep in hplc.Replicates)
-                    lines.Add($"    Replicate {rep.ReplicateNumber}: ({V(rep.Area)} / {V(hplc.StandardMeanArea)}) x ({V(hplc.StandardWeightMg)} / {V(hplc.SampleWeightMg)}) x ({V(hplc.StandardPurityPercent)} / 100) x ({V(hplc.SampleDilution)} / {V(hplc.StandardDilution)}) x 100 = {V(Math.Round(rep.AssayPercent, 2))} %");
-                lines.Add($"    Mean Assay: {hplc.ReportedResult}   Spec: {FormatLimit(hplc.SpecLimit)}   Status: {hplc.Status}");
-                lines.Add($"    Entered By: {hplc.EnteredByName}   Entered At: {FormatDateTime(hplc.EnteredAt)}");
-            }
             else if (order.ElementalAssay is { } elemental)
             {
                 string V(decimal? d) => ExportNumber(d);
@@ -903,7 +828,7 @@ public class SampleSummaryService
                     lines.Add($"    {b.StepName}: {b.BiochemicalResultText}   Interpretation: {call}   Entered By: {b.SubmittedByName}   Entered At: {FormatDateTime(b.SubmittedAt)}");
                 }
             }
-            else if (order.Results.Count > 0 && order.HplcAssay is null && order.ElementalAssay is null && order.Analysis is null)
+            else if (order.Results.Count > 0 && order.ElementalAssay is null && order.Analysis is null)
             {
                 lines.Add("  FINAL RESULT:");
                 foreach (var r in order.Results)

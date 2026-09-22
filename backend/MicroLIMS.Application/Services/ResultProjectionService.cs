@@ -170,48 +170,6 @@ public class ResultProjectionService
         record.UpdatedAt = DateTime.UtcNow;
     }
 
-    public async Task UpsertFromHplcAssayResultAsync(int hplcAssayResultId)
-    {
-        var hplcResult = await _db.HplcAssayResults
-            .Include(r => r.TestOrder!).ThenInclude(o => o.Sample!).ThenInclude(s => s.Item)
-            .FirstOrDefaultAsync(r => r.Id == hplcAssayResultId)
-            ?? throw new InvalidOperationException($"HplcAssayResult {hplcAssayResultId} not found.");
-
-        var order = hplcResult.TestOrder ?? throw new InvalidOperationException($"HplcAssayResult {hplcAssayResultId} has no TestOrder.");
-        var sample = order.Sample ?? throw new InvalidOperationException($"TestOrder {order.Id} has no Sample - cannot project HplcAssayResult {hplcAssayResultId}.");
-
-        var testDefinition = await _db.TestDefinitions.FirstOrDefaultAsync(t => t.Code == order.TestCode);
-        var enteredBy = await _db.Users.FirstOrDefaultAsync(u => u.Id == hplcResult.EnteredByUserId);
-        var round = await ComputeRoundAsync(sample.Id, order.TestCode, order.Id);
-
-        var record = await GetOrCreateAsync("HplcAssayResult", hplcResult.Id, round);
-        record.SampleId = sample.Id;
-        record.TestOrderId = order.Id;
-        record.ReferenceNumber = sample.ReferenceNumber;
-        record.Category = sample.Category;
-        record.SubjectName = sample.Item?.Name ?? string.Empty;
-        record.SubjectDetail = null;
-        record.BatchNumber = sample.BatchNumber;
-        record.ControlNumber = sample.ControlNumber;
-        record.TestCode = order.TestCode;
-        record.TestDisplayName = testDefinition?.DisplayName ?? order.TestCode;
-        record.ResultKind = ResultKind.Quantitative;
-        record.NumericValue = hplcResult.MeanAssayPercent;
-        record.ReportedValue = hplcResult.ReportedResult;
-        record.Unit = "%";
-        record.IsBelowDetectionLimit = false;
-        record.DetectionLimit = null;
-        record.AlertLimit = hplcResult.AlertLimit;
-        record.ActionLimit = hplcResult.ActionLimit;
-        record.SpecLimit = hplcResult.SpecLimit;
-        record.ResultLevel = MapResultLevel(hplcResult.ComparisonStatus);
-        record.ResultEnteredAt = hplcResult.EnteredAt;
-        record.ResultEnteredByUserId = hplcResult.EnteredByUserId;
-        record.ResultEnteredByName = enteredBy?.FullName ?? string.Empty;
-        record.SampleStatus = sample.Status;
-        record.UpdatedAt = DateTime.UtcNow;
-    }
-
     public async Task UpsertFromParameterResultAsync(int parameterResultId)
     {
         var paramResult = await _db.ParameterResults
@@ -514,24 +472,6 @@ public class ResultProjectionService
             {
                 skipped++;
                 errors.Add($"SampleLocation {id}: {ex.Message}");
-            }
-        }
-
-        var hplcResultIds = await _db.HplcAssayResults.Select(r => r.Id).ToListAsync();
-        _logger.LogInformation("ResultRecord backfill: projecting {Count} HplcAssayResult rows.", hplcResultIds.Count);
-        foreach (var id in hplcResultIds)
-        {
-            var existedBefore = await _db.ResultRecords.AnyAsync(r => r.SourceTable == "HplcAssayResult" && r.SourceId == id);
-            try
-            {
-                await UpsertFromHplcAssayResultAsync(id);
-                await _db.SaveChangesAsync();
-                if (existedBefore) updated++; else created++;
-            }
-            catch (InvalidOperationException ex)
-            {
-                skipped++;
-                errors.Add($"HplcAssayResult {id}: {ex.Message}");
             }
         }
 

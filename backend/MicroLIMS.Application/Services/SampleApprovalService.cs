@@ -154,41 +154,36 @@ public class SampleApprovalService
             var enteredResult = await _db.Results.AnyAsync(r => r.TestOrderId == order.Id && r.EnteredByUserId == sectionHeadUserId)
                 || await _db.CountTestReadings.AnyAsync(r => r.TestOrderId == order.Id && r.EnteredByUserId == sectionHeadUserId)
                 || await _db.PathogenObservations.AnyAsync(p => p.TestOrderId == order.Id && p.ObservedByUserId == sectionHeadUserId)
-                || await _db.HplcAssayResults.AnyAsync(h => h.TestOrderId == order.Id && h.EnteredByUserId == sectionHeadUserId)
                 || await _db.TestAnalyses.AnyAsync(e => e.TestOrderId == order.Id && e.EnteredByUserId == sectionHeadUserId);
             if (enteredResult)
                 throw new InvalidOperationException("You cannot approve a sample you tested.");
         }
 
-        // REQ-FP-033: server-side reject approval of a section if any non-superseded
-        // HplcAssay TestOrder in it lacks a linked PASSED run.
+        // REQ-FP-033: server-side reject approval of a section if any test in it
+        // that requires system suitability lacks a linked PASSED run.
         if (decision == ApprovalDecision.Approve)
         {
             var testCodes = currentOrders.Select(o => o.TestCode).Distinct().ToList();
-            var hplcCodes = await _db.TestDefinitions
-                .Where(t => testCodes.Contains(t.Code) && t.WorkflowType == WorkflowType.HplcAssay)
+            var sstCodes = await _db.TestDefinitions
+                .Where(t => testCodes.Contains(t.Code) && t.RequiresSystemSuitability)
                 .Select(t => t.Code)
                 .ToListAsync();
 
-            if (hplcCodes.Count > 0)
+            foreach (var sstOrder in currentOrders.Where(o => sstCodes.Contains(o.TestCode)))
             {
-                var hplcOrders = currentOrders.Where(o => hplcCodes.Contains(o.TestCode)).ToList();
-                foreach (var hplcOrder in hplcOrders)
+                if (sstOrder.SystemSuitabilityRunId is null)
                 {
-                    if (hplcOrder.SystemSuitabilityRunId is null)
-                    {
-                        throw new InvalidOperationException(
-                            $"Cannot approve section: test order {hplcOrder.Id} (\"{hplcOrder.TestCode}\") lacks a linked system suitability run.");
-                    }
+                    throw new InvalidOperationException(
+                        $"Cannot approve section: test order {sstOrder.Id} (\"{sstOrder.TestCode}\") lacks a linked system suitability run.");
+                }
 
-                    var run = await _db.SystemSuitabilityRuns
-                        .FirstOrDefaultAsync(r => r.Id == hplcOrder.SystemSuitabilityRunId.Value);
+                var run = await _db.SystemSuitabilityRuns
+                    .FirstOrDefaultAsync(r => r.Id == sstOrder.SystemSuitabilityRunId.Value);
 
-                    if (run is null || !run.Passed)
-                    {
-                        throw new InvalidOperationException(
-                            $"Cannot approve section: test order {hplcOrder.Id} (\"{hplcOrder.TestCode}\") lacks a linked passed system suitability run.");
-                    }
+                if (run is null || !run.Passed)
+                {
+                    throw new InvalidOperationException(
+                        $"Cannot approve section: test order {sstOrder.Id} (\"{sstOrder.TestCode}\") lacks a linked passed system suitability run.");
                 }
             }
 

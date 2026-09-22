@@ -62,8 +62,8 @@ public class SystemSuitabilityStandardDescriptionTests
             Code = $"M-VIT_{Guid.NewGuid():N}"[..12].ToUpperInvariant(),
             DisplayName = "Multivitamin Assay",
             SectionId = sectionId,
-            WorkflowType = WorkflowType.HplcMultiAnalyte,
-            EquationType = EquationType.HplcMultiAnalyte,
+            WorkflowType = WorkflowType.StandardComparison,
+            EquationType = EquationType.StandardComparison,
             RequiresSystemSuitability = true,
             MethodAbbreviation = "M-VIT"
         };
@@ -151,8 +151,8 @@ public class SystemSuitabilityStandardDescriptionTests
             Code = $"VIT-C_{Guid.NewGuid():N}"[..12].ToUpperInvariant(),
             DisplayName = "Vitamin C Assay",
             SectionId = sectionId,
-            WorkflowType = WorkflowType.HplcAssay,
-            EquationType = EquationType.HplcAssay,
+            WorkflowType = WorkflowType.Dissolution,
+            EquationType = EquationType.Dissolution,
             RequiresSystemSuitability = true,
             MethodAbbreviation = "VIT-C",
             SstMaxRsdPercent = 2.0m

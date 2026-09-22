@@ -17,7 +17,6 @@ public static class AnalysisWorkflows
         WorkflowType.Dissolution,
         WorkflowType.Disintegration,
         WorkflowType.WeightVariation,
-        WorkflowType.HplcMultiAnalyte,
         WorkflowType.StandardComparison
     };
 
@@ -34,7 +33,6 @@ public static class AnalysisWorkflows
         WorkflowType.Dissolution => "dissolution",
         WorkflowType.Disintegration => "disintegration",
         WorkflowType.WeightVariation => "weight variation",
-        WorkflowType.HplcMultiAnalyte => "HPLC multi-analyte",
         WorkflowType.StandardComparison => "standard comparison",
         _ => "test analysis"
     };

@@ -3,7 +3,7 @@ namespace MicroLIMS.Domain.Enums;
 public enum EquationType
 {
     None = 0,
-    HplcAssay,
+    HplcAssay,        // retired (SC-3), value kept
     SystemSuitability,
     CalibrationCurve,
     Measurement,
@@ -13,6 +13,6 @@ public enum EquationType
     Dissolution,
     Disintegration,
     WeightVariation,
-    HplcMultiAnalyte,
+    HplcMultiAnalyte, // retired (SC-3), value kept
     StandardComparison
 }

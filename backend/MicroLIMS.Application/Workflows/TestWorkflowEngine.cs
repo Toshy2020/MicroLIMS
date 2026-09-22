@@ -24,7 +24,6 @@ public sealed record CountTestPayload(List<string> RawPlateReadings, decimal Dil
     }
 }
 public sealed record ObservationPayload(GrowthObservation Observation) : ResultPayload;
-public sealed record HplcAssayPayload(decimal SampleWeightMg, decimal SampleDilution, List<decimal> SampleAreas, string Password, string? Comment = null) : ResultPayload;
 
 // A business-rule failure that carries a machine-readable code for the
 // frontend. Derives from InvalidOperationException so that if a call
@@ -108,7 +107,6 @@ public record CurrentStepLookup(CurrentStepDetails? Details, string? Error);
 public record TestStepFacts(
     bool HasLocations, IReadOnlyList<Incubation> Incubations, IReadOnlyList<StepResultFact> StepResults,
     IReadOnlyList<CountReadingFact> ActiveCountReadings, IReadOnlySet<string> ObservationStepNames,
-    bool HasActiveHplcResult = false,
     bool HasActiveAnalysis = false);
 
 public record StepResultFact(
@@ -216,26 +214,6 @@ public record WeightVariationStagePayload(
     string Password,
     string? Comment = null);
 
-public record HplcPreparationInput(
-    decimal SampleAmount,
-    decimal SampleDilutionMl);
-
-public record HplcAreaInput(
-    int TestAnalyteId,
-    int PreparationIndex,
-    int InjectionIndex,
-    decimal Area);
-
-public record HplcMultiAnalytePayload(
-    DateTime AnalysedAt,
-    int? EquipmentId,
-    SampleMatrix SampleMatrix,
-    List<HplcPreparationInput> Preparations,
-    decimal? UnitAmount,
-    List<HplcAreaInput> Areas,
-    string Password,
-    string? Comment = null);
-
 public record StandardComparisonPreparationInput(
     decimal TheoreticalWeightMg,
     decimal ActualWeightMg,
@@ -285,8 +263,6 @@ public interface ITestWorkflowEngine : IStatefulWorkflowEngine
     Task<Incubation> SelectMediaAsync(int testOrderId, string stepName, int mediaLotId, int incubatorEquipmentId, int userId);
     Task<Incubation> StartStage2IncubationAsync(int testOrderId, string stepName, int incubatorEquipmentId, int userId);
     Task<TestWorkflowResult> RecordResultAsync(int testOrderId, string stepName, ResultPayload payload, int userId);
-    Task<TestWorkflowResult> RecordHplcAssayResultAsync(int testOrderId, HplcAssayPayload payload, int userId, string? ipAddress = null);
-    Task<TestWorkflowResult> RecordHplcMultiAnalyteResultAsync(int testOrderId, HplcMultiAnalytePayload payload, int userId, string? ipAddress = null);
     Task<TestWorkflowResult> RecordStandardComparisonResultAsync(int testOrderId, StandardComparisonPayload payload, int userId, string? ipAddress = null);
     Task<TestWorkflowResult> RecordElementalAssayResultAsync(int testOrderId, ElementalAssayPayload payload, int userId, string? ipAddress = null);
     Task<TestWorkflowResult> RecordMeasurementResultAsync(int testOrderId, MeasurementPayload payload, int userId, string? ipAddress = null);
@@ -396,7 +372,7 @@ public class TestWorkflowEngine : ITestWorkflowEngine
         if (definition is null)
             throw new InvalidOperationException($"Test code \"{order.TestCode}\" has no workflow template configured in Test Master.");
 
-        if (definition.Steps.Count == 0 && definition.WorkflowType != WorkflowType.HplcAssay && !AnalysisWorkflows.UsesTestAnalysis(definition.WorkflowType))
+        if (definition.Steps.Count == 0 && !AnalysisWorkflows.UsesTestAnalysis(definition.WorkflowType))
             throw new InvalidOperationException($"Test code \"{order.TestCode}\" has no workflow steps configured yet - add them in Test Master.");
 
         return definition;
@@ -484,13 +460,6 @@ public class TestWorkflowEngine : ITestWorkflowEngine
                 .Distinct()
                 .ToListAsync())
             .ToLookup(o => o.TestOrderId, o => o.StepName);
-        var activeHplcOrderIds = (await _db.HplcAssayResults
-                .AsNoTracking()
-                .Where(r => ids.Contains(r.TestOrderId) && r.IsActive)
-                .Select(r => r.TestOrderId)
-                .Distinct()
-                .ToListAsync())
-            .ToHashSet();
         var activeAnalysisOrderIds = (await _db.TestAnalyses
                 .AsNoTracking()
                 .Where(e => ids.Contains(e.TestOrderId) && e.IsActive
@@ -506,7 +475,6 @@ public class TestWorkflowEngine : ITestWorkflowEngine
             stepResults[id].ToList(),
             activeCountReadings[id].ToList(),
             observationStepNames[id].ToHashSet(StringComparer.Ordinal),
-            activeHplcOrderIds.Contains(id),
             activeAnalysisOrderIds.Contains(id)));
     }
 
@@ -537,9 +505,6 @@ public class TestWorkflowEngine : ITestWorkflowEngine
 
         if (workflowType == WorkflowType.CountTest)
             return facts.ActiveCountReadings.Any(r => r.StepName == step.StepName);
-
-        if (workflowType == WorkflowType.HplcAssay)
-            return facts.HasActiveHplcResult;
 
         if (AnalysisWorkflows.UsesTestAnalysis(workflowType))
             return facts.HasActiveAnalysis;
@@ -659,18 +624,6 @@ public class TestWorkflowEngine : ITestWorkflowEngine
             var completed = BuildCompletedSteps(facts, definition, currentStep: null);
             return new CurrentStepDetails(
                 new CurrentStepResult(null, definition.WorkflowType, null, true, doneResult, completed, totalSteps, allSteps),
-                order, definition, facts);
-        }
-
-        if (definition.WorkflowType == WorkflowType.HplcAssay)
-        {
-            var isDone = facts.HasActiveHplcResult;
-            var hplcFinalResult = isDone
-                ? (order.Results.OrderByDescending(r => r.Id).FirstOrDefault()?.InterpretedValue
-                   ?? order.Results.OrderByDescending(r => r.Id).FirstOrDefault()?.RawValue)
-                : null;
-            return new CurrentStepDetails(
-                new CurrentStepResult(null, definition.WorkflowType, null, isDone, hplcFinalResult, new List<CompletedStepSummary>(), totalSteps, allSteps),
                 order, definition, facts);
         }
 
@@ -1324,9 +1277,6 @@ public class TestWorkflowEngine : ITestWorkflowEngine
 
     public async Task<TestWorkflowResult> RecordResultAsync(int testOrderId, string stepName, ResultPayload payload, int userId)
     {
-        if (payload is HplcAssayPayload hplcPayload)
-            return await RecordHplcAssayResultAsync(testOrderId, hplcPayload, userId);
-
         var (order, definition) = await LoadWithTemplateAsync(testOrderId);
         var step = definition.Steps.FirstOrDefault(s => s.StepName == stepName)
             ?? throw new InvalidOperationException($"Step \"{stepName}\" is not part of the workflow template for \"{order.TestCode}\".");
@@ -1414,9 +1364,9 @@ public class TestWorkflowEngine : ITestWorkflowEngine
         if (!isFinalStep)
             return new TestWorkflowResult(outcomeSummary, true, false, null, average, calculatedResult, status);
 
-        // Final step - CountTest and HplcAssay already write their own Result row;
+        // Final step - CountTest already writes its own Result row;
         // Observation needs one written here with the definitive call.
-        if (definition.WorkflowType != WorkflowType.CountTest && definition.WorkflowType != WorkflowType.HplcAssay)
+        if (definition.WorkflowType != WorkflowType.CountTest)
         {
             _db.Results.Add(new Result
             {
@@ -2080,158 +2030,6 @@ public class TestWorkflowEngine : ITestWorkflowEngine
     public static (string status, string? exceeded) Compare(decimal value, string? alert, string? action, string? spec) =>
         SpecLimitParser.Compare(value, alert, action, spec);
 
-    public async Task<TestWorkflowResult> RecordHplcAssayResultAsync(int testOrderId, HplcAssayPayload payload, int userId, string? ipAddress = null)
-    {
-        if (payload.SampleWeightMg <= 0)
-            throw new InvalidOperationException("Sample weight must be greater than 0.");
-        if (payload.SampleDilution <= 0)
-            throw new InvalidOperationException("Sample dilution must be greater than 0.");
-        if (payload.SampleAreas == null || payload.SampleAreas.Count == 0)
-            throw new InvalidOperationException("At least one sample replicate area is required.");
-        if (payload.SampleAreas.Any(a => a <= 0))
-            throw new InvalidOperationException("Sample replicate area must be greater than 0.");
-        if (string.IsNullOrWhiteSpace(payload.Password))
-            throw new InvalidOperationException("Password is required to sign the result.");
-
-        var order = await _db.TestOrders
-            .Include(t => t.Results)
-            .Include(t => t.Sample)
-            .FirstOrDefaultAsync(t => t.Id == testOrderId)
-            ?? throw new InvalidOperationException($"Test order {testOrderId} not found.");
-
-        RequireOrderNotFinalized(order);
-
-        if (order.IsSuperseded)
-            throw new InvalidOperationException("Cannot record result for a superseded test order.");
-
-        var definition = await _db.TestDefinitions
-            .FirstOrDefaultAsync(t => t.Code == order.TestCode)
-            ?? throw new InvalidOperationException($"Test definition \"{order.TestCode}\" not found.");
-
-        if (definition.WorkflowType != WorkflowType.HplcAssay)
-            throw new InvalidOperationException($"Test order {testOrderId} is not an HPLC Assay workflow.");
-
-        await _sectionScope.EnsureTestOrderAccessAsync(userId, testOrderId);
-
-        var existingActive = await _db.HplcAssayResults.AnyAsync(r => r.TestOrderId == testOrderId && r.IsActive);
-        if (existingActive)
-            throw new InvalidOperationException("An active HPLC assay result already exists for this test order.");
-
-        if (!order.SystemSuitabilityRunId.HasValue)
-            throw new InvalidOperationException("Test order must be linked to a system suitability run before recording an HPLC assay result.");
-
-        var run = await _db.SystemSuitabilityRuns
-            .FirstOrDefaultAsync(r => r.Id == order.SystemSuitabilityRunId.Value)
-            ?? throw new InvalidOperationException($"Linked system suitability run {order.SystemSuitabilityRunId.Value} not found.");
-
-        if (!run.Passed)
-            throw new InvalidOperationException("Linked system suitability run did not pass.");
-
-        if (run.TestDefinitionId != definition.Id)
-            throw new InvalidOperationException("Linked system suitability run is for a different test method.");
-
-        if (run.SectionId != definition.SectionId)
-            throw new InvalidOperationException("Linked system suitability run is for a different laboratory section.");
-
-        if (run.StandardMeanArea <= 0 || run.StandardWeightMg <= 0 || run.StandardDilution <= 0 || run.StandardPurityPercent <= 0)
-            throw new InvalidOperationException("Linked system suitability run contains invalid standard values.");
-
-        _db.CurrentUserId = userId;
-        var signature = await _signatureService.SignAsync(
-            userId,
-            payload.Password,
-            SignatureMeaning.ResultRecorded,
-            "TestOrder",
-            order.Id,
-            payload.Comment,
-            ipAddress);
-
-        var replicates = new List<HplcAssayReplicate>();
-        for (int i = 0; i < payload.SampleAreas.Count; i++)
-        {
-            var area = payload.SampleAreas[i];
-            var replicateAssay = (area / run.StandardMeanArea)
-                * (run.StandardWeightMg / payload.SampleWeightMg)
-                * (run.StandardPurityPercent / 100m)
-                * (payload.SampleDilution / run.StandardDilution)
-                * 100m;
-            replicates.Add(new HplcAssayReplicate(i + 1, area, replicateAssay));
-        }
-
-        var mean = replicates.Select(r => r.AssayPercent).Average();
-        var reportedDisplay = Math.Round(mean, 1, MidpointRounding.AwayFromZero).ToString("0.0", System.Globalization.CultureInfo.InvariantCulture) + " %";
-
-        string? alertLimit = null, actionLimit = null, specLimit = null;
-        string status;
-        if (order.Sample?.ItemId is not null)
-        {
-            var spec = await SpecificationLookup.PrimaryAsync(_db, order.Sample.ItemId.Value, order.TestCode);
-            if (spec is not null)
-            {
-                alertLimit = spec.AlertLimit;
-                actionLimit = spec.ActionLimit;
-                specLimit = spec.SpecLimit;
-                status = SpecificationEvaluator.Evaluate(spec, mean);
-            }
-            else
-            {
-                (status, _) = Compare(mean, alertLimit, actionLimit, specLimit);
-            }
-        }
-        else
-        {
-            (status, _) = Compare(mean, alertLimit, actionLimit, specLimit);
-        }
-
-        var hplcResult = new HplcAssayResult
-        {
-            TestOrderId = order.Id,
-            SystemSuitabilityRunId = run.Id,
-            StandardPurityPercent = run.StandardPurityPercent,
-            StandardWeightMg = run.StandardWeightMg,
-            StandardDilution = run.StandardDilution,
-            StandardMeanArea = run.StandardMeanArea,
-            SampleWeightMg = payload.SampleWeightMg,
-            SampleDilution = payload.SampleDilution,
-            ReplicatesJson = System.Text.Json.JsonSerializer.Serialize(replicates),
-            MeanAssayPercent = mean,
-            ReportedResult = reportedDisplay,
-            AlertLimit = alertLimit,
-            ActionLimit = actionLimit,
-            SpecLimit = specLimit,
-            ComparisonStatus = status,
-            IsActive = true,
-            EnteredByUserId = userId,
-            EnteredAt = DateTime.UtcNow,
-            // Navigation, not signature.Id: the signature is not saved yet, so
-            // its Id is still 0 here. EF fills the FK in on SaveChanges.
-            Signature = signature
-        };
-
-        _db.HplcAssayResults.Add(hplcResult);
-
-        _db.Results.Add(new Result
-        {
-            TestOrderId = order.Id,
-            RawValue = string.Join(",", payload.SampleAreas.Select(a => a.ToString(System.Globalization.CultureInfo.InvariantCulture))),
-            InterpretedValue = $"{reportedDisplay} ({status})",
-            Type = ResultType.Numeric,
-            EnteredByUserId = userId,
-            EnteredAt = DateTime.UtcNow
-        });
-
-        await _db.SaveChangesAsync();
-
-        await _resultProjection.UpsertFromHplcAssayResultAsync(hplcResult.Id);
-        await _db.SaveChangesAsync();
-
-        await WorkflowStateMachine.TransitionAsync(_db, order, WorkflowStep.Ready, userId, $"HPLC assay complete: {reportedDisplay}");
-        await _sampleReviewService.AutoSubmitForReviewIfReadyAsync(order.SampleId, userId);
-        await _db.SaveChangesAsync();
-
-        return new TestWorkflowResult(reportedDisplay, true, true, reportedDisplay, mean, mean, status);
-    }
-
     public async Task<TestWorkflowResult> RecordElementalAssayResultAsync(
         int testOrderId, ElementalAssayPayload payload, int userId, string? ipAddress = null)
     {
@@ -2540,7 +2338,7 @@ public class TestWorkflowEngine : ITestWorkflowEngine
     {
         if (string.IsNullOrWhiteSpace(password))
             throw new InvalidOperationException("Password is required to sign the result.");
-        if (expectedWorkflowType != WorkflowType.Dissolution && expectedWorkflowType != WorkflowType.Disintegration && expectedWorkflowType != WorkflowType.WeightVariation && expectedWorkflowType != WorkflowType.HplcMultiAnalyte && expectedWorkflowType != WorkflowType.StandardComparison && (suppliedSpecIds == null || suppliedSpecIds.Count == 0))
+        if (expectedWorkflowType != WorkflowType.Dissolution && expectedWorkflowType != WorkflowType.Disintegration && expectedWorkflowType != WorkflowType.WeightVariation && expectedWorkflowType != WorkflowType.StandardComparison && (suppliedSpecIds == null || suppliedSpecIds.Count == 0))
             throw new InvalidOperationException("At least one parameter result is required.");
 
         var nowUtc = _clock.UtcNow.UtcDateTime;
@@ -2623,11 +2421,6 @@ public class TestWorkflowEngine : ITestWorkflowEngine
         {
             if (specs.Count != 1 || specs[0].LimitType != LimitType.WeightVariation)
                 throw new InvalidOperationException("Weight variation tests require exactly one WeightVariation specification.");
-        }
-        else if (expectedWorkflowType == WorkflowType.HplcMultiAnalyte)
-        {
-            if (specs.Any(s => !s.TestAnalyteId.HasValue))
-                throw new InvalidOperationException("Every specification for HPLC Multi-Analyte must be linked to a test analyte.");
         }
         else if (expectedWorkflowType == WorkflowType.StandardComparison)
         {
@@ -4163,217 +3956,6 @@ public class TestWorkflowEngine : ITestWorkflowEngine
         await _db.SaveChangesAsync();
 
         return new TestWorkflowResult(outcomeSummary, true, true, outcomeSummary, null, null, overallStatus);
-    }
-
-    public async Task<TestWorkflowResult> RecordHplcMultiAnalyteResultAsync(
-        int testOrderId, HplcMultiAnalytePayload payload, int userId, string? ipAddress = null)
-    {
-        if (payload.Preparations == null || payload.Preparations.Count == 0)
-            throw new InvalidOperationException("At least one sample preparation is required.");
-
-        if (payload.Areas == null || payload.Areas.Count == 0)
-            throw new InvalidOperationException("At least one area reading is required.");
-
-        var (order, definition, specById, analysedAtUtc) = await ValidateTestAnalysisOrderAsync(
-            testOrderId, payload.AnalysedAt, payload.EquipmentId, null, payload.Password, WorkflowType.HplcMultiAnalyte, userId);
-
-        var specs = specById.Values.OrderBy(s => s.DisplayOrder).ThenBy(s => s.Id).ToList();
-
-        if (!order.SystemSuitabilityRunId.HasValue)
-            throw new InvalidOperationException("Test order must be linked to a system suitability run before recording an HPLC multi-analyte result.");
-
-        var run = await _db.SystemSuitabilityRuns
-            .Include(r => r.Analytes)
-                .ThenInclude(a => a.ReferenceStandardMaterial)
-            .FirstOrDefaultAsync(r => r.Id == order.SystemSuitabilityRunId.Value)
-            ?? throw new InvalidOperationException($"Linked system suitability run {order.SystemSuitabilityRunId.Value} not found.");
-
-        if (!run.Passed)
-            throw new InvalidOperationException("Linked system suitability run did not pass.");
-
-        if (run.TestDefinitionId != definition.Id)
-            throw new InvalidOperationException("Linked system suitability run is for a different test method.");
-
-        if (run.SectionId != definition.SectionId)
-            throw new InvalidOperationException("Linked system suitability run is for a different laboratory section.");
-
-        int expectedPreps = definition.HplcPreparations ?? 2;
-        int expectedInjections = definition.HplcInjectionsPerPreparation ?? 2;
-
-        if (payload.Preparations.Count != expectedPreps)
-            throw new InvalidOperationException($"Expected exactly {expectedPreps} sample preparations, but received {payload.Preparations.Count}.");
-
-        for (int i = 0; i < payload.Preparations.Count; i++)
-        {
-            var p = payload.Preparations[i];
-            if (p.SampleAmount <= 0)
-                throw new InvalidOperationException($"Sample preparation {i + 1} amount must be greater than zero.");
-            if (p.SampleDilutionMl <= 0)
-                throw new InvalidOperationException($"Sample preparation {i + 1} dilution must be greater than zero.");
-        }
-
-        var specAnalyteIds = specs.Select(s => s.TestAnalyteId!.Value).ToHashSet();
-        if (payload.Areas.Any(a => !specAnalyteIds.Contains(a.TestAnalyteId)))
-            throw new InvalidOperationException("Areas contain an analyte not configured in specifications.");
-
-        foreach (var s in specs)
-        {
-            var analyteAreas = payload.Areas.Where(a => a.TestAnalyteId == s.TestAnalyteId!.Value).ToList();
-            if (analyteAreas.Count != expectedPreps * expectedInjections)
-                throw new InvalidOperationException($"Expected exactly {expectedPreps * expectedInjections} areas for analyte '{s.ParameterName}', but received {analyteAreas.Count}.");
-
-            for (int p = 1; p <= expectedPreps; p++)
-            {
-                for (int inj = 1; inj <= expectedInjections; inj++)
-                {
-                    var matches = analyteAreas.Where(a => a.PreparationIndex == p && a.InjectionIndex == inj).ToList();
-                    if (matches.Count != 1)
-                        throw new InvalidOperationException($"Missing or duplicate area for analyte '{s.ParameterName}', preparation {p}, injection {inj}.");
-                    if (matches[0].Area <= 0)
-                        throw new InvalidOperationException($"Area must be greater than zero for analyte '{s.ParameterName}', preparation {p}, injection {inj}.");
-                }
-            }
-        }
-
-        decimal unitAmount;
-        string unitAmountSource;
-
-        if (payload.SampleMatrix == SampleMatrix.Solid)
-        {
-            var finishedWvAnalysis = await _db.TestAnalyses
-                .Include(a => a.ParameterResults)
-                .Where(a => a.IsActive &&
-                            a.AnalysisType == WorkflowType.WeightVariation &&
-                            a.TestOrder != null &&
-                            a.TestOrder.SampleId == order.SampleId &&
-                            a.TestOrderId != order.Id &&
-                            a.ParameterResults.Any(pr => pr.IsActive && pr.ComparisonStatus != "NextStageRequired"))
-                .OrderByDescending(a => a.AnalysedAt)
-                .ThenByDescending(a => a.Id)
-                .FirstOrDefaultAsync();
-
-            var wvParam = finishedWvAnalysis?.ParameterResults
-                .FirstOrDefault(pr => pr.IsActive && pr.ComparisonStatus != "NextStageRequired" && pr.ReportedValue.HasValue && pr.ReportedValue.Value > 0);
-
-            if (wvParam != null)
-            {
-                if (payload.UnitAmount.HasValue)
-                    throw new InvalidOperationException("Unit amount cannot be supplied because a finished weight variation result exists for this sample.");
-
-                unitAmount = wvParam.ReportedValue!.Value;
-                unitAmountSource = $"WeightVariation #{finishedWvAnalysis!.TestOrderId}";
-            }
-            else
-            {
-                if (!payload.UnitAmount.HasValue || payload.UnitAmount.Value <= 0)
-                    throw new InvalidOperationException("Unit amount is required and must be greater than 0.");
-
-                unitAmount = payload.UnitAmount.Value;
-                unitAmountSource = "Typed";
-            }
-        }
-        else // Liquid
-        {
-            if (!payload.UnitAmount.HasValue || payload.UnitAmount.Value <= 0)
-                throw new InvalidOperationException("Unit amount is required and must be greater than 0 for liquid samples.");
-
-            unitAmount = payload.UnitAmount.Value;
-            unitAmountSource = "Typed";
-        }
-
-        var parameterResults = new List<ParameterResult>();
-
-        foreach (var s in specs)
-        {
-            var runAnalyte = run.Analytes.FirstOrDefault(a => a.TestAnalyteId == s.TestAnalyteId!.Value);
-            if (runAnalyte == null)
-                throw new InvalidOperationException($"Linked system suitability run does not contain analyte '{s.ParameterName}'.");
-
-            if (!runAnalyte.Passed)
-                throw new InvalidOperationException($"Linked system suitability run analyte '{runAnalyte.AnalyteName}' did not pass.");
-
-            if (runAnalyte.StandardMeanArea <= 0 || runAnalyte.StandardWeightMg <= 0 || runAnalyte.StandardDilution <= 0 || runAnalyte.StandardPurityPercent <= 0)
-                throw new InvalidOperationException($"Linked system suitability run analyte '{runAnalyte.AnalyteName}' contains invalid standard values.");
-
-            var analyteAreas = payload.Areas.Where(a => a.TestAnalyteId == s.TestAnalyteId!.Value).ToList();
-
-            var calcResult = HplcMultiAnalyteCalculator.Calculate(
-                runAnalyte.AnalyteName,
-                runAnalyte.TestAnalyteId,
-                runAnalyte.Id,
-                runAnalyte.StandardWeightMg,
-                runAnalyte.StandardPurityPercent,
-                runAnalyte.StandardDilution,
-                runAnalyte.StandardMeanArea,
-                unitAmount,
-                unitAmountSource,
-                payload.SampleMatrix,
-                s,
-                payload.Preparations,
-                analyteAreas,
-                definition.HplcMaxPreparationRsdPercent);
-
-            var canonicalLimit = !string.IsNullOrWhiteSpace(s.SpecLimit)
-                ? s.SpecLimit
-                : SpecificationService.BuildCanonicalSpecLimit(s);
-
-            var paramResult = new ParameterResult
-            {
-                TestOrderId = order.Id,
-                SpecificationId = s.Id,
-                // ValidityRecordItemId references CalibrationRunAnalytes (ICP); the suitability run analyte row
-                // is recorded in CalculationJson instead, and the run itself on the TestAnalysis.
-                ValidityRecordItemId = null,
-                ParameterName = s.ParameterName,
-                ReportedValue = calcResult.ReportedValue,
-                ReportedDisplay = calcResult.ReportedDisplay,
-                Unit = s.Unit,
-                SpecLimit = canonicalLimit,
-                ResultBasis = s.ResultBasis,
-                ComparisonStatus = calcResult.ComparisonStatus,
-                OverRange = false,
-                BelowLoq = false,
-                CalculationJson = calcResult.CalculationJson,
-                StageReached = null,
-                IsActive = true
-            };
-
-            foreach (var prepCalc in calcResult.Preparations)
-            {
-                foreach (var inj in prepCalc.Injections)
-                {
-                    paramResult.Readings.Add(new ResultReading
-                    {
-                        Kind = ReadingKind.Replicate,
-                        Stage = prepCalc.PreparationIndex,
-                        Index = inj.InjectionIndex,
-                        Value1 = inj.Area,
-                        ComputedValue = inj.ConvertedAmount,
-                        Passed = true
-                    });
-                }
-            }
-
-            parameterResults.Add(paramResult);
-        }
-
-        return await PersistTestAnalysisAndFinalizeAsync(
-            order,
-            WorkflowType.HplcMultiAnalyte,
-            payload.EquipmentId,
-            analysedAtUtc,
-            null,
-            parameterResults,
-            ResultType.Numeric,
-            payload.Password,
-            payload.Comment,
-            "HPLC multi-analyte",
-            userId,
-            ipAddress,
-            unitAmount: unitAmount,
-            sampleMatrix: payload.SampleMatrix,
-            validityRecordType: "SystemSuitabilityRun",
-            validityRecordId: run.Id);
     }
 
     public async Task<TestWorkflowResult> RecordStandardComparisonResultAsync(

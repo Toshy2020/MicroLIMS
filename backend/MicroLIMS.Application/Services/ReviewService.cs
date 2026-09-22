@@ -111,8 +111,8 @@ public class ReviewService
         var definition = await _db.TestDefinitions.FirstOrDefaultAsync(d => d.Code == order.TestCode)
             ?? throw new InvalidOperationException($"Test definition \"{order.TestCode}\" not found.");
 
-        if (definition.WorkflowType != WorkflowType.CountTest && definition.WorkflowType != WorkflowType.HplcAssay && !AnalysisWorkflows.UsesTestAnalysis(definition.WorkflowType))
-            throw new InvalidOperationException($"Return to Analyst is only supported for Count Test, HPLC Assay, and Elemental Assay workflows. \"{order.TestCode}\" is a {definition.WorkflowType} workflow.");
+        if (definition.WorkflowType != WorkflowType.CountTest && !AnalysisWorkflows.UsesTestAnalysis(definition.WorkflowType))
+            throw new InvalidOperationException($"Return to Analyst is only supported for Count Test and result-entry (analysis) workflows. \"{order.TestCode}\" is a {definition.WorkflowType} workflow.");
 
         if (definition.WorkflowType == WorkflowType.CountTest)
         {
@@ -136,17 +136,6 @@ public class ReviewService
                 latestIncubation.CompletedAt = null;
                 latestIncubation.CompletedByUserId = null;
                 latestIncubation.Outcome = null;
-            }
-        }
-        else if (definition.WorkflowType == WorkflowType.HplcAssay)
-        {
-            // 1. Soft-supersede all active HplcAssayResult rows for this test order
-            var activeHplcResults = await _db.HplcAssayResults
-                .Where(r => r.TestOrderId == testOrderId && r.IsActive)
-                .ToListAsync();
-            foreach (var r in activeHplcResults)
-            {
-                r.IsActive = false;
             }
         }
         else if (AnalysisWorkflows.UsesTestAnalysis(definition.WorkflowType))
@@ -183,7 +172,7 @@ public class ReviewService
             ? "Returned to analyst by reviewer"
             : $"Returned to analyst: {reason.Trim()}";
 
-        var targetStep = (definition.WorkflowType == WorkflowType.HplcAssay || AnalysisWorkflows.UsesTestAnalysis(definition.WorkflowType))
+        var targetStep = AnalysisWorkflows.UsesTestAnalysis(definition.WorkflowType)
             ? WorkflowStep.Running
             : WorkflowStep.Incubating;
 

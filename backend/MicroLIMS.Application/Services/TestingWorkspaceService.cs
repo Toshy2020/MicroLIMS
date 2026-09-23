@@ -389,8 +389,14 @@ public class TestingWorkspaceService : ITestWorkspaceService
                 g => g.Key,
                 g => (MaterialId: g.First().Media!.MaterialId, MediaProductId: g.First().Media!.Material?.MediaProductId));
 
+        var noPreparationSectionIds = (await _db.DocumentSections
+            .AsNoTracking()
+            .Where(s => s.Code == MicroLIMS.Application.Workflows.PreparationRules.NoPreparationSectionCode)
+            .Select(s => s.Id)
+            .ToListAsync()).ToHashSet();
+
         return samples
-            .Select(s => ToDto(s, testDefs, incubations, locationCounts, analystNames, incubationsBySampleId, mediaLookup))
+            .Select(s => ToDto(s, testDefs, incubations, locationCounts, analystNames, incubationsBySampleId, mediaLookup, noPreparationSectionIds))
             .ToList();
     }
 
@@ -454,7 +460,9 @@ public class TestingWorkspaceService : ITestWorkspaceService
         // filtered pass over allIncubations would have produced - see the call
         // site in GetActiveSamplesAsync.
         Dictionary<int, List<Incubation>>? incubationsBySampleId = null,
-        IReadOnlyDictionary<int, (int MaterialId, int? MediaProductId)>? mediaLookup = null)
+        IReadOnlyDictionary<int, (int MaterialId, int? MediaProductId)>? mediaLookup = null,
+        // Sections whose tests skip the preparation gate (PreparationRules: FP).
+        IReadOnlySet<int>? noPreparationSectionIds = null)
     {
         var locationCounts = locationCountsByTestOrderId
             ?? (s.Locations != null
@@ -501,6 +509,7 @@ public class TestingWorkspaceService : ITestWorkspaceService
                 UsesSharedTsb = usesTsb,
                 IsWorkflowLocked = stateResult.IsWorkflowLocked,
                 IsResultEntryAllowed = stateResult.IsResultEntryAllowed,
+                SkipsPreparation = noPreparationSectionIds?.Contains(t.SectionId) ?? false,
                 ResultLockReason = stateResult.LockReason,
                 LocationCount = locationCounts.GetValueOrDefault(t.Id),
                 AssignedAnalystId = t.AssignedAnalystId,

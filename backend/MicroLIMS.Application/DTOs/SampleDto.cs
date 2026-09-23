@@ -15,6 +15,9 @@ public class TestOrderSummaryDto
     public bool UsesSharedTsb { get; set; }
     public bool IsWorkflowLocked { get; set; }
     public bool IsResultEntryAllowed { get; set; }
+    // FP tests have no preparation stage (PreparationRules), so they stay
+    // open on a mixed sample that still needs preparation for its micro tests.
+    public bool SkipsPreparation { get; set; }
     public string? ResultLockReason { get; set; }
 
     // Number of SampleLocation rows under this TestOrder - 0 for

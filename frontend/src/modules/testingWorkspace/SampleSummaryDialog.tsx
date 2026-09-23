@@ -497,7 +497,7 @@ function ElementalAssayResultBlock({ assay }: { assay: ElementalAssayDetail }) {
       <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "repeat(2, 1fr)", md: "repeat(4, 1fr)" }, gap: 1.5, mb: 1.5 }}>
         <SummaryField label="Matrix" value={assay.sampleMatrix} />
         <SummaryField label="Unit Amount" value={`${num(assay.unitAmount)} ${assay.unitAmountUnit}`} />
-        <SummaryField label="Analysis Time (UTC)" value={formatDate(assay.analysedAt)} />
+        <SummaryField label="Analysis Time" value={formatDate(assay.analysedAt)} />
         <SummaryField label="Entered By / At" value={`${assay.enteredByName ?? "—"} · ${formatDate(assay.enteredAt)}`} />
       </Box>
       <Table size="small">
@@ -577,7 +577,7 @@ function AnalysisResultBlock({ analysis }: { analysis: AnalysisDetail }) {
       <Typography sx={{ fontSize: 13, fontWeight: 700, mb: 1.5 }}>Analysis Results</Typography>
       <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "repeat(2, 1fr)", md: "repeat(4, 1fr)" }, gap: 1.5, mb: 1.5 }}>
         <SummaryField label="Instrument" value={analysis.equipmentCode ? `${analysis.equipmentCode}${analysis.equipmentName ? ` (${analysis.equipmentName})` : ""}` : (analysis.equipmentName ?? "—")} />
-        <SummaryField label="Analysis Time (UTC)" value={formatDate(analysis.analysedAt)} />
+        <SummaryField label="Analysis Time" value={formatDate(analysis.analysedAt)} />
         {analysis.unitAmount !== null && <SummaryField label="Unit Amount" value={num(analysis.unitAmount)} />}
         {analysis.sampleMatrix && <SummaryField label="Matrix" value={analysis.sampleMatrix} />}
         {conditionsDisplay && <SummaryField label="Conditions" value={conditionsDisplay} />}

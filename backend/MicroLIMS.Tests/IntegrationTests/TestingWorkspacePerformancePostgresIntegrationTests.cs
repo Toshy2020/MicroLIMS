@@ -124,7 +124,8 @@ public class TestingWorkspacePerformancePostgresIntegrationTests
         _output.WriteLine($"[SQL Budget] Commands at N={BaseSampleCountN}: {countN}, Commands at 4N={ScaledSampleCount4N}: {count4N}");
         foreach (var cmd in interceptor.Commands)
         {
-            _output.WriteLine($"  Command: {cmd.Replace(Environment.NewLine, " ").Substring(0, Math.Min(120, cmd.Length))}...");
+            var oneLine = cmd.Replace(Environment.NewLine, " ");
+            _output.WriteLine($"  Command: {oneLine.Substring(0, Math.Min(120, oneLine.Length))}...");
         }
 
         Assert.True(countN == count4N,

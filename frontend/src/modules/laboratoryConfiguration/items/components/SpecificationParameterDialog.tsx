@@ -713,7 +713,7 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
               >
                 {isStandardComparison
                   ? "Standard-Comparison Assay Specifications"
-                  : "Calibration Curve Specifications (ICP-OES)"}
+                  : "Calibration Curve Specifications (ICP-OES / AAS)"}
               </Typography>
 
               <Stack spacing={2}>

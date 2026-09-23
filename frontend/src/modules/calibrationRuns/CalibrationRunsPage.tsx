@@ -174,6 +174,18 @@ export function CalibrationRunsPage() {
   );
 
   const methodSectionId = selectedMethod?.sectionId;
+  // AAS reuses this whole flow (D-A4); null on the test means the legacy ICP-OES default.
+  const selectedInstrumentType: "IcpOes" | "Aas" = selectedMethod?.calInstrumentType === "Aas" ? "Aas" : "IcpOes";
+  const instrumentTypeLabel = selectedInstrumentType === "Aas" ? "AAS" : "ICP-OES";
+  // Parsed "1, 5" -> [1, 5]; empty/invalid entries are dropped defensively.
+  const configuredStandardLevels = useMemo(() => {
+    if (!selectedMethod?.calStandardLevelsMgPerL) return null;
+    const levels = selectedMethod.calStandardLevelsMgPerL
+      .split(",")
+      .map((p) => Number(p.trim()))
+      .filter((n) => !isNaN(n) && n > 0);
+    return levels.length >= 2 ? levels : null;
+  }, [selectedMethod]);
 
   // Load runs list
   const loadRuns = useCallback(() => {
@@ -210,24 +222,29 @@ export function CalibrationRunsPage() {
     setDialogOpen(true);
 
     try {
-      const [eq, stds] = await Promise.all([
+      // AAS reuses this flow (D-A4); load both instrument families up front and
+      // filter by the selected test's calInstrumentType once a method is chosen.
+      const [icpEq, aasEq, stds] = await Promise.all([
         EquipmentConfigurationService.getEquipmentList("IcpOes"),
+        EquipmentConfigurationService.getEquipmentList("Aas"),
         MaterialService.getUsableReferenceStandards()
       ]);
-      setInstruments(eq as IcpInstrument[]);
+      setInstruments([...(icpEq as IcpInstrument[]), ...(aasEq as IcpInstrument[])]);
       setStandards(stds as ReferenceStandard[]);
     } catch (e) {
       setWizardError(errorMessage(e, "Could not load instruments or reference standards."));
     }
   };
 
-  // Section-scoped options
+  // Section- and instrument-type-scoped options
   const sectionInstruments = useMemo(
     () =>
       instruments.filter(
-        (i) => methodSectionId === undefined || i.sectionId === methodSectionId
+        (i) =>
+          (methodSectionId === undefined || i.sectionId === methodSectionId) &&
+          i.type === selectedInstrumentType
       ),
-    [instruments, methodSectionId]
+    [instruments, methodSectionId, selectedInstrumentType]
   );
 
   const sectionStandards = useMemo(
@@ -256,7 +273,19 @@ export function CalibrationRunsPage() {
 
       const defaultCorrelationType: CorrelationType =
         (method.calCorrelationType as CorrelationType) || "R";
-      const defaultMinStandards = method.calMinStandards != null ? String(method.calMinStandards) : "5";
+      // Fixed standard levels (e.g. "1, 5") override the min-standards default:
+      // the backend requires NumberOfStandards/Lowest/Highest to match them exactly.
+      const parsedLevels = method.calStandardLevelsMgPerL
+        ? method.calStandardLevelsMgPerL.split(",").map((p) => Number(p.trim())).filter((n) => !isNaN(n) && n > 0)
+        : [];
+      const levelsConfigured = parsedLevels.length >= 2;
+      const defaultMinStandards = levelsConfigured
+        ? String(parsedLevels.length)
+        : method.calMinStandards != null
+        ? String(method.calMinStandards)
+        : "5";
+      const defaultLowestStandard = levelsConfigured ? String(Math.min(...parsedLevels)) : "";
+      const defaultHighestStandard = levelsConfigured ? String(Math.max(...parsedLevels)) : "";
 
       // Pre-populate default checks according to method criteria
       const initialForms: AnalyteFormItem[] = activeAnalytes.map((a) => {
@@ -309,8 +338,8 @@ export function CalibrationRunsPage() {
           correlationValue: "",
           correlationType: defaultCorrelationType,
           numberOfStandards: defaultMinStandards,
-          lowestStandardMgPerL: "",
-          highestStandardMgPerL: "",
+          lowestStandardMgPerL: defaultLowestStandard,
+          highestStandardMgPerL: defaultHighestStandard,
           checks: defaultChecks
         };
       });
@@ -524,7 +553,7 @@ export function CalibrationRunsPage() {
   return (
     <>
       <PageHeader
-        title="Calibration Runs (ICP-OES)"
+        title="Calibration Runs (ICP-OES / AAS)"
         subtitle="Elemental assay calibration curves with multi-point linear regression and QC checks."
       >
         <Stack direction="row" spacing={1}>
@@ -839,7 +868,7 @@ export function CalibrationRunsPage() {
                     }}
                   >
                     <Typography variant="caption" sx={{ fontWeight: 600, display: "block" }}>
-                      ACCEPTANCE CRITERIA FOR {selectedMethod.methodAbbreviation || selectedMethod.code}
+                      ACCEPTANCE CRITERIA FOR {selectedMethod.methodAbbreviation || selectedMethod.code} ({instrumentTypeLabel})
                     </Typography>
                     <Typography variant="body2" sx={{ color: "text.secondary", mt: 0.5 }}>
                       Min Correlation: {selectedMethod.calMinCorrelation ?? "0.9995"} (
@@ -848,21 +877,25 @@ export function CalibrationRunsPage() {
                       {selectedMethod.calCheckRecoveryLowPercent ?? 90}%–
                       {selectedMethod.calCheckRecoveryHighPercent ?? 110}% · Max Age:{" "}
                       {selectedMethod.calMaxRunAgeHours ?? 24}h
+                      {configuredStandardLevels && (
+                        <> · Standard Levels: {configuredStandardLevels.join(", ")} mg/L</>
+                      )}
                     </Typography>
                   </Box>
                 )}
 
                 <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
                   <FormControl size="small" fullWidth disabled={!selectedMethod}>
-                    <InputLabel>ICP-OES Instrument</InputLabel>
+                    <InputLabel>{instrumentTypeLabel} Instrument</InputLabel>
                     <Select
-                      label="ICP-OES Instrument"
+                      label={`${instrumentTypeLabel} Instrument`}
                       value={selectedEquipmentId}
                       onChange={(e) => setSelectedEquipmentId(e.target.value)}
                     >
                       {sectionInstruments.map((i) => (
                         <MenuItem key={i.id} value={String(i.id)}>
-                          {i.code} — {i.name} ({i.cdsSoftware || "PerkinElmerSyngistix"})
+                          {i.code} — {i.name}
+                          {selectedInstrumentType === "IcpOes" ? ` (${i.cdsSoftware || "PerkinElmerSyngistix"})` : ""}
                         </MenuItem>
                       ))}
                     </Select>
@@ -925,10 +958,10 @@ export function CalibrationRunsPage() {
                   </Alert>
                 )}
 
-                {/* Syngistix Report Attachment */}
+                {/* Instrument software report attachment (Syngistix for ICP-OES) */}
                 <Box sx={{ p: 2, border: "1px dashed", borderColor: "divider", borderRadius: 1 }}>
                   <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 0.5 }}>
-                    Syngistix Calibration Report Attachment *
+                    {selectedInstrumentType === "Aas" ? "Instrument Software Calibration Report Attachment *" : "Syngistix Calibration Report Attachment *"}
                   </Typography>
                   <Typography variant="caption" sx={{ color: "text.secondary", display: "block", mb: 1.5 }}>
                     Upload the original instrument report (.pdf, .txt, .csv, .rep, max 30 MB).
@@ -979,7 +1012,7 @@ export function CalibrationRunsPage() {
             {wizardStep === 2 && (
               <Stack spacing={2.5}>
                 <Alert severity="info">
-                  Zero client-side computation: Enter the correlation values and measured concentrations from the Syngistix report exactly as reported. Proceed to &quot;Review Computed Results&quot; to evaluate pass/fail.
+                  Zero client-side computation: Enter the correlation values and measured concentrations from the {selectedInstrumentType === "Aas" ? "instrument software" : "Syngistix"} report exactly as reported. Proceed to &quot;Review Computed Results&quot; to evaluate pass/fail.
                 </Alert>
 
                 {analytesLoading ? (

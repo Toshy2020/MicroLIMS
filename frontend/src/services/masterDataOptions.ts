@@ -156,6 +156,10 @@ export interface CreateTestDefinitionPayload {
   calRequireInternalStandard?: boolean | null;
   reportedConcentrationBasis?: string | null;
   calMaxRunAgeHours?: number | null;
+  // CalibrationCurve only: instrument family (null = ICP-OES) and optional fixed
+  // standard levels (e.g. "1, 5"). Update: null means keep, "" clears the levels.
+  calInstrumentType?: "IcpOes" | "Aas" | null;
+  calStandardLevelsMgPerL?: string | null;
   replicateCount?: number | null;
   evaluationBasis?: "Mean" | "EachValue" | "Min" | "Max" | null;
   conditionFields?: string | null;
@@ -214,6 +218,10 @@ export interface UpdateTestDefinitionPayload {
   calRequireInternalStandard?: boolean | null;
   reportedConcentrationBasis?: string | null;
   calMaxRunAgeHours?: number | null;
+  // CalibrationCurve only: instrument family (null = ICP-OES) and optional fixed
+  // standard levels (e.g. "1, 5"). Update: null means keep, "" clears the levels.
+  calInstrumentType?: "IcpOes" | "Aas" | null;
+  calStandardLevelsMgPerL?: string | null;
   replicateCount?: number | null;
   evaluationBasis?: "Mean" | "EachValue" | "Min" | "Max" | null;
   conditionFields?: string | null;

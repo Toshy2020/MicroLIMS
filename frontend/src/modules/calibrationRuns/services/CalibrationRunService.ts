@@ -155,6 +155,8 @@ export interface CalibrationRunReportDetailsDto {
   calRequireInternalStandard: boolean | null;
   reportedConcentrationBasis: string | null;
   calMaxRunAgeHours: number | null;
+  calInstrumentType: "IcpOes" | "Aas" | null;
+  calStandardLevelsMgPerL: string | null;
   calibrationAt: string;
   status: CalibrationRunStatus;
   withdrawnAt: string | null;

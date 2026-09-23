@@ -70,6 +70,10 @@ export function CalibrationRunReportPage() {
   };
 
   const isWithdrawn = r.status === "Withdrawn";
+  // AAS reuses this whole report (D-A4); null on the run's test means the legacy ICP-OES default.
+  const isAas = dtl.calInstrumentType === "Aas";
+  const instrumentTypeLabel = isAas ? "AAS" : "ICP-OES";
+  const configuredStandardLevels = dtl.calStandardLevelsMgPerL;
 
   return (
     <PinnedLightTheme>
@@ -80,7 +84,7 @@ export function CalibrationRunReportPage() {
           {/* Header */}
           <div className="report-header">
             <div className="report-header-left">
-              <div className="label">ICP-OES CALIBRATION RUN RECORD</div>
+              <div className="label">{instrumentTypeLabel} CALIBRATION RUN RECORD</div>
               <div className="sample-id">{r.code}</div>
               <div className="subtitle">
                 {r.testDisplayName || r.testCode} ({r.methodAbbreviation || "—"}) · {r.sectionName}
@@ -104,20 +108,30 @@ export function CalibrationRunReportPage() {
           {/* Instrument & Standards Cards */}
           <div className="two-col-grid">
             <div className="section-card">
-              <div className="section-label">instrument &amp; cds software</div>
+              <div className="section-label">{isAas ? "instrument" : "instrument & cds software"}</div>
               <div className="data-grid">
                 <span className="key">Instrument</span>
                 <span className="value mono">{r.equipmentCode}</span>
                 <span className="key">Name</span>
                 <span className="value">{r.equipmentName ?? "—"}</span>
                 <span className="key">Manufacturer</span>
-                <span className="value">{dtl.equipmentVendor ?? "PerkinElmer"}</span>
-                <span className="key">CDS software</span>
-                <span className="value">
-                  {dtl.cdsSoftware ? CDS_LABELS[dtl.cdsSoftware] ?? dtl.cdsSoftware : "PerkinElmer Syngistix"}
-                </span>
+                <span className="value">{dtl.equipmentVendor ?? (isAas ? "—" : "PerkinElmer")}</span>
+                {!isAas && (
+                  <>
+                    <span className="key">CDS software</span>
+                    <span className="value">
+                      {dtl.cdsSoftware ? CDS_LABELS[dtl.cdsSoftware] ?? dtl.cdsSoftware : "PerkinElmer Syngistix"}
+                    </span>
+                  </>
+                )}
                 <span className="key">Max run age</span>
                 <span className="value">{dtl.calMaxRunAgeHours ?? 24} hours</span>
+                {configuredStandardLevels && (
+                  <>
+                    <span className="key">Standard levels</span>
+                    <span className="value mono">{configuredStandardLevels} mg/L</span>
+                  </>
+                )}
                 <span className="key">Reported basis</span>
                 <span className="value">
                   {dtl.reportedConcentrationBasis ?? "SamplePpm"} (ppm in sample)
@@ -175,10 +189,12 @@ export function CalibrationRunReportPage() {
             </div>
           </div>
 
-          {/* Syngistix Report Attachment Card */}
+          {/* Instrument Software Report Attachment Card (Syngistix for ICP-OES) */}
           {dtl.document && (
             <div className="section-card">
-              <div className="section-label">attached syngistix report document</div>
+              <div className="section-label">
+                attached {isAas ? "instrument software" : "syngistix"} report document
+              </div>
               <div className="data-grid">
                 <span className="key">File name</span>
                 <span className="value mono">{dtl.document.originalFileName}</span>
@@ -363,7 +379,7 @@ export function CalibrationRunReportPage() {
                   </div>
                   <div>
                     <div className="sig-name">{dtl.signature?.userFullNameSnapshot ?? r.performedByName}</div>
-                    <div className="sig-role">Analyst (ICP-OES Operator)</div>
+                    <div className="sig-role">Analyst ({instrumentTypeLabel} Operator)</div>
                   </div>
                 </div>
                 <div className="sig-time">{dt(dtl.signature?.signedAt ?? r.performedAt)}</div>

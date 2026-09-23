@@ -67,7 +67,7 @@ const WORKFLOW_TYPE_LABELS: Record<string, string> = {
   CountTest: "Count Test",
   Observation: "Observation",
   StandardComparison: "Standard-Comparison Assay",
-  ElementalAssay: "Elemental Assay (ICP-OES)",
+  ElementalAssay: "Elemental Assay (ICP-OES / AAS)",
   Measurement: "Measurement",
   Gravimetric: "Gravimetric",
   Qualitative: "Qualitative",
@@ -1123,7 +1123,7 @@ function WorkflowStepsSection({ test, workflowTypes, onWorkflowTypeChanged }: { 
       {test.workflowType === "ElementalAssay" || test.equationType === "CalibrationCurve" ? (
         <>
           <Box sx={{ mb: 2, p: 1.5, bgcolor: "background.paper", borderRadius: 1, border: "1px solid", borderColor: "divider" }}>
-            <Typography sx={{ fontWeight: 700, fontSize: 12, mb: 1, color: "secondary.main" }}>ICP-OES Calibration Curve Configuration</Typography>
+            <Typography sx={{ fontWeight: 700, fontSize: 12, mb: 1, color: "secondary.main" }}>{test.calInstrumentType === "Aas" ? "AAS" : "ICP-OES"} Calibration Curve Configuration</Typography>
             <Stack direction="row" spacing={3} sx={{ flexWrap: "wrap", alignItems: "center" }}>
               <Box>
                 <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>Equation Type</Typography>
@@ -1178,6 +1178,14 @@ function WorkflowStepsSection({ test, workflowTypes, onWorkflowTypeChanged }: { 
               <Box>
                 <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>Max Run Age</Typography>
                 <Typography variant="body2">{test.calMaxRunAgeHours ?? 24} hours</Typography>
+              </Box>
+              <Box>
+                <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>Instrument</Typography>
+                <Typography variant="body2">{test.calInstrumentType === "Aas" ? "AAS" : "ICP-OES"}</Typography>
+              </Box>
+              <Box>
+                <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>Standard Levels (mg/L)</Typography>
+                <Typography variant="body2">{test.calStandardLevelsMgPerL || "—"}</Typography>
               </Box>
               <Box>
                 <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>Reported Basis</Typography>
@@ -1787,6 +1795,8 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
   const [calRequireCcv, setCalRequireCcv] = useState<boolean>(true);
   const [calRequireInternalStandard, setCalRequireInternalStandard] = useState<boolean>(false);
   const [calMaxRunAgeHours, setCalMaxRunAgeHours] = useState<string>("24");
+  const [calInstrumentType, setCalInstrumentType] = useState<"IcpOes" | "Aas">("IcpOes");
+  const [calStandardLevelsMgPerL, setCalStandardLevelsMgPerL] = useState<string>("");
 
   const [replicateCount, setReplicateCount] = useState<string>("1");
   const [evaluationBasis, setEvaluationBasis] = useState<"Mean" | "EachValue" | "Min" | "Max">("Mean");
@@ -1866,6 +1876,8 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
     setCalRequireCcv(true);
     setCalRequireInternalStandard(false);
     setCalMaxRunAgeHours("24");
+    setCalInstrumentType("IcpOes");
+    setCalStandardLevelsMgPerL("");
     setReplicateCount("1");
     setEvaluationBasis("Mean");
     setConditionFields("");
@@ -1925,6 +1937,8 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
     setCalRequireCcv(t.calRequireCcv !== false);
     setCalRequireInternalStandard(!!t.calRequireInternalStandard);
     setCalMaxRunAgeHours(t.calMaxRunAgeHours != null ? String(t.calMaxRunAgeHours) : "24");
+    setCalInstrumentType(t.calInstrumentType === "Aas" ? "Aas" : "IcpOes");
+    setCalStandardLevelsMgPerL(t.calStandardLevelsMgPerL ?? "");
     setReplicateCount(t.replicateCount != null ? String(t.replicateCount) : "1");
     setEvaluationBasis(t.evaluationBasis || "Mean");
     setConditionFields(t.conditionFields || "");
@@ -2160,6 +2174,18 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
         setDialogError("Maximum run age must be at least 1 hour when equation type is Calibration Curve.");
         return;
       }
+      if (calStandardLevelsMgPerL.trim() !== "") {
+        const levelParts = calStandardLevelsMgPerL.split(",").map((p) => p.trim()).filter((p) => p !== "");
+        const levelNums = levelParts.map(Number);
+        if (levelParts.length < 2 || levelNums.some((n) => isNaN(n) || n <= 0)) {
+          setDialogError("Standard levels must be at least two comma-separated positive numbers (mg/L).");
+          return;
+        }
+        if (new Set(levelNums).size !== levelNums.length) {
+          setDialogError("Standard levels must be distinct.");
+          return;
+        }
+      }
     }
 
     const isMeasurement = workflowType === "Measurement";
@@ -2242,6 +2268,12 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
           calRequireInternalStandard: isCalCurve ? calRequireInternalStandard : null,
           reportedConcentrationBasis: isCalCurve ? "SamplePpm" : null,
           calMaxRunAgeHours: isCalCurve ? (calMaxRunAgeHours.trim() !== "" ? Number(calMaxRunAgeHours) : 24) : null,
+          calInstrumentType: isCalCurve ? calInstrumentType : null,
+          calStandardLevelsMgPerL: isCalCurve
+            ? (calStandardLevelsMgPerL.trim() !== ""
+                ? calStandardLevelsMgPerL.trim()
+                : (editingTest?.calStandardLevelsMgPerL ? "" : null))
+            : null,
           replicateCount: (isMeasurement || isGravimetric) ? Number(replicateCount) : null,
           evaluationBasis: isMeasurement ? evaluationBasis : null,
           conditionFields: (isGravimetric || isDissolution || isDisintegration || isWeightVariation) ? (conditionFields.trim() || null) : null,
@@ -2300,6 +2332,8 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
           calRequireInternalStandard: isCalCurve ? calRequireInternalStandard : null,
           reportedConcentrationBasis: isCalCurve ? "SamplePpm" : null,
           calMaxRunAgeHours: isCalCurve ? (calMaxRunAgeHours.trim() !== "" ? Number(calMaxRunAgeHours) : 24) : null,
+          calInstrumentType: isCalCurve ? calInstrumentType : null,
+          calStandardLevelsMgPerL: isCalCurve && calStandardLevelsMgPerL.trim() !== "" ? calStandardLevelsMgPerL.trim() : null,
           replicateCount: (isMeasurement || isGravimetric) ? Number(replicateCount) : null,
           evaluationBasis: isMeasurement ? evaluationBasis : null,
           conditionFields: (isGravimetric || isDissolution || isDisintegration || isWeightVariation) ? (conditionFields.trim() || null) : null,
@@ -2409,7 +2443,7 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
                           size="small"
                           color="secondary"
                           variant="outlined"
-                          label="ICP-OES"
+                          label={t.calInstrumentType === "Aas" ? "AAS" : "ICP-OES"}
                           sx={{ height: 20, fontSize: "0.68rem", fontWeight: 700 }}
                         />
                       )}
@@ -3151,6 +3185,30 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
 
                 <Stack spacing={2}>
                   <Stack direction="row" spacing={1.5} sx={{ flexWrap: "wrap", alignItems: "center" }}>
+                    <FormControl size="small" sx={{ flex: "1 1 160px", minWidth: 140 }}>
+                      <InputLabel id="cal-instrument-type-label">Instrument</InputLabel>
+                      <Select
+                        labelId="cal-instrument-type-label"
+                        label="Instrument"
+                        value={calInstrumentType}
+                        onChange={(e) => setCalInstrumentType(e.target.value as "IcpOes" | "Aas")}
+                      >
+                        <MenuItem value="IcpOes">ICP-OES</MenuItem>
+                        <MenuItem value="Aas">AAS</MenuItem>
+                      </Select>
+                    </FormControl>
+                    <TextField
+                      size="small"
+                      label="Standard Levels (mg/L)"
+                      placeholder="e.g. 1, 5"
+                      value={calStandardLevelsMgPerL}
+                      onChange={(e) => setCalStandardLevelsMgPerL(e.target.value)}
+                      helperText="Comma-separated, e.g. 1, 5. Leave empty to only check the minimum number of standards."
+                      sx={{ flex: "1 1 280px", minWidth: 240 }}
+                    />
+                  </Stack>
+
+                  <Stack direction="row" spacing={1.5} sx={{ flexWrap: "wrap", alignItems: "center" }}>
                     <TextField
                       size="small"
                       type="number"
@@ -3180,6 +3238,8 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
                       placeholder="e.g. 5"
                       value={calMinStandards}
                       onChange={(e) => setCalMinStandards(e.target.value)}
+                      disabled={calStandardLevelsMgPerL.trim() !== ""}
+                      helperText={calStandardLevelsMgPerL.trim() !== "" ? "Determined by Standard Levels above" : undefined}
                       slotProps={{ htmlInput: { min: 1, step: 1 } }}
                       sx={{ flex: "1 1 140px", minWidth: 120 }}
                     />
@@ -3306,7 +3366,7 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
                       Reported Concentration Basis
                     </Typography>
                     <Typography variant="body2" sx={{ fontWeight: 600, color: "text.primary", mt: 0.5 }}>
-                      ppm in the sample (Syngistix applies weight, volume and dilution)
+                      ppm in the sample ({calInstrumentType === "Aas" ? "the instrument software" : "Syngistix"} applies weight, volume and dilution)
                     </Typography>
                   </Box>
                 </Stack>

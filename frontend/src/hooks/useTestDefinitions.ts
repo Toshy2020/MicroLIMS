@@ -33,6 +33,10 @@ export interface TestDefinitionOption {
   calRequireInternalStandard?: boolean | null;
   reportedConcentrationBasis?: string | null;
   calMaxRunAgeHours?: number | null;
+  // CalibrationCurve only: instrument family (null = ICP-OES, existing rows) and
+  // optional fixed standard levels (e.g. "1, 5"; null = no fixed levels configured).
+  calInstrumentType?: "IcpOes" | "Aas" | null;
+  calStandardLevelsMgPerL?: string | null;
   replicateCount?: number | null;
   evaluationBasis?: "Mean" | "EachValue" | "Min" | "Max" | null;
   conditionFields?: string | null;

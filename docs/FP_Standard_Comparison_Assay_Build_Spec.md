@@ -50,6 +50,10 @@ master-data fact rather than a build blocker. Q5's calibration-run/RSD-scope dec
 by the user, not decided — see the rewritten "AAS" section below. The AAS slice is **unblocked and ready to
 build**; it is renumbered Slice 1 below so the slice order reflects that. Q9, Q10, Q12 and Q14 are untouched.
 
+**Fourth gate, 2026-09-23 (D-A4).** The user described the real AAS workflow (standards, r² ≥ 0.995, mg/L per
+element — the same as ICP-OES). The typed AAS % formula (D-A2/D-A3) is dropped; AAS reuses the calibration-curve
+flow with the instrument type and standard levels configured in Test Master. See the rewritten "AAS" section.
+
 ## Why
 
 `HplcAssayResult`'s formula (`% = (A/A_std)×(W_std/W)×(P/100)×(D/D_std)×100`) reports % of the standard's
@@ -419,87 +423,43 @@ run from `TestAnalysis.ValidityRecordType`/`Id` for `TestAnalysis`-based types a
 cases. This is the one piece of "small remaining gaps" flagged against the otherwise-reused foundation (recon,
 "Status of the shared per-parameter result foundation").
 
-## AAS — new, separate equation type (unblocked 2026-09-22, D-A2/D-A3 — calculation only, ready to build)
+## AAS — reuses the ICP-OES calibration-curve flow (decided 2026-09-23, D-A4; supersedes D-A2/D-A3)
 
-```
-%Assay = (Act.CS × Theo.Wt × 100) / (Theo.CS × Act.Wt)
-```
+**Superseded.** The typed-input formula `%Assay = (Act.CS × Theo.Wt × 100) / (Theo.CS × Act.Wt)` (D-A2/D-A3) is
+**dropped** and not built. On 2026-09-23 the user described the lab's real AAS workflow, which is the same as
+ICP-OES:
 
-**Term definitions, in the user's own words (D-A2, 2026-09-22):**
+1. The analyst prepares standards at known concentrations (e.g. 1 ppm, 5 ppm) and injects them.
+2. The calibration curve must reach r² ≥ 0.995.
+3. The test solution is read against that curve and the concentration of each element is reported in **mg/L**.
 
-- `Act.CS` — actual concentration of the test solution, estimated by AAS.
-- `Theo.CS` — theoretical concentration of the test solution.
-- `Theo.Wt` — theoretical weight of test.
-- `Act.Wt` — actual weight of the test sample, from the powdered homogeneous sample, taken during preparation of
-  the Mineral Stock Solution for AAS.
+User answers (D-A4, 2026-09-23):
 
-The formula **deliberately has no standard weight, no `P` and no `MC`** — confirmed by the user (D-A2), not this
-spec's inference; do not add them, matching the prompt's own instruction that the omission is a real property of
-the AAS method in this SOP, not something to "fix" by analogy with §1's formula.
+| # | Question | Answer |
+|---|---|---|
+| 1 | Final reported result | mg/L per element — no % assay formula on top |
+| 2 | Who fits the curve / converts | The AAS software, like Syngistix for ICP-OES: the analyst transcribes r² and the element concentration (`CalibrationEntryMode.InstrumentReported`, `ReportedConcentrationBasis.SamplePpm`) |
+| 3 | Standard levels | Configurable in Test Master |
+| 4 | Run scope | One calibration run is valid for many samples (same as the ICP-OES run) |
 
-**All four inputs are typed at result entry (D-A3, 2026-09-22) — not configured master data.** `Act.CS`,
-`Theo.CS`, `Theo.Wt` and `Act.Wt` are all typed on the AAS result entry screen, per mineral, the same way
-`ActWtTest`/`ThWtTest` are typed on the Standard-Comparison entry rather than resolved from a `TestAnalyte`/Item
-lookup (D-W4). `Act.CS` is transcribed by the analyst from the instrument readout, matching the Calibration
-Curve "instrument-reported" decision (recon F12) — it is not fitted by the LIMS. Consequence: Q4's "constants"
-are no longer a data-collection blocker (reworded the same shape as Q1's D-W5 rewording) — nothing needs to be
-gathered from the lab before this equation type can be built. Pre-filling or cross-checking these typed values
-against a configured reference later remains a future enhancement, out of scope here.
+**Design:** AAS is not a new equation type. It uses the existing `EquationType.CalibrationCurve` /
+`WorkflowType.ElementalAssay` path end to end (`CalibrationRun` + `CalibrationRunAnalyte` + `CalibrationRunCheck`,
+the elemental result entry, approval gate, review, summary and CoA). Changes:
 
-**The one part of Q4 that stays genuinely open:** which minerals in this product are run on AAS versus
-ICP-OES — a master-data/test-setup fact (which `TestDefinition`/`Specification` rows point at
-`EquipmentType.Aas` vs. `EquipmentType.IcpOes`), not a code blocker. Nothing about the calculation itself needs
-this answered first.
+- **Instrument per test:** `TestDefinition.CalInstrumentType` (`EquipmentType?`, `IcpOes` or `Aas`; null on existing
+  rows = `IcpOes`). Calibration runs and elemental result entry refuse equipment of any other type.
+- **Standard levels per test:** `TestDefinition.CalStandardLevelsMgPerL` (e.g. `1, 5`), editable in Test Master.
+  When set, each run analyte must report `NumberOfStandards` = the number of levels, `LowestStandardMgPerL` = the
+  lowest level and `HighestStandardMgPerL` = the highest; otherwise the analyte fails with a named reason. When
+  null, the existing `CalMinStandards` rule applies unchanged (existing ICP-OES tests).
+- **r² ≥ 0.995** is the existing `CalMinCorrelation` + `CalCorrelationType = RSquared` — configuration, no code.
+- AAS instruments need no CDS software (FP Instruments already allows `Aas` without one). Screen text that says
+  "ICP-OES" / "Syngistix" on the shared calibration pages becomes instrument-neutral or follows the test's
+  instrument type.
+- Blank / ICV / CCV / internal standard stay configurable per test exactly as for ICP-OES (all optional).
 
-- Built on `TestAnalysis`/`ParameterResult` the same way as Standard-Comparison, and on the same shared
-  foundation (`TestAnalysis`/`ParameterResult`/`ResultReading`, recon F5) — **one `ParameterResult` per mineral
-  spec**, the same "one row per analyte spec" convention every other multi-result FP type uses
-  (`HplcMultiAnalyte`, elemental assay): one `TestAnalysis` (`AnalysisType = WorkflowType.Aas`) per digest, one
-  `ParameterResult` per mineral (5 results per digest per the prompt).
-- `ParameterResult.CalculationJson` carries the four typed inputs (`ActCs`, `TheoCs`, `TheoWt`, `ActWt`) for
-  audit/traceability, the same way Standard-Comparison's `CalculationJson` carries its typed weights (D-W4).
-- The existing unused `EquipmentType.Aas` value (recon F12) is wired into `TestAnalysis.EquipmentId` and FP
-  Instruments the same way `Hplc`/`IcpOes` are already wired — no new enum member needed.
-- `ActWt`: no weigh-in-window requirement stated for AAS (the prompt's weigh-in-window rule is scoped to §1
-  Standard-Comparison only) — unaffected by D-A1.
-- **No calibration-run entity in this build (D-A3).** See "AAS calibration curve — deferred" below.
-- **Dependencies: none on the Stage model (Slice 2) or the Standard-Comparison/titration slices (Slices 3-4).**
-  AAS shares only Slice 0's foundation (`TestAnalysis`/`ParameterResult`/`ResultReading`) — it does not use
-  `ProductionStage.Role`, replicate-count-by-stage config, `SystemSuitabilityRun`/`SystemSuitabilityRunAnalyte`,
-  or any Standard-Comparison entity. It can be built and shipped independently of whether Slices 2-4 exist yet —
-  see "Slices, with dependencies" below, where it is now Slice 1.
-
-### AAS calibration curve — deferred 2026-09-22 (D-A3), not cancelled
-
-**Not part of this build.** The calculation-only AAS slice above needs no calibration-run entity: `Act.CS` is
-typed at entry, transcribed off the instrument (D-A2/D-A3). The calibration curve itself (0/2/4/6 ppm, triplicate
-reads, recon F9) and the RSD ≤ 2% scope question (per calibration level vs. whole curve, Q5) are follow-up work,
-explicitly deferred by the user on 2026-09-22 — not decided, not built now, kept in the open list. The two-option
-design below is kept as the design to return to when that follow-up is picked up; **neither option is
-implemented in this build.**
-
-**Option A (recommended): a light standalone "AAS Calibration Run" record**, reusing the sign-once/immutable
-shape of `CalibrationRun`/`SystemSuitabilityRun` but dropping everything ICP-specific:
-
-- `AasCalibrationRun`: `Id`, `Code` (reuse `SystemSuitabilityRunCode` generator with a new infix, e.g.
-  `{ABBR} AAS-CAL {seq:00}/{MM}{yyyy}` — recon precedent, `FP_Calibration_Curve_Phase0_Recon.md` F2), 
-  `TestDefinitionId`, `SectionId`, `EquipmentId` (must be `EquipmentType.Aas`), `CalibrationStandardMaterialId`,
-  `CalibrationAt`, `PerformedByUserId`/`At`, `SignatureId`, `Comment`, `Passed`.
-- `AasCalibrationLevel` (child, one per level — 0/2/4/6 ppm, prompt-quoted, recon F9): `NominalPpm`
-  (numeric(18,6)), three `ReadingMg...` values (triplicate, prompt-quoted) or a `ResultReading`-style child if
-  reusing the shared foundation is preferred over a bespoke child table.
-- Gate: RSD ≤ 2% (prompt-quoted, same single criterion as §1) — **per level or across the whole curve is
-  explicitly left open (Q5)**, so both a per-`AasCalibrationLevel` RSD column and a whole-curve RSD column are
-  modeled; only one is enforced once Q5 is answered.
-- No ICV/CCV/blank/internal-standard/correlation gate — none are stated for AAS (prompt §2), and none are added
-  "to be safe," per the prompt's explicit instruction not to add fields the SOP doesn't call for.
-
-**Option B: no reusable run record** — the curve is entered per sample batch, inline with the AAS result entry,
-with no separate signed artifact and no cross-batch reuse. Simpler to build, but loses the traceability and
-report-attachment pattern every other FP calibration/suitability record has, and breaks the "confirm `ActCs`
-against a specific calibration event" audit trail the reviewer would otherwise get (mirroring `CalibrationRun`'s
-A8 "reviewer sees the run and report" rule). Not recommended, but buildable if the lab says AAS curves are
-re-run per batch and never reused.
+"Which minerals run on AAS vs. ICP-OES" (old Q4) is now just which test the item's specifications point at.
+Q5 is closed by D-A4 (the curve is a sign-once calibration run, the RSD scope question does not apply).
 
 ## Slices, with dependencies
 
@@ -517,29 +477,15 @@ part of Slice 1, not separately:**
   and AAS both store their run-analyte link in `CalculationJson` instead (workaround already in production use
   by `HplcMultiAnalyte`).
 
-### Slice 1 — AAS (depends on Slice 0 only, independent of Slices 2-4; UNBLOCKED 2026-09-22, D-A2/D-A3 — ready to build)
+### Slice 1 — AAS on the calibration-curve flow (D-A4, 2026-09-23)
 
-**Renumbered and moved 2026-09-22 (D-A2/D-A3).** This was Slice 4, listed last and blocked on Q4/Q5. It is moved
-to Slice 1 because it is now the slice with the fewest open dependencies: Q4's constants are closed-by-design
-(D-A2/D-A3), Q5's calibration-run decision is deferred rather than blocking (the calculation ships without it),
-and AAS depends on nothing from Slice 0's siblings below — not the Stage model, not `SystemSuitabilityRun`, not
-any Standard-Comparison entity. Ordering it first reflects that it can ship independently and immediately; it
-does **not** imply the other slices are lower priority for the lab, only that AAS has no gate left to clear.
-
-Backend: new `EquationType`/`WorkflowType = Aas`, `TestAnalysis`/`ParameterResult` wiring (`AnalysisType =
-WorkflowType.Aas`, one `ParameterResult` per mineral spec — D-A3), the AAS result entry endpoint with typed
-`ActCs`/`TheoCs`/`TheoWt`/`ActWt` fields (D-A2/D-A3, no `TestAnalyte`/Item lookup), the formula
-`%Assay = (ActCs × TheoWt × 100) / (TheoCs × ActWt)` with no `P`/`MC`/standard-weight terms (D-A2, confirmed
-deliberate), `EquipmentType.Aas` wired into `TestAnalysis.EquipmentId` and FP Instruments (recon F12, no new
-enum value needed), review/projection/summary/CoA branches (same generic mechanism as every other
-`TestAnalysis`-based type, recon F2/F5). **No calibration-run entity, no calibration-curve entry, no RSD-scope
-decision in this slice** — see "AAS calibration curve — deferred" above; that remains a separate, later,
-explicitly-deferred piece of work (Q5).
-Frontend: Test Master / FP Instruments wiring for `EquipmentType.Aas`, AAS result entry screen (typed `Act.CS`,
-`Theo.CS`, `Theo.Wt`, `Act.Wt` inputs per mineral, 5 minerals per digest per the prompt), summary/CoA labels.
-**Still open before this slice starts:** which minerals in this product run on AAS vs. ICP-OES (the remaining
-half of Q4) — a master-data/test-setup fact to confirm with the lab, not a code blocker; the endpoint and screen
-themselves need no further gate.
+Backend: `TestDefinition.CalInstrumentType` + `CalStandardLevelsMgPerL` (one migration, nullable columns),
+Test Master create/update validation (instrument type only `IcpOes`/`Aas` and only for `CalibrationCurve` tests;
+levels positive, distinct, at least 2), `CalibrationRunService` equipment check against the test's instrument
+type and the standard-levels check, elemental result entry equipment check, DTOs.
+Frontend: Test Master instrument type + standard levels fields; calibration runs page picks instruments of the
+test's type, prefills the standard count/lowest/highest from the levels, instrument-neutral labels; run report
+and entry labels follow the instrument type.
 
 ### Slice 2 — Stage model: `ProductionStage.Role` migration (replicate counts only; `ItemTestPortionWeights` dropped) (depends on Slice 0 only; added 2026-09-22 as D-S1-D-S5, reworked same day per D-W4; renumbered from Slice 1 on 2026-09-22 per D-A2/D-A3)
 

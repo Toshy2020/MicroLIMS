@@ -505,11 +505,11 @@ export function ElementalAssayPanel({
                       </Select>
                     </FormControl>
 
-                    {/* Syngistix reported ppm */}
+                    {/* Instrument-reported ppm (Syngistix for ICP-OES, the AAS software report for AAS) */}
                     <TextField
                       size="small"
                       type="number"
-                      label="Concentration in the sample as reported by Syngistix (ppm)"
+                      label="Concentration in the sample as reported by the instrument software (ppm)"
                       value={row.reportedPpm}
                       onChange={(e) => handleRowChange(idx, { reportedPpm: e.target.value })}
                       placeholder={row.overRange ? "Over range" : row.belowLoq ? "< LOQ" : "e.g. 8500"}
@@ -573,7 +573,7 @@ export function ElementalAssayPanel({
 
       <SignatureDialog
         open={signing}
-        meaningStatement="I entered these sample values from the Syngistix report and am recording this elemental assay result."
+        meaningStatement="I entered these sample values from the instrument software report and am recording this elemental assay result."
         onCancel={() => setSigning(false)}
         onConfirm={submit}
       />

@@ -244,6 +244,10 @@ function TestAnalytesSection({ test }: { test: TestDefinitionOption }) {
   // Titration standard-comparison runs use only the RSD criterion (SC-4/SC-5a) -
   // resolution, tailing factor and theoretical plates are HPLC-only concepts.
   const isTitration = isHplcMulti && test.responseMode === "TitrationVolume";
+  // AAS calibration-curve tests have no plasma view (that's an ICP-OES/torch
+  // concept) - hide the field/column and always send null for these tests.
+  const isAas = !isHplcMulti && test.calInstrumentType === "Aas";
+  const hidePlasmaView = isHplcMulti || isAas;
   const [analytes, setAnalytes] = useState<TestAnalyteDto[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -363,7 +367,7 @@ function TestAnalytesSection({ test }: { test: TestDefinitionOption }) {
         await masterDataOptions.updateTestAnalyte(test.id, editingAnalyte.id, {
           element: trimmedEl,
           wavelengthNm: wave,
-          view: isHplcMulti ? null : view,
+          view: hidePlasmaView ? null : view,
           loqMgPerL: isHplcMulti ? null : Number(loqMgPerL),
           displayOrder: displayOrder ? Number(displayOrder) : editingAnalyte.displayOrder,
           ...sstPayload
@@ -372,7 +376,7 @@ function TestAnalytesSection({ test }: { test: TestDefinitionOption }) {
         await masterDataOptions.createTestAnalyte(test.id, {
           element: trimmedEl,
           wavelengthNm: wave,
-          view: isHplcMulti ? null : view,
+          view: hidePlasmaView ? null : view,
           loqMgPerL: isHplcMulti ? null : Number(loqMgPerL),
           displayOrder: displayOrder ? Number(displayOrder) : 0,
           ...sstPayload
@@ -422,7 +426,7 @@ function TestAnalytesSection({ test }: { test: TestDefinitionOption }) {
             <TableCell>Order</TableCell>
             <TableCell>{isHplcMulti ? "Vitamin / Analyte" : "Element"}</TableCell>
             <TableCell>{isHplcMulti ? "Detection Wavelength (nm)" : "Wavelength (nm)"}</TableCell>
-            {!isHplcMulti && <TableCell>Plasma View</TableCell>}
+            {!hidePlasmaView && <TableCell>Plasma View</TableCell>}
             {!isHplcMulti && <TableCell>LOQ (mg/L)</TableCell>}
             {isHplcMulti && <TableCell>SST Criteria</TableCell>}
             <TableCell>Status</TableCell>
@@ -435,7 +439,7 @@ function TestAnalytesSection({ test }: { test: TestDefinitionOption }) {
               <TableCell>{a.displayOrder}</TableCell>
               <TableCell sx={{ fontWeight: 600 }}>{a.element}</TableCell>
               <TableCell>{a.wavelengthNm}</TableCell>
-              {!isHplcMulti && <TableCell><Chip size="small" label={a.view} variant="outlined" /></TableCell>}
+              {!hidePlasmaView && <TableCell><Chip size="small" label={a.view} variant="outlined" /></TableCell>}
               {!isHplcMulti && <TableCell>{a.loqMgPerL}</TableCell>}
               {isHplcMulti && (
                 <TableCell sx={{ fontSize: 12 }}>
@@ -468,7 +472,7 @@ function TestAnalytesSection({ test }: { test: TestDefinitionOption }) {
           ))}
           {analytes.length === 0 && !loading && (
             <TableRow>
-              <TableCell colSpan={isHplcMulti ? 6 : 7} align="center" sx={{ py: 2, color: "text.secondary" }}>
+              <TableCell colSpan={hidePlasmaView ? 6 : 7} align="center" sx={{ py: 2, color: "text.secondary" }}>
                 {isHplcMulti
                   ? "No vitamins/analytes configured yet. Click \"Add Vitamin / Analyte\" to configure detection wavelengths and suitability criteria for this test."
                   : "No analytes configured yet. Click \"Add Analyte\" to configure wavelengths and LOQs for this test method."}
@@ -515,7 +519,7 @@ function TestAnalytesSection({ test }: { test: TestDefinitionOption }) {
             fullWidth
             slotProps={{ htmlInput: { min: 0, step: "any" } }}
           />
-          {!isHplcMulti && (
+          {!hidePlasmaView && (
             <FormControl size="small" fullWidth required>
               <InputLabel id="plasma-view-label">Plasma View</InputLabel>
               <Select
@@ -1139,22 +1143,30 @@ function WorkflowStepsSection({ test, workflowTypes, onWorkflowTypeChanged }: { 
                   {test.calMinCorrelation != null ? `>= ${test.calMinCorrelation} (${test.calCorrelationType === "RSquared" ? "r²" : "r"})` : "—"}
                 </Typography>
               </Box>
-              <Box>
-                <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>Min Standards</Typography>
-                <Typography variant="body2">{test.calMinStandards ?? "—"}</Typography>
-              </Box>
-              <Box>
-                <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>Check Recovery (ICV/CCV)</Typography>
-                <Typography variant="body2">
-                  {test.calCheckRecoveryLowPercent != null && test.calCheckRecoveryHighPercent != null
-                    ? `${test.calCheckRecoveryLowPercent}% – ${test.calCheckRecoveryHighPercent}%`
-                    : "—"}
-                </Typography>
-              </Box>
-              <Box>
-                <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>Max Blank</Typography>
-                <Typography variant="body2">{test.calBlankMax != null ? `${test.calBlankMax} mg/L` : "Analyte LOQ"}</Typography>
-              </Box>
+              {!test.calStandardLevelsMgPerL && (
+                <Box>
+                  <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>Min Standards</Typography>
+                  <Typography variant="body2">{test.calMinStandards ?? "—"}</Typography>
+                </Box>
+              )}
+              {(test.calRequireIcv || test.calRequireCcv) && (
+                <Box>
+                  <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>
+                    Check Recovery ({test.calRequireIcv && test.calRequireCcv ? "ICV/CCV" : test.calRequireIcv ? "ICV" : "CCV"})
+                  </Typography>
+                  <Typography variant="body2">
+                    {test.calCheckRecoveryLowPercent != null && test.calCheckRecoveryHighPercent != null
+                      ? `${test.calCheckRecoveryLowPercent}% – ${test.calCheckRecoveryHighPercent}%`
+                      : "—"}
+                  </Typography>
+                </Box>
+              )}
+              {test.calRequireBlank && (
+                <Box>
+                  <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>Max Blank</Typography>
+                  <Typography variant="body2">{test.calBlankMax != null ? `${test.calBlankMax} mg/L` : "Analyte LOQ"}</Typography>
+                </Box>
+              )}
               <Box>
                 <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>Internal Standard</Typography>
                 <Typography variant="body2">

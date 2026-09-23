@@ -168,6 +168,13 @@ export function CalibrationRunsPage() {
     [tests]
   );
 
+  // AAS has no plasma view; used to omit the view suffix on runs listed here,
+  // which can span multiple test methods (methodFilter can be "all").
+  const aasTestIds = useMemo(
+    () => new Set(tests.filter((t) => t.calInstrumentType === "Aas").map((t) => t.id)),
+    [tests]
+  );
+
   const selectedMethod = useMemo(
     () => calMethods.find((t) => String(t.id) === selectedTestId),
     [calMethods, selectedTestId]
@@ -659,9 +666,9 @@ export function CalibrationRunsPage() {
                       {r.analytes.map((a) => (
                         <Tooltip
                           key={a.id}
-                          title={`${a.element} (${a.wavelengthNm} nm ${a.view}): ${
-                            a.passed ? "Passed" : a.failureReasons || "Failed"
-                          }`}
+                          title={`${a.element} (${a.wavelengthNm} nm${
+                            !aasTestIds.has(r.testDefinitionId) && a.view ? ` ${a.view}` : ""
+                          }): ${a.passed ? "Passed" : a.failureReasons || "Failed"}`}
                         >
                           <Chip
                             size="small"
@@ -872,14 +879,27 @@ export function CalibrationRunsPage() {
                     </Typography>
                     <Typography variant="body2" sx={{ color: "text.secondary", mt: 0.5 }}>
                       Min Correlation: {selectedMethod.calMinCorrelation ?? "0.9995"} (
-                      {selectedMethod.calCorrelationType === "RSquared" ? "r²" : "r"}) · Min Standards:{" "}
-                      {selectedMethod.calMinStandards ?? 5} · ICV/CCV:{" "}
-                      {selectedMethod.calCheckRecoveryLowPercent ?? 90}%–
-                      {selectedMethod.calCheckRecoveryHighPercent ?? 110}% · Max Age:{" "}
-                      {selectedMethod.calMaxRunAgeHours ?? 24}h
-                      {configuredStandardLevels && (
+                      {selectedMethod.calCorrelationType === "RSquared" ? "r²" : "r"})
+                      {configuredStandardLevels ? (
                         <> · Standard Levels: {configuredStandardLevels.join(", ")} mg/L</>
+                      ) : (
+                        <> · Min Standards: {selectedMethod.calMinStandards ?? 5}</>
                       )}
+                      {(selectedMethod.calRequireIcv || selectedMethod.calRequireCcv) && (
+                        <>
+                          {" "}· ICV/CCV: {selectedMethod.calCheckRecoveryLowPercent ?? 90}%–
+                          {selectedMethod.calCheckRecoveryHighPercent ?? 110}%
+                        </>
+                      )}
+                      {selectedMethod.calRequireBlank && (
+                        <> · Blank Max: {selectedMethod.calBlankMax != null ? `${selectedMethod.calBlankMax} mg/L` : "LOQ of analyte"}</>
+                      )}
+                      {selectedMethod.calRequireInternalStandard && (
+                        <>
+                          {" "}· IS Recovery: {selectedMethod.calIsRecoveryLowPercent ?? "—"}%–{selectedMethod.calIsRecoveryHighPercent ?? "—"}%
+                        </>
+                      )}
+                      {" "}· Max Age: {selectedMethod.calMaxRunAgeHours ?? 24}h
                     </Typography>
                   </Box>
                 )}
@@ -932,24 +952,26 @@ export function CalibrationRunsPage() {
                     </Select>
                   </FormControl>
 
-                  <FormControl size="small" fullWidth disabled={!selectedMethod}>
-                    <InputLabel>ICV Standard (Second Source)</InputLabel>
-                    <Select
-                      label="ICV Standard (Second Source)"
-                      value={selectedIcvStandardId}
-                      onChange={(e) => setSelectedIcvStandardId(e.target.value)}
-                    >
-                      <MenuItem value="">
-                        <em>None</em>
-                      </MenuItem>
-                      {sectionStandards.map((s) => (
-                        <MenuItem key={s.id} value={String(s.id)}>
-                          {s.materialName} — Lot {s.batchNumber} (Exp:{" "}
-                          {s.expiryDate ? new Date(s.expiryDate).toLocaleDateString() : "N/A"})
+                  {selectedMethod?.calRequireIcv && (
+                    <FormControl size="small" fullWidth disabled={!selectedMethod}>
+                      <InputLabel>ICV Standard (Second Source)</InputLabel>
+                      <Select
+                        label="ICV Standard (Second Source)"
+                        value={selectedIcvStandardId}
+                        onChange={(e) => setSelectedIcvStandardId(e.target.value)}
+                      >
+                        <MenuItem value="">
+                          <em>None</em>
                         </MenuItem>
-                      ))}
-                    </Select>
-                  </FormControl>
+                        {sectionStandards.map((s) => (
+                          <MenuItem key={s.id} value={String(s.id)}>
+                            {s.materialName} — Lot {s.batchNumber} (Exp:{" "}
+                            {s.expiryDate ? new Date(s.expiryDate).toLocaleDateString() : "N/A"})
+                          </MenuItem>
+                        ))}
+                      </Select>
+                    </FormControl>
+                  )}
                 </Stack>
 
                 {selectedMethod?.calRequireIcv && !selectedIcvStandardId && (
@@ -1043,7 +1065,8 @@ export function CalibrationRunsPage() {
                             sx={{ fontWeight: 700, fontSize: "0.85rem" }}
                           />
                           <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
-                            {analyte.element} · {analyte.wavelengthNm} nm ({analyte.view})
+                            {analyte.element} · {analyte.wavelengthNm} nm
+                            {selectedInstrumentType !== "Aas" && analyte.view ? ` (${analyte.view})` : ""}
                           </Typography>
                           {analyte.loqMgPerL != null && (
                             <Typography variant="caption" sx={{ color: "text.secondary" }}>
@@ -1277,7 +1300,8 @@ export function CalibrationRunsPage() {
                             sx={{ fontWeight: 700 }}
                           />
                           <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
-                            {a.element} · {a.wavelengthNm} nm ({a.view})
+                            {a.element} · {a.wavelengthNm} nm
+                            {selectedInstrumentType !== "Aas" && a.view ? ` (${a.view})` : ""}
                           </Typography>
                         </Stack>
                         <Chip

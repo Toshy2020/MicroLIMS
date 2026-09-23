@@ -134,7 +134,6 @@ export function SuitabilityRunReportPage() {
                     <th style={{ padding: "6px 4px" }}>Th.Wt.std (dev)</th>
                     <th style={{ padding: "6px 4px" }}>Act. weight (mg)</th>
                     <th style={{ padding: "6px 4px" }}>MC %</th>
-                    {!isTitration && <th style={{ padding: "6px 4px" }}>Dilution</th>}
                     <th style={{ padding: "6px 4px" }}>Responses</th>
                     <th style={{ padding: "6px 4px" }}>Computed %RSD (limit)</th>
                     {isTitration && <th style={{ padding: "6px 4px" }}>Blank titre (mL)</th>}
@@ -162,7 +161,6 @@ export function SuitabilityRunReportPage() {
                       </td>
                       <td style={{ padding: "6px 4px" }} className="mono">{v(a.standardWeightMg)}</td>
                       <td style={{ padding: "6px 4px" }} className="mono">{v(a.moisturePercent)}</td>
-                      {!isTitration && <td style={{ padding: "6px 4px" }} className="mono">{v(a.standardDilution)}</td>}
                       <td style={{ padding: "6px 4px" }} className="mono">
                         {a.responses && a.responses.length > 0 ? a.responses.map((resp) => resp.response).join(", ") : v(a.standardMeanArea)}
                       </td>

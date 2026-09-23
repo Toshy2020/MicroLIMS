@@ -287,9 +287,6 @@ public class SystemSuitabilityService : ISystemSuitabilityService
                 if (reqRow.StandardWeightMg <= 0)
                     throw new InvalidOperationException($"Standard weight for analyte {analyteEntity.Element} must be greater than 0.");
 
-                if (!isTitration && reqRow.StandardDilution <= 0)
-                    throw new InvalidOperationException($"Standard dilution for analyte {analyteEntity.Element} must be greater than 0.");
-
                 if (isTitration)
                 {
                     if (reqRow.Responses == null || reqRow.Responses.Count == 0)

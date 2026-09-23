@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Security.Cryptography;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -72,7 +73,14 @@ public class CalibrationRunService : ICalibrationRunService
 
         if (!passed)
         {
-            return (false, $"Correlation ({runValue} {runType}) is below minimum limit / does not meet criterion ({minCriterion.Value} {criterionType}).");
+            static string CorrelationLabel(CorrelationType t) => t == CorrelationType.RSquared ? "r²" : "r";
+            static string FormatValue(decimal v) => v.ToString("0.######", CultureInfo.InvariantCulture);
+
+            string minLabel = criterionType.HasValue && criterionType.Value != runType
+                ? $" {CorrelationLabel(criterionType.Value)}"
+                : string.Empty;
+
+            return (false, $"Correlation {CorrelationLabel(runType)} {FormatValue(runValue)} is below the minimum {FormatValue(minCriterion.Value)}{minLabel}.");
         }
 
         return (true, null);
@@ -197,7 +205,8 @@ public class CalibrationRunService : ICalibrationRunService
                 ?? await _db.TestAnalytes.FirstOrDefaultAsync(a => a.Id == analyteReq.TestAnalyteId && a.TestDefinitionId == test.Id, ct)
                 ?? throw new InvalidOperationException($"Analyte {analyteReq.TestAnalyteId} is not configured for test {test.Code}.");
 
-            if (!testAnalyte.View.HasValue)
+            // AAS has no plasma view (D-A4); only ICP-OES analytes must carry one.
+            if (!testAnalyte.View.HasValue && (test.CalInstrumentType ?? EquipmentType.IcpOes) == EquipmentType.IcpOes)
                 throw new InvalidOperationException($"Analyte {testAnalyte.Element} ({testAnalyte.WavelengthNm} nm) does not have a View configured.");
 
             if (!testAnalyte.IsActive)
@@ -333,7 +342,9 @@ public class CalibrationRunService : ICalibrationRunService
             }
 
             bool analytePassed = failures.Count == 0;
-            string? failureReasonsStr = failures.Count > 0 ? string.Join("; ", failures) : null;
+            string? failureReasonsStr = failures.Count > 0
+                ? string.Join("; ", failures.Select(f => f.TrimEnd('.')))
+                : null;
 
             evaluatedAnalytes.Add(new EvaluatedAnalyte(
                 testAnalyte,
@@ -384,7 +395,7 @@ public class CalibrationRunService : ICalibrationRunService
             a.TestAnalyte.Id,
             a.TestAnalyte.Element,
             a.TestAnalyte.WavelengthNm,
-            a.TestAnalyte.View!.Value,
+            a.TestAnalyte.View ?? AnalyteView.Axial, // AAS: placeholder, never displayed
             a.CorrelationValue,
             a.CorrelationType,
             a.NumberOfStandards,
@@ -488,7 +499,9 @@ public class CalibrationRunService : ICalibrationRunService
                 TestAnalyteId = evalAnalyte.TestAnalyte.Id,
                 Element = evalAnalyte.TestAnalyte.Element,
                 WavelengthNm = evalAnalyte.TestAnalyte.WavelengthNm,
-                View = evalAnalyte.TestAnalyte.View!.Value,
+                // The snapshot column is non-null; AAS analytes have no view, so a
+                // placeholder is stored and the screens never show it for AAS.
+                View = evalAnalyte.TestAnalyte.View ?? AnalyteView.Axial,
                 CorrelationValue = evalAnalyte.CorrelationValue,
                 CorrelationType = evalAnalyte.CorrelationType,
                 NumberOfStandards = evalAnalyte.NumberOfStandards,

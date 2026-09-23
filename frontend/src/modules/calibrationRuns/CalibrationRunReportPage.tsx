@@ -166,26 +166,51 @@ export function CalibrationRunReportPage() {
               <span className="value mono">
                 {dtl.calMinCorrelation ?? "0.9995"} ({dtl.calCorrelationType === "RSquared" ? "r²" : "r"})
               </span>
-              <span className="key">Min standards</span>
-              <span className="value mono">{dtl.calMinStandards ?? 5}</span>
-              <span className="key">ICV recovery %</span>
-              <span className="value mono">
-                {dtl.calCheckRecoveryLowPercent ?? 95.0}% – {dtl.calCheckRecoveryHighPercent ?? 105.0}%
-              </span>
-              <span className="key">CCV recovery %</span>
-              <span className="value mono">
-                {dtl.calCheckRecoveryLowPercent ?? 90.0}% – {dtl.calCheckRecoveryHighPercent ?? 110.0}%
-              </span>
-              <span className="key">Blank maximum</span>
-              <span className="value mono">
-                {dtl.calBlankMax != null ? `${dtl.calBlankMax} mg/L` : "LOQ of analyte"}
-              </span>
-              <span className="key">IS recovery %</span>
-              <span className="value mono">
-                {dtl.calIsRecoveryLowPercent != null && dtl.calIsRecoveryHighPercent != null
-                  ? `${dtl.calIsRecoveryLowPercent}% – ${dtl.calIsRecoveryHighPercent}%`
-                  : "Not checked"}
-              </span>
+              {configuredStandardLevels ? (
+                <>
+                  <span className="key">Standard levels</span>
+                  <span className="value mono">{configuredStandardLevels} mg/L</span>
+                </>
+              ) : (
+                <>
+                  <span className="key">Min standards</span>
+                  <span className="value mono">{dtl.calMinStandards ?? 5}</span>
+                </>
+              )}
+              {dtl.calRequireIcv && (
+                <>
+                  <span className="key">ICV recovery %</span>
+                  <span className="value mono">
+                    {dtl.calCheckRecoveryLowPercent ?? 95.0}% – {dtl.calCheckRecoveryHighPercent ?? 105.0}%
+                  </span>
+                </>
+              )}
+              {dtl.calRequireCcv && (
+                <>
+                  <span className="key">CCV recovery %</span>
+                  <span className="value mono">
+                    {dtl.calCheckRecoveryLowPercent ?? 90.0}% – {dtl.calCheckRecoveryHighPercent ?? 110.0}%
+                  </span>
+                </>
+              )}
+              {dtl.calRequireBlank && (
+                <>
+                  <span className="key">Blank maximum</span>
+                  <span className="value mono">
+                    {dtl.calBlankMax != null ? `${dtl.calBlankMax} mg/L` : "LOQ of analyte"}
+                  </span>
+                </>
+              )}
+              {dtl.calRequireInternalStandard && (
+                <>
+                  <span className="key">IS recovery %</span>
+                  <span className="value mono">
+                    {dtl.calIsRecoveryLowPercent != null && dtl.calIsRecoveryHighPercent != null
+                      ? `${dtl.calIsRecoveryLowPercent}% – ${dtl.calIsRecoveryHighPercent}%`
+                      : "Not checked"}
+                  </span>
+                </>
+              )}
             </div>
           </div>
 
@@ -246,7 +271,7 @@ export function CalibrationRunReportPage() {
                       {analyte.element}
                     </strong>{" "}
                     <span style={{ fontSize: 13, color: "var(--color-text-secondary)" }}>
-                      ({analyte.wavelengthNm} nm · {analyte.view} view)
+                      ({analyte.wavelengthNm} nm{!isAas && analyte.view ? ` · ${analyte.view} view` : ""})
                     </span>
                   </div>
                   <div className={`status-badge ${analyte.passed ? "" : "is-danger"}`} style={{ height: 22, fontSize: 11 }}>

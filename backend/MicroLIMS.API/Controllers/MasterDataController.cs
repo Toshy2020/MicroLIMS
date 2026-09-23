@@ -2965,7 +2965,11 @@ public class MasterDataController : ControllerBase
         }
         else
         {
-            if (!request.View.HasValue)
+            // AAS calibration-curve tests have no plasma view (torch-only ICP-OES
+            // concept); only require it for ICP-OES (CalInstrumentType null defaults
+            // to ICP-OES for legacy tests).
+            var isAas = test.CalInstrumentType == EquipmentType.Aas;
+            if (!isAas && !request.View.HasValue)
                 throw new InvalidOperationException("View is required for calibration curve tests.");
 
             if (!request.LoqMgPerL.HasValue || request.LoqMgPerL.Value <= 0)
@@ -2986,7 +2990,7 @@ public class MasterDataController : ControllerBase
             TestDefinitionId = id,
             Element = element,
             WavelengthNm = request.WavelengthNm,
-            View = isAnalyteBasedSst ? null : request.View,
+            View = (isAnalyteBasedSst || test.CalInstrumentType == EquipmentType.Aas) ? null : request.View,
             LoqMgPerL = request.LoqMgPerL,
             DisplayOrder = request.DisplayOrder,
             SstMaxRsdPercent = isAnalyteBasedSst ? request.SstMaxRsdPercent : null,

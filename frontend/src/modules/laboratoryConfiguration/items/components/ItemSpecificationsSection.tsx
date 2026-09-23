@@ -440,7 +440,7 @@ export const ItemSpecificationsSection: React.FC<ItemSpecificationsSectionProps>
       >
         <LimitTypeBadge type="Range" labelOverride="Range" />
         <LimitTypeBadge type="NotMoreThan" labelOverride="NMT/NLT" />
-        <LimitTypeBadge type="TargetWithTolerance" labelOverride="Target \u00B1 Tol." />
+        <LimitTypeBadge type="TargetWithTolerance" labelOverride="Target ± Tol." />
         <LimitTypeBadge type="CountTiered" labelOverride="Count-Tiered" />
         <LimitTypeBadge type="Qualitative" labelOverride="Qualitative" />
         <LimitTypeBadge type="PresenceAbsence" labelOverride="Presence/Absence" />

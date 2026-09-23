@@ -16,7 +16,7 @@ import { masterDataOptions } from "../../services/masterDataOptions";
 import { EquipmentConfigurationService } from "../laboratoryConfiguration/masterDataSimple/services/EquipmentConfigurationService";
 import { ChromatographyColumnService, ChromatographyColumnDto } from "../laboratoryConfiguration/masterDataSimple/services/ChromatographyColumnService";
 import { MaterialService } from "../inventory/materials/services/MaterialService";
-import { SystemSuitabilityService, SystemSuitabilityRun } from "./services/SystemSuitabilityService";
+import { SystemSuitabilityService, SystemSuitabilityRun, SystemSuitabilityRunAnalyteView } from "./services/SystemSuitabilityService";
 
 interface HplcInstrument { id: number; code: string; name: string; sectionId: number; type: string }
 interface ReferenceStandard { id: number; materialName: string; batchNumber: string; purity?: number | null; sectionId: number; expiryDate?: string | null }
@@ -37,7 +37,6 @@ interface AnalyteRunRow {
   theoreticalWeightMg: string;
   standardWeightMg: string;
   moisturePercent: string;
-  standardDilution: string;
   responses: string[];
   resolution: string;
   tailingFactor: string;
@@ -61,6 +60,23 @@ const errorMessage = (e: unknown, fallback: string) => {
 
 const numOrNull = (v: string) => (v.trim() === "" ? null : Number(v));
 const fmt = (v?: number | null) => (v === null || v === undefined ? "—" : String(v));
+
+// A Standard-Comparison run has no single "standard weight" / "mean peak
+// area" / etc - those live per analyte (SystemSuitabilityRunAnalyteView).
+// Renders one small line per analyte, prefixed with its name, in a list cell.
+const analyteLines = (
+  analytes: SystemSuitabilityRunAnalyteView[],
+  render: (a: SystemSuitabilityRunAnalyteView) => string
+) => (
+  <Stack spacing={0.25}>
+    {analytes.map((a) => (
+      <Typography key={a.id} sx={{ fontSize: 12, whiteSpace: "nowrap" }}>
+        <Typography component="span" sx={{ fontSize: 10, color: "text.secondary" }}>{a.analyteName}: </Typography>
+        {render(a)}
+      </Typography>
+    ))}
+  </Stack>
+);
 
 // Standard weigh-in tolerance - mirrors backend
 // SystemSuitabilityService.StandardWeighInTolerancePercent. The backend is
@@ -145,7 +161,6 @@ export function SystemSuitabilityRunsPage() {
           theoreticalWeightMg: "",
           standardWeightMg: "",
           moisturePercent: "",
-          standardDilution: "",
           responses: ["", ""],
           resolution: "",
           tailingFactor: "",
@@ -227,11 +242,7 @@ export function SystemSuitabilityRunsPage() {
     if (validResponses.length === 0) return false;
     const deviation = weighInDeviation(a.standardWeightMg, a.theoreticalWeightMg);
     if (deviation !== null && Math.abs(deviation) > WEIGH_IN_TOLERANCE_PERCENT && !a.weighInJustification.trim()) return false;
-    if (isTitrationRun) {
-      if (a.blankTitreMl.trim() === "") return false;
-    } else if (!(Number(a.standardDilution) > 0)) {
-      return false;
-    }
+    if (isTitrationRun && a.blankTitreMl.trim() === "") return false;
     return true;
   };
 
@@ -251,7 +262,9 @@ export function SystemSuitabilityRunsPage() {
           // analytes are supplied - the first row stands in for them.
           referenceStandardMaterialId: Number(analyteRows[0].referenceStandardMaterialId),
           standardWeightMg: Number(analyteRows[0].standardWeightMg),
-          standardDilution: isTitrationRun ? 0 : Number(analyteRows[0].standardDilution),
+          // Standard-Comparison % assay does not use dilution - the run-level
+          // field is unused by the backend when analytes are supplied.
+          standardDilution: 0,
           standardMeanArea: 0,
           rsdPercent: null,
           resolution: null,
@@ -263,7 +276,9 @@ export function SystemSuitabilityRunsPage() {
             testAnalyteId: a.testAnalyteId,
             referenceStandardMaterialId: Number(a.referenceStandardMaterialId),
             standardWeightMg: Number(a.standardWeightMg),
-            standardDilution: isTitrationRun ? 0 : Number(a.standardDilution),
+            // Not part of the Standard-Comparison % assay formula (SOP
+            // STM-PC-013 6.9.2.5) - the backend no longer requires it here.
+            standardDilution: 0,
             standardMeanArea: 0,
             resolution: isTitrationRun ? null : numOrNull(a.resolution),
             tailingFactor: isTitrationRun ? null : numOrNull(a.tailingFactor),
@@ -362,38 +377,47 @@ export function SystemSuitabilityRunsPage() {
                   <TableCell>{r.testName}<Typography sx={{ fontSize: 12, color: "text.secondary" }}>{r.sectionName}</Typography></TableCell>
                   <TableCell>{r.equipmentCode}<Typography sx={{ fontSize: 12, color: "text.secondary" }}>{r.columnCode ?? "—"}</Typography></TableCell>
                   {runIsMulti ? (
-                    // Run-level standard/weight/dilution/area/RSD/resolution/tailing/plates
-                    // are just the first analyte's snapshot for a multi-analyte run and not
-                    // meaningful on their own - show pass/fail per analyte instead.
-                    <TableCell colSpan={8}>
-                      <Stack direction="row" spacing={0.5} sx={{ flexWrap: "wrap", gap: 0.5 }}>
-                        {r.analytes!.map((a) => {
-                          const respLabel = a.responses && a.responses.length > 0
-                            ? ` [${a.responses.map((resp) => resp.response).join(", ")}]`
-                            : "";
-                          const titre = a.blankTitreMl != null ? `, blank titre ${a.blankTitreMl} mL` : "";
-                          const weighIn = a.theoreticalWeightMg != null
-                            ? `, Th.Wt.std ${a.theoreticalWeightMg}mg (dev ${fmt(a.standardWeighInDeviationPercent)}%${a.standardWeighInOutOfWindow ? " — OUT OF WINDOW" : ""})`
-                            : "";
-                          const mc = a.moisturePercent != null ? `, MC ${a.moisturePercent}%` : "";
-                          const rsd = a.computedRsdPercent != null ? `, computed RSD ${a.computedRsdPercent}%` : "";
-                          const justification = a.weighInJustification ? ` — justification: ${a.weighInJustification}` : "";
-                          return (
-                            <Tooltip
-                              key={a.id}
-                              title={`${a.analyteName}: wt ${a.standardWeightMg}mg${weighIn}${mc}${respLabel}${rsd}${titre}${a.failureReasons ? ` — ${a.failureReasons}` : ""}${justification}`}
-                            >
-                              <Chip
-                                size="small"
-                                color={a.passed ? "success" : "error"}
-                                variant={a.passed ? "outlined" : "filled"}
-                                label={a.analyteName}
-                              />
-                            </Tooltip>
-                          );
-                        })}
-                      </Stack>
-                    </TableCell>
+                    // Standard-Comparison run: standard weight, mean peak area, RSD,
+                    // resolution, tailing and plates all live per analyte
+                    // (SystemSuitabilityRunAnalyteView) - stack one line per analyte in
+                    // each column instead of the run-level (unused) fields. Standard
+                    // dilution isn't part of this formula at all (see
+                    // StandardComparisonCalculator) so it's shown as "—".
+                    <>
+                      <TableCell>
+                        <Stack spacing={0.25}>
+                          {r.analytes!.map((a) => {
+                            const respLabel = a.responses && a.responses.length > 0
+                              ? ` [${a.responses.map((resp) => resp.response).join(", ")}]`
+                              : "";
+                            const titre = a.blankTitreMl != null ? `, blank titre ${a.blankTitreMl} mL` : "";
+                            const weighIn = a.theoreticalWeightMg != null
+                              ? `, Th.Wt.std ${a.theoreticalWeightMg}mg (dev ${fmt(a.standardWeighInDeviationPercent)}%${a.standardWeighInOutOfWindow ? " — OUT OF WINDOW" : ""})`
+                              : "";
+                            const mc = a.moisturePercent != null ? `, MC ${a.moisturePercent}%` : "";
+                            const justification = a.weighInJustification ? ` — justification: ${a.weighInJustification}` : "";
+                            return (
+                              <Tooltip
+                                key={a.id}
+                                title={`${a.analyteName}: wt ${a.standardWeightMg}mg${weighIn}${mc}${respLabel}${titre}${a.failureReasons ? ` — ${a.failureReasons}` : ""}${justification}`}
+                              >
+                                <Typography sx={{ fontSize: 12, whiteSpace: "nowrap", color: a.passed ? "text.primary" : "error.main" }}>
+                                  <Typography component="span" sx={{ fontSize: 10, color: "text.secondary" }}>{a.analyteName}: </Typography>
+                                  {a.referenceStandardName ?? "—"}{a.referenceStandardBatch ? ` (${a.referenceStandardBatch})` : ""}
+                                </Typography>
+                              </Tooltip>
+                            );
+                          })}
+                        </Stack>
+                      </TableCell>
+                      <TableCell align="right">{analyteLines(r.analytes!, (a) => fmt(a.standardWeightMg))}</TableCell>
+                      <TableCell align="right">—</TableCell>
+                      <TableCell align="right">{analyteLines(r.analytes!, (a) => fmt(a.standardMeanArea))}</TableCell>
+                      <TableCell align="right">{analyteLines(r.analytes!, (a) => fmt(a.computedRsdPercent ?? a.rsdPercent))}</TableCell>
+                      <TableCell align="right">{analyteLines(r.analytes!, (a) => fmt(a.resolution))}</TableCell>
+                      <TableCell align="right">{analyteLines(r.analytes!, (a) => fmt(a.tailingFactor))}</TableCell>
+                      <TableCell align="right">{analyteLines(r.analytes!, (a) => fmt(a.theoreticalPlates))}</TableCell>
+                    </>
                   ) : (
                     <>
                       <TableCell>
@@ -586,12 +610,6 @@ export function SystemSuitabilityRunsPage() {
                               ))}
                             </Select>
                           </FormControl>
-                          {!isTitrationRun && (
-                            <TextField
-                              size="small" fullWidth type="number" label="Standard dilution"
-                              value={a.standardDilution} onChange={(e) => updateAnalyteRow(idx, { standardDilution: e.target.value })}
-                            />
-                          )}
                         </Stack>
 
                         <Stack direction={{ xs: "column", sm: "row" }} spacing={2} sx={{ mb: 0.5 }}>

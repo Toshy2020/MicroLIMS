@@ -734,7 +734,9 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
                       ) : (
                         analytes.map((a) => (
                           <MenuItem key={a.id} value={a.id}>
-                            {isStandardComparison ? a.element : `${a.element} (${a.wavelengthNm} nm · ${a.view})`}
+                            {isStandardComparison
+                              ? a.element
+                              : `${a.element} (${a.wavelengthNm} nm${a.view ? ` · ${a.view}` : ""})`}
                           </MenuItem>
                         ))
                       )}

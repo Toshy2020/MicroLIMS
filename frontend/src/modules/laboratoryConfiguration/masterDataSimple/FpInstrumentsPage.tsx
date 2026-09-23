@@ -103,6 +103,21 @@ const typeLabel = (type: string) => FP_INSTRUMENT_TYPES.find((t) => t.value === 
 const cdsLabel = (cds: string | null) => CDS_SOFTWARE_OPTIONS.find((c) => c.value === cds)?.label ?? cds ?? "—";
 const formatDate = (d: string | null) => (d ? new Date(d).toLocaleDateString() : "—");
 
+// Infers the FP instrument type from the Equipment Inventory asset's own
+// (free-text) instrument-type field, so picking e.g. an "AAS" asset doesn't
+// default the type/name to HPLC. Falls back to keeping the current type when
+// nothing recognizable is found.
+const inferTypeFromInventoryText = (text: string | null | undefined): string | null => {
+  if (!text) return null;
+  const t = text.toLowerCase();
+  if (t.includes("aas") || t.includes("atomic absorption")) return "Aas";
+  if (t.includes("icp")) return "IcpOes";
+  if (t.includes("hplc")) return "Hplc";
+  if (t.includes("ph")) return "PhMeter";
+  if (t.includes("balance")) return "Balance";
+  return null;
+};
+
 export function FpInstrumentsPage() {
   const theme = useTheme();
   const [fpSection, setFpSection] = useState<LaboratorySection | null>(null);
@@ -117,6 +132,9 @@ export function FpInstrumentsPage() {
   const [form, setForm] = useState<FormState>(emptyForm);
   const [dialogError, setDialogError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  // Tracks whether form.name is still the auto-suggested "<manufacturer> <type>"
+  // value (so a later type change can refresh it) versus text the user typed.
+  const [autoName, setAutoName] = useState(true);
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -163,6 +181,7 @@ export function FpInstrumentsPage() {
     setEditing(null);
     setForm(emptyForm);
     setDialogError(null);
+    setAutoName(true);
     setDialogOpen(true);
   };
 
@@ -170,16 +189,24 @@ export function FpInstrumentsPage() {
     setEditing(inst);
     setForm({ inventoryId: "", name: inst.name, type: String(inst.type), cdsSoftware: inst.cdsSoftware ?? "" });
     setDialogError(null);
+    setAutoName(false);
     setDialogOpen(true);
   };
 
   const pickInventory = (id: number) => {
     const inv = inventory.find((i) => i.id === id);
-    setForm((f) => ({
-      ...f,
-      inventoryId: id,
-      name: inv ? [inv.manufacturerName, typeLabel(f.type)].filter(Boolean).join(" ") : f.name
-    }));
+    setForm((f) => {
+      const inferredType = inferTypeFromInventoryText(inv?.instrumentType) ?? f.type;
+      const needsCds = inferredType === "Hplc" || inferredType === "IcpOes";
+      return {
+        ...f,
+        inventoryId: id,
+        type: inferredType,
+        cdsSoftware: needsCds ? f.cdsSoftware : "",
+        name: inv ? [inv.manufacturerName, typeLabel(inferredType)].filter(Boolean).join(" ") : f.name
+      };
+    });
+    setAutoName(true);
   };
 
   const save = async () => {
@@ -365,7 +392,16 @@ export function FpInstrumentsPage() {
               labelId="fp-type-label"
               label="Instrument type"
               value={form.type}
-              onChange={(e) => setForm((f) => ({ ...f, type: e.target.value, cdsSoftware: (e.target.value === "Hplc" || e.target.value === "IcpOes") ? f.cdsSoftware : "" }))}
+              onChange={(e) => {
+                const newType = e.target.value;
+                setForm((f) => {
+                  const needsCds = newType === "Hplc" || newType === "IcpOes";
+                  const name = autoName && shownInventory
+                    ? [shownInventory.manufacturerName, typeLabel(newType)].filter(Boolean).join(" ")
+                    : f.name;
+                  return { ...f, type: newType, cdsSoftware: needsCds ? f.cdsSoftware : "", name };
+                });
+              }}
             >
               {FP_INSTRUMENT_TYPES.map((t) => <MenuItem key={t.value} value={t.value}>{t.label}</MenuItem>)}
             </Select>
@@ -390,7 +426,10 @@ export function FpInstrumentsPage() {
             label="Instrument name"
             required
             value={form.name}
-            onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+            onChange={(e) => {
+              setAutoName(false);
+              setForm((f) => ({ ...f, name: e.target.value }));
+            }}
             helperText="As it should appear on suitability runs, e.g. Agilent HPLC 1"
             slotProps={{ htmlInput: { maxLength: 100 } }}
           />

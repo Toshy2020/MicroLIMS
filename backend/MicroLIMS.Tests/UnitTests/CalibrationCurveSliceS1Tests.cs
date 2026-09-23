@@ -322,7 +322,7 @@ public class CalibrationCurveSliceS1Tests
         Assert.False(run.Passed);
         var analyte = run.Analytes.Single();
         Assert.False(analyte.Passed);
-        Assert.Contains("below minimum limit", analyte.FailureReasons);
+        Assert.Contains("is below the minimum", analyte.FailureReasons);
     }
 
     [Fact]
@@ -1288,7 +1288,7 @@ public class CalibrationCurveSliceS1Tests
         Assert.False(runB.Passed);
         var analyteB = runB.Analytes.Single();
         Assert.False(analyteB.Passed);
-        Assert.Contains("Analyte is missing required CCV check.", analyteB.FailureReasons);
+        Assert.Contains("Analyte is missing required CCV check", analyteB.FailureReasons);
     }
 
     [Fact]
@@ -1582,6 +1582,24 @@ public class CalibrationCurveSliceS1Tests
         var analyte = run.Analytes.Single();
         Assert.True(analyte.Passed);
         Assert.Null(analyte.FailureReasons);
+    }
+
+    [Fact]
+    public async Task Aas_AnalyteWithoutPlasmaView_Passes()
+    {
+        await using var db = NewDb();
+        var (fpSec, _, fpUser, _, _) = SeedSectionsAndUsers(db);
+        var (test, equip, standard, znAnalyte) = SeedAasTestData(db, fpSec.Id, fpUser.Id);
+        znAnalyte.View = null; // AAS has no plasma view
+        db.SaveChanges();
+
+        var service = TestServiceFactory.CalibrationRun(db);
+        var request = BuildAasRunRequest(test, equip, standard, znAnalyte, 2, 1m, 5m, "AAS analyte without view");
+
+        using var stream = CreateDummyPdfStream();
+        var run = await service.CreateAsync(request, stream, "report.pdf", "application/pdf", fpUser.Id, "127.0.0.1");
+
+        Assert.True(run.Passed);
     }
 
     [Fact]

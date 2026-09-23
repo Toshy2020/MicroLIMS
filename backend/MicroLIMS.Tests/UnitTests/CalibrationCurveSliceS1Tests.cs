@@ -1467,5 +1467,263 @@ public class CalibrationCurveSliceS1Tests
     }
 
     #endregion
+
+    #region AAS Slice 1 (D-A4): instrument type + standard levels reuse the CalibrationCurve path
+
+    private static (TestDefinition test, Equipment equip, Material standard, TestAnalyte znAnalyte) SeedAasTestData(
+        MicroLimsDbContext db, int sectionId, int userId)
+    {
+        var test = new TestDefinition
+        {
+            Code = "AAS-MIN",
+            DisplayName = "AAS Minerals Assay",
+            SectionId = sectionId,
+            WorkflowType = WorkflowType.ElementalAssay,
+            EquationType = EquationType.CalibrationCurve,
+            MethodAbbreviation = "AAS-MIN",
+            CalibrationEntryMode = CalibrationEntryMode.InstrumentReported,
+            CalInstrumentType = EquipmentType.Aas,
+            CalStandardLevelsMgPerL = "1, 5",
+            CalMinCorrelation = 0.995m,
+            CalCorrelationType = CorrelationType.RSquared,
+            CalCheckRecoveryLowPercent = 90.0m,
+            CalCheckRecoveryHighPercent = 110.0m,
+            CalBlankMax = 0.005m,
+            CalRequireBlank = false,
+            CalRequireIcv = false,
+            CalRequireCcv = false,
+            CalRequireInternalStandard = false,
+            ReportedConcentrationBasis = ReportedConcentrationBasis.SamplePpm,
+            CalMaxRunAgeHours = 24
+        };
+        db.TestDefinitions.Add(test);
+        db.SaveChanges();
+
+        var znAnalyte = new TestAnalyte
+        {
+            TestDefinitionId = test.Id,
+            Element = "Zn",
+            WavelengthNm = 213.857m,
+            View = AnalyteView.Axial,
+            LoqMgPerL = 0.005m,
+            DisplayOrder = 1,
+            IsActive = true
+        };
+        db.TestAnalytes.Add(znAnalyte);
+
+        var equip = new Equipment
+        {
+            Name = "PerkinElmer PinAAcle 900 AAS",
+            Code = "AAS-01",
+            Type = EquipmentType.Aas,
+            SectionId = sectionId
+        };
+        db.Equipment.Add(equip);
+
+        var standard = new Material
+        {
+            MaterialName = "Zn AAS Calibration Standard",
+            MaterialType = MaterialType.ReferenceStandard,
+            ManufacturerName = "PerkinElmer",
+            BatchNumber = "LOT-AAS-STD-01",
+            ReceivingDate = DateTime.UtcNow.AddDays(-10),
+            ExpiryDate = DateTime.UtcNow.AddYears(1),
+            QuantityReceived = 100m,
+            QuantityRemaining = 100m,
+            Unit = MaterialUnit.Milliliter,
+            Location = "Standards Cabinet",
+            SectionId = sectionId,
+            Purity = 99.9m,
+            CreatedByUserId = userId,
+            LastModifiedByUserId = userId
+        };
+        db.Materials.Add(standard);
+        db.SaveChanges();
+
+        return (test, equip, standard, znAnalyte);
+    }
+
+    private static CreateCalibrationRunRequest BuildAasRunRequest(
+        TestDefinition test, Equipment equip, Material standard, TestAnalyte znAnalyte,
+        int numberOfStandards, decimal lowest, decimal highest, string comment) =>
+        new(
+            TestDefinitionId: test.Id,
+            EquipmentId: equip.Id,
+            CalibrationStandardMaterialId: standard.Id,
+            IcvStandardMaterialId: null,
+            Password: "ValidPassword123!",
+            Comment: comment,
+            Analytes: new List<CreateCalibrationRunAnalyteRequest>
+            {
+                new(
+                    TestAnalyteId: znAnalyte.Id,
+                    CorrelationValue: 0.999m,
+                    CorrelationType: CorrelationType.RSquared,
+                    NumberOfStandards: numberOfStandards,
+                    LowestStandardMgPerL: lowest,
+                    HighestStandardMgPerL: highest,
+                    Checks: new List<CreateCalibrationRunCheckRequest>())
+            });
+
+    [Fact]
+    public async Task Aas_TestWithAasEquipment_Passes()
+    {
+        await using var db = NewDb();
+        var (fpSec, _, fpUser, _, _) = SeedSectionsAndUsers(db);
+        var (test, equip, standard, znAnalyte) = SeedAasTestData(db, fpSec.Id, fpUser.Id);
+
+        var service = TestServiceFactory.CalibrationRun(db);
+        var request = BuildAasRunRequest(test, equip, standard, znAnalyte, 2, 1m, 5m, "AAS on AAS equipment");
+
+        using var stream = CreateDummyPdfStream();
+        var run = await service.CreateAsync(request, stream, "report.pdf", "application/pdf", fpUser.Id, "127.0.0.1");
+
+        Assert.True(run.Passed);
+        var analyte = run.Analytes.Single();
+        Assert.True(analyte.Passed);
+        Assert.Null(analyte.FailureReasons);
+    }
+
+    [Fact]
+    public async Task Aas_TestWithIcpOesEquipment_Rejected()
+    {
+        await using var db = NewDb();
+        var (fpSec, _, fpUser, _, _) = SeedSectionsAndUsers(db);
+        var (test, _, standard, znAnalyte) = SeedAasTestData(db, fpSec.Id, fpUser.Id);
+
+        var icpEquip = new Equipment
+        {
+            Name = "PerkinElmer Avio 500 ICP-OES",
+            Code = "ICP-AAS-TEST",
+            Type = EquipmentType.IcpOes,
+            SectionId = fpSec.Id,
+            Vendor = "PerkinElmer",
+            CdsSoftware = CdsSoftware.PerkinElmerSyngistix
+        };
+        db.Equipment.Add(icpEquip);
+        await db.SaveChangesAsync();
+
+        var service = TestServiceFactory.CalibrationRun(db);
+        var request = BuildAasRunRequest(test, icpEquip, standard, znAnalyte, 2, 1m, 5m, "AAS test on ICP-OES equipment");
+
+        using var stream = CreateDummyPdfStream();
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+            () => service.CreateAsync(request, stream, "report.pdf", "application/pdf", fpUser.Id, "127.0.0.1"));
+
+        Assert.Equal("Selected equipment must be an AAS instrument.", ex.Message);
+    }
+
+    [Fact]
+    public async Task Aas_StandardLevelsMatch_NumberLowestHighest_Passes()
+    {
+        await using var db = NewDb();
+        var (fpSec, _, fpUser, _, _) = SeedSectionsAndUsers(db);
+        var (test, equip, standard, znAnalyte) = SeedAasTestData(db, fpSec.Id, fpUser.Id);
+
+        var service = TestServiceFactory.CalibrationRun(db);
+        var request = BuildAasRunRequest(test, equip, standard, znAnalyte, 2, 1m, 5m, "Levels match");
+
+        using var stream = CreateDummyPdfStream();
+        var run = await service.CreateAsync(request, stream, "report.pdf", "application/pdf", fpUser.Id, "127.0.0.1");
+
+        Assert.True(run.Passed);
+    }
+
+    [Fact]
+    public async Task Aas_StandardLevelsMismatch_FailsWithNamedReason()
+    {
+        await using var db = NewDb();
+        var (fpSec, _, fpUser, _, _) = SeedSectionsAndUsers(db);
+        var (test, equip, standard, znAnalyte) = SeedAasTestData(db, fpSec.Id, fpUser.Id);
+
+        var service = TestServiceFactory.CalibrationRun(db);
+        // Configured levels are "1, 5" (2 levels, lowest 1, highest 5); submit 3 standards
+        // with a different highest to trigger both the count and highest mismatches.
+        var request = BuildAasRunRequest(test, equip, standard, znAnalyte, 3, 1m, 10m, "Levels mismatch");
+
+        using var stream = CreateDummyPdfStream();
+        var run = await service.CreateAsync(request, stream, "report.pdf", "application/pdf", fpUser.Id, "127.0.0.1");
+
+        Assert.False(run.Passed);
+        var analyte = run.Analytes.Single();
+        Assert.False(analyte.Passed);
+        Assert.Contains("does not match the configured standard levels", analyte.FailureReasons);
+        Assert.Contains("does not match the configured highest level", analyte.FailureReasons);
+    }
+
+    [Fact]
+    public async Task Aas_NullLevels_KeepsExistingCalMinStandardsBehavior()
+    {
+        await using var db = NewDb();
+        var (fpSec, _, fpUser, _, _) = SeedSectionsAndUsers(db);
+        var (test, equip, standard, znAnalyte) = SeedAasTestData(db, fpSec.Id, fpUser.Id);
+
+        // Clear the configured levels and fall back to the plain CalMinStandards rule.
+        test.CalStandardLevelsMgPerL = null;
+        test.CalMinStandards = 3;
+        await db.SaveChangesAsync();
+
+        var service = TestServiceFactory.CalibrationRun(db);
+
+        // Below CalMinStandards -> fails with the original count-only reason.
+        var belowMinRequest = BuildAasRunRequest(test, equip, standard, znAnalyte, 2, 1m, 5m, "Below CalMinStandards");
+        using var stream1 = CreateDummyPdfStream();
+        var runBelowMin = await service.CreateAsync(belowMinRequest, stream1, "report.pdf", "application/pdf", fpUser.Id, "127.0.0.1");
+        Assert.False(runBelowMin.Passed);
+        Assert.Contains("is below minimum required", runBelowMin.Analytes.Single().FailureReasons);
+
+        // Meets CalMinStandards, any lowest/highest values accepted -> passes.
+        var meetsMinRequest = BuildAasRunRequest(test, equip, standard, znAnalyte, 3, 0.5m, 20m, "Meets CalMinStandards");
+        using var stream2 = CreateDummyPdfStream();
+        var runMeetsMin = await service.CreateAsync(meetsMinRequest, stream2, "report.pdf", "application/pdf", fpUser.Id, "127.0.0.1");
+        Assert.True(runMeetsMin.Passed);
+    }
+
+    [Fact]
+    public async Task MasterData_CalInstrumentType_OnNonCalibrationCurveTest_Rejected()
+    {
+        await using var db = NewDb();
+        var (fpSec, _, fpUser, _, _) = SeedSectionsAndUsers(db);
+        var controller = CreateMasterDataController(db, fpUser);
+
+        var req = new CreateTestDefinitionRequest(
+            Code: "AAS-BAD-1",
+            DisplayName: "Not a calibration curve test",
+            SectionId: fpSec.Id,
+            WorkflowType: WorkflowType.Observation,
+            EquationType: EquationType.None,
+            CalInstrumentType: EquipmentType.Aas);
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => controller.CreateTestDefinition(req));
+        Assert.Contains("Calibration instrument type only applies when equation type is CalibrationCurve.", ex.Message);
+    }
+
+    [Fact]
+    public async Task MasterData_CalInstrumentType_Hplc_Rejected()
+    {
+        await using var db = NewDb();
+        var (fpSec, _, fpUser, _, _) = SeedSectionsAndUsers(db);
+        var controller = CreateMasterDataController(db, fpUser);
+
+        var req = new CreateTestDefinitionRequest(
+            Code: "AAS-BAD-2",
+            DisplayName: "Calibration curve test with bad instrument",
+            SectionId: fpSec.Id,
+            WorkflowType: WorkflowType.ElementalAssay,
+            EquationType: EquationType.CalibrationCurve,
+            MethodAbbreviation: "AAS-BAD-2",
+            CalMinCorrelation: 0.999m,
+            CalCorrelationType: CorrelationType.RSquared,
+            CalMinStandards: 3,
+            CalCheckRecoveryLowPercent: 90m,
+            CalCheckRecoveryHighPercent: 110m,
+            ReportedConcentrationBasis: ReportedConcentrationBasis.SamplePpm,
+            CalInstrumentType: EquipmentType.Hplc);
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => controller.CreateTestDefinition(req));
+        Assert.Contains("Calibration instrument type must be IcpOes or Aas.", ex.Message);
+    }
+
+    #endregion
 }
 

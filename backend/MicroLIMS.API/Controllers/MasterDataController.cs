@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.DTOs;
+using MicroLIMS.Application.Helpers;
 using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Application.Services;
 using MicroLIMS.Domain.Entities;
@@ -156,6 +157,8 @@ public record CreateTestDefinitionRequest(
     bool? CalRequireInternalStandard = null,
     ReportedConcentrationBasis? ReportedConcentrationBasis = null,
     int? CalMaxRunAgeHours = null,
+    EquipmentType? CalInstrumentType = null,
+    string? CalStandardLevelsMgPerL = null,
     int? ReplicateCount = null,
     MeasurementEvaluationBasis? EvaluationBasis = null,
     string? ConditionFields = null,
@@ -212,6 +215,9 @@ public record UpdateTestDefinitionRequest(
     bool? CalRequireInternalStandard = null,
     ReportedConcentrationBasis? ReportedConcentrationBasis = null,
     int? CalMaxRunAgeHours = null,
+    EquipmentType? CalInstrumentType = null,
+    // Empty string clears the levels; null means keep the existing value.
+    string? CalStandardLevelsMgPerL = null,
     int? ReplicateCount = null,
     MeasurementEvaluationBasis? EvaluationBasis = null,
     string? ConditionFields = null,
@@ -1887,6 +1893,26 @@ public class MasterDataController : ControllerBase
                 throw new InvalidOperationException("Method abbreviation must be 1-20 uppercase alphanumeric characters or hyphens.");
         }
 
+        // AAS reuses the CalibrationCurve path (D-A4): the instrument choice and standard
+        // levels only make sense there, and only IcpOes/Aas are supported instrument families.
+        if (request.CalInstrumentType.HasValue)
+        {
+            if (request.EquationType != EquationType.CalibrationCurve)
+                throw new InvalidOperationException("Calibration instrument type only applies when equation type is CalibrationCurve.");
+
+            if (request.CalInstrumentType.Value != EquipmentType.IcpOes && request.CalInstrumentType.Value != EquipmentType.Aas)
+                throw new InvalidOperationException("Calibration instrument type must be IcpOes or Aas.");
+        }
+
+        string? normalizedCalLevels = null;
+        if (!string.IsNullOrWhiteSpace(request.CalStandardLevelsMgPerL))
+        {
+            if (request.EquationType != EquationType.CalibrationCurve)
+                throw new InvalidOperationException("Standard levels only apply when equation type is CalibrationCurve.");
+
+            normalizedCalLevels = CalibrationStandardLevelsHelper.ParseAndValidate(request.CalStandardLevelsMgPerL).Normalized;
+        }
+
         if (request.EquationType == EquationType.Measurement)
         {
             if (request.WorkflowType != WorkflowType.Measurement)
@@ -2096,6 +2122,8 @@ public class MasterDataController : ControllerBase
             CalRequireInternalStandard = request.CalRequireInternalStandard,
             ReportedConcentrationBasis = request.ReportedConcentrationBasis,
             CalMaxRunAgeHours = request.CalMaxRunAgeHours ?? 24,
+            CalInstrumentType = request.CalInstrumentType,
+            CalStandardLevelsMgPerL = normalizedCalLevels,
             ReplicateCount = request.ReplicateCount,
             EvaluationBasis = request.EvaluationBasis,
             ConditionFields = request.ConditionFields,
@@ -2249,6 +2277,32 @@ public class MasterDataController : ControllerBase
             if (!System.Text.RegularExpressions.Regex.IsMatch(effectiveMethodAbbr, "^[A-Z0-9-]{1,20}$"))
                 throw new InvalidOperationException("Method abbreviation must be 1-20 uppercase alphanumeric characters or hyphens.");
         }
+
+        // AAS reuses the CalibrationCurve path (D-A4): the instrument choice and standard
+        // levels only make sense there, and only IcpOes/Aas are supported instrument families.
+        var effectiveCalInstrumentType = request.CalInstrumentType ?? entity.CalInstrumentType;
+        if (effectiveCalInstrumentType.HasValue)
+        {
+            if (effectiveEquationType != EquationType.CalibrationCurve)
+                throw new InvalidOperationException("Calibration instrument type only applies when equation type is CalibrationCurve.");
+
+            if (effectiveCalInstrumentType.Value != EquipmentType.IcpOes && effectiveCalInstrumentType.Value != EquipmentType.Aas)
+                throw new InvalidOperationException("Calibration instrument type must be IcpOes or Aas.");
+        }
+
+        // Empty string clears the levels (explicit "no levels configured"); null (the
+        // default) means keep the existing value - the same convention as every other
+        // Cal* field, but strings need an explicit marker to distinguish "clear" from "keep".
+        string? normalizedCalLevels = entity.CalStandardLevelsMgPerL;
+        if (request.CalStandardLevelsMgPerL != null)
+        {
+            normalizedCalLevels = string.IsNullOrWhiteSpace(request.CalStandardLevelsMgPerL)
+                ? null
+                : CalibrationStandardLevelsHelper.ParseAndValidate(request.CalStandardLevelsMgPerL).Normalized;
+        }
+
+        if (normalizedCalLevels != null && effectiveEquationType != EquationType.CalibrationCurve)
+            throw new InvalidOperationException("Standard levels only apply when equation type is CalibrationCurve.");
 
         if (effectiveEquationType == EquationType.Measurement)
         {
@@ -2463,6 +2517,9 @@ public class MasterDataController : ControllerBase
         if (request.CalRequireInternalStandard.HasValue) entity.CalRequireInternalStandard = request.CalRequireInternalStandard;
         if (request.ReportedConcentrationBasis.HasValue) entity.ReportedConcentrationBasis = request.ReportedConcentrationBasis;
         if (request.CalMaxRunAgeHours.HasValue) entity.CalMaxRunAgeHours = request.CalMaxRunAgeHours;
+        if (request.CalInstrumentType.HasValue) entity.CalInstrumentType = request.CalInstrumentType;
+        // normalizedCalLevels already folds in the "empty string clears" convention above.
+        if (request.CalStandardLevelsMgPerL != null) entity.CalStandardLevelsMgPerL = normalizedCalLevels;
         if (request.ReplicateCount.HasValue) entity.ReplicateCount = request.ReplicateCount.Value;
         if (request.EvaluationBasis.HasValue) entity.EvaluationBasis = request.EvaluationBasis.Value;
         if (request.ConditionFields != null) entity.ConditionFields = request.ConditionFields;

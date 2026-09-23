@@ -249,6 +249,8 @@ public record CalibrationRunReportDetailsDto(
     bool? CalRequireInternalStandard,
     ReportedConcentrationBasis? ReportedConcentrationBasis,
     int? CalMaxRunAgeHours,
+    EquipmentType? CalInstrumentType,
+    string? CalStandardLevelsMgPerL,
     DateTime CalibrationAt,
     CalibrationRunStatus Status,
     DateTime? WithdrawnAt,

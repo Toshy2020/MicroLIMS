@@ -61,6 +61,11 @@ public class TestDefinition
     public bool? CalRequireInternalStandard { get; set; }
     public ReportedConcentrationBasis? ReportedConcentrationBasis { get; set; }
     public int? CalMaxRunAgeHours { get; set; } = 24;
+    // AAS reuses this same calibration-curve path (D-A4): null means IcpOes (existing rows).
+    public EquipmentType? CalInstrumentType { get; set; }
+    // Comma-separated standard concentrations in mg/L, e.g. "1, 5" (invariant culture,
+    // normalised ascending). Null means the CalMinStandards count-only rule applies instead.
+    public string? CalStandardLevelsMgPerL { get; set; }
 
     // Finished Product / Numeric Measurement criteria
     public int? ReplicateCount { get; set; }

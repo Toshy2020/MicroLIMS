@@ -34,6 +34,7 @@ public class TestDefinitionConfiguration : IEntityTypeConfiguration<TestDefiniti
         builder.Property(t => t.CalBlankMax).HasPrecision(18, 6);
         builder.Property(t => t.CalIsRecoveryLowPercent).HasPrecision(18, 4);
         builder.Property(t => t.CalIsRecoveryHighPercent).HasPrecision(18, 4);
+        builder.Property(t => t.CalStandardLevelsMgPerL).HasMaxLength(200);
 
         builder.Property(t => t.DissolutionS1Offset).HasPrecision(28, 10);
         builder.Property(t => t.DissolutionS2MinOffset).HasPrecision(28, 10);

@@ -136,12 +136,17 @@ public class CalibrationRunService : ICalibrationRunService
         if (scope != null && !scope.Contains(test.SectionId))
             throw new UnauthorizedAccessException("This test belongs to a laboratory section you are not assigned to.");
 
-        // Equipment validation: ICP-OES + same section
+        // Equipment validation: the test's own instrument type (AAS reuses this same
+        // calibration-curve path per D-A4; null CalInstrumentType means IcpOes) + same section
         var equip = await _db.Equipment.FirstOrDefaultAsync(e => e.Id == equipmentId, ct)
             ?? throw new InvalidOperationException($"Equipment {equipmentId} not found.");
 
-        if (equip.Type != EquipmentType.IcpOes)
-            throw new InvalidOperationException("Selected equipment must be an ICP-OES instrument.");
+        var requiredInstrumentType = test.CalInstrumentType ?? EquipmentType.IcpOes;
+        if (equip.Type != requiredInstrumentType)
+        {
+            var instrumentName = requiredInstrumentType == EquipmentType.Aas ? "an AAS instrument." : "an ICP-OES instrument.";
+            throw new InvalidOperationException($"Selected equipment must be {instrumentName}");
+        }
 
         if (equip.SectionId != test.SectionId)
             throw new InvalidOperationException("Equipment belongs to a different laboratory section than the test definition.");
@@ -225,8 +230,30 @@ public class CalibrationRunService : ICalibrationRunService
                 failures.Add(corrReason);
             }
 
-            // Number of standards check
-            if (test.CalMinStandards.HasValue && analyteReq.NumberOfStandards < test.CalMinStandards.Value)
+            // Standard levels check (D-A4): when the test configures specific standard
+            // concentrations, the run must match them exactly (count, lowest, highest).
+            // Otherwise fall back to the plain CalMinStandards count-only rule.
+            if (!string.IsNullOrWhiteSpace(test.CalStandardLevelsMgPerL))
+            {
+                var (configuredLevels, _) = CalibrationStandardLevelsHelper.ParseAndValidate(test.CalStandardLevelsMgPerL);
+                var configuredCount = configuredLevels.Count;
+                var configuredLowest = configuredLevels[0];
+                var configuredHighest = configuredLevels[^1];
+
+                if (analyteReq.NumberOfStandards != configuredCount)
+                {
+                    failures.Add($"Number of standards ({analyteReq.NumberOfStandards}) does not match the configured standard levels ({configuredCount}).");
+                }
+                if (analyteReq.LowestStandardMgPerL != configuredLowest)
+                {
+                    failures.Add($"Lowest standard ({analyteReq.LowestStandardMgPerL} mg/L) does not match the configured lowest level ({configuredLowest} mg/L).");
+                }
+                if (analyteReq.HighestStandardMgPerL != configuredHighest)
+                {
+                    failures.Add($"Highest standard ({analyteReq.HighestStandardMgPerL} mg/L) does not match the configured highest level ({configuredHighest} mg/L).");
+                }
+            }
+            else if (test.CalMinStandards.HasValue && analyteReq.NumberOfStandards < test.CalMinStandards.Value)
             {
                 failures.Add($"Number of standards ({analyteReq.NumberOfStandards}) is below minimum required ({test.CalMinStandards.Value}).");
             }
@@ -783,6 +810,8 @@ public class CalibrationRunService : ICalibrationRunService
             test?.CalRequireInternalStandard,
             test?.ReportedConcentrationBasis,
             test?.CalMaxRunAgeHours,
+            test?.CalInstrumentType,
+            test?.CalStandardLevelsMgPerL,
             run.CalibrationAt,
             run.Status,
             run.WithdrawnAt,

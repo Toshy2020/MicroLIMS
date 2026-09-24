@@ -61,10 +61,18 @@ public class DiscussionController : ControllerBase
     }
 
     [HttpPost]
+    [RequestSizeLimit(DiscussionAttachmentPolicy.MaxRequestBytes)]
+    [RequestFormLimits(MultipartBodyLengthLimit = DiscussionAttachmentPolicy.MaxRequestBytes)]
     public async Task<IActionResult> CreatePost([FromForm] CreatePostForm form)
     {
         try
         {
+            // Refuse an oversized set before buffering it; the service
+            // re-checks everything (DiscussionAttachmentPolicy).
+            if (form.Files is { Count: > DiscussionAttachmentPolicy.MaxFiles })
+                return BadRequest(ApiResponse<object>.Fail(
+                    $"A post can carry at most {DiscussionAttachmentPolicy.MaxFiles} attachments; {form.Files.Count} were attached."));
+
             var attachments = new List<(string FileName, string ContentType, byte[] Data)>();
             if (form.Files != null)
             {

@@ -16,6 +16,7 @@ public enum SignatureMeaning
     SuitabilityRunPerformed,
     ResultRecorded,
     CalibrationRunPerformed,
-    CalibrationRunWithdrawn
+    CalibrationRunWithdrawn,
+    TestingClosed
 }
 

@@ -22,6 +22,11 @@ public record DecideSampleApprovalRequest(
     List<int>? SelectedTestOrderIds = null, int? NewSampleAnalystOneId = null, int? NewSampleAnalystTwoId = null,
     int? SectionId = null);
 
+// Closing testing: the reason a laboratory chose to stop rather than
+// finish its own tests after another laboratory already rejected the
+// sample.
+public record CloseSectionTestingRequest(string Password, string Reason);
+
 // Sample-level approval, reached by clicking a Sample's lifecycle badge
 // in the Testing Workspace rather than a standalone Approval page.
 [ApiController]
@@ -30,10 +35,12 @@ public record DecideSampleApprovalRequest(
 public class SampleApprovalController : ControllerBase
 {
     private readonly SampleApprovalService _approvalService;
+    private readonly SectionClosureService _closureService;
 
-    public SampleApprovalController(SampleApprovalService approvalService)
+    public SampleApprovalController(SampleApprovalService approvalService, SectionClosureService closureService)
     {
         _approvalService = approvalService;
+        _closureService = closureService;
     }
 
     private int CurrentUserId => int.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)!.Value);
@@ -45,6 +52,14 @@ public class SampleApprovalController : ControllerBase
         await _approvalService.DecideAsync(id, CurrentUserId, request.Password, request.Decision, request.Comment, ip,
             request.CertificateRemarks, request.SelectedTestOrderIds, request.NewSampleAnalystOneId, request.NewSampleAnalystTwoId,
             request.SectionId);
+        return Ok(ApiResponse<object>.Ok(new { }));
+    }
+
+    [HttpPost("sections/{sectionId:int}/close")]
+    public async Task<IActionResult> CloseTesting(int id, int sectionId, CloseSectionTestingRequest request)
+    {
+        await _closureService.CloseTestingAsync(id, sectionId, CurrentUserId, request.Password, request.Reason,
+            HttpContext.Connection.RemoteIpAddress?.ToString());
         return Ok(ApiResponse<object>.Ok(new { }));
     }
 }

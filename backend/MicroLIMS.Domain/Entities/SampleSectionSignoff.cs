@@ -38,4 +38,11 @@ public class SampleSectionSignoff
 
     // Printed under this section's block on the Certificate of Analysis.
     public string? CertificateRemarks { get; set; }
+
+    // Close testing (another lab rejected the sample).
+    public int? ClosedByUserId { get; set; }
+    public DateTime? ClosedAt { get; set; }
+    public string? CloseReason { get; set; }
+    public int? CloseSignatureId { get; set; }
+    public ElectronicSignature? CloseSignature { get; set; }
 }

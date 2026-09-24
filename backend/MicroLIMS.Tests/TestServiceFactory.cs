@@ -117,6 +117,9 @@ public static class TestServiceFactory
     public static SampleApprovalService SampleApproval(MicroLimsDbContext db, IFileStorageService? storage = null) =>
         new(db, ReviewGate(db), SampleSummary(db), Archive(db, storage), ResultProjection(db), new ReferenceNumberGenerator(db), new UserSectionScopeService(db));
 
+    public static SectionClosureService SectionClosure(MicroLimsDbContext db) =>
+        new(db, ReviewGate(db), new UserSectionScopeService(db), SampleApproval(db));
+
     public static MediaReleaseService MediaRelease(MicroLimsDbContext db, IFileStorageService? storage = null) =>
         new(db, new SegregationOfDutiesGuard(db), ReviewGate(db), MediaSummary(db), Archive(db, storage));
 

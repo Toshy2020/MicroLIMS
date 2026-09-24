@@ -38,6 +38,12 @@ public class TestOrder
     public int? SystemSuitabilityRunId { get; set; }
     public SystemSuitabilityRun? SystemSuitabilityRun { get; set; }
 
+    // Set when the lab closes its testing after another lab rejected the
+    // sample: the step (and incubation stage, when there was one) the test
+    // had reached, shown in the sample summary.
+    public WorkflowStep? CancelledAtStep { get; set; }
+    public int? CancelledAtStage { get; set; }
+
     public List<Result> Results { get; set; } = new();
     public List<Incubation> Incubations { get; set; } = new();
     public List<WorkflowHistory> WorkflowHistory { get; set; } = new();

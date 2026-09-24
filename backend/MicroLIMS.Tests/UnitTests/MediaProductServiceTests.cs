@@ -33,7 +33,7 @@ public class MediaProductServiceTests
             FullName = "Test SectionHead",
             Username = "sectionhead",
             RoleId = role.Id,
-            PasswordHash = BCrypt.Net.BCrypt.HashPassword(Password)
+            PasswordHash = TestPasswords.Hash(Password)
         };
         db.Users.Add(user);
         await db.SaveChangesAsync();

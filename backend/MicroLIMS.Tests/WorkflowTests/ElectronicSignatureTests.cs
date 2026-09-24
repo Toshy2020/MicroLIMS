@@ -27,7 +27,7 @@ public class ElectronicSignatureTests
         db.Roles.Add(role);
         await db.SaveChangesAsync();
 
-        var user = new User { FullName = "Jane Reviewer", Username = "jane", RoleId = role.Id, PasswordHash = BCrypt.Net.BCrypt.HashPassword(CorrectPassword) };
+        var user = new User { FullName = "Jane Reviewer", Username = "jane", RoleId = role.Id, PasswordHash = TestPasswords.Hash(CorrectPassword) };
         db.Users.Add(user);
         await db.SaveChangesAsync();
         return user;

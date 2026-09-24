@@ -53,7 +53,7 @@ public class SessionRevocationTests
             Id = id,
             FullName = "Test Analyst",
             Username = username,
-            PasswordHash = BCrypt.Net.BCrypt.HashPassword(CurrentPassword),
+            PasswordHash = TestPasswords.Hash(CurrentPassword),
             RoleId = 4,
             IsActive = true
         };

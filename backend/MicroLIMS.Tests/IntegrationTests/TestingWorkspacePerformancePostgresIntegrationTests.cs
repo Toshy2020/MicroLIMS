@@ -63,6 +63,14 @@ public class TestingWorkspacePerformancePostgresIntegrationTests
     public const int ScaledSampleCount4N = 600;
 
     /// <summary>
+    /// Sample volumes for the SQL command-count test. An N+1 regression issues extra
+    /// commands per sample, so any growth shows up at 10 vs 40 samples just as it does
+    /// at 150 vs 600 - only the timing test needs benchmark-scale data.
+    /// </summary>
+    public const int CommandCountSampleCount = 10;
+    public const int CommandCountScaledSampleCount = 40;
+
+    /// <summary>
     /// Typical number of test orders associated with each sample in the synthetic workload.
     /// Reflects standard microbiological releases requiring concurrent assays (e.g. TAMC, TYMC, EC, SA).
     /// </summary>
@@ -100,7 +108,7 @@ public class TestingWorkspacePerformancePostgresIntegrationTests
         var (causeId, itemId) = await EnsureBaselineDataAsync(db);
 
         // --- Phase 1: Seed N samples and measure SQL command count ---
-        await SeedSamplesBulkAsync(db, BaseSampleCountN, startIndex: 1, batchTag: "N", causeId, itemId);
+        await SeedSamplesBulkAsync(db, CommandCountSampleCount, startIndex: 1, batchTag: "N", causeId, itemId);
 
         var service = new TestingWorkspaceService(db);
 
@@ -108,28 +116,28 @@ public class TestingWorkspacePerformancePostgresIntegrationTests
         var samplesN = await service.GetActiveSamplesAsync();
         int countN = interceptor.CommandCount;
 
-        Assert.Equal(BaseSampleCountN, samplesN.Count);
+        Assert.Equal(CommandCountSampleCount, samplesN.Count);
 
         // --- Phase 2: Seed remaining samples up to 4N and measure SQL command count ---
-        int additionalSamples = ScaledSampleCount4N - BaseSampleCountN;
-        await SeedSamplesBulkAsync(db, additionalSamples, startIndex: BaseSampleCountN + 1, batchTag: "4N", causeId, itemId);
+        int additionalSamples = CommandCountScaledSampleCount - CommandCountSampleCount;
+        await SeedSamplesBulkAsync(db, additionalSamples, startIndex: CommandCountSampleCount + 1, batchTag: "4N", causeId, itemId);
 
         interceptor.Reset();
         var samples4N = await service.GetActiveSamplesAsync();
         int count4N = interceptor.CommandCount;
 
-        Assert.Equal(ScaledSampleCount4N, samples4N.Count);
+        Assert.Equal(CommandCountScaledSampleCount, samples4N.Count);
 
         // --- Primary Assertion: SQL count must be IDENTICAL between N and 4N ---
-        _output.WriteLine($"[SQL Budget] Commands at N={BaseSampleCountN}: {countN}, Commands at 4N={ScaledSampleCount4N}: {count4N}");
+        _output.WriteLine($"[SQL Budget] Commands at N={CommandCountSampleCount}: {countN}, Commands at 4N={CommandCountScaledSampleCount}: {count4N}");
         foreach (var cmd in interceptor.Commands)
         {
             _output.WriteLine($"  Command: {cmd.Replace(Environment.NewLine, " ").Substring(0, Math.Min(120, cmd.Length))}...");
         }
 
         Assert.True(countN == count4N,
-            $"SQL command count grew with data volume: issued {countN} queries at N={BaseSampleCountN} " +
-            $"and {count4N} queries at 4N={ScaledSampleCount4N}. Commands at N:\n{string.Join("\n---\n", interceptor.Commands)}");
+            $"SQL command count grew with data volume: issued {countN} queries at N={CommandCountSampleCount} " +
+            $"and {count4N} queries at 4N={CommandCountScaledSampleCount}. Commands at N:\n{string.Join("\n---\n", interceptor.Commands)}");
 
         // The query count is bounded by budget (measured at 5-10 commands depending on EF Core collection splitting)
         Assert.True(countN <= ExpectedMaxSqlCommandCount,
@@ -297,6 +305,13 @@ public class TestingWorkspacePerformancePostgresIntegrationTests
         return (cause.Id, item.Id);
     }
 
+    // Seeds `count` samples, each with TestOrdersPerSample test orders (one location
+    // and IncubationsPerTestOrder incubations per order), in ONE set-based statement.
+    //
+    // Building the same graph through EF Core meant change-tracking and inserting
+    // ~10,000 entities per 600-sample run, which dominated this class's runtime.
+    // The chained data-modifying CTEs let PostgreSQL generate the rows and wire the
+    // foreign keys itself; the values match what the EF graph used to write.
     private async Task SeedSamplesBulkAsync(
         MicroLimsDbContext db,
         int count,
@@ -307,70 +322,42 @@ public class TestingWorkspacePerformancePostgresIntegrationTests
     {
         var testCodes = new[] { "TAMC", "TYMC", "EC", "SA" };
         var baseTime = DateTime.UtcNow;
-        var samples = new List<Sample>(count);
+        int endIndex = startIndex + count - 1;
+        int lastTestOrderSlot = TestOrdersPerSample - 1;
+        int userId = _fixture.SeededUserId;
 
-        for (int i = 0; i < count; i++)
-        {
-            int index = startIndex + i;
-            var sample = new Sample
-            {
-                ReferenceNumber = $"FP-{batchTag}-{index:D5}",
-                ControlNumber = $"CTRL-{batchTag}-{index:D5}",
-                Category = SampleCategory.FinishedProduct,
-                Status = SampleStatus.Received,
-                PreparationStatus = SamplePreparationStatus.Ready,
-                ReceivedByUserId = _fixture.SeededUserId,
-                CauseOfTestingId = causeId,
-                ItemId = itemId,
-                ReceivedAt = baseTime.AddMinutes(-index),
-                SampledBy = "Performance Benchmark Sampler"
-            };
-
-            for (int t = 0; t < TestOrdersPerSample; t++)
-            {
-                var testOrder = new TestOrder
-                {
-                    Sample = sample,
-                    TestCode = testCodes[t % testCodes.Length],
-                    Status = ApprovalStatus.InProgress,
-                    CurrentStep = WorkflowStep.Incubating,
-                    AssignedAnalystId = _fixture.SeededUserId
-                };
-
-                for (int inc = 1; inc <= IncubationsPerTestOrder; inc++)
-                {
-                    var incubation = new Incubation
-                    {
-                        TestOrder = testOrder,
-                        StepNumber = inc,
-                        StepName = inc == 1 ? "Enrichment TSB" : "Subculture",
-                        StartedAt = baseTime.AddHours(-12 * inc),
-                        IncubationStartUtc = baseTime.AddHours(-12 * inc),
-                        IncubationEndUtc = baseTime.AddHours(12 * inc),
-                        ExpectedReadingAt = baseTime.AddHours(12 * inc),
-                        StartedByUserId = _fixture.SeededUserId,
-                        StageNumber = 1
-                    };
-                    testOrder.Incubations.Add(incubation);
-                }
-
-                var location = new SampleLocation
-                {
-                    Sample = sample,
-                    TestOrder = testOrder,
-                    LocationType = LocationType.Room,
-                    DilutionFactor = 1.0m
-                };
-                sample.Locations.Add(location);
-
-                sample.TestOrders.Add(testOrder);
-            }
-
-            samples.Add(sample);
-        }
-
-        db.Samples.AddRange(samples);
-        await db.SaveChangesAsync();
+        await db.Database.ExecuteSqlAsync($"""
+            WITH seeded_samples AS (
+                INSERT INTO "Samples" ("ReferenceNumber", "ControlNumber", "Category", "Status", "PreparationStatus",
+                                       "ReceivedByUserId", "CauseOfTestingId", "ItemId", "ReceivedAt", "SampledBy")
+                SELECT 'FP-' || {batchTag} || '-' || lpad(g::text, 5, '0'),
+                       'CTRL-' || {batchTag} || '-' || lpad(g::text, 5, '0'),
+                       {(int)SampleCategory.FinishedProduct}, {(int)SampleStatus.Received}, {(int)SamplePreparationStatus.Ready},
+                       {userId}, {causeId}, {itemId}, {baseTime} - make_interval(mins => g),
+                       'Performance Benchmark Sampler'
+                FROM generate_series({startIndex}, {endIndex}) AS g
+                RETURNING "Id"
+            ),
+            seeded_orders AS (
+                INSERT INTO "TestOrders" ("SampleId", "TestCode", "Status", "CurrentStep", "AssignedAnalystId")
+                SELECT s."Id", ({testCodes})[t % {testCodes.Length} + 1],
+                       {(int)ApprovalStatus.InProgress}, {(int)WorkflowStep.Incubating}, {userId}
+                FROM seeded_samples s CROSS JOIN generate_series(0, {lastTestOrderSlot}) AS t
+                RETURNING "Id", "SampleId"
+            ),
+            seeded_incubations AS (
+                INSERT INTO "Incubations" ("TestOrderId", "StepNumber", "StepName", "StartedAt", "IncubationStartUtc",
+                                           "IncubationEndUtc", "ExpectedReadingAt", "StartedByUserId", "StageNumber")
+                SELECT o."Id", inc, CASE WHEN inc = 1 THEN 'Enrichment TSB' ELSE 'Subculture' END,
+                       {baseTime} - make_interval(hours => 12 * inc), {baseTime} - make_interval(hours => 12 * inc),
+                       {baseTime} + make_interval(hours => 12 * inc), {baseTime} + make_interval(hours => 12 * inc),
+                       {userId}, 1
+                FROM seeded_orders o CROSS JOIN generate_series(1, {IncubationsPerTestOrder}) AS inc
+            )
+            INSERT INTO "SampleLocations" ("SampleId", "TestOrderId", "LocationType", "DilutionFactor")
+            SELECT o."SampleId", o."Id", {(int)LocationType.Room}, 1.0
+            FROM seeded_orders o
+            """);
     }
 
     private sealed class SqlCommandCountingInterceptor : DbCommandInterceptor

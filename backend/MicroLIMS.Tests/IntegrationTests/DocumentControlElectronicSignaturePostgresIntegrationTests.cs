@@ -42,7 +42,7 @@ public class DocumentControlElectronicSignaturePostgresIntegrationTests
             await db.SaveChangesAsync();
         }
 
-        var defaultPasswordHash = BCrypt.Net.BCrypt.HashPassword(Password);
+        var defaultPasswordHash = TestPasswords.Hash(Password);
 
         var author = new User
         {

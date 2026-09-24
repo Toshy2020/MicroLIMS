@@ -242,7 +242,7 @@ public class SmtpConfigurationTests
             Username = "scientist1",
             FullName = "Lead Scientist",
             Email = "scientist@laboratory.org",
-            PasswordHash = BCrypt.Net.BCrypt.HashPassword("OldValidPass1!"),
+            PasswordHash = TestPasswords.Hash("OldValidPass1!"),
             IsActive = true
         };
         db.Users.Add(user);
@@ -280,7 +280,7 @@ public class SmtpConfigurationTests
             Username = "user-no-email",
             FullName = "No Email User",
             Email = null,
-            PasswordHash = BCrypt.Net.BCrypt.HashPassword("OldValidPass1!"),
+            PasswordHash = TestPasswords.Hash("OldValidPass1!"),
             IsActive = true
         };
         db.Users.Add(user);

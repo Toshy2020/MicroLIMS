@@ -158,7 +158,7 @@ public class WaterAndEMEngineTests
         var role = new Role { Type = RoleType.Analyst, Name = "Analyst" };
         db.Roles.Add(role);
         await db.SaveChangesAsync();
-        db.Users.Add(new User { Id = 5, Username = "user5", FullName = "Analyst Five", RoleId = role.Id, PasswordHash = BCrypt.Net.BCrypt.HashPassword(password), IsActive = true });
+        db.Users.Add(new User { Id = 5, Username = "user5", FullName = "Analyst Five", RoleId = role.Id, PasswordHash = TestPasswords.Hash(password), IsActive = true });
         var item = new Item { Name = "Example Tablet", Code = "FP-0001", Category = SampleCategory.FinishedProduct };
         db.Items.Add(item);
         await db.SaveChangesAsync();

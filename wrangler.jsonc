@@ -5,6 +5,11 @@
   "observability": {
     "enabled": true
   },
+  // Workers Builds deploys from the repo root, where nothing builds the
+  // frontend first. Wrangler runs this before deploy so assets.directory exists.
+  "build": {
+    "command": "cd frontend && npm ci && npm run build"
+  },
   "assets": {
     "directory": "frontend/dist",
     "not_found_handling": "single-page-application"

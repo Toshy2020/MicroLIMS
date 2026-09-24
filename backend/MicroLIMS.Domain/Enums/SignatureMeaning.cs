@@ -17,6 +17,7 @@ public enum SignatureMeaning
     ResultRecorded,
     CalibrationRunPerformed,
     CalibrationRunWithdrawn,
-    TestingClosed
+    TestingClosed,
+    LaboratoryAdded
 }
 

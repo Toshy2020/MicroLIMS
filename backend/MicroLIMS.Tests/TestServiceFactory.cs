@@ -120,6 +120,9 @@ public static class TestServiceFactory
     public static SectionClosureService SectionClosure(MicroLimsDbContext db) =>
         new(db, ReviewGate(db), new UserSectionScopeService(db), SampleApproval(db));
 
+    public static AddLaboratoryService AddLaboratory(MicroLimsDbContext db) =>
+        new(db, ReviewGate(db));
+
     public static MediaReleaseService MediaRelease(MicroLimsDbContext db, IFileStorageService? storage = null) =>
         new(db, new SegregationOfDutiesGuard(db), ReviewGate(db), MediaSummary(db), Archive(db, storage));
 

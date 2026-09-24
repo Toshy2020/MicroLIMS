@@ -20,5 +20,10 @@ public enum ReviewWorkflowEventType
 
     // A laboratory section closed its own testing after another section
     // rejected the sample. The Comment holds the reason.
-    SectionTestingClosed
+    SectionTestingClosed,
+
+    // A second laboratory's tests were added to an already-received
+    // sample. SectionId holds the laboratory added; the Comment holds
+    // the reason.
+    LaboratoryAdded
 }

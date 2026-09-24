@@ -46,6 +46,8 @@ public record AssignAnalystRequest(int? AnalystUserId, string? Reason);
 
 public record VoidSampleRequest(string Reason, string Password);
 
+public record AddLaboratoryRequest(int SectionId, string Password, string Reason);
+
 [ApiController]
 [Route("api/samples")]
 [Authorize]
@@ -55,6 +57,7 @@ public class SampleController : ControllerBase
     private readonly SampleCorrectionService _correctionService;
     private readonly SampleAssignmentService _assignmentService;
     private readonly IUserSectionScopeService _scopeService;
+    private readonly AddLaboratoryService _addLaboratory;
     private readonly MicroLimsDbContext _db;
 
     public SampleController(
@@ -62,12 +65,14 @@ public class SampleController : ControllerBase
         SampleCorrectionService correctionService,
         SampleAssignmentService assignmentService,
         IUserSectionScopeService scopeService,
+        AddLaboratoryService addLaboratory,
         MicroLimsDbContext db)
     {
         _receivingService = receivingService;
         _correctionService = correctionService;
         _assignmentService = assignmentService;
         _scopeService = scopeService;
+        _addLaboratory = addLaboratory;
         _db = db;
     }
 
@@ -169,5 +174,20 @@ public class SampleController : ControllerBase
         {
             return BadRequest(ApiResponse<object>.Fail(ex.Message));
         }
+    }
+
+    // A second laboratory's tests added to a sample already received -
+    // same sample, same reference number.
+    [HttpPost("{id}/laboratories")]
+    [Authorize(Policy = PermissionConstants.SamplesReceive)]
+    public async Task<IActionResult> AddLaboratory(int id, AddLaboratoryRequest request)
+    {
+        try
+        {
+            await _addLaboratory.AddAsync(id, request.SectionId, CurrentUserId, request.Password, request.Reason,
+                HttpContext.Connection.RemoteIpAddress?.ToString());
+            return Ok(ApiResponse<object>.Ok(new { }));
+        }
+        catch (InvalidOperationException ex) { return BadRequest(ApiResponse<object>.Fail(ex.Message)); }
     }
 }

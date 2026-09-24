@@ -60,6 +60,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<SectionClosureService>();
         services.AddScoped<AddLaboratoryService>();
         services.AddScoped<SampleSummaryService>();
+        services.AddScoped<SampleTrackingService>();
         services.AddScoped<OosTrackingService>();
         services.AddScoped<DashboardService>();
         services.AddSingleton(new NotificationRecomputeThrottle(TimeSpan.FromMinutes(5)));

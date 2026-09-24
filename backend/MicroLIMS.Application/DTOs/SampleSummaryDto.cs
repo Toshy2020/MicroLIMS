@@ -55,6 +55,15 @@ public class SampleSummaryDto
     // some of its sections.
     public List<SampleSectionSummaryDto> Sections { get; set; } = new();
     public bool AllSectionsVisible { get; set; } = true;
+
+    // SampleSectionRollup.Overall(sample).ToString() - what this sample
+    // reads as across every laboratory (a rejection by any lab wins at
+    // once), distinct from Status which only follows the labs still open.
+    public string OverallStatus { get; set; } = string.Empty;
+
+    // True once no lab is still open (Sample.Status is Approved or
+    // Rejected) - a Certificate of Analysis can be generated/downloaded.
+    public bool CombinedCoaAvailable { get; set; }
 }
 
 public class SampleSectionSummaryDto
@@ -70,6 +79,18 @@ public class SampleSectionSummaryDto
     public DateTime? ApprovedAt { get; set; }
     public string? ApprovalDecision { get; set; }
     public string? CertificateRemarks { get; set; }
+
+    // True only when this section's own status is Approved - the
+    // per-section counterpart to SampleSummaryDto.CombinedCoaAvailable.
+    public bool CoaAvailable { get; set; }
+
+    // Set only for a section closed without its own decision (Status ==
+    // "Closed", i.e. SectionSignoffStatus.Cancelled) - another lab
+    // rejected the sample and this one's still-open tests were closed
+    // rather than judged. Follow the same canView rule as ReviewedByName.
+    public string? ClosedByName { get; set; }
+    public DateTime? ClosedAt { get; set; }
+    public string? CloseReason { get; set; }
 }
 
 public class SamplePreparationSummaryDto
@@ -112,6 +133,13 @@ public class TestOrderSummaryDetailDto
     public bool IsResultEntryAllowed { get; set; }
     public string? ResultLockReason { get; set; }
     public bool IsSuperseded { get; set; }
+
+    // Set only when this section closed testing after another lab
+    // rejected the sample: the step (and incubation stage, if any) this
+    // TestOrder had reached at that point (TestOrder.CancelledAtStep/Stage).
+    public string? CancelledAtStep { get; set; }
+    public int? CancelledAtStage { get; set; }
+
     public List<IncubationDetailDto> Incubations { get; set; } = new();
     public List<ResultDetailDto> Results { get; set; } = new();
     public List<CountTestReadingDetailDto> CountTestReadings { get; set; } = new();

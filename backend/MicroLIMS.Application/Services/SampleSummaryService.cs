@@ -249,6 +249,7 @@ public class SampleSummaryService
         {
             if (signoff.ReviewedByUserId is int reviewerId) userIds.Add(reviewerId);
             if (signoff.ApprovedByUserId is int approverId) userIds.Add(approverId);
+            if (signoff.ClosedByUserId is int closerId) userIds.Add(closerId);
         }
 
         var names = await _db.Users.Where(u => userIds.Contains(u.Id)).ToDictionaryAsync(u => u.Id, u => u.FullName);
@@ -441,6 +442,8 @@ public class SampleSummaryService
                     IsResultEntryAllowed = stateResult.IsResultEntryAllowed,
                     ResultLockReason = stateResult.LockReason,
                     IsSuperseded = order.IsSuperseded,
+                    CancelledAtStep = order.CancelledAtStep?.ToString(),
+                    CancelledAtStage = order.CancelledAtStage,
                     Incubations = incubations.Where(i => i.TestOrderId == order.Id)
                         .OrderBy(i => i.StepNumber).ThenBy(i => i.StageNumber)
                         .Select(i =>
@@ -649,18 +652,28 @@ public class SampleSummaryService
                 SectionId = id,
                 SectionCode = row?.Code ?? string.Empty,
                 SectionName = row?.Name ?? string.Empty,
-                Status = SampleSectionRollup.StatusOf(sample, id).ToString(),
+                // A section closed without its own decision (another lab
+                // rejected the sample) reads as "Closed" rather than the
+                // raw Cancelled enum name.
+                Status = SampleSectionRollup.StatusOf(sample, id) == SectionSignoffStatus.Cancelled
+                    ? "Closed" : SampleSectionRollup.StatusOf(sample, id).ToString(),
                 CanView = canView,
+                CoaAvailable = SampleSectionRollup.StatusOf(sample, id) == SectionSignoffStatus.Approved,
                 // Another section's reviewer/approver/remarks stay with that section.
                 ReviewedByName = canView && signoff?.ReviewedByUserId is int reviewer ? NameOf(reviewer) : null,
                 ReviewedAt = canView ? signoff?.ReviewedAt : null,
                 ApprovedByName = canView && signoff?.ApprovedByUserId is int approver ? NameOf(approver) : null,
                 ApprovedAt = canView ? signoff?.ApprovedAt : null,
                 ApprovalDecision = canView ? signoff?.ApprovalDecision?.ToString() : null,
-                CertificateRemarks = canView ? signoff?.CertificateRemarks : null
+                CertificateRemarks = canView ? signoff?.CertificateRemarks : null,
+                ClosedByName = canView && signoff?.ClosedByUserId is int closer ? NameOf(closer) : null,
+                ClosedAt = canView ? signoff?.ClosedAt : null,
+                CloseReason = canView ? signoff?.CloseReason : null
             };
         }).ToList();
         dto.AllSectionsVisible = dto.Sections.All(x => x.CanView);
+        dto.OverallStatus = SampleSectionRollup.Overall(sample).ToString();
+        dto.CombinedCoaAvailable = sample.Status is SampleStatus.Approved or SampleStatus.Rejected;
 
         return dto;
     }

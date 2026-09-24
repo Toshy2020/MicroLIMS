@@ -94,6 +94,8 @@ public static class TestServiceFactory
     public static SampleSummaryService SampleSummary(MicroLimsDbContext db) =>
         new(db, new PdfGenerator(), new MicroLIMS.Infrastructure.Word.WordGenerator(), ReviewGate(db));
 
+    public static SampleTrackingService SampleTracking(MicroLimsDbContext db) => new(db);
+
     public static MediaSummaryService MediaSummary(MicroLimsDbContext db) =>
         new(db, new PdfGenerator(), new MicroLIMS.Infrastructure.Word.WordGenerator(), ReviewGate(db));
 

@@ -226,20 +226,17 @@ public class PathogenSessionService
     private readonly MicroLimsDbContext _db;
     private readonly MediaAppearanceSnapshotService? _appearanceSnapshot;
     private readonly ConfirmationAgreementEvaluator _agreementEvaluator;
-    private readonly LocationPathogenObservationService _locationObsService;
     private readonly IncubatorEligibilityService _incubatorEligibility;
 
     public PathogenSessionService(
         MicroLimsDbContext db,
         MediaAppearanceSnapshotService? appearanceSnapshot = null,
         ConfirmationAgreementEvaluator? agreementEvaluator = null,
-        LocationPathogenObservationService? locationObsService = null,
         IncubatorEligibilityService? incubatorEligibility = null)
     {
         _db = db;
         _appearanceSnapshot = appearanceSnapshot;
         _agreementEvaluator = agreementEvaluator ?? new ConfirmationAgreementEvaluator();
-        _locationObsService = locationObsService ?? new LocationPathogenObservationService(db);
         _incubatorEligibility = incubatorEligibility ?? new IncubatorEligibilityService(db);
     }
 

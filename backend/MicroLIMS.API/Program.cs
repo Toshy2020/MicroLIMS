@@ -1,4 +1,3 @@
-using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authorization;
 using MicroLIMS.API.Authorization;
@@ -21,12 +20,8 @@ if (!string.IsNullOrEmpty(hostPort))
 }
 
 // ---- Forwarded Headers (Reverse Proxy / Render / HTTPS support) ----
-builder.Services.Configure<ForwardedHeadersOptions>(options =>
-{
-    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
-    options.KnownIPNetworks.Clear();
-    options.KnownProxies.Clear();
-});
+// See Extensions/TrustedProxyConfiguration.cs for which proxies are trusted.
+builder.Services.AddMicroLimsForwardedHeaders(builder.Configuration);
 
 // ---- Database Connection ----
 var connectionString = builder.Configuration.GetConnectionString("Default")
@@ -101,6 +96,14 @@ builder.Services.AddCors(options =>
 var app = builder.Build();
 
 app.UseForwardedHeaders();
+
+if (app.Environment.IsProduction() && !TrustedProxyConfiguration.HasTrustedProxyList(app.Configuration))
+{
+    app.Logger.LogWarning(
+        "ForwardedHeaders:KnownNetworks is not set, so X-Forwarded-For is accepted from any source. Client addresses " +
+        "(login history, electronic signatures, rate limits) are reliable only while the API is reachable exclusively " +
+        "through a proxy that appends to X-Forwarded-For. Set ForwardedHeaders__KnownNetworks to the proxy's egress CIDR range.");
+}
 
 // Smtp startup check
 var smtp = app.Services.GetRequiredService<MicroLIMS.Infrastructure.Email.SmtpOptions>();

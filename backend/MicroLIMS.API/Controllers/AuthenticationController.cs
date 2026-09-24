@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
+using Microsoft.AspNetCore.RateLimiting;
+using MicroLIMS.API.Extensions;
 using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Application.Services;
 using MicroLIMS.Shared.Responses;
@@ -30,6 +32,7 @@ public class AuthenticationController : ControllerBase
 
     [HttpPost("login")]
     [AllowAnonymous]
+    [EnableRateLimiting(RateLimitingPolicies.Authentication)]
     public async Task<IActionResult> Login(LoginRequest request)
     {
         var ip = HttpContext.Connection.RemoteIpAddress?.ToString();
@@ -40,6 +43,7 @@ public class AuthenticationController : ControllerBase
 
     [HttpPost("refresh")]
     [AllowAnonymous]
+    [EnableRateLimiting(RateLimitingPolicies.TokenRefresh)]
     public async Task<IActionResult> Refresh(RefreshRequest request)
     {
         var outcome = await _authService.RefreshAsync(request.RefreshToken);
@@ -49,6 +53,7 @@ public class AuthenticationController : ControllerBase
 
     [HttpPost("password-reset/request")]
     [AllowAnonymous]
+    [EnableRateLimiting(RateLimitingPolicies.Authentication)]
     public async Task<IActionResult> RequestPasswordReset(RequestPasswordResetRequest request)
     {
         try
@@ -65,6 +70,7 @@ public class AuthenticationController : ControllerBase
 
     [HttpPost("password-reset/confirm")]
     [AllowAnonymous]
+    [EnableRateLimiting(RateLimitingPolicies.Authentication)]
     public async Task<IActionResult> ConfirmPasswordReset(ConfirmPasswordResetRequest request)
     {
         var success = await _authService.ConfirmPasswordResetAsync(request.ResetToken, request.NewPassword);
@@ -73,6 +79,7 @@ public class AuthenticationController : ControllerBase
 
     [HttpPost("admin-password-recovery/confirm")]
     [AllowAnonymous]
+    [EnableRateLimiting(RateLimitingPolicies.Authentication)]
     public async Task<IActionResult> ConfirmAdminPasswordRecovery(ConfirmAdminPasswordRecoveryRequest request)
     {
         try
@@ -88,6 +95,7 @@ public class AuthenticationController : ControllerBase
 
     [HttpPost("change-password")]
     [Authorize]
+    [EnableRateLimiting(RateLimitingPolicies.PasswordChange)]
     public async Task<IActionResult> ChangePassword(ChangePasswordRequest request)
     {
         var userId = int.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)!.Value);

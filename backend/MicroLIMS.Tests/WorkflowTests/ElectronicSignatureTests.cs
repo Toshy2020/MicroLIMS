@@ -99,6 +99,78 @@ public class ElectronicSignatureTests
         Assert.Null(reloaded.LockedUntil);
     }
 
+    // Signature failures never lock the account, so the service throttles
+    // them itself: after MaxFailedAttempts in the window even the CORRECT
+    // password is refused - it is not checked at all - which is what stops
+    // a signed-in session being used to guess the password.
+    [Fact]
+    public async Task SignAsync_AfterMaxFailedAttempts_RefusesEvenTheCorrectPassword_WithoutLockingTheAccount()
+    {
+        await using var db = NewDb();
+        var user = await SeedUser(db);
+        var service = new ElectronicSignatureService(db);
+
+        for (var i = 0; i < ElectronicSignatureService.MaxFailedAttempts; i++)
+        {
+            await Assert.ThrowsAsync<SignatureVerificationException>(() =>
+                service.SignAsync(user.Id, WrongPassword, SignatureMeaning.Reviewed, "TestOrder", 1, null, null));
+        }
+
+        var ex = await Assert.ThrowsAsync<SignatureVerificationException>(() =>
+            service.SignAsync(user.Id, CorrectPassword, SignatureMeaning.Reviewed, "TestOrder", 1, null, null));
+        Assert.Contains("Too many failed signature attempts", ex.Message);
+
+        Assert.Empty(db.ElectronicSignatures.Local);
+        Assert.Equal(1, await db.AuditLogs.CountAsync(a => a.Action == "SignatureThrottled" && a.UserId == user.Id));
+
+        var reloaded = await db.Users.AsNoTracking().FirstAsync(u => u.Id == user.Id);
+        Assert.Equal(0, reloaded.FailedLoginAttempts);
+        Assert.False(reloaded.IsLocked);
+    }
+
+    [Fact]
+    public async Task SignAsync_FailuresOutsideTheWindow_DoNotCount()
+    {
+        await using var db = NewDb();
+        var user = await SeedUser(db);
+        var old = DateTime.UtcNow - ElectronicSignatureService.FailedAttemptWindow - TimeSpan.FromMinutes(1);
+        for (var i = 0; i < ElectronicSignatureService.MaxFailedAttempts; i++)
+        {
+            db.AuditLogs.Add(new AuditLog
+            {
+                EntityName = "ElectronicSignature", EntityId = "TestOrder:1", Action = "SignatureFailed",
+                UserId = user.Id, Timestamp = old
+            });
+        }
+        await db.SaveChangesAsync();
+
+        var signature = await new ElectronicSignatureService(db)
+            .SignAsync(user.Id, CorrectPassword, SignatureMeaning.Reviewed, "TestOrder", 1, null, null);
+
+        Assert.Equal(user.Id, signature.UserId);
+    }
+
+    [Fact]
+    public async Task SignAsync_AnotherUsersFailures_DoNotThrottleThisUser()
+    {
+        await using var db = NewDb();
+        var user = await SeedUser(db);
+        for (var i = 0; i < ElectronicSignatureService.MaxFailedAttempts; i++)
+        {
+            db.AuditLogs.Add(new AuditLog
+            {
+                EntityName = "ElectronicSignature", EntityId = "TestOrder:1", Action = "SignatureFailed",
+                UserId = user.Id + 1000
+            });
+        }
+        await db.SaveChangesAsync();
+
+        var signature = await new ElectronicSignatureService(db)
+            .SignAsync(user.Id, CorrectPassword, SignatureMeaning.Reviewed, "TestOrder", 1, null, null);
+
+        Assert.Equal(user.Id, signature.UserId);
+    }
+
     [Fact]
     public async Task MarkReviewedAsync_WrongPassword_WritesNoSignatureAndNoStatusChange()
     {

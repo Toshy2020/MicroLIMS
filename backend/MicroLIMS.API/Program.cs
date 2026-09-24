@@ -1,14 +1,11 @@
-using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.IdentityModel.Tokens;
 using Microsoft.AspNetCore.Authorization;
 using MicroLIMS.API.Authorization;
 using MicroLIMS.API.Extensions;
 using MicroLIMS.API.Filters;
 using MicroLIMS.API.Json;
 using MicroLIMS.Persistence.DbContext;
-using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -55,25 +52,10 @@ builder.Services.AddApplicationServices(builder.Configuration);
 // ---- Liveness / readiness probes (see Extensions/HealthCheckExtensions.cs) ----
 builder.Services.AddMicroLimsHealthChecks();
 
-// ---- JWT Authentication ----
-builder.Services.AddAuthentication(options =>
-{
-    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-})
-.AddJwtBearer(options =>
-{
-    options.TokenValidationParameters = new TokenValidationParameters
-    {
-        ValidateIssuer = true,
-        ValidateAudience = true,
-        ValidateLifetime = true,
-        ValidateIssuerSigningKey = true,
-        ValidIssuer = jwtSettings.Issuer,
-        ValidAudience = jwtSettings.Audience,
-        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSettings.Key))
-    };
-});
+// ---- JWT Authentication (see Extensions/JwtAuthenticationExtensions.cs) ----
+// Each request's token is re-checked against the account - disabled,
+// locked, re-roled or password changed means a 401, not the old access.
+builder.Services.AddMicroLimsJwtAuthentication(jwtSettings);
 
 builder.Services.AddAuthorization();
 // Permission-based authorization, running alongside the existing role-

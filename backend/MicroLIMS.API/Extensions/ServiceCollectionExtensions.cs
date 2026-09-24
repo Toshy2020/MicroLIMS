@@ -224,7 +224,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IJwtTokenService>(sp =>
         {
             var jwt = sp.GetRequiredService<JwtSettings>();
-            return new JwtTokenService(jwt.Key, jwt.Issuer, jwt.Audience);
+            return new JwtTokenService(jwt.Key, jwt.Issuer, jwt.Audience, jwt.AccessTokenLifetime);
         });
 
         // AuthenticationService needs a token-issuing delegate - wire it

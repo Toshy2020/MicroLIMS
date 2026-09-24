@@ -11,8 +11,31 @@ public class JwtTokenServiceTests
     // outside Development (see JwtConfigurationTests).
     internal const string TestSigningKey = "unit-test-signing-key-not-a-secret-0123456789";
 
-    private static JwtTokenService CreateService() =>
-        new(TestSigningKey, "MicroLIMS", "MicroLIMS.Client");
+    private static JwtTokenService CreateService(TimeSpan? lifetime = null) =>
+        new(TestSigningKey, "MicroLIMS", "MicroLIMS.Client", lifetime ?? TimeSpan.FromMinutes(15));
+
+    // The lifetime comes from configuration (Jwt:AccessTokenMinutes) rather
+    // than the former fixed 8 hours.
+    [Fact]
+    public void IssueToken_ExpiresAfterTheConfiguredLifetime()
+    {
+        var before = DateTime.UtcNow;
+        var token = new JwtSecurityTokenHandler().ReadJwtToken(CreateService(TimeSpan.FromMinutes(15)).IssueToken("1", "Analyst"));
+
+        Assert.InRange(token.ValidTo, before.AddMinutes(15).AddSeconds(-1), DateTime.UtcNow.AddMinutes(15).AddSeconds(1));
+    }
+
+    // AccessTokenRevalidator compares iat with the account's last password
+    // change, so every token must carry it.
+    [Fact]
+    public void IssueToken_CarriesTheIssuedAtClaim()
+    {
+        var before = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+        var token = new JwtSecurityTokenHandler().ReadJwtToken(CreateService().IssueToken("1", "Analyst"));
+
+        var iat = long.Parse(token.Claims.Single(c => c.Type == JwtRegisteredClaimNames.Iat).Value);
+        Assert.InRange(iat, before, DateTimeOffset.UtcNow.ToUnixTimeSeconds());
+    }
 
     [Fact]
     public void IssueToken_AddsOnePermissionClaimPerCode()

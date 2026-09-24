@@ -207,6 +207,39 @@ public class SampleTrackingTests
         Assert.Equal(1, result.PageSize);
     }
 
+    // An OOS origin sample whose only TestOrder moved to a retest sample
+    // (fully superseded) is still a received sample of its own - it must
+    // stay on the board, not just its retest descendant.
+    [Fact]
+    public async Task GetTrackingAsync_SampleWithOnlySupersededTestOrder_StillAppearsOnBoard()
+    {
+        await using var db = NewDb();
+        var micro = TestServiceFactory.EnsureMicroSection(db);
+        var routine = new CauseOfTesting { Name = "Routine", IsActive = true };
+        db.CausesOfTesting.Add(routine);
+        var sample = new Sample
+        {
+            Category = SampleCategory.FinishedProduct, ControlNumber = "CTRL-OOS-1",
+            Status = SampleStatus.RetestRequested, CauseOfTesting = routine, ReceivedAt = DateTime.UtcNow
+        };
+        var supersededOrder = new TestOrder
+        {
+            SectionId = micro.Id, TestCode = "TAMC", Status = ApprovalStatus.Rejected,
+            CurrentStep = WorkflowStep.Reviewed, IsSuperseded = true
+        };
+        sample.TestOrders.Add(supersededOrder);
+        db.Samples.Add(sample);
+        await db.SaveChangesAsync();
+
+        var result = await TestServiceFactory.SampleTracking(db).GetTrackingAsync(new SampleTrackingFilterDto());
+
+        var row = result.Items.Single(r => r.SampleId == sample.Id);
+        Assert.Equal("RetestRequested", row.OverallStatus);
+        Assert.Single(row.Labs);
+        Assert.Equal(micro.Id, row.Labs[0].SectionId);
+        Assert.Equal("RetestRequested", row.Labs[0].Stage);
+    }
+
     // --- Summary: OverallStatus / CombinedCoaAvailable / CancelledAtStep / section Closed ---
 
     [Fact]

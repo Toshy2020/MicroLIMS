@@ -31,10 +31,11 @@ public class SampleTrackingService
             .ToDictionaryAsync(s => s.Id, s => s.Name);
 
         var query = _db.Samples.AsNoTracking()
-            // A sample only belongs on the board once at least one of its
-            // TestOrders is still live - a sample whose every TestOrder
-            // moved to a retest (fully superseded) has nothing left to track.
-            .Where(s => s.TestOrders.Any(t => !t.IsSuperseded));
+            // Every sample with at least one TestOrder belongs on the board,
+            // superseded or not: an OOS origin sample whose tests all moved
+            // to a retest sample is still a received sample (RetestRequested)
+            // and must stay visible.
+            .Where(s => s.TestOrders.Any());
 
         if (filter.LabSectionId is int labSectionId)
             query = query.Where(s => s.TestOrders.Any(t => t.SectionId == labSectionId && !t.IsSuperseded));

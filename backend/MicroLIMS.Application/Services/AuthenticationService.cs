@@ -22,6 +22,34 @@ public class AuthenticationService : IAuthenticationService
     private static readonly TimeSpan RefreshTokenLifetime = TimeSpan.FromDays(7);
     private static readonly TimeSpan PasswordResetTokenLifetime = TimeSpan.FromHours(1);
 
+    // Every failed login - unknown user, locked, disabled, wrong password -
+    // gets this same message and costs the same one BCrypt check, so the
+    // response says nothing about whether, or in what state, an account
+    // exists. (The frontend already shows one message for every 401; the
+    // real reason is in the security audit trail and login history.)
+    internal const string LoginFailedMessage = "Invalid username or password.";
+
+    // A stored hash BCrypt cannot parse is a password that cannot match -
+    // not a server error. Now that locked and disabled accounts are also
+    // checked (above), such an account must still get the ordinary refusal.
+    private static bool PasswordMatches(string password, string storedHash)
+    {
+        try
+        {
+            return BCrypt.Net.BCrypt.Verify(password, storedHash);
+        }
+        catch (BCrypt.Net.SaltParseException)
+        {
+            return false;
+        }
+    }
+
+    // Verified against when the username does not exist, so an unknown user
+    // costs the same BCrypt work as a real one. Default work factor, as used
+    // for real password hashes; created once, never matches anything.
+    private static readonly Lazy<string> TimingEqualiserHash =
+        new(() => BCrypt.Net.BCrypt.HashPassword(Convert.ToBase64String(RandomNumberGenerator.GetBytes(32))));
+
     private readonly MicroLimsDbContext _db;
     private readonly Func<string, string, IEnumerable<string>, string> _tokenIssuer; // (userId, role, permissionCodes) -> JWT
     private readonly PermissionService _permissionService;
@@ -49,8 +77,14 @@ public class AuthenticationService : IAuthenticationService
                 SecurityEventCodes.LoginFailedUnknownUser, SecurityEventOutcome.Failure,
                 TargetUsername: username));
             await RecordLoginAsync(null, username, false, "User not found", ipAddress);
-            return new LoginOutcome(false, null, null, "Invalid username or password.");
+            BCrypt.Net.BCrypt.Verify(password, TimingEqualiserHash.Value);
+            return new LoginOutcome(false, null, null, LoginFailedMessage);
         }
+
+        // Checked for every existing account, whatever its state, before the
+        // state is looked at - so locked and disabled accounts take as long
+        // to refuse as a wrong password does.
+        var passwordMatches = PasswordMatches(password, user.PasswordHash);
 
         if (user.IsLocked)
         {
@@ -58,10 +92,10 @@ public class AuthenticationService : IAuthenticationService
                 SecurityEventCodes.LoginFailedAccountLocked, SecurityEventOutcome.Failure,
                 TargetUserId: user.Id, TargetUsername: username));
             await RecordLoginAsync(user.Id, username, false, "Account locked", ipAddress);
-            return new LoginOutcome(false, null, null, $"Account is locked until {user.LockedUntil:u}.");
+            return new LoginOutcome(false, null, null, LoginFailedMessage);
         }
 
-        if (!user.IsActive || !BCrypt.Net.BCrypt.Verify(password, user.PasswordHash))
+        if (!user.IsActive || !passwordMatches)
         {
             user.FailedLoginAttempts++;
 
@@ -90,7 +124,7 @@ public class AuthenticationService : IAuthenticationService
 
             await _db.SaveChangesAsync();
             await RecordLoginAsync(user.Id, username, false, user.IsActive ? "Wrong password" : "Account inactive", ipAddress);
-            return new LoginOutcome(false, null, null, "Invalid username or password.");
+            return new LoginOutcome(false, null, null, LoginFailedMessage);
         }
 
         user.FailedLoginAttempts = 0;

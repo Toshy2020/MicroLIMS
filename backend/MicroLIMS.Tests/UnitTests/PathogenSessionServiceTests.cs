@@ -874,6 +874,82 @@ public class PathogenSessionServiceTests
         Assert.All(observations, o => Assert.Equal(GrowthObservation.GrowthConforming, o.GrowthObservation));
     }
 
+    private static List<PrimaryObservationInput> NoGrowthForAllQualitativeCellsLockedTestsLast(PathogenTestingSessionDto session) =>
+        session.ResultMatrix
+            .Where(c => c.ResultType == "Qualitative")
+            .OrderBy(c => c.TestCode is "BCC" or "Salmonella" ? 1 : 0)
+            .Select(c => new PrimaryObservationInput(c.SampleLocationId, c.TestCode, GrowthObservation.NoGrowth))
+            .ToList();
+
+    // Same all-or-nothing rule as the result matrix: a request rejected for
+    // a locked test must not leave earlier observations - and the location
+    // statuses that route them to confirmation - half-recorded.
+    [Fact]
+    public async Task SavePrimaryObservations_RejectedForALockedTest_PersistsNothing()
+    {
+        var (db, sampleId, _) = SetupTestEnvironment(20);
+        var service = new PathogenSessionService(db);
+        await service.StartSharedTsbAsync(sampleId, new StartSharedTsbRequest(20, 3, DateTime.UtcNow.AddHours(-25)), 5);
+
+        var inputs = NoGrowthForAllQualitativeCellsLockedTestsLast((await service.GetSessionAsync(sampleId))!);
+
+        var ex = await Assert.ThrowsAsync<WorkflowStepException>(() =>
+            service.SavePrimaryObservationsAsync(sampleId, new SavePrimaryObservationsRequest(inputs), 5));
+        Assert.Contains("BCC", ex.Message);
+
+        Assert.Equal(0, await db.LocationPathogenObservations.AsNoTracking().CountAsync());
+        Assert.Equal(0, await db.SampleLocations.AsNoTracking()
+            .CountAsync(l => l.ReportedResult != null || l.Status != null || l.EnteredByUserId != null));
+        Assert.False(db.ChangeTracker.HasChanges());
+    }
+
+    [Fact]
+    public async Task SavePrimaryObservations_100Observations_SavesOnce()
+    {
+        var (db, sampleId, _) = SetupTestEnvironment(20);
+        var service = new PathogenSessionService(db);
+        await service.StartSharedTsbAsync(sampleId, new StartSharedTsbRequest(20, 3, DateTime.UtcNow.AddHours(-25)), 5);
+        await CompleteStep2ForBccAndSalmonellaAsync(db);
+
+        var inputs = NoGrowthForAllQualitativeCellsLockedTestsLast((await service.GetSessionAsync(sampleId))!);
+        Assert.Equal(100, inputs.Count);
+
+        var saves = 0;
+        db.SavingChanges += (_, _) => saves++;
+
+        await service.SavePrimaryObservationsAsync(sampleId, new SavePrimaryObservationsRequest(inputs), 5);
+
+        Assert.Equal(1, saves);
+        Assert.Equal(100, await db.LocationPathogenObservations.CountAsync());
+    }
+
+    // Re-recording an observation without a media snapshot keeps the one
+    // already on file (RecordPrimaryObservationAsync's ALCOA+ behaviour).
+    [Fact]
+    public async Task SavePrimaryObservations_ResavedWithoutSnapshot_KeepsExistingSnapshot()
+    {
+        var (db, sampleId, _) = SetupTestEnvironment(3);
+        var service = new PathogenSessionService(db);
+        await service.StartSharedTsbAsync(sampleId, new StartSharedTsbRequest(20, 3, DateTime.UtcNow.AddHours(-25)), 5);
+        await CompleteStep2ForBccAndSalmonellaAsync(db);
+
+        var cell = (await service.GetSessionAsync(sampleId))!.ResultMatrix.First(c => c.TestCode == "BCC");
+        const string snapshot = "{\"Media\":\"BCA\"}";
+
+        await service.SavePrimaryObservationsAsync(sampleId, new SavePrimaryObservationsRequest(new List<PrimaryObservationInput>
+        {
+            new(cell.SampleLocationId, cell.TestCode, GrowthObservation.GrowthConforming, snapshot)
+        }), 5);
+        await service.SavePrimaryObservationsAsync(sampleId, new SavePrimaryObservationsRequest(new List<PrimaryObservationInput>
+        {
+            new(cell.SampleLocationId, cell.TestCode, GrowthObservation.NoGrowth)
+        }), 5);
+
+        var stored = Assert.Single(await db.LocationPathogenObservations.AsNoTracking().ToListAsync());
+        Assert.Equal(GrowthObservation.NoGrowth, stored.GrowthObservation);
+        Assert.Equal(snapshot, stored.SelectiveMediaSnapshot);
+    }
+
     [Fact]
     public async Task GetSession_CountTestIncubating_BeforeMinHours_IsLocked()
     {

@@ -1097,6 +1097,7 @@ public class PathogenSessionService
         var locationsById = sample.Locations.ToDictionary(l => l.Id);
         var testStateByCode = session.AssignedTests.ToDictionary(t => t.TestCode);
 
+        // Validate the whole request BEFORE anything is changed, so a rejected request records nothing.
         foreach (var obs in request.Observations)
         {
             if (testStateByCode.TryGetValue(obs.TestCode, out var testInfo) && !testInfo.IsResultEntryAllowed)
@@ -1105,19 +1106,18 @@ public class PathogenSessionService
                     "PrerequisiteNotMet",
                     $"Cannot enter primary observations for {obs.TestCode}: TSB incubation or required workflow steps are still in progress.");
             }
+        }
 
+        var primaryObservations = await LoadPrimaryObservationsAsync(locationsById.Keys, cancellationToken);
+
+        foreach (var obs in request.Observations)
+        {
             if (!testOrdersByCode.TryGetValue(obs.TestCode, out var order))
                 continue;
 
             if (locationsById.TryGetValue(obs.SampleLocationId, out var loc))
             {
-                await _locationObsService.RecordPrimaryObservationAsync(
-                    loc.Id,
-                    order.Id,
-                    obs.Observation,
-                    obs.SelectiveMediaSnapshot,
-                    userId,
-                    cancellationToken);
+                UpsertPrimaryObservation(primaryObservations, loc.Id, order.Id, obs.Observation, obs.SelectiveMediaSnapshot, userId);
 
                 if (obs.Observation == GrowthObservation.NoGrowth)
                 {
@@ -1145,6 +1145,57 @@ public class PathogenSessionService
 
         await _db.SaveChangesAsync(cancellationToken);
         return (await GetSessionAsync(sampleId))!;
+    }
+
+    // Primary observations for a sample's locations, loaded once and keyed by (location, test order), so a
+    // batch save can upsert in memory and write everything with one SaveChanges. The (location, test order)
+    // index is not unique, so duplicate rows are tolerated the way a FirstOrDefault lookup would, rather than
+    // failing the save.
+    private async Task<Dictionary<(int SampleLocationId, int TestOrderId), LocationPathogenObservation>> LoadPrimaryObservationsAsync(
+        IEnumerable<int> sampleLocationIds,
+        CancellationToken cancellationToken = default)
+    {
+        var locationIds = sampleLocationIds.ToList();
+        return (await _db.LocationPathogenObservations
+                .Where(o => locationIds.Contains(o.SampleLocationId))
+                .ToListAsync(cancellationToken))
+            .GroupBy(o => (o.SampleLocationId, o.TestOrderId))
+            .ToDictionary(g => g.Key, g => g.OrderBy(o => o.Id).First());
+    }
+
+    // Same semantics as LocationPathogenObservationService.RecordPrimaryObservationAsync - update the
+    // existing row in place (keeping its media snapshot when none is supplied) or add one - but staged on
+    // the context instead of saved immediately.
+    private void UpsertPrimaryObservation(
+        Dictionary<(int SampleLocationId, int TestOrderId), LocationPathogenObservation> primaryObservations,
+        int sampleLocationId,
+        int testOrderId,
+        GrowthObservation observation,
+        string? selectiveMediaSnapshot,
+        int observedByUserId)
+    {
+        var now = DateTime.UtcNow;
+        if (primaryObservations.TryGetValue((sampleLocationId, testOrderId), out var existing))
+        {
+            existing.GrowthObservation = observation;
+            existing.SelectiveMediaSnapshot = selectiveMediaSnapshot ?? existing.SelectiveMediaSnapshot;
+            existing.ObservedAt = now;
+            existing.ObservedByUserId = observedByUserId;
+            return;
+        }
+
+        var entity = new LocationPathogenObservation
+        {
+            SampleLocationId = sampleLocationId,
+            TestOrderId = testOrderId,
+            GrowthObservation = observation,
+            SelectiveMediaSnapshot = selectiveMediaSnapshot,
+            ObservedAt = now,
+            ObservedByUserId = observedByUserId,
+            CreatedAt = now
+        };
+        _db.LocationPathogenObservations.Add(entity);
+        primaryObservations[(sampleLocationId, testOrderId)] = entity;
     }
 
     public async Task<PathogenTestingSessionDto> StartSharedConfirmatorySetupAsync(
@@ -1416,16 +1467,7 @@ public class PathogenSessionService
             }
         }
 
-        // Primary observations for this sample's locations, loaded once and keyed by (location, test order).
-        // Same upsert semantics as LocationPathogenObservationService.RecordPrimaryObservationAsync, without a
-        // query and a SaveChanges per cell. The (location, test order) index is not unique, so tolerate
-        // duplicate rows the way that lookup's FirstOrDefault does rather than failing the save.
-        var locationIds = locationsById.Keys.ToList();
-        var primaryObservations = (await _db.LocationPathogenObservations
-                .Where(o => locationIds.Contains(o.SampleLocationId))
-                .ToListAsync())
-            .GroupBy(o => (o.SampleLocationId, o.TestOrderId))
-            .ToDictionary(g => g.Key, g => g.OrderBy(o => o.Id).First());
+        var primaryObservations = await LoadPrimaryObservationsAsync(locationsById.Keys);
 
         foreach (var cell in request.Cells)
         {
@@ -1467,28 +1509,13 @@ public class PathogenSessionService
                     loc.CFUResult = null;
 
                     // Also record primary observation record for data integrity
-                    var observation = isDetected ? GrowthObservation.GrowthConforming : GrowthObservation.NoGrowth;
-                    var observedAt = DateTime.UtcNow;
-                    if (primaryObservations.TryGetValue((loc.Id, order.Id), out var existingObs))
-                    {
-                        existingObs.GrowthObservation = observation;
-                        existingObs.ObservedAt = observedAt;
-                        existingObs.ObservedByUserId = userId;
-                    }
-                    else
-                    {
-                        var newObs = new LocationPathogenObservation
-                        {
-                            SampleLocationId = loc.Id,
-                            TestOrderId = order.Id,
-                            GrowthObservation = observation,
-                            ObservedAt = observedAt,
-                            ObservedByUserId = userId,
-                            CreatedAt = observedAt
-                        };
-                        _db.LocationPathogenObservations.Add(newObs);
-                        primaryObservations[(loc.Id, order.Id)] = newObs;
-                    }
+                    UpsertPrimaryObservation(
+                        primaryObservations,
+                        loc.Id,
+                        order.Id,
+                        isDetected ? GrowthObservation.GrowthConforming : GrowthObservation.NoGrowth,
+                        null,
+                        userId);
                 }
 
                 loc.EnteredAt = DateTime.UtcNow;

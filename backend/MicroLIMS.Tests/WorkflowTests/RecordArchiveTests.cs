@@ -30,7 +30,7 @@ public class RecordArchiveTests
         var role = new Role { Type = roleType, Name = roleType.ToString() };
         db.Roles.Add(role);
         await db.SaveChangesAsync();
-        db.Users.Add(new User { Id = id, FullName = $"User {id}", Username = $"user{id}", RoleId = role.Id, PasswordHash = BCrypt.Net.BCrypt.HashPassword(Password) });
+        db.Users.Add(new User { Id = id, FullName = $"User {id}", Username = $"user{id}", RoleId = role.Id, PasswordHash = TestPasswords.Hash(Password) });
         await db.SaveChangesAsync();
     }
 

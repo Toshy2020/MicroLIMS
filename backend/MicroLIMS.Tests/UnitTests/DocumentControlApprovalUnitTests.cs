@@ -41,7 +41,7 @@ public class DocumentControlApprovalUnitTests
         await db.SaveChangesAsync();
 
         var defaultPassword = "Approver-Password-1!";
-        var defaultPasswordHash = BCrypt.Net.BCrypt.HashPassword(defaultPassword);
+        var defaultPasswordHash = TestPasswords.Hash(defaultPassword);
 
         // Users
         var admin = new User { FullName = "System Admin", Username = "admin1", RoleId = adminRole.Id, IsActive = true, PasswordHash = defaultPasswordHash, Role = adminRole };

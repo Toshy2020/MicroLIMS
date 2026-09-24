@@ -95,7 +95,7 @@ public class Release1cIntegrationVerificationPostgresTests
 
         await db.SaveChangesAsync();
 
-        var passwordHash = BCrypt.Net.BCrypt.HashPassword(DefaultPassword);
+        var passwordHash = TestPasswords.Hash(DefaultPassword);
 
         var trainee = new User
         {

@@ -67,7 +67,7 @@ public class DocumentControlLifecycleEndToEndPostgresIntegrationTests
 
         await db.SaveChangesAsync();
 
-        var passwordHash = BCrypt.Net.BCrypt.HashPassword(DefaultPassword);
+        var passwordHash = TestPasswords.Hash(DefaultPassword);
         string suffix = Guid.NewGuid().ToString("N").Substring(0, 8);
 
         var author = new User

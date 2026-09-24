@@ -225,9 +225,9 @@ public class ResultProjectionTests
         db.Roles.Add(role);
         await db.SaveChangesAsync();
         db.Users.AddRange(
-            new User { Id = 1, FullName = "Analyst", Username = "analyst", RoleId = role.Id, PasswordHash = BCrypt.Net.BCrypt.HashPassword(Password) },
-            new User { Id = 2, FullName = "Reviewer", Username = "reviewer", RoleId = role.Id, PasswordHash = BCrypt.Net.BCrypt.HashPassword(Password) },
-            new User { Id = 3, FullName = "Section Head", Username = "sectionhead", RoleId = role.Id, PasswordHash = BCrypt.Net.BCrypt.HashPassword(Password) });
+            new User { Id = 1, FullName = "Analyst", Username = "analyst", RoleId = role.Id, PasswordHash = TestPasswords.Hash(Password) },
+            new User { Id = 2, FullName = "Reviewer", Username = "reviewer", RoleId = role.Id, PasswordHash = TestPasswords.Hash(Password) },
+            new User { Id = 3, FullName = "Section Head", Username = "sectionhead", RoleId = role.Id, PasswordHash = TestPasswords.Hash(Password) });
         await db.SaveChangesAsync();
 
         var engine = TestServiceFactory.TestWorkflow(db);

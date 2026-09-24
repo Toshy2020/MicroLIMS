@@ -41,7 +41,7 @@ public class DocumentControlElectronicSignatureUnitTests
         db.Roles.AddRange(adminRole, controllerRole, reviewerRole, analystRole);
         await db.SaveChangesAsync();
 
-        var passwordHash = BCrypt.Net.BCrypt.HashPassword(CorrectPassword);
+        var passwordHash = TestPasswords.Hash(CorrectPassword);
 
         // Users
         var admin = new User { FullName = "System Admin", Username = "admin1", RoleId = adminRole.Id, IsActive = true, PasswordHash = passwordHash, Role = adminRole };
@@ -377,7 +377,7 @@ public class DocumentControlElectronicSignatureUnitTests
             Username = "unrelated1",
             RoleId = analystRole.Id,
             IsActive = true,
-            PasswordHash = BCrypt.Net.BCrypt.HashPassword(CorrectPassword),
+            PasswordHash = TestPasswords.Hash(CorrectPassword),
             Role = analystRole
         };
         db.Users.Add(unrelatedUser);

@@ -94,7 +94,7 @@ public class ClosedTestStatesTests
         db.Roles.AddRange(role, headRole);
         await db.SaveChangesAsync();
         var analyst = new User { FullName = "Ana Lyst", Username = "analyst", RoleId = role.Id, PasswordHash = "not-used" };
-        var sectionHead = new User { FullName = "Sam Head", Username = "samhead", RoleId = headRole.Id, PasswordHash = BCrypt.Net.BCrypt.HashPassword("Void-Pass-1") };
+        var sectionHead = new User { FullName = "Sam Head", Username = "samhead", RoleId = headRole.Id, PasswordHash = TestPasswords.Hash("Void-Pass-1") };
         db.Users.AddRange(analyst, sectionHead);
         await db.SaveChangesAsync();
 

@@ -276,6 +276,12 @@ public class DiscussionService
         if (string.IsNullOrWhiteSpace(request.Content))
             throw new InvalidOperationException("Content is required.");
 
+        // Checked before the post exists, so a rejected attachment leaves no
+        // half-created post behind.
+        if (attachments is { Count: > 0 }
+            && DiscussionAttachmentPolicy.Validate(attachments.Select(a => (a.FileName, a.Data)).ToList()) is { } attachmentProblem)
+            throw new InvalidOperationException(attachmentProblem);
+
         var post = new DiscussionPost
         {
             Title = request.Title.Trim(),
@@ -306,7 +312,7 @@ public class DiscussionService
                     PostId = post.Id,
                     OriginalFileName = cleanName,
                     StorageKey = storageKey,
-                    ContentType = string.IsNullOrWhiteSpace(file.ContentType) ? "application/octet-stream" : file.ContentType,
+                    ContentType = DiscussionAttachmentPolicy.ContentTypeFor(cleanName),
                     FileExtension = extension,
                     FileSizeBytes = file.Data.Length,
                     ContentSha256 = hash,

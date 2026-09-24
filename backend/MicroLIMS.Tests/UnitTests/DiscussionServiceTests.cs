@@ -29,6 +29,110 @@ public class DiscussionServiceTests
         return db;
     }
 
+    private static readonly byte[] Pdf = System.Text.Encoding.UTF8.GetBytes("%PDF-1.7 minimal");
+    private static readonly byte[] Png = { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0x00 };
+
+    private static CreateDiscussionPostRequest AnyPost() =>
+        new("Attachment policy", "Checking attachment limits", DiscussionCategory.Water);
+
+    private static async Task<string> RejectionAsync(MicroLimsDbContext db, InMemoryFileStorageService storage,
+        List<(string FileName, string ContentType, byte[] Data)> attachments)
+    {
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            TestServiceFactory.Discussion(db, storage).CreatePostAsync(AnyPost(), attachments, authorUserId: 1));
+
+        // Refused before anything was written: no post, no stored file.
+        Assert.Equal(0, await db.DiscussionPosts.CountAsync());
+        Assert.Empty(storage.Files);
+        return ex.Message;
+    }
+
+    [Fact]
+    public async Task CreatePost_MoreThanFiveAttachments_IsRefusedAndNothingIsSaved()
+    {
+        using var db = CreateDbContext();
+        var files = Enumerable.Range(1, DiscussionAttachmentPolicy.MaxFiles + 1)
+            .Select(i => ($"page{i}.pdf", "application/pdf", Pdf)).ToList();
+
+        Assert.Contains("at most 5 attachments", await RejectionAsync(db, new InMemoryFileStorageService(), files));
+    }
+
+    [Fact]
+    public async Task CreatePost_AttachmentOverTenMegabytes_IsRefused()
+    {
+        using var db = CreateDbContext();
+        var big = new byte[DiscussionAttachmentPolicy.MaxFileBytes + 1];
+        Pdf.CopyTo(big, 0);
+
+        Assert.Contains("10 MB", await RejectionAsync(db, new InMemoryFileStorageService(),
+            new() { ("big.pdf", "application/pdf", big) }));
+    }
+
+    [Theory]
+    [InlineData("payload.exe")]
+    [InlineData("page.html")]
+    [InlineData("script.js")]
+    [InlineData("noextension")]
+    public async Task CreatePost_DisallowedFileType_IsRefused(string fileName)
+    {
+        using var db = CreateDbContext();
+
+        Assert.Contains("not an allowed attachment type", await RejectionAsync(db, new InMemoryFileStorageService(),
+            new() { (fileName, "application/octet-stream", Pdf) }));
+    }
+
+    // An executable renamed to .pdf: the extension is allowed, the content is not.
+    [Fact]
+    public async Task CreatePost_FileWhoseContentDoesNotMatchItsExtension_IsRefused()
+    {
+        using var db = CreateDbContext();
+        var windowsExecutable = new byte[] { 0x4D, 0x5A, 0x90, 0x00, 0x03, 0x00 }; // "MZ"
+
+        Assert.Contains("does not look like a valid PDF", await RejectionAsync(db, new InMemoryFileStorageService(),
+            new() { ("invoice.pdf", "application/pdf", windowsExecutable) }));
+    }
+
+    // The type served on download comes from the extension, not from what
+    // the client declared.
+    [Fact]
+    public async Task CreatePost_StoresTheContentTypeForTheExtension_NotTheClientsDeclaration()
+    {
+        using var db = CreateDbContext();
+        var storage = new InMemoryFileStorageService();
+
+        await TestServiceFactory.Discussion(db, storage).CreatePostAsync(AnyPost(), new()
+        {
+            ("chart.png", "text/html", Png),
+            ("notes.txt", "application/x-msdownload", System.Text.Encoding.UTF8.GetBytes("plain notes"))
+        }, authorUserId: 1);
+
+        var types = await db.DiscussionAttachments.OrderBy(a => a.OriginalFileName)
+            .Select(a => new { a.OriginalFileName, a.ContentType }).ToListAsync();
+        Assert.Equal("image/png", types.Single(t => t.OriginalFileName == "chart.png").ContentType);
+        Assert.Equal("text/plain", types.Single(t => t.OriginalFileName == "notes.txt").ContentType);
+    }
+
+    [Fact]
+    public async Task CreatePost_FiveValidAttachmentsOfAllowedTypes_AreAccepted()
+    {
+        using var db = CreateDbContext();
+        var storage = new InMemoryFileStorageService();
+        var ole = new byte[] { 0xD0, 0xCF, 0x11, 0xE0, 0xA1, 0xB1, 0x1A, 0xE1, 0x00 };
+        var zip = new byte[] { 0x50, 0x4B, 0x03, 0x04, 0x14, 0x00 };
+
+        var post = await TestServiceFactory.Discussion(db, storage).CreatePostAsync(AnyPost(), new()
+        {
+            ("report.pdf", "application/pdf", Pdf),
+            ("plate.png", "image/png", Png),
+            ("legacy.xls", "application/vnd.ms-excel", ole),
+            ("counts.xlsx", "application/octet-stream", zip),
+            ("readings.csv", "text/csv", System.Text.Encoding.UTF8.GetBytes("a,b\n1,2"))
+        }, authorUserId: 1);
+
+        Assert.Equal(5, post.Attachments.Count);
+        Assert.Equal(5, storage.Files.Count);
+    }
+
     [Fact]
     public async Task CreatePost_WithAttachments_SavesPostAndFilesCorrectly()
     {
@@ -36,7 +140,8 @@ public class DiscussionServiceTests
         var storage = new InMemoryFileStorageService();
         var service = TestServiceFactory.Discussion(db, storage);
 
-        var fileBytes = System.Text.Encoding.UTF8.GetBytes("sample attachment data");
+        // A real PDF starts with "%PDF-"; attachments are checked against it.
+        var fileBytes = System.Text.Encoding.UTF8.GetBytes("%PDF-1.7 sample attachment data");
         var attachments = new List<(string FileName, string ContentType, byte[] Data)>
         {
             ("test_doc.pdf", "application/pdf", fileBytes)

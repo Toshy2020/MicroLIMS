@@ -170,13 +170,19 @@ export function NewDiscussionDialog({ open, onClose, onCreated }: Props) {
               disabled={loading}
             >
               Choose Files
-              <input type="file" multiple hidden onChange={handleFileChange} />
+              <input
+                type="file"
+                multiple
+                hidden
+                accept=".pdf,.png,.jpg,.jpeg,.gif,.doc,.docx,.xls,.xlsx,.pptx,.txt,.csv"
+                onChange={handleFileChange}
+              />
             </Button>
           </Box>
 
           {files.length === 0 ? (
             <Typography variant="caption" sx={{ color: "text.secondary" }}>
-              No files attached yet. Supported: PDF, Word, Excel, images, text files.
+              No files attached yet. Supported: PDF, Word, Excel, PowerPoint, images, text files - up to 5 files, 10 MB each.
             </Typography>
           ) : (
             <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1, mt: 1 }}>

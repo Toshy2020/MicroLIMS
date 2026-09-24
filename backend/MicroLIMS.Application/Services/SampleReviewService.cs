@@ -30,6 +30,12 @@ public class SampleReviewService
     private Task<Sample?> LoadAsync(int sampleId) =>
         _db.Samples.Include(s => s.TestOrders).Include(s => s.SectionSignoffs).FirstOrDefaultAsync(s => s.Id == sampleId);
 
+    // Only starting an incubation moves a sample off Received, so a sample
+    // whose finished tests never incubate (Finished Product) is still
+    // Received when its results complete - it is being tested all the same.
+    private static bool IsBeingTested(Sample sample) =>
+        sample.Status is SampleStatus.Received or SampleStatus.InTesting;
+
     // Sections still in testing whose current tests are all Ready.
     private static List<int> SectionsReadyForReview(Sample sample) =>
         SampleSectionRollup.SectionIds(sample)
@@ -46,7 +52,7 @@ public class SampleReviewService
         var sample = await LoadAsync(sampleId)
             ?? throw new InvalidOperationException($"Sample {sampleId} not found.");
 
-        if (sample.Status != SampleStatus.InTesting) return false;
+        if (!IsBeingTested(sample)) return false;
 
         return SectionsReadyForReview(sample).Count > 0;
     }
@@ -61,7 +67,7 @@ public class SampleReviewService
         var sample = await LoadAsync(sampleId)
             ?? throw new InvalidOperationException($"Sample {sampleId} not found.");
 
-        if (sample.Status != SampleStatus.InTesting) return;
+        if (!IsBeingTested(sample)) return;
 
         var now = DateTime.UtcNow;
         foreach (var sectionId in SectionsReadyForReview(sample))

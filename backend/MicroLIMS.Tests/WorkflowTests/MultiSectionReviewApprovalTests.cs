@@ -117,6 +117,51 @@ public class MultiSectionReviewApprovalTests
         Assert.Equal(2, await db.ReviewWorkflowEvents.CountAsync(e => e.EntityId == w.Sample.Id && e.EventType == ReviewWorkflowEventType.SubmittedForReview && e.SectionId != null));
     }
 
+    // Only an incubation moves a sample off Received, and FP tests never
+    // incubate: the FP section must still reach review while the micro
+    // tests have not started.
+    [Fact]
+    public async Task AutoSubmit_FpFinishedOnReceivedSample_MicroNotStarted_FpGoesToReview()
+    {
+        await using var db = NewDb();
+        var w = await SeedAsync(db);
+        var sample = await db.Samples.FirstAsync(s => s.Id == w.Sample.Id);
+        sample.Status = SampleStatus.Received;
+        foreach (var micro in await db.TestOrders.Where(t => t.SectionId == w.Micro).ToListAsync())
+        {
+            micro.Status = ApprovalStatus.Pending;
+            micro.CurrentStep = WorkflowStep.Waiting;
+        }
+        await db.SaveChangesAsync();
+        var review = TestServiceFactory.SampleReview(db);
+
+        Assert.True(await review.CanSubmitForReviewAsync(w.Sample.Id));
+        await review.AutoSubmitForReviewIfReadyAsync(w.Sample.Id, 2);
+        await db.SaveChangesAsync();
+
+        Assert.Equal(SectionSignoffStatus.UnderReview, (await SignoffAsync(db, w.Sample.Id, w.Fp))!.Status);
+        Assert.Null(await SignoffAsync(db, w.Sample.Id, w.Micro));
+        Assert.Equal(SampleStatus.InTesting, await StatusAsync(db, w.Sample.Id));
+    }
+
+    [Fact]
+    public async Task AutoSubmit_FpOnlySampleStillReceived_GoesToReview()
+    {
+        await using var db = NewDb();
+        var w = await SeedAsync(db);
+        db.TestOrders.RemoveRange(await db.TestOrders.Where(t => t.SectionId == w.Micro).ToListAsync());
+        var sample = await db.Samples.FirstAsync(s => s.Id == w.Sample.Id);
+        sample.Status = SampleStatus.Received;
+        await db.SaveChangesAsync();
+        var review = TestServiceFactory.SampleReview(db);
+
+        await review.AutoSubmitForReviewIfReadyAsync(w.Sample.Id, 2);
+        await db.SaveChangesAsync();
+
+        Assert.Equal(SectionSignoffStatus.UnderReview, (await SignoffAsync(db, w.Sample.Id, w.Fp))!.Status);
+        Assert.Equal(SampleStatus.UnderReview, await StatusAsync(db, w.Sample.Id));
+    }
+
     [Fact]
     public async Task Review_CoversOnlyTheReviewersSection_AndCannotReachAnotherSection()
     {

@@ -90,6 +90,7 @@ public class RolePermissionSeedDataTests
         var expected = new[]
         {
             PermissionConstants.AuditView, PermissionConstants.SamplesReview, PermissionConstants.SamplesApprove,
+            PermissionConstants.SamplesReceive, PermissionConstants.SamplesTrackAll,
             PermissionConstants.SignaturesManage, PermissionConstants.TestWorkflowExecute, PermissionConstants.TestWorkflowBiochemicalDecision,
             PermissionConstants.CryovialsManage, PermissionConstants.CryovialsApprove,
             PermissionConstants.MaterialsManage, PermissionConstants.MaterialsDocumentControl,
@@ -105,7 +106,7 @@ public class RolePermissionSeedDataTests
             PermissionConstants.DocumentsTrainingAssign, PermissionConstants.DocumentsTrainingViewMatrix
         };
 
-        Assert.Equal(26, codes.Count);
+        Assert.Equal(28, codes.Count);
         Assert.Equal(expected.OrderBy(c => c), codes.OrderBy(c => c));
         // Not granted to SectionHead per the catalog:
         Assert.DoesNotContain(PermissionConstants.UsersManage, codes);
@@ -170,11 +171,13 @@ public class RolePermissionSeedDataTests
     [Fact]
     public async Task TotalGrantCount_MatchesTheCatalog()
     {
-        // 33 (SysAdmin) + 26 (SectionHead) + 11 (Reviewer) + 10 (Analyst) = 80
+        // 35 (SysAdmin) + 28 (SectionHead) + 11 (Reviewer) + 10 (Analyst) = 84
         // System.ViewSecurityAudit is granted to SystemAdministrator only.
+        // Samples.Receive/Samples.TrackAll are granted to SystemAdministrator
+        // and SectionHead only.
         var db = CreateSeededDbContext();
         var total = await db.RolePermissions.CountAsync();
-        Assert.Equal(80, total);
+        Assert.Equal(84, total);
     }
 
     [Fact]
@@ -184,6 +187,20 @@ public class RolePermissionSeedDataTests
         DbSeeder.SeedPermissionsAndGrants(db); // second call
 
         Assert.Equal(PermissionConstants.All.Count, await db.Permissions.CountAsync());
-        Assert.Equal(80, await db.RolePermissions.CountAsync());
+        Assert.Equal(84, await db.RolePermissions.CountAsync());
+    }
+
+    [Fact]
+    public async Task ReceiveAndTrackAll_AreSeededForAdminAndSectionHeadOnly()
+    {
+        var db = CreateSeededDbContext();
+
+        foreach (var code in new[] { PermissionConstants.SamplesReceive, PermissionConstants.SamplesTrackAll })
+        {
+            Assert.Contains(code, await CodesForRole(db, RoleType.SystemAdministrator));
+            Assert.Contains(code, await CodesForRole(db, RoleType.SectionHead));
+            Assert.DoesNotContain(code, await CodesForRole(db, RoleType.Reviewer));
+            Assert.DoesNotContain(code, await CodesForRole(db, RoleType.Analyst));
+        }
     }
 }

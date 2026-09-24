@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using MicroLIMS.Application.DTOs;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Persistence.DbContext;
@@ -26,19 +27,23 @@ public class ItemService
     public async Task<List<Item>> GetAllAsync() =>
         await _db.Items.Include(i => i.AssignedTests).Include(i => i.Specifications).ToListAsync();
 
-    public async Task<Item> CreateAsync(Item item)
+    // Builds the Item from the fields a client may set. Id, IsActive and
+    // Specifications are never taken from the request - see ItemSaveRequest.
+    public async Task<Item> CreateAsync(ItemSaveRequest request)
     {
-        if (!AllowedItemCategories.Contains(item.Category))
-        {
-            throw new InvalidOperationException(
-                "Items can only be configured for Product, Raw Material, or " +
-                "Packaging Material categories. Water, Environmental Monitoring, " +
-                "After Cleaning, and GPT are managed via their dedicated " +
-                "configuration pages.");
-        }
+        EnsureAllowedCategory(request.Category);
 
-        if (await _db.Items.AnyAsync(i => i.Code == item.Code))
-            throw new InvalidOperationException($"An item with code '{item.Code}' already exists.");
+        if (await _db.Items.AnyAsync(i => i.Code == request.Code))
+            throw new InvalidOperationException($"An item with code '{request.Code}' already exists.");
+
+        var item = new Item
+        {
+            Name = request.Name,
+            Code = request.Code,
+            Category = request.Category,
+            SopNumber = request.SopNumber ?? string.Empty,
+            AssignedTests = ToSampleTests(request.AssignedTests)
+        };
 
         _db.Items.Add(item);
         await _db.SaveChangesAsync();
@@ -51,16 +56,9 @@ public class ItemService
     // without removing the old ones, and would wipe Specifications
     // (managed on its own page, never sent by this form) since the
     // incoming graph never populates that collection.
-    public async Task UpdateAsync(int id, Item update)
+    public async Task UpdateAsync(int id, ItemSaveRequest update)
     {
-        if (!AllowedItemCategories.Contains(update.Category))
-        {
-            throw new InvalidOperationException(
-                "Items can only be configured for Product, Raw Material, or " +
-                "Packaging Material categories. Water, Environmental Monitoring, " +
-                "After Cleaning, and GPT are managed via their dedicated " +
-                "configuration pages.");
-        }
+        EnsureAllowedCategory(update.Category);
 
         var item = await _db.Items.Include(i => i.AssignedTests).FirstOrDefaultAsync(i => i.Id == id)
             ?? throw new InvalidOperationException($"Item {id} not found.");
@@ -71,15 +69,30 @@ public class ItemService
         item.Name = update.Name;
         item.Code = update.Code;
         item.Category = update.Category;
-        item.SopNumber = update.SopNumber;
+        item.SopNumber = update.SopNumber ?? string.Empty;
 
         _db.RemoveRange(item.AssignedTests);
-        item.AssignedTests = update.AssignedTests
-            .Select(t => new SampleTest { TestCode = t.TestCode, DisplayName = t.DisplayName })
-            .ToList();
+        item.AssignedTests = ToSampleTests(update.AssignedTests);
 
         await _db.SaveChangesAsync();
     }
+
+    private static void EnsureAllowedCategory(SampleCategory category)
+    {
+        if (!AllowedItemCategories.Contains(category))
+        {
+            throw new InvalidOperationException(
+                "Items can only be configured for Product, Raw Material, or " +
+                "Packaging Material categories. Water, Environmental Monitoring, " +
+                "After Cleaning, and GPT are managed via their dedicated " +
+                "configuration pages.");
+        }
+    }
+
+    private static List<SampleTest> ToSampleTests(List<ItemTestRequest>? tests) =>
+        (tests ?? new List<ItemTestRequest>())
+            .Select(t => new SampleTest { TestCode = t.TestCode, DisplayName = t.DisplayName })
+            .ToList();
 
     // Frozen (not deleted) items stay visible for historical traceability
     // but ProductWorkflowEngine.ReceiveAsync refuses to use them for new

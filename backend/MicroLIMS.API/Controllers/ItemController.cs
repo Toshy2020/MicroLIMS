@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using MicroLIMS.Application.DTOs;
 using MicroLIMS.Application.Services;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Shared.Constants;
@@ -24,13 +25,13 @@ public class ItemController : ControllerBase
 
     [HttpPost]
     [Authorize(Roles = RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
-    public async Task<IActionResult> Create([FromBody] Item item) => Ok(ApiResponse<Item>.Ok(await _itemService.CreateAsync(item)));
+    public async Task<IActionResult> Create([FromBody] ItemSaveRequest request) => Ok(ApiResponse<Item>.Ok(await _itemService.CreateAsync(request)));
 
     [HttpPut("{id}")]
     [Authorize(Roles = RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
-    public async Task<IActionResult> Update(int id, [FromBody] Item item)
+    public async Task<IActionResult> Update(int id, [FromBody] ItemSaveRequest request)
     {
-        await _itemService.UpdateAsync(id, item);
+        await _itemService.UpdateAsync(id, request);
         return Ok(ApiResponse<object>.Ok(new { }));
     }
 

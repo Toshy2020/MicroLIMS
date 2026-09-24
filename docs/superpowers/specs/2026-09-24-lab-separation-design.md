@@ -15,7 +15,7 @@ Trigger: on 2026-09-24 FP results on a mixed sample never reached review, becaus
 | D1 | One sample, split by lab (not one sample per lab). Built on the existing section model (approach 1): the two `DocumentSection` rows are the two labs. |
 | D2 | A main **Receiving** area for a separate sample-receipt function, controlled by privileges, not a new role: `Samples.Receive`, `Samples.TrackAll`. |
 | D3 | Main Receiving receives **FP, RM and PM** samples only, and the receiver must choose the **target laboratory** (Microbiology, Physicochemical, or both). |
-| D4 | Each lab keeps **receiving inside its own workspace**; a sample received there loads only that lab's tests. **Water** and **After cleaning** are received only in the lab workspaces (both labs); **Environmental Monitoring** only in the Microbiology workspace. |
+| D4 | Each lab keeps **receiving inside its own workspace**; a sample received there loads only that lab's tests. **Water**, **After cleaning** and **Environmental Monitoring** are received only in the Microbiology workspace for now (physicochemical water / after-cleaning later, §11 Q1). |
 | D5 | A lab can be **added to an existing sample** (same reference). |
 | D6 | Menu split into areas shown by privilege / lab membership. **Items** and **Receiving configuration** live in a separate **General Laboratory Configuration** area, Section Heads (and System Administrator) only. |
 | D7 | Specifications stay on the shared item; each lab owns its own parameter rows. |
@@ -51,8 +51,8 @@ Trigger: on 2026-09-24 FP results on a mixed sample never reached review, becaus
 | Area | Shown to | Contents |
 |---|---|---|
 | Receiving | `Samples.Receive` / `Samples.TrackAll` | Receive sample (FP/RM/PM) · Tracking board |
-| Microbiology Laboratory | Micro members | Workspace (incl. receiving: FP/RM/PM/Water/EM/After cleaning) · My tasks · Review / approval queues · Media preparation & evaluation · Cryovials · Micro Test Master, organisms, media configurations, water, EM, after-cleaning, equipment configuration · Materials stock and equipment inventory (micro) · Micro dashboards |
-| Physicochemical Laboratory | Physicochemical members | Workspace (incl. receiving: FP/RM/PM) · My tasks · Review / approval queues · Suitability runs · Calibration runs · Physicochemical Test Master, equation types, instruments, columns · Materials stock and equipment inventory (physicochemical) · Dashboards |
+| Microbiology Laboratory | Micro members | Workspace (incl. receiving: FP/RM/PM/Water/EM/After cleaning) · My tasks · Review / approval queues · Media preparation & evaluation · Cryovials · Micro Test Master, organisms, media configurations, water, EM, after-cleaning, equipment configuration · Materials stock and equipment inventory (micro) |
+| Physicochemical Laboratory | Physicochemical members | Workspace (incl. receiving: FP/RM/PM) · My tasks · Review / approval queues · Suitability runs · Calibration runs · Physicochemical Test Master, equation types, instruments, columns · Materials stock and equipment inventory (physicochemical) |
 | General Laboratory Configuration | Section Heads, System Administrator | Items (with specifications) · Receiving configuration |
 
 Unchanged, outside the lab areas: Document control, Reports, OOS tracking (already scoped by lab), Users/roles, Audit. A user in both labs sees both lab areas.
@@ -62,7 +62,9 @@ The menu is the UI reflection only; every list and by-id action is scoped and 40
 ## 5. Cross-lab outcomes
 
 ### 5.1 States
-Per lab (`SampleSectionSignoff`): Testing → Under review → Under approval → Approved / Rejected / Retest requested, plus new **Closed**.
+Per lab (`SampleSectionSignoff`): Testing → Under review → Under approval → Approved / Rejected / Retest requested, plus **Closed** — stored as the existing `SectionSignoffStatus.Cancelled` (its documented meaning is already "closed because another section rejected"), shown to users as "Closed".
+
+Two statuses (from code reading 2026-09-24): `Sample.Status` stays the internal roll-up of *open* work — it only becomes Rejected / Approved when no lab is still open, because review guards, workflow state, result projection, archiving and OOS propagation treat `Sample.Status == Rejected` as "fully closed". The **overall status** shown on the tracking board, the summary header and the CoA is computed separately:
 
 Overall sample status:
 1. Rejected — any lab Rejected (a Closed lab only exists on a rejected sample).
@@ -111,7 +113,7 @@ Equipment and instrument pickers in result entry offer only the test's own lab's
 Every place a micro rule acts on the whole sample moves to per-lab scope, each with a test where one lab finishes while the other is idle:
 - Received → InTesting only on incubation (fixed b42344b).
 - Preparation gate on mixed samples (partly fixed dc277a9 — re-check).
-- Sample-level stage TAT, overdue flags, dashboard tiles still per sample (known follow-up from section work).
+- Out of scope, kept as a follow-up: per-lab stage TAT in Reports (still per sample). Dashboards stay one shared page (already scoped by lab membership).
 - CoA sections and the rejection roll-up (§5).
 
 ## 8. Rename

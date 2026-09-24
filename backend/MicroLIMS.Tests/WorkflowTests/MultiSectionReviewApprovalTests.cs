@@ -240,7 +240,7 @@ public class MultiSectionReviewApprovalTests
     }
 
     [Fact]
-    public async Task Reject_ByOneSection_RejectsTheSampleAndClosesTheOtherSection()
+    public async Task Reject_ByOneLab_OverallRejected_OtherLabStaysOpen()
     {
         await using var db = NewDb();
         var w = await SeedUnderApprovalAsync(db);
@@ -248,10 +248,56 @@ public class MultiSectionReviewApprovalTests
 
         await approval.DecideAsync(w.Sample.Id, w.HeadMicro, Password, ApprovalDecision.Reject, "Out of limits", null);
 
+        var sample = await db.Samples.Include(s => s.TestOrders).Include(s => s.SectionSignoffs).FirstAsync(s => s.Id == w.Sample.Id);
+        Assert.Equal(OverallSampleStatus.Rejected, SampleSectionRollup.Overall(sample));
+        Assert.Equal(SampleStatus.UnderApproval, sample.Status);                   // FP still waiting for approval
+        Assert.Equal(SectionSignoffStatus.UnderApproval, (await SignoffAsync(db, w.Sample.Id, w.Fp))!.Status);
+        Assert.Equal(ApprovalStatus.Reviewed, sample.TestOrders.First(t => t.Id == w.FpAssay.Id).Status);
+    }
+
+    [Fact]
+    public async Task Reject_OtherLabContinues_ReviewsAndApproves_SampleFinalizesRejected()
+    {
+        await using var db = NewDb();
+        var w = await SeedAsync(db, fpReady: false);
+        var review = TestServiceFactory.SampleReview(db);
+        var approval = TestServiceFactory.SampleApproval(db);
+        await review.AutoSubmitForReviewIfReadyAsync(w.Sample.Id, 1);
+        await db.SaveChangesAsync();
+        await review.CompleteReviewAsync(w.Sample.Id, w.ReviewerMicro, Password, null, null);
+        await approval.DecideAsync(w.Sample.Id, w.HeadMicro, Password, ApprovalDecision.Reject, "Out of limits", null);
+
+        // FP finishes after the rejection and still goes through its own review and approval.
+        var assay = await db.TestOrders.FirstAsync(t => t.Id == w.FpAssay.Id);
+        assay.Status = ApprovalStatus.ResultEntered;
+        assay.CurrentStep = WorkflowStep.Ready;
+        await db.SaveChangesAsync();
+        await review.AutoSubmitForReviewIfReadyAsync(w.Sample.Id, 2);
+        await db.SaveChangesAsync();
+        Assert.Equal(SectionSignoffStatus.UnderReview, (await SignoffAsync(db, w.Sample.Id, w.Fp))!.Status);
+
+        await review.CompleteReviewAsync(w.Sample.Id, w.ReviewerFp, Password, null, null);
+        await approval.DecideAsync(w.Sample.Id, w.HeadFp, Password, ApprovalDecision.Approve, null, null);
+
         Assert.Equal(SampleStatus.Rejected, await StatusAsync(db, w.Sample.Id));
-        Assert.Equal(SectionSignoffStatus.Rejected, (await SignoffAsync(db, w.Sample.Id, w.Micro))!.Status);
-        Assert.Equal(SectionSignoffStatus.Cancelled, (await SignoffAsync(db, w.Sample.Id, w.Fp))!.Status);
-        Assert.Equal(ApprovalStatus.Rejected, (await db.TestOrders.AsNoTracking().FirstAsync(t => t.Id == w.FpAssay.Id)).Status);
+        Assert.Equal(SectionSignoffStatus.Approved, (await SignoffAsync(db, w.Sample.Id, w.Fp))!.Status);
+        Assert.True(await db.ArchivedRecords.AnyAsync(a => a.EntityId == w.Sample.Id));
+    }
+
+    [Fact]
+    public async Task Reject_OtherLabNeverReachedReview_StaysInTesting()
+    {
+        await using var db = NewDb();
+        var w = await SeedAsync(db, fpReady: false);
+        var review = TestServiceFactory.SampleReview(db);
+        await review.AutoSubmitForReviewIfReadyAsync(w.Sample.Id, 1);
+        await db.SaveChangesAsync();
+        await review.CompleteReviewAsync(w.Sample.Id, w.ReviewerMicro, Password, null, null);
+
+        await TestServiceFactory.SampleApproval(db).DecideAsync(w.Sample.Id, w.HeadMicro, Password, ApprovalDecision.Reject, null, null);
+
+        Assert.Equal(SectionSignoffStatus.InTesting, (await SignoffAsync(db, w.Sample.Id, w.Fp))!.Status);
+        Assert.Equal(SampleStatus.InTesting, await StatusAsync(db, w.Sample.Id));
     }
 
     [Fact]
@@ -264,10 +310,21 @@ public class MultiSectionReviewApprovalTests
         await approval.DecideAsync(w.Sample.Id, w.HeadFp, Password, ApprovalDecision.Approve, null, null);
         await approval.DecideAsync(w.Sample.Id, w.HeadMicro, Password, ApprovalDecision.Reject, null, null);
 
+        // FP already approved and no lab is left open - the sample closes Rejected.
         Assert.Equal(SampleStatus.Rejected, await StatusAsync(db, w.Sample.Id));
         Assert.Equal(SectionSignoffStatus.Approved, (await SignoffAsync(db, w.Sample.Id, w.Fp))!.Status);
         Assert.Equal(ApprovalStatus.Approved, (await db.TestOrders.AsNoTracking().FirstAsync(t => t.Id == w.FpAssay.Id)).Status);
     }
+
+    [Theory]
+    [InlineData(new[] { SectionSignoffStatus.Rejected, SectionSignoffStatus.UnderReview }, SampleStatus.UnderReview)]
+    [InlineData(new[] { SectionSignoffStatus.Rejected, SectionSignoffStatus.Approved }, SampleStatus.Rejected)]
+    [InlineData(new[] { SectionSignoffStatus.Rejected, SectionSignoffStatus.Cancelled }, SampleStatus.Rejected)]
+    [InlineData(new[] { SectionSignoffStatus.Approved, SectionSignoffStatus.Approved }, SampleStatus.Approved)]
+    [InlineData(new[] { SectionSignoffStatus.Rejected, SectionSignoffStatus.RetestRequested }, SampleStatus.Rejected)]
+    [InlineData(new[] { SectionSignoffStatus.RetestRequested, SectionSignoffStatus.Approved }, SampleStatus.RetestRequested)]
+    public void Compute_OpenLabsWinOverRejection(SectionSignoffStatus[] statuses, SampleStatus expected) =>
+        Assert.Equal(expected, SampleSectionRollup.Compute(statuses));
 
     [Fact]
     public async Task Dashboards_QueueRowsArePerSection_AndLimitedToTheViewersSections()

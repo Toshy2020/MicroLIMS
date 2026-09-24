@@ -140,6 +140,10 @@ public class SampleApprovalService
             sample, sectionId, SectionSignoffStatus.UnderApproval, userScope,
             "Sample must be under approval before a decision can be made.");
         var signoff = SampleSectionRollup.GetOrAdd(sample, section);
+        // Every section without its own sign-off row shares the sample's
+        // state; freeze them now so a lab still in testing/review doesn't
+        // later read as sharing this decision's own outcome.
+        SampleSectionRollup.FreezeOpenSections(sample);
 
         if (sectionHeadUserId == signoff.ReviewedByUserId)
             throw new InvalidOperationException("You cannot approve a sample you reviewed.");
@@ -335,9 +339,8 @@ public class SampleApprovalService
             case ApprovalDecision.Reject:
                 signoff.Status = SectionSignoffStatus.Rejected;
                 sample.ApprovalDecision = ApprovalDecision.Reject;
-                SampleSectionRollup.CloseOtherSectionsOnReject(
-                    sample, section, $"Sample rejected by {signature.UserFullNameSnapshot} (another section)",
-                    sectionHeadUserId, h => _db.WorkflowHistories.Add(h));
+                // A rejection is this section's own judgement only - it no
+                // longer closes any other lab still open on the sample.
                 SampleSectionRollup.Apply(sample);
                 foreach (var order in currentOrders)
                 {
@@ -498,16 +501,23 @@ public class SampleApprovalService
         // version of THIS sample's record to project or archive yet. With
         // several sections, only the decision that closes the sample (its
         // last approval, or any rejection) finalizes it.
-        if (sample.Status is SampleStatus.Approved or SampleStatus.Rejected)
-        {
-            await _resultProjection.RefreshApprovalFieldsAsync(sampleId);
+        await FinalizeIfClosedAsync(sample, $"Sample {decision}", sectionHeadUserId);
+    }
 
-            var document = await _summary.BuildReportDocumentAsync(sampleId);
-            if (document is not null)
-                await _archive.ArchiveAsync(ReviewEntityTypes.Sample, sampleId, document, $"Sample {decision}", sectionHeadUserId);
+    // A sample is final once no lab is still open. The decision that closes it
+    // may be another lab's approval after an earlier rejection, so the OOS
+    // outcome follows the sample's own final state, not this one decision.
+    internal async Task FinalizeIfClosedAsync(Sample sample, string archiveLabel, int userId)
+    {
+        if (sample.Status is not (SampleStatus.Approved or SampleStatus.Rejected)) return;
 
-            await PropagateOosOutcomeAsync(sample, decision, sectionHeadUserId);
-        }
+        await _resultProjection.RefreshApprovalFieldsAsync(sample.Id);
+        var document = await _summary.BuildReportDocumentAsync(sample.Id);
+        if (document is not null)
+            await _archive.ArchiveAsync(ReviewEntityTypes.Sample, sample.Id, document, archiveLabel, userId);
+
+        var outcome = sample.Status == SampleStatus.Rejected ? ApprovalDecision.Reject : ApprovalDecision.Approve;
+        await PropagateOosOutcomeAsync(sample, outcome, userId);
     }
 
     private async Task PropagateOosOutcomeAsync(Sample sample, ApprovalDecision decision, int sectionHeadUserId)
@@ -563,13 +573,13 @@ public class SampleApprovalService
         // actually resolved, so it's populated for both outcomes here
         // (unlike the direct-Reject branch above, which leaves them null).
         var now = DateTime.UtcNow;
+        // Every section of the origin without its own sign-off row shares
+        // the origin's state; freeze them now so a lab still open on the
+        // origin doesn't read as sharing this retest's own outcome.
+        SampleSectionRollup.FreezeOpenSections(origin);
         originSignoff.Status = outcome == ApprovalDecision.Approve ? SectionSignoffStatus.Approved : SectionSignoffStatus.Rejected;
         originSignoff.ApprovedByUserId = sectionHeadUserId;
         originSignoff.ApprovedAt = now;
-        if (outcome != ApprovalDecision.Approve)
-            SampleSectionRollup.CloseOtherSectionsOnReject(
-                origin, section, "Sample rejected (OOS retest of another section)",
-                sectionHeadUserId, h => _db.WorkflowHistories.Add(h));
         SampleSectionRollup.Apply(origin);
         var originClosed = origin.Status is SampleStatus.Approved or SampleStatus.Rejected;
         if (originClosed)

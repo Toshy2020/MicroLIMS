@@ -70,18 +70,19 @@ public static class SampleSectionRollup
     public static bool IsOpen(SectionSignoffStatus status) =>
         status is SectionSignoffStatus.InTesting or SectionSignoffStatus.UnderReview or SectionSignoffStatus.UnderApproval;
 
-    // Rejection is a judgement on the material, so one rejecting section
-    // rejects the sample. Otherwise the sample sits at its least advanced
-    // open section; once every section is closed it is Approved, unless a
-    // section is still waiting on a retest.
+    // Sample.Status is the roll-up of OPEN work: while any lab is still
+    // testing, in review or in approval, the sample sits at the least advanced
+    // of them - even after another lab rejected - because the rest of the
+    // system treats Rejected/Approved as "closed". What users see as the
+    // sample's outcome is Overall(), where a rejection wins at once.
     public static SampleStatus? Compute(IReadOnlyCollection<SectionSignoffStatus> statuses)
     {
         if (statuses.Count == 0) return null;
-        if (statuses.Contains(SectionSignoffStatus.Rejected)) return SampleStatus.Rejected;
         if (statuses.All(s => s == SectionSignoffStatus.Voided)) return SampleStatus.Voided;
         if (statuses.Contains(SectionSignoffStatus.InTesting)) return SampleStatus.InTesting;
         if (statuses.Contains(SectionSignoffStatus.UnderReview)) return SampleStatus.UnderReview;
         if (statuses.Contains(SectionSignoffStatus.UnderApproval)) return SampleStatus.UnderApproval;
+        if (statuses.Contains(SectionSignoffStatus.Rejected)) return SampleStatus.Rejected;
         if (statuses.Contains(SectionSignoffStatus.RetestRequested)) return SampleStatus.RetestRequested;
         return SampleStatus.Approved;
     }
@@ -91,6 +92,26 @@ public static class SampleSectionRollup
         var computed = Compute(SectionIds(sample).Select(id => StatusOf(sample, id)).ToList());
         if (computed is not null)
             sample.Status = computed.Value;
+    }
+
+    public static OverallSampleStatus Overall(Sample sample)
+    {
+        if (sample.Status == SampleStatus.Voided) return OverallSampleStatus.Voided;
+        if (sample.Status == SampleStatus.Cancelled) return OverallSampleStatus.Cancelled;
+        var statuses = SectionIds(sample).Select(id => StatusOf(sample, id)).ToList();
+        if (statuses.Contains(SectionSignoffStatus.Rejected)) return OverallSampleStatus.Rejected;
+        if (statuses.Any(IsOpen)) return OverallSampleStatus.InProgress;
+        if (statuses.Contains(SectionSignoffStatus.RetestRequested)) return OverallSampleStatus.RetestRequested;
+        return OverallSampleStatus.Approved;
+    }
+
+    // Called before a decision changes Sample.Status: every section without a
+    // sign-off row shares the sample's state, so give each one its own row
+    // first - otherwise a lab that never reached review would read as Rejected.
+    public static void FreezeOpenSections(Sample sample)
+    {
+        foreach (var id in SectionIds(sample))
+            GetOrAdd(sample, id);
     }
 
     // Picks the section an action applies to. With no section requested, a
@@ -123,30 +144,5 @@ public static class SampleSectionRollup
             throw new InvalidOperationException("Choose a laboratory section - more than one section of this sample is waiting.");
 
         return candidates[0];
-    }
-
-    // One section rejected the sample: every other section still open is
-    // closed, and its current tests are rejected with the sample. Results a
-    // section already approved stay approved.
-    public static void CloseOtherSectionsOnReject(Sample sample, int rejectingSectionId, string note, int userId, Action<WorkflowHistory> addHistory)
-    {
-        foreach (var sectionId in SectionIds(sample).Where(id => id != rejectingSectionId))
-        {
-            if (!IsOpen(StatusOf(sample, sectionId))) continue;
-
-            GetOrAdd(sample, sectionId).Status = SectionSignoffStatus.Cancelled;
-            foreach (var order in CurrentOrders(sample, sectionId))
-            {
-                order.Status = ApprovalStatus.Rejected;
-                addHistory(new WorkflowHistory
-                {
-                    TestOrderId = order.Id,
-                    FromStep = order.CurrentStep,
-                    ToStep = order.CurrentStep,
-                    Note = note,
-                    PerformedByUserId = userId
-                });
-            }
-        }
     }
 }

@@ -35,7 +35,7 @@ Trigger: on 2026-09-24 FP results on a mixed sample never reached review, becaus
 ### 3.2 Receiving inside a lab workspace
 - Same form with no lab choice — the workspace's lab is the target. Requires lab membership and the existing testing permission, not `Samples.Receive`.
 - Server enforces the target: a caller may target only labs they are a member of (System Administrator: any). A lab user cannot create another lab's orders.
-- Categories: Microbiology — FP, RM, PM, Water, EM, After cleaning. Physicochemical — FP, RM, PM, Water, After cleaning.
+- Categories: Microbiology — FP, RM, PM, Water, EM, After cleaning. Physicochemical — FP, RM, PM (Water / After cleaning later, §11 Q1).
 
 ### 3.3 Add laboratory (`Samples.Receive`)
 - Action on an existing sample: choose a lab not yet on the sample; signed, with reason. Creates that lab's orders (item's assigned tests for that lab) on the same sample and reference.
@@ -52,7 +52,7 @@ Trigger: on 2026-09-24 FP results on a mixed sample never reached review, becaus
 |---|---|---|
 | Receiving | `Samples.Receive` / `Samples.TrackAll` | Receive sample (FP/RM/PM) · Tracking board |
 | Microbiology Laboratory | Micro members | Workspace (incl. receiving: FP/RM/PM/Water/EM/After cleaning) · My tasks · Review / approval queues · Media preparation & evaluation · Cryovials · Micro Test Master, organisms, media configurations, water, EM, after-cleaning, equipment configuration · Materials stock and equipment inventory (micro) · Micro dashboards |
-| Physicochemical Laboratory | Physicochemical members | Workspace (incl. receiving: FP/RM/PM/Water/After cleaning) · My tasks · Review / approval queues · Suitability runs · Calibration runs · Physicochemical Test Master, equation types, instruments, columns · Materials stock and equipment inventory (physicochemical) · Dashboards |
+| Physicochemical Laboratory | Physicochemical members | Workspace (incl. receiving: FP/RM/PM) · My tasks · Review / approval queues · Suitability runs · Calibration runs · Physicochemical Test Master, equation types, instruments, columns · Materials stock and equipment inventory (physicochemical) · Dashboards |
 | General Laboratory Configuration | Section Heads, System Administrator | Items (with specifications) · Receiving configuration |
 
 Unchanged, outside the lab areas: Document control, Reports, OOS tracking (already scoped by lab), Users/roles, Audit. A user in both labs sees both lab areas.
@@ -123,7 +123,7 @@ Data migration renames the `DocumentSection` "Finished Product Laboratory" → "
 Each migration is applied to LIMSV2 only after a `pg_dump` backup in `E:/MicroLIMS/db-backups`.
 1. `SectionSignoffStatus.Closed` (appended); on `TestOrder`: `CancelledAtStep`, `CancelledAtStage`, closing signature id; test order status Cancelled (appended if absent).
 2. `EquipmentInventory.SectionId` (nullable, back-fill, then required once all rows are assigned).
-3. Section rename; permissions `Samples.Receive`, `Samples.TrackAll` seeded and granted to System Administrator.
+3. Section rename; permissions `Samples.Receive`, `Samples.TrackAll` seeded and granted to System Administrator and Section Head roles.
 
 ## 10. Delivery (stop after each stage for user check)
 
@@ -134,7 +134,7 @@ Each migration is applied to LIMSV2 only after a `pg_dump` backup in `E:/MicroLI
 
 Every stage ends with the full Postgres suite (`bash .claude/scripts/run-postgres-tests.sh <artifacts>`).
 
-## 11. Open questions
+## 11. Resolved questions
 
-- Q1: Water and After-cleaning configuration (sampling points and their tests) is micro configuration today. Physicochemical water / after-cleaning tests need the configuration to carry the test's lab — confirm whether physicochemical water / after-cleaning testing is needed now, or later.
-- Q2: Who holds `Samples.Receive` / `Samples.TrackAll` by default besides System Administrator (to seed on migration)?
+- Q1 (2026-09-24): physicochemical water / after-cleaning testing is LATER. Now: Water and After-cleaning receiving stays in the Microbiology workspace only; the Physicochemical workspace receives FP / RM / PM. Water / after-cleaning configuration stays micro.
+- Q2 (2026-09-24): `Samples.Receive` and `Samples.TrackAll` are seeded for System Administrator and Section Head roles only.

@@ -1404,19 +1404,31 @@ public class PathogenSessionService
         var locationsById = sample.Locations.ToDictionary(l => l.Id);
         var testStateByCode = session.AssignedTests.ToDictionary(t => t.TestCode);
 
-        // Step-gating validation: check that every submitted result cell is allowed by its test's workflow prerequisites
+        // Step-gating validation: check that every submitted result cell is allowed by its test's workflow prerequisites.
+        // Runs over the whole request BEFORE anything is changed, so a rejected request records nothing.
         foreach (var cell in request.Cells)
         {
-            if (testStateByCode.TryGetValue(cell.TestCode, out var testInfo))
+            if (testStateByCode.TryGetValue(cell.TestCode, out var testInfo) && !testInfo.IsResultEntryAllowed)
             {
-                if (!testInfo.IsResultEntryAllowed)
-                {
-                    throw new WorkflowStepException(
-                        "PrerequisiteNotMet",
-                        $"Cannot enter results for {cell.TestCode}: TSB incubation or required workflow steps are still in progress ({testInfo.TestSessionStateDisplay}).");
-                }
+                throw new WorkflowStepException(
+                    "PrerequisiteNotMet",
+                    $"Cannot enter results for {cell.TestCode}: TSB incubation or required workflow steps are still in progress ({testInfo.TestSessionStateDisplay}).");
             }
+        }
 
+        // Primary observations for this sample's locations, loaded once and keyed by (location, test order).
+        // Same upsert semantics as LocationPathogenObservationService.RecordPrimaryObservationAsync, without a
+        // query and a SaveChanges per cell. The (location, test order) index is not unique, so tolerate
+        // duplicate rows the way that lookup's FirstOrDefault does rather than failing the save.
+        var locationIds = locationsById.Keys.ToList();
+        var primaryObservations = (await _db.LocationPathogenObservations
+                .Where(o => locationIds.Contains(o.SampleLocationId))
+                .ToListAsync())
+            .GroupBy(o => (o.SampleLocationId, o.TestOrderId))
+            .ToDictionary(g => g.Key, g => g.OrderBy(o => o.Id).First());
+
+        foreach (var cell in request.Cells)
+        {
             if (!testOrdersByCode.TryGetValue(cell.TestCode, out var order))
                 continue;
 
@@ -1455,12 +1467,28 @@ public class PathogenSessionService
                     loc.CFUResult = null;
 
                     // Also record primary observation record for data integrity
-                    await _locationObsService.RecordPrimaryObservationAsync(
-                        loc.Id,
-                        order.Id,
-                        isDetected ? GrowthObservation.GrowthConforming : GrowthObservation.NoGrowth,
-                        null,
-                        userId);
+                    var observation = isDetected ? GrowthObservation.GrowthConforming : GrowthObservation.NoGrowth;
+                    var observedAt = DateTime.UtcNow;
+                    if (primaryObservations.TryGetValue((loc.Id, order.Id), out var existingObs))
+                    {
+                        existingObs.GrowthObservation = observation;
+                        existingObs.ObservedAt = observedAt;
+                        existingObs.ObservedByUserId = userId;
+                    }
+                    else
+                    {
+                        var newObs = new LocationPathogenObservation
+                        {
+                            SampleLocationId = loc.Id,
+                            TestOrderId = order.Id,
+                            GrowthObservation = observation,
+                            ObservedAt = observedAt,
+                            ObservedByUserId = userId,
+                            CreatedAt = observedAt
+                        };
+                        _db.LocationPathogenObservations.Add(newObs);
+                        primaryObservations[(loc.Id, order.Id)] = newObs;
+                    }
                 }
 
                 loc.EnteredAt = DateTime.UtcNow;

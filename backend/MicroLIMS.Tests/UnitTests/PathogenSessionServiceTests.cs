@@ -779,6 +779,101 @@ public class PathogenSessionServiceTests
         Assert.Contains("submitted for review", submitEvent.Comment, StringComparison.OrdinalIgnoreCase);
     }
 
+    // Builds one input cell per matrix cell. The prerequisite-locked tests
+    // (BCC, Salmonella) go last, so a rejection happens only after cells
+    // that are allowed on their own have been processed.
+    private static List<MatrixCellInput> AllCellsLockedTestsLast(PathogenTestingSessionDto session) =>
+        session.ResultMatrix
+            .OrderBy(c => c.TestCode is "BCC" or "Salmonella" ? 1 : 0)
+            .Select(c => c.ResultType == "Quantitative"
+                ? new MatrixCellInput(c.SampleLocationId, c.TestCode, "5", "5 CFU", 5, "Quantitative")
+                : new MatrixCellInput(c.SampleLocationId, c.TestCode, "NOT_DETECTED", "Not Detected (-)", null, "Qualitative"))
+            .ToList();
+
+    private static async Task CompleteStep2ForBccAndSalmonellaAsync(MicroLimsDbContext db)
+    {
+        var bccOrder = await db.TestOrders.FirstAsync(t => t.TestCode == "BCC");
+        var salmOrder = await db.TestOrders.FirstAsync(t => t.TestCode == "Salmonella");
+        db.WorkflowStepResults.AddRange(
+            new WorkflowStepResult { TestOrderId = bccOrder.Id, StepName = "BCA Selective Medium", SubmittedAtUtc = DateTime.UtcNow },
+            new WorkflowStepResult { TestOrderId = salmOrder.Id, StepName = "RVS Selective Broth", SubmittedAtUtc = DateTime.UtcNow });
+        await db.SaveChangesAsync();
+    }
+
+    // A rejected matrix save must record nothing. It used to save each
+    // qualitative cell as it went and only then reach the locked test, so a
+    // request answered with an error still left part of the grid persisted.
+    [Fact]
+    public async Task SaveResultMatrix_RejectedForALockedTest_PersistsNothing()
+    {
+        var (db, sampleId, _) = SetupTestEnvironment(20);
+        var service = new PathogenSessionService(db);
+        await service.StartSharedTsbAsync(sampleId, new StartSharedTsbRequest(20, 3, DateTime.UtcNow.AddHours(-25)), 5);
+
+        // BCC and Salmonella have not completed step 2, so they are locked.
+        var session = await service.GetSessionAsync(sampleId);
+        var cells = AllCellsLockedTestsLast(session!);
+
+        var ex = await Assert.ThrowsAsync<WorkflowStepException>(() =>
+            service.SaveResultMatrixAsync(sampleId, new SaveResultMatrixRequest(cells), 5));
+        Assert.Contains("BCC", ex.Message);
+
+        Assert.Equal(0, await db.LocationPathogenObservations.AsNoTracking().CountAsync());
+        Assert.Equal(0, await db.SampleLocations.AsNoTracking()
+            .CountAsync(l => l.ReportedResult != null || l.CFUResult != null || l.EnteredByUserId != null));
+        Assert.False(db.ChangeTracker.HasChanges());
+    }
+
+    // The whole matrix is one unit of work: one SaveChanges (one transaction
+    // on PostgreSQL), not one per qualitative cell.
+    [Fact]
+    public async Task SaveResultMatrix_120Cells_SavesOnce()
+    {
+        var (db, sampleId, _) = SetupTestEnvironment(20);
+        var service = new PathogenSessionService(db);
+        await service.StartSharedTsbAsync(sampleId, new StartSharedTsbRequest(20, 3, DateTime.UtcNow.AddHours(-25)), 5);
+        await CompleteStep2ForBccAndSalmonellaAsync(db);
+
+        var cells = AllCellsLockedTestsLast((await service.GetSessionAsync(sampleId))!);
+        Assert.Equal(120, cells.Count);
+
+        var saves = 0;
+        db.SavingChanges += (_, _) => saves++;
+
+        var saved = await service.SaveResultMatrixAsync(sampleId, new SaveResultMatrixRequest(cells), 5);
+
+        Assert.Equal(1, saves);
+        Assert.Equal(120, saved.CompletedResultCount);
+        Assert.Equal(cells.Count(c => c.ResultType == "Qualitative"), await db.LocationPathogenObservations.CountAsync());
+    }
+
+    // Re-saving a matrix updates each primary observation in place - same
+    // upsert behaviour as LocationPathogenObservationService - rather than
+    // adding a duplicate per (location, test order).
+    [Fact]
+    public async Task SaveResultMatrix_SavedTwice_UpdatesObservationsInsteadOfDuplicating()
+    {
+        var (db, sampleId, _) = SetupTestEnvironment(3);
+        var service = new PathogenSessionService(db);
+        await service.StartSharedTsbAsync(sampleId, new StartSharedTsbRequest(20, 3, DateTime.UtcNow.AddHours(-25)), 5);
+        await CompleteStep2ForBccAndSalmonellaAsync(db);
+
+        var cells = AllCellsLockedTestsLast((await service.GetSessionAsync(sampleId))!);
+        await service.SaveResultMatrixAsync(sampleId, new SaveResultMatrixRequest(cells), 5);
+        var countAfterFirstSave = await db.LocationPathogenObservations.CountAsync();
+
+        var detected = cells
+            .Select(c => c.ResultType == "Qualitative"
+                ? c with { ResultCode = "DETECTED", ResultDisplay = "Detected (+)" }
+                : c)
+            .ToList();
+        await service.SaveResultMatrixAsync(sampleId, new SaveResultMatrixRequest(detected), 5);
+
+        var observations = await db.LocationPathogenObservations.AsNoTracking().ToListAsync();
+        Assert.Equal(countAfterFirstSave, observations.Count);
+        Assert.All(observations, o => Assert.Equal(GrowthObservation.GrowthConforming, o.GrowthObservation));
+    }
+
     [Fact]
     public async Task GetSession_CountTestIncubating_BeforeMinHours_IsLocked()
     {

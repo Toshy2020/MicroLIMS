@@ -35,6 +35,10 @@ public class LocationPathogenObservationConfiguration : IEntityTypeConfiguration
 
         builder.HasIndex(o => o.SampleLocationId);
         builder.HasIndex(o => o.TestOrderId);
-        builder.HasIndex(o => new { o.SampleLocationId, o.TestOrderId });
+        // One primary observation per (location, test order). Every writer
+        // upserts on this pair; the unique index makes that a database
+        // guarantee, so two concurrent saves cannot both insert a row.
+        builder.HasIndex(o => new { o.SampleLocationId, o.TestOrderId })
+            .IsUnique();
     }
 }

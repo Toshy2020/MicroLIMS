@@ -101,6 +101,7 @@ Uploaded documents, discussion attachments and archived record PDFs must not liv
 | :--- | :--- | :--- |
 | `ConnectionStrings__Default` | `Host=ep-...neon.tech;Database=neondb;...` | Your full Neon PostgreSQL connection string |
 | `Jwt__Key` | `A_VERY_LONG_RANDOM_SECRET_KEY_AT_LEAST_32_CHARS_LONG!` | Random secure signing key for JWT tokens |
+| `Jwt__AccessTokenMinutes` | `15` | *(Optional)* Access-token lifetime in minutes, 1–480 (default: `15`). The frontend refreshes expired tokens silently. Disabling, locking, re-roling or a password change takes effect on the next request regardless. |
 | `Frontend__Origin` | `http://localhost:5173,https://<your-pages-name>.pages.dev,https://<your-project>.vercel.app` | Allowed CORS origins (comma-separated, exact match, no trailing slash) - every URL the frontend is served from |
 | `APPLY_MIGRATIONS` | `true` *(First deployment only)* | Tells the API to run EF Core migrations and initialize tables |
 | `Seed__InitialAdminPassword` | *(a unique password you generate)* | **First deployment only.** Password for the initial `admin` account, which is forced to change it at first sign-in. Without it no administrator is created. Delete this variable once the first sign-in has completed. |

@@ -119,6 +119,36 @@ public class JwtConfigurationTests
     // ---- 6. Signing and validation still agree on the configured key ----
 
     [Fact]
+    public void Resolve_AccessTokenLifetime_DefaultsToFifteenMinutes()
+    {
+        var settings = JwtConfiguration.Resolve(Config(("Jwt:Key", ValidKey)), Env(Environments.Production));
+
+        Assert.Equal(TimeSpan.FromMinutes(JwtConfiguration.DefaultAccessTokenMinutes), settings.AccessTokenLifetime);
+        Assert.Equal(TimeSpan.FromMinutes(15), settings.AccessTokenLifetime);
+    }
+
+    [Fact]
+    public void Resolve_AccessTokenLifetime_IsConfigurable()
+    {
+        var settings = JwtConfiguration.Resolve(
+            Config(("Jwt:Key", ValidKey), ("Jwt:AccessTokenMinutes", "30")), Env(Environments.Production));
+
+        Assert.Equal(TimeSpan.FromMinutes(30), settings.AccessTokenLifetime);
+    }
+
+    [Theory]
+    [InlineData("0")]
+    [InlineData("-5")]
+    [InlineData("481")]
+    public void Resolve_AccessTokenLifetime_OutOfRange_Throws(string minutes)
+    {
+        var ex = Assert.Throws<InvalidOperationException>(() => JwtConfiguration.Resolve(
+            Config(("Jwt:Key", ValidKey), ("Jwt:AccessTokenMinutes", minutes)), Env(Environments.Production)));
+
+        Assert.Contains("Jwt:AccessTokenMinutes", ex.Message);
+    }
+
+    [Fact]
     public void ResolvedSettings_SignAndValidateRoundTrip_Succeeds()
     {
         var settings = JwtConfiguration.Resolve(
@@ -126,7 +156,7 @@ public class JwtConfigurationTests
             Env(Environments.Production));
 
         // Signing side, exactly as ServiceCollectionExtensions builds it.
-        var issued = new JwtTokenService(settings.Key, settings.Issuer, settings.Audience)
+        var issued = new JwtTokenService(settings.Key, settings.Issuer, settings.Audience, settings.AccessTokenLifetime)
             .IssueToken("42", "SectionHead", new[] { "Samples.Approve" });
 
         // Validation side, exactly as Program.cs configures AddJwtBearer.
@@ -154,7 +184,7 @@ public class JwtConfigurationTests
         // against the configured key - this is the attack the fallback
         // made possible.
         var forged = new JwtTokenService(
-            JwtConfiguration.RejectedDevelopmentKey, settings.Issuer, settings.Audience)
+            JwtConfiguration.RejectedDevelopmentKey, settings.Issuer, settings.Audience, settings.AccessTokenLifetime)
             .IssueToken("1", "SystemAdministrator");
 
         Assert.ThrowsAny<SecurityTokenException>(() =>

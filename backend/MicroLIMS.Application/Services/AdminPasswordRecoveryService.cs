@@ -98,6 +98,8 @@ public class AdminPasswordRecoveryService
         return new CreateRecoveryResultDto(plaintextCode, expiresAt);
     }
 
+    internal const string InvalidRecoveryCodeMessage = "Invalid or expired recovery code.";
+
     public async Task ConfirmRecoveryAsync(string username, string recoveryCode, string newPassword)
     {
         if (string.IsNullOrWhiteSpace(username))
@@ -105,11 +107,14 @@ public class AdminPasswordRecoveryService
         if (string.IsNullOrWhiteSpace(recoveryCode))
             throw new InvalidOperationException("Recovery code is required.");
 
+        // This endpoint is anonymous: an unknown username, a disabled account
+        // and a wrong code must all look the same to the caller, or it becomes
+        // a way to discover usernames and account state.
         var user = await _db.Users.FirstOrDefaultAsync(u => u.Username == username)
-            ?? throw new InvalidOperationException("Invalid recovery request details.");
+            ?? throw new InvalidOperationException(InvalidRecoveryCodeMessage);
 
         if (!user.IsActive)
-            throw new InvalidOperationException("Cannot perform password recovery for a disabled user account.");
+            throw new InvalidOperationException(InvalidRecoveryCodeMessage);
 
         var incomingHash = HashRecoveryCode(recoveryCode);
 
@@ -131,7 +136,7 @@ public class AdminPasswordRecoveryService
                 Timestamp = DateTime.UtcNow
             });
             await _db.SaveChangesAsync();
-            throw new InvalidOperationException("Invalid or expired recovery code.");
+            throw new InvalidOperationException(InvalidRecoveryCodeMessage);
         }
 
         if (DateTime.UtcNow > recovery.ExpiresAt)

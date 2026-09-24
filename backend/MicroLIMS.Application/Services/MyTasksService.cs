@@ -55,11 +55,13 @@ public class MyTasksService
 
         var testOrdersQuery = _db.TestOrders
             .Where(t => t.AssignedAnalystId == userId)
-            // Closed tests (decided, voided or superseded by a retest) are nobody's task.
+            // Closed tests (decided, voided, cancelled or superseded by a
+            // retest) are nobody's task.
             .Where(t => !t.IsSuperseded
                 && t.Status != ApprovalStatus.Approved
                 && t.Status != ApprovalStatus.Rejected
-                && t.Status != ApprovalStatus.Voided);
+                && t.Status != ApprovalStatus.Voided
+                && t.Status != ApprovalStatus.Cancelled);
 
         if (scope != null)
         {

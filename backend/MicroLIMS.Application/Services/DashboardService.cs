@@ -465,8 +465,9 @@ public class DashboardService
     public async Task<List<object>> GetStatusDistributionAsync(IReadOnlyCollection<int>? sectionIds = null)
     {
         var orders = _db.TestOrders.Where(SectionReviewQueues.OrderIn(sectionIds));
-        // Voided tests were struck from the record - not pending, not decided.
-        var total = await orders.CountAsync(t => t.Status != ApprovalStatus.Voided);
+        // Voided/cancelled tests were struck from the record or closed
+        // without a decision - neither pending nor decided.
+        var total = await orders.CountAsync(t => t.Status != ApprovalStatus.Voided && t.Status != ApprovalStatus.Cancelled);
         if (total == 0) return new List<object>();
 
         var approved = await orders.CountAsync(t => t.Status == ApprovalStatus.Approved);

@@ -869,7 +869,8 @@ public class SystemSuitabilityService : ISystemSuitabilityService
             if (order.IsSuperseded ||
                 order.Status == ApprovalStatus.Approved ||
                 order.Status == ApprovalStatus.Rejected ||
-                order.Status == ApprovalStatus.Voided)
+                order.Status == ApprovalStatus.Voided ||
+                order.Status == ApprovalStatus.Cancelled)
             {
                 throw new InvalidOperationException($"Test order {order.Id} is closed or superseded and cannot be linked.");
             }

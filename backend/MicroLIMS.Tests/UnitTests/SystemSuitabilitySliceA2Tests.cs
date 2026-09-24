@@ -827,6 +827,33 @@ public class SystemSuitabilitySliceA2Tests
         Assert.Contains("is closed or superseded and cannot be linked", ex.Message);
     }
 
+    // A cancelled order (SectionClosureService: this lab stopped testing
+    // after another lab rejected the sample) is closed the same way an
+    // approved/rejected/voided order is - it must not be linkable either.
+    [Fact]
+    public async Task LinkSample_CancelledOrder_ThrowsInvalidOperationException()
+    {
+        using var db = NewDb();
+        var (fpSec, _, fpUser, _, _) = SeedSectionsAndUsers(db);
+        var (test, equip, col, standard) = SeedSuitabilityPrerequisites(db, fpSec.Id, fpUser.Id);
+
+        var service = TestServiceFactory.SystemSuitability(db);
+        var request = new CreateSystemSuitabilityRunRequest(
+            test.Id, equip.Id, col.Id, standard.Id,
+            50m, 100m, 10000m, 1m, 2m, 1m, 2500m, "ValidPassword123!");
+        var run = await service.CreateAsync(request, fpUser.Id, "127.0.0.1");
+
+        var sample = new Sample { ReferenceNumber = "SMP-001", Status = SampleStatus.Rejected };
+        db.Samples.Add(sample);
+        var order = new TestOrder { Sample = sample, TestCode = test.Code, SectionId = fpSec.Id, Status = ApprovalStatus.Cancelled };
+        db.TestOrders.Add(order);
+        db.SaveChanges();
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+            () => service.LinkTestOrdersAsync(run.Id, new[] { order.Id }, fpUser.Id));
+        Assert.Contains("is closed or superseded and cannot be linked", ex.Message);
+    }
+
     [Fact]
     public async Task BulkLink_AllOrNothing_OneInvalidFailsWholeBatch()
     {

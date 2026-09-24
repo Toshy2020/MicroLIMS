@@ -424,13 +424,30 @@ public class TestingWorkspaceServerSidePagingAndFilteringTests
         Assert.Equal(4, counts.Unassigned);
     }
 
+    // GET /api/testorders used to return every sample ever received in one
+    // response. The bare route and /page are now the same paged action.
+    [Theory]
+    [InlineData(null)]
+    [InlineData("page")]
+    public void TestOrdersListRoute_IsServedByThePagedAction(string? template)
+    {
+        var listRoutes = typeof(MicroLIMS.API.Controllers.TestingWorkspaceController)
+            .GetMethods(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.DeclaredOnly)
+            .SelectMany(m => System.Reflection.CustomAttributeExtensions.GetCustomAttributes<Microsoft.AspNetCore.Mvc.HttpGetAttribute>(m)
+                .Where(a => a.Template == template)
+                .Select(_ => m.Name))
+            .ToList();
+
+        Assert.Equal(new[] { nameof(MicroLIMS.API.Controllers.TestingWorkspaceController.GetActivePaged) }, listRoutes);
+    }
+
     [Fact]
-    public async Task Parameterless_GetActiveSamplesAsync_ReturnsAllActiveSamplesUnpaged()
+    public async Task ListWithNoQueryString_ReturnsTheFirstPageOf50_NotEverySample()
     {
         await using var db = NewDb();
         var cause = SeedCause(db);
 
-        for (int i = 1; i <= 10; i++)
+        for (int i = 1; i <= 60; i++)
         {
             db.Samples.Add(CreateSample(i, $"C{i}", cause, receivedAt: DateTime.UtcNow.AddMinutes(-i)));
         }
@@ -438,9 +455,12 @@ public class TestingWorkspaceServerSidePagingAndFilteringTests
 
         var service = new TestingWorkspaceService(db);
 
-        var list = await service.GetActiveSamplesAsync();
-        Assert.Equal(10, list.Count);
-        Assert.IsType<List<SampleDto>>(list);
+        // What model binding produces for GET /api/testorders with no query string.
+        var result = await service.GetActiveSamplesAsync(new TestingWorkspaceFilterDto());
+
+        Assert.Equal(50, result.Items.Count);
+        Assert.Equal(60, result.TotalCount);
+        Assert.Equal(1, result.Page);
     }
 
     [Fact]

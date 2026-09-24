@@ -21,17 +21,11 @@ public class TestingWorkspaceController : ControllerBase
     private int? CurrentUserId =>
         int.TryParse(User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value, out var id) ? id : null;
 
-    // Unpaged, unfiltered, and deliberately left alone. Five frontend services
-    // read this route and all of them expect a bare array:
-    // ReceiveService, WorkspaceService, SamplePreparationService,
-    // EMPreparationService and AfterCleaningPreparationService. Returning a
-    // PagedResult here instead would break every one of them.
+    // Always paged: default 50 rows, hard maximum 200 (see
+    // TestingWorkspaceService). The bare route used to return every sample
+    // ever received in one response; it now answers exactly like /page,
+    // which stays as an alias for the Receiving & Testing workspace.
     [HttpGet]
-    public async Task<IActionResult> GetActive() =>
-        Ok(ApiResponse<object>.Ok(await _workspaceService.GetActiveSamplesAsync()));
-
-    // The paged, filtered route the Receiving & Testing workspace moves to.
-    // Additive, so callers migrate one at a time rather than all at once.
     [HttpGet("page")]
     public async Task<IActionResult> GetActivePaged([FromQuery] TestingWorkspaceFilterDto filter)
     {

@@ -20,7 +20,7 @@ public class TestingWorkspacePerformancePostgresIntegrationTests
     private readonly ITestOutputHelper _output;
 
     /// <summary>
-    /// Upper bound budget for SQL commands executed by GetActiveSamplesAsync().
+    /// Upper bound budget for SQL commands executed by GetActiveSamplesAsync(filter).
     /// In commit 73d06ea, measured at a maximum of 10 commands (typically 5 single-query
     /// commands in EF Core 8: Samples with navigations, TestDefinitions with steps, Incubations,
     /// SampleLocations count, and Users; up to 10 if collection navigation splitting occurs).
@@ -45,22 +45,19 @@ public class TestingWorkspacePerformancePostgresIntegrationTests
     public const int MaxServerPageSizeClamp = 200;
 
     /// <summary>
-    /// Baseline sample batch size N for scalability benchmarking.
-    /// 150 samples with 4 test orders and 2 incubations per test order yields 150 samples,
-    /// 600 test orders, and 1,200 incubations. This provides sufficient workload to establish
-    /// reliable execution timings above system timer jitter while keeping bulk insert fast.
+    /// Total sample volumes for the scaling benchmark: 150 and then 1,200 samples,
+    /// each with 4 test orders and 2 incubations per test order (up to 4,800 test
+    /// orders and 9,600 incubations). The benchmark always reads one page of
+    /// ScalingPageSize, so the data volume grows 8x while the page stays the same.
     /// </summary>
     public const int BaseSampleCountN = 150;
 
+    public const int ScaledSampleCount8N = 1200;
+
     /// <summary>
-    /// Scaled sample batch size 4N for scalability benchmarking.
-    /// 600 samples with 4 test orders and 2 incubations per test order yields 600 samples,
-    /// 2,400 test orders, and 4,800 incubations.
-    /// In commit 73d06ea, the pre-fix quadratic ToDto incubation re-scanning incurred
-    /// 600 * 4,800 = 2,880,000 comparisons (16x more work than N=150), whereas the post-fix
-    /// bucketed algorithm executes in linear O(Samples + Incubations) = 5,400 operations (~4x).
+    /// The page the scaling benchmark reads - the list's default page size.
     /// </summary>
-    public const int ScaledSampleCount4N = 600;
+    public const int ScalingPageSize = DefaultPageSize;
 
     /// <summary>
     /// Sample volumes for the SQL command-count test. An N+1 regression issues extra
@@ -83,14 +80,13 @@ public class TestingWorkspacePerformancePostgresIntegrationTests
     public const int IncubationsPerTestOrder = 2;
 
     /// <summary>
-    /// Maximum allowable ratio of execution time between 4N and N sample volumes: time(4N) / time(N).
-    /// Under linear scaling O(N), quadrupling data predicts an execution time ratio of ~4.0x.
-    /// Under quadratic scaling O(N^2) (the pre-fix defect in ToDto), quadrupling data predicts
-    /// a ratio of ~16.0x (4 * 4).
-    /// A threshold of 8.0x sits midway between linear (4x) and quadratic (16x), leaving generous
-    /// headroom for CI runner CPU jitter and GC pauses while definitively catching quadratic regressions.
+    /// Maximum allowable ratio time(page at 8N) / time(page at N). Reading one fixed-size
+    /// page should cost about the same whatever the table holds (~1x); work that
+    /// scales with every sample in the table - mapping or loading everything and
+    /// paging in memory - predicts ~8x. 2x sits between the two, with headroom for
+    /// CI runner jitter and GC pauses.
     /// </summary>
-    public const double MaxLinearGrowthRatio = 8.0;
+    public const double MaxPageTimeGrowthRatio = 2.0;
 
     public TestingWorkspacePerformancePostgresIntegrationTests(PostgresTestFixture fixture, ITestOutputHelper output)
     {
@@ -113,20 +109,22 @@ public class TestingWorkspacePerformancePostgresIntegrationTests
         var service = new TestingWorkspaceService(db);
 
         interceptor.Reset();
-        var samplesN = await service.GetActiveSamplesAsync();
+        // One page large enough to hold every seeded sample, so the mapped rows grow 4x.
+        var wholeList = new TestingWorkspaceFilterDto { PageSize = MaxServerPageSizeClamp };
+        var samplesN = await service.GetActiveSamplesAsync(wholeList);
         int countN = interceptor.CommandCount;
 
-        Assert.Equal(CommandCountSampleCount, samplesN.Count);
+        Assert.Equal(CommandCountSampleCount, samplesN.Items.Count);
 
         // --- Phase 2: Seed remaining samples up to 4N and measure SQL command count ---
         int additionalSamples = CommandCountScaledSampleCount - CommandCountSampleCount;
         await SeedSamplesBulkAsync(db, additionalSamples, startIndex: CommandCountSampleCount + 1, batchTag: "4N", causeId, itemId);
 
         interceptor.Reset();
-        var samples4N = await service.GetActiveSamplesAsync();
+        var samples4N = await service.GetActiveSamplesAsync(wholeList);
         int count4N = interceptor.CommandCount;
 
-        Assert.Equal(CommandCountScaledSampleCount, samples4N.Count);
+        Assert.Equal(CommandCountScaledSampleCount, samples4N.Items.Count);
 
         // --- Primary Assertion: SQL count must be IDENTICAL between N and 4N ---
         _output.WriteLine($"[SQL Budget] Commands at N={CommandCountSampleCount}: {countN}, Commands at 4N={CommandCountScaledSampleCount}: {count4N}");
@@ -185,7 +183,7 @@ public class TestingWorkspacePerformancePostgresIntegrationTests
     }
 
     [PostgresFact]
-    public async Task GetActiveSamples_WorkGrowsLinearlyNotQuadratically_UnderDataScaling()
+    public async Task GetActiveSamples_PageTime_DoesNotGrowWithTotalData()
     {
         await using var db = _fixture.CreateDbContext();
 
@@ -196,51 +194,44 @@ public class TestingWorkspacePerformancePostgresIntegrationTests
         await SeedSamplesBulkAsync(db, BaseSampleCountN, startIndex: 1, batchTag: "LN_N", causeId, itemId);
 
         var service = new TestingWorkspaceService(db);
+        var firstPage = new TestingWorkspaceFilterDto { Page = 1, PageSize = ScalingPageSize };
 
         // Discard warm-up call before timing (warms EF Core query compilation, model caches, connection pool)
-        var warmupResult = await service.GetActiveSamplesAsync();
-        Assert.Equal(BaseSampleCountN, warmupResult.Count);
+        var warmupResult = await service.GetActiveSamplesAsync(firstPage);
+        Assert.Equal(ScalingPageSize, warmupResult.Items.Count);
 
-        // Measure time at N (take best of 3 passes to filter out transient GC/runner jitter)
-        long elapsedN = long.MaxValue;
-        for (int i = 0; i < 3; i++)
+        double timeN = await BestPageTimeMsAsync(service, firstPage, BaseSampleCountN);
+
+        // 2. Seed remaining up to 8N samples
+        int additionalSamples = ScaledSampleCount8N - BaseSampleCountN;
+        await SeedSamplesBulkAsync(db, additionalSamples, startIndex: BaseSampleCountN + 1, batchTag: "LN_8N", causeId, itemId);
+
+        double time8N = await BestPageTimeMsAsync(service, firstPage, ScaledSampleCount8N);
+
+        double ratio = time8N / timeN;
+
+        _output.WriteLine($"[Page Time Budget] page of {ScalingPageSize} at N={BaseSampleCountN}: {timeN:F1} ms | at 8N={ScaledSampleCount8N}: {time8N:F1} ms | Ratio: {ratio:F2}x (Budget: < {MaxPageTimeGrowthRatio:F1}x)");
+
+        Assert.True(ratio < MaxPageTimeGrowthRatio,
+            $"Reading one page of {ScalingPageSize} got slower as the table grew: time(8N)={time8N:F1}ms / time(N)={timeN:F1}ms = {ratio:F2}x, " +
+            $"which exceeds the budget of {MaxPageTimeGrowthRatio:F1}x (a fixed page predicts ~1x, work over every sample ~8x). " +
+            "Likely regression: the request maps or loads the whole table instead of the page.");
+    }
+
+    // Best of 5 passes filters out transient GC/runner jitter.
+    private static async Task<double> BestPageTimeMsAsync(TestingWorkspaceService service, TestingWorkspaceFilterDto filter, int expectedTotal)
+    {
+        double best = double.MaxValue;
+        for (int i = 0; i < 5; i++)
         {
             var sw = Stopwatch.StartNew();
-            var res = await service.GetActiveSamplesAsync();
+            var res = await service.GetActiveSamplesAsync(filter);
             sw.Stop();
-            Assert.Equal(BaseSampleCountN, res.Count);
-            if (sw.ElapsedMilliseconds < elapsedN)
-                elapsedN = sw.ElapsedMilliseconds;
+            Assert.Equal(ScalingPageSize, res.Items.Count);
+            Assert.Equal(expectedTotal, res.TotalCount);
+            best = Math.Min(best, sw.Elapsed.TotalMilliseconds);
         }
-
-        // 2. Seed remaining up to 4N samples
-        int additionalSamples = ScaledSampleCount4N - BaseSampleCountN;
-        await SeedSamplesBulkAsync(db, additionalSamples, startIndex: BaseSampleCountN + 1, batchTag: "LN_4N", causeId, itemId);
-
-        // Measure time at 4N (best of 3 passes)
-        long elapsed4N = long.MaxValue;
-        for (int i = 0; i < 3; i++)
-        {
-            var sw = Stopwatch.StartNew();
-            var res = await service.GetActiveSamplesAsync();
-            sw.Stop();
-            Assert.Equal(ScaledSampleCount4N, res.Count);
-            if (sw.ElapsedMilliseconds < elapsed4N)
-                elapsed4N = sw.ElapsedMilliseconds;
-        }
-
-        // Prevent division by zero if elapsed time is sub-millisecond
-        double timeN = Math.Max(elapsedN, 1);
-        double time4N = Math.Max(elapsed4N, 1);
-        double ratio = time4N / timeN;
-
-        _output.WriteLine($"[Linear Scaling Budget] N={BaseSampleCountN}: {timeN} ms | 4N={ScaledSampleCount4N}: {time4N} ms | Ratio: {ratio:F2}x (Budget: < {MaxLinearGrowthRatio:F1}x)");
-
-        // Primary Assertion: Ratio must be well under quadratic (8.0x budget vs 16.0x quadratic)
-        Assert.True(ratio < MaxLinearGrowthRatio,
-            $"Execution time scaled quadratically: time(4N)={time4N}ms / time(N)={timeN}ms = {ratio:F2}x, " +
-            $"which exceeds the performance budget ratio of {MaxLinearGrowthRatio:F1}x (linear predicts ~4.0x, " +
-            "quadratic predicts ~16.0x). Likely regression: ToDto incubation comparison nested loop reintroduced.");
+        return Math.Max(best, 0.1);
     }
 
     private static async Task CleanUpSamplesAsync(MicroLimsDbContext db)

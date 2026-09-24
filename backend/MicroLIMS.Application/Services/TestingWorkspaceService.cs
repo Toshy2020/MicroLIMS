@@ -56,6 +56,8 @@ public class TestingWorkspaceService : ITestWorkspaceService
         var scope = currentUserId.HasValue
             ? await _scope.GetAccessibleSectionIdsAsync(currentUserId.Value)
             : null;
+        // Narrow to the one laboratory the workspace page asked for.
+        scope = LabScope.Narrow(scope, filter.LabSectionId);
 
         var query = _db.Samples.AsNoTracking();
         if (scope != null)
@@ -278,11 +280,13 @@ public class TestingWorkspaceService : ITestWorkspaceService
         };
     }
 
-    public async Task<WorkspaceTileCountsDto> GetWorkloadCountsAsync(int? currentUserId = null)
+    public async Task<WorkspaceTileCountsDto> GetWorkloadCountsAsync(int? currentUserId = null, int? labSectionId = null)
     {
         var scope = currentUserId.HasValue
             ? await _scope.GetAccessibleSectionIdsAsync(currentUserId.Value)
             : null;
+        // Narrow to the one laboratory the workspace page asked for.
+        scope = LabScope.Narrow(scope, labSectionId);
 
         var now = DateTime.UtcNow;
 

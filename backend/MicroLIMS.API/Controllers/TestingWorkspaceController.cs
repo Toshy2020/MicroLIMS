@@ -40,9 +40,9 @@ public class TestingWorkspaceController : ControllerBase
     }
 
     [HttpGet("counts")]
-    public async Task<IActionResult> GetWorkloadCounts()
+    public async Task<IActionResult> GetWorkloadCounts([FromQuery] int? labSectionId = null)
     {
-        var counts = await _workspaceService.GetWorkloadCountsAsync(CurrentUserId);
+        var counts = await _workspaceService.GetWorkloadCountsAsync(CurrentUserId, labSectionId);
         return Ok(ApiResponse<WorkspaceTileCountsDto>.Ok(counts));
     }
 

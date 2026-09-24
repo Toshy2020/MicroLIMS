@@ -9,7 +9,12 @@ namespace MicroLIMS.Application.Workflows;
 public record ItemBasedReceiveRequest(
     int ItemId, int CauseOfTestingId, string SampleQuantity, string SampledBy,
     string BatchNumber, string ControlNumber, DateTime? MfgDate, DateTime? ExpDate,
-    string? ProductionStage, int ReceivedByUserId);
+    string? ProductionStage, int ReceivedByUserId,
+    // Which laboratories to create test orders for. Null keeps today's
+    // behaviour (every assigned test, any section) for internal callers
+    // that predate lab-targeted receipt; the HTTP endpoint always passes a
+    // resolved, non-empty set (see ReceiptLabGuard).
+    IReadOnlyCollection<int>? TargetSectionIds = null);
 
 public interface IProductWorkflowEngine : IStatefulWorkflowEngine
 {
@@ -87,7 +92,27 @@ public class ProductWorkflowEngine : IProductWorkflowEngine
             _db,
             item.AssignedTests.Select(t => t.TestCode));
 
-        foreach (var test in item.AssignedTests)
+        // A targeted receipt (the Receiving page's lab picker) only creates
+        // test orders for the chosen laboratories - a lab user receiving
+        // from inside its own workspace must never silently create the
+        // other lab's work. Null keeps every assigned test (internal
+        // callers that predate this).
+        var assigned = item.AssignedTests.ToList();
+        if (request.TargetSectionIds is { } targets)
+        {
+            foreach (var sectionId in targets)
+            {
+                if (!assigned.Any(t => testSections[t.TestCode] == sectionId))
+                {
+                    var name = await _db.DocumentSections.Where(s => s.Id == sectionId).Select(s => s.Name).FirstOrDefaultAsync()
+                        ?? $"section {sectionId}";
+                    throw new InvalidOperationException($"Item '{item.Name}' has no tests for {name}.");
+                }
+            }
+            assigned = assigned.Where(t => targets.Contains(testSections[t.TestCode])).ToList();
+        }
+
+        foreach (var test in assigned)
         {
             sample.TestOrders.Add(new TestOrder
             {
@@ -98,7 +123,7 @@ public class ProductWorkflowEngine : IProductWorkflowEngine
             });
         }
 
-        sample.PreparationStatus = await PreparationRules.InitialStatusAsync(_db, testSections.Values);
+        sample.PreparationStatus = await PreparationRules.InitialStatusAsync(_db, sample.TestOrders.Select(o => o.SectionId));
 
         _db.Samples.Add(sample);
         await _db.SaveChangesAsync();

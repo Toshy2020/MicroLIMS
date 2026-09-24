@@ -52,7 +52,4 @@ public class TestingWorkspaceController : ControllerBase
         var sample = await _workspaceService.GetSampleAsync(id);
         return sample is null ? NotFound(ApiResponse<object>.Fail("Not found.")) : Ok(ApiResponse<object>.Ok(sample));
     }
-
-    [HttpPut("{id:int}")]
-    public IActionResult UpdateStatus(int id) => Ok(ApiResponse<object>.Ok(new { id }, "Use /api/results, /api/review, or /api/approval to progress a test order."));
 }

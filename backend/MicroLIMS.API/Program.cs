@@ -1,6 +1,4 @@
 using Microsoft.EntityFrameworkCore;
-using Microsoft.AspNetCore.Authorization;
-using MicroLIMS.API.Authorization;
 using MicroLIMS.API.Extensions;
 using MicroLIMS.API.Filters;
 using MicroLIMS.API.Json;
@@ -52,13 +50,8 @@ builder.Services.AddMicroLimsHealthChecks();
 // locked, re-roled or password changed means a 401, not the old access.
 builder.Services.AddMicroLimsJwtAuthentication(jwtSettings);
 
-builder.Services.AddAuthorization();
-// Permission-based authorization, running alongside the existing role-
-// string [Authorize(Roles=...)] system - not replacing it in this phase.
-// [Authorize(Policy = "<permission code>")] resolves dynamically via
-// PermissionPolicyProvider, no per-code AddPolicy() call needed.
-builder.Services.AddSingleton<IAuthorizationPolicyProvider, PermissionPolicyProvider>();
-builder.Services.AddSingleton<IAuthorizationHandler, PermissionAuthorizationHandler>();
+// Deny-by-default fallback + permission policies (see Extensions/AuthorizationExtensions.cs).
+builder.Services.AddMicroLimsAuthorization();
 builder.Services.AddControllers(options =>
     {
         options.Filters.Add<ValidationFilter>();
@@ -96,6 +89,14 @@ builder.Services.AddCors(options =>
 var app = builder.Build();
 
 app.UseForwardedHeaders();
+
+// Security response headers on everything, and HSTS once served over HTTPS
+// (Render terminates TLS; UseForwardedHeaders above restores the scheme).
+app.UseMiddleware<MicroLIMS.API.Middleware.SecurityHeadersMiddleware>();
+if (!app.Environment.IsDevelopment())
+{
+    app.UseHsts();
+}
 
 if (app.Environment.IsProduction() && !TrustedProxyConfiguration.HasTrustedProxyList(app.Configuration))
 {

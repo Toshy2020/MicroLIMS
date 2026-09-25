@@ -13,6 +13,13 @@ namespace MicroLIMS.Tests.UnitTests;
 // Anonymous endpoints must not reveal whether a username exists or what
 // state its account is in - neither through the message nor through how
 // long the answer takes.
+//
+// Not run alongside other tests: the timing comparison below measures CPU
+// work, and a busy CI runner made one side ten times slower than the other.
+[CollectionDefinition(nameof(LoginEnumerationTests), DisableParallelization = true)]
+public class LoginEnumerationTestsCollection { }
+
+[Collection(nameof(LoginEnumerationTests))]
 public class LoginEnumerationTests
 {
     private const string Password = "Real-Password-1!";
@@ -92,22 +99,25 @@ public class LoginEnumerationTests
 
         await auth.LoginAsync("warm-up", "x"); // JIT, EF model, the equaliser hash itself
 
-        async Task<double> MedianMs(string username)
+        // Fastest of five: load from other work only ever adds time, so the
+        // minimum is the closest measure of the refusal's own cost. (CI once
+        // saw a 2051 ms median wrong password against 183 ms for 'disabled'.)
+        async Task<double> FastestMs(string username)
         {
             var samples = new List<double>();
-            for (var i = 0; i < 3; i++)
+            for (var i = 0; i < 5; i++)
             {
                 var sw = Stopwatch.StartNew();
                 await auth.LoginAsync(username, "wrong-password");
                 samples.Add(sw.Elapsed.TotalMilliseconds);
             }
-            return samples.OrderBy(x => x).ElementAt(1);
+            return samples.Min();
         }
 
-        var wrongPassword = await MedianMs("active");
+        var wrongPassword = await FastestMs("active");
         foreach (var username in new[] { "no-such-user", "locked", "disabled" })
         {
-            var elapsed = await MedianMs(username);
+            var elapsed = await FastestMs(username);
             Assert.True(elapsed >= wrongPassword * 0.4,
                 $"'{username}' was refused in {elapsed:F0} ms against {wrongPassword:F0} ms for a wrong password - " +
                 "fast enough to tell the two apart.");

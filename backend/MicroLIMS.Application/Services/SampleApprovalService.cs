@@ -338,6 +338,10 @@ public class SampleApprovalService
 
             case ApprovalDecision.Reject:
                 signoff.Status = SectionSignoffStatus.Rejected;
+                // Who decided and when - the combined certificate names the
+                // Section Head behind each lab's conclusion, rejections too.
+                signoff.ApprovedByUserId = sectionHeadUserId;
+                signoff.ApprovedAt = DateTime.UtcNow;
                 sample.ApprovalDecision = ApprovalDecision.Reject;
                 // A rejection is this section's own judgement only - it no
                 // longer closes any other lab still open on the sample.

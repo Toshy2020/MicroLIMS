@@ -255,6 +255,22 @@ public class MultiSectionReviewApprovalTests
         Assert.Equal(ApprovalStatus.Reviewed, sample.TestOrders.First(t => t.Id == w.FpAssay.Id).Status);
     }
 
+    // The combined certificate names who decided each lab: a rejection must
+    // record its Section Head and time on the sign-off, as an approval does.
+    [Fact]
+    public async Task Reject_RecordsWhoDecidedAndWhenOnTheSignoff()
+    {
+        await using var db = NewDb();
+        var w = await SeedUnderApprovalAsync(db);
+        var approval = TestServiceFactory.SampleApproval(db);
+
+        await approval.DecideAsync(w.Sample.Id, w.HeadMicro, Password, ApprovalDecision.Reject, "Out of limits", null);
+
+        var signoff = (await SignoffAsync(db, w.Sample.Id, w.Micro))!;
+        Assert.Equal(w.HeadMicro, signoff.ApprovedByUserId);
+        Assert.NotNull(signoff.ApprovedAt);
+    }
+
     [Fact]
     public async Task Reject_OtherLabContinues_ReviewsAndApproves_SampleFinalizesRejected()
     {

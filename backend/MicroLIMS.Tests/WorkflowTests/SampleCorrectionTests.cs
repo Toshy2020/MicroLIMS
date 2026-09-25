@@ -102,6 +102,28 @@ public class SampleCorrectionTests
         db.AuditLogs.Include(a => a.Changes)
             .FirstOrDefaultAsync(a => a.ActionCode == actionCode && a.EntityId == sampleId.ToString());
 
+    // Stage-dependent tests (replicate counts) resolve the sample's stage by
+    // ProductionStageId, not the name: a corrected stage must carry its id,
+    // or the sample stays "not reconciled" however often it is corrected.
+    [Fact]
+    public async Task CorrectAsync_ProductionStage_AlsoSetsProductionStageId()
+    {
+        await using var db = NewDb();
+        var (sample, signer, _) = await SeedProductAsync(db);
+        var fp = new ProductionStage { Name = "F.P", Role = ProductionStageRole.Other };
+        var bulk = new ProductionStage { Name = "Bulk", Role = ProductionStageRole.Other };
+        db.ProductionStages.AddRange(fp, bulk);
+        await db.SaveChangesAsync();
+        var service = TestServiceFactory.SampleCorrection(db);
+
+        await service.CorrectAsync(sample.Id, AsStored(sample) with { ProductionStage = "f.p" }, "Stage missed at receipt", Password, signer.Id, null);
+        Assert.Equal(fp.Id, (await db.Samples.AsNoTracking().FirstAsync(s => s.Id == sample.Id)).ProductionStageId);
+
+        var current = await db.Samples.AsNoTracking().FirstAsync(s => s.Id == sample.Id);
+        await service.CorrectAsync(sample.Id, AsStored(current) with { ProductionStage = null }, "No stage after all", Password, signer.Id, null);
+        Assert.Null((await db.Samples.AsNoTracking().FirstAsync(s => s.Id == sample.Id)).ProductionStageId);
+    }
+
     [Fact]
     public async Task CorrectAsync_DescriptiveFields_AreSignedAuditedAndOnTheTimeline()
     {

@@ -123,7 +123,20 @@ public class SampleCorrectionService
             Track("Exp Date", AsDate(sample.ExpDate), exp, FormatDate, v => sample.ExpDate = v);
             Track("Sample Quantity", Optional(sample.SampleQuantity), Optional(request.SampleQuantity), v => v, v => sample.SampleQuantity = v);
             if (category == SampleCategory.FinishedProduct)
-                Track("Production Stage", Optional(sample.ProductionStage), Optional(request.ProductionStage), v => v, v => sample.ProductionStage = v);
+            {
+                // Resolved as at receipt: stage-dependent tests read the id,
+                // so a corrected name must carry it (null when unrecognised).
+                var stageName = Optional(request.ProductionStage);
+                int? stageId = stageName is null ? null : await _db.ProductionStages
+                    .Where(p => p.Name.ToLower() == stageName.ToLower())
+                    .Select(p => (int?)p.Id)
+                    .FirstOrDefaultAsync();
+                Track("Production Stage", Optional(sample.ProductionStage), stageName, v => v, v =>
+                {
+                    sample.ProductionStage = v;
+                    sample.ProductionStageId = stageId;
+                });
+            }
         }
         else if (category == SampleCategory.Water)
         {

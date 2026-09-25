@@ -10,6 +10,7 @@ public class MaterialConfiguration : IEntityTypeConfiguration<Material>
     {
         builder.HasKey(m => m.Id);
         builder.Property(m => m.MaterialName).IsRequired().HasMaxLength(200);
+        builder.Property(m => m.CustomType).HasMaxLength(100);
         builder.Property(m => m.ManufacturerName).HasMaxLength(150);
         builder.Property(m => m.BatchNumber).HasMaxLength(100);
         builder.Property(m => m.Code).HasMaxLength(50);

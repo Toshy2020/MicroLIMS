@@ -1,8 +1,9 @@
 import { apiClient } from "../../../../services/apiClient";
-import type { MaterialDocumentType } from "../types/materialTypes";
+import type { MaterialDocumentType, MaterialType } from "../types/materialTypes";
 
 export interface SaveMaterialPayload {
   materialType: string;
+  customType?: string | null;
   materialName: string;
   manufacturerName: string;
   batchNumber: string;
@@ -24,6 +25,10 @@ export const MaterialService = {
   // ---- Materials Stock ----
   getAll: (materialType?: string) =>
     apiClient.get("/inventory/materials", { params: materialType ? { type: materialType } : {} }).then((r) => r.data.data),
+  getTypeOptions: (sectionId?: number) =>
+    apiClient
+      .get("/inventory/materials/type-options", { params: sectionId ? { sectionId } : {} })
+      .then((r) => r.data.data as { builtIn: MaterialType[]; custom: string[] }),
   getUsableReferenceStandards: () =>
     apiClient.get("/inventory/materials/usable-reference-standards").then((r) => r.data.data),
   getForPrint: () => apiClient.get("/inventory/materials/print").then((r) => r.data.data),

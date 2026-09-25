@@ -95,6 +95,37 @@ const documentControlAdminItem: MenuItem = {
   ]
 };
 
+// Materials Stock, Equipment Inventory and the two approved lists all sit
+// behind InventoryRoutes.tsx's role gate (Analyst/SectionHead/SystemAdministrator
+// only - "Reviewer does not need it") and the matching [Authorize] on
+// MaterialController/EquipmentInventoryController. The menu must mirror that
+// gate exactly, or a Reviewer lab member gets a link that bounces them
+// straight back to /dashboard.
+function canUseInventory(role: Role | null): boolean {
+  return role === "Analyst" || role === "SectionHead" || role === "SystemAdministrator";
+}
+
+const materialsStockMicroItem: MenuItem = { label: "Materials Stock", path: "/inventory/materials?lab=MICRO" };
+const equipmentInventoryMicroItem: MenuItem = { label: "Equipment Inventory", path: "/inventory/equipment?lab=MICRO" };
+const approvedMediaListItem: MenuItem = { label: "Approved Media List", path: "/inventory/approved-media" };
+const approvedCryovialListItem: MenuItem = { label: "Approved Cryovial List", path: "/inventory/approved-cryovials" };
+const materialsStockFpItem: MenuItem = { label: "Materials Stock", path: "/inventory/materials?lab=FP" };
+const equipmentInventoryFpItem: MenuItem = { label: "Equipment Inventory", path: "/inventory/equipment?lab=FP" };
+
+// Identifies the inventory-gated children above by reference, so filtering
+// them out doesn't depend on matching their label text.
+const INVENTORY_GUARDED_ITEMS = new Set<MenuItem>([
+  materialsStockMicroItem, equipmentInventoryMicroItem, approvedMediaListItem, approvedCryovialListItem,
+  materialsStockFpItem, equipmentInventoryFpItem
+]);
+
+// Returns the lab area with its inventory-gated children stripped for a
+// role InventoryRoutes.tsx would bounce (e.g. Reviewer).
+function labAreaFor(area: MenuItem, role: Role | null): MenuItem {
+  if (canUseInventory(role)) return area;
+  return { ...area, children: area.children?.filter((c) => !INVENTORY_GUARDED_ITEMS.has(c)) };
+}
+
 // Laboratory areas: one collapsible section per laboratory, shown only to
 // its members (useMyLabs). Each bundles that lab's workspace (built in
 // Tasks 12-13), its analyst-facing configuration pages, and its own
@@ -108,10 +139,10 @@ const microArea: MenuItem = {
     { label: "Workspace", path: "/microbiology/workspace" },
     { label: "Media Preparation & Evaluation", path: "/laboratory-configuration/media" },
     { label: "Reference Cryovials", path: "/laboratory-configuration/cryovials" },
-    { label: "Materials Stock", path: "/inventory/materials?lab=MICRO" },
-    { label: "Equipment Inventory", path: "/inventory/equipment?lab=MICRO" },
-    { label: "Approved Media List", path: "/inventory/approved-media" },
-    { label: "Approved Cryovial List", path: "/inventory/approved-cryovials" }
+    materialsStockMicroItem,
+    equipmentInventoryMicroItem,
+    approvedMediaListItem,
+    approvedCryovialListItem
   ]
 };
 
@@ -139,8 +170,8 @@ const physchemArea: MenuItem = {
     { label: "Workspace", path: "/physicochemical/workspace" },
     { label: "System Suitability (HPLC)", path: "/laboratory/system-suitability" },
     { label: "Calibration Runs (ICP-OES / AAS)", path: "/laboratory/calibration-runs" },
-    { label: "Materials Stock", path: "/inventory/materials?lab=FP" },
-    { label: "Equipment Inventory", path: "/inventory/equipment?lab=FP" }
+    materialsStockFpItem,
+    equipmentInventoryFpItem
   ]
 };
 
@@ -206,8 +237,8 @@ export function getGroupedMenu({ role, permissions, labCodes }: MenuContext): Me
   const items: MenuItem[] = [dashboardItem];
   if (permissions.includes("Samples.Receive")) items.push(receivingAreaItems[0]);
   if (permissions.includes("Samples.TrackAll")) items.push(receivingAreaItems[1]);
-  if (labCodes.includes("MICRO")) items.push(microArea, ...(isHead ? [microConfigArea] : []));
-  if (labCodes.includes("FP")) items.push(physchemArea, ...(isHead ? [physchemConfigArea] : []));
+  if (labCodes.includes("MICRO")) items.push(labAreaFor(microArea, role), ...(isHead ? [microConfigArea] : []));
+  if (labCodes.includes("FP")) items.push(labAreaFor(physchemArea, role), ...(isHead ? [physchemConfigArea] : []));
   if (isHead) items.push(...generalConfigArea);
   items.push(...sharedItemsFor(role));
   return groupItems(items);

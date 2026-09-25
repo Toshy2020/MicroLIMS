@@ -16,6 +16,8 @@ import { EquipmentInventoryService } from "../services/EquipmentInventoryService
 import { EquipmentFormState, EquipmentItem, EquipmentStatus } from "../types/equipmentTypes";
 import { brandColors } from "../../../../theme";
 import { FloatingDialog } from "../../../../components/FloatingDialog";
+import { useMyLabs } from "../../../../hooks/useMyLabs";
+import { useLaboratorySections } from "../../../../hooks/useLaboratorySections";
 
 const STATUS_OPTIONS: { label: string; value: EquipmentStatus }[] = [
   { label: "In Service", value: "InService" },
@@ -39,7 +41,8 @@ const INITIAL_FORM: EquipmentFormState = {
   location: "",
   calibrationDueDate: "",
   status: "InService",
-  statusChangeComment: ""
+  statusChangeComment: "",
+  sectionId: ""
 };
 
 export function RegisterEquipmentDialog({
@@ -52,6 +55,14 @@ export function RegisterEquipmentDialog({
   const [form, setForm] = useState<EquipmentFormState>(INITIAL_FORM);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+
+  // The laboratory select only offers the labs the caller belongs to (an
+  // admin's useMyLabs codes cover both, per-lab users see just their own);
+  // id/name are resolved from the full section list since useMyLabs's own
+  // `labs` array doesn't always carry a real membership row for an admin.
+  const { codes: myLabCodes } = useMyLabs();
+  const { sections } = useLaboratorySections();
+  const myLabSections = sections.filter((s) => myLabCodes.includes(s.sectionCode));
 
   const isStatusChanged = editingItem != null && form.status !== editingItem.status;
 
@@ -66,18 +77,31 @@ export function RegisterEquipmentDialog({
         location: editingItem.location,
         calibrationDueDate: editingItem.calibrationDueDate?.slice(0, 10) ?? "",
         status: editingItem.status,
-        statusChangeComment: ""
+        statusChangeComment: "",
+        sectionId: editingItem.sectionId ?? ""
       });
     } else {
-      setForm(INITIAL_FORM);
+      setForm({
+        ...INITIAL_FORM,
+        sectionId: myLabSections.length === 1 ? myLabSections[0].sectionId : ""
+      });
     }
     setError(null);
-  }, [editingItem, open]);
+    // myLabSections is intentionally left out - it's derived from data that
+    // loads asynchronously after this effect's first run, and re-running on
+    // its every reference change would fight the user's own selection.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editingItem, open, myLabCodes.join(","), sections.length]);
 
   const handleSave = async () => {
     setError(null);
     if (!form.instrumentType.trim() || !form.code.trim() || !form.location.trim()) {
       setError("Instrument type, equipment code, and location are required.");
+      return;
+    }
+
+    if (!form.sectionId) {
+      setError("Choose the laboratory this asset belongs to.");
       return;
     }
 
@@ -95,7 +119,8 @@ export function RegisterEquipmentDialog({
       location: form.location.trim(),
       calibrationDueDate: form.calibrationDueDate || null,
       status: form.status,
-      statusChangeComment: isStatusChanged ? form.statusChangeComment?.trim() : undefined
+      statusChangeComment: isStatusChanged ? form.statusChangeComment?.trim() : undefined,
+      sectionId: Number(form.sectionId)
     };
 
     setSaving(true);
@@ -135,7 +160,7 @@ export function RegisterEquipmentDialog({
             id="dialog-equip-save-btn"
             variant="contained"
             onClick={handleSave}
-            disabled={saving || (isStatusChanged && (!form.statusChangeComment || !form.statusChangeComment.trim()))}
+            disabled={saving || !form.sectionId || (isStatusChanged && (!form.statusChangeComment || !form.statusChangeComment.trim()))}
             sx={{
               bgcolor: brandColors.sectionTitle,
               px: 3,
@@ -208,6 +233,28 @@ export function RegisterEquipmentDialog({
           value={form.firmwareVersion}
           onChange={(e) => setForm({ ...form, firmwareVersion: e.target.value })}
         />
+
+        <FormControl size="small" fullWidth required>
+          <InputLabel id="dialog-equip-section-label">Laboratory</InputLabel>
+          <Select<number | "">
+            labelId="dialog-equip-section-label"
+            id="dialog-equip-section-select"
+            label="Laboratory"
+            value={form.sectionId}
+            onChange={(e) => setForm({ ...form, sectionId: e.target.value === "" ? "" : Number(e.target.value) })}
+          >
+            {myLabSections.length === 0 && (
+              <MenuItem disabled value="">
+                <em>No laboratory available</em>
+              </MenuItem>
+            )}
+            {myLabSections.map((s) => (
+              <MenuItem key={s.sectionId} value={s.sectionId}>
+                {s.sectionName}
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
       </Box>
 
       <Divider sx={{ my: 2.5 }} />

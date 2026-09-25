@@ -36,6 +36,10 @@ export interface OrganismSummary {
 
 export interface MaterialItem {
   id: number;
+  // Owning laboratory - Material.SectionId is required server-side
+  // (unlike EquipmentInventory's still-nullable column), used here only to
+  // honour the ?lab= query param from the menu links (design.md §6).
+  sectionId: number;
   materialType: MaterialType;
   materialName: string;
   manufacturerName: string;

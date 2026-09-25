@@ -62,6 +62,12 @@ export interface SpecificationDto {
   labelClaimUnit?: string | null;
   conversionFactor?: number | string | null;
   dosageForm?: DosageForm | string | null;
+  // Ownership (design.md §6) - the row's owner is its TestCode's Test
+  // Master section, not a column of its own. canEdit is false for a row
+  // whose test belongs to a lab other than the caller's; the row still
+  // renders (read-only) with sectionName as a chip.
+  canEdit?: boolean;
+  sectionName?: string;
 }
 
 export interface CreateSpecificationPayload {

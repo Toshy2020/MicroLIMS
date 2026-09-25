@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import {
   Paper,
   Box,
@@ -30,6 +31,7 @@ import { AuditHistoryDialog } from "../../../components/AuditHistoryDialog";
 import { LoadingSpinner } from "../../../components/LoadingSpinner";
 import { formatLabDate } from "../../../utils/formatDate";
 import { useAuth } from "../../../contexts/AuthContext";
+import { useLaboratorySections } from "../../../hooks/useLaboratorySections";
 import { MaterialService } from "./services/MaterialService";
 import {
   MaterialFilterState,
@@ -61,6 +63,18 @@ export function MaterialsPage() {
   const theme = useTheme();
   const { role } = useAuth();
   const canSeeHistory = role === "SectionHead" || role === "SystemAdministrator";
+
+  // Menu links from each lab workspace (Task 11) append ?lab=MICRO|FP -
+  // Material.SectionId is required server-side, so every row carries one
+  // (unlike EquipmentInventory's still-nullable column); this is a
+  // client-side filter on top of the already section-scoped list.
+  const [searchParams] = useSearchParams();
+  const labParam = searchParams.get("lab");
+  const { sections } = useLaboratorySections();
+  const sectionCodeById = useMemo(
+    () => new Map(sections.map((s) => [s.sectionId, s.sectionCode])),
+    [sections]
+  );
 
   const [items, setItems] = useState<MaterialItem[] | null>(null);
   const [printList, setPrintList] = useState<MaterialItem[]>([]);
@@ -122,6 +136,8 @@ export function MaterialsPage() {
     if (!items) return [];
 
     return items.filter((item) => {
+      if (labParam && sectionCodeById.get(item.sectionId) !== labParam) return false;
+
       // 1. KPI Shortcut Filter
       if (kpiFilter === "in_stock" && !isMaterialInStock(item)) return false;
       if (kpiFilter === "low_stock" && !isMaterialLowStock(item)) return false;
@@ -176,7 +192,7 @@ export function MaterialsPage() {
 
       return true;
     });
-  }, [items, kpiFilter, filters]);
+  }, [items, kpiFilter, filters, labParam, sectionCodeById]);
 
   // Paginated slice
   const paginatedItems = useMemo(() => {

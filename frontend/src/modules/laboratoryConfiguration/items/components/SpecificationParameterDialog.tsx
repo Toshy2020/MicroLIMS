@@ -36,6 +36,8 @@ import {
   DosageForm
 } from "../../specifications/services/SpecificationService";
 import { masterDataOptions, TestAnalyteDto } from "../../../../services/masterDataOptions";
+import { useMyLabs } from "../../../../hooks/useMyLabs";
+import { useLaboratorySections } from "../../../../hooks/useLaboratorySections";
 
 export interface TestDefinitionSummary {
   id: number;
@@ -43,6 +45,7 @@ export interface TestDefinitionSummary {
   displayName: string;
   workflowType: string;
   equationType?: string;
+  sectionId?: number | null;
 }
 
 interface SpecificationParameterDialogProps {
@@ -101,6 +104,20 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
   const isEditing = Boolean(editingSpec && editingSpec.id != null);
   const assignedTests = useMemo(() => item.assignedTests ?? [], [item.assignedTests]);
 
+  // Assigned Test picker for a brand-new specification only offers the
+  // caller's own lab's tests (design.md §6 - a specification row is owned
+  // by its TestCode's Test Master section). Editing or adding a parameter
+  // to an already-picked test keeps the field disabled/preselected below,
+  // so this filter only ever narrows the open "Add Specification
+  // Parameter" flow.
+  const { codes: myLabCodes } = useMyLabs();
+  const { sections } = useLaboratorySections();
+  const myLabSectionIds = useMemo(
+    () => new Set(sections.filter((s) => myLabCodes.includes(s.sectionCode)).map((s) => s.sectionId)),
+    [sections, myLabCodes]
+  );
+  const isTestDisabled = isEditing || Boolean(preselectedTestCode);
+
   // Form states
   const [testCode, setTestCode] = useState("");
   const [parameterName, setParameterName] = useState("");
@@ -112,6 +129,18 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
 
   // CalibrationCurve states
   const [testDefs, setTestDefs] = useState<Record<string, TestDefinitionSummary>>(testDefinitionByCode || {});
+
+  // Narrows the open "Add Specification Parameter" flow to the caller's own
+  // lab; editing or adding a parameter to an already-picked test leaves the
+  // field disabled above, so it keeps showing that test regardless. A test
+  // whose section isn't loaded yet, or whose lab list hasn't resolved yet,
+  // is left visible rather than hidden - the server is still the real gate.
+  const selectableAssignedTests = isTestDisabled
+    ? assignedTests
+    : assignedTests.filter((t) => {
+        const sectionId = testDefs[t.testCode]?.sectionId;
+        return sectionId == null || myLabSectionIds.size === 0 || myLabSectionIds.has(sectionId);
+      });
   const [testAnalyteId, setTestAnalyteId] = useState<number | "">("");
   const [resultBasis, setResultBasis] = useState<ResultBasis | "">("MgPerKg");
   const [sampleMatrix, setSampleMatrix] = useState<SampleMatrix | "">("Solid");
@@ -277,7 +306,7 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
         setStages([{ stageNumber: 1, stageLabel: "Stage 1", acceptanceCriteriaText: "" }]);
       }
     } else {
-      const initialCode = preselectedTestCode || assignedTests[0]?.testCode || "";
+      const initialCode = preselectedTestCode || selectableAssignedTests[0]?.testCode || "";
       setTestCode(initialCode);
 
       const match = assignedTests.find((t) => t.testCode === initialCode);
@@ -328,7 +357,7 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
         { stageNumber: 3, stageLabel: "Stage 3 (S1+S2+S3, n=24)", acceptanceCriteriaText: "" }
       ]);
     }
-  }, [open, editingSpec, preselectedTestCode, item, workflowTypeByCode, assignedTests, testDefs, existingSpecs]);
+  }, [open, editingSpec, preselectedTestCode, item, workflowTypeByCode, assignedTests, testDefs, existingSpecs, selectableAssignedTests]);
 
   const handleTestChange = (newCode: string) => {
     setTestCode(newCode);
@@ -633,8 +662,6 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
     }
   };
 
-  const isTestDisabled = isEditing || Boolean(preselectedTestCode);
-
   return (
     <Dialog open={open} onClose={saving ? undefined : onClose} maxWidth="md" fullWidth>
       <DialogTitle sx={{ pb: 1 }}>
@@ -660,6 +687,13 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
           </Alert>
         )}
 
+        {!isTestDisabled && selectableAssignedTests.length === 0 && (
+          <Alert severity="warning" sx={{ mb: 2 }}>
+            None of this item&rsquo;s assigned tests belong to your laboratory. Ask that test&rsquo;s Section Head to add
+            the specification.
+          </Alert>
+        )}
+
         <Stack spacing={2.5}>
           {/* Row 1: Assigned Test & Parameter Name */}
           <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, gap: 2 }}>
@@ -671,7 +705,7 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
                 value={testCode}
                 onChange={(e) => handleTestChange(e.target.value)}
               >
-                {assignedTests.map((t) => (
+                {selectableAssignedTests.map((t) => (
                   <MenuItem key={t.testCode} value={t.testCode}>
                     {getTestDisplayName(t.testCode)}
                   </MenuItem>

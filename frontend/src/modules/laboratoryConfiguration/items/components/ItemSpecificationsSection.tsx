@@ -525,8 +525,21 @@ export const ItemSpecificationsSection: React.FC<ItemSpecificationsSectionProps>
                         >
                           <TableCell sx={{ fontWeight: 600, fontSize: 13 }}>
                             {displayName}
-                            {(spec.resultBasis || spec.testAnalyteId) && (
+                            {(spec.resultBasis || spec.testAnalyteId || spec.canEdit === false) && (
                               <Box sx={{ display: "flex", gap: 0.75, mt: 0.5, flexWrap: "wrap", alignItems: "center" }}>
+                                {spec.canEdit === false && (
+                                  <Chip
+                                    size="small"
+                                    label={spec.sectionName || "Other lab"}
+                                    sx={{
+                                      height: 20,
+                                      fontSize: 11,
+                                      fontWeight: 600,
+                                      color: "text.secondary",
+                                      bgcolor: "action.selected"
+                                    }}
+                                  />
+                                )}
                                 {spec.testAnalyteId && analyteById[spec.testAnalyteId] && (
                                   <Chip
                                     size="small"
@@ -601,27 +614,33 @@ export const ItemSpecificationsSection: React.FC<ItemSpecificationsSectionProps>
                             {spec.referenceStandard || "\u2014"}
                           </TableCell>
                           <TableCell align="right">
-                            <Stack
-                              direction="row"
-                              spacing={0.5}
-                              sx={{ justifyContent: "flex-end" }}
-                            >
-                              <IconButton
-                                size="small"
-                                onClick={() => handleOpenEdit(spec)}
-                                title="Edit Specification"
+                            {spec.canEdit === false ? (
+                              <Typography sx={{ fontSize: 11, color: "text.disabled", fontStyle: "italic" }}>
+                                Read-only
+                              </Typography>
+                            ) : (
+                              <Stack
+                                direction="row"
+                                spacing={0.5}
+                                sx={{ justifyContent: "flex-end" }}
                               >
-                                <EditIcon fontSize="small" />
-                              </IconButton>
-                              <IconButton
-                                size="small"
-                                color="error"
-                                onClick={() => setPendingDelete(spec)}
-                                title="Delete Specification"
-                              >
-                                <DeleteIcon fontSize="small" />
-                              </IconButton>
-                            </Stack>
+                                <IconButton
+                                  size="small"
+                                  onClick={() => handleOpenEdit(spec)}
+                                  title="Edit Specification"
+                                >
+                                  <EditIcon fontSize="small" />
+                                </IconButton>
+                                <IconButton
+                                  size="small"
+                                  color="error"
+                                  onClick={() => setPendingDelete(spec)}
+                                  title="Delete Specification"
+                                >
+                                  <DeleteIcon fontSize="small" />
+                                </IconButton>
+                              </Stack>
+                            )}
                           </TableCell>
                         </TableRow>
 
@@ -665,6 +684,11 @@ export const ItemSpecificationsSection: React.FC<ItemSpecificationsSectionProps>
                     );
                   }
 
+                  // Test with several parameters - ownership (canEdit/sectionName)
+                  // is per TestCode, so it's the same for every spec in the group.
+                  const groupCanEdit = group.specs[0]?.canEdit !== false;
+                  const groupSectionName = group.specs[0]?.sectionName;
+
                   // Test with several parameters
                   return (
                     <React.Fragment key={group.testCode}>
@@ -688,6 +712,19 @@ export const ItemSpecificationsSection: React.FC<ItemSpecificationsSectionProps>
                                 bgcolor: "background.paper"
                               }}
                             />
+                            {!groupCanEdit && (
+                              <Chip
+                                size="small"
+                                label={groupSectionName || "Other lab"}
+                                sx={{
+                                  height: 20,
+                                  fontSize: 11,
+                                  fontWeight: 600,
+                                  color: "text.secondary",
+                                  bgcolor: "background.paper"
+                                }}
+                              />
+                            )}
                           </Stack>
                         </TableCell>
                       </TableRow>
@@ -778,27 +815,33 @@ export const ItemSpecificationsSection: React.FC<ItemSpecificationsSectionProps>
                                 {spec.referenceStandard || "\u2014"}
                               </TableCell>
                               <TableCell align="right">
-                                <Stack
-                                  direction="row"
-                                  spacing={0.5}
-                                  sx={{ justifyContent: "flex-end" }}
-                                >
-                                  <IconButton
-                                    size="small"
-                                    onClick={() => handleOpenEdit(spec)}
-                                    title="Edit Specification"
+                                {spec.canEdit === false ? (
+                                  <Typography sx={{ fontSize: 11, color: "text.disabled", fontStyle: "italic" }}>
+                                    Read-only
+                                  </Typography>
+                                ) : (
+                                  <Stack
+                                    direction="row"
+                                    spacing={0.5}
+                                    sx={{ justifyContent: "flex-end" }}
                                   >
-                                    <EditIcon fontSize="small" />
-                                  </IconButton>
-                                  <IconButton
-                                    size="small"
-                                    color="error"
-                                    onClick={() => setPendingDelete(spec)}
-                                    title="Delete Specification"
-                                  >
-                                    <DeleteIcon fontSize="small" />
-                                  </IconButton>
-                                </Stack>
+                                    <IconButton
+                                      size="small"
+                                      onClick={() => handleOpenEdit(spec)}
+                                      title="Edit Specification"
+                                    >
+                                      <EditIcon fontSize="small" />
+                                    </IconButton>
+                                    <IconButton
+                                      size="small"
+                                      color="error"
+                                      onClick={() => setPendingDelete(spec)}
+                                      title="Delete Specification"
+                                    >
+                                      <DeleteIcon fontSize="small" />
+                                    </IconButton>
+                                  </Stack>
+                                )}
                               </TableCell>
                             </TableRow>
 
@@ -844,33 +887,37 @@ export const ItemSpecificationsSection: React.FC<ItemSpecificationsSectionProps>
                         );
                       })}
 
-                      {/* Add parameter link for this group */}
-                      <TableRow sx={{ "&:hover": { bgcolor: "transparent" } }}>
-                        <TableCell
-                          colSpan={6}
-                          sx={{
-                            pl: 3.5,
-                            py: 0.75,
-                            borderBottom: "1px solid",
-                            borderColor: "divider"
-                          }}
-                        >
-                          <Button
-                            size="small"
-                            startIcon={<AddIcon sx={{ fontSize: 16 }} />}
-                            onClick={() => handleAddParameterToTest(group.testCode)}
+                      {/* Add parameter link for this group - hidden for a
+                          read-only (other lab's) test, same rule as the
+                          per-row edit/delete buttons above */}
+                      {groupCanEdit && (
+                        <TableRow sx={{ "&:hover": { bgcolor: "transparent" } }}>
+                          <TableCell
+                            colSpan={6}
                             sx={{
-                              textTransform: "none",
-                              fontSize: 12,
-                              fontWeight: 600,
-                              color: "primary.main",
-                              p: 0
+                              pl: 3.5,
+                              py: 0.75,
+                              borderBottom: "1px solid",
+                              borderColor: "divider"
                             }}
                           >
-                            + Add parameter to {testDisplayName}
-                          </Button>
-                        </TableCell>
-                      </TableRow>
+                            <Button
+                              size="small"
+                              startIcon={<AddIcon sx={{ fontSize: 16 }} />}
+                              onClick={() => handleAddParameterToTest(group.testCode)}
+                              sx={{
+                                textTransform: "none",
+                                fontSize: 12,
+                                fontWeight: 600,
+                                color: "primary.main",
+                                p: 0
+                              }}
+                            >
+                              + Add parameter to {testDisplayName}
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      )}
                     </React.Fragment>
                   );
                 })

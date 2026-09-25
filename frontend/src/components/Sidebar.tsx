@@ -23,11 +23,16 @@ import { useMyLabs } from "../hooks/useMyLabs";
 const EXPANDED_SIDEBAR_WIDTH = 250;
 const COLLAPSED_SIDEBAR_WIDTH = 68;
 
-function formatRoleFallback(role: string | null): string {
+function formatRoleFallback(role: string | null, labCodes: string[]): string {
   if (!role) return "Staff";
+  let prefix = "";
+  if (labCodes.length === 1) {
+    if (labCodes[0] === "MICRO") prefix = "Microbiology";
+    else if (labCodes[0] === "FP") prefix = "Physicochemical";
+  }
   switch (role) {
-    case "Analyst": return "Microbiology Analyst";
-    case "SectionHead": return "Section Head";
+    case "Analyst": return prefix ? `${prefix} Analyst` : "Analyst";
+    case "SectionHead": return prefix ? `${prefix} Section Head` : "Section Head";
     case "Reviewer": return "Quality Reviewer";
     case "SystemAdministrator": return "System Administrator";
     default: return role;
@@ -57,7 +62,7 @@ export function Sidebar({ mobileOpen, onMobileClose, collapsed, onToggleCollapse
   const groups = getGroupedMenu({ role, permissions, labCodes });
 
   const initial = (fullName ?? username ?? "U").charAt(0).toUpperCase();
-  const displayTitle = jobTitle?.trim() || formatRoleFallback(role);
+  const displayTitle = jobTitle?.trim() || formatRoleFallback(role, labCodes);
 
   const [unreadMessages, setUnreadMessages] = useState<number>(0);
   const [profileAnchor, setProfileAnchor] = useState<HTMLElement | null>(null);

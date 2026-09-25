@@ -293,7 +293,7 @@ export function SampleCoaPage() {
 
   useEffect(() => {
     if (!id) return;
-    SampleSummaryService.getSummary(Number(id))
+    SampleSummaryService.getSummary(Number(id), { forCertificate: true })
       .then(setSummary)
       .catch((e) => setError(e?.response?.data?.message ?? "Failed to load the certificate of analysis."));
   }, [id]);

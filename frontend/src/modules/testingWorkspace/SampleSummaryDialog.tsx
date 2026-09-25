@@ -46,7 +46,7 @@ import { StatusBadge } from "../../components/StatusBadge";
 import { brandColors, tableHeadSx } from "../../theme";
 import { useAuth } from "../../contexts/AuthContext";
 import { SampleSummaryService, SampleApprovalDecision } from "./services/SampleSummaryService";
-import { buildCoaMatrix, buildCoaSimpleRows } from "./coaAggregation";
+import { buildCoaMatrix, buildCoaSimpleRows, filterTestOrdersBySection } from "./coaAggregation";
 import {
   SampleSummary,
   TestOrderSummaryDetail,
@@ -1195,6 +1195,42 @@ function ApprovalSignaturesCard({
   const activeReviewSectionId = reviewableSections.length === 1 ? reviewableSections[0].sectionId : reviewSectionId;
   const activeReviewSection = reviewableSections.find((s) => s.sectionId === activeReviewSectionId);
 
+  const oosWarning = useMemo(() => {
+    if (decision !== "Approve" || effectiveApprovalSectionId == null) {
+      return null;
+    }
+    const targetSection = approvableSections.find((s) => s.sectionId === effectiveApprovalSectionId);
+    const sectionName = targetSection?.sectionName ?? "";
+    const secTests = filterTestOrdersBySection(summary.testOrders, effectiveApprovalSectionId);
+    const matrix = buildCoaMatrix(secTests);
+    const simple = matrix ? null : buildCoaSimpleRows(secTests);
+
+    const failingNames: string[] = [];
+    if (matrix) {
+      for (const c of matrix.testConclusions) {
+        if (c.failingLocationNames.length > 0) {
+          failingNames.push(c.testDisplayName || c.testCode);
+        }
+      }
+    } else if (simple) {
+      for (const r of simple.rows) {
+        if (!r.conform && !r.limitsNotConfigured) {
+          failingNames.push(r.testDisplayName || r.testCode);
+        }
+      }
+    }
+
+    const uniqueFailing = Array.from(new Set(failingNames));
+    if (uniqueFailing.length === 0) {
+      return null;
+    }
+
+    return {
+      sectionName,
+      failingList: uniqueFailing.join(", ")
+    };
+  }, [decision, effectiveApprovalSectionId, approvableSections, summary.testOrders]);
+
   return (
     <Paper sx={{ p: 2.5, border: "1px solid", borderColor: "divider", borderRadius: 2, height: "100%", bgcolor: "background.paper" }}>
       <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 2 }}>
@@ -1507,6 +1543,12 @@ function ApprovalSignaturesCard({
                 </Alert>
               )}
             </Box>
+          )}
+
+          {oosWarning && (
+            <Alert severity="warning" sx={{ fontSize: 11, py: 0.5, mb: 1.5 }}>
+              Out-of-specification results in {oosWarning.sectionName}: {oosWarning.failingList}. Approving will certify them as conforming - consider Not Conform or a retest.
+            </Alert>
           )}
 
           <Button

@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { Paper, Box, TextField, Select, MenuItem, FormControl, InputLabel, Button, InputAdornment } from "@mui/material";
+import { Paper, Box, TextField, Select, MenuItem, FormControl, InputLabel, Button, InputAdornment, Divider } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
 import RotateLeftIcon from "@mui/icons-material/RotateLeft";
 import { MaterialItem, MaterialFilterState, MaterialType } from "../types/materialTypes";
@@ -29,6 +29,14 @@ interface MaterialFilterBarProps {
 
 export function MaterialFilterBar({ items, filters, onFilterChange, onReset }: MaterialFilterBarProps) {
   // Extract unique dynamic dropdown options from current dataset
+  const customTypes = useMemo(() => {
+    const set = new Set<string>();
+    items.forEach((i) => {
+      if (i.customType?.trim()) set.add(i.customType.trim());
+    });
+    return Array.from(set).sort((a, b) => a.localeCompare(b));
+  }, [items]);
+
   const manufacturers = useMemo(() => {
     const set = new Set<string>();
     items.forEach((i) => {
@@ -93,6 +101,12 @@ export function MaterialFilterBar({ items, filters, onFilterChange, onReset }: M
             {MATERIAL_TYPE_OPTIONS.map((opt) => (
               <MenuItem key={opt.value} value={opt.value}>
                 {opt.label}
+              </MenuItem>
+            ))}
+            {customTypes.length > 0 && <Divider sx={{ my: 0.5 }} />}
+            {customTypes.map((ct) => (
+              <MenuItem key={`custom:${ct}`} value={`custom:${ct}`}>
+                {ct}
               </MenuItem>
             ))}
           </Select>

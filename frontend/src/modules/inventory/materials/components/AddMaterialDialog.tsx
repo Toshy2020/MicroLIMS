@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Button,
   Box,
@@ -12,7 +12,9 @@ import {
   Divider,
   Alert,
   Paper,
-  useTheme
+  useTheme,
+  Autocomplete,
+  createFilterOptions
 } from "@mui/material";
 import { OrganismPicker } from "../../../../components/OrganismPicker";
 import { MediaProductPicker } from "../../../../components/MediaProductPicker";
@@ -24,6 +26,15 @@ import { MATERIAL_TYPE_OPTIONS } from "./MaterialFilterBar";
 import { brandColors } from "../../../../theme";
 import { FloatingDialog } from "../../../../components/FloatingDialog";
 import { getMySections, LaboratorySection } from "../../../../services/laboratorySectionService";
+
+interface MaterialTypeOption {
+  label: string;
+  value?: MaterialType;
+  group: "Standard types" | "Types added by this lab";
+  inputValue?: string;
+}
+
+const filterOptions = createFilterOptions<MaterialTypeOption>();
 
 const MATERIAL_UNITS: MaterialUnit[] = [
   "Gram",
@@ -47,6 +58,7 @@ interface AddMaterialDialogProps {
 
 const INITIAL_FORM: MaterialFormState = {
   materialType: "DehydratedMedia",
+  customType: "",
   materialName: "",
   manufacturerName: "",
   batchNumber: "",
@@ -66,6 +78,10 @@ const INITIAL_FORM: MaterialFormState = {
 export function AddMaterialDialog({ open, onClose, onSuccess, editingItem }: AddMaterialDialogProps) {
   const theme = useTheme();
   const [form, setForm] = useState<MaterialFormState>(INITIAL_FORM);
+  const [typeOptionsData, setTypeOptionsData] = useState<{
+    builtIn: MaterialType[];
+    custom: string[];
+  } | null>(null);
   const [mySections, setMySections] = useState<LaboratorySection[]>([]);
   const [selectedSectionId, setSelectedSectionId] = useState<number | "">("");
   const [equipmentList, setEquipmentList] = useState<any[]>([]);
@@ -77,6 +93,7 @@ export function AddMaterialDialog({ open, onClose, onSuccess, editingItem }: Add
     if (editingItem) {
       setForm({
         materialType: editingItem.materialType,
+        customType: editingItem.customType ?? "",
         materialName: editingItem.materialName,
         manufacturerName: editingItem.manufacturerName ?? "",
         batchNumber: editingItem.batchNumber,
@@ -158,6 +175,7 @@ export function AddMaterialDialog({ open, onClose, onSuccess, editingItem }: Add
       setForm((f) => ({
         ...f,
         materialType: type,
+        customType: "",
         unit: defaultUnit as MaterialUnit,
         mediaProductId: type === "DehydratedMedia" ? f.mediaProductId : null,
         purity: type === "ReferenceStandard" ? f.purity : ""
@@ -166,8 +184,176 @@ export function AddMaterialDialog({ open, onClose, onSuccess, editingItem }: Add
       setForm((f) => ({
         ...f,
         materialType: type,
+        customType: "",
         mediaProductId: type === "DehydratedMedia" ? f.mediaProductId : null,
         purity: type === "ReferenceStandard" ? f.purity : ""
+      }));
+    }
+  };
+
+  const activeSectionId = editingItem
+    ? editingItem.sectionId
+    : selectedSectionId !== ""
+    ? Number(selectedSectionId)
+    : undefined;
+
+  useEffect(() => {
+    if (!open) {
+      setTypeOptionsData(null);
+      return;
+    }
+
+    if (activeSectionId != null) {
+      let canceled = false;
+      MaterialService.getTypeOptions(activeSectionId)
+        .then((data) => {
+          if (canceled) return;
+          setTypeOptionsData(data);
+        })
+        .catch(() => {
+          if (!canceled) {
+            setTypeOptionsData(null);
+          }
+        });
+
+      return () => {
+        canceled = true;
+      };
+    } else {
+      setTypeOptionsData(null);
+    }
+  }, [open, activeSectionId, editingItem]);
+
+  // When creating, a type the chosen lab doesn't offer (the default is
+  // DehydratedMedia, which the Physicochemical lab doesn't have) switches to
+  // the lab's first type.
+  useEffect(() => {
+    if (editingItem || !typeOptionsData || typeOptionsData.builtIn.length === 0) return;
+    if (!typeOptionsData.builtIn.includes(form.materialType)) {
+      void onMaterialTypeChange(typeOptionsData.builtIn[0]);
+    }
+  }, [typeOptionsData, editingItem, form.materialType]);
+
+  const typeOptionsList: MaterialTypeOption[] = useMemo(() => {
+    const list: MaterialTypeOption[] = [];
+
+    // Built-in types: lab's builtIn if known, else all MATERIAL_TYPE_OPTIONS
+    const builtInTypes: MaterialType[] = typeOptionsData
+      ? [...typeOptionsData.builtIn]
+      : MATERIAL_TYPE_OPTIONS.map((o) => o.value);
+
+    // An existing item whose type is not in its lab's list must still display its current type
+    if (
+      editingItem &&
+      editingItem.materialType !== "Other" &&
+      !builtInTypes.includes(editingItem.materialType)
+    ) {
+      builtInTypes.push(editingItem.materialType);
+    }
+
+    for (const bt of builtInTypes) {
+      const label = MATERIAL_TYPE_OPTIONS.find((o) => o.value === bt)?.label ?? bt;
+      list.push({
+        label,
+        value: bt,
+        group: "Standard types"
+      });
+    }
+
+    // Lab custom types
+    const customTypes: string[] = typeOptionsData ? [...typeOptionsData.custom] : [];
+
+    // Existing item customType if not in list
+    if (
+      editingItem?.customType &&
+      !customTypes.some((c) => c.toLowerCase() === editingItem.customType!.toLowerCase())
+    ) {
+      customTypes.push(editingItem.customType);
+    }
+
+    // Form current customType if not in list
+    if (
+      form.customType.trim() &&
+      !customTypes.some((c) => c.toLowerCase() === form.customType.trim().toLowerCase()) &&
+      !list.some((o) => o.label.toLowerCase() === form.customType.trim().toLowerCase())
+    ) {
+      customTypes.push(form.customType.trim());
+    }
+
+    for (const ct of customTypes) {
+      list.push({
+        label: ct,
+        group: "Types added by this lab"
+      });
+    }
+
+    return list;
+  }, [typeOptionsData, editingItem, form.customType]);
+
+  const selectedTypeOption = useMemo<MaterialTypeOption | null>(() => {
+    if (form.materialType === "Other" && form.customType.trim()) {
+      const trimmed = form.customType.trim();
+      const existing = typeOptionsList.find(
+        (o) => o.label.toLowerCase() === trimmed.toLowerCase()
+      );
+      return (
+        existing ?? {
+          label: trimmed,
+          group: "Types added by this lab"
+        }
+      );
+    }
+
+    const matched = typeOptionsList.find((o) => o.value === form.materialType);
+    if (matched) return matched;
+
+    const label =
+      MATERIAL_TYPE_OPTIONS.find((o) => o.value === form.materialType)?.label ??
+      form.materialType;
+    return {
+      label,
+      value: form.materialType,
+      group: "Standard types"
+    };
+  }, [typeOptionsList, form.materialType, form.customType]);
+
+  const applyTypeSelection = (val: MaterialTypeOption | string) => {
+    let label = "";
+    let explicitBuiltIn: MaterialType | undefined;
+
+    if (typeof val === "string") {
+      label = val.trim();
+    } else if (val.inputValue) {
+      label = val.inputValue.trim();
+    } else {
+      label = val.label.trim();
+      explicitBuiltIn = val.value;
+    }
+
+    if (!label) return;
+
+    // Check if the typed text case-insensitively equals a built-in label or value
+    const matchedBuiltIn = MATERIAL_TYPE_OPTIONS.find(
+      (o) =>
+        o.label.toLowerCase() === label.toLowerCase() ||
+        o.value.toLowerCase() === label.toLowerCase()
+    );
+
+    if (explicitBuiltIn || matchedBuiltIn) {
+      const builtInType = explicitBuiltIn ?? matchedBuiltIn!.value;
+      setForm((f) => ({
+        ...f,
+        materialType: builtInType,
+        customType: ""
+      }));
+      void onMaterialTypeChange(builtInType);
+    } else {
+      setForm((f) => ({
+        ...f,
+        materialType: "Other",
+        customType: label,
+        mediaProductId: null,
+        purity: ""
       }));
     }
   };
@@ -252,6 +438,10 @@ export function AddMaterialDialog({ open, onClose, onSuccess, editingItem }: Add
 
     const payload = {
       materialType: form.materialType,
+      customType:
+        form.materialType === "Other" && form.customType.trim()
+          ? form.customType.trim()
+          : null,
       materialName: form.materialName.trim(),
       manufacturerName: form.manufacturerName.trim(),
       batchNumber: form.batchNumber.trim(),
@@ -328,26 +518,102 @@ export function AddMaterialDialog({ open, onClose, onSuccess, editingItem }: Add
         1. Material Information
       </Typography>
       <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "repeat(2, 1fr)" }, gap: 2, mb: 3 }}>
-        <FormControl
-          size="small"
-          fullWidth
-          required
+        <Autocomplete<MaterialTypeOption, false, false, true>
+          freeSolo
+          selectOnFocus
+          handleHomeEndKeys
+          options={typeOptionsList}
+          groupBy={(option) => (typeof option === "string" ? "Types added by this lab" : option.group)}
+          value={selectedTypeOption}
+          onChange={(_event, newValue) => {
+            if (!newValue) return;
+            applyTypeSelection(newValue);
+          }}
+          filterOptions={(options, params) => {
+            const filtered = filterOptions(options, params);
+            const trimmed = params.inputValue.trim();
+            const isExisting = options.some(
+              (o) => o.label.toLowerCase() === trimmed.toLowerCase()
+            );
+            if (trimmed !== "" && !isExisting) {
+              filtered.push({
+                inputValue: trimmed,
+                label: `Add "${trimmed}"`,
+                group: "Types added by this lab"
+              });
+            }
+            return filtered;
+          }}
+          getOptionLabel={(option) => {
+            if (typeof option === "string") return option;
+            if (option.inputValue) return option.inputValue;
+            return option.label;
+          }}
+          isOptionEqualToValue={(option, val) => {
+            if (typeof val === "string") {
+              return option.label.toLowerCase() === val.toLowerCase();
+            }
+            if (val.value && option.value) {
+              return option.value === val.value;
+            }
+            return option.label.toLowerCase() === val.label.toLowerCase();
+          }}
+          renderOption={(props, option) => {
+            const { key, ...restProps } = props;
+            const isAddOption = typeof option !== "string" && Boolean(option.inputValue);
+            return (
+              <li
+                key={key}
+                {...restProps}
+                style={{
+                  ...restProps.style,
+                  ...(isAddOption ? { color: theme.palette.primary.main, fontWeight: 600 } : {})
+                }}
+              >
+                {typeof option === "string" ? option : option.label}
+              </li>
+            );
+          }}
+          renderGroup={(params) => (
+            <li key={params.key}>
+              <ListSubheader
+                component="div"
+                sx={{
+                  bgcolor: "background.paper",
+                  fontWeight: 700,
+                  fontSize: 11,
+                  textTransform: "uppercase",
+                  letterSpacing: 0.5,
+                  color: "text.secondary",
+                  lineHeight: "28px"
+                }}
+              >
+                {params.group}
+              </ListSubheader>
+              <Box component="ul" sx={{ p: 0, m: 0 }}>
+                {params.children}
+              </Box>
+            </li>
+          )}
           sx={{ gridColumn: { xs: "1", sm: form.materialType === "DehydratedMedia" ? "span 2" : "1" } }}
-        >
-          <InputLabel id="dialog-material-type-label">Material Type</InputLabel>
-          <Select
-            labelId="dialog-material-type-label"
-            label="Material Type"
-            value={form.materialType}
-            onChange={(e) => onMaterialTypeChange(e.target.value as MaterialType)}
-          >
-            {MATERIAL_TYPE_OPTIONS.map((opt) => (
-              <MenuItem key={opt.value} value={opt.value}>
-                {opt.label}
-              </MenuItem>
-            ))}
-          </Select>
-        </FormControl>
+          renderInput={(params) => (
+            <TextField
+              {...params}
+              size="small"
+              required
+              label="Material Type"
+              helperText="Pick a type or type a new one"
+              onBlur={(e) => {
+                const text = e.target.value?.trim();
+                // Only a newly typed name - re-applying the current type would
+                // reset a unit the user has changed.
+                if (text && text.toLowerCase() !== selectedTypeOption?.label.toLowerCase()) {
+                  applyTypeSelection(text);
+                }
+              }}
+            />
+          )}
+        />
 
         {form.materialType === "DehydratedMedia" && (
           <Box sx={{ gridColumn: { xs: "1", sm: "span 2" } }}>

@@ -45,10 +45,21 @@ import {
   isMaterialLowStock,
   isMaterialOutOfStock
 } from "./components/MaterialKpiCards";
-import { MaterialFilterBar } from "./components/MaterialFilterBar";
+import { MaterialFilterBar, MATERIAL_TYPE_OPTIONS } from "./components/MaterialFilterBar";
 import { AddMaterialDialog } from "./components/AddMaterialDialog";
 import { MaterialLotDetailsDialog } from "./components/MaterialLotDetailsDialog";
 import { tableHeadSx } from "../../../theme";
+
+const MATERIAL_TYPE_LABEL_MAP = new Map<string, string>(
+  MATERIAL_TYPE_OPTIONS.map((opt) => [opt.value, opt.label])
+);
+
+function getMaterialTypeDisplay(item: { materialType: string; customType?: string | null }): string {
+  if (item.customType && item.customType.trim()) {
+    return item.customType.trim();
+  }
+  return MATERIAL_TYPE_LABEL_MAP.get(item.materialType) ?? item.materialType;
+}
 
 const INITIAL_FILTERS: MaterialFilterState = {
   search: "",
@@ -160,8 +171,15 @@ export function MaterialsPage() {
       }
 
       // 3. Dropdown: Material Type
-      if (filters.materialType && item.materialType !== filters.materialType) {
-        return false;
+      if (filters.materialType) {
+        if (filters.materialType.startsWith("custom:")) {
+          const customName = filters.materialType.slice("custom:".length);
+          if (item.customType !== customName) {
+            return false;
+          }
+        } else if (item.materialType !== filters.materialType) {
+          return false;
+        }
       }
 
       // 4. Dropdown: Manufacturer
@@ -311,7 +329,7 @@ export function MaterialsPage() {
                           }}
                         >
                           <TableCell sx={{ fontSize: 12, whiteSpace: "nowrap" }}>
-                            {m.materialType === "ReferenceStandard" ? "Reference Standard" : m.materialType}
+                            {getMaterialTypeDisplay(m)}
                           </TableCell>
                           {/* Material Name + optional organism/ATCC secondary line */}
                           <TableCell sx={{ fontSize: 12, fontWeight: 600 }}>
@@ -502,7 +520,7 @@ export function MaterialsPage() {
         rows={printList}
         getRowId={(m) => m.id}
         columns={[
-          { label: "Type", render: (m) => m.materialType },
+          { label: "Type", render: (m) => getMaterialTypeDisplay(m) },
           { label: "Name", render: (m) => m.materialName },
           { label: "Manufacturer", render: (m) => m.manufacturerName },
           { label: "Batch/Lot", render: (m) => m.batchNumber },

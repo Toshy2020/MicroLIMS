@@ -41,6 +41,7 @@ export interface MaterialItem {
   // honour the ?lab= query param from the menu links (design.md §6).
   sectionId: number;
   materialType: MaterialType;
+  customType: string | null;
   materialName: string;
   manufacturerName: string;
   batchNumber: string;
@@ -63,6 +64,7 @@ export interface MaterialItem {
 
 export interface MaterialFormState {
   materialType: MaterialType;
+  customType: string;
   materialName: string;
   manufacturerName: string;
   batchNumber: string;

@@ -250,4 +250,123 @@ public class EquipmentInventoryLabTests
         var adminList = await service.GetAllAsync(null);
         Assert.Contains(adminList, e => e.Id == legacyAsset.Id);
     }
+
+    // Fix round 1 - WhereIsItAsync must not leak another lab's sample/media
+    // activity even in masked form.
+
+    private static User SeedFpUser(MicroLimsDbContext db, DocumentSection fpSec)
+    {
+        var analystRole = db.Roles.First(r => r.Type == RoleType.Analyst);
+        var fpUser = new User
+        {
+            Username = "fpUser_" + Guid.NewGuid().ToString("N")[..6],
+            FullName = "FP Analyst",
+            RoleId = analystRole.Id,
+            Role = analystRole,
+            IsActive = true
+        };
+        db.Users.Add(fpUser);
+        db.SaveChanges();
+
+        db.UserOrgMemberships.Add(new UserOrgMembership
+        {
+            UserId = fpUser.Id,
+            DepartmentId = fpSec.DepartmentId,
+            SectionId = fpSec.Id,
+            CreatedAt = DateTime.UtcNow
+        });
+        db.SaveChanges();
+
+        return fpUser;
+    }
+
+    [Fact]
+    public async Task WhereIsIt_SampleReferenceInAnotherLab_HiddenFromMicroUser_VisibleToFpUserAndAdmin()
+    {
+        await using var db = NewDb();
+        var (_, fpSec, microUser, _) = SeedBase(db);
+        var fpUser = SeedFpUser(db, fpSec);
+
+        var sample = new Sample { Id = 900, ReferenceNumber = "FP-REF-900", ControlNumber = "CTRL-900" };
+        db.Samples.Add(sample);
+        var testOrder = new TestOrder { Id = 901, SampleId = 900, TestCode = "ASSAY", SectionId = fpSec.Id };
+        db.TestOrders.Add(testOrder);
+        db.Incubations.Add(new Incubation
+        {
+            Id = 902,
+            TestOrderId = 901,
+            StepName = "Incubation Step",
+            StartedAt = DateTime.UtcNow.AddHours(-1),
+            IncubationStartUtc = DateTime.UtcNow.AddHours(-1),
+            IncubationEndUtc = DateTime.UtcNow.AddHours(23),
+            StartedByUserId = 1
+        });
+        await db.SaveChangesAsync();
+
+        var service = new EquipmentInventoryService(db, new UserSectionScopeService(db));
+        var scopeService = new UserSectionScopeService(db);
+
+        var microScope = await scopeService.GetAccessibleSectionIdsAsync(microUser.Id);
+        var microResult = await service.WhereIsItAsync("FP-REF-900", microScope);
+        Assert.Null(microResult.CurrentActivity);
+        Assert.Empty(microResult.History);
+
+        var fpScope = await scopeService.GetAccessibleSectionIdsAsync(fpUser.Id);
+        var fpResult = await service.WhereIsItAsync("FP-REF-900", fpScope);
+        Assert.Single(fpResult.History);
+
+        var adminResult = await service.WhereIsItAsync("FP-REF-900", null);
+        Assert.Single(adminResult.History);
+    }
+
+    [Fact]
+    public async Task WhereIsIt_MediaLotInAnotherLab_HiddenFromMicroUser_VisibleToFpUserAndAdmin()
+    {
+        await using var db = NewDb();
+        var (_, fpSec, microUser, _) = SeedBase(db);
+        var fpUser = SeedFpUser(db, fpSec);
+
+        var material = new Material { Id = 950, SectionId = fpSec.Id, MaterialName = "FP Culture Media", Code = "FP-MED-950" };
+        db.Materials.Add(material);
+        db.Media.Add(new Media
+        {
+            Id = 951,
+            MaterialId = 950,
+            LotNumber = "FP-LOT-951",
+            ManufacturerLot = "MFG-951",
+            ManufacturerName = "Merck",
+            ExpiryDate = DateTime.UtcNow.AddMonths(1),
+            PreparedAt = DateTime.UtcNow.AddDays(-1),
+            PreparedByUserId = 1,
+            Status = MediaStatus.Active
+        });
+        // Media-only activity - no TestOrder, so scoping falls back to
+        // Media.Material.SectionId (the SectionMediaRule rule).
+        db.Incubations.Add(new Incubation
+        {
+            Id = 952,
+            MediaId = 951,
+            StepName = "Media Incubation",
+            StartedAt = DateTime.UtcNow.AddHours(-1),
+            IncubationStartUtc = DateTime.UtcNow.AddHours(-1),
+            IncubationEndUtc = DateTime.UtcNow.AddHours(23),
+            StartedByUserId = 1
+        });
+        await db.SaveChangesAsync();
+
+        var service = new EquipmentInventoryService(db, new UserSectionScopeService(db));
+        var scopeService = new UserSectionScopeService(db);
+
+        var microScope = await scopeService.GetAccessibleSectionIdsAsync(microUser.Id);
+        var microResult = await service.WhereIsItAsync("FP-LOT-951", microScope);
+        Assert.Null(microResult.CurrentActivity);
+        Assert.Empty(microResult.History);
+
+        var fpScope = await scopeService.GetAccessibleSectionIdsAsync(fpUser.Id);
+        var fpResult = await service.WhereIsItAsync("FP-LOT-951", fpScope);
+        Assert.Single(fpResult.History);
+
+        var adminResult = await service.WhereIsItAsync("FP-LOT-951", null);
+        Assert.Single(adminResult.History);
+    }
 }

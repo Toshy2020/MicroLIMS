@@ -385,11 +385,16 @@ public class EquipmentInventoryService
         return queryable.OrderByDescending(a => a.StartedOn).ToList();
     }
 
-    // Scope only narrows which equipment identities this search can resolve
-    // a Code/InstrumentType against (an out-of-scope incubator falls back to
-    // its master-data name below) - it deliberately doesn't also filter the
-    // underlying sample/incubation search, since sample-level access is
-    // already governed by the sample/test-order scoping guards elsewhere.
+    // Scope is enforced on the incubation search itself, not just on the
+    // equipment-identity lookup below - a restricted caller must get zero
+    // rows back for an out-of-scope match, not a masked "EQ-UNKNOWN" one.
+    // An incubation's owning section is its TestOrder's SectionId (same
+    // rule as EnsureIncubationAccessAsync) or, for a media-only activity
+    // with no TestOrder, its Media's Material.SectionId (same rule
+    // SectionMediaRule uses for "a lot belongs to its source material's
+    // section"). An incubation with neither link can't be attributed to a
+    // lab, so - like a legacy null-SectionId EquipmentInventory row - it's
+    // visible only to a System Administrator (scope == null).
     public async Task<WhereIsItResultDto> WhereIsItAsync(string query, IReadOnlyList<int>? scope)
     {
         if (string.IsNullOrWhiteSpace(query))
@@ -413,6 +418,9 @@ public class EquipmentInventoryService
             .Where(i => (i.TestOrder != null && i.TestOrder.Sample != null && (i.TestOrder.Sample.ReferenceNumber.ToLower().Contains(q) || (i.TestOrder.Sample.Item != null && i.TestOrder.Sample.Item.Name.ToLower().Contains(q))))
                      || (i.Media != null && (i.Media.LotNumber.ToLower().Contains(q) || (i.Media.Material != null && i.Media.Material.MaterialName.ToLower().Contains(q))))
                      || i.StepName.ToLower().Contains(q))
+            .Where(i => scope == null
+                     || (i.TestOrder != null && scope.Contains(i.TestOrder.SectionId))
+                     || (i.TestOrder == null && i.Media != null && i.Media.Material != null && scope.Contains(i.Media.Material.SectionId)))
             .OrderByDescending(i => i.IncubationStartUtc ?? i.StartedAt)
             .ToListAsync();
 

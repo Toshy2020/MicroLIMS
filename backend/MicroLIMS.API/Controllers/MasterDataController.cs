@@ -92,6 +92,44 @@ public record UpdateSpecificationRequest(
     string? LabelClaimUnit = null,
     decimal? ConversionFactor = null,
     DosageForm? DosageForm = null);
+
+// GET shape for specifications - every field the frontend already binds to,
+// unchanged, plus CanEdit/SectionName so the UI can show the other lab's
+// rows read-only (Task 9 - specification rows are owned by their test's lab).
+public record SpecificationRowDto(
+    int Id,
+    int ItemId,
+    string TestCode,
+    string AlertLimit,
+    string ActionLimit,
+    string SpecLimit,
+    string Unit,
+    decimal? DilutionFactor,
+    string ParameterName,
+    int DisplayOrder,
+    LimitType LimitType,
+    string? ReferenceStandard,
+    decimal? LowerLimit,
+    decimal? UpperLimit,
+    bool LowerInclusive,
+    bool UpperInclusive,
+    decimal? Target,
+    decimal? Tolerance,
+    ToleranceMode? ToleranceMode,
+    string? ExpectedResultText,
+    ExpectedPresence? ExpectedState,
+    decimal? SampleQuantity,
+    string? SampleQuantityUnit,
+    int? TestAnalyteId,
+    ResultBasis? ResultBasis,
+    SampleMatrix? SampleMatrix,
+    decimal? LabelClaim,
+    string? LabelClaimUnit,
+    decimal ConversionFactor,
+    DosageForm? DosageForm,
+    List<SpecificationStage> Stages,
+    bool CanEdit,
+    string SectionName);
 public record CreateDiluentTypeRequest(string Name, bool RequiresBatchTracking, int? MaterialId);
 public record CreateProductionStageRequest(string Name, ProductionStageRole Role);
 public record UpdateProductionStageRequest(string Name, ProductionStageRole Role);
@@ -665,13 +703,41 @@ public class MasterDataController : ControllerBase
 
     // ---- Specifications (Product) ----
     [HttpGet("specifications")]
-    public async Task<IActionResult> GetSpecifications([FromQuery] int itemId) =>
-        Ok(ApiResponse<object>.Ok(await _specificationService.GetForItemAsync(itemId)));
+    public async Task<IActionResult> GetSpecifications([FromQuery] int itemId)
+    {
+        var specs = await _specificationService.GetForItemAsync(itemId);
+        var scope = await _scope.GetAccessibleSectionIdsAsync(CurrentUserId);
+
+        var testCodes = specs.Select(s => s.TestCode).Distinct().ToList();
+        var testDefs = await _db.TestDefinitions
+            .AsNoTracking()
+            .Include(t => t.Section)
+            .Where(t => testCodes.Contains(t.Code))
+            .ToListAsync();
+        var byCode = testDefs.ToDictionary(t => t.Code);
+
+        var rows = specs.Select(s =>
+        {
+            byCode.TryGetValue(s.TestCode, out var def);
+            var canEdit = scope is null || (def != null && scope.Contains(def.SectionId));
+            return new SpecificationRowDto(
+                s.Id, s.ItemId, s.TestCode, s.AlertLimit, s.ActionLimit, s.SpecLimit, s.Unit, s.DilutionFactor,
+                s.ParameterName, s.DisplayOrder, s.LimitType, s.ReferenceStandard, s.LowerLimit, s.UpperLimit,
+                s.LowerInclusive, s.UpperInclusive, s.Target, s.Tolerance, s.ToleranceMode, s.ExpectedResultText,
+                s.ExpectedState, s.SampleQuantity, s.SampleQuantityUnit, s.TestAnalyteId, s.ResultBasis, s.SampleMatrix,
+                s.LabelClaim, s.LabelClaimUnit, s.ConversionFactor, s.DosageForm, s.Stages,
+                canEdit, def?.Section?.Name ?? string.Empty);
+        }).ToList();
+
+        return Ok(ApiResponse<object>.Ok(rows));
+    }
 
     [Authorize(Roles = RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
     [HttpPost("specifications")]
     public async Task<IActionResult> CreateSpecification(CreateSpecificationRequest request)
     {
+        await SpecificationOwnership.EnsureCanEditAsync(_db, _scope, CurrentUserId, request.TestCode);
+
         var limitType = request.LimitType ?? LimitType.CountTiered;
         var paramName = request.ParameterName;
         if (string.IsNullOrWhiteSpace(paramName))
@@ -733,6 +799,12 @@ public class MasterDataController : ControllerBase
     {
         var spec = await _db.Specifications.Include(s => s.Stages).FirstOrDefaultAsync(s => s.Id == id)
             ?? throw new InvalidOperationException($"Specification {id} not found.");
+
+        // Check both the row's current lab and the lab it would move to -
+        // a Section Head may not reassign a row into or out of their lab
+        // by changing TestCode either.
+        await SpecificationOwnership.EnsureCanEditAsync(_db, _scope, CurrentUserId, spec.TestCode);
+        await SpecificationOwnership.EnsureCanEditAsync(_db, _scope, CurrentUserId, request.TestCode);
 
         spec.TestCode = request.TestCode;
         if (request.ParameterName != null)
@@ -798,6 +870,7 @@ public class MasterDataController : ControllerBase
     {
         var spec = await _db.Specifications.FirstOrDefaultAsync(s => s.Id == id)
             ?? throw new InvalidOperationException($"Specification {id} not found.");
+        await SpecificationOwnership.EnsureCanEditAsync(_db, _scope, CurrentUserId, spec.TestCode);
         _db.Specifications.Remove(spec);
         await _db.SaveChangesAsync();
         return Ok(ApiResponse<object>.Ok(new { }));

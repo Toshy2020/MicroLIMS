@@ -381,6 +381,26 @@ public class UniversalSpecificationsTests
             new ChromatographyColumnService(db, new UserSectionScopeService(db)),
             new SpecificationService(db));
 
+        // Task 9 - CreateSpecification/GetSpecifications now resolve the
+        // current user's lab scope; a System Administrator's scope is null
+        // (unrestricted), so this pre-existing test needn't seed a section
+        // for the un-sectioned TestDefinition above.
+        var adminRole = new Role { Name = "System Administrator", Type = RoleType.SystemAdministrator, IsActive = true };
+        db.Roles.Add(adminRole);
+        var adminUser = new User { Username = "admin_" + Guid.NewGuid().ToString("N")[..6], FullName = "Sys Admin", RoleId = adminRole.Id, Role = adminRole, IsActive = true };
+        db.Users.Add(adminUser);
+        await db.SaveChangesAsync();
+        controller.ControllerContext = new Microsoft.AspNetCore.Mvc.ControllerContext
+        {
+            HttpContext = new Microsoft.AspNetCore.Http.DefaultHttpContext
+            {
+                User = new System.Security.Claims.ClaimsPrincipal(
+                    new System.Security.Claims.ClaimsIdentity(
+                        new[] { new System.Security.Claims.Claim(System.Security.Claims.ClaimTypes.NameIdentifier, adminUser.Id.ToString()) },
+                        "TestAuth"))
+            }
+        };
+
         // Old-style request (only original positional args)
         var oldRequest = new CreateSpecificationRequest(
             ItemId: item.Id,
@@ -408,7 +428,7 @@ public class UniversalSpecificationsTests
         var getResult = await controller.GetSpecifications(item.Id);
         var getOk = Assert.IsType<OkObjectResult>(getResult);
         var getEnvelope = Assert.IsType<ApiResponse<object>>(getOk.Value);
-        var list = Assert.IsAssignableFrom<IEnumerable<Specification>>(getEnvelope.Data);
+        var list = Assert.IsAssignableFrom<IEnumerable<SpecificationRowDto>>(getEnvelope.Data);
         var retrieved = Assert.Single(list);
         Assert.Equal(createdSpec.Id, retrieved.Id);
         Assert.NotNull(retrieved.Stages);

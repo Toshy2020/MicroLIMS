@@ -17,7 +17,8 @@ import MoreVertIcon from "@mui/icons-material/MoreVert";
 import { useNavigate, useLocation, Link } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { apiClient } from "../services/apiClient";
-import { getGroupedMenuForRole, MenuItem as MenuItemType } from "../routes/menuConfig";
+import { getGroupedMenu, MenuItem as MenuItemType } from "../routes/menuConfig";
+import { useMyLabs } from "../hooks/useMyLabs";
 
 const EXPANDED_SIDEBAR_WIDTH = 250;
 const COLLAPSED_SIDEBAR_WIDTH = 68;
@@ -51,8 +52,9 @@ export function Sidebar({ mobileOpen, onMobileClose, collapsed, onToggleCollapse
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
   const navigate = useNavigate();
   const location = useLocation();
-  const { username, fullName, jobTitle, role, logout } = useAuth();
-  const groups = getGroupedMenuForRole(role);
+  const { username, fullName, jobTitle, role, permissions, logout } = useAuth();
+  const { codes: labCodes } = useMyLabs();
+  const groups = getGroupedMenu({ role, permissions, labCodes });
 
   const initial = (fullName ?? username ?? "U").charAt(0).toUpperCase();
   const displayTitle = jobTitle?.trim() || formatRoleFallback(role);

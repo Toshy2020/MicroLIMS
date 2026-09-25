@@ -1,13 +1,7 @@
 import { ComponentType } from "react";
 import SpaceDashboardOutlinedIcon from "@mui/icons-material/SpaceDashboardOutlined";
 import ScienceOutlinedIcon from "@mui/icons-material/ScienceOutlined";
-import MedicationLiquidOutlinedIcon from "@mui/icons-material/MedicationLiquidOutlined";
-import AcUnitOutlinedIcon from "@mui/icons-material/AcUnitOutlined";
-import TimelineOutlinedIcon from "@mui/icons-material/TimelineOutlined";
-import ShowChartOutlinedIcon from "@mui/icons-material/ShowChartOutlined";
 import Inventory2OutlinedIcon from "@mui/icons-material/Inventory2Outlined";
-import PrecisionManufacturingOutlinedIcon from "@mui/icons-material/PrecisionManufacturingOutlined";
-import RuleOutlinedIcon from "@mui/icons-material/RuleOutlined";
 import FactCheckOutlinedIcon from "@mui/icons-material/FactCheckOutlined";
 import DescriptionOutlinedIcon from "@mui/icons-material/DescriptionOutlined";
 import SearchOutlinedIcon from "@mui/icons-material/SearchOutlined";
@@ -32,13 +26,14 @@ export interface MenuGroup {
   items: MenuItem[];
 }
 
+export interface MenuContext {
+  role: Role | null;
+  permissions: string[];
+  labCodes: string[];
+}
+
 // Menu Items
 const dashboardItem: MenuItem = { label: "Dashboard", path: "/dashboard", icon: SpaceDashboardOutlinedIcon, group: "OVERVIEW" };
-const receivingTestingItem: MenuItem = { label: "Receiving & Testing", path: "/receiving-testing", icon: ScienceOutlinedIcon, group: "MY WORK" };
-const mediaWorkspaceItem: MenuItem = { label: "Media Preparation & Evaluation", path: "/laboratory-configuration/media", icon: MedicationLiquidOutlinedIcon, group: "LABORATORY" };
-const systemSuitabilityItem: MenuItem = { label: "System Suitability (HPLC)", path: "/laboratory/system-suitability", icon: TimelineOutlinedIcon, group: "LABORATORY" };
-const calibrationRunsItem: MenuItem = { label: "Calibration Runs (ICP-OES / AAS)", path: "/laboratory/calibration-runs", icon: ShowChartOutlinedIcon, group: "LABORATORY" };
-const cryovialsItem: MenuItem = { label: "Reference Cryovials", path: "/laboratory-configuration/cryovials", icon: AcUnitOutlinedIcon, group: "LABORATORY" };
 const reportsItem: MenuItem = { label: "Reports", path: "/reports", icon: DescriptionOutlinedIcon, group: "REPORTS" };
 const auditSearchItem: MenuItem = { label: "Audit Search", path: "/audit-search", icon: SearchOutlinedIcon, group: "AUDIT & COMPLIANCE" };
 const oosTrackingItem: MenuItem = { label: "OOS Tracking", path: "/oos-tracking", icon: ReportProblemOutlinedIcon, group: "AUDIT & COMPLIANCE" };
@@ -47,51 +42,13 @@ const oosTrackingItem: MenuItem = { label: "OOS Tracking", path: "/oos-tracking"
 // page directly even though the menu does not offer it.
 const errorMonitoringItem: MenuItem = { label: "Error Monitoring", path: "/error-monitoring", icon: BugReportOutlinedIcon, group: "SYSTEM" };
 
-const inventoryItem: MenuItem = {
-  label: "Inventory",
-  icon: Inventory2OutlinedIcon,
-  group: "INVENTORY",
-  children: [
-    { label: "Materials Stock", path: "/inventory/materials", icon: Inventory2OutlinedIcon },
-    { label: "Equipment Master", path: "/inventory/equipment", icon: PrecisionManufacturingOutlinedIcon },
-    { label: "Approved Media List", path: "/inventory/approved-media", icon: RuleOutlinedIcon },
-    { label: "Approved Cryovial List", path: "/inventory/approved-cryovials", icon: FactCheckOutlinedIcon }
-  ]
-};
-
-// Laboratory configuration, grouped by lab: shared pages first, then one
-// collapsible section per laboratory.
-const itemsConfigItem: MenuItem = { label: "Items", path: "/laboratory-configuration/items", icon: Inventory2OutlinedIcon, group: "LAB CONFIGURATION" };
-const receivingConfigItem: MenuItem = { label: "Receiving Configuration", path: "/laboratory-configuration/receiving-configuration", icon: FactCheckOutlinedIcon, group: "LAB CONFIGURATION" };
-
-const microConfigurationItem: MenuItem = {
-  label: "Microbiology Configuration",
-  icon: BiotechOutlinedIcon,
-  group: "LAB CONFIGURATION",
-  children: [
-    { label: "Test Master", path: "/laboratory-configuration/test-master" },
-    { label: "Organisms", path: "/laboratory-configuration/organisms" },
-    { label: "Media Configurations", path: "/laboratory-configuration/media-configurations" },
-    { label: "Water", path: "/laboratory-configuration/water" },
-    { label: "Environmental Monitoring", path: "/laboratory-configuration/environmental-monitoring" },
-    { label: "After Cleaning", path: "/laboratory-configuration/after-cleaning" },
-    { label: "Equipment", path: "/laboratory-configuration/equipment" }
-  ]
-};
-
-const fpConfigurationItem: MenuItem = {
-  label: "F.P. Configuration",
-  icon: MedicationOutlinedIcon,
-  group: "LAB CONFIGURATION",
-  children: [
-    { label: "FP Test Master", path: "/laboratory-configuration/fp-test-master" },
-    { label: "Equation Types", path: "/laboratory-configuration/equation-types" },
-    { label: "FP Instruments", path: "/laboratory-configuration/fp-instruments" },
-    { label: "Chromatography Columns", path: "/laboratory-configuration/columns" }
-  ]
-};
-
-const laboratoryConfigurationItems: MenuItem[] = [itemsConfigItem, receivingConfigItem, microConfigurationItem, fpConfigurationItem];
+// Receiving area: the main receiving desk and the cross-lab tracking board,
+// gated on the Samples.Receive / Samples.TrackAll privileges rather than
+// role or lab membership - any lab may receive here (ReceiptLabGuard).
+const receivingAreaItems: MenuItem[] = [
+  { label: "Receive Sample", path: "/receiving", icon: ScienceOutlinedIcon, group: "RECEIVING" },
+  { label: "Tracking Board", path: "/receiving/tracking", icon: FactCheckOutlinedIcon, group: "RECEIVING" }
+];
 
 const usersItem: MenuItem = { label: "Users", path: "/users", icon: PeopleAltOutlinedIcon, group: "ADMINISTRATION" };
 const rolesItem: MenuItem = { label: "Roles", path: "/roles", icon: AdminPanelSettingsOutlinedIcon, group: "ADMINISTRATION" };
@@ -138,64 +95,95 @@ const documentControlAdminItem: MenuItem = {
   ]
 };
 
-
-const menuByRole: Record<Role, MenuItem[]> = {
-  Analyst: [
-    dashboardItem,
-    receivingTestingItem,
-    documentControlUserItem,
-    mediaWorkspaceItem,
-    cryovialsItem,
-    systemSuitabilityItem,
-    calibrationRunsItem,
-    inventoryItem,
-    reportsItem
-  ],
-  Reviewer: [
-    dashboardItem,
-    receivingTestingItem,
-    documentControlAuditorItem,
-    mediaWorkspaceItem,
-    cryovialsItem,
-    systemSuitabilityItem,
-    calibrationRunsItem,
-    reportsItem
-  ],
-  SectionHead: [
-    dashboardItem,
-    receivingTestingItem,
-    documentControlAuditorItem,
-    mediaWorkspaceItem,
-    cryovialsItem,
-    systemSuitabilityItem,
-    calibrationRunsItem,
-    inventoryItem,
-    ...laboratoryConfigurationItems,
-    reportsItem,
-    auditSearchItem,
-    oosTrackingItem
-  ],
-  SystemAdministrator: [
-    dashboardItem,
-    receivingTestingItem,
-    documentControlAdminItem,
-    mediaWorkspaceItem,
-    cryovialsItem,
-    systemSuitabilityItem,
-    calibrationRunsItem,
-    inventoryItem,
-    ...laboratoryConfigurationItems,
-    usersItem,
-    rolesItem,
-    reportsItem,
-    auditSearchItem,
-    oosTrackingItem,
-    errorMonitoringItem
+// Laboratory areas: one collapsible section per laboratory, shown only to
+// its members (useMyLabs). Each bundles that lab's workspace (built in
+// Tasks 12-13), its analyst-facing configuration pages, and its own
+// materials/equipment inventory. Water/EM/after-cleaning configuration
+// stays inside the Microbiology configuration group, not split out.
+const microArea: MenuItem = {
+  label: "Microbiology Laboratory",
+  icon: BiotechOutlinedIcon,
+  group: "LABORATORIES",
+  children: [
+    { label: "Workspace", path: "/microbiology/workspace" },
+    { label: "Media Preparation & Evaluation", path: "/laboratory-configuration/media" },
+    { label: "Reference Cryovials", path: "/laboratory-configuration/cryovials" },
+    { label: "Materials Stock", path: "/inventory/materials?lab=MICRO" },
+    { label: "Equipment Inventory", path: "/inventory/equipment?lab=MICRO" },
+    { label: "Approved Media List", path: "/inventory/approved-media" },
+    { label: "Approved Cryovial List", path: "/inventory/approved-cryovials" }
   ]
 };
 
-export function getGroupedMenuForRole(role: Role | null): MenuGroup[] {
-  const items = role ? menuByRole[role] ?? [] : [];
+// Section Head / System Administrator only.
+const microConfigArea: MenuItem = {
+  label: "Microbiology Configuration",
+  icon: BiotechOutlinedIcon,
+  group: "LABORATORIES",
+  children: [
+    { label: "Test Master", path: "/laboratory-configuration/test-master" },
+    { label: "Organisms", path: "/laboratory-configuration/organisms" },
+    { label: "Media Configurations", path: "/laboratory-configuration/media-configurations" },
+    { label: "Water", path: "/laboratory-configuration/water" },
+    { label: "Environmental Monitoring", path: "/laboratory-configuration/environmental-monitoring" },
+    { label: "After Cleaning", path: "/laboratory-configuration/after-cleaning" },
+    { label: "Equipment", path: "/laboratory-configuration/equipment" }
+  ]
+};
+
+const physchemArea: MenuItem = {
+  label: "Physicochemical Laboratory",
+  icon: MedicationOutlinedIcon,
+  group: "LABORATORIES",
+  children: [
+    { label: "Workspace", path: "/physicochemical/workspace" },
+    { label: "System Suitability (HPLC)", path: "/laboratory/system-suitability" },
+    { label: "Calibration Runs (ICP-OES / AAS)", path: "/laboratory/calibration-runs" },
+    { label: "Materials Stock", path: "/inventory/materials?lab=FP" },
+    { label: "Equipment Inventory", path: "/inventory/equipment?lab=FP" }
+  ]
+};
+
+// Section Head / System Administrator only.
+const physchemConfigArea: MenuItem = {
+  label: "Physicochemical Configuration",
+  icon: MedicationOutlinedIcon,
+  group: "LABORATORIES",
+  children: [
+    { label: "Physicochemical Test Master", path: "/laboratory-configuration/fp-test-master" },
+    { label: "Equation Types", path: "/laboratory-configuration/equation-types" },
+    { label: "Physicochemical Instruments", path: "/laboratory-configuration/fp-instruments" },
+    { label: "Chromatography Columns", path: "/laboratory-configuration/columns" }
+  ]
+};
+
+// Shared across both labs, not tied to either one's membership - Section
+// Head / System Administrator only.
+const generalConfigArea: MenuItem[] = [
+  { label: "Items", path: "/laboratory-configuration/items", icon: Inventory2OutlinedIcon, group: "GENERAL LABORATORY CONFIGURATION" },
+  { label: "Receiving Configuration", path: "/laboratory-configuration/receiving-configuration", icon: FactCheckOutlinedIcon, group: "GENERAL LABORATORY CONFIGURATION" }
+];
+
+// The items unaffected by lab separation - exactly today's per-role lists,
+// minus the ones that moved into the receiving area or the lab areas above
+// (Receiving & Testing, media/cryovial workspaces, suitability/calibration
+// runs, inventory, laboratory configuration).
+function sharedItemsFor(role: Role | null): MenuItem[] {
+  switch (role) {
+    case "Analyst":
+      return [documentControlUserItem, reportsItem];
+    case "Reviewer":
+      return [documentControlAuditorItem, reportsItem];
+    case "SectionHead":
+      return [documentControlAuditorItem, reportsItem, auditSearchItem, oosTrackingItem];
+    case "SystemAdministrator":
+      return [documentControlAdminItem, usersItem, rolesItem, reportsItem, auditSearchItem, oosTrackingItem, errorMonitoringItem];
+    default:
+      return [];
+  }
+}
+
+function groupItems(items: MenuItem[]): MenuGroup[] {
   const groups: Record<string, MenuItem[]> = {};
   for (const item of items) {
     const g = item.group || "OTHER";
@@ -208,4 +196,19 @@ export function getGroupedMenuForRole(role: Role | null): MenuGroup[] {
   }));
 }
 
-
+// Builds the sidebar menu from privilege and lab membership rather than
+// role alone: the receiving area needs Samples.Receive/Samples.TrackAll,
+// each laboratory area needs membership in that lab (useMyLabs), and each
+// lab's configuration plus the general configuration group are additionally
+// restricted to Section Head / System Administrator.
+export function getGroupedMenu({ role, permissions, labCodes }: MenuContext): MenuGroup[] {
+  const isHead = role === "SectionHead" || role === "SystemAdministrator";
+  const items: MenuItem[] = [dashboardItem];
+  if (permissions.includes("Samples.Receive")) items.push(receivingAreaItems[0]);
+  if (permissions.includes("Samples.TrackAll")) items.push(receivingAreaItems[1]);
+  if (labCodes.includes("MICRO")) items.push(microArea, ...(isHead ? [microConfigArea] : []));
+  if (labCodes.includes("FP")) items.push(physchemArea, ...(isHead ? [physchemConfigArea] : []));
+  if (isHead) items.push(...generalConfigArea);
+  items.push(...sharedItemsFor(role));
+  return groupItems(items);
+}

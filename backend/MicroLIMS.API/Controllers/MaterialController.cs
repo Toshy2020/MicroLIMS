@@ -11,7 +11,7 @@ public record SaveMaterialHttpRequest(
     MaterialType MaterialType, string MaterialName, string ManufacturerName, string BatchNumber,
     DateTime ReceivingDate, DateTime? ExpiryDate, string? Code, string Location,
     decimal QuantityReceived, MaterialUnit Unit, decimal? MinimumStockLevel, string? AtccNumber, int? OrganismId,
-    int? MediaProductId = null, int? SectionId = null, decimal? Purity = null);
+    int? MediaProductId = null, int? SectionId = null, decimal? Purity = null, string? CustomType = null);
 
 // Inventory module - Materials Stock. Day-to-day updates (receiving,
 // stock count) are done by Analysts as well as Section Head/Admin,
@@ -45,6 +45,12 @@ public class MaterialController : ControllerBase
     [HttpGet("print")]
     public async Task<IActionResult> GetForPrint() => Ok(ApiResponse<object>.Ok(await _service.GetForPrintAsync(CurrentUserId)));
 
+    // Type picker for the Add/Edit dialog: the lab's built-in types plus
+    // the custom type names it has already used.
+    [HttpGet("type-options")]
+    public async Task<IActionResult> GetTypeOptions([FromQuery] int? sectionId) =>
+        Ok(ApiResponse<object>.Ok(await _service.GetTypeOptionsAsync(CurrentUserId, sectionId)));
+
     [HttpGet("default-unit")]
     public IActionResult GetDefaultUnit([FromQuery] MaterialType materialType) =>
         Ok(ApiResponse<object>.Ok(new { unit = MaterialService.DefaultUnitFor(materialType) }));
@@ -54,7 +60,7 @@ public class MaterialController : ControllerBase
         Ok(ApiResponse<object>.Ok(await _service.CreateAsync(new SaveMaterialRequest(
             r.MaterialType, r.MaterialName, r.ManufacturerName, r.BatchNumber, r.ReceivingDate, r.ExpiryDate,
             r.Code, r.Location, r.QuantityReceived, r.Unit, r.MinimumStockLevel, r.AtccNumber, r.OrganismId,
-            r.MediaProductId, r.SectionId, r.Purity), CurrentUserId)));
+            r.MediaProductId, r.SectionId, r.Purity, r.CustomType), CurrentUserId)));
 
     [HttpPut("{id}")]
     public async Task<IActionResult> Update(int id, SaveMaterialHttpRequest r)
@@ -62,7 +68,7 @@ public class MaterialController : ControllerBase
         await _service.UpdateAsync(id, new SaveMaterialRequest(
             r.MaterialType, r.MaterialName, r.ManufacturerName, r.BatchNumber, r.ReceivingDate, r.ExpiryDate,
             r.Code, r.Location, r.QuantityReceived, r.Unit, r.MinimumStockLevel, r.AtccNumber, r.OrganismId,
-            r.MediaProductId, r.SectionId, r.Purity), CurrentUserId);
+            r.MediaProductId, r.SectionId, r.Purity, r.CustomType), CurrentUserId);
         return Ok(ApiResponse<object>.Ok(new { }));
     }
 }

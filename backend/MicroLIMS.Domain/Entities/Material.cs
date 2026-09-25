@@ -25,6 +25,10 @@ public class Material
     public DocumentSection? Section { get; set; }
 
     public MaterialType MaterialType { get; set; }
+
+    // Lab-defined type name, only with MaterialType.Other - lets a lab
+    // stock things the built-in list doesn't cover (see MaterialTypeRules).
+    public string? CustomType { get; set; }
     public string MaterialName { get; set; } = string.Empty;
     public string ManufacturerName { get; set; } = string.Empty;
 

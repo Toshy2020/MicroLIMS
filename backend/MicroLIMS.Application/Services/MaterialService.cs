@@ -10,7 +10,11 @@ public record SaveMaterialRequest(
     MaterialType MaterialType, string MaterialName, string ManufacturerName, string BatchNumber,
     DateTime ReceivingDate, DateTime? ExpiryDate, string? Code, string Location,
     decimal QuantityReceived, MaterialUnit Unit, decimal? MinimumStockLevel, string? AtccNumber, int? OrganismId,
-    int? MediaProductId = null, int? SectionId = null, decimal? Purity = null);
+    int? MediaProductId = null, int? SectionId = null, decimal? Purity = null, string? CustomType = null);
+
+// Type picker for one laboratory: its built-in types plus the custom type
+// names already used in its stock register.
+public record MaterialTypeOptions(IReadOnlyList<MaterialType> BuiltIn, IReadOnlyList<string> Custom);
 
 // Materials Stock register (Inventory module) - dehydrated media, discs,
 // ID kits/reagents, chemicals, indicators, reference buffers, disposable
@@ -109,11 +113,13 @@ public class MaterialService
         ValidatePurity(r.MaterialType, r.Purity);
 
         var sectionId = await _scope.ResolveSectionForCreateAsync(currentUserId, r.SectionId);
+        var customType = await ResolveTypeAsync(sectionId, r.MaterialType, r.CustomType, checkAllowed: true);
 
         var entity = new Material
         {
             SectionId = sectionId,
             MaterialType = r.MaterialType,
+            CustomType = customType,
             MediaProductId = mediaProductId,
             MaterialName = materialName,
             ManufacturerName = r.ManufacturerName,
@@ -186,9 +192,15 @@ public class MaterialService
 
         ValidatePurity(r.MaterialType, r.Purity);
 
+        // An existing batch keeps its type even if the lab's list has since
+        // changed; only a change of type is checked against the list.
+        var customType = await ResolveTypeAsync(entity.SectionId, r.MaterialType, r.CustomType,
+            checkAllowed: r.MaterialType != entity.MaterialType);
+
         var receivedDelta = r.QuantityReceived - entity.QuantityReceived;
 
         entity.MaterialType = r.MaterialType;
+        entity.CustomType = customType;
         entity.MediaProductId = mediaProductId;
         entity.MaterialName = materialName;
         entity.ManufacturerName = r.ManufacturerName;
@@ -208,6 +220,52 @@ public class MaterialService
         entity.LastModifiedAt = DateTime.UtcNow;
 
         await _db.SaveChangesAsync();
+    }
+
+    public async Task<MaterialTypeOptions> GetTypeOptionsAsync(int currentUserId, int? sectionId)
+    {
+        var id = await _scope.ResolveSectionForCreateAsync(currentUserId, sectionId);
+        var code = await _db.DocumentSections.Where(s => s.Id == id).Select(s => s.Code).FirstOrDefaultAsync();
+        var custom = await _db.Materials.AsNoTracking()
+            .Where(m => m.SectionId == id && m.CustomType != null)
+            .Select(m => m.CustomType!)
+            .Distinct()
+            .OrderBy(n => n)
+            .ToListAsync();
+        return new MaterialTypeOptions(MaterialTypeRules.BuiltInTypesFor(code), custom);
+    }
+
+    // Checks the type against the lab's list and returns the custom type
+    // name to store: trimmed, and spelled like an existing one in the same
+    // lab when it differs only by case, so "Solvent" and "solvent" stay one
+    // type. Null unless the type is Other.
+    private async Task<string?> ResolveTypeAsync(int sectionId, MaterialType type, string? customType, bool checkAllowed)
+    {
+        var custom = MaterialTypeRules.NormalizeCustomType(customType);
+        if (custom != null && type != MaterialType.Other)
+            throw new InvalidOperationException("A custom material type can only be saved with the type Other.");
+
+        if (checkAllowed)
+        {
+            var code = await _db.DocumentSections.Where(s => s.Id == sectionId).Select(s => s.Code).FirstOrDefaultAsync();
+            if (!MaterialTypeRules.BuiltInTypesFor(code).Contains(type))
+                throw new InvalidOperationException($"{MaterialTypeRules.LabelOf(type)} is not a material type of this laboratory.");
+        }
+
+        if (custom == null) return null;
+        if (custom.Length > MaterialTypeRules.CustomTypeMaxLength)
+            throw new InvalidOperationException($"A material type name can be at most {MaterialTypeRules.CustomTypeMaxLength} characters.");
+        if (Enum.GetValues<MaterialType>().Any(t =>
+                string.Equals(MaterialTypeRules.LabelOf(t), custom, StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(t.ToString(), custom, StringComparison.OrdinalIgnoreCase)))
+            throw new InvalidOperationException($"'{custom}' is the name of a built-in material type - pick it from the list or use a different name.");
+
+        var lower = custom.ToLower();
+        var existing = await _db.Materials
+            .Where(m => m.SectionId == sectionId && m.CustomType != null && m.CustomType.ToLower() == lower)
+            .Select(m => m.CustomType)
+            .FirstOrDefaultAsync();
+        return existing ?? custom;
     }
 
     // Suitability Run picker (REQ-FP-012): usable (in stock, not expired) reference standards in the caller's sections.

@@ -221,7 +221,7 @@ public class AdminPasswordRecoveryTests
         db.Users.Add(user);
         await db.SaveChangesAsync();
 
-        var oldHash = BCrypt.Net.BCrypt.HashPassword("PreviousP@ss123!");
+        var oldHash = TestPasswords.Hash("PreviousP@ss123!");
         db.PasswordHistories.Add(new PasswordHistory { UserId = 2, PasswordHash = oldHash });
         await db.SaveChangesAsync();
 

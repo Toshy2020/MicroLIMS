@@ -93,7 +93,7 @@ public class InitialAdministratorSeedTests
     public void Seed_DoesNotOverwriteAnExistingAdministratorsPassword()
     {
         using var db = CreateDbContext();
-        var existingHash = BCrypt.Net.BCrypt.HashPassword("Established-Password-9!");
+        var existingHash = TestPasswords.Hash("Established-Password-9!");
         db.Users.Add(new User
         {
             Id = 500,
@@ -127,7 +127,7 @@ public class InitialAdministratorSeedTests
             Id = 501,
             FullName = "An Analyst",
             Username = "analyst1",
-            PasswordHash = BCrypt.Net.BCrypt.HashPassword("Analyst-Password-3!"),
+            PasswordHash = TestPasswords.Hash("Analyst-Password-3!"),
             RoleId = 4,
             IsActive = true
         });

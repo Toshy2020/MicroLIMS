@@ -30,7 +30,7 @@ public class RetestBatchLocationTests
         db.Roles.Add(role);
         await db.SaveChangesAsync();
 
-        var user = new User { Id = id, FullName = $"User {id}", Username = $"user{id}", RoleId = role.Id, PasswordHash = BCrypt.Net.BCrypt.HashPassword(Password) };
+        var user = new User { Id = id, FullName = $"User {id}", Username = $"user{id}", RoleId = role.Id, PasswordHash = TestPasswords.Hash(Password) };
         db.Users.Add(user);
         await db.SaveChangesAsync();
         TestServiceFactory.AssignUserToMicroSection(db, user.Id);

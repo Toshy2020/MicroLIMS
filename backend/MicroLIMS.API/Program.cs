@@ -1,14 +1,8 @@
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.IdentityModel.Tokens;
-using Microsoft.AspNetCore.Authorization;
-using MicroLIMS.API.Authorization;
 using MicroLIMS.API.Extensions;
 using MicroLIMS.API.Filters;
 using MicroLIMS.API.Json;
 using MicroLIMS.Persistence.DbContext;
-using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -24,12 +18,8 @@ if (!string.IsNullOrEmpty(hostPort))
 }
 
 // ---- Forwarded Headers (Reverse Proxy / Render / HTTPS support) ----
-builder.Services.Configure<ForwardedHeadersOptions>(options =>
-{
-    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
-    options.KnownIPNetworks.Clear();
-    options.KnownProxies.Clear();
-});
+// See Extensions/TrustedProxyConfiguration.cs for which proxies are trusted.
+builder.Services.AddMicroLimsForwardedHeaders(builder.Configuration);
 
 // ---- Database Connection ----
 var connectionString = builder.Configuration.GetConnectionString("Default")
@@ -55,33 +45,13 @@ builder.Services.AddApplicationServices(builder.Configuration);
 // ---- Liveness / readiness probes (see Extensions/HealthCheckExtensions.cs) ----
 builder.Services.AddMicroLimsHealthChecks();
 
-// ---- JWT Authentication ----
-builder.Services.AddAuthentication(options =>
-{
-    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-})
-.AddJwtBearer(options =>
-{
-    options.TokenValidationParameters = new TokenValidationParameters
-    {
-        ValidateIssuer = true,
-        ValidateAudience = true,
-        ValidateLifetime = true,
-        ValidateIssuerSigningKey = true,
-        ValidIssuer = jwtSettings.Issuer,
-        ValidAudience = jwtSettings.Audience,
-        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSettings.Key))
-    };
-});
+// ---- JWT Authentication (see Extensions/JwtAuthenticationExtensions.cs) ----
+// Each request's token is re-checked against the account - disabled,
+// locked, re-roled or password changed means a 401, not the old access.
+builder.Services.AddMicroLimsJwtAuthentication(jwtSettings);
 
-builder.Services.AddAuthorization();
-// Permission-based authorization, running alongside the existing role-
-// string [Authorize(Roles=...)] system - not replacing it in this phase.
-// [Authorize(Policy = "<permission code>")] resolves dynamically via
-// PermissionPolicyProvider, no per-code AddPolicy() call needed.
-builder.Services.AddSingleton<IAuthorizationPolicyProvider, PermissionPolicyProvider>();
-builder.Services.AddSingleton<IAuthorizationHandler, PermissionAuthorizationHandler>();
+// Deny-by-default fallback + permission policies (see Extensions/AuthorizationExtensions.cs).
+builder.Services.AddMicroLimsAuthorization();
 builder.Services.AddControllers(options =>
     {
         options.Filters.Add<ValidationFilter>();
@@ -119,6 +89,22 @@ builder.Services.AddCors(options =>
 var app = builder.Build();
 
 app.UseForwardedHeaders();
+
+// Security response headers on everything, and HSTS once served over HTTPS
+// (Render terminates TLS; UseForwardedHeaders above restores the scheme).
+app.UseMiddleware<MicroLIMS.API.Middleware.SecurityHeadersMiddleware>();
+if (!app.Environment.IsDevelopment())
+{
+    app.UseHsts();
+}
+
+if (app.Environment.IsProduction() && !TrustedProxyConfiguration.HasTrustedProxyList(app.Configuration))
+{
+    app.Logger.LogWarning(
+        "ForwardedHeaders:KnownNetworks is not set, so X-Forwarded-For is accepted from any source. Client addresses " +
+        "(login history, electronic signatures, rate limits) are reliable only while the API is reachable exclusively " +
+        "through a proxy that appends to X-Forwarded-For. Set ForwardedHeaders__KnownNetworks to the proxy's egress CIDR range.");
+}
 
 // Smtp startup check
 var smtp = app.Services.GetRequiredService<MicroLIMS.Infrastructure.Email.SmtpOptions>();

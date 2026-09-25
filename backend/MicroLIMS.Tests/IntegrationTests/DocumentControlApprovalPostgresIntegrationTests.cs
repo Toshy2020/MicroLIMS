@@ -40,7 +40,7 @@ public class DocumentControlApprovalPostgresIntegrationTests
             await db.SaveChangesAsync();
         }
 
-        var defaultPasswordHash = BCrypt.Net.BCrypt.HashPassword("Postgres-Approver-1!");
+        var defaultPasswordHash = TestPasswords.Hash("Postgres-Approver-1!");
 
         var author = new User
         {

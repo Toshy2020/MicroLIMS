@@ -20,34 +20,6 @@ public class TestingWorkspaceService : ITestWorkspaceService
         _scope = scope;
     }
 
-    public async Task<List<SampleDto>> GetActiveSamplesAsync(int? currentUserId = null)
-    {
-        var scope = currentUserId.HasValue
-            ? await _scope.GetAccessibleSectionIdsAsync(currentUserId.Value)
-            : null;
-
-        var query = _db.Samples.AsNoTracking();
-        if (scope != null)
-        {
-            query = query.Where(SampleWorkflowQueues.HasTestInSections(scope));
-        }
-
-        var samples = await query
-            .Include(s => s.OriginSample)
-            .Include(s => s.Item)
-            .Include(s => s.WaterSamplingPoint)
-            .Include(s => s.WaterDepartment)
-            .Include(s => s.Department)
-            .Include(s => s.Machine)
-            .Include(s => s.CauseOfTesting)
-            .Include(s => s.TestOrders)
-            .Include(s => s.SectionSignoffs)
-            .OrderByDescending(s => s.ReceivedAt)
-            .ToListAsync();
-
-        return await MapSamplesToDtosAsync(samples, scope);
-    }
-
     public async Task<PagedResult<SampleDto>> GetActiveSamplesAsync(TestingWorkspaceFilterDto filter, int? currentUserId = null)
     {
         int page = filter.Page <= 0 ? 1 : filter.Page;

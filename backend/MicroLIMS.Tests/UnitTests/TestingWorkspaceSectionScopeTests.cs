@@ -122,11 +122,6 @@ public class TestingWorkspaceSectionScopeTests
         var pagedB = await service.GetActiveSamplesAsync(new TestingWorkspaceFilterDto(), userB.Id);
         Assert.Single(pagedB.Items);
         Assert.Equal(sampleB.Id, pagedB.Items[0].SampleId);
-
-        // Parameterless GetActiveSamplesAsync(userA.Id)
-        var listA = await service.GetActiveSamplesAsync(userA.Id);
-        Assert.Single(listA);
-        Assert.Equal(sampleA.Id, listA[0].SampleId);
     }
 
     [Fact]

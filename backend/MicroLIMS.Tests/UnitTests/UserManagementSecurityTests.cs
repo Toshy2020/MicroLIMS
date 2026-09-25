@@ -214,7 +214,7 @@ public class UserManagementSecurityTests
         db.Users.Add(user);
         await db.SaveChangesAsync();
 
-        var initialHash = BCrypt.Net.BCrypt.HashPassword("InitialP@ss123");
+        var initialHash = TestPasswords.Hash("InitialP@ss123");
         user.PasswordHash = initialHash;
         db.PasswordHistories.Add(new PasswordHistory { UserId = user.Id, PasswordHash = initialHash });
         await db.SaveChangesAsync();

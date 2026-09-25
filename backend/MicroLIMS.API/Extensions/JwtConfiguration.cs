@@ -7,7 +7,7 @@ namespace MicroLIMS.API.Extensions;
 // configuration independently and only the validation side carried a
 // fallback, so a missing key silently signed with one value and
 // validated with another.
-public sealed record JwtSettings(string Key, string Issuer, string Audience);
+public sealed record JwtSettings(string Key, string Issuer, string Audience, TimeSpan AccessTokenLifetime);
 
 public static class JwtConfiguration
 {
@@ -26,6 +26,15 @@ public static class JwtConfiguration
 
     private const string DefaultIssuer = "MicroLIMS";
     private const string DefaultAudience = "MicroLIMS.Client";
+
+    // Access tokens carry the role and permission claims, so this is how
+    // long a change to a role's permission grants can take to reach a
+    // signed-in user. The frontend refreshes transparently on a 401, so a
+    // short lifetime costs one refresh call, not a sign-in. (Being disabled,
+    // locked, re-roled or having the password changed takes effect on the
+    // next request regardless - see AccessTokenRevalidator.)
+    public const int DefaultAccessTokenMinutes = 15;
+    public const int MaxAccessTokenMinutes = 480;
 
     // Throws InvalidOperationException - and therefore aborts startup -
     // rather than returning any fallback. No message includes the
@@ -56,9 +65,16 @@ public static class JwtConfiguration
                 $"The configured 'Jwt:Key' is too short - HMAC-SHA256 requires at least {MinimumKeyLength} " +
                 "characters. The application will not start with this value.");
 
+        var accessTokenMinutes = config.GetValue<int?>("Jwt:AccessTokenMinutes") ?? DefaultAccessTokenMinutes;
+        if (accessTokenMinutes is < 1 or > MaxAccessTokenMinutes)
+            throw new InvalidOperationException(
+                $"'Jwt:AccessTokenMinutes' must be between 1 and {MaxAccessTokenMinutes}; it is {accessTokenMinutes}. " +
+                "The application will not start with this value.");
+
         return new JwtSettings(
             key,
             config["Jwt:Issuer"] ?? DefaultIssuer,
-            config["Jwt:Audience"] ?? DefaultAudience);
+            config["Jwt:Audience"] ?? DefaultAudience,
+            TimeSpan.FromMinutes(accessTokenMinutes));
     }
 }

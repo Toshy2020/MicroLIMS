@@ -72,7 +72,7 @@ public class SecurityAuditTrailTests
             Id = id,
             FullName = "Test Analyst",
             Username = username,
-            PasswordHash = BCrypt.Net.BCrypt.HashPassword(CurrentPassword),
+            PasswordHash = TestPasswords.Hash(CurrentPassword),
             RoleId = roleId,
             IsActive = true
         };

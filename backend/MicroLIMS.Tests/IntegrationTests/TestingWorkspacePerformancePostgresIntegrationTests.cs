@@ -20,7 +20,7 @@ public class TestingWorkspacePerformancePostgresIntegrationTests
     private readonly ITestOutputHelper _output;
 
     /// <summary>
-    /// Upper bound budget for SQL commands executed by GetActiveSamplesAsync().
+    /// Upper bound budget for SQL commands executed by GetActiveSamplesAsync(filter).
     /// In commit 73d06ea, measured at a maximum of 10 commands (typically 5 single-query
     /// commands in EF Core 8: Samples with navigations, TestDefinitions with steps, Incubations,
     /// SampleLocations count, and Users; up to 10 if collection navigation splitting occurs).
@@ -45,22 +45,27 @@ public class TestingWorkspacePerformancePostgresIntegrationTests
     public const int MaxServerPageSizeClamp = 200;
 
     /// <summary>
-    /// Baseline sample batch size N for scalability benchmarking.
-    /// 150 samples with 4 test orders and 2 incubations per test order yields 150 samples,
-    /// 600 test orders, and 1,200 incubations. This provides sufficient workload to establish
-    /// reliable execution timings above system timer jitter while keeping bulk insert fast.
+    /// Total sample volumes for the scaling benchmark: 150 and then 1,200 samples,
+    /// each with 4 test orders and 2 incubations per test order (up to 4,800 test
+    /// orders and 9,600 incubations). The benchmark always reads one page of
+    /// ScalingPageSize, so the data volume grows 8x while the page stays the same.
     /// </summary>
     public const int BaseSampleCountN = 150;
 
+    public const int ScaledSampleCount8N = 1200;
+
     /// <summary>
-    /// Scaled sample batch size 4N for scalability benchmarking.
-    /// 600 samples with 4 test orders and 2 incubations per test order yields 600 samples,
-    /// 2,400 test orders, and 4,800 incubations.
-    /// In commit 73d06ea, the pre-fix quadratic ToDto incubation re-scanning incurred
-    /// 600 * 4,800 = 2,880,000 comparisons (16x more work than N=150), whereas the post-fix
-    /// bucketed algorithm executes in linear O(Samples + Incubations) = 5,400 operations (~4x).
+    /// The page the scaling benchmark reads - the list's default page size.
     /// </summary>
-    public const int ScaledSampleCount4N = 600;
+    public const int ScalingPageSize = DefaultPageSize;
+
+    /// <summary>
+    /// Sample volumes for the SQL command-count test. An N+1 regression issues extra
+    /// commands per sample, so any growth shows up at 10 vs 40 samples just as it does
+    /// at 150 vs 600 - only the timing test needs benchmark-scale data.
+    /// </summary>
+    public const int CommandCountSampleCount = 10;
+    public const int CommandCountScaledSampleCount = 40;
 
     /// <summary>
     /// Typical number of test orders associated with each sample in the synthetic workload.
@@ -75,14 +80,13 @@ public class TestingWorkspacePerformancePostgresIntegrationTests
     public const int IncubationsPerTestOrder = 2;
 
     /// <summary>
-    /// Maximum allowable ratio of execution time between 4N and N sample volumes: time(4N) / time(N).
-    /// Under linear scaling O(N), quadrupling data predicts an execution time ratio of ~4.0x.
-    /// Under quadratic scaling O(N^2) (the pre-fix defect in ToDto), quadrupling data predicts
-    /// a ratio of ~16.0x (4 * 4).
-    /// A threshold of 8.0x sits midway between linear (4x) and quadratic (16x), leaving generous
-    /// headroom for CI runner CPU jitter and GC pauses while definitively catching quadratic regressions.
+    /// Maximum allowable ratio time(page at 8N) / time(page at N). Reading one fixed-size
+    /// page should cost about the same whatever the table holds (~1x); work that
+    /// scales with every sample in the table - mapping or loading everything and
+    /// paging in memory - predicts ~8x. 2x sits between the two, with headroom for
+    /// CI runner jitter and GC pauses.
     /// </summary>
-    public const double MaxLinearGrowthRatio = 8.0;
+    public const double MaxPageTimeGrowthRatio = 2.0;
 
     public TestingWorkspacePerformancePostgresIntegrationTests(PostgresTestFixture fixture, ITestOutputHelper output)
     {
@@ -100,37 +104,40 @@ public class TestingWorkspacePerformancePostgresIntegrationTests
         var (causeId, itemId) = await EnsureBaselineDataAsync(db);
 
         // --- Phase 1: Seed N samples and measure SQL command count ---
-        await SeedSamplesBulkAsync(db, BaseSampleCountN, startIndex: 1, batchTag: "N", causeId, itemId);
+        await SeedSamplesBulkAsync(db, CommandCountSampleCount, startIndex: 1, batchTag: "N", causeId, itemId);
 
         var service = new TestingWorkspaceService(db, new UserSectionScopeService(db));
 
         interceptor.Reset();
-        var samplesN = await service.GetActiveSamplesAsync();
+        // One page large enough to hold every seeded sample, so the mapped rows grow 4x.
+        var wholeList = new TestingWorkspaceFilterDto { PageSize = MaxServerPageSizeClamp };
+        var samplesN = await service.GetActiveSamplesAsync(wholeList);
         int countN = interceptor.CommandCount;
 
-        Assert.Equal(BaseSampleCountN, samplesN.Count);
+        Assert.Equal(CommandCountSampleCount, samplesN.Items.Count);
 
         // --- Phase 2: Seed remaining samples up to 4N and measure SQL command count ---
-        int additionalSamples = ScaledSampleCount4N - BaseSampleCountN;
-        await SeedSamplesBulkAsync(db, additionalSamples, startIndex: BaseSampleCountN + 1, batchTag: "4N", causeId, itemId);
+        int additionalSamples = CommandCountScaledSampleCount - CommandCountSampleCount;
+        await SeedSamplesBulkAsync(db, additionalSamples, startIndex: CommandCountSampleCount + 1, batchTag: "4N", causeId, itemId);
 
         interceptor.Reset();
-        var samples4N = await service.GetActiveSamplesAsync();
+        var samples4N = await service.GetActiveSamplesAsync(wholeList);
         int count4N = interceptor.CommandCount;
 
-        Assert.Equal(ScaledSampleCount4N, samples4N.Count);
+        Assert.Equal(CommandCountScaledSampleCount, samples4N.Items.Count);
 
         // --- Primary Assertion: SQL count must be IDENTICAL between N and 4N ---
-        _output.WriteLine($"[SQL Budget] Commands at N={BaseSampleCountN}: {countN}, Commands at 4N={ScaledSampleCount4N}: {count4N}");
+        _output.WriteLine($"[SQL Budget] Commands at N={CommandCountSampleCount}: {countN}, Commands at 4N={CommandCountScaledSampleCount}: {count4N}");
         foreach (var cmd in interceptor.Commands)
         {
-            var oneLine = cmd.Replace(Environment.NewLine, " ");
-            _output.WriteLine($"  Command: {oneLine.Substring(0, Math.Min(120, oneLine.Length))}...");
+            // Measure the flattened text: on Windows NewLine is two chars, so it is shorter than cmd.
+            var flat = cmd.Replace(Environment.NewLine, " ");
+            _output.WriteLine($"  Command: {flat.Substring(0, Math.Min(120, flat.Length))}...");
         }
 
         Assert.True(countN == count4N,
-            $"SQL command count grew with data volume: issued {countN} queries at N={BaseSampleCountN} " +
-            $"and {count4N} queries at 4N={ScaledSampleCount4N}. Commands at N:\n{string.Join("\n---\n", interceptor.Commands)}");
+            $"SQL command count grew with data volume: issued {countN} queries at N={CommandCountSampleCount} " +
+            $"and {count4N} queries at 4N={CommandCountScaledSampleCount}. Commands at N:\n{string.Join("\n---\n", interceptor.Commands)}");
 
         // The query count is bounded by budget (measured at 5-10 commands depending on EF Core collection splitting)
         Assert.True(countN <= ExpectedMaxSqlCommandCount,
@@ -178,7 +185,7 @@ public class TestingWorkspacePerformancePostgresIntegrationTests
     }
 
     [PostgresFact]
-    public async Task GetActiveSamples_WorkGrowsLinearlyNotQuadratically_UnderDataScaling()
+    public async Task GetActiveSamples_PageTime_DoesNotGrowWithTotalData()
     {
         await using var db = _fixture.CreateDbContext();
 
@@ -189,51 +196,44 @@ public class TestingWorkspacePerformancePostgresIntegrationTests
         await SeedSamplesBulkAsync(db, BaseSampleCountN, startIndex: 1, batchTag: "LN_N", causeId, itemId);
 
         var service = new TestingWorkspaceService(db, new UserSectionScopeService(db));
+        var firstPage = new TestingWorkspaceFilterDto { Page = 1, PageSize = ScalingPageSize };
 
         // Discard warm-up call before timing (warms EF Core query compilation, model caches, connection pool)
-        var warmupResult = await service.GetActiveSamplesAsync();
-        Assert.Equal(BaseSampleCountN, warmupResult.Count);
+        var warmupResult = await service.GetActiveSamplesAsync(firstPage);
+        Assert.Equal(ScalingPageSize, warmupResult.Items.Count);
 
-        // Measure time at N (take best of 3 passes to filter out transient GC/runner jitter)
-        long elapsedN = long.MaxValue;
-        for (int i = 0; i < 3; i++)
+        double timeN = await BestPageTimeMsAsync(service, firstPage, BaseSampleCountN);
+
+        // 2. Seed remaining up to 8N samples
+        int additionalSamples = ScaledSampleCount8N - BaseSampleCountN;
+        await SeedSamplesBulkAsync(db, additionalSamples, startIndex: BaseSampleCountN + 1, batchTag: "LN_8N", causeId, itemId);
+
+        double time8N = await BestPageTimeMsAsync(service, firstPage, ScaledSampleCount8N);
+
+        double ratio = time8N / timeN;
+
+        _output.WriteLine($"[Page Time Budget] page of {ScalingPageSize} at N={BaseSampleCountN}: {timeN:F1} ms | at 8N={ScaledSampleCount8N}: {time8N:F1} ms | Ratio: {ratio:F2}x (Budget: < {MaxPageTimeGrowthRatio:F1}x)");
+
+        Assert.True(ratio < MaxPageTimeGrowthRatio,
+            $"Reading one page of {ScalingPageSize} got slower as the table grew: time(8N)={time8N:F1}ms / time(N)={timeN:F1}ms = {ratio:F2}x, " +
+            $"which exceeds the budget of {MaxPageTimeGrowthRatio:F1}x (a fixed page predicts ~1x, work over every sample ~8x). " +
+            "Likely regression: the request maps or loads the whole table instead of the page.");
+    }
+
+    // Best of 5 passes filters out transient GC/runner jitter.
+    private static async Task<double> BestPageTimeMsAsync(TestingWorkspaceService service, TestingWorkspaceFilterDto filter, int expectedTotal)
+    {
+        double best = double.MaxValue;
+        for (int i = 0; i < 5; i++)
         {
             var sw = Stopwatch.StartNew();
-            var res = await service.GetActiveSamplesAsync();
+            var res = await service.GetActiveSamplesAsync(filter);
             sw.Stop();
-            Assert.Equal(BaseSampleCountN, res.Count);
-            if (sw.ElapsedMilliseconds < elapsedN)
-                elapsedN = sw.ElapsedMilliseconds;
+            Assert.Equal(ScalingPageSize, res.Items.Count);
+            Assert.Equal(expectedTotal, res.TotalCount);
+            best = Math.Min(best, sw.Elapsed.TotalMilliseconds);
         }
-
-        // 2. Seed remaining up to 4N samples
-        int additionalSamples = ScaledSampleCount4N - BaseSampleCountN;
-        await SeedSamplesBulkAsync(db, additionalSamples, startIndex: BaseSampleCountN + 1, batchTag: "LN_4N", causeId, itemId);
-
-        // Measure time at 4N (best of 3 passes)
-        long elapsed4N = long.MaxValue;
-        for (int i = 0; i < 3; i++)
-        {
-            var sw = Stopwatch.StartNew();
-            var res = await service.GetActiveSamplesAsync();
-            sw.Stop();
-            Assert.Equal(ScaledSampleCount4N, res.Count);
-            if (sw.ElapsedMilliseconds < elapsed4N)
-                elapsed4N = sw.ElapsedMilliseconds;
-        }
-
-        // Prevent division by zero if elapsed time is sub-millisecond
-        double timeN = Math.Max(elapsedN, 1);
-        double time4N = Math.Max(elapsed4N, 1);
-        double ratio = time4N / timeN;
-
-        _output.WriteLine($"[Linear Scaling Budget] N={BaseSampleCountN}: {timeN} ms | 4N={ScaledSampleCount4N}: {time4N} ms | Ratio: {ratio:F2}x (Budget: < {MaxLinearGrowthRatio:F1}x)");
-
-        // Primary Assertion: Ratio must be well under quadratic (8.0x budget vs 16.0x quadratic)
-        Assert.True(ratio < MaxLinearGrowthRatio,
-            $"Execution time scaled quadratically: time(4N)={time4N}ms / time(N)={timeN}ms = {ratio:F2}x, " +
-            $"which exceeds the performance budget ratio of {MaxLinearGrowthRatio:F1}x (linear predicts ~4.0x, " +
-            "quadratic predicts ~16.0x). Likely regression: ToDto incubation comparison nested loop reintroduced.");
+        return Math.Max(best, 0.1);
     }
 
     private static async Task CleanUpSamplesAsync(MicroLimsDbContext db)
@@ -301,6 +301,13 @@ public class TestingWorkspacePerformancePostgresIntegrationTests
         return (cause.Id, item.Id);
     }
 
+    // Seeds `count` samples, each with TestOrdersPerSample test orders (one location
+    // and IncubationsPerTestOrder incubations per order), in ONE set-based statement.
+    //
+    // Building the same graph through EF Core meant change-tracking and inserting
+    // ~10,000 entities per 600-sample run, which dominated this class's runtime.
+    // The chained data-modifying CTEs let PostgreSQL generate the rows and wire the
+    // foreign keys itself; the values match what the EF graph used to write.
     private async Task SeedSamplesBulkAsync(
         MicroLimsDbContext db,
         int count,
@@ -311,72 +318,44 @@ public class TestingWorkspacePerformancePostgresIntegrationTests
     {
         var testCodes = new[] { "TAMC", "TYMC", "EC", "SA" };
         var baseTime = DateTime.UtcNow;
-        var samples = new List<Sample>(count);
-        var microSectionId = (await db.DocumentSections.FirstAsync(s => s.Code == "MICRO")).Id;
+        int endIndex = startIndex + count - 1;
+        int lastTestOrderSlot = TestOrdersPerSample - 1;
+        int userId = _fixture.SeededUserId;
+        // Every test order belongs to a laboratory section (lab separation).
+        int microSectionId = (await db.DocumentSections.FirstAsync(s => s.Code == "MICRO")).Id;
 
-        for (int i = 0; i < count; i++)
-        {
-            int index = startIndex + i;
-            var sample = new Sample
-            {
-                ReferenceNumber = $"FP-{batchTag}-{index:D5}",
-                ControlNumber = $"CTRL-{batchTag}-{index:D5}",
-                Category = SampleCategory.FinishedProduct,
-                Status = SampleStatus.Received,
-                PreparationStatus = SamplePreparationStatus.Ready,
-                ReceivedByUserId = _fixture.SeededUserId,
-                CauseOfTestingId = causeId,
-                ItemId = itemId,
-                ReceivedAt = baseTime.AddMinutes(-index),
-                SampledBy = "Performance Benchmark Sampler"
-            };
-
-            for (int t = 0; t < TestOrdersPerSample; t++)
-            {
-                var testOrder = new TestOrder
-                {
-                    Sample = sample,
-                    TestCode = testCodes[t % testCodes.Length],
-                    Status = ApprovalStatus.InProgress,
-                    CurrentStep = WorkflowStep.Incubating,
-                    AssignedAnalystId = _fixture.SeededUserId,
-                    SectionId = microSectionId
-                };
-
-                for (int inc = 1; inc <= IncubationsPerTestOrder; inc++)
-                {
-                    var incubation = new Incubation
-                    {
-                        TestOrder = testOrder,
-                        StepNumber = inc,
-                        StepName = inc == 1 ? "Enrichment TSB" : "Subculture",
-                        StartedAt = baseTime.AddHours(-12 * inc),
-                        IncubationStartUtc = baseTime.AddHours(-12 * inc),
-                        IncubationEndUtc = baseTime.AddHours(12 * inc),
-                        ExpectedReadingAt = baseTime.AddHours(12 * inc),
-                        StartedByUserId = _fixture.SeededUserId,
-                        StageNumber = 1
-                    };
-                    testOrder.Incubations.Add(incubation);
-                }
-
-                var location = new SampleLocation
-                {
-                    Sample = sample,
-                    TestOrder = testOrder,
-                    LocationType = LocationType.Room,
-                    DilutionFactor = 1.0m
-                };
-                sample.Locations.Add(location);
-
-                sample.TestOrders.Add(testOrder);
-            }
-
-            samples.Add(sample);
-        }
-
-        db.Samples.AddRange(samples);
-        await db.SaveChangesAsync();
+        await db.Database.ExecuteSqlAsync($"""
+            WITH seeded_samples AS (
+                INSERT INTO "Samples" ("ReferenceNumber", "ControlNumber", "Category", "Status", "PreparationStatus",
+                                       "ReceivedByUserId", "CauseOfTestingId", "ItemId", "ReceivedAt", "SampledBy")
+                SELECT 'FP-' || {batchTag} || '-' || lpad(g::text, 5, '0'),
+                       'CTRL-' || {batchTag} || '-' || lpad(g::text, 5, '0'),
+                       {(int)SampleCategory.FinishedProduct}, {(int)SampleStatus.Received}, {(int)SamplePreparationStatus.Ready},
+                       {userId}, {causeId}, {itemId}, {baseTime} - make_interval(mins => g),
+                       'Performance Benchmark Sampler'
+                FROM generate_series({startIndex}, {endIndex}) AS g
+                RETURNING "Id"
+            ),
+            seeded_orders AS (
+                INSERT INTO "TestOrders" ("SampleId", "TestCode", "Status", "CurrentStep", "AssignedAnalystId", "SectionId")
+                SELECT s."Id", ({testCodes})[t % {testCodes.Length} + 1],
+                       {(int)ApprovalStatus.InProgress}, {(int)WorkflowStep.Incubating}, {userId}, {microSectionId}
+                FROM seeded_samples s CROSS JOIN generate_series(0, {lastTestOrderSlot}) AS t
+                RETURNING "Id", "SampleId"
+            ),
+            seeded_incubations AS (
+                INSERT INTO "Incubations" ("TestOrderId", "StepNumber", "StepName", "StartedAt", "IncubationStartUtc",
+                                           "IncubationEndUtc", "ExpectedReadingAt", "StartedByUserId", "StageNumber")
+                SELECT o."Id", inc, CASE WHEN inc = 1 THEN 'Enrichment TSB' ELSE 'Subculture' END,
+                       {baseTime} - make_interval(hours => 12 * inc), {baseTime} - make_interval(hours => 12 * inc),
+                       {baseTime} + make_interval(hours => 12 * inc), {baseTime} + make_interval(hours => 12 * inc),
+                       {userId}, 1
+                FROM seeded_orders o CROSS JOIN generate_series(1, {IncubationsPerTestOrder}) AS inc
+            )
+            INSERT INTO "SampleLocations" ("SampleId", "TestOrderId", "LocationType", "DilutionFactor")
+            SELECT o."SampleId", o."Id", {(int)LocationType.Room}, 1.0
+            FROM seeded_orders o
+            """);
     }
 
     private sealed class SqlCommandCountingInterceptor : DbCommandInterceptor

@@ -38,7 +38,7 @@ public class SamplePreparationTests
             Username = $"user{id}",
             FullName = name,
             RoleId = role.Id,
-            PasswordHash = BCrypt.Net.BCrypt.HashPassword(Password),
+            PasswordHash = TestPasswords.Hash(Password),
             IsActive = true
         };
     }

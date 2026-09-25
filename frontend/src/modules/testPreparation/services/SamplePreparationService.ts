@@ -65,11 +65,6 @@ export interface BatchConfirmPreparationResponse {
 }
 
 export const SamplePreparationService = {
-  getNeedsPreparation: () => apiClient.get("/testorders").then((r) =>
-    r.data.data.filter((s: any) =>
-      ["FinishedProduct", "RawMaterial", "PackagingMaterial", "Water"].includes(s.category) &&
-      s.preparationStatus === "NeedsPreparation")),
-
   // Manual entry - only reachable when the item has no configuration yet.
   // These values also become that item's standing configuration.
   prepare: (payload: {

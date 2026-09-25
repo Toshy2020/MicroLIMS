@@ -3311,7 +3311,8 @@ namespace MicroLIMS.Persistence.Migrations
 
                     b.HasIndex("TestOrderId");
 
-                    b.HasIndex("SampleLocationId", "TestOrderId");
+                    b.HasIndex("SampleLocationId", "TestOrderId")
+                        .IsUnique();
 
                     b.ToTable("LocationPathogenObservations");
                 });

@@ -71,11 +71,6 @@ export const ReceiveService = {
   receiveAfterCleaning: (r: AfterCleaningReceiveRequest) =>
     apiClient.post("/aftercleaning/receive", r).then((res) => res.data.data),
 
-  async getRecords(): Promise<SampleRecord[]> {
-    const res = await apiClient.get("/testorders");
-    return res.data.data;
-  },
-
   async getRecordsPaged(filter: TestingWorkspaceFilter = {}): Promise<PagedResult<SampleRecord>> {
     const params: Record<string, string | number> = {};
     if (filter.search?.trim()) params.search = filter.search.trim();

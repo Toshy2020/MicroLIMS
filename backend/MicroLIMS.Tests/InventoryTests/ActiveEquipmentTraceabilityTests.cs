@@ -18,6 +18,11 @@ public class ActiveEquipmentTraceabilityTests
 
         if (!db.Users.Any())
         {
+            // System Administrator (unrestricted scope) - these tests
+            // exercise incubation/media/cryovial traceability across
+            // equipment, not lab scoping, and the equipment rows here are
+            // seeded directly without a SectionId.
+            db.Roles.Add(new Role { Id = 1, Name = "System Administrator", Type = RoleType.SystemAdministrator, IsActive = true });
             db.Users.Add(new User
             {
                 Id = 1,
@@ -51,8 +56,8 @@ public class ActiveEquipmentTraceabilityTests
         });
         await db.SaveChangesAsync();
 
-        var service = new EquipmentInventoryService(db);
-        var activeList = await service.GetActiveEquipmentAsync();
+        var service = new EquipmentInventoryService(db, new UserSectionScopeService(db));
+        var activeList = await service.GetActiveEquipmentAsync(null);
 
         var entry = Assert.Single(activeList, e => e.Code == "INC-EMPTY-01");
         Assert.Equal(0, entry.ActiveItemCount);
@@ -92,8 +97,8 @@ public class ActiveEquipmentTraceabilityTests
         });
         await db.SaveChangesAsync();
 
-        var service = new EquipmentInventoryService(db);
-        var activeList = await service.GetActiveEquipmentAsync();
+        var service = new EquipmentInventoryService(db, new UserSectionScopeService(db));
+        var activeList = await service.GetActiveEquipmentAsync(null);
 
         var activeEq = Assert.Single(activeList, e => e.Code == "INC-F-ML-F-01-002");
         Assert.Equal(1, activeEq.ActiveItemCount);
@@ -137,13 +142,13 @@ public class ActiveEquipmentTraceabilityTests
         }
         await db.SaveChangesAsync();
 
-        var service = new EquipmentInventoryService(db);
-        var activeList = await service.GetActiveEquipmentAsync();
+        var service = new EquipmentInventoryService(db, new UserSectionScopeService(db));
+        var activeList = await service.GetActiveEquipmentAsync(null);
 
         var activeEq = Assert.Single(activeList, e => e.Code == "INC-MULTI-01");
         Assert.Equal(4, activeEq.ActiveItemCount);
 
-        var currentActivities = await service.GetActiveActivitiesForEquipmentAsync(2);
+        var currentActivities = await service.GetActiveActivitiesForEquipmentAsync(2, 1);
         Assert.Equal(4, currentActivities.Count);
         Assert.All(currentActivities, a => Assert.Equal("Sara Ahmed", a.StartedBy));
     }
@@ -179,13 +184,13 @@ public class ActiveEquipmentTraceabilityTests
         });
         await db.SaveChangesAsync();
 
-        var service = new EquipmentInventoryService(db);
-        var activeList = await service.GetActiveEquipmentAsync();
+        var service = new EquipmentInventoryService(db, new UserSectionScopeService(db));
+        var activeList = await service.GetActiveEquipmentAsync(null);
 
         var activeEq = Assert.Single(activeList, e => e.Code == "REF-F-ML-F-01-001");
         Assert.Equal("Media Storage", activeEq.PrimaryActivityCategory);
 
-        var activities = await service.GetActiveActivitiesForEquipmentAsync(3);
+        var activities = await service.GetActiveActivitiesForEquipmentAsync(3, 1);
         var act = Assert.Single(activities);
         Assert.Equal("Media Storage", act.ActivityType);
         Assert.Equal("TSB/08/26", act.ItemCode);
@@ -226,13 +231,13 @@ public class ActiveEquipmentTraceabilityTests
         });
         await db.SaveChangesAsync();
 
-        var service = new EquipmentInventoryService(db);
-        var activeList = await service.GetActiveEquipmentAsync();
+        var service = new EquipmentInventoryService(db, new UserSectionScopeService(db));
+        var activeList = await service.GetActiveEquipmentAsync(null);
 
         var activeEq = Assert.Single(activeList, e => e.Code == "COD-F-ML-D-06-071");
         Assert.Equal("Cryovial Storage", activeEq.PrimaryActivityCategory);
 
-        var activities = await service.GetActiveActivitiesForEquipmentAsync(4);
+        var activities = await service.GetActiveActivitiesForEquipmentAsync(4, 1);
         var act = Assert.Single(activities);
         Assert.Equal("Cryovial Storage", act.ActivityType);
         Assert.Equal("CRYO-SA-08-26", act.ItemCode);
@@ -273,10 +278,10 @@ public class ActiveEquipmentTraceabilityTests
         db.Incubations.Add(inc);
         await db.SaveChangesAsync();
 
-        var service = new EquipmentInventoryService(db);
+        var service = new EquipmentInventoryService(db, new UserSectionScopeService(db));
 
         // Before completion:
-        var currentBefore = await service.GetActiveActivitiesForEquipmentAsync(5);
+        var currentBefore = await service.GetActiveActivitiesForEquipmentAsync(5, 1);
         Assert.Single(currentBefore);
 
         // Complete incubation:
@@ -285,11 +290,11 @@ public class ActiveEquipmentTraceabilityTests
         await db.SaveChangesAsync();
 
         // After completion:
-        var currentAfter = await service.GetActiveActivitiesForEquipmentAsync(5);
+        var currentAfter = await service.GetActiveActivitiesForEquipmentAsync(5, 1);
         Assert.Empty(currentAfter);
 
         // Exists in history:
-        var history = await service.GetHistoricalActivitiesForEquipmentAsync(5);
+        var history = await service.GetHistoricalActivitiesForEquipmentAsync(5, 1);
         Assert.Single(history);
         Assert.Equal("Sara Ahmed", history[0].StartedBy);
     }
@@ -345,8 +350,8 @@ public class ActiveEquipmentTraceabilityTests
         });
         await db.SaveChangesAsync();
 
-        var service = new EquipmentInventoryService(db);
-        var result = await service.WhereIsItAsync("PT-0021");
+        var service = new EquipmentInventoryService(db, new UserSectionScopeService(db));
+        var result = await service.WhereIsItAsync("PT-0021", null);
 
         Assert.Equal("PT-0021", result.SearchTerm);
         Assert.NotNull(result.CurrentActivity);
@@ -396,10 +401,10 @@ public class ActiveEquipmentTraceabilityTests
         );
         await db.SaveChangesAsync();
 
-        var service = new EquipmentInventoryService(db);
+        var service = new EquipmentInventoryService(db, new UserSectionScopeService(db));
 
         var searchFiltered = await service.GetHistoricalActivitiesForEquipmentAsync(
-            7, fromDate: new DateTime(2026, 8, 17), toDate: new DateTime(2026, 8, 20));
+            7, 1, fromDate: new DateTime(2026, 8, 17), toDate: new DateTime(2026, 8, 20));
 
         var act = Assert.Single(searchFiltered);
         Assert.Equal("Test B", act.ItemName);
@@ -459,16 +464,16 @@ public class ActiveEquipmentTraceabilityTests
         });
         await db.SaveChangesAsync();
 
-        var service = new EquipmentInventoryService(db);
+        var service = new EquipmentInventoryService(db, new UserSectionScopeService(db));
 
-        var activeEq = await service.GetActiveEquipmentAsync();
+        var activeEq = await service.GetActiveEquipmentAsync(null);
         var inc008 = Assert.Single(activeEq, e => e.Code == "INC-008");
         Assert.Equal(0, inc008.ActiveItemCount);
 
-        var activeActivities = await service.GetActiveActivitiesForEquipmentAsync(8);
+        var activeActivities = await service.GetActiveActivitiesForEquipmentAsync(8, 1);
         Assert.Empty(activeActivities);
 
-        var history = await service.GetHistoricalActivitiesForEquipmentAsync(8);
+        var history = await service.GetHistoricalActivitiesForEquipmentAsync(8, 1);
         var histItem = Assert.Single(history);
         Assert.False(histItem.IsActive);
         Assert.NotNull(histItem.CompletedOn);
@@ -590,10 +595,10 @@ public class ActiveEquipmentTraceabilityTests
 
         await db.SaveChangesAsync();
 
-        var service = new EquipmentInventoryService(db);
+        var service = new EquipmentInventoryService(db, new UserSectionScopeService(db));
 
         // 1. Check Active Equipment Counts
-        var activeEquipment = await service.GetActiveEquipmentAsync();
+        var activeEquipment = await service.GetActiveEquipmentAsync(null);
 
         var inc003 = Assert.Single(activeEquipment, e => e.Code == "INC-F-ML-F-01-003");
         var inc007 = Assert.Single(activeEquipment, e => e.Code == "INC-F-ML-F-01-007");
@@ -611,35 +616,35 @@ public class ActiveEquipmentTraceabilityTests
         Assert.Equal(0, autoclave.ActiveItemCount);
 
         // 2. Check Active Activities per Equipment
-        var inc003Activities = await service.GetActiveActivitiesForEquipmentAsync(1); // eq.Id = 1
+        var inc003Activities = await service.GetActiveActivitiesForEquipmentAsync(1, 1); // eq.Id = 1
         Assert.Equal(2, inc003Activities.Count);
         Assert.Contains(inc003Activities, a => a.ItemCode == "FP0926006" && a.ActivityType == "Media Incubation");
         Assert.Contains(inc003Activities, a => a.ItemCode == "FP0926007" && a.ActivityType == "Media Incubation");
 
-        var inc007Activities = await service.GetActiveActivitiesForEquipmentAsync(3); // eq.Id = 3
+        var inc007Activities = await service.GetActiveActivitiesForEquipmentAsync(3, 1); // eq.Id = 3
         Assert.Single(inc007Activities);
         Assert.Equal("FP0926008", inc007Activities[0].ItemCode);
         // Crucial: TestOrders 303 and 309 must NOT appear in INC-F-ML-F-01-007!
         Assert.DoesNotContain(inc007Activities, a => a.ItemCode == "FP0926006");
         Assert.DoesNotContain(inc007Activities, a => a.ItemCode == "FP0926007");
 
-        var autoclaveActivities = await service.GetActiveActivitiesForEquipmentAsync(6); // eq.Id = 6
+        var autoclaveActivities = await service.GetActiveActivitiesForEquipmentAsync(6, 1); // eq.Id = 6
         Assert.Empty(autoclaveActivities);
 
         // 3. Check "Where Is It?" resolution
-        var whereResult303 = await service.WhereIsItAsync("FP0926006");
+        var whereResult303 = await service.WhereIsItAsync("FP0926006", null);
         Assert.Equal("INC-F-ML-F-01-003", whereResult303.CurrentEquipmentCode);
         Assert.Equal("Incubator", whereResult303.CurrentEquipmentName);
         Assert.NotNull(whereResult303.CurrentActivity);
 
-        var whereResult290 = await service.WhereIsItAsync("FP0926008");
+        var whereResult290 = await service.WhereIsItAsync("FP0926008", null);
         Assert.Equal("INC-F-ML-F-01-007", whereResult290.CurrentEquipmentCode);
 
         // 4. Check Historical Activities
-        var history003 = await service.GetHistoricalActivitiesForEquipmentAsync(1); // eq.Id = 1 -> Master 3
+        var history003 = await service.GetHistoricalActivitiesForEquipmentAsync(1, 1); // eq.Id = 1 -> Master 3
         Assert.Equal(2, history003.Count);
 
-        var history007 = await service.GetHistoricalActivitiesForEquipmentAsync(3); // eq.Id = 3 -> Master 5
+        var history007 = await service.GetHistoricalActivitiesForEquipmentAsync(3, 1); // eq.Id = 3 -> Master 5
         Assert.Single(history007);
         Assert.DoesNotContain(history007, a => a.ItemCode == "FP0926006");
         Assert.DoesNotContain(history007, a => a.ItemCode == "FP0926007");

@@ -319,6 +319,28 @@ public class UserSectionScopeService : IUserSectionScopeService
         }
     }
 
+    public async Task EnsureEquipmentInventoryAccessAsync(int userId, int inventoryId, CancellationToken ct = default)
+    {
+        var scope = await GetAccessibleSectionIdsAsync(userId, ct);
+        if (scope is null) return;
+
+        var found = await _db.EquipmentInventories
+            .AsNoTracking()
+            .Where(e => e.Id == inventoryId)
+            .Select(e => new { e.SectionId })
+            .FirstOrDefaultAsync(ct);
+
+        if (found is null) return; // not found - left to the caller's own not-found handling
+
+        // Legacy rows with SectionId null are visible only to a System
+        // Administrator (scope == null, already returned above) until
+        // someone assigns them a laboratory.
+        if (found.SectionId is null || !scope.Contains(found.SectionId.Value))
+        {
+            throw new UnauthorizedAccessException("This equipment belongs to a laboratory section you are not assigned to.");
+        }
+    }
+
     public async Task EnsureColumnAccessAsync(int userId, int columnId, CancellationToken ct = default)
     {
         var scope = await GetAccessibleSectionIdsAsync(userId, ct);

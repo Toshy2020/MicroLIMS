@@ -29,6 +29,11 @@ public class EquipmentInventory
     public DateTime? CalibrationDueDate { get; set; }
     public EquipmentOperationalStatus Status { get; set; } = EquipmentOperationalStatus.InService;
 
+    // Owning laboratory - every asset belongs to exactly one. Nullable only
+    // until legacy rows are assigned.
+    public int? SectionId { get; set; }
+    public DocumentSection? Section { get; set; }
+
     public int CreatedByUserId { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public int LastModifiedByUserId { get; set; }

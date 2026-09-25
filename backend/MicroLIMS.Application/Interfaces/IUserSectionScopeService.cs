@@ -17,6 +17,10 @@ public interface IUserSectionScopeService
     Task EnsureMediaEvaluationAccessAsync(int userId, int evaluationId, CancellationToken ct = default);
     Task EnsureMediaEvaluationChallengeAccessAsync(int userId, int challengeId, CancellationToken ct = default);
     Task EnsureEquipmentAccessAsync(int userId, int equipmentId, CancellationToken ct = default);
+    // The asset register (EquipmentInventory) is a separate entity from the
+    // Equipment master list above - keep the two Ensure*AccessAsync guards
+    // separate even though their bodies look alike.
+    Task EnsureEquipmentInventoryAccessAsync(int userId, int inventoryId, CancellationToken ct = default);
     Task EnsureColumnAccessAsync(int userId, int columnId, CancellationToken ct = default);
     Task EnsureSuitabilityRunAccessAsync(int userId, int runId, CancellationToken ct = default);
     Task EnsureCalibrationRunAccessAsync(int userId, int runId, CancellationToken ct = default);

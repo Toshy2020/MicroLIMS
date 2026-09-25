@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Persistence.DbContext;
@@ -14,7 +15,8 @@ public record SaveEquipmentInventoryRequest(
     string Location,
     DateTime? CalibrationDueDate,
     EquipmentOperationalStatus Status,
-    string? StatusChangeComment = null);
+    string? StatusChangeComment = null,
+    int? SectionId = null);
 
 public record EquipmentStatusHistoryDto(
     int Id,
@@ -72,28 +74,61 @@ public record WhereIsItResultDto(
 public class EquipmentInventoryService
 {
     private readonly MicroLimsDbContext _db;
+    private readonly IUserSectionScopeService _scope;
 
-    public EquipmentInventoryService(MicroLimsDbContext db)
+    public EquipmentInventoryService(MicroLimsDbContext db, IUserSectionScopeService scope)
     {
         _db = db;
+        _scope = scope;
     }
 
-    public async Task<List<EquipmentInventory>> GetAllAsync() =>
-        await _db.EquipmentInventories.OrderBy(e => e.InstrumentType).ThenBy(e => e.Code).ToListAsync();
+    public async Task<List<EquipmentInventory>> GetAllAsync(IReadOnlyList<int>? scope) =>
+        await _db.EquipmentInventories
+            .Where(e => scope == null || (e.SectionId != null && scope.Contains(e.SectionId.Value)))
+            .OrderBy(e => e.InstrumentType).ThenBy(e => e.Code).ToListAsync();
 
-    public async Task<EquipmentInventory?> GetByIdAsync(int id) =>
-        await _db.EquipmentInventories.FirstOrDefaultAsync(e => e.Id == id);
+    public async Task<EquipmentInventory?> GetByIdAsync(int id, int userId)
+    {
+        await _scope.EnsureEquipmentInventoryAccessAsync(userId, id);
+        return await _db.EquipmentInventories.FirstOrDefaultAsync(e => e.Id == id);
+    }
 
-    public async Task<List<EquipmentInventory>> GetForPrintAsync() =>
+    public async Task<List<EquipmentInventory>> GetForPrintAsync(IReadOnlyList<int>? scope) =>
         await _db.EquipmentInventories
             .Where(e => e.Status == EquipmentOperationalStatus.InService)
+            .Where(e => scope == null || (e.SectionId != null && scope.Contains(e.SectionId.Value)))
             .OrderBy(e => e.InstrumentType).ThenBy(e => e.Code)
             .ToListAsync();
+
+    // Missing -> the caller forgot to choose a lab (a data problem, same
+    // family as "Code is required"). Out-of-scope -> the caller tried to
+    // file this asset under a lab they don't belong to (an authorization
+    // problem) - that split is why this doesn't just reuse
+    // IUserSectionScopeService.ResolveSectionForCreateAsync, which throws
+    // InvalidOperationException for both cases.
+    private async Task<int> ResolveInventorySectionAsync(int userId, int? requestedSectionId)
+    {
+        if (!requestedSectionId.HasValue)
+            throw new InvalidOperationException("Choose the laboratory this asset belongs to.");
+
+        var sectionId = requestedSectionId.Value;
+        var existsAndActive = await _db.DocumentSections.AnyAsync(s => s.Id == sectionId && s.IsActive);
+        if (!existsAndActive)
+            throw new InvalidOperationException("Selected laboratory section was not found or is inactive.");
+
+        var scope = await _scope.GetAccessibleSectionIdsAsync(userId);
+        if (scope != null && !scope.Contains(sectionId))
+            throw new UnauthorizedAccessException("This equipment belongs to a laboratory section you are not assigned to.");
+
+        return sectionId;
+    }
 
     public async Task<EquipmentInventory> CreateAsync(SaveEquipmentInventoryRequest r, int currentUserId)
     {
         if (await _db.EquipmentInventories.AnyAsync(e => e.Code == r.Code))
             throw new InvalidOperationException($"Equipment code \"{r.Code}\" already exists.");
+
+        var sectionId = await ResolveInventorySectionAsync(currentUserId, r.SectionId);
 
         var entity = new EquipmentInventory
         {
@@ -105,6 +140,7 @@ public class EquipmentInventoryService
             Location = r.Location,
             CalibrationDueDate = r.CalibrationDueDate,
             Status = r.Status,
+            SectionId = sectionId,
             CreatedByUserId = currentUserId,
             CreatedAt = DateTime.UtcNow,
             LastModifiedByUserId = currentUserId,
@@ -117,11 +153,15 @@ public class EquipmentInventoryService
 
     public async Task UpdateAsync(int id, SaveEquipmentInventoryRequest r, int currentUserId)
     {
+        await _scope.EnsureEquipmentInventoryAccessAsync(currentUserId, id);
+
         var entity = await _db.EquipmentInventories.FindAsync(id)
             ?? throw new InvalidOperationException($"Equipment {id} not found.");
 
         if (r.Code != entity.Code && await _db.EquipmentInventories.AnyAsync(e => e.Code == r.Code))
             throw new InvalidOperationException($"Equipment code \"{r.Code}\" already exists.");
+
+        var sectionId = await ResolveInventorySectionAsync(currentUserId, r.SectionId);
 
         if (r.Status != entity.Status)
         {
@@ -148,14 +188,17 @@ public class EquipmentInventoryService
         entity.Code = r.Code;
         entity.Location = r.Location;
         entity.CalibrationDueDate = r.CalibrationDueDate;
+        entity.SectionId = sectionId;
         entity.LastModifiedByUserId = currentUserId;
         entity.LastModifiedAt = DateTime.UtcNow;
 
         await _db.SaveChangesAsync();
     }
 
-    public async Task<List<EquipmentStatusHistoryDto>> GetStatusHistoryAsync(int equipmentId)
+    public async Task<List<EquipmentStatusHistoryDto>> GetStatusHistoryAsync(int equipmentId, int userId)
     {
+        await _scope.EnsureEquipmentInventoryAccessAsync(userId, equipmentId);
+
         var equipmentExists = await _db.EquipmentInventories.AnyAsync(e => e.Id == equipmentId);
         if (!equipmentExists)
             throw new InvalidOperationException($"Equipment {equipmentId} not found.");
@@ -189,9 +232,11 @@ public class EquipmentInventoryService
     // active right now - so an idle incubator (nothing currently
     // incubating in it) stays selectable for its traceability history
     // instead of vanishing from the panel entirely.
-    public async Task<List<ActiveEquipmentItemDto>> GetActiveEquipmentAsync()
+    public async Task<List<ActiveEquipmentItemDto>> GetActiveEquipmentAsync(IReadOnlyList<int>? scope)
     {
-        var allEquipment = await _db.EquipmentInventories.ToListAsync();
+        var allEquipment = await _db.EquipmentInventories
+            .Where(e => scope == null || (e.SectionId != null && scope.Contains(e.SectionId.Value)))
+            .ToListAsync();
         var masterEquipment = await _db.Equipment.ToListAsync();
 
         var activeList = new List<ActiveEquipmentItemDto>();
@@ -224,16 +269,20 @@ public class EquipmentInventoryService
             .ThenBy(e => e.InstrumentType).ThenBy(e => e.Code).ToList();
     }
 
-    public async Task<List<EquipmentActivityDto>> GetActiveActivitiesForEquipmentAsync(int equipmentId)
+    public async Task<List<EquipmentActivityDto>> GetActiveActivitiesForEquipmentAsync(int equipmentId, int userId)
     {
+        await _scope.EnsureEquipmentInventoryAccessAsync(userId, equipmentId);
+
         var eq = await _db.EquipmentInventories.FirstOrDefaultAsync(e => e.Id == equipmentId)
             ?? throw new InvalidOperationException($"Equipment {equipmentId} not found.");
         var masterEquipment = await _db.Equipment.ToListAsync();
         return await GetActiveActivitiesForEquipmentInternalAsync(eq, masterEquipment);
     }
 
-    public async Task<List<EquipmentActivityDto>> GetHistoricalActivitiesForEquipmentAsync(int equipmentId, string? itemCode = null, DateTime? fromDate = null, DateTime? toDate = null)
+    public async Task<List<EquipmentActivityDto>> GetHistoricalActivitiesForEquipmentAsync(int equipmentId, int userId, string? itemCode = null, DateTime? fromDate = null, DateTime? toDate = null)
     {
+        await _scope.EnsureEquipmentInventoryAccessAsync(userId, equipmentId);
+
         var eq = await _db.EquipmentInventories.FirstOrDefaultAsync(e => e.Id == equipmentId)
             ?? throw new InvalidOperationException($"Equipment {equipmentId} not found.");
         var masterEquipment = await _db.Equipment.ToListAsync();
@@ -336,13 +385,20 @@ public class EquipmentInventoryService
         return queryable.OrderByDescending(a => a.StartedOn).ToList();
     }
 
-    public async Task<WhereIsItResultDto> WhereIsItAsync(string query)
+    // Scope only narrows which equipment identities this search can resolve
+    // a Code/InstrumentType against (an out-of-scope incubator falls back to
+    // its master-data name below) - it deliberately doesn't also filter the
+    // underlying sample/incubation search, since sample-level access is
+    // already governed by the sample/test-order scoping guards elsewhere.
+    public async Task<WhereIsItResultDto> WhereIsItAsync(string query, IReadOnlyList<int>? scope)
     {
         if (string.IsNullOrWhiteSpace(query))
             return new WhereIsItResultDto("", null, null, null, new List<HistoricalLocationDto>());
 
         var q = query.Trim().ToLower();
-        var allEquipment = await _db.EquipmentInventories.ToListAsync();
+        var allEquipment = await _db.EquipmentInventories
+            .Where(e => scope == null || (e.SectionId != null && scope.Contains(e.SectionId.Value)))
+            .ToListAsync();
         var masterEquipment = await _db.Equipment.ToListAsync();
 
         var historyList = new List<HistoricalLocationDto>();

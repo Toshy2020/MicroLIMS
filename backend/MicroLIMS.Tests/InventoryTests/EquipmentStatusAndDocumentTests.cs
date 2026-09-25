@@ -18,9 +18,13 @@ public class EquipmentStatusAndDocumentTests
             .Options;
         var db = new MicroLimsDbContext(options);
 
-        // Seed test user
+        // Seed test user as a System Administrator (unrestricted scope) -
+        // these tests exercise status/document traceability, not lab
+        // scoping, so the caller must see equipment regardless of
+        // SectionId (rows here are seeded without one).
         if (!db.Users.Any())
         {
+            db.Roles.Add(new Role { Id = 1, Name = "System Administrator", Type = RoleType.SystemAdministrator, IsActive = true });
             db.Users.Add(new User
             {
                 Id = 1,
@@ -48,6 +52,7 @@ public class EquipmentStatusAndDocumentTests
         EquipmentOperationalStatus status = EquipmentOperationalStatus.InService,
         string code = "INC-001")
     {
+        var section = TestServiceFactory.EnsureMicroSection(db);
         var eq = new EquipmentInventory
         {
             InstrumentType = "Incubator",
@@ -58,6 +63,7 @@ public class EquipmentStatusAndDocumentTests
             Location = "Microbiology Lab",
             CalibrationDueDate = DateTime.UtcNow.AddMonths(6),
             Status = status,
+            SectionId = section.Id,
             CreatedByUserId = 1,
             LastModifiedByUserId = 1
         };
@@ -81,12 +87,12 @@ public class EquipmentStatusAndDocumentTests
     {
         await using var db = NewDb();
         var eq = await SeedEquipment(db, EquipmentOperationalStatus.InService);
-        var service = new EquipmentInventoryService(db);
+        var service = new EquipmentInventoryService(db, new UserSectionScopeService(db));
 
         var request = new SaveEquipmentInventoryRequest(
             eq.InstrumentType, eq.ManufacturerName, eq.SerialNumber, eq.FirmwareVersion,
             eq.Code, eq.Location, eq.CalibrationDueDate, EquipmentOperationalStatus.OutOfService,
-            StatusChangeComment: "Sent to vendor for annual calibration and preventative maintenance.");
+            StatusChangeComment: "Sent to vendor for annual calibration and preventative maintenance.", SectionId: eq.SectionId);
 
         await service.UpdateAsync(eq.Id, request, 1);
 
@@ -94,7 +100,7 @@ public class EquipmentStatusAndDocumentTests
         Assert.NotNull(updated);
         Assert.Equal(EquipmentOperationalStatus.OutOfService, updated.Status);
 
-        var history = await service.GetStatusHistoryAsync(eq.Id);
+        var history = await service.GetStatusHistoryAsync(eq.Id, 1);
         Assert.Single(history);
         Assert.Equal(EquipmentOperationalStatus.InService, history[0].PreviousStatus);
         Assert.Equal(EquipmentOperationalStatus.OutOfService, history[0].NewStatus);
@@ -107,16 +113,16 @@ public class EquipmentStatusAndDocumentTests
     {
         await using var db = NewDb();
         var eq = await SeedEquipment(db, EquipmentOperationalStatus.OutOfService);
-        var service = new EquipmentInventoryService(db);
+        var service = new EquipmentInventoryService(db, new UserSectionScopeService(db));
 
         var request = new SaveEquipmentInventoryRequest(
             eq.InstrumentType, eq.ManufacturerName, eq.SerialNumber, eq.FirmwareVersion,
             eq.Code, eq.Location, eq.CalibrationDueDate, EquipmentOperationalStatus.InService,
-            StatusChangeComment: "Calibration completed and verified against certificate CAL-2026-044.");
+            StatusChangeComment: "Calibration completed and verified against certificate CAL-2026-044.", SectionId: eq.SectionId);
 
         await service.UpdateAsync(eq.Id, request, 1);
 
-        var history = await service.GetStatusHistoryAsync(eq.Id);
+        var history = await service.GetStatusHistoryAsync(eq.Id, 1);
         Assert.Single(history);
         Assert.Equal(EquipmentOperationalStatus.OutOfService, history[0].PreviousStatus);
         Assert.Equal(EquipmentOperationalStatus.InService, history[0].NewStatus);
@@ -127,12 +133,12 @@ public class EquipmentStatusAndDocumentTests
     {
         await using var db = NewDb();
         var eq = await SeedEquipment(db, EquipmentOperationalStatus.InService);
-        var service = new EquipmentInventoryService(db);
+        var service = new EquipmentInventoryService(db, new UserSectionScopeService(db));
 
         var request = new SaveEquipmentInventoryRequest(
             eq.InstrumentType, eq.ManufacturerName, eq.SerialNumber, eq.FirmwareVersion,
             eq.Code, eq.Location, eq.CalibrationDueDate, EquipmentOperationalStatus.OutOfService,
-            StatusChangeComment: null);
+            StatusChangeComment: null, SectionId: eq.SectionId);
 
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.UpdateAsync(eq.Id, request, 1));
         Assert.Contains("comment explaining the reason for changing the operational status is required", ex.Message);
@@ -143,12 +149,12 @@ public class EquipmentStatusAndDocumentTests
     {
         await using var db = NewDb();
         var eq = await SeedEquipment(db, EquipmentOperationalStatus.InService);
-        var service = new EquipmentInventoryService(db);
+        var service = new EquipmentInventoryService(db, new UserSectionScopeService(db));
 
         var request = new SaveEquipmentInventoryRequest(
             eq.InstrumentType, eq.ManufacturerName, eq.SerialNumber, eq.FirmwareVersion,
             eq.Code, eq.Location, eq.CalibrationDueDate, EquipmentOperationalStatus.Retired,
-            StatusChangeComment: "    \t  \n  ");
+            StatusChangeComment: "    \t  \n  ", SectionId: eq.SectionId);
 
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.UpdateAsync(eq.Id, request, 1));
         Assert.Contains("comment explaining the reason for changing the operational status is required", ex.Message);
@@ -159,12 +165,12 @@ public class EquipmentStatusAndDocumentTests
     {
         await using var db = NewDb();
         var eq = await SeedEquipment(db, EquipmentOperationalStatus.InService);
-        var service = new EquipmentInventoryService(db);
+        var service = new EquipmentInventoryService(db, new UserSectionScopeService(db));
 
         var request = new SaveEquipmentInventoryRequest(
             eq.InstrumentType, "Updated Manufacturer", eq.SerialNumber, "v2.0.0",
             eq.Code, "Updated Room 105", eq.CalibrationDueDate, EquipmentOperationalStatus.InService,
-            StatusChangeComment: null);
+            StatusChangeComment: null, SectionId: eq.SectionId);
 
         await service.UpdateAsync(eq.Id, request, 1);
 
@@ -173,7 +179,7 @@ public class EquipmentStatusAndDocumentTests
         Assert.Equal("Updated Manufacturer", updated.ManufacturerName);
         Assert.Equal("v2.0.0", updated.FirmwareVersion);
 
-        var history = await service.GetStatusHistoryAsync(eq.Id);
+        var history = await service.GetStatusHistoryAsync(eq.Id, 1);
         Assert.Empty(history);
     }
 
@@ -181,9 +187,9 @@ public class EquipmentStatusAndDocumentTests
     public async Task GetStatusHistory_NonExistentEquipment_ThrowsInvalidOperationException()
     {
         await using var db = NewDb();
-        var service = new EquipmentInventoryService(db);
+        var service = new EquipmentInventoryService(db, new UserSectionScopeService(db));
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => service.GetStatusHistoryAsync(99999));
+        await Assert.ThrowsAsync<InvalidOperationException>(() => service.GetStatusHistoryAsync(99999, 1));
     }
 
     // =========================================================================

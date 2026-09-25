@@ -103,8 +103,15 @@ export const ReceiveService = {
     return res.data.data;
   },
 
-  async getSample(sampleId: number): Promise<SampleRecord | null> {
-    const res = await apiClient.get(`/testorders/${sampleId}`);
+  // labSectionId narrows AssignedTests to that one lab, same as
+  // getRecordsPaged/getWorkloadCounts - a lab workspace must pass its own
+  // lab.sectionId here too, or a caller in both labs would see the other
+  // lab's tests on a card refreshed through this single-sample fetch
+  // (Task 13c).
+  async getSample(sampleId: number, labSectionId?: number | null): Promise<SampleRecord | null> {
+    const res = await apiClient.get(`/testorders/${sampleId}`, {
+      params: labSectionId != null ? { labSectionId } : undefined
+    });
     return res.data.data;
   },
 

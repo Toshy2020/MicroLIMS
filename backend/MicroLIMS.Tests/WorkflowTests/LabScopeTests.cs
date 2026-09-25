@@ -151,4 +151,89 @@ public class LabScopeTests
         var microCounts = await service.GetWorkloadCountsAsync(userId, micro.Id);
         Assert.Equal(1, microCounts.Mine);
     }
+
+    // Task 13c (controller ruling R9, from Task 13a's finding #3): a card
+    // refreshed inside a lab workspace via GET /testorders/{id} must not
+    // leak the caller's other lab's tests onto it - same narrowing as the
+    // paged list/counts above, applied to the single-sample fetch.
+    [Fact]
+    public async Task GetSampleAsync_UserInBothLabs_FilterByLabSectionId_ReturnsOnlyThatLabsAssignedTests()
+    {
+        await using var db = NewDb();
+        var micro = TestServiceFactory.EnsureMicroSection(db);
+        var fp = new DocumentSection { Name = "Finished Product Laboratory", Code = "FP", DepartmentId = micro.DepartmentId, IsActive = true };
+        db.DocumentSections.Add(fp);
+        await db.SaveChangesAsync();
+
+        var userId = await SeedUserAsync(db, 1, RoleType.Analyst, micro.DepartmentId, null);
+
+        var cause = new CauseOfTesting { Name = "Routine", IsActive = true };
+        var sample = new Sample { Category = SampleCategory.FinishedProduct, ControlNumber = "CTRL-MIX-3", Status = SampleStatus.InTesting, CauseOfTesting = cause };
+        var microOrder = new TestOrder { SectionId = micro.Id, TestCode = "TAMC", Status = ApprovalStatus.InProgress, CurrentStep = WorkflowStep.Running };
+        var fpOrder = new TestOrder { SectionId = fp.Id, TestCode = "ASSAY", Status = ApprovalStatus.InProgress, CurrentStep = WorkflowStep.Running };
+        sample.TestOrders.AddRange(new[] { microOrder, fpOrder });
+        db.Samples.Add(sample);
+        await db.SaveChangesAsync();
+
+        var service = TestServiceFactory.TestingWorkspace(db, new UserSectionScopeService(db));
+
+        var dto = await service.GetSampleAsync(sample.Id, userId, fp.Id);
+
+        Assert.NotNull(dto);
+        var assignedTest = Assert.Single(dto!.AssignedTests);
+        Assert.Equal(fp.Id, assignedTest.SectionId);
+    }
+
+    [Fact]
+    public async Task GetSampleAsync_UserInOnlyMicro_FilterByFp_Throws()
+    {
+        await using var db = NewDb();
+        var micro = TestServiceFactory.EnsureMicroSection(db);
+        var fp = new DocumentSection { Name = "Finished Product Laboratory", Code = "FP", DepartmentId = micro.DepartmentId, IsActive = true };
+        db.DocumentSections.Add(fp);
+        await db.SaveChangesAsync();
+
+        var userId = await SeedUserAsync(db, 1, RoleType.Analyst, micro.DepartmentId, micro.Id);
+
+        var cause = new CauseOfTesting { Name = "Routine", IsActive = true };
+        var sample = new Sample { Category = SampleCategory.FinishedProduct, ControlNumber = "CTRL-MIX-4", Status = SampleStatus.InTesting, CauseOfTesting = cause };
+        var fpOrder = new TestOrder { SectionId = fp.Id, TestCode = "ASSAY", Status = ApprovalStatus.InProgress, CurrentStep = WorkflowStep.Running };
+        sample.TestOrders.Add(fpOrder);
+        db.Samples.Add(sample);
+        await db.SaveChangesAsync();
+
+        var service = TestServiceFactory.TestingWorkspace(db, new UserSectionScopeService(db));
+
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => service.GetSampleAsync(sample.Id, userId, fp.Id));
+    }
+
+    // No labSectionId: behaviour is unchanged from before Task 13c - the
+    // caller's full accessible scope decides visibility/narrowing, and a
+    // mixed sample's AssignedTests still carries both labs' orders.
+    [Fact]
+    public async Task GetSampleAsync_NoLabSectionId_ReturnsAllAccessibleAssignedTests()
+    {
+        await using var db = NewDb();
+        var micro = TestServiceFactory.EnsureMicroSection(db);
+        var fp = new DocumentSection { Name = "Finished Product Laboratory", Code = "FP", DepartmentId = micro.DepartmentId, IsActive = true };
+        db.DocumentSections.Add(fp);
+        await db.SaveChangesAsync();
+
+        var userId = await SeedUserAsync(db, 1, RoleType.Analyst, micro.DepartmentId, null);
+
+        var cause = new CauseOfTesting { Name = "Routine", IsActive = true };
+        var sample = new Sample { Category = SampleCategory.FinishedProduct, ControlNumber = "CTRL-MIX-5", Status = SampleStatus.InTesting, CauseOfTesting = cause };
+        var microOrder = new TestOrder { SectionId = micro.Id, TestCode = "TAMC", Status = ApprovalStatus.InProgress, CurrentStep = WorkflowStep.Running };
+        var fpOrder = new TestOrder { SectionId = fp.Id, TestCode = "ASSAY", Status = ApprovalStatus.InProgress, CurrentStep = WorkflowStep.Running };
+        sample.TestOrders.AddRange(new[] { microOrder, fpOrder });
+        db.Samples.Add(sample);
+        await db.SaveChangesAsync();
+
+        var service = TestServiceFactory.TestingWorkspace(db, new UserSectionScopeService(db));
+
+        var dto = await service.GetSampleAsync(sample.Id, userId);
+
+        Assert.NotNull(dto);
+        Assert.Equal(2, dto!.AssignedTests.Count);
+    }
 }

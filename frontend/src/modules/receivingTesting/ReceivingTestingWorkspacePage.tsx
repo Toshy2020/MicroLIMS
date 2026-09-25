@@ -178,7 +178,7 @@ export function ReceivingTestingWorkspacePage({ lab }: Props) {
         if (s) {
           checkedSamplesCache.current.set(sampleId, s);
         } else {
-          ReceiveService.getSample(sampleId).then((fetched) => {
+          ReceiveService.getSample(sampleId, lab.sectionId).then((fetched) => {
             if (fetched) checkedSamplesCache.current.set(sampleId, fetched);
           }).catch(() => {});
         }
@@ -393,7 +393,7 @@ export function ReceivingTestingWorkspacePage({ lab }: Props) {
           }
         }
       } else {
-        ReceiveService.getSample(sId).then((fetched) => {
+        ReceiveService.getSample(sId, lab.sectionId).then((fetched) => {
           if (fetched) {
             setExtraSelectedSample(fetched);
             if (tId) {
@@ -426,7 +426,7 @@ export function ReceivingTestingWorkspacePage({ lab }: Props) {
         ids.forEach(async (id) => {
           if (!checkedSamplesCache.current.has(id)) {
             try {
-              const s = await ReceiveService.getSample(id);
+              const s = await ReceiveService.getSample(id, lab.sectionId);
               if (s) checkedSamplesCache.current.set(id, s);
             } catch {
               // ignore
@@ -435,7 +435,7 @@ export function ReceivingTestingWorkspacePage({ lab }: Props) {
         });
       }
     }
-  }, [records, searchParams, search]);
+  }, [records, searchParams, search, lab.sectionId]);
 
   // Ensure selectedSampleId always resolves to a full sample even if not on page 1
   useEffect(() => {
@@ -446,10 +446,10 @@ export function ReceivingTestingWorkspacePage({ lab }: Props) {
       return;
     }
     if (extraSelectedSample?.sampleId === selectedSampleId) return;
-    ReceiveService.getSample(selectedSampleId).then((sample) => {
+    ReceiveService.getSample(selectedSampleId, lab.sectionId).then((sample) => {
       if (sample) setExtraSelectedSample(sample);
     }).catch(() => {});
-  }, [selectedSampleId, records, extraSelectedSample]);
+  }, [selectedSampleId, records, extraSelectedSample, lab.sectionId]);
 
   // Workload tiles are a toggle: clicking the active one clears it.
   const handleSelectWorkload = (key: WorkloadFilterKey) => {

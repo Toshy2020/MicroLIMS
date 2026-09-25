@@ -404,11 +404,16 @@ public class TestingWorkspaceService : ITestWorkspaceService
             .ToList();
     }
 
-    public async Task<SampleDto?> GetSampleAsync(int sampleId, int? currentUserId = null)
+    public async Task<SampleDto?> GetSampleAsync(int sampleId, int? currentUserId = null, int? labSectionId = null)
     {
         var scope = currentUserId.HasValue
             ? await _scope.GetAccessibleSectionIdsAsync(currentUserId.Value)
             : null;
+        // Narrow to the one laboratory the workspace page asked for - same
+        // pattern as GetActiveSamplesAsync/GetWorkloadCountsAsync, so a card
+        // refreshed via this single-sample fetch inside a lab workspace
+        // can't carry the caller's other lab's tests onto it (Task 13c).
+        scope = LabScope.Narrow(scope, labSectionId);
 
         var sample = await _db.Samples
             .AsNoTracking()

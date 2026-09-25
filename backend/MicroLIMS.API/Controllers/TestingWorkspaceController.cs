@@ -47,9 +47,9 @@ public class TestingWorkspaceController : ControllerBase
     }
 
     [HttpGet("{id:int}")]
-    public async Task<IActionResult> GetOne(int id)
+    public async Task<IActionResult> GetOne(int id, [FromQuery] int? labSectionId = null)
     {
-        var sample = await _workspaceService.GetSampleAsync(id, CurrentUserId);
+        var sample = await _workspaceService.GetSampleAsync(id, CurrentUserId, labSectionId);
         return sample is null ? NotFound(ApiResponse<object>.Fail("Not found.")) : Ok(ApiResponse<object>.Ok(sample));
     }
 

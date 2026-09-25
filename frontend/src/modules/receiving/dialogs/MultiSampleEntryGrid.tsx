@@ -16,8 +16,10 @@ import {
   Paper,
   Tooltip,
   Checkbox,
+  FormControl,
   FormControlLabel,
   FormGroup,
+  FormHelperText,
   CircularProgress,
   useTheme
 } from "@mui/material";
@@ -178,7 +180,9 @@ export function MultiSampleEntryGrid({
                 )}
 
                 {category === "product" && (
-                  <TableCell sx={{ minWidth: 140 }}>Production Stage</TableCell>
+                  <TableCell sx={{ minWidth: 140 }}>
+                    Production Stage <span style={{ color: theme.custom.status.detected.text }}>*</span>
+                  </TableCell>
                 )}
 
                 {isWater && (
@@ -363,23 +367,31 @@ export function MultiSampleEntryGrid({
                     {/* Production Stage (for Product only) */}
                     {category === "product" && (
                       <TableCell>
-                        <Select
-                          size="small"
-                          fullWidth
-                          displayEmpty
-                          value={row.productionStage ?? ""}
-                          onChange={(e) => onChangeRow(idx, "productionStage", e.target.value)}
-                          sx={{ fontSize: 12 }}
-                        >
-                          <MenuItem value="">
-                            <em style={{ color: theme.palette.text.secondary }}>Stage</em>
-                          </MenuItem>
-                          {masterData.productionStages.map((s) => (
-                            <MenuItem key={s.id} value={s.name}>
-                              {s.name}
+                        <FormControl size="small" fullWidth error={Boolean(errors.productionStage)}>
+                          <Select
+                            size="small"
+                            fullWidth
+                            displayEmpty
+                            value={row.productionStage ?? ""}
+                            error={Boolean(errors.productionStage)}
+                            onChange={(e) => onChangeRow(idx, "productionStage", e.target.value)}
+                            sx={{ fontSize: 12 }}
+                          >
+                            <MenuItem value="">
+                              <em style={{ color: theme.palette.text.secondary }}>Stage</em>
                             </MenuItem>
-                          ))}
-                        </Select>
+                            {masterData.productionStages.map((s) => (
+                              <MenuItem key={s.id} value={s.name}>
+                                {s.name}
+                              </MenuItem>
+                            ))}
+                          </Select>
+                          {errors.productionStage && (
+                            <FormHelperText sx={{ fontSize: 10.5, mx: 0.5, mt: 0.25 }}>
+                              Required
+                            </FormHelperText>
+                          )}
+                        </FormControl>
                       </TableCell>
                     )}
 

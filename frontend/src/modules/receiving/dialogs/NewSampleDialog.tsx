@@ -179,6 +179,11 @@ export function NewSampleDialog({ open, onClose, onSuccess, allowedCategories, l
           errors.targetSectionIds = "Choose at least one laboratory";
           isValid = false;
         }
+
+        if (category === "product" && (!row.productionStage || row.productionStage.trim() === "")) {
+          errors.productionStage = "Production Stage is required";
+          isValid = false;
+        }
       } else if (category === "water") {
         if (!row.departmentId) {
           errors.departmentId = "Department is required";

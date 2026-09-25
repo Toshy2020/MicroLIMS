@@ -92,6 +92,42 @@ export function MaterialsPage() {
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState<{ text: string; ok: boolean } | null>(null);
 
+  const printableTableTitle = useMemo(() => {
+    let effectiveCode: string | undefined;
+    let singleSectionId: number | undefined;
+
+    if (labParam) {
+      effectiveCode = labParam;
+    } else if (printList.length > 0) {
+      const firstSectionId = printList[0].sectionId;
+      if (printList.every((row) => row.sectionId === firstSectionId)) {
+        singleSectionId = firstSectionId;
+        effectiveCode = sectionCodeById.get(firstSectionId);
+      }
+    }
+
+    if (effectiveCode === "MICRO") {
+      return "Materials in Stock — Microbiology Lab";
+    }
+    if (effectiveCode === "FP") {
+      return "Materials in Stock — Physicochemical Lab";
+    }
+    if (effectiveCode) {
+      const sec = sections.find((s) => s.sectionCode === effectiveCode);
+      if (sec?.sectionName) {
+        return `Materials in Stock — ${sec.sectionName}`;
+      }
+    }
+    if (singleSectionId != null) {
+      const sec = sections.find((s) => s.sectionId === singleSectionId);
+      if (sec?.sectionName) {
+        return `Materials in Stock — ${sec.sectionName}`;
+      }
+    }
+
+    return "Materials in Stock — All Laboratories";
+  }, [labParam, printList, sections, sectionCodeById]);
+
   // Filters & KPI state
   const [kpiFilter, setKpiFilter] = useState<MaterialKpiFilter>("all");
   const [filters, setFilters] = useState<MaterialFilterState>(INITIAL_FILTERS);
@@ -515,7 +551,7 @@ export function MaterialsPage() {
 
       {/* Controlled Printable Document Table */}
       <PrintableTable
-        title="Materials in Stock — Microbiology Lab"
+        title={printableTableTitle}
         subtitle="Expired and depleted items are excluded from this list."
         rows={printList}
         getRowId={(m) => m.id}

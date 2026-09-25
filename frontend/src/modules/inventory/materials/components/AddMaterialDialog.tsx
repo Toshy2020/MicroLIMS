@@ -115,24 +115,24 @@ export function AddMaterialDialog({ open, onClose, onSuccess, editingItem }: Add
         ...INITIAL_FORM,
         receivingDate: new Date().toISOString().slice(0, 10)
       });
-      if (open) {
-        getMySections()
-          .then((secs) => {
-            setMySections(secs);
+      setSelectedSectionId("");
+    }
+    setError(null);
+
+    if (open) {
+      getMySections()
+        .then((secs) => {
+          setMySections(secs);
+          if (!editingItem) {
             if (secs.length === 1) {
               setSelectedSectionId(secs[0].sectionId);
             } else {
               setSelectedSectionId("");
             }
-          })
-          .catch(() => setMySections([]));
-      } else {
-        setSelectedSectionId("");
-      }
-    }
-    setError(null);
+          }
+        })
+        .catch(() => setMySections([]));
 
-    if (open) {
       setEquipmentLoading(true);
       EquipmentInventoryService.getAll()
         .then((data: any[]) => setEquipmentList(data || []))
@@ -141,9 +141,27 @@ export function AddMaterialDialog({ open, onClose, onSuccess, editingItem }: Add
     }
   }, [editingItem, open]);
 
-  // Eligible storage equipment: Status = InService
+  const activeSectionId = editingItem
+    ? editingItem.sectionId
+    : selectedSectionId !== ""
+    ? Number(selectedSectionId)
+    : undefined;
+
+  const activeSection = mySections.find((s) => s.sectionId === activeSectionId);
+
+  const roomStorageOption = activeSection
+    ? activeSection.sectionCode === "MICRO"
+      ? "Microbiology Lab"
+      : activeSection.sectionCode === "FP"
+      ? "Physicochemical Lab"
+      : activeSection.sectionName
+    : null;
+
+  // Eligible storage equipment: Status = InService (filtered by active lab when known)
   const inServiceEquipment = equipmentList.filter(
-    (e) => e.status === "InService" || e.status === 0 || e.status === "0"
+    (e) =>
+      (e.status === "InService" || e.status === 0 || e.status === "0") &&
+      (activeSectionId != null ? e.sectionId === activeSectionId || e.sectionId == null : true)
   );
 
   const refrigerators = inServiceEquipment.filter((e) =>
@@ -169,6 +187,15 @@ export function AddMaterialDialog({ open, onClose, onSuccess, editingItem }: Add
     );
   });
 
+  const isFallbackLocation = Boolean(
+    form.location &&
+      form.location !== roomStorageOption &&
+      !inServiceEquipment.some(
+        (eq) => `${eq.instrumentType} — ${eq.manufacturerName} (${eq.code})` === form.location
+      )
+  );
+  const hasOtherOptions = Boolean(roomStorageOption || isFallbackLocation);
+
   const onMaterialTypeChange = async (type: MaterialType) => {
     try {
       const defaultUnit = await MaterialService.getDefaultUnit(type);
@@ -190,12 +217,6 @@ export function AddMaterialDialog({ open, onClose, onSuccess, editingItem }: Add
       }));
     }
   };
-
-  const activeSectionId = editingItem
-    ? editingItem.sectionId
-    : selectedSectionId !== ""
-    ? Number(selectedSectionId)
-    : undefined;
 
   useEffect(() => {
     if (!open) {
@@ -792,23 +813,23 @@ export function AddMaterialDialog({ open, onClose, onSuccess, editingItem }: Add
               </MenuItem>
             )}
 
-            <ListSubheader sx={{ fontWeight: 700, fontSize: 11, color: "text.secondary", textTransform: "uppercase", lineHeight: "28px" }}>
-              Other
-            </ListSubheader>
-            <MenuItem value="Microbiology Lab">
-              Microbiology Lab
-            </MenuItem>
+            {hasOtherOptions && (
+              <ListSubheader sx={{ fontWeight: 700, fontSize: 11, color: "text.secondary", textTransform: "uppercase", lineHeight: "28px" }}>
+                Other
+              </ListSubheader>
+            )}
+            {roomStorageOption && (
+              <MenuItem value={roomStorageOption}>
+                {roomStorageOption}
+              </MenuItem>
+            )}
 
             {/* Fallback for legacy material locations when editing */}
-            {form.location &&
-              form.location !== "Microbiology Lab" &&
-              !inServiceEquipment.some(
-                (eq) => `${eq.instrumentType} — ${eq.manufacturerName} (${eq.code})` === form.location
-              ) && (
-                <MenuItem value={form.location}>
-                  {form.location} (Current Location)
-                </MenuItem>
-              )}
+            {isFallbackLocation && (
+              <MenuItem value={form.location}>
+                {form.location} (Current Location)
+              </MenuItem>
+            )}
           </Select>
         </FormControl>
 
@@ -912,8 +933,8 @@ export function AddMaterialDialog({ open, onClose, onSuccess, editingItem }: Add
         </Paper>
       )}
 
-      {/* Microbiology Lab Read-Only Details Card */}
-      {form.location === "Microbiology Lab" && (
+      {/* Room Storage Read-Only Details Card */}
+      {roomStorageOption && form.location === roomStorageOption && (
         <Paper
           variant="outlined"
           sx={{
@@ -940,7 +961,7 @@ export function AddMaterialDialog({ open, onClose, onSuccess, editingItem }: Add
                 Selected Storage
               </Typography>
               <Typography sx={{ fontSize: 13, fontWeight: 700, color: brandColors.sectionTitle }}>
-                Microbiology Lab
+                {roomStorageOption}
               </Typography>
             </Box>
             <Box>
@@ -956,7 +977,7 @@ export function AddMaterialDialog({ open, onClose, onSuccess, editingItem }: Add
                 Location
               </Typography>
               <Typography sx={{ fontSize: 13, fontWeight: 600, color: "text.primary" }}>
-                Microbiology Laboratory
+                {activeSection?.sectionName ?? roomStorageOption}
               </Typography>
             </Box>
           </Box>

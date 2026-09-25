@@ -58,7 +58,8 @@ const coaPrintStyles = `
 const MEANING_TEXT: Record<string, string> = {
   Reviewed: "I have reviewed the test data and confirm it is complete and accurate.",
   Approved: "I approve the release of this sample for its intended use.",
-  Rejected: "I reject the release of this sample; it does not conform to specification."
+  Rejected: "I reject the release of this sample; it does not conform to specification.",
+  Closed: "I am closing this laboratory's testing; it will not be resumed on this sample."
 };
 
 // A lab's section status while it's still in the testing/review/approval
@@ -77,6 +78,23 @@ function buildCombinedConclusion(s: SampleSummary, resultDrivenText: string): st
   if (s.overallStatus !== "Rejected") return resultDrivenText;
   const rejectingLabs = (s.sections ?? []).filter((sec) => sec.status === "Rejected").map((sec) => sec.sectionName);
   return `Rejected — ${rejectingLabs.length > 0 ? rejectingLabs.join(", ") : humanize(s.status)}`;
+}
+
+function computeCombinedCertificateDate(s: SampleSummary): string | null {
+  let latest: string | null = null;
+  let maxMs = -Infinity;
+  for (const sec of s.sections ?? []) {
+    for (const ts of [sec.approvedAt, sec.closedAt]) {
+      if (ts) {
+        const ms = new Date(ts).getTime();
+        if (!Number.isNaN(ms) && ms > maxMs) {
+          maxMs = ms;
+          latest = ts;
+        }
+      }
+    }
+  }
+  return latest ?? s.approvedAt;
 }
 
 // Every qualitative (pathogen) test on a Water sample shares the same
@@ -575,7 +593,7 @@ export function SampleCoaPage() {
                     <div><div className="il">Test Date</div><div className="iv">{d(s.preparation?.preparedAt ?? null)}</div></div>
                     <div><div className="il">Result Date</div><div className="iv">{d(computeResultDate(s.testOrders))}</div></div>
                     <div><div className="il">QC No.</div><div className="iv">{s.controlNumber}</div></div>
-                    <div><div className="il">Certificate Date</div><div className="iv">{d(s.approvedAt)}</div></div>
+                    <div><div className="il">Certificate Date</div><div className="iv">{d(computeCombinedCertificateDate(s))}</div></div>
                   </div>
                 </div>
               )}
@@ -668,14 +686,34 @@ export function SampleCoaPage() {
                         gridTemplateColumns: sections.length > 2 ? "repeat(auto-fit, minmax(200px, 1fr))" : "1fr 1fr"
                       }}
                     >
-                      {sections.map((sec) => (
-                        <div className="coa-sig-block" key={sec.sectionId}>
-                          <div className="sn">{sec.approvedByName ?? "—"}</div>
-                          <div className="sr">Approver — {sec.sectionName}</div>
-                          <div className="sm">"{MEANING_TEXT["Approved"]}"</div>
-                          <div className="st">{dt(sec.approvedAt)}</div>
-                        </div>
-                      ))}
+                      {sections.map((sec) => {
+                        const isRejected = sec.status === "Rejected";
+                        const isClosed = sec.status === "Closed";
+                        const name = isClosed ? (sec.closedByName ?? "—") : (sec.approvedByName ?? "—");
+                        const role = isRejected
+                          ? `Rejected by — ${sec.sectionName}`
+                          : isClosed
+                          ? `Testing closed by — ${sec.sectionName}`
+                          : `Approver — ${sec.sectionName}`;
+                        const meaning = isRejected
+                          ? MEANING_TEXT["Rejected"]
+                          : isClosed
+                          ? MEANING_TEXT["Closed"]
+                          : MEANING_TEXT["Approved"];
+                        const at = isClosed ? sec.closedAt : sec.approvedAt;
+
+                        return (
+                          <div className="coa-sig-block" key={sec.sectionId}>
+                            <div className="sn">{name}</div>
+                            <div className="sr">{role}</div>
+                            <div className="sm">"{meaning}"</div>
+                            {isClosed && sec.closeReason ? (
+                              <div className="sm">Reason: {sec.closeReason}</div>
+                            ) : null}
+                            <div className="st">{dt(at)}</div>
+                          </div>
+                        );
+                      })}
                     </div>
                   </>
                 );

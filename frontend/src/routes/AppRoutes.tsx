@@ -110,8 +110,15 @@ export function AppRoutes() {
                 Receiving & Testing Workspace instance. /receiving-testing has
                 no lab of its own any more - it redirects to the first lab
                 workspace the caller belongs to (Microbiology first). */}
-            <Route path="/microbiology/workspace" element={<LabWorkspaceRoute code="MICRO" />} />
-            <Route path="/physicochemical/workspace" element={<LabWorkspaceRoute code="FP" />} />
+            {/* Keyed on lab code so switching between the two workspaces
+                forces a full remount (LabWorkspaceRoute -> ReceivingTesting-
+                WorkspacePage) instead of React reusing the same component
+                instance in place - otherwise the previous lab's records,
+                selection and filters stay on screen under the new lab's
+                title until some unrelated state change happens to refetch
+                them (review finding, design.md §3.2 lab isolation). */}
+            <Route path="/microbiology/workspace" element={<LabWorkspaceRoute key="MICRO" code="MICRO" />} />
+            <Route path="/physicochemical/workspace" element={<LabWorkspaceRoute key="FP" code="FP" />} />
             <Route path="/receiving-testing" element={<FirstLabWorkspaceRedirect />} />
 
             {/* Receiving area: the main receiving desk and the cross-lab

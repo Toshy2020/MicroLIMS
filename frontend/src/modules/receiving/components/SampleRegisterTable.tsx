@@ -47,6 +47,7 @@ interface Props {
   onPrepareSample: (sample: SampleRecord) => void;
   onAssignAnalyst?: (sample: SampleRecord) => void;
   onVoid?: (sample: SampleRecord) => void;
+  onAddLaboratory?: (sample: SampleRecord) => void;
 }
 
 // Same statuses StatusBadge.tsx's central token map covers, but collapsed
@@ -107,7 +108,8 @@ export function SampleRegisterTable({
   onViewAuditHistory,
   onPrepareSample,
   onAssignAnalyst,
-  onVoid
+  onVoid,
+  onAddLaboratory
 }: Props) {
   const theme = useTheme();
   const { role } = useAuth();
@@ -499,6 +501,7 @@ export function SampleRegisterTable({
               onPrepareSample={onPrepareSample}
               onAssignAnalyst={onAssignAnalyst}
               onVoid={onVoid}
+              onAddLaboratory={onAddLaboratory}
             />
           </TableCell>
         </TableRow>

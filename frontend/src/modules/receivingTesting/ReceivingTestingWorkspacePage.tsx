@@ -1004,6 +1004,8 @@ export function ReceivingTestingWorkspacePage() {
         open={newSampleDialogOpen}
         onClose={() => setNewSampleDialogOpen(false)}
         onSuccess={handleReceiveSuccess}
+        allowedCategories={["product", "rm", "pm", "water", "em", "ac"]}
+        labMode={{ kind: "choose" }}
       />
 
       {/* 2. Signed Sample Details Correction Dialog */}

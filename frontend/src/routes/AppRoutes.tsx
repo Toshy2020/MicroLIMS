@@ -24,6 +24,8 @@ const DiscussionsFeedPage = lazy(() => import("../modules/discussions/Discussion
 const DiscussionDetailPage = lazy(() => import("../modules/discussions/DiscussionDetailPage").then((m) => ({ default: m.DiscussionDetailPage })));
 const MessagesPage = lazy(() => import("../modules/messages/MessagesPage").then((m) => ({ default: m.MessagesPage })));
 const ReceivingTestingWorkspacePage = lazy(() => import("../modules/receivingTesting/ReceivingTestingWorkspacePage").then((m) => ({ default: m.ReceivingTestingWorkspacePage })));
+const ReceivingPage = lazy(() => import("../modules/receiving/ReceivingPage").then((m) => ({ default: m.ReceivingPage })));
+const TrackingBoardPage = lazy(() => import("../modules/receiving/TrackingBoardPage").then((m) => ({ default: m.TrackingBoardPage })));
 const SampleReportPage = lazy(() => import("../modules/testingWorkspace/SampleReportPage").then((m) => ({ default: m.SampleReportPage })));
 const SampleCoaPage = lazy(() => import("../modules/testingWorkspace/SampleCoaPage").then((m) => ({ default: m.SampleCoaPage })));
 const MediaReportPage = lazy(() => import("../modules/laboratoryConfiguration/media/MediaReportPage").then((m) => ({ default: m.MediaReportPage })));
@@ -103,8 +105,19 @@ export function AppRoutes() {
             {/* Canonical Unified Receiving & Testing Workspace */}
             <Route path="/receiving-testing" element={<ReceivingTestingWorkspacePage />} />
 
+            {/* Receiving area: the main receiving desk and the cross-lab
+                tracking board (design.md §3.1, §3.4) - gated on the
+                Samples.Receive / Samples.TrackAll privileges, not role or
+                lab membership. /receiving used to redirect into the
+                workspace; it now owns the Receiving page itself. */}
+            <Route element={<PermissionRoute code={PERMISSIONS.SAMPLES_RECEIVE} />}>
+              <Route path="/receiving" element={<ReceivingPage />} />
+            </Route>
+            <Route element={<PermissionRoute code={PERMISSIONS.SAMPLES_TRACK_ALL} />}>
+              <Route path="/receiving/tracking" element={<TrackingBoardPage />} />
+            </Route>
+
             {/* Backward-Compatible Query-Preserving Legacy Redirects */}
-            <Route path="/receiving" element={<LegacyRedirect to="/receiving-testing" />} />
             <Route path="/testing-workspace" element={<LegacyRedirect to="/receiving-testing" />} />
             <Route path="/laboratory-configuration/media" element={<MediaPage />} />
             <Route path="/laboratory-configuration/media-evaluation" element={<MediaEvaluationPage />} />

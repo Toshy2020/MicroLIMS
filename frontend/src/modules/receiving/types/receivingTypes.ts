@@ -1,5 +1,6 @@
 export interface TestOrderSummary {
   testOrderId: number;
+  sectionId: number;
   testCode: string;
   status: string;
   workflowStatus?:
@@ -90,6 +91,23 @@ export interface ItemBasedReceiveRequest {
   mfgDate: string | null;
   expDate: string | null;
   productionStage?: string | null;
+  // Which laboratories to receive the sample for - required, at least one.
+  targetSectionIds: number[];
+}
+
+// Mirrors backend ReceiptLabOptionDto (GET /samples/receipt-labs?itemId=).
+export interface ReceiptLabOption {
+  sectionId: number;
+  sectionCode: string;
+  sectionName: string;
+  testCount: number;
+}
+
+// Mirrors backend AddLaboratoryRequest (POST /samples/{id}/laboratories).
+export interface AddLaboratoryPayload {
+  sectionId: number;
+  password: string;
+  reason: string;
 }
 
 export interface WaterReceiveRequest {
@@ -151,5 +169,8 @@ export interface ReceiveRowItem {
   controlNumber?: string;
   mfgDate?: string;
   expDate?: string;
+  // Choose-mode only: labs picked for this row (Laboratories column).
+  // undefined until the item's receipt-labs have loaded and defaulted.
+  targetSectionIds?: number[];
   errors?: Record<string, string>;
 }

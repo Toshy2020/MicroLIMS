@@ -5,7 +5,8 @@ import {
   EMReceiveRequest,
   AfterCleaningReceiveRequest,
   SampleCorrectionPayload,
-  SampleRecord
+  SampleRecord,
+  ReceiptLabOption
 } from "../types/receivingTypes";
 
 export interface TestingWorkspaceFilter {
@@ -44,6 +45,18 @@ export interface WorkspaceTileCounts {
 export const ReceiveService = {
   receiveItemBased: (r: ItemBasedReceiveRequest) =>
     apiClient.post("/samples", r).then((res) => res.data.data),
+
+  // Which laboratories the item's assigned tests belong to, with each
+  // lab's test count - feeds the Laboratories column and Add Laboratory dialog.
+  async receiptLabs(itemId: number): Promise<ReceiptLabOption[]> {
+    const res = await apiClient.get("/samples/receipt-labs", { params: { itemId } });
+    return res.data.data;
+  },
+
+  // Signed: adds a second laboratory's tests to an already-received sample.
+  async addLaboratory(sampleId: number, sectionId: number, reason: string, password: string): Promise<void> {
+    await apiClient.post(`/samples/${sampleId}/laboratories`, { sectionId, reason, password });
+  },
 
   receiveWater: (r: WaterReceiveRequest) =>
     apiClient.post("/water/receive", r).then((res) => res.data.data),

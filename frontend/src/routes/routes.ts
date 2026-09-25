@@ -19,6 +19,7 @@ const APP_ROUTES = {
   // Core Laboratory Workflows
   RECEIVING_TESTING: "/receiving-testing",
   RECEIVING: "/receiving",
+  RECEIVING_TRACKING: "/receiving/tracking",
   TESTING_WORKSPACE: "/receiving-testing",
 
   // Laboratory Configuration & Master Data
@@ -172,5 +173,7 @@ export function resolveTraceabilityRoute(
 // MicroLIMS.Shared/Constants/PermissionConstants.cs - the backend is
 // still the enforcement point; this only decides what to render.
 export const PERMISSIONS = {
-  SYSTEM_VIEW_ERROR_LOG: "System.ViewErrorLog"
+  SYSTEM_VIEW_ERROR_LOG: "System.ViewErrorLog",
+  SAMPLES_RECEIVE: "Samples.Receive",
+  SAMPLES_TRACK_ALL: "Samples.TrackAll"
 } as const;

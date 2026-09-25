@@ -28,10 +28,15 @@ public class SampleSummaryController : ControllerBase
     private int CurrentUserId => int.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)!.Value);
 
     [HttpGet("{id}/summary")]
-    public async Task<IActionResult> GetSummary(int id)
+    public async Task<IActionResult> GetSummary(int id, [FromQuery] bool forCertificate = false)
     {
         await _scopeService.EnsureSampleAccessAsync(CurrentUserId, id);
-        var summary = await _summaryService.GetSummaryAsync(id, await _scopeService.GetAccessibleSectionIdsAsync(CurrentUserId));
+        var scope = await _scopeService.GetAccessibleSectionIdsAsync(CurrentUserId);
+        // The CoA page asks forCertificate: a final sample's combined
+        // certificate is printable by any of its labs' members.
+        var summary = forCertificate
+            ? await _summaryService.GetCertificateSummaryAsync(id, scope)
+            : await _summaryService.GetSummaryAsync(id, scope);
         if (summary is null) return NotFound(ApiResponse<object>.Fail($"Sample {id} not found."));
         return Ok(ApiResponse<object>.Ok(summary));
     }

@@ -457,6 +457,35 @@ public class MultiSectionReviewApprovalTests
         Assert.True(adminView.AllSectionsVisible);
     }
 
+    // User decision (stage 4): once every lab is final, a member of either
+    // lab may view and print the combined certificate - other labs' results
+    // included. Until then the certificate view is as restricted as the
+    // summary itself.
+    [Fact]
+    public async Task CertificateSummary_OtherLabsVisibleOnlyOnceEveryLabIsFinal()
+    {
+        await using var db = NewDb();
+        var w = await SeedUnderApprovalAsync(db);
+        var scope = new UserSectionScopeService(db);
+        var fpScope = await scope.GetAccessibleSectionIdsAsync(w.ReviewerFp);
+        var summaries = TestServiceFactory.SampleSummary(db);
+        var approval = TestServiceFactory.SampleApproval(db);
+
+        await approval.DecideAsync(w.Sample.Id, w.HeadMicro, Password, ApprovalDecision.Reject, "Out of limits", null);
+        var open = await summaries.GetCertificateSummaryAsync(w.Sample.Id, fpScope);
+        Assert.False(open!.AllSectionsVisible);
+        Assert.DoesNotContain(open.TestOrders, t => t.SectionId == w.Micro);
+
+        await approval.DecideAsync(w.Sample.Id, w.HeadFp, Password, ApprovalDecision.Approve, null, null);
+        var final = await summaries.GetCertificateSummaryAsync(w.Sample.Id, fpScope);
+        Assert.True(final!.CombinedCoaAvailable);
+        Assert.True(final.AllSectionsVisible);
+        Assert.Contains(final.TestOrders, t => t.SectionId == w.Micro);
+
+        // The ordinary summary stays lab-scoped.
+        Assert.False((await summaries.GetSummaryAsync(w.Sample.Id, fpScope))!.AllSectionsVisible);
+    }
+
     [Fact]
     public async Task Memberships_AreValidated_AndReplaced()
     {

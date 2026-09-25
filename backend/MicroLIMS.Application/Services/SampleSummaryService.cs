@@ -74,6 +74,19 @@ public class SampleSummaryService
     // sectionIds: the viewer's laboratory sections (null = unrestricted). Only
     // those sections' tests are shown; every section is still listed in
     // Sections with its review/approval state.
+    // The Certificate of Analysis page's read model. Once every lab is final
+    // (the sample is Approved or Rejected - the rule behind
+    // CombinedCoaAvailable), a member of any of its labs may view and print
+    // the combined certificate, other labs' results included (user decision,
+    // lab separation stage 4). Before that it is as lab-scoped as the summary.
+    public async Task<SampleSummaryDto?> GetCertificateSummaryAsync(int sampleId, IReadOnlyCollection<int>? sectionIds)
+    {
+        var status = await _db.Samples.Where(s => s.Id == sampleId).Select(s => (SampleStatus?)s.Status).FirstOrDefaultAsync();
+        if (status is null) return null;
+        var final = status is SampleStatus.Approved or SampleStatus.Rejected;
+        return await GetSummaryAsync(sampleId, final ? null : sectionIds);
+    }
+
     public async Task<SampleSummaryDto?> GetSummaryAsync(int sampleId, IReadOnlyCollection<int>? sectionIds = null)
     {
         var sample = await _db.Samples

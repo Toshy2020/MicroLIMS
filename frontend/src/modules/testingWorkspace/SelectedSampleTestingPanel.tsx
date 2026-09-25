@@ -53,6 +53,9 @@ export function SelectedSampleTestingPanel({
   const theme = useTheme();
   const [openPathogenWorkflow, setOpenPathogenWorkflow] = React.useState(false);
   const needsPreparation = sample.preparationStatus === "NeedsPreparation";
+  // Pathogen tests are the ones with a TSB / broth-enrichment step; a sample
+  // without one (e.g. Finished Product chemistry tests) has no pathogen workflow.
+  const hasPathogenTest = sample.assignedTests.some((t) => t.usesSharedTsb);
   const isProductLike = PRODUCT_LIKE.includes(sample.category);
   const isWater = sample.category === "Water";
   // Mirrors SampleController: Analysts cannot correct or void (the backend enforces it).
@@ -395,6 +398,7 @@ export function SelectedSampleTestingPanel({
             </Typography>
           </Box>
 
+          {hasPathogenTest && (
           <Button
             variant="contained"
             size="small"
@@ -410,6 +414,7 @@ export function SelectedSampleTestingPanel({
           >
             Open Pathogen Workflow
           </Button>
+          )}
         </Box>
 
         {needsPreparation && (

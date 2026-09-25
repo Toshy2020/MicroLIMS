@@ -30,17 +30,20 @@ public class NotificationRecomputeThrottleTests
         var reviewer = new User { FullName = "Rita Viewer", Username = "reviewer", RoleId = role.Id, PasswordHash = "not-used" };
         db.Users.Add(reviewer);
         await db.SaveChangesAsync();
+        TestServiceFactory.AssignUserToMicroSection(db, reviewer.Id);
         return (reviewer, cause);
     }
 
     private static async Task AddSampleUnderReviewAsync(MicroLimsDbContext db, CauseOfTesting cause, string reference)
     {
-        db.Samples.Add(new Sample { ReferenceNumber = reference, Status = SampleStatus.UnderReview, CauseOfTesting = cause });
+        var sample = new Sample { ReferenceNumber = reference, Status = SampleStatus.UnderReview, CauseOfTesting = cause };
+        sample.TestOrders.Add(new TestOrder { TestCode = "TAMC", SectionId = TestServiceFactory.EnsureMicroSection(db).Id, Status = ApprovalStatus.ResultEntered, CurrentStep = WorkflowStep.Ready });
+        db.Samples.Add(sample);
         await db.SaveChangesAsync();
     }
 
     private static DashboardNotificationService Service(MicroLimsDbContext db, NotificationRecomputeThrottle? throttle) =>
-        new(db, new NoOpNotificationService(), new NoOpEmailSender(), throttle);
+        new(db, new NoOpNotificationService(), new NoOpEmailSender(), new UserSectionScopeService(db), throttle);
 
     [Fact]
     public void IsDue_UntilComputed_ThenAgainOnlyAfterTheWindow()

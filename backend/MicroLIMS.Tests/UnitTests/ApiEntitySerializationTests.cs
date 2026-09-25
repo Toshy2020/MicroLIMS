@@ -51,12 +51,15 @@ public class ApiEntitySerializationTests
     public async Task PreparedMediaLot_AsReturnedByThePrepareEndpoint_Serializes()
     {
         await using var db = NewDb();
+        var microSec = TestServiceFactory.EnsureMicroSection(db);
+        TestServiceFactory.AssignUserToMicroSection(db, 1);
         var autoclave = new Equipment { Name = "Autoclave 1", Code = "AUT-01", Type = EquipmentType.Autoclave };
         db.Equipment.Add(autoclave);
         var product = await MediaProductTestData.CreateOrGetAsync(db, "Tryptic Soy Agar", "TSA");
         db.MediaConfigurations.Add(NewConfiguration(product));
         var material = new Material
         {
+            SectionId = microSec.Id,
             MaterialType = MaterialType.DehydratedMedia, ManufacturerName = "Himedia", BatchNumber = "LOT-001",
             ReceivingDate = DateTime.UtcNow.AddDays(-10), ExpiryDate = DateTime.UtcNow.AddYears(1),
             Location = "Micro Lab", QuantityReceived = 500, QuantityRemaining = 500, Unit = MaterialUnit.Gram

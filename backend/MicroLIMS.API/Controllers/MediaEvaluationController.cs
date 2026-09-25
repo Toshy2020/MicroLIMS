@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Application.Services;
 using MicroLIMS.Application.Workflows;
 using MicroLIMS.Domain.Enums;
@@ -28,25 +29,32 @@ public record RecordResultHttpRequest(
 public class MediaEvaluationController : ControllerBase
 {
     private readonly MediaEvaluationService _service;
+    private readonly IUserSectionScopeService _scopeService;
 
-    public MediaEvaluationController(MediaEvaluationService service)
+    public MediaEvaluationController(MediaEvaluationService service, IUserSectionScopeService scopeService)
     {
         _service = service;
+        _scopeService = scopeService;
     }
 
     private int CurrentUserId => int.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)!.Value);
 
     [HttpGet]
     public async Task<IActionResult> GetAll([FromQuery] MediaEvaluationStatus? status) =>
-        Ok(ApiResponse<object>.Ok(await _service.GetAllAsync(status)));
+        Ok(ApiResponse<object>.Ok(await _service.GetAllAsync(status, (await _scopeService.GetAccessibleSectionIdsAsync(CurrentUserId)))));
 
     [HttpGet("{id}")]
-    public async Task<IActionResult> GetById(int id) =>
-        Ok(ApiResponse<object>.Ok(await _service.GetByIdAsync(id)));
+    public async Task<IActionResult> GetById(int id)
+    {
+        await _scopeService.EnsureMediaEvaluationAccessAsync(CurrentUserId, id);
+        return Ok(ApiResponse<object>.Ok(await _service.GetByIdAsync(id)));
+    }
 
     [HttpPost("challenges/{challengeId}/cryovial")]
     public async Task<IActionResult> SelectCryovial(int challengeId, SelectCryovialRequest r)
     {
+        await _scopeService.EnsureMediaEvaluationChallengeAccessAsync(CurrentUserId, challengeId);
+        await _scopeService.EnsureCryovialAccessAsync(CurrentUserId, r.CryovialId);
         await _service.SelectCryovialAsync(challengeId, r.CryovialId, CurrentUserId);
         return Ok(ApiResponse<object>.Ok(new { }));
     }
@@ -54,18 +62,25 @@ public class MediaEvaluationController : ControllerBase
     [HttpPost("challenges/{challengeId}/lyophilized-disk")]
     public async Task<IActionResult> SelectLyophilizedDisk(int challengeId, SelectLyophilizedDiskRequest r)
     {
+        await _scopeService.EnsureMediaEvaluationChallengeAccessAsync(CurrentUserId, challengeId);
         await _service.SelectLyophilizedDiskAsync(challengeId, r.MaterialId, CurrentUserId);
         return Ok(ApiResponse<object>.Ok(new { }));
     }
 
     [HttpPost("challenges/{challengeId}/incubation")]
-    public async Task<IActionResult> RecordIncubation(int challengeId, RecordIncubationRequest r) =>
-        Ok(ApiResponse<object>.Ok(await _service.RecordIncubationAsync(challengeId, r.IncubatorEquipmentId, CurrentUserId)));
+    public async Task<IActionResult> RecordIncubation(int challengeId, RecordIncubationRequest r)
+    {
+        await _scopeService.EnsureMediaEvaluationChallengeAccessAsync(CurrentUserId, challengeId);
+        return Ok(ApiResponse<object>.Ok(await _service.RecordIncubationAsync(challengeId, r.IncubatorEquipmentId, CurrentUserId)));
+    }
 
     [HttpPost("challenges/{challengeId}/result")]
-    public async Task<IActionResult> RecordResult(int challengeId, RecordResultHttpRequest r) =>
-        Ok(ApiResponse<object>.Ok(await _service.RecordResultAsync(new RecordResultRequest(
+    public async Task<IActionResult> RecordResult(int challengeId, RecordResultHttpRequest r)
+    {
+        await _scopeService.EnsureMediaEvaluationChallengeAccessAsync(CurrentUserId, challengeId);
+        return Ok(ApiResponse<object>.Ok(await _service.RecordResultAsync(new RecordResultRequest(
             challengeId, CurrentUserId, r.OldMediaCount, r.NewMediaCount,
             r.ReferenceMediaId, r.ReferenceMediaLabel, r.GrowthObserved,
             r.ObservedDescription, r.ManualConform, r.IsTurbid))));
+    }
 }

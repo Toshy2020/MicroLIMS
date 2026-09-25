@@ -3,6 +3,7 @@ namespace MicroLIMS.Application.DTOs;
 public class TestOrderSummaryDto
 {
     public int TestOrderId { get; set; }
+    public int SectionId { get; set; }
     public string TestCode { get; set; } = string.Empty;
     public string Status { get; set; } = string.Empty;
     public string CurrentStep { get; set; } = string.Empty;
@@ -14,6 +15,9 @@ public class TestOrderSummaryDto
     public bool UsesSharedTsb { get; set; }
     public bool IsWorkflowLocked { get; set; }
     public bool IsResultEntryAllowed { get; set; }
+    // FP tests have no preparation stage (PreparationRules), so they stay
+    // open on a mixed sample that still needs preparation for its micro tests.
+    public bool SkipsPreparation { get; set; }
     public string? ResultLockReason { get; set; }
 
     // Number of SampleLocation rows under this TestOrder - 0 for

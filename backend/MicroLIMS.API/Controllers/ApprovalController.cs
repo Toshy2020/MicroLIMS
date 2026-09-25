@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Application.Services;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Shared.Constants;
@@ -19,10 +20,12 @@ public record ApprovalRequest(int TestOrderId, ApprovalDecision Decision, string
 public class ApprovalController : ControllerBase
 {
     private readonly ApprovalService _approvalService;
+    private readonly IUserSectionScopeService _scopeService;
 
-    public ApprovalController(ApprovalService approvalService)
+    public ApprovalController(ApprovalService approvalService, IUserSectionScopeService scopeService)
     {
         _approvalService = approvalService;
+        _scopeService = scopeService;
     }
 
     [HttpPost]
@@ -30,6 +33,7 @@ public class ApprovalController : ControllerBase
     {
         var userId = int.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)!.Value);
         var ip = HttpContext.Connection.RemoteIpAddress?.ToString();
+        await _scopeService.EnsureTestOrderAccessAsync(userId, request.TestOrderId);
         var result = await _approvalService.DecideAsync(request.TestOrderId, request.Decision, request.Comment, userId, request.Password, ip);
         return Ok(ApiResponse<object>.Ok(result));
     }

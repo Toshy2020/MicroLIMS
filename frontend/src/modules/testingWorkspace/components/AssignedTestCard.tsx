@@ -64,7 +64,8 @@ export function AssignedTestCard({
   // fully clickable while the sample is still unprepared - the analyst starts
   // one, the backend correctly refuses it, and the only feedback is an error.
   // Offer the action only once it can actually succeed.
-  const awaitingPreparation = sample.preparationStatus === "NeedsPreparation";
+  // FP tests have no preparation stage, so they stay open on a mixed sample.
+  const awaitingPreparation = sample.preparationStatus === "NeedsPreparation" && !test.skipsPreparation;
 
   const [expanded, setExpanded] = useState(false);
   const [optimisticIncubating, setOptimisticIncubating] = useState(false);

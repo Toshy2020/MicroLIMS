@@ -176,24 +176,12 @@ public class PostgresTestFixture : IAsyncLifetime
                 IsActive = true
             };
             db.DocumentTypes.Add(docType);
-
-            var dept = new DocumentDepartment
-            {
-                Code = "QC",
-                Name = "Quality Control",
-                IsActive = true
-            };
-            db.DocumentDepartments.Add(dept);
             await db.SaveChangesAsync();
 
-            var section = new DocumentSection
-            {
-                DepartmentId = dept.Id,
-                Name = "Microbiology Laboratory",
-                IsActive = true
-            };
-            db.DocumentSections.Add(section);
-            await db.SaveChangesAsync();
+            // The AddOrgSectionSegregation migration already created QC and its
+            // Microbiology Laboratory (MICRO) section - reuse them.
+            var dept = await db.DocumentDepartments.SingleAsync(d => d.Code == "QC");
+            var section = await db.DocumentSections.SingleAsync(s => s.Code == "MICRO");
 
             SeededDocTypeId = docType.Id;
             SeededDepartmentId = dept.Id;

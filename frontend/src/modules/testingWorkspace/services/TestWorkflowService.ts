@@ -3,8 +3,24 @@ import {
   CurrentStepResponse, StepResultDto, ConfirmatoryOutcomeDto,
   PermittedConfirmatoryMediaResponse, EligibleIncubatorsResponse, AnalystDecision,
   GrowthObservation, SiblingPathogenOrder,
-  ActionableGroupsResponse, BatchSelectMediaRequest, BatchSelectMediaResponse
+  ActionableGroupsResponse, BatchSelectMediaRequest, BatchSelectMediaResponse,
+  TestWorkflowResult
 } from "../types/testWorkflowTypes";
+
+// Mirrors backend StandardComparisonContextDto (SystemSuitabilityDtos.cs).
+// message is set when the sample's stage can't be resolved (not
+// reconciled yet / replicate counts not configured) - entry should be
+// blocked client-side until it clears, though the server is still the
+// authority on submit.
+export interface StandardComparisonContext {
+  responseMode: "PeakArea" | "TitrationVolume";
+  stageRole: string | null;
+  sampleReplicates: number | null;
+  standardReplicates: number | null;
+  sampleWeighInTolerancePercent: number;
+  maxPreparationRsdPercent: number | null;
+  message: string | null;
+}
 
 export const TestWorkflowService = {
   getCurrentStep: (testOrderId: number): Promise<CurrentStepResponse> =>
@@ -34,6 +50,186 @@ export const TestWorkflowService = {
 
   recordCountResult: (testOrderId: number, payload: { stepName: string; rawPlateReadings: string[]; dilutionFactor: number; dilutionFactorOverrideNote?: string }) =>
     apiClient.post(`/test-workflow/${testOrderId}/record-result`, payload).then((r) => r.data.data),
+
+  // Elemental Assay (ICP-OES Calibration Curve). Signed; the server calculates
+  // per-element recovery / claim / %LC and comparison status.
+  recordElementalResult: (
+    testOrderId: number,
+    payload: {
+      unitAmount: number;
+      analysedAt: string;
+      elements: {
+        specificationId: number;
+        calibrationRunAnalyteId: number;
+        reportedPpm: number;
+        overRange: boolean;
+        belowLoq: boolean;
+      }[];
+      password: string;
+      comment?: string | null;
+    }
+  ) =>
+    apiClient.post(`/test-workflow/${testOrderId}/record-elemental-result`, payload).then((r) => r.data.data),
+
+  // Numeric measurement (pH, density, viscosity, etc.). Signed.
+  recordMeasurementResult: (
+    testOrderId: number,
+    payload: {
+      analysedAt: string;
+      equipmentId?: number | null;
+      parameters: {
+        specificationId: number;
+        readings: number[];
+      }[];
+      password: string;
+      comment?: string | null;
+    }
+  ) =>
+    apiClient.post(`/test-workflow/${testOrderId}/record-measurement-result`, payload).then((r) => r.data.data),
+
+  // Gravimetric analysis (loss on drying, ash/residue). Signed.
+  recordGravimetricResult: (
+    testOrderId: number,
+    payload: {
+      analysedAt: string;
+      equipmentId?: number | null;
+      conditions: Record<string, string>;
+      parameters: {
+        specificationId: number;
+        replicates: {
+          container?: number | null;
+          initial: number;
+          final: number;
+        }[];
+      }[];
+      password: string;
+      comment?: string | null;
+    }
+  ) =>
+    apiClient.post(`/test-workflow/${testOrderId}/record-gravimetric-result`, payload).then((r) => r.data.data),
+
+  // Qualitative analysis (appearance, ID, odor, etc.). Signed.
+  recordQualitativeResult: (
+    testOrderId: number,
+    payload: {
+      analysedAt: string;
+      equipmentId?: number | null;
+      parameters: {
+        specificationId: number;
+        conforms: boolean;
+        observation?: string | null;
+      }[];
+      password: string;
+      comment?: string | null;
+    }
+  ) =>
+    apiClient.post(`/test-workflow/${testOrderId}/record-qualitative-result`, payload).then((r) => r.data.data),
+
+  // Standard-Comparison Assay (retired HplcAssay/HplcMultiAnalyte) context:
+  // response mode + this sample's stage replicate counts. message is set
+  // when the stage can't be resolved yet - entry stays blocked.
+  getStandardComparisonContext: (testOrderId: number): Promise<StandardComparisonContext> =>
+    apiClient.get(`/test-workflow/${testOrderId}/standard-comparison-context`).then((r) => r.data.data),
+
+  // Standard-Comparison Assay result (peak area or titration volume,
+  // per the test's ResponseMode). Signed. Returns TestWorkflowResult.
+  recordStandardComparisonResult: (
+    testOrderId: number,
+    payload: {
+      analysedAt: string;
+      equipmentId?: number | null;
+      preparations: { theoreticalWeightMg: number; actualWeightMg: number; weighInJustification?: string | null }[];
+      responses: { testAnalyteId: number; preparationIndex: number; response: number }[];
+      password: string;
+      comment?: string | null;
+    }
+  ): Promise<TestWorkflowResult> =>
+    apiClient.post(`/test-workflow/${testOrderId}/record-standard-comparison-result`, payload).then((r) => r.data.data),
+
+  // Dissolution analysis (Stage 1). Signed. Returns TestWorkflowResult.
+  recordDissolutionResult: (
+    testOrderId: number,
+    payload: {
+      analysedAt: string;
+      equipmentId?: number | null;
+      conditions: Record<string, string>;
+      mediumVolumeMl: number;
+      dilutionFactor?: number | null;
+      vesselAreas: number[];
+      password: string;
+      comment?: string | null;
+    }
+  ): Promise<TestWorkflowResult> =>
+    apiClient.post(`/test-workflow/${testOrderId}/record-dissolution-result`, payload).then((r) => r.data.data),
+
+  // Dissolution stage progression (Stage 2 or 3). Signed. Returns TestWorkflowResult.
+  recordDissolutionStage: (
+    testOrderId: number,
+    payload: {
+      vesselAreas: number[];
+      password: string;
+      comment?: string | null;
+    }
+  ): Promise<TestWorkflowResult> =>
+    apiClient.post(`/test-workflow/${testOrderId}/record-dissolution-stage`, payload).then((r) => r.data.data),
+
+  // Disintegration analysis (Stage 1). Signed. Returns TestWorkflowResult.
+  recordDisintegrationResult: (
+    testOrderId: number,
+    payload: {
+      analysedAt: string;
+      equipmentId?: number | null;
+      conditions: Record<string, string>;
+      unitMinutes: (number | null)[];
+      password: string;
+      comment?: string | null;
+    }
+  ): Promise<TestWorkflowResult> =>
+    apiClient.post(`/test-workflow/${testOrderId}/record-disintegration-result`, payload).then((r) => r.data.data),
+
+  // Disintegration stage progression (Stage 2). Signed. Returns TestWorkflowResult.
+  recordDisintegrationStage: (
+    testOrderId: number,
+    payload: {
+      unitMinutes: (number | null)[];
+      password: string;
+      comment?: string | null;
+    }
+  ): Promise<TestWorkflowResult> =>
+    apiClient.post(`/test-workflow/${testOrderId}/record-disintegration-stage`, payload).then((r) => r.data.data),
+
+  // Weight Variation analysis (Stage 1). Signed. Returns TestWorkflowResult.
+  recordWeightVariationResult: (
+    testOrderId: number,
+    payload: {
+      analysedAt: string;
+      equipmentId?: number | null;
+      conditions?: Record<string, string>;
+      units: {
+        weightMg?: number | null;
+        grossMg?: number | null;
+        shellMg?: number | null;
+      }[];
+      password: string;
+      comment?: string | null;
+    }
+  ): Promise<TestWorkflowResult> =>
+    apiClient.post(`/test-workflow/${testOrderId}/record-weight-variation-result`, payload).then((r) => r.data.data),
+
+  // Weight Variation stage progression (Stage 2). Signed. Returns TestWorkflowResult.
+  recordWeightVariationStage: (
+    testOrderId: number,
+    payload: {
+      units: {
+        weightMg?: number | null;
+        grossMg?: number | null;
+        shellMg?: number | null;
+      }[];
+      password: string;
+      comment?: string | null;
+    }
+  ): Promise<TestWorkflowResult> =>
+    apiClient.post(`/test-workflow/${testOrderId}/record-weight-variation-stage`, payload).then((r) => r.data.data),
 
   getLocations: (testOrderId: number) =>
     apiClient.get(`/test-workflow/${testOrderId}/locations`).then((r) => r.data.data),

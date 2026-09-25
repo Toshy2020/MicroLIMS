@@ -392,7 +392,7 @@ export function ReviewerDashboardPage() {
                   <TableBody>
                     {data.reviewQueue.map((row) => (
                       <TableRow
-                        key={row.sampleId}
+                        key={`${row.sampleId}-${row.sectionId ?? "all"}`}
                         hover
                       >
                         <TableCell sx={{ fontSize: 12, fontWeight: 700 }}>
@@ -409,6 +409,14 @@ export function ReviewerDashboardPage() {
                           >
                             {row.referenceNumber}
                           </Typography>
+                          {row.sectionName && (
+                            <Chip
+                              label={row.sectionName}
+                              size="small"
+                              variant="outlined"
+                              sx={{ fontSize: 10, height: 18, mt: 0.5, display: "inline-flex" }}
+                            />
+                          )}
                         </TableCell>
                         <TableCell sx={{ fontSize: 12 }}>
                           {row.subjectName}

@@ -20,6 +20,7 @@ public class SampleOrientedDashboardsPostgresIntegrationTests
     private const string SeededUserFullName = "QA Document Admin";
 
     private readonly PostgresTestFixture _fixture;
+    private int _microSectionId;
 
     public SampleOrientedDashboardsPostgresIntegrationTests(PostgresTestFixture fixture)
     {
@@ -167,6 +168,21 @@ public class SampleOrientedDashboardsPostgresIntegrationTests
         var (causeId, itemId) = await ResetAsync(db);
         var now = DateTime.UtcNow;
         var analystId = await EnsureAnalystAsync(db);
+        var microSection = await db.DocumentSections.FirstAsync(s => s.Code == "MICRO");
+        // Both notification recipients below work in Microbiology.
+        foreach (var userId in new[] { analystId, _fixture.SeededControllerUserId })
+        {
+            if (!await db.UserOrgMemberships.AnyAsync(m => m.UserId == userId && m.SectionId == microSection.Id))
+            {
+                db.UserOrgMemberships.Add(new UserOrgMembership
+                {
+                    UserId = userId,
+                    DepartmentId = microSection.DepartmentId,
+                    SectionId = microSection.Id
+                });
+                await db.SaveChangesAsync();
+            }
+        }
 
         var inReview = NewSample("PG-WS-REV", SampleStatus.UnderReview, now.AddDays(-3), causeId, itemId);
         AddOrder(inReview, "TAMC", ApprovalStatus.ResultEntered, WorkflowStep.Ready);
@@ -203,7 +219,7 @@ public class SampleOrientedDashboardsPostgresIntegrationTests
         db.ReviewWorkflowEvents.Add(NewSubmittedForReviewEvent(inReview.Id, now.AddHours(-25)));
         await db.SaveChangesAsync();
 
-        var workspace = new TestingWorkspaceService(db);
+        var workspace = new TestingWorkspaceService(db, new UserSectionScopeService(db));
 
         var counts = await workspace.GetWorkloadCountsAsync(analystId);
         Assert.Equal(1, counts.AwaitingReview);
@@ -237,7 +253,7 @@ public class SampleOrientedDashboardsPostgresIntegrationTests
     // WorkflowHistory). Review events and notification logs hold plain id
     // columns rather than foreign keys, so the rows these tests read are
     // cleared explicitly.
-    private static async Task<(int CauseId, int ItemId)> ResetAsync(MicroLimsDbContext db)
+    private async Task<(int CauseId, int ItemId)> ResetAsync(MicroLimsDbContext db)
     {
         await db.Database.ExecuteSqlRawAsync("TRUNCATE TABLE \"Samples\" CASCADE;");
         await db.ReviewWorkflowEvents.Where(e => e.EntityType == ReviewEntityTypes.Sample).ExecuteDeleteAsync();
@@ -260,6 +276,7 @@ public class SampleOrientedDashboardsPostgresIntegrationTests
         }
 
         await db.SaveChangesAsync();
+        _microSectionId = (await db.DocumentSections.FirstAsync(s => s.Code == "MICRO")).Id;
         return (cause.Id, item.Id);
     }
 
@@ -296,9 +313,9 @@ public class SampleOrientedDashboardsPostgresIntegrationTests
         ReceivedAt = receivedAt
     };
 
-    private static TestOrder AddOrder(Sample sample, string testCode, ApprovalStatus status, WorkflowStep step)
+    private TestOrder AddOrder(Sample sample, string testCode, ApprovalStatus status, WorkflowStep step)
     {
-        var order = new TestOrder { Sample = sample, TestCode = testCode, Status = status, CurrentStep = step };
+        var order = new TestOrder { Sample = sample, TestCode = testCode, Status = status, CurrentStep = step, SectionId = _microSectionId };
         sample.TestOrders.Add(order);
         return order;
     }

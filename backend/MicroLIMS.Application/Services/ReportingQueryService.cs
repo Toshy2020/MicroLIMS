@@ -112,12 +112,12 @@ public class ReportingQueryService
         _ => "Pending"
     };
 
-    public async Task<ResultRecordSearchResult> SearchAsync(ResultRecordSearchRequest request)
+    public async Task<ResultRecordSearchResult> SearchAsync(ResultRecordSearchRequest request, IReadOnlyCollection<int>? sectionIds = null)
     {
         var pageSize = Math.Clamp(request.PageSize <= 0 ? 25 : request.PageSize, 1, 200);
         var page = request.Page <= 0 ? 1 : request.Page;
 
-        var query = ApplySort(BuildFilteredQuery(request), request);
+        var query = ApplySort(BuildFilteredQuery(request, sectionIds), request);
 
         var totalCount = await query.CountAsync();
         var items = await query.Skip((page - 1) * pageSize).Take(pageSize).ToListAsync();
@@ -128,18 +128,18 @@ public class ReportingQueryService
     // Values that actually appear in ResultRecords - not the full master
     // data lists - so a filter dropdown never offers a choice that comes
     // back with zero rows.
-    public async Task<FilterOptionsResult> GetFilterOptionsAsync()
+    public async Task<FilterOptionsResult> GetFilterOptionsAsync(IReadOnlyCollection<int>? sectionIds = null)
     {
-        var categories = await _db.ResultRecords.Select(r => r.Category).Distinct().OrderBy(c => c).ToListAsync();
+        var categories = await Records(sectionIds).Select(r => r.Category).Distinct().OrderBy(c => c).ToListAsync();
 
-        var testCodes = await _db.ResultRecords
+        var testCodes = await Records(sectionIds)
             .Select(r => new { r.TestCode, r.TestDisplayName })
             .Distinct()
             .OrderBy(t => t.TestCode)
             .ToListAsync();
 
-        var subjectNames = await _db.ResultRecords.Select(r => r.SubjectName).Distinct().OrderBy(s => s).ToListAsync();
-        var units = await _db.ResultRecords.Where(r => r.Unit != null).Select(r => r.Unit!).Distinct().OrderBy(u => u).ToListAsync();
+        var subjectNames = await Records(sectionIds).Select(r => r.SubjectName).Distinct().OrderBy(s => s).ToListAsync();
+        var units = await Records(sectionIds).Where(r => r.Unit != null).Select(r => r.Unit!).Distinct().OrderBy(u => u).ToListAsync();
 
         return new FilterOptionsResult(
             categories,
@@ -152,9 +152,9 @@ public class ReportingQueryService
     // too-broad filter can't be used to pull an unbounded dump - the
     // caller (ReportingController) must narrow its filters instead of
     // silently getting a truncated file.
-    public async Task<ExportQueryResult> GetForExportAsync(ResultRecordSearchRequest request, int maxRows)
+    public async Task<ExportQueryResult> GetForExportAsync(ResultRecordSearchRequest request, int maxRows, IReadOnlyCollection<int>? sectionIds = null)
     {
-        var query = ApplySort(BuildFilteredQuery(request), request);
+        var query = ApplySort(BuildFilteredQuery(request, sectionIds), request);
 
         var totalCount = await query.CountAsync();
         if (totalCount > maxRows)
@@ -164,9 +164,16 @@ public class ReportingQueryService
         return new ExportQueryResult(items, totalCount, Exceeded: false);
     }
 
-    private IQueryable<ResultRecord> BuildFilteredQuery(ResultRecordSearchRequest request)
+    // The result projection limited to the viewer's laboratory sections
+    // (null = unrestricted) through each record's test order.
+    private IQueryable<ResultRecord> Records(IReadOnlyCollection<int>? sectionIds) =>
+        sectionIds is null
+            ? _db.ResultRecords
+            : _db.ResultRecords.Where(r => sectionIds.Contains(r.TestOrder!.SectionId));
+
+    private IQueryable<ResultRecord> BuildFilteredQuery(ResultRecordSearchRequest request, IReadOnlyCollection<int>? sectionIds)
     {
-        var query = _db.ResultRecords.AsQueryable();
+        var query = Records(sectionIds).AsQueryable();
 
         if (!string.IsNullOrWhiteSpace(request.Search))
         {
@@ -223,7 +230,7 @@ public class ReportingQueryService
             _ => request.SortDescending ? query.OrderByDescending(r => r.ResultEnteredAt) : query.OrderBy(r => r.ResultEnteredAt)
         };
 
-    public async Task<TrendResult> GetTrendAsync(string testCode, string subjectName, DateTime? fromDate, DateTime? toDate)
+    public async Task<TrendResult> GetTrendAsync(string testCode, string subjectName, DateTime? fromDate, DateTime? toDate, IReadOnlyCollection<int>? sectionIds = null)
     {
         if (string.IsNullOrWhiteSpace(testCode)) throw new InvalidOperationException("testCode is required.");
         if (string.IsNullOrWhiteSpace(subjectName)) throw new InvalidOperationException("subjectName is required.");
@@ -233,10 +240,10 @@ public class ReportingQueryService
 
         // Enforced here, server-side, rather than left to the UI to avoid
         // requesting it - a trend chart over Detected/Absent has no meaning.
-        if (testDefinition.WorkflowType != WorkflowType.CountTest)
+        if (testDefinition.WorkflowType != WorkflowType.CountTest && testDefinition.WorkflowType != WorkflowType.StandardComparison)
             throw new InvalidOperationException($"Trending is only available for numeric results. {testCode} produces qualitative results.");
 
-        var query = _db.ResultRecords.Where(r => r.TestCode == testCode && r.SubjectName == subjectName);
+        var query = Records(sectionIds).Where(r => r.TestCode == testCode && r.SubjectName == subjectName);
         if (fromDate is not null) query = query.Where(r => r.ResultEnteredAt >= fromDate);
         if (toDate is not null) query = query.Where(r => r.ResultEnteredAt <= toDate);
 
@@ -272,12 +279,12 @@ public class ReportingQueryService
         return new TrendResult(testCode, testDefinition.DisplayName, subjectName, unit, points, statistics);
     }
 
-    public async Task<ResultRecord?> GetByIdAsync(int id) =>
-        await _db.ResultRecords.FirstOrDefaultAsync(r => r.Id == id);
+    public async Task<ResultRecord?> GetByIdAsync(int id, IReadOnlyCollection<int>? sectionIds = null) =>
+        await Records(sectionIds).FirstOrDefaultAsync(r => r.Id == id);
 
-    public async Task<OverviewAggregateResult> GetOverviewAggregateAsync(DateTime? fromDate, DateTime? toDate)
+    public async Task<OverviewAggregateResult> GetOverviewAggregateAsync(DateTime? fromDate, DateTime? toDate, IReadOnlyCollection<int>? sectionIds = null)
     {
-        var query = _db.ResultRecords.AsQueryable();
+        var query = Records(sectionIds).AsQueryable();
         if (fromDate is not null) query = query.Where(r => r.ResultEnteredAt >= fromDate);
         if (toDate is not null) query = query.Where(r => r.ResultEnteredAt <= toDate);
 
@@ -352,9 +359,9 @@ public class ReportingQueryService
             locationDistribution, recentResults);
     }
 
-    public async Task<QualitativeEventResult> GetQualitativeEventsAsync(string? testCode, string? subjectName, SampleCategory? category, DateTime? fromDate, DateTime? toDate)
+    public async Task<QualitativeEventResult> GetQualitativeEventsAsync(string? testCode, string? subjectName, SampleCategory? category, DateTime? fromDate, DateTime? toDate, IReadOnlyCollection<int>? sectionIds = null)
     {
-        var query = _db.ResultRecords.Where(r => r.ResultKind == ResultKind.Qualitative && r.ReportedValue == "Detected");
+        var query = Records(sectionIds).Where(r => r.ResultKind == ResultKind.Qualitative && r.ReportedValue == "Detected");
 
         if (!string.IsNullOrWhiteSpace(testCode)) query = query.Where(r => r.TestCode == testCode);
         if (!string.IsNullOrWhiteSpace(subjectName)) query = query.Where(r => r.SubjectName == subjectName);
@@ -391,13 +398,13 @@ public class ReportingQueryService
     // Cleaning batch order with several SampleLocation rows counts once,
     // matching CompletionStatsDto's own TestOrder-level definition of
     // "Approved" rather than counting per-location.
-    public async Task<List<MonthlyCompletionPoint>> GetCompletedByMonthAsync(int months = 6)
+    public async Task<List<MonthlyCompletionPoint>> GetCompletedByMonthAsync(int months = 6, IReadOnlyCollection<int>? sectionIds = null)
     {
         var now = DateTime.UtcNow;
         var currentMonthStart = new DateTime(now.Year, now.Month, 1, 0, 0, 0, DateTimeKind.Utc);
         var windowStart = currentMonthStart.AddMonths(-(months - 1)).AddYears(-1);
 
-        var approvedTestOrders = await _db.ResultRecords
+        var approvedTestOrders = await Records(sectionIds)
             .Where(r => r.SampleStatus == SampleStatus.Approved && r.ApprovedAt != null && r.ApprovedAt >= windowStart)
             .Select(r => new { r.TestOrderId, ApprovedAt = r.ApprovedAt!.Value })
             .Distinct()
@@ -424,15 +431,15 @@ public class ReportingQueryService
     // has results for one given test code, within the same
     // category+dateRange scope as the Trending panel's own criteria - a
     // single shared query, not a per-product/per-location fetch.
-    public async Task<CompareResult> GetCompareBySubjectAsync(string testCode, SampleCategory category, DateTime? fromDate, DateTime? toDate)
+    public async Task<CompareResult> GetCompareBySubjectAsync(string testCode, SampleCategory category, DateTime? fromDate, DateTime? toDate, IReadOnlyCollection<int>? sectionIds = null)
     {
         if (string.IsNullOrWhiteSpace(testCode)) throw new InvalidOperationException("testCode is required.");
 
         var testDefinition = await _db.TestDefinitions.FirstOrDefaultAsync(t => t.Code == testCode)
             ?? throw new InvalidOperationException($"Test code \"{testCode}\" is not configured in Test Master.");
-        var isNumeric = testDefinition.WorkflowType == WorkflowType.CountTest;
+        var isNumeric = testDefinition.WorkflowType is WorkflowType.CountTest or WorkflowType.StandardComparison;
 
-        var query = _db.ResultRecords.Where(r => r.TestCode == testCode && r.Category == category);
+        var query = Records(sectionIds).Where(r => r.TestCode == testCode && r.Category == category);
         if (fromDate is not null) query = query.Where(r => r.ResultEnteredAt >= fromDate);
         if (toDate is not null) query = query.Where(r => r.ResultEnteredAt <= toDate);
 

@@ -91,6 +91,12 @@ public class WorkflowStateResolverTests
     [InlineData(SampleStatus.InTesting, ApprovalStatus.Voided, "VOIDED", "Voided")]
     [InlineData(SampleStatus.Cancelled, ApprovalStatus.Pending, "CANCELLED", "Cancelled")]
     [InlineData(SampleStatus.RetestRequested, ApprovalStatus.Reviewed, "ON_HOLD", "OnHold")]
+    // A section closed its own testing (SectionClosureService) after another
+    // lab rejected the sample - the order's own Status is Cancelled, never
+    // Rejected, whatever the sample-level status reads as (Rejected here, or
+    // still open below).
+    [InlineData(SampleStatus.Rejected, ApprovalStatus.Cancelled, "CANCELLED", "Cancelled")]
+    [InlineData(SampleStatus.UnderApproval, ApprovalStatus.Cancelled, "CANCELLED", "Cancelled")]
     public void Resolve_ClosedSampleOrTest_IsLockedWithNoResultEntry(
         SampleStatus sampleStatus, ApprovalStatus testStatus, string expectedState, string expectedStatus)
     {

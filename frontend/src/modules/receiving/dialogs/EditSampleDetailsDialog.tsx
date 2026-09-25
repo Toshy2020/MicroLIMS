@@ -168,6 +168,7 @@ export function EditSampleDetailsDialog({ open, sample, onClose, onSuccess }: Pr
     !form.sampledBy.trim() ||
     form.causeOfTestingId === "" ||
     (isProductLike && !form.batchNumber.trim()) ||
+    (category === "FinishedProduct" && !form.productionStage.trim()) ||
     (isAfterCleaning && (!form.previousProductName.trim() || !form.previousProductBatchNumber.trim())) ||
     (hasStorage && form.storageCondition === "Refrigerator" && form.storageTimeHours === "");
   const canSave = canEdit && !missingRequired && reason.trim().length > 0;
@@ -339,15 +340,13 @@ export function EditSampleDetailsDialog({ open, sample, onClose, onSuccess }: Pr
             <TextField
               select
               label="Production Stage"
+              required
               size="small"
               fullWidth
               value={stageValue}
               onChange={(e) => set("productionStage", e.target.value)}
               disabled={!canEdit}
             >
-              <MenuItem value="">
-                <em>None</em>
-              </MenuItem>
               {productionStages.map((s) => (
                 <MenuItem key={s.id} value={s.name}>
                   {s.name}

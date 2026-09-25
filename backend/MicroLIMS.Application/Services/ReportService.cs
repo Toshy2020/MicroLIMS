@@ -44,12 +44,13 @@ public class ReportService : IReportService
         return await _pdfGenerator.GenerateFromLinesAsync($"Product Report - {sample.ReferenceNumber}", lines);
     }
 
-    public async Task<byte[]> GenerateWaterReportPdfAsync(DateTime date)
+    public async Task<byte[]> GenerateWaterReportPdfAsync(DateTime date, IReadOnlyCollection<int>? sectionIds = null)
     {
         var samples = await _db.Samples
             .Include(s => s.WaterSamplingPoint)
             .Include(s => s.TestOrders).ThenInclude(t => t.Results)
             .Where(s => s.Category == SampleCategory.Water && s.ReceivedAt.Date == date.Date)
+            .Where(SectionReviewQueues.SampleIn(sectionIds))
             .ToListAsync();
 
         var lines = new List<string> { $"Date: {date:dd-MMM-yyyy}", "" };

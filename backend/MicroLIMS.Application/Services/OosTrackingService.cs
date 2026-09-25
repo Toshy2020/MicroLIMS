@@ -17,10 +17,24 @@ public class OosTrackingService
         _db = db;
     }
 
-    public async Task<List<OosGroupDto>> GetOosGroupsAsync()
+    // sectionIds: the viewer's laboratory sections (null = unrestricted). A
+    // group is shown when one of its retest samples - which carry only the
+    // deciding section's tests - is in those sections; its samples are the
+    // ones with tests there.
+    public async Task<List<OosGroupDto>> GetOosGroupsAsync(IReadOnlyCollection<int>? sectionIds = null)
     {
-        var samples = await _db.Samples
-            .Where(s => s.OosGroupCode != null)
+        var query = _db.Samples.Where(s => s.OosGroupCode != null);
+        if (sectionIds is not null)
+        {
+            var visibleGroups = _db.Samples
+                .Where(s => s.OosGroupCode != null && s.OriginSampleId != null
+                    && s.TestOrders.Any(t => sectionIds.Contains(t.SectionId)))
+                .Select(s => s.OosGroupCode);
+            query = query.Where(s => visibleGroups.Contains(s.OosGroupCode))
+                .Where(SectionReviewQueues.SampleIn(sectionIds));
+        }
+
+        var samples = await query
             .Include(s => s.OriginSample)
             .Include(s => s.Item)
             .Include(s => s.WaterSamplingPoint)

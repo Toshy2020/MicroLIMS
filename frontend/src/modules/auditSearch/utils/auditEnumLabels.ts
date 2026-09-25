@@ -16,12 +16,13 @@ const AdminPasswordRecoveryStatus = ["Pending", "Used", "Expired", "Failed - Lim
 const AnalystDecision = ["Submit as Detected", "Proceed to Biochemical"];
 const ApprovalDecision = ["Approve", "Reject", "Retest Retained Sample", "New Sample Request", "Investigation", "OOS Investigation"];
 const ApprovalGateStatus = ["Pending Review", "Approved", "Rejected"];
-const ApprovalStatus = ["Pending", "In Progress", "Result Entered", "Reviewed", "Approved", "Rejected", "Retest Requested", "Voided"];
+const ApprovalStatus = ["Pending", "In Progress", "Result Entered", "Reviewed", "Approved", "Rejected", "Retest Requested", "Voided", "Cancelled"];
 const ChallengeRole = ["Inhibition", "Indication"];
 const ConfirmatoryResult = ["All Conforming", "Inconclusive"];
 const EquipmentDocumentType = ["", "Calibration Certificate"]; // starts at 1 - index 0 unused
 const EquipmentOperationalStatus = ["In Service", "Out of Service", "Retired"];
-const EquipmentType = ["Incubator", "Autoclave", "LAF Cabinet", "Biological Safety Cabinet", "Water Bath", "Other"];
+const EquipmentType = ["Incubator", "Autoclave", "LAF Cabinet", "Biological Safety Cabinet", "Water Bath", "Other", "HPLC", "pH Meter", "Balance"];
+const CdsSoftware = ["Shimadzu LabSolutions", "Agilent OpenLab", "Waters Empower 3"];
 const EvaluationOutcome = ["Conform", "Non-Conform"];
 const EvaluationType = ["Growth Promotion", "Indication / Inhibition", "Enrichment Characteristics"];
 const GrowthObservation = ["No Growth", "Growth Non-Conforming", "Growth Conforming"];
@@ -30,7 +31,7 @@ const LocationType = ["Room", "Machine Part", "Water Sampling Point"];
 const MaterialDocumentAccessAction = ["View", "Download", "Upload", "Supersede", "Void"];
 const MaterialDocumentStatus = ["Current", "Superseded", "Voided"];
 const MaterialDocumentType = ["COA", "Supplier Certificate", "Specification", "SDS", "Other"];
-const MaterialType = ["Dehydrated Media", "Lyophilized Microorganism", "Supplement", "Antibiotic Disc", "Identification Kit", "Identification Reagent", "Chemical", "Indicator", "Reference Buffer", "Disposable Tool", "Other"];
+const MaterialType = ["Dehydrated Media", "Lyophilized Microorganism", "Supplement", "Antibiotic Disc", "Identification Kit", "Identification Reagent", "Chemical", "Indicator", "Reference Buffer", "Disposable Tool", "Other", "Reference Standard"];
 const MaterialUnit = ["Gram", "Kilogram", "Milliliter", "Liter", "Disc", "Vial", "Kit", "Piece", "Bottle", "Pack"];
 const MediaEvaluationStatus = ["Assigned", "In Progress", "Completed"];
 const MediaStatus = ["Prepared", "Active", "Expired", "Quarantine / Failed", "Destroyed", "Out of Stock"];
@@ -62,6 +63,7 @@ export const AUDIT_ENUM_LABELS: Record<string, string[]> = {
   "ElectronicSignature.MeaningOfSignature": SignatureMeaning,
 
   "Equipment.Type": EquipmentType,
+  "Equipment.CdsSoftware": CdsSoftware,
   "EquipmentInventory.Status": EquipmentOperationalStatus,
   "EquipmentDocument.DocumentType": EquipmentDocumentType,
   "EquipmentDocument.Status": MaterialDocumentStatus,

@@ -47,6 +47,7 @@ interface Props {
   onPrepareSample: (sample: SampleRecord) => void;
   onAssignAnalyst?: (sample: SampleRecord) => void;
   onVoid?: (sample: SampleRecord) => void;
+  onAddLaboratory?: (sample: SampleRecord) => void;
 }
 
 // Same statuses StatusBadge.tsx's central token map covers, but collapsed
@@ -58,7 +59,7 @@ const SAMPLE_STATUS_MAP: Record<string, { label: string; tone: StatusTone }> = {
   Received: { label: "Received", tone: "pending" },
   InTesting: { label: "Under Testing", tone: "info" },
   UnderReview: { label: "Pending Review", tone: "action" },
-  UnderApproval: { label: "Pending Review", tone: "action" },
+  UnderApproval: { label: "Pending Approval", tone: "action" },
   PendingReview: { label: "Pending Review", tone: "action" },
   Approved: { label: "Approved", tone: "notDetected" },
   Rejected: { label: "Rejected", tone: "detected" },
@@ -107,7 +108,8 @@ export function SampleRegisterTable({
   onViewAuditHistory,
   onPrepareSample,
   onAssignAnalyst,
-  onVoid
+  onVoid,
+  onAddLaboratory
 }: Props) {
   const theme = useTheme();
   const { role } = useAuth();
@@ -499,6 +501,7 @@ export function SampleRegisterTable({
               onPrepareSample={onPrepareSample}
               onAssignAnalyst={onAssignAnalyst}
               onVoid={onVoid}
+              onAddLaboratory={onAddLaboratory}
             />
           </TableCell>
         </TableRow>

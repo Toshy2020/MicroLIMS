@@ -65,7 +65,7 @@ public class TestingWorkspaceServerSidePagingAndFilteringTests
         }
         await db.SaveChangesAsync();
 
-        var service = new TestingWorkspaceService(db);
+        var service = new TestingWorkspaceService(db, new UserSectionScopeService(db));
 
         // Default paging: page = 1, pageSize = 50
         var paged1 = await service.GetActiveSamplesAsync(new TestingWorkspaceFilterDto());
@@ -128,7 +128,7 @@ public class TestingWorkspaceServerSidePagingAndFilteringTests
         db.Samples.AddRange(s1, s2, s3, s4);
         await db.SaveChangesAsync();
 
-        var service = new TestingWorkspaceService(db);
+        var service = new TestingWorkspaceService(db, new UserSectionScopeService(db));
 
         // Search by sampleId
         var resId = await service.GetActiveSamplesAsync(new TestingWorkspaceFilterDto { Search = "10" });
@@ -191,7 +191,7 @@ public class TestingWorkspaceServerSidePagingAndFilteringTests
         db.Samples.Add(CreateSample(3, "C3", cause, SampleCategory.AfterCleaning));
         await db.SaveChangesAsync();
 
-        var service = new TestingWorkspaceService(db);
+        var service = new TestingWorkspaceService(db, new UserSectionScopeService(db));
 
         var resProduct = await service.GetActiveSamplesAsync(new TestingWorkspaceFilterDto { Category = "FinishedProduct" });
         Assert.Single(resProduct.Items);
@@ -218,7 +218,7 @@ public class TestingWorkspaceServerSidePagingAndFilteringTests
         db.Samples.Add(CreateSample(5, "C5", cause, status: SampleStatus.RetestRequested));
         await db.SaveChangesAsync();
 
-        var service = new TestingWorkspaceService(db);
+        var service = new TestingWorkspaceService(db, new UserSectionScopeService(db));
 
         // PendingReview expands to UnderReview and UnderApproval
         var resPending = await service.GetActiveSamplesAsync(new TestingWorkspaceFilterDto { SampleStatus = "PendingReview" });
@@ -270,7 +270,7 @@ public class TestingWorkspaceServerSidePagingAndFilteringTests
         db.Samples.AddRange(s1, s2, s3, s4, s5);
         await db.SaveChangesAsync();
 
-        var service = new TestingWorkspaceService(db);
+        var service = new TestingWorkspaceService(db, new UserSectionScopeService(db));
 
         // Waiting / Pending
         var resWaiting = await service.GetActiveSamplesAsync(new TestingWorkspaceFilterDto { TestStatus = "Waiting" });
@@ -312,7 +312,7 @@ public class TestingWorkspaceServerSidePagingAndFilteringTests
         db.Samples.AddRange(s1, s2);
         await db.SaveChangesAsync();
 
-        var service = new TestingWorkspaceService(db);
+        var service = new TestingWorkspaceService(db, new UserSectionScopeService(db));
 
         var res = await service.GetActiveSamplesAsync(new TestingWorkspaceFilterDto { AnalystId = 42 });
         Assert.Single(res.Items);
@@ -341,7 +341,7 @@ public class TestingWorkspaceServerSidePagingAndFilteringTests
         db.Samples.AddRange(s1, s2, s3, s4, s5);
         await db.SaveChangesAsync();
 
-        var service = new TestingWorkspaceService(db);
+        var service = new TestingWorkspaceService(db, new UserSectionScopeService(db));
 
         var res = await service.GetActiveSamplesAsync(new TestingWorkspaceFilterDto { Urgency = "overdue" });
         Assert.Single(res.Items);
@@ -362,7 +362,7 @@ public class TestingWorkspaceServerSidePagingAndFilteringTests
         db.Samples.AddRange(s1, s2, s3, s4);
         await db.SaveChangesAsync();
 
-        var service = new TestingWorkspaceService(db);
+        var service = new TestingWorkspaceService(db, new UserSectionScopeService(db));
 
         var res = await service.GetActiveSamplesAsync(new TestingWorkspaceFilterDto
         {
@@ -380,38 +380,43 @@ public class TestingWorkspaceServerSidePagingAndFilteringTests
     {
         await using var db = NewDb();
         var cause = SeedCause(db);
+        var section = TestServiceFactory.EnsureMicroSection(db);
 
         var now = DateTime.UtcNow;
         var myUserId = 77;
+        TestServiceFactory.AssignUserToMicroSection(db, myUserId);
 
         // 1. Needs preparation (PreparationStatus = NeedsPreparation, not closed)
         var s1 = CreateSample(1, "C1", cause, status: SampleStatus.Received, receivedAt: now);
         s1.PreparationStatus = SamplePreparationStatus.NeedsPreparation;
+        s1.TestOrders.Add(new TestOrder { Id = 10, TestCode = "TAMC", SectionId = section.Id });
 
         // 2. Ready to read (open incubation with ExpectedReadingAt <= now)
         var s2 = CreateSample(2, "C2", cause, status: SampleStatus.InTesting, receivedAt: now);
         s2.PreparationStatus = SamplePreparationStatus.Ready;
-        var to2 = new TestOrder { Id = 20, TestCode = "TAMC", Status = ApprovalStatus.InProgress, AssignedAnalystId = myUserId };
+        var to2 = new TestOrder { Id = 20, TestCode = "TAMC", Status = ApprovalStatus.InProgress, AssignedAnalystId = myUserId, SectionId = section.Id };
         to2.Incubations.Add(new Incubation { Id = 200, TestOrderId = 20, CompletedAt = null, ExpectedReadingAt = now.AddHours(-1) });
         s2.TestOrders.Add(to2);
 
         // 3. Awaiting review (UnderReview or test ResultEntered)
         var s3 = CreateSample(3, "C3", cause, status: SampleStatus.UnderReview, receivedAt: now);
         s3.PreparationStatus = SamplePreparationStatus.Ready;
+        s3.TestOrders.Add(new TestOrder { Id = 30, TestCode = "TAMC", SectionId = section.Id });
 
         // 4. Overdue (open sample received > 24h ago)
         var s4 = CreateSample(4, "C4", cause, status: SampleStatus.InTesting, receivedAt: now.AddHours(-30));
         s4.PreparationStatus = SamplePreparationStatus.Ready;
+        s4.TestOrders.Add(new TestOrder { Id = 40, TestCode = "TAMC", SectionId = section.Id });
 
         // 5. Unassigned (not closed, no analyst assigned to sample or any test)
         var s5 = CreateSample(5, "C5", cause, status: SampleStatus.Received, receivedAt: now);
         s5.PreparationStatus = SamplePreparationStatus.Ready;
-        s5.TestOrders.Add(new TestOrder { Id = 50, TestCode = "EC", Status = ApprovalStatus.Pending, AssignedAnalystId = null });
+        s5.TestOrders.Add(new TestOrder { Id = 50, TestCode = "EC", Status = ApprovalStatus.Pending, AssignedAnalystId = null, SectionId = section.Id });
 
         db.Samples.AddRange(s1, s2, s3, s4, s5);
         await db.SaveChangesAsync();
 
-        var service = new TestingWorkspaceService(db);
+        var service = new TestingWorkspaceService(db, new UserSectionScopeService(db));
 
         var counts = await service.GetWorkloadCountsAsync(myUserId);
 
@@ -453,7 +458,7 @@ public class TestingWorkspaceServerSidePagingAndFilteringTests
         }
         await db.SaveChangesAsync();
 
-        var service = new TestingWorkspaceService(db);
+        var service = new TestingWorkspaceService(db, new UserSectionScopeService(db));
 
         // What model binding produces for GET /api/testorders with no query string.
         var result = await service.GetActiveSamplesAsync(new TestingWorkspaceFilterDto());
@@ -468,10 +473,15 @@ public class TestingWorkspaceServerSidePagingAndFilteringTests
     {
         await using var db = NewDb();
         var cause = SeedCause(db);
-        db.Samples.Add(CreateSample(1, "C1", cause));
+        var microSection = TestServiceFactory.EnsureMicroSection(db);
+        TestServiceFactory.AssignUserToMicroSection(db, 42);
+
+        var sample = CreateSample(1, "C1", cause);
+        sample.TestOrders.Add(new TestOrder { TestCode = "TAMC", SectionId = microSection.Id });
+        db.Samples.Add(sample);
         await db.SaveChangesAsync();
 
-        var service = new TestingWorkspaceService(db);
+        var service = new TestingWorkspaceService(db, new UserSectionScopeService(db));
         var controller = new MicroLIMS.API.Controllers.TestingWorkspaceController(service);
 
         var user = new System.Security.Claims.ClaimsPrincipal(new System.Security.Claims.ClaimsIdentity(new[]
@@ -503,7 +513,7 @@ public class TestingWorkspaceServerSidePagingAndFilteringTests
         db.Samples.Add(s);
         await db.SaveChangesAsync();
 
-        var service = new TestingWorkspaceService(db);
+        var service = new TestingWorkspaceService(db, new UserSectionScopeService(db));
         var controller = new MicroLIMS.API.Controllers.TestingWorkspaceController(service);
 
         var actionResult = await controller.GetWorkloadCounts();

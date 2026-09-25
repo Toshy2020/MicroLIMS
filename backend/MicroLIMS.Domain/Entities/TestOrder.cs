@@ -10,6 +10,11 @@ public class TestOrder
     public int SampleId { get; set; }
     public Sample? Sample { get; set; }
     public string TestCode { get; set; } = string.Empty;
+
+    // Copied from the TestDefinition at creation; never recomputed if the test later moves section.
+    public int SectionId { get; set; }
+    public DocumentSection? Section { get; set; }
+
     public ApprovalStatus Status { get; set; } = ApprovalStatus.Pending;
     public WorkflowStep CurrentStep { get; set; } = WorkflowStep.Waiting;
     public int? AssignedAnalystId { get; set; }
@@ -28,6 +33,16 @@ public class TestOrder
     // SamplingConfiguration) instead of trusting a client-supplied limit.
     public int? RoomId { get; set; }
     public Room? Room { get; set; }
+
+    // HPLC System Suitability Run link (REQ-FP-003)
+    public int? SystemSuitabilityRunId { get; set; }
+    public SystemSuitabilityRun? SystemSuitabilityRun { get; set; }
+
+    // Set when the lab closes its testing after another lab rejected the
+    // sample: the step (and incubation stage, when there was one) the test
+    // had reached, shown in the sample summary.
+    public WorkflowStep? CancelledAtStep { get; set; }
+    public int? CancelledAtStage { get; set; }
 
     public List<Result> Results { get; set; } = new();
     public List<Incubation> Incubations { get; set; } = new();

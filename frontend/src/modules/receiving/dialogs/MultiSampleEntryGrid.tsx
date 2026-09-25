@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import {
   Box,
   Typography,
@@ -14,13 +15,29 @@ import {
   Button,
   Paper,
   Tooltip,
+  Checkbox,
+  FormControlLabel,
+  FormGroup,
+  CircularProgress,
   useTheme
 } from "@mui/material";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutlined";
 import AddIcon from "@mui/icons-material/Add";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
-import { ReceiveRowItem, SampleCategoryKey } from "../types/receivingTypes";
+import { ReceiveRowItem, SampleCategoryKey, ReceiptLabOption } from "../types/receivingTypes";
+import { ReceiveService } from "../services/ReceiveService";
 import { tableHeadSx } from "../../../theme";
+
+// The two laboratories always shown in the Laboratories column, even when
+// the item has no tests for one of them - so the receiver sees a disabled
+// "(0)" entry rather than a lab silently missing. Mirrors env.md's fixed
+// section codes (Code is never renamed).
+const ALL_LABS: { code: string; label: string }[] = [
+  { code: "MICRO", label: "Microbiology Laboratory" },
+  { code: "FP", label: "Physicochemical Laboratory" }
+];
+
+export type LabMode = { kind: "choose" } | { kind: "fixed"; sectionId: number };
 
 interface MasterData {
   items: any[];
@@ -37,6 +54,7 @@ interface Props {
   category: SampleCategoryKey;
   rows: ReceiveRowItem[];
   masterData: MasterData;
+  labMode: LabMode;
   onChangeRow: (index: number, field: string, value: any) => void;
   onAddRow: () => void;
   onDeleteRow: (index: number) => void;
@@ -46,6 +64,7 @@ export function MultiSampleEntryGrid({
   category,
   rows,
   masterData,
+  labMode,
   onChangeRow,
   onAddRow,
   onDeleteRow
@@ -55,6 +74,43 @@ export function MultiSampleEntryGrid({
   const isWater = category === "water";
   const isEM = category === "em";
   const isAC = category === "ac";
+  const showLabColumn = isItemBased && labMode.kind === "choose";
+
+  // Cached receipt-labs by item id, shared across rows that picked the
+  // same item - avoids one fetch per row for a repeated item.
+  const [labOptionsByItem, setLabOptionsByItem] = useState<Record<string, ReceiptLabOption[]>>({});
+  const [loadingItemIds, setLoadingItemIds] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    if (!showLabColumn) return;
+    const itemIds = Array.from(new Set(rows.map((r) => r.itemId).filter((id): id is number => Boolean(id))));
+    itemIds.forEach((id) => {
+      const key = String(id);
+      if (labOptionsByItem[key] || loadingItemIds.has(key)) return;
+      setLoadingItemIds((prev) => new Set(prev).add(key));
+      ReceiveService.receiptLabs(id)
+        .then((labs) => setLabOptionsByItem((prev) => ({ ...prev, [key]: labs })))
+        .finally(() => setLoadingItemIds((prev) => {
+          const next = new Set(prev);
+          next.delete(key);
+          return next;
+        }));
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rows, showLabColumn]);
+
+  // Default every row to all labs the item has tests for, once its
+  // receipt-labs have loaded - only when the row hasn't been touched yet.
+  useEffect(() => {
+    if (!showLabColumn) return;
+    rows.forEach((row, idx) => {
+      if (!row.itemId || row.targetSectionIds !== undefined) return;
+      const options = labOptionsByItem[String(row.itemId)];
+      if (!options) return;
+      onChangeRow(idx, "targetSectionIds", options.filter((o) => o.testCount > 0).map((o) => o.sectionId));
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rows, labOptionsByItem, showLabColumn]);
 
   return (
     <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
@@ -93,7 +149,7 @@ export function MultiSampleEntryGrid({
         }}
       >
         <Box sx={{ overflowX: "auto", maxHeight: "55vh" }}>
-          <Table size="small" stickyHeader sx={{ minWidth: isItemBased || isAC ? 1200 : 780 }}>
+          <Table size="small" stickyHeader sx={{ minWidth: showLabColumn ? 1400 : isItemBased || isAC ? 1200 : 780 }}>
             <TableHead>
               <TableRow sx={[tableHeadSx, { "& th": { fontWeight: 700, fontSize: 12, py: 1.25 } }]}>
                 <TableCell sx={{ width: 40 }}>#</TableCell>
@@ -101,6 +157,12 @@ export function MultiSampleEntryGrid({
                 {isItemBased && (
                   <TableCell sx={{ minWidth: 200 }}>
                     Item <span style={{ color: theme.custom.status.detected.text }}>*</span>
+                  </TableCell>
+                )}
+
+                {showLabColumn && (
+                  <TableCell sx={{ minWidth: 200 }}>
+                    Laboratories <span style={{ color: theme.custom.status.detected.text }}>*</span>
                   </TableCell>
                 )}
 
@@ -116,7 +178,9 @@ export function MultiSampleEntryGrid({
                 )}
 
                 {category === "product" && (
-                  <TableCell sx={{ minWidth: 140 }}>Production Stage</TableCell>
+                  <TableCell sx={{ minWidth: 140 }}>
+                    Production Stage <span style={{ color: theme.custom.status.detected.text }}>*</span>
+                  </TableCell>
                 )}
 
                 {isWater && (
@@ -194,7 +258,12 @@ export function MultiSampleEntryGrid({
                           displayEmpty
                           value={row.itemId ?? ""}
                           error={Boolean(errors.itemId)}
-                          onChange={(e) => onChangeRow(idx, "itemId", e.target.value)}
+                          onChange={(e) => {
+                            onChangeRow(idx, "itemId", e.target.value);
+                            // A different item can have a different set of
+                            // labs - clear the stale choice so it re-defaults.
+                            onChangeRow(idx, "targetSectionIds", undefined);
+                          }}
                           sx={{ fontSize: 12 }}
                         >
                           <MenuItem value="">
@@ -206,6 +275,58 @@ export function MultiSampleEntryGrid({
                             </MenuItem>
                           ))}
                         </Select>
+                      </TableCell>
+                    )}
+
+                    {/* Laboratories (choose mode only) */}
+                    {showLabColumn && (
+                      <TableCell>
+                        {!row.itemId ? (
+                          <Typography sx={{ fontSize: 11.5, color: "text.disabled" }}>
+                            Select an item first
+                          </Typography>
+                        ) : loadingItemIds.has(String(row.itemId)) ? (
+                          <CircularProgress size={16} />
+                        ) : (
+                          <FormGroup row>
+                            {ALL_LABS.map((lab) => {
+                              const options = labOptionsByItem[String(row.itemId)] || [];
+                              const option = options.find((o) => o.sectionCode === lab.code);
+                              const checked = Boolean(option && row.targetSectionIds?.includes(option.sectionId));
+                              return (
+                                <FormControlLabel
+                                  key={lab.code}
+                                  sx={{ mr: 1.5 }}
+                                  control={
+                                    <Checkbox
+                                      size="small"
+                                      disabled={!option}
+                                      checked={checked}
+                                      onChange={(e) => {
+                                        if (!option) return;
+                                        const current = row.targetSectionIds || [];
+                                        const next = e.target.checked
+                                          ? [...current, option.sectionId]
+                                          : current.filter((id) => id !== option.sectionId);
+                                        onChangeRow(idx, "targetSectionIds", next);
+                                      }}
+                                    />
+                                  }
+                                  label={
+                                    <Typography sx={{ fontSize: 11.5, color: option ? "text.primary" : "text.disabled" }}>
+                                      {(option?.sectionName || lab.label).replace(" Laboratory", "")} ({option?.testCount ?? 0})
+                                    </Typography>
+                                  }
+                                />
+                              );
+                            })}
+                          </FormGroup>
+                        )}
+                        {errors.targetSectionIds && (
+                          <Typography sx={{ fontSize: 10.5, color: theme.custom.status.detected.text, mt: 0.25 }}>
+                            {errors.targetSectionIds}
+                          </Typography>
+                        )}
                       </TableCell>
                     )}
 
@@ -249,6 +370,7 @@ export function MultiSampleEntryGrid({
                           fullWidth
                           displayEmpty
                           value={row.productionStage ?? ""}
+                          error={Boolean(errors.productionStage)}
                           onChange={(e) => onChangeRow(idx, "productionStage", e.target.value)}
                           sx={{ fontSize: 12 }}
                         >

@@ -12,5 +12,12 @@ public enum SignatureMeaning
     // Appended, never inserted: persisted as int.
     SampleCorrected,
     SampleVoided,
-    MasterDataChanged
+    MasterDataChanged,
+    SuitabilityRunPerformed,
+    ResultRecorded,
+    CalibrationRunPerformed,
+    CalibrationRunWithdrawn,
+    TestingClosed,
+    LaboratoryAdded
 }
+

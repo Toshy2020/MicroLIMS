@@ -27,6 +27,6 @@ public class WaterService
     public Task<WaterComparisonResult> CalculateAsync(int testOrderId, List<decimal> readings) =>
         _workflow.CalculateAndCompareAsync(testOrderId, readings);
 
-    public Task<List<WaterComparisonResult>> GetDailyAggregateAsync(DateTime date) =>
-        _workflow.GetDailyAggregateAsync(date);
+    public Task<List<WaterComparisonResult>> GetDailyAggregateAsync(DateTime date, IReadOnlyCollection<int>? sectionIds = null) =>
+        _workflow.GetDailyAggregateAsync(date, sectionIds);
 }

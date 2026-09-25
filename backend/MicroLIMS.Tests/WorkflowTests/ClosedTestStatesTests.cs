@@ -31,7 +31,7 @@ public class ClosedTestStatesTests
 
     private static async Task<SampleDto> WorkspaceRowAsync(MicroLimsDbContext db, int sampleId)
     {
-        var page = await new TestingWorkspaceService(db).GetActiveSamplesAsync(new TestingWorkspaceFilterDto { PageSize = 200 });
+        var page = await new TestingWorkspaceService(db, new UserSectionScopeService(db)).GetActiveSamplesAsync(new TestingWorkspaceFilterDto { PageSize = 200 });
         return Assert.Single(page.Items, s => s.SampleId == sampleId);
     }
 
@@ -143,6 +143,73 @@ public class ClosedTestStatesTests
         Assert.Equal(1, CountOf("Approved"));
         Assert.Equal(0, CountOf("Pending"));
         Assert.Equal(0, CountOf("Rejected"));
+    }
+
+    // A cancelled test (SectionClosureService: this lab stopped testing
+    // after another lab rejected the sample) is struck from active work the
+    // same way a voided test is - never counted as still-Pending.
+    [Fact]
+    public async Task StatusDistribution_DoesNotCountCancelledTestsAsPending()
+    {
+        await using var db = NewDb();
+        var cause = await SeedCauseAsync(db);
+
+        var approved = new Sample { ReferenceNumber = "FP-OK", Status = SampleStatus.Approved, CauseOfTesting = cause };
+        approved.TestOrders.Add(new TestOrder { TestCode = "TAMC", Status = ApprovalStatus.Approved, CurrentStep = WorkflowStep.Approved });
+        var cancelled = new Sample { ReferenceNumber = "FP-CANCELLED", Status = SampleStatus.Rejected, CauseOfTesting = cause };
+        cancelled.TestOrders.Add(new TestOrder { TestCode = "ASSAY", Status = ApprovalStatus.Cancelled, CurrentStep = WorkflowStep.Incubating, CancelledAtStep = WorkflowStep.Incubating });
+        db.Samples.AddRange(approved, cancelled);
+        await db.SaveChangesAsync();
+
+        var slices = await TestServiceFactory.Dashboard(db).GetStatusDistributionAsync();
+
+        int CountOf(string status) => slices
+            .Select(s => new { Status = (string)s.GetType().GetProperty("status")!.GetValue(s)!, Count = (int)s.GetType().GetProperty("count")!.GetValue(s)! })
+            .Single(s => s.Status == status).Count;
+
+        Assert.Equal(1, CountOf("Approved"));
+        Assert.Equal(0, CountOf("Pending"));
+        Assert.Equal(0, CountOf("Rejected"));
+    }
+
+    // A cancelled test is nobody's active task - MyTasksService must never
+    // surface it as something an analyst still needs to read, even with an
+    // open, due incubation window sitting on the row (SectionClosureService
+    // never touches CurrentStep/Incubations, only Status).
+    [Fact]
+    public async Task MyTasks_ExcludesCancelledTests()
+    {
+        await using var db = NewDb();
+        var cause = await SeedCauseAsync(db);
+
+        var section = TestServiceFactory.EnsureMicroSection(db);
+        var role = new Role { Type = RoleType.Analyst, Name = "Analyst" };
+        db.Roles.Add(role);
+        await db.SaveChangesAsync();
+        var analyst = new User { FullName = "Ana Lyst", Username = "analyst-cancelled", RoleId = role.Id, PasswordHash = "not-used" };
+        db.Users.Add(analyst);
+        await db.SaveChangesAsync();
+        TestServiceFactory.AssignUserToMicroSection(db, analyst.Id);
+
+        var sample = new Sample { ReferenceNumber = "FP-CANCELLED-TASK", Status = SampleStatus.Rejected, CauseOfTesting = cause };
+        var order = new TestOrder
+        {
+            TestCode = "ASSAY",
+            SectionId = section.Id,
+            Status = ApprovalStatus.Cancelled,
+            CurrentStep = WorkflowStep.Incubating,
+            AssignedAnalystId = analyst.Id
+        };
+        // Still physically due soon - if the Status filter didn't exclude
+        // Cancelled this would surface as a "Read Test" task.
+        order.Incubations.Add(new Incubation { StepName = "Stage 1", ExpectedReadingAt = DateTime.UtcNow.AddHours(1), CompletedAt = null });
+        sample.TestOrders.Add(order);
+        db.Samples.Add(sample);
+        await db.SaveChangesAsync();
+
+        var tasks = await new MyTasksService(db, new UserSectionScopeService(db)).GetMyTasksAsync(analyst.Id);
+
+        Assert.Empty(tasks);
     }
 
     [Theory]

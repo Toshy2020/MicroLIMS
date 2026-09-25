@@ -18,6 +18,7 @@ public class MaterialConfiguration : IEntityTypeConfiguration<Material>
         builder.Property(m => m.QuantityReceived).HasColumnType("decimal(18,3)");
         builder.Property(m => m.QuantityRemaining).HasColumnType("decimal(18,3)");
         builder.Property(m => m.MinimumStockLevel).HasColumnType("decimal(18,3)");
+        builder.Property(m => m.Purity).HasColumnType("decimal(6,3)");
 
         // Not a unique constraint - the same material/code is legitimately
         // received again under a new batch/lot, exactly like the source list.
@@ -26,6 +27,13 @@ public class MaterialConfiguration : IEntityTypeConfiguration<Material>
         builder.HasIndex(m => m.MediaProductId);
         builder.HasOne(m => m.Organism).WithMany().HasForeignKey(m => m.OrganismId).OnDelete(DeleteBehavior.Restrict);
         builder.HasOne(m => m.MediaProduct).WithMany().HasForeignKey(m => m.MediaProductId).OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasOne(m => m.Section)
+            .WithMany()
+            .HasForeignKey(m => m.SectionId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasIndex(m => m.SectionId);
 
         builder.Ignore(m => m.Status);
         builder.Ignore(m => m.IsUsable);

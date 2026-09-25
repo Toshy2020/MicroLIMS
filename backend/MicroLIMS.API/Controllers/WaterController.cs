@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Application.Services;
 using MicroLIMS.Application.Workflows;
 using MicroLIMS.Shared.Responses;
@@ -16,9 +17,11 @@ public record CalculateWaterRequest(int TestOrderId, List<decimal> Readings);
 public class WaterController : ControllerBase
 {
     private readonly WaterService _waterService;
+    private readonly IUserSectionScopeService _scopeService;
 
-    public WaterController(WaterService waterService)
+    public WaterController(WaterService waterService, IUserSectionScopeService scopeService)
     {
+        _scopeService = scopeService;
         _waterService = waterService;
     }
 
@@ -37,10 +40,13 @@ public class WaterController : ControllerBase
             request.SampleId, request.WaterSamplingPointIds, CurrentUserId, request.StorageCondition, request.StorageTimeHours)));
 
     [HttpPost("calculate")]
-    public async Task<IActionResult> Calculate(CalculateWaterRequest request) =>
-        Ok(ApiResponse<object>.Ok(await _waterService.CalculateAsync(request.TestOrderId, request.Readings)));
+    public async Task<IActionResult> Calculate(CalculateWaterRequest request)
+    {
+        await _scopeService.EnsureTestOrderAccessAsync(CurrentUserId, request.TestOrderId);
+        return Ok(ApiResponse<object>.Ok(await _waterService.CalculateAsync(request.TestOrderId, request.Readings)));
+    }
 
     [HttpGet("daily-report")]
     public async Task<IActionResult> DailyReport([FromQuery] DateTime date) =>
-        Ok(ApiResponse<object>.Ok(await _waterService.GetDailyAggregateAsync(date)));
+        Ok(ApiResponse<object>.Ok(await _waterService.GetDailyAggregateAsync(date, await _scopeService.GetAccessibleSectionIdsAsync(CurrentUserId))));
 }

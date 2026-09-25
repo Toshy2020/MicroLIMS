@@ -24,7 +24,8 @@ public class CountTestWorkflowTests
 
     private static async Task<(TestOrder order, Media generalAgarMedia, Media selectiveAgarMedia)> SeedTamcOrderAsync(MicroLimsDbContext db)
     {
-        var testDefinition = new TestDefinition { Code = "TAMC", DisplayName = "Total Aerobic Microbial Count", WorkflowType = WorkflowType.CountTest };
+        var section = TestServiceFactory.EnsureMicroSection(db);
+        var testDefinition = new TestDefinition { Code = "TAMC", DisplayName = "Total Aerobic Microbial Count", WorkflowType = WorkflowType.CountTest, SectionId = section.Id };
         db.TestDefinitions.Add(testDefinition);
         await db.SaveChangesAsync();
 
@@ -631,11 +632,14 @@ public class CountTestWorkflowTests
     public async Task ProductWorkflowEngine_AdvanceAsync_WhenPreparationNotConfirmed_ThrowsAndLogsRefusal()
     {
         await using var db = NewDb();
+        var section = TestServiceFactory.EnsureMicroSection(db);
+        db.TestDefinitions.Add(new TestDefinition { Code = "TAMC", DisplayName = "Total Aerobic Microbial Count", SectionId = section.Id });
         var item = new Item { Name = "Finished Tablet", Code = "FT-01", Category = SampleCategory.FinishedProduct, IsActive = true };
         item.AssignedTests.Add(new SampleTest { TestCode = "TAMC" });
         db.Items.Add(item);
         await db.SaveChangesAsync();
 
+        TestServiceFactory.EnsureProductionStage(db, "Bulk");
         var productEngine = new ProductWorkflowEngine(db, new ReferenceNumberGenerator(db));
         var sample = await productEngine.ReceiveAsync(new ItemBasedReceiveRequest(
             item.Id, 1, "100g", "Analyst", "LOT-99", "CTRL-99", DateTime.UtcNow, DateTime.UtcNow.AddYears(2), "Bulk", 1));

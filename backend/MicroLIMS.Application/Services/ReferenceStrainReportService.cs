@@ -15,12 +15,12 @@ public class ReferenceStrainReportService
         _db = db;
     }
 
-    public async Task<ReferenceStrainSearchResult> SearchAsync(ReferenceStrainSearchRequest request)
+    public async Task<ReferenceStrainSearchResult> SearchAsync(ReferenceStrainSearchRequest request, IReadOnlyCollection<int>? sectionIds = null)
     {
         var pageSize = Math.Clamp(request.PageSize <= 0 ? 25 : request.PageSize, 1, 200);
         var page = request.Page <= 0 ? 1 : request.Page;
 
-        var baseQuery = BuildFilteredQuery(request);
+        var baseQuery = BuildFilteredQuery(request, sectionIds);
         var totalCount = await baseQuery.CountAsync();
 
         var sortedQuery = ApplySort(baseQuery, request);
@@ -203,9 +203,9 @@ public class ReferenceStrainReportService
         );
     }
 
-    public async Task<ReferenceStrainExportResult> GetForExportAsync(ReferenceStrainSearchRequest request, int maxRows)
+    public async Task<ReferenceStrainExportResult> GetForExportAsync(ReferenceStrainSearchRequest request, int maxRows, IReadOnlyCollection<int>? sectionIds = null)
     {
-        var baseQuery = ApplySort(BuildFilteredQuery(request), request);
+        var baseQuery = ApplySort(BuildFilteredQuery(request, sectionIds), request);
         var cryovials = await baseQuery
             .Include(c => c.Organism)
             .Include(c => c.Material)
@@ -300,13 +300,13 @@ public class ReferenceStrainReportService
         return new ReferenceStrainExportResult(rows, rows.Count, Exceeded: false);
     }
 
-    public async Task<ReferenceStrainFilterOptionsDto> GetFilterOptionsAsync()
+    public async Task<ReferenceStrainFilterOptionsDto> GetFilterOptionsAsync(IReadOnlyCollection<int>? sectionIds = null)
     {
         // Distinct() over the entity, not over the projection: EF Core cannot
         // translate Distinct() on a projection into a DTO followed by OrderBy
         // on one of its properties, and threw at runtime on every call. The
         // organism is deduplicated server-side, then projected.
-        var organisms = await _db.Cryovials
+        var organisms = await CryovialsIn(sectionIds)
             .Where(c => c.Organism != null)
             .Select(c => c.Organism!)
             .Distinct()
@@ -317,9 +317,14 @@ public class ReferenceStrainReportService
         return new ReferenceStrainFilterOptionsDto(organisms);
     }
 
-    private IQueryable<Cryovial> BuildFilteredQuery(ReferenceStrainSearchRequest request)
+    // Cryovials limited to the viewer's laboratory sections (null =
+    // unrestricted) through the material each batch was prepared from.
+    private IQueryable<Cryovial> CryovialsIn(IReadOnlyCollection<int>? sectionIds) =>
+        sectionIds is null ? _db.Cryovials : _db.Cryovials.Where(c => sectionIds.Contains(c.Material!.SectionId));
+
+    private IQueryable<Cryovial> BuildFilteredQuery(ReferenceStrainSearchRequest request, IReadOnlyCollection<int>? sectionIds)
     {
-        var query = _db.Cryovials.AsQueryable();
+        var query = CryovialsIn(sectionIds);
 
         if (!string.IsNullOrWhiteSpace(request.Search))
         {

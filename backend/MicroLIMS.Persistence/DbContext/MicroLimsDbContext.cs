@@ -25,6 +25,7 @@ public class MicroLimsDbContext : Microsoft.EntityFrameworkCore.DbContext
     public DbSet<ElectronicSignature> ElectronicSignatures => Set<ElectronicSignature>();
     public DbSet<Item> Items => Set<Item>();
     public DbSet<Specification> Specifications => Set<Specification>();
+    public DbSet<SpecificationStage> SpecificationStages => Set<SpecificationStage>();
     public DbSet<Media> Media => Set<Media>();
     public DbSet<MediaEvaluation> MediaEvaluations => Set<MediaEvaluation>();
     public DbSet<MediaEvaluationChallenge> MediaEvaluationChallenges => Set<MediaEvaluationChallenge>();
@@ -33,6 +34,7 @@ public class MicroLimsDbContext : Microsoft.EntityFrameworkCore.DbContext
     public DbSet<ThawEvent> ThawEvents => Set<ThawEvent>();
     public DbSet<NotificationLog> NotificationLogs => Set<NotificationLog>();
     public DbSet<Sample> Samples => Set<Sample>();
+    public DbSet<SampleSectionSignoff> SampleSectionSignoffs => Set<SampleSectionSignoff>();
     public DbSet<SampleTest> SampleTests => Set<SampleTest>();
     public DbSet<TestOrder> TestOrders => Set<TestOrder>();
     public DbSet<Result> Results => Set<Result>();
@@ -69,6 +71,19 @@ public class MicroLimsDbContext : Microsoft.EntityFrameworkCore.DbContext
     public DbSet<Sampler> Samplers => Set<Sampler>();
     public DbSet<ProductionStage> ProductionStages => Set<ProductionStage>();
     public DbSet<Equipment> Equipment => Set<Equipment>();
+    public DbSet<ChromatographyColumn> ChromatographyColumns => Set<ChromatographyColumn>();
+    public DbSet<SystemSuitabilityRun> SystemSuitabilityRuns => Set<SystemSuitabilityRun>();
+    public DbSet<SystemSuitabilityRunAnalyte> SystemSuitabilityRunAnalytes => Set<SystemSuitabilityRunAnalyte>();
+    public DbSet<SystemSuitabilityStandardResponse> SystemSuitabilityStandardResponses => Set<SystemSuitabilityStandardResponse>();
+    public DbSet<TestAnalyte> TestAnalytes => Set<TestAnalyte>();
+    public DbSet<TestDefinitionStageReplicate> TestDefinitionStageReplicates => Set<TestDefinitionStageReplicate>();
+    public DbSet<CalibrationRun> CalibrationRuns => Set<CalibrationRun>();
+    public DbSet<CalibrationRunDocument> CalibrationRunDocuments => Set<CalibrationRunDocument>();
+    public DbSet<CalibrationRunAnalyte> CalibrationRunAnalytes => Set<CalibrationRunAnalyte>();
+    public DbSet<CalibrationRunCheck> CalibrationRunChecks => Set<CalibrationRunCheck>();
+    public DbSet<TestAnalysis> TestAnalyses => Set<TestAnalysis>();
+    public DbSet<ParameterResult> ParameterResults => Set<ParameterResult>();
+    public DbSet<ResultReading> ResultReadings => Set<ResultReading>();
     public DbSet<IncubatorSetPointHistory> IncubatorSetPointHistories => Set<IncubatorSetPointHistory>();
     public DbSet<AutoclaveProgram> AutoclavePrograms => Set<AutoclaveProgram>();
     public DbSet<AutoclaveProgramHistory> AutoclaveProgramHistories => Set<AutoclaveProgramHistory>();
@@ -128,6 +143,7 @@ public class MicroLimsDbContext : Microsoft.EntityFrameworkCore.DbContext
     public DbSet<DocumentType> DocumentTypes => Set<DocumentType>();
     public DbSet<DocumentDepartment> DocumentDepartments => Set<DocumentDepartment>();
     public DbSet<DocumentSection> DocumentSections => Set<DocumentSection>();
+    public DbSet<UserOrgMembership> UserOrgMemberships => Set<UserOrgMembership>();
     public DbSet<DocumentNumberingConfiguration> DocumentNumberingConfigurations => Set<DocumentNumberingConfiguration>();
     public DbSet<ConfigurationSetting> ConfigurationSettings => Set<ConfigurationSetting>();
 

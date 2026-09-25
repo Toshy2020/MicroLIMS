@@ -13,6 +13,8 @@ public static class PermissionConstants
     public const string ReportingAdmin = "Reporting.Admin";
     public const string SamplesReview = "Samples.Review";
     public const string SamplesApprove = "Samples.Approve";
+    public const string SamplesReceive = "Samples.Receive";
+    public const string SamplesTrackAll = "Samples.TrackAll";
     public const string SignaturesManage = "Signatures.Manage";
     public const string TestWorkflowExecute = "TestWorkflow.Execute";
     public const string TestWorkflowBiochemicalDecision = "TestWorkflow.BiochemicalDecision";
@@ -77,7 +79,7 @@ public static class PermissionConstants
     public static readonly IReadOnlyList<string> All = new[]
     {
         UsersManage, RolesManage, AuditView, ReportingAdmin,
-        SamplesReview, SamplesApprove, SignaturesManage,
+        SamplesReview, SamplesApprove, SamplesReceive, SamplesTrackAll, SignaturesManage,
         TestWorkflowExecute, TestWorkflowBiochemicalDecision,
         CryovialsManage, CryovialsApprove,
         MaterialsManage, MaterialsDocumentControl,

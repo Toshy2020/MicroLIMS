@@ -173,7 +173,7 @@ public class SelectivePlatingTests
         var engine = TestServiceFactory.TestWorkflow(db);
         var eligibility = new IncubatorEligibilityService(db);
         var snapshot = new MediaAppearanceSnapshotService(db, Microsoft.Extensions.Logging.Abstractions.NullLogger<MediaAppearanceSnapshotService>.Instance);
-        var controller = new TestWorkflowController(engine, db, eligibility, snapshot);
+        var controller = new TestWorkflowController(engine, db, eligibility, snapshot, new UserSectionScopeService(db));
 
         var result = controller.SubmitSelectivePlating_Retired(99) as ObjectResult;
         Assert.NotNull(result);

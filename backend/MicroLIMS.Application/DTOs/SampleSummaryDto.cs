@@ -1,3 +1,6 @@
+using MicroLIMS.Domain.Entities;
+using MicroLIMS.Domain.Enums;
+
 namespace MicroLIMS.Application.DTOs;
 
 // Everything the floating Sample Summary page (reviewer/Section Head)
@@ -44,6 +47,50 @@ public class SampleSummaryDto
     public List<TestOrderSummaryDetailDto> TestOrders { get; set; } = new();
     public List<SampleWorkflowEventDto> Timeline { get; set; } = new();
     public List<SignatureDto> Signatures { get; set; } = new();
+
+    // Every laboratory section with tests on this sample and its own
+    // review/approval state. TestOrders only lists the tests of sections the
+    // viewer can see (CanView); AllSectionsVisible says whether this summary
+    // covers the whole sample (a combined Certificate of Analysis) or only
+    // some of its sections.
+    public List<SampleSectionSummaryDto> Sections { get; set; } = new();
+    public bool AllSectionsVisible { get; set; } = true;
+
+    // SampleSectionRollup.Overall(sample).ToString() - what this sample
+    // reads as across every laboratory (a rejection by any lab wins at
+    // once), distinct from Status which only follows the labs still open.
+    public string OverallStatus { get; set; } = string.Empty;
+
+    // True once no lab is still open (Sample.Status is Approved or
+    // Rejected) - a Certificate of Analysis can be generated/downloaded.
+    public bool CombinedCoaAvailable { get; set; }
+}
+
+public class SampleSectionSummaryDto
+{
+    public int SectionId { get; set; }
+    public string SectionCode { get; set; } = string.Empty;
+    public string SectionName { get; set; } = string.Empty;
+    public string Status { get; set; } = string.Empty;
+    public bool CanView { get; set; }
+    public string? ReviewedByName { get; set; }
+    public DateTime? ReviewedAt { get; set; }
+    public string? ApprovedByName { get; set; }
+    public DateTime? ApprovedAt { get; set; }
+    public string? ApprovalDecision { get; set; }
+    public string? CertificateRemarks { get; set; }
+
+    // True only when this section's own status is Approved - the
+    // per-section counterpart to SampleSummaryDto.CombinedCoaAvailable.
+    public bool CoaAvailable { get; set; }
+
+    // Set only for a section closed without its own decision (Status ==
+    // "Closed", i.e. SectionSignoffStatus.Cancelled) - another lab
+    // rejected the sample and this one's still-open tests were closed
+    // rather than judged. Follow the same canView rule as ReviewedByName.
+    public string? ClosedByName { get; set; }
+    public DateTime? ClosedAt { get; set; }
+    public string? CloseReason { get; set; }
 }
 
 public class SamplePreparationSummaryDto
@@ -61,6 +108,8 @@ public class SamplePreparationSummaryDto
 public class TestOrderSummaryDetailDto
 {
     public int TestOrderId { get; set; }
+    public int SectionId { get; set; }
+    public string SectionName { get; set; } = string.Empty;
     public string TestCode { get; set; } = string.Empty;
     public string TestDisplayName { get; set; } = string.Empty;
     // Set only when this row was pulled in from a different Sample - the
@@ -84,9 +133,20 @@ public class TestOrderSummaryDetailDto
     public bool IsResultEntryAllowed { get; set; }
     public string? ResultLockReason { get; set; }
     public bool IsSuperseded { get; set; }
+
+    // Set only when this section closed testing after another lab
+    // rejected the sample: the step (and incubation stage, if any) this
+    // TestOrder had reached at that point (TestOrder.CancelledAtStep/Stage).
+    public string? CancelledAtStep { get; set; }
+    public int? CancelledAtStage { get; set; }
+
     public List<IncubationDetailDto> Incubations { get; set; } = new();
     public List<ResultDetailDto> Results { get; set; } = new();
     public List<CountTestReadingDetailDto> CountTestReadings { get; set; } = new();
+    // Elemental Assay only - the active (not returned) entry and results, null otherwise.
+    public ElementalAssayDetailDto? ElementalAssay { get; set; }
+    // Shared Result Foundation - generic test analysis, null if not a TestAnalysis workflow
+    public AnalysisDetailDto? Analysis { get; set; }
     public List<PathogenObservationDetailDto> PathogenObservations { get; set; } = new();
     public List<BiochemicalResultDetailDto> BiochemicalResults { get; set; } = new();
     public List<WorkflowHistoryDetailDto> WorkflowHistory { get; set; } = new();
@@ -159,6 +219,89 @@ public class ResultDetailDto
     public string Type { get; set; } = string.Empty;
     public string EnteredByName { get; set; } = string.Empty;
     public DateTime EnteredAt { get; set; }
+}
+
+public class ElementalAssayDetailDto
+{
+    public SampleMatrix SampleMatrix { get; set; }
+    public decimal UnitAmount { get; set; }
+    public string UnitAmountUnit { get; set; } = string.Empty;
+    public DateTime AnalysedAt { get; set; }
+    public string? EnteredByName { get; set; }
+    public DateTime EnteredAt { get; set; }
+    public List<ElementalAssayElementDetailDto> Elements { get; set; } = new();
+}
+
+public class ElementalAssayElementDetailDto
+{
+    public string ParameterName { get; set; } = string.Empty;
+    public string Element { get; set; } = string.Empty;
+    public string RunCode { get; set; } = string.Empty;
+    public bool RunAnalytePassed { get; set; }
+    public decimal ReportedPpm { get; set; }
+    public bool OverRange { get; set; }
+    public bool BelowLoq { get; set; }
+    public decimal? MgPerUnit { get; set; }
+    public decimal? ResultClaim { get; set; }
+    public decimal? PercentLabelClaim { get; set; }
+    public string ReportedDisplay { get; set; } = string.Empty;
+    public string? SpecLimit { get; set; }
+    public string? Unit { get; set; }
+    public string Status { get; set; } = string.Empty;
+}
+
+public class AnalysisDetailDto
+{
+    public int Id { get; set; }
+    public int TestOrderId { get; set; }
+    public WorkflowType AnalysisType { get; set; }
+    public int? EquipmentId { get; set; }
+    public string? EquipmentCode { get; set; }
+    public string? EquipmentName { get; set; }
+    public DateTime AnalysedAt { get; set; }
+    public decimal? UnitAmount { get; set; }
+    public SampleMatrix? SampleMatrix { get; set; }
+    public string? ConditionsJson { get; set; }
+    public string? ValidityRecordType { get; set; }
+    public int? ValidityRecordId { get; set; }
+    public string? EnteredByName { get; set; }
+    public DateTime EnteredAt { get; set; }
+    public string? Comment { get; set; }
+    public List<ParameterResultDetailDto> ParameterResults { get; set; } = new();
+}
+
+public class ParameterResultDetailDto
+{
+    public int Id { get; set; }
+    public int SpecificationId { get; set; }
+    public string ParameterName { get; set; } = string.Empty;
+    public decimal? ReportedValue { get; set; }
+    public string ReportedDisplay { get; set; } = string.Empty;
+    public string? Unit { get; set; }
+    public string? SpecLimit { get; set; }
+    public ResultBasis? ResultBasis { get; set; }
+    public string ComparisonStatus { get; set; } = string.Empty;
+    public bool OverRange { get; set; }
+    public bool BelowLoq { get; set; }
+    public int? ValidityRecordItemId { get; set; }
+    public string? CalculationJson { get; set; }
+    public int? StageReached { get; set; }
+    public List<ResultReadingDetailDto> Readings { get; set; } = new();
+}
+
+public class ResultReadingDetailDto
+{
+    public int Id { get; set; }
+    public ReadingKind Kind { get; set; }
+    public int Index { get; set; }
+    public int? Stage { get; set; }
+    public decimal? TimePointMinutes { get; set; }
+    public decimal? Value1 { get; set; }
+    public decimal? Value2 { get; set; }
+    public decimal? Value3 { get; set; }
+    public string? Text { get; set; }
+    public decimal? ComputedValue { get; set; }
+    public bool? Passed { get; set; }
 }
 
 public class CountTestReadingDetailDto

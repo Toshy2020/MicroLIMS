@@ -19,12 +19,14 @@ import KeyIcon from "@mui/icons-material/Key";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import DeleteForeverIcon from "@mui/icons-material/DeleteForever";
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
+import AccountTreeIcon from "@mui/icons-material/AccountTree";
 
 import { PageHeader } from "../../components/PageHeader";
 import { SectionTitle } from "../../components/SectionTitle";
 import { UserService, UserRecord } from "./services/UserService";
 import { RoleService, RoleRecord } from "../roles/services/RoleService";
 import { useAuth } from "../../contexts/AuthContext";
+import { UserSectionsDialog } from "./dialogs/UserSectionsDialog";
 
 export function UsersPage() {
   const theme = useTheme();
@@ -69,6 +71,8 @@ export function UsersPage() {
   const [deleteDialogUser, setDeleteDialogUser] = useState<UserRecord | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
+
+  const [sectionsUser, setSectionsUser] = useState<UserRecord | null>(null);
 
   const load = () => {
     UserService.getAll().then(setUsers).catch(() => {});
@@ -413,6 +417,12 @@ export function UsersPage() {
                         <IconButton size="small" onClick={() => openEditProfile(u)}><EditIcon fontSize="small" /></IconButton>
                       </Tooltip>
 
+                      <Tooltip title="Laboratory Sections">
+                        <IconButton size="small" color="info" onClick={() => setSectionsUser(u)}>
+                          <AccountTreeIcon fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
+
                       <Tooltip title={isSelf ? "System Administrators cannot change their own role" : "Change Role"}>
                         <span>
                           <IconButton size="small" color="primary" disabled={isSelf} onClick={() => openChangeRole(u)}>
@@ -721,6 +731,17 @@ export function UsersPage() {
           </Typography>
         </Stack>
       </FloatingDialog>
+
+      {/* Laboratory Sections Dialog */}
+      <UserSectionsDialog
+        open={Boolean(sectionsUser)}
+        onClose={() => setSectionsUser(null)}
+        user={sectionsUser}
+        onSuccess={(msg) => {
+          toast.success(msg);
+          setSectionsUser(null);
+        }}
+      />
     </>
   );
 }

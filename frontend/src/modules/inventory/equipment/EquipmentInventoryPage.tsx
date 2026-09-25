@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import {
   Paper,
   Box,
@@ -16,6 +17,7 @@ import {
   Typography,
   Tabs,
   Tab,
+  Chip,
   useTheme
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
@@ -30,6 +32,7 @@ import { AuditHistoryDialog } from "../../../components/AuditHistoryDialog";
 import { LoadingSpinner } from "../../../components/LoadingSpinner";
 import { formatLabDate } from "../../../utils/formatDate";
 import { useAuth } from "../../../contexts/AuthContext";
+import { useLaboratorySections } from "../../../hooks/useLaboratorySections";
 import { EquipmentInventoryService } from "./services/EquipmentInventoryService";
 import {
   EquipmentFilterState,
@@ -59,6 +62,21 @@ export function EquipmentInventoryPage() {
   const theme = useTheme();
   const { role } = useAuth();
   const canSeeHistory = role === "SectionHead" || role === "SystemAdministrator";
+
+  // Menu links from each lab workspace (Task 11) append ?lab=MICRO|FP - a
+  // client-side filter on top of the already section-scoped list, same as
+  // the equipment/materials rows below.
+  const [searchParams] = useSearchParams();
+  const labParam = searchParams.get("lab");
+  const { sections } = useLaboratorySections();
+  const sectionCodeById = useMemo(
+    () => new Map(sections.map((s) => [s.sectionId, s.sectionCode])),
+    [sections]
+  );
+  const sectionNameById = useMemo(
+    () => new Map(sections.map((s) => [s.sectionId, s.sectionName])),
+    [sections]
+  );
 
   const [activeTab, setActiveTab] = useState(0); // 0 = Equipment Register, 1 = Active Equipment
   const [items, setItems] = useState<EquipmentItem[] | null>(null);
@@ -127,6 +145,8 @@ export function EquipmentInventoryPage() {
     if (!items) return [];
 
     return items.filter((item) => {
+      if (labParam && sectionCodeById.get(item.sectionId ?? -1) !== labParam) return false;
+
       if (kpiFilter === "in_service" && item.status !== "InService") return false;
       if (kpiFilter === "out_of_service" && item.status !== "OutOfService" && item.status !== "Retired") return false;
       if (kpiFilter === "calibration_overdue" && !isEquipmentCalibrationOverdue(item)) return false;
@@ -166,7 +186,7 @@ export function EquipmentInventoryPage() {
 
       return true;
     });
-  }, [items, kpiFilter, filters]);
+  }, [items, kpiFilter, filters, labParam, sectionCodeById]);
 
   const paginatedItems = useMemo(() => {
     const start = page * rowsPerPage;
@@ -257,6 +277,7 @@ export function EquipmentInventoryPage() {
                     <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Code</TableCell>
                     <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Location</TableCell>
                     <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Calibration Due</TableCell>
+                    <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Laboratory</TableCell>
                     <TableCell sx={{ fontWeight: 700, fontSize: 12, textAlign: "center" }}>Status</TableCell>
                     <TableCell sx={{ fontWeight: 700, fontSize: 12, textAlign: "center" }}>Actions</TableCell>
                   </TableRow>
@@ -264,7 +285,7 @@ export function EquipmentInventoryPage() {
                 <TableBody>
                   {paginatedItems.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={9} sx={{ textAlign: "center", py: 4 }}>
+                      <TableCell colSpan={10} sx={{ textAlign: "center", py: 4 }}>
                         <Typography
                           sx={{
                             color: "text.secondary",
@@ -341,6 +362,23 @@ export function EquipmentInventoryPage() {
                               {isOverdue && <StatusBadge status="Overdue" />}
                               {isDueSoon && <StatusBadge status="Due Soon" />}
                             </Box>
+                          </TableCell>
+                          <TableCell sx={{ fontSize: 12 }}>
+                            {eq.sectionId != null ? (
+                              <Chip
+                                size="small"
+                                label={sectionNameById.get(eq.sectionId) ?? "—"}
+                                sx={{ fontSize: 11, height: 20 }}
+                              />
+                            ) : (
+                              <Chip
+                                size="small"
+                                label="Unassigned"
+                                color="warning"
+                                variant="outlined"
+                                sx={{ fontSize: 11, height: 20, fontWeight: 600 }}
+                              />
+                            )}
                           </TableCell>
                           <TableCell sx={{ textAlign: "center" }}>
                             <StatusBadge status={eq.status} />

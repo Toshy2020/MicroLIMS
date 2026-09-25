@@ -10,15 +10,19 @@ namespace MicroLIMS.API.Controllers;
 public class ReportController : ControllerBase
 {
     private readonly IReportService _reportService;
+    private readonly IUserSectionScopeService _scopeService;
+    private int CurrentUserId => int.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)!.Value);
 
-    public ReportController(IReportService reportService)
+    public ReportController(IReportService reportService, IUserSectionScopeService scopeService)
     {
+        _scopeService = scopeService;
         _reportService = reportService;
     }
 
     [HttpGet("product")]
     public async Task<IActionResult> Product([FromQuery] int sampleId)
     {
+        await _scopeService.EnsureSampleAccessAsync(CurrentUserId, sampleId);
         var pdf = await _reportService.GenerateProductReportPdfAsync(sampleId);
         return File(pdf, "application/pdf", $"ProductReport_{sampleId}.pdf");
     }
@@ -26,7 +30,7 @@ public class ReportController : ControllerBase
     [HttpGet("water")]
     public async Task<IActionResult> Water([FromQuery] DateTime date)
     {
-        var pdf = await _reportService.GenerateWaterReportPdfAsync(date);
+        var pdf = await _reportService.GenerateWaterReportPdfAsync(date, await _scopeService.GetAccessibleSectionIdsAsync(CurrentUserId));
         return File(pdf, "application/pdf", $"WaterReport_{date:yyyyMMdd}.pdf");
     }
 
@@ -40,6 +44,7 @@ public class ReportController : ControllerBase
     [HttpGet("aftercleaning")]
     public async Task<IActionResult> AfterCleaning([FromQuery] int sampleId)
     {
+        await _scopeService.EnsureSampleAccessAsync(CurrentUserId, sampleId);
         var pdf = await _reportService.GenerateAfterCleaningReportPdfAsync(sampleId);
         return File(pdf, "application/pdf", $"AfterCleaningReport_{sampleId}.pdf");
     }

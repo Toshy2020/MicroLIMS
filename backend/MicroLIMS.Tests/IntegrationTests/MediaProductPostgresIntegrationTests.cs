@@ -83,8 +83,10 @@ public class MediaProductPostgresIntegrationTests
         db.MediaProducts.Add(product);
         await db.SaveChangesAsync();
 
+        var microSectionId = (await db.DocumentSections.FirstAsync(s => s.Code == "MICRO")).Id;
         var autoclave = new Equipment
         {
+            SectionId = microSectionId,
             Name = $"Autoclave {code}",
             Code = $"AUT-{code}",
             Type = EquipmentType.Autoclave
@@ -93,6 +95,7 @@ public class MediaProductPostgresIntegrationTests
 
         var material = new Material
         {
+            SectionId = microSectionId,
             MaterialType = MaterialType.DehydratedMedia,
             MaterialName = productName,
             ManufacturerName = "Himedia",

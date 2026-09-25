@@ -113,6 +113,8 @@ export interface SectionHeadReviewQueueItem {
   submittedForReviewAt: string;
   ageHours: number;
   worstResultLevel: string | null;
+  sectionId?: number;
+  sectionName?: string;
 }
 
 export interface SectionHeadApprovalQueueItem {
@@ -125,6 +127,8 @@ export interface SectionHeadApprovalQueueItem {
   reviewedAt: string;
   ageHours: number;
   worstResultLevel: string | null;
+  sectionId?: number;
+  sectionName?: string;
 }
 
 export interface SectionHeadAnalystWorkload {
@@ -181,6 +185,8 @@ export interface ReviewerQueueItem {
   worstResultLevel: string | null;
   analystNames: string[];
   tests: ReviewerQueueTest[];
+  sectionId?: number;
+  sectionName?: string;
 }
 
 export interface ReviewerRecentlyReviewed {

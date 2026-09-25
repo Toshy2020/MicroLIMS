@@ -23,13 +23,22 @@ const ReportsPage = lazy(() => import("../pages/Reports").then((m) => ({ default
 const DiscussionsFeedPage = lazy(() => import("../modules/discussions/DiscussionsFeedPage").then((m) => ({ default: m.DiscussionsFeedPage })));
 const DiscussionDetailPage = lazy(() => import("../modules/discussions/DiscussionDetailPage").then((m) => ({ default: m.DiscussionDetailPage })));
 const MessagesPage = lazy(() => import("../modules/messages/MessagesPage").then((m) => ({ default: m.MessagesPage })));
-const ReceivingTestingWorkspacePage = lazy(() => import("../modules/receivingTesting/ReceivingTestingWorkspacePage").then((m) => ({ default: m.ReceivingTestingWorkspacePage })));
+// ReceivingTestingWorkspacePage itself is only ever rendered from inside
+// LabWorkspaceRoute now (it requires a resolved `lab` prop) - that module
+// is the lazy chunk boundary, not the page component directly.
+const LabWorkspaceRoute = lazy(() => import("../modules/receivingTesting/LabWorkspaceRoute").then((m) => ({ default: m.LabWorkspaceRoute })));
+const FirstLabWorkspaceRedirect = lazy(() => import("../modules/receivingTesting/LabWorkspaceRoute").then((m) => ({ default: m.FirstLabWorkspaceRedirect })));
+const ReceivingPage = lazy(() => import("../modules/receiving/ReceivingPage").then((m) => ({ default: m.ReceivingPage })));
+const TrackingBoardPage = lazy(() => import("../modules/receiving/TrackingBoardPage").then((m) => ({ default: m.TrackingBoardPage })));
 const SampleReportPage = lazy(() => import("../modules/testingWorkspace/SampleReportPage").then((m) => ({ default: m.SampleReportPage })));
 const SampleCoaPage = lazy(() => import("../modules/testingWorkspace/SampleCoaPage").then((m) => ({ default: m.SampleCoaPage })));
 const MediaReportPage = lazy(() => import("../modules/laboratoryConfiguration/media/MediaReportPage").then((m) => ({ default: m.MediaReportPage })));
+const SuitabilityRunReportPage = lazy(() => import("../modules/systemSuitability/SuitabilityRunReportPage").then((m) => ({ default: m.SuitabilityRunReportPage })));
+const CalibrationRunReportPage = lazy(() => import("../modules/calibrationRuns/CalibrationRunReportPage").then((m) => ({ default: m.CalibrationRunReportPage })));
 const CryovialReportPage = lazy(() => import("../modules/laboratoryConfiguration/cryovials/CryovialReportPage").then((m) => ({ default: m.CryovialReportPage })));
 const ItemsPage = lazy(() => import("../modules/laboratoryConfiguration/items/ItemsPage").then((m) => ({ default: m.ItemsPage })));
 const TestMasterPage = lazy(() => import("../modules/laboratoryConfiguration/masterDataSimple/TestMasterPage").then((m) => ({ default: m.TestMasterPage })));
+const EquationTypesPage = lazy(() => import("../modules/laboratoryConfiguration/masterDataSimple/EquationTypesPage").then((m) => ({ default: m.EquationTypesPage })));
 const OrganismsPage = lazy(() => import("../modules/laboratoryConfiguration/masterDataSimple/OrganismsPage").then((m) => ({ default: m.OrganismsPage })));
 const SpecificationsPage = lazy(() => import("../modules/laboratoryConfiguration/specifications/SpecificationsPage").then((m) => ({ default: m.SpecificationsPage })));
 const MediaPage = lazy(() => import("../modules/laboratoryConfiguration/media/MediaPage").then((m) => ({ default: m.MediaPage })));
@@ -38,9 +47,13 @@ const MediaEvaluationPage = lazy(() => import("../modules/laboratoryConfiguratio
 const WaterConfigPage = lazy(() => import("../modules/laboratoryConfiguration/water/WaterConfigPage").then((m) => ({ default: m.WaterConfigPage })));
 const EMConfigPage = lazy(() => import("../modules/laboratoryConfiguration/environmentalMonitoring/EMConfigPage").then((m) => ({ default: m.EMConfigPage })));
 const AfterCleaningConfigPage = lazy(() => import("../modules/laboratoryConfiguration/afterCleaning/AfterCleaningConfigPage").then((m) => ({ default: m.AfterCleaningConfigPage })));
+const SystemSuitabilityRunsPage = lazy(() => import("../modules/systemSuitability/SystemSuitabilityRunsPage").then((m) => ({ default: m.SystemSuitabilityRunsPage })));
+const CalibrationRunsPage = lazy(() => import("../modules/calibrationRuns/CalibrationRunsPage").then((m) => ({ default: m.CalibrationRunsPage })));
 const CryovialsPage = lazy(() => import("../modules/laboratoryConfiguration/cryovials/CryovialsPage").then((m) => ({ default: m.CryovialsPage })));
 const ReceivingConfigurationPage = lazy(() => import("../modules/laboratoryConfiguration/masterDataSimple/ReceivingConfigurationPage").then((m) => ({ default: m.ReceivingConfigurationPage })));
 const EquipmentPage = lazy(() => import("../modules/laboratoryConfiguration/masterDataSimple/EquipmentPage").then((m) => ({ default: m.EquipmentPage })));
+const FpInstrumentsPage = lazy(() => import("../modules/laboratoryConfiguration/masterDataSimple/FpInstrumentsPage").then((m) => ({ default: m.FpInstrumentsPage })));
+const ChromatographyColumnsPage = lazy(() => import("../modules/laboratoryConfiguration/masterDataSimple/ChromatographyColumnsPage").then((m) => ({ default: m.ChromatographyColumnsPage })));
 const UsersPage = lazy(() => import("../modules/users/UsersPage").then((m) => ({ default: m.UsersPage })));
 const RolesPage = lazy(() => import("../modules/roles/RolesPage").then((m) => ({ default: m.RolesPage })));
 const RoleDetailPage = lazy(() => import("../modules/roles/RoleDetailPage").then((m) => ({ default: m.RoleDetailPage })));
@@ -80,6 +93,8 @@ export function AppRoutes() {
           <Route path="/samples/:id/coa" element={<SampleCoaPage />} />
           <Route path="/media/:id/report" element={<MediaReportPage />} />
           <Route path="/cryovials/:id/report" element={<CryovialReportPage />} />
+          <Route path="/laboratory/system-suitability/:id/report" element={<SuitabilityRunReportPage />} />
+          <Route path="/laboratory/calibration-runs/:id/report" element={<CalibrationRunReportPage />} />
 
           <Route element={<MainLayout />}>
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
@@ -91,20 +106,50 @@ export function AppRoutes() {
             <Route path="/messages" element={<MessagesPage />} />
             <Route path="/reports" element={<ReportsPage />} />
 
-            {/* Canonical Unified Receiving & Testing Workspace */}
-            <Route path="/receiving-testing" element={<ReceivingTestingWorkspacePage />} />
+            {/* Lab Workspaces (Task 13a): each laboratory gets its own scoped
+                Receiving & Testing Workspace instance. /receiving-testing has
+                no lab of its own any more - it redirects to the first lab
+                workspace the caller belongs to (Microbiology first). */}
+            {/* Keyed on lab code so switching between the two workspaces
+                forces a full remount (LabWorkspaceRoute -> ReceivingTesting-
+                WorkspacePage) instead of React reusing the same component
+                instance in place - otherwise the previous lab's records,
+                selection and filters stay on screen under the new lab's
+                title until some unrelated state change happens to refetch
+                them (review finding, design.md §3.2 lab isolation). */}
+            <Route path="/microbiology/workspace" element={<LabWorkspaceRoute key="MICRO" code="MICRO" />} />
+            <Route path="/physicochemical/workspace" element={<LabWorkspaceRoute key="FP" code="FP" />} />
+            <Route path="/receiving-testing" element={<FirstLabWorkspaceRedirect />} />
+
+            {/* Receiving area: the main receiving desk and the cross-lab
+                tracking board (design.md §3.1, §3.4) - gated on the
+                Samples.Receive / Samples.TrackAll privileges, not role or
+                lab membership. /receiving used to redirect into the
+                workspace; it now owns the Receiving page itself. */}
+            <Route element={<PermissionRoute code={PERMISSIONS.SAMPLES_RECEIVE} />}>
+              <Route path="/receiving" element={<ReceivingPage />} />
+            </Route>
+            <Route element={<PermissionRoute code={PERMISSIONS.SAMPLES_TRACK_ALL} />}>
+              <Route path="/receiving/tracking" element={<TrackingBoardPage />} />
+            </Route>
 
             {/* Backward-Compatible Query-Preserving Legacy Redirects */}
-            <Route path="/receiving" element={<LegacyRedirect to="/receiving-testing" />} />
+            {/* Chains through FirstLabWorkspaceRedirect above rather than
+                pointing at a lab workspace directly - one place decides
+                "first lab the user belongs to". */}
             <Route path="/testing-workspace" element={<LegacyRedirect to="/receiving-testing" />} />
             <Route path="/laboratory-configuration/media" element={<MediaPage />} />
             <Route path="/laboratory-configuration/media-evaluation" element={<MediaEvaluationPage />} />
             <Route path="/laboratory-configuration/cryovials" element={<CryovialsPage />} />
+            <Route path="/laboratory/system-suitability" element={<SystemSuitabilityRunsPage />} />
+            <Route path="/laboratory/calibration-runs" element={<CalibrationRunsPage />} />
 
             <Route element={<SectionHeadRoutes />}>
               <Route path="/audit-search" element={<AuditSearchPage />} />
               <Route path="/oos-tracking" element={<OosTrackingPage />} />
-              <Route path="/laboratory-configuration/test-master" element={<TestMasterPage />} />
+              <Route path="/laboratory-configuration/test-master" element={<TestMasterPage lab="micro" />} />
+              <Route path="/laboratory-configuration/fp-test-master" element={<TestMasterPage key="fp" lab="fp" />} />
+              <Route path="/laboratory-configuration/equation-types" element={<EquationTypesPage />} />
               <Route path="/laboratory-configuration/organisms" element={<OrganismsPage />} />
               <Route path="/laboratory-configuration/items" element={<ItemsPage />} />
               <Route path="/laboratory-configuration/specifications" element={<SpecificationsPage />} />
@@ -115,6 +160,8 @@ export function AppRoutes() {
               <Route path="/laboratory-configuration/receiving-configuration" element={<ReceivingConfigurationPage />} />
               <Route path="/laboratory-configuration/cause-of-testing" element={<LegacyRedirect to="/laboratory-configuration/receiving-configuration" />} />
               <Route path="/laboratory-configuration/equipment" element={<EquipmentPage />} />
+              <Route path="/laboratory-configuration/fp-instruments" element={<FpInstrumentsPage />} />
+              <Route path="/laboratory-configuration/columns" element={<ChromatographyColumnsPage />} />
             </Route>
 
             {/* Document Control Module (Release 1a) */}

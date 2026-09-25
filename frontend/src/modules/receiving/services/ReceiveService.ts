@@ -5,7 +5,8 @@ import {
   EMReceiveRequest,
   AfterCleaningReceiveRequest,
   SampleCorrectionPayload,
-  SampleRecord
+  SampleRecord,
+  ReceiptLabOption
 } from "../types/receivingTypes";
 
 export interface TestingWorkspaceFilter {
@@ -21,6 +22,10 @@ export interface TestingWorkspaceFilter {
   workloadFilter?: string | null;
   page?: number;
   pageSize?: number;
+  // Narrows the page to one laboratory's own test orders - set by a lab
+  // workspace (ReceivingTestingWorkspacePage's `lab` prop); the backend
+  // 403s a caller who isn't a member of that section.
+  labSectionId?: number | null;
 }
 
 export interface PagedResult<T> {
@@ -45,6 +50,18 @@ export const ReceiveService = {
   receiveItemBased: (r: ItemBasedReceiveRequest) =>
     apiClient.post("/samples", r).then((res) => res.data.data),
 
+  // Which laboratories the item's assigned tests belong to, with each
+  // lab's test count - feeds the Laboratories column and Add Laboratory dialog.
+  async receiptLabs(itemId: number): Promise<ReceiptLabOption[]> {
+    const res = await apiClient.get("/samples/receipt-labs", { params: { itemId } });
+    return res.data.data;
+  },
+
+  // Signed: adds a second laboratory's tests to an already-received sample.
+  async addLaboratory(sampleId: number, sectionId: number, reason: string, password: string): Promise<void> {
+    await apiClient.post(`/samples/${sampleId}/laboratories`, { sectionId, reason, password });
+  },
+
   receiveWater: (r: WaterReceiveRequest) =>
     apiClient.post("/water/receive", r).then((res) => res.data.data),
 
@@ -68,18 +85,28 @@ export const ReceiveService = {
     if (filter.workloadFilter) params.workloadFilter = filter.workloadFilter;
     if (filter.page != null) params.page = filter.page;
     if (filter.pageSize != null) params.pageSize = filter.pageSize;
+    if (filter.labSectionId != null) params.labSectionId = filter.labSectionId;
 
     const res = await apiClient.get("/testorders/page", { params });
     return res.data.data;
   },
 
-  async getWorkloadCounts(): Promise<WorkspaceTileCounts> {
-    const res = await apiClient.get("/testorders/counts");
+  async getWorkloadCounts(labSectionId?: number | null): Promise<WorkspaceTileCounts> {
+    const res = await apiClient.get("/testorders/counts", {
+      params: labSectionId != null ? { labSectionId } : undefined
+    });
     return res.data.data;
   },
 
-  async getSample(sampleId: number): Promise<SampleRecord | null> {
-    const res = await apiClient.get(`/testorders/${sampleId}`);
+  // labSectionId narrows AssignedTests to that one lab, same as
+  // getRecordsPaged/getWorkloadCounts - a lab workspace must pass its own
+  // lab.sectionId here too, or a caller in both labs would see the other
+  // lab's tests on a card refreshed through this single-sample fetch
+  // (Task 13c).
+  async getSample(sampleId: number, labSectionId?: number | null): Promise<SampleRecord | null> {
+    const res = await apiClient.get(`/testorders/${sampleId}`, {
+      params: labSectionId != null ? { labSectionId } : undefined
+    });
     return res.data.data;
   },
 

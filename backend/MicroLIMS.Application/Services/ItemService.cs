@@ -25,7 +25,7 @@ public class ItemService
     }
 
     public async Task<List<Item>> GetAllAsync() =>
-        await _db.Items.Include(i => i.AssignedTests).Include(i => i.Specifications).ToListAsync();
+        await _db.Items.Include(i => i.AssignedTests).Include(i => i.Specifications).ThenInclude(s => s.Stages).AsSplitQuery().ToListAsync();
 
     // Builds the Item from the fields a client may set. Id, IsActive and
     // Specifications are never taken from the request - see ItemSaveRequest.

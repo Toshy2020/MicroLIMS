@@ -49,9 +49,16 @@ public class SampleCorrectionTests
 
     private static async Task<Item> SeedItemAsync(MicroLimsDbContext db, string name, SampleCategory category, params string[] testCodes)
     {
+        var section = TestServiceFactory.EnsureMicroSection(db);
         var item = new Item { Name = name, Code = name.Replace(" ", "").ToUpperInvariant(), Category = category, IsActive = true };
         foreach (var code in testCodes)
+        {
             item.AssignedTests.Add(new SampleTest { TestCode = code, DisplayName = code });
+            if (!db.TestDefinitions.Any(td => td.Code == code))
+            {
+                db.TestDefinitions.Add(new TestDefinition { Code = code, DisplayName = code, SectionId = section.Id });
+            }
+        }
         db.Items.Add(item);
         await db.SaveChangesAsync();
         return item;
@@ -63,10 +70,14 @@ public class SampleCorrectionTests
         var signer = await SeedSignerAsync(db);
         var cause = await SeedCauseAsync(db, "Routine");
         var item = await SeedItemAsync(db, "Paracetamol 500", SampleCategory.FinishedProduct, "TAMC", "TYMC");
+        var section = TestServiceFactory.EnsureMicroSection(db);
+        var stage = TestServiceFactory.EnsureProductionStage(db, "Bulk");
 
         var sample = new Sample
         {
             ReferenceNumber = "FP0926001",
+            ProductionStage = stage.Name,
+            ProductionStageId = stage.Id,
             Category = SampleCategory.FinishedProduct,
             ItemId = item.Id,
             CauseOfTestingId = cause.Id,
@@ -77,8 +88,8 @@ public class SampleCorrectionTests
             Status = SampleStatus.Received,
             PreparationStatus = SamplePreparationStatus.NeedsPreparation
         };
-        sample.TestOrders.Add(new TestOrder { TestCode = "TAMC", Status = ApprovalStatus.Pending, CurrentStep = WorkflowStep.Waiting });
-        sample.TestOrders.Add(new TestOrder { TestCode = "TYMC", Status = ApprovalStatus.Pending, CurrentStep = WorkflowStep.Waiting });
+        sample.TestOrders.Add(new TestOrder { TestCode = "TAMC", Status = ApprovalStatus.Pending, CurrentStep = WorkflowStep.Waiting, SectionId = section.Id });
+        sample.TestOrders.Add(new TestOrder { TestCode = "TYMC", Status = ApprovalStatus.Pending, CurrentStep = WorkflowStep.Waiting, SectionId = section.Id });
         db.Samples.Add(sample);
         await db.SaveChangesAsync();
         return new Seeded(sample, signer, cause);
@@ -93,6 +104,29 @@ public class SampleCorrectionTests
     private static Task<AuditLog?> AuditEventAsync(MicroLimsDbContext db, string actionCode, int sampleId) =>
         db.AuditLogs.Include(a => a.Changes)
             .FirstOrDefaultAsync(a => a.ActionCode == actionCode && a.EntityId == sampleId.ToString());
+
+    // Stage-dependent tests (replicate counts) resolve the sample's stage by
+    // ProductionStageId, not the name: a corrected stage must carry its id,
+    // or the sample stays "not reconciled" however often it is corrected.
+    [Fact]
+    public async Task CorrectAsync_ProductionStage_AlsoSetsProductionStageId()
+    {
+        await using var db = NewDb();
+        var (sample, signer, _) = await SeedProductAsync(db);
+        var fp = TestServiceFactory.EnsureProductionStage(db, "F.P");
+        var service = TestServiceFactory.SampleCorrection(db);
+
+        await service.CorrectAsync(sample.Id, AsStored(sample) with { ProductionStage = "f.p" }, "Stage missed at receipt", Password, signer.Id, null);
+        Assert.Equal(fp.Id, (await db.Samples.AsNoTracking().FirstAsync(s => s.Id == sample.Id)).ProductionStageId);
+
+        // A Finished Product sample needs a known stage: blank or unknown is refused.
+        var current = await db.Samples.AsNoTracking().FirstAsync(s => s.Id == sample.Id);
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            service.CorrectAsync(sample.Id, AsStored(current) with { ProductionStage = null }, "No stage after all", Password, signer.Id, null));
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            service.CorrectAsync(sample.Id, AsStored(current) with { ProductionStage = "Typo" }, "Wrong stage", Password, signer.Id, null));
+        Assert.Equal(fp.Id, (await db.Samples.AsNoTracking().FirstAsync(s => s.Id == sample.Id)).ProductionStageId);
+    }
 
     [Fact]
     public async Task CorrectAsync_DescriptiveFields_AreSignedAuditedAndOnTheTimeline()

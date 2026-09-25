@@ -20,8 +20,9 @@ async function downloadBlob(url: string, fileName: string): Promise<void> {
 }
 
 export const SampleSummaryService = {
-  async getSummary(sampleId: number): Promise<SampleSummary> {
-    return (await apiClient.get(`/samples/${sampleId}/summary`)).data.data;
+  async getSummary(sampleId: number, opts?: { forCertificate?: boolean }): Promise<SampleSummary> {
+    const params = opts?.forCertificate ? { forCertificate: true } : undefined;
+    return (await apiClient.get(`/samples/${sampleId}/summary`, { params })).data.data;
   },
   exportPdf(sampleId: number, referenceNumber: string): Promise<void> {
     return downloadBlob(`/samples/${sampleId}/summary/pdf`, `SampleSummary_${referenceNumber}.pdf`);
@@ -29,8 +30,12 @@ export const SampleSummaryService = {
   exportWord(sampleId: number, referenceNumber: string): Promise<void> {
     return downloadBlob(`/samples/${sampleId}/summary/word`, `SampleSummary_${referenceNumber}.docx`);
   },
-  async completeReview(sampleId: number, password: string, comment: string | undefined): Promise<void> {
-    await apiClient.post(`/samples/${sampleId}/review/complete`, { password, comment });
+  async completeReview(sampleId: number, password: string, comment: string | undefined, sectionId?: number): Promise<void> {
+    await apiClient.post(`/samples/${sampleId}/review/complete`, {
+      password,
+      comment,
+      ...(sectionId !== undefined ? { sectionId } : {})
+    });
   },
   async returnTestToAnalyst(sampleId: number, testOrderId: number, reason?: string): Promise<void> {
     const trimmedReason = reason?.trim();
@@ -48,11 +53,19 @@ export const SampleSummaryService = {
   async decideApproval(
     sampleId: number, password: string, decision: SampleApprovalDecision,
     comment: string | undefined, certificateRemarks?: string,
-    selectedTestOrderIds?: number[], newSampleAnalystOneId?: number, newSampleAnalystTwoId?: number
+    selectedTestOrderIds?: number[], newSampleAnalystOneId?: number, newSampleAnalystTwoId?: number,
+    sectionId?: number
   ): Promise<void> {
     await apiClient.post(`/samples/${sampleId}/approval/decide`, {
       password, decision, comment, certificateRemarks,
-      selectedTestOrderIds, newSampleAnalystOneId, newSampleAnalystTwoId
+      selectedTestOrderIds, newSampleAnalystOneId, newSampleAnalystTwoId,
+      ...(sectionId !== undefined ? { sectionId } : {})
     });
+  },
+  // Closes the caller's own laboratory's still-open tests after another
+  // lab has already rejected the sample (design.md §5.3) - Section
+  // Head/System Administrator only, enforced server-side.
+  async closeTesting(sampleId: number, sectionId: number, password: string, reason: string): Promise<void> {
+    await apiClient.post(`/samples/${sampleId}/approval/sections/${sectionId}/close`, { password, reason });
   }
 };

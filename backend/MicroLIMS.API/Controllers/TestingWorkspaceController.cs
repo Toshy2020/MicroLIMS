@@ -34,16 +34,16 @@ public class TestingWorkspaceController : ControllerBase
     }
 
     [HttpGet("counts")]
-    public async Task<IActionResult> GetWorkloadCounts()
+    public async Task<IActionResult> GetWorkloadCounts([FromQuery] int? labSectionId = null)
     {
-        var counts = await _workspaceService.GetWorkloadCountsAsync(CurrentUserId);
+        var counts = await _workspaceService.GetWorkloadCountsAsync(CurrentUserId, labSectionId);
         return Ok(ApiResponse<WorkspaceTileCountsDto>.Ok(counts));
     }
 
     [HttpGet("{id:int}")]
-    public async Task<IActionResult> GetOne(int id)
+    public async Task<IActionResult> GetOne(int id, [FromQuery] int? labSectionId = null)
     {
-        var sample = await _workspaceService.GetSampleAsync(id);
+        var sample = await _workspaceService.GetSampleAsync(id, CurrentUserId, labSectionId);
         return sample is null ? NotFound(ApiResponse<object>.Fail("Not found.")) : Ok(ApiResponse<object>.Ok(sample));
     }
 }

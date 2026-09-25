@@ -19,7 +19,9 @@ public class MaterialConsumptionTests
         var options = new DbContextOptionsBuilder<MicroLimsDbContext>()
             .UseInMemoryDatabase(Guid.NewGuid().ToString())
             .Options;
-        return new MicroLimsDbContext(options);
+        var db = new MicroLimsDbContext(options);
+        TestServiceFactory.AssignUserToMicroSection(db, 1);
+        return db;
     }
 
     private static async Task SeedCurrentCoa(MicroLimsDbContext db, int materialId)
@@ -48,6 +50,7 @@ public class MaterialConsumptionTests
         var autoclave = new Equipment { Name = "Autoclave 1", Code = "AUT-01", Type = EquipmentType.Autoclave };
         var material = new Material
         {
+            SectionId = TestServiceFactory.EnsureMicroSection(db).Id,
             MaterialType = MaterialType.DehydratedMedia, MaterialName = "TSA Powder", ManufacturerName = "Himedia",
             BatchNumber = "LOT-001", ReceivingDate = DateTime.UtcNow.AddDays(-10),
             ExpiryDate = materialExpiry ?? DateTime.UtcNow.AddYears(1), Code = "TSA",
@@ -141,6 +144,7 @@ public class MaterialConsumptionTests
 
         var material = new Material
         {
+            SectionId = TestServiceFactory.EnsureMicroSection(db).Id,
             MaterialType = MaterialType.LyophilizedMicroorganism, MaterialName = "E. coli", ManufacturerName = "Tody laboratories",
             BatchNumber = "LOT-EC-01", ReceivingDate = DateTime.UtcNow.AddDays(-10),
             ExpiryDate = expiry ?? DateTime.UtcNow.AddYears(1), Code = "ECOLI", AtccNumber = "8739", OrganismId = organism.Id,
@@ -159,6 +163,7 @@ public class MaterialConsumptionTests
         var product = await MediaProductTestData.CreateOrGetAsync(db, "TSA Powder", "TSA");
         var mediaMaterial = new Material
         {
+            SectionId = TestServiceFactory.EnsureMicroSection(db).Id,
             MaterialType = MaterialType.DehydratedMedia, MaterialName = "TSA Powder", ManufacturerName = "Himedia",
             BatchNumber = "LOT-TSA", ReceivingDate = DateTime.UtcNow.AddDays(-30), ExpiryDate = DateTime.UtcNow.AddYears(1),
             Code = "TSA", Location = "Micro Lab", QuantityReceived = 500, QuantityRemaining = 500, Unit = MaterialUnit.Gram,

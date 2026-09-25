@@ -9,7 +9,8 @@ export type MaterialType =
   | "Indicator"
   | "ReferenceBuffer"
   | "DisposableTool"
-  | "Other";
+  | "Other"
+  | "ReferenceStandard";
 
 export type MaterialUnit =
   | "Gram"
@@ -35,6 +36,10 @@ export interface OrganismSummary {
 
 export interface MaterialItem {
   id: number;
+  // Owning laboratory - Material.SectionId is required server-side
+  // (unlike EquipmentInventory's still-nullable column), used here only to
+  // honour the ?lab= query param from the menu links (design.md §6).
+  sectionId: number;
   materialType: MaterialType;
   materialName: string;
   manufacturerName: string;
@@ -52,6 +57,7 @@ export interface MaterialItem {
   quantityRemaining: number;
   unit: MaterialUnit;
   minimumStockLevel: number | null;
+  purity?: number | null;
   status: StockStatus;
 }
 
@@ -67,6 +73,7 @@ export interface MaterialFormState {
   quantityReceived: number | string;
   unit: MaterialUnit;
   minimumStockLevel: number | string;
+  purity: number | string;
   atccNumber: string;
   organismId: number | null;
   mediaProductId: number | null;

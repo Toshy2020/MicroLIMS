@@ -25,8 +25,21 @@ public class Sample
     public int? WaterDepartmentId { get; set; }    // Water only (batch model)
     public WaterDepartment? WaterDepartment { get; set; }
 
-    // Product only - descriptive, does not affect assigned tests.
+    // Product only - descriptive, does not affect assigned tests. This is
+    // the historical snapshot of what was recorded at receiving time -
+    // kept exactly as typed/selected then, unaffected by a stage being
+    // later renamed or deleted. Never read by code that needs the stage's
+    // Role; use ProductionStageId for that.
     public string? ProductionStage { get; set; }
+
+    // FK to the ProductionStage row resolved at receiving time (Finished
+    // Product only, alongside the string above). Nullable and never
+    // cascade-deleted - a sample must survive its ProductionStage being
+    // deleted or renamed later, and an unrecognised/unreconciled stage
+    // name leaves this null rather than guessing. This is what code reads
+    // to get the sample's ProductionStageRole (via ProductionStage.Role).
+    public int? ProductionStageId { get; set; }
+    public ProductionStage? ProductionStageRef { get; set; }
 
     public int CauseOfTestingId { get; set; }
     public CauseOfTesting? CauseOfTesting { get; set; }
@@ -81,6 +94,7 @@ public class Sample
     public string? OosGroupCode { get; set; }
 
     public List<TestOrder> TestOrders { get; set; } = new();
+    public List<SampleSectionSignoff> SectionSignoffs { get; set; } = new();
     public List<SampleLocation> Locations { get; set; } = new();
     public SamplePreparation? SamplePreparation { get; set; }
 }

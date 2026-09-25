@@ -6,6 +6,6 @@ namespace MicroLIMS.Application.Interfaces;
 public interface ITestWorkspaceService
 {
     Task<PagedResult<SampleDto>> GetActiveSamplesAsync(TestingWorkspaceFilterDto filter, int? currentUserId = null);
-    Task<WorkspaceTileCountsDto> GetWorkloadCountsAsync(int? currentUserId = null);
-    Task<SampleDto?> GetSampleAsync(int sampleId);
+    Task<WorkspaceTileCountsDto> GetWorkloadCountsAsync(int? currentUserId = null, int? labSectionId = null);
+    Task<SampleDto?> GetSampleAsync(int sampleId, int? currentUserId = null, int? labSectionId = null);
 }

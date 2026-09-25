@@ -46,22 +46,55 @@ import { StatusBadge } from "../../components/StatusBadge";
 import { brandColors, tableHeadSx } from "../../theme";
 import { useAuth } from "../../contexts/AuthContext";
 import { SampleSummaryService, SampleApprovalDecision } from "./services/SampleSummaryService";
-import { buildCoaMatrix, buildCoaSimpleRows } from "./coaAggregation";
+import { buildCoaMatrix, buildCoaSimpleRows, filterTestOrdersBySection } from "./coaAggregation";
 import {
   SampleSummary,
   TestOrderSummaryDetail,
   SampleLocationDetail,
-  IncubationDetail
+  IncubationDetail,
+  SampleSectionSummaryDetail,
+  ElementalAssayDetail,
+  AnalysisDetail,
+  ParameterResultDetail,
+  ResultReadingDetail
 } from "./types/sampleSummaryTypes";
 import { pathogenObservationLabel } from "./utils/pathogenObservationLabel";
+import { StandardComparisonCalculationData } from "./StandardComparisonPanel";
 import { PathogenSessionDialog } from "./pathogenSession/PathogenSessionDialog";
 import { UserService, UserRecord } from "../users/services/UserService";
+import { CloseTestingDialog } from "../approval/CloseTestingDialog";
+import { humanize } from "./SampleReportPage";
 
 interface Props {
   open: boolean;
   sampleId: number | null;
   onClose: () => void;
 }
+
+const formatSectionStatus = (status: string): string => {
+  switch (status) {
+    case "InTesting":
+      return "In testing";
+    case "UnderReview":
+      return "Under review";
+    case "UnderApproval":
+      return "Under approval";
+    case "Approved":
+      return "Approved";
+    case "Rejected":
+      return "Rejected";
+    case "RetestRequested":
+      return "Retest requested";
+    case "Cancelled":
+      return "Cancelled";
+    case "Closed":
+      return "Closed";
+    case "Voided":
+      return "Voided";
+    default:
+      return status.replace(/([a-z])([A-Z])/g, "$1 $2");
+  }
+};
 
 const formatDate = (d: string | null | undefined) =>
   d
@@ -94,6 +127,8 @@ const formatExactTime = (d: string | null | undefined) =>
 function isTestOrderNonPassing(order: TestOrderSummaryDetail): boolean {
   if (order.locations.some((l) => l.status && l.status !== "WithinLimits" && l.status !== "Absent")) return true;
   if (order.countTestReadings.some((r) => r.status !== "WithinLimits")) return true;
+  if (order.elementalAssay && order.elementalAssay.elements.some((e) => e.status !== "WithinLimits")) return true;
+  if (order.analysis && order.analysis.parameterResults.some((p) => p.comparisonStatus !== "WithinLimits")) return true;
   const biochemical = order.biochemicalResults;
   if (biochemical.some((b) => b.organismDetected === true)) return true;
   const pathogens = order.pathogenObservations;
@@ -450,8 +485,291 @@ function LocationResultsTable({ locations }: { locations: SampleLocationDetail[]
   );
 }
 
+const num = (v: number | null | undefined, digits?: number) =>
+  v === null || v === undefined ? "—" : digits === undefined ? String(v) : v.toFixed(digits);
+
+function ElementalAssayResultBlock({ assay }: { assay: ElementalAssayDetail }) {
+  const cellSx = { fontSize: 12, py: 0.75 };
+  const headSx = { fontSize: 11, fontWeight: 700, color: "text.secondary", textTransform: "uppercase" as const, py: 0.75 };
+
+  return (
+    <Box sx={{ p: 2, border: "1px solid", borderColor: "divider", borderRadius: 1.5, bgcolor: "background.default" }}>
+      <Typography sx={{ fontSize: 13, fontWeight: 700, mb: 0.5 }}>Elemental Assay Results</Typography>
+      <Typography sx={{ fontSize: 12, color: "text.secondary", mb: 1.5, fontFamily: "monospace" }}>
+        mg per unit = ppm × amount ÷ 1000; claim = mg per unit × conversion factor; %LC = claim ÷ label claim × 100
+      </Typography>
+      <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "repeat(2, 1fr)", md: "repeat(4, 1fr)" }, gap: 1.5, mb: 1.5 }}>
+        <SummaryField label="Matrix" value={assay.sampleMatrix} />
+        <SummaryField label="Unit Amount" value={`${num(assay.unitAmount)} ${assay.unitAmountUnit}`} />
+        <SummaryField label="Analysis Time" value={formatDate(assay.analysedAt)} />
+        <SummaryField label="Entered By / At" value={`${assay.enteredByName ?? "—"} · ${formatDate(assay.enteredAt)}`} />
+      </Box>
+      <Table size="small">
+        <TableHead>
+          <TableRow>
+            <TableCell sx={headSx}>Parameter</TableCell>
+            <TableCell sx={headSx}>Element</TableCell>
+            <TableCell sx={headSx}>Calibration Run</TableCell>
+            <TableCell sx={headSx}>PPM</TableCell>
+            <TableCell sx={headSx}>Flags</TableCell>
+            <TableCell sx={headSx}>mg / unit</TableCell>
+            <TableCell sx={headSx}>Claim</TableCell>
+            <TableCell sx={headSx}>%LC</TableCell>
+            <TableCell sx={headSx}>Reported</TableCell>
+            <TableCell sx={headSx}>Specification</TableCell>
+            <TableCell sx={headSx}>Status</TableCell>
+          </TableRow>
+        </TableHead>
+        <TableBody>
+          {assay.elements.map((elem, idx) => {
+            const flags = [elem.overRange ? ">Range" : null, elem.belowLoq ? "<LOQ" : null].filter(Boolean).join(", ") || "—";
+            return (
+              <TableRow key={idx}>
+                <TableCell sx={cellSx}>{elem.parameterName}</TableCell>
+                <TableCell sx={cellSx}>{elem.element}</TableCell>
+                <TableCell sx={cellSx}>
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 0.75 }}>
+                    <Typography sx={{ fontSize: 12 }}>{elem.runCode}</Typography>
+                    <Chip
+                      size="small"
+                      label={elem.runAnalytePassed ? "Pass" : "Fail"}
+                      color={elem.runAnalytePassed ? "success" : "error"}
+                      variant="outlined"
+                      sx={{ height: 18, fontSize: "0.65rem" }}
+                    />
+                  </Box>
+                </TableCell>
+                <TableCell sx={cellSx}>{num(elem.reportedPpm)}</TableCell>
+                <TableCell sx={cellSx}>{flags}</TableCell>
+                <TableCell sx={cellSx}>{elem.mgPerUnit !== null ? num(elem.mgPerUnit, 4) : "—"}</TableCell>
+                <TableCell sx={cellSx}>{elem.resultClaim !== null ? num(elem.resultClaim, 4) : "—"}</TableCell>
+                <TableCell sx={cellSx}>{elem.percentLabelClaim !== null ? `${num(elem.percentLabelClaim, 2)}%` : "—"}</TableCell>
+                <TableCell sx={{ ...cellSx, fontWeight: 600 }}>{elem.reportedDisplay}</TableCell>
+                <TableCell sx={cellSx}>{elem.specLimit ? `${elem.specLimit}${elem.unit ? ` ${elem.unit}` : ""}` : "—"}</TableCell>
+                <TableCell sx={cellSx}>
+                  <StatusBadge status={elem.status} />
+                </TableCell>
+              </TableRow>
+            );
+          })}
+        </TableBody>
+      </Table>
+    </Box>
+  );
+}
+
+function AnalysisResultBlock({ analysis }: { analysis: AnalysisDetail }) {
+  const cellSx = { fontSize: 12, py: 0.75 };
+  const headSx = { fontSize: 11, fontWeight: 700, color: "text.secondary", textTransform: "uppercase" as const, py: 0.75 };
+
+  let conditionsDisplay: string | null = null;
+  if (analysis.conditionsJson) {
+    try {
+      const parsed = JSON.parse(analysis.conditionsJson);
+      if (typeof parsed === "object" && parsed !== null && !Array.isArray(parsed)) {
+        conditionsDisplay = Object.entries(parsed).map(([k, v]) => `${k}: ${String(v)}`).join(" · ");
+      } else {
+        conditionsDisplay = JSON.stringify(parsed);
+      }
+    } catch {
+      conditionsDisplay = analysis.conditionsJson;
+    }
+  }
+
+  return (
+    <Box sx={{ p: 2, border: "1px solid", borderColor: "divider", borderRadius: 1.5, bgcolor: "background.default" }}>
+      <Typography sx={{ fontSize: 13, fontWeight: 700, mb: 1.5 }}>Analysis Results</Typography>
+      <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "repeat(2, 1fr)", md: "repeat(4, 1fr)" }, gap: 1.5, mb: 1.5 }}>
+        <SummaryField label="Instrument" value={analysis.equipmentCode ? `${analysis.equipmentCode}${analysis.equipmentName ? ` (${analysis.equipmentName})` : ""}` : (analysis.equipmentName ?? "—")} />
+        <SummaryField label="Analysis Time" value={formatDate(analysis.analysedAt)} />
+        {analysis.unitAmount !== null && <SummaryField label="Unit Amount" value={num(analysis.unitAmount)} />}
+        {analysis.sampleMatrix && <SummaryField label="Matrix" value={analysis.sampleMatrix} />}
+        {conditionsDisplay && <SummaryField label="Conditions" value={conditionsDisplay} />}
+        <SummaryField label="Entered By / At" value={`${analysis.enteredByName ?? "—"} · ${formatDate(analysis.enteredAt)}`} />
+      </Box>
+      <Table size="small">
+        <TableHead>
+          <TableRow>
+            <TableCell sx={headSx}>Parameter</TableCell>
+            <TableCell sx={headSx}>Reported</TableCell>
+            <TableCell sx={headSx}>Unit</TableCell>
+            <TableCell sx={headSx}>Specification</TableCell>
+            <TableCell sx={headSx}>Status</TableCell>
+          </TableRow>
+        </TableHead>
+        <TableBody>
+          {analysis.parameterResults.map((p, idx) => {
+            const flags = [p.overRange ? ">Range" : null, p.belowLoq ? "<LOQ" : null].filter(Boolean).join(", ");
+            return (
+              <TableRow key={idx}>
+                <TableCell sx={cellSx}>{p.parameterName}</TableCell>
+                <TableCell sx={{ ...cellSx, fontWeight: 600 }}>
+                  {p.reportedDisplay}
+                  {flags ? ` [${flags}]` : ""}
+                </TableCell>
+                <TableCell sx={cellSx}>{p.unit ?? "—"}</TableCell>
+                <TableCell sx={cellSx}>{p.specLimit ? `${p.specLimit}${p.unit ? ` ${p.unit}` : ""}` : "—"}</TableCell>
+                <TableCell sx={cellSx}>
+                  <StatusBadge status={p.comparisonStatus} />
+                </TableCell>
+              </TableRow>
+            );
+          })}
+        </TableBody>
+      </Table>
+      {analysis.analysisType === "StandardComparison" &&
+        analysis.parameterResults
+          .filter((p) => p.calculationJson)
+          .map((p) => <StandardComparisonCalcSummary key={`calc-${p.id}`} parameter={p} />)}
+      {analysis.parameterResults.filter((p) => p.readings.length > 0).map((p) => (
+        <AnalysisReadingsTable key={p.id} parameter={p} analysisType={analysis.analysisType} />
+      ))}
+    </Box>
+  );
+}
+
+// Standard-Comparison Assay: a compact "calculated against" line per
+// analyte - the linked run's standard values and each preparation's
+// weigh-in/deviation/justification, straight from the stored
+// calculationJson (StandardComparisonCalculationData, camelCase JSON).
+// Nothing here is recomputed; it's a readable view of what the server
+// already calculated the reported %Assay against.
+function StandardComparisonCalcSummary({ parameter }: { parameter: ParameterResultDetail }) {
+  let calc: StandardComparisonCalculationData | null = null;
+  try {
+    calc = parameter.calculationJson ? (JSON.parse(parameter.calculationJson) as StandardComparisonCalculationData) : null;
+  } catch {
+    calc = null;
+  }
+  if (!calc) return null;
+
+  const isTitration = calc.responseMode === "TitrationVolume";
+
+  return (
+    <Box sx={{ mt: 1.5, p: 1.25, border: "1px dashed", borderColor: "divider", borderRadius: 1 }}>
+      <Typography sx={{ fontSize: 11, fontWeight: 700, mb: 0.5 }}>
+        Calculated against · {calc.analyteName}
+      </Typography>
+      <Typography sx={{ fontSize: 11, color: "text.secondary" }}>
+        Th.Wt.std {num(calc.standardTheoreticalWeightMg)} mg · Act.Wt.std {num(calc.standardActualWeightMg)} mg ·
+        {" "}P {num(calc.standardPurityPercent)}% · MC {num(calc.moisturePercent)}% ·
+        {" "}Mean std {isTitration ? "titre" : "response"} {num(calc.standardMeanArea)}
+        {isTitration && calc.blankTitreMl != null ? ` · Blank titre ${num(calc.blankTitreMl)} mL` : ""}
+      </Typography>
+      {calc.preparations.map((p) => (
+        <Typography key={p.preparationIndex} sx={{ fontSize: 11, color: p.weighInOutOfWindow ? "warning.main" : "text.secondary", mt: 0.25 }}>
+          P{p.preparationIndex}: Th.Wt.test {num(p.theoreticalWeightMg)} mg · Act.Wt.test {num(p.actualWeightMg)} mg ·
+          {" "}deviation {num(p.weighInDeviationPercent, 2)}%
+          {p.weighInOutOfWindow ? ` (outside window${p.weighInJustification ? ` — ${p.weighInJustification}` : ""})` : ""}
+        </Typography>
+      ))}
+      <Typography sx={{ fontSize: 11, color: calc.rsdExceeded ? "warning.main" : "text.secondary", mt: 0.25 }}>
+        Preparation RSD: {calc.preparationRsdPercent != null ? `${num(calc.preparationRsdPercent, 2)}%` : "—"}
+        {calc.maxPreparationRsdPercent != null ? ` (max ${num(calc.maxPreparationRsdPercent, 2)}%)` : ""}
+        {calc.rsdExceeded && calc.reviewReason ? ` — ${calc.reviewReason}` : ""}
+      </Typography>
+    </Box>
+  );
+}
+
+// Raw readings behind one parameter result; only columns with a value are shown.
+function AnalysisReadingsTable({ parameter, analysisType }: { parameter: ParameterResultDetail; analysisType?: string }) {
+  const cellSx = { fontSize: 12, py: 0.5 };
+  const headSx = { fontSize: 11, fontWeight: 700, color: "text.secondary", py: 0.5 };
+  const r = parameter.readings;
+  const isVessel = r.some((x) => x.kind === "Vessel");
+  const isDisintegration = analysisType === "Disintegration";
+  const isWeightVariation = analysisType === "WeightVariation";
+  const isStandardComparison = analysisType === "StandardComparison";
+  const isTitration = isStandardComparison && r.some((x) => x.kind === "Titration");
+  const isTablet = isWeightVariation && r.every((x) => x.value2 == null);
+  type ReadingColumn = { label: string; get: (x: ResultReadingDetail) => string | null };
+  const allCols: ReadingColumn[] = [
+    {
+      label: isStandardComparison ? "Prep" : "Stage",
+      get: (x) =>
+        x.stage != null
+          ? isStandardComparison
+            ? `P${x.stage}`
+            : isVessel || isDisintegration || isWeightVariation
+            ? `S${x.stage}`
+            : String(x.stage)
+          : null
+    },
+    {
+      label: "Time (min)",
+      get: (x) => (!isDisintegration && !isWeightVariation && x.timePointMinutes != null ? num(x.timePointMinutes) : null)
+    },
+    {
+      label: isVessel
+        ? "Peak Area"
+        : isDisintegration
+        ? "Time (min)"
+        : isWeightVariation
+        ? (isTablet ? "Weight (mg)" : "Gross (mg)")
+        : isStandardComparison
+        ? (isTitration ? "Titre (mL)" : "Peak area")
+        : "Value 1",
+      get: (x) => (x.value1 != null ? num(x.value1) : isDisintegration && x.text ? x.text : null)
+    },
+    {
+      label: isWeightVariation ? "Shell (mg)" : "Value 2",
+      get: (x) => (!isTablet && x.value2 != null ? num(x.value2) : null)
+    },
+    {
+      label: isWeightVariation ? "Deviation %" : "Value 3",
+      get: (x) => (x.value3 != null ? (isWeightVariation ? `${num(x.value3)} %` : num(x.value3)) : null)
+    },
+    {
+      label: "Text",
+      get: (x) => (isDisintegration || isWeightVariation ? null : (x.text || null))
+    },
+    {
+      label: isVessel ? "% Dissolved" : isWeightVariation ? "Net (mg)" : isStandardComparison ? "% Assay" : "Computed",
+      get: (x) =>
+        isDisintegration || isTablet
+          ? null
+          : x.computedValue != null
+          ? x.kind === "Vessel" || isStandardComparison
+            ? `${num(x.computedValue)} %`
+            : num(x.computedValue)
+          : null
+    },
+    {
+      label: "Pass",
+      get: (x) => (x.passed == null ? null : x.passed ? "Pass" : "Fail")
+    }
+  ];
+  const cols = allCols.filter((c) => r.some((x) => c.get(x) !== null));
+
+  return (
+    <Box sx={{ mt: 1.5 }}>
+      <Typography sx={{ fontSize: 12, fontWeight: 700, mb: 0.5 }}>Readings · {parameter.parameterName}</Typography>
+      <Table size="small">
+        <TableHead>
+          <TableRow>
+            <TableCell sx={headSx}>#</TableCell>
+            {cols.map((c) => <TableCell key={c.label} sx={headSx}>{c.label}</TableCell>)}
+          </TableRow>
+        </TableHead>
+        <TableBody>
+          {r.map((x) => (
+            <TableRow key={x.id}>
+              <TableCell sx={cellSx}>{x.index}</TableCell>
+              {cols.map((c) => <TableCell key={c.label} sx={cellSx}>{c.get(x) ?? "—"}</TableCell>)}
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </Box>
+  );
+}
+
 // Final Result Section component (Separated from Incubation)
 function FinalResultBlock({ order }: { order: TestOrderSummaryDetail }) {
+  if (order.elementalAssay) return <ElementalAssayResultBlock assay={order.elementalAssay} />;
+  if (order.analysis) return <AnalysisResultBlock analysis={order.analysis} />;
+
   const hasLocations = order.locations.length > 0;
   const hasCountReadings = order.countTestReadings.length > 0;
   const hasPathogens = order.pathogenObservations.length > 0;
@@ -664,8 +982,25 @@ function TestResultsSection({
                   <Typography sx={{ fontWeight: 700, fontSize: 14, color: "text.primary" }}>
                     {order.testCode} — {order.testDisplayName}
                   </Typography>
+                  {order.sectionName && (
+                    <Chip
+                      label={order.sectionName}
+                      size="small"
+                      variant="outlined"
+                      sx={{ fontSize: 11, height: 20 }}
+                    />
+                  )}
                   <StatusBadge status={order.workflowStateDisplay || order.status} />
                   {order.isSuperseded && <StatusBadge status="Superseded" />}
+                  {/* Closed-testing cancellation (design.md §5.3): the step
+                      (and incubation stage, if any) this test had reached
+                      when another lab's rejection closed this one's work. */}
+                  {order.status === "Cancelled" && order.cancelledAtStep && (
+                    <Typography sx={{ fontSize: 11, color: "text.secondary" }}>
+                      Cancelled at {humanize(order.cancelledAtStep)}
+                      {order.cancelledAtStage != null ? `, stage ${order.cancelledAtStage}` : ""}
+                    </Typography>
+                  )}
                 </Stack>
               </AccordionSummary>
               <AccordionDetails sx={{ p: 2.5 }}>
@@ -794,7 +1129,19 @@ function ApprovalSignaturesCard({
   newSampleAnalystTwoId,
   setNewSampleAnalystTwoId,
   onReviewClick,
-  onApproveClick
+  onApproveClick,
+  reviewableSections,
+  reviewSectionId,
+  onReviewSectionChange,
+  approvableSections,
+  approvalSectionId,
+  onApprovalSectionChange,
+  effectiveApprovalSectionId,
+  canCloseTesting,
+  closableSections,
+  closingSectionId,
+  onClosingSectionChange,
+  onCloseTestingClick
 }: {
   summary: SampleSummary;
   canReview: boolean;
@@ -814,6 +1161,18 @@ function ApprovalSignaturesCard({
   setNewSampleAnalystTwoId: (id: number | "") => void;
   onReviewClick: () => void;
   onApproveClick: () => void;
+  reviewableSections: SampleSectionSummaryDetail[];
+  reviewSectionId: number | "";
+  onReviewSectionChange: (id: number | "") => void;
+  approvableSections: SampleSectionSummaryDetail[];
+  approvalSectionId: number | "";
+  onApprovalSectionChange: (id: number | "") => void;
+  effectiveApprovalSectionId: number | undefined;
+  canCloseTesting: boolean;
+  closableSections: SampleSectionSummaryDetail[];
+  closingSectionId: number | "";
+  onClosingSectionChange: (id: number | "") => void;
+  onCloseTestingClick: () => void;
 }) {
   const theme = useTheme();
   const hasSignatures = summary.signatures.length > 0;
@@ -821,11 +1180,56 @@ function ApprovalSignaturesCard({
   const isRejected = summary.status === "Rejected";
 
   const isRetestDecision = decision === "RetestRetainedSample" || decision === "NewSampleRequest";
+  const sectionChosen = approvableSections.length <= 1 || approvalSectionId !== "";
   const decisionValid =
-    !isRetestDecision ||
-    (selectedTestOrderIds.length > 0 &&
-      (decision !== "NewSampleRequest" ||
-        (newSampleAnalystOneId !== "" && newSampleAnalystTwoId !== "" && newSampleAnalystOneId !== newSampleAnalystTwoId)));
+    sectionChosen &&
+    (!isRetestDecision ||
+      (selectedTestOrderIds.length > 0 &&
+        (decision !== "NewSampleRequest" ||
+          (newSampleAnalystOneId !== "" && newSampleAnalystTwoId !== "" && newSampleAnalystOneId !== newSampleAnalystTwoId))));
+
+  const eligibleRetestOrders = summary.testOrders.filter(
+    (t) => !t.isSuperseded && (effectiveApprovalSectionId == null || t.sectionId === effectiveApprovalSectionId)
+  );
+
+  const activeReviewSectionId = reviewableSections.length === 1 ? reviewableSections[0].sectionId : reviewSectionId;
+  const activeReviewSection = reviewableSections.find((s) => s.sectionId === activeReviewSectionId);
+
+  const oosWarning = useMemo(() => {
+    if (decision !== "Approve" || effectiveApprovalSectionId == null) {
+      return null;
+    }
+    const targetSection = approvableSections.find((s) => s.sectionId === effectiveApprovalSectionId);
+    const sectionName = targetSection?.sectionName ?? "";
+    const secTests = filterTestOrdersBySection(summary.testOrders, effectiveApprovalSectionId);
+    const matrix = buildCoaMatrix(secTests);
+    const simple = matrix ? null : buildCoaSimpleRows(secTests);
+
+    const failingNames: string[] = [];
+    if (matrix) {
+      for (const c of matrix.testConclusions) {
+        if (c.failingLocationNames.length > 0) {
+          failingNames.push(c.testDisplayName || c.testCode);
+        }
+      }
+    } else if (simple) {
+      for (const r of simple.rows) {
+        if (!r.conform && !r.limitsNotConfigured) {
+          failingNames.push(r.testDisplayName || r.testCode);
+        }
+      }
+    }
+
+    const uniqueFailing = Array.from(new Set(failingNames));
+    if (uniqueFailing.length === 0) {
+      return null;
+    }
+
+    return {
+      sectionName,
+      failingList: uniqueFailing.join(", ")
+    };
+  }, [decision, effectiveApprovalSectionId, approvableSections, summary.testOrders]);
 
   return (
     <Paper sx={{ p: 2.5, border: "1px solid", borderColor: "divider", borderRadius: 2, height: "100%", bgcolor: "background.paper" }}>
@@ -929,8 +1333,28 @@ function ApprovalSignaturesCard({
           <Typography sx={{ fontWeight: 700, fontSize: 13, mb: 1, color: theme.palette.primary.main }}>
             Submit Technical Review
           </Typography>
+          {reviewableSections.length > 1 && (
+            <TextField
+              select
+              fullWidth
+              size="small"
+              label="Laboratory Section"
+              required
+              value={reviewSectionId}
+              onChange={(e) => onReviewSectionChange(Number(e.target.value))}
+              sx={{ mb: 1.5 }}
+            >
+              {reviewableSections.map((sec) => (
+                <MenuItem key={sec.sectionId} value={sec.sectionId}>
+                  {sec.sectionName}
+                </MenuItem>
+              ))}
+            </TextField>
+          )}
           <Alert severity="info" sx={{ fontSize: 11, py: 0.5, mb: 1.5 }}>
-            By submitting, I confirm I have reviewed all test results for this sample.
+            {activeReviewSection
+              ? `By submitting, I confirm I have reviewed all test results for ${activeReviewSection.sectionName}.`
+              : "By submitting, I confirm I have reviewed all test results for this sample."}
           </Alert>
           <TextField
             fullWidth
@@ -946,6 +1370,7 @@ function ApprovalSignaturesCard({
             variant="contained"
             color="primary"
             fullWidth
+            disabled={reviewableSections.length > 1 && !reviewSectionId}
             onClick={onReviewClick}
           >
             Submit Review
@@ -959,6 +1384,24 @@ function ApprovalSignaturesCard({
           <Typography sx={{ fontWeight: 700, fontSize: 13, mb: 1, color: theme.palette.primary.main }}>
             Submit Release Decision
           </Typography>
+          {approvableSections.length > 1 && (
+            <TextField
+              select
+              fullWidth
+              size="small"
+              label="Laboratory Section"
+              required
+              value={approvalSectionId}
+              onChange={(e) => onApprovalSectionChange(Number(e.target.value))}
+              sx={{ mb: 1.5 }}
+            >
+              {approvableSections.map((sec) => (
+                <MenuItem key={sec.sectionId} value={sec.sectionId}>
+                  {sec.sectionName}
+                </MenuItem>
+              ))}
+            </TextField>
+          )}
           <TextField
             fullWidth
             size="small"
@@ -1005,10 +1448,13 @@ function ApprovalSignaturesCard({
               <Typography sx={{ fontSize: 11, color: "text.secondary", mb: 1 }}>
                 Non-conforming tests are pre-checked. Adjust as needed - only the checked test(s) move to the new sample{decision === "NewSampleRequest" ? "s" : ""}; everything else on this sample is left untouched.
               </Typography>
-              <FormGroup>
-                {summary.testOrders
-                  .filter((t) => !t.isSuperseded)
-                  .map((t) => (
+              {approvableSections.length > 1 && !approvalSectionId ? (
+                <Alert severity="info" sx={{ fontSize: 11, py: 0.5, mb: 1 }}>
+                  Please select a laboratory section above to view tests to retest.
+                </Alert>
+              ) : (
+                <FormGroup>
+                  {eligibleRetestOrders.map((t) => (
                     <FormControlLabel
                       key={t.testOrderId}
                       control={
@@ -1026,13 +1472,30 @@ function ApprovalSignaturesCard({
                       }
                       label={
                         <Typography sx={{ fontSize: 12 }}>
-                          {t.testDisplayName} {isTestOrderNonPassing(t) && <Chip size="small" label="Non-conforming" color="error" sx={{ ml: 0.5, height: 16, fontSize: 9 }} />}
+                          {t.testDisplayName}
+                          {t.sectionName && (
+                            <Chip
+                              size="small"
+                              label={t.sectionName}
+                              variant="outlined"
+                              sx={{ ml: 0.5, height: 16, fontSize: 9 }}
+                            />
+                          )}
+                          {isTestOrderNonPassing(t) && (
+                            <Chip
+                              size="small"
+                              label="Non-conforming"
+                              color="error"
+                              sx={{ ml: 0.5, height: 16, fontSize: 9 }}
+                            />
+                          )}
                         </Typography>
                       }
                     />
                   ))}
-              </FormGroup>
-              {selectedTestOrderIds.length === 0 && (
+                </FormGroup>
+              )}
+              {selectedTestOrderIds.length === 0 && (approvableSections.length <= 1 || approvalSectionId !== "") && (
                 <Alert severity="warning" sx={{ fontSize: 11, py: 0, mt: 0.5 }}>
                   Select at least one test to retest.
                 </Alert>
@@ -1082,6 +1545,12 @@ function ApprovalSignaturesCard({
             </Box>
           )}
 
+          {oosWarning && (
+            <Alert severity="warning" sx={{ fontSize: 11, py: 0.5, mb: 1.5 }}>
+              Out-of-specification results in {oosWarning.sectionName}: {oosWarning.failingList}. Approving will certify them as conforming - consider Not Conform or a retest.
+            </Alert>
+          )}
+
           <Button
             variant="contained"
             color="primary"
@@ -1090,6 +1559,49 @@ function ApprovalSignaturesCard({
             onClick={onApproveClick}
           >
             Submit Decision
+          </Button>
+        </Box>
+      )}
+
+      {/* Close Testing Action - only once another lab has rejected the
+          sample and this viewer's own lab still has open work (design.md
+          §5.3). Independent of canReview/canApprove: closing is available
+          across InTesting/UnderReview/UnderApproval, not just the last one. */}
+      {canCloseTesting && (
+        <Box sx={{ mt: 2, pt: 2, borderTop: "1px solid", borderColor: "divider" }}>
+          <Typography sx={{ fontWeight: 700, fontSize: 13, mb: 1, color: theme.palette.error.main }}>
+            Close Testing
+          </Typography>
+          <Alert severity="warning" sx={{ fontSize: 11, py: 0.5, mb: 1.5 }}>
+            Another laboratory has rejected this sample. You may close your own laboratory's remaining
+            tests instead of continuing them.
+          </Alert>
+          {closableSections.length > 1 && (
+            <TextField
+              select
+              fullWidth
+              size="small"
+              label="Laboratory Section"
+              required
+              value={closingSectionId}
+              onChange={(e) => onClosingSectionChange(Number(e.target.value))}
+              sx={{ mb: 1.5 }}
+            >
+              {closableSections.map((sec) => (
+                <MenuItem key={sec.sectionId} value={sec.sectionId}>
+                  {sec.sectionName}
+                </MenuItem>
+              ))}
+            </TextField>
+          )}
+          <Button
+            variant="outlined"
+            color="error"
+            fullWidth
+            disabled={closableSections.length > 1 && !closingSectionId}
+            onClick={onCloseTestingClick}
+          >
+            Close Testing
           </Button>
         </Box>
       )}
@@ -1116,6 +1628,48 @@ export function SampleSummaryDialog({ open, sampleId, onClose }: Props) {
   const [exporting, setExporting] = useState<"pdf" | null>(null);
   const [exportError, setExportError] = useState<string | null>(null);
 
+  const [reviewSectionId, setReviewSectionId] = useState<number | "">("");
+  const [approvalSectionId, setApprovalSectionId] = useState<number | "">("");
+  const [closingSectionId, setClosingSectionId] = useState<number | "">("");
+  const [confirmingClose, setConfirmingClose] = useState(false);
+
+  const reviewableSections = useMemo(
+    () => (summary?.sections ?? []).filter((s) => s.canView && s.status === "UnderReview"),
+    [summary?.sections]
+  );
+  const approvableSections = useMemo(
+    () => (summary?.sections ?? []).filter((s) => s.canView && s.status === "UnderApproval"),
+    [summary?.sections]
+  );
+  // Available only after another lab has rejected the sample (design.md
+  // §5.3) - a lab that itself rejected already shows Status "Rejected",
+  // not one of these open statuses, so it's excluded here automatically.
+  const closableSections = useMemo(
+    () =>
+      (summary?.sections ?? []).filter(
+        (s) => s.canView && (s.status === "InTesting" || s.status === "UnderReview" || s.status === "UnderApproval")
+      ),
+    [summary?.sections]
+  );
+  const rejectingSection = useMemo(
+    () => (summary?.sections ?? []).find((s) => s.status === "Rejected"),
+    [summary?.sections]
+  );
+
+  const effectiveReviewSectionId =
+    reviewableSections.length === 1
+      ? reviewableSections[0].sectionId
+      : reviewSectionId !== ""
+      ? Number(reviewSectionId)
+      : undefined;
+
+  const effectiveApprovalSectionId =
+    approvableSections.length === 1
+      ? approvableSections[0].sectionId
+      : approvalSectionId !== ""
+      ? Number(approvalSectionId)
+      : undefined;
+
   useEffect(() => {
     if (open && sampleId) {
       setSummary(null);
@@ -1127,8 +1681,28 @@ export function SampleSummaryDialog({ open, sampleId, onClose }: Props) {
       setNewSampleAnalystOneId("");
       setNewSampleAnalystTwoId("");
       setReturningTestOrder(null);
+      setReviewSectionId("");
+      setApprovalSectionId("");
+      setClosingSectionId("");
       SampleSummaryService.getSummary(sampleId)
-        .then(setSummary)
+        .then((data) => {
+          setSummary(data);
+          const rev = (data.sections ?? []).filter((s) => s.canView && s.status === "UnderReview");
+          if (rev.length === 1) {
+            setReviewSectionId(rev[0].sectionId);
+          }
+          const app = (data.sections ?? []).filter((s) => s.canView && s.status === "UnderApproval");
+          if (app.length === 1) {
+            setApprovalSectionId(app[0].sectionId);
+            setCertificateRemarks(app[0].certificateRemarks ?? "");
+          }
+          const closable = (data.sections ?? []).filter(
+            (s) => s.canView && (s.status === "InTesting" || s.status === "UnderReview" || s.status === "UnderApproval")
+          );
+          if (closable.length === 1) {
+            setClosingSectionId(closable[0].sectionId);
+          }
+        })
         .catch((e) => {
           setLoadError(e?.response?.data?.message ?? "Failed to load sample summary.");
         });
@@ -1138,15 +1712,34 @@ export function SampleSummaryDialog({ open, sampleId, onClose }: Props) {
     }
   }, [open, sampleId, role]);
 
+  const handleApprovalSectionChange = (newSectionId: number | "") => {
+    setApprovalSectionId(newSectionId);
+    if (newSectionId !== "") {
+      const sec = approvableSections.find((s) => s.sectionId === newSectionId);
+      setCertificateRemarks(sec?.certificateRemarks ?? "");
+    } else {
+      setCertificateRemarks("");
+    }
+  };
+
   // Re-pre-check the retest checklist toward whichever tests are actually
   // non-conforming whenever the decision switches to a retest flavor (or
   // the summary first loads) - the Section Head can still freely adjust it.
   useEffect(() => {
     if (!summary) return;
     if (decision !== "RetestRetainedSample" && decision !== "NewSampleRequest") return;
-    const nonPassing = summary.testOrders.filter((t) => !t.isSuperseded && isTestOrderNonPassing(t)).map((t) => t.testOrderId);
+    const nonPassing = summary.testOrders
+      .filter((t) => !t.isSuperseded && (effectiveApprovalSectionId == null || t.sectionId === effectiveApprovalSectionId) && isTestOrderNonPassing(t))
+      .map((t) => t.testOrderId);
     setSelectedTestOrderIds(nonPassing);
-  }, [decision, summary]);
+  }, [decision, summary, effectiveApprovalSectionId]);
+
+  const handleCloseTestingSuccess = async () => {
+    setConfirmingClose(false);
+    if (!sampleId) return;
+    const updated = await SampleSummaryService.getSummary(sampleId);
+    setSummary(updated);
+  };
 
   const handleReturnConfirm = async (reason?: string) => {
     if (!sampleId || !returningTestOrder) return;
@@ -1158,7 +1751,7 @@ export function SampleSummaryDialog({ open, sampleId, onClose }: Props) {
 
   const handleReviewConfirm = async (password: string) => {
     if (!sampleId) return;
-    await SampleSummaryService.completeReview(sampleId, password, comment || undefined);
+    await SampleSummaryService.completeReview(sampleId, password, comment || undefined, effectiveReviewSectionId);
     setConfirmingReview(false);
     onClose();
   };
@@ -1171,20 +1764,34 @@ export function SampleSummaryDialog({ open, sampleId, onClose }: Props) {
       decision === "Approve" ? (certificateRemarks || undefined) : undefined,
       isRetestDecision ? selectedTestOrderIds : undefined,
       decision === "NewSampleRequest" && newSampleAnalystOneId !== "" ? newSampleAnalystOneId : undefined,
-      decision === "NewSampleRequest" && newSampleAnalystTwoId !== "" ? newSampleAnalystTwoId : undefined
+      decision === "NewSampleRequest" && newSampleAnalystTwoId !== "" ? newSampleAnalystTwoId : undefined,
+      effectiveApprovalSectionId
     );
     setConfirmingDecision(false);
     onClose();
   };
 
   const canReview =
-    summary?.status === "UnderReview" &&
+    // Only when one of the viewer's own sections is waiting - the sample can
+    // be under review while none of them is.
+    reviewableSections.length > 0 &&
     (role === "Reviewer" || role === "SectionHead" || role === "SystemAdministrator");
   const canReturn =
     role === "Reviewer" || role === "SectionHead" || role === "SystemAdministrator";
   const canApprove =
-    summary?.status === "UnderApproval" &&
+    approvableSections.length > 0 &&
     (role === "SectionHead" || role === "SystemAdministrator");
+  // Close testing (design.md §5.3): another lab already rejected the
+  // sample and the viewer's own lab still has open work. Role-gated here
+  // in addition to the backend's own enforcement, matching the review/
+  // approval buttons above.
+  const canCloseTesting =
+    summary?.overallStatus === "Rejected" &&
+    closableSections.length > 0 &&
+    (role === "SectionHead" || role === "SystemAdministrator");
+  const effectiveClosingSectionId =
+    closableSections.length === 1 ? closableSections[0].sectionId : closingSectionId !== "" ? Number(closingSectionId) : undefined;
+  const closingSection = closableSections.find((s) => s.sectionId === effectiveClosingSectionId);
 
   const handleExport = async (format: "pdf") => {
     if (!sampleId || !summary) return;
@@ -1236,13 +1843,27 @@ export function SampleSummaryDialog({ open, sampleId, onClose }: Props) {
   // from the pulled-through resolving retest's results (see
   // SampleSummaryService.ResolveEffectiveTestOrdersAsync), not this
   // sample's own now-superseded TestOrders.
-  const coaEligible = useMemo(
-    () =>
-      !!summary &&
-      (summary.status === "Approved" || summary.status === "Rejected") &&
-      (buildCoaMatrix(summary.testOrders) !== null || buildCoaSimpleRows(summary.testOrders) !== null),
-    [summary]
-  );
+  const coaEligible = useMemo(() => {
+    if (!summary) return false;
+    const hasResults =
+      buildCoaMatrix(summary.testOrders) !== null || buildCoaSimpleRows(summary.testOrders) !== null;
+    if (!hasResults) return false;
+
+    // Single-section sample (sections <= 1): combinedCoaAvailable already
+    // covers "no lab still open" (Approved or Rejected sample.Status), the
+    // same rule this used to re-derive from status locally.
+    if (!summary.sections || summary.sections.length <= 1) {
+      return summary.combinedCoaAvailable;
+    }
+
+    // Multi-section sample: available if Combined is eligible (every
+    // requested lab final - design.md §5.5, D10: a rejected sample
+    // qualifies too, not just an all-Approved one) or any single section
+    // is itself eligible (2b).
+    const isCombinedEligible = Boolean(summary.allSectionsVisible && summary.combinedCoaAvailable);
+    const hasEligibleSection = summary.sections.some((s) => s.canView && s.coaAvailable);
+    return isCombinedEligible || hasEligibleSection;
+  }, [summary]);
 
   return (
     <>
@@ -1267,12 +1888,19 @@ export function SampleSummaryDialog({ open, sampleId, onClose }: Props) {
               }}
             >
               <Box>
+                <Stack direction="row" spacing={1} sx={{ alignItems: "center", mb: 0.5 }}>
+                  <Typography sx={{ fontSize: 12, fontWeight: 700, color: "text.secondary" }}>
+                    Overall Status:
+                  </Typography>
+                  <StatusBadge status={summary.overallStatus} />
+                </Stack>
                 <Typography sx={{ fontSize: 13, color: "text.secondary" }}>
                   Complete overview of test execution, incubation stages, results, and approvals.
                 </Typography>
               </Box>
               <Stack direction="row" spacing={1} sx={{ flexShrink: 0, flexWrap: "wrap", gap: 1 }}>
                 {exportError && <Alert severity="error" sx={{ py: 0, px: 1 }}>{exportError}</Alert>}
+                {summary.testOrders.some((t) => t.usesSharedTsb) && (
                 <Button
                   variant="contained"
                   size="small"
@@ -1288,6 +1916,7 @@ export function SampleSummaryDialog({ open, sampleId, onClose }: Props) {
                 >
                   Open Pathogen Workflow
                 </Button>
+                )}
                 <Button
                   component={Link}
                   to={`/samples/${sampleId}/report`}
@@ -1326,6 +1955,41 @@ export function SampleSummaryDialog({ open, sampleId, onClose }: Props) {
                 </Button>
               </Stack>
             </Box>
+
+            {/* Laboratory Sections Chips */}
+            {summary.sections && summary.sections.length > 0 && (
+              <Box sx={{ display: "flex", flexDirection: "column", gap: 0.75 }}>
+                <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1, alignItems: "center" }}>
+                  <Typography sx={{ fontSize: 12, fontWeight: 700, color: "text.secondary" }}>
+                    Sections:
+                  </Typography>
+                  {summary.sections.map((sec) => (
+                    <Chip
+                      key={sec.sectionId}
+                      size="small"
+                      label={`${sec.sectionName}: ${formatSectionStatus(sec.status)}`}
+                      variant={sec.canView ? "filled" : "outlined"}
+                      sx={{
+                        fontSize: 11,
+                        fontWeight: 600,
+                        ...(!sec.canView ? { color: "text.secondary", borderColor: "divider" } : {})
+                      }}
+                    />
+                  ))}
+                </Box>
+                {/* Closed section detail (design.md §5.3) - who closed it,
+                    when, and the required reason (default "Sample rejected
+                    by <lab>", but freely editable by the closer). */}
+                {summary.sections
+                  .filter((sec) => sec.status === "Closed" && sec.canView)
+                  .map((sec) => (
+                    <Typography key={`closed-${sec.sectionId}`} sx={{ fontSize: 11, color: "text.secondary", pl: 0.5 }}>
+                      {sec.sectionName} closed by {sec.closedByName ?? "—"} on {formatDate(sec.closedAt)}
+                      {sec.closeReason ? ` — ${sec.closeReason}` : ""}
+                    </Typography>
+                  ))}
+              </Box>
+            )}
 
             {/* 1. Sample Identity */}
             <SampleIdentityCard summary={summary} />
@@ -1366,6 +2030,18 @@ export function SampleSummaryDialog({ open, sampleId, onClose }: Props) {
               setNewSampleAnalystTwoId={setNewSampleAnalystTwoId}
               onReviewClick={() => setConfirmingReview(true)}
               onApproveClick={() => setConfirmingDecision(true)}
+              reviewableSections={reviewableSections}
+              reviewSectionId={reviewSectionId}
+              onReviewSectionChange={setReviewSectionId}
+              approvableSections={approvableSections}
+              approvalSectionId={approvalSectionId}
+              onApprovalSectionChange={handleApprovalSectionChange}
+              effectiveApprovalSectionId={effectiveApprovalSectionId}
+              canCloseTesting={!!canCloseTesting}
+              closableSections={closableSections}
+              closingSectionId={closingSectionId}
+              onClosingSectionChange={setClosingSectionId}
+              onCloseTestingClick={() => setConfirmingClose(true)}
             />
 
             {/* 4. Full-Width Open Printable Report / View COA Buttons */}
@@ -1447,7 +2123,11 @@ export function SampleSummaryDialog({ open, sampleId, onClose }: Props) {
       {summary && (
         <SignatureDialog
           open={confirmingReview}
-          meaningStatement="By submitting, I confirm I have reviewed all test results for this sample."
+          meaningStatement={
+            reviewableSections.find((s) => s.sectionId === effectiveReviewSectionId)
+              ? `By submitting, I confirm I have reviewed all test results for ${reviewableSections.find((s) => s.sectionId === effectiveReviewSectionId)?.sectionName}.`
+              : "By submitting, I confirm I have reviewed all test results for this sample."
+          }
           onCancel={() => setConfirmingReview(false)}
           onConfirm={handleReviewConfirm}
         />
@@ -1460,6 +2140,17 @@ export function SampleSummaryDialog({ open, sampleId, onClose }: Props) {
           onConfirm={handleDecisionConfirm}
         />
       )}
+
+      {/* Close Testing Dialog (design.md §5.3) */}
+      <CloseTestingDialog
+        open={confirmingClose}
+        sampleId={sampleId}
+        sectionId={effectiveClosingSectionId ?? null}
+        sectionName={closingSection?.sectionName}
+        rejectingLabName={rejectingSection?.sectionName}
+        onClose={() => setConfirmingClose(false)}
+        onSuccess={handleCloseTestingSuccess}
+      />
 
       {/* Pathogen Testing Session Workspace Dialog */}
       <PathogenSessionDialog

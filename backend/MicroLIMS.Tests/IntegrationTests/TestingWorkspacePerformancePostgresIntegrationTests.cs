@@ -106,7 +106,7 @@ public class TestingWorkspacePerformancePostgresIntegrationTests
         // --- Phase 1: Seed N samples and measure SQL command count ---
         await SeedSamplesBulkAsync(db, CommandCountSampleCount, startIndex: 1, batchTag: "N", causeId, itemId);
 
-        var service = new TestingWorkspaceService(db);
+        var service = new TestingWorkspaceService(db, new UserSectionScopeService(db));
 
         interceptor.Reset();
         // One page large enough to hold every seeded sample, so the mapped rows grow 4x.
@@ -130,7 +130,9 @@ public class TestingWorkspacePerformancePostgresIntegrationTests
         _output.WriteLine($"[SQL Budget] Commands at N={CommandCountSampleCount}: {countN}, Commands at 4N={CommandCountScaledSampleCount}: {count4N}");
         foreach (var cmd in interceptor.Commands)
         {
-            _output.WriteLine($"  Command: {cmd.Replace(Environment.NewLine, " ").Substring(0, Math.Min(120, cmd.Length))}...");
+            // Measure the flattened text: on Windows NewLine is two chars, so it is shorter than cmd.
+            var flat = cmd.Replace(Environment.NewLine, " ");
+            _output.WriteLine($"  Command: {flat.Substring(0, Math.Min(120, flat.Length))}...");
         }
 
         Assert.True(countN == count4N,
@@ -154,7 +156,7 @@ public class TestingWorkspacePerformancePostgresIntegrationTests
         const int seededCount = 250;
         await SeedSamplesBulkAsync(db, seededCount, startIndex: 1, batchTag: "PAGE", causeId, itemId);
 
-        var service = new TestingWorkspaceService(db);
+        var service = new TestingWorkspaceService(db, new UserSectionScopeService(db));
 
         // 1. Default request (no filter / default page size 50)
         var defaultResult = await service.GetActiveSamplesAsync(new TestingWorkspaceFilterDto());
@@ -193,7 +195,7 @@ public class TestingWorkspacePerformancePostgresIntegrationTests
         // 1. Seed N samples
         await SeedSamplesBulkAsync(db, BaseSampleCountN, startIndex: 1, batchTag: "LN_N", causeId, itemId);
 
-        var service = new TestingWorkspaceService(db);
+        var service = new TestingWorkspaceService(db, new UserSectionScopeService(db));
         var firstPage = new TestingWorkspaceFilterDto { Page = 1, PageSize = ScalingPageSize };
 
         // Discard warm-up call before timing (warms EF Core query compilation, model caches, connection pool)
@@ -263,6 +265,8 @@ public class TestingWorkspacePerformancePostgresIntegrationTests
             .Select(t => t.Code)
             .ToListAsync();
 
+        var microSectionId = (await db.DocumentSections.FirstAsync(s => s.Code == "MICRO")).Id;
+
         foreach (var code in testCodes)
         {
             if (!existingCodes.Contains(code))
@@ -273,6 +277,7 @@ public class TestingWorkspacePerformancePostgresIntegrationTests
                     DisplayName = $"Assay {code}",
                     WorkflowType = WorkflowType.Observation,
                     IsActive = true,
+                    SectionId = microSectionId,
                     Steps = new List<TestWorkflowStep>
                     {
                         new()
@@ -316,6 +321,8 @@ public class TestingWorkspacePerformancePostgresIntegrationTests
         int endIndex = startIndex + count - 1;
         int lastTestOrderSlot = TestOrdersPerSample - 1;
         int userId = _fixture.SeededUserId;
+        // Every test order belongs to a laboratory section (lab separation).
+        int microSectionId = (await db.DocumentSections.FirstAsync(s => s.Code == "MICRO")).Id;
 
         await db.Database.ExecuteSqlAsync($"""
             WITH seeded_samples AS (
@@ -330,9 +337,9 @@ public class TestingWorkspacePerformancePostgresIntegrationTests
                 RETURNING "Id"
             ),
             seeded_orders AS (
-                INSERT INTO "TestOrders" ("SampleId", "TestCode", "Status", "CurrentStep", "AssignedAnalystId")
+                INSERT INTO "TestOrders" ("SampleId", "TestCode", "Status", "CurrentStep", "AssignedAnalystId", "SectionId")
                 SELECT s."Id", ({testCodes})[t % {testCodes.Length} + 1],
-                       {(int)ApprovalStatus.InProgress}, {(int)WorkflowStep.Incubating}, {userId}
+                       {(int)ApprovalStatus.InProgress}, {(int)WorkflowStep.Incubating}, {userId}, {microSectionId}
                 FROM seeded_samples s CROSS JOIN generate_series(0, {lastTestOrderSlot}) AS t
                 RETURNING "Id", "SampleId"
             ),

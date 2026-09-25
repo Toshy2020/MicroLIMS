@@ -30,7 +30,255 @@ function isQuantitative(test: TestOrderSummaryDetail): boolean {
 // result is conceptually a qualitative call too ("the recorded value"),
 // never a computed CFU.
 export function TestResultCard({ test }: { test: TestOrderSummaryDetail }) {
+  if (test.elementalAssay) return <ElementalAssayCard test={test} />;
+  if (test.analysis) return <AnalysisCard test={test} />;
   return isQuantitative(test) ? <CountTestCard test={test} /> : <DetectionTestCard test={test} />;
+}
+
+// Elemental Assay: per-element reported results, curve run, and calculations.
+function ElementalAssayCard({ test }: { test: TestOrderSummaryDetail }) {
+  const ea = test.elementalAssay!;
+  const hasException = !test.isSuperseded && ea.elements.some((e) => !isConforming(e.status));
+  const tone = test.isSuperseded ? "is-neutral" : hasException ? "is-danger" : "";
+  const summaryBadge = test.isSuperseded
+    ? "Superseded"
+    : `${ea.elements.length} element${ea.elements.length === 1 ? "" : "s"} · ${hasException ? "Out of Limits" : "Within Limits"}`;
+
+  return (
+    <CollapsibleTestCard
+      icon={test.isSuperseded ? <DotIcon /> : hasException ? <CrossIcon /> : <CheckIcon />}
+      iconTone={tone}
+      title={`${test.testCode} — ${test.testDisplayName}`}
+      subtitle={
+        <>
+          {test.isSuperseded && <strong>Superseded by retest · </strong>}
+          Matrix: {ea.sampleMatrix} · Unit amount: {ea.unitAmount} {ea.unitAmountUnit}
+        </>
+      }
+      badgeText={summaryBadge}
+      badgeTone={tone}
+      defaultOpen={hasException}
+      isSuperseded={test.isSuperseded}
+    >
+      <SecondaryToggle label={`Show elemental results and calculation (${ea.elements.length} elements)`}>
+        <div className="plate-readings" style={{ border: "1px solid var(--color-border)", borderRadius: 8, marginTop: 8 }}>
+          <div className="plate-readings-label">
+            mg per unit = ppm × amount ÷ 1000; claim = mg per unit × conversion factor; %LC = claim ÷ label claim × 100
+          </div>
+          <div className="plate-meta">
+            <span>Matrix: <strong>{ea.sampleMatrix}</strong></span>
+            <span>Unit Amount: <strong>{ea.unitAmount} {ea.unitAmountUnit}</strong></span>
+            <span>Analysed: <strong className="mono">{dt(ea.analysedAt)}</strong></span>
+            <span>Entered by: <strong>{ea.enteredByName ?? "—"}</strong></span>
+            <span>Entered at: <strong className="mono">{dt(ea.enteredAt)}</strong></span>
+          </div>
+          <div className="plate-stats">
+            {ea.elements.map((elem, idx) => {
+              const flags = [elem.overRange ? ">Range" : null, elem.belowLoq ? "<LOQ" : null].filter(Boolean).join(", ");
+              return (
+                <div className="plate-stat" key={idx}>
+                  <div className="stat-label">
+                    <strong>{elem.parameterName} ({elem.element})</strong> — Run: {elem.runCode} ({elem.runAnalytePassed ? "passed" : "failed"})
+                    {flags ? ` [${flags}]` : ""}
+                    {elem.mgPerUnit !== null && ` · ${elem.mgPerUnit.toFixed(4)} mg/unit`}
+                    {elem.resultClaim !== null && ` · Claim: ${elem.resultClaim.toFixed(4)}`}
+                    {elem.percentLabelClaim !== null && ` · ${elem.percentLabelClaim.toFixed(2)}% LC`}
+                    {elem.specLimit ? ` · Spec: ${elem.specLimit}${elem.unit ? ` ${elem.unit}` : ""}` : ""}
+                  </div>
+                  <div className="stat-value">
+                    {elem.reportedDisplay} · {humanize(elem.status)}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </SecondaryToggle>
+    </CollapsibleTestCard>
+  );
+}
+
+function formatConditions(conditionsJson: string | null): string | null {
+  if (!conditionsJson) return null;
+  try {
+    const parsed = JSON.parse(conditionsJson);
+    if (typeof parsed === "object" && parsed !== null && !Array.isArray(parsed)) {
+      const entries = Object.entries(parsed);
+      if (entries.length === 0) return null;
+      return entries.map(([k, v]) => `${k}: ${String(v)}`).join(" · ");
+    }
+    return JSON.stringify(parsed);
+  } catch {
+    return conditionsJson;
+  }
+}
+
+// Generic TestAnalysis: headline parameter results, conditions, and per-parameter raw readings.
+export function AnalysisCard({ test }: { test: TestOrderSummaryDetail }) {
+  const a = test.analysis!;
+  const hasException = !test.isSuperseded && a.parameterResults.some((p) => !isConforming(p.comparisonStatus));
+  const tone = test.isSuperseded ? "is-neutral" : hasException ? "is-danger" : "";
+  const summaryBadge = test.isSuperseded
+    ? "Superseded"
+    : `${a.parameterResults.length} parameter${a.parameterResults.length === 1 ? "" : "s"} · ${hasException ? "Out of Limits" : "Within Limits"}`;
+
+  const conditionsDisplay = formatConditions(a.conditionsJson);
+
+  return (
+    <CollapsibleTestCard
+      icon={test.isSuperseded ? <DotIcon /> : hasException ? <CrossIcon /> : <CheckIcon />}
+      iconTone={tone}
+      title={`${test.testCode} — ${test.testDisplayName}`}
+      subtitle={
+        <>
+          {test.isSuperseded && <strong>Superseded by retest · </strong>}
+          {a.equipmentCode ? `Instrument: ${a.equipmentCode} · ` : ""}
+          {a.sampleMatrix ? `Matrix: ${a.sampleMatrix} · ` : ""}
+          Analysed: {dt(a.analysedAt)}
+        </>
+      }
+      badgeText={summaryBadge}
+      badgeTone={tone}
+      defaultOpen={hasException}
+      isSuperseded={test.isSuperseded}
+    >
+      <div className="location-table-wrap" style={{ border: "1px solid var(--color-border)", borderRadius: 8, marginBottom: 12 }}>
+        <table className="location-table">
+          <thead>
+            <tr>
+              <th>Parameter</th>
+              <th>Reported</th>
+              <th>Unit</th>
+              <th>Spec Limit</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {a.parameterResults.map((p, idx) => {
+              const flags = [p.overRange ? ">Range" : null, p.belowLoq ? "<LOQ" : null].filter(Boolean).join(", ");
+              return (
+                <tr key={p.id || idx}>
+                  <td className="loc-name">{p.parameterName}</td>
+                  <td className="loc-reported" style={{ fontWeight: 600 }}>
+                    {p.reportedDisplay}
+                    {flags ? ` [${flags}]` : ""}
+                  </td>
+                  <td>{p.unit ?? "—"}</td>
+                  <td className="loc-limits">{p.specLimit ?? "—"}</td>
+                  <td>
+                    {p.comparisonStatus ? (
+                      <span className="location-status-chip" style={{ background: LOCATION_STATUS_COLOR[p.comparisonStatus] ?? "#6b7280" }}>
+                        {humanize(p.comparisonStatus)}
+                      </span>
+                    ) : (
+                      "—"
+                    )}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+
+      <SecondaryToggle label={`Show analysis details and raw readings (${a.parameterResults.length} parameter${a.parameterResults.length === 1 ? "" : "s"})`}>
+        <div className="plate-readings" style={{ border: "1px solid var(--color-border)", borderRadius: 8, marginTop: 8 }}>
+          <div className="plate-meta">
+            <span>Instrument: <strong>{a.equipmentCode ? `${a.equipmentCode}${a.equipmentName ? ` (${a.equipmentName})` : ""}` : (a.equipmentName ?? "—")}</strong></span>
+            <span>Analysed: <strong className="mono">{dt(a.analysedAt)}</strong></span>
+            {a.unitAmount !== null && (
+              <span>Unit Amount: <strong>{a.unitAmount}</strong></span>
+            )}
+            {a.sampleMatrix && (
+              <span>Matrix: <strong>{a.sampleMatrix}</strong></span>
+            )}
+            {conditionsDisplay && (
+              <span style={{ gridColumn: "span 2" }}>Conditions: <strong>{conditionsDisplay}</strong></span>
+            )}
+            {a.comment && (
+              <span style={{ gridColumn: "span 2" }}>Comment: <strong>{a.comment}</strong></span>
+            )}
+            <span>Entered by: <strong>{a.enteredByName ?? "—"}</strong></span>
+            <span>Entered at: <strong className="mono">{dt(a.enteredAt)}</strong></span>
+          </div>
+
+          {a.parameterResults.map((p, idx) => {
+            if (!p.readings || p.readings.length === 0) return null;
+            const isVessel = p.readings.some((r) => r.kind === "Vessel");
+            const isDisintegration = a.analysisType === "Disintegration";
+            const isWeightVariation = a.analysisType === "WeightVariation";
+            const isStandardComparison = a.analysisType === "StandardComparison";
+            const isTitration = isStandardComparison && p.readings.some((r) => r.kind === "Titration");
+            const isTablet = isWeightVariation && p.readings.every((r) => r.value2 == null);
+            const hasStage = p.readings.some((r) => r.stage !== null && r.stage !== undefined);
+            const hasTimePoint = !isDisintegration && !isWeightVariation && p.readings.some((r) => r.timePointMinutes !== null && r.timePointMinutes !== undefined);
+            const hasValue1 = p.readings.some((r) => (r.value1 !== null && r.value1 !== undefined) || (isDisintegration && r.text !== null && r.text !== undefined && r.text !== ""));
+            const hasValue2 = !isTablet && p.readings.some((r) => r.value2 !== null && r.value2 !== undefined);
+            const hasValue3 = p.readings.some((r) => r.value3 !== null && r.value3 !== undefined);
+            const hasText = !isDisintegration && !isWeightVariation && p.readings.some((r) => r.text !== null && r.text !== undefined && r.text !== "");
+            const hasComputed = !isDisintegration && !isTablet && p.readings.some((r) => r.computedValue !== null && r.computedValue !== undefined);
+            const hasPassed = p.readings.some((r) => r.passed !== null && r.passed !== undefined);
+
+            return (
+              <div key={p.id || idx} style={{ marginTop: 12 }}>
+                <div className="plate-readings-label">
+                  Readings · {p.parameterName}
+                </div>
+                <div className="location-table-wrap" style={{ border: "1px solid var(--color-border)", borderRadius: 6, marginTop: 4 }}>
+                  <table className="location-table">
+                    <thead>
+                      <tr>
+                        <th>#</th>
+                        {hasStage && <th>{isStandardComparison ? "Prep" : "Stage"}</th>}
+                        {hasTimePoint && <th>Time Point (min)</th>}
+                        {hasValue1 && (
+                          <th>
+                            {isVessel
+                              ? "Peak Area"
+                              : isDisintegration
+                              ? "Time (min)"
+                              : isWeightVariation
+                              ? (isTablet ? "Weight (mg)" : "Gross (mg)")
+                              : isStandardComparison
+                              ? (isTitration ? "Titre (mL)" : "Peak area")
+                              : "Value 1"}
+                          </th>
+                        )}
+                        {hasValue2 && <th>{isWeightVariation ? "Shell (mg)" : "Value 2"}</th>}
+                        {hasValue3 && <th>{isWeightVariation ? "Deviation %" : "Value 3"}</th>}
+                        {hasText && <th>Text</th>}
+                        {hasComputed && <th>{isVessel ? "% Dissolved" : isWeightVariation ? "Net (mg)" : isStandardComparison ? "% Assay" : "Computed"}</th>}
+                        {hasPassed && <th>Passed</th>}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {p.readings.map((r, rIdx) => (
+                        <tr key={r.id || rIdx}>
+                          <td>{r.index}</td>
+                          {hasStage && <td>{r.stage != null ? (isStandardComparison ? `P${r.stage}` : isVessel || isDisintegration || isWeightVariation ? `S${r.stage}` : String(r.stage)) : "—"}</td>}
+                          {hasTimePoint && <td>{r.timePointMinutes !== null ? String(r.timePointMinutes) : "—"}</td>}
+                          {hasValue1 && <td>{r.value1 !== null ? String(r.value1) : (isDisintegration && r.text ? r.text : "—")}</td>}
+                          {hasValue2 && <td>{r.value2 !== null ? String(r.value2) : "—"}</td>}
+                          {hasValue3 && <td>{r.value3 !== null ? (isWeightVariation ? `${Number(r.value3).toFixed(2)} %` : String(r.value3)) : "—"}</td>}
+                          {hasText && <td>{r.text ?? "—"}</td>}
+                          {hasComputed && <td>{r.computedValue !== null ? (isVessel ? `${r.computedValue} %` : isStandardComparison ? `${r.computedValue} %` : String(r.computedValue)) : "—"}</td>}
+                          {hasPassed && (
+                            <td>
+                              {r.passed === null || r.passed === undefined ? "—" : r.passed ? "Pass" : "Fail"}
+                            </td>
+                          )}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </SecondaryToggle>
+    </CollapsibleTestCard>
+  );
 }
 
 function subtitle(test: TestOrderSummaryDetail, incubation: IncubationDetail | undefined) {

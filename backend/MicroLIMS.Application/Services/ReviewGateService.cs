@@ -32,7 +32,7 @@ public class ReviewGateService
     public async Task<ElectronicSignature> SignAndLogAsync(
         string entityType, int entityId, int userId, string password,
         SignatureMeaning meaning, ReviewWorkflowEventType eventType,
-        string? comment, string? ipAddress, ApprovalDecision? decision = null)
+        string? comment, string? ipAddress, ApprovalDecision? decision = null, int? sectionId = null)
     {
         var signature = await _signatureService.SignAsync(userId, password, meaning, entityType, entityId, comment, ipAddress);
 
@@ -44,7 +44,8 @@ public class ReviewGateService
             PerformedByUserId = userId,
             PerformedByNameSnapshot = signature.UserFullNameSnapshot,
             Comment = comment,
-            Decision = decision
+            Decision = decision,
+            SectionId = sectionId
         });
 
         return signature;
@@ -55,8 +56,8 @@ public class ReviewGateService
     // "all tests complete, submitted for review" hop.
     public Task LogEventAsync(
         string entityType, int entityId, int userId,
-        ReviewWorkflowEventType eventType, string? comment, ApprovalDecision? decision = null) =>
-        ReviewEventLog.LogAsync(_db, entityType, entityId, userId, eventType, comment, decision);
+        ReviewWorkflowEventType eventType, string? comment, ApprovalDecision? decision = null, int? sectionId = null) =>
+        ReviewEventLog.LogAsync(_db, entityType, entityId, userId, eventType, comment, decision, sectionId);
 
     public Task<List<ReviewWorkflowEvent>> GetTimelineAsync(string entityType, int entityId) =>
         _db.ReviewWorkflowEvents
@@ -74,7 +75,7 @@ public static class ReviewEventLog
 {
     public static async Task LogAsync(
         MicroLimsDbContext db, string entityType, int entityId, int userId,
-        ReviewWorkflowEventType eventType, string? comment, ApprovalDecision? decision = null)
+        ReviewWorkflowEventType eventType, string? comment, ApprovalDecision? decision = null, int? sectionId = null)
     {
         var performedByName = await db.Users
             .Where(u => u.Id == userId)
@@ -89,7 +90,8 @@ public static class ReviewEventLog
             PerformedByUserId = userId,
             PerformedByNameSnapshot = performedByName,
             Comment = comment,
-            Decision = decision
+            Decision = decision,
+            SectionId = sectionId
         });
     }
 }

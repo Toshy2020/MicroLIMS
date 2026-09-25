@@ -34,6 +34,7 @@ public class SampleReviewApprovalTests
         var user = new User { Id = id, FullName = $"User {id}", Username = $"user{id}", RoleId = role.Id, PasswordHash = TestPasswords.Hash(Password) };
         db.Users.Add(user);
         await db.SaveChangesAsync();
+        TestServiceFactory.AssignUserToMicroSection(db, user.Id);
         return user;
     }
 
@@ -59,6 +60,7 @@ public class SampleReviewApprovalTests
 
         var material = new Material
         {
+            SectionId = TestServiceFactory.EnsureMicroSection(db).Id,
             MaterialType = MaterialType.DehydratedMedia, MaterialName = "TSA Powder", ManufacturerName = "Himedia",
             BatchNumber = "LOT-001", ReceivingDate = DateTime.UtcNow.AddDays(-10), Code = "TSA",
             Location = "Micro Lab", QuantityReceived = 500, QuantityRemaining = 500, Unit = MaterialUnit.Gram
@@ -82,7 +84,7 @@ public class SampleReviewApprovalTests
         db.SamplingConfigurations.Add(new SamplingConfiguration { WaterSamplingPointId = point.Id, TestCode = "TAMC", AlertLimit = "10", ActionLimit = "50", SpecLimit = "100" });
 
         var sample = new Sample { Category = SampleCategory.Water, WaterSamplingPointId = point.Id, ControlNumber = "CTRL-1", Status = SampleStatus.InTesting };
-        var order = new TestOrder { TestCode = "TAMC", Status = ApprovalStatus.Pending, CurrentStep = WorkflowStep.Waiting };
+        var order = new TestOrder { SectionId = TestServiceFactory.EnsureMicroSection(db).Id, TestCode = "TAMC", Status = ApprovalStatus.Pending, CurrentStep = WorkflowStep.Waiting };
         sample.TestOrders.Add(order);
         db.Samples.Add(sample);
         await db.SaveChangesAsync();
@@ -244,8 +246,8 @@ public class SampleReviewApprovalTests
             Status = SampleStatus.UnderApproval,
             ReviewedByUserId = reviewedByUserId
         };
-        var tamc = new TestOrder { TestCode = "TAMC", Status = ApprovalStatus.Reviewed, CurrentStep = WorkflowStep.Waiting, AssignedAnalystId = analystId };
-        var tymc = new TestOrder { TestCode = "TYMC", Status = ApprovalStatus.Reviewed, CurrentStep = WorkflowStep.Waiting, AssignedAnalystId = analystId };
+        var tamc = new TestOrder { SectionId = TestServiceFactory.EnsureMicroSection(db).Id, TestCode = "TAMC", Status = ApprovalStatus.Reviewed, CurrentStep = WorkflowStep.Waiting, AssignedAnalystId = analystId };
+        var tymc = new TestOrder { SectionId = TestServiceFactory.EnsureMicroSection(db).Id, TestCode = "TYMC", Status = ApprovalStatus.Reviewed, CurrentStep = WorkflowStep.Waiting, AssignedAnalystId = analystId };
         sample.TestOrders.Add(tamc);
         sample.TestOrders.Add(tymc);
         db.Samples.Add(sample);
@@ -459,6 +461,7 @@ public class SampleReviewApprovalTests
         // Add a superseded order on the same sample
         var supersededOrder = new TestOrder
         {
+            SectionId = TestServiceFactory.EnsureMicroSection(db).Id,
             SampleId = sample.Id,
             TestCode = "TAMC-OLD",
             Status = ApprovalStatus.Pending,

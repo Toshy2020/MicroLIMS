@@ -553,7 +553,7 @@ public class PathogenSessionService
                 string? configuredUnit = null;
                 if (sample.ItemId is not null)
                 {
-                    var spec = await _db.Specifications.FirstOrDefaultAsync(s => s.ItemId == sample.ItemId && s.TestCode == to.TestCode);
+                    var spec = await SpecificationLookup.PrimaryAsync(_db, sample.ItemId.Value, to.TestCode);
                     configuredUnit = spec?.Unit;
                 }
                 else if (sample.WaterSamplingPointId is not null)
@@ -945,6 +945,9 @@ public class PathogenSessionService
             throw new WorkflowStepException(WorkflowErrorCodes.MediaNotInPermittedList,
                 $"Media lot #{media.LotNumber} ({media.Material?.MaterialName ?? "unknown"}) is not the TSB medium of any test on this sample.");
 
+        foreach (var sectionId in joining.Select(j => j.Order.SectionId).Distinct())
+            SectionMediaRule.EnsureLot(media, sectionId);
+
         var startUtc = request.IncubationStartUtc ?? DateTime.UtcNow;
 
         var toIds = joining.Select(j => j.Order.Id).ToList();
@@ -1256,6 +1259,9 @@ public class PathogenSessionService
         // the incubator must suit every medium's temperature range - the same
         // rule as TestWorkflowEngine.SubmitConfirmatorySetupAsync.
         var materialIds = request.MediaMaterialIds.Distinct().ToList();
+        await SectionMediaRule.EnsureMaterialsAsync(_db, materialIds, testOrder.SectionId, cancellationToken);
+        if (request.MediaLotIds is { Count: > 0 })
+            await SectionMediaRule.EnsureLotsAsync(_db, request.MediaLotIds, testOrder.SectionId, cancellationToken);
         var productByMaterial = await _db.Materials
             .Where(m => materialIds.Contains(m.Id))
             .ToDictionaryAsync(m => m.Id, m => m.MediaProductId, cancellationToken);
@@ -1524,22 +1530,9 @@ public class PathogenSessionService
         return (await GetSessionAsync(sampleId))!;
     }
 
-    // Same semantics as TestWorkflowEngine's private Compare(...) - kept
-    // as a separate copy rather than shared, since that method is
-    // internal to a different service and already covered by its own
-    // tests; duplicating this small pure comparison is lower risk than
-    // reaching into another service's implementation detail.
-    private static string CompareAgainstLimits(decimal value, string? alert, string? action, string? spec)
-    {
-        var hasSpec = decimal.TryParse(spec, out var specLimit);
-        if (hasSpec && value > specLimit) return "OutOfSpecification";
-        var hasAction = decimal.TryParse(action, out var actionLimit);
-        if (hasAction && value > actionLimit) return "ActionLimitExceeded";
-        var hasAlert = decimal.TryParse(alert, out var alertLimit);
-        if (hasAlert && value > alertLimit) return "AlertLimitExceeded";
-        if (!hasSpec && !hasAction && !hasAlert) return "LimitsNotConfigured";
-        return "WithinLimits";
-    }
+    // Same semantics as TestWorkflowEngine's Compare(...) - delegates to shared SpecLimitParser
+    private static string CompareAgainstLimits(decimal value, string? alert, string? action, string? spec) =>
+        SpecLimitParser.CompareAgainstLimits(value, alert, action, spec);
 
     public async Task<PathogenTestingSessionDto> CompleteSessionAsync(int sampleId, int userId)
     {

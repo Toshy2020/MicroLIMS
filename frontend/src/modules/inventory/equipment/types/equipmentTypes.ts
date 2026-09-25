@@ -17,6 +17,11 @@ export interface EquipmentItem {
   calibrationDueDate: string | null;
   status: EquipmentStatus;
   isCalibrationOverdue: boolean;
+  // Owning laboratory - nullable only for legacy rows not yet assigned
+  // (design.md §6: EquipmentInventory.SectionId back-fills before it
+  // becomes required). Section navigation isn't eager-loaded by the API,
+  // so the name is resolved client-side via useLaboratorySections.
+  sectionId: number | null;
 }
 
 export interface EquipmentStatusHistoryItem {
@@ -72,6 +77,7 @@ export interface EquipmentFormState {
   calibrationDueDate: string;
   status: EquipmentStatus;
   statusChangeComment?: string;
+  sectionId: number | "";
 }
 
 export type EquipmentKpiFilter =

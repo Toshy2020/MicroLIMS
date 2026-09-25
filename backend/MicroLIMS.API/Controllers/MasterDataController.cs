@@ -1,6 +1,9 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using MicroLIMS.Application.DTOs;
+using MicroLIMS.Application.Helpers;
+using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Application.Services;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
@@ -26,10 +29,133 @@ public record UpdateMachineRequest(string Name);
 public record CreateMachinePartRequest(string Name, int MachineId);
 public record UpdateMachinePartRequest(string Name, int MachineId);
 public record UpdateMachinePartConfigRequest(string TestType, string TestCode, string AlertLimit, string ActionLimit, string SpecLimit, bool IsPathogenTest, string? Unit = null);
-public record CreateSpecificationRequest(int ItemId, string TestCode, string AlertLimit, string ActionLimit, string SpecLimit, string? Unit = null, decimal? DilutionFactor = null);
-public record UpdateSpecificationRequest(string TestCode, string AlertLimit, string ActionLimit, string SpecLimit, string? Unit = null, decimal? DilutionFactor = null);
+public record SpecificationStageDto(int? Id, int StageNumber, string StageLabel, string AcceptanceCriteriaText);
+public record CreateSpecificationRequest(
+    int ItemId,
+    string TestCode,
+    string? AlertLimit = null,
+    string? ActionLimit = null,
+    string? SpecLimit = null,
+    string? Unit = null,
+    decimal? DilutionFactor = null,
+    string? ParameterName = null,
+    int? DisplayOrder = null,
+    LimitType? LimitType = null,
+    string? ReferenceStandard = null,
+    decimal? LowerLimit = null,
+    decimal? UpperLimit = null,
+    bool? LowerInclusive = null,
+    bool? UpperInclusive = null,
+    decimal? Target = null,
+    decimal? Tolerance = null,
+    ToleranceMode? ToleranceMode = null,
+    string? ExpectedResultText = null,
+    ExpectedPresence? ExpectedState = null,
+    decimal? SampleQuantity = null,
+    string? SampleQuantityUnit = null,
+    List<SpecificationStageDto>? Stages = null,
+    int? TestAnalyteId = null,
+    ResultBasis? ResultBasis = null,
+    SampleMatrix? SampleMatrix = null,
+    decimal? LabelClaim = null,
+    string? LabelClaimUnit = null,
+    decimal? ConversionFactor = null,
+    DosageForm? DosageForm = null);
+
+public record UpdateSpecificationRequest(
+    string TestCode,
+    string? AlertLimit = null,
+    string? ActionLimit = null,
+    string? SpecLimit = null,
+    string? Unit = null,
+    decimal? DilutionFactor = null,
+    string? ParameterName = null,
+    int? DisplayOrder = null,
+    LimitType? LimitType = null,
+    string? ReferenceStandard = null,
+    decimal? LowerLimit = null,
+    decimal? UpperLimit = null,
+    bool? LowerInclusive = null,
+    bool? UpperInclusive = null,
+    decimal? Target = null,
+    decimal? Tolerance = null,
+    ToleranceMode? ToleranceMode = null,
+    string? ExpectedResultText = null,
+    ExpectedPresence? ExpectedState = null,
+    decimal? SampleQuantity = null,
+    string? SampleQuantityUnit = null,
+    List<SpecificationStageDto>? Stages = null,
+    int? TestAnalyteId = null,
+    ResultBasis? ResultBasis = null,
+    SampleMatrix? SampleMatrix = null,
+    decimal? LabelClaim = null,
+    string? LabelClaimUnit = null,
+    decimal? ConversionFactor = null,
+    DosageForm? DosageForm = null);
+
+// GET shape for specifications - every field the frontend already binds to,
+// unchanged, plus CanEdit/SectionName so the UI can show the other lab's
+// rows read-only (Task 9 - specification rows are owned by their test's lab).
+public record SpecificationRowDto(
+    int Id,
+    int ItemId,
+    string TestCode,
+    string AlertLimit,
+    string ActionLimit,
+    string SpecLimit,
+    string Unit,
+    decimal? DilutionFactor,
+    string ParameterName,
+    int DisplayOrder,
+    LimitType LimitType,
+    string? ReferenceStandard,
+    decimal? LowerLimit,
+    decimal? UpperLimit,
+    bool LowerInclusive,
+    bool UpperInclusive,
+    decimal? Target,
+    decimal? Tolerance,
+    ToleranceMode? ToleranceMode,
+    string? ExpectedResultText,
+    ExpectedPresence? ExpectedState,
+    decimal? SampleQuantity,
+    string? SampleQuantityUnit,
+    int? TestAnalyteId,
+    ResultBasis? ResultBasis,
+    SampleMatrix? SampleMatrix,
+    decimal? LabelClaim,
+    string? LabelClaimUnit,
+    decimal ConversionFactor,
+    DosageForm? DosageForm,
+    List<SpecificationStage> Stages,
+    bool CanEdit,
+    string SectionName);
 public record CreateDiluentTypeRequest(string Name, bool RequiresBatchTracking, int? MaterialId);
-public record CreateEquipmentRequest(string Name, string Code, EquipmentType Type, string? Location, decimal? SetPointTemperature, DateTime? CalibrationDueDate);
+public record CreateProductionStageRequest(string Name, ProductionStageRole Role);
+public record UpdateProductionStageRequest(string Name, ProductionStageRole Role);
+public record CreateEquipmentRequest(
+    string Name,
+    string Code,
+    EquipmentType Type,
+    string? Location,
+    decimal? SetPointTemperature,
+    DateTime? CalibrationDueDate,
+    string? Vendor = null,
+    CdsSoftware? CdsSoftware = null,
+    string? ConnectionSettings = null,
+    int? SectionId = null);
+
+public record UpdateEquipmentRequest(
+    string Name,
+    string Code,
+    EquipmentType Type,
+    string? Location,
+    decimal? SetPointTemperature,
+    DateTime? CalibrationDueDate,
+    string? Vendor = null,
+    CdsSoftware? CdsSoftware = null,
+    string? ConnectionSettings = null,
+    int? SectionId = null);
 public record CreateRoomTestConfigRequest(int RoomId, string TestType, string TestCode, string AlertLimit, string ActionLimit, string SpecLimit, string? Unit = null);
 public record CreateMachinePartConfigRequest(int MachinePartId, string TestType, string TestCode, string AlertLimit, string ActionLimit, string SpecLimit, bool IsPathogenTest, string? Unit = null);
 public record CreateMediaProductRequest(string Name, string Code);
@@ -42,9 +168,123 @@ public record CreateMediaConfigurationRequest(int MediaProductId, EvaluationType
 public record UpdateMediaConfigurationRequest(int MediaProductId, EvaluationType EvaluationType, int MediaIncubationConditionId, decimal? RecoveryPercentMin, decimal? RecoveryPercentMax, List<CreateMediaConfigurationChallengeRequest>? Challenges);
 public record CreateOrganismRequest(string ScientificName, string? AtccNumber, string? CommonName, string? Description);
 public record UpdateOrganismRequest(string ScientificName, string? AtccNumber, string? CommonName, string? Description);
-public record CreateTestDefinitionRequest(string Code, string DisplayName);
-public record UpdateTestDefinitionRequest(string Code, string DisplayName);
+public record CreateTestDefinitionRequest(
+    string Code,
+    string DisplayName,
+    int? SectionId = null,
+    WorkflowType WorkflowType = WorkflowType.Observation,
+    EquationType EquationType = EquationType.None,
+    bool RequiresSystemSuitability = false,
+    string? MethodAbbreviation = null,
+    decimal? SstMaxRsdPercent = null,
+    decimal? SstMinResolution = null,
+    decimal? SstMaxTailingFactor = null,
+    decimal? SstMinTheoreticalPlates = null,
+    CalibrationEntryMode? CalibrationEntryMode = null,
+    decimal? CalMinCorrelation = null,
+    CorrelationType? CalCorrelationType = null,
+    int? CalMinStandards = null,
+    decimal? CalCheckRecoveryLowPercent = null,
+    decimal? CalCheckRecoveryHighPercent = null,
+    decimal? CalBlankMax = null,
+    decimal? CalIsRecoveryLowPercent = null,
+    decimal? CalIsRecoveryHighPercent = null,
+    bool? CalRequireBlank = null,
+    bool? CalRequireIcv = null,
+    bool? CalRequireCcv = null,
+    bool? CalRequireInternalStandard = null,
+    ReportedConcentrationBasis? ReportedConcentrationBasis = null,
+    int? CalMaxRunAgeHours = null,
+    EquipmentType? CalInstrumentType = null,
+    string? CalStandardLevelsMgPerL = null,
+    int? ReplicateCount = null,
+    MeasurementEvaluationBasis? EvaluationBasis = null,
+    string? ConditionFields = null,
+    bool? UsesTare = null,
+    decimal? DissolutionS1Offset = null,
+    decimal? DissolutionS2MinOffset = null,
+    decimal? DissolutionS3MinOffset = null,
+    decimal? DissolutionS3MaxBelowS2Min = null,
+    int? DisintegrationStage1Units = null,
+    int? DisintegrationStage2Units = null,
+    int? DisintegrationMaxStage1Failures = null,
+    int? DisintegrationMinPassTotal = null,
+    int? WvUnitCount = null,
+    decimal? WvTabletBand1MaxMg = null,
+    decimal? WvTabletBand1Percent = null,
+    decimal? WvTabletBand2MaxMg = null,
+    decimal? WvTabletBand2Percent = null,
+    decimal? WvTabletBand3Percent = null,
+    int? WvTabletMaxOutside = null,
+    decimal? WvCapsuleInnerPercent = null,
+    decimal? WvCapsuleOuterPercent = null,
+    int? WvCapsuleS1MaxOutside = null,
+    int? WvCapsuleS1MaxForRetest = null,
+    int? WvCapsuleS2ExtraUnits = null,
+    int? WvCapsuleS2MaxOutside = null,
+    decimal? HplcMaxPreparationRsdPercent = null,
+    ResponseMode ResponseMode = ResponseMode.PeakArea);
+// SectionId: move the test to another laboratory section (null = keep). Test
+// orders already created keep the section they were created with.
+public record UpdateTestDefinitionRequest(
+    string Code,
+    string DisplayName,
+    int? SectionId = null,
+    WorkflowType? WorkflowType = null,
+    EquationType? EquationType = null,
+    bool? RequiresSystemSuitability = null,
+    string? MethodAbbreviation = null,
+    decimal? SstMaxRsdPercent = null,
+    decimal? SstMinResolution = null,
+    decimal? SstMaxTailingFactor = null,
+    decimal? SstMinTheoreticalPlates = null,
+    CalibrationEntryMode? CalibrationEntryMode = null,
+    decimal? CalMinCorrelation = null,
+    CorrelationType? CalCorrelationType = null,
+    int? CalMinStandards = null,
+    decimal? CalCheckRecoveryLowPercent = null,
+    decimal? CalCheckRecoveryHighPercent = null,
+    decimal? CalBlankMax = null,
+    decimal? CalIsRecoveryLowPercent = null,
+    decimal? CalIsRecoveryHighPercent = null,
+    bool? CalRequireBlank = null,
+    bool? CalRequireIcv = null,
+    bool? CalRequireCcv = null,
+    bool? CalRequireInternalStandard = null,
+    ReportedConcentrationBasis? ReportedConcentrationBasis = null,
+    int? CalMaxRunAgeHours = null,
+    EquipmentType? CalInstrumentType = null,
+    // Empty string clears the levels; null means keep the existing value.
+    string? CalStandardLevelsMgPerL = null,
+    int? ReplicateCount = null,
+    MeasurementEvaluationBasis? EvaluationBasis = null,
+    string? ConditionFields = null,
+    bool? UsesTare = null,
+    decimal? DissolutionS1Offset = null,
+    decimal? DissolutionS2MinOffset = null,
+    decimal? DissolutionS3MinOffset = null,
+    decimal? DissolutionS3MaxBelowS2Min = null,
+    int? DisintegrationStage1Units = null,
+    int? DisintegrationStage2Units = null,
+    int? DisintegrationMaxStage1Failures = null,
+    int? DisintegrationMinPassTotal = null,
+    int? WvUnitCount = null,
+    decimal? WvTabletBand1MaxMg = null,
+    decimal? WvTabletBand1Percent = null,
+    decimal? WvTabletBand2MaxMg = null,
+    decimal? WvTabletBand2Percent = null,
+    decimal? WvTabletBand3Percent = null,
+    int? WvTabletMaxOutside = null,
+    decimal? WvCapsuleInnerPercent = null,
+    decimal? WvCapsuleOuterPercent = null,
+    int? WvCapsuleS1MaxOutside = null,
+    int? WvCapsuleS1MaxForRetest = null,
+    int? WvCapsuleS2ExtraUnits = null,
+    int? WvCapsuleS2MaxOutside = null,
+    decimal? HplcMaxPreparationRsdPercent = null,
+    ResponseMode? ResponseMode = null);
 public record UpdateWorkflowTypeRequest(WorkflowType WorkflowType);
+
 public record StepMediaRequest(int MaterialId, bool IsRequired, int DisplayOrder, int? MediaIncubationConditionId);
 public record IncubationStageRequest(int StageNumber, decimal TempMin, decimal TempMax, int IncubationMinHours, int IncubationMaxHours);
 // PhenotypicTestType (single) is kept alongside the new PhenotypicTestTypes
@@ -70,17 +310,26 @@ public class MasterDataController : ControllerBase
     private readonly EquipmentConfigurationService _configService;
     private readonly MediaProductService _mediaProductService;
     private readonly MediaIncubationConditionService _mediaIncubationConditionService;
+    private readonly IUserSectionScopeService _scope;
+    private readonly ChromatographyColumnService _columnService;
+    private readonly SpecificationService _specificationService;
 
     public MasterDataController(
         MicroLimsDbContext db,
         EquipmentConfigurationService configService,
         MediaProductService mediaProductService,
-        MediaIncubationConditionService mediaIncubationConditionService)
+        MediaIncubationConditionService mediaIncubationConditionService,
+        IUserSectionScopeService scope,
+        ChromatographyColumnService columnService,
+        SpecificationService? specificationService = null)
     {
         _db = db;
         _configService = configService;
         _mediaProductService = mediaProductService;
         _mediaIncubationConditionService = mediaIncubationConditionService;
+        _scope = scope;
+        _columnService = columnService;
+        _specificationService = specificationService ?? new SpecificationService(db);
     }
 
     private int CurrentUserId => int.TryParse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value, out var uid) ? uid : 0;
@@ -454,19 +703,91 @@ public class MasterDataController : ControllerBase
 
     // ---- Specifications (Product) ----
     [HttpGet("specifications")]
-    public async Task<IActionResult> GetSpecifications([FromQuery] int itemId) =>
-        Ok(ApiResponse<object>.Ok(await _db.Specifications.AsNoTracking().Where(s => s.ItemId == itemId).ToListAsync()));
+    public async Task<IActionResult> GetSpecifications([FromQuery] int itemId)
+    {
+        var specs = await _specificationService.GetForItemAsync(itemId);
+        var scope = await _scope.GetAccessibleSectionIdsAsync(CurrentUserId);
+
+        var testCodes = specs.Select(s => s.TestCode).Distinct().ToList();
+        var testDefs = await _db.TestDefinitions
+            .AsNoTracking()
+            .Include(t => t.Section)
+            .Where(t => testCodes.Contains(t.Code))
+            .ToListAsync();
+        var byCode = testDefs.ToDictionary(t => t.Code);
+
+        var rows = specs.Select(s =>
+        {
+            byCode.TryGetValue(s.TestCode, out var def);
+            var canEdit = scope is null || (def != null && scope.Contains(def.SectionId));
+            return new SpecificationRowDto(
+                s.Id, s.ItemId, s.TestCode, s.AlertLimit, s.ActionLimit, s.SpecLimit, s.Unit, s.DilutionFactor,
+                s.ParameterName, s.DisplayOrder, s.LimitType, s.ReferenceStandard, s.LowerLimit, s.UpperLimit,
+                s.LowerInclusive, s.UpperInclusive, s.Target, s.Tolerance, s.ToleranceMode, s.ExpectedResultText,
+                s.ExpectedState, s.SampleQuantity, s.SampleQuantityUnit, s.TestAnalyteId, s.ResultBasis, s.SampleMatrix,
+                s.LabelClaim, s.LabelClaimUnit, s.ConversionFactor, s.DosageForm, s.Stages,
+                canEdit, def?.Section?.Name ?? string.Empty);
+        }).ToList();
+
+        return Ok(ApiResponse<object>.Ok(rows));
+    }
 
     [Authorize(Roles = RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
     [HttpPost("specifications")]
     public async Task<IActionResult> CreateSpecification(CreateSpecificationRequest request)
     {
+        await SpecificationOwnership.EnsureCanEditAsync(_db, _scope, CurrentUserId, request.TestCode);
+
+        var limitType = request.LimitType ?? LimitType.CountTiered;
+        var paramName = request.ParameterName;
+        if (string.IsNullOrWhiteSpace(paramName))
+        {
+            var testDef = await _db.TestDefinitions.FirstOrDefaultAsync(t => t.Code == request.TestCode);
+            paramName = !string.IsNullOrWhiteSpace(testDef?.DisplayName) ? testDef.DisplayName : request.TestCode;
+        }
+
         var spec = new Specification
         {
-            ItemId = request.ItemId, TestCode = request.TestCode,
-            AlertLimit = request.AlertLimit, ActionLimit = request.ActionLimit, SpecLimit = request.SpecLimit,
-            Unit = request.Unit ?? string.Empty, DilutionFactor = request.DilutionFactor
+            ItemId = request.ItemId,
+            TestCode = request.TestCode,
+            ParameterName = paramName,
+            DisplayOrder = request.DisplayOrder ?? 0,
+            LimitType = limitType,
+            ReferenceStandard = request.ReferenceStandard,
+            LowerLimit = request.LowerLimit,
+            UpperLimit = request.UpperLimit,
+            LowerInclusive = request.LowerInclusive ?? true,
+            UpperInclusive = request.UpperInclusive ?? true,
+            Target = request.Target,
+            Tolerance = request.Tolerance,
+            ToleranceMode = request.ToleranceMode,
+            ExpectedResultText = request.ExpectedResultText,
+            ExpectedState = request.ExpectedState,
+            SampleQuantity = request.SampleQuantity,
+            SampleQuantityUnit = request.SampleQuantityUnit,
+            AlertLimit = request.AlertLimit ?? string.Empty,
+            ActionLimit = request.ActionLimit ?? string.Empty,
+            SpecLimit = request.SpecLimit ?? string.Empty,
+            Unit = request.Unit ?? string.Empty,
+            DilutionFactor = request.DilutionFactor,
+            TestAnalyteId = request.TestAnalyteId,
+            ResultBasis = request.ResultBasis,
+            SampleMatrix = request.SampleMatrix,
+            LabelClaim = request.LabelClaim,
+            LabelClaimUnit = request.LabelClaimUnit,
+            ConversionFactor = request.ConversionFactor ?? 1.0m,
+            DosageForm = request.DosageForm,
+            Stages = request.Stages?.Select(s => new SpecificationStage
+            {
+                StageNumber = s.StageNumber,
+                StageLabel = s.StageLabel,
+                AcceptanceCriteriaText = s.AcceptanceCriteriaText
+            }).ToList() ?? new List<SpecificationStage>()
         };
+
+        SpecificationService.ApplyCanonicalSpecLimit(spec);
+        await _specificationService.ValidateAsync(spec);
+
         _db.Specifications.Add(spec);
         await _db.SaveChangesAsync();
         return Ok(ApiResponse<object>.Ok(spec));
@@ -476,14 +797,66 @@ public class MasterDataController : ControllerBase
     [HttpPut("specifications/{id}")]
     public async Task<IActionResult> UpdateSpecification(int id, UpdateSpecificationRequest request)
     {
-        var spec = await _db.Specifications.FirstOrDefaultAsync(s => s.Id == id)
+        var spec = await _db.Specifications.Include(s => s.Stages).FirstOrDefaultAsync(s => s.Id == id)
             ?? throw new InvalidOperationException($"Specification {id} not found.");
+
+        // Check both the row's current lab and the lab it would move to -
+        // a Section Head may not reassign a row into or out of their lab
+        // by changing TestCode either.
+        await SpecificationOwnership.EnsureCanEditAsync(_db, _scope, CurrentUserId, spec.TestCode);
+        await SpecificationOwnership.EnsureCanEditAsync(_db, _scope, CurrentUserId, request.TestCode);
+
         spec.TestCode = request.TestCode;
-        spec.AlertLimit = request.AlertLimit;
-        spec.ActionLimit = request.ActionLimit;
-        spec.SpecLimit = request.SpecLimit;
+        if (request.ParameterName != null)
+            spec.ParameterName = request.ParameterName;
+        if (request.DisplayOrder.HasValue)
+            spec.DisplayOrder = request.DisplayOrder.Value;
+        if (request.LimitType.HasValue)
+            spec.LimitType = request.LimitType.Value;
+        spec.ReferenceStandard = request.ReferenceStandard;
+        spec.LowerLimit = request.LowerLimit;
+        spec.UpperLimit = request.UpperLimit;
+        if (request.LowerInclusive.HasValue)
+            spec.LowerInclusive = request.LowerInclusive.Value;
+        if (request.UpperInclusive.HasValue)
+            spec.UpperInclusive = request.UpperInclusive.Value;
+        spec.Target = request.Target;
+        spec.Tolerance = request.Tolerance;
+        spec.ToleranceMode = request.ToleranceMode;
+        spec.ExpectedResultText = request.ExpectedResultText;
+        spec.ExpectedState = request.ExpectedState;
+        spec.SampleQuantity = request.SampleQuantity;
+        spec.SampleQuantityUnit = request.SampleQuantityUnit;
+        if (request.AlertLimit != null)
+            spec.AlertLimit = request.AlertLimit;
+        if (request.ActionLimit != null)
+            spec.ActionLimit = request.ActionLimit;
+        if (request.SpecLimit != null)
+            spec.SpecLimit = request.SpecLimit;
         spec.Unit = request.Unit ?? string.Empty;
         spec.DilutionFactor = request.DilutionFactor;
+        spec.TestAnalyteId = request.TestAnalyteId;
+        spec.ResultBasis = request.ResultBasis;
+        spec.SampleMatrix = request.SampleMatrix;
+        spec.LabelClaim = request.LabelClaim;
+        spec.LabelClaimUnit = request.LabelClaimUnit;
+        spec.DosageForm = request.DosageForm;
+        if (request.ConversionFactor.HasValue)
+            spec.ConversionFactor = request.ConversionFactor.Value;
+
+        // Replace-all on stages
+        _db.SpecificationStages.RemoveRange(spec.Stages);
+        spec.Stages = request.Stages?.Select(s => new SpecificationStage
+        {
+            SpecificationId = spec.Id,
+            StageNumber = s.StageNumber,
+            StageLabel = s.StageLabel,
+            AcceptanceCriteriaText = s.AcceptanceCriteriaText
+        }).ToList() ?? new List<SpecificationStage>();
+
+        SpecificationService.ApplyCanonicalSpecLimit(spec);
+        await _specificationService.ValidateAsync(spec);
+
         await _db.SaveChangesAsync();
         return Ok(ApiResponse<object>.Ok(spec));
     }
@@ -497,6 +870,7 @@ public class MasterDataController : ControllerBase
     {
         var spec = await _db.Specifications.FirstOrDefaultAsync(s => s.Id == id)
             ?? throw new InvalidOperationException($"Specification {id} not found.");
+        await SpecificationOwnership.EnsureCanEditAsync(_db, _scope, CurrentUserId, spec.TestCode);
         _db.Specifications.Remove(spec);
         await _db.SaveChangesAsync();
         return Ok(ApiResponse<object>.Ok(new { }));
@@ -607,12 +981,15 @@ public class MasterDataController : ControllerBase
 
     [Authorize(Roles = RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
     [HttpPost("production-stages")]
-    public async Task<IActionResult> CreateProductionStage([FromBody] string name)
+    public async Task<IActionResult> CreateProductionStage(CreateProductionStageRequest request)
     {
-        if (await _db.ProductionStages.AnyAsync(s => s.Name.ToLower() == name.ToLower()))
-            throw new InvalidOperationException($"Production Stage \"{name}\" already exists.");
+        if (string.IsNullOrWhiteSpace(request.Name))
+            throw new InvalidOperationException("Name is required.");
 
-        var entity = new ProductionStage { Name = name };
+        if (await _db.ProductionStages.AnyAsync(s => s.Name.ToLower() == request.Name.ToLower()))
+            throw new InvalidOperationException($"Production Stage \"{request.Name}\" already exists.");
+
+        var entity = new ProductionStage { Name = request.Name, Role = request.Role };
         _db.ProductionStages.Add(entity);
         await _db.SaveChangesAsync();
         return Ok(ApiResponse<object>.Ok(entity));
@@ -620,15 +997,19 @@ public class MasterDataController : ControllerBase
 
     [Authorize(Roles = RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
     [HttpPut("production-stages/{id}")]
-    public async Task<IActionResult> UpdateProductionStage(int id, [FromBody] string name)
+    public async Task<IActionResult> UpdateProductionStage(int id, UpdateProductionStageRequest request)
     {
         var entity = await _db.ProductionStages.FirstOrDefaultAsync(s => s.Id == id)
             ?? throw new InvalidOperationException($"Production Stage {id} not found.");
 
-        if (await _db.ProductionStages.AnyAsync(s => s.Id != id && s.Name.ToLower() == name.ToLower()))
-            throw new InvalidOperationException($"Production Stage \"{name}\" already exists.");
+        if (string.IsNullOrWhiteSpace(request.Name))
+            throw new InvalidOperationException("Name is required.");
 
-        entity.Name = name;
+        if (await _db.ProductionStages.AnyAsync(s => s.Id != id && s.Name.ToLower() == request.Name.ToLower()))
+            throw new InvalidOperationException($"Production Stage \"{request.Name}\" already exists.");
+
+        entity.Name = request.Name;
+        entity.Role = request.Role;
         await _db.SaveChangesAsync();
         return Ok(ApiResponse<object>.Ok(entity));
     }
@@ -677,9 +1058,24 @@ public class MasterDataController : ControllerBase
     [HttpGet("equipment")]
     public async Task<IActionResult> GetEquipment([FromQuery] EquipmentType? type)
     {
-        var query = _db.Equipment.AsNoTracking().AsQueryable();
+        var scope = await _scope.GetAccessibleSectionIdsAsync(CurrentUserId);
+        var query = _db.Equipment.AsNoTracking().Include(e => e.Section).AsQueryable();
+        if (scope != null) query = query.Where(e => scope.Contains(e.SectionId));
         if (type.HasValue) query = query.Where(e => e.Type == type.Value);
         return Ok(ApiResponse<object>.Ok(await query.ToListAsync()));
+    }
+
+    [HttpGet("equipment/{id:int}")]
+    public async Task<IActionResult> GetEquipmentById(int id)
+    {
+        await _scope.EnsureEquipmentAccessAsync(CurrentUserId, id);
+        var eq = await _db.Equipment.AsNoTracking()
+            .Include(e => e.Section)
+            .Include(e => e.CompatibleColumns)
+            .FirstOrDefaultAsync(e => e.Id == id);
+        if (eq == null)
+            throw new InvalidOperationException($"Equipment {id} not found.");
+        return Ok(ApiResponse<object>.Ok(eq));
     }
 
     [HttpGet("equipment/configured-summary")]
@@ -698,6 +1094,7 @@ public class MasterDataController : ControllerBase
     [HttpPut("equipment/{id:int}/set-point")]
     public async Task<IActionResult> UpdateSetPoint(int id, [FromBody] UpdateIncubatorSetPointRequest request)
     {
+        await _scope.EnsureEquipmentAccessAsync(CurrentUserId, id);
         try
         {
             var updated = await _configService.UpdateIncubatorSetPointAsync(id, request, CurrentUserId);
@@ -710,12 +1107,18 @@ public class MasterDataController : ControllerBase
     }
 
     [HttpGet("equipment/{id:int}/set-point-history")]
-    public async Task<IActionResult> GetSetPointHistory(int id) =>
-        Ok(ApiResponse<object>.Ok(await _configService.GetIncubatorSetPointHistoryAsync(id)));
+    public async Task<IActionResult> GetSetPointHistory(int id)
+    {
+        await _scope.EnsureEquipmentAccessAsync(CurrentUserId, id);
+        return Ok(ApiResponse<object>.Ok(await _configService.GetIncubatorSetPointHistoryAsync(id)));
+    }
 
     [HttpGet("equipment/{id:int}/autoclave-programs")]
-    public async Task<IActionResult> GetAutoclavePrograms(int id, [FromQuery] bool? activeOnly) =>
-        Ok(ApiResponse<object>.Ok(await _configService.GetAutoclaveProgramsAsync(id, activeOnly)));
+    public async Task<IActionResult> GetAutoclavePrograms(int id, [FromQuery] bool? activeOnly)
+    {
+        await _scope.EnsureEquipmentAccessAsync(CurrentUserId, id);
+        return Ok(ApiResponse<object>.Ok(await _configService.GetAutoclaveProgramsAsync(id, activeOnly)));
+    }
 
     [HttpGet("equipment/autoclave-programs/all")]
     public async Task<IActionResult> GetAllAutoclavePrograms([FromQuery] bool? activeOnly) =>
@@ -725,6 +1128,7 @@ public class MasterDataController : ControllerBase
     [HttpPost("equipment/{id:int}/autoclave-programs")]
     public async Task<IActionResult> SaveAutoclaveProgram(int id, [FromBody] SaveAutoclaveProgramRequest request)
     {
+        await _scope.EnsureEquipmentAccessAsync(CurrentUserId, id);
         try
         {
             var req = request with { EquipmentId = id };
@@ -776,15 +1180,129 @@ public class MasterDataController : ControllerBase
     [HttpPost("equipment")]
     public async Task<IActionResult> CreateEquipment(CreateEquipmentRequest request)
     {
+        if (string.IsNullOrWhiteSpace(request.Name))
+            throw new InvalidOperationException("Name is required.");
+        if (string.IsNullOrWhiteSpace(request.Code))
+            throw new InvalidOperationException("Code is required.");
+        if (await _db.Equipment.AnyAsync(e => e.Code == request.Code.Trim()))
+            throw new InvalidOperationException($"Equipment code \"{request.Code}\" already exists.");
+
+        if (!string.IsNullOrWhiteSpace(request.Vendor) && request.Vendor.Length > 100)
+            throw new InvalidOperationException("Vendor cannot exceed 100 characters.");
+
+        if (request.Type == EquipmentType.Hplc)
+        {
+            if (!request.CdsSoftware.HasValue)
+                throw new InvalidOperationException("CDS Software is required for HPLC equipment.");
+        }
+        else if (request.Type == EquipmentType.IcpOes)
+        {
+            if (!request.CdsSoftware.HasValue)
+                throw new InvalidOperationException("CDS Software is required for ICP-OES equipment.");
+        }
+        else
+        {
+            if (request.CdsSoftware.HasValue)
+                throw new InvalidOperationException("CDS Software is only allowed for HPLC and ICP-OES equipment.");
+        }
+
+        var sectionId = await _scope.ResolveSectionForCreateAsync(CurrentUserId, request.SectionId);
+
         var entity = new Equipment
         {
-            Name = request.Name, Code = request.Code, Type = request.Type, Location = request.Location,
-            SetPointTemperature = request.SetPointTemperature, CalibrationDueDate = request.CalibrationDueDate
+            Name = request.Name.Trim(),
+            Code = request.Code.Trim(),
+            Type = request.Type,
+            Location = request.Location,
+            SetPointTemperature = request.SetPointTemperature,
+            CalibrationDueDate = request.CalibrationDueDate,
+            Vendor = request.Vendor?.Trim(),
+            CdsSoftware = request.CdsSoftware,
+            ConnectionSettings = request.ConnectionSettings,
+            SectionId = sectionId
         };
         _db.Equipment.Add(entity);
         await _db.SaveChangesAsync();
         return Ok(ApiResponse<object>.Ok(entity));
     }
+
+    [Authorize(Roles = RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
+    [HttpPut("equipment/{id:int}")]
+    public async Task<IActionResult> UpdateEquipment(int id, UpdateEquipmentRequest request)
+    {
+        await _scope.EnsureEquipmentAccessAsync(CurrentUserId, id);
+
+        var entity = await _db.Equipment.FirstOrDefaultAsync(e => e.Id == id)
+            ?? throw new InvalidOperationException($"Equipment {id} not found.");
+
+        if (string.IsNullOrWhiteSpace(request.Name))
+            throw new InvalidOperationException("Name is required.");
+        if (string.IsNullOrWhiteSpace(request.Code))
+            throw new InvalidOperationException("Code is required.");
+        if (await _db.Equipment.AnyAsync(e => e.Code == request.Code.Trim() && e.Id != id))
+            throw new InvalidOperationException($"Equipment code \"{request.Code}\" already exists.");
+
+        if (!string.IsNullOrWhiteSpace(request.Vendor) && request.Vendor.Length > 100)
+            throw new InvalidOperationException("Vendor cannot exceed 100 characters.");
+
+        if (request.Type == EquipmentType.Hplc)
+        {
+            if (!request.CdsSoftware.HasValue)
+                throw new InvalidOperationException("CDS Software is required for HPLC equipment.");
+        }
+        else if (request.Type == EquipmentType.IcpOes)
+        {
+            if (!request.CdsSoftware.HasValue)
+                throw new InvalidOperationException("CDS Software is required for ICP-OES equipment.");
+        }
+        else
+        {
+            if (request.CdsSoftware.HasValue)
+                throw new InvalidOperationException("CDS Software is only allowed for HPLC and ICP-OES equipment.");
+        }
+
+        if (request.SectionId.HasValue && request.SectionId.Value != entity.SectionId)
+        {
+            entity.SectionId = await _scope.ResolveSectionForCreateAsync(CurrentUserId, request.SectionId);
+        }
+
+        entity.Name = request.Name.Trim();
+        entity.Code = request.Code.Trim();
+        entity.Type = request.Type;
+        entity.Location = request.Location;
+        entity.SetPointTemperature = request.SetPointTemperature;
+        entity.CalibrationDueDate = request.CalibrationDueDate;
+        entity.Vendor = request.Vendor?.Trim();
+        entity.CdsSoftware = request.CdsSoftware;
+        entity.ConnectionSettings = request.ConnectionSettings;
+
+        await _db.SaveChangesAsync();
+        return Ok(ApiResponse<object>.Ok(entity));
+    }
+
+    // ---- Column Master (REQ-FP-011) ----
+    [HttpGet("columns")]
+    public async Task<IActionResult> GetColumns([FromQuery] bool? activeOnly) =>
+        Ok(ApiResponse<object>.Ok(await _columnService.GetAllAsync(CurrentUserId, activeOnly)));
+
+    [HttpGet("columns/{id:int}")]
+    public async Task<IActionResult> GetColumnById(int id) =>
+        Ok(ApiResponse<object>.Ok(await _columnService.GetByIdAsync(id, CurrentUserId)));
+
+    [Authorize(Policy = PermissionConstants.EquipmentManage)]
+    [HttpPost("columns")]
+    public async Task<IActionResult> CreateColumn([FromBody] CreateChromatographyColumnRequest request) =>
+        Ok(ApiResponse<object>.Ok(await _columnService.CreateAsync(request, CurrentUserId)));
+
+    [Authorize(Policy = PermissionConstants.EquipmentManage)]
+    [HttpPut("columns/{id:int}")]
+    public async Task<IActionResult> UpdateColumn(int id, [FromBody] UpdateChromatographyColumnRequest request) =>
+        Ok(ApiResponse<object>.Ok(await _columnService.UpdateAsync(id, request, CurrentUserId)));
+
+    [Authorize(Policy = PermissionConstants.EquipmentManage)]
+    [HttpPut("columns/{id:int}/deactivate")]
+    public async Task<IActionResult> DeactivateColumn(int id) =>
+        Ok(ApiResponse<object>.Ok(await _columnService.DeactivateAsync(id, CurrentUserId)));
 
     // ---- Room Test Configurations (EM) ----
     [HttpGet("room-test-configurations")]
@@ -1293,6 +1811,62 @@ public class MasterDataController : ControllerBase
         return Ok(ApiResponse<object>.Ok(new { }));
     }
 
+    // Equation Types (REQ-FP-030/042)
+    [HttpGet("equation-types")]
+    public IActionResult GetEquationTypes()
+    {
+        var types = new[]
+        {
+            new EquationTypeDto(
+                Code: nameof(EquationType.None),
+                Name: "None",
+                FormulaText: string.Empty,
+                RequiredInputs: Array.Empty<string>()),
+            new EquationTypeDto(
+                Code: nameof(EquationType.StandardComparison),
+                Name: "Standard-Comparison Assay",
+                FormulaText: "% Assay = (Response_test / Response_std) * (ActWt_std / ThWt_std) * (ThWt_test / ActWt_test) * ((100 - MC) / 100) * P",
+                RequiredInputs: new[] { "Response_test", "Response_std", "ActWt_std", "ThWt_std", "ThWt_test", "ActWt_test", "MC", "P" }),
+            new EquationTypeDto(
+                Code: nameof(EquationType.SystemSuitability),
+                Name: "System Suitability",
+                FormulaText: "RSD <= MaxRSD, Resolution >= MinResolution, Tailing <= MaxTailing, Plates >= MinPlates",
+                RequiredInputs: new[]
+                {
+                    "RsdPercent",
+                    "Resolution",
+                    "TailingFactor",
+                    "TheoreticalPlates"
+                }),
+            new EquationTypeDto(
+                Code: nameof(EquationType.CalibrationCurve),
+                Name: "Calibration Curve",
+                FormulaText: "Linear regression y = mx + b, correlation, blank and check recovery criteria",
+                RequiredInputs: new[] { "ReportedPpm" }),
+            new EquationTypeDto(
+                Code: nameof(EquationType.Measurement),
+                Name: "Numeric Measurement",
+                FormulaText: "Mean, Min, Max, SD, RSD over replicate readings; evaluated against specification",
+                RequiredInputs: new[] { "Readings" }),
+            new EquationTypeDto(
+                Code: nameof(EquationType.GravimetricLoss),
+                Name: "Gravimetric % Loss",
+                FormulaText: "% Loss = (W1 - W2) / W1 * 100",
+                RequiredInputs: new[] { "W1", "W2" }),
+            new EquationTypeDto(
+                Code: nameof(EquationType.GravimetricResidue),
+                Name: "Gravimetric % Residue",
+                FormulaText: "% Residue = W2 / W1 * 100",
+                RequiredInputs: new[] { "W1", "W2" }),
+            new EquationTypeDto(
+                Code: nameof(EquationType.Qualitative),
+                Name: "Qualitative / Identification",
+                FormulaText: "Conforms / Does Not Conform evaluated against expected text",
+                RequiredInputs: new[] { "Conforms" })
+        };
+        return Ok(ApiResponse<object>.Ok(types));
+    }
+
     // ---- Test Master ----
     // The canonical Code/DisplayName list backing every TestCode picker
     // in the app (Items, Water Sampling Points, Room Test Configurations,
@@ -1300,7 +1874,7 @@ public class MasterDataController : ControllerBase
     // exists.
     [HttpGet("test-definitions")]
     public async Task<IActionResult> GetTestDefinitions() =>
-        Ok(ApiResponse<object>.Ok(await _db.TestDefinitions.AsNoTracking().OrderBy(t => t.Code).ToListAsync()));
+        Ok(ApiResponse<object>.Ok(await _db.TestDefinitions.AsNoTracking().Include(t => t.Section).OrderBy(t => t.Code).ToListAsync()));
 
     [Authorize(Roles = RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
     [HttpPost("test-definitions")]
@@ -1309,11 +1883,353 @@ public class MasterDataController : ControllerBase
         if (await _db.TestDefinitions.AnyAsync(t => t.Code == request.Code))
             throw new InvalidOperationException($"Test code \"{request.Code}\" already exists in the Test Master.");
 
-        var entity = new TestDefinition { Code = request.Code, DisplayName = request.DisplayName };
+        var userId = CurrentUserId;
+        var sectionId = await _scope.ResolveSectionForCreateAsync(userId, request.SectionId);
+
+        string? methodAbbr = string.IsNullOrWhiteSpace(request.MethodAbbreviation)
+            ? null
+            : request.MethodAbbreviation.Trim().ToUpperInvariant();
+
+        if ((request.WorkflowType == WorkflowType.Disintegration || request.EquationType == EquationType.Disintegration) && request.RequiresSystemSuitability)
+            throw new InvalidOperationException("Disintegration tests must not require system suitability.");
+
+        if ((request.WorkflowType == WorkflowType.WeightVariation || request.EquationType == EquationType.WeightVariation) && request.RequiresSystemSuitability)
+            throw new InvalidOperationException("Weight variation tests must not require system suitability.");
+
+        if (request.RequiresSystemSuitability)
+        {
+            if (string.IsNullOrEmpty(methodAbbr))
+                throw new InvalidOperationException("Method abbreviation is required when system suitability is enabled.");
+
+            if (!System.Text.RegularExpressions.Regex.IsMatch(methodAbbr, "^[A-Z0-9-]{1,20}$"))
+                throw new InvalidOperationException("Method abbreviation must be 1-20 uppercase alphanumeric characters or hyphens.");
+
+            if (request.EquationType != EquationType.StandardComparison && request.WorkflowType != WorkflowType.StandardComparison &&
+                !request.SstMaxRsdPercent.HasValue && !request.SstMinResolution.HasValue &&
+                !request.SstMaxTailingFactor.HasValue && !request.SstMinTheoreticalPlates.HasValue)
+            {
+                throw new InvalidOperationException("At least one system suitability criterion is required when system suitability is enabled.");
+            }
+        }
+        else if (request.EquationType == EquationType.CalibrationCurve)
+        {
+            if (request.WorkflowType != WorkflowType.ElementalAssay)
+                throw new InvalidOperationException("Workflow type must be ElementalAssay when equation type is CalibrationCurve.");
+
+            if (string.IsNullOrEmpty(methodAbbr))
+                throw new InvalidOperationException("Method abbreviation is required when equation type is CalibrationCurve.");
+
+            if (!System.Text.RegularExpressions.Regex.IsMatch(methodAbbr, "^[A-Z0-9-]{1,20}$"))
+                throw new InvalidOperationException("Method abbreviation must be 1-20 uppercase alphanumeric characters or hyphens.");
+
+            if (!request.CalMinCorrelation.HasValue || request.CalMinCorrelation.Value <= 0m || request.CalMinCorrelation.Value > 1m)
+                throw new InvalidOperationException("Minimum correlation must be in (0, 1] when equation type is CalibrationCurve.");
+
+            if (!request.CalCorrelationType.HasValue)
+                throw new InvalidOperationException("Correlation type is required when equation type is CalibrationCurve.");
+
+            if (!request.CalMinStandards.HasValue || request.CalMinStandards.Value < 1)
+                throw new InvalidOperationException("Minimum standards must be at least 1 when equation type is CalibrationCurve.");
+
+            if (!request.CalCheckRecoveryLowPercent.HasValue || !request.CalCheckRecoveryHighPercent.HasValue)
+                throw new InvalidOperationException("Both check recovery window bounds (low and high) are required when equation type is CalibrationCurve.");
+
+            if (request.CalCheckRecoveryLowPercent.Value > request.CalCheckRecoveryHighPercent.Value)
+                throw new InvalidOperationException("Check recovery low percent must be less than or equal to high percent.");
+
+            if (request.CalRequireInternalStandard == true)
+            {
+                if (!request.CalIsRecoveryLowPercent.HasValue || !request.CalIsRecoveryHighPercent.HasValue)
+                    throw new InvalidOperationException("Both internal standard recovery bounds (low and high) are required when internal standards are required.");
+
+                if (request.CalIsRecoveryLowPercent.Value > request.CalIsRecoveryHighPercent.Value)
+                    throw new InvalidOperationException("Internal standard recovery low percent must be less than or equal to high percent.");
+            }
+            else if (request.CalIsRecoveryLowPercent.HasValue && request.CalIsRecoveryHighPercent.HasValue &&
+                request.CalIsRecoveryLowPercent.Value > request.CalIsRecoveryHighPercent.Value)
+            {
+                throw new InvalidOperationException("Internal standard recovery low percent must be less than or equal to high percent.");
+            }
+
+            if (!request.ReportedConcentrationBasis.HasValue)
+                throw new InvalidOperationException("Reported concentration basis is required when equation type is CalibrationCurve.");
+            if (request.ReportedConcentrationBasis != ReportedConcentrationBasis.SamplePpm)
+                throw new InvalidOperationException("Only 'ppm in the sample' is supported: Syngistix applies weight, volume and dilution itself.");
+
+            var maxAge = request.CalMaxRunAgeHours ?? 24;
+            if (maxAge < 1)
+                throw new InvalidOperationException("Maximum run age must be at least 1 hour when equation type is CalibrationCurve.");
+        }
+        else if (methodAbbr != null)
+        {
+            if (!System.Text.RegularExpressions.Regex.IsMatch(methodAbbr, "^[A-Z0-9-]{1,20}$"))
+                throw new InvalidOperationException("Method abbreviation must be 1-20 uppercase alphanumeric characters or hyphens.");
+        }
+
+        // AAS reuses the CalibrationCurve path (D-A4): the instrument choice and standard
+        // levels only make sense there, and only IcpOes/Aas are supported instrument families.
+        if (request.CalInstrumentType.HasValue)
+        {
+            if (request.EquationType != EquationType.CalibrationCurve)
+                throw new InvalidOperationException("Calibration instrument type only applies when equation type is CalibrationCurve.");
+
+            if (request.CalInstrumentType.Value != EquipmentType.IcpOes && request.CalInstrumentType.Value != EquipmentType.Aas)
+                throw new InvalidOperationException("Calibration instrument type must be IcpOes or Aas.");
+        }
+
+        string? normalizedCalLevels = null;
+        if (!string.IsNullOrWhiteSpace(request.CalStandardLevelsMgPerL))
+        {
+            if (request.EquationType != EquationType.CalibrationCurve)
+                throw new InvalidOperationException("Standard levels only apply when equation type is CalibrationCurve.");
+
+            normalizedCalLevels = CalibrationStandardLevelsHelper.ParseAndValidate(request.CalStandardLevelsMgPerL).Normalized;
+        }
+
+        if (request.EquationType == EquationType.Measurement)
+        {
+            if (request.WorkflowType != WorkflowType.Measurement)
+                throw new InvalidOperationException("Workflow type must be Measurement when equation type is Measurement.");
+
+            if (!request.ReplicateCount.HasValue || request.ReplicateCount.Value < 1 || request.ReplicateCount.Value > 30)
+                throw new InvalidOperationException("Replicate count must be between 1 and 30 when equation type is Measurement.");
+
+            if (!request.EvaluationBasis.HasValue)
+                throw new InvalidOperationException("Evaluation basis is required when equation type is Measurement.");
+        }
+        else if (request.WorkflowType == WorkflowType.Measurement)
+        {
+            if (request.EquationType != EquationType.Measurement)
+                throw new InvalidOperationException("Equation type must be Measurement when workflow type is Measurement.");
+        }
+
+        if (request.ConditionFields != null && request.ConditionFields.Length > 500)
+            throw new InvalidOperationException("Condition fields cannot exceed 500 characters.");
+
+        if (request.EquationType is EquationType.GravimetricLoss or EquationType.GravimetricResidue)
+        {
+            if (request.WorkflowType != WorkflowType.Gravimetric)
+                throw new InvalidOperationException($"Workflow type must be Gravimetric when equation type is {request.EquationType}.");
+
+            if (!request.ReplicateCount.HasValue || request.ReplicateCount.Value < 1 || request.ReplicateCount.Value > 30)
+                throw new InvalidOperationException($"Replicate count must be between 1 and 30 when equation type is {request.EquationType}.");
+        }
+        else if (request.WorkflowType == WorkflowType.Gravimetric)
+        {
+            if (request.EquationType is not (EquationType.GravimetricLoss or EquationType.GravimetricResidue))
+                throw new InvalidOperationException("Equation type must be GravimetricLoss or GravimetricResidue when workflow type is Gravimetric.");
+
+            if (!request.ReplicateCount.HasValue || request.ReplicateCount.Value < 1 || request.ReplicateCount.Value > 30)
+                throw new InvalidOperationException($"Replicate count must be between 1 and 30 when equation type is {request.EquationType}.");
+        }
+
+        if (request.EquationType == EquationType.Qualitative)
+        {
+            if (request.WorkflowType != WorkflowType.Qualitative)
+                throw new InvalidOperationException("Workflow type must be Qualitative when equation type is Qualitative.");
+        }
+        else if (request.WorkflowType == WorkflowType.Qualitative)
+        {
+            if (request.EquationType != EquationType.Qualitative)
+                throw new InvalidOperationException("Equation type must be Qualitative when workflow type is Qualitative.");
+        }
+
+        if (request.EquationType == EquationType.Dissolution)
+        {
+            if (request.WorkflowType != WorkflowType.Dissolution)
+                throw new InvalidOperationException("Workflow type must be Dissolution when equation type is Dissolution.");
+        }
+        else if (request.WorkflowType == WorkflowType.Dissolution)
+        {
+            if (request.EquationType != EquationType.Dissolution)
+                throw new InvalidOperationException("Equation type must be Dissolution when workflow type is Dissolution.");
+        }
+
+        if (request.WorkflowType == WorkflowType.Dissolution)
+        {
+            if (!request.RequiresSystemSuitability)
+                throw new InvalidOperationException("Dissolution tests must require system suitability: the standard comes from the linked suitability run.");
+
+            decimal s1 = request.DissolutionS1Offset ?? 5m;
+            decimal s2 = request.DissolutionS2MinOffset ?? 15m;
+            decimal s3 = request.DissolutionS3MinOffset ?? 25m;
+            decimal maxBelow = request.DissolutionS3MaxBelowS2Min ?? 2m;
+
+            if (s1 < 0 || s2 < 0 || s3 < 0 || maxBelow < 0)
+                throw new InvalidOperationException("Dissolution stage offsets must be greater than or equal to zero.");
+        }
+
+        if (request.EquationType == EquationType.Disintegration)
+        {
+            if (request.WorkflowType != WorkflowType.Disintegration)
+                throw new InvalidOperationException("Workflow type must be Disintegration when equation type is Disintegration.");
+        }
+        else if (request.WorkflowType == WorkflowType.Disintegration)
+        {
+            if (request.EquationType != EquationType.Disintegration)
+                throw new InvalidOperationException("Equation type must be Disintegration when workflow type is Disintegration.");
+        }
+
+        if (request.WorkflowType == WorkflowType.Disintegration)
+        {
+            if (request.RequiresSystemSuitability)
+                throw new InvalidOperationException("Disintegration tests must not require system suitability.");
+
+            int s1 = request.DisintegrationStage1Units ?? 6;
+            int s2 = request.DisintegrationStage2Units ?? 12;
+            int maxFail = request.DisintegrationMaxStage1Failures ?? 2;
+            int minPass = request.DisintegrationMinPassTotal ?? 16;
+
+            if (s1 < 1 || s2 < 1)
+                throw new InvalidOperationException("Disintegration stage units must be greater than or equal to 1.");
+            if (maxFail < 0 || maxFail >= s1)
+                throw new InvalidOperationException($"Disintegration maximum Stage 1 failures must be between 0 and {s1 - 1}.");
+            if (minPass < 1 || minPass > (s1 + s2))
+                throw new InvalidOperationException($"Disintegration minimum pass total must be between 1 and {s1 + s2}.");
+        }
+
+        if (request.EquationType == EquationType.WeightVariation)
+        {
+            if (request.WorkflowType != WorkflowType.WeightVariation)
+                throw new InvalidOperationException("Workflow type must be WeightVariation when equation type is WeightVariation.");
+        }
+        else if (request.WorkflowType == WorkflowType.WeightVariation)
+        {
+            if (request.EquationType != EquationType.WeightVariation)
+                throw new InvalidOperationException("Equation type must be WeightVariation when workflow type is WeightVariation.");
+        }
+
+        if (request.WorkflowType == WorkflowType.WeightVariation)
+        {
+            if (request.RequiresSystemSuitability)
+                throw new InvalidOperationException("Weight variation tests must not require system suitability.");
+
+            int unitCount = request.WvUnitCount ?? 20;
+            decimal band1Mg = request.WvTabletBand1MaxMg ?? 130m;
+            decimal band1Pct = request.WvTabletBand1Percent ?? 10m;
+            decimal band2Mg = request.WvTabletBand2MaxMg ?? 324m;
+            decimal band2Pct = request.WvTabletBand2Percent ?? 7.5m;
+            decimal band3Pct = request.WvTabletBand3Percent ?? 5m;
+            int tabMaxOutside = request.WvTabletMaxOutside ?? 2;
+
+            decimal capInnerPct = request.WvCapsuleInnerPercent ?? 10m;
+            decimal capOuterPct = request.WvCapsuleOuterPercent ?? 25m;
+            int capS1MaxOutside = request.WvCapsuleS1MaxOutside ?? 2;
+            int capS1MaxRetest = request.WvCapsuleS1MaxForRetest ?? 6;
+            int capS2Extra = request.WvCapsuleS2ExtraUnits ?? 40;
+            int capS2MaxOutside = request.WvCapsuleS2MaxOutside ?? 6;
+
+            if (unitCount < 1 || capS2Extra < 1)
+                throw new InvalidOperationException("Weight variation unit count and extra units must be greater than or equal to 1.");
+            if (tabMaxOutside < 0 || capS1MaxOutside < 0 || capS2MaxOutside < 0)
+                throw new InvalidOperationException("Weight variation maximum outside counts must be greater than or equal to 0.");
+            if (band1Mg <= 0m || band2Mg <= 0m)
+                throw new InvalidOperationException("Weight variation tablet band weight limits must be greater than zero.");
+            if (band1Pct <= 0m || band2Pct <= 0m || band3Pct <= 0m || capInnerPct <= 0m || capOuterPct <= 0m)
+                throw new InvalidOperationException("Weight variation percentages must be greater than zero.");
+            if (band1Mg >= band2Mg)
+                throw new InvalidOperationException("Weight variation Tablet Band 1 Max Mg must be less than Band 2 Max Mg.");
+            if (capInnerPct >= capOuterPct)
+                throw new InvalidOperationException("Weight variation capsule inner percentage must be less than outer percentage.");
+            if (capS1MaxOutside >= capS1MaxRetest || capS1MaxRetest > unitCount)
+                throw new InvalidOperationException("Weight variation capsule Stage 1 max outside must be less than Stage 1 max for retest, which must be less than or equal to unit count.");
+            if (capS2MaxOutside >= unitCount + capS2Extra)
+                throw new InvalidOperationException($"Weight variation capsule Stage 2 max outside must be less than total units ({unitCount + capS2Extra}).");
+        }
+
+        // Retired by SC-3: both old HPLC types are folded into StandardComparison.
+        if (request.WorkflowType is WorkflowType.HplcAssay or WorkflowType.HplcMultiAnalyte
+            || request.EquationType is EquationType.HplcAssay or EquationType.HplcMultiAnalyte)
+            throw new InvalidOperationException("HPLC Assay and HPLC Multi-Analyte are retired; use Standard-Comparison.");
+
+        if (request.EquationType == EquationType.StandardComparison)
+        {
+            if (request.WorkflowType != WorkflowType.StandardComparison)
+                throw new InvalidOperationException("Workflow type must be StandardComparison when equation type is StandardComparison.");
+        }
+        else if (request.WorkflowType == WorkflowType.StandardComparison)
+        {
+            if (request.EquationType != EquationType.StandardComparison)
+                throw new InvalidOperationException("Equation type must be StandardComparison when workflow type is StandardComparison.");
+        }
+
+        if (request.WorkflowType == WorkflowType.StandardComparison)
+        {
+            if (!request.RequiresSystemSuitability)
+                throw new InvalidOperationException("Standard comparison tests must require system suitability.");
+
+            if (request.HplcMaxPreparationRsdPercent.HasValue && request.HplcMaxPreparationRsdPercent.Value <= 0m)
+                throw new InvalidOperationException("Maximum preparation RSD percent must be greater than zero.");
+        }
+
+        if (!Enum.IsDefined(request.ResponseMode))
+            throw new InvalidOperationException("Unknown response mode.");
+        if (request.ResponseMode != ResponseMode.PeakArea && request.WorkflowType != WorkflowType.StandardComparison)
+            throw new InvalidOperationException("Response mode applies only to standard-comparison tests.");
+
+        var entity = new TestDefinition
+        {
+            Code = request.Code,
+            DisplayName = request.DisplayName,
+            SectionId = sectionId,
+            WorkflowType = request.WorkflowType,
+            EquationType = request.EquationType,
+            RequiresSystemSuitability = request.RequiresSystemSuitability,
+            MethodAbbreviation = methodAbbr,
+            SstMaxRsdPercent = request.SstMaxRsdPercent,
+            SstMinResolution = request.SstMinResolution,
+            SstMaxTailingFactor = request.SstMaxTailingFactor,
+            SstMinTheoreticalPlates = request.SstMinTheoreticalPlates,
+            CalibrationEntryMode = request.CalibrationEntryMode,
+            CalMinCorrelation = request.CalMinCorrelation,
+            CalCorrelationType = request.CalCorrelationType,
+            CalMinStandards = request.CalMinStandards,
+            CalCheckRecoveryLowPercent = request.CalCheckRecoveryLowPercent,
+            CalCheckRecoveryHighPercent = request.CalCheckRecoveryHighPercent,
+            CalBlankMax = request.CalBlankMax,
+            CalIsRecoveryLowPercent = request.CalIsRecoveryLowPercent,
+            CalIsRecoveryHighPercent = request.CalIsRecoveryHighPercent,
+            CalRequireBlank = request.CalRequireBlank,
+            CalRequireIcv = request.CalRequireIcv,
+            CalRequireCcv = request.CalRequireCcv,
+            CalRequireInternalStandard = request.CalRequireInternalStandard,
+            ReportedConcentrationBasis = request.ReportedConcentrationBasis,
+            CalMaxRunAgeHours = request.CalMaxRunAgeHours ?? 24,
+            CalInstrumentType = request.CalInstrumentType,
+            CalStandardLevelsMgPerL = normalizedCalLevels,
+            ReplicateCount = request.ReplicateCount,
+            EvaluationBasis = request.EvaluationBasis,
+            ConditionFields = request.ConditionFields,
+            UsesTare = request.WorkflowType == WorkflowType.Gravimetric ? (request.UsesTare ?? false) : request.UsesTare,
+            DissolutionS1Offset = request.WorkflowType == WorkflowType.Dissolution ? (request.DissolutionS1Offset ?? 5m) : request.DissolutionS1Offset,
+            DissolutionS2MinOffset = request.WorkflowType == WorkflowType.Dissolution ? (request.DissolutionS2MinOffset ?? 15m) : request.DissolutionS2MinOffset,
+            DissolutionS3MinOffset = request.WorkflowType == WorkflowType.Dissolution ? (request.DissolutionS3MinOffset ?? 25m) : request.DissolutionS3MinOffset,
+            DissolutionS3MaxBelowS2Min = request.WorkflowType == WorkflowType.Dissolution ? (request.DissolutionS3MaxBelowS2Min ?? 2m) : request.DissolutionS3MaxBelowS2Min,
+            DisintegrationStage1Units = request.WorkflowType == WorkflowType.Disintegration ? (request.DisintegrationStage1Units ?? 6) : request.DisintegrationStage1Units,
+            DisintegrationStage2Units = request.WorkflowType == WorkflowType.Disintegration ? (request.DisintegrationStage2Units ?? 12) : request.DisintegrationStage2Units,
+            DisintegrationMaxStage1Failures = request.WorkflowType == WorkflowType.Disintegration ? (request.DisintegrationMaxStage1Failures ?? 2) : request.DisintegrationMaxStage1Failures,
+            DisintegrationMinPassTotal = request.WorkflowType == WorkflowType.Disintegration ? (request.DisintegrationMinPassTotal ?? 16) : request.DisintegrationMinPassTotal,
+            WvUnitCount = request.WorkflowType == WorkflowType.WeightVariation ? (request.WvUnitCount ?? 20) : request.WvUnitCount,
+            WvTabletBand1MaxMg = request.WorkflowType == WorkflowType.WeightVariation ? (request.WvTabletBand1MaxMg ?? 130m) : request.WvTabletBand1MaxMg,
+            WvTabletBand1Percent = request.WorkflowType == WorkflowType.WeightVariation ? (request.WvTabletBand1Percent ?? 10m) : request.WvTabletBand1Percent,
+            WvTabletBand2MaxMg = request.WorkflowType == WorkflowType.WeightVariation ? (request.WvTabletBand2MaxMg ?? 324m) : request.WvTabletBand2MaxMg,
+            WvTabletBand2Percent = request.WorkflowType == WorkflowType.WeightVariation ? (request.WvTabletBand2Percent ?? 7.5m) : request.WvTabletBand2Percent,
+            WvTabletBand3Percent = request.WorkflowType == WorkflowType.WeightVariation ? (request.WvTabletBand3Percent ?? 5m) : request.WvTabletBand3Percent,
+            WvTabletMaxOutside = request.WorkflowType == WorkflowType.WeightVariation ? (request.WvTabletMaxOutside ?? 2) : request.WvTabletMaxOutside,
+            WvCapsuleInnerPercent = request.WorkflowType == WorkflowType.WeightVariation ? (request.WvCapsuleInnerPercent ?? 10m) : request.WvCapsuleInnerPercent,
+            WvCapsuleOuterPercent = request.WorkflowType == WorkflowType.WeightVariation ? (request.WvCapsuleOuterPercent ?? 25m) : request.WvCapsuleOuterPercent,
+            WvCapsuleS1MaxOutside = request.WorkflowType == WorkflowType.WeightVariation ? (request.WvCapsuleS1MaxOutside ?? 2) : request.WvCapsuleS1MaxOutside,
+            WvCapsuleS1MaxForRetest = request.WorkflowType == WorkflowType.WeightVariation ? (request.WvCapsuleS1MaxForRetest ?? 6) : request.WvCapsuleS1MaxForRetest,
+            WvCapsuleS2ExtraUnits = request.WorkflowType == WorkflowType.WeightVariation ? (request.WvCapsuleS2ExtraUnits ?? 40) : request.WvCapsuleS2ExtraUnits,
+            WvCapsuleS2MaxOutside = request.WorkflowType == WorkflowType.WeightVariation ? (request.WvCapsuleS2MaxOutside ?? 6) : request.WvCapsuleS2MaxOutside,
+            HplcMaxPreparationRsdPercent = request.WorkflowType == WorkflowType.StandardComparison ? request.HplcMaxPreparationRsdPercent : null,
+            ResponseMode = request.ResponseMode
+        };
         _db.TestDefinitions.Add(entity);
         await _db.SaveChangesAsync();
         return Ok(ApiResponse<object>.Ok(entity));
     }
+
 
     [Authorize(Roles = RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
     [HttpPut("test-definitions/{id}")]
@@ -1325,9 +2241,411 @@ public class MasterDataController : ControllerBase
         if (await _db.TestDefinitions.AnyAsync(t => t.Code == request.Code && t.Id != id))
             throw new InvalidOperationException($"Test code \"{request.Code}\" already exists in the Test Master.");
 
+        // Only a member of the test's section may change it, and only into a
+        // section they belong to.
+        var scope = await _scope.GetAccessibleSectionIdsAsync(CurrentUserId);
+        if (scope is not null && !scope.Contains(entity.SectionId))
+            throw new UnauthorizedAccessException("This test belongs to a laboratory section you are not assigned to.");
+        if (request.SectionId.HasValue && request.SectionId.Value != entity.SectionId)
+            entity.SectionId = await _scope.ResolveSectionForCreateAsync(CurrentUserId, request.SectionId);
+
+        var effectiveRequiresSst = request.RequiresSystemSuitability ?? entity.RequiresSystemSuitability;
+        var effectiveEquationType = request.EquationType ?? entity.EquationType;
+        var effectiveWorkflowType = request.WorkflowType ?? entity.WorkflowType;
+        var effectiveMethodAbbr = request.MethodAbbreviation != null
+            ? (string.IsNullOrWhiteSpace(request.MethodAbbreviation) ? null : request.MethodAbbreviation.Trim().ToUpperInvariant())
+            : entity.MethodAbbreviation;
+        var effectiveRsd = request.SstMaxRsdPercent ?? entity.SstMaxRsdPercent;
+        var effectiveRes = request.SstMinResolution ?? entity.SstMinResolution;
+        var effectiveTailing = request.SstMaxTailingFactor ?? entity.SstMaxTailingFactor;
+        var effectivePlates = request.SstMinTheoreticalPlates ?? entity.SstMinTheoreticalPlates;
+
+        var effectiveCalMinCorr = request.CalMinCorrelation ?? entity.CalMinCorrelation;
+        var effectiveCalCorrType = request.CalCorrelationType ?? entity.CalCorrelationType;
+        var effectiveCalMinStds = request.CalMinStandards ?? entity.CalMinStandards;
+        var effectiveCalRecLow = request.CalCheckRecoveryLowPercent ?? entity.CalCheckRecoveryLowPercent;
+        var effectiveCalRecHigh = request.CalCheckRecoveryHighPercent ?? entity.CalCheckRecoveryHighPercent;
+        var effectiveCalIsLow = request.CalIsRecoveryLowPercent ?? entity.CalIsRecoveryLowPercent;
+        var effectiveCalIsHigh = request.CalIsRecoveryHighPercent ?? entity.CalIsRecoveryHighPercent;
+        var effectiveCalRequireIs = request.CalRequireInternalStandard ?? entity.CalRequireInternalStandard;
+        var effectiveBasis = request.ReportedConcentrationBasis ?? entity.ReportedConcentrationBasis;
+        var effectiveMaxAge = request.CalMaxRunAgeHours ?? entity.CalMaxRunAgeHours ?? 24;
+        var effectiveReplicateCount = request.ReplicateCount ?? entity.ReplicateCount;
+        var effectiveEvaluationBasis = request.EvaluationBasis ?? entity.EvaluationBasis;
+        var effectiveConditionFields = request.ConditionFields ?? entity.ConditionFields;
+        var effectiveUsesTare = request.UsesTare ?? entity.UsesTare;
+
+        if (effectiveConditionFields != null && effectiveConditionFields.Length > 500)
+            throw new InvalidOperationException("Condition fields cannot exceed 500 characters.");
+
+        if ((effectiveWorkflowType == WorkflowType.Disintegration || effectiveEquationType == EquationType.Disintegration) && effectiveRequiresSst)
+            throw new InvalidOperationException("Disintegration tests must not require system suitability.");
+
+        if ((effectiveWorkflowType == WorkflowType.WeightVariation || effectiveEquationType == EquationType.WeightVariation) && effectiveRequiresSst)
+            throw new InvalidOperationException("Weight variation tests must not require system suitability.");
+
+        if (effectiveRequiresSst)
+        {
+            if (string.IsNullOrEmpty(effectiveMethodAbbr))
+                throw new InvalidOperationException("Method abbreviation is required when system suitability is enabled.");
+
+            if (!System.Text.RegularExpressions.Regex.IsMatch(effectiveMethodAbbr, "^[A-Z0-9-]{1,20}$"))
+                throw new InvalidOperationException("Method abbreviation must be 1-20 uppercase alphanumeric characters or hyphens.");
+
+            if (effectiveEquationType != EquationType.StandardComparison && effectiveWorkflowType != WorkflowType.StandardComparison &&
+                !effectiveRsd.HasValue && !effectiveRes.HasValue && !effectiveTailing.HasValue && !effectivePlates.HasValue)
+            {
+                throw new InvalidOperationException("At least one system suitability criterion is required when system suitability is enabled.");
+            }
+        }
+        else if (effectiveEquationType == EquationType.CalibrationCurve)
+        {
+            if (effectiveWorkflowType != WorkflowType.ElementalAssay)
+                throw new InvalidOperationException("Workflow type must be ElementalAssay when equation type is CalibrationCurve.");
+
+            if (string.IsNullOrEmpty(effectiveMethodAbbr))
+                throw new InvalidOperationException("Method abbreviation is required when equation type is CalibrationCurve.");
+
+            if (!System.Text.RegularExpressions.Regex.IsMatch(effectiveMethodAbbr, "^[A-Z0-9-]{1,20}$"))
+                throw new InvalidOperationException("Method abbreviation must be 1-20 uppercase alphanumeric characters or hyphens.");
+
+            if (!effectiveCalMinCorr.HasValue || effectiveCalMinCorr.Value <= 0m || effectiveCalMinCorr.Value > 1m)
+                throw new InvalidOperationException("Minimum correlation must be in (0, 1] when equation type is CalibrationCurve.");
+
+            if (!effectiveCalCorrType.HasValue)
+                throw new InvalidOperationException("Correlation type is required when equation type is CalibrationCurve.");
+
+            if (!effectiveCalMinStds.HasValue || effectiveCalMinStds.Value < 1)
+                throw new InvalidOperationException("Minimum standards must be at least 1 when equation type is CalibrationCurve.");
+
+            if (!effectiveCalRecLow.HasValue || !effectiveCalRecHigh.HasValue)
+                throw new InvalidOperationException("Both check recovery window bounds (low and high) are required when equation type is CalibrationCurve.");
+
+            if (effectiveCalRecLow.Value > effectiveCalRecHigh.Value)
+                throw new InvalidOperationException("Check recovery low percent must be less than or equal to high percent.");
+
+            if (effectiveCalRequireIs == true)
+            {
+                if (!effectiveCalIsLow.HasValue || !effectiveCalIsHigh.HasValue)
+                    throw new InvalidOperationException("Both internal standard recovery bounds (low and high) are required when internal standards are required.");
+
+                if (effectiveCalIsLow.Value > effectiveCalIsHigh.Value)
+                    throw new InvalidOperationException("Internal standard recovery low percent must be less than or equal to high percent.");
+            }
+            else if (effectiveCalIsLow.HasValue && effectiveCalIsHigh.HasValue && effectiveCalIsLow.Value > effectiveCalIsHigh.Value)
+            {
+                throw new InvalidOperationException("Internal standard recovery low percent must be less than or equal to high percent.");
+            }
+
+            if (!effectiveBasis.HasValue)
+                throw new InvalidOperationException("Reported concentration basis is required when equation type is CalibrationCurve.");
+            if (effectiveBasis != ReportedConcentrationBasis.SamplePpm)
+                throw new InvalidOperationException("Only 'ppm in the sample' is supported: Syngistix applies weight, volume and dilution itself.");
+
+            if (effectiveMaxAge < 1)
+                throw new InvalidOperationException("Maximum run age must be at least 1 hour when equation type is CalibrationCurve.");
+        }
+        else if (effectiveMethodAbbr != null)
+        {
+            if (!System.Text.RegularExpressions.Regex.IsMatch(effectiveMethodAbbr, "^[A-Z0-9-]{1,20}$"))
+                throw new InvalidOperationException("Method abbreviation must be 1-20 uppercase alphanumeric characters or hyphens.");
+        }
+
+        // AAS reuses the CalibrationCurve path (D-A4): the instrument choice and standard
+        // levels only make sense there, and only IcpOes/Aas are supported instrument families.
+        var effectiveCalInstrumentType = request.CalInstrumentType ?? entity.CalInstrumentType;
+        if (effectiveCalInstrumentType.HasValue)
+        {
+            if (effectiveEquationType != EquationType.CalibrationCurve)
+                throw new InvalidOperationException("Calibration instrument type only applies when equation type is CalibrationCurve.");
+
+            if (effectiveCalInstrumentType.Value != EquipmentType.IcpOes && effectiveCalInstrumentType.Value != EquipmentType.Aas)
+                throw new InvalidOperationException("Calibration instrument type must be IcpOes or Aas.");
+        }
+
+        // Empty string clears the levels (explicit "no levels configured"); null (the
+        // default) means keep the existing value - the same convention as every other
+        // Cal* field, but strings need an explicit marker to distinguish "clear" from "keep".
+        string? normalizedCalLevels = entity.CalStandardLevelsMgPerL;
+        if (request.CalStandardLevelsMgPerL != null)
+        {
+            normalizedCalLevels = string.IsNullOrWhiteSpace(request.CalStandardLevelsMgPerL)
+                ? null
+                : CalibrationStandardLevelsHelper.ParseAndValidate(request.CalStandardLevelsMgPerL).Normalized;
+        }
+
+        if (normalizedCalLevels != null && effectiveEquationType != EquationType.CalibrationCurve)
+            throw new InvalidOperationException("Standard levels only apply when equation type is CalibrationCurve.");
+
+        if (effectiveEquationType == EquationType.Measurement)
+        {
+            if (effectiveWorkflowType != WorkflowType.Measurement)
+                throw new InvalidOperationException("Workflow type must be Measurement when equation type is Measurement.");
+
+            if (!effectiveReplicateCount.HasValue || effectiveReplicateCount.Value < 1 || effectiveReplicateCount.Value > 30)
+                throw new InvalidOperationException("Replicate count must be between 1 and 30 when equation type is Measurement.");
+
+            if (!effectiveEvaluationBasis.HasValue)
+                throw new InvalidOperationException("Evaluation basis is required when equation type is Measurement.");
+        }
+        else if (effectiveWorkflowType == WorkflowType.Measurement)
+        {
+            if (effectiveEquationType != EquationType.Measurement)
+                throw new InvalidOperationException("Equation type must be Measurement when workflow type is Measurement.");
+        }
+
+        if (effectiveEquationType is EquationType.GravimetricLoss or EquationType.GravimetricResidue)
+        {
+            if (effectiveWorkflowType != WorkflowType.Gravimetric)
+                throw new InvalidOperationException($"Workflow type must be Gravimetric when equation type is {effectiveEquationType}.");
+
+            if (!effectiveReplicateCount.HasValue || effectiveReplicateCount.Value < 1 || effectiveReplicateCount.Value > 30)
+                throw new InvalidOperationException($"Replicate count must be between 1 and 30 when equation type is {effectiveEquationType}.");
+        }
+        else if (effectiveWorkflowType == WorkflowType.Gravimetric)
+        {
+            if (effectiveEquationType is not (EquationType.GravimetricLoss or EquationType.GravimetricResidue))
+                throw new InvalidOperationException("Equation type must be GravimetricLoss or GravimetricResidue when workflow type is Gravimetric.");
+
+            if (!effectiveReplicateCount.HasValue || effectiveReplicateCount.Value < 1 || effectiveReplicateCount.Value > 30)
+                throw new InvalidOperationException($"Replicate count must be between 1 and 30 when equation type is {effectiveEquationType}.");
+        }
+
+        if (effectiveEquationType == EquationType.Qualitative)
+        {
+            if (effectiveWorkflowType != WorkflowType.Qualitative)
+                throw new InvalidOperationException("Workflow type must be Qualitative when equation type is Qualitative.");
+        }
+        else if (effectiveWorkflowType == WorkflowType.Qualitative)
+        {
+            if (effectiveEquationType != EquationType.Qualitative)
+                throw new InvalidOperationException("Equation type must be Qualitative when workflow type is Qualitative.");
+        }
+
+        if (effectiveEquationType == EquationType.Dissolution)
+        {
+            if (effectiveWorkflowType != WorkflowType.Dissolution)
+                throw new InvalidOperationException("Workflow type must be Dissolution when equation type is Dissolution.");
+        }
+        else if (effectiveWorkflowType == WorkflowType.Dissolution)
+        {
+            if (effectiveEquationType != EquationType.Dissolution)
+                throw new InvalidOperationException("Equation type must be Dissolution when workflow type is Dissolution.");
+        }
+
+        if (effectiveWorkflowType == WorkflowType.Dissolution)
+        {
+            if (!effectiveRequiresSst)
+                throw new InvalidOperationException("Dissolution tests must require system suitability: the standard comes from the linked suitability run.");
+
+            var effectiveS1 = request.DissolutionS1Offset ?? entity.DissolutionS1Offset;
+            var effectiveS2 = request.DissolutionS2MinOffset ?? entity.DissolutionS2MinOffset;
+            var effectiveS3 = request.DissolutionS3MinOffset ?? entity.DissolutionS3MinOffset;
+            var effectiveMaxBelow = request.DissolutionS3MaxBelowS2Min ?? entity.DissolutionS3MaxBelowS2Min;
+
+            if (!effectiveS1.HasValue || !effectiveS2.HasValue || !effectiveS3.HasValue || !effectiveMaxBelow.HasValue)
+                throw new InvalidOperationException("Dissolution stage offsets are required for Dissolution tests.");
+
+            if (effectiveS1.Value < 0 || effectiveS2.Value < 0 || effectiveS3.Value < 0 || effectiveMaxBelow.Value < 0)
+                throw new InvalidOperationException("Dissolution stage offsets must be greater than or equal to zero.");
+        }
+
+        if (effectiveEquationType == EquationType.Disintegration)
+        {
+            if (effectiveWorkflowType != WorkflowType.Disintegration)
+                throw new InvalidOperationException("Workflow type must be Disintegration when equation type is Disintegration.");
+        }
+        else if (effectiveWorkflowType == WorkflowType.Disintegration)
+        {
+            if (effectiveEquationType != EquationType.Disintegration)
+                throw new InvalidOperationException("Equation type must be Disintegration when workflow type is Disintegration.");
+        }
+
+        if (effectiveWorkflowType == WorkflowType.Disintegration)
+        {
+            if (effectiveRequiresSst)
+                throw new InvalidOperationException("Disintegration tests must not require system suitability.");
+
+            var effectiveS1 = request.DisintegrationStage1Units ?? entity.DisintegrationStage1Units ?? 6;
+            var effectiveS2 = request.DisintegrationStage2Units ?? entity.DisintegrationStage2Units ?? 12;
+            var effectiveMaxF1 = request.DisintegrationMaxStage1Failures ?? entity.DisintegrationMaxStage1Failures ?? 2;
+            var effectiveMinPass = request.DisintegrationMinPassTotal ?? entity.DisintegrationMinPassTotal ?? 16;
+
+            if (effectiveS1 < 1 || effectiveS2 < 1)
+                throw new InvalidOperationException("Disintegration stage units must be greater than or equal to 1.");
+            if (effectiveMaxF1 < 0 || effectiveMaxF1 >= effectiveS1)
+                throw new InvalidOperationException($"Disintegration maximum Stage 1 failures must be between 0 and {effectiveS1 - 1}.");
+            if (effectiveMinPass < 1 || effectiveMinPass > effectiveS1 + effectiveS2)
+                throw new InvalidOperationException($"Disintegration minimum pass total must be between 1 and {effectiveS1 + effectiveS2}.");
+        }
+
+        if (effectiveEquationType == EquationType.WeightVariation)
+        {
+            if (effectiveWorkflowType != WorkflowType.WeightVariation)
+                throw new InvalidOperationException("Workflow type must be WeightVariation when equation type is WeightVariation.");
+        }
+        else if (effectiveWorkflowType == WorkflowType.WeightVariation)
+        {
+            if (effectiveEquationType != EquationType.WeightVariation)
+                throw new InvalidOperationException("Equation type must be WeightVariation when workflow type is WeightVariation.");
+        }
+
+        if (effectiveWorkflowType == WorkflowType.WeightVariation)
+        {
+            if (effectiveRequiresSst)
+                throw new InvalidOperationException("Weight variation tests must not require system suitability.");
+
+            var effectiveUnitCount = request.WvUnitCount ?? entity.WvUnitCount ?? 20;
+            var effectiveBand1Mg = request.WvTabletBand1MaxMg ?? entity.WvTabletBand1MaxMg ?? 130m;
+            var effectiveBand1Pct = request.WvTabletBand1Percent ?? entity.WvTabletBand1Percent ?? 10m;
+            var effectiveBand2Mg = request.WvTabletBand2MaxMg ?? entity.WvTabletBand2MaxMg ?? 324m;
+            var effectiveBand2Pct = request.WvTabletBand2Percent ?? entity.WvTabletBand2Percent ?? 7.5m;
+            var effectiveBand3Pct = request.WvTabletBand3Percent ?? entity.WvTabletBand3Percent ?? 5m;
+            var effectiveTabMaxOutside = request.WvTabletMaxOutside ?? entity.WvTabletMaxOutside ?? 2;
+
+            var effectiveCapInnerPct = request.WvCapsuleInnerPercent ?? entity.WvCapsuleInnerPercent ?? 10m;
+            var effectiveCapOuterPct = request.WvCapsuleOuterPercent ?? entity.WvCapsuleOuterPercent ?? 25m;
+            var effectiveCapS1MaxOutside = request.WvCapsuleS1MaxOutside ?? entity.WvCapsuleS1MaxOutside ?? 2;
+            var effectiveCapS1MaxRetest = request.WvCapsuleS1MaxForRetest ?? entity.WvCapsuleS1MaxForRetest ?? 6;
+            var effectiveCapS2Extra = request.WvCapsuleS2ExtraUnits ?? entity.WvCapsuleS2ExtraUnits ?? 40;
+            var effectiveCapS2MaxOutside = request.WvCapsuleS2MaxOutside ?? entity.WvCapsuleS2MaxOutside ?? 6;
+
+            if (effectiveUnitCount < 1 || effectiveCapS2Extra < 1)
+                throw new InvalidOperationException("Weight variation unit count and extra units must be greater than or equal to 1.");
+            if (effectiveTabMaxOutside < 0 || effectiveCapS1MaxOutside < 0 || effectiveCapS2MaxOutside < 0)
+                throw new InvalidOperationException("Weight variation maximum outside counts must be greater than or equal to 0.");
+            if (effectiveBand1Mg <= 0m || effectiveBand2Mg <= 0m)
+                throw new InvalidOperationException("Weight variation tablet band weight limits must be greater than zero.");
+            if (effectiveBand1Pct <= 0m || effectiveBand2Pct <= 0m || effectiveBand3Pct <= 0m || effectiveCapInnerPct <= 0m || effectiveCapOuterPct <= 0m)
+                throw new InvalidOperationException("Weight variation percentages must be greater than zero.");
+            if (effectiveBand1Mg >= effectiveBand2Mg)
+                throw new InvalidOperationException("Weight variation Tablet Band 1 Max Mg must be less than Band 2 Max Mg.");
+            if (effectiveCapInnerPct >= effectiveCapOuterPct)
+                throw new InvalidOperationException("Weight variation capsule inner percentage must be less than outer percentage.");
+            if (effectiveCapS1MaxOutside >= effectiveCapS1MaxRetest || effectiveCapS1MaxRetest > effectiveUnitCount)
+                throw new InvalidOperationException("Weight variation capsule Stage 1 max outside must be less than Stage 1 max for retest, which must be less than or equal to unit count.");
+            if (effectiveCapS2MaxOutside >= effectiveUnitCount + effectiveCapS2Extra)
+                throw new InvalidOperationException($"Weight variation capsule Stage 2 max outside must be less than total units ({effectiveUnitCount + effectiveCapS2Extra}).");
+        }
+
+        // Retired by SC-3: both old HPLC types are folded into StandardComparison.
+        if ((request.WorkflowType is WorkflowType.HplcAssay or WorkflowType.HplcMultiAnalyte)
+            || (request.EquationType is EquationType.HplcAssay or EquationType.HplcMultiAnalyte))
+            throw new InvalidOperationException("HPLC Assay and HPLC Multi-Analyte are retired; use Standard-Comparison.");
+
+        if (effectiveEquationType == EquationType.StandardComparison)
+        {
+            if (effectiveWorkflowType != WorkflowType.StandardComparison)
+                throw new InvalidOperationException("Workflow type must be StandardComparison when equation type is StandardComparison.");
+        }
+        else if (effectiveWorkflowType == WorkflowType.StandardComparison)
+        {
+            if (effectiveEquationType != EquationType.StandardComparison)
+                throw new InvalidOperationException("Equation type must be StandardComparison when workflow type is StandardComparison.");
+        }
+
+        if (effectiveWorkflowType == WorkflowType.StandardComparison)
+        {
+            if (!effectiveRequiresSst)
+                throw new InvalidOperationException("Standard comparison tests must require system suitability.");
+
+            var effectiveRsdPercent = request.HplcMaxPreparationRsdPercent.HasValue
+                ? request.HplcMaxPreparationRsdPercent
+                : entity.HplcMaxPreparationRsdPercent;
+            if (effectiveRsdPercent.HasValue && effectiveRsdPercent.Value <= 0m)
+                throw new InvalidOperationException("Maximum preparation RSD percent must be greater than zero.");
+        }
+
+        var effectiveResponseMode = request.ResponseMode ?? entity.ResponseMode;
+        if (!Enum.IsDefined(effectiveResponseMode))
+            throw new InvalidOperationException("Unknown response mode.");
+        if (effectiveResponseMode != ResponseMode.PeakArea && effectiveWorkflowType != WorkflowType.StandardComparison)
+            throw new InvalidOperationException("Response mode applies only to standard-comparison tests.");
+        // Runs and results are measured one way; switching HPLC <-> titration after that would misread them.
+        if (effectiveResponseMode != entity.ResponseMode && await _db.SystemSuitabilityRuns.AnyAsync(r => r.TestDefinitionId == entity.Id))
+            throw new InvalidOperationException("Response mode cannot be changed once suitability runs exist for this test.");
+
         entity.Code = request.Code;
         entity.DisplayName = request.DisplayName;
+        if (request.WorkflowType.HasValue) entity.WorkflowType = request.WorkflowType.Value;
+        if (request.EquationType.HasValue) entity.EquationType = request.EquationType.Value;
+        if (request.RequiresSystemSuitability.HasValue) entity.RequiresSystemSuitability = request.RequiresSystemSuitability.Value;
+        if (request.MethodAbbreviation != null) entity.MethodAbbreviation = effectiveMethodAbbr;
+        if (request.SstMaxRsdPercent.HasValue) entity.SstMaxRsdPercent = request.SstMaxRsdPercent;
+        if (request.SstMinResolution.HasValue) entity.SstMinResolution = request.SstMinResolution;
+        if (request.SstMaxTailingFactor.HasValue) entity.SstMaxTailingFactor = request.SstMaxTailingFactor;
+        if (request.SstMinTheoreticalPlates.HasValue) entity.SstMinTheoreticalPlates = request.SstMinTheoreticalPlates;
+        if (request.CalibrationEntryMode.HasValue) entity.CalibrationEntryMode = request.CalibrationEntryMode.Value;
+        if (request.CalMinCorrelation.HasValue) entity.CalMinCorrelation = request.CalMinCorrelation;
+        if (request.CalCorrelationType.HasValue) entity.CalCorrelationType = request.CalCorrelationType;
+        if (request.CalMinStandards.HasValue) entity.CalMinStandards = request.CalMinStandards;
+        if (request.CalCheckRecoveryLowPercent.HasValue) entity.CalCheckRecoveryLowPercent = request.CalCheckRecoveryLowPercent;
+        if (request.CalCheckRecoveryHighPercent.HasValue) entity.CalCheckRecoveryHighPercent = request.CalCheckRecoveryHighPercent;
+        if (request.CalBlankMax.HasValue) entity.CalBlankMax = request.CalBlankMax;
+        if (request.CalIsRecoveryLowPercent.HasValue) entity.CalIsRecoveryLowPercent = request.CalIsRecoveryLowPercent;
+        if (request.CalIsRecoveryHighPercent.HasValue) entity.CalIsRecoveryHighPercent = request.CalIsRecoveryHighPercent;
+        if (request.CalRequireBlank.HasValue) entity.CalRequireBlank = request.CalRequireBlank;
+        if (request.CalRequireIcv.HasValue) entity.CalRequireIcv = request.CalRequireIcv;
+        if (request.CalRequireCcv.HasValue) entity.CalRequireCcv = request.CalRequireCcv;
+        if (request.CalRequireInternalStandard.HasValue) entity.CalRequireInternalStandard = request.CalRequireInternalStandard;
+        if (request.ReportedConcentrationBasis.HasValue) entity.ReportedConcentrationBasis = request.ReportedConcentrationBasis;
+        if (request.CalMaxRunAgeHours.HasValue) entity.CalMaxRunAgeHours = request.CalMaxRunAgeHours;
+        if (request.CalInstrumentType.HasValue) entity.CalInstrumentType = request.CalInstrumentType;
+        // normalizedCalLevels already folds in the "empty string clears" convention above.
+        if (request.CalStandardLevelsMgPerL != null) entity.CalStandardLevelsMgPerL = normalizedCalLevels;
+        if (request.ReplicateCount.HasValue) entity.ReplicateCount = request.ReplicateCount.Value;
+        if (request.EvaluationBasis.HasValue) entity.EvaluationBasis = request.EvaluationBasis.Value;
+        if (request.ConditionFields != null) entity.ConditionFields = request.ConditionFields;
+        if (request.UsesTare.HasValue) entity.UsesTare = request.UsesTare.Value;
+        else if (effectiveWorkflowType == WorkflowType.Gravimetric && !entity.UsesTare.HasValue) entity.UsesTare = false;
+        if (request.DissolutionS1Offset.HasValue) entity.DissolutionS1Offset = request.DissolutionS1Offset.Value;
+        else if (effectiveWorkflowType == WorkflowType.Dissolution && !entity.DissolutionS1Offset.HasValue) entity.DissolutionS1Offset = 5m;
+        if (request.DissolutionS2MinOffset.HasValue) entity.DissolutionS2MinOffset = request.DissolutionS2MinOffset.Value;
+        else if (effectiveWorkflowType == WorkflowType.Dissolution && !entity.DissolutionS2MinOffset.HasValue) entity.DissolutionS2MinOffset = 15m;
+        if (request.DissolutionS3MinOffset.HasValue) entity.DissolutionS3MinOffset = request.DissolutionS3MinOffset.Value;
+        else if (effectiveWorkflowType == WorkflowType.Dissolution && !entity.DissolutionS3MinOffset.HasValue) entity.DissolutionS3MinOffset = 25m;
+        if (request.DissolutionS3MaxBelowS2Min.HasValue) entity.DissolutionS3MaxBelowS2Min = request.DissolutionS3MaxBelowS2Min.Value;
+        else if (effectiveWorkflowType == WorkflowType.Dissolution && !entity.DissolutionS3MaxBelowS2Min.HasValue) entity.DissolutionS3MaxBelowS2Min = 2m;
+        if (request.DisintegrationStage1Units.HasValue) entity.DisintegrationStage1Units = request.DisintegrationStage1Units.Value;
+        else if (effectiveWorkflowType == WorkflowType.Disintegration && !entity.DisintegrationStage1Units.HasValue) entity.DisintegrationStage1Units = 6;
+        if (request.DisintegrationStage2Units.HasValue) entity.DisintegrationStage2Units = request.DisintegrationStage2Units.Value;
+        else if (effectiveWorkflowType == WorkflowType.Disintegration && !entity.DisintegrationStage2Units.HasValue) entity.DisintegrationStage2Units = 12;
+        if (request.DisintegrationMaxStage1Failures.HasValue) entity.DisintegrationMaxStage1Failures = request.DisintegrationMaxStage1Failures.Value;
+        else if (effectiveWorkflowType == WorkflowType.Disintegration && !entity.DisintegrationMaxStage1Failures.HasValue) entity.DisintegrationMaxStage1Failures = 2;
+        if (request.DisintegrationMinPassTotal.HasValue) entity.DisintegrationMinPassTotal = request.DisintegrationMinPassTotal.Value;
+        else if (effectiveWorkflowType == WorkflowType.Disintegration && !entity.DisintegrationMinPassTotal.HasValue) entity.DisintegrationMinPassTotal = 16;
+        if (request.WvUnitCount.HasValue) entity.WvUnitCount = request.WvUnitCount.Value;
+        else if (effectiveWorkflowType == WorkflowType.WeightVariation && !entity.WvUnitCount.HasValue) entity.WvUnitCount = 20;
+        if (request.WvTabletBand1MaxMg.HasValue) entity.WvTabletBand1MaxMg = request.WvTabletBand1MaxMg.Value;
+        else if (effectiveWorkflowType == WorkflowType.WeightVariation && !entity.WvTabletBand1MaxMg.HasValue) entity.WvTabletBand1MaxMg = 130m;
+        if (request.WvTabletBand1Percent.HasValue) entity.WvTabletBand1Percent = request.WvTabletBand1Percent.Value;
+        else if (effectiveWorkflowType == WorkflowType.WeightVariation && !entity.WvTabletBand1Percent.HasValue) entity.WvTabletBand1Percent = 10m;
+        if (request.WvTabletBand2MaxMg.HasValue) entity.WvTabletBand2MaxMg = request.WvTabletBand2MaxMg.Value;
+        else if (effectiveWorkflowType == WorkflowType.WeightVariation && !entity.WvTabletBand2MaxMg.HasValue) entity.WvTabletBand2MaxMg = 324m;
+        if (request.WvTabletBand2Percent.HasValue) entity.WvTabletBand2Percent = request.WvTabletBand2Percent.Value;
+        else if (effectiveWorkflowType == WorkflowType.WeightVariation && !entity.WvTabletBand2Percent.HasValue) entity.WvTabletBand2Percent = 7.5m;
+        if (request.WvTabletBand3Percent.HasValue) entity.WvTabletBand3Percent = request.WvTabletBand3Percent.Value;
+        else if (effectiveWorkflowType == WorkflowType.WeightVariation && !entity.WvTabletBand3Percent.HasValue) entity.WvTabletBand3Percent = 5m;
+        if (request.WvTabletMaxOutside.HasValue) entity.WvTabletMaxOutside = request.WvTabletMaxOutside.Value;
+        else if (effectiveWorkflowType == WorkflowType.WeightVariation && !entity.WvTabletMaxOutside.HasValue) entity.WvTabletMaxOutside = 2;
+        if (request.WvCapsuleInnerPercent.HasValue) entity.WvCapsuleInnerPercent = request.WvCapsuleInnerPercent.Value;
+        else if (effectiveWorkflowType == WorkflowType.WeightVariation && !entity.WvCapsuleInnerPercent.HasValue) entity.WvCapsuleInnerPercent = 10m;
+        if (request.WvCapsuleOuterPercent.HasValue) entity.WvCapsuleOuterPercent = request.WvCapsuleOuterPercent.Value;
+        else if (effectiveWorkflowType == WorkflowType.WeightVariation && !entity.WvCapsuleOuterPercent.HasValue) entity.WvCapsuleOuterPercent = 25m;
+        if (request.WvCapsuleS1MaxOutside.HasValue) entity.WvCapsuleS1MaxOutside = request.WvCapsuleS1MaxOutside.Value;
+        else if (effectiveWorkflowType == WorkflowType.WeightVariation && !entity.WvCapsuleS1MaxOutside.HasValue) entity.WvCapsuleS1MaxOutside = 2;
+        if (request.WvCapsuleS1MaxForRetest.HasValue) entity.WvCapsuleS1MaxForRetest = request.WvCapsuleS1MaxForRetest.Value;
+        else if (effectiveWorkflowType == WorkflowType.WeightVariation && !entity.WvCapsuleS1MaxForRetest.HasValue) entity.WvCapsuleS1MaxForRetest = 6;
+        if (request.WvCapsuleS2ExtraUnits.HasValue) entity.WvCapsuleS2ExtraUnits = request.WvCapsuleS2ExtraUnits.Value;
+        else if (effectiveWorkflowType == WorkflowType.WeightVariation && !entity.WvCapsuleS2ExtraUnits.HasValue) entity.WvCapsuleS2ExtraUnits = 40;
+        if (request.WvCapsuleS2MaxOutside.HasValue) entity.WvCapsuleS2MaxOutside = request.WvCapsuleS2MaxOutside.Value;
+        else if (effectiveWorkflowType == WorkflowType.WeightVariation && !entity.WvCapsuleS2MaxOutside.HasValue) entity.WvCapsuleS2MaxOutside = 6;
+        if (request.HplcMaxPreparationRsdPercent.HasValue) entity.HplcMaxPreparationRsdPercent = request.HplcMaxPreparationRsdPercent.Value;
+        entity.ResponseMode = effectiveResponseMode;
+
+
         await _db.SaveChangesAsync();
+
         return Ok(ApiResponse<object>.Ok(entity));
     }
 
@@ -1486,8 +2804,10 @@ public class MasterDataController : ControllerBase
     [HttpPost("test-definitions/{id}/steps")]
     public async Task<IActionResult> CreateTestWorkflowStep(int id, CreateTestWorkflowStepRequest request)
     {
-        _ = await _db.TestDefinitions.FirstOrDefaultAsync(t => t.Id == id)
+        var test = await _db.TestDefinitions.FirstOrDefaultAsync(t => t.Id == id)
             ?? throw new InvalidOperationException($"Test {id} not found.");
+        if (AnalysisWorkflows.UsesTestAnalysis(test.WorkflowType))
+            throw new InvalidOperationException($"{test.WorkflowType} tests have no workflow steps.");
 
         var nextOrder = 1 + await _db.TestWorkflowSteps.Where(s => s.TestDefinitionId == id)
             .Select(s => (int?)s.StepOrder).MaxAsync() ?? 1;
@@ -1658,5 +2978,335 @@ public class MasterDataController : ControllerBase
 
         await _db.SaveChangesAsync();
         return Ok(ApiResponse<object>.Ok(new { }));
+    }
+
+    // ---- Test Analytes (ICP-OES / Calibration Curve) ----
+    [HttpGet("test-definitions/{id:int}/analytes")]
+    public async Task<IActionResult> GetTestAnalytes(int id)
+    {
+        var test = await _db.TestDefinitions.FindAsync(id)
+            ?? throw new InvalidOperationException($"Test {id} not found.");
+
+        var analytes = await _db.TestAnalytes
+            .Where(a => a.TestDefinitionId == id)
+            .OrderBy(a => a.DisplayOrder)
+            .ThenBy(a => a.Id)
+            .ToListAsync();
+
+        return Ok(ApiResponse<object>.Ok(analytes.Select(TestAnalyteDto.From)));
+    }
+
+    [Authorize(Roles = RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
+    [HttpPost("test-definitions/{id:int}/analytes")]
+    public async Task<IActionResult> CreateTestAnalyte(int id, CreateTestAnalyteRequest request)
+    {
+        var test = await _db.TestDefinitions.FindAsync(id)
+            ?? throw new InvalidOperationException($"Test {id} not found.");
+
+        var scope = await _scope.GetAccessibleSectionIdsAsync(CurrentUserId);
+        if (scope is not null && !scope.Contains(test.SectionId))
+            throw new UnauthorizedAccessException("This test belongs to a laboratory section you are not assigned to.");
+
+        var isAnalyteBasedSst = test.WorkflowType == WorkflowType.StandardComparison || test.EquationType == EquationType.StandardComparison;
+
+        if (string.IsNullOrWhiteSpace(request.Element))
+            throw new InvalidOperationException("Element is required.");
+
+        var element = request.Element.Trim();
+        if (element.Length > 20)
+            throw new InvalidOperationException(isAnalyteBasedSst ? "Analyte name cannot exceed 20 characters." : "Element symbol cannot exceed 20 characters.");
+
+        if (request.WavelengthNm <= 0)
+            throw new InvalidOperationException("Wavelength must be greater than 0.");
+
+        if (isAnalyteBasedSst)
+        {
+            if (request.View.HasValue)
+                throw new InvalidOperationException("View is not allowed for analyte-based tests.");
+
+            if (request.LoqMgPerL.HasValue && request.LoqMgPerL.Value <= 0)
+                throw new InvalidOperationException("LOQ must be greater than 0.");
+
+            if (request.SstMaxRsdPercent.HasValue && request.SstMaxRsdPercent.Value <= 0)
+                throw new InvalidOperationException("SST max RSD percent must be greater than 0.");
+            if (request.SstMinResolution.HasValue && request.SstMinResolution.Value <= 0)
+                throw new InvalidOperationException("SST min resolution must be greater than 0.");
+            if (request.SstMaxTailingFactor.HasValue && request.SstMaxTailingFactor.Value <= 0)
+                throw new InvalidOperationException("SST max tailing factor must be greater than 0.");
+            if (request.SstMinTheoreticalPlates.HasValue && request.SstMinTheoreticalPlates.Value <= 0)
+                throw new InvalidOperationException("SST min theoretical plates must be greater than 0.");
+        }
+        else
+        {
+            // AAS calibration-curve tests have no plasma view (torch-only ICP-OES
+            // concept); only require it for ICP-OES (CalInstrumentType null defaults
+            // to ICP-OES for legacy tests).
+            var isAas = test.CalInstrumentType == EquipmentType.Aas;
+            if (!isAas && !request.View.HasValue)
+                throw new InvalidOperationException("View is required for calibration curve tests.");
+
+            if (!request.LoqMgPerL.HasValue || request.LoqMgPerL.Value <= 0)
+                throw new InvalidOperationException("LOQ must be greater than 0.");
+
+            if (request.SstMaxRsdPercent.HasValue || request.SstMinResolution.HasValue ||
+                request.SstMaxTailingFactor.HasValue || request.SstMinTheoreticalPlates.HasValue)
+            {
+                throw new InvalidOperationException("SST criteria are not allowed for calibration curve tests.");
+            }
+        }
+
+        if (await _db.TestAnalytes.AnyAsync(a => a.TestDefinitionId == id && a.Element == element && a.WavelengthNm == request.WavelengthNm))
+            throw new InvalidOperationException($"Analyte {element} at {request.WavelengthNm} nm already exists for this test definition.");
+
+        var entity = new TestAnalyte
+        {
+            TestDefinitionId = id,
+            Element = element,
+            WavelengthNm = request.WavelengthNm,
+            View = (isAnalyteBasedSst || test.CalInstrumentType == EquipmentType.Aas) ? null : request.View,
+            LoqMgPerL = request.LoqMgPerL,
+            DisplayOrder = request.DisplayOrder,
+            SstMaxRsdPercent = isAnalyteBasedSst ? request.SstMaxRsdPercent : null,
+            SstMinResolution = isAnalyteBasedSst ? request.SstMinResolution : null,
+            SstMaxTailingFactor = isAnalyteBasedSst ? request.SstMaxTailingFactor : null,
+            SstMinTheoreticalPlates = isAnalyteBasedSst ? request.SstMinTheoreticalPlates : null,
+            IsActive = true
+        };
+
+        _db.TestAnalytes.Add(entity);
+        await _db.SaveChangesAsync();
+        return Ok(ApiResponse<object>.Ok(TestAnalyteDto.From(entity)));
+    }
+
+    [Authorize(Roles = RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
+    [HttpPut("test-definitions/{id:int}/analytes/{analyteId:int}")]
+    public async Task<IActionResult> UpdateTestAnalyte(int id, int analyteId, UpdateTestAnalyteRequest request)
+    {
+        var test = await _db.TestDefinitions.FindAsync(id)
+            ?? throw new InvalidOperationException($"Test {id} not found.");
+
+        var scope = await _scope.GetAccessibleSectionIdsAsync(CurrentUserId);
+        if (scope is not null && !scope.Contains(test.SectionId))
+            throw new UnauthorizedAccessException("This test belongs to a laboratory section you are not assigned to.");
+
+        var analyte = await _db.TestAnalytes.FirstOrDefaultAsync(a => a.Id == analyteId && a.TestDefinitionId == id)
+            ?? throw new InvalidOperationException($"Analyte {analyteId} not found for test {id}.");
+
+        var isAnalyteBasedSst = test.WorkflowType == WorkflowType.StandardComparison || test.EquationType == EquationType.StandardComparison;
+
+        var effectiveElement = request.Element != null ? request.Element.Trim() : analyte.Element;
+        var effectiveWavelength = request.WavelengthNm ?? analyte.WavelengthNm;
+
+        if (string.IsNullOrWhiteSpace(effectiveElement))
+            throw new InvalidOperationException("Element is required.");
+        if (effectiveElement.Length > 20)
+            throw new InvalidOperationException(isAnalyteBasedSst ? "Analyte name cannot exceed 20 characters." : "Element symbol cannot exceed 20 characters.");
+        if (effectiveWavelength <= 0)
+            throw new InvalidOperationException("Wavelength must be greater than 0.");
+
+        if (isAnalyteBasedSst)
+        {
+            if (request.View.HasValue)
+                throw new InvalidOperationException("View is not allowed for analyte-based tests.");
+
+            if (request.LoqMgPerL.HasValue)
+            {
+                if (request.LoqMgPerL.Value <= 0)
+                    throw new InvalidOperationException("LOQ must be greater than 0.");
+                analyte.LoqMgPerL = request.LoqMgPerL.Value;
+            }
+
+            if (request.SstMaxRsdPercent.HasValue)
+            {
+                if (request.SstMaxRsdPercent.Value <= 0)
+                    throw new InvalidOperationException("SST max RSD percent must be greater than 0.");
+                analyte.SstMaxRsdPercent = request.SstMaxRsdPercent.Value;
+            }
+            if (request.SstMinResolution.HasValue)
+            {
+                if (request.SstMinResolution.Value <= 0)
+                    throw new InvalidOperationException("SST min resolution must be greater than 0.");
+                analyte.SstMinResolution = request.SstMinResolution.Value;
+            }
+            if (request.SstMaxTailingFactor.HasValue)
+            {
+                if (request.SstMaxTailingFactor.Value <= 0)
+                    throw new InvalidOperationException("SST max tailing factor must be greater than 0.");
+                analyte.SstMaxTailingFactor = request.SstMaxTailingFactor.Value;
+            }
+            if (request.SstMinTheoreticalPlates.HasValue)
+            {
+                if (request.SstMinTheoreticalPlates.Value <= 0)
+                    throw new InvalidOperationException("SST min theoretical plates must be greater than 0.");
+                analyte.SstMinTheoreticalPlates = request.SstMinTheoreticalPlates.Value;
+            }
+        }
+        else
+        {
+            if (request.View.HasValue) analyte.View = request.View.Value;
+            if (request.LoqMgPerL.HasValue)
+            {
+                if (request.LoqMgPerL.Value <= 0)
+                    throw new InvalidOperationException("LOQ must be greater than 0.");
+                analyte.LoqMgPerL = request.LoqMgPerL.Value;
+            }
+            if (request.SstMaxRsdPercent.HasValue || request.SstMinResolution.HasValue ||
+                request.SstMaxTailingFactor.HasValue || request.SstMinTheoreticalPlates.HasValue)
+            {
+                throw new InvalidOperationException("SST criteria are not allowed for calibration curve tests.");
+            }
+        }
+
+        if (await _db.TestAnalytes.AnyAsync(a => a.TestDefinitionId == id && a.Id != analyteId && a.Element == effectiveElement && a.WavelengthNm == effectiveWavelength))
+            throw new InvalidOperationException($"Analyte {effectiveElement} at {effectiveWavelength} nm already exists for this test definition.");
+
+        analyte.Element = effectiveElement;
+        analyte.WavelengthNm = effectiveWavelength;
+        if (request.DisplayOrder.HasValue) analyte.DisplayOrder = request.DisplayOrder.Value;
+        if (request.IsActive.HasValue) analyte.IsActive = request.IsActive.Value;
+
+        await _db.SaveChangesAsync();
+        return Ok(ApiResponse<object>.Ok(TestAnalyteDto.From(analyte)));
+    }
+
+    [Authorize(Roles = RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
+    [HttpDelete("test-definitions/{id:int}/analytes/{analyteId:int}")]
+    public async Task<IActionResult> DeleteTestAnalyte(int id, int analyteId)
+    {
+        var test = await _db.TestDefinitions.FindAsync(id)
+            ?? throw new InvalidOperationException($"Test {id} not found.");
+
+        var scope = await _scope.GetAccessibleSectionIdsAsync(CurrentUserId);
+        if (scope is not null && !scope.Contains(test.SectionId))
+            throw new UnauthorizedAccessException("This test belongs to a laboratory section you are not assigned to.");
+
+        var analyte = await _db.TestAnalytes.FirstOrDefaultAsync(a => a.Id == analyteId && a.TestDefinitionId == id)
+            ?? throw new InvalidOperationException($"Analyte {analyteId} not found for test {id}.");
+
+        var inUseCalibration = await _db.CalibrationRunAnalytes.AnyAsync(r => r.TestAnalyteId == analyteId);
+        var inUseSuitability = await _db.SystemSuitabilityRunAnalytes.AnyAsync(r => r.TestAnalyteId == analyteId);
+        if (inUseCalibration || inUseSuitability)
+        {
+            analyte.IsActive = false;
+            await _db.SaveChangesAsync();
+            var runType = inUseCalibration && inUseSuitability ? "calibration and suitability runs"
+                : inUseCalibration ? "calibration runs"
+                : "suitability runs";
+            return Ok(ApiResponse<object>.Ok(new
+            {
+                message = $"Analyte {analyte.Element} ({analyte.WavelengthNm} nm) is referenced by {runType} and has been deactivated instead of deleted.",
+                deactivated = true
+            }));
+        }
+
+        _db.TestAnalytes.Remove(analyte);
+        await _db.SaveChangesAsync();
+        return Ok(ApiResponse<object>.Ok(new
+        {
+            message = $"Analyte {analyte.Element} ({analyte.WavelengthNm} nm) deleted successfully.",
+            deleted = true
+        }));
+    }
+
+    // ---- Test Definition Stage Replicates (FP Standard-Comparison Assay -
+    // per-ProductionStageRole standard/sample replicate counts) ----
+    [HttpGet("test-definitions/{id:int}/stage-replicates")]
+    public async Task<IActionResult> GetTestDefinitionStageReplicates(int id)
+    {
+        var test = await _db.TestDefinitions.FindAsync(id)
+            ?? throw new InvalidOperationException($"Test {id} not found.");
+
+        var replicates = await _db.TestDefinitionStageReplicates
+            .Where(r => r.TestDefinitionId == id)
+            .OrderBy(r => r.Role)
+            .ToListAsync();
+
+        return Ok(ApiResponse<object>.Ok(replicates.Select(TestDefinitionStageReplicateDto.From)));
+    }
+
+    [Authorize(Roles = RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
+    [HttpPost("test-definitions/{id:int}/stage-replicates")]
+    public async Task<IActionResult> CreateTestDefinitionStageReplicate(int id, CreateTestDefinitionStageReplicateRequest request)
+    {
+        var test = await _db.TestDefinitions.FindAsync(id)
+            ?? throw new InvalidOperationException($"Test {id} not found.");
+
+        var scope = await _scope.GetAccessibleSectionIdsAsync(CurrentUserId);
+        if (scope is not null && !scope.Contains(test.SectionId))
+            throw new UnauthorizedAccessException("This test belongs to a laboratory section you are not assigned to.");
+
+        if (request.StandardReplicates < 1)
+            throw new InvalidOperationException("Standard replicates must be at least 1.");
+        if (request.SampleReplicates < 1)
+            throw new InvalidOperationException("Sample replicates must be at least 1.");
+
+        if (await _db.TestDefinitionStageReplicates.AnyAsync(r => r.TestDefinitionId == id && r.Role == request.Role))
+            throw new InvalidOperationException($"Stage replicate configuration for role {request.Role} already exists for this test definition.");
+
+        var entity = new TestDefinitionStageReplicate
+        {
+            TestDefinitionId = id,
+            Role = request.Role,
+            StandardReplicates = request.StandardReplicates,
+            SampleReplicates = request.SampleReplicates
+        };
+
+        _db.TestDefinitionStageReplicates.Add(entity);
+        await _db.SaveChangesAsync();
+        return Ok(ApiResponse<object>.Ok(TestDefinitionStageReplicateDto.From(entity)));
+    }
+
+    [Authorize(Roles = RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
+    [HttpPut("test-definitions/{id:int}/stage-replicates/{replicateId:int}")]
+    public async Task<IActionResult> UpdateTestDefinitionStageReplicate(int id, int replicateId, UpdateTestDefinitionStageReplicateRequest request)
+    {
+        var test = await _db.TestDefinitions.FindAsync(id)
+            ?? throw new InvalidOperationException($"Test {id} not found.");
+
+        var scope = await _scope.GetAccessibleSectionIdsAsync(CurrentUserId);
+        if (scope is not null && !scope.Contains(test.SectionId))
+            throw new UnauthorizedAccessException("This test belongs to a laboratory section you are not assigned to.");
+
+        var replicate = await _db.TestDefinitionStageReplicates.FirstOrDefaultAsync(r => r.Id == replicateId && r.TestDefinitionId == id)
+            ?? throw new InvalidOperationException($"Stage replicate {replicateId} not found for test {id}.");
+
+        if (request.StandardReplicates.HasValue)
+        {
+            if (request.StandardReplicates.Value < 1)
+                throw new InvalidOperationException("Standard replicates must be at least 1.");
+            replicate.StandardReplicates = request.StandardReplicates.Value;
+        }
+        if (request.SampleReplicates.HasValue)
+        {
+            if (request.SampleReplicates.Value < 1)
+                throw new InvalidOperationException("Sample replicates must be at least 1.");
+            replicate.SampleReplicates = request.SampleReplicates.Value;
+        }
+
+        await _db.SaveChangesAsync();
+        return Ok(ApiResponse<object>.Ok(TestDefinitionStageReplicateDto.From(replicate)));
+    }
+
+    [Authorize(Roles = RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
+    [HttpDelete("test-definitions/{id:int}/stage-replicates/{replicateId:int}")]
+    public async Task<IActionResult> DeleteTestDefinitionStageReplicate(int id, int replicateId)
+    {
+        var test = await _db.TestDefinitions.FindAsync(id)
+            ?? throw new InvalidOperationException($"Test {id} not found.");
+
+        var scope = await _scope.GetAccessibleSectionIdsAsync(CurrentUserId);
+        if (scope is not null && !scope.Contains(test.SectionId))
+            throw new UnauthorizedAccessException("This test belongs to a laboratory section you are not assigned to.");
+
+        var replicate = await _db.TestDefinitionStageReplicates.FirstOrDefaultAsync(r => r.Id == replicateId && r.TestDefinitionId == id)
+            ?? throw new InvalidOperationException($"Stage replicate {replicateId} not found for test {id}.");
+
+        _db.TestDefinitionStageReplicates.Remove(replicate);
+        await _db.SaveChangesAsync();
+        return Ok(ApiResponse<object>.Ok(new
+        {
+            message = "Stage replicate configuration deleted.",
+            deleted = true
+        }));
     }
 }

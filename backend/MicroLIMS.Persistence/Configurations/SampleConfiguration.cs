@@ -25,6 +25,11 @@ public class SampleConfiguration : IEntityTypeConfiguration<Sample>
         builder.HasOne(s => s.OriginSample).WithMany().HasForeignKey(s => s.OriginSampleId).OnDelete(DeleteBehavior.Restrict);
         builder.HasIndex(s => s.OriginSampleId);
 
+        // Historical samples must survive their ProductionStage being
+        // deleted - SetNull (never cascade), matching the entity comment.
+        builder.HasOne(s => s.ProductionStageRef).WithMany().HasForeignKey(s => s.ProductionStageId).OnDelete(DeleteBehavior.SetNull);
+        builder.HasIndex(s => s.ProductionStageId);
+
         builder.Property(s => s.OosGroupCode).HasMaxLength(20);
         builder.HasIndex(s => s.OosGroupCode);
 

@@ -1,6 +1,10 @@
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
+using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Application.Services;
 using MicroLIMS.Application.Workflows;
+using MicroLIMS.Domain.Entities;
+using MicroLIMS.Domain.Enums;
 using MicroLIMS.Infrastructure.Notifications;
 using MicroLIMS.Infrastructure.Pdf;
 using MicroLIMS.Infrastructure.Storage;
@@ -68,7 +72,7 @@ public class SpyNotificationService : INotificationService
 public static class TestServiceFactory
 {
     public static DashboardNotificationService DashboardNotification(MicroLimsDbContext db, INotificationService? notifications = null, MicroLIMS.Infrastructure.Email.IEmailSender? emailSender = null) =>
-        new(db, notifications ?? new NoOpNotificationService(), emailSender ?? new NoOpEmailSender());
+        new(db, notifications ?? new NoOpNotificationService(), emailSender ?? new NoOpEmailSender(), new UserSectionScopeService(db));
     public static ReviewGateService ReviewGate(MicroLimsDbContext db) =>
         new(db, new ElectronicSignatureService(db));
 
@@ -91,6 +95,8 @@ public static class TestServiceFactory
     public static SampleSummaryService SampleSummary(MicroLimsDbContext db) =>
         new(db, new PdfGenerator(), new MicroLIMS.Infrastructure.Word.WordGenerator(), ReviewGate(db));
 
+    public static SampleTrackingService SampleTracking(MicroLimsDbContext db) => new(db);
+
     public static MediaSummaryService MediaSummary(MicroLimsDbContext db) =>
         new(db, new PdfGenerator(), new MicroLIMS.Infrastructure.Word.WordGenerator(), ReviewGate(db));
 
@@ -98,27 +104,37 @@ public static class TestServiceFactory
         new(db, new PdfGenerator(), new MicroLIMS.Infrastructure.Word.WordGenerator(), ReviewGate(db));
 
     public static SampleReviewService SampleReview(MicroLimsDbContext db) =>
-        new(db, new SegregationOfDutiesGuard(db), ReviewGate(db));
+        new(db, new SegregationOfDutiesGuard(db), ReviewGate(db), new UserSectionScopeService(db));
 
     public static ResultProjectionService ResultProjection(MicroLimsDbContext db) =>
         new(db, NullLogger<ResultProjectionService>.Instance);
 
-    public static TestWorkflowEngine TestWorkflow(MicroLimsDbContext db, INotificationService? notifications = null) =>
+    public static TestWorkflowEngine TestWorkflow(MicroLimsDbContext db, INotificationService? notifications = null, IElectronicSignatureService? signatures = null, IUserSectionScopeService? scope = null, ILabClock? clock = null) =>
         new(db, SampleReview(db), ResultProjection(db), IncubatorEligibility(db), AppearanceSnapshot(db),
-            new SegregationOfDutiesGuard(db), ReviewGate(db), notifications ?? new NoOpNotificationService());
+            new SegregationOfDutiesGuard(db), ReviewGate(db), notifications ?? new NoOpNotificationService(),
+            signatures ?? new ElectronicSignatureService(db), scope ?? new UserSectionScopeService(db),
+            clock ?? LabClock.Default);
+
+    public static SpecificationService Specification(MicroLimsDbContext db) => new(db);
 
     public static SampleApprovalService SampleApproval(MicroLimsDbContext db, IFileStorageService? storage = null) =>
-        new(db, ReviewGate(db), SampleSummary(db), Archive(db, storage), ResultProjection(db), new ReferenceNumberGenerator(db));
+        new(db, ReviewGate(db), SampleSummary(db), Archive(db, storage), ResultProjection(db), new ReferenceNumberGenerator(db), new UserSectionScopeService(db));
+
+    public static SectionClosureService SectionClosure(MicroLimsDbContext db) =>
+        new(db, ReviewGate(db), new UserSectionScopeService(db), SampleApproval(db));
+
+    public static AddLaboratoryService AddLaboratory(MicroLimsDbContext db) =>
+        new(db, ReviewGate(db));
 
     public static MediaReleaseService MediaRelease(MicroLimsDbContext db, IFileStorageService? storage = null) =>
         new(db, new SegregationOfDutiesGuard(db), ReviewGate(db), MediaSummary(db), Archive(db, storage));
 
     public static CryovialService Cryovial(MicroLimsDbContext db, IFileStorageService? storage = null) =>
-        new(db, new MaterialService(db), new SegregationOfDutiesGuard(db), ReviewGate(db),
+        new(db, new MaterialService(db, new UserSectionScopeService(db)), new SegregationOfDutiesGuard(db), ReviewGate(db),
             CryovialSummary(db), Archive(db, storage));
 
     public static MediaPreparationService MediaPreparation(MicroLimsDbContext db) =>
-        new(db, new MaterialService(db), ReviewGate(db));
+        new(db, new MaterialService(db, new UserSectionScopeService(db)), ReviewGate(db));
 
     public static IncubatorEligibilityService IncubatorEligibility(MicroLimsDbContext db) => new(db);
 
@@ -129,7 +145,10 @@ public static class TestServiceFactory
 
     public static DashboardService Dashboard(MicroLimsDbContext db) => new(db, Kpi(db));
 
-    public static MyTasksService MyTasks(MicroLimsDbContext db) => new(db);
+    public static MyTasksService MyTasks(MicroLimsDbContext db) => new(db, new UserSectionScopeService(db));
+
+    public static TestingWorkspaceService TestingWorkspace(MicroLimsDbContext db, IUserSectionScopeService? scope = null) =>
+        new(db, scope ?? new UserSectionScopeService(db));
 
     public static GroupedTestActionService GroupedTestAction(MicroLimsDbContext db) =>
         new(db, TestWorkflow(db), IncubatorEligibility(db));
@@ -145,5 +164,83 @@ public static class TestServiceFactory
             new AuditEventService(db, new MicroLIMS.Persistence.Helpers.DatabaseSequenceHelper(db)));
 
     public static MediaIncubationConditionService MediaIncubationCondition(MicroLimsDbContext db) => new(db);
+
+    public static SystemSuitabilityService SystemSuitability(
+        MicroLimsDbContext db,
+        IUserSectionScopeService? scope = null,
+        IElectronicSignatureService? signatures = null,
+        ILabClock? clock = null) =>
+        new(db,
+            signatures ?? new ElectronicSignatureService(db),
+            scope ?? new UserSectionScopeService(db),
+            clock);
+
+    public static CalibrationRunService CalibrationRun(
+        MicroLimsDbContext db,
+        IFileStorageService? storage = null,
+        IUserSectionScopeService? scope = null,
+        IElectronicSignatureService? signatures = null,
+        ILogger<CalibrationRunService>? logger = null,
+        ILabClock? clock = null) =>
+        new(db,
+            storage ?? new InMemoryFileStorageService(),
+            signatures ?? new ElectronicSignatureService(db),
+            scope ?? new UserSectionScopeService(db),
+            logger ?? NullLogger<CalibrationRunService>.Instance,
+            clock);
+
+
+    // Finished Product receipts and corrections require a known production
+    // stage (by name, case-insensitive) - fixtures seed the one they use.
+    public static ProductionStage EnsureProductionStage(MicroLimsDbContext db, string name = "F.P")
+    {
+        var stage = db.ProductionStages.FirstOrDefault(p => p.Name == name);
+        if (stage == null)
+        {
+            stage = new ProductionStage { Name = name, Role = ProductionStageRole.Finished };
+            db.ProductionStages.Add(stage);
+            db.SaveChanges();
+        }
+        return stage;
+    }
+
+    public static DocumentSection EnsureMicroSection(MicroLimsDbContext db)
+    {
+        var dept = db.DocumentDepartments.FirstOrDefault(d => d.Code == "QC");
+        if (dept == null)
+        {
+            dept = new DocumentDepartment { Name = "Quality Control", Code = "QC", IsActive = true };
+            db.DocumentDepartments.Add(dept);
+            db.SaveChanges();
+        }
+
+        var section = db.DocumentSections.FirstOrDefault(s => s.Code == "MICRO");
+        if (section == null)
+        {
+            section = new DocumentSection { Name = "Microbiology Laboratory", Code = "MICRO", DepartmentId = dept.Id, IsActive = true };
+            db.DocumentSections.Add(section);
+            db.SaveChanges();
+        }
+
+        return section;
+    }
+
+    public static UserOrgMembership AssignUserToMicroSection(MicroLimsDbContext db, int userId)
+    {
+        var section = EnsureMicroSection(db);
+        var membership = db.UserOrgMemberships.FirstOrDefault(m => m.UserId == userId && (m.SectionId == section.Id || (m.DepartmentId == section.DepartmentId && m.SectionId == null)));
+        if (membership == null)
+        {
+            membership = new UserOrgMembership
+            {
+                UserId = userId,
+                DepartmentId = section.DepartmentId,
+                SectionId = section.Id
+            };
+            db.UserOrgMemberships.Add(membership);
+            db.SaveChanges();
+        }
+        return membership;
+    }
 }
 

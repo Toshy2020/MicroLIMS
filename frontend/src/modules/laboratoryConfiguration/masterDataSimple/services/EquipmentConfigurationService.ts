@@ -7,6 +7,67 @@ export interface ApiResponse<T> {
   timestamp?: string;
 }
 
+export type EquipmentType =
+  | "Incubator"
+  | "Autoclave"
+  | "LafCabinet"
+  | "BiologicalSafetyCabinet"
+  | "WaterBath"
+  | "Other"
+  | "Hplc"
+  | "PhMeter"
+  | "Balance"
+  | "IcpOes"
+  | "UvVis"
+  | "DissolutionTester"
+  | "DisintegrationTester"
+  | "KarlFischer"
+  | "Titrator"
+  | "Viscometer"
+  | "Refractometer"
+  | "Polarimeter"
+  | "ConductivityMeter"
+  | "MeltingPoint"
+  | "Oven"
+  | "Furnace"
+  | "Gc"
+  | "Aas"
+  | "DigestionMicrowave"
+  | "Caliper";
+
+export type CdsSoftware =
+  | "ShimadzuLabSolutions"
+  | "AgilentOpenLab"
+  | "WatersEmpower3"
+  | "PerkinElmerSyngistix";
+
+
+export interface CreateEquipmentRequest {
+  name: string;
+  code: string;
+  type: string;
+  location?: string | null;
+  setPointTemperature?: number | null;
+  calibrationDueDate?: string | null;
+  vendor?: string | null;
+  cdsSoftware?: string | null;
+  connectionSettings?: string | null;
+  sectionId?: number | null;
+}
+
+export interface UpdateEquipmentRequest {
+  name: string;
+  code: string;
+  type: string;
+  location?: string | null;
+  setPointTemperature?: number | null;
+  calibrationDueDate?: string | null;
+  vendor?: string | null;
+  cdsSoftware?: string | null;
+  connectionSettings?: string | null;
+  sectionId?: number | null;
+}
+
 export interface ConfiguredEquipmentSummary {
   id: number;
   name: string;
@@ -21,6 +82,18 @@ export interface ConfiguredEquipmentSummary {
   configuredProgramCount: number;
   serialNumber?: string | null;
   manufacturerName?: string | null;
+  vendor?: string | null;
+  cdsSoftware?: string | null;
+  connectionSettings?: string | null;
+  sectionId?: number | null;
+  section?: {
+    id?: number;
+    sectionId?: number;
+    name?: string;
+    sectionName?: string;
+    code?: string;
+    sectionCode?: string;
+  } | null;
 }
 
 export interface IncubatorSetPointHistory {
@@ -138,5 +211,26 @@ export const EquipmentConfigurationService = {
     const res = await apiClient.get<ApiResponse<AutoclaveProgramHistory[]>>(`/masterdata/equipment/autoclave-programs/${programId}/history`);
     const data = res.data?.data;
     return Array.isArray(data) ? data : [];
+  },
+
+  getEquipmentList: async (type?: string): Promise<any[]> => {
+    const res = await apiClient.get<ApiResponse<any[]>>("/masterdata/equipment", { params: type ? { type } : {} });
+    const data = res.data?.data;
+    return Array.isArray(data) ? data : [];
+  },
+
+  getEquipmentById: async (id: number): Promise<any> => {
+    const res = await apiClient.get<ApiResponse<any>>(`/masterdata/equipment/${id}`);
+    return res.data?.data;
+  },
+
+  createEquipment: async (req: CreateEquipmentRequest): Promise<any> => {
+    const res = await apiClient.post<ApiResponse<any>>("/masterdata/equipment", req);
+    return res.data?.data;
+  },
+
+  updateEquipment: async (id: number, req: UpdateEquipmentRequest): Promise<any> => {
+    const res = await apiClient.put<ApiResponse<any>>(`/masterdata/equipment/${id}`, req);
+    return res.data?.data;
   }
 };

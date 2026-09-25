@@ -22,6 +22,9 @@ public class TestDefinition
     public string Code { get; set; } = string.Empty; // e.g. "TAMC", "PATHOGEN_SALMONELLA"
     public string DisplayName { get; set; } = string.Empty; // e.g. "Total Aerobic Microbial Count", "Pathogen - Salmonella"
 
+    public int SectionId { get; set; }
+    public DocumentSection? Section { get; set; }
+
     public WorkflowType WorkflowType { get; set; } = WorkflowType.Observation;
     public List<TestWorkflowStep> Steps { get; set; } = new();
 
@@ -30,4 +33,86 @@ public class TestDefinition
     // rendering correctly on anything that already references their
     // Code) so existing assignments aren't disrupted.
     public bool IsActive { get; set; } = true;
+
+    // Finished Product / HPLC fields
+    public EquationType EquationType { get; set; } = EquationType.None;
+    public bool RequiresSystemSuitability { get; set; }
+    public string? MethodAbbreviation { get; set; }
+
+    // Acceptance criteria, all nullable (null = not checked)
+    public decimal? SstMaxRsdPercent { get; set; }
+    public decimal? SstMinResolution { get; set; }
+    public decimal? SstMaxTailingFactor { get; set; }
+    public decimal? SstMinTheoreticalPlates { get; set; }
+
+    // Finished Product / ICP-OES Calibration Curve criteria
+    public CalibrationEntryMode? CalibrationEntryMode { get; set; }
+    public decimal? CalMinCorrelation { get; set; }
+    public CorrelationType? CalCorrelationType { get; set; }
+    public int? CalMinStandards { get; set; }
+    public decimal? CalCheckRecoveryLowPercent { get; set; }
+    public decimal? CalCheckRecoveryHighPercent { get; set; }
+    public decimal? CalBlankMax { get; set; }
+    public decimal? CalIsRecoveryLowPercent { get; set; }
+    public decimal? CalIsRecoveryHighPercent { get; set; }
+    public bool? CalRequireBlank { get; set; }
+    public bool? CalRequireIcv { get; set; }
+    public bool? CalRequireCcv { get; set; }
+    public bool? CalRequireInternalStandard { get; set; }
+    public ReportedConcentrationBasis? ReportedConcentrationBasis { get; set; }
+    public int? CalMaxRunAgeHours { get; set; } = 24;
+    // AAS reuses this same calibration-curve path (D-A4): null means IcpOes (existing rows).
+    public EquipmentType? CalInstrumentType { get; set; }
+    // Comma-separated standard concentrations in mg/L, e.g. "1, 5" (invariant culture,
+    // normalised ascending). Null means the CalMinStandards count-only rule applies instead.
+    public string? CalStandardLevelsMgPerL { get; set; }
+
+    // Finished Product / Numeric Measurement criteria
+    public int? ReplicateCount { get; set; }
+    public MeasurementEvaluationBasis? EvaluationBasis { get; set; }
+
+    // Finished Product / Gravimetric criteria
+    public string? ConditionFields { get; set; }
+    public bool? UsesTare { get; set; }
+
+    // Finished Product / Dissolution criteria
+    public decimal? DissolutionS1Offset { get; set; }
+    public decimal? DissolutionS2MinOffset { get; set; }
+    public decimal? DissolutionS3MinOffset { get; set; }
+    public decimal? DissolutionS3MaxBelowS2Min { get; set; }
+
+    // Finished Product / Disintegration criteria
+    public int? DisintegrationStage1Units { get; set; }
+    public int? DisintegrationStage2Units { get; set; }
+    public int? DisintegrationMaxStage1Failures { get; set; }
+    public int? DisintegrationMinPassTotal { get; set; }
+
+    // Finished Product / Weight Variation criteria
+    public int? WvUnitCount { get; set; }
+    public decimal? WvTabletBand1MaxMg { get; set; }
+    public decimal? WvTabletBand1Percent { get; set; }
+    public decimal? WvTabletBand2MaxMg { get; set; }
+    public decimal? WvTabletBand2Percent { get; set; }
+    public decimal? WvTabletBand3Percent { get; set; }
+    public int? WvTabletMaxOutside { get; set; }
+    public decimal? WvCapsuleInnerPercent { get; set; }
+    public decimal? WvCapsuleOuterPercent { get; set; }
+    public int? WvCapsuleS1MaxOutside { get; set; }
+    public int? WvCapsuleS1MaxForRetest { get; set; }
+    public int? WvCapsuleS2ExtraUnits { get; set; }
+    public int? WvCapsuleS2MaxOutside { get; set; }
+
+    // Finished Product / Standard-Comparison: max RSD across sample preparations
+    public decimal? HplcMaxPreparationRsdPercent { get; set; }
+
+    // Finished Product / Standard-Comparison: peak area (HPLC) or titration volume
+    public ResponseMode ResponseMode { get; set; } = ResponseMode.PeakArea;
+
+    public List<TestAnalyte> Analytes { get; set; } = new();
+
+    // Finished Product / Standard-Comparison Assay - per-stage-role
+    // standard/sample replicate counts. See TestDefinitionStageReplicate.
+    public List<TestDefinitionStageReplicate> StageReplicates { get; set; } = new();
 }
+
+

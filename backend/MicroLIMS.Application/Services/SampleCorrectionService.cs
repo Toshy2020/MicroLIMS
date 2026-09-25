@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.DTOs;
 using MicroLIMS.Application.Interfaces;
+using MicroLIMS.Application.Workflows;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Persistence.DbContext;
@@ -122,7 +123,21 @@ public class SampleCorrectionService
             Track("Exp Date", AsDate(sample.ExpDate), exp, FormatDate, v => sample.ExpDate = v);
             Track("Sample Quantity", Optional(sample.SampleQuantity), Optional(request.SampleQuantity), v => v, v => sample.SampleQuantity = v);
             if (category == SampleCategory.FinishedProduct)
-                Track("Production Stage", Optional(sample.ProductionStage), Optional(request.ProductionStage), v => v, v => sample.ProductionStage = v);
+            {
+                // Required and resolved as at receipt: stage-dependent tests
+                // read the id, so a corrected name must carry it.
+                var stageName = Required(request.ProductionStage, "Production stage");
+                int? stageId = await _db.ProductionStages
+                    .Where(p => p.Name.ToLower() == stageName.ToLower())
+                    .Select(p => (int?)p.Id)
+                    .FirstOrDefaultAsync()
+                    ?? throw new InvalidOperationException($"Production stage '{stageName}' is not a known stage.");
+                Track("Production Stage", Optional(sample.ProductionStage), stageName, v => v, v =>
+                {
+                    sample.ProductionStage = v;
+                    sample.ProductionStageId = stageId;
+                });
+            }
         }
         else if (category == SampleCategory.Water)
         {
@@ -177,8 +192,9 @@ public class SampleCorrectionService
                 : string.Empty; // location categories create their tests at preparation
             if (previousTests != newTests)
                 changes.Add(new AuditFieldChange("Tests", Blank(previousTests), Blank(newTests)));
-            if (sample.PreparationStatus != SamplePreparationStatus.NeedsPreparation)
-                changes.Add(new AuditFieldChange("Preparation Status", sample.PreparationStatus.ToString(), nameof(SamplePreparationStatus.NeedsPreparation)));
+            var newPreparationStatus = await PreparationStatusAfterChangeAsync(structural.NewItem);
+            if (sample.PreparationStatus != newPreparationStatus)
+                changes.Add(new AuditFieldChange("Preparation Status", sample.PreparationStatus.ToString(), newPreparationStatus.ToString()));
             if (sample.StorageCondition is not null && category == SampleCategory.Water)
                 changes.Add(new AuditFieldChange("Storage Condition", sample.StorageCondition, null));
         }
@@ -247,6 +263,13 @@ public class SampleCorrectionService
         foreach (var order in voidedOrders)
         {
             order.Status = ApprovalStatus.Voided;
+        }
+
+        // Voiding strikes the whole sample, so every section's sign-off
+        // closes with it (who reviewed/approved it stays on the row).
+        foreach (var sectionId in SampleSectionRollup.SectionIds(sample))
+        {
+            SampleSectionRollup.GetOrAdd(sample, sectionId).Status = SectionSignoffStatus.Voided;
         }
 
         // Reports read the sample status off each result projection row.
@@ -398,17 +421,34 @@ public class SampleCorrectionService
 
         if (change.NewItem is not null)
         {
-            foreach (var test in change.NewItem.AssignedTests.Where(t => sample.TestOrders.All(o => o.TestCode != t.TestCode)))
+            var newTests = change.NewItem.AssignedTests
+                .Where(t => sample.TestOrders.All(o => o.TestCode != t.TestCode))
+                .ToList();
+            var testSections = await TestSectionLookup.ResolveAsync(_db, newTests.Select(t => t.TestCode));
+            foreach (var test in newTests)
             {
                 sample.TestOrders.Add(new TestOrder
                 {
                     TestCode = test.TestCode,
+                    SectionId = testSections[test.TestCode],
                     Status = ApprovalStatus.Pending,
                     CurrentStep = WorkflowStep.Waiting,
                     AssignedAnalystId = assignedAnalystId
                 });
             }
         }
+
+        sample.PreparationStatus = await PreparationStatusAfterChangeAsync(change.NewItem);
+    }
+
+    // Location categories create their tests at preparation, so they always
+    // need it; an item's tests decide (FP-only items have no preparation).
+    private async Task<SamplePreparationStatus> PreparationStatusAfterChangeAsync(Item? newItem)
+    {
+        if (newItem is null)
+            return SamplePreparationStatus.NeedsPreparation;
+        var sections = await TestSectionLookup.ResolveAsync(_db, newItem.AssignedTests.Select(t => t.TestCode));
+        return await PreparationRules.InitialStatusAsync(_db, sections.Values);
     }
 
     private async Task<Sample> LoadSampleAsync(int sampleId) =>
@@ -420,6 +460,7 @@ public class SampleCorrectionService
             .Include(s => s.Machine)
             .Include(s => s.CauseOfTesting)
             .Include(s => s.TestOrders)
+            .Include(s => s.SectionSignoffs)
             .Include(s => s.Locations)
             .FirstOrDefaultAsync(s => s.Id == sampleId)
         ?? throw new InvalidOperationException($"Sample {sampleId} not found.");

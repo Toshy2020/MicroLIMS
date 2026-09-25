@@ -21,6 +21,8 @@ export interface TestOrderSummary {
   locationCount: number;
   assignedAnalystId: number | null;
   assignedAnalystName: string | null;
+  // FP tests skip the sample preparation gate (backend PreparationRules).
+  skipsPreparation?: boolean;
 }
 
 // Mirrors backend SampleDto (backend/MicroLIMS.Application/DTOs/SampleDto.cs)

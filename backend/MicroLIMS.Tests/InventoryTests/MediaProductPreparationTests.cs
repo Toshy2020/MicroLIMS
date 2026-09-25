@@ -19,6 +19,7 @@ public class MediaProductPreparationTests
             .Options;
         var db = new MicroLimsDbContext(options);
         db.CurrentUserId = 1;
+        TestServiceFactory.AssignUserToMicroSection(db, 1);
         return db;
     }
 
@@ -72,6 +73,7 @@ public class MediaProductPreparationTests
 
         var material = new Material
         {
+            SectionId = TestServiceFactory.EnsureMicroSection(db).Id,
             MaterialType = MaterialType.DehydratedMedia,
             MaterialName = "Unlinked TSA",
             ManufacturerName = "Himedia",
@@ -110,6 +112,7 @@ public class MediaProductPreparationTests
 
         var material = new Material
         {
+            SectionId = TestServiceFactory.EnsureMicroSection(db).Id,
             MaterialType = MaterialType.DehydratedMedia,
             MaterialName = product.Name,
             ManufacturerName = "Himedia",
@@ -151,6 +154,7 @@ public class MediaProductPreparationTests
 
         var material = new Material
         {
+            SectionId = TestServiceFactory.EnsureMicroSection(db).Id,
             MaterialType = MaterialType.DehydratedMedia,
             MaterialName = product.Name,
             ManufacturerName = "Himedia",
@@ -204,6 +208,7 @@ public class MediaProductPreparationTests
 
         var material = new Material
         {
+            SectionId = TestServiceFactory.EnsureMicroSection(db).Id,
             MaterialType = MaterialType.DehydratedMedia,
             MaterialName = "Old Material Name",
             ManufacturerName = "Himedia",

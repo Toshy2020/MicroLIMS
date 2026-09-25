@@ -1,5 +1,8 @@
+using System.Globalization;
+using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Helpers;
+using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Application.Services;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
@@ -103,7 +106,8 @@ public record CurrentStepLookup(CurrentStepDetails? Details, string? Error);
 // instead of two or three queries per step checked.
 public record TestStepFacts(
     bool HasLocations, IReadOnlyList<Incubation> Incubations, IReadOnlyList<StepResultFact> StepResults,
-    IReadOnlyList<CountReadingFact> ActiveCountReadings, IReadOnlySet<string> ObservationStepNames);
+    IReadOnlyList<CountReadingFact> ActiveCountReadings, IReadOnlySet<string> ObservationStepNames,
+    bool HasActiveAnalysis = false);
 
 public record StepResultFact(
     int Id, int IncubationId, string StepName, bool? IsSharedSessionStep, bool HasConfirmatoryResult,
@@ -114,6 +118,119 @@ public record CountReadingFact(int Id, string? StepName, string ReportedResult, 
 public record TestWorkflowResult(
     string OutcomeSummary, bool IsDefinitive, bool AllStepsComplete, string? FinalResult,
     decimal? Average, decimal? CalculatedResult, string? Status);
+
+public record ElementalAssayElementInput(
+    int SpecificationId,
+    int CalibrationRunAnalyteId,
+    decimal ReportedPpm,
+    bool OverRange,
+    bool BelowLoq);
+
+public record ElementalAssayPayload(
+    decimal UnitAmount,
+    DateTime AnalysedAt,
+    List<ElementalAssayElementInput> Elements,
+    string Password,
+    string? Comment = null);
+
+public record MeasurementParameterInput(
+    int SpecificationId,
+    List<decimal> Readings);
+
+public record MeasurementPayload(
+    DateTime AnalysedAt,
+    int? EquipmentId,
+    List<MeasurementParameterInput> Parameters,
+    string Password,
+    string? Comment = null);
+
+public record GravimetricParameterInput(
+    int SpecificationId,
+    List<GravimetricReplicateInput> Replicates);
+
+public record GravimetricPayload(
+    DateTime AnalysedAt,
+    int? EquipmentId,
+    Dictionary<string, string> Conditions,
+    List<GravimetricParameterInput> Parameters,
+    string Password,
+    string? Comment = null);
+
+public record QualitativeParameterInput(
+    int SpecificationId,
+    bool Conforms,
+    string? Observation);
+
+public record QualitativePayload(
+    DateTime AnalysedAt,
+    int? EquipmentId,
+    List<QualitativeParameterInput> Parameters,
+    string Password,
+    string? Comment = null);
+
+public record DissolutionPayload(
+    DateTime AnalysedAt,
+    int? EquipmentId,
+    Dictionary<string, string>? Conditions,
+    decimal MediumVolumeMl,
+    decimal? DilutionFactor,
+    List<decimal> VesselAreas,
+    string Password,
+    string? Comment = null);
+
+public record DissolutionStagePayload(
+    List<decimal> VesselAreas,
+    string Password,
+    string? Comment = null);
+
+public record DisintegrationPayload(
+    DateTime AnalysedAt,
+    int? EquipmentId,
+    Dictionary<string, string>? Conditions,
+    List<decimal?> UnitMinutes,
+    string Password,
+    string? Comment = null);
+
+public record DisintegrationStagePayload(
+    List<decimal?> UnitMinutes,
+    string Password,
+    string? Comment = null);
+
+public record WeightVariationUnitPayload(
+    decimal? WeightMg = null,
+    decimal? GrossMg = null,
+    decimal? ShellMg = null);
+
+public record WeightVariationPayload(
+    DateTime AnalysedAt,
+    int? EquipmentId,
+    Dictionary<string, string>? Conditions,
+    List<WeightVariationUnitPayload> Units,
+    string Password,
+    string? Comment = null);
+
+public record WeightVariationStagePayload(
+    List<WeightVariationUnitPayload> Units,
+    string Password,
+    string? Comment = null);
+
+public record StandardComparisonPreparationInput(
+    decimal TheoreticalWeightMg,
+    decimal ActualWeightMg,
+    string? WeighInJustification = null);
+
+public record StandardComparisonResponseInput(
+    int TestAnalyteId,
+    int PreparationIndex,
+    decimal Response);
+
+public record StandardComparisonPayload(
+    DateTime AnalysedAt,
+    int? EquipmentId,
+    List<StandardComparisonPreparationInput> Preparations,
+    List<StandardComparisonResponseInput> Responses,
+    string Password,
+    string? Comment = null);
 
 // One location's CFU reading submitted from the LocationResultGrid -
 // EM/After Cleaning batch results, never used by the single-value
@@ -146,6 +263,17 @@ public interface ITestWorkflowEngine : IStatefulWorkflowEngine
     Task<Incubation> SelectMediaAsync(int testOrderId, string stepName, int mediaLotId, int incubatorEquipmentId, int userId);
     Task<Incubation> StartStage2IncubationAsync(int testOrderId, string stepName, int incubatorEquipmentId, int userId);
     Task<TestWorkflowResult> RecordResultAsync(int testOrderId, string stepName, ResultPayload payload, int userId);
+    Task<TestWorkflowResult> RecordStandardComparisonResultAsync(int testOrderId, StandardComparisonPayload payload, int userId, string? ipAddress = null);
+    Task<TestWorkflowResult> RecordElementalAssayResultAsync(int testOrderId, ElementalAssayPayload payload, int userId, string? ipAddress = null);
+    Task<TestWorkflowResult> RecordMeasurementResultAsync(int testOrderId, MeasurementPayload payload, int userId, string? ipAddress = null);
+    Task<TestWorkflowResult> RecordGravimetricResultAsync(int testOrderId, GravimetricPayload payload, int userId, string? ipAddress = null);
+    Task<TestWorkflowResult> RecordQualitativeResultAsync(int testOrderId, QualitativePayload payload, int userId, string? ipAddress = null);
+    Task<TestWorkflowResult> RecordDissolutionResultAsync(int testOrderId, DissolutionPayload payload, int userId, string? ipAddress = null);
+    Task<TestWorkflowResult> RecordDissolutionStageAsync(int testOrderId, DissolutionStagePayload payload, int userId, string? ipAddress = null);
+    Task<TestWorkflowResult> RecordDisintegrationResultAsync(int testOrderId, DisintegrationPayload payload, int userId, string? ipAddress = null);
+    Task<TestWorkflowResult> RecordDisintegrationStageAsync(int testOrderId, DisintegrationStagePayload payload, int userId, string? ipAddress = null);
+    Task<TestWorkflowResult> RecordWeightVariationResultAsync(int testOrderId, WeightVariationPayload payload, int userId, string? ipAddress = null);
+    Task<TestWorkflowResult> RecordWeightVariationStageAsync(int testOrderId, WeightVariationStagePayload payload, int userId, string? ipAddress = null);
     Task<List<SampleLocation>> GetLocationsAsync(int testOrderId);
     Task<Incubation> CloseCurrentIncubationWindowAsync(int testOrderId, int userId);
     // Section Head/System Administrator only (enforced at the controller) -
@@ -201,11 +329,17 @@ public class TestWorkflowEngine : ITestWorkflowEngine
     private readonly SegregationOfDutiesGuard _sodGuard;
     private readonly ReviewGateService _reviewGate;
     private readonly INotificationService _notifications;
+    private readonly IElectronicSignatureService _signatureService;
+    private readonly IUserSectionScopeService _sectionScope;
+    private readonly ILabClock _clock;
 
     public TestWorkflowEngine(
         MicroLimsDbContext db, SampleReviewService sampleReviewService, ResultProjectionService resultProjection,
         IncubatorEligibilityService incubatorEligibility, MediaAppearanceSnapshotService appearanceSnapshot,
-        SegregationOfDutiesGuard sodGuard, ReviewGateService reviewGate, INotificationService notifications)
+        SegregationOfDutiesGuard sodGuard, ReviewGateService reviewGate, INotificationService notifications,
+        IElectronicSignatureService? signatureService = null,
+        IUserSectionScopeService? sectionScope = null,
+        ILabClock? clock = null)
     {
         _db = db;
         _sampleReviewService = sampleReviewService;
@@ -215,6 +349,9 @@ public class TestWorkflowEngine : ITestWorkflowEngine
         _sodGuard = sodGuard;
         _reviewGate = reviewGate;
         _notifications = notifications;
+        _signatureService = signatureService ?? new ElectronicSignatureService(db);
+        _sectionScope = sectionScope ?? new UserSectionScopeService(db);
+        _clock = clock ?? LabClock.Default;
     }
 
     private async Task<(TestOrder order, TestDefinition definition)> LoadWithTemplateAsync(int testOrderId)
@@ -235,7 +372,7 @@ public class TestWorkflowEngine : ITestWorkflowEngine
         if (definition is null)
             throw new InvalidOperationException($"Test code \"{order.TestCode}\" has no workflow template configured in Test Master.");
 
-        if (definition.Steps.Count == 0)
+        if (definition.Steps.Count == 0 && !AnalysisWorkflows.UsesTestAnalysis(definition.WorkflowType))
             throw new InvalidOperationException($"Test code \"{order.TestCode}\" has no workflow steps configured yet - add them in Test Master.");
 
         return definition;
@@ -323,13 +460,22 @@ public class TestWorkflowEngine : ITestWorkflowEngine
                 .Distinct()
                 .ToListAsync())
             .ToLookup(o => o.TestOrderId, o => o.StepName);
+        var activeAnalysisOrderIds = (await _db.TestAnalyses
+                .AsNoTracking()
+                .Where(e => ids.Contains(e.TestOrderId) && e.IsActive
+                    && !e.ParameterResults.Any(pr => pr.ComparisonStatus == "NextStageRequired"))
+                .Select(e => e.TestOrderId)
+                .Distinct()
+                .ToListAsync())
+            .ToHashSet();
 
         return ids.ToDictionary(id => id, id => new TestStepFacts(
             ordersWithLocations.Contains(id),
             incubationsByOrderId[id],
             stepResults[id].ToList(),
             activeCountReadings[id].ToList(),
-            observationStepNames[id].ToHashSet(StringComparer.Ordinal)));
+            observationStepNames[id].ToHashSet(StringComparer.Ordinal),
+            activeAnalysisOrderIds.Contains(id)));
     }
 
     // The completion rules, evaluated against loaded facts. String
@@ -359,6 +505,9 @@ public class TestWorkflowEngine : ITestWorkflowEngine
 
         if (workflowType == WorkflowType.CountTest)
             return facts.ActiveCountReadings.Any(r => r.StepName == step.StepName);
+
+        if (AnalysisWorkflows.UsesTestAnalysis(workflowType))
+            return facts.HasActiveAnalysis;
 
         if (IsPathogenStepType(step.StepType))
         {
@@ -475,6 +624,18 @@ public class TestWorkflowEngine : ITestWorkflowEngine
             var completed = BuildCompletedSteps(facts, definition, currentStep: null);
             return new CurrentStepDetails(
                 new CurrentStepResult(null, definition.WorkflowType, null, true, doneResult, completed, totalSteps, allSteps),
+                order, definition, facts);
+        }
+
+        if (AnalysisWorkflows.UsesTestAnalysis(definition.WorkflowType))
+        {
+            var isDone = facts.HasActiveAnalysis;
+            var analysisFinalResult = isDone
+                ? (order.Results.OrderByDescending(r => r.Id).FirstOrDefault()?.InterpretedValue
+                   ?? order.Results.OrderByDescending(r => r.Id).FirstOrDefault()?.RawValue)
+                : null;
+            return new CurrentStepDetails(
+                new CurrentStepResult(null, definition.WorkflowType, null, isDone, analysisFinalResult, new List<CompletedStepSummary>(), totalSteps, allSteps),
                 order, definition, facts);
         }
 
@@ -614,6 +775,9 @@ public class TestWorkflowEngine : ITestWorkflowEngine
     // in accordance with GMP data integrity requirements.
     private async Task RequireSamplePreparedAsync(int testOrderId, int sampleId, string stepName, int userId, WorkflowStep currentStep)
     {
+        if (await PreparationRules.TestOrderSkipsPreparationAsync(_db, testOrderId))
+            return;
+
         var sample = await _db.Samples
             .Where(s => s.Id == sampleId)
             .Select(s => new { s.Id, s.Category, s.PreparationStatus, s.ItemId, s.ReferenceNumber })
@@ -721,6 +885,7 @@ public class TestWorkflowEngine : ITestWorkflowEngine
 
         if (!media.IsReleasedForUse || media.Status == MediaStatus.OutOfStock || media.Status == MediaStatus.QuarantineFailed)
             throw new InvalidOperationException($"Media lot \"{media.LotNumber}\" is not released for use, out of stock, or rejected.");
+        SectionMediaRule.EnsureLot(media, order.SectionId);
 
         var stepMedia = await _db.TestWorkflowStepMedias
             .Include(m => m.IncubationCondition)
@@ -1199,7 +1364,7 @@ public class TestWorkflowEngine : ITestWorkflowEngine
         if (!isFinalStep)
             return new TestWorkflowResult(outcomeSummary, true, false, null, average, calculatedResult, status);
 
-        // Final step - CountTest already wrote its own Result row above;
+        // Final step - CountTest already writes its own Result row;
         // Observation needs one written here with the definitive call.
         if (definition.WorkflowType != WorkflowType.CountTest)
         {
@@ -1668,7 +1833,7 @@ public class TestWorkflowEngine : ITestWorkflowEngine
         var dilutionFactorOverridden = false;
         if (!isDirectCount && sample.ItemId is not null)
         {
-            var itemSpec = await _db.Specifications.FirstOrDefaultAsync(s => s.ItemId == sample.ItemId && s.TestCode == order.TestCode);
+            var itemSpec = await SpecificationLookup.PrimaryAsync(_db, sample.ItemId.Value, order.TestCode);
             configuredDilutionFactor = itemSpec?.DilutionFactor;
 
             if (configuredDilutionFactor is null)
@@ -1757,7 +1922,7 @@ public class TestWorkflowEngine : ITestWorkflowEngine
             string? alertLimit = null, actionLimit = null, specLimit = null, configuredUnit = null;
             if (sample.ItemId is not null)
             {
-                var spec = await _db.Specifications.FirstOrDefaultAsync(s => s.ItemId == sample.ItemId && s.TestCode == order.TestCode);
+                var spec = await SpecificationLookup.PrimaryAsync(_db, sample.ItemId.Value, order.TestCode);
                 alertLimit = spec?.AlertLimit; actionLimit = spec?.ActionLimit; specLimit = spec?.SpecLimit;
                 configuredUnit = spec?.Unit;
             }
@@ -1862,20 +2027,2120 @@ public class TestWorkflowEngine : ITestWorkflowEngine
 
     // Same Spec -> Action -> Alert precedence (most severe first) as
     // WaterWorkflowEngine.Compare/CountTestWorkflowEngine.Compare.
-    private static (string status, string? exceeded) Compare(decimal value, string? alert, string? action, string? spec)
+    public static (string status, string? exceeded) Compare(decimal value, string? alert, string? action, string? spec) =>
+        SpecLimitParser.Compare(value, alert, action, spec);
+
+    public async Task<TestWorkflowResult> RecordElementalAssayResultAsync(
+        int testOrderId, ElementalAssayPayload payload, int userId, string? ipAddress = null)
     {
-        var hasSpec = decimal.TryParse(spec, out var specLimit);
-        if (hasSpec && value > specLimit)
-            return ("OutOfSpecification", "Specification");
-        var hasAction = decimal.TryParse(action, out var actionLimit);
-        if (hasAction && value > actionLimit)
-            return ("ActionLimitExceeded", "Action");
-        var hasAlert = decimal.TryParse(alert, out var alertLimit);
-        if (hasAlert && value > alertLimit)
-            return ("AlertLimitExceeded", "Alert");
-        if (!hasSpec && !hasAction && !hasAlert)
-            return ("LimitsNotConfigured", null);
-        return ("WithinLimits", null);
+        if (payload.UnitAmount <= 0)
+            throw new InvalidOperationException("Unit amount must be greater than 0.");
+        if (string.IsNullOrWhiteSpace(payload.Password))
+            throw new InvalidOperationException("Password is required to sign the result.");
+        if (payload.Elements == null || payload.Elements.Count == 0)
+            throw new InvalidOperationException("At least one elemental result is required.");
+
+        var nowUtc = _clock.UtcNow.UtcDateTime;
+        var analysedAtUtc = payload.AnalysedAt.Kind switch
+        {
+            DateTimeKind.Utc => payload.AnalysedAt,
+            DateTimeKind.Local => payload.AnalysedAt.ToUniversalTime(),
+            _ => DateTime.SpecifyKind(payload.AnalysedAt, DateTimeKind.Utc)
+        };
+
+        if (analysedAtUtc > nowUtc.AddMinutes(5))
+            throw new InvalidOperationException("Analysis time cannot be in the future.");
+
+        foreach (var elem in payload.Elements)
+        {
+            if (elem.ReportedPpm < 0)
+                throw new InvalidOperationException("Reported ppm cannot be negative.");
+            if (elem.OverRange && elem.BelowLoq)
+                throw new InvalidOperationException("An element cannot be both OverRange and BelowLoq.");
+        }
+
+        var order = await _db.TestOrders
+            .Include(t => t.Results)
+            .Include(t => t.Sample)
+            .FirstOrDefaultAsync(t => t.Id == testOrderId)
+            ?? throw new InvalidOperationException($"Test order {testOrderId} not found.");
+
+        RequireOrderNotFinalized(order);
+
+        if (order.IsSuperseded)
+            throw new InvalidOperationException("Cannot record result for a superseded test order.");
+
+        var definition = await _db.TestDefinitions
+            .FirstOrDefaultAsync(t => t.Code == order.TestCode)
+            ?? throw new InvalidOperationException($"Test definition \"{order.TestCode}\" not found.");
+
+        if (definition.WorkflowType != WorkflowType.ElementalAssay)
+            throw new InvalidOperationException($"Test order {testOrderId} is not an Elemental Assay workflow.");
+
+        await _sectionScope.EnsureTestOrderAccessAsync(userId, testOrderId);
+
+        var existingActive = await _db.TestAnalyses.AnyAsync(e => e.TestOrderId == testOrderId && e.IsActive);
+        if (existingActive)
+            throw new InvalidOperationException("An active elemental assay entry already exists for this test order.");
+
+        if (order.Sample?.ItemId is null)
+            throw new InvalidOperationException("Test order sample must be linked to an item with specifications.");
+
+        var itemId = order.Sample.ItemId.Value;
+
+        var specs = await _db.Specifications
+            .Include(s => s.TestAnalyte)
+            .Where(s => s.ItemId == itemId && s.TestCode == order.TestCode)
+            .ToListAsync();
+
+        if (specs.Count == 0)
+            throw new InvalidOperationException("No specifications configured for this test and item.");
+
+        var matrices = specs.Select(s => s.SampleMatrix).Distinct().ToList();
+        if (matrices.Count != 1 || matrices[0] == null)
+            throw new InvalidOperationException("All specifications for this test and item must share the same sample matrix.");
+
+        var sampleMatrix = matrices[0]!.Value;
+
+        if (payload.Elements.Count != specs.Count)
+            throw new InvalidOperationException($"Expected {specs.Count} element results matching specifications, but received {payload.Elements.Count}.");
+
+        var specIds = specs.Select(s => s.Id).ToHashSet();
+        var suppliedSpecIds = payload.Elements.Select(e => e.SpecificationId).ToList();
+        if (suppliedSpecIds.Distinct().Count() != payload.Elements.Count || !specIds.SetEquals(suppliedSpecIds))
+            throw new InvalidOperationException("Every specification for this test must be supplied exactly once.");
+
+        var specById = specs.ToDictionary(s => s.Id);
+        var elementResults = new List<ParameterResult>();
+        int? equipmentId = null;
+
+        foreach (var elemInput in payload.Elements)
+        {
+            var spec = specById[elemInput.SpecificationId];
+
+            var runAnalyte = await _db.CalibrationRunAnalytes
+                .Include(a => a.CalibrationRun)
+                .FirstOrDefaultAsync(a => a.Id == elemInput.CalibrationRunAnalyteId)
+                ?? throw new InvalidOperationException($"Calibration run analyte {elemInput.CalibrationRunAnalyteId} not found.");
+
+            if (!runAnalyte.Passed)
+                throw new InvalidOperationException($"Calibration run analyte {elemInput.CalibrationRunAnalyteId} did not pass calibration.");
+
+            var run = runAnalyte.CalibrationRun
+                ?? throw new InvalidOperationException($"Calibration run for analyte {elemInput.CalibrationRunAnalyteId} not found.");
+
+            equipmentId = run.EquipmentId;
+
+            if (run.Status != CalibrationRunStatus.Active)
+                throw new InvalidOperationException($"Calibration run {run.Code} is not active.");
+
+            if (run.TestDefinitionId != definition.Id)
+                throw new InvalidOperationException("Linked calibration run is for a different test method.");
+
+            if (run.SectionId != definition.SectionId)
+                throw new InvalidOperationException("Linked calibration run is for a different laboratory section.");
+
+            if (runAnalyte.TestAnalyteId != spec.TestAnalyteId)
+                throw new InvalidOperationException($"Calibration run analyte {elemInput.CalibrationRunAnalyteId} does not match specification '{spec.ParameterName}'.");
+
+            int maxAgeHours = definition.CalMaxRunAgeHours ?? 24;
+            var runCalibrationAtUtc = run.CalibrationAt.Kind switch
+            {
+                DateTimeKind.Utc => run.CalibrationAt,
+                DateTimeKind.Local => run.CalibrationAt.ToUniversalTime(),
+                _ => DateTime.SpecifyKind(run.CalibrationAt, DateTimeKind.Utc)
+            };
+
+            if (analysedAtUtc < runCalibrationAtUtc || analysedAtUtc > runCalibrationAtUtc.AddHours(maxAgeHours))
+                throw new InvalidOperationException($"Analysis time must be within {maxAgeHours} hours of calibration run {run.Code}.");
+
+            decimal? mgPerUnit = null;
+            decimal? resultClaim = null;
+            decimal? percentLabelClaim = null;
+            decimal? reportedValue = null;
+            string reportedDisplay;
+            string status;
+
+            if (elemInput.OverRange)
+            {
+                status = "RequiresReview";
+                reportedDisplay = "Over range";
+            }
+            else if (elemInput.BelowLoq)
+            {
+                status = spec.LimitType == LimitType.NotMoreThan ? "WithinLimits" : "RequiresReview";
+                reportedDisplay = "<LOQ";
+            }
+            else
+            {
+                decimal c = elemInput.ReportedPpm;
+                decimal wuOrVd = payload.UnitAmount;
+                decimal mpu = (c * wuOrVd) / 1000m;
+                decimal rc = mpu * spec.ConversionFactor;
+                decimal? plc = (spec.LabelClaim.HasValue && spec.LabelClaim.Value > 0)
+                    ? (rc / spec.LabelClaim.Value) * 100m
+                    : null;
+
+                decimal rv = spec.ResultBasis switch
+                {
+                    ResultBasis.MgPerKg => c,
+                    ResultBasis.MgPerUnit => rc,
+                    ResultBasis.PercentLabelClaim => plc ?? throw new InvalidOperationException($"Label claim required to compute PercentLabelClaim for specification '{spec.ParameterName}'."),
+                    _ => rc
+                };
+
+                mgPerUnit = mpu;
+                resultClaim = rc;
+                percentLabelClaim = plc;
+                reportedValue = rv;
+
+                status = SpecificationEvaluator.Evaluate(spec, rv);
+
+                var rounded = Math.Round(rv, 1, MidpointRounding.AwayFromZero).ToString("0.0", System.Globalization.CultureInfo.InvariantCulture);
+                if (spec.ResultBasis == ResultBasis.PercentLabelClaim)
+                {
+                    reportedDisplay = $"{rounded} %";
+                }
+                else if (spec.ResultBasis == ResultBasis.MgPerUnit)
+                {
+                    var unitStr = !string.IsNullOrWhiteSpace(spec.Unit) ? spec.Unit : (!string.IsNullOrWhiteSpace(spec.LabelClaimUnit) ? spec.LabelClaimUnit : "mg");
+                    reportedDisplay = $"{rounded} {unitStr}";
+                }
+                else // MgPerKg
+                {
+                    var unitStr = !string.IsNullOrWhiteSpace(spec.Unit) ? spec.Unit : (sampleMatrix == SampleMatrix.Solid ? "mg/kg" : "mg/L");
+                    reportedDisplay = $"{rounded} {unitStr}";
+                }
+            }
+
+            var canonicalLimit = !string.IsNullOrWhiteSpace(spec.SpecLimit)
+                ? spec.SpecLimit
+                : SpecificationService.BuildCanonicalSpecLimit(spec);
+
+            var calcData = new ElementalCalculationData(
+                Element: runAnalyte.Element,
+                RunCode: run.Code,
+                RunAnalytePassed: runAnalyte.Passed,
+                ReportedPpm: elemInput.ReportedPpm,
+                OverRange: elemInput.OverRange,
+                BelowLoq: elemInput.BelowLoq,
+                MgPerUnit: mgPerUnit,
+                ResultClaim: resultClaim,
+                PercentLabelClaim: percentLabelClaim,
+                ConversionFactor: spec.ConversionFactor,
+                LabelClaim: spec.LabelClaim,
+                LabelClaimUnit: spec.LabelClaimUnit
+            );
+
+            var calcJson = System.Text.Json.JsonSerializer.Serialize(calcData, new System.Text.Json.JsonSerializerOptions
+            {
+                PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase
+            });
+
+            var paramResult = new ParameterResult
+            {
+                TestOrderId = order.Id,
+                SpecificationId = spec.Id,
+                ValidityRecordItemId = elemInput.CalibrationRunAnalyteId,
+                ParameterName = spec.ParameterName,
+                ReportedValue = reportedValue,
+                ReportedDisplay = reportedDisplay,
+                Unit = spec.Unit,
+                SpecLimit = canonicalLimit,
+                ResultBasis = spec.ResultBasis,
+                ComparisonStatus = status,
+                OverRange = elemInput.OverRange,
+                BelowLoq = elemInput.BelowLoq,
+                CalculationJson = calcJson,
+                StageReached = null,
+                IsActive = true
+            };
+
+            elementResults.Add(paramResult);
+        }
+
+        _db.CurrentUserId = userId;
+        var signature = await _signatureService.SignAsync(
+            userId,
+            payload.Password,
+            SignatureMeaning.ResultRecorded,
+            "TestOrder",
+            order.Id,
+            payload.Comment,
+            ipAddress);
+
+        var entry = new TestAnalysis
+        {
+            TestOrderId = order.Id,
+            AnalysisType = WorkflowType.ElementalAssay,
+            EquipmentId = equipmentId,
+            AnalysedAt = analysedAtUtc,
+            UnitAmount = payload.UnitAmount,
+            SampleMatrix = sampleMatrix,
+            ConditionsJson = null,
+            ValidityRecordType = "CalibrationRun",
+            ValidityRecordId = null,
+            IsActive = true,
+            EnteredByUserId = userId,
+            EnteredAt = _clock.UtcNow.UtcDateTime,
+            Signature = signature,
+            Comment = payload.Comment,
+            ParameterResults = elementResults
+        };
+
+        _db.TestAnalyses.Add(entry);
+
+        string overallStatus;
+        if (elementResults.Any(r => r.ComparisonStatus == "OutOfSpecification"))
+            overallStatus = "OutOfSpecification";
+        else if (elementResults.Any(r => r.ComparisonStatus == "RequiresReview"))
+            overallStatus = "RequiresReview";
+        else if (elementResults.Any(r => r.ComparisonStatus == "WithinLimits"))
+            overallStatus = "WithinLimits";
+        else
+            overallStatus = elementResults.First().ComparisonStatus;
+
+        var outcomeSummary = string.Join(", ", elementResults.Select(r => $"{r.Element}: {r.ReportedDisplay}"));
+
+        _db.Results.Add(new Result
+        {
+            TestOrderId = order.Id,
+            RawValue = string.Join(",", elementResults.Select(r => $"{r.Element}={(r.ReportedPpm.HasValue ? r.ReportedPpm.Value.ToString(System.Globalization.CultureInfo.InvariantCulture) : "0")}")),
+            InterpretedValue = $"{outcomeSummary} ({overallStatus})",
+            Type = ResultType.Numeric,
+            EnteredByUserId = userId,
+            EnteredAt = _clock.UtcNow.UtcDateTime
+        });
+
+        await _db.SaveChangesAsync();
+
+        foreach (var elemResult in elementResults)
+        {
+            await _resultProjection.UpsertFromParameterResultAsync(elemResult.Id);
+        }
+        await _db.SaveChangesAsync();
+
+        await WorkflowStateMachine.TransitionAsync(_db, order, WorkflowStep.Ready, userId, $"Elemental assay complete: {outcomeSummary}");
+        await _sampleReviewService.AutoSubmitForReviewIfReadyAsync(order.SampleId, userId);
+        await _db.SaveChangesAsync();
+
+        return new TestWorkflowResult(outcomeSummary, true, true, outcomeSummary, null, null, overallStatus);
+    }
+
+    private async Task<(TestOrder Order, TestDefinition Definition, Dictionary<int, Specification> SpecById, DateTime AnalysedAtUtc)> ValidateTestAnalysisOrderAsync(
+        int testOrderId,
+        DateTime analysedAt,
+        int? equipmentId,
+        IReadOnlyCollection<int>? suppliedSpecIds,
+        string password,
+        WorkflowType expectedWorkflowType,
+        int userId)
+    {
+        if (string.IsNullOrWhiteSpace(password))
+            throw new InvalidOperationException("Password is required to sign the result.");
+        if (expectedWorkflowType != WorkflowType.Dissolution && expectedWorkflowType != WorkflowType.Disintegration && expectedWorkflowType != WorkflowType.WeightVariation && expectedWorkflowType != WorkflowType.StandardComparison && (suppliedSpecIds == null || suppliedSpecIds.Count == 0))
+            throw new InvalidOperationException("At least one parameter result is required.");
+
+        var nowUtc = _clock.UtcNow.UtcDateTime;
+        var analysedAtUtc = analysedAt.Kind switch
+        {
+            DateTimeKind.Utc => analysedAt,
+            DateTimeKind.Local => analysedAt.ToUniversalTime(),
+            _ => DateTime.SpecifyKind(analysedAt, DateTimeKind.Utc)
+        };
+
+        if (analysedAtUtc > nowUtc.AddMinutes(5))
+            throw new InvalidOperationException("Analysis time cannot be in the future.");
+
+        var order = await _db.TestOrders
+            .Include(t => t.Results)
+            .Include(t => t.Sample)
+            .FirstOrDefaultAsync(t => t.Id == testOrderId)
+            ?? throw new InvalidOperationException($"Test order {testOrderId} not found.");
+
+        RequireOrderNotFinalized(order);
+
+        if (order.IsSuperseded)
+            throw new InvalidOperationException("Cannot record result for a superseded test order.");
+
+        var definition = await _db.TestDefinitions
+            .FirstOrDefaultAsync(t => t.Code == order.TestCode)
+            ?? throw new InvalidOperationException($"Test definition \"{order.TestCode}\" not found.");
+
+        if (definition.WorkflowType != expectedWorkflowType)
+            throw new InvalidOperationException($"Test order {testOrderId} is not a {expectedWorkflowType} workflow.");
+
+        await _sectionScope.EnsureTestOrderAccessAsync(userId, testOrderId);
+
+        if (await _db.TestAnalyses.AnyAsync(e => e.TestOrderId == testOrderId && e.IsActive))
+            throw new InvalidOperationException($"An active {AnalysisWorkflows.GetDisplayName(expectedWorkflowType)} entry already exists for this test order.");
+
+        if (equipmentId.HasValue)
+        {
+            var equip = await _db.Equipment
+                .Include(e => e.Section)
+                .FirstOrDefaultAsync(e => e.Id == equipmentId.Value)
+                ?? throw new InvalidOperationException($"Equipment {equipmentId.Value} not found.");
+
+            var inventoryEquip = await _db.EquipmentInventories
+                .FirstOrDefaultAsync(i => i.Code == equip.Code);
+            if (inventoryEquip != null && inventoryEquip.Status != EquipmentOperationalStatus.InService)
+                throw new InvalidOperationException($"Equipment \"{equip.Name}\" is not active.");
+
+            var equipSectionCode = equip.Section?.Code
+                ?? (await _db.DocumentSections.Where(s => s.Id == equip.SectionId).Select(s => s.Code).FirstOrDefaultAsync());
+
+            if (!string.Equals(equipSectionCode, "FP", StringComparison.OrdinalIgnoreCase))
+                throw new InvalidOperationException($"Equipment \"{equip.Name}\" is not in the Finished Product (FP) section.");
+        }
+
+        if (order.Sample?.ItemId is null)
+            throw new InvalidOperationException("Test order sample must be linked to an item with specifications.");
+
+        var itemId = order.Sample.ItemId.Value;
+
+        var specs = await _db.Specifications
+            .Include(s => s.TestAnalyte)
+            .Where(s => s.ItemId == itemId && s.TestCode == order.TestCode)
+            .ToListAsync();
+
+        if (specs.Count == 0)
+            throw new InvalidOperationException("No specifications configured for this test and item.");
+
+        if (expectedWorkflowType == WorkflowType.Dissolution)
+        {
+            if (specs.Count != 1 || specs[0].LimitType != LimitType.DissolutionQ)
+                throw new InvalidOperationException("Dissolution tests require exactly one DissolutionQ specification.");
+        }
+        else if (expectedWorkflowType == WorkflowType.Disintegration)
+        {
+            if (specs.Count != 1 || specs[0].LimitType != LimitType.DisintegrationTime)
+                throw new InvalidOperationException("Disintegration tests require exactly one DisintegrationTime specification.");
+        }
+        else if (expectedWorkflowType == WorkflowType.WeightVariation)
+        {
+            if (specs.Count != 1 || specs[0].LimitType != LimitType.WeightVariation)
+                throw new InvalidOperationException("Weight variation tests require exactly one WeightVariation specification.");
+        }
+        else if (expectedWorkflowType == WorkflowType.StandardComparison)
+        {
+            if (specs.Any(s => !s.TestAnalyteId.HasValue))
+                throw new InvalidOperationException("Every specification for Standard-Comparison must be linked to a test analyte.");
+        }
+        else
+        {
+            if (suppliedSpecIds == null || suppliedSpecIds.Count != specs.Count)
+                throw new InvalidOperationException($"Expected {specs.Count} parameter results matching specifications, but received {suppliedSpecIds?.Count ?? 0}.");
+
+            var specIds = specs.Select(s => s.Id).ToHashSet();
+            if (suppliedSpecIds.Distinct().Count() != suppliedSpecIds.Count || !specIds.SetEquals(suppliedSpecIds))
+                throw new InvalidOperationException("Every specification for this test must be supplied exactly once.");
+        }
+
+        return (order, definition, specs.ToDictionary(s => s.Id), analysedAtUtc);
+    }
+
+    private async Task<TestWorkflowResult> PersistTestAnalysisAndFinalizeAsync(
+        TestOrder order,
+        WorkflowType workflowType,
+        int? equipmentId,
+        DateTime analysedAtUtc,
+        string? conditionsJson,
+        List<ParameterResult> parameterResults,
+        ResultType resultType,
+        string password,
+        string? comment,
+        string workflowDisplayName,
+        int userId,
+        string? ipAddress,
+        decimal? unitAmount = null,
+        SampleMatrix? sampleMatrix = null,
+        string? validityRecordType = null,
+        int? validityRecordId = null)
+    {
+        _db.CurrentUserId = userId;
+        var signature = await _signatureService.SignAsync(
+            userId,
+            password,
+            SignatureMeaning.ResultRecorded,
+            "TestOrder",
+            order.Id,
+            comment,
+            ipAddress);
+
+        var entry = new TestAnalysis
+        {
+            TestOrderId = order.Id,
+            AnalysisType = workflowType,
+            EquipmentId = equipmentId,
+            AnalysedAt = analysedAtUtc,
+            UnitAmount = unitAmount,
+            SampleMatrix = sampleMatrix,
+            ConditionsJson = conditionsJson,
+            ValidityRecordType = validityRecordType,
+            ValidityRecordId = validityRecordId,
+            IsActive = true,
+            EnteredByUserId = userId,
+            EnteredAt = _clock.UtcNow.UtcDateTime,
+            Signature = signature,
+            Comment = comment,
+            ParameterResults = parameterResults
+        };
+
+        _db.TestAnalyses.Add(entry);
+
+        string overallStatus;
+        if (parameterResults.Any(r => r.ComparisonStatus == "OutOfSpecification"))
+            overallStatus = "OutOfSpecification";
+        else if (parameterResults.Any(r => r.ComparisonStatus == "RequiresReview"))
+            overallStatus = "RequiresReview";
+        else if (parameterResults.Any(r => r.ComparisonStatus == "WithinLimits"))
+            overallStatus = "WithinLimits";
+        else
+            overallStatus = parameterResults.First().ComparisonStatus;
+
+        var outcomeSummary = string.Join(", ", parameterResults.Select(r => $"{r.ParameterName}: {r.ReportedDisplay}"));
+
+        _db.Results.Add(new Result
+        {
+            TestOrderId = order.Id,
+            RawValue = string.Join(",", parameterResults.Select(r => $"{r.ParameterName}={(r.ReportedValue.HasValue ? r.ReportedValue.Value.ToString(CultureInfo.InvariantCulture) : r.ReportedDisplay)}")),
+            InterpretedValue = $"{outcomeSummary} ({overallStatus})",
+            Type = resultType,
+            EnteredByUserId = userId,
+            EnteredAt = _clock.UtcNow.UtcDateTime
+        });
+
+        await _db.SaveChangesAsync();
+
+        foreach (var pr in parameterResults)
+        {
+            await _resultProjection.UpsertFromParameterResultAsync(pr.Id);
+        }
+        await _db.SaveChangesAsync();
+
+        await WorkflowStateMachine.TransitionAsync(_db, order, WorkflowStep.Ready, userId, $"{workflowDisplayName} complete: {outcomeSummary}");
+        await _sampleReviewService.AutoSubmitForReviewIfReadyAsync(order.SampleId, userId);
+        await _db.SaveChangesAsync();
+
+        return new TestWorkflowResult(outcomeSummary, true, true, outcomeSummary, null, null, overallStatus);
+    }
+
+    public async Task<TestWorkflowResult> RecordMeasurementResultAsync(
+        int testOrderId, MeasurementPayload payload, int userId, string? ipAddress = null)
+    {
+        var suppliedSpecIds = payload.Parameters?.Select(p => p.SpecificationId).ToList() ?? new List<int>();
+        var (order, definition, specById, analysedAtUtc) = await ValidateTestAnalysisOrderAsync(
+            testOrderId, payload.AnalysedAt, payload.EquipmentId, suppliedSpecIds, payload.Password, WorkflowType.Measurement, userId);
+
+        if (!definition.ReplicateCount.HasValue || definition.ReplicateCount.Value < 1 || definition.ReplicateCount.Value > 30)
+            throw new InvalidOperationException("Test definition does not have a valid replicate count (1-30).");
+
+        if (!definition.EvaluationBasis.HasValue)
+            throw new InvalidOperationException("Test definition does not have an evaluation basis configured.");
+
+        int replicateCount = definition.ReplicateCount.Value;
+        var evaluationBasis = definition.EvaluationBasis.Value;
+
+        ArgumentNullException.ThrowIfNull(payload.Parameters);
+
+        foreach (var param in payload.Parameters)
+        {
+            if (param.Readings == null || param.Readings.Count != replicateCount)
+                throw new InvalidOperationException($"Each parameter must have exactly {replicateCount} readings.");
+        }
+
+        var parameterResults = new List<ParameterResult>();
+
+        foreach (var param in payload.Parameters)
+        {
+            var spec = specById[param.SpecificationId];
+            var calcResult = MeasurementCalculator.Calculate(param.Readings, evaluationBasis, spec);
+
+            var canonicalLimit = !string.IsNullOrWhiteSpace(spec.SpecLimit)
+                ? spec.SpecLimit
+                : SpecificationService.BuildCanonicalSpecLimit(spec);
+
+            var paramResult = new ParameterResult
+            {
+                TestOrderId = order.Id,
+                SpecificationId = spec.Id,
+                ParameterName = spec.ParameterName,
+                ReportedValue = calcResult.ReportedValue,
+                ReportedDisplay = calcResult.ReportedDisplay,
+                Unit = spec.Unit,
+                SpecLimit = canonicalLimit,
+                ResultBasis = null,
+                ComparisonStatus = calcResult.ComparisonStatus,
+                OverRange = false,
+                BelowLoq = false,
+                CalculationJson = calcResult.CalculationJson,
+                StageReached = null,
+                IsActive = true
+            };
+
+            for (int i = 0; i < param.Readings.Count; i++)
+            {
+                paramResult.Readings.Add(new ResultReading
+                {
+                    Kind = ReadingKind.Replicate,
+                    Index = i + 1,
+                    Value1 = param.Readings[i]
+                });
+            }
+
+            parameterResults.Add(paramResult);
+        }
+
+        return await PersistTestAnalysisAndFinalizeAsync(
+            order,
+            WorkflowType.Measurement,
+            payload.EquipmentId,
+            analysedAtUtc,
+            null,
+            parameterResults,
+            ResultType.Numeric,
+            payload.Password,
+            payload.Comment,
+            "Measurement",
+            userId,
+            ipAddress);
+    }
+
+    public async Task<TestWorkflowResult> RecordGravimetricResultAsync(
+        int testOrderId, GravimetricPayload payload, int userId, string? ipAddress = null)
+    {
+        var suppliedSpecIds = payload.Parameters?.Select(p => p.SpecificationId).ToList() ?? new List<int>();
+        var (order, definition, specById, analysedAtUtc) = await ValidateTestAnalysisOrderAsync(
+            testOrderId, payload.AnalysedAt, payload.EquipmentId, suppliedSpecIds, payload.Password, WorkflowType.Gravimetric, userId);
+
+        if (definition.EquationType is not (EquationType.GravimetricLoss or EquationType.GravimetricResidue))
+            throw new InvalidOperationException("Test definition equation type must be GravimetricLoss or GravimetricResidue.");
+
+        if (!definition.ReplicateCount.HasValue || definition.ReplicateCount.Value < 1 || definition.ReplicateCount.Value > 30)
+            throw new InvalidOperationException("Test definition does not have a valid replicate count (1-30).");
+
+        int replicateCount = definition.ReplicateCount.Value;
+        bool usesTare = definition.UsesTare ?? false;
+
+        ArgumentNullException.ThrowIfNull(payload.Parameters);
+
+        foreach (var param in payload.Parameters)
+        {
+            if (param.Replicates == null || param.Replicates.Count != replicateCount)
+                throw new InvalidOperationException($"Each parameter must have exactly {replicateCount} replicates.");
+
+            foreach (var rep in param.Replicates)
+            {
+                if (usesTare && !rep.Container.HasValue)
+                    throw new InvalidOperationException("Container weight is required when tare is used.");
+                if (!usesTare && rep.Container.HasValue)
+                    throw new InvalidOperationException("Container weight must be null when tare is not used.");
+            }
+        }
+
+        var configuredLabels = string.IsNullOrWhiteSpace(definition.ConditionFields)
+            ? Array.Empty<string>()
+            : definition.ConditionFields.Split(',', StringSplitOptions.RemoveEmptyEntries)
+                .Select(s => s.Trim())
+                .Where(s => !string.IsNullOrWhiteSpace(s))
+                .ToArray();
+
+        if (configuredLabels.Length > 0)
+        {
+            if (payload.Conditions == null)
+                throw new InvalidOperationException("Conditions are required.");
+
+            if (payload.Conditions.Count != configuredLabels.Length)
+                throw new InvalidOperationException($"Expected {configuredLabels.Length} condition fields, but received {payload.Conditions.Count}.");
+
+            foreach (var label in configuredLabels)
+            {
+                if (!payload.Conditions.TryGetValue(label, out var val) || string.IsNullOrWhiteSpace(val))
+                    throw new InvalidOperationException($"Condition field \"{label}\" is required.");
+            }
+
+            foreach (var key in payload.Conditions.Keys)
+            {
+                if (!configuredLabels.Contains(key))
+                    throw new InvalidOperationException($"Unexpected condition field \"{key}\".");
+            }
+        }
+        else
+        {
+            if (payload.Conditions != null && payload.Conditions.Count > 0)
+                throw new InvalidOperationException("No condition fields are configured for this test.");
+        }
+
+        string? conditionsJson = payload.Conditions != null && payload.Conditions.Count > 0
+            ? JsonSerializer.Serialize(payload.Conditions)
+            : null;
+
+        var parameterResults = new List<ParameterResult>();
+
+        foreach (var param in payload.Parameters)
+        {
+            var spec = specById[param.SpecificationId];
+            var calcResult = GravimetricCalculator.Calculate(param.Replicates, definition.EquationType, spec);
+
+            var canonicalLimit = !string.IsNullOrWhiteSpace(spec.SpecLimit)
+                ? spec.SpecLimit
+                : SpecificationService.BuildCanonicalSpecLimit(spec);
+
+            var paramResult = new ParameterResult
+            {
+                TestOrderId = order.Id,
+                SpecificationId = spec.Id,
+                ParameterName = spec.ParameterName,
+                ReportedValue = calcResult.ReportedValue,
+                ReportedDisplay = calcResult.ReportedDisplay,
+                Unit = spec.Unit,
+                SpecLimit = canonicalLimit,
+                ResultBasis = null,
+                ComparisonStatus = calcResult.ComparisonStatus,
+                OverRange = false,
+                BelowLoq = false,
+                CalculationJson = calcResult.CalculationJson,
+                StageReached = null,
+                IsActive = true
+            };
+
+            for (int i = 0; i < param.Replicates.Count; i++)
+            {
+                var rep = param.Replicates[i];
+                var repDetail = calcResult.Replicates[i];
+                paramResult.Readings.Add(new ResultReading
+                {
+                    Kind = ReadingKind.Weight,
+                    Index = i + 1,
+                    Value1 = rep.Container,
+                    Value2 = rep.Initial,
+                    Value3 = rep.Final,
+                    ComputedValue = repDetail.Percent
+                });
+            }
+
+            parameterResults.Add(paramResult);
+        }
+
+        return await PersistTestAnalysisAndFinalizeAsync(
+            order,
+            WorkflowType.Gravimetric,
+            payload.EquipmentId,
+            analysedAtUtc,
+            conditionsJson,
+            parameterResults,
+            ResultType.Numeric,
+            payload.Password,
+            payload.Comment,
+            "Gravimetric",
+            userId,
+            ipAddress);
+    }
+
+    public async Task<TestWorkflowResult> RecordQualitativeResultAsync(
+        int testOrderId, QualitativePayload payload, int userId, string? ipAddress = null)
+    {
+        var suppliedSpecIds = payload.Parameters?.Select(p => p.SpecificationId).ToList() ?? new List<int>();
+        var (order, definition, specById, analysedAtUtc) = await ValidateTestAnalysisOrderAsync(
+            testOrderId, payload.AnalysedAt, payload.EquipmentId, suppliedSpecIds, payload.Password, WorkflowType.Qualitative, userId);
+
+        if (definition.EquationType != EquationType.Qualitative)
+            throw new InvalidOperationException("Test definition equation type must be Qualitative.");
+
+        foreach (var spec in specById.Values)
+        {
+            if (spec.LimitType is not (LimitType.Qualitative or LimitType.PresenceAbsence))
+                throw new InvalidOperationException($"Specification \"{spec.ParameterName}\" must have limit type Qualitative or PresenceAbsence, but was {spec.LimitType}.");
+        }
+
+        ArgumentNullException.ThrowIfNull(payload.Parameters);
+
+        foreach (var param in payload.Parameters)
+        {
+            if (!param.Conforms && string.IsNullOrWhiteSpace(param.Observation))
+                throw new InvalidOperationException("An observation is required when result does not conform.");
+
+            if (param.Observation != null && param.Observation.Length > 500)
+                throw new InvalidOperationException("Observation cannot exceed 500 characters.");
+        }
+
+        var parameterResults = new List<ParameterResult>();
+
+        foreach (var param in payload.Parameters)
+        {
+            var spec = specById[param.SpecificationId];
+            var canonicalLimit = !string.IsNullOrWhiteSpace(spec.SpecLimit)
+                ? spec.SpecLimit
+                : SpecificationService.BuildCanonicalSpecLimit(spec);
+
+            var calcData = new QualitativeCalculationData(canonicalLimit, param.Conforms);
+            var calculationJson = JsonSerializer.Serialize(calcData, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
+
+            var paramResult = new ParameterResult
+            {
+                TestOrderId = order.Id,
+                SpecificationId = spec.Id,
+                ParameterName = spec.ParameterName,
+                ReportedValue = null,
+                ReportedDisplay = param.Conforms ? "Complies" : "Does not comply",
+                Unit = spec.Unit,
+                SpecLimit = canonicalLimit,
+                ResultBasis = null,
+                ComparisonStatus = param.Conforms ? "WithinLimits" : "OutOfSpecification",
+                OverRange = false,
+                BelowLoq = false,
+                CalculationJson = calculationJson,
+                StageReached = null,
+                IsActive = true
+            };
+
+            paramResult.Readings.Add(new ResultReading
+            {
+                Kind = ReadingKind.Replicate,
+                Index = 1,
+                Text = param.Observation,
+                Passed = param.Conforms
+            });
+
+            parameterResults.Add(paramResult);
+        }
+
+        return await PersistTestAnalysisAndFinalizeAsync(
+            order,
+            WorkflowType.Qualitative,
+            payload.EquipmentId,
+            analysedAtUtc,
+            null,
+            parameterResults,
+            ResultType.Interpretive,
+            payload.Password,
+            payload.Comment,
+            "Qualitative",
+            userId,
+            ipAddress);
+    }
+
+    public async Task<TestWorkflowResult> RecordDissolutionResultAsync(
+        int testOrderId, DissolutionPayload payload, int userId, string? ipAddress = null)
+    {
+        if (payload.MediumVolumeMl <= 0m)
+            throw new InvalidOperationException("Medium volume must be greater than zero.");
+        if (payload.DilutionFactor.HasValue && payload.DilutionFactor.Value <= 0m)
+            throw new InvalidOperationException("Dilution factor must be greater than zero.");
+        if (payload.VesselAreas == null || payload.VesselAreas.Count != 6)
+            throw new InvalidOperationException("Stage 1 dissolution requires exactly 6 vessel areas.");
+        if (payload.VesselAreas.Any(a => a <= 0m))
+            throw new InvalidOperationException("Vessel area must be greater than zero.");
+
+        var (order, definition, specById, analysedAtUtc) = await ValidateTestAnalysisOrderAsync(
+            testOrderId, payload.AnalysedAt, payload.EquipmentId, null, payload.Password, WorkflowType.Dissolution, userId);
+
+        if (!order.SystemSuitabilityRunId.HasValue)
+            throw new InvalidOperationException("Test order must be linked to a system suitability run before recording a dissolution result.");
+
+        var run = await _db.SystemSuitabilityRuns
+            .FirstOrDefaultAsync(r => r.Id == order.SystemSuitabilityRunId.Value)
+            ?? throw new InvalidOperationException($"Linked system suitability run {order.SystemSuitabilityRunId.Value} not found.");
+
+        if (!run.Passed)
+            throw new InvalidOperationException("Linked system suitability run did not pass.");
+
+        if (run.TestDefinitionId != definition.Id)
+            throw new InvalidOperationException("Linked system suitability run is for a different test method.");
+
+        if (run.SectionId != definition.SectionId)
+            throw new InvalidOperationException("Linked system suitability run is for a different laboratory section.");
+
+        if (run.StandardMeanArea <= 0 || run.StandardWeightMg <= 0 || run.StandardDilution <= 0 || run.StandardPurityPercent <= 0)
+            throw new InvalidOperationException("Linked system suitability run contains invalid standard values.");
+
+        var configuredLabels = string.IsNullOrWhiteSpace(definition.ConditionFields)
+            ? Array.Empty<string>()
+            : definition.ConditionFields.Split(',', StringSplitOptions.RemoveEmptyEntries)
+                .Select(s => s.Trim())
+                .Where(s => !string.IsNullOrWhiteSpace(s))
+                .ToArray();
+
+        if (configuredLabels.Length > 0)
+        {
+            if (payload.Conditions == null)
+                throw new InvalidOperationException("Conditions are required.");
+
+            if (payload.Conditions.Count != configuredLabels.Length)
+                throw new InvalidOperationException($"Expected {configuredLabels.Length} condition fields, but received {payload.Conditions.Count}.");
+
+            foreach (var label in configuredLabels)
+            {
+                if (!payload.Conditions.TryGetValue(label, out var val) || string.IsNullOrWhiteSpace(val))
+                    throw new InvalidOperationException($"Condition field \"{label}\" is required.");
+            }
+
+            foreach (var key in payload.Conditions.Keys)
+            {
+                if (!configuredLabels.Contains(key))
+                    throw new InvalidOperationException($"Unexpected condition field \"{key}\".");
+            }
+        }
+        else
+        {
+            if (payload.Conditions != null && payload.Conditions.Count > 0)
+                throw new InvalidOperationException("No condition fields are configured for this test.");
+        }
+
+        string? conditionsJson = payload.Conditions != null && payload.Conditions.Count > 0
+            ? JsonSerializer.Serialize(payload.Conditions)
+            : null;
+
+        var spec = specById.Values.First();
+        decimal q = spec.LowerLimit!.Value;
+        decimal lc = spec.LabelClaim!.Value;
+        decimal df = payload.DilutionFactor ?? 1.0m;
+        decimal v = payload.MediumVolumeMl;
+
+        decimal s1Offset = definition.DissolutionS1Offset ?? 5m;
+        decimal s2MinOffset = definition.DissolutionS2MinOffset ?? 15m;
+        decimal s3MinOffset = definition.DissolutionS3MinOffset ?? 25m;
+        decimal s3MaxBelow = definition.DissolutionS3MaxBelowS2Min ?? 2m;
+
+        var offsets = new DissolutionOffsetsData(s1Offset, s2MinOffset, s3MinOffset, s3MaxBelow);
+        decimal cs = DissolutionCalculator.CalculateCs(run.StandardWeightMg, run.StandardPurityPercent, run.StandardDilution);
+
+        var standardData = new DissolutionStandardData(
+            SystemSuitabilityRunId: run.Id,
+            RunCode: run.Code,
+            StandardWeightMg: run.StandardWeightMg,
+            StandardDilution: run.StandardDilution,
+            StandardPurityPercent: run.StandardPurityPercent,
+            StandardMeanArea: run.StandardMeanArea,
+            Cs: cs);
+
+        var vesselInputs = payload.VesselAreas
+            .Select((area, i) => (Stage: 1, VesselIndex: i + 1, Area: area))
+            .ToList();
+
+        var calcResult = DissolutionCalculator.Calculate(
+            vesselInputs,
+            standardData,
+            v,
+            df,
+            lc,
+            q,
+            offsets);
+
+        _db.CurrentUserId = userId;
+        var signature = await _signatureService.SignAsync(
+            userId,
+            payload.Password,
+            SignatureMeaning.ResultRecorded,
+            "TestOrder",
+            order.Id,
+            payload.Comment,
+            ipAddress);
+
+        var canonicalLimit = !string.IsNullOrWhiteSpace(spec.SpecLimit)
+            ? spec.SpecLimit
+            : SpecificationService.BuildCanonicalSpecLimit(spec);
+
+        var paramResult = new ParameterResult
+        {
+            TestOrderId = order.Id,
+            SpecificationId = spec.Id,
+            ParameterName = spec.ParameterName,
+            ReportedValue = calcResult.ReportedValue,
+            ReportedDisplay = calcResult.ReportedDisplay,
+            Unit = spec.Unit,
+            SpecLimit = canonicalLimit,
+            ResultBasis = null,
+            ComparisonStatus = calcResult.ComparisonStatus,
+            OverRange = false,
+            BelowLoq = false,
+            CalculationJson = calcResult.CalculationJson,
+            StageReached = calcResult.StageReached,
+            IsActive = true
+        };
+
+        for (int i = 0; i < calcResult.Vessels.Count; i++)
+        {
+            var vessel = calcResult.Vessels[i];
+            paramResult.Readings.Add(new ResultReading
+            {
+                Kind = ReadingKind.Vessel,
+                Index = vessel.VesselIndex,
+                Stage = vessel.Stage,
+                Value1 = vessel.Area,
+                ComputedValue = vessel.Percent,
+                Passed = vessel.Passed
+            });
+        }
+
+        var entry = new TestAnalysis
+        {
+            TestOrderId = order.Id,
+            AnalysisType = WorkflowType.Dissolution,
+            EquipmentId = payload.EquipmentId,
+            AnalysedAt = analysedAtUtc,
+            UnitAmount = null,
+            SampleMatrix = null,
+            ConditionsJson = conditionsJson,
+            ValidityRecordType = null,
+            ValidityRecordId = null,
+            IsActive = true,
+            EnteredByUserId = userId,
+            EnteredAt = _clock.UtcNow.UtcDateTime,
+            Signature = signature,
+            Comment = payload.Comment,
+            ParameterResults = new List<ParameterResult> { paramResult }
+        };
+
+        _db.TestAnalyses.Add(entry);
+        await _db.SaveChangesAsync();
+
+        var outcomeSummary = $"{paramResult.ParameterName}: {paramResult.ReportedDisplay}";
+
+        if (calcResult.Outcome == DissolutionStageOutcome.NextStageRequired)
+        {
+            return new TestWorkflowResult(outcomeSummary, false, false, null, null, null, "NextStageRequired");
+        }
+
+        string overallStatus = paramResult.ComparisonStatus;
+
+        _db.Results.Add(new Result
+        {
+            TestOrderId = order.Id,
+            RawValue = $"{paramResult.ParameterName}={(paramResult.ReportedValue.HasValue ? paramResult.ReportedValue.Value.ToString(CultureInfo.InvariantCulture) : paramResult.ReportedDisplay)}",
+            InterpretedValue = $"{outcomeSummary} ({overallStatus})",
+            Type = ResultType.Numeric,
+            EnteredByUserId = userId,
+            EnteredAt = _clock.UtcNow.UtcDateTime
+        });
+
+        await _db.SaveChangesAsync();
+
+        await _resultProjection.UpsertFromParameterResultAsync(paramResult.Id);
+        await _db.SaveChangesAsync();
+
+        await WorkflowStateMachine.TransitionAsync(_db, order, WorkflowStep.Ready, userId, $"Dissolution complete: {outcomeSummary}");
+        await _sampleReviewService.AutoSubmitForReviewIfReadyAsync(order.SampleId, userId);
+        await _db.SaveChangesAsync();
+
+        return new TestWorkflowResult(outcomeSummary, true, true, outcomeSummary, null, null, overallStatus);
+    }
+
+    public async Task<TestWorkflowResult> RecordDissolutionStageAsync(
+        int testOrderId, DissolutionStagePayload payload, int userId, string? ipAddress = null)
+    {
+        if (string.IsNullOrWhiteSpace(payload.Password))
+            throw new InvalidOperationException("Password is required to sign the result.");
+        if (payload.VesselAreas == null || payload.VesselAreas.Count == 0)
+            throw new InvalidOperationException("Vessel areas are required.");
+        if (payload.VesselAreas.Any(a => a <= 0m))
+            throw new InvalidOperationException("Vessel area must be greater than zero.");
+
+        var order = await _db.TestOrders
+            .Include(t => t.Results)
+            .Include(t => t.Sample)
+            .FirstOrDefaultAsync(t => t.Id == testOrderId)
+            ?? throw new InvalidOperationException($"Test order {testOrderId} not found.");
+
+        RequireOrderNotFinalized(order);
+
+        if (order.IsSuperseded)
+            throw new InvalidOperationException("Cannot record result for a superseded test order.");
+
+        var definition = await _db.TestDefinitions
+            .FirstOrDefaultAsync(t => t.Code == order.TestCode)
+            ?? throw new InvalidOperationException($"Test definition \"{order.TestCode}\" not found.");
+
+        if (definition.WorkflowType != WorkflowType.Dissolution)
+            throw new InvalidOperationException($"Test order {testOrderId} is not a Dissolution workflow.");
+
+        await _sectionScope.EnsureTestOrderAccessAsync(userId, testOrderId);
+
+        var entry = await _db.TestAnalyses
+            .Include(e => e.ParameterResults)
+                .ThenInclude(pr => pr.Readings)
+            .FirstOrDefaultAsync(e => e.TestOrderId == testOrderId && e.IsActive)
+            ?? throw new InvalidOperationException("No active dissolution entry found for this test order.");
+
+        var paramResult = entry.ParameterResults.FirstOrDefault(pr => pr.IsActive)
+            ?? throw new InvalidOperationException("No active dissolution parameter result found.");
+
+        if (paramResult.ComparisonStatus != "NextStageRequired")
+            throw new InvalidOperationException("Active dissolution analysis does not require a next stage.");
+
+        int existingVesselCount = paramResult.Readings.Count;
+        int nextStage;
+        if (existingVesselCount == 6)
+        {
+            if (payload.VesselAreas.Count != 6)
+                throw new InvalidOperationException("Stage 2 dissolution requires exactly 6 vessel areas.");
+            nextStage = 2;
+        }
+        else if (existingVesselCount == 12)
+        {
+            if (payload.VesselAreas.Count != 12)
+                throw new InvalidOperationException("Stage 3 dissolution requires exactly 12 vessel areas.");
+            nextStage = 3;
+        }
+        else
+        {
+            throw new InvalidOperationException($"Invalid existing vessel count ({existingVesselCount}) for next stage.");
+        }
+
+        if (string.IsNullOrWhiteSpace(paramResult.CalculationJson))
+            throw new InvalidOperationException("Active dissolution parameter result lacks calculation data.");
+
+        var prevCalc = JsonSerializer.Deserialize<DissolutionCalculationData>(paramResult.CalculationJson, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase })
+            ?? throw new InvalidOperationException("Failed to deserialize dissolution calculation data.");
+
+        var allVesselInputs = new List<(int Stage, int VesselIndex, decimal Area)>();
+        foreach (var r in paramResult.Readings.OrderBy(r => r.Index))
+        {
+            allVesselInputs.Add((r.Stage ?? 1, r.Index, r.Value1 ?? 0m));
+        }
+
+        for (int i = 0; i < payload.VesselAreas.Count; i++)
+        {
+            allVesselInputs.Add((nextStage, existingVesselCount + i + 1, payload.VesselAreas[i]));
+        }
+
+        var calcResult = DissolutionCalculator.Calculate(
+            allVesselInputs,
+            prevCalc.Standard,
+            prevCalc.V,
+            prevCalc.Df,
+            prevCalc.Lc,
+            prevCalc.Q,
+            prevCalc.Offsets);
+
+        _db.CurrentUserId = userId;
+        var signature = await _signatureService.SignAsync(
+            userId,
+            payload.Password,
+            SignatureMeaning.ResultRecorded,
+            "TestOrder",
+            order.Id,
+            payload.Comment,
+            ipAddress);
+
+        for (int i = existingVesselCount; i < calcResult.Vessels.Count; i++)
+        {
+            var v = calcResult.Vessels[i];
+            paramResult.Readings.Add(new ResultReading
+            {
+                Kind = ReadingKind.Vessel,
+                Index = v.VesselIndex,
+                Stage = v.Stage,
+                Value1 = v.Area,
+                ComputedValue = v.Percent,
+                Passed = v.Passed
+            });
+        }
+
+        entry.Signature = signature;
+        entry.EnteredAt = _clock.UtcNow.UtcDateTime;
+        if (payload.Comment != null) entry.Comment = payload.Comment;
+
+        paramResult.StageReached = calcResult.StageReached;
+        paramResult.ReportedValue = calcResult.ReportedValue;
+        paramResult.ReportedDisplay = calcResult.ReportedDisplay;
+        paramResult.CalculationJson = calcResult.CalculationJson;
+        paramResult.ComparisonStatus = calcResult.ComparisonStatus;
+
+        await _db.SaveChangesAsync();
+
+        var outcomeSummary = $"{paramResult.ParameterName}: {paramResult.ReportedDisplay}";
+
+        if (calcResult.Outcome == DissolutionStageOutcome.NextStageRequired)
+        {
+            return new TestWorkflowResult(outcomeSummary, false, false, null, null, null, "NextStageRequired");
+        }
+
+        string overallStatus = paramResult.ComparisonStatus;
+
+        _db.Results.Add(new Result
+        {
+            TestOrderId = order.Id,
+            RawValue = $"{paramResult.ParameterName}={(paramResult.ReportedValue.HasValue ? paramResult.ReportedValue.Value.ToString(CultureInfo.InvariantCulture) : paramResult.ReportedDisplay)}",
+            InterpretedValue = $"{outcomeSummary} ({overallStatus})",
+            Type = ResultType.Numeric,
+            EnteredByUserId = userId,
+            EnteredAt = _clock.UtcNow.UtcDateTime
+        });
+
+        await _db.SaveChangesAsync();
+
+        await _resultProjection.UpsertFromParameterResultAsync(paramResult.Id);
+        await _db.SaveChangesAsync();
+
+        await WorkflowStateMachine.TransitionAsync(_db, order, WorkflowStep.Ready, userId, $"Dissolution complete: {outcomeSummary}");
+        await _sampleReviewService.AutoSubmitForReviewIfReadyAsync(order.SampleId, userId);
+        await _db.SaveChangesAsync();
+
+        return new TestWorkflowResult(outcomeSummary, true, true, outcomeSummary, null, null, overallStatus);
+    }
+
+    public async Task<TestWorkflowResult> RecordDisintegrationResultAsync(
+        int testOrderId, DisintegrationPayload payload, int userId, string? ipAddress = null)
+    {
+        if (payload.UnitMinutes == null)
+            throw new InvalidOperationException("Unit minutes are required.");
+        if (payload.UnitMinutes.Any(u => u.HasValue && u.Value <= 0m))
+            throw new InvalidOperationException("Disintegration time must be greater than zero.");
+
+        var (order, definition, specById, analysedAtUtc) = await ValidateTestAnalysisOrderAsync(
+            testOrderId, payload.AnalysedAt, payload.EquipmentId, null, payload.Password, WorkflowType.Disintegration, userId);
+
+        int s1Units = definition.DisintegrationStage1Units ?? 6;
+        int s2Units = definition.DisintegrationStage2Units ?? 12;
+        int maxStage1Failures = definition.DisintegrationMaxStage1Failures ?? 2;
+        int minPassTotal = definition.DisintegrationMinPassTotal ?? 16;
+        var stageConfig = new DisintegrationStageConfig(s1Units, s2Units, maxStage1Failures, minPassTotal);
+
+        if (payload.UnitMinutes.Count != s1Units)
+            throw new InvalidOperationException($"Stage 1 disintegration requires exactly {s1Units} units.");
+
+        var configuredLabels = string.IsNullOrWhiteSpace(definition.ConditionFields)
+            ? Array.Empty<string>()
+            : definition.ConditionFields.Split(',', StringSplitOptions.RemoveEmptyEntries)
+                .Select(s => s.Trim())
+                .Where(s => !string.IsNullOrWhiteSpace(s))
+                .ToArray();
+
+        if (configuredLabels.Length > 0)
+        {
+            if (payload.Conditions == null)
+                throw new InvalidOperationException("Conditions are required.");
+
+            if (payload.Conditions.Count != configuredLabels.Length)
+                throw new InvalidOperationException($"Expected {configuredLabels.Length} condition fields, but received {payload.Conditions.Count}.");
+
+            foreach (var label in configuredLabels)
+            {
+                if (!payload.Conditions.TryGetValue(label, out var val) || string.IsNullOrWhiteSpace(val))
+                    throw new InvalidOperationException($"Condition field \"{label}\" is required.");
+            }
+
+            foreach (var key in payload.Conditions.Keys)
+            {
+                if (!configuredLabels.Contains(key))
+                    throw new InvalidOperationException($"Unexpected condition field \"{key}\".");
+            }
+        }
+        else
+        {
+            if (payload.Conditions != null && payload.Conditions.Count > 0)
+                throw new InvalidOperationException("No condition fields are configured for this test.");
+        }
+
+        string? conditionsJson = payload.Conditions != null && payload.Conditions.Count > 0
+            ? JsonSerializer.Serialize(payload.Conditions)
+            : null;
+
+        var spec = specById.Values.First();
+        decimal limit = spec.UpperLimit!.Value;
+
+        var evalResult = DisintegrationStageEvaluator.Evaluate(payload.UnitMinutes, limit, stageConfig);
+
+        _db.CurrentUserId = userId;
+        var signature = await _signatureService.SignAsync(
+            userId,
+            payload.Password,
+            SignatureMeaning.ResultRecorded,
+            "TestOrder",
+            order.Id,
+            payload.Comment,
+            ipAddress);
+
+        var canonicalLimit = !string.IsNullOrWhiteSpace(spec.SpecLimit)
+            ? spec.SpecLimit
+            : SpecificationService.BuildCanonicalSpecLimit(spec);
+
+        string comparisonStatus;
+        string reportedDisplay;
+        if (evalResult.Outcome == DissolutionStageOutcome.Complies)
+        {
+            comparisonStatus = "WithinLimits";
+            reportedDisplay = "Complies";
+        }
+        else if (evalResult.Outcome == DissolutionStageOutcome.NextStageRequired)
+        {
+            comparisonStatus = "NextStageRequired";
+            reportedDisplay = "Stage 2 required";
+        }
+        else
+        {
+            comparisonStatus = "OutOfSpecification";
+            reportedDisplay = "Does not comply";
+        }
+
+        var unitDataList = new List<DisintegrationUnitData>();
+        for (int i = 0; i < payload.UnitMinutes.Count; i++)
+        {
+            var m = payload.UnitMinutes[i];
+            bool passed = m.HasValue && m.Value <= limit;
+            unitDataList.Add(new DisintegrationUnitData(1, i + 1, m, passed));
+        }
+
+        var calcData = new DisintegrationCalculationData(
+            LimitMinutes: limit,
+            Config: new DisintegrationConfigData(s1Units, s2Units, maxStage1Failures, minPassTotal),
+            Units: unitDataList,
+            PassedCount: evalResult.PassedCount,
+            LongestMinutes: evalResult.LongestMinutes,
+            Outcome: evalResult.Outcome.ToString(),
+            Reasons: evalResult.Reasons);
+
+        string calcJson = JsonSerializer.Serialize(calcData, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
+
+        var paramResult = new ParameterResult
+        {
+            TestOrderId = order.Id,
+            SpecificationId = spec.Id,
+            ParameterName = spec.ParameterName,
+            ReportedValue = evalResult.LongestMinutes,
+            ReportedDisplay = reportedDisplay,
+            Unit = spec.Unit,
+            SpecLimit = canonicalLimit,
+            ResultBasis = null,
+            ComparisonStatus = comparisonStatus,
+            OverRange = false,
+            BelowLoq = false,
+            CalculationJson = calcJson,
+            StageReached = 1,
+            IsActive = true
+        };
+
+        for (int i = 0; i < payload.UnitMinutes.Count; i++)
+        {
+            var m = payload.UnitMinutes[i];
+            bool passed = m.HasValue && m.Value <= limit;
+            paramResult.Readings.Add(new ResultReading
+            {
+                Kind = ReadingKind.Unit,
+                Index = i + 1,
+                Stage = 1,
+                Value1 = m,
+                Text = m.HasValue ? null : "Not disintegrated",
+                ComputedValue = m,
+                Passed = passed
+            });
+        }
+
+        var entry = new TestAnalysis
+        {
+            TestOrderId = order.Id,
+            AnalysisType = WorkflowType.Disintegration,
+            EquipmentId = payload.EquipmentId,
+            AnalysedAt = analysedAtUtc,
+            UnitAmount = null,
+            SampleMatrix = null,
+            ConditionsJson = conditionsJson,
+            ValidityRecordType = null,
+            ValidityRecordId = null,
+            IsActive = true,
+            EnteredByUserId = userId,
+            EnteredAt = _clock.UtcNow.UtcDateTime,
+            Signature = signature,
+            Comment = payload.Comment,
+            ParameterResults = new List<ParameterResult> { paramResult }
+        };
+
+        _db.TestAnalyses.Add(entry);
+        await _db.SaveChangesAsync();
+
+        var outcomeSummary = $"{paramResult.ParameterName}: {paramResult.ReportedDisplay}";
+
+        if (evalResult.Outcome == DissolutionStageOutcome.NextStageRequired)
+        {
+            return new TestWorkflowResult(outcomeSummary, false, false, null, null, null, "NextStageRequired");
+        }
+
+        string overallStatus = paramResult.ComparisonStatus;
+
+        _db.Results.Add(new Result
+        {
+            TestOrderId = order.Id,
+            RawValue = $"{paramResult.ParameterName}={(paramResult.ReportedValue.HasValue ? paramResult.ReportedValue.Value.ToString(CultureInfo.InvariantCulture) : paramResult.ReportedDisplay)}",
+            InterpretedValue = $"{outcomeSummary} ({overallStatus})",
+            Type = ResultType.Numeric,
+            EnteredByUserId = userId,
+            EnteredAt = _clock.UtcNow.UtcDateTime
+        });
+
+        await _db.SaveChangesAsync();
+
+        await _resultProjection.UpsertFromParameterResultAsync(paramResult.Id);
+        await _db.SaveChangesAsync();
+
+        await WorkflowStateMachine.TransitionAsync(_db, order, WorkflowStep.Ready, userId, $"Disintegration complete: {outcomeSummary}");
+        await _sampleReviewService.AutoSubmitForReviewIfReadyAsync(order.SampleId, userId);
+        await _db.SaveChangesAsync();
+
+        return new TestWorkflowResult(outcomeSummary, true, true, outcomeSummary, null, null, overallStatus);
+    }
+
+    public async Task<TestWorkflowResult> RecordDisintegrationStageAsync(
+        int testOrderId, DisintegrationStagePayload payload, int userId, string? ipAddress = null)
+    {
+        if (string.IsNullOrWhiteSpace(payload.Password))
+            throw new InvalidOperationException("Password is required to sign the result.");
+        if (payload.UnitMinutes == null || payload.UnitMinutes.Count == 0)
+            throw new InvalidOperationException("Unit minutes are required.");
+        if (payload.UnitMinutes.Any(u => u.HasValue && u.Value <= 0m))
+            throw new InvalidOperationException("Disintegration time must be greater than zero.");
+
+        var order = await _db.TestOrders
+            .Include(t => t.Results)
+            .Include(t => t.Sample)
+            .FirstOrDefaultAsync(t => t.Id == testOrderId)
+            ?? throw new InvalidOperationException($"Test order {testOrderId} not found.");
+
+        RequireOrderNotFinalized(order);
+
+        if (order.IsSuperseded)
+            throw new InvalidOperationException("Cannot record result for a superseded test order.");
+
+        var definition = await _db.TestDefinitions
+            .FirstOrDefaultAsync(t => t.Code == order.TestCode)
+            ?? throw new InvalidOperationException($"Test definition \"{order.TestCode}\" not found.");
+
+        if (definition.WorkflowType != WorkflowType.Disintegration)
+            throw new InvalidOperationException($"Test order {testOrderId} is not a Disintegration workflow.");
+
+        await _sectionScope.EnsureTestOrderAccessAsync(userId, testOrderId);
+
+        var entry = await _db.TestAnalyses
+            .Include(e => e.ParameterResults)
+                .ThenInclude(pr => pr.Readings)
+            .FirstOrDefaultAsync(e => e.TestOrderId == testOrderId && e.IsActive)
+            ?? throw new InvalidOperationException("No active disintegration entry found for this test order.");
+
+        var paramResult = entry.ParameterResults.FirstOrDefault(pr => pr.IsActive)
+            ?? throw new InvalidOperationException("No active disintegration parameter result found.");
+
+        if (paramResult.ComparisonStatus != "NextStageRequired")
+            throw new InvalidOperationException("Active disintegration analysis does not require a next stage.");
+
+        if (string.IsNullOrWhiteSpace(paramResult.CalculationJson))
+            throw new InvalidOperationException("Active disintegration parameter result lacks calculation data.");
+
+        var prevCalc = JsonSerializer.Deserialize<DisintegrationCalculationData>(
+            paramResult.CalculationJson,
+            new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase })
+            ?? throw new InvalidOperationException("Failed to deserialize disintegration calculation data.");
+
+        // Stage 2 is judged by the limit and stage rules snapshotted at stage 1, so a
+        // Test Master or specification edit between the stages cannot change the rules.
+        decimal limit = prevCalc.LimitMinutes;
+        int s1Units = prevCalc.Config.Stage1Units;
+        int s2Units = prevCalc.Config.Stage2Units;
+        int maxStage1Failures = prevCalc.Config.MaxStage1Failures;
+        int minPassTotal = prevCalc.Config.MinPassTotal;
+        var stageConfig = new DisintegrationStageConfig(s1Units, s2Units, maxStage1Failures, minPassTotal);
+
+        int existingUnitCount = paramResult.Readings.Count;
+        if (existingUnitCount != s1Units)
+            throw new InvalidOperationException($"Invalid existing unit count ({existingUnitCount}) for next stage.");
+
+        if (payload.UnitMinutes.Count != s2Units)
+            throw new InvalidOperationException($"Stage 2 disintegration requires exactly {s2Units} units.");
+
+        var allUnits = new List<decimal?>();
+        foreach (var r in paramResult.Readings.OrderBy(r => r.Index))
+        {
+            allUnits.Add(r.Value1);
+        }
+        allUnits.AddRange(payload.UnitMinutes);
+
+        var evalResult = DisintegrationStageEvaluator.Evaluate(allUnits, limit, stageConfig);
+
+        _db.CurrentUserId = userId;
+        var signature = await _signatureService.SignAsync(
+            userId,
+            payload.Password,
+            SignatureMeaning.ResultRecorded,
+            "TestOrder",
+            order.Id,
+            payload.Comment,
+            ipAddress);
+
+        for (int i = 0; i < payload.UnitMinutes.Count; i++)
+        {
+            var m = payload.UnitMinutes[i];
+            bool passed = m.HasValue && m.Value <= limit;
+            paramResult.Readings.Add(new ResultReading
+            {
+                Kind = ReadingKind.Unit,
+                Index = existingUnitCount + i + 1,
+                Stage = 2,
+                Value1 = m,
+                Text = m.HasValue ? null : "Not disintegrated",
+                ComputedValue = m,
+                Passed = passed
+            });
+        }
+
+        entry.Signature = signature;
+        entry.EnteredAt = _clock.UtcNow.UtcDateTime;
+        if (payload.Comment != null) entry.Comment = payload.Comment;
+
+        var unitDataList = new List<DisintegrationUnitData>();
+        foreach (var r in paramResult.Readings.OrderBy(r => r.Index))
+        {
+            unitDataList.Add(new DisintegrationUnitData(r.Stage ?? 1, r.Index, r.Value1, r.Passed ?? false));
+        }
+
+        var calcData = new DisintegrationCalculationData(
+            LimitMinutes: limit,
+            Config: new DisintegrationConfigData(s1Units, s2Units, maxStage1Failures, minPassTotal),
+            Units: unitDataList,
+            PassedCount: evalResult.PassedCount,
+            LongestMinutes: evalResult.LongestMinutes,
+            Outcome: evalResult.Outcome.ToString(),
+            Reasons: evalResult.Reasons);
+
+        paramResult.StageReached = evalResult.StageReached;
+        paramResult.ReportedValue = evalResult.LongestMinutes;
+        paramResult.CalculationJson = JsonSerializer.Serialize(calcData, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
+        paramResult.ComparisonStatus = evalResult.Outcome == DissolutionStageOutcome.Complies ? "WithinLimits" : "OutOfSpecification";
+        paramResult.ReportedDisplay = evalResult.Outcome == DissolutionStageOutcome.Complies ? "Complies" : "Does not comply";
+
+        await _db.SaveChangesAsync();
+
+        var outcomeSummary = $"{paramResult.ParameterName}: {paramResult.ReportedDisplay}";
+        string overallStatus = paramResult.ComparisonStatus;
+
+        _db.Results.Add(new Result
+        {
+            TestOrderId = order.Id,
+            RawValue = $"{paramResult.ParameterName}={(paramResult.ReportedValue.HasValue ? paramResult.ReportedValue.Value.ToString(CultureInfo.InvariantCulture) : paramResult.ReportedDisplay)}",
+            InterpretedValue = $"{outcomeSummary} ({overallStatus})",
+            Type = ResultType.Numeric,
+            EnteredByUserId = userId,
+            EnteredAt = _clock.UtcNow.UtcDateTime
+        });
+
+        await _db.SaveChangesAsync();
+
+        await _resultProjection.UpsertFromParameterResultAsync(paramResult.Id);
+        await _db.SaveChangesAsync();
+
+        await WorkflowStateMachine.TransitionAsync(_db, order, WorkflowStep.Ready, userId, $"Disintegration complete: {outcomeSummary}");
+        await _sampleReviewService.AutoSubmitForReviewIfReadyAsync(order.SampleId, userId);
+        await _db.SaveChangesAsync();
+
+        return new TestWorkflowResult(outcomeSummary, true, true, outcomeSummary, null, null, overallStatus);
+    }
+
+    public async Task<TestWorkflowResult> RecordWeightVariationResultAsync(
+        int testOrderId, WeightVariationPayload payload, int userId, string? ipAddress = null)
+    {
+        if (payload.Units == null)
+            throw new InvalidOperationException("Units are required.");
+
+        var (order, definition, specById, analysedAtUtc) = await ValidateTestAnalysisOrderAsync(
+            testOrderId, payload.AnalysedAt, payload.EquipmentId, null, payload.Password, WorkflowType.WeightVariation, userId);
+
+        var spec = specById.Values.First();
+        if (!spec.DosageForm.HasValue)
+            throw new InvalidOperationException("Specification dosage form is not configured.");
+
+        var config = new WeightVariationConfig(
+            UnitCount: definition.WvUnitCount ?? 20,
+            TabletBand1MaxMg: definition.WvTabletBand1MaxMg ?? 130m,
+            TabletBand1Percent: definition.WvTabletBand1Percent ?? 10m,
+            TabletBand2MaxMg: definition.WvTabletBand2MaxMg ?? 324m,
+            TabletBand2Percent: definition.WvTabletBand2Percent ?? 7.5m,
+            TabletBand3Percent: definition.WvTabletBand3Percent ?? 5m,
+            TabletMaxOutside: definition.WvTabletMaxOutside ?? 2,
+            CapsuleInnerPercent: definition.WvCapsuleInnerPercent ?? 10m,
+            CapsuleOuterPercent: definition.WvCapsuleOuterPercent ?? 25m,
+            CapsuleS1MaxOutside: definition.WvCapsuleS1MaxOutside ?? 2,
+            CapsuleS1MaxForRetest: definition.WvCapsuleS1MaxForRetest ?? 6,
+            CapsuleS2ExtraUnits: definition.WvCapsuleS2ExtraUnits ?? 40,
+            CapsuleS2MaxOutside: definition.WvCapsuleS2MaxOutside ?? 6);
+
+        if (payload.Units.Count != config.UnitCount)
+            throw new InvalidOperationException($"Stage 1 weight variation requires exactly {config.UnitCount} units.");
+
+        var configuredLabels = string.IsNullOrWhiteSpace(definition.ConditionFields)
+            ? Array.Empty<string>()
+            : definition.ConditionFields.Split(',', StringSplitOptions.RemoveEmptyEntries)
+                .Select(s => s.Trim())
+                .Where(s => !string.IsNullOrWhiteSpace(s))
+                .ToArray();
+
+        if (configuredLabels.Length > 0)
+        {
+            if (payload.Conditions == null)
+                throw new InvalidOperationException("Conditions are required.");
+
+            if (payload.Conditions.Count != configuredLabels.Length)
+                throw new InvalidOperationException($"Expected {configuredLabels.Length} condition fields, but received {payload.Conditions.Count}.");
+
+            foreach (var label in configuredLabels)
+            {
+                if (!payload.Conditions.TryGetValue(label, out var val) || string.IsNullOrWhiteSpace(val))
+                    throw new InvalidOperationException($"Condition field \"{label}\" is required.");
+            }
+
+            foreach (var key in payload.Conditions.Keys)
+            {
+                if (!configuredLabels.Contains(key))
+                    throw new InvalidOperationException($"Unexpected condition field \"{key}\".");
+            }
+        }
+        else
+        {
+            if (payload.Conditions != null && payload.Conditions.Count > 0)
+                throw new InvalidOperationException("No condition fields are configured for this test.");
+        }
+
+        string? conditionsJson = payload.Conditions != null && payload.Conditions.Count > 0
+            ? JsonSerializer.Serialize(payload.Conditions)
+            : null;
+
+        var unitInputs = payload.Units
+            .Select(u => new WeightVariationUnitInput(u.WeightMg, u.GrossMg, u.ShellMg))
+            .ToList();
+
+        var evalResult = WeightVariationEvaluator.Evaluate(spec.DosageForm.Value, unitInputs, config);
+
+        _db.CurrentUserId = userId;
+        var signature = await _signatureService.SignAsync(
+            userId,
+            payload.Password,
+            SignatureMeaning.ResultRecorded,
+            "TestOrder",
+            order.Id,
+            payload.Comment,
+            ipAddress);
+
+        var canonicalLimit = !string.IsNullOrWhiteSpace(spec.SpecLimit)
+            ? spec.SpecLimit
+            : SpecificationService.BuildCanonicalSpecLimit(spec);
+
+        string comparisonStatus;
+        string reportedDisplay;
+        if (evalResult.Outcome == DissolutionStageOutcome.Complies)
+        {
+            comparisonStatus = "WithinLimits";
+            reportedDisplay = "Complies";
+        }
+        else if (evalResult.Outcome == DissolutionStageOutcome.NextStageRequired)
+        {
+            comparisonStatus = "NextStageRequired";
+            reportedDisplay = "Stage 2 required";
+        }
+        else
+        {
+            comparisonStatus = "OutOfSpecification";
+            reportedDisplay = "Does not comply";
+        }
+
+        var configData = new WeightVariationConfigData(
+            config.UnitCount,
+            config.TabletBand1MaxMg,
+            config.TabletBand1Percent,
+            config.TabletBand2MaxMg,
+            config.TabletBand2Percent,
+            config.TabletBand3Percent,
+            config.TabletMaxOutside,
+            config.CapsuleInnerPercent,
+            config.CapsuleOuterPercent,
+            config.CapsuleS1MaxOutside,
+            config.CapsuleS1MaxForRetest,
+            config.CapsuleS2ExtraUnits,
+            config.CapsuleS2MaxOutside);
+
+        var unitDataList = new List<WeightVariationUnitData>();
+        for (int i = 0; i < evalResult.Units.Count; i++)
+        {
+            var u = evalResult.Units[i];
+            unitDataList.Add(new WeightVariationUnitData(
+                Stage: 1,
+                UnitIndex: u.UnitIndex,
+                WeightMg: u.WeightMg,
+                GrossMg: u.GrossMg,
+                ShellMg: u.ShellMg,
+                NetMg: u.NetMg,
+                DeviationPercent: u.DeviationPercent,
+                Passed: u.Passed));
+        }
+
+        var calcData = new WeightVariationCalculationData(
+            DosageForm: spec.DosageForm.Value,
+            Config: configData,
+            StepAPassed: evalResult.StepAPassed,
+            MeanWeightMg: evalResult.MeanWeightMg,
+            MeanGrossMg: evalResult.MeanGrossMg,
+            BandPercentUsed: evalResult.BandPercentUsed,
+            Units: unitDataList,
+            Outcome: evalResult.Outcome.ToString(),
+            Reasons: evalResult.Reasons);
+
+        string calcJson = JsonSerializer.Serialize(calcData, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
+
+        var paramResult = new ParameterResult
+        {
+            TestOrderId = order.Id,
+            SpecificationId = spec.Id,
+            ParameterName = spec.ParameterName,
+            ReportedValue = evalResult.MeanWeightMg,
+            ReportedDisplay = reportedDisplay,
+            Unit = spec.Unit,
+            SpecLimit = canonicalLimit,
+            ResultBasis = null,
+            ComparisonStatus = comparisonStatus,
+            OverRange = false,
+            BelowLoq = false,
+            CalculationJson = calcJson,
+            StageReached = 1,
+            IsActive = true
+        };
+
+        for (int i = 0; i < evalResult.Units.Count; i++)
+        {
+            var u = evalResult.Units[i];
+            paramResult.Readings.Add(new ResultReading
+            {
+                Kind = ReadingKind.Unit,
+                Index = u.UnitIndex,
+                Stage = 1,
+                Value1 = spec.DosageForm == DosageForm.Tablet ? u.WeightMg : u.GrossMg,
+                Value2 = spec.DosageForm == DosageForm.Tablet ? null : u.ShellMg,
+                ComputedValue = u.NetMg,
+                Value3 = u.DeviationPercent,
+                Passed = u.Passed
+            });
+        }
+
+        var entry = new TestAnalysis
+        {
+            TestOrderId = order.Id,
+            AnalysisType = WorkflowType.WeightVariation,
+            EquipmentId = payload.EquipmentId,
+            AnalysedAt = analysedAtUtc,
+            UnitAmount = null,
+            SampleMatrix = null,
+            ConditionsJson = conditionsJson,
+            ValidityRecordType = null,
+            ValidityRecordId = null,
+            IsActive = true,
+            EnteredByUserId = userId,
+            EnteredAt = _clock.UtcNow.UtcDateTime,
+            Signature = signature,
+            Comment = payload.Comment,
+            ParameterResults = new List<ParameterResult> { paramResult }
+        };
+
+        _db.TestAnalyses.Add(entry);
+        await _db.SaveChangesAsync();
+
+        var outcomeSummary = $"{paramResult.ParameterName}: {paramResult.ReportedDisplay}";
+
+        if (evalResult.Outcome == DissolutionStageOutcome.NextStageRequired)
+        {
+            return new TestWorkflowResult(outcomeSummary, false, false, null, null, null, "NextStageRequired");
+        }
+
+        string overallStatus = paramResult.ComparisonStatus;
+
+        _db.Results.Add(new Result
+        {
+            TestOrderId = order.Id,
+            RawValue = $"{paramResult.ParameterName}={(paramResult.ReportedValue.HasValue ? paramResult.ReportedValue.Value.ToString(CultureInfo.InvariantCulture) : paramResult.ReportedDisplay)}",
+            InterpretedValue = $"{outcomeSummary} ({overallStatus})",
+            Type = ResultType.Numeric,
+            EnteredByUserId = userId,
+            EnteredAt = _clock.UtcNow.UtcDateTime
+        });
+
+        await _db.SaveChangesAsync();
+
+        await _resultProjection.UpsertFromParameterResultAsync(paramResult.Id);
+        await _db.SaveChangesAsync();
+
+        await WorkflowStateMachine.TransitionAsync(_db, order, WorkflowStep.Ready, userId, $"Weight variation complete: {outcomeSummary}");
+        await _sampleReviewService.AutoSubmitForReviewIfReadyAsync(order.SampleId, userId);
+        await _db.SaveChangesAsync();
+
+        return new TestWorkflowResult(outcomeSummary, true, true, outcomeSummary, null, null, overallStatus);
+    }
+
+    public async Task<TestWorkflowResult> RecordWeightVariationStageAsync(
+        int testOrderId, WeightVariationStagePayload payload, int userId, string? ipAddress = null)
+    {
+        if (string.IsNullOrWhiteSpace(payload.Password))
+            throw new InvalidOperationException("Password is required to sign the result.");
+        if (payload.Units == null || payload.Units.Count == 0)
+            throw new InvalidOperationException("Units are required.");
+
+        var order = await _db.TestOrders
+            .Include(t => t.Results)
+            .Include(t => t.Sample)
+            .FirstOrDefaultAsync(t => t.Id == testOrderId)
+            ?? throw new InvalidOperationException($"Test order {testOrderId} not found.");
+
+        RequireOrderNotFinalized(order);
+
+        if (order.IsSuperseded)
+            throw new InvalidOperationException("Cannot record result for a superseded test order.");
+
+        var definition = await _db.TestDefinitions
+            .FirstOrDefaultAsync(t => t.Code == order.TestCode)
+            ?? throw new InvalidOperationException($"Test definition \"{order.TestCode}\" not found.");
+
+        if (definition.WorkflowType != WorkflowType.WeightVariation)
+            throw new InvalidOperationException($"Test order {testOrderId} is not a WeightVariation workflow.");
+
+        await _sectionScope.EnsureTestOrderAccessAsync(userId, testOrderId);
+
+        var entry = await _db.TestAnalyses
+            .Include(e => e.ParameterResults)
+                .ThenInclude(pr => pr.Readings)
+            .FirstOrDefaultAsync(e => e.TestOrderId == testOrderId && e.IsActive)
+            ?? throw new InvalidOperationException("No active weight variation entry found for this test order.");
+
+        var paramResult = entry.ParameterResults.FirstOrDefault(pr => pr.IsActive)
+            ?? throw new InvalidOperationException("No active weight variation parameter result found.");
+
+        if (paramResult.ComparisonStatus != "NextStageRequired")
+            throw new InvalidOperationException("Active weight variation analysis does not require a next stage.");
+
+        if (string.IsNullOrWhiteSpace(paramResult.CalculationJson))
+            throw new InvalidOperationException("Active weight variation parameter result lacks calculation data.");
+
+        var prevCalc = JsonSerializer.Deserialize<WeightVariationCalculationData>(
+            paramResult.CalculationJson,
+            new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase })
+            ?? throw new InvalidOperationException("Failed to deserialize weight variation calculation data.");
+
+        if (prevCalc.DosageForm == DosageForm.Tablet)
+            throw new InvalidOperationException("Tablets do not support Stage 2 evaluation.");
+
+        // Stage 2 is judged by the criteria and dosage form snapshotted at stage 1
+        var config = new WeightVariationConfig(
+            UnitCount: prevCalc.Config.UnitCount,
+            TabletBand1MaxMg: prevCalc.Config.TabletBand1MaxMg,
+            TabletBand1Percent: prevCalc.Config.TabletBand1Percent,
+            TabletBand2MaxMg: prevCalc.Config.TabletBand2MaxMg,
+            TabletBand2Percent: prevCalc.Config.TabletBand2Percent,
+            TabletBand3Percent: prevCalc.Config.TabletBand3Percent,
+            TabletMaxOutside: prevCalc.Config.TabletMaxOutside,
+            CapsuleInnerPercent: prevCalc.Config.CapsuleInnerPercent,
+            CapsuleOuterPercent: prevCalc.Config.CapsuleOuterPercent,
+            CapsuleS1MaxOutside: prevCalc.Config.CapsuleS1MaxOutside,
+            CapsuleS1MaxForRetest: prevCalc.Config.CapsuleS1MaxForRetest,
+            CapsuleS2ExtraUnits: prevCalc.Config.CapsuleS2ExtraUnits,
+            CapsuleS2MaxOutside: prevCalc.Config.CapsuleS2MaxOutside);
+
+        int existingUnitCount = paramResult.Readings.Count;
+        if (existingUnitCount != config.UnitCount)
+            throw new InvalidOperationException($"Invalid existing unit count ({existingUnitCount}) for next stage.");
+
+        if (payload.Units.Count != config.CapsuleS2ExtraUnits)
+            throw new InvalidOperationException($"Stage 2 weight variation requires exactly {config.CapsuleS2ExtraUnits} units.");
+
+        var allUnits = new List<WeightVariationUnitInput>();
+        foreach (var r in paramResult.Readings.OrderBy(r => r.Index))
+        {
+            allUnits.Add(new WeightVariationUnitInput(WeightMg: null, GrossMg: r.Value1, ShellMg: r.Value2));
+        }
+        foreach (var u in payload.Units)
+        {
+            allUnits.Add(new WeightVariationUnitInput(u.WeightMg, u.GrossMg, u.ShellMg));
+        }
+
+        var evalResult = WeightVariationEvaluator.Evaluate(prevCalc.DosageForm, allUnits, config);
+
+        _db.CurrentUserId = userId;
+        var signature = await _signatureService.SignAsync(
+            userId,
+            payload.Password,
+            SignatureMeaning.ResultRecorded,
+            "TestOrder",
+            order.Id,
+            payload.Comment,
+            ipAddress);
+
+        // Update Stage 1 readings with new deviation and pass against 60-unit mean
+        var stage1Readings = paramResult.Readings.OrderBy(r => r.Index).ToList();
+        for (int i = 0; i < config.UnitCount; i++)
+        {
+            var r = stage1Readings[i];
+            var evalUnit = evalResult.Units[i];
+            r.Value3 = evalUnit.DeviationPercent;
+            r.Passed = evalUnit.Passed;
+        }
+
+        // Append Stage 2 readings
+        for (int i = 0; i < payload.Units.Count; i++)
+        {
+            int overallIndex = config.UnitCount + i;
+            var evalUnit = evalResult.Units[overallIndex];
+            paramResult.Readings.Add(new ResultReading
+            {
+                Kind = ReadingKind.Unit,
+                Index = evalUnit.UnitIndex,
+                Stage = 2,
+                Value1 = evalUnit.GrossMg,
+                Value2 = evalUnit.ShellMg,
+                ComputedValue = evalUnit.NetMg,
+                Value3 = evalUnit.DeviationPercent,
+                Passed = evalUnit.Passed
+            });
+        }
+
+        entry.Signature = signature;
+        entry.EnteredAt = _clock.UtcNow.UtcDateTime;
+        if (payload.Comment != null) entry.Comment = payload.Comment;
+
+        var unitDataList = new List<WeightVariationUnitData>();
+        for (int i = 0; i < evalResult.Units.Count; i++)
+        {
+            var u = evalResult.Units[i];
+            int stage = i < config.UnitCount ? 1 : 2;
+            unitDataList.Add(new WeightVariationUnitData(
+                Stage: stage,
+                UnitIndex: u.UnitIndex,
+                WeightMg: u.WeightMg,
+                GrossMg: u.GrossMg,
+                ShellMg: u.ShellMg,
+                NetMg: u.NetMg,
+                DeviationPercent: u.DeviationPercent,
+                Passed: u.Passed));
+        }
+
+        var calcData = new WeightVariationCalculationData(
+            DosageForm: prevCalc.DosageForm,
+            Config: prevCalc.Config,
+            StepAPassed: prevCalc.StepAPassed,
+            MeanWeightMg: evalResult.MeanWeightMg,
+            MeanGrossMg: evalResult.MeanGrossMg,
+            BandPercentUsed: evalResult.BandPercentUsed,
+            Units: unitDataList,
+            Outcome: evalResult.Outcome.ToString(),
+            Reasons: evalResult.Reasons);
+
+        paramResult.StageReached = evalResult.StageReached;
+        paramResult.ReportedValue = evalResult.MeanWeightMg;
+        paramResult.CalculationJson = JsonSerializer.Serialize(calcData, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
+        paramResult.ComparisonStatus = evalResult.Outcome == DissolutionStageOutcome.Complies ? "WithinLimits" : "OutOfSpecification";
+        paramResult.ReportedDisplay = evalResult.Outcome == DissolutionStageOutcome.Complies ? "Complies" : "Does not comply";
+
+        await _db.SaveChangesAsync();
+
+        var outcomeSummary = $"{paramResult.ParameterName}: {paramResult.ReportedDisplay}";
+        string overallStatus = paramResult.ComparisonStatus;
+
+        _db.Results.Add(new Result
+        {
+            TestOrderId = order.Id,
+            RawValue = $"{paramResult.ParameterName}={(paramResult.ReportedValue.HasValue ? paramResult.ReportedValue.Value.ToString(CultureInfo.InvariantCulture) : paramResult.ReportedDisplay)}",
+            InterpretedValue = $"{outcomeSummary} ({overallStatus})",
+            Type = ResultType.Numeric,
+            EnteredByUserId = userId,
+            EnteredAt = _clock.UtcNow.UtcDateTime
+        });
+
+        await _db.SaveChangesAsync();
+
+        await _resultProjection.UpsertFromParameterResultAsync(paramResult.Id);
+        await _db.SaveChangesAsync();
+
+        await WorkflowStateMachine.TransitionAsync(_db, order, WorkflowStep.Ready, userId, $"Weight variation complete: {outcomeSummary}");
+        await _sampleReviewService.AutoSubmitForReviewIfReadyAsync(order.SampleId, userId);
+        await _db.SaveChangesAsync();
+
+        return new TestWorkflowResult(outcomeSummary, true, true, outcomeSummary, null, null, overallStatus);
+    }
+
+    public async Task<TestWorkflowResult> RecordStandardComparisonResultAsync(
+        int testOrderId, StandardComparisonPayload payload, int userId, string? ipAddress = null)
+    {
+        if (payload.Preparations == null || payload.Preparations.Count == 0)
+            throw new InvalidOperationException("At least one sample preparation is required.");
+
+        if (payload.Responses == null || payload.Responses.Count == 0)
+            throw new InvalidOperationException("At least one response reading is required.");
+
+        var (order, definition, specById, analysedAtUtc) = await ValidateTestAnalysisOrderAsync(
+            testOrderId, payload.AnalysedAt, payload.EquipmentId, null, payload.Password, WorkflowType.StandardComparison, userId);
+
+        var specs = specById.Values.OrderBy(s => s.DisplayOrder).ThenBy(s => s.Id).ToList();
+
+        // 1. Resolve Stage Replicates via StageReplicateResolver
+        var replicateResolution = await StageReplicateResolver.ResolveForTestOrderAsync(_db, order.Id);
+        if (!replicateResolution.IsConfigured)
+            throw new InvalidOperationException(replicateResolution.Message ?? "Stage replicate configuration could not be resolved.");
+
+        int expectedPreps = replicateResolution.SampleReplicates!.Value;
+        if (payload.Preparations.Count != expectedPreps)
+            throw new InvalidOperationException($"Expected exactly {expectedPreps} sample preparations for stage role {replicateResolution.StageRole}, but received {payload.Preparations.Count}.");
+
+        // 2. Validate Preparations & Weigh-in Window
+        for (int i = 0; i < payload.Preparations.Count; i++)
+        {
+            var p = payload.Preparations[i];
+            if (p.TheoreticalWeightMg <= 0)
+                throw new InvalidOperationException($"Sample preparation {i + 1} theoretical weight must be greater than zero.");
+            if (p.ActualWeightMg <= 0)
+                throw new InvalidOperationException($"Sample preparation {i + 1} actual weight must be greater than zero.");
+
+            decimal deviation = (p.ActualWeightMg - p.TheoreticalWeightMg) / p.TheoreticalWeightMg * 100m;
+            if (Math.Abs(deviation) > StandardComparisonCalculator.SampleWeighInTolerancePercent)
+            {
+                if (string.IsNullOrWhiteSpace(p.WeighInJustification))
+                    throw new InvalidOperationException($"Weigh-in justification is required for sample preparation {i + 1} when actual weight is outside the ±{StandardComparisonCalculator.SampleWeighInTolerancePercent}% window.");
+            }
+
+            if (p.WeighInJustification?.Trim().Length > 1000)
+                throw new InvalidOperationException($"Weigh-in justification for sample preparation {i + 1} must not exceed 1000 characters.");
+        }
+
+        // 3. Validate Linked System Suitability Run
+        if (!order.SystemSuitabilityRunId.HasValue)
+            throw new InvalidOperationException("Test order must be linked to a system suitability run before recording a standard-comparison result.");
+
+        var run = await _db.SystemSuitabilityRuns
+            .Include(r => r.Analytes)
+                .ThenInclude(a => a.ReferenceStandardMaterial)
+            .FirstOrDefaultAsync(r => r.Id == order.SystemSuitabilityRunId.Value)
+            ?? throw new InvalidOperationException($"Linked system suitability run {order.SystemSuitabilityRunId.Value} not found.");
+
+        if (!run.Passed)
+            throw new InvalidOperationException("Linked system suitability run did not pass.");
+
+        if (run.TestDefinitionId != definition.Id)
+            throw new InvalidOperationException("Linked system suitability run is for a different test method.");
+
+        if (run.SectionId != definition.SectionId)
+            throw new InvalidOperationException("Linked system suitability run is for a different laboratory section.");
+
+        // 4. Validate Responses (peak areas, or sample titres EP_test in mL for titration)
+        bool isTitration = definition.ResponseMode == ResponseMode.TitrationVolume;
+        var specAnalyteIds = specs.Select(s => s.TestAnalyteId!.Value).ToHashSet();
+        if (payload.Responses.Any(r => !specAnalyteIds.Contains(r.TestAnalyteId)))
+            throw new InvalidOperationException("Responses contain an analyte not configured in specifications.");
+
+        foreach (var s in specs)
+        {
+            var analyteResponses = payload.Responses.Where(r => r.TestAnalyteId == s.TestAnalyteId!.Value).ToList();
+            if (analyteResponses.Count != expectedPreps)
+                throw new InvalidOperationException($"Expected exactly {expectedPreps} responses for analyte '{s.ParameterName}', but received {analyteResponses.Count}.");
+
+            for (int p = 1; p <= expectedPreps; p++)
+            {
+                var matches = analyteResponses.Where(r => r.PreparationIndex == p).ToList();
+                if (matches.Count != 1)
+                    throw new InvalidOperationException($"Missing or duplicate response for analyte '{s.ParameterName}', preparation {p}.");
+                if (matches[0].Response <= 0)
+                    throw new InvalidOperationException($"{(isTitration ? "Titre" : "Response")} must be greater than zero for analyte '{s.ParameterName}', preparation {p}.");
+            }
+        }
+
+        // 5. Calculate and store ParameterResults & ResultReadings
+        var parameterResults = new List<ParameterResult>();
+
+        foreach (var s in specs)
+        {
+            var runAnalyte = run.Analytes.FirstOrDefault(a => a.TestAnalyteId == s.TestAnalyteId!.Value);
+            if (runAnalyte == null)
+                throw new InvalidOperationException($"Linked system suitability run does not contain analyte '{s.ParameterName}'.");
+
+            if (!runAnalyte.Passed)
+                throw new InvalidOperationException($"Linked system suitability run analyte '{runAnalyte.AnalyteName}' did not pass.");
+
+            if (runAnalyte.StandardMeanArea <= 0 || runAnalyte.StandardWeightMg <= 0 || runAnalyte.StandardPurityPercent <= 0)
+                throw new InvalidOperationException($"Linked system suitability run analyte '{runAnalyte.AnalyteName}' contains invalid standard values.");
+
+            if (!runAnalyte.TheoreticalWeightMg.HasValue || runAnalyte.TheoreticalWeightMg.Value <= 0)
+                throw new InvalidOperationException($"Linked system suitability run analyte '{runAnalyte.AnalyteName}' has missing or invalid theoretical standard weight.");
+
+            // Titration: EP_blank was titrated once with the standard and is carried on the run (SC-4).
+            if (isTitration && !runAnalyte.BlankTitreMl.HasValue)
+                throw new InvalidOperationException($"Linked system suitability run analyte '{runAnalyte.AnalyteName}' has no blank titre - it is not a titration run.");
+            if (!isTitration && runAnalyte.BlankTitreMl.HasValue)
+                throw new InvalidOperationException($"Linked system suitability run analyte '{runAnalyte.AnalyteName}' is a titration run, but this test measures peak area.");
+
+            if (!runAnalyte.MoisturePercent.HasValue || runAnalyte.MoisturePercent.Value < 0 || runAnalyte.MoisturePercent.Value >= 100)
+                throw new InvalidOperationException($"Linked system suitability run analyte '{runAnalyte.AnalyteName}' has missing or invalid moisture percent.");
+
+            var analyteResponses = payload.Responses.Where(r => r.TestAnalyteId == s.TestAnalyteId!.Value).ToList();
+
+            var calcResult = StandardComparisonCalculator.Calculate(
+                analyteName: runAnalyte.AnalyteName,
+                testAnalyteId: runAnalyte.TestAnalyteId,
+                systemSuitabilityRunAnalyteId: runAnalyte.Id,
+                standardTheoreticalWeightMg: runAnalyte.TheoreticalWeightMg.Value,
+                standardActualWeightMg: runAnalyte.StandardWeightMg,
+                standardPurityPercent: runAnalyte.StandardPurityPercent,
+                moisturePercent: runAnalyte.MoisturePercent.Value,
+                standardMeanArea: runAnalyte.StandardMeanArea,
+                spec: s,
+                preparations: payload.Preparations,
+                responses: analyteResponses,
+                maxPreparationRsdPercent: definition.HplcMaxPreparationRsdPercent,
+                responseMode: definition.ResponseMode,
+                blankTitreMl: isTitration ? runAnalyte.BlankTitreMl : null);
+
+            var canonicalLimit = !string.IsNullOrWhiteSpace(s.SpecLimit)
+                ? s.SpecLimit
+                : SpecificationService.BuildCanonicalSpecLimit(s);
+
+            var paramResult = new ParameterResult
+            {
+                TestOrderId = order.Id,
+                SpecificationId = s.Id,
+                ValidityRecordItemId = null,
+                ParameterName = s.ParameterName,
+                ReportedValue = calcResult.ReportedValue,
+                ReportedDisplay = calcResult.ReportedDisplay,
+                Unit = "%",
+                SpecLimit = canonicalLimit,
+                ResultBasis = null,
+                ComparisonStatus = calcResult.ComparisonStatus,
+                OverRange = false,
+                BelowLoq = false,
+                CalculationJson = calcResult.CalculationJson,
+                StageReached = null,
+                IsActive = true
+            };
+
+            foreach (var prepCalc in calcResult.Preparations)
+            {
+                paramResult.Readings.Add(new ResultReading
+                {
+                    Kind = isTitration ? ReadingKind.Titration : ReadingKind.Replicate,
+                    Stage = prepCalc.PreparationIndex,
+                    Index = 1,
+                    Value1 = prepCalc.TestResponse,
+                    ComputedValue = prepCalc.PercentAssay,
+                    Passed = true
+                });
+            }
+
+            parameterResults.Add(paramResult);
+        }
+
+        return await PersistTestAnalysisAndFinalizeAsync(
+            order,
+            WorkflowType.StandardComparison,
+            payload.EquipmentId,
+            analysedAtUtc,
+            null,
+            parameterResults,
+            ResultType.Numeric,
+            payload.Password,
+            payload.Comment,
+            "standard comparison",
+            userId,
+            ipAddress,
+            validityRecordType: "SystemSuitabilityRun",
+            validityRecordId: run.Id);
     }
 
     // Resolves the step template by name and guards workflow order,
@@ -2050,12 +4315,13 @@ public class TestWorkflowEngine : ITestWorkflowEngine
     // equality) was redundant once the MaterialId check above it existed -
     // deleted rather than translated, per the Media Configuration
     // Migration plan §3.
-    private async Task<Media> LoadReleasedLotAsync(int mediaLotId, TestWorkflowStepMedia stepMedium)
+    private async Task<Media> LoadReleasedLotAsync(int mediaLotId, TestWorkflowStepMedia stepMedium, int testOrderId)
     {
         var lot = await _db.Media.Include(m => m.Material).FirstOrDefaultAsync(m => m.Id == mediaLotId)
             ?? throw new InvalidOperationException($"Media lot {mediaLotId} not found.");
         if (!lot.IsReleasedForUse || lot.Status == MediaStatus.OutOfStock || lot.Status == MediaStatus.QuarantineFailed)
             throw new InvalidOperationException($"Media lot {lot.LotNumber} is not released for use, out of stock, or rejected.");
+        await SectionMediaRule.EnsureLotForTestOrderAsync(_db, lot, testOrderId);
         if (!StepMediumMatcher.Matches(stepMedium, lot.MaterialId, lot.Material?.MediaProductId))
             throw new WorkflowStepException(WorkflowErrorCodes.MediaNotInPermittedList,
                 $"Media lot {lot.LotNumber} is not a lot of the permitted medium for this step.");
@@ -2199,7 +4465,7 @@ public class TestWorkflowEngine : ITestWorkflowEngine
             throw new InvalidOperationException($"Incubation has already been started for step \"{stepName}\" - awaiting its result.");
 
         var stepMedium = await RequireSingleStepMediumAsync(step);
-        var lot = await LoadReleasedLotAsync(mediaLotId, stepMedium);
+        var lot = await LoadReleasedLotAsync(mediaLotId, stepMedium, testOrderId);
         var window = IncubationWindowResolver.Require(stepMedium, step.StepName);
         await RequireEligibleIncubatorAsync(stepMedium.Id, equipmentId);
 
@@ -2390,7 +4656,7 @@ public class TestWorkflowEngine : ITestWorkflowEngine
                 throw new WorkflowStepException(WorkflowErrorCodes.IncompleteConfirmatorySetup,
                     "Every selected medium needs a lot and an incubator.");
 
-            var lot = await LoadReleasedLotAsync(selection.MediaLotId, medium);
+            var lot = await LoadReleasedLotAsync(selection.MediaLotId, medium, testOrderId);
             await RequireEligibleIncubatorAsync(medium.Id, selection.EquipmentId);
             resolved.Add((medium, lot, selection.EquipmentId));
         }
@@ -2854,7 +5120,7 @@ public class TestWorkflowEngine : ITestWorkflowEngine
                 .Select(s => new { s.Category, s.PreparationStatus, s.ItemId, s.ReferenceNumber })
                 .FirstOrDefaultAsync();
 
-            if (sample != null)
+            if (sample != null && !await PreparationRules.TestOrderSkipsPreparationAsync(_db, testOrderId))
             {
                 var isPrepared = sample.PreparationStatus == SamplePreparationStatus.Ready;
                 if (isPrepared && sample.ItemId != null)

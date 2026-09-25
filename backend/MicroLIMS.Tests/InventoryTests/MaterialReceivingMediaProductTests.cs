@@ -16,6 +16,7 @@ public class MaterialReceivingMediaProductTests
             .Options;
         var db = new MicroLimsDbContext(options);
         db.CurrentUserId = 1;
+        TestServiceFactory.AssignUserToMicroSection(db, 1);
         return db;
     }
 
@@ -40,7 +41,7 @@ public class MaterialReceivingMediaProductTests
     public async Task Create_DehydratedWithoutProduct_Throws()
     {
         await using var db = NewDb();
-        var service = new MaterialService(db);
+        var service = new MaterialService(db, new UserSectionScopeService(db));
         var req = CreateRequest(MaterialType.DehydratedMedia, "TSA", "TSA", mediaProductId: null);
 
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.CreateAsync(req, 1));
@@ -52,7 +53,7 @@ public class MaterialReceivingMediaProductTests
     {
         await using var db = NewDb();
         var product = await MediaProductTestData.CreateOrGetAsync(db, "Tryptic Soy Agar", "TSA");
-        var service = new MaterialService(db);
+        var service = new MaterialService(db, new UserSectionScopeService(db));
 
         var req = CreateRequest(
             MaterialType.DehydratedMedia, "Ignored Custom Name", "IGNORED", mediaProductId: product.Id);
@@ -69,7 +70,7 @@ public class MaterialReceivingMediaProductTests
     {
         await using var db = NewDb();
         var product = await MediaProductTestData.CreateOrGetAsync(db, "Tryptic Soy Agar", "TSA");
-        var service = new MaterialService(db);
+        var service = new MaterialService(db, new UserSectionScopeService(db));
 
         var req = CreateRequest(
             MaterialType.Chemical, "Sodium Chloride", "NACL", mediaProductId: product.Id);
@@ -89,6 +90,7 @@ public class MaterialReceivingMediaProductTests
 
         var material = new Material
         {
+            SectionId = TestServiceFactory.EnsureMicroSection(db).Id,
             MaterialType = MaterialType.DehydratedMedia,
             MediaProductId = product.Id,
             MaterialName = "Tryptic Soy Agar Stored Snapshot",
@@ -104,7 +106,7 @@ public class MaterialReceivingMediaProductTests
         db.Materials.Add(material);
         await db.SaveChangesAsync();
 
-        var service = new MaterialService(db);
+        var service = new MaterialService(db, new UserSectionScopeService(db));
         var updateReq = CreateRequest(
             MaterialType.DehydratedMedia, "Different Requested Name", "DIFF", mediaProductId: product.Id);
 
@@ -126,6 +128,7 @@ public class MaterialReceivingMediaProductTests
 
         var material = new Material
         {
+            SectionId = TestServiceFactory.EnsureMicroSection(db).Id,
             MaterialType = MaterialType.DehydratedMedia,
             MediaProductId = product1.Id,
             MaterialName = product1.Name,
@@ -149,7 +152,7 @@ public class MaterialReceivingMediaProductTests
         });
         await db.SaveChangesAsync();
 
-        var service = new MaterialService(db);
+        var service = new MaterialService(db, new UserSectionScopeService(db));
         var updateReq = CreateRequest(
             MaterialType.DehydratedMedia, "TSA 2", "TSA2", mediaProductId: product2.Id);
 
@@ -166,6 +169,7 @@ public class MaterialReceivingMediaProductTests
 
         var material = new Material
         {
+            SectionId = TestServiceFactory.EnsureMicroSection(db).Id,
             MaterialType = MaterialType.DehydratedMedia,
             MediaProductId = null,
             MaterialName = "Legacy Unlinked Dehydrated Media",
@@ -189,7 +193,7 @@ public class MaterialReceivingMediaProductTests
         });
         await db.SaveChangesAsync();
 
-        var service = new MaterialService(db);
+        var service = new MaterialService(db, new UserSectionScopeService(db));
         var updateReq = CreateRequest(
             MaterialType.DehydratedMedia, "Tryptic Soy Agar", "TSA", mediaProductId: product.Id);
 
@@ -211,6 +215,7 @@ public class MaterialReceivingMediaProductTests
 
         var material = new Material
         {
+            SectionId = TestServiceFactory.EnsureMicroSection(db).Id,
             MaterialType = MaterialType.DehydratedMedia,
             MediaProductId = product1.Id,
             MaterialName = product1.Name,
@@ -226,7 +231,7 @@ public class MaterialReceivingMediaProductTests
         db.Materials.Add(material);
         await db.SaveChangesAsync();
 
-        var service = new MaterialService(db);
+        var service = new MaterialService(db, new UserSectionScopeService(db));
         var updateReq = CreateRequest(
             MaterialType.DehydratedMedia, "TSA 2", "TSA2", mediaProductId: product2.Id);
 

@@ -20,8 +20,12 @@ public class PreparedLotNumberTests
     private static readonly string Yy = DateTime.UtcNow.ToString("yy", CultureInfo.InvariantCulture);
     private static readonly string LastYy = DateTime.UtcNow.AddYears(-1).ToString("yy", CultureInfo.InvariantCulture);
 
-    private static MicroLimsDbContext NewDb() =>
-        new(new DbContextOptionsBuilder<MicroLimsDbContext>().UseInMemoryDatabase(Guid.NewGuid().ToString()).Options);
+    private static MicroLimsDbContext NewDb()
+    {
+        var db = new MicroLimsDbContext(new DbContextOptionsBuilder<MicroLimsDbContext>().UseInMemoryDatabase(Guid.NewGuid().ToString()).Options);
+        TestServiceFactory.AssignUserToMicroSection(db, 1);
+        return db;
+    }
 
     [Fact]
     public async Task PrepareMedia_ContinuesAfterHighestExistingNumber_NotTheLotCount()
@@ -105,9 +109,11 @@ public class PreparedLotNumberTests
     // One Material row per received batch; the MediaConfiguration is per product name.
     private static async Task<Material> SeedDehydratedMedia(MicroLimsDbContext db, string name, string code, string batch)
     {
+        var microSec = TestServiceFactory.EnsureMicroSection(db);
         var product = await MediaProductTestData.CreateOrGetAsync(db, name, code);
         var material = new Material
         {
+            SectionId = microSec.Id,
             MaterialType = MaterialType.DehydratedMedia, MaterialName = name, ManufacturerName = "Himedia",
             BatchNumber = batch, ReceivingDate = DateTime.UtcNow.AddDays(-10), ExpiryDate = DateTime.UtcNow.AddYears(1),
             Code = code, Location = "Micro Lab", QuantityReceived = 500, QuantityRemaining = 500, Unit = MaterialUnit.Gram,
@@ -139,6 +145,17 @@ public class PreparedLotNumberTests
         await db.SaveChangesAsync();
     }
 
+    private static async Task SeedCryovialLot(MicroLimsDbContext db, Material material, Organism organism, string code, DateTime? preparedAt = null)
+    {
+        db.Cryovials.Add(new Cryovial
+        {
+            Code = code, MaterialId = material.Id, OrganismId = organism.Id, OrganismNameSnapshot = organism.ScientificName,
+            ExpiryDate = DateTime.UtcNow.AddMonths(6), NumberOfVialsPrepared = 5, VialsRemaining = 5,
+            PreparedAt = preparedAt ?? DateTime.UtcNow
+        });
+        await db.SaveChangesAsync();
+    }
+
     private static PrepareMediaRequest MediaRequest(Material material, Equipment autoclave) => new(
         MaterialId: material.Id,
         TotalWeight: 10m, TotalVolume: "500 ml", AutoclaveEquipmentId: autoclave.Id, AutoclaveProgram: "Program A",
@@ -147,8 +164,10 @@ public class PreparedLotNumberTests
 
     private static async Task<Material> SeedLyophilized(MicroLimsDbContext db, Organism organism, string code, string batch)
     {
+        var microSec = TestServiceFactory.EnsureMicroSection(db);
         var material = new Material
         {
+            SectionId = microSec.Id,
             MaterialType = MaterialType.LyophilizedMicroorganism, MaterialName = organism.ScientificName, ManufacturerName = "Tody laboratories",
             BatchNumber = batch, ReceivingDate = DateTime.UtcNow.AddDays(-10), ExpiryDate = DateTime.UtcNow.AddYears(1),
             Code = code, AtccNumber = organism.AtccNumber, OrganismId = organism.Id,
@@ -164,9 +183,11 @@ public class PreparedLotNumberTests
     // row that PrepareCryovialsAsync requires.
     private static async Task<(Media media, Equipment incubator)> SeedReleasedMediaAndIncubator(MicroLimsDbContext db)
     {
+        var microSec = TestServiceFactory.EnsureMicroSection(db);
         var product = await MediaProductTestData.CreateOrGetAsync(db, "TSA Powder", "TSA");
         var mediaMaterial = new Material
         {
+            SectionId = microSec.Id,
             MaterialType = MaterialType.DehydratedMedia, MaterialName = "TSA Powder", ManufacturerName = "Himedia",
             BatchNumber = "LOT-TSA", ReceivingDate = DateTime.UtcNow.AddDays(-30), ExpiryDate = DateTime.UtcNow.AddYears(1),
             Code = "TSA", Location = "Micro Lab", QuantityReceived = 500, QuantityRemaining = 500, Unit = MaterialUnit.Gram,

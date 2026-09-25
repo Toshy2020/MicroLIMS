@@ -16,12 +16,16 @@ export interface SaveMaterialPayload {
   atccNumber: string | null;
   organismId: number | null;
   mediaProductId: number | null;
+  sectionId?: number | null;
+  purity?: number | null;
 }
 
 export const MaterialService = {
   // ---- Materials Stock ----
   getAll: (materialType?: string) =>
     apiClient.get("/inventory/materials", { params: materialType ? { type: materialType } : {} }).then((r) => r.data.data),
+  getUsableReferenceStandards: () =>
+    apiClient.get("/inventory/materials/usable-reference-standards").then((r) => r.data.data),
   getForPrint: () => apiClient.get("/inventory/materials/print").then((r) => r.data.data),
   getDefaultUnit: (materialType: string) =>
     apiClient.get("/inventory/materials/default-unit", { params: { materialType } }).then((r) => r.data.data.unit),

@@ -132,6 +132,8 @@ public class WaterBatchPrepareTests
 
         var point = new WaterSamplingPoint { Code = "WP-1", Location = "Loop", WaterDepartmentId = department.Id, AssignedTestCodes = new List<string> { "TAMC-Water" } };
         db.WaterSamplingPoints.Add(point);
+        var section = TestServiceFactory.EnsureMicroSection(db);
+        db.TestDefinitions.Add(new TestDefinition { Code = "TAMC-Water", DisplayName = "TAMC-Water", SectionId = section.Id });
         await db.SaveChangesAsync();
 
         var engine = new MicroLIMS.Application.Workflows.WaterWorkflowEngine(db, new MicroLIMS.Application.Services.ReferenceNumberGenerator(db));

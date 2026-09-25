@@ -13,6 +13,9 @@ import { brandColors } from "../../../theme";
 interface Props {
   selectedCategory: SampleCategoryKey | null;
   onSelectCategory: (cat: SampleCategoryKey) => void;
+  // Which categories this dialog instance may offer - e.g. the main
+  // Receiving page only offers FP/RM/PM, never Water/EM/After Cleaning.
+  allowedCategories: SampleCategoryKey[];
 }
 
 const CATEGORY_ICONS: Record<SampleCategoryKey, React.ReactNode> = {
@@ -24,8 +27,9 @@ const CATEGORY_ICONS: Record<SampleCategoryKey, React.ReactNode> = {
   ac: <CleaningServicesOutlinedIcon sx={{ fontSize: 28 }} />
 };
 
-export function SampleTypeSelector({ selectedCategory, onSelectCategory }: Props) {
+export function SampleTypeSelector({ selectedCategory, onSelectCategory, allowedCategories }: Props) {
   const theme = useTheme();
+  const availableCategories = RECEIVING_CATEGORIES.filter((c) => allowedCategories.includes(c.key));
   return (
     <Box sx={{ py: 1 }}>
       <Typography sx={{ fontSize: 13, color: "text.secondary", mb: 2 }}>
@@ -33,7 +37,7 @@ export function SampleTypeSelector({ selectedCategory, onSelectCategory }: Props
       </Typography>
 
       <Grid container spacing={2}>
-        {RECEIVING_CATEGORIES.map((cat) => {
+        {availableCategories.map((cat) => {
           const isSelected = selectedCategory === cat.key;
           return (
             <Grid

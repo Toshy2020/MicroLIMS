@@ -43,11 +43,14 @@ public class MediaReleaseTests
     // challenge to the given outcome, leaving the lot qualified-but-unreleased.
     private static async Task<Media> PrepareAndEvaluateAsync(MicroLimsDbContext db, bool conform)
     {
+        var microSec = TestServiceFactory.EnsureMicroSection(db);
+        TestServiceFactory.AssignUserToMicroSection(db, PreparerId);
         var product = await MediaProductTestData.CreateOrGetAsync(db, "TSA", "TSA");
         var organism = new Organism { ScientificName = "E. coli" };
         db.Organisms.Add(organism);
         var material = new Material
         {
+            SectionId = microSec.Id,
             MaterialType = MaterialType.DehydratedMedia, MaterialName = "TSA", ManufacturerName = "Himedia",
             BatchNumber = "LOT-1", ReceivingDate = DateTime.UtcNow.AddDays(-5), ExpiryDate = DateTime.UtcNow.AddYears(1),
             Code = "TSA", Location = "Micro Lab", QuantityReceived = 500, QuantityRemaining = 500, Unit = MaterialUnit.Gram,
@@ -97,7 +100,7 @@ public class MediaReleaseTests
         db.Cryovials.Add(cryovial);
         await db.SaveChangesAsync();
 
-        var engine = new MediaEvaluationEngine(db, new MaterialService(db));
+        var engine = new MediaEvaluationEngine(db, new MaterialService(db, new UserSectionScopeService(db)), new UserSectionScopeService(db));
         await engine.SelectCryovialAsync(challenge.Id, cryovial.Id, PreparerId);
         var incubation = await engine.RecordIncubationAsync(challenge.Id, incubatorEquipmentId: autoclave.Id, PreparerId);
         incubation.ExpectedReadingAt = DateTime.UtcNow.AddMinutes(-1); // simulate the incubation period elapsing

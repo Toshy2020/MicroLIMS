@@ -1,15 +1,20 @@
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Interfaces;
+using MicroLIMS.Application.Workflows;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Persistence.DbContext;
 
 namespace MicroLIMS.Application.Services;
 
-// Sample-level approval, replacing the per-TestOrder ApprovalService for
-// the main approval flow: Section Head decides once for the whole
-// Sample. Only 4 of ApprovalDecision's 6 values are reachable here -
-// Investigation/OOSInvestigation stay TestOrder-level-only (ApprovalService).
+// Sample approval, per laboratory section: a Section Head decides once for
+// their section's tests on the sample (SampleSectionSignoff), and
+// Sample.Status is rolled up from the sections (SampleSectionRollup) - a
+// single-section sample behaves exactly as the old whole-sample approval
+// did. Rejecting rejects the whole sample; a retest carries only the
+// deciding section's tests. Only 4 of ApprovalDecision's 6 values are
+// reachable here - Investigation/OOSInvestigation stay TestOrder-level-only
+// (ApprovalService).
 public class SampleApprovalService
 {
     private readonly MicroLimsDbContext _db;
@@ -18,11 +23,13 @@ public class SampleApprovalService
     private readonly RecordArchiveService _archive;
     private readonly ResultProjectionService _resultProjection;
     private readonly ReferenceNumberGenerator _refNumbers;
+    private readonly IUserSectionScopeService _scope;
 
     public SampleApprovalService(MicroLimsDbContext db, ReviewGateService reviewGate,
         SampleSummaryService summary, RecordArchiveService archive, ResultProjectionService resultProjection,
-        ReferenceNumberGenerator refNumbers)
+        ReferenceNumberGenerator refNumbers, IUserSectionScopeService scope)
     {
+        _scope = scope;
         _db = db;
         _reviewGate = reviewGate;
         _summary = summary;
@@ -122,18 +129,27 @@ public class SampleApprovalService
     public async Task DecideAsync(
         int sampleId, int sectionHeadUserId, string password, ApprovalDecision decision,
         string? comment, string? ipAddress, string? certificateRemarks = null,
-        List<int>? selectedTestOrderIds = null, int? newSampleAnalystOneId = null, int? newSampleAnalystTwoId = null)
+        List<int>? selectedTestOrderIds = null, int? newSampleAnalystOneId = null, int? newSampleAnalystTwoId = null,
+        int? sectionId = null)
     {
-        var sample = await _db.Samples.Include(s => s.TestOrders).FirstOrDefaultAsync(s => s.Id == sampleId)
+        var sample = await _db.Samples.Include(s => s.TestOrders).Include(s => s.SectionSignoffs).FirstOrDefaultAsync(s => s.Id == sampleId)
             ?? throw new InvalidOperationException($"Sample {sampleId} not found.");
 
-        if (sample.Status != SampleStatus.UnderApproval)
-            throw new InvalidOperationException("Sample must be under approval before a decision can be made.");
+        var userScope = await _scope.GetAccessibleSectionIdsAsync(sectionHeadUserId);
+        var section = SampleSectionRollup.ResolveSection(
+            sample, sectionId, SectionSignoffStatus.UnderApproval, userScope,
+            "Sample must be under approval before a decision can be made.");
+        var signoff = SampleSectionRollup.GetOrAdd(sample, section);
+        // Every section without its own sign-off row shares the sample's
+        // state; freeze them now so a lab still in testing/review doesn't
+        // later read as sharing this decision's own outcome.
+        SampleSectionRollup.FreezeOpenSections(sample);
 
-        if (sectionHeadUserId == sample.ReviewedByUserId)
+        if (sectionHeadUserId == signoff.ReviewedByUserId)
             throw new InvalidOperationException("You cannot approve a sample you reviewed.");
 
-        var currentOrders = sample.TestOrders.Where(t => !t.IsSuperseded).ToList();
+        // Only this section's tests are decided here.
+        var currentOrders = SampleSectionRollup.CurrentOrders(sample, section);
         foreach (var order in currentOrders)
         {
             if (order.AssignedAnalystId == sectionHeadUserId)
@@ -141,9 +157,74 @@ public class SampleApprovalService
 
             var enteredResult = await _db.Results.AnyAsync(r => r.TestOrderId == order.Id && r.EnteredByUserId == sectionHeadUserId)
                 || await _db.CountTestReadings.AnyAsync(r => r.TestOrderId == order.Id && r.EnteredByUserId == sectionHeadUserId)
-                || await _db.PathogenObservations.AnyAsync(p => p.TestOrderId == order.Id && p.ObservedByUserId == sectionHeadUserId);
+                || await _db.PathogenObservations.AnyAsync(p => p.TestOrderId == order.Id && p.ObservedByUserId == sectionHeadUserId)
+                || await _db.TestAnalyses.AnyAsync(e => e.TestOrderId == order.Id && e.EnteredByUserId == sectionHeadUserId);
             if (enteredResult)
                 throw new InvalidOperationException("You cannot approve a sample you tested.");
+        }
+
+        // REQ-FP-033: server-side reject approval of a section if any test in it
+        // that requires system suitability lacks a linked PASSED run.
+        if (decision == ApprovalDecision.Approve)
+        {
+            var testCodes = currentOrders.Select(o => o.TestCode).Distinct().ToList();
+            var sstCodes = await _db.TestDefinitions
+                .Where(t => testCodes.Contains(t.Code) && t.RequiresSystemSuitability)
+                .Select(t => t.Code)
+                .ToListAsync();
+
+            foreach (var sstOrder in currentOrders.Where(o => sstCodes.Contains(o.TestCode)))
+            {
+                if (sstOrder.SystemSuitabilityRunId is null)
+                {
+                    throw new InvalidOperationException(
+                        $"Cannot approve section: test order {sstOrder.Id} (\"{sstOrder.TestCode}\") lacks a linked system suitability run.");
+                }
+
+                var run = await _db.SystemSuitabilityRuns
+                    .FirstOrDefaultAsync(r => r.Id == sstOrder.SystemSuitabilityRunId.Value);
+
+                if (run is null || !run.Passed)
+                {
+                    throw new InvalidOperationException(
+                        $"Cannot approve section: test order {sstOrder.Id} (\"{sstOrder.TestCode}\") lacks a linked passed system suitability run.");
+                }
+            }
+
+            var analysisDefinitions = await _db.TestDefinitions
+                .Where(t => testCodes.Contains(t.Code))
+                .Select(t => new { t.Code, t.WorkflowType })
+                .ToListAsync();
+
+            var testAnalysisCodes = analysisDefinitions
+                .Where(t => AnalysisWorkflows.UsesTestAnalysis(t.WorkflowType))
+                .ToDictionary(t => t.Code, t => t.WorkflowType);
+
+            if (testAnalysisCodes.Count > 0)
+            {
+                var analysisOrders = currentOrders.Where(o => testAnalysisCodes.ContainsKey(o.TestCode)).ToList();
+                foreach (var analysisOrder in analysisOrders)
+                {
+                    var activeAnalyses = await _db.TestAnalyses
+                        .Include(e => e.ParameterResults)
+                        .Where(e => e.TestOrderId == analysisOrder.Id && e.IsActive)
+                        .ToListAsync();
+
+                    if (activeAnalyses.Count == 0)
+                    {
+                        var wfType = testAnalysisCodes[analysisOrder.TestCode];
+                        var displayName = AnalysisWorkflows.GetDisplayName(wfType);
+                        throw new InvalidOperationException(
+                            $"Cannot approve section: test order {analysisOrder.Id} (\"{analysisOrder.TestCode}\") lacks an active {displayName} entry.");
+                    }
+
+                    if (activeAnalyses.Any(e => e.ParameterResults.Any(pr => pr.ComparisonStatus == "NextStageRequired")))
+                    {
+                        throw new InvalidOperationException(
+                            $"Cannot approve section: test order {analysisOrder.Id} (\"{analysisOrder.TestCode}\") has a pending stage.");
+                    }
+                }
+            }
         }
 
         // Retest paths need the Section Head's chosen subset of tests -
@@ -209,19 +290,35 @@ public class SampleApprovalService
         // commit together in the single SaveChangesAsync at the end).
         var signature = await _reviewGate.SignAndLogAsync(
             ReviewEntityTypes.Sample, sampleId, sectionHeadUserId, password,
-            meaning, ReviewWorkflowEventType.ApprovalDecisionMade, comment, ipAddress, decision);
+            meaning, ReviewWorkflowEventType.ApprovalDecisionMade, comment, ipAddress, decision, section);
+
+        signoff.ApprovalSignature = signature;
+        signoff.ApprovalDecision = decision;
 
         switch (decision)
         {
             case ApprovalDecision.Approve:
-                sample.Status = SampleStatus.Approved;
-                sample.ApprovedByUserId = sectionHeadUserId;
-                sample.ApprovedAt = DateTime.UtcNow;
-                sample.ApprovalDecision = ApprovalDecision.Approve;
+            {
+                var now = DateTime.UtcNow;
+                signoff.Status = SectionSignoffStatus.Approved;
+                signoff.ApprovedByUserId = sectionHeadUserId;
+                signoff.ApprovedAt = now;
                 // Never auto-derived from the internal review/approval
                 // Comment above - the Approver must explicitly type this,
                 // or leave it null, at the moment of approval only.
-                sample.CertificateRemarks = string.IsNullOrWhiteSpace(certificateRemarks) ? null : certificateRemarks.Trim();
+                signoff.CertificateRemarks = string.IsNullOrWhiteSpace(certificateRemarks) ? null : certificateRemarks.Trim();
+
+                // The sample is approved once its last open section is.
+                SampleSectionRollup.Apply(sample);
+                if (sample.Status == SampleStatus.Approved)
+                {
+                    sample.ApprovedByUserId = sectionHeadUserId;
+                    sample.ApprovedAt = now;
+                    sample.ApprovalDecision = ApprovalDecision.Approve;
+                    // Remarks are per section; the sample-level copy is only
+                    // unambiguous when one section tested the sample.
+                    sample.CertificateRemarks = SampleSectionRollup.SectionIds(sample).Count == 1 ? signoff.CertificateRemarks : null;
+                }
                 foreach (var order in currentOrders)
                 {
                     var previousStep = order.CurrentStep;
@@ -237,10 +334,18 @@ public class SampleApprovalService
                     });
                 }
                 break;
+            }
 
             case ApprovalDecision.Reject:
-                sample.Status = SampleStatus.Rejected;
+                signoff.Status = SectionSignoffStatus.Rejected;
+                // Who decided and when - the combined certificate names the
+                // Section Head behind each lab's conclusion, rejections too.
+                signoff.ApprovedByUserId = sectionHeadUserId;
+                signoff.ApprovedAt = DateTime.UtcNow;
                 sample.ApprovalDecision = ApprovalDecision.Reject;
+                // A rejection is this section's own judgement only - it no
+                // longer closes any other lab still open on the sample.
+                SampleSectionRollup.Apply(sample);
                 foreach (var order in currentOrders)
                 {
                     order.Status = ApprovalStatus.Rejected;
@@ -263,9 +368,12 @@ public class SampleApprovalService
                 // or not, to be silently re-run). Only the tests the
                 // Section Head actually selected move to a brand-new
                 // sample; every other TestOrder on the original is left
-                // completely untouched.
-                sample.Status = SampleStatus.RetestRequested;
-                sample.ApprovalDecision = ApprovalDecision.RetestRetainedSample;
+                // completely untouched. Other sections carry on with their
+                // own review/approval.
+                signoff.Status = SectionSignoffStatus.RetestRequested;
+                SampleSectionRollup.Apply(sample);
+                if (sample.Status == SampleStatus.RetestRequested)
+                    sample.ApprovalDecision = ApprovalDecision.RetestRetainedSample;
 
                 if (sample.OosGroupCode is null)
                     sample.OosGroupCode = await _refNumbers.GenerateOosCodeAsync();
@@ -277,6 +385,7 @@ public class SampleApprovalService
                     var newOrder = new TestOrder
                     {
                         TestCode = order.TestCode,
+                        SectionId = order.SectionId,
                         Status = ApprovalStatus.Pending,
                         CurrentStep = WorkflowStep.Waiting,
                         AssignedAnalystId = order.AssignedAnalystId,
@@ -307,6 +416,8 @@ public class SampleApprovalService
                 // the "retest everything" bug this exists to prevent.
                 if (carriedAnyLocations)
                     newSample.PreparationStatus = SamplePreparationStatus.Ready;
+                else
+                    newSample.PreparationStatus = await PreparationRules.InitialStatusAsync(_db, newSample.TestOrders.Select(o => o.SectionId));
 
                 _db.Samples.Add(newSample);
                 break;
@@ -314,8 +425,10 @@ public class SampleApprovalService
 
             case ApprovalDecision.NewSampleRequest:
             {
-                sample.Status = SampleStatus.RetestRequested;
-                sample.ApprovalDecision = ApprovalDecision.NewSampleRequest;
+                signoff.Status = SectionSignoffStatus.RetestRequested;
+                SampleSectionRollup.Apply(sample);
+                if (sample.Status == SampleStatus.RetestRequested)
+                    sample.ApprovalDecision = ApprovalDecision.NewSampleRequest;
 
                 if (sample.OosGroupCode is null)
                     sample.OosGroupCode = await _refNumbers.GenerateOosCodeAsync();
@@ -336,6 +449,7 @@ public class SampleApprovalService
                         var newOrder = new TestOrder
                         {
                             TestCode = order.TestCode,
+                            SectionId = order.SectionId,
                             Status = ApprovalStatus.Pending,
                             CurrentStep = WorkflowStep.Waiting,
                             AssignedAnalystId = analystId,
@@ -352,6 +466,8 @@ public class SampleApprovalService
                     // branch above - same reasoning, applied per spinoff.
                     if (carriedAnyLocations)
                         spinoff.PreparationStatus = SamplePreparationStatus.Ready;
+                    else
+                        spinoff.PreparationStatus = await PreparationRules.InitialStatusAsync(_db, spinoff.TestOrders.Select(o => o.SectionId));
 
                     _db.Samples.Add(spinoff);
                     await _db.SaveChangesAsync();
@@ -373,6 +489,12 @@ public class SampleApprovalService
             }
         }
 
+        // A sample left waiting on a retest carries the retest's decision,
+        // whichever section's decision closed the rest of it.
+        if (sample.Status == SampleStatus.RetestRequested)
+            sample.ApprovalDecision = sample.SectionSignoffs
+                .First(s => s.Status == SectionSignoffStatus.RetestRequested).ApprovalDecision;
+
         await _db.SaveChangesAsync();
 
         // Approval happens after every result is already projected, so the
@@ -380,17 +502,26 @@ public class SampleApprovalService
         // ResultRecord rows are only ever filled in on this second pass.
         // A retest (either flavor) sends the selected tests back into
         // testing on a different Sample entirely - there is no final
-        // version of THIS sample's record to project or archive yet.
-        if (decision is ApprovalDecision.Approve or ApprovalDecision.Reject)
-        {
-            await _resultProjection.RefreshApprovalFieldsAsync(sampleId);
+        // version of THIS sample's record to project or archive yet. With
+        // several sections, only the decision that closes the sample (its
+        // last approval, or any rejection) finalizes it.
+        await FinalizeIfClosedAsync(sample, $"Sample {decision}", sectionHeadUserId);
+    }
 
-            var document = await _summary.BuildReportDocumentAsync(sampleId);
-            if (document is not null)
-                await _archive.ArchiveAsync(ReviewEntityTypes.Sample, sampleId, document, $"Sample {decision}", sectionHeadUserId);
+    // A sample is final once no lab is still open. The decision that closes it
+    // may be another lab's approval after an earlier rejection, so the OOS
+    // outcome follows the sample's own final state, not this one decision.
+    internal async Task FinalizeIfClosedAsync(Sample sample, string archiveLabel, int userId)
+    {
+        if (sample.Status is not (SampleStatus.Approved or SampleStatus.Rejected)) return;
 
-            await PropagateOosOutcomeAsync(sample, decision, sectionHeadUserId);
-        }
+        await _resultProjection.RefreshApprovalFieldsAsync(sample.Id);
+        var document = await _summary.BuildReportDocumentAsync(sample.Id);
+        if (document is not null)
+            await _archive.ArchiveAsync(ReviewEntityTypes.Sample, sample.Id, document, archiveLabel, userId);
+
+        var outcome = sample.Status == SampleStatus.Rejected ? ApprovalDecision.Reject : ApprovalDecision.Approve;
+        await PropagateOosOutcomeAsync(sample, outcome, userId);
     }
 
     private async Task PropagateOosOutcomeAsync(Sample sample, ApprovalDecision decision, int sectionHeadUserId)
@@ -398,18 +529,30 @@ public class SampleApprovalService
         if (sample.OriginSampleId is null)
             return;
 
-        var origin = await _db.Samples.FirstOrDefaultAsync(s => s.Id == sample.OriginSampleId.Value);
+        var origin = await _db.Samples.Include(s => s.TestOrders).Include(s => s.SectionSignoffs)
+            .FirstOrDefaultAsync(s => s.Id == sample.OriginSampleId.Value);
         if (origin is null)
             return;
 
+        // A retest carries only the deciding section's tests, so it resolves
+        // only that section of the origin.
+        var sectionIds = SampleSectionRollup.SectionIds(sample);
+        if (sectionIds.Count != 1)
+            return;
+        var section = sectionIds[0];
+        var originSignoff = origin.SectionSignoffs.FirstOrDefault(s => s.SectionId == section);
+        if (originSignoff is null || originSignoff.Status != SectionSignoffStatus.RetestRequested)
+            return;
+
         ApprovalDecision outcome;
-        if (origin.ApprovalDecision == ApprovalDecision.RetestRetainedSample)
+        if (originSignoff.ApprovalDecision == ApprovalDecision.RetestRetainedSample)
         {
             outcome = decision;
         }
-        else if (origin.ApprovalDecision == ApprovalDecision.NewSampleRequest)
+        else if (originSignoff.ApprovalDecision == ApprovalDecision.NewSampleRequest)
         {
-            var sibling = await _db.Samples.FirstOrDefaultAsync(x => x.OriginSampleId == origin.Id && x.Id != sample.Id);
+            var sibling = await _db.Samples.FirstOrDefaultAsync(x => x.OriginSampleId == origin.Id && x.Id != sample.Id
+                && x.TestOrders.Any(t => t.SectionId == section));
             if (sibling is null)
                 return;
 
@@ -425,8 +568,6 @@ public class SampleApprovalService
             return;
         }
 
-        if (origin.Status != SampleStatus.RetestRequested)
-            return;
 
         // Unlike a directly-Rejected sample (which has its own dedicated
         // Rejected-meaning signature to point to), the origin never gets a
@@ -435,9 +576,21 @@ public class SampleApprovalService
         // is therefore the only place that records who/when the chain
         // actually resolved, so it's populated for both outcomes here
         // (unlike the direct-Reject branch above, which leaves them null).
-        origin.Status = outcome == ApprovalDecision.Approve ? SampleStatus.Approved : SampleStatus.Rejected;
-        origin.ApprovedByUserId = sectionHeadUserId;
-        origin.ApprovedAt = DateTime.UtcNow;
+        var now = DateTime.UtcNow;
+        // Every section of the origin without its own sign-off row shares
+        // the origin's state; freeze them now so a lab still open on the
+        // origin doesn't read as sharing this retest's own outcome.
+        SampleSectionRollup.FreezeOpenSections(origin);
+        originSignoff.Status = outcome == ApprovalDecision.Approve ? SectionSignoffStatus.Approved : SectionSignoffStatus.Rejected;
+        originSignoff.ApprovedByUserId = sectionHeadUserId;
+        originSignoff.ApprovedAt = now;
+        SampleSectionRollup.Apply(origin);
+        var originClosed = origin.Status is SampleStatus.Approved or SampleStatus.Rejected;
+        if (originClosed)
+        {
+            origin.ApprovedByUserId = sectionHeadUserId;
+            origin.ApprovedAt = now;
+        }
 
         // Unlike a plain direct Approve/Reject (which blanket-sets every
         // current TestOrder to match the one decision a Section Head just
@@ -448,7 +601,7 @@ public class SampleApprovalService
         // triggered the retest. Each of the origin's own TestOrders is
         // finalized here from its own recorded result, independent of the
         // sample-level outcome and of whether it was ever superseded.
-        var originOrders = await _db.TestOrders.Where(o => o.SampleId == origin.Id).ToListAsync();
+        var originOrders = origin.TestOrders.Where(o => o.SectionId == section).ToList();
         foreach (var order in originOrders)
         {
             var conforms = await DetermineOwnResultConformanceAsync(order.Id);
@@ -460,6 +613,11 @@ public class SampleApprovalService
         }
 
         await _db.SaveChangesAsync();
+
+        // Another section of the origin is still open - it finalizes the
+        // origin when it closes.
+        if (!originClosed)
+            return;
 
         await _resultProjection.RefreshApprovalFieldsAsync(origin.Id);
         var document = await _summary.BuildReportDocumentAsync(origin.Id);

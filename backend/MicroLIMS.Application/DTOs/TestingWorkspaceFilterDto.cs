@@ -18,6 +18,11 @@ public class TestingWorkspaceFilterDto
     public string? ToDate { get; set; }
     public string? WorkloadFilter { get; set; }
 
+    /// <summary>
+    /// Narrows the workspace to one laboratory section (see LabScope.Narrow).
+    /// </summary>
+    public int? LabSectionId { get; set; }
+
     public int Page { get; set; } = 1;
     public int PageSize { get; set; } = 50;
 

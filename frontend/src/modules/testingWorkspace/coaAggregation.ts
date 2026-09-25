@@ -269,7 +269,45 @@ export function buildCoaSimpleRows(testOrders: TestOrderSummaryDetail[]): CoaSim
 
   let overallComplies = true;
 
-  const rows: CoaSimpleRow[] = plainTests.map((t) => {
+  const rows: CoaSimpleRow[] = plainTests.flatMap((t) => {
+    if (t.elementalAssay) {
+      return t.elementalAssay.elements.map((elem) => {
+        const conform = elem.status === "WithinLimits";
+        const isUnconfigured = elem.status === "LimitsNotConfigured";
+        if (!conform) overallComplies = false;
+        return {
+          testOrderId: t.testOrderId,
+          testCode: `${t.testCode}:${elem.element}`,
+          testDisplayName: elem.parameterName,
+          specification: elem.specLimit ? `${elem.specLimit}${elem.unit ? ` ${elem.unit}` : ""}` : null,
+          result: elem.reportedDisplay,
+          analystName: t.elementalAssay!.enteredByName,
+          analystAt: t.elementalAssay!.enteredAt,
+          conform,
+          limitsNotConfigured: isUnconfigured
+        };
+      });
+    }
+
+    if (t.analysis) {
+      return t.analysis.parameterResults.map((pr) => {
+        const conform = pr.comparisonStatus === "WithinLimits";
+        const isUnconfigured = pr.comparisonStatus === "LimitsNotConfigured";
+        if (!conform) overallComplies = false;
+        return {
+          testOrderId: t.testOrderId,
+          testCode: pr.parameterName ? `${t.testCode}:${pr.parameterName}` : t.testCode,
+          testDisplayName: pr.parameterName || t.testDisplayName,
+          specification: pr.specLimit ? `${pr.specLimit}${pr.unit ? ` ${pr.unit}` : ""}` : null,
+          result: pr.reportedDisplay,
+          analystName: t.analysis!.enteredByName,
+          analystAt: t.analysis!.enteredAt,
+          conform,
+          limitsNotConfigured: isUnconfigured
+        };
+      });
+    }
+
     let result: string;
     let analystName: string | null;
     let analystAt: string | null;
@@ -304,7 +342,7 @@ export function buildCoaSimpleRows(testOrders: TestOrderSummaryDetail[]): CoaSim
 
     if (!conform) overallComplies = false;
 
-    return {
+    return [{
       testOrderId: t.testOrderId,
       testCode: t.testCode,
       testDisplayName: t.testDisplayName,
@@ -314,7 +352,7 @@ export function buildCoaSimpleRows(testOrders: TestOrderSummaryDetail[]): CoaSim
       analystAt,
       conform,
       limitsNotConfigured: isUnconfigured
-    };
+    }];
   });
 
   // A TestCode can appear more than once here - most commonly when a
@@ -371,3 +409,48 @@ export function computeResultDate(testOrders: TestOrderSummaryDetail[]): string 
   }
   return max;
 }
+
+// Filters test orders for a single laboratory section.
+export function filterTestOrdersBySection(
+  testOrders: TestOrderSummaryDetail[],
+  sectionId: number
+): TestOrderSummaryDetail[] {
+  return testOrders.filter((t) => t.sectionId === sectionId);
+}
+
+export interface SectionTestOrdersGroup {
+  sectionId: number;
+  sectionName: string;
+  testOrders: TestOrderSummaryDetail[];
+}
+
+// Groups test orders by laboratory section, preserving the order of the
+// provided sections list (or grouping by sectionId/sectionName on the test orders).
+export function groupTestOrdersBySection(
+  testOrders: TestOrderSummaryDetail[],
+  sections?: { sectionId: number; sectionName: string }[]
+): SectionTestOrdersGroup[] {
+  if (sections && sections.length > 0) {
+    return sections
+      .map((sec) => ({
+        sectionId: sec.sectionId,
+        sectionName: sec.sectionName,
+        testOrders: testOrders.filter((t) => t.sectionId === sec.sectionId)
+      }))
+      .filter((g) => g.testOrders.length > 0);
+  }
+
+  const map = new Map<number, SectionTestOrdersGroup>();
+  for (const t of testOrders) {
+    const secId = t.sectionId ?? 0;
+    const secName = t.sectionName ?? "General";
+    let group = map.get(secId);
+    if (!group) {
+      group = { sectionId: secId, sectionName: secName, testOrders: [] };
+      map.set(secId, group);
+    }
+    group.testOrders.push(t);
+  }
+  return Array.from(map.values());
+}
+

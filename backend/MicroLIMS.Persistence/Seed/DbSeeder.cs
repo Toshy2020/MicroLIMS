@@ -190,8 +190,12 @@ public static class DbSeeder
         {
             var adminUser = db.Users.FirstOrDefault(u => u.Username == "admin") ?? db.Users.FirstOrDefault();
             int adminUserId = adminUser?.Id ?? 1;
+            // Created by the AddOrgSectionSegregation migration, which always runs before seeding.
+            var microSectionId = db.DocumentSections.FirstOrDefault(s => s.Code == "MICRO")?.Id
+                ?? throw new InvalidOperationException("Laboratory section 'MICRO' is missing - migrations must run before seeding.");
             var tsaMaterial = new Material
             {
+                SectionId = microSectionId,
                 MaterialType = MaterialType.DehydratedMedia,
                 MaterialName = "Tryptic Soy Agar",
                 ManufacturerName = "Seed Data",
@@ -466,6 +470,8 @@ public static class DbSeeder
             (PermissionConstants.ReportingAdmin, "Run administrative reporting operations (e.g. ResultRecord backfill)."),
             (PermissionConstants.SamplesReview, "Submit a technical review decision on a sample."),
             (PermissionConstants.SamplesApprove, "Submit a release/approval decision on a sample."),
+            (PermissionConstants.SamplesReceive, "Receive samples for any laboratory on the main Receiving page and add a laboratory to a sample."),
+            (PermissionConstants.SamplesTrackAll, "View the sample tracking board across every laboratory."),
             (PermissionConstants.SignaturesManage, "View the electronic signature trail for a record."),
             (PermissionConstants.TestWorkflowExecute, "Execute pathogen session and media evaluation workflow steps."),
             (PermissionConstants.TestWorkflowBiochemicalDecision, "Record a biochemical confirmation decision."),
@@ -518,6 +524,7 @@ public static class DbSeeder
                 (RoleType.SectionHead, new[]
                 {
                     PermissionConstants.AuditView, PermissionConstants.SamplesReview, PermissionConstants.SamplesApprove,
+                    PermissionConstants.SamplesReceive, PermissionConstants.SamplesTrackAll,
                     PermissionConstants.SignaturesManage, PermissionConstants.TestWorkflowExecute, PermissionConstants.TestWorkflowBiochemicalDecision,
                     PermissionConstants.CryovialsManage, PermissionConstants.CryovialsApprove,
                     PermissionConstants.MaterialsManage, PermissionConstants.MaterialsDocumentControl,

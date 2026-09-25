@@ -2,6 +2,7 @@ using MicroLIMS.Application.Services;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Tests.Fixtures;
+using Microsoft.EntityFrameworkCore;
 using Xunit;
 
 namespace MicroLIMS.Tests.IntegrationTests;
@@ -33,8 +34,10 @@ public class ReferenceStrainReportPostgresIntegrationTests
         db.Organisms.AddRange(salmonella, ecoli);
         await db.SaveChangesAsync();
 
+        var microSectionId = (await db.DocumentSections.FirstAsync(s => s.Code == "MICRO")).Id;
         var material = new Material
         {
+            SectionId = microSectionId,
             MaterialType = MaterialType.LyophilizedMicroorganism,
             MaterialName = "Reference strain stock",
             ManufacturerName = "Test manufacturer",

@@ -13,7 +13,7 @@ import CheckIcon from "@mui/icons-material/Check";
 import { ReceiveRowItem, SampleCategoryKey } from "../types/receivingTypes";
 import { RECEIVING_CATEGORIES } from "../constants/receivingConstants";
 import { SampleTypeSelector } from "./SampleTypeSelector";
-import { MultiSampleEntryGrid } from "./MultiSampleEntryGrid";
+import { MultiSampleEntryGrid, LabMode } from "./MultiSampleEntryGrid";
 import { ReceiveService } from "../services/ReceiveService";
 import { masterDataOptions } from "../../../services/masterDataOptions";
 import { FloatingDialog } from "../../../components/FloatingDialog";
@@ -22,6 +22,13 @@ interface Props {
   open: boolean;
   onClose: () => void;
   onSuccess: (count: number) => void;
+  // Which sample categories this dialog instance offers - the main
+  // Receiving page limits this to FP/RM/PM; a lab workspace offers its
+  // own set including Water/EM/After Cleaning (see RECEIVING_CATEGORIES).
+  allowedCategories: SampleCategoryKey[];
+  // "choose": the receiver picks target labs per row (Laboratories column).
+  // "fixed": every row targets this one lab silently, no column shown.
+  labMode: LabMode;
 }
 
 const createEmptyRow = (defaultValues?: Partial<ReceiveRowItem>): ReceiveRowItem => ({
@@ -41,7 +48,7 @@ const createEmptyRow = (defaultValues?: Partial<ReceiveRowItem>): ReceiveRowItem
   errors: {}
 });
 
-export function NewSampleDialog({ open, onClose, onSuccess }: Props) {
+export function NewSampleDialog({ open, onClose, onSuccess, allowedCategories, labMode }: Props) {
   const theme = useTheme();
   const [step, setStep] = useState<1 | 2>(1);
   const [category, setCategory] = useState<SampleCategoryKey | null>(null);
@@ -168,6 +175,14 @@ export function NewSampleDialog({ open, onClose, onSuccess }: Props) {
         if (!row.itemId) {
           errors.itemId = "Item is required";
           isValid = false;
+        } else if (labMode.kind === "choose" && !(row.targetSectionIds && row.targetSectionIds.length > 0)) {
+          errors.targetSectionIds = "Choose at least one laboratory";
+          isValid = false;
+        }
+
+        if (category === "product" && (!row.productionStage || row.productionStage.trim() === "")) {
+          errors.productionStage = "Production Stage is required";
+          isValid = false;
         }
       } else if (category === "water") {
         if (!row.departmentId) {
@@ -236,6 +251,7 @@ export function NewSampleDialog({ open, onClose, onSuccess }: Props) {
       // Process each row sequentially or in parallel
       for (const row of rows) {
         if (category === "product" || category === "rm" || category === "pm") {
+          const targetSectionIds = labMode.kind === "fixed" ? [labMode.sectionId] : row.targetSectionIds || [];
           await ReceiveService.receiveItemBased({
             itemId: Number(row.itemId),
             causeOfTestingId: Number(row.causeOfTestingId),
@@ -245,7 +261,8 @@ export function NewSampleDialog({ open, onClose, onSuccess }: Props) {
             controlNumber: row.controlNumber || "",
             mfgDate: row.mfgDate || null,
             expDate: row.expDate || null,
-            productionStage: category === "product" ? row.productionStage || null : null
+            productionStage: category === "product" ? row.productionStage || null : null,
+            targetSectionIds
           });
         } else if (category === "water") {
           await ReceiveService.receiveWater({
@@ -379,6 +396,7 @@ export function NewSampleDialog({ open, onClose, onSuccess }: Props) {
         {step === 1 ? (
           <SampleTypeSelector
             selectedCategory={category}
+            allowedCategories={allowedCategories}
             onSelectCategory={(cat) => {
               setCategory(cat);
               setErrorMessage(null);
@@ -390,6 +408,7 @@ export function NewSampleDialog({ open, onClose, onSuccess }: Props) {
               category={category}
               rows={rows}
               masterData={masterData}
+              labMode={labMode}
               onChangeRow={handleChangeRow}
               onAddRow={handleAddRow}
               onDeleteRow={handleDeleteRow}

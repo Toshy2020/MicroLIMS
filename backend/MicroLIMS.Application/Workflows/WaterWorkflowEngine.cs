@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using MicroLIMS.Application.Services;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Persistence.DbContext;
@@ -30,7 +31,7 @@ public interface IWaterWorkflowEngine : IStatefulWorkflowEngine
     // guard at the top of the method.
     Task<WaterComparisonResult> CalculateAndCompareAsync(int testOrderId, List<decimal> readings);
 
-    Task<List<WaterComparisonResult>> GetDailyAggregateAsync(DateTime date);
+    Task<List<WaterComparisonResult>> GetDailyAggregateAsync(DateTime date, IReadOnlyCollection<int>? sectionIds = null);
 }
 
 public class WaterWorkflowEngine : IWaterWorkflowEngine
@@ -113,6 +114,7 @@ public class WaterWorkflowEngine : IWaterWorkflowEngine
         // One TestOrder per distinct TestCode across every selected point -
         // the whole batch shares a single workflow per test type, same as
         // EMWorkflowEngine.PrepareAsync.
+        var testSections = await TestSectionLookup.ResolveAsync(_db, allCodes);
         var testOrdersByCode = new Dictionary<string, TestOrder>();
         foreach (var point in points)
         {
@@ -123,6 +125,7 @@ public class WaterWorkflowEngine : IWaterWorkflowEngine
                     order = new TestOrder
                     {
                         TestCode = testCode,
+                        SectionId = testSections[testCode],
                         Status = ApprovalStatus.Pending,
                         CurrentStep = WorkflowStep.Waiting,
                         AssignedAnalystId = userId
@@ -203,26 +206,14 @@ public class WaterWorkflowEngine : IWaterWorkflowEngine
 
     // Alert -> Action -> Specification, in ascending order of severity -
     // the first limit exceeded (starting from Spec, the most severe) wins.
-    private static (string status, string? exceeded) Compare(decimal average, string? alert, string? action, string? spec)
-    {
-        var hasSpec = decimal.TryParse(spec, out var specLimit);
-        if (hasSpec && average > specLimit)
-            return ("OutOfSpecification", "Specification");
-        var hasAction = decimal.TryParse(action, out var actionLimit);
-        if (hasAction && average > actionLimit)
-            return ("ActionLimitExceeded", "Action");
-        var hasAlert = decimal.TryParse(alert, out var alertLimit);
-        if (hasAlert && average > alertLimit)
-            return ("AlertLimitExceeded", "Alert");
-        if (!hasSpec && !hasAction && !hasAlert)
-            return ("LimitsNotConfigured", null);
-        return ("WithinLimits", null);
-    }
+    public static (string status, string? exceeded) Compare(decimal average, string? alert, string? action, string? spec) =>
+        SpecLimitParser.Compare(average, alert, action, spec);
 
-    public async Task<List<WaterComparisonResult>> GetDailyAggregateAsync(DateTime date)
+    public async Task<List<WaterComparisonResult>> GetDailyAggregateAsync(DateTime date, IReadOnlyCollection<int>? sectionIds = null)
     {
         var results = await _db.Results
             .Where(r => r.EnteredAt.Date == date.Date)
+            .Where(r => sectionIds == null || _db.TestOrders.Any(t => t.Id == r.TestOrderId && sectionIds.Contains(t.SectionId)))
             .Where(r => _db.TestOrders.Any(t => t.Id == r.TestOrderId &&
                         _db.Samples.Any(s => s.Id == t.SampleId && s.Category == SampleCategory.Water)))
             .ToListAsync();

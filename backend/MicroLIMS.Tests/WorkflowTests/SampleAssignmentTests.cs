@@ -34,7 +34,7 @@ public class SampleAssignmentTests
         db.Samples.Add(sample);
         await db.SaveChangesAsync();
 
-        var workspace = new TestingWorkspaceService(db);
+        var workspace = new TestingWorkspaceService(db, new UserSectionScopeService(db));
         var service = new SampleAssignmentService(db, workspace);
 
         await service.AssignAnalystAsync(sample.Id, 101, actingUserId: 1);
@@ -58,7 +58,7 @@ public class SampleAssignmentTests
         db.Samples.Add(sample);
         await db.SaveChangesAsync();
 
-        var workspace = new TestingWorkspaceService(db);
+        var workspace = new TestingWorkspaceService(db, new UserSectionScopeService(db));
         var service = new SampleAssignmentService(db, workspace);
 
         await service.AssignAnalystAsync(sample.Id, null, actingUserId: 1);

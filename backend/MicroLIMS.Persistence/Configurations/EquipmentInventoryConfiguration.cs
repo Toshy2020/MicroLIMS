@@ -17,6 +17,13 @@ public class EquipmentInventoryConfiguration : IEntityTypeConfiguration<Equipmen
         builder.Property(e => e.FirmwareVersion).HasMaxLength(100);
         builder.Property(e => e.Location).HasMaxLength(150);
 
+        builder.HasOne(e => e.Section)
+            .WithMany()
+            .HasForeignKey(e => e.SectionId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasIndex(e => e.SectionId);
+
         builder.Ignore(e => e.IsCalibrationOverdue);
     }
 }

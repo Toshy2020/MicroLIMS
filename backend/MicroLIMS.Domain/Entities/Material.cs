@@ -21,6 +21,9 @@ public class Material
 {
     public int Id { get; set; }
 
+    public int SectionId { get; set; }
+    public DocumentSection? Section { get; set; }
+
     public MaterialType MaterialType { get; set; }
     public string MaterialName { get; set; } = string.Empty;
     public string ManufacturerName { get; set; } = string.Empty;
@@ -54,6 +57,10 @@ public class Material
     public decimal QuantityRemaining { get; set; }
     public MaterialUnit Unit { get; set; }
     public decimal? MinimumStockLevel { get; set; } // optional low-stock threshold, not a hard gate
+
+    // Finished Product / HPLC: Purity percentage (0 < p <= 100) with precision 6,3.
+    // Required when MaterialType = ReferenceStandard, must be null otherwise (REQ-FP-012).
+    public decimal? Purity { get; set; }
 
     public int CreatedByUserId { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;

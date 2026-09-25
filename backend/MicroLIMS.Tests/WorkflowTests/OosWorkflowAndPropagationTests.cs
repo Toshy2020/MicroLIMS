@@ -29,6 +29,7 @@ public class OosWorkflowAndPropagationTests
         var user = new User { Id = id, FullName = $"User {id}", Username = $"user{id}", RoleId = role.Id, PasswordHash = TestPasswords.Hash(Password) };
         db.Users.Add(user);
         await db.SaveChangesAsync();
+        TestServiceFactory.AssignUserToMicroSection(db, user.Id);
         return user;
     }
 
@@ -92,6 +93,7 @@ public class OosWorkflowAndPropagationTests
         };
         var order = new TestOrder
         {
+            SectionId = TestServiceFactory.EnsureMicroSection(db).Id,
             TestCode = "TAMC",
             Status = ApprovalStatus.Reviewed,
             CurrentStep = WorkflowStep.Reviewed,

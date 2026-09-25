@@ -71,9 +71,26 @@ public class SampleSummaryService
         return (orders, sourceRef);
     }
 
-    public async Task<SampleSummaryDto?> GetSummaryAsync(int sampleId)
+    // sectionIds: the viewer's laboratory sections (null = unrestricted). Only
+    // those sections' tests are shown; every section is still listed in
+    // Sections with its review/approval state.
+    // The Certificate of Analysis page's read model. Once every lab is final
+    // (the sample is Approved or Rejected - the rule behind
+    // CombinedCoaAvailable), a member of any of its labs may view and print
+    // the combined certificate, other labs' results included (user decision,
+    // lab separation stage 4). Before that it is as lab-scoped as the summary.
+    public async Task<SampleSummaryDto?> GetCertificateSummaryAsync(int sampleId, IReadOnlyCollection<int>? sectionIds)
+    {
+        var status = await _db.Samples.Where(s => s.Id == sampleId).Select(s => (SampleStatus?)s.Status).FirstOrDefaultAsync();
+        if (status is null) return null;
+        var final = status is SampleStatus.Approved or SampleStatus.Rejected;
+        return await GetSummaryAsync(sampleId, final ? null : sectionIds);
+    }
+
+    public async Task<SampleSummaryDto?> GetSummaryAsync(int sampleId, IReadOnlyCollection<int>? sectionIds = null)
     {
         var sample = await _db.Samples
+            .Include(s => s.SectionSignoffs)
             .Include(s => s.Item)
             .Include(s => s.WaterSamplingPoint)
             .Include(s => s.Department)
@@ -86,6 +103,10 @@ public class SampleSummaryService
         var timeline = await _reviewGate.GetTimelineAsync(ReviewEntityTypes.Sample, sampleId);
 
         var (effectiveTestOrders, sourceRefByOrderId) = await ResolveEffectiveTestOrdersAsync(sample);
+        if (sectionIds is not null)
+            effectiveTestOrders = effectiveTestOrders.Where(t => sectionIds.Contains(t.SectionId)).ToList();
+        var sectionRows = await _db.DocumentSections.AsNoTracking()
+            .ToDictionaryAsync(s => s.Id, s => new { s.Code, s.Name });
 
         var testOrderIds = effectiveTestOrders.Select(t => t.Id).ToList();
 
@@ -96,6 +117,63 @@ public class SampleSummaryService
             .ToListAsync();
         var results = await _db.Results.Where(r => testOrderIds.Contains(r.TestOrderId)).ToListAsync();
         var countTestReadings = await _db.CountTestReadings.Where(r => testOrderIds.Contains(r.TestOrderId)).ToListAsync();
+        var activeAnalyses = await _db.TestAnalyses.AsNoTracking()
+            .Where(e => testOrderIds.Contains(e.TestOrderId) && e.IsActive)
+            .Include(e => e.Equipment)
+            .Select(e => new
+            {
+                e.Id,
+                e.TestOrderId,
+                e.AnalysisType,
+                e.EquipmentId,
+                EquipmentCode = e.Equipment != null ? e.Equipment.Code : null,
+                EquipmentName = e.Equipment != null ? e.Equipment.Name : null,
+                e.AnalysedAt,
+                e.UnitAmount,
+                e.SampleMatrix,
+                e.ConditionsJson,
+                e.ValidityRecordType,
+                e.ValidityRecordId,
+                e.EnteredByUserId,
+                e.EnteredAt,
+                e.Comment,
+                Results = e.ParameterResults.Where(r => r.IsActive).Select(r => new
+                {
+                    r.Id,
+                    r.SpecificationId,
+                    r.ParameterName,
+                    r.ReportedValue,
+                    r.ReportedDisplay,
+                    r.Unit,
+                    r.SpecLimit,
+                    r.ResultBasis,
+                    r.ComparisonStatus,
+                    r.OverRange,
+                    r.BelowLoq,
+                    r.ValidityRecordItemId,
+                    r.CalculationJson,
+                    r.StageReached,
+                    RunCode = r.CalibrationRunAnalyte != null && r.CalibrationRunAnalyte.CalibrationRun != null
+                        ? r.CalibrationRunAnalyte.CalibrationRun.Code
+                        : string.Empty,
+                    RunAnalytePassed = r.CalibrationRunAnalyte != null && r.CalibrationRunAnalyte.Passed,
+                    Readings = r.Readings.OrderBy(rd => rd.Index).Select(rd => new ResultReadingDetailDto
+                    {
+                        Id = rd.Id,
+                        Kind = rd.Kind,
+                        Index = rd.Index,
+                        Stage = rd.Stage,
+                        TimePointMinutes = rd.TimePointMinutes,
+                        Value1 = rd.Value1,
+                        Value2 = rd.Value2,
+                        Value3 = rd.Value3,
+                        Text = rd.Text,
+                        ComputedValue = rd.ComputedValue,
+                        Passed = rd.Passed
+                    }).ToList()
+                }).ToList()
+            })
+            .ToListAsync();
         var pathogenObservations = await _db.PathogenObservations.Where(p => testOrderIds.Contains(p.TestOrderId)).ToListAsync();
         var biochemicalResults = await _db.WorkflowStepResults
             .Where(r => testOrderIds.Contains(r.TestOrderId) && r.BiochemicalResultText != null)
@@ -147,11 +225,17 @@ public class SampleSummaryService
         // for a test code nobody has configured a Specification for yet
         // (e.g. every pathogen test, until Test Master's Items page is used
         // to add one) - not an error, renders as "-" wherever shown.
+        // A test can carry several specification parameters (e.g. Impurity
+        // A / B / Total); they are listed in display order.
         var specificationsByTestCode = sample.ItemId is null
-            ? new Dictionary<string, Specification>()
-            : await _db.Specifications
+            ? new Dictionary<string, List<Specification>>()
+            : (await _db.Specifications
+                .Include(sp => sp.Stages)
                 .Where(sp => sp.ItemId == sample.ItemId.Value)
-                .ToDictionaryAsync(sp => sp.TestCode);
+                .OrderBy(sp => sp.DisplayOrder).ThenBy(sp => sp.Id)
+                .ToListAsync())
+                .GroupBy(sp => sp.TestCode)
+                .ToDictionary(g => g.Key, g => g.ToList());
 
         var signatures = await _db.ElectronicSignatures
             .Where(s => s.EntityType == "Sample" && s.EntityId == sampleId)
@@ -163,6 +247,7 @@ public class SampleSummaryService
         // this summary, instead of a query per row.
         var userIds = new HashSet<int>(results.Select(r => r.EnteredByUserId)
             .Concat(countTestReadings.Select(r => r.EnteredByUserId))
+            .Concat(activeAnalyses.Select(e => e.EnteredByUserId))
             .Concat(pathogenObservations.Select(p => p.ObservedByUserId))
             .Concat(locationPathogenObservations.Select(o => o.ObservedByUserId))
             .Concat(workflowHistory.Select(w => w.PerformedByUserId))
@@ -173,6 +258,12 @@ public class SampleSummaryService
         if (preparation is not null) userIds.Add(preparation.PreparedByUserId);
         if (sample.ReviewedByUserId is not null) userIds.Add(sample.ReviewedByUserId.Value);
         if (sample.ApprovedByUserId is not null) userIds.Add(sample.ApprovedByUserId.Value);
+        foreach (var signoff in sample.SectionSignoffs)
+        {
+            if (signoff.ReviewedByUserId is int reviewerId) userIds.Add(reviewerId);
+            if (signoff.ApprovedByUserId is int approverId) userIds.Add(approverId);
+            if (signoff.ClosedByUserId is int closerId) userIds.Add(closerId);
+        }
 
         var names = await _db.Users.Where(u => userIds.Contains(u.Id)).ToDictionaryAsync(u => u.Id, u => u.FullName);
         string NameOf(int userId) => names.TryGetValue(userId, out var n) ? n : "Unknown";
@@ -343,15 +434,17 @@ public class SampleSummaryService
                     }).ToList();
                 }
 
-                specificationsByTestCode.TryGetValue(order.TestCode, out var spec);
+                specificationsByTestCode.TryGetValue(order.TestCode, out var testSpecs);
 
                 return new TestOrderSummaryDetailDto
                 {
                     TestOrderId = order.Id,
+                    SectionId = order.SectionId,
+                    SectionName = sectionRows.TryGetValue(order.SectionId, out var sectionRow) ? sectionRow.Name : string.Empty,
                     TestCode = order.TestCode,
                     TestDisplayName = def?.DisplayName ?? order.TestCode,
                     SourceSampleReferenceNumber = sourceRefByOrderId.TryGetValue(order.Id, out var sourceRef) ? sourceRef : null,
-                    SpecificationText = FormatSpecificationText(spec),
+                    SpecificationText = FormatSpecificationsText(testSpecs),
                     Status = order.Status.ToString(),
                     CurrentStep = order.CurrentStep.ToString(),
                     WorkflowState = stateResult.WorkflowState,
@@ -362,6 +455,8 @@ public class SampleSummaryService
                     IsResultEntryAllowed = stateResult.IsResultEntryAllowed,
                     ResultLockReason = stateResult.LockReason,
                     IsSuperseded = order.IsSuperseded,
+                    CancelledAtStep = order.CancelledAtStep?.ToString(),
+                    CancelledAtStage = order.CancelledAtStage,
                     Incubations = incubations.Where(i => i.TestOrderId == order.Id)
                         .OrderBy(i => i.StepNumber).ThenBy(i => i.StageNumber)
                         .Select(i =>
@@ -456,6 +551,80 @@ public class SampleSummaryService
                     EnteredByName = NameOf(r.EnteredByUserId),
                     EnteredAt = r.EnteredAt
                 }).ToList(),
+                ElementalAssay = activeAnalyses.Where(e => e.TestOrderId == order.Id && e.AnalysisType == WorkflowType.ElementalAssay).Select(e => new ElementalAssayDetailDto
+                {
+                    SampleMatrix = e.SampleMatrix ?? SampleMatrix.Solid,
+                    UnitAmount = e.UnitAmount ?? 0m,
+                    UnitAmountUnit = (e.SampleMatrix ?? SampleMatrix.Solid) == SampleMatrix.Solid ? "g" : "mL",
+                    AnalysedAt = e.AnalysedAt,
+                    EnteredByName = NameOf(e.EnteredByUserId),
+                    EnteredAt = e.EnteredAt,
+                    Elements = e.Results.Select(r =>
+                    {
+                        ElementalCalculationData? calc = null;
+                        if (!string.IsNullOrWhiteSpace(r.CalculationJson))
+                        {
+                            try
+                            {
+                                calc = System.Text.Json.JsonSerializer.Deserialize<ElementalCalculationData>(r.CalculationJson, new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                            }
+                            catch { }
+                        }
+                        return new ElementalAssayElementDetailDto
+                        {
+                            ParameterName = r.ParameterName,
+                            Element = calc?.Element ?? r.ParameterName,
+                            RunCode = !string.IsNullOrWhiteSpace(calc?.RunCode) ? calc.RunCode : r.RunCode,
+                            RunAnalytePassed = calc?.RunAnalytePassed ?? r.RunAnalytePassed,
+                            ReportedPpm = calc?.ReportedPpm ?? 0m,
+                            OverRange = r.OverRange,
+                            BelowLoq = r.BelowLoq,
+                            MgPerUnit = calc?.MgPerUnit,
+                            ResultClaim = calc?.ResultClaim,
+                            PercentLabelClaim = calc?.PercentLabelClaim,
+                            ReportedDisplay = r.ReportedDisplay,
+                            SpecLimit = r.SpecLimit,
+                            Unit = r.Unit,
+                            Status = r.ComparisonStatus
+                        };
+                    }).ToList()
+                }).FirstOrDefault(),
+                Analysis = activeAnalyses.Where(e => e.TestOrderId == order.Id).Select(e => new AnalysisDetailDto
+                {
+                    Id = e.Id,
+                    TestOrderId = e.TestOrderId,
+                    AnalysisType = e.AnalysisType,
+                    EquipmentId = e.EquipmentId,
+                    EquipmentCode = e.EquipmentCode,
+                    EquipmentName = e.EquipmentName,
+                    AnalysedAt = e.AnalysedAt,
+                    UnitAmount = e.UnitAmount,
+                    SampleMatrix = e.SampleMatrix,
+                    ConditionsJson = e.ConditionsJson,
+                    ValidityRecordType = e.ValidityRecordType,
+                    ValidityRecordId = e.ValidityRecordId,
+                    EnteredByName = NameOf(e.EnteredByUserId),
+                    EnteredAt = e.EnteredAt,
+                    Comment = e.Comment,
+                    ParameterResults = e.Results.Select(r => new ParameterResultDetailDto
+                    {
+                        Id = r.Id,
+                        SpecificationId = r.SpecificationId,
+                        ParameterName = r.ParameterName,
+                        ReportedValue = r.ReportedValue,
+                        ReportedDisplay = r.ReportedDisplay,
+                        Unit = r.Unit,
+                        SpecLimit = r.SpecLimit,
+                        ResultBasis = r.ResultBasis,
+                        ComparisonStatus = r.ComparisonStatus,
+                        OverRange = r.OverRange,
+                        BelowLoq = r.BelowLoq,
+                        ValidityRecordItemId = r.ValidityRecordItemId,
+                        CalculationJson = r.CalculationJson,
+                        StageReached = r.StageReached,
+                        Readings = r.Readings
+                    }).ToList()
+                }).FirstOrDefault(),
                 PathogenObservations = pathogenObservations.Where(p => p.TestOrderId == order.Id).Select(p => new PathogenObservationDetailDto
                 {
                     StepName = p.StepName,
@@ -485,23 +654,57 @@ public class SampleSummaryService
             }).ToList()
         };
 
+        var sampleSectionIds = SampleSectionRollup.SectionIds(sample);
+        dto.Sections = sampleSectionIds.Select(id =>
+        {
+            var signoff = sample.SectionSignoffs.FirstOrDefault(r => r.SectionId == id);
+            var canView = sectionIds is null || sectionIds.Contains(id);
+            sectionRows.TryGetValue(id, out var row);
+            return new SampleSectionSummaryDto
+            {
+                SectionId = id,
+                SectionCode = row?.Code ?? string.Empty,
+                SectionName = row?.Name ?? string.Empty,
+                // A section closed without its own decision (another lab
+                // rejected the sample) reads as "Closed" rather than the
+                // raw Cancelled enum name.
+                Status = SampleSectionRollup.StatusOf(sample, id) == SectionSignoffStatus.Cancelled
+                    ? "Closed" : SampleSectionRollup.StatusOf(sample, id).ToString(),
+                CanView = canView,
+                CoaAvailable = SampleSectionRollup.StatusOf(sample, id) == SectionSignoffStatus.Approved,
+                // Another section's reviewer/approver/remarks stay with that section.
+                ReviewedByName = canView && signoff?.ReviewedByUserId is int reviewer ? NameOf(reviewer) : null,
+                ReviewedAt = canView ? signoff?.ReviewedAt : null,
+                ApprovedByName = canView && signoff?.ApprovedByUserId is int approver ? NameOf(approver) : null,
+                ApprovedAt = canView ? signoff?.ApprovedAt : null,
+                ApprovalDecision = canView ? signoff?.ApprovalDecision?.ToString() : null,
+                CertificateRemarks = canView ? signoff?.CertificateRemarks : null,
+                ClosedByName = canView && signoff?.ClosedByUserId is int closer ? NameOf(closer) : null,
+                ClosedAt = canView ? signoff?.ClosedAt : null,
+                CloseReason = canView ? signoff?.CloseReason : null
+            };
+        }).ToList();
+        dto.AllSectionsVisible = dto.Sections.All(x => x.CanView);
+        dto.OverallStatus = SampleSectionRollup.Overall(sample).ToString();
+        dto.CombinedCoaAvailable = sample.Status is SampleStatus.Approved or SampleStatus.Rejected;
+
         return dto;
     }
 
     // Uses the laid-out renderer (cards, stat boxes, signature blocks) -
     // the same document that gets archived on final decision, so what a
     // user downloads matches the frozen copy exactly.
-    public async Task<(string fileNameStem, byte[] bytes)?> GenerateSummaryPdfAsync(int sampleId)
+    public async Task<(string fileNameStem, byte[] bytes)?> GenerateSummaryPdfAsync(int sampleId, IReadOnlyCollection<int>? sectionIds = null)
     {
-        var summary = await GetSummaryAsync(sampleId);
+        var summary = await GetSummaryAsync(sampleId, sectionIds);
         if (summary is null) return null;
         var pdf = await _pdfGenerator.GenerateReportAsync(ReportDocumentMapper.ForSample(summary));
         return (FileStemFor(summary), pdf);
     }
 
-    public async Task<(string fileNameStem, byte[] bytes)?> GenerateSummaryWordAsync(int sampleId)
+    public async Task<(string fileNameStem, byte[] bytes)?> GenerateSummaryWordAsync(int sampleId, IReadOnlyCollection<int>? sectionIds = null)
     {
-        var summary = await GetSummaryAsync(sampleId);
+        var summary = await GetSummaryAsync(sampleId, sectionIds);
         if (summary is null) return null;
         var doc = await _wordGenerator.GenerateFromLinesAsync(TitleFor(summary), BuildReportLines(summary));
         return (FileStemFor(summary), doc);
@@ -523,7 +726,7 @@ public class SampleSummaryService
     // SimplePdfWriter/SimpleDocxWriter expect - same shape as the 5
     // sections SampleSummaryDialog.tsx renders, so the export reads as
     // the same document, just on paper/in Word instead of a floating page.
-    private static List<string> BuildReportLines(SampleSummaryDto s)
+    public static List<string> BuildReportLines(SampleSummaryDto s)
     {
         var lines = new List<string>
         {
@@ -613,6 +816,28 @@ public class SampleSummaryService
                     lines.Add($"    Entered By: {r.EnteredByName}   Entered At: {FormatDateTime(r.EnteredAt)}");
                 }
             }
+            else if (order.ElementalAssay is { } elemental)
+            {
+                string V(decimal? d) => ExportNumber(d);
+                lines.Add("  FINAL RESULT (ELEMENTAL ASSAY):");
+                lines.Add($"    Matrix: {elemental.SampleMatrix}   Unit Amount: {V(elemental.UnitAmount)} {elemental.UnitAmountUnit}   Analysed At: {FormatDateTime(elemental.AnalysedAt)}");
+                lines.Add($"    Entered By: {elemental.EnteredByName}   Entered At: {FormatDateTime(elemental.EnteredAt)}");
+                foreach (var el in elemental.Elements)
+                {
+                    var claimStr = el.ResultClaim.HasValue ? V(el.ResultClaim) : "-";
+                    var plcStr = el.PercentLabelClaim.HasValue ? $"{V(el.PercentLabelClaim)} %" : "-";
+                    lines.Add($"    {el.Element}: {V(el.ReportedPpm)} ppm x {V(elemental.UnitAmount)} {elemental.UnitAmountUnit} / 1000 = {V(el.MgPerUnit)} mg, Claim: {claimStr}, %LC: {plcStr}, Status: {el.Status}");
+                }
+            }
+            else if (order.Analysis is { } analysis)
+            {
+                lines.Add($"  FINAL RESULT ({analysis.AnalysisType}):");
+                lines.Add($"    Analysed At: {FormatDateTime(analysis.AnalysedAt)}   Entered By: {analysis.EnteredByName}   Entered At: {FormatDateTime(analysis.EnteredAt)}");
+                foreach (var pr in analysis.ParameterResults)
+                {
+                    lines.Add($"    {pr.ParameterName}: {pr.ReportedDisplay}   Spec: {FormatLimit(pr.SpecLimit)}   Status: {pr.ComparisonStatus}");
+                }
+            }
             else if (order.PathogenObservations.Count > 0)
             {
                 lines.Add("  FINAL RESULT:");
@@ -629,7 +854,7 @@ public class SampleSummaryService
                     lines.Add($"    {b.StepName}: {b.BiochemicalResultText}   Interpretation: {call}   Entered By: {b.SubmittedByName}   Entered At: {FormatDateTime(b.SubmittedAt)}");
                 }
             }
-            else if (order.Results.Count > 0)
+            else if (order.Results.Count > 0 && order.ElementalAssay is null && order.Analysis is null)
             {
                 lines.Add("  FINAL RESULT:");
                 foreach (var r in order.Results)
@@ -703,12 +928,72 @@ public class SampleSummaryService
         return $"Location {loc.Id}";
     }
 
-    private static string? FormatSpecificationText(Specification? spec)
+    // Postgres numeric columns come back with their full scale (8500.000000);
+    // the export shows the value as entered/calculated, without trailing zeros.
+    private static string ExportNumber(decimal? d) =>
+        d is decimal v ? v.ToString("0.##########", System.Globalization.CultureInfo.InvariantCulture) : "-";
+
+    public static string? FormatSpecificationsText(IReadOnlyList<Specification>? specs)
     {
-        if (spec is null || string.IsNullOrWhiteSpace(spec.SpecLimit))
+        if (specs is null || specs.Count == 0)
+            return null;
+        if (specs.Count == 1)
+            return FormatSpecificationText(specs[0]);
+
+        var parts = specs
+            .Select(s => (s.ParameterName, Text: FormatSpecificationText(s)))
+            .Where(p => p.Text is not null)
+            .Select(p => $"{p.ParameterName}: {p.Text}")
+            .ToList();
+        return parts.Count == 0 ? null : string.Join("; ", parts);
+    }
+
+    public static string? FormatSpecificationText(Specification? spec)
+    {
+        if (spec is null)
+            return null;
+
+        static string WithUnit(string text, string? unit) =>
+            string.IsNullOrWhiteSpace(unit) ? text : $"{text} {unit.Trim()}";
+
+        switch (spec.LimitType)
+        {
+            case LimitType.NotMoreThan:
+            case LimitType.NotLessThan:
+            case LimitType.TargetWithTolerance:
+                return string.IsNullOrWhiteSpace(spec.SpecLimit) ? null : WithUnit(spec.SpecLimit.Trim(), spec.Unit);
+            case LimitType.Qualitative:
+                return string.IsNullOrWhiteSpace(spec.ExpectedResultText) ? null : spec.ExpectedResultText.Trim();
+            case LimitType.PresenceAbsence:
+            {
+                var state = spec.ExpectedState == ExpectedPresence.Presence ? "Present" : "Absent";
+                return spec.SampleQuantity is decimal qty
+                    ? $"{state} in {qty.ToString("0.######", System.Globalization.CultureInfo.InvariantCulture)} {spec.SampleQuantityUnit}".TrimEnd()
+                    : state;
+            }
+            case LimitType.MultiStage:
+                return spec.Stages.Count == 0
+                    ? null
+                    : string.Join("; ", spec.Stages.OrderBy(s => s.StageNumber).Select(s => $"{s.StageLabel}: {s.AcceptanceCriteriaText}"));
+        }
+
+        // Range and Count-Tiered: the original text rules.
+        if (string.IsNullOrWhiteSpace(spec.SpecLimit))
             return null;
 
         var raw = spec.SpecLimit.Trim();
+        var parsed = SpecLimitParser.Parse(raw);
+
+        if (parsed.IsRange)
+        {
+            var minStr = parsed.MinRaw ?? parsed.Min!.Value.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            var maxStr = parsed.MaxRaw ?? parsed.Max!.Value.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            var unit = !string.IsNullOrWhiteSpace(spec.Unit) ? spec.Unit.Trim() : parsed.Unit?.Trim();
+            return string.IsNullOrWhiteSpace(unit)
+                ? $"{minStr} – {maxStr}"
+                : $"{minStr} – {maxStr} {unit}";
+        }
+
         if (decimal.TryParse(raw, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out _))
         {
             if (!string.IsNullOrWhiteSpace(spec.Unit))

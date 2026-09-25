@@ -90,9 +90,11 @@ public class MediaLotNumberPostgresIntegrationTests
         db.MediaProducts.Add(product);
         await db.SaveChangesAsync();
 
-        var autoclave = new Equipment { Name = $"Autoclave {code}", Code = $"AUT-{code}", Type = EquipmentType.Autoclave };
+        var microSectionId = (await db.DocumentSections.FirstAsync(s => s.Code == "MICRO")).Id;
+        var autoclave = new Equipment { SectionId = microSectionId, Name = $"Autoclave {code}", Code = $"AUT-{code}", Type = EquipmentType.Autoclave };
         var material = new Material
         {
+            SectionId = microSectionId,
             MaterialType = MaterialType.DehydratedMedia, MaterialName = product.Name, ManufacturerName = "Himedia",
             BatchNumber = $"BATCH-{code}", ReceivingDate = DateTime.UtcNow.AddDays(-10), ExpiryDate = DateTime.UtcNow.AddYears(1),
             Code = code, Location = "Micro Lab", QuantityReceived = 500, QuantityRemaining = 500, Unit = MaterialUnit.Gram,

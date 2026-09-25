@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Application.Services;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Shared.Constants;
@@ -13,18 +14,24 @@ namespace MicroLIMS.API.Controllers;
 public class KpiController : ControllerBase
 {
     private readonly KpiService _kpiService;
+    private readonly IUserSectionScopeService _scopeService;
 
-    public KpiController(KpiService kpiService)
+    public KpiController(KpiService kpiService, IUserSectionScopeService scopeService)
     {
+        _scopeService = scopeService;
         _kpiService = kpiService;
     }
+
+    // Every KPI covers only the caller's laboratory sections.
+    private Task<IReadOnlyList<int>?> Scope() =>
+        _scopeService.GetAccessibleSectionIdsAsync(int.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)!.Value));
 
     [HttpGet("analysts")]
     public async Task<IActionResult> GetAnalystKpis(
         [FromQuery] SampleCategory? category,
         [FromQuery] string? location,
         [FromQuery] string? testCode) =>
-        Ok(ApiResponse<object>.Ok(await _kpiService.GetAnalystKpisAsync(category, location, testCode)));
+        Ok(ApiResponse<object>.Ok(await _kpiService.GetAnalystKpisAsync(category, location, testCode, await Scope())));
 
     [HttpGet("workload-weights")]
     public async Task<IActionResult> GetWorkloadWeights() =>
@@ -47,21 +54,21 @@ public class KpiController : ControllerBase
         [FromQuery] SampleCategory? category,
         [FromQuery] string? location,
         [FromQuery] string? testCode) =>
-        Ok(ApiResponse<object>.Ok(await _kpiService.GetCompletionStatsAsync(category, location, testCode)));
+        Ok(ApiResponse<object>.Ok(await _kpiService.GetCompletionStatsAsync(category, location, testCode, await Scope())));
 
     [HttpGet("delay-tracking")]
     public async Task<IActionResult> GetDelayTracking(
         [FromQuery] SampleCategory? category,
         [FromQuery] string? location,
         [FromQuery] string? testCode) =>
-        Ok(ApiResponse<object>.Ok(await _kpiService.GetDelayTrackingAsync(category, location, testCode)));
+        Ok(ApiResponse<object>.Ok(await _kpiService.GetDelayTrackingAsync(category, location, testCode, await Scope())));
 
     [HttpGet("sample-queue-counts")]
     public async Task<IActionResult> GetSampleQueueCounts(
         [FromQuery] SampleCategory? category,
         [FromQuery] string? location,
         [FromQuery] string? testCode) =>
-        Ok(ApiResponse<object>.Ok(await _kpiService.GetSampleQueueCountsAsync(category, location, testCode)));
+        Ok(ApiResponse<object>.Ok(await _kpiService.GetSampleQueueCountsAsync(category, location, testCode, await Scope())));
 
     [HttpGet("sample-assignment-sla")]
     public async Task<IActionResult> GetSampleAssignmentSla(
@@ -71,7 +78,7 @@ public class KpiController : ControllerBase
         [FromQuery] SampleCategory? category,
         [FromQuery] string? location,
         [FromQuery] string? testCode) =>
-        Ok(ApiResponse<object>.Ok(await _kpiService.GetSampleAssignmentSlaAsync(analystId, fromDate, toDate, category, location, testCode)));
+        Ok(ApiResponse<object>.Ok(await _kpiService.GetSampleAssignmentSlaAsync(analystId, fromDate, toDate, category, location, testCode, await Scope())));
 
     [HttpGet("step-violations")]
     public async Task<IActionResult> GetStepViolations(
@@ -81,7 +88,7 @@ public class KpiController : ControllerBase
         [FromQuery] SampleCategory? category,
         [FromQuery] string? location,
         [FromQuery] string? testCode) =>
-        Ok(ApiResponse<object>.Ok(await _kpiService.GetStepViolationsAsync(analystId, fromDate, toDate, category, location, testCode)));
+        Ok(ApiResponse<object>.Ok(await _kpiService.GetStepViolationsAsync(analystId, fromDate, toDate, category, location, testCode, await Scope())));
 
     [HttpGet("sample-assignment-sla-by-analyst")]
     public async Task<IActionResult> GetSampleAssignmentSlaByAnalyst(
@@ -90,14 +97,14 @@ public class KpiController : ControllerBase
         [FromQuery] SampleCategory? category,
         [FromQuery] string? location,
         [FromQuery] string? testCode) =>
-        Ok(ApiResponse<object>.Ok(await _kpiService.GetSampleAssignmentSlaByAnalystAsync(fromDate, toDate, category, location, testCode)));
+        Ok(ApiResponse<object>.Ok(await _kpiService.GetSampleAssignmentSlaByAnalystAsync(fromDate, toDate, category, location, testCode, await Scope())));
 
     [HttpGet("workflow-bottleneck-deltas")]
     public async Task<IActionResult> GetWorkflowBottleneckDeltas(
         [FromQuery] SampleCategory? category,
         [FromQuery] string? location,
         [FromQuery] string? testCode) =>
-        Ok(ApiResponse<object>.Ok(await _kpiService.GetWorkflowBottleneckDeltasAsync(category, location, testCode)));
+        Ok(ApiResponse<object>.Ok(await _kpiService.GetWorkflowBottleneckDeltasAsync(category, location, testCode, await Scope())));
 
     [HttpGet("overall-on-time-completion")]
     public async Task<IActionResult> GetOverallOnTimeCompletion(
@@ -106,7 +113,7 @@ public class KpiController : ControllerBase
         [FromQuery] SampleCategory? category,
         [FromQuery] string? location,
         [FromQuery] string? testCode) =>
-        Ok(ApiResponse<object>.Ok(await _kpiService.GetOverallOnTimeCompletionAsync(fromDate, toDate, category, location, testCode)));
+        Ok(ApiResponse<object>.Ok(await _kpiService.GetOverallOnTimeCompletionAsync(fromDate, toDate, category, location, testCode, await Scope())));
 
     [HttpGet("overall-on-time-completion-by-analyst")]
     public async Task<IActionResult> GetOverallOnTimeCompletionByAnalyst(
@@ -115,7 +122,7 @@ public class KpiController : ControllerBase
         [FromQuery] SampleCategory? category,
         [FromQuery] string? location,
         [FromQuery] string? testCode) =>
-        Ok(ApiResponse<object>.Ok(await _kpiService.GetOverallOnTimeCompletionByAnalystAsync(fromDate, toDate, category, location, testCode)));
+        Ok(ApiResponse<object>.Ok(await _kpiService.GetOverallOnTimeCompletionByAnalystAsync(fromDate, toDate, category, location, testCode, await Scope())));
 
     [HttpGet("stage-tat-summary")]
     public async Task<IActionResult> GetStageTatSummary(
@@ -125,7 +132,7 @@ public class KpiController : ControllerBase
         [FromQuery] SampleCategory? category,
         [FromQuery] string? location,
         [FromQuery] string? testCode) =>
-        Ok(ApiResponse<object>.Ok(await _kpiService.GetStageTatSummaryAsync(analystId, fromDate, toDate, category, location, testCode)));
+        Ok(ApiResponse<object>.Ok(await _kpiService.GetStageTatSummaryAsync(analystId, fromDate, toDate, category, location, testCode, await Scope())));
 
     [HttpGet("testing-tat-by-month")]
     public async Task<IActionResult> GetTestingTatByMonth(
@@ -133,12 +140,12 @@ public class KpiController : ControllerBase
         [FromQuery] SampleCategory? category = null,
         [FromQuery] string? location = null,
         [FromQuery] string? testCode = null) =>
-        Ok(ApiResponse<object>.Ok(await _kpiService.GetTestingTatByMonthAsync(months, category, location, testCode)));
+        Ok(ApiResponse<object>.Ok(await _kpiService.GetTestingTatByMonthAsync(months, category, location, testCode, await Scope())));
 
     [HttpGet("return-to-analyst-count")]
     public async Task<IActionResult> GetReturnToAnalystCount(
         [FromQuery] int? analystId,
         [FromQuery] DateTime fromDate,
         [FromQuery] DateTime toDate) =>
-        Ok(ApiResponse<object>.Ok(await _kpiService.GetReturnToAnalystCountAsync(analystId, fromDate, toDate)));
+        Ok(ApiResponse<object>.Ok(await _kpiService.GetReturnToAnalystCountAsync(analystId, fromDate, toDate, await Scope())));
 }

@@ -115,13 +115,63 @@ export interface TestOrderSummaryDetail {
   isResultEntryAllowed?: boolean;
   resultLockReason?: string | null;
   isSuperseded: boolean;
+  sectionId?: number;
+  sectionName?: string;
+  // Set only when this TestOrder's section closed testing after another
+  // lab rejected the sample (design.md §5.3) - the step (and incubation
+  // stage, if any) it had reached at closure. Null for every other
+  // TestOrder, including ones cancelled for unrelated reasons.
+  cancelledAtStep: string | null;
+  cancelledAtStage: number | null;
   incubations: IncubationDetail[];
   results: ResultDetail[];
   countTestReadings: CountTestReadingDetail[];
+  // Elemental Assay only - the active result, null for other tests.
+  elementalAssay?: ElementalAssayDetail | null;
+  // Generic TestAnalysis workflow result, null for other tests.
+  analysis?: AnalysisDetail | null;
   pathogenObservations: PathogenObservationDetail[];
   biochemicalResults: BiochemicalResultDetail[];
   workflowHistory: WorkflowHistoryDetail[];
   locations: SampleLocationDetail[];
+}
+
+export type LaboratorySectionStatus =
+  | "InTesting"
+  | "UnderReview"
+  | "UnderApproval"
+  | "Approved"
+  | "Rejected"
+  | "RetestRequested"
+  | "Cancelled"
+  // A lab whose own open tests were closed via CloseTestingDialog after
+  // another lab rejected the sample (design.md §5.3) - the backend reports
+  // this section's Status as "Closed" rather than "Cancelled", which is
+  // reserved for a single superseded TestOrder inside a still-open section.
+  | "Closed"
+  | "Voided";
+
+export interface SampleSectionSummaryDetail {
+  sectionId: number;
+  sectionCode: string;
+  sectionName: string;
+  status: LaboratorySectionStatus;
+  canView: boolean;
+  reviewedByName: string | null;
+  reviewedAt: string | null;
+  approvedByName: string | null;
+  approvedAt: string | null;
+  approvalDecision: string | null;
+  certificateRemarks: string | null;
+  // True only when this section's own status is Approved - the
+  // per-section counterpart to SampleSummary.combinedCoaAvailable.
+  coaAvailable: boolean;
+  // Set only for a section closed without its own decision (status ==
+  // "Closed") - another lab rejected the sample and this one's
+  // still-open tests were closed rather than judged.
+  closedByName: string | null;
+  closedAt: string | null;
+  closeReason: string | null;
 }
 
 export interface SamplePreparationSummary {
@@ -153,6 +203,17 @@ export interface SignatureTrailItem {
   signedAt: string;
   comment: string | null;
 }
+
+// SampleSectionRollup.Overall(sample).ToString() - what this sample reads
+// as across every laboratory once any one of them rejects, distinct from
+// `status` which only follows the labs still open (design.md §5.1).
+export type OverallSampleStatus =
+  | "InProgress"
+  | "Approved"
+  | "Rejected"
+  | "RetestRequested"
+  | "Voided"
+  | "Cancelled";
 
 export interface SampleSummary {
   sampleId: number;
@@ -191,4 +252,106 @@ export interface SampleSummary {
   testOrders: TestOrderSummaryDetail[];
   timeline: SampleWorkflowEvent[];
   signatures: SignatureTrailItem[];
+  sections?: SampleSectionSummaryDetail[];
+  allSectionsVisible?: boolean;
+  // SampleSectionRollup.Overall(sample) from the backend - see
+  // OverallSampleStatus above. Every backend response carries this field
+  // now, so it's non-optional. Drives CloseTestingDialog's visibility,
+  // the summary header badge, and the CoA "Rejected" conclusion override.
+  overallStatus: OverallSampleStatus;
+  // True once no lab is still open (Sample.Status is Approved or
+  // Rejected) - a combined Certificate of Analysis can be generated. See
+  // sections[].coaAvailable for the single-lab counterpart.
+  combinedCoaAvailable: boolean;
 }
+
+export interface ElementalAssayElementDetail {
+  parameterName: string;
+  element: string;
+  runCode: string;
+  runAnalytePassed: boolean;
+  reportedPpm: number;
+  overRange: boolean;
+  belowLoq: boolean;
+  mgPerUnit: number | null;
+  resultClaim: number | null;
+  percentLabelClaim: number | null;
+  reportedDisplay: string;
+  specLimit: string | null;
+  unit: string | null;
+  status: string;
+}
+
+export interface ElementalAssayDetail {
+  sampleMatrix: "Solid" | "Liquid" | string;
+  unitAmount: number;
+  unitAmountUnit: string;
+  analysedAt: string;
+  enteredByName: string | null;
+  enteredAt: string;
+  elements: ElementalAssayElementDetail[];
+}
+
+export type ReadingKind =
+  | "Replicate"
+  | "Unit"
+  | "Vessel"
+  | "TimePoint"
+  | "Weight"
+  | "Titration";
+
+export type ResultBasis = "MgPerKg" | "MgPerUnit" | "PercentLabelClaim";
+
+export type SampleMatrix = "Solid" | "Liquid";
+
+export interface ResultReadingDetail {
+  id: number;
+  kind: ReadingKind;
+  index: number;
+  stage: number | null;
+  timePointMinutes: number | null;
+  value1: number | null;
+  value2: number | null;
+  value3: number | null;
+  text: string | null;
+  computedValue: number | null;
+  passed: boolean | null;
+}
+
+export interface ParameterResultDetail {
+  id: number;
+  specificationId: number;
+  parameterName: string;
+  reportedValue: number | null;
+  reportedDisplay: string;
+  unit: string | null;
+  specLimit: string | null;
+  resultBasis: ResultBasis | null;
+  comparisonStatus: string;
+  overRange: boolean;
+  belowLoq: boolean;
+  validityRecordItemId: number | null;
+  calculationJson: string | null;
+  stageReached: number | null;
+  readings: ResultReadingDetail[];
+}
+
+export interface AnalysisDetail {
+  id: number;
+  testOrderId: number;
+  analysisType: "CountTest" | "Observation" | "StandardComparison" | "ElementalAssay" | "Disintegration" | "WeightVariation" | string;
+  equipmentId: number | null;
+  equipmentCode: string | null;
+  equipmentName: string | null;
+  analysedAt: string;
+  unitAmount: number | null;
+  sampleMatrix: SampleMatrix | null;
+  conditionsJson: string | null;
+  validityRecordType: string | null;
+  validityRecordId: number | null;
+  enteredByName: string | null;
+  enteredAt: string;
+  comment: string | null;
+  parameterResults: ParameterResultDetail[];
+}
+

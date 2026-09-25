@@ -89,6 +89,12 @@ public class ExceptionMiddleware
             await CaptureAsync(context, ex, ErrorSource.Backend, ErrorSeverity.Warning);
             await WriteResponse(context, ApiResponse<object>.Fail(ex.Message));
         }
+        catch (UnauthorizedAccessException ex)
+        {
+            context.Response.StatusCode = (int)HttpStatusCode.Forbidden;
+            await CaptureAsync(context, ex, ErrorSource.Backend, ErrorSeverity.Warning);
+            await WriteResponse(context, ApiResponse<object>.Fail(ex.Message));
+        }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Unhandled exception ({CorrelationId})", CorrelationIdMiddleware.GetCorrelationId(context));

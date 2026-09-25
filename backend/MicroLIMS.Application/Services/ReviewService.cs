@@ -88,13 +88,19 @@ public class ReviewService
         var order = await _db.TestOrders.FirstOrDefaultAsync(t => t.Id == testOrderId)
             ?? throw new InvalidOperationException($"Test order {testOrderId} not found.");
 
-        var sample = await _db.Samples.FirstOrDefaultAsync(s => s.Id == order.SampleId);
-        if (sample != null && sample.Status is SampleStatus.UnderApproval
+        var sample = await _db.Samples.Include(s => s.TestOrders).Include(s => s.SectionSignoffs)
+            .FirstOrDefaultAsync(s => s.Id == order.SampleId);
+        // Review is per section: this test's own section must not have been
+        // reviewed yet. A sample that is past review as a whole (every
+        // section is, then) or closed is refused outright.
+        var sectionStatus = sample is null ? SectionSignoffStatus.InTesting : SampleSectionRollup.StatusOf(sample, order.SectionId);
+        if (sample != null && (sample.Status is SampleStatus.UnderApproval
             or SampleStatus.Approved
             or SampleStatus.Rejected
             or SampleStatus.RetestRequested
             or SampleStatus.Cancelled
-            or SampleStatus.Voided)
+            or SampleStatus.Voided
+            || sectionStatus is not (SectionSignoffStatus.InTesting or SectionSignoffStatus.UnderReview)))
         {
             throw new InvalidOperationException("Cannot return a test to the analyst after the sample has been reviewed. Use Reject or Retest at approval instead.");
         }
@@ -105,43 +111,72 @@ public class ReviewService
         var definition = await _db.TestDefinitions.FirstOrDefaultAsync(d => d.Code == order.TestCode)
             ?? throw new InvalidOperationException($"Test definition \"{order.TestCode}\" not found.");
 
-        if (definition.WorkflowType != WorkflowType.CountTest)
-            throw new InvalidOperationException($"Return to Analyst is only supported for Count Test workflows. \"{order.TestCode}\" is a {definition.WorkflowType} workflow.");
+        if (definition.WorkflowType != WorkflowType.CountTest && !AnalysisWorkflows.UsesTestAnalysis(definition.WorkflowType))
+            throw new InvalidOperationException($"Return to Analyst is only supported for Count Test and result-entry (analysis) workflows. \"{order.TestCode}\" is a {definition.WorkflowType} workflow.");
 
-        // 1. Soft-supersede all active CountTestReading rows for this test order
-        var activeReadings = await _db.CountTestReadings
-            .Where(r => r.TestOrderId == testOrderId && r.IsActive)
-            .ToListAsync();
-        foreach (var r in activeReadings)
+        if (definition.WorkflowType == WorkflowType.CountTest)
         {
-            r.IsActive = false;
+            // 1. Soft-supersede all active CountTestReading rows for this test order
+            var activeReadings = await _db.CountTestReadings
+                .Where(r => r.TestOrderId == testOrderId && r.IsActive)
+                .ToListAsync();
+            foreach (var r in activeReadings)
+            {
+                r.IsActive = false;
+            }
+
+            // 2. Reopen the closed Incubation row for this count test step
+            var latestIncubation = await _db.Incubations
+                .Where(i => i.TestOrderId == testOrderId)
+                .OrderByDescending(i => i.Id)
+                .FirstOrDefaultAsync();
+
+            if (latestIncubation != null)
+            {
+                latestIncubation.CompletedAt = null;
+                latestIncubation.CompletedByUserId = null;
+                latestIncubation.Outcome = null;
+            }
+        }
+        else if (AnalysisWorkflows.UsesTestAnalysis(definition.WorkflowType))
+        {
+            // 1. Soft-supersede all active TestAnalysis rows for this test order
+            var activeAnalyses = await _db.TestAnalyses
+                .Where(e => e.TestOrderId == testOrderId && e.IsActive)
+                .ToListAsync();
+            foreach (var e in activeAnalyses)
+            {
+                e.IsActive = false;
+            }
+
+            // 2. Soft-supersede all active ParameterResult rows for this test order
+            var activeResults = await _db.ParameterResults
+                .Where(r => r.TestOrderId == testOrderId && r.IsActive)
+                .ToListAsync();
+            foreach (var r in activeResults)
+            {
+                r.IsActive = false;
+            }
         }
 
-        // 2. Reopen the closed Incubation row for this count test step
-        var latestIncubation = await _db.Incubations
-            .Where(i => i.TestOrderId == testOrderId)
-            .OrderByDescending(i => i.Id)
-            .FirstOrDefaultAsync();
-
-        if (latestIncubation != null)
+        // 3. If this test's section was auto-submitted for review, send the
+        // section back to testing and roll the sample status up again
+        if (sample != null && sectionStatus == SectionSignoffStatus.UnderReview)
         {
-            latestIncubation.CompletedAt = null;
-            latestIncubation.CompletedByUserId = null;
-            latestIncubation.Outcome = null;
+            SampleSectionRollup.GetOrAdd(sample, order.SectionId).Status = SectionSignoffStatus.InTesting;
+            SampleSectionRollup.Apply(sample);
         }
 
-        // 3. If parent sample was auto-submitted for review, revert it to InTesting
-        if (sample != null && sample.Status == SampleStatus.UnderReview)
-        {
-            sample.Status = SampleStatus.InTesting;
-        }
-
-        // 4. Revert TestOrder state back to Incubating (keeps AssignedAnalystId unchanged)
+        // 4. Revert TestOrder state back to Incubating/Running (keeps AssignedAnalystId unchanged)
         var transitionNote = string.IsNullOrWhiteSpace(reason)
             ? "Returned to analyst by reviewer"
             : $"Returned to analyst: {reason.Trim()}";
 
-        await WorkflowStateMachine.TransitionAsync(_db, order, WorkflowStep.Incubating, reviewerId, transitionNote);
+        var targetStep = AnalysisWorkflows.UsesTestAnalysis(definition.WorkflowType)
+            ? WorkflowStep.Running
+            : WorkflowStep.Incubating;
+
+        await WorkflowStateMachine.TransitionAsync(_db, order, targetStep, reviewerId, transitionNote);
 
         // 5. Create distinct queryable audit record for Return to Analyst event
         var returnEvent = new Domain.Entities.TestReturnEvent

@@ -38,6 +38,9 @@ public static class UserReferenceRegistry
         new UserReferenceEntry(typeof(AdminPasswordRecovery), nameof(AdminPasswordRecovery.UserId), UserReferenceDisposition.Blocks, "DB FK Restrict"),
         new UserReferenceEntry(typeof(AdminPasswordRecovery), nameof(AdminPasswordRecovery.CreatedByUserId), UserReferenceDisposition.Blocks, "DB FK Restrict"),
         new UserReferenceEntry(typeof(ElectronicSignature), nameof(ElectronicSignature.UserId), UserReferenceDisposition.Blocks, "DB FK Restrict"),
+        new UserReferenceEntry(typeof(CalibrationRun), nameof(CalibrationRun.PerformedByUserId), UserReferenceDisposition.Blocks, "DB FK Restrict - analyst who performed the signed calibration run"),
+        new UserReferenceEntry(typeof(CalibrationRun), nameof(CalibrationRun.WithdrawnByUserId), UserReferenceDisposition.Blocks, "DB FK Restrict - section head who withdrew the calibration run"),
+        new UserReferenceEntry(typeof(CalibrationRunDocument), nameof(CalibrationRunDocument.UploadedByUserId), UserReferenceDisposition.Blocks, "DB FK Restrict - calibration report uploader"),
         new UserReferenceEntry(typeof(EquipmentDocument), nameof(EquipmentDocument.UploadedByUserId), UserReferenceDisposition.Blocks, "DB FK Restrict"),
         new UserReferenceEntry(typeof(EquipmentStatusHistory), nameof(EquipmentStatusHistory.ChangedByUserId), UserReferenceDisposition.Blocks, "DB FK Restrict"),
         new UserReferenceEntry(typeof(ItemDocument), nameof(ItemDocument.UploadedByUserId), UserReferenceDisposition.Blocks, "DB FK Restrict"),
@@ -48,6 +51,9 @@ public static class UserReferenceRegistry
         new UserReferenceEntry(typeof(Sample), nameof(Sample.ReceivedByUserId), UserReferenceDisposition.Blocks, "DB FK Restrict (added alongside this feature)"),
         new UserReferenceEntry(typeof(Sample), nameof(Sample.ReviewedByUserId), UserReferenceDisposition.Blocks, "DB FK Restrict"),
         new UserReferenceEntry(typeof(Sample), nameof(Sample.ApprovedByUserId), UserReferenceDisposition.Blocks, "DB FK Restrict"),
+        new UserReferenceEntry(typeof(SampleSectionSignoff), nameof(SampleSectionSignoff.ReviewedByUserId), UserReferenceDisposition.Blocks, "DB FK Restrict - per-section review sign-off"),
+        new UserReferenceEntry(typeof(SampleSectionSignoff), nameof(SampleSectionSignoff.ApprovedByUserId), UserReferenceDisposition.Blocks, "DB FK Restrict - per-section approval sign-off"),
+        new UserReferenceEntry(typeof(SampleSectionSignoff), nameof(SampleSectionSignoff.ClosedByUserId), UserReferenceDisposition.Blocks, "DB FK Restrict - per-section testing-closed sign-off"),
         new UserReferenceEntry(typeof(TestReturnEvent), nameof(TestReturnEvent.ReviewerUserId), UserReferenceDisposition.Blocks, "DB FK Restrict"),
         new UserReferenceEntry(typeof(TestReturnEvent), nameof(TestReturnEvent.AssignedAnalystId), UserReferenceDisposition.Blocks, "DB FK Restrict"),
         new UserReferenceEntry(typeof(DiscussionPost), nameof(DiscussionPost.AuthorUserId), UserReferenceDisposition.Blocks, "DB FK Restrict - post author"),
@@ -110,6 +116,7 @@ public static class UserReferenceRegistry
         new UserReferenceEntry(typeof(PasswordHistory), nameof(PasswordHistory.UserId), UserReferenceDisposition.Excluded, "Cascade FK - password history is per-user housekeeping, deleted with the user"),
         new UserReferenceEntry(typeof(PasswordResetToken), nameof(PasswordResetToken.UserId), UserReferenceDisposition.Excluded, "Cascade FK - reset tokens are per-user housekeeping, deleted with the user"),
         new UserReferenceEntry(typeof(RefreshToken), nameof(RefreshToken.UserId), UserReferenceDisposition.Excluded, "Cascade FK - refresh tokens are per-user housekeeping, deleted with the user"),
+        new UserReferenceEntry(typeof(UserOrgMembership), nameof(UserOrgMembership.UserId), UserReferenceDisposition.Excluded, "DB FK Cascade - org membership housekeeping"),
 
         // Error monitoring is operational/technical data, not GxP evidence -
         // a user who once triggered a 500 must not thereby become undeletable.
@@ -176,5 +183,13 @@ public static class UserReferenceRegistry
         new UserReferenceEntry(typeof(EquipmentDocumentAccessLog), nameof(EquipmentDocumentAccessLog.UserId), UserReferenceDisposition.Blocks, "No DB FK - append-only access log, confirmed same pattern as ItemDocumentAccessLog"),
         new UserReferenceEntry(typeof(WorkloadWeight), nameof(WorkloadWeight.ChangedByUserId), UserReferenceDisposition.Blocks, "No DB FK - workload weight configuration provenance"),
         new UserReferenceEntry(typeof(WorkloadWeightHistory), nameof(WorkloadWeightHistory.ChangedByUserId), UserReferenceDisposition.Blocks, "No DB FK - workload weight history provenance"),
+
+        // FP HPLC Phase 3 - Slice A1 ChromatographyColumn
+        new UserReferenceEntry(typeof(ChromatographyColumn), nameof(ChromatographyColumn.CreatedByUserId), UserReferenceDisposition.Blocks, "No DB FK - provenance"),
+        new UserReferenceEntry(typeof(ChromatographyColumn), nameof(ChromatographyColumn.LastModifiedByUserId), UserReferenceDisposition.Blocks, "No DB FK - provenance"),
+        new UserReferenceEntry(typeof(SystemSuitabilityRun), nameof(SystemSuitabilityRun.PerformedByUserId), UserReferenceDisposition.Blocks, "GMP record - analyst who performed the signed run"),
+
+        // Shared Result Foundation (Slice F0)
+        new UserReferenceEntry(typeof(TestAnalysis), nameof(TestAnalysis.EnteredByUserId), UserReferenceDisposition.Blocks, "GMP record - analyst who entered test analysis result"),
     };
 }

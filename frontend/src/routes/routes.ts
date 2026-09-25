@@ -19,13 +19,19 @@ const APP_ROUTES = {
   // Core Laboratory Workflows
   RECEIVING_TESTING: "/receiving-testing",
   RECEIVING: "/receiving",
+  RECEIVING_TRACKING: "/receiving/tracking",
   TESTING_WORKSPACE: "/receiving-testing",
 
   // Laboratory Configuration & Master Data
   MEDIA_PREPARATION: "/laboratory-configuration/media",
   MEDIA_EVALUATION: "/laboratory-configuration/media-evaluation",
   CRYOVIALS: "/laboratory-configuration/cryovials",
+  SYSTEM_SUITABILITY: "/laboratory/system-suitability",
+  CALIBRATION_RUNS: "/laboratory/calibration-runs",
+  CALIBRATION_RUN_REPORT: (id: number | string) => `/laboratory/calibration-runs/${id}/report`,
   TEST_MASTER: "/laboratory-configuration/test-master",
+  FP_TEST_MASTER: "/laboratory-configuration/fp-test-master",
+  EQUATION_TYPES: "/laboratory-configuration/equation-types",
   ORGANISMS: "/laboratory-configuration/organisms",
   ITEMS: "/laboratory-configuration/items",
   MEDIA_CONFIGURATIONS: "/laboratory-configuration/media-configurations",
@@ -34,6 +40,8 @@ const APP_ROUTES = {
   AFTER_CLEANING: "/laboratory-configuration/after-cleaning",
   RECEIVING_CONFIGURATION: "/laboratory-configuration/receiving-configuration",
   LAB_EQUIPMENT: "/laboratory-configuration/equipment",
+  CHROMATOGRAPHY_COLUMNS: "/laboratory-configuration/columns",
+  FP_INSTRUMENTS: "/laboratory-configuration/fp-instruments",
 
   // Inventory & Stock
   INVENTORY_MATERIALS: "/inventory/materials",
@@ -104,6 +112,9 @@ export function resolveTraceabilityRoute(
   if (target === "equipment") {
     return APP_ROUTES.INVENTORY_EQUIPMENT;
   }
+  if (target === "columns" || target === "chromatography-columns") {
+    return APP_ROUTES.CHROMATOGRAPHY_COLUMNS;
+  }
   if (target === "items") {
     return APP_ROUTES.ITEMS;
   }
@@ -151,6 +162,9 @@ export function resolveTraceabilityRoute(
   if (type === "equipment" || type === "equipmentdocument" || type === "equipmentstatushistory") {
     return APP_ROUTES.INVENTORY_EQUIPMENT;
   }
+  if (type === "column" || type === "chromatographycolumn") {
+    return APP_ROUTES.CHROMATOGRAPHY_COLUMNS;
+  }
 
   return null;
 }
@@ -159,5 +173,7 @@ export function resolveTraceabilityRoute(
 // MicroLIMS.Shared/Constants/PermissionConstants.cs - the backend is
 // still the enforcement point; this only decides what to render.
 export const PERMISSIONS = {
-  SYSTEM_VIEW_ERROR_LOG: "System.ViewErrorLog"
+  SYSTEM_VIEW_ERROR_LOG: "System.ViewErrorLog",
+  SAMPLES_RECEIVE: "Samples.Receive",
+  SAMPLES_TRACK_ALL: "Samples.TrackAll"
 } as const;

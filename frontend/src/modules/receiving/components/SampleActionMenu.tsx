@@ -17,6 +17,7 @@ import HistoryOutlinedIcon from "@mui/icons-material/HistoryOutlined";
 import ScienceOutlinedIcon from "@mui/icons-material/ScienceOutlined";
 import AssignmentIndOutlinedIcon from "@mui/icons-material/AssignmentIndOutlined";
 import BlockOutlinedIcon from "@mui/icons-material/BlockOutlined";
+import LibraryAddOutlinedIcon from "@mui/icons-material/LibraryAddOutlined";
 import { Link } from "react-router-dom";
 import { SampleRecord } from "../types/receivingTypes";
 import { useAuth } from "../../../contexts/AuthContext";
@@ -30,6 +31,8 @@ interface Props {
   onPrepareSample: (sample: SampleRecord) => void;
   onAssignAnalyst?: (sample: SampleRecord) => void;
   onVoid?: (sample: SampleRecord) => void;
+  // Receiving page only - adds a second laboratory's tests to the sample.
+  onAddLaboratory?: (sample: SampleRecord) => void;
 }
 
 export function SampleActionMenu({
@@ -40,7 +43,8 @@ export function SampleActionMenu({
   onViewAuditHistory,
   onPrepareSample,
   onAssignAnalyst,
-  onVoid
+  onVoid,
+  onAddLaboratory
 }: Props) {
   const theme = useTheme();
   const { role } = useAuth();
@@ -172,6 +176,22 @@ export function SampleActionMenu({
               <AssignmentIndOutlinedIcon sx={{ fontSize: 18, color: theme.palette.primary.main }} />
             </ListItemIcon>
             <ListItemText primary="Assign Analyst" slotProps={{
+              primary: { sx: { fontSize: 13, fontWeight: 600 } }
+            }} />
+          </MenuItem>
+        )}
+
+        {onAddLaboratory && !["Rejected", "Voided", "Cancelled"].includes(sample.status) && (
+          <MenuItem
+            onClick={() => {
+              handleCloseMenu();
+              onAddLaboratory(sample);
+            }}
+          >
+            <ListItemIcon>
+              <LibraryAddOutlinedIcon sx={{ fontSize: 18, color: theme.palette.primary.main }} />
+            </ListItemIcon>
+            <ListItemText primary="Add Laboratory" slotProps={{
               primary: { sx: { fontSize: 13, fontWeight: 600 } }
             }} />
           </MenuItem>

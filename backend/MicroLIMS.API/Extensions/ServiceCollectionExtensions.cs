@@ -57,7 +57,10 @@ public static class ServiceCollectionExtensions
         services.AddScoped<CryovialSummaryService>();
         services.AddScoped<SampleReviewService>();
         services.AddScoped<SampleApprovalService>();
+        services.AddScoped<SectionClosureService>();
+        services.AddScoped<AddLaboratoryService>();
         services.AddScoped<SampleSummaryService>();
+        services.AddScoped<SampleTrackingService>();
         services.AddScoped<OosTrackingService>();
         services.AddScoped<DashboardService>();
         services.AddSingleton(new NotificationRecomputeThrottle(TimeSpan.FromMinutes(5)));
@@ -110,11 +113,23 @@ public static class ServiceCollectionExtensions
         services.AddHostedService<MicroLIMS.API.BackgroundServices.DatabaseHealthMonitorWorker>();
         services.AddHostedService<MicroLIMS.API.BackgroundServices.ErrorLogRetentionWorker>();
         services.AddHostedService<MicroLIMS.API.BackgroundServices.CriticalAlertWorker>();
+        services.AddScoped<IUserSectionScopeService, UserSectionScopeService>();
+        services.AddScoped<LaboratoryOrganizationService>();
         services.AddScoped<MaterialService>();
         services.AddScoped<MediaProductService>();
         services.AddScoped<MediaIncubationConditionService>();
         services.AddScoped<EquipmentInventoryService>();
         services.AddScoped<EquipmentConfigurationService>();
+        services.AddScoped<ChromatographyColumnService>();
+        services.AddSingleton(TimeProvider.System);
+        services.AddSingleton<ILabClock>(sp => new LabClock(
+            sp.GetRequiredService<TimeProvider>(),
+            sp.GetRequiredService<Microsoft.Extensions.Configuration.IConfiguration>()));
+
+        services.AddScoped<ISystemSuitabilityService, SystemSuitabilityService>();
+        services.AddScoped<SystemSuitabilityService>();
+        services.AddScoped<ICalibrationRunService, CalibrationRunService>();
+        services.AddScoped<CalibrationRunService>();
         services.AddScoped<PathogenSessionService>();
         services.AddScoped<LocationPathogenObservationService>();
         services.AddScoped<ConfirmationAgreementEvaluator>();

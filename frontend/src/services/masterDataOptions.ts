@@ -51,6 +51,208 @@ type TestWorkflowStepPayload = {
   incubationStages: { stageNumber: number; tempMin: number; tempMax: number; incubationMinHours: number; incubationMaxHours: number }[];
 };
 
+export interface EquationTypeDto {
+  code: string;
+  name: string;
+  formulaText: string;
+  requiredInputs: string[];
+}
+
+export type ProductionStageRole = "Other" | "Bulk" | "InProcess" | "Finished" | "Stability";
+
+export interface ProductionStageOption {
+  id: number;
+  name: string;
+  isActive: boolean;
+  role: ProductionStageRole;
+}
+
+export interface TestDefinitionStageReplicateDto {
+  id: number;
+  testDefinitionId: number;
+  role: ProductionStageRole;
+  standardReplicates: number;
+  sampleReplicates: number;
+}
+
+export interface CreateTestDefinitionStageReplicateRequest {
+  role: ProductionStageRole;
+  standardReplicates: number;
+  sampleReplicates: number;
+}
+
+export interface UpdateTestDefinitionStageReplicateRequest {
+  standardReplicates?: number | null;
+  sampleReplicates?: number | null;
+}
+
+export interface TestAnalyteDto {
+  id: number;
+  testDefinitionId: number;
+  element: string;
+  wavelengthNm: number;
+  // Set for CalibrationCurve (ICP-OES) analytes; always null for StandardComparison.
+  view: "Axial" | "Radial" | null;
+  loqMgPerL: number | null;
+  displayOrder: number;
+  isActive: boolean;
+  // StandardComparison only - per-analyte system suitability criteria
+  // (null = not checked). CalibrationCurve (ICP-OES) analytes never set these.
+  sstMaxRsdPercent?: number | null;
+  sstMinResolution?: number | null;
+  sstMaxTailingFactor?: number | null;
+  sstMinTheoreticalPlates?: number | null;
+}
+
+export interface CreateTestAnalyteRequest {
+  element: string;
+  wavelengthNm: number;
+  view?: "Axial" | "Radial" | null;
+  loqMgPerL?: number | null;
+  displayOrder?: number;
+  sstMaxRsdPercent?: number | null;
+  sstMinResolution?: number | null;
+  sstMaxTailingFactor?: number | null;
+  sstMinTheoreticalPlates?: number | null;
+}
+
+export interface UpdateTestAnalyteRequest {
+  element?: string;
+  wavelengthNm?: number;
+  view?: "Axial" | "Radial" | null;
+  loqMgPerL?: number | null;
+  displayOrder?: number;
+  isActive?: boolean;
+  sstMaxRsdPercent?: number | null;
+  sstMinResolution?: number | null;
+  sstMaxTailingFactor?: number | null;
+  sstMinTheoreticalPlates?: number | null;
+}
+
+export interface CreateTestDefinitionPayload {
+  code: string;
+  displayName: string;
+  sectionId?: number | null;
+  workflowType?: string;
+  equationType?: string;
+  requiresSystemSuitability?: boolean;
+  methodAbbreviation?: string | null;
+  sstMaxRsdPercent?: number | null;
+  sstMinResolution?: number | null;
+  sstMaxTailingFactor?: number | null;
+  sstMinTheoreticalPlates?: number | null;
+  calibrationEntryMode?: string | null;
+  calMinCorrelation?: number | null;
+  calCorrelationType?: string | null;
+  calMinStandards?: number | null;
+  calCheckRecoveryLowPercent?: number | null;
+  calCheckRecoveryHighPercent?: number | null;
+  calBlankMax?: number | null;
+  calIsRecoveryLowPercent?: number | null;
+  calIsRecoveryHighPercent?: number | null;
+  calRequireBlank?: boolean | null;
+  calRequireIcv?: boolean | null;
+  calRequireCcv?: boolean | null;
+  calRequireInternalStandard?: boolean | null;
+  reportedConcentrationBasis?: string | null;
+  calMaxRunAgeHours?: number | null;
+  // CalibrationCurve only: instrument family (null = ICP-OES) and optional fixed
+  // standard levels (e.g. "1, 5"). Update: null means keep, "" clears the levels.
+  calInstrumentType?: "IcpOes" | "Aas" | null;
+  calStandardLevelsMgPerL?: string | null;
+  replicateCount?: number | null;
+  evaluationBasis?: "Mean" | "EachValue" | "Min" | "Max" | null;
+  conditionFields?: string | null;
+  usesTare?: boolean | null;
+  dissolutionS1Offset?: number | null;
+  dissolutionS2MinOffset?: number | null;
+  dissolutionS3MinOffset?: number | null;
+  dissolutionS3MaxBelowS2Min?: number | null;
+  disintegrationStage1Units?: number | null;
+  disintegrationStage2Units?: number | null;
+  disintegrationMaxStage1Failures?: number | null;
+  disintegrationMinPassTotal?: number | null;
+  wvUnitCount?: number | null;
+  wvTabletBand1MaxMg?: number | null;
+  wvTabletBand1Percent?: number | null;
+  wvTabletBand2MaxMg?: number | null;
+  wvTabletBand2Percent?: number | null;
+  wvTabletBand3Percent?: number | null;
+  wvTabletMaxOutside?: number | null;
+  wvCapsuleInnerPercent?: number | null;
+  wvCapsuleOuterPercent?: number | null;
+  wvCapsuleS1MaxOutside?: number | null;
+  wvCapsuleS1MaxForRetest?: number | null;
+  wvCapsuleS2ExtraUnits?: number | null;
+  wvCapsuleS2MaxOutside?: number | null;
+  hplcMaxPreparationRsdPercent?: number | null;
+  // StandardComparison only - "PeakArea" (HPLC) or "TitrationVolume". Rejected
+  // by the backend for non-StandardComparison tests unless left as PeakArea.
+  responseMode?: "PeakArea" | "TitrationVolume";
+}
+
+export interface UpdateTestDefinitionPayload {
+  code?: string;
+  displayName?: string;
+  sectionId?: number | null;
+  workflowType?: string;
+  equationType?: string;
+  requiresSystemSuitability?: boolean;
+  methodAbbreviation?: string | null;
+  sstMaxRsdPercent?: number | null;
+  sstMinResolution?: number | null;
+  sstMaxTailingFactor?: number | null;
+  sstMinTheoreticalPlates?: number | null;
+  calibrationEntryMode?: string | null;
+  calMinCorrelation?: number | null;
+  calCorrelationType?: string | null;
+  calMinStandards?: number | null;
+  calCheckRecoveryLowPercent?: number | null;
+  calCheckRecoveryHighPercent?: number | null;
+  calBlankMax?: number | null;
+  calIsRecoveryLowPercent?: number | null;
+  calIsRecoveryHighPercent?: number | null;
+  calRequireBlank?: boolean | null;
+  calRequireIcv?: boolean | null;
+  calRequireCcv?: boolean | null;
+  calRequireInternalStandard?: boolean | null;
+  reportedConcentrationBasis?: string | null;
+  calMaxRunAgeHours?: number | null;
+  // CalibrationCurve only: instrument family (null = ICP-OES) and optional fixed
+  // standard levels (e.g. "1, 5"). Update: null means keep, "" clears the levels.
+  calInstrumentType?: "IcpOes" | "Aas" | null;
+  calStandardLevelsMgPerL?: string | null;
+  replicateCount?: number | null;
+  evaluationBasis?: "Mean" | "EachValue" | "Min" | "Max" | null;
+  conditionFields?: string | null;
+  usesTare?: boolean | null;
+  dissolutionS1Offset?: number | null;
+  dissolutionS2MinOffset?: number | null;
+  dissolutionS3MinOffset?: number | null;
+  dissolutionS3MaxBelowS2Min?: number | null;
+  disintegrationStage1Units?: number | null;
+  disintegrationStage2Units?: number | null;
+  disintegrationMaxStage1Failures?: number | null;
+  disintegrationMinPassTotal?: number | null;
+  wvUnitCount?: number | null;
+  wvTabletBand1MaxMg?: number | null;
+  wvTabletBand1Percent?: number | null;
+  wvTabletBand2MaxMg?: number | null;
+  wvTabletBand2Percent?: number | null;
+  wvTabletBand3Percent?: number | null;
+  wvTabletMaxOutside?: number | null;
+  wvCapsuleInnerPercent?: number | null;
+  wvCapsuleOuterPercent?: number | null;
+  wvCapsuleS1MaxOutside?: number | null;
+  wvCapsuleS1MaxForRetest?: number | null;
+  wvCapsuleS2ExtraUnits?: number | null;
+  wvCapsuleS2MaxOutside?: number | null;
+  hplcMaxPreparationRsdPercent?: number | null;
+  // StandardComparison only - cannot change once suitability runs exist
+  // against the test (backend rejects the change with an error message).
+  responseMode?: "PeakArea" | "TitrationVolume";
+}
+
 // Shared lookup lists used across receiving, preparation, and master
 // data screens. All hit /api/masterdata/*.
 export const masterDataOptions = {
@@ -73,11 +275,16 @@ export const masterDataOptions = {
   updateSampler: (id: number, name: string) =>
     apiClient.put(`/masterdata/samplers/${id}`, JSON.stringify(name), { headers: { "Content-Type": "application/json" } }).then((r) => r.data.data),
   deleteSampler: (id: number) => apiClient.delete(`/masterdata/samplers/${id}`),
-  getProductionStages: () => apiClient.get("/masterdata/production-stages").then((r) => r.data.data),
-  createProductionStage: (name: string) =>
-    apiClient.post("/masterdata/production-stages", JSON.stringify(name), { headers: { "Content-Type": "application/json" } }).then((r) => r.data.data),
-  updateProductionStage: (id: number, name: string) =>
-    apiClient.put(`/masterdata/production-stages/${id}`, JSON.stringify(name), { headers: { "Content-Type": "application/json" } }).then((r) => r.data.data),
+  getProductionStages: (): Promise<ProductionStageOption[]> => apiClient.get("/masterdata/production-stages").then((r) => r.data.data),
+  // Role is always sent: the backend keys behaviour on it, so a caller must
+  // choose one rather than falling back to Other by accident.
+  createProductionStage: (payload: { name: string; role: ProductionStageRole }): Promise<ProductionStageOption> =>
+    apiClient.post("/masterdata/production-stages", payload).then((r) => r.data.data),
+  updateProductionStage: (
+    id: number,
+    payload: { name: string; role: ProductionStageRole }
+  ): Promise<ProductionStageOption> =>
+    apiClient.put(`/masterdata/production-stages/${id}`, payload).then((r) => r.data.data),
   deleteProductionStage: (id: number) => apiClient.delete(`/masterdata/production-stages/${id}`),
   getDiluentTypes: () => apiClient.get("/masterdata/diluent-types").then((r) => r.data.data),
   getNeutralizers: () => apiClient.get("/masterdata/neutralizers").then((r) => r.data.data),
@@ -114,11 +321,32 @@ export const masterDataOptions = {
   updateOrganism: (id: number, scientificName: string, atccNumber?: string | null, commonName?: string | null, description?: string | null) =>
     apiClient.put(`/masterdata/organisms/${id}`, { scientificName, atccNumber: atccNumber || null, commonName: commonName || null, description: description || null }).then((r) => r.data.data),
   deleteOrganism: (id: number) => apiClient.delete(`/masterdata/organisms/${id}`),
+  getEquationTypes: (): Promise<EquationTypeDto[]> =>
+    apiClient.get("/masterdata/equation-types").then((r) => {
+      const list: EquationTypeDto[] = r.data.data || [];
+      if (!list.some((e) => e.code === "CalibrationCurve")) {
+        list.push({
+          code: "CalibrationCurve",
+          name: "Calibration Curve",
+          formulaText: "r / r² >= MinCorrelation, Standards >= MinStandards, ICV/CCV recovery within [Low, High]%, Blank <= MaxBlank (or LOQ), IS recovery within [Low, High]%",
+          requiredInputs: ["CorrelationValue", "CorrelationType", "NumberOfStandards", "LowestStandardMgPerL", "HighestStandardMgPerL", "Checks"]
+        });
+      }
+      return list;
+    }),
   getTestDefinitions: () => apiClient.get("/masterdata/test-definitions").then((r) => r.data.data),
-  createTestDefinition: (code: string, displayName: string) =>
-    apiClient.post("/masterdata/test-definitions", { code, displayName }).then((r) => r.data.data),
-  updateTestDefinition: (id: number, code: string, displayName: string) =>
-    apiClient.put(`/masterdata/test-definitions/${id}`, { code, displayName }).then((r) => r.data.data),
+  createTestDefinition: (codeOrPayload: string | CreateTestDefinitionPayload, displayName?: string, sectionId?: number | null) => {
+    const payload = typeof codeOrPayload === "string"
+      ? { code: codeOrPayload, displayName: displayName ?? codeOrPayload, ...(sectionId != null ? { sectionId } : {}) }
+      : codeOrPayload;
+    return apiClient.post("/masterdata/test-definitions", payload).then((r) => r.data.data);
+  },
+  updateTestDefinition: (id: number, codeOrPayload: string | UpdateTestDefinitionPayload, displayName?: string, sectionId?: number | null) => {
+    const payload = typeof codeOrPayload === "string"
+      ? { code: codeOrPayload, displayName: displayName ?? codeOrPayload, ...(sectionId != null ? { sectionId } : {}) }
+      : codeOrPayload;
+    return apiClient.put(`/masterdata/test-definitions/${id}`, payload).then((r) => r.data.data);
+  },
   freezeTestDefinition: (id: number) =>
     apiClient.put(`/masterdata/test-definitions/${id}/freeze`).then((r) => r.data.data),
   unfreezeTestDefinition: (id: number) =>
@@ -127,6 +355,22 @@ export const masterDataOptions = {
     apiClient.put(`/masterdata/test-definitions/${testDefinitionId}/workflow-type`, { workflowType }).then((r) => r.data.data),
   getTestWorkflowSteps: (testDefinitionId: number) =>
     apiClient.get(`/masterdata/test-definitions/${testDefinitionId}/steps`).then((r) => r.data.data),
+  getTestAnalytes: (testDefinitionId: number): Promise<TestAnalyteDto[]> =>
+    apiClient.get(`/masterdata/test-definitions/${testDefinitionId}/analytes`).then((r) => r.data.data),
+  createTestAnalyte: (testDefinitionId: number, payload: CreateTestAnalyteRequest): Promise<TestAnalyteDto> =>
+    apiClient.post(`/masterdata/test-definitions/${testDefinitionId}/analytes`, payload).then((r) => r.data.data),
+  updateTestAnalyte: (testDefinitionId: number, analyteId: number, payload: UpdateTestAnalyteRequest): Promise<TestAnalyteDto> =>
+    apiClient.put(`/masterdata/test-definitions/${testDefinitionId}/analytes/${analyteId}`, payload).then((r) => r.data.data),
+  deleteTestAnalyte: (testDefinitionId: number, analyteId: number): Promise<{ message?: string; deactivated?: boolean; deleted?: boolean }> =>
+    apiClient.delete(`/masterdata/test-definitions/${testDefinitionId}/analytes/${analyteId}`).then((r) => r.data.data),
+  getTestDefinitionStageReplicates: (testDefinitionId: number): Promise<TestDefinitionStageReplicateDto[]> =>
+    apiClient.get(`/masterdata/test-definitions/${testDefinitionId}/stage-replicates`).then((r) => r.data.data),
+  createTestDefinitionStageReplicate: (testDefinitionId: number, payload: CreateTestDefinitionStageReplicateRequest): Promise<TestDefinitionStageReplicateDto> =>
+    apiClient.post(`/masterdata/test-definitions/${testDefinitionId}/stage-replicates`, payload).then((r) => r.data.data),
+  updateTestDefinitionStageReplicate: (testDefinitionId: number, replicateId: number, payload: UpdateTestDefinitionStageReplicateRequest): Promise<TestDefinitionStageReplicateDto> =>
+    apiClient.put(`/masterdata/test-definitions/${testDefinitionId}/stage-replicates/${replicateId}`, payload).then((r) => r.data.data),
+  deleteTestDefinitionStageReplicate: (testDefinitionId: number, replicateId: number): Promise<{ message?: string; deleted?: boolean }> =>
+    apiClient.delete(`/masterdata/test-definitions/${testDefinitionId}/stage-replicates/${replicateId}`).then((r) => r.data.data),
   getMaterials: (type?: string) =>
     apiClient.get("/inventory/materials", { params: type ? { type } : {} }).then((r) => r.data.data),
   createTestWorkflowStep: (testDefinitionId: number, payload: TestWorkflowStepPayload) =>

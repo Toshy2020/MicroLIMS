@@ -19,9 +19,10 @@ public class MediaEvaluationService
         _engine = engine;
     }
 
-    public async Task<List<MediaEvaluation>> GetAllAsync(MediaEvaluationStatus? status = null)
+    public async Task<List<MediaEvaluation>> GetAllAsync(MediaEvaluationStatus? status = null, IReadOnlyCollection<int>? sectionIds = null)
     {
         var query = _db.MediaEvaluations.Include(e => e.Media!).ThenInclude(m => m.Material).AsQueryable();
+        if (sectionIds != null) query = query.Where(e => sectionIds.Contains(e.Media!.Material!.SectionId));
         if (status.HasValue) query = query.Where(e => e.Status == status.Value);
         return await query.OrderByDescending(e => e.Id).ToListAsync();
     }

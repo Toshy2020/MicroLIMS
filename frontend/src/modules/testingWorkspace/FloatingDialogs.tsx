@@ -33,6 +33,8 @@ export function TestWorkflowDialogRouter({ open, test, sample, onClose }: Props)
         testCode={test.testCode}
         category={sample.category}
         displayName={sample.displayName}
+        itemId={sample.itemId ?? undefined}
+        sampleId={sample.sampleId}
         onClose={onClose}
       />
     </FloatingDialog>

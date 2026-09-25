@@ -16,5 +16,14 @@ public enum ReviewWorkflowEventType
 
     // A signed correction of a received sample's details; the Comment holds
     // the reason and the fields changed.
-    SampleCorrected
+    SampleCorrected,
+
+    // A laboratory section closed its own testing after another section
+    // rejected the sample. The Comment holds the reason.
+    SectionTestingClosed,
+
+    // A second laboratory's tests were added to an already-received
+    // sample. SectionId holds the laboratory added; the Comment holds
+    // the reason.
+    LaboratoryAdded
 }

@@ -14,9 +14,25 @@ import { PathogenStepDialog } from "./PathogenStepDialog";
 import { useAuth } from "../../contexts/AuthContext";
 import { ConfirmationDialog } from "../../components/ConfirmationDialog";
 import { StepChainStrip } from "./components/StepChainStrip";
+import { ElementalAssayPanel } from "./ElementalAssayPanel";
+import { MeasurementPanel } from "./MeasurementPanel";
+import { GravimetricPanel } from "./GravimetricPanel";
+import { QualitativePanel } from "./QualitativePanel";
+import { DissolutionPanel } from "./DissolutionPanel";
+import { DisintegrationPanel } from "./DisintegrationPanel";
+import { WeightVariationPanel } from "./WeightVariationPanel";
+import { StandardComparisonPanel } from "./StandardComparisonPanel";
 import { INCUBATION_WINDOW_NOT_CONFIGURED_MESSAGE } from "./utils/incubationWindow";
 
-interface Props { testOrderId: number; testCode: string; category: string; displayName: string; onClose?: () => void; }
+interface Props {
+  testOrderId: number;
+  testCode: string;
+  category: string;
+  displayName: string;
+  itemId?: number | null;
+  sampleId?: number | null;
+  onClose?: () => void;
+}
 
 type Phase = "loading" | "select-media" | "awaiting-result" | "transfer-stage-2" | "enter-result" | "step-complete" | "all-complete";
 
@@ -33,7 +49,7 @@ type Phase = "loading" | "select-media" | "awaiting-result" | "transfer-stage-2"
 // samples, which still incubate through this component's phases and
 // only hand off to LocationResultGridDialog/PathogenLocationResultGrid-
 // Dialog for their per-location batch result entry, exactly as today.
-export function TestWorkflowDialog({ testOrderId, testCode, category, displayName, onClose }: Props) {
+export function TestWorkflowDialog({ testOrderId, testCode, category, displayName, itemId, sampleId, onClose }: Props) {
   const theme = useTheme();
   const isEmOrAfterCleaning = category === "EnvironmentalMonitoring" || category === "AfterCleaning";
   const [phase, setPhase] = useState<Phase>("loading");
@@ -281,6 +297,137 @@ export function TestWorkflowDialog({ testOrderId, testCode, category, displayNam
       <Box sx={{ py: 4 }}>
         {error ? <Alert severity="error">{error}</Alert> : <LoadingSpinner />}
       </Box>
+    );
+  }
+
+  // Standard-Comparison Assay (retired HplcAssay/HplcMultiAnalyte) - system
+  // suitability run link + per-preparation weigh-in + per-analyte response
+  // (peak area or titration volume) entry (SC-5b).
+  if (current.workflowType === "StandardComparison") {
+    return (
+      <StandardComparisonPanel
+        testOrderId={testOrderId}
+        displayName={displayName}
+        testCode={testCode}
+        itemId={itemId}
+        sampleId={sampleId}
+        current={current}
+        onRecorded={load}
+        onClose={onClose}
+      />
+    );
+  }
+
+  // Elemental Assay (ICP-OES Calibration Curve) - signed calibration run analyte
+  // link + ppm entry.
+  if (current.workflowType === "ElementalAssay") {
+    return (
+      <ElementalAssayPanel
+        testOrderId={testOrderId}
+        displayName={displayName}
+        testCode={testCode}
+        itemId={itemId}
+        sampleId={sampleId}
+        current={current}
+        onRecorded={load}
+        onClose={onClose}
+      />
+    );
+  }
+
+  // Measurement workflow (pH, density, etc.)
+  if (current.workflowType === "Measurement") {
+    return (
+      <MeasurementPanel
+        testOrderId={testOrderId}
+        displayName={displayName}
+        testCode={testCode}
+        itemId={itemId}
+        sampleId={sampleId}
+        current={current}
+        onRecorded={load}
+        onClose={onClose}
+      />
+    );
+  }
+
+  // Gravimetric workflow (loss on drying, ash/residue)
+  if (current.workflowType === "Gravimetric") {
+    return (
+      <GravimetricPanel
+        testOrderId={testOrderId}
+        displayName={displayName}
+        testCode={testCode}
+        itemId={itemId}
+        sampleId={sampleId}
+        current={current}
+        onRecorded={load}
+        onClose={onClose}
+      />
+    );
+  }
+
+  // Qualitative workflow (appearance, identification, etc.)
+  if (current.workflowType === "Qualitative") {
+    return (
+      <QualitativePanel
+        testOrderId={testOrderId}
+        displayName={displayName}
+        testCode={testCode}
+        itemId={itemId}
+        sampleId={sampleId}
+        current={current}
+        onRecorded={load}
+        onClose={onClose}
+      />
+    );
+  }
+
+  // Dissolution workflow (HPLC finish, staged S1-S3)
+  if (current.workflowType === "Dissolution") {
+    return (
+      <DissolutionPanel
+        testOrderId={testOrderId}
+        displayName={displayName}
+        testCode={testCode}
+        itemId={itemId}
+        sampleId={sampleId}
+        current={current}
+        onRecorded={load}
+        onClose={onClose}
+      />
+    );
+  }
+
+  // Disintegration workflow (time per unit, staged S1-S2)
+  if (current.workflowType === "Disintegration") {
+    return (
+      <DisintegrationPanel
+        testOrderId={testOrderId}
+        displayName={displayName}
+        testCode={testCode}
+        itemId={itemId}
+        sampleId={sampleId}
+        current={current}
+        onRecorded={load}
+        onClose={onClose}
+      />
+    );
+  }
+
+  // Weight Variation workflow (tablet/capsule weight variation, staged S1-S2)
+  if (current.workflowType === "WeightVariation") {
+    return (
+      <WeightVariationPanel
+        testOrderId={testOrderId}
+        displayName={displayName}
+        testCode={testCode}
+        itemId={itemId}
+        sampleId={sampleId}
+        current={current}
+        onRecorded={load}
+        onClose={onClose}
+      />
     );
   }
 

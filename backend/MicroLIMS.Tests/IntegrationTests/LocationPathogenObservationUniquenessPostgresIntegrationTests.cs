@@ -56,7 +56,8 @@ public class LocationPathogenObservationUniquenessPostgresIntegrationTests
 
         await using var db = _fixture.CreateDbContext();
         var sampleId = await db.SampleLocations.Where(l => l.Id == locationId).Select(l => l.SampleId).SingleAsync();
-        var otherOrder = new TestOrder { SampleId = sampleId, TestCode = "SA", Status = ApprovalStatus.InProgress, CurrentStep = WorkflowStep.Incubating };
+        var microSectionId = (await db.DocumentSections.FirstAsync(s => s.Code == "MICRO")).Id;
+        var otherOrder = new TestOrder { SampleId = sampleId, TestCode = "SA", Status = ApprovalStatus.InProgress, CurrentStep = WorkflowStep.Incubating, SectionId = microSectionId };
         db.TestOrders.Add(otherOrder);
         await db.SaveChangesAsync();
 
@@ -98,7 +99,9 @@ public class LocationPathogenObservationUniquenessPostgresIntegrationTests
             ReceivedByUserId = _fixture.SeededUserId,
             SampledBy = "Uniqueness test"
         };
-        var order = new TestOrder { Sample = sample, TestCode = "EC", Status = ApprovalStatus.InProgress, CurrentStep = WorkflowStep.Incubating };
+        // Every test order belongs to a laboratory section (lab separation).
+        var microSectionId = (await db.DocumentSections.FirstAsync(s => s.Code == "MICRO")).Id;
+        var order = new TestOrder { Sample = sample, TestCode = "EC", Status = ApprovalStatus.InProgress, CurrentStep = WorkflowStep.Incubating, SectionId = microSectionId };
         var location = new SampleLocation { Sample = sample, TestOrder = order, LocationType = LocationType.Room, DilutionFactor = 1.0m };
         sample.TestOrders.Add(order);
         sample.Locations.Add(location);

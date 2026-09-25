@@ -109,6 +109,13 @@ public class WorkflowStateResolver
             return Closed(result, "VOIDED", "Voided — struck from the record", "Voided");
         if (sampleStatus == SampleStatus.Cancelled)
             return Closed(result, "CANCELLED", "Cancelled", "Cancelled");
+        // This section's own testing was closed (SectionClosureService) after
+        // another laboratory rejected the sample - never a judgement about
+        // this test's material, so it must never read as Rejected, and it
+        // wins ahead of the sample-level Rejected/Approved checks below
+        // regardless of how the rest of the sample resolves.
+        if (testOrder.Status == ApprovalStatus.Cancelled)
+            return Closed(result, "CANCELLED", "Cancelled — testing closed after another lab rejected the sample", "Cancelled");
 
         // 1. Approved
         if (testOrder.Status == ApprovalStatus.Approved)

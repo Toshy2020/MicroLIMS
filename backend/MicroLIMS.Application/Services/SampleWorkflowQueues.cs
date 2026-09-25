@@ -32,17 +32,46 @@ public static class SampleWorkflowQueues
     public static readonly Expression<Func<Sample, bool>> NeedsPreparation = s =>
         s.PreparationStatus == SamplePreparationStatus.NeedsPreparation && !ClosedSampleStatuses.Contains(s.Status);
 
+    // Preparation is only pending work for a lab whose tests wait for it:
+    // in a Physicochemical-only view a mixed sample awaiting Microbiology
+    // preparation is not in the queue. No scope (both labs) = the plain rule.
+    public static Expression<Func<Sample, bool>> NeedsPreparationIn(IReadOnlyCollection<int>? sectionIds)
+    {
+        if (sectionIds == null) return NeedsPreparation;
+        return s => s.PreparationStatus == SamplePreparationStatus.NeedsPreparation
+            && !ClosedSampleStatuses.Contains(s.Status)
+            && s.TestOrders.Any(t => !t.IsSuperseded
+                && sectionIds.Contains(t.SectionId)
+                && t.Section!.Code != MicroLIMS.Application.Workflows.PreparationRules.NoPreparationSectionCode);
+    }
+
+    public static Expression<Func<Sample, bool>> HasTestInSections(IReadOnlyCollection<int> sectionIds) =>
+        s => s.TestOrders.Any(t => !t.IsSuperseded && sectionIds.Contains(t.SectionId));
+
     /// <summary>
     /// A sample with an active (non-superseded, Pending/InProgress) test holding an open incubation that
     /// can be read now. <see cref="IsIncubationReadyToRead(Incubation, DateTime)"/> is the same rule for one incubation.
     /// </summary>
-    public static Expression<Func<Sample, bool>> HasTestReadyToRead(DateTime now) => s =>
-        s.TestOrders.Any(t => !t.IsSuperseded
+    public static Expression<Func<Sample, bool>> HasTestReadyToRead(DateTime now, IReadOnlyCollection<int>? sectionIds = null)
+    {
+        if (sectionIds == null)
+        {
+            return s => s.TestOrders.Any(t => !t.IsSuperseded
+                && (t.Status == ApprovalStatus.Pending || t.Status == ApprovalStatus.InProgress)
+                && t.Incubations.Any(i => i.CompletedAt == null
+                    && ((i.ExpectedReadingAt != null && i.ExpectedReadingAt <= now)
+                        || (i.IncubationEndUtc != null && i.IncubationEndUtc <= now)
+                        || i.MinimumDurationOverriddenByUserId != null)));
+        }
+
+        return s => s.TestOrders.Any(t => !t.IsSuperseded
+            && sectionIds.Contains(t.SectionId)
             && (t.Status == ApprovalStatus.Pending || t.Status == ApprovalStatus.InProgress)
             && t.Incubations.Any(i => i.CompletedAt == null
                 && ((i.ExpectedReadingAt != null && i.ExpectedReadingAt <= now)
                     || (i.IncubationEndUtc != null && i.IncubationEndUtc <= now)
                     || i.MinimumDurationOverriddenByUserId != null)));
+    }
 
     public static Expression<Func<Sample, bool>> IsOverdue(DateTime now)
     {
@@ -50,11 +79,29 @@ public static class SampleWorkflowQueues
         return s => !ClosedSampleStatuses.Contains(s.Status) && s.ReceivedAt < overdueCutoff;
     }
 
-    public static Expression<Func<Sample, bool>> HasTestAssignedTo(int userId) => s =>
-        s.TestOrders.Any(t => !t.IsSuperseded && t.AssignedAnalystId == userId);
+    public static Expression<Func<Sample, bool>> HasTestAssignedTo(int userId, IReadOnlyCollection<int>? sectionIds = null)
+    {
+        if (sectionIds == null)
+        {
+            return s => s.TestOrders.Any(t => !t.IsSuperseded && t.AssignedAnalystId == userId);
+        }
+
+        return s => s.TestOrders.Any(t => !t.IsSuperseded && sectionIds.Contains(t.SectionId) && t.AssignedAnalystId == userId);
+    }
 
     public static readonly Expression<Func<Sample, bool>> IsUnassigned = s =>
         !ClosedSampleStatuses.Contains(s.Status) && !s.TestOrders.Any(t => !t.IsSuperseded && t.AssignedAnalystId != null);
+
+    public static Expression<Func<Sample, bool>> IsUnassignedIn(IReadOnlyCollection<int>? sectionIds)
+    {
+        if (sectionIds == null)
+        {
+            return IsUnassigned;
+        }
+
+        return s => !ClosedSampleStatuses.Contains(s.Status)
+            && !s.TestOrders.Any(t => !t.IsSuperseded && sectionIds.Contains(t.SectionId) && t.AssignedAnalystId != null);
+    }
 
     // Incubation-level bench counts (dashboards). An open incubation counts
     // only while its test is still active work, and is ready to read by the

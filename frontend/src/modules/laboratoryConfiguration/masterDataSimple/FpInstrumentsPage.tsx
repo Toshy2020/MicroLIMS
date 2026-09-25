@@ -152,10 +152,10 @@ export function FpInstrumentsPage() {
       );
       setConfiguredCodes(new Set((equipment as FpInstrument[]).map((e) => e.code.toLowerCase())));
       setInventory(Array.isArray(inv) ? inv : []);
-      if (!fp) setError("The Finished Product laboratory section (code FP) was not found.");
+      if (!fp) setError("The Physicochemical laboratory section (code FP) was not found.");
     } catch (e: unknown) {
       const err = e as { response?: { data?: { message?: string } } };
-      setError(err?.response?.data?.message ?? "Could not load Finished Product instruments.");
+      setError(err?.response?.data?.message ?? "Could not load Physicochemical instruments.");
     } finally {
       setLoading(false);
     }
@@ -246,7 +246,7 @@ export function FpInstrumentsPage() {
         toast.success("Instrument updated.");
       } else {
         await EquipmentConfigurationService.createEquipment(payload as never);
-        toast.success("Instrument added to the Finished Product laboratory.");
+        toast.success("Instrument added to the Physicochemical laboratory.");
       }
       setDialogOpen(false);
       await loadData();
@@ -261,8 +261,8 @@ export function FpInstrumentsPage() {
   return (
     <Box sx={{ p: 3 }}>
       <PageHeader
-        title="FP Instruments"
-        subtitle="Finished Product laboratory instruments (HPLC, ICP-OES, pH meters, balances). Assets come from the Equipment Inventory."
+        title="Physicochemical Instruments"
+        subtitle="Physicochemical laboratory instruments (HPLC, ICP-OES, pH meters, balances). Assets come from the Equipment Inventory."
       />
 
       {error && <Alert severity="error" sx={{ mb: 3 }}>{error}</Alert>}
@@ -300,7 +300,7 @@ export function FpInstrumentsPage() {
             ) : instruments.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={9} align="center" sx={{ py: 4, color: "text.secondary" }}>
-                  No Finished Product instruments yet. Add one from the Equipment Inventory.
+                  No Physicochemical instruments yet. Add one from the Equipment Inventory.
                 </TableCell>
               </TableRow>
             ) : (
@@ -340,7 +340,7 @@ export function FpInstrumentsPage() {
 
       <FloatingDialog
         open={dialogOpen}
-        title={editing ? `Edit Instrument: ${editing.code}` : "Add Finished Product Instrument"}
+        title={editing ? `Edit Instrument: ${editing.code}` : "Add Physicochemical Instrument"}
         onClose={() => setDialogOpen(false)}
         maxWidth="sm"
         actions={

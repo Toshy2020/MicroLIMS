@@ -2398,9 +2398,9 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
   return (
     <>
       <PageHeader
-        title={isFp ? "Finished Product Test Master" : "Microbiology Test Master"}
+        title={isFp ? "Physicochemical Test Master" : "Microbiology Test Master"}
         subtitle={isFp
-          ? "Finished Product (chemistry) tests: HPLC methods, equation type and system suitability criteria."
+          ? "Physicochemical tests: HPLC methods, equation type and system suitability criteria."
           : "Microbiology tests available to assign to Items, Sampling Points, Rooms, and Machine Parts."}
       >
         <Button variant="contained" startIcon={<AddIcon />} onClick={openCreateDialog}>

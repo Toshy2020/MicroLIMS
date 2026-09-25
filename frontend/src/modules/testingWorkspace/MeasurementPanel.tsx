@@ -320,10 +320,10 @@ export function MeasurementPanel({
             />
 
             <FormControl size="small" fullWidth>
-              <InputLabel id="equipment-select-label">Equipment (Finished Product)</InputLabel>
+              <InputLabel id="equipment-select-label">Equipment (Physicochemical)</InputLabel>
               <Select
                 labelId="equipment-select-label"
-                label="Equipment (Finished Product)"
+                label="Equipment (Physicochemical)"
                 value={selectedEquipmentId}
                 onChange={(e) => setSelectedEquipmentId(String(e.target.value) === "" ? "" : Number(e.target.value))}
               >

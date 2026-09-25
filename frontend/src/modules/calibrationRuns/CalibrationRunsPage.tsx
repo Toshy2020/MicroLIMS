@@ -859,7 +859,7 @@ export function CalibrationRunsPage() {
 
                 {calMethods.length === 0 && (
                   <Alert severity="info">
-                    No active elemental test method requires a calibration run. Configure one in FP Test Master.
+                    No active elemental test method requires a calibration run. Configure one in Physicochemical Test Master.
                   </Alert>
                 )}
 
@@ -1043,7 +1043,7 @@ export function CalibrationRunsPage() {
                   </Box>
                 ) : analyteForms.length === 0 ? (
                   <Alert severity="warning">
-                    No analytes configured for this test method. Add analytes to the method in FP Test Master before running calibration.
+                    No analytes configured for this test method. Add analytes to the method in Physicochemical Test Master before running calibration.
                   </Alert>
                 ) : (
                   analyteForms.map((analyte, aIdx) => (

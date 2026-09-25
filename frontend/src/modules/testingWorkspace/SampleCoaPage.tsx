@@ -61,6 +61,24 @@ const MEANING_TEXT: Record<string, string> = {
   Rejected: "I reject the release of this sample; it does not conform to specification."
 };
 
+// A lab's section status while it's still in the testing/review/approval
+// pipeline - the "not final yet" set the CoA-unavailable screen reports
+// on. Approved/Rejected/RetestRequested/Closed/Voided are all final: the
+// lab is done deciding, even though only Approved/Closed-as-rejected
+// grants a certificate.
+const OPEN_SECTION_STATUSES = new Set(["InTesting", "UnderReview", "UnderApproval"]);
+
+// Combined-certificate conclusion (design.md §5.5, D10): once every
+// requested lab is final, a rejected sample still gets a combined CoA -
+// its conclusion names the rejecting lab(s) instead of restating the
+// per-result compliance text. Approved (or a single/implicit-combined
+// certificate that isn't rejected) keeps the existing result-driven text.
+function buildCombinedConclusion(s: SampleSummary, resultDrivenText: string): string {
+  if (s.overallStatus !== "Rejected") return resultDrivenText;
+  const rejectingLabs = (s.sections ?? []).filter((sec) => sec.status === "Rejected").map((sec) => sec.sectionName);
+  return `Rejected — ${rejectingLabs.length > 0 ? rejectingLabs.join(", ") : humanize(s.status)}`;
+}
+
 // Every qualitative (pathogen) test on a Water sample shares the same
 // absence requirement - no per-test variation exists anywhere in the
 // schema (see coaAggregation.ts). Repeating "Spec: Absent / 10 mL" under
@@ -264,16 +282,19 @@ export function SampleCoaPage() {
 
   const isMultiSection = Boolean(summary?.sections && summary.sections.length > 1);
 
+  // Every requested lab final (design.md §5.5, D10) - a rejected sample
+  // qualifies for a combined CoA once no lab is still open, not only an
+  // all-Approved one. allSectionsVisible still gates this: the viewer
+  // can't see a combined certificate that includes a section's data they
+  // don't have access to.
   const isCombinedEligible = Boolean(
     isMultiSection &&
     summary?.allSectionsVisible &&
-    summary?.sections &&
-    summary.sections.length > 0 &&
-    summary.sections.every((sec) => sec.status === "Approved")
+    summary?.combinedCoaAvailable
   );
 
   const eligibleSections: SampleSectionSummaryDetail[] = isMultiSection && summary?.sections
-    ? summary.sections.filter((sec) => sec.canView && sec.status === "Approved")
+    ? summary.sections.filter((sec) => sec.canView && sec.coaAvailable)
     : [];
 
   const defaultVariant = isCombinedEligible
@@ -329,7 +350,7 @@ export function SampleCoaPage() {
   const simple = matrix ? null : buildCoaSimpleRows(s.testOrders);
 
   if (!isMultiSection) {
-    if (s.status !== "Approved" && s.status !== "Rejected") {
+    if (!s.combinedCoaAvailable) {
       return (
         <PinnedLightTheme>
           <div style={{ padding: 32, fontFamily: "Segoe UI, sans-serif", color: "#666" }}>
@@ -351,7 +372,11 @@ export function SampleCoaPage() {
   }
 
   if (isMultiSection && !activeVariant) {
-    const unapprovedSections = (s.sections ?? []).filter((sec) => sec.status !== "Approved");
+    // Labs still open account for why neither the combined certificate
+    // (needs every lab final) nor any single-lab one (needs that lab
+    // Approved) is ready yet - list those, not every non-Approved lab, so
+    // an already-final Rejected/Closed lab doesn't read as "pending".
+    const pendingSections = (s.sections ?? []).filter((sec) => OPEN_SECTION_STATUSES.has(sec.status));
     return (
       <PinnedLightTheme>
         <Box sx={{ maxWidth: 800, margin: "40px auto", px: 3 }}>
@@ -359,14 +384,14 @@ export function SampleCoaPage() {
             <Typography sx={{ fontWeight: 600, mb: 1 }}>
               Certificate of Analysis Not Available
             </Typography>
-            <Typography variant="body2" sx={{ mb: unapprovedSections.length > 0 ? 1 : 0 }}>
-              {unapprovedSections.length > 0
-                ? "A Certificate of Analysis is not available yet. The following sections are not yet approved:"
+            <Typography variant="body2" sx={{ mb: pendingSections.length > 0 ? 1 : 0 }}>
+              {pendingSections.length > 0
+                ? "A Certificate of Analysis is not available yet. The following laboratories are not final yet:"
                 : "No approved laboratory sections are currently accessible."}
             </Typography>
-            {unapprovedSections.length > 0 && (
+            {pendingSections.length > 0 && (
               <ul style={{ margin: "8px 0 0 0", paddingLeft: 20 }}>
-                {unapprovedSections.map((sec) => (
+                {pendingSections.map((sec) => (
                   <li key={sec.sectionId} style={{ fontSize: 13, marginTop: 4 }}>
                     <strong>{sec.sectionName}</strong>: {humanize(sec.status)}
                   </li>
@@ -507,10 +532,14 @@ export function SampleCoaPage() {
                 </>
               )}
 
-              <div className={`coa-overall ${(matrix ? matrix.overallComplies : simple!.overallComplies) ? "" : "is-fail"}`}>
+              <div
+                className={`coa-overall ${
+                  s.overallStatus === "Rejected" || !(matrix ? matrix.overallComplies : simple!.overallComplies) ? "is-fail" : ""
+                }`}
+              >
                 <div className="ot">Overall Conclusion</div>
                 <div className="od">
-                  {matrix ? buildOverallConclusionText(matrix) : buildSimpleConclusionText(simple!)}
+                  {buildCombinedConclusion(s, matrix ? buildOverallConclusionText(matrix) : buildSimpleConclusionText(simple!))}
                 </div>
               </div>
 
@@ -560,6 +589,13 @@ export function SampleCoaPage() {
                       const groupSimple = groupMatrix ? null : buildCoaSimpleRows(group.testOrders);
                       const secDetail = sections.find((sec) => sec.sectionId === group.sectionId);
                       const secRemarks = secDetail?.certificateRemarks?.trim() || null;
+                      // Closed lab (design.md §5.3): its still-open tests
+                      // were cancelled at whatever step/stage they'd
+                      // reached rather than judged - they never produced a
+                      // result row, so buildCoaMatrix/buildCoaSimpleRows
+                      // never see them. List them explicitly instead of
+                      // silently dropping them from the certificate.
+                      const cancelledOrders = group.testOrders.filter((t) => t.status === "Cancelled" && !t.isSuperseded);
 
                       return (
                         <div key={group.sectionId} style={{ marginBottom: 24 }}>
@@ -568,9 +604,22 @@ export function SampleCoaPage() {
                           </div>
                           {groupMatrix && <CoaMatrixTable matrix={groupMatrix} />}
                           {groupSimple && <CoaSimpleTable simple={groupSimple} testOrders={group.testOrders} />}
-                          {!groupMatrix && !groupSimple && (
+                          {!groupMatrix && !groupSimple && cancelledOrders.length === 0 && (
                             <div style={{ color: "var(--coa-ink3)", fontStyle: "italic", marginBottom: 12, fontSize: 12 }}>
                               No recorded results for this section.
+                            </div>
+                          )}
+                          {cancelledOrders.length > 0 && (
+                            <div style={{ marginTop: groupMatrix || groupSimple ? 8 : 0, marginBottom: 12, fontSize: 12, color: "var(--coa-ink3)" }}>
+                              {cancelledOrders.map((t) => (
+                                <div key={t.testOrderId}>
+                                  {t.testDisplayName || t.testCode}: Not completed — testing closed
+                                  {t.cancelledAtStep
+                                    ? ` (${humanize(t.cancelledAtStep)}${t.cancelledAtStage != null ? `, stage ${t.cancelledAtStage}` : ""})`
+                                    : ""}
+                                  .
+                                </div>
+                              ))}
                             </div>
                           )}
                           <div style={{ marginTop: 10, marginBottom: 16 }}>
@@ -588,12 +637,22 @@ export function SampleCoaPage() {
                     {(() => {
                       const cMatrix = buildCoaMatrix(s.testOrders);
                       const cSimple = cMatrix ? null : buildCoaSimpleRows(s.testOrders);
-                      const complies = cMatrix ? cMatrix.overallComplies : (cSimple ? cSimple.overallComplies : true);
-                      const conclusion = cMatrix
-                        ? buildOverallConclusionText(cMatrix)
-                        : cSimple
-                        ? buildSimpleConclusionText(cSimple)
-                        : "This sample complies with the specified requirements.";
+                      const complies =
+                        s.overallStatus === "Rejected"
+                          ? false
+                          : cMatrix
+                          ? cMatrix.overallComplies
+                          : cSimple
+                          ? cSimple.overallComplies
+                          : true;
+                      const conclusion = buildCombinedConclusion(
+                        s,
+                        cMatrix
+                          ? buildOverallConclusionText(cMatrix)
+                          : cSimple
+                          ? buildSimpleConclusionText(cSimple)
+                          : "This sample complies with the specified requirements."
+                      );
 
                       return (
                         <div className={`coa-overall ${complies ? "" : "is-fail"}`}>

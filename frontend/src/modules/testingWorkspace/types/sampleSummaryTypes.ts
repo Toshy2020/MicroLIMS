@@ -117,6 +117,12 @@ export interface TestOrderSummaryDetail {
   isSuperseded: boolean;
   sectionId?: number;
   sectionName?: string;
+  // Set only when this TestOrder's section closed testing after another
+  // lab rejected the sample (design.md §5.3) - the step (and incubation
+  // stage, if any) it had reached at closure. Null for every other
+  // TestOrder, including ones cancelled for unrelated reasons.
+  cancelledAtStep: string | null;
+  cancelledAtStage: number | null;
   incubations: IncubationDetail[];
   results: ResultDetail[];
   countTestReadings: CountTestReadingDetail[];
@@ -157,6 +163,15 @@ export interface SampleSectionSummaryDetail {
   approvedAt: string | null;
   approvalDecision: string | null;
   certificateRemarks: string | null;
+  // True only when this section's own status is Approved - the
+  // per-section counterpart to SampleSummary.combinedCoaAvailable.
+  coaAvailable: boolean;
+  // Set only for a section closed without its own decision (status ==
+  // "Closed") - another lab rejected the sample and this one's
+  // still-open tests were closed rather than judged.
+  closedByName: string | null;
+  closedAt: string | null;
+  closeReason: string | null;
 }
 
 export interface SamplePreparationSummary {
@@ -188,6 +203,17 @@ export interface SignatureTrailItem {
   signedAt: string;
   comment: string | null;
 }
+
+// SampleSectionRollup.Overall(sample).ToString() - what this sample reads
+// as across every laboratory once any one of them rejects, distinct from
+// `status` which only follows the labs still open (design.md §5.1).
+export type OverallSampleStatus =
+  | "InProgress"
+  | "Approved"
+  | "Rejected"
+  | "RetestRequested"
+  | "Voided"
+  | "Cancelled";
 
 export interface SampleSummary {
   sampleId: number;
@@ -228,12 +254,15 @@ export interface SampleSummary {
   signatures: SignatureTrailItem[];
   sections?: SampleSectionSummaryDetail[];
   allSectionsVisible?: boolean;
-  // SampleSectionRollup.Overall(sample) from the backend (Task 6) -
-  // "Rejected" | "InProgress" | "RetestRequested" | "Approved": what this
-  // sample reads as across every laboratory once any one of them rejects,
-  // distinct from `status` which only follows the labs still open. Drives
-  // CloseTestingDialog's visibility; Task 14 may extend this type further.
-  overallStatus?: string;
+  // SampleSectionRollup.Overall(sample) from the backend - see
+  // OverallSampleStatus above. Every backend response carries this field
+  // now, so it's non-optional. Drives CloseTestingDialog's visibility,
+  // the summary header badge, and the CoA "Rejected" conclusion override.
+  overallStatus: OverallSampleStatus;
+  // True once no lab is still open (Sample.Status is Approved or
+  // Rejected) - a combined Certificate of Analysis can be generated. See
+  // sections[].coaAvailable for the single-lab counterpart.
+  combinedCoaAvailable: boolean;
 }
 
 export interface ElementalAssayElementDetail {

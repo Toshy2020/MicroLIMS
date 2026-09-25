@@ -63,6 +63,7 @@ import { StandardComparisonCalculationData } from "./StandardComparisonPanel";
 import { PathogenSessionDialog } from "./pathogenSession/PathogenSessionDialog";
 import { UserService, UserRecord } from "../users/services/UserService";
 import { CloseTestingDialog } from "../approval/CloseTestingDialog";
+import { humanize } from "./SampleReportPage";
 
 interface Props {
   open: boolean;
@@ -86,6 +87,8 @@ const formatSectionStatus = (status: string): string => {
       return "Retest requested";
     case "Cancelled":
       return "Cancelled";
+    case "Closed":
+      return "Closed";
     case "Voided":
       return "Voided";
     default:
@@ -989,6 +992,15 @@ function TestResultsSection({
                   )}
                   <StatusBadge status={order.workflowStateDisplay || order.status} />
                   {order.isSuperseded && <StatusBadge status="Superseded" />}
+                  {/* Closed-testing cancellation (design.md §5.3): the step
+                      (and incubation stage, if any) this test had reached
+                      when another lab's rejection closed this one's work. */}
+                  {order.status === "Cancelled" && order.cancelledAtStep && (
+                    <Typography sx={{ fontSize: 11, color: "text.secondary" }}>
+                      Cancelled at {humanize(order.cancelledAtStep)}
+                      {order.cancelledAtStage != null ? `, stage ${order.cancelledAtStage}` : ""}
+                    </Typography>
+                  )}
                 </Stack>
               </AccordionSummary>
               <AccordionDetails sx={{ p: 2.5 }}>
@@ -1795,15 +1807,19 @@ export function SampleSummaryDialog({ open, sampleId, onClose }: Props) {
       buildCoaMatrix(summary.testOrders) !== null || buildCoaSimpleRows(summary.testOrders) !== null;
     if (!hasResults) return false;
 
-    // Single-section sample (sections <= 1): exactly as today
+    // Single-section sample (sections <= 1): combinedCoaAvailable already
+    // covers "no lab still open" (Approved or Rejected sample.Status), the
+    // same rule this used to re-derive from status locally.
     if (!summary.sections || summary.sections.length <= 1) {
-      return summary.status === "Approved" || summary.status === "Rejected";
+      return summary.combinedCoaAvailable;
     }
 
-    // Multi-section sample: available if Combined is eligible (2a) or any single-section is eligible (2b)
-    const isCombinedEligible =
-      Boolean(summary.allSectionsVisible && summary.sections.length > 0 && summary.sections.every((s) => s.status === "Approved"));
-    const hasEligibleSection = summary.sections.some((s) => s.canView && s.status === "Approved");
+    // Multi-section sample: available if Combined is eligible (every
+    // requested lab final - design.md §5.5, D10: a rejected sample
+    // qualifies too, not just an all-Approved one) or any single section
+    // is itself eligible (2b).
+    const isCombinedEligible = Boolean(summary.allSectionsVisible && summary.combinedCoaAvailable);
+    const hasEligibleSection = summary.sections.some((s) => s.canView && s.coaAvailable);
     return isCombinedEligible || hasEligibleSection;
   }, [summary]);
 
@@ -1830,6 +1846,12 @@ export function SampleSummaryDialog({ open, sampleId, onClose }: Props) {
               }}
             >
               <Box>
+                <Stack direction="row" spacing={1} sx={{ alignItems: "center", mb: 0.5 }}>
+                  <Typography sx={{ fontSize: 12, fontWeight: 700, color: "text.secondary" }}>
+                    Overall Status:
+                  </Typography>
+                  <StatusBadge status={summary.overallStatus} />
+                </Stack>
                 <Typography sx={{ fontSize: 13, color: "text.secondary" }}>
                   Complete overview of test execution, incubation stages, results, and approvals.
                 </Typography>
@@ -1894,23 +1916,36 @@ export function SampleSummaryDialog({ open, sampleId, onClose }: Props) {
 
             {/* Laboratory Sections Chips */}
             {summary.sections && summary.sections.length > 0 && (
-              <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1, alignItems: "center" }}>
-                <Typography sx={{ fontSize: 12, fontWeight: 700, color: "text.secondary" }}>
-                  Sections:
-                </Typography>
-                {summary.sections.map((sec) => (
-                  <Chip
-                    key={sec.sectionId}
-                    size="small"
-                    label={`${sec.sectionName}: ${formatSectionStatus(sec.status)}`}
-                    variant={sec.canView ? "filled" : "outlined"}
-                    sx={{
-                      fontSize: 11,
-                      fontWeight: 600,
-                      ...(!sec.canView ? { color: "text.secondary", borderColor: "divider" } : {})
-                    }}
-                  />
-                ))}
+              <Box sx={{ display: "flex", flexDirection: "column", gap: 0.75 }}>
+                <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1, alignItems: "center" }}>
+                  <Typography sx={{ fontSize: 12, fontWeight: 700, color: "text.secondary" }}>
+                    Sections:
+                  </Typography>
+                  {summary.sections.map((sec) => (
+                    <Chip
+                      key={sec.sectionId}
+                      size="small"
+                      label={`${sec.sectionName}: ${formatSectionStatus(sec.status)}`}
+                      variant={sec.canView ? "filled" : "outlined"}
+                      sx={{
+                        fontSize: 11,
+                        fontWeight: 600,
+                        ...(!sec.canView ? { color: "text.secondary", borderColor: "divider" } : {})
+                      }}
+                    />
+                  ))}
+                </Box>
+                {/* Closed section detail (design.md §5.3) - who closed it,
+                    when, and the required reason (default "Sample rejected
+                    by <lab>", but freely editable by the closer). */}
+                {summary.sections
+                  .filter((sec) => sec.status === "Closed" && sec.canView)
+                  .map((sec) => (
+                    <Typography key={`closed-${sec.sectionId}`} sx={{ fontSize: 11, color: "text.secondary", pl: 0.5 }}>
+                      {sec.sectionName} closed by {sec.closedByName ?? "—"} on {formatDate(sec.closedAt)}
+                      {sec.closeReason ? ` — ${sec.closeReason}` : ""}
+                    </Typography>
+                  ))}
               </Box>
             )}
 

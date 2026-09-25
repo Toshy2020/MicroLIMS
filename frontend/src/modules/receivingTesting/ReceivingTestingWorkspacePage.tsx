@@ -28,7 +28,7 @@ import { useAuth } from "../../contexts/AuthContext";
 import { tableHeadSx } from "../../theme";
 
 // Receiving Components & Dialogs
-import { SampleRecord, TestOrderSummary as ReceivingTestOrderSummary } from "../receiving/types/receivingTypes";
+import { SampleRecord, SampleCategoryKey, TestOrderSummary as ReceivingTestOrderSummary } from "../receiving/types/receivingTypes";
 import { ReceiveService, TestingWorkspaceFilter, WorkspaceTileCounts } from "../receiving/services/ReceiveService";
 import {
   SampleStatusKpiCards,
@@ -98,7 +98,29 @@ function exportSamplesToCsv(samples: SampleRecord[]) {
   URL.revokeObjectURL(url);
 }
 
-export function ReceivingTestingWorkspacePage() {
+export interface WorkspaceLab {
+  sectionId: number;
+  code: "MICRO" | "FP";
+  name: string;
+}
+
+// FP receiving inside its own workspace is scoped to Product/RM/PM only -
+// Water and After-cleaning for Physicochemical are deferred (design.md
+// §3.2, §11 Q1). Microbiology keeps all six categories it has today.
+const ALLOWED_CATEGORIES_BY_LAB: Record<WorkspaceLab["code"], SampleCategoryKey[]> = {
+  MICRO: ["product", "rm", "pm", "water", "em", "ac"],
+  FP: ["product", "rm", "pm"]
+};
+
+interface Props {
+  // Which laboratory this workspace instance is scoped to - resolved by
+  // LabWorkspaceRoute from the caller's own lab membership. Every list/count
+  // request is narrowed to this section, and a user who isn't a member of
+  // it gets a 403 from the backend rather than another lab's data.
+  lab: WorkspaceLab;
+}
+
+export function ReceivingTestingWorkspacePage({ lab }: Props) {
   const theme = useTheme();
   const { role } = useAuth();
   const [searchParams] = useSearchParams();
@@ -256,7 +278,8 @@ export function ReceivingTestingWorkspacePage() {
     urgency: urgencyFilter,
     fromDate,
     toDate,
-    workloadFilter
+    workloadFilter,
+    labSectionId: lab.sectionId
   };
 
   // The workload tile counts don't depend on the filters or page, so filter
@@ -268,7 +291,7 @@ export function ReceivingTestingWorkspacePage() {
       const currentFilter = filterRef.current;
       const [pagedData, countsData] = await Promise.all([
         ReceiveService.getRecordsPaged(currentFilter),
-        includeCounts ? ReceiveService.getWorkloadCounts() : Promise.resolve(null)
+        includeCounts ? ReceiveService.getWorkloadCounts(lab.sectionId) : Promise.resolve(null)
       ]);
       setRecords(pagedData.items);
       setTotalCount(pagedData.totalCount);
@@ -695,7 +718,7 @@ export function ReceivingTestingWorkspacePage() {
       {/* Header Section */}
       <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", mb: 2, flexWrap: "wrap", gap: 1.5 }}>
         <PageHeader
-          title="Receiving & Testing Workspace"
+          title={`${lab.name} — Workspace`}
           subtitle="Manage incoming samples, assignments, testing progress, review, and laboratory workflow execution from one workspace."
         />
 
@@ -1004,8 +1027,8 @@ export function ReceivingTestingWorkspacePage() {
         open={newSampleDialogOpen}
         onClose={() => setNewSampleDialogOpen(false)}
         onSuccess={handleReceiveSuccess}
-        allowedCategories={["product", "rm", "pm", "water", "em", "ac"]}
-        labMode={{ kind: "choose" }}
+        allowedCategories={ALLOWED_CATEGORIES_BY_LAB[lab.code]}
+        labMode={{ kind: "fixed", sectionId: lab.sectionId }}
       />
 
       {/* 2. Signed Sample Details Correction Dialog */}

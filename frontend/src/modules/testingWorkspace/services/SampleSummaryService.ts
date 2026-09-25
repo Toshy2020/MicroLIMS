@@ -60,5 +60,11 @@ export const SampleSummaryService = {
       selectedTestOrderIds, newSampleAnalystOneId, newSampleAnalystTwoId,
       ...(sectionId !== undefined ? { sectionId } : {})
     });
+  },
+  // Closes the caller's own laboratory's still-open tests after another
+  // lab has already rejected the sample (design.md §5.3) - Section
+  // Head/System Administrator only, enforced server-side.
+  async closeTesting(sampleId: number, sectionId: number, password: string, reason: string): Promise<void> {
+    await apiClient.post(`/samples/${sampleId}/approval/sections/${sectionId}/close`, { password, reason });
   }
 };

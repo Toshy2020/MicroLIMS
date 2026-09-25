@@ -23,7 +23,11 @@ const ReportsPage = lazy(() => import("../pages/Reports").then((m) => ({ default
 const DiscussionsFeedPage = lazy(() => import("../modules/discussions/DiscussionsFeedPage").then((m) => ({ default: m.DiscussionsFeedPage })));
 const DiscussionDetailPage = lazy(() => import("../modules/discussions/DiscussionDetailPage").then((m) => ({ default: m.DiscussionDetailPage })));
 const MessagesPage = lazy(() => import("../modules/messages/MessagesPage").then((m) => ({ default: m.MessagesPage })));
-const ReceivingTestingWorkspacePage = lazy(() => import("../modules/receivingTesting/ReceivingTestingWorkspacePage").then((m) => ({ default: m.ReceivingTestingWorkspacePage })));
+// ReceivingTestingWorkspacePage itself is only ever rendered from inside
+// LabWorkspaceRoute now (it requires a resolved `lab` prop) - that module
+// is the lazy chunk boundary, not the page component directly.
+const LabWorkspaceRoute = lazy(() => import("../modules/receivingTesting/LabWorkspaceRoute").then((m) => ({ default: m.LabWorkspaceRoute })));
+const FirstLabWorkspaceRedirect = lazy(() => import("../modules/receivingTesting/LabWorkspaceRoute").then((m) => ({ default: m.FirstLabWorkspaceRedirect })));
 const ReceivingPage = lazy(() => import("../modules/receiving/ReceivingPage").then((m) => ({ default: m.ReceivingPage })));
 const TrackingBoardPage = lazy(() => import("../modules/receiving/TrackingBoardPage").then((m) => ({ default: m.TrackingBoardPage })));
 const SampleReportPage = lazy(() => import("../modules/testingWorkspace/SampleReportPage").then((m) => ({ default: m.SampleReportPage })));
@@ -102,8 +106,13 @@ export function AppRoutes() {
             <Route path="/messages" element={<MessagesPage />} />
             <Route path="/reports" element={<ReportsPage />} />
 
-            {/* Canonical Unified Receiving & Testing Workspace */}
-            <Route path="/receiving-testing" element={<ReceivingTestingWorkspacePage />} />
+            {/* Lab Workspaces (Task 13a): each laboratory gets its own scoped
+                Receiving & Testing Workspace instance. /receiving-testing has
+                no lab of its own any more - it redirects to the first lab
+                workspace the caller belongs to (Microbiology first). */}
+            <Route path="/microbiology/workspace" element={<LabWorkspaceRoute code="MICRO" />} />
+            <Route path="/physicochemical/workspace" element={<LabWorkspaceRoute code="FP" />} />
+            <Route path="/receiving-testing" element={<FirstLabWorkspaceRedirect />} />
 
             {/* Receiving area: the main receiving desk and the cross-lab
                 tracking board (design.md §3.1, §3.4) - gated on the
@@ -118,6 +127,9 @@ export function AppRoutes() {
             </Route>
 
             {/* Backward-Compatible Query-Preserving Legacy Redirects */}
+            {/* Chains through FirstLabWorkspaceRedirect above rather than
+                pointing at a lab workspace directly - one place decides
+                "first lab the user belongs to". */}
             <Route path="/testing-workspace" element={<LegacyRedirect to="/receiving-testing" />} />
             <Route path="/laboratory-configuration/media" element={<MediaPage />} />
             <Route path="/laboratory-configuration/media-evaluation" element={<MediaEvaluationPage />} />

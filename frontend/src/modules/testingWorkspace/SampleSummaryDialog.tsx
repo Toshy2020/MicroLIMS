@@ -62,6 +62,7 @@ import { pathogenObservationLabel } from "./utils/pathogenObservationLabel";
 import { StandardComparisonCalculationData } from "./StandardComparisonPanel";
 import { PathogenSessionDialog } from "./pathogenSession/PathogenSessionDialog";
 import { UserService, UserRecord } from "../users/services/UserService";
+import { CloseTestingDialog } from "../approval/CloseTestingDialog";
 
 interface Props {
   open: boolean;
@@ -1123,7 +1124,12 @@ function ApprovalSignaturesCard({
   approvableSections,
   approvalSectionId,
   onApprovalSectionChange,
-  effectiveApprovalSectionId
+  effectiveApprovalSectionId,
+  canCloseTesting,
+  closableSections,
+  closingSectionId,
+  onClosingSectionChange,
+  onCloseTestingClick
 }: {
   summary: SampleSummary;
   canReview: boolean;
@@ -1150,6 +1156,11 @@ function ApprovalSignaturesCard({
   approvalSectionId: number | "";
   onApprovalSectionChange: (id: number | "") => void;
   effectiveApprovalSectionId: number | undefined;
+  canCloseTesting: boolean;
+  closableSections: SampleSectionSummaryDetail[];
+  closingSectionId: number | "";
+  onClosingSectionChange: (id: number | "") => void;
+  onCloseTestingClick: () => void;
 }) {
   const theme = useTheme();
   const hasSignatures = summary.signatures.length > 0;
@@ -1497,6 +1508,49 @@ function ApprovalSignaturesCard({
           </Button>
         </Box>
       )}
+
+      {/* Close Testing Action - only once another lab has rejected the
+          sample and this viewer's own lab still has open work (design.md
+          §5.3). Independent of canReview/canApprove: closing is available
+          across InTesting/UnderReview/UnderApproval, not just the last one. */}
+      {canCloseTesting && (
+        <Box sx={{ mt: 2, pt: 2, borderTop: "1px solid", borderColor: "divider" }}>
+          <Typography sx={{ fontWeight: 700, fontSize: 13, mb: 1, color: theme.palette.error.main }}>
+            Close Testing
+          </Typography>
+          <Alert severity="warning" sx={{ fontSize: 11, py: 0.5, mb: 1.5 }}>
+            Another laboratory has rejected this sample. You may close your own laboratory's remaining
+            tests instead of continuing them.
+          </Alert>
+          {closableSections.length > 1 && (
+            <TextField
+              select
+              fullWidth
+              size="small"
+              label="Laboratory Section"
+              required
+              value={closingSectionId}
+              onChange={(e) => onClosingSectionChange(Number(e.target.value))}
+              sx={{ mb: 1.5 }}
+            >
+              {closableSections.map((sec) => (
+                <MenuItem key={sec.sectionId} value={sec.sectionId}>
+                  {sec.sectionName}
+                </MenuItem>
+              ))}
+            </TextField>
+          )}
+          <Button
+            variant="outlined"
+            color="error"
+            fullWidth
+            disabled={closableSections.length > 1 && !closingSectionId}
+            onClick={onCloseTestingClick}
+          >
+            Close Testing
+          </Button>
+        </Box>
+      )}
     </Paper>
   );
 }
@@ -1522,6 +1576,8 @@ export function SampleSummaryDialog({ open, sampleId, onClose }: Props) {
 
   const [reviewSectionId, setReviewSectionId] = useState<number | "">("");
   const [approvalSectionId, setApprovalSectionId] = useState<number | "">("");
+  const [closingSectionId, setClosingSectionId] = useState<number | "">("");
+  const [confirmingClose, setConfirmingClose] = useState(false);
 
   const reviewableSections = useMemo(
     () => (summary?.sections ?? []).filter((s) => s.canView && s.status === "UnderReview"),
@@ -1529,6 +1585,20 @@ export function SampleSummaryDialog({ open, sampleId, onClose }: Props) {
   );
   const approvableSections = useMemo(
     () => (summary?.sections ?? []).filter((s) => s.canView && s.status === "UnderApproval"),
+    [summary?.sections]
+  );
+  // Available only after another lab has rejected the sample (design.md
+  // §5.3) - a lab that itself rejected already shows Status "Rejected",
+  // not one of these open statuses, so it's excluded here automatically.
+  const closableSections = useMemo(
+    () =>
+      (summary?.sections ?? []).filter(
+        (s) => s.canView && (s.status === "InTesting" || s.status === "UnderReview" || s.status === "UnderApproval")
+      ),
+    [summary?.sections]
+  );
+  const rejectingSection = useMemo(
+    () => (summary?.sections ?? []).find((s) => s.status === "Rejected"),
     [summary?.sections]
   );
 
@@ -1559,6 +1629,7 @@ export function SampleSummaryDialog({ open, sampleId, onClose }: Props) {
       setReturningTestOrder(null);
       setReviewSectionId("");
       setApprovalSectionId("");
+      setClosingSectionId("");
       SampleSummaryService.getSummary(sampleId)
         .then((data) => {
           setSummary(data);
@@ -1570,6 +1641,12 @@ export function SampleSummaryDialog({ open, sampleId, onClose }: Props) {
           if (app.length === 1) {
             setApprovalSectionId(app[0].sectionId);
             setCertificateRemarks(app[0].certificateRemarks ?? "");
+          }
+          const closable = (data.sections ?? []).filter(
+            (s) => s.canView && (s.status === "InTesting" || s.status === "UnderReview" || s.status === "UnderApproval")
+          );
+          if (closable.length === 1) {
+            setClosingSectionId(closable[0].sectionId);
           }
         })
         .catch((e) => {
@@ -1602,6 +1679,13 @@ export function SampleSummaryDialog({ open, sampleId, onClose }: Props) {
       .map((t) => t.testOrderId);
     setSelectedTestOrderIds(nonPassing);
   }, [decision, summary, effectiveApprovalSectionId]);
+
+  const handleCloseTestingSuccess = async () => {
+    setConfirmingClose(false);
+    if (!sampleId) return;
+    const updated = await SampleSummaryService.getSummary(sampleId);
+    setSummary(updated);
+  };
 
   const handleReturnConfirm = async (reason?: string) => {
     if (!sampleId || !returningTestOrder) return;
@@ -1643,6 +1727,17 @@ export function SampleSummaryDialog({ open, sampleId, onClose }: Props) {
   const canApprove =
     approvableSections.length > 0 &&
     (role === "SectionHead" || role === "SystemAdministrator");
+  // Close testing (design.md §5.3): another lab already rejected the
+  // sample and the viewer's own lab still has open work. Role-gated here
+  // in addition to the backend's own enforcement, matching the review/
+  // approval buttons above.
+  const canCloseTesting =
+    summary?.overallStatus === "Rejected" &&
+    closableSections.length > 0 &&
+    (role === "SectionHead" || role === "SystemAdministrator");
+  const effectiveClosingSectionId =
+    closableSections.length === 1 ? closableSections[0].sectionId : closingSectionId !== "" ? Number(closingSectionId) : undefined;
+  const closingSection = closableSections.find((s) => s.sectionId === effectiveClosingSectionId);
 
   const handleExport = async (format: "pdf") => {
     if (!sampleId || !summary) return;
@@ -1865,6 +1960,11 @@ export function SampleSummaryDialog({ open, sampleId, onClose }: Props) {
               approvalSectionId={approvalSectionId}
               onApprovalSectionChange={handleApprovalSectionChange}
               effectiveApprovalSectionId={effectiveApprovalSectionId}
+              canCloseTesting={!!canCloseTesting}
+              closableSections={closableSections}
+              closingSectionId={closingSectionId}
+              onClosingSectionChange={setClosingSectionId}
+              onCloseTestingClick={() => setConfirmingClose(true)}
             />
 
             {/* 4. Full-Width Open Printable Report / View COA Buttons */}
@@ -1963,6 +2063,17 @@ export function SampleSummaryDialog({ open, sampleId, onClose }: Props) {
           onConfirm={handleDecisionConfirm}
         />
       )}
+
+      {/* Close Testing Dialog (design.md §5.3) */}
+      <CloseTestingDialog
+        open={confirmingClose}
+        sampleId={sampleId}
+        sectionId={effectiveClosingSectionId ?? null}
+        sectionName={closingSection?.sectionName}
+        rejectingLabName={rejectingSection?.sectionName}
+        onClose={() => setConfirmingClose(false)}
+        onSuccess={handleCloseTestingSuccess}
+      />
 
       {/* Pathogen Testing Session Workspace Dialog */}
       <PathogenSessionDialog

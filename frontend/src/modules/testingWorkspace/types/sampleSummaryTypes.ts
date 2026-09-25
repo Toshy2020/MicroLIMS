@@ -138,6 +138,11 @@ export type LaboratorySectionStatus =
   | "Rejected"
   | "RetestRequested"
   | "Cancelled"
+  // A lab whose own open tests were closed via CloseTestingDialog after
+  // another lab rejected the sample (design.md §5.3) - the backend reports
+  // this section's Status as "Closed" rather than "Cancelled", which is
+  // reserved for a single superseded TestOrder inside a still-open section.
+  | "Closed"
   | "Voided";
 
 export interface SampleSectionSummaryDetail {
@@ -223,6 +228,12 @@ export interface SampleSummary {
   signatures: SignatureTrailItem[];
   sections?: SampleSectionSummaryDetail[];
   allSectionsVisible?: boolean;
+  // SampleSectionRollup.Overall(sample) from the backend (Task 6) -
+  // "Rejected" | "InProgress" | "RetestRequested" | "Approved": what this
+  // sample reads as across every laboratory once any one of them rejects,
+  // distinct from `status` which only follows the labs still open. Drives
+  // CloseTestingDialog's visibility; Task 14 may extend this type further.
+  overallStatus?: string;
 }
 
 export interface ElementalAssayElementDetail {

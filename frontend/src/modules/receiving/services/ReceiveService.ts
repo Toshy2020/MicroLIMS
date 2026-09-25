@@ -22,6 +22,10 @@ export interface TestingWorkspaceFilter {
   workloadFilter?: string | null;
   page?: number;
   pageSize?: number;
+  // Narrows the page to one laboratory's own test orders - set by a lab
+  // workspace (ReceivingTestingWorkspacePage's `lab` prop); the backend
+  // 403s a caller who isn't a member of that section.
+  labSectionId?: number | null;
 }
 
 export interface PagedResult<T> {
@@ -86,13 +90,16 @@ export const ReceiveService = {
     if (filter.workloadFilter) params.workloadFilter = filter.workloadFilter;
     if (filter.page != null) params.page = filter.page;
     if (filter.pageSize != null) params.pageSize = filter.pageSize;
+    if (filter.labSectionId != null) params.labSectionId = filter.labSectionId;
 
     const res = await apiClient.get("/testorders/page", { params });
     return res.data.data;
   },
 
-  async getWorkloadCounts(): Promise<WorkspaceTileCounts> {
-    const res = await apiClient.get("/testorders/counts");
+  async getWorkloadCounts(labSectionId?: number | null): Promise<WorkspaceTileCounts> {
+    const res = await apiClient.get("/testorders/counts", {
+      params: labSectionId != null ? { labSectionId } : undefined
+    });
     return res.data.data;
   },
 

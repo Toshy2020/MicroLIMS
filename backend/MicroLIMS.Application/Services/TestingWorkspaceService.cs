@@ -41,6 +41,7 @@ public class TestingWorkspaceService : ITestWorkspaceService
             .Include(s => s.Machine)
             .Include(s => s.CauseOfTesting)
             .Include(s => s.TestOrders)
+            .Include(s => s.SectionSignoffs)
             .OrderByDescending(s => s.ReceivedAt)
             .ToListAsync();
 
@@ -267,6 +268,7 @@ public class TestingWorkspaceService : ITestWorkspaceService
             .Include(s => s.Machine)
             .Include(s => s.CauseOfTesting)
             .Include(s => s.TestOrders)
+            .Include(s => s.SectionSignoffs)
             .ToListAsync();
 
         var dtos = await MapSamplesToDtosAsync(pagedSamples, scope);
@@ -323,6 +325,29 @@ public class TestingWorkspaceService : ITestWorkspaceService
             Overdue = overdue,
             Mine = mine,
             Unassigned = unassigned
+        };
+    }
+
+    // Sample.Status rolls up the least advanced lab, so a mixed sample reads
+    // InTesting while Microbiology tests - even with Physicochemical already
+    // under approval. When the tests in view (already narrowed to the
+    // workspace's lab) belong to one lab that has moved past testing, show
+    // that lab's own stage instead.
+    private static SampleStatus LabStatus(Sample s)
+    {
+        var sectionIds = s.TestOrders.Select(t => t.SectionId).Distinct().ToList();
+        if (sectionIds.Count != 1) return s.Status;
+        var signoff = s.SectionSignoffs.FirstOrDefault(x => x.SectionId == sectionIds[0]);
+        return signoff?.Status switch
+        {
+            SectionSignoffStatus.UnderReview => SampleStatus.UnderReview,
+            SectionSignoffStatus.UnderApproval => SampleStatus.UnderApproval,
+            SectionSignoffStatus.Approved => SampleStatus.Approved,
+            SectionSignoffStatus.Rejected => SampleStatus.Rejected,
+            SectionSignoffStatus.RetestRequested => SampleStatus.RetestRequested,
+            SectionSignoffStatus.Cancelled => SampleStatus.Cancelled,
+            SectionSignoffStatus.Voided => SampleStatus.Voided,
+            _ => s.Status
         };
     }
 
@@ -425,6 +450,7 @@ public class TestingWorkspaceService : ITestWorkspaceService
             .Include(s => s.Machine)
             .Include(s => s.CauseOfTesting)
             .Include(s => s.TestOrders)
+            .Include(s => s.SectionSignoffs)
             .FirstOrDefaultAsync(s => s.Id == sampleId);
         if (sample is null) return null;
 
@@ -549,7 +575,7 @@ public class TestingWorkspaceService : ITestWorkspaceService
             CauseOfTestingId = s.CauseOfTestingId,
             BatchNumber = s.BatchNumber,
             ControlNumber = s.ControlNumber,
-            Status = s.Status.ToString(),
+            Status = LabStatus(s).ToString(),
             // TestOrders are already narrowed to the labs in view: when none of
             // them waits for preparation (Physicochemical only), it is not
             // pending work here even though the sample's micro tests need it.

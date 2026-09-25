@@ -276,4 +276,42 @@ public class LabScopeTests
         var bothRow = Assert.Single((await service.GetActiveSamplesAsync(new TestingWorkspaceFilterDto(), userId)).Items);
         Assert.Equal("NeedsPreparation", bothRow.PreparationStatus);
     }
+
+    // Sample.Status rolls up the least advanced lab (InTesting while Micro
+    // tests). A lab workspace must show its own stage: Physicochemical
+    // under approval reads UnderApproval there, while Micro still testing.
+    [Fact]
+    public async Task MixedSample_LabView_ReportsThatLabsSectionStatus()
+    {
+        await using var db = NewDb();
+        var micro = TestServiceFactory.EnsureMicroSection(db);
+        var fp = new DocumentSection { Name = "Finished Product Laboratory", Code = "FP", DepartmentId = micro.DepartmentId, IsActive = true };
+        db.DocumentSections.Add(fp);
+        await db.SaveChangesAsync();
+        var userId = await SeedUserAsync(db, 1, RoleType.Analyst, micro.DepartmentId, null);
+
+        var cause = new CauseOfTesting { Name = "Routine", IsActive = true };
+        var sample = new Sample { Category = SampleCategory.FinishedProduct, ControlNumber = "CTRL-LAB-1", Status = SampleStatus.InTesting, PreparationStatus = SamplePreparationStatus.Ready, CauseOfTesting = cause };
+        sample.TestOrders.AddRange(new[]
+        {
+            new TestOrder { SectionId = micro.Id, TestCode = "TAMC", Status = ApprovalStatus.Pending, CurrentStep = WorkflowStep.Waiting },
+            new TestOrder { SectionId = fp.Id, TestCode = "ASSAY", Status = ApprovalStatus.Reviewed, CurrentStep = WorkflowStep.Reviewed }
+        });
+        sample.SectionSignoffs.Add(new SampleSectionSignoff { SectionId = fp.Id, Status = SectionSignoffStatus.UnderApproval });
+        db.Samples.Add(sample);
+        await db.SaveChangesAsync();
+
+        var service = TestServiceFactory.TestingWorkspace(db, new UserSectionScopeService(db));
+
+        var fpRow = Assert.Single((await service.GetActiveSamplesAsync(new TestingWorkspaceFilterDto { LabSectionId = fp.Id }, userId)).Items);
+        Assert.Equal("UnderApproval", fpRow.Status);
+        Assert.Equal("UnderApproval", (await service.GetSampleAsync(sample.Id, userId, fp.Id))!.Status);
+
+        var microRow = Assert.Single((await service.GetActiveSamplesAsync(new TestingWorkspaceFilterDto { LabSectionId = micro.Id }, userId)).Items);
+        Assert.Equal("InTesting", microRow.Status);
+
+        // Both labs in view: the rolled-up sample status.
+        var bothRow = Assert.Single((await service.GetActiveSamplesAsync(new TestingWorkspaceFilterDto(), userId)).Items);
+        Assert.Equal("InTesting", bothRow.Status);
+    }
 }

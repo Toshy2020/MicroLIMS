@@ -73,7 +73,7 @@ public class TestingWorkspaceService : ITestWorkspaceService
             var wf = filter.WorkloadFilter.Trim();
             if (string.Equals(wf, "needsPreparation", StringComparison.OrdinalIgnoreCase))
             {
-                query = query.Where(SampleWorkflowQueues.NeedsPreparation);
+                query = query.Where(SampleWorkflowQueues.NeedsPreparationIn(scope));
             }
             else if (string.Equals(wf, "readyToRead", StringComparison.OrdinalIgnoreCase))
             {
@@ -297,7 +297,7 @@ public class TestingWorkspaceService : ITestWorkspaceService
         }
 
         var needsPrep = await baseQuery
-            .CountAsync(SampleWorkflowQueues.NeedsPreparation);
+            .CountAsync(SampleWorkflowQueues.NeedsPreparationIn(scope));
 
         var readyToRead = await baseQuery
             .CountAsync(SampleWorkflowQueues.HasTestReadyToRead(now, scope));
@@ -550,7 +550,14 @@ public class TestingWorkspaceService : ITestWorkspaceService
             BatchNumber = s.BatchNumber,
             ControlNumber = s.ControlNumber,
             Status = s.Status.ToString(),
-            PreparationStatus = s.PreparationStatus.ToString(),
+            // TestOrders are already narrowed to the labs in view: when none of
+            // them waits for preparation (Physicochemical only), it is not
+            // pending work here even though the sample's micro tests need it.
+            PreparationStatus = (s.PreparationStatus == SamplePreparationStatus.NeedsPreparation
+                    && s.TestOrders.Count > 0
+                    && s.TestOrders.All(t => noPreparationSectionIds?.Contains(t.SectionId) ?? false)
+                ? SamplePreparationStatus.Ready
+                : s.PreparationStatus).ToString(),
             ReceivedAt = s.ReceivedAt,
             SampleQuantity = s.SampleQuantity,
             SampledBy = s.SampledBy,

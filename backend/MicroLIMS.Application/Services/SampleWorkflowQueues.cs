@@ -32,6 +32,19 @@ public static class SampleWorkflowQueues
     public static readonly Expression<Func<Sample, bool>> NeedsPreparation = s =>
         s.PreparationStatus == SamplePreparationStatus.NeedsPreparation && !ClosedSampleStatuses.Contains(s.Status);
 
+    // Preparation is only pending work for a lab whose tests wait for it:
+    // in a Physicochemical-only view a mixed sample awaiting Microbiology
+    // preparation is not in the queue. No scope (both labs) = the plain rule.
+    public static Expression<Func<Sample, bool>> NeedsPreparationIn(IReadOnlyCollection<int>? sectionIds)
+    {
+        if (sectionIds == null) return NeedsPreparation;
+        return s => s.PreparationStatus == SamplePreparationStatus.NeedsPreparation
+            && !ClosedSampleStatuses.Contains(s.Status)
+            && s.TestOrders.Any(t => !t.IsSuperseded
+                && sectionIds.Contains(t.SectionId)
+                && t.Section!.Code != MicroLIMS.Application.Workflows.PreparationRules.NoPreparationSectionCode);
+    }
+
     public static Expression<Func<Sample, bool>> HasTestInSections(IReadOnlyCollection<int> sectionIds) =>
         s => s.TestOrders.Any(t => !t.IsSuperseded && sectionIds.Contains(t.SectionId));
 

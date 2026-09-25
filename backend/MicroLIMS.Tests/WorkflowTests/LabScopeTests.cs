@@ -236,4 +236,44 @@ public class LabScopeTests
         Assert.NotNull(dto);
         Assert.Equal(2, dto!.AssignedTests.Count);
     }
+
+    // Preparation is a Microbiology step. A mixed sample still waiting for
+    // it must not show "Needs Preparation" in the Physicochemical workspace
+    // (that lab's tests do not wait for it), nor count in its tile or filter.
+    [Fact]
+    public async Task MixedSampleNeedsPreparation_PhysicochemicalView_ReportsReady_MicroViewStillNeedsIt()
+    {
+        await using var db = NewDb();
+        var micro = TestServiceFactory.EnsureMicroSection(db);
+        var fp = new DocumentSection { Name = "Finished Product Laboratory", Code = "FP", DepartmentId = micro.DepartmentId, IsActive = true };
+        db.DocumentSections.Add(fp);
+        await db.SaveChangesAsync();
+        var userId = await SeedUserAsync(db, 1, RoleType.Analyst, micro.DepartmentId, null);
+
+        var cause = new CauseOfTesting { Name = "Routine", IsActive = true };
+        var sample = new Sample { Category = SampleCategory.FinishedProduct, ControlNumber = "CTRL-PREP-1", Status = SampleStatus.InTesting, PreparationStatus = SamplePreparationStatus.NeedsPreparation, CauseOfTesting = cause };
+        sample.TestOrders.AddRange(new[]
+        {
+            new TestOrder { SectionId = micro.Id, TestCode = "TAMC", Status = ApprovalStatus.Pending, CurrentStep = WorkflowStep.Waiting },
+            new TestOrder { SectionId = fp.Id, TestCode = "ASSAY", Status = ApprovalStatus.Pending, CurrentStep = WorkflowStep.Waiting }
+        });
+        db.Samples.Add(sample);
+        await db.SaveChangesAsync();
+
+        var service = TestServiceFactory.TestingWorkspace(db, new UserSectionScopeService(db));
+
+        var fpRow = Assert.Single((await service.GetActiveSamplesAsync(new TestingWorkspaceFilterDto { LabSectionId = fp.Id }, userId)).Items);
+        Assert.Equal("Ready", fpRow.PreparationStatus);
+        Assert.Empty((await service.GetActiveSamplesAsync(new TestingWorkspaceFilterDto { LabSectionId = fp.Id, WorkloadFilter = "needsPreparation" }, userId)).Items);
+        Assert.Equal(0, (await service.GetWorkloadCountsAsync(userId, fp.Id)).NeedsPreparation);
+
+        var microRow = Assert.Single((await service.GetActiveSamplesAsync(new TestingWorkspaceFilterDto { LabSectionId = micro.Id }, userId)).Items);
+        Assert.Equal("NeedsPreparation", microRow.PreparationStatus);
+        Assert.Single((await service.GetActiveSamplesAsync(new TestingWorkspaceFilterDto { LabSectionId = micro.Id, WorkloadFilter = "needsPreparation" }, userId)).Items);
+        Assert.Equal(1, (await service.GetWorkloadCountsAsync(userId, micro.Id)).NeedsPreparation);
+
+        // Both labs in view (main Receiving): the sample still needs preparation.
+        var bothRow = Assert.Single((await service.GetActiveSamplesAsync(new TestingWorkspaceFilterDto(), userId)).Items);
+        Assert.Equal("NeedsPreparation", bothRow.PreparationStatus);
+    }
 }

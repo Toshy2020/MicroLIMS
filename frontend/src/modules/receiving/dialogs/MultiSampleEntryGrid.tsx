@@ -16,10 +16,8 @@ import {
   Paper,
   Tooltip,
   Checkbox,
-  FormControl,
   FormControlLabel,
   FormGroup,
-  FormHelperText,
   CircularProgress,
   useTheme
 } from "@mui/material";
@@ -367,31 +365,24 @@ export function MultiSampleEntryGrid({
                     {/* Production Stage (for Product only) */}
                     {category === "product" && (
                       <TableCell>
-                        <FormControl size="small" fullWidth error={Boolean(errors.productionStage)}>
-                          <Select
-                            size="small"
-                            fullWidth
-                            displayEmpty
-                            value={row.productionStage ?? ""}
-                            error={Boolean(errors.productionStage)}
-                            onChange={(e) => onChangeRow(idx, "productionStage", e.target.value)}
-                            sx={{ fontSize: 12 }}
-                          >
-                            <MenuItem value="">
-                              <em style={{ color: theme.palette.text.secondary }}>Stage</em>
+                        <Select
+                          size="small"
+                          fullWidth
+                          displayEmpty
+                          value={row.productionStage ?? ""}
+                          error={Boolean(errors.productionStage)}
+                          onChange={(e) => onChangeRow(idx, "productionStage", e.target.value)}
+                          sx={{ fontSize: 12 }}
+                        >
+                          <MenuItem value="">
+                            <em style={{ color: theme.palette.text.secondary }}>Stage</em>
+                          </MenuItem>
+                          {masterData.productionStages.map((s) => (
+                            <MenuItem key={s.id} value={s.name}>
+                              {s.name}
                             </MenuItem>
-                            {masterData.productionStages.map((s) => (
-                              <MenuItem key={s.id} value={s.name}>
-                                {s.name}
-                              </MenuItem>
-                            ))}
-                          </Select>
-                          {errors.productionStage && (
-                            <FormHelperText sx={{ fontSize: 10.5, mx: 0.5, mt: 0.25 }}>
-                              Required
-                            </FormHelperText>
-                          )}
-                        </FormControl>
+                          ))}
+                        </Select>
                       </TableCell>
                     )}
 

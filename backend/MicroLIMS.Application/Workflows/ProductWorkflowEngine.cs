@@ -54,19 +54,20 @@ public class ProductWorkflowEngine : IProductWorkflowEngine
                 $"Item '{item.Name}' has no assigned tests. Configuration must be completed " +
                 "by the Section Head before samples can be received.");
 
-        // FP-only, mirroring the string capture above: resolve the chosen
-        // name to its ProductionStage row so Sample.ProductionStageId can
-        // be set alongside the historical string. An unrecognised name
-        // (renamed/deleted stage, typo) leaves the FK null rather than
-        // failing the receipt - the string still records what was chosen.
+        // FP-only: a Finished Product sample must name a known production
+        // stage - stage-dependent tests (replicate counts) resolve it by
+        // ProductionStageId, and a sample without one can never run them.
         int? productionStageId = null;
-        if (item.Category == SampleCategory.FinishedProduct && !string.IsNullOrWhiteSpace(request.ProductionStage))
+        if (item.Category == SampleCategory.FinishedProduct)
         {
+            if (string.IsNullOrWhiteSpace(request.ProductionStage))
+                throw new InvalidOperationException("Production stage is required for a Finished Product sample.");
             var stageName = request.ProductionStage.Trim();
             productionStageId = await _db.ProductionStages
                 .Where(p => p.Name.ToLower() == stageName.ToLower())
                 .Select(p => (int?)p.Id)
-                .FirstOrDefaultAsync();
+                .FirstOrDefaultAsync()
+                ?? throw new InvalidOperationException($"Production stage '{stageName}' is not a known stage.");
         }
 
         var sample = new Sample

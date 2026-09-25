@@ -4,6 +4,7 @@ using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Application.Services;
 using MicroLIMS.Application.Workflows;
 using MicroLIMS.Domain.Entities;
+using MicroLIMS.Domain.Enums;
 using MicroLIMS.Infrastructure.Notifications;
 using MicroLIMS.Infrastructure.Pdf;
 using MicroLIMS.Infrastructure.Storage;
@@ -188,6 +189,20 @@ public static class TestServiceFactory
             logger ?? NullLogger<CalibrationRunService>.Instance,
             clock);
 
+
+    // Finished Product receipts and corrections require a known production
+    // stage (by name, case-insensitive) - fixtures seed the one they use.
+    public static ProductionStage EnsureProductionStage(MicroLimsDbContext db, string name = "F.P")
+    {
+        var stage = db.ProductionStages.FirstOrDefault(p => p.Name == name);
+        if (stage == null)
+        {
+            stage = new ProductionStage { Name = name, Role = ProductionStageRole.Finished };
+            db.ProductionStages.Add(stage);
+            db.SaveChanges();
+        }
+        return stage;
+    }
 
     public static DocumentSection EnsureMicroSection(MicroLimsDbContext db)
     {

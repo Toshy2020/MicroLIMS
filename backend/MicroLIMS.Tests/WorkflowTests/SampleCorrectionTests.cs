@@ -71,10 +71,13 @@ public class SampleCorrectionTests
         var cause = await SeedCauseAsync(db, "Routine");
         var item = await SeedItemAsync(db, "Paracetamol 500", SampleCategory.FinishedProduct, "TAMC", "TYMC");
         var section = TestServiceFactory.EnsureMicroSection(db);
+        var stage = TestServiceFactory.EnsureProductionStage(db, "Bulk");
 
         var sample = new Sample
         {
             ReferenceNumber = "FP0926001",
+            ProductionStage = stage.Name,
+            ProductionStageId = stage.Id,
             Category = SampleCategory.FinishedProduct,
             ItemId = item.Id,
             CauseOfTestingId = cause.Id,
@@ -110,18 +113,19 @@ public class SampleCorrectionTests
     {
         await using var db = NewDb();
         var (sample, signer, _) = await SeedProductAsync(db);
-        var fp = new ProductionStage { Name = "F.P", Role = ProductionStageRole.Other };
-        var bulk = new ProductionStage { Name = "Bulk", Role = ProductionStageRole.Other };
-        db.ProductionStages.AddRange(fp, bulk);
-        await db.SaveChangesAsync();
+        var fp = TestServiceFactory.EnsureProductionStage(db, "F.P");
         var service = TestServiceFactory.SampleCorrection(db);
 
         await service.CorrectAsync(sample.Id, AsStored(sample) with { ProductionStage = "f.p" }, "Stage missed at receipt", Password, signer.Id, null);
         Assert.Equal(fp.Id, (await db.Samples.AsNoTracking().FirstAsync(s => s.Id == sample.Id)).ProductionStageId);
 
+        // A Finished Product sample needs a known stage: blank or unknown is refused.
         var current = await db.Samples.AsNoTracking().FirstAsync(s => s.Id == sample.Id);
-        await service.CorrectAsync(sample.Id, AsStored(current) with { ProductionStage = null }, "No stage after all", Password, signer.Id, null);
-        Assert.Null((await db.Samples.AsNoTracking().FirstAsync(s => s.Id == sample.Id)).ProductionStageId);
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            service.CorrectAsync(sample.Id, AsStored(current) with { ProductionStage = null }, "No stage after all", Password, signer.Id, null));
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            service.CorrectAsync(sample.Id, AsStored(current) with { ProductionStage = "Typo" }, "Wrong stage", Password, signer.Id, null));
+        Assert.Equal(fp.Id, (await db.Samples.AsNoTracking().FirstAsync(s => s.Id == sample.Id)).ProductionStageId);
     }
 
     [Fact]

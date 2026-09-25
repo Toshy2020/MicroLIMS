@@ -40,6 +40,7 @@ public class LabTargetedReceiptTests
         var db = NewDb();
         var micro = TestServiceFactory.EnsureMicroSection(db);
         var fp = EnsureFpSection(db);
+        TestServiceFactory.EnsureProductionStage(db);
 
         db.TestDefinitions.Add(new TestDefinition { Code = "TAMC", DisplayName = "Total Aerobic Microbial Count", SectionId = micro.Id });
         db.TestDefinitions.Add(new TestDefinition { Code = "ASSAY", DisplayName = "Assay", SectionId = fp.Id });
@@ -54,7 +55,7 @@ public class LabTargetedReceiptTests
     }
 
     private static ItemBasedReceiveRequest Request(int itemId, int[]? targets) =>
-        new(itemId, 1, "10 units", "Analyst", "LOT-1", "CTRL-1", DateTime.UtcNow, DateTime.UtcNow.AddYears(1), null, 1, targets);
+        new(itemId, 1, "10 units", "Analyst", "LOT-1", "CTRL-1", DateTime.UtcNow, DateTime.UtcNow.AddYears(1), "F.P", 1, targets);
 
     // ---- ProductWorkflowEngine.ReceiveAsync respects TargetSectionIds ----
 
@@ -88,6 +89,7 @@ public class LabTargetedReceiptTests
         var db = NewDb();
         var micro = TestServiceFactory.EnsureMicroSection(db);
         var fp = EnsureFpSection(db);
+        TestServiceFactory.EnsureProductionStage(db);
         db.TestDefinitions.Add(new TestDefinition { Code = "ASSAY", DisplayName = "Assay", SectionId = fp.Id });
 
         var item = new Item { Name = "Tablet", Code = "TAB-02", Category = SampleCategory.FinishedProduct, IsActive = true };

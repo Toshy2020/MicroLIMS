@@ -639,6 +639,7 @@ public class CountTestWorkflowTests
         db.Items.Add(item);
         await db.SaveChangesAsync();
 
+        TestServiceFactory.EnsureProductionStage(db, "Bulk");
         var productEngine = new ProductWorkflowEngine(db, new ReferenceNumberGenerator(db));
         var sample = await productEngine.ReceiveAsync(new ItemBasedReceiveRequest(
             item.Id, 1, "100g", "Analyst", "LOT-99", "CTRL-99", DateTime.UtcNow, DateTime.UtcNow.AddYears(2), "Bulk", 1));

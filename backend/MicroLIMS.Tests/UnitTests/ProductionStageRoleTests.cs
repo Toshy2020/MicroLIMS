@@ -146,18 +146,18 @@ public class ProductionStageRoleTests
     }
 
     [Fact]
-    public async Task ReceiveAsync_FinishedProduct_UnrecognisedStageName_LeavesFKNull_ButStillReceives()
+    public async Task ReceiveAsync_FinishedProduct_UnknownOrBlankStage_IsRefused()
     {
         using var db = NewDb();
         db.ProductionStages.Add(new ProductionStage { Name = "F.P", Role = ProductionStageRole.Finished });
         var item = await SeedFpItemAsync(db);
 
         var engine = new ProductWorkflowEngine(db, new ReferenceNumberGenerator(db));
-        var sample = await engine.ReceiveAsync(new ItemBasedReceiveRequest(
-            item.Id, 1, "10 units", "Analyst", "LOT-1", "CTRL-1", DateTime.UtcNow, DateTime.UtcNow.AddYears(1), "Some Renamed Stage", 1));
-
-        Assert.Equal("Some Renamed Stage", sample.ProductionStage);
-        Assert.Null(sample.ProductionStageId);
+        await Assert.ThrowsAsync<InvalidOperationException>(() => engine.ReceiveAsync(new ItemBasedReceiveRequest(
+            item.Id, 1, "10 units", "Analyst", "LOT-1", "CTRL-1", DateTime.UtcNow, DateTime.UtcNow.AddYears(1), "Some Renamed Stage", 1)));
+        await Assert.ThrowsAsync<InvalidOperationException>(() => engine.ReceiveAsync(new ItemBasedReceiveRequest(
+            item.Id, 1, "10 units", "Analyst", "LOT-1", "CTRL-1", DateTime.UtcNow, DateTime.UtcNow.AddYears(1), "  ", 1)));
+        Assert.Empty(db.Samples);
     }
 
     [Fact]

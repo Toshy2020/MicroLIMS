@@ -32,9 +32,12 @@ public class FpPreparationRuleTests
         return item;
     }
 
-    private static Task<Sample> ReceiveAsync(MicroLimsDbContext db, Item item) =>
-        new ProductWorkflowEngine(db, new ReferenceNumberGenerator(db)).ReceiveAsync(new ItemBasedReceiveRequest(
+    private static Task<Sample> ReceiveAsync(MicroLimsDbContext db, Item item)
+    {
+        TestServiceFactory.EnsureProductionStage(db, "Bulk");
+        return new ProductWorkflowEngine(db, new ReferenceNumberGenerator(db)).ReceiveAsync(new ItemBasedReceiveRequest(
             item.Id, 1, "100g", "Analyst", "LOT-1", "CTRL-1", DateTime.UtcNow, DateTime.UtcNow.AddYears(2), "Bulk", 1));
+    }
 
     [Fact]
     public async Task Receive_OnlyFpTests_SampleIsReadyWithoutPreparation()

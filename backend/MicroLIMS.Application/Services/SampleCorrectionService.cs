@@ -124,13 +124,14 @@ public class SampleCorrectionService
             Track("Sample Quantity", Optional(sample.SampleQuantity), Optional(request.SampleQuantity), v => v, v => sample.SampleQuantity = v);
             if (category == SampleCategory.FinishedProduct)
             {
-                // Resolved as at receipt: stage-dependent tests read the id,
-                // so a corrected name must carry it (null when unrecognised).
-                var stageName = Optional(request.ProductionStage);
-                int? stageId = stageName is null ? null : await _db.ProductionStages
+                // Required and resolved as at receipt: stage-dependent tests
+                // read the id, so a corrected name must carry it.
+                var stageName = Required(request.ProductionStage, "Production stage");
+                int? stageId = await _db.ProductionStages
                     .Where(p => p.Name.ToLower() == stageName.ToLower())
                     .Select(p => (int?)p.Id)
-                    .FirstOrDefaultAsync();
+                    .FirstOrDefaultAsync()
+                    ?? throw new InvalidOperationException($"Production stage '{stageName}' is not a known stage.");
                 Track("Production Stage", Optional(sample.ProductionStage), stageName, v => v, v =>
                 {
                     sample.ProductionStage = v;

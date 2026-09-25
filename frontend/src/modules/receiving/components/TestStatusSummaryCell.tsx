@@ -57,9 +57,8 @@ function getSummaryText(tests: TestOrderSummary[], preparationStatus: string, sa
   const inProgress = tests.filter(
     (t) => t.status === "InProgress" || t.status === "Running" || t.status === "Incubating"
   ).length;
-  const underReview = tests.filter(
-    (t) => t.status === "UnderReview" || t.status === "Reviewed"
-  ).length;
+  const underReview = tests.filter((t) => t.status === "UnderReview").length;
+  const underApproval = tests.filter((t) => t.status === "Reviewed").length;
   const resultEntered = tests.filter((t) => t.status === "ResultEntered").length;
   const rejected = tests.filter((t) => t.status === "Rejected").length;
   const waiting = tests.filter((t) => t.status === "Waiting" || t.status === "NotStarted").length;
@@ -72,12 +71,17 @@ function getSummaryText(tests: TestOrderSummary[], preparationStatus: string, sa
     return { text: "Not Started", tone: "pending", isDirectAction: false };
   }
 
+  if (underApproval === total) {
+    return { text: "Under Approval", tone: "purple", isDirectAction: true };
+  }
+
   if (underReview === total) {
     return { text: "Under Review", tone: "purple", isDirectAction: true };
   }
 
   const parts: string[] = [];
   if (underReview > 0) parts.push(`${underReview} Under Review`);
+  if (underApproval > 0) parts.push(`${underApproval} Under Approval`);
   if (inProgress > 0) parts.push(`${inProgress} In Progress`);
   if (resultEntered > 0) parts.push(`${resultEntered} Result Entered`);
   if (approved > 0 && parts.length === 0) parts.push(`${approved} / ${total} Approved`);

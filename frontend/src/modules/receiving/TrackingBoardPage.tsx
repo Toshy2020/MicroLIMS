@@ -49,6 +49,10 @@ const LAB_OPTIONS = [
   { value: String(FP_SECTION_ID), label: "Physicochemical Laboratory" }
 ];
 
+const OVERALL_STATUS_LABELS: Record<string, string> = Object.fromEntries(
+  OVERALL_OPTIONS.filter((o) => o.value !== "ALL").map((o) => [o.value, o.label])
+);
+
 function overallChipColor(status: string): "error" | "success" | "info" | "default" {
   if (status === "Rejected") return "error";
   if (status === "Approved") return "success";
@@ -60,12 +64,13 @@ function LabStageCell({ row, sectionId }: { row: TrackingRow; sectionId: number 
   const theme = useTheme();
   const lab = row.labs.find((l) => l.sectionId === sectionId);
   if (!lab) {
+    const neutral = theme.custom.status.pending;
     return (
       <Chip
         size="small"
         label="Not requested"
         variant="outlined"
-        sx={{ fontSize: 11, color: "text.disabled", borderColor: "divider" }}
+        sx={{ fontSize: 11, color: neutral.text, borderColor: neutral.border }}
       />
     );
   }
@@ -295,7 +300,7 @@ export function TrackingBoardPage() {
                         {formatReceivedDate(row.receivedAt)}
                       </TableCell>
                       <TableCell>
-                        <Chip size="small" label={row.overallStatus} color={overallChipColor(row.overallStatus)} sx={{ fontSize: 11, fontWeight: 700 }} />
+                        <Chip size="small" label={OVERALL_STATUS_LABELS[row.overallStatus] || row.overallStatus} color={overallChipColor(row.overallStatus)} sx={{ fontSize: 11, fontWeight: 700 }} />
                       </TableCell>
                       <TableCell>
                         <LabStageCell row={row} sectionId={MICRO_SECTION_ID} />

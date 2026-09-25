@@ -59,7 +59,7 @@ const SAMPLE_STATUS_MAP: Record<string, { label: string; tone: StatusTone }> = {
   Received: { label: "Received", tone: "pending" },
   InTesting: { label: "Under Testing", tone: "info" },
   UnderReview: { label: "Pending Review", tone: "action" },
-  UnderApproval: { label: "Pending Review", tone: "action" },
+  UnderApproval: { label: "Pending Approval", tone: "action" },
   PendingReview: { label: "Pending Review", tone: "action" },
   Approved: { label: "Approved", tone: "notDetected" },
   Rejected: { label: "Rejected", tone: "detected" },

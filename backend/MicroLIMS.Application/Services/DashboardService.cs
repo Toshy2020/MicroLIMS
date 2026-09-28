@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
-using MicroLIMS.Persistence.DbContext;
+using MicroLIMS.Application.Abstractions.Persistence;
 
 namespace MicroLIMS.Application.Services;
 
@@ -159,10 +159,10 @@ public class DashboardService
     // not a filtered report).
     private static readonly DateTime Epoch = new(2000, 1, 1, 0, 0, 0, DateTimeKind.Utc);
 
-    private readonly MicroLimsDbContext _db;
+    private readonly IMicroLimsDbContext _db;
     private readonly KpiService _kpiService;
 
-    public DashboardService(MicroLimsDbContext db, KpiService kpiService)
+    public DashboardService(IMicroLimsDbContext db, KpiService kpiService)
     {
         _db = db;
         _kpiService = kpiService;

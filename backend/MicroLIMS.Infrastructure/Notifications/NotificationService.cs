@@ -1,3 +1,4 @@
+using MicroLIMS.Application.Abstractions.Notifications;
 using System.Collections.Concurrent;
 using System.Threading.Channels;
 

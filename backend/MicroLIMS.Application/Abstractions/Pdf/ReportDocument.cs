@@ -1,4 +1,4 @@
-namespace MicroLIMS.Infrastructure.Pdf;
+namespace MicroLIMS.Application.Abstractions.Pdf;
 
 public enum ReportTone { Positive, Danger, Warning, Neutral }
 

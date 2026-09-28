@@ -2,7 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
-using MicroLIMS.Persistence.DbContext;
+using MicroLIMS.Application.Abstractions.Persistence;
 
 namespace MicroLIMS.Application.Services;
 
@@ -37,10 +37,10 @@ public class MyTasksService
     private static readonly TimeSpan DueSoonWindow = TimeSpan.FromHours(4);
     private static readonly TimeSpan LookaheadWindow = TimeSpan.FromDays(2);
 
-    private readonly MicroLimsDbContext _db;
+    private readonly IMicroLimsDbContext _db;
     private readonly IUserSectionScopeService _scope;
 
-    public MyTasksService(MicroLimsDbContext db, IUserSectionScopeService scope)
+    public MyTasksService(IMicroLimsDbContext db, IUserSectionScopeService scope)
     {
         _db = db;
         _scope = scope;

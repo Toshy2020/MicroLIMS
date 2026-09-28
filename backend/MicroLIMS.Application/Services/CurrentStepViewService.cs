@@ -2,7 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Helpers;
 using MicroLIMS.Application.Workflows;
 using MicroLIMS.Domain.Enums;
-using MicroLIMS.Persistence.DbContext;
+using MicroLIMS.Application.Abstractions.Persistence;
 
 namespace MicroLIMS.Application.Services;
 
@@ -13,10 +13,10 @@ namespace MicroLIMS.Application.Services;
 // than querying those rows again.
 public class CurrentStepViewService
 {
-    private readonly MicroLimsDbContext _db;
+    private readonly IMicroLimsDbContext _db;
     private readonly ITestWorkflowEngine _engine;
 
-    public CurrentStepViewService(MicroLimsDbContext db, ITestWorkflowEngine engine)
+    public CurrentStepViewService(IMicroLimsDbContext db, ITestWorkflowEngine engine)
     {
         _db = db;
         _engine = engine;

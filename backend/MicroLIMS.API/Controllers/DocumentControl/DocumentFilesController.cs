@@ -5,6 +5,7 @@ using MicroLIMS.Application.DTOs.DocumentControl;
 using MicroLIMS.Application.Interfaces.DocumentControl;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Infrastructure.Storage;
+using MicroLIMS.Application.Abstractions.Storage;
 using MicroLIMS.Shared.Responses;
 
 namespace MicroLIMS.API.Controllers.DocumentControl;

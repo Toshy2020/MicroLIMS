@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Domain.Entities;
-using MicroLIMS.Persistence.DbContext;
+using MicroLIMS.Application.Abstractions.Persistence;
 
 namespace MicroLIMS.Application.Services;
 
@@ -14,10 +14,10 @@ public record UserOrgMembershipDto(int DepartmentId, int? SectionId);
 // of them each user belongs to.
 public class LaboratoryOrganizationService
 {
-    private readonly MicroLimsDbContext _db;
+    private readonly IMicroLimsDbContext _db;
     private readonly IUserSectionScopeService _scope;
 
-    public LaboratoryOrganizationService(MicroLimsDbContext db, IUserSectionScopeService scope)
+    public LaboratoryOrganizationService(IMicroLimsDbContext db, IUserSectionScopeService scope)
     {
         _db = db;
         _scope = scope;

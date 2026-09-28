@@ -1,16 +1,16 @@
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Interfaces.DocumentControl;
 using MicroLIMS.Domain.Enums;
-using MicroLIMS.Persistence.DbContext;
+using MicroLIMS.Application.Abstractions.Persistence;
 using MicroLIMS.Shared.Constants;
 
 namespace MicroLIMS.Application.Services.DocumentControl;
 
 public class DocumentAuthorizationService : IDocumentAuthorizationService
 {
-    private readonly MicroLimsDbContext _db;
+    private readonly IMicroLimsDbContext _db;
 
-    public DocumentAuthorizationService(MicroLimsDbContext db)
+    public DocumentAuthorizationService(IMicroLimsDbContext db)
     {
         _db = db;
     }

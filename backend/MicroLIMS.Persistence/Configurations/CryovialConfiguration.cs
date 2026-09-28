@@ -1,3 +1,4 @@
+using MicroLIMS.Application.Abstractions.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using MicroLIMS.Domain.Entities;
@@ -8,7 +9,7 @@ public class CryovialConfiguration : IEntityTypeConfiguration<Cryovial>
 {
     // EF's default name for the unique Code index below - how
     // CryovialService recognises a code clash on save.
-    public const string CodeIndexName = "IX_Cryovials_Code";
+    public const string CodeIndexName = UniqueIndexNames.CryovialCode;
 
     public void Configure(EntityTypeBuilder<Cryovial> builder)
     {

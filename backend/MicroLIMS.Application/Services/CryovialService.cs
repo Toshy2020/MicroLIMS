@@ -2,9 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Helpers;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
-using MicroLIMS.Persistence.Configurations;
-using MicroLIMS.Persistence.DbContext;
-using MicroLIMS.Persistence.Helpers;
+using MicroLIMS.Application.Abstractions.Persistence;
 
 namespace MicroLIMS.Application.Services;
 
@@ -20,14 +18,14 @@ public record PrepareCryovialsRequest(
 // GptWorkflowEngine.EnsureCryovialApprovedAsync).
 public class CryovialService
 {
-    private readonly MicroLimsDbContext _db;
+    private readonly IMicroLimsDbContext _db;
     private readonly MaterialService _materialService;
     private readonly SegregationOfDutiesGuard _segregationOfDuties;
     private readonly ReviewGateService _reviewGate;
     private readonly CryovialSummaryService _summary;
     private readonly RecordArchiveService _archive;
 
-    public CryovialService(MicroLimsDbContext db, MaterialService materialService,
+    public CryovialService(IMicroLimsDbContext db, MaterialService materialService,
         SegregationOfDutiesGuard segregationOfDuties, ReviewGateService reviewGate,
         CryovialSummaryService summary, RecordArchiveService archive)
     {
@@ -113,10 +111,10 @@ public class CryovialService
         // pick the same next code. The unique index rejects the second
         // save, which then takes the code after the one that won. A second
         // clash in a row is reported rather than retried again.
-        if (!await UniqueIndexSave.TrySaveChangesAsync(_db, CryovialConfiguration.CodeIndexName))
+        if (!await _db.TrySaveChangesAsync(UniqueIndexNames.CryovialCode))
         {
             cryovial.Code = await PreparedLotNumber.NextAsync(_db.Cryovials.Select(c => c.Code), codePrefix);
-            if (!await UniqueIndexSave.TrySaveChangesAsync(_db, CryovialConfiguration.CodeIndexName))
+            if (!await _db.TrySaveChangesAsync(UniqueIndexNames.CryovialCode))
                 throw new InvalidOperationException(
                     $"Cryovial code {cryovial.Code} was taken by another preparation at the same moment. Nothing was saved - submit the preparation again.");
         }

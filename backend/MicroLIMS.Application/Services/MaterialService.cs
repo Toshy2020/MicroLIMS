@@ -2,7 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
-using MicroLIMS.Persistence.DbContext;
+using MicroLIMS.Application.Abstractions.Persistence;
 
 namespace MicroLIMS.Application.Services;
 
@@ -18,7 +18,7 @@ public record MaterialTypeOptions(IReadOnlyList<MaterialType> BuiltIn, IReadOnly
 
 // Materials Stock register (Inventory module) - dehydrated media, discs,
 // ID kits/reagents, chemicals, indicators, reference buffers, disposable
-// tools. Every Create/Update flows through MicroLimsDbContext.SaveChanges,
+// tools. Every Create/Update flows through IMicroLimsDbContext.SaveChanges,
 // which captures the full audit trail automatically (Frozen Principle #5)
 // - this service only needs to stamp the fast-display LastModifiedBy/At
 // fields.
@@ -29,10 +29,10 @@ public record MaterialTypeOptions(IReadOnlyList<MaterialType> BuiltIn, IReadOnly
 // receiving.
 public class MaterialService
 {
-    private readonly MicroLimsDbContext _db;
+    private readonly IMicroLimsDbContext _db;
     private readonly IUserSectionScopeService _scope;
 
-    public MaterialService(MicroLimsDbContext db, IUserSectionScopeService scope)
+    public MaterialService(IMicroLimsDbContext db, IUserSectionScopeService scope)
     {
         _db = db;
         _scope = scope;

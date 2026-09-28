@@ -1,12 +1,12 @@
 using Microsoft.EntityFrameworkCore;
-using MicroLIMS.Persistence.DbContext;
+using MicroLIMS.Application.Abstractions.Persistence;
 
 namespace MicroLIMS.Application.Workflows;
 
 public static class TestSectionLookup
 {
     public static async Task<Dictionary<string, int>> ResolveAsync(
-        MicroLimsDbContext db,
+        IMicroLimsDbContext db,
         IEnumerable<string> testCodes,
         CancellationToken ct = default)
     {

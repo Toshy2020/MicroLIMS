@@ -1,3 +1,4 @@
+using MicroLIMS.Application.Abstractions.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using MicroLIMS.Domain.Entities;
@@ -6,7 +7,7 @@ namespace MicroLIMS.Persistence.Configurations;
 
 public class CalibrationRunConfiguration : IEntityTypeConfiguration<CalibrationRun>
 {
-    public const string CodeIndexName = "IX_CalibrationRuns_Code";
+    public const string CodeIndexName = UniqueIndexNames.CalibrationRunCode;
 
     public void Configure(EntityTypeBuilder<CalibrationRun> builder)
     {

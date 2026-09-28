@@ -3,9 +3,9 @@ using MicroLIMS.Application.DTOs;
 using MicroLIMS.Application.Helpers;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
-using MicroLIMS.Infrastructure.Pdf;
-using MicroLIMS.Infrastructure.Word;
-using MicroLIMS.Persistence.DbContext;
+using MicroLIMS.Application.Abstractions.Pdf;
+using MicroLIMS.Application.Abstractions.Word;
+using MicroLIMS.Application.Abstractions.Persistence;
 
 namespace MicroLIMS.Application.Services;
 
@@ -15,12 +15,12 @@ namespace MicroLIMS.Application.Services;
 // exportable PDF/Word version of that same summary.
 public class SampleSummaryService
 {
-    private readonly MicroLimsDbContext _db;
+    private readonly IMicroLimsDbContext _db;
     private readonly IPdfGenerator _pdfGenerator;
     private readonly IWordGenerator _wordGenerator;
     private readonly ReviewGateService _reviewGate;
 
-    public SampleSummaryService(MicroLimsDbContext db, IPdfGenerator pdfGenerator, IWordGenerator wordGenerator, ReviewGateService reviewGate)
+    public SampleSummaryService(IMicroLimsDbContext db, IPdfGenerator pdfGenerator, IWordGenerator wordGenerator, ReviewGateService reviewGate)
     {
         _db = db;
         _pdfGenerator = pdfGenerator;
@@ -713,7 +713,7 @@ public class SampleSummaryService
     // Builds the document that gets frozen at final decision. Separate
     // from the download path only so the archive service can hand the
     // same ReportDocument to storage.
-    public async Task<Infrastructure.Pdf.ReportDocument?> BuildReportDocumentAsync(int sampleId)
+    public async Task<ReportDocument?> BuildReportDocumentAsync(int sampleId)
     {
         var summary = await GetSummaryAsync(sampleId);
         return summary is null ? null : ReportDocumentMapper.ForSample(summary);

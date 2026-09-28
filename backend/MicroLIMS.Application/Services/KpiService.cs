@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Domain.Enums;
-using MicroLIMS.Persistence.DbContext;
+using MicroLIMS.Application.Abstractions.Persistence;
 
 namespace MicroLIMS.Application.Services;
 
@@ -111,9 +111,9 @@ public class KpiService
     // Rule #1's Analyst-stage SLA: assignment -> submitted for review.
     private static readonly TimeSpan AnalystAssignmentSla = TimeSpan.FromDays(7);
 
-    private readonly MicroLimsDbContext _db;
+    private readonly IMicroLimsDbContext _db;
 
-    public KpiService(MicroLimsDbContext db)
+    public KpiService(IMicroLimsDbContext db)
     {
         _db = db;
     }
@@ -124,7 +124,7 @@ public class KpiService
         if (weights.Count == 0)
         {
             // Auto-seed if table is empty
-            MicroLIMS.Persistence.Seed.DbSeeder.SeedWorkloadWeights(_db);
+            WorkloadWeightDefaults.Seed(_db);
             weights = await _db.WorkloadWeights.OrderBy(w => w.TestCode).ToListAsync();
         }
 

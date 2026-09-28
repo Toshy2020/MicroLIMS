@@ -1,3 +1,4 @@
+using MicroLIMS.Application.Abstractions.Email;
 namespace MicroLIMS.Infrastructure.Email;
 
 /// <summary>

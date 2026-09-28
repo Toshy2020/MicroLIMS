@@ -9,9 +9,11 @@ using MicroLIMS.Application.Services.DocumentControl;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Infrastructure.Storage;
+using MicroLIMS.Application.Abstractions.Storage;
 using MicroLIMS.Persistence.DbContext;
 using MicroLIMS.Persistence.Seed;
 using MicroLIMS.Persistence.Helpers;
+using MicroLIMS.Application.Abstractions.Persistence;
 using Xunit;
 
 namespace MicroLIMS.Tests.UnitTests;

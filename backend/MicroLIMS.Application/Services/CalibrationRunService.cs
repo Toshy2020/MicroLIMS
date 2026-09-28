@@ -7,16 +7,14 @@ using MicroLIMS.Application.Helpers;
 using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
-using MicroLIMS.Infrastructure.Storage;
-using MicroLIMS.Persistence.Configurations;
-using MicroLIMS.Persistence.DbContext;
-using MicroLIMS.Persistence.Helpers;
+using MicroLIMS.Application.Abstractions.Storage;
+using MicroLIMS.Application.Abstractions.Persistence;
 
 namespace MicroLIMS.Application.Services;
 
 public class CalibrationRunService : ICalibrationRunService
 {
-    private readonly MicroLimsDbContext _db;
+    private readonly IMicroLimsDbContext _db;
     private readonly IFileStorageService _storage;
     private readonly IElectronicSignatureService _signatureService;
     private readonly IUserSectionScopeService _scope;
@@ -24,7 +22,7 @@ public class CalibrationRunService : ICalibrationRunService
     private readonly ILogger<CalibrationRunService> _logger;
 
     public CalibrationRunService(
-        MicroLimsDbContext db,
+        IMicroLimsDbContext db,
         IFileStorageService storage,
         IElectronicSignatureService signatureService,
         IUserSectionScopeService scope,
@@ -561,7 +559,7 @@ public class CalibrationRunService : ICalibrationRunService
 
         _db.CalibrationRuns.Add(run);
 
-        if (!await UniqueIndexSave.TrySaveChangesAsync(_db, CalibrationRunConfiguration.CodeIndexName))
+        if (!await _db.TrySaveChangesAsync(UniqueIndexNames.CalibrationRunCode))
         {
             run.Code = await SystemSuitabilityRunCode.NextAsync(
                 _db.CalibrationRuns.Select(r => r.Code),
@@ -571,7 +569,7 @@ public class CalibrationRunService : ICalibrationRunService
                 "CAL",
                 ct);
 
-            if (!await UniqueIndexSave.TrySaveChangesAsync(_db, CalibrationRunConfiguration.CodeIndexName))
+            if (!await _db.TrySaveChangesAsync(UniqueIndexNames.CalibrationRunCode))
             {
                 throw new InvalidOperationException(
                     $"Calibration run code {run.Code} was taken by another run at the same moment. Nothing was saved - submit the run again.");

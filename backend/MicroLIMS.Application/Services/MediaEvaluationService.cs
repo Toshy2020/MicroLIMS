@@ -2,7 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Workflows;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
-using MicroLIMS.Persistence.DbContext;
+using MicroLIMS.Application.Abstractions.Persistence;
 
 namespace MicroLIMS.Application.Services;
 
@@ -10,10 +10,10 @@ namespace MicroLIMS.Application.Services;
 // mutating actions, mirroring the old GptService's shape.
 public class MediaEvaluationService
 {
-    private readonly MicroLimsDbContext _db;
+    private readonly IMicroLimsDbContext _db;
     private readonly IMediaEvaluationEngine _engine;
 
-    public MediaEvaluationService(MicroLimsDbContext db, IMediaEvaluationEngine engine)
+    public MediaEvaluationService(IMicroLimsDbContext db, IMediaEvaluationEngine engine)
     {
         _db = db;
         _engine = engine;

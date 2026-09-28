@@ -2,15 +2,15 @@ using System.Globalization;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
-using MicroLIMS.Persistence.DbContext;
+using MicroLIMS.Application.Abstractions.Persistence;
 
 namespace MicroLIMS.Application.Services;
 
 public class SpecificationService
 {
-    private readonly MicroLimsDbContext _db;
+    private readonly IMicroLimsDbContext _db;
 
-    public SpecificationService(MicroLimsDbContext db)
+    public SpecificationService(IMicroLimsDbContext db)
     {
         _db = db;
     }

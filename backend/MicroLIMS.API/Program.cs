@@ -27,8 +27,7 @@ var connectionString = builder.Configuration.GetConnectionString("Default")
     ?? builder.Configuration["ConnectionStrings:Default"]
     ?? builder.Configuration["ConnectionStrings:DefaultConnection"];
 
-builder.Services.AddDbContext<MicroLimsDbContext>(options =>
-    options.UseNpgsql(connectionString));
+builder.Services.AddMicroLimsDbContext(options => options.UseNpgsql(connectionString));
 
 // ---- JWT configuration ----
 // Resolved and validated before any service is registered, so a

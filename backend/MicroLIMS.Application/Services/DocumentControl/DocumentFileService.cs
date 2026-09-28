@@ -6,14 +6,14 @@ using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Application.Interfaces.DocumentControl;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
-using MicroLIMS.Infrastructure.Storage;
-using MicroLIMS.Persistence.DbContext;
+using MicroLIMS.Application.Abstractions.Storage;
+using MicroLIMS.Application.Abstractions.Persistence;
 
 namespace MicroLIMS.Application.Services.DocumentControl;
 
 public class DocumentFileService : IDocumentFileService
 {
-    private readonly MicroLimsDbContext _db;
+    private readonly IMicroLimsDbContext _db;
     private readonly IFileStorageService _storage;
     private readonly IAuditEventService _auditEventService;
     private readonly IDocumentAuthorizationService _authService;
@@ -21,7 +21,7 @@ public class DocumentFileService : IDocumentFileService
     private const long MaxFileSizeBytes = 50 * 1024 * 1024; // 50 MB
 
     public DocumentFileService(
-        MicroLimsDbContext db,
+        IMicroLimsDbContext db,
         IFileStorageService storage,
         IAuditEventService auditEventService,
         IDocumentAuthorizationService authService)

@@ -1,10 +1,12 @@
 using Microsoft.EntityFrameworkCore;
+using MicroLIMS.Application.Abstractions.Persistence;
 using MicroLIMS.Domain.Entities;
+using MicroLIMS.Persistence.Helpers;
 using System.Text.Json;
 
 namespace MicroLIMS.Persistence.DbContext;
 
-public class MicroLimsDbContext : Microsoft.EntityFrameworkCore.DbContext
+public class MicroLimsDbContext : Microsoft.EntityFrameworkCore.DbContext, IMicroLimsDbContext
 {
     // Set by JwtMiddleware from the authenticated token so SaveChanges can
     // stamp the audit trail with who made the change.
@@ -193,6 +195,9 @@ public class MicroLimsDbContext : Microsoft.EntityFrameworkCore.DbContext
 
     // Frozen Principle #5 - Traceability. Captures every insert/update/
     // delete automatically so no service can forget to log a change.
+    public Task<bool> TrySaveChangesAsync(string uniqueIndexName) =>
+        UniqueIndexSave.TrySaveChangesAsync(this, uniqueIndexName);
+
     public override int SaveChanges()
     {
         CaptureAuditEntries();

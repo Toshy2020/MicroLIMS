@@ -3,9 +3,9 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
-using MicroLIMS.Infrastructure.Notifications;
-using MicroLIMS.Infrastructure.Storage;
-using MicroLIMS.Persistence.DbContext;
+using MicroLIMS.Application.Abstractions.Notifications;
+using MicroLIMS.Application.Abstractions.Storage;
+using MicroLIMS.Application.Abstractions.Persistence;
 using MicroLIMS.Shared.Responses;
 
 namespace MicroLIMS.Application.Services;
@@ -98,13 +98,13 @@ public record UpdateDiscussionCommentRequest(string Content);
 
 public class DiscussionService
 {
-    private readonly MicroLimsDbContext _db;
+    private readonly IMicroLimsDbContext _db;
     private readonly IFileStorageService _storage;
     private readonly INotificationService _notificationService;
     private readonly ILogger<DiscussionService> _logger;
 
     public DiscussionService(
-        MicroLimsDbContext db,
+        IMicroLimsDbContext db,
         IFileStorageService storage,
         INotificationService notificationService,
         ILogger<DiscussionService> logger)

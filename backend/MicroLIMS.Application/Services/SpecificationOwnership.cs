@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Interfaces;
-using MicroLIMS.Persistence.DbContext;
+using MicroLIMS.Application.Abstractions.Persistence;
 
 namespace MicroLIMS.Application.Services;
 
@@ -13,7 +13,7 @@ namespace MicroLIMS.Application.Services;
 public static class SpecificationOwnership
 {
     public static async Task EnsureCanEditAsync(
-        MicroLimsDbContext db, IUserSectionScopeService scope, int userId, string testCode)
+        IMicroLimsDbContext db, IUserSectionScopeService scope, int userId, string testCode)
     {
         var scopeIds = await scope.GetAccessibleSectionIdsAsync(userId);
         if (scopeIds is null) return; // System Administrator - unrestricted

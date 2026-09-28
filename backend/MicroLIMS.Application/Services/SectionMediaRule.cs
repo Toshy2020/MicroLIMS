@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Domain.Entities;
-using MicroLIMS.Persistence.DbContext;
+using MicroLIMS.Application.Abstractions.Persistence;
 
 namespace MicroLIMS.Application.Services;
 
@@ -19,13 +19,13 @@ public static class SectionMediaRule
                 $"Media lot \"{lot.LotNumber}\" was prepared from another laboratory section's material and cannot be used for this test.");
     }
 
-    public static async Task EnsureLotForTestOrderAsync(MicroLimsDbContext db, Media lot, int testOrderId, CancellationToken ct = default)
+    public static async Task EnsureLotForTestOrderAsync(IMicroLimsDbContext db, Media lot, int testOrderId, CancellationToken ct = default)
     {
         var sectionId = await db.TestOrders.Where(t => t.Id == testOrderId).Select(t => t.SectionId).FirstAsync(ct);
         EnsureLot(lot, sectionId);
     }
 
-    public static async Task EnsureMaterialsAsync(MicroLimsDbContext db, IEnumerable<int> materialIds, int sectionId, CancellationToken ct = default)
+    public static async Task EnsureMaterialsAsync(IMicroLimsDbContext db, IEnumerable<int> materialIds, int sectionId, CancellationToken ct = default)
     {
         var ids = materialIds.Distinct().ToList();
         var foreign = await db.Materials
@@ -37,7 +37,7 @@ public static class SectionMediaRule
                 $"{string.Join(", ", foreign.Select(n => $"\"{n}\""))} belongs to another laboratory section and cannot be used for this test.");
     }
 
-    public static async Task EnsureLotsAsync(MicroLimsDbContext db, IEnumerable<int> mediaLotIds, int sectionId, CancellationToken ct = default)
+    public static async Task EnsureLotsAsync(IMicroLimsDbContext db, IEnumerable<int> mediaLotIds, int sectionId, CancellationToken ct = default)
     {
         var ids = mediaLotIds.Distinct().ToList();
         var foreign = await db.Media

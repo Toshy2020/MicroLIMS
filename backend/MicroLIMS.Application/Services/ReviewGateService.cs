@@ -2,7 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
-using MicroLIMS.Persistence.DbContext;
+using MicroLIMS.Application.Abstractions.Persistence;
 
 namespace MicroLIMS.Application.Services;
 
@@ -17,10 +17,10 @@ namespace MicroLIMS.Application.Services;
 // state transition land together or not at all.
 public class ReviewGateService
 {
-    private readonly MicroLimsDbContext _db;
+    private readonly IMicroLimsDbContext _db;
     private readonly IElectronicSignatureService _signatureService;
 
-    public ReviewGateService(MicroLimsDbContext db, IElectronicSignatureService signatureService)
+    public ReviewGateService(IMicroLimsDbContext db, IElectronicSignatureService signatureService)
     {
         _db = db;
         _signatureService = signatureService;
@@ -74,7 +74,7 @@ public class ReviewGateService
 public static class ReviewEventLog
 {
     public static async Task LogAsync(
-        MicroLimsDbContext db, string entityType, int entityId, int userId,
+        IMicroLimsDbContext db, string entityType, int entityId, int userId,
         ReviewWorkflowEventType eventType, string? comment, ApprovalDecision? decision = null, int? sectionId = null)
     {
         var performedByName = await db.Users

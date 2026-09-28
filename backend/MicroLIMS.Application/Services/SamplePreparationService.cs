@@ -3,7 +3,7 @@ using MicroLIMS.Application.DTOs;
 using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
-using MicroLIMS.Persistence.DbContext;
+using MicroLIMS.Application.Abstractions.Persistence;
 
 namespace MicroLIMS.Application.Services;
 
@@ -25,12 +25,12 @@ public record ConfirmPreparationRequest(int SampleId, int UserId, string Passwor
 // before any result can be entered for any of that sample's TestOrders.
 public class SamplePreparationService
 {
-    private readonly MicroLimsDbContext _db;
+    private readonly IMicroLimsDbContext _db;
     private readonly PreparationParameterValidator _validator;
     private readonly IElectronicSignatureService _signatures;
 
     public SamplePreparationService(
-        MicroLimsDbContext db,
+        IMicroLimsDbContext db,
         PreparationParameterValidator validator,
         IElectronicSignatureService signatures)
     {

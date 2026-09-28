@@ -144,7 +144,7 @@ public class RecordArchiveTests
         Assert.Empty(db.ArchivedRecords);
     }
 
-    private class ThrowingFileStorageService : MicroLIMS.Infrastructure.Storage.IFileStorageService
+    private class ThrowingFileStorageService : MicroLIMS.Application.Abstractions.Storage.IFileStorageService
     {
         public Task<string> SaveAsync(string fileName, byte[] content) => throw new IOException("disk full");
         public Task<byte[]> ReadAsync(string path) => throw new IOException("unavailable");

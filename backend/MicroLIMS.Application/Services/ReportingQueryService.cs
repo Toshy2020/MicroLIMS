@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
-using MicroLIMS.Persistence.DbContext;
+using MicroLIMS.Application.Abstractions.Persistence;
 
 namespace MicroLIMS.Application.Services;
 
@@ -91,9 +91,9 @@ public record CompareResult(string TestCode, string TestDisplayName, bool IsNume
 // ResultProjectionService, which only ever writes the projection.
 public class ReportingQueryService
 {
-    private readonly MicroLimsDbContext _db;
+    private readonly IMicroLimsDbContext _db;
 
-    public ReportingQueryService(MicroLimsDbContext db)
+    public ReportingQueryService(IMicroLimsDbContext db)
     {
         _db = db;
     }

@@ -1,3 +1,4 @@
+using MicroLIMS.Application.Abstractions.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using MicroLIMS.Domain.Entities;
@@ -7,7 +8,7 @@ namespace MicroLIMS.Persistence.Configurations;
 public class SystemSuitabilityRunConfiguration : IEntityTypeConfiguration<SystemSuitabilityRun>
 {
     // EF's name for the unique Code index - how SystemSuitabilityService recognises a clash on save.
-    public const string CodeIndexName = "IX_SystemSuitabilityRuns_Code";
+    public const string CodeIndexName = UniqueIndexNames.SystemSuitabilityRunCode;
 
     public void Configure(EntityTypeBuilder<SystemSuitabilityRun> builder)
     {

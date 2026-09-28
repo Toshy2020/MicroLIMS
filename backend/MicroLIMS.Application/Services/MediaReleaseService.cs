@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
-using MicroLIMS.Persistence.DbContext;
+using MicroLIMS.Application.Abstractions.Persistence;
 
 namespace MicroLIMS.Application.Services;
 
@@ -14,13 +14,13 @@ namespace MicroLIMS.Application.Services;
 // its evaluation are excluded.
 public class MediaReleaseService
 {
-    private readonly MicroLimsDbContext _db;
+    private readonly IMicroLimsDbContext _db;
     private readonly SegregationOfDutiesGuard _segregationOfDuties;
     private readonly ReviewGateService _reviewGate;
     private readonly MediaSummaryService _summary;
     private readonly RecordArchiveService _archive;
 
-    public MediaReleaseService(MicroLimsDbContext db, SegregationOfDutiesGuard segregationOfDuties,
+    public MediaReleaseService(IMicroLimsDbContext db, SegregationOfDutiesGuard segregationOfDuties,
         ReviewGateService reviewGate, MediaSummaryService summary, RecordArchiveService archive)
     {
         _db = db;

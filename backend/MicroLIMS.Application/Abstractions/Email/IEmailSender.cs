@@ -1,4 +1,4 @@
-namespace MicroLIMS.Infrastructure.Email;
+namespace MicroLIMS.Application.Abstractions.Email;
 
 public interface IEmailSender
 {

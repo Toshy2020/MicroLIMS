@@ -2,7 +2,7 @@ using System.Linq.Expressions;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
-using MicroLIMS.Persistence.DbContext;
+using MicroLIMS.Application.Abstractions.Persistence;
 
 namespace MicroLIMS.Application.Services;
 
@@ -193,7 +193,7 @@ public static class SampleWorkflowQueues
     /// Uses translation-safe separated queries combined in memory. Never fabricates events.
     /// </summary>
     public static async Task<Dictionary<int, DateTime>> GetReviewClockStartsAsync(
-        MicroLimsDbContext db,
+        IMicroLimsDbContext db,
         IReadOnlyCollection<int> sampleIds)
     {
         if (sampleIds == null || sampleIds.Count == 0)
@@ -287,7 +287,7 @@ public static class SampleWorkflowQueues
     /// Superseded test orders are ignored.
     /// </summary>
     public static async Task<Dictionary<int, ResultLevel?>> GetWorstResultLevelsAsync(
-        MicroLimsDbContext db,
+        IMicroLimsDbContext db,
         IReadOnlyCollection<int> sampleIds)
     {
         if (sampleIds == null || sampleIds.Count == 0)
@@ -329,7 +329,7 @@ public static class SampleWorkflowQueues
     // otherwise a result the reviewer already sent back would keep flagging
     // the sample as out of specification.
     private static async Task<List<(int TestOrderId, ResultLevel ResultLevel)>> LoadCurrentResultLevelsAsync(
-        MicroLimsDbContext db, List<int> testOrderIds)
+        IMicroLimsDbContext db, List<int> testOrderIds)
     {
         var records = await db.ResultRecords
             .AsNoTracking()
@@ -355,7 +355,7 @@ public static class SampleWorkflowQueues
     /// Source: ResultRecord.ResultLevel for the specified TestOrderIds.
     /// </summary>
     public static async Task<Dictionary<int, ResultLevel?>> GetTestOrderWorstResultLevelsAsync(
-        MicroLimsDbContext db,
+        IMicroLimsDbContext db,
         IReadOnlyCollection<int> testOrderIds)
     {
         if (testOrderIds == null || testOrderIds.Count == 0)
@@ -381,7 +381,7 @@ public static class SampleWorkflowQueues
     /// Standard SLA threshold is 24 hours.
     /// </summary>
     public static async Task<List<int>> GetOverdueReviewSampleIdsAsync(
-        MicroLimsDbContext db,
+        IMicroLimsDbContext db,
         DateTime now,
         TimeSpan threshold)
     {
@@ -409,7 +409,7 @@ public static class SampleWorkflowQueues
     /// Standard SLA threshold is 24 hours.
     /// </summary>
     public static async Task<List<int>> GetOverdueApprovalSampleIdsAsync(
-        MicroLimsDbContext db,
+        IMicroLimsDbContext db,
         DateTime now,
         TimeSpan threshold)
     {

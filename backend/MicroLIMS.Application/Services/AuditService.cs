@@ -1,16 +1,16 @@
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Domain.Entities;
-using MicroLIMS.Persistence.DbContext;
+using MicroLIMS.Application.Abstractions.Persistence;
 
 namespace MicroLIMS.Application.Services;
 
 // Read-only access to the audit trail captured automatically by
-// MicroLimsDbContext.SaveChanges. Nothing here ever deletes a record.
+// IMicroLimsDbContext.SaveChanges. Nothing here ever deletes a record.
 public class AuditService
 {
-    private readonly MicroLimsDbContext _db;
+    private readonly IMicroLimsDbContext _db;
 
-    public AuditService(MicroLimsDbContext db)
+    public AuditService(IMicroLimsDbContext db)
     {
         _db = db;
     }

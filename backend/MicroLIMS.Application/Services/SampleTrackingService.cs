@@ -2,7 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.DTOs;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
-using MicroLIMS.Persistence.DbContext;
+using MicroLIMS.Application.Abstractions.Persistence;
 using MicroLIMS.Shared.Responses;
 
 namespace MicroLIMS.Application.Services;
@@ -14,9 +14,9 @@ namespace MicroLIMS.Application.Services;
 // a whole-lab view, unlike the Testing Workspace's per-analyst queues.
 public class SampleTrackingService
 {
-    private readonly MicroLimsDbContext _db;
+    private readonly IMicroLimsDbContext _db;
 
-    public SampleTrackingService(MicroLimsDbContext db)
+    public SampleTrackingService(IMicroLimsDbContext db)
     {
         _db = db;
     }

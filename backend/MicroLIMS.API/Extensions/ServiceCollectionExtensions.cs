@@ -1,3 +1,5 @@
+using MicroLIMS.Persistence.DbContext;
+using Microsoft.EntityFrameworkCore;
 using Amazon.Runtime;
 using Amazon.S3;
 using MicroLIMS.Application.Interfaces;
@@ -8,11 +10,17 @@ using MicroLIMS.Application.Validators;
 using MicroLIMS.Application.Workflows;
 using MicroLIMS.Infrastructure.Authentication;
 using MicroLIMS.Infrastructure.Email;
+using MicroLIMS.Application.Abstractions.Email;
 using MicroLIMS.Infrastructure.Notifications;
+using MicroLIMS.Application.Abstractions.Notifications;
 using MicroLIMS.Infrastructure.Pdf;
+using MicroLIMS.Application.Abstractions.Pdf;
 using MicroLIMS.Infrastructure.Storage;
+using MicroLIMS.Application.Abstractions.Storage;
 using MicroLIMS.Infrastructure.Word;
+using MicroLIMS.Application.Abstractions.Word;
 using MicroLIMS.Persistence.Helpers;
+using MicroLIMS.Application.Abstractions.Persistence;
 using MicroLIMS.Persistence.Repositories;
 
 namespace MicroLIMS.API.Extensions;
@@ -21,6 +29,16 @@ namespace MicroLIMS.API.Extensions;
 // just calls builder.Services.AddApplicationServices(config).
 public static class ServiceCollectionExtensions
 {
+    // The DbContext, and the interface the Application layer asks for. Both
+    // resolve to the same request-scoped instance, which AuditMiddleware
+    // stamps with the current user.
+    public static IServiceCollection AddMicroLimsDbContext(this IServiceCollection services, Action<DbContextOptionsBuilder> configure)
+    {
+        services.AddDbContext<MicroLimsDbContext>(configure);
+        services.AddScoped<IMicroLimsDbContext>(sp => sp.GetRequiredService<MicroLimsDbContext>());
+        return services;
+    }
+
     public static IServiceCollection AddApplicationServices(this IServiceCollection services, IConfiguration config)
     {
         // Workflows (the frozen laboratory logic - now real state machines)

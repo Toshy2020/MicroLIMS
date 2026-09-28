@@ -1,17 +1,16 @@
 using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
-using MicroLIMS.Persistence.DbContext;
-using MicroLIMS.Persistence.Helpers;
+using MicroLIMS.Application.Abstractions.Persistence;
 
 namespace MicroLIMS.Application.Services;
 
 public class AuditEventService : IAuditEventService
 {
-    private readonly MicroLimsDbContext _db;
+    private readonly IMicroLimsDbContext _db;
     private readonly IDatabaseSequenceHelper _sequenceHelper;
 
-    public AuditEventService(MicroLimsDbContext db, IDatabaseSequenceHelper sequenceHelper)
+    public AuditEventService(IMicroLimsDbContext db, IDatabaseSequenceHelper sequenceHelper)
     {
         _db = db;
         _sequenceHelper = sequenceHelper;

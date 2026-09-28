@@ -1,15 +1,15 @@
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
-using MicroLIMS.Persistence.DbContext;
+using MicroLIMS.Application.Abstractions.Persistence;
 
 namespace MicroLIMS.Application.Services;
 
 public class LocationPathogenObservationService
 {
-    private readonly MicroLimsDbContext _db;
+    private readonly IMicroLimsDbContext _db;
 
-    public LocationPathogenObservationService(MicroLimsDbContext db)
+    public LocationPathogenObservationService(IMicroLimsDbContext db)
     {
         _db = db;
     }

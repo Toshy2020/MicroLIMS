@@ -2,7 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
-using MicroLIMS.Persistence.DbContext;
+using MicroLIMS.Application.Abstractions.Persistence;
 
 namespace MicroLIMS.Application.Services;
 
@@ -13,12 +13,12 @@ namespace MicroLIMS.Application.Services;
 // the old whole-sample review did.
 public class SampleReviewService
 {
-    private readonly MicroLimsDbContext _db;
+    private readonly IMicroLimsDbContext _db;
     private readonly SegregationOfDutiesGuard _segregationOfDuties;
     private readonly ReviewGateService _reviewGate;
     private readonly IUserSectionScopeService _scope;
 
-    public SampleReviewService(MicroLimsDbContext db, SegregationOfDutiesGuard segregationOfDuties, ReviewGateService reviewGate,
+    public SampleReviewService(IMicroLimsDbContext db, SegregationOfDutiesGuard segregationOfDuties, ReviewGateService reviewGate,
         IUserSectionScopeService scope)
     {
         _db = db;

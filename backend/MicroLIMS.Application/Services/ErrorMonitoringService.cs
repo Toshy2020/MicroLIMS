@@ -3,7 +3,7 @@ using MicroLIMS.Application.DTOs;
 using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
-using MicroLIMS.Persistence.DbContext;
+using MicroLIMS.Application.Abstractions.Persistence;
 using System.Text;
 
 namespace MicroLIMS.Application.Services;
@@ -16,9 +16,9 @@ public class ErrorMonitoringService : IErrorMonitoringService
     // extract, and the table is deliberately prunable operational noise.
     private const int MaxExportRows = 5000;
 
-    private readonly MicroLimsDbContext _db;
+    private readonly IMicroLimsDbContext _db;
 
-    public ErrorMonitoringService(MicroLimsDbContext db)
+    public ErrorMonitoringService(IMicroLimsDbContext db)
     {
         _db = db;
     }
@@ -224,10 +224,12 @@ public class ErrorMonitoringService : IErrorMonitoringService
 
         if (!string.IsNullOrWhiteSpace(query.Search))
         {
-            var term = query.Search.Trim();
+            // lower() + LIKE rather than Postgres ILIKE, so the query stays
+            // provider-neutral. Contains() also escapes % and _ in the term.
+            var term = query.Search.Trim().ToLower();
             incidents = incidents.Where(i =>
-                EF.Functions.ILike(i.Summary, $"%{term}%") ||
-                EF.Functions.ILike(i.CorrelationId, $"%{term}%"));
+                i.Summary.ToLower().Contains(term) ||
+                i.CorrelationId.ToLower().Contains(term));
         }
 
         return incidents;

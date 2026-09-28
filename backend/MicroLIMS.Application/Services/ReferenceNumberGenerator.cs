@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Domain.Enums;
-using MicroLIMS.Persistence.DbContext;
+using MicroLIMS.Application.Abstractions.Persistence;
 
 namespace MicroLIMS.Application.Services;
 
@@ -19,9 +19,9 @@ public class ReferenceNumberGenerator
         [SampleCategory.AfterCleaning] = "AC"
     };
 
-    private readonly MicroLimsDbContext _db;
+    private readonly IMicroLimsDbContext _db;
 
-    public ReferenceNumberGenerator(MicroLimsDbContext db)
+    public ReferenceNumberGenerator(IMicroLimsDbContext db)
     {
         _db = db;
     }

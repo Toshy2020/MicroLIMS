@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Domain.Entities;
-using MicroLIMS.Persistence.DbContext;
+using MicroLIMS.Application.Abstractions.Persistence;
 
 namespace MicroLIMS.Application.Services;
 
@@ -16,9 +16,9 @@ public record MediaIncubationConditionDto(
 
 public class MediaIncubationConditionService
 {
-    private readonly MicroLimsDbContext _db;
+    private readonly IMicroLimsDbContext _db;
 
-    public MediaIncubationConditionService(MicroLimsDbContext db)
+    public MediaIncubationConditionService(IMicroLimsDbContext db)
     {
         _db = db;
     }

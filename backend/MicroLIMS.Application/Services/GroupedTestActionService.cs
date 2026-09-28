@@ -4,7 +4,7 @@ using MicroLIMS.Application.Helpers;
 using MicroLIMS.Application.Workflows;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
-using MicroLIMS.Persistence.DbContext;
+using MicroLIMS.Application.Abstractions.Persistence;
 
 namespace MicroLIMS.Application.Services;
 
@@ -32,12 +32,12 @@ internal record CandidateActionItem(
 
 public class GroupedTestActionService
 {
-    private readonly MicroLimsDbContext _db;
+    private readonly IMicroLimsDbContext _db;
     private readonly ITestWorkflowEngine _workflowEngine;
     private readonly IncubatorEligibilityService _incubatorEligibility;
 
     public GroupedTestActionService(
-        MicroLimsDbContext db,
+        IMicroLimsDbContext db,
         ITestWorkflowEngine workflowEngine,
         IncubatorEligibilityService incubatorEligibility)
     {

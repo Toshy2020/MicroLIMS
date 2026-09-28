@@ -2,7 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
-using MicroLIMS.Persistence.DbContext;
+using MicroLIMS.Application.Abstractions.Persistence;
 
 namespace MicroLIMS.Application.Services;
 
@@ -20,9 +20,9 @@ public class ElectronicSignatureService : IElectronicSignatureService
     private const string FailedAction = "SignatureFailed";
     private const string ThrottledAction = "SignatureThrottled";
 
-    private readonly MicroLimsDbContext _db;
+    private readonly IMicroLimsDbContext _db;
 
-    public ElectronicSignatureService(MicroLimsDbContext db)
+    public ElectronicSignatureService(IMicroLimsDbContext db)
     {
         _db = db;
     }

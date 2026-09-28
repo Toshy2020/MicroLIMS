@@ -10,20 +10,20 @@ using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Application.Interfaces.DocumentControl;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
-using MicroLIMS.Persistence.DbContext;
+using MicroLIMS.Application.Abstractions.Persistence;
 
 namespace MicroLIMS.Application.Services.DocumentControl;
 
 public class DocumentEscalationService : IDocumentEscalationService
 {
-    private readonly MicroLimsDbContext _db;
+    private readonly IMicroLimsDbContext _db;
     private readonly IAuditEventService _audit;
     private readonly ILogger<DocumentEscalationService> _logger;
 
     public const string DefaultProcessName = "DocumentEffectiveDateWorker";
 
     public DocumentEscalationService(
-        MicroLimsDbContext db,
+        IMicroLimsDbContext db,
         IAuditEventService audit,
         ILogger<DocumentEscalationService> logger)
     {

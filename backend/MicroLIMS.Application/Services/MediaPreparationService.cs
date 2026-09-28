@@ -2,9 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Helpers;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
-using MicroLIMS.Persistence.Configurations;
-using MicroLIMS.Persistence.DbContext;
-using MicroLIMS.Persistence.Helpers;
+using MicroLIMS.Application.Abstractions.Persistence;
 
 namespace MicroLIMS.Application.Services;
 
@@ -30,11 +28,11 @@ public record PrepareMediaRequest(
 // as the new Media row so both commit together or neither does.
 public class MediaPreparationService
 {
-    private readonly MicroLimsDbContext _db;
+    private readonly IMicroLimsDbContext _db;
     private readonly MaterialService _materialService;
     private readonly ReviewGateService _reviewGate;
 
-    public MediaPreparationService(MicroLimsDbContext db, MaterialService materialService, ReviewGateService reviewGate)
+    public MediaPreparationService(IMicroLimsDbContext db, MaterialService materialService, ReviewGateService reviewGate)
     {
         _db = db;
         _materialService = materialService;
@@ -119,10 +117,10 @@ public class MediaPreparationService
         // pick the same next number. The unique index rejects the second
         // save, which then takes the number after the one that won. A
         // second clash in a row is reported rather than retried again.
-        if (!await UniqueIndexSave.TrySaveChangesAsync(_db, MediaLotConfiguration.LotNumberIndexName))
+        if (!await _db.TrySaveChangesAsync(UniqueIndexNames.MediaLotNumber))
         {
             media.LotNumber = await PreparedLotNumber.NextAsync(_db.Media.Select(m => m.LotNumber), lotPrefix);
-            if (!await UniqueIndexSave.TrySaveChangesAsync(_db, MediaLotConfiguration.LotNumberIndexName))
+            if (!await _db.TrySaveChangesAsync(UniqueIndexNames.MediaLotNumber))
                 throw new InvalidOperationException(
                     $"Lot number {media.LotNumber} was taken by another preparation at the same moment. Nothing was saved - submit the preparation again.");
         }

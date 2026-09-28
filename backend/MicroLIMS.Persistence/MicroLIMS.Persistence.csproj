@@ -13,6 +13,7 @@
     <PackageReference Include="BCrypt.Net-Next" Version="4.2.0" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\MicroLIMS.Application\MicroLIMS.Application.csproj" />
     <ProjectReference Include="..\MicroLIMS.Domain\MicroLIMS.Domain.csproj" />
     <ProjectReference Include="..\MicroLIMS.Shared\MicroLIMS.Shared.csproj" />
   </ItemGroup>

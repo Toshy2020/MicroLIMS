@@ -4,6 +4,7 @@ using MicroLIMS.Application.Workflows;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Infrastructure.Pdf;
+using MicroLIMS.Application.Abstractions.Pdf;
 using MicroLIMS.Persistence.DbContext;
 using Xunit;
 

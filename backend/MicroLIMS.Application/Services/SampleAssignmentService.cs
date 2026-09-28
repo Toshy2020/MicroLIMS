@@ -2,16 +2,16 @@ using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.DTOs;
 using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Domain.Enums;
-using MicroLIMS.Persistence.DbContext;
+using MicroLIMS.Application.Abstractions.Persistence;
 
 namespace MicroLIMS.Application.Services;
 
 public class SampleAssignmentService
 {
-    private readonly MicroLimsDbContext _db;
+    private readonly IMicroLimsDbContext _db;
     private readonly ITestWorkspaceService _workspaceService;
 
-    public SampleAssignmentService(MicroLimsDbContext db, ITestWorkspaceService workspaceService)
+    public SampleAssignmentService(IMicroLimsDbContext db, ITestWorkspaceService workspaceService)
     {
         _db = db;
         _workspaceService = workspaceService;

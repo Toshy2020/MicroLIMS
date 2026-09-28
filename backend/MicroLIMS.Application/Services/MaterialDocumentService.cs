@@ -4,8 +4,8 @@ using Microsoft.Extensions.Logging;
 using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
-using MicroLIMS.Infrastructure.Storage;
-using MicroLIMS.Persistence.DbContext;
+using MicroLIMS.Application.Abstractions.Storage;
+using MicroLIMS.Application.Abstractions.Persistence;
 
 namespace MicroLIMS.Application.Services;
 
@@ -74,14 +74,14 @@ public class MaterialDocumentService
         MaterialType.Supplement
     };
 
-    private readonly MicroLimsDbContext _db;
+    private readonly IMicroLimsDbContext _db;
     private readonly IFileStorageService _storage;
     private readonly MaterialDocumentFileValidator _validator;
     private readonly ILogger<MaterialDocumentService> _logger;
     private readonly IUserSectionScopeService _scope;
 
     public MaterialDocumentService(
-        MicroLimsDbContext db,
+        IMicroLimsDbContext db,
         IFileStorageService storage,
         MaterialDocumentFileValidator validator,
         ILogger<MaterialDocumentService> logger,

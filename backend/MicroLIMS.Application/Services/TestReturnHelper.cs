@@ -1,5 +1,5 @@
 using Microsoft.EntityFrameworkCore;
-using MicroLIMS.Persistence.DbContext;
+using MicroLIMS.Application.Abstractions.Persistence;
 
 namespace MicroLIMS.Application.Services;
 
@@ -13,7 +13,7 @@ public record TestReturnInfo(string? Reason, DateTime ReturnedAt);
 // TestReturnEvent (OrderByDescending(ReturnedAt)).
 public static class TestReturnHelper
 {
-    public static async Task<TestReturnInfo?> GetPendingReturnAsync(MicroLimsDbContext db, int testOrderId)
+    public static async Task<TestReturnInfo?> GetPendingReturnAsync(IMicroLimsDbContext db, int testOrderId)
     {
         var hasReturnEvents = await db.TestReturnEvents.AnyAsync(e => e.TestOrderId == testOrderId);
         if (!hasReturnEvents)
@@ -36,7 +36,7 @@ public static class TestReturnHelper
 
     // Same rule, for callers that already know whether the order has active
     // readings - one query instead of three.
-    public static async Task<TestReturnInfo?> GetPendingReturnAsync(MicroLimsDbContext db, int testOrderId, bool hasActiveReadings)
+    public static async Task<TestReturnInfo?> GetPendingReturnAsync(IMicroLimsDbContext db, int testOrderId, bool hasActiveReadings)
     {
         if (hasActiveReadings)
             return null;
@@ -49,7 +49,7 @@ public static class TestReturnHelper
         return latestEvent == null ? null : new TestReturnInfo(latestEvent.Reason, latestEvent.ReturnedAt);
     }
 
-    public static async Task<Dictionary<int, TestReturnInfo>> GetPendingReturnsForOrdersAsync(MicroLimsDbContext db, IEnumerable<int> testOrderIds)
+    public static async Task<Dictionary<int, TestReturnInfo>> GetPendingReturnsForOrdersAsync(IMicroLimsDbContext db, IEnumerable<int> testOrderIds)
     {
         var idList = testOrderIds.Distinct().ToList();
         if (idList.Count == 0)

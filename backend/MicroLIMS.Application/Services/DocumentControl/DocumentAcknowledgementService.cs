@@ -10,13 +10,13 @@ using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Application.Interfaces.DocumentControl;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
-using MicroLIMS.Persistence.DbContext;
+using MicroLIMS.Application.Abstractions.Persistence;
 
 namespace MicroLIMS.Application.Services.DocumentControl;
 
 public class DocumentAcknowledgementService : IDocumentAcknowledgementService
 {
-    private readonly MicroLimsDbContext _db;
+    private readonly IMicroLimsDbContext _db;
     private readonly IAuditEventService _audit;
     private readonly ILogger<DocumentAcknowledgementService> _logger;
 
@@ -24,7 +24,7 @@ public class DocumentAcknowledgementService : IDocumentAcknowledgementService
         "I confirm that I have read, understood, and agree to adhere to the contents of this controlled document revision.";
 
     public DocumentAcknowledgementService(
-        MicroLimsDbContext db,
+        IMicroLimsDbContext db,
         IAuditEventService audit,
         ILogger<DocumentAcknowledgementService> logger)
     {

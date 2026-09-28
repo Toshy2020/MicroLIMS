@@ -1,6 +1,6 @@
 using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Domain.Entities;
-using MicroLIMS.Persistence.DbContext;
+using MicroLIMS.Application.Abstractions.Persistence;
 
 namespace MicroLIMS.Application.Services;
 
@@ -23,10 +23,10 @@ public class SecurityAuditService : ISecurityAuditService
     private const int SourceMaxLength = 50;
     private const int ReasonMaxLength = 1000;
 
-    private readonly MicroLimsDbContext _db;
+    private readonly IMicroLimsDbContext _db;
     private readonly ISecurityRequestContext _requestContext;
 
-    public SecurityAuditService(MicroLimsDbContext db, ISecurityRequestContext requestContext)
+    public SecurityAuditService(IMicroLimsDbContext db, ISecurityRequestContext requestContext)
     {
         _db = db;
         _requestContext = requestContext;

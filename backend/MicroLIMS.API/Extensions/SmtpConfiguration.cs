@@ -1,4 +1,5 @@
 using MicroLIMS.Infrastructure.Email;
+using MicroLIMS.Application.Abstractions.Email;
 
 namespace MicroLIMS.API.Extensions;
 

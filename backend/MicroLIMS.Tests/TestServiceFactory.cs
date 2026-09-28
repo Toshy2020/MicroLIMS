@@ -6,8 +6,11 @@ using MicroLIMS.Application.Workflows;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Infrastructure.Notifications;
+using MicroLIMS.Application.Abstractions.Notifications;
 using MicroLIMS.Infrastructure.Pdf;
+using MicroLIMS.Application.Abstractions.Pdf;
 using MicroLIMS.Infrastructure.Storage;
+using MicroLIMS.Application.Abstractions.Storage;
 using MicroLIMS.Persistence.DbContext;
 
 namespace MicroLIMS.Tests;
@@ -37,12 +40,12 @@ public class NoOpNotificationService : INotificationService
     public Task NotifyAsync(int userId, string message) => Task.CompletedTask;
 }
 
-public class NoOpEmailSender : MicroLIMS.Infrastructure.Email.IEmailSender
+public class NoOpEmailSender : MicroLIMS.Application.Abstractions.Email.IEmailSender
 {
     public Task SendAsync(string to, string subject, string body) => Task.CompletedTask;
 }
 
-public class SpyEmailSender : MicroLIMS.Infrastructure.Email.IEmailSender
+public class SpyEmailSender : MicroLIMS.Application.Abstractions.Email.IEmailSender
 {
     public List<(string To, string Subject, string Body)> Sent { get; } = new();
 
@@ -71,7 +74,7 @@ public class SpyNotificationService : INotificationService
 // constructs it.
 public static class TestServiceFactory
 {
-    public static DashboardNotificationService DashboardNotification(MicroLimsDbContext db, INotificationService? notifications = null, MicroLIMS.Infrastructure.Email.IEmailSender? emailSender = null) =>
+    public static DashboardNotificationService DashboardNotification(MicroLimsDbContext db, INotificationService? notifications = null, MicroLIMS.Application.Abstractions.Email.IEmailSender? emailSender = null) =>
         new(db, notifications ?? new NoOpNotificationService(), emailSender ?? new NoOpEmailSender(), new UserSectionScopeService(db));
     public static ReviewGateService ReviewGate(MicroLimsDbContext db) =>
         new(db, new ElectronicSignatureService(db));

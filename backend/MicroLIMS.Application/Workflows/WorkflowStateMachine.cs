@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
-using MicroLIMS.Persistence.DbContext;
+using MicroLIMS.Application.Abstractions.Persistence;
 
 namespace MicroLIMS.Application.Workflows;
 
@@ -11,7 +11,7 @@ namespace MicroLIMS.Application.Workflows;
 public static class WorkflowStateMachine
 {
     public static async Task<WorkflowStep> TransitionAsync(
-        MicroLimsDbContext db, TestOrder order, WorkflowStep toStep, int performedByUserId, string? note = null)
+        IMicroLimsDbContext db, TestOrder order, WorkflowStep toStep, int performedByUserId, string? note = null)
     {
         var fromStep = order.CurrentStep;
 
@@ -44,7 +44,7 @@ public static class WorkflowStateMachine
         return toStep;
     }
 
-    public static async Task<TestOrder> LoadOrThrowAsync(MicroLimsDbContext db, int testOrderId)
+    public static async Task<TestOrder> LoadOrThrowAsync(IMicroLimsDbContext db, int testOrderId)
     {
         return await db.TestOrders
             .Include(t => t.Incubations)

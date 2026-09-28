@@ -1,3 +1,4 @@
+using MicroLIMS.Application.Helpers;
 using MicroLIMS.Domain.Constants;
 using MicroLIMS.Application.DTOs;
 using MicroLIMS.Application.Abstractions.Pdf;
@@ -175,15 +176,19 @@ public static class ReportDocumentMapper
         // scenario that motivated this override: an Inconclusive
         // confirmatory result followed by a biochemical result indicating
         // absence was previously still archived as "Detected").
-        var lastBiochemical = t.BiochemicalResults.LastOrDefault();
-        var detected = lastBiochemical?.OrganismDetected
-            ?? t.PathogenObservations.Any(p => p.Observation == "GrowthConforming");
-        var outOfSpec = reading?.Status == ResultStatus.OutOfSpecification;
-        var hasNonConformingLocation = t.Locations.Any(l => l.Status is not (null or ResultStatus.WithinLimits or ResultStatus.Absent or ResultStatus.PendingConfirmation));
+        var qualitative = TestOrderConformance.Qualitative(t);
+        var detected = qualitative.Result == ResultStatus.Detected;
 
+        // The same verdict as the Certificate of Analysis: a failure is
+        // red, and a missing result or one with no limits cannot be shown
+        // as a pass.
         var tone = t.IsSuperseded ? ReportTone.Neutral
-            : outOfSpec || detected || hasNonConformingLocation ? ReportTone.Danger
-            : ReportTone.Positive;
+            : TestOrderConformance.Overall(t) switch
+            {
+                ResultConformance.Conforms => ReportTone.Positive,
+                ResultConformance.DoesNotConform => ReportTone.Danger,
+                _ => ReportTone.Warning
+            };
 
         // The headline slot is a compact single-value stat (a CFU number,
         // "Detected"/"Absent") - the full "X locations: Y conform..."
@@ -314,7 +319,12 @@ public static class ReportDocumentMapper
 
         card.FooterLeft = enteredBy is null ? "No result recorded yet" : $"Entered by {enteredBy} · {Dt(enteredAt)}";
         card.FooterRight = t.IsSuperseded ? "Superseded"
-            : t.Locations.Count > 0 ? (hasNonConformingLocation ? "Non-conforming location(s)" : "All locations within spec")
+            : t.Locations.Count > 0 ? TestOrderConformance.Overall(t) switch
+            {
+                ResultConformance.Conforms => "All locations within spec",
+                ResultConformance.DoesNotConform => "Non-conforming location(s)",
+                _ => "Not all locations can be certified"
+            }
             : Humanize(reading?.Status ?? (t.PathogenObservations.Count > 0 ? (detected ? ResultStatus.Detected : ResultStatus.Absent) : t.Status));
 
         return card;

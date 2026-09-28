@@ -261,34 +261,13 @@ public static class CertificateOfAnalysisBuilder
             };
         }
 
-        // A qualitative call: the analyst's biochemical interpretation, else
-        // the pathogen chain, else the entered result value.
         var lastResult = t.Results.LastOrDefault();
-        var lastBiochemical = t.BiochemicalResults.LastOrDefault(b => b.OrganismDetected is not null);
         var lastObservation = t.PathogenObservations.LastOrDefault();
-        ResultConformance outcome;
-        string result;
-        if (lastBiochemical is not null)
-        {
-            outcome = ResultConformanceRules.FromDetection(lastBiochemical.OrganismDetected!.Value);
-            result = lastBiochemical.OrganismDetected!.Value ? ResultStatus.Detected : ResultStatus.Absent;
-        }
-        else if (t.PathogenObservations.Count > 0)
-        {
-            var detected = t.PathogenObservations.Any(p => p.Observation == "GrowthConforming");
-            outcome = ResultConformanceRules.FromDetection(detected);
-            result = detected ? ResultStatus.Detected : ResultStatus.Absent;
-        }
-        else
-        {
-            var value = lastResult?.InterpretedValue ?? lastResult?.RawValue;
-            outcome = ResultConformanceRules.FromResultValue(value);
-            result = string.IsNullOrWhiteSpace(value) ? "—" : value;
-        }
+        var (outcome, result) = TestOrderConformance.Qualitative(t);
 
         return new[]
         {
-            Row(t, outcome, t.TestCode, t.TestDisplayName, t.SpecificationText, result,
+            Row(t, outcome, t.TestCode, t.TestDisplayName, t.SpecificationText, result ?? "—",
                 lastResult?.EnteredByName ?? lastObservation?.ObservedByName,
                 lastResult?.EnteredAt ?? lastObservation?.ObservedAt)
         };

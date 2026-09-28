@@ -838,7 +838,13 @@ public class PathogenSessionServiceTests
         Assert.Equal(120, cells.Count);
 
         var saves = 0;
-        db.SavingChanges += (_, _) => saves++;
+        // Counts saves that write lab data. Each one is followed by an
+        // audit-only save that records the new rows under their real keys.
+        db.SavingChanges += (_, _) =>
+        {
+            if (db.ChangeTracker.Entries().Any(e => e.Entity is not AuditLog && e.State != EntityState.Unchanged && e.State != EntityState.Detached))
+                saves++;
+        };
 
         var saved = await service.SaveResultMatrixAsync(sampleId, new SaveResultMatrixRequest(cells), 5);
 
@@ -915,7 +921,13 @@ public class PathogenSessionServiceTests
         Assert.Equal(100, inputs.Count);
 
         var saves = 0;
-        db.SavingChanges += (_, _) => saves++;
+        // Counts saves that write lab data. Each one is followed by an
+        // audit-only save that records the new rows under their real keys.
+        db.SavingChanges += (_, _) =>
+        {
+            if (db.ChangeTracker.Entries().Any(e => e.Entity is not AuditLog && e.State != EntityState.Unchanged && e.State != EntityState.Detached))
+                saves++;
+        };
 
         await service.SavePrimaryObservationsAsync(sampleId, new SavePrimaryObservationsRequest(inputs), 5);
 

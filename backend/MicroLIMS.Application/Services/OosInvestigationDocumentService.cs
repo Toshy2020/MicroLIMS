@@ -77,7 +77,7 @@ public class OosInvestigationDocumentService
     {
         var groupExists = await _db.Samples.AnyAsync(s => s.OosGroupCode == oosGroupCode);
         if (!groupExists)
-            throw new InvalidOperationException($"OOS group \"{oosGroupCode}\" not found.");
+            throw new NotFoundException($"OOS group \"{oosGroupCode}\" not found.");
 
         var docs = await _db.OosInvestigationDocuments
             .Where(d => d.OosGroupCode == oosGroupCode)
@@ -97,7 +97,7 @@ public class OosInvestigationDocumentService
     {
         var groupExists = await _db.Samples.AnyAsync(s => s.OosGroupCode == oosGroupCode);
         if (!groupExists)
-            throw new InvalidOperationException($"OOS group \"{oosGroupCode}\" not found.");
+            throw new NotFoundException($"OOS group \"{oosGroupCode}\" not found.");
 
         var firstBytes = request.Content.Take(16).ToArray();
         var error = _validator.Validate(request.OriginalFileName, request.DeclaredContentType, request.Content.Length, firstBytes);

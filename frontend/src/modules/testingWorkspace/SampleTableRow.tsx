@@ -5,7 +5,6 @@ import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import { SampleCard as SampleCardType } from "./types/workspaceTypes";
 import { CategoryBadge } from "../../components/StatusBadge";
 import { SampleLifecycleBadge } from "./SampleLifecycleBadge";
-import { useAuth } from "../../contexts/AuthContext";
 import { isInteractiveElement } from "../../utils/isInteractiveElement";
 
 interface Props {
@@ -43,7 +42,6 @@ export function SampleTableRow({
   isChecked,
   onToggleCheck
 }: Props) {
-  const { role } = useAuth();
   const theme = useTheme();
   const [expanded, setExpanded] = useState(false);
   const needsPreparation = sample.preparationStatus === "NeedsPreparation";
@@ -133,7 +131,6 @@ export function SampleTableRow({
         <TableCell sx={{ py: 1.25 }} onClick={(e) => e.stopPropagation()}>
           <SampleLifecycleBadge
             status={sample.status}
-            role={role}
             onClick={() => onLifecycleBadgeClick(sample.sampleId)}
           />
         </TableCell>
@@ -234,7 +231,6 @@ export function SampleTableRow({
           <TableCell onClick={(e) => e.stopPropagation()}>
             <SampleLifecycleBadge
               status={sample.status}
-              role={role}
               onClick={() => onLifecycleBadgeClick(sample.sampleId)}
             />
           </TableCell>

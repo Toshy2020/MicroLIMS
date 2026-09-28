@@ -21,6 +21,7 @@ import LibraryAddOutlinedIcon from "@mui/icons-material/LibraryAddOutlined";
 import { Link } from "react-router-dom";
 import { SampleRecord } from "../types/receivingTypes";
 import { useAuth } from "../../../contexts/AuthContext";
+import { PERMISSIONS } from "../../../routes/routes";
 
 interface Props {
   sample: SampleRecord;
@@ -47,8 +48,8 @@ export function SampleActionMenu({
   onAddLaboratory
 }: Props) {
   const theme = useTheme();
-  const { role } = useAuth();
-  const isAuthorizedToAssign = role === "SectionHead" || role === "SystemAdministrator";
+  const { permissions } = useAuth();
+  const isAuthorizedToAssign = permissions.includes(PERMISSIONS.SAMPLES_ASSIGN_ANALYST);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const isMenuOpen = Boolean(anchorEl);
 
@@ -63,7 +64,7 @@ export function SampleActionMenu({
   };
 
   // Mirrors SampleController: Analysts cannot correct or void (the backend enforces it).
-  const canManageSample = role === "Reviewer" || role === "SectionHead" || role === "SystemAdministrator";
+  const canManageSample = permissions.includes(PERMISSIONS.SAMPLES_CORRECT);
   const isEditable = Boolean(sample.canEditDetails);
   const canVoid = canManageSample && sample.status !== "Voided";
   const needsPreparation = sample.preparationStatus === "NeedsPreparation";

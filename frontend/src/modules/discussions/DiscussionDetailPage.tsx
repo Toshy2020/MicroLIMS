@@ -30,6 +30,7 @@ import StarBorderIcon from "@mui/icons-material/StarBorder";
 import CheckIcon from "@mui/icons-material/Check";
 import CloseIcon from "@mui/icons-material/Close";
 import { useAuth } from "../../contexts/AuthContext";
+import { PERMISSIONS } from "../../routes/routes";
 import { DiscussionPostDetail, DiscussionComment } from "./types/discussionTypes";
 import { discussionService } from "./services/discussionService";
 import { DiscussionCategoryBadge } from "./components/DiscussionCategoryBadge";
@@ -43,9 +44,9 @@ export function DiscussionDetailPage() {
   const { id } = useParams<{ id: string }>();
   const postId = Number(id);
   const navigate = useNavigate();
-  const { userId, role } = useAuth();
+  const { userId, permissions } = useAuth();
   const currentUserId = userId ?? undefined;
-  const canEditAny = role === "SystemAdministrator" || role === "SectionHead";
+  const canEditAny = permissions.includes(PERMISSIONS.DISCUSSIONS_EDIT_ANY);
 
   const [post, setPost] = useState<DiscussionPostDetail | null>(null);
   const [loading, setLoading] = useState<boolean>(true);

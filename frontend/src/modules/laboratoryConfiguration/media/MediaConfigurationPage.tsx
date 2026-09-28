@@ -3,6 +3,7 @@ import { Box, Button, Alert, Grid, Typography, Stack } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import { PageHeader } from "../../../components/PageHeader";
 import { useAuth } from "../../../contexts/AuthContext";
+import { PERMISSIONS } from "../../../routes/routes";
 import { masterDataOptions } from "../../../services/masterDataOptions";
 import { OrganismOption } from "../../../hooks/useOrganisms";
 import {
@@ -18,8 +19,8 @@ import { RenameMediaProductDialog } from "./dialogs/RenameMediaProductDialog";
 import { ChangeMediaProductCodeDialog } from "./dialogs/ChangeMediaProductCodeDialog";
 
 export function MediaConfigurationPage() {
-  const { role } = useAuth();
-  const isManager = role === "SectionHead" || role === "SystemAdministrator";
+  const { role, permissions } = useAuth();
+  const isManager = permissions.includes(PERMISSIONS.MASTER_DATA_MANAGE);
   const isSectionHead = role === "SectionHead";
 
   const [products, setProducts] = useState<MediaProductOption[]>([]);

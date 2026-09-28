@@ -1,19 +1,13 @@
 import { apiClient } from "../../../services/apiClient";
 import { CurrentUserInfo, LoginResult } from "../types/authTypes";
+import { readTokenClaims } from "../tokenClaims";
 
 export const authenticationService = {
   async login(username: string, password: string): Promise<LoginResult> {
     const res = await apiClient.post("/auth/login", { username, password });
     const { token, refreshToken, mustChangePassword } = res.data.data as { token: string; refreshToken: string; mustChangePassword: boolean };
-    const payload = JSON.parse(atob(token.split(".")[1]));
-    const role = payload["http://schemas.microsoft.com/ws/2008/06/identity/claims/role"] ?? payload.role;
-    // System.IdentityModel.Tokens.Jwt collapses a claim type down to a
-    // plain string (not a 1-element array) when only one claim of that
-    // type is present - a custom role granted exactly one permission
-    // would hit this, so never assume the array shape.
-    const rawPermissions = payload.permission;
-    const permissions: string[] = Array.isArray(rawPermissions) ? rawPermissions : rawPermissions ? [rawPermissions] : [];
-    return { token, refreshToken, role, permissions, mustChangePassword };
+    const { role, permissions } = readTokenClaims(token);
+    return { token, refreshToken, role: role!, permissions, mustChangePassword };
   },
 
   async refresh(refreshToken: string) {

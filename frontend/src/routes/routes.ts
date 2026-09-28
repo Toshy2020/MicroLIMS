@@ -173,7 +173,32 @@ export function resolveTraceabilityRoute(
 // MicroLIMS.Shared/Constants/PermissionConstants.cs - the backend is
 // still the enforcement point; this only decides what to render.
 export const PERMISSIONS = {
-  SYSTEM_VIEW_ERROR_LOG: "System.ViewErrorLog",
+  USERS_MANAGE: "Users.Manage",
+  ROLES_MANAGE: "Roles.Manage",
+  AUDIT_VIEW: "Audit.View",
+  SAMPLES_REVIEW: "Samples.Review",
+  SAMPLES_APPROVE: "Samples.Approve",
   SAMPLES_RECEIVE: "Samples.Receive",
-  SAMPLES_TRACK_ALL: "Samples.TrackAll"
+  SAMPLES_TRACK_ALL: "Samples.TrackAll",
+  SAMPLES_CORRECT: "Samples.Correct",
+  SAMPLES_ASSIGN_ANALYST: "Samples.AssignAnalyst",
+  TEST_WORKFLOW_EXECUTE: "TestWorkflow.Execute",
+  TEST_WORKFLOW_SUPERVISE: "TestWorkflow.Supervise",
+  CRYOVIALS_MANAGE: "Cryovials.Manage",
+  MATERIALS_MANAGE: "Materials.Manage",
+  MATERIALS_DOCUMENT_CONTROL: "Materials.DocumentControl",
+  EQUIPMENT_MANAGE: "Equipment.Manage",
+  EQUIPMENT_DOCUMENT_CONTROL: "Equipment.DocumentControl",
+  ITEMS_MANAGE: "Items.Manage",
+  MASTER_DATA_MANAGE: "MasterData.Manage",
+  DISCUSSIONS_EDIT_ANY: "Discussions.EditAny",
+  SYSTEM_VIEW_ERROR_LOG: "System.ViewErrorLog",
+  DOCUMENTS_REGISTER: "Documents.Register",
+  DOCUMENTS_CONFIG_MANAGE: "Documents.ConfigManage",
+  KPI_VIEW: "Kpi.View",
+  MEDIA_PREPARE: "Media.Prepare",
+  MEDIA_RELEASE: "Media.Release",
+  OOS_MANAGE: "Oos.Manage"
 } as const;
+
+export type PermissionCode = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];

@@ -1,4 +1,5 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from "axios";
+import { readTokenClaims, TOKEN_REFRESHED_EVENT } from "../modules/authentication/tokenClaims";
 
 // Single axios instance every module service goes through. No business
 // logic here - it only attaches the auth token and handles 401s
@@ -90,6 +91,13 @@ function refreshAccessToken(): Promise<string | null> {
         const { token, refreshToken } = res.data.data as { token: string; refreshToken: string };
         localStorage.setItem("microlims_token", token);
         localStorage.setItem("microlims_refresh_token", refreshToken);
+        // The new token carries the user's current role and permissions -
+        // store them and tell AuthContext, so menus and page gates change
+        // as soon as an administrator's change reaches this session.
+        const { role, permissions } = readTokenClaims(token);
+        if (role) localStorage.setItem("microlims_role", role);
+        localStorage.setItem("microlims_permissions", JSON.stringify(permissions));
+        window.dispatchEvent(new Event(TOKEN_REFRESHED_EVENT));
         return token;
       })
       .catch(() => null)

@@ -19,6 +19,7 @@ import { CategoryBadge } from "../../components/StatusBadge";
 import { SampleLifecycleBadge } from "./SampleLifecycleBadge";
 import { brandColors } from "../../theme";
 import { useAuth } from "../../contexts/AuthContext";
+import { PERMISSIONS } from "../../routes/routes";
 import { PathogenSessionDialog } from "./pathogenSession/PathogenSessionDialog";
 import { ItemDocumentsCard } from "./ItemDocumentsCard";
 import { AssignedTestCard } from "./components/AssignedTestCard";
@@ -49,7 +50,7 @@ export function SelectedSampleTestingPanel({
   onEdit,
   onVoid
 }: Props) {
-  const { role } = useAuth();
+  const { permissions } = useAuth();
   const theme = useTheme();
   const [openPathogenWorkflow, setOpenPathogenWorkflow] = React.useState(false);
   const needsPreparation = sample.preparationStatus === "NeedsPreparation";
@@ -59,7 +60,7 @@ export function SelectedSampleTestingPanel({
   const isProductLike = PRODUCT_LIKE.includes(sample.category);
   const isWater = sample.category === "Water";
   // Mirrors SampleController: Analysts cannot correct or void (the backend enforces it).
-  const canManageSample = role === "Reviewer" || role === "SectionHead" || role === "SystemAdministrator";
+  const canManageSample = permissions.includes(PERMISSIONS.SAMPLES_CORRECT);
 
   const handleOpenReport = () => {
     window.open(`/samples/${sample.sampleId}/report`, "_blank");
@@ -91,7 +92,6 @@ export function SelectedSampleTestingPanel({
           <CategoryBadge category={sample.category} />
           <SampleLifecycleBadge
             status={sample.status}
-            role={role}
             onClick={() => onLifecycleBadgeClick(sample.sampleId)}
           />
           <Typography sx={{ fontSize: "0.72rem", color: "text.secondary", fontWeight: 600, whiteSpace: "nowrap" }}>

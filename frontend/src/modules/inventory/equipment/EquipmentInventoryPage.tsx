@@ -32,6 +32,7 @@ import { AuditHistoryDialog } from "../../../components/AuditHistoryDialog";
 import { LoadingSpinner } from "../../../components/LoadingSpinner";
 import { formatLabDate } from "../../../utils/formatDate";
 import { useAuth } from "../../../contexts/AuthContext";
+import { PERMISSIONS } from "../../../routes/routes";
 import { useLaboratorySections } from "../../../hooks/useLaboratorySections";
 import { EquipmentInventoryService } from "./services/EquipmentInventoryService";
 import {
@@ -60,8 +61,8 @@ const INITIAL_FILTERS: EquipmentFilterState = {
 
 export function EquipmentInventoryPage() {
   const theme = useTheme();
-  const { role } = useAuth();
-  const canSeeHistory = role === "SectionHead" || role === "SystemAdministrator";
+  const { permissions } = useAuth();
+  const canSeeHistory = permissions.includes(PERMISSIONS.AUDIT_VIEW);
 
   // Menu links from each lab workspace (Task 11) append ?lab=MICRO|FP - a
   // client-side filter on top of the already section-scoped list, same as

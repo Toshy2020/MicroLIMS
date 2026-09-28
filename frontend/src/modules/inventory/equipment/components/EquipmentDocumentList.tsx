@@ -15,6 +15,7 @@ import BlockIcon from "@mui/icons-material/Block";
 import { EquipmentInventoryService } from "../services/EquipmentInventoryService";
 import { formatLabDate } from "../../../../utils/formatDate";
 import { useAuth } from "../../../../contexts/AuthContext";
+import { PERMISSIONS } from "../../../../routes/routes";
 import type { EquipmentDocument, EquipmentDocumentStatus } from "../types/equipmentTypes";
 import { EQUIPMENT_DOCUMENT_TYPE_LABELS } from "../types/equipmentTypes";
 import { SupersedeEquipmentDocumentDialog } from "./SupersedeEquipmentDocumentDialog";
@@ -40,8 +41,8 @@ function formatBytes(bytes: number): string {
 }
 
 export function EquipmentDocumentList({ equipmentId, refreshKey, onDocumentChanged }: Props) {
-  const { role } = useAuth();
-  const canSupersede = role === "SectionHead" || role === "SystemAdministrator";
+  const { permissions } = useAuth();
+  const canSupersede = permissions.includes(PERMISSIONS.EQUIPMENT_DOCUMENT_CONTROL);
 
   const [documents, setDocuments] = useState<EquipmentDocument[]>([]);
   const [loading, setLoading] = useState(false);

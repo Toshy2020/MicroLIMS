@@ -10,6 +10,7 @@ import CloseIcon from "@mui/icons-material/Close";
 import { WorkloadWeightConfig } from "../types/reportingTypes";
 import { AnalystKpiService } from "../services/AnalystKpiService";
 import { useAuth } from "../../../contexts/AuthContext";
+import { PERMISSIONS } from "../../../routes/routes";
 import { FloatingDialog } from "../../../components/FloatingDialog";
 
 interface WorkloadWeightsDialogProps {
@@ -20,8 +21,8 @@ interface WorkloadWeightsDialogProps {
 
 export function WorkloadWeightsDialog({ open, onClose, onUpdated }: WorkloadWeightsDialogProps) {
   const theme = useTheme();
-  const { role, fullName } = useAuth();
-  const isAuthorized = role === "SectionHead" || role === "SystemAdministrator";
+  const { fullName, permissions } = useAuth();
+  const isAuthorized = permissions.includes(PERMISSIONS.KPI_VIEW);
 
   const [weights, setWeights] = useState<WorkloadWeightConfig[]>([]);
   const [editingCode, setEditingCode] = useState<string | null>(null);

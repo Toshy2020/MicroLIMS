@@ -12,6 +12,7 @@ import { PathogenLocationResultGridDialog } from "./PathogenLocationResultGridDi
 import { WaterLocationResultGridDialog } from "./WaterLocationResultGridDialog";
 import { PathogenStepDialog } from "./PathogenStepDialog";
 import { useAuth } from "../../contexts/AuthContext";
+import { PERMISSIONS } from "../../routes/routes";
 import { ConfirmationDialog } from "../../components/ConfirmationDialog";
 import { StepChainStrip } from "./components/StepChainStrip";
 import { ElementalAssayPanel } from "./ElementalAssayPanel";
@@ -161,8 +162,8 @@ export function TestWorkflowDialog({ testOrderId, testCode, category, displayNam
   const minimumDurationOverridden = current?.incubationLock?.minimumDurationOverridden ?? false;
   const isTimeReady = !windowNotConfigured && (!minReadyAt || new Date() >= minReadyAt || minimumDurationOverridden);
 
-  const { role } = useAuth();
-  const canOverrideWait = role === "SectionHead" || role === "SystemAdministrator";
+  const { permissions } = useAuth();
+  const canOverrideWait = permissions.includes(PERMISSIONS.TEST_WORKFLOW_SUPERVISE);
   const [skipDialogOpen, setSkipDialogOpen] = useState(false);
   const [skipping, setSkipping] = useState(false);
   const confirmSkipWait = async () => {

@@ -1,6 +1,7 @@
-import { createContext, useContext, useState, ReactNode } from "react";
+import { createContext, useContext, useEffect, useState, ReactNode } from "react";
 import { apiClient } from "../services/apiClient";
 import { authenticationService } from "../modules/authentication/services/authenticationService";
+import { readTokenClaims, TOKEN_REFRESHED_EVENT } from "../modules/authentication/tokenClaims";
 
 export type Role = "SystemAdministrator" | "SectionHead" | "Reviewer" | "Analyst";
 
@@ -19,8 +20,9 @@ export interface LoginData {
 interface AuthState {
   username: string | null;
   role: Role | null;
-  // Additive alongside role - same lifecycle (set at login, not synced on
-  // apiClient's silent 401 token refresh, same as role itself isn't).
+  // Set at login and re-read from every silently refreshed token, so a
+  // role or permission change made on the Roles/Users screens reaches an
+  // open session within one access-token lifetime.
   permissions: string[];
   token: string | null;
   refreshToken: string | null;
@@ -47,16 +49,46 @@ function readStored<T>(key: string, fallback: T, parse: (raw: string) => T = (ra
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [token, setToken] = useState<string | null>(localStorage.getItem("microlims_token"));
+  // The stored token is the source of truth for role and permissions; the
+  // separate storage keys are only a fallback for a token that won't parse.
+  const initialClaims = readTokenClaims(localStorage.getItem("microlims_token"));
   const [refreshToken, setRefreshToken] = useState<string | null>(localStorage.getItem("microlims_refresh_token"));
   const [username, setUsername] = useState<string | null>(localStorage.getItem("microlims_username"));
-  const [role, setRole] = useState<Role | null>(localStorage.getItem("microlims_role") as Role | null);
-  const [permissions, setPermissions] = useState<string[]>(readStored<string[]>("microlims_permissions", [], JSON.parse));
+  const [role, setRole] = useState<Role | null>(initialClaims.role ?? (localStorage.getItem("microlims_role") as Role | null));
+  const [permissions, setPermissions] = useState<string[]>(
+    initialClaims.role ? initialClaims.permissions : readStored<string[]>("microlims_permissions", [], JSON.parse)
+  );
   const [fullName, setFullName] = useState<string | null>(localStorage.getItem("microlims_full_name"));
   const [jobTitle, setJobTitle] = useState<string | null>(localStorage.getItem("microlims_job_title"));
   const [userId, setUserId] = useState<number | null>(readStored<number | null>("microlims_user_id", null, Number));
   const [mustChangePassword, setMustChangePassword] = useState<boolean>(
     readStored<boolean>("microlims_must_change_password", false, (raw) => raw === "true")
   );
+
+  // apiClient refreshes the access token on its own when a request comes
+  // back 401. Pick up the role and permissions the new token carries, and
+  // follow token changes made in other tabs too.
+  useEffect(() => {
+    const syncFromStoredToken = () => {
+      const stored = localStorage.getItem("microlims_token");
+      if (!stored) return;
+      const claims = readTokenClaims(stored);
+      if (!claims.role) return;
+      setToken(stored);
+      setRefreshToken(localStorage.getItem("microlims_refresh_token"));
+      setRole(claims.role);
+      setPermissions(claims.permissions);
+    };
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === "microlims_token") syncFromStoredToken();
+    };
+    window.addEventListener(TOKEN_REFRESHED_EVENT, syncFromStoredToken);
+    window.addEventListener("storage", onStorage);
+    return () => {
+      window.removeEventListener(TOKEN_REFRESHED_EVENT, syncFromStoredToken);
+      window.removeEventListener("storage", onStorage);
+    };
+  }, []);
 
   const login = (data: LoginData) => {
     localStorage.setItem("microlims_token", data.token);
@@ -156,8 +188,11 @@ export function useAuth() {
   return ctx;
 }
 
-// Opt-in permission check for new/migrated features - existing role-based
-// gates (role === "X") are untouched and keep working exactly as before.
+// Whether the signed-in user holds a permission code. Menus, route guards
+// and action buttons check this rather than the role name, so granting or
+// revoking a permission on the Roles screen changes what the user is
+// offered. It only decides what to show - every endpoint enforces its own
+// permission on the server.
 export function useHasPermission(code: string): boolean {
   const { permissions } = useAuth();
   return permissions.includes(code);

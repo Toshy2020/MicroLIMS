@@ -39,6 +39,7 @@ import { SignatureDialog } from "../../components/SignatureDialog";
 import { tableHeadSx } from "../../theme";
 import { useTestDefinitions } from "../../hooks/useTestDefinitions";
 import { useAuth } from "../../contexts/AuthContext";
+import { PERMISSIONS } from "../../routes/routes";
 import { EquipmentConfigurationService } from "../laboratoryConfiguration/masterDataSimple/services/EquipmentConfigurationService";
 import { MaterialService } from "../inventory/materials/services/MaterialService";
 import { masterDataOptions, TestAnalyteDto } from "../../services/masterDataOptions";
@@ -108,7 +109,7 @@ function localNowForInput(): string {
 }
 
 export function CalibrationRunsPage() {
-  const { role } = useAuth();
+  const { permissions } = useAuth();
   const { activeOptions: tests } = useTestDefinitions();
   const [runs, setRuns] = useState<CalibrationRunView[]>([]);
   const [loading, setLoading] = useState(true);
@@ -531,7 +532,7 @@ export function CalibrationRunsPage() {
   };
 
   // Withdraw Action Handlers
-  const canWithdraw = role === "SectionHead" || role === "SystemAdministrator";
+  const canWithdraw = permissions.includes(PERMISSIONS.SAMPLES_APPROVE);
 
   const openWithdrawDialog = (run: CalibrationRunView) => {
     setRunToWithdraw(run);

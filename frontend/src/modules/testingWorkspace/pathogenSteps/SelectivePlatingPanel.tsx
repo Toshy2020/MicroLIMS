@@ -10,6 +10,7 @@ import {
 import { parseWorkflowError, workflowErrorDisplayMessage } from "../utils/workflowErrors";
 import { INCUBATION_WINDOW_NOT_CONFIGURED_MESSAGE, serverIncubationWindow } from "../utils/incubationWindow";
 import { useAuth } from "../../../contexts/AuthContext";
+import { PERMISSIONS } from "../../../routes/routes";
 import { ConfirmationDialog } from "../../../components/ConfirmationDialog";
 
 interface Props {
@@ -31,8 +32,8 @@ export function SelectivePlatingPanel({ testOrderId, step, current, onSubmitted 
   const [submitting, setSubmitting] = useState(false);
   const [skipDialogOpen, setSkipDialogOpen] = useState(false);
   const [skipping, setSkipping] = useState(false);
-  const { role } = useAuth();
-  const canOverride = role === "SectionHead" || role === "SystemAdministrator";
+  const { permissions } = useAuth();
+  const canOverride = permissions.includes(PERMISSIONS.TEST_WORKFLOW_SUPERVISE);
 
   useEffect(() => {
     setLoading(true);

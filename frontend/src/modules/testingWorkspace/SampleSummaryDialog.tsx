@@ -45,6 +45,7 @@ import { LoadingSpinner } from "../../components/LoadingSpinner";
 import { StatusBadge } from "../../components/StatusBadge";
 import { brandColors, tableHeadSx } from "../../theme";
 import { useAuth } from "../../contexts/AuthContext";
+import { PERMISSIONS } from "../../routes/routes";
 import { SampleSummaryService, SampleApprovalDecision } from "./services/SampleSummaryService";
 import { sectionScope } from "./coaAggregation";
 import {
@@ -1612,7 +1613,8 @@ function ApprovalSignaturesCard({
 
 export function SampleSummaryDialog({ open, sampleId, onClose }: Props) {
   const theme = useTheme();
-  const { role } = useAuth();
+  const { permissions } = useAuth();
+  const canAssignAnalyst = permissions.includes(PERMISSIONS.SAMPLES_ASSIGN_ANALYST);
   const [summary, setSummary] = useState<SampleSummary | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [comment, setComment] = useState("");
@@ -1707,11 +1709,11 @@ export function SampleSummaryDialog({ open, sampleId, onClose }: Props) {
         .catch((e) => {
           setLoadError(e?.response?.data?.message ?? "Failed to load sample summary.");
         });
-      if (role === "SectionHead" || role === "SystemAdministrator") {
+      if (canAssignAnalyst) {
         UserService.getEligibleAnalysts().then(setAnalysts).catch(() => setAnalysts([]));
       }
     }
-  }, [open, sampleId, role]);
+  }, [open, sampleId, canAssignAnalyst]);
 
   const handleApprovalSectionChange = (newSectionId: number | "") => {
     setApprovalSectionId(newSectionId);
@@ -1776,20 +1778,19 @@ export function SampleSummaryDialog({ open, sampleId, onClose }: Props) {
     // Only when one of the viewer's own sections is waiting - the sample can
     // be under review while none of them is.
     reviewableSections.length > 0 &&
-    (role === "Reviewer" || role === "SectionHead" || role === "SystemAdministrator");
-  const canReturn =
-    role === "Reviewer" || role === "SectionHead" || role === "SystemAdministrator";
+    permissions.includes(PERMISSIONS.SAMPLES_REVIEW);
+  const canReturn = permissions.includes(PERMISSIONS.SAMPLES_REVIEW);
   const canApprove =
     approvableSections.length > 0 &&
-    (role === "SectionHead" || role === "SystemAdministrator");
+    permissions.includes(PERMISSIONS.SAMPLES_APPROVE);
   // Close testing (design.md §5.3): another lab already rejected the
-  // sample and the viewer's own lab still has open work. Role-gated here
+  // sample and the viewer's own lab still has open work. Permission-gated here
   // in addition to the backend's own enforcement, matching the review/
   // approval buttons above.
   const canCloseTesting =
     summary?.overallStatus === "Rejected" &&
     closableSections.length > 0 &&
-    (role === "SectionHead" || role === "SystemAdministrator");
+    permissions.includes(PERMISSIONS.SAMPLES_APPROVE);
   const effectiveClosingSectionId =
     closableSections.length === 1 ? closableSections[0].sectionId : closingSectionId !== "" ? Number(closingSectionId) : undefined;
   const closingSection = closableSections.find((s) => s.sectionId === effectiveClosingSectionId);

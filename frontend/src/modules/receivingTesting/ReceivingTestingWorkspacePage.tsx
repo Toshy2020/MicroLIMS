@@ -25,6 +25,7 @@ import { PageHeader } from "../../components/PageHeader";
 import { LoadingSpinner } from "../../components/LoadingSpinner";
 import { AuditHistoryDialog } from "../../components/AuditHistoryDialog";
 import { useAuth } from "../../contexts/AuthContext";
+import { PERMISSIONS } from "../../routes/routes";
 import { tableHeadSx } from "../../theme";
 
 // Receiving Components & Dialogs
@@ -122,7 +123,7 @@ interface Props {
 
 export function ReceivingTestingWorkspacePage({ lab }: Props) {
   const theme = useTheme();
-  const { role } = useAuth();
+  const { permissions } = useAuth();
   const [searchParams] = useSearchParams();
 
   // Core Data State
@@ -761,7 +762,7 @@ export function ReceivingTestingWorkspacePage({ lab }: Props) {
         counts={workloadCounts}
         activeKey={workloadFilter}
         onSelect={handleSelectWorkload}
-        isSectionHeadOrAdmin={role === "SectionHead" || role === "SystemAdministrator"}
+        canAssignAnalyst={permissions.includes(PERMISSIONS.SAMPLES_ASSIGN_ANALYST)}
       />
 
       {/* Deep-link-only workload filter indicator */}

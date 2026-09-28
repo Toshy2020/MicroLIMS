@@ -3,13 +3,9 @@ import { useParams } from "react-router-dom";
 import { Box, ToggleButtonGroup, ToggleButton, Alert, Typography } from "@mui/material";
 import { SampleSummaryService } from "./services/SampleSummaryService";
 import {
-  buildCoaMatrix,
-  buildOverallConclusionText,
-  buildCoaSimpleRows,
-  buildSimpleConclusionText,
-  computeResultDate,
   filterTestOrdersBySection,
   groupTestOrdersBySection,
+  sectionScope,
   CoaMatrix,
   CoaSimpleResult,
   CoaColumn
@@ -68,17 +64,6 @@ const MEANING_TEXT: Record<string, string> = {
 // lab is done deciding, even though only Approved/Closed-as-rejected
 // grants a certificate.
 const OPEN_SECTION_STATUSES = new Set(["InTesting", "UnderReview", "UnderApproval"]);
-
-// Combined-certificate conclusion (design.md §5.5, D10): once every
-// requested lab is final, a rejected sample still gets a combined CoA -
-// its conclusion names the rejecting lab(s) instead of restating the
-// per-result compliance text. Approved (or a single/implicit-combined
-// certificate that isn't rejected) keeps the existing result-driven text.
-function buildCombinedConclusion(s: SampleSummary, resultDrivenText: string): string {
-  if (s.overallStatus !== "Rejected") return resultDrivenText;
-  const rejectingLabs = (s.sections ?? []).filter((sec) => sec.status === "Rejected").map((sec) => sec.sectionName);
-  return `Rejected — ${rejectingLabs.length > 0 ? rejectingLabs.join(", ") : humanize(s.status)}`;
-}
 
 function computeCombinedCertificateDate(s: SampleSummary): string | null {
   let latest: string | null = null;
@@ -364,8 +349,11 @@ export function SampleCoaPage() {
   }
 
   const s = summary;
-  const matrix = buildCoaMatrix(s.testOrders);
-  const simple = matrix ? null : buildCoaSimpleRows(s.testOrders);
+  // Every verdict on this page - per result, per test and overall - comes
+  // from the server (summary.certificate); the page only lays it out.
+  const certificate = s.certificate.sample;
+  const matrix = certificate.matrix;
+  const simple = certificate.simple;
 
   if (!isMultiSection) {
     if (!s.combinedCoaAvailable) {
@@ -529,7 +517,7 @@ export function SampleCoaPage() {
                       <div><div className="il">Exp. Date</div><div className="iv">{d(s.expDate)}</div></div>
                       <div><div className="il">Sampling / Arrival</div><div className="iv">{d(s.receivedAt)}</div></div>
                       <div><div className="il">Test Date</div><div className="iv">{d(s.preparation?.preparedAt ?? null)}</div></div>
-                      <div><div className="il">Result Date</div><div className="iv">{d(computeResultDate(s.testOrders))}</div></div>
+                      <div><div className="il">Result Date</div><div className="iv">{d(certificate.resultDate)}</div></div>
                       <div><div className="il">QC No.</div><div className="iv">{s.controlNumber}</div></div>
                       <div><div className="il">Certificate Date</div><div className="iv">{d(s.approvedAt)}</div></div>
                     </div>
@@ -552,12 +540,12 @@ export function SampleCoaPage() {
 
               <div
                 className={`coa-overall ${
-                  s.overallStatus === "Rejected" || !(matrix ? matrix.overallComplies : simple!.overallComplies) ? "is-fail" : ""
+                  certificate.complies ? "" : "is-fail"
                 }`}
               >
                 <div className="ot">Overall Conclusion</div>
                 <div className="od">
-                  {buildCombinedConclusion(s, matrix ? buildOverallConclusionText(matrix) : buildSimpleConclusionText(simple!))}
+                  {certificate.conclusionText}
                 </div>
               </div>
 
@@ -591,7 +579,7 @@ export function SampleCoaPage() {
                     <div><div className="il">Exp. Date</div><div className="iv">{d(s.expDate)}</div></div>
                     <div><div className="il">Sampling / Arrival</div><div className="iv">{d(s.receivedAt)}</div></div>
                     <div><div className="il">Test Date</div><div className="iv">{d(s.preparation?.preparedAt ?? null)}</div></div>
-                    <div><div className="il">Result Date</div><div className="iv">{d(computeResultDate(s.testOrders))}</div></div>
+                    <div><div className="il">Result Date</div><div className="iv">{d(certificate.resultDate)}</div></div>
                     <div><div className="il">QC No.</div><div className="iv">{s.controlNumber}</div></div>
                     <div><div className="il">Certificate Date</div><div className="iv">{d(computeCombinedCertificateDate(s))}</div></div>
                   </div>
@@ -603,14 +591,15 @@ export function SampleCoaPage() {
                 return (
                   <>
                     {groupTestOrdersBySection(s.testOrders, sections).map((group) => {
-                      const groupMatrix = buildCoaMatrix(group.testOrders);
-                      const groupSimple = groupMatrix ? null : buildCoaSimpleRows(group.testOrders);
+                      const groupScope = sectionScope(s.certificate, group.sectionId);
+                      const groupMatrix = groupScope?.matrix ?? null;
+                      const groupSimple = groupScope?.simple ?? null;
                       const secDetail = sections.find((sec) => sec.sectionId === group.sectionId);
                       const secRemarks = secDetail?.certificateRemarks?.trim() || null;
                       // Closed lab (design.md §5.3): its still-open tests
                       // were cancelled at whatever step/stage they'd
                       // reached rather than judged - they never produced a
-                      // result row, so buildCoaMatrix/buildCoaSimpleRows
+                      // result row, so the certificate built on the server
                       // never see them. List them explicitly instead of
                       // silently dropping them from the certificate.
                       const cancelledOrders = group.testOrders.filter((t) => t.status === "Cancelled" && !t.isSuperseded);
@@ -653,24 +642,7 @@ export function SampleCoaPage() {
                     })}
 
                     {(() => {
-                      const cMatrix = buildCoaMatrix(s.testOrders);
-                      const cSimple = cMatrix ? null : buildCoaSimpleRows(s.testOrders);
-                      const complies =
-                        s.overallStatus === "Rejected"
-                          ? false
-                          : cMatrix
-                          ? cMatrix.overallComplies
-                          : cSimple
-                          ? cSimple.overallComplies
-                          : true;
-                      const conclusion = buildCombinedConclusion(
-                        s,
-                        cMatrix
-                          ? buildOverallConclusionText(cMatrix)
-                          : cSimple
-                          ? buildSimpleConclusionText(cSimple)
-                          : "This sample complies with the specified requirements."
-                      );
+                      const { complies, conclusionText: conclusion } = certificate;
 
                       return (
                         <div className={`coa-overall ${complies ? "" : "is-fail"}`}>
@@ -723,15 +695,12 @@ export function SampleCoaPage() {
             /* Multi-section single-section variant */
             (() => {
               const secTests = filterTestOrdersBySection(s.testOrders, activeSection.sectionId);
-              const secMatrix = buildCoaMatrix(secTests);
-              const secSimple = secMatrix ? null : buildCoaSimpleRows(secTests);
+              const secScope = sectionScope(s.certificate, activeSection.sectionId);
+              const secMatrix = secScope?.matrix ?? null;
+              const secSimple = secScope?.simple ?? null;
               const secRemarks = activeSection.certificateRemarks?.trim() || null;
-              const complies = secMatrix ? secMatrix.overallComplies : (secSimple ? secSimple.overallComplies : true);
-              const conclusion = secMatrix
-                ? buildOverallConclusionText(secMatrix)
-                : secSimple
-                ? buildSimpleConclusionText(secSimple)
-                : "This section complies with the specified requirements.";
+              const complies = secScope?.complies ?? false;
+              const conclusion = secScope?.conclusionText ?? "";
 
               return (
                 <>
@@ -763,7 +732,7 @@ export function SampleCoaPage() {
                           <div><div className="il">Exp. Date</div><div className="iv">{d(s.expDate)}</div></div>
                           <div><div className="il">Sampling / Arrival</div><div className="iv">{d(s.receivedAt)}</div></div>
                           <div><div className="il">Test Date</div><div className="iv">{d(s.preparation?.preparedAt ?? null)}</div></div>
-                          <div><div className="il">Result Date</div><div className="iv">{d(computeResultDate(secTests))}</div></div>
+                          <div><div className="il">Result Date</div><div className="iv">{d(secScope?.resultDate ?? null)}</div></div>
                           <div><div className="il">QC No.</div><div className="iv">{s.controlNumber}</div></div>
                           <div><div className="il">Certificate Date</div><div className="iv">{d(activeSection.approvedAt ?? s.approvedAt)}</div></div>
                         </div>

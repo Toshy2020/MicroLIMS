@@ -5,6 +5,7 @@ using MicroLIMS.Domain.Entities;
 using MicroLIMS.Application.Abstractions.Pdf;
 using MicroLIMS.Application.Abstractions.Storage;
 using MicroLIMS.Application.Abstractions.Persistence;
+using MicroLIMS.Application.DTOs.Responses;
 
 namespace MicroLIMS.Application.Services;
 
@@ -78,15 +79,15 @@ public class RecordArchiveService
         }
     }
 
-    public Task<List<ArchivedRecord>> GetForEntityAsync(string entityType, int entityId) =>
-        _db.ArchivedRecords
+    public async Task<List<ArchivedRecordResponse>> GetForEntityAsync(string entityType, int entityId) =>
+        (await _db.ArchivedRecords
             .Where(a => a.EntityType == entityType && a.EntityId == entityId)
             .OrderByDescending(a => a.GeneratedAt)
-            .ToListAsync();
+            .ToListAsync()).Select(ArchivedRecordResponse.From).ToList();
 
     // Reads an archived file back and re-hashes it. A mismatch means the
     // stored file no longer matches what was signed for.
-    public async Task<(ArchivedRecord Record, byte[] Bytes, bool IntegrityOk)?> ReadAsync(int archivedRecordId)
+    public async Task<(ArchivedRecordResponse Record, byte[] Bytes, bool IntegrityOk)?> ReadAsync(int archivedRecordId)
     {
         var record = await _db.ArchivedRecords.FirstOrDefaultAsync(a => a.Id == archivedRecordId);
         if (record is null) return null;
@@ -97,6 +98,6 @@ public class RecordArchiveService
             _logger.LogError("Archived record {Id} ({DocumentId}) failed its integrity check - stored bytes do not match the recorded SHA-256.",
                 record.Id, record.DocumentId);
 
-        return (record, bytes, ok);
+        return (ArchivedRecordResponse.From(record), bytes, ok);
     }
 }

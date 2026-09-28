@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Application.Abstractions.Persistence;
+using MicroLIMS.Application.DTOs.Responses;
 
 namespace MicroLIMS.Application.Services;
 
@@ -167,5 +168,6 @@ public class RoleService
     private static RoleDetailDto ToDto(Role r, List<string> permissionCodes) =>
         new(r.Id, r.Name, r.Description, r.Type.ToString(), r.IsSystemRole, r.IsActive, permissionCodes);
 
-    public Task<List<Role>> GetAllAsync() => _db.Roles.AsNoTracking().ToListAsync();
+    public async Task<List<RoleResponse>> GetAllAsync() =>
+        (await _db.Roles.AsNoTracking().ToListAsync()).Select(RoleResponse.From).ToList();
 }

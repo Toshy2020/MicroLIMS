@@ -7,6 +7,7 @@ using MicroLIMS.Application.Workflows;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Application.Abstractions.Persistence;
+using MicroLIMS.Application.DTOs.Responses;
 
 namespace MicroLIMS.Application.Services;
 
@@ -90,8 +91,8 @@ public class ReviewService
         return new QuickReviewBatchResult(reviewed, skipped);
     }
 
-    public Task<TestReturnEvent> ReturnToAnalystAsync(int testOrderId, int reviewerId, string? reason) =>
-        UnitOfWork.RunAsync(_db, () => ReturnToAnalystCoreAsync(testOrderId, reviewerId, reason));
+    public Task<TestReturnEventResponse> ReturnToAnalystAsync(int testOrderId, int reviewerId, string? reason) =>
+        UnitOfWork.RunAsync(_db, async () => TestReturnEventResponse.From(await ReturnToAnalystCoreAsync(testOrderId, reviewerId, reason)));
 
     private async Task<TestReturnEvent> ReturnToAnalystCoreAsync(int testOrderId, int reviewerId, string? reason)
     {

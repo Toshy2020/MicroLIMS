@@ -427,7 +427,7 @@ public class CalibrationRunService : ICalibrationRunService
             previewAnalytes);
     }
 
-    public Task<CalibrationRun> CreateAsync(
+    public Task<CalibrationRunView> CreateAsync(
         CreateCalibrationRunRequest request,
         Stream fileStream,
         string originalFileName,
@@ -435,7 +435,7 @@ public class CalibrationRunService : ICalibrationRunService
         int userId,
         string? ipAddress,
         CancellationToken ct = default) =>
-        UnitOfWork.RunAsync(_db, () => CreateCoreAsync(request, fileStream, originalFileName, declaredContentType, userId, ipAddress, ct));
+        UnitOfWork.RunAsync(_db, async () => CalibrationRunView.From(await CreateCoreAsync(request, fileStream, originalFileName, declaredContentType, userId, ipAddress, ct)));
 
     private async Task<CalibrationRun> CreateCoreAsync(
         CreateCalibrationRunRequest request,
@@ -595,13 +595,13 @@ public class CalibrationRunService : ICalibrationRunService
         return run;
     }
 
-    public Task<CalibrationRun> WithdrawAsync(
+    public Task<CalibrationRunWithdrawResponse> WithdrawAsync(
         int id,
         WithdrawCalibrationRunRequest request,
         int userId,
         string? ipAddress,
         CancellationToken ct = default) =>
-        UnitOfWork.RunAsync(_db, () => WithdrawCoreAsync(id, request, userId, ipAddress, ct));
+        UnitOfWork.RunAsync(_db, async () => CalibrationRunWithdrawResponse.From(await WithdrawCoreAsync(id, request, userId, ipAddress, ct)));
 
     private async Task<CalibrationRun> WithdrawCoreAsync(
         int id,
@@ -703,7 +703,7 @@ public class CalibrationRunService : ICalibrationRunService
         return run;
     }
 
-    public async Task<List<CalibrationRun>> GetAllAsync(
+    public async Task<List<CalibrationRunView>> GetAllAsync(
         CalibrationRunFilter filter,
         int userId,
         CancellationToken ct = default)
@@ -753,13 +753,16 @@ public class CalibrationRunService : ICalibrationRunService
         if (filter.ToDate.HasValue)
             query = query.Where(r => r.PerformedAt <= filter.ToDate.Value);
 
-        return await query.OrderByDescending(r => r.PerformedAt).ToListAsync(ct);
+        return (await query.OrderByDescending(r => r.PerformedAt).ToListAsync(ct)).Select(CalibrationRunView.From).ToList();
     }
 
-    public async Task<CalibrationRun?> GetByIdAsync(
+    public async Task<CalibrationRunView?> GetByIdAsync(
         int id,
         int userId,
-        CancellationToken ct = default)
+        CancellationToken ct = default) =>
+        (await FindRunAsync(id, userId, ct)) is { } found ? CalibrationRunView.From(found) : null;
+
+    private async Task<CalibrationRun?> FindRunAsync(int id, int userId, CancellationToken ct)
     {
         var run = await _db.CalibrationRuns
             .Include(r => r.TestDefinition)
@@ -789,7 +792,7 @@ public class CalibrationRunService : ICalibrationRunService
         int userId,
         CancellationToken ct = default)
     {
-        var run = await GetByIdAsync(runId, userId, ct)
+        var run = await FindRunAsync(runId, userId, ct)
             ?? throw new NotFoundException($"Calibration run {runId} not found.");
 
         var test = run.TestDefinition
@@ -856,12 +859,12 @@ public class CalibrationRunService : ICalibrationRunService
             analyteViews);
     }
 
-    public async Task<(CalibrationRunDocument Document, byte[] Content)> GetDocumentContentAsync(
+    public async Task<(CalibrationRunDocumentView Document, byte[] Content)> GetDocumentContentAsync(
         int runId,
         int userId,
         CancellationToken ct = default)
     {
-        var run = await GetByIdAsync(runId, userId, ct)
+        var run = await FindRunAsync(runId, userId, ct)
             ?? throw new NotFoundException($"Calibration run {runId} not found.");
 
         if (run.Document == null)
@@ -882,6 +885,6 @@ public class CalibrationRunService : ICalibrationRunService
             }
         }
 
-        return (run.Document, content);
+        return (CalibrationRunDocumentView.From(run.Document), content);
     }
 }

@@ -475,26 +475,7 @@ public class TestWorkflowController : ControllerBase
     public async Task<IActionResult> GetLocations(int testOrderId)
     {
         await _scopeService.EnsureTestOrderAccessAsync(CurrentUserId, testOrderId);
-        return await RunAsync(async () =>
-        {
-            var locations = await _engine.GetLocationsAsync(testOrderId);
-            return locations.Select(l => new
-            {
-                l.Id,
-                locationType = l.LocationType.ToString(),
-                locationName = l.RoomTestConfiguration?.Room?.Name ?? l.MachinePartConfiguration?.MachinePart?.Name ?? l.WaterSamplingPoint?.Code ?? string.Empty,
-                gradeClassification = l.RoomTestConfiguration?.Room?.GradeClassification,
-                alertLimit = l.AlertLimit ?? l.RoomTestConfiguration?.AlertLimit ?? l.MachinePartConfiguration?.AlertLimit ?? l.SamplingConfiguration?.AlertLimit,
-                actionLimit = l.ActionLimit ?? l.RoomTestConfiguration?.ActionLimit ?? l.MachinePartConfiguration?.ActionLimit ?? l.SamplingConfiguration?.ActionLimit,
-                specLimit = l.SpecLimit ?? l.RoomTestConfiguration?.SpecLimit ?? l.MachinePartConfiguration?.SpecLimit ?? l.SamplingConfiguration?.SpecLimit,
-                l.CFUResult,
-                l.CalculatedResult,
-                l.ReportedResult,
-                l.RawReadings,
-                l.Status,
-                l.EnteredAt
-            });
-        });
+        return await RunAsync(() => _engine.GetLocationsAsync(testOrderId));
     }
 
     [HttpPost("{testOrderId}/batch-results")]

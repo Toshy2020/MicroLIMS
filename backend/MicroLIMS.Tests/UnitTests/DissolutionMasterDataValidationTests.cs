@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.API.Controllers;
+using MicroLIMS.Application.DTOs.Responses;
 using MicroLIMS.Application.Services;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
@@ -154,7 +155,7 @@ public class DissolutionMasterDataValidationTests
         var actionResult = await controller.TestDefinition.CreateTestDefinition(req);
         var okResult = Assert.IsType<OkObjectResult>(actionResult);
         var response = Assert.IsType<ApiResponse<object>>(okResult.Value);
-        var entity = Assert.IsType<TestDefinition>(response.Data);
+        var entity = Assert.IsType<TestDefinitionResponse>(response.Data);
 
         Assert.Equal(5m, entity.DissolutionS1Offset);
         Assert.Equal(15m, entity.DissolutionS2MinOffset);

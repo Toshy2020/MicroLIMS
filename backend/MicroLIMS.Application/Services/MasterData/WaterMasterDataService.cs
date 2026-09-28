@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Abstractions.Persistence;
 using MicroLIMS.Application.DTOs;
+using MicroLIMS.Application.DTOs.Responses;
 using MicroLIMS.Application.Helpers;
 using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Domain.Entities;
@@ -21,18 +22,18 @@ public class WaterMasterDataService
         _db = db;
     }
 
-    public async Task<object> GetWaterSamplingPointsAsync() =>
-        await _db.WaterSamplingPoints.AsNoTracking().ToListAsync();
+    public async Task<List<WaterSamplingPointResponse>> GetWaterSamplingPointsAsync() =>
+        (await _db.WaterSamplingPoints.AsNoTracking().ToListAsync()).Select(WaterSamplingPointResponse.From).ToList();
 
-    public async Task<object> CreateWaterSamplingPointAsync(CreateWaterSamplingPointRequest request)
+    public async Task<WaterSamplingPointResponse> CreateWaterSamplingPointAsync(CreateWaterSamplingPointRequest request)
     {
         var point = new WaterSamplingPoint { Code = request.Code, Location = request.Location, TestingFrequency = request.TestingFrequency, AssignedTestCodes = request.AssignedTestCodes, WaterDepartmentId = request.WaterDepartmentId };
         _db.WaterSamplingPoints.Add(point);
         await _db.SaveChangesAsync();
-        return point;
+        return WaterSamplingPointResponse.From(point);
     }
 
-    public async Task<object> UpdateWaterSamplingPointAsync(int id, UpdateWaterSamplingPointRequest request)
+    public async Task<WaterSamplingPointResponse> UpdateWaterSamplingPointAsync(int id, UpdateWaterSamplingPointRequest request)
     {
         var point = await _db.WaterSamplingPoints.FirstOrDefaultAsync(p => p.Id == id)
             ?? throw new NotFoundException($"Sampling point {id} not found.");
@@ -42,7 +43,7 @@ public class WaterMasterDataService
         point.AssignedTestCodes = request.AssignedTestCodes;
         point.WaterDepartmentId = request.WaterDepartmentId;
         await _db.SaveChangesAsync();
-        return point;
+        return WaterSamplingPointResponse.From(point);
     }
 
     // Blocked if any Sample or SamplingConfiguration still references
@@ -82,21 +83,21 @@ public class WaterMasterDataService
         return departments;
     }
 
-    public async Task<object> CreateWaterDepartmentAsync(CreateWaterDepartmentRequest request)
+    public async Task<WaterDepartmentResponse> CreateWaterDepartmentAsync(CreateWaterDepartmentRequest request)
     {
         var dept = new WaterDepartment { Name = request.Name };
         _db.WaterDepartments.Add(dept);
         await _db.SaveChangesAsync();
-        return dept;
+        return WaterDepartmentResponse.From(dept);
     }
 
-    public async Task<object> UpdateWaterDepartmentAsync(int id, UpdateWaterDepartmentRequest request)
+    public async Task<WaterDepartmentResponse> UpdateWaterDepartmentAsync(int id, UpdateWaterDepartmentRequest request)
     {
         var dept = await _db.WaterDepartments.FirstOrDefaultAsync(d => d.Id == id)
             ?? throw new NotFoundException($"Water department {id} not found.");
         dept.Name = request.Name;
         await _db.SaveChangesAsync();
-        return dept;
+        return WaterDepartmentResponse.From(dept);
     }
 
     public async Task<object> DeleteWaterDepartmentAsync(int id)
@@ -113,10 +114,10 @@ public class WaterMasterDataService
         return new { };
     }
 
-    public async Task<object> GetWaterSamplingConfigurationsAsync(int pointId) =>
-        await _db.SamplingConfigurations.AsNoTracking().Where(c => c.WaterSamplingPointId == pointId).ToListAsync();
+    public async Task<List<SamplingConfigurationResponse>> GetWaterSamplingConfigurationsAsync(int pointId) =>
+        (await _db.SamplingConfigurations.AsNoTracking().Where(c => c.WaterSamplingPointId == pointId).ToListAsync()).Select(SamplingConfigurationResponse.From).ToList();
 
-    public async Task<object> CreateWaterSamplingConfigurationAsync(CreateWaterSamplingConfigRequest request)
+    public async Task<SamplingConfigurationResponse> CreateWaterSamplingConfigurationAsync(CreateWaterSamplingConfigRequest request)
     {
         var entity = new SamplingConfiguration
         {
@@ -126,10 +127,10 @@ public class WaterMasterDataService
         };
         _db.SamplingConfigurations.Add(entity);
         await _db.SaveChangesAsync();
-        return entity;
+        return SamplingConfigurationResponse.From(entity);
     }
 
-    public async Task<object> UpdateWaterSamplingConfigurationAsync(int id, UpdateWaterSamplingConfigRequest request)
+    public async Task<SamplingConfigurationResponse> UpdateWaterSamplingConfigurationAsync(int id, UpdateWaterSamplingConfigRequest request)
     {
         var entity = await _db.SamplingConfigurations.FirstOrDefaultAsync(c => c.Id == id)
             ?? throw new NotFoundException($"Water sampling configuration {id} not found.");
@@ -139,7 +140,7 @@ public class WaterMasterDataService
         entity.SpecLimit = request.SpecLimit;
         entity.Unit = request.Unit ?? string.Empty;
         await _db.SaveChangesAsync();
-        return entity;
+        return SamplingConfigurationResponse.From(entity);
     }
 
     public async Task<object> DeleteWaterSamplingConfigurationAsync(int id)

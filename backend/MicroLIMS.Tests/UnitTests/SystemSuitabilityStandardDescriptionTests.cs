@@ -798,7 +798,7 @@ public class SystemSuitabilityStandardDescriptionTests
         Assert.Equal(responsesB1, repB1.Responses.Select(r => r.Response));
 
         // Controller view test
-        var view = SystemSuitabilityRunView.From(run);
+        var view = run;
         Assert.Equal(50.0m, view.TheoreticalWeightMg);
         Assert.Equal(1.25m, view.MoisturePercent);
         Assert.Equal(6.0m, view.StandardWeighInDeviationPercent);

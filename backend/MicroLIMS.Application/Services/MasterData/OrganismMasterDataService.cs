@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Abstractions.Persistence;
 using MicroLIMS.Application.DTOs;
+using MicroLIMS.Application.DTOs.Responses;
 using MicroLIMS.Application.Helpers;
 using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Domain.Entities;
@@ -21,10 +22,10 @@ public class OrganismMasterDataService
         _db = db;
     }
 
-    public async Task<object> GetOrganismsAsync() =>
-        await _db.Organisms.AsNoTracking().OrderBy(o => o.ScientificName).ToListAsync();
+    public async Task<List<OrganismResponse>> GetOrganismsAsync() =>
+        (await _db.Organisms.AsNoTracking().OrderBy(o => o.ScientificName).ToListAsync()).Select(OrganismResponse.From).ToList();
 
-    public async Task<object> CreateOrganismAsync(CreateOrganismRequest request)
+    public async Task<OrganismResponse> CreateOrganismAsync(CreateOrganismRequest request)
     {
         if (await _db.Organisms.AnyAsync(o => o.ScientificName.ToLower() == request.ScientificName.ToLower()))
             throw new InvalidOperationException($"Organism \"{request.ScientificName}\" already exists in the Organism list.");
@@ -32,10 +33,10 @@ public class OrganismMasterDataService
         var entity = new Organism { ScientificName = request.ScientificName, AtccNumber = request.AtccNumber, CommonName = request.CommonName, Description = request.Description };
         _db.Organisms.Add(entity);
         await _db.SaveChangesAsync();
-        return entity;
+        return OrganismResponse.From(entity);
     }
 
-    public async Task<object> UpdateOrganismAsync(int id, UpdateOrganismRequest request)
+    public async Task<OrganismResponse> UpdateOrganismAsync(int id, UpdateOrganismRequest request)
     {
         var entity = await _db.Organisms.FirstOrDefaultAsync(o => o.Id == id)
             ?? throw new NotFoundException($"Organism {id} not found.");
@@ -48,7 +49,7 @@ public class OrganismMasterDataService
         entity.CommonName = request.CommonName;
         entity.Description = request.Description;
         await _db.SaveChangesAsync();
-        return entity;
+        return OrganismResponse.From(entity);
     }
 
     // Blocked (not a raw FK error) if any MediaConfigurationChallenge,

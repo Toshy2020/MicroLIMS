@@ -1,3 +1,4 @@
+using MicroLIMS.Application.DTOs.Responses;
 using MicroLIMS.Shared.Exceptions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -29,7 +30,7 @@ public class RoleController : ControllerBase
     private int CurrentUserId => int.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)!.Value);
 
     [HttpGet]
-    public async Task<IActionResult> GetAll() => Ok(ApiResponse<List<Role>>.Ok(await _roleService.GetAllAsync()));
+    public async Task<IActionResult> GetAll() => Ok(ApiResponse<List<RoleResponse>>.Ok(await _roleService.GetAllAsync()));
 
     [HttpGet("{id}")]
     public async Task<IActionResult> GetById(int id)

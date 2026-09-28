@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.API.Controllers;
+using MicroLIMS.Application.DTOs.Responses;
 using MicroLIMS.Application.Services;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
@@ -135,7 +136,7 @@ public class GravimetricQualitativeMasterDataValidationTests
         var actionResult = await controller.TestDefinition.CreateTestDefinition(req);
         var okResult = Assert.IsType<OkObjectResult>(actionResult);
         var response = Assert.IsType<ApiResponse<object>>(okResult.Value);
-        var created = Assert.IsType<TestDefinition>(response.Data);
+        var created = Assert.IsType<TestDefinitionResponse>(response.Data);
 
         Assert.False(created.UsesTare);
     }
@@ -159,7 +160,7 @@ public class GravimetricQualitativeMasterDataValidationTests
         var actionResult = await controller.TestDefinition.CreateTestDefinition(req);
         var okResult = Assert.IsType<OkObjectResult>(actionResult);
         var response = Assert.IsType<ApiResponse<object>>(okResult.Value);
-        var created = Assert.IsType<TestDefinition>(response.Data);
+        var created = Assert.IsType<TestDefinitionResponse>(response.Data);
 
         Assert.True(created.UsesTare);
         Assert.Equal("Temperature (°C), Time (h)", created.ConditionFields);

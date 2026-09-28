@@ -124,7 +124,8 @@ public static class PathogenTestData
         int testOrderId, string stepName, int mediaLotId, int incubatorEquipmentId,
         DateTime startUtc, DateTime endUtc, string? observation, int userId)
     {
-        var incubation = await engine.SelectMediaAsync(testOrderId, stepName, mediaLotId, incubatorEquipmentId, userId);
+        var started = await engine.SelectMediaAsync(testOrderId, stepName, mediaLotId, incubatorEquipmentId, userId);
+        var incubation = (await TestServiceFactory.DatabaseOf(engine).Incubations.FindAsync(started.Id))!;
         incubation.StartedAt = startUtc;
         incubation.IncubationStartUtc = startUtc;
         incubation.IncubationEndUtc = endUtc;

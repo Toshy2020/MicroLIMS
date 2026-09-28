@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.API.Controllers;
 using MicroLIMS.Application.DTOs;
+using MicroLIMS.Application.DTOs.Responses;
 using MicroLIMS.Application.Helpers;
 using MicroLIMS.Application.Services;
 using MicroLIMS.Application.Workflows;
@@ -969,7 +970,7 @@ public class StandardComparisonTitrationTests
 
         var createResult = await controller.TestDefinition.CreateTestDefinition(createReq) as OkObjectResult;
         Assert.NotNull(createResult);
-        var created = ((ApiResponse<object>)createResult!.Value!).Data as TestDefinition;
+        var created = ((ApiResponse<object>)createResult!.Value!).Data as TestDefinitionResponse;
         Assert.NotNull(created);
         Assert.Equal(ResponseMode.PeakArea, created!.ResponseMode);
 

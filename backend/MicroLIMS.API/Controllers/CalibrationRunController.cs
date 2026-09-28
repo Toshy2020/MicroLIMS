@@ -71,7 +71,7 @@ public class CalibrationRunController : ControllerBase
             CurrentUserId,
             ClientIpAddress);
 
-        return Ok(ApiResponse<object>.Ok(CalibrationRunView.From(run)));
+        return Ok(ApiResponse<object>.Ok(run));
     }
 
     // Preview Calibration Run without saving or signing (Slice S1 hardening)
@@ -89,7 +89,7 @@ public class CalibrationRunController : ControllerBase
     public async Task<IActionResult> Withdraw(int id, [FromBody] WithdrawCalibrationRunRequest request)
     {
         var run = await _service.WithdrawAsync(id, request, CurrentUserId, ClientIpAddress);
-        return Ok(ApiResponse<object>.Ok(CalibrationRunWithdrawResponse.From(run)));
+        return Ok(ApiResponse<object>.Ok(run));
     }
 
     // List Calibration Runs with filters and section scoping
@@ -127,7 +127,7 @@ public class CalibrationRunController : ControllerBase
             ToDate: toDate);
 
         var runs = await _service.GetAllAsync(filter, CurrentUserId);
-        return Ok(ApiResponse<object>.Ok(runs.Select(CalibrationRunView.From)));
+        return Ok(ApiResponse<object>.Ok(runs));
     }
 
 
@@ -139,7 +139,7 @@ public class CalibrationRunController : ControllerBase
         if (run is null)
             return NotFound(ApiResponse<object>.Fail($"Calibration run {id} not found."));
 
-        return Ok(ApiResponse<object>.Ok(CalibrationRunView.From(run)));
+        return Ok(ApiResponse<object>.Ok(run));
     }
 
     // Printable run report: the run, its acceptance criteria, signature, document, and analytes
@@ -151,7 +151,7 @@ public class CalibrationRunController : ControllerBase
             return NotFound(ApiResponse<object>.Fail($"Calibration run {id} not found."));
 
         var details = await _service.GetReportDetailsAsync(id, CurrentUserId);
-        return Ok(ApiResponse<object>.Ok(new { Run = CalibrationRunView.From(run), Details = details }));
+        return Ok(ApiResponse<object>.Ok(new { Run = run, Details = details }));
     }
 
     // Retrieve the raw uploaded report document with integrity hash verification

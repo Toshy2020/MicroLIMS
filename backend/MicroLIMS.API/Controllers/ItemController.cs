@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using MicroLIMS.Application.DTOs;
+using MicroLIMS.Application.DTOs.Responses;
 using MicroLIMS.Application.Services;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Shared.Constants;
@@ -21,11 +22,11 @@ public class ItemController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<IActionResult> GetAll() => Ok(ApiResponse<List<Item>>.Ok(await _itemService.GetAllAsync()));
+    public async Task<IActionResult> GetAll() => Ok(ApiResponse<List<ItemResponse>>.Ok(await _itemService.GetAllAsync()));
 
     [HttpPost]
     [Authorize(Policy = PermissionConstants.ItemsManage)]
-    public async Task<IActionResult> Create([FromBody] ItemSaveRequest request) => Ok(ApiResponse<Item>.Ok(await _itemService.CreateAsync(request)));
+    public async Task<IActionResult> Create([FromBody] ItemSaveRequest request) => Ok(ApiResponse<ItemResponse>.Ok(await _itemService.CreateAsync(request)));
 
     [HttpPut("{id}")]
     [Authorize(Policy = PermissionConstants.ItemsManage)]

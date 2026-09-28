@@ -5,6 +5,7 @@ using System.Text.Json;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using MicroLIMS.Application.DTOs;
+using MicroLIMS.Application.DTOs.Responses;
 using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Application.Services;
 using MicroLIMS.Domain.Entities;
@@ -347,7 +348,7 @@ public class ReportingController : ControllerBase
         return File(Encoding.UTF8.GetBytes(csv), "text/csv", fileName);
     }
 
-    private static string BuildCsv(List<ResultRecord> items)
+    private static string BuildCsv(List<ResultRecordResponse> items)
     {
         var sb = new StringBuilder();
         sb.AppendLine(string.Join(',', new[]

@@ -6,6 +6,7 @@ using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Application.Abstractions.Persistence;
+using MicroLIMS.Application.DTOs.Responses;
 
 namespace MicroLIMS.Application.Services;
 
@@ -57,7 +58,7 @@ public class MediaProductService
             .ToListAsync();
     }
 
-    public async Task<MediaProduct> CreateAsync(string name, string code)
+    public async Task<MediaProductResponse> CreateAsync(string name, string code)
     {
         var trimmedName = ValidateName(name);
         var trimmedCode = ValidateCode(code);
@@ -73,10 +74,10 @@ public class MediaProductService
 
         _db.MediaProducts.Add(product);
         await _db.SaveChangesAsync();
-        return product;
+        return MediaProductResponse.From(product);
     }
 
-    public async Task<MediaProduct> RenameAsync(int id, string name)
+    public async Task<MediaProductResponse> RenameAsync(int id, string name)
     {
         var trimmedName = ValidateName(name);
 
@@ -99,12 +100,12 @@ public class MediaProductService
         }
 
         await _db.SaveChangesAsync();
-        return product;
+        return MediaProductResponse.From(product);
     }
 
-    public Task<MediaProduct> ChangeCodeAsync(
+    public Task<MediaProductResponse> ChangeCodeAsync(
         int id, string newCode, string reason, string password, int userId, string? ipAddress) =>
-        UnitOfWork.RunAsync(_db, () => ChangeCodeCoreAsync(id, newCode, reason, password, userId, ipAddress));
+        UnitOfWork.RunAsync(_db, async () => MediaProductResponse.From(await ChangeCodeCoreAsync(id, newCode, reason, password, userId, ipAddress)));
 
     private async Task<MediaProduct> ChangeCodeCoreAsync(
         int id, string newCode, string reason, string password, int userId, string? ipAddress)

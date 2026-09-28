@@ -9,6 +9,7 @@ using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Application.Abstractions.Notifications;
 using MicroLIMS.Application.Abstractions.Persistence;
+using MicroLIMS.Application.DTOs.Responses;
 using MicroLIMS.Shared.Constants;
 
 namespace MicroLIMS.Application.Workflows;
@@ -261,8 +262,8 @@ public interface ITestWorkflowEngine : IStatefulWorkflowEngine
     Task<bool> IsStepDoneAsync(int testOrderId, WorkflowType workflowType, TestWorkflowStep step);
     Task<List<SiblingPathogenOrderDto>> GetSiblingPathogenOrdersAsync(int testOrderId, CancellationToken ct = default);
     Task PropagateSharedTsbToSiblingOrdersAsync(int testOrderId, int incubationId, int userId, CancellationToken ct = default);
-    Task<Incubation> SelectMediaAsync(int testOrderId, string stepName, int mediaLotId, int incubatorEquipmentId, int userId);
-    Task<Incubation> StartStage2IncubationAsync(int testOrderId, string stepName, int incubatorEquipmentId, int userId);
+    Task<IncubationResponse> SelectMediaAsync(int testOrderId, string stepName, int mediaLotId, int incubatorEquipmentId, int userId);
+    Task<IncubationResponse> StartStage2IncubationAsync(int testOrderId, string stepName, int incubatorEquipmentId, int userId);
     Task<TestWorkflowResult> RecordResultAsync(int testOrderId, string stepName, ResultPayload payload, int userId);
     Task<TestWorkflowResult> RecordStandardComparisonResultAsync(int testOrderId, StandardComparisonPayload payload, int userId, string? ipAddress = null);
     Task<TestWorkflowResult> RecordElementalAssayResultAsync(int testOrderId, ElementalAssayPayload payload, int userId, string? ipAddress = null);
@@ -275,12 +276,12 @@ public interface ITestWorkflowEngine : IStatefulWorkflowEngine
     Task<TestWorkflowResult> RecordDisintegrationStageAsync(int testOrderId, DisintegrationStagePayload payload, int userId, string? ipAddress = null);
     Task<TestWorkflowResult> RecordWeightVariationResultAsync(int testOrderId, WeightVariationPayload payload, int userId, string? ipAddress = null);
     Task<TestWorkflowResult> RecordWeightVariationStageAsync(int testOrderId, WeightVariationStagePayload payload, int userId, string? ipAddress = null);
-    Task<List<SampleLocation>> GetLocationsAsync(int testOrderId);
-    Task<Incubation> CloseCurrentIncubationWindowAsync(int testOrderId, int userId);
+    Task<List<TestOrderLocationResponse>> GetLocationsAsync(int testOrderId);
+    Task<IncubationResponse> CloseCurrentIncubationWindowAsync(int testOrderId, int userId);
     // Section Head/System Administrator only (enforced at the controller) -
     // bypasses the minimum-duration wait gate for the currently open
     // incubation on this test order. Never changes the recorded window.
-    Task<Incubation> OverrideMinimumDurationAsync(int testOrderId, int userId);
+    Task<IncubationResponse> OverrideMinimumDurationAsync(int testOrderId, int userId);
     Task<TestWorkflowResult> RecordBatchResultsAsync(int testOrderId, List<BatchLocationReadings> locations, int userId);
     Task<TestWorkflowResult> RecordWaterBatchReadingsAsync(int testOrderId, List<WaterBatchLocationReadings> locations, int userId);
     Task<TestWorkflowResult> RecordBatchPathogenResultsAsync(int testOrderId, List<BatchLocationObservation>? observations, int userId);
@@ -290,7 +291,7 @@ public interface ITestWorkflowEngine : IStatefulWorkflowEngine
     // is server-controlled from Test Master and recorded when media is selected.
     Task<StepResultDto> SubmitBrothAsync(int testOrderId, string stepName, string? observation, int userId);
 
-    Task<Incubation> StartSelectivePlatingIncubationAsync(int testOrderId, string stepName, int mediaLotId, int equipmentId,
+    Task<IncubationResponse> StartSelectivePlatingIncubationAsync(int testOrderId, string stepName, int mediaLotId, int equipmentId,
         DateTime? incubationStartUtc, int userId);
 
     Task<StepResultDto> SubmitSelectivePlatingObservationAsync(int testOrderId, string stepName, GrowthObservation observation,

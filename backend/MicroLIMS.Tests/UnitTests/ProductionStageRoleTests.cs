@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.API.Controllers;
+using MicroLIMS.Application.DTOs.Responses;
 using MicroLIMS.Application.Services;
 using MicroLIMS.Application.Workflows;
 using MicroLIMS.Domain.Entities;
@@ -82,7 +83,7 @@ public class ProductionStageRoleTests
         var result = await controller.ReferenceList.CreateProductionStage(new CreateProductionStageRequest("Stability-Test", ProductionStageRole.Stability));
         var ok = Assert.IsType<OkObjectResult>(result);
         var response = Assert.IsType<ApiResponse<object>>(ok.Value);
-        var entity = Assert.IsType<ProductionStage>(response.Data);
+        var entity = Assert.IsType<ProductionStageResponse>(response.Data);
 
         Assert.Equal(ProductionStageRole.Stability, entity.Role);
 

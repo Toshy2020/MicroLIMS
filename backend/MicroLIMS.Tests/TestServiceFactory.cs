@@ -112,11 +112,23 @@ public static class TestServiceFactory
     public static ResultProjectionService ResultProjection(MicroLimsDbContext db) =>
         new(db, NullLogger<ResultProjectionService>.Instance);
 
-    public static TestWorkflowEngine TestWorkflow(MicroLimsDbContext db, INotificationService? notifications = null, IElectronicSignatureService? signatures = null, IUserSectionScopeService? scope = null, ILabClock? clock = null) =>
-        new(db, SampleReview(db), ResultProjection(db), IncubatorEligibility(db), AppearanceSnapshot(db),
+    public static TestWorkflowEngine TestWorkflow(MicroLimsDbContext db, INotificationService? notifications = null, IElectronicSignatureService? signatures = null, IUserSectionScopeService? scope = null, ILabClock? clock = null)
+    {
+        var engine = new TestWorkflowEngine(db, SampleReview(db), ResultProjection(db), IncubatorEligibility(db), AppearanceSnapshot(db),
             new SegregationOfDutiesGuard(db), ReviewGate(db), notifications ?? new NoOpNotificationService(),
             signatures ?? new ElectronicSignatureService(db), scope ?? new UserSectionScopeService(db),
             clock ?? LabClock.Default);
+        EngineDatabases.AddOrUpdate(engine, db);
+        return engine;
+    }
+
+    // The database an engine from TestWorkflow() was built over, for test
+    // helpers that only receive the engine but need to adjust a record it
+    // returned a response for (e.g. back-dating an incubation).
+    private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<object, MicroLimsDbContext> EngineDatabases = new();
+
+    public static MicroLimsDbContext DatabaseOf(object engine) =>
+        EngineDatabases.TryGetValue(engine, out var db) ? db : throw new InvalidOperationException("Engine was not built by TestServiceFactory.TestWorkflow.");
 
     public static SpecificationService Specification(MicroLimsDbContext db) => new(db);
 

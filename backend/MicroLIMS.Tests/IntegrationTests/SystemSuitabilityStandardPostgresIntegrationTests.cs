@@ -353,7 +353,7 @@ public class SystemSuitabilityStandardPostgresIntegrationTests
 
         Assert.NotNull(run);
         Assert.True(run.Passed);
-        Assert.Empty(run.Analytes);
+        Assert.Null(run.Analytes); // the run view omits an empty analyte list
 
         // Verify from fresh DbContext against PostgreSQL
         await using var verifyDb = _fixture.CreateDbContext();

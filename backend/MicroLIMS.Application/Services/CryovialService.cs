@@ -4,6 +4,7 @@ using MicroLIMS.Application.Helpers;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Application.Abstractions.Persistence;
+using MicroLIMS.Application.DTOs.Responses;
 
 namespace MicroLIMS.Application.Services;
 
@@ -42,13 +43,13 @@ public class CryovialService
     }
 
     // sectionIds: the caller's laboratory sections (null = unrestricted).
-    public async Task<List<Cryovial>> GetAllAsync(IReadOnlyCollection<int>? sectionIds = null) =>
-        await _db.Cryovials.Include(c => c.Material).Include(c => c.Organism).Include(c => c.IdentityConfirmations)
+    public async Task<List<CryovialResponse>> GetAllAsync(IReadOnlyCollection<int>? sectionIds = null) =>
+        (await _db.Cryovials.Include(c => c.Material).Include(c => c.Organism).Include(c => c.IdentityConfirmations)
             .Where(c => sectionIds == null || sectionIds.Contains(c.Material!.SectionId))
-            .OrderByDescending(c => c.Id).ToListAsync();
+            .OrderByDescending(c => c.Id).ToListAsync()).Select(CryovialResponse.From).ToList();
 
-    public Task<Cryovial> PrepareCryovialsAsync(PrepareCryovialsRequest request) =>
-        UnitOfWork.RunAsync(_db, () => PrepareCryovialsCoreAsync(request));
+    public Task<CryovialResponse> PrepareCryovialsAsync(PrepareCryovialsRequest request) =>
+        UnitOfWork.RunAsync(_db, async () => CryovialResponse.From(await PrepareCryovialsCoreAsync(request)));
 
     private async Task<Cryovial> PrepareCryovialsCoreAsync(PrepareCryovialsRequest request)
     {
@@ -136,8 +137,8 @@ public class CryovialService
     // approver may not be the person who prepared the batch: this gate is
     // the only thing standing between an unverified batch and every media
     // evaluation that will later challenge organisms from it.
-    public Task<Cryovial> ApproveAsync(int cryovialId, bool approved, int userId, string password, string? comment, string? ipAddress) =>
-        UnitOfWork.RunAsync(_db, () => ApproveCoreAsync(cryovialId, approved, userId, password, comment, ipAddress));
+    public Task<CryovialResponse> ApproveAsync(int cryovialId, bool approved, int userId, string password, string? comment, string? ipAddress) =>
+        UnitOfWork.RunAsync(_db, async () => CryovialResponse.From(await ApproveCoreAsync(cryovialId, approved, userId, password, comment, ipAddress)));
 
     private async Task<Cryovial> ApproveCoreAsync(int cryovialId, bool approved, int userId, string password, string? comment, string? ipAddress)
     {

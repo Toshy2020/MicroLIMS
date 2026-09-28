@@ -54,11 +54,11 @@ public class WaterBatchResultTests
 
         var locations = await engine.GetLocationsAsync(order.Id);
 
+        // The name and limits come from the sampling point and its
+        // configuration, so both navigations must be loaded.
         var loaded = Assert.Single(locations);
-        Assert.NotNull(loaded.WaterSamplingPoint);
-        Assert.Equal("SP-1", loaded.WaterSamplingPoint!.Code);
-        Assert.NotNull(loaded.SamplingConfiguration);
-        Assert.Equal("50", loaded.SamplingConfiguration!.ActionLimit);
+        Assert.Equal("SP-1", loaded.LocationName);
+        Assert.Equal("50", loaded.ActionLimit);
     }
 
     private static async Task<(MicroLIMS.Application.Workflows.TestWorkflowEngine engine, int testOrderId, int locationAId, int locationBId)>
@@ -116,8 +116,8 @@ public class WaterBatchResultTests
         await engine.SelectMediaAsync(order.Id, "CountIncubation", media.Id, equipment.Id, 1);
 
         var locations = await engine.GetLocationsAsync(order.Id);
-        var locationA = locations.Single(l => l.WaterSamplingPointId == pointA.Id);
-        var locationB = locations.Single(l => l.WaterSamplingPointId == pointB.Id);
+        var locationA = locations.Single(l => l.LocationName == pointA.Code);
+        var locationB = locations.Single(l => l.LocationName == pointB.Code);
 
         return (engine, order.Id, locationA.Id, locationB.Id);
     }

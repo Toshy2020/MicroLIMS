@@ -1,6 +1,7 @@
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
+using MicroLIMS.Application.DTOs.Responses;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Persistence.DbContext;
 
@@ -57,18 +58,30 @@ public static class MediaProductTestData
     }
 
     public static MediaIncubationCondition Condition(MediaProduct product, int minHours = 24, int maxHours = 48, decimal tempMin = 30, decimal tempMax = 35) =>
+        Condition(product.Id, minHours, maxHours, tempMin, tempMax);
+
+    public static MediaIncubationCondition Condition(MediaProductResponse product, int minHours = 24, int maxHours = 48, decimal tempMin = 30, decimal tempMax = 35) =>
+        Condition(product.Id, minHours, maxHours, tempMin, tempMax);
+
+    private static MediaIncubationCondition Condition(int mediaProductId, int minHours, int maxHours, decimal tempMin, decimal tempMax) =>
         new()
         {
-            MediaProductId = product.Id,
+            MediaProductId = mediaProductId,
             IncubationMinHours = minHours,
             IncubationMaxHours = maxHours,
             TemperatureMin = tempMin,
             TemperatureMax = tempMax
         };
 
-    public static async Task<MediaIncubationCondition> AddConditionAsync(MicroLimsDbContext db, MediaProduct product, int minHours = 24, int maxHours = 48, decimal tempMin = 30, decimal tempMax = 35)
+    public static Task<MediaIncubationCondition> AddConditionAsync(MicroLimsDbContext db, MediaProduct product, int minHours = 24, int maxHours = 48, decimal tempMin = 30, decimal tempMax = 35) =>
+        AddConditionAsync(db, product.Id, minHours, maxHours, tempMin, tempMax);
+
+    public static Task<MediaIncubationCondition> AddConditionAsync(MicroLimsDbContext db, MediaProductResponse product, int minHours = 24, int maxHours = 48, decimal tempMin = 30, decimal tempMax = 35) =>
+        AddConditionAsync(db, product.Id, minHours, maxHours, tempMin, tempMax);
+
+    private static async Task<MediaIncubationCondition> AddConditionAsync(MicroLimsDbContext db, int mediaProductId, int minHours, int maxHours, decimal tempMin, decimal tempMax)
     {
-        var condition = Condition(product, minHours, maxHours, tempMin, tempMax);
+        var condition = Condition(mediaProductId, minHours, maxHours, tempMin, tempMax);
         db.MediaIncubationConditions.Add(condition);
         await db.SaveChangesAsync();
         return condition;

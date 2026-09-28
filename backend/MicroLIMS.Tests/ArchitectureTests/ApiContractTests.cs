@@ -1,4 +1,5 @@
 using System.Reflection;
+using System.Reflection.Emit;
 using Microsoft.AspNetCore.Mvc;
 using Xunit;
 
@@ -10,27 +11,48 @@ namespace MicroLIMS.Tests.ArchitectureTests;
 // binding an entity lets a client set any column on it (ids, ownership,
 // status, audit fields) - OWASP API3, mass assignment.
 //
-// Responses: some endpoints still serialize entities, so the JSON follows
-// the schema and whatever EF happened to load. entity-responses.txt lists
-// the service methods behind the controllers that return entities today;
-// it may only shrink. A method moved to a response DTO comes off the list,
-// and a new method cannot join it.
+// Responses: a service method a controller calls returns a response type,
+// never an entity - not directly, not in a list, and not as a property of a
+// response type. An entity's JSON follows the database schema and whatever
+// EF happened to load (including a user's password hash when a navigation
+// to User is loaded). The calls are read from the controllers' compiled IL,
+// so a method only other services use may still return entities.
 public class ApiContractTests
 {
-    private const string AllowListFile = "entity-responses.txt";
-
     private static readonly Assembly Domain = typeof(MicroLIMS.Domain.Entities.Sample).Assembly;
+    private static readonly Assembly Application = typeof(MicroLIMS.Application.Services.SampleSummaryService).Assembly;
+    private static readonly Assembly Api = typeof(MicroLIMS.API.Controllers.SampleController).Assembly;
+
+    private static bool IsEntity(Type t) => t.Assembly == Domain && t.Namespace == "MicroLIMS.Domain.Entities";
 
     private static bool IsOrContainsEntity(Type t) =>
-        t.Assembly == Domain && t.Namespace == "MicroLIMS.Domain.Entities"
+        IsEntity(t)
         || (t.IsGenericType && t.GetGenericArguments().Any(IsOrContainsEntity))
         || (t.IsArray && IsOrContainsEntity(t.GetElementType()!));
+
+    // Like IsOrContainsEntity, but also looks inside the Application's own
+    // response types, whose properties end up in the JSON too.
+    private static string? EntityPath(Type t, HashSet<Type> seen)
+    {
+        if (!seen.Add(t)) return null;
+        if (IsEntity(t)) return t.Name;
+        if (t.IsArray) return EntityPath(t.GetElementType()!, seen);
+        if (t.IsGenericType)
+            foreach (var arg in t.GetGenericArguments())
+                if (EntityPath(arg, seen) is { } inner) return inner;
+        if (t.Assembly == Application)
+            foreach (var p in t.GetProperties(BindingFlags.Public | BindingFlags.Instance))
+                if (EntityPath(p.PropertyType, seen) is { } inner) return $"{t.Name}.{p.Name} -> {inner}";
+        return null;
+    }
+
+    private static IEnumerable<Type> Controllers() =>
+        Api.GetTypes().Where(t => typeof(ControllerBase).IsAssignableFrom(t) && !t.IsAbstract);
 
     [Fact]
     public void NoAction_BindsADomainEntity()
     {
-        var offenders = typeof(MicroLIMS.API.Controllers.SampleController).Assembly.GetTypes()
-            .Where(t => typeof(ControllerBase).IsAssignableFrom(t) && !t.IsAbstract)
+        var offenders = Controllers()
             .SelectMany(t => t.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly))
             .SelectMany(m => m.GetParameters().Select(p => (Method: m, Param: p)))
             .Where(x => IsOrContainsEntity(x.Param.ParameterType))
@@ -40,39 +62,96 @@ public class ApiContractTests
         Assert.True(offenders.Count == 0, "Bind a request DTO instead:\n" + string.Join("\n", offenders));
     }
 
-    private static List<string> EntityReturningServiceMethods()
-    {
-        var application = typeof(MicroLIMS.Application.Services.SampleSummaryService).Assembly;
-        var services = typeof(MicroLIMS.API.Controllers.SampleController).Assembly.GetTypes()
-            .Where(t => typeof(ControllerBase).IsAssignableFrom(t) && !t.IsAbstract)
-            .SelectMany(t => t.GetConstructors().SelectMany(c => c.GetParameters()).Select(p => p.ParameterType))
-            .Where(t => t.Assembly == application)
-            .ToHashSet();
-
-        return services
-            .SelectMany(s => s.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly)
-                .Where(m => IsOrContainsEntity(m.ReturnType))
-                .Select(m => $"{s.Name}.{m.Name}"))
-            .Distinct()
-            .OrderBy(n => n, StringComparer.Ordinal)
-            .ToList();
-    }
-
     [Fact]
-    public void EntityResponses_OnlyShrink()
+    public void NoServiceMethodACallsController_ReturnsAnEntity()
     {
-        var path = Path.Combine(Path.GetDirectoryName(ThisFile())!, AllowListFile);
-        var actual = EntityReturningServiceMethods();
-        if (Environment.GetEnvironmentVariable("MICROLIMS_WRITE_ENTITY_RESPONSES") == "1")
-            File.WriteAllLines(path, actual);
+        var called = Controllers().SelectMany(CalledMethods)
+            .OfType<MethodInfo>()
+            .Where(m => m.DeclaringType?.Assembly == Application)
+            .Distinct()
+            .ToList();
+        Assert.NotEmpty(called);
 
-        var allowed = File.ReadAllLines(path).Where(l => l.Length > 0).ToHashSet();
-        var added = actual.Where(m => !allowed.Contains(m)).ToList();
-        var converted = allowed.Where(m => !actual.Contains(m)).ToList();
+        var offenders = called
+            .Select(m => (Method: m, Path: EntityPath(m.ReturnType, new HashSet<Type>())))
+            .Where(x => x.Path is not null)
+            .Select(x => $"{x.Method.DeclaringType!.Name}.{x.Method.Name} returns {x.Path}")
+            .OrderBy(s => s, StringComparer.Ordinal)
+            .ToList();
 
-        Assert.True(added.Count == 0, "Return a response DTO, not an entity:\n" + string.Join("\n", added));
-        Assert.True(converted.Count == 0, $"No longer return entities - remove them from {AllowListFile}:\n" + string.Join("\n", converted));
+        Assert.True(offenders.Count == 0, "Return a response type, not an entity:\n" + string.Join("\n", offenders));
     }
 
-    private static string ThisFile([System.Runtime.CompilerServices.CallerFilePath] string path = "") => path;
+    // Every method called from a controller's own methods, its async state
+    // machines and its lambdas (compiler-generated nested types).
+    private static IEnumerable<MethodBase> CalledMethods(Type controller)
+    {
+        foreach (var type in WithNested(controller))
+        foreach (var method in type.GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static | BindingFlags.DeclaredOnly))
+        {
+            var il = method.GetMethodBody()?.GetILAsByteArray();
+            if (il is null) continue;
+            foreach (var token in MethodTokens(il))
+            {
+                MethodBase? callee = null;
+                try
+                {
+                    callee = type.Module.ResolveMethod(token,
+                        type.IsGenericType ? type.GetGenericArguments() : null,
+                        method.IsGenericMethod ? method.GetGenericArguments() : null);
+                }
+                catch (ArgumentException) { }
+                if (callee is not null) yield return callee;
+            }
+        }
+    }
+
+    private static IEnumerable<Type> WithNested(Type t) =>
+        new[] { t }.Concat(t.GetNestedTypes(BindingFlags.Public | BindingFlags.NonPublic).SelectMany(WithNested));
+
+    private static readonly Dictionary<short, OpCode> OpCodesByValue = typeof(OpCodes)
+        .GetFields(BindingFlags.Public | BindingFlags.Static)
+        .Select(f => (OpCode)f.GetValue(null)!)
+        .ToDictionary(o => o.Value);
+
+    // Walks the IL stream opcode by opcode and yields the token of every
+    // instruction with a method operand (call, callvirt, newobj, ldftn...).
+    private static IEnumerable<int> MethodTokens(byte[] il)
+    {
+        var i = 0;
+        while (i < il.Length)
+        {
+            short value = il[i++];
+            if (value == 0xFE) value = unchecked((short)(0xFE00 | il[i++]));
+            if (!OpCodesByValue.TryGetValue(value, out var op)) yield break;
+
+            switch (op.OperandType)
+            {
+                case OperandType.InlineMethod:
+                    yield return BitConverter.ToInt32(il, i);
+                    i += 4;
+                    break;
+                case OperandType.InlineNone:
+                    break;
+                case OperandType.ShortInlineBrTarget:
+                case OperandType.ShortInlineI:
+                case OperandType.ShortInlineVar:
+                    i += 1;
+                    break;
+                case OperandType.InlineVar:
+                    i += 2;
+                    break;
+                case OperandType.InlineI8:
+                case OperandType.InlineR:
+                    i += 8;
+                    break;
+                case OperandType.InlineSwitch:
+                    i += 4 + 4 * BitConverter.ToInt32(il, i);
+                    break;
+                default:
+                    i += 4;
+                    break;
+            }
+        }
+    }
 }

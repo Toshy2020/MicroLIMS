@@ -144,3 +144,42 @@ public record EquationTypeDto(
     string Name,
     string FormulaText,
     IReadOnlyList<string> RequiredInputs);
+
+// What the API returns for a run. Never the entity itself: its navigation to
+// the performing User would serialize that user's PasswordHash.
+public record SystemSuitabilityRunView(
+    int Id, string Code, bool Passed, string? FailureReasons,
+    int TestDefinitionId, string? TestCode, string? TestName, string? MethodAbbreviation,
+    int SectionId, string? SectionName,
+    int EquipmentId, string? EquipmentCode, string? EquipmentName,
+    int? ChromatographyColumnId, string? ColumnCode, string? ColumnName,
+    int ReferenceStandardMaterialId, string? ReferenceStandardName, string? ReferenceStandardBatch,
+    decimal StandardPurityPercent, decimal StandardWeightMg, decimal StandardDilution, decimal StandardMeanArea,
+    decimal? RsdPercent, decimal? Resolution, decimal? TailingFactor, decimal? TheoreticalPlates,
+    int PerformedByUserId, string? PerformedByName, DateTime PerformedAt, string? Comment,
+    List<SystemSuitabilityRunAnalyteView>? Analytes = null,
+    decimal? TheoreticalWeightMg = null,
+    decimal? MoisturePercent = null,
+    decimal? StandardWeighInDeviationPercent = null,
+    bool StandardWeighInOutOfWindow = false,
+    string? WeighInJustification = null,
+    decimal? ComputedRsdPercent = null)
+{
+    public static SystemSuitabilityRunView From(SystemSuitabilityRun r) => new(
+        r.Id, r.Code, r.Passed, r.FailureReasons,
+        r.TestDefinitionId, r.TestDefinition?.Code, r.TestDefinition?.DisplayName, r.TestDefinition?.MethodAbbreviation,
+        r.SectionId, r.Section?.Name,
+        r.EquipmentId, r.Equipment?.Code, r.Equipment?.Name,
+        r.ChromatographyColumnId, r.ChromatographyColumn?.Code, r.ChromatographyColumn?.Name,
+        r.ReferenceStandardMaterialId, r.ReferenceStandardMaterial?.MaterialName, r.ReferenceStandardMaterial?.BatchNumber,
+        r.StandardPurityPercent, r.StandardWeightMg, r.StandardDilution, r.StandardMeanArea,
+        r.RsdPercent, r.Resolution, r.TailingFactor, r.TheoreticalPlates,
+        r.PerformedByUserId, r.PerformedByUser?.FullName ?? r.Signature?.UserFullNameSnapshot, r.PerformedAt, r.Comment,
+        r.Analytes != null && r.Analytes.Count > 0 ? r.Analytes.Select(SystemSuitabilityRunAnalyteView.From).ToList() : null,
+        r.TheoreticalWeightMg,
+        r.MoisturePercent,
+        r.StandardWeighInDeviationPercent,
+        r.StandardWeighInOutOfWindow,
+        r.WeighInJustification,
+        r.ComputedRsdPercent);
+}

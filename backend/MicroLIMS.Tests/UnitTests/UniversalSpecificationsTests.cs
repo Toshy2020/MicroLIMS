@@ -3,6 +3,7 @@ using System.Globalization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.API.Controllers;
+using MicroLIMS.Application.DTOs.Responses;
 using MicroLIMS.Application.Services;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
@@ -415,7 +416,7 @@ public class UniversalSpecificationsTests
         var actionResult = await controller.Specification.CreateSpecification(oldRequest);
         var okResult = Assert.IsType<OkObjectResult>(actionResult);
         var envelope = Assert.IsType<ApiResponse<object>>(okResult.Value);
-        var createdSpec = Assert.IsType<Specification>(envelope.Data);
+        var createdSpec = Assert.IsType<SpecificationResponse>(envelope.Data);
 
         Assert.Equal(LimitType.CountTiered, createdSpec.LimitType);
         Assert.Equal("Total Aerobic Microbial Count", createdSpec.ParameterName); // backfilled from TestDefinition.DisplayName

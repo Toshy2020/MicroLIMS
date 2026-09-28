@@ -973,19 +973,23 @@ public class CalibrationCurveSliceS1Tests
         var run = await service.CreateAsync(request, stream, "report.pdf", "application/pdf", fpUser.Id, "127.0.0.1");
 
         Assert.Equal(CalibrationRunStatus.Active, run.Status);
-        var initialView = CalibrationRunView.From(run);
-        Assert.True(initialView.Analytes.First().IsUsable);
+        Assert.True(run.Analytes.First().IsUsable);
 
         // Reject short withdrawal reason (< 10 chars)
         await Assert.ThrowsAsync<InvalidOperationException>(() =>
             service.WithdrawAsync(run.Id, new WithdrawCalibrationRunRequest("Short", "ValidPassword123!"), fpUser.Id, "127.0.0.1"));
 
         // Valid withdrawal
-        var withdrawnRun = await service.WithdrawAsync(
+        await service.WithdrawAsync(
             run.Id,
             new WithdrawCalibrationRunRequest("Instrument baseline drifted significantly during sequence", "ValidPassword123!"),
             fpUser.Id,
             "127.0.0.1");
+        var withdrawnRun = await db.CalibrationRuns
+            .Include(r => r.WithdrawalSignature)
+            .Include(r => r.Analytes).ThenInclude(a => a.Checks)
+            .Include(r => r.Document)
+            .SingleAsync(r => r.Id == run.Id);
 
         Assert.Equal(CalibrationRunStatus.Withdrawn, withdrawnRun.Status);
         Assert.NotNull(withdrawnRun.WithdrawnAt);

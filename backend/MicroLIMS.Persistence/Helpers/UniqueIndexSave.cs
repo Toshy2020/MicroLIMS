@@ -27,10 +27,11 @@ public static class UniqueIndexSave
         catch (DbUpdateException ex) when (ex.InnerException is PostgresException { SqlState: PostgresErrorCodes.UniqueViolation } postgres
                                            && postgres.ConstraintName == uniqueIndexName)
         {
-            // SaveChangesAsync captured audit rows for the rejected values
-            // before the insert failed. Drop them, or the retry would log
-            // the change twice - once with the identifier that was never
-            // saved.
+            // The automatic audit rows are only added once the data save
+            // succeeds, so a rejected save leaves none behind. This still
+            // drops any that did get added during the failed call, so a
+            // retry can never log the change twice - once with the
+            // identifier that was never saved.
             foreach (var entry in db.ChangeTracker.Entries<AuditLog>()
                          .Where(e => e.State == EntityState.Added && !auditAlreadyPending.Contains(e.Entity))
                          .ToList())

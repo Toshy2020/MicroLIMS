@@ -1008,7 +1008,14 @@ public class TestWorkflowEngine : ITestWorkflowEngine
         return result;
     }
 
-    public async Task PropagateSharedTsbToSiblingOrdersAsync(
+    public Task PropagateSharedTsbToSiblingOrdersAsync(
+        int testOrderId,
+        int incubationId,
+        int userId,
+        CancellationToken ct = default) =>
+        UnitOfWork.RunAsync(_db, () => PropagateSharedTsbToSiblingOrdersCoreAsync(testOrderId, incubationId, userId, ct));
+
+    private async Task PropagateSharedTsbToSiblingOrdersCoreAsync(
         int testOrderId,
         int incubationId,
         int userId,
@@ -1276,7 +1283,10 @@ public class TestWorkflowEngine : ITestWorkflowEngine
         return stage2;
     }
 
-    public async Task<TestWorkflowResult> RecordResultAsync(int testOrderId, string stepName, ResultPayload payload, int userId)
+    public Task<TestWorkflowResult> RecordResultAsync(int testOrderId, string stepName, ResultPayload payload, int userId) =>
+        UnitOfWork.RunAsync(_db, () => RecordResultCoreAsync(testOrderId, stepName, payload, userId));
+
+    private async Task<TestWorkflowResult> RecordResultCoreAsync(int testOrderId, string stepName, ResultPayload payload, int userId)
     {
         var (order, definition) = await LoadWithTemplateAsync(testOrderId);
         var step = definition.Steps.FirstOrDefault(s => s.StepName == stepName)
@@ -1384,13 +1394,9 @@ public class TestWorkflowEngine : ITestWorkflowEngine
 
         // Transitioning this TestOrder to Ready and (if every TestOrder on
         // the Sample is now Ready) auto-submitting the Sample for review
-        // are one logical operation, but a real DB transaction here isn't
-        // viable: the whole test suite runs on EF Core's InMemory
-        // provider, which throws on BeginTransactionAsync by default, and
-        // no other code path in this codebase uses an explicit
-        // transaction either. This matches the same "sequential saves,
-        // not fully atomic" pattern WorkflowStateMachine.TransitionAsync
-        // already uses for the result-then-transition sequence above.
+        // are one logical operation with the result saved above. The public
+        // RecordResultAsync runs all of it in one transaction (UnitOfWork),
+        // so a failure here rolls the result back too.
         await WorkflowStateMachine.TransitionAsync(_db, order, WorkflowStep.Ready, userId, $"Workflow complete: {outcomeSummary}");
         await _sampleReviewService.AutoSubmitForReviewIfReadyAsync(order.SampleId, userId);
         await _db.SaveChangesAsync();
@@ -1498,7 +1504,10 @@ public class TestWorkflowEngine : ITestWorkflowEngine
         return incubation;
     }
 
-    public async Task<TestWorkflowResult> RecordBatchResultsAsync(int testOrderId, List<BatchLocationReadings> locations, int userId)
+    public Task<TestWorkflowResult> RecordBatchResultsAsync(int testOrderId, List<BatchLocationReadings> locations, int userId) =>
+        UnitOfWork.RunAsync(_db, () => RecordBatchResultsCoreAsync(testOrderId, locations, userId));
+
+    private async Task<TestWorkflowResult> RecordBatchResultsCoreAsync(int testOrderId, List<BatchLocationReadings> locations, int userId)
     {
         var (order, definition) = await LoadWithTemplateAsync(testOrderId);
         if (order.CurrentStep != WorkflowStep.Incubating)
@@ -2031,7 +2040,11 @@ public class TestWorkflowEngine : ITestWorkflowEngine
     public static (string status, string? exceeded) Compare(decimal value, string? alert, string? action, string? spec) =>
         SpecLimitParser.Compare(value, alert, action, spec);
 
-    public async Task<TestWorkflowResult> RecordElementalAssayResultAsync(
+    public Task<TestWorkflowResult> RecordElementalAssayResultAsync(
+        int testOrderId, ElementalAssayPayload payload, int userId, string? ipAddress = null) =>
+        UnitOfWork.RunAsync(_db, () => RecordElementalAssayResultCoreAsync(testOrderId, payload, userId, ipAddress));
+
+    private async Task<TestWorkflowResult> RecordElementalAssayResultCoreAsync(
         int testOrderId, ElementalAssayPayload payload, int userId, string? ipAddress = null)
     {
         if (payload.UnitAmount <= 0)
@@ -2822,7 +2835,11 @@ public class TestWorkflowEngine : ITestWorkflowEngine
             ipAddress);
     }
 
-    public async Task<TestWorkflowResult> RecordDissolutionResultAsync(
+    public Task<TestWorkflowResult> RecordDissolutionResultAsync(
+        int testOrderId, DissolutionPayload payload, int userId, string? ipAddress = null) =>
+        UnitOfWork.RunAsync(_db, () => RecordDissolutionResultCoreAsync(testOrderId, payload, userId, ipAddress));
+
+    private async Task<TestWorkflowResult> RecordDissolutionResultCoreAsync(
         int testOrderId, DissolutionPayload payload, int userId, string? ipAddress = null)
     {
         if (payload.MediumVolumeMl <= 0m)
@@ -3028,7 +3045,11 @@ public class TestWorkflowEngine : ITestWorkflowEngine
         return new TestWorkflowResult(outcomeSummary, true, true, outcomeSummary, null, null, overallStatus);
     }
 
-    public async Task<TestWorkflowResult> RecordDissolutionStageAsync(
+    public Task<TestWorkflowResult> RecordDissolutionStageAsync(
+        int testOrderId, DissolutionStagePayload payload, int userId, string? ipAddress = null) =>
+        UnitOfWork.RunAsync(_db, () => RecordDissolutionStageCoreAsync(testOrderId, payload, userId, ipAddress));
+
+    private async Task<TestWorkflowResult> RecordDissolutionStageCoreAsync(
         int testOrderId, DissolutionStagePayload payload, int userId, string? ipAddress = null)
     {
         if (string.IsNullOrWhiteSpace(payload.Password))
@@ -3182,7 +3203,11 @@ public class TestWorkflowEngine : ITestWorkflowEngine
         return new TestWorkflowResult(outcomeSummary, true, true, outcomeSummary, null, null, overallStatus);
     }
 
-    public async Task<TestWorkflowResult> RecordDisintegrationResultAsync(
+    public Task<TestWorkflowResult> RecordDisintegrationResultAsync(
+        int testOrderId, DisintegrationPayload payload, int userId, string? ipAddress = null) =>
+        UnitOfWork.RunAsync(_db, () => RecordDisintegrationResultCoreAsync(testOrderId, payload, userId, ipAddress));
+
+    private async Task<TestWorkflowResult> RecordDisintegrationResultCoreAsync(
         int testOrderId, DisintegrationPayload payload, int userId, string? ipAddress = null)
     {
         if (payload.UnitMinutes == null)
@@ -3382,7 +3407,11 @@ public class TestWorkflowEngine : ITestWorkflowEngine
         return new TestWorkflowResult(outcomeSummary, true, true, outcomeSummary, null, null, overallStatus);
     }
 
-    public async Task<TestWorkflowResult> RecordDisintegrationStageAsync(
+    public Task<TestWorkflowResult> RecordDisintegrationStageAsync(
+        int testOrderId, DisintegrationStagePayload payload, int userId, string? ipAddress = null) =>
+        UnitOfWork.RunAsync(_db, () => RecordDisintegrationStageCoreAsync(testOrderId, payload, userId, ipAddress));
+
+    private async Task<TestWorkflowResult> RecordDisintegrationStageCoreAsync(
         int testOrderId, DisintegrationStagePayload payload, int userId, string? ipAddress = null)
     {
         if (string.IsNullOrWhiteSpace(payload.Password))
@@ -3535,7 +3564,11 @@ public class TestWorkflowEngine : ITestWorkflowEngine
         return new TestWorkflowResult(outcomeSummary, true, true, outcomeSummary, null, null, overallStatus);
     }
 
-    public async Task<TestWorkflowResult> RecordWeightVariationResultAsync(
+    public Task<TestWorkflowResult> RecordWeightVariationResultAsync(
+        int testOrderId, WeightVariationPayload payload, int userId, string? ipAddress = null) =>
+        UnitOfWork.RunAsync(_db, () => RecordWeightVariationResultCoreAsync(testOrderId, payload, userId, ipAddress));
+
+    private async Task<TestWorkflowResult> RecordWeightVariationResultCoreAsync(
         int testOrderId, WeightVariationPayload payload, int userId, string? ipAddress = null)
     {
         if (payload.Units == null)
@@ -3771,7 +3804,11 @@ public class TestWorkflowEngine : ITestWorkflowEngine
         return new TestWorkflowResult(outcomeSummary, true, true, outcomeSummary, null, null, overallStatus);
     }
 
-    public async Task<TestWorkflowResult> RecordWeightVariationStageAsync(
+    public Task<TestWorkflowResult> RecordWeightVariationStageAsync(
+        int testOrderId, WeightVariationStagePayload payload, int userId, string? ipAddress = null) =>
+        UnitOfWork.RunAsync(_db, () => RecordWeightVariationStageCoreAsync(testOrderId, payload, userId, ipAddress));
+
+    private async Task<TestWorkflowResult> RecordWeightVariationStageCoreAsync(
         int testOrderId, WeightVariationStagePayload payload, int userId, string? ipAddress = null)
     {
         if (string.IsNullOrWhiteSpace(payload.Password))
@@ -4334,7 +4371,11 @@ public class TestWorkflowEngine : ITestWorkflowEngine
     // window is server-controlled and recorded when SelectMediaAsync is
     // called; the analyst cannot override it. This method just records
     // that the window has completed and optionally saves an observation.
-    public async Task<StepResultDto> SubmitBrothAsync(
+    public Task<StepResultDto> SubmitBrothAsync(
+        int testOrderId, string stepName, string? observation, int userId) =>
+        UnitOfWork.RunAsync(_db, () => SubmitBrothCoreAsync(testOrderId, stepName, observation, userId));
+
+    private async Task<StepResultDto> SubmitBrothCoreAsync(
         int testOrderId, string stepName, string? observation, int userId)
     {
         var step = await LoadStepAsync(testOrderId, stepName);
@@ -4502,7 +4543,11 @@ public class TestWorkflowEngine : ITestWorkflowEngine
         return incubation;
     }
 
-    public async Task<StepResultDto> SubmitSelectivePlatingObservationAsync(
+    public Task<StepResultDto> SubmitSelectivePlatingObservationAsync(
+        int testOrderId, string stepName, GrowthObservation observation, string? observedAppearanceNote, int userId) =>
+        UnitOfWork.RunAsync(_db, () => SubmitSelectivePlatingObservationCoreAsync(testOrderId, stepName, observation, observedAppearanceNote, userId));
+
+    private async Task<StepResultDto> SubmitSelectivePlatingObservationCoreAsync(
         int testOrderId, string stepName, GrowthObservation observation, string? observedAppearanceNote, int userId)
     {
         var step = await LoadStepAsync(testOrderId, stepName);
@@ -4588,7 +4633,12 @@ public class TestWorkflowEngine : ITestWorkflowEngine
     // The analyst's media panel for this run. Every chosen medium must be
     // on the step's permitted list, with a released lot and an in-range
     // incubator, before any plate goes into an incubator.
-    public async Task<StepResultDto> SubmitConfirmatorySetupAsync(
+    public Task<StepResultDto> SubmitConfirmatorySetupAsync(
+        int testOrderId, string stepName, IReadOnlyList<ConfirmatorySelectionInput> selections,
+        DateTime incubationStartUtc, DateTime incubationEndUtc, int userId) =>
+        UnitOfWork.RunAsync(_db, () => SubmitConfirmatorySetupCoreAsync(testOrderId, stepName, selections, incubationStartUtc, incubationEndUtc, userId));
+
+    private async Task<StepResultDto> SubmitConfirmatorySetupCoreAsync(
         int testOrderId, string stepName, IReadOnlyList<ConfirmatorySelectionInput> selections,
         DateTime incubationStartUtc, DateTime incubationEndUtc, int userId)
     {
@@ -4802,7 +4852,10 @@ public class TestWorkflowEngine : ITestWorkflowEngine
     // Offered only once confirmatory plating came back AllConforming.
     // Submitting as Detected is allowed but is permanently flagged so a
     // reviewer sees that no biochemical confirmation was performed.
-    public async Task<StepResultDto> RecordAnalystDecisionAsync(int testOrderId, AnalystDecision decision, int userId)
+    public Task<StepResultDto> RecordAnalystDecisionAsync(int testOrderId, AnalystDecision decision, int userId) =>
+        UnitOfWork.RunAsync(_db, () => RecordAnalystDecisionCoreAsync(testOrderId, decision, userId));
+
+    private async Task<StepResultDto> RecordAnalystDecisionCoreAsync(int testOrderId, AnalystDecision decision, int userId)
     {
         var order = await _db.TestOrders.FirstOrDefaultAsync(t => t.Id == testOrderId)
             ?? throw new NotFoundException($"Test order {testOrderId} not found.");
@@ -4960,7 +5013,11 @@ public class TestWorkflowEngine : ITestWorkflowEngine
     // Reviewer action on a result flagged BiochemicalNotPerformed.
     // Returning re-opens the biochemical step for the analyst; the
     // signature/timeline entry goes through the existing review gate.
-    public async Task<StepResultDto> RecordBiochemicalReviewDecisionAsync(
+    public Task<StepResultDto> RecordBiochemicalReviewDecisionAsync(
+        int workflowStepResultId, bool approve, string comment, int reviewerUserId) =>
+        UnitOfWork.RunAsync(_db, () => RecordBiochemicalReviewDecisionCoreAsync(workflowStepResultId, approve, comment, reviewerUserId));
+
+    private async Task<StepResultDto> RecordBiochemicalReviewDecisionCoreAsync(
         int workflowStepResultId, bool approve, string comment, int reviewerUserId)
     {
         var result = await _db.WorkflowStepResults.FirstOrDefaultAsync(r => r.Id == workflowStepResultId)

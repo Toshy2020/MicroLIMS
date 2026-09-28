@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 ﻿using System.Security.Cryptography;
 using System.Text;
 using Microsoft.EntityFrameworkCore;
@@ -67,7 +68,7 @@ public class OosInvestigationDocumentTests
         var storage = new InMemoryFileStorageService();
         var service = NewService(db, storage);
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        await Assert.ThrowsAsync<NotFoundException>(() =>
             service.GetDocumentsAsync("OOS9999999"));
     }
 

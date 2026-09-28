@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -95,7 +96,7 @@ public class SampleController : ControllerBase
                 request.ProductionStage, CurrentUserId, targets));
             return Ok(ApiResponse<object>.Ok(sample));
         }
-        catch (InvalidOperationException ex)
+        catch (InvalidOperationException ex) when (ex is not NotFoundException)
         {
             return BadRequest(ApiResponse<object>.Fail(ex.Message));
         }
@@ -137,7 +138,7 @@ public class SampleController : ControllerBase
                 HttpContext.Connection.RemoteIpAddress?.ToString());
             return Ok(ApiResponse<object>.Ok(sample));
         }
-        catch (InvalidOperationException ex)
+        catch (InvalidOperationException ex) when (ex is not NotFoundException)
         {
             return BadRequest(ApiResponse<object>.Fail(ex.Message));
         }
@@ -153,7 +154,7 @@ public class SampleController : ControllerBase
             var sample = await _assignmentService.AssignAnalystAsync(id, request.AnalystUserId, CurrentUserId, request.Reason);
             return Ok(ApiResponse<object>.Ok(sample));
         }
-        catch (InvalidOperationException ex)
+        catch (InvalidOperationException ex) when (ex is not NotFoundException)
         {
             return BadRequest(ApiResponse<object>.Fail(ex.Message));
         }
@@ -170,7 +171,7 @@ public class SampleController : ControllerBase
                 id, request.Reason, request.Password, CurrentUserId, HttpContext.Connection.RemoteIpAddress?.ToString());
             return Ok(ApiResponse<object>.Ok(sample));
         }
-        catch (InvalidOperationException ex)
+        catch (InvalidOperationException ex) when (ex is not NotFoundException)
         {
             return BadRequest(ApiResponse<object>.Fail(ex.Message));
         }
@@ -188,6 +189,6 @@ public class SampleController : ControllerBase
                 HttpContext.Connection.RemoteIpAddress?.ToString());
             return Ok(ApiResponse<object>.Ok(new { }));
         }
-        catch (InvalidOperationException ex) { return BadRequest(ApiResponse<object>.Fail(ex.Message)); }
+        catch (InvalidOperationException ex) when (ex is not NotFoundException) { return BadRequest(ApiResponse<object>.Fail(ex.Message)); }
     }
 }

@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
 using MicroLIMS.Application.Services;
@@ -200,7 +201,7 @@ public class MaterialDocumentTests
         var doc = await service.UploadAsync(mat1.Id, PdfUploadRequest(), 1);
 
         // Attempt to retrieve doc through mat2 → must fail
-        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        await Assert.ThrowsAsync<NotFoundException>(() =>
             service.GetContentAsync(doc.Id, mat2.Id, 1));
     }
 

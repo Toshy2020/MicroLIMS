@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.DTOs;
 using MicroLIMS.Application.Helpers;
@@ -871,7 +872,7 @@ public class GroupedTestActionService
     private async Task<(TestOrder order, TestDefinition definition)> LoadDefinitionAsync(int testOrderId, CancellationToken ct)
     {
         var order = await _db.TestOrders.FirstOrDefaultAsync(t => t.Id == testOrderId, ct)
-            ?? throw new InvalidOperationException($"Test order {testOrderId} not found.");
+            ?? throw new NotFoundException($"Test order {testOrderId} not found.");
         var definition = await _db.TestDefinitions
             .Include(t => t.Steps).ThenInclude(s => s.StepMedia).ThenInclude(m => m.Material)
             .Include(t => t.Steps).ThenInclude(s => s.StepMedia).ThenInclude(m => m.IncubationCondition)

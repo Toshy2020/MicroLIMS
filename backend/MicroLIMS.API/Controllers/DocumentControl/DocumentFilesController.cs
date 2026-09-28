@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using System.Security.Claims;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authorization;
@@ -70,11 +71,11 @@ public class DocumentFilesController : ControllerBase
         {
             return BadRequest(ApiResponse<object>.Fail(ex.Message));
         }
-        catch (InvalidOperationException ex)
+        catch (InvalidOperationException ex) when (ex is not NotFoundException)
         {
             return StatusCode(422, ApiResponse<object>.Fail(ex.Message));
         }
-        catch (Exception ex) when (ex is not DbUpdateConcurrencyException)
+        catch (Exception ex) when (ex is not DbUpdateConcurrencyException and not NotFoundException)
         {
             return BadRequest(ApiResponse<object>.Fail(ex.Message));
         }
@@ -109,11 +110,11 @@ public class DocumentFilesController : ControllerBase
         {
             return StatusCode(500, ApiResponse<object>.Fail(ex.Message));
         }
-        catch (InvalidOperationException ex)
+        catch (InvalidOperationException ex) when (ex is not NotFoundException)
         {
             return BadRequest(ApiResponse<object>.Fail(ex.Message));
         }
-        catch (Exception ex) when (ex is not DbUpdateConcurrencyException)
+        catch (Exception ex) when (ex is not DbUpdateConcurrencyException and not NotFoundException)
         {
             return BadRequest(ApiResponse<object>.Fail(ex.Message));
         }
@@ -148,11 +149,11 @@ public class DocumentFilesController : ControllerBase
         {
             return StatusCode(500, ApiResponse<object>.Fail(ex.Message));
         }
-        catch (InvalidOperationException ex)
+        catch (InvalidOperationException ex) when (ex is not NotFoundException)
         {
             return BadRequest(ApiResponse<object>.Fail(ex.Message));
         }
-        catch (Exception ex) when (ex is not DbUpdateConcurrencyException)
+        catch (Exception ex) when (ex is not DbUpdateConcurrencyException and not NotFoundException)
         {
             return BadRequest(ApiResponse<object>.Fail(ex.Message));
         }

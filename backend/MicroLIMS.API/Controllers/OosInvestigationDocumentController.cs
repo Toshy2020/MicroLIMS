@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using MicroLIMS.Application.Interfaces;
@@ -34,7 +35,7 @@ public class OosInvestigationDocumentController : ControllerBase
             var result = await _service.GetDocumentsAsync(oosGroupCode);
             return Ok(ApiResponse<object>.Ok(result));
         }
-        catch (InvalidOperationException ex)
+        catch (InvalidOperationException ex) when (ex is not NotFoundException)
         {
             return BadRequest(ApiResponse<object>.Fail(ex.Message));
         }
@@ -64,7 +65,7 @@ public class OosInvestigationDocumentController : ControllerBase
                 content), CurrentUserId);
             return Ok(ApiResponse<object>.Ok(result));
         }
-        catch (InvalidOperationException ex)
+        catch (InvalidOperationException ex) when (ex is not NotFoundException)
         {
             return BadRequest(ApiResponse<object>.Fail(ex.Message));
         }
@@ -80,7 +81,7 @@ public class OosInvestigationDocumentController : ControllerBase
             var (meta, bytes) = await _service.GetContentAsync(documentId, oosGroupCode, CurrentUserId);
             return File(bytes, meta.ContentType, meta.OriginalFileName);
         }
-        catch (InvalidOperationException ex)
+        catch (InvalidOperationException ex) when (ex is not NotFoundException)
         {
             return BadRequest(ApiResponse<object>.Fail(ex.Message));
         }
@@ -113,7 +114,7 @@ public class OosInvestigationDocumentController : ControllerBase
                 reason), CurrentUserId);
             return Ok(ApiResponse<object>.Ok(result));
         }
-        catch (InvalidOperationException ex)
+        catch (InvalidOperationException ex) when (ex is not NotFoundException)
         {
             return BadRequest(ApiResponse<object>.Fail(ex.Message));
         }
@@ -132,7 +133,7 @@ public class OosInvestigationDocumentController : ControllerBase
             var result = await _service.VoidAsync(documentId, oosGroupCode, request, CurrentUserId);
             return Ok(ApiResponse<object>.Ok(result));
         }
-        catch (InvalidOperationException ex)
+        catch (InvalidOperationException ex) when (ex is not NotFoundException)
         {
             return BadRequest(ApiResponse<object>.Fail(ex.Message));
         }

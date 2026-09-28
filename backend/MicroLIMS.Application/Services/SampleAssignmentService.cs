@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.DTOs;
 using MicroLIMS.Application.Interfaces;
@@ -24,13 +25,13 @@ public class SampleAssignmentService
         var sample = await _db.Samples
             .Include(s => s.TestOrders)
             .FirstOrDefaultAsync(s => s.Id == sampleId)
-            ?? throw new InvalidOperationException($"Sample {sampleId} not found.");
+            ?? throw new NotFoundException($"Sample {sampleId} not found.");
 
         string? newAnalystName = null;
         if (analystUserId.HasValue)
         {
             var user = await _db.Users.FirstOrDefaultAsync(u => u.Id == analystUserId.Value)
-                ?? throw new InvalidOperationException($"User {analystUserId.Value} not found.");
+                ?? throw new NotFoundException($"User {analystUserId.Value} not found.");
 
             if (!user.IsActive)
                 throw new InvalidOperationException($"User '{user.FullName}' is not active.");

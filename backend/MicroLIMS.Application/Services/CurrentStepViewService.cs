@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Helpers;
 using MicroLIMS.Application.Workflows;
@@ -42,7 +43,7 @@ public class CurrentStepViewService
             .Include(s => s.Machine)
             .Include(s => s.CauseOfTesting)
             .FirstOrDefaultAsync(s => s.Id == order.SampleId)
-            ?? throw new InvalidOperationException($"Test order {testOrderId} not found.");
+            ?? throw new NotFoundException($"Test order {testOrderId} not found.");
 
         // Media lot, its material and the incubator for every incubation on
         // this order in one query. EF attaches them to the tracked

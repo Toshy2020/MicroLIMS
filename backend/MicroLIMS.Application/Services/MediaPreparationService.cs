@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Helpers;
 using MicroLIMS.Domain.Entities;
@@ -155,7 +156,7 @@ public class MediaPreparationService
     public async Task MarkOutOfStockAsync(int mediaId, int userId, string? comment = null)
     {
         var media = await _db.Media.FirstOrDefaultAsync(m => m.Id == mediaId)
-            ?? throw new InvalidOperationException($"Media lot {mediaId} not found.");
+            ?? throw new NotFoundException($"Media lot {mediaId} not found.");
 
         if (!media.IsReleasedForUse || media.Status != MediaStatus.Active)
         {

@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Helpers;
 using MicroLIMS.Application.Interfaces;
@@ -144,7 +145,7 @@ public class SampleApprovalService
         int? sectionId = null)
     {
         var sample = await _db.Samples.Include(s => s.TestOrders).Include(s => s.SectionSignoffs).FirstOrDefaultAsync(s => s.Id == sampleId)
-            ?? throw new InvalidOperationException($"Sample {sampleId} not found.");
+            ?? throw new NotFoundException($"Sample {sampleId} not found.");
 
         var userScope = await _scope.GetAccessibleSectionIdsAsync(sectionHeadUserId);
         var section = SampleSectionRollup.ResolveSection(

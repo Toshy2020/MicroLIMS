@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using MicroLIMS.Application.Interfaces;
@@ -63,7 +64,7 @@ public class EquipmentInventoryController : ControllerBase
         {
             return Ok(ApiResponse<object>.Ok(await _service.GetActiveActivitiesForEquipmentAsync(id, CurrentUserId)));
         }
-        catch (InvalidOperationException ex)
+        catch (InvalidOperationException ex) when (ex is not NotFoundException)
         {
             return BadRequest(ApiResponse<object>.Fail(ex.Message));
         }
@@ -76,7 +77,7 @@ public class EquipmentInventoryController : ControllerBase
         {
             return Ok(ApiResponse<object>.Ok(await _service.GetHistoricalActivitiesForEquipmentAsync(id, CurrentUserId, itemCode, fromDate, toDate)));
         }
-        catch (InvalidOperationException ex)
+        catch (InvalidOperationException ex) when (ex is not NotFoundException)
         {
             return BadRequest(ApiResponse<object>.Fail(ex.Message));
         }
@@ -102,7 +103,7 @@ public class EquipmentInventoryController : ControllerBase
                 r.CalibrationDueDate, r.Status, r.StatusChangeComment, r.SectionId), CurrentUserId);
             return Ok(ApiResponse<object>.Ok(new { }));
         }
-        catch (InvalidOperationException ex)
+        catch (InvalidOperationException ex) when (ex is not NotFoundException)
         {
             return BadRequest(ApiResponse<object>.Fail(ex.Message));
         }
@@ -116,7 +117,7 @@ public class EquipmentInventoryController : ControllerBase
             var history = await _service.GetStatusHistoryAsync(id, CurrentUserId);
             return Ok(ApiResponse<object>.Ok(history));
         }
-        catch (InvalidOperationException ex)
+        catch (InvalidOperationException ex) when (ex is not NotFoundException)
         {
             return BadRequest(ApiResponse<object>.Fail(ex.Message));
         }

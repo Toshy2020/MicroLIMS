@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -45,7 +46,7 @@ public class DocumentConfigurationController : ControllerBase
         {
             return BadRequest(ApiResponse<object>.Fail(ex.Message));
         }
-        catch (InvalidOperationException ex)
+        catch (InvalidOperationException ex) when (ex is not NotFoundException)
         {
             return Conflict(ApiResponse<object>.Fail(ex.Message));
         }
@@ -92,7 +93,7 @@ public class DocumentConfigurationController : ControllerBase
         {
             return BadRequest(ApiResponse<object>.Fail(ex.Message));
         }
-        catch (InvalidOperationException ex)
+        catch (InvalidOperationException ex) when (ex is not NotFoundException)
         {
             return Conflict(ApiResponse<object>.Fail(ex.Message));
         }
@@ -148,7 +149,7 @@ public class DocumentConfigurationController : ControllerBase
         {
             return BadRequest(ApiResponse<object>.Fail(ex.Message));
         }
-        catch (InvalidOperationException ex)
+        catch (InvalidOperationException ex) when (ex is not NotFoundException)
         {
             return Conflict(ApiResponse<object>.Fail(ex.Message));
         }

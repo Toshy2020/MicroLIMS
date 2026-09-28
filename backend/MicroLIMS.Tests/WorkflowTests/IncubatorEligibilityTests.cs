@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Services;
 using MicroLIMS.Domain.Entities;
@@ -117,7 +118,7 @@ public class IncubatorEligibilityTests
     public async Task UnknownStepMedia_Throws()
     {
         await using var db = NewDb();
-        await Assert.ThrowsAsync<InvalidOperationException>(
+        await Assert.ThrowsAsync<NotFoundException>(
             () => new IncubatorEligibilityService(db).GetEligibleIncubatorsAsync(999));
     }
 }

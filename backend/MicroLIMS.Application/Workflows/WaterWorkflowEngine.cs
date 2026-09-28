@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Services;
 using MicroLIMS.Domain.Entities;
@@ -72,7 +73,7 @@ public class WaterWorkflowEngine : IWaterWorkflowEngine
     public async Task<Sample> PrepareAsync(int sampleId, List<int> waterSamplingPointIds, int userId, string? storageCondition = null, int? storageTimeHours = null)
     {
         var sample = await _db.Samples.Include(s => s.TestOrders).Include(s => s.Locations).FirstOrDefaultAsync(s => s.Id == sampleId)
-            ?? throw new InvalidOperationException($"Sample {sampleId} not found.");
+            ?? throw new NotFoundException($"Sample {sampleId} not found.");
 
         if (sample.PreparationStatus != SamplePreparationStatus.NeedsPreparation)
             throw new InvalidOperationException("This sample has already been prepared.");
@@ -180,7 +181,7 @@ public class WaterWorkflowEngine : IWaterWorkflowEngine
                 "This water test was prepared across multiple sampling points; per-location result entry is not available yet.");
 
         var sample = await _db.Samples.Include(s => s.TestOrders).FirstOrDefaultAsync(s => s.Id == order.SampleId)
-            ?? throw new InvalidOperationException("Sample not found for this test order.");
+            ?? throw new NotFoundException("Sample not found for this test order.");
 
         var config = sample.WaterSamplingPointId is null
             ? null

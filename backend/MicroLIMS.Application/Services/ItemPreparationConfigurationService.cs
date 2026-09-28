@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
@@ -51,7 +52,7 @@ public class ItemPreparationConfigurationService
     public async Task<ItemPreparationConfigurationDto> UpsertAsync(int itemId, PreparationParameters p, int userId)
     {
         if (!await _db.Items.AnyAsync(i => i.Id == itemId))
-            throw new InvalidOperationException($"Item {itemId} not found.");
+            throw new NotFoundException($"Item {itemId} not found.");
 
         await _validator.ValidateAsync(p);
 

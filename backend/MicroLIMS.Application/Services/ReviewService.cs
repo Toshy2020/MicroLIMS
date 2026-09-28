@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.DTOs;
 using MicroLIMS.Application.Interfaces;
@@ -31,7 +32,7 @@ public class ReviewService
     public async Task MarkReviewedAsync(int testOrderId, int reviewerId, string? comment, string password, string? ipAddress, ReviewMode mode = ReviewMode.Detailed)
     {
         var order = await _db.TestOrders.FirstOrDefaultAsync(t => t.Id == testOrderId)
-            ?? throw new InvalidOperationException($"Test order {testOrderId} not found.");
+            ?? throw new NotFoundException($"Test order {testOrderId} not found.");
 
         if (order.Status != ApprovalStatus.ResultEntered)
             throw new InvalidOperationException("Cannot review a test order before results are entered.");
@@ -88,7 +89,7 @@ public class ReviewService
     public async Task<TestReturnEvent> ReturnToAnalystAsync(int testOrderId, int reviewerId, string? reason)
     {
         var order = await _db.TestOrders.FirstOrDefaultAsync(t => t.Id == testOrderId)
-            ?? throw new InvalidOperationException($"Test order {testOrderId} not found.");
+            ?? throw new NotFoundException($"Test order {testOrderId} not found.");
 
         var sample = await _db.Samples.Include(s => s.TestOrders).Include(s => s.SectionSignoffs)
             .FirstOrDefaultAsync(s => s.Id == order.SampleId);

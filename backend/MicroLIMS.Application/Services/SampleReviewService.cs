@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Domain.Entities;
@@ -53,7 +54,7 @@ public class SampleReviewService
     public async Task<bool> CanSubmitForReviewAsync(int sampleId)
     {
         var sample = await LoadAsync(sampleId)
-            ?? throw new InvalidOperationException($"Sample {sampleId} not found.");
+            ?? throw new NotFoundException($"Sample {sampleId} not found.");
 
         if (!IsBeingTested(sample)) return false;
 
@@ -68,7 +69,7 @@ public class SampleReviewService
     public async Task AutoSubmitForReviewIfReadyAsync(int sampleId, int triggeredByUserId)
     {
         var sample = await LoadAsync(sampleId)
-            ?? throw new InvalidOperationException($"Sample {sampleId} not found.");
+            ?? throw new NotFoundException($"Sample {sampleId} not found.");
 
         if (!IsBeingTested(sample)) return;
 
@@ -91,7 +92,7 @@ public class SampleReviewService
     public async Task CompleteReviewAsync(int sampleId, int reviewerUserId, string password, string? comment, string? ipAddress, int? sectionId = null)
     {
         var sample = await LoadAsync(sampleId)
-            ?? throw new InvalidOperationException($"Sample {sampleId} not found.");
+            ?? throw new NotFoundException($"Sample {sampleId} not found.");
 
         var userScope = await _scope.GetAccessibleSectionIdsAsync(reviewerUserId);
         var section = SampleSectionRollup.ResolveSection(

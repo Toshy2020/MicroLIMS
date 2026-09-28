@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
 using MicroLIMS.Application.Services;
@@ -185,12 +186,12 @@ public class EquipmentStatusAndDocumentTests
     }
 
     [Fact]
-    public async Task GetStatusHistory_NonExistentEquipment_ThrowsInvalidOperationException()
+    public async Task GetStatusHistory_NonExistentEquipment_ThrowsNotFoundException()
     {
         await using var db = NewDb();
         var service = new EquipmentInventoryService(db, new UserSectionScopeService(db));
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => service.GetStatusHistoryAsync(99999, 1));
+        await Assert.ThrowsAsync<NotFoundException>(() => service.GetStatusHistoryAsync(99999, 1));
     }
 
     // =========================================================================
@@ -380,7 +381,7 @@ public class EquipmentStatusAndDocumentTests
             "application/pdf",
             MakePdf()), 1);
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        await Assert.ThrowsAsync<NotFoundException>(() =>
             docService.GetContentAsync(doc.Id, eq2.Id, 1));
     }
 }

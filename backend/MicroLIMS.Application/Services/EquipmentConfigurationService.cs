@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
@@ -129,7 +130,7 @@ public class EquipmentConfigurationService
     public async Task<Equipment> LinkInventoryEquipmentToMasterAsync(int inventoryEquipmentId, int userId)
     {
         var inv = await _db.EquipmentInventories.FindAsync(inventoryEquipmentId)
-            ?? throw new InvalidOperationException($"Inventory equipment {inventoryEquipmentId} not found.");
+            ?? throw new NotFoundException($"Inventory equipment {inventoryEquipmentId} not found.");
 
         var normalizedCode = inv.Code.Trim().ToLower();
         var existingMaster = await _db.Equipment.FirstOrDefaultAsync(e => e.Code.ToLower() == normalizedCode);
@@ -168,7 +169,7 @@ public class EquipmentConfigurationService
             throw new InvalidOperationException("A reason explaining the change to the set point temperature is required.");
 
         var equipment = await _db.Equipment.FirstOrDefaultAsync(e => e.Id == equipmentId)
-            ?? throw new InvalidOperationException($"Equipment {equipmentId} not found.");
+            ?? throw new NotFoundException($"Equipment {equipmentId} not found.");
 
         if (equipment.Type != EquipmentType.Incubator)
             throw new InvalidOperationException($"Equipment {equipment.Code} is not an incubator.");
@@ -351,7 +352,7 @@ public class EquipmentConfigurationService
     public async Task SetAutoclaveProgramStatusAsync(int programId, bool isActive, string comment, int userId)
     {
         var program = await _db.AutoclavePrograms.Include(p => p.Equipment).FirstOrDefaultAsync(p => p.Id == programId)
-            ?? throw new InvalidOperationException($"Autoclave program {programId} not found.");
+            ?? throw new NotFoundException($"Autoclave program {programId} not found.");
 
         if (program.IsActive == isActive) return;
 

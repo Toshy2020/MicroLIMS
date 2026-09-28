@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
@@ -53,7 +54,7 @@ public class MediaReleaseService
     public async Task DecideAsync(int mediaId, int sectionHeadUserId, string password, bool approved, string? comment, string? ipAddress)
     {
         var media = await _db.Media.FirstOrDefaultAsync(m => m.Id == mediaId)
-            ?? throw new InvalidOperationException($"Media lot {mediaId} not found.");
+            ?? throw new NotFoundException($"Media lot {mediaId} not found.");
 
         if (media.ApprovalStatus != ApprovalGateStatus.PendingReview)
             throw new InvalidOperationException($"Media lot {media.LotNumber} has already been decided ({media.ApprovalStatus}).");

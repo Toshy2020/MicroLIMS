@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Domain.Entities;
@@ -33,7 +34,7 @@ public class SectionClosureService
 
         var sample = await _db.Samples.Include(s => s.TestOrders).Include(s => s.SectionSignoffs)
             .FirstOrDefaultAsync(s => s.Id == sampleId)
-            ?? throw new InvalidOperationException($"Sample {sampleId} not found.");
+            ?? throw new NotFoundException($"Sample {sampleId} not found.");
 
         var userScope = await _scope.GetAccessibleSectionIdsAsync(sectionHeadUserId);
         if (userScope is not null && !userScope.Contains(sectionId))

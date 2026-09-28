@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using MicroLIMS.Application.Services;
@@ -52,7 +53,7 @@ public class MessageController : ControllerBase
             var result = await _messageService.CreateConversationAsync(request, CurrentUserId);
             return Ok(ApiResponse<ConversationSummaryDto>.Ok(result));
         }
-        catch (InvalidOperationException ex)
+        catch (InvalidOperationException ex) when (ex is not NotFoundException)
         {
             return BadRequest(ApiResponse<object>.Fail(ex.Message));
         }
@@ -88,7 +89,7 @@ public class MessageController : ControllerBase
         {
             return StatusCode(403, ApiResponse<object>.Fail(ex.Message));
         }
-        catch (InvalidOperationException ex)
+        catch (InvalidOperationException ex) when (ex is not NotFoundException)
         {
             return BadRequest(ApiResponse<object>.Fail(ex.Message));
         }

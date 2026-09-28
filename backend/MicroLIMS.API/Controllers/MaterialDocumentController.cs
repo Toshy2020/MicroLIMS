@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using MicroLIMS.Application.Services;
@@ -71,7 +72,7 @@ public class MaterialDocumentController : ControllerBase
                 content), CurrentUserId);
             return Ok(ApiResponse<object>.Ok(result));
         }
-        catch (InvalidOperationException ex)
+        catch (InvalidOperationException ex) when (ex is not NotFoundException)
         {
             return BadRequest(ApiResponse<object>.Fail(ex.Message));
         }
@@ -145,7 +146,7 @@ public class MaterialDocumentController : ControllerBase
                 CurrentUserId);
             return Ok(ApiResponse<object>.Ok(result));
         }
-        catch (InvalidOperationException ex)
+        catch (InvalidOperationException ex) when (ex is not NotFoundException)
         {
             return BadRequest(ApiResponse<object>.Fail(ex.Message));
         }
@@ -162,7 +163,7 @@ public class MaterialDocumentController : ControllerBase
                 new VoidMaterialDocumentRequest(request.Reason), CurrentUserId);
             return Ok(ApiResponse<object>.Ok(result));
         }
-        catch (InvalidOperationException ex)
+        catch (InvalidOperationException ex) when (ex is not NotFoundException)
         {
             return BadRequest(ApiResponse<object>.Fail(ex.Message));
         }

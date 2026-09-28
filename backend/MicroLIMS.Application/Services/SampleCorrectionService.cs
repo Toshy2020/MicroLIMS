@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.DTOs;
 using MicroLIMS.Application.Interfaces;
@@ -465,7 +466,7 @@ public class SampleCorrectionService
             .Include(s => s.SectionSignoffs)
             .Include(s => s.Locations)
             .FirstOrDefaultAsync(s => s.Id == sampleId)
-        ?? throw new InvalidOperationException($"Sample {sampleId} not found.");
+        ?? throw new NotFoundException($"Sample {sampleId} not found.");
 
     private static string Required(string? value, string label) =>
         string.IsNullOrWhiteSpace(value) ? throw new InvalidOperationException($"{label} is required.") : value.Trim();

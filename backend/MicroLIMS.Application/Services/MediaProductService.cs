@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using System.Text.RegularExpressions;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Interfaces;
@@ -79,7 +80,7 @@ public class MediaProductService
         var trimmedName = ValidateName(name);
 
         var product = await _db.MediaProducts.FirstOrDefaultAsync(p => p.Id == id)
-            ?? throw new InvalidOperationException($"Media product with ID {id} not found.");
+            ?? throw new NotFoundException($"Media product with ID {id} not found.");
 
         await EnsureUniqueNameAsync(trimmedName, id);
 
@@ -110,7 +111,7 @@ public class MediaProductService
         var trimmedCode = ValidateCode(newCode);
 
         var product = await _db.MediaProducts.FirstOrDefaultAsync(p => p.Id == id)
-            ?? throw new InvalidOperationException($"Media product with ID {id} not found.");
+            ?? throw new NotFoundException($"Media product with ID {id} not found.");
 
         if (string.Equals(product.Code, trimmedCode, StringComparison.Ordinal))
             throw new InvalidOperationException("The new code must be different from the current code.");
@@ -151,7 +152,7 @@ public class MediaProductService
     public async Task DeleteAsync(int id)
     {
         var product = await _db.MediaProducts.FirstOrDefaultAsync(p => p.Id == id)
-            ?? throw new InvalidOperationException($"Media product with ID {id} not found.");
+            ?? throw new NotFoundException($"Media product with ID {id} not found.");
 
         var configCount = await _db.MediaConfigurations.CountAsync(c => c.MediaProductId == id);
         var batchCount = await _db.Materials.CountAsync(m => m.MediaProductId == id);

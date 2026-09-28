@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using MicroLIMS.Application.Services;
@@ -61,7 +62,7 @@ public class UserController : ControllerBase
             var created = await _userService.CreateAsync(user, request.Password);
             return Ok(ApiResponse<object>.Ok(created));
         }
-        catch (InvalidOperationException ex)
+        catch (InvalidOperationException ex) when (ex is not NotFoundException)
         {
             return BadRequest(ApiResponse<object>.Fail(ex.Message));
         }
@@ -76,7 +77,7 @@ public class UserController : ControllerBase
             var updated = await _userService.UpdateProfileAsync(id, request.FullName, request.Username, request.Email, request.JobTitle, CurrentUserId);
             return Ok(ApiResponse<object>.Ok(updated));
         }
-        catch (InvalidOperationException ex)
+        catch (InvalidOperationException ex) when (ex is not NotFoundException)
         {
             return BadRequest(ApiResponse<object>.Fail(ex.Message));
         }
@@ -91,7 +92,7 @@ public class UserController : ControllerBase
             var updated = await _userService.ChangeRoleAsync(id, request.RoleId, request.Reason, CurrentUserId);
             return Ok(ApiResponse<object>.Ok(updated));
         }
-        catch (InvalidOperationException ex)
+        catch (InvalidOperationException ex) when (ex is not NotFoundException)
         {
             return BadRequest(ApiResponse<object>.Fail(ex.Message));
         }
@@ -106,7 +107,7 @@ public class UserController : ControllerBase
             var updated = await _userService.SetStatusAsync(id, request.IsActive, request.Reason, CurrentUserId);
             return Ok(ApiResponse<object>.Ok(updated));
         }
-        catch (InvalidOperationException ex)
+        catch (InvalidOperationException ex) when (ex is not NotFoundException)
         {
             return BadRequest(ApiResponse<object>.Fail(ex.Message));
         }
@@ -121,7 +122,7 @@ public class UserController : ControllerBase
             var updated = await _userService.SetStatusAsync(id, false, "Deactivated via legacy endpoint", CurrentUserId);
             return Ok(ApiResponse<object>.Ok(updated));
         }
-        catch (InvalidOperationException ex)
+        catch (InvalidOperationException ex) when (ex is not NotFoundException)
         {
             return BadRequest(ApiResponse<object>.Fail(ex.Message));
         }
@@ -136,7 +137,7 @@ public class UserController : ControllerBase
             await _userService.UpdateEmailAsync(id, request.Email);
             return Ok(ApiResponse<object>.Ok(new { }));
         }
-        catch (InvalidOperationException ex)
+        catch (InvalidOperationException ex) when (ex is not NotFoundException)
         {
             return BadRequest(ApiResponse<object>.Fail(ex.Message));
         }
@@ -151,7 +152,7 @@ public class UserController : ControllerBase
             var updated = await _userService.UnlockUserAsync(id, request.Reason, CurrentUserId);
             return Ok(ApiResponse<object>.Ok(updated));
         }
-        catch (InvalidOperationException ex)
+        catch (InvalidOperationException ex) when (ex is not NotFoundException)
         {
             return BadRequest(ApiResponse<object>.Fail(ex.Message));
         }
@@ -166,7 +167,7 @@ public class UserController : ControllerBase
             await _userService.InitiatePasswordResetAsync(id, request.Reason, CurrentUserId);
             return Ok(ApiResponse<object>.Ok(new { message = "Password reset instructions sent to user's email." }));
         }
-        catch (InvalidOperationException ex)
+        catch (InvalidOperationException ex) when (ex is not NotFoundException)
         {
             return BadRequest(ApiResponse<object>.Fail(ex.Message));
         }
@@ -181,7 +182,7 @@ public class UserController : ControllerBase
             var result = await _adminPasswordRecoveryService.CreateRecoveryRequestAsync(id, request.Reason, CurrentUserId);
             return Ok(ApiResponse<object>.Ok(result));
         }
-        catch (InvalidOperationException ex)
+        catch (InvalidOperationException ex) when (ex is not NotFoundException)
         {
             return BadRequest(ApiResponse<object>.Fail(ex.Message));
         }
@@ -196,7 +197,7 @@ public class UserController : ControllerBase
             var updated = await _userService.ForcePasswordChangeAsync(id, CurrentUserId);
             return Ok(ApiResponse<object>.Ok(updated));
         }
-        catch (InvalidOperationException ex)
+        catch (InvalidOperationException ex) when (ex is not NotFoundException)
         {
             return BadRequest(ApiResponse<object>.Fail(ex.Message));
         }
@@ -218,7 +219,7 @@ public class UserController : ControllerBase
         {
             return Conflict(ApiResponse<object>.Fail(ex.Message));
         }
-        catch (InvalidOperationException ex)
+        catch (InvalidOperationException ex) when (ex is not NotFoundException)
         {
             return BadRequest(ApiResponse<object>.Fail(ex.Message));
         }

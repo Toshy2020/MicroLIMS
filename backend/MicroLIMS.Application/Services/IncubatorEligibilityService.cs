@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Application.Abstractions.Persistence;
@@ -25,7 +26,7 @@ public class IncubatorEligibilityService
     {
         var stepMedia = await _db.TestWorkflowStepMedias
             .FirstOrDefaultAsync(m => m.Id == stepMediaId, cancellationToken)
-            ?? throw new InvalidOperationException($"Step media {stepMediaId} not found.");
+            ?? throw new NotFoundException($"Step media {stepMediaId} not found.");
 
         var now = _time.GetUtcNow().UtcDateTime;
 

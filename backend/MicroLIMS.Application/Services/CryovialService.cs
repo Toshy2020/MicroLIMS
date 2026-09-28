@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Helpers;
 using MicroLIMS.Domain.Entities;
@@ -135,7 +136,7 @@ public class CryovialService
     public async Task<Cryovial> ApproveAsync(int cryovialId, bool approved, int userId, string password, string? comment, string? ipAddress)
     {
         var cryovial = await _db.Cryovials.FirstOrDefaultAsync(c => c.Id == cryovialId)
-            ?? throw new InvalidOperationException($"Cryovial {cryovialId} not found.");
+            ?? throw new NotFoundException($"Cryovial {cryovialId} not found.");
 
         if (cryovial.ApprovalStatus != ApprovalGateStatus.PendingReview)
             throw new InvalidOperationException($"Cryovial batch {cryovial.Code} has already been decided ({cryovial.ApprovalStatus}).");
@@ -175,7 +176,7 @@ public class CryovialService
     public async Task ThawVialAsync(int cryovialId, int userId, string? notes)
     {
         var cryovial = await _db.Cryovials.FirstOrDefaultAsync(c => c.Id == cryovialId)
-            ?? throw new InvalidOperationException($"Cryovial {cryovialId} not found.");
+            ?? throw new NotFoundException($"Cryovial {cryovialId} not found.");
 
         if (cryovial.ApprovalStatus != ApprovalGateStatus.Approved)
             throw new InvalidOperationException($"Cryovial batch {cryovial.Code} is not approved - cannot thaw a vial.");
@@ -194,7 +195,7 @@ public class CryovialService
     public async Task DestroyAsync(int cryovialId)
     {
         var cryovial = await _db.Cryovials.FirstOrDefaultAsync(c => c.Id == cryovialId)
-            ?? throw new InvalidOperationException($"Cryovial {cryovialId} not found.");
+            ?? throw new NotFoundException($"Cryovial {cryovialId} not found.");
         cryovial.IsDestroyed = true;
         await _db.SaveChangesAsync();
     }

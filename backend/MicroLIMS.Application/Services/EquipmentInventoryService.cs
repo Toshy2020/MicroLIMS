@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Domain.Entities;
@@ -158,7 +159,7 @@ public class EquipmentInventoryService
         await _scope.EnsureEquipmentInventoryAccessAsync(currentUserId, id);
 
         var entity = await _db.EquipmentInventories.FindAsync(id)
-            ?? throw new InvalidOperationException($"Equipment {id} not found.");
+            ?? throw new NotFoundException($"Equipment {id} not found.");
 
         if (r.Code != entity.Code && await _db.EquipmentInventories.AnyAsync(e => e.Code == r.Code))
             throw new InvalidOperationException($"Equipment code \"{r.Code}\" already exists.");
@@ -203,7 +204,7 @@ public class EquipmentInventoryService
 
         var equipmentExists = await _db.EquipmentInventories.AnyAsync(e => e.Id == equipmentId);
         if (!equipmentExists)
-            throw new InvalidOperationException($"Equipment {equipmentId} not found.");
+            throw new NotFoundException($"Equipment {equipmentId} not found.");
 
         var historyList = await _db.EquipmentStatusHistories
             .Where(h => h.EquipmentInventoryId == equipmentId)
@@ -276,7 +277,7 @@ public class EquipmentInventoryService
         await _scope.EnsureEquipmentInventoryAccessAsync(userId, equipmentId);
 
         var eq = await _db.EquipmentInventories.FirstOrDefaultAsync(e => e.Id == equipmentId)
-            ?? throw new InvalidOperationException($"Equipment {equipmentId} not found.");
+            ?? throw new NotFoundException($"Equipment {equipmentId} not found.");
         var masterEquipment = await _db.Equipment.ToListAsync();
         return await GetActiveActivitiesForEquipmentInternalAsync(eq, masterEquipment);
     }
@@ -286,7 +287,7 @@ public class EquipmentInventoryService
         await _scope.EnsureEquipmentInventoryAccessAsync(userId, equipmentId);
 
         var eq = await _db.EquipmentInventories.FirstOrDefaultAsync(e => e.Id == equipmentId)
-            ?? throw new InvalidOperationException($"Equipment {equipmentId} not found.");
+            ?? throw new NotFoundException($"Equipment {equipmentId} not found.");
         var masterEquipment = await _db.Equipment.ToListAsync();
         var matchingMasterId = masterEquipment.FirstOrDefault(m => string.Equals(m.Code, eq.Code, StringComparison.OrdinalIgnoreCase))?.Id;
 

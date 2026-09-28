@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -48,7 +49,7 @@ public class RoleController : ControllerBase
             var created = await _roleService.CreateAsync(request.Name, request.Description, request.BaseType);
             return Ok(ApiResponse<RoleDetailDto>.Ok(created));
         }
-        catch (InvalidOperationException ex)
+        catch (InvalidOperationException ex) when (ex is not NotFoundException)
         {
             return BadRequest(ApiResponse<object>.Fail(ex.Message));
         }
@@ -62,7 +63,7 @@ public class RoleController : ControllerBase
             var updated = await _roleService.UpdateAsync(id, request.Name, request.Description);
             return Ok(ApiResponse<RoleDetailDto>.Ok(updated));
         }
-        catch (InvalidOperationException ex)
+        catch (InvalidOperationException ex) when (ex is not NotFoundException)
         {
             return BadRequest(ApiResponse<object>.Fail(ex.Message));
         }
@@ -76,7 +77,7 @@ public class RoleController : ControllerBase
             await _roleService.DeleteAsync(id);
             return Ok(ApiResponse<object>.Ok(new { }));
         }
-        catch (InvalidOperationException ex)
+        catch (InvalidOperationException ex) when (ex is not NotFoundException)
         {
             return BadRequest(ApiResponse<object>.Fail(ex.Message));
         }
@@ -90,7 +91,7 @@ public class RoleController : ControllerBase
             var updated = await _roleService.UpdatePermissionsAsync(id, request.PermissionCodes, CurrentUserId);
             return Ok(ApiResponse<RoleDetailDto>.Ok(updated));
         }
-        catch (InvalidOperationException ex)
+        catch (InvalidOperationException ex) when (ex is not NotFoundException)
         {
             return BadRequest(ApiResponse<object>.Fail(ex.Message));
         }

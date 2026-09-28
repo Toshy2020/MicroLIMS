@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -146,7 +147,7 @@ public class TestWorkflowController : ControllerBase
                 request, CurrentUserId, CurrentRole, ct);
             return Ok(ApiResponse<BatchSelectMediaResponse>.Ok(result));
         }
-        catch (InvalidOperationException ex)
+        catch (InvalidOperationException ex) when (ex is not NotFoundException)
         {
             return BadRequest(ApiResponse<object>.Fail(ex.Message));
         }
@@ -188,7 +189,7 @@ public class TestWorkflowController : ControllerBase
         return await RunAsync(async () =>
         {
             var testCode = await _db.TestOrders.Where(o => o.Id == testOrderId).Select(o => o.TestCode).FirstOrDefaultAsync(ct)
-                ?? throw new InvalidOperationException($"Test order {testOrderId} not found.");
+                ?? throw new NotFoundException($"Test order {testOrderId} not found.");
             var definition = await _db.TestDefinitions.FirstOrDefaultAsync(t => t.Code == testCode, ct)
                 ?? throw new InvalidOperationException($"Test code '{testCode}' is not in the Test Master.");
             if (definition.WorkflowType != WorkflowType.StandardComparison)
@@ -220,7 +221,7 @@ public class TestWorkflowController : ControllerBase
         await _scopeService.EnsureTestOrderAccessAsync(CurrentUserId, testOrderId);
         var incubators = await _incubatorEligibility.GetEligibleIncubatorsAsync(stepMediaId);
         var stepMedia = await _db.TestWorkflowStepMedias.FirstOrDefaultAsync(m => m.Id == stepMediaId)
-            ?? throw new InvalidOperationException($"Step media {stepMediaId} not found.");
+            ?? throw new NotFoundException($"Step media {stepMediaId} not found.");
 
         return Ok(ApiResponse<object>.Ok(new
         {
@@ -239,7 +240,7 @@ public class TestWorkflowController : ControllerBase
     {
         await _scopeService.EnsureTestOrderAccessAsync(CurrentUserId, testOrderId);
         var order = await _db.TestOrders.FirstOrDefaultAsync(t => t.Id == testOrderId)
-            ?? throw new InvalidOperationException($"Test order {testOrderId} not found.");
+            ?? throw new NotFoundException($"Test order {testOrderId} not found.");
         var step = await _db.TestWorkflowSteps
             .Include(s => s.StepMedia).ThenInclude(m => m.Material)
             .Include(s => s.TargetOrganism)

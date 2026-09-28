@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using System.Security.Cryptography;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -106,7 +107,7 @@ public class MaterialDocumentService
         // Verify material exists and record a View access event.
         var materialExists = await _db.Materials.AnyAsync(m => m.Id == materialId);
         if (!materialExists)
-            throw new InvalidOperationException($"Material {materialId} not found.");
+            throw new NotFoundException($"Material {materialId} not found.");
 
         var docs = await _db.MaterialDocuments
             .Where(d => d.MaterialId == materialId)
@@ -132,7 +133,7 @@ public class MaterialDocumentService
 
         // Verify material.
         var material = await _db.Materials.FindAsync(materialId)
-            ?? throw new InvalidOperationException($"Material {materialId} not found.");
+            ?? throw new NotFoundException($"Material {materialId} not found.");
 
         // Server-side file validation.
         var firstBytes = request.Content.Take(16).ToArray();
@@ -196,7 +197,7 @@ public class MaterialDocumentService
 
         var document = await _db.MaterialDocuments
             .FirstOrDefaultAsync(d => d.Id == documentId && d.MaterialId == materialId)
-            ?? throw new InvalidOperationException($"Document {documentId} not found for material {materialId}.");
+            ?? throw new NotFoundException($"Document {documentId} not found for material {materialId}.");
 
         byte[] content;
         try
@@ -243,7 +244,7 @@ public class MaterialDocumentService
 
         var old = await _db.MaterialDocuments
             .FirstOrDefaultAsync(d => d.Id == documentId && d.MaterialId == materialId)
-            ?? throw new InvalidOperationException($"Document {documentId} not found for material {materialId}.");
+            ?? throw new NotFoundException($"Document {documentId} not found for material {materialId}.");
 
         if (old.Status == MaterialDocumentStatus.Voided)
             throw new InvalidOperationException("A voided document cannot be superseded. Upload a new document instead.");
@@ -327,7 +328,7 @@ public class MaterialDocumentService
 
         var document = await _db.MaterialDocuments
             .FirstOrDefaultAsync(d => d.Id == documentId && d.MaterialId == materialId)
-            ?? throw new InvalidOperationException($"Document {documentId} not found for material {materialId}.");
+            ?? throw new NotFoundException($"Document {documentId} not found for material {materialId}.");
 
         if (document.Status == MaterialDocumentStatus.Voided)
             throw new InvalidOperationException("This document is already voided.");
@@ -359,7 +360,7 @@ public class MaterialDocumentService
     public async Task<CoeEligibilityResult> GetCOAEligibilityAsync(int materialId)
     {
         var material = await _db.Materials.FindAsync(materialId)
-            ?? throw new InvalidOperationException($"Material {materialId} not found.");
+            ?? throw new NotFoundException($"Material {materialId} not found.");
 
         var required = CoaRequiredTypes.Contains(material.MaterialType);
         if (!required)
@@ -399,7 +400,7 @@ public class MaterialDocumentService
     {
         var doc = await _db.MaterialDocuments
             .FirstOrDefaultAsync(d => d.Id == documentId)
-            ?? throw new InvalidOperationException($"Document {documentId} not found.");
+            ?? throw new NotFoundException($"Document {documentId} not found.");
 
         var userName = await _db.Users
             .Where(u => u.Id == doc.UploadedByUserId)

@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authorization;
@@ -53,7 +54,7 @@ public class CalibrationRunController : ControllerBase
         {
             request = JsonSerializer.Deserialize<CreateCalibrationRunRequest>(payload, PayloadJsonOptions);
         }
-        catch (Exception ex) when (ex is not DbUpdateConcurrencyException)
+        catch (Exception ex) when (ex is not DbUpdateConcurrencyException and not NotFoundException)
         {
             return BadRequest(ApiResponse<object>.Fail($"Invalid JSON payload: {ex.Message}"));
         }

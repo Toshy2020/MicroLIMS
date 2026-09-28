@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Domain.Entities;
@@ -157,7 +158,7 @@ public class MaterialService
         await _scope.EnsureMaterialAccessAsync(currentUserId, id);
 
         var entity = await _db.Materials.FindAsync(id)
-            ?? throw new InvalidOperationException($"Material {id} not found.");
+            ?? throw new NotFoundException($"Material {id} not found.");
 
         int? mediaProductId = null;
         string materialName = r.MaterialName;
@@ -304,7 +305,7 @@ public class MaterialService
         await _scope.EnsureMaterialAccessAsync(currentUserId, materialId);
 
         var material = await _db.Materials.FindAsync(materialId)
-            ?? throw new InvalidOperationException($"Material {materialId} not found.");
+            ?? throw new NotFoundException($"Material {materialId} not found.");
 
         if (material.MaterialType != expectedType)
             throw new InvalidOperationException($"Material {material.MaterialName} is not a {expectedType} item.");

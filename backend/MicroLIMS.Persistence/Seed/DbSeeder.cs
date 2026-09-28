@@ -52,6 +52,13 @@ public static class DbSeeder
             );
         }
 
+        // The seeded equipment belongs to Microbiology. Equipment.SectionId is
+        // required, so a fresh database failed here before the section was
+        // set. Created by the AddOrgSectionSegregation migration, which
+        // always runs before seeding.
+        var microSectionId = db.DocumentSections.FirstOrDefault(s => s.Code == "MICRO")?.Id
+            ?? throw new InvalidOperationException("Laboratory section 'MICRO' is missing - migrations must run before seeding.");
+
         // 1. Reconcile Equipment (Laboratory Configuration Equipment)
         var incucellEq = db.Equipment.FirstOrDefault(e => e.Code == "INC-F-ML-F-01-002" || e.Code == "INC-03");
         if (incucellEq != null)
@@ -71,6 +78,7 @@ public static class DbSeeder
                 Name = "INCUCELL",
                 Code = "INC-F-ML-F-01-002",
                 Type = EquipmentType.Incubator,
+                SectionId = microSectionId,
                 SetPointTemperature = 36.5m,
                 CalibrationDueDate = DateTime.UtcNow.AddMonths(6)
             });
@@ -89,7 +97,8 @@ public static class DbSeeder
             {
                 Name = "Hirayama",
                 Code = "AUT-F-ML-F-03-045",
-                Type = EquipmentType.Autoclave
+                Type = EquipmentType.Autoclave,
+                SectionId = microSectionId
             };
             db.Equipment.Add(hirayamaEq);
         }
@@ -117,6 +126,7 @@ public static class DbSeeder
                 FirmwareVersion = "v1.0.4",
                 Location = "Instruments room F-ML-F-01",
                 Status = EquipmentOperationalStatus.InService,
+                SectionId = microSectionId,
                 CalibrationDueDate = DateTime.UtcNow.AddMonths(6),
                 CreatedByUserId = 1,
                 LastModifiedByUserId = 1
@@ -143,6 +153,7 @@ public static class DbSeeder
                 FirmwareVersion = "v2.0",
                 Location = "Sterilization room F-ML-F-04",
                 Status = EquipmentOperationalStatus.InService,
+                SectionId = microSectionId,
                 CalibrationDueDate = DateTime.UtcNow.AddMonths(12),
                 CreatedByUserId = 1,
                 LastModifiedByUserId = 1
@@ -191,9 +202,6 @@ public static class DbSeeder
         {
             var adminUser = db.Users.FirstOrDefault(u => u.Username == "admin") ?? db.Users.FirstOrDefault();
             int adminUserId = adminUser?.Id ?? 1;
-            // Created by the AddOrgSectionSegregation migration, which always runs before seeding.
-            var microSectionId = db.DocumentSections.FirstOrDefault(s => s.Code == "MICRO")?.Id
-                ?? throw new InvalidOperationException("Laboratory section 'MICRO' is missing - migrations must run before seeding.");
             var tsaMaterial = new Material
             {
                 SectionId = microSectionId,

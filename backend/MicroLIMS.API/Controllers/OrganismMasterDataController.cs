@@ -34,17 +34,17 @@ public class OrganismMasterDataController : ControllerBase
     public async Task<IActionResult> GetOrganisms() =>
         Ok(ApiResponse<object>.Ok(await _service.GetOrganismsAsync()));
 
-    [Authorize(Roles = RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
+    [Authorize(Policy = PermissionConstants.MasterDataManage)]
     [HttpPost("organisms")]
     public async Task<IActionResult> CreateOrganism(CreateOrganismRequest request) =>
         Ok(ApiResponse<object>.Ok(await _service.CreateOrganismAsync(request)));
 
-    [Authorize(Roles = RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
+    [Authorize(Policy = PermissionConstants.MasterDataManage)]
     [HttpPut("organisms/{id}")]
     public async Task<IActionResult> UpdateOrganism(int id, UpdateOrganismRequest request) =>
         Ok(ApiResponse<object>.Ok(await _service.UpdateOrganismAsync(id, request)));
 
-    [Authorize(Roles = RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
+    [Authorize(Policy = PermissionConstants.MasterDataManage)]
     [HttpDelete("organisms/{id}")]
     public async Task<IActionResult> DeleteOrganism(int id) =>
         Ok(ApiResponse<object>.Ok(await _service.DeleteOrganismAsync(id)));

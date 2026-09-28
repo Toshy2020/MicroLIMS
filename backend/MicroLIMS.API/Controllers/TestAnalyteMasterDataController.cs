@@ -35,17 +35,17 @@ public class TestAnalyteMasterDataController : ControllerBase
     public async Task<IActionResult> GetTestAnalytes(int id) =>
         Ok(ApiResponse<object>.Ok(await _service.GetTestAnalytesAsync(id)));
 
-    [Authorize(Roles = RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
+    [Authorize(Policy = PermissionConstants.MasterDataManage)]
     [HttpPost("test-definitions/{id:int}/analytes")]
     public async Task<IActionResult> CreateTestAnalyte(int id, CreateTestAnalyteRequest request) =>
         Ok(ApiResponse<object>.Ok(await _service.CreateTestAnalyteAsync(CurrentUserId, id, request)));
 
-    [Authorize(Roles = RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
+    [Authorize(Policy = PermissionConstants.MasterDataManage)]
     [HttpPut("test-definitions/{id:int}/analytes/{analyteId:int}")]
     public async Task<IActionResult> UpdateTestAnalyte(int id, int analyteId, UpdateTestAnalyteRequest request) =>
         Ok(ApiResponse<object>.Ok(await _service.UpdateTestAnalyteAsync(CurrentUserId, id, analyteId, request)));
 
-    [Authorize(Roles = RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
+    [Authorize(Policy = PermissionConstants.MasterDataManage)]
     [HttpDelete("test-definitions/{id:int}/analytes/{analyteId:int}")]
     public async Task<IActionResult> DeleteTestAnalyte(int id, int analyteId) =>
         Ok(ApiResponse<object>.Ok(await _service.DeleteTestAnalyteAsync(CurrentUserId, id, analyteId)));

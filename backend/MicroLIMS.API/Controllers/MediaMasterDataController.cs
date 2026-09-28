@@ -39,12 +39,12 @@ public class MediaMasterDataController : ControllerBase
     public async Task<IActionResult> GetMediaProducts() =>
         Ok(ApiResponse<object>.Ok(await _mediaProductService.GetAllAsync()));
 
-    [Authorize(Roles = RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
+    [Authorize(Policy = PermissionConstants.MasterDataManage)]
     [HttpPost("media-products")]
     public async Task<IActionResult> CreateMediaProduct(CreateMediaProductRequest request) =>
         Ok(ApiResponse<object>.Ok(await _mediaProductService.CreateAsync(request.Name, request.Code)));
 
-    [Authorize(Roles = RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
+    [Authorize(Policy = PermissionConstants.MasterDataManage)]
     [HttpPut("media-products/{id}")]
     public async Task<IActionResult> UpdateMediaProduct(int id, UpdateMediaProductRequest request) =>
         Ok(ApiResponse<object>.Ok(await _mediaProductService.RenameAsync(id, request.Name)));
@@ -55,7 +55,7 @@ public class MediaMasterDataController : ControllerBase
         Ok(ApiResponse<object>.Ok(await _mediaProductService.ChangeCodeAsync(
             id, request.Code, request.Reason, request.Password, CurrentUserId, HttpContext.Connection.RemoteIpAddress?.ToString())));
 
-    [Authorize(Roles = RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
+    [Authorize(Policy = PermissionConstants.MasterDataManage)]
     [HttpDelete("media-products/{id}")]
     public async Task<IActionResult> DeleteMediaProduct(int id)
     {
@@ -68,19 +68,19 @@ public class MediaMasterDataController : ControllerBase
     public async Task<IActionResult> GetMediaIncubationConditions([FromQuery] int? mediaProductId) =>
         Ok(ApiResponse<object>.Ok(await _mediaIncubationConditionService.GetAllAsync(mediaProductId)));
 
-    [Authorize(Roles = RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
+    [Authorize(Policy = PermissionConstants.MasterDataManage)]
     [HttpPost("media-incubation-conditions")]
     public async Task<IActionResult> CreateMediaIncubationCondition(CreateMediaIncubationConditionRequest request) =>
         Ok(ApiResponse<object>.Ok(await _mediaIncubationConditionService.CreateAsync(
             request.MediaProductId, request.IncubationMinHours, request.IncubationMaxHours, request.TemperatureMin, request.TemperatureMax)));
 
-    [Authorize(Roles = RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
+    [Authorize(Policy = PermissionConstants.MasterDataManage)]
     [HttpPut("media-incubation-conditions/{id}")]
     public async Task<IActionResult> UpdateMediaIncubationCondition(int id, UpdateMediaIncubationConditionRequest request) =>
         Ok(ApiResponse<object>.Ok(await _mediaIncubationConditionService.UpdateAsync(
             id, request.IncubationMinHours, request.IncubationMaxHours, request.TemperatureMin, request.TemperatureMax)));
 
-    [Authorize(Roles = RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
+    [Authorize(Policy = PermissionConstants.MasterDataManage)]
     [HttpDelete("media-incubation-conditions/{id}")]
     public async Task<IActionResult> DeleteMediaIncubationCondition(int id)
     {
@@ -93,17 +93,17 @@ public class MediaMasterDataController : ControllerBase
     public async Task<IActionResult> GetMediaConfigurations() =>
         Ok(ApiResponse<object>.Ok(await _service.GetMediaConfigurationsAsync()));
 
-    [Authorize(Roles = RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
+    [Authorize(Policy = PermissionConstants.MasterDataManage)]
     [HttpPost("media-configurations")]
     public async Task<IActionResult> CreateMediaConfiguration(CreateMediaConfigurationRequest request) =>
         Ok(ApiResponse<object>.Ok(await _service.CreateMediaConfigurationAsync(request)));
 
-    [Authorize(Roles = RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
+    [Authorize(Policy = PermissionConstants.MasterDataManage)]
     [HttpPut("media-configurations/{id}")]
     public async Task<IActionResult> UpdateMediaConfiguration(int id, UpdateMediaConfigurationRequest request) =>
         Ok(ApiResponse<object>.Ok(await _service.UpdateMediaConfigurationAsync(id, request)));
 
-    [Authorize(Roles = RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
+    [Authorize(Policy = PermissionConstants.MasterDataManage)]
     [HttpDelete("media-configurations/{id}")]
     public async Task<IActionResult> DeleteMediaConfiguration(int id) =>
         Ok(ApiResponse<object>.Ok(await _service.DeleteMediaConfigurationAsync(id)));

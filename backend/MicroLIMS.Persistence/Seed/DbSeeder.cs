@@ -477,12 +477,22 @@ public static class DbSeeder
             (PermissionConstants.DocumentsTrainingAssign, "Assign document reading and training curricula to personnel."),
             (PermissionConstants.DocumentsTrainingViewMatrix, "View and export the document training matrix."),
             (PermissionConstants.DocumentsConfigManage, "Manage Document Control configuration (types, departments, sections, numbering, settings)."),
+            (PermissionConstants.DashboardsLabOverview, "View the laboratory overview dashboard (section workload, approvals, overdue work)."),
+            (PermissionConstants.DashboardsReview, "View the reviewer dashboard."),
+            (PermissionConstants.KpiView, "View laboratory KPIs and manage workload weights."),
+            (PermissionConstants.MediaPrepare, "Prepare media lots and mark them out of stock."),
+            (PermissionConstants.MediaRelease, "Release a prepared media lot for use."),
+            (PermissionConstants.OosManage, "Track out-of-specification groups and manage their investigation documents."),
+            (PermissionConstants.TestWorkflowSupervise, "Supervisor interventions in a running test: override an incubation's minimum duration, reset a pathogen session."),
+            (PermissionConstants.SamplesReceiveOwnLab, "Receive samples for the laboratories the user belongs to."),
+            (PermissionConstants.SamplesCorrect, "Correct or void a sample record."),
+            (PermissionConstants.SamplesAssignAnalyst, "Assign an analyst to a sample."),
         };
 
         var existingCodes = db.Permissions.Select(p => p.Code).ToHashSet();
         var missing = catalog
             .Where(c => !existingCodes.Contains(c.Code))
-            .Select(c => new Permission { Code = c.Code, Description = c.Description })
+            .Select(c => new Permission { Code = c.Code, Description = c.Description, IsEnforced = PermissionConstants.Enforced.Contains(c.Code) })
             .ToList();
 
         if (missing.Count > 0)
@@ -518,7 +528,8 @@ public static class DbSeeder
                     PermissionConstants.DocumentsRegister, PermissionConstants.DocumentsDraftEdit,
                     PermissionConstants.DocumentsRevisionCreate, PermissionConstants.DocumentsPeriodicReview,
                     PermissionConstants.DocumentsApprove,
-                    PermissionConstants.DocumentsTrainingAssign, PermissionConstants.DocumentsTrainingViewMatrix
+                    PermissionConstants.DocumentsTrainingAssign, PermissionConstants.DocumentsTrainingViewMatrix,
+                    PermissionConstants.DashboardsLabOverview, PermissionConstants.DashboardsReview, PermissionConstants.KpiView, PermissionConstants.MediaPrepare, PermissionConstants.MediaRelease, PermissionConstants.OosManage, PermissionConstants.TestWorkflowSupervise, PermissionConstants.SamplesReceiveOwnLab, PermissionConstants.SamplesCorrect, PermissionConstants.SamplesAssignAnalyst
                 }),
                 (RoleType.Reviewer, new[]
                 {
@@ -530,7 +541,8 @@ public static class DbSeeder
                     // periodic review (both still gated on the per-document
                     // assignment), plus read access to the training matrix.
                     PermissionConstants.DocumentsReview, PermissionConstants.DocumentsPeriodicReview,
-                    PermissionConstants.DocumentsApprove, PermissionConstants.DocumentsTrainingViewMatrix
+                    PermissionConstants.DocumentsApprove, PermissionConstants.DocumentsTrainingViewMatrix,
+                    PermissionConstants.DashboardsReview, PermissionConstants.MediaPrepare, PermissionConstants.SamplesReceiveOwnLab, PermissionConstants.SamplesCorrect
                 }),
                 (RoleType.Analyst, new[]
                 {
@@ -545,7 +557,8 @@ public static class DbSeeder
                     // Controller now revokes Documents.Register from this role on
                     // the Roles screen instead of needing a code change.
                     PermissionConstants.DocumentsRegister, PermissionConstants.DocumentsDraftEdit,
-                    PermissionConstants.DocumentsRevisionCreate
+                    PermissionConstants.DocumentsRevisionCreate,
+                    PermissionConstants.MediaPrepare, PermissionConstants.SamplesReceiveOwnLab
                 })
             };
 

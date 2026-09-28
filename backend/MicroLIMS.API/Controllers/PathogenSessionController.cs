@@ -11,7 +11,7 @@ namespace MicroLIMS.API.Controllers;
 
 [ApiController]
 [Route("api/pathogen-session")]
-[Authorize(Roles = RoleConstants.Analyst + "," + RoleConstants.Reviewer + "," + RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
+[Authorize(Policy = PermissionConstants.TestWorkflowExecute)]
 public class PathogenSessionController : ControllerBase
 {
     private readonly PathogenSessionService _sessionService;
@@ -168,7 +168,7 @@ public class PathogenSessionController : ControllerBase
     // Resetting wipes every step record, incubation and result for the sample,
     // so it stays with the Section Head rather than the analysts doing the work.
     [HttpPost("{sampleId:int}/reset")]
-    [Authorize(Roles = RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
+    [Authorize(Policy = PermissionConstants.TestWorkflowSupervise)]
     public async Task<IActionResult> ResetSession(int sampleId, [FromBody] ResetPathogenSessionRequest? request)
     {
         await _scopeService.EnsurePathogenSampleAccessAsync(CurrentUserId, sampleId);

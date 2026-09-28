@@ -12,7 +12,7 @@ namespace MicroLIMS.API.Controllers;
 // slow on a large dataset, so it is gated to SystemAdministrator only.
 [ApiController]
 [Route("api/admin/reporting")]
-[Authorize(Roles = RoleConstants.SystemAdministrator)]
+[Authorize(Policy = PermissionConstants.ReportingAdmin)]
 public class ReportingAdminController : ControllerBase
 {
     private readonly ResultProjectionService _resultProjection;

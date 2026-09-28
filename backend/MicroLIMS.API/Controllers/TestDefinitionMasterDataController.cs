@@ -35,22 +35,22 @@ public class TestDefinitionMasterDataController : ControllerBase
     public async Task<IActionResult> GetTestDefinitions() =>
         Ok(ApiResponse<object>.Ok(await _service.GetTestDefinitionsAsync()));
 
-    [Authorize(Roles = RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
+    [Authorize(Policy = PermissionConstants.MasterDataManage)]
     [HttpPost("test-definitions")]
     public async Task<IActionResult> CreateTestDefinition(CreateTestDefinitionRequest request) =>
         Ok(ApiResponse<object>.Ok(await _service.CreateTestDefinitionAsync(CurrentUserId, request)));
 
-    [Authorize(Roles = RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
+    [Authorize(Policy = PermissionConstants.MasterDataManage)]
     [HttpPut("test-definitions/{id}")]
     public async Task<IActionResult> UpdateTestDefinition(int id, UpdateTestDefinitionRequest request) =>
         Ok(ApiResponse<object>.Ok(await _service.UpdateTestDefinitionAsync(CurrentUserId, id, request)));
 
-    [Authorize(Roles = RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
+    [Authorize(Policy = PermissionConstants.MasterDataManage)]
     [HttpPut("test-definitions/{id}/freeze")]
     public async Task<IActionResult> FreezeTestDefinition(int id) =>
         Ok(ApiResponse<object>.Ok(await _service.FreezeTestDefinitionAsync(id)));
 
-    [Authorize(Roles = RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
+    [Authorize(Policy = PermissionConstants.MasterDataManage)]
     [HttpPut("test-definitions/{id}/unfreeze")]
     public async Task<IActionResult> UnfreezeTestDefinition(int id) =>
         Ok(ApiResponse<object>.Ok(await _service.UnfreezeTestDefinitionAsync(id)));

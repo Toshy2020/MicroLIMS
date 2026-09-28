@@ -17,7 +17,7 @@ public record ReturnToAnalystRequest(int TestOrderId, string? Reason);
 // by SegregationOfDutiesTests/ElectronicSignatureTests.
 [ApiController]
 [Route("api/review")]
-[Authorize(Roles = RoleConstants.Reviewer + "," + RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
+[Authorize(Policy = PermissionConstants.SamplesReview)]
 public class ReviewController : ControllerBase
 {
     private readonly ReviewService _reviewService;

@@ -35,17 +35,17 @@ public class SpecificationMasterDataController : ControllerBase
     public async Task<IActionResult> GetSpecifications([FromQuery] int itemId) =>
         Ok(ApiResponse<object>.Ok(await _service.GetSpecificationsAsync(CurrentUserId, itemId)));
 
-    [Authorize(Roles = RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
+    [Authorize(Policy = PermissionConstants.MasterDataManage)]
     [HttpPost("specifications")]
     public async Task<IActionResult> CreateSpecification(CreateSpecificationRequest request) =>
         Ok(ApiResponse<object>.Ok(await _service.CreateSpecificationAsync(CurrentUserId, request)));
 
-    [Authorize(Roles = RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
+    [Authorize(Policy = PermissionConstants.MasterDataManage)]
     [HttpPut("specifications/{id}")]
     public async Task<IActionResult> UpdateSpecification(int id, UpdateSpecificationRequest request) =>
         Ok(ApiResponse<object>.Ok(await _service.UpdateSpecificationAsync(CurrentUserId, id, request)));
 
-    [Authorize(Roles = RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
+    [Authorize(Policy = PermissionConstants.MasterDataManage)]
     [HttpDelete("specifications/{id}")]
     public async Task<IActionResult> DeleteSpecification(int id) =>
         Ok(ApiResponse<object>.Ok(await _service.DeleteSpecificationAsync(CurrentUserId, id)));

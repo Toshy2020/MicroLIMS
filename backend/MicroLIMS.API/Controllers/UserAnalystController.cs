@@ -8,7 +8,7 @@ namespace MicroLIMS.API.Controllers;
 
 [ApiController]
 [Route("api/users/analysts")]
-[Authorize(Roles = RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
+[Authorize(Policy = PermissionConstants.SamplesAssignAnalyst)]
 public class UserAnalystController : ControllerBase
 {
     private readonly UserService _userService;

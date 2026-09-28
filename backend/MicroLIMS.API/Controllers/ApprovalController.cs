@@ -16,7 +16,7 @@ public record ApprovalRequest(int TestOrderId, ApprovalDecision Decision, string
 // by SegregationOfDutiesTests.
 [ApiController]
 [Route("api/approval")]
-[Authorize(Roles = RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
+[Authorize(Policy = PermissionConstants.SamplesApprove)]
 public class ApprovalController : ControllerBase
 {
     private readonly ApprovalService _approvalService;

@@ -33,17 +33,17 @@ public class EnvironmentalMonitoringMasterDataController : ControllerBase
     public async Task<IActionResult> GetDepartments() =>
         Ok(ApiResponse<object>.Ok(await _service.GetDepartmentsAsync()));
 
-    [Authorize(Roles = RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
+    [Authorize(Policy = PermissionConstants.MasterDataManage)]
     [HttpPost("departments")]
     public async Task<IActionResult> CreateDepartment(CreateDepartmentRequest request) =>
         Ok(ApiResponse<object>.Ok(await _service.CreateDepartmentAsync(request)));
 
-    [Authorize(Roles = RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
+    [Authorize(Policy = PermissionConstants.MasterDataManage)]
     [HttpPut("departments/{id}")]
     public async Task<IActionResult> UpdateDepartment(int id, UpdateDepartmentRequest request) =>
         Ok(ApiResponse<object>.Ok(await _service.UpdateDepartmentAsync(id, request)));
 
-    [Authorize(Roles = RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
+    [Authorize(Policy = PermissionConstants.MasterDataManage)]
     [HttpDelete("departments/{id}")]
     public async Task<IActionResult> DeleteDepartment(int id) =>
         Ok(ApiResponse<object>.Ok(await _service.DeleteDepartmentAsync(id)));
@@ -52,17 +52,17 @@ public class EnvironmentalMonitoringMasterDataController : ControllerBase
     public async Task<IActionResult> GetRooms() =>
         Ok(ApiResponse<object>.Ok(await _service.GetRoomsAsync()));
 
-    [Authorize(Roles = RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
+    [Authorize(Policy = PermissionConstants.MasterDataManage)]
     [HttpPost("rooms")]
     public async Task<IActionResult> CreateRoom(CreateRoomRequest request) =>
         Ok(ApiResponse<object>.Ok(await _service.CreateRoomAsync(request)));
 
-    [Authorize(Roles = RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
+    [Authorize(Policy = PermissionConstants.MasterDataManage)]
     [HttpPut("rooms/{id}")]
     public async Task<IActionResult> UpdateRoom(int id, UpdateRoomRequest request) =>
         Ok(ApiResponse<object>.Ok(await _service.UpdateRoomAsync(id, request)));
 
-    [Authorize(Roles = RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
+    [Authorize(Policy = PermissionConstants.MasterDataManage)]
     [HttpDelete("rooms/{id}")]
     public async Task<IActionResult> DeleteRoom(int id) =>
         Ok(ApiResponse<object>.Ok(await _service.DeleteRoomAsync(id)));
@@ -72,17 +72,17 @@ public class EnvironmentalMonitoringMasterDataController : ControllerBase
     public async Task<IActionResult> GetRoomTestConfigurations([FromQuery] int roomId) =>
         Ok(ApiResponse<object>.Ok(await _service.GetRoomTestConfigurationsAsync(roomId)));
 
-    [Authorize(Roles = RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
+    [Authorize(Policy = PermissionConstants.MasterDataManage)]
     [HttpPost("room-test-configurations")]
     public async Task<IActionResult> CreateRoomTestConfiguration(CreateRoomTestConfigRequest request) =>
         Ok(ApiResponse<object>.Ok(await _service.CreateRoomTestConfigurationAsync(request)));
 
-    [Authorize(Roles = RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
+    [Authorize(Policy = PermissionConstants.MasterDataManage)]
     [HttpPut("room-test-configurations/{id}")]
     public async Task<IActionResult> UpdateRoomTestConfiguration(int id, UpdateRoomTestConfigRequest request) =>
         Ok(ApiResponse<object>.Ok(await _service.UpdateRoomTestConfigurationAsync(id, request)));
 
-    [Authorize(Roles = RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
+    [Authorize(Policy = PermissionConstants.MasterDataManage)]
     [HttpDelete("room-test-configurations/{id}")]
     public async Task<IActionResult> DeleteRoomTestConfiguration(int id) =>
         Ok(ApiResponse<object>.Ok(await _service.DeleteRoomTestConfigurationAsync(id)));

@@ -44,11 +44,9 @@ public class AdminPasswordRecoveryTests
     [Fact]
     public void Scenario02_NonAdminBlockedOnControllerEndpoint()
     {
-        var controllerType = typeof(MicroLIMS.API.Controllers.UserController);
-        var authorizeAttrs = controllerType.GetCustomAttributes(typeof(Microsoft.AspNetCore.Authorization.AuthorizeAttribute), true);
-        Assert.NotEmpty(authorizeAttrs);
-        var attr = (Microsoft.AspNetCore.Authorization.AuthorizeAttribute)authorizeAttrs[0];
-        Assert.Equal(MicroLIMS.Shared.Constants.RoleConstants.SystemAdministrator, attr.Roles);
+        var roles = MicroLIMS.Tests.ArchitectureTests.AuthorizationMatrixTests.AllowedRoles<MicroLIMS.API.Controllers.UserController>(
+            nameof(MicroLIMS.API.Controllers.UserController.CreateAdminPasswordRecovery));
+        Assert.Equal(new[] { MicroLIMS.Domain.Enums.RoleType.SystemAdministrator }, roles);
     }
 
     [Fact]

@@ -63,7 +63,20 @@ public class RoleService
         _db.Roles.Add(role);
         await _db.SaveChangesAsync(); // automatic audit capture logs Action="Create" for this row, with the now-assigned Id
 
-        return ToDto(role, new List<string>());
+        // Endpoints authorize by permission, so a role with none could do
+        // nothing. It starts with what its base system role has today; the
+        // administrator narrows it on the Roles screen.
+        var basePermissionIds = await _db.RolePermissions
+            .Where(rp => rp.Role!.IsSystemRole && rp.Role.Type == baseType)
+            .Select(rp => rp.PermissionId)
+            .Distinct()
+            .ToListAsync();
+        foreach (var permissionId in basePermissionIds)
+            _db.RolePermissions.Add(new RolePermission { RoleId = role.Id, PermissionId = permissionId });
+        if (basePermissionIds.Count > 0)
+            await _db.SaveChangesAsync();
+
+        return ToDto(role, await _permissionService.GetPermissionCodesForRoleAsync(role.Id));
     }
 
     public async Task<RoleDetailDto> UpdateAsync(int id, string name, string? description)

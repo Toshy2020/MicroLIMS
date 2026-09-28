@@ -19,7 +19,7 @@ public record ThawVialRequest(string? Notes);
 // reference them.
 [ApiController]
 [Route("api/cryovials")]
-[Authorize(Roles = RoleConstants.SectionHead + "," + RoleConstants.Analyst + "," + RoleConstants.Reviewer + "," + RoleConstants.SystemAdministrator)]
+[Authorize(Policy = PermissionConstants.CryovialsManage)]
 public class CryovialController : ControllerBase
 {
     private readonly CryovialService _service;
@@ -46,7 +46,7 @@ public class CryovialController : ControllerBase
             r.DiscsUsed, CurrentUserId))));
 
     [HttpPost("{id}/approve")]
-    [Authorize(Roles = RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
+    [Authorize(Policy = PermissionConstants.CryovialsApprove)]
     public async Task<IActionResult> Approve(int id, ApproveRequest r)
     {
         await _scopeService.EnsureCryovialAccessAsync(CurrentUserId, id);

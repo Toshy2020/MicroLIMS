@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Constants;
 ﻿using System;
 using System.Security.Claims;
 using System.Threading.Tasks;
@@ -25,8 +26,9 @@ public class DocumentTrainingMatrixController : ControllerBase
     private int CurrentUserId =>
         int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
 
+    // Training administrators see everyone's records; others only their own.
     private bool IsAdminOrSectionHead =>
-        User.IsInRole(nameof(RoleType.SystemAdministrator)) || User.IsInRole(nameof(RoleType.SectionHead));
+        User.HasClaim("permission", PermissionConstants.DocumentsTrainingAssign);
 
     /// <summary>
     /// Retrieves multi-axis Training Matrix grid (Privileged access: SystemAdministrator, SectionHead).

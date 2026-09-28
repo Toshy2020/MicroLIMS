@@ -74,7 +74,7 @@ public record BiochemicalReviewRequest(bool Approve, string Comment);
 // TestWorkflowEngine; nothing here branches on a specific test code.
 [ApiController]
 [Route("api/test-workflow")]
-[Authorize(Roles = RoleConstants.Analyst + "," + RoleConstants.Reviewer + "," + RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
+[Authorize(Policy = PermissionConstants.TestWorkflowExecute)]
 public class TestWorkflowController : ControllerBase
 {
     private readonly ITestWorkflowEngine _engine;
@@ -633,7 +633,7 @@ public class TestWorkflowController : ControllerBase
             request.BiochemicalResultText, request.AttachmentId, request.OrganismDetected, CurrentUserId));
     }
 
-    [Authorize(Roles = RoleConstants.Reviewer + "," + RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
+    [Authorize(Policy = PermissionConstants.TestWorkflowBiochemicalDecision)]
     [HttpPost("results/{workflowStepResultId}/biochemical-decision")]
     public async Task<IActionResult> RecordBiochemicalDecision(int workflowStepResultId, BiochemicalReviewRequest request)
     {
@@ -649,7 +649,7 @@ public class TestWorkflowController : ControllerBase
 
     // Bypasses the minimum-duration wait gate for the currently open
     // incubation only - never changes the recorded window/temperature.
-    [Authorize(Roles = RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
+    [Authorize(Policy = PermissionConstants.TestWorkflowSupervise)]
     [HttpPost("{testOrderId}/override-minimum-duration")]
     public async Task<IActionResult> OverrideMinimumDuration(int testOrderId)
     {

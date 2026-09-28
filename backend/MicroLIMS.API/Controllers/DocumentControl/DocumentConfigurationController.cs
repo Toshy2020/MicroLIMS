@@ -34,7 +34,7 @@ public class DocumentConfigurationController : ControllerBase
     }
 
     [HttpPost("types")]
-    [Authorize(Roles = RoleConstants.SystemAdministrator)]
+    [Authorize(Policy = PermissionConstants.DocumentsConfigManage)]
     public async Task<IActionResult> CreateType([FromBody] CreateDocumentTypeRequest request)
     {
         try
@@ -53,7 +53,7 @@ public class DocumentConfigurationController : ControllerBase
     }
 
     [HttpPut("types/{id:int}")]
-    [Authorize(Roles = RoleConstants.SystemAdministrator)]
+    [Authorize(Policy = PermissionConstants.DocumentsConfigManage)]
     public async Task<IActionResult> UpdateType(int id, [FromBody] UpdateDocumentTypeRequest request)
     {
         try
@@ -81,7 +81,7 @@ public class DocumentConfigurationController : ControllerBase
     }
 
     [HttpPost("departments")]
-    [Authorize(Roles = RoleConstants.SystemAdministrator)]
+    [Authorize(Policy = PermissionConstants.DocumentsConfigManage)]
     public async Task<IActionResult> CreateDepartment([FromBody] CreateDocumentDepartmentRequest request)
     {
         try
@@ -100,7 +100,7 @@ public class DocumentConfigurationController : ControllerBase
     }
 
     [HttpPut("departments/{id:int}")]
-    [Authorize(Roles = RoleConstants.SystemAdministrator)]
+    [Authorize(Policy = PermissionConstants.DocumentsConfigManage)]
     public async Task<IActionResult> UpdateDepartment(int id, [FromBody] UpdateDocumentDepartmentRequest request)
     {
         try
@@ -133,7 +133,7 @@ public class DocumentConfigurationController : ControllerBase
     }
 
     [HttpPost("sections")]
-    [Authorize(Roles = RoleConstants.SystemAdministrator)]
+    [Authorize(Policy = PermissionConstants.DocumentsConfigManage)]
     public async Task<IActionResult> CreateSection([FromBody] CreateDocumentSectionRequest request)
     {
         try
@@ -156,7 +156,7 @@ public class DocumentConfigurationController : ControllerBase
     }
 
     [HttpPut("sections/{id:int}")]
-    [Authorize(Roles = RoleConstants.SystemAdministrator)]
+    [Authorize(Policy = PermissionConstants.DocumentsConfigManage)]
     public async Task<IActionResult> UpdateSection(int id, [FromBody] UpdateDocumentSectionRequest request)
     {
         try
@@ -184,7 +184,7 @@ public class DocumentConfigurationController : ControllerBase
     }
 
     [HttpPut("numbering")]
-    [Authorize(Roles = RoleConstants.SystemAdministrator)]
+    [Authorize(Policy = PermissionConstants.DocumentsConfigManage)]
     public async Task<IActionResult> UpdateNumberingConfig([FromBody] UpdateDocumentNumberingConfigRequest request)
     {
         try
@@ -208,7 +208,7 @@ public class DocumentConfigurationController : ControllerBase
     }
 
     [HttpPut("settings/{key}")]
-    [Authorize(Roles = RoleConstants.SystemAdministrator)]
+    [Authorize(Policy = PermissionConstants.DocumentsConfigManage)]
     public async Task<IActionResult> UpdateSetting(string key, [FromBody] UpdateConfigurationSettingRequest request)
     {
         try

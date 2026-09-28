@@ -33,32 +33,32 @@ public class AfterCleaningMasterDataController : ControllerBase
     public async Task<IActionResult> GetMachines() =>
         Ok(ApiResponse<object>.Ok(await _service.GetMachinesAsync()));
 
-    [Authorize(Roles = RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
+    [Authorize(Policy = PermissionConstants.MasterDataManage)]
     [HttpPost("machines")]
     public async Task<IActionResult> CreateMachine(CreateMachineRequest request) =>
         Ok(ApiResponse<object>.Ok(await _service.CreateMachineAsync(request)));
 
-    [Authorize(Roles = RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
+    [Authorize(Policy = PermissionConstants.MasterDataManage)]
     [HttpPut("machines/{id}")]
     public async Task<IActionResult> UpdateMachine(int id, UpdateMachineRequest request) =>
         Ok(ApiResponse<object>.Ok(await _service.UpdateMachineAsync(id, request)));
 
-    [Authorize(Roles = RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
+    [Authorize(Policy = PermissionConstants.MasterDataManage)]
     [HttpDelete("machines/{id}")]
     public async Task<IActionResult> DeleteMachine(int id) =>
         Ok(ApiResponse<object>.Ok(await _service.DeleteMachineAsync(id)));
 
-    [Authorize(Roles = RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
+    [Authorize(Policy = PermissionConstants.MasterDataManage)]
     [HttpPost("machine-parts")]
     public async Task<IActionResult> CreateMachinePart(CreateMachinePartRequest request) =>
         Ok(ApiResponse<object>.Ok(await _service.CreateMachinePartAsync(request)));
 
-    [Authorize(Roles = RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
+    [Authorize(Policy = PermissionConstants.MasterDataManage)]
     [HttpPut("machine-parts/{id}")]
     public async Task<IActionResult> UpdateMachinePart(int id, UpdateMachinePartRequest request) =>
         Ok(ApiResponse<object>.Ok(await _service.UpdateMachinePartAsync(id, request)));
 
-    [Authorize(Roles = RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
+    [Authorize(Policy = PermissionConstants.MasterDataManage)]
     [HttpDelete("machine-parts/{id}")]
     public async Task<IActionResult> DeleteMachinePart(int id) =>
         Ok(ApiResponse<object>.Ok(await _service.DeleteMachinePartAsync(id)));
@@ -68,17 +68,17 @@ public class AfterCleaningMasterDataController : ControllerBase
     public async Task<IActionResult> GetMachinePartConfigurations([FromQuery] int machinePartId) =>
         Ok(ApiResponse<object>.Ok(await _service.GetMachinePartConfigurationsAsync(machinePartId)));
 
-    [Authorize(Roles = RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
+    [Authorize(Policy = PermissionConstants.MasterDataManage)]
     [HttpPost("machine-part-configurations")]
     public async Task<IActionResult> CreateMachinePartConfiguration(CreateMachinePartConfigRequest request) =>
         Ok(ApiResponse<object>.Ok(await _service.CreateMachinePartConfigurationAsync(request)));
 
-    [Authorize(Roles = RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
+    [Authorize(Policy = PermissionConstants.MasterDataManage)]
     [HttpPut("machine-part-configurations/{id}")]
     public async Task<IActionResult> UpdateMachinePartConfiguration(int id, UpdateMachinePartConfigRequest request) =>
         Ok(ApiResponse<object>.Ok(await _service.UpdateMachinePartConfigurationAsync(id, request)));
 
-    [Authorize(Roles = RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
+    [Authorize(Policy = PermissionConstants.MasterDataManage)]
     [HttpDelete("machine-part-configurations/{id}")]
     public async Task<IActionResult> DeleteMachinePartConfiguration(int id) =>
         Ok(ApiResponse<object>.Ok(await _service.DeleteMachinePartConfigurationAsync(id)));

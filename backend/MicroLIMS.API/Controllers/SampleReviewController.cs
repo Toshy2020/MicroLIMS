@@ -16,7 +16,7 @@ public record ReturnTestToAnalystRequest(int TestOrderId, string? Reason);
 // the Testing Workspace rather than a standalone Review page.
 [ApiController]
 [Route("api/samples/{id}/review")]
-[Authorize(Roles = RoleConstants.Reviewer + "," + RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
+[Authorize(Policy = PermissionConstants.SamplesReview)]
 public class SampleReviewController : ControllerBase
 {
     private readonly SampleReviewService _reviewService;

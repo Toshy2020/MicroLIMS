@@ -36,17 +36,17 @@ public class TestStageReplicateMasterDataController : ControllerBase
     public async Task<IActionResult> GetTestDefinitionStageReplicates(int id) =>
         Ok(ApiResponse<object>.Ok(await _service.GetTestDefinitionStageReplicatesAsync(id)));
 
-    [Authorize(Roles = RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
+    [Authorize(Policy = PermissionConstants.MasterDataManage)]
     [HttpPost("test-definitions/{id:int}/stage-replicates")]
     public async Task<IActionResult> CreateTestDefinitionStageReplicate(int id, CreateTestDefinitionStageReplicateRequest request) =>
         Ok(ApiResponse<object>.Ok(await _service.CreateTestDefinitionStageReplicateAsync(CurrentUserId, id, request)));
 
-    [Authorize(Roles = RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
+    [Authorize(Policy = PermissionConstants.MasterDataManage)]
     [HttpPut("test-definitions/{id:int}/stage-replicates/{replicateId:int}")]
     public async Task<IActionResult> UpdateTestDefinitionStageReplicate(int id, int replicateId, UpdateTestDefinitionStageReplicateRequest request) =>
         Ok(ApiResponse<object>.Ok(await _service.UpdateTestDefinitionStageReplicateAsync(CurrentUserId, id, replicateId, request)));
 
-    [Authorize(Roles = RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
+    [Authorize(Policy = PermissionConstants.MasterDataManage)]
     [HttpDelete("test-definitions/{id:int}/stage-replicates/{replicateId:int}")]
     public async Task<IActionResult> DeleteTestDefinitionStageReplicate(int id, int replicateId) =>
         Ok(ApiResponse<object>.Ok(await _service.DeleteTestDefinitionStageReplicateAsync(CurrentUserId, id, replicateId)));

@@ -25,7 +25,7 @@ public record RecordResultHttpRequest(
 // MediaEvaluationEngine.
 [ApiController]
 [Route("api/media-evaluations")]
-[Authorize(Roles = RoleConstants.SectionHead + "," + RoleConstants.Analyst + "," + RoleConstants.Reviewer + "," + RoleConstants.SystemAdministrator)]
+[Authorize(Policy = PermissionConstants.TestWorkflowExecute)]
 public class MediaEvaluationController : ControllerBase
 {
     private readonly MediaEvaluationService _service;

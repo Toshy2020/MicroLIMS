@@ -32,12 +32,12 @@ public class LaboratoryOrganizationController : ControllerBase
     public async Task<IActionResult> GetMySections() =>
         Ok(ApiResponse<object>.Ok(await _service.GetMySectionsAsync(CurrentUserId)));
 
-    [Authorize(Roles = RoleConstants.SystemAdministrator)]
+    [Authorize(Policy = PermissionConstants.UsersManage)]
     [HttpGet("users/{userId}/memberships")]
     public async Task<IActionResult> GetMemberships(int userId) =>
         Ok(ApiResponse<object>.Ok(await _service.GetMembershipsAsync(userId)));
 
-    [Authorize(Roles = RoleConstants.SystemAdministrator)]
+    [Authorize(Policy = PermissionConstants.UsersManage)]
     [HttpPut("users/{userId}/memberships")]
     public async Task<IActionResult> ReplaceMemberships(int userId, ReplaceUserMembershipsRequest request) =>
         Ok(ApiResponse<object>.Ok(await _service.ReplaceMembershipsAsync(userId, request.Memberships ?? new(), CurrentUserId)));

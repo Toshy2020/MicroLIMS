@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Constants;
 using MicroLIMS.Shared.Exceptions;
 using System;
 using System.Collections.Generic;
@@ -27,8 +28,9 @@ public class DocumentTrainingAssignmentController : ControllerBase
     private int CurrentUserId =>
         int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
 
+    // Training administrators see everyone's records; others only their own.
     private bool IsAdminOrSectionHead =>
-        User.IsInRole(nameof(RoleType.SystemAdministrator)) || User.IsInRole(nameof(RoleType.SectionHead));
+        User.HasClaim("permission", PermissionConstants.DocumentsTrainingAssign);
 
     /// <summary>
     /// Queries training assignments with filtering and pagination (Admin/SectionHead or Own Records).

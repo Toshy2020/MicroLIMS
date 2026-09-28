@@ -25,9 +25,11 @@ public class SecurityAuditService : ISecurityAuditService
 
     private readonly IMicroLimsDbContext _db;
     private readonly ISecurityRequestContext _requestContext;
+    private readonly TimeProvider _time;
 
-    public SecurityAuditService(IMicroLimsDbContext db, ISecurityRequestContext requestContext)
+    public SecurityAuditService(IMicroLimsDbContext db, ISecurityRequestContext requestContext, TimeProvider? timeProvider = null)
     {
+        _time = timeProvider ?? TimeProvider.System;
         _db = db;
         _requestContext = requestContext;
     }
@@ -37,7 +39,7 @@ public class SecurityAuditService : ISecurityAuditService
     {
         _db.SecurityAuditEvents.Add(new SecurityAuditEvent
         {
-            OccurredAtUtc = DateTime.UtcNow,
+            OccurredAtUtc = _time.GetUtcNow().UtcDateTime,
             EventCode = Trim(request.EventCode, EventCodeMaxLength) ?? string.Empty,
             Outcome = request.Outcome,
             ActorUserId = request.ActorUserId,

@@ -13,12 +13,15 @@ public class DocumentReviewService : IDocumentReviewService
     private readonly IMicroLimsDbContext _db;
     private readonly IAuditEventService _audit;
     private readonly IDocumentAuthorizationService _auth;
+    private readonly TimeProvider _time;
 
     public DocumentReviewService(
         IMicroLimsDbContext db,
         IAuditEventService audit,
-        IDocumentAuthorizationService auth)
+        IDocumentAuthorizationService auth,
+        TimeProvider? timeProvider = null)
     {
+        _time = timeProvider ?? TimeProvider.System;
         _db = db;
         _audit = audit;
         _auth = auth;
@@ -121,7 +124,7 @@ public class DocumentReviewService : IDocumentReviewService
             DocumentRevisionId = revision.Id,
             AssignedReviewerUserId = request.ReviewerUserId,
             AssignedByUserId = userId,
-            AssignedAt = DateTime.UtcNow,
+            AssignedAt = _time.GetUtcNow().UtcDateTime,
             DueDate = request.DueDate,
             Status = ReviewTaskStatus.Pending,
             SubmissionNotes = request.SubmissionNotes?.Trim(),
@@ -294,7 +297,7 @@ public class DocumentReviewService : IDocumentReviewService
         {
             DocumentReviewTaskId = task.Id,
             CreatedByUserId = userId,
-            CreatedAt = DateTime.UtcNow,
+            CreatedAt = _time.GetUtcNow().UtcDateTime,
             PageNumber = request.PageNumber,
             SectionNumber = request.SectionNumber?.Trim(),
             CommentText = request.CommentText.Trim(),
@@ -363,7 +366,7 @@ public class DocumentReviewService : IDocumentReviewService
 
         var prevStatus = finding.Status.ToString();
         finding.AuthorResponse = request.Response.Trim();
-        finding.AuthorResponseAt = DateTime.UtcNow;
+        finding.AuthorResponseAt = _time.GetUtcNow().UtcDateTime;
         finding.AuthorResponseByUserId = userId;
         finding.Status = ReviewFindingStatus.AuthorResponded;
 
@@ -419,7 +422,7 @@ public class DocumentReviewService : IDocumentReviewService
 
         var prevStatus = finding.Status.ToString();
         finding.ReviewerVerificationNotes = request.VerificationNotes?.Trim();
-        finding.ReviewerVerifiedAt = DateTime.UtcNow;
+        finding.ReviewerVerifiedAt = _time.GetUtcNow().UtcDateTime;
         finding.ReviewerVerifiedByUserId = userId;
         finding.Status = ReviewFindingStatus.ReviewerVerified;
 
@@ -489,7 +492,7 @@ public class DocumentReviewService : IDocumentReviewService
                 $"(the author responds, the reviewer verifies, then the finding is resolved).");
 
         var prevStatus = finding.Status.ToString();
-        finding.ResolvedAt = DateTime.UtcNow;
+        finding.ResolvedAt = _time.GetUtcNow().UtcDateTime;
         finding.ResolvedByUserId = userId;
         finding.Status = ReviewFindingStatus.Resolved;
 
@@ -562,7 +565,7 @@ public class DocumentReviewService : IDocumentReviewService
 
             task.Status = ReviewTaskStatus.Completed;
             task.Decision = ReviewDecision.CompleteReview;
-            task.DecisionAt = DateTime.UtcNow;
+            task.DecisionAt = _time.GetUtcNow().UtcDateTime;
             task.DecisionByUserId = userId;
             task.ReviewNotes = request.ReviewNotes?.Trim();
 
@@ -597,7 +600,7 @@ public class DocumentReviewService : IDocumentReviewService
 
             task.Status = ReviewTaskStatus.ReturnedForCorrection;
             task.Decision = ReviewDecision.ReturnForCorrection;
-            task.DecisionAt = DateTime.UtcNow;
+            task.DecisionAt = _time.GetUtcNow().UtcDateTime;
             task.DecisionByUserId = userId;
             task.ReviewNotes = request.ReviewNotes?.Trim();
 

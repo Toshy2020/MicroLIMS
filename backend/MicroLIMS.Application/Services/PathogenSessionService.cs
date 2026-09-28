@@ -227,13 +227,16 @@ public class PathogenSessionService
     private readonly MediaAppearanceSnapshotService? _appearanceSnapshot;
     private readonly ConfirmationAgreementEvaluator _agreementEvaluator;
     private readonly IncubatorEligibilityService _incubatorEligibility;
+    private readonly TimeProvider _time;
 
     public PathogenSessionService(
         IMicroLimsDbContext db,
         MediaAppearanceSnapshotService? appearanceSnapshot = null,
         ConfirmationAgreementEvaluator? agreementEvaluator = null,
-        IncubatorEligibilityService? incubatorEligibility = null)
+        IncubatorEligibilityService? incubatorEligibility = null,
+        TimeProvider? timeProvider = null)
     {
+        _time = timeProvider ?? TimeProvider.System;
         _db = db;
         _appearanceSnapshot = appearanceSnapshot;
         _agreementEvaluator = agreementEvaluator ?? new ConfirmationAgreementEvaluator();
@@ -374,7 +377,7 @@ public class PathogenSessionService
                 g => g.Key,
                 g => (MaterialId: g.First().Media!.MaterialId, MediaProductId: g.First().Media!.Material?.MediaProductId));
 
-        var utcNow = DateTime.UtcNow;
+        var utcNow = _time.GetUtcNow().UtcDateTime;
 
         // 1. Tests requiring TSB, each timed by its own TSB medium from Test
         // Master - never step-level hours/temperatures or 18-24 h / 30-35 °C
@@ -533,7 +536,7 @@ public class PathogenSessionService
             }
 
             // Determine Test Session State & Result Entry Allowance
-            var stateResult = WorkflowStateResolver.Resolve(to, requiresTsb, toIncubations, stepDtos, DateTime.UtcNow, steps, sample.Status, mediaLookup);
+            var stateResult = WorkflowStateResolver.Resolve(to, requiresTsb, toIncubations, stepDtos, _time.GetUtcNow().UtcDateTime, steps, sample.Status, mediaLookup);
             string testSessionState = stateResult.WorkflowState;
             string testSessionStateDisplay = stateResult.WorkflowStateDisplay;
             bool isResultEntryAllowed = stateResult.IsResultEntryAllowed;
@@ -855,7 +858,7 @@ public class PathogenSessionService
                         ToStep = to.CurrentStep,
                         Note = $"Transition refused: Test preparation not confirmed for sample {sample.ReferenceNumber} (step \"Shared TSB\").",
                         PerformedByUserId = userId,
-                        Timestamp = DateTime.UtcNow
+                        Timestamp = _time.GetUtcNow().UtcDateTime
                     });
                 }
             }
@@ -885,7 +888,7 @@ public class PathogenSessionService
             .FirstOrDefaultAsync(m => m.Id == request.MediaLotId)
             ?? throw new InvalidOperationException($"Media #{request.MediaLotId} not found.");
 
-        if (media.ExpiryDate.Date < DateTime.UtcNow.Date)
+        if (media.ExpiryDate.Date < _time.GetUtcNow().UtcDateTime.Date)
             throw new WorkflowStepException("MediaExpired", $"Media lot #{media.LotNumber} expired on {media.ExpiryDate:yyyy-MM-dd}.");
 
         // The incubator is Laboratory Configuration equipment, which carries
@@ -948,7 +951,7 @@ public class PathogenSessionService
         foreach (var sectionId in joining.Select(j => j.Order.SectionId).Distinct())
             SectionMediaRule.EnsureLot(media, sectionId);
 
-        var startUtc = request.IncubationStartUtc ?? DateTime.UtcNow;
+        var startUtc = request.IncubationStartUtc ?? _time.GetUtcNow().UtcDateTime;
 
         var toIds = joining.Select(j => j.Order.Id).ToList();
         var existingIncubations = await _db.Incubations
@@ -990,7 +993,7 @@ public class PathogenSessionService
                 ToStep = WorkflowStep.Incubating,
                 Note = $"Shared TSB Enrichment started: Media #{media.LotNumber} ({media.Material?.MaterialName ?? "TSB"}), Incubator {incubator.Code}, {window.DurationText} @ {window.TemperatureText}.",
                 PerformedByUserId = userId,
-                Timestamp = DateTime.UtcNow
+                Timestamp = _time.GetUtcNow().UtcDateTime
             });
         }
 
@@ -1012,7 +1015,7 @@ public class PathogenSessionService
                         IncubationId = inc.Id,
                         IsSharedSessionStep = true,
                         SubmittedByUserId = userId,
-                        SubmittedAtUtc = DateTime.UtcNow
+                        SubmittedAtUtc = _time.GetUtcNow().UtcDateTime
                     });
                 }
             }
@@ -1138,7 +1141,7 @@ public class PathogenSessionService
                     loc.CFUResult = null;
                 }
 
-                loc.EnteredAt = DateTime.UtcNow;
+                loc.EnteredAt = _time.GetUtcNow().UtcDateTime;
                 loc.EnteredByUserId = userId;
             }
         }
@@ -1174,7 +1177,7 @@ public class PathogenSessionService
         string? selectiveMediaSnapshot,
         int observedByUserId)
     {
-        var now = DateTime.UtcNow;
+        var now = _time.GetUtcNow().UtcDateTime;
         if (primaryObservations.TryGetValue((sampleLocationId, testOrderId), out var existing))
         {
             existing.GrowthObservation = observation;
@@ -1281,7 +1284,7 @@ public class PathogenSessionService
             chosen.Add((medium, window));
         }
 
-        var startUtc = request.IncubationStartUtc ?? DateTime.UtcNow;
+        var startUtc = request.IncubationStartUtc ?? _time.GetUtcNow().UtcDateTime;
         var endUtc = startUtc.AddHours(chosen.Max(c => c.Window.MaxHours));
 
         var inc = new Incubation
@@ -1309,7 +1312,7 @@ public class PathogenSessionService
             ToStep = WorkflowStep.Incubating,
             Note = $"Shared Confirmatory Plating incubation started for {request.LocationIds.Count} location(s) on Incubator {incubator.Code}.",
             PerformedByUserId = userId,
-            Timestamp = DateTime.UtcNow
+            Timestamp = _time.GetUtcNow().UtcDateTime
         });
 
         await _db.SaveChangesAsync(cancellationToken);
@@ -1359,7 +1362,7 @@ public class PathogenSessionService
             if (existingPlate != null)
             {
                 existingPlate.Observation = reading.Observation;
-                existingPlate.RecordedAtUtc = DateTime.UtcNow;
+                existingPlate.RecordedAtUtc = _time.GetUtcNow().UtcDateTime;
                 existingPlate.RecordedByUserId = userId;
                 if (string.IsNullOrEmpty(existingPlate.ExpectedAppearanceSnapshot) && snapshot != null)
                     existingPlate.ExpectedAppearanceSnapshot = snapshot;
@@ -1375,7 +1378,7 @@ public class PathogenSessionService
                     Observation = reading.Observation,
                     ExpectedAppearanceSnapshot = snapshot,
                     RecordedByUserId = userId,
-                    RecordedAtUtc = DateTime.UtcNow
+                    RecordedAtUtc = _time.GetUtcNow().UtcDateTime
                 };
                 _db.ConfirmatoryPlateObservations.Add(newPlate);
                 if (!primaryObs.ConfirmatoryPlateObservations.Contains(newPlate))
@@ -1417,7 +1420,7 @@ public class PathogenSessionService
                     primaryObs.SampleLocation.Status = "Inconclusive";
                 }
 
-                primaryObs.SampleLocation.EnteredAt = DateTime.UtcNow;
+                primaryObs.SampleLocation.EnteredAt = _time.GetUtcNow().UtcDateTime;
                 primaryObs.SampleLocation.EnteredByUserId = userId;
             }
         }
@@ -1434,7 +1437,7 @@ public class PathogenSessionService
                     ToStep = to.CurrentStep,
                     Note = $"Biochemical Supporting Observation: {request.BiochemicalComment.Trim()}",
                     PerformedByUserId = userId,
-                    Timestamp = DateTime.UtcNow
+                    Timestamp = _time.GetUtcNow().UtcDateTime
                 });
             }
         }
@@ -1521,7 +1524,7 @@ public class PathogenSessionService
                         userId);
                 }
 
-                loc.EnteredAt = DateTime.UtcNow;
+                loc.EnteredAt = _time.GetUtcNow().UtcDateTime;
                 loc.EnteredByUserId = userId;
             }
         }
@@ -1576,7 +1579,7 @@ public class PathogenSessionService
                 ToStep = WorkflowStep.Ready,
                 Note = "Testing session completed: all location results entered and verified.",
                 PerformedByUserId = userId,
-                Timestamp = DateTime.UtcNow
+                Timestamp = _time.GetUtcNow().UtcDateTime
             });
         }
 
@@ -1701,7 +1704,7 @@ public class PathogenSessionService
                 ToStep = WorkflowStep.Waiting,
                 Note = $"Testing session and workflow steps reset. Reason: {resetReason}",
                 PerformedByUserId = userId,
-                Timestamp = DateTime.UtcNow
+                Timestamp = _time.GetUtcNow().UtcDateTime
             });
         }
 
@@ -1720,7 +1723,7 @@ public class PathogenSessionService
             EntityId = sample.Id.ToString(),
             Action = "ResetWorkflowSteps",
             UserId = userId,
-            Timestamp = DateTime.UtcNow,
+            Timestamp = _time.GetUtcNow().UtcDateTime,
             SampleId = sample.Id,
             SampleReferenceNumber = sample.ReferenceNumber,
             NewValue = $"Workflow steps reset for Sample #{sampleId} ({sample.ReferenceNumber}). Reason: {resetReason}"

@@ -8,9 +8,11 @@ namespace MicroLIMS.Application.Services;
 public class LocationPathogenObservationService
 {
     private readonly IMicroLimsDbContext _db;
+    private readonly TimeProvider _time;
 
-    public LocationPathogenObservationService(IMicroLimsDbContext db)
+    public LocationPathogenObservationService(IMicroLimsDbContext db, TimeProvider? timeProvider = null)
     {
+        _time = timeProvider ?? TimeProvider.System;
         _db = db;
     }
 
@@ -29,7 +31,7 @@ public class LocationPathogenObservationService
         {
             existing.GrowthObservation = observation;
             existing.SelectiveMediaSnapshot = selectiveMediaSnapshot ?? existing.SelectiveMediaSnapshot;
-            existing.ObservedAt = DateTime.UtcNow;
+            existing.ObservedAt = _time.GetUtcNow().UtcDateTime;
             existing.ObservedByUserId = observedByUserId;
             await _db.SaveChangesAsync(cancellationToken);
             return existing;
@@ -41,9 +43,9 @@ public class LocationPathogenObservationService
             TestOrderId = testOrderId,
             GrowthObservation = observation,
             SelectiveMediaSnapshot = selectiveMediaSnapshot,
-            ObservedAt = DateTime.UtcNow,
+            ObservedAt = _time.GetUtcNow().UtcDateTime,
             ObservedByUserId = observedByUserId,
-            CreatedAt = DateTime.UtcNow
+            CreatedAt = _time.GetUtcNow().UtcDateTime
         };
 
         _db.LocationPathogenObservations.Add(entity);

@@ -56,9 +56,11 @@ public class AuthenticationService : IAuthenticationService
     private readonly IEmailSender _emailSender;
     private readonly ILogger<AuthenticationService> _logger;
     private readonly ISecurityAuditService _securityAudit;
+    private readonly TimeProvider _time;
 
-    public AuthenticationService(IMicroLimsDbContext db, Func<string, string, IEnumerable<string>, string> tokenIssuer, PermissionService permissionService, IEmailSender emailSender, ILogger<AuthenticationService> logger, ISecurityAuditService securityAudit)
+    public AuthenticationService(IMicroLimsDbContext db, Func<string, string, IEnumerable<string>, string> tokenIssuer, PermissionService permissionService, IEmailSender emailSender, ILogger<AuthenticationService> logger, ISecurityAuditService securityAudit, TimeProvider? timeProvider = null)
     {
+        _time = timeProvider ?? TimeProvider.System;
         _db = db;
         _tokenIssuer = tokenIssuer;
         _permissionService = permissionService;
@@ -107,7 +109,7 @@ public class AuthenticationService : IAuthenticationService
 
             if (user.FailedLoginAttempts >= MaxFailedAttempts)
             {
-                user.LockedUntil = DateTime.UtcNow.Add(LockDuration);
+                user.LockedUntil = _time.GetUtcNow().UtcDateTime.Add(LockDuration);
                 // Locking the account has to end the sessions it already
                 // has, or the lockout only blocks the login form while an
                 // existing refresh token keeps minting new access tokens.
@@ -129,7 +131,7 @@ public class AuthenticationService : IAuthenticationService
 
         user.FailedLoginAttempts = 0;
         user.LockedUntil = null;
-        user.LastLoginAt = DateTime.UtcNow;
+        user.LastLoginAt = _time.GetUtcNow().UtcDateTime;
         await _db.SaveChangesAsync();
         await RecordLoginAsync(user.Id, username, true, null, ipAddress);
 
@@ -187,7 +189,7 @@ public class AuthenticationService : IAuthenticationService
 
         // Rotate: revoke the used token and issue a new one. One event,
         // not three - the caller performed a single meaningful action.
-        stored.RevokedAt = DateTime.UtcNow;
+        stored.RevokedAt = _time.GetUtcNow().UtcDateTime;
         _securityAudit.Record(new SecurityEventRequest(
             SecurityEventCodes.RefreshTokenRotated, SecurityEventOutcome.Success,
             ActorUserId: user.Id, TargetUserId: user.Id, TargetUsername: user.Username));
@@ -235,7 +237,7 @@ public class AuthenticationService : IAuthenticationService
             ?? throw new InvalidOperationException("If that account exists, a reset link has been sent."); // don't leak existence
 
         var rawToken = Convert.ToBase64String(RandomNumberGenerator.GetBytes(32));
-        var expiresAt = DateTime.UtcNow.Add(PasswordResetTokenLifetime);
+        var expiresAt = _time.GetUtcNow().UtcDateTime.Add(PasswordResetTokenLifetime);
         _db.PasswordResetTokens.Add(new PasswordResetToken
         {
             UserId = user.Id,
@@ -264,7 +266,7 @@ public class AuthenticationService : IAuthenticationService
         if (record is null || !record.IsValid) return false;
 
         await ValidateAndApplyNewPasswordAsync(record.User!, newPassword);
-        record.UsedAt = DateTime.UtcNow;
+        record.UsedAt = _time.GetUtcNow().UtcDateTime;
 
         // Reset is performed by whoever held the reset token, so there is
         // no authenticated actor - only the account it was applied to.
@@ -306,7 +308,7 @@ public class AuthenticationService : IAuthenticationService
 
         var newHash = BCrypt.Net.BCrypt.HashPassword(newPassword);
         user.PasswordHash = newHash;
-        user.PasswordChangedAt = DateTime.UtcNow;
+        user.PasswordChangedAt = _time.GetUtcNow().UtcDateTime;
         user.MustChangePassword = false;
 
         _db.PasswordHistories.Add(new PasswordHistory { UserId = user.Id, PasswordHash = newHash });
@@ -344,7 +346,7 @@ public class AuthenticationService : IAuthenticationService
             {
                 // Idempotent: logging out twice, or after the token already
                 // expired, leaves the original revocation timestamp alone.
-                stored.RevokedAt ??= DateTime.UtcNow;
+                stored.RevokedAt ??= _time.GetUtcNow().UtcDateTime;
                 _securityAudit.Record(new SecurityEventRequest(
                     SecurityEventCodes.Logout, SecurityEventOutcome.Success,
                     ActorUserId: userId, TargetUserId: userId,
@@ -369,7 +371,7 @@ public class AuthenticationService : IAuthenticationService
     // revocation AdminPasswordRecoveryService already performs.
     public async Task<int> RevokeAllRefreshTokensAsync(int userId)
     {
-        var now = DateTime.UtcNow;
+        var now = _time.GetUtcNow().UtcDateTime;
         var active = await _db.RefreshTokens
             .Where(r => r.UserId == userId && r.RevokedAt == null && r.ExpiresAt > now)
             .ToListAsync();
@@ -387,7 +389,7 @@ public class AuthenticationService : IAuthenticationService
         {
             UserId = userId,
             TokenHash = Hash(rawToken),
-            ExpiresAt = DateTime.UtcNow.Add(RefreshTokenLifetime)
+            ExpiresAt = _time.GetUtcNow().UtcDateTime.Add(RefreshTokenLifetime)
         });
         await _db.SaveChangesAsync();
         return rawToken;

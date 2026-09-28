@@ -15,9 +15,11 @@ public class CurrentStepViewService
 {
     private readonly IMicroLimsDbContext _db;
     private readonly ITestWorkflowEngine _engine;
+    private readonly TimeProvider _time;
 
-    public CurrentStepViewService(IMicroLimsDbContext db, ITestWorkflowEngine engine)
+    public CurrentStepViewService(IMicroLimsDbContext db, ITestWorkflowEngine engine, TimeProvider? timeProvider = null)
     {
+        _time = timeProvider ?? TimeProvider.System;
         _db = db;
         _engine = engine;
     }
@@ -123,22 +125,22 @@ public class CurrentStepViewService
             if (minHours > 0)
             {
                 minReadyAtUtc = startUtc.AddHours(minHours);
-                remainingMinSeconds = Math.Max(0, (long)Math.Ceiling((minReadyAtUtc.Value - DateTime.UtcNow).TotalSeconds));
+                remainingMinSeconds = Math.Max(0, (long)Math.Ceiling((minReadyAtUtc.Value - _time.GetUtcNow().UtcDateTime).TotalSeconds));
             }
             else if (!windowNotConfigured && openIncubation.IncubationEndUtc.HasValue)
             {
                 minReadyAtUtc = openIncubation.IncubationEndUtc.Value;
-                remainingMinSeconds = Math.Max(0, (long)Math.Ceiling((openIncubation.IncubationEndUtc.Value - DateTime.UtcNow).TotalSeconds));
+                remainingMinSeconds = Math.Max(0, (long)Math.Ceiling((openIncubation.IncubationEndUtc.Value - _time.GetUtcNow().UtcDateTime).TotalSeconds));
             }
         }
 
-        var isMinLockActive = openIncubation != null && minReadyAtUtc.HasValue && DateTime.UtcNow < minReadyAtUtc.Value && !openIncubation.MinimumDurationOverriddenByUserId.HasValue;
+        var isMinLockActive = openIncubation != null && minReadyAtUtc.HasValue && _time.GetUtcNow().UtcDateTime < minReadyAtUtc.Value && !openIncubation.MinimumDurationOverriddenByUserId.HasValue;
         var incubationLock = openIncubation?.IncubationEndUtc is null ? null : new
         {
             isLocked = windowNotConfigured || isMinLockActive || !openIncubation.IsIncubationComplete,
             windowNotConfigured,
             incubationEndUtc = openIncubation.IncubationEndUtc,
-            remainingSeconds = Math.Max(0, (long)Math.Ceiling((openIncubation.IncubationEndUtc.Value - DateTime.UtcNow).TotalSeconds)),
+            remainingSeconds = Math.Max(0, (long)Math.Ceiling((openIncubation.IncubationEndUtc.Value - _time.GetUtcNow().UtcDateTime).TotalSeconds)),
             minReadyAt = minReadyAtUtc,
             remainingMinimumSeconds = remainingMinSeconds,
             stageNumber = openIncubation.StageNumber,
@@ -225,7 +227,7 @@ public class CurrentStepViewService
             var tsbWindow = tsbStep is null ? null : IncubationWindowResolver.ForIncubation(tsbStep, inc);
 
             var tsbMinReady = tsbWindow is null ? null : inc.IncubationStartUtc?.AddHours(tsbWindow.MinHours);
-            var tsbRemMinSec = tsbMinReady.HasValue ? Math.Max(0, (long)Math.Ceiling((tsbMinReady.Value - DateTime.UtcNow).TotalSeconds)) : 0;
+            var tsbRemMinSec = tsbMinReady.HasValue ? Math.Max(0, (long)Math.Ceiling((tsbMinReady.Value - _time.GetUtcNow().UtcDateTime).TotalSeconds)) : 0;
             var tsbOverridden = inc.MinimumDurationOverriddenByUserId.HasValue;
 
             sharedTsbSummary = new
@@ -237,7 +239,7 @@ public class CurrentStepViewService
                 minReadyAt = tsbMinReady,
                 remainingMinimumSeconds = tsbRemMinSec,
                 minimumDurationOverridden = tsbOverridden,
-                isLocked = tsbWindow is null || (tsbMinReady.HasValue && DateTime.UtcNow < tsbMinReady.Value && !tsbOverridden) || !inc.IsIncubationComplete,
+                isLocked = tsbWindow is null || (tsbMinReady.HasValue && _time.GetUtcNow().UtcDateTime < tsbMinReady.Value && !tsbOverridden) || !inc.IsIncubationComplete,
                 windowNotConfigured = tsbWindow is null,
                 startedByUserName = startedUser ?? "Analyst",
                 isCompleted = inc.CompletedAt.HasValue

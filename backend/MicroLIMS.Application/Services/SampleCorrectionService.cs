@@ -51,9 +51,11 @@ public class SampleCorrectionService
     private readonly IMicroLimsDbContext _db;
     private readonly IElectronicSignatureService _signatures;
     private readonly IAuditEventService _audit;
+    private readonly TimeProvider _time;
 
-    public SampleCorrectionService(IMicroLimsDbContext db, IElectronicSignatureService signatures, IAuditEventService audit)
+    public SampleCorrectionService(IMicroLimsDbContext db, IElectronicSignatureService signatures, IAuditEventService audit, TimeProvider? timeProvider = null)
     {
+        _time = timeProvider ?? TimeProvider.System;
         _db = db;
         _signatures = signatures;
         _audit = audit;
@@ -219,7 +221,7 @@ public class SampleCorrectionService
         {
             record.BatchNumber = sample.BatchNumber;
             record.ControlNumber = sample.ControlNumber;
-            record.UpdatedAt = DateTime.UtcNow;
+            record.UpdatedAt = _time.GetUtcNow().UtcDateTime;
         }
 
         await ReviewEventLog.LogAsync(_db, ReviewEntityTypes.Sample, sample.Id, actingUserId,
@@ -229,7 +231,7 @@ public class SampleCorrectionService
         await _audit.RecordUserEventAsync(CorrectedActionCode, AuditActionCategory.Other, ReviewEntityTypes.Sample,
             reason: trimmedReason, changes: changes, entityId: sample.Id.ToString(), sampleId: sample.Id);
 
-        return TestingWorkspaceService.ToDto(sample);
+        return TestingWorkspaceService.ToDto(sample, nowUtc: _time.GetUtcNow().UtcDateTime);
     }
 
     // Voiding strikes the record - the sample was received in error or its
@@ -277,7 +279,7 @@ public class SampleCorrectionService
         foreach (var record in records)
         {
             record.SampleStatus = SampleStatus.Voided;
-            record.UpdatedAt = DateTime.UtcNow;
+            record.UpdatedAt = _time.GetUtcNow().UtcDateTime;
         }
 
         await ReviewEventLog.LogAsync(_db, ReviewEntityTypes.Sample, sampleId, actingUserId,
@@ -290,7 +292,7 @@ public class SampleCorrectionService
         await _audit.RecordUserEventAsync(VoidedActionCode, AuditActionCategory.Other, ReviewEntityTypes.Sample,
             reason: trimmedReason, changes: changes, entityId: sampleId.ToString(), sampleId: sampleId);
 
-        return TestingWorkspaceService.ToDto(sample);
+        return TestingWorkspaceService.ToDto(sample, nowUtc: _time.GetUtcNow().UtcDateTime);
     }
 
     private sealed record ItemOrLocationChange(string Field, string? PreviousName, string NewName, Item? NewItem, Action Apply);

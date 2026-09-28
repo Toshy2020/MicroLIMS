@@ -75,9 +75,11 @@ public class EquipmentInventoryService
 {
     private readonly IMicroLimsDbContext _db;
     private readonly IUserSectionScopeService _scope;
+    private readonly TimeProvider _time;
 
-    public EquipmentInventoryService(IMicroLimsDbContext db, IUserSectionScopeService scope)
+    public EquipmentInventoryService(IMicroLimsDbContext db, IUserSectionScopeService scope, TimeProvider? timeProvider = null)
     {
+        _time = timeProvider ?? TimeProvider.System;
         _db = db;
         _scope = scope;
     }
@@ -142,9 +144,9 @@ public class EquipmentInventoryService
             Status = r.Status,
             SectionId = sectionId,
             CreatedByUserId = currentUserId,
-            CreatedAt = DateTime.UtcNow,
+            CreatedAt = _time.GetUtcNow().UtcDateTime,
             LastModifiedByUserId = currentUserId,
-            LastModifiedAt = DateTime.UtcNow
+            LastModifiedAt = _time.GetUtcNow().UtcDateTime
         };
         _db.EquipmentInventories.Add(entity);
         await _db.SaveChangesAsync();
@@ -175,7 +177,7 @@ public class EquipmentInventoryService
                 NewStatus = r.Status,
                 Comment = r.StatusChangeComment.Trim(),
                 ChangedByUserId = currentUserId,
-                ChangedAt = DateTime.UtcNow
+                ChangedAt = _time.GetUtcNow().UtcDateTime
             };
             _db.EquipmentStatusHistories.Add(history);
             entity.Status = r.Status;
@@ -190,7 +192,7 @@ public class EquipmentInventoryService
         entity.CalibrationDueDate = r.CalibrationDueDate;
         entity.SectionId = sectionId;
         entity.LastModifiedByUserId = currentUserId;
-        entity.LastModifiedAt = DateTime.UtcNow;
+        entity.LastModifiedAt = _time.GetUtcNow().UtcDateTime;
 
         await _db.SaveChangesAsync();
     }
@@ -335,7 +337,7 @@ public class EquipmentInventoryService
 
             var completedOn = inc.CompletedAt ?? (isTestCompleted || isSampleFinished
                 ? (inc.IncubationEndUtc ?? inc.StartedAt)
-                : (inc.IncubationEndUtc.HasValue && inc.IncubationEndUtc.Value <= DateTime.UtcNow ? inc.IncubationEndUtc.Value : (DateTime?)null));
+                : (inc.IncubationEndUtc.HasValue && inc.IncubationEndUtc.Value <= _time.GetUtcNow().UtcDateTime ? inc.IncubationEndUtc.Value : (DateTime?)null));
 
             // Only a real CompletedAt has a CompletedByUserId recorded alongside it -
             // the synthetic fallbacks above (test/sample already finished, or the
@@ -344,7 +346,7 @@ public class EquipmentInventoryService
                 ? cName
                 : null;
 
-            bool isActive = inc.CompletedAt == null && !isTestCompleted && !isSampleFinished && (inc.IncubationEndUtc == null || inc.IncubationEndUtc > DateTime.UtcNow);
+            bool isActive = inc.CompletedAt == null && !isTestCompleted && !isSampleFinished && (inc.IncubationEndUtc == null || inc.IncubationEndUtc > _time.GetUtcNow().UtcDateTime);
 
             list.Add(new EquipmentActivityDto(
                 inc.Id,
@@ -467,9 +469,9 @@ public class EquipmentInventoryService
 
             var completedOn = inc.CompletedAt ?? (isTestCompleted || isSampleFinished
                 ? (inc.IncubationEndUtc ?? inc.StartedAt)
-                : (inc.IncubationEndUtc.HasValue && inc.IncubationEndUtc.Value <= DateTime.UtcNow ? inc.IncubationEndUtc.Value : (DateTime?)null));
+                : (inc.IncubationEndUtc.HasValue && inc.IncubationEndUtc.Value <= _time.GetUtcNow().UtcDateTime ? inc.IncubationEndUtc.Value : (DateTime?)null));
 
-            bool isActive = inc.CompletedAt == null && !isTestCompleted && !isSampleFinished && (inc.IncubationEndUtc == null || inc.IncubationEndUtc > DateTime.UtcNow);
+            bool isActive = inc.CompletedAt == null && !isTestCompleted && !isSampleFinished && (inc.IncubationEndUtc == null || inc.IncubationEndUtc > _time.GetUtcNow().UtcDateTime);
 
             var completedBy = inc.CompletedAt.HasValue && inc.CompletedByUserId.HasValue && userMap.TryGetValue(inc.CompletedByUserId.Value, out var cName)
                 ? cName
@@ -512,7 +514,7 @@ public class EquipmentInventoryService
     private async Task<List<EquipmentActivityDto>> GetActiveActivitiesForEquipmentInternalAsync(EquipmentInventory eq, List<Equipment> masterEquipment)
     {
         var matchingMasterId = masterEquipment.FirstOrDefault(m => string.Equals(m.Code, eq.Code, StringComparison.OrdinalIgnoreCase))?.Id;
-        var now = DateTime.UtcNow;
+        var now = _time.GetUtcNow().UtcDateTime;
         var activities = new List<EquipmentActivityDto>();
 
         // 1. Active Incubation records

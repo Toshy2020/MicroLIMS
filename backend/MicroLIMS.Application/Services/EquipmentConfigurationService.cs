@@ -82,9 +82,11 @@ public record EquipmentConfigurationSummaryDto(
 public class EquipmentConfigurationService
 {
     private readonly IMicroLimsDbContext _db;
+    private readonly TimeProvider _time;
 
-    public EquipmentConfigurationService(IMicroLimsDbContext db)
+    public EquipmentConfigurationService(IMicroLimsDbContext db, TimeProvider? timeProvider = null)
     {
+        _time = timeProvider ?? TimeProvider.System;
         _db = db;
     }
 
@@ -181,7 +183,7 @@ public class EquipmentConfigurationService
             NewSetPoint = r.NewSetPoint,
             Reason = r.Reason.Trim(),
             ChangedByUserId = userId,
-            ChangedAt = DateTime.UtcNow
+            ChangedAt = _time.GetUtcNow().UtcDateTime
         };
         _db.IncubatorSetPointHistories.Add(history);
 
@@ -262,9 +264,9 @@ public class EquipmentConfigurationService
                 CycleTimeMinutes = r.CycleTimeMinutes,
                 IsActive = r.IsActive,
                 CreatedByUserId = userId,
-                CreatedAt = DateTime.UtcNow,
+                CreatedAt = _time.GetUtcNow().UtcDateTime,
                 LastModifiedByUserId = userId,
-                LastModifiedAt = DateTime.UtcNow
+                LastModifiedAt = _time.GetUtcNow().UtcDateTime
             };
             _db.AutoclavePrograms.Add(program);
 
@@ -285,7 +287,7 @@ public class EquipmentConfigurationService
                 NewIsActive = program.IsActive,
                 Comment = r.Comment ?? "Initial program configuration",
                 ChangedByUserId = userId,
-                ChangedAt = DateTime.UtcNow
+                ChangedAt = _time.GetUtcNow().UtcDateTime
             };
             _db.AutoclaveProgramHistories.Add(history);
 
@@ -323,7 +325,7 @@ public class EquipmentConfigurationService
                 NewIsActive = r.IsActive,
                 Comment = r.Comment ?? "Program configuration update",
                 ChangedByUserId = userId,
-                ChangedAt = DateTime.UtcNow
+                ChangedAt = _time.GetUtcNow().UtcDateTime
             };
             _db.AutoclaveProgramHistories.Add(history);
 
@@ -334,7 +336,7 @@ public class EquipmentConfigurationService
             program.CycleTimeMinutes = r.CycleTimeMinutes;
             program.IsActive = r.IsActive;
             program.LastModifiedByUserId = userId;
-            program.LastModifiedAt = DateTime.UtcNow;
+            program.LastModifiedAt = _time.GetUtcNow().UtcDateTime;
 
             await _db.SaveChangesAsync();
 
@@ -370,13 +372,13 @@ public class EquipmentConfigurationService
             NewIsActive = isActive,
             Comment = comment ?? (isActive ? "Activated program" : "Deactivated program"),
             ChangedByUserId = userId,
-            ChangedAt = DateTime.UtcNow
+            ChangedAt = _time.GetUtcNow().UtcDateTime
         };
         _db.AutoclaveProgramHistories.Add(history);
 
         program.IsActive = isActive;
         program.LastModifiedByUserId = userId;
-        program.LastModifiedAt = DateTime.UtcNow;
+        program.LastModifiedAt = _time.GetUtcNow().UtcDateTime;
 
         await _db.SaveChangesAsync();
     }

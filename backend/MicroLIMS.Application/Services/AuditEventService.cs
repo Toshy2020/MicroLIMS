@@ -9,9 +9,11 @@ public class AuditEventService : IAuditEventService
 {
     private readonly IMicroLimsDbContext _db;
     private readonly IDatabaseSequenceHelper _sequenceHelper;
+    private readonly TimeProvider _time;
 
-    public AuditEventService(IMicroLimsDbContext db, IDatabaseSequenceHelper sequenceHelper)
+    public AuditEventService(IMicroLimsDbContext db, IDatabaseSequenceHelper sequenceHelper, TimeProvider? timeProvider = null)
     {
+        _time = timeProvider ?? TimeProvider.System;
         _db = db;
         _sequenceHelper = sequenceHelper;
     }
@@ -51,7 +53,7 @@ public class AuditEventService : IAuditEventService
             DocumentMasterId = documentMasterId,
             DocumentRevisionId = documentRevisionId,
             UserId = _db.CurrentUserId,
-            Timestamp = DateTime.UtcNow
+            Timestamp = _time.GetUtcNow().UtcDateTime
         };
 
         if (changes != null)
@@ -108,7 +110,7 @@ public class AuditEventService : IAuditEventService
             DocumentMasterId = documentMasterId,
             DocumentRevisionId = documentRevisionId,
             UserId = null,
-            Timestamp = DateTime.UtcNow
+            Timestamp = _time.GetUtcNow().UtcDateTime
         };
 
         if (changes != null)

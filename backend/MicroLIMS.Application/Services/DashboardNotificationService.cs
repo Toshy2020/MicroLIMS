@@ -27,10 +27,13 @@ public class DashboardNotificationService
     private readonly IEmailSender _emailSender;
     private readonly NotificationRecomputeThrottle? _recomputeThrottle;
     private readonly IUserSectionScopeService _scope;
+    private readonly TimeProvider _time;
 
     public DashboardNotificationService(IMicroLimsDbContext db, INotificationService pushService, IEmailSender emailSender,
-        IUserSectionScopeService scope, NotificationRecomputeThrottle? recomputeThrottle = null)
+        IUserSectionScopeService scope, NotificationRecomputeThrottle? recomputeThrottle = null,
+        TimeProvider? timeProvider = null)
     {
+        _time = timeProvider ?? TimeProvider.System;
         _db = db;
         _scope = scope;
         _pushService = pushService;
@@ -43,7 +46,7 @@ public class DashboardNotificationService
         // Without a throttle every call recomputes. With one, polls inside the
         // window return the persisted list only, so a new notification can
         // appear up to one window late.
-        var now = DateTime.UtcNow;
+        var now = _time.GetUtcNow().UtcDateTime;
         if (_recomputeThrottle is null || _recomputeThrottle.IsDue(userId, now))
         {
             var computed = await ComputeAsync(role, userId);
@@ -81,7 +84,7 @@ public class DashboardNotificationService
     private async Task<List<ComputedNotification>> ComputeAsync(RoleType role, int userId)
     {
         var results = new List<ComputedNotification>();
-        var now = DateTime.UtcNow;
+        var now = _time.GetUtcNow().UtcDateTime;
         // Everything a user is told about is limited to their laboratory sections.
         var sectionIds = await _scope.GetAccessibleSectionIdsAsync(userId);
 
@@ -165,7 +168,7 @@ public class DashboardNotificationService
 
     private async Task PersistAndDeliverAsync(int userId, List<ComputedNotification> computed)
     {
-        var cutoff = DateTime.UtcNow.Subtract(DedupeWindow);
+        var cutoff = _time.GetUtcNow().UtcDateTime.Subtract(DedupeWindow);
         var recent = await _db.NotificationLogs
             .Where(n => n.UserId == userId && n.CreatedAt >= cutoff)
             .Select(n => n.Message)

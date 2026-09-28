@@ -22,12 +22,15 @@ public class DocumentAcknowledgementService : IDocumentAcknowledgementService
 
     public const string DefaultAcknowledgementStatement =
         "I confirm that I have read, understood, and agree to adhere to the contents of this controlled document revision.";
+    private readonly TimeProvider _time;
 
     public DocumentAcknowledgementService(
         IMicroLimsDbContext db,
         IAuditEventService audit,
-        ILogger<DocumentAcknowledgementService> logger)
+        ILogger<DocumentAcknowledgementService> logger,
+        TimeProvider? timeProvider = null)
     {
+        _time = timeProvider ?? TimeProvider.System;
         _db = db;
         _audit = audit;
         _logger = logger;
@@ -127,7 +130,7 @@ public class DocumentAcknowledgementService : IDocumentAcknowledgementService
                 "Explicit confirmation of the legal acknowledgement statement is required. Reading or viewing alone does not constitute legal acknowledgement.");
         }
 
-        var nowUtc = utcNowOverride ?? DateTime.UtcNow;
+        var nowUtc = utcNowOverride ?? _time.GetUtcNow().UtcDateTime;
 
         // 2. Re-read fresh assignment within transaction boundary
         var isRelational = _db.Database.IsRelational();
@@ -397,7 +400,7 @@ public class DocumentAcknowledgementService : IDocumentAcknowledgementService
         if (assignment.DocumentRevisionId != request.DocumentRevisionId)
             throw new InvalidOperationException("Revision ID does not match assigned revision ID.");
 
-        var nowUtc = utcNowOverride ?? DateTime.UtcNow;
+        var nowUtc = utcNowOverride ?? _time.GetUtcNow().UtcDateTime;
 
         // If assignment was in Assigned state, advance to Reading state
         if (assignment.Status == TrainingAssignmentStatus.Assigned)

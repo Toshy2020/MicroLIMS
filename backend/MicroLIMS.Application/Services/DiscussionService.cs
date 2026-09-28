@@ -102,13 +102,16 @@ public class DiscussionService
     private readonly IFileStorageService _storage;
     private readonly INotificationService _notificationService;
     private readonly ILogger<DiscussionService> _logger;
+    private readonly TimeProvider _time;
 
     public DiscussionService(
         IMicroLimsDbContext db,
         IFileStorageService storage,
         INotificationService notificationService,
-        ILogger<DiscussionService> logger)
+        ILogger<DiscussionService> logger,
+        TimeProvider? timeProvider = null)
     {
+        _time = timeProvider ?? TimeProvider.System;
         _db = db;
         _storage = storage;
         _notificationService = notificationService;
@@ -290,7 +293,7 @@ public class DiscussionService
             AuthorUserId = authorUserId,
             IsImportant = request.IsImportant,
             CurrentVersion = 1,
-            CreatedAt = DateTime.UtcNow
+            CreatedAt = _time.GetUtcNow().UtcDateTime
         };
 
         _db.DiscussionPosts.Add(post);
@@ -317,7 +320,7 @@ public class DiscussionService
                     FileSizeBytes = file.Data.Length,
                     ContentSha256 = hash,
                     UploadedByUserId = authorUserId,
-                    UploadedAt = DateTime.UtcNow
+                    UploadedAt = _time.GetUtcNow().UtcDateTime
                 };
 
                 _db.DiscussionAttachments.Add(attachment);
@@ -356,7 +359,7 @@ public class DiscussionService
             Content = post.Content,
             Category = post.Category,
             ChangedByUserId = actingUserId,
-            ChangedAt = DateTime.UtcNow
+            ChangedAt = _time.GetUtcNow().UtcDateTime
         };
         _db.DiscussionPostVersions.Add(versionSnapshot);
 
@@ -366,7 +369,7 @@ public class DiscussionService
         post.IsImportant = request.IsImportant;
         post.CurrentVersion += 1;
         post.IsEdited = true;
-        post.LastEditedAt = DateTime.UtcNow;
+        post.LastEditedAt = _time.GetUtcNow().UtcDateTime;
         post.LastEditedByUserId = actingUserId;
 
         await _db.SaveChangesAsync();
@@ -462,7 +465,7 @@ public class DiscussionService
             PostId = postId,
             AuthorUserId = authorUserId,
             Content = request.Content.Trim(),
-            CreatedAt = DateTime.UtcNow
+            CreatedAt = _time.GetUtcNow().UtcDateTime
         };
 
         _db.DiscussionComments.Add(comment);
@@ -509,7 +512,7 @@ public class DiscussionService
 
         comment.Content = request.Content.Trim();
         comment.IsEdited = true;
-        comment.LastEditedAt = DateTime.UtcNow;
+        comment.LastEditedAt = _time.GetUtcNow().UtcDateTime;
 
         await _db.SaveChangesAsync();
 
@@ -573,7 +576,7 @@ public class DiscussionService
                     Message = message,
                     Severity = "info",
                     IsRead = false,
-                    CreatedAt = DateTime.UtcNow
+                    CreatedAt = _time.GetUtcNow().UtcDateTime
                 };
                 _db.NotificationLogs.Add(notif);
                 await _notificationService.NotifyAsync(userId, message);
@@ -620,7 +623,7 @@ public class DiscussionService
                     Message = message,
                     Severity = "info",
                     IsRead = false,
-                    CreatedAt = DateTime.UtcNow
+                    CreatedAt = _time.GetUtcNow().UtcDateTime
                 };
                 _db.NotificationLogs.Add(notif);
                 await _notificationService.NotifyAsync(userId, message);

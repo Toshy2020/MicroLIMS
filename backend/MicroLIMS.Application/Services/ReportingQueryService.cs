@@ -92,9 +92,11 @@ public record CompareResult(string TestCode, string TestDisplayName, bool IsNume
 public class ReportingQueryService
 {
     private readonly IMicroLimsDbContext _db;
+    private readonly TimeProvider _time;
 
-    public ReportingQueryService(IMicroLimsDbContext db)
+    public ReportingQueryService(IMicroLimsDbContext db, TimeProvider? timeProvider = null)
     {
+        _time = timeProvider ?? TimeProvider.System;
         _db = db;
     }
 
@@ -400,7 +402,7 @@ public class ReportingQueryService
     // "Approved" rather than counting per-location.
     public async Task<List<MonthlyCompletionPoint>> GetCompletedByMonthAsync(int months = 6, IReadOnlyCollection<int>? sectionIds = null)
     {
-        var now = DateTime.UtcNow;
+        var now = _time.GetUtcNow().UtcDateTime;
         var currentMonthStart = new DateTime(now.Year, now.Month, 1, 0, 0, 0, DateTimeKind.Utc);
         var windowStart = currentMonthStart.AddMonths(-(months - 1)).AddYears(-1);
 

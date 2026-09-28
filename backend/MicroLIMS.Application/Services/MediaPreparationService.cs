@@ -31,9 +31,11 @@ public class MediaPreparationService
     private readonly IMicroLimsDbContext _db;
     private readonly MaterialService _materialService;
     private readonly ReviewGateService _reviewGate;
+    private readonly TimeProvider _time;
 
-    public MediaPreparationService(IMicroLimsDbContext db, MaterialService materialService, ReviewGateService reviewGate)
+    public MediaPreparationService(IMicroLimsDbContext db, MaterialService materialService, ReviewGateService reviewGate, TimeProvider? timeProvider = null)
     {
+        _time = timeProvider ?? TimeProvider.System;
         _db = db;
         _materialService = materialService;
         _reviewGate = reviewGate;
@@ -72,7 +74,7 @@ public class MediaPreparationService
         var media = new Media
         {
             MaterialId = material.Id,
-            LotNumber = await PreparedLotNumber.NextAsync(_db.Media.Select(m => m.LotNumber), lotPrefix),
+            LotNumber = await PreparedLotNumber.NextAsync(_db.Media.Select(m => m.LotNumber), lotPrefix, _time.GetUtcNow().UtcDateTime),
             ManufacturerLot = material.BatchNumber,
             ManufacturerName = material.ManufacturerName,
             TotalWeight = request.TotalWeight,
@@ -119,7 +121,7 @@ public class MediaPreparationService
         // second clash in a row is reported rather than retried again.
         if (!await _db.TrySaveChangesAsync(UniqueIndexNames.MediaLotNumber))
         {
-            media.LotNumber = await PreparedLotNumber.NextAsync(_db.Media.Select(m => m.LotNumber), lotPrefix);
+            media.LotNumber = await PreparedLotNumber.NextAsync(_db.Media.Select(m => m.LotNumber), lotPrefix, _time.GetUtcNow().UtcDateTime);
             if (!await _db.TrySaveChangesAsync(UniqueIndexNames.MediaLotNumber))
                 throw new InvalidOperationException(
                     $"Lot number {media.LotNumber} was taken by another preparation at the same moment. Nothing was saved - submit the preparation again.");
@@ -144,7 +146,7 @@ public class MediaPreparationService
     {
         var query = _db.Media.Include(m => m.Material).Where(m => m.IsReleasedForUse);
         if (sectionIds != null) query = query.Where(m => sectionIds.Contains(m.Material!.SectionId));
-        if (!includeExpired) query = query.Where(m => m.Status == MediaStatus.Active && m.ExpiryDate > DateTime.UtcNow);
+        if (!includeExpired) query = query.Where(m => m.Status == MediaStatus.Active && m.ExpiryDate > _time.GetUtcNow().UtcDateTime);
         if (materialId.HasValue) query = query.Where(m => m.MaterialId == materialId.Value);
         if (excludeId.HasValue) query = query.Where(m => m.Id != excludeId.Value);
         return await query.OrderByDescending(m => m.Id).ToListAsync();

@@ -59,13 +59,16 @@ public class EquipmentDocumentService
     private readonly IFileStorageService _storage;
     private readonly MaterialDocumentFileValidator _validator;
     private readonly ILogger<EquipmentDocumentService> _logger;
+    private readonly TimeProvider _time;
 
     public EquipmentDocumentService(
         IMicroLimsDbContext db,
         IFileStorageService storage,
         MaterialDocumentFileValidator validator,
-        ILogger<EquipmentDocumentService> logger)
+        ILogger<EquipmentDocumentService> logger,
+        TimeProvider? timeProvider = null)
     {
+        _time = timeProvider ?? TimeProvider.System;
         _db = db;
         _storage = storage;
         _validator = validator;
@@ -123,7 +126,7 @@ public class EquipmentDocumentService
             FileSizeBytes = request.Content.Length,
             ContentSha256 = sha256,
             UploadedByUserId = uploadingUserId,
-            UploadedAt = DateTime.UtcNow,
+            UploadedAt = _time.GetUtcNow().UtcDateTime,
             Status = MaterialDocumentStatus.Current
         };
 
@@ -211,7 +214,7 @@ public class EquipmentDocumentService
 
         var ext = Path.GetExtension(request.OriginalFileName).ToLowerInvariant();
         var sha256 = Convert.ToHexString(SHA256.HashData(request.Content));
-        var now = DateTime.UtcNow;
+        var now = _time.GetUtcNow().UtcDateTime;
 
         var newDoc = new EquipmentDocument
         {
@@ -278,7 +281,7 @@ public class EquipmentDocumentService
             throw new InvalidOperationException("This document is already voided.");
 
         document.Status = MaterialDocumentStatus.Voided;
-        document.VoidedAt = DateTime.UtcNow;
+        document.VoidedAt = _time.GetUtcNow().UtcDateTime;
         document.VoidedByUserId = actingUserId;
         document.VoidReason = request.Reason.Trim();
 
@@ -303,7 +306,7 @@ public class EquipmentDocumentService
             DocumentId = documentId,
             EquipmentInventoryId = equipmentId,
             UserId = userId,
-            AccessedAt = DateTime.UtcNow,
+            AccessedAt = _time.GetUtcNow().UtcDateTime,
             Action = action
         });
         try { await _db.SaveChangesAsync(); } catch (Exception ex)

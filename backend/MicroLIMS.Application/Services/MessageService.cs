@@ -50,12 +50,15 @@ public class MessageService
     private readonly IMicroLimsDbContext _db;
     private readonly INotificationService _notificationService;
     private readonly ILogger<MessageService> _logger;
+    private readonly TimeProvider _time;
 
     public MessageService(
         IMicroLimsDbContext db,
         INotificationService notificationService,
-        ILogger<MessageService> logger)
+        ILogger<MessageService> logger,
+        TimeProvider? timeProvider = null)
     {
+        _time = timeProvider ?? TimeProvider.System;
         _db = db;
         _notificationService = notificationService;
         _logger = logger;
@@ -238,7 +241,7 @@ public class MessageService
             }
         }
 
-        var now = DateTime.UtcNow;
+        var now = _time.GetUtcNow().UtcDateTime;
         var conversation = new Conversation
         {
             Title = request.Title?.Trim(),
@@ -331,7 +334,7 @@ public class MessageService
         if (senderParticipant == null)
             throw new UnauthorizedAccessException("You are not a participant in this conversation.");
 
-        var now = DateTime.UtcNow;
+        var now = _time.GetUtcNow().UtcDateTime;
         var message = new DirectMessage
         {
             ConversationId = conversationId,
@@ -386,7 +389,7 @@ public class MessageService
         if (latestMessageId.HasValue)
         {
             participant.LastReadMessageId = latestMessageId.Value;
-            participant.LastReadAt = DateTime.UtcNow;
+            participant.LastReadAt = _time.GetUtcNow().UtcDateTime;
             await _db.SaveChangesAsync();
         }
     }
@@ -427,7 +430,7 @@ public class MessageService
                     Message = message,
                     Severity = "info",
                     IsRead = false,
-                    CreatedAt = DateTime.UtcNow
+                    CreatedAt = _time.GetUtcNow().UtcDateTime
                 };
                 _db.NotificationLogs.Add(notif);
                 await _notificationService.NotifyAsync(recipientId, message);

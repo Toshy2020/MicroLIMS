@@ -14,12 +14,15 @@ public class DocumentRevisionService : IDocumentRevisionService
     private readonly IMicroLimsDbContext _db;
     private readonly IAuditEventService _auditEventService;
     private readonly IDocumentAuthorizationService _authService;
+    private readonly TimeProvider _time;
 
     public DocumentRevisionService(
         IMicroLimsDbContext db,
         IAuditEventService auditEventService,
-        IDocumentAuthorizationService authService)
+        IDocumentAuthorizationService authService,
+        TimeProvider? timeProvider = null)
     {
+        _time = timeProvider ?? TimeProvider.System;
         _db = db;
         _auditEventService = auditEventService;
         _authService = authService;
@@ -138,7 +141,7 @@ public class DocumentRevisionService : IDocumentRevisionService
             ChangeReference = request.ChangeReference?.Trim(),
             OriginatingPeriodicReviewTaskId = request.OriginatingPeriodicReviewTaskId,
             CreatedByUserId = userId,
-            CreatedAt = DateTime.UtcNow,
+            CreatedAt = _time.GetUtcNow().UtcDateTime,
             ReviewCycleMonths = effectiveRev.ReviewCycleMonths,
             RecordOrigin = RecordOrigin.Native
         };
@@ -233,7 +236,7 @@ public class DocumentRevisionService : IDocumentRevisionService
             Status = string.IsNullOrWhiteSpace(request.Status) ? "Draft" : request.Status.Trim(),
             OriginatingReviewFindingId = request.OriginatingReviewFindingId,
             CreatedByUserId = userId,
-            CreatedAt = DateTime.UtcNow
+            CreatedAt = _time.GetUtcNow().UtcDateTime
         };
 
         _db.RevisionChangeItems.Add(item);
@@ -282,7 +285,7 @@ public class DocumentRevisionService : IDocumentRevisionService
         item.ChangeRationale = request.ChangeRationale.Trim();
         item.ChangeCategory = request.ChangeCategory.Trim();
         item.Status = request.Status.Trim();
-        item.ModifiedAt = DateTime.UtcNow;
+        item.ModifiedAt = _time.GetUtcNow().UtcDateTime;
 
         _db.CurrentUserId = userId;
         await _db.SaveChangesAsync();
@@ -330,7 +333,7 @@ public class DocumentRevisionService : IDocumentRevisionService
             throw new InvalidOperationException("Change item has already been removed.");
 
         item.IsActive = false;
-        item.ModifiedAt = DateTime.UtcNow;
+        item.ModifiedAt = _time.GetUtcNow().UtcDateTime;
         _db.CurrentUserId = userId;
         await _db.SaveChangesAsync();
 
@@ -388,7 +391,7 @@ public class DocumentRevisionService : IDocumentRevisionService
             Status = "Draft",
             OriginatingReviewFindingId = finding.Id,
             CreatedByUserId = userId,
-            CreatedAt = DateTime.UtcNow
+            CreatedAt = _time.GetUtcNow().UtcDateTime
         };
 
         _db.RevisionChangeItems.Add(item);
@@ -481,7 +484,7 @@ public class DocumentRevisionService : IDocumentRevisionService
 
         assessment.IsComplete = true;
         assessment.CompletedByUserId = userId;
-        assessment.CompletedAt = DateTime.UtcNow;
+        assessment.CompletedAt = _time.GetUtcNow().UtcDateTime;
 
         _db.CurrentUserId = userId;
         await _db.SaveChangesAsync();

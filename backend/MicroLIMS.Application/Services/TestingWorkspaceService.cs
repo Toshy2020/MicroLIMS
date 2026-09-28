@@ -13,9 +13,11 @@ public class TestingWorkspaceService : ITestWorkspaceService
 {
     private readonly IMicroLimsDbContext _db;
     private readonly IUserSectionScopeService _scope;
+    private readonly TimeProvider _time;
 
-    public TestingWorkspaceService(IMicroLimsDbContext db, IUserSectionScopeService scope)
+    public TestingWorkspaceService(IMicroLimsDbContext db, IUserSectionScopeService scope, TimeProvider? timeProvider = null)
     {
+        _time = timeProvider ?? TimeProvider.System;
         _db = db;
         _scope = scope;
     }
@@ -38,7 +40,7 @@ public class TestingWorkspaceService : ITestWorkspaceService
             query = query.Where(SampleWorkflowQueues.HasTestInSections(scope));
         }
 
-        var now = DateTime.UtcNow;
+        var now = _time.GetUtcNow().UtcDateTime;
 
         // 1. Workload Tile Filter (when clicking or deep-linking to a specific tile)
         if (!string.IsNullOrWhiteSpace(filter.WorkloadFilter))
@@ -262,7 +264,7 @@ public class TestingWorkspaceService : ITestWorkspaceService
         // Narrow to the one laboratory the workspace page asked for.
         scope = LabScope.Narrow(scope, labSectionId);
 
-        var now = DateTime.UtcNow;
+        var now = _time.GetUtcNow().UtcDateTime;
 
         var baseQuery = _db.Samples.AsNoTracking();
         if (scope != null)
@@ -397,7 +399,7 @@ public class TestingWorkspaceService : ITestWorkspaceService
             .ToListAsync()).ToHashSet();
 
         return samples
-            .Select(s => ToDto(s, testDefs, incubations, locationCounts, analystNames, incubationsBySampleId, mediaLookup, noPreparationSectionIds))
+            .Select(s => ToDto(s, testDefs, incubations, locationCounts, analystNames, incubationsBySampleId, mediaLookup, noPreparationSectionIds, _time.GetUtcNow().UtcDateTime))
             .ToList();
     }
 
@@ -469,8 +471,12 @@ public class TestingWorkspaceService : ITestWorkspaceService
         Dictionary<int, List<Incubation>>? incubationsBySampleId = null,
         IReadOnlyDictionary<int, (int MaterialId, int? MediaProductId)>? mediaLookup = null,
         // Sections whose tests skip the preparation gate (PreparationRules: FP).
-        IReadOnlySet<int>? noPreparationSectionIds = null)
+        IReadOnlySet<int>? noPreparationSectionIds = null,
+        // The instant the workflow state is resolved at. Callers holding
+        // an injected TimeProvider pass it; defaults to the system clock.
+        DateTime? nowUtc = null)
     {
+        var now = nowUtc ?? TimeProvider.System.GetUtcNow().UtcDateTime;
         var locationCounts = locationCountsByTestOrderId
             ?? (s.Locations != null
                 ? s.Locations.GroupBy(l => l.TestOrderId).ToDictionary(g => g.Key, g => g.Count())
@@ -501,7 +507,7 @@ public class TestingWorkspaceService : ITestWorkspaceService
                 (!string.IsNullOrEmpty(step.StepName) && step.StepName.Contains("TSB", StringComparison.OrdinalIgnoreCase))) ?? false;
 
             var testIncubations = sampleIncubations.Where(i => i.TestOrderId == t.Id).ToList();
-            var stateResult = WorkflowStateResolver.Resolve(t, usesTsb, testIncubations, null, DateTime.UtcNow, def?.Steps, s.Status, lookup);
+            var stateResult = WorkflowStateResolver.Resolve(t, usesTsb, testIncubations, null, now, def?.Steps, s.Status, lookup);
 
             return new TestOrderSummaryDto
             {

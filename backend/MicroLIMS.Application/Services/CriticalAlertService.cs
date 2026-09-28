@@ -32,13 +32,16 @@ public class CriticalAlertService : ICriticalAlertService
     private readonly IEmailSender _emailSender;
     private readonly CriticalAlertOptions _options;
     private readonly ILogger<CriticalAlertService> _logger;
+    private readonly TimeProvider _time;
 
     public CriticalAlertService(
         IMicroLimsDbContext db,
         IEmailSender emailSender,
         CriticalAlertOptions options,
-        ILogger<CriticalAlertService> logger)
+        ILogger<CriticalAlertService> logger,
+        TimeProvider? timeProvider = null)
     {
+        _time = timeProvider ?? TimeProvider.System;
         _db = db;
         _emailSender = emailSender;
         _options = options;
@@ -105,7 +108,7 @@ public class CriticalAlertService : ICriticalAlertService
             // so the next pass retries; the worst case is a duplicate alert
             // for a send that succeeded but whose stamp did not commit,
             // which is preferable to a Critical incident nobody hears about.
-            incident.AlertedAtUtc = DateTime.UtcNow;
+            incident.AlertedAtUtc = _time.GetUtcNow().UtcDateTime;
             await _db.SaveChangesAsync(cancellationToken);
 
             _logger.LogInformation(

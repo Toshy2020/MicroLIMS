@@ -14,13 +14,16 @@ public class DocumentApprovalService : IDocumentApprovalService
     private readonly IAuditEventService _audit;
     private readonly IDocumentAuthorizationService _auth;
     private readonly IElectronicSignatureService _signatureService;
+    private readonly TimeProvider _time;
 
     public DocumentApprovalService(
         IMicroLimsDbContext db,
         IAuditEventService audit,
         IDocumentAuthorizationService auth,
-        IElectronicSignatureService signatureService)
+        IElectronicSignatureService signatureService,
+        TimeProvider? timeProvider = null)
     {
+        _time = timeProvider ?? TimeProvider.System;
         _db = db;
         _audit = audit;
         _auth = auth;
@@ -113,7 +116,7 @@ public class DocumentApprovalService : IDocumentApprovalService
             DocumentRevisionId = revisionId,
             AssignedApproverUserId = request.ApproverUserId,
             AssignedByUserId = userId,
-            AssignedAt = DateTime.UtcNow,
+            AssignedAt = _time.GetUtcNow().UtcDateTime,
             DueDate = request.DueDate,
             Status = DocumentApprovalTaskStatus.Pending,
             SubmissionNotes = request.SubmissionNotes?.Trim(),
@@ -458,7 +461,7 @@ public class DocumentApprovalService : IDocumentApprovalService
         }
 
         var actorUser = await _db.Users.FindAsync(userId);
-        var now = DateTime.UtcNow;
+        var now = _time.GetUtcNow().UtcDateTime;
 
         if (request.Decision == DocumentApprovalDecision.ReturnForCorrection)
         {
@@ -706,7 +709,7 @@ public class DocumentApprovalService : IDocumentApprovalService
         }
     }
 
-    private static ApprovalReadinessDto EvaluateReadiness(DocumentApprovalTask task, int userId)
+    private ApprovalReadinessDto EvaluateReadiness(DocumentApprovalTask task, int userId)
     {
         var revision = task.DocumentRevision;
         var errors = new List<string>();
@@ -777,7 +780,7 @@ public class DocumentApprovalService : IDocumentApprovalService
         }
 
         var targetEffective = task.TargetEffectiveDate ?? revision.EffectiveDate;
-        var targetStatus = (targetEffective.HasValue && targetEffective.Value.Date > DateTime.UtcNow.Date)
+        var targetStatus = (targetEffective.HasValue && targetEffective.Value.Date > _time.GetUtcNow().UtcDateTime.Date)
             ? DocumentRevisionStatus.FutureEffective
             : DocumentRevisionStatus.Effective;
 

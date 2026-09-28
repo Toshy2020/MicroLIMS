@@ -19,9 +19,11 @@ public class ResultProjectionService
 {
     private readonly IMicroLimsDbContext _db;
     private readonly ILogger<ResultProjectionService> _logger;
+    private readonly TimeProvider _time;
 
-    public ResultProjectionService(IMicroLimsDbContext db, ILogger<ResultProjectionService> logger)
+    public ResultProjectionService(IMicroLimsDbContext db, ILogger<ResultProjectionService> logger, TimeProvider? timeProvider = null)
     {
+        _time = timeProvider ?? TimeProvider.System;
         _db = db;
         _logger = logger;
     }
@@ -167,7 +169,7 @@ public class ResultProjectionService
         record.ResultEnteredByUserId = reading.EnteredByUserId;
         record.ResultEnteredByName = enteredBy?.FullName ?? string.Empty;
         record.SampleStatus = sample.Status;
-        record.UpdatedAt = DateTime.UtcNow;
+        record.UpdatedAt = _time.GetUtcNow().UtcDateTime;
     }
 
     public async Task UpsertFromParameterResultAsync(int parameterResultId)
@@ -212,7 +214,7 @@ public class ResultProjectionService
         record.ResultEnteredByUserId = analysis.EnteredByUserId;
         record.ResultEnteredByName = enteredBy?.FullName ?? string.Empty;
         record.SampleStatus = sample.Status;
-        record.UpdatedAt = DateTime.UtcNow;
+        record.UpdatedAt = _time.GetUtcNow().UtcDateTime;
     }
 
     // Projects only the FINAL workflow step's outcome for a pathogen
@@ -297,7 +299,7 @@ public class ResultProjectionService
         record.ResultEnteredByUserId = enteredByUserId;
         record.ResultEnteredByName = enteredBy?.FullName ?? string.Empty;
         record.SampleStatus = sample.Status;
-        record.UpdatedAt = DateTime.UtcNow;
+        record.UpdatedAt = _time.GetUtcNow().UtcDateTime;
     }
 
     // EM/After Cleaning batch results - one ResultRecord per location, the
@@ -370,11 +372,11 @@ public class ResultProjectionService
             record.ResultLevel = ResultLevel.NotApplicable;
         }
 
-        record.ResultEnteredAt = location.EnteredAt ?? DateTime.UtcNow;
+        record.ResultEnteredAt = location.EnteredAt ?? _time.GetUtcNow().UtcDateTime;
         record.ResultEnteredByUserId = location.EnteredByUserId ?? 0;
         record.ResultEnteredByName = enteredBy?.FullName ?? string.Empty;
         record.SampleStatus = sample.Status;
-        record.UpdatedAt = DateTime.UtcNow;
+        record.UpdatedAt = _time.GetUtcNow().UtcDateTime;
     }
 
     // Called after a Sample-level approval decision - approval always
@@ -397,7 +399,7 @@ public class ResultProjectionService
             record.ApprovedByName = approvedBy?.FullName;
             record.ApprovedAt = sample.ApprovedAt;
             record.SampleStatus = sample.Status;
-            record.UpdatedAt = DateTime.UtcNow;
+            record.UpdatedAt = _time.GetUtcNow().UtcDateTime;
         }
 
         await _db.SaveChangesAsync();

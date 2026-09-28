@@ -18,9 +18,11 @@ public class ReviewService
     private readonly IMicroLimsDbContext _db;
     private readonly SegregationOfDutiesGuard _segregationOfDuties;
     private readonly IElectronicSignatureService _signatureService;
+    private readonly TimeProvider _time;
 
-    public ReviewService(IMicroLimsDbContext db, SegregationOfDutiesGuard segregationOfDuties, IElectronicSignatureService signatureService)
+    public ReviewService(IMicroLimsDbContext db, SegregationOfDutiesGuard segregationOfDuties, IElectronicSignatureService signatureService, TimeProvider? timeProvider = null)
     {
+        _time = timeProvider ?? TimeProvider.System;
         _db = db;
         _segregationOfDuties = segregationOfDuties;
         _signatureService = signatureService;
@@ -185,7 +187,7 @@ public class ReviewService
             ReviewerUserId = reviewerId,
             AssignedAnalystId = order.AssignedAnalystId,
             Reason = string.IsNullOrWhiteSpace(reason) ? null : reason.Trim(),
-            ReturnedAt = DateTime.UtcNow
+            ReturnedAt = _time.GetUtcNow().UtcDateTime
         };
 
         _db.TestReturnEvents.Add(returnEvent);

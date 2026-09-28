@@ -17,11 +17,14 @@ public class TrainingMatrixService : ITrainingMatrixService
 {
     private readonly IMicroLimsDbContext _db;
     private readonly ILogger<TrainingMatrixService> _logger;
+    private readonly TimeProvider _time;
 
     public TrainingMatrixService(
         IMicroLimsDbContext db,
-        ILogger<TrainingMatrixService> logger)
+        ILogger<TrainingMatrixService> logger,
+        TimeProvider? timeProvider = null)
     {
+        _time = timeProvider ?? TimeProvider.System;
         _db = db;
         _logger = logger;
     }
@@ -30,7 +33,7 @@ public class TrainingMatrixService : ITrainingMatrixService
         TrainingMatrixFilterDto filter,
         CancellationToken cancellationToken = default)
     {
-        var nowUtc = DateTime.UtcNow;
+        var nowUtc = _time.GetUtcNow().UtcDateTime;
 
         // 1. Fetch Users
         var usersQuery = _db.Users
@@ -247,7 +250,7 @@ public class TrainingMatrixService : ITrainingMatrixService
         int? departmentId = null,
         CancellationToken cancellationToken = default)
     {
-        var nowUtc = DateTime.UtcNow;
+        var nowUtc = _time.GetUtcNow().UtcDateTime;
 
         var mastersQuery = _db.DocumentMasters
             .Include(d => d.Department)

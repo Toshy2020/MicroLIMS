@@ -40,9 +40,11 @@ public class UserService
     private readonly IMicroLimsDbContext _db;
     private readonly IAuthenticationService _authService;
     private readonly ISecurityAuditService _securityAudit;
+    private readonly TimeProvider _time;
 
-    public UserService(IMicroLimsDbContext db, IAuthenticationService authService, ISecurityAuditService securityAudit)
+    public UserService(IMicroLimsDbContext db, IAuthenticationService authService, ISecurityAuditService securityAudit, TimeProvider? timeProvider = null)
     {
+        _time = timeProvider ?? TimeProvider.System;
         _securityAudit = securityAudit;
         _db = db;
         _authService = authService;
@@ -75,7 +77,7 @@ public class UserService
 
     public async Task<List<UserDto>> GetEligibleAnalystsAsync()
     {
-        var now = DateTime.UtcNow;
+        var now = _time.GetUtcNow().UtcDateTime;
         var users = await _db.Users
             .Include(u => u.Role)
             .Where(u => u.IsActive && (u.LockedUntil == null || u.LockedUntil <= now) && u.Role != null && u.Role.Type == RoleType.Analyst)
@@ -144,7 +146,7 @@ public class UserService
             PreviousValue = JsonSerializer.Serialize(prevData),
             NewValue = JsonSerializer.Serialize(new { FullName = fullName, Username = username, Email = email, JobTitle = jobTitle }),
             UserId = actingUserId,
-            Timestamp = DateTime.UtcNow
+            Timestamp = _time.GetUtcNow().UtcDateTime
         });
 
         await _db.SaveChangesAsync();
@@ -186,7 +188,7 @@ public class UserService
             PreviousValue = JsonSerializer.Serialize(new { RoleId = user.RoleId, RoleName = prevRoleName }),
             NewValue = JsonSerializer.Serialize(new { RoleId = newRoleId, RoleName = newRole.Name, Reason = reason }),
             UserId = actingUserId,
-            Timestamp = DateTime.UtcNow
+            Timestamp = _time.GetUtcNow().UtcDateTime
         });
 
         await _db.SaveChangesAsync();
@@ -235,7 +237,7 @@ public class UserService
             PreviousValue = JsonSerializer.Serialize(new { IsActive = prevStatus }),
             NewValue = JsonSerializer.Serialize(new { IsActive = isActive, Reason = reason }),
             UserId = actingUserId,
-            Timestamp = DateTime.UtcNow
+            Timestamp = _time.GetUtcNow().UtcDateTime
         });
 
         await _db.SaveChangesAsync();
@@ -279,7 +281,7 @@ public class UserService
             PreviousValue = JsonSerializer.Serialize(new { FailedLoginAttempts = prevFailed, LockedUntil = prevLocked }),
             NewValue = JsonSerializer.Serialize(new { FailedLoginAttempts = 0, LockedUntil = (DateTime?)null, Reason = reason }),
             UserId = actingUserId,
-            Timestamp = DateTime.UtcNow
+            Timestamp = _time.GetUtcNow().UtcDateTime
         });
 
         await _db.SaveChangesAsync();
@@ -301,7 +303,7 @@ public class UserService
             PreviousValue = null,
             NewValue = JsonSerializer.Serialize(new { TargetUsername = user.Username, HasEmail = !string.IsNullOrWhiteSpace(user.Email), Reason = reason }),
             UserId = actingUserId,
-            Timestamp = DateTime.UtcNow
+            Timestamp = _time.GetUtcNow().UtcDateTime
         });
 
         await _db.SaveChangesAsync();
@@ -323,7 +325,7 @@ public class UserService
             PreviousValue = JsonSerializer.Serialize(new { MustChangePassword = prevMust }),
             NewValue = JsonSerializer.Serialize(new { MustChangePassword = true }),
             UserId = actingUserId,
-            Timestamp = DateTime.UtcNow
+            Timestamp = _time.GetUtcNow().UtcDateTime
         });
 
         await _db.SaveChangesAsync();

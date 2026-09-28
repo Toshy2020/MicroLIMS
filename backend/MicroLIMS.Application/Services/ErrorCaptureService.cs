@@ -26,9 +26,11 @@ public class ErrorCaptureService : IErrorCaptureService
 
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly ILogger<ErrorCaptureService> _logger;
+    private readonly TimeProvider _time;
 
-    public ErrorCaptureService(IServiceScopeFactory scopeFactory, ILogger<ErrorCaptureService> logger)
+    public ErrorCaptureService(IServiceScopeFactory scopeFactory, ILogger<ErrorCaptureService> logger, TimeProvider? timeProvider = null)
     {
+        _time = timeProvider ?? TimeProvider.System;
         _scopeFactory = scopeFactory;
         _logger = logger;
     }
@@ -83,7 +85,7 @@ public class ErrorCaptureService : IErrorCaptureService
         IMicroLimsDbContext db, ErrorCaptureRequest request, CancellationToken cancellationToken)
     {
 
-        var now = DateTime.UtcNow;
+        var now = _time.GetUtcNow().UtcDateTime;
         var correlationId = Truncate(request.CorrelationId, CorrelationIdMaxLength) ?? string.Empty;
         var exceptionType = Truncate(request.ExceptionType, ExceptionTypeMaxLength) ?? string.Empty;
         var requestPath = Truncate(request.RequestPath, RequestPathMaxLength);

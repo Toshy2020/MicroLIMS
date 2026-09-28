@@ -20,16 +20,18 @@ public class ReferenceNumberGenerator
     };
 
     private readonly IMicroLimsDbContext _db;
+    private readonly TimeProvider _time;
 
-    public ReferenceNumberGenerator(IMicroLimsDbContext db)
+    public ReferenceNumberGenerator(IMicroLimsDbContext db, TimeProvider? timeProvider = null)
     {
+        _time = timeProvider ?? TimeProvider.System;
         _db = db;
     }
 
     public async Task<string> GenerateAsync(SampleCategory category)
     {
         var code = CategoryCodes.TryGetValue(category, out var c) ? c : "SM";
-        var now = DateTime.UtcNow;
+        var now = _time.GetUtcNow().UtcDateTime;
         var mm = now.ToString("MM");
         var yy = now.ToString("yy");
         var prefix = $"{code}{mm}{yy}";
@@ -46,7 +48,7 @@ public class ReferenceNumberGenerator
 
     public async Task<string> GenerateOosCodeAsync()
     {
-        var now = DateTime.UtcNow;
+        var now = _time.GetUtcNow().UtcDateTime;
         var mm = now.ToString("MM");
         var yy = now.ToString("yy");
         var prefix = $"OOS{mm}{yy}";

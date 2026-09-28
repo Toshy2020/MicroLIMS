@@ -15,9 +15,11 @@ public class AdminPasswordRecoveryService
 {
     private const string AllowedChars = "23456789ABCDEFGHJKLMNPQRSTUVWXYZ"; // 32 unambiguous chars
     private readonly IMicroLimsDbContext _db;
+    private readonly TimeProvider _time;
 
-    public AdminPasswordRecoveryService(IMicroLimsDbContext db)
+    public AdminPasswordRecoveryService(IMicroLimsDbContext db, TimeProvider? timeProvider = null)
     {
+        _time = timeProvider ?? TimeProvider.System;
         _db = db;
     }
 
@@ -67,14 +69,14 @@ public class AdminPasswordRecoveryService
 
         var plaintextCode = GenerateRecoveryCode();
         var codeHash = HashRecoveryCode(plaintextCode);
-        var expiresAt = DateTime.UtcNow.AddMinutes(15);
+        var expiresAt = _time.GetUtcNow().UtcDateTime.AddMinutes(15);
 
         var recovery = new AdminPasswordRecovery
         {
             UserId = targetUserId,
             CreatedByUserId = actingUserId,
             CodeHash = codeHash,
-            CreatedAt = DateTime.UtcNow,
+            CreatedAt = _time.GetUtcNow().UtcDateTime,
             ExpiresAt = expiresAt,
             FailedAttempts = 0,
             Status = AdminPasswordRecoveryStatus.Pending,
@@ -91,7 +93,7 @@ public class AdminPasswordRecoveryService
             PreviousValue = null,
             NewValue = JsonSerializer.Serialize(new { TargetUserId = targetUserId, TargetUsername = user.Username, Reason = reason }),
             UserId = actingUserId,
-            Timestamp = DateTime.UtcNow
+            Timestamp = _time.GetUtcNow().UtcDateTime
         });
 
         await _db.SaveChangesAsync();
@@ -133,13 +135,13 @@ public class AdminPasswordRecoveryService
                 PreviousValue = null,
                 NewValue = JsonSerializer.Serialize(new { TargetUsername = username, FailureReason = "No active recovery request found" }),
                 UserId = user.Id,
-                Timestamp = DateTime.UtcNow
+                Timestamp = _time.GetUtcNow().UtcDateTime
             });
             await _db.SaveChangesAsync();
             throw new InvalidOperationException(InvalidRecoveryCodeMessage);
         }
 
-        if (DateTime.UtcNow > recovery.ExpiresAt)
+        if (_time.GetUtcNow().UtcDateTime > recovery.ExpiresAt)
         {
             recovery.Status = AdminPasswordRecoveryStatus.Expired;
             _db.AuditLogs.Add(new AuditLog
@@ -150,7 +152,7 @@ public class AdminPasswordRecoveryService
                 PreviousValue = null,
                 NewValue = JsonSerializer.Serialize(new { TargetUserId = user.Id, TargetUsername = user.Username, FailureReason = "Expired" }),
                 UserId = user.Id,
-                Timestamp = DateTime.UtcNow
+                Timestamp = _time.GetUtcNow().UtcDateTime
             });
             await _db.SaveChangesAsync();
             throw new InvalidOperationException("Recovery code has expired. Please request a new recovery code.");
@@ -167,7 +169,7 @@ public class AdminPasswordRecoveryService
                 PreviousValue = null,
                 NewValue = JsonSerializer.Serialize(new { TargetUserId = user.Id, TargetUsername = user.Username, FailedAttempts = recovery.FailedAttempts }),
                 UserId = user.Id,
-                Timestamp = DateTime.UtcNow
+                Timestamp = _time.GetUtcNow().UtcDateTime
             });
 
             if (recovery.FailedAttempts >= 5)
@@ -181,7 +183,7 @@ public class AdminPasswordRecoveryService
                     PreviousValue = null,
                     NewValue = JsonSerializer.Serialize(new { TargetUserId = user.Id, TargetUsername = user.Username, FailureReason = "Failed limit exceeded" }),
                     UserId = user.Id,
-                    Timestamp = DateTime.UtcNow
+                    Timestamp = _time.GetUtcNow().UtcDateTime
                 });
             }
 
@@ -212,7 +214,7 @@ public class AdminPasswordRecoveryService
 
         var newHash = BCrypt.Net.BCrypt.HashPassword(newPassword);
         user.PasswordHash = newHash;
-        user.PasswordChangedAt = DateTime.UtcNow;
+        user.PasswordChangedAt = _time.GetUtcNow().UtcDateTime;
         user.MustChangePassword = false;
         user.FailedLoginAttempts = 0;
         user.LockedUntil = null;
@@ -220,15 +222,15 @@ public class AdminPasswordRecoveryService
         _db.PasswordHistories.Add(new PasswordHistory { UserId = user.Id, PasswordHash = newHash });
 
         recovery.Status = AdminPasswordRecoveryStatus.Used;
-        recovery.UsedAt = DateTime.UtcNow;
+        recovery.UsedAt = _time.GetUtcNow().UtcDateTime;
 
         // Invalidate active refresh tokens for the account
         var activeTokens = await _db.RefreshTokens
-            .Where(r => r.UserId == user.Id && r.RevokedAt == null && r.ExpiresAt > DateTime.UtcNow)
+            .Where(r => r.UserId == user.Id && r.RevokedAt == null && r.ExpiresAt > _time.GetUtcNow().UtcDateTime)
             .ToListAsync();
         foreach (var rt in activeTokens)
         {
-            rt.RevokedAt = DateTime.UtcNow;
+            rt.RevokedAt = _time.GetUtcNow().UtcDateTime;
         }
 
         _db.AuditLogs.Add(new AuditLog
@@ -239,7 +241,7 @@ public class AdminPasswordRecoveryService
             PreviousValue = null,
             NewValue = JsonSerializer.Serialize(new { TargetUserId = user.Id, TargetUsername = user.Username, Method = "Administrator-Assisted Recovery" }),
             UserId = user.Id,
-            Timestamp = DateTime.UtcNow
+            Timestamp = _time.GetUtcNow().UtcDateTime
         });
 
         await _db.SaveChangesAsync();

@@ -25,9 +25,11 @@ public class ChromatographyColumnService
 {
     private readonly IMicroLimsDbContext _db;
     private readonly IUserSectionScopeService _scope;
+    private readonly TimeProvider _time;
 
-    public ChromatographyColumnService(IMicroLimsDbContext db, IUserSectionScopeService scope)
+    public ChromatographyColumnService(IMicroLimsDbContext db, IUserSectionScopeService scope, TimeProvider? timeProvider = null)
     {
+        _time = timeProvider ?? TimeProvider.System;
         _db = db;
         _scope = scope;
     }
@@ -114,9 +116,9 @@ public class ChromatographyColumnService
             SectionId = sectionId,
             IsActive = true,
             CreatedByUserId = currentUserId,
-            CreatedAt = DateTime.UtcNow,
+            CreatedAt = _time.GetUtcNow().UtcDateTime,
             LastModifiedByUserId = currentUserId,
-            LastModifiedAt = DateTime.UtcNow,
+            LastModifiedAt = _time.GetUtcNow().UtcDateTime,
             CompatibleEquipment = compatibleEquipment
         };
 
@@ -184,7 +186,7 @@ public class ChromatographyColumnService
             column.IsActive = request.IsActive.Value;
         }
         column.LastModifiedByUserId = currentUserId;
-        column.LastModifiedAt = DateTime.UtcNow;
+        column.LastModifiedAt = _time.GetUtcNow().UtcDateTime;
 
         await _db.SaveChangesAsync(ct);
         return column;
@@ -203,7 +205,7 @@ public class ChromatographyColumnService
 
         column.IsActive = false;
         column.LastModifiedByUserId = currentUserId;
-        column.LastModifiedAt = DateTime.UtcNow;
+        column.LastModifiedAt = _time.GetUtcNow().UtcDateTime;
 
         await _db.SaveChangesAsync(ct);
         return column;

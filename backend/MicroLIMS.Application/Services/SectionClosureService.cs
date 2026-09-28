@@ -15,9 +15,11 @@ public class SectionClosureService
     private readonly ReviewGateService _reviewGate;
     private readonly IUserSectionScopeService _scope;
     private readonly SampleApprovalService _approval;
+    private readonly TimeProvider _time;
 
-    public SectionClosureService(IMicroLimsDbContext db, ReviewGateService reviewGate, IUserSectionScopeService scope, SampleApprovalService approval)
+    public SectionClosureService(IMicroLimsDbContext db, ReviewGateService reviewGate, IUserSectionScopeService scope, SampleApprovalService approval, TimeProvider? timeProvider = null)
     {
+        _time = timeProvider ?? TimeProvider.System;
         _db = db;
         _reviewGate = reviewGate;
         _scope = scope;
@@ -83,7 +85,7 @@ public class SectionClosureService
         var signoff = SampleSectionRollup.GetOrAdd(sample, sectionId);
         signoff.Status = SectionSignoffStatus.Cancelled;
         signoff.ClosedByUserId = sectionHeadUserId;
-        signoff.ClosedAt = DateTime.UtcNow;
+        signoff.ClosedAt = _time.GetUtcNow().UtcDateTime;
         signoff.CloseReason = reason.Trim();
         signoff.CloseSignature = signature;
         SampleSectionRollup.Apply(sample);

@@ -19,10 +19,13 @@ public class MediaReleaseService
     private readonly ReviewGateService _reviewGate;
     private readonly MediaSummaryService _summary;
     private readonly RecordArchiveService _archive;
+    private readonly TimeProvider _time;
 
     public MediaReleaseService(IMicroLimsDbContext db, SegregationOfDutiesGuard segregationOfDuties,
-        ReviewGateService reviewGate, MediaSummaryService summary, RecordArchiveService archive)
+        ReviewGateService reviewGate, MediaSummaryService summary, RecordArchiveService archive,
+        TimeProvider? timeProvider = null)
     {
+        _time = timeProvider ?? TimeProvider.System;
         _db = db;
         _segregationOfDuties = segregationOfDuties;
         _reviewGate = reviewGate;
@@ -83,7 +86,7 @@ public class MediaReleaseService
 
         media.ApprovalStatus = approved ? ApprovalGateStatus.Approved : ApprovalGateStatus.Rejected;
         media.ApprovedByUserId = sectionHeadUserId;
-        media.ApprovedAt = DateTime.UtcNow;
+        media.ApprovedAt = _time.GetUtcNow().UtcDateTime;
 
         if (approved)
         {

@@ -79,6 +79,34 @@ public class AdminPasswordRecoveryTests
         Assert.Contains("reason is required", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
+    // The 15-minute window is measured on the injected clock, so it can be
+    // tested at its edges instead of by back-dating rows.
+    [Theory]
+    [InlineData(14, true)]
+    [InlineData(16, false)]
+    public async Task RecoveryCode_IsHonouredOnlyInsideItsFifteenMinuteWindow(int minutesLater, bool accepted)
+    {
+        var db = CreateDbContext();
+        var clock = new CalibrationCurveSliceS1Tests.FakeTimeProvider(new DateTimeOffset(2026, 3, 1, 9, 0, 0, TimeSpan.Zero));
+        var service = new AdminPasswordRecoveryService(db, clock);
+        db.Users.Add(new User { Id = 2, FullName = "Target User", Username = "windowed", RoleId = 4, IsActive = true });
+        await db.SaveChangesAsync();
+        var request = await service.CreateRecoveryRequestAsync(targetUserId: 2, reason: "Forgot password", actingUserId: 1);
+
+        clock.SetUtcNow(clock.GetUtcNow().AddMinutes(minutesLater));
+        var confirm = () => service.ConfirmRecoveryAsync("windowed", request.RecoveryCode, "ValidP@ss123!");
+
+        if (accepted)
+        {
+            await confirm();
+        }
+        else
+        {
+            await Assert.ThrowsAsync<InvalidOperationException>(confirm);
+            Assert.Equal(AdminPasswordRecoveryStatus.Expired, (await db.AdminPasswordRecoveries.SingleAsync()).Status);
+        }
+    }
+
     [Fact]
     public void Scenario05_RecoveryCodeIsCryptographicallyRandom()
     {

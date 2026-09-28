@@ -17,9 +17,11 @@ public class ErrorMonitoringService : IErrorMonitoringService
     private const int MaxExportRows = 5000;
 
     private readonly IMicroLimsDbContext _db;
+    private readonly TimeProvider _time;
 
-    public ErrorMonitoringService(IMicroLimsDbContext db)
+    public ErrorMonitoringService(IMicroLimsDbContext db, TimeProvider? timeProvider = null)
     {
+        _time = timeProvider ?? TimeProvider.System;
         _db = db;
     }
 
@@ -109,7 +111,7 @@ public class ErrorMonitoringService : IErrorMonitoringService
 
         incident.Status = IncidentStatus.Resolved;
         incident.ResolvedByUserId = userId;
-        incident.ResolvedAtUtc = DateTime.UtcNow;
+        incident.ResolvedAtUtc = _time.GetUtcNow().UtcDateTime;
         incident.ResolutionNotes = notes;
 
         await _db.SaveChangesAsync(cancellationToken);

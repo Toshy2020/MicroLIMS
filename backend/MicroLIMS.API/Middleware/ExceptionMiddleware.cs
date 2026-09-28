@@ -1,3 +1,4 @@
+using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Persistence.DbContext;
@@ -13,6 +14,9 @@ namespace MicroLIMS.API.Middleware;
 // records each one as an ErrorLog row on the admin monitoring page.
 public class ExceptionMiddleware
 {
+    public const string ConcurrencyConflictMessage =
+        "This record was changed by someone else while you were working on it. Nothing was saved - reload it and make your change again.";
+
     // Matches the camelCase policy AddJsonOptions applies to normal
     // controller responses - this middleware serializes manually
     // (bypassing MVC's formatter), so without this every error payload
@@ -48,6 +52,17 @@ public class ExceptionMiddleware
             context.Response.StatusCode = (int)HttpStatusCode.BadRequest;
             await CaptureAsync(context, ex, ErrorSource.Backend, ErrorSeverity.Warning);
             await WriteResponse(context, ApiResponse<object>.Fail(ex.Message));
+        }
+        catch (DbUpdateConcurrencyException ex)
+        {
+            // Someone else saved the same record between this request
+            // reading it and writing it back (xmin concurrency token, see
+            // MicroLimsDbContext). Nothing was overwritten; the user needs
+            // to reload and redo the change. Above the database-failure arm,
+            // which would otherwise report it as a 500 outage.
+            context.Response.StatusCode = (int)HttpStatusCode.Conflict;
+            await CaptureAsync(context, ex, ErrorSource.Backend, ErrorSeverity.Warning);
+            await WriteResponse(context, ApiResponse<object>.Fail(ConcurrencyConflictMessage));
         }
         catch (Exception ex) when (DatabaseErrorClassifier.IsDatabaseFailure(ex))
         {

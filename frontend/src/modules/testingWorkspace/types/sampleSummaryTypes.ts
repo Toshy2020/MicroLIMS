@@ -1,5 +1,7 @@
 // Mirrors backend MicroLIMS.Application.DTOs.SampleSummaryDto and friends.
 
+import type { CertificateOfAnalysis } from "../coaAggregation";
+
 export interface IncubationDetail {
   stepName: string;
   stageNumber: number;
@@ -263,6 +265,9 @@ export interface SampleSummary {
   // Rejected) - a combined Certificate of Analysis can be generated. See
   // sections[].coaAvailable for the single-lab counterpart.
   combinedCoaAvailable: boolean;
+  // The Certificate of Analysis for the whole sample and each lab, with
+  // every verdict decided on the server (CertificateOfAnalysisBuilder).
+  certificate: CertificateOfAnalysis;
 }
 
 export interface ElementalAssayElementDetail {

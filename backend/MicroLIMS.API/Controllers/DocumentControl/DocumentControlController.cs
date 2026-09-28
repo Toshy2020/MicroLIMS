@@ -1,5 +1,6 @@
 using MicroLIMS.Shared.Exceptions;
 using System.Security.Claims;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using MicroLIMS.Application.DTOs.DocumentControl;
@@ -31,7 +32,7 @@ public class DocumentControlController : ControllerBase
             var response = await _masterService.GetLibraryAsync(filter, CurrentUserId);
             return Ok(ApiResponse<DocumentLibraryResponse>.Ok(response));
         }
-        catch (Exception ex) when (ex is not NotFoundException)
+        catch (Exception ex) when (ex is not DbUpdateConcurrencyException and not NotFoundException)
         {
             return BadRequest(ApiResponse<object>.Fail(ex.Message));
         }
@@ -53,7 +54,7 @@ public class DocumentControlController : ControllerBase
         {
             return StatusCode(403, ApiResponse<object>.Fail(ex.Message));
         }
-        catch (Exception ex) when (ex is not NotFoundException)
+        catch (Exception ex) when (ex is not DbUpdateConcurrencyException and not NotFoundException)
         {
             return BadRequest(ApiResponse<object>.Fail(ex.Message));
         }
@@ -75,7 +76,7 @@ public class DocumentControlController : ControllerBase
         {
             return Conflict(ApiResponse<object>.Fail(ex.Message));
         }
-        catch (Exception ex) when (ex is not NotFoundException)
+        catch (Exception ex) when (ex is not DbUpdateConcurrencyException and not NotFoundException)
         {
             return BadRequest(ApiResponse<object>.Fail(ex.Message));
         }
@@ -105,7 +106,7 @@ public class DocumentControlController : ControllerBase
         {
             return Conflict(ApiResponse<object>.Fail(ex.Message));
         }
-        catch (Exception ex) when (ex is not NotFoundException)
+        catch (Exception ex) when (ex is not DbUpdateConcurrencyException and not NotFoundException)
         {
             return BadRequest(ApiResponse<object>.Fail(ex.Message));
         }
@@ -135,7 +136,7 @@ public class DocumentControlController : ControllerBase
         {
             return BadRequest(ApiResponse<object>.Fail(ex.Message));
         }
-        catch (Exception ex) when (ex is not NotFoundException)
+        catch (Exception ex) when (ex is not DbUpdateConcurrencyException and not NotFoundException)
         {
             return BadRequest(ApiResponse<object>.Fail(ex.Message));
         }
@@ -165,7 +166,7 @@ public class DocumentControlController : ControllerBase
         {
             return BadRequest(ApiResponse<object>.Fail(ex.Message));
         }
-        catch (Exception ex) when (ex is not NotFoundException)
+        catch (Exception ex) when (ex is not DbUpdateConcurrencyException and not NotFoundException)
         {
             return BadRequest(ApiResponse<object>.Fail(ex.Message));
         }
@@ -187,7 +188,7 @@ public class DocumentControlController : ControllerBase
         {
             return StatusCode(403, ApiResponse<object>.Fail(ex.Message));
         }
-        catch (Exception ex) when (ex is not NotFoundException)
+        catch (Exception ex) when (ex is not DbUpdateConcurrencyException and not NotFoundException)
         {
             return BadRequest(ApiResponse<object>.Fail(ex.Message));
         }
@@ -213,7 +214,7 @@ public class DocumentControlController : ControllerBase
         {
             return StatusCode(403, ApiResponse<object>.Fail(ex.Message));
         }
-        catch (Exception ex) when (ex is not NotFoundException)
+        catch (Exception ex) when (ex is not DbUpdateConcurrencyException and not NotFoundException)
         {
             return BadRequest(ApiResponse<object>.Fail(ex.Message));
         }

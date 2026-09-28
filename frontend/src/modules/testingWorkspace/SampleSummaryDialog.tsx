@@ -46,7 +46,7 @@ import { StatusBadge } from "../../components/StatusBadge";
 import { brandColors, tableHeadSx } from "../../theme";
 import { useAuth } from "../../contexts/AuthContext";
 import { SampleSummaryService, SampleApprovalDecision } from "./services/SampleSummaryService";
-import { buildCoaMatrix, buildCoaSimpleRows, filterTestOrdersBySection } from "./coaAggregation";
+import { sectionScope } from "./coaAggregation";
 import {
   SampleSummary,
   TestOrderSummaryDetail,
@@ -1201,9 +1201,10 @@ function ApprovalSignaturesCard({
     }
     const targetSection = approvableSections.find((s) => s.sectionId === effectiveApprovalSectionId);
     const sectionName = targetSection?.sectionName ?? "";
-    const secTests = filterTestOrdersBySection(summary.testOrders, effectiveApprovalSectionId);
-    const matrix = buildCoaMatrix(secTests);
-    const simple = matrix ? null : buildCoaSimpleRows(secTests);
+    // Which results fail is decided on the server (summary.certificate).
+    const scope = sectionScope(summary.certificate, effectiveApprovalSectionId);
+    const matrix = scope?.matrix ?? null;
+    const simple = scope?.simple ?? null;
 
     const failingNames: string[] = [];
     if (matrix) {
@@ -1214,7 +1215,7 @@ function ApprovalSignaturesCard({
       }
     } else if (simple) {
       for (const r of simple.rows) {
-        if (!r.conform && !r.limitsNotConfigured) {
+        if (!r.conform && !r.limitsNotConfigured && !r.noResult) {
           failingNames.push(r.testDisplayName || r.testCode);
         }
       }
@@ -1229,7 +1230,7 @@ function ApprovalSignaturesCard({
       sectionName,
       failingList: uniqueFailing.join(", ")
     };
-  }, [decision, effectiveApprovalSectionId, approvableSections, summary.testOrders]);
+  }, [decision, effectiveApprovalSectionId, approvableSections, summary.certificate]);
 
   return (
     <Paper sx={{ p: 2.5, border: "1px solid", borderColor: "divider", borderRadius: 2, height: "100%", bgcolor: "background.paper" }}>
@@ -1846,7 +1847,7 @@ export function SampleSummaryDialog({ open, sampleId, onClose }: Props) {
   const coaEligible = useMemo(() => {
     if (!summary) return false;
     const hasResults =
-      buildCoaMatrix(summary.testOrders) !== null || buildCoaSimpleRows(summary.testOrders) !== null;
+      summary.certificate.sample.matrix !== null || summary.certificate.sample.simple !== null;
     if (!hasResults) return false;
 
     // Single-section sample (sections <= 1): combinedCoaAvailable already

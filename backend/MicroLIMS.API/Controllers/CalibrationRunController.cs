@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using MicroLIMS.Application.DTOs;
@@ -52,7 +53,7 @@ public class CalibrationRunController : ControllerBase
         {
             request = JsonSerializer.Deserialize<CreateCalibrationRunRequest>(payload, PayloadJsonOptions);
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not DbUpdateConcurrencyException)
         {
             return BadRequest(ApiResponse<object>.Fail($"Invalid JSON payload: {ex.Message}"));
         }

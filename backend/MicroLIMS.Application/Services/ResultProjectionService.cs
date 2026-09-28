@@ -109,7 +109,7 @@ public class ResultProjectionService
     // Fallback when nothing is configured on Specification/SamplingConfiguration
     // - Item-based (Product/RM/PM) tests always have Specification.Unit by
     // this point (required as of the 2026-09 Preparation Configuration
-    // simplification, enforced in TestWorkflowEngine.RecordCountTestAsync),
+    // simplification, enforced in IncubationStepRecorder.RecordCountTestAsync),
     // so in practice this only still matters for Water.
     private static string DeriveCountUnit(SampleCategory category) =>
         category == SampleCategory.Water ? "CFU/mL" : "CFU/g";
@@ -350,7 +350,7 @@ public class ResultProjectionService
             record.ResultKind = ResultKind.Quantitative;
             record.NumericValue = location.CalculatedResult;
             record.ReportedValue = location.ReportedResult ?? string.Empty;
-            record.Unit = location.Unit; // set by TestWorkflowEngine.DeriveBatchLocationUnit at result-entry time
+            record.Unit = location.Unit; // set by IncubationStepRecorder.DeriveBatchLocationUnit at result-entry time
             record.IsBelowDetectionLimit = isBelowDetectionLimit;
             record.DetectionLimit = detectionLimit;
             record.AlertLimit = location.AlertLimit;

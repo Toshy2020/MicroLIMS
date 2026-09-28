@@ -182,7 +182,7 @@ public class SampleLocationDetailDto
     public string? ReportedResult { get; set; }
     public string? Status { get; set; }
 
-    // Populated at result-entry time (TestWorkflowEngine.DeriveBatchLocationUnit)
+    // Populated at result-entry time (IncubationStepRecorder.DeriveBatchLocationUnit)
     // - null for qualitative (pathogen Detected/Absent) locations. Never
     // assume "CFU/Plate" - EM/After Cleaning mix CFU/plate/4 hours (passive
     // air), CFU/25 cm2 (surface air / swab), and CFU/mL (rinse / water).

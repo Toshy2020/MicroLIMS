@@ -41,7 +41,7 @@ public class SampleLocation
     public string? Status { get; set; }
 
     // Set alongside CalculatedResult/Status in RecordBatchResultsAsync/
-    // RecordWaterBatchReadingsAsync (TestWorkflowEngine.DeriveBatchLocationUnit)
+    // RecordWaterBatchReadingsAsync (IncubationStepRecorder.DeriveBatchLocationUnit)
     // - null for pathogen (Detected/Absent) locations, which have no unit.
     // EM/After Cleaning locations do NOT share Water/Product's
     // SamplePreparation.Unit-based derivation (TestWorkflowEngine.GetCfuUnit):

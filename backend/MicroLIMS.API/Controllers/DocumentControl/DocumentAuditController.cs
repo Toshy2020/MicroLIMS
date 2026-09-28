@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using MicroLIMS.Application.DTOs.DocumentControl;
@@ -34,7 +35,7 @@ public class DocumentAuditController : ControllerBase
         {
             return StatusCode(403, ApiResponse<object>.Fail(ex.Message));
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not DbUpdateConcurrencyException)
         {
             return BadRequest(ApiResponse<object>.Fail(ex.Message));
         }
@@ -52,7 +53,7 @@ public class DocumentAuditController : ControllerBase
         {
             return StatusCode(403, ApiResponse<object>.Fail(ex.Message));
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not DbUpdateConcurrencyException)
         {
             return BadRequest(ApiResponse<object>.Fail(ex.Message));
         }
@@ -74,7 +75,7 @@ public class DocumentAuditController : ControllerBase
         {
             return StatusCode(403, ApiResponse<object>.Fail(ex.Message));
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not DbUpdateConcurrencyException)
         {
             return BadRequest(ApiResponse<object>.Fail(ex.Message));
         }

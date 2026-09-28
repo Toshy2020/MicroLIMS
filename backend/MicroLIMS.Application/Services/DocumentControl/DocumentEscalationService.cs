@@ -1,3 +1,4 @@
+using MicroLIMS.Application.Helpers;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -196,8 +197,32 @@ public class DocumentEscalationService : IDocumentEscalationService
                         CreatedAtUtc = nowUtc
                     };
 
-                    _db.DocumentEscalationRecords.Add(record);
-                    await _db.SaveChangesAsync(cancellationToken);
+                    // The record and its audit event are saved together, so an
+                    // escalation never exists without its audit entry.
+                    await UnitOfWork.RunAsync(_db, async () =>
+                    {
+                        _db.DocumentEscalationRecords.Add(record);
+                        await _db.SaveChangesAsync(cancellationToken);
+
+                        // Record attributable audit event
+                        await _audit.RecordSystemEventAsync(
+                            systemProcessName: processName,
+                            actionCode: $"TrainingEscalationRaised_{level}",
+                            actionCategory: AuditActionCategory.Training,
+                            recordType: nameof(DocumentEscalationRecord),
+                            documentMasterId: assignment.DocumentMasterId,
+                            documentRevisionId: assignment.DocumentRevisionId,
+                            reason: reason,
+                            changes: new[]
+                            {
+                                new AuditFieldChange("EscalationLevel", null, level.ToString()),
+                                new AuditFieldChange("RecipientRoleOrTarget", null, recipient),
+                                new AuditFieldChange("DueDateUtc", null, assignment.DueDateUtc.ToString("o")),
+                                new AuditFieldChange("ScheduledTriggerUtc", null, triggerUtc.ToString("o"))
+                            },
+                            entityId: record.Id.ToString(),
+                            cancellationToken: cancellationToken);
+                    });
 
                     // Track in local cache for duplicate prevention
                     escalationLookup[lookupKey] = record;
@@ -216,25 +241,6 @@ public class DocumentEscalationService : IDocumentEscalationService
                             overdueCreated++;
                             break;
                     }
-
-                    // Record attributable audit event
-                    await _audit.RecordSystemEventAsync(
-                        systemProcessName: processName,
-                        actionCode: $"TrainingEscalationRaised_{level}",
-                        actionCategory: AuditActionCategory.Training,
-                        recordType: nameof(DocumentEscalationRecord),
-                        documentMasterId: assignment.DocumentMasterId,
-                        documentRevisionId: assignment.DocumentRevisionId,
-                        reason: reason,
-                        changes: new[]
-                        {
-                            new AuditFieldChange("EscalationLevel", null, level.ToString()),
-                            new AuditFieldChange("RecipientRoleOrTarget", null, recipient),
-                            new AuditFieldChange("DueDateUtc", null, assignment.DueDateUtc.ToString("o")),
-                            new AuditFieldChange("ScheduledTriggerUtc", null, triggerUtc.ToString("o"))
-                        },
-                        entityId: record.Id.ToString(),
-                        cancellationToken: cancellationToken);
 
                     _logger.LogInformation(
                         "[{Process}] Generated {Level} escalation for Assignment {AssignmentId} (User {UserId}, Doc {DocCode}).",
@@ -342,7 +348,14 @@ public class DocumentEscalationService : IDocumentEscalationService
         );
     }
 
-    public async Task<DocumentEscalationSummaryDto> ResolveEscalationAsync(
+    public Task<DocumentEscalationSummaryDto> ResolveEscalationAsync(
+        ResolveEscalationRequest request,
+        int actingUserId,
+        DateTime? utcNowOverride = null,
+        CancellationToken cancellationToken = default) =>
+        UnitOfWork.RunAsync(_db, () => ResolveEscalationCoreAsync(request, actingUserId, utcNowOverride, cancellationToken));
+
+    private async Task<DocumentEscalationSummaryDto> ResolveEscalationCoreAsync(
         ResolveEscalationRequest request,
         int actingUserId,
         DateTime? utcNowOverride = null,

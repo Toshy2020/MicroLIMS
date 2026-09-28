@@ -1,3 +1,4 @@
+using MicroLIMS.Application.Helpers;
 using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.DTOs;
@@ -42,7 +43,10 @@ public class SamplePreparationService
 
     // Manual fallback: writes the sample's preparation AND seeds the Item's
     // configuration (PendingReview) from the same values, in one transaction.
-    public async Task<SamplePreparation> PrepareAsync(PrepareSampleRequest request, string? ipAddress = null)
+    public Task<SamplePreparation> PrepareAsync(PrepareSampleRequest request, string? ipAddress = null) =>
+        UnitOfWork.RunAsync(_db, () => PrepareCoreAsync(request, ipAddress));
+
+    private async Task<SamplePreparation> PrepareCoreAsync(PrepareSampleRequest request, string? ipAddress = null)
     {
         var sample = await LoadPreparableSampleAsync(request.SampleId, request.UserId);
 
@@ -98,7 +102,10 @@ public class SamplePreparationService
 
     // Confirm-only: every value is copied from the Item's configuration, so
     // editing that config later cannot rewrite this sample's record.
-    public async Task<SamplePreparation> ConfirmFromConfigurationAsync(ConfirmPreparationRequest request, string? ipAddress = null)
+    public Task<SamplePreparation> ConfirmFromConfigurationAsync(ConfirmPreparationRequest request, string? ipAddress = null) =>
+        UnitOfWork.RunAsync(_db, () => ConfirmFromConfigurationCoreAsync(request, ipAddress));
+
+    private async Task<SamplePreparation> ConfirmFromConfigurationCoreAsync(ConfirmPreparationRequest request, string? ipAddress = null)
     {
         var sample = await LoadPreparableSampleAsync(request.SampleId, request.UserId);
 

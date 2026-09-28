@@ -1,3 +1,4 @@
+using MicroLIMS.Application.Helpers;
 using MicroLIMS.Shared.Exceptions;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
@@ -289,7 +290,10 @@ public class UserService
         return ToDto(user);
     }
 
-    public async Task InitiatePasswordResetAsync(int targetUserId, string? reason, int actingUserId)
+    public Task InitiatePasswordResetAsync(int targetUserId, string? reason, int actingUserId) =>
+        UnitOfWork.RunAsync(_db, () => InitiatePasswordResetCoreAsync(targetUserId, reason, actingUserId));
+
+    private async Task InitiatePasswordResetCoreAsync(int targetUserId, string? reason, int actingUserId)
     {
         var user = await _db.Users.FirstOrDefaultAsync(u => u.Id == targetUserId)
             ?? throw new NotFoundException($"User {targetUserId} not found.");

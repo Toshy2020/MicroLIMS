@@ -1,3 +1,4 @@
+using MicroLIMS.Application.Helpers;
 using MicroLIMS.Domain.Constants;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.DTOs.DocumentControl;
@@ -41,7 +42,10 @@ public class DocumentReviewService : IDocumentReviewService
         return (true, user.Role?.Type);
     }
 
-    public async Task<DocumentReviewTaskDto> SubmitForReviewAsync(int revisionId, SubmitForReviewRequest request, int userId)
+    public Task<DocumentReviewTaskDto> SubmitForReviewAsync(int revisionId, SubmitForReviewRequest request, int userId) =>
+        UnitOfWork.RunAsync(_db, () => SubmitForReviewCoreAsync(revisionId, request, userId));
+
+    private async Task<DocumentReviewTaskDto> SubmitForReviewCoreAsync(int revisionId, SubmitForReviewRequest request, int userId)
     {
         var (isActive, role) = await GetUserRoleAsync(userId);
         if (!isActive || role == null)
@@ -260,7 +264,10 @@ public class DocumentReviewService : IDocumentReviewService
         return tasks.Select(MapToTaskDto).ToList();
     }
 
-    public async Task<DocumentReviewFindingDto> AddReviewFindingAsync(int reviewTaskId, AddReviewFindingRequest request, int userId)
+    public Task<DocumentReviewFindingDto> AddReviewFindingAsync(int reviewTaskId, AddReviewFindingRequest request, int userId) =>
+        UnitOfWork.RunAsync(_db, () => AddReviewFindingCoreAsync(reviewTaskId, request, userId));
+
+    private async Task<DocumentReviewFindingDto> AddReviewFindingCoreAsync(int reviewTaskId, AddReviewFindingRequest request, int userId)
     {
         var task = await _db.DocumentReviewTasks
             .Include(t => t.DocumentRevision)
@@ -347,7 +354,10 @@ public class DocumentReviewService : IDocumentReviewService
         return await GetFindingByIdAsync(finding.Id);
     }
 
-    public async Task<DocumentReviewFindingDto> RespondToFindingAsync(int findingId, RespondToFindingRequest request, int userId)
+    public Task<DocumentReviewFindingDto> RespondToFindingAsync(int findingId, RespondToFindingRequest request, int userId) =>
+        UnitOfWork.RunAsync(_db, () => RespondToFindingCoreAsync(findingId, request, userId));
+
+    private async Task<DocumentReviewFindingDto> RespondToFindingCoreAsync(int findingId, RespondToFindingRequest request, int userId)
     {
         var finding = await _db.DocumentReviewFindings
             .Include(f => f.DocumentReviewTask)
@@ -393,7 +403,10 @@ public class DocumentReviewService : IDocumentReviewService
         return await GetFindingByIdAsync(finding.Id);
     }
 
-    public async Task<DocumentReviewFindingDto> VerifyFindingAsync(int findingId, VerifyFindingRequest request, int userId)
+    public Task<DocumentReviewFindingDto> VerifyFindingAsync(int findingId, VerifyFindingRequest request, int userId) =>
+        UnitOfWork.RunAsync(_db, () => VerifyFindingCoreAsync(findingId, request, userId));
+
+    private async Task<DocumentReviewFindingDto> VerifyFindingCoreAsync(int findingId, VerifyFindingRequest request, int userId)
     {
         var finding = await _db.DocumentReviewFindings
             .Include(f => f.DocumentReviewTask)
@@ -449,7 +462,10 @@ public class DocumentReviewService : IDocumentReviewService
         return await GetFindingByIdAsync(finding.Id);
     }
 
-    public async Task<DocumentReviewFindingDto> ResolveFindingAsync(int findingId, int userId)
+    public Task<DocumentReviewFindingDto> ResolveFindingAsync(int findingId, int userId) =>
+        UnitOfWork.RunAsync(_db, () => ResolveFindingCoreAsync(findingId, userId));
+
+    private async Task<DocumentReviewFindingDto> ResolveFindingCoreAsync(int findingId, int userId)
     {
         var finding = await _db.DocumentReviewFindings
             .Include(f => f.DocumentReviewTask)
@@ -518,7 +534,10 @@ public class DocumentReviewService : IDocumentReviewService
         return await GetFindingByIdAsync(finding.Id);
     }
 
-    public async Task<DocumentReviewTaskDto> DecideReviewAsync(int reviewTaskId, ReviewDecisionRequest request, int userId)
+    public Task<DocumentReviewTaskDto> DecideReviewAsync(int reviewTaskId, ReviewDecisionRequest request, int userId) =>
+        UnitOfWork.RunAsync(_db, () => DecideReviewCoreAsync(reviewTaskId, request, userId));
+
+    private async Task<DocumentReviewTaskDto> DecideReviewCoreAsync(int reviewTaskId, ReviewDecisionRequest request, int userId)
     {
         var task = await _db.DocumentReviewTasks
             .Include(t => t.DocumentRevision)

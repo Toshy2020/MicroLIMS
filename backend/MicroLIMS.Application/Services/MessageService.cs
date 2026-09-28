@@ -1,3 +1,4 @@
+using MicroLIMS.Application.Helpers;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using MicroLIMS.Domain.Entities;
@@ -206,7 +207,10 @@ public class MessageService
         );
     }
 
-    public async Task<ConversationSummaryDto> CreateConversationAsync(CreateConversationRequest request, int creatorUserId)
+    public Task<ConversationSummaryDto> CreateConversationAsync(CreateConversationRequest request, int creatorUserId) =>
+        UnitOfWork.RunAsync(_db, () => CreateConversationCoreAsync(request, creatorUserId));
+
+    private async Task<ConversationSummaryDto> CreateConversationCoreAsync(CreateConversationRequest request, int creatorUserId)
     {
         if (string.IsNullOrWhiteSpace(request.InitialMessage))
             throw new InvalidOperationException("Initial message is required.");
@@ -320,7 +324,10 @@ public class MessageService
             .ToList();
     }
 
-    public async Task<DirectMessageDto> SendMessageAsync(int conversationId, SendMessageRequest request, int senderUserId)
+    public Task<DirectMessageDto> SendMessageAsync(int conversationId, SendMessageRequest request, int senderUserId) =>
+        UnitOfWork.RunAsync(_db, () => SendMessageCoreAsync(conversationId, request, senderUserId));
+
+    private async Task<DirectMessageDto> SendMessageCoreAsync(int conversationId, SendMessageRequest request, int senderUserId)
     {
         if (string.IsNullOrWhiteSpace(request.Content))
             throw new InvalidOperationException("Message content cannot be empty.");

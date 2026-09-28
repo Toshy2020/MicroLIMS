@@ -1,3 +1,4 @@
+using MicroLIMS.Application.Helpers;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using MicroLIMS.Application.Interfaces;
@@ -69,7 +70,10 @@ public class AuthenticationService : IAuthenticationService
         _securityAudit = securityAudit;
     }
 
-    public async Task<LoginOutcome> LoginAsync(string username, string password, string? ipAddress = null)
+    public Task<LoginOutcome> LoginAsync(string username, string password, string? ipAddress = null) =>
+        UnitOfWork.RunAsync(_db, () => LoginCoreAsync(username, password, ipAddress));
+
+    private async Task<LoginOutcome> LoginCoreAsync(string username, string password, string? ipAddress = null)
     {
         var user = await _db.Users.Include(u => u.Role).FirstOrDefaultAsync(u => u.Username == username);
 
@@ -151,7 +155,10 @@ public class AuthenticationService : IAuthenticationService
         return new LoginOutcome(true, token, refreshToken, null, user.MustChangePassword);
     }
 
-    public async Task<LoginOutcome> RefreshAsync(string refreshToken)
+    public Task<LoginOutcome> RefreshAsync(string refreshToken) =>
+        UnitOfWork.RunAsync(_db, () => RefreshCoreAsync(refreshToken));
+
+    private async Task<LoginOutcome> RefreshCoreAsync(string refreshToken)
     {
         var hash = Hash(refreshToken);
         var stored = await _db.RefreshTokens.Include(r => r.User).ThenInclude(u => u!.Role)

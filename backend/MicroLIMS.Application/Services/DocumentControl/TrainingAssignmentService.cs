@@ -1,3 +1,4 @@
+using MicroLIMS.Application.Helpers;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using MicroLIMS.Application.DTOs.DocumentControl;
@@ -32,7 +33,14 @@ public class TrainingAssignmentService : ITrainingAssignmentService
         _logger = logger;
     }
 
-    public async Task<TrainingAssignmentGenerationResultDto> ProcessEffectiveRevisionCascadeAsync(
+    public Task<TrainingAssignmentGenerationResultDto> ProcessEffectiveRevisionCascadeAsync(
+        int effectiveRevisionId,
+        int? supersededRevisionId = null,
+        DateTime? utcNowOverride = null,
+        CancellationToken cancellationToken = default) =>
+        UnitOfWork.RunAsync(_db, () => ProcessEffectiveRevisionCascadeCoreAsync(effectiveRevisionId, supersededRevisionId, utcNowOverride, cancellationToken));
+
+    private async Task<TrainingAssignmentGenerationResultDto> ProcessEffectiveRevisionCascadeCoreAsync(
         int effectiveRevisionId,
         int? supersededRevisionId = null,
         DateTime? utcNowOverride = null,
@@ -281,7 +289,14 @@ public class TrainingAssignmentService : ITrainingAssignmentService
             errors);
     }
 
-    public async Task<TrainingAssignmentGenerationResultDto> AssignToUsersAsync(
+    public Task<TrainingAssignmentGenerationResultDto> AssignToUsersAsync(
+        ManualTrainingAssignmentRequest request,
+        int actingUserId,
+        DateTime? utcNowOverride = null,
+        CancellationToken cancellationToken = default) =>
+        UnitOfWork.RunAsync(_db, () => AssignToUsersCoreAsync(request, actingUserId, utcNowOverride, cancellationToken));
+
+    private async Task<TrainingAssignmentGenerationResultDto> AssignToUsersCoreAsync(
         ManualTrainingAssignmentRequest request,
         int actingUserId,
         DateTime? utcNowOverride = null,
@@ -377,7 +392,14 @@ public class TrainingAssignmentService : ITrainingAssignmentService
             new List<string>());
     }
 
-    public async Task<TrainingAssignmentGenerationResultDto> AssignToGroupAsync(
+    public Task<TrainingAssignmentGenerationResultDto> AssignToGroupAsync(
+        BulkGroupAssignmentRequest request,
+        int actingUserId,
+        DateTime? utcNowOverride = null,
+        CancellationToken cancellationToken = default) =>
+        UnitOfWork.RunAsync(_db, () => AssignToGroupCoreAsync(request, actingUserId, utcNowOverride, cancellationToken));
+
+    private async Task<TrainingAssignmentGenerationResultDto> AssignToGroupCoreAsync(
         BulkGroupAssignmentRequest request,
         int actingUserId,
         DateTime? utcNowOverride = null,
@@ -400,7 +422,16 @@ public class TrainingAssignmentService : ITrainingAssignmentService
         return await AssignToUsersAsync(manualReq, actingUserId, utcNowOverride, cancellationToken);
     }
 
-    public async Task<int> HandleDocumentObsolescenceAsync(
+    public Task<int> HandleDocumentObsolescenceAsync(
+        int documentMasterId,
+        int? documentRevisionId = null,
+        string? reason = null,
+        int? actingUserId = null,
+        DateTime? utcNowOverride = null,
+        CancellationToken cancellationToken = default) =>
+        UnitOfWork.RunAsync(_db, () => HandleDocumentObsolescenceCoreAsync(documentMasterId, documentRevisionId, reason, actingUserId, utcNowOverride, cancellationToken));
+
+    private async Task<int> HandleDocumentObsolescenceCoreAsync(
         int documentMasterId,
         int? documentRevisionId = null,
         string? reason = null,

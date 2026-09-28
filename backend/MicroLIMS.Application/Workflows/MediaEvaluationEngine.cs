@@ -1,3 +1,4 @@
+using MicroLIMS.Application.Helpers;
 using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Interfaces;
@@ -132,7 +133,10 @@ public class MediaEvaluationEngine : IMediaEvaluationEngine
 
     // Temperature/Duration hard-locked from the Media's product - never
     // client-supplied, same rule as CountTestWorkflowEngine.
-    public async Task<Incubation> RecordIncubationAsync(int challengeId, int incubatorEquipmentId, int userId)
+    public Task<Incubation> RecordIncubationAsync(int challengeId, int incubatorEquipmentId, int userId) =>
+        UnitOfWork.RunAsync(_db, () => RecordIncubationCoreAsync(challengeId, incubatorEquipmentId, userId));
+
+    private async Task<Incubation> RecordIncubationCoreAsync(int challengeId, int incubatorEquipmentId, int userId)
     {
         var challenge = await _db.MediaEvaluationChallenges
             .Include(c => c.MediaEvaluation!).ThenInclude(e => e.Media!).ThenInclude(m => m.Material)

@@ -247,7 +247,10 @@ public sealed class TestStepNavigator : TestWorkflowSupport
         return result;
     }
 
-    public async Task<WorkflowStep> AdvanceAsync(int testOrderId, int performedByUserId, string? note = null)
+    public Task<WorkflowStep> AdvanceAsync(int testOrderId, int performedByUserId, string? note = null) =>
+        UnitOfWork.RunAsync(_db, () => AdvanceCoreAsync(testOrderId, performedByUserId, note));
+
+    private async Task<WorkflowStep> AdvanceCoreAsync(int testOrderId, int performedByUserId, string? note = null)
     {
         var order = await WorkflowStateMachine.LoadOrThrowAsync(_db, testOrderId);
         if (order.CurrentStep == WorkflowStep.Waiting)

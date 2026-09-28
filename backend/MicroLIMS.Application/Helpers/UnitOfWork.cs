@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata;
 using MicroLIMS.Application.Services;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Application.Abstractions.Persistence;
@@ -72,13 +73,14 @@ public static class UnitOfWork
     private static async Task RestoreTrackerAsync(
         IMicroLimsDbContext db, Dictionary<object, (EntityState State, Microsoft.EntityFrameworkCore.ChangeTracking.PropertyValues Values)> before)
     {
+        var discard = new List<Microsoft.EntityFrameworkCore.ChangeTracking.EntityEntry>();
         foreach (var entry in db.ChangeTracker.Entries().ToList())
         {
             if (!before.TryGetValue(entry.Entity, out var was) || was.State != EntityState.Unchanged)
             {
                 // Created during the command (its row was rolled back), or a
                 // pending change the command's saves carried with them.
-                entry.State = EntityState.Detached;
+                discard.Add(entry);
             }
             else if (entry.State != EntityState.Unchanged || !SameValues(entry.CurrentValues, was.Values))
             {
@@ -87,6 +89,31 @@ public static class UnitOfWork
                 await entry.ReloadAsync();
             }
         }
+
+        // Children before parents: detaching a new parent while its new
+        // child is still tracked makes EF null the child's required
+        // foreign key and throw, e.g. a new media lot and its evaluation
+        // left behind by a failed preparation.
+        var depth = new Dictionary<IEntityType, int>();
+        foreach (var entry in discard.OrderByDescending(e => DependencyDepth(e.Metadata, depth, new HashSet<IEntityType>())))
+            entry.State = EntityState.Detached;
+    }
+
+    // How many required-or-optional foreign keys lie between an entity type
+    // and a root: a type that points at another is one deeper than it.
+    private static int DependencyDepth(IEntityType type, Dictionary<IEntityType, int> known, HashSet<IEntityType> visiting)
+    {
+        if (known.TryGetValue(type, out var d)) return d;
+        if (!visiting.Add(type)) return 0;
+        d = type.GetForeignKeys()
+            .Select(fk => fk.PrincipalEntityType)
+            .Where(p => p != type)
+            .Select(p => DependencyDepth(p, known, visiting) + 1)
+            .DefaultIfEmpty(0)
+            .Max();
+        visiting.Remove(type);
+        known[type] = d;
+        return d;
     }
 
     private static bool SameValues(

@@ -1,3 +1,4 @@
+using MicroLIMS.Application.Helpers;
 using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Interfaces;
@@ -27,7 +28,10 @@ public class SectionClosureService
         _approval = approval;
     }
 
-    public async Task CloseTestingAsync(int sampleId, int sectionId, int sectionHeadUserId, string password, string reason, string? ipAddress)
+    public Task CloseTestingAsync(int sampleId, int sectionId, int sectionHeadUserId, string password, string reason, string? ipAddress) =>
+        UnitOfWork.RunAsync(_db, () => CloseTestingCoreAsync(sampleId, sectionId, sectionHeadUserId, password, reason, ipAddress));
+
+    private async Task CloseTestingCoreAsync(int sampleId, int sectionId, int sectionHeadUserId, string password, string reason, string? ipAddress)
     {
         if (string.IsNullOrWhiteSpace(reason))
             throw new InvalidOperationException("A reason is required to close testing.");

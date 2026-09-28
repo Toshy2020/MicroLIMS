@@ -1,3 +1,4 @@
+using MicroLIMS.Application.Helpers;
 using MicroLIMS.Shared.Exceptions;
 using System.Security.Cryptography;
 using Microsoft.EntityFrameworkCore;
@@ -93,7 +94,10 @@ public class OosInvestigationDocumentService
         return docs.Select(d => ToDto(d, userMap.GetValueOrDefault(d.UploadedByUserId, "Unknown"))).ToList();
     }
 
-    public async Task<OosInvestigationDocumentDto> UploadAsync(string oosGroupCode, UploadOosInvestigationDocumentRequest request, int uploadingUserId)
+    public Task<OosInvestigationDocumentDto> UploadAsync(string oosGroupCode, UploadOosInvestigationDocumentRequest request, int uploadingUserId) =>
+        UnitOfWork.RunAsync(_db, () => UploadCoreAsync(oosGroupCode, request, uploadingUserId));
+
+    private async Task<OosInvestigationDocumentDto> UploadCoreAsync(string oosGroupCode, UploadOosInvestigationDocumentRequest request, int uploadingUserId)
     {
         var groupExists = await _db.Samples.AnyAsync(s => s.OosGroupCode == oosGroupCode);
         if (!groupExists)
@@ -178,7 +182,10 @@ public class OosInvestigationDocumentService
         return (ToDto(document, userName), content);
     }
 
-    public async Task<OosInvestigationDocumentDto> SupersedeAsync(int documentId, string oosGroupCode, SupersedeOosInvestigationDocumentRequest request, int actingUserId)
+    public Task<OosInvestigationDocumentDto> SupersedeAsync(int documentId, string oosGroupCode, SupersedeOosInvestigationDocumentRequest request, int actingUserId) =>
+        UnitOfWork.RunAsync(_db, () => SupersedeCoreAsync(documentId, oosGroupCode, request, actingUserId));
+
+    private async Task<OosInvestigationDocumentDto> SupersedeCoreAsync(int documentId, string oosGroupCode, SupersedeOosInvestigationDocumentRequest request, int actingUserId)
     {
         if (string.IsNullOrWhiteSpace(request.Reason))
             throw new InvalidOperationException("A supersession reason is required.");

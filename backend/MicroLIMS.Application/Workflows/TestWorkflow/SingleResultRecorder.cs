@@ -20,7 +20,11 @@ public sealed class SingleResultRecorder : TestWorkflowSupport
 {
     public SingleResultRecorder(TestWorkflowDependencies deps) : base(deps) { }
 
-    public async Task<TestWorkflowResult> RecordMeasurementResultAsync(
+    public Task<TestWorkflowResult> RecordMeasurementResultAsync(
+        int testOrderId, MeasurementPayload payload, int userId, string? ipAddress = null) =>
+        UnitOfWork.RunAsync(_db, () => RecordMeasurementResultCoreAsync(testOrderId, payload, userId, ipAddress));
+
+    private async Task<TestWorkflowResult> RecordMeasurementResultCoreAsync(
         int testOrderId, MeasurementPayload payload, int userId, string? ipAddress = null)
     {
         var suppliedSpecIds = payload.Parameters?.Select(p => p.SpecificationId).ToList() ?? new List<int>();
@@ -101,7 +105,11 @@ public sealed class SingleResultRecorder : TestWorkflowSupport
             ipAddress);
     }
 
-    public async Task<TestWorkflowResult> RecordGravimetricResultAsync(
+    public Task<TestWorkflowResult> RecordGravimetricResultAsync(
+        int testOrderId, GravimetricPayload payload, int userId, string? ipAddress = null) =>
+        UnitOfWork.RunAsync(_db, () => RecordGravimetricResultCoreAsync(testOrderId, payload, userId, ipAddress));
+
+    private async Task<TestWorkflowResult> RecordGravimetricResultCoreAsync(
         int testOrderId, GravimetricPayload payload, int userId, string? ipAddress = null)
     {
         var suppliedSpecIds = payload.Parameters?.Select(p => p.SpecificationId).ToList() ?? new List<int>();
@@ -232,7 +240,11 @@ public sealed class SingleResultRecorder : TestWorkflowSupport
             ipAddress);
     }
 
-    public async Task<TestWorkflowResult> RecordQualitativeResultAsync(
+    public Task<TestWorkflowResult> RecordQualitativeResultAsync(
+        int testOrderId, QualitativePayload payload, int userId, string? ipAddress = null) =>
+        UnitOfWork.RunAsync(_db, () => RecordQualitativeResultCoreAsync(testOrderId, payload, userId, ipAddress));
+
+    private async Task<TestWorkflowResult> RecordQualitativeResultCoreAsync(
         int testOrderId, QualitativePayload payload, int userId, string? ipAddress = null)
     {
         var suppliedSpecIds = payload.Parameters?.Select(p => p.SpecificationId).ToList() ?? new List<int>();

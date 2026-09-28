@@ -47,7 +47,10 @@ public class CryovialService
             .Where(c => sectionIds == null || sectionIds.Contains(c.Material!.SectionId))
             .OrderByDescending(c => c.Id).ToListAsync();
 
-    public async Task<Cryovial> PrepareCryovialsAsync(PrepareCryovialsRequest request)
+    public Task<Cryovial> PrepareCryovialsAsync(PrepareCryovialsRequest request) =>
+        UnitOfWork.RunAsync(_db, () => PrepareCryovialsCoreAsync(request));
+
+    private async Task<Cryovial> PrepareCryovialsCoreAsync(PrepareCryovialsRequest request)
     {
         if (!request.PhysicalCheckConfirmed)
             throw new InvalidOperationException("Physical check confirmation against the organism reference description is required.");
@@ -133,7 +136,10 @@ public class CryovialService
     // approver may not be the person who prepared the batch: this gate is
     // the only thing standing between an unverified batch and every media
     // evaluation that will later challenge organisms from it.
-    public async Task<Cryovial> ApproveAsync(int cryovialId, bool approved, int userId, string password, string? comment, string? ipAddress)
+    public Task<Cryovial> ApproveAsync(int cryovialId, bool approved, int userId, string password, string? comment, string? ipAddress) =>
+        UnitOfWork.RunAsync(_db, () => ApproveCoreAsync(cryovialId, approved, userId, password, comment, ipAddress));
+
+    private async Task<Cryovial> ApproveCoreAsync(int cryovialId, bool approved, int userId, string password, string? comment, string? ipAddress)
     {
         var cryovial = await _db.Cryovials.FirstOrDefaultAsync(c => c.Id == cryovialId)
             ?? throw new NotFoundException($"Cryovial {cryovialId} not found.");

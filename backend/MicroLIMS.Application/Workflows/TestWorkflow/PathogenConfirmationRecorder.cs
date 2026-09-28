@@ -236,7 +236,11 @@ public sealed class PathogenConfirmationRecorder : TestWorkflowSupport
 
     // Growth that is absent or does not match the expected appearance
     // means the organism being sought is not there - the workflow ends
-    public async Task<Incubation> StartSelectivePlatingIncubationAsync(
+    public Task<Incubation> StartSelectivePlatingIncubationAsync(
+        int testOrderId, string stepName, int mediaLotId, int equipmentId, DateTime? incubationStartUtc, int userId) =>
+        UnitOfWork.RunAsync(_db, () => StartSelectivePlatingIncubationCoreAsync(testOrderId, stepName, mediaLotId, equipmentId, incubationStartUtc, userId));
+
+    private async Task<Incubation> StartSelectivePlatingIncubationCoreAsync(
         int testOrderId, string stepName, int mediaLotId, int equipmentId, DateTime? incubationStartUtc, int userId)
     {
         var (order, definition) = await LoadWithTemplateAsync(testOrderId);
@@ -378,7 +382,12 @@ public sealed class PathogenConfirmationRecorder : TestWorkflowSupport
     }
 
     [Obsolete("Use StartSelectivePlatingIncubationAsync followed by SubmitSelectivePlatingObservationAsync.")]
-    public async Task<StepResultDto> SubmitSelectivePlatingAsync(
+public Task<StepResultDto> SubmitSelectivePlatingAsync(
+        int testOrderId, string stepName, int mediaLotId, int equipmentId,
+        DateTime incubationStartUtc, DateTime incubationEndUtc, GrowthObservation observation, int userId) =>
+        UnitOfWork.RunAsync(_db, () => SubmitSelectivePlatingCoreAsync(testOrderId, stepName, mediaLotId, equipmentId, incubationStartUtc, incubationEndUtc, observation, userId));
+
+    private async Task<StepResultDto> SubmitSelectivePlatingCoreAsync(
         int testOrderId, string stepName, int mediaLotId, int equipmentId,
         DateTime incubationStartUtc, DateTime incubationEndUtc, GrowthObservation observation, int userId)
     {
@@ -674,7 +683,11 @@ public sealed class PathogenConfirmationRecorder : TestWorkflowSupport
 
     // Free-text confirmation with an optional attachment. There is no
     // incubation lock and no media on this step.
-    public async Task<StepResultDto> SubmitBiochemicalAsync(
+    public Task<StepResultDto> SubmitBiochemicalAsync(
+        int testOrderId, string stepName, string biochemicalResultText, int? attachmentId, bool organismDetected, int userId) =>
+        UnitOfWork.RunAsync(_db, () => SubmitBiochemicalCoreAsync(testOrderId, stepName, biochemicalResultText, attachmentId, organismDetected, userId));
+
+    private async Task<StepResultDto> SubmitBiochemicalCoreAsync(
         int testOrderId, string stepName, string biochemicalResultText, int? attachmentId, bool organismDetected, int userId)
     {
         var step = await LoadStepAsync(testOrderId, stepName);

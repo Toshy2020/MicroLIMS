@@ -1,3 +1,4 @@
+using MicroLIMS.Application.Helpers;
 using MicroLIMS.Shared.Exceptions;
 using System.Security.Cryptography;
 using Microsoft.EntityFrameworkCore;
@@ -44,7 +45,19 @@ public class ItemDocumentService
         return docs.Select(MapToDto).ToList();
     }
 
-    public async Task<ItemDocumentDto> UploadDocumentAsync(
+    public Task<ItemDocumentDto> UploadDocumentAsync(
+        int itemId,
+        ItemDocumentType documentType,
+        string version,
+        DateTime? effectiveDate,
+        Stream fileStream,
+        string originalFileName,
+        string contentType,
+        long fileLength,
+        int userId) =>
+        UnitOfWork.RunAsync(_db, () => UploadDocumentCoreAsync(itemId, documentType, version, effectiveDate, fileStream, originalFileName, contentType, fileLength, userId));
+
+    private async Task<ItemDocumentDto> UploadDocumentCoreAsync(
         int itemId,
         ItemDocumentType documentType,
         string version,

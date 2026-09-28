@@ -1,3 +1,4 @@
+using MicroLIMS.Application.Helpers;
 using MicroLIMS.Domain.Constants;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.DTOs.DocumentControl;
@@ -44,7 +45,10 @@ public class DocumentApprovalService : IDocumentApprovalService
         return (true, user.Role?.Type);
     }
 
-    public async Task<DocumentApprovalTaskDto> CreateApprovalTaskAsync(int revisionId, CreateApprovalTaskRequest request, int userId)
+    public Task<DocumentApprovalTaskDto> CreateApprovalTaskAsync(int revisionId, CreateApprovalTaskRequest request, int userId) =>
+        UnitOfWork.RunAsync(_db, () => CreateApprovalTaskCoreAsync(revisionId, request, userId));
+
+    private async Task<DocumentApprovalTaskDto> CreateApprovalTaskCoreAsync(int revisionId, CreateApprovalTaskRequest request, int userId)
     {
         var (isActorActive, actorRole) = await GetUserRoleAsync(userId);
         if (!isActorActive || actorRole == null)
@@ -419,7 +423,10 @@ public class DocumentApprovalService : IDocumentApprovalService
             .FirstOrDefaultAsync();
     }
 
-    public async Task<DocumentApprovalTaskDto> ExecuteApprovalDecisionAsync(int approvalTaskId, ExecuteApprovalDecisionRequest request, int userId, string? ipAddress = null)
+    public Task<DocumentApprovalTaskDto> ExecuteApprovalDecisionAsync(int approvalTaskId, ExecuteApprovalDecisionRequest request, int userId, string? ipAddress = null) =>
+        UnitOfWork.RunAsync(_db, () => ExecuteApprovalDecisionCoreAsync(approvalTaskId, request, userId, ipAddress));
+
+    private async Task<DocumentApprovalTaskDto> ExecuteApprovalDecisionCoreAsync(int approvalTaskId, ExecuteApprovalDecisionRequest request, int userId, string? ipAddress = null)
     {
         var (isActorActive, actorRole) = await GetUserRoleAsync(userId);
         if (!isActorActive || actorRole == null)

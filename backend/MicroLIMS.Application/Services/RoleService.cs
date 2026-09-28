@@ -1,3 +1,4 @@
+using MicroLIMS.Application.Helpers;
 using MicroLIMS.Shared.Exceptions;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
@@ -54,7 +55,10 @@ public class RoleService
     // role-string compatibility. Pick the least-privileged bucket that
     // still makes sense for the role's intended use; it is not the same
     // thing as the role's actual (permission-based) access.
-    public async Task<RoleDetailDto> CreateAsync(string name, string? description, RoleType baseType)
+    public Task<RoleDetailDto> CreateAsync(string name, string? description, RoleType baseType) =>
+        UnitOfWork.RunAsync(_db, () => CreateCoreAsync(name, description, baseType));
+
+    private async Task<RoleDetailDto> CreateCoreAsync(string name, string? description, RoleType baseType)
     {
         if (string.IsNullOrWhiteSpace(name))
             throw new InvalidOperationException("Role name is required.");
@@ -113,7 +117,10 @@ public class RoleService
         await _db.SaveChangesAsync(); // automatic audit capture logs Action="Delete" for both the Role row and each removed RolePermission row
     }
 
-    public async Task<RoleDetailDto> UpdatePermissionsAsync(int id, List<string> permissionCodes, int actingUserId)
+    public Task<RoleDetailDto> UpdatePermissionsAsync(int id, List<string> permissionCodes, int actingUserId) =>
+        UnitOfWork.RunAsync(_db, () => UpdatePermissionsCoreAsync(id, permissionCodes, actingUserId));
+
+    private async Task<RoleDetailDto> UpdatePermissionsCoreAsync(int id, List<string> permissionCodes, int actingUserId)
     {
         var role = await _db.Roles.FirstOrDefaultAsync(r => r.Id == id)
             ?? throw new NotFoundException($"Role {id} not found.");

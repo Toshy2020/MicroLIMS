@@ -1,3 +1,4 @@
+using MicroLIMS.Application.Helpers;
 using System.Security.Cryptography;
 using System.Text;
 using Microsoft.EntityFrameworkCore;
@@ -35,7 +36,16 @@ public class DocumentFileService : IDocumentFileService
         _authService = authService;
     }
 
-    public async Task<RevisionFileDto> UploadRevisionFileAsync(
+    public Task<RevisionFileDto> UploadRevisionFileAsync(
+        int revisionId,
+        FileRole fileRole,
+        string originalFileName,
+        string declaredContentType,
+        byte[] content,
+        int userId) =>
+        UnitOfWork.RunAsync(_db, () => UploadRevisionFileCoreAsync(revisionId, fileRole, originalFileName, declaredContentType, content, userId));
+
+    private async Task<RevisionFileDto> UploadRevisionFileCoreAsync(
         int revisionId,
         FileRole fileRole,
         string originalFileName,

@@ -1,3 +1,4 @@
+using MicroLIMS.Application.Helpers;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.DTOs.DocumentControl;
 using MicroLIMS.Application.Interfaces;
@@ -48,7 +49,10 @@ public class DocumentConfigurationService : IDocumentConfigurationService
             .ToListAsync();
     }
 
-    public async Task<DocumentTypeDto> CreateDocumentTypeAsync(CreateDocumentTypeRequest request, int userId)
+    public Task<DocumentTypeDto> CreateDocumentTypeAsync(CreateDocumentTypeRequest request, int userId) =>
+        UnitOfWork.RunAsync(_db, () => CreateDocumentTypeCoreAsync(request, userId));
+
+    private async Task<DocumentTypeDto> CreateDocumentTypeCoreAsync(CreateDocumentTypeRequest request, int userId)
     {
         await EnsureAdminAsync(userId);
 
@@ -94,7 +98,10 @@ public class DocumentConfigurationService : IDocumentConfigurationService
         return new DocumentTypeDto(docType.Id, docType.Code, docType.Name, docType.DefaultReviewCycleMonths, docType.IsActive);
     }
 
-    public async Task<DocumentTypeDto> UpdateDocumentTypeAsync(int id, UpdateDocumentTypeRequest request, int userId)
+    public Task<DocumentTypeDto> UpdateDocumentTypeAsync(int id, UpdateDocumentTypeRequest request, int userId) =>
+        UnitOfWork.RunAsync(_db, () => UpdateDocumentTypeCoreAsync(id, request, userId));
+
+    private async Task<DocumentTypeDto> UpdateDocumentTypeCoreAsync(int id, UpdateDocumentTypeRequest request, int userId)
     {
         await EnsureAdminAsync(userId);
 
@@ -166,7 +173,10 @@ public class DocumentConfigurationService : IDocumentConfigurationService
             .ToListAsync();
     }
 
-    public async Task<DocumentDepartmentDto> CreateDepartmentAsync(CreateDocumentDepartmentRequest request, int userId)
+    public Task<DocumentDepartmentDto> CreateDepartmentAsync(CreateDocumentDepartmentRequest request, int userId) =>
+        UnitOfWork.RunAsync(_db, () => CreateDepartmentCoreAsync(request, userId));
+
+    private async Task<DocumentDepartmentDto> CreateDepartmentCoreAsync(CreateDocumentDepartmentRequest request, int userId)
     {
         await EnsureAdminAsync(userId);
 
@@ -207,7 +217,10 @@ public class DocumentConfigurationService : IDocumentConfigurationService
         return new DocumentDepartmentDto(dept.Id, dept.Code, dept.Name, dept.IsActive, new List<DocumentSectionDto>());
     }
 
-    public async Task<DocumentDepartmentDto> UpdateDepartmentAsync(int id, UpdateDocumentDepartmentRequest request, int userId)
+    public Task<DocumentDepartmentDto> UpdateDepartmentAsync(int id, UpdateDocumentDepartmentRequest request, int userId) =>
+        UnitOfWork.RunAsync(_db, () => UpdateDepartmentCoreAsync(id, request, userId));
+
+    private async Task<DocumentDepartmentDto> UpdateDepartmentCoreAsync(int id, UpdateDocumentDepartmentRequest request, int userId)
     {
         await EnsureAdminAsync(userId);
 
@@ -271,7 +284,10 @@ public class DocumentConfigurationService : IDocumentConfigurationService
             .ToListAsync();
     }
 
-    public async Task<DocumentSectionDto> CreateSectionAsync(CreateDocumentSectionRequest request, int userId)
+    public Task<DocumentSectionDto> CreateSectionAsync(CreateDocumentSectionRequest request, int userId) =>
+        UnitOfWork.RunAsync(_db, () => CreateSectionCoreAsync(request, userId));
+
+    private async Task<DocumentSectionDto> CreateSectionCoreAsync(CreateDocumentSectionRequest request, int userId)
     {
         await EnsureAdminAsync(userId);
 
@@ -312,7 +328,10 @@ public class DocumentConfigurationService : IDocumentConfigurationService
         return new DocumentSectionDto(section.Id, section.DepartmentId, dept.Name, section.Name, section.IsActive);
     }
 
-    public async Task<DocumentSectionDto> UpdateSectionAsync(int id, UpdateDocumentSectionRequest request, int userId)
+    public Task<DocumentSectionDto> UpdateSectionAsync(int id, UpdateDocumentSectionRequest request, int userId) =>
+        UnitOfWork.RunAsync(_db, () => UpdateSectionCoreAsync(id, request, userId));
+
+    private async Task<DocumentSectionDto> UpdateSectionCoreAsync(int id, UpdateDocumentSectionRequest request, int userId)
     {
         await EnsureAdminAsync(userId);
 
@@ -381,7 +400,10 @@ public class DocumentConfigurationService : IDocumentConfigurationService
         );
     }
 
-    public async Task<DocumentNumberingConfigDto> UpdateNumberingConfigAsync(UpdateDocumentNumberingConfigRequest request, int userId)
+    public Task<DocumentNumberingConfigDto> UpdateNumberingConfigAsync(UpdateDocumentNumberingConfigRequest request, int userId) =>
+        UnitOfWork.RunAsync(_db, () => UpdateNumberingConfigCoreAsync(request, userId));
+
+    private async Task<DocumentNumberingConfigDto> UpdateNumberingConfigCoreAsync(UpdateDocumentNumberingConfigRequest request, int userId)
     {
         await EnsureAdminAsync(userId);
 
@@ -493,7 +515,10 @@ public class DocumentConfigurationService : IDocumentConfigurationService
             .ToListAsync();
     }
 
-    public async Task<ConfigurationSettingDto> UpdateConfigurationSettingAsync(string key, UpdateConfigurationSettingRequest request, int userId)
+    public Task<ConfigurationSettingDto> UpdateConfigurationSettingAsync(string key, UpdateConfigurationSettingRequest request, int userId) =>
+        UnitOfWork.RunAsync(_db, () => UpdateConfigurationSettingCoreAsync(key, request, userId));
+
+    private async Task<ConfigurationSettingDto> UpdateConfigurationSettingCoreAsync(string key, UpdateConfigurationSettingRequest request, int userId)
     {
         await EnsureAdminAsync(userId);
 

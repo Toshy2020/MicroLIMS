@@ -1,3 +1,4 @@
+using MicroLIMS.Application.Helpers;
 using MicroLIMS.Domain.Constants;
 using System.Text.RegularExpressions;
 using Microsoft.EntityFrameworkCore;
@@ -50,7 +51,10 @@ public class DocumentRevisionService : IDocumentRevisionService
         return new ProposeNextRevisionResponse(proposed, revisionType, effectiveRev.RevisionNumber);
     }
 
-    public async Task<DocumentRevisionDto> CreateRevisionFromEffectiveAsync(int documentMasterId, CreateRevisionRequest request, int userId)
+    public Task<DocumentRevisionDto> CreateRevisionFromEffectiveAsync(int documentMasterId, CreateRevisionRequest request, int userId) =>
+        UnitOfWork.RunAsync(_db, () => CreateRevisionFromEffectiveCoreAsync(documentMasterId, request, userId));
+
+    private async Task<DocumentRevisionDto> CreateRevisionFromEffectiveCoreAsync(int documentMasterId, CreateRevisionRequest request, int userId)
     {
         // 1. Authorization: Document Owner, assigned Author, or Document Controller
         var canEdit = await _authService.CanEditDraftMetadataAsync(documentMasterId, userId);
@@ -197,7 +201,10 @@ public class DocumentRevisionService : IDocumentRevisionService
         return await MapRevisionDtoAsync(revisionId);
     }
 
-    public async Task<RevisionChangeItemDto> AddChangeItemAsync(int revisionId, AddChangeItemRequest request, int userId)
+    public Task<RevisionChangeItemDto> AddChangeItemAsync(int revisionId, AddChangeItemRequest request, int userId) =>
+        UnitOfWork.RunAsync(_db, () => AddChangeItemCoreAsync(revisionId, request, userId));
+
+    private async Task<RevisionChangeItemDto> AddChangeItemCoreAsync(int revisionId, AddChangeItemRequest request, int userId)
     {
         var revision = await _db.DocumentRevisions
             .Include(r => r.DocumentMaster)
@@ -264,7 +271,10 @@ public class DocumentRevisionService : IDocumentRevisionService
         return MapChangeItemDto(item, user?.Username ?? "", user?.FullName ?? "");
     }
 
-    public async Task<RevisionChangeItemDto> UpdateChangeItemAsync(int changeItemId, UpdateChangeItemRequest request, int userId)
+    public Task<RevisionChangeItemDto> UpdateChangeItemAsync(int changeItemId, UpdateChangeItemRequest request, int userId) =>
+        UnitOfWork.RunAsync(_db, () => UpdateChangeItemCoreAsync(changeItemId, request, userId));
+
+    private async Task<RevisionChangeItemDto> UpdateChangeItemCoreAsync(int changeItemId, UpdateChangeItemRequest request, int userId)
     {
         var item = await _db.RevisionChangeItems
             .Include(c => c.DocumentRevision)
@@ -316,7 +326,10 @@ public class DocumentRevisionService : IDocumentRevisionService
     // voided with a recorded reason and remain retrievable. This previously
     // called _db.RevisionChangeItems.Remove(item), which destroyed the record;
     // the audit event survived but the thing it described did not.
-    public async Task DeactivateChangeItemAsync(int changeItemId, int userId)
+    public Task DeactivateChangeItemAsync(int changeItemId, int userId) =>
+        UnitOfWork.RunAsync(_db, () => DeactivateChangeItemCoreAsync(changeItemId, userId));
+
+    private async Task DeactivateChangeItemCoreAsync(int changeItemId, int userId)
     {
         var item = await _db.RevisionChangeItems
             .Include(c => c.DocumentRevision)
@@ -363,7 +376,10 @@ public class DocumentRevisionService : IDocumentRevisionService
         return items.Select(i => MapChangeItemDto(i, i.CreatedByUser?.Username ?? "", i.CreatedByUser?.FullName ?? "")).ToList();
     }
 
-    public async Task<RevisionChangeItemDto> ConvertFindingToChangeItemAsync(int revisionId, int findingId, ConvertFindingRequest request, int userId)
+    public Task<RevisionChangeItemDto> ConvertFindingToChangeItemAsync(int revisionId, int findingId, ConvertFindingRequest request, int userId) =>
+        UnitOfWork.RunAsync(_db, () => ConvertFindingToChangeItemCoreAsync(revisionId, findingId, request, userId));
+
+    private async Task<RevisionChangeItemDto> ConvertFindingToChangeItemCoreAsync(int revisionId, int findingId, ConvertFindingRequest request, int userId)
     {
         var revision = await _db.DocumentRevisions
             .Include(r => r.DocumentMaster)
@@ -418,7 +434,10 @@ public class DocumentRevisionService : IDocumentRevisionService
         return MapChangeItemDto(item, user?.Username ?? "", user?.FullName ?? "");
     }
 
-    public async Task<RevisionImpactAssessmentDto> SaveImpactAssessmentAsync(int revisionId, SaveImpactAssessmentRequest request, int userId)
+    public Task<RevisionImpactAssessmentDto> SaveImpactAssessmentAsync(int revisionId, SaveImpactAssessmentRequest request, int userId) =>
+        UnitOfWork.RunAsync(_db, () => SaveImpactAssessmentCoreAsync(revisionId, request, userId));
+
+    private async Task<RevisionImpactAssessmentDto> SaveImpactAssessmentCoreAsync(int revisionId, SaveImpactAssessmentRequest request, int userId)
     {
         var revision = await _db.DocumentRevisions
             .Include(r => r.DocumentMaster)

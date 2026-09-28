@@ -1,3 +1,4 @@
+using MicroLIMS.Application.Helpers;
 using MicroLIMS.Shared.Exceptions;
 using System.Text.RegularExpressions;
 using Microsoft.EntityFrameworkCore;
@@ -101,7 +102,11 @@ public class MediaProductService
         return product;
     }
 
-    public async Task<MediaProduct> ChangeCodeAsync(
+    public Task<MediaProduct> ChangeCodeAsync(
+        int id, string newCode, string reason, string password, int userId, string? ipAddress) =>
+        UnitOfWork.RunAsync(_db, () => ChangeCodeCoreAsync(id, newCode, reason, password, userId, ipAddress));
+
+    private async Task<MediaProduct> ChangeCodeCoreAsync(
         int id, string newCode, string reason, string password, int userId, string? ipAddress)
     {
         if (string.IsNullOrWhiteSpace(reason))

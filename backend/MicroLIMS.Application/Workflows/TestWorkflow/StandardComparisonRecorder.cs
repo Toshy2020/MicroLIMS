@@ -19,7 +19,11 @@ public sealed class StandardComparisonRecorder : TestWorkflowSupport
 {
     public StandardComparisonRecorder(TestWorkflowDependencies deps) : base(deps) { }
 
-    public async Task<TestWorkflowResult> RecordStandardComparisonResultAsync(
+    public Task<TestWorkflowResult> RecordStandardComparisonResultAsync(
+        int testOrderId, StandardComparisonPayload payload, int userId, string? ipAddress = null) =>
+        UnitOfWork.RunAsync(_db, () => RecordStandardComparisonResultCoreAsync(testOrderId, payload, userId, ipAddress));
+
+    private async Task<TestWorkflowResult> RecordStandardComparisonResultCoreAsync(
         int testOrderId, StandardComparisonPayload payload, int userId, string? ipAddress = null)
     {
         if (payload.Preparations == null || payload.Preparations.Count == 0)

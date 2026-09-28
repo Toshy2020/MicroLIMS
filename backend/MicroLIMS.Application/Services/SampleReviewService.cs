@@ -1,3 +1,4 @@
+using MicroLIMS.Application.Helpers;
 using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Interfaces;
@@ -89,7 +90,10 @@ public class SampleReviewService
         SampleSectionRollup.Apply(sample);
     }
 
-    public async Task CompleteReviewAsync(int sampleId, int reviewerUserId, string password, string? comment, string? ipAddress, int? sectionId = null)
+    public Task CompleteReviewAsync(int sampleId, int reviewerUserId, string password, string? comment, string? ipAddress, int? sectionId = null) =>
+        UnitOfWork.RunAsync(_db, () => CompleteReviewCoreAsync(sampleId, reviewerUserId, password, comment, ipAddress, sectionId));
+
+    private async Task CompleteReviewCoreAsync(int sampleId, int reviewerUserId, string password, string? comment, string? ipAddress, int? sectionId = null)
     {
         var sample = await LoadAsync(sampleId)
             ?? throw new NotFoundException($"Sample {sampleId} not found.");

@@ -1,3 +1,4 @@
+using MicroLIMS.Application.Helpers;
 using System.Security.Cryptography;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -269,7 +270,13 @@ public class DiscussionService
         );
     }
 
-    public async Task<DiscussionPostDetailDto> CreatePostAsync(
+    public Task<DiscussionPostDetailDto> CreatePostAsync(
+        CreateDiscussionPostRequest request,
+        List<(string FileName, string ContentType, byte[] Data)>? attachments,
+        int authorUserId) =>
+        UnitOfWork.RunAsync(_db, () => CreatePostCoreAsync(request, attachments, authorUserId));
+
+    private async Task<DiscussionPostDetailDto> CreatePostCoreAsync(
         CreateDiscussionPostRequest request,
         List<(string FileName, string ContentType, byte[] Data)>? attachments,
         int authorUserId)
@@ -332,7 +339,14 @@ public class DiscussionService
         return await GetPostByIdAsync(post.Id);
     }
 
-    public async Task<DiscussionPostDetailDto> UpdatePostAsync(
+    public Task<DiscussionPostDetailDto> UpdatePostAsync(
+        int id,
+        UpdateDiscussionPostRequest request,
+        int actingUserId,
+        bool canEditAny) =>
+        UnitOfWork.RunAsync(_db, () => UpdatePostCoreAsync(id, request, actingUserId, canEditAny));
+
+    private async Task<DiscussionPostDetailDto> UpdatePostCoreAsync(
         int id,
         UpdateDiscussionPostRequest request,
         int actingUserId,
@@ -451,7 +465,10 @@ public class DiscussionService
 
     // ---- Comments ----
 
-    public async Task<DiscussionCommentDto> AddCommentAsync(int postId, CreateDiscussionCommentRequest request, int authorUserId)
+    public Task<DiscussionCommentDto> AddCommentAsync(int postId, CreateDiscussionCommentRequest request, int authorUserId) =>
+        UnitOfWork.RunAsync(_db, () => AddCommentCoreAsync(postId, request, authorUserId));
+
+    private async Task<DiscussionCommentDto> AddCommentCoreAsync(int postId, CreateDiscussionCommentRequest request, int authorUserId)
     {
         if (string.IsNullOrWhiteSpace(request.Content))
             throw new InvalidOperationException("Comment content cannot be empty.");

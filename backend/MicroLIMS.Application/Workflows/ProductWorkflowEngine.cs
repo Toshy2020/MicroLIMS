@@ -32,9 +32,11 @@ public class ProductWorkflowEngine : IProductWorkflowEngine
 {
     private readonly IMicroLimsDbContext _db;
     private readonly Application.Services.ReferenceNumberGenerator _refNumbers;
+    private readonly TimeProvider _time;
 
-    public ProductWorkflowEngine(IMicroLimsDbContext db, Application.Services.ReferenceNumberGenerator refNumbers)
+    public ProductWorkflowEngine(IMicroLimsDbContext db, Application.Services.ReferenceNumberGenerator refNumbers, TimeProvider? timeProvider = null)
     {
+        _time = timeProvider ?? TimeProvider.System;
         _db = db;
         _refNumbers = refNumbers;
     }
@@ -170,7 +172,7 @@ public class ProductWorkflowEngine : IProductWorkflowEngine
                     ToStep = order.CurrentStep,
                     Note = $"Transition refused: Test preparation not confirmed for sample {sample.ReferenceNumber}.",
                     PerformedByUserId = performedByUserId,
-                    Timestamp = DateTime.UtcNow
+                    Timestamp = _time.GetUtcNow().UtcDateTime
                 });
 
                 await _db.SaveChangesAsync();

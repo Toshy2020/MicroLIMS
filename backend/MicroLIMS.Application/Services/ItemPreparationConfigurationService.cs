@@ -30,9 +30,11 @@ public class ItemPreparationConfigurationService
 {
     private readonly IMicroLimsDbContext _db;
     private readonly PreparationParameterValidator _validator;
+    private readonly TimeProvider _time;
 
-    public ItemPreparationConfigurationService(IMicroLimsDbContext db, PreparationParameterValidator validator)
+    public ItemPreparationConfigurationService(IMicroLimsDbContext db, PreparationParameterValidator validator, TimeProvider? timeProvider = null)
     {
+        _time = timeProvider ?? TimeProvider.System;
         _db = db;
         _validator = validator;
     }
@@ -89,7 +91,7 @@ public class ItemPreparationConfigurationService
 
         config.ApprovalStatus = ApprovalGateStatus.Approved;
         config.ApprovedByUserId = userId;
-        config.ApprovedAt = DateTime.UtcNow;
+        config.ApprovedAt = _time.GetUtcNow().UtcDateTime;
 
         await _db.SaveChangesAsync();
         return (await GetByItemIdAsync(itemId))!;

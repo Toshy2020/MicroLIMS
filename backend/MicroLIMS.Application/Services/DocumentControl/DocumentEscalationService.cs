@@ -21,12 +21,15 @@ public class DocumentEscalationService : IDocumentEscalationService
     private readonly ILogger<DocumentEscalationService> _logger;
 
     public const string DefaultProcessName = "DocumentEffectiveDateWorker";
+    private readonly TimeProvider _time;
 
     public DocumentEscalationService(
         IMicroLimsDbContext db,
         IAuditEventService audit,
-        ILogger<DocumentEscalationService> logger)
+        ILogger<DocumentEscalationService> logger,
+        TimeProvider? timeProvider = null)
     {
+        _time = timeProvider ?? TimeProvider.System;
         _db = db;
         _audit = audit;
         _logger = logger;
@@ -37,7 +40,7 @@ public class DocumentEscalationService : IDocumentEscalationService
         string processName = DefaultProcessName,
         CancellationToken cancellationToken = default)
     {
-        var nowUtc = utcNowOverride ?? DateTime.UtcNow;
+        var nowUtc = utcNowOverride ?? _time.GetUtcNow().UtcDateTime;
         var createdIds = new List<int>();
         var errors = new List<string>();
 
@@ -282,7 +285,7 @@ public class DocumentEscalationService : IDocumentEscalationService
         DateTime? utcNowOverride = null,
         CancellationToken cancellationToken = default)
     {
-        var nowUtc = utcNowOverride ?? DateTime.UtcNow;
+        var nowUtc = utcNowOverride ?? _time.GetUtcNow().UtcDateTime;
 
         var overdueAssignments = await _db.DocumentTrainingAssignments
             .Include(a => a.DocumentMaster)
@@ -366,7 +369,7 @@ public class DocumentEscalationService : IDocumentEscalationService
             return MapToSummary(record);
         }
 
-        var nowUtc = utcNowOverride ?? DateTime.UtcNow;
+        var nowUtc = utcNowOverride ?? _time.GetUtcNow().UtcDateTime;
 
         record.Status = DocumentEscalationStatus.Resolved;
         record.ResolvedAtUtc = nowUtc;

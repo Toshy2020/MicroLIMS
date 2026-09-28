@@ -24,11 +24,14 @@ public class CryovialService
     private readonly ReviewGateService _reviewGate;
     private readonly CryovialSummaryService _summary;
     private readonly RecordArchiveService _archive;
+    private readonly TimeProvider _time;
 
     public CryovialService(IMicroLimsDbContext db, MaterialService materialService,
         SegregationOfDutiesGuard segregationOfDuties, ReviewGateService reviewGate,
-        CryovialSummaryService summary, RecordArchiveService archive)
+        CryovialSummaryService summary, RecordArchiveService archive,
+        TimeProvider? timeProvider = null)
     {
+        _time = timeProvider ?? TimeProvider.System;
         _db = db;
         _materialService = materialService;
         _segregationOfDuties = segregationOfDuties;
@@ -81,7 +84,7 @@ public class CryovialService
 
         var cryovial = new Cryovial
         {
-            Code = await PreparedLotNumber.NextAsync(_db.Cryovials.Select(c => c.Code), codePrefix),
+            Code = await PreparedLotNumber.NextAsync(_db.Cryovials.Select(c => c.Code), codePrefix, _time.GetUtcNow().UtcDateTime),
             MaterialId = material.Id,
             OrganismId = material.OrganismId.Value,
             OrganismNameSnapshot = material.Organism.ScientificName,
@@ -113,7 +116,7 @@ public class CryovialService
         // clash in a row is reported rather than retried again.
         if (!await _db.TrySaveChangesAsync(UniqueIndexNames.CryovialCode))
         {
-            cryovial.Code = await PreparedLotNumber.NextAsync(_db.Cryovials.Select(c => c.Code), codePrefix);
+            cryovial.Code = await PreparedLotNumber.NextAsync(_db.Cryovials.Select(c => c.Code), codePrefix, _time.GetUtcNow().UtcDateTime);
             if (!await _db.TrySaveChangesAsync(UniqueIndexNames.CryovialCode))
                 throw new InvalidOperationException(
                     $"Cryovial code {cryovial.Code} was taken by another preparation at the same moment. Nothing was saved - submit the preparation again.");
@@ -151,7 +154,7 @@ public class CryovialService
 
         cryovial.ApprovalStatus = approved ? ApprovalGateStatus.Approved : ApprovalGateStatus.Rejected;
         cryovial.ApprovedByUserId = userId;
-        cryovial.ApprovedAt = DateTime.UtcNow;
+        cryovial.ApprovedAt = _time.GetUtcNow().UtcDateTime;
         if (!approved) cryovial.IsDestroyed = true;
 
         await _db.SaveChangesAsync();
@@ -178,7 +181,7 @@ public class CryovialService
             throw new InvalidOperationException($"Cryovial batch {cryovial.Code} is not approved - cannot thaw a vial.");
         if (cryovial.IsDestroyed)
             throw new InvalidOperationException($"Cryovial batch {cryovial.Code} has been destroyed and cannot be used.");
-        if (cryovial.ExpiryDate.Date < DateTime.UtcNow.Date)
+        if (cryovial.ExpiryDate.Date < _time.GetUtcNow().UtcDateTime.Date)
             throw new InvalidOperationException($"Cryovial batch {cryovial.Code} is expired and cannot be used.");
         if (cryovial.VialsRemaining <= 0)
             throw new InvalidOperationException($"No vials remaining in batch {cryovial.Code}.");

@@ -16,14 +16,17 @@ public class PeriodicReviewService : IPeriodicReviewService
     private readonly IDocumentAuthorizationService _auth;
     private readonly IDocumentApprovalService _approvalService;
     private readonly ILogger<PeriodicReviewService> _logger;
+    private readonly TimeProvider _time;
 
     public PeriodicReviewService(
         IMicroLimsDbContext db,
         IAuditEventService audit,
         IDocumentAuthorizationService auth,
         IDocumentApprovalService approvalService,
-        ILogger<PeriodicReviewService> logger)
+        ILogger<PeriodicReviewService> logger,
+        TimeProvider? timeProvider = null)
     {
+        _time = timeProvider ?? TimeProvider.System;
         _db = db;
         _audit = audit;
         _auth = auth;
@@ -46,7 +49,7 @@ public class PeriodicReviewService : IPeriodicReviewService
 
     public async Task<PeriodicReviewGenerationResultDto> GenerateDueReviewTasksAsync(DateTime? utcNowOverride = null, CancellationToken cancellationToken = default)
     {
-        var now = utcNowOverride ?? DateTime.UtcNow;
+        var now = utcNowOverride ?? _time.GetUtcNow().UtcDateTime;
         var createdTaskIds = new List<int>();
         var errors = new List<string>();
         int evaluatedCount = 0;
@@ -391,7 +394,7 @@ public class PeriodicReviewService : IPeriodicReviewService
             NoteText = request.NoteText.Trim(),
             Status = PeriodicReviewFindingStatus.Open,
             CreatedByUserId = userId,
-            CreatedAt = DateTime.UtcNow
+            CreatedAt = _time.GetUtcNow().UtcDateTime
         };
 
         // Transition task status to InProgress if currently Pending
@@ -549,7 +552,7 @@ public class PeriodicReviewService : IPeriodicReviewService
         if (string.IsNullOrWhiteSpace(request.ReviewSummary) || request.ReviewSummary.Trim().Length < 10)
             throw new ArgumentException("A comprehensive review summary of at least 10 characters is mandatory.", nameof(request.ReviewSummary));
 
-        var now = DateTime.UtcNow;
+        var now = _time.GetUtcNow().UtcDateTime;
         var rev = task.DocumentRevision;
         var master = task.DocumentMaster;
         var cycleMonths = task.ReviewCycleMonths > 0 ? task.ReviewCycleMonths : (rev.ReviewCycleMonths ?? 24);
@@ -701,9 +704,9 @@ public class PeriodicReviewService : IPeriodicReviewService
         return tasks.Select(MapToTaskDto).ToList();
     }
 
-    private static PeriodicReviewTaskDto MapToTaskDto(PeriodicReviewTask t)
+    private PeriodicReviewTaskDto MapToTaskDto(PeriodicReviewTask t)
     {
-        var now = DateTime.UtcNow;
+        var now = _time.GetUtcNow().UtcDateTime;
         var isOverdue = t.Status != PeriodicReviewTaskStatus.Completed &&
                         t.Status != PeriodicReviewTaskStatus.Cancelled &&
                         t.ScheduledDueDate < now;

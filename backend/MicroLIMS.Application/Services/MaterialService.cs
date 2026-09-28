@@ -31,9 +31,11 @@ public class MaterialService
 {
     private readonly IMicroLimsDbContext _db;
     private readonly IUserSectionScopeService _scope;
+    private readonly TimeProvider _time;
 
-    public MaterialService(IMicroLimsDbContext db, IUserSectionScopeService scope)
+    public MaterialService(IMicroLimsDbContext db, IUserSectionScopeService scope, TimeProvider? timeProvider = null)
     {
+        _time = timeProvider ?? TimeProvider.System;
         _db = db;
         _scope = scope;
     }
@@ -136,9 +138,9 @@ public class MaterialService
             MinimumStockLevel = r.MinimumStockLevel,
             Purity = r.Purity,
             CreatedByUserId = currentUserId,
-            CreatedAt = DateTime.UtcNow,
+            CreatedAt = _time.GetUtcNow().UtcDateTime,
             LastModifiedByUserId = currentUserId,
-            LastModifiedAt = DateTime.UtcNow
+            LastModifiedAt = _time.GetUtcNow().UtcDateTime
         };
         _db.Materials.Add(entity);
         await _db.SaveChangesAsync();
@@ -217,7 +219,7 @@ public class MaterialService
         entity.MinimumStockLevel = r.MinimumStockLevel;
         entity.Purity = r.Purity;
         entity.LastModifiedByUserId = currentUserId;
-        entity.LastModifiedAt = DateTime.UtcNow;
+        entity.LastModifiedAt = _time.GetUtcNow().UtcDateTime;
 
         await _db.SaveChangesAsync();
     }
@@ -279,7 +281,7 @@ public class MaterialService
         }
         query = query.Where(m => m.MaterialType == MaterialType.ReferenceStandard);
 
-        var today = DateTime.UtcNow.Date;
+        var today = _time.GetUtcNow().UtcDateTime.Date;
         query = query.Where(m => m.QuantityRemaining > 0 && (!m.ExpiryDate.HasValue || m.ExpiryDate.Value.Date >= today));
 
         return await query.OrderBy(m => m.MaterialName).ThenBy(m => m.BatchNumber).ToListAsync();
@@ -307,7 +309,7 @@ public class MaterialService
         if (material.MaterialType != expectedType)
             throw new InvalidOperationException($"Material {material.MaterialName} is not a {expectedType} item.");
 
-        if (material.ExpiryDate.HasValue && material.ExpiryDate.Value.Date < DateTime.UtcNow.Date)
+        if (material.ExpiryDate.HasValue && material.ExpiryDate.Value.Date < _time.GetUtcNow().UtcDateTime.Date)
             throw new InvalidOperationException($"Material {material.MaterialName} (batch {material.BatchNumber}) is expired and cannot be used.");
 
         // COA requirement: DehydratedMedia, LyophilizedMicroorganism, and Supplement
@@ -331,7 +333,7 @@ public class MaterialService
 
         material.QuantityRemaining -= quantityUsed;
         material.LastModifiedByUserId = currentUserId;
-        material.LastModifiedAt = DateTime.UtcNow;
+        material.LastModifiedAt = _time.GetUtcNow().UtcDateTime;
         // Not saved here - the caller (e.g. MediaPreparationService.PrepareAsync)
         // saves this change in the same SaveChangesAsync as the new Media row,
         // so the consumption and the thing that consumed it commit atomically.

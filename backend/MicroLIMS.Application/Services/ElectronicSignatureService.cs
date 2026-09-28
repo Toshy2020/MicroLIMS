@@ -21,15 +21,17 @@ public class ElectronicSignatureService : IElectronicSignatureService
     private const string ThrottledAction = "SignatureThrottled";
 
     private readonly IMicroLimsDbContext _db;
+    private readonly TimeProvider _time;
 
-    public ElectronicSignatureService(IMicroLimsDbContext db)
+    public ElectronicSignatureService(IMicroLimsDbContext db, TimeProvider? timeProvider = null)
     {
+        _time = timeProvider ?? TimeProvider.System;
         _db = db;
     }
 
     public async Task<ElectronicSignature> SignAsync(int userId, string password, SignatureMeaning meaning, string entityType, int entityId, string? comment, string? ipAddress)
     {
-        var windowStart = DateTime.UtcNow - FailedAttemptWindow;
+        var windowStart = _time.GetUtcNow().UtcDateTime - FailedAttemptWindow;
         var recentFailures = await _db.AuditLogs.CountAsync(a =>
             a.EntityName == AuditEntityName && a.Action == FailedAction
             && a.UserId == userId && a.Timestamp >= windowStart);

@@ -24,11 +24,14 @@ public class SampleApprovalService
     private readonly ResultProjectionService _resultProjection;
     private readonly ReferenceNumberGenerator _refNumbers;
     private readonly IUserSectionScopeService _scope;
+    private readonly TimeProvider _time;
 
     public SampleApprovalService(IMicroLimsDbContext db, ReviewGateService reviewGate,
         SampleSummaryService summary, RecordArchiveService archive, ResultProjectionService resultProjection,
-        ReferenceNumberGenerator refNumbers, IUserSectionScopeService scope)
+        ReferenceNumberGenerator refNumbers, IUserSectionScopeService scope,
+        TimeProvider? timeProvider = null)
     {
+        _time = timeProvider ?? TimeProvider.System;
         _scope = scope;
         _db = db;
         _reviewGate = reviewGate;
@@ -44,7 +47,7 @@ public class SampleApprovalService
     // TestOrders (the caller adds only the tests actually selected for
     // retest). OriginSampleId is the only link back to the sample whose
     // approval decision created it.
-    private static Sample BuildRetestSample(Sample original, string referenceNumber, int causeOfTestingId, int receivedByUserId, string oosGroupCode)
+    private Sample BuildRetestSample(Sample original, string referenceNumber, int causeOfTestingId, int receivedByUserId, string oosGroupCode)
     {
         return new Sample
         {
@@ -66,7 +69,7 @@ public class SampleApprovalService
             MfgDate = original.MfgDate,
             ExpDate = original.ExpDate,
             ReceivedByUserId = receivedByUserId,
-            ReceivedAt = DateTime.UtcNow,
+            ReceivedAt = _time.GetUtcNow().UtcDateTime,
             Status = SampleStatus.Received,
             PreparationStatus = SamplePreparationStatus.NeedsPreparation,
             OriginSampleId = original.Id,
@@ -254,7 +257,7 @@ public class SampleApprovalService
             if (newSampleAnalystOneId == newSampleAnalystTwoId)
                 throw new InvalidOperationException("The two new samples must be assigned to two different analysts.");
 
-            var now = DateTime.UtcNow;
+            var now = _time.GetUtcNow().UtcDateTime;
             newAnalysts = await _db.Users.Include(u => u.Role)
                 .Where(u => (u.Id == newSampleAnalystOneId || u.Id == newSampleAnalystTwoId)
                     && u.IsActive && (u.LockedUntil == null || u.LockedUntil <= now) && u.Role != null && u.Role.Type == RoleType.Analyst)
@@ -299,7 +302,7 @@ public class SampleApprovalService
         {
             case ApprovalDecision.Approve:
             {
-                var now = DateTime.UtcNow;
+                var now = _time.GetUtcNow().UtcDateTime;
                 signoff.Status = SectionSignoffStatus.Approved;
                 signoff.ApprovedByUserId = sectionHeadUserId;
                 signoff.ApprovedAt = now;
@@ -341,7 +344,7 @@ public class SampleApprovalService
                 // Who decided and when - the combined certificate names the
                 // Section Head behind each lab's conclusion, rejections too.
                 signoff.ApprovedByUserId = sectionHeadUserId;
-                signoff.ApprovedAt = DateTime.UtcNow;
+                signoff.ApprovedAt = _time.GetUtcNow().UtcDateTime;
                 sample.ApprovalDecision = ApprovalDecision.Reject;
                 // A rejection is this section's own judgement only - it no
                 // longer closes any other lab still open on the sample.
@@ -576,7 +579,7 @@ public class SampleApprovalService
         // is therefore the only place that records who/when the chain
         // actually resolved, so it's populated for both outcomes here
         // (unlike the direct-Reject branch above, which leaves them null).
-        var now = DateTime.UtcNow;
+        var now = _time.GetUtcNow().UtcDateTime;
         // Every section of the origin without its own sign-off row shares
         // the origin's state; freeze them now so a lab still open on the
         // origin doesn't read as sharing this retest's own outcome.

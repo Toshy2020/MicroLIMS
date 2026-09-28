@@ -112,9 +112,11 @@ public class KpiService
     private static readonly TimeSpan AnalystAssignmentSla = TimeSpan.FromDays(7);
 
     private readonly IMicroLimsDbContext _db;
+    private readonly TimeProvider _time;
 
-    public KpiService(IMicroLimsDbContext db)
+    public KpiService(IMicroLimsDbContext db, TimeProvider? timeProvider = null)
     {
+        _time = timeProvider ?? TimeProvider.System;
         _db = db;
     }
 
@@ -160,11 +162,11 @@ public class KpiService
                 Category = SampleCategory.FinishedProduct,
                 Weight = weight,
                 IsActive = true,
-                EffectiveDate = DateTime.UtcNow,
+                EffectiveDate = _time.GetUtcNow().UtcDateTime,
                 ReasonForChange = reason,
                 ChangedByUserId = userId,
                 ChangedByName = userName,
-                ChangedAt = DateTime.UtcNow
+                ChangedAt = _time.GetUtcNow().UtcDateTime
             };
             _db.WorkloadWeights.Add(existing);
         }
@@ -180,7 +182,7 @@ public class KpiService
                 ReasonForChange = reason,
                 ChangedByUserId = userId,
                 ChangedByName = userName,
-                ChangedAt = DateTime.UtcNow
+                ChangedAt = _time.GetUtcNow().UtcDateTime
             };
             _db.WorkloadWeightHistories.Add(history);
 
@@ -188,7 +190,7 @@ public class KpiService
             existing.ReasonForChange = reason;
             existing.ChangedByUserId = userId;
             existing.ChangedByName = userName;
-            existing.ChangedAt = DateTime.UtcNow;
+            existing.ChangedAt = _time.GetUtcNow().UtcDateTime;
         }
 
         await _db.SaveChangesAsync();
@@ -320,7 +322,7 @@ public class KpiService
         SampleCategory? category = null, string? location = null, string? testCode = null,
         IReadOnlyCollection<int>? sectionIds = null)
     {
-        var cutoff = DateTime.UtcNow.Subtract(ReviewerApprovalDelayThreshold);
+        var cutoff = _time.GetUtcNow().UtcDateTime.Subtract(ReviewerApprovalDelayThreshold);
 
         var orderQuery = _db.TestOrders.Where(SectionReviewQueues.OrderIn(sectionIds))
             .Where(t => t.Status == ApprovalStatus.Pending || t.Status == ApprovalStatus.InProgress);
@@ -337,7 +339,7 @@ public class KpiService
             .ToListAsync();
 
         var avgDelayHours = delayed.Count > 0
-            ? delayed.Average(receivedAt => (DateTime.UtcNow - receivedAt).TotalHours)
+            ? delayed.Average(receivedAt => (_time.GetUtcNow().UtcDateTime - receivedAt).TotalHours)
             : 0;
 
         return new DelayTrackingDto(delayed.Count, Math.Round(avgDelayHours, 1));
@@ -369,7 +371,7 @@ public class KpiService
         SampleCategory? category = null, string? location = null, string? testCode = null,
         IReadOnlyCollection<int>? sectionIds = null)
     {
-        var now = DateTime.UtcNow;
+        var now = _time.GetUtcNow().UtcDateTime;
         var thisMonthStart = new DateTime(now.Year, now.Month, 1, 0, 0, 0, DateTimeKind.Utc);
         var lastMonthStart = thisMonthStart.AddMonths(-1);
 
@@ -535,7 +537,7 @@ public class KpiService
         IReadOnlyCollection<int>? sectionIds = null)
     {
         var windows = await BuildSampleStageWindowsAsync(category, location, testCode, sectionIds);
-        var now = DateTime.UtcNow;
+        var now = _time.GetUtcNow().UtcDateTime;
         int totalAssigned = 0, onTime = 0, overdue = 0;
 
         foreach (var w in windows)
@@ -560,7 +562,7 @@ public class KpiService
         IReadOnlyCollection<int>? sectionIds = null)
     {
         var windows = await BuildSampleStageWindowsAsync(category, location, testCode, sectionIds);
-        var now = DateTime.UtcNow;
+        var now = _time.GetUtcNow().UtcDateTime;
         var byAnalyst = new Dictionary<int, (int Total, int OnTime, int Overdue)>();
 
         foreach (var w in windows)
@@ -589,7 +591,7 @@ public class KpiService
         IReadOnlyCollection<int>? sectionIds = null)
     {
         var windows = await BuildSampleStageWindowsAsync(sectionIds: sectionIds);
-        var now = DateTime.UtcNow;
+        var now = _time.GetUtcNow().UtcDateTime;
 
         return windows
             .Where(w => w.AssignedAt >= fromDate && w.AssignedAt <= toDate && IsAnalystStageOverdue(w, now))
@@ -626,7 +628,7 @@ public class KpiService
         IReadOnlyCollection<int>? sectionIds = null)
     {
         var windows = await BuildSampleStageWindowsAsync(category, location, testCode, sectionIds);
-        var now = DateTime.UtcNow;
+        var now = _time.GetUtcNow().UtcDateTime;
         int total = 0, onTime = 0, overdue = 0;
 
         foreach (var w in windows)
@@ -647,7 +649,7 @@ public class KpiService
         IReadOnlyCollection<int>? sectionIds = null)
     {
         var windows = await BuildSampleStageWindowsAsync(category, location, testCode, sectionIds);
-        var now = DateTime.UtcNow;
+        var now = _time.GetUtcNow().UtcDateTime;
         var byAnalyst = new Dictionary<int, (int Total, int OnTime, int Overdue)>();
 
         foreach (var w in windows)
@@ -727,7 +729,7 @@ public class KpiService
             .Select(w => new { SubmittedAt = w.SubmittedForReviewAt!.Value, Hours = (w.SubmittedForReviewAt!.Value - w.AssignedAt).TotalHours })
             .ToList();
 
-        var now = DateTime.UtcNow;
+        var now = _time.GetUtcNow().UtcDateTime;
         var currentMonthStart = new DateTime(now.Year, now.Month, 1, 0, 0, 0, DateTimeKind.Utc);
 
         var points = new List<MonthlyTatPoint>();

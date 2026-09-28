@@ -14,15 +14,17 @@ public record MediaExpiryDto(int MediaId, string LotNumber, string MediaTypeName
 public class MediaExpiryService
 {
     private readonly IMicroLimsDbContext _db;
+    private readonly TimeProvider _time;
 
-    public MediaExpiryService(IMicroLimsDbContext db)
+    public MediaExpiryService(IMicroLimsDbContext db, TimeProvider? timeProvider = null)
     {
+        _time = timeProvider ?? TimeProvider.System;
         _db = db;
     }
 
     public async Task<List<MediaExpiryDto>> GetExpiringAsync(int withinDays = 7, IReadOnlyCollection<int>? sectionIds = null)
     {
-        var now = DateTime.UtcNow;
+        var now = _time.GetUtcNow().UtcDateTime;
         var horizon = now.AddDays(withinDays);
 
         var lots = await _db.Media

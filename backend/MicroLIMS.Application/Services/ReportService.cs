@@ -17,9 +17,11 @@ public class ReportService : IReportService
 {
     private readonly IPdfGenerator _pdfGenerator;
     private readonly IMicroLimsDbContext _db;
+    private readonly TimeProvider _time;
 
-    public ReportService(IPdfGenerator pdfGenerator, IMicroLimsDbContext db)
+    public ReportService(IPdfGenerator pdfGenerator, IMicroLimsDbContext db, TimeProvider? timeProvider = null)
     {
+        _time = timeProvider ?? TimeProvider.System;
         _pdfGenerator = pdfGenerator;
         _db = db;
     }
@@ -151,7 +153,7 @@ public class ReportService : IReportService
         var report = new Report
         {
             Category = category,
-            Title = $"{category} Report {DateTime.UtcNow:yyyy-MM-dd HH:mm}",
+            Title = $"{category} Report {_time.GetUtcNow().UtcDateTime:yyyy-MM-dd HH:mm}",
             GeneratedByUserId = 0
         };
         _db.Reports.Add(report);

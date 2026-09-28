@@ -23,9 +23,11 @@ public class RecordArchiveService
     private readonly IPdfGenerator _pdfGenerator;
     private readonly IFileStorageService _storage;
     private readonly ILogger<RecordArchiveService> _logger;
+    private readonly TimeProvider _time;
 
-    public RecordArchiveService(IMicroLimsDbContext db, IPdfGenerator pdfGenerator, IFileStorageService storage, ILogger<RecordArchiveService> logger)
+    public RecordArchiveService(IMicroLimsDbContext db, IPdfGenerator pdfGenerator, IFileStorageService storage, ILogger<RecordArchiveService> logger, TimeProvider? timeProvider = null)
     {
+        _time = timeProvider ?? TimeProvider.System;
         _db = db;
         _pdfGenerator = pdfGenerator;
         _storage = storage;
@@ -40,7 +42,7 @@ public class RecordArchiveService
             var bytes = await _pdfGenerator.GenerateReportAsync(document);
 
             var safeId = new string(document.DocumentId.Select(c => char.IsLetterOrDigit(c) ? c : '-').ToArray());
-            var fileName = $"{entityType}_{safeId}_{DateTime.UtcNow:yyyyMMddHHmmss}.pdf";
+            var fileName = $"{entityType}_{safeId}_{_time.GetUtcNow().UtcDateTime:yyyyMMddHHmmss}.pdf";
             var path = await _storage.SaveAsync(fileName, bytes);
 
             var performedByName = await _db.Users

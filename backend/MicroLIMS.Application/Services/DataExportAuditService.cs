@@ -11,9 +11,11 @@ namespace MicroLIMS.Application.Services;
 public class DataExportAuditService
 {
     private readonly IMicroLimsDbContext _db;
+    private readonly TimeProvider _time;
 
-    public DataExportAuditService(IMicroLimsDbContext db)
+    public DataExportAuditService(IMicroLimsDbContext db, TimeProvider? timeProvider = null)
     {
+        _time = timeProvider ?? TimeProvider.System;
         _db = db;
     }
 
@@ -25,7 +27,7 @@ public class DataExportAuditService
         {
             UserId = userId,
             UserName = user?.FullName ?? string.Empty,
-            ExportedAt = DateTime.UtcNow,
+            ExportedAt = _time.GetUtcNow().UtcDateTime,
             FilterJson = filterJson,
             RowCount = rowCount,
             ExportType = exportType

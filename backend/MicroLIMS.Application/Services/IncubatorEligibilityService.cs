@@ -12,9 +12,11 @@ public record EligibleIncubatorDto(int Id, string Name, string Code, decimal? Se
 public class IncubatorEligibilityService
 {
     private readonly IMicroLimsDbContext _db;
+    private readonly TimeProvider _time;
 
-    public IncubatorEligibilityService(IMicroLimsDbContext db)
+    public IncubatorEligibilityService(IMicroLimsDbContext db, TimeProvider? timeProvider = null)
     {
+        _time = timeProvider ?? TimeProvider.System;
         _db = db;
     }
 
@@ -25,7 +27,7 @@ public class IncubatorEligibilityService
             .FirstOrDefaultAsync(m => m.Id == stepMediaId, cancellationToken)
             ?? throw new InvalidOperationException($"Step media {stepMediaId} not found.");
 
-        var now = DateTime.UtcNow;
+        var now = _time.GetUtcNow().UtcDateTime;
 
         return await _db.Equipment
             .Where(e => e.Type == EquipmentType.Incubator

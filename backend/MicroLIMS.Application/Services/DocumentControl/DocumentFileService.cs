@@ -19,13 +19,16 @@ public class DocumentFileService : IDocumentFileService
     private readonly IDocumentAuthorizationService _authService;
 
     private const long MaxFileSizeBytes = 50 * 1024 * 1024; // 50 MB
+    private readonly TimeProvider _time;
 
     public DocumentFileService(
         IMicroLimsDbContext db,
         IFileStorageService storage,
         IAuditEventService auditEventService,
-        IDocumentAuthorizationService authService)
+        IDocumentAuthorizationService authService,
+        TimeProvider? timeProvider = null)
     {
+        _time = timeProvider ?? TimeProvider.System;
         _db = db;
         _storage = storage;
         _auditEventService = auditEventService;
@@ -121,7 +124,7 @@ public class DocumentFileService : IDocumentFileService
 
         var sha256 = Convert.ToHexString(SHA256.HashData(content));
         var safeFileName = Path.GetFileName(originalFileName);
-        var now = DateTime.UtcNow;
+        var now = _time.GetUtcNow().UtcDateTime;
 
         RevisionFile newFile = null!;
         RevisionFile? existingActiveFile = null;

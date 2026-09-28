@@ -753,7 +753,7 @@ public class TestWorkflowEngine : ITestWorkflowEngine
                 long remainingSeconds = 0;
                 if (!activeInc.MinimumDurationOverriddenByUserId.HasValue && activeInc.IncubationEndUtc.HasValue)
                 {
-                    remainingSeconds = Math.Max(0, (long)Math.Ceiling((activeInc.IncubationEndUtc.Value - DateTime.UtcNow).TotalSeconds));
+                    remainingSeconds = Math.Max(0, (long)Math.Ceiling((activeInc.IncubationEndUtc.Value - _clock.UtcNow.UtcDateTime).TotalSeconds));
                 }
 
                 throw new PredecessorStepIncubationActiveException(pred.StepName, remainingSeconds);
@@ -810,7 +810,7 @@ public class TestWorkflowEngine : ITestWorkflowEngine
                 ToStep = currentStep,
                 Note = $"Transition refused: Test preparation not confirmed for sample {sample.ReferenceNumber} (step \"{stepName}\").",
                 PerformedByUserId = userId,
-                Timestamp = DateTime.UtcNow
+                Timestamp = _clock.UtcNow.UtcDateTime
             });
 
             await _db.SaveChangesAsync();
@@ -847,7 +847,7 @@ public class TestWorkflowEngine : ITestWorkflowEngine
                     ToStep = currentStep,
                     Note = $"Transition refused: Preparation not complete - no locations assigned to this test (step \"{stepName}\").",
                     PerformedByUserId = userId,
-                    Timestamp = DateTime.UtcNow
+                    Timestamp = _clock.UtcNow.UtcDateTime
                 });
 
                 await _db.SaveChangesAsync();
@@ -923,7 +923,7 @@ public class TestWorkflowEngine : ITestWorkflowEngine
         if (isSharedTsbStep)
             await RequireSharedTsbSiblingsCanJoinAsync(order, media, incubatorEquipmentId);
 
-        var startedAt = DateTime.UtcNow;
+        var startedAt = _clock.UtcNow.UtcDateTime;
         // Incubation window is locked from Test Master: analyst cannot override.
         // The window is IncubationStartUtc to IncubationEndUtc; the analyst can
         // complete once the minimum duration has elapsed AND the end time has passed.
@@ -1097,7 +1097,7 @@ public class TestWorkflowEngine : ITestWorkflowEngine
                     IncubationId = siblingIncId,
                     IsSharedSessionStep = true,
                     SubmittedByUserId = userId,
-                    SubmittedAtUtc = DateTime.UtcNow
+                    SubmittedAtUtc = _clock.UtcNow.UtcDateTime
                 });
 
                 if (sibling.Order.CurrentStep == WorkflowStep.Waiting)
@@ -1114,7 +1114,7 @@ public class TestWorkflowEngine : ITestWorkflowEngine
                         ToStep = sibling.Order.CurrentStep,
                         Note = $"Broth enrichment linked to shared TSB (propagated from Test Order #{testOrderId}). Lot: {mediaLotNumber}, Incubator: {incubatorCode}.",
                         PerformedByUserId = userId,
-                        Timestamp = DateTime.UtcNow
+                        Timestamp = _clock.UtcNow.UtcDateTime
                     });
                 }
             }
@@ -1231,16 +1231,16 @@ public class TestWorkflowEngine : ITestWorkflowEngine
         var stage1Medium = await ResolveSelectedStepMediumAsync(step.Id, openIncubation.MediaId!.Value);
         var stage1Window = IncubationWindowResolver.Require(stage1Medium, stepName);
         var stage1MinReadyAt = stage1Window.MinReadyAt(openIncubation.IncubationStartUtc!.Value);
-        if (DateTime.UtcNow < stage1MinReadyAt && !openIncubation.MinimumDurationOverriddenByUserId.HasValue)
+        if (_clock.UtcNow.UtcDateTime < stage1MinReadyAt && !openIncubation.MinimumDurationOverriddenByUserId.HasValue)
             throw new WorkflowStepException(WorkflowErrorCodes.IncubationStage1NotComplete,
                 $"Stage 1 incubation for step \"{stepName}\" requires at least {stage1Window.MinHours} hours of incubation - not ready until {stage1MinReadyAt:yyyy-MM-dd HH:mm} UTC.",
-                Math.Max(0, (long)Math.Ceiling((stage1MinReadyAt - DateTime.UtcNow).TotalSeconds)));
+                Math.Max(0, (long)Math.Ceiling((stage1MinReadyAt - _clock.UtcNow.UtcDateTime).TotalSeconds)));
 
         var stage2Config = await _db.TestWorkflowStepIncubationStages
             .FirstOrDefaultAsync(s => s.TestWorkflowStepId == step.Id && s.StageNumber == 2)
             ?? throw new InvalidOperationException($"Step \"{stepName}\" has no stage 2 configuration.");
 
-        var startedAt = DateTime.UtcNow;
+        var startedAt = _clock.UtcNow.UtcDateTime;
         if (startedAt < openIncubation.StartedAt)
             throw new InvalidOperationException($"Stage 2 start time ({startedAt:yyyy-MM-dd HH:mm} UTC) cannot precede Stage 1 start time ({openIncubation.StartedAt:yyyy-MM-dd HH:mm} UTC).");
 
@@ -1343,7 +1343,7 @@ public class TestWorkflowEngine : ITestWorkflowEngine
                 throw new InvalidOperationException("Unrecognized result payload.");
         }
 
-        openIncubation.CompletedAt = DateTime.UtcNow;
+        openIncubation.CompletedAt = _clock.UtcNow.UtcDateTime;
         openIncubation.CompletedByUserId = userId;
         openIncubation.Outcome = outcomeSummary;
         await _db.SaveChangesAsync();
@@ -1430,12 +1430,12 @@ public class TestWorkflowEngine : ITestWorkflowEngine
         return (openIncubation, step, stepMedium);
     }
 
-    private static void RequireMinimumDurationElapsed(Incubation incubation, TestWorkflowStepMedia stepMedium)
+    private void RequireMinimumDurationElapsed(Incubation incubation, TestWorkflowStepMedia stepMedium)
     {
         var window = IncubationWindowResolver.Require(stepMedium);
         if (incubation.MinimumDurationOverriddenByUserId.HasValue) return;
         var minReadyAt = window.MinReadyAt(incubation.StartedAt);
-        if (DateTime.UtcNow < minReadyAt)
+        if (_clock.UtcNow.UtcDateTime < minReadyAt)
             throw new InvalidOperationException(
                 $"This incubation window needs at least {window.MinHours} hours - not ready until {minReadyAt:yyyy-MM-dd HH:mm} UTC.");
     }
@@ -1444,16 +1444,16 @@ public class TestWorkflowEngine : ITestWorkflowEngine
     // for the medium-derived reversal - it's the transfer window itself,
     // not a property of any medium, and keeps its own independent
     // TestWorkflowStepIncubationStage fields exactly as before.
-    private static void RequireStage2MinimumDurationElapsed(Incubation incubation, TestWorkflowStep step, TestWorkflowStepMedia stepMedium)
+    private void RequireStage2MinimumDurationElapsed(Incubation incubation, TestWorkflowStep step, TestWorkflowStepMedia stepMedium)
     {
         if (incubation.MinimumDurationOverriddenByUserId.HasValue) return;
         var stage2Config = step.IncubationStages.FirstOrDefault(s => s.StageNumber == 2);
         var minHours = stage2Config?.IncubationMinHours ?? stepMedium.IncubationMinHours;
         var startUtc = incubation.IncubationStartUtc ?? incubation.StartedAt;
         var minReadyAt = startUtc.AddHours(minHours);
-        if (DateTime.UtcNow < minReadyAt)
+        if (_clock.UtcNow.UtcDateTime < minReadyAt)
         {
-            var remaining = (long)Math.Ceiling((minReadyAt - DateTime.UtcNow).TotalSeconds);
+            var remaining = (long)Math.Ceiling((minReadyAt - _clock.UtcNow.UtcDateTime).TotalSeconds);
             throw new WorkflowStepException(WorkflowErrorCodes.IncubationNotComplete,
                 $"Stage 2 incubation for step \"{step.StepName}\" requires at least {minHours} hours of incubation - not ready until {minReadyAt:yyyy-MM-dd HH:mm} UTC.",
                 remaining);
@@ -1473,7 +1473,7 @@ public class TestWorkflowEngine : ITestWorkflowEngine
 
         RequireMinimumDurationElapsed(incubation, stepMedium);
 
-        incubation.CompletedAt = DateTime.UtcNow;
+        incubation.CompletedAt = _clock.UtcNow.UtcDateTime;
         incubation.CompletedByUserId = userId;
         await _db.SaveChangesAsync();
         return incubation;
@@ -1492,7 +1492,7 @@ public class TestWorkflowEngine : ITestWorkflowEngine
             ?? throw new InvalidOperationException("No incubation window is currently open.");
 
         incubation.MinimumDurationOverriddenByUserId = userId;
-        incubation.MinimumDurationOverriddenAt = DateTime.UtcNow;
+        incubation.MinimumDurationOverriddenAt = _clock.UtcNow.UtcDateTime;
         await _db.SaveChangesAsync();
         return incubation;
     }
@@ -1562,7 +1562,7 @@ public class TestWorkflowEngine : ITestWorkflowEngine
             location.Status = status;
             var configuredUnit = location.RoomTestConfiguration?.Unit ?? location.MachinePartConfiguration?.Unit;
             location.Unit = !string.IsNullOrWhiteSpace(configuredUnit) ? configuredUnit : DeriveBatchLocationUnit(location);
-            location.EnteredAt = DateTime.UtcNow;
+            location.EnteredAt = _clock.UtcNow.UtcDateTime;
             location.EnteredByUserId = userId;
 
             if (status == "WithinLimits") conformCount++;
@@ -1580,7 +1580,7 @@ public class TestWorkflowEngine : ITestWorkflowEngine
             EnteredByUserId = userId
         });
 
-        openIncubation.CompletedAt = DateTime.UtcNow;
+        openIncubation.CompletedAt = _clock.UtcNow.UtcDateTime;
         openIncubation.CompletedByUserId = userId;
         openIncubation.Outcome = summary;
 
@@ -1667,7 +1667,7 @@ public class TestWorkflowEngine : ITestWorkflowEngine
             location.Status = status;
             var configuredUnit = location.SamplingConfiguration?.Unit;
             location.Unit = !string.IsNullOrWhiteSpace(configuredUnit) ? configuredUnit : DeriveBatchLocationUnit(location);
-            location.EnteredAt = DateTime.UtcNow;
+            location.EnteredAt = _clock.UtcNow.UtcDateTime;
             location.EnteredByUserId = userId;
 
             if (status == "WithinLimits") conformCount++;
@@ -1685,7 +1685,7 @@ public class TestWorkflowEngine : ITestWorkflowEngine
             EnteredByUserId = userId
         });
 
-        openIncubation.CompletedAt = DateTime.UtcNow;
+        openIncubation.CompletedAt = _clock.UtcNow.UtcDateTime;
         openIncubation.CompletedByUserId = userId;
         openIncubation.Outcome = summary;
 
@@ -1736,7 +1736,7 @@ public class TestWorkflowEngine : ITestWorkflowEngine
             var growth = submitted[location.Id].GrowthObserved;
             location.Status = growth ? "Detected" : "Absent";
             location.ReportedResult = location.Status;
-            location.EnteredAt = DateTime.UtcNow;
+            location.EnteredAt = _clock.UtcNow.UtcDateTime;
             location.EnteredByUserId = userId;
             if (growth) detectedCount++;
         }
@@ -1753,7 +1753,7 @@ public class TestWorkflowEngine : ITestWorkflowEngine
             EnteredByUserId = userId
         });
 
-        openIncubation.CompletedAt = DateTime.UtcNow;
+        openIncubation.CompletedAt = _clock.UtcNow.UtcDateTime;
         openIncubation.CompletedByUserId = userId;
         openIncubation.Outcome = summary;
 
@@ -4278,10 +4278,10 @@ public class TestWorkflowEngine : ITestWorkflowEngine
                 "The selected incubator's set point is outside this medium's temperature range.");
     }
 
-    private static void RequireIncubationComplete(Incubation incubation)
+    private void RequireIncubationComplete(Incubation incubation)
     {
         if (incubation.MinimumDurationOverriddenByUserId.HasValue) return;
-        var remaining = (long)Math.Ceiling((incubation.IncubationEndUtc!.Value - DateTime.UtcNow).TotalSeconds);
+        var remaining = (long)Math.Ceiling((incubation.IncubationEndUtc!.Value - _clock.UtcNow.UtcDateTime).TotalSeconds);
         if (remaining > 0)
             throw new WorkflowStepException(WorkflowErrorCodes.IncubationNotComplete,
                 "This step's incubation period has not finished yet.", remaining);
@@ -4369,7 +4369,7 @@ public class TestWorkflowEngine : ITestWorkflowEngine
                         StepName = step.StepName,
                         StepType = step.StepType,
                         SubmittedByUserId = userId,
-                        SubmittedAtUtc = DateTime.UtcNow,
+                        SubmittedAtUtc = _clock.UtcNow.UtcDateTime,
                         IsSharedSessionStep = true
                     };
                     _db.WorkflowStepResults.Add(existingResult);
@@ -4391,14 +4391,14 @@ public class TestWorkflowEngine : ITestWorkflowEngine
         if (!incubation.MinimumDurationOverriddenByUserId.HasValue)
         {
             var minReadyAt = brothWindow.MinReadyAt(incubation.IncubationStartUtc!.Value);
-            if (DateTime.UtcNow < minReadyAt)
+            if (_clock.UtcNow.UtcDateTime < minReadyAt)
                 throw new WorkflowStepException(WorkflowErrorCodes.IncubationNotComplete,
                     $"This step requires at least {brothWindow.MinHours} hours of incubation - not ready until {minReadyAt:yyyy-MM-dd HH:mm} UTC.",
-                    Math.Max(0, (long)Math.Ceiling((minReadyAt - DateTime.UtcNow).TotalSeconds)));
+                    Math.Max(0, (long)Math.Ceiling((minReadyAt - _clock.UtcNow.UtcDateTime).TotalSeconds)));
         }
 
         // Record the completion of the incubation.
-        incubation.CompletedAt = DateTime.UtcNow;
+        incubation.CompletedAt = _clock.UtcNow.UtcDateTime;
         incubation.CompletedByUserId = userId;
         incubation.Outcome = observation;
         await _db.SaveChangesAsync();
@@ -4420,7 +4420,7 @@ public class TestWorkflowEngine : ITestWorkflowEngine
                 StepName = step.StepName,
                 StepType = step.StepType,
                 SubmittedByUserId = userId,
-                SubmittedAtUtc = DateTime.UtcNow,
+                SubmittedAtUtc = _clock.UtcNow.UtcDateTime,
                 IsSharedSessionStep = true
             };
             _db.WorkflowStepResults.Add(result);
@@ -4469,7 +4469,7 @@ public class TestWorkflowEngine : ITestWorkflowEngine
         var window = IncubationWindowResolver.Require(stepMedium, step.StepName);
         await RequireEligibleIncubatorAsync(stepMedium.Id, equipmentId);
 
-        var startedAt = incubationStartUtc ?? DateTime.UtcNow;
+        var startedAt = incubationStartUtc ?? _clock.UtcNow.UtcDateTime;
         var incubation = new Incubation
         {
             TestOrderId = testOrderId,
@@ -4480,11 +4480,11 @@ public class TestWorkflowEngine : ITestWorkflowEngine
             IncubatorEquipmentId = equipmentId,
             Temperature = window.TemperatureText,
             Duration = window.DurationText,
-            StartedAt = DateTime.UtcNow,
+            StartedAt = _clock.UtcNow.UtcDateTime,
             IncubationStartUtc = startedAt,
             IncubationEndUtc = window.EndAt(startedAt),
             ExpectedReadingAt = window.EndAt(startedAt),
-            WindowReceivedAtUtc = DateTime.UtcNow,
+            WindowReceivedAtUtc = _clock.UtcNow.UtcDateTime,
             StartedByUserId = userId
         };
         _db.Incubations.Add(incubation);
@@ -4522,16 +4522,16 @@ public class TestWorkflowEngine : ITestWorkflowEngine
         if (!incubation.MinimumDurationOverriddenByUserId.HasValue)
         {
             var minReadyAt = window.MinReadyAt(incubation.IncubationStartUtc!.Value);
-            if (DateTime.UtcNow < minReadyAt)
+            if (_clock.UtcNow.UtcDateTime < minReadyAt)
             {
-                var remainingSeconds = Math.Max(0, (long)Math.Ceiling((minReadyAt - DateTime.UtcNow).TotalSeconds));
+                var remainingSeconds = Math.Max(0, (long)Math.Ceiling((minReadyAt - _clock.UtcNow.UtcDateTime).TotalSeconds));
                 throw new WorkflowStepException(WorkflowErrorCodes.IncubationNotComplete,
                     $"Minimum incubation time not elapsed. Available from: {minReadyAt:yyyy-MM-dd HH:mm} UTC.",
                     remainingSeconds);
             }
         }
 
-        incubation.CompletedAt = DateTime.UtcNow;
+        incubation.CompletedAt = _clock.UtcNow.UtcDateTime;
         incubation.CompletedByUserId = userId;
         incubation.Outcome = observation.ToString();
         await _db.SaveChangesAsync();
@@ -4551,7 +4551,7 @@ public class TestWorkflowEngine : ITestWorkflowEngine
             SelectivePlatingObservation = observation,
             ExpectedAppearanceSnapshot = snapshot,
             SubmittedByUserId = userId,
-            SubmittedAtUtc = DateTime.UtcNow
+            SubmittedAtUtc = _clock.UtcNow.UtcDateTime
         };
         _db.WorkflowStepResults.Add(result);
 
@@ -4692,7 +4692,7 @@ public class TestWorkflowEngine : ITestWorkflowEngine
             Temperature = temperatureDisplay,
             Duration = durationDisplay,
             IncubationStartUtc = incubationStartUtc, IncubationEndUtc = incubationEndUtc,
-            WindowReceivedAtUtc = DateTime.UtcNow,
+            WindowReceivedAtUtc = _clock.UtcNow.UtcDateTime,
             ExpectedReadingAt = incubationEndUtc
         };
         _db.Incubations.Add(incubation);
@@ -4702,7 +4702,7 @@ public class TestWorkflowEngine : ITestWorkflowEngine
         {
             IncubationId = incubation.Id, TestOrderId = testOrderId,
             StepName = step.StepName, StepType = step.StepType,
-            SubmittedByUserId = userId, SubmittedAtUtc = DateTime.UtcNow
+            SubmittedByUserId = userId, SubmittedAtUtc = _clock.UtcNow.UtcDateTime
         };
         foreach (var (medium, lot, equipmentId) in resolved)
             result.Selections.Add(new ConfirmatoryMediaSelection
@@ -4772,13 +4772,13 @@ public class TestWorkflowEngine : ITestWorkflowEngine
             result.ConfirmatoryObservations.Add(new ConfirmatoryPlateObservation
             {
                 MaterialId = observation.MaterialId, Observation = observation.Observation,
-                ExpectedAppearanceSnapshot = snapshot, RecordedByUserId = userId, RecordedAtUtc = DateTime.UtcNow
+                ExpectedAppearanceSnapshot = snapshot, RecordedByUserId = userId, RecordedAtUtc = _clock.UtcNow.UtcDateTime
             });
         }
 
         var allConforming = observations.All(o => o.Observation == GrowthObservation.GrowthConforming);
         result.ConfirmatoryResult = allConforming ? ConfirmatoryResult.AllConforming : ConfirmatoryResult.Inconclusive;
-        incubation.CompletedAt = DateTime.UtcNow;
+        incubation.CompletedAt = _clock.UtcNow.UtcDateTime;
         incubation.CompletedByUserId = userId;
         incubation.Outcome = result.ConfirmatoryResult.ToString();
 
@@ -4824,7 +4824,7 @@ public class TestWorkflowEngine : ITestWorkflowEngine
                 $"An analyst decision ({confirmatory.AnalystDecision}) was already recorded for this confirmatory result.");
 
         confirmatory.AnalystDecision = decision;
-        confirmatory.AnalystDecisionAtUtc = DateTime.UtcNow;
+        confirmatory.AnalystDecisionAtUtc = _clock.UtcNow.UtcDateTime;
         confirmatory.AnalystDecisionByUserId = userId;
 
         if (decision == AnalystDecision.ProceedToBiochemical)
@@ -4923,7 +4923,7 @@ public class TestWorkflowEngine : ITestWorkflowEngine
             BiochemicalResultText = biochemicalResultText, BiochemicalAttachmentId = attachmentId,
             BiochemicalOrganismDetected = organismDetected,
             SkippedBiochemical = false,
-            SubmittedByUserId = userId, SubmittedAtUtc = DateTime.UtcNow
+            SubmittedByUserId = userId, SubmittedAtUtc = _clock.UtcNow.UtcDateTime
         };
         _db.WorkflowStepResults.Add(result);
 
@@ -5000,7 +5000,7 @@ public class TestWorkflowEngine : ITestWorkflowEngine
 
         result.RequiresBiochemical = true;
         result.ReturnReason = comment;
-        result.ReturnedAtUtc = DateTime.UtcNow;
+        result.ReturnedAtUtc = _clock.UtcNow.UtcDateTime;
         result.ReturnedByUserId = reviewerUserId;
 
         // Routes through the shared state machine (rather than setting

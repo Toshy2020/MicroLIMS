@@ -35,12 +35,15 @@ public class GroupedTestActionService
     private readonly IMicroLimsDbContext _db;
     private readonly ITestWorkflowEngine _workflowEngine;
     private readonly IncubatorEligibilityService _incubatorEligibility;
+    private readonly TimeProvider _time;
 
     public GroupedTestActionService(
         IMicroLimsDbContext db,
         ITestWorkflowEngine workflowEngine,
-        IncubatorEligibilityService incubatorEligibility)
+        IncubatorEligibilityService incubatorEligibility,
+        TimeProvider? timeProvider = null)
     {
+        _time = timeProvider ?? TimeProvider.System;
         _db = db;
         _workflowEngine = workflowEngine;
         _incubatorEligibility = incubatorEligibility;
@@ -190,7 +193,7 @@ public class GroupedTestActionService
                 }
 
                 var minReadyAt = startUtc != default ? startUtc.AddHours(minHours) : (DateTime?)null;
-                bool isReady = openInc.MinimumDurationOverriddenByUserId.HasValue || (minReadyAt.HasValue && DateTime.UtcNow >= minReadyAt.Value);
+                bool isReady = openInc.MinimumDurationOverriddenByUserId.HasValue || (minReadyAt.HasValue && _time.GetUtcNow().UtcDateTime >= minReadyAt.Value);
 
                 if (!isReady)
                 {
@@ -331,7 +334,7 @@ public class GroupedTestActionService
                 var hasActivePredecessorIncubation = await _db.Incubations.AnyAsync(i =>
                     i.TestOrderId == order.Id &&
                     i.StepNumber < step.StepOrder &&
-                    (i.CompletedAt == null || (!i.MinimumDurationOverriddenByUserId.HasValue && i.IncubationEndUtc.HasValue && DateTime.UtcNow < i.IncubationEndUtc.Value)),
+                    (i.CompletedAt == null || (!i.MinimumDurationOverriddenByUserId.HasValue && i.IncubationEndUtc.HasValue && _time.GetUtcNow().UtcDateTime < i.IncubationEndUtc.Value)),
                     ct);
 
                 if (hasActivePredecessorIncubation)
@@ -466,7 +469,7 @@ public class GroupedTestActionService
                     c.AssignedAnalystName
                 )).ToList();
 
-                var urgency = cluster.Any(c => c.Sample.ReceivedAt < DateTime.UtcNow.AddHours(-24)) ? "Overdue" : "DueNow";
+                var urgency = cluster.Any(c => c.Sample.ReceivedAt < _time.GetUtcNow().UtcDateTime.AddHours(-24)) ? "Overdue" : "DueNow";
 
                 finalGroups.Add(new ActionableGroupDto(
                     GroupKey: groupKey,
@@ -575,7 +578,7 @@ public class GroupedTestActionService
             {
                 throw new InvalidOperationException($"Media lot \"{media.LotNumber}\" is not released for use, out of stock, or rejected.");
             }
-            if (media.ExpiryDate <= DateTime.UtcNow)
+            if (media.ExpiryDate <= _time.GetUtcNow().UtcDateTime)
             {
                 throw new InvalidOperationException($"Media lot \"{media.LotNumber}\" is expired (expired on {media.ExpiryDate:yyyy-MM-dd}).");
             }
@@ -591,7 +594,7 @@ public class GroupedTestActionService
         {
             throw new InvalidOperationException($"Incubator \"{incubator.Code}\" has no calibrated set point temperature.");
         }
-        if (incubator.CalibrationDueDate != null && incubator.CalibrationDueDate < DateTime.UtcNow)
+        if (incubator.CalibrationDueDate != null && incubator.CalibrationDueDate < _time.GetUtcNow().UtcDateTime)
         {
             throw new InvalidOperationException($"Incubator \"{incubator.Code}\" calibration expired on {incubator.CalibrationDueDate:yyyy-MM-dd}.");
         }
@@ -675,14 +678,14 @@ public class GroupedTestActionService
                 if (activeInc.StageNumber == 2)
                 {
                     isReady = activeInc.MinimumDurationOverriddenByUserId.HasValue ||
-                        (startUtc != default && DateTime.UtcNow >= startUtc.AddHours(activeStep.IncubationMinHours));
+                        (startUtc != default && _time.GetUtcNow().UtcDateTime >= startUtc.AddHours(activeStep.IncubationMinHours));
                 }
                 else
                 {
                     var activeWindow = await IncubationWindowResolver.ForIncubationAsync(_db, activeStep, activeInc, ct);
                     isReady = activeWindow is not null &&
                         (activeInc.MinimumDurationOverriddenByUserId.HasValue ||
-                         (startUtc != default && DateTime.UtcNow >= activeWindow.MinReadyAt(startUtc)));
+                         (startUtc != default && _time.GetUtcNow().UtcDateTime >= activeWindow.MinReadyAt(startUtc)));
                 }
 
                 if (isReady)
@@ -724,7 +727,7 @@ public class GroupedTestActionService
                         id,
                         sampleRef,
                         existingInc.Id,
-                        existingInc.ExpectedReadingAt ?? DateTime.UtcNow,
+                        existingInc.ExpectedReadingAt ?? _time.GetUtcNow().UtcDateTime,
                         "Started via shared TSB broth propagation."
                     ));
                     continue;
@@ -750,7 +753,7 @@ public class GroupedTestActionService
                         ToStep = WorkflowStep.Incubating,
                         Note = $"Transferred to Stage 2 incubation ({request.StepName}). Incubator: {incubator.Code}.",
                         PerformedByUserId = currentUserId,
-                        Timestamp = DateTime.UtcNow
+                        Timestamp = _time.GetUtcNow().UtcDateTime
                     });
                     await _db.SaveChangesAsync(ct);
 
@@ -758,7 +761,7 @@ public class GroupedTestActionService
                         id,
                         sampleRef,
                         inc.Id,
-                        inc.ExpectedReadingAt ?? DateTime.UtcNow,
+                        inc.ExpectedReadingAt ?? _time.GetUtcNow().UtcDateTime,
                         "Transferred to Stage 2 incubation successfully."
                     ));
                 }
@@ -795,7 +798,7 @@ public class GroupedTestActionService
                         ToStep = WorkflowStep.Incubating,
                         Note = $"Transferred from {predStepName} to {targetStep.StepName} incubation. Media: {media?.LotNumber}, Incubator: {incubator.Code}.",
                         PerformedByUserId = currentUserId,
-                        Timestamp = DateTime.UtcNow
+                        Timestamp = _time.GetUtcNow().UtcDateTime
                     });
                     await _db.SaveChangesAsync(ct);
 
@@ -803,7 +806,7 @@ public class GroupedTestActionService
                         id,
                         sampleRef,
                         inc.Id,
-                        inc.ExpectedReadingAt ?? DateTime.UtcNow,
+                        inc.ExpectedReadingAt ?? _time.GetUtcNow().UtcDateTime,
                         $"Transferred from {predStepName} to {targetStep.StepName} incubation successfully."
                     ));
                 }
@@ -832,7 +835,7 @@ public class GroupedTestActionService
                         id,
                         sampleRef,
                         inc.Id,
-                        inc.ExpectedReadingAt ?? DateTime.UtcNow,
+                        inc.ExpectedReadingAt ?? _time.GetUtcNow().UtcDateTime,
                         "Incubation started successfully."
                     ));
 

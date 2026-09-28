@@ -19,9 +19,11 @@ public class SampleSummaryService
     private readonly IPdfGenerator _pdfGenerator;
     private readonly IWordGenerator _wordGenerator;
     private readonly ReviewGateService _reviewGate;
+    private readonly TimeProvider _time;
 
-    public SampleSummaryService(IMicroLimsDbContext db, IPdfGenerator pdfGenerator, IWordGenerator wordGenerator, ReviewGateService reviewGate)
+    public SampleSummaryService(IMicroLimsDbContext db, IPdfGenerator pdfGenerator, IWordGenerator wordGenerator, ReviewGateService reviewGate, TimeProvider? timeProvider = null)
     {
+        _time = timeProvider ?? TimeProvider.System;
         _db = db;
         _pdfGenerator = pdfGenerator;
         _wordGenerator = wordGenerator;
@@ -344,7 +346,7 @@ public class SampleSummaryService
                 var orderIncubations = incubations.Where(i => i.TestOrderId == order.Id).ToList();
                 // Effective orders can come from retest descendants, so each is
                 // judged by its own sample's status, not this sample's.
-                var stateResult = WorkflowStateResolver.Resolve(order, usesTsb, orderIncubations, null, DateTime.UtcNow, def?.Steps, order.Sample?.Status ?? sample.Status, mediaLookup);
+                var stateResult = WorkflowStateResolver.Resolve(order, usesTsb, orderIncubations, null, _time.GetUtcNow().UtcDateTime, def?.Steps, order.Sample?.Status ?? sample.Status, mediaLookup);
 
                 var orderPathogenObs = locationPathogenObservations.Where(o => o.TestOrderId == order.Id).ToList();
 

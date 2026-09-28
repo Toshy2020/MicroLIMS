@@ -39,9 +39,11 @@ public class MyTasksService
 
     private readonly IMicroLimsDbContext _db;
     private readonly IUserSectionScopeService _scope;
+    private readonly TimeProvider _time;
 
-    public MyTasksService(IMicroLimsDbContext db, IUserSectionScopeService scope)
+    public MyTasksService(IMicroLimsDbContext db, IUserSectionScopeService scope, TimeProvider? timeProvider = null)
     {
+        _time = timeProvider ?? TimeProvider.System;
         _db = db;
         _scope = scope;
     }
@@ -49,7 +51,7 @@ public class MyTasksService
     public async Task<List<MyTaskDto>> GetMyTasksAsync(int userId)
     {
         var scope = await _scope.GetAccessibleSectionIdsAsync(userId);
-        var now = DateTime.UtcNow;
+        var now = _time.GetUtcNow().UtcDateTime;
         var horizon = now.Add(LookaheadWindow);
         var tasks = new List<MyTaskDto>();
 

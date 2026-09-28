@@ -23,9 +23,9 @@ public static class PreparedLotNumber
             ? material.Code
             : new string(material.MaterialName.Where(char.IsLetterOrDigit).ToArray()).ToUpperInvariant();
 
-    public static async Task<string> NextAsync(IQueryable<string> issuedNumbers, string prefix)
+    public static async Task<string> NextAsync(IQueryable<string> issuedNumbers, string prefix, DateTime nowUtc)
     {
-        var yy = DateTime.UtcNow.ToString("yy", CultureInfo.InvariantCulture);
+        var yy = nowUtc.ToString("yy", CultureInfo.InvariantCulture);
         var head = prefix + "/";
         var tail = "/" + yy;
 

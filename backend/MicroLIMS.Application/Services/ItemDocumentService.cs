@@ -14,12 +14,15 @@ public class ItemDocumentService
     private readonly IMicroLimsDbContext _db;
     private readonly IFileStorageService _storage;
     private readonly ILogger<ItemDocumentService> _logger;
+    private readonly TimeProvider _time;
 
     public ItemDocumentService(
         IMicroLimsDbContext db,
         IFileStorageService storage,
-        ILogger<ItemDocumentService> logger)
+        ILogger<ItemDocumentService> logger,
+        TimeProvider? timeProvider = null)
     {
+        _time = timeProvider ?? TimeProvider.System;
         _db = db;
         _storage = storage;
         _logger = logger;
@@ -101,7 +104,7 @@ public class ItemDocumentService
             Version = string.IsNullOrWhiteSpace(version) ? "Rev 01" : version,
             EffectiveDate = effectiveDate,
             UploadedByUserId = userId,
-            UploadedAt = DateTime.UtcNow,
+            UploadedAt = _time.GetUtcNow().UtcDateTime,
             Status = MaterialDocumentStatus.Current
         };
 
@@ -112,7 +115,7 @@ public class ItemDocumentService
         {
             existingCurrentDoc.Status = MaterialDocumentStatus.Superseded;
             existingCurrentDoc.SupersededByDocumentId = newDoc.Id;
-            existingCurrentDoc.SupersededAt = DateTime.UtcNow;
+            existingCurrentDoc.SupersededAt = _time.GetUtcNow().UtcDateTime;
             existingCurrentDoc.SupersededByUserId = userId;
             existingCurrentDoc.SupersessionReason = $"Superseded by new version '{newDoc.Version}'";
             await _db.SaveChangesAsync();
@@ -135,7 +138,7 @@ public class ItemDocumentService
             DocumentId = documentId,
             UserId = userId,
             Action = isDownload ? MaterialDocumentAccessAction.Download : MaterialDocumentAccessAction.View,
-            AccessedAt = DateTime.UtcNow
+            AccessedAt = _time.GetUtcNow().UtcDateTime
         });
         await _db.SaveChangesAsync();
 

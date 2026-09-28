@@ -18,12 +18,15 @@ public class TrainingAssignmentService : ITrainingAssignmentService
 
     public const string SystemProcessName = "DocumentEffectiveDateWorker";
     public const int DefaultFallbackGracePeriodDays = 14;
+    private readonly TimeProvider _time;
 
     public TrainingAssignmentService(
         IMicroLimsDbContext db,
         IAuditEventService audit,
-        ILogger<TrainingAssignmentService> logger)
+        ILogger<TrainingAssignmentService> logger,
+        TimeProvider? timeProvider = null)
     {
+        _time = timeProvider ?? TimeProvider.System;
         _db = db;
         _audit = audit;
         _logger = logger;
@@ -35,7 +38,7 @@ public class TrainingAssignmentService : ITrainingAssignmentService
         DateTime? utcNowOverride = null,
         CancellationToken cancellationToken = default)
     {
-        var nowUtc = utcNowOverride ?? DateTime.UtcNow;
+        var nowUtc = utcNowOverride ?? _time.GetUtcNow().UtcDateTime;
 
         var revision = await _db.DocumentRevisions
             .Include(r => r.DocumentMaster)
@@ -284,7 +287,7 @@ public class TrainingAssignmentService : ITrainingAssignmentService
         DateTime? utcNowOverride = null,
         CancellationToken cancellationToken = default)
     {
-        var nowUtc = utcNowOverride ?? DateTime.UtcNow;
+        var nowUtc = utcNowOverride ?? _time.GetUtcNow().UtcDateTime;
 
         var revision = await _db.DocumentRevisions
             .Include(r => r.DocumentMaster)
@@ -405,7 +408,7 @@ public class TrainingAssignmentService : ITrainingAssignmentService
         DateTime? utcNowOverride = null,
         CancellationToken cancellationToken = default)
     {
-        var nowUtc = utcNowOverride ?? DateTime.UtcNow;
+        var nowUtc = utcNowOverride ?? _time.GetUtcNow().UtcDateTime;
 
         var query = _db.DocumentTrainingAssignments
             .Where(a => a.DocumentMasterId == documentMasterId
@@ -478,7 +481,7 @@ public class TrainingAssignmentService : ITrainingAssignmentService
         DateTime? effectiveDate = null,
         CancellationToken cancellationToken = default)
     {
-        var startDate = effectiveDate ?? DateTime.UtcNow;
+        var startDate = effectiveDate ?? _time.GetUtcNow().UtcDateTime;
 
         if (customGracePeriodDays.HasValue && customGracePeriodDays.Value > 0)
         {
@@ -569,14 +572,14 @@ public class TrainingAssignmentService : ITrainingAssignmentService
             .AsNoTracking()
             .FirstOrDefaultAsync(a => a.Id == assignmentId, cancellationToken);
 
-        return assignment == null ? null : MapToDto(assignment, DateTime.UtcNow);
+        return assignment == null ? null : MapToDto(assignment, _time.GetUtcNow().UtcDateTime);
     }
 
     public async Task<PagedResult<DocumentTrainingAssignmentDto>> GetAssignmentsAsync(
         DocumentTrainingAssignmentFilter filter,
         CancellationToken cancellationToken = default)
     {
-        var nowUtc = DateTime.UtcNow;
+        var nowUtc = _time.GetUtcNow().UtcDateTime;
         var query = _db.DocumentTrainingAssignments
             .Include(a => a.DocumentMaster)
             .Include(a => a.DocumentRevision)
@@ -632,7 +635,7 @@ public class TrainingAssignmentService : ITrainingAssignmentService
         TrainingAssignmentStatus? status = null,
         CancellationToken cancellationToken = default)
     {
-        var nowUtc = DateTime.UtcNow;
+        var nowUtc = _time.GetUtcNow().UtcDateTime;
         var query = _db.DocumentTrainingAssignments
             .Include(a => a.DocumentMaster)
             .Include(a => a.DocumentRevision)

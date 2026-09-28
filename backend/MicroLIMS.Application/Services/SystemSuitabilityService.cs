@@ -276,7 +276,7 @@ public class SystemSuitabilityService : ISystemSuitabilityService
                 if (mat.QuantityRemaining <= 0)
                     throw new InvalidOperationException($"Reference standard for analyte {analyteEntity.Element} is depleted.");
 
-                if (mat.ExpiryDate.HasValue && mat.ExpiryDate.Value.Date < DateTime.UtcNow.Date)
+                if (mat.ExpiryDate.HasValue && mat.ExpiryDate.Value.Date < _clock.UtcNow.UtcDateTime.Date)
                     throw new InvalidOperationException($"Reference standard for analyte {analyteEntity.Element} is expired.");
 
                 if (!mat.Purity.HasValue || mat.Purity.Value <= 0 || mat.Purity.Value > 100)
@@ -451,7 +451,7 @@ public class SystemSuitabilityService : ISystemSuitabilityService
             if (material.QuantityRemaining <= 0)
                 throw new InvalidOperationException("Reference standard is depleted.");
 
-            if (material.ExpiryDate.HasValue && material.ExpiryDate.Value.Date < DateTime.UtcNow.Date)
+            if (material.ExpiryDate.HasValue && material.ExpiryDate.Value.Date < _clock.UtcNow.UtcDateTime.Date)
                 throw new InvalidOperationException("Reference standard is expired.");
 
             if (!material.Purity.HasValue || material.Purity.Value <= 0 || material.Purity.Value > 100)

@@ -17,10 +17,13 @@ public class SampleReviewService
     private readonly SegregationOfDutiesGuard _segregationOfDuties;
     private readonly ReviewGateService _reviewGate;
     private readonly IUserSectionScopeService _scope;
+    private readonly TimeProvider _time;
 
     public SampleReviewService(IMicroLimsDbContext db, SegregationOfDutiesGuard segregationOfDuties, ReviewGateService reviewGate,
-        IUserSectionScopeService scope)
+        IUserSectionScopeService scope,
+        TimeProvider? timeProvider = null)
     {
+        _time = timeProvider ?? TimeProvider.System;
         _db = db;
         _segregationOfDuties = segregationOfDuties;
         _reviewGate = reviewGate;
@@ -69,7 +72,7 @@ public class SampleReviewService
 
         if (!IsBeingTested(sample)) return;
 
-        var now = DateTime.UtcNow;
+        var now = _time.GetUtcNow().UtcDateTime;
         foreach (var sectionId in SectionsReadyForReview(sample))
         {
             var signoff = SampleSectionRollup.GetOrAdd(sample, sectionId);
@@ -112,7 +115,7 @@ public class SampleReviewService
             ReviewEntityTypes.Sample, sampleId, reviewerUserId, password,
             SignatureMeaning.Reviewed, ReviewWorkflowEventType.ReviewCompleted, comment, ipAddress, sectionId: section);
 
-        var now = DateTime.UtcNow;
+        var now = _time.GetUtcNow().UtcDateTime;
         var signoff = SampleSectionRollup.GetOrAdd(sample, section);
         signoff.Status = SectionSignoffStatus.UnderApproval;
         signoff.ReviewedByUserId = reviewerUserId;

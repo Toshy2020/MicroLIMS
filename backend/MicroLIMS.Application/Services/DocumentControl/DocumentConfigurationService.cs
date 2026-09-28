@@ -13,12 +13,15 @@ public class DocumentConfigurationService : IDocumentConfigurationService
     private readonly IMicroLimsDbContext _db;
     private readonly IAuditEventService _auditEventService;
     private readonly IDocumentAuthorizationService _authService;
+    private readonly TimeProvider _time;
 
     public DocumentConfigurationService(
         IMicroLimsDbContext db,
         IAuditEventService auditEventService,
-        IDocumentAuthorizationService authService)
+        IDocumentAuthorizationService authService,
+        TimeProvider? timeProvider = null)
     {
+        _time = timeProvider ?? TimeProvider.System;
         _db = db;
         _auditEventService = auditEventService;
         _authService = authService;
@@ -389,7 +392,7 @@ public class DocumentConfigurationService : IDocumentConfigurationService
             throw new ArgumentException("Number Format is required (e.g. 0000000).", nameof(request.NumberFormat));
 
         var config = await _db.DocumentNumberingConfigurations.FirstOrDefaultAsync();
-        var now = DateTime.UtcNow;
+        var now = _time.GetUtcNow().UtcDateTime;
 
         _db.CurrentUserId = userId;
 
@@ -510,7 +513,7 @@ public class DocumentConfigurationService : IDocumentConfigurationService
                 SettingValue = request.SettingValue.Trim(),
                 DataType = "string",
                 SettingGroup = "DocumentControl",
-                ModifiedAt = DateTime.UtcNow,
+                ModifiedAt = _time.GetUtcNow().UtcDateTime,
                 ModifiedByUserId = userId
             };
             _db.ConfigurationSettings.Add(setting);
@@ -519,7 +522,7 @@ public class DocumentConfigurationService : IDocumentConfigurationService
         {
             prevVal = setting.SettingValue;
             setting.SettingValue = request.SettingValue.Trim();
-            setting.ModifiedAt = DateTime.UtcNow;
+            setting.ModifiedAt = _time.GetUtcNow().UtcDateTime;
             setting.ModifiedByUserId = userId;
         }
 

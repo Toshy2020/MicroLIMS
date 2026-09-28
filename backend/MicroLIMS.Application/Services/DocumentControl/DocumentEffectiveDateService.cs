@@ -17,13 +17,16 @@ public class DocumentEffectiveDateService : IDocumentEffectiveDateService
     private readonly ITrainingAssignmentService? _trainingAssignmentService;
 
     public const string SystemProcessName = "DocumentEffectiveDateWorker";
+    private readonly TimeProvider _time;
 
     public DocumentEffectiveDateService(
         IMicroLimsDbContext db,
         IAuditEventService audit,
         ILogger<DocumentEffectiveDateService> logger,
-        ITrainingAssignmentService? trainingAssignmentService = null)
+        ITrainingAssignmentService? trainingAssignmentService = null,
+        TimeProvider? timeProvider = null)
     {
+        _time = timeProvider ?? TimeProvider.System;
         _db = db;
         _audit = audit;
         _logger = logger;
@@ -34,7 +37,7 @@ public class DocumentEffectiveDateService : IDocumentEffectiveDateService
         DateTime? utcNowOverride = null,
         CancellationToken cancellationToken = default)
     {
-        var nowUtc = utcNowOverride ?? DateTime.UtcNow;
+        var nowUtc = utcNowOverride ?? _time.GetUtcNow().UtcDateTime;
 
         _logger.LogInformation(
             "[{Worker}] Commencing evaluation of matured FutureEffective revisions at UTC timestamp: {Timestamp:yyyy-MM-dd HH:mm:ss 'UTC'}",

@@ -161,9 +161,11 @@ public class DashboardService
 
     private readonly IMicroLimsDbContext _db;
     private readonly KpiService _kpiService;
+    private readonly TimeProvider _time;
 
-    public DashboardService(IMicroLimsDbContext db, KpiService kpiService)
+    public DashboardService(IMicroLimsDbContext db, KpiService kpiService, TimeProvider? timeProvider = null)
     {
+        _time = timeProvider ?? TimeProvider.System;
         _db = db;
         _kpiService = kpiService;
     }
@@ -192,7 +194,7 @@ public class DashboardService
 
     public async Task<object> GetSummaryAsync(RoleType role, int userId, IReadOnlyCollection<int>? sectionIds = null)
     {
-        var now = DateTime.UtcNow;
+        var now = _time.GetUtcNow().UtcDateTime;
         var cutoff = now.Subtract(DelayThreshold);
         var todayStart = now.Date;
 
@@ -253,8 +255,8 @@ public class DashboardService
     // same filtering rule as GetSummaryAsync's pendingTests above.
     public async Task<List<TodaysWorkItemDto>> GetTodaysWorkAsync(RoleType role, int userId, IReadOnlyCollection<int>? sectionIds = null)
     {
-        var todayStart = DateTime.UtcNow.Date;
-        var now = DateTime.UtcNow;
+        var todayStart = _time.GetUtcNow().UtcDateTime.Date;
+        var now = _time.GetUtcNow().UtcDateTime;
 
         var query = _db.Samples
             .Include(s => s.Item)
@@ -304,7 +306,7 @@ public class DashboardService
     public async Task<List<IncubationOverviewDto>> GetIncubationOverviewAsync(bool myIncubationsOnly = false, int? userId = null,
         IReadOnlyCollection<int>? sectionIds = null)
     {
-        var now = DateTime.UtcNow;
+        var now = _time.GetUtcNow().UtcDateTime;
         var query = _db.Incubations
             .Where(SampleWorkflowQueues.IsOpenIncubationOnActiveTest)
             .Where(SectionReviewQueues.IncubationIn(sectionIds))
@@ -331,8 +333,8 @@ public class DashboardService
 
     public async Task<AnalystMetricsDto> GetAnalystMetricsAsync(int userId)
     {
-        var todayStart = DateTime.UtcNow.Date;
-        var sevenDaysAgo = DateTime.UtcNow.Date.AddDays(-7);
+        var todayStart = _time.GetUtcNow().UtcDateTime.Date;
+        var sevenDaysAgo = _time.GetUtcNow().UtcDateTime.Date.AddDays(-7);
 
         var completedResultsToday = await _db.Results
             .Where(r => r.EnteredByUserId == userId && r.EnteredAt >= todayStart)
@@ -421,7 +423,7 @@ public class DashboardService
     // for the last N months - powers the trend bar chart.
     public async Task<List<object>> GetMonthlyTrendAsync(int months = 6, IReadOnlyCollection<int>? sectionIds = null)
     {
-        var now = DateTime.UtcNow;
+        var now = _time.GetUtcNow().UtcDateTime;
         var start = new DateTime(now.Year, now.Month, 1, 0, 0, 0, DateTimeKind.Utc).AddMonths(-(months - 1));
 
         var samples = await _db.Samples.Where(SectionReviewQueues.SampleIn(sectionIds)).Where(s => s.ReceivedAt >= start).Select(s => s.ReceivedAt).ToListAsync();
@@ -485,7 +487,7 @@ public class DashboardService
     // Month-over-month deltas for the KPI cards.
     public async Task<object> GetKpiDeltasAsync(IReadOnlyCollection<int>? sectionIds = null)
     {
-        var now = DateTime.UtcNow;
+        var now = _time.GetUtcNow().UtcDateTime;
         var thisMonthStart = new DateTime(now.Year, now.Month, 1, 0, 0, 0, DateTimeKind.Utc);
         var lastMonthStart = thisMonthStart.AddMonths(-1);
 
@@ -511,7 +513,7 @@ public class DashboardService
 
     public async Task<SectionHeadDashboardDto> GetSectionHeadDashboardAsync(IReadOnlyCollection<int>? sectionIds = null)
     {
-        var now = DateTime.UtcNow;
+        var now = _time.GetUtcNow().UtcDateTime;
         var cutoff = now.Subtract(DelayThreshold);
         var todayStart = now.Date;
         var scopedOrders = _db.TestOrders.Where(SectionReviewQueues.OrderIn(sectionIds));
@@ -865,7 +867,7 @@ public class DashboardService
 
     public async Task<ReviewerDashboardDto> GetReviewerDashboardAsync(int reviewerUserId, IReadOnlyCollection<int>? sectionIds = null)
     {
-        var now = DateTime.UtcNow;
+        var now = _time.GetUtcNow().UtcDateTime;
         var todayStart = now.Date;
 
         // Decision D1 & Semantics: Review queue = one row per (sample, section)

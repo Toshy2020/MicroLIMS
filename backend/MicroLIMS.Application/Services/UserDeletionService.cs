@@ -20,9 +20,11 @@ public class UserHasHistoryException : InvalidOperationException
 public class UserDeletionService
 {
     private readonly IMicroLimsDbContext _db;
+    private readonly TimeProvider _time;
 
-    public UserDeletionService(IMicroLimsDbContext db)
+    public UserDeletionService(IMicroLimsDbContext db, TimeProvider? timeProvider = null)
     {
+        _time = timeProvider ?? TimeProvider.System;
         _db = db;
     }
 
@@ -96,7 +98,7 @@ public class UserDeletionService
             PreviousValue = JsonSerializer.Serialize(deletedUserSnapshot),
             NewValue = null,
             UserId = actingUserId,
-            Timestamp = DateTime.UtcNow
+            Timestamp = _time.GetUtcNow().UtcDateTime
         });
 
         await _db.SaveChangesAsync();

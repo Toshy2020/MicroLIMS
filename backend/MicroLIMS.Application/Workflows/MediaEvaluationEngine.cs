@@ -40,9 +40,11 @@ public class MediaEvaluationEngine : IMediaEvaluationEngine
     private readonly IMicroLimsDbContext _db;
     private readonly MaterialService _materialService;
     private readonly IUserSectionScopeService _scope;
+    private readonly TimeProvider _time;
 
-    public MediaEvaluationEngine(IMicroLimsDbContext db, MaterialService materialService, IUserSectionScopeService scope)
+    public MediaEvaluationEngine(IMicroLimsDbContext db, MaterialService materialService, IUserSectionScopeService scope, TimeProvider? timeProvider = null)
     {
+        _time = timeProvider ?? TimeProvider.System;
         _db = db;
         _materialService = materialService;
         _scope = scope;
@@ -77,11 +79,11 @@ public class MediaEvaluationEngine : IMediaEvaluationEngine
     }
 
     // Same gate as CryovialService.ThawVialAsync's guards.
-    private static void EnsureCryovialApproved(Cryovial cryovial)
+    private void EnsureCryovialApproved(Cryovial cryovial)
     {
         if (cryovial.ApprovalStatus != ApprovalGateStatus.Approved || cryovial.IsDestroyed)
             throw new InvalidOperationException($"Cryovial batch {cryovial.Code} is not approved for use.");
-        if (cryovial.ExpiryDate.Date < DateTime.UtcNow.Date)
+        if (cryovial.ExpiryDate.Date < _time.GetUtcNow().UtcDateTime.Date)
             throw new InvalidOperationException($"Cryovial batch {cryovial.Code} is expired and cannot be used.");
     }
 
@@ -110,7 +112,7 @@ public class MediaEvaluationEngine : IMediaEvaluationEngine
             throw new InvalidOperationException($"Material {material.MaterialName} is not a lyophilized microorganism disk.");
         if (material.OrganismId != challenge.OrganismId)
             throw new InvalidOperationException($"Material {material.MaterialName} is {material.Organism?.ScientificName ?? "a different organism"}, not {challenge.Organism?.ScientificName}.");
-        if (material.ExpiryDate.HasValue && material.ExpiryDate.Value.Date < DateTime.UtcNow.Date)
+        if (material.ExpiryDate.HasValue && material.ExpiryDate.Value.Date < _time.GetUtcNow().UtcDateTime.Date)
             throw new InvalidOperationException($"Material {material.MaterialName} (batch {material.BatchNumber}) is expired and cannot be used.");
         if (material.QuantityRemaining <= 0)
             throw new InvalidOperationException($"Material {material.MaterialName} (batch {material.BatchNumber}) has no quantity remaining.");
@@ -142,7 +144,7 @@ public class MediaEvaluationEngine : IMediaEvaluationEngine
         var condition = config.IncubationCondition
             ?? throw new InvalidOperationException($"Media Configuration for lot \"{evaluation.Media!.LotNumber}\" is missing an incubation condition.");
 
-        var startedAt = DateTime.UtcNow;
+        var startedAt = _time.GetUtcNow().UtcDateTime;
         var incubation = new Incubation
         {
             StepName = "MediaEvaluation",
@@ -186,7 +188,7 @@ public class MediaEvaluationEngine : IMediaEvaluationEngine
         // duration has actually elapsed since incubation was set up.
         if (challenge.Incubation is null)
             throw new InvalidOperationException("Incubation must be recorded before a result can be entered.");
-        if (DateTime.UtcNow < challenge.Incubation.ExpectedReadingAt)
+        if (_time.GetUtcNow().UtcDateTime < challenge.Incubation.ExpectedReadingAt)
             throw new InvalidOperationException(
                 $"Incubation is still in progress - earliest reading time is {challenge.Incubation.ExpectedReadingAt:yyyy-MM-dd HH:mm} UTC.");
 
@@ -249,7 +251,7 @@ public class MediaEvaluationEngine : IMediaEvaluationEngine
                 throw new InvalidOperationException("This challenge has no recognized evaluation type / challenge role combination.");
         }
 
-        challenge.ReadAt = DateTime.UtcNow;
+        challenge.ReadAt = _time.GetUtcNow().UtcDateTime;
         challenge.ReadByUserId = request.UserId;
 
         // The per-challenge incubation ends the moment its result is
@@ -271,7 +273,7 @@ public class MediaEvaluationEngine : IMediaEvaluationEngine
             evaluation.Status = MediaEvaluationStatus.Completed;
             evaluation.Outcome = evaluation.Challenges.All(c => c.Outcome == EvaluationOutcome.Conform)
                 ? EvaluationOutcome.Conform : EvaluationOutcome.NonConform;
-            evaluation.CompletedAt = DateTime.UtcNow;
+            evaluation.CompletedAt = _time.GetUtcNow().UtcDateTime;
             evaluation.CompletedByUserId = request.UserId;
 
             if (evaluation.Outcome == EvaluationOutcome.NonConform)

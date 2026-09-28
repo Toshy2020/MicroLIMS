@@ -14,13 +14,16 @@ public class DocumentMasterService : IDocumentMasterService
     private readonly IDatabaseSequenceHelper _sequenceHelper;
     private readonly IAuditEventService _auditEventService;
     private readonly IDocumentAuthorizationService _authService;
+    private readonly TimeProvider _time;
 
     public DocumentMasterService(
         IMicroLimsDbContext db,
         IDatabaseSequenceHelper sequenceHelper,
         IAuditEventService auditEventService,
-        IDocumentAuthorizationService authService)
+        IDocumentAuthorizationService authService,
+        TimeProvider? timeProvider = null)
     {
+        _time = timeProvider ?? TimeProvider.System;
         _db = db;
         _sequenceHelper = sequenceHelper;
         _auditEventService = auditEventService;
@@ -91,7 +94,7 @@ public class DocumentMasterService : IDocumentMasterService
             ?? new DocumentNumberingConfiguration { Prefix = "DOC-", NumberFormat = "0000000" };
 
         var microLimsId = $"{numConfig.Prefix}{seqVal.ToString(numConfig.NumberFormat)}";
-        var now = DateTime.UtcNow;
+        var now = _time.GetUtcNow().UtcDateTime;
 
         // 5. Create DocumentMaster & Initial Draft Revision
         var master = new DocumentMaster
@@ -276,7 +279,7 @@ public class DocumentMasterService : IDocumentMasterService
 
         if (filter.IsOverdue.HasValue)
         {
-            var nowUtc = DateTime.UtcNow;
+            var nowUtc = _time.GetUtcNow().UtcDateTime;
             if (filter.IsOverdue.Value)
             {
                 query = query.Where(d => d.CurrentEffectiveRevisionId != null &&
@@ -476,7 +479,7 @@ public class DocumentMasterService : IDocumentMasterService
             }
         }
 
-        master.ModifiedAt = DateTime.UtcNow;
+        master.ModifiedAt = _time.GetUtcNow().UtcDateTime;
         master.ModifiedByUserId = userId;
 
         _db.CurrentUserId = userId;
@@ -522,7 +525,7 @@ public class DocumentMasterService : IDocumentMasterService
         var previousStatus = master.RecordStatus.ToString();
 
         master.RecordStatus = DocumentRecordStatus.Void;
-        master.VoidedAt = DateTime.UtcNow;
+        master.VoidedAt = _time.GetUtcNow().UtcDateTime;
         master.VoidedByUserId = userId;
         master.VoidReason = trimmedReason;
 
@@ -570,7 +573,7 @@ public class DocumentMasterService : IDocumentMasterService
         var previousStatus = revision.RevisionStatus.ToString();
 
         revision.RevisionStatus = DocumentRevisionStatus.Cancelled;
-        revision.CancelledAt = DateTime.UtcNow;
+        revision.CancelledAt = _time.GetUtcNow().UtcDateTime;
         revision.CancelledByUserId = userId;
         revision.CancelReason = trimmedReason;
 
@@ -624,7 +627,7 @@ public class DocumentMasterService : IDocumentMasterService
                                       a.UserId == request.UserId &&
                                       a.AssignmentRole == request.AssignmentRole);
 
-        var now = DateTime.UtcNow;
+        var now = _time.GetUtcNow().UtcDateTime;
         if (existing != null)
         {
             if (!existing.IsActive)

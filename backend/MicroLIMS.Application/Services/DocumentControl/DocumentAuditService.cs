@@ -14,12 +14,15 @@ public class DocumentAuditService : IDocumentAuditService
     private readonly IMicroLimsDbContext _db;
     private readonly IAuditEventService _auditEventService;
     private readonly IDocumentAuthorizationService _authService;
+    private readonly TimeProvider _time;
 
     public DocumentAuditService(
         IMicroLimsDbContext db,
         IAuditEventService auditEventService,
-        IDocumentAuthorizationService authService)
+        IDocumentAuthorizationService authService,
+        TimeProvider? timeProvider = null)
     {
+        _time = timeProvider ?? TimeProvider.System;
         _db = db;
         _auditEventService = auditEventService;
         _authService = authService;
@@ -128,7 +131,7 @@ public class DocumentAuditService : IDocumentAuditService
             });
 
         var bytes = Encoding.UTF8.GetBytes(sb.ToString());
-        var fileName = $"audit_trail_{DateTime.UtcNow:yyyyMMdd_HHmmss}.csv";
+        var fileName = $"audit_trail_{_time.GetUtcNow().UtcDateTime:yyyyMMdd_HHmmss}.csv";
         return (bytes, "text/csv", fileName);
     }
 

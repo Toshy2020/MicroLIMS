@@ -10,9 +10,11 @@ public class SampleAssignmentService
 {
     private readonly IMicroLimsDbContext _db;
     private readonly ITestWorkspaceService _workspaceService;
+    private readonly TimeProvider _time;
 
-    public SampleAssignmentService(IMicroLimsDbContext db, ITestWorkspaceService workspaceService)
+    public SampleAssignmentService(IMicroLimsDbContext db, ITestWorkspaceService workspaceService, TimeProvider? timeProvider = null)
     {
+        _time = timeProvider ?? TimeProvider.System;
         _db = db;
         _workspaceService = workspaceService;
     }
@@ -74,7 +76,7 @@ public class SampleAssignmentService
             PreviousValue = previousDisplay,
             NewValue = formattedNewValue,
             UserId = actingUserId,
-            Timestamp = DateTime.UtcNow,
+            Timestamp = _time.GetUtcNow().UtcDateTime,
             SampleId = sampleId,
             SampleReferenceNumber = sample.ReferenceNumber,
             BatchNumber = sample.BatchNumber,
@@ -84,6 +86,6 @@ public class SampleAssignmentService
         await _db.SaveChangesAsync();
 
         var updatedSample = await _workspaceService.GetSampleAsync(sampleId);
-        return updatedSample ?? TestingWorkspaceService.ToDto(sample);
+        return updatedSample ?? TestingWorkspaceService.ToDto(sample, nowUtc: _time.GetUtcNow().UtcDateTime);
     }
 }

@@ -22,9 +22,11 @@ public class RoleService
 {
     private readonly IMicroLimsDbContext _db;
     private readonly PermissionService _permissionService;
+    private readonly TimeProvider _time;
 
-    public RoleService(IMicroLimsDbContext db, PermissionService permissionService)
+    public RoleService(IMicroLimsDbContext db, PermissionService permissionService, TimeProvider? timeProvider = null)
     {
+        _time = timeProvider ?? TimeProvider.System;
         _db = db;
         _permissionService = permissionService;
     }
@@ -134,7 +136,7 @@ public class RoleService
             PreviousValue = JsonSerializer.Serialize(new { PermissionCodes = currentCodes }),
             NewValue = JsonSerializer.Serialize(new { PermissionCodes = permissionCodes, Granted = toGrant, Revoked = toRevoke }),
             UserId = actingUserId,
-            Timestamp = DateTime.UtcNow
+            Timestamp = _time.GetUtcNow().UtcDateTime
         });
         await _db.SaveChangesAsync();
 

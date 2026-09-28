@@ -1,3 +1,4 @@
+using MicroLIMS.Domain.Constants;
 namespace MicroLIMS.Domain.Entities;
 
 public class RevisionChangeItem
@@ -12,7 +13,7 @@ public class RevisionChangeItem
     public string DescriptionOfChange { get; set; } = string.Empty;
     public string ChangeRationale { get; set; } = string.Empty;
     public string ChangeCategory { get; set; } = string.Empty; // e.g., "Addition", "Modification", "Deletion", "Clarification"
-    public string Status { get; set; } = "Draft"; // "Draft", "Addressed", "Deferred"
+    public string Status { get; set; } = RevisionChangeItemStatus.Draft; // see RevisionChangeItemStatus
 
     // Controlled records are never deleted (DC-URS-184, BR-015, FS-1a-170):
     // removing a change item from the active list is a deactivation that

@@ -1,3 +1,4 @@
+using MicroLIMS.Domain.Constants;
 using MicroLIMS.Shared.Exceptions;
 using System.Globalization;
 using System.Text.Json;
@@ -280,7 +281,7 @@ public sealed class SingleResultRecorder : TestWorkflowSupport
                 Unit = spec.Unit,
                 SpecLimit = canonicalLimit,
                 ResultBasis = null,
-                ComparisonStatus = param.Conforms ? "WithinLimits" : "OutOfSpecification",
+                ComparisonStatus = param.Conforms ? ResultStatus.WithinLimits : ResultStatus.OutOfSpecification,
                 OverRange = false,
                 BelowLoq = false,
                 CalculationJson = calculationJson,

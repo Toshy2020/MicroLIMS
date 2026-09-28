@@ -1,3 +1,4 @@
+using MicroLIMS.Domain.Constants;
 using MicroLIMS.Domain.Enums;
 
 namespace MicroLIMS.Application.DTOs.DocumentControl;
@@ -44,7 +45,7 @@ public record AddChangeItemRequest(
     string DescriptionOfChange,
     string ChangeRationale,
     string ChangeCategory,
-    string? Status = "Draft",
+    string? Status = RevisionChangeItemStatus.Draft,
     int? OriginatingReviewFindingId = null
 );
 

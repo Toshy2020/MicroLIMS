@@ -1,3 +1,4 @@
+using MicroLIMS.Domain.Constants;
 using MicroLIMS.Shared.Exceptions;
 using System.Globalization;
 using System.Text.Json;
@@ -712,12 +713,12 @@ public class TestWorkflowSupport
         _db.TestAnalyses.Add(entry);
 
         string overallStatus;
-        if (parameterResults.Any(r => r.ComparisonStatus == "OutOfSpecification"))
-            overallStatus = "OutOfSpecification";
-        else if (parameterResults.Any(r => r.ComparisonStatus == "RequiresReview"))
-            overallStatus = "RequiresReview";
-        else if (parameterResults.Any(r => r.ComparisonStatus == "WithinLimits"))
-            overallStatus = "WithinLimits";
+        if (parameterResults.Any(r => r.ComparisonStatus == ResultStatus.OutOfSpecification))
+            overallStatus = ResultStatus.OutOfSpecification;
+        else if (parameterResults.Any(r => r.ComparisonStatus == ResultStatus.RequiresReview))
+            overallStatus = ResultStatus.RequiresReview;
+        else if (parameterResults.Any(r => r.ComparisonStatus == ResultStatus.WithinLimits))
+            overallStatus = ResultStatus.WithinLimits;
         else
             overallStatus = parameterResults.First().ComparisonStatus;
 

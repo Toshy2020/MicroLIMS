@@ -1,3 +1,4 @@
+using MicroLIMS.Domain.Constants;
 using MicroLIMS.Shared.Exceptions;
 using System.Globalization;
 using System.Text.Json;
@@ -479,7 +480,7 @@ public sealed class IncubationStepRecorder : TestWorkflowSupport
         if (emptyReadings.Count > 0)
             throw new InvalidOperationException($"At least one plate reading is required for: {string.Join(", ", emptyReadings.Select(LocationName))}.");
 
-        var worstStatus = "WithinLimits";
+        var worstStatus = ResultStatus.WithinLimits;
         var conformCount = 0;
         foreach (var location in sampleLocations)
         {
@@ -510,7 +511,7 @@ public sealed class IncubationStepRecorder : TestWorkflowSupport
             location.EnteredAt = _clock.UtcNow.UtcDateTime;
             location.EnteredByUserId = userId;
 
-            if (status == "WithinLimits") conformCount++;
+            if (status == ResultStatus.WithinLimits) conformCount++;
             if (StatusSeverity(status) > StatusSeverity(worstStatus)) worstStatus = status;
         }
 
@@ -587,7 +588,7 @@ public sealed class IncubationStepRecorder : TestWorkflowSupport
         if (emptyReadings.Count > 0)
             throw new InvalidOperationException($"At least one plate reading is required for: {string.Join(", ", emptyReadings.Select(LocationName))}.");
 
-        var worstStatus = "WithinLimits";
+        var worstStatus = ResultStatus.WithinLimits;
         var conformCount = 0;
         foreach (var location in sampleLocations)
         {
@@ -615,7 +616,7 @@ public sealed class IncubationStepRecorder : TestWorkflowSupport
             location.EnteredAt = _clock.UtcNow.UtcDateTime;
             location.EnteredByUserId = userId;
 
-            if (status == "WithinLimits") conformCount++;
+            if (status == ResultStatus.WithinLimits) conformCount++;
             if (StatusSeverity(status) > StatusSeverity(worstStatus)) worstStatus = status;
         }
 
@@ -679,7 +680,7 @@ public sealed class IncubationStepRecorder : TestWorkflowSupport
         foreach (var location in sampleLocations)
         {
             var growth = submitted[location.Id].GrowthObserved;
-            location.Status = growth ? "Detected" : "Absent";
+            location.Status = growth ? ResultStatus.Detected : ResultStatus.Absent;
             location.ReportedResult = location.Status;
             location.EnteredAt = _clock.UtcNow.UtcDateTime;
             location.EnteredByUserId = userId;
@@ -687,7 +688,7 @@ public sealed class IncubationStepRecorder : TestWorkflowSupport
         }
 
         var summary = $"{sampleLocations.Count} locations: {sampleLocations.Count - detectedCount} absent, {detectedCount} detected";
-        var overallResult = detectedCount > 0 ? "Detected" : "Absent";
+        var overallResult = detectedCount > 0 ? ResultStatus.Detected : ResultStatus.Absent;
 
         _db.Results.Add(new Result
         {
@@ -741,10 +742,10 @@ public sealed class IncubationStepRecorder : TestWorkflowSupport
 
     private static int StatusSeverity(string status) => status switch
     {
-        "OutOfSpecification" => 4,
-        "ActionLimitExceeded" => 3,
-        "AlertLimitExceeded" => 2,
-        "LimitsNotConfigured" => 1,
+        ResultStatus.OutOfSpecification => 4,
+        ResultStatus.ActionLimitExceeded => 3,
+        ResultStatus.AlertLimitExceeded => 2,
+        ResultStatus.LimitsNotConfigured => 1,
         _ => 0
     };
 
@@ -829,7 +830,7 @@ public sealed class IncubationStepRecorder : TestWorkflowSupport
 
             var nonNumericValue = nonNumericRaw.Equals("TNTC", StringComparison.OrdinalIgnoreCase) ? "TNTC" : "Uncountable";
 
-            status = "RequiresReview";
+            status = ResultStatus.RequiresReview;
             reported = nonNumericValue;
 
             reading = new CountTestReading
@@ -966,7 +967,7 @@ public sealed class IncubationStepRecorder : TestWorkflowSupport
         await Task.CompletedTask;
         var growthObserved = payload.Observation != GrowthObservation.NoGrowth;
         return step.IsFinalStep
-            ? (growthObserved ? "Detected" : "Absent")
+            ? (growthObserved ? ResultStatus.Detected : ResultStatus.Absent)
             : (growthObserved ? "Growth" : "No Growth");
     }
 

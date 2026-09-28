@@ -1,3 +1,4 @@
+using MicroLIMS.Domain.Constants;
 using MicroLIMS.Application.Abstractions.Pdf;
 namespace MicroLIMS.Infrastructure.Pdf;
 
@@ -339,10 +340,10 @@ public class ReportPdfRenderer
     // CFU/count severity ladder and the pathogen Detected/Absent call.
     private static PdfColor LocationStatusColor(string status) => status switch
     {
-        "WithinLimits" or "Absent" => Positive,
-        "LimitsNotConfigured" or "AlertLimitExceeded" => Warning,
-        "ActionLimitExceeded" => ActionOrange,
-        "OutOfSpecification" or "Detected" => Danger,
+        ResultStatus.WithinLimits or ResultStatus.Absent => Positive,
+        ResultStatus.LimitsNotConfigured or ResultStatus.AlertLimitExceeded => Warning,
+        ResultStatus.ActionLimitExceeded => ActionOrange,
+        ResultStatus.OutOfSpecification or ResultStatus.Detected => Danger,
         _ => TextTertiary
     };
 

@@ -1,3 +1,4 @@
+using MicroLIMS.Domain.Constants;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 
@@ -14,47 +15,47 @@ public static class SpecificationEvaluator
             case LimitType.Range:
             {
                 if (!spec.LowerLimit.HasValue && !spec.UpperLimit.HasValue)
-                    return "LimitsNotConfigured";
+                    return ResultStatus.LimitsNotConfigured;
 
                 if (spec.LowerLimit.HasValue)
                 {
                     bool outOfLower = spec.LowerInclusive ? value < spec.LowerLimit.Value : value <= spec.LowerLimit.Value;
                     if (outOfLower)
-                        return "OutOfSpecification";
+                        return ResultStatus.OutOfSpecification;
                 }
 
                 if (spec.UpperLimit.HasValue)
                 {
                     bool outOfUpper = spec.UpperInclusive ? value > spec.UpperLimit.Value : value >= spec.UpperLimit.Value;
                     if (outOfUpper)
-                        return "OutOfSpecification";
+                        return ResultStatus.OutOfSpecification;
                 }
 
-                return "WithinLimits";
+                return ResultStatus.WithinLimits;
             }
 
             case LimitType.NotMoreThan:
             {
                 if (!spec.UpperLimit.HasValue)
-                    return "LimitsNotConfigured";
+                    return ResultStatus.LimitsNotConfigured;
 
                 bool outOfUpper = spec.UpperInclusive ? value > spec.UpperLimit.Value : value >= spec.UpperLimit.Value;
-                return outOfUpper ? "OutOfSpecification" : "WithinLimits";
+                return outOfUpper ? ResultStatus.OutOfSpecification : ResultStatus.WithinLimits;
             }
 
             case LimitType.NotLessThan:
             {
                 if (!spec.LowerLimit.HasValue)
-                    return "LimitsNotConfigured";
+                    return ResultStatus.LimitsNotConfigured;
 
                 bool outOfLower = spec.LowerInclusive ? value < spec.LowerLimit.Value : value <= spec.LowerLimit.Value;
-                return outOfLower ? "OutOfSpecification" : "WithinLimits";
+                return outOfLower ? ResultStatus.OutOfSpecification : ResultStatus.WithinLimits;
             }
 
             case LimitType.TargetWithTolerance:
             {
                 if (!spec.Target.HasValue || !spec.Tolerance.HasValue)
-                    return "LimitsNotConfigured";
+                    return ResultStatus.LimitsNotConfigured;
 
                 decimal tol = spec.ToleranceMode == ToleranceMode.Percent
                     ? (spec.Target.Value * spec.Tolerance.Value / 100m)
@@ -64,9 +65,9 @@ public static class SpecificationEvaluator
                 decimal max = spec.Target.Value + tol;
 
                 if (value < min || value > max)
-                    return "OutOfSpecification";
+                    return ResultStatus.OutOfSpecification;
 
-                return "WithinLimits";
+                return ResultStatus.WithinLimits;
             }
 
             case LimitType.CountTiered:

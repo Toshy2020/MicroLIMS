@@ -1,3 +1,4 @@
+using MicroLIMS.Domain.Constants;
 using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -98,11 +99,11 @@ public class ResultProjectionService
     // - just mapping the already-decided status string onto ResultLevel.
     private static ResultLevel MapResultLevel(string? status) => status switch
     {
-        "OutOfSpecification" => ResultLevel.OutOfSpecification,
-        "ActionLimitExceeded" => ResultLevel.ActionLevel,
-        "AlertLimitExceeded" => ResultLevel.AlertLevel,
-        "WithinLimits" => ResultLevel.WithinLimit,
-        "LimitsNotConfigured" => ResultLevel.LimitsNotConfigured,
+        ResultStatus.OutOfSpecification => ResultLevel.OutOfSpecification,
+        ResultStatus.ActionLimitExceeded => ResultLevel.ActionLevel,
+        ResultStatus.AlertLimitExceeded => ResultLevel.AlertLevel,
+        ResultStatus.WithinLimits => ResultLevel.WithinLimit,
+        ResultStatus.LimitsNotConfigured => ResultLevel.LimitsNotConfigured,
         _ => ResultLevel.NotApplicable
     };
 
@@ -259,7 +260,7 @@ public class ResultProjectionService
         var reportedValue = finalResult.RequiresBiochemical
             ? "Pending Confirmation"
             : finalResult.SkippedBiochemical || finalResult.BiochemicalResultText is not null
-                ? "Detected"
+                ? ResultStatus.Detected
                 : "Not Detected";
         var enteredByUserId = finalResult.SubmittedByUserId;
         var enteredAt = finalResult.SubmittedAtUtc;

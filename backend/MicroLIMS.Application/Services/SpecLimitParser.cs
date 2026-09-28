@@ -1,3 +1,4 @@
+using MicroLIMS.Domain.Constants;
 using System.Globalization;
 using System.Text.RegularExpressions;
 
@@ -208,20 +209,20 @@ public static class SpecLimitParser
     {
         var specLimit = Parse(spec);
         if (specLimit.HasLimit && specLimit.IsExceededBy(value))
-            return ("OutOfSpecification", "Specification");
+            return (ResultStatus.OutOfSpecification, "Specification");
 
         var actionLimit = Parse(action);
         if (actionLimit.HasLimit && actionLimit.IsExceededBy(value))
-            return ("ActionLimitExceeded", "Action");
+            return (ResultStatus.ActionLimitExceeded, "Action");
 
         var alertLimit = Parse(alert);
         if (alertLimit.HasLimit && alertLimit.IsExceededBy(value))
-            return ("AlertLimitExceeded", "Alert");
+            return (ResultStatus.AlertLimitExceeded, "Alert");
 
         if (!specLimit.HasLimit && !actionLimit.HasLimit && !alertLimit.HasLimit)
-            return ("LimitsNotConfigured", null);
+            return (ResultStatus.LimitsNotConfigured, null);
 
-        return ("WithinLimits", null);
+        return (ResultStatus.WithinLimits, null);
     }
 
     public static string CompareAgainstLimits(decimal value, string? alert, string? action, string? spec) =>

@@ -1,3 +1,4 @@
+using MicroLIMS.Domain.Constants;
 using MicroLIMS.Shared.Exceptions;
 using System.Globalization;
 using System.Text.Json;
@@ -155,12 +156,12 @@ public sealed class ElementalAssayRecorder : TestWorkflowSupport
 
             if (elemInput.OverRange)
             {
-                status = "RequiresReview";
+                status = ResultStatus.RequiresReview;
                 reportedDisplay = "Over range";
             }
             else if (elemInput.BelowLoq)
             {
-                status = spec.LimitType == LimitType.NotMoreThan ? "WithinLimits" : "RequiresReview";
+                status = spec.LimitType == LimitType.NotMoreThan ? ResultStatus.WithinLimits : ResultStatus.RequiresReview;
                 reportedDisplay = "<LOQ";
             }
             else
@@ -283,12 +284,12 @@ public sealed class ElementalAssayRecorder : TestWorkflowSupport
         _db.TestAnalyses.Add(entry);
 
         string overallStatus;
-        if (elementResults.Any(r => r.ComparisonStatus == "OutOfSpecification"))
-            overallStatus = "OutOfSpecification";
-        else if (elementResults.Any(r => r.ComparisonStatus == "RequiresReview"))
-            overallStatus = "RequiresReview";
-        else if (elementResults.Any(r => r.ComparisonStatus == "WithinLimits"))
-            overallStatus = "WithinLimits";
+        if (elementResults.Any(r => r.ComparisonStatus == ResultStatus.OutOfSpecification))
+            overallStatus = ResultStatus.OutOfSpecification;
+        else if (elementResults.Any(r => r.ComparisonStatus == ResultStatus.RequiresReview))
+            overallStatus = ResultStatus.RequiresReview;
+        else if (elementResults.Any(r => r.ComparisonStatus == ResultStatus.WithinLimits))
+            overallStatus = ResultStatus.WithinLimits;
         else
             overallStatus = elementResults.First().ComparisonStatus;
 

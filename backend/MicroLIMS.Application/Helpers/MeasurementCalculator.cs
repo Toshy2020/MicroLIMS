@@ -1,3 +1,4 @@
+using MicroLIMS.Domain.Constants;
 using System.Globalization;
 using System.Text.Json;
 using MicroLIMS.Application.Services;
@@ -105,20 +106,20 @@ public static class MeasurementCalculator
 
             case MeasurementEvaluationBasis.EachValue:
                 reportedValue = mean;
-                comparisonStatus = "WithinLimits";
+                comparisonStatus = ResultStatus.WithinLimits;
                 foreach (var r in readings)
                 {
                     var readingStatus = SpecificationEvaluator.Evaluate(spec, r);
-                    if (readingStatus == "OutOfSpecification")
+                    if (readingStatus == ResultStatus.OutOfSpecification)
                     {
-                        comparisonStatus = "OutOfSpecification";
+                        comparisonStatus = ResultStatus.OutOfSpecification;
                         break;
                     }
-                    if (readingStatus == "RequiresReview" && comparisonStatus != "OutOfSpecification")
+                    if (readingStatus == ResultStatus.RequiresReview && comparisonStatus != ResultStatus.OutOfSpecification)
                     {
-                        comparisonStatus = "RequiresReview";
+                        comparisonStatus = ResultStatus.RequiresReview;
                     }
-                    else if (readingStatus != "WithinLimits" && comparisonStatus == "WithinLimits")
+                    else if (readingStatus != ResultStatus.WithinLimits && comparisonStatus == ResultStatus.WithinLimits)
                     {
                         comparisonStatus = readingStatus;
                     }

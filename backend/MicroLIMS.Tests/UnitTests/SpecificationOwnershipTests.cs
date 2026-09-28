@@ -1,3 +1,4 @@
+using MicroLIMS.Application.DTOs;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -91,11 +92,11 @@ public class SpecificationOwnershipTests
         };
     }
 
-    private static MasterDataController BuildController(MicroLimsDbContext db, User actingAs)
+    private static MasterDataControllers BuildController(MicroLimsDbContext db, User actingAs)
     {
         var scope = new UserSectionScopeService(db);
         var colService = new ChromatographyColumnService(db, scope);
-        var controller = new MasterDataController(
+        var controller = new MasterDataControllers(
             db,
             new EquipmentConfigurationService(db),
             TestServiceFactory.MediaProduct(db),
@@ -191,7 +192,7 @@ public class SpecificationOwnershipTests
         var controller = BuildController(db, f.MicroHead);
 
         var request = new UpdateSpecificationRequest("TAMC", ParameterName: "TAMC limit", LimitType: LimitType.NotMoreThan, UpperLimit: 200, SpecLimit: "NMT 200", Unit: "cfu/g");
-        var result = await controller.UpdateSpecification(spec.Id, request);
+        var result = await controller.Specification.UpdateSpecification(spec.Id, request);
 
         Assert.IsType<OkObjectResult>(result);
         var updated = await db.Specifications.FindAsync(spec.Id);
@@ -207,7 +208,7 @@ public class SpecificationOwnershipTests
         var controller = BuildController(db, f.MicroHead);
 
         var request = new UpdateSpecificationRequest("ASSAY", ParameterName: "Assay limit", LimitType: LimitType.NotMoreThan, UpperLimit: 200, SpecLimit: "NMT 200", Unit: "%");
-        var ex = await Assert.ThrowsAsync<UnauthorizedAccessException>(() => controller.UpdateSpecification(spec.Id, request));
+        var ex = await Assert.ThrowsAsync<UnauthorizedAccessException>(() => controller.Specification.UpdateSpecification(spec.Id, request));
         Assert.Equal("This specification belongs to Finished Product Laboratory - only its Section Head can change it.", ex.Message);
     }
 
@@ -222,7 +223,7 @@ public class SpecificationOwnershipTests
         // Reassigning a micro-owned row to an FP test code is forbidden even
         // though the row currently belongs to micro's own lab.
         var request = new UpdateSpecificationRequest("ASSAY", ParameterName: "TAMC limit", LimitType: LimitType.NotMoreThan, UpperLimit: 200, SpecLimit: "NMT 200", Unit: "cfu/g");
-        var ex = await Assert.ThrowsAsync<UnauthorizedAccessException>(() => controller.UpdateSpecification(spec.Id, request));
+        var ex = await Assert.ThrowsAsync<UnauthorizedAccessException>(() => controller.Specification.UpdateSpecification(spec.Id, request));
         Assert.Equal("This specification belongs to Finished Product Laboratory - only its Section Head can change it.", ex.Message);
 
         // Row must be unchanged.
@@ -238,7 +239,7 @@ public class SpecificationOwnershipTests
         var spec = SeedSpec(db, f.Item.Id, "ASSAY", "Assay limit");
         var controller = BuildController(db, f.MicroHead);
 
-        var ex = await Assert.ThrowsAsync<UnauthorizedAccessException>(() => controller.DeleteSpecification(spec.Id));
+        var ex = await Assert.ThrowsAsync<UnauthorizedAccessException>(() => controller.Specification.DeleteSpecification(spec.Id));
         Assert.Equal("This specification belongs to Finished Product Laboratory - only its Section Head can change it.", ex.Message);
 
         Assert.NotNull(await db.Specifications.FindAsync(spec.Id));
@@ -252,7 +253,7 @@ public class SpecificationOwnershipTests
         var spec = SeedSpec(db, f.Item.Id, "ASSAY", "Assay limit");
         var controller = BuildController(db, f.Admin);
 
-        var result = await controller.DeleteSpecification(spec.Id);
+        var result = await controller.Specification.DeleteSpecification(spec.Id);
 
         Assert.IsType<OkObjectResult>(result);
         Assert.Null(await db.Specifications.FindAsync(spec.Id));
@@ -266,7 +267,7 @@ public class SpecificationOwnershipTests
         var controller = BuildController(db, f.FpHead);
 
         var request = new CreateSpecificationRequest(f.Item.Id, "TAMC", ParameterName: "TAMC limit", LimitType: LimitType.NotMoreThan, UpperLimit: 100, SpecLimit: "NMT 100", Unit: "cfu/g");
-        var ex = await Assert.ThrowsAsync<UnauthorizedAccessException>(() => controller.CreateSpecification(request));
+        var ex = await Assert.ThrowsAsync<UnauthorizedAccessException>(() => controller.Specification.CreateSpecification(request));
         Assert.Equal("This specification belongs to Microbiology Laboratory - only its Section Head can change it.", ex.Message);
     }
 
@@ -278,7 +279,7 @@ public class SpecificationOwnershipTests
         var controller = BuildController(db, f.Admin);
 
         var request = new CreateSpecificationRequest(f.Item.Id, "ASSAY", ParameterName: "Assay limit", LimitType: LimitType.NotMoreThan, UpperLimit: 100, SpecLimit: "NMT 100", Unit: "%");
-        var result = await controller.CreateSpecification(request);
+        var result = await controller.Specification.CreateSpecification(request);
 
         Assert.IsType<OkObjectResult>(result);
         Assert.Single(db.Specifications.Where(s => s.TestCode == "ASSAY"));
@@ -293,7 +294,7 @@ public class SpecificationOwnershipTests
         SeedSpec(db, f.Item.Id, "ASSAY", "Assay limit");
         var controller = BuildController(db, f.MicroHead);
 
-        var result = await controller.GetSpecifications(f.Item.Id);
+        var result = await controller.Specification.GetSpecifications(f.Item.Id);
         var ok = Assert.IsType<OkObjectResult>(result);
         var response = Assert.IsType<ApiResponse<object>>(ok.Value);
         var rows = Assert.IsType<List<SpecificationRowDto>>(response.Data);
@@ -316,7 +317,7 @@ public class SpecificationOwnershipTests
         SeedSpec(db, f.Item.Id, "ASSAY", "Assay limit");
         var controller = BuildController(db, f.Admin);
 
-        var result = await controller.GetSpecifications(f.Item.Id);
+        var result = await controller.Specification.GetSpecifications(f.Item.Id);
         var ok = Assert.IsType<OkObjectResult>(result);
         var response = Assert.IsType<ApiResponse<object>>(ok.Value);
         var rows = Assert.IsType<List<SpecificationRowDto>>(response.Data);

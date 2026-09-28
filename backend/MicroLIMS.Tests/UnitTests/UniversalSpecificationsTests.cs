@@ -1,3 +1,4 @@
+using MicroLIMS.Application.DTOs;
 using System.Globalization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -372,7 +373,7 @@ public class UniversalSpecificationsTests
         db.SampleTests.Add(new SampleTest { Item = item, TestCode = "TAMC", DisplayName = "Total Aerobic Microbial Count" });
         await db.SaveChangesAsync();
 
-        var controller = new MasterDataController(
+        var controller = new MasterDataControllers(
             db,
             new EquipmentConfigurationService(db),
             TestServiceFactory.MediaProduct(db),
@@ -411,7 +412,7 @@ public class UniversalSpecificationsTests
             Unit: "CFU/g",
             DilutionFactor: 10m);
 
-        var actionResult = await controller.CreateSpecification(oldRequest);
+        var actionResult = await controller.Specification.CreateSpecification(oldRequest);
         var okResult = Assert.IsType<OkObjectResult>(actionResult);
         var envelope = Assert.IsType<ApiResponse<object>>(okResult.Value);
         var createdSpec = Assert.IsType<Specification>(envelope.Data);
@@ -425,7 +426,7 @@ public class UniversalSpecificationsTests
         Assert.Equal(10m, createdSpec.DilutionFactor);
 
         // GET includes stages and returns the spec
-        var getResult = await controller.GetSpecifications(item.Id);
+        var getResult = await controller.Specification.GetSpecifications(item.Id);
         var getOk = Assert.IsType<OkObjectResult>(getResult);
         var getEnvelope = Assert.IsType<ApiResponse<object>>(getOk.Value);
         var list = Assert.IsAssignableFrom<IEnumerable<SpecificationRowDto>>(getEnvelope.Data);

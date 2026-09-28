@@ -1,3 +1,4 @@
+using MicroLIMS.Application.DTOs;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -21,7 +22,7 @@ public class GravimetricQualitativeMasterDataValidationTests
         return new MicroLimsDbContext(options);
     }
 
-    private static (DocumentSection fpSec, User fpHead, MasterDataController controller) SetupController(MicroLimsDbContext db)
+    private static (DocumentSection fpSec, User fpHead, MasterDataControllers controller) SetupController(MicroLimsDbContext db)
     {
         var microSec = TestServiceFactory.EnsureMicroSection(db);
         var fpSec = db.DocumentSections.FirstOrDefault(s => s.Code == "FP");
@@ -67,7 +68,7 @@ public class GravimetricQualitativeMasterDataValidationTests
 
         var scope = new UserSectionScopeService(db);
         var colService = new ChromatographyColumnService(db, scope);
-        var controller = new MasterDataController(
+        var controller = new MasterDataControllers(
             db,
             new EquipmentConfigurationService(db),
             TestServiceFactory.MediaProduct(db),
@@ -102,17 +103,17 @@ public class GravimetricQualitativeMasterDataValidationTests
             EquationType: EquationType.GravimetricLoss,
             ReplicateCount: null);
 
-        var exNull = await Assert.ThrowsAsync<InvalidOperationException>(() => controller.CreateTestDefinition(reqNull));
+        var exNull = await Assert.ThrowsAsync<InvalidOperationException>(() => controller.TestDefinition.CreateTestDefinition(reqNull));
         Assert.Contains("Replicate count must be between 1 and 30", exNull.Message);
 
         // ReplicateCount = 0
         var reqZero = reqNull with { ReplicateCount = 0 };
-        var exZero = await Assert.ThrowsAsync<InvalidOperationException>(() => controller.CreateTestDefinition(reqZero));
+        var exZero = await Assert.ThrowsAsync<InvalidOperationException>(() => controller.TestDefinition.CreateTestDefinition(reqZero));
         Assert.Contains("Replicate count must be between 1 and 30", exZero.Message);
 
         // ReplicateCount = 31
         var req31 = reqNull with { ReplicateCount = 31 };
-        var ex31 = await Assert.ThrowsAsync<InvalidOperationException>(() => controller.CreateTestDefinition(req31));
+        var ex31 = await Assert.ThrowsAsync<InvalidOperationException>(() => controller.TestDefinition.CreateTestDefinition(req31));
         Assert.Contains("Replicate count must be between 1 and 30", ex31.Message);
     }
 
@@ -131,7 +132,7 @@ public class GravimetricQualitativeMasterDataValidationTests
             ReplicateCount: 1,
             UsesTare: null);
 
-        var actionResult = await controller.CreateTestDefinition(req);
+        var actionResult = await controller.TestDefinition.CreateTestDefinition(req);
         var okResult = Assert.IsType<OkObjectResult>(actionResult);
         var response = Assert.IsType<ApiResponse<object>>(okResult.Value);
         var created = Assert.IsType<TestDefinition>(response.Data);
@@ -155,7 +156,7 @@ public class GravimetricQualitativeMasterDataValidationTests
             ConditionFields: "Temperature (°C), Time (h)",
             UsesTare: true);
 
-        var actionResult = await controller.CreateTestDefinition(req);
+        var actionResult = await controller.TestDefinition.CreateTestDefinition(req);
         var okResult = Assert.IsType<OkObjectResult>(actionResult);
         var response = Assert.IsType<ApiResponse<object>>(okResult.Value);
         var created = Assert.IsType<TestDefinition>(response.Data);
@@ -180,7 +181,7 @@ public class GravimetricQualitativeMasterDataValidationTests
             ReplicateCount: 1,
             ConditionFields: longConditions);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => controller.CreateTestDefinition(req));
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => controller.TestDefinition.CreateTestDefinition(req));
         Assert.Contains("Condition fields cannot exceed 500 characters", ex.Message);
     }
 
@@ -220,7 +221,7 @@ public class GravimetricQualitativeMasterDataValidationTests
             ConfirmatoryMediaCount: null,
             PhenotypicTestType: null);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => controller.CreateTestWorkflowStep(testDef.Id, stepReq));
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => controller.TestWorkflowStep.CreateTestWorkflowStep(testDef.Id, stepReq));
         Assert.Contains($"{wf} tests have no workflow steps", ex.Message);
     }
 }

@@ -5,7 +5,6 @@ using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Services;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
-using MicroLIMS.Persistence.DbContext;
 using MicroLIMS.Shared.Constants;
 using MicroLIMS.Shared.Responses;
 
@@ -20,19 +19,17 @@ public record UpdateRolePermissionsRequest(List<string> PermissionCodes);
 [Authorize(Roles = RoleConstants.SystemAdministrator)]
 public class RoleController : ControllerBase
 {
-    private readonly MicroLimsDbContext _db;
     private readonly RoleService _roleService;
 
-    public RoleController(MicroLimsDbContext db, RoleService roleService)
+    public RoleController(RoleService roleService)
     {
-        _db = db;
         _roleService = roleService;
     }
 
     private int CurrentUserId => int.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)!.Value);
 
     [HttpGet]
-    public async Task<IActionResult> GetAll() => Ok(ApiResponse<List<Role>>.Ok(await _db.Roles.AsNoTracking().ToListAsync()));
+    public async Task<IActionResult> GetAll() => Ok(ApiResponse<List<Role>>.Ok(await _roleService.GetAllAsync()));
 
     [HttpGet("{id}")]
     public async Task<IActionResult> GetById(int id)

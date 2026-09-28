@@ -925,7 +925,7 @@ public class SystemSuitabilitySliceA2Tests
         using var db = NewDb();
         var scope = new UserSectionScopeService(db);
         var colService = new ChromatographyColumnService(db, scope);
-        var controller = new MasterDataController(
+        var controller = new MasterDataControllers(
             db,
             new EquipmentConfigurationService(db),
             TestServiceFactory.MediaProduct(db),
@@ -933,7 +933,7 @@ public class SystemSuitabilitySliceA2Tests
             scope,
             colService);
 
-        var result = controller.GetEquationTypes() as Microsoft.AspNetCore.Mvc.OkObjectResult;
+        var result = controller.TestDefinition.GetEquationTypes() as Microsoft.AspNetCore.Mvc.OkObjectResult;
         Assert.NotNull(result);
         var envelope = result.Value as ApiResponse<object>;
         Assert.NotNull(envelope);
@@ -954,7 +954,7 @@ public class SystemSuitabilitySliceA2Tests
         var (fpSec, _, fpUser, _, _) = SeedSectionsAndUsers(db);
         var scope = new UserSectionScopeService(db);
         var colService = new ChromatographyColumnService(db, scope);
-        var controller = new MasterDataController(
+        var controller = new MasterDataControllers(
             db,
             new EquipmentConfigurationService(db),
             TestServiceFactory.MediaProduct(db),
@@ -983,7 +983,7 @@ public class SystemSuitabilitySliceA2Tests
             MethodAbbreviation: null,
             SstMaxRsdPercent: 2.0m);
 
-        var ex1 = await Assert.ThrowsAsync<InvalidOperationException>(() => controller.CreateTestDefinition(reqNoAbbr));
+        var ex1 = await Assert.ThrowsAsync<InvalidOperationException>(() => controller.TestDefinition.CreateTestDefinition(reqNoAbbr));
         Assert.Contains("Method abbreviation is required", ex1.Message);
 
         // 2. Invalid MethodAbbreviation format (contains spaces or special chars)
@@ -995,7 +995,7 @@ public class SystemSuitabilitySliceA2Tests
             MethodAbbreviation: "VIT C ASSAY!",
             SstMaxRsdPercent: 2.0m);
 
-        var ex2 = await Assert.ThrowsAsync<InvalidOperationException>(() => controller.CreateTestDefinition(reqBadAbbr));
+        var ex2 = await Assert.ThrowsAsync<InvalidOperationException>(() => controller.TestDefinition.CreateTestDefinition(reqBadAbbr));
         Assert.Contains("Method abbreviation must be", ex2.Message);
 
         // 3. Missing all SST criteria
@@ -1006,7 +1006,7 @@ public class SystemSuitabilitySliceA2Tests
             RequiresSystemSuitability: true,
             MethodAbbreviation: "VIT-C");
 
-        var ex3 = await Assert.ThrowsAsync<InvalidOperationException>(() => controller.CreateTestDefinition(reqNoCriteria));
+        var ex3 = await Assert.ThrowsAsync<InvalidOperationException>(() => controller.TestDefinition.CreateTestDefinition(reqNoCriteria));
         Assert.Contains("At least one system suitability criterion is required", ex3.Message);
 
         // 4. Valid payload succeeds and upper-cases abbreviation
@@ -1018,7 +1018,7 @@ public class SystemSuitabilitySliceA2Tests
             MethodAbbreviation: "vit-c", // lowercase
             SstMaxRsdPercent: 2.0m);
 
-        var result = await controller.CreateTestDefinition(reqValid) as Microsoft.AspNetCore.Mvc.OkObjectResult;
+        var result = await controller.TestDefinition.CreateTestDefinition(reqValid) as Microsoft.AspNetCore.Mvc.OkObjectResult;
         Assert.NotNull(result);
         var envelope = result.Value as ApiResponse<object>;
         var created = envelope!.Data as TestDefinition;

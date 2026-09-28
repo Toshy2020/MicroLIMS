@@ -1,3 +1,4 @@
+using MicroLIMS.Application.DTOs;
 using MicroLIMS.Shared.Exceptions;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -23,7 +24,7 @@ public class MediaConfigurationMasterDataTests
         return db;
     }
 
-    private static MasterDataController CreateController(MicroLimsDbContext db) =>
+    private static MasterDataControllers CreateController(MicroLimsDbContext db) =>
         new(db, new EquipmentConfigurationService(db), TestServiceFactory.MediaProduct(db), TestServiceFactory.MediaIncubationCondition(db), new UserSectionScopeService(db), new ChromatographyColumnService(db, new UserSectionScopeService(db)));
 
     private static async Task<MediaConfiguration> AddConfigurationAsync(
@@ -61,7 +62,7 @@ public class MediaConfigurationMasterDataTests
         await db.SaveChangesAsync();
 
         var controller = CreateController(db);
-        var result = await controller.GetMediaConfigurations();
+        var result = await controller.Media.GetMediaConfigurations();
 
         var okResult = Assert.IsType<OkObjectResult>(result);
         var response = Assert.IsAssignableFrom<ApiResponse<object>>(okResult.Value);
@@ -92,7 +93,7 @@ public class MediaConfigurationMasterDataTests
             }
         );
 
-        var result = await controller.CreateMediaConfiguration(req);
+        var result = await controller.Media.CreateMediaConfiguration(req);
         var okResult = Assert.IsType<OkObjectResult>(result);
         var response = Assert.IsAssignableFrom<ApiResponse<object>>(okResult.Value);
         Assert.True(response.Success);
@@ -124,7 +125,7 @@ public class MediaConfigurationMasterDataTests
         var controller = CreateController(db);
         var req = new CreateMediaConfigurationRequest(9999, EvaluationType.GrowthPromotion, 1, null, null, null);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => controller.CreateMediaConfiguration(req));
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => controller.Media.CreateMediaConfiguration(req));
         Assert.Contains("Media product with ID 9999 not found", ex.Message);
     }
 
@@ -136,7 +137,7 @@ public class MediaConfigurationMasterDataTests
         var controller = CreateController(db);
         var req = new CreateMediaConfigurationRequest(product.Id, EvaluationType.GrowthPromotion, 9999, null, null, null);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => controller.CreateMediaConfiguration(req));
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => controller.Media.CreateMediaConfiguration(req));
         Assert.Equal("Incubation condition 9999 not found.", ex.Message);
         Assert.False(await db.MediaConfigurations.AnyAsync());
     }
@@ -151,7 +152,7 @@ public class MediaConfigurationMasterDataTests
         var controller = CreateController(db);
         var req = new CreateMediaConfigurationRequest(product.Id, EvaluationType.GrowthPromotion, otherCondition.Id, null, null, null);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => controller.CreateMediaConfiguration(req));
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => controller.Media.CreateMediaConfiguration(req));
         Assert.Contains("belongs to a different media product", ex.Message);
         Assert.False(await db.MediaConfigurations.AnyAsync());
     }
@@ -168,7 +169,7 @@ public class MediaConfigurationMasterDataTests
         var controller = CreateController(db);
         var req = new CreateMediaConfigurationRequest(product.Id, EvaluationType.GrowthPromotion, otherCondition.Id, null, null, null);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => controller.CreateMediaConfiguration(req));
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => controller.Media.CreateMediaConfiguration(req));
         Assert.Contains("already has an evaluation configuration", ex.Message);
         Assert.Single(await db.MediaConfigurations.ToListAsync());
     }
@@ -192,7 +193,7 @@ public class MediaConfigurationMasterDataTests
             }
         );
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => controller.CreateMediaConfiguration(req));
+        await Assert.ThrowsAsync<InvalidOperationException>(() => controller.Media.CreateMediaConfiguration(req));
     }
 
     [Fact]
@@ -226,7 +227,7 @@ public class MediaConfigurationMasterDataTests
             }
         );
 
-        var result = await controller.UpdateMediaConfiguration(config.Id, req);
+        var result = await controller.Media.UpdateMediaConfiguration(config.Id, req);
         var okResult = Assert.IsType<OkObjectResult>(result);
         var response = Assert.IsAssignableFrom<ApiResponse<object>>(okResult.Value);
         Assert.True(response.Success);
@@ -262,7 +263,7 @@ public class MediaConfigurationMasterDataTests
         var controller = CreateController(db);
         var req = new UpdateMediaConfigurationRequest(product2.Id, EvaluationType.GrowthPromotion, condition2.Id, null, null, null);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => controller.UpdateMediaConfiguration(config.Id, req));
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => controller.Media.UpdateMediaConfiguration(config.Id, req));
         Assert.Contains("can't be moved to another media product", ex.Message);
 
         var reloaded = await db.MediaConfigurations.AsNoTracking().SingleAsync(m => m.Id == config.Id);
@@ -281,7 +282,7 @@ public class MediaConfigurationMasterDataTests
         var controller = CreateController(db);
         var req = new UpdateMediaConfigurationRequest(product.Id, EvaluationType.GrowthPromotion, 9999, 80.0m, 150.0m, null);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => controller.UpdateMediaConfiguration(config.Id, req));
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => controller.Media.UpdateMediaConfiguration(config.Id, req));
         Assert.Equal("Incubation condition 9999 not found.", ex.Message);
 
         var reloaded = await db.MediaConfigurations.AsNoTracking().SingleAsync(m => m.Id == config.Id);
@@ -302,7 +303,7 @@ public class MediaConfigurationMasterDataTests
         var controller = CreateController(db);
         var req = new UpdateMediaConfigurationRequest(product.Id, EvaluationType.GrowthPromotion, otherCondition.Id, null, null, null);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => controller.UpdateMediaConfiguration(config.Id, req));
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => controller.Media.UpdateMediaConfiguration(config.Id, req));
         Assert.Contains("belongs to a different media product", ex.Message);
 
         var reloaded = await db.MediaConfigurations.AsNoTracking().SingleAsync(m => m.Id == config.Id);
@@ -318,7 +319,7 @@ public class MediaConfigurationMasterDataTests
         var controller = CreateController(db);
         var req = new UpdateMediaConfigurationRequest(product.Id, EvaluationType.GrowthPromotion, condition.Id, null, null, null);
 
-        await Assert.ThrowsAsync<NotFoundException>(() => controller.UpdateMediaConfiguration(9999, req));
+        await Assert.ThrowsAsync<NotFoundException>(() => controller.Media.UpdateMediaConfiguration(9999, req));
     }
 
     [Fact]
@@ -330,7 +331,7 @@ public class MediaConfigurationMasterDataTests
         var config = await AddConfigurationAsync(db, product, condition);
 
         var controller = CreateController(db);
-        var result = await controller.DeleteMediaConfiguration(config.Id);
+        var result = await controller.Media.DeleteMediaConfiguration(config.Id);
 
         Assert.IsType<OkObjectResult>(result);
         Assert.False(await db.MediaConfigurations.AnyAsync(m => m.Id == config.Id));

@@ -1,3 +1,4 @@
+using MicroLIMS.Application.Services.MasterData;
 using MicroLIMS.Persistence.DbContext;
 using Microsoft.EntityFrameworkCore;
 using Amazon.Runtime;
@@ -64,7 +65,8 @@ public static class ServiceCollectionExtensions
         services.AddScoped<ISecurityAuditService, SecurityAuditService>();
 
         services.AddScoped<IAuthenticationService, AuthenticationService>();
-        services.AddScoped<IElectronicSignatureService, ElectronicSignatureService>();
+        services.AddScoped<ElectronicSignatureService>();
+        services.AddScoped<IElectronicSignatureService>(sp => sp.GetRequiredService<ElectronicSignatureService>());
         services.AddScoped<SegregationOfDutiesGuard>();
         services.AddScoped<ReviewService>();
         services.AddScoped<ApprovalService>();
@@ -87,6 +89,8 @@ public static class ServiceCollectionExtensions
         services.AddScoped<MyTasksService>();
         services.AddScoped<GroupedTestActionService>();
         services.AddScoped<CurrentStepViewService>();
+        services.AddScoped<TestWorkflowQueryService>();
+        services.AddScoped<ReceiptLabService>();
         services.AddScoped<MediaExpiryService>();
         services.AddScoped<KpiService>();
         services.AddScoped<CryovialService>();
@@ -167,6 +171,20 @@ public static class ServiceCollectionExtensions
         services.AddScoped<MediaGptReportService>();
         services.AddScoped<ReferenceStrainReportService>();
         services.AddScoped<DataExportAuditService>();
+
+        // Master data (api/masterdata/...)
+        services.AddScoped<WaterMasterDataService>();
+        services.AddScoped<EnvironmentalMonitoringMasterDataService>();
+        services.AddScoped<AfterCleaningMasterDataService>();
+        services.AddScoped<SpecificationMasterDataService>();
+        services.AddScoped<ReferenceListMasterDataService>();
+        services.AddScoped<EquipmentMasterDataService>();
+        services.AddScoped<MediaMasterDataService>();
+        services.AddScoped<OrganismMasterDataService>();
+        services.AddScoped<TestDefinitionMasterDataService>();
+        services.AddScoped<TestWorkflowStepMasterDataService>();
+        services.AddScoped<TestAnalyteMasterDataService>();
+        services.AddScoped<TestStageReplicateMasterDataService>();
 
         // Validators
         services.AddScoped<ReceiveSampleValidator>();

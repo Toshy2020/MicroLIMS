@@ -1,3 +1,4 @@
+using MicroLIMS.Application.DTOs;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
@@ -25,7 +26,7 @@ public class TestMasterStepMediaConditionTests
         return db;
     }
 
-    private static MasterDataController CreateController(MicroLimsDbContext db) =>
+    private static MasterDataControllers CreateController(MicroLimsDbContext db) =>
         new(
             db,
             new EquipmentConfigurationService(db),
@@ -105,7 +106,7 @@ public class TestMasterStepMediaConditionTests
         var material = await SeedMaterialAsync(db, product);
 
         var request = CreateRequest(material.Id, condition.Id);
-        var result = await controller.CreateTestWorkflowStep(testDefinition.Id, request);
+        var result = await controller.TestWorkflowStep.CreateTestWorkflowStep(testDefinition.Id, request);
 
         Assert.IsType<OkObjectResult>(result);
         var stepMedia = await db.TestWorkflowStepMedias.SingleAsync();
@@ -129,7 +130,7 @@ public class TestMasterStepMediaConditionTests
         var request = CreateRequest(material.Id, null);
 
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            controller.CreateTestWorkflowStep(testDefinition.Id, request));
+            controller.TestWorkflowStep.CreateTestWorkflowStep(testDefinition.Id, request));
 
         Assert.Contains("Choose an incubation condition for medium 'Tryptic Soy Agar'", ex.Message);
         Assert.Empty(db.TestWorkflowSteps);
@@ -149,7 +150,7 @@ public class TestMasterStepMediaConditionTests
         var request = CreateRequest(material.Id, condition.Id);
 
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            controller.CreateTestWorkflowStep(testDefinition.Id, request));
+            controller.TestWorkflowStep.CreateTestWorkflowStep(testDefinition.Id, request));
 
         Assert.Contains("isn't linked to a media product", ex.Message);
         Assert.Empty(db.TestWorkflowSteps);
@@ -168,7 +169,7 @@ public class TestMasterStepMediaConditionTests
         var request = CreateRequest(material.Id, 9999);
 
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            controller.CreateTestWorkflowStep(testDefinition.Id, request));
+            controller.TestWorkflowStep.CreateTestWorkflowStep(testDefinition.Id, request));
 
         Assert.Equal("Incubation condition 9999 not found.", ex.Message);
         Assert.Empty(db.TestWorkflowSteps);
@@ -190,7 +191,7 @@ public class TestMasterStepMediaConditionTests
         var request = CreateRequest(material.Id, condition.Id);
 
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            controller.CreateTestWorkflowStep(testDefinition.Id, request));
+            controller.TestWorkflowStep.CreateTestWorkflowStep(testDefinition.Id, request));
 
         Assert.Contains("belongs to a different media product", ex.Message);
         Assert.Empty(db.TestWorkflowSteps);
@@ -206,7 +207,7 @@ public class TestMasterStepMediaConditionTests
         var request = CreateRequest(9999, null);
 
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            controller.CreateTestWorkflowStep(testDefinition.Id, request));
+            controller.TestWorkflowStep.CreateTestWorkflowStep(testDefinition.Id, request));
 
         Assert.Equal("Material 9999 not found.", ex.Message);
         Assert.Empty(db.TestWorkflowSteps);
@@ -241,11 +242,11 @@ public class TestMasterStepMediaConditionTests
         var conditionB = await MediaProductTestData.AddConditionAsync(db, product, 48, 72, 20m, 25m);
 
         var createRequest = CreateRequest(material.Id, conditionA.Id);
-        await controller.CreateTestWorkflowStep(testDefinition.Id, createRequest);
+        await controller.TestWorkflowStep.CreateTestWorkflowStep(testDefinition.Id, createRequest);
         var stepId = (await db.TestWorkflowSteps.SingleAsync()).Id;
 
         var updateRequest = CreateUpdateRequest(material.Id, conditionB.Id);
-        var result = await controller.UpdateTestWorkflowStep(stepId, updateRequest);
+        var result = await controller.TestWorkflowStep.UpdateTestWorkflowStep(stepId, updateRequest);
 
         Assert.IsType<OkObjectResult>(result);
         var stepMedia = await db.TestWorkflowStepMedias.SingleAsync();
@@ -268,12 +269,12 @@ public class TestMasterStepMediaConditionTests
         var conditionA = await MediaProductTestData.AddConditionAsync(db, product, 24, 48, 30m, 35m);
 
         var createRequest = CreateRequest(material.Id, conditionA.Id);
-        await controller.CreateTestWorkflowStep(testDefinition.Id, createRequest);
+        await controller.TestWorkflowStep.CreateTestWorkflowStep(testDefinition.Id, createRequest);
         var stepId = (await db.TestWorkflowSteps.SingleAsync()).Id;
 
         var updateRequest = CreateUpdateRequest(material.Id, null);
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            controller.UpdateTestWorkflowStep(stepId, updateRequest));
+            controller.TestWorkflowStep.UpdateTestWorkflowStep(stepId, updateRequest));
 
         Assert.Contains("Choose an incubation condition", ex.Message);
 

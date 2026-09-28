@@ -1,8 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Services;
-using MicroLIMS.Persistence.DbContext;
 using MicroLIMS.Shared.Constants;
 using MicroLIMS.Shared.Responses;
 
@@ -16,18 +14,14 @@ public class AuditController : ControllerBase
     private readonly AuditService _auditService;
     private readonly AuditSearchService _auditSearchService;
     private readonly AuditTraceabilityService _traceabilityService;
-    private readonly MicroLimsDbContext _db;
-
     public AuditController(
         AuditService auditService,
         AuditSearchService auditSearchService,
-        AuditTraceabilityService traceabilityService,
-        MicroLimsDbContext db)
+        AuditTraceabilityService traceabilityService)
     {
         _auditService = auditService;
         _auditSearchService = auditSearchService;
         _traceabilityService = traceabilityService;
-        _db = db;
     }
 
     [HttpGet]
@@ -58,11 +52,6 @@ public class AuditController : ControllerBase
     }
 
     [HttpGet("login-history")]
-    public async Task<IActionResult> GetLoginHistory([FromQuery] string? username, [FromQuery] int take = 100)
-    {
-        var query = _db.LoginHistories.AsQueryable();
-        if (!string.IsNullOrWhiteSpace(username)) query = query.Where(l => l.Username == username);
-        var history = await query.OrderByDescending(l => l.Timestamp).Take(take).ToListAsync();
-        return Ok(ApiResponse<object>.Ok(history));
-    }
+    public async Task<IActionResult> GetLoginHistory([FromQuery] string? username, [FromQuery] int take = 100) =>
+        Ok(ApiResponse<object>.Ok(await _auditService.GetLoginHistoryAsync(username, take)));
 }

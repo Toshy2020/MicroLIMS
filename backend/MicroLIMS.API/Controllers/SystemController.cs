@@ -6,7 +6,6 @@ using MicroLIMS.API.Middleware;
 using MicroLIMS.Application.DTOs;
 using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Domain.Enums;
-using MicroLIMS.Persistence.DbContext;
 using MicroLIMS.Shared.Responses;
 using System.Security.Claims;
 using System.Text.Json;
@@ -48,7 +47,6 @@ public class SystemController : ControllerBase
     [RequestSizeLimit(32 * 1024)]
     public async Task<IActionResult> ReportClientError(
         [FromBody] ClientErrorReportRequest request,
-        [FromServices] MicroLimsDbContext db,
         CancellationToken cancellationToken)
     {
         var correlationId = ResolveCorrelationId(request.CorrelationId);
@@ -78,7 +76,6 @@ public class SystemController : ControllerBase
         {
             userId = parsed;
         }
-        userId ??= db.CurrentUserId;
 
         var stack = Truncate(request.Stack, StackMaxLength);
         var componentStack = Truncate(request.ComponentStack, StackMaxLength);

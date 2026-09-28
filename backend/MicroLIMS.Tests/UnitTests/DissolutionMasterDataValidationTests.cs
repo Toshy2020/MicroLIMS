@@ -1,3 +1,4 @@
+using MicroLIMS.Application.DTOs;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -21,7 +22,7 @@ public class DissolutionMasterDataValidationTests
         return new MicroLimsDbContext(options);
     }
 
-    private static (DocumentSection fpSec, User fpHead, MasterDataController controller) SetupController(MicroLimsDbContext db)
+    private static (DocumentSection fpSec, User fpHead, MasterDataControllers controller) SetupController(MicroLimsDbContext db)
     {
         var microSec = TestServiceFactory.EnsureMicroSection(db);
         var fpSec = db.DocumentSections.FirstOrDefault(s => s.Code == "FP");
@@ -67,7 +68,7 @@ public class DissolutionMasterDataValidationTests
 
         var scope = new UserSectionScopeService(db);
         var colService = new ChromatographyColumnService(db, scope);
-        var controller = new MasterDataController(
+        var controller = new MasterDataControllers(
             db,
             new EquipmentConfigurationService(db),
             TestServiceFactory.MediaProduct(db),
@@ -102,7 +103,7 @@ public class DissolutionMasterDataValidationTests
             EquationType: EquationType.None,
             RequiresSystemSuitability: true, MethodAbbreviation: "DIS", SstMaxRsdPercent: 2.0m);
 
-        var ex1 = await Assert.ThrowsAsync<InvalidOperationException>(() => controller.CreateTestDefinition(req1));
+        var ex1 = await Assert.ThrowsAsync<InvalidOperationException>(() => controller.TestDefinition.CreateTestDefinition(req1));
         Assert.Contains("Equation type must be Dissolution", ex1.Message);
 
         // Equation Dissolution but Workflow None/Observation -> fails
@@ -114,7 +115,7 @@ public class DissolutionMasterDataValidationTests
             EquationType: EquationType.Dissolution,
             RequiresSystemSuitability: true, MethodAbbreviation: "DIS", SstMaxRsdPercent: 2.0m);
 
-        var ex2 = await Assert.ThrowsAsync<InvalidOperationException>(() => controller.CreateTestDefinition(req2));
+        var ex2 = await Assert.ThrowsAsync<InvalidOperationException>(() => controller.TestDefinition.CreateTestDefinition(req2));
         Assert.Contains("Workflow type must be Dissolution", ex2.Message);
     }
 
@@ -132,7 +133,7 @@ public class DissolutionMasterDataValidationTests
             EquationType: EquationType.Dissolution,
             RequiresSystemSuitability: false);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => controller.CreateTestDefinition(req));
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => controller.TestDefinition.CreateTestDefinition(req));
         Assert.Contains("must require system suitability", ex.Message);
     }
 
@@ -150,7 +151,7 @@ public class DissolutionMasterDataValidationTests
             EquationType: EquationType.Dissolution,
             RequiresSystemSuitability: true, MethodAbbreviation: "DIS", SstMaxRsdPercent: 2.0m);
 
-        var actionResult = await controller.CreateTestDefinition(req);
+        var actionResult = await controller.TestDefinition.CreateTestDefinition(req);
         var okResult = Assert.IsType<OkObjectResult>(actionResult);
         var response = Assert.IsType<ApiResponse<object>>(okResult.Value);
         var entity = Assert.IsType<TestDefinition>(response.Data);
@@ -176,7 +177,7 @@ public class DissolutionMasterDataValidationTests
             RequiresSystemSuitability: true, MethodAbbreviation: "DIS", SstMaxRsdPercent: 2.0m,
             DissolutionS1Offset: -1m);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => controller.CreateTestDefinition(req));
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => controller.TestDefinition.CreateTestDefinition(req));
         Assert.Contains("offsets must be greater than or equal to zero", ex.Message);
     }
 
@@ -214,7 +215,7 @@ public class DissolutionMasterDataValidationTests
             ConfirmatoryMediaCount: null,
             PhenotypicTestType: null);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => controller.CreateTestWorkflowStep(testDef.Id, stepReq));
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => controller.TestWorkflowStep.CreateTestWorkflowStep(testDef.Id, stepReq));
         Assert.Contains("no workflow steps", ex.Message);
     }
 

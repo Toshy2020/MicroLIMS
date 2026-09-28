@@ -1,3 +1,4 @@
+using MicroLIMS.Application.DTOs;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -21,7 +22,7 @@ public class DisintegrationMasterDataValidationTests
         return new MicroLimsDbContext(options);
     }
 
-    private static (DocumentSection fpSec, User fpHead, MasterDataController controller) SetupController(MicroLimsDbContext db)
+    private static (DocumentSection fpSec, User fpHead, MasterDataControllers controller) SetupController(MicroLimsDbContext db)
     {
         var microSec = TestServiceFactory.EnsureMicroSection(db);
         var fpSec = db.DocumentSections.FirstOrDefault(s => s.Code == "FP");
@@ -67,7 +68,7 @@ public class DisintegrationMasterDataValidationTests
 
         var scope = new UserSectionScopeService(db);
         var colService = new ChromatographyColumnService(db, scope);
-        var controller = new MasterDataController(
+        var controller = new MasterDataControllers(
             db,
             new EquipmentConfigurationService(db),
             TestServiceFactory.MediaProduct(db),
@@ -102,7 +103,7 @@ public class DisintegrationMasterDataValidationTests
             EquationType: EquationType.None,
             RequiresSystemSuitability: false);
 
-        var ex1 = await Assert.ThrowsAsync<InvalidOperationException>(() => controller.CreateTestDefinition(req1));
+        var ex1 = await Assert.ThrowsAsync<InvalidOperationException>(() => controller.TestDefinition.CreateTestDefinition(req1));
         Assert.Contains("Equation type must be Disintegration", ex1.Message);
 
         // Equation Disintegration but Workflow Observation -> fails
@@ -114,7 +115,7 @@ public class DisintegrationMasterDataValidationTests
             EquationType: EquationType.Disintegration,
             RequiresSystemSuitability: false);
 
-        var ex2 = await Assert.ThrowsAsync<InvalidOperationException>(() => controller.CreateTestDefinition(req2));
+        var ex2 = await Assert.ThrowsAsync<InvalidOperationException>(() => controller.TestDefinition.CreateTestDefinition(req2));
         Assert.Contains("Workflow type must be Disintegration", ex2.Message);
     }
 
@@ -132,7 +133,7 @@ public class DisintegrationMasterDataValidationTests
             EquationType: EquationType.Disintegration,
             RequiresSystemSuitability: true);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => controller.CreateTestDefinition(req));
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => controller.TestDefinition.CreateTestDefinition(req));
         Assert.Contains("must not require system suitability", ex.Message);
     }
 
@@ -150,7 +151,7 @@ public class DisintegrationMasterDataValidationTests
             EquationType: EquationType.Disintegration,
             RequiresSystemSuitability: false);
 
-        var actionResult = await controller.CreateTestDefinition(req);
+        var actionResult = await controller.TestDefinition.CreateTestDefinition(req);
         var okResult = Assert.IsType<OkObjectResult>(actionResult);
         var response = Assert.IsType<ApiResponse<object>>(okResult.Value);
         var entity = Assert.IsType<TestDefinition>(response.Data);
@@ -177,7 +178,7 @@ public class DisintegrationMasterDataValidationTests
             RequiresSystemSuitability: false,
             DisintegrationStage1Units: 0);
 
-        var ex1 = await Assert.ThrowsAsync<InvalidOperationException>(() => controller.CreateTestDefinition(req1));
+        var ex1 = await Assert.ThrowsAsync<InvalidOperationException>(() => controller.TestDefinition.CreateTestDefinition(req1));
         Assert.Contains("stage units must be greater than or equal to 1", ex1.Message);
 
         // MaxStage1Failures >= Stage1Units
@@ -191,7 +192,7 @@ public class DisintegrationMasterDataValidationTests
             DisintegrationStage1Units: 6,
             DisintegrationMaxStage1Failures: 6);
 
-        var ex2 = await Assert.ThrowsAsync<InvalidOperationException>(() => controller.CreateTestDefinition(req2));
+        var ex2 = await Assert.ThrowsAsync<InvalidOperationException>(() => controller.TestDefinition.CreateTestDefinition(req2));
         Assert.Contains("maximum Stage 1 failures must be between", ex2.Message);
 
         // MinPassTotal > Stage1Units + Stage2Units
@@ -206,7 +207,7 @@ public class DisintegrationMasterDataValidationTests
             DisintegrationStage2Units: 12,
             DisintegrationMinPassTotal: 19);
 
-        var ex3 = await Assert.ThrowsAsync<InvalidOperationException>(() => controller.CreateTestDefinition(req3));
+        var ex3 = await Assert.ThrowsAsync<InvalidOperationException>(() => controller.TestDefinition.CreateTestDefinition(req3));
         Assert.Contains("minimum pass total must be between", ex3.Message);
     }
 
@@ -244,7 +245,7 @@ public class DisintegrationMasterDataValidationTests
             ConfirmatoryMediaCount: null,
             PhenotypicTestType: null);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => controller.CreateTestWorkflowStep(testDef.Id, stepReq));
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => controller.TestWorkflowStep.CreateTestWorkflowStep(testDef.Id, stepReq));
         Assert.Contains("no workflow steps", ex.Message);
     }
 
@@ -273,7 +274,7 @@ public class DisintegrationMasterDataValidationTests
             DisplayName: "Disintegration Upd",
             EquationType: EquationType.None);
 
-        var ex1 = await Assert.ThrowsAsync<InvalidOperationException>(() => controller.UpdateTestDefinition(testDef.Id, req1));
+        var ex1 = await Assert.ThrowsAsync<InvalidOperationException>(() => controller.TestDefinition.UpdateTestDefinition(testDef.Id, req1));
         Assert.Contains("Equation type must be Disintegration", ex1.Message);
 
         // SST set to true
@@ -282,7 +283,7 @@ public class DisintegrationMasterDataValidationTests
             DisplayName: "Disintegration Upd",
             RequiresSystemSuitability: true);
 
-        var ex2 = await Assert.ThrowsAsync<InvalidOperationException>(() => controller.UpdateTestDefinition(testDef.Id, req2));
+        var ex2 = await Assert.ThrowsAsync<InvalidOperationException>(() => controller.TestDefinition.UpdateTestDefinition(testDef.Id, req2));
         Assert.Contains("must not require system suitability", ex2.Message);
     }
 

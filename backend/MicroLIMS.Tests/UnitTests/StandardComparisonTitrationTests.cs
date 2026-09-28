@@ -18,7 +18,7 @@ namespace MicroLIMS.Tests.UnitTests;
 
 // SC-4 "titration mode" of the Standard-Comparison assay (ResponseMode.TitrationVolume).
 // Production code under test: StandardComparisonCalculator, SystemSuitabilityService.CreateAsync,
-// TestWorkflowEngine.RecordStandardComparisonResultAsync, MasterDataController test-definition
+// TestWorkflowEngine.RecordStandardComparisonResultAsync, MasterDataControllers test-definition
 // create/update - see E:\MicroLIMS\MicroLIMS\CLAUDE.md task brief for the exact behaviours.
 public class StandardComparisonTitrationTests
 {
@@ -901,13 +901,13 @@ public class StandardComparisonTitrationTests
 
     #endregion
 
-    #region 4. Test Master (MasterDataController)
+    #region 4. Test Master (MasterDataControllers)
 
-    private static MasterDataController BuildController(MicroLimsDbContext db)
+    private static MasterDataControllers BuildController(MicroLimsDbContext db)
     {
         var scope = new UserSectionScopeService(db);
         var colService = new ChromatographyColumnService(db, scope);
-        return new MasterDataController(
+        return new MasterDataControllers(
             db,
             new EquipmentConfigurationService(db),
             TestServiceFactory.MediaProduct(db),
@@ -916,7 +916,7 @@ public class StandardComparisonTitrationTests
             colService);
     }
 
-    private static void Authenticate(MasterDataController controller, int userId)
+    private static void Authenticate(MasterDataControllers controller, int userId)
     {
         controller.ControllerContext = new ControllerContext
         {
@@ -945,7 +945,7 @@ public class StandardComparisonTitrationTests
             RequiresSystemSuitability: false,
             ResponseMode: ResponseMode.TitrationVolume);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => controller.CreateTestDefinition(req));
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => controller.TestDefinition.CreateTestDefinition(req));
         Assert.Contains("Response mode applies only to standard-comparison tests.", ex.Message);
     }
 
@@ -967,7 +967,7 @@ public class StandardComparisonTitrationTests
             MethodAbbreviation: "SCTU",
             ResponseMode: ResponseMode.PeakArea);
 
-        var createResult = await controller.CreateTestDefinition(createReq) as OkObjectResult;
+        var createResult = await controller.TestDefinition.CreateTestDefinition(createReq) as OkObjectResult;
         Assert.NotNull(createResult);
         var created = ((ApiResponse<object>)createResult!.Value!).Data as TestDefinition;
         Assert.NotNull(created);
@@ -979,7 +979,7 @@ public class StandardComparisonTitrationTests
             DisplayName: created.DisplayName,
             ResponseMode: ResponseMode.TitrationVolume);
 
-        var updateResult1 = await controller.UpdateTestDefinition(created.Id, updateReq1) as OkObjectResult;
+        var updateResult1 = await controller.TestDefinition.UpdateTestDefinition(created.Id, updateReq1) as OkObjectResult;
         Assert.NotNull(updateResult1);
 
         var afterFirstUpdate = await db.TestDefinitions.FindAsync(created.Id);
@@ -1052,14 +1052,14 @@ public class StandardComparisonTitrationTests
             ResponseMode: ResponseMode.PeakArea);
 
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(
-            () => controller.UpdateTestDefinition(created.Id, updateReq2));
+            () => controller.TestDefinition.UpdateTestDefinition(created.Id, updateReq2));
         Assert.Contains("Response mode cannot be changed once suitability runs exist for this test.", ex.Message);
 
         // Updating other fields (ResponseMode omitted -> unchanged) still succeeds.
         var updateReq3 = new UpdateTestDefinitionRequest(
             Code: created.Code,
             DisplayName: "SC Titration Update Test (renamed)");
-        var updateResult3 = await controller.UpdateTestDefinition(created.Id, updateReq3) as OkObjectResult;
+        var updateResult3 = await controller.TestDefinition.UpdateTestDefinition(created.Id, updateReq3) as OkObjectResult;
         Assert.NotNull(updateResult3);
     }
 

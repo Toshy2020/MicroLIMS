@@ -146,4 +146,6 @@ public class RoleService
 
     private static RoleDetailDto ToDto(Role r, List<string> permissionCodes) =>
         new(r.Id, r.Name, r.Description, r.Type.ToString(), r.IsSystemRole, r.IsActive, permissionCodes);
+
+    public Task<List<Role>> GetAllAsync() => _db.Roles.AsNoTracking().ToListAsync();
 }

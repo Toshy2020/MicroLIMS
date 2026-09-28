@@ -2,7 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.DTOs;
 using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Domain.Enums;
-using MicroLIMS.Persistence.DbContext;
+using MicroLIMS.Application.Abstractions.Persistence;
 
 namespace MicroLIMS.Application.Services;
 
@@ -11,11 +11,11 @@ namespace MicroLIMS.Application.Services;
 // Sample, New Sample Request, Investigation, OOS Investigation.
 public class ApprovalService
 {
-    private readonly MicroLimsDbContext _db;
+    private readonly IMicroLimsDbContext _db;
     private readonly SegregationOfDutiesGuard _segregationOfDuties;
     private readonly IElectronicSignatureService _signatureService;
 
-    public ApprovalService(MicroLimsDbContext db, SegregationOfDutiesGuard segregationOfDuties, IElectronicSignatureService signatureService)
+    public ApprovalService(IMicroLimsDbContext db, SegregationOfDutiesGuard segregationOfDuties, IElectronicSignatureService signatureService)
     {
         _db = db;
         _segregationOfDuties = segregationOfDuties;

@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
-using MicroLIMS.Persistence.DbContext;
+using MicroLIMS.Application.Abstractions.Persistence;
 
 namespace MicroLIMS.Application.Services;
 
@@ -81,9 +81,9 @@ public record EquipmentConfigurationSummaryDto(
 
 public class EquipmentConfigurationService
 {
-    private readonly MicroLimsDbContext _db;
+    private readonly IMicroLimsDbContext _db;
 
-    public EquipmentConfigurationService(MicroLimsDbContext db)
+    public EquipmentConfigurationService(IMicroLimsDbContext db)
     {
         _db = db;
     }

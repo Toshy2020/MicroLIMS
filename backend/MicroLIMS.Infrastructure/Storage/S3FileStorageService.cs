@@ -1,3 +1,4 @@
+using MicroLIMS.Application.Abstractions.Storage;
 using System.Net;
 using Amazon.S3;
 using Amazon.S3.Model;

@@ -1,3 +1,4 @@
+using MicroLIMS.Application.Abstractions.Word;
 namespace MicroLIMS.Infrastructure.Word;
 
 // Mirrors IPdfGenerator/PdfGenerator's role for PDF - kept behind

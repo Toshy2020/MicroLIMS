@@ -6,8 +6,8 @@ using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Application.Services;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
-using MicroLIMS.Infrastructure.Notifications;
-using MicroLIMS.Persistence.DbContext;
+using MicroLIMS.Application.Abstractions.Notifications;
+using MicroLIMS.Application.Abstractions.Persistence;
 using MicroLIMS.Shared.Constants;
 
 namespace MicroLIMS.Application.Workflows;
@@ -321,7 +321,7 @@ public interface ITestWorkflowEngine : IStatefulWorkflowEngine
 // name - that logic lives entirely in master data now.
 public class TestWorkflowEngine : ITestWorkflowEngine
 {
-    private readonly MicroLimsDbContext _db;
+    private readonly IMicroLimsDbContext _db;
     private readonly SampleReviewService _sampleReviewService;
     private readonly ResultProjectionService _resultProjection;
     private readonly IncubatorEligibilityService _incubatorEligibility;
@@ -334,7 +334,7 @@ public class TestWorkflowEngine : ITestWorkflowEngine
     private readonly ILabClock _clock;
 
     public TestWorkflowEngine(
-        MicroLimsDbContext db, SampleReviewService sampleReviewService, ResultProjectionService resultProjection,
+        IMicroLimsDbContext db, SampleReviewService sampleReviewService, ResultProjectionService resultProjection,
         IncubatorEligibilityService incubatorEligibility, MediaAppearanceSnapshotService appearanceSnapshot,
         SegregationOfDutiesGuard sodGuard, ReviewGateService reviewGate, INotificationService notifications,
         IElectronicSignatureService? signatureService = null,

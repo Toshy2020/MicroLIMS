@@ -4,6 +4,7 @@ using MicroLIMS.Application.Services;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Infrastructure.Storage;
+using MicroLIMS.Application.Abstractions.Storage;
 using MicroLIMS.Persistence.DbContext;
 using Xunit;
 
@@ -553,7 +554,7 @@ public class MaterialDocumentTests
 }
 
 // Storage stub that always throws on Save so we can test cleanup paths.
-public class FailingFileStorageService : MicroLIMS.Infrastructure.Storage.IFileStorageService
+public class FailingFileStorageService : MicroLIMS.Application.Abstractions.Storage.IFileStorageService
 {
     public Task<string> SaveAsync(string fileName, byte[] content) =>
         throw new IOException("Simulated storage failure.");

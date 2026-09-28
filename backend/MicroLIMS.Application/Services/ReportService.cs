@@ -2,8 +2,8 @@ using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
-using MicroLIMS.Infrastructure.Pdf;
-using MicroLIMS.Persistence.DbContext;
+using MicroLIMS.Application.Abstractions.Pdf;
+using MicroLIMS.Application.Abstractions.Persistence;
 using System.Text.Json;
 
 namespace MicroLIMS.Application.Services;
@@ -16,9 +16,9 @@ namespace MicroLIMS.Application.Services;
 public class ReportService : IReportService
 {
     private readonly IPdfGenerator _pdfGenerator;
-    private readonly MicroLimsDbContext _db;
+    private readonly IMicroLimsDbContext _db;
 
-    public ReportService(IPdfGenerator pdfGenerator, MicroLimsDbContext db)
+    public ReportService(IPdfGenerator pdfGenerator, IMicroLimsDbContext db)
     {
         _pdfGenerator = pdfGenerator;
         _db = db;

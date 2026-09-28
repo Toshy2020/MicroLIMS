@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Domain.Enums;
-using MicroLIMS.Persistence.DbContext;
+using MicroLIMS.Application.Abstractions.Persistence;
 
 namespace MicroLIMS.Application.Services;
 
@@ -35,7 +35,7 @@ public record StageReplicateResolution(
 public static class StageReplicateResolver
 {
     public static async Task<StageReplicateResolution> ResolveForTestOrderAsync(
-        MicroLimsDbContext db, int testOrderId, CancellationToken cancellationToken = default)
+        IMicroLimsDbContext db, int testOrderId, CancellationToken cancellationToken = default)
     {
         var order = await db.TestOrders
             .Where(o => o.Id == testOrderId)
@@ -55,7 +55,7 @@ public static class StageReplicateResolver
     }
 
     public static async Task<StageReplicateResolution> ResolveAsync(
-        MicroLimsDbContext db, int sampleId, int testDefinitionId, CancellationToken cancellationToken = default)
+        IMicroLimsDbContext db, int sampleId, int testDefinitionId, CancellationToken cancellationToken = default)
     {
         var productionStageId = await db.Samples
             .Where(s => s.Id == sampleId)

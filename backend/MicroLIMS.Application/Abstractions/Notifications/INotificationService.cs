@@ -1,4 +1,4 @@
-namespace MicroLIMS.Infrastructure.Notifications;
+namespace MicroLIMS.Application.Abstractions.Notifications;
 
 public interface INotificationService
 {

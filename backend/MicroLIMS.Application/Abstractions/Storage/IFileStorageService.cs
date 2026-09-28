@@ -1,4 +1,4 @@
-namespace MicroLIMS.Infrastructure.Storage;
+namespace MicroLIMS.Application.Abstractions.Storage;
 
 // The seam between the application and wherever files physically live.
 // Nothing outside the implementations touches File, FileStream or

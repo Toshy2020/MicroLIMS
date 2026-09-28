@@ -1,3 +1,4 @@
+using MicroLIMS.Application.Abstractions.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using MicroLIMS.Domain.Entities;
@@ -12,7 +13,7 @@ public class MediaLotConfiguration : IEntityTypeConfiguration<Media>
 {
     // EF's default name for the unique LotNumber index below - how
     // MediaPreparationService recognises a lot-number clash on save.
-    public const string LotNumberIndexName = "IX_Media_LotNumber";
+    public const string LotNumberIndexName = UniqueIndexNames.MediaLotNumber;
 
     public void Configure(EntityTypeBuilder<Media> builder)
     {

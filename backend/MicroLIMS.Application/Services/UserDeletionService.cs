@@ -4,7 +4,7 @@ using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
-using MicroLIMS.Persistence.DbContext;
+using MicroLIMS.Application.Abstractions.Persistence;
 
 namespace MicroLIMS.Application.Services;
 
@@ -19,9 +19,9 @@ public class UserHasHistoryException : InvalidOperationException
 
 public class UserDeletionService
 {
-    private readonly MicroLimsDbContext _db;
+    private readonly IMicroLimsDbContext _db;
 
-    public UserDeletionService(MicroLimsDbContext db)
+    public UserDeletionService(IMicroLimsDbContext db)
     {
         _db = db;
     }

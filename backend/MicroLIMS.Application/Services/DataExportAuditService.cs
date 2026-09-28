@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Domain.Entities;
-using MicroLIMS.Persistence.DbContext;
+using MicroLIMS.Application.Abstractions.Persistence;
 
 namespace MicroLIMS.Application.Services;
 
@@ -10,9 +10,9 @@ namespace MicroLIMS.Application.Services;
 // contract stays true.
 public class DataExportAuditService
 {
-    private readonly MicroLimsDbContext _db;
+    private readonly IMicroLimsDbContext _db;
 
-    public DataExportAuditService(MicroLimsDbContext db)
+    public DataExportAuditService(IMicroLimsDbContext db)
     {
         _db = db;
     }

@@ -5,20 +5,20 @@ using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Application.Interfaces.DocumentControl;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
-using MicroLIMS.Persistence.DbContext;
+using MicroLIMS.Application.Abstractions.Persistence;
 
 namespace MicroLIMS.Application.Services.DocumentControl;
 
 public class PeriodicReviewService : IPeriodicReviewService
 {
-    private readonly MicroLimsDbContext _db;
+    private readonly IMicroLimsDbContext _db;
     private readonly IAuditEventService _audit;
     private readonly IDocumentAuthorizationService _auth;
     private readonly IDocumentApprovalService _approvalService;
     private readonly ILogger<PeriodicReviewService> _logger;
 
     public PeriodicReviewService(
-        MicroLimsDbContext db,
+        IMicroLimsDbContext db,
         IAuditEventService audit,
         IDocumentAuthorizationService auth,
         IDocumentApprovalService approvalService,

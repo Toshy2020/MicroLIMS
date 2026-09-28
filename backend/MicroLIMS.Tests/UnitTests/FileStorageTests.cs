@@ -3,6 +3,7 @@ using System.Reflection;
 using Amazon.S3;
 using Amazon.S3.Model;
 using MicroLIMS.Infrastructure.Storage;
+using MicroLIMS.Application.Abstractions.Storage;
 using Xunit;
 
 namespace MicroLIMS.Tests.UnitTests;

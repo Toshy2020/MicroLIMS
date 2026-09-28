@@ -4,6 +4,7 @@ using MicroLIMS.Application.Services;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Infrastructure.Email;
+using MicroLIMS.Application.Abstractions.Email;
 using MicroLIMS.Persistence.DbContext;
 using Xunit;
 

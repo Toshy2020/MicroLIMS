@@ -1,4 +1,4 @@
-namespace MicroLIMS.Infrastructure.Storage;
+namespace MicroLIMS.Application.Abstractions.Storage;
 
 // Raised by every IFileStorageService implementation when no bytes exist
 // for a key, so callers can tell "the file is gone" apart from a transient

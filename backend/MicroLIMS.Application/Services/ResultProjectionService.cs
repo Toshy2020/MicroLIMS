@@ -2,7 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
-using MicroLIMS.Persistence.DbContext;
+using MicroLIMS.Application.Abstractions.Persistence;
 
 namespace MicroLIMS.Application.Services;
 
@@ -17,10 +17,10 @@ public record BackfillResult(int Created, int Updated, int Skipped, List<string>
 // ResultRecordConfiguration.
 public class ResultProjectionService
 {
-    private readonly MicroLimsDbContext _db;
+    private readonly IMicroLimsDbContext _db;
     private readonly ILogger<ResultProjectionService> _logger;
 
-    public ResultProjectionService(MicroLimsDbContext db, ILogger<ResultProjectionService> logger)
+    public ResultProjectionService(IMicroLimsDbContext db, ILogger<ResultProjectionService> logger)
     {
         _db = db;
         _logger = logger;

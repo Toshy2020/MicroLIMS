@@ -1,3 +1,4 @@
+using MicroLIMS.Application.Abstractions.Pdf;
 namespace MicroLIMS.Infrastructure.Pdf;
 
 // Produces a real, valid PDF via SimplePdfWriter. Kept behind

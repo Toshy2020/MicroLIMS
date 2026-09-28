@@ -4,19 +4,19 @@ using Microsoft.Extensions.Logging;
 using MicroLIMS.Application.DTOs;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
-using MicroLIMS.Infrastructure.Storage;
-using MicroLIMS.Persistence.DbContext;
+using MicroLIMS.Application.Abstractions.Storage;
+using MicroLIMS.Application.Abstractions.Persistence;
 
 namespace MicroLIMS.Application.Services;
 
 public class ItemDocumentService
 {
-    private readonly MicroLimsDbContext _db;
+    private readonly IMicroLimsDbContext _db;
     private readonly IFileStorageService _storage;
     private readonly ILogger<ItemDocumentService> _logger;
 
     public ItemDocumentService(
-        MicroLimsDbContext db,
+        IMicroLimsDbContext db,
         IFileStorageService storage,
         ILogger<ItemDocumentService> logger)
     {

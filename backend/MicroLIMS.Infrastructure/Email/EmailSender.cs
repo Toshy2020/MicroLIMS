@@ -1,3 +1,4 @@
+using MicroLIMS.Application.Abstractions.Email;
 using System.Net;
 using System.Net.Mail;
 using Microsoft.Extensions.Options;

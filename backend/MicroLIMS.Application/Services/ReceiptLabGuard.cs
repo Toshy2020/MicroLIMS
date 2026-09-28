@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Interfaces;
-using MicroLIMS.Persistence.DbContext;
+using MicroLIMS.Application.Abstractions.Persistence;
 
 namespace MicroLIMS.Application.Services;
 
@@ -11,7 +11,7 @@ namespace MicroLIMS.Application.Services;
 public static class ReceiptLabGuard
 {
     public static async Task<IReadOnlyCollection<int>> ResolveTargetsAsync(
-        MicroLimsDbContext db, IUserSectionScopeService scope, int userId,
+        IMicroLimsDbContext db, IUserSectionScopeService scope, int userId,
         bool canReceiveForAnyLab, IReadOnlyCollection<int>? requested)
     {
         var ids = requested?.Distinct().ToList() ?? new List<int>();

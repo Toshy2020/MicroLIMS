@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Domain.Enums;
-using MicroLIMS.Persistence.DbContext;
+using MicroLIMS.Application.Abstractions.Persistence;
 
 namespace MicroLIMS.Application.Services;
 
@@ -11,9 +11,9 @@ public record EligibleIncubatorDto(int Id, string Name, string Code, decimal? Se
 // hand-crafted request cannot assign an out-of-range incubator.
 public class IncubatorEligibilityService
 {
-    private readonly MicroLimsDbContext _db;
+    private readonly IMicroLimsDbContext _db;
 
-    public IncubatorEligibilityService(MicroLimsDbContext db)
+    public IncubatorEligibilityService(IMicroLimsDbContext db)
     {
         _db = db;
     }

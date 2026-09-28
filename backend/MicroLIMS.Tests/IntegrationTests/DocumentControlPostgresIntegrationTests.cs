@@ -8,6 +8,7 @@ using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Persistence.DbContext;
 using MicroLIMS.Persistence.Helpers;
+using MicroLIMS.Application.Abstractions.Persistence;
 using MicroLIMS.Tests.Fixtures;
 using Npgsql;
 using Xunit;

@@ -3,7 +3,7 @@ using MicroLIMS.Application.Helpers;
 using MicroLIMS.Application.Workflows;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
-using MicroLIMS.Persistence.DbContext;
+using MicroLIMS.Application.Abstractions.Persistence;
 using MicroLIMS.Shared.Constants;
 
 namespace MicroLIMS.Application.Services;
@@ -223,13 +223,13 @@ public record PathogenTestingSessionDto(
 
 public class PathogenSessionService
 {
-    private readonly MicroLimsDbContext _db;
+    private readonly IMicroLimsDbContext _db;
     private readonly MediaAppearanceSnapshotService? _appearanceSnapshot;
     private readonly ConfirmationAgreementEvaluator _agreementEvaluator;
     private readonly IncubatorEligibilityService _incubatorEligibility;
 
     public PathogenSessionService(
-        MicroLimsDbContext db,
+        IMicroLimsDbContext db,
         MediaAppearanceSnapshotService? appearanceSnapshot = null,
         ConfirmationAgreementEvaluator? agreementEvaluator = null,
         IncubatorEligibilityService? incubatorEligibility = null)

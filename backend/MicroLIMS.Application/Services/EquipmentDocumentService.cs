@@ -3,8 +3,8 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
-using MicroLIMS.Infrastructure.Storage;
-using MicroLIMS.Persistence.DbContext;
+using MicroLIMS.Application.Abstractions.Storage;
+using MicroLIMS.Application.Abstractions.Persistence;
 
 namespace MicroLIMS.Application.Services;
 
@@ -55,13 +55,13 @@ public record EquipmentDocumentDto(
 // 6. Voiding retains the file and metadata for audit but marks the document Voided.
 public class EquipmentDocumentService
 {
-    private readonly MicroLimsDbContext _db;
+    private readonly IMicroLimsDbContext _db;
     private readonly IFileStorageService _storage;
     private readonly MaterialDocumentFileValidator _validator;
     private readonly ILogger<EquipmentDocumentService> _logger;
 
     public EquipmentDocumentService(
-        MicroLimsDbContext db,
+        IMicroLimsDbContext db,
         IFileStorageService storage,
         MaterialDocumentFileValidator validator,
         ILogger<EquipmentDocumentService> logger)

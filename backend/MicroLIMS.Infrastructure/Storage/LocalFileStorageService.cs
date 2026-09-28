@@ -1,3 +1,4 @@
+using MicroLIMS.Application.Abstractions.Storage;
 namespace MicroLIMS.Infrastructure.Storage;
 
 // Filesystem-backed implementation for local development. Durable only if

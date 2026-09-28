@@ -1,3 +1,4 @@
+using MicroLIMS.Application.Abstractions.Word;
 using System.IO.Compression;
 using System.Text;
 

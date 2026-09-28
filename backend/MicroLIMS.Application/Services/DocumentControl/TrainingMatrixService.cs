@@ -9,17 +9,17 @@ using MicroLIMS.Application.DTOs.DocumentControl;
 using MicroLIMS.Application.Interfaces.DocumentControl;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
-using MicroLIMS.Persistence.DbContext;
+using MicroLIMS.Application.Abstractions.Persistence;
 
 namespace MicroLIMS.Application.Services.DocumentControl;
 
 public class TrainingMatrixService : ITrainingMatrixService
 {
-    private readonly MicroLimsDbContext _db;
+    private readonly IMicroLimsDbContext _db;
     private readonly ILogger<TrainingMatrixService> _logger;
 
     public TrainingMatrixService(
-        MicroLimsDbContext db,
+        IMicroLimsDbContext db,
         ILogger<TrainingMatrixService> logger)
     {
         _db = db;

@@ -4,21 +4,19 @@ using MicroLIMS.Application.Helpers;
 using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
-using MicroLIMS.Persistence.Configurations;
-using MicroLIMS.Persistence.DbContext;
-using MicroLIMS.Persistence.Helpers;
+using MicroLIMS.Application.Abstractions.Persistence;
 
 namespace MicroLIMS.Application.Services;
 
 public class SystemSuitabilityService : ISystemSuitabilityService
 {
-    private readonly MicroLimsDbContext _db;
+    private readonly IMicroLimsDbContext _db;
     private readonly IElectronicSignatureService _signatureService;
     private readonly IUserSectionScopeService _scope;
     private readonly ILabClock _clock;
 
     public SystemSuitabilityService(
-        MicroLimsDbContext db,
+        IMicroLimsDbContext db,
         IElectronicSignatureService signatureService,
         IUserSectionScopeService scope,
         ILabClock? clock = null)
@@ -604,7 +602,7 @@ public class SystemSuitabilityService : ISystemSuitabilityService
 
         // Two runs under the same code at the same moment both pick the same next number.
         // Unique index retry pattern identical to PreparedLotNumber / MediaPreparationService.
-        if (!await UniqueIndexSave.TrySaveChangesAsync(_db, SystemSuitabilityRunConfiguration.CodeIndexName))
+        if (!await _db.TrySaveChangesAsync(UniqueIndexNames.SystemSuitabilityRunCode))
         {
             run.Code = await SystemSuitabilityRunCode.NextAsync(
                 _db.SystemSuitabilityRuns.Select(r => r.Code),
@@ -614,7 +612,7 @@ public class SystemSuitabilityService : ISystemSuitabilityService
                 "S.S",
                 ct);
 
-            if (!await UniqueIndexSave.TrySaveChangesAsync(_db, SystemSuitabilityRunConfiguration.CodeIndexName))
+            if (!await _db.TrySaveChangesAsync(UniqueIndexNames.SystemSuitabilityRunCode))
             {
                 throw new InvalidOperationException(
                     $"Suitability run code {run.Code} was taken by another run at the same moment. Nothing was saved - submit the run again.");

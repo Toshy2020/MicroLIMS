@@ -1,5 +1,5 @@
 using Microsoft.EntityFrameworkCore;
-using MicroLIMS.Persistence.DbContext;
+using MicroLIMS.Application.Abstractions.Persistence;
 
 namespace MicroLIMS.Application.Services;
 
@@ -10,9 +10,9 @@ namespace MicroLIMS.Application.Services;
 // (including SystemAdministrator) to bypass it.
 public class SegregationOfDutiesGuard
 {
-    private readonly MicroLimsDbContext _db;
+    private readonly IMicroLimsDbContext _db;
 
-    public SegregationOfDutiesGuard(MicroLimsDbContext db)
+    public SegregationOfDutiesGuard(IMicroLimsDbContext db)
     {
         _db = db;
     }

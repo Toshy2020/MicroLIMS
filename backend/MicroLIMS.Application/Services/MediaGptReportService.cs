@@ -2,15 +2,15 @@ using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.DTOs;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
-using MicroLIMS.Persistence.DbContext;
+using MicroLIMS.Application.Abstractions.Persistence;
 
 namespace MicroLIMS.Application.Services;
 
 public class MediaGptReportService
 {
-    private readonly MicroLimsDbContext _db;
+    private readonly IMicroLimsDbContext _db;
 
-    public MediaGptReportService(MicroLimsDbContext db)
+    public MediaGptReportService(IMicroLimsDbContext db)
     {
         _db = db;
     }

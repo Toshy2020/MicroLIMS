@@ -1,12 +1,12 @@
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Domain.Entities;
-using MicroLIMS.Persistence.DbContext;
+using MicroLIMS.Application.Abstractions.Persistence;
 
 namespace MicroLIMS.Application.Services;
 
 public static class SpecificationLookup
 {
-    public static async Task<Specification?> PrimaryAsync(MicroLimsDbContext db, int itemId, string testCode, CancellationToken cancellationToken = default)
+    public static async Task<Specification?> PrimaryAsync(IMicroLimsDbContext db, int itemId, string testCode, CancellationToken cancellationToken = default)
     {
         return await db.Specifications
             .Where(s => s.ItemId == itemId && s.TestCode == testCode)

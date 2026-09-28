@@ -2,7 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.DTOs;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
-using MicroLIMS.Persistence.DbContext;
+using MicroLIMS.Application.Abstractions.Persistence;
 
 namespace MicroLIMS.Application.Services;
 
@@ -10,9 +10,9 @@ namespace MicroLIMS.Application.Services;
 // and root samples by OosGroupCode.
 public class OosTrackingService
 {
-    private readonly MicroLimsDbContext _db;
+    private readonly IMicroLimsDbContext _db;
 
-    public OosTrackingService(MicroLimsDbContext db)
+    public OosTrackingService(IMicroLimsDbContext db)
     {
         _db = db;
     }

@@ -3,8 +3,8 @@ using Microsoft.Extensions.Logging;
 using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
-using MicroLIMS.Infrastructure.Email;
-using MicroLIMS.Persistence.DbContext;
+using MicroLIMS.Application.Abstractions.Email;
+using MicroLIMS.Application.Abstractions.Persistence;
 using MicroLIMS.Shared.Constants;
 using MicroLIMS.Shared.Validation;
 using System.Security.Cryptography;
@@ -50,14 +50,14 @@ public class AuthenticationService : IAuthenticationService
     private static readonly Lazy<string> TimingEqualiserHash =
         new(() => BCrypt.Net.BCrypt.HashPassword(Convert.ToBase64String(RandomNumberGenerator.GetBytes(32))));
 
-    private readonly MicroLimsDbContext _db;
+    private readonly IMicroLimsDbContext _db;
     private readonly Func<string, string, IEnumerable<string>, string> _tokenIssuer; // (userId, role, permissionCodes) -> JWT
     private readonly PermissionService _permissionService;
     private readonly IEmailSender _emailSender;
     private readonly ILogger<AuthenticationService> _logger;
     private readonly ISecurityAuditService _securityAudit;
 
-    public AuthenticationService(MicroLimsDbContext db, Func<string, string, IEnumerable<string>, string> tokenIssuer, PermissionService permissionService, IEmailSender emailSender, ILogger<AuthenticationService> logger, ISecurityAuditService securityAudit)
+    public AuthenticationService(IMicroLimsDbContext db, Func<string, string, IEnumerable<string>, string> tokenIssuer, PermissionService permissionService, IEmailSender emailSender, ILogger<AuthenticationService> logger, ISecurityAuditService securityAudit)
     {
         _db = db;
         _tokenIssuer = tokenIssuer;

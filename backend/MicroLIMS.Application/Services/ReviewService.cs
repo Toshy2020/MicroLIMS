@@ -4,7 +4,7 @@ using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Application.Workflows;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
-using MicroLIMS.Persistence.DbContext;
+using MicroLIMS.Application.Abstractions.Persistence;
 
 namespace MicroLIMS.Application.Services;
 
@@ -15,11 +15,11 @@ public enum ReviewMode { Detailed, QuickTable }
 // a batch of straightforward results from a single grid).
 public class ReviewService
 {
-    private readonly MicroLimsDbContext _db;
+    private readonly IMicroLimsDbContext _db;
     private readonly SegregationOfDutiesGuard _segregationOfDuties;
     private readonly IElectronicSignatureService _signatureService;
 
-    public ReviewService(MicroLimsDbContext db, SegregationOfDutiesGuard segregationOfDuties, IElectronicSignatureService signatureService)
+    public ReviewService(IMicroLimsDbContext db, SegregationOfDutiesGuard segregationOfDuties, IElectronicSignatureService signatureService)
     {
         _db = db;
         _segregationOfDuties = segregationOfDuties;

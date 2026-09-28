@@ -1,3 +1,4 @@
+using MicroLIMS.Application.Abstractions.Pdf;
 using System.Text;
 
 namespace MicroLIMS.Infrastructure.Pdf;

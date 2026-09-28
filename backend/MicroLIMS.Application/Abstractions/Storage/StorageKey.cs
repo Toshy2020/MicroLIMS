@@ -1,4 +1,4 @@
-namespace MicroLIMS.Infrastructure.Storage;
+namespace MicroLIMS.Application.Abstractions.Storage;
 
 // Turns whatever a record persisted into the provider-neutral key its file
 // lives under. Rows written before keys were made relative hold the

@@ -4,7 +4,7 @@ using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Application.Workflows;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
-using MicroLIMS.Persistence.DbContext;
+using MicroLIMS.Application.Abstractions.Persistence;
 
 namespace MicroLIMS.Application.Services;
 
@@ -48,11 +48,11 @@ public class SampleCorrectionService
     private static readonly SampleCategory[] ItemBasedCategories =
         { SampleCategory.FinishedProduct, SampleCategory.RawMaterial, SampleCategory.PackagingMaterial };
 
-    private readonly MicroLimsDbContext _db;
+    private readonly IMicroLimsDbContext _db;
     private readonly IElectronicSignatureService _signatures;
     private readonly IAuditEventService _audit;
 
-    public SampleCorrectionService(MicroLimsDbContext db, IElectronicSignatureService signatures, IAuditEventService audit)
+    public SampleCorrectionService(IMicroLimsDbContext db, IElectronicSignatureService signatures, IAuditEventService audit)
     {
         _db = db;
         _signatures = signatures;

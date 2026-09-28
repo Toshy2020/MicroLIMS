@@ -1,4 +1,4 @@
-namespace MicroLIMS.Persistence.Helpers;
+namespace MicroLIMS.Application.Abstractions.Persistence;
 
 public interface IDatabaseSequenceHelper
 {

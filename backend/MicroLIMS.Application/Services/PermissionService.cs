@@ -1,5 +1,5 @@
 using Microsoft.EntityFrameworkCore;
-using MicroLIMS.Persistence.DbContext;
+using MicroLIMS.Application.Abstractions.Persistence;
 
 namespace MicroLIMS.Application.Services;
 
@@ -9,9 +9,9 @@ namespace MicroLIMS.Application.Services;
 // Items in a specific department" where a role alone isn't enough.
 public class PermissionService
 {
-    private readonly MicroLimsDbContext _db;
+    private readonly IMicroLimsDbContext _db;
 
-    public PermissionService(MicroLimsDbContext db)
+    public PermissionService(IMicroLimsDbContext db)
     {
         _db = db;
     }

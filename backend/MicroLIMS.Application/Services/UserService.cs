@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
-using MicroLIMS.Persistence.DbContext;
+using MicroLIMS.Application.Abstractions.Persistence;
 using MicroLIMS.Shared.Constants;
 using MicroLIMS.Shared.Validation;
 
@@ -37,11 +37,11 @@ public record UserDto(
 
 public class UserService
 {
-    private readonly MicroLimsDbContext _db;
+    private readonly IMicroLimsDbContext _db;
     private readonly IAuthenticationService _authService;
     private readonly ISecurityAuditService _securityAudit;
 
-    public UserService(MicroLimsDbContext db, IAuthenticationService authService, ISecurityAuditService securityAudit)
+    public UserService(IMicroLimsDbContext db, IAuthenticationService authService, ISecurityAuditService securityAudit)
     {
         _securityAudit = securityAudit;
         _db = db;

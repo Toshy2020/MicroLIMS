@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Domain.Entities;
-using MicroLIMS.Persistence.DbContext;
+using MicroLIMS.Application.Abstractions.Persistence;
 
 namespace MicroLIMS.Application.Services;
 
@@ -43,9 +43,9 @@ public record AuditLogDto(
 
 public class AuditSearchService
 {
-    private readonly MicroLimsDbContext _db;
+    private readonly IMicroLimsDbContext _db;
 
-    public AuditSearchService(MicroLimsDbContext db)
+    public AuditSearchService(IMicroLimsDbContext db)
     {
         _db = db;
     }

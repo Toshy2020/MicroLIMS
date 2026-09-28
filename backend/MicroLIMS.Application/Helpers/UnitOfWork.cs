@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Services;
 using MicroLIMS.Domain.Entities;
-using MicroLIMS.Persistence.DbContext;
+using MicroLIMS.Application.Abstractions.Persistence;
 
 namespace MicroLIMS.Application.Helpers;
 
@@ -23,7 +23,7 @@ namespace MicroLIMS.Application.Helpers;
 //   a caller that handles the failure can keep using the same context.
 public static class UnitOfWork
 {
-    public static async Task RunAsync(MicroLimsDbContext db, Func<Task> command)
+    public static async Task RunAsync(IMicroLimsDbContext db, Func<Task> command)
     {
         await RunAsync(db, async () =>
         {
@@ -32,7 +32,7 @@ public static class UnitOfWork
         });
     }
 
-    public static async Task<T> RunAsync<T>(MicroLimsDbContext db, Func<Task<T>> command)
+    public static async Task<T> RunAsync<T>(IMicroLimsDbContext db, Func<Task<T>> command)
     {
         if (!db.Database.IsRelational() || db.Database.CurrentTransaction is not null)
             return await command();
@@ -70,7 +70,7 @@ public static class UnitOfWork
     }
 
     private static async Task RestoreTrackerAsync(
-        MicroLimsDbContext db, Dictionary<object, (EntityState State, Microsoft.EntityFrameworkCore.ChangeTracking.PropertyValues Values)> before)
+        IMicroLimsDbContext db, Dictionary<object, (EntityState State, Microsoft.EntityFrameworkCore.ChangeTracking.PropertyValues Values)> before)
     {
         foreach (var entry in db.ChangeTracker.Entries().ToList())
         {

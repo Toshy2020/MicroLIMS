@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
-using MicroLIMS.Persistence.DbContext;
+using MicroLIMS.Application.Abstractions.Persistence;
 
 namespace MicroLIMS.Application.Services;
 
@@ -27,12 +27,12 @@ public class MediaProductService
 
     private static readonly Regex CodeRegex = new(@"^[A-Za-z0-9][A-Za-z0-9.-]{1,9}$", RegexOptions.Compiled);
 
-    private readonly MicroLimsDbContext _db;
+    private readonly IMicroLimsDbContext _db;
     private readonly IElectronicSignatureService _signatureService;
     private readonly IAuditEventService _auditEventService;
 
     public MediaProductService(
-        MicroLimsDbContext db,
+        IMicroLimsDbContext db,
         IElectronicSignatureService signatureService,
         IAuditEventService auditEventService)
     {

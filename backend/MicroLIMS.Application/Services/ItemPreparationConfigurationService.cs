@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
-using MicroLIMS.Persistence.DbContext;
+using MicroLIMS.Application.Abstractions.Persistence;
 
 namespace MicroLIMS.Application.Services;
 
@@ -28,10 +28,10 @@ public record ItemPreparationConfigurationDto(
 // never blocked waiting for approval).
 public class ItemPreparationConfigurationService
 {
-    private readonly MicroLimsDbContext _db;
+    private readonly IMicroLimsDbContext _db;
     private readonly PreparationParameterValidator _validator;
 
-    public ItemPreparationConfigurationService(MicroLimsDbContext db, PreparationParameterValidator validator)
+    public ItemPreparationConfigurationService(IMicroLimsDbContext db, PreparationParameterValidator validator)
     {
         _db = db;
         _validator = validator;

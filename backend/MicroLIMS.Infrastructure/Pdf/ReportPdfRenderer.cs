@@ -1,3 +1,4 @@
+using MicroLIMS.Application.Abstractions.Pdf;
 namespace MicroLIMS.Infrastructure.Pdf;
 
 // Draws a ReportDocument onto a PdfCanvas in the approved report layout:

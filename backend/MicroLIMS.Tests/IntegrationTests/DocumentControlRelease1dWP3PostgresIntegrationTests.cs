@@ -9,6 +9,7 @@ using MicroLIMS.Application.Services.DocumentControl;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Infrastructure.Storage;
+using MicroLIMS.Application.Abstractions.Storage;
 using MicroLIMS.Persistence.DbContext;
 using MicroLIMS.Tests.Fixtures;
 using Xunit;

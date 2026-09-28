@@ -4,17 +4,17 @@ using MicroLIMS.Application.Helpers;
 using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
-using MicroLIMS.Persistence.DbContext;
+using MicroLIMS.Application.Abstractions.Persistence;
 using MicroLIMS.Shared.Responses;
 
 namespace MicroLIMS.Application.Services;
 
 public class TestingWorkspaceService : ITestWorkspaceService
 {
-    private readonly MicroLimsDbContext _db;
+    private readonly IMicroLimsDbContext _db;
     private readonly IUserSectionScopeService _scope;
 
-    public TestingWorkspaceService(MicroLimsDbContext db, IUserSectionScopeService scope)
+    public TestingWorkspaceService(IMicroLimsDbContext db, IUserSectionScopeService scope)
     {
         _db = db;
         _scope = scope;

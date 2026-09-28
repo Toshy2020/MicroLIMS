@@ -2,7 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
-using MicroLIMS.Persistence.DbContext;
+using MicroLIMS.Application.Abstractions.Persistence;
 
 namespace MicroLIMS.Application.Services;
 
@@ -11,12 +11,12 @@ namespace MicroLIMS.Application.Services;
 // rejected, nothing was judged - each keeping the step it had reached.
 public class SectionClosureService
 {
-    private readonly MicroLimsDbContext _db;
+    private readonly IMicroLimsDbContext _db;
     private readonly ReviewGateService _reviewGate;
     private readonly IUserSectionScopeService _scope;
     private readonly SampleApprovalService _approval;
 
-    public SectionClosureService(MicroLimsDbContext db, ReviewGateService reviewGate, IUserSectionScopeService scope, SampleApprovalService approval)
+    public SectionClosureService(IMicroLimsDbContext db, ReviewGateService reviewGate, IUserSectionScopeService scope, SampleApprovalService approval)
     {
         _db = db;
         _reviewGate = reviewGate;

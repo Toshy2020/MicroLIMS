@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Workflows;
 using MicroLIMS.Domain.Entities;
-using MicroLIMS.Persistence.DbContext;
+using MicroLIMS.Application.Abstractions.Persistence;
 using MicroLIMS.Shared.Constants;
 
 namespace MicroLIMS.Application.Helpers;
@@ -82,7 +82,7 @@ public static class IncubationWindowResolver
     // ForIncubation when the incubation's lot isn't loaded: one lookup of
     // the lot's material and media product.
     public static async Task<IncubationWindow?> ForIncubationAsync(
-        MicroLimsDbContext db, TestWorkflowStep step, Incubation incubation, CancellationToken ct = default)
+        IMicroLimsDbContext db, TestWorkflowStep step, Incubation incubation, CancellationToken ct = default)
     {
         if (incubation.MediaId is not int lotId) return null;
         var lot = await db.Media.Where(m => m.Id == lotId)

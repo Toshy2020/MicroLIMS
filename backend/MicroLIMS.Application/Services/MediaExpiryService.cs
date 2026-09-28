@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Domain.Enums;
-using MicroLIMS.Persistence.DbContext;
+using MicroLIMS.Application.Abstractions.Persistence;
 
 namespace MicroLIMS.Application.Services;
 
@@ -13,9 +13,9 @@ public record MediaExpiryDto(int MediaId, string LotNumber, string MediaTypeName
 
 public class MediaExpiryService
 {
-    private readonly MicroLimsDbContext _db;
+    private readonly IMicroLimsDbContext _db;
 
-    public MediaExpiryService(MicroLimsDbContext db)
+    public MediaExpiryService(IMicroLimsDbContext db)
     {
         _db = db;
     }

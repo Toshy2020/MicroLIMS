@@ -1,8 +1,8 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using MicroLIMS.Domain.Entities;
-using MicroLIMS.Infrastructure.Notifications;
-using MicroLIMS.Persistence.DbContext;
+using MicroLIMS.Application.Abstractions.Notifications;
+using MicroLIMS.Application.Abstractions.Persistence;
 
 namespace MicroLIMS.Application.Services;
 
@@ -47,12 +47,12 @@ public record SendMessageRequest(string Content);
 
 public class MessageService
 {
-    private readonly MicroLimsDbContext _db;
+    private readonly IMicroLimsDbContext _db;
     private readonly INotificationService _notificationService;
     private readonly ILogger<MessageService> _logger;
 
     public MessageService(
-        MicroLimsDbContext db,
+        IMicroLimsDbContext db,
         INotificationService notificationService,
         ILogger<MessageService> logger)
     {

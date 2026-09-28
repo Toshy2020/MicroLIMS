@@ -1,8 +1,8 @@
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.DTOs;
-using MicroLIMS.Infrastructure.Pdf;
-using MicroLIMS.Infrastructure.Word;
-using MicroLIMS.Persistence.DbContext;
+using MicroLIMS.Application.Abstractions.Pdf;
+using MicroLIMS.Application.Abstractions.Word;
+using MicroLIMS.Application.Abstractions.Persistence;
 
 namespace MicroLIMS.Application.Services;
 
@@ -10,12 +10,12 @@ namespace MicroLIMS.Application.Services;
 // SampleSummaryService/MediaSummaryService.
 public class CryovialSummaryService
 {
-    private readonly MicroLimsDbContext _db;
+    private readonly IMicroLimsDbContext _db;
     private readonly IPdfGenerator _pdfGenerator;
     private readonly IWordGenerator _wordGenerator;
     private readonly ReviewGateService _reviewGate;
 
-    public CryovialSummaryService(MicroLimsDbContext db, IPdfGenerator pdfGenerator, IWordGenerator wordGenerator, ReviewGateService reviewGate)
+    public CryovialSummaryService(IMicroLimsDbContext db, IPdfGenerator pdfGenerator, IWordGenerator wordGenerator, ReviewGateService reviewGate)
     {
         _db = db;
         _pdfGenerator = pdfGenerator;
@@ -111,7 +111,7 @@ public class CryovialSummaryService
         return (FileStemFor(summary), await _wordGenerator.GenerateFromLinesAsync(TitleFor(summary), BuildReportLines(summary)));
     }
 
-    public async Task<Infrastructure.Pdf.ReportDocument?> BuildReportDocumentAsync(int cryovialId)
+    public async Task<ReportDocument?> BuildReportDocumentAsync(int cryovialId)
     {
         var summary = await GetSummaryAsync(cryovialId);
         return summary is null ? null : ReportDocumentMapper.ForCryovial(summary);

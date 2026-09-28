@@ -2,7 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
-using MicroLIMS.Persistence.DbContext;
+using MicroLIMS.Application.Abstractions.Persistence;
 
 namespace MicroLIMS.Application.Services;
 
@@ -73,10 +73,10 @@ public record WhereIsItResultDto(
 
 public class EquipmentInventoryService
 {
-    private readonly MicroLimsDbContext _db;
+    private readonly IMicroLimsDbContext _db;
     private readonly IUserSectionScopeService _scope;
 
-    public EquipmentInventoryService(MicroLimsDbContext db, IUserSectionScopeService scope)
+    public EquipmentInventoryService(IMicroLimsDbContext db, IUserSectionScopeService scope)
     {
         _db = db;
         _scope = scope;

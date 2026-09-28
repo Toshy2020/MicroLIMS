@@ -3,7 +3,7 @@ using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Application.Services;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
-using MicroLIMS.Persistence.DbContext;
+using MicroLIMS.Application.Abstractions.Persistence;
 
 namespace MicroLIMS.Application.Workflows;
 
@@ -37,11 +37,11 @@ public interface IMediaEvaluationEngine
 
 public class MediaEvaluationEngine : IMediaEvaluationEngine
 {
-    private readonly MicroLimsDbContext _db;
+    private readonly IMicroLimsDbContext _db;
     private readonly MaterialService _materialService;
     private readonly IUserSectionScopeService _scope;
 
-    public MediaEvaluationEngine(MicroLimsDbContext db, MaterialService materialService, IUserSectionScopeService scope)
+    public MediaEvaluationEngine(IMicroLimsDbContext db, MaterialService materialService, IUserSectionScopeService scope)
     {
         _db = db;
         _materialService = materialService;

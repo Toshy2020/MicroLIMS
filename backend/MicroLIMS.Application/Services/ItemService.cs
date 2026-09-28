@@ -2,7 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.DTOs;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
-using MicroLIMS.Persistence.DbContext;
+using MicroLIMS.Application.Abstractions.Persistence;
 
 namespace MicroLIMS.Application.Services;
 
@@ -10,7 +10,7 @@ namespace MicroLIMS.Application.Services;
 // Engine reads on every sample receipt (Frozen Principle #1).
 public class ItemService
 {
-    private readonly MicroLimsDbContext _db;
+    private readonly IMicroLimsDbContext _db;
 
     private static readonly SampleCategory[] AllowedItemCategories =
     {
@@ -19,7 +19,7 @@ public class ItemService
         SampleCategory.PackagingMaterial,
     };
 
-    public ItemService(MicroLimsDbContext db)
+    public ItemService(IMicroLimsDbContext db)
     {
         _db = db;
     }

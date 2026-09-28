@@ -2,7 +2,7 @@ using System.Linq.Expressions;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
-using MicroLIMS.Persistence.DbContext;
+using MicroLIMS.Application.Abstractions.Persistence;
 
 namespace MicroLIMS.Application.Services;
 
@@ -51,7 +51,7 @@ public static class SectionReviewQueues
     // from its review - or the sample-level clock for a section with no
     // sign-off row.
     public static async Task<List<int>> OverdueSampleIdsAsync(
-        MicroLimsDbContext db, SectionSignoffStatus status, DateTime now, TimeSpan threshold, IReadOnlyCollection<int>? sectionIds)
+        IMicroLimsDbContext db, SectionSignoffStatus status, DateTime now, TimeSpan threshold, IReadOnlyCollection<int>? sectionIds)
     {
         var samples = await Candidates(db.Samples.AsNoTracking(), status, sectionIds)
             .Include(s => s.TestOrders)

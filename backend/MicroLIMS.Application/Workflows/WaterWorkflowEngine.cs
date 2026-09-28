@@ -2,7 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Services;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
-using MicroLIMS.Persistence.DbContext;
+using MicroLIMS.Application.Abstractions.Persistence;
 
 namespace MicroLIMS.Application.Workflows;
 
@@ -36,10 +36,10 @@ public interface IWaterWorkflowEngine : IStatefulWorkflowEngine
 
 public class WaterWorkflowEngine : IWaterWorkflowEngine
 {
-    private readonly MicroLimsDbContext _db;
+    private readonly IMicroLimsDbContext _db;
     private readonly Application.Services.ReferenceNumberGenerator _refNumbers;
 
-    public WaterWorkflowEngine(MicroLimsDbContext db, Application.Services.ReferenceNumberGenerator refNumbers)
+    public WaterWorkflowEngine(IMicroLimsDbContext db, Application.Services.ReferenceNumberGenerator refNumbers)
     {
         _db = db;
         _refNumbers = refNumbers;

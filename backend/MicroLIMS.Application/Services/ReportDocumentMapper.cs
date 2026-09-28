@@ -1,5 +1,5 @@
 using MicroLIMS.Application.DTOs;
-using MicroLIMS.Infrastructure.Pdf;
+using MicroLIMS.Application.Abstractions.Pdf;
 
 namespace MicroLIMS.Application.Services;
 

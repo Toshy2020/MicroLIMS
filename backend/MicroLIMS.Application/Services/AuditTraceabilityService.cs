@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Domain.Entities;
-using MicroLIMS.Persistence.DbContext;
+using MicroLIMS.Application.Abstractions.Persistence;
 
 namespace MicroLIMS.Application.Services;
 
@@ -21,9 +21,9 @@ public record AuditTraceabilityResult(
 
 public class AuditTraceabilityService
 {
-    private readonly MicroLimsDbContext _db;
+    private readonly IMicroLimsDbContext _db;
 
-    public AuditTraceabilityService(MicroLimsDbContext db)
+    public AuditTraceabilityService(IMicroLimsDbContext db)
     {
         _db = db;
     }

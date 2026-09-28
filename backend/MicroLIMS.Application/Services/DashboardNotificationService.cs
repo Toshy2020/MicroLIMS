@@ -2,9 +2,9 @@ using MicroLIMS.Application.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
-using MicroLIMS.Infrastructure.Email;
-using MicroLIMS.Infrastructure.Notifications;
-using MicroLIMS.Persistence.DbContext;
+using MicroLIMS.Application.Abstractions.Email;
+using MicroLIMS.Application.Abstractions.Notifications;
+using MicroLIMS.Application.Abstractions.Persistence;
 
 namespace MicroLIMS.Application.Services;
 
@@ -22,13 +22,13 @@ public class DashboardNotificationService
     private static readonly TimeSpan ExpiryWarningWindow = TimeSpan.FromDays(7);
     private static readonly TimeSpan DedupeWindow = TimeSpan.FromHours(12);
 
-    private readonly MicroLimsDbContext _db;
+    private readonly IMicroLimsDbContext _db;
     private readonly INotificationService _pushService;
     private readonly IEmailSender _emailSender;
     private readonly NotificationRecomputeThrottle? _recomputeThrottle;
     private readonly IUserSectionScopeService _scope;
 
-    public DashboardNotificationService(MicroLimsDbContext db, INotificationService pushService, IEmailSender emailSender,
+    public DashboardNotificationService(IMicroLimsDbContext db, INotificationService pushService, IEmailSender emailSender,
         IUserSectionScopeService scope, NotificationRecomputeThrottle? recomputeThrottle = null)
     {
         _db = db;

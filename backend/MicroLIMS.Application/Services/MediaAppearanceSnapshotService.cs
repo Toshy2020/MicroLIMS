@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using MicroLIMS.Persistence.DbContext;
+using MicroLIMS.Application.Abstractions.Persistence;
 
 namespace MicroLIMS.Application.Services;
 
@@ -17,10 +17,10 @@ namespace MicroLIMS.Application.Services;
 // organisms, so matching on any one of them is enough.
 public class MediaAppearanceSnapshotService
 {
-    private readonly MicroLimsDbContext _db;
+    private readonly IMicroLimsDbContext _db;
     private readonly ILogger<MediaAppearanceSnapshotService> _logger;
 
-    public MediaAppearanceSnapshotService(MicroLimsDbContext db, ILogger<MediaAppearanceSnapshotService> logger)
+    public MediaAppearanceSnapshotService(IMicroLimsDbContext db, ILogger<MediaAppearanceSnapshotService> logger)
     {
         _db = db;
         _logger = logger;

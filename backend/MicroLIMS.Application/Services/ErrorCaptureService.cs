@@ -4,7 +4,7 @@ using Microsoft.Extensions.Logging;
 using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
-using MicroLIMS.Persistence.DbContext;
+using MicroLIMS.Application.Abstractions.Persistence;
 
 namespace MicroLIMS.Application.Services;
 
@@ -66,7 +66,7 @@ public class ErrorCaptureService : IErrorCaptureService
         for (var attempt = 1; ; attempt++)
         {
             using var scope = _scopeFactory.CreateScope();
-            var db = scope.ServiceProvider.GetRequiredService<MicroLimsDbContext>();
+            var db = scope.ServiceProvider.GetRequiredService<IMicroLimsDbContext>();
 
             try
             {
@@ -80,7 +80,7 @@ public class ErrorCaptureService : IErrorCaptureService
     }
 
     private async Task AttachAsync(
-        MicroLimsDbContext db, ErrorCaptureRequest request, CancellationToken cancellationToken)
+        IMicroLimsDbContext db, ErrorCaptureRequest request, CancellationToken cancellationToken)
     {
 
         var now = DateTime.UtcNow;

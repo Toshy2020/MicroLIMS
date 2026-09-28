@@ -1,8 +1,8 @@
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.DTOs;
-using MicroLIMS.Infrastructure.Pdf;
-using MicroLIMS.Infrastructure.Word;
-using MicroLIMS.Persistence.DbContext;
+using MicroLIMS.Application.Abstractions.Pdf;
+using MicroLIMS.Application.Abstractions.Word;
+using MicroLIMS.Application.Abstractions.Persistence;
 
 namespace MicroLIMS.Application.Services;
 
@@ -11,12 +11,12 @@ namespace MicroLIMS.Application.Services;
 // report rather than inventing its own vocabulary.
 public class MediaSummaryService
 {
-    private readonly MicroLimsDbContext _db;
+    private readonly IMicroLimsDbContext _db;
     private readonly IPdfGenerator _pdfGenerator;
     private readonly IWordGenerator _wordGenerator;
     private readonly ReviewGateService _reviewGate;
 
-    public MediaSummaryService(MicroLimsDbContext db, IPdfGenerator pdfGenerator, IWordGenerator wordGenerator, ReviewGateService reviewGate)
+    public MediaSummaryService(IMicroLimsDbContext db, IPdfGenerator pdfGenerator, IWordGenerator wordGenerator, ReviewGateService reviewGate)
     {
         _db = db;
         _pdfGenerator = pdfGenerator;
@@ -148,7 +148,7 @@ public class MediaSummaryService
         return (FileStemFor(summary), await _wordGenerator.GenerateFromLinesAsync(TitleFor(summary), BuildReportLines(summary)));
     }
 
-    public async Task<Infrastructure.Pdf.ReportDocument?> BuildReportDocumentAsync(int mediaId)
+    public async Task<ReportDocument?> BuildReportDocumentAsync(int mediaId)
     {
         var summary = await GetSummaryAsync(mediaId);
         return summary is null ? null : ReportDocumentMapper.ForMedia(summary);

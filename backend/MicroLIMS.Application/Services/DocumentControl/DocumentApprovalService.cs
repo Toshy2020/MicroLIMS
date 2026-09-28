@@ -4,19 +4,19 @@ using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Application.Interfaces.DocumentControl;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
-using MicroLIMS.Persistence.DbContext;
+using MicroLIMS.Application.Abstractions.Persistence;
 
 namespace MicroLIMS.Application.Services.DocumentControl;
 
 public class DocumentApprovalService : IDocumentApprovalService
 {
-    private readonly MicroLimsDbContext _db;
+    private readonly IMicroLimsDbContext _db;
     private readonly IAuditEventService _audit;
     private readonly IDocumentAuthorizationService _auth;
     private readonly IElectronicSignatureService _signatureService;
 
     public DocumentApprovalService(
-        MicroLimsDbContext db,
+        IMicroLimsDbContext db,
         IAuditEventService audit,
         IDocumentAuthorizationService auth,
         IElectronicSignatureService signatureService)

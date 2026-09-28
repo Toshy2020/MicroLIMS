@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Domain.Enums;
-using MicroLIMS.Persistence.DbContext;
+using MicroLIMS.Application.Abstractions.Persistence;
 
 namespace MicroLIMS.Application.Workflows;
 
@@ -14,10 +14,10 @@ public static class PreparationRules
 {
     public const string NoPreparationSectionCode = "FP";
 
-    public static async Task<bool> TestOrderSkipsPreparationAsync(MicroLimsDbContext db, int testOrderId) =>
+    public static async Task<bool> TestOrderSkipsPreparationAsync(IMicroLimsDbContext db, int testOrderId) =>
         await db.TestOrders.AnyAsync(t => t.Id == testOrderId && t.Section!.Code == NoPreparationSectionCode);
 
-    public static async Task<SamplePreparationStatus> InitialStatusAsync(MicroLimsDbContext db, IEnumerable<int> testSectionIds)
+    public static async Task<SamplePreparationStatus> InitialStatusAsync(IMicroLimsDbContext db, IEnumerable<int> testSectionIds)
     {
         var ids = testSectionIds.Distinct().ToList();
         if (ids.Count == 0)

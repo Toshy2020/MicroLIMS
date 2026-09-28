@@ -2,7 +2,7 @@ using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
-using MicroLIMS.Persistence.DbContext;
+using MicroLIMS.Application.Abstractions.Persistence;
 
 namespace MicroLIMS.Application.Services;
 
@@ -10,7 +10,7 @@ public record RoleDetailDto(int Id, string Name, string? Description, string Typ
 public record PermissionDto(string Code, string Description, bool IsEnforced);
 
 // Role CRUD + permission-grant management. Plain create/update/delete
-// rely on MicroLimsDbContext.SaveChanges's automatic audit capture -
+// rely on IMicroLimsDbContext.SaveChanges's automatic audit capture -
 // the same convention ItemService/MasterDataController's CRUD already
 // uses, with no custom AuditLog code. UpdatePermissionsAsync is the one
 // exception: granting/revoking spans several RolePermission rows, so a
@@ -20,10 +20,10 @@ public record PermissionDto(string Code, string Description, bool IsEnforced);
 // multi-field security-sensitive changes.
 public class RoleService
 {
-    private readonly MicroLimsDbContext _db;
+    private readonly IMicroLimsDbContext _db;
     private readonly PermissionService _permissionService;
 
-    public RoleService(MicroLimsDbContext db, PermissionService permissionService)
+    public RoleService(IMicroLimsDbContext db, PermissionService permissionService)
     {
         _db = db;
         _permissionService = permissionService;

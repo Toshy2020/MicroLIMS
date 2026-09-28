@@ -2,9 +2,9 @@ using System.Security.Cryptography;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using MicroLIMS.Domain.Entities;
-using MicroLIMS.Infrastructure.Pdf;
-using MicroLIMS.Infrastructure.Storage;
-using MicroLIMS.Persistence.DbContext;
+using MicroLIMS.Application.Abstractions.Pdf;
+using MicroLIMS.Application.Abstractions.Storage;
+using MicroLIMS.Application.Abstractions.Persistence;
 
 namespace MicroLIMS.Application.Services;
 
@@ -19,12 +19,12 @@ namespace MicroLIMS.Application.Services;
 // a far worse outcome.
 public class RecordArchiveService
 {
-    private readonly MicroLimsDbContext _db;
+    private readonly IMicroLimsDbContext _db;
     private readonly IPdfGenerator _pdfGenerator;
     private readonly IFileStorageService _storage;
     private readonly ILogger<RecordArchiveService> _logger;
 
-    public RecordArchiveService(MicroLimsDbContext db, IPdfGenerator pdfGenerator, IFileStorageService storage, ILogger<RecordArchiveService> logger)
+    public RecordArchiveService(IMicroLimsDbContext db, IPdfGenerator pdfGenerator, IFileStorageService storage, ILogger<RecordArchiveService> logger)
     {
         _db = db;
         _pdfGenerator = pdfGenerator;

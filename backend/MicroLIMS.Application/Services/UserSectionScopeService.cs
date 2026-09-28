@@ -1,15 +1,15 @@
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Domain.Enums;
-using MicroLIMS.Persistence.DbContext;
+using MicroLIMS.Application.Abstractions.Persistence;
 
 namespace MicroLIMS.Application.Services;
 
 public class UserSectionScopeService : IUserSectionScopeService
 {
-    private readonly MicroLimsDbContext _db;
+    private readonly IMicroLimsDbContext _db;
 
-    public UserSectionScopeService(MicroLimsDbContext db)
+    public UserSectionScopeService(IMicroLimsDbContext db)
     {
         _db = db;
     }

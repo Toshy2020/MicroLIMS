@@ -2,8 +2,8 @@ using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Interfaces;
 using Microsoft.Extensions.Logging;
 using MicroLIMS.Domain.Enums;
-using MicroLIMS.Infrastructure.Email;
-using MicroLIMS.Persistence.DbContext;
+using MicroLIMS.Application.Abstractions.Email;
+using MicroLIMS.Application.Abstractions.Persistence;
 
 namespace MicroLIMS.Application.Services;
 
@@ -28,13 +28,13 @@ public class CriticalAlertService : ICriticalAlertService
 {
     private const int MaxSummaryLength = 300;
 
-    private readonly MicroLimsDbContext _db;
+    private readonly IMicroLimsDbContext _db;
     private readonly IEmailSender _emailSender;
     private readonly CriticalAlertOptions _options;
     private readonly ILogger<CriticalAlertService> _logger;
 
     public CriticalAlertService(
-        MicroLimsDbContext db,
+        IMicroLimsDbContext db,
         IEmailSender emailSender,
         CriticalAlertOptions options,
         ILogger<CriticalAlertService> logger)

@@ -2,7 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Workflows;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
-using MicroLIMS.Persistence.DbContext;
+using MicroLIMS.Application.Abstractions.Persistence;
 
 namespace MicroLIMS.Application.Services;
 
@@ -10,10 +10,10 @@ namespace MicroLIMS.Application.Services;
 // sample, same reference - so one combined CoA still covers the batch.
 public class AddLaboratoryService
 {
-    private readonly MicroLimsDbContext _db;
+    private readonly IMicroLimsDbContext _db;
     private readonly ReviewGateService _reviewGate;
 
-    public AddLaboratoryService(MicroLimsDbContext db, ReviewGateService reviewGate)
+    public AddLaboratoryService(IMicroLimsDbContext db, ReviewGateService reviewGate)
     {
         _db = db;
         _reviewGate = reviewGate;

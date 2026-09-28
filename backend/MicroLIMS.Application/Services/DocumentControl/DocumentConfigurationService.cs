@@ -4,18 +4,18 @@ using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Application.Interfaces.DocumentControl;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
-using MicroLIMS.Persistence.DbContext;
+using MicroLIMS.Application.Abstractions.Persistence;
 
 namespace MicroLIMS.Application.Services.DocumentControl;
 
 public class DocumentConfigurationService : IDocumentConfigurationService
 {
-    private readonly MicroLimsDbContext _db;
+    private readonly IMicroLimsDbContext _db;
     private readonly IAuditEventService _auditEventService;
     private readonly IDocumentAuthorizationService _authService;
 
     public DocumentConfigurationService(
-        MicroLimsDbContext db,
+        IMicroLimsDbContext db,
         IAuditEventService auditEventService,
         IDocumentAuthorizationService authService)
     {

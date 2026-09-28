@@ -1,5 +1,5 @@
 using Microsoft.EntityFrameworkCore;
-using MicroLIMS.Persistence.DbContext;
+using MicroLIMS.Application.Abstractions.Persistence;
 
 namespace MicroLIMS.Application.Services;
 
@@ -10,9 +10,9 @@ public record ActivityEntryDto(string Type, string Description, int UserId, Date
 // decisions) into a single chronological feed for the dashboard.
 public class RecentActivityService
 {
-    private readonly MicroLimsDbContext _db;
+    private readonly IMicroLimsDbContext _db;
 
-    public RecentActivityService(MicroLimsDbContext db)
+    public RecentActivityService(IMicroLimsDbContext db)
     {
         _db = db;
     }

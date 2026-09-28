@@ -1,3 +1,4 @@
+using MicroLIMS.Application.Abstractions.Persistence;
 using System.Collections.Concurrent;
 using System.Data;
 using Microsoft.EntityFrameworkCore;

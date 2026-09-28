@@ -1,4 +1,4 @@
-namespace MicroLIMS.Infrastructure.Word;
+namespace MicroLIMS.Application.Abstractions.Word;
 
 public interface IWordGenerator
 {

@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
-using MicroLIMS.Persistence.DbContext;
+using MicroLIMS.Application.Abstractions.Persistence;
 
 namespace MicroLIMS.Application.Workflows;
 
@@ -28,10 +28,10 @@ public interface IAfterCleaningWorkflowEngine : IStatefulWorkflowEngine
 
 public class AfterCleaningWorkflowEngine : IAfterCleaningWorkflowEngine
 {
-    private readonly MicroLimsDbContext _db;
+    private readonly IMicroLimsDbContext _db;
     private readonly Application.Services.ReferenceNumberGenerator _refNumbers;
 
-    public AfterCleaningWorkflowEngine(MicroLimsDbContext db, Application.Services.ReferenceNumberGenerator refNumbers)
+    public AfterCleaningWorkflowEngine(IMicroLimsDbContext db, Application.Services.ReferenceNumberGenerator refNumbers)
     {
         _db = db;
         _refNumbers = refNumbers;

@@ -4,20 +4,19 @@ using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Application.Interfaces.DocumentControl;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
-using MicroLIMS.Persistence.DbContext;
-using MicroLIMS.Persistence.Helpers;
+using MicroLIMS.Application.Abstractions.Persistence;
 
 namespace MicroLIMS.Application.Services.DocumentControl;
 
 public class DocumentMasterService : IDocumentMasterService
 {
-    private readonly MicroLimsDbContext _db;
+    private readonly IMicroLimsDbContext _db;
     private readonly IDatabaseSequenceHelper _sequenceHelper;
     private readonly IAuditEventService _auditEventService;
     private readonly IDocumentAuthorizationService _authService;
 
     public DocumentMasterService(
-        MicroLimsDbContext db,
+        IMicroLimsDbContext db,
         IDatabaseSequenceHelper sequenceHelper,
         IAuditEventService auditEventService,
         IDocumentAuthorizationService authService)

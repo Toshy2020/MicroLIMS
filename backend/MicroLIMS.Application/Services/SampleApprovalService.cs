@@ -4,7 +4,7 @@ using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Application.Workflows;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
-using MicroLIMS.Persistence.DbContext;
+using MicroLIMS.Application.Abstractions.Persistence;
 
 namespace MicroLIMS.Application.Services;
 
@@ -18,7 +18,7 @@ namespace MicroLIMS.Application.Services;
 // (ApprovalService).
 public class SampleApprovalService
 {
-    private readonly MicroLimsDbContext _db;
+    private readonly IMicroLimsDbContext _db;
     private readonly ReviewGateService _reviewGate;
     private readonly SampleSummaryService _summary;
     private readonly RecordArchiveService _archive;
@@ -26,7 +26,7 @@ public class SampleApprovalService
     private readonly ReferenceNumberGenerator _refNumbers;
     private readonly IUserSectionScopeService _scope;
 
-    public SampleApprovalService(MicroLimsDbContext db, ReviewGateService reviewGate,
+    public SampleApprovalService(IMicroLimsDbContext db, ReviewGateService reviewGate,
         SampleSummaryService summary, RecordArchiveService archive, ResultProjectionService resultProjection,
         ReferenceNumberGenerator refNumbers, IUserSectionScopeService scope)
     {

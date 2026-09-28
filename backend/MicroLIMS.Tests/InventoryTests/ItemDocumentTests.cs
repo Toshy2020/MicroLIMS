@@ -4,6 +4,7 @@ using MicroLIMS.Application.Services;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Infrastructure.Storage;
+using MicroLIMS.Application.Abstractions.Storage;
 using MicroLIMS.Persistence.DbContext;
 using Xunit;
 

@@ -64,6 +64,11 @@ public class SampleSummaryDto
     // True once no lab is still open (Sample.Status is Approved or
     // Rejected) - a Certificate of Analysis can be generated/downloaded.
     public bool CombinedCoaAvailable { get; set; }
+
+    // The Certificate of Analysis for the whole sample and for each
+    // laboratory, verdicts included - built on the server by
+    // CertificateOfAnalysisBuilder from the test orders above.
+    public CertificateOfAnalysisDto Certificate { get; set; } = new();
 }
 
 public class SampleSectionSummaryDto

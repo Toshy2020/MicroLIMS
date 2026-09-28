@@ -639,43 +639,43 @@ public class SampleApprovalService
         await PropagateOosOutcomeAsync(origin, outcome, sectionHeadUserId);
     }
 
-    // Same conform/non-conform precedence the COA's client-side
-    // aggregation uses (coaAggregation.ts's buildCoaMatrix/buildCoaSimpleRows),
-    // just server-side and against this TestOrder's own recorded result
-    // directly - deliberately ignores IsSuperseded, since a superseded
-    // order's own result is exactly what proved it needed a retest.
+    // Classifies this TestOrder's own recorded result with the same
+    // ResultConformanceRules the Certificate of Analysis uses -
+    // deliberately ignores IsSuperseded, since a superseded order's own
+    // result is exactly what proved it needed a retest.
     private async Task<bool> DetermineOwnResultConformanceAsync(int testOrderId)
     {
         var lastReading = await _db.CountTestReadings
             .Where(r => r.TestOrderId == testOrderId && r.IsActive).OrderByDescending(r => r.Id).FirstOrDefaultAsync();
         if (lastReading is not null)
-            return lastReading.Status == "WithinLimits";
+            return ResultConformanceRules.FromStatus(lastReading.Status) == ResultConformance.Conforms;
 
         var lastLocation = await _db.SampleLocations
             .Where(l => l.TestOrderId == testOrderId).OrderByDescending(l => l.Id).FirstOrDefaultAsync();
         if (lastLocation is not null)
-            return lastLocation.Status == "WithinLimits" || lastLocation.Status == "Absent";
+            return ResultConformanceRules.FromStatus(lastLocation.Status) == ResultConformance.Conforms;
 
         var lastBiochemical = await _db.WorkflowStepResults
             .Where(r => r.TestOrderId == testOrderId && r.BiochemicalOrganismDetected != null)
             .OrderByDescending(r => r.Id).FirstOrDefaultAsync();
         if (lastBiochemical is not null)
-            return lastBiochemical.BiochemicalOrganismDetected == false;
+            return ResultConformanceRules.FromDetection(lastBiochemical.BiochemicalOrganismDetected == true) == ResultConformance.Conforms;
 
         var hasPathogenChain = await _db.PathogenObservations.AnyAsync(p => p.TestOrderId == testOrderId);
         if (hasPathogenChain)
         {
             var detected = await _db.PathogenObservations
                 .AnyAsync(p => p.TestOrderId == testOrderId && p.Observation == GrowthObservation.GrowthConforming);
-            return !detected;
+            return ResultConformanceRules.FromDetection(detected) == ResultConformance.Conforms;
         }
 
         var lastResult = await _db.Results
             .Where(r => r.TestOrderId == testOrderId).OrderByDescending(r => r.Id).FirstOrDefaultAsync();
         if (lastResult is not null)
         {
-            var value = lastResult.InterpretedValue ?? lastResult.RawValue;
-            return !string.Equals(value, "Detected", StringComparison.OrdinalIgnoreCase);
+            // An empty value counts as nothing to contradict here, as the
+            // no-result case below does.
+            return ResultConformanceRules.FromResultValue(lastResult.InterpretedValue ?? lastResult.RawValue) != ResultConformance.DoesNotConform;
         }
 
         // No result recorded anywhere for this TestOrder - nothing to

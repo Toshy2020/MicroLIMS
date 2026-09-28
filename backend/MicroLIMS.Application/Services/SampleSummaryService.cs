@@ -689,6 +689,7 @@ public class SampleSummaryService
         dto.AllSectionsVisible = dto.Sections.All(x => x.CanView);
         dto.OverallStatus = SampleSectionRollup.Overall(sample).ToString();
         dto.CombinedCoaAvailable = sample.Status is SampleStatus.Approved or SampleStatus.Rejected;
+        dto.Certificate = CertificateOfAnalysisBuilder.Build(dto);
 
         return dto;
     }

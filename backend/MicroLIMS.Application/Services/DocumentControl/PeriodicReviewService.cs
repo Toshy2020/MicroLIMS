@@ -1,3 +1,4 @@
+using MicroLIMS.Application.Helpers;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using MicroLIMS.Application.DTOs.DocumentControl;
@@ -367,7 +368,10 @@ public class PeriodicReviewService : IPeriodicReviewService
         );
     }
 
-    public async Task<PeriodicReviewFindingDto> AddFindingAsync(int taskId, CreatePeriodicReviewFindingRequest request, int userId)
+    public Task<PeriodicReviewFindingDto> AddFindingAsync(int taskId, CreatePeriodicReviewFindingRequest request, int userId) =>
+        UnitOfWork.RunAsync(_db, () => AddFindingCoreAsync(taskId, request, userId));
+
+    private async Task<PeriodicReviewFindingDto> AddFindingCoreAsync(int taskId, CreatePeriodicReviewFindingRequest request, int userId)
     {
         var task = await _db.PeriodicReviewTasks
             .Include(t => t.DocumentRevision)
@@ -433,7 +437,10 @@ public class PeriodicReviewService : IPeriodicReviewService
         );
     }
 
-    public async Task<PeriodicReviewFindingDto> ResolveFindingAsync(int taskId, int findingId, int userId)
+    public Task<PeriodicReviewFindingDto> ResolveFindingAsync(int taskId, int findingId, int userId) =>
+        UnitOfWork.RunAsync(_db, () => ResolveFindingCoreAsync(taskId, findingId, userId));
+
+    private async Task<PeriodicReviewFindingDto> ResolveFindingCoreAsync(int taskId, int findingId, int userId)
     {
         var finding = await _db.PeriodicReviewFindings
             .Include(f => f.PeriodicReviewTask).ThenInclude(t => t.DocumentRevision)
@@ -467,7 +474,10 @@ public class PeriodicReviewService : IPeriodicReviewService
         return MapToFindingDto(finding);
     }
 
-    public async Task<PeriodicReviewTaskDto> AssignReviewerAsync(int taskId, AssignPeriodicReviewerRequest request, int userId)
+    public Task<PeriodicReviewTaskDto> AssignReviewerAsync(int taskId, AssignPeriodicReviewerRequest request, int userId) =>
+        UnitOfWork.RunAsync(_db, () => AssignReviewerCoreAsync(taskId, request, userId));
+
+    private async Task<PeriodicReviewTaskDto> AssignReviewerCoreAsync(int taskId, AssignPeriodicReviewerRequest request, int userId)
     {
         var task = await _db.PeriodicReviewTasks
             .Include(t => t.DocumentRevision)
@@ -514,7 +524,10 @@ public class PeriodicReviewService : IPeriodicReviewService
         return await GetReviewTaskByIdAsync(taskId, userId);
     }
 
-    public async Task<PeriodicReviewTaskDto> CompleteReviewAsync(int taskId, CompletePeriodicReviewRequest request, int userId)
+    public Task<PeriodicReviewTaskDto> CompleteReviewAsync(int taskId, CompletePeriodicReviewRequest request, int userId) =>
+        UnitOfWork.RunAsync(_db, () => CompleteReviewCoreAsync(taskId, request, userId));
+
+    private async Task<PeriodicReviewTaskDto> CompleteReviewCoreAsync(int taskId, CompletePeriodicReviewRequest request, int userId)
     {
         var task = await _db.PeriodicReviewTasks
             .Include(t => t.DocumentMaster)

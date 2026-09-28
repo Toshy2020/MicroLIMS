@@ -1,3 +1,4 @@
+using MicroLIMS.Application.Helpers;
 using MicroLIMS.Shared.Exceptions;
 using System.Security.Cryptography;
 using Microsoft.EntityFrameworkCore;
@@ -127,7 +128,10 @@ public class MaterialDocumentService
 
     // ---- Upload ----
 
-    public async Task<MaterialDocumentDto> UploadAsync(int materialId, UploadMaterialDocumentRequest request, int uploadingUserId)
+    public Task<MaterialDocumentDto> UploadAsync(int materialId, UploadMaterialDocumentRequest request, int uploadingUserId) =>
+        UnitOfWork.RunAsync(_db, () => UploadCoreAsync(materialId, request, uploadingUserId));
+
+    private async Task<MaterialDocumentDto> UploadCoreAsync(int materialId, UploadMaterialDocumentRequest request, int uploadingUserId)
     {
         await _scope.EnsureMaterialAccessAsync(uploadingUserId, materialId);
 
@@ -235,7 +239,10 @@ public class MaterialDocumentService
 
     // Atomically marks the old document Superseded and creates a new Current document.
     // Both operations commit in the same SaveChanges to ensure consistency.
-    public async Task<MaterialDocumentDto> SupersedeAsync(int documentId, int materialId, SupersedeMaterialDocumentRequest request, int actingUserId)
+    public Task<MaterialDocumentDto> SupersedeAsync(int documentId, int materialId, SupersedeMaterialDocumentRequest request, int actingUserId) =>
+        UnitOfWork.RunAsync(_db, () => SupersedeCoreAsync(documentId, materialId, request, actingUserId));
+
+    private async Task<MaterialDocumentDto> SupersedeCoreAsync(int documentId, int materialId, SupersedeMaterialDocumentRequest request, int actingUserId)
     {
         await _scope.EnsureMaterialAccessAsync(actingUserId, materialId);
 
@@ -319,7 +326,10 @@ public class MaterialDocumentService
 
     // ---- Void ----
 
-    public async Task<MaterialDocumentDto> VoidAsync(int documentId, int materialId, VoidMaterialDocumentRequest request, int actingUserId)
+    public Task<MaterialDocumentDto> VoidAsync(int documentId, int materialId, VoidMaterialDocumentRequest request, int actingUserId) =>
+        UnitOfWork.RunAsync(_db, () => VoidCoreAsync(documentId, materialId, request, actingUserId));
+
+    private async Task<MaterialDocumentDto> VoidCoreAsync(int documentId, int materialId, VoidMaterialDocumentRequest request, int actingUserId)
     {
         await _scope.EnsureMaterialAccessAsync(actingUserId, materialId);
 

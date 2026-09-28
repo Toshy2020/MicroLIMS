@@ -1,3 +1,4 @@
+using MicroLIMS.Application.Helpers;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.DTOs.DocumentControl;
 using MicroLIMS.Application.Interfaces;
@@ -30,7 +31,10 @@ public class DocumentMasterService : IDocumentMasterService
         _authService = authService;
     }
 
-    public async Task<DocumentMasterDto> RegisterDocumentMasterAsync(RegisterDocumentMasterRequest request, int userId)
+    public Task<DocumentMasterDto> RegisterDocumentMasterAsync(RegisterDocumentMasterRequest request, int userId) =>
+        UnitOfWork.RunAsync(_db, () => RegisterDocumentMasterCoreAsync(request, userId));
+
+    private async Task<DocumentMasterDto> RegisterDocumentMasterCoreAsync(RegisterDocumentMasterRequest request, int userId)
     {
         var canRegister = await _authService.CanRegisterDocumentMasterAsync(userId);
         if (!canRegister)
@@ -358,7 +362,10 @@ public class DocumentMasterService : IDocumentMasterService
         return new DocumentLibraryResponse(items, totalCount, page, pageSize, totalPages);
     }
 
-    public async Task<DocumentMasterDto> UpdateDraftMetadataAsync(int id, UpdateDocumentMasterDraftRequest request, int userId)
+    public Task<DocumentMasterDto> UpdateDraftMetadataAsync(int id, UpdateDocumentMasterDraftRequest request, int userId) =>
+        UnitOfWork.RunAsync(_db, () => UpdateDraftMetadataCoreAsync(id, request, userId));
+
+    private async Task<DocumentMasterDto> UpdateDraftMetadataCoreAsync(int id, UpdateDocumentMasterDraftRequest request, int userId)
     {
         var canEdit = await _authService.CanEditDraftMetadataAsync(id, userId);
         if (!canEdit)
@@ -499,7 +506,10 @@ public class DocumentMasterService : IDocumentMasterService
         return await GetByIdAsync(master.Id, userId);
     }
 
-    public async Task<DocumentMasterDto> VoidMasterAsync(int id, VoidDocumentMasterRequest request, int userId)
+    public Task<DocumentMasterDto> VoidMasterAsync(int id, VoidDocumentMasterRequest request, int userId) =>
+        UnitOfWork.RunAsync(_db, () => VoidMasterCoreAsync(id, request, userId));
+
+    private async Task<DocumentMasterDto> VoidMasterCoreAsync(int id, VoidDocumentMasterRequest request, int userId)
     {
         var canVoid = await _authService.CanVoidDocumentMasterAsync(id, userId);
         if (!canVoid)
@@ -550,7 +560,10 @@ public class DocumentMasterService : IDocumentMasterService
         return await GetByIdAsync(master.Id, userId);
     }
 
-    public async Task<DocumentRevisionDto> CancelDraftRevisionAsync(int revisionId, CancelDraftRevisionRequest request, int userId)
+    public Task<DocumentRevisionDto> CancelDraftRevisionAsync(int revisionId, CancelDraftRevisionRequest request, int userId) =>
+        UnitOfWork.RunAsync(_db, () => CancelDraftRevisionCoreAsync(revisionId, request, userId));
+
+    private async Task<DocumentRevisionDto> CancelDraftRevisionCoreAsync(int revisionId, CancelDraftRevisionRequest request, int userId)
     {
         var canCancel = await _authService.CanCancelDraftRevisionAsync(revisionId, userId);
         if (!canCancel)
@@ -605,7 +618,10 @@ public class DocumentMasterService : IDocumentMasterService
         return MapRevisionToDto(revision);
     }
 
-    public async Task<DocumentMasterAssignmentDto> AddOrUpdateAssignmentAsync(int documentMasterId, CreateAssignmentRequest request, int userId)
+    public Task<DocumentMasterAssignmentDto> AddOrUpdateAssignmentAsync(int documentMasterId, CreateAssignmentRequest request, int userId) =>
+        UnitOfWork.RunAsync(_db, () => AddOrUpdateAssignmentCoreAsync(documentMasterId, request, userId));
+
+    private async Task<DocumentMasterAssignmentDto> AddOrUpdateAssignmentCoreAsync(int documentMasterId, CreateAssignmentRequest request, int userId)
     {
         var canManage = await _authService.CanEditDraftMetadataAsync(documentMasterId, userId);
         if (!canManage)
@@ -683,7 +699,10 @@ public class DocumentMasterService : IDocumentMasterService
         );
     }
 
-    public async Task RemoveAssignmentAsync(int documentMasterId, int assignmentId, int userId)
+    public Task RemoveAssignmentAsync(int documentMasterId, int assignmentId, int userId) =>
+        UnitOfWork.RunAsync(_db, () => RemoveAssignmentCoreAsync(documentMasterId, assignmentId, userId));
+
+    private async Task RemoveAssignmentCoreAsync(int documentMasterId, int assignmentId, int userId)
     {
         var canManage = await _authService.CanEditDraftMetadataAsync(documentMasterId, userId);
         if (!canManage)

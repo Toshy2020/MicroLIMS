@@ -1,3 +1,4 @@
+using MicroLIMS.Application.Helpers;
 using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Domain.Entities;
@@ -51,7 +52,10 @@ public class MediaReleaseService
             .ToListAsync();
     }
 
-    public async Task DecideAsync(int mediaId, int sectionHeadUserId, string password, bool approved, string? comment, string? ipAddress)
+    public Task DecideAsync(int mediaId, int sectionHeadUserId, string password, bool approved, string? comment, string? ipAddress) =>
+        UnitOfWork.RunAsync(_db, () => DecideCoreAsync(mediaId, sectionHeadUserId, password, approved, comment, ipAddress));
+
+    private async Task DecideCoreAsync(int mediaId, int sectionHeadUserId, string password, bool approved, string? comment, string? ipAddress)
     {
         var media = await _db.Media.FirstOrDefaultAsync(m => m.Id == mediaId)
             ?? throw new NotFoundException($"Media lot {mediaId} not found.");

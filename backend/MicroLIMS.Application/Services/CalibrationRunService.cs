@@ -427,7 +427,17 @@ public class CalibrationRunService : ICalibrationRunService
             previewAnalytes);
     }
 
-    public async Task<CalibrationRun> CreateAsync(
+    public Task<CalibrationRun> CreateAsync(
+        CreateCalibrationRunRequest request,
+        Stream fileStream,
+        string originalFileName,
+        string declaredContentType,
+        int userId,
+        string? ipAddress,
+        CancellationToken ct = default) =>
+        UnitOfWork.RunAsync(_db, () => CreateCoreAsync(request, fileStream, originalFileName, declaredContentType, userId, ipAddress, ct));
+
+    private async Task<CalibrationRun> CreateCoreAsync(
         CreateCalibrationRunRequest request,
         Stream fileStream,
         string originalFileName,
@@ -585,7 +595,15 @@ public class CalibrationRunService : ICalibrationRunService
         return run;
     }
 
-    public async Task<CalibrationRun> WithdrawAsync(
+    public Task<CalibrationRun> WithdrawAsync(
+        int id,
+        WithdrawCalibrationRunRequest request,
+        int userId,
+        string? ipAddress,
+        CancellationToken ct = default) =>
+        UnitOfWork.RunAsync(_db, () => WithdrawCoreAsync(id, request, userId, ipAddress, ct));
+
+    private async Task<CalibrationRun> WithdrawCoreAsync(
         int id,
         WithdrawCalibrationRunRequest request,
         int userId,

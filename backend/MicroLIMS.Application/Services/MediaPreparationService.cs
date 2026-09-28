@@ -42,7 +42,10 @@ public class MediaPreparationService
         _reviewGate = reviewGate;
     }
 
-    public async Task<Media> PrepareAsync(PrepareMediaRequest request)
+    public Task<Media> PrepareAsync(PrepareMediaRequest request) =>
+        UnitOfWork.RunAsync(_db, () => PrepareCoreAsync(request));
+
+    private async Task<Media> PrepareCoreAsync(PrepareMediaRequest request)
     {
         var autoclave = await _db.Equipment.FirstOrDefaultAsync(e => e.Id == request.AutoclaveEquipmentId && e.Type == EquipmentType.Autoclave)
             ?? throw new InvalidOperationException("Selected equipment is not a valid autoclave.");

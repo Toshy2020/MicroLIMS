@@ -139,7 +139,14 @@ public class SystemSuitabilityService : ISystemSuitabilityService
         return (false, string.Join("; ", failures));
     }
 
-    public async Task<SystemSuitabilityRun> CreateAsync(
+    public Task<SystemSuitabilityRun> CreateAsync(
+        CreateSystemSuitabilityRunRequest request,
+        int userId,
+        string? ipAddress,
+        CancellationToken ct = default) =>
+        UnitOfWork.RunAsync(_db, () => CreateCoreAsync(request, userId, ipAddress, ct));
+
+    private async Task<SystemSuitabilityRun> CreateCoreAsync(
         CreateSystemSuitabilityRunRequest request,
         int userId,
         string? ipAddress,

@@ -1,3 +1,4 @@
+using MicroLIMS.Application.Helpers;
 using MicroLIMS.Shared.Exceptions;
 using System.Security.Cryptography;
 using Microsoft.EntityFrameworkCore;
@@ -102,7 +103,10 @@ public class EquipmentDocumentService
 
     // ---- Upload ----
 
-    public async Task<EquipmentDocumentDto> UploadAsync(int equipmentId, UploadEquipmentDocumentRequest request, int uploadingUserId)
+    public Task<EquipmentDocumentDto> UploadAsync(int equipmentId, UploadEquipmentDocumentRequest request, int uploadingUserId) =>
+        UnitOfWork.RunAsync(_db, () => UploadCoreAsync(equipmentId, request, uploadingUserId));
+
+    private async Task<EquipmentDocumentDto> UploadCoreAsync(int equipmentId, UploadEquipmentDocumentRequest request, int uploadingUserId)
     {
         var equipment = await _db.EquipmentInventories.FindAsync(equipmentId)
             ?? throw new NotFoundException($"Equipment {equipmentId} not found.");
@@ -196,7 +200,10 @@ public class EquipmentDocumentService
 
     // ---- Supersession ----
 
-    public async Task<EquipmentDocumentDto> SupersedeAsync(int documentId, int equipmentId, SupersedeEquipmentDocumentRequest request, int actingUserId)
+    public Task<EquipmentDocumentDto> SupersedeAsync(int documentId, int equipmentId, SupersedeEquipmentDocumentRequest request, int actingUserId) =>
+        UnitOfWork.RunAsync(_db, () => SupersedeCoreAsync(documentId, equipmentId, request, actingUserId));
+
+    private async Task<EquipmentDocumentDto> SupersedeCoreAsync(int documentId, int equipmentId, SupersedeEquipmentDocumentRequest request, int actingUserId)
     {
         if (string.IsNullOrWhiteSpace(request.Reason))
             throw new InvalidOperationException("A supersession reason is required.");

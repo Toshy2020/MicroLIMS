@@ -822,7 +822,10 @@ public class PathogenSessionService
         return distinct.Count == 1 ? distinct[0] : string.Join("; ", perTest.Select(p => $"{p.TestCode}: {p.Text}"));
     }
 
-    public async Task<SharedTsbStateDto> StartSharedTsbAsync(int sampleId, StartSharedTsbRequest request, int userId)
+    public Task<SharedTsbStateDto> StartSharedTsbAsync(int sampleId, StartSharedTsbRequest request, int userId) =>
+        UnitOfWork.RunAsync(_db, () => StartSharedTsbCoreAsync(sampleId, request, userId));
+
+    private async Task<SharedTsbStateDto> StartSharedTsbCoreAsync(int sampleId, StartSharedTsbRequest request, int userId)
     {
         var sample = await _db.Samples
             .Include(s => s.TestOrders)

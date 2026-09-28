@@ -1,3 +1,4 @@
+using MicroLIMS.Application.Helpers;
 using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Interfaces;
@@ -27,7 +28,10 @@ public class ReportService : IReportService
         _db = db;
     }
 
-    public async Task<byte[]> GenerateProductReportPdfAsync(int sampleId)
+    public Task<byte[]> GenerateProductReportPdfAsync(int sampleId) =>
+        UnitOfWork.RunAsync(_db, () => GenerateProductReportPdfCoreAsync(sampleId));
+
+    private async Task<byte[]> GenerateProductReportPdfCoreAsync(int sampleId)
     {
         var sample = await LoadSample(sampleId);
 
@@ -47,7 +51,10 @@ public class ReportService : IReportService
         return await _pdfGenerator.GenerateFromLinesAsync($"Product Report - {sample.ReferenceNumber}", lines);
     }
 
-    public async Task<byte[]> GenerateWaterReportPdfAsync(DateTime date, IReadOnlyCollection<int>? sectionIds = null)
+    public Task<byte[]> GenerateWaterReportPdfAsync(DateTime date, IReadOnlyCollection<int>? sectionIds = null) =>
+        UnitOfWork.RunAsync(_db, () => GenerateWaterReportPdfCoreAsync(date, sectionIds));
+
+    private async Task<byte[]> GenerateWaterReportPdfCoreAsync(DateTime date, IReadOnlyCollection<int>? sectionIds = null)
     {
         var samples = await _db.Samples
             .Include(s => s.WaterSamplingPoint)
@@ -70,7 +77,10 @@ public class ReportService : IReportService
         return await _pdfGenerator.GenerateFromLinesAsync($"Water Daily Report - {date:dd-MMM-yyyy}", lines);
     }
 
-    public async Task<byte[]> GenerateEMReportPdfAsync(DateTime date)
+    public Task<byte[]> GenerateEMReportPdfAsync(DateTime date) =>
+        UnitOfWork.RunAsync(_db, () => GenerateEMReportPdfCoreAsync(date));
+
+    private async Task<byte[]> GenerateEMReportPdfCoreAsync(DateTime date)
     {
         var monitorings = await _db.RoomMonitorings
             .Where(m => m.SampledAt.Date == date.Date)
@@ -90,7 +100,10 @@ public class ReportService : IReportService
         return await _pdfGenerator.GenerateFromLinesAsync($"EM Daily Report - {date:dd-MMM-yyyy}", lines);
     }
 
-    public async Task<byte[]> GenerateAfterCleaningReportPdfAsync(int sampleId)
+    public Task<byte[]> GenerateAfterCleaningReportPdfAsync(int sampleId) =>
+        UnitOfWork.RunAsync(_db, () => GenerateAfterCleaningReportPdfCoreAsync(sampleId));
+
+    private async Task<byte[]> GenerateAfterCleaningReportPdfCoreAsync(int sampleId)
     {
         var sample = await LoadSample(sampleId);
 

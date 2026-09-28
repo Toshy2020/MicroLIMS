@@ -1,3 +1,4 @@
+using MicroLIMS.Application.Helpers;
 using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.DTOs;
@@ -65,7 +66,11 @@ public class SampleCorrectionService
     // Received or In Testing - once submitted for review the data is locked.
     public static bool IsCorrectable(SampleStatus status) => status is SampleStatus.Received or SampleStatus.InTesting;
 
-    public async Task<SampleDto> CorrectAsync(
+    public Task<SampleDto> CorrectAsync(
+        int sampleId, SampleCorrectionRequest request, string reason, string password, int actingUserId, string? ipAddress) =>
+        UnitOfWork.RunAsync(_db, () => CorrectCoreAsync(sampleId, request, reason, password, actingUserId, ipAddress));
+
+    private async Task<SampleDto> CorrectCoreAsync(
         int sampleId, SampleCorrectionRequest request, string reason, string password, int actingUserId, string? ipAddress)
     {
         if (string.IsNullOrWhiteSpace(reason))
@@ -240,7 +245,10 @@ public class SampleCorrectionService
     // Section Head's judgement that the material does not conform, so a void
     // records no approval decision, approver or decision time, and reports
     // and the certificate must never read it as one.
-    public async Task<SampleDto> VoidAsync(int sampleId, string reason, string password, int actingUserId, string? ipAddress)
+    public Task<SampleDto> VoidAsync(int sampleId, string reason, string password, int actingUserId, string? ipAddress) =>
+        UnitOfWork.RunAsync(_db, () => VoidCoreAsync(sampleId, reason, password, actingUserId, ipAddress));
+
+    private async Task<SampleDto> VoidCoreAsync(int sampleId, string reason, string password, int actingUserId, string? ipAddress)
     {
         if (string.IsNullOrWhiteSpace(reason))
             throw new InvalidOperationException("A reason for voiding is required.");

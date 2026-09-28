@@ -1,3 +1,4 @@
+using MicroLIMS.Application.Helpers;
 using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Workflows;
@@ -20,7 +21,10 @@ public class AddLaboratoryService
         _reviewGate = reviewGate;
     }
 
-    public async Task AddAsync(int sampleId, int sectionId, int userId, string password, string reason, string? ipAddress)
+    public Task AddAsync(int sampleId, int sectionId, int userId, string password, string reason, string? ipAddress) =>
+        UnitOfWork.RunAsync(_db, () => AddCoreAsync(sampleId, sectionId, userId, password, reason, ipAddress));
+
+    private async Task AddCoreAsync(int sampleId, int sectionId, int userId, string password, string reason, string? ipAddress)
     {
         if (string.IsNullOrWhiteSpace(reason))
             throw new InvalidOperationException("A reason is required to add a laboratory.");

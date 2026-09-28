@@ -20,7 +20,10 @@ public sealed class IncubationStepRecorder : TestWorkflowSupport
 {
     public IncubationStepRecorder(TestWorkflowDependencies deps) : base(deps) { }
 
-    public async Task<Incubation> SelectMediaAsync(int testOrderId, string stepName, int mediaLotId, int incubatorEquipmentId, int userId)
+    public Task<Incubation> SelectMediaAsync(int testOrderId, string stepName, int mediaLotId, int incubatorEquipmentId, int userId) =>
+        UnitOfWork.RunAsync(_db, () => SelectMediaCoreAsync(testOrderId, stepName, mediaLotId, incubatorEquipmentId, userId));
+
+    private async Task<Incubation> SelectMediaCoreAsync(int testOrderId, string stepName, int mediaLotId, int incubatorEquipmentId, int userId)
     {
         var (order, definition) = await LoadWithTemplateAsync(testOrderId);
         var step = definition.Steps.FirstOrDefault(s => s.StepName == stepName)
@@ -551,7 +554,10 @@ public sealed class IncubationStepRecorder : TestWorkflowSupport
     // opening/closing the incubation window and transitioning the
     // TestOrder is identical to RecordBatchResultsAsync; only the
     // result computation differs.
-    public async Task<TestWorkflowResult> RecordWaterBatchReadingsAsync(int testOrderId, List<WaterBatchLocationReadings> locations, int userId)
+    public Task<TestWorkflowResult> RecordWaterBatchReadingsAsync(int testOrderId, List<WaterBatchLocationReadings> locations, int userId) =>
+        UnitOfWork.RunAsync(_db, () => RecordWaterBatchReadingsCoreAsync(testOrderId, locations, userId));
+
+    private async Task<TestWorkflowResult> RecordWaterBatchReadingsCoreAsync(int testOrderId, List<WaterBatchLocationReadings> locations, int userId)
     {
         var (order, definition) = await LoadWithTemplateAsync(testOrderId);
         if (order.CurrentStep != WorkflowStep.Incubating)
@@ -650,7 +656,11 @@ public sealed class IncubationStepRecorder : TestWorkflowSupport
     // elapsed (same window mechanism as RecordBatchResultsAsync; every
     // intermediate step was just a shared incubation window closed via
     // CloseCurrentIncubationWindowAsync, no per-location judgment call).
-    public async Task<TestWorkflowResult> RecordBatchPathogenResultsAsync(
+    public Task<TestWorkflowResult> RecordBatchPathogenResultsAsync(
+        int testOrderId, List<BatchLocationObservation>? observations, int userId) =>
+        UnitOfWork.RunAsync(_db, () => RecordBatchPathogenResultsCoreAsync(testOrderId, observations, userId));
+
+    private async Task<TestWorkflowResult> RecordBatchPathogenResultsCoreAsync(
         int testOrderId, List<BatchLocationObservation>? observations, int userId)
     {
         var (order, definition) = await LoadWithTemplateAsync(testOrderId);

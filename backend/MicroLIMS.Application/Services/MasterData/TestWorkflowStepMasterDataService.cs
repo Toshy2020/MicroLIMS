@@ -183,7 +183,10 @@ public class TestWorkflowStepMasterDataService
     // (TestDefinitionId, StepOrder) index makes EF's change tracker
     // throw "circular dependency detected" since it can't find a safe
     // statement order for a direct swap against that index.
-    public async Task<object> MoveTestWorkflowStepAsync(int stepId, MoveTestWorkflowStepRequest request)
+    public Task<object> MoveTestWorkflowStepAsync(int stepId, MoveTestWorkflowStepRequest request) =>
+        UnitOfWork.RunAsync(_db, () => MoveTestWorkflowStepCoreAsync(stepId, request));
+
+    private async Task<object> MoveTestWorkflowStepCoreAsync(int stepId, MoveTestWorkflowStepRequest request)
     {
         var step = await _db.TestWorkflowSteps.FirstOrDefaultAsync(s => s.Id == stepId)
             ?? throw new NotFoundException($"Workflow step {stepId} not found.");

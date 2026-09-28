@@ -1,3 +1,4 @@
+using MicroLIMS.Application.Helpers;
 using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.DTOs;
@@ -23,7 +24,10 @@ public class ApprovalService
         _signatureService = signatureService;
     }
 
-    public async Task<ApprovalDto> DecideAsync(int testOrderId, ApprovalDecision decision, string? comment, int decidedByUserId, string password, string? ipAddress)
+    public Task<ApprovalDto> DecideAsync(int testOrderId, ApprovalDecision decision, string? comment, int decidedByUserId, string password, string? ipAddress) =>
+        UnitOfWork.RunAsync(_db, () => DecideCoreAsync(testOrderId, decision, comment, decidedByUserId, password, ipAddress));
+
+    private async Task<ApprovalDto> DecideCoreAsync(int testOrderId, ApprovalDecision decision, string? comment, int decidedByUserId, string password, string? ipAddress)
     {
         var order = await _db.TestOrders.FirstOrDefaultAsync(t => t.Id == testOrderId)
             ?? throw new NotFoundException($"Test order {testOrderId} not found.");

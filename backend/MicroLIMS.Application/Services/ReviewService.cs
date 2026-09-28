@@ -1,3 +1,4 @@
+using MicroLIMS.Application.Helpers;
 using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.DTOs;
@@ -29,7 +30,10 @@ public class ReviewService
         _signatureService = signatureService;
     }
 
-    public async Task MarkReviewedAsync(int testOrderId, int reviewerId, string? comment, string password, string? ipAddress, ReviewMode mode = ReviewMode.Detailed)
+    public Task MarkReviewedAsync(int testOrderId, int reviewerId, string? comment, string password, string? ipAddress, ReviewMode mode = ReviewMode.Detailed) =>
+        UnitOfWork.RunAsync(_db, () => MarkReviewedCoreAsync(testOrderId, reviewerId, comment, password, ipAddress, mode));
+
+    private async Task MarkReviewedCoreAsync(int testOrderId, int reviewerId, string? comment, string password, string? ipAddress, ReviewMode mode = ReviewMode.Detailed)
     {
         var order = await _db.TestOrders.FirstOrDefaultAsync(t => t.Id == testOrderId)
             ?? throw new NotFoundException($"Test order {testOrderId} not found.");
@@ -86,7 +90,10 @@ public class ReviewService
         return new QuickReviewBatchResult(reviewed, skipped);
     }
 
-    public async Task<TestReturnEvent> ReturnToAnalystAsync(int testOrderId, int reviewerId, string? reason)
+    public Task<TestReturnEvent> ReturnToAnalystAsync(int testOrderId, int reviewerId, string? reason) =>
+        UnitOfWork.RunAsync(_db, () => ReturnToAnalystCoreAsync(testOrderId, reviewerId, reason));
+
+    private async Task<TestReturnEvent> ReturnToAnalystCoreAsync(int testOrderId, int reviewerId, string? reason)
     {
         var order = await _db.TestOrders.FirstOrDefaultAsync(t => t.Id == testOrderId)
             ?? throw new NotFoundException($"Test order {testOrderId} not found.");

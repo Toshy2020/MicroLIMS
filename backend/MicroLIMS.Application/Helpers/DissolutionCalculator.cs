@@ -1,3 +1,4 @@
+using MicroLIMS.Domain.Constants;
 using System.Globalization;
 using System.Text.Json;
 using MicroLIMS.Domain.Entities;
@@ -122,10 +123,10 @@ public static class DissolutionCalculator
 
         string comparisonStatus = eval.Outcome switch
         {
-            DissolutionStageOutcome.Complies => "WithinLimits",
-            DissolutionStageOutcome.DoesNotComply => "OutOfSpecification",
+            DissolutionStageOutcome.Complies => ResultStatus.WithinLimits,
+            DissolutionStageOutcome.DoesNotComply => ResultStatus.OutOfSpecification,
             DissolutionStageOutcome.NextStageRequired => "NextStageRequired",
-            _ => "OutOfSpecification"
+            _ => ResultStatus.OutOfSpecification
         };
 
         string reportedDisplay = FormatReportedDisplay(eval.Mean);

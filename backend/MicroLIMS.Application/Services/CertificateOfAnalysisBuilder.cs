@@ -1,3 +1,4 @@
+using MicroLIMS.Domain.Constants;
 using System.Text.RegularExpressions;
 using MicroLIMS.Application.DTOs;
 using MicroLIMS.Application.Helpers;
@@ -151,7 +152,7 @@ public static class CertificateOfAnalysisBuilder
                 return (CoaCellDto?)new CoaCellDto
                 {
                     Kind = "qualitative",
-                    Result = conform ? "Absent" : loc.ReportedResult ?? "—",
+                    Result = conform ? ResultStatus.Absent : loc.ReportedResult ?? "—",
                     Conform = conform
                 };
             }).ToList();
@@ -270,13 +271,13 @@ public static class CertificateOfAnalysisBuilder
         if (lastBiochemical is not null)
         {
             outcome = ResultConformanceRules.FromDetection(lastBiochemical.OrganismDetected!.Value);
-            result = lastBiochemical.OrganismDetected!.Value ? "Detected" : "Absent";
+            result = lastBiochemical.OrganismDetected!.Value ? ResultStatus.Detected : ResultStatus.Absent;
         }
         else if (t.PathogenObservations.Count > 0)
         {
             var detected = t.PathogenObservations.Any(p => p.Observation == "GrowthConforming");
             outcome = ResultConformanceRules.FromDetection(detected);
-            result = detected ? "Detected" : "Absent";
+            result = detected ? ResultStatus.Detected : ResultStatus.Absent;
         }
         else
         {

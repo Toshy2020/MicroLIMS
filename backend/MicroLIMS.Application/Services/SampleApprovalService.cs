@@ -1,3 +1,4 @@
+using MicroLIMS.Domain.Constants;
 using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Helpers;
@@ -106,7 +107,7 @@ public class SampleApprovalService
         // than a location result), fall back to carrying every original
         // location rather than creating a TestOrder with no locations at
         // all - an empty batch order can't be tested.
-        var failedLocations = originalLocations.Where(l => l.Status is not ("WithinLimits" or "Absent")).ToList();
+        var failedLocations = originalLocations.Where(l => l.Status is not (ResultStatus.WithinLimits or ResultStatus.Absent)).ToList();
         var locationsToClone = failedLocations.Count > 0 ? failedLocations : originalLocations;
 
         foreach (var loc in locationsToClone)

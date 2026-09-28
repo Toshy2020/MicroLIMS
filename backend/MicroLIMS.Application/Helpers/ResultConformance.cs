@@ -1,3 +1,4 @@
+using MicroLIMS.Domain.Constants;
 namespace MicroLIMS.Application.Helpers;
 
 // How one recorded result stands against its limits. The single rule the
@@ -21,8 +22,8 @@ public static class ResultConformanceRules
     public static ResultConformance FromStatus(string? status) => status switch
     {
         null or "" => ResultConformance.NoResult,
-        "WithinLimits" or "Absent" => ResultConformance.Conforms,
-        "LimitsNotConfigured" => ResultConformance.LimitsNotConfigured,
+        ResultStatus.WithinLimits or ResultStatus.Absent => ResultConformance.Conforms,
+        ResultStatus.LimitsNotConfigured => ResultConformance.LimitsNotConfigured,
         _ => ResultConformance.DoesNotConform
     };
 
@@ -33,6 +34,6 @@ public static class ResultConformanceRules
     // A bare qualitative result value.
     public static ResultConformance FromResultValue(string? value) =>
         string.IsNullOrWhiteSpace(value) ? ResultConformance.NoResult
-        : string.Equals(value, "Detected", StringComparison.OrdinalIgnoreCase) ? ResultConformance.DoesNotConform
+        : string.Equals(value, ResultStatus.Detected, StringComparison.OrdinalIgnoreCase) ? ResultConformance.DoesNotConform
         : ResultConformance.Conforms;
 }

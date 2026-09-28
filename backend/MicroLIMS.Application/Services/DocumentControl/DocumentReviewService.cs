@@ -1,3 +1,4 @@
+using MicroLIMS.Domain.Constants;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.DTOs.DocumentControl;
 using MicroLIMS.Application.Interfaces;
@@ -84,7 +85,7 @@ public class DocumentReviewService : IDocumentReviewService
         var unaddressedOriginatingItems = await _db.RevisionChangeItems
             .Where(c => c.DocumentRevisionId == revisionId &&
                         c.OriginatingReviewFindingId.HasValue &&
-                        c.Status != "Addressed")
+                        c.Status != RevisionChangeItemStatus.Addressed)
             .ToListAsync();
 
         if (unaddressedOriginatingItems.Count > 0)

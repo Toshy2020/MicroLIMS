@@ -1,3 +1,4 @@
+using MicroLIMS.Domain.Constants;
 using MicroLIMS.Shared.Exceptions;
 using System.Globalization;
 using System.Text.Json;
@@ -115,7 +116,7 @@ public sealed class WeightVariationRecorder : TestWorkflowSupport
         string reportedDisplay;
         if (evalResult.Outcome == DissolutionStageOutcome.Complies)
         {
-            comparisonStatus = "WithinLimits";
+            comparisonStatus = ResultStatus.WithinLimits;
             reportedDisplay = "Complies";
         }
         else if (evalResult.Outcome == DissolutionStageOutcome.NextStageRequired)
@@ -125,7 +126,7 @@ public sealed class WeightVariationRecorder : TestWorkflowSupport
         }
         else
         {
-            comparisonStatus = "OutOfSpecification";
+            comparisonStatus = ResultStatus.OutOfSpecification;
             reportedDisplay = "Does not comply";
         }
 
@@ -421,7 +422,7 @@ public sealed class WeightVariationRecorder : TestWorkflowSupport
         paramResult.StageReached = evalResult.StageReached;
         paramResult.ReportedValue = evalResult.MeanWeightMg;
         paramResult.CalculationJson = JsonSerializer.Serialize(calcData, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
-        paramResult.ComparisonStatus = evalResult.Outcome == DissolutionStageOutcome.Complies ? "WithinLimits" : "OutOfSpecification";
+        paramResult.ComparisonStatus = evalResult.Outcome == DissolutionStageOutcome.Complies ? ResultStatus.WithinLimits : ResultStatus.OutOfSpecification;
         paramResult.ReportedDisplay = evalResult.Outcome == DissolutionStageOutcome.Complies ? "Complies" : "Does not comply";
 
         await _db.SaveChangesAsync();

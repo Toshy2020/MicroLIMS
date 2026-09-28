@@ -1,3 +1,4 @@
+using MicroLIMS.Domain.Constants;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
@@ -363,7 +364,7 @@ public class ReportingQueryService
 
     public async Task<QualitativeEventResult> GetQualitativeEventsAsync(string? testCode, string? subjectName, SampleCategory? category, DateTime? fromDate, DateTime? toDate, IReadOnlyCollection<int>? sectionIds = null)
     {
-        var query = Records(sectionIds).Where(r => r.ResultKind == ResultKind.Qualitative && r.ReportedValue == "Detected");
+        var query = Records(sectionIds).Where(r => r.ResultKind == ResultKind.Qualitative && r.ReportedValue == ResultStatus.Detected);
 
         if (!string.IsNullOrWhiteSpace(testCode)) query = query.Where(r => r.TestCode == testCode);
         if (!string.IsNullOrWhiteSpace(subjectName)) query = query.Where(r => r.SubjectName == subjectName);
@@ -482,10 +483,10 @@ public class ReportingQueryService
                     // location result writes "Detected" / "Absent"
                     // (location.ReportedResult ?? location.Status). Both
                     // negative strings must count as compliant here.
-                    var detectedCount = list.Count(r => r.ReportedValue == "Detected");
+                    var detectedCount = list.Count(r => r.ReportedValue == ResultStatus.Detected);
                     percentDetected = testsEvaluated > 0 ? Math.Round((double)detectedCount / testsEvaluated * 100, 1) : null;
 
-                    var notDetectedCount = list.Count(r => r.ReportedValue == "Not Detected" || r.ReportedValue == "Absent");
+                    var notDetectedCount = list.Count(r => r.ReportedValue == "Not Detected" || r.ReportedValue == ResultStatus.Absent);
                     compliancePercent = testsEvaluated > 0 ? Math.Round((double)notDetectedCount / testsEvaluated * 100, 1) : 0;
                 }
 

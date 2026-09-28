@@ -1,3 +1,4 @@
+using MicroLIMS.Domain.Constants;
 using MicroLIMS.Shared.Exceptions;
 using System.Globalization;
 using System.Text.Json;
@@ -371,9 +372,9 @@ public sealed class PathogenConfirmationRecorder : TestWorkflowSupport
             return new StepResultDto(incubation.Id, step.StepType.ToString(), "Complete",
                 userId, result.SubmittedAtUtc, NextStepUnlocked: true, WorkflowFinalResult: null, Flags: new List<string>());
 
-        await FinalizeWorkflowAsync(testOrderId, "NotDetected", userId);
+        await FinalizeWorkflowAsync(testOrderId, ResultStatus.NotDetected, userId);
         return new StepResultDto(incubation.Id, step.StepType.ToString(), "Complete",
-            userId, result.SubmittedAtUtc, NextStepUnlocked: false, WorkflowFinalResult: "NotDetected", Flags: new List<string>());
+            userId, result.SubmittedAtUtc, NextStepUnlocked: false, WorkflowFinalResult: ResultStatus.NotDetected, Flags: new List<string>());
     }
 
     [Obsolete("Use StartSelectivePlatingIncubationAsync followed by SubmitSelectivePlatingObservationAsync.")]
@@ -664,10 +665,10 @@ public sealed class PathogenConfirmationRecorder : TestWorkflowSupport
         });
         await _db.SaveChangesAsync();
 
-        await FinalizeWorkflowAsync(testOrderId, "Detected", userId);
+        await FinalizeWorkflowAsync(testOrderId, ResultStatus.Detected, userId);
 
         return new StepResultDto(confirmatory.IncubationId, StepType.ConfirmatoryPlating.ToString(), "Complete",
-            userId, confirmatory.SubmittedAtUtc, NextStepUnlocked: false, WorkflowFinalResult: "Detected",
+            userId, confirmatory.SubmittedAtUtc, NextStepUnlocked: false, WorkflowFinalResult: ResultStatus.Detected,
             Flags: new List<string> { "BiochemicalNotPerformed" });
     }
 
@@ -758,7 +759,7 @@ public sealed class PathogenConfirmationRecorder : TestWorkflowSupport
         // free-text BiochemicalResultText alone must not drive the final
         // result (see BiochemicalOrganismDetected's doc comment on
         // WorkflowStepResult for the incident that made this explicit).
-        var finalResult = organismDetected ? "Detected" : "NotDetected";
+        var finalResult = organismDetected ? ResultStatus.Detected : ResultStatus.NotDetected;
         await FinalizeWorkflowAsync(testOrderId, finalResult, userId);
 
         return new StepResultDto(result.IncubationId, step.StepType.ToString(), "Complete",
@@ -808,7 +809,7 @@ public sealed class PathogenConfirmationRecorder : TestWorkflowSupport
 
             return new StepResultDto(result.IncubationId, result.StepType.ToString(), "Approved",
                 result.SubmittedByUserId, result.SubmittedAtUtc, NextStepUnlocked: false,
-                WorkflowFinalResult: "Detected", Flags: new List<string>());
+                WorkflowFinalResult: ResultStatus.Detected, Flags: new List<string>());
         }
 
         result.RequiresBiochemical = true;

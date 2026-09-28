@@ -1,3 +1,4 @@
+using MicroLIMS.Domain.Constants;
 using System.Globalization;
 using System.Text.Json;
 using MicroLIMS.Application.Services;
@@ -182,7 +183,7 @@ public static class StandardComparisonCalculator
         string status = SpecificationEvaluator.Evaluate(spec, reportedValue);
         if (rsdExceeded)
         {
-            status = "RequiresReview";
+            status = ResultStatus.RequiresReview;
         }
 
         var calcData = new StandardComparisonCalculationData(

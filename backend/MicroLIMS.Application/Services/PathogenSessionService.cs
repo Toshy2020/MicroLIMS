@@ -1,3 +1,4 @@
+using MicroLIMS.Domain.Constants;
 using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Helpers;
@@ -672,7 +673,7 @@ public class PathogenSessionService
                     }
                 }
 
-                if (sloc != null && (!string.IsNullOrWhiteSpace(sloc.ReportedResult) || sloc.CFUResult.HasValue) && sloc.Status != "PendingConfirmation")
+                if (sloc != null && (!string.IsNullOrWhiteSpace(sloc.ReportedResult) || sloc.CFUResult.HasValue) && sloc.Status != ResultStatus.PendingConfirmation)
                 {
                     resDisplay = sloc.ReportedResult;
                     numVal = sloc.CFUResult ?? sloc.CalculatedResult;
@@ -686,7 +687,7 @@ public class PathogenSessionService
                     }
                     else
                     {
-                        resCode = (sloc.ReportedResult?.Contains("Detected (+)") == true || sloc.ReportedResult?.Equals("Detected", StringComparison.OrdinalIgnoreCase) == true)
+                        resCode = (sloc.ReportedResult?.Contains("Detected (+)") == true || sloc.ReportedResult?.Equals(ResultStatus.Detected, StringComparison.OrdinalIgnoreCase) == true)
                             ? "DETECTED"
                             : "NOT_DETECTED";
                     }
@@ -1126,19 +1127,19 @@ public class PathogenSessionService
                 if (obs.Observation == GrowthObservation.NoGrowth)
                 {
                     loc.ReportedResult = "Not Detected (-)";
-                    loc.Status = "Absent";
+                    loc.Status = ResultStatus.Absent;
                     loc.CFUResult = null;
                 }
                 else if (obs.Observation == GrowthObservation.GrowthConforming)
                 {
                     loc.ReportedResult = "Growth Conforming (Presumptive +)";
-                    loc.Status = "PendingConfirmation";
+                    loc.Status = ResultStatus.PendingConfirmation;
                     loc.CFUResult = null;
                 }
                 else if (obs.Observation == GrowthObservation.GrowthNonConforming)
                 {
                     loc.ReportedResult = "Growth Non-Conforming";
-                    loc.Status = "PendingConfirmation";
+                    loc.Status = ResultStatus.PendingConfirmation;
                     loc.CFUResult = null;
                 }
 
@@ -1408,12 +1409,12 @@ public class PathogenSessionService
                 if (outcome == ConfirmationResult.Detected)
                 {
                     primaryObs.SampleLocation.ReportedResult = "Detected (+)";
-                    primaryObs.SampleLocation.Status = "Detected";
+                    primaryObs.SampleLocation.Status = ResultStatus.Detected;
                 }
                 else if (outcome == ConfirmationResult.NotDetected)
                 {
                     primaryObs.SampleLocation.ReportedResult = "Not Detected (-)";
-                    primaryObs.SampleLocation.Status = "Absent";
+                    primaryObs.SampleLocation.Status = ResultStatus.Absent;
                 }
                 else // Inconclusive
                 {
@@ -1512,7 +1513,7 @@ public class PathogenSessionService
                 {
                     var isDetected = cell.ResultCode == "DETECTED" || cell.ResultDisplay?.Contains("Detected (+)") == true;
                     loc.ReportedResult = isDetected ? "Detected (+)" : "Not Detected (-)";
-                    loc.Status = isDetected ? "Detected" : "Absent";
+                    loc.Status = isDetected ? ResultStatus.Detected : ResultStatus.Absent;
                     loc.CFUResult = null;
 
                     // Also record primary observation record for data integrity

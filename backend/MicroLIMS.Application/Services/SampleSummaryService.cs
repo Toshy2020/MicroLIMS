@@ -1,3 +1,4 @@
+using MicroLIMS.Domain.Constants;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.DTOs;
 using MicroLIMS.Application.Helpers;
@@ -367,23 +368,23 @@ public class SampleSummaryService
                             if (allConforming)
                             {
                                 reportedResult = "Detected (+)";
-                                status = "OutOfSpecification";
+                                status = ResultStatus.OutOfSpecification;
                             }
                             else if (allNoGrowth)
                             {
                                 reportedResult = "Not Detected (-)";
-                                status = "WithinLimits";
+                                status = ResultStatus.WithinLimits;
                             }
                             else
                             {
                                 reportedResult = "Inconclusive (Retest)";
-                                status = "RequiresReview";
+                                status = ResultStatus.RequiresReview;
                             }
                         }
-                        else if (obs.SampleLocation != null && !string.IsNullOrWhiteSpace(obs.SampleLocation.ReportedResult) && obs.SampleLocation.Status != "PendingConfirmation")
+                        else if (obs.SampleLocation != null && !string.IsNullOrWhiteSpace(obs.SampleLocation.ReportedResult) && obs.SampleLocation.Status != ResultStatus.PendingConfirmation)
                         {
                             reportedResult = obs.SampleLocation.ReportedResult;
-                            status = obs.SampleLocation.Status == "Detected" ? "OutOfSpecification" : obs.SampleLocation.Status == "Absent" ? "WithinLimits" : obs.SampleLocation.Status ?? "WithinLimits";
+                            status = obs.SampleLocation.Status == ResultStatus.Detected ? ResultStatus.OutOfSpecification : obs.SampleLocation.Status == ResultStatus.Absent ? ResultStatus.WithinLimits : obs.SampleLocation.Status ?? ResultStatus.WithinLimits;
                         }
                         else
                         {
@@ -395,8 +396,8 @@ public class SampleSummaryService
                                 _ => "—"
                             };
                             status = obs.GrowthObservation == GrowthObservation.NoGrowth
-                                ? "WithinLimits"
-                                : "PendingConfirmation";
+                                ? ResultStatus.WithinLimits
+                                : ResultStatus.PendingConfirmation;
                         }
 
                         return new SampleLocationDetailDto
@@ -853,7 +854,7 @@ public class SampleSummaryService
                 lines.Add("  BIOCHEMICAL IDENTIFICATION:");
                 foreach (var b in order.BiochemicalResults)
                 {
-                    var call = b.OrganismDetected is true ? "Detected" : b.OrganismDetected is false ? "Not Detected" : "Undetermined";
+                    var call = b.OrganismDetected is true ? ResultStatus.Detected : b.OrganismDetected is false ? "Not Detected" : "Undetermined";
                     lines.Add($"    {b.StepName}: {b.BiochemicalResultText}   Interpretation: {call}   Entered By: {b.SubmittedByName}   Entered At: {FormatDateTime(b.SubmittedAt)}");
                 }
             }

@@ -1,3 +1,4 @@
+using MicroLIMS.Domain.Constants;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.DTOs.DocumentControl;
 using MicroLIMS.Application.Interfaces;
@@ -753,7 +754,7 @@ public class DocumentApprovalService : IDocumentApprovalService
 
         // 6. Change Items Addressed
         bool areChangeItemsAddressed = !revision.ChangeItems.Any(c =>
-            c.OriginatingReviewFindingId.HasValue && c.Status != "Addressed");
+            c.OriginatingReviewFindingId.HasValue && c.Status != RevisionChangeItemStatus.Addressed);
         if (!areChangeItemsAddressed)
         {
             errors.Add("One or more originating review findings in change items remain unaddressed.");

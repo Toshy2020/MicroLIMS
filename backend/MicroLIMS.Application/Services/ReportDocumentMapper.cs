@@ -1,3 +1,4 @@
+using MicroLIMS.Domain.Constants;
 using MicroLIMS.Application.DTOs;
 using MicroLIMS.Application.Abstractions.Pdf;
 
@@ -177,8 +178,8 @@ public static class ReportDocumentMapper
         var lastBiochemical = t.BiochemicalResults.LastOrDefault();
         var detected = lastBiochemical?.OrganismDetected
             ?? t.PathogenObservations.Any(p => p.Observation == "GrowthConforming");
-        var outOfSpec = reading?.Status == "OutOfSpecification";
-        var hasNonConformingLocation = t.Locations.Any(l => l.Status is not (null or "WithinLimits" or "Absent" or "PendingConfirmation"));
+        var outOfSpec = reading?.Status == ResultStatus.OutOfSpecification;
+        var hasNonConformingLocation = t.Locations.Any(l => l.Status is not (null or ResultStatus.WithinLimits or ResultStatus.Absent or ResultStatus.PendingConfirmation));
 
         var tone = t.IsSuperseded ? ReportTone.Neutral
             : outOfSpec || detected || hasNonConformingLocation ? ReportTone.Danger
@@ -191,8 +192,8 @@ public static class ReportDocumentMapper
         string? worstLocationStatus = null;
         if (t.Locations.Count > 0)
         {
-            var severity = new[] { "WithinLimits", "Absent", "PendingConfirmation", "LimitsNotConfigured", "AlertLimitExceeded", "ActionLimitExceeded", "RequiresReview", "OutOfSpecification", "Detected" };
-            worstLocationStatus = "WithinLimits";
+            var severity = new[] { ResultStatus.WithinLimits, ResultStatus.Absent, ResultStatus.PendingConfirmation, ResultStatus.LimitsNotConfigured, ResultStatus.AlertLimitExceeded, ResultStatus.ActionLimitExceeded, ResultStatus.RequiresReview, ResultStatus.OutOfSpecification, ResultStatus.Detected };
+            worstLocationStatus = ResultStatus.WithinLimits;
             foreach (var loc in t.Locations)
             {
                 if (loc.Status is null) continue;
@@ -203,7 +204,7 @@ public static class ReportDocumentMapper
 
         var headline = worstLocationStatus is not null ? Humanize(worstLocationStatus)
             : reading?.ReportedResult
-            ?? (t.PathogenObservations.Count > 0 ? (detected ? "Detected" : "Absent") : null)
+            ?? (t.PathogenObservations.Count > 0 ? (detected ? ResultStatus.Detected : ResultStatus.Absent) : null)
             ?? lastResult?.InterpretedValue ?? lastResult?.RawValue ?? "-";
 
         var card = new CardBlock
@@ -262,7 +263,7 @@ public static class ReportDocumentMapper
 
         foreach (var b in t.BiochemicalResults)
         {
-            var call = b.OrganismDetected is true ? "Detected" : b.OrganismDetected is false ? "Not Detected" : "Undetermined";
+            var call = b.OrganismDetected is true ? ResultStatus.Detected : b.OrganismDetected is false ? "Not Detected" : "Undetermined";
             card.Rows.Add((Humanize(b.StepName), $"{call}: {b.BiochemicalResultText}  |  {b.SubmittedByName}  |  {Dt(b.SubmittedAt)}"));
         }
 
@@ -314,7 +315,7 @@ public static class ReportDocumentMapper
         card.FooterLeft = enteredBy is null ? "No result recorded yet" : $"Entered by {enteredBy} · {Dt(enteredAt)}";
         card.FooterRight = t.IsSuperseded ? "Superseded"
             : t.Locations.Count > 0 ? (hasNonConformingLocation ? "Non-conforming location(s)" : "All locations within spec")
-            : Humanize(reading?.Status ?? (t.PathogenObservations.Count > 0 ? (detected ? "Detected" : "Absent") : t.Status));
+            : Humanize(reading?.Status ?? (t.PathogenObservations.Count > 0 ? (detected ? ResultStatus.Detected : ResultStatus.Absent) : t.Status));
 
         return card;
     }

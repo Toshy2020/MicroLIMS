@@ -1,3 +1,4 @@
+using MicroLIMS.Domain.Constants;
 using MicroLIMS.Shared.Exceptions;
 using System.Globalization;
 using System.Security.Cryptography;
@@ -661,7 +662,7 @@ public class CalibrationRunService : ICalibrationRunService
             }
             else
             {
-                paramResult.ComparisonStatus = "RequiresReview";
+                paramResult.ComparisonStatus = ResultStatus.RequiresReview;
 
                 var projected = await _db.ResultRecords
                     .FirstOrDefaultAsync(pr => pr.SourceTable == "ParameterResult" && pr.SourceId == paramResult.Id, ct);

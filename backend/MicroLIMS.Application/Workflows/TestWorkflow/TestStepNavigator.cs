@@ -1,3 +1,4 @@
+using MicroLIMS.Domain.Constants;
 using MicroLIMS.Shared.Exceptions;
 using System.Globalization;
 using System.Text.Json;
@@ -192,8 +193,8 @@ public sealed class TestStepNavigator : TestWorkflowSupport
                 if (bioResult is not null)
                 {
                     reportedResult = bioResult.BiochemicalResultText;
-                    status = bioResult.BiochemicalOrganismDetected is true ? "Detected"
-                        : bioResult.BiochemicalOrganismDetected is false ? "NotDetected"
+                    status = bioResult.BiochemicalOrganismDetected is true ? ResultStatus.Detected
+                        : bioResult.BiochemicalOrganismDetected is false ? ResultStatus.NotDetected
                         : null;
                     observedAt = bioResult.SubmittedAtUtc;
                 }

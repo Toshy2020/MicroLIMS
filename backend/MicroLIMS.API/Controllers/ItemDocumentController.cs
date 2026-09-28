@@ -1,4 +1,5 @@
 using MicroLIMS.Shared.Exceptions;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using MicroLIMS.Application.Services;
@@ -73,7 +74,7 @@ public class ItemDocumentController : ControllerBase
 
             return Ok(ApiResponse<object>.Ok(doc));
         }
-        catch (Exception ex) when (ex is not NotFoundException)
+        catch (Exception ex) when (ex is not DbUpdateConcurrencyException and not NotFoundException)
         {
             _logger.LogError(ex, "Failed to upload document for item {ItemId}", itemId);
             var message = ex.InnerException?.Message ?? ex.Message;

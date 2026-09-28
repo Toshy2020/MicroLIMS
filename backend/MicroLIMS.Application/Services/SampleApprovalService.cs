@@ -1,5 +1,6 @@
 using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
+using MicroLIMS.Application.Helpers;
 using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Application.Workflows;
 using MicroLIMS.Domain.Entities;
@@ -130,7 +131,14 @@ public class SampleApprovalService
         return true;
     }
 
-    public async Task DecideAsync(
+    public Task DecideAsync(
+        int sampleId, int sectionHeadUserId, string password, ApprovalDecision decision,
+        string? comment, string? ipAddress, string? certificateRemarks = null,
+        List<int>? selectedTestOrderIds = null, int? newSampleAnalystOneId = null, int? newSampleAnalystTwoId = null,
+        int? sectionId = null) =>
+        UnitOfWork.RunAsync(_db, () => DecideCoreAsync(sampleId, sectionHeadUserId, password, decision, comment, ipAddress, certificateRemarks, selectedTestOrderIds, newSampleAnalystOneId, newSampleAnalystTwoId, sectionId));
+
+    private async Task DecideCoreAsync(
         int sampleId, int sectionHeadUserId, string password, ApprovalDecision decision,
         string? comment, string? ipAddress, string? certificateRemarks = null,
         List<int>? selectedTestOrderIds = null, int? newSampleAnalystOneId = null, int? newSampleAnalystTwoId = null,

@@ -196,7 +196,7 @@ public class DissolutionResultPostgresIntegrationTests
 
         var result1 = await engine.RecordDissolutionResultAsync(order.Id, payloadStage1, _fixture.SeededUserId, "127.0.0.1");
 
-        Assert.Equal("NextStageRequired", result1.Status);
+        Assert.Equal(ResultStatus.NextStageRequired, result1.Status);
         Assert.False(result1.IsDefinitive);
         Assert.False(result1.AllStepsComplete);
 
@@ -222,7 +222,7 @@ public class DissolutionResultPostgresIntegrationTests
         Assert.Single(savedAnalysis1.ParameterResults);
         var pr1 = savedAnalysis1.ParameterResults[0];
         Assert.Equal(1, pr1.StageReached);
-        Assert.Equal("NextStageRequired", pr1.ComparisonStatus);
+        Assert.Equal(ResultStatus.NextStageRequired, pr1.ComparisonStatus);
         Assert.Equal(6, pr1.Readings.Count);
 
         // Stage 2: append 6 vessel areas (all at 0.4500 -> 90.0%)
@@ -234,7 +234,7 @@ public class DissolutionResultPostgresIntegrationTests
 
         var result2 = await engine.RecordDissolutionStageAsync(order.Id, payloadStage2, _fixture.SeededUserId, "127.0.0.1");
 
-        Assert.Equal("WithinLimits", result2.Status);
+        Assert.Equal(ResultStatus.WithinLimits, result2.Status);
         Assert.True(result2.IsDefinitive);
         Assert.True(result2.AllStepsComplete);
 
@@ -265,7 +265,7 @@ public class DissolutionResultPostgresIntegrationTests
         Assert.NotNull(savedAnalysis2);
         var pr2 = savedAnalysis2.ParameterResults[0];
         Assert.Equal(2, pr2.StageReached);
-        Assert.Equal("WithinLimits", pr2.ComparisonStatus);
+        Assert.Equal(ResultStatus.WithinLimits, pr2.ComparisonStatus);
         Assert.Equal(12, pr2.Readings.Count);
 
         using var calcDoc = JsonDocument.Parse(pr2.CalculationJson!);

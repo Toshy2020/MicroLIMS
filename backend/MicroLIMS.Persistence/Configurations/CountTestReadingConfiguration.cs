@@ -10,6 +10,10 @@ public class CountTestReadingConfiguration : IEntityTypeConfiguration<CountTestR
     {
         builder.HasKey(r => r.Id);
 
+        // Stored as the member name, the same text the column held when the
+        // status was a string.
+        builder.Property(r => r.Status).HasConversion<string>();
+
         builder.Property(r => r.IsActive)
             .HasDefaultValue(true);
 

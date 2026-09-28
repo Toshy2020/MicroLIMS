@@ -1,5 +1,4 @@
 using MicroLIMS.Application.Helpers;
-using MicroLIMS.Domain.Constants;
 using System.Text.RegularExpressions;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.DTOs.DocumentControl;
@@ -241,7 +240,7 @@ public class DocumentRevisionService : IDocumentRevisionService
             DescriptionOfChange = request.DescriptionOfChange.Trim(),
             ChangeRationale = request.ChangeRationale.Trim(),
             ChangeCategory = request.ChangeCategory.Trim(),
-            Status = string.IsNullOrWhiteSpace(request.Status) ? RevisionChangeItemStatus.Draft : request.Status.Trim(),
+            Status = request.Status ?? RevisionChangeItemStatus.Draft,
             OriginatingReviewFindingId = request.OriginatingReviewFindingId,
             CreatedByUserId = userId,
             CreatedAt = _time.GetUtcNow().UtcDateTime
@@ -296,7 +295,7 @@ public class DocumentRevisionService : IDocumentRevisionService
         item.DescriptionOfChange = request.DescriptionOfChange.Trim();
         item.ChangeRationale = request.ChangeRationale.Trim();
         item.ChangeCategory = request.ChangeCategory.Trim();
-        item.Status = request.Status.Trim();
+        item.Status = request.Status;
         item.ModifiedAt = _time.GetUtcNow().UtcDateTime;
 
         _db.CurrentUserId = userId;
@@ -313,7 +312,7 @@ public class DocumentRevisionService : IDocumentRevisionService
             changes: new[]
             {
                 new AuditFieldChange("SectionNumber", null, item.SectionNumber),
-                new AuditFieldChange("Status", null, item.Status)
+                new AuditFieldChange("Status", null, item.Status.ToString())
             }
         );
 

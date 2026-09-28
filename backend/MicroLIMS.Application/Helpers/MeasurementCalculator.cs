@@ -1,4 +1,3 @@
-using MicroLIMS.Domain.Constants;
 using System.Globalization;
 using System.Text.Json;
 using MicroLIMS.Application.Services;
@@ -17,7 +16,7 @@ public record MeasurementCalculationResult(
     MeasurementEvaluationBasis Basis,
     decimal ReportedValue,
     string ReportedDisplay,
-    string ComparisonStatus,
+    ResultStatus ComparisonStatus,
     string CalculationJson);
 
 public static class MeasurementCalculator
@@ -85,7 +84,7 @@ public static class MeasurementCalculator
         }
 
         decimal reportedValue;
-        string comparisonStatus;
+        ResultStatus comparisonStatus;
 
         switch (basis)
         {

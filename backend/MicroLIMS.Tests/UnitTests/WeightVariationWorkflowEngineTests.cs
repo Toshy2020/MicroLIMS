@@ -196,7 +196,7 @@ public class WeightVariationWorkflowEngineTests
 
         Assert.False(result1.AllStepsComplete);
         Assert.False(result1.IsDefinitive);
-        Assert.Equal("NextStageRequired", result1.Status);
+        Assert.Equal(ResultStatus.NextStageRequired, result1.Status);
 
         // Order remains Running
         var reloadedOrder = await db.TestOrders.FindAsync(order.Id);
@@ -222,7 +222,7 @@ public class WeightVariationWorkflowEngineTests
 
         Assert.True(result2.AllStepsComplete);
         Assert.True(result2.IsDefinitive);
-        Assert.Equal("WithinLimits", result2.Status);
+        Assert.Equal(ResultStatus.WithinLimits, result2.Status);
 
         // Order finalized to Ready
         reloadedOrder = await db.TestOrders.FindAsync(order.Id);
@@ -244,7 +244,7 @@ public class WeightVariationWorkflowEngineTests
         Assert.Single(analysis.ParameterResults);
         var pr = analysis.ParameterResults[0];
         Assert.Equal(2, pr.StageReached);
-        Assert.Equal("WithinLimits", pr.ComparisonStatus);
+        Assert.Equal(ResultStatus.WithinLimits, pr.ComparisonStatus);
         Assert.Equal("Complies", pr.ReportedDisplay);
         Assert.Equal(400m, pr.ReportedValue);
         Assert.Equal(60, pr.Readings.Count);
@@ -299,7 +299,7 @@ public class WeightVariationWorkflowEngineTests
 
         Assert.True(result.AllStepsComplete);
         Assert.True(result.IsDefinitive);
-        Assert.Equal("WithinLimits", result.Status);
+        Assert.Equal(ResultStatus.WithinLimits, result.Status);
 
         var reloadedOrder = await db.TestOrders.FindAsync(order.Id);
         Assert.NotNull(reloadedOrder);
@@ -313,7 +313,7 @@ public class WeightVariationWorkflowEngineTests
         Assert.NotNull(analysis);
         var pr = analysis.ParameterResults[0];
         Assert.Equal(1, pr.StageReached);
-        Assert.Equal("WithinLimits", pr.ComparisonStatus);
+        Assert.Equal(ResultStatus.WithinLimits, pr.ComparisonStatus);
         Assert.Equal("Complies", pr.ReportedDisplay);
         Assert.Equal(500m, pr.ReportedValue);
         Assert.Equal(20, pr.Readings.Count);
@@ -351,7 +351,7 @@ public class WeightVariationWorkflowEngineTests
         var result = await engine.RecordWeightVariationResultAsync(order.Id, payload, analyst.Id);
 
         Assert.True(result.AllStepsComplete);
-        Assert.Equal("WithinLimits", result.Status);
+        Assert.Equal(ResultStatus.WithinLimits, result.Status);
 
         var pr = await db.ParameterResults.SingleAsync(p => p.TestOrderId == order.Id);
         Assert.Equal("Complies", pr.ReportedDisplay);
@@ -392,7 +392,7 @@ public class WeightVariationWorkflowEngineTests
 
         Assert.True(result.AllStepsComplete);
         Assert.True(result.IsDefinitive);
-        Assert.Equal("OutOfSpecification", result.Status);
+        Assert.Equal(ResultStatus.OutOfSpecification, result.Status);
 
         var reloadedOrder = await db.TestOrders.FindAsync(order.Id);
         Assert.NotNull(reloadedOrder);
@@ -400,7 +400,7 @@ public class WeightVariationWorkflowEngineTests
 
         var pr = await db.ParameterResults.SingleAsync(p => p.TestOrderId == order.Id);
         Assert.Equal("Does not comply", pr.ReportedDisplay);
-        Assert.Equal("OutOfSpecification", pr.ComparisonStatus);
+        Assert.Equal(ResultStatus.OutOfSpecification, pr.ComparisonStatus);
     }
 
     [Fact]
@@ -440,7 +440,7 @@ public class WeightVariationWorkflowEngineTests
             units2, "Password123!"), analyst.Id);
 
         // Still passes because snapshotted S2MaxOutside (6) is used!
-        Assert.Equal("WithinLimits", result2.Status);
+        Assert.Equal(ResultStatus.WithinLimits, result2.Status);
         var pr = await db.ParameterResults.Include(p => p.Readings).SingleAsync(p => p.TestOrderId == order.Id);
         Assert.Equal(60, pr.Readings.Count);
     }

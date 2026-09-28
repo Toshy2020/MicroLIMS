@@ -208,7 +208,7 @@ public class StandardComparisonTitrationPostgresIntegrationTests
 
         var res = await engine.RecordStandardComparisonResultAsync(order.Id, payload, _fixture.SeededUserId);
         Assert.NotNull(res);
-        Assert.Equal("WithinLimits", res.Status);
+        Assert.Equal(ResultStatus.WithinLimits, res.Status);
 
         // Verify from a fresh DbContext against PostgreSQL.
         await using var verifyDb = _fixture.CreateDbContext();
@@ -233,7 +233,7 @@ public class StandardComparisonTitrationPostgresIntegrationTests
 
         var param = savedAnalysis.ParameterResults.Single();
         Assert.Equal("Ascorbic Acid Assay", param.ParameterName);
-        Assert.Equal("WithinLimits", param.ComparisonStatus);
+        Assert.Equal(ResultStatus.WithinLimits, param.ComparisonStatus);
         Assert.Single(param.Readings);
 
         var reading = param.Readings[0];

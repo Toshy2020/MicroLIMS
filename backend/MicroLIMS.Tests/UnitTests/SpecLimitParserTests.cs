@@ -1,3 +1,4 @@
+using MicroLIMS.Domain.Enums;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Services;
 using MicroLIMS.Application.Workflows;
@@ -158,31 +159,31 @@ public class SpecLimitParserTests
         const string alert = "95.0 - 105.0 %";
 
         // Within all limits
-        Assert.Equal(("WithinLimits", null), TestWorkflowEngine.Compare(100.0m, alert, action, spec));
+        Assert.Equal((ResultStatus.WithinLimits, null), TestWorkflowEngine.Compare(100.0m, alert, action, spec));
 
         // Boundary equality on alert
-        Assert.Equal(("WithinLimits", null), TestWorkflowEngine.Compare(95.0m, alert, action, spec));
-        Assert.Equal(("WithinLimits", null), TestWorkflowEngine.Compare(105.0m, alert, action, spec));
+        Assert.Equal((ResultStatus.WithinLimits, null), TestWorkflowEngine.Compare(95.0m, alert, action, spec));
+        Assert.Equal((ResultStatus.WithinLimits, null), TestWorkflowEngine.Compare(105.0m, alert, action, spec));
 
         // Alert limit exceeded (below or above)
-        Assert.Equal(("AlertLimitExceeded", "Alert"), TestWorkflowEngine.Compare(94.9m, alert, action, spec));
-        Assert.Equal(("AlertLimitExceeded", "Alert"), TestWorkflowEngine.Compare(105.1m, alert, action, spec));
+        Assert.Equal((ResultStatus.AlertLimitExceeded, "Alert"), TestWorkflowEngine.Compare(94.9m, alert, action, spec));
+        Assert.Equal((ResultStatus.AlertLimitExceeded, "Alert"), TestWorkflowEngine.Compare(105.1m, alert, action, spec));
 
         // Action boundary equality is within action, but exceeds alert
-        Assert.Equal(("AlertLimitExceeded", "Alert"), TestWorkflowEngine.Compare(92.0m, alert, action, spec));
-        Assert.Equal(("AlertLimitExceeded", "Alert"), TestWorkflowEngine.Compare(108.0m, alert, action, spec));
+        Assert.Equal((ResultStatus.AlertLimitExceeded, "Alert"), TestWorkflowEngine.Compare(92.0m, alert, action, spec));
+        Assert.Equal((ResultStatus.AlertLimitExceeded, "Alert"), TestWorkflowEngine.Compare(108.0m, alert, action, spec));
 
         // Action limit exceeded
-        Assert.Equal(("ActionLimitExceeded", "Action"), TestWorkflowEngine.Compare(91.9m, alert, action, spec));
-        Assert.Equal(("ActionLimitExceeded", "Action"), TestWorkflowEngine.Compare(108.1m, alert, action, spec));
+        Assert.Equal((ResultStatus.ActionLimitExceeded, "Action"), TestWorkflowEngine.Compare(91.9m, alert, action, spec));
+        Assert.Equal((ResultStatus.ActionLimitExceeded, "Action"), TestWorkflowEngine.Compare(108.1m, alert, action, spec));
 
         // Spec boundary equality is within spec, but exceeds action
-        Assert.Equal(("ActionLimitExceeded", "Action"), TestWorkflowEngine.Compare(90.0m, alert, action, spec));
-        Assert.Equal(("ActionLimitExceeded", "Action"), TestWorkflowEngine.Compare(110.0m, alert, action, spec));
+        Assert.Equal((ResultStatus.ActionLimitExceeded, "Action"), TestWorkflowEngine.Compare(90.0m, alert, action, spec));
+        Assert.Equal((ResultStatus.ActionLimitExceeded, "Action"), TestWorkflowEngine.Compare(110.0m, alert, action, spec));
 
         // Spec limit exceeded (OutOfSpecification)
-        Assert.Equal(("OutOfSpecification", "Specification"), TestWorkflowEngine.Compare(89.9m, alert, action, spec));
-        Assert.Equal(("OutOfSpecification", "Specification"), TestWorkflowEngine.Compare(110.1m, alert, action, spec));
+        Assert.Equal((ResultStatus.OutOfSpecification, "Specification"), TestWorkflowEngine.Compare(89.9m, alert, action, spec));
+        Assert.Equal((ResultStatus.OutOfSpecification, "Specification"), TestWorkflowEngine.Compare(110.1m, alert, action, spec));
     }
 
     [Fact]
@@ -192,42 +193,42 @@ public class SpecLimitParserTests
         const string action = "50";
         const string spec = "100";
 
-        Assert.Equal(("WithinLimits", null), TestWorkflowEngine.Compare(5m, alert, action, spec));
-        Assert.Equal(("WithinLimits", null), TestWorkflowEngine.Compare(10m, alert, action, spec));
-        Assert.Equal(("AlertLimitExceeded", "Alert"), TestWorkflowEngine.Compare(15m, alert, action, spec));
-        Assert.Equal(("AlertLimitExceeded", "Alert"), TestWorkflowEngine.Compare(50m, alert, action, spec));
-        Assert.Equal(("ActionLimitExceeded", "Action"), TestWorkflowEngine.Compare(60m, alert, action, spec));
-        Assert.Equal(("ActionLimitExceeded", "Action"), TestWorkflowEngine.Compare(100m, alert, action, spec));
-        Assert.Equal(("OutOfSpecification", "Specification"), TestWorkflowEngine.Compare(150m, alert, action, spec));
+        Assert.Equal((ResultStatus.WithinLimits, null), TestWorkflowEngine.Compare(5m, alert, action, spec));
+        Assert.Equal((ResultStatus.WithinLimits, null), TestWorkflowEngine.Compare(10m, alert, action, spec));
+        Assert.Equal((ResultStatus.AlertLimitExceeded, "Alert"), TestWorkflowEngine.Compare(15m, alert, action, spec));
+        Assert.Equal((ResultStatus.AlertLimitExceeded, "Alert"), TestWorkflowEngine.Compare(50m, alert, action, spec));
+        Assert.Equal((ResultStatus.ActionLimitExceeded, "Action"), TestWorkflowEngine.Compare(60m, alert, action, spec));
+        Assert.Equal((ResultStatus.ActionLimitExceeded, "Action"), TestWorkflowEngine.Compare(100m, alert, action, spec));
+        Assert.Equal((ResultStatus.OutOfSpecification, "Specification"), TestWorkflowEngine.Compare(150m, alert, action, spec));
     }
 
     [Fact]
     public void TestWorkflowEngine_Compare_HandlesNmtAndNlt()
     {
         // NMT
-        Assert.Equal(("WithinLimits", null), TestWorkflowEngine.Compare(10m, "NMT 10", "NMT 50", "NMT 100"));
-        Assert.Equal(("AlertLimitExceeded", "Alert"), TestWorkflowEngine.Compare(15m, "NMT 10", "NMT 50", "NMT 100"));
-        Assert.Equal(("ActionLimitExceeded", "Action"), TestWorkflowEngine.Compare(60m, "NMT 10", "NMT 50", "NMT 100"));
-        Assert.Equal(("OutOfSpecification", "Specification"), TestWorkflowEngine.Compare(150m, "NMT 10", "NMT 50", "NMT 100"));
+        Assert.Equal((ResultStatus.WithinLimits, null), TestWorkflowEngine.Compare(10m, "NMT 10", "NMT 50", "NMT 100"));
+        Assert.Equal((ResultStatus.AlertLimitExceeded, "Alert"), TestWorkflowEngine.Compare(15m, "NMT 10", "NMT 50", "NMT 100"));
+        Assert.Equal((ResultStatus.ActionLimitExceeded, "Action"), TestWorkflowEngine.Compare(60m, "NMT 10", "NMT 50", "NMT 100"));
+        Assert.Equal((ResultStatus.OutOfSpecification, "Specification"), TestWorkflowEngine.Compare(150m, "NMT 10", "NMT 50", "NMT 100"));
 
         // NLT (spec = NLT 10, action = NLT 20, alert = NLT 50)
-        Assert.Equal(("WithinLimits", null), TestWorkflowEngine.Compare(60m, "NLT 50", "NLT 20", "NLT 10"));
-        Assert.Equal(("WithinLimits", null), TestWorkflowEngine.Compare(50m, "NLT 50", "NLT 20", "NLT 10"));
-        Assert.Equal(("AlertLimitExceeded", "Alert"), TestWorkflowEngine.Compare(45m, "NLT 50", "NLT 20", "NLT 10"));
-        Assert.Equal(("ActionLimitExceeded", "Action"), TestWorkflowEngine.Compare(15m, "NLT 50", "NLT 20", "NLT 10"));
-        Assert.Equal(("OutOfSpecification", "Specification"), TestWorkflowEngine.Compare(5m, "NLT 50", "NLT 20", "NLT 10"));
+        Assert.Equal((ResultStatus.WithinLimits, null), TestWorkflowEngine.Compare(60m, "NLT 50", "NLT 20", "NLT 10"));
+        Assert.Equal((ResultStatus.WithinLimits, null), TestWorkflowEngine.Compare(50m, "NLT 50", "NLT 20", "NLT 10"));
+        Assert.Equal((ResultStatus.AlertLimitExceeded, "Alert"), TestWorkflowEngine.Compare(45m, "NLT 50", "NLT 20", "NLT 10"));
+        Assert.Equal((ResultStatus.ActionLimitExceeded, "Action"), TestWorkflowEngine.Compare(15m, "NLT 50", "NLT 20", "NLT 10"));
+        Assert.Equal((ResultStatus.OutOfSpecification, "Specification"), TestWorkflowEngine.Compare(5m, "NLT 50", "NLT 20", "NLT 10"));
     }
 
     [Fact]
     public void TestWorkflowEngine_Compare_HandlesUnparseableLimits()
     {
         // All unparseable -> LimitsNotConfigured
-        Assert.Equal(("LimitsNotConfigured", null), TestWorkflowEngine.Compare(50m, "", "   ", null));
-        Assert.Equal(("LimitsNotConfigured", null), TestWorkflowEngine.Compare(50m, "Invalid", "N/A", "Pass"));
+        Assert.Equal((ResultStatus.LimitsNotConfigured, null), TestWorkflowEngine.Compare(50m, "", "   ", null));
+        Assert.Equal((ResultStatus.LimitsNotConfigured, null), TestWorkflowEngine.Compare(50m, "Invalid", "N/A", "Pass"));
 
         // Partial unparseable: valid alert limit is evaluated
-        Assert.Equal(("WithinLimits", null), TestWorkflowEngine.Compare(5m, "10", "N/A", "Pass"));
-        Assert.Equal(("AlertLimitExceeded", "Alert"), TestWorkflowEngine.Compare(15m, "10", "N/A", "Pass"));
+        Assert.Equal((ResultStatus.WithinLimits, null), TestWorkflowEngine.Compare(5m, "10", "N/A", "Pass"));
+        Assert.Equal((ResultStatus.AlertLimitExceeded, "Alert"), TestWorkflowEngine.Compare(15m, "10", "N/A", "Pass"));
     }
 
     [Fact]
@@ -243,17 +244,17 @@ public class SpecLimitParserTests
             SpecLimit = "90.0 - 110.0 %"
         };
 
-        Assert.Equal("WithinLimits", service.CompareAgainstLimits(100.0m, spec));
-        Assert.Equal("WithinLimits", service.CompareAgainstLimits(95.0m, spec));
-        Assert.Equal("WithinLimits", service.CompareAgainstLimits(105.0m, spec));
-        Assert.Equal("AlertLimitExceeded", service.CompareAgainstLimits(94.9m, spec));
-        Assert.Equal("AlertLimitExceeded", service.CompareAgainstLimits(105.1m, spec));
-        Assert.Equal("ActionLimitExceeded", service.CompareAgainstLimits(91.9m, spec));
-        Assert.Equal("ActionLimitExceeded", service.CompareAgainstLimits(108.1m, spec));
-        Assert.Equal("ActionLimitExceeded", service.CompareAgainstLimits(90.0m, spec)); // within spec boundary, exceeds action
-        Assert.Equal("ActionLimitExceeded", service.CompareAgainstLimits(110.0m, spec)); // within spec boundary, exceeds action
-        Assert.Equal("OutOfSpecification", service.CompareAgainstLimits(89.9m, spec));
-        Assert.Equal("OutOfSpecification", service.CompareAgainstLimits(110.1m, spec));
+        Assert.Equal(ResultStatus.WithinLimits, service.CompareAgainstLimits(100.0m, spec));
+        Assert.Equal(ResultStatus.WithinLimits, service.CompareAgainstLimits(95.0m, spec));
+        Assert.Equal(ResultStatus.WithinLimits, service.CompareAgainstLimits(105.0m, spec));
+        Assert.Equal(ResultStatus.AlertLimitExceeded, service.CompareAgainstLimits(94.9m, spec));
+        Assert.Equal(ResultStatus.AlertLimitExceeded, service.CompareAgainstLimits(105.1m, spec));
+        Assert.Equal(ResultStatus.ActionLimitExceeded, service.CompareAgainstLimits(91.9m, spec));
+        Assert.Equal(ResultStatus.ActionLimitExceeded, service.CompareAgainstLimits(108.1m, spec));
+        Assert.Equal(ResultStatus.ActionLimitExceeded, service.CompareAgainstLimits(90.0m, spec)); // within spec boundary, exceeds action
+        Assert.Equal(ResultStatus.ActionLimitExceeded, service.CompareAgainstLimits(110.0m, spec)); // within spec boundary, exceeds action
+        Assert.Equal(ResultStatus.OutOfSpecification, service.CompareAgainstLimits(89.9m, spec));
+        Assert.Equal(ResultStatus.OutOfSpecification, service.CompareAgainstLimits(110.1m, spec));
     }
 
     [Fact]
@@ -269,7 +270,7 @@ public class SpecLimitParserTests
             ActionLimit = "Negative",
             SpecLimit = "Pass"
         };
-        Assert.Equal("LimitsNotConfigured", service.CompareAgainstLimits(50, unparseableSpec));
+        Assert.Equal(ResultStatus.LimitsNotConfigured, service.CompareAgainstLimits(50, unparseableSpec));
 
         var nmtSpec = new Specification
         {
@@ -278,19 +279,19 @@ public class SpecLimitParserTests
             ActionLimit = "NMT 50",
             SpecLimit = "NMT 100"
         };
-        Assert.Equal("WithinLimits", service.CompareAgainstLimits(10, nmtSpec));
-        Assert.Equal("AlertLimitExceeded", service.CompareAgainstLimits(15, nmtSpec));
-        Assert.Equal("ActionLimitExceeded", service.CompareAgainstLimits(60, nmtSpec));
-        Assert.Equal("OutOfSpecification", service.CompareAgainstLimits(150, nmtSpec));
+        Assert.Equal(ResultStatus.WithinLimits, service.CompareAgainstLimits(10, nmtSpec));
+        Assert.Equal(ResultStatus.AlertLimitExceeded, service.CompareAgainstLimits(15, nmtSpec));
+        Assert.Equal(ResultStatus.ActionLimitExceeded, service.CompareAgainstLimits(60, nmtSpec));
+        Assert.Equal(ResultStatus.OutOfSpecification, service.CompareAgainstLimits(150, nmtSpec));
     }
 
     [Fact]
     public void WaterWorkflowEngine_And_PathogenSessionService_DelegateComparison()
     {
         // WaterWorkflowEngine.Compare
-        Assert.Equal(("WithinLimits", null), WaterWorkflowEngine.Compare(100m, "95-105", "92-108", "90-110"));
-        Assert.Equal(("OutOfSpecification", "Specification"), WaterWorkflowEngine.Compare(89m, "95-105", "92-108", "90-110"));
-        Assert.Equal(("OutOfSpecification", "Specification"), WaterWorkflowEngine.Compare(111m, "95-105", "92-108", "90-110"));
+        Assert.Equal((ResultStatus.WithinLimits, null), WaterWorkflowEngine.Compare(100m, "95-105", "92-108", "90-110"));
+        Assert.Equal((ResultStatus.OutOfSpecification, "Specification"), WaterWorkflowEngine.Compare(89m, "95-105", "92-108", "90-110"));
+        Assert.Equal((ResultStatus.OutOfSpecification, "Specification"), WaterWorkflowEngine.Compare(111m, "95-105", "92-108", "90-110"));
     }
 
     [Theory]

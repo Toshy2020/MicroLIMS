@@ -106,7 +106,7 @@ public class BiochemicalPredecessorTests
 
         var result = await engine.SubmitBiochemicalAsync(order.Id, "Identification Kit", "Confirmed B. cepacia complex.", null, true, AnalystId);
 
-        Assert.Equal("Detected", result.WorkflowFinalResult);
+        Assert.Equal(ResultStatus.Detected, result.WorkflowFinalResult);
         Assert.False(result.NextStepUnlocked);
 
         var reloaded = await db.TestOrders.SingleAsync(t => t.Id == order.Id);

@@ -390,8 +390,8 @@ public class SampleOrientedReviewerDashboardTests
 
         // The original OOS reading was returned to the analyst (soft-superseded)
         // and the re-read is within limits - both readings keep projection rows.
-        var returnedReading = new CountTestReading { TestOrderId = order.Id, PlateReadings = "900,910", ReportedResult = "905", Status = "OutOfSpecification", IsActive = false };
-        var currentReading = new CountTestReading { TestOrderId = order.Id, PlateReadings = "25,25", ReportedResult = "25", Status = "WithinLimits", IsActive = true };
+        var returnedReading = new CountTestReading { TestOrderId = order.Id, PlateReadings = "900,910", ReportedResult = "905", Status = ResultStatus.OutOfSpecification, IsActive = false };
+        var currentReading = new CountTestReading { TestOrderId = order.Id, PlateReadings = "25,25", ReportedResult = "25", Status = ResultStatus.WithinLimits, IsActive = true };
         db.CountTestReadings.AddRange(returnedReading, currentReading);
         await db.SaveChangesAsync();
 

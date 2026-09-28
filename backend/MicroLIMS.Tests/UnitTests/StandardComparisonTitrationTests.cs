@@ -215,7 +215,7 @@ public class StandardComparisonTitrationTests
         Assert.Equal(100.0m, result.Preparations[1].PercentAssay);
         Assert.Equal(99.0m, result.ReportedValue);
         Assert.Equal("99.0 %", result.ReportedDisplay);
-        Assert.Equal("WithinLimits", result.ComparisonStatus);
+        Assert.Equal(ResultStatus.WithinLimits, result.ComparisonStatus);
 
         Assert.Equal("TitrationVolume", result.CalculationData.ResponseMode);
         Assert.Equal(0.10m, result.CalculationData.BlankTitreMl);
@@ -847,7 +847,7 @@ public class StandardComparisonTitrationTests
         */
         Assert.Equal(98.0m, param.ReportedValue);
         Assert.Equal("98.0 %", param.ReportedDisplay);
-        Assert.Equal("WithinLimits", param.ComparisonStatus);
+        Assert.Equal(ResultStatus.WithinLimits, param.ComparisonStatus);
         Assert.Equal(98.0m, reading.ComputedValue);
 
         var calc = JsonSerializer.Deserialize<StandardComparisonCalculationData>(

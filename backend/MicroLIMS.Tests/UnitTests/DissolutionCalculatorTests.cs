@@ -282,7 +282,7 @@ public class DissolutionCalculatorTests
 
         Assert.Equal(1, result.StageReached);
         Assert.Equal(DissolutionStageOutcome.Complies, result.Outcome);
-        Assert.Equal("WithinLimits", result.ComparisonStatus);
+        Assert.Equal(ResultStatus.WithinLimits, result.ComparisonStatus);
         Assert.Equal("90 %", result.ReportedDisplay);
         Assert.Equal(89.5m, result.ReportedValue);
         Assert.Equal(6, result.Vessels.Count);

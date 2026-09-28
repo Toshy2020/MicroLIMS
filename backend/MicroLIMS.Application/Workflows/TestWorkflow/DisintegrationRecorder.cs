@@ -1,4 +1,3 @@
-using MicroLIMS.Domain.Constants;
 using MicroLIMS.Shared.Exceptions;
 using System.Globalization;
 using System.Text.Json;
@@ -99,7 +98,7 @@ public sealed class DisintegrationRecorder : TestWorkflowSupport
             ? spec.SpecLimit
             : SpecificationService.BuildCanonicalSpecLimit(spec);
 
-        string comparisonStatus;
+        ResultStatus comparisonStatus;
         string reportedDisplay;
         if (evalResult.Outcome == DissolutionStageOutcome.Complies)
         {
@@ -108,7 +107,7 @@ public sealed class DisintegrationRecorder : TestWorkflowSupport
         }
         else if (evalResult.Outcome == DissolutionStageOutcome.NextStageRequired)
         {
-            comparisonStatus = "NextStageRequired";
+            comparisonStatus = ResultStatus.NextStageRequired;
             reportedDisplay = "Stage 2 required";
         }
         else
@@ -196,10 +195,10 @@ public sealed class DisintegrationRecorder : TestWorkflowSupport
 
         if (evalResult.Outcome == DissolutionStageOutcome.NextStageRequired)
         {
-            return new TestWorkflowResult(outcomeSummary, false, false, null, null, null, "NextStageRequired");
+            return new TestWorkflowResult(outcomeSummary, false, false, null, null, null, ResultStatus.NextStageRequired);
         }
 
-        string overallStatus = paramResult.ComparisonStatus;
+        ResultStatus overallStatus = paramResult.ComparisonStatus;
 
         _db.Results.Add(new Result
         {
@@ -266,7 +265,7 @@ public sealed class DisintegrationRecorder : TestWorkflowSupport
         var paramResult = entry.ParameterResults.FirstOrDefault(pr => pr.IsActive)
             ?? throw new InvalidOperationException("No active disintegration parameter result found.");
 
-        if (paramResult.ComparisonStatus != "NextStageRequired")
+        if (paramResult.ComparisonStatus != ResultStatus.NextStageRequired)
             throw new InvalidOperationException("Active disintegration analysis does not require a next stage.");
 
         if (string.IsNullOrWhiteSpace(paramResult.CalculationJson))
@@ -356,7 +355,7 @@ public sealed class DisintegrationRecorder : TestWorkflowSupport
         await _db.SaveChangesAsync();
 
         var outcomeSummary = $"{paramResult.ParameterName}: {paramResult.ReportedDisplay}";
-        string overallStatus = paramResult.ComparisonStatus;
+        ResultStatus overallStatus = paramResult.ComparisonStatus;
 
         _db.Results.Add(new Result
         {

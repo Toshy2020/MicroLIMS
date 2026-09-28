@@ -270,7 +270,7 @@ public class EMBatchLocationTests
         {
             Assert.Equal(0m, l.CFUResult);
             Assert.Equal(0m, l.CalculatedResult);
-            Assert.Equal("WithinLimits", l.Status);
+            Assert.Equal(ResultStatus.WithinLimits, l.Status);
         });
 
         var reloadedOrder = await db.TestOrders.FirstAsync(t => t.Id == order.Id);
@@ -603,8 +603,8 @@ public class EMBatchLocationTests
         Assert.Equal("Detected", result.FinalResult); // overall result is Detected if ANY location is
 
         var reloaded = await db.SampleLocations.Where(l => l.TestOrderId == order.Id).ToListAsync();
-        Assert.Contains(reloaded, l => l.Status == "Detected");
-        Assert.Contains(reloaded, l => l.Status == "Absent");
+        Assert.Contains(reloaded, l => l.Status == ResultStatus.Detected);
+        Assert.Contains(reloaded, l => l.Status == ResultStatus.Absent);
 
         var reloadedOrder = await db.TestOrders.FirstAsync(t => t.Id == order.Id);
         Assert.Equal(WorkflowStep.Ready, reloadedOrder.CurrentStep);

@@ -10,6 +10,10 @@ public class SampleLocationConfiguration : IEntityTypeConfiguration<SampleLocati
     {
         builder.HasKey(l => l.Id);
 
+        // Stored as the member name, the same text the column held when the
+        // status was a string.
+        builder.Property(l => l.Status).HasConversion<string>();
+
         // Locations belong to their batch sample and TestOrder - deleting
         // either takes the location rows with it.
         builder.HasOne(l => l.Sample).WithMany(s => s.Locations).HasForeignKey(l => l.SampleId).OnDelete(DeleteBehavior.Cascade);

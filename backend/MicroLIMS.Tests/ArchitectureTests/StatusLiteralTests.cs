@@ -1,35 +1,38 @@
-using System.Reflection;
 using System.Text.RegularExpressions;
-using MicroLIMS.Domain.Constants;
+using MicroLIMS.Domain.Enums;
 using Xunit;
 
 namespace MicroLIMS.Tests.ArchitectureTests;
 
-// Result statuses are stored as text and read by the frontend, so their
-// values must never change, and code must name them through ResultStatus
-// rather than retyping them - a typo in a literal silently becomes a new
-// status that nothing recognises.
+// Result statuses are stored as their enum names and read by the frontend,
+// so a renamed member would orphan every stored row. Code must name them
+// through the enum rather than retyping them - a typo in a literal
+// silently becomes a status that nothing recognises.
 public class StatusLiteralTests
 {
     private static string BackendDirectory([System.Runtime.CompilerServices.CallerFilePath] string thisFile = "") =>
         Path.GetFullPath(Path.Combine(Path.GetDirectoryName(thisFile)!, "..", ".."));
 
     [Fact]
-    public void EveryResultStatus_IsStoredAsItsOwnName()
-    {
-        var constants = typeof(ResultStatus).GetFields(BindingFlags.Public | BindingFlags.Static)
-            .Where(f => f.IsLiteral)
-            .ToList();
+    public void ResultStatusNames_NeverChange() =>
+        Assert.Equal(
+            new[]
+            {
+                "WithinLimits", "AlertLimitExceeded", "ActionLimitExceeded", "OutOfSpecification",
+                "LimitsNotConfigured", "RequiresReview", "Absent", "Detected", "PendingConfirmation",
+                "NotDetected", "NextStageRequired", "Inconclusive"
+            }.Order(),
+            Enum.GetNames<ResultStatus>().Order());
 
-        Assert.All(constants, f => Assert.Equal(f.Name, (string)f.GetRawConstantValue()!));
-        Assert.Equal(constants.Select(f => (string)f.GetRawConstantValue()!).ToHashSet(), ResultStatus.All.ToHashSet());
-    }
+    [Fact]
+    public void RevisionChangeItemStatusNames_NeverChange() =>
+        Assert.Equal(new[] { "Addressed", "Deferred", "Draft" }, Enum.GetNames<RevisionChangeItemStatus>().Order());
 
     [Fact]
     public void ProductionCode_NamesResultStatusesThroughTheConstants()
     {
         var sep = Path.DirectorySeparatorChar;
-        var literal = new Regex("\"(" + string.Join("|", ResultStatus.All) + ")\"");
+        var literal = new Regex("\"(" + string.Join("|", Enum.GetNames<ResultStatus>()) + ")\"");
         var offenders = new[] { "MicroLIMS.API", "MicroLIMS.Application", "MicroLIMS.Infrastructure" }
             .Select(p => Path.Combine(BackendDirectory(), p))
             .SelectMany(d => Directory.EnumerateFiles(d, "*.cs", SearchOption.AllDirectories))

@@ -180,7 +180,7 @@ public class SampleLocationDetailDto
     public decimal? CFUResult { get; set; }
     public decimal? CalculatedResult { get; set; }
     public string? ReportedResult { get; set; }
-    public string? Status { get; set; }
+    public ResultStatus? Status { get; set; }
 
     // Populated at result-entry time (IncubationStepRecorder.DeriveBatchLocationUnit)
     // - null for qualitative (pathogen Detected/Absent) locations. Never
@@ -252,7 +252,7 @@ public class ElementalAssayElementDetailDto
     public string ReportedDisplay { get; set; } = string.Empty;
     public string? SpecLimit { get; set; }
     public string? Unit { get; set; }
-    public string Status { get; set; } = string.Empty;
+    public ResultStatus Status { get; set; }
 }
 
 public class AnalysisDetailDto
@@ -285,7 +285,7 @@ public class ParameterResultDetailDto
     public string? Unit { get; set; }
     public string? SpecLimit { get; set; }
     public ResultBasis? ResultBasis { get; set; }
-    public string ComparisonStatus { get; set; } = string.Empty;
+    public ResultStatus ComparisonStatus { get; set; }
     public bool OverRange { get; set; }
     public bool BelowLoq { get; set; }
     public int? ValidityRecordItemId { get; set; }
@@ -320,7 +320,7 @@ public class CountTestReadingDetailDto
     public string? AlertLimit { get; set; }
     public string? ActionLimit { get; set; }
     public string? SpecLimit { get; set; }
-    public string Status { get; set; } = string.Empty;
+    public ResultStatus Status { get; set; }
     public bool HasNonNumericReading { get; set; }
     public string? NonNumericValue { get; set; }
     public bool RequiresReview { get; set; }

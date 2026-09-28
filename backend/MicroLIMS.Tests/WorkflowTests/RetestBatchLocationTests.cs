@@ -88,9 +88,9 @@ public class RetestBatchLocationTests
         db.Samples.Add(sample);
         await db.SaveChangesAsync();
 
-        var failed1 = new SampleLocation { SampleId = sample.Id, TestOrderId = order.Id, LocationType = LocationType.Room, RoomTestConfigurationId = config1.Id, Status = "ActionLimitExceeded", CFUResult = 75 };
-        var failed2 = new SampleLocation { SampleId = sample.Id, TestOrderId = order.Id, LocationType = LocationType.Room, RoomTestConfigurationId = config2.Id, Status = "OutOfSpecification", CFUResult = 150 };
-        var passed = new SampleLocation { SampleId = sample.Id, TestOrderId = order.Id, LocationType = LocationType.Room, RoomTestConfigurationId = config3.Id, Status = "WithinLimits", CFUResult = 2 };
+        var failed1 = new SampleLocation { SampleId = sample.Id, TestOrderId = order.Id, LocationType = LocationType.Room, RoomTestConfigurationId = config1.Id, Status = ResultStatus.ActionLimitExceeded, CFUResult = 75 };
+        var failed2 = new SampleLocation { SampleId = sample.Id, TestOrderId = order.Id, LocationType = LocationType.Room, RoomTestConfigurationId = config2.Id, Status = ResultStatus.OutOfSpecification, CFUResult = 150 };
+        var passed = new SampleLocation { SampleId = sample.Id, TestOrderId = order.Id, LocationType = LocationType.Room, RoomTestConfigurationId = config3.Id, Status = ResultStatus.WithinLimits, CFUResult = 2 };
         db.SampleLocations.AddRange(failed1, failed2, passed);
         await db.SaveChangesAsync();
 

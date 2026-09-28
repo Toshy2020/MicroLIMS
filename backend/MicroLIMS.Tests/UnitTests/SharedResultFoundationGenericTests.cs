@@ -306,7 +306,7 @@ public class SharedResultFoundationGenericTests
             ParameterName = spec.ParameterName,
             ReportedValue = 100m,
             ReportedDisplay = "100 %",
-            ComparisonStatus = "WithinLimits",
+            ComparisonStatus = ResultStatus.WithinLimits,
             IsActive = true
         };
         analysis.ParameterResults.Add(param);
@@ -351,7 +351,7 @@ public class SharedResultFoundationGenericTests
             ReportedDisplay = "98.5 %",
             Unit = "%",
             SpecLimit = "90 - 110 %",
-            ComparisonStatus = "WithinLimits",
+            ComparisonStatus = ResultStatus.WithinLimits,
             IsActive = true
         };
         analysis.ParameterResults.Add(paramResult);
@@ -398,7 +398,7 @@ public class SharedResultFoundationGenericTests
             ReportedDisplay = "101.2 %",
             Unit = "%",
             SpecLimit = "90 - 110 %",
-            ComparisonStatus = "WithinLimits",
+            ComparisonStatus = ResultStatus.WithinLimits,
             IsActive = true
         };
         analysis.ParameterResults.Add(paramResult);

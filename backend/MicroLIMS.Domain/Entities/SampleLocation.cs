@@ -38,7 +38,7 @@ public class SampleLocation
     public string? AlertLimit { get; set; }
     public string? ActionLimit { get; set; }
     public string? SpecLimit { get; set; }
-    public string? Status { get; set; }
+    public ResultStatus? Status { get; set; }
 
     // Set alongside CalculatedResult/Status in RecordBatchResultsAsync/
     // RecordWaterBatchReadingsAsync (IncubationStepRecorder.DeriveBatchLocationUnit)

@@ -172,7 +172,7 @@ public class DisintegrationWorkflowEngineTests
 
         Assert.False(result1.AllStepsComplete);
         Assert.False(result1.IsDefinitive);
-        Assert.Equal("NextStageRequired", result1.Status);
+        Assert.Equal(ResultStatus.NextStageRequired, result1.Status);
 
         // Order remains Running
         var reloadedOrder = await db.TestOrders.FindAsync(order.Id);
@@ -195,7 +195,7 @@ public class DisintegrationWorkflowEngineTests
 
         Assert.True(result2.AllStepsComplete);
         Assert.True(result2.IsDefinitive);
-        Assert.Equal("WithinLimits", result2.Status);
+        Assert.Equal(ResultStatus.WithinLimits, result2.Status);
 
         // Order finalized to Ready
         reloadedOrder = await db.TestOrders.FindAsync(order.Id);
@@ -217,7 +217,7 @@ public class DisintegrationWorkflowEngineTests
         Assert.Single(analysis.ParameterResults);
         var pr = analysis.ParameterResults[0];
         Assert.Equal(2, pr.StageReached);
-        Assert.Equal("WithinLimits", pr.ComparisonStatus);
+        Assert.Equal(ResultStatus.WithinLimits, pr.ComparisonStatus);
         Assert.Equal("Complies", pr.ReportedDisplay);
         Assert.Equal(32m, pr.ReportedValue);
         Assert.Equal(18, pr.Readings.Count);
@@ -256,7 +256,7 @@ public class DisintegrationWorkflowEngineTests
         var result = await engine.RecordDisintegrationStageAsync(order.Id, new DisintegrationStagePayload(
             new List<decimal?> { 15m, 16m, 14m, 18m, 20m, 22m, 19m, 17m, 16m, 15m, 14m, 18m }, "Password123!"), analyst.Id);
 
-        Assert.Equal("WithinLimits", result.Status);
+        Assert.Equal(ResultStatus.WithinLimits, result.Status);
         var pr = await db.ParameterResults.Include(p => p.Readings).SingleAsync(p => p.TestOrderId == order.Id);
         Assert.Equal(18, pr.Readings.Count);
         Assert.False(pr.Readings.Single(r => r.Index == 6).Passed);
@@ -284,7 +284,7 @@ public class DisintegrationWorkflowEngineTests
 
         Assert.True(result.AllStepsComplete);
         Assert.True(result.IsDefinitive);
-        Assert.Equal("WithinLimits", result.Status);
+        Assert.Equal(ResultStatus.WithinLimits, result.Status);
 
         var reloadedOrder = await db.TestOrders.FindAsync(order.Id);
         Assert.NotNull(reloadedOrder);
@@ -298,7 +298,7 @@ public class DisintegrationWorkflowEngineTests
         Assert.NotNull(analysis);
         var pr = analysis.ParameterResults[0];
         Assert.Equal(1, pr.StageReached);
-        Assert.Equal("WithinLimits", pr.ComparisonStatus);
+        Assert.Equal(ResultStatus.WithinLimits, pr.ComparisonStatus);
         Assert.Equal("Complies", pr.ReportedDisplay);
         Assert.Equal(18m, pr.ReportedValue);
         Assert.Equal(6, pr.Readings.Count);
@@ -328,7 +328,7 @@ public class DisintegrationWorkflowEngineTests
 
         Assert.True(result.AllStepsComplete);
         Assert.True(result.IsDefinitive);
-        Assert.Equal("OutOfSpecification", result.Status);
+        Assert.Equal(ResultStatus.OutOfSpecification, result.Status);
 
         var reloadedOrder = await db.TestOrders.FindAsync(order.Id);
         Assert.NotNull(reloadedOrder);
@@ -342,7 +342,7 @@ public class DisintegrationWorkflowEngineTests
         Assert.NotNull(analysis);
         var pr = analysis.ParameterResults[0];
         Assert.Equal(1, pr.StageReached);
-        Assert.Equal("OutOfSpecification", pr.ComparisonStatus);
+        Assert.Equal(ResultStatus.OutOfSpecification, pr.ComparisonStatus);
         Assert.Equal("Does not comply", pr.ReportedDisplay);
         Assert.Equal(35m, pr.ReportedValue);
     }
@@ -367,7 +367,7 @@ public class DisintegrationWorkflowEngineTests
             Password: "Password123!");
 
         var result = await engine.RecordDisintegrationResultAsync(order.Id, payload, analyst.Id);
-        Assert.Equal("NextStageRequired", result.Status);
+        Assert.Equal(ResultStatus.NextStageRequired, result.Status);
 
         var analysis = await db.TestAnalyses
             .Include(a => a.ParameterResults)

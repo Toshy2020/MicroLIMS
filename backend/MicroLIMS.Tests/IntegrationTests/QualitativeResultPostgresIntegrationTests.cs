@@ -106,7 +106,7 @@ public class QualitativeResultPostgresIntegrationTests
 
         var result = await engine.RecordQualitativeResultAsync(order.Id, payload, _fixture.SeededUserId, "127.0.0.1");
 
-        Assert.Equal("WithinLimits", result.Status);
+        Assert.Equal(ResultStatus.WithinLimits, result.Status);
         Assert.Contains("Complies", result.OutcomeSummary);
 
         // Verify persistence in Postgres
@@ -133,7 +133,7 @@ public class QualitativeResultPostgresIntegrationTests
         Assert.Equal(spec.Id, savedParam.SpecificationId);
         Assert.Null(savedParam.ReportedValue);
         Assert.Equal("Complies", savedParam.ReportedDisplay);
-        Assert.Equal("WithinLimits", savedParam.ComparisonStatus);
+        Assert.Equal(ResultStatus.WithinLimits, savedParam.ComparisonStatus);
         Assert.Equal("Clear colourless liquid", savedParam.SpecLimit);
         Assert.True(savedParam.IsActive);
         Assert.NotNull(savedParam.CalculationJson);

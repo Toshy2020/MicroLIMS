@@ -1,4 +1,3 @@
-using MicroLIMS.Domain.Constants;
 using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Helpers;
@@ -231,7 +230,7 @@ public class SampleApprovalService
                             $"Cannot approve section: test order {analysisOrder.Id} (\"{analysisOrder.TestCode}\") lacks an active {displayName} entry.");
                     }
 
-                    if (activeAnalyses.Any(e => e.ParameterResults.Any(pr => pr.ComparisonStatus == "NextStageRequired")))
+                    if (activeAnalyses.Any(e => e.ParameterResults.Any(pr => pr.ComparisonStatus == ResultStatus.NextStageRequired)))
                     {
                         throw new InvalidOperationException(
                             $"Cannot approve section: test order {analysisOrder.Id} (\"{analysisOrder.TestCode}\") has a pending stage.");

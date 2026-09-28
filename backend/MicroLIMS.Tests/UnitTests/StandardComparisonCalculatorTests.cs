@@ -154,7 +154,7 @@ public class StandardComparisonCalculatorTests
         decimal expectedMean = (expectedPrep1 + expectedPrep2) / 2m;
         Assert.Equal(expectedMean, result.ReportedValue);
         Assert.Equal("99.7 %", result.ReportedDisplay);
-        Assert.Equal("WithinLimits", result.ComparisonStatus);
+        Assert.Equal(ResultStatus.WithinLimits, result.ComparisonStatus);
         Assert.False(result.RsdExceeded);
         Assert.NotNull(result.PreparationRsdPercent);
         Assert.InRange(result.PreparationRsdPercent.Value, 1.20m, 1.21m);
@@ -276,7 +276,7 @@ public class StandardComparisonCalculatorTests
             maxPreparationRsdPercent: 2.0m);
 
         Assert.True(result.RsdExceeded);
-        Assert.Equal("RequiresReview", result.ComparisonStatus);
+        Assert.Equal(ResultStatus.RequiresReview, result.ComparisonStatus);
         Assert.NotNull(result.ReviewReason);
         Assert.Contains("exceeds maximum allowed 2.00%", result.ReviewReason);
     }

@@ -32,7 +32,7 @@ public class GravimetricCalculatorTests
         Assert.Equal(4.50m, result.Mean);
         Assert.Equal(4.50m, result.ReportedValue);
         Assert.Equal("4.50 %", result.ReportedDisplay);
-        Assert.Equal("WithinLimits", result.ComparisonStatus);
+        Assert.Equal(ResultStatus.WithinLimits, result.ComparisonStatus);
 
         Assert.Single(result.Replicates);
         var rep = result.Replicates[0];
@@ -70,7 +70,7 @@ public class GravimetricCalculatorTests
         Assert.Equal(0.20m, result.Mean);
         Assert.Equal(0.20m, result.ReportedValue);
         Assert.Equal("0.20 %", result.ReportedDisplay);
-        Assert.Equal("WithinLimits", result.ComparisonStatus);
+        Assert.Equal(ResultStatus.WithinLimits, result.ComparisonStatus);
 
         Assert.Single(result.Replicates);
         var rep = result.Replicates[0];
@@ -152,7 +152,7 @@ public class GravimetricCalculatorTests
             new(Container: null, Initial: 100.0m, Final: 95.0m)
         };
         var resExact = GravimetricCalculator.Calculate(repExact, EquationType.GravimetricLoss, spec);
-        Assert.Equal("WithinLimits", resExact.ComparisonStatus);
+        Assert.Equal(ResultStatus.WithinLimits, resExact.ComparisonStatus);
         Assert.Equal("5.00 %", resExact.ReportedDisplay);
 
         // 5.0000001 % -> OutOfSpecification (unrounded comparison)
@@ -161,7 +161,7 @@ public class GravimetricCalculatorTests
             new(Container: null, Initial: 100.0m, Final: 94.9999999m)
         };
         var resOver = GravimetricCalculator.Calculate(repOver, EquationType.GravimetricLoss, spec);
-        Assert.Equal("OutOfSpecification", resOver.ComparisonStatus);
+        Assert.Equal(ResultStatus.OutOfSpecification, resOver.ComparisonStatus);
     }
 
     [Fact]
@@ -180,7 +180,7 @@ public class GravimetricCalculatorTests
         Assert.Equal(2, result.N);
         Assert.Equal(4.50m, result.Mean);
         Assert.Equal("4.50 %", result.ReportedDisplay);
-        Assert.Equal("WithinLimits", result.ComparisonStatus);
+        Assert.Equal(ResultStatus.WithinLimits, result.ComparisonStatus);
     }
 
     [Fact]

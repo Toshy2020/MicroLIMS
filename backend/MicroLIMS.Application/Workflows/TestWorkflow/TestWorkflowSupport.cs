@@ -1,4 +1,3 @@
-using MicroLIMS.Domain.Constants;
 using MicroLIMS.Shared.Exceptions;
 using System.Globalization;
 using System.Text.Json;
@@ -149,7 +148,7 @@ public class TestWorkflowSupport
         var activeAnalysisOrderIds = (await _db.TestAnalyses
                 .AsNoTracking()
                 .Where(e => ids.Contains(e.TestOrderId) && e.IsActive
-                    && !e.ParameterResults.Any(pr => pr.ComparisonStatus == "NextStageRequired"))
+                    && !e.ParameterResults.Any(pr => pr.ComparisonStatus == ResultStatus.NextStageRequired))
                 .Select(e => e.TestOrderId)
                 .Distinct()
                 .ToListAsync())
@@ -712,7 +711,7 @@ public class TestWorkflowSupport
 
         _db.TestAnalyses.Add(entry);
 
-        string overallStatus;
+        ResultStatus overallStatus;
         if (parameterResults.Any(r => r.ComparisonStatus == ResultStatus.OutOfSpecification))
             overallStatus = ResultStatus.OutOfSpecification;
         else if (parameterResults.Any(r => r.ComparisonStatus == ResultStatus.RequiresReview))

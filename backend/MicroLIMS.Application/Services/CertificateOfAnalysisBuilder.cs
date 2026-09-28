@@ -1,4 +1,4 @@
-using MicroLIMS.Domain.Constants;
+using MicroLIMS.Domain.Enums;
 using System.Text.RegularExpressions;
 using MicroLIMS.Application.DTOs;
 using MicroLIMS.Application.Helpers;
@@ -152,7 +152,7 @@ public static class CertificateOfAnalysisBuilder
                 return (CoaCellDto?)new CoaCellDto
                 {
                     Kind = "qualitative",
-                    Result = conform ? ResultStatus.Absent : loc.ReportedResult ?? "—",
+                    Result = conform ? nameof(ResultStatus.Absent) : loc.ReportedResult ?? "—",
                     Conform = conform
                 };
             }).ToList();

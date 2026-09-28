@@ -1,3 +1,4 @@
+using MicroLIMS.Domain.Enums;
 namespace MicroLIMS.Domain.Entities;
 
 // Plate-reading calculation for a Count Test (TAMC/TYMC) - average of the
@@ -32,7 +33,7 @@ public class CountTestReading
     public string? AlertLimit { get; set; }
     public string? ActionLimit { get; set; }
     public string? SpecLimit { get; set; }
-    public string Status { get; set; } = string.Empty;
+    public ResultStatus Status { get; set; }
     public bool HasNonNumericReading { get; set; } = false;
     public string? NonNumericValue { get; set; } // "TNTC" | "Uncountable"
     public bool RequiresReview { get; set; } = false;

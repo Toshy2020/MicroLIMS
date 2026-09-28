@@ -248,7 +248,7 @@ public class StandardComparisonPostgresIntegrationTests
 
         var res = await engine.RecordStandardComparisonResultAsync(order.Id, payload, _fixture.SeededUserId);
         Assert.NotNull(res);
-        Assert.Equal("WithinLimits", res.Status);
+        Assert.Equal(ResultStatus.WithinLimits, res.Status);
 
         // Verification on fresh DbContext from Postgres
         await using var verifyDb = _fixture.CreateDbContext();
@@ -269,7 +269,7 @@ public class StandardComparisonPostgresIntegrationTests
         var param = savedAnalysis.ParameterResults[0];
         Assert.Equal("Vitamin C Assay", param.ParameterName);
         Assert.Equal("%", param.Unit);
-        Assert.Equal("WithinLimits", param.ComparisonStatus);
+        Assert.Equal(ResultStatus.WithinLimits, param.ComparisonStatus);
         Assert.Equal(2, param.Readings.Count);
 
         // Verify calculation JSON

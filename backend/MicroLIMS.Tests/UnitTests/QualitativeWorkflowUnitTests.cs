@@ -144,7 +144,7 @@ public class QualitativeWorkflowUnitTests
 
         var result = await engine.RecordQualitativeResultAsync(order.Id, payload, user.Id);
 
-        Assert.Equal("WithinLimits", result.Status);
+        Assert.Equal(ResultStatus.WithinLimits, result.Status);
         Assert.Contains("Complies", result.OutcomeSummary);
 
         var analysis = await db.TestAnalyses
@@ -159,7 +159,7 @@ public class QualitativeWorkflowUnitTests
         var pr = analysis.ParameterResults[0];
         Assert.Null(pr.ReportedValue);
         Assert.Equal("Complies", pr.ReportedDisplay);
-        Assert.Equal("WithinLimits", pr.ComparisonStatus);
+        Assert.Equal(ResultStatus.WithinLimits, pr.ComparisonStatus);
         Assert.Equal("White to off-white, round biconvex effervescent tablets", pr.SpecLimit);
 
         using var calc = JsonDocument.Parse(pr.CalculationJson!);
@@ -193,7 +193,7 @@ public class QualitativeWorkflowUnitTests
 
         var result = await engine.RecordQualitativeResultAsync(order.Id, payload, user.Id);
 
-        Assert.Equal("OutOfSpecification", result.Status);
+        Assert.Equal(ResultStatus.OutOfSpecification, result.Status);
         Assert.Contains("Does not comply", result.OutcomeSummary);
 
         var analysis = await db.TestAnalyses
@@ -204,7 +204,7 @@ public class QualitativeWorkflowUnitTests
         Assert.NotNull(analysis);
         var pr = analysis.ParameterResults[0];
         Assert.Equal("Does not comply", pr.ReportedDisplay);
-        Assert.Equal("OutOfSpecification", pr.ComparisonStatus);
+        Assert.Equal(ResultStatus.OutOfSpecification, pr.ComparisonStatus);
         Assert.False(pr.Readings[0].Passed);
         Assert.Equal("Yellow discolouration with brown spots", pr.Readings[0].Text);
     }

@@ -139,13 +139,13 @@ public class WaterBatchResultTests
 
         var locationA = await db.SampleLocations.FirstAsync(l => l.Id == locationAId);
         Assert.Equal(13m, locationA.CalculatedResult);
-        Assert.Equal("AlertLimitExceeded", locationA.Status);
+        Assert.Equal(ResultStatus.AlertLimitExceeded, locationA.Status);
         Assert.Equal("12,14", locationA.RawReadings);
         Assert.Equal(0m, locationA.DilutionFactor);
 
         var locationB = await db.SampleLocations.FirstAsync(l => l.Id == locationBId);
         Assert.Equal(5m, locationB.CalculatedResult);
-        Assert.Equal("WithinLimits", locationB.Status);
+        Assert.Equal(ResultStatus.WithinLimits, locationB.Status);
     }
 
     [Fact]

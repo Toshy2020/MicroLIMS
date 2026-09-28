@@ -1,4 +1,3 @@
-using MicroLIMS.Domain.Constants;
 using MicroLIMS.Shared.Exceptions;
 using System.Globalization;
 using System.Text.Json;
@@ -161,7 +160,8 @@ public sealed class TestStepNavigator : TestWorkflowSupport
             var outcome = latestIncubation?.Outcome ?? string.Empty;
             var observedAt = latestIncubation?.CompletedAt;
 
-            string? reportedResult = null, status = null;
+            string? reportedResult = null;
+            ResultStatus? status = null;
             decimal? calculatedResult = null;
 
             if (step.StepType == StepType.PlateCount)

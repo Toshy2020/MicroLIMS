@@ -1,4 +1,3 @@
-using MicroLIMS.Domain.Constants;
 using MicroLIMS.Shared.Exceptions;
 using System.Globalization;
 using System.Text.Json;
@@ -884,14 +883,14 @@ public Task<StepResultDto> SubmitSelectivePlatingAsync(
     // row, project it, move the order to Ready, and let the existing
     // sample review service decide whether the sample can now be
     // submitted for review.
-    private async Task FinalizeWorkflowAsync(int testOrderId, string finalResult, int userId)
+    private async Task FinalizeWorkflowAsync(int testOrderId, ResultStatus finalResult, int userId)
     {
         var order = await _db.TestOrders.FirstOrDefaultAsync(t => t.Id == testOrderId)
             ?? throw new NotFoundException($"Test order {testOrderId} not found.");
 
         _db.Results.Add(new Result
         {
-            TestOrderId = testOrderId, RawValue = finalResult, InterpretedValue = finalResult,
+            TestOrderId = testOrderId, RawValue = finalResult.ToString(), InterpretedValue = finalResult.ToString(),
             Type = ResultType.Interpretive, EnteredByUserId = userId
         });
 

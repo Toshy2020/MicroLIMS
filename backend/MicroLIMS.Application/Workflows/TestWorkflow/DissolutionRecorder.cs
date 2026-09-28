@@ -201,10 +201,10 @@ public sealed class DissolutionRecorder : TestWorkflowSupport
 
         if (calcResult.Outcome == DissolutionStageOutcome.NextStageRequired)
         {
-            return new TestWorkflowResult(outcomeSummary, false, false, null, null, null, "NextStageRequired");
+            return new TestWorkflowResult(outcomeSummary, false, false, null, null, null, ResultStatus.NextStageRequired);
         }
 
-        string overallStatus = paramResult.ComparisonStatus;
+        ResultStatus overallStatus = paramResult.ComparisonStatus;
 
         _db.Results.Add(new Result
         {
@@ -271,7 +271,7 @@ public sealed class DissolutionRecorder : TestWorkflowSupport
         var paramResult = entry.ParameterResults.FirstOrDefault(pr => pr.IsActive)
             ?? throw new InvalidOperationException("No active dissolution parameter result found.");
 
-        if (paramResult.ComparisonStatus != "NextStageRequired")
+        if (paramResult.ComparisonStatus != ResultStatus.NextStageRequired)
             throw new InvalidOperationException("Active dissolution analysis does not require a next stage.");
 
         int existingVesselCount = paramResult.Readings.Count;
@@ -359,10 +359,10 @@ public sealed class DissolutionRecorder : TestWorkflowSupport
 
         if (calcResult.Outcome == DissolutionStageOutcome.NextStageRequired)
         {
-            return new TestWorkflowResult(outcomeSummary, false, false, null, null, null, "NextStageRequired");
+            return new TestWorkflowResult(outcomeSummary, false, false, null, null, null, ResultStatus.NextStageRequired);
         }
 
-        string overallStatus = paramResult.ComparisonStatus;
+        ResultStatus overallStatus = paramResult.ComparisonStatus;
 
         _db.Results.Add(new Result
         {

@@ -234,16 +234,16 @@ public class PathogenMultiLocationConfirmationTests
         var loc0 = await db.SampleLocations.FindAsync(locIds[0]);
         Assert.NotNull(loc0);
         Assert.Equal("Not Detected (-)", loc0.ReportedResult);
-        Assert.Equal("Absent", loc0.Status);
+        Assert.Equal(ResultStatus.Absent, loc0.Status);
 
         // Location 1 & 2 must be flagged as PendingConfirmation
         var loc1 = await db.SampleLocations.FindAsync(locIds[1]);
         Assert.NotNull(loc1);
-        Assert.Equal("PendingConfirmation", loc1.Status);
+        Assert.Equal(ResultStatus.PendingConfirmation, loc1.Status);
 
         var loc2 = await db.SampleLocations.FindAsync(locIds[2]);
         Assert.NotNull(loc2);
-        Assert.Equal("PendingConfirmation", loc2.Status);
+        Assert.Equal(ResultStatus.PendingConfirmation, loc2.Status);
     }
 
     [Fact]
@@ -425,13 +425,13 @@ public class PathogenMultiLocationConfirmationTests
         var loc1 = await db.SampleLocations.FindAsync(locIds[1]);
         Assert.NotNull(loc1);
         Assert.Equal("Detected (+)", loc1.ReportedResult);
-        Assert.Equal("Detected", loc1.Status);
+        Assert.Equal(ResultStatus.Detected, loc1.Status);
 
         // Location 2: Disagreement -> Inconclusive
         var loc2 = await db.SampleLocations.FindAsync(locIds[2]);
         Assert.NotNull(loc2);
         Assert.Equal("Inconclusive (Retest)", loc2.ReportedResult);
-        Assert.Equal("Inconclusive", loc2.Status);
+        Assert.Equal(ResultStatus.Inconclusive, loc2.Status);
 
         // Session Matrix reflects all details
         var matrixCell1 = session.ResultMatrix.First(c => c.SampleLocationId == locIds[1] && c.TestCode == "Salmonella");

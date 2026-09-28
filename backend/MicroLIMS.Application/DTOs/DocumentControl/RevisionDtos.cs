@@ -1,4 +1,3 @@
-using MicroLIMS.Domain.Constants;
 using MicroLIMS.Domain.Enums;
 
 namespace MicroLIMS.Application.DTOs.DocumentControl;
@@ -30,7 +29,7 @@ public record RevisionChangeItemDto(
     string DescriptionOfChange,
     string ChangeRationale,
     string ChangeCategory,
-    string Status,
+    RevisionChangeItemStatus Status,
     int? OriginatingReviewFindingId,
     int CreatedByUserId,
     string CreatedByUsername,
@@ -49,7 +48,7 @@ public record AddChangeItemRequest(
     string DescriptionOfChange,
     string ChangeRationale,
     string ChangeCategory,
-    string? Status = RevisionChangeItemStatus.Draft,
+    RevisionChangeItemStatus? Status = RevisionChangeItemStatus.Draft,
     int? OriginatingReviewFindingId = null
 );
 
@@ -59,7 +58,7 @@ public record UpdateChangeItemRequest(
     string DescriptionOfChange,
     string ChangeRationale,
     string ChangeCategory,
-    string Status
+    RevisionChangeItemStatus Status
 );
 
 public record ConvertFindingRequest(

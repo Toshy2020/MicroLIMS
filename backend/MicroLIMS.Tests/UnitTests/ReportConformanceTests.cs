@@ -1,7 +1,7 @@
 using MicroLIMS.Application.Abstractions.Pdf;
 using MicroLIMS.Application.DTOs;
 using MicroLIMS.Application.Services;
-using MicroLIMS.Domain.Constants;
+using MicroLIMS.Domain.Enums;
 using Xunit;
 
 namespace MicroLIMS.Tests.UnitTests;
@@ -21,7 +21,7 @@ public class ReportConformanceTests
         return ReportDocumentMapper.ForSample(summary).Blocks.OfType<CardBlock>().Single(c => c.Title.StartsWith("T1"));
     }
 
-    private static TestOrderSummaryDetailDto WithLocations(params string?[] statuses) => new()
+    private static TestOrderSummaryDetailDto WithLocations(params ResultStatus?[] statuses) => new()
     {
         Locations = statuses.Select((s, i) => new SampleLocationDetailDto { LocationKey = $"{i}", LocationName = $"Room {i}", Status = s }).ToList()
     };
@@ -38,7 +38,7 @@ public class ReportConformanceTests
     [Theory]
     [InlineData(null)]
     [InlineData(ResultStatus.LimitsNotConfigured)]
-    public void LocationThatCannotBeCertified_IsNotShownAsAPass(string? status)
+    public void LocationThatCannotBeCertified_IsNotShownAsAPass(ResultStatus? status)
     {
         var card = CardFor(WithLocations(ResultStatus.WithinLimits, status));
 
@@ -59,7 +59,7 @@ public class ReportConformanceTests
     [InlineData(ResultStatus.AlertLimitExceeded)]
     [InlineData(ResultStatus.RequiresReview)]
     [InlineData(ResultStatus.OutOfSpecification)]
-    public void CountReadingOutsideItsLimits_IsAFailure(string status)
+    public void CountReadingOutsideItsLimits_IsAFailure(ResultStatus status)
     {
         var card = CardFor(new TestOrderSummaryDetailDto
         {
@@ -97,6 +97,6 @@ public class ReportConformanceTests
         });
 
         Assert.Equal(ReportTone.Positive, card.Tone);
-        Assert.Equal(ResultStatus.Absent, card.HeadlineValue);
+        Assert.Equal(nameof(ResultStatus.Absent), card.HeadlineValue);
     }
 }

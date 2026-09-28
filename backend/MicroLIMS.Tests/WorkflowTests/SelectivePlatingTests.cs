@@ -88,7 +88,7 @@ public class SelectivePlatingTests
         var result = await engine.SubmitSelectivePlatingObservationAsync(
             orderId, "Selective Plating", observation, "Test note", userId: 4);
 
-        Assert.Equal("NotDetected", result.WorkflowFinalResult);
+        Assert.Equal(ResultStatus.NotDetected, result.WorkflowFinalResult);
         Assert.False(result.NextStepUnlocked);
 
         var inc = await db.Incubations.SingleAsync(i => i.TestOrderId == orderId && i.StepName == "Selective Plating");

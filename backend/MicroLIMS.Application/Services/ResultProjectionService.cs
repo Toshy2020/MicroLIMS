@@ -1,4 +1,3 @@
-using MicroLIMS.Domain.Constants;
 using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -96,8 +95,8 @@ public class ResultProjectionService
     }
 
     // Same Spec -> Action -> Alert precedence used by TestWorkflowEngine.Compare
-    // - just mapping the already-decided status string onto ResultLevel.
-    private static ResultLevel MapResultLevel(string? status) => status switch
+    // - just mapping the already-decided status onto ResultLevel.
+    private static ResultLevel MapResultLevel(ResultStatus? status) => status switch
     {
         ResultStatus.OutOfSpecification => ResultLevel.OutOfSpecification,
         ResultStatus.ActionLimitExceeded => ResultLevel.ActionLevel,
@@ -260,7 +259,7 @@ public class ResultProjectionService
         var reportedValue = finalResult.RequiresBiochemical
             ? "Pending Confirmation"
             : finalResult.SkippedBiochemical || finalResult.BiochemicalResultText is not null
-                ? ResultStatus.Detected
+                ? nameof(ResultStatus.Detected)
                 : "Not Detected";
         var enteredByUserId = finalResult.SubmittedByUserId;
         var enteredAt = finalResult.SubmittedAtUtc;
@@ -364,7 +363,7 @@ public class ResultProjectionService
             // Pathogen batch result (Detected/Absent) - no numeric limits.
             record.ResultKind = ResultKind.Qualitative;
             record.NumericValue = null;
-            record.ReportedValue = location.ReportedResult ?? location.Status ?? string.Empty;
+            record.ReportedValue = location.ReportedResult ?? location.Status?.ToString() ?? string.Empty;
             record.Unit = null;
             record.IsBelowDetectionLimit = false;
             record.DetectionLimit = null;

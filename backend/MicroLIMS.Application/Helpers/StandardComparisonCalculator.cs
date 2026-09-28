@@ -1,4 +1,3 @@
-using MicroLIMS.Domain.Constants;
 using System.Globalization;
 using System.Text.Json;
 using MicroLIMS.Application.Services;
@@ -14,7 +13,7 @@ public record StandardComparisonCalculationResult(
     decimal? PreparationRsdPercent,
     bool RsdExceeded,
     string? ReviewReason,
-    string ComparisonStatus,
+    ResultStatus ComparisonStatus,
     string CalculationJson,
     StandardComparisonCalculationData CalculationData);
 
@@ -180,7 +179,7 @@ public static class StandardComparisonCalculator
         var rounded = Math.Round(reportedValue, 1, MidpointRounding.AwayFromZero).ToString("0.0", CultureInfo.InvariantCulture);
         string reportedDisplay = $"{rounded} %";
 
-        string status = SpecificationEvaluator.Evaluate(spec, reportedValue);
+        ResultStatus status = SpecificationEvaluator.Evaluate(spec, reportedValue);
         if (rsdExceeded)
         {
             status = ResultStatus.RequiresReview;

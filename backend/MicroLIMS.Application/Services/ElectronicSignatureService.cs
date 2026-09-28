@@ -20,6 +20,11 @@ public class ElectronicSignatureService : IElectronicSignatureService
     private const string FailedAction = "SignatureFailed";
     private const string ThrottledAction = "SignatureThrottled";
 
+    // A refused signature must still count towards the throttle when the
+    // command it was signing is rolled back - see UnitOfWork.
+    internal static bool IsRefusedAttemptRecord(AuditLog entry) =>
+        entry.EntityName == AuditEntityName && (entry.Action == FailedAction || entry.Action == ThrottledAction);
+
     private readonly MicroLimsDbContext _db;
 
     public ElectronicSignatureService(MicroLimsDbContext db)

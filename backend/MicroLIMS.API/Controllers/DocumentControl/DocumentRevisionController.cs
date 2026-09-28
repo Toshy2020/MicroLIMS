@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using MicroLIMS.Application.DTOs.DocumentControl;
@@ -38,7 +39,7 @@ public class DocumentRevisionController : ControllerBase
         {
             return BadRequest(ApiResponse<object>.Fail(ex.Message));
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not DbUpdateConcurrencyException)
         {
             return BadRequest(ApiResponse<object>.Fail(ex.Message));
         }
@@ -68,7 +69,7 @@ public class DocumentRevisionController : ControllerBase
         {
             return BadRequest(ApiResponse<object>.Fail(ex.Message));
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not DbUpdateConcurrencyException)
         {
             return BadRequest(ApiResponse<object>.Fail(ex.Message));
         }
@@ -86,7 +87,7 @@ public class DocumentRevisionController : ControllerBase
         {
             return NotFound(ApiResponse<object>.Fail(ex.Message));
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not DbUpdateConcurrencyException)
         {
             return BadRequest(ApiResponse<object>.Fail(ex.Message));
         }
@@ -100,7 +101,7 @@ public class DocumentRevisionController : ControllerBase
             var result = await _revisionService.GetChangeItemsAsync(revisionId, CurrentUserId);
             return Ok(ApiResponse<IReadOnlyList<RevisionChangeItemDto>>.Ok(result));
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not DbUpdateConcurrencyException)
         {
             return BadRequest(ApiResponse<object>.Fail(ex.Message));
         }
@@ -130,7 +131,7 @@ public class DocumentRevisionController : ControllerBase
         {
             return BadRequest(ApiResponse<object>.Fail(ex.Message));
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not DbUpdateConcurrencyException)
         {
             return BadRequest(ApiResponse<object>.Fail(ex.Message));
         }
@@ -160,7 +161,7 @@ public class DocumentRevisionController : ControllerBase
         {
             return BadRequest(ApiResponse<object>.Fail(ex.Message));
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not DbUpdateConcurrencyException)
         {
             return BadRequest(ApiResponse<object>.Fail(ex.Message));
         }
@@ -189,7 +190,7 @@ public class DocumentRevisionController : ControllerBase
         {
             return BadRequest(ApiResponse<object>.Fail(ex.Message));
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not DbUpdateConcurrencyException)
         {
             return BadRequest(ApiResponse<object>.Fail(ex.Message));
         }
@@ -219,7 +220,7 @@ public class DocumentRevisionController : ControllerBase
         {
             return BadRequest(ApiResponse<object>.Fail(ex.Message));
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not DbUpdateConcurrencyException)
         {
             return BadRequest(ApiResponse<object>.Fail(ex.Message));
         }
@@ -233,7 +234,7 @@ public class DocumentRevisionController : ControllerBase
             var result = await _revisionService.GetImpactAssessmentAsync(revisionId, CurrentUserId);
             return Ok(ApiResponse<RevisionImpactAssessmentDto?>.Ok(result));
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not DbUpdateConcurrencyException)
         {
             return BadRequest(ApiResponse<object>.Fail(ex.Message));
         }
@@ -263,7 +264,7 @@ public class DocumentRevisionController : ControllerBase
         {
             return BadRequest(ApiResponse<object>.Fail(ex.Message));
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not DbUpdateConcurrencyException)
         {
             return BadRequest(ApiResponse<object>.Fail(ex.Message));
         }

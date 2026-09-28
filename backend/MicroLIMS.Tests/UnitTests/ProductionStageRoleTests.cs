@@ -1,3 +1,4 @@
+using MicroLIMS.Application.DTOs;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -21,7 +22,7 @@ public class ProductionStageRoleTests
     private static MicroLimsDbContext NewDb() =>
         new(new DbContextOptionsBuilder<MicroLimsDbContext>().UseInMemoryDatabase(Guid.NewGuid().ToString()).Options);
 
-    private static (MasterDataController controller, User admin) SetupAdminController(MicroLimsDbContext db)
+    private static (MasterDataControllers controller, User admin) SetupAdminController(MicroLimsDbContext db)
     {
         var adminRole = new Role { Name = "System Administrator", Type = RoleType.SystemAdministrator, IsActive = true };
         db.Roles.Add(adminRole);
@@ -40,7 +41,7 @@ public class ProductionStageRoleTests
 
         var scope = new UserSectionScopeService(db);
         var colService = new ChromatographyColumnService(db, scope);
-        var controller = new MasterDataController(
+        var controller = new MasterDataControllers(
             db,
             new EquipmentConfigurationService(db),
             TestServiceFactory.MediaProduct(db),
@@ -70,7 +71,7 @@ public class ProductionStageRoleTests
         Assert.Equal(0, (int)ProductionStageRole.Other);
     }
 
-    // ---- MasterDataController CRUD carries Role ----
+    // ---- MasterDataControllers CRUD carries Role ----
 
     [Fact]
     public async Task CreateProductionStage_PersistsRole()
@@ -78,7 +79,7 @@ public class ProductionStageRoleTests
         using var db = NewDb();
         var (controller, _) = SetupAdminController(db);
 
-        var result = await controller.CreateProductionStage(new CreateProductionStageRequest("Stability-Test", ProductionStageRole.Stability));
+        var result = await controller.ReferenceList.CreateProductionStage(new CreateProductionStageRequest("Stability-Test", ProductionStageRole.Stability));
         var ok = Assert.IsType<OkObjectResult>(result);
         var response = Assert.IsType<ApiResponse<object>>(ok.Value);
         var entity = Assert.IsType<ProductionStage>(response.Data);
@@ -99,7 +100,7 @@ public class ProductionStageRoleTests
         db.ProductionStages.Add(stage);
         await db.SaveChangesAsync();
 
-        await controller.UpdateProductionStage(stage.Id, new UpdateProductionStageRequest("Custom", ProductionStageRole.Bulk));
+        await controller.ReferenceList.UpdateProductionStage(stage.Id, new UpdateProductionStageRequest("Custom", ProductionStageRole.Bulk));
 
         var reloaded = await db.ProductionStages.FirstAsync(s => s.Id == stage.Id);
         Assert.Equal(ProductionStageRole.Bulk, reloaded.Role);

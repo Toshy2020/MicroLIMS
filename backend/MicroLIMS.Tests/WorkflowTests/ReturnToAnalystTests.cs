@@ -521,7 +521,8 @@ public class ReturnToAnalystTests
         var engine = TestServiceFactory.TestWorkflow(db);
         var eligibility = TestServiceFactory.IncubatorEligibility(db);
         var snapshot = TestServiceFactory.AppearanceSnapshot(db);
-        var controller = new TestWorkflowController(engine, db, eligibility, snapshot, new UserSectionScopeService(db));
+        var controller = new TestWorkflowController(engine, new TestWorkflowQueryService(db, eligibility, snapshot), new UserSectionScopeService(db),
+            new GroupedTestActionService(db, engine, eligibility), new CurrentStepViewService(db, engine));
         controller.ControllerContext = new ControllerContext
         {
             HttpContext = new Microsoft.AspNetCore.Http.DefaultHttpContext

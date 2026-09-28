@@ -1,3 +1,4 @@
+using MicroLIMS.Application.DTOs;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Domain.Entities;
@@ -95,4 +96,12 @@ public class ElectronicSignatureService : IElectronicSignatureService
         _db.ElectronicSignatures.Add(signature);
         return signature;
     }
+
+    // The signature trail for a record, oldest first.
+    public Task<List<SignatureDto>> GetTrailAsync(string entityType, int entityId) =>
+        _db.ElectronicSignatures
+            .Where(s => s.EntityType == entityType && s.EntityId == entityId)
+            .OrderBy(s => s.SignedAt)
+            .Select(s => new SignatureDto(s.UserFullNameSnapshot, s.UsernameSnapshot, s.RoleSnapshot, s.MeaningOfSignature.ToString(), s.SignedAt, s.Comment))
+            .ToListAsync();
 }

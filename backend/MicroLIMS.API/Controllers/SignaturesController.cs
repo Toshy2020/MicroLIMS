@@ -1,8 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.DTOs;
-using MicroLIMS.Persistence.DbContext;
+using MicroLIMS.Application.Services;
 using MicroLIMS.Shared.Constants;
 using MicroLIMS.Shared.Responses;
 
@@ -16,22 +15,14 @@ namespace MicroLIMS.API.Controllers;
 [Authorize(Roles = RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
 public class SignaturesController : ControllerBase
 {
-    private readonly MicroLimsDbContext _db;
+    private readonly ElectronicSignatureService _signatures;
 
-    public SignaturesController(MicroLimsDbContext db)
+    public SignaturesController(ElectronicSignatureService signatures)
     {
-        _db = db;
+        _signatures = signatures;
     }
 
     [HttpGet]
-    public async Task<IActionResult> GetTrail([FromQuery] string entityType, [FromQuery] int entityId)
-    {
-        var trail = await _db.ElectronicSignatures
-            .Where(s => s.EntityType == entityType && s.EntityId == entityId)
-            .OrderBy(s => s.SignedAt)
-            .Select(s => new SignatureDto(s.UserFullNameSnapshot, s.UsernameSnapshot, s.RoleSnapshot, s.MeaningOfSignature.ToString(), s.SignedAt, s.Comment))
-            .ToListAsync();
-
-        return Ok(ApiResponse<object>.Ok(trail));
-    }
+    public async Task<IActionResult> GetTrail([FromQuery] string entityType, [FromQuery] int entityId) =>
+        Ok(ApiResponse<object>.Ok(await _signatures.GetTrailAsync(entityType, entityId)));
 }

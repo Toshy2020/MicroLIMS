@@ -38,10 +38,10 @@ public class WaterConfigCrudTests
     public async Task CreateWaterDepartment_PersistsRow()
     {
         await using var db = NewDb();
-        var controller = new MicroLIMS.API.Controllers.MasterDataController(db, new MicroLIMS.Application.Services.EquipmentConfigurationService(db), TestServiceFactory.MediaProduct(db), TestServiceFactory.MediaIncubationCondition(db), new MicroLIMS.Application.Services.UserSectionScopeService(db), new MicroLIMS.Application.Services.ChromatographyColumnService(db, new MicroLIMS.Application.Services.UserSectionScopeService(db)));
+        var controller = new MasterDataControllers(db, new MicroLIMS.Application.Services.EquipmentConfigurationService(db), TestServiceFactory.MediaProduct(db), TestServiceFactory.MediaIncubationCondition(db), new MicroLIMS.Application.Services.UserSectionScopeService(db), new MicroLIMS.Application.Services.ChromatographyColumnService(db, new MicroLIMS.Application.Services.UserSectionScopeService(db)));
 
-        await controller.CreateWaterDepartment(
-            new MicroLIMS.API.Controllers.CreateWaterDepartmentRequest("WTU"));
+        await controller.Water.CreateWaterDepartment(
+            new MicroLIMS.Application.DTOs.CreateWaterDepartmentRequest("WTU"));
 
         var dept = await db.WaterDepartments.SingleAsync();
         Assert.Equal("WTU", dept.Name);
@@ -57,8 +57,8 @@ public class WaterConfigCrudTests
         db.WaterSamplingPoints.Add(new WaterSamplingPoint { Code = "SP1", WaterDepartmentId = dept.Id });
         await db.SaveChangesAsync();
 
-        var controller = new MicroLIMS.API.Controllers.MasterDataController(db, new MicroLIMS.Application.Services.EquipmentConfigurationService(db), TestServiceFactory.MediaProduct(db), TestServiceFactory.MediaIncubationCondition(db), new MicroLIMS.Application.Services.UserSectionScopeService(db), new MicroLIMS.Application.Services.ChromatographyColumnService(db, new MicroLIMS.Application.Services.UserSectionScopeService(db)));
-        await Assert.ThrowsAsync<InvalidOperationException>(() => controller.DeleteWaterDepartment(dept.Id));
+        var controller = new MasterDataControllers(db, new MicroLIMS.Application.Services.EquipmentConfigurationService(db), TestServiceFactory.MediaProduct(db), TestServiceFactory.MediaIncubationCondition(db), new MicroLIMS.Application.Services.UserSectionScopeService(db), new MicroLIMS.Application.Services.ChromatographyColumnService(db, new MicroLIMS.Application.Services.UserSectionScopeService(db)));
+        await Assert.ThrowsAsync<InvalidOperationException>(() => controller.Water.DeleteWaterDepartment(dept.Id));
     }
 
     [Fact]
@@ -69,8 +69,8 @@ public class WaterConfigCrudTests
         db.WaterDepartments.Add(dept);
         await db.SaveChangesAsync();
 
-        var controller = new MicroLIMS.API.Controllers.MasterDataController(db, new MicroLIMS.Application.Services.EquipmentConfigurationService(db), TestServiceFactory.MediaProduct(db), TestServiceFactory.MediaIncubationCondition(db), new MicroLIMS.Application.Services.UserSectionScopeService(db), new MicroLIMS.Application.Services.ChromatographyColumnService(db, new MicroLIMS.Application.Services.UserSectionScopeService(db)));
-        await controller.CreateWaterSamplingPoint(new MicroLIMS.API.Controllers.CreateWaterSamplingPointRequest(
+        var controller = new MasterDataControllers(db, new MicroLIMS.Application.Services.EquipmentConfigurationService(db), TestServiceFactory.MediaProduct(db), TestServiceFactory.MediaIncubationCondition(db), new MicroLIMS.Application.Services.UserSectionScopeService(db), new MicroLIMS.Application.Services.ChromatographyColumnService(db, new MicroLIMS.Application.Services.UserSectionScopeService(db)));
+        await controller.Water.CreateWaterSamplingPoint(new MicroLIMS.Application.DTOs.CreateWaterSamplingPointRequest(
             "SP205", "WTU", "Weekly", new List<string> { "TAMC-Water" }, dept.Id));
 
         var point = await db.WaterSamplingPoints.SingleAsync();
@@ -86,8 +86,8 @@ public class WaterConfigCrudTests
         db.WaterSamplingPoints.Add(point);
         await db.SaveChangesAsync();
 
-        var controller = new MicroLIMS.API.Controllers.MasterDataController(db, new MicroLIMS.Application.Services.EquipmentConfigurationService(db), TestServiceFactory.MediaProduct(db), TestServiceFactory.MediaIncubationCondition(db), new MicroLIMS.Application.Services.UserSectionScopeService(db), new MicroLIMS.Application.Services.ChromatographyColumnService(db, new MicroLIMS.Application.Services.UserSectionScopeService(db)));
-        await controller.CreateWaterSamplingConfiguration(new MicroLIMS.API.Controllers.CreateWaterSamplingConfigRequest(
+        var controller = new MasterDataControllers(db, new MicroLIMS.Application.Services.EquipmentConfigurationService(db), TestServiceFactory.MediaProduct(db), TestServiceFactory.MediaIncubationCondition(db), new MicroLIMS.Application.Services.UserSectionScopeService(db), new MicroLIMS.Application.Services.ChromatographyColumnService(db, new MicroLIMS.Application.Services.UserSectionScopeService(db)));
+        await controller.Water.CreateWaterSamplingConfiguration(new MicroLIMS.Application.DTOs.CreateWaterSamplingConfigRequest(
             point.Id, "TAMC-Water", "10", "50", "100"));
 
         var config = await db.SamplingConfigurations.SingleAsync();

@@ -759,11 +759,11 @@ public class CalibrationCurveSliceS1Tests
 
     #region MasterData Controller & TestAnalyte CRUD Tests
 
-    private static MasterDataController CreateMasterDataController(MicroLimsDbContext db, User user)
+    private static MasterDataControllers CreateMasterDataController(MicroLimsDbContext db, User user)
     {
         var scope = new UserSectionScopeService(db);
         var colService = new ChromatographyColumnService(db, scope);
-        return new MasterDataController(
+        return new MasterDataControllers(
             db,
             new EquipmentConfigurationService(db),
             TestServiceFactory.MediaProduct(db),
@@ -806,22 +806,22 @@ public class CalibrationCurveSliceS1Tests
             CalCheckRecoveryHighPercent: 110m,
             ReportedConcentrationBasis: ReportedConcentrationBasis.SamplePpm);
 
-        var ex1 = await Assert.ThrowsAsync<InvalidOperationException>(() => controller.CreateTestDefinition(req1));
+        var ex1 = await Assert.ThrowsAsync<InvalidOperationException>(() => controller.TestDefinition.CreateTestDefinition(req1));
         Assert.Contains("Method abbreviation is required", ex1.Message);
 
         // Wrong workflow type (not ElementalAssay)
         var req2 = req1 with { MethodAbbreviation = "CAL-MTH", WorkflowType = WorkflowType.Observation };
-        var ex2 = await Assert.ThrowsAsync<InvalidOperationException>(() => controller.CreateTestDefinition(req2));
+        var ex2 = await Assert.ThrowsAsync<InvalidOperationException>(() => controller.TestDefinition.CreateTestDefinition(req2));
         Assert.Contains("Workflow type must be ElementalAssay", ex2.Message);
 
         // Low percent > High percent
         var req3 = req1 with { MethodAbbreviation = "CAL-MTH", CalCheckRecoveryLowPercent = 115m, CalCheckRecoveryHighPercent = 90m };
-        var ex3 = await Assert.ThrowsAsync<InvalidOperationException>(() => controller.CreateTestDefinition(req3));
+        var ex3 = await Assert.ThrowsAsync<InvalidOperationException>(() => controller.TestDefinition.CreateTestDefinition(req3));
         Assert.Contains("Check recovery low percent must be less than or equal to high percent.", ex3.Message);
 
         // Valid creation succeeds
         var reqValid = req1 with { MethodAbbreviation = "CAL-MTH" };
-        var res = await controller.CreateTestDefinition(reqValid);
+        var res = await controller.TestDefinition.CreateTestDefinition(reqValid);
         var okRes = Assert.IsType<OkObjectResult>(res);
         var apiRes = Assert.IsType<ApiResponse<object>>(okRes.Value);
         Assert.True(apiRes.Success);
@@ -847,12 +847,12 @@ public class CalibrationCurveSliceS1Tests
             ConnectionSettings: null,
             SectionId: fpSec.Id);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => controller.CreateEquipment(reqWithout));
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => controller.Equipment.CreateEquipment(reqWithout));
         Assert.Equal("CDS Software is required for ICP-OES equipment.", ex.Message);
 
         // ICP-OES with CdsSoftware succeeds
         var reqWith = reqWithout with { Code = "ICP-WITH-CDS", CdsSoftware = CdsSoftware.PerkinElmerSyngistix };
-        var res = await controller.CreateEquipment(reqWith);
+        var res = await controller.Equipment.CreateEquipment(reqWith);
         var ok = Assert.IsType<OkObjectResult>(res);
         var api = Assert.IsType<ApiResponse<object>>(ok.Value);
         Assert.True(api.Success);
@@ -868,7 +868,7 @@ public class CalibrationCurveSliceS1Tests
 
         // Create new analyte (Mg)
         var createReq = new CreateTestAnalyteRequest("Mg", 285.213m, AnalyteView.Radial, 0.002m, 3);
-        var createRes = await controller.CreateTestAnalyte(test.Id, createReq);
+        var createRes = await controller.TestAnalyte.CreateTestAnalyte(test.Id, createReq);
         var okCreate = Assert.IsType<OkObjectResult>(createRes);
         var dto = Assert.IsType<ApiResponse<object>>(okCreate.Value).Data as TestAnalyteDto;
         Assert.NotNull(dto);
@@ -876,14 +876,14 @@ public class CalibrationCurveSliceS1Tests
 
         // Update analyte
         var updateReq = new UpdateTestAnalyteRequest(LoqMgPerL: 0.003m);
-        var updateRes = await controller.UpdateTestAnalyte(test.Id, dto.Id, updateReq);
+        var updateRes = await controller.TestAnalyte.UpdateTestAnalyte(test.Id, dto.Id, updateReq);
         var okUpdate = Assert.IsType<OkObjectResult>(updateRes);
         var updatedDto = Assert.IsType<ApiResponse<object>>(okUpdate.Value).Data as TestAnalyteDto;
         Assert.NotNull(updatedDto);
         Assert.Equal(0.003m, updatedDto.LoqMgPerL);
 
         // Delete unused analyte (Mg) -> hard deleted
-        var deleteRes = await controller.DeleteTestAnalyte(test.Id, dto.Id);
+        var deleteRes = await controller.TestAnalyte.DeleteTestAnalyte(test.Id, dto.Id);
         Assert.IsType<OkObjectResult>(deleteRes);
         Assert.False(await db.TestAnalytes.AnyAsync(a => a.Id == dto.Id));
 
@@ -917,7 +917,7 @@ public class CalibrationCurveSliceS1Tests
         await service.CreateAsync(runReq, stream, "report.pdf", "application/pdf", fpUser.Id, "127.0.0.1");
 
         // Delete used analyte (Zn) -> should deactivate instead of delete!
-        var deleteUsedRes = await controller.DeleteTestAnalyte(test.Id, znAnalyte.Id);
+        var deleteUsedRes = await controller.TestAnalyte.DeleteTestAnalyte(test.Id, znAnalyte.Id);
         Assert.IsType<OkObjectResult>(deleteUsedRes);
         var storedZn = await db.TestAnalytes.FindAsync(znAnalyte.Id);
         Assert.NotNull(storedZn);
@@ -1712,7 +1712,7 @@ public class CalibrationCurveSliceS1Tests
             EquationType: EquationType.None,
             CalInstrumentType: EquipmentType.Aas);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => controller.CreateTestDefinition(req));
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => controller.TestDefinition.CreateTestDefinition(req));
         Assert.Contains("Calibration instrument type only applies when equation type is CalibrationCurve.", ex.Message);
     }
 
@@ -1738,7 +1738,7 @@ public class CalibrationCurveSliceS1Tests
             ReportedConcentrationBasis: ReportedConcentrationBasis.SamplePpm,
             CalInstrumentType: EquipmentType.Hplc);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => controller.CreateTestDefinition(req));
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => controller.TestDefinition.CreateTestDefinition(req));
         Assert.Contains("Calibration instrument type must be IcpOes or Aas.", ex.Message);
     }
 

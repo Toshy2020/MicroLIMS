@@ -9,7 +9,6 @@ using MicroLIMS.Application.Services;
 using MicroLIMS.Application.Workflows;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
-using MicroLIMS.Persistence.DbContext;
 using MicroLIMS.Shared.Constants;
 using MicroLIMS.Shared.Responses;
 
@@ -26,7 +25,6 @@ public record RecordTestResultRequest(string StepName, List<decimal>? PlateReadi
 public record RecordStandardComparisonPreparationRequest(decimal TheoreticalWeightMg, decimal ActualWeightMg, string? WeighInJustification = null);
 public record RecordStandardComparisonResponseRequest(int TestAnalyteId, int PreparationIndex, decimal Response);
 public record RecordStandardComparisonResultRequest(DateTime AnalysedAt, int? EquipmentId, List<RecordStandardComparisonPreparationRequest> Preparations, List<RecordStandardComparisonResponseRequest> Responses, string Password, string? Comment = null);
-public record StandardComparisonContextDto(string ResponseMode, string? StageRole, int? SampleReplicates, int? StandardReplicates, decimal SampleWeighInTolerancePercent, decimal? MaxPreparationRsdPercent, string? Message);
 public record RecordElementalAssayElementRequest(int SpecificationId, int CalibrationRunAnalyteId, decimal ReportedPpm, bool OverRange, bool BelowLoq);
 public record RecordElementalAssayResultRequest(decimal UnitAmount, DateTime AnalysedAt, List<RecordElementalAssayElementRequest> Elements, string Password, string? Comment = null);
 public record RecordMeasurementParameterRequest(int SpecificationId, List<decimal> Readings);
@@ -80,27 +78,23 @@ public record BiochemicalReviewRequest(bool Approve, string Comment);
 public class TestWorkflowController : ControllerBase
 {
     private readonly ITestWorkflowEngine _engine;
-    private readonly MicroLimsDbContext _db;
-    private readonly IncubatorEligibilityService _incubatorEligibility;
-    private readonly MediaAppearanceSnapshotService _appearanceSnapshot;
+    private readonly TestWorkflowQueryService _queries;
     private readonly IUserSectionScopeService _scopeService;
     private readonly GroupedTestActionService _groupedTestActionService;
     private readonly CurrentStepViewService _currentStepView;
 
     public TestWorkflowController(
-        ITestWorkflowEngine engine, MicroLimsDbContext db,
-        IncubatorEligibilityService incubatorEligibility, MediaAppearanceSnapshotService appearanceSnapshot,
+        ITestWorkflowEngine engine,
+        TestWorkflowQueryService queries,
         IUserSectionScopeService scopeService,
-        GroupedTestActionService? groupedTestActionService = null,
-        CurrentStepViewService? currentStepView = null)
+        GroupedTestActionService groupedTestActionService,
+        CurrentStepViewService currentStepView)
     {
         _engine = engine;
-        _db = db;
-        _incubatorEligibility = incubatorEligibility;
-        _appearanceSnapshot = appearanceSnapshot;
+        _queries = queries;
         _scopeService = scopeService;
-        _groupedTestActionService = groupedTestActionService ?? new GroupedTestActionService(db, engine, incubatorEligibility);
-        _currentStepView = currentStepView ?? new CurrentStepViewService(db, engine);
+        _groupedTestActionService = groupedTestActionService;
+        _currentStepView = currentStepView;
     }
 
     private int CurrentUserId => int.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)!.Value);
@@ -186,25 +180,7 @@ public class TestWorkflowController : ControllerBase
     public async Task<IActionResult> GetStandardComparisonContext(int testOrderId, CancellationToken ct)
     {
         await _scopeService.EnsureTestOrderAccessAsync(CurrentUserId, testOrderId, ct);
-        return await RunAsync(async () =>
-        {
-            var testCode = await _db.TestOrders.Where(o => o.Id == testOrderId).Select(o => o.TestCode).FirstOrDefaultAsync(ct)
-                ?? throw new NotFoundException($"Test order {testOrderId} not found.");
-            var definition = await _db.TestDefinitions.FirstOrDefaultAsync(t => t.Code == testCode, ct)
-                ?? throw new InvalidOperationException($"Test code '{testCode}' is not in the Test Master.");
-            if (definition.WorkflowType != WorkflowType.StandardComparison)
-                throw new InvalidOperationException($"Test \"{testCode}\" is not a standard-comparison test.");
-
-            var resolution = await StageReplicateResolver.ResolveForTestOrderAsync(_db, testOrderId, ct);
-            return new StandardComparisonContextDto(
-                definition.ResponseMode.ToString(),
-                resolution.StageRole?.ToString(),
-                resolution.IsConfigured ? resolution.SampleReplicates : null,
-                resolution.IsConfigured ? resolution.StandardReplicates : null,
-                StandardComparisonCalculator.SampleWeighInTolerancePercent,
-                definition.HplcMaxPreparationRsdPercent,
-                resolution.IsConfigured ? null : resolution.Message);
-        });
+        return await RunAsync(() => _queries.GetStandardComparisonContextAsync(testOrderId, ct));
     }
 
     [HttpGet("{testOrderId}/sibling-pathogen-orders")]
@@ -219,67 +195,14 @@ public class TestWorkflowController : ControllerBase
     public async Task<IActionResult> GetEligibleIncubators(int testOrderId, int stepMediaId)
     {
         await _scopeService.EnsureTestOrderAccessAsync(CurrentUserId, testOrderId);
-        var incubators = await _incubatorEligibility.GetEligibleIncubatorsAsync(stepMediaId);
-        var stepMedia = await _db.TestWorkflowStepMedias.FirstOrDefaultAsync(m => m.Id == stepMediaId)
-            ?? throw new NotFoundException($"Step media {stepMediaId} not found.");
-
-        return Ok(ApiResponse<object>.Ok(new
-        {
-            stepMediaId,
-            tempMin = stepMedia.TempMin,
-            tempMax = stepMedia.TempMax,
-            eligibleIncubators = incubators.Select(i => new
-            {
-                i.Id, name = i.Name, code = i.Code, setTemperature = i.SetTemperature, calibrationStatus = i.CalibrationStatus
-            })
-        }));
+        return Ok(ApiResponse<object>.Ok(await _queries.GetEligibleIncubatorsAsync(stepMediaId)));
     }
 
     [HttpGet("{testOrderId}/permitted-confirmatory-media")]
     public async Task<IActionResult> GetPermittedConfirmatoryMedia(int testOrderId, [FromQuery] string stepName)
     {
         await _scopeService.EnsureTestOrderAccessAsync(CurrentUserId, testOrderId);
-        var order = await _db.TestOrders.FirstOrDefaultAsync(t => t.Id == testOrderId)
-            ?? throw new NotFoundException($"Test order {testOrderId} not found.");
-        var step = await _db.TestWorkflowSteps
-            .Include(s => s.StepMedia).ThenInclude(m => m.Material)
-            .Include(s => s.TargetOrganism)
-            .Include(s => s.TestDefinition)
-            .FirstOrDefaultAsync(s => s.TestDefinition!.Code == order.TestCode && s.StepName == stepName)
-            ?? throw new InvalidOperationException($"Step '{stepName}' is not part of {order.TestCode}.");
-
-        var permitted = new List<object>();
-        foreach (var medium in step.StepMedia.OrderBy(m => m.DisplayOrder))
-        {
-            var expected = step.TargetOrganismId is int organismId
-                ? await _appearanceSnapshot.GetExpectedAppearanceSnapshotAsync(medium.MaterialId, organismId)
-                : null;
-
-            var lots = await _db.Media
-                .Where(m => m.MaterialId == medium.MaterialId && m.IsReleasedForUse && m.Status == MediaStatus.Active && m.ExpiryDate > DateTime.UtcNow)
-                .OrderBy(m => m.ExpiryDate)
-                .Select(m => new { m.Id, lotNumber = m.LotNumber, expiryDate = m.ExpiryDate })
-                .ToListAsync();
-
-            permitted.Add(new
-            {
-                stepMediaId = medium.Id,
-                materialId = medium.MaterialId,
-                mediaName = medium.Material!.MaterialName,
-                expectedAppearance = expected,
-                tempMin = medium.TempMin,
-                tempMax = medium.TempMax,
-                availableLots = lots
-            });
-        }
-
-        return Ok(ApiResponse<object>.Ok(new
-        {
-            testOrderId,
-            stepName,
-            organism = step.TargetOrganism is null ? null : new { step.TargetOrganism.Id, name = step.TargetOrganism.ScientificName },
-            permittedMedia = permitted
-        }));
+        return Ok(ApiResponse<object>.Ok(await _queries.GetPermittedConfirmatoryMediaAsync(testOrderId, stepName)));
     }
 
     [HttpPost("{testOrderId}/select-media")]
@@ -714,11 +637,7 @@ public class TestWorkflowController : ControllerBase
     [HttpPost("results/{workflowStepResultId}/biochemical-decision")]
     public async Task<IActionResult> RecordBiochemicalDecision(int workflowStepResultId, BiochemicalReviewRequest request)
     {
-        var testOrderId = await _db.WorkflowStepResults
-            .AsNoTracking()
-            .Where(w => w.Id == workflowStepResultId)
-            .Select(w => (int?)w.TestOrderId)
-            .FirstOrDefaultAsync();
+        var testOrderId = await _queries.FindTestOrderIdForStepResultAsync(workflowStepResultId);
         if (testOrderId.HasValue)
         {
             await _scopeService.EnsureTestOrderAccessAsync(CurrentUserId, testOrderId.Value);

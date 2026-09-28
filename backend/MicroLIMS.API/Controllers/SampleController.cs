@@ -6,7 +6,6 @@ using MicroLIMS.Application.DTOs;
 using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Application.Services;
 using MicroLIMS.Application.Workflows;
-using MicroLIMS.Persistence.DbContext;
 using MicroLIMS.Shared.Constants;
 using MicroLIMS.Shared.Responses;
 
@@ -59,7 +58,7 @@ public class SampleController : ControllerBase
     private readonly SampleAssignmentService _assignmentService;
     private readonly IUserSectionScopeService _scopeService;
     private readonly AddLaboratoryService _addLaboratory;
-    private readonly MicroLimsDbContext _db;
+    private readonly ReceiptLabService _receiptLabs;
 
     public SampleController(
         IReceivingService receivingService,
@@ -67,14 +66,14 @@ public class SampleController : ControllerBase
         SampleAssignmentService assignmentService,
         IUserSectionScopeService scopeService,
         AddLaboratoryService addLaboratory,
-        MicroLimsDbContext db)
+        ReceiptLabService receiptLabs)
     {
         _receivingService = receivingService;
         _correctionService = correctionService;
         _assignmentService = assignmentService;
         _scopeService = scopeService;
         _addLaboratory = addLaboratory;
-        _db = db;
+        _receiptLabs = receiptLabs;
     }
 
     private int CurrentUserId => int.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)!.Value);
@@ -88,7 +87,7 @@ public class SampleController : ControllerBase
             // UnauthorizedAccessException (targeting a lab outside the
             // user's scope) is mapped globally by ExceptionMiddleware to
             // 403, so it is deliberately left uncaught here.
-            var targets = await ReceiptLabGuard.ResolveTargetsAsync(_db, _scopeService, CurrentUserId,
+            var targets = await _receiptLabs.ResolveTargetsAsync(CurrentUserId,
                 User.HasClaim("permission", PermissionConstants.SamplesReceive), request.TargetSectionIds);
             var sample = await _receivingService.ReceiveSampleAsync(new ItemBasedReceiveRequest(
                 request.ItemId, request.CauseOfTestingId, request.SampleQuantity, request.SampledBy,
@@ -105,15 +104,8 @@ public class SampleController : ControllerBase
     // Lists which laboratories the given item's assigned tests belong to,
     // so the Receiving page's lab picker only ever offers real choices.
     [HttpGet("receipt-labs")]
-    public async Task<IActionResult> ReceiptLabs([FromQuery] int itemId)
-    {
-        var codes = await _db.Items.Where(i => i.Id == itemId).SelectMany(i => i.AssignedTests.Select(t => t.TestCode)).ToListAsync();
-        var rows = await _db.TestDefinitions.Where(t => codes.Contains(t.Code))
-            .GroupBy(t => new { t.SectionId, t.Section!.Code, t.Section.Name })
-            .Select(g => new ReceiptLabOptionDto(g.Key.SectionId, g.Key.Code, g.Key.Name, g.Count()))
-            .ToListAsync();
-        return Ok(ApiResponse<object>.Ok(rows));
-    }
+    public async Task<IActionResult> ReceiptLabs([FromQuery] int itemId) =>
+        Ok(ApiResponse<object>.Ok(await _receiptLabs.GetForItemAsync(itemId)));
 
     // Analysts record the work; correcting or voiding the sample record is
     // for a Reviewer, Section Head or System Administrator.

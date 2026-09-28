@@ -60,4 +60,12 @@ public class AuditService
                 l.TestOrderId);
         }).ToList();
     }
+
+    // Newest first, optionally for one username.
+    public async Task<List<LoginHistory>> GetLoginHistoryAsync(string? username, int take)
+    {
+        var query = _db.LoginHistories.AsQueryable();
+        if (!string.IsNullOrWhiteSpace(username)) query = query.Where(l => l.Username == username);
+        return await query.OrderByDescending(l => l.Timestamp).Take(take).ToListAsync();
+    }
 }

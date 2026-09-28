@@ -18,7 +18,7 @@ public record SaveMaterialHttpRequest(
 // matching the access level of Reference Strain receiving.
 [ApiController]
 [Route("api/inventory/materials")]
-[Authorize(Roles = RoleConstants.Analyst + "," + RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
+[Authorize(Policy = PermissionConstants.MaterialsManage)]
 public class MaterialController : ControllerBase
 {
     private readonly MaterialService _service;

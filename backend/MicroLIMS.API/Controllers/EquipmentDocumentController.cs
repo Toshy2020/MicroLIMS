@@ -29,7 +29,7 @@ public class EquipmentDocumentController : ControllerBase
 
     // List all documents for an equipment record.
     [HttpGet("api/inventory/equipment/{equipmentId:int}/documents")]
-    [Authorize(Roles = RoleConstants.Analyst + "," + RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
+    [Authorize(Policy = PermissionConstants.EquipmentManage)]
     public async Task<IActionResult> GetDocuments(int equipmentId)
     {
         try
@@ -45,7 +45,7 @@ public class EquipmentDocumentController : ControllerBase
 
     // Upload a new document to an equipment record.
     [HttpPost("api/inventory/equipment/{equipmentId:int}/documents")]
-    [Authorize(Roles = RoleConstants.Analyst + "," + RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
+    [Authorize(Policy = PermissionConstants.EquipmentManage)]
     [RequestSizeLimit(30 * 1024 * 1024)] // 30 MB server transport ceiling
     public async Task<IActionResult> Upload(int equipmentId, IFormFile file, [FromForm] EquipmentDocumentType documentType)
     {
@@ -76,7 +76,7 @@ public class EquipmentDocumentController : ControllerBase
 
     // Retrieve the raw content of an equipment document.
     [HttpGet("api/inventory/equipment-documents/{documentId:int}/content")]
-    [Authorize(Roles = RoleConstants.Analyst + "," + RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
+    [Authorize(Policy = PermissionConstants.EquipmentManage)]
     public async Task<IActionResult> GetContent(int documentId, [FromQuery] int equipmentId)
     {
         try
@@ -93,7 +93,7 @@ public class EquipmentDocumentController : ControllerBase
     // Supersede an existing document with a replacement file.
     // SectionHead and SystemAdministrator only.
     [HttpPost("api/inventory/equipment-documents/{documentId:int}/supersede")]
-    [Authorize(Roles = RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
+    [Authorize(Policy = PermissionConstants.EquipmentDocumentControl)]
     [RequestSizeLimit(30 * 1024 * 1024)]
     public async Task<IActionResult> Supersede(int documentId, [FromQuery] int equipmentId, IFormFile file, [FromForm] string reason)
     {
@@ -127,7 +127,7 @@ public class EquipmentDocumentController : ControllerBase
     // Void a document. The file is retained for audit; document is marked Voided.
     // SectionHead and SystemAdministrator only.
     [HttpPost("api/inventory/equipment-documents/{documentId:int}/void")]
-    [Authorize(Roles = RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
+    [Authorize(Policy = PermissionConstants.EquipmentDocumentControl)]
     public async Task<IActionResult> Void(int documentId, [FromQuery] int equipmentId, [FromBody] VoidEquipmentDocumentRequest request)
     {
         if (string.IsNullOrWhiteSpace(request?.Reason))

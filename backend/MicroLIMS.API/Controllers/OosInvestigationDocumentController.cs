@@ -11,7 +11,7 @@ namespace MicroLIMS.API.Controllers;
 // API for managing controlled documents (Lab Investigation Reports) attached to OOS groups.
 // Gated to SectionHead and SystemAdministrator (same as OOS Tracking).
 [ApiController]
-[Authorize(Roles = RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
+[Authorize(Policy = PermissionConstants.OosManage)]
 public class OosInvestigationDocumentController : ControllerBase
 {
     private readonly OosInvestigationDocumentService _service;

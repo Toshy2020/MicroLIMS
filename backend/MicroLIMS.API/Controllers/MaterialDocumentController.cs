@@ -19,7 +19,7 @@ public record VoidDocumentHttpRequest(string Reason);
 //   Upload                           : Analyst, SectionHead, SystemAdministrator
 //   Supersede / Void                 : SectionHead, SystemAdministrator only
 [ApiController]
-[Authorize(Roles = RoleConstants.Analyst + "," + RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
+[Authorize(Policy = PermissionConstants.MaterialsManage)]
 public class MaterialDocumentController : ControllerBase
 {
     private readonly MaterialDocumentService _service;
@@ -122,7 +122,7 @@ public class MaterialDocumentController : ControllerBase
 
     // ---- Supersede (SectionHead / SystemAdministrator only) ----
     [HttpPost("api/inventory/material-documents/{documentId:int}/supersede")]
-    [Authorize(Roles = RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
+    [Authorize(Policy = PermissionConstants.MaterialsDocumentControl)]
     [RequestSizeLimit(30 * 1024 * 1024)]
     public async Task<IActionResult> Supersede(int documentId, IFormFile file, [FromForm] string reason, [FromForm] int materialId)
     {
@@ -154,7 +154,7 @@ public class MaterialDocumentController : ControllerBase
 
     // ---- Void (SectionHead / SystemAdministrator only) ----
     [HttpPost("api/inventory/material-documents/{documentId:int}/void")]
-    [Authorize(Roles = RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
+    [Authorize(Policy = PermissionConstants.MaterialsDocumentControl)]
     public async Task<IActionResult> Void(int documentId, [FromQuery] int materialId, VoidDocumentHttpRequest request)
     {
         try

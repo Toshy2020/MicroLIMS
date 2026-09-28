@@ -8,7 +8,7 @@ namespace MicroLIMS.API.Controllers;
 
 [ApiController]
 [Route("api/admin/audit")]
-[Authorize(Roles = RoleConstants.SystemAdministrator + "," + RoleConstants.SectionHead)]
+[Authorize(Policy = PermissionConstants.AuditView)]
 public class AuditController : ControllerBase
 {
     private readonly AuditService _auditService;

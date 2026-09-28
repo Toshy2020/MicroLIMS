@@ -595,13 +595,10 @@ public class SampleCorrectionTests
     [InlineData(nameof(SampleController.Void))]
     public void SampleController_CorrectAndVoid_AreClosedToAnalysts(string action)
     {
-        var method = typeof(SampleController).GetMethod(action)!;
-        var attr = (AuthorizeAttribute)method.GetCustomAttributes(typeof(AuthorizeAttribute), true).Single();
-
-        var roles = attr.Roles!.Split(',');
-        Assert.DoesNotContain(RoleConstants.Analyst, roles);
-        Assert.Contains(RoleConstants.Reviewer, roles);
-        Assert.Contains(RoleConstants.SectionHead, roles);
-        Assert.Contains(RoleConstants.SystemAdministrator, roles);
+        var roles = MicroLIMS.Tests.ArchitectureTests.AuthorizationMatrixTests.AllowedRoles<SampleController>(action)!;
+        Assert.DoesNotContain(MicroLIMS.Domain.Enums.RoleType.Analyst, roles);
+        Assert.Contains(MicroLIMS.Domain.Enums.RoleType.Reviewer, roles);
+        Assert.Contains(MicroLIMS.Domain.Enums.RoleType.SectionHead, roles);
+        Assert.Contains(MicroLIMS.Domain.Enums.RoleType.SystemAdministrator, roles);
     }
 }

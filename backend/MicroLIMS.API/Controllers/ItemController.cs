@@ -24,11 +24,11 @@ public class ItemController : ControllerBase
     public async Task<IActionResult> GetAll() => Ok(ApiResponse<List<Item>>.Ok(await _itemService.GetAllAsync()));
 
     [HttpPost]
-    [Authorize(Roles = RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
+    [Authorize(Policy = PermissionConstants.ItemsManage)]
     public async Task<IActionResult> Create([FromBody] ItemSaveRequest request) => Ok(ApiResponse<Item>.Ok(await _itemService.CreateAsync(request)));
 
     [HttpPut("{id}")]
-    [Authorize(Roles = RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
+    [Authorize(Policy = PermissionConstants.ItemsManage)]
     public async Task<IActionResult> Update(int id, [FromBody] ItemSaveRequest request)
     {
         await _itemService.UpdateAsync(id, request);
@@ -36,7 +36,7 @@ public class ItemController : ControllerBase
     }
 
     [HttpPut("{id}/freeze")]
-    [Authorize(Roles = RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
+    [Authorize(Policy = PermissionConstants.ItemsManage)]
     public async Task<IActionResult> Freeze(int id)
     {
         await _itemService.SetActiveAsync(id, false);
@@ -44,7 +44,7 @@ public class ItemController : ControllerBase
     }
 
     [HttpPut("{id}/unfreeze")]
-    [Authorize(Roles = RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
+    [Authorize(Policy = PermissionConstants.ItemsManage)]
     public async Task<IActionResult> Unfreeze(int id)
     {
         await _itemService.SetActiveAsync(id, true);
@@ -52,7 +52,7 @@ public class ItemController : ControllerBase
     }
 
     [HttpDelete("{id}")]
-    [Authorize(Roles = RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
+    [Authorize(Policy = PermissionConstants.ItemsManage)]
     public async Task<IActionResult> Delete(int id)
     {
         await _itemService.DeleteAsync(id);

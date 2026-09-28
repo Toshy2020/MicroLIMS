@@ -46,7 +46,7 @@ public class ItemDocumentController : ControllerBase
     }
 
     [HttpPost("api/items/{itemId:int}/documents")]
-    [Authorize(Roles = RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
+    [Authorize(Policy = PermissionConstants.ItemsDocumentUpload)]
     [RequestSizeLimit(30 * 1024 * 1024)]
     public async Task<IActionResult> UploadDocument(
         int itemId,

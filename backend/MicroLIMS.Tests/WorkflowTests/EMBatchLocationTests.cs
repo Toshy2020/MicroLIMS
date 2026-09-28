@@ -702,15 +702,8 @@ public class EMBatchLocationTests
     [Fact]
     public void OverrideMinimumDuration_IsRestrictedToSectionHeadAndSystemAdministrator()
     {
-        var method = typeof(MicroLIMS.API.Controllers.TestWorkflowController)
-            .GetMethod(nameof(MicroLIMS.API.Controllers.TestWorkflowController.OverrideMinimumDuration))!;
-        var attr = (Microsoft.AspNetCore.Authorization.AuthorizeAttribute)
-            method.GetCustomAttributes(typeof(Microsoft.AspNetCore.Authorization.AuthorizeAttribute), true).Single();
-
-        var roles = attr.Roles!.Split(',');
-        Assert.Contains(RoleConstants.SectionHead, roles);
-        Assert.Contains(RoleConstants.SystemAdministrator, roles);
-        Assert.DoesNotContain(RoleConstants.Analyst, roles);
-        Assert.DoesNotContain(RoleConstants.Reviewer, roles);
+        var roles = MicroLIMS.Tests.ArchitectureTests.AuthorizationMatrixTests.AllowedRoles<MicroLIMS.API.Controllers.TestWorkflowController>(
+            nameof(MicroLIMS.API.Controllers.TestWorkflowController.OverrideMinimumDuration))!;
+        Assert.Equal(new[] { MicroLIMS.Domain.Enums.RoleType.SystemAdministrator, MicroLIMS.Domain.Enums.RoleType.SectionHead }, roles.OrderBy(r => r));
     }
 }

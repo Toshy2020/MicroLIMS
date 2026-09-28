@@ -19,7 +19,7 @@ public record AdminPasswordRecoveryRequest(string Reason);
 
 [ApiController]
 [Route("api/users")]
-[Authorize(Roles = RoleConstants.SystemAdministrator)]
+[Authorize(Policy = PermissionConstants.UsersManage)]
 public class UserController : ControllerBase
 {
     private readonly UserService _userService;
@@ -39,7 +39,7 @@ public class UserController : ControllerBase
     public async Task<IActionResult> GetAll() => Ok(ApiResponse<object>.Ok(await _userService.GetAllAsync()));
 
     [HttpGet("{id}")]
-    [Authorize(Roles = RoleConstants.SystemAdministrator)]
+    [Authorize(Policy = PermissionConstants.UsersManage)]
     public async Task<IActionResult> GetById(int id)
     {
         try
@@ -53,7 +53,7 @@ public class UserController : ControllerBase
     }
 
     [HttpPost]
-    [Authorize(Roles = RoleConstants.SystemAdministrator)]
+    [Authorize(Policy = PermissionConstants.UsersManage)]
     public async Task<IActionResult> Create(CreateUserRequest request)
     {
         try
@@ -69,7 +69,7 @@ public class UserController : ControllerBase
     }
 
     [HttpPut("{id}")]
-    [Authorize(Roles = RoleConstants.SystemAdministrator)]
+    [Authorize(Policy = PermissionConstants.UsersManage)]
     public async Task<IActionResult> UpdateProfile(int id, UpdateProfileRequest request)
     {
         try
@@ -84,7 +84,7 @@ public class UserController : ControllerBase
     }
 
     [HttpPut("{id}/role")]
-    [Authorize(Roles = RoleConstants.SystemAdministrator)]
+    [Authorize(Policy = PermissionConstants.UsersManage)]
     public async Task<IActionResult> ChangeRole(int id, ChangeRoleRequest request)
     {
         try
@@ -99,7 +99,7 @@ public class UserController : ControllerBase
     }
 
     [HttpPut("{id}/status")]
-    [Authorize(Roles = RoleConstants.SystemAdministrator)]
+    [Authorize(Policy = PermissionConstants.UsersManage)]
     public async Task<IActionResult> SetStatus(int id, SetStatusRequest request)
     {
         try
@@ -114,7 +114,7 @@ public class UserController : ControllerBase
     }
 
     [HttpPut("{id}/deactivate")]
-    [Authorize(Roles = RoleConstants.SystemAdministrator)]
+    [Authorize(Policy = PermissionConstants.UsersManage)]
     public async Task<IActionResult> Deactivate(int id)
     {
         try
@@ -129,7 +129,7 @@ public class UserController : ControllerBase
     }
 
     [HttpPut("{id}/email")]
-    [Authorize(Roles = RoleConstants.SystemAdministrator)]
+    [Authorize(Policy = PermissionConstants.UsersManage)]
     public async Task<IActionResult> UpdateEmail(int id, UpdateEmailRequest request)
     {
         try
@@ -144,7 +144,7 @@ public class UserController : ControllerBase
     }
 
     [HttpPut("{id}/unlock")]
-    [Authorize(Roles = RoleConstants.SystemAdministrator)]
+    [Authorize(Policy = PermissionConstants.UsersManage)]
     public async Task<IActionResult> Unlock(int id, UnlockUserRequest request)
     {
         try
@@ -159,7 +159,7 @@ public class UserController : ControllerBase
     }
 
     [HttpPost("{id}/password-reset")]
-    [Authorize(Roles = RoleConstants.SystemAdministrator)]
+    [Authorize(Policy = PermissionConstants.UsersManage)]
     public async Task<IActionResult> InitiatePasswordReset(int id, AdminResetPasswordRequest request)
     {
         try
@@ -174,7 +174,7 @@ public class UserController : ControllerBase
     }
 
     [HttpPost("{id}/admin-password-recovery")]
-    [Authorize(Roles = RoleConstants.SystemAdministrator)]
+    [Authorize(Policy = PermissionConstants.UsersManage)]
     public async Task<IActionResult> CreateAdminPasswordRecovery(int id, AdminPasswordRecoveryRequest request)
     {
         try
@@ -189,7 +189,7 @@ public class UserController : ControllerBase
     }
 
     [HttpPut("{id}/force-password-change")]
-    [Authorize(Roles = RoleConstants.SystemAdministrator)]
+    [Authorize(Policy = PermissionConstants.UsersManage)]
     public async Task<IActionResult> ForcePasswordChange(int id)
     {
         try
@@ -207,7 +207,7 @@ public class UserController : ControllerBase
     // deactivate endpoint above. Only allowed when the user has zero
     // history anywhere in the domain model (see UserReferenceRegistry).
     [HttpDelete("{id}")]
-    [Authorize(Roles = RoleConstants.SystemAdministrator)]
+    [Authorize(Policy = PermissionConstants.UsersManage)]
     public async Task<IActionResult> HardDelete(int id)
     {
         try

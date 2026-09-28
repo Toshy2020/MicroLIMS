@@ -16,7 +16,7 @@ public record UpdateRolePermissionsRequest(List<string> PermissionCodes);
 
 [ApiController]
 [Route("api/roles")]
-[Authorize(Roles = RoleConstants.SystemAdministrator)]
+[Authorize(Policy = PermissionConstants.RolesManage)]
 public class RoleController : ControllerBase
 {
     private readonly RoleService _roleService;

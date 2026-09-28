@@ -21,9 +21,7 @@ public class DiscussionController : ControllerBase
     }
 
     private int CurrentUserId => int.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)!.Value);
-    private bool CanEditAny => User.HasClaim("permission", PermissionConstants.DiscussionsEditAny) ||
-                               User.IsInRole(RoleConstants.SystemAdministrator) ||
-                               User.IsInRole(RoleConstants.SectionHead);
+    private bool CanEditAny => User.HasClaim("permission", PermissionConstants.DiscussionsEditAny);
 
     [HttpGet]
     public async Task<IActionResult> GetFeed(

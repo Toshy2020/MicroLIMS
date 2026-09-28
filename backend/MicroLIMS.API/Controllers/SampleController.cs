@@ -79,7 +79,7 @@ public class SampleController : ControllerBase
     private int CurrentUserId => int.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)!.Value);
 
     [HttpPost]
-    [Authorize(Roles = RoleConstants.Analyst + "," + RoleConstants.Reviewer + "," + RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
+    [Authorize(Policy = PermissionConstants.SamplesReceiveOwnLab)]
     public async Task<IActionResult> Receive(ReceiveItemBasedSampleRequest request)
     {
         try
@@ -110,7 +110,7 @@ public class SampleController : ControllerBase
     // Analysts record the work; correcting or voiding the sample record is
     // for a Reviewer, Section Head or System Administrator.
     [HttpPut("{id}/correct")]
-    [Authorize(Roles = RoleConstants.Reviewer + "," + RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
+    [Authorize(Policy = PermissionConstants.SamplesCorrect)]
     public async Task<IActionResult> Correct(int id, CorrectSampleRequest request)
     {
         await _scopeService.EnsureSampleAccessAsync(CurrentUserId, id);
@@ -137,7 +137,7 @@ public class SampleController : ControllerBase
     }
 
     [HttpPut("{id}/assign-analyst")]
-    [Authorize(Roles = RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
+    [Authorize(Policy = PermissionConstants.SamplesAssignAnalyst)]
     public async Task<IActionResult> AssignAnalyst(int id, AssignAnalystRequest request)
     {
         await _scopeService.EnsureSampleAccessAsync(CurrentUserId, id);
@@ -153,7 +153,7 @@ public class SampleController : ControllerBase
     }
 
     [HttpPost("{id}/void")]
-    [Authorize(Roles = RoleConstants.Reviewer + "," + RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
+    [Authorize(Policy = PermissionConstants.SamplesCorrect)]
     public async Task<IActionResult> Void(int id, [FromBody] VoidSampleRequest request)
     {
         await _scopeService.EnsureSampleAccessAsync(CurrentUserId, id);

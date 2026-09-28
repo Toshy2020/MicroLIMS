@@ -10,7 +10,7 @@ namespace MicroLIMS.API.Controllers;
 
 [ApiController]
 [Route("api/kpi")]
-[Authorize(Roles = RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
+[Authorize(Policy = PermissionConstants.KpiView)]
 public class KpiController : ControllerBase
 {
     private readonly KpiService _kpiService;

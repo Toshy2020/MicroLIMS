@@ -49,7 +49,7 @@ public class EquipmentMasterDataController : ControllerBase
     public async Task<IActionResult> GetConfiguredSummary() =>
         Ok(ApiResponse<object>.Ok(await _configService.GetConfiguredEquipmentSummaryAsync()));
 
-    [Authorize(Roles = RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
+    [Authorize(Policy = PermissionConstants.MasterDataManage)]
     [HttpPost("equipment/link-inventory/{inventoryId:int}")]
     public async Task<IActionResult> LinkInventory(int inventoryId)
     {
@@ -57,7 +57,7 @@ public class EquipmentMasterDataController : ControllerBase
         return Ok(ApiResponse<object>.Ok(master));
     }
 
-    [Authorize(Roles = RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
+    [Authorize(Policy = PermissionConstants.MasterDataManage)]
     [HttpPut("equipment/{id:int}/set-point")]
     public async Task<IActionResult> UpdateSetPoint(int id, [FromBody] UpdateIncubatorSetPointRequest request)
     {
@@ -91,7 +91,7 @@ public class EquipmentMasterDataController : ControllerBase
     public async Task<IActionResult> GetAllAutoclavePrograms([FromQuery] bool? activeOnly) =>
         Ok(ApiResponse<object>.Ok(await _configService.GetAutoclaveProgramsAsync(null, activeOnly)));
 
-    [Authorize(Roles = RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
+    [Authorize(Policy = PermissionConstants.MasterDataManage)]
     [HttpPost("equipment/{id:int}/autoclave-programs")]
     public async Task<IActionResult> SaveAutoclaveProgram(int id, [FromBody] SaveAutoclaveProgramRequest request)
     {
@@ -108,7 +108,7 @@ public class EquipmentMasterDataController : ControllerBase
         }
     }
 
-    [Authorize(Roles = RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
+    [Authorize(Policy = PermissionConstants.MasterDataManage)]
     [HttpPut("equipment/autoclave-programs/{programId:int}")]
     public async Task<IActionResult> UpdateAutoclaveProgram(int programId, [FromBody] SaveAutoclaveProgramRequest request)
     {
@@ -124,7 +124,7 @@ public class EquipmentMasterDataController : ControllerBase
         }
     }
 
-    [Authorize(Roles = RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
+    [Authorize(Policy = PermissionConstants.MasterDataManage)]
     [HttpPut("equipment/autoclave-programs/{programId:int}/status")]
     public async Task<IActionResult> SetAutoclaveProgramStatus(int programId, [FromBody] SetAutoclaveProgramStatusHttpRequest request)
     {
@@ -143,12 +143,12 @@ public class EquipmentMasterDataController : ControllerBase
     public async Task<IActionResult> GetAutoclaveProgramHistory(int programId) =>
         Ok(ApiResponse<object>.Ok(await _configService.GetAutoclaveProgramHistoryAsync(programId)));
 
-    [Authorize(Roles = RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
+    [Authorize(Policy = PermissionConstants.MasterDataManage)]
     [HttpPost("equipment")]
     public async Task<IActionResult> CreateEquipment(CreateEquipmentRequest request) =>
         Ok(ApiResponse<object>.Ok(await _service.CreateEquipmentAsync(CurrentUserId, request)));
 
-    [Authorize(Roles = RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
+    [Authorize(Policy = PermissionConstants.MasterDataManage)]
     [HttpPut("equipment/{id:int}")]
     public async Task<IActionResult> UpdateEquipment(int id, UpdateEquipmentRequest request) =>
         Ok(ApiResponse<object>.Ok(await _service.UpdateEquipmentAsync(CurrentUserId, id, request)));

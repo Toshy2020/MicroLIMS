@@ -33,17 +33,17 @@ public class WaterMasterDataController : ControllerBase
     public async Task<IActionResult> GetWaterSamplingPoints() =>
         Ok(ApiResponse<object>.Ok(await _service.GetWaterSamplingPointsAsync()));
 
-    [Authorize(Roles = RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
+    [Authorize(Policy = PermissionConstants.MasterDataManage)]
     [HttpPost("water-sampling-points")]
     public async Task<IActionResult> CreateWaterSamplingPoint(CreateWaterSamplingPointRequest request) =>
         Ok(ApiResponse<object>.Ok(await _service.CreateWaterSamplingPointAsync(request)));
 
-    [Authorize(Roles = RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
+    [Authorize(Policy = PermissionConstants.MasterDataManage)]
     [HttpPut("water-sampling-points/{id}")]
     public async Task<IActionResult> UpdateWaterSamplingPoint(int id, UpdateWaterSamplingPointRequest request) =>
         Ok(ApiResponse<object>.Ok(await _service.UpdateWaterSamplingPointAsync(id, request)));
 
-    [Authorize(Roles = RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
+    [Authorize(Policy = PermissionConstants.MasterDataManage)]
     [HttpDelete("water-sampling-points/{id}")]
     public async Task<IActionResult> DeleteWaterSamplingPoint(int id) =>
         Ok(ApiResponse<object>.Ok(await _service.DeleteWaterSamplingPointAsync(id)));
@@ -53,17 +53,17 @@ public class WaterMasterDataController : ControllerBase
     public async Task<IActionResult> GetWaterDepartments() =>
         Ok(ApiResponse<object>.Ok(await _service.GetWaterDepartmentsAsync()));
 
-    [Authorize(Roles = RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
+    [Authorize(Policy = PermissionConstants.MasterDataManage)]
     [HttpPost("water-departments")]
     public async Task<IActionResult> CreateWaterDepartment(CreateWaterDepartmentRequest request) =>
         Ok(ApiResponse<object>.Ok(await _service.CreateWaterDepartmentAsync(request)));
 
-    [Authorize(Roles = RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
+    [Authorize(Policy = PermissionConstants.MasterDataManage)]
     [HttpPut("water-departments/{id}")]
     public async Task<IActionResult> UpdateWaterDepartment(int id, UpdateWaterDepartmentRequest request) =>
         Ok(ApiResponse<object>.Ok(await _service.UpdateWaterDepartmentAsync(id, request)));
 
-    [Authorize(Roles = RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
+    [Authorize(Policy = PermissionConstants.MasterDataManage)]
     [HttpDelete("water-departments/{id}")]
     public async Task<IActionResult> DeleteWaterDepartment(int id) =>
         Ok(ApiResponse<object>.Ok(await _service.DeleteWaterDepartmentAsync(id)));
@@ -73,17 +73,17 @@ public class WaterMasterDataController : ControllerBase
     public async Task<IActionResult> GetWaterSamplingConfigurations([FromQuery] int pointId) =>
         Ok(ApiResponse<object>.Ok(await _service.GetWaterSamplingConfigurationsAsync(pointId)));
 
-    [Authorize(Roles = RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
+    [Authorize(Policy = PermissionConstants.MasterDataManage)]
     [HttpPost("water-sampling-configurations")]
     public async Task<IActionResult> CreateWaterSamplingConfiguration(CreateWaterSamplingConfigRequest request) =>
         Ok(ApiResponse<object>.Ok(await _service.CreateWaterSamplingConfigurationAsync(request)));
 
-    [Authorize(Roles = RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
+    [Authorize(Policy = PermissionConstants.MasterDataManage)]
     [HttpPut("water-sampling-configurations/{id}")]
     public async Task<IActionResult> UpdateWaterSamplingConfiguration(int id, UpdateWaterSamplingConfigRequest request) =>
         Ok(ApiResponse<object>.Ok(await _service.UpdateWaterSamplingConfigurationAsync(id, request)));
 
-    [Authorize(Roles = RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
+    [Authorize(Policy = PermissionConstants.MasterDataManage)]
     [HttpDelete("water-sampling-configurations/{id}")]
     public async Task<IActionResult> DeleteWaterSamplingConfiguration(int id) =>
         Ok(ApiResponse<object>.Ok(await _service.DeleteWaterSamplingConfigurationAsync(id)));

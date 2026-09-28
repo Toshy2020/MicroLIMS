@@ -76,6 +76,20 @@ public static class PermissionConstants
     public const string DocumentsTrainingViewMatrix = "Documents.TrainingViewMatrix";
     public const string DocumentsConfigManage = "Documents.ConfigManage";
 
+    // Gates that were [Authorize(Roles=...)] only, with no catalogue code
+    // of their own. Each is granted by default to exactly the roles the
+    // attribute named, so moving to them changed nobody's access.
+    public const string DashboardsLabOverview = "Dashboards.LabOverview";
+    public const string DashboardsReview = "Dashboards.Review";
+    public const string KpiView = "Kpi.View";
+    public const string MediaPrepare = "Media.Prepare";
+    public const string MediaRelease = "Media.Release";
+    public const string OosManage = "Oos.Manage";
+    public const string TestWorkflowSupervise = "TestWorkflow.Supervise";
+    public const string SamplesReceiveOwnLab = "Samples.ReceiveOwnLab";
+    public const string SamplesCorrect = "Samples.Correct";
+    public const string SamplesAssignAnalyst = "Samples.AssignAnalyst";
+
     public static readonly IReadOnlyList<string> All = new[]
     {
         UsersManage, RolesManage, AuditView, ReportingAdmin,
@@ -90,6 +104,23 @@ public static class PermissionConstants
         SystemViewErrorLog, SystemViewSecurityAudit,
         DocumentsRegister, DocumentsDraftEdit, DocumentsRevisionCreate,
         DocumentsReview, DocumentsApprove, DocumentsPeriodicReview,
-        DocumentsTrainingAssign, DocumentsTrainingViewMatrix, DocumentsConfigManage
+        DocumentsTrainingAssign, DocumentsTrainingViewMatrix, DocumentsConfigManage,
+        DashboardsLabOverview, DashboardsReview, KpiView,
+        MediaPrepare, MediaRelease, OosManage, TestWorkflowSupervise,
+        SamplesReceiveOwnLab, SamplesCorrect, SamplesAssignAnalyst
+    };
+
+    // The codes some endpoint or service actually checks. The rest are
+    // declared for the Roles screen but not yet enforced anywhere; the
+    // screen shows which is which (Permission.IsEnforced).
+    public static readonly IReadOnlySet<string> Enforced = new HashSet<string>
+    {
+        AuditView, CryovialsApprove, CryovialsManage, DashboardsLabOverview, DashboardsReview,
+        DiscussionsEditAny, DocumentsConfigManage, DocumentsRegister, DocumentsTrainingAssign,
+        EquipmentDocumentControl, EquipmentManage, ItemsDocumentUpload, ItemsManage, KpiView,
+        MasterDataManage, MaterialsDocumentControl, MaterialsManage, MediaPrepare, MediaRelease, OosManage,
+        ReportingAdmin, RolesManage, SamplesApprove, SamplesAssignAnalyst, SamplesCorrect, SamplesReceive,
+        SamplesReceiveOwnLab, SamplesReview, SamplesTrackAll, SignaturesManage, SystemViewErrorLog,
+        TestWorkflowBiochemicalDecision, TestWorkflowExecute, TestWorkflowSupervise, UsersManage
     };
 }

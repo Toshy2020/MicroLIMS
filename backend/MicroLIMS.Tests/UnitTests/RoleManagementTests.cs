@@ -43,7 +43,22 @@ public class RoleManagementTests
         Assert.True(created.IsActive);
         Assert.Equal("QC Trainee", created.Name);
         Assert.Equal("Analyst", created.Type);
-        Assert.Empty(created.PermissionCodes);
+    }
+
+    // Endpoints authorize by permission, so a new custom role starts with
+    // what its base system role holds - before, it passed every role check
+    // for its base type and a role with no permissions would lose all of it.
+    [Fact]
+    public async Task CreateAsync_StartsWithTheBaseSystemRolesPermissions()
+    {
+        var db = CreateDbContext();
+        var service = CreateService(db);
+        var analyst = await service.GetByIdAsync(4);
+
+        var created = await service.CreateAsync("QC Trainee", null, RoleType.Analyst);
+
+        Assert.NotEmpty(created.PermissionCodes);
+        Assert.Equal(analyst!.PermissionCodes.OrderBy(c => c), created.PermissionCodes.OrderBy(c => c));
     }
 
     [Fact]
@@ -64,9 +79,11 @@ public class RoleManagementTests
         var reviewer = await service.GetByIdAsync(3); // Reviewer
 
         Assert.NotNull(reviewer);
-        // 7 laboratory codes plus the 4 Document Control codes the Reviewer role
-        // carries as technical reviewer / QA auditor.
-        Assert.Equal(11, reviewer!.PermissionCodes.Count);
+        // 7 laboratory codes, the 4 Document Control codes the Reviewer role
+        // carries as technical reviewer / QA auditor, and the 4 codes that
+        // replaced role-only gates (review dashboard, media preparation,
+        // receiving for their own lab, correcting a sample).
+        Assert.Equal(15, reviewer!.PermissionCodes.Count);
         Assert.Contains(PermissionConstants.SamplesReview, reviewer.PermissionCodes);
         Assert.Contains(PermissionConstants.DocumentsReview, reviewer.PermissionCodes);
     }
@@ -219,7 +236,10 @@ public class RoleManagementTests
         var authorizeAttrs = controllerType.GetCustomAttributes(typeof(Microsoft.AspNetCore.Authorization.AuthorizeAttribute), true);
         Assert.Single(authorizeAttrs);
         var attr = (Microsoft.AspNetCore.Authorization.AuthorizeAttribute)authorizeAttrs[0];
-        Assert.Equal(RoleConstants.SystemAdministrator, attr.Roles);
+        Assert.Equal(PermissionConstants.RolesManage, attr.Policy);
+        Assert.Equal(new[] { MicroLIMS.Domain.Enums.RoleType.SystemAdministrator },
+            MicroLIMS.Tests.ArchitectureTests.AuthorizationMatrixTests.AllowedRoles<MicroLIMS.API.Controllers.RoleController>(
+                nameof(MicroLIMS.API.Controllers.RoleController.GetById)));
 
         foreach (var methodName in new[] { nameof(MicroLIMS.API.Controllers.RoleController.GetById), nameof(MicroLIMS.API.Controllers.RoleController.Create), nameof(MicroLIMS.API.Controllers.RoleController.Update), nameof(MicroLIMS.API.Controllers.RoleController.Delete), nameof(MicroLIMS.API.Controllers.RoleController.UpdatePermissions), nameof(MicroLIMS.API.Controllers.RoleController.GetAllPermissions) })
         {

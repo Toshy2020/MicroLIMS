@@ -38,9 +38,9 @@ public class DocumentControlRestApiUnitTests
         var claims = new List<Claim>
         {
             new(ClaimTypes.NameIdentifier, userId.ToString()),
-            new(ClaimTypes.Name, $"user{userId}"),
-            new(ClaimTypes.Role, roleName)
+            new(ClaimTypes.Name, $"user{userId}")
         };
+        claims.AddRange(TestPrincipals.RoleAndPermissionClaims(roleName));
         var identity = new ClaimsIdentity(claims, "TestAuth");
         var principal = new ClaimsPrincipal(identity);
 

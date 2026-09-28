@@ -88,12 +88,12 @@ public class DashboardController : ControllerBase
         Ok(ApiResponse<object>.Ok(await _dashboardService.GetIncubationOverviewAsync(myIncubationsOnly, CurrentUserId, await Scope())));
 
     [HttpGet("section-head")]
-    [Authorize(Roles = RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
+    [Authorize(Policy = PermissionConstants.DashboardsLabOverview)]
     public async Task<IActionResult> GetSectionHeadDashboard() =>
         Ok(ApiResponse<object>.Ok(await _dashboardService.GetSectionHeadDashboardAsync(await Scope())));
 
     [HttpGet("reviewer")]
-    [Authorize(Roles = RoleConstants.Reviewer + "," + RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
+    [Authorize(Policy = PermissionConstants.DashboardsReview)]
     public async Task<IActionResult> GetReviewerDashboard() =>
         Ok(ApiResponse<object>.Ok(await _dashboardService.GetReviewerDashboardAsync(CurrentUserId, await Scope())));
 

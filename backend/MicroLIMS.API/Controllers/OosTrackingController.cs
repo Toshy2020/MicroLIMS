@@ -12,7 +12,7 @@ namespace MicroLIMS.API.Controllers;
 // approval decision itself (SampleApprovalController).
 [ApiController]
 [Route("api/oos-tracking")]
-[Authorize(Roles = RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
+[Authorize(Policy = PermissionConstants.OosManage)]
 public class OosTrackingController : ControllerBase
 {
     private readonly OosTrackingService _service;

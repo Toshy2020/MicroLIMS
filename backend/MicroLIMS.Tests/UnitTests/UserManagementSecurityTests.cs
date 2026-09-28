@@ -252,11 +252,9 @@ public class UserManagementSecurityTests
     [Fact]
     public async Task Scenario14_UnauthorizedRolesBlockedOnAdminEndpoints()
     {
-        var controllerType = typeof(MicroLIMS.API.Controllers.UserController);
-        var authorizeAttrs = controllerType.GetCustomAttributes(typeof(Microsoft.AspNetCore.Authorization.AuthorizeAttribute), true);
-        Assert.NotEmpty(authorizeAttrs);
-        var attr = (Microsoft.AspNetCore.Authorization.AuthorizeAttribute)authorizeAttrs[0];
-        Assert.Equal(MicroLIMS.Shared.Constants.RoleConstants.SystemAdministrator, attr.Roles);
+        foreach (var action in new[] { nameof(MicroLIMS.API.Controllers.UserController.Create), nameof(MicroLIMS.API.Controllers.UserController.GetAll) })
+            Assert.Equal(new[] { MicroLIMS.Domain.Enums.RoleType.SystemAdministrator },
+                MicroLIMS.Tests.ArchitectureTests.AuthorizationMatrixTests.AllowedRoles<MicroLIMS.API.Controllers.UserController>(action));
     }
 
     [Fact]

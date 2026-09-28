@@ -33,17 +33,17 @@ public class ReferenceListMasterDataController : ControllerBase
     public async Task<IActionResult> GetCausesOfTesting() =>
         Ok(ApiResponse<object>.Ok(await _service.GetCausesOfTestingAsync()));
 
-    [Authorize(Roles = RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
+    [Authorize(Policy = PermissionConstants.MasterDataManage)]
     [HttpPost("causes-of-testing")]
     public async Task<IActionResult> CreateCauseOfTesting([FromBody] string name) =>
         Ok(ApiResponse<object>.Ok(await _service.CreateCauseOfTestingAsync(name)));
 
-    [Authorize(Roles = RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
+    [Authorize(Policy = PermissionConstants.MasterDataManage)]
     [HttpPut("causes-of-testing/{id}")]
     public async Task<IActionResult> UpdateCauseOfTesting(int id, [FromBody] string name) =>
         Ok(ApiResponse<object>.Ok(await _service.UpdateCauseOfTestingAsync(id, name)));
 
-    [Authorize(Roles = RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
+    [Authorize(Policy = PermissionConstants.MasterDataManage)]
     [HttpDelete("causes-of-testing/{id}")]
     public async Task<IActionResult> DeleteCauseOfTesting(int id) =>
         Ok(ApiResponse<object>.Ok(await _service.DeleteCauseOfTestingAsync(id)));
@@ -55,17 +55,17 @@ public class ReferenceListMasterDataController : ControllerBase
     public async Task<IActionResult> GetSamplers() =>
         Ok(ApiResponse<object>.Ok(await _service.GetSamplersAsync()));
 
-    [Authorize(Roles = RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
+    [Authorize(Policy = PermissionConstants.MasterDataManage)]
     [HttpPost("samplers")]
     public async Task<IActionResult> CreateSampler([FromBody] string name) =>
         Ok(ApiResponse<object>.Ok(await _service.CreateSamplerAsync(name)));
 
-    [Authorize(Roles = RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
+    [Authorize(Policy = PermissionConstants.MasterDataManage)]
     [HttpPut("samplers/{id}")]
     public async Task<IActionResult> UpdateSampler(int id, [FromBody] string name) =>
         Ok(ApiResponse<object>.Ok(await _service.UpdateSamplerAsync(id, name)));
 
-    [Authorize(Roles = RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
+    [Authorize(Policy = PermissionConstants.MasterDataManage)]
     [HttpDelete("samplers/{id}")]
     public async Task<IActionResult> DeleteSampler(int id) =>
         Ok(ApiResponse<object>.Ok(await _service.DeleteSamplerAsync(id)));
@@ -77,17 +77,17 @@ public class ReferenceListMasterDataController : ControllerBase
     public async Task<IActionResult> GetProductionStages() =>
         Ok(ApiResponse<object>.Ok(await _service.GetProductionStagesAsync()));
 
-    [Authorize(Roles = RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
+    [Authorize(Policy = PermissionConstants.MasterDataManage)]
     [HttpPost("production-stages")]
     public async Task<IActionResult> CreateProductionStage(CreateProductionStageRequest request) =>
         Ok(ApiResponse<object>.Ok(await _service.CreateProductionStageAsync(request)));
 
-    [Authorize(Roles = RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
+    [Authorize(Policy = PermissionConstants.MasterDataManage)]
     [HttpPut("production-stages/{id}")]
     public async Task<IActionResult> UpdateProductionStage(int id, UpdateProductionStageRequest request) =>
         Ok(ApiResponse<object>.Ok(await _service.UpdateProductionStageAsync(id, request)));
 
-    [Authorize(Roles = RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
+    [Authorize(Policy = PermissionConstants.MasterDataManage)]
     [HttpDelete("production-stages/{id}")]
     public async Task<IActionResult> DeleteProductionStage(int id) =>
         Ok(ApiResponse<object>.Ok(await _service.DeleteProductionStageAsync(id)));
@@ -97,7 +97,7 @@ public class ReferenceListMasterDataController : ControllerBase
     public async Task<IActionResult> GetDiluentTypes() =>
         Ok(ApiResponse<object>.Ok(await _service.GetDiluentTypesAsync()));
 
-    [Authorize(Roles = RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
+    [Authorize(Policy = PermissionConstants.MasterDataManage)]
     [HttpPost("diluent-types")]
     public async Task<IActionResult> CreateDiluentType(CreateDiluentTypeRequest request) =>
         Ok(ApiResponse<object>.Ok(await _service.CreateDiluentTypeAsync(request)));
@@ -107,7 +107,7 @@ public class ReferenceListMasterDataController : ControllerBase
     public async Task<IActionResult> GetNeutralizers() =>
         Ok(ApiResponse<object>.Ok(await _service.GetNeutralizersAsync()));
 
-    [Authorize(Roles = RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
+    [Authorize(Policy = PermissionConstants.MasterDataManage)]
     [HttpPost("neutralizers")]
     public async Task<IActionResult> CreateNeutralizer([FromBody] string name) =>
         Ok(ApiResponse<object>.Ok(await _service.CreateNeutralizerAsync(name)));

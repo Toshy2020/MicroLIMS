@@ -46,9 +46,9 @@ public class DocumentControlRestApiPostgresIntegrationTests
         var claims = new List<Claim>
         {
             new(ClaimTypes.NameIdentifier, userId.ToString()),
-            new(ClaimTypes.Name, $"user{userId}"),
-            new(ClaimTypes.Role, role)
+            new(ClaimTypes.Name, $"user{userId}")
         };
+        claims.AddRange(TestPrincipals.RoleAndPermissionClaims(role));
         var identity = new ClaimsIdentity(claims, "PostgresTestAuth");
         return new ControllerContext
         {

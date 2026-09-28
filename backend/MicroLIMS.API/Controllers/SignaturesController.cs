@@ -12,7 +12,7 @@ namespace MicroLIMS.API.Controllers;
 // else for ElectronicSignature - see the entity's append-only comment.
 [ApiController]
 [Route("api/signatures")]
-[Authorize(Roles = RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
+[Authorize(Policy = PermissionConstants.SignaturesManage)]
 public class SignaturesController : ControllerBase
 {
     private readonly ElectronicSignatureService _signatures;

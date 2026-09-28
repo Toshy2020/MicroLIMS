@@ -103,10 +103,11 @@ public class RolePermissionSeedDataTests
             PermissionConstants.DocumentsRegister, PermissionConstants.DocumentsDraftEdit,
             PermissionConstants.DocumentsRevisionCreate, PermissionConstants.DocumentsPeriodicReview,
             PermissionConstants.DocumentsApprove,
-            PermissionConstants.DocumentsTrainingAssign, PermissionConstants.DocumentsTrainingViewMatrix
+            PermissionConstants.DocumentsTrainingAssign, PermissionConstants.DocumentsTrainingViewMatrix,
+            PermissionConstants.DashboardsLabOverview, PermissionConstants.DashboardsReview, PermissionConstants.KpiView, PermissionConstants.MediaPrepare, PermissionConstants.MediaRelease, PermissionConstants.OosManage, PermissionConstants.TestWorkflowSupervise, PermissionConstants.SamplesReceiveOwnLab, PermissionConstants.SamplesCorrect, PermissionConstants.SamplesAssignAnalyst
         };
 
-        Assert.Equal(28, codes.Count);
+        Assert.Equal(38, codes.Count);
         Assert.Equal(expected.OrderBy(c => c), codes.OrderBy(c => c));
         // Not granted to SectionHead per the catalog:
         Assert.DoesNotContain(PermissionConstants.UsersManage, codes);
@@ -129,10 +130,11 @@ public class RolePermissionSeedDataTests
             // Technical reviewer / QA auditor. Review, periodic review and
             // approval are each still gated on the per-document assignment.
             PermissionConstants.DocumentsReview, PermissionConstants.DocumentsPeriodicReview,
-            PermissionConstants.DocumentsApprove, PermissionConstants.DocumentsTrainingViewMatrix
+            PermissionConstants.DocumentsApprove, PermissionConstants.DocumentsTrainingViewMatrix,
+            PermissionConstants.DashboardsReview, PermissionConstants.MediaPrepare, PermissionConstants.SamplesReceiveOwnLab, PermissionConstants.SamplesCorrect
         };
 
-        Assert.Equal(11, codes.Count);
+        Assert.Equal(15, codes.Count);
         Assert.Equal(expected.OrderBy(c => c), codes.OrderBy(c => c));
         Assert.DoesNotContain(PermissionConstants.SamplesApprove, codes);
         // A reviewer does not register documents or edit drafts.
@@ -156,10 +158,11 @@ public class RolePermissionSeedDataTests
             // Document Author). RoleType has no Document Author, so these sit on
             // Analyst and a lab can revoke them on the Roles screen.
             PermissionConstants.DocumentsRegister, PermissionConstants.DocumentsDraftEdit,
-            PermissionConstants.DocumentsRevisionCreate
+            PermissionConstants.DocumentsRevisionCreate,
+            PermissionConstants.MediaPrepare, PermissionConstants.SamplesReceiveOwnLab
         };
 
-        Assert.Equal(10, codes.Count);
+        Assert.Equal(12, codes.Count);
         Assert.Equal(expected.OrderBy(c => c), codes.OrderBy(c => c));
         Assert.DoesNotContain(PermissionConstants.SamplesReview, codes);
         Assert.DoesNotContain(PermissionConstants.CryovialsApprove, codes);
@@ -177,7 +180,7 @@ public class RolePermissionSeedDataTests
         // and SectionHead only.
         var db = CreateSeededDbContext();
         var total = await db.RolePermissions.CountAsync();
-        Assert.Equal(84, total);
+        Assert.Equal(110, total);
     }
 
     [Fact]
@@ -187,7 +190,7 @@ public class RolePermissionSeedDataTests
         DbSeeder.SeedPermissionsAndGrants(db); // second call
 
         Assert.Equal(PermissionConstants.All.Count, await db.Permissions.CountAsync());
-        Assert.Equal(84, await db.RolePermissions.CountAsync());
+        Assert.Equal(110, await db.RolePermissions.CountAsync());
     }
 
     [Fact]

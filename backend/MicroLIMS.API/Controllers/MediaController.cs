@@ -20,7 +20,7 @@ public record MarkOutOfStockHttpRequest(string? Comment);
 // is usable in routine testing until it also passes GPT.
 [ApiController]
 [Route("api/media")]
-[Authorize(Roles = RoleConstants.SectionHead + "," + RoleConstants.Analyst + "," + RoleConstants.Reviewer + "," + RoleConstants.SystemAdministrator)]
+[Authorize(Policy = PermissionConstants.MediaPrepare)]
 public class MediaController : ControllerBase
 {
     private readonly MediaPreparationService _mediaPrep;
@@ -68,7 +68,7 @@ public class MediaController : ControllerBase
     // The release gate itself - Section Head only, matching
     // CryovialController.Approve's restriction on the equivalent action.
     [HttpPost("{id}/release")]
-    [Authorize(Roles = RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
+    [Authorize(Policy = PermissionConstants.MediaRelease)]
     public async Task<IActionResult> DecideRelease(int id, DecideMediaReleaseRequest r)
     {
         await _scopeService.EnsureMediaAccessAsync(CurrentUserId, id);
@@ -78,7 +78,7 @@ public class MediaController : ControllerBase
     }
 
     [HttpPost("{id}/mark-out-of-stock")]
-    [Authorize(Roles = RoleConstants.SectionHead + "," + RoleConstants.Analyst + "," + RoleConstants.Reviewer + "," + RoleConstants.SystemAdministrator)]
+    [Authorize(Policy = PermissionConstants.MediaPrepare)]
     public async Task<IActionResult> MarkOutOfStock(int id, [FromBody] MarkOutOfStockHttpRequest? request)
     {
         await _scopeService.EnsureMediaAccessAsync(CurrentUserId, id);

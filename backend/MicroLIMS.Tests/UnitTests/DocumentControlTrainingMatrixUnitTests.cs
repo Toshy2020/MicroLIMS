@@ -93,9 +93,9 @@ public class DocumentControlTrainingMatrixUnitTests
     {
         var claims = new List<Claim>
         {
-            new(ClaimTypes.NameIdentifier, userId.ToString()),
-            new(ClaimTypes.Role, role)
+            new(ClaimTypes.NameIdentifier, userId.ToString())
         };
+        claims.AddRange(TestPrincipals.RoleAndPermissionClaims(role));
         var identity = new ClaimsIdentity(claims, "TestAuth");
         var principal = new ClaimsPrincipal(identity);
 

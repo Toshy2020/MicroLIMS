@@ -31,7 +31,7 @@ public record CloseSectionTestingRequest(string Password, string Reason);
 // in the Testing Workspace rather than a standalone Approval page.
 [ApiController]
 [Route("api/samples/{id}/approval")]
-[Authorize(Roles = RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
+[Authorize(Policy = PermissionConstants.SamplesApprove)]
 public class SampleApprovalController : ControllerBase
 {
     private readonly SampleApprovalService _approvalService;

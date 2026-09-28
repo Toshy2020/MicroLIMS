@@ -23,7 +23,7 @@ public record SaveEquipmentInventoryHttpRequest(
 
 [ApiController]
 [Route("api/inventory/equipment")]
-[Authorize(Roles = RoleConstants.Analyst + "," + RoleConstants.SectionHead + "," + RoleConstants.SystemAdministrator)]
+[Authorize(Policy = PermissionConstants.EquipmentManage)]
 public class EquipmentInventoryController : ControllerBase
 {
     private readonly EquipmentInventoryService _service;

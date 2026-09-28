@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Workflows;
 using MicroLIMS.Domain.Entities;
@@ -36,7 +37,7 @@ public class MediaEvaluationService
             .Include(e => e.Challenges).ThenInclude(c => c.ReferenceMedia)
             .Include(e => e.Challenges).ThenInclude(c => c.LyophilizedDisk)
             .FirstOrDefaultAsync(e => e.Id == id)
-        ?? throw new InvalidOperationException($"Media evaluation {id} not found.");
+        ?? throw new NotFoundException($"Media evaluation {id} not found.");
 
     public Task SelectCryovialAsync(int challengeId, int cryovialId, int userId) =>
         _engine.SelectCryovialAsync(challengeId, cryovialId, userId);

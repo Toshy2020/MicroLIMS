@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Application.Abstractions.Persistence;
@@ -41,7 +42,7 @@ public static class StageReplicateResolver
             .Where(o => o.Id == testOrderId)
             .Select(o => new { o.TestCode, o.SampleId })
             .FirstOrDefaultAsync(cancellationToken)
-            ?? throw new InvalidOperationException($"Test order {testOrderId} not found.");
+            ?? throw new NotFoundException($"Test order {testOrderId} not found.");
 
         var testDefinitionId = await db.TestDefinitions
             .Where(t => t.Code == order.TestCode)

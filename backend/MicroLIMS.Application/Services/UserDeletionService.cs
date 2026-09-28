@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using System.Linq.Expressions;
 using System.Reflection;
 using System.Text.Json;
@@ -36,7 +37,7 @@ public class UserDeletionService
     public async Task<bool> UserHasAnyHistoryAsync(int userId)
     {
         var user = await _db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == userId)
-            ?? throw new InvalidOperationException($"User {userId} not found.");
+            ?? throw new NotFoundException($"User {userId} not found.");
 
         if (user.LastLoginAt is not null)
             return true;
@@ -56,7 +57,7 @@ public class UserDeletionService
     public async Task HardDeleteAsync(int targetUserId, int actingUserId)
     {
         var user = await _db.Users.Include(u => u.Role).FirstOrDefaultAsync(u => u.Id == targetUserId)
-            ?? throw new InvalidOperationException($"User {targetUserId} not found.");
+            ?? throw new NotFoundException($"User {targetUserId} not found.");
 
         if (actingUserId == targetUserId)
             throw new InvalidOperationException("You cannot permanently delete your own account.");

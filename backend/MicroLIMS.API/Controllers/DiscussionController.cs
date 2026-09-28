@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using MicroLIMS.Application.Services;
@@ -97,7 +98,7 @@ public class DiscussionController : ControllerBase
             var created = await _discussionService.CreatePostAsync(request, attachments, CurrentUserId);
             return Ok(ApiResponse<DiscussionPostDetailDto>.Ok(created));
         }
-        catch (InvalidOperationException ex)
+        catch (InvalidOperationException ex) when (ex is not NotFoundException)
         {
             return BadRequest(ApiResponse<object>.Fail(ex.Message));
         }
@@ -119,7 +120,7 @@ public class DiscussionController : ControllerBase
         {
             return StatusCode(403, ApiResponse<object>.Fail(ex.Message));
         }
-        catch (InvalidOperationException ex)
+        catch (InvalidOperationException ex) when (ex is not NotFoundException)
         {
             return BadRequest(ApiResponse<object>.Fail(ex.Message));
         }
@@ -180,7 +181,7 @@ public class DiscussionController : ControllerBase
         {
             return NotFound(ApiResponse<object>.Fail(ex.Message));
         }
-        catch (InvalidOperationException ex)
+        catch (InvalidOperationException ex) when (ex is not NotFoundException)
         {
             return BadRequest(ApiResponse<object>.Fail(ex.Message));
         }
@@ -200,7 +201,7 @@ public class DiscussionController : ControllerBase
         {
             return NotFound(ApiResponse<object>.Fail(ex.Message));
         }
-        catch (InvalidOperationException ex)
+        catch (InvalidOperationException ex) when (ex is not NotFoundException)
         {
             return BadRequest(ApiResponse<object>.Fail(ex.Message));
         }
@@ -222,7 +223,7 @@ public class DiscussionController : ControllerBase
         {
             return StatusCode(403, ApiResponse<object>.Fail(ex.Message));
         }
-        catch (InvalidOperationException ex)
+        catch (InvalidOperationException ex) when (ex is not NotFoundException)
         {
             return BadRequest(ApiResponse<object>.Fail(ex.Message));
         }

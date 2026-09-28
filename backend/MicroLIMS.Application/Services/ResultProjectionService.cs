@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using MicroLIMS.Domain.Entities;
@@ -119,7 +120,7 @@ public class ResultProjectionService
             .Include(r => r.TestOrder!).ThenInclude(o => o.Sample!).ThenInclude(s => s.Item)
             .Include(r => r.TestOrder!).ThenInclude(o => o.Sample!).ThenInclude(s => s.WaterSamplingPoint)
             .FirstOrDefaultAsync(r => r.Id == countTestReadingId)
-            ?? throw new InvalidOperationException($"CountTestReading {countTestReadingId} not found.");
+            ?? throw new NotFoundException($"CountTestReading {countTestReadingId} not found.");
 
         var order = reading.TestOrder ?? throw new InvalidOperationException($"CountTestReading {countTestReadingId} has no TestOrder.");
         var sample = order.Sample ?? throw new InvalidOperationException($"TestOrder {order.Id} has no Sample - cannot project CountTestReading {countTestReadingId}.");
@@ -178,7 +179,7 @@ public class ResultProjectionService
             .Include(r => r.TestAnalysis)
             .Include(r => r.TestOrder!).ThenInclude(o => o.Sample!).ThenInclude(s => s.Item)
             .FirstOrDefaultAsync(r => r.Id == parameterResultId)
-            ?? throw new InvalidOperationException($"ParameterResult {parameterResultId} not found.");
+            ?? throw new NotFoundException($"ParameterResult {parameterResultId} not found.");
 
         var order = paramResult.TestOrder ?? throw new InvalidOperationException($"ParameterResult {parameterResultId} has no TestOrder.");
         var sample = order.Sample ?? throw new InvalidOperationException($"TestOrder {order.Id} has no Sample - cannot project ParameterResult {parameterResultId}.");
@@ -233,7 +234,7 @@ public class ResultProjectionService
             .Include(o => o.Sample!).ThenInclude(s => s.Item)
             .Include(o => o.Sample!).ThenInclude(s => s.WaterSamplingPoint)
             .FirstOrDefaultAsync(o => o.Id == testOrderId)
-            ?? throw new InvalidOperationException($"TestOrder {testOrderId} not found.");
+            ?? throw new NotFoundException($"TestOrder {testOrderId} not found.");
         var sample = order.Sample ?? throw new InvalidOperationException($"TestOrder {testOrderId} has no Sample.");
 
         var testDefinition = await _db.TestDefinitions.FirstOrDefaultAsync(t => t.Code == order.TestCode)
@@ -317,7 +318,7 @@ public class ResultProjectionService
             .Include(l => l.MachinePartConfiguration!).ThenInclude(c => c.MachinePart)
             .Include(l => l.WaterSamplingPoint)
             .FirstOrDefaultAsync(l => l.Id == sampleLocationId)
-            ?? throw new InvalidOperationException($"SampleLocation {sampleLocationId} not found.");
+            ?? throw new NotFoundException($"SampleLocation {sampleLocationId} not found.");
 
         if (location.Status is null)
             throw new InvalidOperationException($"SampleLocation {sampleLocationId} has no result recorded yet.");
@@ -386,7 +387,7 @@ public class ResultProjectionService
     public async Task RefreshApprovalFieldsAsync(int sampleId)
     {
         var sample = await _db.Samples.FirstOrDefaultAsync(s => s.Id == sampleId)
-            ?? throw new InvalidOperationException($"Sample {sampleId} not found.");
+            ?? throw new NotFoundException($"Sample {sampleId} not found.");
 
         var approvedBy = sample.ApprovedByUserId is int approvedByUserId
             ? await _db.Users.FirstOrDefaultAsync(u => u.Id == approvedByUserId)

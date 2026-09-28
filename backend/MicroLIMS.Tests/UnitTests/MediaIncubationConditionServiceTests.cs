@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using System;
 using System.Linq;
 using System.Threading.Tasks;
@@ -123,7 +124,7 @@ public class MediaIncubationConditionServiceTests
         await using var db = NewDb();
         var service = TestServiceFactory.MediaIncubationCondition(db);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+        var ex = await Assert.ThrowsAsync<NotFoundException>(
             () => service.CreateAsync(9999, 24, 48, 30m, 35m));
         Assert.Contains("Media product with ID 9999 not found", ex.Message);
     }
@@ -209,7 +210,7 @@ public class MediaIncubationConditionServiceTests
         await using var db = NewDb();
         var service = TestServiceFactory.MediaIncubationCondition(db);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+        var ex = await Assert.ThrowsAsync<NotFoundException>(
             () => service.UpdateAsync(9999, 24, 48, 30m, 35m));
         Assert.Contains("Incubation condition with ID 9999 not found", ex.Message);
     }
@@ -349,7 +350,7 @@ public class MediaIncubationConditionServiceTests
         await using var db = NewDb();
         var service = TestServiceFactory.MediaIncubationCondition(db);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+        var ex = await Assert.ThrowsAsync<NotFoundException>(
             () => service.DeleteAsync(9999));
         Assert.Contains("Incubation condition with ID 9999 not found", ex.Message);
     }

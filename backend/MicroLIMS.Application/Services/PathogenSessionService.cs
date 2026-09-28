@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Helpers;
 using MicroLIMS.Application.Workflows;
@@ -825,7 +826,7 @@ public class PathogenSessionService
         var sample = await _db.Samples
             .Include(s => s.TestOrders)
             .FirstOrDefaultAsync(s => s.Id == sampleId)
-            ?? throw new InvalidOperationException($"Sample #{sampleId} not found.");
+            ?? throw new NotFoundException($"Sample #{sampleId} not found.");
 
         var isPrepared = sample.PreparationStatus == SamplePreparationStatus.Ready;
         if (isPrepared && sample.ItemId != null)
@@ -1088,13 +1089,13 @@ public class PathogenSessionService
         CancellationToken cancellationToken = default)
     {
         var session = await GetSessionAsync(sampleId)
-            ?? throw new InvalidOperationException($"Session for sample #{sampleId} not found.");
+            ?? throw new NotFoundException($"Session for sample #{sampleId} not found.");
 
         var sample = await _db.Samples
             .Include(s => s.TestOrders)
             .Include(s => s.Locations)
             .FirstOrDefaultAsync(s => s.Id == sampleId, cancellationToken)
-            ?? throw new InvalidOperationException($"Sample #{sampleId} not found.");
+            ?? throw new NotFoundException($"Sample #{sampleId} not found.");
 
         var testOrdersByCode = sample.TestOrders.ToDictionary(t => t.TestCode);
         var locationsById = sample.Locations.ToDictionary(l => l.Id);
@@ -1210,7 +1211,7 @@ public class PathogenSessionService
         var sample = await _db.Samples
             .Include(s => s.TestOrders)
             .FirstOrDefaultAsync(s => s.Id == sampleId, cancellationToken)
-            ?? throw new InvalidOperationException($"Sample #{sampleId} not found.");
+            ?? throw new NotFoundException($"Sample #{sampleId} not found.");
 
         var testOrder = sample.TestOrders.FirstOrDefault(t => t.Id == request.TestOrderId)
             ?? throw new InvalidOperationException($"TestOrder #{request.TestOrderId} not found.");
@@ -1449,13 +1450,13 @@ public class PathogenSessionService
     public async Task<PathogenTestingSessionDto> SaveResultMatrixAsync(int sampleId, SaveResultMatrixRequest request, int userId)
     {
         var session = await GetSessionAsync(sampleId)
-            ?? throw new InvalidOperationException($"Session for sample #{sampleId} not found.");
+            ?? throw new NotFoundException($"Session for sample #{sampleId} not found.");
 
         var sample = await _db.Samples
             .Include(s => s.TestOrders)
             .Include(s => s.Locations).ThenInclude(l => l.SamplingConfiguration)
             .FirstOrDefaultAsync(s => s.Id == sampleId)
-            ?? throw new InvalidOperationException($"Sample #{sampleId} not found.");
+            ?? throw new NotFoundException($"Sample #{sampleId} not found.");
 
         var testOrdersByCode = sample.TestOrders.ToDictionary(t => t.TestCode);
         var locationsById = sample.Locations.ToDictionary(l => l.Id);
@@ -1540,7 +1541,7 @@ public class PathogenSessionService
     public async Task<PathogenTestingSessionDto> CompleteSessionAsync(int sampleId, int userId)
     {
         var session = await GetSessionAsync(sampleId)
-            ?? throw new InvalidOperationException($"Session for sample #{sampleId} not found.");
+            ?? throw new NotFoundException($"Session for sample #{sampleId} not found.");
 
         // 1. Completeness Validation
         if (session.MissingResults.Count > 0)
@@ -1564,7 +1565,7 @@ public class PathogenSessionService
         var sample = await _db.Samples
             .Include(s => s.TestOrders)
             .FirstOrDefaultAsync(s => s.Id == sampleId)
-            ?? throw new InvalidOperationException($"Sample #{sampleId} not found.");
+            ?? throw new NotFoundException($"Sample #{sampleId} not found.");
 
         // 3. Mark TestOrders as completed / ready for review
         foreach (var order in sample.TestOrders)
@@ -1601,7 +1602,7 @@ public class PathogenSessionService
             .Include(s => s.TestOrders)
             .Include(s => s.Locations)
             .FirstOrDefaultAsync(s => s.Id == sampleId)
-            ?? throw new InvalidOperationException($"Sample #{sampleId} not found.");
+            ?? throw new NotFoundException($"Sample #{sampleId} not found.");
 
         // Rejecting a sample takes SectionHead or SystemAdministrator
         // (ApprovalController). This endpoint takes Analyst. Resetting used to

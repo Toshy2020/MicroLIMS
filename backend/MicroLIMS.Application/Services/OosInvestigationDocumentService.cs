@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using System.Security.Cryptography;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -147,7 +148,7 @@ public class OosInvestigationDocumentService
     {
         var document = await _db.OosInvestigationDocuments
             .FirstOrDefaultAsync(d => d.Id == documentId && d.OosGroupCode == oosGroupCode)
-            ?? throw new InvalidOperationException($"Document {documentId} not found for OOS group {oosGroupCode}.");
+            ?? throw new NotFoundException($"Document {documentId} not found for OOS group {oosGroupCode}.");
 
         byte[] content;
         try
@@ -184,7 +185,7 @@ public class OosInvestigationDocumentService
 
         var old = await _db.OosInvestigationDocuments
             .FirstOrDefaultAsync(d => d.Id == documentId && d.OosGroupCode == oosGroupCode)
-            ?? throw new InvalidOperationException($"Document {documentId} not found for OOS group {oosGroupCode}.");
+            ?? throw new NotFoundException($"Document {documentId} not found for OOS group {oosGroupCode}.");
 
         if (old.Status == MaterialDocumentStatus.Voided)
             throw new InvalidOperationException("A voided document cannot be superseded. Upload a new document instead.");
@@ -254,7 +255,7 @@ public class OosInvestigationDocumentService
 
         var document = await _db.OosInvestigationDocuments
             .FirstOrDefaultAsync(d => d.Id == documentId && d.OosGroupCode == oosGroupCode)
-            ?? throw new InvalidOperationException($"Document {documentId} not found for OOS group {oosGroupCode}.");
+            ?? throw new NotFoundException($"Document {documentId} not found for OOS group {oosGroupCode}.");
 
         if (document.Status == MaterialDocumentStatus.Voided)
             throw new InvalidOperationException("This document is already voided.");
@@ -280,7 +281,7 @@ public class OosInvestigationDocumentService
     {
         var doc = await _db.OosInvestigationDocuments
             .FirstOrDefaultAsync(d => d.Id == documentId)
-            ?? throw new InvalidOperationException($"OOS investigation document {documentId} not found.");
+            ?? throw new NotFoundException($"OOS investigation document {documentId} not found.");
 
         var userName = await _db.Users
             .Where(u => u.Id == doc.UploadedByUserId)

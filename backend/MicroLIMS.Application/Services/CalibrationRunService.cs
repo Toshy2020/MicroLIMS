@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using System.Globalization;
 using System.Security.Cryptography;
 using Microsoft.EntityFrameworkCore;
@@ -129,7 +130,7 @@ public class CalibrationRunService : ICalibrationRunService
         var test = await _db.TestDefinitions
             .Include(t => t.Analytes)
             .FirstOrDefaultAsync(t => t.Id == testDefinitionId, ct)
-            ?? throw new InvalidOperationException($"Test definition {testDefinitionId} not found.");
+            ?? throw new NotFoundException($"Test definition {testDefinitionId} not found.");
 
         if (test.EquationType != EquationType.CalibrationCurve)
             throw new InvalidOperationException("Test definition does not use the Calibration Curve equation.");
@@ -145,7 +146,7 @@ public class CalibrationRunService : ICalibrationRunService
         // Equipment validation: the test's own instrument type (AAS reuses this same
         // calibration-curve path per D-A4; null CalInstrumentType means IcpOes) + same section
         var equip = await _db.Equipment.FirstOrDefaultAsync(e => e.Id == equipmentId, ct)
-            ?? throw new InvalidOperationException($"Equipment {equipmentId} not found.");
+            ?? throw new NotFoundException($"Equipment {equipmentId} not found.");
 
         var requiredInstrumentType = test.CalInstrumentType ?? EquipmentType.IcpOes;
         if (equip.Type != requiredInstrumentType)
@@ -160,7 +161,7 @@ public class CalibrationRunService : ICalibrationRunService
         // Calibration standard material validation
 
         var calStandard = await _db.Materials.FirstOrDefaultAsync(m => m.Id == calibrationStandardMaterialId, ct)
-            ?? throw new InvalidOperationException($"Calibration standard material {calibrationStandardMaterialId} not found.");
+            ?? throw new NotFoundException($"Calibration standard material {calibrationStandardMaterialId} not found.");
 
         if (calStandard.SectionId != test.SectionId)
             throw new InvalidOperationException("Calibration standard belongs to a different laboratory section than the test definition.");
@@ -170,7 +171,7 @@ public class CalibrationRunService : ICalibrationRunService
         if (icvStandardMaterialId.HasValue)
         {
             icvStandard = await _db.Materials.FirstOrDefaultAsync(m => m.Id == icvStandardMaterialId.Value, ct)
-                ?? throw new InvalidOperationException($"ICV standard material {icvStandardMaterialId.Value} not found.");
+                ?? throw new NotFoundException($"ICV standard material {icvStandardMaterialId.Value} not found.");
 
             if (icvStandard.SectionId != test.SectionId)
                 throw new InvalidOperationException("ICV standard belongs to a different laboratory section than the test definition.");
@@ -598,7 +599,7 @@ public class CalibrationRunService : ICalibrationRunService
             .Include(r => r.Document)
             .Include(r => r.Signature)
             .FirstOrDefaultAsync(r => r.Id == id, ct)
-            ?? throw new InvalidOperationException($"Calibration run {id} not found.");
+            ?? throw new NotFoundException($"Calibration run {id} not found.");
 
         await _scope.EnsureCalibrationRunAccessAsync(userId, run.Id, ct);
 
@@ -770,7 +771,7 @@ public class CalibrationRunService : ICalibrationRunService
         CancellationToken ct = default)
     {
         var run = await GetByIdAsync(runId, userId, ct)
-            ?? throw new InvalidOperationException($"Calibration run {runId} not found.");
+            ?? throw new NotFoundException($"Calibration run {runId} not found.");
 
         var test = run.TestDefinition
             ?? await _db.TestDefinitions.AsNoTracking().FirstOrDefaultAsync(t => t.Id == run.TestDefinitionId, ct);
@@ -842,7 +843,7 @@ public class CalibrationRunService : ICalibrationRunService
         CancellationToken ct = default)
     {
         var run = await GetByIdAsync(runId, userId, ct)
-            ?? throw new InvalidOperationException($"Calibration run {runId} not found.");
+            ?? throw new NotFoundException($"Calibration run {runId} not found.");
 
         if (run.Document == null)
             throw new InvalidOperationException("This calibration run has no report document attached.");

@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
@@ -53,7 +54,7 @@ public class AdminPasswordRecoveryService
             throw new InvalidOperationException("A reason is required for administrator-assisted password recovery.");
 
         var user = await _db.Users.FirstOrDefaultAsync(u => u.Id == targetUserId)
-            ?? throw new InvalidOperationException($"User {targetUserId} not found.");
+            ?? throw new NotFoundException($"User {targetUserId} not found.");
 
         if (!user.IsActive)
             throw new InvalidOperationException("Cannot initiate password recovery for a disabled user account. Please enable the account first.");

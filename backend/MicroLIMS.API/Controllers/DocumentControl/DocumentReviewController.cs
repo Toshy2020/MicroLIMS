@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -38,11 +39,11 @@ public class DocumentReviewController : ControllerBase
         {
             return StatusCode(403, ApiResponse<object>.Fail(ex.Message));
         }
-        catch (InvalidOperationException ex)
+        catch (InvalidOperationException ex) when (ex is not NotFoundException)
         {
             return BadRequest(ApiResponse<object>.Fail(ex.Message));
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not NotFoundException)
         {
             return BadRequest(ApiResponse<object>.Fail(ex.Message));
         }
@@ -64,7 +65,7 @@ public class DocumentReviewController : ControllerBase
         {
             return StatusCode(403, ApiResponse<object>.Fail(ex.Message));
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not NotFoundException)
         {
             return BadRequest(ApiResponse<object>.Fail(ex.Message));
         }
@@ -86,7 +87,7 @@ public class DocumentReviewController : ControllerBase
         {
             return StatusCode(403, ApiResponse<object>.Fail(ex.Message));
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not NotFoundException)
         {
             return BadRequest(ApiResponse<object>.Fail(ex.Message));
         }
@@ -100,7 +101,7 @@ public class DocumentReviewController : ControllerBase
             var tasks = await _reviewService.GetMyAssignedReviewTasksAsync(CurrentUserId);
             return Ok(ApiResponse<List<DocumentReviewTaskDto>>.Ok(tasks));
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not NotFoundException)
         {
             return BadRequest(ApiResponse<object>.Fail(ex.Message));
         }
@@ -122,11 +123,11 @@ public class DocumentReviewController : ControllerBase
         {
             return StatusCode(403, ApiResponse<object>.Fail(ex.Message));
         }
-        catch (InvalidOperationException ex)
+        catch (InvalidOperationException ex) when (ex is not NotFoundException)
         {
             return BadRequest(ApiResponse<object>.Fail(ex.Message));
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not NotFoundException)
         {
             return BadRequest(ApiResponse<object>.Fail(ex.Message));
         }
@@ -148,11 +149,11 @@ public class DocumentReviewController : ControllerBase
         {
             return StatusCode(403, ApiResponse<object>.Fail(ex.Message));
         }
-        catch (InvalidOperationException ex)
+        catch (InvalidOperationException ex) when (ex is not NotFoundException)
         {
             return BadRequest(ApiResponse<object>.Fail(ex.Message));
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not NotFoundException)
         {
             return BadRequest(ApiResponse<object>.Fail(ex.Message));
         }
@@ -174,11 +175,11 @@ public class DocumentReviewController : ControllerBase
         {
             return StatusCode(403, ApiResponse<object>.Fail(ex.Message));
         }
-        catch (InvalidOperationException ex)
+        catch (InvalidOperationException ex) when (ex is not NotFoundException)
         {
             return BadRequest(ApiResponse<object>.Fail(ex.Message));
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not NotFoundException)
         {
             return BadRequest(ApiResponse<object>.Fail(ex.Message));
         }
@@ -200,11 +201,11 @@ public class DocumentReviewController : ControllerBase
         {
             return StatusCode(403, ApiResponse<object>.Fail(ex.Message));
         }
-        catch (InvalidOperationException ex)
+        catch (InvalidOperationException ex) when (ex is not NotFoundException)
         {
             return BadRequest(ApiResponse<object>.Fail(ex.Message));
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not NotFoundException)
         {
             return BadRequest(ApiResponse<object>.Fail(ex.Message));
         }
@@ -226,11 +227,11 @@ public class DocumentReviewController : ControllerBase
         {
             return StatusCode(403, ApiResponse<object>.Fail(ex.Message));
         }
-        catch (InvalidOperationException ex)
+        catch (InvalidOperationException ex) when (ex is not NotFoundException)
         {
             return BadRequest(ApiResponse<object>.Fail(ex.Message));
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not NotFoundException)
         {
             return BadRequest(ApiResponse<object>.Fail(ex.Message));
         }

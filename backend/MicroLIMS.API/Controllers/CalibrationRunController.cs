@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using System.Text.Json;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -52,7 +53,7 @@ public class CalibrationRunController : ControllerBase
         {
             request = JsonSerializer.Deserialize<CreateCalibrationRunRequest>(payload, PayloadJsonOptions);
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not NotFoundException)
         {
             return BadRequest(ApiResponse<object>.Fail($"Invalid JSON payload: {ex.Message}"));
         }

@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.API.Controllers;
@@ -317,7 +318,7 @@ public class MediaConfigurationMasterDataTests
         var controller = CreateController(db);
         var req = new UpdateMediaConfigurationRequest(product.Id, EvaluationType.GrowthPromotion, condition.Id, null, null, null);
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => controller.UpdateMediaConfiguration(9999, req));
+        await Assert.ThrowsAsync<NotFoundException>(() => controller.UpdateMediaConfiguration(9999, req));
     }
 
     [Fact]

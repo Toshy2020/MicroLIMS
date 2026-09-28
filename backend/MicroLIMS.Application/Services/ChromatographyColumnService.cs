@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Domain.Entities;
@@ -67,7 +68,7 @@ public class ChromatographyColumnService
             .FirstOrDefaultAsync(c => c.Id == id, ct);
 
         if (column == null)
-            throw new InvalidOperationException($"Chromatography column {id} not found.");
+            throw new NotFoundException($"Chromatography column {id} not found.");
 
         return column;
     }
@@ -137,7 +138,7 @@ public class ChromatographyColumnService
             .FirstOrDefaultAsync(c => c.Id == id, ct);
 
         if (column == null)
-            throw new InvalidOperationException($"Chromatography column {id} not found.");
+            throw new NotFoundException($"Chromatography column {id} not found.");
 
         if (string.IsNullOrWhiteSpace(request.Code))
             throw new InvalidOperationException("Column code is required.");
@@ -201,7 +202,7 @@ public class ChromatographyColumnService
             .FirstOrDefaultAsync(c => c.Id == id, ct);
 
         if (column == null)
-            throw new InvalidOperationException($"Chromatography column {id} not found.");
+            throw new NotFoundException($"Chromatography column {id} not found.");
 
         column.IsActive = false;
         column.LastModifiedByUserId = currentUserId;

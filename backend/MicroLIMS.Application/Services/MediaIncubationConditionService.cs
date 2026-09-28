@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Application.Abstractions.Persistence;
@@ -51,7 +52,7 @@ public class MediaIncubationConditionService
         int mediaProductId, int minH, int maxH, decimal tMin, decimal tMax)
     {
         var product = await _db.MediaProducts.FirstOrDefaultAsync(p => p.Id == mediaProductId)
-            ?? throw new InvalidOperationException($"Media product with ID {mediaProductId} not found.");
+            ?? throw new NotFoundException($"Media product with ID {mediaProductId} not found.");
 
         ValidateRange(minH, maxH, tMin, tMax);
 
@@ -88,7 +89,7 @@ public class MediaIncubationConditionService
         var condition = await _db.MediaIncubationConditions
             .Include(c => c.MediaProduct)
             .FirstOrDefaultAsync(c => c.Id == id)
-            ?? throw new InvalidOperationException($"Incubation condition with ID {id} not found.");
+            ?? throw new NotFoundException($"Incubation condition with ID {id} not found.");
 
         await EnsureNotLockedAsync(id);
 
@@ -124,7 +125,7 @@ public class MediaIncubationConditionService
     public async Task DeleteAsync(int id)
     {
         var condition = await _db.MediaIncubationConditions.FirstOrDefaultAsync(c => c.Id == id)
-            ?? throw new InvalidOperationException($"Incubation condition with ID {id} not found.");
+            ?? throw new NotFoundException($"Incubation condition with ID {id} not found.");
 
         await EnsureNotLockedAsync(id);
 

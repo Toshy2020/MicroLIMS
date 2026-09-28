@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.DTOs;
 using MicroLIMS.Application.Interfaces;
@@ -139,7 +140,7 @@ public class SamplePreparationService
     private async Task<Sample> LoadPreparableSampleAsync(int sampleId, int userId)
     {
         var sample = await _db.Samples.FirstOrDefaultAsync(s => s.Id == sampleId)
-            ?? throw new InvalidOperationException($"Sample {sampleId} not found.");
+            ?? throw new NotFoundException($"Sample {sampleId} not found.");
 
         if (await _db.SamplePreparations.AnyAsync(p => p.SampleId == sampleId))
             throw new InvalidOperationException("This sample has already been prepared.");

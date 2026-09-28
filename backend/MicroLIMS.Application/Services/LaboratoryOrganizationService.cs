@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Domain.Entities;
@@ -52,7 +53,7 @@ public class LaboratoryOrganizationService
     public async Task<List<UserOrgMembershipDto>> ReplaceMembershipsAsync(int userId, IReadOnlyCollection<UserOrgMembershipDto> memberships, int actingUserId)
     {
         if (!await _db.Users.AnyAsync(u => u.Id == userId))
-            throw new InvalidOperationException($"User {userId} not found.");
+            throw new NotFoundException($"User {userId} not found.");
 
         var wanted = memberships.Distinct().ToList();
         var departmentIds = wanted.Select(m => m.DepartmentId).Distinct().ToList();

@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -354,7 +355,7 @@ public class MasterDataController : ControllerBase
     public async Task<IActionResult> UpdateWaterSamplingPoint(int id, UpdateWaterSamplingPointRequest request)
     {
         var point = await _db.WaterSamplingPoints.FirstOrDefaultAsync(p => p.Id == id)
-            ?? throw new InvalidOperationException($"Sampling point {id} not found.");
+            ?? throw new NotFoundException($"Sampling point {id} not found.");
         point.Code = request.Code;
         point.Location = request.Location;
         point.TestingFrequency = request.TestingFrequency;
@@ -372,7 +373,7 @@ public class MasterDataController : ControllerBase
     public async Task<IActionResult> DeleteWaterSamplingPoint(int id)
     {
         var point = await _db.WaterSamplingPoints.FirstOrDefaultAsync(p => p.Id == id)
-            ?? throw new InvalidOperationException($"Sampling point {id} not found.");
+            ?? throw new NotFoundException($"Sampling point {id} not found.");
 
         var sampleCount = await _db.Samples.CountAsync(s => s.WaterSamplingPointId == id);
         var configCount = await _db.SamplingConfigurations.CountAsync(c => c.WaterSamplingPointId == id);
@@ -420,7 +421,7 @@ public class MasterDataController : ControllerBase
     public async Task<IActionResult> UpdateWaterDepartment(int id, UpdateWaterDepartmentRequest request)
     {
         var dept = await _db.WaterDepartments.FirstOrDefaultAsync(d => d.Id == id)
-            ?? throw new InvalidOperationException($"Water department {id} not found.");
+            ?? throw new NotFoundException($"Water department {id} not found.");
         dept.Name = request.Name;
         await _db.SaveChangesAsync();
         return Ok(ApiResponse<object>.Ok(dept));
@@ -431,7 +432,7 @@ public class MasterDataController : ControllerBase
     public async Task<IActionResult> DeleteWaterDepartment(int id)
     {
         var dept = await _db.WaterDepartments.FirstOrDefaultAsync(d => d.Id == id)
-            ?? throw new InvalidOperationException($"Water department {id} not found.");
+            ?? throw new NotFoundException($"Water department {id} not found.");
 
         var pointCount = await _db.WaterSamplingPoints.CountAsync(p => p.WaterDepartmentId == id);
         if (pointCount > 0)
@@ -467,7 +468,7 @@ public class MasterDataController : ControllerBase
     public async Task<IActionResult> UpdateWaterSamplingConfiguration(int id, UpdateWaterSamplingConfigRequest request)
     {
         var entity = await _db.SamplingConfigurations.FirstOrDefaultAsync(c => c.Id == id)
-            ?? throw new InvalidOperationException($"Water sampling configuration {id} not found.");
+            ?? throw new NotFoundException($"Water sampling configuration {id} not found.");
         entity.TestCode = request.TestCode;
         entity.AlertLimit = request.AlertLimit;
         entity.ActionLimit = request.ActionLimit;
@@ -482,7 +483,7 @@ public class MasterDataController : ControllerBase
     public async Task<IActionResult> DeleteWaterSamplingConfiguration(int id)
     {
         var entity = await _db.SamplingConfigurations.FirstOrDefaultAsync(c => c.Id == id)
-            ?? throw new InvalidOperationException($"Water sampling configuration {id} not found.");
+            ?? throw new NotFoundException($"Water sampling configuration {id} not found.");
         _db.SamplingConfigurations.Remove(entity);
         await _db.SaveChangesAsync();
         return Ok(ApiResponse<object>.Ok(new { }));
@@ -516,7 +517,7 @@ public class MasterDataController : ControllerBase
     public async Task<IActionResult> UpdateDepartment(int id, UpdateDepartmentRequest request)
     {
         var dept = await _db.Departments.FirstOrDefaultAsync(d => d.Id == id)
-            ?? throw new InvalidOperationException($"Department {id} not found.");
+            ?? throw new NotFoundException($"Department {id} not found.");
         dept.Name = request.Name;
         dept.Class = request.Class;
         dept.TestingFrequency = request.TestingFrequency;
@@ -531,7 +532,7 @@ public class MasterDataController : ControllerBase
     public async Task<IActionResult> DeleteDepartment(int id)
     {
         var dept = await _db.Departments.FirstOrDefaultAsync(d => d.Id == id)
-            ?? throw new InvalidOperationException($"Department {id} not found.");
+            ?? throw new NotFoundException($"Department {id} not found.");
 
         var roomCount = await _db.Rooms.CountAsync(r => r.DepartmentId == id);
         if (roomCount > 0)
@@ -570,7 +571,7 @@ public class MasterDataController : ControllerBase
     public async Task<IActionResult> UpdateRoom(int id, UpdateRoomRequest request)
     {
         var room = await _db.Rooms.FirstOrDefaultAsync(r => r.Id == id)
-            ?? throw new InvalidOperationException($"Room {id} not found.");
+            ?? throw new NotFoundException($"Room {id} not found.");
         room.Name = request.Name;
         room.DepartmentId = request.DepartmentId;
         room.GradeClassification = request.GradeClassification;
@@ -588,7 +589,7 @@ public class MasterDataController : ControllerBase
     public async Task<IActionResult> DeleteRoom(int id)
     {
         var room = await _db.Rooms.FirstOrDefaultAsync(r => r.Id == id)
-            ?? throw new InvalidOperationException($"Room {id} not found.");
+            ?? throw new NotFoundException($"Room {id} not found.");
 
         var configCount = await _db.RoomTestConfigurations.CountAsync(c => c.RoomId == id);
         if (configCount > 0)
@@ -631,7 +632,7 @@ public class MasterDataController : ControllerBase
     public async Task<IActionResult> UpdateMachine(int id, UpdateMachineRequest request)
     {
         var machine = await _db.Machines.FirstOrDefaultAsync(m => m.Id == id)
-            ?? throw new InvalidOperationException($"Machine {id} not found.");
+            ?? throw new NotFoundException($"Machine {id} not found.");
         machine.Name = request.Name;
         await _db.SaveChangesAsync();
         return Ok(ApiResponse<object>.Ok(machine));
@@ -645,7 +646,7 @@ public class MasterDataController : ControllerBase
     public async Task<IActionResult> DeleteMachine(int id)
     {
         var machine = await _db.Machines.FirstOrDefaultAsync(m => m.Id == id)
-            ?? throw new InvalidOperationException($"Machine {id} not found.");
+            ?? throw new NotFoundException($"Machine {id} not found.");
 
         var partCount = await _db.MachineParts.CountAsync(p => p.MachineId == id);
         if (partCount > 0)
@@ -675,7 +676,7 @@ public class MasterDataController : ControllerBase
     public async Task<IActionResult> UpdateMachinePart(int id, UpdateMachinePartRequest request)
     {
         var part = await _db.MachineParts.FirstOrDefaultAsync(p => p.Id == id)
-            ?? throw new InvalidOperationException($"Machine part {id} not found.");
+            ?? throw new NotFoundException($"Machine part {id} not found.");
         part.Name = request.Name;
         part.MachineId = request.MachineId;
         await _db.SaveChangesAsync();
@@ -690,7 +691,7 @@ public class MasterDataController : ControllerBase
     public async Task<IActionResult> DeleteMachinePart(int id)
     {
         var part = await _db.MachineParts.FirstOrDefaultAsync(p => p.Id == id)
-            ?? throw new InvalidOperationException($"Machine part {id} not found.");
+            ?? throw new NotFoundException($"Machine part {id} not found.");
 
         var configCount = await _db.MachinePartConfigurations.CountAsync(c => c.MachinePartId == id);
         if (configCount > 0)
@@ -798,7 +799,7 @@ public class MasterDataController : ControllerBase
     public async Task<IActionResult> UpdateSpecification(int id, UpdateSpecificationRequest request)
     {
         var spec = await _db.Specifications.Include(s => s.Stages).FirstOrDefaultAsync(s => s.Id == id)
-            ?? throw new InvalidOperationException($"Specification {id} not found.");
+            ?? throw new NotFoundException($"Specification {id} not found.");
 
         // Check both the row's current lab and the lab it would move to -
         // a Section Head may not reassign a row into or out of their lab
@@ -869,7 +870,7 @@ public class MasterDataController : ControllerBase
     public async Task<IActionResult> DeleteSpecification(int id)
     {
         var spec = await _db.Specifications.FirstOrDefaultAsync(s => s.Id == id)
-            ?? throw new InvalidOperationException($"Specification {id} not found.");
+            ?? throw new NotFoundException($"Specification {id} not found.");
         await SpecificationOwnership.EnsureCanEditAsync(_db, _scope, CurrentUserId, spec.TestCode);
         _db.Specifications.Remove(spec);
         await _db.SaveChangesAsync();
@@ -898,7 +899,7 @@ public class MasterDataController : ControllerBase
     public async Task<IActionResult> UpdateCauseOfTesting(int id, [FromBody] string name)
     {
         var entity = await _db.CausesOfTesting.FirstOrDefaultAsync(c => c.Id == id)
-            ?? throw new InvalidOperationException($"Cause of Testing {id} not found.");
+            ?? throw new NotFoundException($"Cause of Testing {id} not found.");
 
         if (await _db.CausesOfTesting.AnyAsync(c => c.Id != id && c.Name.ToLower() == name.ToLower()))
             throw new InvalidOperationException($"Cause of Testing \"{name}\" already exists.");
@@ -916,7 +917,7 @@ public class MasterDataController : ControllerBase
     public async Task<IActionResult> DeleteCauseOfTesting(int id)
     {
         var entity = await _db.CausesOfTesting.FirstOrDefaultAsync(c => c.Id == id)
-            ?? throw new InvalidOperationException($"Cause of Testing {id} not found.");
+            ?? throw new NotFoundException($"Cause of Testing {id} not found.");
 
         var sampleCount = await _db.Samples.CountAsync(s => s.CauseOfTestingId == id);
         if (sampleCount > 0)
@@ -951,7 +952,7 @@ public class MasterDataController : ControllerBase
     public async Task<IActionResult> UpdateSampler(int id, [FromBody] string name)
     {
         var entity = await _db.Samplers.FirstOrDefaultAsync(s => s.Id == id)
-            ?? throw new InvalidOperationException($"Sampler {id} not found.");
+            ?? throw new NotFoundException($"Sampler {id} not found.");
 
         if (await _db.Samplers.AnyAsync(s => s.Id != id && s.Name.ToLower() == name.ToLower()))
             throw new InvalidOperationException($"Sampler \"{name}\" already exists.");
@@ -966,7 +967,7 @@ public class MasterDataController : ControllerBase
     public async Task<IActionResult> DeleteSampler(int id)
     {
         var entity = await _db.Samplers.FirstOrDefaultAsync(s => s.Id == id)
-            ?? throw new InvalidOperationException($"Sampler {id} not found.");
+            ?? throw new NotFoundException($"Sampler {id} not found.");
 
         _db.Samplers.Remove(entity);
         await _db.SaveChangesAsync();
@@ -1000,7 +1001,7 @@ public class MasterDataController : ControllerBase
     public async Task<IActionResult> UpdateProductionStage(int id, UpdateProductionStageRequest request)
     {
         var entity = await _db.ProductionStages.FirstOrDefaultAsync(s => s.Id == id)
-            ?? throw new InvalidOperationException($"Production Stage {id} not found.");
+            ?? throw new NotFoundException($"Production Stage {id} not found.");
 
         if (string.IsNullOrWhiteSpace(request.Name))
             throw new InvalidOperationException("Name is required.");
@@ -1019,7 +1020,7 @@ public class MasterDataController : ControllerBase
     public async Task<IActionResult> DeleteProductionStage(int id)
     {
         var entity = await _db.ProductionStages.FirstOrDefaultAsync(s => s.Id == id)
-            ?? throw new InvalidOperationException($"Production Stage {id} not found.");
+            ?? throw new NotFoundException($"Production Stage {id} not found.");
 
         _db.ProductionStages.Remove(entity);
         await _db.SaveChangesAsync();
@@ -1074,7 +1075,7 @@ public class MasterDataController : ControllerBase
             .Include(e => e.CompatibleColumns)
             .FirstOrDefaultAsync(e => e.Id == id);
         if (eq == null)
-            throw new InvalidOperationException($"Equipment {id} not found.");
+            throw new NotFoundException($"Equipment {id} not found.");
         return Ok(ApiResponse<object>.Ok(eq));
     }
 
@@ -1100,7 +1101,7 @@ public class MasterDataController : ControllerBase
             var updated = await _configService.UpdateIncubatorSetPointAsync(id, request, CurrentUserId);
             return Ok(ApiResponse<object>.Ok(updated));
         }
-        catch (InvalidOperationException ex)
+        catch (InvalidOperationException ex) when (ex is not NotFoundException)
         {
             return BadRequest(ApiResponse<object>.Fail(ex.Message));
         }
@@ -1135,7 +1136,7 @@ public class MasterDataController : ControllerBase
             var saved = await _configService.SaveAutoclaveProgramAsync(req, CurrentUserId);
             return Ok(ApiResponse<object>.Ok(saved));
         }
-        catch (InvalidOperationException ex)
+        catch (InvalidOperationException ex) when (ex is not NotFoundException)
         {
             return BadRequest(ApiResponse<object>.Fail(ex.Message));
         }
@@ -1151,7 +1152,7 @@ public class MasterDataController : ControllerBase
             var saved = await _configService.SaveAutoclaveProgramAsync(req, CurrentUserId);
             return Ok(ApiResponse<object>.Ok(saved));
         }
-        catch (InvalidOperationException ex)
+        catch (InvalidOperationException ex) when (ex is not NotFoundException)
         {
             return BadRequest(ApiResponse<object>.Fail(ex.Message));
         }
@@ -1166,7 +1167,7 @@ public class MasterDataController : ControllerBase
             await _configService.SetAutoclaveProgramStatusAsync(programId, request.IsActive, request.Comment ?? "", CurrentUserId);
             return Ok(ApiResponse<object>.Ok(new { }));
         }
-        catch (InvalidOperationException ex)
+        catch (InvalidOperationException ex) when (ex is not NotFoundException)
         {
             return BadRequest(ApiResponse<object>.Fail(ex.Message));
         }
@@ -1233,7 +1234,7 @@ public class MasterDataController : ControllerBase
         await _scope.EnsureEquipmentAccessAsync(CurrentUserId, id);
 
         var entity = await _db.Equipment.FirstOrDefaultAsync(e => e.Id == id)
-            ?? throw new InvalidOperationException($"Equipment {id} not found.");
+            ?? throw new NotFoundException($"Equipment {id} not found.");
 
         if (string.IsNullOrWhiteSpace(request.Name))
             throw new InvalidOperationException("Name is required.");
@@ -1329,7 +1330,7 @@ public class MasterDataController : ControllerBase
     public async Task<IActionResult> UpdateRoomTestConfiguration(int id, UpdateRoomTestConfigRequest request)
     {
         var entity = await _db.RoomTestConfigurations.FirstOrDefaultAsync(c => c.Id == id)
-            ?? throw new InvalidOperationException($"Room test configuration {id} not found.");
+            ?? throw new NotFoundException($"Room test configuration {id} not found.");
         entity.TestType = request.TestType;
         entity.TestCode = request.TestCode;
         entity.AlertLimit = request.AlertLimit;
@@ -1347,7 +1348,7 @@ public class MasterDataController : ControllerBase
     public async Task<IActionResult> DeleteRoomTestConfiguration(int id)
     {
         var entity = await _db.RoomTestConfigurations.FirstOrDefaultAsync(c => c.Id == id)
-            ?? throw new InvalidOperationException($"Room test configuration {id} not found.");
+            ?? throw new NotFoundException($"Room test configuration {id} not found.");
         _db.RoomTestConfigurations.Remove(entity);
         await _db.SaveChangesAsync();
         return Ok(ApiResponse<object>.Ok(new { }));
@@ -1379,7 +1380,7 @@ public class MasterDataController : ControllerBase
     public async Task<IActionResult> UpdateMachinePartConfiguration(int id, UpdateMachinePartConfigRequest request)
     {
         var entity = await _db.MachinePartConfigurations.FirstOrDefaultAsync(c => c.Id == id)
-            ?? throw new InvalidOperationException($"Machine part configuration {id} not found.");
+            ?? throw new NotFoundException($"Machine part configuration {id} not found.");
         entity.TestType = request.TestType;
         entity.TestCode = request.TestCode;
         entity.AlertLimit = request.AlertLimit;
@@ -1398,7 +1399,7 @@ public class MasterDataController : ControllerBase
     public async Task<IActionResult> DeleteMachinePartConfiguration(int id)
     {
         var entity = await _db.MachinePartConfigurations.FirstOrDefaultAsync(c => c.Id == id)
-            ?? throw new InvalidOperationException($"Machine part configuration {id} not found.");
+            ?? throw new NotFoundException($"Machine part configuration {id} not found.");
         _db.MachinePartConfigurations.Remove(entity);
         await _db.SaveChangesAsync();
         return Ok(ApiResponse<object>.Ok(new { }));
@@ -1607,7 +1608,7 @@ public class MasterDataController : ControllerBase
         var entity = await _db.MediaConfigurations
             .Include(m => m.Challenges)
             .FirstOrDefaultAsync(m => m.Id == id)
-            ?? throw new InvalidOperationException($"Media configuration {id} not found.");
+            ?? throw new NotFoundException($"Media configuration {id} not found.");
 
         if (request.MediaProductId != entity.MediaProductId)
         {
@@ -1739,7 +1740,7 @@ public class MasterDataController : ControllerBase
     public async Task<IActionResult> DeleteMediaConfiguration(int id)
     {
         var entity = await _db.MediaConfigurations.FirstOrDefaultAsync(m => m.Id == id)
-            ?? throw new InvalidOperationException($"Media configuration {id} not found.");
+            ?? throw new NotFoundException($"Media configuration {id} not found.");
 
         _db.MediaConfigurations.Remove(entity);
         await _db.SaveChangesAsync();
@@ -1770,7 +1771,7 @@ public class MasterDataController : ControllerBase
     public async Task<IActionResult> UpdateOrganism(int id, UpdateOrganismRequest request)
     {
         var entity = await _db.Organisms.FirstOrDefaultAsync(o => o.Id == id)
-            ?? throw new InvalidOperationException($"Organism {id} not found.");
+            ?? throw new NotFoundException($"Organism {id} not found.");
 
         if (await _db.Organisms.AnyAsync(o => o.Id != id && o.ScientificName.ToLower() == request.ScientificName.ToLower()))
             throw new InvalidOperationException($"Organism \"{request.ScientificName}\" already exists in the Organism list.");
@@ -1793,7 +1794,7 @@ public class MasterDataController : ControllerBase
     public async Task<IActionResult> DeleteOrganism(int id)
     {
         var entity = await _db.Organisms.FirstOrDefaultAsync(o => o.Id == id)
-            ?? throw new InvalidOperationException($"Organism {id} not found.");
+            ?? throw new NotFoundException($"Organism {id} not found.");
 
         var configChallengeCount = await _db.MediaConfigurationChallenges.CountAsync(c => c.OrganismId == id);
         var challengeCount = await _db.MediaEvaluationChallenges.CountAsync(c => c.OrganismId == id);
@@ -2236,7 +2237,7 @@ public class MasterDataController : ControllerBase
     public async Task<IActionResult> UpdateTestDefinition(int id, UpdateTestDefinitionRequest request)
     {
         var entity = await _db.TestDefinitions.FirstOrDefaultAsync(t => t.Id == id)
-            ?? throw new InvalidOperationException($"Test {id} not found.");
+            ?? throw new NotFoundException($"Test {id} not found.");
 
         if (await _db.TestDefinitions.AnyAsync(t => t.Code == request.Code && t.Id != id))
             throw new InvalidOperationException($"Test code \"{request.Code}\" already exists in the Test Master.");
@@ -2654,7 +2655,7 @@ public class MasterDataController : ControllerBase
     public async Task<IActionResult> FreezeTestDefinition(int id)
     {
         var entity = await _db.TestDefinitions.FirstOrDefaultAsync(t => t.Id == id)
-            ?? throw new InvalidOperationException($"Test {id} not found.");
+            ?? throw new NotFoundException($"Test {id} not found.");
         entity.IsActive = false;
         await _db.SaveChangesAsync();
         return Ok(ApiResponse<object>.Ok(entity));
@@ -2665,7 +2666,7 @@ public class MasterDataController : ControllerBase
     public async Task<IActionResult> UnfreezeTestDefinition(int id)
     {
         var entity = await _db.TestDefinitions.FirstOrDefaultAsync(t => t.Id == id)
-            ?? throw new InvalidOperationException($"Test {id} not found.");
+            ?? throw new NotFoundException($"Test {id} not found.");
         entity.IsActive = true;
         await _db.SaveChangesAsync();
         return Ok(ApiResponse<object>.Ok(entity));
@@ -2679,7 +2680,7 @@ public class MasterDataController : ControllerBase
     public async Task<IActionResult> UpdateWorkflowType(int id, UpdateWorkflowTypeRequest request)
     {
         var entity = await _db.TestDefinitions.FirstOrDefaultAsync(t => t.Id == id)
-            ?? throw new InvalidOperationException($"Test {id} not found.");
+            ?? throw new NotFoundException($"Test {id} not found.");
         entity.WorkflowType = request.WorkflowType;
         await _db.SaveChangesAsync();
         return Ok(ApiResponse<object>.Ok(entity));
@@ -2805,7 +2806,7 @@ public class MasterDataController : ControllerBase
     public async Task<IActionResult> CreateTestWorkflowStep(int id, CreateTestWorkflowStepRequest request)
     {
         var test = await _db.TestDefinitions.FirstOrDefaultAsync(t => t.Id == id)
-            ?? throw new InvalidOperationException($"Test {id} not found.");
+            ?? throw new NotFoundException($"Test {id} not found.");
         if (AnalysisWorkflows.UsesTestAnalysis(test.WorkflowType))
             throw new InvalidOperationException($"{test.WorkflowType} tests have no workflow steps.");
 
@@ -2858,7 +2859,7 @@ public class MasterDataController : ControllerBase
     {
         var step = await _db.TestWorkflowSteps.Include(s => s.StepMedia).Include(s => s.IncubationStages).Include(s => s.PhenotypicTests)
             .FirstOrDefaultAsync(s => s.Id == stepId)
-            ?? throw new InvalidOperationException($"Workflow step {stepId} not found.");
+            ?? throw new NotFoundException($"Workflow step {stepId} not found.");
 
         var rebuiltStepMedia = await BuildStepMediaAsync(request.StepMedia);
         var firstMedia = rebuiltStepMedia.OrderBy(m => m.DisplayOrder).FirstOrDefault();
@@ -2929,7 +2930,7 @@ public class MasterDataController : ControllerBase
     public async Task<IActionResult> MoveTestWorkflowStep(int stepId, MoveTestWorkflowStepRequest request)
     {
         var step = await _db.TestWorkflowSteps.FirstOrDefaultAsync(s => s.Id == stepId)
-            ?? throw new InvalidOperationException($"Workflow step {stepId} not found.");
+            ?? throw new NotFoundException($"Workflow step {stepId} not found.");
 
         var neighborOrder = request.Direction == "up" ? step.StepOrder - 1 : step.StepOrder + 1;
         var neighbor = await _db.TestWorkflowSteps.FirstOrDefaultAsync(s => s.TestDefinitionId == step.TestDefinitionId && s.StepOrder == neighborOrder);
@@ -2958,7 +2959,7 @@ public class MasterDataController : ControllerBase
     public async Task<IActionResult> DeleteTestWorkflowStep(int stepId)
     {
         var step = await _db.TestWorkflowSteps.Include(s => s.TestDefinition).FirstOrDefaultAsync(s => s.Id == stepId)
-            ?? throw new InvalidOperationException($"Workflow step {stepId} not found.");
+            ?? throw new NotFoundException($"Workflow step {stepId} not found.");
 
         var inUse = await _db.Incubations.Include(i => i.TestOrder)
             .AnyAsync(i => i.StepName == step.StepName && i.TestOrder!.TestCode == step.TestDefinition!.Code);
@@ -2985,7 +2986,7 @@ public class MasterDataController : ControllerBase
     public async Task<IActionResult> GetTestAnalytes(int id)
     {
         var test = await _db.TestDefinitions.FindAsync(id)
-            ?? throw new InvalidOperationException($"Test {id} not found.");
+            ?? throw new NotFoundException($"Test {id} not found.");
 
         var analytes = await _db.TestAnalytes
             .Where(a => a.TestDefinitionId == id)
@@ -3001,7 +3002,7 @@ public class MasterDataController : ControllerBase
     public async Task<IActionResult> CreateTestAnalyte(int id, CreateTestAnalyteRequest request)
     {
         var test = await _db.TestDefinitions.FindAsync(id)
-            ?? throw new InvalidOperationException($"Test {id} not found.");
+            ?? throw new NotFoundException($"Test {id} not found.");
 
         var scope = await _scope.GetAccessibleSectionIdsAsync(CurrentUserId);
         if (scope is not null && !scope.Contains(test.SectionId))
@@ -3083,14 +3084,14 @@ public class MasterDataController : ControllerBase
     public async Task<IActionResult> UpdateTestAnalyte(int id, int analyteId, UpdateTestAnalyteRequest request)
     {
         var test = await _db.TestDefinitions.FindAsync(id)
-            ?? throw new InvalidOperationException($"Test {id} not found.");
+            ?? throw new NotFoundException($"Test {id} not found.");
 
         var scope = await _scope.GetAccessibleSectionIdsAsync(CurrentUserId);
         if (scope is not null && !scope.Contains(test.SectionId))
             throw new UnauthorizedAccessException("This test belongs to a laboratory section you are not assigned to.");
 
         var analyte = await _db.TestAnalytes.FirstOrDefaultAsync(a => a.Id == analyteId && a.TestDefinitionId == id)
-            ?? throw new InvalidOperationException($"Analyte {analyteId} not found for test {id}.");
+            ?? throw new NotFoundException($"Analyte {analyteId} not found for test {id}.");
 
         var isAnalyteBasedSst = test.WorkflowType == WorkflowType.StandardComparison || test.EquationType == EquationType.StandardComparison;
 
@@ -3174,14 +3175,14 @@ public class MasterDataController : ControllerBase
     public async Task<IActionResult> DeleteTestAnalyte(int id, int analyteId)
     {
         var test = await _db.TestDefinitions.FindAsync(id)
-            ?? throw new InvalidOperationException($"Test {id} not found.");
+            ?? throw new NotFoundException($"Test {id} not found.");
 
         var scope = await _scope.GetAccessibleSectionIdsAsync(CurrentUserId);
         if (scope is not null && !scope.Contains(test.SectionId))
             throw new UnauthorizedAccessException("This test belongs to a laboratory section you are not assigned to.");
 
         var analyte = await _db.TestAnalytes.FirstOrDefaultAsync(a => a.Id == analyteId && a.TestDefinitionId == id)
-            ?? throw new InvalidOperationException($"Analyte {analyteId} not found for test {id}.");
+            ?? throw new NotFoundException($"Analyte {analyteId} not found for test {id}.");
 
         var inUseCalibration = await _db.CalibrationRunAnalytes.AnyAsync(r => r.TestAnalyteId == analyteId);
         var inUseSuitability = await _db.SystemSuitabilityRunAnalytes.AnyAsync(r => r.TestAnalyteId == analyteId);
@@ -3214,7 +3215,7 @@ public class MasterDataController : ControllerBase
     public async Task<IActionResult> GetTestDefinitionStageReplicates(int id)
     {
         var test = await _db.TestDefinitions.FindAsync(id)
-            ?? throw new InvalidOperationException($"Test {id} not found.");
+            ?? throw new NotFoundException($"Test {id} not found.");
 
         var replicates = await _db.TestDefinitionStageReplicates
             .Where(r => r.TestDefinitionId == id)
@@ -3229,7 +3230,7 @@ public class MasterDataController : ControllerBase
     public async Task<IActionResult> CreateTestDefinitionStageReplicate(int id, CreateTestDefinitionStageReplicateRequest request)
     {
         var test = await _db.TestDefinitions.FindAsync(id)
-            ?? throw new InvalidOperationException($"Test {id} not found.");
+            ?? throw new NotFoundException($"Test {id} not found.");
 
         var scope = await _scope.GetAccessibleSectionIdsAsync(CurrentUserId);
         if (scope is not null && !scope.Contains(test.SectionId))
@@ -3261,14 +3262,14 @@ public class MasterDataController : ControllerBase
     public async Task<IActionResult> UpdateTestDefinitionStageReplicate(int id, int replicateId, UpdateTestDefinitionStageReplicateRequest request)
     {
         var test = await _db.TestDefinitions.FindAsync(id)
-            ?? throw new InvalidOperationException($"Test {id} not found.");
+            ?? throw new NotFoundException($"Test {id} not found.");
 
         var scope = await _scope.GetAccessibleSectionIdsAsync(CurrentUserId);
         if (scope is not null && !scope.Contains(test.SectionId))
             throw new UnauthorizedAccessException("This test belongs to a laboratory section you are not assigned to.");
 
         var replicate = await _db.TestDefinitionStageReplicates.FirstOrDefaultAsync(r => r.Id == replicateId && r.TestDefinitionId == id)
-            ?? throw new InvalidOperationException($"Stage replicate {replicateId} not found for test {id}.");
+            ?? throw new NotFoundException($"Stage replicate {replicateId} not found for test {id}.");
 
         if (request.StandardReplicates.HasValue)
         {
@@ -3292,14 +3293,14 @@ public class MasterDataController : ControllerBase
     public async Task<IActionResult> DeleteTestDefinitionStageReplicate(int id, int replicateId)
     {
         var test = await _db.TestDefinitions.FindAsync(id)
-            ?? throw new InvalidOperationException($"Test {id} not found.");
+            ?? throw new NotFoundException($"Test {id} not found.");
 
         var scope = await _scope.GetAccessibleSectionIdsAsync(CurrentUserId);
         if (scope is not null && !scope.Contains(test.SectionId))
             throw new UnauthorizedAccessException("This test belongs to a laboratory section you are not assigned to.");
 
         var replicate = await _db.TestDefinitionStageReplicates.FirstOrDefaultAsync(r => r.Id == replicateId && r.TestDefinitionId == id)
-            ?? throw new InvalidOperationException($"Stage replicate {replicateId} not found for test {id}.");
+            ?? throw new NotFoundException($"Stage replicate {replicateId} not found for test {id}.");
 
         _db.TestDefinitionStageReplicates.Remove(replicate);
         await _db.SaveChangesAsync();

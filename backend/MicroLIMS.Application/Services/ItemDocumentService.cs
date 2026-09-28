@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using System.Security.Cryptography;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -32,7 +33,7 @@ public class ItemDocumentService
     {
         var itemExists = await _db.Items.AnyAsync(i => i.Id == itemId);
         if (!itemExists)
-            throw new InvalidOperationException($"Item {itemId} not found.");
+            throw new NotFoundException($"Item {itemId} not found.");
 
         var docs = await _db.ItemDocuments
             .Include(d => d.UploadedByUser)
@@ -55,7 +56,7 @@ public class ItemDocumentService
         int userId)
     {
         var item = await _db.Items.FirstOrDefaultAsync(i => i.Id == itemId)
-            ?? throw new InvalidOperationException($"Item {itemId} not found.");
+            ?? throw new NotFoundException($"Item {itemId} not found.");
 
         if (fileLength <= 0 || fileLength > 25 * 1024 * 1024)
             throw new InvalidOperationException("File size must be between 1 byte and 25 MB.");
@@ -131,7 +132,7 @@ public class ItemDocumentService
     public async Task<(Stream Stream, string ContentType, string FileName)> GetDocumentContentAsync(int documentId, int userId, bool isDownload)
     {
         var doc = await _db.ItemDocuments.FirstOrDefaultAsync(d => d.Id == documentId)
-            ?? throw new InvalidOperationException($"Document {documentId} not found.");
+            ?? throw new NotFoundException($"Document {documentId} not found.");
 
         _db.ItemDocumentAccessLogs.Add(new ItemDocumentAccessLog
         {

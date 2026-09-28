@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
@@ -50,6 +51,6 @@ public static class WorkflowStateMachine
             .Include(t => t.Incubations)
             .Include(t => t.Results)
             .FirstOrDefaultAsync(t => t.Id == testOrderId)
-            ?? throw new InvalidOperationException($"Test order {testOrderId} not found.");
+            ?? throw new NotFoundException($"Test order {testOrderId} not found.");
     }
 }

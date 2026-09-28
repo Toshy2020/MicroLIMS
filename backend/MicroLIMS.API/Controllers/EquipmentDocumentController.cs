@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using MicroLIMS.Application.Services;
@@ -36,7 +37,7 @@ public class EquipmentDocumentController : ControllerBase
             var result = await _service.GetDocumentsAsync(equipmentId, CurrentUserId);
             return Ok(ApiResponse<object>.Ok(result));
         }
-        catch (InvalidOperationException ex)
+        catch (InvalidOperationException ex) when (ex is not NotFoundException)
         {
             return BadRequest(ApiResponse<object>.Fail(ex.Message));
         }
@@ -67,7 +68,7 @@ public class EquipmentDocumentController : ControllerBase
                 content), CurrentUserId);
             return Ok(ApiResponse<object>.Ok(result));
         }
-        catch (InvalidOperationException ex)
+        catch (InvalidOperationException ex) when (ex is not NotFoundException)
         {
             return BadRequest(ApiResponse<object>.Fail(ex.Message));
         }
@@ -83,7 +84,7 @@ public class EquipmentDocumentController : ControllerBase
             var (meta, bytes) = await _service.GetContentAsync(documentId, equipmentId, CurrentUserId);
             return File(bytes, meta.ContentType, meta.OriginalFileName);
         }
-        catch (InvalidOperationException ex)
+        catch (InvalidOperationException ex) when (ex is not NotFoundException)
         {
             return BadRequest(ApiResponse<object>.Fail(ex.Message));
         }
@@ -117,7 +118,7 @@ public class EquipmentDocumentController : ControllerBase
                 reason), CurrentUserId);
             return Ok(ApiResponse<object>.Ok(result));
         }
-        catch (InvalidOperationException ex)
+        catch (InvalidOperationException ex) when (ex is not NotFoundException)
         {
             return BadRequest(ApiResponse<object>.Fail(ex.Message));
         }
@@ -137,7 +138,7 @@ public class EquipmentDocumentController : ControllerBase
             var result = await _service.VoidAsync(documentId, equipmentId, request, CurrentUserId);
             return Ok(ApiResponse<object>.Ok(result));
         }
-        catch (InvalidOperationException ex)
+        catch (InvalidOperationException ex) when (ex is not NotFoundException)
         {
             return BadRequest(ApiResponse<object>.Fail(ex.Message));
         }

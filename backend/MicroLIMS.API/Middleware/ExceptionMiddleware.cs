@@ -78,11 +78,20 @@ public class ExceptionMiddleware
             await CaptureAsync(context, ex, ErrorSource.Backend, ErrorSeverity.Warning);
             await WriteResponse(context, ApiResponse<object>.Fail(ex.Message));
         }
+        catch (Exception ex) when (ex is NotFoundException or KeyNotFoundException)
+        {
+            // The record the request names does not exist. Placed above the
+            // InvalidOperationException arm, which NotFoundException derives
+            // from.
+            context.Response.StatusCode = (int)HttpStatusCode.NotFound;
+            await CaptureAsync(context, ex, ErrorSource.Backend, ErrorSeverity.Warning);
+            await WriteResponse(context, ApiResponse<object>.Fail(ex.Message));
+        }
         catch (InvalidOperationException ex)
         {
             // The services (CryovialService, MediaPreparationService,
             // MaterialService's stock guards, etc.) throw this for business
-            // rule violations - "not found", "insufficient stock", "expired",
+            // rule violations - "insufficient stock", "expired",
             // "must be approved first". These messages are meant to reach
             // the analyst, not be replaced with a generic 500.
             context.Response.StatusCode = (int)HttpStatusCode.BadRequest;

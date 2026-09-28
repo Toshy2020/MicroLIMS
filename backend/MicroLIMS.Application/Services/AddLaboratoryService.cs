@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Workflows;
 using MicroLIMS.Domain.Entities;
@@ -26,7 +27,7 @@ public class AddLaboratoryService
 
         var sample = await _db.Samples.Include(s => s.TestOrders).Include(s => s.SectionSignoffs)
             .FirstOrDefaultAsync(s => s.Id == sampleId)
-            ?? throw new InvalidOperationException($"Sample {sampleId} not found.");
+            ?? throw new NotFoundException($"Sample {sampleId} not found.");
 
         if (SampleSectionRollup.Overall(sample) is OverallSampleStatus.Rejected or OverallSampleStatus.Voided or OverallSampleStatus.Cancelled)
             throw new InvalidOperationException("A laboratory cannot be added to a rejected, voided or cancelled sample.");

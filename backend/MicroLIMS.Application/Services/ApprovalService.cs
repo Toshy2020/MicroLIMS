@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.DTOs;
 using MicroLIMS.Application.Interfaces;
@@ -25,7 +26,7 @@ public class ApprovalService
     public async Task<ApprovalDto> DecideAsync(int testOrderId, ApprovalDecision decision, string? comment, int decidedByUserId, string password, string? ipAddress)
     {
         var order = await _db.TestOrders.FirstOrDefaultAsync(t => t.Id == testOrderId)
-            ?? throw new InvalidOperationException($"Test order {testOrderId} not found.");
+            ?? throw new NotFoundException($"Test order {testOrderId} not found.");
 
         if (order.Status != ApprovalStatus.Reviewed)
             throw new InvalidOperationException("Test order must be reviewed before a decision can be made.");

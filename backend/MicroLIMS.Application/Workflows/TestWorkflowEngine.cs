@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using System.Globalization;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
@@ -881,7 +882,7 @@ public class TestWorkflowEngine : ITestWorkflowEngine
             throw new InvalidOperationException($"Media has already been selected for step \"{stepName}\" - awaiting its result.");
 
         var media = await _db.Media.Include(m => m.Material).FirstOrDefaultAsync(m => m.Id == mediaLotId)
-            ?? throw new InvalidOperationException($"Media lot {mediaLotId} not found.");
+            ?? throw new NotFoundException($"Media lot {mediaLotId} not found.");
 
         if (!media.IsReleasedForUse || media.Status == MediaStatus.OutOfStock || media.Status == MediaStatus.QuarantineFailed)
             throw new InvalidOperationException($"Media lot \"{media.LotNumber}\" is not released for use, out of stock, or rejected.");
@@ -972,7 +973,7 @@ public class TestWorkflowEngine : ITestWorkflowEngine
     {
         var testOrder = await _db.TestOrders
             .FirstOrDefaultAsync(t => t.Id == testOrderId, ct)
-            ?? throw new InvalidOperationException($"Test order #{testOrderId} not found.");
+            ?? throw new NotFoundException($"Test order #{testOrderId} not found.");
 
         var siblings = await _db.TestOrders
             .Include(t => t.Sample)
@@ -1015,14 +1016,14 @@ public class TestWorkflowEngine : ITestWorkflowEngine
     {
         var sourceOrder = await _db.TestOrders
             .FirstOrDefaultAsync(t => t.Id == testOrderId, ct)
-            ?? throw new InvalidOperationException($"Test order #{testOrderId} not found.");
+            ?? throw new NotFoundException($"Test order #{testOrderId} not found.");
 
         var incubation = await _db.Incubations
             .Include(i => i.Media)
                 .ThenInclude(m => m!.Material)
             .Include(i => i.IncubatorEquipment)
             .FirstOrDefaultAsync(i => i.Id == incubationId, ct)
-            ?? throw new InvalidOperationException($"Incubation #{incubationId} not found.");
+            ?? throw new NotFoundException($"Incubation #{incubationId} not found.");
 
         // Without a lot there is nothing a sibling's own medium could accept.
         if (incubation.Media is null) return;
@@ -1810,7 +1811,7 @@ public class TestWorkflowEngine : ITestWorkflowEngine
 
         var sample = await _db.Samples
             .FirstOrDefaultAsync(s => s.Id == order.SampleId)
-            ?? throw new InvalidOperationException("Sample not found for this test order.");
+            ?? throw new NotFoundException("Sample not found for this test order.");
 
         // Force DF = 1 for direct count sample types regardless of client input
         var isDirectCount = sample.Category is
@@ -2063,7 +2064,7 @@ public class TestWorkflowEngine : ITestWorkflowEngine
             .Include(t => t.Results)
             .Include(t => t.Sample)
             .FirstOrDefaultAsync(t => t.Id == testOrderId)
-            ?? throw new InvalidOperationException($"Test order {testOrderId} not found.");
+            ?? throw new NotFoundException($"Test order {testOrderId} not found.");
 
         RequireOrderNotFinalized(order);
 
@@ -2356,7 +2357,7 @@ public class TestWorkflowEngine : ITestWorkflowEngine
             .Include(t => t.Results)
             .Include(t => t.Sample)
             .FirstOrDefaultAsync(t => t.Id == testOrderId)
-            ?? throw new InvalidOperationException($"Test order {testOrderId} not found.");
+            ?? throw new NotFoundException($"Test order {testOrderId} not found.");
 
         RequireOrderNotFinalized(order);
 
@@ -2380,7 +2381,7 @@ public class TestWorkflowEngine : ITestWorkflowEngine
             var equip = await _db.Equipment
                 .Include(e => e.Section)
                 .FirstOrDefaultAsync(e => e.Id == equipmentId.Value)
-                ?? throw new InvalidOperationException($"Equipment {equipmentId.Value} not found.");
+                ?? throw new NotFoundException($"Equipment {equipmentId.Value} not found.");
 
             var inventoryEquip = await _db.EquipmentInventories
                 .FirstOrDefaultAsync(i => i.Code == equip.Code);
@@ -3041,7 +3042,7 @@ public class TestWorkflowEngine : ITestWorkflowEngine
             .Include(t => t.Results)
             .Include(t => t.Sample)
             .FirstOrDefaultAsync(t => t.Id == testOrderId)
-            ?? throw new InvalidOperationException($"Test order {testOrderId} not found.");
+            ?? throw new NotFoundException($"Test order {testOrderId} not found.");
 
         RequireOrderNotFinalized(order);
 
@@ -3395,7 +3396,7 @@ public class TestWorkflowEngine : ITestWorkflowEngine
             .Include(t => t.Results)
             .Include(t => t.Sample)
             .FirstOrDefaultAsync(t => t.Id == testOrderId)
-            ?? throw new InvalidOperationException($"Test order {testOrderId} not found.");
+            ?? throw new NotFoundException($"Test order {testOrderId} not found.");
 
         RequireOrderNotFinalized(order);
 
@@ -3782,7 +3783,7 @@ public class TestWorkflowEngine : ITestWorkflowEngine
             .Include(t => t.Results)
             .Include(t => t.Sample)
             .FirstOrDefaultAsync(t => t.Id == testOrderId)
-            ?? throw new InvalidOperationException($"Test order {testOrderId} not found.");
+            ?? throw new NotFoundException($"Test order {testOrderId} not found.");
 
         RequireOrderNotFinalized(order);
 
@@ -4163,7 +4164,7 @@ public class TestWorkflowEngine : ITestWorkflowEngine
     private async Task<(TestOrder order, TestWorkflowStep step)> LoadOrderAndStepAsync(int testOrderId, string stepName)
     {
         var order = await _db.TestOrders.FirstOrDefaultAsync(t => t.Id == testOrderId)
-            ?? throw new InvalidOperationException($"Test order {testOrderId} not found.");
+            ?? throw new NotFoundException($"Test order {testOrderId} not found.");
         var test = await _db.TestDefinitions
             .Include(t => t.Steps).ThenInclude(s => s.StepMedia)
             .FirstOrDefaultAsync(t => t.Code == order.TestCode)
@@ -4258,7 +4259,7 @@ public class TestWorkflowEngine : ITestWorkflowEngine
         var mediaRow = await _db.Media.Where(m => m.Id == mediaLotId)
             .Select(m => new { m.MaterialId, m.Material!.MediaProductId })
             .FirstOrDefaultAsync()
-            ?? throw new InvalidOperationException($"Media lot {mediaLotId} not found.");
+            ?? throw new NotFoundException($"Media lot {mediaLotId} not found.");
 
         var stepMedia = await _db.TestWorkflowStepMedias
             .Include(m => m.IncubationCondition)
@@ -4318,7 +4319,7 @@ public class TestWorkflowEngine : ITestWorkflowEngine
     private async Task<Media> LoadReleasedLotAsync(int mediaLotId, TestWorkflowStepMedia stepMedium, int testOrderId)
     {
         var lot = await _db.Media.Include(m => m.Material).FirstOrDefaultAsync(m => m.Id == mediaLotId)
-            ?? throw new InvalidOperationException($"Media lot {mediaLotId} not found.");
+            ?? throw new NotFoundException($"Media lot {mediaLotId} not found.");
         if (!lot.IsReleasedForUse || lot.Status == MediaStatus.OutOfStock || lot.Status == MediaStatus.QuarantineFailed)
             throw new InvalidOperationException($"Media lot {lot.LotNumber} is not released for use, out of stock, or rejected.");
         await SectionMediaRule.EnsureLotForTestOrderAsync(_db, lot, testOrderId);
@@ -4804,7 +4805,7 @@ public class TestWorkflowEngine : ITestWorkflowEngine
     public async Task<StepResultDto> RecordAnalystDecisionAsync(int testOrderId, AnalystDecision decision, int userId)
     {
         var order = await _db.TestOrders.FirstOrDefaultAsync(t => t.Id == testOrderId)
-            ?? throw new InvalidOperationException($"Test order {testOrderId} not found.");
+            ?? throw new NotFoundException($"Test order {testOrderId} not found.");
         RequireOrderNotFinalized(order);
 
         var confirmatory = await _db.WorkflowStepResults
@@ -4963,7 +4964,7 @@ public class TestWorkflowEngine : ITestWorkflowEngine
         int workflowStepResultId, bool approve, string comment, int reviewerUserId)
     {
         var result = await _db.WorkflowStepResults.FirstOrDefaultAsync(r => r.Id == workflowStepResultId)
-            ?? throw new InvalidOperationException($"Workflow step result {workflowStepResultId} not found.");
+            ?? throw new NotFoundException($"Workflow step result {workflowStepResultId} not found.");
 
         if (await _sodGuard.DidUserPerformTestAsync(result.TestOrderId, reviewerUserId))
             throw new WorkflowStepException(WorkflowErrorCodes.SegregationOfDutiesViolation,
@@ -5060,7 +5061,7 @@ public class TestWorkflowEngine : ITestWorkflowEngine
     private async Task FinalizeWorkflowAsync(int testOrderId, string finalResult, int userId)
     {
         var order = await _db.TestOrders.FirstOrDefaultAsync(t => t.Id == testOrderId)
-            ?? throw new InvalidOperationException($"Test order {testOrderId} not found.");
+            ?? throw new NotFoundException($"Test order {testOrderId} not found.");
 
         _db.Results.Add(new Result
         {

@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using System.Security.Cryptography;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -81,7 +82,7 @@ public class EquipmentDocumentService
     {
         var equipmentExists = await _db.EquipmentInventories.AnyAsync(e => e.Id == equipmentId);
         if (!equipmentExists)
-            throw new InvalidOperationException($"Equipment {equipmentId} not found.");
+            throw new NotFoundException($"Equipment {equipmentId} not found.");
 
         var docs = await _db.EquipmentDocuments
             .Where(d => d.EquipmentInventoryId == equipmentId)
@@ -104,7 +105,7 @@ public class EquipmentDocumentService
     public async Task<EquipmentDocumentDto> UploadAsync(int equipmentId, UploadEquipmentDocumentRequest request, int uploadingUserId)
     {
         var equipment = await _db.EquipmentInventories.FindAsync(equipmentId)
-            ?? throw new InvalidOperationException($"Equipment {equipmentId} not found.");
+            ?? throw new NotFoundException($"Equipment {equipmentId} not found.");
 
         // Server-side file validation.
         var firstBytes = request.Content.Take(16).ToArray();
@@ -159,7 +160,7 @@ public class EquipmentDocumentService
     {
         var document = await _db.EquipmentDocuments
             .FirstOrDefaultAsync(d => d.Id == documentId && d.EquipmentInventoryId == equipmentId)
-            ?? throw new InvalidOperationException($"Document {documentId} not found for equipment {equipmentId}.");
+            ?? throw new NotFoundException($"Document {documentId} not found for equipment {equipmentId}.");
 
         byte[] content;
         try
@@ -202,7 +203,7 @@ public class EquipmentDocumentService
 
         var old = await _db.EquipmentDocuments
             .FirstOrDefaultAsync(d => d.Id == documentId && d.EquipmentInventoryId == equipmentId)
-            ?? throw new InvalidOperationException($"Document {documentId} not found for equipment {equipmentId}.");
+            ?? throw new NotFoundException($"Document {documentId} not found for equipment {equipmentId}.");
 
         if (old.Status == MaterialDocumentStatus.Voided)
             throw new InvalidOperationException("A voided document cannot be superseded. Upload a new document instead.");
@@ -275,7 +276,7 @@ public class EquipmentDocumentService
 
         var document = await _db.EquipmentDocuments
             .FirstOrDefaultAsync(d => d.Id == documentId && d.EquipmentInventoryId == equipmentId)
-            ?? throw new InvalidOperationException($"Document {documentId} not found for equipment {equipmentId}.");
+            ?? throw new NotFoundException($"Document {documentId} not found for equipment {equipmentId}.");
 
         if (document.Status == MaterialDocumentStatus.Voided)
             throw new InvalidOperationException("This document is already voided.");
@@ -319,7 +320,7 @@ public class EquipmentDocumentService
     {
         var doc = await _db.EquipmentDocuments
             .FirstOrDefaultAsync(d => d.Id == documentId)
-            ?? throw new InvalidOperationException($"Equipment document {documentId} not found.");
+            ?? throw new NotFoundException($"Equipment document {documentId} not found.");
 
         var userName = await _db.Users
             .Where(u => u.Id == doc.UploadedByUserId)

@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.DTOs;
 using MicroLIMS.Application.Helpers;
@@ -705,7 +706,7 @@ public class SystemSuitabilityService : ISystemSuitabilityService
                 r.SignatureId
             })
             .FirstOrDefaultAsync(ct)
-            ?? throw new InvalidOperationException($"System suitability run {runId} not found.");
+            ?? throw new NotFoundException($"System suitability run {runId} not found.");
 
         var signature = await _db.ElectronicSignatures.AsNoTracking()
             .Where(s => s.Id == run.SignatureId)
@@ -788,7 +789,7 @@ public class SystemSuitabilityService : ISystemSuitabilityService
         await _scope.EnsureTestOrderAccessAsync(userId, testOrderId, ct);
 
         var order = await _db.TestOrders.AsNoTracking().FirstOrDefaultAsync(o => o.Id == testOrderId, ct)
-            ?? throw new InvalidOperationException($"Test order {testOrderId} not found.");
+            ?? throw new NotFoundException($"Test order {testOrderId} not found.");
 
         var testDef = await _db.TestDefinitions.AsNoTracking().FirstOrDefaultAsync(t => t.Code == order.TestCode, ct)
             ?? throw new InvalidOperationException($"Test definition for code \"{order.TestCode}\" not found.");
@@ -844,7 +845,7 @@ public class SystemSuitabilityService : ISystemSuitabilityService
         var run = await _db.SystemSuitabilityRuns
             .Include(r => r.TestDefinition)
             .FirstOrDefaultAsync(r => r.Id == runId, ct)
-            ?? throw new InvalidOperationException($"System suitability run {runId} not found.");
+            ?? throw new NotFoundException($"System suitability run {runId} not found.");
 
         if (!run.Passed)
             throw new InvalidOperationException("Cannot link test order to a failed system suitability run.");

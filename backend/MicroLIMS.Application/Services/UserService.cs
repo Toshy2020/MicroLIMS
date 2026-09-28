@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Interfaces;
@@ -90,7 +91,7 @@ public class UserService
     public async Task<UserDto> GetByIdAsync(int id)
     {
         var user = await _db.Users.Include(u => u.Role).FirstOrDefaultAsync(u => u.Id == id)
-            ?? throw new InvalidOperationException($"User {id} not found.");
+            ?? throw new NotFoundException($"User {id} not found.");
         return ToDto(user);
     }
 
@@ -122,7 +123,7 @@ public class UserService
     public async Task<UserDto> UpdateProfileAsync(int targetUserId, string fullName, string username, string? email, string? jobTitle = null, int actingUserId = 0)
     {
         var user = await _db.Users.Include(u => u.Role).FirstOrDefaultAsync(u => u.Id == targetUserId)
-            ?? throw new InvalidOperationException($"User {targetUserId} not found.");
+            ?? throw new NotFoundException($"User {targetUserId} not found.");
 
         if (string.IsNullOrWhiteSpace(fullName))
             throw new InvalidOperationException("Full Name is required.");
@@ -162,7 +163,7 @@ public class UserService
             throw new InvalidOperationException("A reason is required to change a user's role.");
 
         var user = await _db.Users.Include(u => u.Role).FirstOrDefaultAsync(u => u.Id == targetUserId)
-            ?? throw new InvalidOperationException($"User {targetUserId} not found.");
+            ?? throw new NotFoundException($"User {targetUserId} not found.");
 
         var newRole = await _db.Roles.FirstOrDefaultAsync(r => r.Id == newRoleId)
             ?? throw new InvalidOperationException("Selected role does not exist.");
@@ -205,7 +206,7 @@ public class UserService
             throw new InvalidOperationException("A reason is required to disable a user account.");
 
         var user = await _db.Users.Include(u => u.Role).FirstOrDefaultAsync(u => u.Id == targetUserId)
-            ?? throw new InvalidOperationException($"User {targetUserId} not found.");
+            ?? throw new NotFoundException($"User {targetUserId} not found.");
 
         var prevStatus = user.IsActive;
         user.IsActive = isActive;
@@ -252,7 +253,7 @@ public class UserService
     public async Task UpdateEmailAsync(int userId, string? email)
     {
         var user = await _db.Users.FirstOrDefaultAsync(u => u.Id == userId)
-            ?? throw new InvalidOperationException($"User {userId} not found.");
+            ?? throw new NotFoundException($"User {userId} not found.");
         user.Email = email;
         await _db.SaveChangesAsync();
     }
@@ -260,7 +261,7 @@ public class UserService
     public async Task<UserDto> UnlockUserAsync(int targetUserId, string? reason, int actingUserId)
     {
         var user = await _db.Users.Include(u => u.Role).FirstOrDefaultAsync(u => u.Id == targetUserId)
-            ?? throw new InvalidOperationException($"User {targetUserId} not found.");
+            ?? throw new NotFoundException($"User {targetUserId} not found.");
 
         var prevFailed = user.FailedLoginAttempts;
         var prevLocked = user.LockedUntil;
@@ -291,7 +292,7 @@ public class UserService
     public async Task InitiatePasswordResetAsync(int targetUserId, string? reason, int actingUserId)
     {
         var user = await _db.Users.FirstOrDefaultAsync(u => u.Id == targetUserId)
-            ?? throw new InvalidOperationException($"User {targetUserId} not found.");
+            ?? throw new NotFoundException($"User {targetUserId} not found.");
 
         await _authService.RequestPasswordResetAsync(user.Username);
 
@@ -312,7 +313,7 @@ public class UserService
     public async Task<UserDto> ForcePasswordChangeAsync(int targetUserId, int actingUserId)
     {
         var user = await _db.Users.Include(u => u.Role).FirstOrDefaultAsync(u => u.Id == targetUserId)
-            ?? throw new InvalidOperationException($"User {targetUserId} not found.");
+            ?? throw new NotFoundException($"User {targetUserId} not found.");
 
         var prevMust = user.MustChangePassword;
         user.MustChangePassword = true;

@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Domain.Entities;
@@ -71,7 +72,7 @@ public class RoleService
             throw new InvalidOperationException("Role name is required.");
 
         var role = await _db.Roles.FirstOrDefaultAsync(r => r.Id == id)
-            ?? throw new InvalidOperationException($"Role {id} not found.");
+            ?? throw new NotFoundException($"Role {id} not found.");
 
         role.Name = name;
         role.Description = description;
@@ -84,7 +85,7 @@ public class RoleService
     public async Task DeleteAsync(int id)
     {
         var role = await _db.Roles.FirstOrDefaultAsync(r => r.Id == id)
-            ?? throw new InvalidOperationException($"Role {id} not found.");
+            ?? throw new NotFoundException($"Role {id} not found.");
 
         if (role.IsSystemRole)
             throw new InvalidOperationException("System roles cannot be deleted.");
@@ -102,7 +103,7 @@ public class RoleService
     public async Task<RoleDetailDto> UpdatePermissionsAsync(int id, List<string> permissionCodes, int actingUserId)
     {
         var role = await _db.Roles.FirstOrDefaultAsync(r => r.Id == id)
-            ?? throw new InvalidOperationException($"Role {id} not found.");
+            ?? throw new NotFoundException($"Role {id} not found.");
 
         var validCodes = await _db.Permissions.Select(p => p.Code).ToListAsync();
         var unknown = permissionCodes.Except(validCodes).ToList();

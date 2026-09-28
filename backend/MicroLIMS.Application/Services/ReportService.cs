@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Domain.Entities;
@@ -116,7 +117,7 @@ public class ReportService : IReportService
             .Include(s => s.CauseOfTesting)
             .Include(s => s.TestOrders).ThenInclude(t => t.Results)
             .FirstOrDefaultAsync(s => s.Id == sampleId)
-            ?? throw new InvalidOperationException($"Sample {sampleId} not found.");
+            ?? throw new NotFoundException($"Sample {sampleId} not found.");
 
     // Per 11.50(b): a signed record must display the printed name,
     // date/time, and meaning of each signature - so every TestOrder line

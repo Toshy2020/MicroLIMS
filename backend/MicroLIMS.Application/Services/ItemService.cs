@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.DTOs;
 using MicroLIMS.Domain.Entities;
@@ -61,7 +62,7 @@ public class ItemService
         EnsureAllowedCategory(update.Category);
 
         var item = await _db.Items.Include(i => i.AssignedTests).FirstOrDefaultAsync(i => i.Id == id)
-            ?? throw new InvalidOperationException($"Item {id} not found.");
+            ?? throw new NotFoundException($"Item {id} not found.");
 
         if (await _db.Items.AnyAsync(i => i.Code == update.Code && i.Id != id))
             throw new InvalidOperationException($"An item with code '{update.Code}' already exists.");
@@ -101,7 +102,7 @@ public class ItemService
     public async Task SetActiveAsync(int id, bool isActive)
     {
         var item = await _db.Items.FirstOrDefaultAsync(i => i.Id == id)
-            ?? throw new InvalidOperationException($"Item {id} not found.");
+            ?? throw new NotFoundException($"Item {id} not found.");
         item.IsActive = isActive;
         await _db.SaveChangesAsync();
     }
@@ -113,7 +114,7 @@ public class ItemService
     public async Task DeleteAsync(int id)
     {
         var item = await _db.Items.FirstOrDefaultAsync(i => i.Id == id)
-            ?? throw new InvalidOperationException($"Item {id} not found.");
+            ?? throw new NotFoundException($"Item {id} not found.");
 
         var sampleCount = await _db.Samples.CountAsync(s => s.ItemId == id);
         if (sampleCount > 0)

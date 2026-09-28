@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
@@ -77,7 +78,7 @@ public class AfterCleaningWorkflowEngine : IAfterCleaningWorkflowEngine
     public async Task<Sample> PrepareAsync(int sampleId, List<int> machinePartConfigurationIds, int userId)
     {
         var sample = await _db.Samples.Include(s => s.TestOrders).Include(s => s.Locations).FirstOrDefaultAsync(s => s.Id == sampleId)
-            ?? throw new InvalidOperationException($"Sample {sampleId} not found.");
+            ?? throw new NotFoundException($"Sample {sampleId} not found.");
 
         if (sample.PreparationStatus != SamplePreparationStatus.NeedsPreparation)
             throw new InvalidOperationException("This sample has already been prepared.");

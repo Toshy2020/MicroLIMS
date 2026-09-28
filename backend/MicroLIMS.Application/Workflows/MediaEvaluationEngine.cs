@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Application.Services;
@@ -59,11 +60,11 @@ public class MediaEvaluationEngine : IMediaEvaluationEngine
     {
         var challenge = await _db.MediaEvaluationChallenges.Include(c => c.Organism)
             .FirstOrDefaultAsync(c => c.Id == challengeId)
-            ?? throw new InvalidOperationException($"Challenge {challengeId} not found.");
+            ?? throw new NotFoundException($"Challenge {challengeId} not found.");
 
         var cryovial = await _db.Cryovials.Include(c => c.Organism).Include(c => c.Material)
             .FirstOrDefaultAsync(c => c.Id == cryovialId)
-            ?? throw new InvalidOperationException($"Cryovial {cryovialId} not found.");
+            ?? throw new NotFoundException($"Cryovial {cryovialId} not found.");
 
         if (cryovial.Material!.SectionId != await EvaluatedLotSectionAsync(challenge.MediaEvaluationId))
             throw new InvalidOperationException($"Cryovial batch {cryovial.Code} belongs to another laboratory section and cannot challenge this media lot.");
@@ -95,7 +96,7 @@ public class MediaEvaluationEngine : IMediaEvaluationEngine
     {
         var challenge = await _db.MediaEvaluationChallenges.Include(c => c.Organism)
             .FirstOrDefaultAsync(c => c.Id == challengeId)
-            ?? throw new InvalidOperationException($"Challenge {challengeId} not found.");
+            ?? throw new NotFoundException($"Challenge {challengeId} not found.");
 
         if (challenge.LyophilizedDiskId == materialId)
             return; // already selected - no new disc to consume
@@ -103,7 +104,7 @@ public class MediaEvaluationEngine : IMediaEvaluationEngine
         await _scope.EnsureMaterialAccessAsync(userId, materialId);
 
         var material = await _db.Materials.Include(m => m.Organism).FirstOrDefaultAsync(m => m.Id == materialId)
-            ?? throw new InvalidOperationException($"Material {materialId} not found.");
+            ?? throw new NotFoundException($"Material {materialId} not found.");
 
         if (material.SectionId != await EvaluatedLotSectionAsync(challenge.MediaEvaluationId))
             throw new InvalidOperationException($"Material {material.MaterialName} belongs to another laboratory section and cannot challenge this media lot.");
@@ -136,7 +137,7 @@ public class MediaEvaluationEngine : IMediaEvaluationEngine
         var challenge = await _db.MediaEvaluationChallenges
             .Include(c => c.MediaEvaluation!).ThenInclude(e => e.Media!).ThenInclude(m => m.Material)
             .FirstOrDefaultAsync(c => c.Id == challengeId)
-            ?? throw new InvalidOperationException($"Challenge {challengeId} not found.");
+            ?? throw new NotFoundException($"Challenge {challengeId} not found.");
 
         var evaluation = challenge.MediaEvaluation!;
         var config = await GetCanonicalConfigAsync(evaluation.Media!);

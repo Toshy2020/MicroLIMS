@@ -19,10 +19,16 @@ public record TestDefinitionStageReplicateDto(
     int StandardReplicates,
     int SampleReplicates)
 {
+    // The record's row version, sent back as If-Match with an edit.
+    public uint Version { get; init; }
+
     public static TestDefinitionStageReplicateDto From(TestDefinitionStageReplicate r) => new(
         r.Id,
         r.TestDefinitionId,
         r.Role,
         r.StandardReplicates,
-        r.SampleReplicates);
+        r.SampleReplicates)
+    {
+        Version = r.Version
+    };
 }

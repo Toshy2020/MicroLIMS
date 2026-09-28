@@ -9,6 +9,7 @@ namespace MicroLIMS.Application.DTOs.Responses;
 public class RoleResponse
 {
     public int Id { get; init; }
+    public uint Version { get; init; }
     public RoleType Type { get; init; }
     public string Name { get; init; } = null!;
     public string? Description { get; init; }
@@ -18,6 +19,7 @@ public class RoleResponse
     public static RoleResponse From(Role e) => new()
     {
         Id = e.Id,
+        Version = e.Version,
         Type = e.Type,
         Name = e.Name,
         Description = e.Description,

@@ -1,4 +1,4 @@
-import { apiClient } from "../../../../services/apiClient";
+import { apiClient, ifMatch } from "../../../../services/apiClient";
 
 export type LimitType =
   | "Range"
@@ -32,6 +32,8 @@ export interface SpecificationStageDto {
 
 export interface SpecificationDto {
   id?: number;
+  // Row version, sent back as If-Match when this record is edited.
+  version?: number;
   itemId?: number;
   testCode: string;
   parameterName?: string | null;
@@ -110,8 +112,8 @@ export const SpecificationService = {
     apiClient.get(`/masterdata/specifications?itemId=${itemId}`).then((r) => r.data.data),
   create: (payload: CreateSpecificationPayload): Promise<SpecificationDto> =>
     apiClient.post("/masterdata/specifications", payload).then((r) => r.data.data),
-  update: (id: number, payload: UpdateSpecificationPayload): Promise<SpecificationDto> =>
-    apiClient.put(`/masterdata/specifications/${id}`, payload).then((r) => r.data.data),
+  update: (id: number, payload: UpdateSpecificationPayload, version?: number): Promise<SpecificationDto> =>
+    apiClient.put(`/masterdata/specifications/${id}`, payload, ifMatch(version)).then((r) => r.data.data),
   remove: (id: number) => apiClient.delete(`/masterdata/specifications/${id}`),
   delete: (id: number) => apiClient.delete(`/masterdata/specifications/${id}`)
 };

@@ -198,7 +198,7 @@ export function EditSampleDetailsDialog({ open, sample, onClose, onSuccess }: Pr
       departmentId: category === "EnvironmentalMonitoring" ? locationId : null,
       machineId: isAfterCleaning ? locationId : null
     };
-    await ReceiveService.correctSample(sample.sampleId, payload);
+    await ReceiveService.correctSample(sample.sampleId, payload, sample.version);
     setSigning(false);
     onSuccess();
     onClose();

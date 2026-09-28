@@ -30,7 +30,11 @@ public record DiscussionCommentDto(
     string Content,
     bool IsEdited,
     DateTime? LastEditedAt,
-    DateTime CreatedAt);
+    DateTime CreatedAt)
+{
+    // The record's row version, sent back as If-Match with an edit.
+    public uint Version { get; init; }
+}
 
 public record DiscussionPostSummaryDto(
     int Id,
@@ -48,7 +52,11 @@ public record DiscussionPostSummaryDto(
     DateTime CreatedAt,
     int CommentCount,
     int AttachmentCount,
-    List<DiscussionAttachmentDto> Attachments);
+    List<DiscussionAttachmentDto> Attachments)
+{
+    // The record's row version, sent back as If-Match with an edit.
+    public uint Version { get; init; }
+}
 
 public record DiscussionPostDetailDto(
     int Id,
@@ -66,7 +74,11 @@ public record DiscussionPostDetailDto(
     DateTime CreatedAt,
     List<DiscussionAttachmentDto> Attachments,
     List<DiscussionCommentDto> Comments,
-    int VersionCount);
+    int VersionCount)
+{
+    // The record's row version, sent back as If-Match with an edit.
+    public uint Version { get; init; }
+}
 
 public record DiscussionVersionDto(
     int Id,
@@ -205,7 +217,7 @@ public class DiscussionService
                     a.FileSizeBytes,
                     a.UploadedAt
                 )).ToList()
-            );
+            ) { Version = p.Version };
         }).ToList();
 
         return new PagedResult<DiscussionPostSummaryDto>
@@ -265,9 +277,9 @@ public class DiscussionService
                     c.IsEdited,
                     c.LastEditedAt,
                     c.CreatedAt
-                )).ToList(),
+                ) { Version = c.Version }).ToList(),
             post.Versions.Count
-        );
+        ) { Version = post.Version };
     }
 
     public Task<DiscussionPostDetailDto> CreatePostAsync(
@@ -355,6 +367,7 @@ public class DiscussionService
         var post = await _db.DiscussionPosts
             .FirstOrDefaultAsync(p => p.Id == id && !p.IsDeleted)
             ?? throw new KeyNotFoundException($"Discussion post {id} not found.");
+        RecordVersion.EnsureCurrent(_db, post);
 
         if (post.AuthorUserId != actingUserId && !canEditAny)
             throw new UnauthorizedAccessException("You are not authorized to edit this discussion post.");
@@ -505,7 +518,7 @@ public class DiscussionService
             comment.IsEdited,
             comment.LastEditedAt,
             comment.CreatedAt
-        );
+        ) { Version = comment.Version };
     }
 
     public async Task<DiscussionCommentDto> UpdateCommentAsync(
@@ -520,6 +533,7 @@ public class DiscussionService
                 .ThenInclude(u => u!.Role)
             .FirstOrDefaultAsync(c => c.Id == commentId && c.PostId == postId && !c.IsDeleted)
             ?? throw new KeyNotFoundException($"Comment {commentId} not found.");
+        RecordVersion.EnsureCurrent(_db, comment);
 
         if (comment.AuthorUserId != actingUserId && !canEditAny)
             throw new UnauthorizedAccessException("You are not authorized to edit this comment.");
@@ -543,7 +557,7 @@ public class DiscussionService
             comment.IsEdited,
             comment.LastEditedAt,
             comment.CreatedAt
-        );
+        ) { Version = comment.Version };
     }
 
     public async Task DeleteCommentAsync(int postId, int commentId, int actingUserId, bool canEditAny)

@@ -71,7 +71,11 @@ public record DocumentMasterDto(
     List<string> Keywords,
     List<DocumentMasterAssignmentDto> Assignments,
     List<DocumentRevisionDto> Revisions
-);
+)
+{
+    // The record's row version, sent back as If-Match with an edit.
+    public uint Version { get; init; }
+}
 
 public record DocumentMasterAssignmentDto(
     int Id,
@@ -200,7 +204,11 @@ public record DocumentTypeDto(
     string Name,
     int DefaultReviewCycleMonths,
     bool IsActive
-);
+)
+{
+    // The record's row version, sent back as If-Match with an edit.
+    public uint Version { get; init; }
+}
 
 public record CreateDocumentTypeRequest(
     string Code,
@@ -220,7 +228,11 @@ public record DocumentDepartmentDto(
     string Name,
     bool IsActive,
     List<DocumentSectionDto>? Sections = null
-);
+)
+{
+    // The record's row version, sent back as If-Match with an edit.
+    public uint Version { get; init; }
+}
 
 public record CreateDocumentDepartmentRequest(
     string Code,
@@ -238,7 +250,11 @@ public record DocumentSectionDto(
     string DepartmentName,
     string Name,
     bool IsActive
-);
+)
+{
+    // The record's row version, sent back as If-Match with an edit.
+    public uint Version { get; init; }
+}
 
 public record CreateDocumentSectionRequest(
     int DepartmentId,

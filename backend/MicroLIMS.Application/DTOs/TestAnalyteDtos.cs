@@ -40,6 +40,9 @@ public record TestAnalyteDto(
     decimal? SstMaxTailingFactor = null,
     decimal? SstMinTheoreticalPlates = null)
 {
+    // The record's row version, sent back as If-Match with an edit.
+    public uint Version { get; init; }
+
     public static TestAnalyteDto From(TestAnalyte a) => new(
         a.Id,
         a.TestDefinitionId,
@@ -52,5 +55,8 @@ public record TestAnalyteDto(
         a.SstMaxRsdPercent,
         a.SstMinResolution,
         a.SstMaxTailingFactor,
-        a.SstMinTheoreticalPlates);
+        a.SstMinTheoreticalPlates)
+    {
+        Version = a.Version
+    };
 }

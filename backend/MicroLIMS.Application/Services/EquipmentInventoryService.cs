@@ -1,5 +1,6 @@
 using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
+using MicroLIMS.Application.Helpers;
 using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
@@ -161,6 +162,7 @@ public class EquipmentInventoryService
 
         var entity = await _db.EquipmentInventories.FindAsync(id)
             ?? throw new NotFoundException($"Equipment {id} not found.");
+        RecordVersion.EnsureCurrent(_db, entity);
 
         if (r.Code != entity.Code && await _db.EquipmentInventories.AnyAsync(e => e.Code == r.Code))
             throw new InvalidOperationException($"Equipment code \"{r.Code}\" already exists.");

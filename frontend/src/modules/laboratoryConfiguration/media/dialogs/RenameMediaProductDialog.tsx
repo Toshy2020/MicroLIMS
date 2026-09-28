@@ -31,7 +31,7 @@ export function RenameMediaProductDialog({ open, product, onClose, onSuccess }: 
     setSaving(true);
     setError(null);
     try {
-      await masterDataOptions.renameMediaProduct(product.id, name.trim());
+      await masterDataOptions.renameMediaProduct(product.id, name.trim(), product.version);
       onSuccess();
       onClose();
     } catch (err: unknown) {

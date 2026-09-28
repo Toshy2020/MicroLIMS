@@ -2,9 +2,10 @@ using MicroLIMS.Domain.Enums;
 
 namespace MicroLIMS.Domain.Entities;
 
-public class TestWorkflowStep
+public class TestWorkflowStep : IVersionedEntity
 {
     public int Id { get; set; }
+    public uint Version { get; set; }
     public int TestDefinitionId { get; set; }
     public TestDefinition? TestDefinition { get; set; }
 

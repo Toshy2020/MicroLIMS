@@ -2,9 +2,10 @@ using MicroLIMS.Domain.Enums;
 
 namespace MicroLIMS.Domain.Entities;
 
-public class DiscussionPost
+public class DiscussionPost : IVersionedEntity
 {
     public int Id { get; set; }
+    public uint Version { get; set; }
     public string Title { get; set; } = string.Empty;
     public string Content { get; set; } = string.Empty;
     public DiscussionCategory Category { get; set; } = DiscussionCategory.Other;

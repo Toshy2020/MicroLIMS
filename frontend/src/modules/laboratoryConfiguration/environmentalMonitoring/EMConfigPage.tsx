@@ -45,7 +45,7 @@ function RoomTestConfigSection({ roomId }: { roomId: number }) {
     if (!form.testCode) { setError("Test Code is required."); return; }
     try {
       if (editingId) {
-        await EMConfigService.updateRoomTestConfiguration(editingId, form.testType, form.testCode, form.alertLimit ?? "", form.actionLimit ?? "", form.specLimit ?? "", form.unit ?? "");
+        await EMConfigService.updateRoomTestConfiguration(editingId, form.testType, form.testCode, form.alertLimit ?? "", form.actionLimit ?? "", form.specLimit ?? "", form.unit ?? "", configs.find((c) => c.id === editingId)?.version);
       } else {
         await EMConfigService.createRoomTestConfiguration(roomId, form.testType, form.testCode, form.alertLimit ?? "", form.actionLimit ?? "", form.specLimit ?? "", form.unit ?? "");
       }
@@ -154,7 +154,7 @@ export function EMConfigPage() {
     setMessage(null);
     try {
       if (editingDeptId) {
-        await EMConfigService.updateDepartment(editingDeptId, deptForm.name, deptForm.class ?? "", deptForm.frequency ?? "");
+        await EMConfigService.updateDepartment(editingDeptId, deptForm.name, deptForm.class ?? "", deptForm.frequency ?? "", departments.find((d) => d.id === editingDeptId)?.version);
         setMessage({ text: "Department updated.", ok: true });
       } else {
         await EMConfigService.createDepartment(deptForm.name, deptForm.class ?? "", deptForm.frequency ?? "");
@@ -188,7 +188,7 @@ export function EMConfigPage() {
     setMessage(null);
     try {
       if (editingRoomId) {
-        await EMConfigService.updateRoom(editingRoomId, roomForm.name, Number(roomForm.departmentId), roomForm.grade);
+        await EMConfigService.updateRoom(editingRoomId, roomForm.name, Number(roomForm.departmentId), roomForm.grade, departments.flatMap((d) => d.rooms ?? []).find((r) => r.id === editingRoomId)?.version);
         setMessage({ text: "Room updated.", ok: true });
       } else {
         await EMConfigService.createRoom(roomForm.name, Number(roomForm.departmentId), roomForm.grade);

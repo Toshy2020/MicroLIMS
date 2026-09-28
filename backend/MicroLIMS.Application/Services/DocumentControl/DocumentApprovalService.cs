@@ -316,7 +316,7 @@ public class DocumentApprovalService : IDocumentApprovalService
                 c.CreatedByUser?.FullName ?? "",
                 c.CreatedAt,
                 c.ModifiedAt
-            )).ToList();
+            ) { Version = c.Version }).ToList();
 
         var impactDto = revision.ImpactAssessment != null ? new RevisionImpactAssessmentDto(
             revision.ImpactAssessment.Id,
@@ -939,7 +939,7 @@ public class DocumentApprovalService : IDocumentApprovalService
                 a.AssignedByUser?.FullName ?? ""
             )).ToList(),
             m.Revisions.OrderByDescending(r => r.RevisionSequence).Select(MapRevisionDto).ToList()
-        );
+        ) { Version = m.Version };
     }
 
     private static DocumentReviewTaskDto MapReviewTaskDto(DocumentReviewTask t)

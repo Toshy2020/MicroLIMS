@@ -128,6 +128,7 @@ public class TestAnalyteMasterDataService
 
         var analyte = await _db.TestAnalytes.FirstOrDefaultAsync(a => a.Id == analyteId && a.TestDefinitionId == id)
             ?? throw new NotFoundException($"Analyte {analyteId} not found for test {id}.");
+        RecordVersion.EnsureCurrent(_db, analyte);
 
         var isAnalyteBasedSst = test.WorkflowType == WorkflowType.StandardComparison || test.EquationType == EquationType.StandardComparison;
 

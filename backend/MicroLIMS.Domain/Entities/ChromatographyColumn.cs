@@ -5,9 +5,10 @@ namespace MicroLIMS.Domain.Entities;
 // Column Master entity for HPLC testing (REQ-FP-011).
 // Represents analytical chromatography columns, their serial numbers, section assignment,
 // and compatible HPLC equipment.
-public class ChromatographyColumn
+public class ChromatographyColumn : IVersionedEntity
 {
     public int Id { get; set; }
+    public uint Version { get; set; }
     public string Code { get; set; } = string.Empty;
     public string Name { get; set; } = string.Empty;
     public string? SerialNumber { get; set; }

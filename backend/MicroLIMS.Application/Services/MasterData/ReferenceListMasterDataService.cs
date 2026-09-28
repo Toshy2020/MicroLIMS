@@ -40,6 +40,7 @@ public class ReferenceListMasterDataService
     {
         var entity = await _db.CausesOfTesting.FirstOrDefaultAsync(c => c.Id == id)
             ?? throw new NotFoundException($"Cause of Testing {id} not found.");
+        RecordVersion.EnsureCurrent(_db, entity);
 
         if (await _db.CausesOfTesting.AnyAsync(c => c.Id != id && c.Name.ToLower() == name.ToLower()))
             throw new InvalidOperationException($"Cause of Testing \"{name}\" already exists.");
@@ -84,6 +85,7 @@ public class ReferenceListMasterDataService
     {
         var entity = await _db.Samplers.FirstOrDefaultAsync(s => s.Id == id)
             ?? throw new NotFoundException($"Sampler {id} not found.");
+        RecordVersion.EnsureCurrent(_db, entity);
 
         if (await _db.Samplers.AnyAsync(s => s.Id != id && s.Name.ToLower() == name.ToLower()))
             throw new InvalidOperationException($"Sampler \"{name}\" already exists.");
@@ -124,6 +126,7 @@ public class ReferenceListMasterDataService
     {
         var entity = await _db.ProductionStages.FirstOrDefaultAsync(s => s.Id == id)
             ?? throw new NotFoundException($"Production Stage {id} not found.");
+        RecordVersion.EnsureCurrent(_db, entity);
 
         if (string.IsNullOrWhiteSpace(request.Name))
             throw new InvalidOperationException("Name is required.");

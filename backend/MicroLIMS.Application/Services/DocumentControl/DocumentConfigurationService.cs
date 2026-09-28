@@ -45,7 +45,7 @@ public class DocumentConfigurationService : IDocumentConfigurationService
 
         return await query
             .OrderBy(t => t.Name)
-            .Select(t => new DocumentTypeDto(t.Id, t.Code, t.Name, t.DefaultReviewCycleMonths, t.IsActive))
+            .Select(t => new DocumentTypeDto(t.Id, t.Code, t.Name, t.DefaultReviewCycleMonths, t.IsActive) { Version = t.Version })
             .ToListAsync();
     }
 
@@ -95,7 +95,7 @@ public class DocumentConfigurationService : IDocumentConfigurationService
             changes: changes,
             entityId: docType.Id.ToString());
 
-        return new DocumentTypeDto(docType.Id, docType.Code, docType.Name, docType.DefaultReviewCycleMonths, docType.IsActive);
+        return new DocumentTypeDto(docType.Id, docType.Code, docType.Name, docType.DefaultReviewCycleMonths, docType.IsActive) { Version = docType.Version };
     }
 
     public Task<DocumentTypeDto> UpdateDocumentTypeAsync(int id, UpdateDocumentTypeRequest request, int userId) =>
@@ -107,6 +107,8 @@ public class DocumentConfigurationService : IDocumentConfigurationService
 
         var docType = await _db.DocumentTypes.FindAsync(id)
             ?? throw new KeyNotFoundException($"Document Type {id} not found.");
+
+        RecordVersion.EnsureCurrent(_db, docType);
 
         if (string.IsNullOrWhiteSpace(request.Name))
             throw new ArgumentException("Document Type Name is required.", nameof(request.Name));
@@ -146,7 +148,7 @@ public class DocumentConfigurationService : IDocumentConfigurationService
                 entityId: docType.Id.ToString());
         }
 
-        return new DocumentTypeDto(docType.Id, docType.Code, docType.Name, docType.DefaultReviewCycleMonths, docType.IsActive);
+        return new DocumentTypeDto(docType.Id, docType.Code, docType.Name, docType.DefaultReviewCycleMonths, docType.IsActive) { Version = docType.Version };
     }
 
     // ---- Departments & Sections ----
@@ -168,8 +170,8 @@ public class DocumentConfigurationService : IDocumentConfigurationService
                 d.Name,
                 d.IsActive,
                 d.Sections.Where(s => includeInactive || s.IsActive)
-                    .Select(s => new DocumentSectionDto(s.Id, s.DepartmentId, d.Name, s.Name, s.IsActive))
-                    .ToList()))
+                    .Select(s => new DocumentSectionDto(s.Id, s.DepartmentId, d.Name, s.Name, s.IsActive) { Version = s.Version })
+                    .ToList()) { Version = d.Version })
             .ToListAsync();
     }
 
@@ -214,7 +216,7 @@ public class DocumentConfigurationService : IDocumentConfigurationService
             changes: changes,
             entityId: dept.Id.ToString());
 
-        return new DocumentDepartmentDto(dept.Id, dept.Code, dept.Name, dept.IsActive, new List<DocumentSectionDto>());
+        return new DocumentDepartmentDto(dept.Id, dept.Code, dept.Name, dept.IsActive, new List<DocumentSectionDto>()) { Version = dept.Version };
     }
 
     public Task<DocumentDepartmentDto> UpdateDepartmentAsync(int id, UpdateDocumentDepartmentRequest request, int userId) =>
@@ -228,6 +230,8 @@ public class DocumentConfigurationService : IDocumentConfigurationService
             .Include(d => d.Sections)
             .FirstOrDefaultAsync(d => d.Id == id)
             ?? throw new KeyNotFoundException($"Department {id} not found.");
+
+        RecordVersion.EnsureCurrent(_db, dept);
 
         if (string.IsNullOrWhiteSpace(request.Name))
             throw new ArgumentException("Department Name is required.", nameof(request.Name));
@@ -263,7 +267,7 @@ public class DocumentConfigurationService : IDocumentConfigurationService
             dept.Code,
             dept.Name,
             dept.IsActive,
-            dept.Sections.Select(s => new DocumentSectionDto(s.Id, s.DepartmentId, dept.Name, s.Name, s.IsActive)).ToList());
+            dept.Sections.Select(s => new DocumentSectionDto(s.Id, s.DepartmentId, dept.Name, s.Name, s.IsActive) { Version = s.Version }).ToList()) { Version = dept.Version };
     }
 
     public async Task<List<DocumentSectionDto>> GetSectionsByDepartmentAsync(int departmentId, bool includeInactive = false)
@@ -280,7 +284,7 @@ public class DocumentConfigurationService : IDocumentConfigurationService
 
         return await query
             .OrderBy(s => s.Name)
-            .Select(s => new DocumentSectionDto(s.Id, s.DepartmentId, dept.Name, s.Name, s.IsActive))
+            .Select(s => new DocumentSectionDto(s.Id, s.DepartmentId, dept.Name, s.Name, s.IsActive) { Version = s.Version })
             .ToListAsync();
     }
 
@@ -325,7 +329,7 @@ public class DocumentConfigurationService : IDocumentConfigurationService
             changes: changes,
             entityId: section.Id.ToString());
 
-        return new DocumentSectionDto(section.Id, section.DepartmentId, dept.Name, section.Name, section.IsActive);
+        return new DocumentSectionDto(section.Id, section.DepartmentId, dept.Name, section.Name, section.IsActive) { Version = section.Version };
     }
 
     public Task<DocumentSectionDto> UpdateSectionAsync(int id, UpdateDocumentSectionRequest request, int userId) =>
@@ -339,6 +343,8 @@ public class DocumentConfigurationService : IDocumentConfigurationService
             .Include(s => s.Department)
             .FirstOrDefaultAsync(s => s.Id == id)
             ?? throw new KeyNotFoundException($"Section {id} not found.");
+
+        RecordVersion.EnsureCurrent(_db, section);
 
         if (string.IsNullOrWhiteSpace(request.Name))
             throw new ArgumentException("Section Name is required.", nameof(request.Name));
@@ -369,7 +375,7 @@ public class DocumentConfigurationService : IDocumentConfigurationService
                 entityId: section.Id.ToString());
         }
 
-        return new DocumentSectionDto(section.Id, section.DepartmentId, section.Department?.Name ?? "", section.Name, section.IsActive);
+        return new DocumentSectionDto(section.Id, section.DepartmentId, section.Department?.Name ?? "", section.Name, section.IsActive) { Version = section.Version };
     }
 
     // ---- Numbering Configuration ----

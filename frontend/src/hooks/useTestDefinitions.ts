@@ -7,6 +7,8 @@ import {
 
 export interface TestDefinitionOption {
   id: number;
+  // Row version, sent back as If-Match when this record is edited.
+  version?: number;
   code: string;
   displayName: string;
   isActive: boolean;
@@ -115,7 +117,7 @@ export function useTestDefinitions() {
     displayName?: string,
     sectionId?: number | null
   ) => {
-    const updated = await masterDataOptions.updateTestDefinition(id, codeOrPayload, displayName, sectionId);
+    const updated = await masterDataOptions.updateTestDefinition(id, codeOrPayload, displayName, sectionId, options.find((o) => o.id === id)?.version);
     await reload();
     return updated as TestDefinitionOption;
   };

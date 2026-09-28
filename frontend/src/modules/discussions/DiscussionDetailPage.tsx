@@ -136,7 +136,7 @@ export function DiscussionDetailPage() {
   const handleSaveEditComment = async (commentId: number) => {
     if (!post || !editingCommentText.trim()) return;
     try {
-      const updated = await discussionService.updateComment(post.id, commentId, editingCommentText.trim());
+      const updated = await discussionService.updateComment(post.id, commentId, editingCommentText.trim(), post.comments.find((c) => c.id === commentId)?.version);
       setPost((prev) =>
         prev
           ? {

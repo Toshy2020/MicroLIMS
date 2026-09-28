@@ -80,6 +80,8 @@ interface InventoryItem {
 
 interface FpInstrument {
   id: number;
+  // Row version, sent back as If-Match when this record is edited.
+  version?: number;
   name: string;
   code: string;
   type: string;
@@ -242,7 +244,7 @@ export function FpInstrumentsPage() {
     setDialogError(null);
     try {
       if (editing) {
-        await EquipmentConfigurationService.updateEquipment(editing.id, payload as never);
+        await EquipmentConfigurationService.updateEquipment(editing.id, payload as never, editing.version);
         toast.success("Instrument updated.");
       } else {
         await EquipmentConfigurationService.createEquipment(payload as never);

@@ -142,7 +142,7 @@ export function DraftMetadataDialog({
     };
 
     try {
-      const updated = await documentControlService.updateDraftMetadata(document.id, request);
+      const updated = await documentControlService.updateDraftMetadata(document.id, request, document.version);
       onSuccess(updated);
       onClose();
     } catch (err: any) {

@@ -371,7 +371,7 @@ function TestAnalytesSection({ test }: { test: TestDefinitionOption }) {
           loqMgPerL: isHplcMulti ? null : Number(loqMgPerL),
           displayOrder: displayOrder ? Number(displayOrder) : editingAnalyte.displayOrder,
           ...sstPayload
-        });
+        }, editingAnalyte.version);
       } else {
         await masterDataOptions.createTestAnalyte(test.id, {
           element: trimmedEl,
@@ -398,7 +398,7 @@ function TestAnalytesSection({ test }: { test: TestDefinitionOption }) {
       if (a.isActive) {
         await masterDataOptions.deleteTestAnalyte(test.id, a.id);
       } else {
-        await masterDataOptions.updateTestAnalyte(test.id, a.id, { isActive: true });
+        await masterDataOptions.updateTestAnalyte(test.id, a.id, { isActive: true }, a.version);
       }
       loadAnalytes();
     } catch (e: unknown) {
@@ -713,7 +713,7 @@ function TestStageReplicatesSection({ testDefinitionId }: { testDefinitionId: nu
         await masterDataOptions.updateTestDefinitionStageReplicate(testDefinitionId, editingReplicate.id, {
           standardReplicates: std,
           sampleReplicates: smp
-        });
+        }, editingReplicate.version);
       } else {
         await masterDataOptions.createTestDefinitionStageReplicate(testDefinitionId, {
           role: role as ProductionStageRole,
@@ -1048,7 +1048,7 @@ function WorkflowStepsSection({ test, workflowTypes, onWorkflowTypeChanged }: { 
     };
     try {
       if (editingStepId) {
-        await masterDataOptions.updateTestWorkflowStep(editingStepId, payload);
+        await masterDataOptions.updateTestWorkflowStep(editingStepId, payload, steps.find((s) => s.id === editingStepId)?.version);
       } else {
         await masterDataOptions.createTestWorkflowStep(test.id, payload);
       }

@@ -1,4 +1,4 @@
-import { apiClient } from "../../../services/apiClient";
+import { apiClient, ifMatch } from "../../../services/apiClient";
 import type {
   CreateRevisionRequest,
   ProposeNextRevisionResponse,
@@ -62,12 +62,13 @@ export const documentRevisionService = {
 
   updateChangeItem: async (
     changeItemId: number,
-    request: UpdateChangeItemRequest
+    request: UpdateChangeItemRequest,
+    version?: number
   ): Promise<RevisionChangeItemDto> => {
     const res = await apiClient.put(
       `/document-control/change-items/${changeItemId}`,
       request
-    );
+    , ifMatch(version));
     return res.data.data;
   },
 

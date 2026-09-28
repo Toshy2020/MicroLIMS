@@ -29,6 +29,7 @@ public class MediaMasterDataService
             .Select(m => new
             {
                 m.Id,
+                m.Version,
                 m.Name,
                 m.MediaProductId,
                 MediaProductCode = m.MediaProduct != null ? m.MediaProduct.Code : null,
@@ -134,6 +135,7 @@ public class MediaMasterDataService
         var created = new
         {
             entity.Id,
+            entity.Version,
             entity.Name,
             entity.MediaProductId,
             MediaProductCode = product.Code,
@@ -165,6 +167,7 @@ public class MediaMasterDataService
             .Include(m => m.Challenges)
             .FirstOrDefaultAsync(m => m.Id == id)
             ?? throw new NotFoundException($"Media configuration {id} not found.");
+        RecordVersion.EnsureCurrent(_db, entity);
 
         if (request.MediaProductId != entity.MediaProductId)
         {
@@ -266,6 +269,7 @@ public class MediaMasterDataService
         var updated = new
         {
             entity.Id,
+            entity.Version,
             entity.Name,
             entity.MediaProductId,
             MediaProductCode = product.Code,

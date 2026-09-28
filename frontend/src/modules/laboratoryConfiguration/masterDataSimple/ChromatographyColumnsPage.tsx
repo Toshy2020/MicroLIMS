@@ -179,7 +179,7 @@ export function ChromatographyColumnsPage() {
           isActive: formIsActive,
           sectionId: formSectionId ? Number(formSectionId) : null,
           compatibleEquipmentIds: formCompatibleEquipmentIds
-        });
+        }, editingColumn.version);
         toast.success(`Chromatography column "${trimmedCode}" updated.`);
       } else {
         await ChromatographyColumnService.create({

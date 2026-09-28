@@ -37,7 +37,11 @@ public record RevisionChangeItemDto(
     string CreatedByFullName,
     DateTime CreatedAt,
     DateTime? ModifiedAt
-);
+)
+{
+    // The record's row version, sent back as If-Match with an edit.
+    public uint Version { get; init; }
+}
 
 public record AddChangeItemRequest(
     string SectionNumber,

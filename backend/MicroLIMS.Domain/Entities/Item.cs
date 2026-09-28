@@ -4,9 +4,10 @@ namespace MicroLIMS.Domain.Entities;
 
 // The Master Configuration record. Everything the WorkflowEngine does on
 // sample receipt is driven from this entity (Frozen Principle #1).
-public class Item
+public class Item : IVersionedEntity
 {
     public int Id { get; set; }
+    public uint Version { get; set; }
     public string Name { get; set; } = string.Empty;
     public string Code { get; set; } = string.Empty;
     public SampleCategory Category { get; set; }

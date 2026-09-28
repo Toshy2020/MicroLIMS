@@ -14,6 +14,11 @@ public interface IMicroLimsDbContext
     // Who is making the change, for the audit trail. Set per request.
     int? CurrentUserId { get; set; }
 
+    // The Version of the record the client's form was loaded with, from the
+    // request's If-Match header. Null when the client sent none. Checked by
+    // RecordVersion.EnsureCurrent.
+    uint? ExpectedVersion { get; set; }
+
     DbSet<User> Users { get; }
     DbSet<Role> Roles { get; }
     DbSet<Permission> Permissions { get; }

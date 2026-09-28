@@ -3,6 +3,8 @@ import { masterDataOptions } from "../services/masterDataOptions";
 
 export interface OrganismOption {
   id: number;
+  // Row version, sent back as If-Match when this record is edited.
+  version?: number;
   scientificName: string;
   atccNumber: string | null;
   commonName: string | null;
@@ -34,7 +36,7 @@ export function useOrganisms() {
   };
 
   const update = async (id: number, scientificName: string, atccNumber?: string | null, commonName?: string | null, description?: string | null) => {
-    const updated = await masterDataOptions.updateOrganism(id, scientificName, atccNumber ?? null, commonName ?? null, description ?? null);
+    const updated = await masterDataOptions.updateOrganism(id, scientificName, atccNumber ?? null, commonName ?? null, description ?? null, options.find((o) => o.id === id)?.version);
     await reload();
     return updated as OrganismOption;
   };

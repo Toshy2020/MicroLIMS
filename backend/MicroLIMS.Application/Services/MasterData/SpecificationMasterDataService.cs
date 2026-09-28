@@ -49,7 +49,7 @@ public class SpecificationMasterDataService
                 s.LowerInclusive, s.UpperInclusive, s.Target, s.Tolerance, s.ToleranceMode, s.ExpectedResultText,
                 s.ExpectedState, s.SampleQuantity, s.SampleQuantityUnit, s.TestAnalyteId, s.ResultBasis, s.SampleMatrix,
                 s.LabelClaim, s.LabelClaimUnit, s.ConversionFactor, s.DosageForm, s.Stages.Select(SpecificationStageResponse.From).ToList(),
-                canEdit, def?.Section?.Name ?? string.Empty);
+                canEdit, def?.Section?.Name ?? string.Empty) { Version = s.Version };
         }).ToList();
 
         return rows;
@@ -118,6 +118,7 @@ public class SpecificationMasterDataService
     {
         var spec = await _db.Specifications.Include(s => s.Stages).FirstOrDefaultAsync(s => s.Id == id)
             ?? throw new NotFoundException($"Specification {id} not found.");
+        RecordVersion.EnsureCurrent(_db, spec);
 
         // Check both the row's current lab and the lab it would move to -
         // a Section Head may not reassign a row into or out of their lab

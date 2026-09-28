@@ -42,6 +42,8 @@ export interface DiscussionAttachment {
 
 export interface DiscussionComment {
   id: number;
+  // Row version, sent back as If-Match when this record is edited.
+  version?: number;
   postId: number;
   authorUserId: number;
   authorName: string;
@@ -73,6 +75,8 @@ export interface DiscussionPostSummary {
 
 export interface DiscussionPostDetail {
   id: number;
+  // Row version, sent back as If-Match when this record is edited.
+  version?: number;
   title: string;
   content: string;
   category: DiscussionCategory;

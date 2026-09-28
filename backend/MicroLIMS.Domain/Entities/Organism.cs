@@ -6,9 +6,10 @@ namespace MicroLIMS.Domain.Entities;
 // table so organism matching (see MediaEvaluationEngine.SelectCryovialAsync)
 // is an integer comparison instead of a string comparison that a single
 // spelling difference can silently break.
-public class Organism
+public class Organism : IVersionedEntity
 {
     public int Id { get; set; }
+    public uint Version { get; set; }
     public string ScientificName { get; set; } = string.Empty;
     public string? AtccNumber { get; set; }
     public string? CommonName { get; set; }

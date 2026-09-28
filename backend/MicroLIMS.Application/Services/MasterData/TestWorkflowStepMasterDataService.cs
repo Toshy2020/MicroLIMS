@@ -37,7 +37,7 @@ public class TestWorkflowStepMasterDataService
             .OrderBy(s => s.StepOrder)
             .Select(s => new
             {
-                s.Id, s.StepOrder, s.StepName, s.PhenotypicTestType,
+                s.Id, s.Version, s.StepOrder, s.StepName, s.PhenotypicTestType,
                 phenotypicTestTypes = s.PhenotypicTests.OrderBy(t => t.DisplayOrder).Select(t => t.PhenotypicTestType),
                 s.IncubationMinHours, s.IncubationMaxHours, s.TemperatureMin, s.TemperatureMax,
                 s.IsFinalStep,
@@ -119,6 +119,7 @@ public class TestWorkflowStepMasterDataService
         var step = await _db.TestWorkflowSteps.Include(s => s.StepMedia).Include(s => s.IncubationStages).Include(s => s.PhenotypicTests)
             .FirstOrDefaultAsync(s => s.Id == stepId)
             ?? throw new NotFoundException($"Workflow step {stepId} not found.");
+        RecordVersion.EnsureCurrent(_db, step);
 
         var rebuiltStepMedia = await BuildStepMediaAsync(request.StepMedia);
         var firstMedia = rebuiltStepMedia.OrderBy(m => m.DisplayOrder).FirstOrDefault();

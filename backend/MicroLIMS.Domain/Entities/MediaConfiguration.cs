@@ -7,9 +7,10 @@ namespace MicroLIMS.Domain.Entities;
 // its evaluation type, recovery percentages (for GrowthPromotion), and challenge organisms.
 // Time and temperature are not stored directly on this row; instead, the configuration
 // links to one chosen MediaIncubationCondition belonging to the same product.
-public class MediaConfiguration
+public class MediaConfiguration : IVersionedEntity
 {
     public int Id { get; set; }
+    public uint Version { get; set; }
 
     public int MediaProductId { get; set; }
     public MediaProduct? MediaProduct { get; set; }

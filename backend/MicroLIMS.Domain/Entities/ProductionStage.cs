@@ -12,9 +12,10 @@ namespace MicroLIMS.Domain.Entities;
 // the Section Head; Role is what FP Standard-Comparison Assay (and
 // anything else that needs to know "is this sample's stage Bulk /
 // In-Process / Finished / Stability") actually reads.
-public class ProductionStage
+public class ProductionStage : IVersionedEntity
 {
     public int Id { get; set; }
+    public uint Version { get; set; }
     public string Name { get; set; } = string.Empty;
     public bool IsActive { get; set; } = true;
     public ProductionStageRole Role { get; set; } = ProductionStageRole.Other;

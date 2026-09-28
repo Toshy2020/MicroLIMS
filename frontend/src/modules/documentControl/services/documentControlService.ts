@@ -1,4 +1,4 @@
-import { apiClient } from "../../../services/apiClient";
+import { apiClient, ifMatch } from "../../../services/apiClient";
 import type {
   DocumentMasterDto,
   DocumentLibraryResponse,
@@ -49,9 +49,10 @@ export const documentControlService = {
 
   updateDraftMetadata: async (
     id: number,
-    request: UpdateDocumentMasterDraftRequest
+    request: UpdateDocumentMasterDraftRequest,
+    version?: number
   ): Promise<DocumentMasterDto> => {
-    const res = await apiClient.put(`/document-control/documents/${id}/metadata`, request);
+    const res = await apiClient.put(`/document-control/documents/${id}/metadata`, request, ifMatch(version));
     return res.data.data;
   },
 
@@ -142,8 +143,8 @@ export const documentControlService = {
     return res.data.data;
   },
 
-  updateType: async (id: number, request: UpdateDocumentTypeRequest): Promise<DocumentTypeDto> => {
-    const res = await apiClient.put(`/document-control/config/types/${id}`, request);
+  updateType: async (id: number, request: UpdateDocumentTypeRequest, version?: number): Promise<DocumentTypeDto> => {
+    const res = await apiClient.put(`/document-control/config/types/${id}`, request, ifMatch(version));
     return res.data.data;
   },
 
@@ -163,9 +164,10 @@ export const documentControlService = {
 
   updateDepartment: async (
     id: number,
-    request: UpdateDocumentDepartmentRequest
+    request: UpdateDocumentDepartmentRequest,
+    version?: number
   ): Promise<DocumentDepartmentDto> => {
-    const res = await apiClient.put(`/document-control/config/departments/${id}`, request);
+    const res = await apiClient.put(`/document-control/config/departments/${id}`, request, ifMatch(version));
     return res.data.data;
   },
 
@@ -186,9 +188,10 @@ export const documentControlService = {
 
   updateSection: async (
     id: number,
-    request: UpdateDocumentSectionRequest
+    request: UpdateDocumentSectionRequest,
+    version?: number
   ): Promise<DocumentSectionDto> => {
-    const res = await apiClient.put(`/document-control/config/sections/${id}`, request);
+    const res = await apiClient.put(`/document-control/config/sections/${id}`, request, ifMatch(version));
     return res.data.data;
   },
 

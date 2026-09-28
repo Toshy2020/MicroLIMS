@@ -3,9 +3,10 @@ using MicroLIMS.Domain.Enums;
 
 namespace MicroLIMS.Domain.Entities;
 
-public class Specification
+public class Specification : IVersionedEntity
 {
     public int Id { get; set; }
+    public uint Version { get; set; }
     public int ItemId { get; set; }
     [JsonIgnore]
     public Item? Item { get; set; }

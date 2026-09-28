@@ -1,4 +1,4 @@
-import { apiClient } from "../../../../services/apiClient";
+import { apiClient, ifMatch } from "../../../../services/apiClient";
 
 export interface ApiResponse<T> {
   success: boolean;
@@ -70,6 +70,8 @@ export interface UpdateEquipmentRequest {
 
 export interface ConfiguredEquipmentSummary {
   id: number;
+  // Row version, sent back as If-Match when this record is edited.
+  version?: number;
   name: string;
   code: string;
   type: string | number;
@@ -109,6 +111,8 @@ export interface IncubatorSetPointHistory {
 
 export interface AutoclaveProgram {
   id: number;
+  // Row version, sent back as If-Match when this record is edited.
+  version?: number;
   equipmentId: number;
   autoclaveCode: string;
   autoclaveName: string;
@@ -194,12 +198,12 @@ export const EquipmentConfigurationService = {
     return Array.isArray(data) ? data : [];
   },
 
-  saveAutoclaveProgram: async (equipmentId: number, req: SaveAutoclaveProgramRequest): Promise<AutoclaveProgram> => {
+  saveAutoclaveProgram: async (equipmentId: number, req: SaveAutoclaveProgramRequest, version?: number): Promise<AutoclaveProgram> => {
     const url = req.id
       ? `/masterdata/equipment/autoclave-programs/${req.id}`
       : `/masterdata/equipment/${equipmentId}/autoclave-programs`;
     const method = req.id ? apiClient.put : apiClient.post;
-    const res = await method<ApiResponse<AutoclaveProgram>>(url, req);
+    const res = await method<ApiResponse<AutoclaveProgram>>(url, req, ifMatch(version));
     return res.data?.data;
   },
 
@@ -229,8 +233,8 @@ export const EquipmentConfigurationService = {
     return res.data?.data;
   },
 
-  updateEquipment: async (id: number, req: UpdateEquipmentRequest): Promise<any> => {
-    const res = await apiClient.put<ApiResponse<any>>(`/masterdata/equipment/${id}`, req);
+  updateEquipment: async (id: number, req: UpdateEquipmentRequest, version?: number): Promise<any> => {
+    const res = await apiClient.put<ApiResponse<any>>(`/masterdata/equipment/${id}`, req, ifMatch(version));
     return res.data?.data;
   }
 };

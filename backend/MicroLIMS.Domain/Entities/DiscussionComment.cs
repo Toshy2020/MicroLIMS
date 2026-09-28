@@ -1,8 +1,9 @@
 namespace MicroLIMS.Domain.Entities;
 
-public class DiscussionComment
+public class DiscussionComment : IVersionedEntity
 {
     public int Id { get; set; }
+    public uint Version { get; set; }
     public int PostId { get; set; }
     public DiscussionPost? Post { get; set; }
     public int AuthorUserId { get; set; }

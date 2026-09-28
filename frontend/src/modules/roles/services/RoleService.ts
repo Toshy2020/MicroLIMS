@@ -1,4 +1,4 @@
-import { apiClient } from "../../../services/apiClient";
+import { apiClient, ifMatch } from "../../../services/apiClient";
 
 export interface RoleRecord {
   id: number;
@@ -11,6 +11,8 @@ export interface RoleRecord {
 
 export interface RoleDetail {
   id: number;
+  // Row version, sent back as If-Match when this record is edited.
+  version?: number;
   name: string;
   description: string | null;
   type: string;
@@ -35,8 +37,8 @@ export const RoleService = {
   async create(name: string, description: string | null, baseType: string): Promise<RoleDetail> {
     return (await apiClient.post("/roles", { name, description, baseType })).data.data;
   },
-  async update(id: number, name: string, description: string | null): Promise<RoleDetail> {
-    return (await apiClient.put(`/roles/${id}`, { name, description })).data.data;
+  async update(id: number, name: string, description: string | null, version?: number): Promise<RoleDetail> {
+    return (await apiClient.put(`/roles/${id}`, { name, description }, ifMatch(version))).data.data;
   },
   async remove(id: number): Promise<void> {
     await apiClient.delete(`/roles/${id}`);

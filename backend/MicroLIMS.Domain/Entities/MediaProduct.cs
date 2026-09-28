@@ -5,9 +5,10 @@ namespace MicroLIMS.Domain.Entities;
 // ({Code}/{seq:D2}/{yy}) and is copied onto Material.Code when a batch is
 // received; changing Code later requires a Section Head electronic signature
 // (enforced in the Application layer).
-public class MediaProduct
+public class MediaProduct : IVersionedEntity
 {
     public int Id { get; set; }
+    public uint Version { get; set; }
     public string Name { get; set; } = string.Empty;
     public string Code { get; set; } = string.Empty;
     public List<MediaConfiguration> Configurations { get; set; } = new();

@@ -44,7 +44,7 @@ function PartConfigSection({ machinePartId }: { machinePartId: number }) {
     if (!form.testCode) { setError("Test Code is required."); return; }
     try {
       if (editingId) {
-        await AfterCleaningConfigService.updatePartConfiguration(editingId, form.testType, form.testCode, form.alertLimit ?? "", form.actionLimit ?? "", form.specLimit ?? "", !!form.isPathogenTest, form.unit ?? "");
+        await AfterCleaningConfigService.updatePartConfiguration(editingId, form.testType, form.testCode, form.alertLimit ?? "", form.actionLimit ?? "", form.specLimit ?? "", !!form.isPathogenTest, form.unit ?? "", configs.find((c) => c.id === editingId)?.version);
       } else {
         await AfterCleaningConfigService.createPartConfiguration(machinePartId, form.testType, form.testCode, form.alertLimit ?? "", form.actionLimit ?? "", form.specLimit ?? "", !!form.isPathogenTest, form.unit ?? "");
       }
@@ -155,7 +155,7 @@ export function AfterCleaningConfigPage() {
     setMessage(null);
     try {
       if (editingMachineId) {
-        await AfterCleaningConfigService.updateMachine(editingMachineId, machineName);
+        await AfterCleaningConfigService.updateMachine(editingMachineId, machineName, machines.find((m) => m.id === editingMachineId)?.version);
         setMessage({ text: "Machine updated.", ok: true });
       } else {
         await AfterCleaningConfigService.createMachine(machineName);
@@ -185,7 +185,7 @@ export function AfterCleaningConfigPage() {
     setMessage(null);
     try {
       if (editingPartId) {
-        await AfterCleaningConfigService.updateMachinePart(editingPartId, partName, Number(machineId));
+        await AfterCleaningConfigService.updateMachinePart(editingPartId, partName, Number(machineId), machines.flatMap((m) => m.parts ?? []).find((p) => p.id === editingPartId)?.version);
         setMessage({ text: "Part updated.", ok: true });
       } else {
         await AfterCleaningConfigService.createMachinePart(partName, Number(machineId));

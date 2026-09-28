@@ -100,6 +100,8 @@ public class EquipmentMasterDataService
         var entity = await _db.Equipment.FirstOrDefaultAsync(e => e.Id == id)
             ?? throw new NotFoundException($"Equipment {id} not found.");
 
+        RecordVersion.EnsureCurrent(_db, entity);
+
         if (string.IsNullOrWhiteSpace(request.Name))
             throw new InvalidOperationException("Name is required.");
         if (string.IsNullOrWhiteSpace(request.Code))

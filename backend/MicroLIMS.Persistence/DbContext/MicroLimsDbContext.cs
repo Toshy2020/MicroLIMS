@@ -11,6 +11,7 @@ public class MicroLimsDbContext : Microsoft.EntityFrameworkCore.DbContext, IMicr
     // Set by JwtMiddleware from the authenticated token so SaveChanges can
     // stamp the audit trail with who made the change.
     public int? CurrentUserId { get; set; }
+    public uint? ExpectedVersion { get; set; }
 
     public MicroLimsDbContext(DbContextOptions<MicroLimsDbContext> options) : base(options) { }
 
@@ -198,8 +199,12 @@ public class MicroLimsDbContext : Microsoft.EntityFrameworkCore.DbContext, IMicr
                          .Where(t => t.BaseType is null && !t.IsOwned() && !t.HasSharedClrType && t.FindPrimaryKey() is not null && t.GetTableName() is not null)
                          .ToList())
             {
-                modelBuilder.Entity(entityType.ClrType)
-                    .Property<uint>("xmin")
+                // Records edited through a form expose it as Version, so the
+                // client can send back the version its form was loaded with.
+                var property = typeof(IVersionedEntity).IsAssignableFrom(entityType.ClrType)
+                    ? modelBuilder.Entity(entityType.ClrType).Property<uint>(nameof(IVersionedEntity.Version))
+                    : modelBuilder.Entity(entityType.ClrType).Property<uint>("xmin");
+                property
                     .HasColumnName("xmin")
                     .HasColumnType("xid")
                     .ValueGeneratedOnAddOrUpdate()

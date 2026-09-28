@@ -20,6 +20,8 @@ export interface TestOrderSummary {
 // Mirrors backend SampleDto exactly.
 export interface SampleRecord {
   sampleId: number;
+  // Row version, sent back as If-Match when this record is edited.
+  version?: number;
   itemId?: number | null;
   referenceNumber: string;
   category: string;

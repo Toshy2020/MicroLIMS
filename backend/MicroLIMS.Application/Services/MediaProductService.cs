@@ -10,7 +10,11 @@ using MicroLIMS.Application.DTOs.Responses;
 
 namespace MicroLIMS.Application.Services;
 
-public record MediaProductDto(int Id, string Name, string Code, int ConfigurationCount, int BatchCount, int IncubationConditionCount);
+public record MediaProductDto(int Id, string Name, string Code, int ConfigurationCount, int BatchCount, int IncubationConditionCount)
+{
+    // The record's row version, sent back as If-Match with an edit.
+    public uint Version { get; init; }
+}
 
 // Master catalog of dehydrated media products. One MediaProduct exists per
 // medium, holding a free-text Name and a unique short Code (2-10 chars)
@@ -54,7 +58,7 @@ public class MediaProductService
                 p.Code,
                 p.Configurations.Count,
                 _db.Materials.Count(m => m.MediaProductId == p.Id),
-                p.IncubationConditions.Count))
+                p.IncubationConditions.Count) { Version = p.Version })
             .ToListAsync();
     }
 
@@ -83,6 +87,7 @@ public class MediaProductService
 
         var product = await _db.MediaProducts.FirstOrDefaultAsync(p => p.Id == id)
             ?? throw new NotFoundException($"Media product with ID {id} not found.");
+        RecordVersion.EnsureCurrent(_db, product);
 
         await EnsureUniqueNameAsync(trimmedName, id);
 

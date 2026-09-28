@@ -1,7 +1,9 @@
-import { apiClient } from "../../../services/apiClient";
+import { apiClient, ifMatch } from "../../../services/apiClient";
 
 export interface UserRecord {
   id: number;
+  // Row version, sent back as If-Match when this record is edited.
+  version?: number;
   fullName: string;
   username: string;
   email: string | null;
@@ -29,8 +31,8 @@ export const UserService = {
   async create(fullName: string, username: string, password: string, roleId: number, email?: string) {
     return (await apiClient.post("/users", { fullName, username, password, roleId, email: email || null })).data.data;
   },
-  async updateProfile(id: number, fullName: string, username: string, email: string | null) {
-    return (await apiClient.put(`/users/${id}`, { fullName, username, email })).data.data;
+  async updateProfile(id: number, fullName: string, username: string, email: string | null, version?: number) {
+    return (await apiClient.put(`/users/${id}`, { fullName, username, email }, ifMatch(version))).data.data;
   },
   async changeRole(id: number, roleId: number, reason: string) {
     return (await apiClient.put(`/users/${id}/role`, { roleId, reason })).data.data;

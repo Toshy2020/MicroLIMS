@@ -93,7 +93,7 @@ export function ItemsPage() {
     };
 
     if (editingItem) {
-      await ItemService.update(editingItem.id, payload);
+      await ItemService.update(editingItem.id, payload, editingItem.version);
       setMessage({ text: `Item "${itemData.name}" updated successfully.`, ok: true });
     } else {
       const created = await ItemService.create(payload);

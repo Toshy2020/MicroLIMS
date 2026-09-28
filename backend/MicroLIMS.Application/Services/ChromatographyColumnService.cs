@@ -1,5 +1,6 @@
 using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
+using MicroLIMS.Application.Helpers;
 using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
@@ -140,6 +141,8 @@ public class ChromatographyColumnService
 
         if (column == null)
             throw new NotFoundException($"Chromatography column {id} not found.");
+
+        RecordVersion.EnsureCurrent(_db, column);
 
         if (string.IsNullOrWhiteSpace(request.Code))
             throw new InvalidOperationException("Column code is required.");

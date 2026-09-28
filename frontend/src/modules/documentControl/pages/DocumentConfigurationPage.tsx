@@ -126,7 +126,7 @@ export function DocumentConfigurationPage() {
           name: typeForm.name,
           defaultReviewCycleMonths: Number(typeForm.cycle),
           isActive: typeForm.isActive
-        });
+        }, editingType.version);
       } else {
         await documentControlService.createType({
           code: typeForm.code,
@@ -149,7 +149,7 @@ export function DocumentConfigurationPage() {
         await documentControlService.updateDepartment(editingDept.id, {
           name: deptForm.name,
           isActive: deptForm.isActive
-        });
+        }, editingDept.version);
       } else {
         await documentControlService.createDepartment({
           code: deptForm.code,
@@ -171,7 +171,7 @@ export function DocumentConfigurationPage() {
         await documentControlService.updateSection(editingSectionId, {
           name: sectionForm.name,
           isActive: sectionForm.isActive
-        });
+        }, departments.flatMap((d) => d.sections ?? []).find((s) => s.id === editingSectionId)?.version);
       } else {
         await documentControlService.createSection({
           departmentId: targetDeptId,

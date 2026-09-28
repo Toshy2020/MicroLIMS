@@ -1,8 +1,9 @@
 namespace MicroLIMS.Domain.Entities;
 
-public class MachinePart
+public class MachinePart : IVersionedEntity
 {
     public int Id { get; set; }
+    public uint Version { get; set; }
     public int MachineId { get; set; }
     public Machine? Machine { get; set; }
     public string Name { get; set; } = string.Empty;

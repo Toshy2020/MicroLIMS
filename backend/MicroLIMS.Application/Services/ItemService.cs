@@ -5,6 +5,7 @@ using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Application.Abstractions.Persistence;
 using MicroLIMS.Application.DTOs.Responses;
+using MicroLIMS.Application.Helpers;
 
 namespace MicroLIMS.Application.Services;
 
@@ -64,6 +65,7 @@ public class ItemService
 
         var item = await _db.Items.Include(i => i.AssignedTests).FirstOrDefaultAsync(i => i.Id == id)
             ?? throw new NotFoundException($"Item {id} not found.");
+        RecordVersion.EnsureCurrent(_db, item);
 
         if (await _db.Items.AnyAsync(i => i.Code == update.Code && i.Id != id))
             throw new InvalidOperationException($"An item with code '{update.Code}' already exists.");

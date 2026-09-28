@@ -5,9 +5,10 @@ namespace MicroLIMS.Domain.Entities;
 // Sample, not an FK: existing Sample.SampledBy values are never validated
 // against this list, so removing a name here never affects historical
 // records.
-public class Sampler
+public class Sampler : IVersionedEntity
 {
     public int Id { get; set; }
+    public uint Version { get; set; }
     public string Name { get; set; } = string.Empty;
     public bool IsActive { get; set; } = true;
 }

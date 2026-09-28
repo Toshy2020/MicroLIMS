@@ -1,5 +1,6 @@
 using MicroLIMS.Shared.Exceptions;
 using System.Security.Claims;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using MicroLIMS.Application.DTOs.DocumentControl;
@@ -74,7 +75,7 @@ public class DocumentFilesController : ControllerBase
         {
             return StatusCode(422, ApiResponse<object>.Fail(ex.Message));
         }
-        catch (Exception ex) when (ex is not NotFoundException)
+        catch (Exception ex) when (ex is not DbUpdateConcurrencyException and not NotFoundException)
         {
             return BadRequest(ApiResponse<object>.Fail(ex.Message));
         }
@@ -113,7 +114,7 @@ public class DocumentFilesController : ControllerBase
         {
             return BadRequest(ApiResponse<object>.Fail(ex.Message));
         }
-        catch (Exception ex) when (ex is not NotFoundException)
+        catch (Exception ex) when (ex is not DbUpdateConcurrencyException and not NotFoundException)
         {
             return BadRequest(ApiResponse<object>.Fail(ex.Message));
         }
@@ -152,7 +153,7 @@ public class DocumentFilesController : ControllerBase
         {
             return BadRequest(ApiResponse<object>.Fail(ex.Message));
         }
-        catch (Exception ex) when (ex is not NotFoundException)
+        catch (Exception ex) when (ex is not DbUpdateConcurrencyException and not NotFoundException)
         {
             return BadRequest(ApiResponse<object>.Fail(ex.Message));
         }

@@ -1,5 +1,6 @@
 using MicroLIMS.Shared.Exceptions;
 using System.Security.Claims;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using MicroLIMS.Application.DTOs.DocumentControl;
@@ -45,7 +46,7 @@ public class DocumentApprovalController : ControllerBase
         {
             return BadRequest(ApiResponse<object>.Fail(ex.Message));
         }
-        catch (Exception ex) when (ex is not NotFoundException)
+        catch (Exception ex) when (ex is not DbUpdateConcurrencyException and not NotFoundException)
         {
             return BadRequest(ApiResponse<object>.Fail(ex.Message));
         }
@@ -59,7 +60,7 @@ public class DocumentApprovalController : ControllerBase
             var task = await _approvalService.GetActiveApprovalTaskForRevisionAsync(revisionId, CurrentUserId);
             return Ok(ApiResponse<DocumentApprovalTaskDto?>.Ok(task));
         }
-        catch (Exception ex) when (ex is not NotFoundException)
+        catch (Exception ex) when (ex is not DbUpdateConcurrencyException and not NotFoundException)
         {
             return BadRequest(ApiResponse<object>.Fail(ex.Message));
         }
@@ -77,7 +78,7 @@ public class DocumentApprovalController : ControllerBase
         {
             return NotFound(ApiResponse<object>.Fail(ex.Message));
         }
-        catch (Exception ex) when (ex is not NotFoundException)
+        catch (Exception ex) when (ex is not DbUpdateConcurrencyException and not NotFoundException)
         {
             return BadRequest(ApiResponse<object>.Fail(ex.Message));
         }
@@ -94,7 +95,7 @@ public class DocumentApprovalController : ControllerBase
             var tasks = await _approvalService.GetApprovalTasksAsync(revisionId, approverUserId, status, CurrentUserId);
             return Ok(ApiResponse<IReadOnlyList<DocumentApprovalTaskDto>>.Ok(tasks));
         }
-        catch (Exception ex) when (ex is not NotFoundException)
+        catch (Exception ex) when (ex is not DbUpdateConcurrencyException and not NotFoundException)
         {
             return BadRequest(ApiResponse<object>.Fail(ex.Message));
         }
@@ -116,7 +117,7 @@ public class DocumentApprovalController : ControllerBase
         {
             return StatusCode(403, ApiResponse<object>.Fail(ex.Message));
         }
-        catch (Exception ex) when (ex is not NotFoundException)
+        catch (Exception ex) when (ex is not DbUpdateConcurrencyException and not NotFoundException)
         {
             return BadRequest(ApiResponse<object>.Fail(ex.Message));
         }
@@ -134,7 +135,7 @@ public class DocumentApprovalController : ControllerBase
         {
             return NotFound(ApiResponse<object>.Fail(ex.Message));
         }
-        catch (Exception ex) when (ex is not NotFoundException)
+        catch (Exception ex) when (ex is not DbUpdateConcurrencyException and not NotFoundException)
         {
             return BadRequest(ApiResponse<object>.Fail(ex.Message));
         }
@@ -165,7 +166,7 @@ public class DocumentApprovalController : ControllerBase
         {
             return BadRequest(ApiResponse<object>.Fail(ex.Message));
         }
-        catch (Exception ex) when (ex is not NotFoundException)
+        catch (Exception ex) when (ex is not DbUpdateConcurrencyException and not NotFoundException)
         {
             return BadRequest(ApiResponse<object>.Fail(ex.Message));
         }
@@ -203,7 +204,7 @@ public class DocumentApprovalController : ControllerBase
         {
             return BadRequest(ApiResponse<object>.Fail(ex.Message));
         }
-        catch (Exception ex) when (ex is not NotFoundException)
+        catch (Exception ex) when (ex is not DbUpdateConcurrencyException and not NotFoundException)
         {
             return BadRequest(ApiResponse<object>.Fail(ex.Message));
         }
@@ -221,7 +222,7 @@ public class DocumentApprovalController : ControllerBase
         {
             return NotFound(ApiResponse<object>.Fail(ex.Message));
         }
-        catch (Exception ex) when (ex is not NotFoundException)
+        catch (Exception ex) when (ex is not DbUpdateConcurrencyException and not NotFoundException)
         {
             return BadRequest(ApiResponse<object>.Fail(ex.Message));
         }

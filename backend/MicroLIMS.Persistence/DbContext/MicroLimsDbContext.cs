@@ -193,19 +193,52 @@ public class MicroLimsDbContext : Microsoft.EntityFrameworkCore.DbContext
 
     // Frozen Principle #5 - Traceability. Captures every insert/update/
     // delete automatically so no service can forget to log a change.
+    //
+    // Two phases, because a new row has no real key until it is inserted:
+    // EF gives it a temporary one (on PostgreSQL a large negative number),
+    // and so does every foreign key pointing at it. Deletes and previous
+    // values are read before the save, while the tracker still holds them;
+    // the record ids and new values are read after it, once the database
+    // has assigned the real keys. Both saves share one transaction, so a
+    // change is never committed without its audit rows.
     public override int SaveChanges()
     {
-        CaptureAuditEntries();
-        return base.SaveChanges();
+        var pending = CapturePendingAuditEntries();
+        if (pending.Count == 0)
+            return base.SaveChanges();
+
+        var ownsTransaction = Database.IsRelational() && Database.CurrentTransaction is null;
+        using var tx = ownsTransaction ? Database.BeginTransaction() : null;
+        var written = base.SaveChanges();
+        AddAuditLogs(pending);
+        written += base.SaveChanges();
+        tx?.Commit();
+        return written;
     }
 
-    public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+    public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
-        CaptureAuditEntries();
-        return base.SaveChangesAsync(cancellationToken);
+        var pending = CapturePendingAuditEntries();
+        if (pending.Count == 0)
+            return await base.SaveChangesAsync(cancellationToken);
+
+        var ownsTransaction = Database.IsRelational() && Database.CurrentTransaction is null;
+        await using var tx = ownsTransaction ? await Database.BeginTransactionAsync(cancellationToken) : null;
+        var written = await base.SaveChangesAsync(cancellationToken);
+        AddAuditLogs(pending);
+        written += await base.SaveChangesAsync(cancellationToken);
+        if (tx is not null)
+            await tx.CommitAsync(cancellationToken);
+        return written;
     }
 
-    private void CaptureAuditEntries()
+    private sealed record PendingAuditEntry(
+        Microsoft.EntityFrameworkCore.ChangeTracking.EntityEntry Entry,
+        string Action,
+        string? PreviousValue,
+        AuditLog? Completed);
+
+    private List<PendingAuditEntry> CapturePendingAuditEntries()
     {
         var entries = ChangeTracker.Entries()
             .Where(e => e.Entity is not AuditLog &&
@@ -219,54 +252,61 @@ public class MicroLimsDbContext : Microsoft.EntityFrameworkCore.DbContext
                         (e.State == EntityState.Added || e.State == EntityState.Modified || e.State == EntityState.Deleted))
             .ToList();
 
+        var pending = new List<PendingAuditEntry>(entries.Count);
         foreach (var entry in entries)
         {
-            var action = entry.State switch
+            switch (entry.State)
             {
-                EntityState.Added => "Create",
-                EntityState.Modified => "Update",
-                EntityState.Deleted => "Delete",
-                _ => "Unknown"
-            };
-
-            string? previousValue = null;
-            string? newValue = null;
-
-            if (entry.State == EntityState.Modified)
-            {
-                previousValue = JsonSerializer.Serialize(entry.OriginalValues.Properties.ToDictionary(p => p.Name, p => entry.OriginalValues[p]));
-                newValue = JsonSerializer.Serialize(entry.CurrentValues.Properties.ToDictionary(p => p.Name, p => entry.CurrentValues[p]));
+                case EntityState.Added:
+                    pending.Add(new PendingAuditEntry(entry, "Create", null, null));
+                    break;
+                case EntityState.Modified:
+                    pending.Add(new PendingAuditEntry(entry, "Update", SerializeValues(entry.OriginalValues), null));
+                    break;
+                case EntityState.Deleted:
+                    // A deleted row already has its real key, and after the
+                    // save the tracker lets go of it - finish it now.
+                    var previousValue = SerializeValues(entry.OriginalValues);
+                    pending.Add(new PendingAuditEntry(entry, "Delete", previousValue, BuildAuditLog(entry, "Delete", previousValue, null)));
+                    break;
             }
-            else if (entry.State == EntityState.Added)
-            {
-                newValue = JsonSerializer.Serialize(entry.CurrentValues.Properties.ToDictionary(p => p.Name, p => entry.CurrentValues[p]));
-            }
-            else if (entry.State == EntityState.Deleted)
-            {
-                previousValue = JsonSerializer.Serialize(entry.OriginalValues.Properties.ToDictionary(p => p.Name, p => entry.OriginalValues[p]));
-            }
-
-            var idProperty = entry.Properties.FirstOrDefault(p => p.Metadata.Name == "Id");
-
-            AuditLogs.Add(new AuditLog
-            {
-                EntityName = entry.Entity.GetType().Name,
-                EntityId = idProperty?.CurrentValue?.ToString() ?? "unknown",
-                Action = action,
-                PreviousValue = previousValue,
-                NewValue = newValue,
-                UserId = CurrentUserId ?? 0,
-                Timestamp = DateTime.UtcNow,
-                BatchNumber = GetPropertyAsString(entry, "BatchNumber"),
-                ControlNumber = GetPropertyAsString(entry, "ControlNumber"),
-                SampleReferenceNumber = GetPropertyAsString(entry, "ReferenceNumber"),
-                MediaLotNumber = GetPropertyAsString(entry, "LotNumber"),
-                ReferenceStrainCode = entry.Entity is Cryovial ? GetPropertyAsString(entry, "Code") : null,
-                CryovialCode = entry.Entity is Cryovial ? GetPropertyAsString(entry, "Code") : null,
-                SampleId = GetPropertyAsInt(entry, "SampleId") ?? (entry.Entity is Sample ? int.TryParse(idProperty?.CurrentValue?.ToString(), out var sid) ? sid : null : null),
-                TestOrderId = GetPropertyAsInt(entry, "TestOrderId") ?? (entry.Entity is TestOrder ? int.TryParse(idProperty?.CurrentValue?.ToString(), out var tid) ? tid : null : null)
-            });
         }
+        return pending;
+    }
+
+    private void AddAuditLogs(List<PendingAuditEntry> pending)
+    {
+        foreach (var p in pending)
+        {
+            AuditLogs.Add(p.Completed ?? BuildAuditLog(p.Entry, p.Action, p.PreviousValue, SerializeValues(p.Entry.CurrentValues)));
+        }
+    }
+
+    private static string SerializeValues(Microsoft.EntityFrameworkCore.ChangeTracking.PropertyValues values) =>
+        JsonSerializer.Serialize(values.Properties.ToDictionary(p => p.Name, p => values[p]));
+
+    private AuditLog BuildAuditLog(Microsoft.EntityFrameworkCore.ChangeTracking.EntityEntry entry, string action, string? previousValue, string? newValue)
+    {
+        var idProperty = entry.Properties.FirstOrDefault(p => p.Metadata.Name == "Id");
+
+        return new AuditLog
+        {
+            EntityName = entry.Entity.GetType().Name,
+            EntityId = idProperty?.CurrentValue?.ToString() ?? "unknown",
+            Action = action,
+            PreviousValue = previousValue,
+            NewValue = newValue,
+            UserId = CurrentUserId ?? 0,
+            Timestamp = DateTime.UtcNow,
+            BatchNumber = GetPropertyAsString(entry, "BatchNumber"),
+            ControlNumber = GetPropertyAsString(entry, "ControlNumber"),
+            SampleReferenceNumber = GetPropertyAsString(entry, "ReferenceNumber"),
+            MediaLotNumber = GetPropertyAsString(entry, "LotNumber"),
+            ReferenceStrainCode = entry.Entity is Cryovial ? GetPropertyAsString(entry, "Code") : null,
+            CryovialCode = entry.Entity is Cryovial ? GetPropertyAsString(entry, "Code") : null,
+            SampleId = GetPropertyAsInt(entry, "SampleId") ?? (entry.Entity is Sample ? int.TryParse(idProperty?.CurrentValue?.ToString(), out var sid) ? sid : null : null),
+            TestOrderId = GetPropertyAsInt(entry, "TestOrderId") ?? (entry.Entity is TestOrder ? int.TryParse(idProperty?.CurrentValue?.ToString(), out var tid) ? tid : null : null)
+        };
     }
 
     // Reads a named property off the entity's current values, if it

@@ -1,3 +1,4 @@
+using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using MicroLIMS.Application.Interfaces;
@@ -48,7 +49,7 @@ public class PathogenSessionController : ControllerBase
         {
             return BadRequest(ApiResponse<string>.Fail(ex.Message, new List<string> { ex.ErrorCode, ex.Message }));
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not DbUpdateConcurrencyException)
         {
             return BadRequest(ApiResponse<string>.Fail(ex.Message));
         }
@@ -67,7 +68,7 @@ public class PathogenSessionController : ControllerBase
         {
             return BadRequest(ApiResponse<string>.Fail(ex.Message, new List<string> { ex.ErrorCode, ex.Message }));
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not DbUpdateConcurrencyException)
         {
             return BadRequest(ApiResponse<string>.Fail(ex.Message));
         }
@@ -86,7 +87,7 @@ public class PathogenSessionController : ControllerBase
         {
             return BadRequest(ApiResponse<string>.Fail(ex.Message, new List<string> { ex.ErrorCode, ex.Message }));
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not DbUpdateConcurrencyException)
         {
             return BadRequest(ApiResponse<string>.Fail(ex.Message));
         }
@@ -101,7 +102,7 @@ public class PathogenSessionController : ControllerBase
             var eligible = await _sessionService.GetEligibleLocationsForConfirmationAsync(sampleId, testOrderId);
             return Ok(ApiResponse<List<EligibleLocationForConfirmationDto>>.Ok(eligible));
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not DbUpdateConcurrencyException)
         {
             return BadRequest(ApiResponse<string>.Fail(ex.Message));
         }
@@ -120,7 +121,7 @@ public class PathogenSessionController : ControllerBase
         {
             return BadRequest(ApiResponse<string>.Fail(ex.Message, new List<string> { ex.ErrorCode, ex.Message }));
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not DbUpdateConcurrencyException)
         {
             return BadRequest(ApiResponse<string>.Fail(ex.Message));
         }
@@ -139,7 +140,7 @@ public class PathogenSessionController : ControllerBase
         {
             return BadRequest(ApiResponse<string>.Fail(ex.Message, new List<string> { ex.ErrorCode, ex.Message }));
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not DbUpdateConcurrencyException)
         {
             return BadRequest(ApiResponse<string>.Fail(ex.Message));
         }
@@ -158,7 +159,7 @@ public class PathogenSessionController : ControllerBase
         {
             return BadRequest(ApiResponse<string>.Fail(ex.Message, new List<string> { ex.ErrorCode, ex.Message }));
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not DbUpdateConcurrencyException)
         {
             return BadRequest(ApiResponse<string>.Fail(ex.Message));
         }
@@ -180,7 +181,7 @@ public class PathogenSessionController : ControllerBase
         {
             return BadRequest(ApiResponse<string>.Fail(ex.Message, new List<string> { ex.ErrorCode, ex.Message }));
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not DbUpdateConcurrencyException)
         {
             return BadRequest(ApiResponse<string>.Fail(ex.Message));
         }

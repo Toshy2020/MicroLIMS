@@ -181,6 +181,30 @@ public class MicroLimsDbContext : Microsoft.EntityFrameworkCore.DbContext
         // MicroLIMS.Persistence/Configurations and are applied here.
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(MicroLimsDbContext).Assembly);
 
+        // Optimistic concurrency on every table. PostgreSQL bumps the xmin
+        // system column on each write, so an UPDATE or DELETE that still
+        // carries the xmin it read fails when someone else wrote the row in
+        // between - DbUpdateConcurrencyException, answered as 409 - instead
+        // of silently overwriting their change. xmin is a system column:
+        // nothing is added to the schema. PostgreSQL only; the InMemory
+        // unit tests have no such column.
+        if (Database.IsNpgsql())
+        {
+            foreach (var entityType in modelBuilder.Model.GetEntityTypes()
+                         // Shared-type many-to-many join rows are only ever inserted
+                         // or deleted, never updated, so they need no token.
+                         .Where(t => t.BaseType is null && !t.IsOwned() && !t.HasSharedClrType && t.FindPrimaryKey() is not null && t.GetTableName() is not null)
+                         .ToList())
+            {
+                modelBuilder.Entity(entityType.ClrType)
+                    .Property<uint>("xmin")
+                    .HasColumnName("xmin")
+                    .HasColumnType("xid")
+                    .ValueGeneratedOnAddOrUpdate()
+                    .IsConcurrencyToken();
+            }
+        }
+
         // Water sample locations hang off a WaterDepartment (mirrors EM's
         // Department -> Room). Optional FK; deletion is guarded in the
         // controller, so keep existing points intact rather than cascading.

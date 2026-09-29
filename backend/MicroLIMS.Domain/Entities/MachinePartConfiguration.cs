@@ -1,8 +1,9 @@
 namespace MicroLIMS.Domain.Entities;
 
-public class MachinePartConfiguration
+public class MachinePartConfiguration : IVersionedEntity
 {
     public int Id { get; set; }
+    public uint Version { get; set; }
     public int MachinePartId { get; set; }
     public MachinePart? MachinePart { get; set; }
     public string TestType { get; set; } = string.Empty; // "Swab", "Rinse", or a pathogen TestCode

@@ -1,8 +1,10 @@
-import { apiClient } from "../../../../services/apiClient";
+import { apiClient, ifMatch } from "../../../../services/apiClient";
 import type { ApiResponse } from "./EquipmentConfigurationService";
 
 export interface ChromatographyColumnDto {
   id: number;
+  // Row version, sent back as If-Match when this record is edited.
+  version?: number;
   code: string;
   name: string;
   serialNumber?: string | null;
@@ -68,8 +70,8 @@ export const ChromatographyColumnService = {
     return res.data?.data;
   },
 
-  update: async (id: number, req: UpdateChromatographyColumnRequest): Promise<ChromatographyColumnDto> => {
-    const res = await apiClient.put<ApiResponse<ChromatographyColumnDto>>(`/masterdata/columns/${id}`, req);
+  update: async (id: number, req: UpdateChromatographyColumnRequest, version?: number): Promise<ChromatographyColumnDto> => {
+    const res = await apiClient.put<ApiResponse<ChromatographyColumnDto>>(`/masterdata/columns/${id}`, req, ifMatch(version));
     return res.data?.data;
   },
 

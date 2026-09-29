@@ -73,7 +73,7 @@ export function MediaIncubationConditionDialog(props: MediaIncubationConditionDi
     setSaving(true);
     try {
       if (conditionToEdit) {
-        await masterDataOptions.updateMediaIncubationCondition(conditionToEdit.id, values);
+        await masterDataOptions.updateMediaIncubationCondition(conditionToEdit.id, values, conditionToEdit.version);
       } else {
         await masterDataOptions.createMediaIncubationCondition({
           mediaProductId: product.id,

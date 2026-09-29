@@ -9,7 +9,11 @@ using MicroLIMS.Application.DTOs.Responses;
 
 namespace MicroLIMS.Application.Services;
 
-public record RoleDetailDto(int Id, string Name, string? Description, string Type, bool IsSystemRole, bool IsActive, List<string> PermissionCodes);
+public record RoleDetailDto(int Id, string Name, string? Description, string Type, bool IsSystemRole, bool IsActive, List<string> PermissionCodes)
+{
+    // The record's row version, sent back as If-Match with an edit.
+    public uint Version { get; init; }
+}
 public record PermissionDto(string Code, string Description, bool IsEnforced);
 
 // Role CRUD + permission-grant management. Plain create/update/delete
@@ -91,6 +95,7 @@ public class RoleService
 
         var role = await _db.Roles.FirstOrDefaultAsync(r => r.Id == id)
             ?? throw new NotFoundException($"Role {id} not found.");
+        RecordVersion.EnsureCurrent(_db, role);
 
         role.Name = name;
         role.Description = description;
@@ -166,7 +171,7 @@ public class RoleService
     }
 
     private static RoleDetailDto ToDto(Role r, List<string> permissionCodes) =>
-        new(r.Id, r.Name, r.Description, r.Type.ToString(), r.IsSystemRole, r.IsActive, permissionCodes);
+        new(r.Id, r.Name, r.Description, r.Type.ToString(), r.IsSystemRole, r.IsActive, permissionCodes) { Version = r.Version };
 
     public async Task<List<RoleResponse>> GetAllAsync() =>
         (await _db.Roles.AsNoTracking().ToListAsync()).Select(RoleResponse.From).ToList();

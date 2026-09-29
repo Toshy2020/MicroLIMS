@@ -282,6 +282,7 @@ public class DocumentRevisionService : IDocumentRevisionService
             .Include(c => c.CreatedByUser)
             .FirstOrDefaultAsync(c => c.Id == changeItemId)
             ?? throw new KeyNotFoundException($"Revision Change Item {changeItemId} not found.");
+        RecordVersion.EnsureCurrent(_db, item);
 
         if (item.DocumentRevision.RevisionStatus != DocumentRevisionStatus.Draft)
             throw new InvalidOperationException("Change items can only be modified while the revision is in Draft status.");
@@ -604,7 +605,7 @@ public class DocumentRevisionService : IDocumentRevisionService
             fullName,
             i.CreatedAt,
             i.ModifiedAt
-        );
+        ) { Version = i.Version };
     }
 
     private static RevisionImpactAssessmentDto MapImpactDto(RevisionImpactAssessment a, string username, string fullName)

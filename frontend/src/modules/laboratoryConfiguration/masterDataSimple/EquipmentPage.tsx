@@ -363,7 +363,7 @@ export function EquipmentPage() {
         cycleTimeMinutes: Number(programForm.cycleTimeMinutes),
         isActive: Boolean(programForm.isActive),
         comment: programForm.comment
-      });
+      }, programForm.id ? safeAllPrograms.find((p) => p.id === programForm.id)?.version : undefined);
       setProgramDialogOpen(false);
       await loadData();
     } catch (err: any) {
@@ -500,7 +500,7 @@ export function EquipmentPage() {
       };
 
       if (isEditingEquipment && selectedEquipment) {
-        await EquipmentConfigurationService.updateEquipment(selectedEquipment.id, payload);
+        await EquipmentConfigurationService.updateEquipment(selectedEquipment.id, payload, selectedEquipment.version);
         toast.success("Equipment updated successfully.");
       } else {
         const created = await EquipmentConfigurationService.createEquipment(payload);

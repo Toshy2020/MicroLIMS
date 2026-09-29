@@ -140,3 +140,10 @@ apiClient.interceptors.response.use(
     return apiClient(config);
   }
 );
+
+// Request config for an edit: sends the Version of the record the form was
+// loaded with as If-Match, so the server refuses the save (409, "reload and
+// make your change again") if someone else changed the record since.
+export function ifMatch(version: number | null | undefined): { headers?: Record<string, string> } {
+  return version == null ? {} : { headers: { "If-Match": `"${version}"` } };
+}

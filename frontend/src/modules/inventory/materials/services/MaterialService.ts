@@ -1,4 +1,4 @@
-import { apiClient } from "../../../../services/apiClient";
+import { apiClient, ifMatch } from "../../../../services/apiClient";
 import type { MaterialDocumentType, MaterialType } from "../types/materialTypes";
 
 export interface SaveMaterialPayload {
@@ -35,7 +35,7 @@ export const MaterialService = {
   getDefaultUnit: (materialType: string) =>
     apiClient.get("/inventory/materials/default-unit", { params: { materialType } }).then((r) => r.data.data.unit),
   create: (payload: SaveMaterialPayload) => apiClient.post("/inventory/materials", payload).then((r) => r.data.data),
-  update: (id: number, payload: SaveMaterialPayload) => apiClient.put(`/inventory/materials/${id}`, payload).then((r) => r.data.data),
+  update: (id: number, payload: SaveMaterialPayload, version?: number) => apiClient.put(`/inventory/materials/${id}`, payload, ifMatch(version)).then((r) => r.data.data),
 
   // ---- Lot Documents ----
   getDocuments: (materialId: number) =>

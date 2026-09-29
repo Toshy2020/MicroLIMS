@@ -40,6 +40,7 @@ public class OrganismMasterDataService
     {
         var entity = await _db.Organisms.FirstOrDefaultAsync(o => o.Id == id)
             ?? throw new NotFoundException($"Organism {id} not found.");
+        RecordVersion.EnsureCurrent(_db, entity);
 
         if (await _db.Organisms.AnyAsync(o => o.Id != id && o.ScientificName.ToLower() == request.ScientificName.ToLower()))
             throw new InvalidOperationException($"Organism \"{request.ScientificName}\" already exists in the Organism list.");

@@ -1,8 +1,9 @@
 namespace MicroLIMS.Domain.Entities;
 
-public class User
+public class User : IVersionedEntity
 {
     public int Id { get; set; }
+    public uint Version { get; set; }
     public string FullName { get; set; } = string.Empty;
     public string Username { get; set; } = string.Empty;
     public string PasswordHash { get; set; } = string.Empty;

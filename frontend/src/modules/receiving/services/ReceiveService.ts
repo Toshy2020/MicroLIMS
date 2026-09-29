@@ -1,4 +1,4 @@
-import { apiClient } from "../../../services/apiClient";
+import { apiClient, ifMatch } from "../../../services/apiClient";
 import {
   ItemBasedReceiveRequest,
   WaterReceiveRequest,
@@ -111,8 +111,8 @@ export const ReceiveService = {
   },
 
   // Signed: the payload carries the reason and the signer's password.
-  async correctSample(sampleId: number, payload: SampleCorrectionPayload): Promise<SampleRecord> {
-    const res = await apiClient.put(`/samples/${sampleId}/correct`, payload);
+  async correctSample(sampleId: number, payload: SampleCorrectionPayload, version?: number): Promise<SampleRecord> {
+    const res = await apiClient.put(`/samples/${sampleId}/correct`, payload, ifMatch(version));
     return res.data.data;
   },
 

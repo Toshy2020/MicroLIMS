@@ -35,7 +35,11 @@ public record UserDto(
     bool MustChangePassword,
     DateTime CreatedAt,
     DateTime? LastLoginAt,
-    DateTime? PasswordChangedAt);
+    DateTime? PasswordChangedAt)
+{
+    // The record's row version, sent back as If-Match with an edit.
+    public uint Version { get; init; }
+}
 
 public class UserService
 {
@@ -125,6 +129,7 @@ public class UserService
     {
         var user = await _db.Users.Include(u => u.Role).FirstOrDefaultAsync(u => u.Id == targetUserId)
             ?? throw new NotFoundException($"User {targetUserId} not found.");
+        RecordVersion.EnsureCurrent(_db, user);
 
         if (string.IsNullOrWhiteSpace(fullName))
             throw new InvalidOperationException("Full Name is required.");
@@ -351,5 +356,8 @@ public class UserService
         u.MustChangePassword,
         u.CreatedAt,
         u.LastLoginAt,
-        u.PasswordChangedAt);
+        u.PasswordChangedAt)
+    {
+        Version = u.Version
+    };
 }

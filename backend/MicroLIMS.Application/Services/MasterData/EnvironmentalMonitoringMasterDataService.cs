@@ -28,7 +28,7 @@ public class EnvironmentalMonitoringMasterDataService
         // navigation cycle EF's relationship fixup creates when both
         // sides are tracked in the same query - same pattern as GetMachines.
         var departments = await _db.Departments
-            .Select(d => new { d.Id, d.Name, d.Class, d.TestingFrequency, Rooms = d.Rooms.Select(r => new { r.Id, r.Name, r.DepartmentId, r.GradeClassification }) })
+            .Select(d => new { d.Id, d.Version, d.Name, d.Class, d.TestingFrequency, Rooms = d.Rooms.Select(r => new { r.Id, r.Version, r.Name, r.DepartmentId, r.GradeClassification }) })
             .ToListAsync();
         return departments;
     }
@@ -45,6 +45,7 @@ public class EnvironmentalMonitoringMasterDataService
     {
         var dept = await _db.Departments.FirstOrDefaultAsync(d => d.Id == id)
             ?? throw new NotFoundException($"Department {id} not found.");
+        RecordVersion.EnsureCurrent(_db, dept);
         dept.Name = request.Name;
         dept.Class = request.Class;
         dept.TestingFrequency = request.TestingFrequency;
@@ -75,7 +76,7 @@ public class EnvironmentalMonitoringMasterDataService
         // sides are tracked in the same query (raw entities would crash
         // JSON serialization here).
         var rooms = await _db.Rooms
-            .Select(r => new { r.Id, r.Name, r.DepartmentId, r.GradeClassification, Department = r.Department == null ? null : new { r.Department.Id, r.Department.Name } })
+            .Select(r => new { r.Id, r.Version, r.Name, r.DepartmentId, r.GradeClassification, Department = r.Department == null ? null : new { r.Department.Id, r.Department.Name } })
             .ToListAsync();
         return rooms;
     }
@@ -92,6 +93,7 @@ public class EnvironmentalMonitoringMasterDataService
     {
         var room = await _db.Rooms.FirstOrDefaultAsync(r => r.Id == id)
             ?? throw new NotFoundException($"Room {id} not found.");
+        RecordVersion.EnsureCurrent(_db, room);
         room.Name = request.Name;
         room.DepartmentId = request.DepartmentId;
         room.GradeClassification = request.GradeClassification;
@@ -142,6 +144,7 @@ public class EnvironmentalMonitoringMasterDataService
     {
         var entity = await _db.RoomTestConfigurations.FirstOrDefaultAsync(c => c.Id == id)
             ?? throw new NotFoundException($"Room test configuration {id} not found.");
+        RecordVersion.EnsureCurrent(_db, entity);
         entity.TestType = request.TestType;
         entity.TestCode = request.TestCode;
         entity.AlertLimit = request.AlertLimit;

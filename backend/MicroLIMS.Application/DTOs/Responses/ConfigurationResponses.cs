@@ -10,6 +10,7 @@ namespace MicroLIMS.Application.DTOs.Responses;
 public class DocumentSectionResponse
 {
     public int Id { get; init; }
+    public uint Version { get; init; }
     public string Name { get; init; } = null!;
     public string Code { get; init; } = null!;
     public int DepartmentId { get; init; }
@@ -18,6 +19,7 @@ public class DocumentSectionResponse
     public static DocumentSectionResponse From(DocumentSection e) => new()
     {
         Id = e.Id,
+        Version = e.Version,
         Name = e.Name,
         Code = e.Code,
         DepartmentId = e.DepartmentId,
@@ -28,6 +30,7 @@ public class DocumentSectionResponse
 public class EquipmentResponse
 {
     public int Id { get; init; }
+    public uint Version { get; init; }
     public string Name { get; init; } = null!;
     public string Code { get; init; } = null!;
     public EquipmentType Type { get; init; }
@@ -44,6 +47,7 @@ public class EquipmentResponse
     public static EquipmentResponse From(Equipment e) => new()
     {
         Id = e.Id,
+        Version = e.Version,
         Name = e.Name,
         Code = e.Code,
         Type = e.Type,
@@ -62,6 +66,7 @@ public class EquipmentResponse
 public class EquipmentCompatibleColumnResponse
 {
     public int Id { get; init; }
+    public uint Version { get; init; }
     public string Code { get; init; } = null!;
     public string Name { get; init; } = null!;
     public string? SerialNumber { get; init; }
@@ -76,6 +81,7 @@ public class EquipmentCompatibleColumnResponse
     public static EquipmentCompatibleColumnResponse From(ChromatographyColumn e) => new()
     {
         Id = e.Id,
+        Version = e.Version,
         Code = e.Code,
         Name = e.Name,
         SerialNumber = e.SerialNumber,
@@ -92,6 +98,7 @@ public class EquipmentCompatibleColumnResponse
 public class ChromatographyColumnResponse
 {
     public int Id { get; init; }
+    public uint Version { get; init; }
     public string Code { get; init; } = null!;
     public string Name { get; init; } = null!;
     public string? SerialNumber { get; init; }
@@ -107,6 +114,7 @@ public class ChromatographyColumnResponse
     public static ChromatographyColumnResponse From(ChromatographyColumn e) => new()
     {
         Id = e.Id,
+        Version = e.Version,
         Code = e.Code,
         Name = e.Name,
         SerialNumber = e.SerialNumber,
@@ -124,6 +132,7 @@ public class ChromatographyColumnResponse
 public class ColumnCompatibleEquipmentResponse
 {
     public int Id { get; init; }
+    public uint Version { get; init; }
     public string Name { get; init; } = null!;
     public string Code { get; init; } = null!;
     public EquipmentType Type { get; init; }
@@ -139,6 +148,7 @@ public class ColumnCompatibleEquipmentResponse
     public static ColumnCompatibleEquipmentResponse From(Equipment e) => new()
     {
         Id = e.Id,
+        Version = e.Version,
         Name = e.Name,
         Code = e.Code,
         Type = e.Type,
@@ -156,6 +166,7 @@ public class ColumnCompatibleEquipmentResponse
 public class TestDefinitionResponse
 {
     public int Id { get; init; }
+    public uint Version { get; init; }
     public string Code { get; init; } = null!;
     public string DisplayName { get; init; } = null!;
     public int SectionId { get; init; }
@@ -217,6 +228,7 @@ public class TestDefinitionResponse
     public static TestDefinitionResponse From(TestDefinition e) => new()
     {
         Id = e.Id,
+        Version = e.Version,
         Code = e.Code,
         DisplayName = e.DisplayName,
         SectionId = e.SectionId,
@@ -280,6 +292,7 @@ public class TestDefinitionResponse
 public class SpecificationResponse
 {
     public int Id { get; init; }
+    public uint Version { get; init; }
     public int ItemId { get; init; }
     public string TestCode { get; init; } = null!;
     public string AlertLimit { get; init; } = null!;
@@ -314,6 +327,7 @@ public class SpecificationResponse
     public static SpecificationResponse From(Specification e) => new()
     {
         Id = e.Id,
+        Version = e.Version,
         ItemId = e.ItemId,
         TestCode = e.TestCode,
         AlertLimit = e.AlertLimit,
@@ -368,12 +382,14 @@ public class SpecificationStageResponse
 public class MediaProductResponse
 {
     public int Id { get; init; }
+    public uint Version { get; init; }
     public string Name { get; init; } = null!;
     public string Code { get; init; } = null!;
 
     public static MediaProductResponse From(MediaProduct e) => new()
     {
         Id = e.Id,
+        Version = e.Version,
         Name = e.Name,
         Code = e.Code,
     };
@@ -382,6 +398,7 @@ public class MediaProductResponse
 public class MediaIncubationConditionResponse
 {
     public int Id { get; init; }
+    public uint Version { get; init; }
     public int MediaProductId { get; init; }
     public MediaProductResponse? MediaProduct { get; init; }
     public int IncubationMinHours { get; init; }
@@ -392,6 +409,7 @@ public class MediaIncubationConditionResponse
     public static MediaIncubationConditionResponse From(MediaIncubationCondition e) => new()
     {
         Id = e.Id,
+        Version = e.Version,
         MediaProductId = e.MediaProductId,
         MediaProduct = e.MediaProduct is null ? null : MediaProductResponse.From(e.MediaProduct),
         IncubationMinHours = e.IncubationMinHours,

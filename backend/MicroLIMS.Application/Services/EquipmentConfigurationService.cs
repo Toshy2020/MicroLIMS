@@ -4,6 +4,7 @@ using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Application.Abstractions.Persistence;
 using MicroLIMS.Application.DTOs.Responses;
+using MicroLIMS.Application.Helpers;
 
 namespace MicroLIMS.Application.Services;
 
@@ -44,7 +45,11 @@ public record AutoclaveProgramDto(
     int CreatedByUserId,
     DateTime CreatedAt,
     int LastModifiedByUserId,
-    DateTime LastModifiedAt);
+    DateTime LastModifiedAt)
+{
+    // The record's row version, sent back as If-Match with an edit.
+    public uint Version { get; init; }
+}
 
 public record AutoclaveProgramHistoryDto(
     int Id,
@@ -79,7 +84,11 @@ public record EquipmentConfigurationSummaryDto(
     string? InventoryLocation,
     int ConfiguredProgramCount,
     string? SerialNumber = null,
-    string? ManufacturerName = null);
+    string? ManufacturerName = null)
+{
+    // The equipment's row version, sent back as If-Match with an edit.
+    public uint Version { get; init; }
+}
 
 public class EquipmentConfigurationService
 {
@@ -122,7 +131,7 @@ public class EquipmentConfigurationService
                 pCount,
                 inv?.SerialNumber,
                 inv?.ManufacturerName
-            ));
+            ) { Version = eq.Version });
         }
 
         return result;
@@ -242,7 +251,7 @@ public class EquipmentConfigurationService
             p.CreatedByUserId,
             p.CreatedAt,
             p.LastModifiedByUserId,
-            p.LastModifiedAt)).ToList();
+            p.LastModifiedAt) { Version = p.Version }).ToList();
     }
 
     public async Task<AutoclaveProgramDto> SaveAutoclaveProgramAsync(SaveAutoclaveProgramRequest r, int userId)
@@ -299,13 +308,14 @@ public class EquipmentConfigurationService
                 program.Id, program.EquipmentId, equipment.Code, equipment.Name,
                 program.ProgramCode, program.ProgramName, program.LoadType,
                 program.Temperature, program.CycleTimeMinutes, program.IsActive,
-                program.CreatedByUserId, program.CreatedAt, program.LastModifiedByUserId, program.LastModifiedAt);
+                program.CreatedByUserId, program.CreatedAt, program.LastModifiedByUserId, program.LastModifiedAt) { Version = program.Version };
         }
         else
         {
             // Update
             var program = await _db.AutoclavePrograms.FirstOrDefaultAsync(p => p.Id == r.Id.Value)
                 ?? throw new InvalidOperationException($"Autoclave program {r.Id.Value} not found.");
+            RecordVersion.EnsureCurrent(_db, program);
 
             if (r.ProgramCode != program.ProgramCode && await _db.AutoclavePrograms.AnyAsync(p => p.EquipmentId == r.EquipmentId && p.ProgramCode == r.ProgramCode))
                 throw new InvalidOperationException($"Program code \"{r.ProgramCode}\" already exists on autoclave {equipment.Code}.");
@@ -346,7 +356,7 @@ public class EquipmentConfigurationService
                 program.Id, program.EquipmentId, equipment.Code, equipment.Name,
                 program.ProgramCode, program.ProgramName, program.LoadType,
                 program.Temperature, program.CycleTimeMinutes, program.IsActive,
-                program.CreatedByUserId, program.CreatedAt, program.LastModifiedByUserId, program.LastModifiedAt);
+                program.CreatedByUserId, program.CreatedAt, program.LastModifiedByUserId, program.LastModifiedAt) { Version = program.Version };
         }
     }
 

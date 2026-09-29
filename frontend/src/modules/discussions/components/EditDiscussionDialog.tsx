@@ -65,7 +65,7 @@ export function EditDiscussionDialog({ open, post, onClose, onSaved }: Props) {
         content: content.trim(),
         category,
         isImportant
-      });
+      }, post.version);
       onSaved(updated);
     } catch (err: any) {
       setError(err.response?.data?.message || err.message || "Failed to update discussion.");

@@ -61,7 +61,7 @@ export function RoleDetailPage() {
     setSaving(true);
     setMessage(null);
     try {
-      await RoleService.update(role.id, name, description || null);
+      await RoleService.update(role.id, name, description || null, role.version);
       await RoleService.updatePermissions(role.id, Array.from(checkedCodes));
       setMessage({ text: "Role saved.", ok: true });
       load();

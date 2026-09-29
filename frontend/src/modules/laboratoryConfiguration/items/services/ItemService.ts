@@ -1,7 +1,9 @@
-import { apiClient } from "../../../../services/apiClient";
+import { apiClient, ifMatch } from "../../../../services/apiClient";
 
 export interface Item {
   id: number;
+  // Row version, sent back as If-Match when this record is edited.
+  version?: number;
   name: string;
   code: string;
   category: string;
@@ -26,8 +28,8 @@ export const ItemService = {
   async create(item: ItemSaveRequest): Promise<Item> {
     return (await apiClient.post("/items", item)).data.data;
   },
-  async update(id: number, item: ItemSaveRequest): Promise<void> {
-    await apiClient.put(`/items/${id}`, item);
+  async update(id: number, item: ItemSaveRequest, version?: number): Promise<void> {
+    await apiClient.put(`/items/${id}`, item, ifMatch(version));
   },
   async remove(id: number): Promise<void> {
     await apiClient.delete(`/items/${id}`);

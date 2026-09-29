@@ -1,8 +1,9 @@
 namespace MicroLIMS.Domain.Entities;
 
-public class RoomTestConfiguration
+public class RoomTestConfiguration : IVersionedEntity
 {
     public int Id { get; set; }
+    public uint Version { get; set; }
     public int RoomId { get; set; }
     public Room? Room { get; set; }
     public string TestType { get; set; } = string.Empty; // "PassiveAirSample" or "SurfaceAirSample"

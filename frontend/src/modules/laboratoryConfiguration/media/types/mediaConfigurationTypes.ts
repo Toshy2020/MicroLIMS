@@ -19,6 +19,8 @@ export interface ChallengeItem {
 
 export interface MediaConfigurationItem {
   id: number;
+  // Row version, sent back as If-Match when this record is edited.
+  version?: number;
   name: string;
   mediaProductId: number;
   mediaProductCode?: string | null;

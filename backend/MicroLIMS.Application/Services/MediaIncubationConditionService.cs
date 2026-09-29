@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Application.Abstractions.Persistence;
 using MicroLIMS.Application.DTOs.Responses;
+using MicroLIMS.Application.Helpers;
 
 namespace MicroLIMS.Application.Services;
 
@@ -14,7 +15,11 @@ public record MediaIncubationConditionDto(
     decimal TemperatureMin,
     decimal TemperatureMax,
     int ConfigurationCount,
-    int StepMediaCount);
+    int StepMediaCount)
+{
+    // The record's row version, sent back as If-Match with an edit.
+    public uint Version { get; init; }
+}
 
 public class MediaIncubationConditionService
 {
@@ -45,7 +50,7 @@ public class MediaIncubationConditionService
                 c.TemperatureMin,
                 c.TemperatureMax,
                 _db.MediaConfigurations.Count(cfg => cfg.MediaIncubationConditionId == c.Id),
-                _db.TestWorkflowStepMedias.Count(sm => sm.MediaIncubationConditionId == c.Id)))
+                _db.TestWorkflowStepMedias.Count(sm => sm.MediaIncubationConditionId == c.Id)) { Version = c.Version })
             .ToListAsync();
     }
 
@@ -91,6 +96,7 @@ public class MediaIncubationConditionService
             .Include(c => c.MediaProduct)
             .FirstOrDefaultAsync(c => c.Id == id)
             ?? throw new NotFoundException($"Incubation condition with ID {id} not found.");
+        RecordVersion.EnsureCurrent(_db, condition);
 
         await EnsureNotLockedAsync(id);
 

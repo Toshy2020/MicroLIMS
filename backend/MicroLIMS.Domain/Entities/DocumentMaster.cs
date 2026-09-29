@@ -2,9 +2,10 @@ using MicroLIMS.Domain.Enums;
 
 namespace MicroLIMS.Domain.Entities;
 
-public class DocumentMaster
+public class DocumentMaster : IVersionedEntity
 {
     public int Id { get; set; }
+    public uint Version { get; set; }
     public string MicroLimsDocumentId { get; set; } = string.Empty;
     public string CompanyDocumentCode { get; set; } = string.Empty;
     public string Title { get; set; } = string.Empty;

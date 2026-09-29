@@ -1,7 +1,9 @@
-import { apiClient } from "./apiClient";
+import { apiClient, ifMatch } from "./apiClient";
 
 export type MediaProductOption = {
   id: number;
+  // Row version, sent back as If-Match when this record is edited.
+  version?: number;
   name: string;
   code: string;
   configurationCount: number;
@@ -21,6 +23,8 @@ type IncubationConditionValues = {
 // one; the server locks a condition once either count is above zero.
 export type MediaIncubationConditionOption = IncubationConditionValues & {
   id: number;
+  // Row version, sent back as If-Match when this record is edited.
+  version?: number;
   mediaProductId: number;
   configurationCount: number;
   stepMediaCount: number;
@@ -62,6 +66,8 @@ export type ProductionStageRole = "Other" | "Bulk" | "InProcess" | "Finished" | 
 
 export interface ProductionStageOption {
   id: number;
+  // Row version, sent back as If-Match when this record is edited.
+  version?: number;
   name: string;
   isActive: boolean;
   role: ProductionStageRole;
@@ -69,6 +75,8 @@ export interface ProductionStageOption {
 
 export interface TestDefinitionStageReplicateDto {
   id: number;
+  // Row version, sent back as If-Match when this record is edited.
+  version?: number;
   testDefinitionId: number;
   role: ProductionStageRole;
   standardReplicates: number;
@@ -88,6 +96,8 @@ export interface UpdateTestDefinitionStageReplicateRequest {
 
 export interface TestAnalyteDto {
   id: number;
+  // Row version, sent back as If-Match when this record is edited.
+  version?: number;
   testDefinitionId: number;
   element: string;
   wavelengthNm: number;
@@ -266,14 +276,14 @@ export const masterDataOptions = {
   getCausesOfTesting: () => apiClient.get("/masterdata/causes-of-testing").then((r) => r.data.data),
   createCauseOfTesting: (name: string) =>
     apiClient.post("/masterdata/causes-of-testing", JSON.stringify(name), { headers: { "Content-Type": "application/json" } }).then((r) => r.data.data),
-  updateCauseOfTesting: (id: number, name: string) =>
-    apiClient.put(`/masterdata/causes-of-testing/${id}`, JSON.stringify(name), { headers: { "Content-Type": "application/json" } }).then((r) => r.data.data),
+  updateCauseOfTesting: (id: number, name: string, version?: number) =>
+    apiClient.put(`/masterdata/causes-of-testing/${id}`, JSON.stringify(name), { headers: { "Content-Type": "application/json", ...ifMatch(version).headers } }).then((r) => r.data.data),
   deleteCauseOfTesting: (id: number) => apiClient.delete(`/masterdata/causes-of-testing/${id}`),
   getSamplers: () => apiClient.get("/masterdata/samplers").then((r) => r.data.data),
   createSampler: (name: string) =>
     apiClient.post("/masterdata/samplers", JSON.stringify(name), { headers: { "Content-Type": "application/json" } }).then((r) => r.data.data),
-  updateSampler: (id: number, name: string) =>
-    apiClient.put(`/masterdata/samplers/${id}`, JSON.stringify(name), { headers: { "Content-Type": "application/json" } }).then((r) => r.data.data),
+  updateSampler: (id: number, name: string, version?: number) =>
+    apiClient.put(`/masterdata/samplers/${id}`, JSON.stringify(name), { headers: { "Content-Type": "application/json", ...ifMatch(version).headers } }).then((r) => r.data.data),
   deleteSampler: (id: number) => apiClient.delete(`/masterdata/samplers/${id}`),
   getProductionStages: (): Promise<ProductionStageOption[]> => apiClient.get("/masterdata/production-stages").then((r) => r.data.data),
   // Role is always sent: the backend keys behaviour on it, so a caller must
@@ -282,9 +292,10 @@ export const masterDataOptions = {
     apiClient.post("/masterdata/production-stages", payload).then((r) => r.data.data),
   updateProductionStage: (
     id: number,
-    payload: { name: string; role: ProductionStageRole }
+    payload: { name: string; role: ProductionStageRole },
+    version?: number
   ): Promise<ProductionStageOption> =>
-    apiClient.put(`/masterdata/production-stages/${id}`, payload).then((r) => r.data.data),
+    apiClient.put(`/masterdata/production-stages/${id}`, payload, ifMatch(version)).then((r) => r.data.data),
   deleteProductionStage: (id: number) => apiClient.delete(`/masterdata/production-stages/${id}`),
   getDiluentTypes: () => apiClient.get("/masterdata/diluent-types").then((r) => r.data.data),
   getNeutralizers: () => apiClient.get("/masterdata/neutralizers").then((r) => r.data.data),
@@ -296,8 +307,8 @@ export const masterDataOptions = {
     apiClient.get("/masterdata/media-products").then((r) => r.data.data),
   createMediaProduct: (name: string, code: string) =>
     apiClient.post("/masterdata/media-products", { name, code }).then((r) => r.data.data),
-  renameMediaProduct: (id: number, name: string) =>
-    apiClient.put(`/masterdata/media-products/${id}`, { name }).then((r) => r.data.data),
+  renameMediaProduct: (id: number, name: string, version?: number) =>
+    apiClient.put(`/masterdata/media-products/${id}`, { name }, ifMatch(version)).then((r) => r.data.data),
   changeMediaProductCode: (id: number, code: string, reason: string, password: string) =>
     apiClient.put(`/masterdata/media-products/${id}/code`, { code, reason, password }).then((r) => r.data.data),
   deleteMediaProduct: (id: number) => apiClient.delete(`/masterdata/media-products/${id}`),
@@ -305,21 +316,21 @@ export const masterDataOptions = {
     apiClient.get("/masterdata/media-incubation-conditions", { params: mediaProductId ? { mediaProductId } : {} }).then((r) => r.data.data),
   createMediaIncubationCondition: (payload: IncubationConditionValues & { mediaProductId: number }) =>
     apiClient.post("/masterdata/media-incubation-conditions", payload).then((r) => r.data.data),
-  updateMediaIncubationCondition: (id: number, payload: IncubationConditionValues) =>
-    apiClient.put(`/masterdata/media-incubation-conditions/${id}`, payload).then((r) => r.data.data),
+  updateMediaIncubationCondition: (id: number, payload: IncubationConditionValues, version?: number) =>
+    apiClient.put(`/masterdata/media-incubation-conditions/${id}`, payload, ifMatch(version)).then((r) => r.data.data),
   deleteMediaIncubationCondition: (id: number) => apiClient.delete(`/masterdata/media-incubation-conditions/${id}`),
   getMediaConfigurations: () =>
     apiClient.get("/masterdata/media-configurations").then((r) => r.data.data),
   createMediaConfiguration: (payload: MediaConfigurationPayload) =>
     apiClient.post("/masterdata/media-configurations", payload).then((r) => r.data.data),
-  updateMediaConfiguration: (id: number, payload: MediaConfigurationPayload) =>
-    apiClient.put(`/masterdata/media-configurations/${id}`, payload).then((r) => r.data.data),
+  updateMediaConfiguration: (id: number, payload: MediaConfigurationPayload, version?: number) =>
+    apiClient.put(`/masterdata/media-configurations/${id}`, payload, ifMatch(version)).then((r) => r.data.data),
   deleteMediaConfiguration: (id: number) => apiClient.delete(`/masterdata/media-configurations/${id}`),
   getOrganisms: () => apiClient.get("/masterdata/organisms").then((r) => r.data.data),
   createOrganism: (scientificName: string, atccNumber?: string | null, commonName?: string | null, description?: string | null) =>
     apiClient.post("/masterdata/organisms", { scientificName, atccNumber: atccNumber || null, commonName: commonName || null, description: description || null }).then((r) => r.data.data),
-  updateOrganism: (id: number, scientificName: string, atccNumber?: string | null, commonName?: string | null, description?: string | null) =>
-    apiClient.put(`/masterdata/organisms/${id}`, { scientificName, atccNumber: atccNumber || null, commonName: commonName || null, description: description || null }).then((r) => r.data.data),
+  updateOrganism: (id: number, scientificName: string, atccNumber?: string | null, commonName?: string | null, description?: string | null, version?: number) =>
+    apiClient.put(`/masterdata/organisms/${id}`, { scientificName, atccNumber: atccNumber || null, commonName: commonName || null, description: description || null }, ifMatch(version)).then((r) => r.data.data),
   deleteOrganism: (id: number) => apiClient.delete(`/masterdata/organisms/${id}`),
   getEquationTypes: (): Promise<EquationTypeDto[]> =>
     apiClient.get("/masterdata/equation-types").then((r) => {
@@ -341,11 +352,11 @@ export const masterDataOptions = {
       : codeOrPayload;
     return apiClient.post("/masterdata/test-definitions", payload).then((r) => r.data.data);
   },
-  updateTestDefinition: (id: number, codeOrPayload: string | UpdateTestDefinitionPayload, displayName?: string, sectionId?: number | null) => {
+  updateTestDefinition: (id: number, codeOrPayload: string | UpdateTestDefinitionPayload, displayName?: string, sectionId?: number | null, version?: number) => {
     const payload = typeof codeOrPayload === "string"
       ? { code: codeOrPayload, displayName: displayName ?? codeOrPayload, ...(sectionId != null ? { sectionId } : {}) }
       : codeOrPayload;
-    return apiClient.put(`/masterdata/test-definitions/${id}`, payload).then((r) => r.data.data);
+    return apiClient.put(`/masterdata/test-definitions/${id}`, payload, ifMatch(version)).then((r) => r.data.data);
   },
   freezeTestDefinition: (id: number) =>
     apiClient.put(`/masterdata/test-definitions/${id}/freeze`).then((r) => r.data.data),
@@ -359,24 +370,24 @@ export const masterDataOptions = {
     apiClient.get(`/masterdata/test-definitions/${testDefinitionId}/analytes`).then((r) => r.data.data),
   createTestAnalyte: (testDefinitionId: number, payload: CreateTestAnalyteRequest): Promise<TestAnalyteDto> =>
     apiClient.post(`/masterdata/test-definitions/${testDefinitionId}/analytes`, payload).then((r) => r.data.data),
-  updateTestAnalyte: (testDefinitionId: number, analyteId: number, payload: UpdateTestAnalyteRequest): Promise<TestAnalyteDto> =>
-    apiClient.put(`/masterdata/test-definitions/${testDefinitionId}/analytes/${analyteId}`, payload).then((r) => r.data.data),
+  updateTestAnalyte: (testDefinitionId: number, analyteId: number, payload: UpdateTestAnalyteRequest, version?: number): Promise<TestAnalyteDto> =>
+    apiClient.put(`/masterdata/test-definitions/${testDefinitionId}/analytes/${analyteId}`, payload, ifMatch(version)).then((r) => r.data.data),
   deleteTestAnalyte: (testDefinitionId: number, analyteId: number): Promise<{ message?: string; deactivated?: boolean; deleted?: boolean }> =>
     apiClient.delete(`/masterdata/test-definitions/${testDefinitionId}/analytes/${analyteId}`).then((r) => r.data.data),
   getTestDefinitionStageReplicates: (testDefinitionId: number): Promise<TestDefinitionStageReplicateDto[]> =>
     apiClient.get(`/masterdata/test-definitions/${testDefinitionId}/stage-replicates`).then((r) => r.data.data),
   createTestDefinitionStageReplicate: (testDefinitionId: number, payload: CreateTestDefinitionStageReplicateRequest): Promise<TestDefinitionStageReplicateDto> =>
     apiClient.post(`/masterdata/test-definitions/${testDefinitionId}/stage-replicates`, payload).then((r) => r.data.data),
-  updateTestDefinitionStageReplicate: (testDefinitionId: number, replicateId: number, payload: UpdateTestDefinitionStageReplicateRequest): Promise<TestDefinitionStageReplicateDto> =>
-    apiClient.put(`/masterdata/test-definitions/${testDefinitionId}/stage-replicates/${replicateId}`, payload).then((r) => r.data.data),
+  updateTestDefinitionStageReplicate: (testDefinitionId: number, replicateId: number, payload: UpdateTestDefinitionStageReplicateRequest, version?: number): Promise<TestDefinitionStageReplicateDto> =>
+    apiClient.put(`/masterdata/test-definitions/${testDefinitionId}/stage-replicates/${replicateId}`, payload, ifMatch(version)).then((r) => r.data.data),
   deleteTestDefinitionStageReplicate: (testDefinitionId: number, replicateId: number): Promise<{ message?: string; deleted?: boolean }> =>
     apiClient.delete(`/masterdata/test-definitions/${testDefinitionId}/stage-replicates/${replicateId}`).then((r) => r.data.data),
   getMaterials: (type?: string) =>
     apiClient.get("/inventory/materials", { params: type ? { type } : {} }).then((r) => r.data.data),
   createTestWorkflowStep: (testDefinitionId: number, payload: TestWorkflowStepPayload) =>
     apiClient.post(`/masterdata/test-definitions/${testDefinitionId}/steps`, payload).then((r) => r.data.data),
-  updateTestWorkflowStep: (stepId: number, payload: TestWorkflowStepPayload) =>
-    apiClient.put(`/masterdata/test-definitions/steps/${stepId}`, payload).then((r) => r.data.data),
+  updateTestWorkflowStep: (stepId: number, payload: TestWorkflowStepPayload, version?: number) =>
+    apiClient.put(`/masterdata/test-definitions/steps/${stepId}`, payload, ifMatch(version)).then((r) => r.data.data),
   moveTestWorkflowStep: (stepId: number, direction: "up" | "down") =>
     apiClient.put(`/masterdata/test-definitions/steps/${stepId}/move`, { direction }).then((r) => r.data.data),
   deleteTestWorkflowStep: (stepId: number) => apiClient.delete(`/masterdata/test-definitions/steps/${stepId}`)

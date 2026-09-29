@@ -637,7 +637,7 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
     try {
       if (isEditing && editingSpec?.id != null) {
         const updatePayload: UpdateSpecificationPayload = basePayload;
-        await SpecificationService.update(editingSpec.id, updatePayload);
+        await SpecificationService.update(editingSpec.id, updatePayload, editingSpec.version);
       } else {
         const createPayload: CreateSpecificationPayload = {
           itemId: item.id,

@@ -95,7 +95,7 @@ export function ProductionStagesCard() {
         await masterDataOptions.updateProductionStage(editing.id, {
           name: trimmed,
           role
-        });
+        }, editing.version);
         setMessage({ text: `Renamed to "${trimmed}".`, ok: true });
       } else {
         await masterDataOptions.createProductionStage({

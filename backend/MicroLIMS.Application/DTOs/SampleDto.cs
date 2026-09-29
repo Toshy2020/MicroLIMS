@@ -37,6 +37,8 @@ public class TestOrderSummaryDto
 public class SampleDto
 {
     public int SampleId { get; set; }
+    // The sample's row version, sent back as If-Match with a correction.
+    public uint Version { get; set; }
     public int? ItemId { get; set; }
     public string ReferenceNumber { get; set; } = string.Empty;
     public string Category { get; set; } = string.Empty;

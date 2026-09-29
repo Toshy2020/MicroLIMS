@@ -37,6 +37,7 @@ public class WaterMasterDataService
     {
         var point = await _db.WaterSamplingPoints.FirstOrDefaultAsync(p => p.Id == id)
             ?? throw new NotFoundException($"Sampling point {id} not found.");
+        RecordVersion.EnsureCurrent(_db, point);
         point.Code = request.Code;
         point.Location = request.Location;
         point.TestingFrequency = request.TestingFrequency;
@@ -73,10 +74,10 @@ public class WaterMasterDataService
         var departments = await _db.WaterDepartments
             .Select(d => new
             {
-                d.Id, d.Name,
+                d.Id, d.Version, d.Name,
                 SamplingPoints = d.SamplingPoints.Select(p => new
                 {
-                    p.Id, p.Code, p.Location, p.TestingFrequency, p.WaterDepartmentId, p.AssignedTestCodes
+                    p.Id, p.Version, p.Code, p.Location, p.TestingFrequency, p.WaterDepartmentId, p.AssignedTestCodes
                 })
             })
             .ToListAsync();
@@ -95,6 +96,7 @@ public class WaterMasterDataService
     {
         var dept = await _db.WaterDepartments.FirstOrDefaultAsync(d => d.Id == id)
             ?? throw new NotFoundException($"Water department {id} not found.");
+        RecordVersion.EnsureCurrent(_db, dept);
         dept.Name = request.Name;
         await _db.SaveChangesAsync();
         return WaterDepartmentResponse.From(dept);
@@ -134,6 +136,7 @@ public class WaterMasterDataService
     {
         var entity = await _db.SamplingConfigurations.FirstOrDefaultAsync(c => c.Id == id)
             ?? throw new NotFoundException($"Water sampling configuration {id} not found.");
+        RecordVersion.EnsureCurrent(_db, entity);
         entity.TestCode = request.TestCode;
         entity.AlertLimit = request.AlertLimit;
         entity.ActionLimit = request.ActionLimit;

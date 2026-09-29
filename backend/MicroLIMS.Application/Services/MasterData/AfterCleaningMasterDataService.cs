@@ -28,7 +28,7 @@ public class AfterCleaningMasterDataService
         // navigation cycle EF's relationship fixup creates when both
         // sides are tracked in the same query.
         var machines = await _db.Machines
-            .Select(m => new { m.Id, m.Name, Parts = m.Parts.Select(p => new { p.Id, p.Name, p.MachineId }) })
+            .Select(m => new { m.Id, m.Version, m.Name, Parts = m.Parts.Select(p => new { p.Id, p.Version, p.Name, p.MachineId }) })
             .ToListAsync();
         return machines;
     }
@@ -45,6 +45,7 @@ public class AfterCleaningMasterDataService
     {
         var machine = await _db.Machines.FirstOrDefaultAsync(m => m.Id == id)
             ?? throw new NotFoundException($"Machine {id} not found.");
+        RecordVersion.EnsureCurrent(_db, machine);
         machine.Name = request.Name;
         await _db.SaveChangesAsync();
         return MachineResponse.From(machine);
@@ -83,6 +84,7 @@ public class AfterCleaningMasterDataService
     {
         var part = await _db.MachineParts.FirstOrDefaultAsync(p => p.Id == id)
             ?? throw new NotFoundException($"Machine part {id} not found.");
+        RecordVersion.EnsureCurrent(_db, part);
         part.Name = request.Name;
         part.MachineId = request.MachineId;
         await _db.SaveChangesAsync();
@@ -127,6 +129,7 @@ public class AfterCleaningMasterDataService
     {
         var entity = await _db.MachinePartConfigurations.FirstOrDefaultAsync(c => c.Id == id)
             ?? throw new NotFoundException($"Machine part configuration {id} not found.");
+        RecordVersion.EnsureCurrent(_db, entity);
         entity.TestType = request.TestType;
         entity.TestCode = request.TestCode;
         entity.AlertLimit = request.AlertLimit;

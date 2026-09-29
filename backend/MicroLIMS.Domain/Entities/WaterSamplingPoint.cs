@@ -1,8 +1,9 @@
 namespace MicroLIMS.Domain.Entities;
 
-public class WaterSamplingPoint
+public class WaterSamplingPoint : IVersionedEntity
 {
     public int Id { get; set; }
+    public uint Version { get; set; }
     public string Code { get; set; } = string.Empty;
     public string Location { get; set; } = string.Empty;
     public string TestingFrequency { get; set; } = string.Empty;

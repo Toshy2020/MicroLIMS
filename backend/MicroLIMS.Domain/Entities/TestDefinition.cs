@@ -16,9 +16,10 @@ namespace MicroLIMS.Domain.Entities;
 // PathogenWorkflowEngine/CountTestWorkflowEngine - TestWorkflowEngine
 // reads these to know what to do for ANY test code, never comparing
 // against a literal code itself.
-public class TestDefinition
+public class TestDefinition : IVersionedEntity
 {
     public int Id { get; set; }
+    public uint Version { get; set; }
     public string Code { get; set; } = string.Empty; // e.g. "TAMC", "PATHOGEN_SALMONELLA"
     public string DisplayName { get; set; } = string.Empty; // e.g. "Total Aerobic Microbial Count", "Pathogen - Salmonella"
 

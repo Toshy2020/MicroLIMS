@@ -377,6 +377,8 @@ public class DocumentMasterService : IDocumentMasterService
             .FirstOrDefaultAsync(d => d.Id == id)
             ?? throw new KeyNotFoundException($"Document Master {id} not found.");
 
+        RecordVersion.EnsureCurrent(_db, master);
+
         if (master.RecordStatus == DocumentRecordStatus.Void)
             throw new InvalidOperationException("A voided document cannot be edited.");
 
@@ -783,7 +785,7 @@ public class DocumentMasterService : IDocumentMasterService
                 a.AssignedByUser?.FullName ?? ""
             )).ToList(),
             m.Revisions.OrderByDescending(r => r.RevisionSequence).Select(MapRevisionToDto).ToList()
-        );
+        ) { Version = m.Version };
     }
 
     private static DocumentRevisionDto MapRevisionToDto(DocumentRevision r)

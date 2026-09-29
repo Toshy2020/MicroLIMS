@@ -387,6 +387,7 @@ public class TestDefinitionMasterDataService
     {
         var entity = await _db.TestDefinitions.FirstOrDefaultAsync(t => t.Id == id)
             ?? throw new NotFoundException($"Test {id} not found.");
+        RecordVersion.EnsureCurrent(_db, entity);
 
         if (await _db.TestDefinitions.AnyAsync(t => t.Code == request.Code && t.Id != id))
             throw new InvalidOperationException($"Test code \"{request.Code}\" already exists in the Test Master.");

@@ -8,6 +8,8 @@ export const EQUIPMENT_STATUS_LABELS: Record<EquipmentStatus, string> = {
 
 export interface EquipmentItem {
   id: number;
+  // Row version, sent back as If-Match when this record is edited.
+  version?: number;
   instrumentType: string;
   manufacturerName: string;
   serialNumber: string | null;

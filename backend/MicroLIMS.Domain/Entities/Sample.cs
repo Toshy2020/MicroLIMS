@@ -2,9 +2,10 @@ using MicroLIMS.Domain.Enums;
 
 namespace MicroLIMS.Domain.Entities;
 
-public class Sample
+public class Sample : IVersionedEntity
 {
     public int Id { get; set; }
+    public uint Version { get; set; }
 
     // System-generated internal reference number - replaces the old
     // paper "Samples Receiving Record Page No." concept entirely.

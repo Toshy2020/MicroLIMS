@@ -1,9 +1,10 @@
 using MicroLIMS.Domain.Constants;
 namespace MicroLIMS.Domain.Entities;
 
-public class RevisionChangeItem
+public class RevisionChangeItem : IVersionedEntity
 {
     public int Id { get; set; }
+    public uint Version { get; set; }
 
     public int DocumentRevisionId { get; set; }
     public DocumentRevision DocumentRevision { get; set; } = null!;

@@ -126,7 +126,7 @@ export function RegisterEquipmentDialog({
     setSaving(true);
     try {
       if (editingItem) {
-        await EquipmentInventoryService.update(editingItem.id, payload);
+        await EquipmentInventoryService.update(editingItem.id, payload, editingItem.version);
         onSuccess("Equipment updated successfully.");
       } else {
         await EquipmentInventoryService.create(payload);

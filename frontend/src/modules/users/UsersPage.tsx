@@ -107,7 +107,7 @@ export function UsersPage() {
   const handleSaveProfile = async () => {
     if (!editProfileUser) return;
     try {
-      await UserService.updateProfile(editProfileUser.id, editFullName, editUsername, editEmail || null);
+      await UserService.updateProfile(editProfileUser.id, editFullName, editUsername, editEmail || null, editProfileUser.version);
       toast.success(`Profile updated for ${editUsername}.`);
       setEditProfileUser(null);
       load();

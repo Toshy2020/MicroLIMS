@@ -17,9 +17,10 @@ namespace MicroLIMS.Domain.Entities;
 //
 // Every insert/update is captured automatically by
 // MicroLimsDbContext.SaveChanges into AuditLog (Frozen Principle #5).
-public class Material
+public class Material : IVersionedEntity
 {
     public int Id { get; set; }
+    public uint Version { get; set; }
 
     public int SectionId { get; set; }
     public DocumentSection? Section { get; set; }

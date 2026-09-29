@@ -1,5 +1,6 @@
 using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
+using MicroLIMS.Application.Helpers;
 using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
@@ -160,6 +161,7 @@ public class MaterialService
 
         var entity = await _db.Materials.FindAsync(id)
             ?? throw new NotFoundException($"Material {id} not found.");
+        RecordVersion.EnsureCurrent(_db, entity);
 
         int? mediaProductId = null;
         string materialName = r.MaterialName;

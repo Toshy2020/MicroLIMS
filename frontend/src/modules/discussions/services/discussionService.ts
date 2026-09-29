@@ -1,4 +1,4 @@
-import { apiClient } from "../../../services/apiClient";
+import { apiClient, ifMatch } from "../../../services/apiClient";
 import {
   DiscussionCategory,
   DiscussionPostSummary,
@@ -39,9 +39,10 @@ export const discussionService = {
 
   async updatePost(
     id: number,
-    data: { title: string; content: string; category: number; isImportant: boolean }
+    data: { title: string; content: string; category: number; isImportant: boolean },
+    version?: number
   ): Promise<DiscussionPostDetail> {
-    const res = await apiClient.put(`/discussions/${id}`, data);
+    const res = await apiClient.put(`/discussions/${id}`, data, ifMatch(version));
     return res.data.data;
   },
 
@@ -78,8 +79,8 @@ export const discussionService = {
     return res.data.data;
   },
 
-  async updateComment(postId: number, commentId: number, content: string): Promise<DiscussionComment> {
-    const res = await apiClient.put(`/discussions/${postId}/comments/${commentId}`, { content });
+  async updateComment(postId: number, commentId: number, content: string, version?: number): Promise<DiscussionComment> {
+    const res = await apiClient.put(`/discussions/${postId}/comments/${commentId}`, { content }, ifMatch(version));
     return res.data.data;
   },
 

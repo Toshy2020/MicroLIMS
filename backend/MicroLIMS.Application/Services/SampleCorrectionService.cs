@@ -78,6 +78,7 @@ public class SampleCorrectionService
         var trimmedReason = reason.Trim();
 
         var sample = await LoadSampleAsync(sampleId);
+        RecordVersion.EnsureCurrent(_db, sample);
 
         if (!IsCorrectable(sample.Status))
             throw new InvalidOperationException(

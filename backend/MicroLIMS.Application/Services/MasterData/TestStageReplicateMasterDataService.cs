@@ -77,6 +77,7 @@ public class TestStageReplicateMasterDataService
 
         var replicate = await _db.TestDefinitionStageReplicates.FirstOrDefaultAsync(r => r.Id == replicateId && r.TestDefinitionId == id)
             ?? throw new NotFoundException($"Stage replicate {replicateId} not found for test {id}.");
+        RecordVersion.EnsureCurrent(_db, replicate);
 
         if (request.StandardReplicates.HasValue)
         {

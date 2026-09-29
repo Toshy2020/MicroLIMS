@@ -151,7 +151,7 @@ export const RevisionChangeItemsDialog: React.FC<RevisionChangeItemsDialogProps>
         changeRationale: item.changeRationale,
         changeCategory: item.changeCategory,
         status: nextStatus
-      });
+      }, item.version);
       await loadItems();
       if (onChanged) onChanged();
     } catch (err: any) {

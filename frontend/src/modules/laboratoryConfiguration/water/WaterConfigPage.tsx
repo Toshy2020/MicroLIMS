@@ -15,8 +15,8 @@ import { useTestDefinitions } from "../../../hooks/useTestDefinitions";
 import { WaterConfigService } from "./services/WaterConfigService";
 import { tableHeadSx } from "../../../theme";
 
-interface SamplingPoint { id: number; code: string; location: string; testingFrequency: string; assignedTestCodes: string[]; waterDepartmentId: number | null }
-interface WaterDept { id: number; name: string; samplingPoints: SamplingPoint[] }
+interface SamplingPoint { id: number; version?: number; code: string; location: string; testingFrequency: string; assignedTestCodes: string[]; waterDepartmentId: number | null }
+interface WaterDept { id: number; version?: number; name: string; samplingPoints: SamplingPoint[] }
 
 // Per-sample-location limit rows. Only CountTest-typed assigned tests
 // (TAMC-Water/TYMC) get Alert/Action/Spec - pathogens are presence/
@@ -49,7 +49,7 @@ function SamplingPointTestConfigSection({ point }: { point: SamplingPoint }) {
     if (!form.testCode) { setError("Select a count test."); return; }
     try {
       if (editingId) {
-        await WaterConfigService.updateSamplingConfiguration(editingId, form.testCode, form.alertLimit ?? "", form.actionLimit ?? "", form.specLimit ?? "", form.unit ?? "");
+        await WaterConfigService.updateSamplingConfiguration(editingId, form.testCode, form.alertLimit ?? "", form.actionLimit ?? "", form.specLimit ?? "", form.unit ?? "", configs.find((c) => c.id === editingId)?.version);
       } else {
         await WaterConfigService.createSamplingConfiguration(point.id, form.testCode, form.alertLimit ?? "", form.actionLimit ?? "", form.specLimit ?? "", form.unit ?? "");
       }
@@ -163,7 +163,7 @@ export function WaterConfigPage() {
   const saveDept = async () => {
     setMessage(null);
     try {
-      if (editingDeptId) { await WaterConfigService.updateWaterDepartment(editingDeptId, deptForm.name); setMessage({ text: "Department updated.", ok: true }); }
+      if (editingDeptId) { await WaterConfigService.updateWaterDepartment(editingDeptId, deptForm.name, departments.find((d) => d.id === editingDeptId)?.version); setMessage({ text: "Department updated.", ok: true }); }
       else { await WaterConfigService.createWaterDepartment(deptForm.name); setMessage({ text: "Department created.", ok: true }); }
       cancelDeptEdit(); load();
     } catch (e: any) { setMessage({ text: e?.response?.data?.message ?? "Could not save this department.", ok: false }); }
@@ -180,7 +180,7 @@ export function WaterConfigPage() {
     setMessage(null);
     if (!pointForm.code || !pointForm.departmentId) { setMessage({ text: "Point Code and Department are required.", ok: false }); return; }
     try {
-      if (editingPointId) { await WaterConfigService.updateSamplingPoint(editingPointId, pointForm.code, pointForm.location ?? "", pointForm.frequency ?? "", pointForm.testCodes ?? [], Number(pointForm.departmentId)); setMessage({ text: "Sample location updated.", ok: true }); }
+      if (editingPointId) { await WaterConfigService.updateSamplingPoint(editingPointId, pointForm.code, pointForm.location ?? "", pointForm.frequency ?? "", pointForm.testCodes ?? [], Number(pointForm.departmentId), departments.flatMap((d) => d.samplingPoints ?? []).find((p) => p.id === editingPointId)?.version); setMessage({ text: "Sample location updated.", ok: true }); }
       else { await WaterConfigService.createSamplingPoint(pointForm.code, pointForm.location ?? "", pointForm.frequency ?? "", pointForm.testCodes ?? [], Number(pointForm.departmentId)); setMessage({ text: "Sample location created.", ok: true }); }
       cancelPointEdit(); load();
     } catch (e: any) { setMessage({ text: e?.response?.data?.message ?? "Could not save this sample location.", ok: false }); }

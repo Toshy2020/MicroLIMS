@@ -483,7 +483,7 @@ export function AddMaterialDialog({ open, onClose, onSuccess, editingItem }: Add
     setSaving(true);
     try {
       if (editingItem) {
-        await MaterialService.update(editingItem.id, payload);
+        await MaterialService.update(editingItem.id, payload, editingItem.version);
         onSuccess("Material stock updated successfully.");
       } else {
         await MaterialService.create(payload);

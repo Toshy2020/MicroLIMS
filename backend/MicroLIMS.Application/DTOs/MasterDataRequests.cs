@@ -123,7 +123,11 @@ public record SpecificationRowDto(
     DosageForm? DosageForm,
     List<SpecificationStageResponse> Stages,
     bool CanEdit,
-    string SectionName);
+    string SectionName)
+{
+    // The record's row version, sent back as If-Match with an edit.
+    public uint Version { get; init; }
+}
 public record CreateDiluentTypeRequest(string Name, bool RequiresBatchTracking, int? MaterialId);
 public record CreateProductionStageRequest(string Name, ProductionStageRole Role);
 public record UpdateProductionStageRequest(string Name, ProductionStageRole Role);

@@ -8,6 +8,7 @@ namespace MicroLIMS.Application.DTOs.Responses;
 public class ItemResponse
 {
     public int Id { get; init; }
+    public uint Version { get; init; }
     public string Name { get; init; } = null!;
     public string Code { get; init; } = null!;
     public SampleCategory Category { get; init; }
@@ -19,6 +20,7 @@ public class ItemResponse
     public static ItemResponse From(Item e) => new()
     {
         Id = e.Id,
+        Version = e.Version,
         Name = e.Name,
         Code = e.Code,
         Category = e.Category,
@@ -48,6 +50,7 @@ public class SampleTestResponse
 public class MaterialResponse
 {
     public int Id { get; init; }
+    public uint Version { get; init; }
     public int SectionId { get; init; }
     public DocumentSectionResponse? Section { get; init; }
     public MaterialType MaterialType { get; init; }
@@ -79,6 +82,7 @@ public class MaterialResponse
     public static MaterialResponse From(Material e) => new()
     {
         Id = e.Id,
+        Version = e.Version,
         SectionId = e.SectionId,
         Section = e.Section is null ? null : DocumentSectionResponse.From(e.Section),
         MaterialType = e.MaterialType,
@@ -112,6 +116,7 @@ public class MaterialResponse
 public class EquipmentInventoryResponse
 {
     public int Id { get; init; }
+    public uint Version { get; init; }
     public string InstrumentType { get; init; } = null!;
     public string ManufacturerName { get; init; } = null!;
     public string? SerialNumber { get; init; }
@@ -131,6 +136,7 @@ public class EquipmentInventoryResponse
     public static EquipmentInventoryResponse From(EquipmentInventory e) => new()
     {
         Id = e.Id,
+        Version = e.Version,
         InstrumentType = e.InstrumentType,
         ManufacturerName = e.ManufacturerName,
         SerialNumber = e.SerialNumber,

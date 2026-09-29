@@ -113,6 +113,8 @@ export interface DocumentMasterAssignmentDto {
 
 export interface DocumentMasterDto {
   id: number;
+  // Row version, sent back as If-Match when this record is edited.
+  version?: number;
   microLimsDocumentId: string;
   companyDocumentCode: string;
   title: string;
@@ -252,6 +254,8 @@ export interface CreateAssignmentRequest {
 
 export interface DocumentTypeDto {
   id: number;
+  // Row version, sent back as If-Match when this record is edited.
+  version?: number;
   code: string;
   name: string;
   defaultReviewCycleMonths: number;
@@ -272,6 +276,8 @@ export interface UpdateDocumentTypeRequest {
 
 export interface DocumentSectionDto {
   id: number;
+  // Row version, sent back as If-Match when this record is edited.
+  version?: number;
   departmentId: number;
   departmentName: string;
   name: string;
@@ -280,6 +286,8 @@ export interface DocumentSectionDto {
 
 export interface DocumentDepartmentDto {
   id: number;
+  // Row version, sent back as If-Match when this record is edited.
+  version?: number;
   code: string;
   name: string;
   isActive: boolean;
@@ -508,6 +516,8 @@ export interface ProposeNextRevisionResponse {
 
 export interface RevisionChangeItemDto {
   id: number;
+  // Row version, sent back as If-Match when this record is edited.
+  version?: number;
   documentRevisionId: number;
   sectionNumber: string;
   sectionTitle: string;

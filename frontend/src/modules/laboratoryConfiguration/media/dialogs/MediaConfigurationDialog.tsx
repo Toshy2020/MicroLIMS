@@ -202,7 +202,7 @@ export function MediaConfigurationDialog({
     setSaving(true);
     try {
       if (configToEdit) {
-        await masterDataOptions.updateMediaConfiguration(configToEdit.id, payload);
+        await masterDataOptions.updateMediaConfiguration(configToEdit.id, payload, configToEdit.version);
       } else {
         await masterDataOptions.createMediaConfiguration(payload);
       }

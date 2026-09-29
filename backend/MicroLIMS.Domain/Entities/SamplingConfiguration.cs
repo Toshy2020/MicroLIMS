@@ -2,9 +2,10 @@ namespace MicroLIMS.Domain.Entities;
 
 // Generalized sampling configuration for Water sampling points (and
 // reusable for any future point-based sampling domain).
-public class SamplingConfiguration
+public class SamplingConfiguration : IVersionedEntity
 {
     public int Id { get; set; }
+    public uint Version { get; set; }
     public int WaterSamplingPointId { get; set; }
     public WaterSamplingPoint? WaterSamplingPoint { get; set; }
     public string TestCode { get; set; } = string.Empty;

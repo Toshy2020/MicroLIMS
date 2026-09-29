@@ -10,9 +10,10 @@ namespace MicroLIMS.Domain.Entities;
 // means "not configured for that stage" - distinct from a configured
 // zero, which is rejected outright (StandardReplicates/SampleReplicates
 // must both be >= 1).
-public class TestDefinitionStageReplicate
+public class TestDefinitionStageReplicate : IVersionedEntity
 {
     public int Id { get; set; }
+    public uint Version { get; set; }
 
     public int TestDefinitionId { get; set; }
     public TestDefinition? TestDefinition { get; set; }

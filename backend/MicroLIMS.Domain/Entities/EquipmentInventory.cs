@@ -15,9 +15,10 @@ namespace MicroLIMS.Domain.Entities;
 // EquipmentType enum and risk breaking the FK the workflow engines
 // depend on. This register is a pure asset/calibration list; nothing
 // in the workflow engines reads from it.
-public class EquipmentInventory
+public class EquipmentInventory : IVersionedEntity
 {
     public int Id { get; set; }
+    public uint Version { get; set; }
 
     public string InstrumentType { get; set; } = string.Empty; // free text - too varied for a fixed enum (Incubator, Pipette, pH meter, Ruler, ...)
     public string ManufacturerName { get; set; } = string.Empty;

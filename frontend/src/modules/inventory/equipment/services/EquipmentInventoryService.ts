@@ -1,4 +1,4 @@
-import { apiClient } from "../../../../services/apiClient";
+import { apiClient, ifMatch } from "../../../../services/apiClient";
 import type {
   EquipmentDocument,
   EquipmentDocumentType,
@@ -64,7 +64,7 @@ export const EquipmentInventoryService = {
   whereIsIt: (query: string): Promise<WhereIsItResultDto> =>
     apiClient.get("/inventory/equipment/where-is-it", { params: { query } }).then((r) => r.data.data),
   create: (payload: any) => apiClient.post("/inventory/equipment", payload).then((r) => r.data.data),
-  update: (id: number, payload: any) => apiClient.put(`/inventory/equipment/${id}`, payload).then((r) => r.data.data),
+  update: (id: number, payload: any, version?: number) => apiClient.put(`/inventory/equipment/${id}`, payload, ifMatch(version)).then((r) => r.data.data),
 
   getStatusHistory: (equipmentId: number): Promise<EquipmentStatusHistoryItem[]> =>
     apiClient.get(`/inventory/equipment/${equipmentId}/status-history`).then((r) => r.data.data),

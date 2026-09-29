@@ -27,7 +27,7 @@ export function useMediaProducts() {
   };
 
   const rename = async (id: number, name: string) => {
-    const updated = await masterDataOptions.renameMediaProduct(id, name);
+    const updated = await masterDataOptions.renameMediaProduct(id, name, options.find((o) => o.id === id)?.version);
     await reload();
     return updated as MediaProductOption;
   };

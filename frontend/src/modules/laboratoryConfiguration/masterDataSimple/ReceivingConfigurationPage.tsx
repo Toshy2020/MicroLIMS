@@ -25,6 +25,8 @@ import { ProductionStagesCard } from "./ProductionStagesCard";
 
 interface NamedOption {
   id: number;
+  // Row version, sent back as If-Match when this record is edited.
+  version?: number;
   name: string;
 }
 
@@ -40,7 +42,7 @@ interface NameListCardProps {
   icon: React.ReactNode;
   load: () => Promise<NamedOption[]>;
   create: (name: string) => Promise<NamedOption>;
-  update: (id: number, name: string) => Promise<NamedOption>;
+  update: (id: number, name: string, version?: number) => Promise<NamedOption>;
   remove: (id: number) => Promise<unknown>;
 }
 
@@ -102,7 +104,7 @@ function NameListCard({
     setMessage(null);
     try {
       if (editing) {
-        await update(editing.id, trimmed);
+        await update(editing.id, trimmed, editing.version);
         setMessage({ text: `Renamed to "${trimmed}".`, ok: true });
       } else {
         await create(trimmed);

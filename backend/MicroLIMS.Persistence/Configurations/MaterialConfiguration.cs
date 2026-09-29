@@ -20,6 +20,9 @@ public class MaterialConfiguration : IEntityTypeConfiguration<Material>
         builder.Property(m => m.QuantityRemaining).HasColumnType("decimal(18,3)");
         builder.Property(m => m.MinimumStockLevel).HasColumnType("decimal(18,3)");
         builder.Property(m => m.Purity).HasColumnType("decimal(6,3)");
+        builder.Property(m => m.MoisturePercent).HasColumnType("decimal(6,3)");
+        builder.HasOne(m => m.MaterialMasterEntry).WithMany().HasForeignKey(m => m.MaterialMasterEntryId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasIndex(m => m.MaterialMasterEntryId);
 
         // Not a unique constraint - the same material/code is legitimately
         // received again under a new batch/lot, exactly like the source list.

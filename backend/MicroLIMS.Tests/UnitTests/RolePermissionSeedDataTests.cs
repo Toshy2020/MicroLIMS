@@ -106,10 +106,12 @@ public class RolePermissionSeedDataTests
             PermissionConstants.DocumentsTrainingAssign, PermissionConstants.DocumentsTrainingViewMatrix,
             PermissionConstants.DashboardsLabOverview, PermissionConstants.DashboardsReview, PermissionConstants.KpiView, PermissionConstants.MediaPrepare, PermissionConstants.MediaRelease, PermissionConstants.OosManage, PermissionConstants.TestWorkflowSupervise, PermissionConstants.SamplesReceiveOwnLab, PermissionConstants.SamplesCorrect, PermissionConstants.SamplesAssignAnalyst,
             // HPLC chain S4 - Solution Preparation area.
-            PermissionConstants.SolutionsPrepare
+            PermissionConstants.SolutionsPrepare,
+            // HPLC chain S6 - HPLC Workspace.
+            PermissionConstants.HplcOperate
         };
 
-        Assert.Equal(39, codes.Count);
+        Assert.Equal(40, codes.Count);
         Assert.Equal(expected.OrderBy(c => c), codes.OrderBy(c => c));
         // Not granted to SectionHead per the catalog:
         Assert.DoesNotContain(PermissionConstants.UsersManage, codes);
@@ -163,10 +165,12 @@ public class RolePermissionSeedDataTests
             PermissionConstants.DocumentsRevisionCreate,
             PermissionConstants.MediaPrepare, PermissionConstants.SamplesReceiveOwnLab,
             // HPLC chain S4 - Solution Preparation area.
-            PermissionConstants.SolutionsPrepare
+            PermissionConstants.SolutionsPrepare,
+            // HPLC chain S6 - HPLC Workspace.
+            PermissionConstants.HplcOperate
         };
 
-        Assert.Equal(13, codes.Count);
+        Assert.Equal(14, codes.Count);
         Assert.Equal(expected.OrderBy(c => c), codes.OrderBy(c => c));
         Assert.DoesNotContain(PermissionConstants.SamplesReview, codes);
         Assert.DoesNotContain(PermissionConstants.CryovialsApprove, codes);
@@ -183,9 +187,11 @@ public class RolePermissionSeedDataTests
         // and SectionHead only. Solutions.Prepare (HPLC chain S4) is granted
         // to SystemAdministrator, SectionHead and Analyst - +3 over the prior
         // 110 (SystemAdministrator holds it via PermissionConstants.All).
+        // Hplc.Operate (HPLC chain S6) is granted to the same three roles -
+        // another +3, for 116.
         var db = CreateSeededDbContext();
         var total = await db.RolePermissions.CountAsync();
-        Assert.Equal(113, total);
+        Assert.Equal(116, total);
     }
 
     [Fact]
@@ -195,7 +201,7 @@ public class RolePermissionSeedDataTests
         DbSeeder.SeedPermissionsAndGrants(db); // second call
 
         Assert.Equal(PermissionConstants.All.Count, await db.Permissions.CountAsync());
-        Assert.Equal(113, await db.RolePermissions.CountAsync());
+        Assert.Equal(116, await db.RolePermissions.CountAsync());
     }
 
     [Fact]

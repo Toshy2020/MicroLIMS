@@ -27,7 +27,8 @@ public class PermissionEnforcementMigrationPostgresTests
     // this migration never sees them.
     private static readonly string[] AddedByLaterMigrations =
     {
-        PermissionConstants.SolutionsPrepare
+        PermissionConstants.SolutionsPrepare,
+        PermissionConstants.HplcOperate
     };
 
     private readonly PostgresTestFixture _fixture;

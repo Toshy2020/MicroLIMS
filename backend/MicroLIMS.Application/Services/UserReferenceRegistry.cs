@@ -211,5 +211,12 @@ public static class UserReferenceRegistry
 
         // HPLC chain S5 - Titrant standardization
         new UserReferenceEntry(typeof(TitrantStandardization), nameof(TitrantStandardization.StandardizedByUserId), UserReferenceDisposition.Blocks, "No DB FK - GMP record, analyst who signed the standardization"),
+
+        // HPLC chain S6 - HPLC Workspace
+        new UserReferenceEntry(typeof(HplcRun), nameof(HplcRun.AnalystUserId), UserReferenceDisposition.Blocks, "No DB FK - GMP record, analyst who started the run"),
+        new UserReferenceEntry(typeof(HplcSstRecord), nameof(HplcSstRecord.ConfirmedByUserId), UserReferenceDisposition.Blocks, "No DB FK - GMP record, analyst who signed the system suitability confirmation"),
+        new UserReferenceEntry(typeof(HplcRunSample), nameof(HplcRunSample.AssignedByUserId), UserReferenceDisposition.Blocks, "No DB FK - GMP record, provenance of sample assignment"),
+        new UserReferenceEntry(typeof(HplcRunSample), nameof(HplcRunSample.RemovedByUserId), UserReferenceDisposition.Blocks, "No DB FK - GMP record, provenance of sample removal"),
+        new UserReferenceEntry(typeof(HplcEvidence), nameof(HplcEvidence.UploadedByUserId), UserReferenceDisposition.Blocks, "No DB FK - GMP record, evidence uploader"),
     };
 }

@@ -119,6 +119,15 @@ public class MicroLimsDbContext : Microsoft.EntityFrameworkCore.DbContext, IMicr
     public DbSet<SolutionPreparationStatusHistory> SolutionPreparationStatusHistories => Set<SolutionPreparationStatusHistory>();
     public DbSet<TitrantStandardization> TitrantStandardizations => Set<TitrantStandardization>();
     public DbSet<TitrantStandardizationReplicate> TitrantStandardizationReplicates => Set<TitrantStandardizationReplicate>();
+    public DbSet<HplcRun> HplcRuns => Set<HplcRun>();
+    public DbSet<HplcRunMobilePhase> HplcRunMobilePhases => Set<HplcRunMobilePhase>();
+    public DbSet<HplcSstRecord> HplcSstRecords => Set<HplcSstRecord>();
+    public DbSet<HplcSstAnalyte> HplcSstAnalytes => Set<HplcSstAnalyte>();
+    public DbSet<HplcSstInjection> HplcSstInjections => Set<HplcSstInjection>();
+    public DbSet<HplcRunSample> HplcRunSamples => Set<HplcRunSample>();
+    public DbSet<HplcSampleReplicate> HplcSampleReplicates => Set<HplcSampleReplicate>();
+    public DbSet<HplcReplicateResponse> HplcReplicateResponses => Set<HplcReplicateResponse>();
+    public DbSet<HplcEvidence> HplcEvidences => Set<HplcEvidence>();
     public DbSet<EquipmentInventory> EquipmentInventories => Set<EquipmentInventory>();
     public DbSet<EquipmentStatusHistory> EquipmentStatusHistories => Set<EquipmentStatusHistory>();
     public DbSet<MaterialDocument> MaterialDocuments => Set<MaterialDocument>();

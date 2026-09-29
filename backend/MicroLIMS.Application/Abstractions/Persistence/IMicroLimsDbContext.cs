@@ -115,6 +115,15 @@ public interface IMicroLimsDbContext
     DbSet<SolutionPreparationStatusHistory> SolutionPreparationStatusHistories { get; }
     DbSet<TitrantStandardization> TitrantStandardizations { get; }
     DbSet<TitrantStandardizationReplicate> TitrantStandardizationReplicates { get; }
+    DbSet<HplcRun> HplcRuns { get; }
+    DbSet<HplcRunMobilePhase> HplcRunMobilePhases { get; }
+    DbSet<HplcSstRecord> HplcSstRecords { get; }
+    DbSet<HplcSstAnalyte> HplcSstAnalytes { get; }
+    DbSet<HplcSstInjection> HplcSstInjections { get; }
+    DbSet<HplcRunSample> HplcRunSamples { get; }
+    DbSet<HplcSampleReplicate> HplcSampleReplicates { get; }
+    DbSet<HplcReplicateResponse> HplcReplicateResponses { get; }
+    DbSet<HplcEvidence> HplcEvidences { get; }
     DbSet<EquipmentInventory> EquipmentInventories { get; }
     DbSet<EquipmentStatusHistory> EquipmentStatusHistories { get; }
     DbSet<MaterialDocument> MaterialDocuments { get; }

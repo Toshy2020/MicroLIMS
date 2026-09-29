@@ -191,6 +191,18 @@ public static class TestServiceFactory
         new(db, new UserSectionScopeService(db),
             new AuditEventService(db, new MicroLIMS.Persistence.Helpers.DatabaseSequenceHelper(db)));
 
+    public static SolutionPreparationService SolutionPreparation(
+        MicroLimsDbContext db,
+        IUserSectionScopeService? scope = null,
+        MaterialService? materials = null,
+        IElectronicSignatureService? signatures = null,
+        ILabClock? clock = null) =>
+        new(db,
+            scope ?? new UserSectionScopeService(db),
+            materials ?? new MaterialService(db, scope ?? new UserSectionScopeService(db)),
+            signatures ?? new ElectronicSignatureService(db),
+            clock);
+
     public static SystemSuitabilityService SystemSuitability(
         MicroLimsDbContext db,
         IUserSectionScopeService? scope = null,

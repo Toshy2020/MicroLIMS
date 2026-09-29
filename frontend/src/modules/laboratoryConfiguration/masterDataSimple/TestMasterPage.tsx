@@ -53,6 +53,7 @@ import {
   ProductionStageRole
 } from "../../../services/masterDataOptions";
 import { tableHeadSx } from "../../../theme";
+import { HplcMethodService, HplcMethodListItem } from "./services/HplcMethodService";
 
 // Microbiology and the Finished Product (chemistry) lab each have their own
 // Test Master page: same component, filtered to the lab's section and
@@ -61,11 +62,12 @@ export type TestMasterLab = "micro" | "fp";
 const FP_SECTION_CODE = "FP";
 const WORKFLOW_TYPES_BY_LAB: Record<TestMasterLab, string[]> = {
   micro: ["CountTest", "Observation"],
-  fp: ["StandardComparison", "ElementalAssay", "Measurement", "Gravimetric", "Qualitative", "Dissolution", "Disintegration", "WeightVariation"]
+  fp: ["HplcMethodAssay", "StandardComparison", "ElementalAssay", "Measurement", "Gravimetric", "Qualitative", "Dissolution", "Disintegration", "WeightVariation"]
 };
 const WORKFLOW_TYPE_LABELS: Record<string, string> = {
   CountTest: "Count Test",
   Observation: "Observation",
+  HplcMethodAssay: "HPLC method assay",
   StandardComparison: "Standard-Comparison Assay",
   ElementalAssay: "Elemental Assay (ICP-OES / AAS)",
   Measurement: "Measurement",
@@ -78,6 +80,7 @@ const WORKFLOW_TYPE_LABELS: Record<string, string> = {
 
 const EQUATION_TYPES = [
   "None",
+  "HplcMethodAssay",
   "StandardComparison",
   "SystemSuitability",
   "CalibrationCurve",
@@ -91,6 +94,7 @@ const EQUATION_TYPES = [
 ];
 const EQUATION_TYPE_LABELS: Record<string, string> = {
   None: "None",
+  HplcMethodAssay: "HPLC method assay",
   StandardComparison: "Standard-Comparison Assay",
   SystemSuitability: "System Suitability",
   CalibrationCurve: "Calibration Curve",
@@ -222,14 +226,35 @@ function validateStepForm(form: StepFormState): string | null {
 // one permitted medium can have genuinely different windows per medium
 // (e.g. Confirmatory Plating's XLD vs TSI), so stage 1's display is built
 // from the picked media's own ranges instead, joined when they differ.
-function stage1Ranges(stepMedia: any[], min: string, max: string): string {
+interface WorkflowStepMediaItem {
+  materialId: number;
+  materialName?: string;
+  mediaIncubationConditionId?: number | string | null;
+  isRequired?: boolean;
+  displayOrder?: number;
+  incubationMinHours?: number;
+  incubationMaxHours?: number;
+  tempMin?: number;
+  tempMax?: number;
+  [key: string]: unknown;
+}
+
+function stage1Ranges(stepMedia: WorkflowStepMediaItem[] | undefined, min: string, max: string): string {
   if (!stepMedia?.length) return "—";
-  const distinct = Array.from(new Set(stepMedia.map((m) => `${m[min]}-${m[max]}`)));
+  const distinct = Array.from(new Set(stepMedia.map((m) => `${String(m[min])}-${String(m[max])}`)));
   return distinct.join("; ");
 }
 
-function stepNeedsConfiguration(s: any): boolean {
-  if (STEP_TYPES_REQUIRING_ORGANISM.includes(s.stepType) && !s.targetOrganismId) return true;
+interface StepCheckItem {
+  stepType?: string;
+  targetOrganismId?: number | null;
+  stepMedia?: unknown[];
+  phenotypicTestType?: string | null;
+  phenotypicTestTypes?: string[];
+}
+
+function stepNeedsConfiguration(s: StepCheckItem): boolean {
+  if (s.stepType && STEP_TYPES_REQUIRING_ORGANISM.includes(s.stepType) && !s.targetOrganismId) return true;
   if (s.stepType !== "BiochemicalTest" && (s.stepMedia?.length ?? 0) === 0) return true;
   if (s.stepType === "BiochemicalTest" && !s.phenotypicTestType && (s.phenotypicTestTypes?.length ?? 0) === 0) return true;
   return false;
@@ -897,15 +922,47 @@ function TestStageReplicatesSection({ testDefinitionId }: { testDefinitionId: nu
   );
 }
 
+interface WorkflowStepIncubationStage {
+  stageNumber: number;
+  tempMin?: number;
+  tempMax?: number;
+  incubationMinHours?: number;
+  incubationMaxHours?: number;
+}
+
+interface WorkflowStepItem {
+  id: number;
+  stepName: string;
+  stepOrder: number;
+  isFinalStep: boolean;
+  stepType: string;
+  targetOrganismId?: number | null;
+  targetOrganism?: { name: string } | null;
+  requiresIncubationTransfer?: boolean;
+  version?: number;
+  stepMedia?: WorkflowStepMediaItem[];
+  incubationStages?: WorkflowStepIncubationStage[];
+  phenotypicTestType?: string | null;
+  phenotypicTestTypes?: string[];
+}
+
+interface MaterialOption {
+  id: number;
+  name?: string;
+  materialName?: string;
+  mediaProductId?: number;
+  [key: string]: unknown;
+}
+
 // Shown when a Test Master row is expanded, alongside Approved Media -
 // the configurable workflow template TestWorkflowEngine reads instead
 // of a hardcoded per-test-code chain (see backend TestWorkflowStep.cs).
 // A step can only be deleted if no TestOrder has used it yet (server-
 // enforced); reordering swaps StepOrder with the adjacent step.
 function WorkflowStepsSection({ test, workflowTypes, onWorkflowTypeChanged }: { test: TestDefinitionOption; workflowTypes: string[]; onWorkflowTypeChanged: () => void }) {
-  const [steps, setSteps] = useState<any[]>([]);
-  const [organisms, setOrganisms] = useState<any[]>([]);
-  const [materials, setMaterials] = useState<any[]>([]);
+  const [steps, setSteps] = useState<WorkflowStepItem[]>([]);
+  const [organisms, setOrganisms] = useState<Array<{ id: number; scientificName: string; commonName?: string }>>([]);
+  const [materials, setMaterials] = useState<MaterialOption[]>([]);
   const [conditions, setConditions] = useState<MediaIncubationConditionOption[]>([]);
   const [form, setForm] = useState<StepFormState>(defaultStepForm);
   const [editingStepId, setEditingStepId] = useState<number | null>(null);
@@ -926,22 +983,23 @@ function WorkflowStepsSection({ test, workflowTypes, onWorkflowTypeChanged }: { 
     try {
       await masterDataOptions.updateWorkflowType(test.id, workflowType);
       onWorkflowTypeChanged();
-    } catch (e: any) {
-      setError(e?.response?.data?.message ?? "Could not update the workflow type.");
+    } catch (e: unknown) {
+      const err = e as { response?: { data?: { message?: string } } };
+      setError(err?.response?.data?.message ?? "Could not update the workflow type.");
     }
   };
 
-  const startEditStep = (s: any) => {
+  const startEditStep = (s: WorkflowStepItem) => {
     setEditingStepId(s.id);
-    const stage2 = (s.incubationStages ?? []).find((x: any) => x.stageNumber === 2);
+    const stage2 = (s.incubationStages ?? []).find((x) => x.stageNumber === 2);
     setForm({
       stepName: s.stepName, isFinalStep: s.isFinalStep, stepType: s.stepType,
       targetOrganismId: s.targetOrganismId ?? null,
-      stepMedia: (s.stepMedia ?? []).map((m: any) => ({
+      stepMedia: (s.stepMedia ?? []).map((m) => ({
         materialId: m.materialId,
-        mediaIncubationConditionId: m.mediaIncubationConditionId ?? "",
-        isRequired: m.isRequired,
-        displayOrder: m.displayOrder
+        mediaIncubationConditionId: typeof m.mediaIncubationConditionId === "number" ? m.mediaIncubationConditionId : "",
+        isRequired: !!m.isRequired,
+        displayOrder: typeof m.displayOrder === "number" ? m.displayOrder : 0
       })),
       requiresIncubationTransfer: !!s.requiresIncubationTransfer,
       stage2TempMin: stage2 ? String(stage2.tempMin) : undefined,
@@ -1054,8 +1112,9 @@ function WorkflowStepsSection({ test, workflowTypes, onWorkflowTypeChanged }: { 
       }
       cancelEditStep();
       await loadSteps();
-    } catch (e: any) {
-      setError(e?.response?.data?.message ?? `Could not ${editingStepId ? "update" : "add"} this step.`);
+    } catch (e: unknown) {
+      const err = e as { response?: { data?: { message?: string } } };
+      setError(err?.response?.data?.message ?? `Could not ${editingStepId ? "update" : "add"} this step.`);
     }
   };
 
@@ -1064,8 +1123,9 @@ function WorkflowStepsSection({ test, workflowTypes, onWorkflowTypeChanged }: { 
     try {
       await masterDataOptions.moveTestWorkflowStep(stepId, direction);
       await loadSteps();
-    } catch (e: any) {
-      setError(e?.response?.data?.message ?? "Could not reorder this step.");
+    } catch (e: unknown) {
+      const err = e as { response?: { data?: { message?: string } } };
+      setError(err?.response?.data?.message ?? "Could not reorder this step.");
     }
   };
 
@@ -1074,8 +1134,9 @@ function WorkflowStepsSection({ test, workflowTypes, onWorkflowTypeChanged }: { 
     try {
       await masterDataOptions.deleteTestWorkflowStep(stepId);
       await loadSteps();
-    } catch (e: any) {
-      setError(e?.response?.data?.message ?? "Could not delete this step.");
+    } catch (e: unknown) {
+      const err = e as { response?: { data?: { message?: string } } };
+      setError(err?.response?.data?.message ?? "Could not delete this step.");
     }
   };
 
@@ -1089,12 +1150,31 @@ function WorkflowStepsSection({ test, workflowTypes, onWorkflowTypeChanged }: { 
           mb: 1.5
         }}>
         <Typography sx={{ fontWeight: 700, fontSize: 13 }}>
-          {["StandardComparison", "ElementalAssay", "Measurement", "Gravimetric", "Qualitative"].includes(test.workflowType) ? "Workflow Type" : "Workflow Steps"}
+          {["StandardComparison", "ElementalAssay", "Measurement", "Gravimetric", "Qualitative", "HplcMethodAssay"].includes(test.workflowType) ? "Workflow Type" : "Workflow Steps"}
         </Typography>
         <Select size="small" value={test.workflowType} onChange={(e) => changeWorkflowType(e.target.value)}>
           {workflowTypes.map((w) => <MenuItem key={w} value={w}>{WORKFLOW_TYPE_LABELS[w] ?? w}</MenuItem>)}
         </Select>
       </Stack>
+      {test.workflowType === "HplcMethodAssay" && (
+        <Box sx={{ mb: 2, p: 1.5, bgcolor: "background.paper", borderRadius: 1, border: "1px solid", borderColor: "divider" }}>
+          <Typography sx={{ fontWeight: 700, fontSize: 12, mb: 1, color: "primary.main" }}>HPLC Method Assay Configuration</Typography>
+          <Stack direction="row" spacing={3} sx={{ flexWrap: "wrap", alignItems: "center" }}>
+            <Box>
+              <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>Equation Type</Typography>
+              <Typography variant="body2" sx={{ fontWeight: 600 }}>{EQUATION_TYPE_LABELS[test.equationType ?? "HplcMethodAssay"] ?? test.equationType}</Typography>
+            </Box>
+            <Box>
+              <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>Method Abbreviation</Typography>
+              <Typography variant="body2" sx={{ fontWeight: 600 }}>{test.methodAbbreviation ?? "—"}</Typography>
+            </Box>
+            <Box>
+              <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>System Suitability</Typography>
+              <Typography variant="body2" sx={{ fontWeight: 600 }}>Required (from HPLC Method Master)</Typography>
+            </Box>
+          </Stack>
+        </Box>
+      )}
       {test.workflowType === "StandardComparison" && (
         <Box sx={{ mb: 2, p: 1.5, bgcolor: "background.paper", borderRadius: 1, border: "1px solid", borderColor: "divider" }}>
           <Typography sx={{ fontWeight: 700, fontSize: 12, mb: 1, color: "primary.main" }}>Standard-Comparison Assay Configuration</Typography>
@@ -1207,6 +1287,10 @@ function WorkflowStepsSection({ test, workflowTypes, onWorkflowTypeChanged }: { 
           </Box>
           <TestAnalytesSection test={test} />
         </>
+      ) : test.workflowType === "HplcMethodAssay" ? (
+        <Typography variant="body2" sx={{ color: "text.secondary", mb: 1 }}>
+          HPLC Method Assay tests have no workflow steps or local test analytes: parameters, analytes, standard weights, and system suitability criteria are configured centrally in HPLC Methods Master.
+        </Typography>
       ) : test.workflowType === "StandardComparison" ? (
         <>
           <Typography variant="body2" sx={{ color: "text.secondary", mb: 1 }}>
@@ -1403,7 +1487,7 @@ function WorkflowStepsSection({ test, workflowTypes, onWorkflowTypeChanged }: { 
           </TableHead>
           <TableBody>
             {steps.map((s, i) => {
-              const stage2 = (s.incubationStages ?? []).find((x: any) => x.stageNumber === 2);
+              const stage2 = (s.incubationStages ?? []).find((x) => x.stageNumber === 2);
               const isTwoStage = s.stepType === "PlateCount" && s.requiresIncubationTransfer;
               return (
                 <TableRow key={s.id}>
@@ -1461,10 +1545,10 @@ function WorkflowStepsSection({ test, workflowTypes, onWorkflowTypeChanged }: { 
                   </TableCell>
                   <TableCell>
                     {s.stepType === "BiochemicalTest"
-                      ? (s.phenotypicTestTypes?.length > 0
+                      ? (s.phenotypicTestTypes && s.phenotypicTestTypes.length > 0
                           ? s.phenotypicTestTypes.map((t: string) => PHENOTYPIC_TEST_TYPE_LABELS[t] ?? t).join(", ")
                           : s.phenotypicTestType ? PHENOTYPIC_TEST_TYPE_LABELS[s.phenotypicTestType] ?? s.phenotypicTestType : <em>—</em>)
-                      : (s.stepMedia?.length > 0 ? s.stepMedia.map((m: any) => m.materialName).join(", ") : <em>—</em>)}
+                      : (s.stepMedia && s.stepMedia.length > 0 ? s.stepMedia.map((m) => m.materialName).join(", ") : <em>—</em>)}
                   </TableCell>
                   <TableCell>{s.targetOrganism?.name ?? <em>—</em>}</TableCell>
                   <TableCell>
@@ -1789,6 +1873,14 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
   const [equationType, setEquationType] = useState<string>(isFp ? "StandardComparison" : "None");
   const [requiresSystemSuitability, setRequiresSystemSuitability] = useState<boolean>(false);
   const [methodAbbreviation, setMethodAbbreviation] = useState<string>("");
+  const [hplcMethodId, setHplcMethodId] = useState<number | "">("");
+  const [hplcMethods, setHplcMethods] = useState<HplcMethodListItem[]>([]);
+
+  useEffect(() => {
+    HplcMethodService.getAll(false)
+      .then((data) => setHplcMethods(data))
+      .catch(() => {});
+  }, []);
   const [sstMaxRsdPercent, setSstMaxRsdPercent] = useState<string>("");
   const [sstMinResolution, setSstMinResolution] = useState<string>("");
   const [sstMaxTailingFactor, setSstMaxTailingFactor] = useState<string>("");
@@ -1868,9 +1960,10 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
     setSectionId(mySections.length === 1 ? mySections[0].sectionId : "");
     setEditingSectionId(null);
     setWorkflowType(defaultWorkflowType);
-    setEquationType(isFp ? (defaultWorkflowType === "ElementalAssay" ? "CalibrationCurve" : "StandardComparison") : "None");
+    setEquationType(isFp ? (defaultWorkflowType === "ElementalAssay" ? "CalibrationCurve" : defaultWorkflowType === "HplcMethodAssay" ? "HplcMethodAssay" : "StandardComparison") : "None");
     setRequiresSystemSuitability(false);
     setMethodAbbreviation("");
+    setHplcMethodId("");
     setSstMaxRsdPercent("");
     setSstMinResolution("");
     setSstMaxTailingFactor("");
@@ -1929,9 +2022,10 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
     setSectionId(t.sectionId ?? (mySections.length === 1 ? mySections[0].sectionId : ""));
     setEditingSectionId(t.sectionId ?? null);
     setWorkflowType(t.workflowType || defaultWorkflowType);
-    setEquationType(t.equationType || (t.workflowType === "ElementalAssay" ? "CalibrationCurve" : t.workflowType === "StandardComparison" ? "StandardComparison" : t.workflowType === "Measurement" ? "Measurement" : t.workflowType === "Gravimetric" ? "GravimetricLoss" : t.workflowType === "Qualitative" ? "Qualitative" : t.workflowType === "Dissolution" ? "Dissolution" : t.workflowType === "Disintegration" ? "Disintegration" : t.workflowType === "WeightVariation" ? "WeightVariation" : "None"));
-    setRequiresSystemSuitability((t.workflowType === "Dissolution" || t.workflowType === "StandardComparison") ? true : (t.workflowType === "Disintegration" || t.workflowType === "WeightVariation") ? false : !!t.requiresSystemSuitability);
+    setEquationType(t.equationType || (t.workflowType === "ElementalAssay" ? "CalibrationCurve" : t.workflowType === "HplcMethodAssay" ? "HplcMethodAssay" : t.workflowType === "StandardComparison" ? "StandardComparison" : t.workflowType === "Measurement" ? "Measurement" : t.workflowType === "Gravimetric" ? "GravimetricLoss" : t.workflowType === "Qualitative" ? "Qualitative" : t.workflowType === "Dissolution" ? "Dissolution" : t.workflowType === "Disintegration" ? "Disintegration" : t.workflowType === "WeightVariation" ? "WeightVariation" : "None"));
+    setRequiresSystemSuitability((t.workflowType === "Dissolution" || t.workflowType === "StandardComparison" || t.workflowType === "HplcMethodAssay") ? true : (t.workflowType === "Disintegration" || t.workflowType === "WeightVariation") ? false : !!t.requiresSystemSuitability);
     setMethodAbbreviation(t.methodAbbreviation ?? "");
+    setHplcMethodId(t.hplcMethodId ?? "");
     setSstMaxRsdPercent(t.sstMaxRsdPercent != null ? String(t.sstMaxRsdPercent) : "");
     setSstMinResolution(t.sstMinResolution != null ? String(t.sstMinResolution) : "");
     setSstMaxTailingFactor(t.sstMaxTailingFactor != null ? String(t.sstMaxTailingFactor) : "");
@@ -2203,6 +2297,14 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
     const isMeasurement = workflowType === "Measurement";
     const isGravimetric = workflowType === "Gravimetric";
     const isQualitative = workflowType === "Qualitative";
+    const isHplcMethodAssay = workflowType === "HplcMethodAssay";
+
+    if (isHplcMethodAssay) {
+      if (!hplcMethodId) {
+        setDialogError("HPLC method is required for HPLC method assay tests.");
+        return;
+      }
+    }
 
     if (isMeasurement) {
       const rep = Number(replicateCount);
@@ -2238,6 +2340,8 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
         ? "CalibrationCurve"
         : isHplcMulti
         ? "StandardComparison"
+        : isHplcMethodAssay
+        ? "HplcMethodAssay"
         : isMeasurement
         ? "Measurement"
         : isGravimetric
@@ -2259,8 +2363,8 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
           sectionId: chosenSectionId,
           workflowType,
           equationType: resolvedEquationType,
-          requiresSystemSuitability: (isDissolution || isHplcMulti) ? true : false,
-          methodAbbreviation: isDissolution || isCalCurve || isHplcMulti ? methodAbbreviation.trim().toUpperCase() : null,
+          requiresSystemSuitability: (isDissolution || isHplcMulti || isHplcMethodAssay) ? true : false,
+          methodAbbreviation: isDissolution || isCalCurve || isHplcMulti || isHplcMethodAssay ? methodAbbreviation.trim().toUpperCase() : null,
           sstMaxRsdPercent: isDissolution && sstMaxRsdPercent.trim() !== "" ? Number(sstMaxRsdPercent) : null,
           sstMinResolution: isDissolution && sstMinResolution.trim() !== "" ? Number(sstMinResolution) : null,
           sstMaxTailingFactor: isDissolution && sstMaxTailingFactor.trim() !== "" ? Number(sstMaxTailingFactor) : null,
@@ -2312,7 +2416,8 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
           wvCapsuleS2ExtraUnits: isWeightVariation ? (wvCapsuleS2ExtraUnits.trim() !== "" ? Number(wvCapsuleS2ExtraUnits) : 40) : null,
           wvCapsuleS2MaxOutside: isWeightVariation ? (wvCapsuleS2MaxOutside.trim() !== "" ? Number(wvCapsuleS2MaxOutside) : 6) : null,
           hplcMaxPreparationRsdPercent: isHplcMulti && hplcMaxPreparationRsdPercent.trim() !== "" ? Number(hplcMaxPreparationRsdPercent) : null,
-          responseMode: isHplcMulti ? responseMode : "PeakArea"
+          responseMode: isHplcMulti ? responseMode : "PeakArea",
+          hplcMethodId: isHplcMethodAssay && hplcMethodId !== "" ? Number(hplcMethodId) : null
         };
         await update(editingId, payload);
         setMessage({ text: `Test "${trimmedCode}" updated.`, ok: true });
@@ -2323,8 +2428,8 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
           sectionId: chosenSectionId,
           workflowType,
           equationType: resolvedEquationType,
-          requiresSystemSuitability: (isDissolution || isHplcMulti) ? true : false,
-          methodAbbreviation: isDissolution || isCalCurve || isHplcMulti ? methodAbbreviation.trim().toUpperCase() : null,
+          requiresSystemSuitability: (isDissolution || isHplcMulti || isHplcMethodAssay) ? true : false,
+          methodAbbreviation: isDissolution || isCalCurve || isHplcMulti || isHplcMethodAssay ? methodAbbreviation.trim().toUpperCase() : null,
           sstMaxRsdPercent: isDissolution && sstMaxRsdPercent.trim() !== "" ? Number(sstMaxRsdPercent) : null,
           sstMinResolution: isDissolution && sstMinResolution.trim() !== "" ? Number(sstMinResolution) : null,
           sstMaxTailingFactor: isDissolution && sstMaxTailingFactor.trim() !== "" ? Number(sstMaxTailingFactor) : null,
@@ -2372,14 +2477,16 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
           wvCapsuleS2ExtraUnits: isWeightVariation ? (wvCapsuleS2ExtraUnits.trim() !== "" ? Number(wvCapsuleS2ExtraUnits) : 40) : null,
           wvCapsuleS2MaxOutside: isWeightVariation ? (wvCapsuleS2MaxOutside.trim() !== "" ? Number(wvCapsuleS2MaxOutside) : 6) : null,
           hplcMaxPreparationRsdPercent: isHplcMulti && hplcMaxPreparationRsdPercent.trim() !== "" ? Number(hplcMaxPreparationRsdPercent) : null,
-          responseMode: isHplcMulti ? responseMode : "PeakArea"
+          responseMode: isHplcMulti ? responseMode : "PeakArea",
+          hplcMethodId: isHplcMethodAssay && hplcMethodId !== "" ? Number(hplcMethodId) : null
         };
         await addNew(payload);
         setMessage({ text: `Test "${trimmedCode}" added to the Test Master.`, ok: true });
       }
       closeDialog();
-    } catch (e: any) {
-      setDialogError(e?.response?.data?.message ?? `Could not ${editingId ? "update" : "add"} this test.`);
+    } catch (e: unknown) {
+      const err = e as { response?: { data?: { message?: string } } };
+      setDialogError(err?.response?.data?.message ?? `Could not ${editingId ? "update" : "add"} this test.`);
     } finally {
       setSaving(false);
     }
@@ -2390,8 +2497,9 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
     try {
       await setActive(t.id, !t.isActive);
       setMessage({ text: `Test "${t.code}" ${t.isActive ? "frozen" : "unfrozen"}.`, ok: true });
-    } catch (e: any) {
-      setMessage({ text: e?.response?.data?.message ?? "Could not update this test's status.", ok: false });
+    } catch (e: unknown) {
+      const err = e as { response?: { data?: { message?: string } } };
+      setMessage({ text: err?.response?.data?.message ?? "Could not update this test's status.", ok: false });
     }
   };
 
@@ -2441,6 +2549,15 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
                   <TableCell>
                     <Stack direction="row" spacing={1} sx={{ alignItems: "center", flexWrap: "wrap" }}>
                       <span>{t.displayName}</span>
+                      {t.workflowType === "HplcMethodAssay" && (
+                        <Chip
+                          size="small"
+                          color="primary"
+                          variant="outlined"
+                          label="HPLC Assay"
+                          sx={{ height: 20, fontSize: "0.68rem", fontWeight: 700 }}
+                        />
+                      )}
                       {t.workflowType === "StandardComparison" && (
                         <Chip
                           size="small"
@@ -2617,7 +2734,11 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
                 onChange={(e) => {
                   const next = e.target.value;
                   setWorkflowType(next);
-                  if (next === "StandardComparison") {
+                  if (next === "HplcMethodAssay") {
+                    setEquationType("HplcMethodAssay");
+                    setRequiresSystemSuitability(true);
+                    setResponseMode("PeakArea");
+                  } else if (next === "StandardComparison") {
                     setEquationType("StandardComparison");
                     setRequiresSystemSuitability(true);
                   } else if (next === "ElementalAssay") {
@@ -2668,7 +2789,11 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
                 onChange={(e) => {
                   const next = e.target.value;
                   setEquationType(next);
-                  if (next === "Disintegration") {
+                  if (next === "HplcMethodAssay") {
+                    setWorkflowType("HplcMethodAssay");
+                    setRequiresSystemSuitability(true);
+                    setResponseMode("PeakArea");
+                  } else if (next === "Disintegration") {
                     setWorkflowType("Disintegration");
                     setRequiresSystemSuitability(false);
                   } else if (next === "WeightVariation") {
@@ -2686,6 +2811,9 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
                 }}
               >
                 {EQUATION_TYPES.filter((eq) => {
+                  if (workflowType === "HplcMethodAssay") {
+                    return eq === "HplcMethodAssay";
+                  }
                   if (workflowType === "Disintegration") {
                     return eq === "Disintegration";
                   }
@@ -2710,7 +2838,7 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
                   if (workflowType === "Qualitative") {
                     return eq === "Qualitative";
                   }
-                  return eq !== "StandardComparison" && eq !== "Measurement" && eq !== "GravimetricLoss" && eq !== "GravimetricResidue" && eq !== "Qualitative" && eq !== "Dissolution" && eq !== "Disintegration" && eq !== "WeightVariation";
+                  return eq !== "StandardComparison" && eq !== "Measurement" && eq !== "GravimetricLoss" && eq !== "GravimetricResidue" && eq !== "Qualitative" && eq !== "Dissolution" && eq !== "Disintegration" && eq !== "WeightVariation" && eq !== "HplcMethodAssay";
                 }).map((eq) => (
                   <MenuItem key={eq} value={eq}>
                     {EQUATION_TYPE_LABELS[eq] ?? eq}
@@ -2718,6 +2846,55 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
                 ))}
               </Select>
             </FormControl>
+          )}
+
+          {workflowType === "HplcMethodAssay" && (
+            <Box sx={{ p: 2, bgcolor: "action.hover", borderRadius: 1, border: "1px solid", borderColor: "divider" }}>
+              <Typography sx={{ fontWeight: 700, fontSize: 13, mb: 1.5 }}>
+                HPLC Method Assay Configuration
+              </Typography>
+              <Stack spacing={2}>
+                <FormControl size="small" fullWidth required>
+                  <InputLabel id="dialog-hplc-method-label">HPLC Method *</InputLabel>
+                  <Select<number | "">
+                    labelId="dialog-hplc-method-label"
+                    label="HPLC Method *"
+                    value={hplcMethodId}
+                    onChange={(e) => {
+                      const val = e.target.value === "" ? "" : Number(e.target.value);
+                      setHplcMethodId(val);
+                      const chosen = hplcMethods.find((m) => m.id === val);
+                      if (chosen) {
+                        setMethodAbbreviation(chosen.abbreviation);
+                      }
+                    }}
+                  >
+                    <MenuItem value=""><em>Select HPLC Method</em></MenuItem>
+                    {hplcMethods
+                      .filter((m) => m.isActive || m.id === hplcMethodId)
+                      .map((m) => (
+                        <MenuItem key={m.id} value={m.id}>
+                          {m.name} ({m.abbreviation}){!m.isActive ? " (Inactive)" : ""}
+                        </MenuItem>
+                      ))}
+                  </Select>
+                  <FormHelperText>Select the active master HPLC method that defines this test&apos;s chromatographic conditions and analytes.</FormHelperText>
+                </FormControl>
+
+                <TextField
+                  size="small"
+                  label="Method Abbreviation"
+                  value={methodAbbreviation}
+                  slotProps={{
+                    input: {
+                      readOnly: true,
+                    },
+                  }}
+                  helperText="Auto-populated from the selected HPLC method (read-only)."
+                  fullWidth
+                />
+              </Stack>
+            </Box>
           )}
 
           {workflowType === "Measurement" && (
@@ -3487,7 +3664,7 @@ export function TestMasterPage({ lab = "micro" }: { lab?: TestMasterLab }) {
             </Box>
           )}
 
-          {(isFp || (fpSectionId !== null && (sectionId === fpSectionId || editingTest?.sectionId === fpSectionId))) && (
+          {(isFp || (fpSectionId !== null && (sectionId === fpSectionId || editingTest?.sectionId === fpSectionId))) && workflowType !== "HplcMethodAssay" && (
             editingId ? (
               <TestStageReplicatesSection testDefinitionId={editingId} />
             ) : (

@@ -43,6 +43,7 @@ const APP_ROUTES = {
   CHROMATOGRAPHY_COLUMNS: "/laboratory-configuration/columns",
   MATERIAL_MASTER: "/laboratory-configuration/material-master",
   SOLUTION_MASTER: "/laboratory-configuration/solution-master",
+  HPLC_METHODS: "/laboratory-configuration/hplc-methods",
   FP_INSTRUMENTS: "/laboratory-configuration/fp-instruments",
 
   // Inventory & Stock
@@ -123,6 +124,9 @@ export function resolveTraceabilityRoute(
   if (target === "solution-master" || target === "solution-masters" || target === "solutions") {
     return APP_ROUTES.SOLUTION_MASTER;
   }
+  if (target === "hplc-methods" || target === "hplc-method" || target === "hplcmethod") {
+    return APP_ROUTES.HPLC_METHODS;
+  }
   if (target === "items") {
     return APP_ROUTES.ITEMS;
   }
@@ -178,6 +182,9 @@ export function resolveTraceabilityRoute(
   }
   if (type === "solutionmaster" || type === "solution") {
     return APP_ROUTES.SOLUTION_MASTER;
+  }
+  if (type === "hplcmethod" || type === "hplcmethods") {
+    return APP_ROUTES.HPLC_METHODS;
   }
 
   return null;

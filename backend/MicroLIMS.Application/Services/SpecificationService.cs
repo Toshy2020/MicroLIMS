@@ -241,8 +241,51 @@ public class SpecificationService
             throw new InvalidOperationException("Only WeightVariation specifications are allowed for WeightVariation tests.");
         }
 
-        if (testDef?.EquationType == EquationType.CalibrationCurve)
+        // HPLC chain S3: specification rows for an HplcMethodAssay test are
+        // keyed by method analyte + quantity, reusing ResultBasis as the
+        // quantity (PercentLabelClaim = assay %, MgPerUnit = amount per unit;
+        // spec 3.4). No new enum.
+        if (testDef?.WorkflowType == WorkflowType.HplcMethodAssay)
         {
+            if (!spec.HplcMethodAnalyteId.HasValue)
+                throw new InvalidOperationException("Method analyte is required for HPLC method assay specifications.");
+
+            var analyte = await _db.HplcMethodAnalytes.FirstOrDefaultAsync(a => a.Id == spec.HplcMethodAnalyteId.Value, cancellationToken);
+            if (analyte == null || analyte.HplcMethodId != testDef.HplcMethodId)
+                throw new InvalidOperationException($"That analyte does not belong to the method of test '{spec.TestCode}'.");
+
+            if (spec.ResultBasis is not (ResultBasis.PercentLabelClaim or ResultBasis.MgPerUnit))
+                throw new InvalidOperationException("Result basis must be assay % (PercentLabelClaim) or amount per unit (MgPerUnit).");
+
+            if (spec.TestAnalyteId.HasValue || spec.SampleMatrix.HasValue || spec.ConversionFactor != 1.0m)
+                throw new InvalidOperationException("Test analyte, sample matrix and conversion factor are not used for HPLC method assay specifications.");
+
+            if (spec.ResultBasis == ResultBasis.MgPerUnit && (!spec.LabelClaim.HasValue || spec.LabelClaim <= 0 || string.IsNullOrWhiteSpace(spec.LabelClaimUnit)))
+                throw new InvalidOperationException("Amount per unit needs a label claim and its unit.");
+
+            if (spec.ResultBasis == ResultBasis.PercentLabelClaim && (spec.LabelClaim.HasValue || !string.IsNullOrWhiteSpace(spec.LabelClaimUnit)))
+                throw new InvalidOperationException("Label claim belongs on the amount-per-unit row.");
+
+            var duplicateAnalyteBasis = await _db.Specifications.AnyAsync(
+                s => s.ItemId == spec.ItemId && s.TestCode == spec.TestCode && s.HplcMethodAnalyteId == spec.HplcMethodAnalyteId.Value
+                     && s.ResultBasis == spec.ResultBasis && s.Id != spec.Id,
+                cancellationToken);
+            if (duplicateAnalyteBasis)
+                throw new InvalidOperationException("A specification for this analyte and basis already exists.");
+
+            if (spec.LimitType != LimitType.Range &&
+                spec.LimitType != LimitType.NotMoreThan &&
+                spec.LimitType != LimitType.NotLessThan &&
+                spec.LimitType != LimitType.TargetWithTolerance)
+            {
+                throw new InvalidOperationException($"Limit type '{spec.LimitType}' is not supported for HPLC method assay specifications. Must be Range, NotMoreThan, NotLessThan, or TargetWithTolerance.");
+            }
+        }
+        else if (testDef?.EquationType == EquationType.CalibrationCurve)
+        {
+            if (spec.HplcMethodAnalyteId.HasValue)
+                throw new InvalidOperationException("Method analyte is only allowed for HPLC method assay specifications.");
+
             if (!spec.TestAnalyteId.HasValue)
                 throw new InvalidOperationException("Test analyte is required for Calibration Curve specifications.");
 
@@ -282,6 +325,9 @@ public class SpecificationService
         }
         else if (testDef?.WorkflowType == WorkflowType.StandardComparison || testDef?.EquationType == EquationType.StandardComparison)
         {
+            if (spec.HplcMethodAnalyteId.HasValue)
+                throw new InvalidOperationException("Method analyte is only allowed for HPLC method assay specifications.");
+
             if (!spec.TestAnalyteId.HasValue)
                 throw new InvalidOperationException("Test analyte is required for Standard-Comparison specifications.");
 
@@ -306,6 +352,8 @@ public class SpecificationService
         }
         else if (testDef?.WorkflowType == WorkflowType.Dissolution || spec.LimitType == LimitType.DissolutionQ)
         {
+            if (spec.HplcMethodAnalyteId.HasValue)
+                throw new InvalidOperationException("Method analyte is only allowed for HPLC method assay specifications.");
             if (spec.TestAnalyteId.HasValue)
                 throw new InvalidOperationException("Test analyte is only allowed for Calibration Curve specifications.");
             if (spec.ResultBasis.HasValue)
@@ -317,6 +365,8 @@ public class SpecificationService
         }
         else if (testDef?.WorkflowType == WorkflowType.Disintegration || spec.LimitType == LimitType.DisintegrationTime)
         {
+            if (spec.HplcMethodAnalyteId.HasValue)
+                throw new InvalidOperationException("Method analyte is only allowed for HPLC method assay specifications.");
             if (spec.TestAnalyteId.HasValue)
                 throw new InvalidOperationException("Test analyte is only allowed for Calibration Curve specifications.");
             if (spec.ResultBasis.HasValue)
@@ -332,6 +382,8 @@ public class SpecificationService
         }
         else if (testDef?.WorkflowType == WorkflowType.WeightVariation || spec.LimitType == LimitType.WeightVariation)
         {
+            if (spec.HplcMethodAnalyteId.HasValue)
+                throw new InvalidOperationException("Method analyte is only allowed for HPLC method assay specifications.");
             if (spec.TestAnalyteId.HasValue)
                 throw new InvalidOperationException("Test analyte is only allowed for Calibration Curve specifications.");
             if (spec.ResultBasis.HasValue)
@@ -347,6 +399,8 @@ public class SpecificationService
         }
         else
         {
+            if (spec.HplcMethodAnalyteId.HasValue)
+                throw new InvalidOperationException("Method analyte is only allowed for HPLC method assay specifications.");
             if (spec.TestAnalyteId.HasValue)
                 throw new InvalidOperationException("Test analyte is only allowed for Calibration Curve specifications.");
             if (spec.ResultBasis.HasValue)

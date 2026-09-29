@@ -54,7 +54,8 @@ public record CreateSpecificationRequest(
     decimal? LabelClaim = null,
     string? LabelClaimUnit = null,
     decimal? ConversionFactor = null,
-    DosageForm? DosageForm = null);
+    DosageForm? DosageForm = null,
+    int? HplcMethodAnalyteId = null);
 
 public record UpdateSpecificationRequest(
     string TestCode,
@@ -85,7 +86,8 @@ public record UpdateSpecificationRequest(
     decimal? LabelClaim = null,
     string? LabelClaimUnit = null,
     decimal? ConversionFactor = null,
-    DosageForm? DosageForm = null);
+    DosageForm? DosageForm = null,
+    int? HplcMethodAnalyteId = null);
 
 // GET shape for specifications - every field the frontend already binds to,
 // unchanged, plus CanEdit/SectionName so the UI can show the other lab's
@@ -123,7 +125,8 @@ public record SpecificationRowDto(
     DosageForm? DosageForm,
     List<SpecificationStageResponse> Stages,
     bool CanEdit,
-    string SectionName)
+    string SectionName,
+    int? HplcMethodAnalyteId = null)
 {
     // The record's row version, sent back as If-Match with an edit.
     public uint Version { get; init; }
@@ -221,7 +224,8 @@ public record CreateTestDefinitionRequest(
     int? WvCapsuleS2ExtraUnits = null,
     int? WvCapsuleS2MaxOutside = null,
     decimal? HplcMaxPreparationRsdPercent = null,
-    ResponseMode ResponseMode = ResponseMode.PeakArea);
+    ResponseMode ResponseMode = ResponseMode.PeakArea,
+    int? HplcMethodId = null);
 // SectionId: move the test to another laboratory section (null = keep). Test
 // orders already created keep the section they were created with.
 public record UpdateTestDefinitionRequest(
@@ -280,7 +284,8 @@ public record UpdateTestDefinitionRequest(
     int? WvCapsuleS2ExtraUnits = null,
     int? WvCapsuleS2MaxOutside = null,
     decimal? HplcMaxPreparationRsdPercent = null,
-    ResponseMode? ResponseMode = null);
+    ResponseMode? ResponseMode = null,
+    int? HplcMethodId = null);
 public record UpdateWorkflowTypeRequest(WorkflowType WorkflowType);
 
 public record StepMediaRequest(int MaterialId, bool IsRequired, int DisplayOrder, int? MediaIncubationConditionId);

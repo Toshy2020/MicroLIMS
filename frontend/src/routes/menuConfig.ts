@@ -1,4 +1,5 @@
 import { ComponentType } from "react";
+import { SxProps, Theme } from "@mui/material";
 import SpaceDashboardOutlinedIcon from "@mui/icons-material/SpaceDashboardOutlined";
 import ScienceOutlinedIcon from "@mui/icons-material/ScienceOutlined";
 import Inventory2OutlinedIcon from "@mui/icons-material/Inventory2Outlined";
@@ -17,7 +18,7 @@ import { PERMISSIONS } from "./routes";
 export interface MenuItem {
   label: string;
   path?: string;
-  icon?: ComponentType<{ fontSize?: "small" | "inherit" | "medium" | "large"; sx?: any }>;
+  icon?: ComponentType<{ fontSize?: "small" | "inherit" | "medium" | "large"; sx?: SxProps<Theme> }>;
   group?: string;
   children?: MenuItem[];
   // Shown only to users holding this permission code - the same code the
@@ -134,7 +135,8 @@ const physchemConfigArea: MenuItem = {
     { label: "Physicochemical Test Master", path: "/laboratory-configuration/fp-test-master" },
     { label: "Equation Types", path: "/laboratory-configuration/equation-types" },
     { label: "Physicochemical Instruments", path: "/laboratory-configuration/fp-instruments" },
-    { label: "Chromatography Columns", path: "/laboratory-configuration/columns" }
+    { label: "Chromatography Columns", path: "/laboratory-configuration/columns" },
+    { label: "Reagents & Standards", path: "/laboratory-configuration/material-master" }
   ]
 };
 

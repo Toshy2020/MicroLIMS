@@ -19,6 +19,8 @@ export interface SaveMaterialPayload {
   mediaProductId: number | null;
   sectionId?: number | null;
   purity?: number | null;
+  materialMasterEntryId?: number | null;
+  moisturePercent?: number | null;
 }
 
 export const MaterialService = {

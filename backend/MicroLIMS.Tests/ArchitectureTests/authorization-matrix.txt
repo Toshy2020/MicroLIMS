@@ -241,6 +241,10 @@ MaterialDocumentController.GetDocuments(Int32): SystemAdministrator,SectionHead,
 MaterialDocumentController.Supersede(Int32, IFormFile, String, Int32): SystemAdministrator,SectionHead
 MaterialDocumentController.Upload(Int32, IFormFile, MaterialDocumentType): SystemAdministrator,SectionHead,Analyst
 MaterialDocumentController.Void(Int32, Int32, VoidDocumentHttpRequest): SystemAdministrator,SectionHead
+MaterialMasterController.Create(SaveMaterialMasterEntryRequest): SystemAdministrator,SectionHead
+MaterialMasterController.GetAll(Nullable`1, Boolean): SystemAdministrator,SectionHead,Reviewer,Analyst
+MaterialMasterController.SetActive(Int32, Boolean): SystemAdministrator,SectionHead
+MaterialMasterController.Update(Int32, SaveMaterialMasterEntryRequest): SystemAdministrator,SectionHead
 MediaController.DecideRelease(Int32, DecideMediaReleaseRequest): SystemAdministrator,SectionHead
 MediaController.GetAll(): SystemAdministrator,SectionHead,Reviewer,Analyst
 MediaController.GetAwaitingApproval(): SystemAdministrator,SectionHead,Reviewer,Analyst

@@ -16,7 +16,12 @@ namespace MicroLIMS.API.Controllers;
 public class SolutionPreparationController : ControllerBase
 {
     private readonly SolutionPreparationService _service;
-    public SolutionPreparationController(SolutionPreparationService service) => _service = service;
+    private readonly TitrantStandardizationService _standardizations;
+    public SolutionPreparationController(SolutionPreparationService service, TitrantStandardizationService standardizations)
+    {
+        _service = service;
+        _standardizations = standardizations;
+    }
 
     private int CurrentUserId => int.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)!.Value);
     private string? ClientIpAddress => HttpContext.Connection.RemoteIpAddress?.ToString();
@@ -68,6 +73,26 @@ public class SolutionPreparationController : ControllerBase
     [HttpPost("{id:int}/discard")]
     public async Task<IActionResult> Discard(int id, [FromBody] ReasonRequest body) =>
         Ok(ApiResponse<object>.Ok(await _service.DiscardAsync(id, body.Reason, CurrentUserId)));
+
+    // Titrant standardization (HPLC chain S5, spec 4). Reads are open to any
+    // authenticated user - same reasoning as the preparation reads above;
+    // the standardize write requires Solutions.Prepare.
+    [HttpGet("{id:int}/standardizations")]
+    public async Task<IActionResult> GetStandardizations(int id) =>
+        Ok(ApiResponse<object>.Ok(await _standardizations.GetForPreparationAsync(id, CurrentUserId)));
+
+    [HttpGet("{id:int}/standardizations/standard-lots")]
+    public async Task<IActionResult> GetStandardLotOptions(int id) =>
+        Ok(ApiResponse<object>.Ok(await _standardizations.GetStandardLotOptionsAsync(id, CurrentUserId)));
+
+    [HttpGet("{id:int}/standardizations/reference-options")]
+    public async Task<IActionResult> GetReferenceOptions(int id) =>
+        Ok(ApiResponse<object>.Ok(await _standardizations.GetReferenceOptionsAsync(id, CurrentUserId)));
+
+    [Authorize(Policy = PermissionConstants.SolutionsPrepare)]
+    [HttpPost("{id:int}/standardizations")]
+    public async Task<IActionResult> Standardize(int id, [FromBody] StandardizeRequest r) =>
+        Ok(ApiResponse<object>.Ok(await _standardizations.StandardizeAsync(id, r, CurrentUserId, ClientIpAddress)));
 }
 
 public record ReasonRequest(string Reason);

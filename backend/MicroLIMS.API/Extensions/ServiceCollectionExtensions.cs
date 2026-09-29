@@ -143,6 +143,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<SolutionMasterService>();
         services.AddScoped<HplcMethodService>();
         services.AddScoped<SolutionPreparationService>();
+        services.AddScoped<TitrantStandardizationService>();
         services.AddScoped<MediaProductService>();
         services.AddScoped<MediaIncubationConditionService>();
         services.AddScoped<EquipmentInventoryService>();

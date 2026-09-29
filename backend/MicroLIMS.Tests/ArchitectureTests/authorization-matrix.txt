@@ -399,7 +399,11 @@ SolutionPreparationController.GetAvailable(Int32, Nullable`1): SystemAdministrat
 SolutionPreparationController.GetById(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst
 SolutionPreparationController.GetByLot(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst
 SolutionPreparationController.GetLotOptions(Int32, Int32): SystemAdministrator,SectionHead,Reviewer,Analyst
+SolutionPreparationController.GetReferenceOptions(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst
+SolutionPreparationController.GetStandardLotOptions(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst
+SolutionPreparationController.GetStandardizations(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst
 SolutionPreparationController.Save(Int32, SavePreparationRequest): SystemAdministrator,SectionHead,Analyst
+SolutionPreparationController.Standardize(Int32, StandardizeRequest): SystemAdministrator,SectionHead,Analyst
 SolutionPreparationController.Start(StartPreparationRequest): SystemAdministrator,SectionHead,Analyst
 SpecificationMasterDataController.CreateSpecification(CreateSpecificationRequest): SystemAdministrator,SectionHead
 SpecificationMasterDataController.DeleteSpecification(Int32): SystemAdministrator,SectionHead

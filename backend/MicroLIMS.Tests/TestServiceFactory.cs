@@ -183,6 +183,10 @@ public static class TestServiceFactory
     public static MaterialMasterService MaterialMaster(MicroLimsDbContext db) =>
         new(db, new UserSectionScopeService(db));
 
+    public static SolutionMasterService SolutionMaster(MicroLimsDbContext db) =>
+        new(db, new UserSectionScopeService(db),
+            new AuditEventService(db, new MicroLIMS.Persistence.Helpers.DatabaseSequenceHelper(db)));
+
     public static SystemSuitabilityService SystemSuitability(
         MicroLimsDbContext db,
         IUserSectionScopeService? scope = null,

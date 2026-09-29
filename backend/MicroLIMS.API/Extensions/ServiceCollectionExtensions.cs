@@ -138,6 +138,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IUserSectionScopeService, UserSectionScopeService>();
         services.AddScoped<LaboratoryOrganizationService>();
         services.AddScoped<MaterialService>();
+        services.AddScoped<MaterialMasterService>();
         services.AddScoped<MediaProductService>();
         services.AddScoped<MediaIncubationConditionService>();
         services.AddScoped<EquipmentInventoryService>();

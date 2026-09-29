@@ -380,6 +380,11 @@ SampleSummaryController.GetSummaryPdf(Int32): SystemAdministrator,SectionHead,Re
 SampleSummaryController.GetSummaryWord(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst
 SampleTrackingController.Get(SampleTrackingFilterDto): SystemAdministrator,SectionHead
 SignaturesController.GetTrail(String, Int32): SystemAdministrator,SectionHead
+SolutionMasterController.Create(SaveSolutionMasterRequest): SystemAdministrator,SectionHead
+SolutionMasterController.GetAll(Nullable`1, Boolean): SystemAdministrator,SectionHead,Reviewer,Analyst
+SolutionMasterController.GetById(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst
+SolutionMasterController.SetActive(Int32, Boolean, SetActiveRequest): SystemAdministrator,SectionHead
+SolutionMasterController.Update(Int32, SaveSolutionMasterRequest): SystemAdministrator,SectionHead
 SpecificationMasterDataController.CreateSpecification(CreateSpecificationRequest): SystemAdministrator,SectionHead
 SpecificationMasterDataController.DeleteSpecification(Int32): SystemAdministrator,SectionHead
 SpecificationMasterDataController.GetSpecifications(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst

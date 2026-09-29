@@ -197,6 +197,12 @@ ErrorMonitoringController.OverrideSeverity(Guid, SeverityOverrideRequest, Cancel
 ErrorMonitoringController.Reopen(Guid, CancellationToken): SystemAdministrator
 ErrorMonitoringController.Resolve(Guid, ResolveIncidentRequest, CancellationToken): SystemAdministrator
 ErrorMonitoringController.Search(Nullable`1, Nullable`1, Nullable`1, Nullable`1, Nullable`1, String, Int32, Int32, CancellationToken): SystemAdministrator
+HplcMethodController.Create(SaveHplcMethodRequest): SystemAdministrator,SectionHead
+HplcMethodController.GetAll(Boolean): SystemAdministrator,SectionHead,Reviewer,Analyst
+HplcMethodController.GetById(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst
+HplcMethodController.GetHistory(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst
+HplcMethodController.SetActive(Int32, Boolean, SetActiveRequest): SystemAdministrator,SectionHead
+HplcMethodController.Update(Int32, SaveHplcMethodRequest): SystemAdministrator,SectionHead
 ItemController.Create(ItemSaveRequest): SystemAdministrator,SectionHead
 ItemController.Delete(Int32): SystemAdministrator,SectionHead
 ItemController.Freeze(Int32): SystemAdministrator,SectionHead

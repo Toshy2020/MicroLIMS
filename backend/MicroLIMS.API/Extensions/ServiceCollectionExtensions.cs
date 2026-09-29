@@ -140,6 +140,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<MaterialService>();
         services.AddScoped<MaterialMasterService>();
         services.AddScoped<SolutionMasterService>();
+        services.AddScoped<HplcMethodService>();
         services.AddScoped<MediaProductService>();
         services.AddScoped<MediaIncubationConditionService>();
         services.AddScoped<EquipmentInventoryService>();

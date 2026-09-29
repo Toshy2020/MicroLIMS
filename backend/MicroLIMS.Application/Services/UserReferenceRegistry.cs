@@ -199,5 +199,9 @@ public static class UserReferenceRegistry
         // HPLC chain S2 - Solution master
         new UserReferenceEntry(typeof(SolutionMaster), nameof(SolutionMaster.CreatedByUserId), UserReferenceDisposition.Blocks, "No DB FK - provenance"),
         new UserReferenceEntry(typeof(SolutionMaster), nameof(SolutionMaster.LastModifiedByUserId), UserReferenceDisposition.Blocks, "No DB FK - provenance"),
+
+        // HPLC chain S3 - HPLC method master
+        new UserReferenceEntry(typeof(HplcMethod), nameof(HplcMethod.CreatedByUserId), UserReferenceDisposition.Blocks, "No DB FK - provenance"),
+        new UserReferenceEntry(typeof(HplcMethod), nameof(HplcMethod.LastModifiedByUserId), UserReferenceDisposition.Blocks, "No DB FK - provenance"),
     };
 }

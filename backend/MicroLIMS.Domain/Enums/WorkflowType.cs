@@ -13,5 +13,6 @@ public enum WorkflowType
     Disintegration,
     WeightVariation,
     HplcMultiAnalyte, // retired (SC-3): folded into StandardComparison; value kept, stored as int
-    StandardComparison
+    StandardComparison,
+    HplcMethodAssay // HPLC chain S3 - assay against an HplcMethod master (spec 3.3-3.4)
 }

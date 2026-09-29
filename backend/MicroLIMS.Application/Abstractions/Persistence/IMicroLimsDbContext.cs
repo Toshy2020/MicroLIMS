@@ -106,6 +106,10 @@ public interface IMicroLimsDbContext
     DbSet<MaterialMasterEntry> MaterialMasterEntries { get; }
     DbSet<SolutionMaster> SolutionMasters { get; }
     DbSet<SolutionComponent> SolutionComponents { get; }
+    DbSet<HplcMethod> HplcMethods { get; }
+    DbSet<HplcMethodAnalyte> HplcMethodAnalytes { get; }
+    DbSet<HplcMethodMobilePhase> HplcMethodMobilePhases { get; }
+    DbSet<HplcMethodGradientStep> HplcMethodGradientSteps { get; }
     DbSet<EquipmentInventory> EquipmentInventories { get; }
     DbSet<EquipmentStatusHistory> EquipmentStatusHistories { get; }
     DbSet<MaterialDocument> MaterialDocuments { get; }

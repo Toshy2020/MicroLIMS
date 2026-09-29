@@ -110,6 +110,10 @@ public class MicroLimsDbContext : Microsoft.EntityFrameworkCore.DbContext, IMicr
     public DbSet<MaterialMasterEntry> MaterialMasterEntries => Set<MaterialMasterEntry>();
     public DbSet<SolutionMaster> SolutionMasters => Set<SolutionMaster>();
     public DbSet<SolutionComponent> SolutionComponents => Set<SolutionComponent>();
+    public DbSet<HplcMethod> HplcMethods => Set<HplcMethod>();
+    public DbSet<HplcMethodAnalyte> HplcMethodAnalytes => Set<HplcMethodAnalyte>();
+    public DbSet<HplcMethodMobilePhase> HplcMethodMobilePhases => Set<HplcMethodMobilePhase>();
+    public DbSet<HplcMethodGradientStep> HplcMethodGradientSteps => Set<HplcMethodGradientStep>();
     public DbSet<EquipmentInventory> EquipmentInventories => Set<EquipmentInventory>();
     public DbSet<EquipmentStatusHistory> EquipmentStatusHistories => Set<EquipmentStatusHistory>();
     public DbSet<MaterialDocument> MaterialDocuments => Set<MaterialDocument>();

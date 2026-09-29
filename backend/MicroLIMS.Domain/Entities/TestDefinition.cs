@@ -109,6 +109,11 @@ public class TestDefinition : IVersionedEntity
     // Finished Product / Standard-Comparison: peak area (HPLC) or titration volume
     public ResponseMode ResponseMode { get; set; } = ResponseMode.PeakArea;
 
+    // HPLC chain S3 - HplcMethodAssay tests point at a method master instead
+    // of carrying their own analytes/SST criteria (spec 3.4).
+    public int? HplcMethodId { get; set; }
+    public HplcMethod? HplcMethod { get; set; }
+
     public List<TestAnalyte> Analytes { get; set; } = new();
 
     // Finished Product / Standard-Comparison Assay - per-stage-role

@@ -54,6 +54,9 @@ const ChromatographyColumnsPage = lazy(() => import("../modules/laboratoryConfig
 const MaterialMasterPage = lazy(() => import("../modules/laboratoryConfiguration/masterDataSimple/MaterialMasterPage").then((m) => ({ default: m.MaterialMasterPage })));
 const SolutionMasterPage = lazy(() => import("../modules/laboratoryConfiguration/masterDataSimple/SolutionMasterPage").then((m) => ({ default: m.SolutionMasterPage })));
 const HplcMethodsPage = lazy(() => import("../modules/laboratoryConfiguration/masterDataSimple/HplcMethodsPage").then((m) => ({ default: m.HplcMethodsPage })));
+const PreparationListPage = lazy(() => import("../modules/solutionPreparation/PreparationListPage").then((m) => ({ default: m.PreparationListPage })));
+const PreparationWizardPage = lazy(() => import("../modules/solutionPreparation/PreparationWizardPage").then((m) => ({ default: m.PreparationWizardPage })));
+const PreparationRecordPage = lazy(() => import("../modules/solutionPreparation/PreparationRecordPage").then((m) => ({ default: m.PreparationRecordPage })));
 const UsersPage = lazy(() => import("../modules/users/UsersPage").then((m) => ({ default: m.UsersPage })));
 const RolesPage = lazy(() => import("../modules/roles/RolesPage").then((m) => ({ default: m.RolesPage })));
 const RoleDetailPage = lazy(() => import("../modules/roles/RoleDetailPage").then((m) => ({ default: m.RoleDetailPage })));
@@ -153,6 +156,12 @@ export function AppRoutes() {
             </Route>
             <Route element={<PermissionRoute code={PERMISSIONS.CRYOVIALS_MANAGE} />}>
               <Route path="/laboratory-configuration/cryovials" element={<CryovialsPage />} />
+            </Route>
+            <Route element={<PermissionRoute code={PERMISSIONS.SOLUTIONS_PREPARE} />}>
+              <Route path="/preparation" element={<PreparationListPage />} />
+              <Route path="/preparation/new" element={<PreparationWizardPage />} />
+              <Route path="/preparation/:id/edit" element={<PreparationWizardPage />} />
+              <Route path="/preparation/:id" element={<PreparationRecordPage />} />
             </Route>
 
             <Route element={<PermissionRoute code={PERMISSIONS.AUDIT_VIEW} />}>

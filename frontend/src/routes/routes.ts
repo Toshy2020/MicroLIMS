@@ -21,6 +21,10 @@ const APP_ROUTES = {
   RECEIVING: "/receiving",
   RECEIVING_TRACKING: "/receiving/tracking",
   TESTING_WORKSPACE: "/receiving-testing",
+  SOLUTION_PREPARATION: "/preparation",
+  SOLUTION_PREPARATION_NEW: "/preparation/new",
+  SOLUTION_PREPARATION_EDIT: (id: number | string) => `/preparation/${id}/edit`,
+  SOLUTION_PREPARATION_DETAIL: (id: number | string) => `/preparation/${id}`,
 
   // Laboratory Configuration & Master Data
   MEDIA_PREPARATION: "/laboratory-configuration/media",
@@ -124,6 +128,9 @@ export function resolveTraceabilityRoute(
   if (target === "solution-master" || target === "solution-masters" || target === "solutions") {
     return APP_ROUTES.SOLUTION_MASTER;
   }
+  if (target === "preparation" || target === "solution-preparations" || target === "solutionpreparation") {
+    return APP_ROUTES.SOLUTION_PREPARATION;
+  }
   if (target === "hplc-methods" || target === "hplc-method" || target === "hplcmethod") {
     return APP_ROUTES.HPLC_METHODS;
   }
@@ -183,6 +190,9 @@ export function resolveTraceabilityRoute(
   if (type === "solutionmaster" || type === "solution") {
     return APP_ROUTES.SOLUTION_MASTER;
   }
+  if (type === "solutionpreparation" || type === "preparation") {
+    return APP_ROUTES.SOLUTION_PREPARATION;
+  }
   if (type === "hplcmethod" || type === "hplcmethods") {
     return APP_ROUTES.HPLC_METHODS;
   }
@@ -219,7 +229,8 @@ export const PERMISSIONS = {
   KPI_VIEW: "Kpi.View",
   MEDIA_PREPARE: "Media.Prepare",
   MEDIA_RELEASE: "Media.Release",
-  OOS_MANAGE: "Oos.Manage"
+  OOS_MANAGE: "Oos.Manage",
+  SOLUTIONS_PREPARE: "Solutions.Prepare"
 } as const;
 
 export type PermissionCode = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];

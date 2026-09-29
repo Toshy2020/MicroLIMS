@@ -18,7 +18,7 @@ import type { MaterialItem, CoeEligibilityResult } from "../types/materialTypes"
 import { COA_REQUIRED_TYPES } from "../types/materialTypes";
 import { MaterialDocumentList } from "./MaterialDocumentList";
 import { UploadMaterialDocumentDialog } from "./UploadMaterialDocumentDialog";
-import { useAuth } from "../../../../contexts/AuthContext";
+import { LotPreparationsList } from "./LotPreparationsList";
 
 interface Props {
   open: boolean;
@@ -40,7 +40,6 @@ function MetaRow({ label, value }: { label: string; value: React.ReactNode }) {
 }
 
 export function MaterialLotDetailsDialog({ open, material, onClose }: Props) {
-  const { role } = useAuth();
   const [eligibility, setEligibility] = useState<CoeEligibilityResult | null>(null);
   const [eligibilityLoading, setEligibilityLoading] = useState(false);
   const [uploadOpen, setUploadOpen] = useState(false);
@@ -59,7 +58,7 @@ export function MaterialLotDetailsDialog({ open, material, onClose }: Props) {
       .then(setEligibility)
       .catch(() => setEligibility(null))
       .finally(() => setEligibilityLoading(false));
-  }, [open, material?.id, coaRequired, refresh]);
+  }, [open, material, coaRequired, refresh]);
 
   if (!material) return null;
 
@@ -177,6 +176,11 @@ export function MaterialLotDetailsDialog({ open, material, onClose }: Props) {
           refreshKey={refresh}
           onDocumentChanged={() => setRefresh((r) => r + 1)}
         />
+
+        <Divider sx={{ my: 2 }} />
+
+        {/* ---- Consumed by Preparations ---- */}
+        <LotPreparationsList materialId={material.id} onNavigate={onClose} />
       </FloatingDialog>
 
       {/* Upload sub-dialog */}

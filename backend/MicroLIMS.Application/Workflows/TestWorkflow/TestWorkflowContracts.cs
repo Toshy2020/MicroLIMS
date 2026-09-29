@@ -65,7 +65,7 @@ public class PredecessorStepIncubationActiveException : WorkflowStepException
 public record StepResultDto(
     int StepInstanceId, string StepType, string Status,
     int SubmittedByUserId, DateTime SubmittedAtUtc,
-    bool NextStepUnlocked, string? WorkflowFinalResult, List<string> Flags);
+    bool NextStepUnlocked, ResultStatus? WorkflowFinalResult, List<string> Flags);
 
 public record ConfirmatorySelectionInput(int StepMediaId, int MediaLotId, int EquipmentId);
 public record ConfirmatoryObservationInput(int MaterialId, GrowthObservation Observation);
@@ -79,7 +79,7 @@ public record ConfirmatoryOutcomeDto(int StepInstanceId, string ConfirmatoryResu
 public record CompletedStepSummary(
     int StepOrder, string StepName, StepType StepType, bool IsFinalStep,
     string Outcome, DateTime? ObservedAt,
-    string? ReportedResult, decimal? CalculatedResult, string? Status);
+    string? ReportedResult, decimal? CalculatedResult, ResultStatus? Status);
 
 // What GET current-step needs to render any phase of the workflow
 // dialog: the step template (null once every step is done), whether an
@@ -115,11 +115,11 @@ public record StepResultFact(
     int Id, int IncubationId, string StepName, bool? IsSharedSessionStep, bool HasConfirmatoryResult,
     string? BiochemicalResultText, bool? BiochemicalOrganismDetected, DateTime SubmittedAtUtc);
 
-public record CountReadingFact(int Id, string? StepName, string ReportedResult, decimal? CalculatedResult, string Status, DateTime EnteredAt);
+public record CountReadingFact(int Id, string? StepName, string ReportedResult, decimal? CalculatedResult, ResultStatus Status, DateTime EnteredAt);
 
 public record TestWorkflowResult(
     string OutcomeSummary, bool IsDefinitive, bool AllStepsComplete, string? FinalResult,
-    decimal? Average, decimal? CalculatedResult, string? Status);
+    decimal? Average, decimal? CalculatedResult, ResultStatus? Status);
 
 public record ElementalAssayElementInput(
     int SpecificationId,

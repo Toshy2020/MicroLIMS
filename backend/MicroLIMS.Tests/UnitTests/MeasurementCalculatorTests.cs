@@ -43,7 +43,7 @@ public class MeasurementCalculatorTests
 
         Assert.Equal(MeasurementEvaluationBasis.Mean, result.Basis);
         Assert.Equal(result.Mean, result.ReportedValue);
-        Assert.Equal("WithinLimits", result.ComparisonStatus);
+        Assert.Equal(ResultStatus.WithinLimits, result.ComparisonStatus);
         Assert.Equal("6.02", result.ReportedDisplay);
 
         // CalculationJson check
@@ -67,7 +67,7 @@ public class MeasurementCalculatorTests
         Assert.Equal(6.02m, result.Max);
         Assert.Null(result.Sd);
         Assert.Null(result.Rsd);
-        Assert.Equal("WithinLimits", result.ComparisonStatus);
+        Assert.Equal(ResultStatus.WithinLimits, result.ComparisonStatus);
         Assert.Equal("6.02", result.ReportedDisplay);
     }
 
@@ -83,7 +83,7 @@ public class MeasurementCalculatorTests
 
         Assert.Equal(5.8m, result.Mean);
         Assert.Equal(5.8m, result.ReportedValue);
-        Assert.Equal("WithinLimits", result.ComparisonStatus);
+        Assert.Equal(ResultStatus.WithinLimits, result.ComparisonStatus);
     }
 
     [Fact]
@@ -96,7 +96,7 @@ public class MeasurementCalculatorTests
         var result = MeasurementCalculator.Calculate(readings, MeasurementEvaluationBasis.Min, spec);
 
         Assert.Equal(5.4m, result.ReportedValue);
-        Assert.Equal("OutOfSpecification", result.ComparisonStatus);
+        Assert.Equal(ResultStatus.OutOfSpecification, result.ComparisonStatus);
     }
 
     [Fact]
@@ -110,7 +110,7 @@ public class MeasurementCalculatorTests
         var result = MeasurementCalculator.Calculate(readings, MeasurementEvaluationBasis.Max, spec);
 
         Assert.Equal(6.6m, result.ReportedValue);
-        Assert.Equal("OutOfSpecification", result.ComparisonStatus);
+        Assert.Equal(ResultStatus.OutOfSpecification, result.ComparisonStatus);
     }
 
     [Fact]
@@ -123,7 +123,7 @@ public class MeasurementCalculatorTests
         var result = MeasurementCalculator.Calculate(readings, MeasurementEvaluationBasis.EachValue, spec);
 
         Assert.Equal(5.8m, result.ReportedValue); // ReportedValue is mean!
-        Assert.Equal("OutOfSpecification", result.ComparisonStatus); // Worst status wins!
+        Assert.Equal(ResultStatus.OutOfSpecification, result.ComparisonStatus); // Worst status wins!
     }
 
     [Fact]
@@ -135,7 +135,7 @@ public class MeasurementCalculatorTests
         var result = MeasurementCalculator.Calculate(readings, MeasurementEvaluationBasis.EachValue, spec);
 
         Assert.Equal(6.0m, result.ReportedValue);
-        Assert.Equal("WithinLimits", result.ComparisonStatus);
+        Assert.Equal(ResultStatus.WithinLimits, result.ComparisonStatus);
     }
 
     [Fact]
@@ -145,19 +145,19 @@ public class MeasurementCalculatorTests
 
         // 6.5 exactly is WithinLimits
         var res1 = MeasurementCalculator.Calculate(new List<decimal> { 6.5m }, MeasurementEvaluationBasis.Mean, spec);
-        Assert.Equal("WithinLimits", res1.ComparisonStatus);
+        Assert.Equal(ResultStatus.WithinLimits, res1.ComparisonStatus);
 
         // 6.5000001 is OutOfSpecification (unrounded comparison)
         var res2 = MeasurementCalculator.Calculate(new List<decimal> { 6.5000001m }, MeasurementEvaluationBasis.Mean, spec);
-        Assert.Equal("OutOfSpecification", res2.ComparisonStatus);
+        Assert.Equal(ResultStatus.OutOfSpecification, res2.ComparisonStatus);
 
         // 5.5 exactly is WithinLimits
         var res3 = MeasurementCalculator.Calculate(new List<decimal> { 5.5m }, MeasurementEvaluationBasis.Mean, spec);
-        Assert.Equal("WithinLimits", res3.ComparisonStatus);
+        Assert.Equal(ResultStatus.WithinLimits, res3.ComparisonStatus);
 
         // 5.4999999 is OutOfSpecification
         var res4 = MeasurementCalculator.Calculate(new List<decimal> { 5.4999999m }, MeasurementEvaluationBasis.Mean, spec);
-        Assert.Equal("OutOfSpecification", res4.ComparisonStatus);
+        Assert.Equal(ResultStatus.OutOfSpecification, res4.ComparisonStatus);
     }
 
     [Fact]

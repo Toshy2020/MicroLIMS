@@ -52,7 +52,7 @@ public class SampleSummarySpecificationTests
         db.CountTestReadings.Add(new CountTestReading
         {
             TestOrderId = tamcOrder.Id, PlateReadings = "10,12", DilutionFactor = 1, Average = 11, CalculatedResult = 11,
-            ReportedResult = "11", AlertLimit = "10", ActionLimit = "50", SpecLimit = "100", Status = "OutOfSpecification", EnteredByUserId = 1
+            ReportedResult = "11", AlertLimit = "10", ActionLimit = "50", SpecLimit = "100", Status = ResultStatus.OutOfSpecification, EnteredByUserId = 1
         });
         db.Results.Add(new Result { TestOrderId = ecoliOrder.Id, RawValue = "Absent", InterpretedValue = "Absent", Type = ResultType.Interpretive, EnteredByUserId = 1 });
         await db.SaveChangesAsync();

@@ -13,7 +13,7 @@ public record GravimetricCalculationResult(
     int N,
     decimal ReportedValue,
     string ReportedDisplay,
-    string ComparisonStatus,
+    ResultStatus ComparisonStatus,
     string CalculationJson,
     IReadOnlyList<GravimetricReplicateCalculationData> Replicates);
 
@@ -92,7 +92,7 @@ public static class GravimetricCalculator
         decimal mean = sumPercent / n;
         decimal reportedValue = mean;
 
-        string comparisonStatus = SpecificationEvaluator.Evaluate(spec, reportedValue);
+        ResultStatus comparisonStatus = SpecificationEvaluator.Evaluate(spec, reportedValue);
         string reportedDisplay = FormatReportedDisplay(reportedValue, spec);
 
         var calcData = new GravimetricCalculationData(

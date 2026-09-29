@@ -363,6 +363,6 @@ public class SpecificationService
     }
 
     // Backend performs alert/action/spec comparison - frontend only displays results.
-    public string CompareAgainstLimits(decimal value, Specification spec) =>
+    public ResultStatus CompareAgainstLimits(decimal value, Specification spec) =>
         SpecLimitParser.CompareAgainstLimits(value, spec.AlertLimit, spec.ActionLimit, spec.SpecLimit);
 }

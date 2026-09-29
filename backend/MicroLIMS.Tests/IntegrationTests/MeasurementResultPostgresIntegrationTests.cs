@@ -119,7 +119,7 @@ public class MeasurementResultPostgresIntegrationTests
 
         var result = await engine.RecordMeasurementResultAsync(order.Id, payload, _fixture.SeededUserId, "127.0.0.1");
 
-        Assert.Equal("WithinLimits", result.Status);
+        Assert.Equal(ResultStatus.WithinLimits, result.Status);
         Assert.Contains("6.02", result.OutcomeSummary);
 
         // Verify persistence in Postgres
@@ -143,7 +143,7 @@ public class MeasurementResultPostgresIntegrationTests
         var savedParam = savedAnalysis.ParameterResults[0];
         Assert.Equal(spec.Id, savedParam.SpecificationId);
         Assert.Equal("6.02", savedParam.ReportedDisplay);
-        Assert.Equal("WithinLimits", savedParam.ComparisonStatus);
+        Assert.Equal(ResultStatus.WithinLimits, savedParam.ComparisonStatus);
         Assert.True(savedParam.IsActive);
         Assert.NotNull(savedParam.CalculationJson);
         // jsonb re-formats the stored text, so compare parsed values.

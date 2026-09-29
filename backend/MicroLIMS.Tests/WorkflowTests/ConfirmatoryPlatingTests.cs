@@ -186,7 +186,7 @@ public class ConfirmatoryPlatingTests
         var result = await engine.SubmitBiochemicalAsync(orderId, "Biochemical Test", "IMViC: +,-,-,+ (E. coli pattern)", null, true, 4);
 
         Assert.Equal("Complete", result.Status);
-        Assert.Equal("Detected", result.WorkflowFinalResult);
+        Assert.Equal(ResultStatus.Detected, result.WorkflowFinalResult);
         // Driven by the explicit organismDetected argument, not a hardcode -
         // proven by the companion test below with the same setup but
         // organismDetected: false, which must NOT also report "Detected".
@@ -216,7 +216,7 @@ public class ConfirmatoryPlatingTests
         var result = await engine.SubmitBiochemicalAsync(orderId, "Biochemical Test", "IMViC: -,-,-,- (absence of E. coli pattern)", null, false, 4);
 
         Assert.Equal("Complete", result.Status);
-        Assert.Equal("NotDetected", result.WorkflowFinalResult);
+        Assert.Equal(ResultStatus.NotDetected, result.WorkflowFinalResult);
 
         var order = await db.TestOrders.SingleAsync(o => o.Id == orderId);
         Assert.Equal(WorkflowStep.Ready, order.CurrentStep);
@@ -254,7 +254,7 @@ public class ConfirmatoryPlatingTests
             "Gram: negative rods. Oxidase: negative. IMViC: +,-,-,+ (E. coli pattern).", null, true, 4);
 
         Assert.Equal("Complete", result.Status);
-        Assert.Equal("Detected", result.WorkflowFinalResult);
+        Assert.Equal(ResultStatus.Detected, result.WorkflowFinalResult);
         var stored = await db.WorkflowStepResults.SingleAsync(r => r.TestOrderId == orderId && r.StepType == StepType.BiochemicalTest);
         Assert.True(stored.BiochemicalOrganismDetected);
     }

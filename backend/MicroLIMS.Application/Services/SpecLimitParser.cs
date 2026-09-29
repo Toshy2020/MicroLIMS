@@ -1,4 +1,4 @@
-using MicroLIMS.Domain.Constants;
+using MicroLIMS.Domain.Enums;
 using System.Globalization;
 using System.Text.RegularExpressions;
 
@@ -205,7 +205,7 @@ public static class SpecLimitParser
         return ParsedSpecLimit.None;
     }
 
-    public static (string status, string? exceeded) Compare(decimal value, string? alert, string? action, string? spec)
+    public static (ResultStatus status, string? exceeded) Compare(decimal value, string? alert, string? action, string? spec)
     {
         var specLimit = Parse(spec);
         if (specLimit.HasLimit && specLimit.IsExceededBy(value))
@@ -225,6 +225,6 @@ public static class SpecLimitParser
         return (ResultStatus.WithinLimits, null);
     }
 
-    public static string CompareAgainstLimits(decimal value, string? alert, string? action, string? spec) =>
+    public static ResultStatus CompareAgainstLimits(decimal value, string? alert, string? action, string? spec) =>
         Compare(value, alert, action, spec).status;
 }

@@ -1,4 +1,3 @@
-using MicroLIMS.Domain.Constants;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.DTOs;
 using MicroLIMS.Application.Helpers;
@@ -357,7 +356,7 @@ public class SampleSummaryService
                     locationDtos = orderPathogenObs.Select(obs =>
                     {
                         string reportedResult;
-                        string status;
+                        ResultStatus status;
 
                         if (obs.ConfirmatoryPlateObservations != null && obs.ConfirmatoryPlateObservations.Count > 0)
                         {
@@ -805,7 +804,7 @@ public class SampleSummaryService
                 lines.Add("  FINAL RESULT (BY LOCATION):");
                 foreach (var loc in order.Locations)
                 {
-                    lines.Add($"    Location: {loc.LocationName}   CFU: {loc.CFUResult?.ToString() ?? "-"}   Reported: {loc.ReportedResult ?? "-"}   Status: {loc.Status ?? "-"}");
+                    lines.Add($"    Location: {loc.LocationName}   CFU: {loc.CFUResult?.ToString() ?? "-"}   Reported: {loc.ReportedResult ?? "-"}   Status: {loc.Status?.ToString() ?? "-"}");
                     lines.Add($"    Entered By: {loc.EnteredByName ?? "-"}   Entered At: {FormatDateTime(loc.EnteredAt)}");
                 }
             }
@@ -854,7 +853,7 @@ public class SampleSummaryService
                 lines.Add("  BIOCHEMICAL IDENTIFICATION:");
                 foreach (var b in order.BiochemicalResults)
                 {
-                    var call = b.OrganismDetected is true ? ResultStatus.Detected : b.OrganismDetected is false ? "Not Detected" : "Undetermined";
+                    var call = b.OrganismDetected is true ? nameof(ResultStatus.Detected) : b.OrganismDetected is false ? "Not Detected" : "Undetermined";
                     lines.Add($"    {b.StepName}: {b.BiochemicalResultText}   Interpretation: {call}   Entered By: {b.SubmittedByName}   Entered At: {FormatDateTime(b.SubmittedAt)}");
                 }
             }

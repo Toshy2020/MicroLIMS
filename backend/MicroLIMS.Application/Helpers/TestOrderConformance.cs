@@ -1,5 +1,5 @@
 using MicroLIMS.Application.DTOs;
-using MicroLIMS.Domain.Constants;
+using MicroLIMS.Domain.Enums;
 
 namespace MicroLIMS.Application.Helpers;
 
@@ -48,13 +48,13 @@ public static class TestOrderConformance
         if (lastBiochemical is not null)
         {
             var detected = lastBiochemical.OrganismDetected!.Value;
-            return (ResultConformanceRules.FromDetection(detected), detected ? ResultStatus.Detected : ResultStatus.Absent);
+            return (ResultConformanceRules.FromDetection(detected), (detected ? ResultStatus.Detected : ResultStatus.Absent).ToString());
         }
 
         if (t.PathogenObservations.Count > 0)
         {
             var detected = t.PathogenObservations.Any(p => p.Observation == "GrowthConforming");
-            return (ResultConformanceRules.FromDetection(detected), detected ? ResultStatus.Detected : ResultStatus.Absent);
+            return (ResultConformanceRules.FromDetection(detected), (detected ? ResultStatus.Detected : ResultStatus.Absent).ToString());
         }
 
         var lastResult = t.Results.LastOrDefault();

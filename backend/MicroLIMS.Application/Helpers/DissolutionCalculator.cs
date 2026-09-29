@@ -1,4 +1,3 @@
-using MicroLIMS.Domain.Constants;
 using System.Globalization;
 using System.Text.Json;
 using MicroLIMS.Domain.Entities;
@@ -10,7 +9,7 @@ public record DissolutionCalculationResult(
     decimal Mean,
     decimal ReportedValue,
     string ReportedDisplay,
-    string ComparisonStatus,
+    ResultStatus ComparisonStatus,
     int StageReached,
     DissolutionStageOutcome Outcome,
     IReadOnlyList<string> Reasons,
@@ -121,11 +120,11 @@ public static class DissolutionCalculator
             offsets.S3MinOffset,
             offsets.S3MaxBelowS2Min);
 
-        string comparisonStatus = eval.Outcome switch
+        ResultStatus comparisonStatus = eval.Outcome switch
         {
             DissolutionStageOutcome.Complies => ResultStatus.WithinLimits,
             DissolutionStageOutcome.DoesNotComply => ResultStatus.OutOfSpecification,
-            DissolutionStageOutcome.NextStageRequired => "NextStageRequired",
+            DissolutionStageOutcome.NextStageRequired => ResultStatus.NextStageRequired,
             _ => ResultStatus.OutOfSpecification
         };
 

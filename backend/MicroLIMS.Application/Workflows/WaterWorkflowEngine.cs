@@ -202,12 +202,12 @@ public class WaterWorkflowEngine : IWaterWorkflowEngine
         await WorkflowStateMachine.TransitionAsync(_db, order, WorkflowStep.Ready, order.AssignedAnalystId ?? 0,
             $"Average {average:0.##}, {status}");
 
-        return new WaterComparisonResult(average, status, exceeded);
+        return new WaterComparisonResult(average, status.ToString(), exceeded);
     }
 
     // Alert -> Action -> Specification, in ascending order of severity -
     // the first limit exceeded (starting from Spec, the most severe) wins.
-    public static (string status, string? exceeded) Compare(decimal average, string? alert, string? action, string? spec) =>
+    public static (ResultStatus status, string? exceeded) Compare(decimal average, string? alert, string? action, string? spec) =>
         SpecLimitParser.Compare(average, alert, action, spec);
 
     public async Task<List<WaterComparisonResult>> GetDailyAggregateAsync(DateTime date, IReadOnlyCollection<int>? sectionIds = null)

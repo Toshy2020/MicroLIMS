@@ -1,4 +1,3 @@
-using MicroLIMS.Domain.Constants;
 using MicroLIMS.Shared.Exceptions;
 using System.Globalization;
 using System.Text.Json;
@@ -272,7 +271,7 @@ public sealed class IncubationStepRecorder : TestWorkflowSupport
 
         string outcomeSummary;
         decimal? average = null, calculatedResult = null;
-        string? status = null;
+        ResultStatus? status = null;
         CountTestReading? countTestReading = null;
 
         switch (payload)
@@ -691,7 +690,7 @@ public sealed class IncubationStepRecorder : TestWorkflowSupport
         {
             var growth = submitted[location.Id].GrowthObserved;
             location.Status = growth ? ResultStatus.Detected : ResultStatus.Absent;
-            location.ReportedResult = location.Status;
+            location.ReportedResult = location.Status.ToString();
             location.EnteredAt = _clock.UtcNow.UtcDateTime;
             location.EnteredByUserId = userId;
             if (growth) detectedCount++;
@@ -720,7 +719,7 @@ public sealed class IncubationStepRecorder : TestWorkflowSupport
         await _sampleReviewService.AutoSubmitForReviewIfReadyAsync(order.SampleId, userId);
         await _db.SaveChangesAsync();
 
-        return new TestWorkflowResult(summary, true, true, overallResult, null, null, overallResult);
+        return new TestWorkflowResult(summary, true, true, overallResult.ToString(), null, null, overallResult);
     }
 
     private static string LocationName(SampleLocation l) =>
@@ -750,7 +749,7 @@ public sealed class IncubationStepRecorder : TestWorkflowSupport
             "Add it to DeriveBatchLocationUnit rather than guessing.")
     };
 
-    private static int StatusSeverity(string status) => status switch
+    private static int StatusSeverity(ResultStatus status) => status switch
     {
         ResultStatus.OutOfSpecification => 4,
         ResultStatus.ActionLimitExceeded => 3,
@@ -759,7 +758,7 @@ public sealed class IncubationStepRecorder : TestWorkflowSupport
         _ => 0
     };
 
-    private async Task<(string reported, decimal? average, decimal? calculated, string status, CountTestReading reading)> RecordCountTestAsync(TestOrder order, TestWorkflowStep step, CountTestPayload payload, int userId)
+    private async Task<(string reported, decimal? average, decimal? calculated, ResultStatus status, CountTestReading reading)> RecordCountTestAsync(TestOrder order, TestWorkflowStep step, CountTestPayload payload, int userId)
     {
         if (payload.RawPlateReadings.Count == 0)
             throw new InvalidOperationException("At least one plate reading is required to calculate an average.");
@@ -830,7 +829,7 @@ public sealed class IncubationStepRecorder : TestWorkflowSupport
         string reported;
         decimal? average = null;
         decimal? calculated = null;
-        string status;
+        ResultStatus status;
 
         if (hasNonNumeric)
         {
@@ -977,12 +976,12 @@ public sealed class IncubationStepRecorder : TestWorkflowSupport
         await Task.CompletedTask;
         var growthObserved = payload.Observation != GrowthObservation.NoGrowth;
         return step.IsFinalStep
-            ? (growthObserved ? ResultStatus.Detected : ResultStatus.Absent)
+            ? (growthObserved ? ResultStatus.Detected : ResultStatus.Absent).ToString()
             : (growthObserved ? "Growth" : "No Growth");
     }
 
     // Same Spec -> Action -> Alert precedence (most severe first) as
     // WaterWorkflowEngine.Compare/CountTestWorkflowEngine.Compare.
-    public static (string status, string? exceeded) Compare(decimal value, string? alert, string? action, string? spec) =>
+    public static (ResultStatus status, string? exceeded) Compare(decimal value, string? alert, string? action, string? spec) =>
         SpecLimitParser.Compare(value, alert, action, spec);
 }

@@ -1,4 +1,3 @@
-using MicroLIMS.Domain.Constants;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 
@@ -6,7 +5,7 @@ namespace MicroLIMS.Application.Services;
 
 public static class SpecificationEvaluator
 {
-    public static string Evaluate(Specification spec, decimal value)
+    public static ResultStatus Evaluate(Specification spec, decimal value)
     {
         ArgumentNullException.ThrowIfNull(spec);
 

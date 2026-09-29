@@ -124,7 +124,7 @@ public class TestWorkflowEngine : ITestWorkflowEngine
     public static string GetCfuUnit(SampleCategory category, string? prepUnit) =>
         IncubationStepRecorder.GetCfuUnit(category, prepUnit);
 
-    public static (string status, string? exceeded) Compare(decimal value, string? alert, string? action, string? spec) =>
+    public static (ResultStatus status, string? exceeded) Compare(decimal value, string? alert, string? action, string? spec) =>
         IncubationStepRecorder.Compare(value, alert, action, spec);
 
     public Task<TestWorkflowResult> RecordElementalAssayResultAsync(

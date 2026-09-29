@@ -39,7 +39,7 @@ public class PathogenWorkflowTests
         await engine.RecordAnalystDecisionAsync(order.Id, AnalystDecision.ProceedToBiochemical, AnalystId);
         var final = await engine.SubmitBiochemicalAsync(order.Id, "Biochemical Test", "IMViC: + + - -", null, true, AnalystId);
 
-        Assert.Equal("Detected", final.WorkflowFinalResult);
+        Assert.Equal(ResultStatus.Detected, final.WorkflowFinalResult);
 
         var reloaded = await db.TestOrders.SingleAsync(t => t.Id == order.Id);
         Assert.Equal(WorkflowStep.Ready, reloaded.CurrentStep);
@@ -60,7 +60,7 @@ public class PathogenWorkflowTests
         var result = await engine.SubmitSelectivePlatingAsync(order.Id, "Selective Plating", media.SelectivePlatingLotId,
             incubator.Id, start, end, GrowthObservation.GrowthNonConforming, AnalystId);
 
-        Assert.Equal("NotDetected", result.WorkflowFinalResult);
+        Assert.Equal(ResultStatus.NotDetected, result.WorkflowFinalResult);
         Assert.Empty(await db.WorkflowStepResults.Where(r => r.StepType == StepType.ConfirmatoryPlating).ToListAsync());
     }
 

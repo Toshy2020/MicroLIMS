@@ -16,7 +16,7 @@ public class ParameterResultConfiguration : IEntityTypeConfiguration<ParameterRe
         builder.Property(r => r.ReportedDisplay).IsRequired().HasMaxLength(100);
         builder.Property(r => r.Unit).HasMaxLength(50);
         builder.Property(r => r.SpecLimit).HasMaxLength(100);
-        builder.Property(r => r.ComparisonStatus).IsRequired().HasMaxLength(50);
+        builder.Property(r => r.ComparisonStatus).HasConversion<string>().IsRequired().HasMaxLength(50);
         builder.Property(r => r.CalculationJson).HasColumnType("jsonb");
         builder.Property(r => r.IsActive).HasDefaultValue(true);
 

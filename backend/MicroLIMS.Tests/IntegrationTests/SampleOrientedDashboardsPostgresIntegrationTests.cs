@@ -327,7 +327,7 @@ public class SampleOrientedDashboardsPostgresIntegrationTests
         PlateReadings = "10,12",
         DilutionFactor = 1m,
         ReportedResult = "11",
-        Status = "WithinLimits",
+        Status = ResultStatus.WithinLimits,
         IsActive = isActive,
         EnteredByUserId = _fixture.SeededUserId,
         EnteredAt = DateTime.UtcNow

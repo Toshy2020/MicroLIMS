@@ -331,7 +331,7 @@ public record TestOrderLocationResponse(
     decimal? CalculatedResult,
     string? ReportedResult,
     string? RawReadings,
-    string? Status,
+    ResultStatus? Status,
     DateTime? EnteredAt)
 {
     public static TestOrderLocationResponse From(SampleLocation l) => new(

@@ -1,4 +1,3 @@
-using MicroLIMS.Domain.Constants;
 using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Helpers;
@@ -99,7 +98,7 @@ public record CountResultDto(
     decimal? Average,
     decimal? FinalCfu,
     string ReportedResult,
-    string Status,
+    ResultStatus Status,
     bool HasNonNumericReading,
     string? NonNumericValue,
     bool RequiresReview,
@@ -677,7 +676,7 @@ public class PathogenSessionService
                 {
                     resDisplay = sloc.ReportedResult;
                     numVal = sloc.CFUResult ?? sloc.CalculatedResult;
-                    status = sloc.Status ?? "Entered";
+                    status = sloc.Status?.ToString() ?? "Entered";
                     enteredAt = sloc.EnteredAt;
                     enteredByUser = UserName(sloc.EnteredByUserId);
 
@@ -687,7 +686,7 @@ public class PathogenSessionService
                     }
                     else
                     {
-                        resCode = (sloc.ReportedResult?.Contains("Detected (+)") == true || sloc.ReportedResult?.Equals(ResultStatus.Detected, StringComparison.OrdinalIgnoreCase) == true)
+                        resCode = (sloc.ReportedResult?.Contains("Detected (+)") == true || sloc.ReportedResult?.Equals(nameof(ResultStatus.Detected), StringComparison.OrdinalIgnoreCase) == true)
                             ? "DETECTED"
                             : "NOT_DETECTED";
                     }
@@ -1422,7 +1421,7 @@ public class PathogenSessionService
                 else // Inconclusive
                 {
                     primaryObs.SampleLocation.ReportedResult = "Inconclusive (Retest)";
-                    primaryObs.SampleLocation.Status = "Inconclusive";
+                    primaryObs.SampleLocation.Status = ResultStatus.Inconclusive;
                 }
 
                 primaryObs.SampleLocation.EnteredAt = _time.GetUtcNow().UtcDateTime;
@@ -1510,7 +1509,7 @@ public class PathogenSessionService
                     loc.SpecLimit = specLimit;
                     loc.Status = cell.NumericValue.HasValue
                         ? CompareAgainstLimits(cell.NumericValue.Value, alertLimit, actionLimit, specLimit)
-                        : null;
+                        : (ResultStatus?)null;
                 }
                 else
                 {
@@ -1539,7 +1538,7 @@ public class PathogenSessionService
     }
 
     // Same semantics as TestWorkflowEngine's Compare(...) - delegates to shared SpecLimitParser
-    private static string CompareAgainstLimits(decimal value, string? alert, string? action, string? spec) =>
+    private static ResultStatus CompareAgainstLimits(decimal value, string? alert, string? action, string? spec) =>
         SpecLimitParser.CompareAgainstLimits(value, alert, action, spec);
 
     public async Task<PathogenTestingSessionDto> CompleteSessionAsync(int sampleId, int userId)

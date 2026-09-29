@@ -321,7 +321,7 @@ public class DocumentControlRevisionUnitTests
         var item = await revisionService.AddChangeItemAsync(draft.Id, addReq, author.Id);
         Assert.NotNull(item);
         Assert.Equal("4.2", item.SectionNumber);
-        Assert.Equal("Draft", item.Status);
+        Assert.Equal(RevisionChangeItemStatus.Draft, item.Status);
 
         // 2. Update Change Item
         var updateReq = new UpdateChangeItemRequest(
@@ -330,11 +330,11 @@ public class DocumentControlRevisionUnitTests
             DescriptionOfChange: "Increased homogenizer speed to 2000 RPM for 60 seconds.",
             ChangeRationale: "Satisfies compendial update USP <61>.",
             ChangeCategory: "Modification",
-            Status: "Addressed"
+            Status: RevisionChangeItemStatus.Addressed
         );
 
         var updated = await revisionService.UpdateChangeItemAsync(item.Id, updateReq, author.Id);
-        Assert.Equal("Addressed", updated.Status);
+        Assert.Equal(RevisionChangeItemStatus.Addressed, updated.Status);
         Assert.Equal("Sample Preparation & Dilution", updated.SectionTitle);
 
         // 3. Query list
@@ -574,7 +574,7 @@ public class DocumentControlRevisionUnitTests
             DescriptionOfChange = "Originating finding item",
             ChangeRationale = "Mandatory item",
             ChangeCategory = "Modification",
-            Status = "Draft", // Unaddressed!
+            Status = RevisionChangeItemStatus.Draft, // Unaddressed!
             OriginatingReviewFindingId = 999,
             CreatedByUserId = author.Id
         };
@@ -591,7 +591,7 @@ public class DocumentControlRevisionUnitTests
         Assert.Contains("originating review finding(s) remain unaddressed", ex.Message);
 
         // Mark addressed -> now submission succeeds!
-        changeItem.Status = "Addressed";
+        changeItem.Status = RevisionChangeItemStatus.Addressed;
         await db.SaveChangesAsync();
 
         var submittedTask = await reviewService.SubmitForReviewAsync(draft.Id, new SubmitForReviewRequest

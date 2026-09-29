@@ -178,7 +178,7 @@ public class PathogenObservationReportingTests
         var locDto = testOrderDto.Locations[0];
         Assert.Equal("USP01", locDto.LocationName);
         Assert.Equal("Not Detected (-)", locDto.ReportedResult);
-        Assert.Equal("WithinLimits", locDto.Status);
+        Assert.Equal(ResultStatus.WithinLimits, locDto.Status);
 
         var doc = ReportDocumentMapper.ForSample(summary);
         var card = TestCardOf(doc);

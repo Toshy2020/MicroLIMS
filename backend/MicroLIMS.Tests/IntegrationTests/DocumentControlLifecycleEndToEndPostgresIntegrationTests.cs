@@ -236,7 +236,7 @@ public class DocumentControlLifecycleEndToEndPostgresIntegrationTests
             DescriptionOfChange: "Updated HPLC instrument run parameters",
             ChangeRationale: "Optimized chromatography parameters",
             ChangeCategory: "Modification",
-            Status: "Draft"
+            Status: RevisionChangeItemStatus.Draft
         ), users.Author.Id);
 
         // Complete Impact Assessment for Revision 02
@@ -518,7 +518,7 @@ public class DocumentControlLifecycleEndToEndPostgresIntegrationTests
             DescriptionOfChange: prFinding.NoteText,
             ChangeRationale: "Periodic Review finding resolution",
             ChangeCategory: "Modification",
-            Status: "Draft"
+            Status: RevisionChangeItemStatus.Draft
         ), users.Author.Id);
 
         // Verify that the change item is recorded

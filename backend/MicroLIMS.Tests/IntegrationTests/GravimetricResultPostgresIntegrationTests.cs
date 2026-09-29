@@ -129,7 +129,7 @@ public class GravimetricResultPostgresIntegrationTests
 
         var result = await engine.RecordGravimetricResultAsync(order.Id, payload, _fixture.SeededUserId, "127.0.0.1");
 
-        Assert.Equal("WithinLimits", result.Status);
+        Assert.Equal(ResultStatus.WithinLimits, result.Status);
         Assert.Contains("4.50 %", result.OutcomeSummary);
 
         // Verify persistence in Postgres
@@ -159,7 +159,7 @@ public class GravimetricResultPostgresIntegrationTests
         var savedParam = savedAnalysis.ParameterResults[0];
         Assert.Equal(spec.Id, savedParam.SpecificationId);
         Assert.Equal("4.50 %", savedParam.ReportedDisplay);
-        Assert.Equal("WithinLimits", savedParam.ComparisonStatus);
+        Assert.Equal(ResultStatus.WithinLimits, savedParam.ComparisonStatus);
         Assert.True(savedParam.IsActive);
         Assert.NotNull(savedParam.CalculationJson);
 

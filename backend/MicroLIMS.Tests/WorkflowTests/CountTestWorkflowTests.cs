@@ -150,7 +150,7 @@ public class CountTestWorkflowTests
 
         var result = await engine.RecordResultAsync(order.Id, "CountIncubation", new CountTestPayload(new List<decimal> { 90, 110, 120 }, 1), userId: 1);
 
-        Assert.Equal("OutOfSpecification", result.Status);
+        Assert.Equal(ResultStatus.OutOfSpecification, result.Status);
         Assert.Contains("107", result.OutcomeSummary); // average (90+110+120)/3 = 106.67, rounded to a whole CFU count
         Assert.True(result.AllStepsComplete);
 
@@ -310,7 +310,7 @@ public class CountTestWorkflowTests
 
         var result = await engine.RecordResultAsync(order.Id, "CountIncubation", new CountTestPayload(new List<string> { "TNTC", "15" }, 1), userId: 1);
         Assert.Equal("TNTC", result.OutcomeSummary);
-        Assert.Equal("RequiresReview", result.Status);
+        Assert.Equal(ResultStatus.RequiresReview, result.Status);
         Assert.Null(result.Average);
         Assert.Null(result.CalculatedResult);
 
@@ -318,7 +318,7 @@ public class CountTestWorkflowTests
         Assert.True(reading.HasNonNumericReading);
         Assert.Equal("TNTC", reading.NonNumericValue);
         Assert.True(reading.RequiresReview);
-        Assert.Equal("RequiresReview", reading.Status);
+        Assert.Equal(ResultStatus.RequiresReview, reading.Status);
     }
 
     [Fact]
@@ -331,7 +331,7 @@ public class CountTestWorkflowTests
 
         var result = await engine.RecordResultAsync(order.Id, "CountIncubation", new CountTestPayload(new List<string> { "Uncountable", "10" }, 1), userId: 1);
         Assert.Equal("Uncountable", result.OutcomeSummary);
-        Assert.Equal("RequiresReview", result.Status);
+        Assert.Equal(ResultStatus.RequiresReview, result.Status);
 
         var reading = await db.CountTestReadings.FirstAsync(r => r.TestOrderId == order.Id);
         Assert.True(reading.HasNonNumericReading);
@@ -349,7 +349,7 @@ public class CountTestWorkflowTests
 
         var result = await engine.RecordResultAsync(order.Id, "CountIncubation", new CountTestPayload(new List<string> { "TNTC", "TNTC" }, 1), userId: 1);
         Assert.Equal("TNTC", result.OutcomeSummary);
-        Assert.Equal("RequiresReview", result.Status);
+        Assert.Equal(ResultStatus.RequiresReview, result.Status);
     }
 
     [Fact]

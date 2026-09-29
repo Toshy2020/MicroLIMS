@@ -230,7 +230,7 @@ public class DissolutionWorkflowEngineTests
         // 1. Assert result1 indicates NextStageRequired and NOT complete
         Assert.False(result1.AllStepsComplete);
         Assert.False(result1.IsDefinitive);
-        Assert.Equal("NextStageRequired", result1.Status);
+        Assert.Equal(ResultStatus.NextStageRequired, result1.Status);
 
         // Order remains Running
         var reloadedOrder = await db.TestOrders.FindAsync(order.Id);
@@ -256,7 +256,7 @@ public class DissolutionWorkflowEngineTests
 
         Assert.True(result2.AllStepsComplete);
         Assert.True(result2.IsDefinitive);
-        Assert.Equal("WithinLimits", result2.Status);
+        Assert.Equal(ResultStatus.WithinLimits, result2.Status);
 
         // Order is now finalized to Ready!
         reloadedOrder = await db.TestOrders.FindAsync(order.Id);
@@ -278,7 +278,7 @@ public class DissolutionWorkflowEngineTests
         Assert.Single(analysis.ParameterResults);
         var pr = analysis.ParameterResults[0];
         Assert.Equal(2, pr.StageReached);
-        Assert.Equal("WithinLimits", pr.ComparisonStatus);
+        Assert.Equal(ResultStatus.WithinLimits, pr.ComparisonStatus);
         Assert.Equal(12, pr.Readings.Count);
     }
 

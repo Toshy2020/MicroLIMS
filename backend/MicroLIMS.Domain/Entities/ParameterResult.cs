@@ -24,7 +24,7 @@ public class ParameterResult
     public string? Unit { get; set; }
     public string? SpecLimit { get; set; }
     public ResultBasis? ResultBasis { get; set; }
-    public string ComparisonStatus { get; set; } = string.Empty;
+    public ResultStatus ComparisonStatus { get; set; }
 
     public bool OverRange { get; set; }
     public bool BelowLoq { get; set; }

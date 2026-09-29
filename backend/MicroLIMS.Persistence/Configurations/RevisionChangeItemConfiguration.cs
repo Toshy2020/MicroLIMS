@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using MicroLIMS.Domain.Entities;
+using MicroLIMS.Domain.Enums;
 
 namespace MicroLIMS.Persistence.Configurations;
 
@@ -31,8 +32,9 @@ public class RevisionChangeItemConfiguration : IEntityTypeConfiguration<Revision
             .IsRequired();
 
         builder.Property(c => c.Status)
+            .HasConversion<string>()
             .HasMaxLength(50)
-            .HasDefaultValue("Draft")
+            .HasDefaultValue(RevisionChangeItemStatus.Draft)
             .IsRequired();
 
         builder.Property(c => c.CreatedAt)

@@ -1,4 +1,3 @@
-using MicroLIMS.Domain.Constants;
 using MicroLIMS.Shared.Exceptions;
 using System.Globalization;
 using System.Text.Json;
@@ -152,7 +151,7 @@ public sealed class ElementalAssayRecorder : TestWorkflowSupport
             decimal? percentLabelClaim = null;
             decimal? reportedValue = null;
             string reportedDisplay;
-            string status;
+            ResultStatus status;
 
             if (elemInput.OverRange)
             {
@@ -283,7 +282,7 @@ public sealed class ElementalAssayRecorder : TestWorkflowSupport
 
         _db.TestAnalyses.Add(entry);
 
-        string overallStatus;
+        ResultStatus overallStatus;
         if (elementResults.Any(r => r.ComparisonStatus == ResultStatus.OutOfSpecification))
             overallStatus = ResultStatus.OutOfSpecification;
         else if (elementResults.Any(r => r.ComparisonStatus == ResultStatus.RequiresReview))

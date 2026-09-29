@@ -56,11 +56,11 @@ public class UniversalSpecificationsTests
             LowerInclusive = true,
             UpperInclusive = true
         };
-        Assert.Equal("WithinLimits", SpecificationEvaluator.Evaluate(specInc, 90m));
-        Assert.Equal("WithinLimits", SpecificationEvaluator.Evaluate(specInc, 110m));
-        Assert.Equal("WithinLimits", SpecificationEvaluator.Evaluate(specInc, 100m));
-        Assert.Equal("OutOfSpecification", SpecificationEvaluator.Evaluate(specInc, 89.99m));
-        Assert.Equal("OutOfSpecification", SpecificationEvaluator.Evaluate(specInc, 110.01m));
+        Assert.Equal(ResultStatus.WithinLimits, SpecificationEvaluator.Evaluate(specInc, 90m));
+        Assert.Equal(ResultStatus.WithinLimits, SpecificationEvaluator.Evaluate(specInc, 110m));
+        Assert.Equal(ResultStatus.WithinLimits, SpecificationEvaluator.Evaluate(specInc, 100m));
+        Assert.Equal(ResultStatus.OutOfSpecification, SpecificationEvaluator.Evaluate(specInc, 89.99m));
+        Assert.Equal(ResultStatus.OutOfSpecification, SpecificationEvaluator.Evaluate(specInc, 110.01m));
 
         // Exclusive lower
         var specExLower = new Specification
@@ -71,9 +71,9 @@ public class UniversalSpecificationsTests
             LowerInclusive = false,
             UpperInclusive = true
         };
-        Assert.Equal("OutOfSpecification", SpecificationEvaluator.Evaluate(specExLower, 90m));
-        Assert.Equal("WithinLimits", SpecificationEvaluator.Evaluate(specExLower, 90.01m));
-        Assert.Equal("WithinLimits", SpecificationEvaluator.Evaluate(specExLower, 110m));
+        Assert.Equal(ResultStatus.OutOfSpecification, SpecificationEvaluator.Evaluate(specExLower, 90m));
+        Assert.Equal(ResultStatus.WithinLimits, SpecificationEvaluator.Evaluate(specExLower, 90.01m));
+        Assert.Equal(ResultStatus.WithinLimits, SpecificationEvaluator.Evaluate(specExLower, 110m));
 
         // Exclusive upper
         var specExUpper = new Specification
@@ -84,9 +84,9 @@ public class UniversalSpecificationsTests
             LowerInclusive = true,
             UpperInclusive = false
         };
-        Assert.Equal("WithinLimits", SpecificationEvaluator.Evaluate(specExUpper, 90m));
-        Assert.Equal("WithinLimits", SpecificationEvaluator.Evaluate(specExUpper, 109.99m));
-        Assert.Equal("OutOfSpecification", SpecificationEvaluator.Evaluate(specExUpper, 110m));
+        Assert.Equal(ResultStatus.WithinLimits, SpecificationEvaluator.Evaluate(specExUpper, 90m));
+        Assert.Equal(ResultStatus.WithinLimits, SpecificationEvaluator.Evaluate(specExUpper, 109.99m));
+        Assert.Equal(ResultStatus.OutOfSpecification, SpecificationEvaluator.Evaluate(specExUpper, 110m));
 
         // Exclusive both
         var specExBoth = new Specification
@@ -97,35 +97,35 @@ public class UniversalSpecificationsTests
             LowerInclusive = false,
             UpperInclusive = false
         };
-        Assert.Equal("OutOfSpecification", SpecificationEvaluator.Evaluate(specExBoth, 90m));
-        Assert.Equal("OutOfSpecification", SpecificationEvaluator.Evaluate(specExBoth, 110m));
-        Assert.Equal("WithinLimits", SpecificationEvaluator.Evaluate(specExBoth, 100m));
+        Assert.Equal(ResultStatus.OutOfSpecification, SpecificationEvaluator.Evaluate(specExBoth, 90m));
+        Assert.Equal(ResultStatus.OutOfSpecification, SpecificationEvaluator.Evaluate(specExBoth, 110m));
+        Assert.Equal(ResultStatus.WithinLimits, SpecificationEvaluator.Evaluate(specExBoth, 100m));
     }
 
     [Fact]
     public void SpecificationEvaluator_NotMoreThan_EvaluatesBounds()
     {
         var specInc = new Specification { LimitType = LimitType.NotMoreThan, UpperLimit = 100m, UpperInclusive = true };
-        Assert.Equal("WithinLimits", SpecificationEvaluator.Evaluate(specInc, 100m));
-        Assert.Equal("WithinLimits", SpecificationEvaluator.Evaluate(specInc, 50m));
-        Assert.Equal("OutOfSpecification", SpecificationEvaluator.Evaluate(specInc, 100.01m));
+        Assert.Equal(ResultStatus.WithinLimits, SpecificationEvaluator.Evaluate(specInc, 100m));
+        Assert.Equal(ResultStatus.WithinLimits, SpecificationEvaluator.Evaluate(specInc, 50m));
+        Assert.Equal(ResultStatus.OutOfSpecification, SpecificationEvaluator.Evaluate(specInc, 100.01m));
 
         var specEx = new Specification { LimitType = LimitType.NotMoreThan, UpperLimit = 100m, UpperInclusive = false };
-        Assert.Equal("OutOfSpecification", SpecificationEvaluator.Evaluate(specEx, 100m));
-        Assert.Equal("WithinLimits", SpecificationEvaluator.Evaluate(specEx, 99.99m));
+        Assert.Equal(ResultStatus.OutOfSpecification, SpecificationEvaluator.Evaluate(specEx, 100m));
+        Assert.Equal(ResultStatus.WithinLimits, SpecificationEvaluator.Evaluate(specEx, 99.99m));
     }
 
     [Fact]
     public void SpecificationEvaluator_NotLessThan_EvaluatesBounds()
     {
         var specInc = new Specification { LimitType = LimitType.NotLessThan, LowerLimit = 90m, LowerInclusive = true };
-        Assert.Equal("WithinLimits", SpecificationEvaluator.Evaluate(specInc, 90m));
-        Assert.Equal("WithinLimits", SpecificationEvaluator.Evaluate(specInc, 95m));
-        Assert.Equal("OutOfSpecification", SpecificationEvaluator.Evaluate(specInc, 89.99m));
+        Assert.Equal(ResultStatus.WithinLimits, SpecificationEvaluator.Evaluate(specInc, 90m));
+        Assert.Equal(ResultStatus.WithinLimits, SpecificationEvaluator.Evaluate(specInc, 95m));
+        Assert.Equal(ResultStatus.OutOfSpecification, SpecificationEvaluator.Evaluate(specInc, 89.99m));
 
         var specEx = new Specification { LimitType = LimitType.NotLessThan, LowerLimit = 90m, LowerInclusive = false };
-        Assert.Equal("OutOfSpecification", SpecificationEvaluator.Evaluate(specEx, 90m));
-        Assert.Equal("WithinLimits", SpecificationEvaluator.Evaluate(specEx, 90.01m));
+        Assert.Equal(ResultStatus.OutOfSpecification, SpecificationEvaluator.Evaluate(specEx, 90m));
+        Assert.Equal(ResultStatus.WithinLimits, SpecificationEvaluator.Evaluate(specEx, 90.01m));
     }
 
     [Fact]
@@ -139,11 +139,11 @@ public class UniversalSpecificationsTests
             Tolerance = 5m,
             ToleranceMode = ToleranceMode.Absolute
         };
-        Assert.Equal("WithinLimits", SpecificationEvaluator.Evaluate(specAbs, 95m));
-        Assert.Equal("WithinLimits", SpecificationEvaluator.Evaluate(specAbs, 105m));
-        Assert.Equal("WithinLimits", SpecificationEvaluator.Evaluate(specAbs, 100m));
-        Assert.Equal("OutOfSpecification", SpecificationEvaluator.Evaluate(specAbs, 94.99m));
-        Assert.Equal("OutOfSpecification", SpecificationEvaluator.Evaluate(specAbs, 105.01m));
+        Assert.Equal(ResultStatus.WithinLimits, SpecificationEvaluator.Evaluate(specAbs, 95m));
+        Assert.Equal(ResultStatus.WithinLimits, SpecificationEvaluator.Evaluate(specAbs, 105m));
+        Assert.Equal(ResultStatus.WithinLimits, SpecificationEvaluator.Evaluate(specAbs, 100m));
+        Assert.Equal(ResultStatus.OutOfSpecification, SpecificationEvaluator.Evaluate(specAbs, 94.99m));
+        Assert.Equal(ResultStatus.OutOfSpecification, SpecificationEvaluator.Evaluate(specAbs, 105.01m));
 
         // Percent: 200 ± 5% -> 5% of 200 is 10 -> [190, 210]
         var specPct = new Specification
@@ -153,11 +153,11 @@ public class UniversalSpecificationsTests
             Tolerance = 5m,
             ToleranceMode = ToleranceMode.Percent
         };
-        Assert.Equal("WithinLimits", SpecificationEvaluator.Evaluate(specPct, 190m));
-        Assert.Equal("WithinLimits", SpecificationEvaluator.Evaluate(specPct, 210m));
-        Assert.Equal("WithinLimits", SpecificationEvaluator.Evaluate(specPct, 200m));
-        Assert.Equal("OutOfSpecification", SpecificationEvaluator.Evaluate(specPct, 189.99m));
-        Assert.Equal("OutOfSpecification", SpecificationEvaluator.Evaluate(specPct, 210.01m));
+        Assert.Equal(ResultStatus.WithinLimits, SpecificationEvaluator.Evaluate(specPct, 190m));
+        Assert.Equal(ResultStatus.WithinLimits, SpecificationEvaluator.Evaluate(specPct, 210m));
+        Assert.Equal(ResultStatus.WithinLimits, SpecificationEvaluator.Evaluate(specPct, 200m));
+        Assert.Equal(ResultStatus.OutOfSpecification, SpecificationEvaluator.Evaluate(specPct, 189.99m));
+        Assert.Equal(ResultStatus.OutOfSpecification, SpecificationEvaluator.Evaluate(specPct, 210.01m));
     }
 
     [Fact]
@@ -170,10 +170,10 @@ public class UniversalSpecificationsTests
             ActionLimit = "50",
             SpecLimit = "100"
         };
-        Assert.Equal("WithinLimits", SpecificationEvaluator.Evaluate(spec, 5m));
-        Assert.Equal("AlertLimitExceeded", SpecificationEvaluator.Evaluate(spec, 15m));
-        Assert.Equal("ActionLimitExceeded", SpecificationEvaluator.Evaluate(spec, 60m));
-        Assert.Equal("OutOfSpecification", SpecificationEvaluator.Evaluate(spec, 150m));
+        Assert.Equal(ResultStatus.WithinLimits, SpecificationEvaluator.Evaluate(spec, 5m));
+        Assert.Equal(ResultStatus.AlertLimitExceeded, SpecificationEvaluator.Evaluate(spec, 15m));
+        Assert.Equal(ResultStatus.ActionLimitExceeded, SpecificationEvaluator.Evaluate(spec, 60m));
+        Assert.Equal(ResultStatus.OutOfSpecification, SpecificationEvaluator.Evaluate(spec, 150m));
     }
 
     [Theory]

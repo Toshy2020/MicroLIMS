@@ -1,5 +1,5 @@
 using MicroLIMS.Application.Helpers;
-using MicroLIMS.Domain.Constants;
+using MicroLIMS.Domain.Enums;
 using MicroLIMS.Application.DTOs;
 using MicroLIMS.Application.Abstractions.Pdf;
 
@@ -16,6 +16,8 @@ public static class ReportDocumentMapper
 
     // Enum names arrive PascalCase; a controlled document should read as
     // English. Consecutive capitals are preserved so acronyms survive.
+    private static string Humanize(ResultStatus? v) => Humanize(v?.ToString());
+
     private static string Humanize(string? v)
     {
         if (string.IsNullOrWhiteSpace(v)) return "-";
@@ -177,7 +179,7 @@ public static class ReportDocumentMapper
         // confirmatory result followed by a biochemical result indicating
         // absence was previously still archived as "Detected").
         var qualitative = TestOrderConformance.Qualitative(t);
-        var detected = qualitative.Result == ResultStatus.Detected;
+        var detected = qualitative.Result == nameof(ResultStatus.Detected);
 
         // The same verdict as the Certificate of Analysis: a failure is
         // red, and a missing result or one with no limits cannot be shown
@@ -194,7 +196,7 @@ public static class ReportDocumentMapper
         // "Detected"/"Absent") - the full "X locations: Y conform..."
         // sentence belongs in the table summary below, not here, or it
         // starves the title column of width and wraps it word-by-word.
-        string? worstLocationStatus = null;
+        ResultStatus? worstLocationStatus = null;
         if (t.Locations.Count > 0)
         {
             var severity = new[] { ResultStatus.WithinLimits, ResultStatus.Absent, ResultStatus.PendingConfirmation, ResultStatus.LimitsNotConfigured, ResultStatus.AlertLimitExceeded, ResultStatus.ActionLimitExceeded, ResultStatus.RequiresReview, ResultStatus.OutOfSpecification, ResultStatus.Detected };
@@ -202,14 +204,14 @@ public static class ReportDocumentMapper
             foreach (var loc in t.Locations)
             {
                 if (loc.Status is null) continue;
-                if (Array.IndexOf(severity, loc.Status) > Array.IndexOf(severity, worstLocationStatus))
+                if (Array.IndexOf(severity, loc.Status.Value) > Array.IndexOf(severity, worstLocationStatus.Value))
                     worstLocationStatus = loc.Status;
             }
         }
 
         var headline = worstLocationStatus is not null ? Humanize(worstLocationStatus)
             : reading?.ReportedResult
-            ?? (t.PathogenObservations.Count > 0 ? (detected ? ResultStatus.Detected : ResultStatus.Absent) : null)
+            ?? (t.PathogenObservations.Count > 0 ? (detected ? nameof(ResultStatus.Detected) : nameof(ResultStatus.Absent)) : null)
             ?? lastResult?.InterpretedValue ?? lastResult?.RawValue ?? "-";
 
         var card = new CardBlock
@@ -268,7 +270,7 @@ public static class ReportDocumentMapper
 
         foreach (var b in t.BiochemicalResults)
         {
-            var call = b.OrganismDetected is true ? ResultStatus.Detected : b.OrganismDetected is false ? "Not Detected" : "Undetermined";
+            var call = b.OrganismDetected is true ? nameof(ResultStatus.Detected) : b.OrganismDetected is false ? "Not Detected" : "Undetermined";
             card.Rows.Add((Humanize(b.StepName), $"{call}: {b.BiochemicalResultText}  |  {b.SubmittedByName}  |  {Dt(b.SubmittedAt)}"));
         }
 
@@ -301,7 +303,7 @@ public static class ReportDocumentMapper
                     $"{FormatLimit(loc.AlertLimit)}/{FormatLimit(loc.ActionLimit)}/{FormatLimit(loc.SpecLimit)}",
                     loc.CFUResult?.ToString() ?? "-",
                     loc.ReportedResult ?? "-",
-                    loc.Status ?? "-",
+                    loc.Status?.ToString() ?? "-",
                     $"{loc.EnteredByName ?? "-"} · {Dt(loc.EnteredAt)}"
                 });
             }
@@ -325,7 +327,7 @@ public static class ReportDocumentMapper
                 ResultConformance.DoesNotConform => "Non-conforming location(s)",
                 _ => "Not all locations can be certified"
             }
-            : Humanize(reading?.Status ?? (t.PathogenObservations.Count > 0 ? (detected ? ResultStatus.Detected : ResultStatus.Absent) : t.Status));
+            : Humanize(reading?.Status.ToString() ?? (t.PathogenObservations.Count > 0 ? (detected ? nameof(ResultStatus.Detected) : nameof(ResultStatus.Absent)) : t.Status));
 
         return card;
     }

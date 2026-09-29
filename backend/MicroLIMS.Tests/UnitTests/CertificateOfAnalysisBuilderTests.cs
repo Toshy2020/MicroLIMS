@@ -1,3 +1,4 @@
+using MicroLIMS.Domain.Enums;
 using MicroLIMS.Application.DTOs;
 using MicroLIMS.Application.Helpers;
 using MicroLIMS.Application.Services;
@@ -11,7 +12,7 @@ namespace MicroLIMS.Tests.UnitTests;
 // test by the order's approval state - those two cases are pinned here.
 public class CertificateOfAnalysisBuilderTests
 {
-    private static TestOrderSummaryDetailDto Located(int id, string code, params (string Key, string? Status, decimal? Cfu)[] locations) => new()
+    private static TestOrderSummaryDetailDto Located(int id, string code, params (string Key, ResultStatus? Status, decimal? Cfu)[] locations) => new()
     {
         TestOrderId = id,
         SectionId = 1,
@@ -39,15 +40,14 @@ public class CertificateOfAnalysisBuilderTests
     // ---- The shared rule ----
 
     [Theory]
-    [InlineData("WithinLimits", ResultConformance.Conforms)]
-    [InlineData("Absent", ResultConformance.Conforms)]
-    [InlineData("LimitsNotConfigured", ResultConformance.LimitsNotConfigured)]
+    [InlineData(ResultStatus.WithinLimits, ResultConformance.Conforms)]
+    [InlineData(ResultStatus.Absent, ResultConformance.Conforms)]
+    [InlineData(ResultStatus.LimitsNotConfigured, ResultConformance.LimitsNotConfigured)]
     [InlineData(null, ResultConformance.NoResult)]
-    [InlineData("", ResultConformance.NoResult)]
-    [InlineData("OutOfSpecification", ResultConformance.DoesNotConform)]
-    [InlineData("PendingConfirmation", ResultConformance.DoesNotConform)]
-    [InlineData("RequiresReview", ResultConformance.DoesNotConform)]
-    public void FromStatus_ClassifiesEveryStatusTheBackendWrites(string? status, ResultConformance expected) =>
+    [InlineData(ResultStatus.OutOfSpecification, ResultConformance.DoesNotConform)]
+    [InlineData(ResultStatus.PendingConfirmation, ResultConformance.DoesNotConform)]
+    [InlineData(ResultStatus.RequiresReview, ResultConformance.DoesNotConform)]
+    public void FromStatus_ClassifiesEveryStatusTheBackendWrites(ResultStatus? status, ResultConformance expected) =>
         Assert.Equal(expected, ResultConformanceRules.FromStatus(status));
 
     // ---- Location matrix ----
@@ -56,8 +56,8 @@ public class CertificateOfAnalysisBuilderTests
     public void AllLocationsConform_Complies()
     {
         var coa = CertificateOfAnalysisBuilder.Build(Summary(
-            Located(1, "TAMC", ("1", "WithinLimits", 2m), ("2", "WithinLimits", 0m)),
-            Located(2, "PSEUDO", ("1", "Absent", null), ("2", "Absent", null))));
+            Located(1, "TAMC", ("1", ResultStatus.WithinLimits, 2m), ("2", ResultStatus.WithinLimits, 0m)),
+            Located(2, "PSEUDO", ("1", ResultStatus.Absent, null), ("2", ResultStatus.Absent, null))));
 
         Assert.True(coa.Sample.Complies);
         Assert.Equal("This sample complies with the specified requirements. All 2 tests conform across all 2 sampling locations.", coa.Sample.ConclusionText);
@@ -69,7 +69,7 @@ public class CertificateOfAnalysisBuilderTests
     public void LocationWithNoResult_IsNotCertified()
     {
         var coa = CertificateOfAnalysisBuilder.Build(Summary(
-            Located(1, "TAMC", ("1", "WithinLimits", 2m), ("2", null, null))));
+            Located(1, "TAMC", ("1", ResultStatus.WithinLimits, 2m), ("2", null, null))));
 
         Assert.False(coa.Sample.Complies);
         Assert.Equal("Cannot certify — no result is recorded for: TAMC at Room 2.", coa.Sample.ConclusionText);
@@ -82,7 +82,7 @@ public class CertificateOfAnalysisBuilderTests
     public void LimitsNotConfigured_IsNotCertified()
     {
         var coa = CertificateOfAnalysisBuilder.Build(Summary(
-            Located(1, "TAMC", ("1", "LimitsNotConfigured", 5m))));
+            Located(1, "TAMC", ("1", ResultStatus.LimitsNotConfigured, 5m))));
 
         Assert.False(coa.Sample.Complies);
         Assert.Equal("Cannot certify — limits are not configured for: TAMC at Room 1.", coa.Sample.ConclusionText);
@@ -92,7 +92,7 @@ public class CertificateOfAnalysisBuilderTests
     public void FailureWithMissingResult_NamesBoth()
     {
         var coa = CertificateOfAnalysisBuilder.Build(Summary(
-            Located(1, "TAMC", ("1", "OutOfSpecification", 50m), ("2", null, null))));
+            Located(1, "TAMC", ("1", ResultStatus.OutOfSpecification, 50m), ("2", null, null))));
 
         Assert.Equal(
             "This sample does not comply with the specified requirements. Exceptions: TAMC at Room 1. " +
@@ -104,9 +104,9 @@ public class CertificateOfAnalysisBuilderTests
     public void DuplicateTestCode_ShowsTheFailingOrder_AndTamcLeads()
     {
         var coa = CertificateOfAnalysisBuilder.Build(Summary(
-            Located(1, "PSEUDO", ("1", "Absent", null)),
-            Located(2, "TAMC", ("1", "WithinLimits", 1m)),
-            Located(3, "TAMC", ("1", "OutOfSpecification", 40m))));
+            Located(1, "PSEUDO", ("1", ResultStatus.Absent, null)),
+            Located(2, "TAMC", ("1", ResultStatus.WithinLimits, 1m)),
+            Located(3, "TAMC", ("1", ResultStatus.OutOfSpecification, 40m))));
 
         var columns = coa.Sample.Matrix!.Columns;
         Assert.Equal(new[] { "TAMC", "PSEUDO" }, columns.Select(c => c.TestCode));
@@ -116,7 +116,7 @@ public class CertificateOfAnalysisBuilderTests
     [Fact]
     public void QuantitativeResult_PrintsWithoutTrailingZeros()
     {
-        var coa = CertificateOfAnalysisBuilder.Build(Summary(Located(1, "TAMC", ("1", "WithinLimits", 12.0m))));
+        var coa = CertificateOfAnalysisBuilder.Build(Summary(Located(1, "TAMC", ("1", ResultStatus.WithinLimits, 12.0m))));
 
         Assert.Equal("12", coa.Sample.Matrix!.Rows[0].Cells[0]!.Result);
     }
@@ -145,11 +145,11 @@ public class CertificateOfAnalysisBuilderTests
     [Fact]
     public void CountTestWithoutAReading_IsNotCertified()
     {
-        // Quantitative, but its single reading has no status yet.
+        // A saved reading always carries a status, so the unread count
+        // test is one with no reading at all.
         var order = new TestOrderSummaryDetailDto
         {
-            TestOrderId = 1, SectionId = 1, TestCode = "TAMC", TestDisplayName = "TAMC",
-            CountTestReadings = { new CountTestReadingDetailDto { ReportedResult = "", Status = "" } }
+            TestOrderId = 1, SectionId = 1, TestCode = "TAMC", TestDisplayName = "TAMC"
         };
 
         var coa = CertificateOfAnalysisBuilder.Build(Summary(order));
@@ -173,7 +173,7 @@ public class CertificateOfAnalysisBuilderTests
     [Fact]
     public void RejectedSample_NamesTheRejectingLab()
     {
-        var summary = Summary(Located(1, "TAMC", ("1", "WithinLimits", 1m)));
+        var summary = Summary(Located(1, "TAMC", ("1", ResultStatus.WithinLimits, 1m)));
         summary.OverallStatus = "Rejected";
         summary.Sections[0].Status = "Rejected";
 
@@ -186,8 +186,8 @@ public class CertificateOfAnalysisBuilderTests
     [Fact]
     public void EachSection_OnlyJudgesItsOwnTests()
     {
-        var micro = Located(1, "TAMC", ("1", "WithinLimits", 1m));
-        var chem = Located(2, "ASSAY", ("1", "OutOfSpecification", 99m));
+        var micro = Located(1, "TAMC", ("1", ResultStatus.WithinLimits, 1m));
+        var chem = Located(2, "ASSAY", ("1", ResultStatus.OutOfSpecification, 99m));
         chem.SectionId = 2;
         var summary = Summary(micro, chem);
         summary.Sections.Add(new SampleSectionSummaryDto { SectionId = 2, SectionName = "Chemistry", Status = "Approved" });

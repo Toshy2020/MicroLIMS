@@ -9,7 +9,7 @@ public record SuitabilityRunLinkedTestDto(
     string? BatchNumber,
     string TestCode,
     string? ReportedResult,
-    string? ResultStatus,
+    MicroLIMS.Domain.Enums.ResultStatus? ResultStatus,
     DateTime? ResultEnteredAt);
 
 public record SuitabilityRunReportDetailsDto(

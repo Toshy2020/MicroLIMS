@@ -1,4 +1,4 @@
-using MicroLIMS.Domain.Constants;
+using MicroLIMS.Domain.Enums;
 using MicroLIMS.Application.Abstractions.Pdf;
 namespace MicroLIMS.Infrastructure.Pdf;
 
@@ -338,7 +338,10 @@ public class ReportPdfRenderer
 
     // Same palette as the frontend's StatusBadge color map, for both the
     // CFU/count severity ladder and the pathogen Detected/Absent call.
-    private static PdfColor LocationStatusColor(string status) => status switch
+    private static PdfColor LocationStatusColor(string cell) =>
+        Enum.TryParse<ResultStatus>(cell, out var status) ? LocationStatusColor(status) : TextTertiary;
+
+    private static PdfColor LocationStatusColor(ResultStatus status) => status switch
     {
         ResultStatus.WithinLimits or ResultStatus.Absent => Positive,
         ResultStatus.LimitsNotConfigured or ResultStatus.AlertLimitExceeded => Warning,

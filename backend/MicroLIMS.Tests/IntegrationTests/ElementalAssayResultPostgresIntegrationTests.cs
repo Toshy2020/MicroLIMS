@@ -274,7 +274,7 @@ public class ElementalAssayResultPostgresIntegrationTests
 
         var result = await engine.RecordElementalAssayResultAsync(order.Id, payload, _fixture.SeededUserId, "127.0.0.1");
 
-        Assert.Equal("WithinLimits", result.Status);
+        Assert.Equal(ResultStatus.WithinLimits, result.Status);
         Assert.Contains("106.3 %", result.OutcomeSummary);
         Assert.Contains("100.0 %", result.OutcomeSummary);
 
@@ -300,14 +300,14 @@ public class ElementalAssayResultPostgresIntegrationTests
         Assert.Equal(10.625m, savedZn.MgPerUnit);
         Assert.Equal(106.25m, savedZn.PercentLabelClaim);
         Assert.Equal("106.3 %", savedZn.ReportedDisplay);
-        Assert.Equal("WithinLimits", savedZn.ComparisonStatus);
+        Assert.Equal(ResultStatus.WithinLimits, savedZn.ComparisonStatus);
 
         var savedCa = savedEntry.Results.First(r => r.SpecificationId == caSpec.Id);
         Assert.Equal(80000m, savedCa.ReportedPpm);
         Assert.Equal(100.0m, savedCa.MgPerUnit);
         Assert.Equal(100.0m, savedCa.PercentLabelClaim);
         Assert.Equal("100.0 %", savedCa.ReportedDisplay);
-        Assert.Equal("WithinLimits", savedCa.ComparisonStatus);
+        Assert.Equal(ResultStatus.WithinLimits, savedCa.ComparisonStatus);
 
         // Verify generic Result row
         var genericResult = await verifyDb.Results.FirstOrDefaultAsync(r => r.TestOrderId == order.Id);
@@ -667,7 +667,7 @@ public class ElementalAssayResultPostgresIntegrationTests
             "127.0.0.1");
 
         var unapprovedRes = await verifyDb.ParameterResults.FirstAsync(r => r.TestOrderId == order2.Id && r.IsActive);
-        Assert.Equal("RequiresReview", unapprovedRes.ComparisonStatus);
+        Assert.Equal(ResultStatus.RequiresReview, unapprovedRes.ComparisonStatus);
         Assert.Equal("450.0 mg/kg", unapprovedRes.ReportedDisplay);
 
         Assert.Single(withdrawn.AffectedApprovedOrders);

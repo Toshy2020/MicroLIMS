@@ -31,7 +31,7 @@ public class LimitsAndUnitSpecificationTests
         };
 
         var result = service.CompareAgainstLimits(50, spec);
-        Assert.Equal("LimitsNotConfigured", result);
+        Assert.Equal(ResultStatus.LimitsNotConfigured, result);
     }
 
     [Fact]
@@ -47,10 +47,10 @@ public class LimitsAndUnitSpecificationTests
             SpecLimit = "100"
         };
 
-        Assert.Equal("WithinLimits", service.CompareAgainstLimits(5, spec));
-        Assert.Equal("AlertLimitExceeded", service.CompareAgainstLimits(15, spec));
-        Assert.Equal("ActionLimitExceeded", service.CompareAgainstLimits(60, spec));
-        Assert.Equal("OutOfSpecification", service.CompareAgainstLimits(150, spec));
+        Assert.Equal(ResultStatus.WithinLimits, service.CompareAgainstLimits(5, spec));
+        Assert.Equal(ResultStatus.AlertLimitExceeded, service.CompareAgainstLimits(15, spec));
+        Assert.Equal(ResultStatus.ActionLimitExceeded, service.CompareAgainstLimits(60, spec));
+        Assert.Equal(ResultStatus.OutOfSpecification, service.CompareAgainstLimits(150, spec));
     }
 
     [Fact]

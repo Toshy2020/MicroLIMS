@@ -388,7 +388,7 @@ public class StandardComparisonWorkflowUnitTests
         var paramResult = savedAnalysis.ParameterResults[0];
         Assert.Equal(prepCount, paramResult.Readings.Count);
         Assert.NotNull(paramResult.ReportedValue);
-        Assert.Equal("WithinLimits", paramResult.ComparisonStatus);
+        Assert.Equal(ResultStatus.WithinLimits, paramResult.ComparisonStatus);
 
         // CalculationJson check
         var calcData = JsonSerializer.Deserialize<StandardComparisonCalculationData>(
@@ -599,7 +599,7 @@ public class StandardComparisonWorkflowUnitTests
         Assert.NotNull(savedAnalysis);
 
         var param = savedAnalysis.ParameterResults[0];
-        Assert.Equal("RequiresReview", param.ComparisonStatus);
+        Assert.Equal(ResultStatus.RequiresReview, param.ComparisonStatus);
 
         var calc = JsonSerializer.Deserialize<StandardComparisonCalculationData>(
             param.CalculationJson!,

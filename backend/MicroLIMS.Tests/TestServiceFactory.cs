@@ -187,6 +187,10 @@ public static class TestServiceFactory
         new(db, new UserSectionScopeService(db),
             new AuditEventService(db, new MicroLIMS.Persistence.Helpers.DatabaseSequenceHelper(db)));
 
+    public static HplcMethodService HplcMethod(MicroLimsDbContext db) =>
+        new(db, new UserSectionScopeService(db),
+            new AuditEventService(db, new MicroLIMS.Persistence.Helpers.DatabaseSequenceHelper(db)));
+
     public static SystemSuitabilityService SystemSuitability(
         MicroLimsDbContext db,
         IUserSectionScopeService? scope = null,

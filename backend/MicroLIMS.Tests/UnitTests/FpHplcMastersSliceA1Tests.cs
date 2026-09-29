@@ -521,6 +521,16 @@ public class FpHplcMastersSliceA1Tests
         var scope = new UserSectionScopeService(db);
         var service = new MaterialService(db, scope);
 
+        // ReferenceStandard lots must reference a material master entry (HPLC chain S1).
+        var masterEntry = new MicroLIMS.Domain.Entities.MaterialMasterEntry
+        {
+            SectionId = fpSec.Id, Code = "RS-ASC-99", Name = "Ascorbic Acid Primary RS",
+            Category = MicroLIMS.Domain.Enums.MaterialMasterCategory.ReferenceStandard,
+            BaseUnit = MaterialUnit.Gram, IsActive = true
+        };
+        db.MaterialMasterEntries.Add(masterEntry);
+        await db.SaveChangesAsync();
+
         var mat = await service.CreateAsync(new SaveMaterialRequest(
             MaterialType: MaterialType.ReferenceStandard,
             MaterialName: "Ascorbic Acid Primary RS",
@@ -536,7 +546,8 @@ public class FpHplcMastersSliceA1Tests
             AtccNumber: null,
             OrganismId: null,
             SectionId: fpSec.Id,
-            Purity: 99.850m
+            Purity: 99.850m,
+            MaterialMasterEntryId: masterEntry.Id
         ), fpUser.Id);
 
         Assert.NotNull(mat);

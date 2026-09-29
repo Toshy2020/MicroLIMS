@@ -72,6 +72,9 @@ public class MaterialResponse
     public MaterialUnit Unit { get; init; }
     public decimal? MinimumStockLevel { get; init; }
     public decimal? Purity { get; init; }
+    public int? MaterialMasterEntryId { get; init; }
+    public string? MaterialMasterEntryCode { get; init; }
+    public decimal? MoisturePercent { get; init; }
     public int CreatedByUserId { get; init; }
     public DateTime CreatedAt { get; init; }
     public int LastModifiedByUserId { get; init; }
@@ -104,6 +107,9 @@ public class MaterialResponse
         Unit = e.Unit,
         MinimumStockLevel = e.MinimumStockLevel,
         Purity = e.Purity,
+        MaterialMasterEntryId = e.MaterialMasterEntryId,
+        MaterialMasterEntryCode = e.MaterialMasterEntry?.Code,
+        MoisturePercent = e.MoisturePercent,
         CreatedByUserId = e.CreatedByUserId,
         CreatedAt = e.CreatedAt,
         LastModifiedByUserId = e.LastModifiedByUserId,

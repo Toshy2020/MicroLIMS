@@ -72,8 +72,11 @@ public class MaterialReceivingMediaProductTests
         var product = await MediaProductTestData.CreateOrGetAsync(db, "Tryptic Soy Agar", "TSA");
         var service = new MaterialService(db, new UserSectionScopeService(db));
 
+        // Supplement (not Chemical/Indicator/ReferenceStandard) - this test
+        // is only about MediaProductId being forced null for non-dehydrated
+        // types, and Chemical would now require a material master entry (S1).
         var req = CreateRequest(
-            MaterialType.Chemical, "Sodium Chloride", "NACL", mediaProductId: product.Id);
+            MaterialType.Supplement, "Sodium Chloride", "NACL", mediaProductId: product.Id);
 
         var material = await service.CreateAsync(req, 1);
 

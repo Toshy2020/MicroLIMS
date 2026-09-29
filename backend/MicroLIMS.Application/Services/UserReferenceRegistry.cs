@@ -191,5 +191,9 @@ public static class UserReferenceRegistry
 
         // Shared Result Foundation (Slice F0)
         new UserReferenceEntry(typeof(TestAnalysis), nameof(TestAnalysis.EnteredByUserId), UserReferenceDisposition.Blocks, "GMP record - analyst who entered test analysis result"),
+
+        // HPLC chain S1 - Material master
+        new UserReferenceEntry(typeof(MaterialMasterEntry), nameof(MaterialMasterEntry.CreatedByUserId), UserReferenceDisposition.Blocks, "No DB FK - provenance"),
+        new UserReferenceEntry(typeof(MaterialMasterEntry), nameof(MaterialMasterEntry.LastModifiedByUserId), UserReferenceDisposition.Blocks, "No DB FK - provenance"),
     };
 }

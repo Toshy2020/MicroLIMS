@@ -391,6 +391,16 @@ SolutionMasterController.GetAll(Nullable`1, Boolean): SystemAdministrator,Sectio
 SolutionMasterController.GetById(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst
 SolutionMasterController.SetActive(Int32, Boolean, SetActiveRequest): SystemAdministrator,SectionHead
 SolutionMasterController.Update(Int32, SaveSolutionMasterRequest): SystemAdministrator,SectionHead
+SolutionPreparationController.Cancel(Int32, ReasonRequest): SystemAdministrator,SectionHead,Analyst
+SolutionPreparationController.Complete(Int32, CompletePreparationRequest): SystemAdministrator,SectionHead,Analyst
+SolutionPreparationController.Discard(Int32, ReasonRequest): SystemAdministrator,SectionHead,Analyst
+SolutionPreparationController.GetAll(Nullable`1, Nullable`1): SystemAdministrator,SectionHead,Reviewer,Analyst
+SolutionPreparationController.GetAvailable(Int32, Nullable`1): SystemAdministrator,SectionHead,Reviewer,Analyst
+SolutionPreparationController.GetById(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst
+SolutionPreparationController.GetByLot(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst
+SolutionPreparationController.GetLotOptions(Int32, Int32): SystemAdministrator,SectionHead,Reviewer,Analyst
+SolutionPreparationController.Save(Int32, SavePreparationRequest): SystemAdministrator,SectionHead,Analyst
+SolutionPreparationController.Start(StartPreparationRequest): SystemAdministrator,SectionHead,Analyst
 SpecificationMasterDataController.CreateSpecification(CreateSpecificationRequest): SystemAdministrator,SectionHead
 SpecificationMasterDataController.DeleteSpecification(Int32): SystemAdministrator,SectionHead
 SpecificationMasterDataController.GetSpecifications(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst

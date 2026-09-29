@@ -104,10 +104,12 @@ public class RolePermissionSeedDataTests
             PermissionConstants.DocumentsRevisionCreate, PermissionConstants.DocumentsPeriodicReview,
             PermissionConstants.DocumentsApprove,
             PermissionConstants.DocumentsTrainingAssign, PermissionConstants.DocumentsTrainingViewMatrix,
-            PermissionConstants.DashboardsLabOverview, PermissionConstants.DashboardsReview, PermissionConstants.KpiView, PermissionConstants.MediaPrepare, PermissionConstants.MediaRelease, PermissionConstants.OosManage, PermissionConstants.TestWorkflowSupervise, PermissionConstants.SamplesReceiveOwnLab, PermissionConstants.SamplesCorrect, PermissionConstants.SamplesAssignAnalyst
+            PermissionConstants.DashboardsLabOverview, PermissionConstants.DashboardsReview, PermissionConstants.KpiView, PermissionConstants.MediaPrepare, PermissionConstants.MediaRelease, PermissionConstants.OosManage, PermissionConstants.TestWorkflowSupervise, PermissionConstants.SamplesReceiveOwnLab, PermissionConstants.SamplesCorrect, PermissionConstants.SamplesAssignAnalyst,
+            // HPLC chain S4 - Solution Preparation area.
+            PermissionConstants.SolutionsPrepare
         };
 
-        Assert.Equal(38, codes.Count);
+        Assert.Equal(39, codes.Count);
         Assert.Equal(expected.OrderBy(c => c), codes.OrderBy(c => c));
         // Not granted to SectionHead per the catalog:
         Assert.DoesNotContain(PermissionConstants.UsersManage, codes);
@@ -159,10 +161,12 @@ public class RolePermissionSeedDataTests
             // Analyst and a lab can revoke them on the Roles screen.
             PermissionConstants.DocumentsRegister, PermissionConstants.DocumentsDraftEdit,
             PermissionConstants.DocumentsRevisionCreate,
-            PermissionConstants.MediaPrepare, PermissionConstants.SamplesReceiveOwnLab
+            PermissionConstants.MediaPrepare, PermissionConstants.SamplesReceiveOwnLab,
+            // HPLC chain S4 - Solution Preparation area.
+            PermissionConstants.SolutionsPrepare
         };
 
-        Assert.Equal(12, codes.Count);
+        Assert.Equal(13, codes.Count);
         Assert.Equal(expected.OrderBy(c => c), codes.OrderBy(c => c));
         Assert.DoesNotContain(PermissionConstants.SamplesReview, codes);
         Assert.DoesNotContain(PermissionConstants.CryovialsApprove, codes);
@@ -174,13 +178,14 @@ public class RolePermissionSeedDataTests
     [Fact]
     public async Task TotalGrantCount_MatchesTheCatalog()
     {
-        // 35 (SysAdmin) + 28 (SectionHead) + 11 (Reviewer) + 10 (Analyst) = 84
         // System.ViewSecurityAudit is granted to SystemAdministrator only.
         // Samples.Receive/Samples.TrackAll are granted to SystemAdministrator
-        // and SectionHead only.
+        // and SectionHead only. Solutions.Prepare (HPLC chain S4) is granted
+        // to SystemAdministrator, SectionHead and Analyst - +3 over the prior
+        // 110 (SystemAdministrator holds it via PermissionConstants.All).
         var db = CreateSeededDbContext();
         var total = await db.RolePermissions.CountAsync();
-        Assert.Equal(110, total);
+        Assert.Equal(113, total);
     }
 
     [Fact]
@@ -190,7 +195,7 @@ public class RolePermissionSeedDataTests
         DbSeeder.SeedPermissionsAndGrants(db); // second call
 
         Assert.Equal(PermissionConstants.All.Count, await db.Permissions.CountAsync());
-        Assert.Equal(110, await db.RolePermissions.CountAsync());
+        Assert.Equal(113, await db.RolePermissions.CountAsync());
     }
 
     [Fact]

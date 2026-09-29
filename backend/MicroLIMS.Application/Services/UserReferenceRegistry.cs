@@ -203,5 +203,10 @@ public static class UserReferenceRegistry
         // HPLC chain S3 - HPLC method master
         new UserReferenceEntry(typeof(HplcMethod), nameof(HplcMethod.CreatedByUserId), UserReferenceDisposition.Blocks, "No DB FK - provenance"),
         new UserReferenceEntry(typeof(HplcMethod), nameof(HplcMethod.LastModifiedByUserId), UserReferenceDisposition.Blocks, "No DB FK - provenance"),
+
+        // HPLC chain S4 - Solution Preparation area
+        new UserReferenceEntry(typeof(SolutionPreparation), nameof(SolutionPreparation.StartedByUserId), UserReferenceDisposition.Blocks, "No DB FK - GMP record, analyst who started the preparation"),
+        new UserReferenceEntry(typeof(SolutionPreparation), nameof(SolutionPreparation.PreparedByUserId), UserReferenceDisposition.Blocks, "No DB FK - GMP record, analyst who signed completion"),
+        new UserReferenceEntry(typeof(SolutionPreparationStatusHistory), nameof(SolutionPreparationStatusHistory.ChangedByUserId), UserReferenceDisposition.Blocks, "No DB FK - GMP record, status transition provenance (null = automatic expiry)"),
     };
 }

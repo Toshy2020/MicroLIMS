@@ -8,6 +8,7 @@ import {
 } from "../../../testPreparation/services/ItemPreparationConfigurationService";
 import { PreparationStepsSummary } from "../../../testPreparation/PreparationStepsSummary";
 import { useAuth } from "../../../../contexts/AuthContext";
+import { PERMISSIONS } from "../../../../routes/routes";
 
 interface Props {
   itemId: number;
@@ -18,8 +19,8 @@ interface Props {
 // Laboratory Configuration -> Items -> Preparation Configuration.
 // One protocol per item; editing an approved one re-opens it for approval.
 export function ItemPreparationConfigurationSection({ itemId, itemName, onChanged }: Props) {
-  const { role } = useAuth();
-  const canManage = role === "SectionHead" || role === "SystemAdministrator";
+  const { permissions } = useAuth();
+  const canManage = permissions.includes(PERMISSIONS.ITEMS_MANAGE);
 
   const [config, setConfig] = useState<ItemPreparationConfiguration | null>(null);
   const [loading, setLoading] = useState(true);

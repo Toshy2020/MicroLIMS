@@ -34,6 +34,7 @@ import { toast } from "sonner";
 import { PageHeader } from "../../../components/PageHeader";
 import { tableHeadSx } from "../../../theme";
 import { useAuth } from "../../../contexts/AuthContext";
+import { PERMISSIONS } from "../../../routes/routes";
 import { documentControlService } from "../services/documentControlService";
 import type {
   DocumentTypeDto,
@@ -44,8 +45,8 @@ import type {
 
 export function DocumentConfigurationPage() {
   const theme = useTheme();
-  const { role } = useAuth();
-  const isAdmin = role === "SystemAdministrator";
+  const { permissions } = useAuth();
+  const isAdmin = permissions.includes(PERMISSIONS.DOCUMENTS_CONFIG_MANAGE);
 
   const [currentTab, setCurrentTab] = useState(0);
   const [loading, setLoading] = useState(false);

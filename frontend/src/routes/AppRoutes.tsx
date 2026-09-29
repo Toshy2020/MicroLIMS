@@ -2,11 +2,8 @@ import { lazy, Suspense } from "react";
 import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { PublicRoutes } from "./PublicRoutes";
 import { AuthenticatedRoutes } from "./AuthenticatedRoutes";
-import { SystemAdministratorRoutes } from "./SystemAdministratorRoutes";
 import { PermissionRoute } from "./PermissionRoute";
 import { PERMISSIONS } from "./routes";
-import { SectionHeadRoutes } from "./SectionHeadRoutes";
-import { InventoryRoutes } from "./InventoryRoutes";
 import { MainLayout } from "../layouts/MainLayout";
 import { LoadingSpinner } from "../components/LoadingSpinner";
 
@@ -138,20 +135,37 @@ export function AppRoutes() {
                 pointing at a lab workspace directly - one place decides
                 "first lab the user belongs to". */}
             <Route path="/testing-workspace" element={<LegacyRedirect to="/receiving-testing" />} />
-            <Route path="/laboratory-configuration/media" element={<MediaPage />} />
-            <Route path="/laboratory-configuration/media-evaluation" element={<MediaEvaluationPage />} />
-            <Route path="/laboratory-configuration/cryovials" element={<CryovialsPage />} />
-            <Route path="/laboratory/system-suitability" element={<SystemSuitabilityRunsPage />} />
-            <Route path="/laboratory/calibration-runs" element={<CalibrationRunsPage />} />
+            {/* Every page below is guarded by the permission its main
+                endpoints check, matching the sidebar (menuConfig.ts), so a
+                role granted or denied a code on the Roles screen gets or
+                loses the page with it. The server enforces each endpoint
+                on its own. */}
+            <Route element={<PermissionRoute code={PERMISSIONS.MEDIA_PREPARE} />}>
+              <Route path="/laboratory-configuration/media" element={<MediaPage />} />
+            </Route>
+            <Route element={<PermissionRoute code={PERMISSIONS.TEST_WORKFLOW_EXECUTE} />}>
+              <Route path="/laboratory-configuration/media-evaluation" element={<MediaEvaluationPage />} />
+              <Route path="/laboratory/system-suitability" element={<SystemSuitabilityRunsPage />} />
+              <Route path="/laboratory/calibration-runs" element={<CalibrationRunsPage />} />
+            </Route>
+            <Route element={<PermissionRoute code={PERMISSIONS.CRYOVIALS_MANAGE} />}>
+              <Route path="/laboratory-configuration/cryovials" element={<CryovialsPage />} />
+            </Route>
 
-            <Route element={<SectionHeadRoutes />}>
+            <Route element={<PermissionRoute code={PERMISSIONS.AUDIT_VIEW} />}>
               <Route path="/audit-search" element={<AuditSearchPage />} />
+            </Route>
+            <Route element={<PermissionRoute code={PERMISSIONS.OOS_MANAGE} />}>
               <Route path="/oos-tracking" element={<OosTrackingPage />} />
+            </Route>
+            <Route element={<PermissionRoute code={PERMISSIONS.ITEMS_MANAGE} />}>
+              <Route path="/laboratory-configuration/items" element={<ItemsPage />} />
+            </Route>
+            <Route element={<PermissionRoute code={PERMISSIONS.MASTER_DATA_MANAGE} />}>
               <Route path="/laboratory-configuration/test-master" element={<TestMasterPage lab="micro" />} />
               <Route path="/laboratory-configuration/fp-test-master" element={<TestMasterPage key="fp" lab="fp" />} />
               <Route path="/laboratory-configuration/equation-types" element={<EquationTypesPage />} />
               <Route path="/laboratory-configuration/organisms" element={<OrganismsPage />} />
-              <Route path="/laboratory-configuration/items" element={<ItemsPage />} />
               <Route path="/laboratory-configuration/specifications" element={<SpecificationsPage />} />
               <Route path="/laboratory-configuration/media-configurations" element={<MediaConfigurationPage />} />
               <Route path="/laboratory-configuration/water" element={<WaterConfigPage />} />
@@ -173,22 +187,30 @@ export function AppRoutes() {
             <Route path="/document-control/documents/:id" element={<DocumentDetailPage />} />
             <Route path="/document-control/audit" element={<DocumentAuditPage />} />
 
-            <Route element={<InventoryRoutes />}>
+            <Route element={<PermissionRoute code={PERMISSIONS.MATERIALS_MANAGE} />}>
               <Route path="/inventory/materials" element={<MaterialsPage />} />
+            </Route>
+            <Route element={<PermissionRoute code={PERMISSIONS.EQUIPMENT_MANAGE} />}>
               <Route path="/inventory/equipment" element={<EquipmentInventoryPage />} />
+            </Route>
+            <Route element={<PermissionRoute code={PERMISSIONS.MEDIA_PREPARE} />}>
               <Route path="/inventory/approved-media" element={<ApprovedMediaListPage />} />
+            </Route>
+            <Route element={<PermissionRoute code={PERMISSIONS.CRYOVIALS_MANAGE} />}>
               <Route path="/inventory/approved-cryovials" element={<ApprovedCryovialListPage />} />
             </Route>
 
-            {/* Permission-gated rather than role-gated - a new capability
-                with no legacy role equivalent to reproduce. */}
             <Route element={<PermissionRoute code={PERMISSIONS.SYSTEM_VIEW_ERROR_LOG} />}>
               <Route path="/error-monitoring" element={<ErrorMonitoringPage />} />
             </Route>
 
-            <Route element={<SystemAdministratorRoutes />}>
+            <Route element={<PermissionRoute code={PERMISSIONS.DOCUMENTS_CONFIG_MANAGE} />}>
               <Route path="/document-control/configuration" element={<DocumentConfigurationPage />} />
+            </Route>
+            <Route element={<PermissionRoute code={PERMISSIONS.USERS_MANAGE} />}>
               <Route path="/users" element={<UsersPage />} />
+            </Route>
+            <Route element={<PermissionRoute code={PERMISSIONS.ROLES_MANAGE} />}>
               <Route path="/roles" element={<RolesPage />} />
               <Route path="/roles/new" element={<CreateRolePage />} />
               <Route path="/roles/:id" element={<RoleDetailPage />} />

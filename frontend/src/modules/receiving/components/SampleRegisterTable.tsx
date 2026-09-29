@@ -30,6 +30,7 @@ import { tableHeadSx } from "../../../theme";
 import { ReadOnlyItemDocumentsDialog } from "../../../components/ReadOnlyItemDocumentsDialog";
 import { ItemDocumentService } from "../../laboratoryConfiguration/items/services/ItemDocumentService";
 import { useAuth } from "../../../contexts/AuthContext";
+import { PERMISSIONS } from "../../../routes/routes";
 import { isInteractiveElement } from "../../../utils/isInteractiveElement";
 
 interface Props {
@@ -112,8 +113,8 @@ export function SampleRegisterTable({
   onAddLaboratory
 }: Props) {
   const theme = useTheme();
-  const { role } = useAuth();
-  const isAuthorizedToAssign = role === "SectionHead" || role === "SystemAdministrator";
+  const { permissions } = useAuth();
+  const isAuthorizedToAssign = permissions.includes(PERMISSIONS.SAMPLES_ASSIGN_ANALYST);
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(25);
   const [activeDocSample, setActiveDocSample] = useState<SampleRecord | null>(null);

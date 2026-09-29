@@ -1,10 +1,9 @@
 import { Navigate, Outlet } from "react-router-dom";
 import { useHasPermission } from "../contexts/AuthContext";
 
-// Permission-based route guard, as opposed to SystemAdministratorRoutes'
-// role-string check. New capabilities gate on a permission code so access
-// can be granted through the Roles screen rather than by being one of the
-// four built-in roles.
+// Permission-based route guard. Pages gate on the permission code their
+// endpoints check, so access follows what the Roles screen grants rather
+// than which of the four built-in roles the user has.
 //
 // The frontend guard only decides what to render - every gated endpoint
 // carries its own [Authorize(Policy=...)] (Frozen Principle #3).

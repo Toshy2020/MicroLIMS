@@ -31,6 +31,7 @@ import { LoadingSpinner } from "../../../components/LoadingSpinner";
 import { FloatingDialog } from "../../../components/FloatingDialog";
 import { brandColors } from "../../../theme";
 import { useAuth } from "../../../contexts/AuthContext";
+import { PERMISSIONS } from "../../../routes/routes";
 
 interface Props {
   open: boolean;
@@ -50,9 +51,9 @@ const STEPS = [
 ];
 
 export function PathogenSessionDialog({ open, sampleId, onClose, onSessionUpdated, onSessionCompleted }: Props) {
-  const { role } = useAuth();
+  const { permissions } = useAuth();
   // Reset discards every step record and result for the sample - Section Head only.
-  const canResetSession = role === "SectionHead" || role === "SystemAdministrator";
+  const canResetSession = permissions.includes(PERMISSIONS.TEST_WORKFLOW_SUPERVISE);
   const [activeStep, setActiveStep] = useState(0);
   const [session, setSession] = useState<PathogenTestingSessionDto | null>(null);
   const [loading, setLoading] = useState(false);

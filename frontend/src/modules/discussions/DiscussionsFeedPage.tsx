@@ -20,6 +20,7 @@ import StarIcon from "@mui/icons-material/Star";
 import { toast } from "sonner";
 import { PageHeader } from "../../components/PageHeader";
 import { useAuth } from "../../contexts/AuthContext";
+import { PERMISSIONS } from "../../routes/routes";
 import { DISCUSSION_CATEGORIES, DiscussionCategory, DiscussionPostSummary } from "./types/discussionTypes";
 import { discussionService } from "./services/discussionService";
 import { DiscussionCard } from "./components/DiscussionCard";
@@ -27,9 +28,9 @@ import { NewDiscussionDialog } from "./components/NewDiscussionDialog";
 import { DiscussionHistoryDialog } from "./components/DiscussionHistoryDialog";
 
 export function DiscussionsFeedPage() {
-  const { userId, role } = useAuth();
+  const { userId, permissions } = useAuth();
   const currentUserId = userId ?? undefined;
-  const canEditAny = role === "SystemAdministrator" || role === "SectionHead";
+  const canEditAny = permissions.includes(PERMISSIONS.DISCUSSIONS_EDIT_ANY);
 
   const [posts, setPosts] = useState<DiscussionPostSummary[]>([]);
   const [totalCount, setTotalCount] = useState<number>(0);

@@ -32,6 +32,7 @@ import { apiClient } from "../../../../services/apiClient";
 import { lifecycleOf } from "./MediaLotKpiCards";
 import { tableHeadSx } from "../../../../theme";
 import { useAuth } from "../../../../contexts/AuthContext";
+import { PERMISSIONS } from "../../../../routes/routes";
 
 function formatDateDDMMYY(value: string | number | Date | null | undefined): string {
   if (!value) return "—";
@@ -78,9 +79,9 @@ export function SelectedMediaLotWorkspace({
   onMarkOutOfStock,
   evaluationsList
 }: Props) {
-  const { role } = useAuth();
+  const { permissions } = useAuth();
   const theme = useTheme();
-  const canRelease = role === "SectionHead" || role === "SystemAdministrator";
+  const canRelease = permissions.includes(PERMISSIONS.MEDIA_RELEASE);
   const lifecycle = lifecycleOf(lot, awaitingApprovalIds);
 
   const [activeTab, setActiveTab] = useState(0);

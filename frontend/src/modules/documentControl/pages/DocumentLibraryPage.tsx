@@ -41,6 +41,7 @@ import { toast } from "sonner";
 import { StatusBadge } from "../../../components/StatusBadge";
 import { documentMasterStatusLabel } from "../documentStatusDisplay";
 import { useAuth } from "../../../contexts/AuthContext";
+import { PERMISSIONS } from "../../../routes/routes";
 import { documentControlService } from "../services/documentControlService";
 import { RegisterDocumentDialog } from "../components/RegisterDocumentDialog";
 import { ControlledPdfViewer } from "../components/ControlledPdfViewer";
@@ -55,12 +56,13 @@ import type {
 export function DocumentLibraryPage() {
   const theme = useTheme();
   const navigate = useNavigate();
-  const { role } = useAuth();
+  const { role, permissions } = useAuth();
   const isController = role === "SectionHead";
   // Voiding stays Controller-only (a System Administrator is explicitly
-  // excluded, FRS-1A §4.1:86), so registration needs its own flag rather than
-  // reusing isController.
-  const canRegister = isController || role === "SystemAdministrator";
+  // excluded, FRS-1A §4.1:86), while registration follows the
+  // Documents.Register permission the server checks
+  // (CanRegisterDocumentMasterAsync), so it needs its own flag.
+  const canRegister = permissions.includes(PERMISSIONS.DOCUMENTS_REGISTER);
 
   // Data state
   const [documents, setDocuments] = useState<DocumentMasterSummaryDto[]>([]);

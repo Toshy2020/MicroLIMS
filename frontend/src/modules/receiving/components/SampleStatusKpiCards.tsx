@@ -45,7 +45,7 @@ interface TileConfig {
   hint: string;
   icon: React.ReactNode;
   tone: StatusTone;
-  sectionHeadOnly?: boolean;
+  assignersOnly?: boolean;
 }
 
 const TILES: TileConfig[] = [
@@ -90,7 +90,7 @@ const TILES: TileConfig[] = [
     hint: "No analyst assigned yet",
     icon: <PersonOffOutlinedIcon sx={{ fontSize: 20 }} />,
     tone: "pending",
-    sectionHeadOnly: true
+    assignersOnly: true
   }
 ];
 
@@ -98,15 +98,15 @@ interface Props {
   counts?: Record<WorkloadFilterKey, number> | null;
   activeKey: AllWorkloadFilterKey | null;
   onSelect: (key: WorkloadFilterKey) => void;
-  isSectionHeadOrAdmin: boolean;
+  canAssignAnalyst: boolean;
 }
 
-export function SampleStatusKpiCards({ counts, activeKey, onSelect, isSectionHeadOrAdmin }: Props) {
+export function SampleStatusKpiCards({ counts, activeKey, onSelect, canAssignAnalyst }: Props) {
   const theme = useTheme();
 
   const visibleTiles = useMemo(
-    () => TILES.filter((t) => !t.sectionHeadOnly || isSectionHeadOrAdmin),
-    [isSectionHeadOrAdmin]
+    () => TILES.filter((t) => !t.assignersOnly || canAssignAnalyst),
+    [canAssignAnalyst]
   );
 
   return (

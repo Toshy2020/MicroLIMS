@@ -12,6 +12,7 @@ import AdminPanelSettingsOutlinedIcon from "@mui/icons-material/AdminPanelSettin
 import BiotechOutlinedIcon from "@mui/icons-material/BiotechOutlined";
 import MedicationOutlinedIcon from "@mui/icons-material/MedicationOutlined";
 import { Role } from "../modules/authentication/types/authTypes";
+import { PERMISSIONS } from "./routes";
 
 export interface MenuItem {
   label: string;
@@ -19,6 +20,10 @@ export interface MenuItem {
   icon?: ComponentType<{ fontSize?: "small" | "inherit" | "medium" | "large"; sx?: any }>;
   group?: string;
   children?: MenuItem[];
+  // Shown only to users holding this permission code - the same code the
+  // page's route guard and its main endpoint check, so a link never leads
+  // to a page that bounces the user or answers 403.
+  permission?: string;
 }
 
 export interface MenuGroup {
@@ -35,122 +40,67 @@ export interface MenuContext {
 // Menu Items
 const dashboardItem: MenuItem = { label: "Dashboard", path: "/dashboard", icon: SpaceDashboardOutlinedIcon, group: "OVERVIEW" };
 const reportsItem: MenuItem = { label: "Reports", path: "/reports", icon: DescriptionOutlinedIcon, group: "REPORTS" };
-const auditSearchItem: MenuItem = { label: "Audit Search", path: "/audit-search", icon: SearchOutlinedIcon, group: "AUDIT & COMPLIANCE" };
-const oosTrackingItem: MenuItem = { label: "OOS Tracking", path: "/oos-tracking", icon: ReportProblemOutlinedIcon, group: "AUDIT & COMPLIANCE" };
-// Listed for System Administrators, but the route itself is gated on the
-// System.ViewErrorLog permission - a role granted that code reaches the
-// page directly even though the menu does not offer it.
-const errorMonitoringItem: MenuItem = { label: "Error Monitoring", path: "/error-monitoring", icon: BugReportOutlinedIcon, group: "SYSTEM" };
+const auditSearchItem: MenuItem = { label: "Audit Search", path: "/audit-search", icon: SearchOutlinedIcon, group: "AUDIT & COMPLIANCE", permission: PERMISSIONS.AUDIT_VIEW };
+const oosTrackingItem: MenuItem = { label: "OOS Tracking", path: "/oos-tracking", icon: ReportProblemOutlinedIcon, group: "AUDIT & COMPLIANCE", permission: PERMISSIONS.OOS_MANAGE };
+const errorMonitoringItem: MenuItem = { label: "Error Monitoring", path: "/error-monitoring", icon: BugReportOutlinedIcon, group: "SYSTEM", permission: PERMISSIONS.SYSTEM_VIEW_ERROR_LOG };
 
 // Receiving area: the main receiving desk and the cross-lab tracking board,
-// gated on the Samples.Receive / Samples.TrackAll privileges rather than
-// role or lab membership - any lab may receive here (ReceiptLabGuard).
-const receivingAreaItems: MenuItem[] = [
-  { label: "Receive Sample", path: "/receiving", icon: ScienceOutlinedIcon, group: "RECEIVING" },
-  { label: "Tracking Board", path: "/receiving/tracking", icon: FactCheckOutlinedIcon, group: "RECEIVING" }
-];
+// gated on privileges rather than role or lab membership - any lab may
+// receive here (ReceiptLabGuard).
+const receiveSampleItem: MenuItem = { label: "Receive Sample", path: "/receiving", icon: ScienceOutlinedIcon, group: "RECEIVING", permission: PERMISSIONS.SAMPLES_RECEIVE };
+const trackingBoardItem: MenuItem = { label: "Tracking Board", path: "/receiving/tracking", icon: FactCheckOutlinedIcon, group: "RECEIVING", permission: PERMISSIONS.SAMPLES_TRACK_ALL };
 
-const usersItem: MenuItem = { label: "Users", path: "/users", icon: PeopleAltOutlinedIcon, group: "ADMINISTRATION" };
-const rolesItem: MenuItem = { label: "Roles", path: "/roles", icon: AdminPanelSettingsOutlinedIcon, group: "ADMINISTRATION" };
+const usersItem: MenuItem = { label: "Users", path: "/users", icon: PeopleAltOutlinedIcon, group: "ADMINISTRATION", permission: PERMISSIONS.USERS_MANAGE };
+const rolesItem: MenuItem = { label: "Roles", path: "/roles", icon: AdminPanelSettingsOutlinedIcon, group: "ADMINISTRATION", permission: PERMISSIONS.ROLES_MANAGE };
 
-const documentControlUserItem: MenuItem = {
-  label: "Document Control",
-  icon: DescriptionOutlinedIcon,
-  group: "DOCUMENT CONTROL",
-  children: [
-    { label: "Dashboard", path: "/document-control" },
-    { label: "My Reading List", path: "/document-control/my-reading-list" },
-    { label: "Training Matrix", path: "/document-control/training-matrix" },
-    { label: "Compliance Dashboard", path: "/document-control/compliance-dashboard" },
-    { label: "Document Library", path: "/document-control/library" }
-  ]
-};
-
-const documentControlAuditorItem: MenuItem = {
-  label: "Document Control",
-  icon: DescriptionOutlinedIcon,
-  group: "DOCUMENT CONTROL",
-  children: [
-    { label: "Dashboard", path: "/document-control" },
-    { label: "My Reading List", path: "/document-control/my-reading-list" },
-    { label: "Training Matrix", path: "/document-control/training-matrix" },
-    { label: "Compliance Dashboard", path: "/document-control/compliance-dashboard" },
-    { label: "Document Library", path: "/document-control/library" },
-    { label: "Audit Trail", path: "/document-control/audit" }
-  ]
-};
-
-const documentControlAdminItem: MenuItem = {
-  label: "Document Control",
-  icon: DescriptionOutlinedIcon,
-  group: "DOCUMENT CONTROL",
-  children: [
-    { label: "Dashboard", path: "/document-control" },
-    { label: "My Reading List", path: "/document-control/my-reading-list" },
-    { label: "Training Matrix", path: "/document-control/training-matrix" },
-    { label: "Compliance Dashboard", path: "/document-control/compliance-dashboard" },
-    { label: "Document Library", path: "/document-control/library" },
-    { label: "Audit Trail", path: "/document-control/audit" },
-    { label: "Configuration", path: "/document-control/configuration" }
-  ]
-};
-
-// Materials Stock, Equipment Inventory and the two approved lists all sit
-// behind InventoryRoutes.tsx's role gate (Analyst/SectionHead/SystemAdministrator
-// only - "Reviewer does not need it") and the matching [Authorize] on
-// MaterialController/EquipmentInventoryController. The menu must mirror that
-// gate exactly, or a Reviewer lab member gets a link that bounces them
-// straight back to /dashboard.
-function canUseInventory(role: Role | null): boolean {
-  return role === "Analyst" || role === "SectionHead" || role === "SystemAdministrator";
+// The global document audit trail stays a fixed role rule on the server
+// (DocumentAuthorizationService.CanQueryGlobalAuditAsync), so its link
+// follows the role rather than a permission code.
+function canQueryDocumentAudit(role: Role | null): boolean {
+  return role === "Reviewer" || role === "SectionHead" || role === "SystemAdministrator";
 }
 
-const materialsStockMicroItem: MenuItem = { label: "Materials Stock", path: "/inventory/materials?lab=MICRO" };
-const equipmentInventoryMicroItem: MenuItem = { label: "Equipment Inventory", path: "/inventory/equipment?lab=MICRO" };
-const approvedMediaListItem: MenuItem = { label: "Approved Media List", path: "/inventory/approved-media" };
-const approvedCryovialListItem: MenuItem = { label: "Approved Cryovial List", path: "/inventory/approved-cryovials" };
-const materialsStockFpItem: MenuItem = { label: "Materials Stock", path: "/inventory/materials?lab=FP" };
-const equipmentInventoryFpItem: MenuItem = { label: "Equipment Inventory", path: "/inventory/equipment?lab=FP" };
-
-// Identifies the inventory-gated children above by reference, so filtering
-// them out doesn't depend on matching their label text.
-const INVENTORY_GUARDED_ITEMS = new Set<MenuItem>([
-  materialsStockMicroItem, equipmentInventoryMicroItem, approvedMediaListItem, approvedCryovialListItem,
-  materialsStockFpItem, equipmentInventoryFpItem
-]);
-
-// Returns the lab area with its inventory-gated children stripped for a
-// role InventoryRoutes.tsx would bounce (e.g. Reviewer).
-function labAreaFor(area: MenuItem, role: Role | null): MenuItem {
-  if (canUseInventory(role)) return area;
-  return { ...area, children: area.children?.filter((c) => !INVENTORY_GUARDED_ITEMS.has(c)) };
+function documentControlItem(role: Role | null): MenuItem {
+  return {
+    label: "Document Control",
+    icon: DescriptionOutlinedIcon,
+    group: "DOCUMENT CONTROL",
+    children: [
+      { label: "Dashboard", path: "/document-control" },
+      { label: "My Reading List", path: "/document-control/my-reading-list" },
+      { label: "Training Matrix", path: "/document-control/training-matrix" },
+      { label: "Compliance Dashboard", path: "/document-control/compliance-dashboard" },
+      { label: "Document Library", path: "/document-control/library" },
+      ...(canQueryDocumentAudit(role) ? [{ label: "Audit Trail", path: "/document-control/audit" }] : []),
+      { label: "Configuration", path: "/document-control/configuration", permission: PERMISSIONS.DOCUMENTS_CONFIG_MANAGE }
+    ]
+  };
 }
 
 // Laboratory areas: one collapsible section per laboratory, shown only to
-// its members (useMyLabs). Each bundles that lab's workspace (built in
-// Tasks 12-13), its analyst-facing configuration pages, and its own
-// materials/equipment inventory. Water/EM/after-cleaning configuration
-// stays inside the Microbiology configuration group, not split out.
+// its members (useMyLabs). Each bundles that lab's workspace, its
+// analyst-facing pages and its own materials/equipment inventory; each
+// page link also needs the permission its endpoints check.
 const microArea: MenuItem = {
   label: "Microbiology Laboratory",
   icon: BiotechOutlinedIcon,
   group: "LABORATORIES",
   children: [
     { label: "Workspace", path: "/microbiology/workspace" },
-    { label: "Media Preparation & Evaluation", path: "/laboratory-configuration/media" },
-    { label: "Reference Cryovials", path: "/laboratory-configuration/cryovials" },
-    materialsStockMicroItem,
-    equipmentInventoryMicroItem,
-    approvedMediaListItem,
-    approvedCryovialListItem
+    { label: "Media Preparation & Evaluation", path: "/laboratory-configuration/media", permission: PERMISSIONS.MEDIA_PREPARE },
+    { label: "Reference Cryovials", path: "/laboratory-configuration/cryovials", permission: PERMISSIONS.CRYOVIALS_MANAGE },
+    { label: "Materials Stock", path: "/inventory/materials?lab=MICRO", permission: PERMISSIONS.MATERIALS_MANAGE },
+    { label: "Equipment Inventory", path: "/inventory/equipment?lab=MICRO", permission: PERMISSIONS.EQUIPMENT_MANAGE },
+    { label: "Approved Media List", path: "/inventory/approved-media", permission: PERMISSIONS.MEDIA_PREPARE },
+    { label: "Approved Cryovial List", path: "/inventory/approved-cryovials", permission: PERMISSIONS.CRYOVIALS_MANAGE }
   ]
 };
 
-// Section Head / System Administrator only.
 const microConfigArea: MenuItem = {
   label: "Microbiology Configuration",
   icon: BiotechOutlinedIcon,
   group: "LABORATORIES",
+  permission: PERMISSIONS.MASTER_DATA_MANAGE,
   children: [
     { label: "Test Master", path: "/laboratory-configuration/test-master" },
     { label: "Organisms", path: "/laboratory-configuration/organisms" },
@@ -168,18 +118,18 @@ const physchemArea: MenuItem = {
   group: "LABORATORIES",
   children: [
     { label: "Workspace", path: "/physicochemical/workspace" },
-    { label: "System Suitability (HPLC)", path: "/laboratory/system-suitability" },
-    { label: "Calibration Runs (ICP-OES / AAS)", path: "/laboratory/calibration-runs" },
-    materialsStockFpItem,
-    equipmentInventoryFpItem
+    { label: "System Suitability (HPLC)", path: "/laboratory/system-suitability", permission: PERMISSIONS.TEST_WORKFLOW_EXECUTE },
+    { label: "Calibration Runs (ICP-OES / AAS)", path: "/laboratory/calibration-runs", permission: PERMISSIONS.TEST_WORKFLOW_EXECUTE },
+    { label: "Materials Stock", path: "/inventory/materials?lab=FP", permission: PERMISSIONS.MATERIALS_MANAGE },
+    { label: "Equipment Inventory", path: "/inventory/equipment?lab=FP", permission: PERMISSIONS.EQUIPMENT_MANAGE }
   ]
 };
 
-// Section Head / System Administrator only.
 const physchemConfigArea: MenuItem = {
   label: "Physicochemical Configuration",
   icon: MedicationOutlinedIcon,
   group: "LABORATORIES",
+  permission: PERMISSIONS.MASTER_DATA_MANAGE,
   children: [
     { label: "Physicochemical Test Master", path: "/laboratory-configuration/fp-test-master" },
     { label: "Equation Types", path: "/laboratory-configuration/equation-types" },
@@ -188,30 +138,25 @@ const physchemConfigArea: MenuItem = {
   ]
 };
 
-// Shared across both labs, not tied to either one's membership - Section
-// Head / System Administrator only.
-const generalConfigArea: MenuItem[] = [
-  { label: "Items", path: "/laboratory-configuration/items", icon: Inventory2OutlinedIcon, group: "GENERAL LABORATORY CONFIGURATION" },
-  { label: "Receiving Configuration", path: "/laboratory-configuration/receiving-configuration", icon: FactCheckOutlinedIcon, group: "GENERAL LABORATORY CONFIGURATION" }
-];
+// Shared across both labs, not tied to either one's membership.
+const itemsItem: MenuItem = { label: "Items", path: "/laboratory-configuration/items", icon: Inventory2OutlinedIcon, group: "GENERAL LABORATORY CONFIGURATION", permission: PERMISSIONS.ITEMS_MANAGE };
+const receivingConfigItem: MenuItem = { label: "Receiving Configuration", path: "/laboratory-configuration/receiving-configuration", icon: FactCheckOutlinedIcon, group: "GENERAL LABORATORY CONFIGURATION", permission: PERMISSIONS.MASTER_DATA_MANAGE };
 
-// The items unaffected by lab separation - exactly today's per-role lists,
-// minus the ones that moved into the receiving area or the lab areas above
-// (Receiving & Testing, media/cryovial workspaces, suitability/calibration
-// runs, inventory, laboratory configuration).
-function sharedItemsFor(role: Role | null): MenuItem[] {
-  switch (role) {
-    case "Analyst":
-      return [documentControlUserItem, reportsItem];
-    case "Reviewer":
-      return [documentControlAuditorItem, reportsItem];
-    case "SectionHead":
-      return [documentControlAuditorItem, reportsItem, auditSearchItem, oosTrackingItem];
-    case "SystemAdministrator":
-      return [documentControlAdminItem, usersItem, rolesItem, reportsItem, auditSearchItem, oosTrackingItem, errorMonitoringItem];
-    default:
-      return [];
+// Drops every item whose permission the user lacks, then any parent left
+// with no children.
+function visibleItems(items: MenuItem[], permissions: string[]): MenuItem[] {
+  const result: MenuItem[] = [];
+  for (const item of items) {
+    if (item.permission && !permissions.includes(item.permission)) continue;
+    if (item.children) {
+      const children = visibleItems(item.children, permissions);
+      if (children.length === 0) continue;
+      result.push({ ...item, children });
+    } else {
+      result.push(item);
+    }
   }
+  return result;
 }
 
 function groupItems(items: MenuItem[]): MenuGroup[] {
@@ -227,19 +172,18 @@ function groupItems(items: MenuItem[]): MenuGroup[] {
   }));
 }
 
-// Builds the sidebar menu from privilege and lab membership rather than
-// role alone: the receiving area needs Samples.Receive/Samples.TrackAll,
-// each laboratory area needs membership in that lab (useMyLabs), and each
-// lab's configuration plus the general configuration group are additionally
-// restricted to Section Head / System Administrator.
+// Builds the sidebar from the user's permissions and lab membership: each
+// link needs the permission its page's route guard checks, and each
+// laboratory area also needs membership in that lab (useMyLabs). The role
+// only decides the document audit link, which the server still restricts
+// by role.
 export function getGroupedMenu({ role, permissions, labCodes }: MenuContext): MenuGroup[] {
-  const isHead = role === "SectionHead" || role === "SystemAdministrator";
-  const items: MenuItem[] = [dashboardItem];
-  if (permissions.includes("Samples.Receive")) items.push(receivingAreaItems[0]);
-  if (permissions.includes("Samples.TrackAll")) items.push(receivingAreaItems[1]);
-  if (labCodes.includes("MICRO")) items.push(labAreaFor(microArea, role), ...(isHead ? [microConfigArea] : []));
-  if (labCodes.includes("FP")) items.push(labAreaFor(physchemArea, role), ...(isHead ? [physchemConfigArea] : []));
-  if (isHead) items.push(...generalConfigArea);
-  items.push(...sharedItemsFor(role));
-  return groupItems(items);
+  const items: MenuItem[] = [dashboardItem, receiveSampleItem, trackingBoardItem];
+  if (labCodes.includes("MICRO")) items.push(microArea, microConfigArea);
+  if (labCodes.includes("FP")) items.push(physchemArea, physchemConfigArea);
+  items.push(
+    itemsItem, receivingConfigItem,
+    documentControlItem(role), usersItem, rolesItem, reportsItem, auditSearchItem, oosTrackingItem, errorMonitoringItem
+  );
+  return groupItems(visibleItems(items, permissions));
 }

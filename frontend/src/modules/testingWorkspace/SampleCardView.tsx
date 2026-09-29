@@ -2,7 +2,6 @@ import { Grid, Paper, Box, Typography, Stack, useTheme } from "@mui/material";
 import { SampleCard as SampleCardType } from "./types/workspaceTypes";
 import { CategoryBadge } from "../../components/StatusBadge";
 import { SampleLifecycleBadge } from "./SampleLifecycleBadge";
-import { useAuth } from "../../contexts/AuthContext";
 import { brandColors } from "../../theme";
 import { isInteractiveElement } from "../../utils/isInteractiveElement";
 
@@ -23,7 +22,6 @@ export function SampleCardView({
   onNeedsPreparationClick,
   onLifecycleBadgeClick
 }: Props) {
-  const { role } = useAuth();
   const theme = useTheme();
 
   return (
@@ -112,7 +110,6 @@ export function SampleCardView({
                 </Typography>
                 <SampleLifecycleBadge
                   status={sample.status}
-                  role={role}
                   onClick={() => onLifecycleBadgeClick(sample.sampleId)}
                 />
               </Stack>

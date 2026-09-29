@@ -15,6 +15,7 @@ import BlockIcon from "@mui/icons-material/Block";
 import { MaterialService } from "../services/MaterialService";
 import { formatLabDate } from "../../../../utils/formatDate";
 import { useAuth } from "../../../../contexts/AuthContext";
+import { PERMISSIONS } from "../../../../routes/routes";
 import type { MaterialDocument, MaterialDocumentStatus } from "../types/materialTypes";
 import { MATERIAL_DOCUMENT_TYPE_LABELS } from "../types/materialTypes";
 import { SupersedeMaterialDocumentDialog } from "./SupersedeMaterialDocumentDialog";
@@ -41,8 +42,8 @@ function formatBytes(bytes: number): string {
 }
 
 export function MaterialDocumentList({ materialId, isExpired, refreshKey, onDocumentChanged }: Props) {
-  const { role } = useAuth();
-  const canSupersede = role === "SectionHead" || role === "SystemAdministrator";
+  const { permissions } = useAuth();
+  const canSupersede = permissions.includes(PERMISSIONS.MATERIALS_DOCUMENT_CONTROL);
 
   const [documents, setDocuments] = useState<MaterialDocument[]>([]);
   const [loading, setLoading] = useState(false);

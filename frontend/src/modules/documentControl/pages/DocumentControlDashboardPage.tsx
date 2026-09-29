@@ -37,6 +37,7 @@ import { documentMasterStatusLabel } from "../documentStatusDisplay";
 import { documentControlService } from "../services/documentControlService";
 import { RegisterDocumentDialog } from "../components/RegisterDocumentDialog";
 import { useAuth } from "../../../contexts/AuthContext";
+import { PERMISSIONS } from "../../../routes/routes";
 import MenuBookOutlinedIcon from "@mui/icons-material/MenuBookOutlined";
 import type {
   DocumentMasterSummaryDto,
@@ -46,9 +47,10 @@ import type {
 export function DocumentControlDashboardPage() {
   const theme = useTheme();
   const navigate = useNavigate();
-  const { role } = useAuth();
+  const { permissions } = useAuth();
   // Mirrors CanRegisterDocumentMasterAsync; the server check is the control.
-  const canRegister = role === "SectionHead" || role === "SystemAdministrator";
+  // Registration is permission-based on the server (CanRegisterDocumentMasterAsync).
+  const canRegister = permissions.includes(PERMISSIONS.DOCUMENTS_REGISTER);
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

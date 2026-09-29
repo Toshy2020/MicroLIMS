@@ -10,7 +10,7 @@ public interface ICalibrationRunService
         int userId,
         CancellationToken ct = default);
 
-    Task<CalibrationRun> CreateAsync(
+    Task<CalibrationRunView> CreateAsync(
         CreateCalibrationRunRequest request,
         Stream fileStream,
         string originalFileName,
@@ -19,7 +19,7 @@ public interface ICalibrationRunService
         string? ipAddress,
         CancellationToken ct = default);
 
-    Task<CalibrationRun> WithdrawAsync(
+    Task<CalibrationRunWithdrawResponse> WithdrawAsync(
         int id,
         WithdrawCalibrationRunRequest request,
         int userId,
@@ -27,12 +27,12 @@ public interface ICalibrationRunService
         CancellationToken ct = default);
 
 
-    Task<List<CalibrationRun>> GetAllAsync(
+    Task<List<CalibrationRunView>> GetAllAsync(
         CalibrationRunFilter filter,
         int userId,
         CancellationToken ct = default);
 
-    Task<CalibrationRun?> GetByIdAsync(
+    Task<CalibrationRunView?> GetByIdAsync(
         int id,
         int userId,
         CancellationToken ct = default);
@@ -42,7 +42,7 @@ public interface ICalibrationRunService
         int userId,
         CancellationToken ct = default);
 
-    Task<(CalibrationRunDocument Document, byte[] Content)> GetDocumentContentAsync(
+    Task<(CalibrationRunDocumentView Document, byte[] Content)> GetDocumentContentAsync(
         int runId,
         int userId,
         CancellationToken ct = default);

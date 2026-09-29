@@ -1,3 +1,4 @@
+using MicroLIMS.Application.DTOs.Responses;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 
@@ -120,7 +121,7 @@ public record SpecificationRowDto(
     string? LabelClaimUnit,
     decimal ConversionFactor,
     DosageForm? DosageForm,
-    List<SpecificationStage> Stages,
+    List<SpecificationStageResponse> Stages,
     bool CanEdit,
     string SectionName);
 public record CreateDiluentTypeRequest(string Name, bool RequiresBatchTracking, int? MaterialId);

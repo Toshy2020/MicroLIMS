@@ -47,7 +47,7 @@ public class SamplePreparationController : ControllerBase
             r.SampleId, r.Amount, r.Technique, r.FiltrationVolume, r.WashingVolume,
             r.Diluent, r.Neutralizer, CurrentUserId, r.Password), ClientIp);
 
-        return Ok(ApiResponse<object>.Ok(Project(prep)));
+        return Ok(ApiResponse<object>.Ok(prep));
     }
 
     [HttpPost("confirm")]
@@ -57,7 +57,7 @@ public class SamplePreparationController : ControllerBase
         var prep = await _service.ConfirmFromConfigurationAsync(
             new ConfirmPreparationRequest(r.SampleId, CurrentUserId, r.Password), ClientIp);
 
-        return Ok(ApiResponse<object>.Ok(Project(prep)));
+        return Ok(ApiResponse<object>.Ok(prep));
     }
 
     // Grouped preparation - which of the checked samples can be prepared
@@ -104,14 +104,4 @@ public class SamplePreparationController : ControllerBase
         await _scopeService.EnsureSampleAccessAsync(CurrentUserId, sampleId);
         return Ok(ApiResponse<object>.Ok(new { prepared = await _service.IsPreparedAsync(sampleId) }));
     }
-
-    // Avoid the SamplePreparation <-> Sample <-> TestOrders navigation
-    // cycle when serializing (auto-assign loads the sample's TestOrders
-    // into the same tracked context).
-    private static object Project(Domain.Entities.SamplePreparation prep) => new
-    {
-        prep.Id, prep.SampleId, prep.Amount, prep.Technique, prep.FiltrationVolume, prep.WashingVolume,
-        prep.Diluent, prep.Neutralizer, prep.PreparedByUserId, prep.PreparedAt,
-        prep.SourceConfigurationId, prep.WasConfirmedFromConfig
-    };
 }

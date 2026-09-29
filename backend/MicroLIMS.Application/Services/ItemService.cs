@@ -4,6 +4,7 @@ using MicroLIMS.Application.DTOs;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Application.Abstractions.Persistence;
+using MicroLIMS.Application.DTOs.Responses;
 
 namespace MicroLIMS.Application.Services;
 
@@ -25,12 +26,12 @@ public class ItemService
         _db = db;
     }
 
-    public async Task<List<Item>> GetAllAsync() =>
-        await _db.Items.Include(i => i.AssignedTests).Include(i => i.Specifications).ThenInclude(s => s.Stages).AsSplitQuery().ToListAsync();
+    public async Task<List<ItemResponse>> GetAllAsync() =>
+        (await _db.Items.Include(i => i.AssignedTests).Include(i => i.Specifications).ThenInclude(s => s.Stages).AsSplitQuery().ToListAsync()).Select(ItemResponse.From).ToList();
 
     // Builds the Item from the fields a client may set. Id, IsActive and
     // Specifications are never taken from the request - see ItemSaveRequest.
-    public async Task<Item> CreateAsync(ItemSaveRequest request)
+    public async Task<ItemResponse> CreateAsync(ItemSaveRequest request)
     {
         EnsureAllowedCategory(request.Category);
 
@@ -48,7 +49,7 @@ public class ItemService
 
         _db.Items.Add(item);
         await _db.SaveChangesAsync();
-        return item;
+        return ItemResponse.From(item);
     }
 
     // Loads the tracked entity and mutates it in place rather than

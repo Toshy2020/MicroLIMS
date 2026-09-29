@@ -8,45 +8,6 @@ using MicroLIMS.Shared.Responses;
 
 namespace MicroLIMS.API.Controllers;
 
-// What the API returns for a run. Never the entity itself: its navigation to
-// the performing User would serialize that user's PasswordHash.
-public record SystemSuitabilityRunView(
-    int Id, string Code, bool Passed, string? FailureReasons,
-    int TestDefinitionId, string? TestCode, string? TestName, string? MethodAbbreviation,
-    int SectionId, string? SectionName,
-    int EquipmentId, string? EquipmentCode, string? EquipmentName,
-    int? ChromatographyColumnId, string? ColumnCode, string? ColumnName,
-    int ReferenceStandardMaterialId, string? ReferenceStandardName, string? ReferenceStandardBatch,
-    decimal StandardPurityPercent, decimal StandardWeightMg, decimal StandardDilution, decimal StandardMeanArea,
-    decimal? RsdPercent, decimal? Resolution, decimal? TailingFactor, decimal? TheoreticalPlates,
-    int PerformedByUserId, string? PerformedByName, DateTime PerformedAt, string? Comment,
-    List<SystemSuitabilityRunAnalyteView>? Analytes = null,
-    decimal? TheoreticalWeightMg = null,
-    decimal? MoisturePercent = null,
-    decimal? StandardWeighInDeviationPercent = null,
-    bool StandardWeighInOutOfWindow = false,
-    string? WeighInJustification = null,
-    decimal? ComputedRsdPercent = null)
-{
-    public static SystemSuitabilityRunView From(SystemSuitabilityRun r) => new(
-        r.Id, r.Code, r.Passed, r.FailureReasons,
-        r.TestDefinitionId, r.TestDefinition?.Code, r.TestDefinition?.DisplayName, r.TestDefinition?.MethodAbbreviation,
-        r.SectionId, r.Section?.Name,
-        r.EquipmentId, r.Equipment?.Code, r.Equipment?.Name,
-        r.ChromatographyColumnId, r.ChromatographyColumn?.Code, r.ChromatographyColumn?.Name,
-        r.ReferenceStandardMaterialId, r.ReferenceStandardMaterial?.MaterialName, r.ReferenceStandardMaterial?.BatchNumber,
-        r.StandardPurityPercent, r.StandardWeightMg, r.StandardDilution, r.StandardMeanArea,
-        r.RsdPercent, r.Resolution, r.TailingFactor, r.TheoreticalPlates,
-        r.PerformedByUserId, r.PerformedByUser?.FullName ?? r.Signature?.UserFullNameSnapshot, r.PerformedAt, r.Comment,
-        r.Analytes != null && r.Analytes.Count > 0 ? r.Analytes.Select(SystemSuitabilityRunAnalyteView.From).ToList() : null,
-        r.TheoreticalWeightMg,
-        r.MoisturePercent,
-        r.StandardWeighInDeviationPercent,
-        r.StandardWeighInOutOfWindow,
-        r.WeighInJustification,
-        r.ComputedRsdPercent);
-}
-
 [ApiController]
 [Route("api/system-suitability-runs")]
 [Authorize]
@@ -71,7 +32,7 @@ public class SystemSuitabilityController : ControllerBase
     public async Task<IActionResult> Create([FromBody] CreateSystemSuitabilityRunRequest request)
     {
         var run = await _service.CreateAsync(request, CurrentUserId, ClientIpAddress);
-        return Ok(ApiResponse<object>.Ok(SystemSuitabilityRunView.From(run)));
+        return Ok(ApiResponse<object>.Ok(run));
     }
 
     // List System Suitability Runs with filters and section scoping (REQ-FP-001/040)
@@ -103,7 +64,7 @@ public class SystemSuitabilityController : ControllerBase
             ToDate: toDate);
 
         var runs = await _service.GetAllAsync(filter, CurrentUserId);
-        return Ok(ApiResponse<object>.Ok(runs.Select(SystemSuitabilityRunView.From)));
+        return Ok(ApiResponse<object>.Ok(runs));
     }
 
     // Get System Suitability Run by ID (scoped)
@@ -114,7 +75,7 @@ public class SystemSuitabilityController : ControllerBase
         if (run is null)
             return NotFound(ApiResponse<object>.Fail($"System suitability run {id} not found."));
 
-        return Ok(ApiResponse<object>.Ok(SystemSuitabilityRunView.From(run)));
+        return Ok(ApiResponse<object>.Ok(run));
     }
 
     // Printable run report: the run, its acceptance criteria, signature and
@@ -127,7 +88,7 @@ public class SystemSuitabilityController : ControllerBase
             return NotFound(ApiResponse<object>.Fail($"System suitability run {id} not found."));
 
         var details = await _service.GetReportDetailsAsync(id, CurrentUserId);
-        return Ok(ApiResponse<object>.Ok(new { Run = SystemSuitabilityRunView.From(run), Details = details }));
+        return Ok(ApiResponse<object>.Ok(new { Run = run, Details = details }));
     }
 
     // List passed runs selectable for a given TestOrder (REQ-FP-003)
@@ -135,7 +96,7 @@ public class SystemSuitabilityController : ControllerBase
     public async Task<IActionResult> GetSelectable([FromQuery] int testOrderId)
     {
         var runs = await _service.GetSelectableRunsForTestOrderAsync(testOrderId, CurrentUserId);
-        return Ok(ApiResponse<object>.Ok(runs.Select(SystemSuitabilityRunView.From)));
+        return Ok(ApiResponse<object>.Ok(runs));
     }
 
     // The run a test order is linked to; data is null when not linked yet.
@@ -143,7 +104,7 @@ public class SystemSuitabilityController : ControllerBase
     public async Task<IActionResult> GetLinked([FromQuery] int testOrderId)
     {
         var run = await _service.GetLinkedRunForTestOrderAsync(testOrderId, CurrentUserId);
-        return Ok(ApiResponse<object?>.Ok(run is null ? null : SystemSuitabilityRunView.From(run)));
+        return Ok(ApiResponse<object?>.Ok(run));
     }
 
     // Link one or more TestOrders to a passed suitability run, all-or-nothing (REQ-FP-003)

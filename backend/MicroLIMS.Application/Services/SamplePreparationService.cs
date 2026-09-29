@@ -6,6 +6,7 @@ using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Application.Abstractions.Persistence;
+using MicroLIMS.Application.DTOs.Responses;
 
 namespace MicroLIMS.Application.Services;
 
@@ -43,8 +44,8 @@ public class SamplePreparationService
 
     // Manual fallback: writes the sample's preparation AND seeds the Item's
     // configuration (PendingReview) from the same values, in one transaction.
-    public Task<SamplePreparation> PrepareAsync(PrepareSampleRequest request, string? ipAddress = null) =>
-        UnitOfWork.RunAsync(_db, () => PrepareCoreAsync(request, ipAddress));
+    public Task<SamplePreparationResponse> PrepareAsync(PrepareSampleRequest request, string? ipAddress = null) =>
+        UnitOfWork.RunAsync(_db, async () => SamplePreparationResponse.From(await PrepareCoreAsync(request, ipAddress)));
 
     private async Task<SamplePreparation> PrepareCoreAsync(PrepareSampleRequest request, string? ipAddress = null)
     {
@@ -102,8 +103,8 @@ public class SamplePreparationService
 
     // Confirm-only: every value is copied from the Item's configuration, so
     // editing that config later cannot rewrite this sample's record.
-    public Task<SamplePreparation> ConfirmFromConfigurationAsync(ConfirmPreparationRequest request, string? ipAddress = null) =>
-        UnitOfWork.RunAsync(_db, () => ConfirmFromConfigurationCoreAsync(request, ipAddress));
+    public Task<SamplePreparationResponse> ConfirmFromConfigurationAsync(ConfirmPreparationRequest request, string? ipAddress = null) =>
+        UnitOfWork.RunAsync(_db, async () => SamplePreparationResponse.From(await ConfirmFromConfigurationCoreAsync(request, ipAddress)));
 
     private async Task<SamplePreparation> ConfirmFromConfigurationCoreAsync(ConfirmPreparationRequest request, string? ipAddress = null)
     {

@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Application.Abstractions.Persistence;
+using MicroLIMS.Application.DTOs.Responses;
 
 namespace MicroLIMS.Application.Services;
 
@@ -37,19 +38,19 @@ public class MediaReleaseService
 
     // Lots whose evaluation has completed Conform and which are still
     // awaiting a release decision - the Section Head's queue.
-    public async Task<List<Media>> GetAwaitingApprovalAsync(IReadOnlyCollection<int>? sectionIds = null)
+    public async Task<List<MediaResponse>> GetAwaitingApprovalAsync(IReadOnlyCollection<int>? sectionIds = null)
     {
         var qualifiedMediaIds = await _db.MediaEvaluations
             .Where(e => e.Status == MediaEvaluationStatus.Completed && e.Outcome == EvaluationOutcome.Conform)
             .Select(e => e.MediaId)
             .ToListAsync();
 
-        return await _db.Media
+        return (await _db.Media
             .Include(m => m.Material)
             .Where(m => sectionIds == null || sectionIds.Contains(m.Material!.SectionId))
             .Where(m => qualifiedMediaIds.Contains(m.Id) && m.ApprovalStatus == ApprovalGateStatus.PendingReview)
             .OrderByDescending(m => m.Id)
-            .ToListAsync();
+            .ToListAsync()).Select(MediaResponse.From).ToList();
     }
 
     public Task DecideAsync(int mediaId, int sectionHeadUserId, string password, bool approved, string? comment, string? ipAddress) =>

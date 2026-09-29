@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Abstractions.Persistence;
 using MicroLIMS.Application.DTOs;
+using MicroLIMS.Application.DTOs.Responses;
 using MicroLIMS.Application.Helpers;
 using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Domain.Entities;
@@ -23,16 +24,16 @@ public class EquipmentMasterDataService
         _scope = scope;
     }
 
-    public async Task<object> GetEquipmentAsync(int currentUserId, EquipmentType? type)
+    public async Task<List<EquipmentResponse>> GetEquipmentAsync(int currentUserId, EquipmentType? type)
     {
         var scope = await _scope.GetAccessibleSectionIdsAsync(currentUserId);
         var query = _db.Equipment.AsNoTracking().Include(e => e.Section).AsQueryable();
         if (scope != null) query = query.Where(e => scope.Contains(e.SectionId));
         if (type.HasValue) query = query.Where(e => e.Type == type.Value);
-        return await query.ToListAsync();
+        return (await query.ToListAsync()).Select(EquipmentResponse.From).ToList();
     }
 
-    public async Task<object> GetEquipmentByIdAsync(int currentUserId, int id)
+    public async Task<EquipmentResponse> GetEquipmentByIdAsync(int currentUserId, int id)
     {
         await _scope.EnsureEquipmentAccessAsync(currentUserId, id);
         var eq = await _db.Equipment.AsNoTracking()
@@ -41,10 +42,10 @@ public class EquipmentMasterDataService
             .FirstOrDefaultAsync(e => e.Id == id);
         if (eq == null)
             throw new NotFoundException($"Equipment {id} not found.");
-        return eq;
+        return EquipmentResponse.From(eq);
     }
 
-    public async Task<object> CreateEquipmentAsync(int currentUserId, CreateEquipmentRequest request)
+    public async Task<EquipmentResponse> CreateEquipmentAsync(int currentUserId, CreateEquipmentRequest request)
     {
         if (string.IsNullOrWhiteSpace(request.Name))
             throw new InvalidOperationException("Name is required.");
@@ -89,10 +90,10 @@ public class EquipmentMasterDataService
         };
         _db.Equipment.Add(entity);
         await _db.SaveChangesAsync();
-        return entity;
+        return EquipmentResponse.From(entity);
     }
 
-    public async Task<object> UpdateEquipmentAsync(int currentUserId, int id, UpdateEquipmentRequest request)
+    public async Task<EquipmentResponse> UpdateEquipmentAsync(int currentUserId, int id, UpdateEquipmentRequest request)
     {
         await _scope.EnsureEquipmentAccessAsync(currentUserId, id);
 
@@ -141,6 +142,6 @@ public class EquipmentMasterDataService
         entity.ConnectionSettings = request.ConnectionSettings;
 
         await _db.SaveChangesAsync();
-        return entity;
+        return EquipmentResponse.From(entity);
     }
 }

@@ -6,6 +6,7 @@ using MicroLIMS.Application.Workflows;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Application.Abstractions.Persistence;
+using MicroLIMS.Application.DTOs.Responses;
 
 namespace MicroLIMS.Application.Services;
 
@@ -739,7 +740,7 @@ public class GroupedTestActionService
             {
                 var (loadedOrder, definition) = await LoadDefinitionAsync(id, ct);
 
-                Incubation inc;
+                IncubationResponse inc;
                 var transitionType = request.TransitionType;
 
                 if (string.Equals(transitionType, "TRANSFER_INCUBATOR", StringComparison.OrdinalIgnoreCase))

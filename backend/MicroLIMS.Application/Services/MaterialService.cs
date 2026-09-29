@@ -4,6 +4,7 @@ using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Application.Abstractions.Persistence;
+using MicroLIMS.Application.DTOs.Responses;
 
 namespace MicroLIMS.Application.Services;
 
@@ -75,7 +76,7 @@ public class MaterialService
         }
     }
 
-    public async Task<List<Material>> GetAllAsync(int currentUserId, MaterialType? type = null)
+    public async Task<List<MaterialResponse>> GetAllAsync(int currentUserId, MaterialType? type = null)
     {
         var scope = await _scope.GetAccessibleSectionIdsAsync(currentUserId);
         var query = _db.Materials.Include(m => m.Organism).Include(m => m.MediaProduct).AsQueryable();
@@ -84,17 +85,17 @@ public class MaterialService
             query = query.Where(m => scope.Contains(m.SectionId));
         }
         if (type.HasValue) query = query.Where(m => m.MaterialType == type.Value);
-        return await query.OrderBy(m => m.MaterialType).ThenBy(m => m.MaterialName).ToListAsync();
+        return (await query.OrderBy(m => m.MaterialType).ThenBy(m => m.MaterialName).ToListAsync()).Select(MaterialResponse.From).ToList();
     }
 
     // Print/view list per Mohamed's spec: excludes Expired and Depleted rows.
-    public async Task<List<Material>> GetForPrintAsync(int currentUserId)
+    public async Task<List<MaterialResponse>> GetForPrintAsync(int currentUserId)
     {
         var all = await GetAllAsync(currentUserId);
         return all.Where(m => m.Status == StockStatus.InStock).ToList();
     }
 
-    public async Task<Material> CreateAsync(SaveMaterialRequest r, int currentUserId)
+    public async Task<MaterialResponse> CreateAsync(SaveMaterialRequest r, int currentUserId)
     {
         int? mediaProductId = null;
         string materialName = r.MaterialName;
@@ -145,7 +146,7 @@ public class MaterialService
         };
         _db.Materials.Add(entity);
         await _db.SaveChangesAsync();
-        return entity;
+        return MaterialResponse.From(entity);
     }
 
     // Update covers catalog corrections (name, location, expiry, etc.)
@@ -272,7 +273,7 @@ public class MaterialService
     }
 
     // Suitability Run picker (REQ-FP-012): usable (in stock, not expired) reference standards in the caller's sections.
-    public async Task<List<Material>> GetUsableReferenceStandardsAsync(int currentUserId)
+    public async Task<List<MaterialResponse>> GetUsableReferenceStandardsAsync(int currentUserId)
     {
         var scope = await _scope.GetAccessibleSectionIdsAsync(currentUserId);
         var query = _db.Materials.AsNoTracking().AsQueryable();
@@ -285,7 +286,7 @@ public class MaterialService
         var today = _time.GetUtcNow().UtcDateTime.Date;
         query = query.Where(m => m.QuantityRemaining > 0 && (!m.ExpiryDate.HasValue || m.ExpiryDate.Value.Date >= today));
 
-        return await query.OrderBy(m => m.MaterialName).ThenBy(m => m.BatchNumber).ToListAsync();
+        return (await query.OrderBy(m => m.MaterialName).ThenBy(m => m.BatchNumber).ToListAsync()).Select(MaterialResponse.From).ToList();
     }
 
     // Material types that require at least one current COA before consumption.

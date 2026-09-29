@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.API.Controllers;
 using MicroLIMS.Application.DTOs;
+using MicroLIMS.Application.DTOs.Responses;
 using MicroLIMS.Application.Helpers;
 using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Application.Services;
@@ -439,7 +440,7 @@ public class SystemSuitabilitySliceA2Tests
         Assert.Null(run.FailureReasons);
         Assert.Equal(99.8m, run.StandardPurityPercent); // Snapshot from Material.Purity
         Assert.StartsWith("VIT-C S.S 01/", run.Code);
-        Assert.True(run.SignatureId > 0);
+        Assert.True((await db.SystemSuitabilityRuns.SingleAsync(r => r.Id == run.Id)).SignatureId > 0);
     }
 
     [Fact]
@@ -1021,7 +1022,7 @@ public class SystemSuitabilitySliceA2Tests
         var result = await controller.TestDefinition.CreateTestDefinition(reqValid) as Microsoft.AspNetCore.Mvc.OkObjectResult;
         Assert.NotNull(result);
         var envelope = result.Value as ApiResponse<object>;
-        var created = envelope!.Data as TestDefinition;
+        var created = envelope!.Data as TestDefinitionResponse;
         Assert.NotNull(created);
         Assert.Equal("VIT-C", created.MethodAbbreviation);
         Assert.True(created.RequiresSystemSuitability);

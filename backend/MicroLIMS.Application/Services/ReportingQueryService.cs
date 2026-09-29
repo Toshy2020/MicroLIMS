@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Application.Abstractions.Persistence;
+using MicroLIMS.Application.DTOs.Responses;
 
 namespace MicroLIMS.Application.Services;
 
@@ -22,13 +23,13 @@ public record ResultRecordSearchRequest(
     string SortBy = "ResultEnteredAt",
     bool SortDescending = true);
 
-public record ResultRecordSearchResult(List<ResultRecord> Items, int TotalCount, int Page, int PageSize);
+public record ResultRecordSearchResult(List<ResultRecordResponse> Items, int TotalCount, int Page, int PageSize);
 
 public record TestCodeOption(string TestCode, string TestDisplayName);
 
 public record FilterOptionsResult(List<SampleCategory> Categories, List<TestCodeOption> TestCodes, List<string> SubjectNames, List<string> Units);
 
-public record ExportQueryResult(List<ResultRecord> Items, int TotalCount, bool Exceeded);
+public record ExportQueryResult(List<ResultRecordResponse> Items, int TotalCount, bool Exceeded);
 
 public record TrendPoint(
     int RecordId, string ReferenceNumber, DateTime Date, decimal? NumericValue, string ReportedValue, bool IsBelowDetectionLimit,
@@ -125,7 +126,7 @@ public class ReportingQueryService
         var totalCount = await query.CountAsync();
         var items = await query.Skip((page - 1) * pageSize).Take(pageSize).ToListAsync();
 
-        return new ResultRecordSearchResult(items, totalCount, page, pageSize);
+        return new ResultRecordSearchResult(items.Select(ResultRecordResponse.From).ToList(), totalCount, page, pageSize);
     }
 
     // Values that actually appear in ResultRecords - not the full master
@@ -161,10 +162,10 @@ public class ReportingQueryService
 
         var totalCount = await query.CountAsync();
         if (totalCount > maxRows)
-            return new ExportQueryResult(new List<ResultRecord>(), totalCount, Exceeded: true);
+            return new ExportQueryResult(new List<ResultRecordResponse>(), totalCount, Exceeded: true);
 
         var items = await query.ToListAsync();
-        return new ExportQueryResult(items, totalCount, Exceeded: false);
+        return new ExportQueryResult(items.Select(ResultRecordResponse.From).ToList(), totalCount, Exceeded: false);
     }
 
     // The result projection limited to the viewer's laboratory sections
@@ -282,8 +283,8 @@ public class ReportingQueryService
         return new TrendResult(testCode, testDefinition.DisplayName, subjectName, unit, points, statistics);
     }
 
-    public async Task<ResultRecord?> GetByIdAsync(int id, IReadOnlyCollection<int>? sectionIds = null) =>
-        await Records(sectionIds).FirstOrDefaultAsync(r => r.Id == id);
+    public async Task<ResultRecordResponse?> GetByIdAsync(int id, IReadOnlyCollection<int>? sectionIds = null) =>
+        (await Records(sectionIds).FirstOrDefaultAsync(r => r.Id == id)) is { } found ? ResultRecordResponse.From(found) : null;
 
     public async Task<OverviewAggregateResult> GetOverviewAggregateAsync(DateTime? fromDate, DateTime? toDate, IReadOnlyCollection<int>? sectionIds = null)
     {

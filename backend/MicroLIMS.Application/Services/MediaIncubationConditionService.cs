@@ -2,6 +2,7 @@ using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Application.Abstractions.Persistence;
+using MicroLIMS.Application.DTOs.Responses;
 
 namespace MicroLIMS.Application.Services;
 
@@ -48,7 +49,7 @@ public class MediaIncubationConditionService
             .ToListAsync();
     }
 
-    public async Task<MediaIncubationCondition> CreateAsync(
+    public async Task<MediaIncubationConditionResponse> CreateAsync(
         int mediaProductId, int minH, int maxH, decimal tMin, decimal tMax)
     {
         var product = await _db.MediaProducts.FirstOrDefaultAsync(p => p.Id == mediaProductId)
@@ -80,10 +81,10 @@ public class MediaIncubationConditionService
 
         _db.MediaIncubationConditions.Add(condition);
         await _db.SaveChangesAsync();
-        return condition;
+        return MediaIncubationConditionResponse.From(condition);
     }
 
-    public async Task<MediaIncubationCondition> UpdateAsync(
+    public async Task<MediaIncubationConditionResponse> UpdateAsync(
         int id, int minH, int maxH, decimal tMin, decimal tMax)
     {
         var condition = await _db.MediaIncubationConditions
@@ -119,7 +120,7 @@ public class MediaIncubationConditionService
         condition.TemperatureMax = tMax;
 
         await _db.SaveChangesAsync();
-        return condition;
+        return MediaIncubationConditionResponse.From(condition);
     }
 
     public async Task DeleteAsync(int id)

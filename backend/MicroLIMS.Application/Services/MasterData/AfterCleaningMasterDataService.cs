@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Abstractions.Persistence;
 using MicroLIMS.Application.DTOs;
+using MicroLIMS.Application.DTOs.Responses;
 using MicroLIMS.Application.Helpers;
 using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Domain.Entities;
@@ -32,21 +33,21 @@ public class AfterCleaningMasterDataService
         return machines;
     }
 
-    public async Task<object> CreateMachineAsync(CreateMachineRequest request)
+    public async Task<MachineResponse> CreateMachineAsync(CreateMachineRequest request)
     {
         var machine = new Machine { Name = request.Name };
         _db.Machines.Add(machine);
         await _db.SaveChangesAsync();
-        return machine;
+        return MachineResponse.From(machine);
     }
 
-    public async Task<object> UpdateMachineAsync(int id, UpdateMachineRequest request)
+    public async Task<MachineResponse> UpdateMachineAsync(int id, UpdateMachineRequest request)
     {
         var machine = await _db.Machines.FirstOrDefaultAsync(m => m.Id == id)
             ?? throw new NotFoundException($"Machine {id} not found.");
         machine.Name = request.Name;
         await _db.SaveChangesAsync();
-        return machine;
+        return MachineResponse.From(machine);
     }
 
     // Blocked if this machine still has parts, or any Sample has ever
@@ -70,22 +71,22 @@ public class AfterCleaningMasterDataService
         return new { };
     }
 
-    public async Task<object> CreateMachinePartAsync(CreateMachinePartRequest request)
+    public async Task<MachinePartResponse> CreateMachinePartAsync(CreateMachinePartRequest request)
     {
         var part = new MachinePart { Name = request.Name, MachineId = request.MachineId };
         _db.MachineParts.Add(part);
         await _db.SaveChangesAsync();
-        return part;
+        return MachinePartResponse.From(part);
     }
 
-    public async Task<object> UpdateMachinePartAsync(int id, UpdateMachinePartRequest request)
+    public async Task<MachinePartResponse> UpdateMachinePartAsync(int id, UpdateMachinePartRequest request)
     {
         var part = await _db.MachineParts.FirstOrDefaultAsync(p => p.Id == id)
             ?? throw new NotFoundException($"Machine part {id} not found.");
         part.Name = request.Name;
         part.MachineId = request.MachineId;
         await _db.SaveChangesAsync();
-        return part;
+        return MachinePartResponse.From(part);
     }
 
     // Blocked if this part still has test configurations - configurations
@@ -105,10 +106,10 @@ public class AfterCleaningMasterDataService
         return new { };
     }
 
-    public async Task<object> GetMachinePartConfigurationsAsync(int machinePartId) =>
-        await _db.MachinePartConfigurations.AsNoTracking().Where(c => c.MachinePartId == machinePartId).ToListAsync();
+    public async Task<List<MachinePartConfigurationResponse>> GetMachinePartConfigurationsAsync(int machinePartId) =>
+        (await _db.MachinePartConfigurations.AsNoTracking().Where(c => c.MachinePartId == machinePartId).ToListAsync()).Select(MachinePartConfigurationResponse.From).ToList();
 
-    public async Task<object> CreateMachinePartConfigurationAsync(CreateMachinePartConfigRequest request)
+    public async Task<MachinePartConfigurationResponse> CreateMachinePartConfigurationAsync(CreateMachinePartConfigRequest request)
     {
         var entity = new MachinePartConfiguration
         {
@@ -119,10 +120,10 @@ public class AfterCleaningMasterDataService
         };
         _db.MachinePartConfigurations.Add(entity);
         await _db.SaveChangesAsync();
-        return entity;
+        return MachinePartConfigurationResponse.From(entity);
     }
 
-    public async Task<object> UpdateMachinePartConfigurationAsync(int id, UpdateMachinePartConfigRequest request)
+    public async Task<MachinePartConfigurationResponse> UpdateMachinePartConfigurationAsync(int id, UpdateMachinePartConfigRequest request)
     {
         var entity = await _db.MachinePartConfigurations.FirstOrDefaultAsync(c => c.Id == id)
             ?? throw new NotFoundException($"Machine part configuration {id} not found.");
@@ -134,7 +135,7 @@ public class AfterCleaningMasterDataService
         entity.IsPathogenTest = request.IsPathogenTest;
         entity.Unit = request.Unit ?? string.Empty;
         await _db.SaveChangesAsync();
-        return entity;
+        return MachinePartConfigurationResponse.From(entity);
     }
 
     // No downstream dependents (TestOrder.TestCode is a copied string,

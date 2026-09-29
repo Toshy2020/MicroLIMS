@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Abstractions.Persistence;
 using MicroLIMS.Application.DTOs;
+using MicroLIMS.Application.DTOs.Responses;
 using MicroLIMS.Application.Helpers;
 using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Domain.Entities;
@@ -21,13 +22,13 @@ public class TestWorkflowStepMasterDataService
         _db = db;
     }
 
-    public async Task<object> UpdateWorkflowTypeAsync(int id, UpdateWorkflowTypeRequest request)
+    public async Task<TestDefinitionResponse> UpdateWorkflowTypeAsync(int id, UpdateWorkflowTypeRequest request)
     {
         var entity = await _db.TestDefinitions.FirstOrDefaultAsync(t => t.Id == id)
             ?? throw new NotFoundException($"Test {id} not found.");
         entity.WorkflowType = request.WorkflowType;
         await _db.SaveChangesAsync();
-        return entity;
+        return TestDefinitionResponse.From(entity);
     }
 
     public async Task<object> GetTestWorkflowStepsAsync(int id) =>

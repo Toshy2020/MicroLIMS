@@ -560,7 +560,7 @@ public class GroupedTestActionTests
         var engine = TestServiceFactory.TestWorkflow(db);
 
         // Start TSB
-        var inc = await engine.SelectMediaAsync(order1.Id, "Broth Enrichment", media.BrothLotId, incubator.Id, userId: 4);
+        var inc = (await db.Incubations.FindAsync((await engine.SelectMediaAsync(order1.Id, "Broth Enrichment", media.BrothLotId, incubator.Id, userId: 4)).Id))!;
 
         // Fast-forward incubation window to past so minimum duration is satisfied
         inc.StartedAt = DateTime.UtcNow.AddHours(-25);
@@ -1169,7 +1169,7 @@ public class GroupedTestActionTests
         var engine = TestServiceFactory.TestWorkflow(db);
 
         // 1. Start incubation individually via SelectMediaAsync
-        var inc = await engine.SelectMediaAsync(order.Id, "TAMC", tsaLot.Id, incubator.Id, userId: 1);
+        var inc = (await db.Incubations.FindAsync((await engine.SelectMediaAsync(order.Id, "TAMC", tsaLot.Id, incubator.Id, userId: 1)).Id))!;
         Assert.NotNull(inc);
         Assert.Equal(WorkflowStep.Incubating, (await db.TestOrders.FindAsync(order.Id))!.CurrentStep);
 

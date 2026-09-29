@@ -83,10 +83,11 @@ public class MediaReleaseTests
         });
         await db.SaveChangesAsync();
 
-        var media = await TestServiceFactory.MediaPreparation(db).PrepareAsync(new PrepareMediaRequest(
+        var prepared = await TestServiceFactory.MediaPreparation(db).PrepareAsync(new PrepareMediaRequest(
             material.Id, TotalWeight: 100m, TotalVolume: "500 ml", AutoclaveEquipmentId: autoclave.Id,
             AutoclaveProgram: "A", LoadType: "agar", Temperature: 121m, CycleTime: 15, CycleNumber: 1,
             Ph: 7.2m, ExpiryDate: DateTime.UtcNow.AddMonths(6), UserId: PreparerId));
+        var media = await db.Media.SingleAsync(m => m.Id == prepared.Id);
 
         var evaluation = await db.MediaEvaluations.Include(e => e.Challenges).FirstAsync(e => e.MediaId == media.Id);
         var challenge = evaluation.Challenges[0];

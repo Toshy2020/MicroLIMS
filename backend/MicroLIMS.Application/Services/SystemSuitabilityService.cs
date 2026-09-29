@@ -139,12 +139,12 @@ public class SystemSuitabilityService : ISystemSuitabilityService
         return (false, string.Join("; ", failures));
     }
 
-    public Task<SystemSuitabilityRun> CreateAsync(
+    public Task<SystemSuitabilityRunView> CreateAsync(
         CreateSystemSuitabilityRunRequest request,
         int userId,
         string? ipAddress,
         CancellationToken ct = default) =>
-        UnitOfWork.RunAsync(_db, () => CreateCoreAsync(request, userId, ipAddress, ct));
+        UnitOfWork.RunAsync(_db, async () => SystemSuitabilityRunView.From(await CreateCoreAsync(request, userId, ipAddress, ct)));
 
     private async Task<SystemSuitabilityRun> CreateCoreAsync(
         CreateSystemSuitabilityRunRequest request,
@@ -630,7 +630,7 @@ public class SystemSuitabilityService : ISystemSuitabilityService
         return run;
     }
 
-    public async Task<List<SystemSuitabilityRun>> GetAllAsync(
+    public async Task<List<SystemSuitabilityRunView>> GetAllAsync(
         SystemSuitabilityRunFilter filter,
         int userId,
         CancellationToken ct = default)
@@ -673,14 +673,14 @@ public class SystemSuitabilityService : ISystemSuitabilityService
         if (filter.ToDate.HasValue)
             query = query.Where(r => r.PerformedAt.Date <= filter.ToDate.Value.Date);
 
-        return await query.OrderByDescending(r => r.PerformedAt).ThenByDescending(r => r.Id).ToListAsync(ct);
+        return (await query.OrderByDescending(r => r.PerformedAt).ThenByDescending(r => r.Id).ToListAsync(ct)).Select(SystemSuitabilityRunView.From).ToList();
     }
 
-    public async Task<SystemSuitabilityRun?> GetByIdAsync(int id, int userId, CancellationToken ct = default)
+    public async Task<SystemSuitabilityRunView?> GetByIdAsync(int id, int userId, CancellationToken ct = default)
     {
         await _scope.EnsureSuitabilityRunAccessAsync(userId, id, ct);
 
-        return await _db.SystemSuitabilityRuns.AsNoTracking()
+        return (await _db.SystemSuitabilityRuns.AsNoTracking()
             .Include(r => r.TestDefinition)
             .Include(r => r.Section)
             .Include(r => r.Equipment)
@@ -692,7 +692,7 @@ public class SystemSuitabilityService : ISystemSuitabilityService
                 .ThenInclude(a => a.ReferenceStandardMaterial)
             .Include(r => r.Analytes)
                 .ThenInclude(a => a.Responses)
-            .FirstOrDefaultAsync(r => r.Id == id, ct);
+            .FirstOrDefaultAsync(r => r.Id == id, ct)) is { } found ? SystemSuitabilityRunView.From(found) : null;
     }
 
     public async Task<SuitabilityRunReportDetailsDto> GetReportDetailsAsync(int runId, int userId, CancellationToken ct = default)
@@ -788,7 +788,7 @@ public class SystemSuitabilityService : ISystemSuitabilityService
             reportAnalytes);
     }
 
-    public async Task<List<SystemSuitabilityRun>> GetSelectableRunsForTestOrderAsync(
+    public async Task<List<SystemSuitabilityRunView>> GetSelectableRunsForTestOrderAsync(
         int testOrderId,
         int userId,
         CancellationToken ct = default)
@@ -801,7 +801,7 @@ public class SystemSuitabilityService : ISystemSuitabilityService
         var testDef = await _db.TestDefinitions.AsNoTracking().FirstOrDefaultAsync(t => t.Code == order.TestCode, ct)
             ?? throw new InvalidOperationException($"Test definition for code \"{order.TestCode}\" not found.");
 
-        return await _db.SystemSuitabilityRuns.AsNoTracking()
+        return (await _db.SystemSuitabilityRuns.AsNoTracking()
             .Include(r => r.TestDefinition)
             .Include(r => r.Equipment)
             .Include(r => r.ChromatographyColumn)
@@ -813,11 +813,11 @@ public class SystemSuitabilityService : ISystemSuitabilityService
             .Where(r => r.Passed && r.TestDefinitionId == testDef.Id && r.SectionId == order.SectionId)
             .OrderByDescending(r => r.PerformedAt)
             .ThenByDescending(r => r.Id)
-            .ToListAsync(ct);
+            .ToListAsync(ct)).Select(SystemSuitabilityRunView.From).ToList();
     }
 
     // The run a test order is currently linked to (null when not linked yet).
-    public async Task<SystemSuitabilityRun?> GetLinkedRunForTestOrderAsync(int testOrderId, int userId, CancellationToken ct = default)
+    public async Task<SystemSuitabilityRunView?> GetLinkedRunForTestOrderAsync(int testOrderId, int userId, CancellationToken ct = default)
     {
         await _scope.EnsureTestOrderAccessAsync(userId, testOrderId, ct);
 
@@ -827,7 +827,7 @@ public class SystemSuitabilityService : ISystemSuitabilityService
             .FirstOrDefaultAsync(ct);
         if (runId is null) return null;
 
-        return await _db.SystemSuitabilityRuns.AsNoTracking()
+        return (await _db.SystemSuitabilityRuns.AsNoTracking()
             .Include(r => r.TestDefinition)
             .Include(r => r.Section)
             .Include(r => r.Equipment)
@@ -838,7 +838,7 @@ public class SystemSuitabilityService : ISystemSuitabilityService
                 .ThenInclude(a => a.ReferenceStandardMaterial)
             .Include(r => r.Analytes)
                 .ThenInclude(a => a.Responses)
-            .FirstOrDefaultAsync(r => r.Id == runId.Value, ct);
+            .FirstOrDefaultAsync(r => r.Id == runId.Value, ct)) is { } found ? SystemSuitabilityRunView.From(found) : null;
     }
 
     public async Task LinkTestOrdersAsync(

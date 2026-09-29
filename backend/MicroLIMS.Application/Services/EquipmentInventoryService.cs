@@ -4,6 +4,7 @@ using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Application.Abstractions.Persistence;
+using MicroLIMS.Application.DTOs.Responses;
 
 namespace MicroLIMS.Application.Services;
 
@@ -85,23 +86,23 @@ public class EquipmentInventoryService
         _scope = scope;
     }
 
-    public async Task<List<EquipmentInventory>> GetAllAsync(IReadOnlyList<int>? scope) =>
-        await _db.EquipmentInventories
+    public async Task<List<EquipmentInventoryResponse>> GetAllAsync(IReadOnlyList<int>? scope) =>
+        (await _db.EquipmentInventories
             .Where(e => scope == null || (e.SectionId != null && scope.Contains(e.SectionId.Value)))
-            .OrderBy(e => e.InstrumentType).ThenBy(e => e.Code).ToListAsync();
+            .OrderBy(e => e.InstrumentType).ThenBy(e => e.Code).ToListAsync()).Select(EquipmentInventoryResponse.From).ToList();
 
-    public async Task<EquipmentInventory?> GetByIdAsync(int id, int userId)
+    public async Task<EquipmentInventoryResponse?> GetByIdAsync(int id, int userId)
     {
         await _scope.EnsureEquipmentInventoryAccessAsync(userId, id);
-        return await _db.EquipmentInventories.FirstOrDefaultAsync(e => e.Id == id);
+        return (await _db.EquipmentInventories.FirstOrDefaultAsync(e => e.Id == id)) is { } found ? EquipmentInventoryResponse.From(found) : null;
     }
 
-    public async Task<List<EquipmentInventory>> GetForPrintAsync(IReadOnlyList<int>? scope) =>
-        await _db.EquipmentInventories
+    public async Task<List<EquipmentInventoryResponse>> GetForPrintAsync(IReadOnlyList<int>? scope) =>
+        (await _db.EquipmentInventories
             .Where(e => e.Status == EquipmentOperationalStatus.InService)
             .Where(e => scope == null || (e.SectionId != null && scope.Contains(e.SectionId.Value)))
             .OrderBy(e => e.InstrumentType).ThenBy(e => e.Code)
-            .ToListAsync();
+            .ToListAsync()).Select(EquipmentInventoryResponse.From).ToList();
 
     // Missing -> the caller forgot to choose a lab (a data problem, same
     // family as "Code is required"). Out-of-scope -> the caller tried to
@@ -126,7 +127,7 @@ public class EquipmentInventoryService
         return sectionId;
     }
 
-    public async Task<EquipmentInventory> CreateAsync(SaveEquipmentInventoryRequest r, int currentUserId)
+    public async Task<EquipmentInventoryResponse> CreateAsync(SaveEquipmentInventoryRequest r, int currentUserId)
     {
         if (await _db.EquipmentInventories.AnyAsync(e => e.Code == r.Code))
             throw new InvalidOperationException($"Equipment code \"{r.Code}\" already exists.");
@@ -151,7 +152,7 @@ public class EquipmentInventoryService
         };
         _db.EquipmentInventories.Add(entity);
         await _db.SaveChangesAsync();
-        return entity;
+        return EquipmentInventoryResponse.From(entity);
     }
 
     public async Task UpdateAsync(int id, SaveEquipmentInventoryRequest r, int currentUserId)

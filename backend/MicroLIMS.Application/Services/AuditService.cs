@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Application.Abstractions.Persistence;
+using MicroLIMS.Application.DTOs.Responses;
 
 namespace MicroLIMS.Application.Services;
 
@@ -62,10 +63,10 @@ public class AuditService
     }
 
     // Newest first, optionally for one username.
-    public async Task<List<LoginHistory>> GetLoginHistoryAsync(string? username, int take)
+    public async Task<List<LoginHistoryResponse>> GetLoginHistoryAsync(string? username, int take)
     {
         var query = _db.LoginHistories.AsQueryable();
         if (!string.IsNullOrWhiteSpace(username)) query = query.Where(l => l.Username == username);
-        return await query.OrderByDescending(l => l.Timestamp).Take(take).ToListAsync();
+        return (await query.OrderByDescending(l => l.Timestamp).Take(take).ToListAsync()).Select(LoginHistoryResponse.From).ToList();
     }
 }

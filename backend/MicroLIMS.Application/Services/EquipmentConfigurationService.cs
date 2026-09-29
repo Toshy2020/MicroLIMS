@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Application.Abstractions.Persistence;
+using MicroLIMS.Application.DTOs.Responses;
 
 namespace MicroLIMS.Application.Services;
 
@@ -127,7 +128,7 @@ public class EquipmentConfigurationService
         return result;
     }
 
-    public async Task<Equipment> LinkInventoryEquipmentToMasterAsync(int inventoryEquipmentId, int userId)
+    public async Task<EquipmentResponse> LinkInventoryEquipmentToMasterAsync(int inventoryEquipmentId, int userId)
     {
         var inv = await _db.EquipmentInventories.FindAsync(inventoryEquipmentId)
             ?? throw new NotFoundException($"Inventory equipment {inventoryEquipmentId} not found.");
@@ -135,7 +136,7 @@ public class EquipmentConfigurationService
         var normalizedCode = inv.Code.Trim().ToLower();
         var existingMaster = await _db.Equipment.FirstOrDefaultAsync(e => e.Code.ToLower() == normalizedCode);
         if (existingMaster != null)
-            return existingMaster;
+            return EquipmentResponse.From(existingMaster);
 
         EquipmentType type = inv.InstrumentType.Contains("Incubator", StringComparison.OrdinalIgnoreCase) ? EquipmentType.Incubator
                            : inv.InstrumentType.Contains("Autoclave", StringComparison.OrdinalIgnoreCase) ? EquipmentType.Autoclave
@@ -160,10 +161,10 @@ public class EquipmentConfigurationService
 
         _db.Equipment.Add(master);
         await _db.SaveChangesAsync();
-        return master;
+        return EquipmentResponse.From(master);
     }
 
-    public async Task<Equipment> UpdateIncubatorSetPointAsync(int equipmentId, UpdateIncubatorSetPointRequest r, int userId)
+    public async Task<EquipmentResponse> UpdateIncubatorSetPointAsync(int equipmentId, UpdateIncubatorSetPointRequest r, int userId)
     {
         if (string.IsNullOrWhiteSpace(r.Reason))
             throw new InvalidOperationException("A reason explaining the change to the set point temperature is required.");
@@ -189,7 +190,7 @@ public class EquipmentConfigurationService
         _db.IncubatorSetPointHistories.Add(history);
 
         await _db.SaveChangesAsync();
-        return equipment;
+        return EquipmentResponse.From(equipment);
     }
 
     public async Task<List<IncubatorSetPointHistoryDto>> GetIncubatorSetPointHistoryAsync(int equipmentId)

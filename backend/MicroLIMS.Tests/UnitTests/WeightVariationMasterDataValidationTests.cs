@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.API.Controllers;
+using MicroLIMS.Application.DTOs.Responses;
 using MicroLIMS.Application.Services;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
@@ -154,7 +155,7 @@ public class WeightVariationMasterDataValidationTests
         var actionResult = await controller.TestDefinition.CreateTestDefinition(req);
         var okResult = Assert.IsType<OkObjectResult>(actionResult);
         var response = Assert.IsType<ApiResponse<object>>(okResult.Value);
-        var entity = Assert.IsType<TestDefinition>(response.Data);
+        var entity = Assert.IsType<TestDefinitionResponse>(response.Data);
 
         Assert.Equal(20, entity.WvUnitCount);
         Assert.Equal(130m, entity.WvTabletBand1MaxMg);
@@ -595,7 +596,7 @@ public class WeightVariationMasterDataValidationTests
         var actionResult = await controller.Specification.CreateSpecification(req);
         var okResult = Assert.IsType<OkObjectResult>(actionResult);
         var response = Assert.IsType<ApiResponse<object>>(okResult.Value);
-        var entity = Assert.IsType<Specification>(response.Data);
+        var entity = Assert.IsType<SpecificationResponse>(response.Data);
 
         Assert.Equal(DosageForm.HardCapsule, entity.DosageForm);
         Assert.Equal("USP <2091>: net content 90-110 % of average", entity.SpecLimit);

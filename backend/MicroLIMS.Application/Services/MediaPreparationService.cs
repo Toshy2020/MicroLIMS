@@ -4,6 +4,7 @@ using MicroLIMS.Application.Helpers;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Application.Abstractions.Persistence;
+using MicroLIMS.Application.DTOs.Responses;
 
 namespace MicroLIMS.Application.Services;
 
@@ -42,8 +43,8 @@ public class MediaPreparationService
         _reviewGate = reviewGate;
     }
 
-    public Task<Media> PrepareAsync(PrepareMediaRequest request) =>
-        UnitOfWork.RunAsync(_db, () => PrepareCoreAsync(request));
+    public Task<MediaResponse> PrepareAsync(PrepareMediaRequest request) =>
+        UnitOfWork.RunAsync(_db, async () => MediaResponse.From(await PrepareCoreAsync(request)));
 
     private async Task<Media> PrepareCoreAsync(PrepareMediaRequest request)
     {
@@ -135,17 +136,17 @@ public class MediaPreparationService
     }
 
     // sectionIds: the caller's laboratory sections (null = unrestricted).
-    public async Task<List<Media>> GetAllAsync(IReadOnlyCollection<int>? sectionIds = null) =>
-        await _db.Media.Include(m => m.Material)
+    public async Task<List<MediaResponse>> GetAllAsync(IReadOnlyCollection<int>? sectionIds = null) =>
+        (await _db.Media.Include(m => m.Material)
             .Where(m => sectionIds == null || sectionIds.Contains(m.Material!.SectionId))
-            .OrderByDescending(m => m.Id).ToListAsync();
+            .OrderByDescending(m => m.Id).ToListAsync()).Select(MediaResponse.From).ToList();
 
     // includeExpired: the reference-lot lookup for a new GrowthPromotion
     // evaluation (MediaEvaluationController) wants any lot that was ever
     // released, since it's citing a historical count, not asking what can
     // be pulled off the shelf right now - every other caller wants the
     // latter and leaves this false.
-    public async Task<List<Media>> GetReleasedAsync(int? materialId = null, bool includeExpired = false, int? excludeId = null,
+    public async Task<List<MediaResponse>> GetReleasedAsync(int? materialId = null, bool includeExpired = false, int? excludeId = null,
         IReadOnlyCollection<int>? sectionIds = null)
     {
         var query = _db.Media.Include(m => m.Material).Where(m => m.IsReleasedForUse);
@@ -153,7 +154,7 @@ public class MediaPreparationService
         if (!includeExpired) query = query.Where(m => m.Status == MediaStatus.Active && m.ExpiryDate > _time.GetUtcNow().UtcDateTime);
         if (materialId.HasValue) query = query.Where(m => m.MaterialId == materialId.Value);
         if (excludeId.HasValue) query = query.Where(m => m.Id != excludeId.Value);
-        return await query.OrderByDescending(m => m.Id).ToListAsync();
+        return (await query.OrderByDescending(m => m.Id).ToListAsync()).Select(MediaResponse.From).ToList();
     }
 
     public async Task MarkOutOfStockAsync(int mediaId, int userId, string? comment = null)

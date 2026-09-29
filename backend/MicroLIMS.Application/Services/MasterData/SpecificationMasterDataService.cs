@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Abstractions.Persistence;
 using MicroLIMS.Application.DTOs;
+using MicroLIMS.Application.DTOs.Responses;
 using MicroLIMS.Application.Helpers;
 using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Domain.Entities;
@@ -47,14 +48,14 @@ public class SpecificationMasterDataService
                 s.ParameterName, s.DisplayOrder, s.LimitType, s.ReferenceStandard, s.LowerLimit, s.UpperLimit,
                 s.LowerInclusive, s.UpperInclusive, s.Target, s.Tolerance, s.ToleranceMode, s.ExpectedResultText,
                 s.ExpectedState, s.SampleQuantity, s.SampleQuantityUnit, s.TestAnalyteId, s.ResultBasis, s.SampleMatrix,
-                s.LabelClaim, s.LabelClaimUnit, s.ConversionFactor, s.DosageForm, s.Stages,
+                s.LabelClaim, s.LabelClaimUnit, s.ConversionFactor, s.DosageForm, s.Stages.Select(SpecificationStageResponse.From).ToList(),
                 canEdit, def?.Section?.Name ?? string.Empty);
         }).ToList();
 
         return rows;
     }
 
-    public async Task<object> CreateSpecificationAsync(int currentUserId, CreateSpecificationRequest request)
+    public async Task<SpecificationResponse> CreateSpecificationAsync(int currentUserId, CreateSpecificationRequest request)
     {
         await SpecificationOwnership.EnsureCanEditAsync(_db, _scope, currentUserId, request.TestCode);
 
@@ -110,10 +111,10 @@ public class SpecificationMasterDataService
 
         _db.Specifications.Add(spec);
         await _db.SaveChangesAsync();
-        return spec;
+        return SpecificationResponse.From(spec);
     }
 
-    public async Task<object> UpdateSpecificationAsync(int currentUserId, int id, UpdateSpecificationRequest request)
+    public async Task<SpecificationResponse> UpdateSpecificationAsync(int currentUserId, int id, UpdateSpecificationRequest request)
     {
         var spec = await _db.Specifications.Include(s => s.Stages).FirstOrDefaultAsync(s => s.Id == id)
             ?? throw new NotFoundException($"Specification {id} not found.");
@@ -176,7 +177,7 @@ public class SpecificationMasterDataService
         await _specificationService.ValidateAsync(spec);
 
         await _db.SaveChangesAsync();
-        return spec;
+        return SpecificationResponse.From(spec);
     }
 
     // No downstream dependents to guard - Results/CountTestReadings copy

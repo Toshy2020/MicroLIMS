@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Abstractions.Persistence;
 using MicroLIMS.Application.DTOs;
+using MicroLIMS.Application.DTOs.Responses;
 using MicroLIMS.Application.Helpers;
 using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Domain.Entities;
@@ -27,10 +28,10 @@ public class TestDefinitionMasterDataService
     // in the app (Items, Water Sampling Points, Room Test Configurations,
     // Machine Part Configurations). See TestDefinition.cs for why this
     // exists.
-    public async Task<object> GetTestDefinitionsAsync() =>
-        await _db.TestDefinitions.AsNoTracking().Include(t => t.Section).OrderBy(t => t.Code).ToListAsync();
+    public async Task<List<TestDefinitionResponse>> GetTestDefinitionsAsync() =>
+        (await _db.TestDefinitions.AsNoTracking().Include(t => t.Section).OrderBy(t => t.Code).ToListAsync()).Select(TestDefinitionResponse.From).ToList();
 
-    public async Task<object> CreateTestDefinitionAsync(int currentUserId, CreateTestDefinitionRequest request)
+    public async Task<TestDefinitionResponse> CreateTestDefinitionAsync(int currentUserId, CreateTestDefinitionRequest request)
     {
         if (await _db.TestDefinitions.AnyAsync(t => t.Code == request.Code))
             throw new InvalidOperationException($"Test code \"{request.Code}\" already exists in the Test Master.");
@@ -379,10 +380,10 @@ public class TestDefinitionMasterDataService
         };
         _db.TestDefinitions.Add(entity);
         await _db.SaveChangesAsync();
-        return entity;
+        return TestDefinitionResponse.From(entity);
     }
 
-    public async Task<object> UpdateTestDefinitionAsync(int currentUserId, int id, UpdateTestDefinitionRequest request)
+    public async Task<TestDefinitionResponse> UpdateTestDefinitionAsync(int currentUserId, int id, UpdateTestDefinitionRequest request)
     {
         var entity = await _db.TestDefinitions.FirstOrDefaultAsync(t => t.Id == id)
             ?? throw new NotFoundException($"Test {id} not found.");
@@ -794,25 +795,25 @@ public class TestDefinitionMasterDataService
 
         await _db.SaveChangesAsync();
 
-        return entity;
+        return TestDefinitionResponse.From(entity);
     }
 
-    public async Task<object> FreezeTestDefinitionAsync(int id)
+    public async Task<TestDefinitionResponse> FreezeTestDefinitionAsync(int id)
     {
         var entity = await _db.TestDefinitions.FirstOrDefaultAsync(t => t.Id == id)
             ?? throw new NotFoundException($"Test {id} not found.");
         entity.IsActive = false;
         await _db.SaveChangesAsync();
-        return entity;
+        return TestDefinitionResponse.From(entity);
     }
 
-    public async Task<object> UnfreezeTestDefinitionAsync(int id)
+    public async Task<TestDefinitionResponse> UnfreezeTestDefinitionAsync(int id)
     {
         var entity = await _db.TestDefinitions.FirstOrDefaultAsync(t => t.Id == id)
             ?? throw new NotFoundException($"Test {id} not found.");
         entity.IsActive = true;
         await _db.SaveChangesAsync();
-        return entity;
+        return TestDefinitionResponse.From(entity);
     }
 
     // Equation Types (REQ-FP-030/042)

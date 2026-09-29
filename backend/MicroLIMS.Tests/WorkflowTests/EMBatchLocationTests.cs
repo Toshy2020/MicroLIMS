@@ -220,7 +220,7 @@ public class EMBatchLocationTests
         await IncubationTestClock.ElapseOpenIncubationsAsync(db, order.Id);
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
             workflowEngine.RecordBatchResultsAsync(order.Id, onlyOne, 1));
-        Assert.Contains(locations[1].RoomTestConfiguration!.Room!.Name, ex.Message);
+        Assert.Contains(locations[1].LocationName, ex.Message);
     }
 
     [Fact]
@@ -364,7 +364,7 @@ public class EMBatchLocationTests
         await IncubationTestClock.ElapseOpenIncubationsAsync(db, order.Id);
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
             workflowEngine.RecordBatchResultsAsync(order.Id, submissions, 1));
-        Assert.Contains(locations[0].RoomTestConfiguration!.Room!.Name, ex.Message);
+        Assert.Contains(locations[0].LocationName, ex.Message);
     }
 
     // Closes the pre-existing enforcement gap fixed alongside the Media

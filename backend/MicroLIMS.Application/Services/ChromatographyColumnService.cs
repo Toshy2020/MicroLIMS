@@ -4,6 +4,7 @@ using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Application.Abstractions.Persistence;
+using MicroLIMS.Application.DTOs.Responses;
 
 namespace MicroLIMS.Application.Services;
 
@@ -35,7 +36,7 @@ public class ChromatographyColumnService
         _scope = scope;
     }
 
-    public async Task<List<ChromatographyColumn>> GetAllAsync(int currentUserId, bool? activeOnly = null, CancellationToken ct = default)
+    public async Task<List<ChromatographyColumnResponse>> GetAllAsync(int currentUserId, bool? activeOnly = null, CancellationToken ct = default)
     {
         var scope = await _scope.GetAccessibleSectionIdsAsync(currentUserId, ct);
         var query = _db.ChromatographyColumns
@@ -54,10 +55,10 @@ public class ChromatographyColumnService
             query = query.Where(c => c.IsActive);
         }
 
-        return await query.OrderBy(c => c.Code).ToListAsync(ct);
+        return (await query.OrderBy(c => c.Code).ToListAsync(ct)).Select(ChromatographyColumnResponse.From).ToList();
     }
 
-    public async Task<ChromatographyColumn> GetByIdAsync(int id, int currentUserId, CancellationToken ct = default)
+    public async Task<ChromatographyColumnResponse> GetByIdAsync(int id, int currentUserId, CancellationToken ct = default)
     {
         await _scope.EnsureColumnAccessAsync(currentUserId, id, ct);
 
@@ -70,10 +71,10 @@ public class ChromatographyColumnService
         if (column == null)
             throw new NotFoundException($"Chromatography column {id} not found.");
 
-        return column;
+        return ChromatographyColumnResponse.From(column);
     }
 
-    public async Task<ChromatographyColumn> CreateAsync(CreateChromatographyColumnRequest request, int currentUserId, CancellationToken ct = default)
+    public async Task<ChromatographyColumnResponse> CreateAsync(CreateChromatographyColumnRequest request, int currentUserId, CancellationToken ct = default)
     {
         if (string.IsNullOrWhiteSpace(request.Code))
             throw new InvalidOperationException("Column code is required.");
@@ -126,10 +127,10 @@ public class ChromatographyColumnService
         _db.ChromatographyColumns.Add(column);
         await _db.SaveChangesAsync(ct);
 
-        return column;
+        return ChromatographyColumnResponse.From(column);
     }
 
-    public async Task<ChromatographyColumn> UpdateAsync(int id, UpdateChromatographyColumnRequest request, int currentUserId, CancellationToken ct = default)
+    public async Task<ChromatographyColumnResponse> UpdateAsync(int id, UpdateChromatographyColumnRequest request, int currentUserId, CancellationToken ct = default)
     {
         await _scope.EnsureColumnAccessAsync(currentUserId, id, ct);
 
@@ -190,10 +191,10 @@ public class ChromatographyColumnService
         column.LastModifiedAt = _time.GetUtcNow().UtcDateTime;
 
         await _db.SaveChangesAsync(ct);
-        return column;
+        return ChromatographyColumnResponse.From(column);
     }
 
-    public async Task<ChromatographyColumn> DeactivateAsync(int id, int currentUserId, CancellationToken ct = default)
+    public async Task<ChromatographyColumnResponse> DeactivateAsync(int id, int currentUserId, CancellationToken ct = default)
     {
         await _scope.EnsureColumnAccessAsync(currentUserId, id, ct);
 
@@ -209,6 +210,6 @@ public class ChromatographyColumnService
         column.LastModifiedAt = _time.GetUtcNow().UtcDateTime;
 
         await _db.SaveChangesAsync(ct);
-        return column;
+        return ChromatographyColumnResponse.From(column);
     }
 }

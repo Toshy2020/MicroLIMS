@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Abstractions.Persistence;
 using MicroLIMS.Application.DTOs;
+using MicroLIMS.Application.DTOs.Responses;
 using MicroLIMS.Application.Helpers;
 using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Domain.Entities;
@@ -32,15 +33,15 @@ public class EnvironmentalMonitoringMasterDataService
         return departments;
     }
 
-    public async Task<object> CreateDepartmentAsync(CreateDepartmentRequest request)
+    public async Task<EmDepartmentResponse> CreateDepartmentAsync(CreateDepartmentRequest request)
     {
         var dept = new Department { Name = request.Name, Class = request.Class, TestingFrequency = request.TestingFrequency };
         _db.Departments.Add(dept);
         await _db.SaveChangesAsync();
-        return dept;
+        return EmDepartmentResponse.From(dept);
     }
 
-    public async Task<object> UpdateDepartmentAsync(int id, UpdateDepartmentRequest request)
+    public async Task<EmDepartmentResponse> UpdateDepartmentAsync(int id, UpdateDepartmentRequest request)
     {
         var dept = await _db.Departments.FirstOrDefaultAsync(d => d.Id == id)
             ?? throw new NotFoundException($"Department {id} not found.");
@@ -48,7 +49,7 @@ public class EnvironmentalMonitoringMasterDataService
         dept.Class = request.Class;
         dept.TestingFrequency = request.TestingFrequency;
         await _db.SaveChangesAsync();
-        return dept;
+        return EmDepartmentResponse.From(dept);
     }
 
     // Blocked (not a raw FK error) if this department still has Rooms -
@@ -79,15 +80,15 @@ public class EnvironmentalMonitoringMasterDataService
         return rooms;
     }
 
-    public async Task<object> CreateRoomAsync(CreateRoomRequest request)
+    public async Task<RoomResponse> CreateRoomAsync(CreateRoomRequest request)
     {
         var room = new Room { Name = request.Name, DepartmentId = request.DepartmentId, GradeClassification = request.GradeClassification };
         _db.Rooms.Add(room);
         await _db.SaveChangesAsync();
-        return room;
+        return RoomResponse.From(room);
     }
 
-    public async Task<object> UpdateRoomAsync(int id, UpdateRoomRequest request)
+    public async Task<RoomResponse> UpdateRoomAsync(int id, UpdateRoomRequest request)
     {
         var room = await _db.Rooms.FirstOrDefaultAsync(r => r.Id == id)
             ?? throw new NotFoundException($"Room {id} not found.");
@@ -95,7 +96,7 @@ public class EnvironmentalMonitoringMasterDataService
         room.DepartmentId = request.DepartmentId;
         room.GradeClassification = request.GradeClassification;
         await _db.SaveChangesAsync();
-        return room;
+        return RoomResponse.From(room);
     }
 
     // Blocked if this room still has test configurations or monitoring
@@ -121,10 +122,10 @@ public class EnvironmentalMonitoringMasterDataService
         return new { };
     }
 
-    public async Task<object> GetRoomTestConfigurationsAsync(int roomId) =>
-        await _db.RoomTestConfigurations.AsNoTracking().Where(c => c.RoomId == roomId).ToListAsync();
+    public async Task<List<RoomTestConfigurationResponse>> GetRoomTestConfigurationsAsync(int roomId) =>
+        (await _db.RoomTestConfigurations.AsNoTracking().Where(c => c.RoomId == roomId).ToListAsync()).Select(RoomTestConfigurationResponse.From).ToList();
 
-    public async Task<object> CreateRoomTestConfigurationAsync(CreateRoomTestConfigRequest request)
+    public async Task<RoomTestConfigurationResponse> CreateRoomTestConfigurationAsync(CreateRoomTestConfigRequest request)
     {
         var entity = new RoomTestConfiguration
         {
@@ -134,10 +135,10 @@ public class EnvironmentalMonitoringMasterDataService
         };
         _db.RoomTestConfigurations.Add(entity);
         await _db.SaveChangesAsync();
-        return entity;
+        return RoomTestConfigurationResponse.From(entity);
     }
 
-    public async Task<object> UpdateRoomTestConfigurationAsync(int id, UpdateRoomTestConfigRequest request)
+    public async Task<RoomTestConfigurationResponse> UpdateRoomTestConfigurationAsync(int id, UpdateRoomTestConfigRequest request)
     {
         var entity = await _db.RoomTestConfigurations.FirstOrDefaultAsync(c => c.Id == id)
             ?? throw new NotFoundException($"Room test configuration {id} not found.");
@@ -148,7 +149,7 @@ public class EnvironmentalMonitoringMasterDataService
         entity.SpecLimit = request.SpecLimit;
         entity.Unit = request.Unit ?? string.Empty;
         await _db.SaveChangesAsync();
-        return entity;
+        return RoomTestConfigurationResponse.From(entity);
     }
 
     // No downstream dependents (TestOrder.TestCode is a copied string,

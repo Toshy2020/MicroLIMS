@@ -203,6 +203,16 @@ public static class TestServiceFactory
             signatures ?? new ElectronicSignatureService(db),
             clock);
 
+    public static TitrantStandardizationService TitrantStandardization(
+        MicroLimsDbContext db,
+        IUserSectionScopeService? scope = null,
+        IElectronicSignatureService? signatures = null,
+        ILabClock? clock = null) =>
+        new(db,
+            scope ?? new UserSectionScopeService(db),
+            signatures ?? new ElectronicSignatureService(db),
+            clock);
+
     public static SystemSuitabilityService SystemSuitability(
         MicroLimsDbContext db,
         IUserSectionScopeService? scope = null,

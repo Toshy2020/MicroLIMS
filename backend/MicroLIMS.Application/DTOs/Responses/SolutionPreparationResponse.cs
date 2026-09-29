@@ -38,6 +38,9 @@ public class SolutionPreparationResponse
     public string RecipeSnapshotJson { get; init; } = "{}";
     public List<SolutionPreparationComponentResponse> Components { get; init; } = new();
     public List<SolutionPreparationStatusHistoryResponse> StatusHistory { get; init; } = new();
+    // Titrant only (HPLC chain S5) - the latest passed, still-relevant
+    // standardization. Null for Mobile Phase / Diluent preparations.
+    public CurrentFactorDto? CurrentFactor { get; init; }
 
     // A Prepared record past its expiry reads as Expired everywhere, even
     // before SolutionPreparationExpiryWorker has flipped the row (Review
@@ -48,7 +51,7 @@ public class SolutionPreparationResponse
             ? SolutionPreparationStatus.Expired
             : p.Status;
 
-    public static SolutionPreparationResponse From(SolutionPreparation p, IReadOnlyDictionary<int, string> userNames, DateTime nowUtc)
+    public static SolutionPreparationResponse From(SolutionPreparation p, IReadOnlyDictionary<int, string> userNames, DateTime nowUtc, CurrentFactorDto? currentFactor = null)
     {
         string? NameOf(int? userId) => userId.HasValue && userNames.TryGetValue(userId.Value, out var n) ? n : null;
 
@@ -88,6 +91,7 @@ public class SolutionPreparationResponse
                 .Select(h => new SolutionPreparationStatusHistoryResponse(
                     h.FromStatus, h.ToStatus, h.ChangedByUserId, NameOf(h.ChangedByUserId), h.ChangedAt, h.Reason))
                 .ToList(),
+            CurrentFactor = currentFactor,
         };
     }
 }

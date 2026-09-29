@@ -117,6 +117,8 @@ public class MicroLimsDbContext : Microsoft.EntityFrameworkCore.DbContext, IMicr
     public DbSet<SolutionPreparation> SolutionPreparations => Set<SolutionPreparation>();
     public DbSet<SolutionPreparationComponent> SolutionPreparationComponents => Set<SolutionPreparationComponent>();
     public DbSet<SolutionPreparationStatusHistory> SolutionPreparationStatusHistories => Set<SolutionPreparationStatusHistory>();
+    public DbSet<TitrantStandardization> TitrantStandardizations => Set<TitrantStandardization>();
+    public DbSet<TitrantStandardizationReplicate> TitrantStandardizationReplicates => Set<TitrantStandardizationReplicate>();
     public DbSet<EquipmentInventory> EquipmentInventories => Set<EquipmentInventory>();
     public DbSet<EquipmentStatusHistory> EquipmentStatusHistories => Set<EquipmentStatusHistory>();
     public DbSet<MaterialDocument> MaterialDocuments => Set<MaterialDocument>();

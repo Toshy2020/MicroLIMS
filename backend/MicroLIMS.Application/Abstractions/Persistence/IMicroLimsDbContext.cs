@@ -113,6 +113,8 @@ public interface IMicroLimsDbContext
     DbSet<SolutionPreparation> SolutionPreparations { get; }
     DbSet<SolutionPreparationComponent> SolutionPreparationComponents { get; }
     DbSet<SolutionPreparationStatusHistory> SolutionPreparationStatusHistories { get; }
+    DbSet<TitrantStandardization> TitrantStandardizations { get; }
+    DbSet<TitrantStandardizationReplicate> TitrantStandardizationReplicates { get; }
     DbSet<EquipmentInventory> EquipmentInventories { get; }
     DbSet<EquipmentStatusHistory> EquipmentStatusHistories { get; }
     DbSet<MaterialDocument> MaterialDocuments { get; }

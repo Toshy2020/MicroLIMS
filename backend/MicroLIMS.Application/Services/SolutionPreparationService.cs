@@ -500,6 +500,15 @@ public class SolutionPreparationService
 
         var names = await _db.Users.Where(u => userIds.Contains(u.Id)).ToDictionaryAsync(u => u.Id, u => u.FullName, ct);
 
-        return SolutionPreparationResponse.From(prep, names, _clock.UtcNow.UtcDateTime);
+        CurrentFactorDto? currentFactor = null;
+        if (prep.Type == SolutionType.Titrant)
+        {
+            var standardizations = await _db.TitrantStandardizations.AsNoTracking()
+                .Where(x => x.SolutionPreparationId == prep.Id)
+                .ToListAsync(ct);
+            currentFactor = TitrantStandardizationService.ComputeCurrentFactor(standardizations, _clock.UtcNow.UtcDateTime);
+        }
+
+        return SolutionPreparationResponse.From(prep, names, _clock.UtcNow.UtcDateTime, currentFactor);
     }
 }

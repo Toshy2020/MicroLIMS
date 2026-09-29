@@ -208,5 +208,8 @@ public static class UserReferenceRegistry
         new UserReferenceEntry(typeof(SolutionPreparation), nameof(SolutionPreparation.StartedByUserId), UserReferenceDisposition.Blocks, "No DB FK - GMP record, analyst who started the preparation"),
         new UserReferenceEntry(typeof(SolutionPreparation), nameof(SolutionPreparation.PreparedByUserId), UserReferenceDisposition.Blocks, "No DB FK - GMP record, analyst who signed completion"),
         new UserReferenceEntry(typeof(SolutionPreparationStatusHistory), nameof(SolutionPreparationStatusHistory.ChangedByUserId), UserReferenceDisposition.Blocks, "No DB FK - GMP record, status transition provenance (null = automatic expiry)"),
+
+        // HPLC chain S5 - Titrant standardization
+        new UserReferenceEntry(typeof(TitrantStandardization), nameof(TitrantStandardization.StandardizedByUserId), UserReferenceDisposition.Blocks, "No DB FK - GMP record, analyst who signed the standardization"),
     };
 }

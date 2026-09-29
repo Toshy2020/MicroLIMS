@@ -52,6 +52,7 @@ const EquipmentPage = lazy(() => import("../modules/laboratoryConfiguration/mast
 const FpInstrumentsPage = lazy(() => import("../modules/laboratoryConfiguration/masterDataSimple/FpInstrumentsPage").then((m) => ({ default: m.FpInstrumentsPage })));
 const ChromatographyColumnsPage = lazy(() => import("../modules/laboratoryConfiguration/masterDataSimple/ChromatographyColumnsPage").then((m) => ({ default: m.ChromatographyColumnsPage })));
 const MaterialMasterPage = lazy(() => import("../modules/laboratoryConfiguration/masterDataSimple/MaterialMasterPage").then((m) => ({ default: m.MaterialMasterPage })));
+const SolutionMasterPage = lazy(() => import("../modules/laboratoryConfiguration/masterDataSimple/SolutionMasterPage").then((m) => ({ default: m.SolutionMasterPage })));
 const UsersPage = lazy(() => import("../modules/users/UsersPage").then((m) => ({ default: m.UsersPage })));
 const RolesPage = lazy(() => import("../modules/roles/RolesPage").then((m) => ({ default: m.RolesPage })));
 const RoleDetailPage = lazy(() => import("../modules/roles/RoleDetailPage").then((m) => ({ default: m.RoleDetailPage })));
@@ -178,6 +179,7 @@ export function AppRoutes() {
               <Route path="/laboratory-configuration/fp-instruments" element={<FpInstrumentsPage />} />
               <Route path="/laboratory-configuration/columns" element={<ChromatographyColumnsPage />} />
               <Route path="/laboratory-configuration/material-master" element={<MaterialMasterPage />} />
+              <Route path="/laboratory-configuration/solution-master" element={<SolutionMasterPage />} />
             </Route>
 
             {/* Document Control Module (Release 1a) */}

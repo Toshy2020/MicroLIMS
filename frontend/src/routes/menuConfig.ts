@@ -136,7 +136,8 @@ const physchemConfigArea: MenuItem = {
     { label: "Equation Types", path: "/laboratory-configuration/equation-types" },
     { label: "Physicochemical Instruments", path: "/laboratory-configuration/fp-instruments" },
     { label: "Chromatography Columns", path: "/laboratory-configuration/columns" },
-    { label: "Reagents & Standards", path: "/laboratory-configuration/material-master" }
+    { label: "Reagents & Standards", path: "/laboratory-configuration/material-master" },
+    { label: "Solutions", path: "/laboratory-configuration/solution-master" }
   ]
 };
 

@@ -42,6 +42,7 @@ const APP_ROUTES = {
   LAB_EQUIPMENT: "/laboratory-configuration/equipment",
   CHROMATOGRAPHY_COLUMNS: "/laboratory-configuration/columns",
   MATERIAL_MASTER: "/laboratory-configuration/material-master",
+  SOLUTION_MASTER: "/laboratory-configuration/solution-master",
   FP_INSTRUMENTS: "/laboratory-configuration/fp-instruments",
 
   // Inventory & Stock
@@ -119,6 +120,9 @@ export function resolveTraceabilityRoute(
   if (target === "material-master" || target === "material-masters" || target === "reagents-standards") {
     return APP_ROUTES.MATERIAL_MASTER;
   }
+  if (target === "solution-master" || target === "solution-masters" || target === "solutions") {
+    return APP_ROUTES.SOLUTION_MASTER;
+  }
   if (target === "items") {
     return APP_ROUTES.ITEMS;
   }
@@ -171,6 +175,9 @@ export function resolveTraceabilityRoute(
   }
   if (type === "materialmaster" || type === "materialmasterentry") {
     return APP_ROUTES.MATERIAL_MASTER;
+  }
+  if (type === "solutionmaster" || type === "solution") {
+    return APP_ROUTES.SOLUTION_MASTER;
   }
 
   return null;

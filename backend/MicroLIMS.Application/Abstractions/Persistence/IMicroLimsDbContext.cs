@@ -104,6 +104,8 @@ public interface IMicroLimsDbContext
     DbSet<MediaConfigurationChallenge> MediaConfigurationChallenges { get; }
     DbSet<Material> Materials { get; }
     DbSet<MaterialMasterEntry> MaterialMasterEntries { get; }
+    DbSet<SolutionMaster> SolutionMasters { get; }
+    DbSet<SolutionComponent> SolutionComponents { get; }
     DbSet<EquipmentInventory> EquipmentInventories { get; }
     DbSet<EquipmentStatusHistory> EquipmentStatusHistories { get; }
     DbSet<MaterialDocument> MaterialDocuments { get; }

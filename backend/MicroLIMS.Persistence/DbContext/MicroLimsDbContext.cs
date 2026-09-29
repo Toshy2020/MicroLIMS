@@ -108,6 +108,8 @@ public class MicroLimsDbContext : Microsoft.EntityFrameworkCore.DbContext, IMicr
     // Inventory module
     public DbSet<Material> Materials => Set<Material>();
     public DbSet<MaterialMasterEntry> MaterialMasterEntries => Set<MaterialMasterEntry>();
+    public DbSet<SolutionMaster> SolutionMasters => Set<SolutionMaster>();
+    public DbSet<SolutionComponent> SolutionComponents => Set<SolutionComponent>();
     public DbSet<EquipmentInventory> EquipmentInventories => Set<EquipmentInventory>();
     public DbSet<EquipmentStatusHistory> EquipmentStatusHistories => Set<EquipmentStatusHistory>();
     public DbSet<MaterialDocument> MaterialDocuments => Set<MaterialDocument>();

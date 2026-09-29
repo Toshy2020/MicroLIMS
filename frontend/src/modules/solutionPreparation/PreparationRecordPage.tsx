@@ -1,14 +1,7 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
-  Box,
-  Paper,
-  Typography,
-  Button,
-  Alert,
-  CircularProgress,
-  Divider,
-  Chip
+  Box, Paper, Typography, Button, Alert, CircularProgress, Divider, Chip
 } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import EditIcon from "@mui/icons-material/Edit";
@@ -19,13 +12,14 @@ import { ReasonDialog } from "../laboratoryConfiguration/masterDataSimple/soluti
 import { PreparationStatusBadge } from "./components/PreparationStatusBadge";
 import { PreparationComponentsTable } from "./record/PreparationComponentsTable";
 import { PreparationHistoryTable } from "./record/PreparationHistoryTable";
+import { CurrentFactorCard } from "./record/CurrentFactorCard";
+import { StandardizationHistoryTable } from "./record/StandardizationHistoryTable";
+import { useTitrantStandardization } from "./record/useTitrantStandardization";
+import { TitrantStandardizationDialog } from "./components/TitrantStandardizationDialog";
 import { SolutionPreparationService } from "./services/SolutionPreparationService";
 import { formatLabDate, formatLabDateTime } from "../../utils/formatDate";
 import { toast } from "sonner";
-import type {
-  SolutionPreparationResponse,
-  RecipeSnapshot
-} from "./types";
+import type { SolutionPreparationResponse, RecipeSnapshot } from "./types";
 
 export function PreparationRecordPage() {
   const { id } = useParams<{ id: string }>();
@@ -54,6 +48,15 @@ export function PreparationRecordPage() {
       setLoading(false);
     }
   }, []);
+
+  const {
+    standardizations,
+    loadingStandardizations,
+    canStandardize,
+    dialogOpen,
+    setDialogOpen,
+    handleSuccess
+  } = useTitrantStandardization(preparation, loadPreparation);
 
   useEffect(() => {
     if (id) {
@@ -228,6 +231,15 @@ export function PreparationRecordPage() {
         )}
       </Paper>
 
+      {/* Current Factor Card (Titrant only) */}
+      {preparation.type === "Titrant" && (
+        <CurrentFactorCard
+          currentFactor={preparation.currentFactor}
+          canStandardize={canStandardize}
+          onStandardize={() => setDialogOpen(true)}
+        />
+      )}
+
       {/* Components Table */}
       <Paper variant="outlined" sx={{ p: 3, mb: 3 }}>
         <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 2 }}>
@@ -235,6 +247,19 @@ export function PreparationRecordPage() {
         </Typography>
         <PreparationComponentsTable components={preparation.components} />
       </Paper>
+
+      {/* Standardization History (Titrant only) */}
+      {preparation.type === "Titrant" && (
+        <Paper variant="outlined" sx={{ p: 3, mb: 3 }}>
+          <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 2 }}>
+            Standardization History
+          </Typography>
+          <StandardizationHistoryTable
+            standardizations={standardizations}
+            loading={loadingStandardizations}
+          />
+        </Paper>
+      )}
 
       {/* Status History */}
       <Paper variant="outlined" sx={{ p: 3, mb: 3 }}>
@@ -305,6 +330,16 @@ export function PreparationRecordPage() {
             : "Discarding this solution will mark it as discarded. Stock consumed at preparation time will not be restored."}
         </Alert>
       </ReasonDialog>
+
+      {/* Titrant Standardization Dialog */}
+      {preparation.type === "Titrant" && (
+        <TitrantStandardizationDialog
+          open={dialogOpen}
+          preparation={preparation}
+          onClose={() => setDialogOpen(false)}
+          onSuccess={handleSuccess}
+        />
+      )}
     </Box>
   );
 }

@@ -75,7 +75,68 @@ export interface SolutionPreparationResponse {
   recipeSnapshotJson: string;
   components: SolutionPreparationComponentResponse[];
   statusHistory: SolutionPreparationStatusHistoryResponse[];
-  currentFactor?: unknown;
+  currentFactor?: CurrentFactorDto | null;
+}
+
+export type StandardizationMode = "PrimaryStandard" | "AgainstVolumetricSolution";
+
+export type CurrentFactorState =
+  | "NotStandardized"
+  | "Valid"
+  | "Due"
+  | "BeforeEachUse";
+
+export interface CurrentFactorDto {
+  factor?: number | null;
+  standardizedAt?: string | null;
+  validUntil?: string | null;
+  state: CurrentFactorState;
+}
+
+export interface TitrantStandardizationReplicateResponse {
+  id: number;
+  replicateNo: number;
+  standardMaterialId: number | null;
+  standardLotBatchNumber: string | null;
+  standardWeightMg: number | null;
+  standardPurityPercent: number | null;
+  referencePreparationId: number | null;
+  referencePreparationCode: string | null;
+  referenceVolumeMl: number | null;
+  referenceFactor: number | null;
+  titrantVolumeMl: number;
+  blankMl: number | null;
+  factor: number;
+}
+
+export interface TitrantStandardizationResponse {
+  id: number;
+  solutionPreparationId: number;
+  mode: StandardizationMode;
+  meanFactor: number;
+  rsdPercent: number | null;
+  passed: boolean;
+  failureReasons: string | null;
+  standardizedByUserId: number;
+  standardizedByUserName: string | null;
+  standardizedAt: string;
+  validUntil: string | null;
+  replicates: TitrantStandardizationReplicateResponse[];
+}
+
+export interface StandardizationReplicateInput {
+  standardMaterialId?: number | null;
+  standardWeightMg?: number | null;
+  referencePreparationId?: number | null;
+  referenceVolumeMl?: number | null;
+  titrantVolumeMl: number;
+  blankMl?: number | null;
+}
+
+export interface StandardizeRequest {
+  replicates: StandardizationReplicateInput[];
+  password: string;
+  comment?: string | null;
 }
 
 export interface LotOption {
@@ -132,4 +193,18 @@ export interface RecipeSnapshot {
     quantity: number;
     unit: SolutionComponentUnit;
   }>;
+  nominalStrength?: number | null;
+  strengthUnit?: "Normal" | "Molar" | null;
+  standardizationMode?: StandardizationMode | null;
+  standardEntryId?: number | null;
+  standardEntryCode?: string | null;
+  equivalenceMgPerMl?: number | null;
+  referenceSolutionId?: number | null;
+  referenceSolutionName?: string | null;
+  blankRequired?: boolean;
+  replicateCount?: number | null;
+  factorMin?: number | null;
+  factorMax?: number | null;
+  maxRsdPercent?: number | null;
+  validityDays?: number | null;
 }

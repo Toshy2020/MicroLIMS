@@ -7,7 +7,9 @@ import type {
   LotOption,
   StartPreparationRequest,
   SavePreparationRequest,
-  CompletePreparationRequest
+  CompletePreparationRequest,
+  TitrantStandardizationResponse,
+  StandardizeRequest
 } from "../types";
 
 interface ApiResponse<T> {
@@ -122,6 +124,45 @@ export const SolutionPreparationService = {
     const res = await apiClient.post<ApiResponse<SolutionPreparationResponse>>(
       `/solution-preparations/${id}/discard`,
       { reason }
+    );
+    return res.data?.data;
+  },
+
+  getStandardizations: async (
+    id: number
+  ): Promise<TitrantStandardizationResponse[]> => {
+    const res = await apiClient.get<ApiResponse<TitrantStandardizationResponse[]>>(
+      `/solution-preparations/${id}/standardizations`
+    );
+    const data = res.data?.data;
+    return Array.isArray(data) ? data : [];
+  },
+
+  getStandardLotOptions: async (id: number): Promise<LotOption[]> => {
+    const res = await apiClient.get<ApiResponse<LotOption[]>>(
+      `/solution-preparations/${id}/standardizations/standard-lots`
+    );
+    const data = res.data?.data;
+    return Array.isArray(data) ? data : [];
+  },
+
+  getReferenceOptions: async (
+    id: number
+  ): Promise<SolutionPreparationListItem[]> => {
+    const res = await apiClient.get<ApiResponse<SolutionPreparationListItem[]>>(
+      `/solution-preparations/${id}/standardizations/reference-options`
+    );
+    const data = res.data?.data;
+    return Array.isArray(data) ? data : [];
+  },
+
+  standardize: async (
+    id: number,
+    req: StandardizeRequest
+  ): Promise<TitrantStandardizationResponse> => {
+    const res = await apiClient.post<ApiResponse<TitrantStandardizationResponse>>(
+      `/solution-preparations/${id}/standardizations`,
+      req
     );
     return res.data?.data;
   }

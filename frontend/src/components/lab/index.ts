@@ -10,5 +10,6 @@ export { CriteriaCard } from "./CriteriaCard";
 export type { CriteriaRow } from "./CriteriaCard";
 export { VerdictBanner } from "./VerdictBanner";
 export type { Verdict } from "./VerdictBanner";
+export { verdictFromServerStatus } from "./verdict";
 export type { StatusTone } from "../../theme/statusTokens";
 export { NumericCell, formatNumber } from "./NumericCell";

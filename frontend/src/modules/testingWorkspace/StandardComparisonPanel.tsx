@@ -17,8 +17,8 @@ import {
 } from "@mui/material";
 import { SignatureDialog } from "../../components/SignatureDialog";
 import { StatusBadge } from "../../components/StatusBadge";
-import { CriteriaCard, NumericCell, ResultSection, VerdictBanner } from "../../components/lab";
-import type { CriteriaRow, Verdict } from "../../components/lab";
+import { CriteriaCard, NumericCell, ResultSection, VerdictBanner, verdictFromServerStatus } from "../../components/lab";
+import type { CriteriaRow } from "../../components/lab";
 import { UnitEntryGrid, UnitEntryGridColumn } from "../../components/UnitEntryGrid";
 import { TestWorkflowService, StandardComparisonContext } from "./services/TestWorkflowService";
 import { SampleSummaryService } from "./services/SampleSummaryService";
@@ -552,22 +552,15 @@ export function StandardComparisonPanel({
 
   // Completion view
   if (current.allStepsComplete || outcome) {
-    // Verdict comes only from the server's final status. When it is not
-    // returned (reopened test) the per-parameter server statuses are used only
-    // if they all agree; otherwise the banner stays Pending.
-    const paramStatuses = Array.from(new Set((activeAnalysis?.parameterResults ?? []).map((p) => p.comparisonStatus)));
-    const finalStatus = outcome?.status ?? (paramStatuses.length === 1 ? paramStatuses[0] : undefined);
-    const verdict: Verdict =
-      finalStatus && /OutOfSpecification|Failed/.test(finalStatus) ? "Fail"
-        : finalStatus && /WithinLimits|Passed/.test(finalStatus) ? "Pass"
-          : "Pending";
+    // The banner shows only the server's overall status. A reopened test has
+    // none, and aggregating the per-parameter statuses here would be a client
+    // verdict - so it falls back to the recorded result text instead.
+    const finalStatus = outcome?.status;
+    const detail = `${displayName}: ${outcome?.outcomeSummary ?? current.finalResult ?? "Results recorded"}${finalStatus ? ` (${finalStatus})` : ""}${linked ? ` · Suitability run ${linked.code}` : ""}`;
 
     return (
       <Stack spacing={2}>
-        <VerdictBanner
-          verdict={verdict}
-          detail={`${displayName}: ${outcome?.outcomeSummary ?? current.finalResult ?? "Results recorded"}${finalStatus ? ` (${finalStatus})` : ""}${linked ? ` · Suitability run ${linked.code}` : ""}`}
-        />
+        {finalStatus ? <VerdictBanner verdict={verdictFromServerStatus(finalStatus)} detail={detail} /> : <Alert severity="info">{detail}</Alert>}
 
         {criteriaRows.length > 0 && <CriteriaCard rows={criteriaRows} />}
 

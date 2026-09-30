@@ -50,7 +50,9 @@ Migrate onto the kit: `ChromatographyColumnsPage`, `MaterialMasterPage`, `Soluti
 `HplcWorkspacePage` overview (instrument cards → consistent card grid + KpiStrip), run wizard steps, SST panel, sample entry (`ReplicateEntryTable` → numeric cells + live calculation), evidence, review panel — `ResultSection`/`CriteriaCard`/`VerdictBanner`.
 
 ### E — Physicochemical result panels
-`DissolutionPanel`, `DisintegrationPanel`, `WeightVariationPanel`, `GravimetricPanel`, `ElementalAssayPanel`, `StandardComparisonPanel`, `MeasurementPanel`: criteria card above entry, live calculated preview everywhere (display only — the server stays the calculator of record), consistent completed read-only view with raw replicates and verdict. No change to request payloads.
+`DissolutionPanel`, `DisintegrationPanel`, `WeightVariationPanel`, `GravimetricPanel`, `ElementalAssayPanel`, `StandardComparisonPanel`, `MeasurementPanel`: `CriteriaCard` above entry (from the specs each panel already loads), `ResultSection` numbering, `VerdictBanner` driven only by the server's status, consistent completed read-only view with raw replicates where the panel already has them. Existing live previews/hints are kept; no new client-side pass/fail or result calculation (principle 2 — the server is the calculator of record). No change to request payloads.
+
+D addendum (2026-09-30 audit): `ReplicateEntryTable` turns a cleared cell into `0` (server then rejects `<= 0` on save). Keep a cleared cell empty, show "Required" on the field and disable Save until every cell is a positive number. Save button also sticky at the bottom of the entry section. Status chips there (`color="success"/"warning"`) → `StatusBadge`/`HplcStatusBadge`.
 
 ### F — Promote to global theme
 Move `src/components/lab/*` to be the app-wide kit: global theme gets tabular numerals on tables, `MuiTableCell` density, `MuiChip` → steer to `StatusBadge`; migrate the remaining high-traffic micro registers (Media, Cryovials, Organisms, Water/EM/AC config lists) onto `RegisterTable` without behaviour change.

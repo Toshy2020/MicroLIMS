@@ -22,8 +22,8 @@ import {
 } from "@mui/material";
 import { StatusBadge } from "../../components/StatusBadge";
 import { SignatureDialog } from "../../components/SignatureDialog";
-import { CriteriaCard, NumericCell, ResultSection, VerdictBanner } from "../../components/lab";
-import type { CriteriaRow, Verdict } from "../../components/lab";
+import { CriteriaCard, NumericCell, ResultSection, VerdictBanner, verdictFromServerStatus } from "../../components/lab";
+import type { CriteriaRow } from "../../components/lab";
 import { TestWorkflowService } from "./services/TestWorkflowService";
 import { CalibrationRunService, CalibrationRunView, CalibrationRunAnalyteView } from "../calibrationRuns/services/CalibrationRunService";
 import { SpecificationService, SpecificationDto } from "../laboratoryConfiguration/specifications/services/SpecificationService";
@@ -323,21 +323,15 @@ export function ElementalAssayPanel({
 
   // Completion view
   if (current.allStepsComplete || outcome) {
-    // Verdict comes only from the server's final status. When it is not
-    // returned (reopened test) the per-element server statuses are used only
-    // if they all agree; otherwise the banner stays Pending.
-    const statusOf = (v: string | undefined) =>
-      v && /OutOfSpecification|Failed/.test(v) ? "Fail" : v && /WithinLimits|Passed/.test(v) ? "Pass" : null;
-    const elementStatuses = Array.from(new Set((recordedElements ?? []).map((e) => e.status)));
-    const finalStatus = outcome?.status ?? (elementStatuses.length === 1 ? elementStatuses[0] : undefined);
-    const verdict: Verdict = statusOf(finalStatus) ?? "Pending";
+    // The banner shows only the server's overall status. A reopened test has
+    // none, and aggregating the per-element statuses here would be a client
+    // verdict - so it falls back to the recorded result text instead.
+    const finalStatus = outcome?.status;
+    const detail = `${displayName}: ${outcome?.outcomeSummary ?? current.finalResult ?? "Results Recorded"}${finalStatus ? ` (${finalStatus})` : ""}`;
 
     return (
       <Stack spacing={2}>
-        <VerdictBanner
-          verdict={verdict}
-          detail={`${displayName}: ${outcome?.outcomeSummary ?? current.finalResult ?? "Results Recorded"}${finalStatus ? ` (${finalStatus})` : ""}`}
-        />
+        {finalStatus ? <VerdictBanner verdict={verdictFromServerStatus(finalStatus)} detail={detail} /> : <Alert severity="info">{detail}</Alert>}
 
         {criteriaRows.length > 0 && <CriteriaCard rows={criteriaRows} />}
 

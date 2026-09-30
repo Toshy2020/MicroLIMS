@@ -14,8 +14,8 @@ import {
   Typography
 } from "@mui/material";
 import { SignatureDialog } from "../../components/SignatureDialog";
-import { CriteriaCard, ResultSection, VerdictBanner } from "../../components/lab";
-import type { CriteriaRow, Verdict } from "../../components/lab";
+import { CriteriaCard, ResultSection, VerdictBanner, verdictFromServerStatus } from "../../components/lab";
+import type { CriteriaRow } from "../../components/lab";
 import { UnitEntryGrid, UnitEntryGridColumn } from "../../components/UnitEntryGrid";
 import { TestWorkflowService } from "./services/TestWorkflowService";
 import { SpecificationService, SpecificationDto } from "../laboratoryConfiguration/specifications/services/SpecificationService";
@@ -248,20 +248,14 @@ export function MeasurementPanel({
 
   // Completion view
   if (current.allStepsComplete || outcome) {
-    // Verdict is mapped only from the server's final status; anything else
-    // (RequiresReview, unknown, not returned on reload) stays Pending.
+    // The banner shows only the server's overall status; a reopened test has
+    // none, so it falls back to the recorded result text rather than "Pending".
     const finalStatus = outcome?.status;
-    const verdict: Verdict =
-      finalStatus && /OutOfSpecification|Failed/.test(finalStatus) ? "Fail"
-        : finalStatus && /WithinLimits|Passed/.test(finalStatus) ? "Pass"
-          : "Pending";
+    const detail = `${displayName}: ${outcome?.outcomeSummary ?? current.finalResult ?? "Results Recorded"}${finalStatus ? ` (${finalStatus})` : ""}`;
 
     return (
       <Stack spacing={2}>
-        <VerdictBanner
-          verdict={verdict}
-          detail={`${displayName}: ${outcome?.outcomeSummary ?? current.finalResult ?? "Results Recorded"}${finalStatus ? ` (${finalStatus})` : ""}`}
-        />
+        {finalStatus ? <VerdictBanner verdict={verdictFromServerStatus(finalStatus)} detail={detail} /> : <Alert severity="info">{detail}</Alert>}
 
         {testDef && (
           <ResultSection title="Measurement analysis summary">

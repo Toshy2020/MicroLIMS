@@ -303,6 +303,7 @@ public class MicroLimsDbContext : Microsoft.EntityFrameworkCore.DbContext, IMicr
                         e.Entity is not Incident && // operational error monitoring; not a GxP record
                         e.Entity is not ErrorLog && // operational error monitoring; not a GxP record
                         e.Entity is not RefreshToken && // session state; recorded in the Security Audit Trail instead
+                        e.Entity is not NotificationLog && // derived reminders and read state; not a GxP record
                         e.Entity is not SecurityAuditEvent && // security evidence, not a GxP record; also prevents recursive audit
                         (e.State == EntityState.Added || e.State == EntityState.Modified || e.State == EntityState.Deleted))
             .ToList();

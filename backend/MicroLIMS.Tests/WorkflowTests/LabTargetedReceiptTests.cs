@@ -170,4 +170,26 @@ public class LabTargetedReceiptTests
 
         Assert.Equal(new HashSet<int> { micro.Id, fp.Id }, result.ToHashSet());
     }
+
+    [Fact]
+    public async Task ReceiptLabs_OwnLabUser_SeesOnlyOwnLab_ButReceiverSeesAll()
+    {
+        var (db, item, micro, fp) = await SeedAsync();
+        var role = new Role { Name = "Analyst", Type = RoleType.Analyst, IsActive = true };
+        db.Roles.Add(role);
+        await db.SaveChangesAsync();
+        var user = new User { Username = "micro_analyst2", FullName = "Micro Analyst", RoleId = role.Id, Role = role, IsActive = true };
+        db.Users.Add(user);
+        await db.SaveChangesAsync();
+        db.UserOrgMemberships.Add(new UserOrgMembership { UserId = user.Id, DepartmentId = micro.DepartmentId, SectionId = micro.Id });
+        await db.SaveChangesAsync();
+
+        var service = new ReceiptLabService(db, new UserSectionScopeService(db));
+
+        var own = await service.GetForItemAsync(item.Id, user.Id, canReceiveForAnyLab: false);
+        Assert.Equal(new[] { micro.Id }, own.Select(o => o.SectionId).ToArray());
+
+        var all = await service.GetForItemAsync(item.Id, user.Id, canReceiveForAnyLab: true);
+        Assert.Equal(new HashSet<int> { micro.Id, fp.Id }, all.Select(o => o.SectionId).ToHashSet());
+    }
 }

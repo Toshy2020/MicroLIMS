@@ -571,4 +571,10 @@ WHERE NOT EXISTS (SELECT 1 FROM "Specifications" x
                   WHERE x."ItemId" = i."Id" AND x."TestCode" = t."Code"
                     AND x."HplcMethodAnalyteId" = a."Id" AND x."ResultBasis" = r.basis);
 
+-- USP packing designation per column (needs migration AddChromatographyColumnUspDesignation):
+-- taken from the code (COL-L1-04 -> L1); the older COL-C18-01 is an L1 column.
+UPDATE "ChromatographyColumns" SET "UspDesignation" = substring("Code" from '^COL-(L[0-9]+)-')
+WHERE "Code" ~ '^COL-L[0-9]+-' AND "UspDesignation" IS NULL;
+UPDATE "ChromatographyColumns" SET "UspDesignation" = 'L1' WHERE "Code" = 'COL-C18-01' AND "UspDesignation" IS NULL;
+
 COMMIT;

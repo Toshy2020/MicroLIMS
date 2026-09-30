@@ -177,6 +177,35 @@ public class SampleTrackingTests
         Assert.Equal(w.Sample.Id, result.Items[0].SampleId);
     }
 
+    // Section Ids are database-assigned, so the board matches labs on Code:
+    // other sections created first must not shift what MICRO/FP resolve to.
+    [Fact]
+    public async Task GetTrackingAsync_SectionIdsNotOneAndTwo_ReportsLabCodesAndFiltersByCode()
+    {
+        await using var db = NewDb();
+        var qc = new DocumentDepartment { Name = "Quality Control", Code = "QC", IsActive = true };
+        db.DocumentDepartments.Add(qc);
+        await db.SaveChangesAsync();
+        db.DocumentSections.AddRange(
+            new DocumentSection { Name = "Stability", Code = "STAB", DepartmentId = qc.Id, IsActive = true },
+            new DocumentSection { Name = "Methodology", Code = "METH", DepartmentId = qc.Id, IsActive = true });
+        await db.SaveChangesAsync();
+
+        var w = await SeedMixedSampleAsync(db, fpReady: true);
+        await SeedApprovedFpOnlySampleAsync(db);
+        Assert.DoesNotContain(1, new[] { w.Micro, w.Fp });
+
+        var all = await TestServiceFactory.SampleTracking(db).GetTrackingAsync(new SampleTrackingFilterDto());
+        var row = all.Items.Single(r => r.SampleId == w.Sample.Id);
+        Assert.Equal(new[] { "FP", "MICRO" }, row.Labs.Select(l => l.SectionCode).OrderBy(c => c));
+
+        var micro = await TestServiceFactory.SampleTracking(db).GetTrackingAsync(new SampleTrackingFilterDto { LabSectionCode = "MICRO" });
+        Assert.Equal(w.Sample.Id, Assert.Single(micro.Items).SampleId);
+
+        var fp = await TestServiceFactory.SampleTracking(db).GetTrackingAsync(new SampleTrackingFilterDto { LabSectionCode = "FP" });
+        Assert.Equal(2, fp.TotalCount);
+    }
+
     [Fact]
     public async Task GetTrackingAsync_FilterByOverallRejected_ReturnsOnlyMatchingSample()
     {

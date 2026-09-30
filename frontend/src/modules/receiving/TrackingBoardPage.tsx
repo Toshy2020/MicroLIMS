@@ -28,10 +28,11 @@ import { masterDataOptions } from "../../services/masterDataOptions";
 import { TrackingService, TrackingRow } from "./services/TrackingService";
 import { SampleSummaryDialog } from "../testingWorkspace/SampleSummaryDialog";
 
-// Fixed ids per env.md - section Codes are never renamed, only labels can
-// change (e.g. the FP rename to Physicochemical Laboratory).
-const MICRO_SECTION_ID = 1;
-const FP_SECTION_ID = 2;
+// Matched on section Code, never Id: Ids are database-assigned and differ
+// between installations. Codes are never renamed, only labels can change
+// (e.g. the FP rename to Physicochemical Laboratory).
+const MICRO_SECTION_CODE = "MICRO";
+const FP_SECTION_CODE = "FP";
 
 const OVERALL_OPTIONS = [
   { value: "ALL", label: "All Overall Statuses" },
@@ -45,8 +46,8 @@ const OVERALL_OPTIONS = [
 
 const LAB_OPTIONS = [
   { value: "ALL", label: "All Laboratories" },
-  { value: String(MICRO_SECTION_ID), label: "Microbiology Laboratory" },
-  { value: String(FP_SECTION_ID), label: "Physicochemical Laboratory" }
+  { value: MICRO_SECTION_CODE, label: "Microbiology Laboratory" },
+  { value: FP_SECTION_CODE, label: "Physicochemical Laboratory" }
 ];
 
 const OVERALL_STATUS_LABELS: Record<string, string> = Object.fromEntries(
@@ -60,9 +61,9 @@ function overallChipColor(status: string): "error" | "success" | "info" | "defau
   return "default";
 }
 
-function LabStageCell({ row, sectionId }: { row: TrackingRow; sectionId: number }) {
+function LabStageCell({ row, sectionCode }: { row: TrackingRow; sectionCode: string }) {
   const theme = useTheme();
-  const lab = row.labs.find((l) => l.sectionId === sectionId);
+  const lab = row.labs.find((l) => l.sectionCode.toUpperCase() === sectionCode);
   if (!lab) {
     const neutral = theme.custom.status.pending;
     return (
@@ -126,7 +127,7 @@ export function TrackingBoardPage() {
     setLoading(true);
     try {
       const result = await TrackingService.getTracking({
-        labSectionId: labFilter === "ALL" ? undefined : Number(labFilter),
+        labSectionCode: labFilter === "ALL" ? undefined : labFilter,
         overall: overallFilter === "ALL" ? undefined : overallFilter,
         from: fromDate || undefined,
         to: toDate || undefined,
@@ -303,10 +304,10 @@ export function TrackingBoardPage() {
                         <Chip size="small" label={OVERALL_STATUS_LABELS[row.overallStatus] || row.overallStatus} color={overallChipColor(row.overallStatus)} sx={{ fontSize: 11, fontWeight: 700 }} />
                       </TableCell>
                       <TableCell>
-                        <LabStageCell row={row} sectionId={MICRO_SECTION_ID} />
+                        <LabStageCell row={row} sectionCode={MICRO_SECTION_CODE} />
                       </TableCell>
                       <TableCell>
-                        <LabStageCell row={row} sectionId={FP_SECTION_ID} />
+                        <LabStageCell row={row} sectionCode={FP_SECTION_CODE} />
                       </TableCell>
                     </TableRow>
                   ))

@@ -1,29 +1,74 @@
-import { useEffect, useState } from "react";
-import {
-  Paper,
-  Table,
-  TableHead,
-  TableRow,
-  TableCell,
-  TableBody,
-  Stack,
-  Alert,
-  Box,
-  Typography,
-  Chip,
-  CircularProgress,
-  Button
-} from "@mui/material";
-import RefreshIcon from "@mui/icons-material/Refresh";
+import { useEffect, useMemo, useState } from "react";
+import { Alert, Box, Chip, Stack, Typography } from "@mui/material";
 import FunctionsIcon from "@mui/icons-material/Functions";
-import { PageHeader } from "../../../components/PageHeader";
-import { tableHeadSx } from "../../../theme";
+import { LabPage, FilterBar, RegisterTable, RegisterColumn } from "../../../components/lab";
+import { monospaceFontFamily } from "../../../theme/palette";
 import { masterDataOptions, EquationTypeDto } from "../../../services/masterDataOptions";
+
+const columns: RegisterColumn<EquationTypeDto>[] = [
+  {
+    key: "name",
+    label: "Type / Name",
+    sortable: true,
+    width: 200,
+    render: (type) => (
+      <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
+        <FunctionsIcon fontSize="small" color="primary" />
+        <Typography sx={{ fontWeight: 600, fontSize: "0.875rem" }}>{type.name}</Typography>
+      </Stack>
+    )
+  },
+  {
+    key: "code",
+    label: "Code",
+    sortable: true,
+    width: 140,
+    render: (type) => <Box component="span" sx={{ fontFamily: monospaceFontFamily, fontSize: "0.8rem" }}>{type.code}</Box>
+  },
+  {
+    key: "formulaText",
+    label: "Formula Text",
+    render: (type) =>
+      type.formulaText ? (
+        <Box
+          sx={{
+            fontFamily: monospaceFontFamily,
+            fontSize: "0.8rem",
+            bgcolor: "action.hover",
+            p: 1,
+            borderRadius: 1,
+            wordBreak: "break-word",
+            lineHeight: 1.4
+          }}
+        >
+          {type.formulaText}
+        </Box>
+      ) : (
+        <Typography variant="body2" sx={{ color: "text.secondary", fontStyle: "italic" }}>None</Typography>
+      )
+  },
+  {
+    key: "requiredInputs",
+    label: "Required Inputs",
+    width: 280,
+    render: (type) =>
+      type.requiredInputs && type.requiredInputs.length > 0 ? (
+        <Stack direction="row" spacing={0.75} sx={{ flexWrap: "wrap", rowGap: 0.5, alignItems: "center" }}>
+          {type.requiredInputs.map((input) => (
+            <Chip key={input} size="small" label={input} color="default" sx={{ fontSize: "0.75rem" }} />
+          ))}
+        </Stack>
+      ) : (
+        <Typography variant="body2" sx={{ color: "text.secondary", fontStyle: "italic" }}>None</Typography>
+      )
+  }
+];
 
 export function EquationTypesPage() {
   const [equationTypes, setEquationTypes] = useState<EquationTypeDto[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
 
   const loadData = () => {
     setLoading(true);
@@ -45,97 +90,40 @@ export function EquationTypesPage() {
     loadData();
   }, []);
 
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return equationTypes;
+    return equationTypes.filter((t) =>
+      [t.name, t.code, t.formulaText, ...(t.requiredInputs ?? [])].some((v) => v?.toLowerCase().includes(q))
+    );
+  }, [equationTypes, search]);
+
   return (
-    <>
-      <PageHeader
-        title="Equation Types"
-        subtitle="Predefined mathematical formulas and required calculation parameters for analytical test methods and system suitability."
-      >
-        <Button variant="outlined" startIcon={<RefreshIcon />} onClick={loadData} disabled={loading}>
-          Refresh
-        </Button>
-      </PageHeader>
-
-      {error && (
-        <Alert severity="error" sx={{ mb: 2 }}>
-          {error}
-        </Alert>
-      )}
-
-      {loading ? (
-        <Paper sx={{ p: 4, display: "flex", justifyContent: "center", alignItems: "center" }}>
-          <CircularProgress size={32} />
-        </Paper>
-      ) : (
-        <Paper sx={{ p: 2.5 }}>
-          <Table size="small">
-            <TableHead>
-              <TableRow sx={tableHeadSx}>
-                <TableCell sx={{ minWidth: 160 }}>Type / Name</TableCell>
-                <TableCell sx={{ minWidth: 120 }}>Code</TableCell>
-                <TableCell sx={{ minWidth: 320 }}>Formula Text</TableCell>
-                <TableCell sx={{ minWidth: 240 }}>Required Inputs</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {equationTypes.map((type) => (
-                <TableRow key={type.code}>
-                  <TableCell>
-                    <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
-                      <FunctionsIcon fontSize="small" color="primary" />
-                      <Typography sx={{ fontWeight: 600, fontSize: "0.875rem" }}>{type.name}</Typography>
-                    </Stack>
-                  </TableCell>
-                  <TableCell>
-                    <Chip size="small" label={type.code} variant="outlined" />
-                  </TableCell>
-                  <TableCell>
-                    {type.formulaText ? (
-                      <Box
-                        sx={{
-                          fontFamily: "monospace",
-                          fontSize: "0.8rem",
-                          bgcolor: "action.hover",
-                          p: 1,
-                          borderRadius: 1,
-                          wordBreak: "break-word",
-                          lineHeight: 1.4
-                        }}
-                      >
-                        {type.formulaText}
-                      </Box>
-                    ) : (
-                      <Typography variant="body2" sx={{ color: "text.secondary", fontStyle: "italic" }}>
-                        None
-                      </Typography>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    {type.requiredInputs && type.requiredInputs.length > 0 ? (
-                      <Stack direction="row" spacing={0.75} sx={{ flexWrap: "wrap", rowGap: 0.5, alignItems: "center" }}>
-                        {type.requiredInputs.map((input) => (
-                          <Chip key={input} size="small" label={input} color="default" sx={{ fontSize: "0.75rem" }} />
-                        ))}
-                      </Stack>
-                    ) : (
-                      <Typography variant="body2" sx={{ color: "text.secondary", fontStyle: "italic" }}>
-                        None
-                      </Typography>
-                    )}
-                  </TableCell>
-                </TableRow>
-              ))}
-              {equationTypes.length === 0 && (
-                <TableRow>
-                  <TableCell colSpan={4} align="center" sx={{ py: 3, color: "text.secondary" }}>
-                    No equation types found.
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </Paper>
-      )}
-    </>
+    <LabPage
+      title="Equation Types"
+      subtitle="Predefined mathematical formulas and required calculation parameters for analytical test methods and system suitability."
+      filters={
+        <FilterBar
+          search={search}
+          onSearch={setSearch}
+          placeholder="Search name, code or formula"
+          resultCount={filtered.length}
+          onRefresh={loadData}
+          refreshing={loading}
+        />
+      }
+    >
+      {error && <Alert severity="error">{error}</Alert>}
+      <RegisterTable
+        columns={columns}
+        rows={filtered}
+        getRowId={(t) => t.code}
+        loading={loading}
+        empty={{
+          title: search ? "No matching equation types" : "No equation types found",
+          description: search ? "Try a different search term." : undefined
+        }}
+      />
+    </LabPage>
   );
 }

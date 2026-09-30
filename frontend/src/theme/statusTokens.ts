@@ -132,7 +132,15 @@ const STATUS_TONE: Record<string, StatusTone> = {
   Open: "action",
   AuthorResponded: "info",
   ReviewerVerified: "purple",
-  Resolved: "notDetected"
+  Resolved: "notDetected",
+
+  // Physicochemical (FP) results, preparations and suitability outcomes.
+  Pass: "notDetected", Fail: "detected",
+  BelowSpec: "action", "Below Spec": "action",
+  Suitable: "notDetected", NotSuitable: "detected", "Not Suitable": "detected",
+  Conforms: "notDetected", DoesNotConform: "detected", "Does Not Conform": "detected",
+  Prepared: "info", InUse: "action", "In Use": "action", Discarded: "pending",
+  Valid: "notDetected", Invalid: "detected"
 };
 
 export function statusTone(status: string): StatusTone {

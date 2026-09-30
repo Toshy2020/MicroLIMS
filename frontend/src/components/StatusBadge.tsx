@@ -44,7 +44,13 @@ const statusLabelMap: Record<string, string> = {
   ReviewerVerified: "Reviewer Verified",
   RemainsValid: "Remains Valid",
   RevisionRequired: "Revision Required",
-  ObsolescenceRecommended: "Obsolescence Recommended"
+  ObsolescenceRecommended: "Obsolescence Recommended",
+
+  // Physicochemical outcomes and preparation states.
+  BelowSpec: "Below Spec",
+  NotSuitable: "Not Suitable",
+  DoesNotConform: "Does Not Conform",
+  InUse: "In Use"
 };
 
 // Shared color lookup so non-badge UI (e.g. the Result Level segmented

@@ -27,8 +27,9 @@ public class SampleTrackingService
         // Default 50, hard server-side max 200 - same cap as TestingWorkspaceService.
         int pageSize = filter.PageSize <= 0 ? 50 : Math.Min(filter.PageSize, 200);
 
-        var sectionNames = await _db.DocumentSections.AsNoTracking()
-            .ToDictionaryAsync(s => s.Id, s => s.Name);
+        var sections = await _db.DocumentSections.AsNoTracking()
+            .Select(s => new { s.Id, s.Code, s.Name })
+            .ToDictionaryAsync(s => s.Id, s => (s.Code, s.Name));
 
         var query = _db.Samples.AsNoTracking()
             // Every sample with at least one TestOrder belongs on the board,
@@ -39,6 +40,13 @@ public class SampleTrackingService
 
         if (filter.LabSectionId is int labSectionId)
             query = query.Where(s => s.TestOrders.Any(t => t.SectionId == labSectionId && !t.IsSuperseded));
+
+        if (!string.IsNullOrWhiteSpace(filter.LabSectionCode))
+        {
+            var code = filter.LabSectionCode.Trim().ToUpper();
+            var codeSectionIds = sections.Where(kv => kv.Value.Code.ToUpper() == code).Select(kv => kv.Key).ToList();
+            query = query.Where(s => s.TestOrders.Any(t => codeSectionIds.Contains(t.SectionId) && !t.IsSuperseded));
+        }
 
         if (filter.ItemId is int itemId)
             query = query.Where(s => s.ItemId == itemId);
@@ -95,7 +103,7 @@ public class SampleTrackingService
             pageSamples = await query.Skip((page - 1) * pageSize).Take(pageSize).ToListAsync();
         }
 
-        var items = pageSamples.Select(s => ToRow(s, sectionNames)).ToList();
+        var items = pageSamples.Select(s => ToRow(s, sections)).ToList();
 
         return new PagedResult<SampleTrackingRowDto>
         {
@@ -106,7 +114,7 @@ public class SampleTrackingService
         };
     }
 
-    private static SampleTrackingRowDto ToRow(Sample s, Dictionary<int, string> sectionNames)
+    private static SampleTrackingRowDto ToRow(Sample s, Dictionary<int, (string Code, string Name)> sections)
     {
         // Same category -> display text mapping as TestingWorkspaceService's
         // DisplayName, named "Product" here for the tracking board.
@@ -120,7 +128,8 @@ public class SampleTrackingService
 
         var labs = SampleSectionRollup.SectionIds(s).Select(id => new SampleTrackingLabDto(
             id,
-            sectionNames.TryGetValue(id, out var name) ? name : string.Empty,
+            sections.TryGetValue(id, out var section) ? section.Code : string.Empty,
+            section.Name ?? string.Empty,
             StageText(SampleSectionRollup.StatusOf(s, id))
         )).ToList();
 

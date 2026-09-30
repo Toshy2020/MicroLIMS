@@ -1,10 +1,23 @@
 import { useState, useEffect } from "react";
-import { Paper, Box, Typography, Stack, IconButton, Chip, useTheme } from "@mui/material";
+import {
+  Paper,
+  Box,
+  Typography,
+  Stack,
+  IconButton,
+  Chip,
+  Tooltip,
+  Skeleton,
+  Button,
+  TablePagination,
+  useTheme
+} from "@mui/material";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import BlockIcon from "@mui/icons-material/Block";
 import LockOpenIcon from "@mui/icons-material/LockOpen";
 import DescriptionIcon from "@mui/icons-material/Description";
+import Inventory2OutlinedIcon from "@mui/icons-material/Inventory2Outlined";
 import { Item } from "./services/ItemService";
 import { CategoryBadge, StatusBadge } from "../../../components/StatusBadge";
 import { ConfirmationDialog } from "../../../components/ConfirmationDialog";
@@ -19,7 +32,18 @@ interface ItemTableProps {
   onEdit: (item: Item) => void;
   onDelete: (item: Item) => void;
   onToggleFreeze: (item: Item) => void;
+  page: number;
+  rowsPerPage: number;
+  onPageChange: (page: number) => void;
+  onRowsPerPageChange: (rowsPerPage: number) => void;
+  loading?: boolean;
+  // Compact = the narrow left-hand register shown beside an open item.
+  compact?: boolean;
+  // Set when filters are hiding items, so the empty state can offer a reset.
+  onResetFilters?: () => void;
 }
+
+export const ITEM_ROWS_PER_PAGE_OPTIONS = [10, 25, 50];
 
 export function ItemTable({
   items,
@@ -28,17 +52,56 @@ export function ItemTable({
   onEdit,
   onDelete,
   onToggleFreeze,
+  page,
+  rowsPerPage,
+  onPageChange,
+  onRowsPerPageChange,
+  loading = false,
+  compact = false,
+  onResetFilters,
 }: ItemTableProps) {
-  const theme = useTheme();
   const [pendingDelete, setPendingDelete] = useState<Item | null>(null);
 
-  if (items.length === 0)
-    return <Typography sx={{ color: "text.secondary", fontSize: 13, p: 2 }}>No matching items found.</Typography>;
+  if (loading && items.length === 0) {
+    return (
+      <Stack spacing={1.5} aria-busy="true" aria-label="Loading items">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <Skeleton key={i} variant="rounded" height={76} />
+        ))}
+      </Stack>
+    );
+  }
+
+  if (items.length === 0) {
+    return (
+      <Paper
+        variant="outlined"
+        sx={{ p: 4, textAlign: "center", borderRadius: 1.5, borderStyle: "dashed" }}
+      >
+        <Inventory2OutlinedIcon sx={{ fontSize: 36, color: "text.disabled", mb: 1 }} />
+        <Typography sx={{ fontWeight: 600, fontSize: 14 }}>
+          {onResetFilters ? "No items match your filters" : "No items configured yet"}
+        </Typography>
+        <Typography sx={{ color: "text.secondary", fontSize: 13, mt: 0.5 }}>
+          {onResetFilters
+            ? "Try a different search term or clear the filters."
+            : "Use \u201CAdd Item\u201D to create the first one."}
+        </Typography>
+        {onResetFilters && (
+          <Button size="small" onClick={onResetFilters} sx={{ mt: 1.5, textTransform: "none" }}>
+            Clear filters
+          </Button>
+        )}
+      </Paper>
+    );
+  }
+
+  const pageItems = items.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
 
   return (
     <>
-      <Stack spacing={1.5}>
-        {items.map((item) => {
+      <Stack spacing={compact ? 1 : 1.5} component="ul" sx={{ listStyle: "none", m: 0, p: 0 }}>
+        {pageItems.map((item) => {
           const isSelected = selectedItemId === item.id;
           const isLegacyCategory = !ALLOWED_ITEM_CATEGORIES.includes(item.category);
           const testCount = item.assignedTests?.length ?? 0;
@@ -59,7 +122,29 @@ export function ItemTable({
         })}
       </Stack>
 
+      {items.length > ITEM_ROWS_PER_PAGE_OPTIONS[0] && (
+        <TablePagination
+          component="div"
+          count={items.length}
+          page={page}
+          rowsPerPage={rowsPerPage}
+          rowsPerPageOptions={compact ? [] : ITEM_ROWS_PER_PAGE_OPTIONS}
+          labelRowsPerPage="Items per page:"
+          onPageChange={(_, newPage) => onPageChange(newPage)}
+          onRowsPerPageChange={(e) => onRowsPerPageChange(parseInt(e.target.value, 10))}
+          sx={{
+            mt: 1.5,
+            border: "1px solid",
+            borderColor: "divider",
+            borderRadius: 1.5,
+            bgcolor: "background.paper",
+            "& .MuiTablePagination-toolbar": { minHeight: 44, px: compact ? 1 : 2 }
+          }}
+        />
+      )}
+
       <ConfirmationDialog
+        destructive
         open={pendingDelete != null}
         message={
           pendingDelete
@@ -106,21 +191,43 @@ function ItemRowCard({
   }, [item.id]);
 
   return (
+    <Box component="li">
     <Paper
+      role="button"
+      tabIndex={0}
+      aria-pressed={isSelected}
+      aria-label={`${item.name} (${item.code})${item.isActive ? "" : ", frozen"}`}
       onClick={() => onSelectItem(item)}
+      onKeyDown={(e) => {
+        if (e.target !== e.currentTarget) return;
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onSelectItem(item);
+        }
+      }}
       sx={{
         overflow: "hidden",
         border: "1px solid",
         borderColor: isSelected ? "primary.main" : "divider",
+        borderLeft: "3px solid",
+        borderLeftColor: isSelected ? "primary.main" : item.isActive ? "divider" : "text.disabled",
         borderRadius: 1.5,
-        opacity: item.isActive ? 1 : 0.75,
-        transition: "all 0.15s ease-in-out",
+        transition: "border-color 150ms ease, background-color 150ms ease, box-shadow 150ms ease",
         cursor: "pointer",
-        bgcolor: isSelected ? theme.custom.status.purple.bg : "background.paper",
+        bgcolor: isSelected
+          ? theme.custom.status.purple.bg
+          : item.isActive
+            ? "background.paper"
+            : "action.hover",
         boxShadow: isSelected ? "0 0 0 2px rgba(124, 58, 237, 0.2)" : "none",
         "&:hover": {
           borderColor: isSelected ? "primary.main" : "primary.light",
           bgcolor: isSelected ? theme.custom.status.purple.bg : "action.hover",
+        },
+        "&:focus-visible": {
+          outline: "2px solid",
+          outlineColor: "primary.main",
+          outlineOffset: 2,
         },
       }}
     >
@@ -130,10 +237,18 @@ function ItemRowCard({
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
+          gap: 1,
         }}
       >
-        <Box>
-          <Typography sx={{ fontWeight: 700, fontSize: 14, color: "text.primary" }}>
+        <Box sx={{ minWidth: 0 }}>
+          <Typography
+            sx={{
+              fontWeight: 700,
+              fontSize: 14,
+              color: item.isActive ? "text.primary" : "text.secondary",
+              overflowWrap: "anywhere",
+            }}
+          >
             {item.name}{" "}
             <Typography component="span" sx={{ color: "text.secondary", fontWeight: 400, fontSize: 12 }}>
               ({item.code})
@@ -187,7 +302,6 @@ function ItemRowCard({
                   fontSize: 11,
                   fontWeight: 600,
                   height: 20,
-                  cursor: "pointer",
                 }}
               />
             )}
@@ -208,40 +322,40 @@ function ItemRowCard({
           </Stack>
         </Box>
 
-        <Stack direction="row" spacing={0.5} onClick={(e) => e.stopPropagation()}>
-          <IconButton
-            size="small"
-            onClick={(e) => {
-              e.stopPropagation();
-              onEdit(item);
-            }}
-            title="Edit Item"
-          >
-            <EditIcon fontSize="small" />
-          </IconButton>
-          <IconButton
-            size="small"
-            onClick={(e) => {
-              e.stopPropagation();
-              onToggleFreeze(item);
-            }}
-            title={item.isActive ? "Freeze Item" : "Unfreeze Item"}
-          >
-            {item.isActive ? <BlockIcon fontSize="small" /> : <LockOpenIcon fontSize="small" />}
-          </IconButton>
-          <IconButton
-            size="small"
-            color="error"
-            onClick={(e) => {
-              e.stopPropagation();
-              onDelete(item);
-            }}
-            title="Delete Item"
-          >
-            <DeleteIcon fontSize="small" />
-          </IconButton>
+        <Stack
+          direction="row"
+          spacing={0.5}
+          sx={{ flexShrink: 0 }}
+          onClick={(e) => e.stopPropagation()}
+          onKeyDown={(e) => e.stopPropagation()}
+        >
+          <Tooltip title="Edit item">
+            <IconButton size="small" aria-label={`Edit ${item.name}`} onClick={() => onEdit(item)}>
+              <EditIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
+          <Tooltip title={item.isActive ? "Freeze item" : "Unfreeze item"}>
+            <IconButton
+              size="small"
+              aria-label={`${item.isActive ? "Freeze" : "Unfreeze"} ${item.name}`}
+              onClick={() => onToggleFreeze(item)}
+            >
+              {item.isActive ? <BlockIcon fontSize="small" /> : <LockOpenIcon fontSize="small" />}
+            </IconButton>
+          </Tooltip>
+          <Tooltip title="Delete item">
+            <IconButton
+              size="small"
+              color="error"
+              aria-label={`Delete ${item.name}`}
+              onClick={() => onDelete(item)}
+            >
+              <DeleteIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
         </Stack>
       </Box>
     </Paper>
+    </Box>
   );
 }

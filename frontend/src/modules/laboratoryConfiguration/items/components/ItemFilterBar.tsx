@@ -48,6 +48,7 @@ export function ItemFilterBar({
           onChange={(e) => onSearchChange(e.target.value)}
           sx={{ flexGrow: 1, minWidth: { xs: "100%", sm: 280 } }}
           slotProps={{
+            htmlInput: { "aria-label": "Search items" },
             input: {
               startAdornment: (
                 <InputAdornment position="start">
@@ -62,7 +63,8 @@ export function ItemFilterBar({
           size="small"
           value={categoryFilter}
           onChange={(e) => onCategoryChange(e.target.value)}
-          sx={{ minWidth: 180, xs: "100%" }}
+          inputProps={{ "aria-label": "Filter by category" }}
+          sx={{ minWidth: 180, width: { xs: "100%", sm: "auto" } }}
         >
           {CATEGORIES.map((c) => (
             <MenuItem key={c.value} value={c.value}>
@@ -75,7 +77,8 @@ export function ItemFilterBar({
           size="small"
           value={statusFilter}
           onChange={(e) => onStatusChange(e.target.value)}
-          sx={{ minWidth: 150, xs: "100%" }}
+          inputProps={{ "aria-label": "Filter by status" }}
+          sx={{ minWidth: 150, width: { xs: "100%", sm: "auto" } }}
         >
           {STATUSES.map((s) => (
             <MenuItem key={s.value} value={s.value}>
@@ -91,7 +94,7 @@ export function ItemFilterBar({
             color="inherit"
             startIcon={<RestartAltIcon fontSize="small" />}
             onClick={onReset}
-            sx={{ textTransform: "none", height: 40 }}
+            sx={{ textTransform: "none", height: 40, width: { xs: "100%", sm: "auto" }, flexShrink: 0 }}
           >
             Reset
           </Button>

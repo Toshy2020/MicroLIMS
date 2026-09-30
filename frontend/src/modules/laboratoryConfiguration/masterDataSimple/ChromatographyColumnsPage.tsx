@@ -76,6 +76,7 @@ export function ChromatographyColumnsPage() {
   const [formCode, setFormCode] = useState("");
   const [formName, setFormName] = useState("");
   const [formSerialNumber, setFormSerialNumber] = useState("");
+  const [formUspDesignation, setFormUspDesignation] = useState("");
   const [formSectionId, setFormSectionId] = useState<string | number>("");
   const [formCompatibleEquipmentIds, setFormCompatibleEquipmentIds] = useState<number[]>([]);
   const [formIsActive, setFormIsActive] = useState(true);
@@ -124,6 +125,7 @@ export function ChromatographyColumnsPage() {
     setFormCode("");
     setFormName("");
     setFormSerialNumber("");
+    setFormUspDesignation("");
     const defaultSecId = mySections.length === 1 ? mySections[0].sectionId : "";
     setFormSectionId(defaultSecId);
     setFormCompatibleEquipmentIds([]);
@@ -138,6 +140,7 @@ export function ChromatographyColumnsPage() {
     setFormCode(col.code);
     setFormName(col.name);
     setFormSerialNumber(col.serialNumber ?? "");
+    setFormUspDesignation(col.uspDesignation ?? "");
     setFormSectionId(col.sectionId ?? "");
     setFormCompatibleEquipmentIds(col.compatibleEquipment?.map((e) => e.id) ?? []);
     setFormIsActive(col.isActive);
@@ -150,6 +153,7 @@ export function ChromatographyColumnsPage() {
     const trimmedCode = formCode.trim().toUpperCase();
     const trimmedName = formName.trim();
     const trimmedSerial = formSerialNumber.trim();
+    const trimmedUsp = formUspDesignation.trim();
 
     if (!trimmedCode) {
       setDialogError("Column Code is required.");
@@ -161,6 +165,10 @@ export function ChromatographyColumnsPage() {
     }
     if (trimmedSerial.length > 100) {
       setDialogError("Serial number cannot exceed 100 characters.");
+      return;
+    }
+    if (trimmedUsp.length > 10) {
+      setDialogError("USP designation cannot exceed 10 characters.");
       return;
     }
     if (!editingColumn && mySections.length > 1 && !formSectionId) {
@@ -176,6 +184,7 @@ export function ChromatographyColumnsPage() {
           code: trimmedCode,
           name: trimmedName,
           serialNumber: trimmedSerial || null,
+          uspDesignation: trimmedUsp || null,
           isActive: formIsActive,
           sectionId: formSectionId ? Number(formSectionId) : null,
           compatibleEquipmentIds: formCompatibleEquipmentIds
@@ -186,6 +195,7 @@ export function ChromatographyColumnsPage() {
           code: trimmedCode,
           name: trimmedName,
           serialNumber: trimmedSerial || null,
+          uspDesignation: trimmedUsp || null,
           sectionId: formSectionId ? Number(formSectionId) : null,
           compatibleEquipmentIds: formCompatibleEquipmentIds
         });
@@ -228,7 +238,8 @@ export function ChromatographyColumnsPage() {
         const codeMatch = col.code.toLowerCase().includes(q);
         const nameMatch = col.name.toLowerCase().includes(q);
         const serialMatch = col.serialNumber ? col.serialNumber.toLowerCase().includes(q) : false;
-        if (!codeMatch && !nameMatch && !serialMatch) return false;
+        const uspMatch = col.uspDesignation ? col.uspDesignation.toLowerCase().includes(q) : false;
+        if (!codeMatch && !nameMatch && !serialMatch && !uspMatch) return false;
       }
 
       // Status
@@ -281,7 +292,7 @@ export function ChromatographyColumnsPage() {
           <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5} sx={{ flexWrap: "wrap", flex: 1 }}>
             <TextField
               size="small"
-              placeholder="Search code, name, serial..."
+              placeholder="Search code, name, serial, USP..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               sx={{ minWidth: 260 }}
@@ -347,6 +358,7 @@ export function ChromatographyColumnsPage() {
             <TableRow sx={tableHeadSx(theme)}>
               <TableCell sx={{ fontWeight: 600 }}>Code</TableCell>
               <TableCell sx={{ fontWeight: 600 }}>Column Name</TableCell>
+              <TableCell sx={{ fontWeight: 600 }}>USP</TableCell>
               <TableCell sx={{ fontWeight: 600 }}>Serial Number</TableCell>
               <TableCell sx={{ fontWeight: 600 }}>Section</TableCell>
               <TableCell sx={{ fontWeight: 600 }}>Compatible HPLC Instruments</TableCell>
@@ -357,7 +369,7 @@ export function ChromatographyColumnsPage() {
           <TableBody>
             {loading ? (
               <TableRow>
-                <TableCell colSpan={7} align="center" sx={{ py: 6 }}>
+                <TableCell colSpan={8} align="center" sx={{ py: 6 }}>
                   <CircularProgress size={32} />
                   <Typography variant="body2" sx={{ mt: 1, color: "text.secondary" }}>
                     Loading chromatography columns...
@@ -366,7 +378,7 @@ export function ChromatographyColumnsPage() {
               </TableRow>
             ) : filteredColumns.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} align="center" sx={{ py: 6 }}>
+                <TableCell colSpan={8} align="center" sx={{ py: 6 }}>
                   <ViewColumnIcon sx={{ fontSize: 40, color: "text.disabled", mb: 1 }} />
                   <Typography variant="body1" sx={{ color: "text.secondary", fontWeight: 500 }}>
                     No chromatography columns found
@@ -387,6 +399,18 @@ export function ChromatographyColumnsPage() {
                       {col.code}
                     </TableCell>
                     <TableCell sx={{ fontWeight: 500 }}>{col.name}</TableCell>
+                    <TableCell>
+                      {col.uspDesignation ? (
+                        <Chip
+                          label={col.uspDesignation}
+                          size="small"
+                          variant="outlined"
+                          sx={{ fontWeight: 600, fontSize: 12 }}
+                        />
+                      ) : (
+                        <Typography variant="body2" color="text.secondary">—</Typography>
+                      )}
+                    </TableCell>
                     <TableCell>{col.serialNumber || <Typography variant="body2" color="text.secondary">—</Typography>}</TableCell>
                     <TableCell>
                       <Chip
@@ -513,6 +537,17 @@ export function ChromatographyColumnsPage() {
             size="small"
             placeholder="e.g. SN-09823481"
             helperText="Manufacturer serial number (max 100 characters)"
+          />
+
+          <TextField
+            label="USP Designation"
+            value={formUspDesignation}
+            onChange={(e) => setFormUspDesignation(e.target.value.slice(0, 10))}
+            fullWidth
+            size="small"
+            placeholder="L1"
+            slotProps={{ htmlInput: { maxLength: 10 } }}
+            helperText="USP packing code (e.g. L1 for C18, L7 for C8, L11 for Phenyl)"
           />
 
           {/* Laboratory Section Select */}

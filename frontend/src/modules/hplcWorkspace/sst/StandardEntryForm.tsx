@@ -12,6 +12,7 @@ import {
   Stack,
   Chip,
   Divider,
+  Alert,
   useTheme
 } from "@mui/material";
 import ScienceIcon from "@mui/icons-material/Science";
@@ -47,10 +48,36 @@ export function StandardEntryForm({
 }: StandardEntryFormProps) {
   const theme = useTheme();
 
+  // Filter options per analyte to lots whose materialMasterEntryId === analyte.standardEntryId
+  const matchingLots = useMemo(() => {
+    return standardLots.filter((lot) => lot.materialMasterEntryId === analyte.standardEntryId);
+  }, [standardLots, analyte.standardEntryId]);
+
+  // Keep a previously saved lot visible even if not in current usable matching lots
+  const selectableLots = useMemo(() => {
+    const list = [...matchingLots];
+    if (analyte.standardMaterialId && !list.some((l) => l.id === analyte.standardMaterialId)) {
+      const foundInAll = standardLots.find((l) => l.id === analyte.standardMaterialId);
+      if (foundInAll) {
+        list.unshift(foundInAll);
+      } else if (analyte.standardMaterialBatch) {
+        list.unshift({
+          id: analyte.standardMaterialId,
+          materialName: analyte.analyteName,
+          batchNumber: analyte.standardMaterialBatch,
+          purity: analyte.standardPurityPercent,
+          moisturePercent: analyte.standardMoisturePercent,
+          materialMasterEntryId: analyte.standardEntryId
+        });
+      }
+    }
+    return list;
+  }, [matchingLots, analyte, standardLots]);
+
   // Selected lot details
   const selectedLot = useMemo(() => {
-    return standardLots.find((l) => l.id === formValue.standardMaterialId);
-  }, [standardLots, formValue.standardMaterialId]);
+    return selectableLots.find((l) => l.id === formValue.standardMaterialId);
+  }, [selectableLots, formValue.standardMaterialId]);
 
   // Target injection count from method (defaults to 5 if not configured)
   const injectionCount = methodAnalyte?.standardInjections ?? 5;
@@ -114,13 +141,19 @@ export function StandardEntryForm({
                 value={formValue.standardMaterialId || ""}
                 onChange={(e) => onChange({ standardMaterialId: Number(e.target.value) })}
               >
-                {standardLots.map((lot) => (
+                {selectableLots.map((lot) => (
                   <MenuItem key={lot.id} value={lot.id}>
                     {lot.materialName} — Lot {lot.batchNumber} (Purity: {lot.purity ?? "—"}% | MC: {lot.moisturePercent ?? "—"}%)
                   </MenuItem>
                 ))}
               </Select>
             </FormControl>
+
+            {matchingLots.length === 0 && (
+              <Alert severity="info" sx={{ mt: 1, py: 0.5, px: 1.5, fontSize: 13 }}>
+                No usable lot of this analyte's reference standard in stock.
+              </Alert>
+            )}
 
             {selectedLot ? (
               <Box sx={{ mt: 1, p: 1, borderRadius: 1, backgroundColor: theme.palette.action.hover }}>
@@ -155,7 +188,7 @@ export function StandardEntryForm({
             <TextField
               fullWidth
               size="small"
-              label="Actual Std Weight (mg) *"
+              label="Actual Std Weight (mg)"
               type="number"
               required
               disabled={disabled}

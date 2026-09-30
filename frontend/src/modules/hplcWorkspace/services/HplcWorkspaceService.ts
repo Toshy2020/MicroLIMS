@@ -69,6 +69,15 @@ export const HplcWorkspaceService = {
 
   // ---- Evidence Download & Open ----
 
+  // Current reports behind a test order's HPLC result (sample reports and the
+  // SST standard report of each run), for the reviewer.
+  getTestOrderEvidence: async (testOrderId: number): Promise<HplcEvidenceDto[]> => {
+    const res = await apiClient.get<ApiResponse<HplcEvidenceDto[]>>(
+      `/hplc-workspace/test-orders/${testOrderId}/evidence`
+    );
+    return res.data?.data ?? [];
+  },
+
   downloadEvidence: async (id: number): Promise<{ blob: Blob; contentType: string; fileName: string }> => {
     const res = await apiClient.get(`/hplc-workspace/evidence/${id}/file`, {
       responseType: "blob"

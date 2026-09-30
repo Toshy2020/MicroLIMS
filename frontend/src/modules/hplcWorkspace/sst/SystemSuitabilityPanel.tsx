@@ -41,7 +41,13 @@ export function SystemSuitabilityPanel({
   canOperate,
   onRunUpdated
 }: SystemSuitabilityPanelProps) {
-  const sst: HplcSstRecordDto | undefined = run.sst ?? undefined;
+  const [currentRun, setCurrentRun] = useState<HplcRunDto>(run);
+
+  useEffect(() => {
+    setCurrentRun(run);
+  }, [run]);
+
+  const sst: HplcSstRecordDto | undefined = currentRun.sst ?? undefined;
 
   // Reference standard lots
   const [standardLots, setStandardLots] = useState<StandardMaterialOption[]>([]);
@@ -123,8 +129,8 @@ export function SystemSuitabilityPanel({
     });
   }, [sst, method]);
 
-  const isConfirmed = sst?.status === "Passed" || sst?.status === "Failed" || run.status !== "Open";
-  const isPending = sst?.status === "Pending" && run.status === "Open";
+  const isConfirmed = sst?.status === "Passed" || sst?.status === "Failed" || currentRun.status !== "Open";
+  const isPending = sst?.status === "Pending" && currentRun.status === "Open";
 
   // Analyte input updater
   const handleAnalyteChange = (analyteId: number, patch: Partial<SaveSstAnalyteInput>) => {
@@ -145,8 +151,11 @@ export function SystemSuitabilityPanel({
     setSaving(true);
     setError(null);
     try {
-      await HplcWorkspaceService.saveSst(run.id, { analytes: analytesPayload });
+      const savedRun = (await HplcWorkspaceService.saveSst(currentRun.id, { analytes: analytesPayload })) as unknown as HplcRunDto;
       toast.success("System suitability data saved.");
+      if (savedRun && savedRun.sst) {
+        setCurrentRun(savedRun);
+      }
       onRunUpdated();
     } catch (err: unknown) {
       const e = err as { response?: { data?: { message?: string } }; message?: string };
@@ -159,13 +168,21 @@ export function SystemSuitabilityPanel({
   // Confirm SST via E-Signature
   const handleConfirmSignature = async (password: string) => {
     setError(null);
-    await HplcWorkspaceService.confirmSst(run.id, {
-      password,
-      comment: signComment.trim() || null
-    });
-    setSignOpen(false);
-    toast.success("System suitability confirmed.");
-    onRunUpdated();
+    try {
+      const confirmedRun = (await HplcWorkspaceService.confirmSst(currentRun.id, {
+        password,
+        comment: signComment.trim() || null
+      })) as unknown as HplcRunDto;
+      setSignOpen(false);
+      toast.success("System suitability confirmed.");
+      if (confirmedRun && confirmedRun.sst) {
+        setCurrentRun(confirmedRun);
+      }
+      onRunUpdated();
+    } catch (err: unknown) {
+      const e = err as { response?: { data?: { message?: string } }; message?: string };
+      setError(e.response?.data?.message ?? e.message ?? "Could not confirm system suitability.");
+    }
   };
 
   // Abandon Run
@@ -173,7 +190,7 @@ export function SystemSuitabilityPanel({
     if (!abandonReason.trim()) return;
     setAbandoning(true);
     try {
-      await HplcWorkspaceService.abandonRun(run.id, abandonReason.trim());
+      await HplcWorkspaceService.abandonRun(currentRun.id, abandonReason.trim());
       setAbandonOpen(false);
       toast.info("Run has been marked as abandoned.");
       onRunUpdated();
@@ -252,10 +269,10 @@ export function SystemSuitabilityPanel({
 
       {/* Standard report evidence upload */}
       <ReportUploadPanel
-        runId={run.id}
+        runId={currentRun.id}
         context="Sst"
         kind="StandardReport"
-        evidenceList={run.evidence}
+        evidenceList={currentRun.evidence}
         onChanged={onRunUpdated}
       />
 
@@ -274,7 +291,7 @@ export function SystemSuitabilityPanel({
             Abandon Run...
           </Button>
 
-          <Stack direction="row" spacing={2}>
+          <Stack direction="row" spacing={2} sx={{ alignItems: "flex-start" }}>
             <Button
               variant="outlined"
               startIcon={<SaveIcon />}
@@ -285,29 +302,36 @@ export function SystemSuitabilityPanel({
               {saving ? "Saving..." : "Save System Suitability"}
             </Button>
 
-            <Tooltip
-              title={
-                !run.canConfirmSst
-                  ? run.canConfirmSstReason || "Standard report upload and valid criteria are required."
-                  : ""
-              }
-            >
-              <span>
-                <Button
-                  variant="contained"
-                  color="success"
-                  startIcon={<VerifiedUserIcon />}
-                  disabled={!run.canConfirmSst || saving}
-                  onClick={() => {
-                    setSignComment("");
-                    setSignOpen(true);
-                  }}
-                  sx={{ textTransform: "none", fontWeight: 600 }}
-                >
-                  Confirm System Suitability...
-                </Button>
-              </span>
-            </Tooltip>
+            <Box sx={{ display: "flex", flexDirection: "column", alignItems: "flex-end" }}>
+              <Tooltip
+                title={
+                  !currentRun.canConfirmSst
+                    ? currentRun.canConfirmSstReason || "Standard report upload and valid criteria are required."
+                    : ""
+                }
+              >
+                <span>
+                  <Button
+                    variant="contained"
+                    color="success"
+                    startIcon={<VerifiedUserIcon />}
+                    disabled={!currentRun.canConfirmSst || saving}
+                    onClick={() => {
+                      setSignComment("");
+                      setSignOpen(true);
+                    }}
+                    sx={{ textTransform: "none", fontWeight: 600 }}
+                  >
+                    Confirm System Suitability...
+                  </Button>
+                </span>
+              </Tooltip>
+              {!currentRun.canConfirmSst && currentRun.canConfirmSstReason && (
+                <Typography variant="caption" sx={{ color: "text.secondary", mt: 0.5, maxWidth: 320, textAlign: "right" }}>
+                  {currentRun.canConfirmSstReason}
+                </Typography>
+              )}
+            </Box>
           </Stack>
         </Box>
       )}
@@ -335,7 +359,7 @@ export function SystemSuitabilityPanel({
         loadingText="Abandoning..."
         reason={abandonReason}
         onReasonChange={setAbandonReason}
-        label="Reason for Abandoning *"
+        label="Reason for Abandoning"
         placeholder="Document why this run is being abandoned (e.g. system suitability failure, instrument pressure error)..."
       />
     </Stack>

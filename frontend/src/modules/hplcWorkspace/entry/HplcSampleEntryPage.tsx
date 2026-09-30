@@ -28,7 +28,7 @@ import { PERMISSIONS } from "../../../routes/routes";
 import { HplcWorkspaceService } from "../services/HplcWorkspaceService";
 import { HplcStatusBadge } from "../components/HplcStatusBadge";
 import { ReplicateEntryTable } from "./ReplicateEntryTable";
-import { CalculationSummaryCard } from "./CalculationSummaryCard";
+import { CalculationSummaryCard, OfficialResultsCard } from "./CalculationSummaryCard";
 import { SendForReviewDialog } from "./SendForReviewDialog";
 import { ReportUploadPanel } from "../evidence/ReportUploadPanel";
 import { tableHeadSx } from "../../../theme";
@@ -280,11 +280,18 @@ export function HplcSampleEntryPage() {
           disabled={!isEditable || saving}
         />
 
-        {/* Calculation Summary Card */}
-        <CalculationSummaryCard
-          preview={sampleEntry.preview || []}
-          basis={sampleEntry.basis}
-        />
+        {/* Results: Official results when submitted, otherwise Calculation Summary Preview */}
+        {sampleEntry.submitted ? (
+          <OfficialResultsCard
+            official={sampleEntry.official || []}
+            basis={sampleEntry.basis}
+          />
+        ) : (
+          <CalculationSummaryCard
+            preview={sampleEntry.preview || []}
+            basis={sampleEntry.basis}
+          />
+        )}
 
         {/* Chromatogram / Evidence Upload Panel */}
         <Paper

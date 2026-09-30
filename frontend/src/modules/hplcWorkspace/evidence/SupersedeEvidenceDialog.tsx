@@ -124,7 +124,7 @@ export function SupersedeEvidenceDialog({
           </Box>
 
           <TextField
-            label="Supersede Reason *"
+            label="Supersede Reason"
             placeholder="Explain why this report is being replaced..."
             multiline
             rows={3}

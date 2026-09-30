@@ -147,10 +147,36 @@ export function SstValuesTable({ analytes, method }: SstValuesTableProps) {
                     {a.standardWeightMg ?? "—"}
                   </TableCell>
                   <TableCell align="right" sx={{ py: 1.5 }}>
-                    {a.meanResponse != null ? a.meanResponse.toLocaleString(undefined, { maximumFractionDigits: 2 }) : "—"}
+                    {a.meanResponse != null ? (
+                      <Box>
+                        <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                          {a.meanResponse.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                        </Typography>
+                        {!a.passed && !a.failureReasons && (
+                          <Typography variant="caption" sx={{ color: "text.secondary", fontSize: 10, display: "block" }}>
+                            pending confirmation
+                          </Typography>
+                        )}
+                      </Box>
+                    ) : (
+                      "—"
+                    )}
                   </TableCell>
                   <TableCell align="right" sx={{ py: 1.5, fontWeight: 600 }}>
-                    {a.computedRsdPercent != null ? `${a.computedRsdPercent.toFixed(2)}%` : "—"}
+                    {a.computedRsdPercent != null ? (
+                      <Box>
+                        <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                          {`${a.computedRsdPercent.toFixed(2)}%`}
+                        </Typography>
+                        {!a.passed && !a.failureReasons && (
+                          <Typography variant="caption" sx={{ color: "text.secondary", fontSize: 10, display: "block" }}>
+                            pending confirmation
+                          </Typography>
+                        )}
+                      </Box>
+                    ) : (
+                      "—"
+                    )}
                   </TableCell>
                   <TableCell sx={{ py: 1.5 }}>
                     {rows.length === 0 ? (

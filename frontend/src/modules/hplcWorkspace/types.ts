@@ -45,6 +45,8 @@ export interface HplcMethodOptionDto {
   id: number;
   abbreviation: string;
   name: string;
+  // USP column packing the method requires, e.g. "L1".
+  columnDesignation: string;
   eligibleTestOrderCount: number;
 }
 
@@ -124,6 +126,8 @@ export interface HplcSstAnalyteDto {
   id: number;
   hplcMethodAnalyteId: number;
   analyteName: string;
+  // Material master entry of the method's reference standard for this analyte.
+  standardEntryId: number;
   standardMaterialId?: number | null;
   standardMaterialBatch?: string | null;
   standardPurityPercent?: number | null;
@@ -264,6 +268,15 @@ export interface HplcPreviewResultDto {
   specLimit?: string | null;
 }
 
+export interface HplcOfficialResultDto {
+  parameterName: string;
+  quantity: string;
+  replicateNo?: number | null;
+  display: string;
+  status: ResultStatus;
+  specLimit?: string | null;
+}
+
 export interface HplcSampleEntryDto {
   runSampleId: number;
   hplcRunId: number;
@@ -282,6 +295,8 @@ export interface HplcSampleEntryDto {
   methodWeights: HplcMethodWeightDto[];
   replicates: HplcReplicateDto[];
   preview: HplcPreviewResultDto[];
+  // The stored results once the sample has been sent for review.
+  official: HplcOfficialResultDto[];
   evidence: HplcEvidenceDto[];
   editable: boolean;
   editableReason?: string | null;

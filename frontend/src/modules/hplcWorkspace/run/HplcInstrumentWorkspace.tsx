@@ -318,7 +318,7 @@ export function HplcInstrumentWorkspace() {
         loadingText="Abandoning..."
         reason={abandonReason}
         onReasonChange={setAbandonReason}
-        label="Reason for Abandoning *"
+        label="Reason for Abandoning"
         placeholder="Explain why this run is being abandoned..."
       />
     </Box>

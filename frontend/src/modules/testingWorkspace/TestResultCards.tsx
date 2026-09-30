@@ -205,7 +205,11 @@ export function AnalysisCard({ test }: { test: TestOrderSummaryDetail }) {
 
           {a.analysisType === "HplcMethodAssay" &&
             a.parameterResults.map((p) => (
-              <HplcReviewPanel key={`hplc-review-${p.id}`} parameter={p} />
+              <HplcReviewPanel
+                key={`hplc-review-${p.id}`}
+                parameter={p}
+                testOrderId={a.testOrderId}
+              />
             ))}
 
           {a.analysisType !== "HplcMethodAssay" && a.parameterResults.map((p, idx) => {

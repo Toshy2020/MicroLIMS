@@ -114,6 +114,11 @@ export function StartHplcRunWizard() {
     };
   }, [selectedMethodId]);
 
+  // Reset selected column if method changes
+  useEffect(() => {
+    setSelectedColumnId(null);
+  }, [selectedMethodId]);
+
   // Fetch available mobile phase preparations for each channel
   const loadAvailablePreparations = useCallback(async (m: HplcMethodResponse) => {
     setLoadingPreps(true);
@@ -193,6 +198,8 @@ export function StartHplcRunWizard() {
   }
 
   const selectedCol = columns.find((c) => c.id === selectedColumnId);
+  const selectedMethodOption = methodOptions.find((m) => m.id === selectedMethodId);
+  const targetDesignation = (selectedMethod?.columnDesignation ?? selectedMethodOption?.columnDesignation ?? "").trim();
 
   return (
     <Box sx={{ p: { xs: 2, md: 3 }, maxWidth: 1100, mx: "auto" }}>
@@ -237,6 +244,7 @@ export function StartHplcRunWizard() {
           columns={columns}
           selectedColumnId={selectedColumnId}
           equipmentId={equipmentId}
+          targetDesignation={targetDesignation}
           onSelectColumn={(id) => setSelectedColumnId(id)}
         />
       )}

@@ -265,7 +265,7 @@ export function SampleAssignmentPanel({
         error={removeError}
         reason={removeReason}
         onReasonChange={setRemoveReason}
-        label="Reason for Removal *"
+        label="Reason for Removal"
         placeholder="Explain why this sample is being removed from the run..."
       />
     </Stack>

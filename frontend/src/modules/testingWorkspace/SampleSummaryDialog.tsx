@@ -625,7 +625,11 @@ function AnalysisResultBlock({ analysis }: { analysis: AnalysisDetail }) {
           .map((p) => <StandardComparisonCalcSummary key={`calc-${p.id}`} parameter={p} />)}
       {analysis.analysisType === "HplcMethodAssay" &&
         analysis.parameterResults.map((p) => (
-          <HplcReviewPanel key={`hplc-review-${p.id}`} parameter={p} />
+          <HplcReviewPanel
+            key={`hplc-review-${p.id}`}
+            parameter={p}
+            testOrderId={analysis.testOrderId}
+          />
         ))}
       {analysis.analysisType !== "HplcMethodAssay" &&
         analysis.parameterResults.filter((p) => p.readings.length > 0).map((p) => (

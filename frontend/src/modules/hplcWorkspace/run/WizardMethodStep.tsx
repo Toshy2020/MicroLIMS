@@ -57,9 +57,19 @@ export function WizardMethodStep({
                   <Typography variant="h6" sx={{ fontWeight: 700, fontSize: 15 }}>
                     {opt.name}
                   </Typography>
-                  <Typography variant="caption" sx={{ color: "primary.main", fontWeight: 700 }}>
-                    {opt.abbreviation}
-                  </Typography>
+                  <Stack direction="row" spacing={1} sx={{ alignItems: "center", mt: 0.5 }}>
+                    <Typography variant="caption" sx={{ color: "primary.main", fontWeight: 700 }}>
+                      {opt.abbreviation}
+                    </Typography>
+                    {opt.columnDesignation && (
+                      <Chip
+                        size="small"
+                        label={`USP ${opt.columnDesignation}`}
+                        variant="outlined"
+                        sx={{ fontSize: 11, height: 20, fontWeight: 600 }}
+                      />
+                    )}
+                  </Stack>
                 </Box>
                 <Chip
                   size="small"

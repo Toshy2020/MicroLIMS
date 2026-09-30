@@ -737,8 +737,12 @@ public sealed class IncubationStepRecorder : TestWorkflowSupport
     // never call this and keep Unit = null.
     private static string DeriveBatchLocationUnit(SampleLocation location) => location switch
     {
-        { RoomTestConfiguration.TestType: "PassiveAirSample" } => "CFU/plate/4 hours",
-        { RoomTestConfiguration.TestType: "SurfaceAirSample" } => "CFU/25 cm2",
+        { RoomTestConfiguration.TestType: RoomTestTypes.PassiveAirSample } => "CFU/plate/4 hours",
+        { RoomTestConfiguration.TestType: RoomTestTypes.SurfaceAirSample } => "CFU/25 cm2",
+        // Active air, compressed air and drains: the lab enters the unit on
+        // the room's test configuration (required for these types).
+        { RoomTestConfiguration: { } rtc } when RoomTestTypes.UsesConfiguredUnit(rtc.TestType)
+            && !string.IsNullOrWhiteSpace(rtc.Unit) => rtc.Unit.Trim(),
         { MachinePartConfiguration.TestType: "Swab" } => "CFU/25 cm2",
         { MachinePartConfiguration.TestType: "Rinse" } => "CFU/mL",
         { WaterSamplingPointId: not null } => "CFU/mL",

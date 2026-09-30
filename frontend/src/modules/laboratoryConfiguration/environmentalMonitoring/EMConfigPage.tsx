@@ -1,343 +1,261 @@
-import { Fragment, useEffect, useState } from "react";
-import {
-  Paper, Stack, TextField, Select, MenuItem, Button, Typography, Alert, Box,
-  Table, TableHead, TableRow, TableCell, TableBody, IconButton, Collapse
-} from "@mui/material";
-import EditIcon from "@mui/icons-material/Edit";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { Alert, Box, Button, IconButton, Paper, Stack, Tooltip, Typography } from "@mui/material";
+import AddIcon from "@mui/icons-material/Add";
 import DeleteIcon from "@mui/icons-material/Delete";
-import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
-import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import { PageHeader } from "../../../components/PageHeader";
-import { SectionTitle } from "../../../components/SectionTitle";
-import { TestCodePicker } from "../../../components/TestCodePicker";
 import { ConfirmationDialog } from "../../../components/ConfirmationDialog";
+import { ConfigMasterList, MasterListItem, SummaryTiles, ToneChip } from "../../../components/configHierarchy";
 import { EMConfigService } from "./services/EMConfigService";
-import { tableHeadSx } from "../../../theme";
+import { EmDepartment, EmRoom, RoomTestConfig, emTestTypeLabel } from "./emConfigTypes";
+import { EmRoomCard } from "./components/EmRoomCard";
+import { EmDepartmentPanel, EmRoomPanel, EmTestConfigPanel } from "./components/EmPanels";
 
-const TEST_TYPES = ["PassiveAirSample", "SurfaceAirSample"];
+const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
 
-// Room-scoped test configurations (Alert/Action/Spec limits per Room x
-// TestType) - previously captured via a form but never shown anywhere,
-// so there was no way to see, edit, or delete what had been configured.
-// Expanded from a Room row, mirroring AfterCleaningConfigPage's
-// PartConfigSection.
-function RoomTestConfigSection({ roomId }: { roomId: number }) {
-  const [configs, setConfigs] = useState<any[]>([]);
-  const [editingId, setEditingId] = useState<number | null>(null);
-  const [form, setForm] = useState<Record<string, any>>({ testType: "PassiveAirSample" });
-  const [pendingDelete, setPendingDelete] = useState<any | null>(null);
-  const [error, setError] = useState<string | null>(null);
+type PendingDelete =
+  | { kind: "dept"; dept: EmDepartment }
+  | { kind: "room"; room: EmRoom }
+  | { kind: "config"; config: RoomTestConfig; room: EmRoom };
 
-  const load = () => EMConfigService.getRoomTestConfigurations(roomId).then(setConfigs);
-  useEffect(() => { load(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [roomId]);
+// Departments -> rooms (with grade) -> per-room test configurations and
+// limits. Master/detail like the Water page: departments on the left,
+// the selected department's rooms as cards on the right, every add/edit
+// in a side panel.
+export function EMConfigPage() {
+  const [departments, setDepartments] = useState<EmDepartment[]>([]);
+  const [configsByRoom, setConfigsByRoom] = useState<Record<number, RoomTestConfig[]>>({});
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [message, setMessage] = useState<{ text: string; ok: boolean } | null>(null);
 
-  const setField = (k: string, v: any) => setForm((f) => ({ ...f, [k]: v }));
+  const [selectedDeptId, setSelectedDeptId] = useState<number | null>(null);
+  const [search, setSearch] = useState("");
 
-  const startEdit = (c: any) => {
-    setEditingId(c.id);
-    setForm({ testType: c.testType, testCode: c.testCode, alertLimit: c.alertLimit, actionLimit: c.actionLimit, specLimit: c.specLimit, unit: c.unit });
-    setError(null);
-  };
-  const cancelEdit = () => { setEditingId(null); setForm({ testType: "PassiveAirSample" }); };
+  const [deptPanel, setDeptPanel] = useState<{ open: boolean; dept: EmDepartment | null }>({ open: false, dept: null });
+  const [roomPanel, setRoomPanel] = useState<{ open: boolean; room: EmRoom | null }>({ open: false, room: null });
+  const [configPanel, setConfigPanel] = useState<{ open: boolean; room: EmRoom | null; config: RoomTestConfig | null }>({ open: false, room: null, config: null });
+  const [pendingDelete, setPendingDelete] = useState<PendingDelete | null>(null);
 
-  const save = async () => {
-    setError(null);
-    if (!form.testCode) { setError("Test Code is required."); return; }
+  const load = useCallback(async () => {
+    setLoading(true);
     try {
-      if (editingId) {
-        await EMConfigService.updateRoomTestConfiguration(editingId, form.testType, form.testCode, form.alertLimit ?? "", form.actionLimit ?? "", form.specLimit ?? "", form.unit ?? "", configs.find((c) => c.id === editingId)?.version);
-      } else {
-        await EMConfigService.createRoomTestConfiguration(roomId, form.testType, form.testCode, form.alertLimit ?? "", form.actionLimit ?? "", form.specLimit ?? "", form.unit ?? "");
-      }
-      cancelEdit();
-      load();
+      const depts: EmDepartment[] = await EMConfigService.getDepartments();
+      const rooms = depts.flatMap((d) => d.rooms ?? []);
+      // No bulk endpoint - one request per room, in parallel.
+      const configs = await Promise.all(
+        rooms.map((r) => EMConfigService.getRoomTestConfigurations(r.id).catch(() => [] as RoomTestConfig[]))
+      );
+      setDepartments(depts);
+      setConfigsByRoom(Object.fromEntries(rooms.map((r, i) => [r.id, configs[i] ?? []])));
+      setLoadError(null);
+      setSelectedDeptId((current) => (current != null && depts.some((d) => d.id === current) ? current : depts[0]?.id ?? null));
     } catch (e: any) {
-      setError(e?.response?.data?.message ?? "Could not save this configuration.");
+      setLoadError(e?.response?.data?.message ?? "Could not load the environmental monitoring configuration.");
+    } finally {
+      setLoading(false);
     }
-  };
+  }, []);
 
-  const remove = async (id: number) => {
-    await EMConfigService.deleteRoomTestConfiguration(id);
-    setPendingDelete(null);
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  const allRooms = useMemo(() => departments.flatMap((d) => d.rooms ?? []), [departments]);
+  const roomsWithoutTests = allRooms.filter((r) => (configsByRoom[r.id] ?? []).length === 0).length;
+  const configCount = Object.values(configsByRoom).reduce((n, list) => n + list.length, 0);
+
+  const q = search.trim().toLowerCase();
+  const matchesRoom = (r: EmRoom) => !q || r.name.toLowerCase().includes(q);
+
+  const listItems: MasterListItem[] = departments
+    .filter((d) => !q || d.name.toLowerCase().includes(q) || (d.rooms ?? []).some(matchesRoom))
+    .map((d) => {
+      const rooms = d.rooms ?? [];
+      const empty = rooms.filter((r) => (configsByRoom[r.id] ?? []).length === 0).length;
+      const details = [rooms.length === 0 ? "No rooms yet" : plural(rooms.length, "room"), d.testingFrequency].filter(Boolean).join(" · ");
+      return {
+        id: d.id,
+        title: d.name,
+        subtitle: details,
+        badge: rooms.length === 0 ? undefined : empty > 0 ? { label: `${plural(empty, "room")} without tests`, tone: "inconclusive" } : { label: "Complete", tone: "notDetected" }
+      };
+    });
+
+  const selectedDept = departments.find((d) => d.id === selectedDeptId) ?? null;
+  const deptRooms = (selectedDept?.rooms ?? []).filter(matchesRoom);
+
+  const afterSave = (text: string, selectId?: number) => {
+    setDeptPanel({ open: false, dept: null });
+    setRoomPanel({ open: false, room: null });
+    setConfigPanel({ open: false, room: null, config: null });
+    setMessage({ text, ok: true });
+    if (selectId != null) setSelectedDeptId(selectId);
     load();
   };
 
-  return (
-    <Box sx={{ p: 2, bgcolor: "background.default" }}>
-      {error && <Alert severity="error" sx={{ mb: 1.5 }}>{error}</Alert>}
-      {configs.length > 0 ? (
-        <Table size="small" sx={{ mb: 1.5 }}>
-          <TableHead>
-            <TableRow sx={tableHeadSx}><TableCell>Test Type</TableCell><TableCell>Test Code</TableCell><TableCell>Alert</TableCell><TableCell>Action</TableCell><TableCell>Spec</TableCell><TableCell>Unit</TableCell><TableCell /></TableRow>
-          </TableHead>
-          <TableBody>
-            {configs.map((c) => (
-              <TableRow key={c.id}>
-                <TableCell>{c.testType}</TableCell>
-                <TableCell>{c.testCode}</TableCell>
-                <TableCell>{c.alertLimit || "—"}</TableCell>
-                <TableCell>{c.actionLimit || "—"}</TableCell>
-                <TableCell>{c.specLimit || "—"}</TableCell>
-                <TableCell>{c.unit || "—"}</TableCell>
-                <TableCell align="right">
-                  <IconButton size="small" onClick={() => startEdit(c)} title="Edit"><EditIcon fontSize="small" /></IconButton>
-                  <IconButton size="small" color="error" onClick={() => setPendingDelete(c)} title="Delete"><DeleteIcon fontSize="small" /></IconButton>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      ) : (
-        <Typography
-          variant="body2"
-          sx={{
-            color: "text.secondary",
-            mb: 1.5
-          }}>No test configurations yet for this room.</Typography>
-      )}
+  const confirmDelete = async () => {
+    const target = pendingDelete;
+    setPendingDelete(null);
+    if (!target) return;
+    setMessage(null);
+    try {
+      if (target.kind === "dept") {
+        await EMConfigService.deleteDepartment(target.dept.id);
+        setMessage({ text: `"${target.dept.name}" deleted.`, ok: true });
+      } else if (target.kind === "room") {
+        await EMConfigService.deleteRoom(target.room.id);
+        setMessage({ text: `Room "${target.room.name}" deleted.`, ok: true });
+      } else {
+        await EMConfigService.deleteRoomTestConfiguration(target.config.id);
+        setMessage({ text: `Test removed from ${target.room.name}.`, ok: true });
+      }
+      load();
+    } catch (e: any) {
+      setMessage({ text: e?.response?.data?.message ?? "Could not delete this record.", ok: false });
+    }
+  };
 
-      <Typography sx={{ fontWeight: 700, fontSize: 13, mb: 1 }}>{editingId ? "Edit Configuration" : "Add Configuration"}</Typography>
-      <Stack
-        direction="row"
-        spacing={1.5}
-        sx={{
-          flexWrap: "wrap",
-          alignItems: "center"
-        }}>
-        <Select size="small" value={form.testType} onChange={(e) => setField("testType", e.target.value)} sx={{ minWidth: 160 }}>
-          {TEST_TYPES.map((t) => <MenuItem key={t} value={t}>{t}</MenuItem>)}
-        </Select>
-        <TestCodePicker value={form.testCode ?? ""} onChange={(code) => setField("testCode", code)} label="Test Code" sx={{ minWidth: 200 }} />
-        <TextField size="small" placeholder="Alert" value={form.alertLimit ?? ""} onChange={(e) => setField("alertLimit", e.target.value)} sx={{ width: 90 }} />
-        <TextField size="small" placeholder="Action" value={form.actionLimit ?? ""} onChange={(e) => setField("actionLimit", e.target.value)} sx={{ width: 90 }} />
-        <TextField size="small" placeholder="Spec" value={form.specLimit ?? ""} onChange={(e) => setField("specLimit", e.target.value)} sx={{ width: 90 }} />
-        <TextField size="small" placeholder="Unit (e.g. plate/4h)" value={form.unit ?? ""} onChange={(e) => setField("unit", e.target.value)} sx={{ width: 120 }} />
-        {editingId && <Button onClick={cancelEdit}>Cancel</Button>}
-        <Button variant="contained" onClick={save}>{editingId ? "Save Changes" : "Add"}</Button>
+  const deleteMessage = !pendingDelete
+    ? ""
+    : pendingDelete.kind === "dept"
+      ? `Delete department "${pendingDelete.dept.name}"? This cannot be undone.`
+      : pendingDelete.kind === "room"
+        ? `Delete room "${pendingDelete.room.name}"? This cannot be undone.`
+        : `Remove the ${emTestTypeLabel(pendingDelete.config.testType)} / ${pendingDelete.config.testCode} test from ${pendingDelete.room.name}?`;
+
+  return (
+    <Box sx={{ pb: 4 }}>
+      <Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 1.5, mb: 2 }}>
+        <PageHeader title="Environmental Monitoring" subtitle="Departments, their rooms and grades, and per-room test limits." />
+        <Stack direction="row" sx={{ gap: 1.5, flexWrap: "wrap" }}>
+          <Button variant="outlined" onClick={() => setDeptPanel({ open: true, dept: null })} sx={{ textTransform: "none", fontWeight: 700, whiteSpace: "nowrap" }}>
+            Add department
+          </Button>
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            disabled={departments.length === 0}
+            onClick={() => setRoomPanel({ open: true, room: null })}
+            sx={{ textTransform: "none", fontWeight: 700, whiteSpace: "nowrap" }}
+          >
+            Add room
+          </Button>
+        </Stack>
       </Stack>
 
+      {loadError && (
+        <Alert severity="error" sx={{ mb: 2 }} action={<Button color="inherit" size="small" onClick={load}>Retry</Button>}>
+          {loadError}
+        </Alert>
+      )}
+      {message && (
+        <Alert severity={message.ok ? "success" : "error"} sx={{ mb: 2 }} onClose={() => setMessage(null)}>
+          {message.text}
+        </Alert>
+      )}
+
+      <SummaryTiles
+        tiles={[
+          { label: "Departments", value: departments.length },
+          { label: "Rooms", value: allRooms.length },
+          { label: "Tests configured", value: configCount },
+          { label: "Rooms without tests", value: plural(roomsWithoutTests, "room"), tone: roomsWithoutTests > 0 ? "inconclusive" : undefined }
+        ]}
+      />
+
+      <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "300px minmax(0, 1fr)" }, gap: 2.5, alignItems: "start" }}>
+        <ConfigMasterList
+          searchLabel="Find a department or room"
+          searchPlaceholder="e.g. Filling"
+          search={search}
+          onSearchChange={setSearch}
+          items={listItems}
+          selectedId={selectedDeptId}
+          onSelect={setSelectedDeptId}
+          loading={loading}
+          emptyText={q ? "Nothing matches your search." : "No departments yet. Use “Add department” to create one."}
+        />
+
+        <Paper variant="outlined" sx={{ borderRadius: 2, overflow: "hidden" }}>
+          {!selectedDept ? (
+            <Box sx={{ p: 4, textAlign: "center" }}>
+              <Typography sx={{ fontWeight: 600 }}>{loading ? "Loading..." : "Select a department"}</Typography>
+            </Box>
+          ) : (
+            <>
+              <Stack direction="row" sx={{ px: 2.75, py: 2.25, borderBottom: "1px solid", borderColor: "divider", alignItems: "center", gap: 2, flexWrap: "wrap" }}>
+                <Box sx={{ flexGrow: 1, minWidth: 0 }}>
+                  <Typography component="h2" sx={{ fontSize: 20, fontWeight: 700 }}>{selectedDept.name}</Typography>
+                  <Stack direction="row" spacing={0.75} sx={{ mt: 0.5, alignItems: "center", flexWrap: "wrap" }}>
+                    {selectedDept.class && <ToneChip label={selectedDept.class} tone="pending" />}
+                    {selectedDept.testingFrequency && <ToneChip label={`Tested ${selectedDept.testingFrequency.toLowerCase()}`} tone="pending" />}
+                    <Typography sx={{ fontSize: 13, color: "text.secondary" }}>{plural((selectedDept.rooms ?? []).length, "room")}</Typography>
+                  </Stack>
+                </Box>
+                <Button variant="outlined" onClick={() => setDeptPanel({ open: true, dept: selectedDept })} sx={{ textTransform: "none" }}>
+                  Edit department
+                </Button>
+                <Tooltip title="Delete department">
+                  <IconButton aria-label={`Delete ${selectedDept.name}`} color="error" onClick={() => setPendingDelete({ kind: "dept", dept: selectedDept })}>
+                    <DeleteIcon />
+                  </IconButton>
+                </Tooltip>
+              </Stack>
+
+              <Box sx={{ p: 2.75, display: "grid", gridTemplateColumns: { xs: "1fr", lg: "repeat(2, minmax(0, 1fr))" }, gap: 2 }}>
+                {deptRooms.map((room) => (
+                  <EmRoomCard
+                    key={room.id}
+                    room={room}
+                    configs={configsByRoom[room.id] ?? []}
+                    onEditRoom={() => setRoomPanel({ open: true, room: { ...room, departmentId: selectedDept.id } })}
+                    onDeleteRoom={() => setPendingDelete({ kind: "room", room })}
+                    onAddConfig={() => setConfigPanel({ open: true, room, config: null })}
+                    onEditConfig={(config) => setConfigPanel({ open: true, room, config })}
+                    onDeleteConfig={(config) => setPendingDelete({ kind: "config", config, room })}
+                  />
+                ))}
+                <Button
+                  variant="outlined"
+                  startIcon={<AddIcon />}
+                  onClick={() => setRoomPanel({ open: true, room: null })}
+                  sx={{ minHeight: 120, borderStyle: "dashed", borderRadius: 2, textTransform: "none", fontWeight: 600 }}
+                >
+                  Add room to {selectedDept.name}
+                </Button>
+              </Box>
+              {q && deptRooms.length === 0 && (
+                <Typography sx={{ px: 2.75, pb: 2.75, fontSize: 14, color: "text.secondary" }}>No rooms here match your search.</Typography>
+              )}
+            </>
+          )}
+        </Paper>
+      </Box>
+
+      <EmDepartmentPanel open={deptPanel.open} dept={deptPanel.dept} onClose={() => setDeptPanel({ open: false, dept: null })} onSaved={afterSave} />
+      <EmRoomPanel
+        open={roomPanel.open}
+        room={roomPanel.room}
+        defaultDepartmentId={selectedDeptId}
+        departments={departments}
+        onClose={() => setRoomPanel({ open: false, room: null })}
+        onSaved={afterSave}
+      />
+      <EmTestConfigPanel
+        open={configPanel.open}
+        room={configPanel.room}
+        config={configPanel.config}
+        onClose={() => setConfigPanel({ open: false, room: null, config: null })}
+        onSaved={(text) => afterSave(text)}
+      />
+
       <ConfirmationDialog
+        destructive
         open={pendingDelete != null}
-        message={pendingDelete ? `Delete the ${pendingDelete.testType} / ${pendingDelete.testCode} configuration for this room?` : ""}
+        message={deleteMessage}
         onCancel={() => setPendingDelete(null)}
-        onConfirm={() => pendingDelete && remove(pendingDelete.id)}
+        onConfirm={confirmDelete}
       />
     </Box>
-  );
-}
-
-export function EMConfigPage() {
-  const [departments, setDepartments] = useState<any[]>([]);
-  const [deptForm, setDeptForm] = useState<Record<string, any>>({});
-  const [editingDeptId, setEditingDeptId] = useState<number | null>(null);
-  const [pendingDeleteDept, setPendingDeleteDept] = useState<any | null>(null);
-
-  const [roomForm, setRoomForm] = useState<Record<string, any>>({ grade: "A" });
-  const [editingRoomId, setEditingRoomId] = useState<number | null>(null);
-  const [pendingDeleteRoom, setPendingDeleteRoom] = useState<any | null>(null);
-
-  const [expandedDeptId, setExpandedDeptId] = useState<number | null>(null);
-  const [expandedRoomId, setExpandedRoomId] = useState<number | null>(null);
-
-  const [message, setMessage] = useState<{ text: string; ok: boolean } | null>(null);
-
-  const load = () => EMConfigService.getDepartments().then(setDepartments);
-  useEffect(() => { load(); }, []);
-
-  const cancelDeptEdit = () => { setEditingDeptId(null); setDeptForm({}); };
-  const startDeptEdit = (d: any) => {
-    setEditingDeptId(d.id);
-    setDeptForm({ name: d.name, class: d.class, frequency: d.testingFrequency });
-    setMessage(null);
-  };
-  const saveDept = async () => {
-    setMessage(null);
-    try {
-      if (editingDeptId) {
-        await EMConfigService.updateDepartment(editingDeptId, deptForm.name, deptForm.class ?? "", deptForm.frequency ?? "", departments.find((d) => d.id === editingDeptId)?.version);
-        setMessage({ text: "Department updated.", ok: true });
-      } else {
-        await EMConfigService.createDepartment(deptForm.name, deptForm.class ?? "", deptForm.frequency ?? "");
-        setMessage({ text: "Department created.", ok: true });
-      }
-      cancelDeptEdit();
-      load();
-    } catch (e: any) {
-      setMessage({ text: e?.response?.data?.message ?? "Could not save this department.", ok: false });
-    }
-  };
-  const deleteDept = async (d: any) => {
-    setMessage(null);
-    try {
-      await EMConfigService.deleteDepartment(d.id);
-      setPendingDeleteDept(null);
-      load();
-    } catch (e: any) {
-      setPendingDeleteDept(null);
-      setMessage({ text: e?.response?.data?.message ?? "Could not delete this department.", ok: false });
-    }
-  };
-
-  const cancelRoomEdit = () => { setEditingRoomId(null); setRoomForm({ grade: "A" }); };
-  const startRoomEdit = (r: any) => {
-    setEditingRoomId(r.id);
-    setRoomForm({ name: r.name, departmentId: r.departmentId, grade: r.gradeClassification });
-    setMessage(null);
-  };
-  const saveRoom = async () => {
-    setMessage(null);
-    try {
-      if (editingRoomId) {
-        await EMConfigService.updateRoom(editingRoomId, roomForm.name, Number(roomForm.departmentId), roomForm.grade, departments.flatMap((d) => d.rooms ?? []).find((r) => r.id === editingRoomId)?.version);
-        setMessage({ text: "Room updated.", ok: true });
-      } else {
-        await EMConfigService.createRoom(roomForm.name, Number(roomForm.departmentId), roomForm.grade);
-        setMessage({ text: "Room created.", ok: true });
-      }
-      cancelRoomEdit();
-      load();
-    } catch (e: any) {
-      setMessage({ text: e?.response?.data?.message ?? "Could not save this room.", ok: false });
-    }
-  };
-  const deleteRoom = async (r: any) => {
-    setMessage(null);
-    try {
-      await EMConfigService.deleteRoom(r.id);
-      setPendingDeleteRoom(null);
-      load();
-    } catch (e: any) {
-      setPendingDeleteRoom(null);
-      setMessage({ text: e?.response?.data?.message ?? "Could not delete this room.", ok: false });
-    }
-  };
-
-  return (
-    <>
-      <PageHeader title="Environmental Monitoring" subtitle="Departments, rooms, grade, and per-room test limits." />
-      {message && <Alert severity={message.ok ? "success" : "error"} sx={{ mb: 2 }}>{message.text}</Alert>}
-
-      <SectionTitle>{editingDeptId ? "Edit Department" : "New Department"}</SectionTitle>
-      <Paper sx={{ p: 2.5, mb: 3 }}>
-        <Stack
-          direction="row"
-          spacing={2}
-          sx={{
-            flexWrap: "wrap",
-            alignItems: "center"
-          }}>
-          <TextField size="small" label="Name" value={deptForm.name ?? ""} onChange={(e) => setDeptForm({ ...deptForm, name: e.target.value })} />
-          <TextField size="small" label="Class" value={deptForm.class ?? ""} onChange={(e) => setDeptForm({ ...deptForm, class: e.target.value })} placeholder="e.g. Grade C" />
-          <TextField size="small" label="Testing Frequency" value={deptForm.frequency ?? ""} onChange={(e) => setDeptForm({ ...deptForm, frequency: e.target.value })} placeholder="e.g. Monthly" />
-          {editingDeptId && <Button onClick={cancelDeptEdit}>Cancel</Button>}
-          <Button variant="outlined" onClick={saveDept}>{editingDeptId ? "Save Changes" : "Add Department"}</Button>
-        </Stack>
-      </Paper>
-
-      <SectionTitle>{editingRoomId ? "Edit Room" : "New Room"}</SectionTitle>
-      <Paper sx={{ p: 2.5, mb: 3 }}>
-        <Stack
-          direction="row"
-          spacing={2}
-          sx={{
-            flexWrap: "wrap",
-            alignItems: "center"
-          }}>
-          <TextField size="small" label="Room Name" value={roomForm.name ?? ""} onChange={(e) => setRoomForm({ ...roomForm, name: e.target.value })} />
-          <Select size="small" displayEmpty value={roomForm.departmentId ?? ""} onChange={(e) => setRoomForm({ ...roomForm, departmentId: e.target.value })} sx={{ minWidth: 180 }}>
-            <MenuItem value=""><em>Department</em></MenuItem>
-            {departments.map((d) => <MenuItem key={d.id} value={d.id}>{d.name}</MenuItem>)}
-          </Select>
-          <Select size="small" value={roomForm.grade} onChange={(e) => setRoomForm({ ...roomForm, grade: e.target.value })}>
-            {["A", "B", "C", "D"].map((g) => <MenuItem key={g} value={g}>Grade {g}</MenuItem>)}
-          </Select>
-          {editingRoomId && <Button onClick={cancelRoomEdit}>Cancel</Button>}
-          <Button variant="outlined" onClick={saveRoom}>{editingRoomId ? "Save Changes" : "Add Room"}</Button>
-        </Stack>
-      </Paper>
-
-      <SectionTitle>Departments</SectionTitle>
-      <Paper sx={{ p: 2.5 }}>
-        <Table>
-          <TableHead><TableRow sx={tableHeadSx}><TableCell sx={{ width: 40 }} /><TableCell>Department</TableCell><TableCell>Class</TableCell><TableCell>Testing Frequency</TableCell><TableCell /></TableRow></TableHead>
-          <TableBody>
-            {departments.map((d) => (
-              <Fragment key={d.id}>
-                <TableRow>
-                  <TableCell>
-                    <IconButton size="small" onClick={() => setExpandedDeptId(expandedDeptId === d.id ? null : d.id)} title="Rooms">
-                      {expandedDeptId === d.id ? <ExpandLessIcon fontSize="small" /> : <ExpandMoreIcon fontSize="small" />}
-                    </IconButton>
-                  </TableCell>
-                  <TableCell>{d.name}</TableCell>
-                  <TableCell>{d.class || "—"}</TableCell>
-                  <TableCell>{d.testingFrequency || "—"}</TableCell>
-                  <TableCell align="right">
-                    <IconButton size="small" onClick={() => startDeptEdit(d)} title="Edit"><EditIcon fontSize="small" /></IconButton>
-                    <IconButton size="small" color="error" onClick={() => setPendingDeleteDept(d)} title="Delete"><DeleteIcon fontSize="small" /></IconButton>
-                  </TableCell>
-                </TableRow>
-                <TableRow>
-                  <TableCell sx={{ p: 0, border: 0 }} colSpan={5}>
-                    <Collapse in={expandedDeptId === d.id} unmountOnExit>
-                      <Box sx={{ p: 2, bgcolor: "background.default" }}>
-                        {(d.rooms ?? []).length === 0 ? (
-                          <Typography variant="body2" sx={{
-                            color: "text.secondary"
-                          }}>No rooms configured yet.</Typography>
-                        ) : (
-                          <Table size="small">
-                            <TableHead><TableRow sx={tableHeadSx}><TableCell sx={{ width: 40 }} /><TableCell>Room</TableCell><TableCell>Grade</TableCell><TableCell /></TableRow></TableHead>
-                            <TableBody>
-                              {(d.rooms ?? []).map((r: any) => (
-                                <Fragment key={r.id}>
-                                  <TableRow>
-                                    <TableCell>
-                                      <IconButton size="small" onClick={() => setExpandedRoomId(expandedRoomId === r.id ? null : r.id)} title="Test Configurations">
-                                        {expandedRoomId === r.id ? <ExpandLessIcon fontSize="small" /> : <ExpandMoreIcon fontSize="small" />}
-                                      </IconButton>
-                                    </TableCell>
-                                    <TableCell>{r.name}</TableCell>
-                                    <TableCell>{r.gradeClassification}</TableCell>
-                                    <TableCell align="right">
-                                      <IconButton size="small" onClick={() => startRoomEdit({ ...r, departmentId: d.id })} title="Edit"><EditIcon fontSize="small" /></IconButton>
-                                      <IconButton size="small" color="error" onClick={() => setPendingDeleteRoom(r)} title="Delete"><DeleteIcon fontSize="small" /></IconButton>
-                                    </TableCell>
-                                  </TableRow>
-                                  <TableRow>
-                                    <TableCell sx={{ p: 0, border: 0 }} colSpan={4}>
-                                      <Collapse in={expandedRoomId === r.id} unmountOnExit>
-                                        <RoomTestConfigSection roomId={r.id} />
-                                      </Collapse>
-                                    </TableCell>
-                                  </TableRow>
-                                </Fragment>
-                              ))}
-                            </TableBody>
-                          </Table>
-                        )}
-                      </Box>
-                    </Collapse>
-                  </TableCell>
-                </TableRow>
-              </Fragment>
-            ))}
-          </TableBody>
-        </Table>
-      </Paper>
-
-      <ConfirmationDialog
-        open={pendingDeleteDept != null}
-        message={pendingDeleteDept ? `Delete department "${pendingDeleteDept.name}"? This cannot be undone.` : ""}
-        onCancel={() => setPendingDeleteDept(null)}
-        onConfirm={() => pendingDeleteDept && deleteDept(pendingDeleteDept)}
-      />
-      <ConfirmationDialog
-        open={pendingDeleteRoom != null}
-        message={pendingDeleteRoom ? `Delete room "${pendingDeleteRoom.name}"? This cannot be undone.` : ""}
-        onCancel={() => setPendingDeleteRoom(null)}
-        onConfirm={() => pendingDeleteRoom && deleteRoom(pendingDeleteRoom)}
-      />
-    </>
   );
 }

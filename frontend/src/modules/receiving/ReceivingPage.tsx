@@ -15,16 +15,24 @@ import { EditSampleDetailsDialog } from "./dialogs/EditSampleDetailsDialog";
 import { VoidSampleConfirmationDialog } from "./dialogs/VoidSampleConfirmationDialog";
 import { AddLaboratoryDialog } from "./dialogs/AddLaboratoryDialog";
 import { SampleSummaryDialog } from "../testingWorkspace/SampleSummaryDialog";
+import { useAuth } from "../../contexts/AuthContext";
+import { PERMISSIONS } from "../../routes/routes";
 
 // The main Receiving area only offers these three item-based categories
 // (design.md §3.1) - Water/EM/After Cleaning are received from inside
 // their owning lab's workspace instead.
 const RECEIVING_CATEGORY_NAMES = ["FinishedProduct", "RawMaterial", "PackagingMaterial"];
 
-// Receiving desk (Samples.Receive): register of FP/RM/PM samples, a
+// Receiving desk (Samples.Receive / Samples.ReceiveOwnLab): register of FP/RM/PM samples, a
 // "Receive" wizard with a required target-lab choice, and a signed
-// "Add Laboratory" action for samples already on the register.
+// "Add Laboratory" action for samples already on the register (requires Samples.Receive).
 export function ReceivingPage() {
+  const { permissions } = useAuth();
+  const canReceive = permissions.includes(PERMISSIONS.SAMPLES_RECEIVE);
+  const canReceiveOwnLab = permissions.includes(PERMISSIONS.SAMPLES_RECEIVE_OWN_LAB);
+  const canReceiveAny = canReceive || canReceiveOwnLab;
+  const canCorrect = permissions.includes(PERMISSIONS.SAMPLES_CORRECT);
+
   const [samples, setSamples] = useState<SampleRecord[] | null>(null);
   const [loading, setLoading] = useState(false);
   const [newSampleOpen, setNewSampleOpen] = useState(false);
@@ -85,14 +93,16 @@ export function ReceivingPage() {
           >
             Refresh
           </Button>
-          <Button
-            variant="contained"
-            onClick={() => setNewSampleOpen(true)}
-            startIcon={<AddIcon />}
-            sx={{ fontWeight: 700 }}
-          >
-            Receive
-          </Button>
+          {canReceiveAny && (
+            <Button
+              variant="contained"
+              onClick={() => setNewSampleOpen(true)}
+              startIcon={<AddIcon />}
+              sx={{ fontWeight: 700 }}
+            >
+              Receive
+            </Button>
+          )}
         </Box>
       </PageHeader>
 
@@ -100,54 +110,62 @@ export function ReceivingPage() {
         samples={samples}
         onTestClick={(_test, sample) => setSummarySampleId(sample.sampleId)}
         onViewSummary={(sample) => setSummarySampleId(sample.sampleId)}
-        onEdit={(sample) => setEditSample(sample)}
+        onEdit={canCorrect ? ((sample) => setEditSample(sample)) : undefined}
         onViewReport={(sample) => window.open(`/samples/${sample.sampleId}/report`, "_blank")}
         onViewAuditHistory={(sample) => setAuditSampleId(sample.sampleId)}
         onPrepareSample={(sample) => setSummarySampleId(sample.sampleId)}
-        onVoid={(sample) => setVoidingSample(sample)}
-        onAddLaboratory={(sample) => setAddingLabSample(sample)}
+        onVoid={canCorrect ? ((sample) => setVoidingSample(sample)) : undefined}
+        onAddLaboratory={canReceive ? ((sample) => setAddingLabSample(sample)) : undefined}
       />
 
-      <NewSampleDialog
-        open={newSampleOpen}
-        onClose={() => setNewSampleOpen(false)}
-        onSuccess={handleReceiveSuccess}
-        allowedCategories={["product", "rm", "pm"]}
-        labMode={{ kind: "choose" }}
-      />
+      {canReceiveAny && (
+        <NewSampleDialog
+          open={newSampleOpen}
+          onClose={() => setNewSampleOpen(false)}
+          onSuccess={handleReceiveSuccess}
+          allowedCategories={["product", "rm", "pm"]}
+          labMode={{ kind: "choose" }}
+        />
+      )}
 
-      <EditSampleDetailsDialog
-        open={Boolean(editSample)}
-        sample={editSample}
-        onClose={() => setEditSample(null)}
-        onSuccess={() => {
-          setEditSample(null);
-          setNotification({ text: "Sample details corrected and signed.", severity: "success" });
-          loadRecords();
-        }}
-      />
+      {canCorrect && (
+        <EditSampleDetailsDialog
+          open={Boolean(editSample)}
+          sample={editSample}
+          onClose={() => setEditSample(null)}
+          onSuccess={() => {
+            setEditSample(null);
+            setNotification({ text: "Sample details corrected and signed.", severity: "success" });
+            loadRecords();
+          }}
+        />
+      )}
 
-      <VoidSampleConfirmationDialog
-        open={Boolean(voidingSample)}
-        sample={voidingSample}
-        onClose={() => setVoidingSample(null)}
-        onSuccess={() => {
-          setVoidingSample(null);
-          setNotification({ text: "Sample voided.", severity: "success" });
-          loadRecords();
-        }}
-      />
+      {canCorrect && (
+        <VoidSampleConfirmationDialog
+          open={Boolean(voidingSample)}
+          sample={voidingSample}
+          onClose={() => setVoidingSample(null)}
+          onSuccess={() => {
+            setVoidingSample(null);
+            setNotification({ text: "Sample voided.", severity: "success" });
+            loadRecords();
+          }}
+        />
+      )}
 
-      <AddLaboratoryDialog
-        open={Boolean(addingLabSample)}
-        sample={addingLabSample}
-        onClose={() => setAddingLabSample(null)}
-        onSuccess={() => {
-          setAddingLabSample(null);
-          setNotification({ text: "Laboratory added to the sample.", severity: "success" });
-          loadRecords();
-        }}
-      />
+      {canReceive && (
+        <AddLaboratoryDialog
+          open={Boolean(addingLabSample)}
+          sample={addingLabSample}
+          onClose={() => setAddingLabSample(null)}
+          onSuccess={() => {
+            setAddingLabSample(null);
+            setNotification({ text: "Laboratory added to the sample.", severity: "success" });
+            loadRecords();
+          }}
+        />
+      )}
 
       <SampleSummaryDialog
         open={Boolean(summarySampleId)}

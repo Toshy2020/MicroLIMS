@@ -57,6 +57,7 @@ export function TitrantStandardizationDialog({
   const [signatureOpen, setSignatureOpen] = useState(false);
   const [signatureComment, setSignatureComment] = useState("");
   const [result, setResult] = useState<TitrantStandardizationResponse | null>(null);
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     if (!open) {
@@ -64,6 +65,7 @@ export function TitrantStandardizationDialog({
       setValidationError(null);
       setSignatureOpen(false);
       setSignatureComment("");
+      setSubmitting(false);
       return;
     }
 
@@ -158,6 +160,7 @@ export function TitrantStandardizationDialog({
   };
 
   const handleProceedToSign = () => {
+    if (submitting) return;
     const err = validate();
     if (err) {
       setValidationError(err);
@@ -168,23 +171,30 @@ export function TitrantStandardizationDialog({
   };
 
   const handleConfirmSignature = async (password: string) => {
-    const req: StandardizeRequest = {
-      replicates: rows.map((r) => ({
-        standardMaterialId: isPrimary ? (r.standardMaterialId ?? undefined) : undefined,
-        standardWeightMg: isPrimary ? parseFloat(r.standardWeightMg) : undefined,
-        referencePreparationId: !isPrimary ? (r.referencePreparationId ?? undefined) : undefined,
-        referenceVolumeMl: !isPrimary ? parseFloat(r.referenceVolumeMl) : undefined,
-        titrantVolumeMl: parseFloat(r.titrantVolumeMl),
-        blankMl: blankRequired ? parseFloat(r.blankMl) : undefined
-      })),
-      password,
-      comment: signatureComment.trim() || null
-    };
+    if (submitting) return;
+    setSubmitting(true);
+    try {
+      const req: StandardizeRequest = {
+        replicates: rows.map((r) => ({
+          standardMaterialId: isPrimary ? (r.standardMaterialId ?? undefined) : undefined,
+          standardWeightMg: isPrimary ? parseFloat(r.standardWeightMg) : undefined,
+          referencePreparationId: !isPrimary ? (r.referencePreparationId ?? undefined) : undefined,
+          referenceVolumeMl: !isPrimary ? parseFloat(r.referenceVolumeMl) : undefined,
+          titrantVolumeMl: parseFloat(r.titrantVolumeMl),
+          blankMl: blankRequired ? parseFloat(r.blankMl) : undefined
+        })),
+        password,
+        comment: signatureComment.trim() || null
+      };
 
-    const data = await SolutionPreparationService.standardize(preparation.id, req);
-    setSignatureOpen(false);
-    setResult(data);
-    onSuccess(data);
+      const data = await SolutionPreparationService.standardize(preparation.id, req);
+      setSignatureOpen(false);
+      // The result replaces the form - only Close is offered, so it cannot be submitted twice.
+      setResult(data);
+      onSuccess(data);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const dialogTitle = result
@@ -196,7 +206,7 @@ export function TitrantStandardizationDialog({
       <FloatingDialog
         open={open && !signatureOpen}
         title={dialogTitle}
-        onClose={onClose}
+        onClose={submitting ? () => {} : onClose}
         maxWidth="md"
         actions={
           result ? (
@@ -205,13 +215,17 @@ export function TitrantStandardizationDialog({
             </Button>
           ) : (
             <>
-              <Button onClick={onClose}>Cancel</Button>
+              <Button onClick={onClose} disabled={submitting}>Cancel</Button>
               <Button
                 variant="contained"
                 onClick={handleProceedToSign}
-                disabled={optionsLoading || (isPrimary ? standardLots.length === 0 : referenceOptions.length === 0)}
+                disabled={
+                  submitting ||
+                  optionsLoading ||
+                  (isPrimary ? standardLots.length === 0 : referenceOptions.length === 0)
+                }
               >
-                Sign & Submit
+                {submitting ? "Submitting..." : "Sign & Submit"}
               </Button>
             </>
           )
@@ -266,7 +280,7 @@ export function TitrantStandardizationDialog({
         showComment
         comment={signatureComment}
         onCommentChange={setSignatureComment}
-        onCancel={() => setSignatureOpen(false)}
+        onCancel={() => { if (!submitting) setSignatureOpen(false); }}
         onConfirm={handleConfirmSignature}
       />
     </>

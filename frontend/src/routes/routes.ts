@@ -221,6 +221,7 @@ export const PERMISSIONS = {
   SAMPLES_REVIEW: "Samples.Review",
   SAMPLES_APPROVE: "Samples.Approve",
   SAMPLES_RECEIVE: "Samples.Receive",
+  SAMPLES_RECEIVE_OWN_LAB: "Samples.ReceiveOwnLab",
   SAMPLES_TRACK_ALL: "Samples.TrackAll",
   SAMPLES_CORRECT: "Samples.Correct",
   SAMPLES_ASSIGN_ANALYST: "Samples.AssignAnalyst",

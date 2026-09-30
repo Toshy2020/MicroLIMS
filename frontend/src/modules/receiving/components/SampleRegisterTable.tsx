@@ -42,7 +42,7 @@ interface Props {
   onSelectSample?: (sample: SampleRecord) => void;
   onTestClick: (test: TestOrderSummary, sample: SampleRecord) => void;
   onViewSummary: (sample: SampleRecord) => void;
-  onEdit: (sample: SampleRecord) => void;
+  onEdit?: (sample: SampleRecord) => void;
   onViewReport: (sample: SampleRecord) => void;
   onViewAuditHistory: (sample: SampleRecord) => void;
   onPrepareSample: (sample: SampleRecord) => void;

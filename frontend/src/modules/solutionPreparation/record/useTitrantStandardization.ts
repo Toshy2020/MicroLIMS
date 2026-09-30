@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { toast } from "sonner";
 import { useAuth } from "../../../contexts/AuthContext";
 import { PERMISSIONS } from "../../../routes/routes";
 import { SolutionPreparationService } from "../services/SolutionPreparationService";
@@ -43,6 +44,8 @@ export function useTitrantStandardization(
     permissions.includes(PERMISSIONS.SOLUTIONS_PREPARE)
   );
 
+  // The dialog stays open on its result view; the refresh is silent so it
+  // does not unmount the dialog and bring back the empty form.
   const handleSuccess = useCallback(async () => {
     if (prepId) {
       await Promise.all([
@@ -50,6 +53,7 @@ export function useTitrantStandardization(
         loadStandardizations(prepId)
       ]);
     }
+    toast.success("Titrant standardized successfully.");
   }, [prepId, onRefreshPreparation, loadStandardizations]);
 
   return {

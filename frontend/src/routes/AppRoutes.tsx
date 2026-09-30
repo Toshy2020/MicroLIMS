@@ -130,10 +130,10 @@ export function AppRoutes() {
 
             {/* Receiving area: the main receiving desk and the cross-lab
                 tracking board (design.md §3.1, §3.4) - gated on the
-                Samples.Receive / Samples.TrackAll privileges, not role or
+                Samples.Receive or Samples.ReceiveOwnLab / Samples.TrackAll privileges, not role or
                 lab membership. /receiving used to redirect into the
                 workspace; it now owns the Receiving page itself. */}
-            <Route element={<PermissionRoute code={PERMISSIONS.SAMPLES_RECEIVE} />}>
+            <Route element={<PermissionRoute code={[PERMISSIONS.SAMPLES_RECEIVE, PERMISSIONS.SAMPLES_RECEIVE_OWN_LAB]} />}>
               <Route path="/receiving" element={<ReceivingPage />} />
             </Route>
             <Route element={<PermissionRoute code={PERMISSIONS.SAMPLES_TRACK_ALL} />}>

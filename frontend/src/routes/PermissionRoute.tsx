@@ -7,6 +7,7 @@ import { useHasPermission } from "../contexts/AuthContext";
 //
 // The frontend guard only decides what to render - every gated endpoint
 // carries its own [Authorize(Policy=...)] (Frozen Principle #3).
-export function PermissionRoute({ code }: { code: string }) {
+// An array passes when the user holds any one of the codes.
+export function PermissionRoute({ code }: { code: string | string[] }) {
   return useHasPermission(code) ? <Outlet /> : <Navigate to="/dashboard" replace />;
 }

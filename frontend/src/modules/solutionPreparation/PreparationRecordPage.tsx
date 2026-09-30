@@ -35,8 +35,8 @@ export function PreparationRecordPage() {
   const [actionLoading, setActionLoading] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
 
-  const loadPreparation = useCallback(async (prepId: number) => {
-    setLoading(true);
+  const loadPreparation = useCallback(async (prepId: number, silent = false) => {
+    if (!silent) setLoading(true);
     setError(null);
     try {
       const data = await SolutionPreparationService.getById(prepId);
@@ -45,9 +45,13 @@ export function PreparationRecordPage() {
       const e = err as { response?: { data?: { message?: string } }; message?: string };
       setError(e.response?.data?.message ?? e.message ?? "Could not load preparation record.");
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   }, []);
+
+  const refreshPreparation = useCallback(async (prepId: number) => {
+    await loadPreparation(prepId, true);
+  }, [loadPreparation]);
 
   const {
     standardizations,
@@ -56,7 +60,7 @@ export function PreparationRecordPage() {
     dialogOpen,
     setDialogOpen,
     handleSuccess
-  } = useTitrantStandardization(preparation, loadPreparation);
+  } = useTitrantStandardization(preparation, refreshPreparation);
 
   useEffect(() => {
     if (id) {

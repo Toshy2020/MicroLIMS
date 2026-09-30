@@ -266,6 +266,7 @@ public interface ITestWorkflowEngine : IStatefulWorkflowEngine
     Task<IncubationResponse> StartStage2IncubationAsync(int testOrderId, string stepName, int incubatorEquipmentId, int userId);
     Task<TestWorkflowResult> RecordResultAsync(int testOrderId, string stepName, ResultPayload payload, int userId);
     Task<TestWorkflowResult> RecordStandardComparisonResultAsync(int testOrderId, StandardComparisonPayload payload, int userId, string? ipAddress = null);
+    Task<TestWorkflowResult> SubmitHplcMethodAssayAsync(int runSampleId, string password, string? comment, int userId, string? ipAddress = null);
     Task<TestWorkflowResult> RecordElementalAssayResultAsync(int testOrderId, ElementalAssayPayload payload, int userId, string? ipAddress = null);
     Task<TestWorkflowResult> RecordMeasurementResultAsync(int testOrderId, MeasurementPayload payload, int userId, string? ipAddress = null);
     Task<TestWorkflowResult> RecordGravimetricResultAsync(int testOrderId, GravimetricPayload payload, int userId, string? ipAddress = null);

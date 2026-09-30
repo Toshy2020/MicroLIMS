@@ -180,13 +180,30 @@ public class SampleApprovalService
         if (decision == ApprovalDecision.Approve)
         {
             var testCodes = currentOrders.Select(o => o.TestCode).Distinct().ToList();
-            var sstCodes = await _db.TestDefinitions
+            var sstDefinitions = await _db.TestDefinitions
                 .Where(t => testCodes.Contains(t.Code) && t.RequiresSystemSuitability)
-                .Select(t => t.Code)
+                .Select(t => new { t.Code, t.WorkflowType })
                 .ToListAsync();
+            var sstCodes = sstDefinitions.Select(t => t.Code).ToList();
+            var hplcWorkspaceCodes = sstDefinitions.Where(t => t.WorkflowType == WorkflowType.HplcMethodAssay).Select(t => t.Code).ToList();
 
             foreach (var sstOrder in currentOrders.Where(o => sstCodes.Contains(o.TestCode)))
             {
+                // HPLC Workspace tests take their system suitability from the
+                // run they were assigned to, not from SystemSuitabilityRunId.
+                if (hplcWorkspaceCodes.Contains(sstOrder.TestCode))
+                {
+                    var runPassed = await _db.HplcRunSamples.AnyAsync(s =>
+                        s.TestOrderId == sstOrder.Id && s.Status == HplcRunSampleStatus.Assigned
+                        && s.HplcRun!.Sst != null && s.HplcRun.Sst.Status == HplcSstStatus.Passed);
+                    if (!runPassed)
+                    {
+                        throw new InvalidOperationException(
+                            $"Cannot approve section: test order {sstOrder.Id} (\"{sstOrder.TestCode}\") lacks an HPLC run with a passed system suitability.");
+                    }
+                    continue;
+                }
+
                 if (sstOrder.SystemSuitabilityRunId is null)
                 {
                     throw new InvalidOperationException(

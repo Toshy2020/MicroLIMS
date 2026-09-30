@@ -2,7 +2,7 @@ import { useEffect, useState, useMemo } from "react";
 import { Box, Button, Alert, Grid, Typography, Stack } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import { PageHeader } from "../../../components/PageHeader";
-import { ItemTable } from "./ItemTable";
+import { ItemTable, ITEM_ROWS_PER_PAGE_OPTIONS } from "./ItemTable";
 import { ItemService, Item } from "./services/ItemService";
 import { ItemFilterBar } from "./components/ItemFilterBar";
 import { AddItemDialog } from "./components/AddItemDialog";
@@ -19,12 +19,25 @@ export function ItemsPage() {
   const [categoryFilter, setCategoryFilter] = useState("ALL");
   const [statusFilter, setStatusFilter] = useState("ALL");
 
+  // Pagination
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(ITEM_ROWS_PER_PAGE_OPTIONS[0]);
+
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [message, setMessage] = useState<{ text: string; ok: boolean } | null>(null);
 
   const loadItems = () => {
-    ItemService.getAll().then((data) => {
-      setItems(data);
-    });
+    setLoading(true);
+    ItemService.getAll()
+      .then((data) => {
+        setItems(data);
+        setLoadError(null);
+      })
+      .catch((e: any) => {
+        setLoadError(e?.response?.data?.message ?? "Could not load items.");
+      })
+      .finally(() => setLoading(false));
   };
 
   useEffect(() => {
@@ -55,6 +68,35 @@ export function ItemsPage() {
       return true;
     });
   }, [items, searchQuery, categoryFilter, statusFilter]);
+
+  // A new search or filter starts again from the first page.
+  useEffect(() => {
+    setPage(0);
+  }, [searchQuery, categoryFilter, statusFilter]);
+
+  // Keep the page in range when the list shrinks (delete, reload).
+  useEffect(() => {
+    const lastPage = Math.max(0, Math.ceil(filteredItems.length / rowsPerPage) - 1);
+    if (page > lastPage) setPage(lastPage);
+  }, [filteredItems.length, rowsPerPage, page]);
+
+  // When the selection changes, show the page holding the selected item
+  // (e.g. a newly created item, which only appears once the reload lands).
+  // Cleared once revealed, so later reloads don't pull the user back.
+  const [revealItemId, setRevealItemId] = useState<number | null>(null);
+  useEffect(() => {
+    setRevealItemId(selectedItemId);
+  }, [selectedItemId]);
+  useEffect(() => {
+    if (revealItemId == null) return;
+    const index = filteredItems.findIndex((i) => i.id === revealItemId);
+    if (index >= 0) {
+      setPage(Math.floor(index / rowsPerPage));
+      setRevealItemId(null);
+    }
+  }, [revealItemId, filteredItems, rowsPerPage]);
+
+  const isFiltered = searchQuery.trim() !== "" || categoryFilter !== "ALL" || statusFilter !== "ALL";
 
   const selectedItem = useMemo(() => {
     return items.find((i) => i.id === selectedItemId) || null;
@@ -136,7 +178,16 @@ export function ItemsPage() {
   return (
     <Box sx={{ pb: 4 }}>
       {/* Top Header with Add Item button */}
-      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", mb: 2 }}>
+      <Box
+        sx={{
+          display: "flex",
+          flexWrap: "wrap",
+          gap: 1.5,
+          justifyContent: "space-between",
+          alignItems: "flex-start",
+          mb: 2
+        }}
+      >
         <PageHeader title="Items" subtitle="Configure which tests are auto-assigned when a sample is received." />
         <Button
           variant="contained"
@@ -155,6 +206,20 @@ export function ItemsPage() {
         </Alert>
       )}
 
+      {loadError && (
+        <Alert
+          severity="error"
+          sx={{ mb: 2 }}
+          action={
+            <Button color="inherit" size="small" onClick={loadItems} disabled={loading}>
+              Retry
+            </Button>
+          }
+        >
+          {loadError}
+        </Alert>
+      )}
+
       {/* Search and Filters Bar */}
       <ItemFilterBar
         searchQuery={searchQuery}
@@ -167,7 +232,7 @@ export function ItemsPage() {
       />
 
       {/* Main Content Area: Split Workspace Layout */}
-      {selectedItem ? (
+      {loadError && items.length === 0 ? null : selectedItem ? (
         <Grid container spacing={2.5}>
           {/* Left Panel: ~35-40% compact register */}
           <Grid
@@ -184,7 +249,8 @@ export function ItemsPage() {
                 mb: 1
               }}>
               <Typography variant="subtitle2" sx={{ fontWeight: 700, color: "text.primary" }}>
-                Configured Items ({filteredItems.length})
+                Configured Items ({filteredItems.length}
+                {isFiltered && items.length !== filteredItems.length ? ` of ${items.length}` : ""})
               </Typography>
             </Stack>
             <ItemTable
@@ -194,6 +260,16 @@ export function ItemsPage() {
               onEdit={handleOpenEdit}
               onDelete={handleDeleteItem}
               onToggleFreeze={handleToggleFreezeItem}
+              page={page}
+              rowsPerPage={rowsPerPage}
+              onPageChange={setPage}
+              onRowsPerPageChange={(n) => {
+                setRowsPerPage(n);
+                setPage(0);
+              }}
+              loading={loading}
+              onResetFilters={isFiltered ? handleResetFilters : undefined}
+              compact
             />
           </Grid>
 
@@ -215,7 +291,8 @@ export function ItemsPage() {
         /* Full width register when no item is selected */
         <Box sx={{ mt: 1 }}>
           <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1.5, color: "text.primary" }}>
-            Configured Items ({filteredItems.length})
+            Configured Items ({filteredItems.length}
+            {isFiltered && items.length !== filteredItems.length ? ` of ${items.length}` : ""})
           </Typography>
           <ItemTable
             items={filteredItems}
@@ -224,6 +301,15 @@ export function ItemsPage() {
             onEdit={handleOpenEdit}
             onDelete={handleDeleteItem}
             onToggleFreeze={handleToggleFreezeItem}
+            page={page}
+            rowsPerPage={rowsPerPage}
+            onPageChange={setPage}
+            onRowsPerPageChange={(n) => {
+              setRowsPerPage(n);
+              setPage(0);
+            }}
+            loading={loading}
+            onResetFilters={isFiltered ? handleResetFilters : undefined}
           />
         </Box>
       )}

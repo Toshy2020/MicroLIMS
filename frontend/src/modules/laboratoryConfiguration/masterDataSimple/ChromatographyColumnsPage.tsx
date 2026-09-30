@@ -1,40 +1,27 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import {
   Box,
-  Paper,
   Typography,
   Button,
-  TextField,
   Select,
   MenuItem,
   FormControl,
+  FormHelperText,
   InputLabel,
-  Table,
-  TableHead,
-  TableRow,
-  TableCell,
-  TableBody,
-  TableContainer,
   Chip,
   Stack,
-  IconButton,
   Tooltip,
-  CircularProgress,
   Alert,
   Checkbox,
   ListItemText,
   OutlinedInput,
-  useTheme
+  TextField
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
-import EditIcon from "@mui/icons-material/Edit";
-import BlockIcon from "@mui/icons-material/Block";
-import RefreshIcon from "@mui/icons-material/Refresh";
-import ViewColumnIcon from "@mui/icons-material/ViewColumn";
-import { PageHeader } from "../../../components/PageHeader";
-import { FloatingDialog } from "../../../components/FloatingDialog";
+import { LabPage, FilterBar, RegisterTable, RegisterColumn, FormDialog } from "../../../components/lab";
+import { StatusBadge } from "../../../components/StatusBadge";
+import { monospaceFontFamily } from "../../../theme/palette";
 import { ConfirmationDialog } from "../../../components/ConfirmationDialog";
-import { tableHeadSx } from "../../../theme";
 import { toast } from "sonner";
 import {
   ChromatographyColumnService,
@@ -56,7 +43,6 @@ export interface ChromatographyEquipmentOption {
 }
 
 export function ChromatographyColumnsPage() {
-  const theme = useTheme();
   const { sections, sectionName } = useLaboratorySections();
 
   const [columns, setColumns] = useState<ChromatographyColumnDto[]>([]);
@@ -81,6 +67,8 @@ export function ChromatographyColumnsPage() {
   const [formCompatibleEquipmentIds, setFormCompatibleEquipmentIds] = useState<number[]>([]);
   const [formIsActive, setFormIsActive] = useState(true);
   const [dialogError, setDialogError] = useState<string | null>(null);
+  // Client-side validation errors, shown on the field instead of the top alert.
+  const [fieldErrors, setFieldErrors] = useState<Partial<Record<"code" | "name" | "serial" | "usp" | "section", string>>>({});
   const [saving, setSaving] = useState(false);
 
   // Deactivate Confirmation Dialog
@@ -131,6 +119,7 @@ export function ChromatographyColumnsPage() {
     setFormCompatibleEquipmentIds([]);
     setFormIsActive(true);
     setDialogError(null);
+    setFieldErrors({});
     setDialogOpen(true);
   };
 
@@ -145,6 +134,7 @@ export function ChromatographyColumnsPage() {
     setFormCompatibleEquipmentIds(col.compatibleEquipment?.map((e) => e.id) ?? []);
     setFormIsActive(col.isActive);
     setDialogError(null);
+    setFieldErrors({});
     setDialogOpen(true);
   };
 
@@ -155,26 +145,14 @@ export function ChromatographyColumnsPage() {
     const trimmedSerial = formSerialNumber.trim();
     const trimmedUsp = formUspDesignation.trim();
 
-    if (!trimmedCode) {
-      setDialogError("Column Code is required.");
-      return;
-    }
-    if (!trimmedName) {
-      setDialogError("Column Name is required.");
-      return;
-    }
-    if (trimmedSerial.length > 100) {
-      setDialogError("Serial number cannot exceed 100 characters.");
-      return;
-    }
-    if (trimmedUsp.length > 10) {
-      setDialogError("USP designation cannot exceed 10 characters.");
-      return;
-    }
-    if (!editingColumn && mySections.length > 1 && !formSectionId) {
-      setDialogError("Laboratory Section is required.");
-      return;
-    }
+    const errors: typeof fieldErrors = {};
+    if (!trimmedCode) errors.code = "Column Code is required.";
+    if (!trimmedName) errors.name = "Column Name is required.";
+    if (trimmedSerial.length > 100) errors.serial = "Serial number cannot exceed 100 characters.";
+    if (trimmedUsp.length > 10) errors.usp = "USP designation cannot exceed 10 characters.";
+    if (!editingColumn && mySections.length > 1 && !formSectionId) errors.section = "Laboratory Section is required.";
+    setFieldErrors(errors);
+    if (Object.keys(errors).length > 0) return;
 
     setSaving(true);
     setDialogError(null);
@@ -265,294 +243,199 @@ export function ChromatographyColumnsPage() {
     return `Section #${sectionId}`;
   };
 
+  const addButton = (
+    <Button variant="contained" startIcon={<AddIcon />} onClick={handleOpenAdd} sx={{ fontWeight: 600, textTransform: "none" }}>
+      Add Column
+    </Button>
+  );
+
+  const tableColumns: RegisterColumn<ChromatographyColumnDto>[] = [
+    {
+      key: "code",
+      label: "Code",
+      sortable: true,
+      render: (col) => (
+        <Typography component="span" sx={{ fontFamily: monospaceFontFamily, fontWeight: 600, fontSize: "0.875rem" }}>{col.code}</Typography>
+      )
+    },
+    { key: "name", label: "Column Name", sortable: true },
+    {
+      key: "uspDesignation",
+      label: "USP",
+      sortable: true,
+      render: (col) =>
+        col.uspDesignation ? (
+          <Chip label={col.uspDesignation} size="small" variant="outlined" sx={{ fontWeight: 600, fontSize: 12 }} />
+        ) : (
+          <Typography variant="body2" color="text.secondary">—</Typography>
+        )
+    },
+    {
+      key: "serialNumber",
+      label: "Serial Number",
+      sortable: true,
+      render: (col) => col.serialNumber || <Typography variant="body2" color="text.secondary">—</Typography>
+    },
+    {
+      key: "section",
+      label: "Section",
+      sortable: true,
+      sortValue: (col) => resolveSectionDisplay(col.sectionId, col.section),
+      render: (col) => <Chip label={resolveSectionDisplay(col.sectionId, col.section)} size="small" variant="outlined" sx={{ fontSize: 12 }} />
+    },
+    {
+      key: "compatibleEquipment",
+      label: "Compatible HPLC Instruments",
+      render: (col) =>
+        col.compatibleEquipment && col.compatibleEquipment.length > 0 ? (
+          <Stack direction="row" spacing={0.5} sx={{ flexWrap: "wrap", gap: 0.5 }}>
+            {col.compatibleEquipment.map((eq) => (
+              <Tooltip key={eq.id} title={`${eq.code}: ${eq.name}`}>
+                <Chip label={eq.code} size="small" color="primary" variant="outlined" sx={{ fontSize: 11, height: 22 }} />
+              </Tooltip>
+            ))}
+          </Stack>
+        ) : (
+          <Typography variant="body2" color="text.secondary" sx={{ fontStyle: "italic" }}>None linked</Typography>
+        )
+    },
+    {
+      key: "isActive",
+      label: "Status",
+      sortable: true,
+      sortValue: (col) => (col.isActive ? 0 : 1),
+      render: (col) => <StatusBadge status={col.isActive ? "Active" : "Inactive"} />
+    }
+  ];
+
+  const filtersActive = Boolean(searchQuery.trim()) || statusFilter !== "ALL" || sectionFilter !== "ALL";
+
   return (
-    <Box sx={{ p: 3 }}>
-      <PageHeader
-        title="Chromatography Columns"
-        subtitle="Manage HPLC chromatography column master records, column parameters, and instrument compatibility."
+    <LabPage
+      title="Chromatography Columns"
+      subtitle="Manage HPLC chromatography column master records, column parameters, and instrument compatibility."
+      actions={addButton}
+      filters={
+        <FilterBar
+          search={searchQuery}
+          onSearch={setSearchQuery}
+          placeholder="Search code, name, serial, USP..."
+          resultCount={filteredColumns.length}
+          onRefresh={loadData}
+          refreshing={loading}
+        >
+          <FormControl size="small" sx={{ minWidth: 160 }}>
+            <InputLabel id="column-status-filter-label">Status</InputLabel>
+            <Select
+              labelId="column-status-filter-label"
+              label="Status"
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value as "ALL" | "ACTIVE" | "INACTIVE")}
+            >
+              <MenuItem value="ALL">All Statuses</MenuItem>
+              <MenuItem value="ACTIVE">Active Only</MenuItem>
+              <MenuItem value="INACTIVE">Inactive Only</MenuItem>
+            </Select>
+          </FormControl>
+
+          <FormControl size="small" sx={{ minWidth: 180 }}>
+            <InputLabel id="column-section-filter-label">Section</InputLabel>
+            <Select
+              labelId="column-section-filter-label"
+              label="Section"
+              value={sectionFilter}
+              onChange={(e) => setSectionFilter(e.target.value)}
+            >
+              <MenuItem value="ALL">All Sections</MenuItem>
+              {sections.map((sec) => (
+                <MenuItem key={sec.sectionId} value={String(sec.sectionId)}>
+                  {sec.sectionName}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+        </FilterBar>
+      }
+    >
+      {error && <Alert severity="error">{error}</Alert>}
+
+      <RegisterTable
+        columns={tableColumns}
+        rows={filteredColumns}
+        getRowId={(col) => col.id}
+        loading={loading}
+        onRowClick={handleOpenEdit}
+        rowActions={(col) => [
+          { label: "Edit", onClick: () => handleOpenEdit(col) },
+          { label: "Deactivate", onClick: () => setColumnToDeactivate(col), disabled: !col.isActive, danger: true }
+        ]}
+        empty={
+          filtersActive
+            ? { title: "No chromatography columns found", description: "Try adjusting your search or filters." }
+            : { title: "No chromatography columns found", description: "Register your first chromatography column.", action: addButton }
+        }
       />
 
-      {error && (
-        <Alert severity="error" sx={{ mb: 3 }}>
-          {error}
-        </Alert>
-      )}
-
-      {/* Filter & Action Toolbar */}
-      <Paper sx={{ p: 2.5, mb: 3 }}>
-        <Stack
-          direction={{ xs: "column", sm: "row" }}
-          spacing={2}
-          sx={{
-            alignItems: { sm: "center" },
-            justifyContent: "space-between",
-            flexWrap: "wrap"
-          }}
-        >
-          <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5} sx={{ flexWrap: "wrap", flex: 1 }}>
-            <TextField
-              size="small"
-              placeholder="Search code, name, serial, USP..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              sx={{ minWidth: 260 }}
-            />
-
-            <FormControl size="small" sx={{ minWidth: 160 }}>
-              <InputLabel id="column-status-filter-label">Status</InputLabel>
-              <Select
-                labelId="column-status-filter-label"
-                label="Status"
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value as "ALL" | "ACTIVE" | "INACTIVE")}
-              >
-                <MenuItem value="ALL">All Statuses</MenuItem>
-                <MenuItem value="ACTIVE">Active Only</MenuItem>
-                <MenuItem value="INACTIVE">Inactive Only</MenuItem>
-              </Select>
-            </FormControl>
-
-            <FormControl size="small" sx={{ minWidth: 180 }}>
-              <InputLabel id="column-section-filter-label">Section</InputLabel>
-              <Select
-                labelId="column-section-filter-label"
-                label="Section"
-                value={sectionFilter}
-                onChange={(e) => setSectionFilter(e.target.value)}
-              >
-                <MenuItem value="ALL">All Sections</MenuItem>
-                {sections.map((sec) => (
-                  <MenuItem key={sec.sectionId} value={String(sec.sectionId)}>
-                    {sec.sectionName}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-
-            <Tooltip title="Refresh">
-              <IconButton onClick={loadData} size="small" sx={{ alignSelf: "center" }}>
-                <RefreshIcon />
-              </IconButton>
-            </Tooltip>
-          </Stack>
-
-          <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            onClick={handleOpenAdd}
-            sx={{ fontWeight: 600, textTransform: "none", height: 40 }}
-          >
-            Add Column
-          </Button>
-        </Stack>
-      </Paper>
-
-      {/* Columns Table */}
-      <TableContainer
-        component={Paper}
-        elevation={0}
-        sx={{ border: "1px solid", borderColor: "divider", borderRadius: 2 }}
-      >
-        <Table size="small">
-          <TableHead>
-            <TableRow sx={tableHeadSx(theme)}>
-              <TableCell sx={{ fontWeight: 600 }}>Code</TableCell>
-              <TableCell sx={{ fontWeight: 600 }}>Column Name</TableCell>
-              <TableCell sx={{ fontWeight: 600 }}>USP</TableCell>
-              <TableCell sx={{ fontWeight: 600 }}>Serial Number</TableCell>
-              <TableCell sx={{ fontWeight: 600 }}>Section</TableCell>
-              <TableCell sx={{ fontWeight: 600 }}>Compatible HPLC Instruments</TableCell>
-              <TableCell sx={{ fontWeight: 600 }}>Status</TableCell>
-              <TableCell align="right" sx={{ fontWeight: 600 }}>Actions</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {loading ? (
-              <TableRow>
-                <TableCell colSpan={8} align="center" sx={{ py: 6 }}>
-                  <CircularProgress size={32} />
-                  <Typography variant="body2" sx={{ mt: 1, color: "text.secondary" }}>
-                    Loading chromatography columns...
-                  </Typography>
-                </TableCell>
-              </TableRow>
-            ) : filteredColumns.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={8} align="center" sx={{ py: 6 }}>
-                  <ViewColumnIcon sx={{ fontSize: 40, color: "text.disabled", mb: 1 }} />
-                  <Typography variant="body1" sx={{ color: "text.secondary", fontWeight: 500 }}>
-                    No chromatography columns found
-                  </Typography>
-                  <Typography variant="body2" sx={{ color: "text.disabled", mt: 0.5 }}>
-                    {searchQuery || statusFilter !== "ALL" || sectionFilter !== "ALL"
-                      ? "Try adjusting your search or filters."
-                      : "Click 'Add Column' to register your first chromatography column."}
-                  </Typography>
-                </TableCell>
-              </TableRow>
-            ) : (
-              filteredColumns.map((col) => {
-                const isDeactivatable = col.isActive;
-                return (
-                  <TableRow key={col.id} hover>
-                    <TableCell sx={{ fontFamily: "monospace", fontWeight: 600, fontSize: "0.875rem" }}>
-                      {col.code}
-                    </TableCell>
-                    <TableCell sx={{ fontWeight: 500 }}>{col.name}</TableCell>
-                    <TableCell>
-                      {col.uspDesignation ? (
-                        <Chip
-                          label={col.uspDesignation}
-                          size="small"
-                          variant="outlined"
-                          sx={{ fontWeight: 600, fontSize: 12 }}
-                        />
-                      ) : (
-                        <Typography variant="body2" color="text.secondary">—</Typography>
-                      )}
-                    </TableCell>
-                    <TableCell>{col.serialNumber || <Typography variant="body2" color="text.secondary">—</Typography>}</TableCell>
-                    <TableCell>
-                      <Chip
-                        label={resolveSectionDisplay(col.sectionId, col.section)}
-                        size="small"
-                        variant="outlined"
-                        sx={{ fontSize: 12 }}
-                      />
-                    </TableCell>
-                    <TableCell>
-                      {col.compatibleEquipment && col.compatibleEquipment.length > 0 ? (
-                        <Stack direction="row" spacing={0.5} sx={{ flexWrap: "wrap", gap: 0.5 }}>
-                          {col.compatibleEquipment.map((eq) => (
-                            <Tooltip key={eq.id} title={`${eq.code}: ${eq.name}`}>
-                              <Chip
-                                label={eq.code}
-                                size="small"
-                                color="primary"
-                                variant="outlined"
-                                sx={{ fontSize: 11, height: 22 }}
-                              />
-                            </Tooltip>
-                          ))}
-                        </Stack>
-                      ) : (
-                        <Typography variant="body2" color="text.secondary" sx={{ fontStyle: "italic" }}>
-                          None linked
-                        </Typography>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <Chip
-                        label={col.isActive ? "Active" : "Inactive"}
-                        size="small"
-                        color={col.isActive ? "success" : "default"}
-                        sx={{ fontSize: 11, fontWeight: 600 }}
-                      />
-                    </TableCell>
-                    <TableCell align="right">
-                      <Stack direction="row" spacing={0.5} sx={{ justifyContent: "flex-end" }}>
-                        <Tooltip title="Edit Column">
-                          <IconButton size="small" onClick={() => handleOpenEdit(col)}>
-                            <EditIcon fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
-                        <Tooltip title={isDeactivatable ? "Deactivate Column" : "Column is already inactive"}>
-                          <span>
-                            <IconButton
-                              size="small"
-                              color="error"
-                              disabled={!isDeactivatable}
-                              onClick={() => setColumnToDeactivate(col)}
-                            >
-                              <BlockIcon fontSize="small" />
-                            </IconButton>
-                          </span>
-                        </Tooltip>
-                      </Stack>
-                    </TableCell>
-                  </TableRow>
-                );
-              })
-            )}
-          </TableBody>
-        </Table>
-      </TableContainer>
-
       {/* Create / Edit Floating Dialog */}
-      <FloatingDialog
+      <FormDialog
         open={dialogOpen}
         title={editingColumn ? `Edit Column: ${editingColumn.code}` : "Add Chromatography Column"}
         onClose={() => setDialogOpen(false)}
-        maxWidth="sm"
-        actions={
-          <>
-            <Button onClick={() => setDialogOpen(false)} disabled={saving} sx={{ textTransform: "none" }}>
-              Cancel
-            </Button>
-            <Button
-              variant="contained"
-              onClick={handleSave}
-              disabled={saving}
-              sx={{ textTransform: "none", fontWeight: 600 }}
-            >
-              {saving ? "Saving..." : editingColumn ? "Save Changes" : "Create Column"}
-            </Button>
-          </>
-        }
+        onSubmit={handleSave}
+        submitLabel={saving ? "Saving..." : editingColumn ? "Save Changes" : "Create Column"}
+        submitting={saving}
+        error={dialogError}
       >
-        <Stack spacing={2.5} sx={{ pt: 1 }}>
-          {dialogError && (
-            <Alert severity="error" onClose={() => setDialogError(null)}>
-              {dialogError}
-            </Alert>
-          )}
-
           <TextField
             label="Column Code"
             value={formCode}
-            onChange={(e) => setFormCode(e.target.value.toUpperCase())}
+            onChange={(e) => { setFieldErrors((fe) => ({ ...fe, code: undefined })); setFormCode(e.target.value.toUpperCase()); }}
             required
             fullWidth
             size="small"
             placeholder="e.g. COL-C18-01"
-            helperText="Unique alphanumeric identifier (e.g. COL-C18-01)"
+            error={!!fieldErrors.code}
+            helperText={fieldErrors.code ?? "Unique alphanumeric identifier (e.g. COL-C18-01)"}
           />
 
           <TextField
             label="Column Name"
             value={formName}
-            onChange={(e) => setFormName(e.target.value)}
+            onChange={(e) => { setFieldErrors((fe) => ({ ...fe, name: undefined })); setFormName(e.target.value); }}
             required
             fullWidth
             size="small"
             placeholder="e.g. Hypersil BDS C18 5um 4.6x250mm"
-            helperText="Full descriptive name including stationary phase and dimensions"
+            error={!!fieldErrors.name}
+            helperText={fieldErrors.name ?? "Full descriptive name including stationary phase and dimensions"}
           />
 
           <TextField
             label="Serial Number"
             value={formSerialNumber}
-            onChange={(e) => setFormSerialNumber(e.target.value)}
+            onChange={(e) => { setFieldErrors((fe) => ({ ...fe, serial: undefined })); setFormSerialNumber(e.target.value); }}
             fullWidth
             size="small"
             placeholder="e.g. SN-09823481"
-            helperText="Manufacturer serial number (max 100 characters)"
+            error={!!fieldErrors.serial}
+            helperText={fieldErrors.serial ?? "Manufacturer serial number (max 100 characters)"}
           />
 
           <TextField
             label="USP Designation"
             value={formUspDesignation}
-            onChange={(e) => setFormUspDesignation(e.target.value.slice(0, 10))}
+            onChange={(e) => { setFieldErrors((fe) => ({ ...fe, usp: undefined })); setFormUspDesignation(e.target.value.slice(0, 10)); }}
             fullWidth
             size="small"
             placeholder="L1"
             slotProps={{ htmlInput: { maxLength: 10 } }}
-            helperText="USP packing code (e.g. L1 for C18, L7 for C8, L11 for Phenyl)"
+            error={!!fieldErrors.usp}
+            helperText={fieldErrors.usp ?? "USP packing code (e.g. L1 for C18, L7 for C8, L11 for Phenyl)"}
           />
 
           {/* Laboratory Section Select */}
           {(!editingColumn && mySections.length > 1) || (editingColumn && sections.length > 0) ? (
-            <FormControl fullWidth size="small" required={!editingColumn && mySections.length > 1}>
+            <FormControl fullWidth size="small" required={!editingColumn && mySections.length > 1} error={!!fieldErrors.section}>
               <InputLabel id="column-form-section-label">Laboratory Section</InputLabel>
               <Select
                 labelId="column-form-section-label"
@@ -560,6 +443,7 @@ export function ChromatographyColumnsPage() {
                 value={formSectionId}
                 onChange={(e) => {
                   const newSecId = e.target.value;
+                  setFieldErrors((fe) => ({ ...fe, section: undefined }));
                   setFormSectionId(newSecId);
                   // Reset compatible equipment if they don't belong to the newly selected section
                   if (newSecId) {
@@ -579,6 +463,7 @@ export function ChromatographyColumnsPage() {
                   </MenuItem>
                 ))}
               </Select>
+              {fieldErrors.section && <FormHelperText>{fieldErrors.section}</FormHelperText>}
             </FormControl>
           ) : null}
 
@@ -650,8 +535,7 @@ export function ChromatographyColumnsPage() {
               </Stack>
             </FormControl>
           )}
-        </Stack>
-      </FloatingDialog>
+      </FormDialog>
 
       {/* Deactivate Confirmation Dialog */}
       <ConfirmationDialog
@@ -663,6 +547,6 @@ export function ChromatographyColumnsPage() {
         onConfirm={handleConfirmDeactivate}
         onCancel={() => setColumnToDeactivate(null)}
       />
-    </Box>
+    </LabPage>
   );
 }

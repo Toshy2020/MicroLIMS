@@ -8,34 +8,21 @@ import {
   Select,
   MenuItem,
   FormControl,
+  FormHelperText,
   InputLabel,
-  Table,
-  TableHead,
-  TableRow,
-  TableCell,
-  TableBody,
-  TableContainer,
   Chip,
   Stack,
-  IconButton,
-  Tooltip,
-  CircularProgress,
   Alert,
-  Checkbox,
-  useTheme
+  Checkbox
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
-import EditIcon from "@mui/icons-material/Edit";
-import BlockIcon from "@mui/icons-material/Block";
-import RefreshIcon from "@mui/icons-material/Refresh";
-import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutlined";
 import ScienceOutlinedIcon from "@mui/icons-material/ScienceOutlined";
 import ColorLensOutlinedIcon from "@mui/icons-material/ColorLensOutlined";
 import VerifiedOutlinedIcon from "@mui/icons-material/VerifiedOutlined";
-import { PageHeader } from "../../../components/PageHeader";
-import { FloatingDialog } from "../../../components/FloatingDialog";
+import { LabPage, FilterBar, RegisterTable, RegisterColumn, FormDialog } from "../../../components/lab";
+import { StatusBadge } from "../../../components/StatusBadge";
+import { monospaceFontFamily } from "../../../theme/palette";
 import { ConfirmationDialog } from "../../../components/ConfirmationDialog";
-import { tableHeadSx } from "../../../theme";
 import { toast } from "sonner";
 import {
   MaterialMasterService,
@@ -67,7 +54,6 @@ const CATEGORY_OPTIONS: Array<{ value: MaterialMasterCategory; label: string }> 
 ];
 
 export function MaterialMasterPage() {
-  const theme = useTheme();
   const { sections, sectionName } = useLaboratorySections();
 
   const [entries, setEntries] = useState<MaterialMasterEntry[]>([]);
@@ -102,6 +88,8 @@ export function MaterialMasterPage() {
   const [formIndicatorUse, setFormIndicatorUse] = useState("");
 
   const [dialogError, setDialogError] = useState<string | null>(null);
+  // Client-side validation errors, shown on the field instead of the top alert.
+  const [fieldErrors, setFieldErrors] = useState<Partial<Record<"code" | "name" | "unit" | "section" | "range", string>>>({});
   const [saving, setSaving] = useState(false);
 
   // Toggle Active (Activate / Deactivate) Confirmation Dialog
@@ -150,6 +138,7 @@ export function MaterialMasterPage() {
     setFormColourChange("");
     setFormIndicatorUse("");
     setDialogError(null);
+    setFieldErrors({});
     setDialogOpen(true);
   };
 
@@ -171,6 +160,7 @@ export function MaterialMasterPage() {
     setFormColourChange(entry.colourChange ?? "");
     setFormIndicatorUse(entry.indicatorUse ?? "");
     setDialogError(null);
+    setFieldErrors({});
     setDialogOpen(true);
   };
 
@@ -181,31 +171,21 @@ export function MaterialMasterPage() {
     const trimmedGrade = formGrade.trim();
     const trimmedSource = formSource.trim();
 
-    if (!trimmedCode) {
-      setDialogError("Code is required.");
-      return;
-    }
-    if (!trimmedName) {
-      setDialogError("Name is required.");
-      return;
-    }
-    if (!formBaseUnit) {
-      setDialogError("Base Unit is required.");
-      return;
-    }
-    if (!editingEntry && mySections.length > 1 && !formSectionId) {
-      setDialogError("Laboratory Section is required.");
-      return;
-    }
+    const errors: typeof fieldErrors = {};
+    if (!trimmedCode) errors.code = "Code is required.";
+    if (!trimmedName) errors.name = "Name is required.";
+    if (!formBaseUnit) errors.unit = "Base Unit is required.";
+    if (!editingEntry && mySections.length > 1 && !formSectionId) errors.section = "Laboratory Section is required.";
 
     if (formCategory === "Indicator") {
       const fromVal = formTransitionRangeFrom !== "" ? Number(formTransitionRangeFrom) : null;
       const toVal = formTransitionRangeTo !== "" ? Number(formTransitionRangeTo) : null;
       if (fromVal !== null && toVal !== null && fromVal > toVal) {
-        setDialogError("Transition range 'from' must not be above 'to'.");
-        return;
+        errors.range = "Transition range 'from' must not be above 'to'.";
       }
     }
+    setFieldErrors(errors);
+    if (Object.keys(errors).length > 0) return;
 
     const payload: SaveMaterialMasterEntryRequest = {
       code: trimmedCode,
@@ -345,254 +325,191 @@ export function MaterialMasterPage() {
     }
   };
 
+  const addButton = (
+    <Button variant="contained" startIcon={<AddIcon />} onClick={handleOpenAdd} sx={{ fontWeight: 600, textTransform: "none" }}>
+      Add Entry
+    </Button>
+  );
+
+  const tableColumns: RegisterColumn<MaterialMasterEntry>[] = [
+    {
+      key: "code",
+      label: "Code",
+      sortable: true,
+      render: (entry) => (
+        <Typography component="span" sx={{ fontFamily: monospaceFontFamily, fontWeight: 600, fontSize: "0.875rem" }}>{entry.code}</Typography>
+      )
+    },
+    {
+      key: "name",
+      label: "Name",
+      sortable: true,
+      render: (entry) => (
+        <>
+          <div>{entry.name}</div>
+          {entry.category === "Indicator" && (entry.colourChange || entry.transitionRangeFrom != null || entry.indicatorUse) && (
+            <Typography variant="caption" color="text.secondary" sx={{ display: "block" }}>
+              {[
+                entry.transitionRangeFrom != null || entry.transitionRangeTo != null
+                  ? `pH ${entry.transitionRangeFrom ?? "?"}–${entry.transitionRangeTo ?? "?"}`
+                  : null,
+                entry.colourChange,
+                entry.indicatorUse
+              ].filter(Boolean).join(" · ")}
+            </Typography>
+          )}
+        </>
+      )
+    },
+    { key: "category", label: "Category", sortable: true, render: (entry) => renderCategoryChip(entry.category) },
+    {
+      key: "grade",
+      label: "Grade",
+      sortable: true,
+      render: (entry) => entry.grade || <Typography variant="body2" color="text.secondary">—</Typography>
+    },
+    {
+      key: "source",
+      label: "Source",
+      sortable: true,
+      render: (entry) => entry.source || <Typography variant="body2" color="text.secondary">—</Typography>
+    },
+    {
+      key: "baseUnit",
+      label: "Base Unit",
+      sortable: true,
+      render: (entry) => <Chip label={entry.baseUnit} size="small" variant="outlined" sx={{ fontSize: 11 }} />
+    },
+    {
+      key: "section",
+      label: "Section",
+      sortable: true,
+      sortValue: (entry) => resolveSectionDisplay(entry.sectionId, entry.sectionName),
+      render: (entry) => (
+        <Chip label={resolveSectionDisplay(entry.sectionId, entry.sectionName)} size="small" variant="outlined" sx={{ fontSize: 12 }} />
+      )
+    },
+    {
+      key: "isActive",
+      label: "Status",
+      sortable: true,
+      sortValue: (entry) => (entry.isActive ? 0 : 1),
+      render: (entry) => <StatusBadge status={entry.isActive ? "Active" : "Inactive"} />
+    }
+  ];
+
+  const filtersActive =
+    Boolean(searchQuery.trim()) || categoryFilter !== "ALL" || statusFilter !== "ALL" || sectionFilter !== "ALL";
+
   return (
-    <Box sx={{ p: 3 }}>
-      <PageHeader
-        title="Reagents & Reference Standards"
-        subtitle="Manage master definitions for chemical reagents, indicators, and reference standards across laboratory sections."
+    <LabPage
+      title="Reagents & Reference Standards"
+      subtitle="Manage master definitions for chemical reagents, indicators, and reference standards across laboratory sections."
+      actions={addButton}
+      filters={
+        <FilterBar
+          search={searchQuery}
+          onSearch={setSearchQuery}
+          placeholder="Search code, name, grade, source..."
+          resultCount={filteredEntries.length}
+          onRefresh={loadData}
+          refreshing={loading}
+        >
+          <FormControl size="small" sx={{ minWidth: 160 }}>
+            <InputLabel id="entry-category-filter-label">Category</InputLabel>
+            <Select
+              labelId="entry-category-filter-label"
+              label="Category"
+              value={categoryFilter}
+              onChange={(e) => setCategoryFilter(e.target.value as "ALL" | MaterialMasterCategory)}
+            >
+              <MenuItem value="ALL">All Categories</MenuItem>
+              <MenuItem value="Reagent">Reagent</MenuItem>
+              <MenuItem value="Indicator">Indicator</MenuItem>
+              <MenuItem value="ReferenceStandard">Reference Standard</MenuItem>
+            </Select>
+          </FormControl>
+
+          <FormControl size="small" sx={{ minWidth: 150 }}>
+            <InputLabel id="entry-status-filter-label">Status</InputLabel>
+            <Select
+              labelId="entry-status-filter-label"
+              label="Status"
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value as "ALL" | "ACTIVE" | "INACTIVE")}
+            >
+              <MenuItem value="ALL">All Statuses</MenuItem>
+              <MenuItem value="ACTIVE">Active Only</MenuItem>
+              <MenuItem value="INACTIVE">Inactive Only</MenuItem>
+            </Select>
+          </FormControl>
+
+          <FormControl size="small" sx={{ minWidth: 180 }}>
+            <InputLabel id="entry-section-filter-label">Section</InputLabel>
+            <Select
+              labelId="entry-section-filter-label"
+              label="Section"
+              value={sectionFilter}
+              onChange={(e) => setSectionFilter(e.target.value)}
+            >
+              <MenuItem value="ALL">All Sections</MenuItem>
+              {sections.map((sec) => (
+                <MenuItem key={sec.sectionId} value={String(sec.sectionId)}>
+                  {sec.sectionName}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+        </FilterBar>
+      }
+    >
+      {error && <Alert severity="error">{error}</Alert>}
+
+      <RegisterTable
+        columns={tableColumns}
+        rows={filteredEntries}
+        getRowId={(entry) => entry.id}
+        loading={loading}
+        onRowClick={handleOpenEdit}
+        rowActions={(entry) => [
+          { label: "Edit", onClick: () => handleOpenEdit(entry) },
+          entry.isActive
+            ? { label: "Deactivate", onClick: () => setEntryToToggle(entry), danger: true }
+            : { label: "Activate", onClick: () => setEntryToToggle(entry) }
+        ]}
+        empty={
+          filtersActive
+            ? { title: "No material master entries found", description: "Try adjusting your search or filters." }
+            : {
+                title: "No material master entries found",
+                description: "Register your first reagent, indicator, or reference standard.",
+                action: addButton
+              }
+        }
       />
 
-      {error && (
-        <Alert severity="error" sx={{ mb: 3 }}>
-          {error}
-        </Alert>
-      )}
-
-      {/* Filter & Action Toolbar */}
-      <Paper sx={{ p: 2.5, mb: 3 }}>
-        <Stack
-          direction={{ xs: "column", sm: "row" }}
-          spacing={2}
-          sx={{
-            alignItems: { sm: "center" },
-            justifyContent: "space-between",
-            flexWrap: "wrap"
-          }}
-        >
-          <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5} sx={{ flexWrap: "wrap", flex: 1 }}>
-            <TextField
-              size="small"
-              placeholder="Search code, name, grade, source..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              sx={{ minWidth: 260 }}
-            />
-
-            <FormControl size="small" sx={{ minWidth: 160 }}>
-              <InputLabel id="entry-category-filter-label">Category</InputLabel>
-              <Select
-                labelId="entry-category-filter-label"
-                label="Category"
-                value={categoryFilter}
-                onChange={(e) => setCategoryFilter(e.target.value as "ALL" | MaterialMasterCategory)}
-              >
-                <MenuItem value="ALL">All Categories</MenuItem>
-                <MenuItem value="Reagent">Reagent</MenuItem>
-                <MenuItem value="Indicator">Indicator</MenuItem>
-                <MenuItem value="ReferenceStandard">Reference Standard</MenuItem>
-              </Select>
-            </FormControl>
-
-            <FormControl size="small" sx={{ minWidth: 150 }}>
-              <InputLabel id="entry-status-filter-label">Status</InputLabel>
-              <Select
-                labelId="entry-status-filter-label"
-                label="Status"
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value as "ALL" | "ACTIVE" | "INACTIVE")}
-              >
-                <MenuItem value="ALL">All Statuses</MenuItem>
-                <MenuItem value="ACTIVE">Active Only</MenuItem>
-                <MenuItem value="INACTIVE">Inactive Only</MenuItem>
-              </Select>
-            </FormControl>
-
-            <FormControl size="small" sx={{ minWidth: 180 }}>
-              <InputLabel id="entry-section-filter-label">Section</InputLabel>
-              <Select
-                labelId="entry-section-filter-label"
-                label="Section"
-                value={sectionFilter}
-                onChange={(e) => setSectionFilter(e.target.value)}
-              >
-                <MenuItem value="ALL">All Sections</MenuItem>
-                {sections.map((sec) => (
-                  <MenuItem key={sec.sectionId} value={String(sec.sectionId)}>
-                    {sec.sectionName}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-
-            <Tooltip title="Refresh">
-              <IconButton onClick={loadData} size="small" sx={{ alignSelf: "center" }}>
-                <RefreshIcon />
-              </IconButton>
-            </Tooltip>
-          </Stack>
-
-          <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            onClick={handleOpenAdd}
-            sx={{ fontWeight: 600, textTransform: "none", height: 40 }}
-          >
-            Add Entry
-          </Button>
-        </Stack>
-      </Paper>
-
-      {/* Material Master Table */}
-      <TableContainer
-        component={Paper}
-        elevation={0}
-        sx={{ border: "1px solid", borderColor: "divider", borderRadius: 2 }}
-      >
-        <Table size="small">
-          <TableHead>
-            <TableRow sx={tableHeadSx(theme)}>
-              <TableCell sx={{ fontWeight: 600 }}>Code</TableCell>
-              <TableCell sx={{ fontWeight: 600 }}>Name</TableCell>
-              <TableCell sx={{ fontWeight: 600 }}>Category</TableCell>
-              <TableCell sx={{ fontWeight: 600 }}>Grade</TableCell>
-              <TableCell sx={{ fontWeight: 600 }}>Source</TableCell>
-              <TableCell sx={{ fontWeight: 600 }}>Base Unit</TableCell>
-              <TableCell sx={{ fontWeight: 600 }}>Section</TableCell>
-              <TableCell sx={{ fontWeight: 600 }}>Status</TableCell>
-              <TableCell align="right" sx={{ fontWeight: 600 }}>Actions</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {loading ? (
-              <TableRow>
-                <TableCell colSpan={9} align="center" sx={{ py: 6 }}>
-                  <CircularProgress size={32} />
-                  <Typography variant="body2" sx={{ mt: 1, color: "text.secondary" }}>
-                    Loading reagents &amp; standards...
-                  </Typography>
-                </TableCell>
-              </TableRow>
-            ) : filteredEntries.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={9} align="center" sx={{ py: 6 }}>
-                  <ScienceOutlinedIcon sx={{ fontSize: 40, color: "text.disabled", mb: 1 }} />
-                  <Typography variant="body1" sx={{ color: "text.secondary", fontWeight: 500 }}>
-                    No material master entries found
-                  </Typography>
-                  <Typography variant="body2" sx={{ color: "text.disabled", mt: 0.5 }}>
-                    {searchQuery || categoryFilter !== "ALL" || statusFilter !== "ALL" || sectionFilter !== "ALL"
-                      ? "Try adjusting your search or filters."
-                      : "Click 'Add Entry' to register your first reagent, indicator, or reference standard."}
-                  </Typography>
-                </TableCell>
-              </TableRow>
-            ) : (
-              filteredEntries.map((entry) => (
-                <TableRow key={entry.id} hover>
-                  <TableCell sx={{ fontFamily: "monospace", fontWeight: 600, fontSize: "0.875rem" }}>
-                    {entry.code}
-                  </TableCell>
-                  <TableCell sx={{ fontWeight: 500 }}>
-                    <div>{entry.name}</div>
-                    {entry.category === "Indicator" && (entry.colourChange || entry.transitionRangeFrom != null || entry.indicatorUse) && (
-                      <Typography variant="caption" color="text.secondary" sx={{ display: "block" }}>
-                        {[
-                          entry.transitionRangeFrom != null || entry.transitionRangeTo != null
-                            ? `pH ${entry.transitionRangeFrom ?? "?"}–${entry.transitionRangeTo ?? "?"}`
-                            : null,
-                          entry.colourChange,
-                          entry.indicatorUse
-                        ].filter(Boolean).join(" · ")}
-                      </Typography>
-                    )}
-                  </TableCell>
-                  <TableCell>{renderCategoryChip(entry.category)}</TableCell>
-                  <TableCell>{entry.grade || <Typography variant="body2" color="text.secondary">—</Typography>}</TableCell>
-                  <TableCell>{entry.source || <Typography variant="body2" color="text.secondary">—</Typography>}</TableCell>
-                  <TableCell>
-                    <Chip label={entry.baseUnit} size="small" variant="outlined" sx={{ fontSize: 11 }} />
-                  </TableCell>
-                  <TableCell>
-                    <Chip
-                      label={resolveSectionDisplay(entry.sectionId, entry.sectionName)}
-                      size="small"
-                      variant="outlined"
-                      sx={{ fontSize: 12 }}
-                    />
-                  </TableCell>
-                  <TableCell>
-                    <Chip
-                      icon={entry.isActive ? <CheckCircleOutlineIcon fontSize="small" /> : <BlockIcon fontSize="small" />}
-                      label={entry.isActive ? "Active" : "Inactive"}
-                      size="small"
-                      color={entry.isActive ? "success" : "default"}
-                      sx={{ fontSize: 11, fontWeight: 600 }}
-                    />
-                  </TableCell>
-                  <TableCell align="right">
-                    <Stack direction="row" spacing={0.5} sx={{ justifyContent: "flex-end" }}>
-                      <Tooltip title="Edit Entry">
-                        <IconButton size="small" onClick={() => handleOpenEdit(entry)}>
-                          <EditIcon fontSize="small" />
-                        </IconButton>
-                      </Tooltip>
-                      <Tooltip title={entry.isActive ? "Deactivate Entry" : "Activate Entry"}>
-                        <IconButton
-                          size="small"
-                          color={entry.isActive ? "error" : "success"}
-                          onClick={() => setEntryToToggle(entry)}
-                        >
-                          {entry.isActive ? <BlockIcon fontSize="small" /> : <CheckCircleOutlineIcon fontSize="small" />}
-                        </IconButton>
-                      </Tooltip>
-                    </Stack>
-                  </TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </TableContainer>
-
       {/* Create / Edit Floating Dialog */}
-      <FloatingDialog
+      <FormDialog
         open={dialogOpen}
         title={editingEntry ? `Edit Master Entry: ${editingEntry.code}` : "Add Reagent or Standard Master"}
         onClose={() => setDialogOpen(false)}
+        onSubmit={handleSave}
+        submitLabel={saving ? "Saving..." : editingEntry ? "Save Changes" : "Create Entry"}
+        submitting={saving}
+        error={dialogError}
         maxWidth="md"
-        actions={
-          <>
-            <Button onClick={() => setDialogOpen(false)} disabled={saving} sx={{ textTransform: "none" }}>
-              Cancel
-            </Button>
-            <Button
-              variant="contained"
-              onClick={handleSave}
-              disabled={saving}
-              sx={{ textTransform: "none", fontWeight: 600 }}
-            >
-              {saving ? "Saving..." : editingEntry ? "Save Changes" : "Create Entry"}
-            </Button>
-          </>
-        }
       >
-        <Stack spacing={2.5} sx={{ pt: 1 }}>
-          {dialogError && (
-            <Alert severity="error" onClose={() => setDialogError(null)}>
-              {dialogError}
-            </Alert>
-          )}
-
           <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "repeat(2, 1fr)" }, gap: 2 }}>
             <TextField
               label="Code"
               value={formCode}
-              onChange={(e) => setFormCode(e.target.value.toUpperCase())}
+              onChange={(e) => { setFieldErrors((fe) => ({ ...fe, code: undefined })); setFormCode(e.target.value.toUpperCase()); }}
               required
               fullWidth
               size="small"
               placeholder="e.g. NAOH-01, USP-RS-ASP"
-              helperText="Unique code within laboratory section (e.g. NAOH-01)"
+              error={!!fieldErrors.code}
+              helperText={fieldErrors.code ?? "Unique code within laboratory section (e.g. NAOH-01)"}
             />
 
             <FormControl fullWidth size="small" required>
@@ -614,22 +531,23 @@ export function MaterialMasterPage() {
             <TextField
               label="Name"
               value={formName}
-              onChange={(e) => setFormName(e.target.value)}
+              onChange={(e) => { setFieldErrors((fe) => ({ ...fe, name: undefined })); setFormName(e.target.value); }}
               required
               fullWidth
               size="small"
               placeholder="e.g. Sodium Hydroxide Pellets"
-              helperText="Descriptive chemical or standard name"
+              error={!!fieldErrors.name}
+              helperText={fieldErrors.name ?? "Descriptive chemical or standard name"}
               sx={{ gridColumn: { xs: "1", sm: "span 2" } }}
             />
 
-            <FormControl fullWidth size="small" required>
+            <FormControl fullWidth size="small" required error={!!fieldErrors.unit}>
               <InputLabel id="entry-base-unit-select-label">Base Unit</InputLabel>
               <Select
                 labelId="entry-base-unit-select-label"
                 label="Base Unit"
                 value={formBaseUnit}
-                onChange={(e) => setFormBaseUnit(e.target.value as MaterialUnit)}
+                onChange={(e) => { setFieldErrors((fe) => ({ ...fe, unit: undefined })); setFormBaseUnit(e.target.value as MaterialUnit); }}
               >
                 {MATERIAL_UNITS.map((u) => (
                   <MenuItem key={u} value={u}>
@@ -637,6 +555,7 @@ export function MaterialMasterPage() {
                   </MenuItem>
                 ))}
               </Select>
+              {fieldErrors.unit && <FormHelperText>{fieldErrors.unit}</FormHelperText>}
             </FormControl>
 
             <TextField
@@ -661,13 +580,13 @@ export function MaterialMasterPage() {
 
             {/* Laboratory Section Select */}
             {(!editingEntry && mySections.length > 1) || (editingEntry && sections.length > 0) ? (
-              <FormControl fullWidth size="small" required={!editingEntry && mySections.length > 1}>
+              <FormControl fullWidth size="small" required={!editingEntry && mySections.length > 1} error={!!fieldErrors.section}>
                 <InputLabel id="entry-form-section-label">Laboratory Section</InputLabel>
                 <Select
                   labelId="entry-form-section-label"
                   label="Laboratory Section"
                   value={formSectionId}
-                  onChange={(e) => setFormSectionId(e.target.value)}
+                  onChange={(e) => { setFieldErrors((fe) => ({ ...fe, section: undefined })); setFormSectionId(e.target.value); }}
                 >
                   {(!editingEntry && mySections.length > 1 ? mySections : sections).map((sec) => (
                     <MenuItem key={sec.sectionId} value={sec.sectionId}>
@@ -675,6 +594,7 @@ export function MaterialMasterPage() {
                     </MenuItem>
                   ))}
                 </Select>
+                {fieldErrors.section && <FormHelperText>{fieldErrors.section}</FormHelperText>}
               </FormControl>
             ) : null}
           </Box>
@@ -706,22 +626,24 @@ export function MaterialMasterPage() {
                   label="Transition Range (From)"
                   type="number"
                   value={formTransitionRangeFrom}
-                  onChange={(e) => setFormTransitionRangeFrom(e.target.value)}
+                  onChange={(e) => { setFieldErrors((fe) => ({ ...fe, range: undefined })); setFormTransitionRangeFrom(e.target.value); }}
                   size="small"
                   fullWidth
                   placeholder="e.g. 8.2"
                   slotProps={{ htmlInput: { step: "0.01" } }}
-                  helperText="Lower pH limit"
+                  error={!!fieldErrors.range}
+                  helperText={fieldErrors.range ?? "Lower pH limit"}
                 />
                 <TextField
                   label="Transition Range (To)"
                   type="number"
                   value={formTransitionRangeTo}
-                  onChange={(e) => setFormTransitionRangeTo(e.target.value)}
+                  onChange={(e) => { setFieldErrors((fe) => ({ ...fe, range: undefined })); setFormTransitionRangeTo(e.target.value); }}
                   size="small"
                   fullWidth
                   placeholder="e.g. 10.0"
                   slotProps={{ htmlInput: { step: "0.01" } }}
+                  error={!!fieldErrors.range}
                   helperText="Upper pH limit"
                 />
                 <TextField
@@ -763,8 +685,7 @@ export function MaterialMasterPage() {
               </Stack>
             </FormControl>
           )}
-        </Stack>
-      </FloatingDialog>
+      </FormDialog>
 
       {/* Confirmation Dialog for Activate / Deactivate */}
       <ConfirmationDialog
@@ -780,6 +701,6 @@ export function MaterialMasterPage() {
         onConfirm={handleConfirmToggleActive}
         onCancel={() => setEntryToToggle(null)}
       />
-    </Box>
+    </LabPage>
   );
 }

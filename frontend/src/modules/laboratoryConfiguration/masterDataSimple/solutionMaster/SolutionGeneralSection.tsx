@@ -7,11 +7,12 @@ import {
   MenuItem,
   FormControl,
   InputLabel,
+  FormHelperText,
   Stack
 } from "@mui/material";
 import { SolutionType, ShelfLifeUnit } from "../services/SolutionMasterService";
 import { LaboratorySection } from "../../../../services/laboratorySectionService";
-import { SOLUTION_TYPE_OPTIONS, SHELF_LIFE_UNIT_OPTIONS } from "./solutionForm";
+import { SOLUTION_TYPE_OPTIONS, SHELF_LIFE_UNIT_OPTIONS, SolutionFieldKey } from "./solutionForm";
 
 export interface SolutionGeneralSectionProps {
   name: string;
@@ -25,6 +26,8 @@ export interface SolutionGeneralSectionProps {
   isEditing: boolean;
   sections: LaboratorySection[];
   mySections: LaboratorySection[];
+  // Client-side validation messages, shown on the field.
+  errors?: Partial<Record<SolutionFieldKey, string>>;
   onNameChange: (value: string) => void;
   onTypeChange: (value: SolutionType) => void;
   onShelfLifeValueChange: (value: string) => void;
@@ -47,6 +50,7 @@ export function SolutionGeneralSection({
   isEditing,
   sections,
   mySections,
+  errors = {},
   onNameChange,
   onTypeChange,
   onShelfLifeValueChange,
@@ -72,7 +76,8 @@ export function SolutionGeneralSection({
           fullWidth
           size="small"
           placeholder="e.g. 0.1M Phosphate Buffer pH 3.0, Mobile Phase A"
-          helperText="Descriptive name of the solution recipe"
+          error={!!errors.name}
+          helperText={errors.name ?? "Descriptive name of the solution recipe"}
           sx={{ gridColumn: { xs: "1", sm: "span 2" } }}
         />
 
@@ -94,7 +99,7 @@ export function SolutionGeneralSection({
 
         {/* Laboratory Section Select (if creating and user has multiple sections, or display current) */}
         {showSectionSelect ? (
-          <FormControl fullWidth size="small" required={!isEditing && mySections.length > 1}>
+          <FormControl fullWidth size="small" required={!isEditing && mySections.length > 1} error={!!errors.section}>
             <InputLabel id="solution-section-select-label">Laboratory Section</InputLabel>
             <Select
               labelId="solution-section-select-label"
@@ -109,6 +114,7 @@ export function SolutionGeneralSection({
                 </MenuItem>
               ))}
             </Select>
+            {errors.section && <FormHelperText>{errors.section}</FormHelperText>}
           </FormControl>
         ) : null}
 
@@ -120,7 +126,9 @@ export function SolutionGeneralSection({
             onChange={(e) => onShelfLifeValueChange(e.target.value)}
             required
             size="small"
-            sx={{ width: 140 }}
+            error={!!errors.shelfLife}
+            helperText={errors.shelfLife}
+            sx={{ width: errors.shelfLife ? 200 : 140 }}
             slotProps={{ htmlInput: { min: "1", step: "1" } }}
           />
           <FormControl size="small" sx={{ width: 130 }} required>
@@ -149,7 +157,8 @@ export function SolutionGeneralSection({
             fullWidth
             placeholder="e.g. 1000"
             slotProps={{ htmlInput: { min: "0.1", step: "any" } }}
-            helperText="Nominal total prepared volume in mL"
+            error={!!errors.finalVolume}
+            helperText={errors.finalVolume ?? "Nominal total prepared volume in mL"}
           />
         </Stack>
 
@@ -161,7 +170,8 @@ export function SolutionGeneralSection({
           fullWidth
           size="small"
           placeholder="e.g. Store at 20-25°C in amber glass bottle"
-          helperText="Temperature, container, and light protection requirements"
+          error={!!errors.storage}
+          helperText={errors.storage ?? "Temperature, container, and light protection requirements"}
           sx={{ gridColumn: { xs: "1", sm: "span 2" } }}
         />
 
@@ -175,7 +185,8 @@ export function SolutionGeneralSection({
           rows={3}
           size="small"
           placeholder="Step-by-step preparation protocol, sonication, degassing, and filtering requirements..."
-          helperText="Detailed SOP instructions for the laboratory analyst"
+          error={!!errors.instructions}
+          helperText={errors.instructions ?? "Detailed SOP instructions for the laboratory analyst"}
           sx={{ gridColumn: { xs: "1", sm: "span 2" } }}
         />
       </Box>

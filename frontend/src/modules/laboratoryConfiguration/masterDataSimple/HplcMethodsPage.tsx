@@ -1,21 +1,14 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import {
-  Box,
-  Paper,
   Button,
-  TextField,
   Select,
   MenuItem,
   FormControl,
   InputLabel,
-  Stack,
-  IconButton,
-  Tooltip,
   Alert
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
-import RefreshIcon from "@mui/icons-material/Refresh";
-import { PageHeader } from "../../../components/PageHeader";
+import { LabPage, FilterBar } from "../../../components/lab";
 import { toast } from "sonner";
 import { HplcMethodTable } from "./hplcMethod/HplcMethodTable";
 import {
@@ -153,73 +146,60 @@ export function HplcMethodsPage() {
     return "Section";
   };
 
+  const addButton = (
+    <Button variant="contained" startIcon={<AddIcon />} onClick={handleOpenAdd} sx={{ fontWeight: 600, textTransform: "none" }}>
+      Add Method
+    </Button>
+  );
+
   return (
-    <Box sx={{ p: 3 }}>
-      <PageHeader
-        title="HPLC Methods Master"
-        subtitle="Manage chromatography methods, column chemistry, mobile phase channels, gradient steps, and analyte theoretical constants with SST criteria."
-      />
+    <LabPage
+      title="HPLC Methods Master"
+      subtitle="Manage chromatography methods, column chemistry, mobile phase channels, gradient steps, and analyte theoretical constants with SST criteria."
+      actions={addButton}
+      filters={
+        <FilterBar
+          search={searchQuery}
+          onSearch={setSearchQuery}
+          placeholder="Search by name, abbreviation, section..."
+          resultCount={filteredMethods.length}
+          onRefresh={loadData}
+          refreshing={loading}
+        >
+          <FormControl size="small" sx={{ minWidth: 150 }}>
+            <InputLabel id="method-status-filter-label">Status</InputLabel>
+            <Select
+              labelId="method-status-filter-label"
+              label="Status"
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value as "ALL" | "ACTIVE" | "INACTIVE")}
+            >
+              <MenuItem value="ALL">All Statuses</MenuItem>
+              <MenuItem value="ACTIVE">Active Only</MenuItem>
+              <MenuItem value="INACTIVE">Inactive Only</MenuItem>
+            </Select>
+          </FormControl>
+          <FormControl size="small" sx={{ minWidth: 180 }}>
+            <InputLabel id="method-section-filter-label">Section</InputLabel>
+            <Select
+              labelId="method-section-filter-label"
+              label="Section"
+              value={sectionFilter}
+              onChange={(e) => setSectionFilter(e.target.value)}
+            >
+              <MenuItem value="ALL">All Sections</MenuItem>
+              {sections.map((sec) => (
+                <MenuItem key={sec.sectionId} value={sec.sectionName}>
+                  {sec.sectionName}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+        </FilterBar>
+      }
+    >
+      {error && <Alert severity="error">{error}</Alert>}
 
-      {error && <Alert severity="error" sx={{ mb: 3 }}>{error}</Alert>}
-
-      {/* Filter & Action Toolbar */}
-      <Paper sx={{ p: 2.5, mb: 3 }}>
-        <Stack direction={{ xs: "column", sm: "row" }} spacing={2} sx={{ alignItems: { sm: "center" }, justifyContent: "space-between", flexWrap: "wrap" }}>
-          <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5} sx={{ flexWrap: "wrap", flex: 1 }}>
-            <TextField
-              size="small"
-              placeholder="Search by name, abbreviation, section..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              sx={{ minWidth: 280 }}
-            />
-            <FormControl size="small" sx={{ minWidth: 150 }}>
-              <InputLabel id="method-status-filter-label">Status</InputLabel>
-              <Select
-                labelId="method-status-filter-label"
-                label="Status"
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value as "ALL" | "ACTIVE" | "INACTIVE")}
-              >
-                <MenuItem value="ALL">All Statuses</MenuItem>
-                <MenuItem value="ACTIVE">Active Only</MenuItem>
-                <MenuItem value="INACTIVE">Inactive Only</MenuItem>
-              </Select>
-            </FormControl>
-            <FormControl size="small" sx={{ minWidth: 180 }}>
-              <InputLabel id="method-section-filter-label">Section</InputLabel>
-              <Select
-                labelId="method-section-filter-label"
-                label="Section"
-                value={sectionFilter}
-                onChange={(e) => setSectionFilter(e.target.value)}
-              >
-                <MenuItem value="ALL">All Sections</MenuItem>
-                {sections.map((sec) => (
-                  <MenuItem key={sec.sectionId} value={sec.sectionName}>
-                    {sec.sectionName}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-            <Tooltip title="Refresh">
-              <IconButton onClick={loadData} size="small" sx={{ alignSelf: "center" }}>
-                <RefreshIcon />
-              </IconButton>
-            </Tooltip>
-          </Stack>
-          <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            onClick={handleOpenAdd}
-            sx={{ fontWeight: 600, textTransform: "none", height: 40 }}
-          >
-            Add Method
-          </Button>
-        </Stack>
-      </Paper>
-
-      {/* Methods Table */}
       <HplcMethodTable
         methods={filteredMethods}
         loading={loading}
@@ -230,6 +210,7 @@ export function HplcMethodsPage() {
         onViewHistory={(m) => setHistoryMethod(m)}
         onEdit={handleOpenEdit}
         onToggleActive={handleOpenToggleActive}
+        emptyAction={addButton}
       />
 
       {/* Add / Edit Floating Dialog */}
@@ -274,6 +255,6 @@ export function HplcMethodsPage() {
             : `Are you sure you want to activate "${methodToToggle?.name}"?`}
         </Alert>
       </ReasonDialog>
-    </Box>
+    </LabPage>
   );
 }

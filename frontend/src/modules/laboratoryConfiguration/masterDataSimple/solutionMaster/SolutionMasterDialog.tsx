@@ -1,12 +1,10 @@
 import { useState, useEffect, useMemo } from "react";
 import {
   Box,
-  Button,
-  Stack,
   Alert,
   Typography
 } from "@mui/material";
-import { FloatingDialog } from "../../../../components/FloatingDialog";
+import { FormDialog } from "../../../../components/lab";
 import { toast } from "sonner";
 import {
   SolutionMaster,
@@ -21,6 +19,7 @@ import { MaterialMasterEntry } from "../services/MaterialMasterService";
 import { LaboratorySection } from "../../../../services/laboratorySectionService";
 import {
   SolutionFormState,
+  SolutionFieldKey,
   ComponentRowState,
   createInitialSolutionFormState,
   solutionEntityToFormState,
@@ -65,6 +64,8 @@ export function SolutionMasterDialog({
   );
 
   const [dialogError, setDialogError] = useState<string | null>(null);
+  // Client-side validation errors, shown on the field instead of the top alert.
+  const [fieldErrors, setFieldErrors] = useState<Partial<Record<SolutionFieldKey, string>>>({});
   const [saving, setSaving] = useState(false);
   const [saveReasonDialogOpen, setSaveReasonDialogOpen] = useState(false);
   const [saveReason, setSaveReason] = useState("");
@@ -79,6 +80,7 @@ export function SolutionMasterDialog({
         setForm(createInitialSolutionFormState(defaultSecId));
       }
       setDialogError(null);
+      setFieldErrors({});
       setSaving(false);
       setSaveReasonDialogOpen(false);
       setSaveReason("");
@@ -113,6 +115,10 @@ export function SolutionMasterDialog({
 
   const updateFormField = <K extends keyof SolutionFormState>(field: K, value: SolutionFormState[K]) => {
     setForm((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const clearFieldError = (key: SolutionFieldKey) => {
+    setFieldErrors((prev) => (prev[key] ? { ...prev, [key]: undefined } : prev));
   };
 
   const handleAddComponentRow = () => {
@@ -151,13 +157,15 @@ export function SolutionMasterDialog({
 
   const handleInitiateSave = () => {
     setDialogError(null);
+    setFieldErrors({});
     const validationError = validateSolutionForm(form, {
       isEditing: Boolean(editingEntry),
       hasMultipleSections: mySections.length > 1,
       editingEntryId: editingEntry?.id
     });
     if (validationError) {
-      setDialogError(validationError);
+      if (validationError.field) setFieldErrors({ [validationError.field]: validationError.message });
+      else setDialogError(validationError.message);
       return;
     }
 
@@ -212,32 +220,16 @@ export function SolutionMasterDialog({
 
   return (
     <>
-      <FloatingDialog
+      <FormDialog
         open={open}
         title={editingEntry ? `Edit Solution Master: ${editingEntry.name}` : "Add Solution Master"}
         onClose={onClose}
+        onSubmit={handleInitiateSave}
+        submitLabel={saving ? "Saving..." : editingEntry ? "Save Changes" : "Create Solution"}
+        submitting={saving}
+        error={dialogError}
         maxWidth="md"
-        actions={
-          <>
-            <Button onClick={onClose} disabled={saving} sx={{ textTransform: "none" }}>Cancel</Button>
-            <Button
-              variant="contained"
-              onClick={handleInitiateSave}
-              disabled={saving}
-              sx={{ textTransform: "none", fontWeight: 600 }}
-            >
-              {saving ? "Saving..." : editingEntry ? "Save Changes" : "Create Solution"}
-            </Button>
-          </>
-        }
       >
-        <Stack spacing={2.5} sx={{ pt: 1 }}>
-          {dialogError && (
-            <Alert severity="error" onClose={() => setDialogError(null)}>
-              {dialogError}
-            </Alert>
-          )}
-
           <SolutionGeneralSection
             name={form.name}
             type={form.type}
@@ -250,14 +242,15 @@ export function SolutionMasterDialog({
             isEditing={Boolean(editingEntry)}
             sections={sections}
             mySections={mySections}
-            onNameChange={(val) => updateFormField("name", val)}
+            errors={fieldErrors}
+            onNameChange={(val) => { clearFieldError("name"); updateFormField("name", val); }}
             onTypeChange={(val: SolutionType) => updateFormField("type", val)}
-            onShelfLifeValueChange={(val) => updateFormField("shelfLifeValue", val)}
+            onShelfLifeValueChange={(val) => { clearFieldError("shelfLife"); updateFormField("shelfLifeValue", val); }}
             onShelfLifeUnitChange={(val: ShelfLifeUnit) => updateFormField("shelfLifeUnit", val)}
-            onStorageConditionChange={(val) => updateFormField("storageCondition", val)}
-            onFinalVolumeMlChange={(val) => updateFormField("finalVolumeMl", val)}
-            onInstructionsChange={(val) => updateFormField("instructions", val)}
-            onSectionIdChange={(val) => updateFormField("sectionId", val)}
+            onStorageConditionChange={(val) => { clearFieldError("storage"); updateFormField("storageCondition", val); }}
+            onFinalVolumeMlChange={(val) => { clearFieldError("finalVolume"); updateFormField("finalVolumeMl", val); }}
+            onInstructionsChange={(val) => { clearFieldError("instructions"); updateFormField("instructions", val); }}
+            onSectionIdChange={(val) => { clearFieldError("section"); updateFormField("sectionId", val); }}
           />
 
           <SolutionPhSection
@@ -265,9 +258,10 @@ export function SolutionMasterDialog({
             phTolerance={form.phTolerance}
             phAdjustingEntryId={form.phAdjustingEntryId}
             availablePhAdjustingEntries={availablePhAdjustingEntries}
-            onPhTargetChange={(val) => updateFormField("phTarget", val)}
-            onPhToleranceChange={(val) => updateFormField("phTolerance", val)}
-            onPhAdjustingEntryIdChange={(val) => updateFormField("phAdjustingEntryId", val)}
+            errors={fieldErrors}
+            onPhTargetChange={(val) => { clearFieldError("phTarget"); updateFormField("phTarget", val); }}
+            onPhToleranceChange={(val) => { clearFieldError("phTolerance"); updateFormField("phTolerance", val); }}
+            onPhAdjustingEntryIdChange={(val) => { clearFieldError("phAdjuster"); updateFormField("phAdjustingEntryId", val); }}
           />
 
           <SolutionComponentsSection
@@ -309,8 +303,7 @@ export function SolutionMasterDialog({
               onValidityDaysChange={(val) => updateFormField("validityDays", val)}
             />
           )}
-        </Stack>
-      </FloatingDialog>
+      </FormDialog>
 
       {/* Audit Reason Dialog for Editing Solution */}
       <ReasonDialog
